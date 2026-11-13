@@ -67,7 +67,7 @@ export const integratedTerminalShellSelectionSchema = z.discriminatedUnion("mode
 ]);
 const enabledBuiltinAgentCliProvidersSchema = z
   // 兼容旧 settings：历史列表可能残留三方 CLI provider，解析后统一归一为 Nibi Agent。
-  .array(z.enum(["claude", "opencode", "gemini", "codex", "glm"]))
+  .array(z.enum(["claude", "opencode", "gemini", "codex", "glm", "nibi-agent"]))
   .transform(() => [...NIBI_ENABLED_AGENT_PROVIDERS]);
 const providerFamilyDomainSchema = z.enum(["zai", "bigmodel"]);
 

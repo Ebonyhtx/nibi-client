@@ -38,7 +38,7 @@ describe("providerRuntimeResolver workspace config dir identity", () => {
     const workspacePath = "/home/dev";
     const workspaceIdentity = "remote:ssh:localhost:2223:dev:/home/dev";
 
-    expect(resolveProviderConfigDir("glm", workspacePath, workspaceIdentity)).toBe(
+    expect(resolveProviderConfigDir("nibi-agent", workspacePath, workspaceIdentity)).toBe(
       join(home, ".nibi", "cli"),
     );
   });
@@ -64,7 +64,7 @@ describe("providerRuntimeResolver clean env", () => {
     createdDirs.push(dataBaseDir);
     setDataBaseDir(dataBaseDir);
 
-    const env = buildCleanEnv("glm", join(dataBaseDir, ".nibi", "cli"));
+    const env = buildCleanEnv("nibi-agent", join(dataBaseDir, ".nibi", "cli"));
 
     expect(env.HOME).toBe(dataBaseDir);
     if (process.platform === "win32") {
@@ -75,7 +75,7 @@ describe("providerRuntimeResolver clean env", () => {
   it("clean env 会剔除宿主 GOOGLE_API_KEY 并保留调用方额外参数", () => {
     process.env.GOOGLE_API_KEY = "host-google-api-key";
 
-    const env = buildCleanEnv("glm", "/tmp/glm-home", {
+    const env = buildCleanEnv("nibi-agent", "/tmp/glm-home", {
       EXTRA_FLAG: "1",
     });
 
@@ -84,7 +84,7 @@ describe("providerRuntimeResolver clean env", () => {
   });
 
   it("agent 子进程会强制 Python 使用 UTF-8 输出，避免 Windows GBK 字节被模型读成乱码", () => {
-    const env = buildCleanEnv("glm", "/tmp/glm-home");
+    const env = buildCleanEnv("nibi-agent", "/tmp/glm-home");
 
     expect(env.PYTHONIOENCODING).toBe("utf-8");
     expect(env.PYTHONUTF8).toBe("1");

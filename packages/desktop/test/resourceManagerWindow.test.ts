@@ -181,7 +181,7 @@ describe("resourceManagerWindow", () => {
             processes: [
               {
                 pid: agentPid,
-                name: "nibi-agent-glm-demo",
+                name: "nibi-agent-nibi-agent-demo",
                 category: "base",
                 groupKey: "cli",
                 groupLabel: "cli",
@@ -205,7 +205,7 @@ describe("resourceManagerWindow", () => {
     module.registerHostProcess("local-1", child as never);
     module.registerHostAgentProcess("local-1", {
       pid: agentPid,
-      provider: "glm",
+      provider: "nibi-agent",
       workspacePath: "/w/demo",
       command: "node",
       args: [],
@@ -213,7 +213,7 @@ describe("resourceManagerWindow", () => {
     });
     module.registerHostAgentProcess("local-1", {
       pid: unsampledAgentPid,
-      provider: "glm",
+      provider: "nibi-agent",
       workspacePath: "/w/other",
       command: "node",
       args: [],
@@ -232,7 +232,7 @@ describe("resourceManagerWindow", () => {
       expect(byPid.get(mcpPid)).toMatchObject({ category: "community-plugin", sampled: true });
       expect(byPid.get(unsampledAgentPid)).toEqual({
         pid: unsampledAgentPid,
-        name: formatNibiAgentProcessName("glm", "/w/other"),
+        name: formatNibiAgentProcessName("nibi-agent", "/w/other"),
         category: "base",
         groupKey: "cli",
         groupLabel: "cli",

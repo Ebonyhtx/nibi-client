@@ -5,7 +5,7 @@ import type { PromptInputSuggestionItem } from "../src/lib/promptInputTriggers.j
 describe("buildSlashApplyMentionPayload", () => {
   it("skill 建议插入既有 $skill markdown", () => {
     const suggestion: PromptInputSuggestionItem = {
-      id: "skill:glm:workspace:code-review",
+      id: "skill:nibi-agent:workspace:code-review",
       trigger: "/",
       value: "code-review",
       label: "$code-review",
@@ -19,7 +19,7 @@ describe("buildSlashApplyMentionPayload", () => {
     const payload = buildSlashApplyMentionPayload(suggestion);
 
     expect(payload).toEqual({
-      id: "skill:glm:workspace:code-review",
+      id: "skill:nibi-agent:workspace:code-review",
       category: "skills",
       label: "code-review",
       value: "code-review",

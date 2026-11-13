@@ -202,7 +202,7 @@ describe("slashCommandHelpers", () => {
     const result = buildSkillSuggestions(
       [
         {
-          id: "glm:workspace:code-review",
+          id: "nibi-agent:workspace:code-review",
           name: "code-review",
           description: "review code",
           path: "/repo/.nibi/skills/code-review/SKILL.md",
@@ -215,7 +215,7 @@ describe("slashCommandHelpers", () => {
 
     expect(result).toEqual([
       {
-        id: "skill:glm:workspace:code-review",
+        id: "skill:nibi-agent:workspace:code-review",
         trigger: "/",
         value: "code-review",
         label: "$code-review",

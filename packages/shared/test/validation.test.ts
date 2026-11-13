@@ -721,8 +721,8 @@ describe("hostResponseMessageSchema", () => {
       enabledBuiltinAgentCliProviders: ["claude", "codex"],
     });
 
-    expect(parsed.enabledBuiltinAgentCliProviders).toEqual(["glm"]);
-    expect(patch.enabledBuiltinAgentCliProviders).toEqual(["glm"]);
+    expect(parsed.enabledBuiltinAgentCliProviders).toEqual(["nibi-agent"]);
+    expect(patch.enabledBuiltinAgentCliProviders).toEqual(["nibi-agent"]);
   });
 
   it("preserves SSH remote asset install mode and drops historical resource packages", () => {

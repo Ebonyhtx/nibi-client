@@ -175,7 +175,7 @@ async function injectLongCompletedConversation() {
       store.upsertOptimisticTaskListItem(workspacePath, {
         createdAt: now,
         mode: "default",
-        provider: "glm",
+        provider: "nibi-agent",
         status: "completed",
         taskId: injectedTaskId,
         title: "会话查找重新聚焦 E2E",

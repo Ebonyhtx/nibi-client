@@ -54,7 +54,7 @@ function decodeLegacySelection(row: LegacySelectionRow): ModelSelection | undefi
       if (!reasoningLevel) return undefined;
       model = model.slice(0, levelSeparator);
     }
-  } else if (["glm", "zcode"].includes(provider)) {
+  } else if (["glm", "zcode", "nibi-agent"].includes(provider)) {
     // 旧 provider=glm/zcode 是执行后端，不是供应商身份。
     return undefined;
   }

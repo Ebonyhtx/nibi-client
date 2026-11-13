@@ -40,7 +40,7 @@ describe("Command Center 重名任务选中", () => {
           workspace_key, workspace_path, task_id, title, created_at, updated_at, provider,
           host_id, root_path, cli_title, cli_title_source, cli_created_at,
           cli_updated_at, cli_last_outcome, cli_deleted, handoff_pending, meta_json
-        ) VALUES (?, ?, ?, ?, ?, ?, 'glm', 'local', ?, ?, 'custom', ?, ?, 'completed', 0, 8, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, 'nibi-agent', 'local', ?, ?, 'custom', ?, ?, 'completed', 0, 8, ?)
       `);
       db.exec("BEGIN IMMEDIATE");
       for (let index = 0; index < 4; index++) {
@@ -66,7 +66,7 @@ describe("Command Center 重名任务选中", () => {
             createdAt: timestamp,
             updatedAt: timestamp,
             mode: "build",
-            provider: "glm",
+            provider: "nibi-agent",
             status: "completed",
           }),
         );

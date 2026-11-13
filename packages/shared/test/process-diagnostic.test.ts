@@ -26,7 +26,7 @@ describe("CLI process diagnostic contract", () => {
         type: "agent-process-exception",
         diagnostic,
         pid: 123,
-        provider: "glm",
+        provider: "nibi-agent",
         workspacePath: "C:\\repo",
         runtimeGeneration: 1,
         runtimeInstanceId: "agent-instance",

@@ -7,6 +7,7 @@ import {
   type RefObject,
 } from "react";
 import {
+  normalizeAgentProviderToNibiAgent,
   type NibiApiRetryStatus,
   type NibiConfigOption,
   type NibiConfigSelectValue,
@@ -203,7 +204,7 @@ export function getModeOptionLabelMessageId(
     return null;
   }
 
-  return NIBI_MODE_OPTION_LABEL_IDS[provider]?.[entry.value] ?? null;
+  return NIBI_MODE_OPTION_LABEL_IDS[normalizeAgentProviderToNibiAgent(provider)]?.[entry.value] ?? null;
 }
 
 export function getModeOptionDescriptionMessageId(
@@ -214,7 +215,7 @@ export function getModeOptionDescriptionMessageId(
     return null;
   }
 
-  return NIBI_MODE_OPTION_DESCRIPTION_IDS[provider]?.[entry.value] ?? null;
+  return NIBI_MODE_OPTION_DESCRIPTION_IDS[normalizeAgentProviderToNibiAgent(provider)]?.[entry.value] ?? null;
 }
 
 export function getConfigOptionEntryLabel(

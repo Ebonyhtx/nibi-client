@@ -532,7 +532,7 @@ describe("ConversationTelemetrySupervisor", () => {
   it("send seed 以 V4 config provider 为 model_provider，并保留旧 model value 与 agent 口径", () => {
     expect(
       buildV4ConversationPromptTelemetryExtraDetail({
-        agentProvider: "glm",
+        agentProvider: "nibi-agent",
         configProvider: "custom-provider-id",
         modelName: "custom-model",
         askMode: "plan",
@@ -543,7 +543,7 @@ describe("ConversationTelemetrySupervisor", () => {
       model_name: "custom:custom-provider-id:custom-model",
       model_provider: "custom-provider-id",
       provider_name: "api.example.com",
-      agent: "glm",
+      agent: "nibi-agent",
       message_source: "chat",
       task_trigger: "",
     });
@@ -557,7 +557,7 @@ describe("ConversationTelemetrySupervisor", () => {
         askMode: "build",
       }),
     ).toMatchObject({
-      agent: "glm",
+      agent: "nibi-agent",
       message_source: "chat",
       model_name: "glm-model",
       model_provider: "glm",
@@ -587,7 +587,7 @@ describe("ConversationTelemetrySupervisor", () => {
         ask_mode: "build",
         model_name: "seed-model",
         model_provider: "seed-provider",
-        agent: "glm",
+        agent: "nibi-agent",
         plan_status: "unknown",
         plan_product_id: "",
       },
@@ -605,7 +605,7 @@ describe("ConversationTelemetrySupervisor", () => {
         ask_mode: "build",
         model_name: "seed-model",
         model_provider: "seed-provider",
-        agent: "glm",
+        agent: "nibi-agent",
         plan_status: "unknown",
         plan_product_id: "",
         input_start_time: "100",
@@ -774,7 +774,7 @@ describe("ConversationTelemetrySupervisor", () => {
         model_name: "runtime-provider/runtime-model",
         model_provider: "runtime-provider",
         provider_name: "runtime.example.com",
-        agent: "glm",
+        agent: "nibi-agent",
         plan_status: "unknown",
         plan_product_id: "",
         input_tokens: "10",

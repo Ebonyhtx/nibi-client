@@ -25,7 +25,7 @@ it("MRO01：真实远端目录解析补齐身份后可打开已有任务，不�
         traceId: "trace-existing",
         title: "Existing task",
         mode: "default",
-        provider: "glm",
+        provider: "nibi-agent",
         createdAt: 1,
         updatedAt: 2,
       },

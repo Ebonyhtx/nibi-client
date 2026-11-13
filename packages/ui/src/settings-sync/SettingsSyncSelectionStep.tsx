@@ -1,6 +1,10 @@
 import { useMemo } from "react";
 import { CheckIcon, MinusIcon } from "lucide-react";
-import type { SettingsSyncCategory, SettingsSyncDiscoveryResult } from "@nibi/shared";
+import {
+  NIBI_AGENT_PROVIDER,
+  type SettingsSyncCategory,
+  type SettingsSyncDiscoveryResult,
+} from "@nibi/shared";
 import { cn } from "@/components/lib/utils.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { renderProviderCliIcon } from "@/lib/providerCliIcon.js";
@@ -175,7 +179,7 @@ export function SettingsSyncSelectionStep(props: {
                       </div>
                     </div>
                     <div className="flex min-w-0 flex-1 items-center gap-2">
-                      {renderProviderCliIcon("glm", "size-4 shrink-0 text-foreground")}
+                      {renderProviderCliIcon(NIBI_AGENT_PROVIDER, "size-4 shrink-0 text-foreground")}
                       <div className="min-w-0 flex-1">
                         <div className="text-ui-base font-medium leading-none text-foreground">
                           {formatAgentName(agent.agent, intl)}

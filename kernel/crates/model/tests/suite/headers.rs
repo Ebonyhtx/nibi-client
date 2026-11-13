@@ -131,7 +131,7 @@ async fn provider_headers_go_between_the_source_and_the_request_headers() {
         ("x-release-channel", "production"),
         ("x-client-language", "en-US"),
         ("x-client-timezone", "Asia/Shanghai"),
-        ("x-nibi-agent", "glm"),
+        ("x-nibi-agent", "nibi-agent"),
         ("x-platform", "darwin-arm64"),
         ("x-os-category", "macos"),
         ("x-os-version", "24.6.0"),

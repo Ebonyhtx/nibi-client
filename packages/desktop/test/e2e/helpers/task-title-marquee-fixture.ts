@@ -35,7 +35,7 @@ export async function seedTaskTitleMarqueeFixture(
       provider, mode, model, migration_source, forked_from_task_id, cron_automation_id,
       created_at, updated_at, unread_at, pinned, archived, deleted, title_overridden,
       searchable_text, meta_json
-    ) VALUES (?, ?, null, ?, ?, 'completed', 'glm', 'build', 'missing-model', null, null,
+    ) VALUES (?, ?, null, ?, ?, 'completed', 'nibi-agent', 'build', 'missing-model', null, null,
       null, ?, ?, null, ?, 0, 0, 1, ?, ?)
   `);
   const now = Date.now();
@@ -71,7 +71,7 @@ export async function seedTaskTitleMarqueeFixture(
         updatedAt: timestamp,
         mode: "build",
         model: "missing-model",
-        provider: "glm",
+        provider: "nibi-agent",
         status: "completed",
       };
       insertTask.run(

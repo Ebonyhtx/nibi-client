@@ -7,7 +7,8 @@ import { z } from "zod";
  * 避免各处内联 z.enum([...]) 副本随新增/删除 provider 漂移。
  * 本模块只依赖 zod(叶子),可被 validation / nibi-protocol 等无环引用。
  */
-export const NIBI_PROVIDERS = ["glm"] as const;
+export const NIBI_PROVIDERS = ["nibi-agent"] as const;
+
 
 export const nibiProviderSchema = z.enum(NIBI_PROVIDERS);
 

@@ -38,7 +38,7 @@ function task(params: {
     createdAt: 10,
     updatedAt: 20,
     mode: "default",
-    provider: "glm",
+    provider: "nibi-agent",
     status: "running",
   };
 }

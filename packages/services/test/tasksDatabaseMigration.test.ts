@@ -45,9 +45,40 @@ describe("DB109 App 库统一迁移", () => {
       "tasks_schema_migration",
     ]);
     const ledger = db.prepare("SELECT * FROM tasks_schema_migration").all();
-    expect(ledger).toHaveLength(5);
+    expect(ledger).toHaveLength(6);
     await migrate(db);
     expect(db.prepare("SELECT * FROM tasks_schema_migration").all()).toEqual(ledger);
+  });
+
+  it("DB109-09：旧 lane provider 与 meta_json 一次性迁移为 nibi-agent", async () => {
+    const db = open();
+    await migrate(db);
+    // 模拟升级前的库：0007 尚未应用，旧 lane 行已经存在。
+    db.exec("DELETE FROM tasks_schema_migration WHERE id='0007_nibi_agent_provider'");
+    db.prepare(
+      `INSERT INTO tasks (workspace_key, workspace_path, task_id, provider, created_at, updated_at, meta_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ).run("/repo", "/repo", "legacy-lane", "glm", 1, 2, JSON.stringify({ provider: "glm", traceId: "t" }));
+    db.prepare(
+      `INSERT INTO tasks (workspace_key, workspace_path, task_id, provider, created_at, updated_at, meta_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ).run("/repo", "/repo", "other-backend", "claude", 1, 2, JSON.stringify({ provider: "claude" }));
+
+    await migrate(db);
+
+    expect(
+      db.prepare("SELECT provider, meta_json FROM tasks WHERE task_id='legacy-lane'").get(),
+    ).toMatchObject({ provider: "nibi-agent" });
+    expect(
+      JSON.parse(
+        String(
+          db.prepare("SELECT meta_json FROM tasks WHERE task_id='legacy-lane'").get()?.meta_json,
+        ),
+      ).provider,
+    ).toBe("nibi-agent");
+    expect(
+      db.prepare("SELECT provider FROM tasks WHERE task_id='other-backend'").get()?.provider,
+    ).toBe("claude");
   });
 
   it("DB109-04/08：旧格式来源明确才转，原列/时间保留，不依赖账号", async () => {
@@ -264,7 +295,7 @@ describe("DB109 App 库统一迁移", () => {
       Atomics.store(new Int32Array(gate), 0, 1);
       Atomics.notify(new Int32Array(gate), 0);
       expect(await Promise.all(exits)).toEqual([[0], [0]]);
-      expect(db.prepare("SELECT * FROM tasks_schema_migration").all()).toHaveLength(5);
+      expect(db.prepare("SELECT * FROM tasks_schema_migration").all()).toHaveLength(6);
       expect(db.prepare("SELECT * FROM migration_probe").all()).toHaveLength(1);
       expect(db.prepare("PRAGMA integrity_check").get()?.integrity_check).toBe("ok");
     } finally {

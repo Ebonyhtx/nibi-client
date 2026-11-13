@@ -1,7 +1,12 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, resolve as resolvePath } from "node:path";
-import { NIBI_AGENT_RUNTIME, sanitizeNibiRuntimeEnvInPlace } from "@nibi/shared";
+import {
+  LEGACY_NIBI_AGENT_PROVIDER,
+  NIBI_AGENT_PROVIDER,
+  NIBI_AGENT_RUNTIME,
+  sanitizeNibiRuntimeEnvInPlace,
+} from "@nibi/shared";
 import { getDataBaseDir, getProviderWorkspaceConfigDir } from "../paths.js";
 import { buildRuntimeProcessEnvPatch } from "./runtimeCommandEnv.js";
 
@@ -58,13 +63,13 @@ export function buildCleanEnv(
       delete env[nonCanonicalPathKey];
     }
   }
-  if (provider === "glm") {
-    const glmHome = getDataBaseDir();
+  if (provider === NIBI_AGENT_PROVIDER || provider === LEGACY_NIBI_AGENT_PROVIDER) {
+    const agentHome = getDataBaseDir();
     // Bugfix: GLM agent 会把 config/session 产物写到 dataBaseDir 下的 ~/.nibi/cli。
     // 这里统一把子进程 HOME 切到 dataBaseDir，保证“写入目录”和“运行时读取目录”始终一致。
-    env.HOME = glmHome;
+    env.HOME = agentHome;
     if (process.platform === "win32") {
-      env.USERPROFILE = glmHome;
+      env.USERPROFILE = agentHome;
     }
   }
   Object.assign(env, buildRuntimeProcessEnvPatch(env));

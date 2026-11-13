@@ -1,6 +1,7 @@
 /* eslint-disable max-lines -- 远端部署入口集中编排 server/node/agent/tool 资源，拆分需单独整理边界。 */
 import { join } from "node:path";
 import {
+  NIBI_AGENT_REMOTE_COMPONENT_ID,
   NIBI_VERSION,
   formatLogPrefix,
   normalizeRemoteResourcePackageSelection,
@@ -253,7 +254,7 @@ export async function deployServer(
     expectedServerBundleSha256: string | null,
   ): Promise<boolean> => {
     const hasPendingAppVersionRefresh = await hasRemoteAssetComponentRefreshPending(backend, {
-      componentId: "glm",
+      componentId: NIBI_AGENT_REMOTE_COMPONENT_ID,
       platformArch,
     });
     const shouldForceRefreshContentAddressedAssets =
@@ -265,7 +266,7 @@ export async function deployServer(
       // server 会先于 GLM 更新；若后续步骤失败，下次连接时 server 版本
       // 已经匹配。必须持久化升级强刷状态，让重试继续绕过同 SHA cache，直到 GLM 成功覆盖 marker。
       await markRemoteAssetComponentRefreshPending(backend, {
-        componentId: "glm",
+        componentId: NIBI_AGENT_REMOTE_COMPONENT_ID,
         platformArch,
         appVersion: NIBI_VERSION,
       });
@@ -729,11 +730,14 @@ function resolveRequiredMockReleasePaths(
         }
         break;
       case "glm":
-        requiredPaths.add(`glm/${platformArch}/nibi.cjs`);
+      case "nibi-agent": {
+        const mount = `${componentId}/${platformArch}`;
+        requiredPaths.add(`${mount}/nibi.cjs`);
         for (const relativePath of REMOTE_AGENT_OFFICIAL_PLUGIN_REQUIRED_RELATIVE_PATHS) {
-          requiredPaths.add(`glm/${platformArch}/packages/${relativePath}`);
+          requiredPaths.add(`${mount}/packages/${relativePath}`);
         }
         break;
+      }
       case "bfs":
         requiredPaths.add(`tools/${platformArch}/bfs/bfs`);
         break;

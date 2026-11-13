@@ -106,7 +106,7 @@ describe("skillStore", () => {
     expect(setEnabled).toHaveBeenCalledWith({
       workspacePath,
       workspaceIdentity: undefined,
-      provider: "glm",
+      provider: "nibi-agent",
       skillId: "skill-1",
       enabled: false,
     });
@@ -230,7 +230,7 @@ describe("skillStore", () => {
     useSkillStore.setState({
       workspacePath,
       loadedWorkspacePath: workspacePath,
-      provider: "glm",
+      provider: "nibi-agent",
       loadedProvider: "claude",
       skills: [
         {
@@ -271,7 +271,7 @@ describe("skillStore", () => {
 
     await pending;
 
-    expect(useSkillStore.getState().loadedProvider).toBe("glm");
+    expect(useSkillStore.getState().loadedProvider).toBe("nibi-agent");
     expect(useSkillStore.getState().skills.map((skill) => skill.name)).toEqual(["code-review"]);
   });
 });

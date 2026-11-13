@@ -96,7 +96,7 @@ pub fn source_headers(facts: &SourceFacts) -> Vec<(String, String)> {
         ("x-release-channel", facts.release_channel.clone()),
         ("x-client-language", printable_or_unknown(&facts.locale)),
         ("x-client-timezone", printable_or_unknown(&facts.time_zone)),
-        ("x-nibi-agent", "glm".to_owned()),
+        ("x-nibi-agent", "nibi-agent".to_owned()),
     ]);
     if let (Some(platform), Some(arch)) = (printable(&facts.platform), printable(&facts.arch)) {
         out.push(("x-platform", format!("{platform}-{arch}")));

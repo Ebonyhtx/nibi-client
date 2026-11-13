@@ -19,7 +19,7 @@ const demoSkills = [
     path: "/tmp/workspace/.nibi/skills/glm-only/SKILL.md",
   },
   {
-    id: "glm:workspace:nibi-common:abc123",
+    id: "nibi-agent:workspace:nibi-common:abc123",
     path: "/tmp/workspace/.nibi/skills/common/SKILL.md",
   },
   {
@@ -27,7 +27,7 @@ const demoSkills = [
     path: "/tmp/workspace/.nibi/skills/common-from-legacy-list/SKILL.md",
   },
   {
-    id: "glm:user:mirrored:abc123",
+    id: "nibi-agent:user:mirrored:abc123",
     path: "/tmp/workspace/.agents/skills/mirrored/SKILL.md",
   },
   {
@@ -43,12 +43,12 @@ const demoSkills = [
 
 describe("skillSourceFilter", () => {
   it("把 .zcode/skills 和官方 plugin cache 识别为 Nibi Agent 技能来源", () => {
-    expect(resolveSkillSourceType("/tmp/workspace/.nibi/skills/my-skill/SKILL.md")).toBe("glm");
+    expect(resolveSkillSourceType("/tmp/workspace/.nibi/skills/my-skill/SKILL.md")).toBe("nibi-agent");
     expect(
       resolveSkillSourceType(
         "/tmp/home/.nibi/cli/plugins/cache/nibi-official/document-skills/0.1.0/skills/pdf/SKILL.md",
       ),
-    ).toBe("glm");
+    ).toBe("nibi-agent");
     expect(resolveSkillSourceType("/tmp/workspace/.nibi/cli/skills/my-skill/SKILL.md")).toBe(
       "unknown",
     );
@@ -60,14 +60,14 @@ describe("skillSourceFilter", () => {
   it("过滤混合来源时保留 Nibi Agent 技能", () => {
     const expectedIds = [
       "skill-glm-by-path",
-      "glm:workspace:nibi-common:abc123",
+      "nibi-agent:workspace:nibi-common:abc123",
       "claude:workspace:nibi-common:abc123",
-      "glm:user:mirrored:abc123",
+      "nibi-agent:user:mirrored:abc123",
       "skill-plugin-by-scope",
       "skill-plugin-by-path",
     ];
 
-    expect(filterSkillsForProvider(demoSkills, "glm").map((skill) => skill.id)).toEqual(
+    expect(filterSkillsForProvider(demoSkills, "nibi-agent").map((skill) => skill.id)).toEqual(
       expectedIds,
     );
   });

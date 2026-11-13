@@ -19,7 +19,7 @@ export async function fixture(savedWorkspaces: readonly string[] = []) {
   resources.push({ db, directory });
   db.exec(`CREATE TABLE tasks (
     workspace_key TEXT, workspace_path TEXT, workspace_identity TEXT, task_id TEXT,
-    title TEXT DEFAULT '', provider TEXT DEFAULT 'glm', title_overridden INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0,
+    title TEXT DEFAULT '', provider TEXT DEFAULT 'nibi-agent', title_overridden INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0,
     archived INTEGER DEFAULT 0, pinned INTEGER DEFAULT 0, unread_at INTEGER,
     task_status TEXT DEFAULT 'completed', created_at INTEGER DEFAULT 1, updated_at INTEGER DEFAULT 2,
     PRIMARY KEY(workspace_key,task_id));

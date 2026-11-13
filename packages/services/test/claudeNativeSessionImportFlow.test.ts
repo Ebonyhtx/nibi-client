@@ -184,7 +184,7 @@ describe("Claude native import flow", () => {
           updatedAt: 2,
           mode: "default",
           model: "glm:glm-4.6",
-          provider: "glm",
+          provider: "nibi-agent",
           migrationSource: "claudeCode",
           status: "completed",
         },
@@ -208,7 +208,7 @@ describe("Claude native import flow", () => {
               updatedAt: source.updatedAt,
               mode: "default",
               model: "glm:glm-4.6",
-              provider: "glm",
+              provider: "nibi-agent",
               migrationSource: "claudeCode",
               status: "completed",
             },
@@ -242,14 +242,14 @@ describe("Claude native import flow", () => {
       expect(listed.find((item) => item.taskId === "sess_imported_live")).toMatchObject({
         taskId: "sess_imported_live",
         model: "glm:glm-4.6",
-        provider: "glm",
+        provider: "nibi-agent",
         migrationSource: "claudeCode",
       });
       await expect(
         repo.queryTaskList({
           workspaceScopes: [{ workspacePath }],
           kind: "active",
-          provider: "glm",
+          provider: "nibi-agent",
           search: "可以继续",
         }),
       ).resolves.toMatchObject({

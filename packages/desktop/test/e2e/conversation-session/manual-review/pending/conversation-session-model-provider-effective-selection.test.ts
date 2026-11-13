@@ -416,7 +416,7 @@ describe("SR87 当前有效选择与原意图", () => {
           .get(title),
       ).toEqual({
         model: `builtin:bigmodel-coding-plan/${E2E_PLAN_NON_DEFAULT_MODEL}`,
-        provider: "glm",
+        provider: "nibi-agent",
         thought_level: "high",
       });
     } finally {

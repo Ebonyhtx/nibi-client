@@ -192,7 +192,7 @@ describe("botsService status", () => {
         title: "Active task",
         workspacePath: "/tmp/workspace",
         workspaceIdentity: "remote:server:test-owner:/tmp/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
         model: `${providerId}/deepseek-v4-flash`,
         status: "completed",
         traceId: "trace",

@@ -6271,7 +6271,7 @@ export function createNibiAgentService(
             await automationTaskIndexRepo.listTaskMetas({
               workspacePath: params.workspacePath,
               workspaceIdentity: params.workspaceIdentity,
-              provider: "glm",
+              provider: NIBI_AGENT_PROVIDER,
             })
           )
             .slice(0, MAX_LEGACY_TASK_IDS_PER_SUBSCRIBE)

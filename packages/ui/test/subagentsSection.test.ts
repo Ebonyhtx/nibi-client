@@ -1095,7 +1095,7 @@ describe("SubagentsSection", () => {
       expect(mockSubagentsService.list).toHaveBeenCalledWith({
         workspacePath: "/repo",
         workspaceIdentity: undefined,
-        provider: "glm",
+        provider: "nibi-agent",
         mode: "settingsUserOnly",
       }),
     );

@@ -111,7 +111,7 @@ fn a_real_request_carries_the_node_headers() {
             ("x-release-channel", "test"),
             ("x-client-language", "zh-CN"),
             ("x-client-timezone", "Asia/Tokyo"),
-            ("x-nibi-agent", "glm"),
+            ("x-nibi-agent", "nibi-agent"),
             ("x-platform", platform.as_str()),
             ("x-os-category", category),
             ("x-nibi-session-type", "main"),

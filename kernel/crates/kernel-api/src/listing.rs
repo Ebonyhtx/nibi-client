@@ -91,7 +91,7 @@ pub struct InvokedSkill {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SkillReference {
-    /// 稳定行身份：`glm:<scope>:<path>`（Host 的 UI 按 `glm:` 前缀过滤 provider，沿用 Node 的写法）。
+    /// 稳定行身份：`nibi-agent:<scope>:<path>`（Host 的 UI 同时识别旧的 `glm:` 前缀）。
     pub id: String,
     pub name: String,
     pub description: String,

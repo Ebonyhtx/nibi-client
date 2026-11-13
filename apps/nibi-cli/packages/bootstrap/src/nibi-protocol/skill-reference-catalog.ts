@@ -54,8 +54,8 @@ function toReferenceCatalogEntry(skill: SkillMetadata): NibiSkillReferenceCatalo
   const scope =
     skill.source === "plugin" ? "plugin" : skill.scope === "project" ? "workspace" : "user";
   return {
-    // `glm:` 是现有 UI provider 过滤契约；路径使同名不同来源仍有稳定行身份。
-    id: `glm:${scope}:${skill.path}`,
+    // `nibi-agent:` 是现有 UI provider 过滤契约；路径使同名不同来源仍有稳定行身份。
+    id: `nibi-agent:${scope}:${skill.path}`,
     name: skill.name,
     description: skill.description,
     path: skill.path,

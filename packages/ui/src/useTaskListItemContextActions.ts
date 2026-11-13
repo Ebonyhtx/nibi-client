@@ -1,4 +1,4 @@
-import type { NibiProvider } from "@nibi/shared";
+import { NIBI_AGENT_PROVIDER, type NibiProvider } from "@nibi/shared";
 import { useCallback } from "react";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import { useTaskNativeSessionLogFile } from "@/hooks/useTaskNativeSessionLogFile.js";
@@ -88,7 +88,7 @@ export function useTaskListItemContextActions({
     workspaceIdentity,
     workspaceRemoteSessionId: remoteSessionId,
   });
-  const taskProvider = provider ?? "glm";
+  const taskProvider = provider ?? NIBI_AGENT_PROVIDER;
   const taskSessionFile = useTaskSessionFilePath(workspacePath, taskId, workspaceIdentity, {
     // task session/log 路径只用于右键菜单项；菜单未打开时不要在列表重排中批量触发 RPC。
     enabled: loadTaskPaths,

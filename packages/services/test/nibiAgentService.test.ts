@@ -1216,7 +1216,7 @@ describe("createNibiAgentService", () => {
     const controller = new AbortController();
     try {
       await expect(service.collectLocalRuntimeChildProcesses(controller.signal)).resolves.toEqual([
-        { pid: 101, workspacePath: "/ready", provider: "glm", children: [] },
+        { pid: 101, workspacePath: "/ready", provider: "nibi-agent", children: [] },
       ]);
       expect(request).toHaveBeenCalledWith("process/childProcesses", {}, expect.anything(), {
         lifecycle: "observation",
@@ -1578,7 +1578,7 @@ describe("createNibiAgentService", () => {
     await vi.waitFor(() => expect(processLifecycleReporter.onReady).toHaveBeenCalledTimes(1));
     expect(processLifecycleReporter.onReady.mock.calls[0]![0]).toMatchObject({
       pid: processLifecycleReporter.onSpawn.mock.calls[0]![0].pid,
-      provider: "glm",
+      provider: "nibi-agent",
       workspacePath,
       runtimeGeneration: 1,
       runtimeInstanceId: processLifecycleReporter.onSpawn.mock.calls[0]![0].runtimeInstanceId,
@@ -2765,7 +2765,7 @@ describe("createNibiAgentService", () => {
       // 评审 SG-02：mcp-status 与 plugin lane 共用同一 workspacePath/command，事件必须带 lane 才可归因。
       expect(processLifecycleReporter.onSpawn.mock.calls[0]![0]).toMatchObject({
         pid: expect.any(Number),
-        provider: "glm",
+        provider: "nibi-agent",
         lane: "mcp-status",
       });
     } finally {

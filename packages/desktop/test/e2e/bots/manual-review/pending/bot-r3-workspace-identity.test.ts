@@ -94,7 +94,7 @@ it("BOT-E2E-RW-02 legacy 与 stable Bot 通过同一 Source 身份完成任务�
       title: "Remote task",
       workspacePath: path,
       workspaceIdentity: stable,
-      provider: "glm",
+      provider: "nibi-agent",
     }),
     listTasks: async () => [
       {
@@ -102,7 +102,7 @@ it("BOT-E2E-RW-02 legacy 与 stable Bot 通过同一 Source 身份完成任务�
         title: "Remote task",
         workspacePath: path,
         workspaceIdentity: stable,
-        provider: "glm",
+        provider: "nibi-agent",
       },
     ],
     listDeletedTaskIds: async (input: unknown) => {

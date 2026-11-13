@@ -33,9 +33,9 @@ describe("agent provider preference", () => {
 
     useNibiSessionStore.getState().startDraft("/tmp/workspace-draft", "gemini");
 
-    expect(storage.getItem(LAST_SELECTED_AGENT_PROVIDER_STORAGE_KEY)).toBe("glm");
+    expect(storage.getItem(LAST_SELECTED_AGENT_PROVIDER_STORAGE_KEY)).toBe("nibi-agent");
     expect(
       useNibiSessionStore.getState().getWorkspaceState("/tmp/workspace-draft").selectedProvider,
-    ).toBe("glm");
+    ).toBe("nibi-agent");
   });
 });

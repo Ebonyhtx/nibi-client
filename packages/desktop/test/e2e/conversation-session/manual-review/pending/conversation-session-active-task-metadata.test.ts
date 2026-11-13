@@ -105,7 +105,7 @@ describe("当前任务元数据与自动归档", () => {
             JSON.stringify({ type: "text", text: `E2E_AMT_BODY_${index}` }),
           );
         db.prepare(
-          "INSERT INTO tasks(workspace_key,workspace_path,task_id,title,provider,mode,created_at,updated_at,host_id,root_path,project_id,unread_at,pinned,cli_title,cli_title_source,cli_created_at,cli_updated_at,cli_last_outcome,cli_deleted) VALUES(?,?,?,?,'glm','default',?,?,'local',?,?,?,?,?,'custom',?,?,'completed',0)",
+          "INSERT INTO tasks(workspace_key,workspace_path,task_id,title,provider,mode,created_at,updated_at,host_id,root_path,project_id,unread_at,pinned,cli_title,cli_title_source,cli_created_at,cli_updated_at,cli_last_outcome,cli_deleted) VALUES(?,?,?,?,'nibi-agent','default',?,?,'local',?,?,?,?,?,'custom',?,?,'completed',0)",
         ).run(
           DEFAULT_WORKSPACE,
           DEFAULT_WORKSPACE,

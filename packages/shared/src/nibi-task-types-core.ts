@@ -32,7 +32,7 @@ export type QueryId = string;
 // ---- Nibi Provider ----
 
 /** 支持的 Nibi agent 提供方；当前仅保留 glm。 */
-export type NibiProvider = "glm";
+export type NibiProvider = "nibi-agent";
 export type NibiGlmAgentModelStateUpdateReason =
   | "session_initialized"
   | "model_changed"
@@ -315,7 +315,7 @@ export interface NibiTaskMeta {
    * 这里记录 runtimeEpoch，用来区分“task 自身模型保持”与“runtime 基线确实变更后需要收敛”。
    */
   runtimeEpoch?: number;
-  /** 创建此 task 时使用的 agent provider，缺省视为 "glm"（旧数据兼容） */
+  /** 创建此 task 时使用的 agent provider，缺省视为 "nibi-agent"（旧数据 "glm" 由 legacy schema 归一） */
   provider?: NibiProvider;
   /** 迁移来源；普通新建任务为空，用于识别 Claude Code 原生历史导入。 */
   migrationSource?: NibiTaskMigrationSource;
@@ -847,7 +847,7 @@ export interface NibiConfigOptionUpdate {
 }
 /** nibi-cli/GLM agent 专属：模型变化后同步思考等级选项和上下文窗口。 */
 export interface NibiGlmAgentModelStateUpdate extends NibiGlmAgentModelStateUpdatePayload {
-  type: "glm_agent_model_state_update";
+  type: "nibi_agent_model_state_update";
   taskId: string;
   traceId: TraceId;
   inputId?: InputId;

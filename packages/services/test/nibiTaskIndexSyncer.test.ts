@@ -335,7 +335,7 @@ async function seedRunningTask(repo: TaskIndexRepo): Promise<NibiTaskMeta> {
     meta: {
       taskId: seedTarget.sessionId,
       traceId: "trace_seed",
-      provider: "glm",
+      provider: "nibi-agent",
       title: "Pending task",
       workspacePath: seedTarget.workspacePath,
       createdAt: 1,
@@ -894,7 +894,7 @@ describe("createNibiTaskIndexSyncer", () => {
       expect(meta).toMatchObject({
         taskId: "sess_history",
         title: "历史会话",
-        provider: "glm",
+        provider: "nibi-agent",
         status: "completed",
       });
     });
@@ -1122,7 +1122,7 @@ describe("createNibiTaskIndexSyncer", () => {
             createdAt: 1,
             updatedAt: 2,
             mode: "build",
-            provider: "glm",
+            provider: "nibi-agent",
             status: "completed",
           },
         });
@@ -1137,7 +1137,7 @@ describe("createNibiTaskIndexSyncer", () => {
           createdAt: 1,
           updatedAt: 2,
           mode: "build",
-          provider: "glm",
+          provider: "nibi-agent",
           status: "completed",
         },
       });
@@ -1188,7 +1188,7 @@ describe("createNibiTaskIndexSyncer", () => {
     async (failure) => {
       const env = setupEnv();
       await seedTaskIndex(env.repo, {
-        meta: { ...(await seedRunningTask(env.repo)), provider: "glm" },
+        meta: { ...(await seedRunningTask(env.repo)), provider: "nibi-agent" },
       });
       let finish:
         | ((value: Awaited<ReturnType<INibiAgentService["listSessions"]>>) => void)
@@ -1266,7 +1266,7 @@ describe("createNibiTaskIndexSyncer", () => {
         updatedAt: 100,
         mode: "build",
         model: "anthropic/haiku-4.5",
-        provider: "glm",
+        provider: "nibi-agent",
         status: "completed",
       },
       pinned: true,
@@ -1962,7 +1962,7 @@ describe("createNibiTaskIndexSyncer", () => {
           taskId: snapshot.session.sessionId,
           workspacePath: "/repo",
           traceId: "seed",
-          provider: "glm",
+          provider: "nibi-agent",
           title: snapshot.session.title,
           mode: "default",
           createdAt: snapshot.session.createdAt,

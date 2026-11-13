@@ -53,7 +53,7 @@ describe("skills/referenceCatalog protocol", () => {
       authority: "session",
       skills: [
         {
-          id: "glm:workspace:/workspace/.nibi/skills/frozen/SKILL.md",
+          id: "nibi-agent:workspace:/workspace/.nibi/skills/frozen/SKILL.md",
           name: "frozen",
           description: "Frozen session skill",
           path: "/workspace/.nibi/skills/frozen/SKILL.md",

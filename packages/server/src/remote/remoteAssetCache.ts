@@ -55,6 +55,8 @@ const REMOTE_ASSET_PROGRESS_PERCENT_STEP = 5;
 const CONTENT_ADDRESSED_COMPONENT_RELEASE_DIRS: Record<string, string> = {
   "server-bundle": "server-content",
   glm: "glm-content",
+  // CDN 双发布期：新 id 可独立内容寻址；切换前 active 仍只有 glm。
+  "nibi-agent": "nibi-agent-content",
 };
 const REMOTE_ASSET_DIRECTORY_COMMIT_RETRY_DELAYS_MS = [
   50, 100, 200, 400, 800, 1_600, 3_200,
@@ -103,6 +105,10 @@ const REMOTE_COMPONENT_MOUNT_RULES: Record<string, ComponentMountRule> = {
   glm: {
     platformScoped: true,
     resolveExpectedMount: (platformArch) => `glm/${platformArch}`,
+  },
+  "nibi-agent": {
+    platformScoped: true,
+    resolveExpectedMount: (platformArch) => `nibi-agent/${platformArch}`,
   },
   bfs: {
     platformScoped: true,
@@ -1374,7 +1380,7 @@ function resolveContentAddressedReleaseSegments(
     // 安装始终显式请求 server-bundle，因此仍会进入独立 SHA release。
     if (
       requestedComponentIds === null
-        ? componentId !== "glm"
+        ? componentId !== "glm" && componentId !== "nibi-agent"
         : !requestedComponentIds.has(componentId)
     ) {
       continue;

@@ -47,8 +47,8 @@ function expectedTelemetrySendOptions() {
       extraDetail: {
         ask_mode: "",
         model_name: "",
-        model_provider: "glm",
-        agent: "glm",
+        model_provider: "nibi-agent",
+        agent: "nibi-agent",
         message_source: "chat",
         task_trigger: "",
       },

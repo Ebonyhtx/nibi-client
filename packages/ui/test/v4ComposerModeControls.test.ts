@@ -72,7 +72,7 @@ describe("V4ComposerModeSwitch", () => {
     const html = renderToStaticMarkup(
       createElement(V4ComposerModeSwitch, {
         workspacePath: "/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
         draftConfig: { mode: "guarded", planEnabled: true },
         activeConfigPicker: null,
         onConfigPickerOpenChange: vi.fn(),
@@ -89,7 +89,7 @@ describe("V4ComposerModeSwitch", () => {
     renderToStaticMarkup(
       createElement(V4ComposerModeSwitch, {
         workspacePath: "/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
         draftConfig: { mode: "build" },
         activeConfigPicker: null,
         onConfigPickerOpenChange: vi.fn(),
@@ -114,7 +114,7 @@ describe("V4ComposerModeSwitch", () => {
     renderToStaticMarkup(
       createElement(V4ComposerModeSwitch, {
         workspacePath: "/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
         draftConfig: { mode: "yolo" },
         activeConfigPicker: null,
         onConfigPickerOpenChange: vi.fn(),
@@ -132,7 +132,7 @@ describe("V4ComposerModeSwitch", () => {
     renderToStaticMarkup(
       createElement(V4ComposerModeSwitch, {
         workspacePath: "/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
         draftConfig: { mode: "edit" },
         activeConfigPicker: null,
         onConfigPickerOpenChange: vi.fn(),
@@ -150,7 +150,7 @@ describe("V4ComposerModeSwitch", () => {
     const html = renderToStaticMarkup(
       createElement(V4ComposerModeSwitch, {
         workspacePath: "/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
         draftConfig: { mode: "yolo", planEnabled: true },
         activeConfigPicker: "mode",
         onConfigPickerOpenChange: vi.fn(),
@@ -161,7 +161,7 @@ describe("V4ComposerModeSwitch", () => {
     expect(captured.planProps?.checked).toBe(true);
     expect(
       renderToStaticMarkup(createElement("div", null, captured.planProps?.children as ReactNode)),
-    ).toContain("mode.description.glm.plan");
+    ).toContain("mode.description.nibiAgent.plan");
     expect(html).toContain('data-testid="v4-composer-plan-marker"');
     const onCheckedChange = captured.planProps!.onCheckedChange as (checked: boolean) => void;
     onCheckedChange(false);

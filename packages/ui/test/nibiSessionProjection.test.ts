@@ -328,8 +328,8 @@ describe("nibiSessionProjection", () => {
       taskId: "sess_1",
     });
 
-    expect(events.find((event) => event.type === "glm_agent_model_state_update")).toMatchObject({
-      type: "glm_agent_model_state_update",
+    expect(events.find((event) => event.type === "nibi_agent_model_state_update")).toMatchObject({
+      type: "nibi_agent_model_state_update",
       thoughtLevel: {
         enabled: true,
         currentValue: "max",
@@ -346,7 +346,7 @@ describe("nibiSessionProjection", () => {
 
     expect(snapshot.meta).toMatchObject({
       taskId: "sess_1",
-      provider: "glm",
+      provider: "nibi-agent",
       title: "hello",
       status: "running",
       workspaceIdentity: workspace.workspaceIdentity,
@@ -5645,14 +5645,14 @@ describe("nibiSessionProjection", () => {
     });
     expect(events.map((event) => event.type)).toEqual([
       "mode_update",
-      "glm_agent_model_state_update",
+      "nibi_agent_model_state_update",
     ]);
     expect(events[0]).toMatchObject({
       type: "mode_update",
       currentModeId: "build",
     });
     expect(events[1]).toMatchObject({
-      type: "glm_agent_model_state_update",
+      type: "nibi_agent_model_state_update",
       reason: "model_changed",
       model: {
         currentValue: "glm/glm-4.6",

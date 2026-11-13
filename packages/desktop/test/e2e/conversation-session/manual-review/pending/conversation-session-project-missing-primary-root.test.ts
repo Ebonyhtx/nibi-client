@@ -432,7 +432,7 @@ function seedHistory(workspacePath: string) {
       );
     app
       .prepare(
-        "INSERT INTO tasks(workspace_key,workspace_path,task_id,title,provider,mode,created_at,updated_at,host_id,root_path,project_id,cli_title,cli_title_source,cli_created_at,cli_updated_at,cli_last_outcome,cli_deleted) VALUES(?,?,?,?,'glm','default',?,?,'local',?,?,?,'custom',?,?,'completed',0)",
+        "INSERT INTO tasks(workspace_key,workspace_path,task_id,title,provider,mode,created_at,updated_at,host_id,root_path,project_id,cli_title,cli_title_source,cli_created_at,cli_updated_at,cli_last_outcome,cli_deleted) VALUES(?,?,?,?,'nibi-agent','default',?,?,'local',?,?,?,'custom',?,?,'completed',0)",
       )
       .run(
         workspacePath,

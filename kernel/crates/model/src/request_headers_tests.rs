@@ -35,7 +35,7 @@ fn source_headers_follow_node() {
         ("x-release-channel", "production"),
         ("x-client-language", "zh-CN"),
         ("x-client-timezone", "Asia/Shanghai"),
-        ("x-nibi-agent", "glm"),
+        ("x-nibi-agent", "nibi-agent"),
         ("x-platform", "linux-x64"),
         ("x-os-category", "linux"),
         ("x-os-version", "6.8.0"),

@@ -45,7 +45,7 @@ const create = async (id: string) => {
       workspacePath: cwd,
       createdAt: 100,
       updatedAt: 200,
-      provider: "glm",
+      provider: "nibi-agent",
       mode: "default",
       status: "completed",
     },

@@ -1,19 +1,19 @@
 import type { NibiProvider } from "@nibi/shared";
 
-type SkillSourceType = "glm" | "unknown";
+type SkillSourceType = "nibi-agent" | "unknown";
 
 export function resolveSkillSourceType(skillPath: string): SkillSourceType {
   const normalized = skillPath.replaceAll("\\", "/").toLowerCase();
   if (normalized.includes("/.nibi/skills/")) {
-    return "glm";
+    return "nibi-agent";
   }
   if (normalized.includes("/.nibi/cli/plugins/cache/")) {
-    return "glm";
+    return "nibi-agent";
   }
   return "unknown";
 }
 
-const SKILL_ID_PROVIDER_RE = /^glm:/;
+const SKILL_ID_PROVIDER_RE = /^(?:glm|nibi-agent):/;
 
 function isNibiSkill(skill: { id?: string; path: string; scope?: string }): boolean {
   return (
@@ -21,7 +21,7 @@ function isNibiSkill(skill: { id?: string; path: string; scope?: string }): bool
     // 服务层已用 scope 标记来源，前端过滤时要放行，否则 `/` 和 `$` 面板会漏掉插件技能。
     skill.scope === "plugin" ||
     (typeof skill.id === "string" && SKILL_ID_PROVIDER_RE.test(skill.id)) ||
-    resolveSkillSourceType(skill.path) === "glm"
+    resolveSkillSourceType(skill.path) === "nibi-agent"
   );
 }
 

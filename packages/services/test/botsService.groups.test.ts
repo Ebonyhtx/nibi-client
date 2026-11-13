@@ -2110,7 +2110,7 @@ describe("Feishu group sessions", () => {
     taskService.listTasks = vi.fn(async () => [
       {
         taskId: parent.activeTaskId!,
-        provider: "glm",
+        provider: "nibi-agent",
         model: "glm/default$max",
         title: "Parent",
         workspacePath: "/tmp/workspace",
@@ -2140,7 +2140,7 @@ describe("Feishu group sessions", () => {
     const state = await repo.readState();
     const parent = Object.values(state.bots).find((value) => value.group)!;
     parent.draftOptions = {
-      provider: "glm",
+      provider: "nibi-agent",
       modelSelection: {
         providerId: "glm",
         modelId: "default",
@@ -2361,7 +2361,7 @@ describe("Feishu group sessions", () => {
               taskId: originalTaskId,
               title: "Historical group task",
               workspacePath: originalPath,
-              provider: "glm",
+              provider: "nibi-agent",
             },
           ]
         : [],

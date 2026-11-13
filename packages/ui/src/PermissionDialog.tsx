@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  normalizeAgentProviderToNibiAgent,
   OFFICIAL_CUA_PERMISSION_RULE_TOOL_NAME,
   WORKFLOW_REFINE_PERMISSION_OPTION_ID,
   type NibiPermissionOption,
@@ -178,8 +179,8 @@ function getOptionLabelMessageId(kind: string): string | null {
 const PROVIDER_PERMISSION_OPTION_NAME_LABELS: Partial<
   Record<NibiProvider, Record<string, string>>
 > = {
-  glm: {
-    // GLM/Nibi Agent 通过 Nibi Agent 发来的项目级记忆授权文案是英文原文。
+  "nibi-agent": {
+    // NIBI Agent 通过 Nibi Agent 发来的项目级记忆授权文案是英文原文。
     // 这里把已知 provider-native 权限文案统一归一到 i18n，避免被当成自定义选项直出英文。
     "always allow in this project": "chat.permission.allowForProject",
   },
@@ -216,7 +217,7 @@ function getProviderOptionNameMessageIds(
     return global;
   }
   const providerLabel = provider
-    ? PROVIDER_PERMISSION_OPTION_NAME_LABELS[provider]?.[normalizedName]
+    ? PROVIDER_PERMISSION_OPTION_NAME_LABELS[normalizeAgentProviderToNibiAgent(provider)]?.[normalizedName]
     : undefined;
   return providerLabel ? { label: providerLabel } : null;
 }

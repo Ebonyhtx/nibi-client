@@ -427,7 +427,7 @@ export class V4TaskStreamSink {
         availableModes: getNibiAgentAvailableModes(),
       });
     }
-    // 模型/思考档：glm_agent_model_state_update 是旧栈唯一的模型态事件。
+    // 模型/思考档：nibi_agent_model_state_update 是旧栈唯一的模型态事件。
     if (
       !previous ||
       previous.provider !== config.provider ||
@@ -437,7 +437,7 @@ export class V4TaskStreamSink {
     ) {
       this.emit({
         ...base,
-        type: "glm_agent_model_state_update",
+        type: "nibi_agent_model_state_update",
         version: 1,
         sessionId: this.options.target.sessionId,
         reason: !previous

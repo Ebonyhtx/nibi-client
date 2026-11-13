@@ -43,7 +43,7 @@ export async function seedTaskIndexRowAuthorityFixture(
       provider, mode, model, migration_source, forked_from_task_id, cron_automation_id,
       created_at, updated_at, unread_at, pinned, archived, deleted, title_overridden,
       searchable_text, meta_json
-    ) VALUES (?, ?, null, ?, ?, ?, 'glm', 'build', 'missing-model', null, null,
+    ) VALUES (?, ?, null, ?, ?, ?, 'nibi-agent', 'build', 'missing-model', null, null,
       null, ?, ?, null, 0, 0, 0, 1, ?, ?)
   `);
   const baseTimestamp = Date.now() - 120_000;
@@ -72,7 +72,7 @@ export async function seedTaskIndexRowAuthorityFixture(
         updatedAt,
         mode: "build",
         model: "missing-model",
-        provider: "glm",
+        provider: "nibi-agent",
         status,
       };
 

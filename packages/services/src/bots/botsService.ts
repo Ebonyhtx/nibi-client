@@ -35,6 +35,7 @@ import {
   generateTraceId,
   normalizeAgentProviderToNibiAgent,
   NIBI_AGENT_PROVIDER,
+  NIBI_NATIVE_MODEL_PROVIDER_ID,
   BOT_TASK_BROADCAST_CHANNEL,
   BOT_TASK_STREAM_BROADCAST_CHANNEL,
   appendAssistantMessagePart,
@@ -198,7 +199,7 @@ const botsLogger = createServiceLogger("bots");
 
 function formatBotModelSelectionValue(selection: ModelSelection | undefined): string | undefined {
   if (!selection) return undefined;
-  return selection.providerId === NIBI_AGENT_PROVIDER
+  return selection.providerId === NIBI_NATIVE_MODEL_PROVIDER_ID
     ? selection.modelId
     : encodeCustomModelValue(selection.providerId, selection.modelId);
 }
@@ -215,7 +216,7 @@ function parseBotModelOptionValue(value: string): ModelSelection | undefined {
       modelId: value.slice(separatorIndex + 1),
     };
   }
-  return value.trim() ? { providerId: NIBI_AGENT_PROVIDER, modelId: value.trim() } : undefined;
+  return value.trim() ? { providerId: NIBI_NATIVE_MODEL_PROVIDER_ID, modelId: value.trim() } : undefined;
 }
 
 const BOT_REPLY_GRANULARITY_OPTIONS = [
@@ -2297,13 +2298,14 @@ export function createBotsService(
     }
     const isEnglish = locale === "en-US";
     const labels: Partial<Record<NibiProvider, Record<string, string>>> = {
-      glm: {
+      "nibi-agent": {
         default: isEnglish ? "Default" : "默认",
         yolo: "Yolo",
         plan: isEnglish ? "Plan" : "计划",
       },
     };
-    return labels[provider]?.[option.id] ?? option.label;
+    const normalized = normalizeAgentProviderToNibiAgent(provider);
+    return labels[normalized]?.[option.id] ?? option.label;
   }
 
   function formatConfigOptionLabel(

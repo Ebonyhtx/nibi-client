@@ -96,7 +96,7 @@ export async function seedProjectUpgradeOrderFixture(home: string, settingsFile:
       PRIMARY KEY(workspace_key,task_id));`);
     const insert = db.prepare(`INSERT INTO tasks
       (workspace_key,workspace_path,task_id,title,task_status,provider,created_at,updated_at,archived)
-      VALUES(?,?,?,?,'completed','glm',?,?,1)`);
+      VALUES(?,?,?,?,'completed','nibi-agent',?,?,1)`);
     const now = Date.now();
     insert.run(defaultPath, defaultPath, "e2e-system-default", "E2E_SYSTEM_DEFAULT", now, now);
     db.exec("UPDATE tasks SET archived=0 WHERE task_id='e2e-system-default'");

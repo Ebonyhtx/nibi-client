@@ -1,6 +1,7 @@
 import {
   NIBI_AGENT_RUNTIME,
   NIBI_AGENT_PROVIDER,
+  NIBI_AGENT_REMOTE_COMPONENT_ID,
   type RemoteResourcePackageId,
 } from "@nibi/shared";
 import type { IRemoteBackend, RemoteEnvironment } from "@nibi/server/remote/backend.js";
@@ -157,7 +158,8 @@ export async function deployNibiAgentRuntime(
 ): Promise<void> {
   const provider = NIBI_AGENT_PROVIDER;
   const runtime = NIBI_AGENT_RUNTIME;
-  const componentId = provider;
+  // lane 值与 CDN 组件 id 解耦：CDN 仍叫 glm，切换发布流水线时再一起改。
+  const componentId = NIBI_AGENT_REMOTE_COMPONENT_ID;
   if (!isSelectedNibiAgentComponent(componentId, options.selectedResourcePackageIds)) {
     loggers.log(`[nibi-agent-deploy] ${provider}: 未选择资源包 ${componentId}，跳过检查和部署`);
     return;

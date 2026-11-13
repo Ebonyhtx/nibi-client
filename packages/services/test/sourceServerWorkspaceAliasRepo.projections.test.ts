@@ -93,7 +93,7 @@ describe("Source Server duplicate task projections", () => {
           createdAt: 5,
           updatedAt: order === "same-time" ? 100 : 500,
           status: "completed",
-          provider: "glm",
+          provider: "nibi-agent",
           mode: "plan",
           model: "model-new",
           migrationSource: "claudeCode",
@@ -107,7 +107,7 @@ describe("Source Server duplicate task projections", () => {
       const sourceWins = order !== "canonical-newer";
       const expectedMeta = {
         status: sourceWins ? "completed" : "error",
-        provider: "glm",
+        provider: "nibi-agent",
         mode: sourceWins ? "plan" : "default",
         model: sourceWins ? "model-new" : "model-old",
         migrationSource: "claudeCode",

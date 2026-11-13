@@ -77,7 +77,7 @@ describe("归档管理", () => {
           )
           .run(id, "arm-cli-scope", id, DEFAULT_WORKSPACE, title, now, updated);
         db.prepare(
-          "INSERT INTO tasks(workspace_key,workspace_path,task_id,title,provider,created_at,updated_at,host_id,root_path,project_id,archived,cli_title,cli_title_source,cli_created_at,cli_updated_at,cli_last_outcome,cli_deleted,meta_json) VALUES(?,?,?,?,'glm',?,?,'local',?,?,1,?,'custom',?,?,'completed',0,?)",
+          "INSERT INTO tasks(workspace_key,workspace_path,task_id,title,provider,created_at,updated_at,host_id,root_path,project_id,archived,cli_title,cli_title_source,cli_created_at,cli_updated_at,cli_last_outcome,cli_deleted,meta_json) VALUES(?,?,?,?,'nibi-agent',?,?,'local',?,?,1,?,'custom',?,?,'completed',0,?)",
         ).run(
           DEFAULT_WORKSPACE,
           DEFAULT_WORKSPACE,

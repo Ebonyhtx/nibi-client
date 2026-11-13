@@ -707,7 +707,7 @@ describe("Nibi legacy task compat task index", () => {
       const task = await service.createTask({
         workspacePath: "/repo",
         workspaceIdentity,
-        provider: "glm",
+        provider: "nibi-agent",
       });
       const target = { taskId: task.taskId, workspacePath: "/repo", workspaceIdentity };
       let release!: () => void;
@@ -748,7 +748,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("does not admit an uploaded topic input after cancellation", async () => {
     const { service, agent } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     let finish!: () => void;
     agent.attachmentBeginV4 = vi.fn(async (p) => ({
       uploadId: p.uploadId,
@@ -792,7 +792,7 @@ describe("Nibi legacy task compat task index", () => {
     const task = await service.createTask({
       workspacePath: "/repo",
       workspaceIdentity: "ssh://host/repo",
-      provider: "glm",
+      provider: "nibi-agent",
     });
     const connections: string[] = [];
     const check = (params: unknown) => {
@@ -865,7 +865,7 @@ describe("Nibi legacy task compat task index", () => {
     const task = await service.createTask({
       workspacePath: "/repo",
       workspaceIdentity: "ssh://host/repo",
-      provider: "glm",
+      provider: "nibi-agent",
     });
     agent.sendConversationCommandV4 = vi.fn(async (params) => ({
       commandId: params.envelope.commandId,
@@ -967,7 +967,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("exposes task ready only after the indexed session returns to an input-ready phase", async () => {
     const { indexFrameEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const readyReasons: string[] = [];
     const disposable = service.onDynamicTaskReady(task.taskId)((event) => {
       readyReasons.push(event.reason);
@@ -991,7 +991,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("reports the manual automation runId on terminal outcome", async () => {
     const { indexFrameEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const outcomes: Array<{ inputId?: string; outcome: string }> = [];
     const disposable = service.onDynamicTaskTerminalOutcome(task.taskId)((event) => {
       outcomes.push(event);
@@ -1021,7 +1021,7 @@ describe("Nibi legacy task compat task index", () => {
 
     const task = await service.createTask({
       workspacePath: "/repo",
-      provider: "glm",
+      provider: "nibi-agent",
       automationId: "automation-1",
     });
 
@@ -1089,7 +1089,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("keeps automation mutation isolation turn-scoped when resuming an execution task", async () => {
     const { agent, service, taskIndexRepo } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     vi.mocked(agent.resumeSession).mockClear();
 
     await service.resumeTask({
@@ -1116,7 +1116,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("marks automation execution prompts on v4 sendText commands", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     vi.mocked(agent.sendConversationCommandV4).mockClear();
 
     await service.sendPrompt({
@@ -1144,7 +1144,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("applies a caller-scoped CronCreate denylist to a first-run prompt", async () => {
     const { agent, service, taskIndexRepo } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     vi.mocked(agent.sendConversationCommandV4).mockClear();
 
     await service.sendPrompt({
@@ -1177,7 +1177,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("applies a caller-scoped CronCreate denylist after resuming a normal session", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     await service.resumeTask({ workspacePath: "/repo", taskId: task.taskId });
     vi.mocked(agent.sendConversationCommandV4).mockClear();
 
@@ -1208,7 +1208,7 @@ describe("Nibi legacy task compat task index", () => {
     // 会话因用户在其中创建过定时任务而归属 automation：DB meta 带 cronAutomationId。
     const task = await service.createTask({
       workspacePath: "/repo",
-      provider: "glm",
+      provider: "nibi-agent",
       automationId: "automation-owned",
     });
     // 复刻打开已有定时任务会话：归属仍保存在 DB，但普通用户轮不携带 automationId。
@@ -1243,7 +1243,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("does not hide CronCreate for plain user turns in a normal (non cron-owned) session", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     await service.resumeTask({ workspacePath: "/repo", taskId: task.taskId });
     service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -1295,7 +1295,7 @@ describe("Nibi legacy task compat task index", () => {
 
     await service.createTask({
       workspacePath: "/repo",
-      provider: "glm",
+      provider: "nibi-agent",
       mcpServers: [
         {
           name: NIBI_CUA_OFFICIAL_MCP_NAMESPACE_NAME,
@@ -1325,7 +1325,7 @@ describe("Nibi legacy task compat task index", () => {
     await service.restartWorkspaceProcess({
       workspacePath: "/repo",
       workspaceIdentity: "remote:ssh:dev:/repo",
-      provider: "glm",
+      provider: "nibi-agent",
     });
 
     // Bugfix: restartWorkspaceProcess 是切模型/配置后的 workspace 级重启，
@@ -1343,7 +1343,7 @@ describe("Nibi legacy task compat task index", () => {
     await service.releaseWorkspacePreparation({
       workspacePath: "/repo",
       workspaceIdentity: "remote:wsl:ubuntu:/repo",
-      provider: "glm",
+      provider: "nibi-agent",
     });
 
     expect(agent.disposeWorkspace).toHaveBeenCalledWith({
@@ -1356,7 +1356,7 @@ describe("Nibi legacy task compat task index", () => {
   it("uses structured ModelSelection for a custom model", async () => {
     const { agent, service } = createService();
     const workspacePath = "/repo-custom-model-ref";
-    const task = await service.createTask({ workspacePath, provider: "glm" });
+    const task = await service.createTask({ workspacePath, provider: "nibi-agent" });
 
     await service.setModel({
       taskId: task.taskId,
@@ -1376,7 +1376,7 @@ describe("Nibi legacy task compat task index", () => {
     const observations: NetworkObservation[] = [];
     setNetworkTelemetrySink((observation) => observations.push(observation));
     const { eventEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
       taskId: task.taskId,
@@ -1424,7 +1424,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("projects user input response to elicitation response in dynamic task fallback subscriptions", async () => {
     const { eventEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const streamEvents: NibiStreamEvent[] = [];
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -1460,7 +1460,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("projects structured turn failure codes into dynamic task errors", async () => {
     const { eventEmitter, service, taskIndexRepo } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const streamEvents: NibiStreamEvent[] = [];
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -1526,7 +1526,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("projects streaming Write input in dynamic task fallback subscriptions", async () => {
     const { eventEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const streamEvents: NibiStreamEvent[] = [];
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -1641,7 +1641,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("keeps background Agent launch acknowledgements in progress in dynamic task streams", async () => {
     const { eventEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const streamEvents: NibiStreamEvent[] = [];
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -1716,7 +1716,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("keeps previous and current async Task launch acknowledgements in progress in dynamic task streams", async () => {
     const { eventEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const streamEvents: NibiStreamEvent[] = [];
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -1816,7 +1816,7 @@ describe("Nibi legacy task compat task index", () => {
       }
     });
 
-    await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     disposable.dispose();
 
     expect(events).toEqual([
@@ -1836,7 +1836,7 @@ describe("Nibi legacy task compat task index", () => {
       }
     });
 
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     await service.setTaskPinned({
       workspacePath: "/repo",
       taskId: task.taskId,
@@ -1869,7 +1869,7 @@ describe("Nibi legacy task compat task index", () => {
   it("does not clear a newer unread marker when the system clock does not advance", async () => {
     vi.useFakeTimers();
     const { service, taskIndexRepo } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
 
     vi.setSystemTime(100);
     const [openedUnread, terminalUnread] = await Promise.all([
@@ -1951,7 +1951,7 @@ describe("Nibi legacy task compat task index", () => {
     const { service, taskIndexRepo } = createService();
     await seedIndexedTask(taskIndexRepo, {
       taskId: "matching-read-clear",
-      provider: "glm",
+      provider: "nibi-agent",
     });
     const openedUnread = await service.setTaskUnread({
       workspacePath: "/repo",
@@ -1984,7 +1984,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("keeps task facts unchanged when CLI rejects rename or deletion", async () => {
     const { agent, service, taskIndexRepo } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     vi.mocked(agent.sendConversationCommandV4).mockRejectedValue(new Error("offline"));
     await expect(service.renameTask({ ...task, title: "must not persist" })).rejects.toThrow(
       "offline",
@@ -2005,7 +2005,7 @@ describe("Nibi legacy task compat task index", () => {
         events.push({ reason: event.reason, taskId: event.taskId ?? event.taskMeta?.taskId });
       }
     });
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     await service.archiveTask({ workspacePath: "/repo", taskId: task.taskId });
     vi.mocked(agent.sendConversationCommandV4).mockClear();
 
@@ -2032,7 +2032,7 @@ describe("Nibi legacy task compat task index", () => {
     await expect(
       taskIndexRepo.listTaskMetas({
         workspacePath: "/repo",
-        provider: "glm",
+        provider: "nibi-agent",
         archived: true,
         includeDeleted: true,
       }),
@@ -2049,7 +2049,7 @@ describe("Nibi legacy task compat task index", () => {
     const { agent, service, taskIndexRepo } = createService();
     await seedIndexedTask(taskIndexRepo, {
       taskId: "running-rename",
-      provider: "glm",
+      provider: "nibi-agent",
       workspacePath: "/repo",
       updatedAt: 100,
     });
@@ -2103,7 +2103,7 @@ describe("Nibi legacy task compat task index", () => {
     const task = await service.createTask({
       workspacePath: "/repo",
       workspaceIdentity,
-      provider: "glm",
+      provider: "nibi-agent",
     });
     const original = {
       providerId: "account:bigmodel-individual-coding-plan",
@@ -2136,7 +2136,7 @@ describe("Nibi legacy task compat task index", () => {
 
     const task = await service.createTask({
       workspacePath: "/repo",
-      provider: "glm",
+      provider: "nibi-agent",
       model: "glm/deepseek-v4-flash",
       mcpServers,
       v4Create: true,
@@ -2169,7 +2169,7 @@ describe("Nibi legacy task compat task index", () => {
     await service.createTask({
       workspacePath: "/repo",
       workspaceIdentity: "remote:ssh:dev:/repo",
-      provider: "glm",
+      provider: "nibi-agent",
       model: "alternate-provider/deepseek-v4-pro",
       v4Create: true,
     });
@@ -2197,7 +2197,7 @@ describe("Nibi legacy task compat task index", () => {
 
     await service.createTask({
       workspacePath: "/repo",
-      provider: "glm",
+      provider: "nibi-agent",
       automationId: "automation_1",
     });
     expect(agent.createSession).toHaveBeenLastCalledWith(
@@ -2207,7 +2207,7 @@ describe("Nibi legacy task compat task index", () => {
       }),
     );
 
-    await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const regularCreate = vi.mocked(agent.createSession).mock.calls.at(-1)?.[0];
     expect(regularCreate).not.toHaveProperty("titleGenerationEnabled");
     expect(regularCreate).not.toHaveProperty("persistence");
@@ -2218,7 +2218,7 @@ describe("Nibi legacy task compat task index", () => {
 
     const task = await service.createTask({
       workspacePath: "/repo",
-      provider: "glm",
+      provider: "nibi-agent",
       deferPersistenceUntilFirstPrompt: true,
     });
 
@@ -2235,7 +2235,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("drains an accepted mobile task command after the current turn completes", async () => {
     const { agent, eventEmitter, indexFrameEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
       taskId: task.taskId,
@@ -2306,7 +2306,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("drains automation host command with CronCreate denied", async () => {
     const { agent, eventEmitter, indexFrameEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
 
     await service.sendPrompt({
       taskId: task.taskId,
@@ -2376,7 +2376,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("drains a mobile task command when the session syncer observes the ready event", async () => {
     const { agent, eventEmitter, indexFrameEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
 
     await service.sendPrompt({
       taskId: task.taskId,
@@ -2438,7 +2438,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("rejects a stale mobile enqueue command for an older owner run", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
 
     await service.sendPrompt({
       taskId: task.taskId,
@@ -2473,7 +2473,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("rejects a stale mobile promote command for an older owner run", async () => {
     const { service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
 
     await service.sendPrompt({
       taskId: task.taskId,
@@ -2520,7 +2520,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("cancels an accepted mobile task command before it drains", async () => {
     const { agent, indexFrameEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
 
     await service.sendPrompt({
       taskId: task.taskId,
@@ -2572,7 +2572,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("keeps a running mobile task command when cancel races with drain", async () => {
     const { service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
 
     await service.enqueueTaskCommand({
       workspacePath: "/repo",
@@ -2616,7 +2616,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("keeps mobile clientId on the v4 sendText envelope when draining a host command", async () => {
     const { agent, indexFrameEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
 
     await service.sendPrompt({
       taskId: task.taskId,
@@ -2650,7 +2650,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("marks a drained mobile command failed when the v4 sendText ACK is rejected", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     vi.mocked(agent.sendConversationCommandV4).mockResolvedValueOnce({
       commandId: "input_failed",
       status: "failed",
@@ -2685,7 +2685,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("keeps attachment prompts on the legacy session/send fallback", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     vi.mocked(agent.sendConversationCommandV4).mockClear();
 
     await service.sendPrompt({
@@ -2721,7 +2721,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("requires authoritative identity before stopping a running topic", async () => {
     const { service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const target = { taskId: task.taskId, workspacePath: "/repo" };
     vi.mocked(readBotGroupRuntimeSnapshot).mockResolvedValueOnce({
       control: { stopState: "idle", activeWorks: [] },
@@ -2751,7 +2751,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("routes topic stop through the same workspace and waits for its execution to end", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     let finish!: () => void;
     vi.mocked(waitBotGroupExecutionEnd).mockImplementationOnce(
       () =>
@@ -2786,7 +2786,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("preserves the observed execution identity in a topic stop", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     await service.stopGeneration({
       taskId: task.taskId,
       expectedForegroundExecutionId: "old-execution",
@@ -2803,7 +2803,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("routes stopGeneration through the v4 stop command", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
 
     await service.stopGeneration({ taskId: task.taskId });
 
@@ -2822,7 +2822,7 @@ describe("Nibi legacy task compat task index", () => {
   // M5 ③-3：模式切换（手机远控语义入口 setMode/setConfigOption）收敛 v4 switchCollaborationMode。
   it("routes setMode through the v4 switchCollaborationMode command", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
 
     await service.setMode({ taskId: task.taskId, mode: "plan" });
 
@@ -2841,7 +2841,7 @@ describe("Nibi legacy task compat task index", () => {
   // M5 ③-3：host 无本地 v4 投影，CAS 首发 baseRevision=0 探测，stale 用 revisionAtDecision 收敛。
   it("retries a stale switchCollaborationMode ACK with the server revision", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     vi.mocked(agent.sendConversationCommandV4).mockResolvedValueOnce({
       commandId: "probe",
       status: "stale",
@@ -2863,7 +2863,7 @@ describe("Nibi legacy task compat task index", () => {
   // M5 ③-3 残留保真：v4 switchCollaborationMode 值域刻意排除 auto，auto 继续走旧 op。
   it("keeps mode=auto on the legacy session/setMode fallback", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
 
     await service.setMode({ taskId: task.taskId, mode: "auto" });
 
@@ -2880,7 +2880,7 @@ describe("Nibi legacy task compat task index", () => {
   // M5 ③-3：思考深度收敛 v4 switchModelConfig（thought 字段承载，provider/model 取当前选型）。
   it("routes thought level config through v4 switchModelConfig with the current model", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
 
     const configOptions = await service.setConfigOption({
       taskId: task.taskId,
@@ -2905,7 +2905,7 @@ describe("Nibi legacy task compat task index", () => {
   // 迁移会让手机远控的 custom provider 跨切失效）。
   it("keeps setModel on the legacy session/setModel op", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
 
     await service.setModel({
       taskId: task.taskId,
@@ -2924,7 +2924,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("routes local automation selection through V4 commands without Host runtimeModel", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
 
     await service.setAutomationSessionConfig({
       taskId: task.taskId,
@@ -2969,7 +2969,7 @@ describe("Nibi legacy task compat task index", () => {
     const task = await service.createTask({
       workspacePath: "/repo",
       workspaceIdentity: "remote:ssh:dev:/repo",
-      provider: "glm",
+      provider: "nibi-agent",
     });
     await service.setAutomationSessionConfig({
       taskId: task.taskId,
@@ -3001,7 +3001,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("routes respondPermission through v4 resolveInteraction keyed by requestId", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
 
     const submitted = await service.respondPermission({
       taskId: task.taskId,
@@ -3028,7 +3028,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("routes respondElicitation through v4 resolveInteraction with action/content", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const received: NibiStreamEvent[] = [];
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -3079,7 +3079,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("treats a noop resolveInteraction ACK as an idempotent success", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     vi.mocked(agent.sendConversationCommandV4).mockResolvedValueOnce({
       commandId: "any",
       status: "noop",
@@ -3099,7 +3099,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("merges live subagent tool projection into terminal Nibi snapshots", async () => {
     const { agent, eventEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const terminalSnapshot = makeSnapshot({
       sessionId: task.taskId,
       workspacePath: "/repo",
@@ -3261,7 +3261,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("attaches hidden task notification metadata to background Agent tools in restored snapshots", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const restored = makeSnapshot({
       sessionId: task.taskId,
       workspacePath: "/repo",
@@ -3375,7 +3375,7 @@ describe("Nibi legacy task compat task index", () => {
     "restores a $notificationStatus background Agent notification without changing unrelated launch semantics",
     async ({ expectedError, expectedStatus, notificationStatus }) => {
       const { agent, service } = createService();
-      const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+      const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
       const notificationSummary = `Agent general-purpose task "Review" ${notificationStatus}.`;
       const notificationText = [
         "<task-notification>",
@@ -3475,7 +3475,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("projects live task notification turns back onto matching background Agent tools", async () => {
     const { eventEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const streamEvents: NibiStreamEvent[] = [];
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -3542,7 +3542,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("projects failed live task notifications with the provider error on matching Agent tools", async () => {
     const { eventEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const streamEvents: NibiStreamEvent[] = [];
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -3614,7 +3614,7 @@ describe("Nibi legacy task compat task index", () => {
     const task = await service.createTask({
       workspacePath,
       workspaceIdentity,
-      provider: "glm",
+      provider: "nibi-agent",
     });
     const restored = makeSnapshot({
       sessionId: task.taskId,
@@ -3693,7 +3693,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("filters non-glm legacy task rows in sqlite-backed lists", async () => {
     const { service, taskIndexRepo } = createService();
-    await seedIndexedTask(taskIndexRepo, { taskId: "glm_active", provider: "glm" });
+    await seedIndexedTask(taskIndexRepo, { taskId: "glm_active", provider: "nibi-agent" });
     await seedIndexedTask(taskIndexRepo, { taskId: "claude_active", provider: "claude" });
     await seedIndexedTask(taskIndexRepo, {
       taskId: "claude_imported",
@@ -3702,7 +3702,7 @@ describe("Nibi legacy task compat task index", () => {
     });
     await seedIndexedTask(taskIndexRepo, {
       taskId: "glm_pinned",
-      provider: "glm",
+      provider: "nibi-agent",
       pinned: true,
     });
     await seedIndexedTask(taskIndexRepo, {
@@ -3741,7 +3741,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("does not include zero NIBI Protocol context usage in task snapshots", async () => {
     const { service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
 
     const snapshot = await service.getTaskSnapshot({
       workspacePath: "/repo",
@@ -3753,7 +3753,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("uses runtime context usage when restored projection has no usage yet", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const restored = makeSnapshot({
       sessionId: task.taskId,
       workspacePath: "/repo",
@@ -3788,7 +3788,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("prefers structured projection error code in restored task snapshots", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const restored = makeSnapshot({
       sessionId: task.taskId,
       workspacePath: "/repo",
@@ -3825,7 +3825,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("restores protocol user file parts as task message attachments", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const imageBase64 = "QUJD";
     const videoBase64 = "REVG";
     vi.mocked(agent.resumeSession).mockResolvedValueOnce(
@@ -3940,7 +3940,7 @@ describe("Nibi legacy task compat task index", () => {
     await seedIndexedTask(taskIndexRepo, {
       taskId,
       workspacePath,
-      provider: "glm",
+      provider: "nibi-agent",
       model: "default-deepseek/deepseek-v4-flash",
     });
     vi.mocked(agent.resumeSession).mockResolvedValueOnce(
@@ -3976,7 +3976,7 @@ describe("Nibi legacy task compat task index", () => {
     await seedIndexedTask(taskIndexRepo, {
       taskId,
       workspacePath,
-      provider: "glm",
+      provider: "nibi-agent",
       model: "default-deepseek/deepseek-v4-flash",
     });
     vi.mocked(agent.resumeSession).mockResolvedValueOnce(
@@ -4002,7 +4002,7 @@ describe("Nibi legacy task compat task index", () => {
     await seedIndexedTask(taskIndexRepo, {
       taskId,
       workspacePath,
-      provider: "glm",
+      provider: "nibi-agent",
       model: "default-deepseek/deepseek-v4-flash",
     });
     vi.mocked(agent.resumeSession).mockResolvedValueOnce(
@@ -4037,7 +4037,7 @@ describe("Nibi legacy task compat task index", () => {
     await seedIndexedTask(taskIndexRepo, {
       taskId,
       workspacePath,
-      provider: "glm",
+      provider: "nibi-agent",
       model: "bigmodel-api/GLM-5.2",
       thoughtLevel: "high",
     });
@@ -4074,7 +4074,7 @@ describe("Nibi legacy task compat task index", () => {
     await seedIndexedTask(taskIndexRepo, {
       taskId,
       workspacePath,
-      provider: "glm",
+      provider: "nibi-agent",
       model: "bigmodel-api/GLM-5.2",
       thoughtLevel: "high",
     });
@@ -4112,7 +4112,7 @@ describe("Nibi legacy task compat task index", () => {
     await seedIndexedTask(taskIndexRepo, {
       taskId,
       workspacePath,
-      provider: "glm",
+      provider: "nibi-agent",
       model: "account:bigmodel-individual-coding-plan/GLM-5.2",
       thoughtLevel: "max",
     });
@@ -4142,7 +4142,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("marks idle protocol snapshots with completed assistant turns as completed tasks", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const restored = makeSnapshot({
       sessionId: task.taskId,
       workspacePath: "/repo",
@@ -4187,7 +4187,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("marks protocol task snapshots when messageLimit trims older history", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     vi.mocked(agent.resumeSession).mockResolvedValueOnce(
       makeSnapshot({
         sessionId: task.taskId,
@@ -4243,7 +4243,7 @@ describe("Nibi legacy task compat task index", () => {
           createdAt: 10,
           updatedAt: 20,
           mode: "yolo",
-          provider: "glm",
+          provider: "nibi-agent",
         },
         messages: [
           {
@@ -4294,7 +4294,7 @@ describe("Nibi legacy task compat task index", () => {
           workspacePath,
           createdAt: 10,
           updatedAt: 20,
-          provider: "glm",
+          provider: "nibi-agent",
           migrationSource: "claudeCode",
         },
         messages: [
@@ -4430,7 +4430,7 @@ describe("Nibi legacy task compat task index", () => {
     const acpSessionId = "sess_legacy_real";
     await seedIndexedTask(taskIndexRepo, {
       taskId,
-      provider: "glm",
+      provider: "nibi-agent",
       workspacePath,
     });
     await seedLegacyAcpSessionId(taskIndexRepo, {
@@ -4445,7 +4445,7 @@ describe("Nibi legacy task compat task index", () => {
     ).resolves.toMatchObject({
       taskId: acpSessionId,
       workspacePath,
-      provider: "glm",
+      provider: "nibi-agent",
     });
 
     const dbSnapshot = makeSnapshot({
@@ -4534,7 +4534,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("maps NIBI Protocol context projection events to legacy usage_update", async () => {
     const { eventEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const received: NibiStreamEvent[] = [];
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -4579,7 +4579,7 @@ describe("Nibi legacy task compat task index", () => {
     "补齐工具调用后缺失的终态正文且不重复已收到的部分：$streamed",
     async ({ streamed, expected }) => {
       const { eventEmitter, service } = createService();
-      const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+      const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
       const received: NibiStreamEvent[] = [];
       const subscription = service.onDynamicTaskEvent({
         workspacePath: "/repo",
@@ -4660,7 +4660,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("不同 assistant message 的正文独立核对，不受前言或子代理文字影响", async () => {
     const { eventEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const received: NibiStreamEvent[] = [];
     const subscription = service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -4706,7 +4706,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("uses prompt inputId as per-turn traceId for session stream events", async () => {
     const { agent, eventEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const received: NibiStreamEvent[] = [];
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -4799,7 +4799,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("maps main turn model usage with context window to legacy usage_update", async () => {
     const { eventEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const received: NibiStreamEvent[] = [];
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -4877,7 +4877,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("maps aggregate main turn cache hit usage to legacy usage_update", async () => {
     const { eventEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const received: NibiStreamEvent[] = [];
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -4945,7 +4945,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("prefers real main turn model usage over projected context used", async () => {
     const { eventEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const received: NibiStreamEvent[] = [];
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -5006,7 +5006,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("does not map sidecar model usage to legacy usage_update", async () => {
     const { eventEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const received: NibiStreamEvent[] = [];
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -5064,7 +5064,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("maps Nibi model retry status to apiRetry stream events and runtime snapshots", async () => {
     const { eventEmitter, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     const received: NibiStreamEvent[] = [];
     const disposable = service.onDynamicTaskEvent({
       workspacePath: "/repo",
@@ -5348,7 +5348,7 @@ describe("Nibi legacy task compat task index", () => {
 
   it("keeps pinned state in sqlite without resuming the agent session", async () => {
     const { agent, service } = createService();
-    const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
+    const task = await service.createTask({ workspacePath: "/repo", provider: "nibi-agent" });
     vi.mocked(agent.resumeSession).mockClear();
 
     await service.setTaskPinned({

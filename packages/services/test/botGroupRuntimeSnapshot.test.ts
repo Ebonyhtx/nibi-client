@@ -217,7 +217,7 @@ function makeSnapshotFrame(title: string): ConversationTopicFrame {
     inputRouting: { mode: "enqueue" },
     meta: { title, titleSource: "custom" },
     config: {
-      provider: "glm",
+      provider: "nibi-agent",
       model: "glm-5",
       thought: "medium",
       thoughtLevels: [],

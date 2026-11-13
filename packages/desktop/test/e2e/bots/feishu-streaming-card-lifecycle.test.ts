@@ -64,7 +64,7 @@ describe("BOT-E2E-SC-01 Feishu streaming card lifecycle", () => {
           taskId: "task-e2e-bot-streaming-card",
           title: "E2E Bot Streaming Card",
           workspacePath: E2E_BOT_WORKSPACE,
-          provider: "glm",
+          provider: "nibi-agent",
         };
       },
       sendPrompt: async (params: unknown) => {
@@ -92,7 +92,7 @@ describe("BOT-E2E-SC-01 Feishu streaming card lifecycle", () => {
         taskId: "task-e2e-bot-streaming-card",
         title: "E2E Bot Streaming Card",
         workspacePath: E2E_BOT_WORKSPACE,
-        provider: "glm",
+        provider: "nibi-agent",
       }),
       respondPermission: async () => true,
       respondElicitation: async () => true,

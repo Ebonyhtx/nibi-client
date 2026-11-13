@@ -1,23 +1,23 @@
 import type { NibiProvider } from "@nibi/shared";
 
 export const NIBI_MODE_OPTION_LABEL_IDS: Record<NibiProvider, Record<string, string>> = {
-  glm: {
-    default: "mode.label.glm.default",
-    build: "mode.label.glm.build",
-    edit: "mode.label.glm.edit",
-    plan: "mode.label.glm.plan",
-    yolo: "mode.label.glm.yolo",
-    guarded: "mode.label.glm.guarded",
+  "nibi-agent": {
+    default: "mode.label.nibiAgent.default",
+    build: "mode.label.nibiAgent.build",
+    edit: "mode.label.nibiAgent.edit",
+    plan: "mode.label.nibiAgent.plan",
+    yolo: "mode.label.nibiAgent.yolo",
+    guarded: "mode.label.nibiAgent.guarded",
   },
 };
 
 export const NIBI_MODE_OPTION_DESCRIPTION_IDS: Record<NibiProvider, Record<string, string>> = {
-  glm: {
-    default: "mode.description.glm.default",
-    build: "mode.description.glm.build",
-    edit: "mode.description.glm.edit",
-    plan: "mode.description.glm.plan",
-    yolo: "mode.description.glm.yolo",
-    guarded: "mode.description.glm.guarded",
+  "nibi-agent": {
+    default: "mode.description.nibiAgent.default",
+    build: "mode.description.nibiAgent.build",
+    edit: "mode.description.nibiAgent.edit",
+    plan: "mode.description.nibiAgent.plan",
+    yolo: "mode.description.nibiAgent.yolo",
+    guarded: "mode.description.nibiAgent.guarded",
   },
 };

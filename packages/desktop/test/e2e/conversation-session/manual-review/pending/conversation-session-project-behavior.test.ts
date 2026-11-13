@@ -48,7 +48,7 @@ describe("虚拟项目旧产品体验", () => {
         ).run(id, label, position);
       }
       const insert = db.prepare(
-        "INSERT INTO tasks(workspace_key,workspace_path,task_id,title,provider,created_at,updated_at,host_id,root_path,project_id,pinned,unread_at,cli_title,cli_title_source,cli_created_at,cli_updated_at,cli_last_outcome,cli_deleted) VALUES(?,?,?,?, 'glm',1,1,'local',?,?,?,?,?,'custom',?,?,'completed',0)",
+        "INSERT INTO tasks(workspace_key,workspace_path,task_id,title,provider,created_at,updated_at,host_id,root_path,project_id,pinned,unread_at,cli_title,cli_title_source,cli_created_at,cli_updated_at,cli_last_outcome,cli_deleted) VALUES(?,?,?,?, 'nibi-agent',1,1,'local',?,?,?,?,?,'custom',?,?,'completed',0)",
       );
       const baselineTime = Date.now() - 100_000;
       const yesterday = new Date();

@@ -27,7 +27,7 @@ describe("desktop e2e test id lookup", () => {
   });
 
   it("dispatches mousedown for a Windows skill option id", () => {
-    const optionId = String.raw`skill:glm:workspace:C:\gitlab-runner\builds\project\.nibi\skills\demo\SKILL.md`;
+    const optionId = String.raw`skill:nibi-agent:workspace:C:\gitlab-runner\builds\project\.nibi\skills\demo\SKILL.md`;
     const testId = `prompt-suggestion-option-${optionId}`;
     const element = document.createElement("button");
     const onMouseDown = vi.fn();

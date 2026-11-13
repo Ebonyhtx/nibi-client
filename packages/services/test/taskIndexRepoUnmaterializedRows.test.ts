@@ -22,7 +22,7 @@ function realTask(overrides: Partial<NibiTaskMeta> = {}): NibiTaskMeta {
     createdAt: 100,
     updatedAt: 200,
     mode: "default",
-    provider: "glm",
+    provider: "nibi-agent",
     ...overrides,
   };
 }

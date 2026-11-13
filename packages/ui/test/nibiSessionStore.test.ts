@@ -255,8 +255,8 @@ describe("useNibiSessionStore provider preference", () => {
     useNibiSessionStore.getState().bindRuntimeProvider(workspacePath, "opencode");
 
     const workspaceState = useNibiSessionStore.getState().getWorkspaceState(workspacePath);
-    expect(storage.getItem(LAST_SELECTED_AGENT_PROVIDER_STORAGE_KEY)).toBe("glm");
-    expect(workspaceState.selectedProvider).toBe("glm");
+    expect(storage.getItem(LAST_SELECTED_AGENT_PROVIDER_STORAGE_KEY)).toBe("nibi-agent");
+    expect(workspaceState.selectedProvider).toBe("nibi-agent");
     expect(workspaceState.selectedSupplierKey).toBe(customSupplierKey);
   });
 
@@ -429,7 +429,7 @@ describe("useNibiSessionStore provider preference", () => {
       .getState()
       .getWorkspaceState(workspacePath, workspaceIdentity);
 
-    expect(firstSnapshot.selectedProvider).toBe("glm");
+    expect(firstSnapshot.selectedProvider).toBe("nibi-agent");
     expect(firstSnapshot).toBe(secondSnapshot);
 
     useNibiSessionStore.getState().setTaskUnreadIndicator(workspacePath, "task-1", true);
@@ -439,7 +439,7 @@ describe("useNibiSessionStore provider preference", () => {
       .getWorkspaceState(workspacePath, workspaceIdentity);
 
     expect(thirdSnapshot).not.toBe(firstSnapshot);
-    expect(thirdSnapshot.selectedProvider).toBe("glm");
+    expect(thirdSnapshot.selectedProvider).toBe("nibi-agent");
     expect(thirdSnapshot.taskUnreadByTaskId["task-1"]).toBe(true);
   });
 
@@ -528,7 +528,7 @@ describe("useNibiSessionStore provider preference", () => {
     useNibiSessionStore.getState().startDraft(workspacePath, "claude");
 
     const workspaceState = useNibiSessionStore.getState().getWorkspaceState(workspacePath);
-    expect(workspaceState.selectedProvider).toBe("glm");
+    expect(workspaceState.selectedProvider).toBe("nibi-agent");
     expect(workspaceState.selectedSupplierKey).toBe(customSupplierKey);
   });
 
@@ -996,7 +996,7 @@ describe("useNibiSessionStore provider preference", () => {
       createTaskMeta({
         taskId,
         workspacePath,
-        provider: "glm",
+        provider: "nibi-agent",
         model: taskModel,
       }),
     );

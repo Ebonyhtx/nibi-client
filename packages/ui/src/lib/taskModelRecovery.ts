@@ -1,4 +1,4 @@
-import type { NibiConfigOption, NibiTaskMeta } from "@nibi/shared";
+import { isNibiAgentProvider, type NibiConfigOption, type NibiTaskMeta } from "@nibi/shared";
 import { getNibiAgentModeSelectOptions } from "@nibi/shared";
 import {
   decodeCustomModelValue,
@@ -59,7 +59,7 @@ export function resolveRecoveredTaskModelValue(
     return null;
   }
 
-  if (taskMeta.provider === "glm") {
+  if (isNibiAgentProvider(taskMeta.provider)) {
     return resolveGlmRecoveredTaskModelValue(normalizedTaskModel);
   }
 
@@ -221,7 +221,7 @@ export function resolveTaskRestorePreloadConfigOptions({
   }
 
   const mode = taskMeta.mode?.trim();
-  if (taskMeta.provider === "glm" && mode) {
+  if (isNibiAgentProvider(taskMeta.provider) && mode) {
     let hasModeOption = false;
     cachedOptions = cachedOptions.map((option) => {
       if (option.category !== "mode" || option.type !== "select") {
@@ -238,7 +238,7 @@ export function resolveTaskRestorePreloadConfigOptions({
   }
 
   const thoughtLevel = taskMeta.thoughtLevel?.trim();
-  if (taskMeta.provider === "glm" && thoughtLevel) {
+  if (isNibiAgentProvider(taskMeta.provider) && thoughtLevel) {
     let hasThoughtOption = false;
     cachedOptions = cachedOptions.map((option) => {
       if (option.category !== "thought_level" || option.type !== "select") {
@@ -268,7 +268,7 @@ export function mergeGlmRecoveredTaskModelConfigOptions({
   taskMeta: Pick<NibiTaskMeta, "provider" | "model">;
   configOptions: readonly NibiConfigOption[];
 }): NibiConfigOption[] | null {
-  if (taskMeta.provider !== "glm") {
+  if (!isNibiAgentProvider(taskMeta.provider)) {
     return null;
   }
 

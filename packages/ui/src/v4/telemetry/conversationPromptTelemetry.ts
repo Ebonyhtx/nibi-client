@@ -1,4 +1,4 @@
-import { NIBI_AGENT_PROVIDER, type NibiProvider } from "@nibi/shared";
+import { NIBI_AGENT_PROVIDER, NIBI_NATIVE_MODEL_PROVIDER_ID, type NibiProvider } from "@nibi/shared";
 import { buildPromptTelemetryExtraDetail } from "@/lib/messageTelemetry.js";
 import { encodeCustomModelValue } from "@/lib/nibiCustomModelValue.js";
 import {
@@ -12,7 +12,7 @@ export function resolveLegacyConversationModelValue(params: {
 }): string | null | undefined {
   const configProvider = params.configProvider?.trim();
   const modelName = params.modelName?.trim();
-  if (!configProvider || !modelName || configProvider === NIBI_AGENT_PROVIDER) {
+  if (!configProvider || !modelName || configProvider === NIBI_AGENT_PROVIDER || configProvider === NIBI_NATIVE_MODEL_PROVIDER_ID) {
     return params.modelName;
   }
   // 修复原因：V4 config 把 provider/model 拆开保存，直接上报 model 会丢失旧 UI
@@ -26,7 +26,7 @@ export function resolveLegacyRuntimeModelValue(params: {
 }): string | null | undefined {
   const configProvider = params.configProvider?.trim();
   const modelName = params.modelName?.trim();
-  if (!configProvider || !modelName || configProvider === NIBI_AGENT_PROVIDER) {
+  if (!configProvider || !modelName || configProvider === NIBI_AGENT_PROVIDER || configProvider === NIBI_NATIVE_MODEL_PROVIDER_ID) {
     return params.modelName;
   }
   if (modelName.startsWith(`${configProvider}/`)) return legacyTelemetryModelValue(modelName);

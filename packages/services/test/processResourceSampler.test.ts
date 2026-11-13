@@ -193,7 +193,7 @@ describe("attributeHostProcessTree", () => {
       agents: [
         {
           pid: 100,
-          provider: "glm",
+          provider: "nibi-agent",
           workspacePath: "/Users/me/demo",
           children: [
             {
@@ -212,7 +212,7 @@ describe("attributeHostProcessTree", () => {
 
     expect(rows.map((row) => [row.pid, row.category, row.groupKey, row.name])).toEqual([
       [70, "base", "host", "zsh"],
-      [100, "base", "cli", "nibi-agent-glm-demo"],
+      [100, "base", "cli", "nibi-agent-nibi-agent-demo"],
       [110, "base", "cli", "pnpm"],
       [120, "builtin-plugin", "builtin:computer-use", "plugin:computer-use:computer-use"],
       [121, "builtin-plugin", "builtin:computer-use", "node"],
@@ -235,10 +235,10 @@ describe("attributeHostProcessTree", () => {
     const rows = attributeHostProcessTree({
       samples,
       hostPid: 60,
-      agents: [{ pid: 100, provider: "glm", workspacePath: "C:\\work\\demo", children: [] }],
+      agents: [{ pid: 100, provider: "nibi-agent", workspacePath: "C:\\work\\demo", children: [] }],
     });
     expect(rows.map((row) => [row.pid, row.groupKey, row.name])).toEqual([
-      [100, "cli", "nibi-agent-glm-demo"],
+      [100, "cli", "nibi-agent-nibi-agent-demo"],
       [101, "cli", "mcp-server"],
     ]);
   });

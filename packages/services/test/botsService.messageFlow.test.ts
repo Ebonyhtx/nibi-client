@@ -171,7 +171,7 @@ describe("botsService messageFlow", () => {
       expect.objectContaining({
         workspacePath: "/tmp/workspace",
         workspaceIdentity: "remote:server:test-owner:/tmp/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
       }),
     );
     service.disposeAll();
@@ -952,7 +952,7 @@ describe("botsService messageFlow", () => {
         channel: "bots:task",
         payload: expect.objectContaining({
           taskId: "task-1",
-          provider: "glm",
+          provider: "nibi-agent",
           configOptions: expect.arrayContaining([
             expect.objectContaining({ currentValue: "gpt-5.4" }),
           ]),
@@ -997,7 +997,7 @@ describe("botsService messageFlow", () => {
         title: "Active task",
         workspacePath: "/tmp/workspace",
         workspaceIdentity: "remote:server:test-owner:/tmp/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
         model: "glm-4.6",
         status: "completed",
       },
@@ -1097,7 +1097,7 @@ describe("botsService messageFlow", () => {
         taskId: "task-1",
         title: "Active task",
         workspacePath: "/tmp/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
         model: "glm-4.6",
         status: "completed",
       },
@@ -1293,7 +1293,7 @@ describe("botsService messageFlow", () => {
         title: "Active task",
         workspacePath: "/tmp/workspace",
         workspaceIdentity: "remote:server:test-owner:/tmp/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
         model: "gpt-5.3",
         status: "completed",
       },
@@ -1388,7 +1388,7 @@ describe("botsService messageFlow", () => {
           mode: "draft",
           activeTaskId: null,
           draftOptions: {
-            provider: "glm",
+            provider: "nibi-agent",
             modelSelection: { providerId, modelId },
           },
           updatedAt: Date.now(),
@@ -1522,7 +1522,7 @@ describe("botsService messageFlow", () => {
           mode: "draft",
           activeTaskId: null,
           draftOptions: {
-            provider: "glm",
+            provider: "nibi-agent",
             model: encodeCustomModelValue(providerId, modelId),
           },
           updatedAt: Date.now(),
@@ -1596,7 +1596,7 @@ describe("botsService messageFlow", () => {
       expect.objectContaining({
         workspacePath: "/tmp/workspace",
         workspaceIdentity: "remote:server:test-owner:/tmp/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
         modelSelection: { providerId: "glm", modelId: "default" },
         v4Create: true,
       }),
@@ -4522,7 +4522,7 @@ describe("botsService messageFlow", () => {
           mode: "draft",
           activeTaskId: null,
           draftOptions: {
-            provider: "glm",
+            provider: "nibi-agent",
             model: "custom:deepseek:deepseek-v4-flash",
             thoughtLevel: "enabled",
           },
@@ -4584,7 +4584,7 @@ describe("botsService messageFlow", () => {
           workspaceId: "remote:server:test-owner:/tmp/workspace",
           mode: "draft",
           activeTaskId: null,
-          draftOptions: { provider: "glm" },
+          draftOptions: { provider: "nibi-agent" },
           updatedAt: Date.now(),
         },
       },
@@ -4778,7 +4778,7 @@ describe("botsService messageFlow", () => {
       mode: "draft",
       activeTaskId: null,
       draftOptions: {
-        provider: "glm",
+        provider: "nibi-agent",
         modelSelection: {
           providerId: "glm",
           modelId: "claude-sonnet",
@@ -4925,7 +4925,7 @@ describe("botsService messageFlow", () => {
     });
     expect((await repo.readState()).bots["weixin-1"]).toMatchObject({
       draftOptions: {
-        provider: "glm",
+        provider: "nibi-agent",
         modelSelection: {
           providerId: "runtime-provider",
           modelId: "gpt-5.4",
@@ -4942,7 +4942,7 @@ describe("botsService messageFlow", () => {
     });
     expect(legacyTaskService.createTask).toHaveBeenCalledWith(
       expect.objectContaining({
-        provider: "glm",
+        provider: "nibi-agent",
         modelSelection: {
           providerId: "runtime-provider",
           modelId: "gpt-5.4",
@@ -4969,7 +4969,7 @@ describe("botsService messageFlow", () => {
           mode: "draft",
           activeTaskId: null,
           draftOptions: {
-            provider: "glm",
+            provider: "nibi-agent",
             mode: "default",
           },
           updatedAt: Date.now(),
@@ -5000,7 +5000,7 @@ describe("botsService messageFlow", () => {
 
     expect(legacyTaskService.createTask).toHaveBeenCalledWith(
       expect.objectContaining({
-        provider: "glm",
+        provider: "nibi-agent",
       }),
     );
     expect(legacyTaskService.setMode).toHaveBeenCalledWith(
@@ -5344,7 +5344,7 @@ describe("botsService messageFlow", () => {
             workspaceId: "/tmp/workspace",
             mode: "draft",
             activeTaskId: null,
-            draftOptions: { provider: "glm", mode: "yolo", modelSelection: original },
+            draftOptions: { provider: "nibi-agent", mode: "yolo", modelSelection: original },
             updatedAt: Date.now(),
           },
         },

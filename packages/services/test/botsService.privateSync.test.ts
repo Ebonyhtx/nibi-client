@@ -242,7 +242,7 @@ describe("private task continuous delivery", () => {
     const h = setup();
     await h.service.saveConfig(await h.repo.readConfig());
     vi.mocked(h.tasks.listTasks).mockResolvedValue([
-      { taskId: "task-2", title: "Second", provider: "glm" },
+      { taskId: "task-2", title: "Second", provider: "nibi-agent" },
     ] as never);
     await h.service.handleInboundMessage({
       botId: h.actor.botId,

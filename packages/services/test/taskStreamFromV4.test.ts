@@ -170,7 +170,7 @@ describe("v4 task stream projection", () => {
     // 状态面（模式/模型/用量/标题）先播，再播运行中的回合。
     expect(events.map((event) => event.type)).toEqual([
       "mode_update",
-      "glm_agent_model_state_update",
+      "nibi_agent_model_state_update",
       "config_option_update",
       "usage_update",
       "session_info_update",
@@ -407,7 +407,7 @@ describe("v4 task stream projection", () => {
     );
     // mode 与思考档都变了：各发一次（seed 时已各发过一次）。
     expect(events.filter((event) => event.type === "mode_update")).toHaveLength(before + 1);
-    expect(events.filter((event) => event.type === "glm_agent_model_state_update")).toHaveLength(2);
+    expect(events.filter((event) => event.type === "nibi_agent_model_state_update")).toHaveLength(2);
     emit(
       deltasFrame([
         {

@@ -2148,7 +2148,7 @@ describe("SessionPane model switch recovery", () => {
     expect(mocks.nibiTaskService.restartWorkspaceProcess).toHaveBeenCalledWith({
       workspacePath: "/workspace",
       workspaceIdentity: undefined,
-      provider: "glm",
+      provider: "nibi-agent",
       bumpRuntimeEpoch: true,
     });
     expect(mocks.nibiTaskService.restartWorkspaceProcess.mock.invocationCallOrder[0]).toBeLessThan(

@@ -240,7 +240,7 @@ async function seedRendererPromptSources(seed: {
         capability: { userScopeAvailable: true },
         skills: [
           {
-            id: `glm:${currentSeed.skillName}`,
+            id: `nibi-agent:${currentSeed.skillName}`,
             name: currentSeed.skillName,
             description: "E2E skill for composer prefix routing",
             body: "Use this skill only for E2E prefix routing.",

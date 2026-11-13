@@ -501,7 +501,7 @@ describe("nibiAgentService v4 conversation channel", () => {
                   createdAt: 1,
                   updatedAt: 2,
                   mode: "build",
-                  provider: "glm",
+                  provider: "nibi-agent",
                 },
               });
             } finally {
@@ -1035,7 +1035,7 @@ describe("nibiAgentService v4 conversation channel", () => {
           createdAt: 1,
           updatedAt: 2,
           mode: "build",
-          provider: "glm",
+          provider: "nibi-agent",
           model: "glm/GLM-5.2",
           thoughtLevel: "max",
         },
@@ -1361,7 +1361,7 @@ describe("nibiAgentService v4 conversation channel", () => {
           createdAt: 1,
           updatedAt: 2,
           mode: "build",
-          provider: "glm",
+          provider: "nibi-agent",
         },
       });
       await seedTaskIndex(repo, {
@@ -1374,7 +1374,7 @@ describe("nibiAgentService v4 conversation channel", () => {
           createdAt: 1,
           updatedAt: 3,
           mode: "build",
-          provider: "glm",
+          provider: "nibi-agent",
         },
       });
 
@@ -1708,7 +1708,7 @@ describe("nibiAgentService v4 conversation channel", () => {
           createdAt: 1,
           updatedAt: 2,
           mode: "build",
-          provider: "glm",
+          provider: "nibi-agent",
           cronAutomationId: "automation-cron",
         },
       });

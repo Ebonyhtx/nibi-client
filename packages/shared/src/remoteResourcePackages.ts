@@ -1,8 +1,12 @@
+/** 远端 agent 组件 id：与本地 lane 值解耦，CDN 切换前必须保持 "glm"。 */
+export const NIBI_AGENT_REMOTE_COMPONENT_ID = "glm" as const;
+
 export const REMOTE_RESOURCE_PACKAGE_IDS = [
   "server-bundle",
   "node-runtime",
   "node-pty",
   "glm",
+  "nibi-agent",
   "bfs",
   "ripgrep",
   "ugrep",

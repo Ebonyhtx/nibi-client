@@ -398,7 +398,7 @@ redirectPath)[0..24]>:authorization_credentials`）；
      （商店本身由 Host 刷新，不受影响）。`plugins/onDynamicPluginOperationProgress` 是客户端订阅通知的 API，
      不是内核方法；内核不发通知时不涉及。
    - `skills/referenceCatalog` 早在 `9ee7aa2e` 落地（会话权威取会话插件快照，否则现扫工作区，
-     id 保持 Host 认的 `glm:<scope>:<path>`）。
+     id 改成 `nibi-agent:<scope>:<path>`，Host 同时识别旧的 `glm:` 前缀）。
 8. `provider/testModelConnectivity` 已补（`model_connectivity.rs`：1 token 的探测请求，形状与 Node 一致）。
 9. Rust TUI 的 `/login` 只有 NIBI 账号的 Device Flow（上游 `zai-coding-plan` / `bigmodel-coding-plan` 与
    手工 key 入口已删，模型走 `/provider`）；背景徽章是 NIBI 鸟的像素画，不再是上游的 Z 金属徽章。

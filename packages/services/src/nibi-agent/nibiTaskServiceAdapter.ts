@@ -211,7 +211,7 @@ type NibiTerminalStreamEvent =
   | Extract<NibiStreamEvent, { type: "task_complete" }>
   | Extract<NibiStreamEvent, { type: "task_error" }>;
 
-const GLM_PROVIDER: NibiProvider = NIBI_AGENT_PROVIDER;
+const NIBI_AGENT_RUNTIME_PROVIDER: NibiProvider = NIBI_AGENT_PROVIDER;
 const EMPTY_SLASH_COMMANDS: NibiSlashCommand[] = [];
 const logger = createServiceLogger("nibi-task-service");
 const ASK_USER_QUESTION_TOOL_NAME = "AskUserQuestion";
@@ -1243,7 +1243,7 @@ export function createNibiTaskServiceAdapter(
         title: indexedMeta?.title ?? legacyFile.meta.title,
         updatedAt: indexedMeta?.updatedAt ?? legacyFile.meta.updatedAt,
         mode: legacyFile.meta.mode ?? indexedMeta?.mode ?? "default",
-        provider: legacyFile.meta.provider ?? indexedMeta?.provider ?? GLM_PROVIDER,
+        provider: legacyFile.meta.provider ?? indexedMeta?.provider ?? NIBI_AGENT_RUNTIME_PROVIDER,
         status: legacyFile.meta.status ?? indexedMeta?.status ?? "completed",
         lastError: legacyFile.meta.lastError ?? indexedMeta?.lastError,
       };
@@ -1353,7 +1353,7 @@ export function createNibiTaskServiceAdapter(
       mode: fromNibiMode(snapshot.session.mode),
       model: formatTaskMetaModelSelectionFromSnapshot(snapshot),
       thoughtLevel: snapshot.settings.thoughtLevel.current,
-      provider: GLM_PROVIDER,
+      provider: NIBI_AGENT_RUNTIME_PROVIDER,
       status: deriveNibiTaskStatusFromSessionSnapshot(snapshot),
       lastError: snapshot.projection.lastError
         ? {
@@ -2511,7 +2511,7 @@ export function createNibiTaskServiceAdapter(
       const tasks = await taskIndexRepo.listTaskMetas({
         workspacePath: params.workspacePath,
         workspaceIdentity: params.workspaceIdentity,
-        provider: GLM_PROVIDER,
+        provider: NIBI_AGENT_RUNTIME_PROVIDER,
         pinned: false,
         archived: false,
       });
@@ -2520,7 +2520,7 @@ export function createNibiTaskServiceAdapter(
 
     async listPinnedTaskIds(): Promise<string[]> {
       const tasks = await taskIndexRepo.listTaskMetas({
-        provider: GLM_PROVIDER,
+        provider: NIBI_AGENT_RUNTIME_PROVIDER,
         pinned: true,
         archived: false,
       });
@@ -2531,7 +2531,7 @@ export function createNibiTaskServiceAdapter(
       const tasks = await taskIndexRepo.listTaskMetas({
         workspacePath: params.workspacePath,
         workspaceIdentity: params.workspaceIdentity,
-        provider: GLM_PROVIDER,
+        provider: NIBI_AGENT_RUNTIME_PROVIDER,
         pinned: true,
         archived: false,
       });
@@ -2542,7 +2542,7 @@ export function createNibiTaskServiceAdapter(
       return taskIndexRepo.listDeletedTaskIds({
         workspacePath: params.workspacePath,
         workspaceIdentity: params.workspaceIdentity,
-        provider: GLM_PROVIDER,
+        provider: NIBI_AGENT_RUNTIME_PROVIDER,
       });
     },
 
@@ -2558,7 +2558,7 @@ export function createNibiTaskServiceAdapter(
     async listTaskList(params: NibiTaskListQuery): Promise<NibiTaskListResult> {
       const result = await taskIndexRepo.queryTaskList({
         ...params,
-        provider: GLM_PROVIDER,
+        provider: NIBI_AGENT_RUNTIME_PROVIDER,
       });
       return {
         ...result,
@@ -2570,7 +2570,7 @@ export function createNibiTaskServiceAdapter(
       const tasks = await taskIndexRepo.listTaskMetas({
         workspacePath: params.workspacePath,
         workspaceIdentity: params.workspaceIdentity,
-        provider: GLM_PROVIDER,
+        provider: NIBI_AGENT_RUNTIME_PROVIDER,
         archived: true,
       });
       return tasks.map(rememberIndexedTaskMeta);
@@ -2930,7 +2930,7 @@ export function createNibiTaskServiceAdapter(
 
     async getWorkspaceProviderConfigFile(params) {
       return {
-        provider: GLM_PROVIDER,
+        provider: NIBI_AGENT_RUNTIME_PROVIDER,
         path: params.workspacePath,
         exists: false,
       };
@@ -2939,7 +2939,7 @@ export function createNibiTaskServiceAdapter(
     async getTaskNativeSessionLogFile() {
       const path = resolveNibiAgentCurrentLogFilePath();
       // 返回 Nibi Agent 的结构化日志 JSONL；日志行中的 sessionId 用于按当前任务排查。
-      return { provider: GLM_PROVIDER, path, exists: existsSync(path) };
+      return { provider: NIBI_AGENT_RUNTIME_PROVIDER, path, exists: existsSync(path) };
     },
 
     async getModelTrajectory(params) {
@@ -3956,7 +3956,7 @@ function mapStateUpdated(
       availableModes: getNibiAgentAvailableModes(),
     },
     {
-      type: "glm_agent_model_state_update",
+      type: "nibi_agent_model_state_update",
       taskId: params.taskId,
       traceId,
       version: 1,

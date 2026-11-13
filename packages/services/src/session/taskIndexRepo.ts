@@ -9,6 +9,7 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import {
   isRemoteWorkspaceIdentity,
+  LEGACY_NIBI_AGENT_PROVIDER,
   normalizeAgentProviderToNibiAgent,
   nibiTaskMetaSchema,
   resolveWorkspaceKey,
@@ -34,10 +35,9 @@ function appendNibiAgentIndexedProviderFilter(
   args: Array<string | number>,
   provider: NibiProvider,
 ): void {
-  // Bugfix: Nibi Agent 列表入口只展示当前 glm runtime 产生的 task。
-  // 旧 Claude Code 导入也不再例外，否则非 glm 历史数据仍会混入项目树与任务区。
-  where.push("provider = ?");
-  args.push(provider);
+  // Nibi Agent 列表入口只展示当前 runtime 产生的 task；旧 lane 值在迁移完成前继续可见。
+  where.push("(provider = ? OR provider = ?)");
+  args.push(provider, LEGACY_NIBI_AGENT_PROVIDER);
 }
 type DatabaseSyncInstance = InstanceType<typeof DatabaseSync>;
 type SQLInputValue = import("node:sqlite").SQLInputValue;
@@ -221,7 +221,7 @@ function readPresentation(row: TaskIndexRow): NibiTaskMeta {
     updatedAt: 0,
     mode: row.mode as NibiTaskMeta["mode"],
     model: row.model ?? undefined,
-    // 旧行 provider 列可能残留三方 CLI 值；meta 回退投影时统一归一为 glm。
+    // 旧行 provider 列可能残留三方 CLI 值；meta 回退投影时统一归一为 nibi-agent。
     provider: row.provider
       ? normalizeAgentProviderToNibiAgent(row.provider as NibiTaskMeta["provider"])
       : undefined,
@@ -1424,8 +1424,8 @@ export class TaskIndexRepo {
         WHERE (@workspace_key IS NULL OR workspace_key = @workspace_key)
           AND cli_created_at IS NOT NULL
           AND (@include_deleted = 1 OR (deleted = 0 AND coalesce(cli_deleted,0) = 0))
-          -- Bugfix: Nibi Agent 列表只接受当前 glm provider；Claude Code 导入也属于非 glm 历史数据。
-          AND (@provider IS NULL OR provider = @provider)
+          -- 旧 lane 值在迁移完成前继续可见；Claude Code 等非 Nibi 导入仍被过滤。
+          AND (@provider IS NULL OR provider = @provider OR provider = 'glm')
           AND (@pinned IS NULL OR pinned = @pinned)
           AND (@archived IS NULL OR archived = @archived)
         ORDER BY cli_updated_at DESC, cli_created_at DESC, task_id DESC`,
@@ -1462,7 +1462,7 @@ export class TaskIndexRepo {
         FROM tasks
         WHERE workspace_key = @workspace_key
           AND deleted = 1
-          AND (@provider IS NULL OR provider = @provider)
+          AND (@provider IS NULL OR provider = @provider OR provider = 'glm')
         ORDER BY task_id`,
       )
       .all({

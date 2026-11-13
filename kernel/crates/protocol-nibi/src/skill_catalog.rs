@@ -4,7 +4,7 @@
 //! - 带 `sessionId` → 该会话创建时冻结的发现结果（`authority: "session"`）；未知会话 fail closed，
 //!   不回落到当前工作区（否则新加的 skill 会漏进旧对话）；
 //! - 不带 → 每次现扫当前工作区（`authority: "workspace"`），手改目录后不用重启；
-//! - 内置（bundled）skill 不进面板；条目的 `id` 是 `glm:<scope>:<path>`（Host 的 UI 按 `glm:` 前缀过滤）。
+//! - 内置（bundled）skill 不进面板；条目的 `id` 是 `nibi-agent:<scope>:<path>`（Host 的 UI 同时识别旧的 `glm:` 前缀）。
 
 use nibi_kernel_api::ids::SessionId;
 use nibi_kernel_protocol_core::rpc::RpcError;

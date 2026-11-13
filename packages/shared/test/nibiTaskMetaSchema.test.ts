@@ -31,7 +31,7 @@ describe("nibiTaskMetaSchema", () => {
         createdAt: 1,
         updatedAt: 2,
         mode: "default",
-        provider: "glm",
+        provider: "nibi-agent",
         target: {
           sessionID: "session-target",
           targetID: "target-1",
@@ -64,7 +64,7 @@ describe("nibiTaskMetaSchema", () => {
         createdAt: 1,
         updatedAt: 2,
         mode: "default",
-        provider: "glm",
+        provider: "nibi-agent",
         target: {
           sessionID: "session-target",
           targetID: "target-1",
@@ -132,7 +132,7 @@ describe("nibiTaskMetaSchema", () => {
           createdAt: 1,
           updatedAt: 2,
           mode: "default",
-          provider: "glm",
+          provider: "nibi-agent",
           target: {
             sessionID: "session-target",
             targetID: "target-1",

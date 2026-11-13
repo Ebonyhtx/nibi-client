@@ -7,7 +7,7 @@ import {
 export const NIBI_AGENT_PROVIDERS: NibiProvider[] = [NIBI_AGENT_PROVIDER];
 
 export const NIBI_AGENT_PROVIDER_LABELS: Record<NibiProvider, string> = {
-  glm: NIBI_AGENT_PROVIDER_LABEL,
+  "nibi-agent": NIBI_AGENT_PROVIDER_LABEL,
 };
 
 export function supportsNibiSessionFork(provider: NibiProvider): boolean {

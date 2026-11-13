@@ -1071,7 +1071,7 @@ export const hostAgentProcessSpawnedResponseSchema = z.object({
   /** 进程泳道（mcp-status 等），旧 Host 不带该字段。 */
   lane: nonEmptyStringSchema.optional(),
   pid: z.number().int().positive(),
-  provider: nibiProviderSchema,
+  provider: legacyNibiProviderSchema,
   workspacePath: nonEmptyStringSchema,
   command: z.string(),
   args: z.array(z.string()),
@@ -1086,7 +1086,7 @@ export const hostAgentProcessReadyResponseSchema = z.object({
   /** 进程泳道（mcp-status 等），旧 Host 不带该字段。 */
   lane: nonEmptyStringSchema.optional(),
   pid: z.number().int().positive(),
-  provider: nibiProviderSchema,
+  provider: legacyNibiProviderSchema,
   workspacePath: nonEmptyStringSchema,
   readyAt: z.number().int().nonnegative(),
   startupDurationMs: z.number().int().nonnegative(),
@@ -1100,7 +1100,7 @@ export const hostAgentProcessExitedResponseSchema = z.object({
   /** 进程泳道（mcp-status 等），旧 Host 不带该字段。 */
   lane: nonEmptyStringSchema.optional(),
   pid: z.number().int().positive(),
-  provider: nibiProviderSchema,
+  provider: legacyNibiProviderSchema,
   workspacePath: nonEmptyStringSchema,
   exitCode: z.number().int().nullable(),
   signal: z.string().nullable(),
@@ -1123,7 +1123,7 @@ export const hostAgentProcessErrorResponseSchema = z.object({
   /** 进程泳道（mcp-status 等），旧 Host 不带该字段。 */
   lane: nonEmptyStringSchema.optional(),
   pid: z.number().int().positive().nullable(),
-  provider: nibiProviderSchema,
+  provider: legacyNibiProviderSchema,
   workspacePath: nonEmptyStringSchema,
   command: z.string(),
   args: z.array(z.string()),
@@ -1143,7 +1143,7 @@ export const hostAgentProcessExceptionResponseSchema = z
     type: z.literal("agent-process-exception"),
     lane: nonEmptyStringSchema.optional(),
     pid: z.number().int().positive(),
-    provider: nibiProviderSchema,
+    provider: legacyNibiProviderSchema,
     workspacePath: nonEmptyStringSchema,
     runtimeGeneration: z.number().int().positive(),
     runtimeInstanceId: nonEmptyStringSchema,

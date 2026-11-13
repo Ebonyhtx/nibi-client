@@ -24,7 +24,7 @@ import type {
   SkillsListResult,
   SkillsCapability,
 } from "@nibi/shared";
-import { DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS } from "@nibi/shared";
+import { DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS, NIBI_AGENT_PROVIDER } from "@nibi/shared";
 import type { ISkillsService } from "./skills.js";
 import { SKILL_FILE_NAME, walkSkillMarkdownPaths } from "./skillDiscoveryWalk.js";
 import { readInstalledPluginRoots } from "#src/plugins/installedPluginRoots.js";
@@ -1086,7 +1086,7 @@ export function createSkillsService(options?: SkillsServiceOptions): ISkillsServ
       provider?: NibiProvider;
     }): Promise<SkillsListResult> {
       const capability = resolveCapabilities(options);
-      const provider = "glm";
+      const provider = NIBI_AGENT_PROVIDER;
       const { skills: discovered, diagnostics } = await discoverSkills({
         workspacePath: params.workspacePath,
         workspaceIdentity: params.workspaceIdentity,
@@ -1110,7 +1110,7 @@ export function createSkillsService(options?: SkillsServiceOptions): ISkillsServ
       enabled: boolean;
     }): Promise<void> {
       const runUpdate = async () => {
-        const provider = "glm";
+        const provider = NIBI_AGENT_PROVIDER;
         const capability = resolveCapabilities(options);
         const { skills } = await discoverSkills({
           workspacePath: params.workspacePath,

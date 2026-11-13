@@ -63,7 +63,7 @@ export function buildCliNibiSourceHeaders(
     "X-Release-Channel": resolveRuntimeNibiEnv(env),
     "X-Client-Language": locale ?? "unknown",
     "X-Client-Timezone": timezone ?? "unknown",
-    "X-NIBI-Agent": "glm",
+    "X-NIBI-Agent": "nibi-agent",
     ...createRuntimePlatformHeaders(),
   };
 }

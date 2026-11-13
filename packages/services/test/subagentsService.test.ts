@@ -141,7 +141,7 @@ describe("subagent markdown helpers", () => {
     );
     const service = createSubagentsService({ homeDir: home, isDesktopRuntime: true });
 
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.pluginAgents.map((agent) => agent.name)).toEqual(["documents:visual-judge"]);
     expect(result.pluginAgents[0]).toMatchObject({
@@ -165,7 +165,7 @@ describe("subagent markdown helpers", () => {
         },
       }),
     );
-    expect((await service.list({ workspacePath, provider: "glm" })).pluginAgents).toEqual([]);
+    expect((await service.list({ workspacePath, provider: "nibi-agent" })).pluginAgents).toEqual([]);
   });
 
   it("settingsUserOnly 仍返回本地插件资源，不引入运行时别名或项目文件", async () => {
@@ -230,7 +230,7 @@ describe("subagent markdown helpers", () => {
     );
     const service = createSubagentsService({ homeDir: home, isDesktopRuntime: true });
 
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.pluginAgents.map((agent) => agent.path)).toEqual([
       join(installedRoot, "agents", "visual-judge.md"),
@@ -244,14 +244,14 @@ describe("subagent markdown helpers", () => {
         },
       }),
     );
-    expect((await service.list({ workspacePath, provider: "glm" })).pluginAgents).toEqual([]);
+    expect((await service.list({ workspacePath, provider: "nibi-agent" })).pluginAgents).toEqual([]);
     await writeFile(
       join(home, ".nibi", "cli", "config.json"),
       JSON.stringify({
         plugins: { enabledPlugins: { "documents@nibi-official": false } },
       }),
     );
-    expect((await service.list({ workspacePath, provider: "glm" })).pluginAgents).toEqual([]);
+    expect((await service.list({ workspacePath, provider: "nibi-agent" })).pluginAgents).toEqual([]);
   });
 
   it("插件覆盖按稳定身份原子保存，别名一致，清除后回到未修改的插件默认", async () => {
@@ -299,7 +299,7 @@ describe("subagent markdown helpers", () => {
       disabledAgentIds: ["user:user:disabled"],
     });
     expect(state.pluginAgentModelOverrides).toBeUndefined();
-    const result = await service.list({ workspacePath: join(home, "workspace"), provider: "glm" });
+    const result = await service.list({ workspacePath: join(home, "workspace"), provider: "nibi-agent" });
     expect(result.pluginAgents[0]).toMatchObject({
       modelSelection: selection,
       modelSelectionOverride: selection,
@@ -318,14 +318,14 @@ describe("subagent markdown helpers", () => {
     });
     const modelOnly = await service.list({
       workspacePath: join(home, "workspace"),
-      provider: "glm",
+      provider: "nibi-agent",
     });
     expect(modelOnly.pluginAgents[0]?.modelSelection).toEqual({
       providerId: "p",
       modelId: "no-effort",
     });
     await service.setPluginAgentModelOverride({ agentId });
-    const cleared = await service.list({ workspacePath: join(home, "workspace"), provider: "glm" });
+    const cleared = await service.list({ workspacePath: join(home, "workspace"), provider: "nibi-agent" });
     expect(cleared.pluginAgents[0]?.modelSelectionOverride).toBeUndefined();
     expect(cleared.pluginAgents[0]?.modelSelection).toEqual({
       providerId: "p",
@@ -716,7 +716,7 @@ describe("createSubagentsService", () => {
 
     const result = await service.list({
       workspacePath,
-      provider: "glm",
+      provider: "nibi-agent",
       mode: "settingsUserOnly",
     });
     const state = JSON.parse(
@@ -789,7 +789,7 @@ describe("createSubagentsService", () => {
 
     const result = await service.list({
       workspacePath,
-      provider: "glm",
+      provider: "nibi-agent",
       mode: "settingsUserOnly",
     });
 
@@ -836,7 +836,7 @@ describe("createSubagentsService", () => {
 
     const result = await service.list({
       workspacePath,
-      provider: "glm",
+      provider: "nibi-agent",
       mode: "settingsUserOnly",
     });
 
@@ -851,7 +851,7 @@ describe("createSubagentsService", () => {
     // 也不可删除，还被归入“内置”分组。只有内置 agent 才是真正只读的。
     const allScopes = await service.list({
       workspacePath,
-      provider: "glm",
+      provider: "nibi-agent",
     });
     expect(allScopes.agents.find((agent) => agent.name === "workspace-reviewer")).toMatchObject({
       scope: "workspace",
@@ -928,7 +928,7 @@ tools:
       isDesktopRuntime: true,
     });
 
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(
       result.agents.filter((agent) => agent.source === "plugin").map((agent) => agent.name),
@@ -956,7 +956,7 @@ tools:
     const agentId = "plugin:documents@nibi-official:visual-judge";
     const service = createSubagentsService({ homeDir: home, isDesktopRuntime: true });
 
-    const before = await service.list({ workspacePath, provider: "glm" });
+    const before = await service.list({ workspacePath, provider: "nibi-agent" });
     expect(before.pluginAgents[0]).toMatchObject({
       defaultModelSelection: { providerId: "custom-openai", modelId: "gpt-5.4" },
       modelSelection: { providerId: "custom-openai", modelId: "gpt-5.4" },
@@ -978,7 +978,7 @@ tools:
     expect(JSON.parse(await readFile(stateFile, "utf8"))).toMatchObject({
       pluginAgentModelSelectionOverrides: { [agentId]: selection },
     });
-    const overridden = await service.list({ workspacePath, provider: "glm" });
+    const overridden = await service.list({ workspacePath, provider: "nibi-agent" });
     expect(overridden.pluginAgents[0]).toMatchObject({
       defaultModelSelection: { providerId: "custom-openai", modelId: "gpt-5.4" },
       modelSelection: selection,
@@ -993,7 +993,7 @@ tools:
 
     // 清除完整选择时一并清掉档位，回落到 md 声明；不恢复旧双 map 保存入口。
     await service.setPluginAgentModelOverride({ agentId });
-    const cleared = await service.list({ workspacePath, provider: "glm" });
+    const cleared = await service.list({ workspacePath, provider: "nibi-agent" });
     expect(cleared.pluginAgents[0]).toMatchObject({
       modelSelection: { providerId: "custom-openai", modelId: "gpt-5.4" },
     });
@@ -1011,7 +1011,7 @@ tools:
     });
 
     const result = await service.createAgent({
-      provider: "glm",
+      provider: "nibi-agent",
       config: {
         name: "code-reviewer",
         description: "提交前审查代码",
@@ -1032,7 +1032,7 @@ tools:
       isDesktopRuntime: true,
     });
     const created = await service.createAgent({
-      provider: "glm",
+      provider: "nibi-agent",
       scope: "workspace",
       workspacePath,
       workspaceIdentity: "ssh://dev/workspace",
@@ -1052,7 +1052,7 @@ tools:
     const updated = await service.updateAgent({
       agentId: created.agent.id,
       oldFilePath: created.agent.path,
-      provider: "glm",
+      provider: "nibi-agent",
       scope: "workspace",
       workspacePath,
       workspaceIdentity: "ssh://dev/workspace",
@@ -1078,7 +1078,7 @@ tools:
       isDesktopRuntime: true,
     });
     const created = await service.createAgent({
-      provider: "glm",
+      provider: "nibi-agent",
       config: {
         name: "effort-reviewer",
         description: "Review with explicit effort",
@@ -1094,7 +1094,7 @@ tools:
     await service.updateAgent({
       agentId: created.agent.id,
       oldFilePath: created.agent.path,
-      provider: "glm",
+      provider: "nibi-agent",
       config: {
         name: "effort-reviewer",
         description: "Review with model default effort",
@@ -1116,7 +1116,7 @@ tools:
     });
 
     const result = await service.createAgent({
-      provider: "glm",
+      provider: "nibi-agent",
       config: {
         name: "wildcard-runner",
         description: "runs broad tools",
@@ -1145,7 +1145,7 @@ tools:
       isDesktopRuntime: true,
     });
     const created = await service.createAgent({
-      provider: "glm",
+      provider: "nibi-agent",
       config: {
         name: "code-reviewer",
         description: "reviews code",
@@ -1164,7 +1164,7 @@ tools:
     const renamed = await service.updateAgent({
       agentId: created.agent.id,
       oldFilePath: created.agent.path,
-      provider: "glm",
+      provider: "nibi-agent",
       config: {
         name: "code-reviewer-v2",
         description: "reviews code",
@@ -1173,7 +1173,7 @@ tools:
     });
     const listed = await service.list({
       workspacePath: join(home, "workspace"),
-      provider: "glm",
+      provider: "nibi-agent",
       mode: "settingsUserOnly",
     });
     const state = JSON.parse(

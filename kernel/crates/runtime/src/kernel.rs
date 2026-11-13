@@ -1313,7 +1313,7 @@ impl Kernel for LocalKernel {
                     | nibi_kernel_ext::SkillSource::User => (SkillReferenceScope::User, None),
                 };
                 Some(SkillReference {
-                    id: format!("glm:{}:{}", scope.as_str(), skill.dir),
+                    id: format!("nibi-agent:{}:{}", scope.as_str(), skill.dir),
                     name: skill.name.clone(),
                     description: skill.description.clone(),
                     path: skill.dir.clone(),

@@ -33,7 +33,7 @@ describe("BOT-E2E-GR-01 group provider admission", () => {
         taskId: `group-task-${++created}`,
         title: "E2E Group",
         workspacePath: resolveE2ERuntimePath("bots", "e2e-bot-workspace"),
-        provider: "glm",
+        provider: "nibi-agent",
       });
       h.nibiTaskService.submitBotGroupInput = async (params: (typeof admissions)[number]) => {
         admissions.push(params);

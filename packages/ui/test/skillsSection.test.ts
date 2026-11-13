@@ -575,7 +575,7 @@ describe("SkillsSection", () => {
   it("新建技能通过 Root 标准链路创建带结构化 skill-creator mention 的草稿", async () => {
     mockSkillsState = [
       {
-        id: "glm:skill-creator@official",
+        id: "nibi-agent:skill-creator@official",
         name: "skill-creator",
         description: "Create skills",
         body: "",
@@ -595,10 +595,10 @@ describe("SkillsSection", () => {
     const markdown = "[$skill-creator](/tmp/workspace/.nibi/skills/skill-creator/SKILL.md)";
     expect(onCreateTaskMock).toHaveBeenCalledTimes(1);
     expect(onCreateTaskMock).toHaveBeenCalledWith({
-      provider: "glm",
+      provider: "nibi-agent",
       initialPrompt: `${markdown} `,
       initialPromptMention: {
-        id: "skill:glm:skill-creator@official",
+        id: "skill:nibi-agent:skill-creator@official",
         category: "skills",
         label: "skill-creator",
         value: "skill-creator",
@@ -695,8 +695,8 @@ describe("SkillsSection", () => {
       workspaceIdentity: "remote:ssh:dev:/tmp/workspace",
       loadedWorkspacePath: "/tmp/workspace",
       loadedWorkspaceIdentity: "remote:ssh:dev:/tmp/workspace",
-      provider: "glm",
-      loadedProvider: "glm",
+      provider: "nibi-agent",
+      loadedProvider: "nibi-agent",
       skills: [skill],
       capability: { userScopeAvailable: true },
       loading: false,
@@ -709,7 +709,7 @@ describe("SkillsSection", () => {
       expect(mockSkillsServiceSetEnabled).toHaveBeenCalledWith({
         workspacePath: "/tmp/workspace",
         workspaceIdentity: "remote:ssh:dev:/tmp/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
         scope: "user",
         skillId: "skill-1",
         enabled: false,
@@ -756,8 +756,8 @@ describe("SkillsSection", () => {
       workspaceIdentity: null,
       loadedWorkspacePath: "/Users/alice/local-project",
       loadedWorkspaceIdentity: null,
-      provider: "glm",
-      loadedProvider: "glm",
+      provider: "nibi-agent",
+      loadedProvider: "nibi-agent",
       skills: [localSkill],
       capability: { userScopeAvailable: true },
       loading: false,

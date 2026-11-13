@@ -1182,7 +1182,7 @@ export function nibiStateUpdatedToNibiStreamEvents(params: {
       availableModes: getNibiAgentAvailableModes(),
     },
     {
-      type: "glm_agent_model_state_update",
+      type: "nibi_agent_model_state_update",
       taskId: params.taskId,
       traceId,
       version: 1,

@@ -703,28 +703,28 @@ describe("messageTelemetry", () => {
       buildPromptTelemetryExtraDetail({
         askMode: "plan",
         modelName: "4209ad4c-6650-4928-b44e-1167f913289a/deepseek-v4-flash",
-        provider: "glm",
+        provider: "nibi-agent",
         selectedSupplierKey: "native:glm",
       }),
     ).toEqual({
       ask_mode: "plan",
       model_name: "4209ad4c-6650-4928-b44e-1167f913289a/deepseek-v4-flash",
       model_provider: "4209ad4c-6650-4928-b44e-1167f913289a",
-      agent: "glm",
+      agent: "nibi-agent",
     });
 
     expect(
       buildPromptTelemetryExtraDetail({
         askMode: "plan",
         modelName: encodeCustomModelValue("provider-custom", "deepseek-v4-flash"),
-        provider: "glm",
+        provider: "nibi-agent",
         selectedSupplierKey: "native:glm",
       }),
     ).toEqual({
       ask_mode: "plan",
       model_name: encodeCustomModelValue("provider-custom", "deepseek-v4-flash"),
       model_provider: "provider-custom",
-      agent: "glm",
+      agent: "nibi-agent",
     });
   });
 
@@ -740,7 +740,7 @@ describe("messageTelemetry", () => {
           ask_mode: "build",
           model_name: "account:bigmodel-start-plan/GLM-5.2",
           model_provider: "provider-custom",
-          agent: "glm",
+          agent: "nibi-agent",
         },
       }),
     ).toMatchObject({
@@ -781,7 +781,7 @@ describe("messageTelemetry", () => {
       buildPromptTelemetryExtraDetail({
         askMode: "build",
         modelName: encodeCustomModelValue("provider-custom", "glm-5.2"),
-        provider: "glm",
+        provider: "nibi-agent",
         selectedSupplierKey: buildCustomSupplierKey("provider-custom"),
         providerBaseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
       }),

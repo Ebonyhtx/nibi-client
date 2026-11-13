@@ -232,7 +232,7 @@ imported-body`,
       symlinkSync(sourceSkillDir, linkedSkillDir, "dir");
 
       const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-      const result = await service.list({ workspacePath, provider: "glm" });
+      const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
       expect(result.skills.map((skill) => skill.name)).toEqual(["imported-skill"]);
       expect(result.skills[0]).toMatchObject({
@@ -277,7 +277,7 @@ agents-body`,
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
     const result = await service.list({
       workspacePath: home,
-      provider: "glm",
+      provider: "nibi-agent",
     });
 
     expect(result.skills.find((skill) => skill.name === "source-user-skill")?.scope).toBe("user");
@@ -317,7 +317,7 @@ system-body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.skills.map((skill) => skill.name).sort()).toEqual([
       "bundled-system-skill",
@@ -346,7 +346,7 @@ body`,
     symlinkSync(executablePath, join(binDir, "gfctl"));
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.skills.map((skill) => skill.name)).toEqual(["zai-grafana-cli"]);
     expect(result.diagnostics.some((diagnostic) => diagnostic.code === "skill_scan_failed")).toBe(
@@ -373,7 +373,7 @@ body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.skills.find((skill) => skill.name === "windows-skill")).toMatchObject({
       description: "first line\nsecond line",
@@ -406,7 +406,7 @@ body`,
     });
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.skills[0]?.metadata).toEqual({
       ownerId: "owner-1",
@@ -484,7 +484,7 @@ body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.capability).toEqual({ userScopeAvailable: true });
     expect(result.skills.map((skill) => skill.name)).toEqual([
@@ -516,7 +516,7 @@ body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.skills.map((skill) => skill.name)).toEqual(["agents-global"]);
     expect(result.skills[0]?.scope).toBe("user");
@@ -618,7 +618,7 @@ android-body`,
     });
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.skills.map((skill) => skill.name)).toEqual([
       "control-browser",
@@ -718,7 +718,7 @@ diagnosing-body`,
     });
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.skills.map((skill) => skill.name)).toEqual(["skill-creator"]);
     expect(result.skills.find((skill) => skill.pluginName === "browser")).toBeUndefined();
@@ -762,7 +762,7 @@ amazon-body`,
     });
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.skills).toEqual([
       expect.objectContaining({
@@ -829,7 +829,7 @@ bundle-root-body`,
     });
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.skills.map((skill) => skill.name).sort()).toEqual([
       "bundle-root",
@@ -856,7 +856,7 @@ body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: false });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.capability).toEqual({
       userScopeAvailable: false,
@@ -887,14 +887,14 @@ body`,
       const before = await service.list({
         workspacePath,
         workspaceIdentity: "remote:ssh:a:/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
       });
       const skill = before.skills[0]!;
 
       await service.setEnabled({
         workspacePath,
         workspaceIdentity: "remote:ssh:a:/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
         scope: skill.scope,
         skillId: skill.id,
         enabled: false,
@@ -903,12 +903,12 @@ body`,
       const disabled = await service.list({
         workspacePath,
         workspaceIdentity: "remote:ssh:a:/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
       });
       const enabled = await service.list({
         workspacePath,
         workspaceIdentity: "remote:ssh:b:/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
       });
       const config = JSON.parse(
         readFileSync(join(home, ".nibi", "cli", "config.json"), "utf-8"),
@@ -920,7 +920,7 @@ body`,
       await service.setEnabled({
         workspacePath,
         workspaceIdentity: "remote:ssh:a:/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
         scope: skill.scope,
         skillId: skill.id,
         enabled: true,
@@ -929,7 +929,7 @@ body`,
       const reenabled = await service.list({
         workspacePath,
         workspaceIdentity: "remote:ssh:a:/workspace",
-        provider: "glm",
+        provider: "nibi-agent",
       });
       const reenabledConfig = JSON.parse(
         readFileSync(join(home, ".nibi", "cli", "config.json"), "utf-8"),
@@ -952,7 +952,7 @@ body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    await service.list({ workspacePath, provider: "glm" });
+    await service.list({ workspacePath, provider: "nibi-agent" });
 
     const state = JSON.parse(readFileSync(legacyStatePath, "utf-8")) as {
       disabledByWorkspace?: Record<string, string[]>;
@@ -986,7 +986,7 @@ plan-body`,
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
     const context = await service.buildPromptContext({
       workspacePath,
-      provider: "glm",
+      provider: "nibi-agent",
       prompt: "请先执行 $code-review",
     });
 
@@ -1012,10 +1012,10 @@ review-body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const list = await service.list({ workspacePath, provider: "glm" });
+    const list = await service.list({ workspacePath, provider: "nibi-agent" });
     await service.setEnabled({
       workspacePath,
-      provider: "glm",
+      provider: "nibi-agent",
       scope: list.skills[0]!.scope,
       skillId: list.skills[0]!.id,
       enabled: false,
@@ -1023,7 +1023,7 @@ review-body`,
 
     const context = await service.buildPromptContext({
       workspacePath,
-      provider: "glm",
+      provider: "nibi-agent",
       prompt: "请先执行 $code-review",
     });
 
@@ -1050,7 +1050,7 @@ body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.skills.map((skill) => skill.name)).toEqual(["good-skill", "no-frontmatter"]);
     expect(result.skills.find((skill) => skill.name === "no-frontmatter")?.description).toBe("");
@@ -1079,7 +1079,7 @@ body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.skills.map((skill) => skill.name)).toEqual(["BadName_With_Caps"]);
     expect(
@@ -1105,7 +1105,7 @@ body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.skills).toEqual([]);
     expect(
@@ -1128,7 +1128,7 @@ body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.skills.map((skill) => skill.name)).toEqual(["extra-key"]);
     expect(
@@ -1163,7 +1163,7 @@ second-body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.skills.map((skill) => skill.name)).toEqual(["shared-name", "shared-name"]);
     expect(
@@ -1199,7 +1199,7 @@ body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath: childWorkspace, provider: "glm" });
+    const result = await service.list({ workspacePath: childWorkspace, provider: "nibi-agent" });
 
     expect(result.skills.map((skill) => skill.name).sort()).toEqual(["child-skill", "root-skill"]);
   });
@@ -1219,14 +1219,14 @@ body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const before = await service.list({ workspacePath, provider: "glm" });
+    const before = await service.list({ workspacePath, provider: "nibi-agent" });
     const skill = before.skills.find((s) => s.name === "repo-review")!;
     expect(existsSync(skillDir)).toBe(true);
 
     await service.deleteSkill({ workspacePath, skillId: skill.id });
 
     expect(existsSync(skillDir)).toBe(false);
-    const after = await service.list({ workspacePath, provider: "glm" });
+    const after = await service.list({ workspacePath, provider: "nibi-agent" });
     expect(after.skills.find((s) => s.name === "repo-review")).toBeUndefined();
   });
 
@@ -1251,7 +1251,7 @@ body`,
       symlinkSync(sourceSkillDir, linkedSkillDir, "dir");
 
       const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-      const before = await service.list({ workspacePath, provider: "glm" });
+      const before = await service.list({ workspacePath, provider: "nibi-agent" });
       const skill = before.skills.find((s) => s.name === "cua-driver")!;
       expect(skill.scope).toBe("user");
 
@@ -1262,7 +1262,7 @@ body`,
       // 外部目标目录及其 SKILL.md 完好无损
       expect(existsSync(sourceSkillDir)).toBe(true);
       expect(existsSync(join(sourceSkillDir, "SKILL.md"))).toBe(true);
-      const after = await service.list({ workspacePath, provider: "glm" });
+      const after = await service.list({ workspacePath, provider: "nibi-agent" });
       expect(after.skills.find((s) => s.name === "cua-driver")).toBeUndefined();
     },
   );
@@ -1288,14 +1288,14 @@ body`,
       symlinkSync(sourceSkillDir, linkedSkillDir, "dir");
 
       const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-      const before = await service.list({ workspacePath, provider: "glm" });
+      const before = await service.list({ workspacePath, provider: "nibi-agent" });
       const skill = before.skills.find((s) => s.name === "imported-skill")!;
 
       await service.deleteSkill({ workspacePath, skillId: skill.id });
 
       expect(existsSync(linkedSkillDir)).toBe(false);
       expect(existsSync(join(sourceSkillDir, "SKILL.md"))).toBe(true);
-      const after = await service.list({ workspacePath, provider: "glm" });
+      const after = await service.list({ workspacePath, provider: "nibi-agent" });
       expect(after.skills.find((s) => s.name === "imported-skill")).toBeUndefined();
     },
   );
@@ -1323,7 +1323,7 @@ body`,
       symlinkSync(externalGroup, join(userSkillRoot(home), "mygroup"), "dir");
 
       const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-      const before = await service.list({ workspacePath, provider: "glm" });
+      const before = await service.list({ workspacePath, provider: "nibi-agent" });
       const skill = before.skills.find((s) => s.name === "nested-skill")!;
 
       await expect(service.deleteSkill({ workspacePath, skillId: skill.id })).rejects.toThrow();
@@ -1348,7 +1348,7 @@ body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const before = await service.list({ workspacePath, provider: "glm" });
+    const before = await service.list({ workspacePath, provider: "nibi-agent" });
     const skill = before.skills.find((s) => s.name === "feishu-drive")!;
     expect(skill.scope).toBe("user");
     expect(existsSync(skillDir)).toBe(true);
@@ -1356,7 +1356,7 @@ body`,
     await service.deleteSkill({ workspacePath, skillId: skill.id });
 
     expect(existsSync(skillDir)).toBe(false);
-    const after = await service.list({ workspacePath, provider: "glm" });
+    const after = await service.list({ workspacePath, provider: "nibi-agent" });
     expect(after.skills.find((s) => s.name === "feishu-drive")).toBeUndefined();
   });
 
@@ -1397,7 +1397,7 @@ amazon-body`,
     });
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const before = await service.list({ workspacePath, provider: "glm" });
+    const before = await service.list({ workspacePath, provider: "nibi-agent" });
     const skill = before.skills.find((s) => s.name === "amazon-location-service")!;
     expect(skill.scope).toBe("plugin");
 
@@ -1462,7 +1462,7 @@ dist-body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.skills.map((skill) => skill.name)).toEqual(["real-skill"]);
   });
@@ -1484,7 +1484,7 @@ deep-body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     expect(result.skills.map((skill) => skill.name)).not.toContain("too-deep");
   });
@@ -1507,7 +1507,7 @@ cyclic-body`,
     symlinkSync(root, join(root, "loop-back"), "dir");
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const result = await service.list({ workspacePath, provider: "glm" });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
     // 不应卡死、不应重复列出同一技能。
     expect(result.skills.map((skill) => skill.name)).toEqual(["cyclic-skill"]);
@@ -1533,13 +1533,13 @@ body`,
     writeFileSync(configPath, broken, "utf-8");
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const listed = await service.list({ workspacePath, provider: "glm" });
+    const listed = await service.list({ workspacePath, provider: "nibi-agent" });
     const skill = listed.skills[0]!;
 
     await expect(
       service.setEnabled({
         workspacePath,
-        provider: "glm",
+        provider: "nibi-agent",
         scope: skill.scope,
         skillId: skill.id,
         enabled: false,
@@ -1577,11 +1577,11 @@ body`,
     );
 
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
-    const listed = await service.list({ workspacePath, provider: "glm" });
+    const listed = await service.list({ workspacePath, provider: "nibi-agent" });
     const skill = listed.skills[0]!;
     await service.setEnabled({
       workspacePath,
-      provider: "glm",
+      provider: "nibi-agent",
       scope: skill.scope,
       skillId: skill.id,
       enabled: false,

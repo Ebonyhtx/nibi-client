@@ -24,7 +24,7 @@ describe("hostResourceUsage", () => {
         collectLocalRuntimeChildProcesses: async () => [
           {
             pid: 100,
-            provider: "glm",
+            provider: "nibi-agent",
             workspacePath: "/Users/me/demo",
             children: [
               {
@@ -50,7 +50,7 @@ describe("hostResourceUsage", () => {
           pid: 100,
           category: "base",
           groupKey: "cli",
-          name: "nibi-agent-glm-demo",
+          name: "nibi-agent-nibi-agent-demo",
         }),
         expect.objectContaining({
           pid: 120,

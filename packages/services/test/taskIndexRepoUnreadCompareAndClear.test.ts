@@ -71,7 +71,7 @@ describe("TaskIndexRepo unread compare-and-clear", () => {
       ["newer", 200],
     ] as const) {
       await repo.applyCliFacts({
-        meta: { ...createTask(0), taskId, updatedAt, title: `CLI ${taskId}`, provider: "glm" },
+        meta: { ...createTask(0), taskId, updatedAt, title: `CLI ${taskId}`, provider: "nibi-agent" },
         lastOutcome: "error",
       });
     }
@@ -113,20 +113,20 @@ describe("TaskIndexRepo unread compare-and-clear", () => {
 
   it("materializes reserved creation from CLI facts while preserving intervening organization changes", async () => {
     const projectRepo = await repo.getProjectRepository();
-    const meta = { ...createTask(100), provider: "glm" as const };
+    const meta = { ...createTask(100), provider: "nibi-agent" as const };
     projectRepo.reserveCreatedTask({ task: meta, projectId: null });
     await repo.updateTaskState({ ...meta, patch: { pinned: true, unreadAt: 200 } });
     await repo.applyCliFacts({ meta, titleSource: "generated", lastOutcome: "completed" });
     expect(
       await repo.listTaskMetas({
         workspacePath: meta.workspacePath,
-        provider: "glm",
+        provider: "nibi-agent",
         pinned: true,
       }),
     ).toEqual([
       expect.objectContaining({
         taskId: meta.taskId,
-        provider: "glm",
+        provider: "nibi-agent",
         title: "Task 1",
         unreadAt: 200,
       }),

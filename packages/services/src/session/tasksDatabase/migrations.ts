@@ -118,6 +118,41 @@ const definitions = [
     checksumInput: [TASK_GROUP_ADMISSIONS_SQL],
     apply: (db: DatabaseSync) => db.exec(TASK_GROUP_ADMISSIONS_SQL),
   },
+  {
+    id: "0007_nibi_agent_provider",
+    touchedTables: ["tasks", "automations"],
+    checksumInput: ["nibi-agent-provider-v1"],
+    apply: (db: DatabaseSync) => {
+      // 旧 lane 值只做一次性迁移；新值由 NIBI_AGENT_PROVIDER 统一写入。
+      for (const table of ["tasks", "automations"]) {
+        const exists = db
+          .prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name=?")
+          .get(table);
+        if (!exists) continue;
+        db.prepare(`UPDATE ${table} SET provider='nibi-agent' WHERE provider='glm'`).run();
+      }
+      const taskTable = db
+        .prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='tasks'")
+        .get();
+      if (!taskTable) return;
+      const rows = db
+        .prepare("SELECT workspace_key, task_id, meta_json FROM tasks WHERE meta_json <> '{}'")
+        .all() as Array<{ workspace_key: string; task_id: string; meta_json: string }>;
+      const update = db.prepare(
+        "UPDATE tasks SET meta_json=? WHERE workspace_key=? AND task_id=?",
+      );
+      for (const row of rows) {
+        try {
+          const meta = JSON.parse(row.meta_json) as Record<string, unknown>;
+          if (meta.provider !== "glm") continue;
+          meta.provider = "nibi-agent";
+          update.run(JSON.stringify(meta), row.workspace_key, row.task_id);
+        } catch {
+          // 坏 meta_json 由现有读取路径自行降级，迁移不改写。
+        }
+      }
+    },
+  },
 ] as const;
 
 export type TasksDatabaseMigrationScope = "base" | "controller-remote" | "source-server";

@@ -199,7 +199,7 @@ async function applyLegacyOperation(input: {
           model_name: operation.modelName ?? "",
           model_provider: operation.modelProvider ?? "",
           ...(operation.providerHostname ? { provider_name: operation.providerHostname } : {}),
-          agent: "glm",
+          agent: "nibi-agent",
           plan_status: "unknown",
           plan_product_id: "",
         },
@@ -522,7 +522,7 @@ async function applyLegacyOperation(input: {
       };
       const detail = buildCompactionTelemetryExtraDetail({
         timeline,
-        provider: "glm" as NibiProvider,
+        provider: "nibi-agent" as NibiProvider,
         modelName: operation.modelName,
       });
       if (detail) {

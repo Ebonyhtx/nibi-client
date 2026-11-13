@@ -189,7 +189,7 @@ describe("模型请求默认 Header：Bootstrap → Adapter → 真实 SDK", () 
         expect(headers.get("x-nibi-app-version")).toBe(CLIENT_VERSION);
         expect(headers.get("x-title")).toBe("NIBI@electron");
         expect(headers.get("http-referer")).toBe("https://api.nibistudio.cn");
-        expect(headers.get("x-nibi-agent")).toBe("glm");
+        expect(headers.get("x-nibi-agent")).toBe("nibi-agent");
         expect(headers.get("x-release-channel")).toBe("production");
         for (const key of [
           "x-client-language",

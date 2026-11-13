@@ -403,10 +403,10 @@ function resolveDeployedNibiAgentBinaryCommand(
 ): NibiAgentCommand | null {
   // 旧 resolver 只识别 NIBI_AGENT_SERVER_COMMAND env 和 monorepo 源码树。
   // SSH 远端把 nibi-server.cjs 单文件部署到 ~/.nibi/server/，宿主进程的 cwd 不在仓库内、
-  // env 也不会被 ssh exec 继承，即使 nibi-agent 已经部署到 ~/.nibi/server/agents/glm/，
+  // env 也不会被 ssh exec 继承，即使 nibi-agent 已经部署到 ~/.nibi/server/agents/nibi/，
   // resolver 也找不到，第一次 getClient 就抛 "Nibi agent server command is not configured"。
   // 这里复用 findNibiAgentRuntimeBinary 的候选链（含 GLM_BINARY_PATH env、
-  // packagedResourcesPath、~/.nibi/server/agents/glm、bundled-agents 等），
+  // packagedResourcesPath、~/.nibi/server/agents/nibi、bundled-agents 等），
   // 把已部署的原生 binary 当成最终兜底，远端/桌面打包形态都能命中。
   const binaryPath = findNibiAgentRuntimeBinary();
   if (!binaryPath) {
