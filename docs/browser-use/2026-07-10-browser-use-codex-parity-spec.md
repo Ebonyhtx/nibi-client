@@ -747,7 +747,7 @@ ZCode **不在**成功的导航/点击/输入等 side-effect cell 结束后自�
 6. App 与 Agent 允许短暂版本错位。旧 Agent 对 `browserAmbientContext` 返回 `-32602` 时，App 必须同时识别
    `Invalid params` 与带字段摘要的 `Invalid params — ...`，从结构化 Zod issues 确认只有可降级字段后，删除该字段
    重试一次；不得把兼容错误直接暴露为用户第二轮发送失败。`dev:local-cli` 启动前必须重建 desktop agent bundle，
-   不能因为仓库里存在旧 `dist/zcode.cjs` 就优先启动过期协议实现。
+   不能因为仓库里存在旧 `dist/nibi.cjs` 就优先启动过期协议实现。
 
 ### 13.2 Electron navigation already committed
 

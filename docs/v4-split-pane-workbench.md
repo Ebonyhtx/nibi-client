@@ -24,7 +24,7 @@ window renderer                          host / 远程 host                  CLI
   pane(B/s3) ─┘   Map<endpointKey+workspaceKey,
   pane(R/s4) ─┐       { transport, SessionDataLayer, refCount, keepWarm }>
               │        │
-              │        ├─ 本地 scope ──→ base services.zcodeAgentService ──→ base local host
+              │        ├─ 本地 scope ──→ base services.nibiAgentService ──→ base local host
               │        │                   └─ processesByWorkspaceKey ┬─→ agent(A)  conversation/s1,s2
               │        │                      （每 workspace 一个 CLI）└─→ agent(B)  conversation/s3
               │        └─ 远程 scope ──→ sessionsById[remoteSessionId].services ──→ remote host ──→ agent(R)  conversation/s4

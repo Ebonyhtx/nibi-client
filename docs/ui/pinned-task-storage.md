@@ -59,7 +59,7 @@
 ## 相关实现
 
 - 持久化：`packages/services/src/session/taskIndexRepo.ts`
-- 服务接口：`packages/services/src/session/zcodeTaskService.ts`
+- 服务接口：`packages/services/src/session/nibiTaskService.ts`
 - UI 全局列表：`packages/ui/src/hooks/useGlobalTaskList.ts`
 - UI workspace 分组列表：`packages/ui/src/hooks/useWorkspaceTaskLists.ts`
 - 前端 query cache：`packages/ui/src/store/taskQueryCacheStore.ts`

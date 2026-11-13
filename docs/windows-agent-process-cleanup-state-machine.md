@@ -156,7 +156,7 @@ skip 原因、exit observation、deadline 与 remaining PID。日志不得包含
 
 ## 2026-08-24 验证记录
 
-- `zcodeAgentProcessManager.test.ts` 真机权限下连续 10 轮通过：360/360；
+- `nibiAgentProcessManager.test.ts` 真机权限下连续 10 轮通过：360/360；
 - 进程终止器、stdio transport、manager 相关测试集：55 passed / 11 skipped；
 - 确定性用例覆盖 taskkill flight、exit 延迟、累加 deadline、PID 复用、身份查询失败与
   共享进程表新鲜度；其中无信号目标的 unverified 分支不预留 taskkill timeout，有已验证

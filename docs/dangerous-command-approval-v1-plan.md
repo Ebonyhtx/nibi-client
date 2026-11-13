@@ -101,7 +101,7 @@ CLI 全包 lint 仍因 staging 已有的 `max-lines` 报错失败：contracts �
 
 | Feature Relationships / rank | 代码事实及处理 |
 | --- | --- |
-| must-inspect：Host 创建后的模式补发 | `zcodeAgentService.ts::sendConversationCommandV4`：撤回额外请求；服务测试断言只发送一次 createSession |
+| must-inspect：Host 创建后的模式补发 | `nibiAgentService.ts::sendConversationCommandV4`：撤回额外请求；服务测试断言只发送一次 createSession |
 | must-inspect：Host firstInput 模式补齐 | 已撤回；缺省 mode 不注入，调用方显式 mode 不覆盖，模式解析仍由原 CLI 创建/Submission 链路承担 |
 | evidence-only：旧 schema 模拟 | 已删除 oldModeSchema 测试桩与拒绝旧版本用例；保留正常创建仅发送一次、payload 原样转发的回归 |
 | should-inspect：CLI 配置应用失败阻断 | `session-mgmt.ts::createSession` 防止配置失败后继续执行，属于真实失败处理而非版本探测，保留 |
@@ -352,7 +352,7 @@ DCA-V1-01/03..08 转为 guarded 合同；02 保持 PowerShell pruned；09..12 �
 | --- | --- |
 | core 19 suites | 353 passed：guarded-*、permission service/broker/race、Memory、Plan、Bash、executor error/trace、普通子任务交互/事件、queue intent、CUA 原权限对照 |
 | bootstrap 11 suites | 160 passed：真实 V4 registry/command/projection 即时回应、问答与拒绝/取消；workflow/script child 受控执行后父仍需批准；严格配置失败、自动化透传、SQLite 冷恢复、queue promotion |
-| services + shared 3 suites | 125 passed：automationRepo、zcodeAgentService.v4、guardedMode。旧 runtime 测试是实际子进程模拟旧严格 schema，非旧版本二进制 |
+| services + shared 3 suites | 125 passed：automationRepo、nibiAgentService.v4、guardedMode。旧 runtime 测试是实际子进程模拟旧严格 schema，非旧版本二进制 |
 | adapters 1 suite | 19 passed：session-store-model-selection-codec 保存值与解码 |
 | TUI 2 files | 8 passed：审批选项/伪造 project 响应拒绝、模式建议与键盘选择，使用 tsx + node:test |
 | feature graph targeted | 1 passed，3 个无关测试未运行；真实代码 seed 与隔离边界成立，未执行 codegraph 影响面扫描 |

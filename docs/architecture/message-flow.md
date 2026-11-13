@@ -78,7 +78,7 @@ desktop attachment；`DetachServicePort` 只释放一个逻辑 workspace 的 RPC
 | UI pane             | `packages/ui/src/v4/SessionPane.tsx`                                       |
 | UI transport        | `packages/ui/src/v4/agentConversationTransport.ts`                         |
 | UI projection       | `packages/ui/src/v4/sessionDataLayer.ts`、`packages/ui/src/v4/conversationProjectionStore.ts` |
-| Host service        | `packages/services/src/nibi-agent/zcodeAgentService.ts`                   |
+| Host service        | `packages/services/src/nibi-agent/nibiAgentService.ts`                   |
 | V4 schema           | `packages/shared/src/nibi-protocol-v4/`                                   |
 | CLI gateway/reducer | `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/`                 |
 | Desktop host        | `packages/desktop/src/host/index.ts`                                       |

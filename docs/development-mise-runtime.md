@@ -24,7 +24,7 @@
 - `pnpm dev:desktop:test` 本身仍保持原有数据目录语义；隔离只属于 `mise run dev` 入口。
 - 生产环境桌面启动使用 `dev-desktop-prod`，不继承 `dev` 任务的数据目录变量。
 - 若 `$HOME/.nibi/v2/setting.json` 里配置过自定义 `dataBaseDir`，它会经 `applyEarlyDataBaseDirBootstrap()` 覆盖本变量（`setDataBaseDir()` 优先级高于 env）；需要隔离时先清掉该字段。
-- 数据目录隔离不改变 OAuth 回调协议。正式包与 Dev 仍使用 `zcode://`，因此 Dev 登录时应先退出其他 ZCode 实例，避免回调被错误进程接收。
+- 数据目录隔离不改变 OAuth 回调协议。正式包与 Dev 仍使用 `nibi://`，因此 Dev 登录时应先退出其他 ZCode 实例，避免回调被错误进程接收。
 
 ## 与 3996dcbdb3 回滚的关系
 

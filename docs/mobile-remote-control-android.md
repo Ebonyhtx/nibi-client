@@ -16,7 +16,7 @@
    后台保活 / 最近链接」。
 2. **按现状打不开我们自己的链接**：`RemoteControlUrlPolicy` 的生产白名单写死上游
    `https://zcode.z.ai/remote…`，而二维码指向我们自己的 origin —— 正式包会把自家链接判成非法。
-3. **深链无人发**：`zcode://remote` 在 desktop / services / shared / web 里零个生产者。
+3. **深链无人发**：`nibi://remote` 在 desktop / services / shared / web 里零个生产者。
 4. **不在任何构建链**：不在 `pnpm-workspace.yaml`，CI 与打包脚本零引用；发行身份还是占位的
    `com.example.zcode_mobile`（示例命名空间，不能当发行身份）。没有任何流水线会产出它。
 

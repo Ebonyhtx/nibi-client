@@ -213,7 +213,7 @@ stream idle 计时器要等首个 SSE 事件才起跑，请求根本没发出去
 | 父铸造的 permission broker 带父会话身份 + 子代理 origin | 同上 |
 | 嵌套两层时 `sessionId` 收敛到根、`origin` 保留最内层 | `core/tests/child-client-ports.test.ts` |
 | core subagent 路由行为不变（私有包装删除后由统一派生覆盖） | `core/tests/subagent-explore.test.ts`（含「端口入参不得再出现 sessionId」回归守卫） |
-| 桌面侧 runtime model config 推送抛错时 CLI 仍收到 response | `packages/services/test/zcodeAgentService.providerRegistry.test.ts` |
+| 桌面侧 runtime model config 推送抛错时 CLI 仍收到 response | `packages/services/test/nibiAgentService.providerRegistry.test.ts` |
 | 未绑定的 `SessionRoutedProviderRuntimeHeadersPort` 进不了 runtime deps | `pnpm typecheck`（两个类型不兼容，三处 child 装配都在 src 内） |
 | legacy workflow child 与 dwf actor 走同一次派生 | 同一调用点 + 类型；facade 目前没有测试装配，无独立用例 |
 

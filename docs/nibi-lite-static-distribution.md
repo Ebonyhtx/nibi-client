@@ -52,7 +52,7 @@ http://intranet.example.invalid:12345/zcode/deps/
     |-- packages/web/dist 静态资源
     |-- /ws RPC
     |-- createLocalServices()
-    |-- bundled zcode.cjs app-server --stdio
+    |-- bundled nibi.cjs app-server --stdio
       |
       v
   浏览器访问 Web UI

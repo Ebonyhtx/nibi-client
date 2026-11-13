@@ -137,7 +137,7 @@ card-control scenarios, Lark, physical mobile remote control and
 Windows/Linux remain unverified. TP-02 stays pending.
 
 The 2026-09-08 evidence-update pre-push attempt stopped with `ENOSPC` while loading
-`zcodeAgentService.v4.test.ts` (22 files / 339 tests passed before the failed suite;
+`nibiAgentService.v4.test.ts` (22 files / 339 tests passed before the failed suite;
 no tests ran in that suite). Only about 159 MiB remained on the system volume.
 This is an environment failure, not a passing gate or a confirmed implementation
 regression. After disk space recovered to 12 GiB, the complete

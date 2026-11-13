@@ -174,7 +174,7 @@ Mobile /remote:
 
 第一版发送策略：
 
-- connected 且 task ready：直接走远端 `zcodeTaskService` / `zcodeAgentService` 现有发送路径。
+- connected 且 task ready：直接走远端 `nibiTaskService` / `nibiAgentService` 现有发送路径。
 - disconnected：禁用发送，不在本地 renderer queue 积压。
 - running task 的流由远端 server 持有；Desktop 断线不会杀远端 runtime。
 - 重连后用远端 session/task snapshot 对齐 UI。

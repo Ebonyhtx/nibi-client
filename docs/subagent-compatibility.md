@@ -95,7 +95,7 @@ App/UI 层需要同时识别现役 `Task` 和历史 ZCode Agent 投影：
 核心实现位置：
 
 - `packages/shared/src/tool-identity.ts`
-- `packages/services/src/nibi-agent/zcodeTaskServiceAdapter.ts`
+- `packages/services/src/nibi-agent/nibiTaskServiceAdapter.ts`
 - `packages/ui/src/v4/toolCallRowAdapter.ts`
 - `packages/ui/src/ToolCallBlocks.tsx`
 - `packages/ui/src/lib/toolIdentity.ts`

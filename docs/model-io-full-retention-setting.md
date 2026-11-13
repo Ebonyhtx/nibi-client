@@ -105,7 +105,7 @@ sanitize headers / request metadata       always
 | Rank | From | Semantic edge | To | Condition | Why inspect it | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
 | must-inspect | Settings switch | persists-to | App settings | always | 默认值与历史兼容 | `validationAppSettings.ts`, `settingService.ts` |
-| must-inspect | App settings | syncs-to | active local/remote CLI | active workspace | 切换需即时生效 | `useSettingService.ts`, `zcodeAgentService.ts`, `botRemoteWorkspaceBridge.ts` |
+| must-inspect | App settings | syncs-to | active local/remote CLI | active workspace | 切换需即时生效 | `useSettingService.ts`, `nibiAgentService.ts`, `botRemoteWorkspaceBridge.ts` |
 | must-inspect | CLI preference | controls | ModelIO writer | every model attempt | 定义 full 与 bounded 分支 | `runner.ts`, `runner-debug.ts` |
 | should-inspect | full retention | increases | retained diagnostic volume | enabled | 脱敏不能关闭 | `runner-debug-redaction.ts`, i18n copy |
 | invariant-only | full retention | must-not-mutate | conversation delivery/recovery | all modes | 仅诊断持久化变化 | architecture docs |

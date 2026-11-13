@@ -43,7 +43,7 @@ office-runtime/scripts/build.mjs（插件名取自 .nibi-plugin/plugin.json）
 | `cli/scripts/sea-official-plugin-assets.mjs`          | 版本 0.2.0（pdf 0.2.1）；`requiresRuntime: true`，`requiredRuntimePaths` 为面板产物                                      |
 | `desktop/scripts/prepare-agent-node-bundle.mjs`       | `requiresRuntime: true`，`runtimeBuildScript` 指向 office-runtime 构建脚本                                               |
 | `scripts/build-desktop-agent-cli.mjs`                 | dev 链路构建四个插件并校验 `dist/server.mjs`                                                                             |
-| `server/src/remote/zcodeAgentOfficialPluginAssets.ts` | 远端必需资产加入 viewer skill 与面板产物                                                                                 |
+| `server/src/remote/nibiAgentOfficialPluginAssets.ts` | 远端必需资产加入 viewer skill 与面板产物                                                                                 |
 | `docker/plugin-eval/Dockerfile`                       | 评测镜像在 stage 前构建四个插件                                                                                          |
 | 各插件 `package.json` / `.nibi-plugin/plugin.json`   | 版本 0.2.0（pdf 0.2.1）                                                                                                  |
 

@@ -7,7 +7,7 @@ Linux AppImage 直跑不会像 deb 安装包一样稳定写入系统级 `.deskto
 ## 目标
 
 - 仅增强 Linux AppImage 直跑体验，不影响 deb、Windows、macOS、本地开发和远控链路。
-- 启动时刷新用户级 `zcode.desktop`，让 `zcode://` 协议回调继续指向当前 AppImage 路径——仅在 `XDG_DATA_DIRS`（默认 `/usr/local/share:/usr/share`）中不存在系统级 `zcode.desktop` 普通文件时才写用户级；存在系统级条目（已装 rpm/deb）时跳过用户级写入与图标安装，避免遮蔽系统安装，系统安装形态还会清理带 `Comment=ZCode Desktop App` 标记的遗留用户级条目（详见 `docs/desktop/linux-appimage-deep-link.md`）。
+- 启动时刷新用户级 `zcode.desktop`，让 `nibi://` 协议回调继续指向当前 AppImage 路径——仅在 `XDG_DATA_DIRS`（默认 `/usr/local/share:/usr/share`）中不存在系统级 `zcode.desktop` 普通文件时才写用户级；存在系统级条目（已装 rpm/deb）时跳过用户级写入与图标安装，避免遮蔽系统安装，系统安装形态还会清理带 `Comment=ZCode Desktop App` 标记的遗留用户级条目（详见 `docs/desktop/linux-appimage-deep-link.md`）。
 - 启动时把包内 512x512 PNG 安装到用户级 hicolor 图标主题，提升 `Icon=zcode` 被任务栏/Dock 命中的概率。
 
 ## 实现

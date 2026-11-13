@@ -32,7 +32,7 @@
 
 ## 1. 生成提交信息（已补）
 
-- Node：`GitActionMenu` → `gitService.generateCommitMessage` → `zcodeAgentService.ts:4781` 发
+- Node：`GitActionMenu` → `gitService.generateCommitMessage` → `nibiAgentService.ts:4781` 发
   `workspace/generateText`；CLI 侧 `core/runtime/methods/workspace-generate-text.ts` 做一次**无会话**
   模型请求（`querySource == "git_commit_message"` 走辅助档：最低推理档 + `min(5000, 模型上限)`）。
 - Rust：`kernel-api::generate_text` + `runtime::generate_text`（同一个辅助档规则、60 s 期限）+
@@ -52,7 +52,7 @@
   （`NIBI_NODE_REPL_BROWSER_BROKER_SOCKET` + token）→ agent 侧
   `bootstrap/src/app/node-repl-browser-broker.ts` 的 broker →
   `interaction/browserList` / `interaction/browserExecute` 反向请求 → Host 的
-  `browserControlExecutor`（WebContentsView / CDP，`zcodeAgentService.ts:2502`）。
+  `browserControlExecutor`（WebContentsView / CDP，`nibiAgentService.ts:2502`）。
 - 因此「在 Rust 里做一套原生浏览器工具」会**分叉**：工具名、skill 文案、权限规则、UI 的工具判断
   全都要维护两套。和 Node 对齐的唯一干净路线是**复用同一个 `node_repl` MCP 服务器**。
 
@@ -150,7 +150,7 @@ Rust 不问、用内置缺省。逐项核对结果：
 
 | 偏好 | Node 来源 | Rust 现状 | 判定 |
 | --- | --- | --- | --- |
-| `additionalDirectories` | 随 `createSession` 参数 | 同一个 Host 在 `createSession` 里带（`zcodeTaskServiceAdapter.ts:1109`），内核已消费；冷恢复时内核也认这个参数——v4 `conversation/subscribe`（`protocol-nibi/src/subscribe.rs::apply_resume_hints`）与 legacy `session/resume`（`legacy_session.rs::resume`）两处都会落进会话的附加目录 | ✅ 等价（冷开不带是 Host 的行为，Node 同：只给了 `createSession`） |
+| `additionalDirectories` | 随 `createSession` 参数 | 同一个 Host 在 `createSession` 里带（`nibiTaskServiceAdapter.ts:1109`），内核已消费；冷恢复时内核也认这个参数——v4 `conversation/subscribe`（`protocol-nibi/src/subscribe.rs::apply_resume_hints`）与 legacy `session/resume`（`legacy_session.rs::resume`）两处都会落进会话的附加目录 | ✅ 等价（冷开不带是 Host 的行为，Node 同：只给了 `createSession`） |
 | `subagentRuntimeConfigEnabled` | 同上 | 子代理运行时配置在内核 deps 闭环，不需要该开关 | ✅ 等价 |
 | `askUserQuestionAutoResolutionEnabled` | 同上 + `workspace/updateInteractionPreferences` | 记录偏好并**执行**自动结束（见 §4.1） | ✅ 已补 |
 

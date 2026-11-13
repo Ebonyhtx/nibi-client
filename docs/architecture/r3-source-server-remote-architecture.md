@@ -466,7 +466,7 @@ Host 已固定 A → 后续 Profile 编辑 B → 在途操作仍只使用 A
 - 连接/部署失败统一经 shared 分类：拒绝连接/不可达、超时、主机不存在、明确的 SSH host-key 校验失败、下载、上传、预检、安装、远端空间/权限、取消与未知都有公开码。AggregateError 读取内层码，空消息补非空兜底，Host 失败响应不能因 schema 拒收而悬挂；UI 映射中英文，未知码显示通用文案。
 - 用户可见日志只接收流水线显式进度，Host console/其他服务的诊断不转发。绝对路径、token、凭据引用与设备标识统一脱敏；等待安装确认是 info。连接反馈预填这份日志，不默认上传全量诊断文件。
 - 连接日志的凭据字段还包括各类 `apiKey` / `api_key` / `api-key`、`secret`、Authorization 与 Cookie / Set-Cookie；Bearer 与 Basic 凭据均遮蔽。普通 Authorization/Cookie Header 的值覆盖至行尾，带引号键名的结构化字段按完整转义字符串过滤；重复过滤保持幂等，后续日志行仍保留。
-- Server CLI 原生提供 `version --json`/`--version`，不得把版本输出委托给 Agent `zcode.cjs`。探测 pre-R3
+- Server CLI 原生提供 `version --json`/`--version`，不得把版本输出委托给 Agent `nibi.cjs`。探测 pre-R3
   安装时允许从旧文本输出提取唯一合法 semver；无法证明兼容时保守进入 `needs-upgrade`。
 - Desktop 较旧：只提示升级 Desktop，不降级 Server。
 - R2 存量 server（无 compatibility 字段）判为过旧，走同一升级链；R3 Desktop 的 `minCompatibleVersion` 设为首个携带 R3 握手合同的 Server 版本。
@@ -684,7 +684,7 @@ Source transport 断开
 ```text
 fileService gitService gitCheckpointService systemService terminalService
 settingService onboardingRecordService credentialService broadcastService
-zcodeTaskService zcodeAgentService zcodeSessionService conversationShareService botsService fileWatcherService oauthService
+nibiTaskService nibiAgentService zcodeSessionService conversationShareService botsService fileWatcherService oauthService
 providerSettingsService modelSelectionService mediaPreviewService          ← 2026-09-07 起替代 modelProviderService / providerSyncService
 sourceServerWorkspaceService usageStatsService codingPlanSubscriptionService clientScenesService
 skillsService skillSyncService mcpSyncService pluginSyncService pluginsService pluginManagementService
@@ -1130,7 +1130,7 @@ R3 内删除或禁用的可运行路径：
 
 R3 保留源码但已从生产入口不可达、R4 再物理删除：
 
-- `packages/server/src/remote/connect.ts`（及 `handshake.ts`、`stdio-socket.ts` 直接旧链依赖）、`deploy.ts`（及仍被它静态调用的 `remoteAssetDeployDecision.ts`、`zcodeAgentDeploy.ts`）与 `packages/server/src/entry-stdio.ts`。R3 先通过删除 `/api/connect-remote` 和 Desktop 旧调用方切断运行路径，保留一个迁移窗口用于 R2 回滚/升级排查，避免在主链稳定期混入大范围历史模块删除；`pnpm dep:refs` 已确认后两者仍有生产调用方，不能按死代码删除；
+- `packages/server/src/remote/connect.ts`（及 `handshake.ts`、`stdio-socket.ts` 直接旧链依赖）、`deploy.ts`（及仍被它静态调用的 `remoteAssetDeployDecision.ts`、`nibiAgentDeploy.ts`）与 `packages/server/src/entry-stdio.ts`。R3 先通过删除 `/api/connect-remote` 和 Desktop 旧调用方切断运行路径，保留一个迁移窗口用于 R2 回滚/升级排查，避免在主链稳定期混入大范围历史模块删除；`pnpm dep:refs` 已确认后两者仍有生产调用方，不能按死代码删除；
 - `buildRemoteWorkspaceIdentity` 的 SSH/WSL/Docker 构造。Host 仍在没有历史精确值时用它生成 `legacyRouteHint`，它不是正式 stable identity；随 R4 删除 hint 时一并删除；
 - 旧连接记录（`lastWorkspaceSession` remote entry、`remote-workspace:*` credential key）的读取与解析；
 - `parseRemoteWorkspaceIdentity` 对 `remote:ssh/wsl/docker:*` 的解析（远端迁移扫描用）；

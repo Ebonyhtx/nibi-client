@@ -430,7 +430,7 @@ cache/{marketplace}/{plugin}/{version}/
 - WDIO `beforeSession` 在 Electron 启动前启动 loopback zip fixture server，并把 zip marketplace seed 到
   `<E2E_HOME>/.nibi/cli/plugins/known_marketplaces.json` 与
   `<E2E_HOME>/.nibi/cli/plugins/marketplaces/{marketplace}/marketplace.json`。
-- spec 通过 renderer `window.__testActions` 调用真实 `zcodeAgentService.installPlugin()`，覆盖
+- spec 通过 renderer `window.__testActions` 调用真实 `nibiAgentService.installPlugin()`，覆盖
   desktop renderer -> services -> agent protocol -> bootstrap -> adapters 的安装链路。
 - 断言范围：
   - install 前 overview 可见 seeded marketplace 和 zip plugin；

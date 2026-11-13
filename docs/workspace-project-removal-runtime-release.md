@@ -32,9 +32,9 @@ Windows 会把进程当前工作目录和打开的文件句柄视为目录占用
        -> 用户取消：不移除
        -> 用户确认：继续
   -> closeTab(tab.id)
-  -> zcodeTaskService.releaseWorkspacePreparation({ workspacePath, workspaceIdentity?, provider })
-       -> zcodeAgentService.disposeWorkspace(...)
-       -> zcodeAgentProcessManager.disposeWorkspace(...)
+  -> nibiTaskService.releaseWorkspacePreparation({ workspacePath, workspaceIdentity?, provider })
+       -> nibiAgentService.disposeWorkspace(...)
+       -> nibiAgentProcessManager.disposeWorkspace(...)
        -> Windows taskkill /T /F 清理 Agent 子进程树
   -> invalidateTaskQueryCacheByScopes(...)
   -> 异步轻量扫描 Windows 保留设备名文件并提示风险

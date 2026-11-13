@@ -54,4 +54,4 @@ ZCT-2100231841920471040：3.12.1 在 Ubuntu deb 安装形态下载 3.12.2 时，
 
 - 产物收集、共享目录清理、OSS glob、发布校验必须识别复合后缀 `.pkg.tar.zst`。
 - 不得把源码、source map、密钥或 CI 凭据加入包；沿用现有 app.asar 裁剪策略。
-- 需要验证 pacman 包的架构、依赖、桌面 entry、`zcode://` 协议注册，以及与 deb/rpm 共存时的 package identity。
+- 需要验证 pacman 包的架构、依赖、桌面 entry、`nibi://` 协议注册，以及与 deb/rpm 共存时的 package identity。

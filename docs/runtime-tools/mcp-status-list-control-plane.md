@@ -24,7 +24,7 @@ MCP 设置页需要展示当前配置中各 server 的状态。旧方案在设�
 
 ## 数据流
 
-1. UI MCP 设置页加载本地配置后，请求 `zcodeAgentService.listMcpServerStatuses(...)`，并传入当前 workspace 下 enabled 的 ZCode Agent MCP 列表。
+1. UI MCP 设置页加载本地配置后，请求 `nibiAgentService.listMcpServerStatuses(...)`，并传入当前 workspace 下 enabled 的 ZCode Agent MCP 列表。
 2. service 通过 `getMcpStatusClient()` 使用 `mcpStatusProcessManager`（`lane: "mcp-status"`，独立于 plugin 管理的 `pluginProcessManager`）客户端发送 `mcp/list`。新版 agent 接收 `mcpServers`；旧版 strict agent 若拒绝该可选字段，service 会去掉字段重试一次。
 3. control-plane CLI 进程内按请求 workspace 读取 plugin 配置；若请求携带 `mcpServers`，本地 ZCode Agent MCP 状态以这批显式输入为准，否则回退到 agent 自己 `createConfig()` 读取的 `mcp.servers`。
 4. CLI handler 对可信配置调用进程内 `mcpPort.connectConfiguredServers(...)` 刷新本地 records；project untrusted MCP 从连接输入中剔除。显式 `mcpServers` 与 session create/resume 使用同一个 protocol-to-runtime 转换 helper，保持 timeout/env/header 等字段一致。
@@ -48,7 +48,7 @@ MCP 设置页需要展示当前配置中各 server 的状态。旧方案在设�
 
 2026-09-06 合并恢复：此前插件 UI 已恢复，但服务层的独立 lane 被遗漏。本次按原控制面边界
 接回 manager、请求归零事件与空闲回收，不恢复旧 Provider Store。子进程隔离专项 4/4、
-完整 `zcodeAgentService` 单测 45/45 通过；这不是设置页真实交互验收的替代。
+完整 `nibiAgentService` 单测 45/45 通过；这不是设置页真实交互验收的替代。
 
 - 初次打开 MCP 设置页只触发一次 `mcp/list`，不在 UI 层逐个自动检查。
 - `mcp/list` 会在 `mcp-status` lane CLI 进程内刷新可信 MCP 的 live status，配置正确但不可达应显示 failed/error，可连接应显示 connected 和工具数。

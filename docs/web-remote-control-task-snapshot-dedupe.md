@@ -1,7 +1,7 @@
 # Web Remote Control Task Snapshot In-Flight Dedupe
 
 ## 背景
-手机远控首屏恢复时，多个 UI hook 会并发调用 `zcodeTaskService.getTaskSnapshot(...)`。
+手机远控首屏恢复时，多个 UI hook 会并发调用 `nibiTaskService.getTaskSnapshot(...)`。
 在大任务场景下，这会让 host 连续返回多份超大 snapshot，并通过 relay 重复发送大包。
 
 ## 改动

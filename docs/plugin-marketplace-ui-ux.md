@@ -367,7 +367,7 @@ listing 字段从 adapter 解析层（`PluginMarketplaceEntry`）一路透传：
 sequenceDiagram
     participant UI as 商店页 (renderer)
     participant Store as pluginManagementStore
-    participant Svc as zcodeAgentService
+    participant Svc as nibiAgentService
     participant Boot as bootstrap handlers
     participant Ad as adapters
     participant CDN as cdn-zcode.z.ai

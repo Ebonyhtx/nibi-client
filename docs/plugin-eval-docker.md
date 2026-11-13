@@ -17,8 +17,8 @@
 flowchart LR
   subgraph build[镜像构建（一次）]
     A[GitLab 源码<br/>ref = staging / MR 分支] --> B[pnpm install<br/>--filter @nibi/cli...]
-    B --> C[构建 zcode.cjs]
-    C --> D[runtime 镜像<br/>node + zcode.cjs]
+    B --> C[构建 nibi.cjs]
+    C --> D[runtime 镜像<br/>node + nibi.cjs]
     D --> E[plugins marketplace update<br/>+ install 全量官方插件]
   end
   subgraph host[主机（一次）]
@@ -62,9 +62,9 @@ docker/plugin-eval/bin/build-image.sh --ref feat-cli-plugins-parity \
    的 Basic 头（`oauth2:<token>`）只在该条 RUN 内存在，不进镜像层；克隆后删除 `.git` 与 `.gitconfig`。
 2. `builder` 阶段 `pnpm install --frozen-lockfile --filter "@nibi/cli..." --filter zcode`，然后按仓库脚本
    `scripts/build-desktop-agent-cli.mjs` 的顺序构建 shared-types → contracts → core → adapters → i18n → telemetry → bootstrap → cli。
-3. `runtime` 阶段只带 `node + zcode.cjs + jq/python3/git/ripgrep`，以 uid 10001 的 `zcode` 用户运行；
+3. `runtime` 阶段只带 `node + nibi.cjs + jq/python3/git/ripgrep`，以 uid 10001 的 `zcode` 用户运行；
    `HOME=/data`、`NIBI_DATA_BASE_DIR=/data`、`NIBI_STORAGE_DIR=/data/.zcode`、`NIBI_BASE_URL=https://zcode.z.ai`。
-   内置插件不在 `zcode.cjs` 里，CLI 在入口文件同级的 `packages/<name>-plugin` 找根目录，所以 builder 阶段把
+   内置插件不在 `nibi.cjs` 里，CLI 在入口文件同级的 `packages/<name>-plugin` 找根目录，所以 builder 阶段把
    document-skills、nibi-guide、skill-creator、restore-legacy-sessions 四个纯内容型内置插件 stage 到 `/opt/zcode/packages/`；
    同理 CLI 启动必读的内置 provider 目录 `config/provider/nibi-builtin.json` 放到 `/opt/zcode/provider/`。
 4. 构建期执行 `zcode plugins marketplace update nibi-plugins-official`，再把 `list --available --json` 中

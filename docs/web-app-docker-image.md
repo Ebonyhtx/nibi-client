@@ -21,7 +21,7 @@ Node gateway
   |
   | stdio
   v
-zcode.cjs app-server
+nibi.cjs app-server
   |
   | app data
   v

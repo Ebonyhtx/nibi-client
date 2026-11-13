@@ -456,7 +456,7 @@
 ### R3-ISSUE-030：Provider 共享刷新等待没有接入单调用者取消
 
 - 状态：待修复，当前无传 signal 的生产调用方；2026-10-11 登记，评审核对基线 `f5c233df918e`（CR-07）。
-- 责任位置：`zcodeAgentService.ts` 的 `generateWorkspaceText` / `testProviderModelConnectivity` 等待 `ensureAccountProviderConfigSynced` 时未消费 signal。
+- 责任位置：`nibiAgentService.ts` 的 `generateWorkspaceText` / `testProviderModelConnectivity` 等待 `ensureAccountProviderConfigSynced` 时未消费 signal。
 - 证据：真实 Service 探针中取消后仍等待刷新结束，随后以 AbortError 收口；协议客户端在后续请求发出前检查 signal，因此不会执行已取消的模型请求。该证据证明收口延迟，不表示取消失效。
 - 当前处理：仅登记。首个支持取消的生产调用方接入时，单个等待者与 signal 竞速；共享 `accountConfigSyncByClient` 刷新继续完成，不能由一个调用者取消其他调用者依赖的刷新。
 - 关闭条件：一个等待者取消时及时拒绝，其他等待者仍可完成，且已取消的模型请求不会发送；共享刷新失败仍向未取消调用者传播。

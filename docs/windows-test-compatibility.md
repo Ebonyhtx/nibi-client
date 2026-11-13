@@ -13,7 +13,7 @@ rebase 到最新 staging 后全量单测 **9 失败 / 12444 通过**，无崩溃
 
 | 类别 | 数量 | 说明 |
 | --- | --- | --- |
-| Windows 进程树回收残余 | 3 | `zcodeAgentProcessManager`；lifecycle fixtures 工作已把该项从 8 修到 3 |
+| Windows 进程树回收残余 | 3 | `nibiAgentProcessManager`；lifecycle fixtures 工作已把该项从 8 修到 3 |
 | staging 存量漂移（任何平台都挂） | 3 | settings MCP/skill/subagent scope badge 的 `formatCanonicalPluginName` 断言；`a9263f3d03` 从列表组件移除该调用但未同步测试，需业务定性 |
 | 跨平台漂移 | 2 | `feedbackHttpClient`、`stdioDesktopPresentationSurface`（见下） |
 | flaky（负载超时） | 1 | `appUsagePanel`，单独运行通过 |
@@ -67,9 +67,9 @@ rebase 附带处理：staging 的 CUA 单包合并（broker 51 文件并入 `@ni
 
 ### Windows 进程树回收不彻底（当前最大剩余失败源）
 
-现象：`zcodeAgentProcessManager`（8 用例）报
+现象：`nibiAgentProcessManager`（8 用例）报
 `runtime process tree cleanup incomplete; remaining pid=...`；其衍生效应使
-`zcodeAgentService(.v4)` / `localServicesRemoteAuthority` / `daemonRegistration`
+`nibiAgentService(.v4)` / `localServicesRemoteAuthority` / `daemonRegistration`
 （约 32 用例）在 afterEach 删除 temp 目录时 EPERM——**agent 子进程未完全退出时
 cwd 占用目录，Windows 无法删除任何进程的 cwd 目录**（已用最小 repro 验证：
 进程活着 → EPERM 恒失败；退出后 → 删除成功）。

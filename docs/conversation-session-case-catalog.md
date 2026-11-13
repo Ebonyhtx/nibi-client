@@ -1209,7 +1209,7 @@ Server 启动时须设置开发态 `NIBI_DYNAMIC_WORKFLOW_MODE=alwaysOn`，WDIO 
 
 SAT30（远端项目归属回归）：远端子会话运行中及完成后可查看，重订阅复用 Agent 持久化父链解析主任务项目；
 child 不进入主任务索引。desktop-continuous 与 web-remote-replayable 共用服务入口；普通无项目远端任务、
-缺失/成环/跨 workspace 父链仍拒绝。服务回归在 `zcodeAgentService.v4.test.ts`；
+缺失/成环/跨 workspace 父链仍拒绝。服务回归在 `nibiAgentService.v4.test.ts`；
 CLI `v4-cold-resume.test.ts` 覆盖未单独保存 workspace identity 的 child 按父链查询，保持只读与列表隔离；
 R3A-TASK-06 补充 child 首帧、正文、无订阅错误及完成正文断言，不能只以面板挂载作为成功证据。
 

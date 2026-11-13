@@ -110,8 +110,8 @@ Service API 是 Host 对外暴露的能力，例如：
 - `fileService.readFile`；
 - `terminalService.create`；
 - `gitService.status`；
-- `zcodeAgentService.sendConversationCommandV4`；
-- `zcodeAgentService.subscribeConversationV4`。
+- `nibiAgentService.sendConversationCommandV4`；
+- `nibiAgentService.subscribeConversationV4`。
 
 Service API 可以承载 V4，也可以承载文件、终端、Git 等非 V4 能力。
 

@@ -577,7 +577,7 @@ HAVING COUNT(DISTINCT device_mid) >= 100
   两条路径）、`plugin`、`mcp-status`；`onDynamicProcessResourceSample` 的载荷类型
   从 `ZCodeProcessResourceSample` 变为 `AgentLaneResourceSample`（多一个可选 `lane`）。
   lane 只能在这里补：进程管理器是唯一知道「这个 client 属于哪条 lane」的地方。
-  落地位置（06）：远端订阅走的是既有的 `zcodeAgentConnectionScope` 边界，不新增 services 层代码——
+  落地位置（06）：远端订阅走的是既有的 `nibiAgentConnectionScope` 边界，不新增 services 层代码——
   远端 nibi-server 对桌面 Host 的连接是 `trusted-host-relay`（`packages/server` 的 stdio 与
   `nibi-server-cli` 的 `/ws/host`），只有该角色能订阅 `onDynamicProcessResourceSample` /
   `onDynamicMcpTelemetry` / `onDynamicMcpResourceSamples`；renderer 与手机远控 attachment 是 `terminal-client`，拿到 `RpcEvent.None`。
@@ -745,7 +745,7 @@ HAVING COUNT(DISTINCT device_mid) >= 100
 [prt-scheduler]: ../../packages/desktop/test/schedulerResourceTelemetry.test.ts
 [prt-e2e]: ../../packages/desktop/test/e2e/process-resource-telemetry-roles.test.ts
 [prt-windows]: ../../packages/desktop/test/e2e/windows-agent-metric-probe-absence.test.ts
-[prt-compat]: ../../packages/services/test/zcodeAgentService.resourceTelemetry.test.ts
+[prt-compat]: ../../packages/services/test/nibiAgentService.resourceTelemetry.test.ts
 [prt-contract]: ../../packages/shared/test/processResourceTelemetry.test.ts
 [prt-remote]: ../../packages/desktop/test/hostServiceResourceTelemetry.test.ts
 [prt-guard]: ../../scripts/ci/ci-telemetry-keyword-guard.test.mjs

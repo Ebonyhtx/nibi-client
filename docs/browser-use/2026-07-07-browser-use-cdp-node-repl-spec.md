@@ -34,7 +34,7 @@ AGENT (nibi-cli 子进程, stdio NDJSON ZCode Protocol)
                      → context.requestClient("interaction/browserExecute", {command})
         │ stdio JSON-RPC 反向请求（server→client request）
 HOST (utilityProcess, 业务 services)
-  zcodeAgentService.client.onRequest: case "interaction/browserExecute"
+  nibiAgentService.client.onRequest: case "interaction/browserExecute"
         校验 → BrowserControlMainBridge.execute() → respondResult/respondError
         （纯 RPC 中继：不 emitSessionEvent、不进 UI，区别于 permission 请求）
         │ parentPort（MessagePortMain，按 requestId 关联）

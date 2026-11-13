@@ -10,7 +10,7 @@
 agent: BrowserControlPort.execute(cmd)   [ProtocolBrowserControlBroker]
   → context.requestClient("interaction/browserExecute", {requestId,sessionId,command}, resultSchema)
       │ stdio JSON-RPC 反向请求
-host: zcodeAgentService client.onRequest case interactionBrowserExecute
+host: nibiAgentService client.onRequest case interactionBrowserExecute
   → 校验 params → browserControlMainBridge.execute({sessionId,command}) → client.respondResult/respondError
   （纯 RPC 中继：不 emitSessionEvent、不 pending sessionEvent，区别于 permission）
       │ parentPort.postMessage(BrowserExecuteRequest{requestId,payload}) + pending map
@@ -43,7 +43,7 @@ main: desktopHostProcess child.on("message") case BrowserExecuteRequest
 
 ## 3. Leg B：host router + host↔main bridge
 
-### host router（`packages/services/src/nibi-agent/zcodeAgentService.ts` onRequest）
+### host router（`packages/services/src/nibi-agent/nibiAgentService.ts` onRequest）
 - 在末尾 `respondError(-32601)` 前加 case `request.method === nibiProtocolMethods.interactionBrowserExecute`：
   - `zcodeBrowserExecuteParamsSchema.safeParse(request.params)`，失败 `respondError(-32602)`。
   - 调 `browserControlMainBridge.execute({sessionId, command})`（注入的可选依赖）。

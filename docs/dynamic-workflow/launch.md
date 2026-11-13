@@ -2518,7 +2518,7 @@ Host (packages/services)
     ← desktop-attached remote Hosts: pushed by the desktop (see "The user's choice")
     → applyDynamicWorkflowUserMode(offer, choice): { mode, enabled, offeredMode, userMode?, source }
       │
-      ├─► zcodeAgentService, at workspace client start and after every change of the choice:
+      ├─► nibiAgentService, at workspace client start and after every change of the choice:
       │      workspace/updateDynamicWorkflowPolicy { enabled, mode }   (CLI-wide fact)
       │   and on every session/create, session/resume, v4 createSession:
       │      dynamicWorkflowEnabled: true, dynamicWorkflowMode         (only when enabled)
@@ -2704,7 +2704,7 @@ The renderer's availability snapshot is reloaded after the Host has re-synced, s
 
 **How a change travels.** The settings file is the single source of the choice. A write in
 any window reaches every window's renderer through the shared-settings broadcast; each
-window's root then calls `zcodeAgentService.syncDynamicWorkflowUserMode` on its own Host and,
+window's root then calls `nibiAgentService.syncDynamicWorkflowUserMode` on its own Host and,
 once that resolves, reloads its availability snapshot.
 
 - A Host with its own settings (desktop local, web and standalone server) reads the choice

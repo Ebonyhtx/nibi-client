@@ -34,7 +34,7 @@ for (const [key, value] of Object.entries(process.env)) {
 Object.assign(env, { HOME: runHome, USERPROFILE: runHome, NIBI_DATA_BASE_DIR: runHome });
 
 const args = [
-  // 使用 Node bundle 时，在这里先加入 zcode.cjs 的绝对路径。
+  // 使用 Node bundle 时，在这里先加入 nibi.cjs 的绝对路径。
   "--prompt",
   prompt,
   "--cwd",

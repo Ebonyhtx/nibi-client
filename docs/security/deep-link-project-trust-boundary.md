@@ -6,14 +6,14 @@
 
 ## 背景
 
-ZCode Desktop 支持 `zcode://workspace/open?path=...` 打开本地工作区，也会在项目发现范围内读取
+ZCode Desktop 支持 `nibi://workspace/open?path=...` 打开本地工作区，也会在项目发现范围内读取
 `nibi.json`、`.nibi/config.json` 的 Hook 声明，以及 `.nibi/agents/*.md` 的 subagent profile。
 外部 deep link、repository 文件和远端 workspace 都不属于用户级可信配置：确认“打开目录”不等于确认
 “执行目录中的代码”。
 
 ## 安全边界
 
-- Windows `zcode://` 协议命令必须将外部 URL 放在 `--` 之后：生产态为
+- Windows `nibi://` 协议命令必须将外部 URL 放在 `--` 之后：生产态为
   `"<ZCode.exe>" "--" "%1"`，开发态为 `"<electron.exe>" "<entry>" "--" "%1"`。
   `registerDeepLinkProtocol` 是注册 owner；每次正常启动都覆盖旧注册，避免保留不安全模板。
 - Windows 打包产物在签名前关闭 `enableNodeCliInspectArguments`，使旧注册尚未更新时的
@@ -21,7 +21,7 @@ ZCode Desktop 支持 `zcode://workspace/open?path=...` 打开本地工作区，�
   也不关闭 Agent 启动所需的 `runAsNode`。
 - 参数隔离必须发生在 Electron 原生启动解析之前。应用 JavaScript 中的 URL 校验和单实例锁
   不能替代这一边界；OAuth、支付、workspace、share 回调仍保留原有路由与校验。
-- `zcode://workspace/open` 是外部输入，不能等价于用户在应用内选择目录。
+- `nibi://workspace/open` 是外部输入，不能等价于用户在应用内选择目录。
 - deep link 传入的 workspace path 必须在任何 filesystem probe 前拒绝 UNC / 网络路径。
 - deep link 打开本地目录前必须有用户确认；用户取消时不得缓存或投递 workspace path。
 - deep-link 确认只授权打开路径，不建立 Workspace Hook Trust。

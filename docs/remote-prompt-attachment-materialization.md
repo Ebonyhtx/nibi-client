@@ -1,6 +1,6 @@
 # Remote prompt attachment materialization
 
-> **当前状态**：下文首段 `zcodeTaskService.sendPrompt` 描述保留为 V4 前的故障背景；
+> **当前状态**：下文首段 `nibiTaskService.sendPrompt` 描述保留为 V4 前的故障背景；
 > 当前实现以“V4 eager staging”一节和 `IPromptAttachmentTransferService` 为准。
 
 ## 背景
@@ -24,7 +24,7 @@ WSL/SSH/Docker remote workspace 中，桌面 renderer 和 host 仍运行在本�
 
 ## 方案
 
-desktop host 包装远端 `zcodeTaskService.sendPrompt` 时，对 prompt 附件做 materialize：
+desktop host 包装远端 `nibiTaskService.sendPrompt` 时，对 prompt 附件做 materialize：
 
 1. 扫描 `attachments` 中带 `localPath` 的附件。
 2. 将 host 可读的附件上传到 remote runtime 可读的用户私有临时目录：`~/.nibi/tmp/prompt-attachments/<trace>/<random>/...`。
