@@ -5,7 +5,7 @@ export interface NibiAgentRuntimeDescriptor {
   binaryEnvVar: string;
   /** 本地随包目录（resources/<dir>、bundled-agents/<platform>/<dir>、远端 agents/<dir>）。 */
   bundledResourceDir: string;
-  /** 远端 CDN 组件归档内的挂载目录；与本地目录解耦，发布流水线仍是 glm。 */
+  /** 旧 R2 组件归档内的挂载目录；R3 Source Server 的 descriptor/archive 不使用它。 */
   resourcePackageDir: string;
   version: string;
   spawnArgs: string[];

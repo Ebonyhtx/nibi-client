@@ -1,4 +1,4 @@
-/** 远端 agent 组件 id：与本地 lane 值解耦，CDN 切换前必须保持 "glm"。 */
+/** 旧 R2 组件安装器的远端组件 id；R3 Source Server 使用 descriptor/archive，不再读它。 */
 export const NIBI_AGENT_REMOTE_COMPONENT_ID = "glm" as const;
 
 export const REMOTE_RESOURCE_PACKAGE_IDS = [
