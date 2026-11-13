@@ -1,8 +1,4 @@
 import { TaskGroupRepository } from "#src/task-groups/index.js";
-import {
-  isTasksStorageMigrated,
-  isTasksStoragePrepared,
-} from "#src/session/tasksDatabase/prepared.js";
 /* eslint-disable max-lines -- task 索引仓库集中维护 sqlite schema、查询和状态写入，迁移稳定后再按读写职责拆分。 */
 import { mkdir, stat } from "node:fs/promises";
 import { createRequire } from "node:module";
