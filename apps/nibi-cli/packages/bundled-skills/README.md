@@ -13,14 +13,14 @@ or the composer's `$` skill picker. The runtime discovers its `skills/` director
 | ------------------- | ------------------------------------------------- | ------------------------------------ |
 | `dynamic-workflows` | dynamic workflows (`/workflow`, `CreateWorkflow`) | `docs/dynamic-workflow/authoring.md` |
 
-## How it reaches users
+## How it reaches the Node agent runtime
+
+The user-facing `nibi` CLI/TUI is the Rust kernel; `nibi.cjs` remains the internal Node
+runtime for DWF, the plugin host and remote Source Server.
 
 - **Development and Electron desktop**: the directory is resolved on disk next to the CLI entry
   (`packages/bundled-skills` relative to the entry, the same candidate walk official plugins
   use) and read in place; nothing is copied.
-- **SEA binaries**: `scripts/sea-bundled-skill-assets.mjs` embeds `skills/**` under the
-  `nibi-bundled-skills/` asset prefix. On start the CLI extracts them once into
-  `~/.nibi/cli/bundled-skills/<content-hash>/` and reads from there.
 - **Remote hosts**: `scripts/prepare-prebuilds.mjs` stages the directory next to the remote
   `nibi.cjs`, like the official plugin packages.
 

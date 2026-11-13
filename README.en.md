@@ -18,7 +18,7 @@ Included:
 
 - Electron desktop client and web client
 - Local Host, server, RPC, and shared protocols
-- Agent CLI, TUI, and runtime
+- Rust Agent CLI, TUI, and runtime
 - Shared React UI, plugin host, and built-in plugins
 - Development, test, build, and architecture gates
 
@@ -47,7 +47,7 @@ pnpm dev:desktop
 
 `pnpm bootstrap` installs workspace dependencies, prepares local desktop runtime assets, and builds the base packages.
 
-The agent CLI and runtime live in [apps/nibi-cli/](apps/nibi-cli/) as a regular directory; no submodule is required.
+The internal Node agent runtime (`nibi.cjs`, used by DWF, the plugin host and the remote Source Server) lives in [apps/nibi-cli/](apps/nibi-cli/) as a regular directory; no submodule is required. The user-facing terminal CLI/TUI is the Rust `nibi-rs` under `kernel/`.
 
 Other entry points:
 
@@ -77,11 +77,11 @@ NIBI_DATA_BASE_DIR="$HOME/.nibi-dev" pnpm dev:desktop
 | `packages/services` | Domain services and persistence |
 | `packages/shared`, `packages/rpc`, `packages/client` | Shared protocols, RPC framework, agent client SDK |
 | `packages/provider`, `packages/provider-node` | Provider primitives and Node implementation |
-| `apps/nibi-cli` | Agent CLI, TUI, runtime, and tools |
+| `apps/nibi-cli` | Internal Node agent runtime (`nibi.cjs`: DWF, plugin host, remote Source Server) |
 | `packages/nibi-cua` | Computer Use implementation (Helper / runtime / engine adapter) |
 | `scripts`, `config`, `third-party` | Build tooling, built-in config, third-party notices |
 
-> `apps/nibi-cli` and `packages/nibi-server-cli` have been renamed to NIBI; upstream pristine files are still verified through the local-to-upstream prefix map in `scripts/architecture/upstream-snapshot.json` (snapshot keys remain upstream paths). `packages/nibi-cua` has been migrated into the public repository with the CUA engine upgrade. Package names, CLI commands, and build outputs are NIBI (`nibi-cli`, `@nibi/server-cli`, `@nibi/cua`, `dist/nibi/`, and the remote executor `nibi-server.cjs` / `nibi-server-<target>.tar.gz`).
+> `apps/nibi-cli` and `packages/nibi-server-cli` have been renamed to NIBI; upstream pristine files are still verified through the local-to-upstream prefix map in `scripts/architecture/upstream-snapshot.json` (snapshot keys remain upstream paths). `packages/nibi-cua` has been migrated into the public repository with the CUA engine upgrade. Package names, CLI commands, and build outputs are NIBI (`nibi-cli`, `@nibi/server-cli`, `@nibi/cua`, `dist/nibi.cjs`, and the remote executor `nibi-server.cjs` / `nibi-server-<target>.tar.gz`).
 
 ## Development and verification
 
@@ -104,13 +104,18 @@ pnpm bundle:desktop -- --os win --arch x64
 
 Public-source builds are **unsigned**. Signing and notarization for official releases happen inside the private release environment and are not part of this repository.
 
-CLI distribution:
+Terminal CLI distribution (Rust kernel + npm META launcher):
 
 ```bash
-pnpm build:nibi --base-url https://downloads.example.com/nibi/
+npm install -g @nibi-studio/cli
+nibi --version
+nibi doctor --json
 ```
 
-`--base-url` only changes the download root used by the install script. For local verification, unpack the artifact under `dist/nibi/` and run it directly.
+The META package installs the `@nibi-studio/cli-<platform>` package for the current os/arch.
+Linux currently ships glibc (gnu) only; Intel Mac and Windows are not in the npm platform
+list. The Node `@nibi/cli` and Node TUI are retired and no longer published; `nibi.cjs` is
+only the internal runtime for desktop DWF, the plugin host and the remote Source Server.
 
 ## Configuration
 
@@ -119,7 +124,6 @@ pnpm build:nibi --base-url https://downloads.example.com/nibi/
 | `NIBI_DATA_BASE_DIR` | Application data base directory; data is written under `.nibi/` |
 | `NIBI_SERVER_WORKSPACE` | Workspace path for the web backend |
 | `NIBI_BUILTIN_PROVIDER_CONFIG_FILE` | Path to a local provider config file |
-| `NIBI_DIST_BASE_URL` | Download root used by the CLI install script |
 
 Set runtime variables explicitly in the launch environment. The built-in configuration is described in [config/README.md](config/README.md).
 

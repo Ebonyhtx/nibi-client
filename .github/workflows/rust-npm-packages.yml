@@ -1,16 +1,23 @@
 name: rust-npm-packages
 
-# 远端执行器的平台包（`@nibi-studio/cli-<platform>`）：构建 + 打包成 tarball，作为 artifact 上传。
+# npm 包：`@nibi-studio/cli-<platform>` 平台包（构建 + 打包成 tarball）与
+# `@nibi-studio/cli` META 入口包（只含 `bin/nibi` 启动器）。
 #
-# 消费方是 Rust 内核的 `machines/executor_dist`（从 npm 注册表取 tarball、校验
-# `dist.integrity` 的 sha512、解出 `package/bin/nibi-rs`）。
+# 平台包的消费方是 Rust 内核的 `machines/executor_dist`（从 npm 注册表取 tarball、校验
+# `dist.integrity` 的 sha512、解出 `package/bin/nibi-rs`）。META 包的消费方是终端用户：
+# `npm install -g @nibi-studio/cli` 后，启动器按 os/arch 解析同版本平台包里的 `nibi-rs`。
 #
-# 发布走 **npm trusted publishing（OIDC）**，不需要任何 secret，所以能留在公开仓：
+# 发布顺序是硬约束：先发全部平台包，最后发 META（`meta` job 的 `needs: publish`）。
+# META 的 optionalDependencies 精确锁定同版本平台包，任何一个先缺都会让该平台装不出可用的
+# `nibi`，所以不能并行、也不能先发 META。
+#
+# 发布走 **npm trusted publishing（OIDC）**，不需要任何 token/secret，所以能留在公开仓：
 # 每条 publish 用的是 GitHub Actions 签发的短期 OIDC 令牌，npm 只接受在包的
 # 「Trusted Publisher」设置里登记过的 仓库 + workflow 文件名（本文件：rust-npm-packages.yml）。
-# 前置（一次性，运营者在 npmjs.com 上给每个已发布的包各配一次）：组织/用户 `Ebonyhtx`、仓库
-# `nibi-client`、workflow `rust-npm-packages.yml`、允许 `npm publish`。
-# 新包（如 `@nibi-studio/cli-android-arm64`）首次发布前要先确认 npm 上的 trusted publisher 已登记。
+# 前置（一次性，运营者在 npmjs.com 上给每个已发布的包各配一次，包括 META 包
+# `@nibi-studio/cli`）：组织/用户 `Ebonyhtx`、仓库 `nibi-client`、workflow
+# `rust-npm-packages.yml`、允许 `npm publish`。新包（如 `@nibi-studio/cli-android-arm64`
+# 或 `@nibi-studio/cli`）首次发布前要先确认 trusted publisher 已登记。
 #
 # 自动发布只在手动触发 `publish: true` 时跑（版本号一经 publish 就永久占用），
 # 默认的 push / PR 只打包上传 artifact。
@@ -158,9 +165,9 @@ jobs:
           echo "tarball=$(node -p "require('$RUNNER_TEMP/pack.json').tarball")" >> "$GITHUB_OUTPUT"
 
       # 打包脚本已经自己校验过 ELF/Mach-O 头与 sha256；这里再跑一次 self-test，
-      # 保证脚本本身没坏（PR 也跑，不必等发布）。
+      # 保证平台包与 META 包的打包器本身没坏（PR 也跑，不必等发布）。
       - name: Packer self-test
-        run: node --test scripts/rust-cli/npm/package.test.mjs
+        run: node --test scripts/rust-cli/npm/package.test.mjs scripts/rust-cli/npm/meta-package.test.mjs
 
       - name: Upload tarball
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4
@@ -234,3 +241,86 @@ jobs:
           fi
           npm publish "$TARBALL" --access public --provenance
 
+  # META 入口包：平台包全部成功发布后才跑（`needs: publish` 会等所有 matrix leg）。
+  # 它自己有 pack + publish 两步，因为 META 包与平台包不同 runner、没有二进制要构建。
+  # 仍然走 OIDC、provenance、标签/版本守卫与 skip-existing，和平台包同一套规则。
+  meta:
+    name: publish @nibi-studio/cli
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.publish)
+      || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1
+        with:
+          node-version: "24.22.1"
+
+      # 与平台包同一个版本来源：`inputs.version` 或根 package.json。
+      - name: Resolve release version
+        id: version
+        run: |
+          set -euo pipefail
+          VERSION="${{ inputs.version }}"
+          [ -n "$VERSION" ] || VERSION="$(node -p "require('./package.json').version")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Packer self-test
+        run: node --test scripts/rust-cli/npm/meta-package.test.mjs
+
+      - name: Pack META package
+        id: pack
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "packing META version $VERSION"
+          node scripts/rust-cli/npm/meta-package.mjs \
+            --version "$VERSION" \
+            --out "$RUNNER_TEMP/meta-pack" | tee "$RUNNER_TEMP/meta-pack.json"
+          echo "tarball=$(node -p "require('$RUNNER_TEMP/meta-pack.json').tarball")" >> "$GITHUB_OUTPUT"
+
+      # META 的 optionalDependencies 是精确版本；四个平台包缺一个都不能发 META，
+      # 否则该平台的 `npm install -g @nibi-studio/cli` 会装出没有 `nibi-rs` 的空壳。
+      - name: Verify every pinned platform package is published
+        run: |
+          set -euo pipefail
+          while IFS= read -r spec; do
+            if ! npm view "$spec" version >/dev/null 2>&1; then
+              echo "::error::$spec is missing; publish the platform packages before the META package"
+              exit 1
+            fi
+            echo "found $spec"
+          done < <(
+            node -e 'const m = require(process.argv[1]); for (const [name, version] of Object.entries(m.platformPackages)) console.log(`${name}@${version}`)' \
+              "$RUNNER_TEMP/meta-pack.json"
+          )
+
+      - name: Publish META package with OIDC
+        run: |
+          set -euo pipefail
+          # trusted publishing 要求 npm CLI ≥ 11.5.1（Node 24 自带的一般满足，升级一次最稳）。
+          npm install --global npm@^11.5.1 >/dev/null
+          echo "npm $(npm --version)"
+          TARBALL="${{ steps.pack.outputs.tarball }}"
+          test -f "$TARBALL"
+          PKG="$(node -p "require('$RUNNER_TEMP/meta-pack.json').name")"
+          VERSION="$(node -p "require('$RUNNER_TEMP/meta-pack.json').version")"
+          # 标签发版时，标签必须就是包里那个版本。
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            TAG="${GITHUB_REF_NAME#v}"
+            if [ "$TAG" != "$VERSION" ]; then
+              echo "::error::tag ${GITHUB_REF_NAME} does not match the packed version ${VERSION}"
+              exit 1
+            fi
+          fi
+          if npm view "$PKG@$VERSION" version >/dev/null 2>&1; then
+            echo "::notice::$PKG@$VERSION is already published; nothing to do"
+            exit 0
+          fi
+          npm publish "$TARBALL" --access public --provenance

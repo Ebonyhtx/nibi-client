@@ -214,7 +214,7 @@ TODO：全部平台的 native build 与 E2E 接入完成后，将上述锁定源
   - `packages/desktop/bundled-tools/win32-<arch>/{ugrep,ripgrep}` 由 native search 预编译下载链路准备。
 - desktop host 和 Linux remote server 通过现有 runtime tool resolver 发现各平台已启用的产物，并把绝对路径投影为对应的 `NIBI_BFS_BINARY`、`NIBI_UGREP_BINARY`、`NIBI_RG_BINARY`。Windows 不生成也不投影 `NIBI_BFS_BINARY`，`find` 继续走 Git Bash/system；已发现工具的所在目录追加到 Agent runtime 的 `PATH`，保留用户命令优先级。
 - SEA 仍按 target 交付单一可执行文件，不能把 `bfs`、`ugrep`、`rg` 作为同目录 sidecar 交付。构建时把当前 target 已启用的原生工具及 manifest 写入 SEA assets；运行时首次读取 asset 并解压到 `NIBI_STORAGE_DIR`（默认 `~/.nibi`）下的 `cache/runtime_tools`。
-- `pnpm build:sea` 保持既有 all-target 契约并显式传入 `--all`。各目标平台的 producer 必须先构建、验证并发布预编译归档；SEA 构建再按同一 release plan 为每个 target 下载、校验并准备 `packages/desktop/bundled-tools/<platform>-<arch>` 后统一消费。缺少 foreign target 工具时必须 fail-closed，不能把公开命令降级成 host-only。host E2E 使用底层 `sea --target <host-target>`，不改变发行入口。
+- 各目标平台的 producer 必须先构建、验证并发布预编译归档；桌面/远端打包链再按同一 release plan 为每个 target 下载、校验并准备 `packages/desktop/bundled-tools/<platform>-<arch>`。缺少 foreign target 工具时必须 fail-closed，不能把公开命令降级成 host-only。Node SEA 构建入口已随 Node CLI/TUI 退役删除。
 - SEA runtime tool 缓存必须按 `<target>/<tool>/<tool-version>-<binary-sha256>` 定位，不能包含 CLI 版本。多个 CLI 版本携带完全相同的工具版本和二进制内容时必须复用同一份缓存；单个工具升级时也不能迫使其他未变化工具重复解压。
 - SEA 解压必须逐文件校验 manifest 中的 SHA-256，写入同级临时目录后原子替换，并恢复可执行权限。并发首次启动必须收敛到同一缓存目录；已完成且 marker、文件大小、实际 SHA-256 和可执行权限均有效的缓存直接复用。
 - SEA runtime tool manifest 只描述目标平台、工具 id、工具版本、二进制名称、大小和 SHA-256。缓存路径和 manifest 均不得依赖 ZCode/CLI 版本；非 SEA 的 desktop、源码 CLI 和 remote runtime 继续沿用各自现有发现链路。
@@ -283,11 +283,11 @@ remote resource id、manifest mount 白名单、部署循环与 runtime descript
 
 macOS/Linux/Windows x64 E2E 是独立验证入口，默认从空临时目录调用真实 prepare。外层 runner 只负责按目标构建 producer 集合、下载 Microsoft `rg`、执行版本/feature/ABI 校验和启动一次真实 Bash toolcall E2E，不得再维护一套重复的 fixture 与行为断言。Linux 验证可以先在对应架构 producer 中生成并校验自产 `bfs` / `ugrep`，再由 prepare 补齐 Microsoft musl `rg`，最终通过 `NIBI_BFS_BINARY` / `NIBI_UGREP_BINARY` / `NIBI_RG_BINARY` 把同一组正式产物交给运行 E2E；不能在两个阶段重复编译同一工具。Windows 使用自产 `ugrep` 与 Microsoft `rg`，并让 `find` 走 Git Bash/system。Windows arm64 的跨 target fixture 与 PE verifier 只证明编译、收集和静态依赖契约，不冒充目标架构运行时 E2E。toolcall E2E 必须从根 workspace 按 `@nibi/bootstrap` 的真实依赖关系构建前置 package，不能依赖工作区中预存的 `dist`。完整链路至少覆盖：
 
-`pnpm test:sea-runtime-tools:e2e` 是 SEA 单文件交付的 host E2E：它构建当前 target 的 SEA，把产物复制到不含 sidecar 的隔离目录，验证首次解压、二次复用、版本/SHA/执行权限，再把解压路径交给同一套真实 Bash toolcall E2E。该命令不得在用户默认 storage root 留下 runtime-tool 缓存或临时目录，也不得作为 desktop Electron 打包的前置步骤。
+> Node SEA 单文件交付（`build:sea` / `test:sea-runtime-tools:e2e`）已随 Node CLI/TUI 退役；
+> `nibi` 的官方发行是 Rust 平台包 + `@nibi-studio/cli` META 启动器。runtime tools 仍由桌面与
+> 远端打包链准备，下面的 native 校验和 Bash toolcall E2E 继续适用。
 
-SEA 单测中的跨 target fixture 只验证 manifest 和 asset 收集契约；它不能替代各目标平台的真实 native build、host SEA E2E 或跨平台产物聚合门禁。package-script 回归必须证明 `build:sea` 始终传入 `--all`；后续新增但尚未完成的 target 可以让发行构建明确失败，但不能改变既有命令行为。
-
-正式 desktop 打包只由 `prepare:desktop-runtime` 生成 `bundled-tools/<platform>-<arch>` 产物，并执行版本、feature、架构、ABI、签名等机械校验后进入 Electron 打包；macOS、Linux、Windows 的打包 template 都不得调用 `pnpm test:native-search:e2e` 或 `pnpm test:sea-runtime-tools:e2e`。需要验证行为时，由独立 E2E 入口以绝对路径消费同一 release plan 生成的产物。
+正式 desktop 打包只由 `prepare:desktop-runtime` 生成 `bundled-tools/<platform>-<arch>` 产物，并执行版本、feature、架构、ABI、签名等机械校验后进入 Electron 打包；macOS、Linux、Windows 的打包 template 都不得调用 `pnpm test:native-search:e2e`。需要验证行为时，由独立 E2E 入口以绝对路径消费同一 release plan 生成的产物。
 
 1. macOS/Linux 校验 `bfs --version`，Windows 校验 system `find --version`；所有平台校验 `ugrep --version` 的版本及能力串。
 2. `file` 加平台检查工具校验最终随包分发的 `bfs`、`ugrep`、`rg` 的目标架构与动态依赖边界：macOS 使用 `otool -L` / `vtool -show-build`，Linux 使用 `readelf -d` 校验动态依赖并使用 `readelf --version-info` 断言 `bfs` / `ugrep` 的最大 GLIBC 引用不高于 2.28，Windows 直接读取 PE header / import table 校验 machine，并拒绝动态 CRT 与本应静态链接的 PCRE2、压缩库。
