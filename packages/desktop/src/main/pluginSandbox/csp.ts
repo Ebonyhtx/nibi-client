@@ -16,7 +16,7 @@ import { buildPluginSandboxShellUrl } from "./contract.js";
  * 内联成 data: URL，官方 pdf-server 示例的 pdf.js worker 即如此；已有 'unsafe-inline' 时这不增加任何能力，
  * 官方参考宿主 basic-host 同样放行）、`blob:`（canvas 导出 / worker）、`font-src 'self' data:`（规范缺省没有
  * font-src，按 default-src 'none' 连内嵌字体也拦）。`'unsafe-eval'` / `'wasm-unsafe-eval'` 不缺省放行：需要
- * eval / WebAssembly 的资源（如 OpenPencil 的 kiwi schema 编译与 CanvasKit）在资源 `_meta["zcode/csp"]` 里声明。
+ * eval / WebAssembly 的资源（如 OpenPencil 的 kiwi schema 编译与 CanvasKit）在资源 `_meta["nibi/csp"]` 里声明。
  */
 export function buildPluginSandboxCsp(input: {
   csp?: McpToolUiCsp;

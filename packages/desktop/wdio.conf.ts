@@ -1036,7 +1036,51 @@ function createPnpmChildEnv() {
   };
 }
 
+function assertRustKernelPreflight() {
+  const executable = process.platform === "win32" ? "nibi-rs.exe" : "nibi-rs";
+  if (E2E_PACKAGED_APP_BINARY_PATH) {
+    // 打包 E2E 必须使用随包内核，禁止用仓库路径或 env 覆盖掩盖漏打包。
+    const resourcesDir =
+      process.platform === "darwin"
+        ? resolve(E2E_PACKAGED_APP_BINARY_PATH, "..", "..", "Resources")
+        : resolve(E2E_PACKAGED_APP_BINARY_PATH, "..", "resources");
+    const packaged = resolve(resourcesDir, "rust-kernel", executable);
+    if (!existsSync(packaged)) {
+      throw new Error(
+        `[e2e] packaged app is missing the Rust kernel: ${packaged}. ` +
+          "The desktop local agent has no Node fallback; rebuild the package with prepare:rust-kernel.",
+      );
+    }
+    return;
+  }
+  // 显式 NIBI_RUST_AGENT_SERVER_COMMAND 仍是 Rust，允许 CI 指向预构建的 nibi-rs；
+  // 但路径必须真实存在，不能把缺失伪装成 E2E 通过。
+  const explicit = process.env.NIBI_RUST_AGENT_SERVER_COMMAND?.trim();
+  if (explicit) {
+    // 裸命令名（如 PATH 上的 nibi-rs）交给 spawn 解析；路径形式必须真实存在。
+    if (/[\\/]/u.test(explicit) && !existsSync(explicit)) {
+      throw new Error(
+        `[e2e] NIBI_RUST_AGENT_SERVER_COMMAND points to a missing Rust kernel: ${explicit}`,
+      );
+    }
+    return;
+  }
+  const candidates = [
+    resolve(REPO_ROOT, "kernel/target/debug", executable),
+    resolve(REPO_ROOT, "kernel/target/release", executable),
+  ];
+  if (candidates.some((candidate) => existsSync(candidate))) {
+    return;
+  }
+  throw new Error(
+    `[e2e] Rust kernel binary not found (looked for ${candidates.join(", ")}). ` +
+      "The desktop local agent has no Node fallback; build it with " +
+      "`cargo build --locked -p nibi-kernel-cli --bin nibi-rs` (or --release) before running E2E.",
+  );
+}
+
 function prepareNibiAgentServer() {
+  assertRustKernelPreflight();
   if (E2E_PACKAGED_APP_BINARY_PATH) {
     // 真正的 Preview 包必须使用随包 Agent，禁止测试 runner 注入源码入口掩盖漏打包。
     configureNibiAgentServerEnv();
@@ -1053,10 +1097,8 @@ function prepareNibiAgentServer() {
     return;
   }
 
-  // Bugfix: e2e 还在找仓库外的旧原生 nibi-agent binary，并调用已经删除的
-  // `build:agent-exe`。当前桌面端统一通过 nibi-cli 的 app-server JS bundle
-  // 暴露 NIBI Protocol，这里复用正式开发入口的构建脚本，之后由 bundled resolver
-  // 选择已校验的 bundle，保留存储准备能力和正式桌面启动契约。
+  // E2E 仍构建 nibi.cjs：它是 Rust 内核的 DWF 侧车与插件宿主入口（`__nibi-dwf-engine`）。
+  // 桌面本地 agent 本身只跑 nibi-rs，启动前已由 assertRustKernelPreflight 校验。
   execFileSync(process.execPath, [BUILD_DESKTOP_AGENT_SCRIPT], {
     cwd: REPO_ROOT,
     env: createPnpmChildEnv(),
@@ -1076,6 +1118,10 @@ function configureNibiAgentServerEnv() {
   delete process.env.NIBI_AGENT_SERVER_COMMAND;
   delete process.env.NIBI_AGENT_SERVER_ARGS_JSON;
   delete process.env.NIBI_AGENT_SERVER_CWD;
+  // 打包 E2E 必须使用随包内核，清掉继承的显式覆盖，避免掩盖漏打包；源码 E2E 保留显式 Rust 路径。
+  if (E2E_PACKAGED_APP_BINARY_PATH) {
+    delete process.env.NIBI_RUST_AGENT_SERVER_COMMAND;
+  }
 }
 
 function assertUpstreamCaptureConfig() {
@@ -4436,6 +4482,13 @@ export const config: WebdriverIO.Config = {
     VITE_NIBI_E2E_STORE_BRIDGE: "1",
     NIBI_AGENT_SERVER_ARGS_JSON: "",
     NIBI_AGENT_SERVER_COMMAND: "",
+    // 源码 E2E 允许 CI 指向预构建的 Rust 内核；打包 E2E 由 configureNibiAgentServerEnv 清掉，
+    // 必须走随包 resources/rust-kernel，避免覆盖掩盖漏打包。
+    ...(E2E_PACKAGED_APP_BINARY_PATH || !process.env.NIBI_RUST_AGENT_SERVER_COMMAND?.trim()
+      ? {}
+      : {
+          NIBI_RUST_AGENT_SERVER_COMMAND: process.env.NIBI_RUST_AGENT_SERVER_COMMAND.trim(),
+        }),
     NIBI_DATA_BASE_DIR: E2E_HOME_DIR,
     NIBI_BUILTIN_PROVIDER_CONFIG_FILE:
       INITIAL_NIBI_BUILTIN_PROVIDER_CONFIG_FILE ?? E2E_DEFAULT_NIBI_BUILTIN_PROVIDER_CONFIG_FILE,

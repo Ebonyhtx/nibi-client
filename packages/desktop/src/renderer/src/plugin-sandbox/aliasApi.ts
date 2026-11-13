@@ -35,7 +35,7 @@ export interface NibiAliasApi {
   listResources(input?: { cursor?: string }): Promise<ListResourcesResult>;
   listResourceTemplates(input?: { cursor?: string }): Promise<ListResourceTemplatesResult>;
   /**
-   * 订阅资源变更（Nibi 扩展，宿主宣告 `experimental["zcode/resourceSubscribe"]`；server 须声明 resources.subscribe）。
+   * 订阅资源变更（Nibi 扩展，宿主宣告 `experimental["nibi/resourceSubscribe"]`；server 须声明 resources.subscribe）。
    * 变更只带 uri，页面自行 readResource；沙箱销毁时宿主自动退订。
    */
   subscribeResource(uri: string): Promise<void>;
@@ -50,7 +50,7 @@ export interface NibiAliasApi {
   /** 界面状态：初值随握手经 hostContext 扩展键下发；setWidgetState 后本地立即可读。 */
   readonly widgetState: unknown;
   /**
-   * Nibi 扩展 `ui/set-widget-state`（宿主宣告 `experimental["zcode/widgetState"]`）：宿主内存保存、会话内有效，
+   * Nibi 扩展 `ui/set-widget-state`（宿主宣告 `experimental["nibi/widgetState"]`）：宿主内存保存、会话内有效，
    * 不承诺跨进程恢复；宿主不可用时 reject -32601。要给模型信息走 updateModelContext。
    */
   setWidgetState(widgetState: unknown): Promise<void>;

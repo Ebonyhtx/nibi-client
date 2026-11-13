@@ -13,11 +13,28 @@ const root = resolve(desktop, "../..");
 const output = await mkdtemp(join(tmpdir(), "nibi-mcp-host-e2e-"));
 if (process.env.NIBI_MCP_E2E_DEBUG) console.error(`[e2e] output: ${output}`);
 const fixture = join(desktop, "scripts/mcp-apps-host-fixture");
-// `--rust`：宿主夹具改为拉起 Rust app-server（交互走 v4 pendingInteractions），
-// 用于补 §8.1.1 MCP Apps 的 Rust 真机链路。`--rust` 才强制 Rust（默认跟随内核选择）。
-const rustKernel = process.argv.includes("--rust");
-if (rustKernel) {
-  await access(join(root, "kernel/target/debug/nibi-rs.exe"));
+// 桌面本地 agent 的唯一内核是 Rust：宿主夹具固定拉起 Rust app-server（交互走 v4
+// pendingInteractions），缺二进制时直接失败，不再回落到 Node 的 nibi.cjs。
+// `--rust` 仍可作为兼容参数传入，但不再改变内核选择。
+const rustExecutable = process.platform === "win32" ? "nibi-rs.exe" : "nibi-rs";
+let rustKernelBinary = null;
+for (const candidate of [
+  join(root, "kernel/target/debug", rustExecutable),
+  join(root, "kernel/target/release", rustExecutable),
+]) {
+  try {
+    await access(candidate);
+    rustKernelBinary = candidate;
+    break;
+  } catch {
+    // 继续尝试下一档；两档都不存在时统一报错。
+  }
+}
+if (!rustKernelBinary) {
+  throw new Error(
+    `MCP Apps E2E requires the Rust kernel: no ${rustExecutable} under kernel/target/{debug,release}. ` +
+      "Build it with `cargo build --locked -p nibi-kernel-cli --bin nibi-rs` (or --release).",
+  );
 }
 const showcaseServer = process.env.NIBI_SHOWCASE_SERVER;
 if (process.argv.includes("--showcase-only")) {
@@ -215,9 +232,8 @@ const modes =
 for (const mode of modes) {
   await new Promise((accept, reject) => {
     const env = { ...process.env };
-    // 默认内核已切 Rust：这里显式钉住两档，否则不带 `--rust` 也会跑到 Rust 上，Node 覆盖会静默消失。
-    env.NIBI_KERNEL = rustKernel ? "rust" : "node";
-    if (rustKernel) env.NIBI_MCP_E2E_RUST_BIN = join(root, "kernel/target/debug/nibi-rs.exe");
+    // 桌面本地 agent 只跑 Rust：夹具固定拉起已校验的 nibi-rs，不再设置内核开关。
+    env.NIBI_MCP_E2E_RUST_BIN = rustKernelBinary;
     if (process.argv.includes("--chain-core-only")) env.NIBI_MCP_E2E_CORE_ONLY = "1";
     if (process.argv.includes("--photocraft-background-only")) {
       if (!env.NIBI_PHOTOCRAFT_SERVER)

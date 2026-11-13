@@ -11,7 +11,7 @@ describe("service installation compatibility", () => {
       const secondRoot = "/var/lib/nibi-second/.nibi/server";
       const descriptor = createServiceDescriptor({
         platform,
-        command: join(firstRoot, "bin", platform === "win32" ? "zcode.cmd" : "zcode"),
+        command: join(firstRoot, "bin", platform === "win32" ? "nibi.cmd" : "nibi"),
         args: ["serve", "--supervisor", "--server-root", firstRoot],
       });
 

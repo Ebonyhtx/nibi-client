@@ -391,7 +391,7 @@ function safeJson(value: unknown): string {
 /**
  * 读取宿主写入的 CUA 目标应用身份。
  *
- * 只认 `zcode/nodeReplCuaApp`：producer 自己的 `zcode.cua/app-associations-v1` 也可能出现在
+ * 只认 `nibi/nodeReplCuaApp`：producer 自己的 `zcode.cua/app-associations-v1` 也可能出现在
  * `_meta` 里，但那个键经模型可写的 `nodeRepl.setResponseMeta` /
  * `nodeRepl.emitStructuredResult` 同样能到达，宿主已在 toMcpRunResult 里把它删掉。这里不做
  * 第二次兜底解析，避免把已经判定为不可信的来源重新接回展示面。

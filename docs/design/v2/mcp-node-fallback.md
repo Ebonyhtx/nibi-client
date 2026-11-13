@@ -56,10 +56,11 @@ Desktop host (Electron utilityProcess)
   Electron Node (`process.versions.electron` is defined). Otherwise the MCP adapter gets no
   provider and the env is unchanged. The adapter receives the provider by injection
   (`CreateMcpAdapterOptions.nodeFallback`) and never detects Electron itself.
-- **Rust kernel.** The Host appends the shim directory to the agent process PATH only when
-  `NIBI_KERNEL` selects Rust. The Rust kernel's MCP child env is the entry snapshot filtered through
-  a whitelist; `PATH` and the two fallback variables are in that whitelist, so the kernel needs no
-  MCP-specific branch. The Node kernel keeps the upstream semantics (only MCP child envs change).
+- **Rust kernel.** The Host appends the shim directory to the agent process PATH for the Rust
+  kernel (desktop local is Rust-only; the old `NIBI_KERNEL` switch is gone). The Rust kernel's MCP
+  child env is the entry snapshot filtered through a whitelist; `PATH` and the two fallback
+  variables are in that whitelist, so the kernel needs no MCP-specific branch. The Node kernel keeps
+  the upstream semantics (only MCP child envs change).
 - The provider prepares the shim directory lazily, on the first stdio connection. The result (or the
   failure) is memoized for the provider's lifetime.
 - Waiting for that preparation is part of the connection: it uses the connection's `timeoutMs` and

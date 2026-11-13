@@ -110,11 +110,11 @@ describe("reportReactErrorToArms", () => {
     setReactErrorArmsReporter(reporter);
 
     const error = new Error("boom");
-    error.stack = "Error: boom\n    at render (file:///Users/alice/zcode/app/index.js:10:5)";
+    error.stack = "Error: boom\n    at render (file:///Users/alice/nibi/app/index.js:10:5)";
 
     reportReactErrorToArms({
       error,
-      componentStack: "    at Settings (/Users/alice/zcode/src/SettingsPage.tsx:42:7)",
+      componentStack: "    at Settings (/Users/alice/nibi/src/SettingsPage.tsx:42:7)",
     });
 
     const properties = reporter.calls[0]?.properties;

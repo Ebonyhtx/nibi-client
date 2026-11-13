@@ -371,7 +371,7 @@ describe("hostResponseMessageSchema", () => {
       remoteAssets: {
         mockCdnDir: "/tmp/mock-cdn",
         remoteCdnBaseUrl: "",
-        remoteCdnBaseUrls: ["https://cdn.codegeex.cn/zcode/electron/releases/0.0.0-test"],
+        remoteCdnBaseUrls: ["https://cdn.codegeex.cn/nibi/electron/releases/0.0.0-test"],
         remoteCacheDir: "/tmp/remote-cache",
         sourceServerArtifactPolicy: "development-content-addressed",
       },

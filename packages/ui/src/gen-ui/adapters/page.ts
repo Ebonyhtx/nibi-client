@@ -115,7 +115,7 @@ export function createGenUiPage(input: GenUiPageInput): GenUiPage {
     const active = new AppBridge(
       null,
       { name: "nibi-gen-ui", version: "1" },
-      { openLinks: {}, experimental: { "zcode/gen-ui": {} } },
+      { openLinks: {}, experimental: { "nibi/gen-ui": {} } },
       { hostContext: { ...context } },
     );
     bridge = active;

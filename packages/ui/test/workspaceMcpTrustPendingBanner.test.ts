@@ -49,11 +49,11 @@ function review(trusted: boolean, declarationDigest = digest) {
 
 function projectServer(overrides: Partial<NibiMcpServer> = {}): NibiMcpServer {
   return {
-    id: "zcodeagentmcp-workspace-probe",
+    id: "nibiagentmcp-workspace-probe",
     name: "probe",
     config: { type: "stdio", command: "node" },
     enabled: true,
-    source: "zcodeagentmcp",
+    source: "nibiagentmcp",
     scope: "workspace",
     projectPath: "/workspace",
     ...overrides,
@@ -118,19 +118,19 @@ describe("workspace MCP trust pending banner（A5 会话内提示）", () => {
         trustedOne: review(true),
       },
       unreviewable: [],
-      enabledStates: { "zcodeagentmcp-workspace-probe": false },
+      enabledStates: { "nibiagentmcp-workspace-probe": false },
       servers: [
-        projectServer({ id: "zcodeagentmcp-workspace-probe", enabled: false }),
-        projectServer({ id: "zcodeagentmcp-workspace-disabled", name: "disabled", enabled: false }),
-        projectServer({ id: "zcodeagentmcp-workspace-trusted", name: "trustedOne" }),
+        projectServer({ id: "nibiagentmcp-workspace-probe", enabled: false }),
+        projectServer({ id: "nibiagentmcp-workspace-disabled", name: "disabled", enabled: false }),
+        projectServer({ id: "nibiagentmcp-workspace-trusted", name: "trustedOne" }),
         projectServer({
-          id: "zcodeagentmcp-workspace-user",
+          id: "nibiagentmcp-workspace-user",
           name: "userProbe",
           scope: "user",
           projectPath: undefined,
         }),
         projectServer({
-          id: "zcodeagentmcp-workspace-other",
+          id: "nibiagentmcp-workspace-other",
           name: "otherWorkspace",
           projectPath: "/other",
         }),

@@ -5,7 +5,7 @@ name: source-server-release
 # 顺序组装（下载目标平台的 Node、node-pty/koffi/native-search、Agent bundle），不是 Rust 交叉编译。
 #
 # 为什么只能跑在 Linux/macOS：staging 里 `spawn("pnpm")`，Windows 没有 `pnpm.exe`（ENOENT）；
-# 且 Windows 的 tar 写不出 POSIX 执行位，远端解压后直接执行 `bin/zcode` 会 Permission denied。
+# 且 Windows 的 tar 写不出 POSIX 执行位，远端解压后直接执行 `bin/nibi` 会 Permission denied。
 #
 # 产物不在这里发 CDN：发布要走服务器上的 `tools/publish-content.py`（OSS 凭据只在服务器上）。
 # 流程：Run workflow → 下载 artifact → scp 到 `/srv/nibi-site/content/releases/electron/<版本>/`
@@ -47,7 +47,7 @@ jobs:
         run: pnpm prepare:remote-assets
 
       # descriptor 是唯一的发布合同：版本必须等于产品版本，四个 target 齐全，sha256 / size 与
-      # 磁盘一致；执行位是远端能直接 `bin/zcode` 的前提（Windows 构建就是在这里坏的）。
+      # 磁盘一致；执行位是远端能直接 `bin/nibi` 的前提（Windows 构建就是在这里坏的）。
       - name: Verify the descriptor and the archives
         run: |
           set -euo pipefail
@@ -65,7 +65,7 @@ jobs:
             file="$DIR/nibi-server-$target.tar.gz"
             expected="$(jq -r --arg target "$target" '.archives[] | select(.target == $target) | .sizeBytes' "$DIR/source-server-release.json")"
             test "$(stat -c%s "$file")" = "$expected"
-            permissions="$(tar -tvzf "$file" | awk '$NF ~ /(^|\/)bin\/zcode$/ || $NF ~ /(^|\/)runtime\/node$/ {print $1}')"
+            permissions="$(tar -tvzf "$file" | awk '$NF ~ /(^|\/)bin\/nibi$/ || $NF ~ /(^|\/)runtime\/node$/ {print $1}')"
             test "$(printf '%s\n' "$permissions" | grep -c '^-rwx')" = "2"
           done
 

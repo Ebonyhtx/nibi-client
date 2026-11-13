@@ -91,7 +91,7 @@ describe("desktopHostProcess CUA operation state routing", () => {
     const event = {
       type: "agent-process-exception",
       pid: 123,
-      provider: "glm",
+      provider: "nibi-agent",
       workspacePath: "/repo",
       runtimeGeneration: 1,
       runtimeInstanceId: "agent-test",

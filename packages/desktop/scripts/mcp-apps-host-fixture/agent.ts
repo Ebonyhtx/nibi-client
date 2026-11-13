@@ -45,7 +45,8 @@ export class Events<T> {
 export async function startAgent(
   root: string,
   node: string,
-  cli: string,
+  // 保留参数位：各 fixture 仍按 (root, node, cli) 传参；桌面 E2E 只用 Rust。
+  _cli: string,
   providerEnv: Record<string, string> = {},
 ) {
   const events = new Events<any>();
@@ -54,10 +55,16 @@ export async function startAgent(
   const sockets = new Map<string, Socket>();
   const connections = new Set<Socket>();
   const socketSources = new Map<Socket, string>();
-  // Rust 内核（`--rust`）：同一个夹具改为拉起 `nibi-rs app-server --stdio`，MCP 服务器仍用 node。
+  // 桌面本地 agent 只跑 Rust：夹具固定拉起 `nibi-rs app-server --stdio`，MCP 服务器仍用 node。
   // Rust 的交互是 v4 `pendingInteractions` + `resolveInteraction`，不是 legacy 反向请求；下面把
   // pending 权限项归一成 legacy 形状，调用方（`r.params.input.key`）与 `respond` 都不用改。
   const rustBin = process.env.NIBI_MCP_E2E_RUST_BIN?.trim();
+  if (!rustBin) {
+    throw new Error(
+      "MCP Apps E2E requires the Rust kernel: set NIBI_MCP_E2E_RUST_BIN to " +
+        "kernel/target/{debug,release}/nibi-rs[.exe].",
+    );
+  }
   if (process.env.NIBI_MCP_E2E_DEBUG) {
     setInterval(() => process.stderr.write("[fixture] beat\n"), 5_000);
   }
@@ -128,7 +135,7 @@ export async function startAgent(
   await mkdir(data, { recursive: true });
   // Rust 没有 NIBI_PERSONAL_PROVIDER_CONFIG_FILE 的等价环境变量：把夹具的 personal provider
   // 配置放到它读的 `~/.nibi/v2/provider_config.json`（HOME/NIBI_DATA_BASE_DIR 都指到 data）。
-  if (rustBin && providerEnv.NIBI_PERSONAL_PROVIDER_CONFIG_FILE) {
+  if (providerEnv.NIBI_PERSONAL_PROVIDER_CONFIG_FILE) {
     const configDir = join(data, ".nibi", "v2");
     await mkdir(configDir, { recursive: true });
     await copyFile(
@@ -137,7 +144,7 @@ export async function startAgent(
     );
   }
   // 不继承 API key、真实用户认证及 Electron Node 标志，模型测试也只通过显式传入的隔离配置访问本地 fixture。
-  const child = spawn(rustBin || node, rustBin ? ["app-server", "--stdio"] : [cli, "app-server"], {
+  const child = spawn(rustBin, ["app-server", "--stdio"], {
     cwd: data,
     env: {
       PATH: process.env.PATH,
@@ -146,8 +153,9 @@ export async function startAgent(
       NIBI_STORAGE_DIR: data,
       LANG: "en_US.UTF-8",
       ...(process.env.RUST_LOG ? { RUST_LOG: process.env.RUST_LOG } : {}),
-      // 两个内核读同一组 NIBI_* 隔离根；Rust 的 `~` 展开仍要 HOME/USERPROFILE 指到夹具数据根。
-      ...(rustBin ? { HOME: data, USERPROFILE: data } : {}),
+      // Rust 的 `~` 展开要 HOME/USERPROFILE 指到夹具数据根。
+      HOME: data,
+      USERPROFILE: data,
       ...providerEnv,
     },
     stdio: ["pipe", "pipe", "pipe"],
@@ -172,7 +180,7 @@ export async function startAgent(
   });
   client.onNotification((event) => {
     notifications.emit(event);
-    if (!rustBin || event.method !== "v4/conversation/frame") return;
+    if (event.method !== "v4/conversation/frame") return;
     const payload = event.params?.frame?.payload;
     if (!payload) return;
     if (payload.kind === "snapshot") {
@@ -221,7 +229,6 @@ export async function startAgent(
   };
   // Rust 的询问只出现在 v4 帧里；先订阅会话主题，pendingInteractions 才有投递面。
   const subscribeV4 = async (sessionId: string) => {
-    if (!rustBin) return;
     subscribedSession = sessionId;
     await call("v4/conversation/subscribe", {
       topic: `conversation/${sessionId}`,

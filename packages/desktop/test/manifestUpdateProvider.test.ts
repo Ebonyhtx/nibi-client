@@ -24,13 +24,13 @@ describe("ManifestUpdateProvider helpers", () => {
 
   it("builds the server manifest URL with platform, device_mid, and numeric channel", () => {
     const url = buildElectronManifestUrl({
-      endpointOrigin: "https://zcode.example.test/base/path",
+      endpointOrigin: "https://nibi.example.test/base/path",
       platform: "darwin-aarch64",
       deviceMid: "mid-1",
       channel: "preview",
     });
 
-    expect(url.origin).toBe("https://zcode.example.test");
+    expect(url.origin).toBe("https://nibi.example.test");
     expect(url.pathname).toBe("/api/v1/releases/electron/manifest");
     expect(url.searchParams.get("platform")).toBe("darwin-aarch64");
     expect(url.searchParams.get("device_mid")).toBe("mid-1");
@@ -39,7 +39,7 @@ describe("ManifestUpdateProvider helpers", () => {
 
   it("overrides existing manifest URL query with runtime platform, device, and channel", () => {
     const url = buildElectronManifestUrl({
-      endpointOrigin: "https://zcode.example.test",
+      endpointOrigin: "https://nibi.example.test",
       manifestUrl:
         "https://zcode.z.ai/api/v1/releases/electron/manifest?platform=old&device_mid=old&channel=old",
       platform: "darwin-aarch64",
@@ -66,7 +66,7 @@ function createProvider(
   Updater: typeof AppImageUpdater | typeof DebUpdater | typeof RpmUpdater | typeof PacmanUpdater,
 ) {
   return new ManifestUpdateProvider(
-    { provider: "custom", endpointOrigin: "https://zcode.example.test" },
+    { provider: "custom", endpointOrigin: "https://nibi.example.test" },
     Object.create(Updater.prototype),
     { platform: "linux", isUseMultipleRangeRequest: false, executor: {} as never },
   );
@@ -107,7 +107,7 @@ describe("Linux manifest 与真实 updater 文件选择契约", () => {
       ...manifest,
       files: [{ url, sha512: "checksum" }],
     });
-    expect(file?.url.href).toBe(`https://zcode.example.test/${url}`);
+    expect(file?.url.href).toBe(`https://nibi.example.test/${url}`);
     expect(file?.info.sha512).toBe("checksum");
   });
 
@@ -142,7 +142,7 @@ describe("macOS / Windows 更新解析保持兼容", () => {
     [NsisUpdater, "win32", "exe", "zip"],
   ] as const)("%s 保留清单，由原 updater 选择 %s %s", (Updater, platform, extension, other) => {
     const provider = new ManifestUpdateProvider(
-      { provider: "custom", endpointOrigin: "https://zcode.example.test" },
+      { provider: "custom", endpointOrigin: "https://nibi.example.test" },
       Object.create(Updater.prototype),
       { platform, isUseMultipleRangeRequest: false, executor: {} as never },
     );
@@ -161,7 +161,7 @@ describe("macOS / Windows 更新解析保持兼容", () => {
       path: "Nibi.deb",
       sha512: "legacy",
     });
-    expect(resolved[0]?.url.href).toBe("https://zcode.example.test/Nibi.deb");
+    expect(resolved[0]?.url.href).toBe("https://nibi.example.test/Nibi.deb");
     expect(resolved[0]?.info.sha512).toBe("legacy");
   });
 });

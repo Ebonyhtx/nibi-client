@@ -33,7 +33,7 @@ MCP 设置页需要展示当前配置中各 server 的状态。旧方案在设�
 
 ## UI 合并规则
 
-- 合并仅作用于 `source === "zcodeagentmcp"` 的本地 MCP 行。
+- 合并仅作用于 `source === "nibiagentmcp"` 的本地 MCP 行。
 - 合并使用当前行的 `name`，但不得用 name 覆盖 plugin-managed 只读行。
 - 设置页发往 `mcp/list` 的 `mcpServers` 来自当前 UI store 的 enabled ZCode Agent MCP，必须带 workspaceIdentity/workspacePath 的当前输入一起发送，不能复用其他 workspace 的缓存。
 - 请求必须带 epoch 或等价版本保护，迟到的批量结果不能覆盖用户在请求期间编辑产生的 `changed`，也不能覆盖更新的手动检查结果。

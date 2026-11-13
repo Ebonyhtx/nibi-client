@@ -43,11 +43,11 @@ export interface McpToolUiCsp {
 }
 
 /**
- * 资源级 `_meta["zcode/csp"]`：宿主缺省按规范块（只有 'self' 'unsafe-inline'），不放行 `'unsafe-eval'` /
+ * 资源级 `_meta["nibi/csp"]`：宿主缺省按规范块（只有 'self' 'unsafe-inline'），不放行 `'unsafe-eval'` /
  * `'wasm-unsafe-eval'`；需要 eval / WebAssembly 的资源在这里显式声明。宿主经
- * `hostCapabilities.experimental["zcode/csp"].flags` 宣告支持的键。
+ * `hostCapabilities.experimental["nibi/csp"].flags` 宣告支持的键。
  */
-export const MCP_APPS_CSP_RELAXATION_META_KEY = "zcode/csp";
+export const MCP_APPS_CSP_RELAXATION_META_KEY = "nibi/csp";
 export const MCP_APPS_CSP_RELAXATION_FLAGS = ["unsafeEval", "wasmUnsafeEval"] as const;
 export type McpAppCspRelaxationFlag = (typeof MCP_APPS_CSP_RELAXATION_FLAGS)[number];
 export type McpAppCspRelaxations = Partial<Record<McpAppCspRelaxationFlag, boolean>>;
@@ -123,12 +123,12 @@ export const MCP_APPS_RESOURCE_URI_MAX_CHARS = 2048;
 /**
  * `display.ui.structuredContent` / `widgetMeta` / `content` 的持久化上限（JSON 文本的 UTF-8 字节）。
  * 超限不截断字符串（半截 JSON 没有意义）：字段整个省略，`truncated: true` 且 `truncatedBytes` 记被丢弃的字节数；
- * 页面侧 `toolOutput` 为 null、`toolResponseMetadata["zcode/truncated"] = { bytes }`，可用 tools/call 重取。
+ * 页面侧 `toolOutput` 为 null、`toolResponseMetadata["nibi/truncated"] = { bytes }`，可用 tools/call 重取。
  */
 export const MCP_APPS_STRUCTURED_CONTENT_MAX_BYTES = 64 * 1024;
 export const MCP_APPS_WIDGET_META_MAX_BYTES = 16 * 1024;
 export const MCP_APPS_CONTENT_MAX_BYTES = 32 * 1024;
-export const MCP_APPS_TRUNCATED_META_KEY = "zcode/truncated";
+export const MCP_APPS_TRUNCATED_META_KEY = "nibi/truncated";
 /** host 侧接受的 `ui://` HTML 上限与 mimeType 白名单（规范只认带 profile 的；无 profile 的 text/html 是有意的宽松超集）。 */
 // 官方 pdf-server 示例的单文件页面（内联 pdf.js）就有 4.3 MB，4 MiB 会把它拒掉；放到 16 MiB。
 export const MCP_APPS_HTML_MAX_BYTES = 16 * 1024 * 1024;
@@ -149,15 +149,15 @@ export {
  * `hostCapabilities.experimental` 里 Nibi 扩展的键。官方 SDK 的 zod 会剥掉标准位之外的未知能力键，
  * 扩展一律放 experimental（规范预留位），页面按键 feature detect。
  */
-export const MCP_APPS_WIDGET_STATE_EXPERIMENTAL_KEY = "zcode/widgetState";
-export const MCP_APPS_RESOURCE_SUBSCRIBE_EXPERIMENTAL_KEY = "zcode/resourceSubscribe";
-export const MCP_APPS_SURFACE_EXPERIMENTAL_KEY = "zcode/surface";
+export const MCP_APPS_WIDGET_STATE_EXPERIMENTAL_KEY = "nibi/widgetState";
+export const MCP_APPS_RESOURCE_SUBSCRIBE_EXPERIMENTAL_KEY = "nibi/resourceSubscribe";
+export const MCP_APPS_SURFACE_EXPERIMENTAL_KEY = "nibi/surface";
 /**
  * Nibi 扩展方法 `ui/set-widget-state { widgetState }`（MCP Apps 无 widgetState）：页面把界面状态交给宿主
- * renderer 内存保存（不持久化，会话内重挂载可恢复）；初值经 hostContext 的 `zcode/widgetState` 键随握手下发。
+ * renderer 内存保存（不持久化，会话内重挂载可恢复）；初值经 hostContext 的 `nibi/widgetState` 键随握手下发。
  */
 export const MCP_APPS_SET_WIDGET_STATE_METHOD = "ui/set-widget-state";
-export const MCP_APPS_WIDGET_STATE_CONTEXT_KEY = "zcode/widgetState";
+export const MCP_APPS_WIDGET_STATE_CONTEXT_KEY = "nibi/widgetState";
 
 /** 宿主 renderer ↔ relay shell 之间唯一一条 MessageChannel 的名字；上面跑原始 JSON-RPC（官方 AppBridge / App）。 */
 export const PLUGIN_SANDBOX_PORT_NAME = "plugin-sandbox-rpc";
@@ -235,7 +235,7 @@ export interface PluginSandboxRegisterRequestPayload {
   html: string;
   /** 有效 CSP：资源级优先，工具级兜底（host plugin-ui-bridge 已合并）。 */
   csp?: McpToolUiCsp;
-  /** 资源级 `_meta["zcode/csp"]` 声明的放宽项。 */
+  /** 资源级 `_meta["nibi/csp"]` 声明的放宽项。 */
   cspRelaxations?: McpAppCspRelaxations;
   /** 资源声明的浏览器权限；main 据此放宽 Permissions-Policy 与 iframe allow，并把权限请求交给闸门。 */
   permissions?: McpAppsResourcePermission[];

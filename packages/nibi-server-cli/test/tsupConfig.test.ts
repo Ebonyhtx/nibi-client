@@ -20,13 +20,12 @@ describe("server cli tsup config", () => {
   it("embeds the product version and the Source Server compatibility floor", () => {
     const rootPackageJson = JSON.parse(
       readFileSync(resolve(import.meta.dirname, "../../../package.json"), "utf8"),
-    ) as { version: string; zcodeCompatibility?: { minCompatibleVersion?: string } };
+    ) as { version: string };
 
     expect(JSON.parse(SERVER_CLI_DEFINES.__NIBI_VERSION__)).toBe(rootPackageJson.version);
-    // 缺少这个 define 时 shared 的 NIBI_MIN_COMPATIBLE_VERSION 会回退为产品版本，
-    // Desktop 与远端 Server 的兼容性判定就失去了独立的下限。
+    // 兼容下限没有独立配置来源，必须与产品版本一致；避免构建脚本重新引入覆盖。
     expect(JSON.parse(SERVER_CLI_DEFINES.__NIBI_MIN_COMPATIBLE_VERSION__)).toBe(
-      rootPackageJson.zcodeCompatibility?.minCompatibleVersion ?? rootPackageJson.version,
+      rootPackageJson.version,
     );
   });
 });

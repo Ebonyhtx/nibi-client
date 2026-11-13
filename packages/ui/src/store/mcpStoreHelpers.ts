@@ -10,7 +10,7 @@ export const MCP_DELETED_PRELOAD_KEY = "nibi-mcp-deleted-preload";
 
 export const DEFAULT_MCP_CONFIG: McpConfig = {
   mcp: { mcpServers: {} },
-  zcodeagentmcp: { mcpServers: {}, projects: {} },
+  nibiagentmcp: { mcpServers: {}, projects: {} },
   claudeclimcp: { mcpServers: {}, projects: {} },
   geminiclimcp: { mcpServers: {}, projects: {} },
   codexclimcp: { mcpServers: {}, projects: {} },
@@ -69,10 +69,16 @@ function toIdKey(value: string): string {
   return normalized || "default";
 }
 
-export function makeServerId(source: McpSource, name: string, projectPath?: string, directorySource?: NonNullable<NativeMcpServerRecord["location"]>["source"]): string {
-  const sourceKey = source === "zcodeagentmcp" && directorySource && directorySource !== "nibi"
-    ? `${source}-${directorySource}`
-    : source;
+export function makeServerId(
+  source: McpSource,
+  name: string,
+  projectPath?: string,
+  directorySource?: NonNullable<NativeMcpServerRecord["location"]>["source"],
+): string {
+  const sourceKey =
+    source === "nibiagentmcp" && directorySource && directorySource !== "nibi"
+      ? `${source}-${directorySource}`
+      : source;
   return `${sourceKey}-${toIdKey(toScopeKey(projectPath))}-${toIdKey(name)}`;
 }
 
@@ -121,7 +127,12 @@ export function buildServerList(
   const servers: NibiMcpServer[] = [];
 
   for (const server of nativeServers) {
-    const serverId = makeServerId(server.source, server.name, server.projectPath, server.location?.source);
+    const serverId = makeServerId(
+      server.source,
+      server.name,
+      server.projectPath,
+      server.location?.source,
+    );
     if (!deletedPreload.has(serverId)) {
       servers.push(
         makeServer(

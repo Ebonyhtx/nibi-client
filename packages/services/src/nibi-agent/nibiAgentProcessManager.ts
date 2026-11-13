@@ -407,7 +407,7 @@ function resolveDeployedNibiAgentBinaryCommand(
   // resolver 也找不到，第一次 getClient 就抛 "Nibi agent server command is not configured"。
   // 这里复用 findNibiAgentRuntimeBinary 的候选链（含 GLM_BINARY_PATH env、
   // packagedResourcesPath、~/.nibi/server/agents/nibi、bundled-agents 等），
-  // 把已部署的原生 binary 当成最终兜底，远端/桌面打包形态都能命中。
+  // 把远端已部署的原生 binary 当成最终兜底；桌面本地 agent 已不再进入这条链路。
   const binaryPath = findNibiAgentRuntimeBinary();
   if (!binaryPath) {
     return null;
@@ -419,44 +419,12 @@ function resolveDeployedNibiAgentBinaryCommand(
   };
 }
 
-function resolveElectronRuntimeNibiAgentCommand(
-  context: NibiAgentCommandResolverContext,
-): NibiAgentCommand | null {
-  // 桌面打包态：host 跑在 Electron utility process 里，process.execPath 指向 Electron Helper，
-  // 它内置的 Node runtime 与 nibi-cli 目标版本一致（Electron 41 = Node 24.x）。
-  // 这里直接用 app 自带的 Electron Node 执行打进 resources/nibi 的 nibi.cjs，
-  // 不再随包内置一份独立 Node 二进制（体积从 ~180MB 降到 ~16MB，且跨平台同一份 JS）。
-  // 用 process.versions.electron 作为闸门：远端 SSH/WSL host 由系统 Node 运行、没有 electron，
-  // 会跳过这里继续走原生二进制兜底，桌面/远端两条链路互不影响。
-  if (!process.versions.electron) {
-    return null;
-  }
-  const bundlePath = findNibiAgentRuntimeNodeBundle();
-  if (!bundlePath) {
-    return null;
-  }
-  return {
-    command: process.execPath,
-    args: [bundlePath, ...NIBI_AGENT_RUNTIME.spawnArgs],
-    storagePreparationEntry: bundlePath,
-    cwd: context.workspacePath,
-    // 关键：必须以纯 Node 模式启动，否则子进程会被当成 Electron/Chromium 子进程卡在 GPU 初始化。
-    env: { ELECTRON_RUN_AS_NODE: "1" },
-  };
-}
-
 /**
- * 内核选择 `NIBI_KERNEL`（切流后默认 Rust）：**只有显式 `node` 才走 Node**，未设（或拼错）都按
- * Rust。Rust 二进制不存在时 `resolveDefaultNibiAgentCommand` 会回落到 node 链路，所以没有构建过
- * 内核的机器行为不变。回退开关：`NIBI_KERNEL=node`。
- */
-export function resolveKernelSelection(value: string | undefined): "node" | "rust" {
-  return value?.trim().toLowerCase() === "node" ? "node" : "rust";
-}
-
-/**
- * Rust app-server 的位次：显式 env（开发/灰度）→ 打包 `resources/rust-kernel`（尚未随包附带）→
- * 仓库 `kernel/target`（debug 优先，其次 release）。找不到就回落到 node 链路。
+ * Rust app-server 的位次：显式 env（开发/测试/自定义部署）→ 打包 `resources/rust-kernel` →
+ * 仓库 `kernel/target`（debug 优先，其次 release）。
+ *
+ * 桌面本地 agent 只接受 Rust：这里找不到 binary 时由 `resolveDefaultNibiAgentCommand` fail-closed，
+ * 不再回落到 Node 链路。远端 Source Server / server-cli 的 `nibi.cjs` 链路不经过本函数。
  *
  * 文件名与 Cargo 的 `[[bin]]`、打包位次一致：`nibi-rs[.exe]`。
  */
@@ -543,9 +511,25 @@ function resolveRustNibiAgentCommand(
   };
 }
 
+function buildMissingRustAgentBinaryError(): Error {
+  const executable = process.platform === "win32" ? "nibi-rs.exe" : "nibi-rs";
+  return new Error(
+    [
+      "NIBI desktop agent requires the Rust kernel, but no nibi-rs binary was found.",
+      `Checked NIBI_RUST_AGENT_SERVER_COMMAND (when set), <resources>/rust-kernel/${executable},`,
+      `and kernel/target/{debug,release}/${executable} (walking up from ${process.cwd()}).`,
+      "Build it with `cargo build --locked -p nibi-kernel-cli --bin nibi-rs` (add --release for a release build),",
+      "or stage it under resources/rust-kernel.",
+      "The desktop local agent has no Node fallback; NIBI_AGENT_SERVER_COMMAND remains available only",
+      "as an explicit override for custom deployments.",
+    ].join(" "),
+  );
+}
+
 export function resolveDefaultNibiAgentCommand(
   context: NibiAgentCommandResolverContext,
 ): NibiAgentCommand | null {
+  // 显式 env 覆盖优先：这是调用方主动配置的命令（远端/自定义部署），不是静默回退。
   const command = process.env.NIBI_AGENT_SERVER_COMMAND?.trim();
   if (command) {
     return applyPresentationSurfaceToCommand(
@@ -558,21 +542,21 @@ export function resolveDefaultNibiAgentCommand(
     );
   }
 
-  // 内核选择（默认 Rust，`NIBI_KERNEL=node` 回退）：显式 env 覆盖之后、node 的各条位次之前。
-  // 找不到 Rust 二进制时落到下面的原链路（开发机没构建过内核、精简包不带内核）。
-  if (resolveKernelSelection(process.env.NIBI_KERNEL) === "rust") {
-    const rust = resolveRustNibiAgentCommand(context);
-    if (rust) {
-      return applyPresentationSurfaceToCommand(rust, context.presentationSurface);
-    }
-    debugLog("no Rust agent binary is available; falling back to the node kernel");
+  // 桌面本地 agent 的唯一内核是 Rust；显式 NIBI_RUST_AGENT_SERVER_COMMAND 也在这一支里。
+  const rust = resolveRustNibiAgentCommand(context);
+  if (rust) {
+    return applyPresentationSurfaceToCommand(rust, context.presentationSurface);
   }
 
-  // 顺序：env 显式覆盖 → monorepo dev 源码/dist（dev 改源码立刻生效，不会被远端历史装的 native binary
-  // 抢先匹配）→ 桌面打包态 Electron Node runtime 跑 nibi.cjs → 已部署 native binary（远端 SSH 兜底）。
-  const bundled =
-    resolveBundledWorkspaceNibiAgentCommand(context) ??
-    resolveElectronRuntimeNibiAgentCommand(context);
+  // 桌面 Host 跑在 Electron utility process 里。缺 Rust binary 时直接抛错，绝不回落到 Node 链路：
+  // 否则“没构建过内核”的开发机/精简包会静默退回 Node，掩盖打包和发布缺件。
+  if (process.versions.electron) {
+    throw buildMissingRustAgentBinaryError();
+  }
+
+  // 非 Electron 的远端 Source Server / server-cli 继续走自己的 nibi.cjs / 已部署 binary 链路，
+  // 不属于桌面本地 agent 的退役范围。顺序：monorepo dev 源码/dist → 已部署 native binary（SSH 兜底）。
+  const bundled = resolveBundledWorkspaceNibiAgentCommand(context);
   return applyPresentationSurfaceToCommand(
     bundled
       ? { ...bundled, supportsStorageStartup: true }

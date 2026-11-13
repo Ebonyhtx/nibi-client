@@ -1433,7 +1433,7 @@ export const hostPluginSandboxRegisterRequestResponseSchema = z
       })
       .strict()
       .optional(),
-    // 资源级 `_meta["zcode/csp"]` 放宽项；与 mcp-apps 的 mcpAppCspRelaxationsSchema 同步。
+    // 资源级 `_meta["nibi/csp"]` 放宽项；与 mcp-apps 的 mcpAppCspRelaxationsSchema 同步。
     cspRelaxations: z
       .object({ unsafeEval: z.boolean().optional(), wasmUnsafeEval: z.boolean().optional() })
       .strict()

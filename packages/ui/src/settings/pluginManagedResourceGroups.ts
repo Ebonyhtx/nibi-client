@@ -205,7 +205,7 @@ export function groupCommandsByPlugin(
 
 export function filterLocalMcpServers(servers: NibiMcpServer[], query: string): NibiMcpServer[] {
   return servers.filter((server) => {
-    if (server.source !== "zcodeagentmcp") {
+    if (server.source !== "nibiagentmcp") {
       return false;
     }
     return normalizedQueryMatches(query, [server.name, server.config.url, server.config.command]);

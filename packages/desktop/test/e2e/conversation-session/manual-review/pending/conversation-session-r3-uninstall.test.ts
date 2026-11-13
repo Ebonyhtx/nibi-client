@@ -169,7 +169,7 @@ describe(`${CASE_MARKER}: ${variant}，卸载重装与独立环境替换`, () =>
           container,
           "bash",
           "-lc",
-          '"$HOME/.nibi/server/bin/zcode" uninstall --server-root "$HOME/.nibi/server" --json',
+          '"$HOME/.nibi/server/bin/nibi" uninstall --server-root "$HOME/.nibi/server" --json',
         ],
         {
           prompts: ["Type DELETE to uninstall Nibi Server: ", "Type DELETE again to confirm: "],

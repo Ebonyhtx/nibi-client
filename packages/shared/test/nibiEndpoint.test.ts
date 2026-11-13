@@ -180,15 +180,13 @@ describe("nibiEndpoint", () => {
     expect(buildRuntimeZaiBusinessUrl({ NIBI_ENV: "test" }, "/api/auth/z/login")).toBe(
       "https://api.z.ai/api/auth/z/login",
     );
-    expect(buildBigModelApiUrl({ NIBI_ENV: "test" }, "/login")).toBe(
-      "https://bigmodel.cn/login",
-    );
+    expect(buildBigModelApiUrl({ NIBI_ENV: "test" }, "/login")).toBe("https://bigmodel.cn/login");
   });
 
   it("keeps environment-scoped endpoint overrides centralized", () => {
     const env = {
       NIBI_ENV: "test",
-      NIBI_TEST_BASE_URL: "https://test-zcode.example.com/path",
+      NIBI_TEST_BASE_URL: "https://test-nibi.example.com/path",
       ZAI_TEST_OAUTH_ORIGIN: "https://test-oauth.example.com/oauth",
       ZAI_TEST_BUSINESS_BASE_URL: "https://test-business.example.com/api",
       ZAI_TEST_OAUTH_CLIENT_ID: "client_test_override",
@@ -196,7 +194,7 @@ describe("nibiEndpoint", () => {
     };
 
     expect(resolveRuntimeProductEndpointConfig(env)).toMatchObject({
-      nibiEndpointOrigin: "https://test-zcode.example.com",
+      nibiEndpointOrigin: "https://test-nibi.example.com",
       zaiOAuthOrigin: "https://test-oauth.example.com",
       zaiBusinessBaseUrl: "https://test-business.example.com",
       zaiOAuthClientId: "client_test_override",
@@ -248,7 +246,7 @@ describe("nibiEndpoint", () => {
   });
 
   it("rejects non-http endpoint origins", () => {
-    expect(() => normalizeNibiEndpointOrigin("file:///tmp/zcode")).toThrow(/http or https/);
+    expect(() => normalizeNibiEndpointOrigin("file:///tmp/nibi")).toThrow(/http or https/);
   });
 
   it("persists optional endpoint override in app settings", () => {
@@ -285,9 +283,9 @@ describe("NIBI membership webview trust", () => {
     // 同一域名下的其它页面不能拿到 App 通信能力。
     expect(isTrustedNibiMembershipWebviewUrl("https://nibistudio.cn/portal/")).toBe(false);
     expect(isTrustedNibiMembershipWebviewUrl("https://nibistudio.cn/")).toBe(false);
-    expect(
-      isTrustedNibiMembershipWebviewUrl("https://evil.example/membership/?embedded=app"),
-    ).toBe(false);
+    expect(isTrustedNibiMembershipWebviewUrl("https://evil.example/membership/?embedded=app")).toBe(
+      false,
+    );
     expect(
       isTrustedNibiMembershipWebviewUrl("http://127.0.0.1:4555/membership/", {
         e2eStoreBridgeEnabled: true,

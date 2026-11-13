@@ -35,7 +35,7 @@ interface DirectoryMcpDescriptor {
 }
 
 const NIBI_MCP_DESCRIPTOR: DirectoryMcpDescriptor = {
-  source: "zcodeagentmcp",
+  source: "nibiagentmcp",
   directorySource: "nibi",
   userConfigDirSegments: [".nibi", "cli"],
   workspaceConfigDirSegments: [".nibi"],
@@ -50,7 +50,7 @@ const ENABLED_KEY = "enabled";
 const LEGACY_ENABLE_KEY = "enable";
 
 const AGENTS_MCP_DESCRIPTOR: DirectoryMcpDescriptor = {
-  source: "zcodeagentmcp",
+  source: "nibiagentmcp",
   directorySource: "agents",
   userConfigDirSegments: [".agents"],
   workspaceConfigDirSegments: [".agents"],
@@ -75,8 +75,7 @@ function resolveUserHomeDir(): string {
  * `NIBI_DATA_BASE_DIR` 不是存储根（它只挪 `.nibi/v2`），混用会让内核与设置页读两份配置。
  */
 function resolveMcpBaseDir(): string {
-  const envRoot =
-    process.env.NIBI_STORAGE_DIR?.trim() || process.env.NIBI_HOME?.trim();
+  const envRoot = process.env.NIBI_STORAGE_DIR?.trim() || process.env.NIBI_HOME?.trim();
   return envRoot && envRoot.length > 0 ? envRoot : resolveUserHomeDir();
 }
 
@@ -92,9 +91,12 @@ function buildDirectoryConfigPath(
 ): string {
   const baseDir = scope === "user" ? resolveMcpBaseDir() : workspacePath;
   if (!baseDir) {
-    throw new Error(`Missing workspace path for ${descriptor.directorySource} workspace MCP config`);
+    throw new Error(
+      `Missing workspace path for ${descriptor.directorySource} workspace MCP config`,
+    );
   }
-  const segments = scope === "user" ? descriptor.userConfigDirSegments : descriptor.workspaceConfigDirSegments;
+  const segments =
+    scope === "user" ? descriptor.userConfigDirSegments : descriptor.workspaceConfigDirSegments;
   return join(baseDir, ...segments, descriptor.fileName);
 }
 
@@ -127,13 +129,13 @@ function readServerMapFromJson(
     }
     const servers = (mcp as Record<string, unknown>).servers;
     return servers && typeof servers === "object" && !Array.isArray(servers)
-      ? servers as Record<string, Record<string, unknown>>
+      ? (servers as Record<string, Record<string, unknown>>)
       : {};
   }
 
   const rawServerMap = parsed[configKeyName];
   return rawServerMap && typeof rawServerMap === "object" && !Array.isArray(rawServerMap)
-    ? rawServerMap as Record<string, Record<string, unknown>>
+    ? (rawServerMap as Record<string, Record<string, unknown>>)
     : {};
 }
 
@@ -149,9 +151,10 @@ function writeServerMapToJson(
     };
   }
 
-  const currentMcp = current.mcp && typeof current.mcp === "object" && !Array.isArray(current.mcp)
-    ? current.mcp as Record<string, unknown>
-    : {};
+  const currentMcp =
+    current.mcp && typeof current.mcp === "object" && !Array.isArray(current.mcp)
+      ? (current.mcp as Record<string, unknown>)
+      : {};
   return {
     ...current,
     mcp: {
@@ -165,7 +168,10 @@ function readServerEnabled(config: Record<string, unknown>): boolean {
   return config[ENABLED_KEY] !== false;
 }
 
-function setServerEnabled(config: Record<string, unknown>, enabled: boolean): Record<string, unknown> {
+function setServerEnabled(
+  config: Record<string, unknown>,
+  enabled: boolean,
+): Record<string, unknown> {
   // 启用是默认态，不落盘冗余字段；同时清掉可能残留的 legacy enable，
   // 避免再产出 enable:false + enabled:true 这类自相矛盾的配置。
   const { [LEGACY_ENABLE_KEY]: _legacyEnable, [ENABLED_KEY]: _enabled, ...rest } = config;
@@ -175,9 +181,10 @@ function setServerEnabled(config: Record<string, unknown>, enabled: boolean): Re
   return { ...rest, [ENABLED_KEY]: false };
 }
 
-function migrateLegacyEnableFlag(
-  serverMap: Record<string, Record<string, unknown>>,
-): { servers: Record<string, Record<string, unknown>>; changed: boolean } {
+function migrateLegacyEnableFlag(serverMap: Record<string, Record<string, unknown>>): {
+  servers: Record<string, Record<string, unknown>>;
+  changed: boolean;
+} {
   let changed = false;
   const migrated: Record<string, Record<string, unknown>> = {};
 
@@ -231,7 +238,9 @@ function removeLegacyMcpEnabledOverride(
 }
 
 function findDescriptorByLocation(location: SettingsDirectoryLocation): DirectoryMcpDescriptor {
-  const descriptor = DIRECTORY_MCP_DESCRIPTORS.find((item) => item.directorySource === location.source);
+  const descriptor = DIRECTORY_MCP_DESCRIPTORS.find(
+    (item) => item.directorySource === location.source,
+  );
   if (!descriptor) {
     throw new Error(`Unsupported MCP settings directory source: ${location.source}`);
   }
@@ -300,7 +309,9 @@ async function readDirectoryServersFromFile(
   try {
     const raw = await readFile(filePath, "utf-8");
     const parsed = JSON.parse(raw) as Record<string, unknown>;
-    const migration = migrateLegacyEnableFlag(readServerMapFromJson(parsed, descriptor.configKeyName));
+    const migration = migrateLegacyEnableFlag(
+      readServerMapFromJson(parsed, descriptor.configKeyName),
+    );
     const serverMap = migration.servers;
 
     if (migration.changed) {
@@ -335,12 +346,7 @@ async function readDirectoryServersFromFile(
       },
     }));
   } catch (error) {
-    if (
-      error &&
-      typeof error === "object" &&
-      "code" in error &&
-      error.code === "ENOENT"
-    ) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
       return [];
     }
     // 解析/权限失败不等于没有 MCP 配置；吞掉异常会让 renderer 把空列表
@@ -397,10 +403,10 @@ export async function loadCliMcpFromUserDirectory(
 
   // 去掉其他 provider 后，Nibi Agent 只按目录约定读取；先 workspace，再 user。
   if (workspacePath && inspectWorkspace && workspaceOnline) {
-    servers.push(...await readDirectoryServersFromPreferredSources("workspace", workspacePath));
+    servers.push(...(await readDirectoryServersFromPreferredSources("workspace", workspacePath)));
   }
 
-  servers.push(...await readDirectoryServersFromPreferredSources("user", workspacePath));
+  servers.push(...(await readDirectoryServersFromPreferredSources("user", workspacePath)));
 
   if (!workspacePath) {
     return { servers };
@@ -433,8 +439,15 @@ export async function saveCliMcpToUserDirectory(
       throw new Error("Missing enabled value for MCP set-enabled action");
     }
     const scope: Exclude<McpScope, "common"> = payload.projectPath ? "workspace" : "user";
-    const location = payload.location ?? buildDirectoryMcpLocation(NIBI_MCP_DESCRIPTOR, scope, payload.projectPath);
-    await writeServerEnabledToFile(findDescriptorByLocation(location), location, payload.name, payload.enabled);
+    const location =
+      payload.location ??
+      buildDirectoryMcpLocation(NIBI_MCP_DESCRIPTOR, scope, payload.projectPath);
+    await writeServerEnabledToFile(
+      findDescriptorByLocation(location),
+      location,
+      payload.name,
+      payload.enabled,
+    );
     await cleanupLegacyMcpEnabledOverride(location, payload.name);
     return;
   }

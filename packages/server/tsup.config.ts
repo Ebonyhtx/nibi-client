@@ -12,11 +12,10 @@ const { stageThirdPartyNotices } = await import(
 
 // tsup config 可能从不同 cwd 加载，基于配置文件自身目录解析仓库根 package.json。
 const rootPackageJsonPath = resolve(import.meta.dirname, "../../package.json");
-const { version, zcodeCompatibility } = JSON.parse(readFileSync(rootPackageJsonPath, "utf-8")) as {
+const { version } = JSON.parse(readFileSync(rootPackageJsonPath, "utf-8")) as {
   version: string;
-  zcodeCompatibility?: { minCompatibleVersion?: string };
 };
-const minCompatibleVersion = zcodeCompatibility?.minCompatibleVersion ?? version;
+const minCompatibleVersion = version;
 
 const { environment: nibiEnv, content: nibiBuiltinProviderConfigJson } =
   await loadBuiltinProviderConfig();

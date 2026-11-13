@@ -41,11 +41,11 @@ fn settings_expand_home_and_resolve_relative_paths_against_the_base() {
 
 #[test]
 fn absolute_settings_are_kept() {
-    let paths = resolve(Some("/var/db.sqlite"), Some("/srv/zcode"));
+    let paths = resolve(Some("/var/db.sqlite"), Some("/srv/nibi"));
     assert_eq!(paths.database().as_path(), Path::new("/var/db.sqlite"));
     assert_eq!(
         paths.artifacts().as_path(),
-        PathBuf::from("/srv/zcode/cli/artifacts")
+        PathBuf::from("/srv/nibi/cli/artifacts")
     );
 }
 

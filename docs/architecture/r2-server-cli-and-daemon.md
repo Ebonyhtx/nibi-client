@@ -17,7 +17,7 @@
 
 R2 交付：
 
-- 独立安装的 `zcode` Server CLI；
+- 独立安装的 `nibi` Server CLI；
 - `serve`、`serve --daemon`、`status`、`stop`、`restart`、`update`、`uninstall`；
 - Supervisor、Server Core、Agent 的进程边界；
 - macOS、Linux、Windows 的用户级自启动服务；
@@ -40,7 +40,7 @@ R2 不交付：
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 新代码目录           | 新建 `packages/nibi-server-cli`；R2 不在 `packages/server` 中增加代码                                                                                                                                                                                                                                             |
 | 旧 `packages/server` | 仅作为现有 HTTP/WS、stdio、远程部署和协议行为参考；保持其当前入口兼容                                                                                                                                                                                                                                              |
-| 用户入口             | 独立发行包提供 `zcode`；无参数继续进入既有 TUI                                                                                                                                                                                                                                                                     |
+| 用户入口             | 独立发行包提供 `nibi`；无参数继续进入既有 TUI                                                                                                                                                                                                                                                                     |
 | Server Core          | 新目录内实现新的 Core 入口和生命周期合同，不继承旧 `entry-http` / `entry-stdio` 的进程语义                                                                                                                                                                                                                         |
 | 业务服务             | 经过审查后复用 `@nibi/services`、`@nibi/shared`、`@nibi/rpc` 等底层能力                                                                                                                                                                                                                                         |
 | Supervisor           | 只拥有生命周期状态，不拥有 task/session/stream/queue/snapshot 业务状态                                                                                                                                                                                                                                             |
@@ -59,8 +59,8 @@ R2 不交付：
 ## 3. 进程与职责模型
 
 ```text
-安装后的 zcode
-└── bin/zcode
+安装后的 nibi
+└── bin/nibi
     ├── serve
     │   └── Supervisor
     │       └── Server Core
@@ -283,7 +283,7 @@ R2 沿用第二条远端资产链路，并把它扩展为独立 Server CLI 的�
 nibi-server-<os>-<arch>/
 ├── bin/
 │   ├── zcode
-│   └── zcode.cmd
+│   └── nibi.cmd
 ├── runtime/
 │   ├── node                 # Windows 为 node.exe
 │   ├── package.json         # {"type":"module"}，让 .js 入口按 ESM 解析
@@ -323,7 +323,7 @@ staging 由 `packages/nibi-server-cli/src/packaging/stage.ts` 实现，
   已下载的缓存，缺失时从 nodejs.org 下载目标格式（POSIX 为 `tar.xz`，Windows 为 `zip`）并缓存；
 - 同时产出目录形态和 `nibi-server-<os>-<arch>.tar.gz`（供 scp 到远端解压验证）；
 - staging 实现六个目标：`darwin-x64/arm64`、`linux-x64/arm64`、`win32-x64/arm64`；POSIX
-  产出 `tar.gz`，Windows 产出 `zip` 和 `zcode.cmd`。Windows 不打包 `bfs`，使用 `rg.exe`、
+  产出 `tar.gz`，Windows 产出 `zip` 和 `nibi.cmd`。Windows 不打包 `bfs`，使用 `rg.exe`、
   `ugrep.exe`，并保留系统/Git Bash fallback。
 - Agent bundle 的外置依赖以运行时入口扫描和官方插件定义为事实源；不再只扫描 Server CLI/Core，
   因而 `@nibi/tui`、`playwright-core` 等 bundle 运行时依赖不会被遗漏。
@@ -362,7 +362,7 @@ Agent 接线约定：发行包内 Core 不在 monorepo、也没有 Electron runt
 │   └── manifest.json
 ├── current.json
 ├── pending.json
-├── bin/zcode                       # Windows 为 zcode.cmd；OS service 稳定入口
+├── bin/nibi                       # Windows 为 nibi.cmd；OS service 稳定入口
 ├── service/<root-hash>.<platform>  # 运行时按 canonical root 生成，显式携带 --server-root
 ├── cache/components/<target>/<component>/<sha256>/
 ├── config/provider/nibi-builtin-<sha256>.json   # Core 启动时按内容 hash 物化的 ZCode Built-in Provider Config（2026-09-07 起）
@@ -378,7 +378,7 @@ Agent 接线约定：发行包内 Core 不在 monorepo、也没有 Electron runt
 `__NIBI_BUILTIN_PROVIDER_CONFIG_JSON__` 物化（tmp + rename；同 hash 幂等，内容不一致则启动失败），
 `NIBI_BUILTIN_PROVIDER_CONFIG_FILE` 显式指定时跳过物化。它落在 server root 而不是 release 自带的
 `runtime/`：release 目录不可变，同一 releaseId 重装时 `assertExistingReleaseMatches` 会重算整棵树的内容
-哈希，多出的物化文件会让校验失败；文件名含内容 hash，跨 release 共用安全。当前 `zcode uninstall` 的
+哈希，多出的物化文件会让校验失败；文件名含内容 hash，跨 release 共用安全。当前 `nibi uninstall` 的
 allowlist 不含 `config/`，卸载后该目录会保留并列入 `uninstalled.json.preservedPaths`。
 
 descriptor 不随 release archive 打包，而是在 `serve --daemon` 注册时由
@@ -444,7 +444,7 @@ Core IPC listener 必须绑定具体 child 与 generation，非当前 child 的�
 清空 host、port、startedAt 与 runningTaskCount，不能让已中断任务继续污染下一代 guard。
 
 `serve --daemon` 的启动 owner 只有 OS service。descriptor 的命令必须指向 data root 下的稳定入口
-`<serverRoot>/bin/zcode`（Windows 为 `zcode.cmd`），参数固定包含 `serve --supervisor --service-entry
+`<serverRoot>/bin/nibi`（Windows 为 `nibi.cmd`），参数固定包含 `serve --supervisor --service-entry
 --server-root <absolute-path>`；不得记录注册时 release 的 `server-cli.js` 绝对路径。CLI 注册并启动
 service 后等待现有 Supervisor 报告 ready；service entry 不能再次注册自身或 fork 第二个 Supervisor。
 只有 OS service entry 才报告 `serviceRegistered=true`；显式跳过 service registration 的 detached
@@ -464,10 +464,10 @@ endpoint、status、release、service descriptor 和 uninstall 均从该参数�
 同时获得对应的 `NIBI_DATA_BASE_DIR`。因此自定义 data root 的 daemon 不得在默认 root 创建第二份
 status、lock、Core 或 SQLite。
 
-POSIX 稳定入口 `bin/zcode` 读取 `current.json.releaseDir`，只执行 `<root>/releases/` 下的 release；
-越界时输出 `Invalid current ZCode Server release` 并以 1 退出。该边界必须和写入方比较同一种路径：
+POSIX 稳定入口 `bin/nibi` 读取 `current.json.releaseDir`，只执行 `<root>/releases/` 下的 release；
+越界时输出 `Invalid current NIBI Server release` 并以 1 退出。该边界必须和写入方比较同一种路径：
 生命周期命令写 `current.json` 前已把 server root 收敛为 canonical（`realpath`）路径，launcher 也必须
-用物理路径（`cd -P` + `pwd -P`）计算 root。远端以 `"$HOME/.nibi/server/bin/zcode"` 调用入口，
+用物理路径（`cd -P` + `pwd -P`）计算 root。远端以 `"$HOME/.nibi/server/bin/nibi"` 调用入口，
 `$HOME` 可能经过符号链接（例如 NAS 的 `/var/services/homes -> /volume1/homes`、`/home -> /var/home`），
 这种别名不得让合法 release 被判为越界。
 

@@ -13,7 +13,7 @@ NIBI has four layers. Name the failing layer before changing anything.
 
 | Layer | What lives there | Typical symptom |
 | --- | --- | --- |
-| Kernel | Rust kernel by default; `NIBI_KERNEL=node` is the fallback | tools or sessions fail before any plugin loads |
+| Kernel | Rust kernel only for desktop local; missing `nibi-rs` fails closed | tools or sessions fail before any plugin loads |
 | Host | Desktop main process, plugin seeding, MCP process launch | plugin cache is empty or a server never starts |
 | Plugin content | `browser-use`, `computer-use`, `visualize`, office plugins | skill or panel is missing, but sessions still work |
 | Runtime host | bundled `node-repl-host` plugin | `Browser runtime bridge is unavailable` or `Computer Use runtime bridge is unavailable` |
@@ -39,7 +39,7 @@ NIBI has four layers. Name the failing layer before changing anything.
 
 - Restart NIBI after enabling or disabling a plugin. Plugins are not hot-reloaded.
 - For a partial official cache, quit NIBI, remove only the affected version directory under `~/.nibi/cli/plugins/cache/nibi-official/<plugin>/<version>/`, then start NIBI again. Do not delete `~/.nibi/v2` or the whole plugin storage root.
-- If the Rust kernel itself is the suspect, retry once with `NIBI_KERNEL=node` to separate kernel failures from plugin failures. Treat a difference as a kernel-parity bug, not a plugin fix.
+- If the Rust kernel itself is the suspect, compare against a remote shared-host session (which still runs the Node `nibi.cjs` kernel); desktop local has no `NIBI_KERNEL=node` fallback. Treat a difference as a kernel-parity bug, not a plugin fix.
 - If a plugin MCP server fails to start, run its cached entry directly from the cache directory to see the real stderr. Do not edit the cached copy permanently; fix the source or re-seed instead.
 
 ## 5. Report

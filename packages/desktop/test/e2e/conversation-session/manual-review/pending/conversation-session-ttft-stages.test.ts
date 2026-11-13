@@ -98,7 +98,7 @@ describe("TTFT01 真实 Composer 到最终 OTLP", () => {
         return records.some((record) =>
           record.data.resourceMetrics?.some((resource) =>
             resource.scopeMetrics.some((scope) =>
-              scope.metrics.some((metric) => metric.name === "zcode.local_ttft.duration"),
+              scope.metrics.some((metric) => metric.name === "nibi.local_ttft.duration"),
             ),
           ),
         );
@@ -155,7 +155,7 @@ describe("TTFT01 真实 Composer 到最终 OTLP", () => {
       .flatMap((resource) => resource.scopeMetrics)
       .flatMap((scope) => scope.metrics);
     const total = metrics
-      .filter((metric) => metric.name === "zcode.local_ttft.duration")
+      .filter((metric) => metric.name === "nibi.local_ttft.duration")
       .flatMap((metric) => metric.histogram?.dataPoints ?? []);
     expect(total.reduce((count, point) => count + Number(point.count), 0)).toBe(1);
     expect(total[0]?.explicitBounds).toEqual([

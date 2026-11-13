@@ -409,10 +409,18 @@ test("后台交付无效时给升级提示（不自动重试，避免双触发�
     assert.equal(receipt.delivery_mode, "background");
     assert.equal(receipt.effect_evidence, "unchanged");
     assert.match(String(receipt.text ?? ""), /effect-unchanged/, "要写明补救（显式 foreground 重试）");
-    // foreground 交付不提示。
-    const fg = receiptOf(await runtime.execute({
+    // 不传 delivery_mode 也是 background（默认后台优先），不能偷偷前台化。
+    const defaulted = receiptOf(await runtime.execute({
       toolName: "left_click",
       arguments: { element_token: "se:2", session_id: CONTEXT.sessionId },
+      context: CONTEXT,
+    }));
+    assert.equal(defaulted.delivery_mode, "background", "默认交付必须是 background");
+    assert.match(String(defaulted.text ?? ""), /effect-unchanged/);
+    // 只有显式 foreground 才不提示。
+    const fg = receiptOf(await runtime.execute({
+      toolName: "left_click",
+      arguments: { element_token: "se:2", delivery_mode: "foreground", session_id: CONTEXT.sessionId },
       context: CONTEXT,
     }));
     assert.equal(fg.delivery_mode, "foreground");

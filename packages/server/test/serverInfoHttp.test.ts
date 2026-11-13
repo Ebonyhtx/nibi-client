@@ -37,7 +37,7 @@ describe("server info HTTP endpoint", () => {
       name: "Studio Server",
       workspaces: [
         {
-          path: "/srv/zcode/project",
+          path: "/srv/nibi/project",
           label: "project",
         },
       ],
@@ -63,7 +63,7 @@ describe("server info HTTP endpoint", () => {
       identity: { osUser: expect.any(String), hostname: expect.any(String) },
       workspaces: [
         {
-          path: "/srv/zcode/project",
+          path: "/srv/nibi/project",
           label: "project",
         },
       ],
@@ -104,11 +104,11 @@ describe("server info HTTP endpoint", () => {
 
     const accepted = await fetch(`${baseUrl}/api/server-info?token=secret-token`);
     expect(accepted.status).toBe(200);
-    expect(accepted.headers.get("set-cookie")).toContain("zcode_lite_token=");
+    expect(accepted.headers.get("set-cookie")).toContain("nibi_lite_token=");
 
     const cookieAccepted = await fetch(`${baseUrl}/api/server-info`, {
       headers: {
-        cookie: "zcode_lite_token=secret-token",
+        cookie: "nibi_lite_token=secret-token",
       },
     });
     expect(cookieAccepted.status).toBe(200);

@@ -69,7 +69,7 @@ describe(`${MARKER}: 完整退出 Desktop 后远端回合继续`, () => {
         // Server 控制命令直接位于根命令；误加 server 会落入旧 CLI，无法取得运行任务。
         const beforeRelease = await runSSHCommand(
           prepared.config,
-          '"$HOME/.nibi/server/bin/zcode" running-tasks --json',
+          '"$HOME/.nibi/server/bin/nibi" running-tasks --json',
         );
         expect(beforeRelease.code).toBe(0);
         expect(beforeRelease.stdout).toContain(task.taskId);
@@ -84,7 +84,7 @@ describe(`${MARKER}: 完整退出 Desktop 后远端回合继续`, () => {
         do {
           result = await runSSHCommand(
             prepared.config,
-            '"$HOME/.nibi/server/bin/zcode" running-tasks --json',
+            '"$HOME/.nibi/server/bin/nibi" running-tasks --json',
           );
           if (result.code === 0 && !result.stdout.includes(task.taskId)) break;
           await delay(200);

@@ -18,6 +18,7 @@ export async function startHelper({ engineModule, env = {} } = {}) {
   const socketPath = mintEphemeralBrokerSocketPath();
   const child = fork(HELPER_ENTRY, ["--socket", socketPath, "--parent-pid", String(process.pid)], {
     env: { ...process.env, ...env, NIBI_CUA_ENGINE_MODULE: engineModule },
+    windowsHide: true,
     stdio: ["ignore", "pipe", "pipe", "ipc"],
   });
   let stderr = "";

@@ -25,7 +25,7 @@ function createBootstrapDocument(theme: "nibi-dark" | "nibi-light"): JSDOM {
       });
     },
     runScripts: "dangerously",
-    url: "https://zcode.example/remote",
+    url: "https://nibi.example/remote",
   });
 }
 

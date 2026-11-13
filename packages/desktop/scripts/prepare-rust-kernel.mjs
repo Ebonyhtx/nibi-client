@@ -6,9 +6,10 @@
 // `resourcesPath/rust-kernel`）按这个路径解析。Cargo 的 `[[bin]]` 名与打包位次同名
 // （`nibi-rs`），进程列表/任务管理器里显示的是 NIBI。
 //
-// 纪律：**可选资产**。默认内核是 Rust，但正式包不携带内核也要能跑（运行时回落 node）——本机没构建过
-// 内核（kernel/target 下两档都没有）时跳过并退出 0，不fail打包。构建产物选档：release 优先
-// （打包要优化档），debug 兜底；`NIBI_RUST_KERNEL_BIN` 显式指文件时无视位次。
+// 纪律：**桌面本地 agent 的唯一内核**。缺内核时本脚本仍跳过暂存并退出 0（避免阻断不打包桌面的
+// 调用方），但这样打出的桌面包在启动 agent 时会 fail-closed，不会回退 Node；正式发布必须先构建
+// nibi-rs。构建产物选档：release 优先（打包要优化档），debug 兜底；`NIBI_RUST_KERNEL_BIN`
+// 显式指文件时无视位次。
 
 import process from "node:process";
 import { execFileSync } from "node:child_process";
@@ -33,7 +34,7 @@ const source = candidates.find((candidate) => existsSync(candidate));
 if (source === undefined) {
   console.log(
     "[prepare-rust-kernel] no kernel binary found (kernel/target/{release,debug}); " +
-      "skipping — the packaged app falls back to the node kernel at runtime",
+      "skipping — a packaged desktop app would fail closed when starting its agent",
   );
   process.exit(0);
 }

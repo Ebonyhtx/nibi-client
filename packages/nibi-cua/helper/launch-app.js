@@ -28,16 +28,19 @@ export function parseLaunchTarget(params) {
     aumid: trimmed(input.aumid),
     bundleId: trimmed(input.bundle_id),
     launchPath: trimmed(input.launch_path),
+    // Windows 全路径（引擎 schema 的 path；比 name 更能钉死要拉起的可执行文件）。
+    path: trimmed(input.path),
   };
-  if (!target.name && !target.aumid && !target.bundleId && !target.launchPath) {
+  if (!target.name && !target.aumid && !target.bundleId && !target.launchPath && !target.path) {
     throw Object.assign(
-      new Error("launch_app 需要 name / aumid / bundle_id / launch_path 之一"),
+      new Error("launch_app 需要 name / aumid / bundle_id / launch_path / path 之一"),
       { code: "unrecognized_keys" },
     );
   }
-  // 冷却键：优先用最具体的标识（AUMID > bundle_id > launch_path > name），
+  // 冷却键：优先用最具体的标识（AUMID > bundle_id > launch_path > path > name），
   // 否则同一应用的不同写法会各自开一套冷却、防不住连开。
-  target.cooldownKey = target.aumid ?? target.bundleId ?? target.launchPath ?? target.name;
+  target.cooldownKey =
+    target.aumid ?? target.bundleId ?? target.launchPath ?? target.path ?? target.name;
   return target;
 }
 
@@ -47,18 +50,60 @@ export function parseLaunchTarget(params) {
 export async function launchApp({ engine, params, semantics, withinCooldown, rememberAttempt }) {
   semantics.assertKillSwitchAllows("launch_app");
   const target = parseLaunchTarget(params);
+  const input = params && typeof params === "object" ? params : {};
   if (withinCooldown(target.cooldownKey)) {
     return { launched: false, reason: "cooldown" };
   }
   rememberAttempt(target.cooldownKey);
+  // 默认**不激活**：引擎 0.47.23 的 launch_app 本身就用 SW_SHOWNOACTIVATE 启动
+  // （docs："never brings the target to the foreground"），只有调用方显式传
+  // `activate:true` 才在拉起后 bring_to_front。`start_minimized:true` 可进一步把窗口
+  // 收进任务栏（UIA/后台派发仍可用；截图和 foreground 交付才需要恢复）。
+  const wantsActivation = input.activate === true;
+  const startMinimized =
+    typeof input.start_minimized === "boolean" ? input.start_minimized : undefined;
   const result = assertEngineOk(
     await engine.callTool("launch_app", {
       ...(target.name ? { name: target.name } : {}),
       ...(target.aumid ? { aumid: target.aumid } : {}),
       ...(target.bundleId ? { bundle_id: target.bundleId } : {}),
       ...(target.launchPath ? { launch_path: target.launchPath } : {}),
+      ...(target.path ? { path: target.path } : {}),
+      ...(typeof startMinimized === "boolean"
+        ? { start_minimized: startMinimized }
+        : wantsActivation
+          ? { start_minimized: false }
+          : {}),
     }),
     "launch_app",
-  );
+  ) ?? {};
+  if (wantsActivation) {
+    // 显式激活才碰前台。launch 本身已成功；激活失败不回滚、也不把 launched 改假，
+    // 但必须在文本里如实留痕（否则调用方会以为 activate:true 一定生效）。
+    const structured = result?.structured ?? {};
+    const pid =
+      typeof structured.pid === "number"
+        ? structured.pid
+        : typeof result?.pid === "number"
+          ? result.pid
+          : undefined;
+    const firstWindow = Array.isArray(structured.windows) ? structured.windows[0] : undefined;
+    const windowId = firstWindow?.window_id ?? firstWindow?.windowId;
+    if (typeof pid === "number") {
+      try {
+        assertEngineOk(
+          await engine.callTool("bring_to_front", {
+            pid,
+            ...(windowId !== undefined ? { window_id: Number(windowId) } : {}),
+          }),
+          "bring_to_front",
+        );
+      } catch (error) {
+        result.text = `${result.text ?? ""}\n[activation] 显式激活失败：${error instanceof Error ? error.message : String(error)}`;
+      }
+    } else {
+      result.text = `${result.text ?? ""}\n[activation] 显式激活失败：launch 结果里没有 pid`;
+    }
+  }
   return { ...(result ?? {}), launched: true };
 }

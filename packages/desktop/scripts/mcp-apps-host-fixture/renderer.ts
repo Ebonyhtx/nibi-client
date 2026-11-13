@@ -135,7 +135,7 @@ async function start() {
     getHostCapabilities: () => ({
       serverTools: {},
       serverResources: {},
-      experimental: { "zcode/widgetState": {} },
+      experimental: { "nibi/widgetState": {} },
     }),
     onUpdateWidgetState: async (value) => {
       setPluginUiWidgetState("fixture", value);

@@ -13,7 +13,7 @@ describe("user service descriptors", () => {
     (platform) => {
       const layout = resolveServerLayout("/var/lib/nibi-custom/.nibi/server");
       const descriptor = createDaemonServiceDescriptor({ platform, layout });
-      const launcher = join(layout.stableBinDir, platform === "win32" ? "zcode.cmd" : "zcode");
+      const launcher = join(layout.stableBinDir, platform === "win32" ? "nibi.cmd" : "nibi");
       if (platform === "win32") {
         const task = JSON.parse(descriptor.content) as { command: string; args: string[] };
         expect(task.command).toBe(launcher);

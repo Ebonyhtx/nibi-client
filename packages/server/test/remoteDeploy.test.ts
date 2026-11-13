@@ -1829,7 +1829,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       "nibi.cjs",
     );
     await mkdir(dirname(cliBundlePath), { recursive: true });
-    await writeFile(cliBundlePath, "console.log('dev zcode agent');\n", "utf8");
+    await writeFile(cliBundlePath, "console.log('dev nibi agent');\n", "utf8");
     await writeTestOfficialPluginPackages(repoDir);
     await rm(join(repoDir, "apps/nibi-cli/packages", missingAsset));
     process.chdir(repoDir);
@@ -1876,7 +1876,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       "nibi.cjs",
     );
     await mkdir(dirname(cliBundlePath), { recursive: true });
-    await writeFile(cliBundlePath, "console.log('dev zcode agent');\n", "utf8");
+    await writeFile(cliBundlePath, "console.log('dev nibi agent');\n", "utf8");
     await writeTestOfficialPluginPackages(repoDir);
     process.chdir(repoDir);
     process.env.NIBI_REMOTE_DEV_AGENT_BUNDLE = "1";
@@ -1978,7 +1978,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
         "nibi.cjs",
       );
       await mkdir(dirname(cliBundlePath), { recursive: true });
-      await writeFile(cliBundlePath, "console.log('same dev zcode agent');\n", "utf8");
+      await writeFile(cliBundlePath, "console.log('same dev nibi agent');\n", "utf8");
       await writeTestOfficialPluginPackages(repoDir);
       process.chdir(repoDir);
       process.env.NIBI_REMOTE_DEV_AGENT_BUNDLE = "1";
@@ -1991,7 +1991,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
           "~/.nibi/server/agents/nibi/.dev-version": `${devVersion}\n`,
           "~/.nibi/server/agents/nibi/nibi-agent": "dev wrapper",
           "~/.nibi/server/agents/nibi/nibi.cjs": bundleMatches
-            ? "console.log('same dev zcode agent');\n"
+            ? "console.log('same dev nibi agent');\n"
             : "old published bundle without PAT support",
           ...Object.fromEntries(
             OFFICIAL_PLUGIN_REQUIRED_RELATIVE_PATHS.map((relativePath) => [
@@ -2207,7 +2207,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
         {
           force: false,
           remoteCdnBaseUrl:
-            "https://cdn.example.com/zcode/electron/releases-sandbox/fix-small-issues/0.2.7",
+            "https://cdn.example.com/nibi/electron/releases-sandbox/fix-small-issues/0.2.7",
           remoteCacheDir: "/tmp/nibi-remote-cache",
         },
       ),

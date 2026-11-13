@@ -489,7 +489,7 @@ export function createOfficeServer({
   );
 
   // Resources: the panel, its assets and file chunks.
-  const panelMeta = { "zcode/csp": { wasmUnsafeEval: true } };
+  const panelMeta = { "nibi/csp": { wasmUnsafeEval: true } };
   server.registerResource(
     "panel",
     PANEL_URI,

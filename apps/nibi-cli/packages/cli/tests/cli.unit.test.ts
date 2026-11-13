@@ -815,7 +815,7 @@ test("TUI locale command updates later app creation locale", async () => {
         setLocale: async (locale: "auto" | "en-US" | "zh-CN") => {
           activeLocale = locale === "zh-CN" ? "zh-CN" : "en-US";
           return {
-            configPath: "/tmp/zcode/config.json",
+            configPath: "/tmp/nibi/config.json",
             locale: activeLocale,
             previousLocale: "en-US",
             requestedLocale: locale,
@@ -2940,7 +2940,7 @@ test("command center opens a plugin toggle picker", async () => {
           plugins: [
             {
               commandRootCount: 1,
-              dataPath: "/tmp/zcode/plugins/data/ios-simulator@nibi-official",
+              dataPath: "/tmp/nibi/plugins/data/ios-simulator@nibi-official",
               enabled: false,
               id: "ios-simulator@nibi-official",
               manifestPath: "/plugins/ios/.nibi-plugin/plugin.json",
@@ -3006,7 +3006,7 @@ test("command center resolves plugin labels from listings by stable plugin id", 
           plugins: [
             {
               commandRootCount: 0,
-              dataPath: "/tmp/zcode/plugins/data/computer-use@nibi-official",
+              dataPath: "/tmp/nibi/plugins/data/computer-use@nibi-official",
               enabled: true,
               id: "computer-use@nibi-official",
               manifestPath: "/plugins/cua/.nibi-plugin/plugin.json",
@@ -3020,7 +3020,7 @@ test("command center resolves plugin labels from listings by stable plugin id", 
             },
             {
               commandRootCount: 0,
-              dataPath: "/tmp/zcode/plugins/data/zcode-cua@custom-marketplace",
+              dataPath: "/tmp/nibi/plugins/data/zcode-cua@custom-marketplace",
               enabled: false,
               id: "zcode-cua@custom-marketplace",
               manifestPath: "/plugins/custom-cua/.nibi-plugin/plugin.json",
@@ -3034,7 +3034,7 @@ test("command center resolves plugin labels from listings by stable plugin id", 
             },
             {
               commandRootCount: 0,
-              dataPath: "/tmp/zcode/plugins/data/zcode-cua@unlisted-marketplace",
+              dataPath: "/tmp/nibi/plugins/data/zcode-cua@unlisted-marketplace",
               enabled: false,
               id: "zcode-cua@unlisted-marketplace",
               manifestPath: "/plugins/unlisted-cua/.nibi-plugin/plugin.json",
@@ -3091,7 +3091,7 @@ test("command center toggles plugins and refreshes the picker", async () => {
           plugins: [
             {
               commandRootCount: 1,
-              dataPath: "/tmp/zcode/plugins/data/ios-simulator@nibi-official",
+              dataPath: "/tmp/nibi/plugins/data/ios-simulator@nibi-official",
               enabled,
               id: "ios-simulator@nibi-official",
               manifestPath: "/plugins/ios/.nibi-plugin/plugin.json",
@@ -3116,7 +3116,7 @@ test("command center toggles plugins and refreshes the picker", async () => {
             path: "/home/test/.nibi/cli/config.json",
             plugin: {
               commandRootCount: 1,
-              dataPath: "/tmp/zcode/plugins/data/ios-simulator@nibi-official",
+              dataPath: "/tmp/nibi/plugins/data/ios-simulator@nibi-official",
               enabled,
               id: "ios-simulator@nibi-official",
               manifestPath: "/plugins/ios/.nibi-plugin/plugin.json",
@@ -3777,7 +3777,7 @@ test("command center reports and switches locale without sending a model prompt"
           const previousLocale = locale;
           locale = requestedLocale === "zh-CN" ? "zh-CN" : "en-US";
           return {
-            configPath: "/tmp/zcode/config.json",
+            configPath: "/tmp/nibi/config.json",
             locale,
             previousLocale,
             requestedLocale,
@@ -3815,7 +3815,7 @@ test("command center reports and switches locale without sending a model prompt"
   assert.match(current.response, /Current locale: en-US/);
   assert.equal(switched.locale, "zh-CN");
   assert.match(switched.response, /Locale switched to zh-CN/);
-  assert.match(switched.response, /Config: \/tmp\/zcode\/config\.json/);
+  assert.match(switched.response, /Config: \/tmp\/nibi\/config\.json/);
   assert.equal(rejected.locale, "zh-CN");
   assert.match(rejected.response, /Unsupported locale: fr-FR/);
 });
@@ -4040,7 +4040,7 @@ test("zcode plugins list prints installed plugins", async () => {
         plugins: [
           {
             commandRootCount: 1,
-            dataPath: "/tmp/zcode/plugins/data/ios-dev@inline",
+            dataPath: "/tmp/nibi/plugins/data/ios-dev@inline",
             enabled: true,
             id: "ios-dev@inline",
             manifestPath: "/plugins/ios/.nibi-plugin/plugin.json",
@@ -4523,7 +4523,7 @@ test("zcode plugins enable persists the selected plugin", async () => {
         path: "/home/test/.nibi/cli/config.json",
         plugin: {
           commandRootCount: 1,
-          dataPath: "/tmp/zcode/plugins/data/ios-dev@nibi-official",
+          dataPath: "/tmp/nibi/plugins/data/ios-dev@nibi-official",
           enabled: true,
           id: "ios-dev@nibi-official",
           manifestPath: "/plugins/ios/.nibi-plugin/plugin.json",

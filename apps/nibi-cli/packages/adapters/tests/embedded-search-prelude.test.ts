@@ -104,20 +104,20 @@ describe("embedded search bash prelude", () => {
       kind: "embedded-search",
       backend: {
         kind: "native-binaries",
-        findCommand: "/opt/zcode/tools/bfs/bfs",
-        grepCommand: "/opt/zcode/tools/ugrep/ugrep",
-        rgCommand: "/opt/zcode/tools/ripgrep/rg",
+        findCommand: "/opt/nibi/tools/bfs/bfs",
+        grepCommand: "/opt/nibi/tools/ugrep/ugrep",
+        rgCommand: "/opt/nibi/tools/ripgrep/rg",
       },
     });
 
     expect(command).toContain(
-      'command /opt/zcode/tools/bfs/bfs -S dfs -regextype findutils-default "$@"',
+      'command /opt/nibi/tools/bfs/bfs -S dfs -regextype findutils-default "$@"',
     );
     expect(command).toContain(
-      'command /opt/zcode/tools/ugrep/ugrep -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl "$@"',
+      'command /opt/nibi/tools/ugrep/ugrep -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl "$@"',
     );
     expect(command).toContain("if ! (unalias rg 2>/dev/null; command -v rg) >/dev/null 2>&1; then");
-    expect(command).toContain('command /opt/zcode/tools/ripgrep/rg "$@"');
+    expect(command).toContain('command /opt/nibi/tools/ripgrep/rg "$@"');
     expect(command).not.toContain("__internal-search");
     expect(command.endsWith("grep -Rni needle .")).toBe(true);
   });
@@ -127,18 +127,18 @@ describe("embedded search bash prelude", () => {
       kind: "embedded-search",
       backend: {
         kind: "native-binaries",
-        findCommand: "/opt/zcode/tools/bfs/bfs",
-        grepCommand: "/opt/zcode/tools/ugrep/ugrep",
-        rgCommand: "/opt/zcode/tools/ripgrep/rg",
+        findCommand: "/opt/nibi/tools/bfs/bfs",
+        grepCommand: "/opt/nibi/tools/ugrep/ugrep",
+        rgCommand: "/opt/nibi/tools/ripgrep/rg",
       },
       findAndGrepEnabled: false,
     });
 
     expect(command).not.toContain("unalias find");
     expect(command).not.toContain("unalias grep");
-    expect(command).not.toContain("/opt/zcode/tools/bfs/bfs");
-    expect(command).not.toContain("/opt/zcode/tools/ugrep/ugrep");
-    expect(command).toContain("command /opt/zcode/tools/ripgrep/rg");
+    expect(command).not.toContain("/opt/nibi/tools/bfs/bfs");
+    expect(command).not.toContain("/opt/nibi/tools/ugrep/ugrep");
+    expect(command).toContain("command /opt/nibi/tools/ripgrep/rg");
     expect(command.endsWith("find . && grep needle file.txt && rg needle")).toBe(true);
   });
 

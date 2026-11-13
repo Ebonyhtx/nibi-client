@@ -110,6 +110,7 @@ test("fork 契约与宿主侧逐项对齐（argv/cwd/env 三处，错一处 help
   assert.equal(call.options.env[HELPER_ADDON_ENV], RECIPE.addonPath, "注入原生件路径");
   assert.equal(call.options.env.ELECTRON_RUN_AS_NODE, "1", "Electron 必须走 node 模式");
   assert.deepEqual(call.options.stdio, ["ignore", "pipe", "pipe", "ipc"], "需要 ipc 通道握手");
+  assert.equal(call.options.windowsHide, true, "后台 Helper 不得创建可见控制台窗口");
   assert.equal(handle.socketPath, socketPath);
 });
 

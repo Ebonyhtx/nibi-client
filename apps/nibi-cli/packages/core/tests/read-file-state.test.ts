@@ -52,7 +52,7 @@ describe("read file state path keys", () => {
 
   it("does not case-fold non-Windows paths", () => {
     expect(createReadFileStatePathKey("/tmp/Nibi/File.txt", "linux")).not.toBe(
-      createReadFileStatePathKey("/tmp/zcode/file.txt", "linux"),
+      createReadFileStatePathKey("/tmp/nibi/file.txt", "linux"),
     );
   });
 

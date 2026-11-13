@@ -97,11 +97,11 @@ export interface McpToolAnnotations {
   openWorldHint?: boolean;
 }
 
-export const NIBI_MCP_ERROR_PRESENTATION_META_KEY = "zcode/errorPresentation";
+export const NIBI_MCP_ERROR_PRESENTATION_META_KEY = "nibi/errorPresentation";
 export const NIBI_MCP_ERROR_PRESENTATION_MESSAGE_ONLY = "message-only";
 /** MCP content 中来自模型显式 tab.screenshot() 的 image block 索引。 */
 export const NIBI_MCP_BROWSER_SCREENSHOT_CONTENT_INDICES_META_KEY =
-  "zcode/browserScreenshotContentIndices";
+  "nibi/browserScreenshotContentIndices";
 /**
  * 本次 node_repl cell 操作的目标应用身份，供工具卡显示 App 图标。
  *
@@ -111,15 +111,15 @@ export const NIBI_MCP_BROWSER_SCREENSHOT_CONTENT_INDICES_META_KEY =
  * API 挂在模型可见的 sandbox globals 上，因此不可信、必须在宿主侧丢弃（同
  * `NIBI_MCP_BROWSER_SCREENSHOT_CONTENT_INDICES_META_KEY` 的处置）。
  */
-export const NIBI_MCP_NODE_REPL_CUA_APP_META_KEY = "zcode/nodeReplCuaApp";
+export const NIBI_MCP_NODE_REPL_CUA_APP_META_KEY = "nibi/nodeReplCuaApp";
 /**
  * 本次 node_repl 会话是否真实使用过 Browser Use / Computer Use。
  *
  * 与 `NIBI_MCP_NODE_REPL_CUA_APP_META_KEY` 同款处置：REPL cell 能经可写 meta 通道伪造同名键，
  * 所以宿主收到结果时先丢弃，只按 call-ledger 里 broker 实际记录的事实写回。
  */
-export const NIBI_MCP_NODE_REPL_BROWSER_USE_META_KEY = "zcode/nodeReplBrowserUse";
-export const NIBI_MCP_NODE_REPL_COMPUTER_USE_META_KEY = "zcode/nodeReplComputerUse";
+export const NIBI_MCP_NODE_REPL_BROWSER_USE_META_KEY = "nibi/nodeReplBrowserUse";
+export const NIBI_MCP_NODE_REPL_COMPUTER_USE_META_KEY = "nibi/nodeReplComputerUse";
 export interface McpToolDescriptor {
   alwaysLoad?: boolean;
   searchHint?: string;

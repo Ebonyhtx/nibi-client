@@ -149,7 +149,6 @@ export { createBroadcastService } from "./broadcast/broadcastService.js";
 export { createNibiAgentService } from "./nibi-agent/nibiAgentService.js";
 export { createNibiTaskServiceAdapter } from "./nibi-agent/nibiTaskServiceAdapter.js";
 export { createNibiSessionService } from "./nibi-session/nibiSessionService.js";
-import { resolveKernelSelection } from "./nibi-agent/nibiAgentProcessManager.js";
 import { buildMcpNodeFallbackHostEnv } from "./nibi-agent/mcpNodeFallback/index.js";
 import { buildNodeReplHostEnv } from "./nibi-agent/nodeReplHostEnv.js";
 export {
@@ -1297,6 +1296,12 @@ export function createLocalServices(options: {
   cuaOperationStateReporter?: CuaOperationStateReporter;
 }): ServiceCollection {
   const isDesktopAttachedRemote = options?.serviceAuthorityMode === "desktop-attached-remote";
+  // 桌面本地 Host 的唯一内核是 Rust；远端 Source Server / server-cli（含 SSH/WSL 远端 Host）
+  // 继续运行自己的 Node 内核。这里不再读取 NIBI_KERNEL 开关。
+  const agentKernel: "node" | "rust" =
+    options?.serviceAuthorityMode === "desktop-local" || process.versions.electron
+      ? "rust"
+      : "node";
   // host / remote server 以前直接沿用当前进程环境启动后续服务。
   // GUI 启动的 desktop、SSH/WSL/Docker 拉起的 remote server 往往拿不到用户 login shell 里的 PATH，
   // 导致 bun 这类只在 shell profile 里追加的命令在 Nibi Agent/终端里不可见。
@@ -2431,7 +2436,7 @@ export function createLocalServices(options: {
         // 服务器由内核自己装配（kernel/crates/runtime/src/node_repl.rs），Host 只给 Node
         // 可执行路径和“已提供执行面”的标记。Node 内核不读这两个变量。
         ...buildNodeReplHostEnv({
-          kernel: resolveKernelSelection(process.env.NIBI_KERNEL),
+          kernel: agentKernel,
           execPath: process.execPath,
           browserBroker: Boolean(options?.browserControlExecutor),
         }),
@@ -2439,7 +2444,7 @@ export function createLocalServices(options: {
         // Host 把 shim 目录追加到 agent 的 PATH，并把 Electron 可执行文件与随包 npm 一起注入。
         // Node 内核走 bootstrap 自己的 MCP 适配器回退，这里返回空对象。
         ...(await buildMcpNodeFallbackHostEnv({
-          kernel: resolveKernelSelection(process.env.NIBI_KERNEL),
+          kernel: agentKernel,
           execPath: process.execPath,
         })),
         ...buildAgentTelemetrySpawnEnv({

@@ -18,10 +18,10 @@ import {
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const REPO_ROOT = resolve(HERE, "../..");
-const { version, zcodeCompatibility } = JSON.parse(
-  readFileSync(resolve(REPO_ROOT, "package.json"), "utf-8"),
-) as { version: string; zcodeCompatibility?: { minCompatibleVersion?: string } };
-const minCompatibleVersion = zcodeCompatibility?.minCompatibleVersion ?? version;
+const { version } = JSON.parse(readFileSync(resolve(REPO_ROOT, "package.json"), "utf-8")) as {
+  version: string;
+};
+const minCompatibleVersion = version;
 
 function resolveNibiEnv(value: string | undefined): "test" | "production" {
   return value?.trim().toLowerCase() === "production" ? "production" : "test";

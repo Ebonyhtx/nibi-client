@@ -5,9 +5,8 @@ import { pathToFileURL } from "node:url";
 
 const rootPackageJson = JSON.parse(
   readFileSync(resolve(import.meta.dirname, "../../package.json"), "utf8"),
-) as { version: string; zcodeCompatibility?: { minCompatibleVersion?: string } };
-const minCompatibleVersion =
-  rootPackageJson.zcodeCompatibility?.minCompatibleVersion ?? rootPackageJson.version;
+) as { version: string };
+const minCompatibleVersion = rootPackageJson.version;
 
 // tsup 配置自身会被打包，构建工具需保留原始文件位置，不能被内联后重定位。
 const { loadBuiltinProviderConfig } = await import(

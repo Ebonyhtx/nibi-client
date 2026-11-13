@@ -243,10 +243,10 @@ describe("stageRelease", () => {
     const releaseDir = staged.releaseDir;
     expect(releaseDir.endsWith("nibi-server-linux-x64")).toBe(true);
 
-    const launcher = await readFile(join(releaseDir, "bin", "zcode"), "utf8");
+    const launcher = await readFile(join(releaseDir, "bin", "nibi"), "utf8");
     expect(launcher).toContain('"$DIR/runtime/node"');
     expect(launcher).toContain('"$DIR/runtime/server-cli.js"');
-    const launcherStat = await stat(join(releaseDir, "bin", "zcode"));
+    const launcherStat = await stat(join(releaseDir, "bin", "nibi"));
     // Bugfix: NTFS 不保留 POSIX exec 位（Windows 上 stat.mode 恒无 0o111 位），
     // 可执行性断言只在 POSIX 宿主上生效；Windows 宿主仍验证文件存在与内容。
     if (process.platform !== "win32") expect(launcherStat.mode & 0o111).not.toBe(0);
@@ -341,7 +341,7 @@ describe("stageRelease", () => {
       ...fixture,
     });
     expect(staged.archivePath).toMatch(/\.zip$/u);
-    expect(await readFile(join(staged.releaseDir, "bin", "zcode.cmd"), "utf8")).toContain(
+    expect(await readFile(join(staged.releaseDir, "bin", "nibi.cmd"), "utf8")).toContain(
       "node.exe",
     );
     await expect(stat(join(staged.releaseDir, "runtime", "node.exe"))).resolves.toBeTruthy();
@@ -428,7 +428,7 @@ describe("stageRelease", () => {
   );
   macIt("omits macOS extended attributes from POSIX release archives", async () => {
     const fixture = await makeStageFixture();
-    await execFileAsync("xattr", ["-w", "com.example.zcode", "value", fixture.nodeBinaryPath]);
+    await execFileAsync("xattr", ["-w", "com.example.nibi", "value", fixture.nodeBinaryPath]);
 
     const staged = await stageRelease({
       target: "linux-x64",
@@ -746,9 +746,9 @@ describe("stageRelease", () => {
     const officialPluginsDir = join(await makeTempDir(), "packages");
     await writeOfficialPluginFixture(officialPluginsDir, "nibi-guide-plugin");
     const orphanDir = join(officialPluginsDir, "computer-use-plugin");
-    await mkdir(join(orphanDir, "node_modules", "@zcode", "computer-use"), { recursive: true });
+    await mkdir(join(orphanDir, "node_modules", "@nibi", "computer-use"), { recursive: true });
     await writeFile(
-      join(orphanDir, "node_modules", "@zcode", "computer-use", "package.json"),
+      join(orphanDir, "node_modules", "@nibi", "computer-use", "package.json"),
       "{}",
       "utf8",
     );

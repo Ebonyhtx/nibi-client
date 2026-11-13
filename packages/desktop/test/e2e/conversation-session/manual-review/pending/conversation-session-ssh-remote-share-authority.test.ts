@@ -142,7 +142,7 @@ describe(`${MARKER}: 远端分享账号权威与未登录拒绝`, () => {
     // stop 是 Server 根命令，server stop 会误走旧 CLI，无法正确切换本 case 的 API 环境。
     const restarted = await runSSHCommand(
       prepared.config,
-      `"$HOME/.nibi/server/bin/zcode" stop --json; kill -TERM ${core.supervisorPid}; NIBI_BASE_URL='http://127.0.0.1:${remotePort}' "$HOME/.nibi/server/bin/zcode" serve --daemon --json`,
+      `"$HOME/.nibi/server/bin/nibi" stop --json; kill -TERM ${core.supervisorPid}; NIBI_BASE_URL='http://127.0.0.1:${remotePort}' "$HOME/.nibi/server/bin/nibi" serve --daemon --json`,
       { timeoutMs: 60_000 },
     );
     expect(restarted.code).toBe(0);

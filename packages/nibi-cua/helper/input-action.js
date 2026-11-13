@@ -9,13 +9,42 @@
  *   3. 回执必须带 `action_sent` / `dispatch_status`：**已下发但结果不明**时标
  *      `possibly_sent`（调用方只许先观察再决定，绝不自动重放——重放可能重复下单/重复删除）。
  *
- * 交付模式默认 **foreground**（上游产品策略 background=false；真机 2026-10-11 实证：
- * background=UIA Invoke 对后台/挂起的 WinUI 窗口是空转——四次派发"成功"显示纹丝不动）。
+ * 交付模式默认 **background**（2026-11-14 策略调整）：引擎 0.47.23 的 click/type_text/
+ * press_key/scroll/drag/set_value/hotkey 都把 `background` 当作 mandatory first attempt，
+ * 只有调用方显式升级或菜单路径才用 `foreground`——foreground 会短暂 SetForegroundWindow
+ * 再 SendInput，既抢用户焦点又会闪。App 不响应后台输入时引擎会明确返回
+ * `background_unavailable`（而不是假装成功），由调用方显式带 `delivery_mode:"foreground"`
+ * 重试；我们绝不自动重试（点击是否落地不确定，重放可能双触发）。
  *
  * 从 helper/main.js 拆出（2026-10-13）：该文件曾达 562 有效行 > oxlint 上限 400。
  */
 
 import { assertEngineOk } from "./observation.js";
+
+/** 菜单路径（"文件(F) > 新建" / "File->New"）需要展开菜单，允许显式升级前台。 */
+const MENU_PATH_PATTERN = /[>›»]|->/;
+
+/**
+ * 解析本次动作实际使用的交付模式。只接受两个值（其余 fail-closed），默认 background。
+ * 菜单路径是唯一的自动升级：引擎文档说 invoke_menu 的 background 在"只能通过展开菜单
+ * 才够得着"时会拒绝，因此这里按菜单动作的语义显式给 foreground；调用方仍可用
+ * `delivery_mode:"background"` 覆盖，让引擎按它的判据拒绝（仍保持 fail-closed）。
+ */
+export function resolveDeliveryMode(method, params) {
+  const requested = params?.delivery_mode;
+  if (requested !== undefined && requested !== null) {
+    if (requested !== "background" && requested !== "foreground") {
+      throw Object.assign(new Error('delivery_mode 只能是 "background" 或 "foreground"'), {
+        code: "unrecognized_keys",
+      });
+    }
+    return requested;
+  }
+  if (method === "perform_action" && MENU_PATH_PATTERN.test(String(params?.action ?? ""))) {
+    return "foreground";
+  }
+  return "background";
+}
 
 /** 从 params 取会话 id（租约按会话隔离）。 */
 export function sessionOf(params) {
@@ -37,11 +66,13 @@ export function createInputAction({ semantics, engine, resolvePid, assertOk = as
   return (method, run) =>
     async (params) => {
       semantics.assertKillSwitchAllows(method);
+      // 先校验交付模式再拿租约：非法值不能留下一个"已占用"的输入权。
+      const deliveryMode = resolveDeliveryMode(method, params);
       semantics.acquireInputLease(method, sessionOf(params));
       try {
         const resolved = {
           ...(params ?? {}),
-          delivery_mode: params?.delivery_mode === "background" ? "background" : "foreground",
+          delivery_mode: deliveryMode,
         };
         if (typeof resolved.pid !== "number") {
           const pid = await resolvePid(resolved);
@@ -53,7 +84,7 @@ export function createInputAction({ semantics, engine, resolvePid, assertOk = as
           action_sent: true,
           dispatch_status: "sent",
           // 回执带交付模式：runtime 靠它判"后台交付无效时给升级提示"（见 runtime/index.js）。
-          delivery_mode: resolved.delivery_mode,
+          delivery_mode: deliveryMode,
         };
       } catch (error) {
         // 已下发但结果不明 → possibly_sent（调用方只许先观察再决定，绝不自动重放）。

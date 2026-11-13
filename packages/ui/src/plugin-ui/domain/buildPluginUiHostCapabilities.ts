@@ -16,7 +16,7 @@ export interface PluginUiHostCapabilityInput {
   canSubscribeResources: boolean;
   /** 平台有 saveFile（桌面）才声明 downloadFile。 */
   canDownloadFile: boolean;
-  /** 常驻面板实例：宣告 `experimental["zcode/surface"]: { id }`，页面据此判断自己运行在面板里。 */
+  /** 常驻面板实例：宣告 `experimental["nibi/surface"]: { id }`，页面据此判断自己运行在面板里。 */
   surfaceId?: string;
   /** 窗口恢复键，仅接受宿主派生的不透明摘要。 */
   surfaceStateKey?: string;
@@ -24,7 +24,7 @@ export interface PluginUiHostCapabilityInput {
 
 /**
  * hostCapabilities 的唯一构造点。声明与 handler 一一对应：没有会话动作绑定就不声明 message，没有 composer 就不声明
- * updateModelContext。Nibi 扩展（widgetState、resourceSubscribe、surface、csp 放宽）一律放 `experimental["zcode/…"]`，
+ * updateModelContext。Nibi 扩展（widgetState、resourceSubscribe、surface、csp 放宽）一律放 `experimental["nibi/…"]`，
  * 官方 SDK 的 zod 会剥掉标准位之外的未知能力键。
  */
 export function buildPluginUiHostCapabilities(

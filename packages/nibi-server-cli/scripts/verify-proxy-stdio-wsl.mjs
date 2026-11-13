@@ -71,12 +71,12 @@ try {
     [
       `mkdir -p '${bootstrapDir}'`,
       `tar -xzf '${archivePath}' -C '${bootstrapDir}' --strip-components=1`,
-      `'${bootstrapDir}/bin/zcode' update --from-archive '${archivePath}' --server-root '${serverRoot}' --json`,
-      `NIBI_SERVER_SKIP_SERVICE_REGISTRATION=1 '${serverRoot}/bin/zcode' serve --daemon --server-root '${serverRoot}' --json`,
+      `'${bootstrapDir}/bin/nibi' update --from-archive '${archivePath}' --server-root '${serverRoot}' --json`,
+      `NIBI_SERVER_SKIP_SERVICE_REGISTRATION=1 '${serverRoot}/bin/nibi' serve --daemon --server-root '${serverRoot}' --json`,
     ].join(" && "),
   );
   const statusResult = await wsl([
-    `${serverRoot}/bin/zcode`,
+    `${serverRoot}/bin/nibi`,
     "status",
     "--server-root",
     serverRoot,
@@ -101,7 +101,7 @@ try {
     "utf8",
   );
   const response = await wsl(
-    [`${serverRoot}/bin/zcode`, "server", "proxy-stdio", "--server-root", serverRoot],
+    [`${serverRoot}/bin/nibi`, "server", "proxy-stdio", "--server-root", serverRoot],
     { input: request },
   );
   const rawResponse = response.stdout.toString("utf8");
@@ -115,7 +115,7 @@ try {
   console.error("[verify-proxy-stdio-wsl] FAILED:", error instanceof Error ? error.message : error);
 } finally {
   await shell(
-    `'${serverRoot}/bin/zcode' stop --server-root '${serverRoot}' --json >/dev/null 2>&1 || true; rm -rf '${bootstrapDir}' '${serverRoot}' '${archivePath}'`,
+    `'${serverRoot}/bin/nibi' stop --server-root '${serverRoot}' --json >/dev/null 2>&1 || true; rm -rf '${bootstrapDir}' '${serverRoot}' '${archivePath}'`,
     { allowFailure: true },
   ).catch(() => undefined);
 }

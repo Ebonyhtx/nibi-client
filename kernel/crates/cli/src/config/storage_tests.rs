@@ -38,10 +38,10 @@ fn the_storage_dir_follows_the_layers_and_the_environment() {
     };
     assert_eq!(dir(&layers(&user, &[]), &[]).as_deref(), Some("~/u"));
     assert_eq!(dir(&layers(&user, &projects), &[]).as_deref(), Some("p"));
-    let set = env(&[("NIBI_STORAGE_DIR", "/srv/zcode")]);
+    let set = env(&[("NIBI_STORAGE_DIR", "/srv/nibi")]);
     assert_eq!(
         dir(&layers(&user, &projects), &set).as_deref(),
-        Some("/srv/zcode")
+        Some("/srv/nibi")
     );
     // Node 的 merge 跳过空值：空的环境变量不覆盖配置文件。
     let blank = env(&[("NIBI_STORAGE_DIR", "")]);

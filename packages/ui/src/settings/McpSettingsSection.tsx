@@ -78,7 +78,7 @@ import { ExternalLink, Import, Plus } from "lucide-react";
 import { SettingsSegmentedTabs } from "@/settings/SettingsSegmentedTabs.js";
 import { selectPluginsForScope } from "@/settings/pluginCapabilityProjection.js";
 
-const DEFAULT_MCP_SOURCE: ServerScope = "zcodeagentmcp";
+const DEFAULT_MCP_SOURCE: ServerScope = "nibiagentmcp";
 const MCP_OAUTH_AUTHORIZATION_STATUS_REFRESH_MS = 1_000;
 const MCP_OAUTH_AUTHORIZATION_STATUS_REFRESH_DURATION_MS = 5 * 60_000;
 const MCP_OAUTH_AUTHORIZATION_FOLLOWUP_REFRESH_ATTEMPTS = 10;
@@ -332,7 +332,7 @@ export function buildMcpOAuthAuthorizationStatusRefreshServers(
   const seenNames = new Set<string>();
 
   for (const server of servers) {
-    if (server.source !== "zcodeagentmcp" || !server.enabled) {
+    if (server.source !== "nibiagentmcp" || !server.enabled) {
       continue;
     }
     const hasPendingAuthorization =
@@ -364,7 +364,7 @@ export function buildMcpOAuthAuthorizationStatusRefreshOptions(mcpServers: NibiA
 
 export function buildMcpServerStatusListKey(servers: NibiMcpServer[]): string {
   return servers
-    .filter((server) => server.source === "zcodeagentmcp")
+    .filter((server) => server.source === "nibiagentmcp")
     .map((server) => {
       const enabledKey = server.enabled ? "enabled" : "disabled";
       return `${server.id}:${enabledKey}:${JSON.stringify(server.config)}`;
@@ -408,7 +408,7 @@ export function buildPendingMcpOAuthAuthorizationRefreshKey(
   const localPendingKeys = servers
     .filter(
       (server) =>
-        server.source === "zcodeagentmcp" &&
+        server.source === "nibiagentmcp" &&
         server.enabled &&
         Boolean(server.authorization?.authorizationUrl),
     )
@@ -1220,7 +1220,7 @@ export function McpSettingsSection({
   const hasProjectMcpServerRows = useMemo(
     () =>
       scopedServers.some(
-        (server) => server.scope === "workspace" && server.source === "zcodeagentmcp",
+        (server) => server.scope === "workspace" && server.source === "nibiagentmcp",
       ),
     [scopedServers],
   );

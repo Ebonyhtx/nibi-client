@@ -172,7 +172,7 @@
     },
     {
       "env": {
-        "NIBI_BASE_URL": "https://zcode.example.com:8443/path"
+        "NIBI_BASE_URL": "https://nibi.example.com:8443/path"
       },
       "appVersion": "0.1.52",
       "locale": "en-US",
@@ -183,7 +183,7 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://zcode.example.com:8443"
+          "https://nibi.example.com:8443"
         ],
         [
           "User-Agent",

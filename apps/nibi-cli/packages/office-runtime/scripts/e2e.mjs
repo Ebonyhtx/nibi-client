@@ -52,7 +52,7 @@ await client.connect(
 );
 const panel = await client.readResource({ uri: `ui://${name}/panel.html` });
 const html = panel.contents[0].text;
-const relaxed = panel.contents[0]._meta?.["zcode/csp"]?.wasmUnsafeEval === true;
+const relaxed = panel.contents[0]._meta?.["nibi/csp"]?.wasmUnsafeEval === true;
 // Same directives as the desktop sandbox (packages/desktop/src/main/pluginSandbox/csp.ts).
 const csp = [
   "default-src 'none'",
@@ -79,7 +79,7 @@ const rpc = async (method, args) => {
 };
 const params = new URLSearchParams(location.search);
 const context = { theme: params.get('theme') || 'light', locale: params.get('locale') || 'en-US', displayMode: params.get('mode') || 'fullscreen' };
-const bridge = new AppBridge(null, {name:'office-e2e',version:'1'}, {serverTools:{},serverResources:{},message:{text:{}},updateModelContext:{text:{}},openLinks:{},experimental:{"zcode/surface":{id:"panel",stateKey:params.get("tab")||"first"}}}, {hostContext:context});
+const bridge = new AppBridge(null, {name:'office-e2e',version:'1'}, {serverTools:{},serverResources:{},message:{text:{}},updateModelContext:{text:{}},openLinks:{},experimental:{"nibi/surface":{id:"panel",stateKey:params.get("tab")||"first"}}}, {hostContext:context});
 window.__messages = []; window.__context = null; window.__links = []; window.__initializations = 0;
 bridge.oncalltool = (args) => rpc('callTool', args);
 bridge.onreadresource = (args) => rpc('readResource', args);

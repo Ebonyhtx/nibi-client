@@ -254,7 +254,7 @@ async fn session_plugins_and_first_comers_win_name_conflicts() {
 
 #[tokio::test]
 async fn bundled_plugins_that_need_the_node_runtime_are_skipped() {
-    let host_mcp = r#", "mcpServers": {"documents": {"type": "stdio", "command": "/opt/zcode/zcode", "args": ["__nibi-plugin-host", "/x/dist/mcp/server.js"]}}"#;
+    let host_mcp = r#", "mcpServers": {"documents": {"type": "stdio", "command": "/opt/nibi/zcode", "args": ["__nibi-plugin-host", "/x/dist/mcp/server.js"]}}"#;
     let files = [
         official_manifest("browser-use", r#", "skills": "skills""#),
         official_manifest("computer-use", ""),

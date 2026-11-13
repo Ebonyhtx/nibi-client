@@ -4,11 +4,10 @@ import { validateRemoteServerBundle } from "./buildRemoteValidation.js";
 import { loadBuiltinProviderConfig } from "../../scripts/builtin-provider-config.mjs";
 import { stageThirdPartyNotices } from "../../scripts/third-party-notices.mjs";
 
-const { version, zcodeCompatibility } = JSON.parse(readFileSync("../../package.json", "utf-8")) as {
+const { version } = JSON.parse(readFileSync("../../package.json", "utf-8")) as {
   version: string;
-  zcodeCompatibility?: { minCompatibleVersion?: string };
 };
-const minCompatibleVersion = zcodeCompatibility?.minCompatibleVersion ?? version;
+const minCompatibleVersion = version;
 const { content: nibiBuiltinProviderConfigJson } = await loadBuiltinProviderConfig();
 
 /**

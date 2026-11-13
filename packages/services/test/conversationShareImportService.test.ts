@@ -859,7 +859,7 @@ describe("ConversationShareService import", () => {
         },
       });
 
-    const explicit = build("https://zcode.example.test/cn/share");
+    const explicit = build("https://nibi.example.test/cn/share");
     const share = await explicit.publish(
       {
         workspacePath: root,
@@ -878,7 +878,7 @@ describe("ConversationShareService import", () => {
     );
     // 显式 option 仍是最高优先级。
     expect(imported.shareUrl).toBe(
-      `https://zcode.example.test/cn/share/${encodeURIComponent(share.share_code)}`,
+      `https://nibi.example.test/cn/share/${encodeURIComponent(share.share_code)}`,
     );
 
     // 未显式指定时按环境推导：origin 必须与 API base 用的同一个解析器一致，

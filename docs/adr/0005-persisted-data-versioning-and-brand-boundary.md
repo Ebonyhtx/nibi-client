@@ -67,7 +67,7 @@ NIBI 与上游 ZCode 可能装在同一台机器上。两者的持久化数据�
 
 - 插件包格式 `.nibi-plugin/`、元数据键 `com.nibistudio.nibi/`、面板桥别名 `window.nibi`；
 - 插件环境变量 `NIBI_PLUGIN_*` 等（只**输出**给插件子进程与清单模板，宿主从不读取）；
-- Gen-UI / MCP Apps 元数据键（`zcode/genUiTweaks` 等）；
+- Gen-UI / MCP Apps 元数据键（`nibi/genUiTweaks` 等）；
 - 模型 provider id（`zai` / `bigmodel`）与服务端契约字段 `clientType: "zcode"`。
 
 ## Consequences

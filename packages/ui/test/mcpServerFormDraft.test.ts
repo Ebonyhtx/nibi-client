@@ -136,7 +136,7 @@ describe("McpServerForm 草稿态", () => {
     const initial: NibiMcpServer = {
       id: "server-1",
       name: "filesystem",
-      source: "zcodeagentmcp",
+      source: "nibiagentmcp",
       scope: "user",
       enabled: true,
       config: { type: "stdio", command: "node", args: ["server.mjs"] },

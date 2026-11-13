@@ -231,7 +231,7 @@ describe("probe failure classification", () => {
   it.each(["2.17", "2.27"])(
     "rejects Linux glibc %s before install because the bundled Node runtime needs glibc 2.28",
     async (version) => {
-      // ZCT-2112008575366098944：CentOS 7 先上传 87MB archive，解压后执行 bin/zcode 才报 7 行 not found。
+      // ZCT-2112008575366098944：CentOS 7 先上传 87MB archive，解压后执行 bin/nibi 才报 7 行 not found。
       await expect(
         probeWith(async () => completedStream(linuxProbeOutput(`glibc ${version}`))),
       ).rejects.toMatchObject({
@@ -444,7 +444,7 @@ it.each(targets)("forwards $kind install progress before command completion", as
 });
 
 it("extracts a unique semver from legacy decorated version output", async () => {
-  const backend = new FakeBackend("legacy zcode server version v3.7.4\n");
+  const backend = new FakeBackend("legacy nibi server version v3.7.4\n");
   const adapter = createSourceServerTransportAdapter("docker", {
     createBackend: async () => backend,
   });

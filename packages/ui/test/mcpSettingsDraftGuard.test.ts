@@ -15,7 +15,7 @@ const h = vi.hoisted(() => {
     {
       id: "server-filesystem",
       name: "filesystem",
-      source: "zcodeagentmcp" as const,
+      source: "nibiagentmcp" as const,
       scope: "workspace" as const,
       projectPath: "/workspace",
       enabled: true,
@@ -24,7 +24,7 @@ const h = vi.hoisted(() => {
     {
       id: "server-memory",
       name: "memory",
-      source: "zcodeagentmcp" as const,
+      source: "nibiagentmcp" as const,
       scope: "workspace" as const,
       projectPath: "/workspace",
       enabled: true,
@@ -286,7 +286,7 @@ describe("McpSettingsSection 草稿守卫", () => {
 
     await waitFor(() => expect(h.addScopedMcpServer).toHaveBeenCalledTimes(1));
     expect(h.addScopedMcpServer).toHaveBeenCalledWith(
-      "zcodeagentmcp",
+      "nibiagentmcp",
       "saved-server",
       expect.objectContaining({ type: "stdio", command: "node" }),
       "/workspace",
@@ -355,7 +355,7 @@ describe("McpSettingsSection 草稿守卫", () => {
 
     await waitFor(() => expect(h.updateScopedMcpServer).toHaveBeenCalledTimes(1));
     expect(h.updateScopedMcpServer).toHaveBeenCalledWith(
-      "zcodeagentmcp",
+      "nibiagentmcp",
       "filesystem",
       expect.objectContaining({ command: "node-v3" }),
       "/workspace",

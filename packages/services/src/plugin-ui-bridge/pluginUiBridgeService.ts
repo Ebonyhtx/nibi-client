@@ -181,7 +181,7 @@ export function createPluginUiBridgeService(
         scopeId: params.scopeId,
         html,
         ...(csp ? { csp } : {}),
-        // 资源级 `_meta["zcode/csp"]`：unsafe-eval / wasm-unsafe-eval 放宽只认资源自己的声明。
+        // 资源级 `_meta["nibi/csp"]`：unsafe-eval / wasm-unsafe-eval 放宽只认资源自己的声明。
         ...(meta?.cspRelaxations ? { cspRelaxations: meta.cspRelaxations } : {}),
         ...(meta?.permissions ? { permissions: meta.permissions } : {}),
         ...(prefersBorder !== undefined ? { prefersBorder } : {}),
@@ -383,7 +383,8 @@ async function runProjectSync(
     }
     case "upload": {
       const projectId = requireText(request.projectId, "项目 ID", 128);
-      const message = request.message === undefined ? undefined : request.message.trim().slice(0, 500);
+      const message =
+        request.message === undefined ? undefined : request.message.trim().slice(0, 500);
       return {
         kind: "upload",
         result: await client.upload(workspacePath, projectId, message || undefined),
@@ -409,12 +410,7 @@ async function runProjectSync(
       }
       return {
         kind: "resolve",
-        result: await client.resolveConflicts(
-          workspacePath,
-          projectId,
-          request.revision,
-          choices,
-        ),
+        result: await client.resolveConflicts(workspacePath, projectId, request.revision, choices),
       };
     }
   }

@@ -108,7 +108,7 @@ test("观察收据带 app 字段 + snapshotId 映射 frame_id（shim 绑定面�
   assert.equal(receipt.elements[0].token, "s1:3");
 });
 
-test("透明激活：空树 → bring_to_front → 重观察", async () => {
+test("get_app_state 默认不激活：空树照实返回 + 明确提示，不碰 bring_to_front", async () => {
   const handle = await startHelper({
     engineModule: ACTIVATE_ENGINE,
     env: { NIBI_CUA_ACTIVATE_SETTLE_MS: "10" },
@@ -118,6 +118,26 @@ test("透明激活：空树 → bring_to_front → 重观察", async () => {
       socketPath: handle.socketPath,
       method: "get_app_state",
       params: { window_id: "771" },
+    });
+    // 假引擎的树只在激活后出现；默认路径必须保持空树，证明没偷偷前台化。
+    assert.equal(state.elements.length, 0, "默认观察不得激活窗口");
+    assert.equal(state.activated, undefined);
+    assert.match(state.text, /\[background\].*activate:true/, "要告诉模型显式激活的入口");
+  } finally {
+    await stopHelper(handle);
+  }
+});
+
+test("透明激活：显式 activate:true 时空树 → bring_to_front → 重观察", async () => {
+  const handle = await startHelper({
+    engineModule: ACTIVATE_ENGINE,
+    env: { NIBI_CUA_ACTIVATE_SETTLE_MS: "10" },
+  });
+  try {
+    const state = await callBrokerMethod({
+      socketPath: handle.socketPath,
+      method: "get_app_state",
+      params: { window_id: "771", activate: true },
     });
     assert.equal(state.elements.length, 1, "激活后元素树出现");
     assert.equal(state.activated, true);
@@ -135,11 +155,11 @@ test("激活记忆：第二次观察旧窗口直接切新窗口，绝不重复 l
   try {
     const callHere = (method, params) =>
       callBrokerMethod({ socketPath: handle.socketPath, method, params });
-    const first = await callHere("get_app_state", { window_id: "771" });
+    const first = await callHere("get_app_state", { window_id: "771", activate: true });
     assert.equal(first.window.window_id, "999");
     assert.equal(first.activated, true);
     // 第二次：走激活记忆直切——假引擎里第二次 launch 会直接报错，若级联复发这里立刻炸。
-    const second = await callHere("get_app_state", { window_id: "771" });
+    const second = await callHere("get_app_state", { window_id: "771", activate: true });
     assert.equal(second.window.window_id, "999");
     assert.equal(second.elements.length, 1);
     assert.match(second.text, /此前已被激活替换/);
@@ -240,16 +260,16 @@ test("key 路由：可打印字符走 type_text（Shift 正确）、键名/和�
 });
 
 
-test("输入默认 foreground 交付（上游产品策略 background=false）；显式 background 尊重", async () => {
+test("输入默认 background 交付；显式 foreground 才前台；菜单路径默认前台", async () => {
   const handle = await startHelper({ engineModule: ECHO_ENGINE });
   try {
     const callHere = (method, params) =>
       callBrokerMethod({ socketPath: handle.socketPath, method, params });
+    // 0.47.23 的 schema：background 是 mandatory first attempt，foreground 会抢前台。
     const clicked = await callHere("left_click", {
       element_token: "se:2", pid: 1001, window_id: "771", session_id: "s-A",
     });
-    // 真机实证：background=UIA Invoke 对后台 WinUI 窗口空转；foreground 由引擎前置+注入。
-    assert.equal(clicked.structured.args.delivery_mode, "foreground");
+    assert.equal(clicked.structured.args.delivery_mode, "background");
     assert.equal(clicked.structured.args.button, "left");
     assert.equal(clicked.structured.args.count, 1);
     const rightDouble = await callHere("left_click", {
@@ -259,13 +279,36 @@ test("输入默认 foreground 交付（上游产品策略 background=false）；
     assert.equal(rightDouble.structured.args.button, "right", "shim 的 mouse_button 要映射到引擎 button");
     assert.equal(rightDouble.structured.args.count, 2);
     assert.deepEqual(rightDouble.structured.args.modifier, ["ctrl"], "click 用单数 modifier");
-    const background = await callHere("left_click", {
+    // 只有调用方显式要求才升级前台。
+    const foreground = await callHere("left_click", {
       element_token: "se:2", pid: 1001, window_id: "771", session_id: "s-A",
+      delivery_mode: "foreground",
+    });
+    assert.equal(
+      foreground.structured.args.delivery_mode, "foreground",
+      "显式 foreground 是唯一的前台升级入口",
+    );
+    // 非法值 fail-closed，不能悄悄当后台/前台。
+    await assert.rejects(
+      () => callHere("left_click", {
+        element_token: "se:2", pid: 1001, window_id: "771", session_id: "s-A",
+        delivery_mode: "turbo",
+      }),
+      (error) => error instanceof CuaHelperError && error.code === "unrecognized_keys",
+    );
+    // 菜单要展开菜单，允许默认升级前台；调用方仍可显式压回 background。
+    const menu = await callHere("perform_action", {
+      action: "文件(F) > 新建", pid: 1001, window_id: "771", session_id: "s-A",
+    });
+    assert.equal(menu.structured.echo, "invoke_menu");
+    assert.equal(menu.structured.args.delivery_mode, "foreground");
+    const menuBackground = await callHere("perform_action", {
+      action: "文件(F) > 新建", pid: 1001, window_id: "771", session_id: "s-A",
       delivery_mode: "background",
     });
     assert.equal(
-      background.structured.args.delivery_mode, "background",
-      "显式 background 不覆盖（调用方的后台意图）",
+      menuBackground.structured.args.delivery_mode, "background",
+      "调用方显式 background 时尊重（引擎会按自己的判据拒绝或后台完成）",
     );
   } finally {
     await stopHelper(handle);
@@ -281,7 +324,8 @@ test("透明激活第二级：bring_to_front 无效 → 按标题 launch_app →
     const state = await callBrokerMethod({
       socketPath: handle.socketPath,
       method: "get_app_state",
-      params: { window_id: "771" },
+      // 激活级联是显式请求（默认观察不抢前台）；这里测的是 activate:true 的第二级行为。
+      params: { window_id: "771", activate: true },
     });
     // 771 的树永远为空（真身在新窗口）；helper 必须自己跟过去。
     assert.equal(state.window.window_id, "999", "激活后要切换到新窗口");
@@ -303,7 +347,8 @@ test("透明激活：kill switch 闩锁后连『带到前台』也停（全新 h
     const callHere = (method, params) =>
       callBrokerMethod({ socketPath: handle.socketPath, method, params });
     await callHere("stop_computer_control", {});
-    const stopped = await callHere("get_app_state", { window_id: "771" });
+    // 显式要求激活也必须被 kill switch 拦住（不显式传 activate 的话等于没测到激活路径）。
+    const stopped = await callHere("get_app_state", { window_id: "771", activate: true });
     // 若激活被误放行，假引擎会翻到"已激活"并返回 1 个元素——0 就是没激活的铁证。
     assert.equal(stopped.elements.length, 0, "闩锁后不激活，空树照实返回");
     assert.equal(stopped.activated, undefined);

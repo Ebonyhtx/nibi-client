@@ -99,7 +99,7 @@ export function buildNibiDataSizeArmsPayload(params: {
   };
   result: NibiDataSizeScanResult;
 }): FinalArmsCustomEventPayload {
-  const eventName = "perf_resource_zcode_data_size";
+  const eventName = "perf_resource_nibi_data_size";
   return {
     group: "resource",
     name: eventName,
@@ -111,7 +111,7 @@ export function buildNibiDataSizeArmsPayload(params: {
       directories_scanned: params.result.directoriesScanned,
       event_name: eventName,
       files_scanned: params.result.filesScanned,
-      metric_kind: "zcode_data_bytes",
+      metric_kind: "nibi_data_bytes",
       metric_value: params.result.bytes,
       partial_reason: params.result.partialReason,
       platform: normalizeOsCategory(params.context.platform),
@@ -119,7 +119,7 @@ export function buildNibiDataSizeArmsPayload(params: {
       scan_error_count: params.result.scanErrorCount,
       scan_status: params.result.status,
       schema_version: 1,
-      zcode_data_bytes: params.result.bytes,
+      nibi_data_bytes: params.result.bytes,
     }),
     type: "custom",
     value: params.result.bytes,

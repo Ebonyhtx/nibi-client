@@ -227,7 +227,7 @@ pnpm dev:desktop
 
 也可以在同一桌面实例的 **插件市场 → 新增** 中添加 `dist/local-marketplace` 的绝对路径，再选插件安装和启用。默认本地来源名是 `nibi-plugins-local`；根清单的官方名称是保留名称，不能直接添加仓库根目录。`pnpm dev:desktop` 只启动宿主，不自动注册插件。
 
-如只用现成桌面客户端，在插件仓库构建后走上述 UI 安装即可；客户端本身需要支持本文功能。使用已安装的 `zcode` CLI 时，确认它和桌面使用同一个数据配置。首次使用隔离配置时，也需在该配置中完成登录或模型设置。
+如只用现成桌面客户端，在插件仓库构建后走上述 UI 安装即可；客户端本身需要支持本文功能。使用已安装的 `nibi` CLI 时，确认它和桌面使用同一个数据配置。首次使用隔离配置时，也需在该配置中完成登录或模型设置。
 
 ### 修改后的更新循环
 
@@ -368,12 +368,12 @@ Sampling 使用接纳请求时的任务模型，不读取主聊天历史；只�
 
 | 接口 / 字段  | 调用或声明方式                                                                            | 适用范围                                                                                                              |
 | ------------ | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| 会话视图状态 | `ui/set-widget-state`，参数 `{ widgetState }`，结果 `EmptyResultSchema`                   | 先检查 `experimental["zcode/widgetState"]`；初值来自 hostContext 同名键；仅宿主内存，会话内重建可恢复，应用重启不保证 |
+| 会话视图状态 | `ui/set-widget-state`，参数 `{ widgetState }`，结果 `EmptyResultSchema`                   | 先检查 `experimental["nibi/widgetState"]`；初值来自 hostContext 同名键；仅宿主内存，会话内重建可恢复，应用重启不保证 |
 | 资源模板列表 | `resources/templates/list`，结果 `ListResourceTemplatesResultSchema`                      | 当前服务的 MCP 模板目录；不要假定 App 存在 `listServerResourceTemplates()` 便捷方法                                   |
-| 资源订阅     | `resources/subscribe` / `resources/unsubscribe`，参数 `{ uri }`，结果 `EmptyResultSchema` | 先检查 `experimental["zcode/resourceSubscribe"]`；服务端也须支持订阅                                                  |
+| 资源订阅     | `resources/subscribe` / `resources/unsubscribe`，参数 `{ uri }`，结果 `EmptyResultSchema` | 先检查 `experimental["nibi/resourceSubscribe"]`；服务端也须支持订阅                                                  |
 | 资源变更通知 | `notifications/resources/updated` / `notifications/resources/list_changed`                | 先用 `setNotificationHandler()` 注册处理器；收到 URI 后自行重新读取资源                                               |
-| 当前侧栏面板 | `app.getHostCapabilities()?.experimental?.["zcode/surface"]` 返回 `{ id }`                | 清单 `ui.surfaces[].id` 与工具 `_meta.ui.surface` 保持一致                                                            |
-| CSP 放宽     | 资源 `_meta["zcode/csp"]` 中 `unsafeEval`、`wasmUnsafeEval`                               | 检查 `experimental["zcode/csp"]` 返回的支持标记；不等于获得文件或网络权限                                             |
+| 当前侧栏面板 | `app.getHostCapabilities()?.experimental?.["nibi/surface"]` 返回 `{ id }`                | 清单 `ui.surfaces[].id` 与工具 `_meta.ui.surface` 保持一致                                                            |
+| CSP 放宽     | 资源 `_meta["nibi/csp"]` 中 `unsafeEval`、`wasmUnsafeEval`                               | 检查 `experimental["nibi/csp"]` 返回的支持标记；不等于获得文件或网络权限                                             |
 
 ### 现有 `window.nibi` 页面
 
@@ -417,7 +417,7 @@ await app.connect();
 applyTheme();
 
 async function saveViewState(state: unknown) {
-  if (!app.getHostCapabilities()?.experimental?.["zcode/widgetState"]) return;
+  if (!app.getHostCapabilities()?.experimental?.["nibi/widgetState"]) return;
   await app.request(
     { method: "ui/set-widget-state", params: { widgetState: state } },
     EmptyResultSchema,

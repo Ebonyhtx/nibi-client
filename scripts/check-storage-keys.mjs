@@ -14,8 +14,8 @@
  * `*_STORAGE_KEY = "..."` 这类常量定义。其它地方出现的 `nibi-`（插件名、IPC 通道、
  * 文件名）不在本判据范围，别在这里加规则。
  *
- * 允许清单：与**外部**交换的键（第三方 Gen-UI / MCP / CUA 面板读同一份数据），
- * 改名会打断别人的面板。每条都要写清为什么不能改。
+ * 允许清单：与**外部**交换的键（CUA 面板读同一份数据），改名会打断面板。
+ * 每条都要写清为什么不能改。
  *
  * 用法：node scripts/check-storage-keys.mjs
  * 退出码：0 = 干净；1 = 有命中。
@@ -33,15 +33,11 @@ const REPO_ROOT = resolve(process.argv[2] ?? join(HERE, ".."));
 /**
  * 允许保留旧名的键（与外部交换的契约）。
  *
- * 判断标准：这份数据**不是只有我们自己读写**。插件 / Gen-UI / MCP / CUA 面板通过它
- * 与我们交换状态，改名会让已发布的第三方面板读不到。这类键属于插件兼容层，
+ * 判断标准：这份数据**不是只有我们自己读写**。CUA 面板通过它
+ * 与我们交换状态，改名会让已发布的面板读不到。这类键属于插件兼容层，
  * 是运营者明确允许的唯一例外。
  */
 const ALLOWED_KEYS = [
-  // Gen-UI / MCP Apps 的元数据键（`zcode/genUiTweaks`、`zcode/widgetState`、`zcode/csp` 等）：
-  // 注入给**第三方** gen-ui 面板的上下文，面板按这些键取值。改名要同步所有已发布的
-  // gen-ui 产物，属于插件 ABI 兼容层——运营者明确允许的唯一例外。
-  { pattern: /^zcode\//, reason: "Gen-UI / MCP Apps 元数据命名空间，第三方面板按此取值" },
   // CUA 面板元数据键（`nibi.cua/app-associations-v1` 等）：CUA 契约层与面板共用。
   { pattern: /^nibi\.cua\//, reason: "CUA 面板元数据键，CUA 契约与面板共用" },
   //

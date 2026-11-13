@@ -7,9 +7,10 @@
 > `GetWorkflowRun` 的 **活 run 判据**、`ListModels.disabledReason` 核对为「Node 宿主恒不产出」）。
 > **清单本身已无「未做」项**；剩下的都是刻意的实现差异，逐条列在文末「已知差异」。
 >
-> **2026-11-09 切默认**：桌面 agent 默认已从 node 改为 **rust**——`resolveKernelSelection` 只有显式
-> `NIBI_KERNEL=node` 才走 Node，未设（或拼错）都按 Rust；找不到 Rust 二进制时 `resolveDefaultZCodeAgentCommand`
-> 运行时回落到 node 链路。**回退开关：`NIBI_KERNEL=node`。**
+> **桌面本地 agent 已收口为唯一 Rust**：`resolveKernelSelection` / `NIBI_KERNEL` 开关已删除；
+> 找不到 `nibi-rs` 二进制时 `resolveDefaultNibiAgentCommand` fail-closed 抛错，不再回落到 node 链路。
+> `NIBI_AGENT_SERVER_COMMAND` 仅作显式自定义覆盖；远端 Source Server / server-cli 继续使用自己的
+> `nibi.cjs` 链路。
 
 ## 结论摘要
 
@@ -642,4 +643,4 @@ Node 用同进程的活 run 注册表判断「在飞但不属于本会话」的 
   commit」；UI 侧两条回归（截图无本地路径可上传到 ready；新任务页 session 未就绪时
   `waitingSession` 不丢附件）。
 - **教训**：只对拍 RPC 方法名与参数不够，**会话状态语义**（draft 算不算存在）也要逐条对；
-  这类差异只会在默认 Rust 内核上表现，Node 回退路径永远是绿的。
+  这类差异只会在桌面 Rust 内核上表现，远端 Node（`nibi.cjs`）链路永远是绿的。

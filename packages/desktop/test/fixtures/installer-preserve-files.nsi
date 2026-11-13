@@ -29,16 +29,16 @@ Section
   StrCpy $appExe "$INSTDIR\Nibi.exe"
   !ifndef OMIT_MANIFEST
     FileOpen $0 "$INSTDIR\.nibi-install-manifest" w
-    FileWrite $0 "owned-by-zcode.txt$\r$\n"
+    FileWrite $0 "owned-by-nibi.txt$\r$\n"
     FileWrite $0 "..\user-data.txt$\r$\n"
     FileClose $0
   !endif
   !ifdef FAIL_DELETE
     ; Keep the file handle open so Windows denies the manifest cleanup delete.
-    FileOpen $0 "$INSTDIR\owned-by-zcode.txt" w
+    FileOpen $0 "$INSTDIR\owned-by-nibi.txt" w
     FileWrite $0 "locked app payload"
   !else
-    FileOpen $0 "$INSTDIR\owned-by-zcode.txt" w
+    FileOpen $0 "$INSTDIR\owned-by-nibi.txt" w
     FileWrite $0 "old app payload"
     FileClose $0
   !endif
@@ -46,7 +46,7 @@ Section
   FileWrite $0 "keep me"
   FileClose $0
   !insertmacro customRemoveFiles
-  IfFileExists "$INSTDIR\owned-by-zcode.txt" 0 nibiOwnedRemoved
+  IfFileExists "$INSTDIR\owned-by-nibi.txt" 0 nibiOwnedRemoved
     StrCpy $1 "present"
     Goto nibiWriteMarker
   nibiOwnedRemoved:

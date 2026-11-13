@@ -18,7 +18,7 @@ import type {
 } from "@nibi/server/source-server/transportAdapter.js";
 
 const SERVER_ROOT_SHELL = '"$HOME/.nibi/server"';
-const SERVER_BIN_SHELL = '"$HOME/.nibi/server/bin/zcode"';
+const SERVER_BIN_SHELL = '"$HOME/.nibi/server/bin/nibi"';
 const SERVER_CURRENT_SHELL = `${SERVER_ROOT_SHELL}/current.json`;
 const SERVER_STATUS_SHELL = `${SERVER_ROOT_SHELL}/run/status.json`;
 const SOURCE_SERVER_PROBE_MARKER_PREFIX = "__NIBI_PROBE_";
@@ -75,7 +75,7 @@ const SOURCE_SERVER_MIN_GLIBC_VERSION = [2, 28] as const;
 function assertSupportedGlibc(platform: string, libcText: string): void {
   if (platform !== "linux") return;
   // Bug 原因（ZCT-2112008575366098944）：probe 过去只看平台/架构，CentOS 7 等 glibc 2.17
-  // 的远端要先上传约 87MB archive，解压后执行 bin/zcode 才由 ld.so 报一串 `not found`，
+  // 的远端要先上传约 87MB archive，解压后执行 bin/nibi 才由 ld.so 报一串 `not found`，
   // 并被归为安装失败。glibc 下限是 release 的平台事实，归入远端环境检查，在确认安装前拒绝。
   // 读不到版本（musl、缺 getconf、输出无法识别）时无法判定，保持原安装链，不凭猜测拒绝。
   const match = /^glibc\s+(\d+)\.(\d+)/iu.exec(libcText);

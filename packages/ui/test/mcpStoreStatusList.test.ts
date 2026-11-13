@@ -5,10 +5,10 @@ import { mergeMcpServerStatusSnapshots } from "../src/store/mcpStoreStatusList.j
 const server: NibiMcpServer = {
   config: { command: "node" },
   enabled: true,
-  id: "zcodeagentmcp:demo",
+  id: "nibiagentmcp:demo",
   name: "demo",
   scope: "user",
-  source: "zcodeagentmcp",
+  source: "nibiagentmcp",
   status: "connecting",
 };
 

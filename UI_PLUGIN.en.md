@@ -227,7 +227,7 @@ pnpm dev:desktop
 
 Alternatively, open **Plugin Marketplace → Add** in the same desktop instance, add the absolute path to `dist/local-marketplace`, and choose the plugins to install and enable. The default local source name is `nibi-plugins-local`. The official name in the root manifest is reserved, so do not add the repository root directly. `pnpm dev:desktop` starts the host; it does not register plugins automatically.
 
-If you are using an existing desktop client, build the plugin repository and install through the UI as described above. That client must support the features in this guide. When using an installed `zcode` CLI, ensure it uses the same data profile as the desktop app. A new isolated profile also needs its own login or model setup.
+If you are using an existing desktop client, build the plugin repository and install through the UI as described above. That client must support the features in this guide. When using an installed `nibi` CLI, ensure it uses the same data profile as the desktop app. A new isolated profile also needs its own login or model setup.
 
 ### Update Loop After Changes
 
@@ -368,12 +368,12 @@ The `app.request()` calls below use the official App's low-level interface. Vali
 
 | Interface / field             | Request or declaration                                                                            | Scope                                                                                                                                                                                                                      |
 | ----------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Session view state            | `ui/set-widget-state`, parameters `{ widgetState }`, result `EmptyResultSchema`                   | Check `experimental["zcode/widgetState"]` first; the initial value comes from the same key in hostContext. Stored in host memory only; can restore views within the session, with no guarantee across application restarts |
+| Session view state            | `ui/set-widget-state`, parameters `{ widgetState }`, result `EmptyResultSchema`                   | Check `experimental["nibi/widgetState"]` first; the initial value comes from the same key in hostContext. Stored in host memory only; can restore views within the session, with no guarantee across application restarts |
 | Resource template list        | `resources/templates/list`, result `ListResourceTemplatesResultSchema`                            | Lists the current server's MCP templates; do not assume the App has a `listServerResourceTemplates()` helper                                                                                                               |
-| Resource subscriptions        | `resources/subscribe` / `resources/unsubscribe`, parameters `{ uri }`, result `EmptyResultSchema` | Check `experimental["zcode/resourceSubscribe"]` first; the server must also support subscriptions                                                                                                                          |
+| Resource subscriptions        | `resources/subscribe` / `resources/unsubscribe`, parameters `{ uri }`, result `EmptyResultSchema` | Check `experimental["nibi/resourceSubscribe"]` first; the server must also support subscriptions                                                                                                                          |
 | Resource change notifications | `notifications/resources/updated` / `notifications/resources/list_changed`                        | Register handlers with `setNotificationHandler()` first; reread the resource when its URI is reported                                                                                                                      |
-| Current side panel            | `app.getHostCapabilities()?.experimental?.["zcode/surface"]` returns `{ id }`                     | Keep manifest `ui.surfaces[].id` aligned with tool `_meta.ui.surface`                                                                                                                                                      |
-| CSP relaxation                | `unsafeEval` and `wasmUnsafeEval` in resource `_meta["zcode/csp"]`                                | Check the support flags returned by `experimental["zcode/csp"]`; this does not grant file or network permissions                                                                                                           |
+| Current side panel            | `app.getHostCapabilities()?.experimental?.["nibi/surface"]` returns `{ id }`                     | Keep manifest `ui.surfaces[].id` aligned with tool `_meta.ui.surface`                                                                                                                                                      |
+| CSP relaxation                | `unsafeEval` and `wasmUnsafeEval` in resource `_meta["nibi/csp"]`                                | Check the support flags returned by `experimental["nibi/csp"]`; this does not grant file or network permissions                                                                                                           |
 
 ### Existing `window.nibi` Pages
 
@@ -417,7 +417,7 @@ await app.connect();
 applyTheme();
 
 async function saveViewState(state: unknown) {
-  if (!app.getHostCapabilities()?.experimental?.["zcode/widgetState"]) return;
+  if (!app.getHostCapabilities()?.experimental?.["nibi/widgetState"]) return;
   await app.request(
     { method: "ui/set-widget-state", params: { widgetState: state } },
     EmptyResultSchema,

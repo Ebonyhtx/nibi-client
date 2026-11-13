@@ -270,7 +270,7 @@ function Shell() {
       for (const result of host.takeResults()) {
         if (result.isError) continue;
         const truncated = (result._meta as Record<string, unknown> | undefined)?.[
-          "zcode/truncated"
+          "nibi/truncated"
         ];
         if (truncated) void call<ViewerSnapshot>("get_viewer").then(applySnapshot, () => undefined);
         else applySnapshot(result.structuredContent as ViewerSnapshot | undefined);

@@ -39,8 +39,7 @@ const REASON_MESSAGE_IDS: Record<WorkspaceMcpTrustReasonCode, string> = {
 
 export const WORKSPACE_MCP_TRUST_UNREVIEWABLE_MESSAGE_ID =
   "settings.mcp.workspaceTrust.reason.unreviewable";
-export const WORKSPACE_MCP_TRUST_UNKNOWN_MESSAGE_ID =
-  "settings.mcp.workspaceTrust.reason.unknown";
+export const WORKSPACE_MCP_TRUST_UNKNOWN_MESSAGE_ID = "settings.mcp.workspaceTrust.reason.unknown";
 
 /** 声明摘要短指纹：只截断 Host 给的 digest，不做任何重算。 */
 export function shortenDeclarationDigest(
@@ -52,9 +51,7 @@ export function shortenDeclarationDigest(
   return digest.length <= length ? digest : digest.slice(0, length);
 }
 
-export function workspaceMcpTrustReasonMessageId(
-  reasonCode: WorkspaceMcpTrustReasonCode,
-): string {
+export function workspaceMcpTrustReasonMessageId(reasonCode: WorkspaceMcpTrustReasonCode): string {
   return REASON_MESSAGE_IDS[reasonCode];
 }
 
@@ -65,8 +62,7 @@ export function resolveWorkspaceMcpTrustPresentation(input: {
   reasonCode?: WorkspaceMcpTrustReasonCode;
   unreviewable: readonly string[];
 }): WorkspaceMcpTrustPresentation | null {
-  const isProjectMcp =
-    input.server.scope === "workspace" && input.server.source === "zcodeagentmcp";
+  const isProjectMcp = input.server.scope === "workspace" && input.server.source === "nibiagentmcp";
   if (!isProjectMcp || !input.trustKnown) return null;
 
   if (input.review) {

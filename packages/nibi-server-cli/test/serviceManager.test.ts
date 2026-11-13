@@ -23,53 +23,54 @@ describe("service manager adapters", () => {
   it.skipIf(process.platform === "win32")(
     "finishes a timed-out probe while a descendant still holds its pipes",
     async () => {
-    const { spawn } = await vi.importActual<typeof childProcess>("node:child_process");
-    let descendantPid = 0;
-    let settled = false;
-    const exited = new Promise<void>((resolve, reject) => {
-      vi.mocked(childProcess.spawn).mockImplementationOnce((_command, _args, options) => {
-        // 模拟 D-Bus 辅助进程继承管道：探测父进程被超时杀死后，后代仍存活。
-        const child = spawn(
-          process.execPath,
-          [
-            "--eval",
-            `const { spawn } = require("node:child_process");
+      const { spawn } = await vi.importActual<typeof childProcess>("node:child_process");
+      let descendantPid = 0;
+      let settled = false;
+      const exited = new Promise<void>((resolve, reject) => {
+        vi.mocked(childProcess.spawn).mockImplementationOnce((_command, _args, options) => {
+          // 模拟 D-Bus 辅助进程继承管道：探测父进程被超时杀死后，后代仍存活。
+          const child = spawn(
+            process.execPath,
+            [
+              "--eval",
+              `const { spawn } = require("node:child_process");
              spawn(process.execPath, ["--eval", 'process.stdout.write(String(process.pid)); setInterval(() => {}, 1000);'], { stdio: ["ignore", "inherit", "inherit"] });
              setInterval(() => {}, 1000);`,
-          ],
-          options,
-        );
-        child.stdout?.on("data", (chunk) => {
-          descendantPid = Number(String(chunk).trim());
+            ],
+            options,
+          );
+          child.stdout?.on("data", (chunk) => {
+            descendantPid = Number(String(chunk).trim());
+          });
+          child.once("error", reject);
+          child.once("exit", () => resolve());
+          return child;
         });
-        child.once("error", reject);
-        child.once("exit", () => resolve());
-        return child;
       });
-    });
-    const probe = isServiceManagerAvailable("linux").then((available) => {
-      settled = true;
-      return available;
-    });
-    try {
-      await exited;
-      expect(descendantPid).toBeGreaterThan(0);
-      expect(process.kill(descendantPid, 0)).toBe(true);
-      // 只等待执行器完成收口；后代退出由 finally 控制，不以延长 timeout 掩盖阻塞。
-      await vi.waitFor(() => expect(settled).toBe(true), { timeout: 500 });
-      expect(await probe).toBe(false);
-    } finally {
-      if (descendantPid > 0) {
-        // 后代可能已被执行器收口；ESRCH 表示"已经没了"，不是测试失败。
-        try {
-          process.kill(descendantPid, "SIGKILL");
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
+      const probe = isServiceManagerAvailable("linux").then((available) => {
+        settled = true;
+        return available;
+      });
+      try {
+        await exited;
+        expect(descendantPid).toBeGreaterThan(0);
+        expect(process.kill(descendantPid, 0)).toBe(true);
+        // 只等待执行器完成收口；后代退出由 finally 控制，不以延长 timeout 掩盖阻塞。
+        await vi.waitFor(() => expect(settled).toBe(true), { timeout: 500 });
+        expect(await probe).toBe(false);
+      } finally {
+        if (descendantPid > 0) {
+          // 后代可能已被执行器收口；ESRCH 表示"已经没了"，不是测试失败。
+          try {
+            process.kill(descendantPid, "SIGKILL");
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
+          }
         }
+        await probe;
       }
-      await probe;
-    }
-  });
+    },
+  );
 
   it("keeps reading a successful probe until its inherited stdout closes", async () => {
     const child = new childProcess.ChildProcess();
@@ -187,7 +188,7 @@ describe("service manager adapters", () => {
     for (const platform of ["darwin", "linux", "win32"] as const) {
       const descriptor = createServiceDescriptor({
         platform,
-        command: "/opt/zcode/bin/zcode",
+        command: "/opt/nibi/bin/nibi",
         args: ["serve", "--daemon"],
       });
       await registerService(descriptor, `/tmp/${descriptor.kind}.service`, executor);
@@ -211,7 +212,7 @@ describe("service manager adapters", () => {
   it("does not restart a launchd service after a normal stop", () => {
     const descriptor = createServiceDescriptor({
       platform: "darwin",
-      command: "/opt/zcode/bin/zcode",
+      command: "/opt/nibi/bin/nibi",
     });
     expect(descriptor.content).toContain(
       "<key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>",
@@ -221,10 +222,10 @@ describe("service manager adapters", () => {
   it("tolerates launchd unregister when a deferred registration was never loaded", async () => {
     const descriptor = createServiceDescriptor({
       platform: "darwin",
-      command: "/opt/zcode/bin/zcode",
+      command: "/opt/nibi/bin/nibi",
     });
     await expect(
-      unregisterService(descriptor, "/tmp/zcode.plist", {
+      unregisterService(descriptor, "/tmp/nibi.plist", {
         run: async () => {
           throw new Error("launchctl unload failed (3): Could not find specified service");
         },
@@ -235,10 +236,10 @@ describe("service manager adapters", () => {
   it("tolerates a missing Windows task when schtasks reports a missing file", async () => {
     const descriptor = createServiceDescriptor({
       platform: "win32",
-      command: "C:/zcode/bin/zcode.cmd",
+      command: "C:/nibi/bin/nibi.cmd",
     });
     await expect(
-      unregisterService(descriptor, "C:/zcode/service/task.json", {
+      unregisterService(descriptor, "C:/nibi/service/task.json", {
         run: async () => {
           throw new Error(
             "schtasks /Delete failed (1): ERROR: The system cannot find the file specified.",
@@ -251,10 +252,10 @@ describe("service manager adapters", () => {
   it("does not swallow Windows task permission failures", async () => {
     const descriptor = createServiceDescriptor({
       platform: "win32",
-      command: "C:/zcode/bin/zcode.cmd",
+      command: "C:/nibi/bin/nibi.cmd",
     });
     await expect(
-      unregisterService(descriptor, "C:/zcode/service/task.json", {
+      unregisterService(descriptor, "C:/nibi/service/task.json", {
         run: async () => {
           throw new Error("schtasks /Delete failed (5): Access is denied.");
         },
@@ -265,11 +266,11 @@ describe("service manager adapters", () => {
   it("uses the structured schtasks HRESULT probe before deleting a Windows task", async () => {
     const descriptor = createServiceDescriptor({
       platform: "win32",
-      command: "C:/zcode/bin/zcode.cmd",
+      command: "C:/nibi/bin/nibi.cmd",
     });
     const calls: string[][] = [];
     await expect(
-      unregisterService(descriptor, "C:/zcode/service/task.json", {
+      unregisterService(descriptor, "C:/nibi/service/task.json", {
         run: async (_command, args) => {
           calls.push([...args]);
         },
@@ -285,10 +286,10 @@ describe("service manager adapters", () => {
   it("does not treat a structured Windows task query permission error as absence", async () => {
     const descriptor = createServiceDescriptor({
       platform: "win32",
-      command: "C:/zcode/bin/zcode.cmd",
+      command: "C:/nibi/bin/nibi.cmd",
     });
     await expect(
-      unregisterService(descriptor, "C:/zcode/service/task.json", {
+      unregisterService(descriptor, "C:/nibi/service/task.json", {
         run: async () => undefined,
         runResult: async () => ({
           exitCode: 0x80070005,
@@ -302,7 +303,7 @@ describe("service manager adapters", () => {
   it("reloads an existing launchd label before starting the new descriptor", async () => {
     const descriptor = createServiceDescriptor({
       platform: "darwin",
-      command: "/opt/zcode/bin/zcode",
+      command: "/opt/nibi/bin/nibi",
       args: ["serve", "--new"],
     });
     const calls: string[][] = [];
@@ -322,7 +323,7 @@ describe("service manager adapters", () => {
   it("propagates launchd load failures with the descriptor path", async () => {
     const descriptor = createServiceDescriptor({
       platform: "darwin",
-      command: "/opt/zcode/bin/zcode",
+      command: "/opt/nibi/bin/nibi",
     });
     await expect(
       registerService(descriptor, "/tmp/broken.plist", {

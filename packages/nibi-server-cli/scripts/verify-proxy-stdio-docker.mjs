@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * R3 Docker Transport 验证：在真实 Linux 容器内安装 staged Source Server，启动 Core，
- * 再通过正式 `zcode server proxy-stdio` 的 stdin/stdout 访问受鉴权的 ingress。
+ * 再通过正式 `nibi server proxy-stdio` 的 stdin/stdout 访问受鉴权的 ingress。
  */
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -63,14 +63,14 @@ try {
     [
       "mkdir -p /tmp/nibi-bootstrap",
       "tar -xzf /tmp/nibi-server.tar.gz -C /tmp/nibi-bootstrap --strip-components=1",
-      "/tmp/nibi-bootstrap/bin/zcode update --from-archive /tmp/nibi-server.tar.gz --server-root /root/.nibi/server --json",
-      "NIBI_SERVER_SKIP_SERVICE_REGISTRATION=1 /root/.nibi/server/bin/zcode serve --daemon --server-root /root/.nibi/server --json",
+      "/tmp/nibi-bootstrap/bin/nibi update --from-archive /tmp/nibi-server.tar.gz --server-root /root/.nibi/server --json",
+      "NIBI_SERVER_SKIP_SERVICE_REGISTRATION=1 /root/.nibi/server/bin/nibi serve --daemon --server-root /root/.nibi/server --json",
     ].join(" && "),
   ]);
   const statusResult = await run("docker", [
     "exec",
     containerName,
-    "/root/.nibi/server/bin/zcode",
+    "/root/.nibi/server/bin/nibi",
     "status",
     "--server-root",
     "/root/.nibi/server",
@@ -109,7 +109,7 @@ try {
       "exec",
       "-i",
       containerName,
-      "/root/.nibi/server/bin/zcode",
+      "/root/.nibi/server/bin/nibi",
       "server",
       "proxy-stdio",
       "--server-root",

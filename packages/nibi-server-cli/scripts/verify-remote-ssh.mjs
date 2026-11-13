@@ -142,11 +142,11 @@ async function main() {
     `mkdir -p /root/nibi-bootstrap && tar -xzf /root/nibi-server-${target}.tar.gz -C /root/nibi-bootstrap --strip-components=1`,
   );
 
-  log("install archive through bootstrap bin/zcode");
+  log("install archive through bootstrap bin/nibi");
   const serverRoot = "/root/.nibi/server";
   const remoteArchive = `/root/nibi-server-${target}.tar.gz`;
   const { stdout: installOutput } = await ssh(
-    `/root/nibi-bootstrap/bin/zcode update --from-archive ${remoteArchive} --server-root ${serverRoot} --json`,
+    `/root/nibi-bootstrap/bin/nibi update --from-archive ${remoteArchive} --server-root ${serverRoot} --json`,
   );
   const installResult = JSON.parse(installOutput.trim().split("\n").pop());
   assert(installResult.applied === true, `archive install applied, got: ${installOutput}`);
@@ -156,7 +156,7 @@ async function main() {
   );
 
   log("start daemon on remote");
-  const stableNibi = `${serverRoot}/bin/zcode`;
+  const stableNibi = `${serverRoot}/bin/nibi`;
   const serviceEnvironment = verifySystemd
     ? "XDG_RUNTIME_DIR=/run/user/0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/0/bus"
     : "";
@@ -178,7 +178,7 @@ async function main() {
   );
   if (verifySystemd) {
     const { stdout: unitFiles } = await ssh(
-      `${serviceEnvironment} systemctl --user list-unit-files 'com.zhipu.zcode.server.*.service' --no-legend`,
+      `${serviceEnvironment} systemctl --user list-unit-files 'dev.nibi.server.*.service' --no-legend`,
     );
     assert(unitFiles.includes("enabled"), `systemd user unit enabled: ${unitFiles}`);
   }

@@ -159,7 +159,7 @@ export function createFakeApp(
     sendInput: async () => ({ kind: "rejected", reason: "no_active_turn" }),
     sessionId,
     setLocale: async (locale) => ({
-      configPath: "/tmp/zcode/config.json",
+      configPath: "/tmp/nibi/config.json",
       locale: locale === "zh-CN" ? "zh-CN" : "en-US",
       previousLocale: "en-US",
       requestedLocale: locale,

@@ -73,7 +73,7 @@ if (process.platform !== "win32") {
         stdio: ["ignore", "pipe", "pipe"],
       });
       execFileSync(outputPath, ["/S", `/D=${installDir}`], { encoding: "utf-8" });
-      const ownedFileExists = existsSync(join(installDir, "owned-by-zcode.txt"));
+      const ownedFileExists = existsSync(join(installDir, "owned-by-nibi.txt"));
       if (omitManifest !== ownedFileExists) {
         throw new Error(`${scenario}: ownership fallback mismatch`);
       }

@@ -33,12 +33,14 @@ const shouldPrepareCuaHelper =
   (target.os === "win32" || process.env.NIBI_ENABLE_CUA_HELPER === "1") &&
   isRealComputerUseProducerInstalled({ desktopPackageRoot: desktopRoot });
 
-// 本机桌面包不再内置 glm 原生二进制（prepare:glm），改为内置 agent 的 JS bundle（prepare:agent-bundle），
-// 运行时由 app 的 Electron Node runtime 执行。Source Server 资源由独立 stage:remote-assets 入口负责。
+// 本机桌面包不再内置 glm 原生二进制（prepare:glm），改为内置 DWF 侧车/插件宿主用的 JS bundle
+// （prepare:agent-bundle）；桌面本地 agent 由随包 nibi-rs 提供。Source Server 资源由独立
+// stage:remote-assets 入口负责。
 const localRuntimeScripts = [
   ...(shouldPrepareCuaHelper ? ["prepare:cua-helper"] : []),
-  // Rust 内核二进制（灰度轨，可选资产）：本机构建过就暂存进 .staging/rust-kernel，
-  // 打包按 extraResources 收进 <resources>/rust-kernel；没构建过脚本自行跳过。
+  // Rust 内核二进制（桌面本地唯一内核）：本机构建过就暂存进 .staging/rust-kernel，
+  // 打包按 extraResources 收进 <resources>/rust-kernel；没构建过脚本自行跳过，
+  // 但这种桌面包启动 agent 会 fail-closed，正式发布必须先构建 nibi-rs。
   "prepare:rust-kernel",
   "prepare:agent-bundle",
   // 2026-10-26：不再跑 `prepare:windows-cua-helper`（上游契约路径）。它按

@@ -366,7 +366,7 @@ describe("shell init snapshot", () => {
     const manager = new ShellInitSnapshotManager();
     const result = await manager.getOrCreate({
       env: {},
-      rootDir: "/tmp/zcode",
+      rootDir: "/tmp/nibi",
       shellDialect: "cmd",
       shellPath: "cmd.exe",
     });

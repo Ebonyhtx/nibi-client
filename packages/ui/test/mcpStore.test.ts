@@ -52,12 +52,12 @@ describe("mcpStore", () => {
   it("目录配置读取失败时保持现有 MCP，并返回未加载", async () => {
     vi.stubGlobal("window", {});
     const existingServer = {
-      id: "zcodeagentmcp-global-everything",
+      id: "nibiagentmcp-global-everything",
       name: "everything",
       config: { type: "stdio" as const, command: "node", args: ["server.mjs"] },
       enabled: true,
       status: "connected" as const,
-      source: "zcodeagentmcp" as const,
+      source: "nibiagentmcp" as const,
       scope: "user" as const,
       toolCount: 1,
     };
@@ -79,9 +79,9 @@ describe("mcpStore", () => {
       servers: [existingServer],
     });
 
-    await expect(
-      useMcpStore.getState().ensureLoadedForWorkspace("/local/workspace"),
-    ).resolves.toBe(false);
+    await expect(useMcpStore.getState().ensureLoadedForWorkspace("/local/workspace")).resolves.toBe(
+      false,
+    );
     expect(useMcpStore.getState().servers).toEqual([existingServer]);
   });
 
@@ -90,7 +90,7 @@ describe("mcpStore", () => {
     const platformLoad = vi.fn(async () => ({
       servers: [
         {
-          source: "zcodeagentmcp" as const,
+          source: "nibiagentmcp" as const,
           scope: "user" as const,
           name: "local-http",
           config: { type: "http" as const, url: "https://local.example.test/mcp" },
@@ -111,7 +111,7 @@ describe("mcpStore", () => {
       loadMcpFromUserDirectory: vi.fn(async () => ({
         servers: [
           {
-            source: "zcodeagentmcp" as const,
+            source: "nibiagentmcp" as const,
             scope: "user" as const,
             name: "remote-http",
             config: { type: "http" as const, url: "https://remote.example.test/mcp" },
@@ -123,16 +123,18 @@ describe("mcpStore", () => {
 
     await useMcpStore
       .getState()
-      .ensureLoadedForWorkspace("/remote/workspace", directoryService, "ssh:host:/remote/workspace");
+      .ensureLoadedForWorkspace(
+        "/remote/workspace",
+        directoryService,
+        "ssh:host:/remote/workspace",
+      );
 
     expect(directoryService.loadMcpFromUserDirectory).toHaveBeenCalledWith({
       workspacePath: "/remote/workspace",
       workspaceIdentity: "ssh:host:/remote/workspace",
     });
     expect(platformLoad).not.toHaveBeenCalled();
-    expect(useMcpStore.getState().servers.map((server) => server.name)).toEqual([
-      "remote-http",
-    ]);
+    expect(useMcpStore.getState().servers.map((server) => server.name)).toEqual(["remote-http"]);
   });
 
   it("切换到远程 workspace 时立即清空本地配置并丢弃晚到的旧加载结果", async () => {
@@ -146,7 +148,7 @@ describe("mcpStore", () => {
         };
         name: string;
         scope: "user";
-        source: "zcodeagentmcp";
+        source: "nibiagentmcp";
       }>;
     }) => void;
     const platformLoad = vi.fn(
@@ -160,7 +162,7 @@ describe("mcpStore", () => {
             };
             name: string;
             scope: "user";
-            source: "zcodeagentmcp";
+            source: "nibiagentmcp";
           }>;
         }>((resolve) => {
           resolveLocalLoad = resolve;
@@ -180,7 +182,7 @@ describe("mcpStore", () => {
       loadMcpFromUserDirectory: vi.fn(async () => ({
         servers: [
           {
-            source: "zcodeagentmcp" as const,
+            source: "nibiagentmcp" as const,
             scope: "user" as const,
             name: "remote-b",
             config: {
@@ -194,9 +196,7 @@ describe("mcpStore", () => {
       saveMcpToUserDirectory: vi.fn(async () => {}),
     };
 
-    const loadWorkspaceA = useMcpStore
-      .getState()
-      .ensureLoadedForWorkspace("/local/workspace-a");
+    const loadWorkspaceA = useMcpStore.getState().ensureLoadedForWorkspace("/local/workspace-a");
     expect(platformLoad).toHaveBeenCalledTimes(1);
 
     const loadWorkspaceB = useMcpStore
@@ -211,7 +211,7 @@ describe("mcpStore", () => {
     resolveLocalLoad({
       servers: [
         {
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
           name: "local-a-secret",
           config: {
@@ -228,18 +228,15 @@ describe("mcpStore", () => {
       workspacePath: "/remote/workspace-b",
       workspaceIdentity: "ssh://dev/remote/workspace-b",
     });
-    expect(useMcpStore.getState().servers.map((server) => server.name)).toEqual([
-      "remote-b",
-    ]);
+    expect(useMcpStore.getState().servers.map((server) => server.name)).toEqual(["remote-b"]);
     expect(JSON.stringify(useMcpStore.getState().servers)).not.toContain("workspace-a-");
   });
 
   it("远端 workspace attachment 绑定前不把预期断连记录成 MCP 警告", async () => {
     vi.stubGlobal("window", {});
-    const disconnectedError = Object.assign(
-      new Error("NIBI_REMOTE_WORKSPACE_DISCONNECTED"),
-      { code: "NIBI_REMOTE_WORKSPACE_DISCONNECTED" },
-    );
+    const disconnectedError = Object.assign(new Error("NIBI_REMOTE_WORKSPACE_DISCONNECTED"), {
+      code: "NIBI_REMOTE_WORKSPACE_DISCONNECTED",
+    });
     const directoryService = {
       loadMcpFromUserDirectory: vi.fn(async () => {
         throw disconnectedError;
@@ -292,14 +289,16 @@ describe("mcpStore", () => {
       "localStorage",
       createLocalStorageStub({
         "nibi-mcp-config": JSON.stringify({
-          mcp: { mcpServers: { legacyHttp: { type: "http", url: "https://legacy.example.test/mcp" } } },
+          mcp: {
+            mcpServers: { legacyHttp: { type: "http", url: "https://legacy.example.test/mcp" } },
+          },
         }),
       }),
     );
     const platformLoad = vi.fn(async () => ({
       servers: [
         {
-          source: "zcodeagentmcp" as const,
+          source: "nibiagentmcp" as const,
           scope: "user" as const,
           name: "platform-http",
           config: { type: "http" as const, url: "https://platform.example.test/mcp" },
@@ -315,7 +314,7 @@ describe("mcpStore", () => {
       loadMcpFromUserDirectory: vi.fn(async () => ({
         servers: [
           {
-            source: "zcodeagentmcp" as const,
+            source: "nibiagentmcp" as const,
             scope: "user" as const,
             name: "remote-http",
             config: { type: "http" as const, url: "https://remote.example.test/mcp" },
@@ -325,9 +324,7 @@ describe("mcpStore", () => {
       saveMcpToUserDirectory: vi.fn(async () => {}),
     };
 
-    await useMcpStore
-      .getState()
-      .ensureLoadedForWorkspace("/local/workspace", directoryService);
+    await useMcpStore.getState().ensureLoadedForWorkspace("/local/workspace", directoryService);
 
     expect(directoryService.loadMcpFromUserDirectory).not.toHaveBeenCalled();
     expect(platformLoad).toHaveBeenCalledWith({ workspacePath: "/local/workspace" });
@@ -339,13 +336,13 @@ describe("mcpStore", () => {
     useMcpStore.setState({
       servers: [
         {
-          id: "zcodeagentmcp-global-filesystem",
+          id: "nibiagentmcp-global-filesystem",
           name: "filesystem",
           config: { type: "stdio", command: "node", args: ["server.js"] },
           enabled: true,
           changed: true,
           status: "unknown",
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
         },
         {
@@ -390,7 +387,7 @@ describe("mcpStore", () => {
     useMcpStore.setState({
       servers: [
         {
-          id: "zcodeagentmcp-global-notion",
+          id: "nibiagentmcp-global-notion",
           name: "notion",
           config: {
             type: "http",
@@ -400,7 +397,7 @@ describe("mcpStore", () => {
           enabled: true,
           changed: true,
           status: "unknown",
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
         },
       ],
@@ -437,24 +434,24 @@ describe("mcpStore", () => {
     useMcpStore.setState({
       servers: [
         {
-          id: "zcodeagentmcp-global-everything",
+          id: "nibiagentmcp-global-everything",
           name: "everything",
           config: { type: "stdio", command: "npx", args: ["everything"] },
           enabled: true,
           changed: false,
           status: "connected",
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
           toolCount: 9,
         },
         {
-          id: "zcodeagentmcp-global-plugin-canva",
+          id: "nibiagentmcp-global-plugin-canva",
           name: "plugin:canva:canva",
           config: { type: "http", url: "https://mcp.canva.example.test/mcp" },
           enabled: true,
           changed: false,
           status: "connecting",
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
           authorization: {
             authorizationUrl: "https://auth.canva.example.test/authorize",
@@ -527,13 +524,13 @@ describe("mcpStore", () => {
     useMcpStore.setState({
       servers: [
         {
-          id: "zcodeagentmcp-global-canva",
+          id: "nibiagentmcp-global-canva",
           name: "canva",
           config: { type: "http", url: "https://mcp.canva.example.test/mcp" },
           enabled: true,
           changed: true,
           status: "unknown",
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
         },
       ],
@@ -563,20 +560,20 @@ describe("mcpStore", () => {
     useMcpStore.setState({
       servers: [
         {
-          id: "zcodeagentmcp-global-filesystem",
+          id: "nibiagentmcp-global-filesystem",
           name: "filesystem",
           config: { type: "stdio", command: "node", args: ["server.js"] },
           enabled: true,
           changed: true,
           status: "unknown",
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
         },
       ],
     });
 
     const epoch = useMcpStore.getState().beginServerStatusListRefresh();
-    useMcpStore.getState().updateServerStatus("zcodeagentmcp-global-filesystem", "error", "manual");
+    useMcpStore.getState().updateServerStatus("nibiagentmcp-global-filesystem", "error", "manual");
     useMcpStore.getState().mergeServerStatusSnapshots(
       {
         filesystem: {
@@ -599,25 +596,24 @@ describe("mcpStore", () => {
     useMcpStore.setState({
       servers: [
         {
-          id: "zcodeagentmcp-global-filesystem",
+          id: "nibiagentmcp-global-filesystem",
           name: "filesystem",
           config: { type: "stdio", command: "node", args: ["server.js"] },
           enabled: true,
           changed: true,
           status: "unknown",
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
         },
       ],
     });
 
     const epoch = useMcpStore.getState().beginServerStatusListRefresh();
-    useMcpStore.getState().updateServerStatus(
-      "zcodeagentmcp-global-filesystem",
-      "connecting",
-      undefined,
-      { invalidateStatusListRequests: false },
-    );
+    useMcpStore
+      .getState()
+      .updateServerStatus("nibiagentmcp-global-filesystem", "connecting", undefined, {
+        invalidateStatusListRequests: false,
+      });
     useMcpStore.getState().mergeServerStatusSnapshots(
       {
         filesystem: {
@@ -640,32 +636,42 @@ describe("mcpStore", () => {
     useMcpStore.setState({
       servers: [
         {
-          id: "zcodeagentmcp-global-context7",
+          id: "nibiagentmcp-global-context7",
           name: "context7",
-          config: { type: "stdio", command: "npx", args: ["-y", "@upstash/context7-mcp"], timeoutMs: 3 },
+          config: {
+            type: "stdio",
+            command: "npx",
+            args: ["-y", "@upstash/context7-mcp"],
+            timeoutMs: 3,
+          },
           enabled: true,
           changed: true,
           status: "unknown",
           error: "old error",
           toolCount: 2,
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
         },
         {
-          id: "zcodeagentmcp-global-exa",
+          id: "nibiagentmcp-global-exa",
           name: "exa",
           config: { type: "http", url: "https://mcp.exa.ai/mcp" },
           enabled: true,
           changed: false,
           status: "connected",
           toolCount: 2,
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
         },
         {
           id: "claudeclimcp-global-context7",
           name: "context7",
-          config: { type: "stdio", command: "npx", args: ["-y", "@upstash/context7-mcp"], timeoutMs: 3 },
+          config: {
+            type: "stdio",
+            command: "npx",
+            args: ["-y", "@upstash/context7-mcp"],
+            timeoutMs: 3,
+          },
           enabled: true,
           changed: true,
           status: "unknown",
@@ -700,7 +706,7 @@ describe("mcpStore", () => {
     useMcpStore.setState({
       servers: [
         {
-          id: "zcodeagentmcp-global-pending",
+          id: "nibiagentmcp-global-pending",
           name: "pending",
           config: { type: "http", url: "https://mcp.example.test/pending" },
           enabled: true,
@@ -709,7 +715,7 @@ describe("mcpStore", () => {
           authorization,
           error: "keep display state",
           toolCount: 3,
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
         },
       ],
@@ -730,13 +736,13 @@ describe("mcpStore", () => {
     useMcpStore.setState({
       servers: [
         {
-          id: "zcodeagentmcp-global-new-server",
+          id: "nibiagentmcp-global-new-server",
           name: "new-server",
           config: { type: "stdio", command: "new-server" },
           enabled: true,
           changed: true,
           status: "unknown",
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
         },
       ],
@@ -768,13 +774,13 @@ describe("mcpStore", () => {
     useMcpStore.setState({
       servers: [
         {
-          id: "zcodeagentmcp-global-broken",
+          id: "nibiagentmcp-global-broken",
           name: "broken",
           config: { type: "stdio", command: "missing-mcp-command" },
           enabled: true,
           changed: true,
           status: "unknown",
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
         },
       ],
@@ -816,7 +822,7 @@ describe("mcpStore", () => {
       },
       servers: [
         {
-          id: "zcodeagentmcp-global-local",
+          id: "nibiagentmcp-global-local",
           name: "local",
           config: { type: "http", url: "https://mcp.example.test/local" },
           enabled: true,
@@ -826,7 +832,7 @@ describe("mcpStore", () => {
             authorizationUrl: "https://oauth.example.test/local",
             startedAt: "2026-07-10T00:00:00.000Z",
           },
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
         },
       ],
@@ -862,13 +868,13 @@ describe("mcpStore", () => {
     useMcpStore.setState({
       servers: [
         {
-          id: "zcodeagentmcp-global-broken",
+          id: "nibiagentmcp-global-broken",
           name: "broken",
           config: { type: "stdio", command: "missing-mcp-command" },
           enabled: true,
           changed: true,
           status: "unknown",
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
         },
       ],
@@ -889,13 +895,13 @@ describe("mcpStore", () => {
     useMcpStore.setState({
       servers: [
         {
-          id: "zcodeagentmcp-global-broken",
+          id: "nibiagentmcp-global-broken",
           name: "broken",
           config: { type: "stdio", command: "missing-mcp-command" },
           enabled: true,
           changed: true,
           status: "unknown",
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
         },
       ],
@@ -913,7 +919,7 @@ describe("mcpStore", () => {
 
   it("更新 MCP 配置后会清理旧健康状态并重新标记 changed", async () => {
     const server = {
-      source: "zcodeagentmcp" as const,
+      source: "nibiagentmcp" as const,
       scope: "user" as const,
       name: "context7",
       config: {
@@ -929,20 +935,20 @@ describe("mcpStore", () => {
       nativeServers: [server],
       servers: [
         {
-          id: "zcodeagentmcp-global-context7",
+          id: "nibiagentmcp-global-context7",
           name: "context7",
           config: server.config,
           enabled: true,
           changed: false,
           status: "error",
           error: "MCP server context7 connection timed out after 3ms",
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
         },
       ],
     });
 
-    await useMcpStore.getState().updateScopedMcpServer("zcodeagentmcp", "context7", {
+    await useMcpStore.getState().updateScopedMcpServer("nibiagentmcp", "context7", {
       ...server.config,
       timeoutMs: 30000,
     });
@@ -976,18 +982,18 @@ describe("mcpStore", () => {
     useMcpStore.setState({
       servers: [
         {
-          id: "zcodeagentmcp-global-broken",
+          id: "nibiagentmcp-global-broken",
           name: "broken",
           config: { type: "stdio", command: "missing-mcp-command" },
           enabled: false,
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
           status: "unknown",
         },
       ],
     });
 
-    const toggle = useMcpStore.getState().toggleServer("zcodeagentmcp-global-broken", true);
+    const toggle = useMcpStore.getState().toggleServer("nibiagentmcp-global-broken", true);
     await Promise.resolve();
 
     expect(useMcpStore.getState().servers[0]?.enabled).toBe(false);
@@ -996,7 +1002,7 @@ describe("mcpStore", () => {
         action: "set-enabled",
         enabled: true,
         name: "broken",
-        source: "zcodeagentmcp",
+        source: "nibiagentmcp",
       }),
     );
 
@@ -1014,20 +1020,20 @@ describe("mcpStore", () => {
       workspaceTrustKnown: true,
       servers: [
         {
-          id: "zcodeagentmcp-workspace-probe",
+          id: "nibiagentmcp-workspace-probe",
           name: "probe",
           config: { type: "stdio", command: "node", args: ["server.mjs"] },
           enabled: true,
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "workspace",
           projectPath: "/workspace/project",
         },
         {
-          id: "zcodeagentmcp-global-user",
+          id: "nibiagentmcp-global-user",
           name: "user_probe",
           config: { type: "stdio", command: "node", args: ["user.mjs"] },
           enabled: true,
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "user",
         },
       ],
@@ -1072,11 +1078,11 @@ describe("mcpStore", () => {
       display: '{"command":"node"}',
       trusted: false,
     };
-    const decideWorkspaceMcpTrust = vi.fn(async () => ({ accepted: true } as const));
+    const decideWorkspaceMcpTrust = vi.fn(async () => ({ accepted: true }) as const);
     const loadMcpFromUserDirectory = vi.fn(async () => ({
       servers: [
         {
-          source: "zcodeagentmcp" as const,
+          source: "nibiagentmcp" as const,
           scope: "workspace" as const,
           name: "probe",
           config: { type: "stdio" as const, command: "node" },
@@ -1101,11 +1107,11 @@ describe("mcpStore", () => {
       workspaceTrustKnown: true,
       servers: [
         {
-          id: "zcodeagentmcp-workspace-probe",
+          id: "nibiagentmcp-workspace-probe",
           name: "probe",
           config: { type: "stdio", command: "node" },
           enabled: true,
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "workspace",
           projectPath: "/workspace/project",
         },
@@ -1116,9 +1122,9 @@ describe("mcpStore", () => {
     expect(useMcpStore.getState().servers[0]?.enabled).toBe(true);
     expect(useMcpStore.getState().getEnabledMcpServersForNibi()).toEqual([]);
 
-    await expect(
-      useMcpStore.getState().decideWorkspaceTrust("probe", true),
-    ).resolves.toEqual({ accepted: true });
+    await expect(useMcpStore.getState().decideWorkspaceTrust("probe", true)).resolves.toEqual({
+      accepted: true,
+    });
     expect(decideWorkspaceMcpTrust).toHaveBeenCalledWith({
       workspacePath: "/workspace/project",
       serverName: "probe",
@@ -1147,11 +1153,11 @@ describe("mcpStore", () => {
       display: '{"type":"http"}',
       trusted: true,
     };
-    const decideWorkspaceMcpTrust = vi.fn(async () => ({ accepted: true } as const));
+    const decideWorkspaceMcpTrust = vi.fn(async () => ({ accepted: true }) as const);
     const loadMcpFromUserDirectory = vi.fn(async () => ({
       servers: [
         {
-          source: "zcodeagentmcp" as const,
+          source: "nibiagentmcp" as const,
           scope: "workspace" as const,
           name: "probe",
           config: { type: "http" as const, url: "https://example.test/mcp" },
@@ -1174,20 +1180,20 @@ describe("mcpStore", () => {
       workspaceTrustKnown: true,
       servers: [
         {
-          id: "zcodeagentmcp-workspace-probe",
+          id: "nibiagentmcp-workspace-probe",
           name: "probe",
           config: { type: "http", url: "https://example.test/mcp" },
           enabled: true,
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "workspace",
           projectPath: "/workspace/project",
         },
       ],
     });
 
-    await expect(
-      useMcpStore.getState().decideWorkspaceTrust("probe", false),
-    ).resolves.toEqual({ accepted: true });
+    await expect(useMcpStore.getState().decideWorkspaceTrust("probe", false)).resolves.toEqual({
+      accepted: true,
+    });
     expect(decideWorkspaceMcpTrust).toHaveBeenCalledWith({
       workspacePath: "/workspace/project",
       serverName: "probe",
@@ -1196,7 +1202,10 @@ describe("mcpStore", () => {
     });
     expect(useMcpStore.getState().workspaceTrust.probe?.trusted).toBe(false);
     expect(
-      useMcpStore.getState().getEnabledMcpServersForNibi().map((server) => server.name),
+      useMcpStore
+        .getState()
+        .getEnabledMcpServersForNibi()
+        .map((server) => server.name),
     ).toEqual([]);
   });
 
@@ -1226,16 +1235,12 @@ describe("mcpStore", () => {
       workspaceTrustKnown: true,
     });
 
-    await expect(
-      useMcpStore.getState().decideWorkspaceTrust("probe", true),
-    ).resolves.toEqual({
+    await expect(useMcpStore.getState().decideWorkspaceTrust("probe", true)).resolves.toEqual({
       accepted: false,
       reasonCode: "workspace_mcp_workspace_offline",
     });
     expect(useMcpStore.getState().workspaceTrust.probe?.trusted).toBe(false);
-    expect(useMcpStore.getState().workspaceTrustReasonCode).toBe(
-      "workspace_mcp_workspace_offline",
-    );
+    expect(useMcpStore.getState().workspaceTrustReasonCode).toBe("workspace_mcp_workspace_offline");
     expect(loadMcpFromUserDirectory).not.toHaveBeenCalled();
   });
 
@@ -1259,9 +1264,7 @@ describe("mcpStore", () => {
       workspaceTrustKnown: true,
     });
 
-    await expect(
-      useMcpStore.getState().decideWorkspaceTrust("probe", true),
-    ).resolves.toEqual({
+    await expect(useMcpStore.getState().decideWorkspaceTrust("probe", true)).resolves.toEqual({
       accepted: false,
       reasonCode: "workspace_mcp_trust_unavailable",
     });
@@ -1277,11 +1280,11 @@ describe("mcpStore", () => {
       display: '{"command":"node"}',
       trusted: false,
     };
-    const remoteDecide = vi.fn(async () => ({ accepted: true } as const));
+    const remoteDecide = vi.fn(async () => ({ accepted: true }) as const);
     const remoteLoad = vi.fn(async () => ({
       servers: [
         {
-          source: "zcodeagentmcp" as const,
+          source: "nibiagentmcp" as const,
           scope: "workspace" as const,
           name: "probe",
           config: { type: "stdio" as const, command: "node" },
@@ -1291,7 +1294,7 @@ describe("mcpStore", () => {
       ],
       trust: { probe: { ...review, trusted: true } },
     }));
-    const platformDecide = vi.fn(async () => ({ accepted: true } as const));
+    const platformDecide = vi.fn(async () => ({ accepted: true }) as const);
     setMcpStorePlatform({
       loadMcpFromUserDirectory: vi.fn(async () => ({ servers: [] })),
       saveMcpToUserDirectory: vi.fn(async () => ({ success: true })),
@@ -1312,20 +1315,20 @@ describe("mcpStore", () => {
       workspaceTrustKnown: true,
       servers: [
         {
-          id: "zcodeagentmcp-workspace-probe",
+          id: "nibiagentmcp-workspace-probe",
           name: "probe",
           config: { type: "stdio", command: "node" },
           enabled: true,
-          source: "zcodeagentmcp",
+          source: "nibiagentmcp",
           scope: "workspace",
           projectPath: "/remote/workspace",
         },
       ],
     });
 
-    await expect(
-      useMcpStore.getState().decideWorkspaceTrust("probe", true),
-    ).resolves.toEqual({ accepted: true });
+    await expect(useMcpStore.getState().decideWorkspaceTrust("probe", true)).resolves.toEqual({
+      accepted: true,
+    });
     expect(remoteDecide).toHaveBeenCalledWith({
       workspacePath: "/remote/workspace",
       workspaceIdentity: "ssh://dev/remote/workspace",

@@ -36,7 +36,7 @@ export interface McpSourceDescriptor {
 
 export const MCP_SOURCE_DESCRIPTORS: McpSourceDescriptor[] = [
   {
-    source: "zcodeagentmcp",
+    source: "nibiagentmcp",
     configDirSegments: [".nibi", "cli"],
     fileName: "config.json",
     format: "json",

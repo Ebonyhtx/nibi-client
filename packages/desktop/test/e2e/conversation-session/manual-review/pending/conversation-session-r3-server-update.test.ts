@@ -344,7 +344,7 @@ describe(`${CASE_MARKER}: 同版本异 SHA 更新在 running task 下被守卫�
       );
     // running-tasks 是 Server 根命令；多加 server 会误走旧 CLI，使守卫取证失真。
     facts.runningTasksBeforeUpdate = (
-      await dockerSh('"$HOME/.nibi/server/bin/zcode" running-tasks --json')
+      await dockerSh('"$HOME/.nibi/server/bin/nibi" running-tasks --json')
     ).stdout;
     // 手动原项目连接应自动尝试一次受保护更新；直接等待 running-task 守卫，不能补点更新掩盖交接缺失。
     await browser
@@ -363,7 +363,7 @@ describe(`${CASE_MARKER}: 同版本异 SHA 更新在 running task 下被守卫�
         facts.guardFailure = {
           body: await browser.execute(() => document.body.innerText.slice(-3500)),
           currentSha: await readRemoteCurrentShaOrNull(prepared.config),
-          runningTasks: (await dockerSh('"$HOME/.nibi/server/bin/zcode" running-tasks --json'))
+          runningTasks: (await dockerSh('"$HOME/.nibi/server/bin/nibi" running-tasks --json'))
             .stdout,
           core: await readRemoteCoreIdentityViaDocker().catch(() => null),
         };
@@ -407,7 +407,7 @@ describe(`${CASE_MARKER}: 同版本异 SHA 更新在 running task 下被守卫�
       );
       expect(await readRemoteCurrentSha(prepared.config)).toBe(shaBefore);
       const runningAfterCancel = await dockerSh(
-        '"$HOME/.nibi/server/bin/zcode" running-tasks --json',
+        '"$HOME/.nibi/server/bin/nibi" running-tasks --json',
       );
       expect(runningAfterCancel.code).toBe(0);
       expect(JSON.parse(runningAfterCancel.stdout).length).toBeGreaterThan(0);
@@ -420,7 +420,7 @@ describe(`${CASE_MARKER}: 同版本异 SHA 更新在 running task 下被守卫�
       await releaseControlledReplay("r3-update-slow-turn");
       await browser.waitUntil(
         async () => {
-          const result = await dockerSh('"$HOME/.nibi/server/bin/zcode" running-tasks --json');
+          const result = await dockerSh('"$HOME/.nibi/server/bin/nibi" running-tasks --json');
           return result.code === 0 && JSON.parse(result.stdout).length === 0;
         },
         { timeout: 120_000, timeoutMsg: `${CASE_MARKER}: 释放回合后运行任务未收口` },

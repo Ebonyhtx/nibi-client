@@ -40,14 +40,13 @@ export function resolveWorkspaceMcpTrustPending(
   input: WorkspaceMcpTrustPendingInput,
 ): WorkspaceMcpTrustPendingInfo | null {
   const targetKey = input.workspaceIdentity?.trim() || input.workspacePath;
-  const boundKey =
-    input.currentWorkspaceIdentity?.trim() || input.currentProjectPath;
+  const boundKey = input.currentWorkspaceIdentity?.trim() || input.currentProjectPath;
   if (!input.trustKnown || !targetKey || targetKey !== boundKey) {
     return null;
   }
   const blocked = input.servers.filter(
     (server) =>
-      server.source === "zcodeagentmcp" &&
+      server.source === "nibiagentmcp" &&
       server.scope === "workspace" &&
       (server.projectPath ?? input.workspacePath) === input.workspacePath &&
       (input.enabledStates[server.id] ?? server.enabled) &&
@@ -89,115 +88,107 @@ class WorkspaceMcpTrustPendingDismissStore {
   }
 }
 
-export const workspaceMcpTrustPendingDismissStore =
-  new WorkspaceMcpTrustPendingDismissStore();
+export const workspaceMcpTrustPendingDismissStore = new WorkspaceMcpTrustPendingDismissStore();
 
 /**
  * 会话内常驻提示条：项目 MCP 因工作区未信任被跳过时显示，提供 [去审核] 与 [忽略]。
  * 数据来自 Host 已经返回的 `workspaceTrust`，不新增协议字段，也不自行推断信任。
  */
-export const WorkspaceMcpTrustPendingBanner = memo(
-  function WorkspaceMcpTrustPendingBanner({
-    workspacePath,
-    workspaceIdentity,
-  }: {
-    workspacePath: string;
-    workspaceIdentity?: string;
-  }) {
-    const { intl } = useNibiIntl();
-    const openSettingsTab = useOptionalTabStore((state) => state.openSettingsTab);
-    const currentProjectPath = useMcpStore((state) => state.currentProjectPath);
-    const currentWorkspaceIdentity = useMcpStore(
-      (state) => state.currentWorkspaceIdentity,
-    );
-    const trustKnown = useMcpStore((state) => state.workspaceTrustKnown);
-    const trust = useMcpStore((state) => state.workspaceTrust);
-    const unreviewable = useMcpStore((state) => state.workspaceTrustUnreviewable);
-    const enabledStates = useMcpStore((state) => state.enabledStates);
-    const servers = useMcpStore((state) => state.servers);
-    const [, setDismissRevision] = useState(0);
+export const WorkspaceMcpTrustPendingBanner = memo(function WorkspaceMcpTrustPendingBanner({
+  workspacePath,
+  workspaceIdentity,
+}: {
+  workspacePath: string;
+  workspaceIdentity?: string;
+}) {
+  const { intl } = useNibiIntl();
+  const openSettingsTab = useOptionalTabStore((state) => state.openSettingsTab);
+  const currentProjectPath = useMcpStore((state) => state.currentProjectPath);
+  const currentWorkspaceIdentity = useMcpStore((state) => state.currentWorkspaceIdentity);
+  const trustKnown = useMcpStore((state) => state.workspaceTrustKnown);
+  const trust = useMcpStore((state) => state.workspaceTrust);
+  const unreviewable = useMcpStore((state) => state.workspaceTrustUnreviewable);
+  const enabledStates = useMcpStore((state) => state.enabledStates);
+  const servers = useMcpStore((state) => state.servers);
+  const [, setDismissRevision] = useState(0);
 
-    const info = useMemo(
-      () =>
-        resolveWorkspaceMcpTrustPending({
-          workspacePath,
-          ...(workspaceIdentity ? { workspaceIdentity } : {}),
-          currentProjectPath,
-          ...(currentWorkspaceIdentity ? { currentWorkspaceIdentity } : {}),
-          trustKnown,
-          trust,
-          unreviewable,
-          enabledStates,
-          servers,
-        }),
-      [
+  const info = useMemo(
+    () =>
+      resolveWorkspaceMcpTrustPending({
         workspacePath,
-        workspaceIdentity,
+        ...(workspaceIdentity ? { workspaceIdentity } : {}),
         currentProjectPath,
-        currentWorkspaceIdentity,
+        ...(currentWorkspaceIdentity ? { currentWorkspaceIdentity } : {}),
         trustKnown,
         trust,
         unreviewable,
         enabledStates,
         servers,
-      ],
+      }),
+    [
+      workspacePath,
+      workspaceIdentity,
+      currentProjectPath,
+      currentWorkspaceIdentity,
+      trustKnown,
+      trust,
+      unreviewable,
+      enabledStates,
+      servers,
+    ],
+  );
+
+  const handleReview = useCallback(() => {
+    // 与 Hook 提示同一套导航：设置 intent 再打开设置页。
+    setPendingSettingsSectionIntent("mcp");
+    openSettingsTab?.();
+  }, [openSettingsTab]);
+
+  const handleDismiss = useCallback(() => {
+    if (!info) return;
+    workspaceMcpTrustPendingDismissStore.dismiss(
+      workspaceIdentity?.trim() || workspacePath,
+      info.signature,
     );
+    // 模块级 Set 不是 React 状态，必须显式触发一次重渲染。
+    setDismissRevision((revision) => revision + 1);
+  }, [info, workspaceIdentity, workspacePath]);
 
-    const handleReview = useCallback(() => {
-      // 与 Hook 提示同一套导航：设置 intent 再打开设置页。
-      setPendingSettingsSectionIntent("mcp");
-      openSettingsTab?.();
-    }, [openSettingsTab]);
+  if (!info) return null;
+  if (
+    workspaceMcpTrustPendingDismissStore.isDismissed(
+      workspaceIdentity?.trim() || workspacePath,
+      info.signature,
+    )
+  ) {
+    return null;
+  }
 
-    const handleDismiss = useCallback(() => {
-      if (!info) return;
-      workspaceMcpTrustPendingDismissStore.dismiss(
-        workspaceIdentity?.trim() || workspacePath,
-        info.signature,
-      );
-      // 模块级 Set 不是 React 状态，必须显式触发一次重渲染。
-      setDismissRevision((revision) => revision + 1);
-    }, [info, workspaceIdentity, workspacePath]);
-
-    if (!info) return null;
-    if (
-      workspaceMcpTrustPendingDismissStore.isDismissed(
-        workspaceIdentity?.trim() || workspacePath,
-        info.signature,
-      )
-    ) {
-      return null;
-    }
-
-    return (
-      <div
-        role="status"
-        data-testid={TID_V4_WORKSPACE_MCP_TRUST_PENDING_BANNER}
-        className="mb-3 flex w-full shrink-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-ui-base text-foreground backdrop-blur-md"
+  return (
+    <div
+      role="status"
+      data-testid={TID_V4_WORKSPACE_MCP_TRUST_PENDING_BANNER}
+      className="mb-3 flex w-full shrink-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-ui-base text-foreground backdrop-blur-md"
+    >
+      <p className="min-w-0 flex-1">
+        {intl.formatMessage({ id: "chat.workspaceMcpTrustPending.message" }, { count: info.count })}
+      </p>
+      <button
+        type="button"
+        data-testid={TID_V4_WORKSPACE_MCP_TRUST_PENDING_REVIEW}
+        className="shrink-0 rounded-md bg-primary px-2.5 py-1 text-primary-foreground hover:bg-primary/80"
+        onClick={handleReview}
       >
-        <p className="min-w-0 flex-1">
-          {intl.formatMessage(
-            { id: "chat.workspaceMcpTrustPending.message" },
-            { count: info.count },
-          )}
-        </p>
-        <button
-          type="button"
-          data-testid={TID_V4_WORKSPACE_MCP_TRUST_PENDING_REVIEW}
-          className="shrink-0 rounded-md bg-primary px-2.5 py-1 text-primary-foreground hover:bg-primary/80"
-          onClick={handleReview}
-        >
-          {intl.formatMessage({ id: "chat.workspaceMcpTrustPending.review" })}
-        </button>
-        <button
-          type="button"
-          data-testid={TID_V4_WORKSPACE_MCP_TRUST_PENDING_DISMISS}
-          className="shrink-0 rounded-md px-2 py-1 text-foreground-subtle hover:bg-hover"
-          onClick={handleDismiss}
-        >
-          {intl.formatMessage({ id: "chat.workspaceMcpTrustPending.dismiss" })}
-        </button>
-      </div>
-    );
-  },
-);
+        {intl.formatMessage({ id: "chat.workspaceMcpTrustPending.review" })}
+      </button>
+      <button
+        type="button"
+        data-testid={TID_V4_WORKSPACE_MCP_TRUST_PENDING_DISMISS}
+        className="shrink-0 rounded-md px-2 py-1 text-foreground-subtle hover:bg-hover"
+        onClick={handleDismiss}
+      >
+        {intl.formatMessage({ id: "chat.workspaceMcpTrustPending.dismiss" })}
+      </button>
+    </div>
+  );
+});

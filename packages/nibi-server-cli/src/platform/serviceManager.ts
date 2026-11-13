@@ -31,10 +31,7 @@ export function createDaemonServiceDescriptor(options: {
 }): ServiceDescriptor {
   return createServiceDescriptor({
     platform: options.platform,
-    command: join(
-      options.layout.stableBinDir,
-      options.platform === "win32" ? "zcode.cmd" : "zcode",
-    ),
+    command: join(options.layout.stableBinDir, options.platform === "win32" ? "nibi.cmd" : "nibi"),
     args: ["serve", "--supervisor", "--service-entry", "--server-root", options.layout.serverRoot],
     name: `dev.nibi.server.${stablePathId(options.layout.serverRoot)}`,
   });

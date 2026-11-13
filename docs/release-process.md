@@ -60,7 +60,7 @@
    `NIBI_ENV=production pnpm prepare:remote-assets`，把四个包与 descriptor 放进
    `packages/desktop/mock-cdn/releases/<版本>/`，校验版本、sha256、size 与执行位后上传 artifact。
    - 不要在 Windows 本机跑：staging 里 `spawn("pnpm")` 在 Windows 会 ENOENT，Windows 的 tar
-     也保不住 POSIX 执行位（远端解压后直接跑 `bin/zcode`）。
+     也保不住 POSIX 执行位（远端解压后直接跑 `bin/nibi`）。
    - 不要用 `prepare:remote-assets:linux` 发正式版：descriptor 只会登记两个 Linux target。
 2. 下载 artifact，把 5 个文件放到服务器 `/srv/nibi-site/content/releases/electron/<版本>/`。
 3. 服务器上 `python3 tools/publish-content.py --only releases --dry-run`，确认只新增这 5 个对象后

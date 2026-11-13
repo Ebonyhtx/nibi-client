@@ -327,7 +327,7 @@ describe("CLI OAuth client", () => {
       }),
     ]);
     const client = createCliOAuthClient({
-      baseUrl: "https://zcode.example/api/v1/",
+      baseUrl: "https://nibi.example/api/v1/",
       httpClient,
       providerId: "zai",
     });
@@ -340,7 +340,7 @@ describe("CLI OAuth client", () => {
 
     expect(httpClient.requests[0]).toMatchObject({
       method: "POST",
-      url: "https://zcode.example/api/v1/oauth/cli/init",
+      url: "https://nibi.example/api/v1/oauth/cli/init",
       headers: {
         Authorization: "Bearer poll-token",
         "Content-Type": "application/json",
@@ -349,7 +349,7 @@ describe("CLI OAuth client", () => {
     expect(new TextDecoder().decode(httpClient.requests[0]?.body)).toBe('{"provider":"zai"}');
     expect(httpClient.requests[1]).toMatchObject({
       method: "GET",
-      url: "https://zcode.example/api/v1/oauth/cli/poll/flow-1",
+      url: "https://nibi.example/api/v1/oauth/cli/poll/flow-1",
       headers: {
         Authorization: "Bearer poll-token",
       },
@@ -408,6 +408,6 @@ function jsonResponse(body: unknown, status = 200): HttpClientResponse {
     },
     status,
     statusText: status === 200 ? "OK" : "Error",
-    url: "https://zcode.example/api/v1",
+    url: "https://nibi.example/api/v1",
   };
 }

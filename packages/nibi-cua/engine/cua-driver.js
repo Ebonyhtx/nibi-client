@@ -16,6 +16,29 @@ const ENGINE_MODULE_ENV = "NIBI_CUA_ENGINE_MODULE";
 /** 包根（本文件在 <包根>/engine/ 下）。 */
 const PACKAGE_ROOT_URL = new URL("../", import.meta.url);
 
+/**
+ * 会携带 agent cursor 的输入工具（0.47.23 schema 都接受 `session`）。
+ * overlay 是 session-owned；只有这些动作带 session，观察/启动保持无会话。
+ */
+const CURSOR_INPUT_TOOLS = new Set([
+  "click",
+  "double_click",
+  "right_click",
+  "drag",
+  "type_text",
+  "press_key",
+  "hotkey",
+  "set_value",
+  "scroll",
+  "invoke_menu",
+  "move_cursor",
+]);
+
+/** 引擎会话 5 分钟无活动过期；提前 1 分钟刷新，避免动作落到已结束的会话上。 */
+const AGENT_CURSOR_REFRESH_MS = 4 * 60 * 1000;
+/** Helper 进程专属的公开会话标签（overlay 的 badge 会显示它）。 */
+const AGENT_CURSOR_SESSION = `nibi-cua-${process.pid}`;
+
 /** 引擎不可用（未安装、加载失败、平台不支持）——调用方按 fail-closed 处理，不要猜。 */
 export class CuaEngineUnavailableError extends Error {
   constructor(message, options = {}) {
@@ -76,10 +99,101 @@ export async function createCuaDriverEngine(options = {}) {
     throw new CuaEngineUnavailableError("Cua Driver 在本平台不可用");
   }
 
+  /**
+   * Agent cursor overlay（0.47.23）：session-owned，`set_agent_cursor_enabled` 后由
+   * 光标动作驱动；`move_cursor` 的 window scope 只动 overlay、不动真实指针。
+   * 这里只在第一个 cursor-bearing 动作前 lazily 建会话并打开 overlay。
+   *
+   * **Windows 10 实测限制**：set 返回成功，但 `get_agent_cursor_state` 仍是
+   * `enabled:false`/`visual_state.idle`，`move_cursor` 只更新 position（渲染层不工作）。
+   * 所以"不移动真实鼠标"靠的是 `delivery_mode:"background"`（UIA Invoke/PostMessage），
+   * overlay 只是附加尝试。overlay 是**可视化附加**——建会话/开 overlay 失败不拦真实
+   * 输入（否则 cosmetic 故障会让 CUA 不可用），但也不会假装已启用：状态如实保留在
+   * agentCursor 里，`agentCursorStatus()` 可查。
+   */
+  const agentCursor = {
+    session: AGENT_CURSOR_SESSION,
+    preparedAt: 0,
+    sessionUsable: false,
+    enabled: false,
+    position: null,
+    visualState: null,
+    lastError: undefined,
+  };
+  let agentCursorPrep = null;
+
+  const prepareAgentCursor = () => {
+    if (Date.now() - agentCursor.preparedAt < AGENT_CURSOR_REFRESH_MS) {
+      return Promise.resolve();
+    }
+    if (agentCursorPrep) return agentCursorPrep;
+    agentCursorPrep = (async () => {
+      try {
+        // start_session 是幂等的，也会在过期后 revive 同名会话。
+        const started = await driver.callTool(
+          "start_session",
+          JSON.stringify({ session: agentCursor.session }),
+        );
+        if (started?.isError === true) {
+          agentCursor.sessionUsable = false;
+          agentCursor.enabled = false;
+          agentCursor.lastError = started.errorCode ?? "start_session_failed";
+          return;
+        }
+        agentCursor.sessionUsable = true;
+        const enabled = await driver.callTool(
+          "set_agent_cursor_enabled",
+          JSON.stringify({ session: agentCursor.session, enabled: true }),
+        );
+        if (enabled?.isError === true) {
+          agentCursor.enabled = false;
+          agentCursor.lastError = enabled.errorCode ?? "cursor_failed";
+          return;
+        }
+        // set 的返回只代表"请求被接受"；0.47.23 在 Windows 上可能仍是 enabled:false
+        // （渲染层不工作）。以 get_agent_cursor_state 的实际状态为准，绝不伪造已启用。
+        const state = await driver.callTool(
+          "get_agent_cursor_state",
+          JSON.stringify({ session: agentCursor.session }),
+        );
+        if (state?.isError === true) {
+          agentCursor.enabled = false;
+          agentCursor.lastError = state.errorCode ?? "cursor_state_unreadable";
+          return;
+        }
+        const parsed = (() => {
+          try {
+            return JSON.parse(String(state?.structuredJson ?? "{}"));
+          } catch {
+            return {};
+          }
+        })();
+        agentCursor.enabled = parsed.enabled === true;
+        agentCursor.position = parsed.position ?? null;
+        agentCursor.visualState = parsed.visual_state ?? parsed.visualState ?? null;
+        agentCursor.lastError = undefined;
+      } catch (error) {
+        // 旧引擎/平台没有 cursor API 时，动作照常走 implicit session（fail-open 仅限可视化）。
+        agentCursor.sessionUsable = false;
+        agentCursor.enabled = false;
+        agentCursor.lastError = error instanceof Error ? error.name : String(error);
+      } finally {
+        // 失败也写时间，避免每个动作都重试同一套 cosmetic 调用；4 分钟后再试。
+        agentCursor.preparedAt = Date.now();
+        agentCursorPrep = null;
+      }
+    })();
+    return agentCursorPrep;
+  };
+
   return {
     kind: "cua-driver",
     async metadata() {
       return await driver.metadata?.();
+    },
+    /** 供诊断/测试：不伪造 overlay 已启用——失败时 lastError 如实保留。 */
+    agentCursorStatus() {
+      return { ...agentCursor };
     },
     /**
      * 通用工具面：`callTool(name, args)`。用它而不是逐个 typed 方法，是因为上游的工具名与参数
@@ -90,8 +204,25 @@ export async function createCuaDriverEngine(options = {}) {
      * clipboard_read/clipboard_write、invoke_menu{path}）。
      */
     async callTool(name, args = {}) {
-      const result = await driver.callTool(name, JSON.stringify(args));
-      return normalizeToolResult(name, result);
+      let payload = args && typeof args === "object" ? args : {};
+      if (CURSOR_INPUT_TOOLS.has(name)) {
+        await prepareAgentCursor();
+        // 同一会话的 cursor 动作才会驱动同一个 overlay；调用方显式给的 session 优先。
+        if (agentCursor.sessionUsable && payload.session === undefined) {
+          payload = { ...payload, session: agentCursor.session };
+        }
+      }
+      const result = await driver.callTool(name, JSON.stringify(payload));
+      const normalized = normalizeToolResult(name, result);
+      // 会话过期后引擎会明确报 session 相关错误；下一次动作前重建（不重试本次动作）。
+      if (
+        typeof normalized.errorCode === "string" &&
+        /session/i.test(normalized.errorCode)
+      ) {
+        agentCursor.sessionUsable = false;
+        agentCursor.preparedAt = 0;
+      }
+      return normalized;
     },
     async listApps() {
       const output = await driver.listApps({});
@@ -105,7 +236,13 @@ export async function createCuaDriverEngine(options = {}) {
       return { windows: output?.windows ?? [] };
     },
     async getWindowState(params = {}) {
-      return await driver.getWindowState(params);
+      // 截图/像素上下文是 session-owned：坐标点击必须与观察在同一个引擎会话里，
+      // 否则引擎会报 screenshot_context_missing。会话建立失败时不带 session，退回隐式会话。
+      await prepareAgentCursor();
+      return await driver.getWindowState({
+        ...params,
+        ...(agentCursor.sessionUsable ? { session: agentCursor.session } : {}),
+      });
     },
     async close() {
       try {

@@ -36,7 +36,7 @@ const JSON_OUT: GlobalOptions = { ...TEXT, json: true };
 const loadedPlugin = (overrides: Record<string, unknown> = {}) =>
   ({
     commandRootCount: 1,
-    dataPath: "/tmp/zcode/plugins/data/ios-dev@nibi-official",
+    dataPath: "/tmp/nibi/plugins/data/ios-dev@nibi-official",
     declaredMcpServerNames: [],
     enabled: true,
     hookDetails: [],

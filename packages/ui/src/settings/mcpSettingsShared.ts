@@ -1,6 +1,6 @@
 import type { McpServerConfig, NibiMcpServer } from "@nibi/shared";
 
-export const MCP_SECTIONS = ["zcodeagentmcp"] as const;
+export const MCP_SECTIONS = ["nibiagentmcp"] as const;
 
 export type ServerScope = (typeof MCP_SECTIONS)[number];
 
@@ -8,7 +8,7 @@ export const SOURCE_META: Record<
   ServerScope,
   { label: string; section: string; badgeClass: string }
 > = {
-  zcodeagentmcp: {
+  nibiagentmcp: {
     label: "NIBI Agent",
     section: "NIBI Agent",
     badgeClass: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400",
@@ -45,7 +45,7 @@ export interface FormState {
 
 export const EMPTY_FORM: FormState = {
   name: "",
-  scope: "zcodeagentmcp",
+  scope: "nibiagentmcp",
   storageLevel: "user",
   type: "stdio",
   command: "",
@@ -76,7 +76,7 @@ export function serverToForm(server: NibiMcpServer): FormState {
   }
   return {
     name: server.name,
-    scope: "zcodeagentmcp",
+    scope: "nibiagentmcp",
     storageLevel: server.scope === "workspace" ? "workspace" : "user",
     type,
     command: cfg.command ?? "",

@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
-// 桌面打包态的 agent 运行时资产：把 agent 的 JS bundle（nibi.cjs）放进 bundled-agents/<platform>/nibi，
-// 由 app 内置的 Electron Node runtime（ELECTRON_RUN_AS_NODE）执行，替代以前随包内置的独立 Node 二进制。
+// 桌面打包态的共享 JS 资产：把 agent 的 JS bundle（nibi.cjs）放进 bundled-agents/<platform>/nibi，
+// 由 app 内置的 Electron Node runtime（ELECTRON_RUN_AS_NODE）执行，供 Rust 内核的 DWF 侧车
+// （`__nibi-dwf-engine`）与插件宿主使用。桌面本地 agent 本身由随包 nibi-rs 提供；原 Node agent
+// 运行时已退役。
 //
 // 为什么这么做：
 // - agent 没有任何原生 NAPI 插件（ripgrep 是 WASM，其余纯 JS），可直接跑在 Electron 的 Node 上；

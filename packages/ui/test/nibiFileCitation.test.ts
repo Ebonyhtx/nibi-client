@@ -49,14 +49,12 @@ describe("nibi-file-citation parser", () => {
     ]);
   });
 
-  it("兼容历史 zcode-file-citation 指令，新输出仍只发 nibi", () => {
+  it("不再识别历史 zcode-file-citation 指令", () => {
     const content = '旧 ::zcode-file-citation{path="docs/历史报告.pdf" purpose="source"} 正文';
-    expect(extractNibiFileCitations(content)).toMatchObject([
-      { path: "docs/历史报告.pdf", purpose: "source", start: 2 },
-    ]);
-    expect(projectNibiFileCitations('尾部 ::zcode-file-citation{path="docs/report.pdf"', {
-      streaming: true,
-    }).visibleText).toBe("尾部 ");
+    expect(extractNibiFileCitations(content)).toEqual([]);
+
+    const unclosed = '尾部 ::zcode-file-citation{path="docs/report.pdf"';
+    expect(projectNibiFileCitations(unclosed, { streaming: true }).visibleText).toBe(unclosed);
   });
 
   it("支持 citation 参数使用中文智能单双引号", () => {
@@ -152,13 +150,13 @@ describe("nibi-file-citation parser", () => {
 
   it("streaming 在 citation 名称尚未闭合前暂存协议前缀", () => {
     expect(projectNibiFileCitations("正文\n::", { streaming: true }).visibleText).toBe("正文\n");
-    expect(
-      projectNibiFileCitations("正文\n::nibi-file-cit", { streaming: true }).visibleText,
-    ).toBe("正文\n");
+    expect(projectNibiFileCitations("正文\n::nibi-file-cit", { streaming: true }).visibleText).toBe(
+      "正文\n",
+    );
     expect(projectNibiFileCitations("正文\n:", { streaming: true }).visibleText).toBe("正文\n:");
-    expect(
-      projectNibiFileCitations("正文\n:nibi-file-cit", { streaming: true }).visibleText,
-    ).toBe("正文\n");
+    expect(projectNibiFileCitations("正文\n:nibi-file-cit", { streaming: true }).visibleText).toBe(
+      "正文\n",
+    );
     expect(
       projectNibiFileCitations("正文\n:::nibi-file-cit", { streaming: true }).visibleText,
     ).toBe("正文\n");

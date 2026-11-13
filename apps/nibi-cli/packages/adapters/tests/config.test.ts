@@ -198,7 +198,7 @@ describe("config adapters", () => {
 
   it("parses the supported ZCODE environment surface", () => {
     const config = parseEnvConfig({
-      NIBI_STORAGE_DIR: "/tmp/zcode",
+      NIBI_STORAGE_DIR: "/tmp/nibi",
       NIBI_HTTP_PROXY: "http://127.0.0.1:7890",
       NIBI_NO_PROXY: "localhost,127.0.0.1",
       NIBI_AGENT_CA_CERT: "/tmp/nibi-ca.pem",
@@ -208,7 +208,7 @@ describe("config adapters", () => {
     });
 
     expect(config.model).toBeUndefined();
-    expect(config.storage?.dir).toBe("/tmp/zcode");
+    expect(config.storage?.dir).toBe("/tmp/nibi");
     expect(config.network?.httpProxy).toBe("http://127.0.0.1:7890");
     expect(config.network?.noProxy).toBe("localhost,127.0.0.1");
     expect(config.network?.caCertFile).toBe("/tmp/nibi-ca.pem");
@@ -250,14 +250,14 @@ describe("config adapters", () => {
   it("parses session database path environment overrides", () => {
     expect(
       parseEnvConfig({
-        NIBI_SESSION_DB_PATH: "/tmp/zcode/db/db.sqlite",
+        NIBI_SESSION_DB_PATH: "/tmp/nibi/db/db.sqlite",
       }).storage?.sessionDbPath,
-    ).toBe("/tmp/zcode/db/db.sqlite");
+    ).toBe("/tmp/nibi/db/db.sqlite");
     expect(
       parseEnvConfig({
-        NIBI_SESSION_DB: "/tmp/zcode/legacy.sqlite",
+        NIBI_SESSION_DB: "/tmp/nibi/legacy.sqlite",
       }).storage?.sessionDbPath,
-    ).toBe("/tmp/zcode/legacy.sqlite");
+    ).toBe("/tmp/nibi/legacy.sqlite");
   });
 
   it("loads no-proxy rules from file config", async () => {

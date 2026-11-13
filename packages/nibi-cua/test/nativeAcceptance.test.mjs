@@ -31,14 +31,21 @@ test("真机：记事本 观察 → 打字 → 重读 AX 树验证", { skip: !EN
   );
   const { callBrokerMethod, mintBrokerSocketPath } = await import("../broker.js");
 
-  const resolved = await resolveWindowsCuaRuntime({
-    platform: "win32",
-    arch: process.arch,
-    resourcesPath: join(REPO_ROOT, ".staging"),
-    electronVersion: JSON.parse(
-      readFileSync(join(REPO_ROOT, "node_modules/electron/package.json"), "utf8"),
-    ).version,
-  });
+  const devRoot = process.env.NIBI_CUA_DEV_ROOT?.trim();
+  const resolved = devRoot
+    ? await resolveWindowsCuaRuntime({
+        platform: "win32",
+        arch: process.arch,
+        env: { ...process.env, NIBI_CUA_DEV_ROOT: devRoot },
+      })
+    : await resolveWindowsCuaRuntime({
+        platform: "win32",
+        arch: process.arch,
+        resourcesPath: join(REPO_ROOT, ".staging"),
+        electronVersion: JSON.parse(
+          readFileSync(join(REPO_ROOT, "node_modules/electron/package.json"), "utf8"),
+        ).version,
+      });
 
   const socketPath = mintBrokerSocketPath();
   const env = {
@@ -52,6 +59,7 @@ test("真机：记事本 观察 → 打字 → 重读 AX 树验证", { skip: !EN
     cwd: resolved.root,
     env,
     execPath: resolved.command,
+    windowsHide: true,
     stdio: ["ignore", "pipe", "pipe", "ipc"],
   });
   helper.stderr?.on("data", (chunk) => process.stderr.write(String(chunk).slice(0, 400)));

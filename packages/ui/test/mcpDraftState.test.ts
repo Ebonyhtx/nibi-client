@@ -10,7 +10,7 @@ import {
 function draft(overrides: Partial<FormState> = {}): FormState {
   return {
     name: "filesystem",
-    scope: "zcodeagentmcp",
+    scope: "nibiagentmcp",
     storageLevel: "user",
     type: "stdio",
     command: "npx",

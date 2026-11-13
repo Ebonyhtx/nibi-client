@@ -11,11 +11,9 @@ import {
 import type { WorkspaceMcpTrustReviewView } from "../src/store/mcpStoreDesktop.js";
 
 const digest = "6781e00d56fceeb639263a7ee238dcfe1c8f6b922616d91337acf85b78304d14";
-const projectServer = { name: "probe", scope: "workspace", source: "zcodeagentmcp" };
+const projectServer = { name: "probe", scope: "workspace", source: "nibiagentmcp" };
 
-function review(
-  overrides: Partial<WorkspaceMcpTrustReviewView> = {},
-): WorkspaceMcpTrustReviewView {
+function review(overrides: Partial<WorkspaceMcpTrustReviewView> = {}): WorkspaceMcpTrustReviewView {
   return {
     declarationDigest: digest,
     configuredEnabled: true,
@@ -122,9 +120,7 @@ describe("workspace MCP trust presentation", () => {
         canTrust: false,
         canRevoke: false,
       });
-      expect(presentation?.badgeMessageId).toBe(
-        "settings.mcp.workspaceTrust.badge.unavailable",
-      );
+      expect(presentation?.badgeMessageId).toBe("settings.mcp.workspaceTrust.badge.unavailable");
     }
 
     expect(

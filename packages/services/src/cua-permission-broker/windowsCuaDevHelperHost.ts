@@ -350,6 +350,8 @@ export class WindowsCuaHelperHost implements ManagedCuaProductHelperHost {
     try {
       child = this.childProcess.fork(this.options.runtime.command, argv, {
         cwd: this.options.runtime.root,
+        // Helper 是后台进程：Electron（ELECTRON_RUN_AS_NODE）没有可见控制台；fork 的
+        // ForkOptions 不接受 windowsHide，不能假装传了它。
         env: {
           ...process.env,
           ...this.options.runtime.commandEnv,

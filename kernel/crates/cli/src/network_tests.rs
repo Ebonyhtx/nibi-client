@@ -26,9 +26,9 @@ fn the_zcode_proxy_wins_and_takes_the_node_shape() {
     assert_eq!(
         proxy_of(&[
             ("HTTPS_PROXY", "proxy.example.com:8080"),
-            ("NIBI_HTTP_PROXY", "http://zcode.example:3128"),
+            ("NIBI_HTTP_PROXY", "http://nibi.example:3128"),
         ]),
-        Some("http://zcode.example:3128/".to_owned())
+        Some("http://nibi.example:3128/".to_owned())
     );
 }
 

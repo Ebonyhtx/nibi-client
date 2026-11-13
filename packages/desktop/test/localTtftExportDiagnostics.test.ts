@@ -116,7 +116,7 @@ it("最终 OTLP：根未结束也有阶段，重复乱序不重复样本，失�
       .flatMap((r) => r.data.resourceMetrics ?? [])
       .flatMap((r) => r.scopeMetrics)
       .flatMap((r) => r.metrics)
-      .filter((m) => m.name === "zcode.local_ttft.duration");
+      .filter((m) => m.name === "nibi.local_ttft.duration");
     expect(
       histograms
         .flatMap((h) => h.histogram?.dataPoints ?? [])

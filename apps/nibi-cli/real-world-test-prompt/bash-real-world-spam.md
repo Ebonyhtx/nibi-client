@@ -81,7 +81,7 @@ seq 1 5 | paste -sd+ - | bc
 ### A11
 
 ```bash
-touch /tmp/zcode_bash_silent_$$
+touch /tmp/nibi_bash_silent_$$
 ```
 
 ## B. 退出码与控制流
@@ -231,31 +231,31 @@ sleep 16 && echo "auto bg probe at $(date +%T)"
 ### G1
 
 ```bash
-grep 'definitely_missing_zcode_token_123' /dev/null
+grep 'definitely_missing_nibi_token_123' /dev/null
 ```
 
 ### G2
 
 ```bash
-grep 'definitely_missing_zcode_token_123' /etc/hosts
+grep 'definitely_missing_nibi_token_123' /etc/hosts
 ```
 
 ### G3
 
 ```bash
-rg 'definitely_missing_zcode_token_123' /etc/hosts
+rg 'definitely_missing_nibi_token_123' /etc/hosts
 ```
 
 ### G4
 
 ```bash
-egrep 'definitely_missing_zcode_token_123' /etc/hosts
+egrep 'definitely_missing_nibi_token_123' /etc/hosts
 ```
 
 ### G5
 
 ```bash
-fgrep 'definitely_missing_zcode_token_123' /etc/hosts
+fgrep 'definitely_missing_nibi_token_123' /etc/hosts
 ```
 
 ### G6
@@ -267,7 +267,7 @@ find /definitely_missing_zcode_dir_123456 -name anything
 ### G7
 
 ```bash
-printf 'left\n' > /tmp/zcode_bash_diff_a_$$; printf 'right\n' > /tmp/zcode_bash_diff_b_$$; diff /tmp/zcode_bash_diff_a_$$ /tmp/zcode_bash_diff_b_$$
+printf 'left\n' > /tmp/nibi_bash_diff_a_$$; printf 'right\n' > /tmp/nibi_bash_diff_b_$$; diff /tmp/nibi_bash_diff_a_$$ /tmp/nibi_bash_diff_b_$$
 ```
 
 ### G8

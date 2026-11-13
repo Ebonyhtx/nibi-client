@@ -30,14 +30,21 @@ async function startStack() {
   );
   const { mintBrokerSocketPath } = await import("../broker.js");
   const { createComputerUseRuntime } = await import("../runtime/index.js");
-  const resolved = await resolveWindowsCuaRuntime({
-    platform: "win32",
-    arch: process.arch,
-    resourcesPath: join(REPO_ROOT, ".staging"),
-    electronVersion: JSON.parse(
-      readFileSync(join(REPO_ROOT, "node_modules/electron/package.json"), "utf8"),
-    ).version,
-  });
+  const devRoot = process.env.NIBI_CUA_DEV_ROOT?.trim();
+  const resolved = devRoot
+    ? await resolveWindowsCuaRuntime({
+        platform: "win32",
+        arch: process.arch,
+        env: { ...process.env, NIBI_CUA_DEV_ROOT: devRoot },
+      })
+    : await resolveWindowsCuaRuntime({
+        platform: "win32",
+        arch: process.arch,
+        resourcesPath: join(REPO_ROOT, ".staging"),
+        electronVersion: JSON.parse(
+          readFileSync(join(REPO_ROOT, "node_modules/electron/package.json"), "utf8"),
+        ).version,
+      });
   const socketPath = mintBrokerSocketPath();
   const env = {
     ...process.env,
@@ -48,7 +55,13 @@ async function startStack() {
   const helper = fork(
     resolved.entryPath,
     ["--socket", socketPath, "--parent-pid", String(process.pid)],
-    { cwd: resolved.root, env, execPath: resolved.command, stdio: ["ignore", "pipe", "pipe", "ipc"] },
+    {
+      cwd: resolved.root,
+      env,
+      execPath: resolved.command,
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe", "ipc"],
+    },
   );
   helper.stderr?.on("data", (chunk) => process.stderr.write(String(chunk).slice(0, 400)));
   let ready = false;
@@ -99,8 +112,18 @@ async function findWindow(stack, predicate, attempts = 24) {
   return undefined;
 }
 
-const observe = async (stack, windowId, sessionId) =>
-  stack.receipt(await stack.invoke("get_app_state", { window_id: String(windowId) }, sessionId));
+const observe = async (stack, windowId, sessionId, options = {}) =>
+  stack.receipt(
+    await stack.invoke(
+      "get_app_state",
+      {
+        window_id: String(windowId),
+        // 默认观察不激活；需要 UIA 树（WinUI 挂起窗口）时由用例显式要求。
+        ...(options.activate === true ? { activate: true } : {}),
+      },
+      sessionId,
+    ),
+  );
 
 function treeLines(state, max = 20) {
   return String(state?.text ?? "")
@@ -123,8 +146,10 @@ test("经典闭环：计算器 6×7=42", { skip: !ENABLED }, async () => {
     assert.ok(window, "应能找到计算器窗口");
     const windowId = String(window.windowId ?? window.window_id);
 
-    let state = await observe(stack, windowId, session);
-    assert.ok(state.elements.length > 0, "计算器 AX 树不该是空的");
+    // 计算器是 WinUI：后台/挂起时 UIA 树可能为空。按新策略默认不激活，用例显式要求
+    // activate:true（这正是产品面"需要树时才前台化"的入口）。
+    let state = await observe(stack, windowId, session, { activate: true });
+    assert.ok(Array.isArray(state.elements) && state.elements.length > 0, `计算器 AX 树不该是空的：${JSON.stringify(state).slice(0, 300)}`);
 
     // 计算器是**中文本地化**的按钮标签，且显示区不是文本框（实测：打字进去没用）——
     // 所以按标签找到按钮再点它。标签匹配同时兼容中英（换语言/换版本不会立刻红）。

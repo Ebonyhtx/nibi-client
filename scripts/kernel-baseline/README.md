@@ -1,6 +1,8 @@
 # 内核阶段 0 基线采集脚本
 
-只测量、不改运行时参数。默认 `NIBI_KERNEL=node`。
+只测量、不改运行时参数。桌面本地 agent 的默认与唯一内核是 Rust（`nibi-rs`），缺二进制时
+fail-closed；本脚本不切换内核，也没有 `NIBI_KERNEL` 开关。远端 Source Server / server-cli 仍走
+自己的 `nibi.cjs` 链路。
 
 ## 用法
 

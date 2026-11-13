@@ -39,7 +39,7 @@ export function createLocalTtftExporter(options: {
     "service.name": "nibi-local-ttft",
     "service.version": options.version,
     "os.type": process.platform,
-    "zcode.telemetry.schema_version": 1,
+    "nibi.telemetry.schema_version": 1,
   });
   const meterProvider = new MeterProvider({
     resource,
@@ -62,7 +62,7 @@ export function createLocalTtftExporter(options: {
       : [],
     views: [
       {
-        instrumentName: "zcode.local_ttft.*",
+        instrumentName: "nibi.local_ttft.*",
         aggregation: {
           type: AggregationType.EXPLICIT_BUCKET_HISTOGRAM,
           options: { boundaries: LOCAL_TTFT_BUCKETS_MS },
@@ -71,38 +71,38 @@ export function createLocalTtftExporter(options: {
         aggregationCardinalityLimit: 256,
       },
       {
-        instrumentName: "zcode.local_ttft.*",
+        instrumentName: "nibi.local_ttft.*",
         instrumentType: InstrumentType.COUNTER,
         aggregationCardinalityLimit: 256,
       },
     ],
   });
   const meter = meterProvider.getMeter("@nibi/local-ttft", "1");
-  const duration = meter.createHistogram("zcode.local_ttft.duration", { unit: "ms" });
-  const stageDuration = meter.createHistogram("zcode.local_ttft.stage.duration", { unit: "ms" });
-  const stageObservation = meter.createHistogram("zcode.local_ttft.stage.observation.duration", {
+  const duration = meter.createHistogram("nibi.local_ttft.duration", { unit: "ms" });
+  const stageDuration = meter.createHistogram("nibi.local_ttft.stage.duration", { unit: "ms" });
+  const stageObservation = meter.createHistogram("nibi.local_ttft.stage.observation.duration", {
     unit: "ms",
   });
   const preparationObservation = meter.createHistogram(
-    "zcode.local_ttft.preparation.observation.duration",
+    "nibi.local_ttft.preparation.observation.duration",
     { unit: "ms" },
   );
-  const systemDuration = meter.createHistogram("zcode.local_ttft.system.duration", { unit: "ms" });
-  const preparationDuration = meter.createHistogram("zcode.local_ttft.preparation.duration", {
+  const systemDuration = meter.createHistogram("nibi.local_ttft.system.duration", { unit: "ms" });
+  const preparationDuration = meter.createHistogram("nibi.local_ttft.preparation.duration", {
     unit: "ms",
   });
-  const attemptDuration = meter.createHistogram("zcode.local_ttft.attempt.duration", {
+  const attemptDuration = meter.createHistogram("nibi.local_ttft.attempt.duration", {
     unit: "ms",
   });
-  const executionDuration = meter.createHistogram("zcode.local_ttft.execution.duration", {
+  const executionDuration = meter.createHistogram("nibi.local_ttft.execution.duration", {
     unit: "ms",
   });
-  const failureWait = meter.createHistogram("zcode.local_ttft.no_output.wait", { unit: "ms" });
-  const textDuration = meter.createHistogram("zcode.local_ttft.first_text.duration", {
+  const failureWait = meter.createHistogram("nibi.local_ttft.no_output.wait", { unit: "ms" });
+  const textDuration = meter.createHistogram("nibi.local_ttft.first_text.duration", {
     unit: "ms",
   });
-  const outcomes = meter.createCounter("zcode.local_ttft.records");
-  const drops = meter.createCounter("zcode.local_ttft.dropped");
+  const outcomes = meter.createCounter("nibi.local_ttft.records");
+  const drops = meter.createCounter("nibi.local_ttft.dropped");
   const queue: LocalTtftBatch[] = [];
   const dedupe = new LocalTtftExportDedupe(options.now);
   const modelLabels = new Set<string>();

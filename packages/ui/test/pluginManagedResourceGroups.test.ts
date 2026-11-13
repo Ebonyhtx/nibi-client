@@ -135,10 +135,10 @@ describe("pluginManagedResourceGroups", () => {
       {
         config: { command: "npx", type: "stdio" },
         enabled: true,
-        id: "zcodeagentmcp-global-memory",
+        id: "nibiagentmcp-global-memory",
         name: "memory",
         scope: "user",
-        source: "zcodeagentmcp",
+        source: "nibiagentmcp",
       },
       {
         config: { command: "npx", type: "stdio" },

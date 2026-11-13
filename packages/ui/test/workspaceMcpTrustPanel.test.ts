@@ -24,7 +24,7 @@ function presentation(
   } = {},
 ): WorkspaceMcpTrustPresentation {
   const result = resolveWorkspaceMcpTrustPresentation({
-    server: { name: "probe", scope: "workspace", source: "zcodeagentmcp" },
+    server: { name: "probe", scope: "workspace", source: "nibiagentmcp" },
     trustKnown: true,
     ...(overrides.reasonCode || overrides.unreviewable?.length
       ? {}
@@ -107,9 +107,7 @@ describe("WorkspaceMcpTrustPanel", () => {
   it("离线/未登记只读展示 Host reasonCode，信任按钮禁用", () => {
     renderPanel(presentation({ reasonCode: "workspace_mcp_workspace_offline" }));
     expect(screen.getByText("不可审核")).toBeTruthy();
-    expect(screen.getByRole("status").textContent).toContain(
-      "workspace_mcp_workspace_offline",
-    );
+    expect(screen.getByRole("status").textContent).toContain("workspace_mcp_workspace_offline");
     const button = screen.getByRole("button", { name: "信任 MCP 配置 probe" });
     expect(button.hasAttribute("disabled")).toBe(true);
   });

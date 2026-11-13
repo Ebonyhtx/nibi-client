@@ -130,16 +130,12 @@ export function projectAssistantCodeComments(
     } else {
       const prefixStart = findAssistantDirectivePrefixStart(
         content,
-        [
-          CODE_COMMENT_DIRECTIVE_NAME,
-          "nibi-file-citation",
-          "zcode-file-citation",
-        ],
+        [CODE_COMMENT_DIRECTIVE_NAME, "nibi-file-citation"],
         protectedRanges,
         {
-          minimumSingleColonPrefixLength: Math.max(":nibi".length, ":zcode".length),
-          singleColonDirectiveNames: ["nibi-file-citation", "zcode-file-citation"],
-          tripleColonDirectiveNames: ["nibi-file-citation", "zcode-file-citation"],
+          minimumSingleColonPrefixLength: ":nibi".length,
+          singleColonDirectiveNames: ["nibi-file-citation"],
+          tripleColonDirectiveNames: ["nibi-file-citation"],
         },
       );
       if (prefixStart !== null) {

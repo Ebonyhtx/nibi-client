@@ -13,7 +13,7 @@ fn secret(explicit: Option<&str>) -> CredentialSecret {
 }
 
 /// Node 用同一 secret、IV 01..0c 加密 `sk-fixture-国` 的结果（`crypto.createCipheriv("aes-256-gcm")`）。
-const NODE_CIPHERTEXT: &str = "enc:v1:AQIDBAUGBwgJCgsM.ugbwcGz6yNOO7MTsaggOWA.TSZzRstDM_2VG1gJJ9g";
+const NODE_CIPHERTEXT: &str = "enc:v1:AQIDBAUGBwgJCgsM.XHdy-3MnOpmCaby0QKzQ6Q.gXHxwH0RzgHzCWsTRCM";
 
 #[test]
 fn ciphertexts_match_node() {

@@ -1609,7 +1609,7 @@ describe("NodeExecutionAdapter", () => {
       await mkdir(bin, { recursive: true });
       await writeFile(
         join(home, ".bashrc"),
-        "alias zcode_snapshot_alias='printf alias-from-snapshot'\n",
+        "alias nibi_snapshot_alias='printf alias-from-snapshot'\n",
       );
       await writeFile(
         shellWrapper,
@@ -1637,7 +1637,7 @@ describe("NodeExecutionAdapter", () => {
         const result = await adapter.run({
           command: {
             mode: "shell",
-            command: "zcode_snapshot_alias",
+            command: "nibi_snapshot_alias",
             shellProfile: "posix-bash",
             shellOverride: {
               dialect: "posix",
@@ -1761,7 +1761,7 @@ describe("NodeExecutionAdapter", () => {
       await mkdir(bin, { recursive: true });
       await writeFile(
         join(home, ".bashrc"),
-        "alias zcode_snapshot_alias='printf alias-from-snapshot'\n",
+        "alias nibi_snapshot_alias='printf alias-from-snapshot'\n",
       );
       await writeFile(
         shellWrapper,
@@ -1789,7 +1789,7 @@ describe("NodeExecutionAdapter", () => {
         const first = await adapter.run({
           command: {
             mode: "shell",
-            command: "zcode_snapshot_alias",
+            command: "nibi_snapshot_alias",
             shellProfile: "posix-bash",
             shellOverride: {
               dialect: "posix",

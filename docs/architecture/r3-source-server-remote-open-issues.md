@@ -177,7 +177,7 @@
 - 根因：retry 与 offline probe 各自维护终止条件，且只硬编码识别 `SourceServerUpgradeRequiredError`；`connectOnce()` 已发布的 install/identity/non-retryable 终态随后又被调度器覆盖。Host 同时只转发 `retrying/offline`，pending 状态无法让 logical recovery 收口。
 - 修复：Manager 在更新断连、2/4/8 秒 retry 和 2 分钟 probe 三个入口统一按公开错误码、原始 `retryable` 与 recovery owner 状态终止自动路径；owner 保留 actionable 状态，sibling Profile 收口为 terminal offline。Host 复用纯 recovery policy，把 pending 与 `failed + retryable:false` 转为既有 `recoverable:false` close，不修改 Registry、relay、main 或 realtime delivery 合同。
 - 验证：Manager、recovery policy、Window Registry 与 Directory 四个 focused test 文件共 110 项通过，覆盖 install/upgrade/identity、普通 `retryable:false`、offline probe、更新断连、同 Source 多 Profile、瞬态预算和手动恢复；fake timer 运行时回放跨过 4/8 秒及 2 分钟边界后没有新增 probe。`pnpm typecheck`、`pnpm lint` 以及新增 policy/test 与本 issue 文档的 `oxfmt --check` 通过；lint 仅报告仓库既有 warning。
-- 实机验证：当前修复提交 `9b56031ac2` 执行 `pnpm bootstrap:with-remote` 与真实 Electron `pnpm dev:desktop`，通过 CDP 9229 将 SSH `linux-amd64-dev`（Ubuntu x64、用户 `dev`）连接到 Source `32a10b89-141c-469b-aa97-850f41ab7deb`。15:49:40 UTC 临时移走 `/home/dev/.nibi/server/bin/zcode` 并由备份 launcher 正常停止 daemon；约 2 秒后 UI 从首次 recovery 直接收口为“未连接 / 远端已卸载 ZCode Server”，3 个项目历史保留。176 秒观察窗口完整跨过 2/4/8 秒和 2 分钟 probe 边界，UI 未进入 2/3、3/3 或 offline probe，Host 在首次 recoverable close 后只再发布一次 terminal close，日志没有新的 connect、remote-connected、upload 或 recovery-budget 记录，远端始终保持 `stopped`。恢复 launcher 后等待 8 秒仍未自动复活；用户显式点击“重新安装并连接”后于 15:55:03 恢复 online，Desktop 退出后远端保持 3.9.1 `ready`，临时备份已清除。截图证据位于 `packages/desktop/.e2e-artifacts/r3-issue-007-live-20260828-9b56031a/`。
+- 实机验证：当前修复提交 `9b56031ac2` 执行 `pnpm bootstrap:with-remote` 与真实 Electron `pnpm dev:desktop`，通过 CDP 9229 将 SSH `linux-amd64-dev`（Ubuntu x64、用户 `dev`）连接到 Source `32a10b89-141c-469b-aa97-850f41ab7deb`。15:49:40 UTC 临时移走 `/home/dev/.nibi/server/bin/nibi` 并由备份 launcher 正常停止 daemon；约 2 秒后 UI 从首次 recovery 直接收口为“未连接 / 远端已卸载 ZCode Server”，3 个项目历史保留。176 秒观察窗口完整跨过 2/4/8 秒和 2 分钟 probe 边界，UI 未进入 2/3、3/3 或 offline probe，Host 在首次 recoverable close 后只再发布一次 terminal close，日志没有新的 connect、remote-connected、upload 或 recovery-budget 记录，远端始终保持 `stopped`。恢复 launcher 后等待 8 秒仍未自动复活；用户显式点击“重新安装并连接”后于 15:55:03 恢复 online，Desktop 退出后远端保持 3.9.1 `ready`，临时备份已清除。截图证据位于 `packages/desktop/.e2e-artifacts/r3-issue-007-live-20260828-9b56031a/`。
 - 实机覆盖边界：本次确认 SSH install-required、Desktop continuous logical terminal 与显式恢复；identity-change、普通 `retryable:false` 和 Mobile replayable 仍由 focused state matrix 覆盖，未以修改共享 installation identity 或未建立的手机配对环境伪报实测。
 
 ### R3-ISSUE-008：启动自动重连偏好被完整 AppSettings schema 丢弃
@@ -238,7 +238,7 @@
   CDP 9229 将 SSH `linux-amd64-dev`（Ubuntu x64、`dev@localhost:2222`）连接到 Source
   `32a10b89-141c-469b-aa97-850f41ab7deb`，上传并运行 3.9.1 linux-x64 release。打开
   `/home/dev/r3-issue-011-a`、`/home/dev/r3-issue-011-b` 与 Source conversation 后，Host 稳定为
-  `connections=1, logicalSessions=3, attachments=4`。首次真实 `zcode restart --json` 后三条旧 session
+  `connections=1, logicalSessions=3, attachments=4`。首次真实 `nibi restart --json` 后三条旧 session
   同时 fail-closed，并在约 2.6 秒内全部换代恢复。随后使用仅存在于本次实测构建、测试后已删除的一次性
   fault injection 拒绝 B 的首次 `onSessionReconnected`：A 从 `7b9f032a-...` 单次换代为
   `7f940331-...`，conversation 单次换代为 `d37b04dd-...`；B 保持旧 `eb878642-...`，未产生对外 ghost

@@ -97,6 +97,8 @@ export function spawnCuaHelper({
     child = spawnImpl(recipe.command, argv, {
       cwd: recipe.root,
       env,
+      // 后台 Helper：不创建可见控制台窗口（Windows 上默认 false 会让 Electron 闪黑窗）。
+      windowsHide: true,
       stdio: ["ignore", "pipe", "pipe", "ipc"],
     });
   } catch (error) {

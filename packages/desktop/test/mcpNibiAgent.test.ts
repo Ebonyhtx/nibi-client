@@ -30,16 +30,14 @@ afterEach(() => {
 
 describe("MCP Source Descriptors", () => {
   it("只为 Nibi Agent 提供描述符", () => {
-    expect(MCP_SOURCE_DESCRIPTORS.map((descriptor) => descriptor.source)).toEqual([
-      "zcodeagentmcp",
-    ]);
+    expect(MCP_SOURCE_DESCRIPTORS.map((descriptor) => descriptor.source)).toEqual(["nibiagentmcp"]);
   });
 
-  it("应能通过 getSourceDescriptor 获取 zcodeagentmcp 描述符", () => {
-    const descriptor = getSourceDescriptor("zcodeagentmcp");
+  it("应能通过 getSourceDescriptor 获取 nibiagentmcp 描述符", () => {
+    const descriptor = getSourceDescriptor("nibiagentmcp");
 
     expect(descriptor).toBeDefined();
-    expect(descriptor.source).toBe("zcodeagentmcp");
+    expect(descriptor.source).toBe("nibiagentmcp");
     expect(descriptor.configDirSegments).toEqual([".nibi", "cli"]);
     expect(descriptor.fileName).toBe("config.json");
     expect(descriptor.format).toBe("json");
@@ -180,7 +178,7 @@ describe("MCP enabled state", () => {
 
     await saveCliMcpToUserDirectory({
       action: "set-enabled",
-      source: "zcodeagentmcp",
+      source: "nibiagentmcp",
       name: "browser",
       enabled: false,
       projectPath: workspacePath,
@@ -201,7 +199,7 @@ describe("MCP enabled state", () => {
 
     await saveCliMcpToUserDirectory({
       action: "set-enabled",
-      source: "zcodeagentmcp",
+      source: "nibiagentmcp",
       name: "browser",
       enabled: true,
       projectPath: workspacePath,
@@ -239,7 +237,7 @@ describe("MCP enabled state", () => {
 
     await saveCliMcpToUserDirectory({
       action: "set-enabled",
-      source: "zcodeagentmcp",
+      source: "nibiagentmcp",
       name: "browser",
       enabled: false,
       location: server?.location,
@@ -300,7 +298,7 @@ describe("MCP enabled state", () => {
 
     await saveCliMcpToUserDirectory({
       action: "set-enabled",
-      source: "zcodeagentmcp",
+      source: "nibiagentmcp",
       name: "browser",
       enabled: false,
       location: server?.location,
@@ -419,7 +417,7 @@ describe("MCP enabled state", () => {
 
     await saveCliMcpToUserDirectory({
       action: "set-enabled",
-      source: "zcodeagentmcp",
+      source: "nibiagentmcp",
       name: "browser",
       enabled: true,
       location: server?.location,
@@ -445,7 +443,7 @@ describe("MCP config write hardening", () => {
     await expect(
       saveCliMcpToUserDirectory({
         action: "upsert",
-        source: "zcodeagentmcp",
+        source: "nibiagentmcp",
         name: "browser",
         config: { command: "npx", args: ["-y", "browser-mcp"] },
       }),
@@ -467,7 +465,7 @@ describe("MCP config write hardening", () => {
 
     await saveCliMcpToUserDirectory({
       action: "upsert",
-      source: "zcodeagentmcp",
+      source: "nibiagentmcp",
       name: "browser",
       config: { command: "npx", args: ["-y", "browser-mcp"] },
     });

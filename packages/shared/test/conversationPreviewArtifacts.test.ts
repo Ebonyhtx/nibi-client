@@ -36,20 +36,15 @@ describe("conversation preview artifact candidates", () => {
     ]);
   });
 
-  it("reads historical zcode-file-citation directives", () => {
+  it("ignores historical zcode-file-citation directives", () => {
     const candidates = buildConversationPreviewArtifactCandidates({
       productTurnId: "turn-legacy-citation",
-      assistantText: '历史 ::zcode-file-citation{path="/workspace/旧报告.pdf"}',
+      assistantText: "历史 ::zcode-file-citation{path=/workspace/旧报告.pdf purpose=source}",
       workspacePath,
       fileChanges: [],
     });
 
-    expect(candidates).toEqual([
-      expect.objectContaining({
-        sourceRef: "/workspace/旧报告.pdf",
-        artifactType: "pdf",
-      }),
-    ]);
+    expect(candidates).toEqual([]);
   });
 
   it("uses explicit assistant references and ignores unreferenced fileChanges", () => {

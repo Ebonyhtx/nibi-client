@@ -226,7 +226,7 @@ async function seedLifecycleMarketplaceCache(
             pluginCount: 1,
             source: {
               source: "url",
-              url: "https://cdn-zcode.z.ai/zcode/official-plugin/marketplace.json",
+              url: "https://cdn-zcode.z.ai/nibi/official-plugin/marketplace.json",
             },
           },
           {

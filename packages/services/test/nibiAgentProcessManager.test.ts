@@ -22,7 +22,6 @@ import {
 import {
   buildE2EAgentCoverageEnv,
   resolveDefaultNibiAgentCommand,
-  resolveKernelSelection,
   wrapNibiAgentCommandWithStdioTapDevProxy,
   NibiAgentProcessManager,
   type NibiAgentCommand,
@@ -122,6 +121,7 @@ describe("resolveDefaultNibiAgentCommand", () => {
   const originalCommand = process.env.NIBI_AGENT_SERVER_COMMAND;
   const originalArgsJson = process.env.NIBI_AGENT_SERVER_ARGS_JSON;
   const originalCwdEnv = process.env.NIBI_AGENT_SERVER_CWD;
+  const originalRustCommand = process.env.NIBI_RUST_AGENT_SERVER_COMMAND;
   const originalBinaryEnv = process.env[NIBI_AGENT_RUNTIME.binaryEnvVar];
   const originalNodeEnv = process.env.NODE_ENV;
   const originalRuntimeEnv = process.env[NIBI_RUNTIME_ENV_KEY];
@@ -139,6 +139,7 @@ describe("resolveDefaultNibiAgentCommand", () => {
 
   beforeEach(() => {
     delete process.env.NIBI_DESKTOP_AGENT_BYTECODE;
+    delete process.env.NIBI_RUST_AGENT_SERVER_COMMAND;
     // 修复原因：stdio tap 开关持久化在用户真实配置目录中。测试若直接读取该目录，
     // 本机开启抓包后会意外包装临时 Node agent，导致用例结果依赖用户环境。
     const dataBaseDir = mkdtempSync(join(tmpdir(), "nibi-agent-manager-data-"));
@@ -151,6 +152,7 @@ describe("resolveDefaultNibiAgentCommand", () => {
     restoreEnv("NIBI_AGENT_SERVER_COMMAND", originalCommand);
     restoreEnv("NIBI_AGENT_SERVER_ARGS_JSON", originalArgsJson);
     restoreEnv("NIBI_AGENT_SERVER_CWD", originalCwdEnv);
+    restoreEnv("NIBI_RUST_AGENT_SERVER_COMMAND", originalRustCommand);
     restoreEnv(NIBI_AGENT_RUNTIME.binaryEnvVar, originalBinaryEnv);
     restoreEnv("NODE_ENV", originalNodeEnv);
     restoreEnv(NIBI_RUNTIME_ENV_KEY, originalRuntimeEnv);
@@ -172,10 +174,11 @@ describe("resolveDefaultNibiAgentCommand", () => {
     }
   });
 
-  it("内置 dist nibi-agent 通过 Electron Node 模式启动", () => {
+  it("非 Electron 的远端链路仍通过 nibi.cjs bundle 启动", () => {
     delete process.env.NIBI_AGENT_SERVER_COMMAND;
     delete process.env.NIBI_AGENT_SERVER_ARGS_JSON;
     delete process.env.NIBI_AGENT_SERVER_CWD;
+    delete process.versions.electron;
 
     const sandboxRoot = mkdtempSync(join(tmpdir(), "nibi-agent-default-command-"));
     createdDirs.push(sandboxRoot);
@@ -214,80 +217,36 @@ describe("resolveDefaultNibiAgentCommand", () => {
     expect(realpathSync(command!.storagePreparationEntry!)).toBe(realpathSync(distEntrypoint));
   });
 
-  it.each([
-    [false, true],
-    [true, true],
-    [true, false],
-  ])(
-    "字节码开关只替换 Electron 的 stdio 入口，保留存储 Worker JS 入口：electron=%s enabled=%s",
-    (electron, enabled) => {
-      delete process.env.NIBI_AGENT_SERVER_COMMAND;
-      process.env.NIBI_DESKTOP_AGENT_BYTECODE = enabled ? "1" : "0";
-      Object.defineProperty(process.versions, "electron", {
-        configurable: true,
-        value: electron ? "41.0.3" : undefined,
-      });
-      const root = mkdtempSync(join(tmpdir(), "nibi-bytecode-resolver-"));
-      createdDirs.push(root);
-      const source = join(root, "apps/nibi-cli/packages/cli/dist/nibi.cjs");
-      const bytecode = join(dirname(source), "nibi.bytecode.cjs");
-      mkdirSync(dirname(source), { recursive: true });
-      writeFileSync(source, "");
-      writeFileSync(bytecode, "");
-      process.chdir(root);
-      const command = resolveDefaultNibiAgentCommand({
-        workspacePath: root,
-        workspaceKey: root,
-        presentationSurface: "desktop",
-      });
-      expect(realpathSync(command!.args![0]!)).toBe(
-        realpathSync(electron && enabled ? bytecode : source),
-      );
-      expect(command!.args!.slice(1)).toEqual(["app-server", "--stdio", "--surface", "desktop"]);
-      expect(realpathSync(command!.storagePreparationEntry!)).toBe(realpathSync(source));
-      expect(command!.supportsStorageStartup).toBe(true);
-    },
-  );
-
-  it("字节码入口缺失时拒绝静默回退 JS", () => {
+  it("非 Electron 远端链路不受桌面字节码开关影响", () => {
     delete process.env.NIBI_AGENT_SERVER_COMMAND;
+    delete process.env.NIBI_RUST_AGENT_SERVER_COMMAND;
+    delete process.versions.electron;
     process.env.NIBI_DESKTOP_AGENT_BYTECODE = "1";
-    Object.defineProperty(process.versions, "electron", { configurable: true, value: "41.0.3" });
-    const root = mkdtempSync(join(tmpdir(), "nibi-bytecode-missing-"));
+    const root = mkdtempSync(join(tmpdir(), "nibi-bytecode-remote-"));
     createdDirs.push(root);
     const source = join(root, "apps/nibi-cli/packages/cli/dist/nibi.cjs");
+    const bytecode = join(dirname(source), "nibi.bytecode.cjs");
     mkdirSync(dirname(source), { recursive: true });
     writeFileSync(source, "");
+    writeFileSync(bytecode, "");
     process.chdir(root);
-    expect(() =>
-      resolveDefaultNibiAgentCommand({ workspacePath: root, workspaceKey: root }),
-    ).toThrow(/字节码入口缺失/);
+    const command = resolveDefaultNibiAgentCommand({
+      workspacePath: root,
+      workspaceKey: root,
+      presentationSurface: "desktop",
+    });
+    expect(realpathSync(command!.args![0]!)).toBe(realpathSync(source));
+    expect(command!.args!.slice(1)).toEqual(["app-server", "--stdio", "--surface", "desktop"]);
+    expect(realpathSync(command!.storagePreparationEntry!)).toBe(realpathSync(source));
+    expect(command!.supportsStorageStartup).toBe(true);
   });
 
-  it("Desktop surface 会显式传给默认 app-server 命令", () => {
+  it("Desktop surface 会显式传给默认 Rust app-server 命令", () => {
     delete process.env.NIBI_AGENT_SERVER_COMMAND;
     delete process.env.NIBI_AGENT_SERVER_ARGS_JSON;
     delete process.env.NIBI_AGENT_SERVER_CWD;
-
-    const sandboxRoot = mkdtempSync(join(tmpdir(), "nibi-agent-desktop-surface-"));
-    createdDirs.push(sandboxRoot);
-
-    const appRepoDir = join(sandboxRoot, "z-code");
-    const desktopDir = join(appRepoDir, "packages", "desktop");
-    const distEntrypoint = join(
-      appRepoDir,
-      "apps",
-      "nibi-cli",
-      "packages",
-      "cli",
-      "dist",
-      "nibi.cjs",
-    );
-    mkdirSync(desktopDir, { recursive: true });
-    mkdirSync(dirname(distEntrypoint), { recursive: true });
-    writeFileSync(distEntrypoint, "console.log('zcode agent');\n");
-
-    process.chdir(desktopDir);
+    process.env.NIBI_RUST_AGENT_SERVER_COMMAND = "/opt/nibi/nibi-rs";
+    Object.defineProperty(process.versions, "electron", { configurable: true, value: "41.0.3" });
 
     const command = resolveDefaultNibiAgentCommand({
       presentationSurface: "desktop",
@@ -295,13 +254,8 @@ describe("resolveDefaultNibiAgentCommand", () => {
       workspaceKey: "/repo/workspace",
     });
 
-    expect(command?.args).toEqual([
-      expect.any(String),
-      "app-server",
-      "--stdio",
-      "--surface",
-      "desktop",
-    ]);
+    expect(command?.command).toBe("/opt/nibi/nibi-rs");
+    expect(command?.args).toEqual(["app-server", "--stdio", "--surface", "desktop"]);
   });
 
   it.each(desktopSurfaceArgsCases)(
@@ -323,10 +277,11 @@ describe("resolveDefaultNibiAgentCommand", () => {
     },
   );
 
-  it("monorepo 不可达时回退到已部署原生 binary", () => {
+  it("非 Electron 远端链路在 monorepo 不可达时回退到已部署原生 binary", () => {
     delete process.env.NIBI_AGENT_SERVER_COMMAND;
     delete process.env.NIBI_AGENT_SERVER_ARGS_JSON;
     delete process.env.NIBI_AGENT_SERVER_CWD;
+    delete process.versions.electron;
 
     // Bugfix: SSH 远端把 nibi-server.cjs 部署到 ~/.nibi/server/，cwd 不在仓库内、
     // NIBI_AGENT_SERVER_COMMAND 也没设；旧 resolver 只识别 env 和 monorepo 源码树，
@@ -1583,9 +1538,8 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
   );
 });
 
-describe("NIBI_KERNEL 灰度开关", () => {
+describe("Rust 内核（桌面本地唯一内核）", () => {
   const originalCwd = process.cwd();
-  const originalKernel = process.env.NIBI_KERNEL;
   const originalRustCommand = process.env.NIBI_RUST_AGENT_SERVER_COMMAND;
   const originalElectronVersion = Object.getOwnPropertyDescriptor(process.versions, "electron");
   const createdDirs: string[] = [];
@@ -1598,8 +1552,12 @@ describe("NIBI_KERNEL 灰度开关", () => {
     process.env[name] = value;
   }
 
+  function rustExecutableName(): string {
+    return process.platform === "win32" ? "nibi-rs.exe" : "nibi-rs";
+  }
+
   function sandboxWithBundle(): string {
-    const root = mkdtempSync(join(tmpdir(), "nibi-kernel-switch-"));
+    const root = mkdtempSync(join(tmpdir(), "nibi-rust-kernel-"));
     createdDirs.push(root);
     // 打包位的候选根之一：cwd/bundled-resources/<bundledResourceDir>/nibi.cjs
     const bundle = join(root, "bundled-resources", "nibi", "nibi.cjs");
@@ -1614,13 +1572,11 @@ describe("NIBI_KERNEL 灰度开关", () => {
     delete process.env.NIBI_AGENT_SERVER_ARGS_JSON;
     delete process.env.NIBI_AGENT_SERVER_CWD;
     delete process.env.NIBI_RUST_AGENT_SERVER_COMMAND;
-    delete process.env.NIBI_KERNEL;
     Object.defineProperty(process.versions, "electron", { configurable: true, value: "41.0.3" });
   });
 
   afterEach(() => {
     process.chdir(originalCwd);
-    restoreEnv("NIBI_KERNEL", originalKernel);
     restoreEnv("NIBI_RUST_AGENT_SERVER_COMMAND", originalRustCommand);
     if (originalElectronVersion) {
       Object.defineProperty(process.versions, "electron", originalElectronVersion);
@@ -1632,24 +1588,8 @@ describe("NIBI_KERNEL 灰度开关", () => {
     }
   });
 
-  it.each([
-    [undefined, "rust"],
-    ["", "rust"],
-    ["node", "node"],
-    ["NODE", "node"],
-    [" node ", "node"],
-    ["rust", "rust"],
-    ["RUST", "rust"],
-    [" rust ", "rust"],
-    // 拼错按默认（Rust）；真有二进制缺失时还有 node 回落。
-    ["ruust", "rust"],
-  ])("resolveKernelSelection(%s) → %s", (value, expected) => {
-    expect(resolveKernelSelection(value)).toBe(expected);
-  });
-
-  it("NIBI_KERNEL=rust 拉起 Rust app-server，并带上 DWF 侧车 env", () => {
+  it("显式 NIBI_RUST_AGENT_SERVER_COMMAND 拉起 Rust app-server，并带上 DWF 侧车 env", () => {
     const bundle = sandboxWithBundle();
-    process.env.NIBI_KERNEL = "rust";
     process.env.NIBI_RUST_AGENT_SERVER_COMMAND = "/opt/nibi/nibi-rs";
 
     const command = resolveDefaultNibiAgentCommand({
@@ -1673,7 +1613,6 @@ describe("NIBI_KERNEL 灰度开关", () => {
   it("没有 Electron runtime 时 Rust 内核不带侧车 env（DWF 回能力不支持）", () => {
     sandboxWithBundle();
     delete process.versions.electron;
-    process.env.NIBI_KERNEL = "rust";
     process.env.NIBI_RUST_AGENT_SERVER_COMMAND = "/opt/nibi/nibi-rs";
 
     const command = resolveDefaultNibiAgentCommand({
@@ -1687,41 +1626,47 @@ describe("NIBI_KERNEL 灰度开关", () => {
     expect(command?.storagePreparationProcess).toBe(true);
   });
 
-  it("NIBI_KERNEL 未设时默认走 Rust 链路", () => {
-    sandboxWithBundle();
-    process.env.NIBI_RUST_AGENT_SERVER_COMMAND = "/opt/nibi/nibi-rs";
+  it("无需任何开关：kernel/target/debug 下的 Rust binary 就是默认命令", () => {
+    const root = mkdtempSync(join(tmpdir(), "nibi-rust-kernel-default-"));
+    createdDirs.push(root);
+    const binary = join(root, "kernel", "target", "debug", rustExecutableName());
+    mkdirSync(dirname(binary), { recursive: true });
+    writeFileSync(binary, "");
+    process.chdir(root);
 
     const command = resolveDefaultNibiAgentCommand({
       workspacePath: "/repo/workspace",
       workspaceKey: "/repo/workspace",
     });
 
-    expect(command?.command).toBe("/opt/nibi/nibi-rs");
+    expect(realpathSync(command!.command)).toBe(realpathSync(binary));
+    expect(command?.args).toEqual(["app-server", "--stdio"]);
     expect(command?.supportsStorageStartup).toBe(true);
   });
 
-  it("NIBI_KERNEL=node 是回退开关：有 Rust 命令也走 node 链路", () => {
+  it("缺少 Rust binary 时 fail-closed：即使有 nibi.cjs 也不回落 Node", () => {
     sandboxWithBundle();
-    process.env.NIBI_KERNEL = "node";
-    process.env.NIBI_RUST_AGENT_SERVER_COMMAND = "/opt/nibi/nibi-rs";
+
+    expect(() =>
+      resolveDefaultNibiAgentCommand({ workspacePath: "/repo/workspace", workspaceKey: "/repo/workspace" }),
+    ).toThrow(/requires the Rust kernel/);
+    expect(() =>
+      resolveDefaultNibiAgentCommand({ workspacePath: "/repo/workspace", workspaceKey: "/repo/workspace" }),
+    ).toThrow(/kernel\/target\/\{debug,release\}/);
+    expect(() =>
+      resolveDefaultNibiAgentCommand({ workspacePath: "/repo/workspace", workspaceKey: "/repo/workspace" }),
+    ).toThrow(/cargo build --locked -p nibi-kernel-cli --bin nibi-rs/);
+  });
+
+  it("NIBI_AGENT_SERVER_COMMAND 是显式覆盖，不是静默回退", () => {
+    sandboxWithBundle();
+    process.env.NIBI_AGENT_SERVER_COMMAND = "nibi-agent";
 
     const command = resolveDefaultNibiAgentCommand({
       workspacePath: "/repo/workspace",
       workspaceKey: "/repo/workspace",
     });
 
-    expect(command?.command).toBe(process.execPath);
-  });
-
-  it("默认 Rust 但找不到 Rust 二进制时回落到 node 链路", () => {
-    const root = mkdtempSync(join(tmpdir(), "nibi-kernel-nobinary-"));
-    createdDirs.push(root);
-    process.chdir(root);
-    delete process.env.NIBI_KERNEL;
-
-    // 临时目录里既没有 kernel/target 也没有 nibi.cjs：Rust 与 node 两条位次都为空。
-    expect(
-      resolveDefaultNibiAgentCommand({ workspacePath: root, workspaceKey: root }),
-    ).toBeNull();
+    expect(command?.command).toBe("nibi-agent");
   });
 });

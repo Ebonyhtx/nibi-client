@@ -31,7 +31,7 @@ export const mcpToolUiCspSchema = z
   })
   .strict();
 
-/** 资源级 `_meta["zcode/csp"]` 归一化后的形状（只有为 true 的键）。 */
+/** 资源级 `_meta["nibi/csp"]` 归一化后的形状（只有为 true 的键）。 */
 export const mcpAppCspRelaxationsSchema = z
   .object({ unsafeEval: z.boolean().optional(), wasmUnsafeEval: z.boolean().optional() })
   .strict();

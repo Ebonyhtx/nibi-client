@@ -51,7 +51,7 @@ export function buildPluginUiToolResult(
       : [];
   const baseMeta =
     typeof meta === "object" && meta !== null ? (meta as Record<string, unknown>) : {};
-  // H12：超限字段已被 agent 省略；页面从 _meta["zcode/truncated"].bytes 得知并可用 tools/call 重取。
+  // H12：超限字段已被 agent 省略；页面从 _meta["nibi/truncated"].bytes 得知并可用 tools/call 重取。
   const mergedMeta = presentation.truncated
     ? { ...baseMeta, [MCP_APPS_TRUNCATED_META_KEY]: { bytes: presentation.truncatedBytes ?? 0 } }
     : baseMeta;

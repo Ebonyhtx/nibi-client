@@ -37,8 +37,8 @@ describe("zcode protocol message mapper", () => {
         mode: "build",
         agent: "nibi-agent",
         path: {
-          cwd: "/tmp/zcode",
-          root: "/tmp/zcode",
+          cwd: "/tmp/nibi",
+          root: "/tmp/nibi",
         },
         cost: 0,
         tokens: {
@@ -186,8 +186,8 @@ describe("zcode protocol message mapper", () => {
         mode: "build",
         agent: "nibi-agent",
         path: {
-          cwd: "/tmp/zcode",
-          root: "/tmp/zcode",
+          cwd: "/tmp/nibi",
+          root: "/tmp/nibi",
         },
         cost: 0,
         tokens: {

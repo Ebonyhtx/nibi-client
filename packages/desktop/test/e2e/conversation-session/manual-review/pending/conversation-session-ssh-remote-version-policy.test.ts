@@ -103,7 +103,7 @@ describe(`${MARKER}: 版本兼容策略`, () => {
     await uploadSSHFixtureFile(config, archive, remoteArchive);
     const installed = await runSSHCommand(
       config,
-      `"$HOME/.nibi/server/bin/zcode" update --from-archive '${remoteArchive}' --force --json`,
+      `"$HOME/.nibi/server/bin/nibi" update --from-archive '${remoteArchive}' --force --json`,
       { timeoutMs: 120_000 },
     );
     facts.syntheticInstallResult = {

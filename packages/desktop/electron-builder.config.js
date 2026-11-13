@@ -64,9 +64,9 @@ const workspaceRoot = resolve(import.meta.dirname, "../..");
 const desktopPackageRoot = import.meta.dirname;
 // Computer Use Helper（macOS .app、Windows runtime）只随真实 producer 打包；开源占位包下跳过随包资源与校验。
 const shouldPackageComputerUseHelper = isRealComputerUseProducerInstalled({ desktopPackageRoot });
-// Rust 内核二进制（灰度轨，可选资产）：prepare:rust-kernel 暂存进 .staging/rust-kernel 时才
-// 随包发布（<resources>/rust-kernel/<executable>，进程管理器的打包位次）。NIBI_KERNEL 默认
-// node——没暂存就整字段缺席，运行时回退 node 链路，打包结果与切流前逐字节相同。
+// Rust 内核二进制：prepare:rust-kernel 暂存进 .staging/rust-kernel 后随包发布
+// （<resources>/rust-kernel/<executable>，进程管理器的打包位次）。桌面本地 agent 只跑 Rust，
+// 没暂存时正式包会在启动 agent 时 fail-closed；发布构建不得跳过这一步。
 const rustKernelExecutable = targetPlatform.os === "win32" ? "nibi-rs.exe" : "nibi-rs";
 const shouldPackageRustKernel = existsSync(
   resolve(workspaceRoot, ".staging", "rust-kernel", rustKernelExecutable),
@@ -768,8 +768,8 @@ export default {
     ...(shouldPackageRustKernel
       ? [
           {
-            // Rust 内核（默认内核）：可选资产，暂存过才进包。签名断言不覆盖它——灰度期不买证书，
-            // 进包后被默认拉起（`NIBI_KERNEL=node` 或二进制缺失时回落 node 链路）。
+            // Rust 内核（桌面本地唯一内核）：暂存过才进包；缺件时正式包启动 agent 会 fail-closed。
+            // 签名断言不覆盖它——灰度期不买证书。
             from: resolve(workspaceRoot, ".staging/rust-kernel"),
             to: "rust-kernel",
           },
@@ -837,9 +837,10 @@ export default {
       : []),
     {
       // agent 运行时资产，打包到 resources/nibi。
-      // 桌面端内置的是 agent 的 JS bundle（nibi/nibi.cjs，由 prepare:agent-bundle 生成），
-      // Host 进程用 app 自带的 Electron Node runtime（ELECTRON_RUN_AS_NODE）执行 `nibi.cjs app-server --stdio`，
-      // 不再随包内置独立 Node 二进制。远端 SSH/WSL 仍走原生二进制（无 Electron）。
+      // 桌面本地 agent 由随包 nibi-rs（resources/rust-kernel）提供；这里的 nibi.cjs
+      // （由 prepare:agent-bundle 生成）供 Rust 内核的 DWF 侧车（`__nibi-dwf-engine`）与插件宿主
+      // 使用，由 app 自带的 Electron Node runtime（ELECTRON_RUN_AS_NODE）执行。
+      // 远端 SSH/WSL 仍走自己的 node + nibi.cjs 链路。
       from: `bundled-agents/${targetPlatform.key}/nibi`,
       to: "nibi",
       filter: ["**/*", "!**/*.map"],

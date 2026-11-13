@@ -200,7 +200,7 @@ function createServerInfo(options: HttpServerOptions): ServerRemoteInfo {
   });
 }
 
-const nibiLiteTokenCookieName = "zcode_lite_token";
+const nibiLiteTokenCookieName = "nibi_lite_token";
 
 const staticMimeTypes: Record<string, string> = {
   ".css": "text/css; charset=utf-8",

@@ -31,11 +31,11 @@ describe("isPathDriveQualified", () => {
 
 describe("isInsideDirectory", () => {
   it("win32 跨盘符：relative 返回绝对路径，必须判为越界（回归用例）", () => {
-    // 修复前：path.win32.relative('C:\\zcode\\web', 'Z:\\marker.txt') === 'Z:\\marker.txt'
+    // 修复前：path.win32.relative('C:\\nibi\\web', 'Z:\\marker.txt') === 'Z:\\marker.txt'
     // 不以 ".." 开头，被旧实现误判为在目录内
-    expect(isInsideDirectory("C:\\zcode\\web", "Z:\\marker.txt", win32)).toBe(false);
+    expect(isInsideDirectory("C:\\nibi\\web", "Z:\\marker.txt", win32)).toBe(false);
     expect(
-      isInsideDirectory("C:\\zcode\\web", win32.resolve("C:\\zcode\\web", "index.html"), win32),
+      isInsideDirectory("C:\\nibi\\web", win32.resolve("C:\\nibi\\web", "index.html"), win32),
     ).toBe(true);
   });
 

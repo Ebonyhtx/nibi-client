@@ -459,16 +459,16 @@ describe("buildNibiDataSizeArmsPayload", () => {
 
     expect(payload).toEqual({
       group: "resource",
-      name: "perf_resource_zcode_data_size",
+      name: "perf_resource_nibi_data_size",
       properties: {
         app_version: "3.9.3",
         arms_env: "prod",
         data_root_kind: "custom",
         device_mid: "device-1",
         directories_scanned: "20",
-        event_name: "perf_resource_zcode_data_size",
+        event_name: "perf_resource_nibi_data_size",
         files_scanned: "200000",
-        metric_kind: "zcode_data_bytes",
+        metric_kind: "nibi_data_bytes",
         metric_value: "1024",
         partial_reason: "file_limit",
         platform: "macos",
@@ -476,7 +476,7 @@ describe("buildNibiDataSizeArmsPayload", () => {
         scan_error_count: "2",
         scan_status: "partial",
         schema_version: "1",
-        zcode_data_bytes: "1024",
+        nibi_data_bytes: "1024",
       },
       type: "custom",
       value: 1024,

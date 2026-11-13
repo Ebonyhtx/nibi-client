@@ -111,11 +111,11 @@ describe("desktop tsup chunk isolation", () => {
     expect(
       resolveBuildRemoteCdnReleaseRoots({
         CDN_DOMAIN: "cdn-zcode.z.ai,cdn.nibi-ai.com",
-        OSS_PATH_PREFIX: "zcode/electron/releases",
+        OSS_PATH_PREFIX: "nibi/electron/releases",
       }),
     ).toEqual([
-      "https://cdn-zcode.z.ai/zcode/electron/releases",
-      "https://cdn.nibi-ai.com/zcode/electron/releases",
+      "https://cdn-zcode.z.ai/nibi/electron/releases",
+      "https://cdn.nibi-ai.com/nibi/electron/releases",
     ]);
   });
 

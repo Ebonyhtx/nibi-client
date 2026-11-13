@@ -11,13 +11,13 @@ async fn settings_are_read_from_disk_and_tolerate_bad_files() {
     let file = paths.settings().as_path().to_path_buf();
     write(
         &file,
-        r#"{"nibiEndpointOrigin":" https://zcode.example.com ","theme":"dark"}"#,
+        r#"{"nibiEndpointOrigin":" https://nibi.example.com ","theme":"dark"}"#,
     )
     .await;
     assert_eq!(settings.read().await["theme"], "dark");
     assert_eq!(
         settings.zcode_endpoint_origin().await.as_deref(),
-        Some("https://zcode.example.com")
+        Some("https://nibi.example.com")
     );
     write(&file, "[1]").await;
     assert!(settings.read().await.is_empty());

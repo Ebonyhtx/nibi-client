@@ -6,16 +6,16 @@ describe("resolveDefaultEmbeddedSearchBackend", () => {
     expect(
       resolveDefaultEmbeddedSearchBackend({
         env: {
-          NIBI_BFS_BINARY: "/opt/zcode/tools/bfs/bfs",
-          NIBI_RG_BINARY: "/opt/zcode/tools/ripgrep/rg",
-          NIBI_UGREP_BINARY: "/opt/zcode/tools/ugrep/ugrep",
+          NIBI_BFS_BINARY: "/opt/nibi/tools/bfs/bfs",
+          NIBI_RG_BINARY: "/opt/nibi/tools/ripgrep/rg",
+          NIBI_UGREP_BINARY: "/opt/nibi/tools/ugrep/ugrep",
         },
       }),
     ).toEqual({
       kind: "native-binaries",
-      findCommand: "/opt/zcode/tools/bfs/bfs",
-      grepCommand: "/opt/zcode/tools/ugrep/ugrep",
-      rgCommand: "/opt/zcode/tools/ripgrep/rg",
+      findCommand: "/opt/nibi/tools/bfs/bfs",
+      grepCommand: "/opt/nibi/tools/ugrep/ugrep",
+      rgCommand: "/opt/nibi/tools/ripgrep/rg",
     });
   });
 

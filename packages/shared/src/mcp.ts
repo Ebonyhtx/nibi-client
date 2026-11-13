@@ -17,7 +17,7 @@ export const NIBI_PLUGIN_ID_ENV_KEY = "NIBI_PLUGIN_ID";
 
 export type McpSource =
   | "mcp"
-  | "zcodeagentmcp"
+  | "nibiagentmcp"
   | "claudeclimcp"
   | "geminiclimcp"
   | "codexclimcp"
@@ -148,7 +148,7 @@ export interface McpConfig {
   mcp: {
     mcpServers: Record<string, McpServerConfig>;
   };
-  zcodeagentmcp: CliMcpConfig;
+  nibiagentmcp: CliMcpConfig;
   claudeclimcp: CliMcpConfig;
   geminiclimcp: CliMcpConfig;
   codexclimcp: CliMcpConfig;

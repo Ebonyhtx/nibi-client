@@ -50,7 +50,7 @@ export function mergeMcpServerStatusSnapshots(
 ): NibiMcpServer[] {
   const markMissingConnectingAsError = options.markMissingConnectingAsError ?? true;
   return servers.map((server) => {
-    if (server.source !== "zcodeagentmcp") {
+    if (server.source !== "nibiagentmcp") {
       return server;
     }
     const snapshot = statuses[server.name];

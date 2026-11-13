@@ -40,7 +40,7 @@ function projectRecord(
   config: McpServerConfig,
 ): NativeMcpServerRecord {
   return {
-    source: "zcodeagentmcp",
+    source: "nibiagentmcp",
     scope: "workspace",
     name,
     config,
@@ -58,7 +58,7 @@ function projectRecord(
 
 function userRecord(name: string, config: McpServerConfig): NativeMcpServerRecord {
   return {
-    source: "zcodeagentmcp",
+    source: "nibiagentmcp",
     scope: "user",
     name,
     config,
@@ -199,10 +199,12 @@ describe("trust admissions", () => {
     const old = await inspectWorkspaceMcpTrust({ records, workspacePath: workspace, storePath });
     const oldDigest = old.reviews.probe!.declarationDigest;
 
-    const changed = [
-      projectRecord(workspace, "probe", { ...probeConfig, env: { VERSION: "2" } }),
-    ];
-    const next = await inspectWorkspaceMcpTrust({ records: changed, workspacePath: workspace, storePath });
+    const changed = [projectRecord(workspace, "probe", { ...probeConfig, env: { VERSION: "2" } })];
+    const next = await inspectWorkspaceMcpTrust({
+      records: changed,
+      workspacePath: workspace,
+      storePath,
+    });
     expect(next.reviews.probe!.declarationDigest).not.toBe(oldDigest);
     expect(next.reviews.probe!.trusted).toBe(false);
 
@@ -225,7 +227,11 @@ describe("trust admissions", () => {
     const workspace = await makeRoot("nibi-mcp-trust-changed-flag-");
     const storePath = join(workspace, "security", "workspace-mcp-trust-v1.json");
     const records = [projectRecord(workspace, "probe", probeConfig)];
-    const initial = await inspectWorkspaceMcpTrust({ records, workspacePath: workspace, storePath });
+    const initial = await inspectWorkspaceMcpTrust({
+      records,
+      workspacePath: workspace,
+      storePath,
+    });
     expect(initial.reviews.probe).toMatchObject({
       trusted: false,
       declarationChanged: false,
@@ -239,7 +245,11 @@ describe("trust admissions", () => {
       trusted: true,
       storePath,
     });
-    const trusted = await inspectWorkspaceMcpTrust({ records, workspacePath: workspace, storePath });
+    const trusted = await inspectWorkspaceMcpTrust({
+      records,
+      workspacePath: workspace,
+      storePath,
+    });
     expect(trusted.reviews.probe).toMatchObject({
       trusted: true,
       declarationChanged: false,
@@ -263,7 +273,11 @@ describe("trust admissions", () => {
     const workspace = await makeRoot("nibi-mcp-trust-revoke-");
     const storePath = join(workspace, "security", "workspace-mcp-trust-v1.json");
     const records = [projectRecord(workspace, "probe", probeConfig)];
-    const inspected = await inspectWorkspaceMcpTrust({ records, workspacePath: workspace, storePath });
+    const inspected = await inspectWorkspaceMcpTrust({
+      records,
+      workspacePath: workspace,
+      storePath,
+    });
     const declarationDigest = inspected.reviews.probe!.declarationDigest;
 
     expect(
@@ -300,9 +314,7 @@ describe("trust admissions", () => {
       trusted: false,
       declarationChanged: false,
     });
-    expect(
-      filterTrustedProjectMcpRecords({ records, reviews: afterRevoke.reviews }),
-    ).toEqual([]);
+    expect(filterTrustedProjectMcpRecords({ records, reviews: afterRevoke.reviews })).toEqual([]);
   });
 
   it("does not grant or inspect offline and unregistered workspaces", async () => {
@@ -316,7 +328,12 @@ describe("trust admissions", () => {
     })!;
 
     expect(
-      await inspectWorkspaceMcpTrust({ records, workspacePath: workspace, storePath, online: false }),
+      await inspectWorkspaceMcpTrust({
+        records,
+        workspacePath: workspace,
+        storePath,
+        online: false,
+      }),
     ).toEqual({ reviews: {}, unreviewable: [] });
 
     const registry = createWorkspaceMcpTrustRegistry();
@@ -426,10 +443,16 @@ describe("trust store owner", () => {
       expect((await stat(storePath)).mode & 0o777).toBe(0o600);
     }
 
-    const trusted = await inspectWorkspaceMcpTrust({ records, workspacePath: workspace, storageRoot });
+    const trusted = await inspectWorkspaceMcpTrust({
+      records,
+      workspacePath: workspace,
+      storageRoot,
+    });
     expect(trusted.reviews.probe?.trusted).toBe(true);
     expect(
-      filterTrustedProjectMcpRecords({ records, reviews: trusted.reviews }).map((record) => record.name),
+      filterTrustedProjectMcpRecords({ records, reviews: trusted.reviews }).map(
+        (record) => record.name,
+      ),
     ).toEqual(["probe"]);
 
     // 撤销只删精确摘要，其他工作区记录保留。
@@ -453,7 +476,11 @@ describe("trust store owner", () => {
     for (const corrupt of ["{broken", '{"schemaVersion":99,"records":[]}']) {
       await writeFile(storePath, corrupt);
       const records = [projectRecord(workspace, "probe", probeConfig)];
-      const inspected = await inspectWorkspaceMcpTrust({ records, workspacePath: workspace, storePath });
+      const inspected = await inspectWorkspaceMcpTrust({
+        records,
+        workspacePath: workspace,
+        storePath,
+      });
       expect(inspected.reviews.probe?.trusted).toBe(false);
       const decision = await decideWorkspaceMcpTrust({
         records,
@@ -634,10 +661,7 @@ describe("A6 registered workspaces", () => {
       { workspacePath: workspace },
       { workspaceRegistered: true, storageRoot },
     );
-    expect(registered.servers.map((server) => server.name).sort()).toEqual([
-      "probe",
-      "user_probe",
-    ]);
+    expect(registered.servers.map((server) => server.name).sort()).toEqual(["probe", "user_probe"]);
     expect(registered.trust?.probe).toMatchObject({
       configuredEnabled: true,
       transport: "stdio",

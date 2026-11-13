@@ -205,10 +205,17 @@ export function createComputerUseRuntime(options = {}) {
           if (typeof registryHit.aumid === "string" && registryHit.aumid.trim()) {
             launchAttempts.push({ aumid: registryHit.aumid.trim() });
           }
+          // 默认后台拉起（helper 不激活）；只有调用方显式 activate:true 才允许前台化。
+          const launchOptions = {
+            ...(params.activate === true ? { activate: true } : {}),
+            ...(typeof params.start_minimized === "boolean"
+              ? { start_minimized: params.start_minimized }
+              : {}),
+          };
           let launched = false;
           for (const attempt of launchAttempts) {
             try {
-              const r = await callHelper("launch_app", attempt, 30_000);
+              const r = await callHelper("launch_app", { ...attempt, ...launchOptions }, 30_000);
               if (r?.launched !== false) {
                 launched = true;
                 break;
@@ -298,6 +305,8 @@ export function createComputerUseRuntime(options = {}) {
         window_id: String(windowId),
         ...(typeof pid === "number" ? { pid } : {}),
         ...(includeScreenshot ? { include_screenshot: true } : {}),
+        // 观察默认不激活窗口；只有调用方显式要求才把 activate 透传给 Helper 的透明激活级联。
+        ...(params.activate === true ? { activate: true } : {}),
       },
       30_000,
     );

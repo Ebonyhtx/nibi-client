@@ -130,7 +130,9 @@ export async function resolveWorkspaceMcpTrustStorePath(options?: {
   const envRoot = process.env.NIBI_STORAGE_DIR?.trim();
   const configuredRoot =
     options?.storageRoot?.trim() || envRoot || (await readConfiguredStorageDir(home));
-  const storageRoot = configuredRoot ? expandConfiguredRoot(configuredRoot, home) : join(home, ".nibi");
+  const storageRoot = configuredRoot
+    ? expandConfiguredRoot(configuredRoot, home)
+    : join(home, ".nibi");
   return join(storageRoot, SECURITY_DIRECTORY, WORKSPACE_MCP_TRUST_STORE_FILE);
 }
 
@@ -155,7 +157,10 @@ function canonicalProtocol(value: unknown): CanonicalProtocol | null {
   return null;
 }
 
-function canonicalOAuth(value: unknown, transport: CanonicalTransport): Record<string, string> | null {
+function canonicalOAuth(
+  value: unknown,
+  transport: CanonicalTransport,
+): Record<string, string> | null {
   if (value === undefined || value === null) return null;
   if (transport === "stdio") return null;
   if (!isRecord(value)) return null;
@@ -226,7 +231,10 @@ export function canonicalizeMcpDeclaration(
   const alwaysLoad = raw.alwaysLoad;
   if (alwaysLoad !== undefined && typeof alwaysLoad !== "boolean") return null;
   const timeout = raw.timeoutMs;
-  if (timeout !== undefined && !(typeof timeout === "number" && Number.isFinite(timeout) && timeout > 0)) {
+  if (
+    timeout !== undefined &&
+    !(typeof timeout === "number" && Number.isFinite(timeout) && timeout > 0)
+  ) {
     return null;
   }
   const timeoutMs = typeof timeout === "number" ? Math.ceil(timeout) : null;
@@ -238,7 +246,8 @@ export function canonicalizeMcpDeclaration(
     const argsValue = raw.args;
     let args: string[] = [];
     if (argsValue !== undefined) {
-      if (!Array.isArray(argsValue) || argsValue.some((item) => typeof item !== "string")) return null;
+      if (!Array.isArray(argsValue) || argsValue.some((item) => typeof item !== "string"))
+        return null;
       args = [...(argsValue as string[])];
     }
     const env = canonicalStringMap(raw.env);
@@ -340,7 +349,8 @@ export async function writeWorkspaceMcpTrustDecision(input: {
   grantedAt?: string;
 }): Promise<void> {
   await updateJsonObjectFile(input.storePath, (current) => {
-    const parsed = Object.keys(current).length === 0 ? undefined : parseWorkspaceMcpTrustStoreObject(current);
+    const parsed =
+      Object.keys(current).length === 0 ? undefined : parseWorkspaceMcpTrustStoreObject(current);
     if (Object.keys(current).length > 0 && !parsed) {
       throw new WorkspaceMcpTrustStoreCorruptError(input.storePath);
     }
@@ -392,7 +402,9 @@ function displayConfig(
   if (canonical.type === "stdio") {
     return JSON.stringify(
       {
-        command: sanitizeDisplayText([canonical.command ?? "", ...(canonical.args ?? [])].join(" ")),
+        command: sanitizeDisplayText(
+          [canonical.command ?? "", ...(canonical.args ?? [])].join(" "),
+        ),
         cwd: canonical.cwd ?? workspacePath,
         env: Object.keys(canonical.env ?? {}).sort(),
       },
@@ -437,9 +449,7 @@ export async function inspectWorkspaceMcpTrust(
     return { reviews: {}, unreviewable: [] };
   }
   const projectRecords = input.records
-    .filter(
-      (record) => record.scope === "workspace" && record.source === "zcodeagentmcp",
-    )
+    .filter((record) => record.scope === "workspace" && record.source === "nibiagentmcp")
     .sort((left, right) => left.name.localeCompare(right.name));
   const reviews: Record<string, WorkspaceMcpTrustReviewView> = {};
   const unreviewable: string[] = [];
@@ -502,7 +512,7 @@ export function filterTrustedProjectMcpRecords(
 ): NativeMcpServerRecord[] {
   const unreviewable = new Set(input.unreviewable ?? []);
   return input.records.filter((record) => {
-    if (record.scope !== "workspace" || record.source !== "zcodeagentmcp") return true;
+    if (record.scope !== "workspace" || record.source !== "nibiagentmcp") return true;
     const review = input.reviews[record.name];
     return review?.trusted === true && !unreviewable.has(record.name);
   });

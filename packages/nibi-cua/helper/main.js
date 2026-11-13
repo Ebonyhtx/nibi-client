@@ -132,9 +132,11 @@ export function createHelperBackend(engine, options = {}) {
       const observeOnce = () => observeWindow(engine, pid, windowId, input);
       let raw = await observeOnce();
       let receipt = buildReceipt(raw, semantics);
-      // 透明激活（职责与判据见 helper/transparent-activation.js）：只在**树为空**时激活——
-      // 正常观察绝不抢焦点；kill switch 闩锁后不激活。
-      if (receipt.elements.length === 0 && !semantics.status().killSwitchLatched) {
+      // 透明激活（职责与判据见 helper/transparent-activation.js）：默认**不激活**——
+      // 观察绝不抢焦点。只有调用方显式传 `activate:true` 才允许走 bring_to_front /
+      // launch_app 的级联；kill switch 闩锁后即使显式要求也不激活。
+      const activationRequested = input.activate === true;
+      if (activationRequested && receipt.elements.length === 0 && !semantics.status().killSwitchLatched) {
         receipt = await activateIfEmpty({
           engine,
           semantics,
@@ -145,6 +147,9 @@ export function createHelperBackend(engine, options = {}) {
           raw,
           observeOnce,
         });
+      } else if (receipt.elements.length === 0 && !activationRequested) {
+        // 空树不自动激活：后台优先。把补救写清楚，由模型决定是否显式要求前台。
+        receipt.text = `${receipt.text}\n[background] 元素树为空；未激活窗口（如需前台可显式传 activate:true）`;
       }
       return receipt;
     },
@@ -200,6 +205,7 @@ export function createHelperBackend(engine, options = {}) {
         ...(typeof params.duration_ms === "number" ? { duration_ms: params.duration_ms } : {}),
         ...(params.window_id !== undefined ? { window_id: String(params.window_id) } : {}),
         ...(typeof params.pid === "number" ? { pid: params.pid } : {}),
+        delivery_mode: params.delivery_mode,
       }),
     ),
     scroll: inputAction("scroll", async (params, engineRef) =>
@@ -209,6 +215,7 @@ export function createHelperBackend(engine, options = {}) {
         ...(params.element_token !== undefined ? { element_token: String(params.element_token) } : {}),
         ...(params.window_id !== undefined ? { window_id: String(params.window_id) } : {}),
         ...(typeof params.pid === "number" ? { pid: params.pid } : {}),
+        delivery_mode: params.delivery_mode,
       }),
     ),
     type: inputAction("type", async (params, engineRef) =>
@@ -218,6 +225,7 @@ export function createHelperBackend(engine, options = {}) {
         ...(typeof params.x === "number" && typeof params.y === "number" ? { x: params.x, y: params.y } : {}),
         ...(params.window_id !== undefined ? { window_id: String(params.window_id) } : {}),
         ...(typeof params.pid === "number" ? { pid: params.pid } : {}),
+        delivery_mode: params.delivery_mode,
       }),
     ),
     key: inputAction("key", async (params, engineRef) => {
@@ -269,6 +277,7 @@ export function createHelperBackend(engine, options = {}) {
         keys: combo,
         ...(typeof params.pid === "number" ? { pid: params.pid } : {}),
         ...(params.window_id !== undefined ? { window_id: Number(params.window_id) } : {}),
+        delivery_mode: params.delivery_mode,
       });
       return { ...written, ...pasted, paste_combo: combo.join("+") };
     }),
@@ -278,6 +287,7 @@ export function createHelperBackend(engine, options = {}) {
         value: String(params.value ?? ""),
         ...(typeof params.pid === "number" ? { pid: params.pid } : {}),
         ...(params.window_id !== undefined ? { window_id: String(params.window_id) } : {}),
+        delivery_mode: params.delivery_mode,
       }),
     ),
     /**
@@ -305,6 +315,9 @@ export function createHelperBackend(engine, options = {}) {
           ...(typeof params.pid === "number" ? { pid: params.pid } : {}),
           // invoke_menu 的 window_id 要数值（字符串会 "invalid type: string, expected u64"，实测踩过）。
           ...(params.window_id !== undefined ? { window_id: Number(params.window_id) } : {}),
+          // 菜单是唯一自动升级前台的输入（input-action.js 已把菜单路径的默认模式设为
+          // foreground）：展开菜单本身就可能需要激活窗口；调用方显式 background 仍尊重。
+          delivery_mode: params.delivery_mode,
         });
       }
       if (action === "expand") {
@@ -313,6 +326,7 @@ export function createHelperBackend(engine, options = {}) {
           action: "expand",
           ...(typeof params.pid === "number" ? { pid: params.pid } : {}),
           ...(params.window_id !== undefined ? { window_id: String(params.window_id) } : {}),
+          delivery_mode: params.delivery_mode,
         });
       }
       if (action === "set_value") {
@@ -320,6 +334,7 @@ export function createHelperBackend(engine, options = {}) {
           element_token: String(params.element_token ?? ""),
           value: String(params.value ?? ""),
           ...(typeof params.pid === "number" ? { pid: params.pid } : {}),
+          delivery_mode: params.delivery_mode,
         });
       }
       if (["invoke", "select", "press", "click"].includes(action)) {
@@ -328,6 +343,7 @@ export function createHelperBackend(engine, options = {}) {
           element_token: String(params.element_token ?? ""),
           ...(typeof params.pid === "number" ? { pid: params.pid } : {}),
           ...(params.window_id !== undefined ? { window_id: String(params.window_id) } : {}),
+          delivery_mode: params.delivery_mode,
         });
       }
       throw Object.assign(

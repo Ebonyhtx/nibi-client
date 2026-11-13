@@ -1,7 +1,7 @@
 # 子代理重启续跑
 
 > 状态：Rust 与 Node 内核均已落地（2026-11-11）
-> 范围：Rust 内核（默认）先行，Node 内核（`NIBI_KERNEL=node` 回退）随后对齐
+> 范围：桌面本地 Rust 内核（唯一）先行；远端 Node 内核（`nibi.cjs` 链路）继续对齐
 > 关联：[子代理会话只读侧栏](subagent-session-side-tabs.md)、[子代理超时策略](subagent-timeout-policy.md)、[会话生命周期](../../kernel/crates/session/src/resume.rs)
 
 ## 问题

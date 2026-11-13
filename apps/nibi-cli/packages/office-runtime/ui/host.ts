@@ -54,7 +54,7 @@ function createHost() {
   const pageId = crypto.randomUUID();
   const currentViewId = () =>
     (
-      app.getHostCapabilities()?.experimental?.["zcode/surface"] as
+      app.getHostCapabilities()?.experimental?.["nibi/surface"] as
         | { stateKey?: string }
         | undefined
     )?.stateKey ?? pageId;
@@ -122,7 +122,7 @@ function createHost() {
     },
     ready,
     readWindow(): WindowState {
-      const surface = app.getHostCapabilities()?.experimental?.["zcode/surface"] as
+      const surface = app.getHostCapabilities()?.experimental?.["nibi/surface"] as
         | { stateKey?: string }
         | undefined;
       if (!surface?.stateKey) return {};
@@ -133,7 +133,7 @@ function createHost() {
       }
     },
     saveWindow(patch: WindowState): void {
-      const surface = app.getHostCapabilities()?.experimental?.["zcode/surface"] as
+      const surface = app.getHostCapabilities()?.experimental?.["nibi/surface"] as
         | { stateKey?: string }
         | undefined;
       if (!surface?.stateKey) return;

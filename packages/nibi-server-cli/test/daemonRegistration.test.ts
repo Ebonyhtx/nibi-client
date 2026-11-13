@@ -134,7 +134,7 @@ describe("daemon service registration", () => {
       platform === "darwin" ? "launchd" : platform === "linux" ? "systemd" : "task-scheduler";
     const legacyDescriptor = createServiceDescriptor({
       platform,
-      command: join(layout.stableBinDir, platform === "win32" ? "zcode.cmd" : "zcode"),
+      command: join(layout.stableBinDir, platform === "win32" ? "nibi.cmd" : "nibi"),
       args: ["serve", "--supervisor", "--server-root", layout.serverRoot],
     });
     await mkdir(layout.serviceDir, { recursive: true });
