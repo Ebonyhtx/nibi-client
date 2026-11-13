@@ -35,7 +35,7 @@ fn ready(family: &str) -> Reply {
         200,
         &json!({"code": 0, "data": {
             "status": "ready",
-            "token": "zcode-jwt",
+            "token": "nibi-jwt",
             "user": {"user_id": " u-9 ", "name": "Dev", "email": "dev@example.com", "extra": 1},
             family: {"access_token": "at-new", "refresh_token": "rt-new"},
         }}),
@@ -125,7 +125,7 @@ async fn zai_login_polls_exchanges_and_writes_both_files() {
     for (key, value) in [
         ("oauth:active_provider", "zai"),
         ("oauth:zai:access_token", business.as_str()),
-        ("zcodejwttoken", "zcode-jwt"),
+        ("zcodejwttoken", "nibi-jwt"),
         (
             "oauth:zai:user_info",
             r#"{"user_id":" u-9 ","name":"Dev","email":"dev@example.com","extra":1}"#,
@@ -187,7 +187,7 @@ async fn bigmodel_login_writes_the_app_profile() {
     let info = r#"{"id":"u-9","username":"Dev","displayName":"Dev","rawProfile":{"user_id":" u-9 ","name":"Dev","email":"dev@example.com","extra":1,"nibiProfileSchemaVersion":2}}"#;
     for (key, value) in [
         ("oauth:active_provider", "bigmodel"),
-        ("zcodejwttoken", "zcode-jwt"),
+        ("zcodejwttoken", "nibi-jwt"),
         ("oauth:bigmodel:access_token", "at-new"),
         ("oauth:bigmodel:refresh_token", "rt-new"),
         ("oauth:bigmodel:user_info", info),
@@ -325,7 +325,7 @@ async fn a_team_only_account_logs_in_and_uses_the_team_plan() {
                 "hasSubscription": true, "status": "EFFECTIVE", "memberGrantStatus": "VALID"
             })),
             ("GET", "/api/biz/v1/organization/org-t/projects/p-t/api_keys") => ok(json!([
-                {"name": "zcode-team-api-key", "apiKey": "key-team", "keyType": 2}
+                {"name": "nibi-team-api-key", "apiKey": "key-team", "keyType": 2}
             ])),
             ("POST", "/api/biz/v1/organization/org-t/projects/p-t/api_keys/key-team/access_tokens") => {
                 ok(json!({
@@ -487,7 +487,7 @@ async fn app_service(family: &'static str) -> Server {
                 } else {
                     json!({"bigmodel": {"access_token": "at-big", "refresh_token": "rt-big"}})
                 };
-                let mut data = json!({"status": "ready", "token": " zcode-jwt ", "user": user});
+                let mut data = json!({"status": "ready", "token": " nibi-jwt ", "user": user});
                 data.as_object_mut()
                     .unwrap()
                     .extend(tokens.as_object().unwrap().clone());
@@ -500,7 +500,7 @@ async fn app_service(family: &'static str) -> Server {
             ("GET", "/api/biz/customer/getCustomerInfo") => ok(customer.clone()),
             ("GET", path) if path.ends_with("/api_keys") => ok(json!([])),
             ("POST", path) if path.ends_with("/api_keys") => {
-                ok(json!({"name": "zcode-api-key", "apiKey": "key-1"}))
+                ok(json!({"name": "nibi-api-key", "apiKey": "key-1"}))
             }
             ("POST", path) if path.ends_with("/access_tokens") => ok(json!({
                 "accessToken": "pat-1", "tokenType": "Bearer",

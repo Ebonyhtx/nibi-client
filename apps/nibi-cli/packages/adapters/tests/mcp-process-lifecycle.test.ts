@@ -404,7 +404,7 @@ function createCommandResult(input: {
 async function createMcpProcessFixture(
   options: { crashAfterConnectedMs?: number; hangDuringInitialize?: boolean } = {},
 ) {
-  const root = await mkdtemp(join(tmpdir(), "zcode-mcp-process-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-mcp-process-"));
   const childPath = join(root, "child.mjs");
   const serverPath = join(root, "server.mjs");
   const serverPidFile = join(root, "server.pid");

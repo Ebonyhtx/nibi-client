@@ -8,7 +8,7 @@ const originalHome = process.env.HOME;
 const tempRoots: string[] = [];
 
 function makeTempRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "zcode-hooks-"));
+  const root = mkdtempSync(join(tmpdir(), "nibi-hooks-"));
   tempRoots.push(root);
   return root;
 }

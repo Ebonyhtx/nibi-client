@@ -61,7 +61,7 @@ fn the_explicit_secret_wins_and_is_trimmed() {
     assert_eq!(secret(Some(" x ")).derive(), "x");
     assert_eq!(
         secret(Some("  ")).derive(),
-        "zcode-credential-fallback:linux:/home/dev:dev"
+        "nibi-credential-fallback:linux:/home/dev:dev"
     );
     assert!(
         ["darwin", "linux", "win32"].contains(&crate::node_platform())

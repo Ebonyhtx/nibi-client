@@ -7,7 +7,7 @@
 - [根 README](../README.md)：环境、启动、构建与仓库结构
 - [贡献指南](../CONTRIBUTING.md)：提交、验证与公开仓规则
 - [架构治理](architecture/architecture-governance.md)：模块边界、依赖方向与门禁
-- [架构总览](architecture/zcode-code-architecture-overview.md)
+- [架构总览](architecture/nibi-code-architecture-overview.md)
 - [通信协议分层](architecture/communication-protocol-layers.md)
 - [消息流](architecture/message-flow.md)
 - [RPC](architecture/rpc.md)
@@ -58,7 +58,7 @@
 
 ## 上游对齐
 
-- [ZCode 3.16.2 → 3.17.2 差异与吸收方案](upstream/zcode-3.16.2-to-3.17.2-absorption-plan.md)：逐项变化、Node/Rust 各自方案、性能专题与路线图
+- [ZCode 3.16.2 → 3.17.2 差异与吸收方案](upstream/nibi-3.16.2-to-3.17.2-absorption-plan.md)：逐项变化、Node/Rust 各自方案、性能专题与路线图
 
 ## Rust 内核
 

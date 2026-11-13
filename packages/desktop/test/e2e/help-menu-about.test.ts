@@ -105,11 +105,11 @@ async function assertLogExport(label: string, pendingLabel: string) {
       { timeout: 30_000, timeoutMsg: "点击导出日志后未生成归档并请求系统定位" },
     );
     const archivePath = String(reveal.mock.calls[0]?.[0]);
-    expect(archivePath).toMatch(/zcode-logs-[^/\\]+\.zip$/);
+    expect(archivePath).toMatch(/nibi-logs-[^/\\]+\.zip$/);
     const archive = await readFile(archivePath);
     expect(archive.subarray(0, 4).toString("hex")).toBe("504b0304");
     await browser.waitUntil(
-      async () => !(await $("#zcode-toast-host").getText()).includes(pendingLabel),
+      async () => !(await $("#nibi-toast-host").getText()).includes(pendingLabel),
       { timeout: 10_000, timeoutMsg: "日志导出完成后提示未关闭" },
     );
   } finally {
@@ -195,7 +195,7 @@ describe(`问号菜单应用入口（${expectedFlavor}）`, () => {
       "About Nibi",
     ]);
     expect(await $$('[role="menu"] [role="separator"]')).toHaveLength(1);
-    await browser.saveScreenshot(join(tmpdir(), "zcode-help-export-en-light.png"));
+    await browser.saveScreenshot(join(tmpdir(), "nibi-help-export-en-light.png"));
     await assertLogExport("Export logs", "Exporting logs...");
     await openMenu();
     await $('[role="menuitem"]*=About Nibi').click();
@@ -305,7 +305,7 @@ describe(`问号菜单应用入口（${expectedFlavor}）`, () => {
       "关于 Nibi",
     ]);
     expect(await $$('[role="menu"] [role="separator"]')).toHaveLength(1);
-    await browser.saveScreenshot(join(tmpdir(), "zcode-help-export-zh-dark.png"));
+    await browser.saveScreenshot(join(tmpdir(), "nibi-help-export-zh-dark.png"));
     await assertLogExport("导出日志", "正在导出日志中");
     await openMenu();
     await $('[role="menuitem"]*=关于 Nibi').click();

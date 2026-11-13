@@ -555,7 +555,7 @@ describe("bundled official plugin cache resilience", () => {
 });
 
 async function createStorageRoot(cleanups: string[]): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "zcode-plugin-cache-resilience-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-plugin-cache-resilience-"));
   cleanups.push(root);
   return join(root, "plugins");
 }

@@ -29,7 +29,7 @@ describe("Agent Runtime Model lifecycle", () => {
       {
         mode: "build",
         modelSelection: createTestModelSelection(modelSelection),
-        workingDirectory: "/tmp/zcode-adapter-fallback-is-forbidden",
+        workingDirectory: "/tmp/nibi-adapter-fallback-is-forbidden",
       },
       {
         eventStore,
@@ -62,7 +62,7 @@ describe("Agent Runtime Model lifecycle", () => {
       {
         mode: "build",
         modelSelection: createTestModelSelection(createTestModelSelection("test/model-a")),
-        workingDirectory: "/tmp/zcode-submission-model-lifecycle",
+        workingDirectory: "/tmp/nibi-submission-model-lifecycle",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -117,7 +117,7 @@ describe("Agent Runtime Model lifecycle", () => {
       {
         mode: "build",
         modelSelection: createTestModelSelection(createTestModelSelection("test/session-model")),
-        workingDirectory: "/tmp/zcode-temporary-execution-model-lifecycle",
+        workingDirectory: "/tmp/nibi-temporary-execution-model-lifecycle",
       },
       {
         eventStore,
@@ -224,7 +224,7 @@ describe("Agent Runtime Model lifecycle", () => {
       {
         mode: "build",
         modelSelection: createTestModelSelection(createTestModelSelection("test/model-a")),
-        workingDirectory: "/tmp/zcode-model-lifecycle",
+        workingDirectory: "/tmp/nibi-model-lifecycle",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -313,7 +313,7 @@ describe("Agent Runtime Model lifecycle", () => {
       {
         mode: "build",
         modelSelection: createTestModelSelection(createTestModelSelection("test/model-a")),
-        workingDirectory: "/tmp/zcode-model-context-before-capture",
+        workingDirectory: "/tmp/nibi-model-context-before-capture",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -418,7 +418,7 @@ describe("Agent Runtime Model lifecycle", () => {
       {
         mode: "build",
         modelSelection: createTestModelSelection(createTestModelSelection("test/session-model")),
-        workingDirectory: "/tmp/zcode-execution-model-permission",
+        workingDirectory: "/tmp/nibi-execution-model-permission",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -527,7 +527,7 @@ describe("Agent Runtime Model lifecycle", () => {
         compact: { enabled: true },
         mode: "build",
         modelSelection: createTestModelSelection(createTestModelSelection("test/model-a")),
-        workingDirectory: "/tmp/zcode-model-lifecycle-reactive",
+        workingDirectory: "/tmp/nibi-model-lifecycle-reactive",
       },
       {
         eventStore: createTestSessionEventStore(),

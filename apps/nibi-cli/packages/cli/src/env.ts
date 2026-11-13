@@ -132,7 +132,7 @@ function resolveCliRuntimeEnv(env: CliEnv, argv: readonly string[]): NibiRuntime
 
 function applyBetaStorageDefault(env: CliEnv): void {
   if (env.NIBI_STORAGE_DIR?.trim()) return;
-  // 只认显式开关。上游 CLI 还会按可执行文件名 `zcode-beta` 推断 beta 通道，
+  // 只认显式开关。上游 CLI 还会按可执行文件名 `nibi-beta` 推断 beta 通道，
   // 但我们的发行物只有一个 `nibi`（`package.json` 的 bin 只有它），那条分支永远走不到，
   // 却会让任何人把二进制改名成上游名字就改变存储根。删掉，不留上游文件名能触发的真分支。
   if (env.NIBI_BETA !== "1" && env.NIBI_ENV !== "beta") return;

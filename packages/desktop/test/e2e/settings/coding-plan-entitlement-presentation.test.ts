@@ -62,7 +62,7 @@ async function prepare(
             username: "bigmodel-e2e-user",
           })
         : "",
-      "nibi-jwttoken": connected ? "e2e-zcode-jwt" : "",
+      "nibi-jwttoken": connected ? "e2e-nibi-jwt" : "",
     }),
   );
   const file = join(paths.appDataDir, "setting.json");

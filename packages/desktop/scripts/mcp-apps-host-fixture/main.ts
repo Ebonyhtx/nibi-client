@@ -96,7 +96,7 @@ app
     let htmlReads = 0;
     session
       .fromPartition(handle.partition)
-      .webRequest.onCompleted({ urls: ["zcode-sandbox://*/*"] }, (event) => {
+      .webRequest.onCompleted({ urls: ["nibi-sandbox://*/*"] }, (event) => {
         if (event.url.includes("/index.html")) htmlReads++;
       });
     ipcMain.handle("fixture-handle", () => {

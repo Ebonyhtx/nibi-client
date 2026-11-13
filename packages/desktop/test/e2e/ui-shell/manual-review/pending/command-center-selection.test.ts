@@ -27,8 +27,8 @@ describe("Command Center 重名任务选中", () => {
   before(async () => {
     await waitForWorkspaceApp(DEFAULT_WORKSPACE, 45_000);
     const home = process.env.NIBI_E2E_HOME_DIR;
-    if (!home || !basename(home).startsWith("zcode-command-center-")) {
-      throw new Error("需要 zcode-command-center- 前缀的隔离 E2E HOME");
+    if (!home || !basename(home).startsWith("nibi-command-center-")) {
+      throw new Error("需要 nibi-command-center- 前缀的隔离 E2E HOME");
     }
     // 纯列表 fixture：在隔离索引准备重名任务，不恢复合成会话或发送模型请求。
     // node:sqlite 仅提供同步接口，短事务结束后立即关闭连接。

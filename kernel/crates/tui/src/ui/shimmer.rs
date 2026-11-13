@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/shimmer.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/shimmer.rs（feat/rs 79b6691c55）。
 //! 运行中标题的扫光（docs/specs/rust-tui.md §8.3）：一条亮带每 2 秒从左扫到右，亮带半径 5 个字符，
 //! 在背景色与标题颜色之间按余弦曲线混合。只有真彩色终端有扫光，其余终端用标题颜色加粗。
 use std::time::Duration;

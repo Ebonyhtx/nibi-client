@@ -21,7 +21,7 @@ describe("内置浏览器「在默认浏览器中打开」对本地 file URL 的
   let shellOpenPath: ElectronMock;
 
   before(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "zcode-e2e-file-url-"));
+    tempDir = await mkdtemp(join(tmpdir(), "nibi-e2e-file-url-"));
     const assetDir = join(tempDir, "04 素材");
     await mkdir(assetDir);
     await writeFile(

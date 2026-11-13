@@ -256,7 +256,7 @@ async function importHarness() {
 }
 
 function createTempWorkspace(): string {
-  const dir = mkdtempSync(join(tmpdir(), "zcode-second-instance-deep-link-"));
+  const dir = mkdtempSync(join(tmpdir(), "nibi-second-instance-deep-link-"));
   tempDirs.push(dir);
   return dir;
 }

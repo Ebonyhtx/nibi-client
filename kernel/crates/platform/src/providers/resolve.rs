@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/providers/src/providers/resolve.rs（1f0bfd1b71）的 `resolve`。改动：只保留
+// 复制自 apps/nibi-host/crates/providers/src/providers/resolve.rs（1f0bfd1b71）的 `resolve`。改动：只保留
 // CLI 执行与目录需要的字段（provider / 模型的有效配置与可执行性），去掉 UI 视图用的分层原文与 issue 详情；
 // 账号层换成本工程的 [`AccountLayer`]。
 //! 三层解析（docs/specs/rust-cli/platform.md §3.2）：内置 → 账号 overlay（只作用于内置 provider，去掉

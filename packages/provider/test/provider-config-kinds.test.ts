@@ -310,7 +310,7 @@ describe("ProviderConfig access / api boundaries", () => {
     }
     expect(() =>
       parseProviderConfig({
-        access: { type: "api-key", apiKey: "secret", requestSigning: "zcode-v4" },
+        access: { type: "api-key", apiKey: "secret", requestSigning: "nibi-v4" },
       }),
     ).toThrow();
   });

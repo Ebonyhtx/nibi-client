@@ -15,7 +15,7 @@ import { createSubagentsService } from "../src/subagents/subagentsService.js";
 
 const tempRoots: string[] = [];
 
-async function makeTempHome(prefix = "zcode-subagents-home-"): Promise<string> {
+async function makeTempHome(prefix = "nibi-subagents-home-"): Promise<string> {
   const home = await mkdtemp(join(tmpdir(), prefix));
   tempRoots.push(home);
   return home;

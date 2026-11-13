@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/palette.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/palette.rs（feat/rs 79b6691c55）。
 //! 配色（docs/specs/rust-tui.md §8.6）：以终端自身调色板为主。启动时查询终端背景色，
 //! 用户消息与输入框的底色、强调色都由它派生；查不到时按深色背景处理。
 use std::collections::BTreeMap;

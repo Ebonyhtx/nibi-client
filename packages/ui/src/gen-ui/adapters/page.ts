@@ -114,7 +114,7 @@ export function createGenUiPage(input: GenUiPageInput): GenUiPage {
     // SDK 持有上一份上下文用于差异比较，不能与可写投影共享同一对象。
     const active = new AppBridge(
       null,
-      { name: "zcode-gen-ui", version: "1" },
+      { name: "nibi-gen-ui", version: "1" },
       { openLinks: {}, experimental: { "zcode/gen-ui": {} } },
       { hostContext: { ...context } },
     );

@@ -327,7 +327,7 @@ function webElementPickerScript(options: WebElementPickerScriptOptions) {
   });
 
   const overlay = document.createElement("div");
-  overlay.setAttribute("data-zcode-web-element-picker", "overlay");
+  overlay.setAttribute("data-nibi-web-element-picker", "overlay");
   Object.assign(overlay.style, {
     background: "rgba(37, 99, 235, 0.12)",
     border: "2px solid #2563eb",

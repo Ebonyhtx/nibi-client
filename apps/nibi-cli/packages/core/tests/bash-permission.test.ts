@@ -303,7 +303,7 @@ describe("bash runtime permission capability", () => {
 
   it("requires approval for git runtime guard conditions", async () => {
     const service = new PermissionService();
-    const testRoot = await mkdtemp(join(tmpdir(), "zcode-bash-git-guard-"));
+    const testRoot = await mkdtemp(join(tmpdir(), "nibi-bash-git-guard-"));
     try {
       const normalRepo = join(testRoot, "normal-repo");
       await writeMinimalGitDir(normalRepo);

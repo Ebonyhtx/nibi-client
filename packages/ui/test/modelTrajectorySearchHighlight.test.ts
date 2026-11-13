@@ -86,8 +86,8 @@ describe("model trajectory search highlights", () => {
     });
 
     expect(activeRange?.toString()).toBe("alpha");
-    expect(layers.has("zcode-model-trajectory-find")).toBe(true);
-    expect(layers.has("zcode-model-trajectory-find-active")).toBe(true);
+    expect(layers.has("nibi-model-trajectory-find")).toBe(true);
+    expect(layers.has("nibi-model-trajectory-find-active")).toBe(true);
     clearTrajectorySearchHighlights();
     expect(layers.size).toBe(0);
   });

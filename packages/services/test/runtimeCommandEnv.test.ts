@@ -67,7 +67,7 @@ describe("runtimeCommandEnv", () => {
 
   it("keeps user commands ahead of bundled runtime tools on PATH", () => {
     process.env.VITEST = "1";
-    const root = mkdtempSync(join(tmpdir(), "zcode-runtime-tool-path-order-"));
+    const root = mkdtempSync(join(tmpdir(), "nibi-runtime-tool-path-order-"));
     const systemBin = join(root, "system-bin");
     const binarySuffix = process.platform === "win32" ? ".exe" : "";
     const runtimeBinaries = {
@@ -239,7 +239,7 @@ describe("runtimeCommandEnv", () => {
   it.runIf(process.platform !== "win32")(
     "kills the login-shell process group when a descendant keeps stdio open",
     async () => {
-      const root = mkdtempSync(join(tmpdir(), "zcode-login-shell-deadline-"));
+      const root = mkdtempSync(join(tmpdir(), "nibi-login-shell-deadline-"));
       const shellPath = join(root, "shell-with-background-child.sh");
       try {
         writeFileSync(

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { createConfig } from "../src/config/index.js";
 
 async function createWorkspace(options: { git?: boolean } = {}): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "zcode-workspace-hook-phase1-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-workspace-hook-phase1-"));
   if (options.git !== false) await mkdir(join(root, ".git"));
   return root;
 }

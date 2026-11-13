@@ -147,7 +147,7 @@ Local → Remote；当前 Provisioning 在本地 allowlist 凭据保存或删除
 - `（实现与测试见源码）`
 - `（实现与测试见源码）`
 - `（实现与测试见源码）`
-- `docs/remote/zcode-agent-remote-deployment.md`
+- `docs/remote/nibi-agent-remote-deployment.md`
 - `docs/web-remote-control/web-remote-control-architecture.md`
 
 ## 设置页应用配置归属（2026-09-16 修复 A2）

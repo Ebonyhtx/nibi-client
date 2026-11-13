@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/app.rs（feat/rs 79b6691c55）：会话内容换成 `view::Transcript`，
+// 改写自 apps/nibi-host/crates/tui/src/ui/app.rs（feat/rs 79b6691c55）：会话内容换成 `view::Transcript`，
 // Action 换成内核会话 API 的命令（docs/specs/rust-cli/tui.md §2、§4）。
 //! 界面状态：会话内容只来自视图（`view::Transcript`）；这里只有草稿、视图、滚动、展开等界面状态，
 //! 以及插在 transcript 里的本地 cell（提示、错误）。不做 IO：按键产生 [`Action`]，由 runner 执行。

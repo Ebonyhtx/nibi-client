@@ -1,7 +1,7 @@
 Unicode true
 Name "Nibi preserve-files smoke"
 OutFile "${OUTPUT_FILE}"
-InstallDir "$TEMP\zcode-preserve-files-smoke"
+InstallDir "$TEMP\nibi-preserve-files-smoke"
 RequestExecutionLevel user
 SilentInstall silent
 

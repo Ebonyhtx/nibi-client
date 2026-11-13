@@ -72,7 +72,7 @@ describe("static route path containment", () => {
   });
 
   async function startStaticServer(): Promise<number> {
-    const staticRoot = await mkdtemp(join(tmpdir(), "zcode-static-"));
+    const staticRoot = await mkdtemp(join(tmpdir(), "nibi-static-"));
     tempDirs.push(staticRoot);
     await writeFile(join(staticRoot, "index.html"), "<html>home</html>");
     const server = createHttpServer(new ServiceCollection(), 0, {

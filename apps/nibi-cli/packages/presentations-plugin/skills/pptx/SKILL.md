@@ -762,9 +762,9 @@ Every PPTX → PDF conversion and every rendered preview/thumbnail step depends 
 
 ## Final response citations
 
-Place `::zcode-file-citation{...}` inline in prose, not in a trailing list. Use `purpose="source"` for Q&A/no-op and `purpose="output"` for create/edit.
+Place `::nibi-file-citation{...}` inline in prose, not in a trailing list. Use `purpose="source"` for Q&A/no-op and `purpose="output"` for create/edit.
 
-- [HARD REQUIREMENT] Create/edit: cite each final file exactly once with a plain output citation. Summarize representative changes; do not cite every slide or add a separate filename, path, or Markdown link. Example: `Created ::zcode-file-citation{path="/abs/path/launch-deck.pptx" purpose="output"}, highlighting the rollout and owners.`
+- [HARD REQUIREMENT] Create/edit: cite each final file exactly once with a plain output citation. Summarize representative changes; do not cite every slide or add a separate filename, path, or Markdown link. Example: `Created ::nibi-file-citation{path="/abs/path/launch-deck.pptx" purpose="output"}, highlighting the rollout and owners.`
 - Q&A: do not edit/re-export.
 
 ### Presentation
@@ -776,8 +776,8 @@ For non-in-place edits, preserve the source and export a copy; if unchanged, cit
 Use only locators verified against the latest render/inspection:
 
 ```text
-::zcode-file-citation{path="/abs/path/deck.pptx" purpose="source" artifact_kind="presentation" slide_number=3}
-::zcode-file-citation{path="/abs/path/deck.pptx" purpose="source" artifact_kind="presentation" slide_number=1 slide_id="sl/gs5z1kshq0xv" object_id="ch/pz9t1r3ka8vn" label="ARR by segment chart"}
+::nibi-file-citation{path="/abs/path/deck.pptx" purpose="source" artifact_kind="presentation" slide_number=3}
+::nibi-file-citation{path="/abs/path/deck.pptx" purpose="source" artifact_kind="presentation" slide_number=1 slide_id="sl/gs5z1kshq0xv" object_id="ch/pz9t1r3ka8vn" label="ARR by segment chart"}
 ```
 
 If IDs are not exact, stop at `slide_number`; never guess or cite intermediates unless asked.

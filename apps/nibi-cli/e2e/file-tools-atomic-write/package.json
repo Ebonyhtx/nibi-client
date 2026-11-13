@@ -1,5 +1,5 @@
 {
-  "name": "zcode-file-tools-atomic-write-e2e",
+  "name": "nibi-file-tools-atomic-write-e2e",
   "private": true,
   "type": "module",
   "scripts": {

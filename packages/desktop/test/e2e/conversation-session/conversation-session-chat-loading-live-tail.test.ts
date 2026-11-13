@@ -578,7 +578,7 @@ async function installChatLoadingLayoutProbe() {
         '[data-v4-running-live-tail="true"]',
       );
       const slot = document.querySelector<HTMLElement>(
-        '[data-zcode-chat-loading-slot="true"]',
+        '[data-nibi-chat-loading-slot="true"]',
       );
       const loading = document.querySelector<HTMLElement>(
         '[data-testid="chat-loading"]',

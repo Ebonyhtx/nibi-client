@@ -94,7 +94,7 @@ WORKDIR /workspace
 
 COPY . .
 
-RUN --mount=type=cache,id=zcode-desktop-e2e-pnpm-store,target=/pnpm/store \
+RUN --mount=type=cache,id=nibi-desktop-e2e-pnpm-store,target=/pnpm/store \
     pnpm config set store-dir "${PNPM_STORE_DIR}" && \
     pnpm install --frozen-lockfile
 

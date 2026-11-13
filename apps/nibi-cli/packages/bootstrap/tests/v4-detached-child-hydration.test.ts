@@ -41,7 +41,7 @@ import type {
 
 type TestSessionStore = Awaited<ReturnType<typeof createSqliteSessionStore>>;
 
-const WORKSPACE_PATH = "/tmp/zcode-detached-child";
+const WORKSPACE_PATH = "/tmp/nibi-detached-child";
 const PARENT_SESSION_ID = "sess_parent_chat" as SessionId;
 const CHILD_SESSION_ID = "sess_actor_child" as SessionId;
 
@@ -252,7 +252,7 @@ describe("v4 detached live child 的首次订阅 hydration", () => {
   let store: TestSessionStore;
 
   beforeEach(async () => {
-    tempRoot = await mkdtemp(join(tmpdir(), "zcode-detached-child-"));
+    tempRoot = await mkdtemp(join(tmpdir(), "nibi-detached-child-"));
     store = await createSqliteSessionStore({ dbPath: join(tempRoot, "sessions.db") });
   });
 

@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/page.rs（feat/rs 79b6691c55）：去掉 `/diff` 的查看器与 `/context`。
+// 改写自 apps/nibi-host/crates/tui/src/ui/page.rs（feat/rs 79b6691c55）：去掉 `/diff` 的查看器与 `/context`。
 //! 独立页面（`/status`、`/help`、`/context`、← 会话面板）：占满整个屏幕，第一行是粗体标题，下面是内容，
 //! 最后一行是提示。
 use ratatui::Frame;

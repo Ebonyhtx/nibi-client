@@ -73,8 +73,8 @@ async function seed(dir: string, name: string, script: string, description = "å·
 }
 
 beforeEach(async () => {
-  cwd = await mkdtemp(join(tmpdir(), "zcode-saved-workflows-run-"));
-  home = await mkdtemp(join(tmpdir(), "zcode-saved-workflows-run-home-"));
+  cwd = await mkdtemp(join(tmpdir(), "nibi-saved-workflows-run-"));
+  home = await mkdtemp(join(tmpdir(), "nibi-saved-workflows-run-home-"));
   prevHome = process.env.HOME;
   prevUserProfile = process.env.USERPROFILE;
   process.env.HOME = home;

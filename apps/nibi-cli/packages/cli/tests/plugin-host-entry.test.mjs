@@ -20,7 +20,7 @@ const processTimeoutMs = 10_000;
 
 for (const minify of [false, true]) {
   test(`plugin host avoids Agent initialization in ${minify ? "desktop" : "Node"} bundles`, async () => {
-    const directory = await mkdtemp(join(tmpdir(), "zcode-plugin-entry-"));
+    const directory = await mkdtemp(join(tmpdir(), "nibi-plugin-entry-"));
     const outfile = join(directory, "nibi.cjs");
     const serverPath = join(directory, "server.mjs");
     const blockedModules = new Set([

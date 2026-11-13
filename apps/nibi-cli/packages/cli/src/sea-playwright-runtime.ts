@@ -24,7 +24,7 @@ interface SeaPlaywrightManifest {
   version: 1;
 }
 
-const ASSET_PREFIX = "zcode-playwright-runtime/";
+const ASSET_PREFIX = "nibi-playwright-runtime/";
 const MANIFEST_ASSET_KEY = `${ASSET_PREFIX}manifest.json`;
 const MARKER_FILE = "playwright-manifest.json";
 const PACKAGE_JSON_PATH = "node_modules/playwright-core/package.json";
@@ -36,7 +36,7 @@ export async function loadCliPlaywrightChromium(): Promise<PlaywrightChromiumMod
   }
 
   const runtimeDirectory = await ensureSeaPlaywrightRuntime(sea);
-  const require = createRequire(join(runtimeDirectory, "zcode-playwright-loader.cjs"));
+  const require = createRequire(join(runtimeDirectory, "nibi-playwright-loader.cjs"));
   return require("playwright-core") as PlaywrightChromiumModule;
 }
 

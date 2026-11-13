@@ -29,8 +29,8 @@ nginx 和静态产物，material-icons 从 `packages/web/public` 一并复制。
 该模板包含 `buildkit` 和 `kubectl` 容器。Pipeline 默认配置面向 staging：
 
 - registry：`openwebui-hk-registry-vpc.cn-hongkong.cr.aliyuncs.com/glm-chat`
-- 镜像：`staging-zcode-conversation-share`
-- Deployment 与容器：`staging-zcode-conversation-share`
+- 镜像：`staging-nibi-conversation-share`
+- Deployment 与容器：`staging-nibi-conversation-share`
 - namespace/context：`zcode` / `openwebui`
 - `NIBI_ENV=test`，构建 endpoint 为 `https://zcode.z.ai`
 

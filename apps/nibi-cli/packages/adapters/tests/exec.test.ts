@@ -100,7 +100,7 @@ type BashBackgroundLifecycleCapableAdapter = NodeExecutionAdapter & {
 
 describe("NodeExecutionAdapter", () => {
   it("auto-backgrounds a foreground command when its timeout elapses", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-auto-background-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-auto-background-"));
     const adapter = new NodeExecutionAdapter({
       outputRootDir: root,
       progressIntervalMs: 10,
@@ -143,7 +143,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("keeps explicit background execution alive after its input timeout", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-explicit-background-timeout-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-explicit-background-timeout-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir: root });
     const capable = adapter as BashBackgroundLifecycleCapableAdapter;
 
@@ -177,7 +177,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("detaches parent abort after an explicit background commit", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-explicit-background-detach-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-explicit-background-detach-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir: root });
     const capable = adapter as BashBackgroundLifecycleCapableAdapter;
     const parentTurn = new AbortController();
@@ -212,7 +212,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("still allows an explicit lifecycle task to be stopped directly", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-explicit-background-stop-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-explicit-background-stop-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir: root });
     const capable = adapter as BashBackgroundLifecycleCapableAdapter;
 
@@ -241,7 +241,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH || process.platform === "win32")(
     "kills a cooperative Bash descendant outside the root process group",
     async () => {
-      const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-cross-pgid-stop-"));
+      const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-cross-pgid-stop-"));
       const adapter = new NodeExecutionAdapter({
         outputRootDir,
         progressIntervalMs: 10,
@@ -344,7 +344,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(process.platform === "win32")(
     "keeps Bash descendant enumeration out of generic argv cancellation",
     async () => {
-      const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-generic-group-stop-"));
+      const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-generic-group-stop-"));
       const adapter = new NodeExecutionAdapter({ outputRootDir });
       let workerPid = Number.NaN;
       const workerScript = "setInterval(() => {}, 10_000);";
@@ -394,7 +394,7 @@ describe("NodeExecutionAdapter", () => {
   );
 
   it("cancels an explicit lifecycle task when the adapter closes", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-explicit-background-close-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-explicit-background-close-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir: root });
     const capable = adapter as BashBackgroundLifecycleCapableAdapter;
 
@@ -423,7 +423,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("cancels before background commit when the parent is already aborted", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-explicit-background-pre-abort-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-explicit-background-pre-abort-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir: root });
     const capable = adapter as BashBackgroundLifecycleCapableAdapter;
     const parentTurn = new AbortController();
@@ -456,7 +456,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("returns an explicit spawn failure without publishing a background task", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-explicit-background-spawn-fail-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-explicit-background-spawn-fail-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir: root });
     const capable = adapter as BashBackgroundLifecycleCapableAdapter;
 
@@ -485,7 +485,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("settles completion, timeout, and abort boundary races exactly once", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-background-races-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-background-races-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir: root });
     const capable = adapter as BashBackgroundLifecycleCapableAdapter;
     const backgroundTaskIds = new Set<string>();
@@ -550,7 +550,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("stops forwarding foreground progress after auto-backgrounding", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-auto-background-progress-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-auto-background-progress-"));
     const adapter = new NodeExecutionAdapter({
       outputRootDir: root,
       progressIntervalMs: 5,
@@ -608,7 +608,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("resolves failed snapshots for auto-backgrounded foreground commands", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-auto-background-fail-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-auto-background-fail-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir: root });
     const capable = adapter as BashBackgroundLifecycleCapableAdapter;
 
@@ -674,7 +674,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("removes auto-background output artifacts when foreground completion wins", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-auto-background-cleanup-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-auto-background-cleanup-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir: root });
     const capable = adapter as BashBackgroundLifecycleCapableAdapter;
     const stdoutPath = join(root, "cleanup-session", "cleanup-tool-stdout.log");
@@ -715,7 +715,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("settles foreground completion when redundant artifact cleanup fails", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-foreground-cleanup-failure-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-foreground-cleanup-failure-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir: root });
     const capable = adapter as BashBackgroundLifecycleCapableAdapter;
     const stdoutPath = join(root, "cleanup-failure-session", "cleanup-failure-tool-stdout.log");
@@ -774,7 +774,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("settles foreground completion with honest metadata when artifact truncation fails", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-foreground-truncate-failure-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-foreground-truncate-failure-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir: root });
     const capable = adapter as BashBackgroundLifecycleCapableAdapter;
     const stdoutPath = join(root, "truncate-failure-session", "truncate-failure-tool-stdout.log");
@@ -840,7 +840,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("keeps explicitly requested foreground output artifacts when foreground completion wins", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-auto-background-preserve-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-auto-background-preserve-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir: root });
     const capable = adapter as BashBackgroundLifecycleCapableAdapter;
     const stdoutPath = join(root, "preserve-session", "preserve-tool-stdout.log");
@@ -881,7 +881,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("does not stop auto-backgrounded commands at the foreground persisted output limit", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-auto-background-limit-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-auto-background-limit-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir: root });
     const capable = adapter as BashBackgroundLifecycleCapableAdapter;
 
@@ -935,7 +935,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "stops foreground Bash at the periodic soft limit and removes its oversized file",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-exec-background-hard-cap-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-exec-background-hard-cap-"));
       const adapter = new NodeExecutionAdapter({
         outputRootDir: root,
         progressIntervalMs: 10,
@@ -986,7 +986,7 @@ describe("NodeExecutionAdapter", () => {
   );
 
   it("applies the shared 5GiB watchdog policy after Bash background commit", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-background-watchdog-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-background-watchdog-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir: root });
     const capable = adapter as BashBackgroundLifecycleCapableAdapter;
     let capturedRequest: ExecutionRequest | undefined;
@@ -1051,7 +1051,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("normalizes a background Bash output-limit stop to killed exit 137 semantics", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-background-limit-result-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-background-limit-result-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir: root });
     const capable = adapter as BashBackgroundLifecycleCapableAdapter;
 
@@ -1112,7 +1112,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "does not apply the runtime soft limit before its first check and retains the full foreground file",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-exec-bash-final-limit-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-exec-bash-final-limit-"));
       const adapter = new NodeExecutionAdapter({
         outputRootDir: root,
         progressIntervalMs: 60_000,
@@ -1172,7 +1172,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "ignores the legacy Bash artifact cap after lifecycle completion",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-exec-lifecycle-artifact-cap-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-exec-lifecycle-artifact-cap-"));
       const adapter = new NodeExecutionAdapter({ outputRootDir: root });
       const capable = adapter as BashBackgroundLifecycleCapableAdapter;
 
@@ -1220,7 +1220,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "stops watching at root exit even when descendants later exceed the soft limit",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-exec-bash-retained-output-limit-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-exec-bash-retained-output-limit-"));
       const adapter = new NodeExecutionAdapter({
         outputRootDir: root,
         progressIntervalMs: 10,
@@ -1294,7 +1294,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(process.platform === "win32")(
     "captures final cwd for successful foreground shell commands when requested",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-exec-cwd-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-exec-cwd-"));
       const child = join(root, " child with spaces ");
       await mkdir(child);
 
@@ -1322,7 +1322,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(process.platform !== "win32")(
     "captures final cwd for Windows cmd shell commands when requested",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-exec-win-cwd-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-exec-win-cwd-"));
       const child = join(root, "child");
       await mkdir(child);
 
@@ -1348,7 +1348,7 @@ describe("NodeExecutionAdapter", () => {
   );
 
   it("does not capture cwd for generic shell commands by default", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-cwd-default-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-cwd-default-"));
     const child = join(root, "child");
     await mkdir(child);
 
@@ -1371,7 +1371,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("does not capture cwd when the shell command exits non-zero", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-cwd-fail-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-cwd-fail-"));
     const child = join(root, "child");
     await mkdir(child);
 
@@ -1401,7 +1401,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "runs posix-bash shell profile commands with bash/zsh syntax",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-exec-posix-bash-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-exec-posix-bash-"));
       const home = join(root, "home");
       await mkdir(home, { recursive: true });
 
@@ -1440,7 +1440,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "creates shell init snapshots with login shell and runs user commands without login",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-exec-login-mode-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-exec-login-mode-"));
       const home = join(root, "home");
       const bin = join(root, "bin");
       const shellLog = join(root, "shell-args.log");
@@ -1501,7 +1501,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "injects embedded search prelude into posix-bash shell profile commands",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-exec-embedded-search-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-exec-embedded-search-"));
       const home = join(root, "home");
       await mkdir(home, { recursive: true });
       const shimScript = [
@@ -1552,7 +1552,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "falls back to native grep when embedded search backend is unavailable and preserves stdin",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-exec-embedded-search-fallback-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-exec-embedded-search-fallback-"));
       const home = join(root, "home");
       await mkdir(home, { recursive: true });
 
@@ -1599,7 +1599,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "sources shell init snapshot and skips login for the user command after creation",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-shell-init-integration-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-shell-init-integration-"));
       const home = join(root, "home");
       const bin = join(root, "bin");
       const shellLog = join(root, "shell-args.log");
@@ -1688,7 +1688,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "creates shell init snapshots with the resolved shell environment",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-shell-init-env-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-shell-init-env-"));
       const home = join(root, "home");
       const bin = join(root, "bin");
       const shellWrapper = join(bin, "bash-wrapper");
@@ -1751,7 +1751,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "falls back to login shell when a cached shell init snapshot file is missing",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-shell-init-missing-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-shell-init-missing-"));
       const home = join(root, "home");
       const bin = join(root, "bin");
       const shellLog = join(root, "shell-args.log");
@@ -1846,7 +1846,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "does not spawn the user command when closing during shell init snapshot creation",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-shell-init-close-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-shell-init-close-"));
       const bin = join(root, "bin");
       const shellLog = join(root, "shell-args.log");
       const shellWrapper = join(bin, "bash-wrapper");
@@ -1928,7 +1928,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "does not spawn the user command when aborted during shell init snapshot creation",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-shell-init-abort-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-shell-init-abort-"));
       const bin = join(root, "bin");
       const shellLog = join(root, "shell-args.log");
       const shellWrapper = join(bin, "bash-wrapper");
@@ -2002,7 +2002,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "falls back to login shell when shell init snapshot creation fails",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-shell-init-fallback-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-shell-init-fallback-"));
       const bin = join(root, "bin");
       const shellLog = join(root, "shell-args.log");
       const shellWrapper = join(bin, "bash-wrapper");
@@ -2066,7 +2066,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "keeps cwd capture after shell init snapshot source commands",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-shell-init-cwd-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-shell-init-cwd-"));
       const home = join(root, "home");
       const child = join(root, "child");
 
@@ -2169,7 +2169,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(process.platform !== "win32" || !WINDOWS_GIT_BASH_PATH)(
     "writes Windows Git Bash stdout and stderr directly to one canonical output",
     async () => {
-      const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-git-bash-merged-"));
+      const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-git-bash-merged-"));
       const adapter = new NodeExecutionAdapter({ outputRootDir });
 
       try {
@@ -2359,7 +2359,7 @@ describe("NodeExecutionAdapter", () => {
 
   it("applies cwd and env overlay through spawn options", async () => {
     const adapter = new NodeExecutionAdapter();
-    const cwd = await realpath(await mkdtemp(join(tmpdir(), "zcode-exec-")));
+    const cwd = await realpath(await mkdtemp(join(tmpdir(), "nibi-exec-")));
     const previousUnsetValue = process.env.NIBI_EXEC_UNSET;
     process.env.NIBI_EXEC_UNSET = "remove-me";
 
@@ -2440,7 +2440,7 @@ describe("NodeExecutionAdapter", () => {
       },
       {
         network: {
-          caCertFile: "/tmp/zcode-ca.pem",
+          caCertFile: "/tmp/nibi-ca.pem",
           httpProxy: "127.0.0.1:8888",
           noProxy: "localhost,127.0.0.1",
         },
@@ -2460,11 +2460,11 @@ describe("NodeExecutionAdapter", () => {
     expect(env.all_proxy).toBe("http://127.0.0.1:8888");
     expect(env.NO_PROXY).toBe("localhost,127.0.0.1");
     expect(env.no_proxy).toBe("localhost,127.0.0.1");
-    expect(env.NODE_EXTRA_CA_CERTS).toBe("/tmp/zcode-ca.pem");
-    expect(env.SSL_CERT_FILE).toBe("/tmp/zcode-ca.pem");
-    expect(env.REQUESTS_CA_BUNDLE).toBe("/tmp/zcode-ca.pem");
-    expect(env.CURL_CA_BUNDLE).toBe("/tmp/zcode-ca.pem");
-    expect(env.GIT_SSL_CAINFO).toBe("/tmp/zcode-ca.pem");
+    expect(env.NODE_EXTRA_CA_CERTS).toBe("/tmp/nibi-ca.pem");
+    expect(env.SSL_CERT_FILE).toBe("/tmp/nibi-ca.pem");
+    expect(env.REQUESTS_CA_BUNDLE).toBe("/tmp/nibi-ca.pem");
+    expect(env.CURL_CA_BUNDLE).toBe("/tmp/nibi-ca.pem");
+    expect(env.GIT_SSL_CAINFO).toBe("/tmp/nibi-ca.pem");
   });
 
   it("ignores ambient standard proxy and CA env for subprocesses", () => {
@@ -2551,7 +2551,7 @@ describe("NodeExecutionAdapter", () => {
         network: {},
         platform: "linux",
         processEnv: {
-          NIBI_AGENT_CA_CERT: "/tmp/zcode-ca.pem",
+          NIBI_AGENT_CA_CERT: "/tmp/nibi-ca.pem",
           NIBI_HTTP_PROXY: "127.0.0.1:8888",
           [NIBI_NO_PROXY_ENV_KEY]: "localhost,127.0.0.1",
         },
@@ -2562,11 +2562,11 @@ describe("NodeExecutionAdapter", () => {
     expect(env.http_proxy).toBe("http://127.0.0.1:8888");
     expect(env.NO_PROXY).toBe("localhost,127.0.0.1");
     expect(env.no_proxy).toBe("localhost,127.0.0.1");
-    expect(env.NODE_EXTRA_CA_CERTS).toBe("/tmp/zcode-ca.pem");
-    expect(env.SSL_CERT_FILE).toBe("/tmp/zcode-ca.pem");
-    expect(env.REQUESTS_CA_BUNDLE).toBe("/tmp/zcode-ca.pem");
-    expect(env.CURL_CA_BUNDLE).toBe("/tmp/zcode-ca.pem");
-    expect(env.GIT_SSL_CAINFO).toBe("/tmp/zcode-ca.pem");
+    expect(env.NODE_EXTRA_CA_CERTS).toBe("/tmp/nibi-ca.pem");
+    expect(env.SSL_CERT_FILE).toBe("/tmp/nibi-ca.pem");
+    expect(env.REQUESTS_CA_BUNDLE).toBe("/tmp/nibi-ca.pem");
+    expect(env.CURL_CA_BUNDLE).toBe("/tmp/nibi-ca.pem");
+    expect(env.GIT_SSL_CAINFO).toBe("/tmp/nibi-ca.pem");
   });
 
   it("lets per-command env overlays override injected network env", () => {
@@ -2580,8 +2580,8 @@ describe("NodeExecutionAdapter", () => {
       },
       {
         network: {
-          caCertFile: "/tmp/zcode-ca.pem",
-          httpProxy: "http://zcode-proxy:8080",
+          caCertFile: "/tmp/nibi-ca.pem",
+          httpProxy: "http://nibi-proxy:8080",
         },
         platform: "linux",
         processEnv: {},
@@ -2589,9 +2589,9 @@ describe("NodeExecutionAdapter", () => {
     );
 
     expect(env.HTTP_PROXY).toBe("http://command-proxy:8080");
-    expect(env.HTTPS_PROXY).toBe("http://zcode-proxy:8080");
+    expect(env.HTTPS_PROXY).toBe("http://nibi-proxy:8080");
     expect(env.SSL_CERT_FILE).toBeUndefined();
-    expect(env.NODE_EXTRA_CA_CERTS).toBe("/tmp/zcode-ca.pem");
+    expect(env.NODE_EXTRA_CA_CERTS).toBe("/tmp/nibi-ca.pem");
   });
 
   it("adds a UTF-8 locale for subprocess text output when the parent locale is C", () => {
@@ -2615,7 +2615,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(process.platform === "win32")(
     "keeps unicode path text from POSIX tools even when the parent locale is C",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-exec-cn-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-exec-cn-"));
       const dir = join(root, "草稿");
       const file = join(dir, "file.txt");
       await mkdir(dir, { recursive: true });
@@ -3749,7 +3749,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "removes a precreated Bash output file when cancelled before spawn",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-exec-bash-pre-spawn-cancel-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-exec-bash-pre-spawn-cancel-"));
       const parentTurn = new AbortController();
       parentTurn.abort();
       const adapter = new NodeExecutionAdapter({ outputRootDir: root });
@@ -3800,7 +3800,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "writes Bash stdout and stderr directly to one canonical output",
     async () => {
-      const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-bash-merged-"));
+      const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-bash-merged-"));
       const home = join(outputRootDir, "home");
       await mkdir(home, { recursive: true });
       const processEnv = {
@@ -3894,7 +3894,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "reports filesystem diagnostics for empty failed Bash output",
     async () => {
-      const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-bash-output-lost-"));
+      const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-bash-output-lost-"));
       const adapter = new NodeExecutionAdapter({ outputRootDir });
       const capable = adapter as BashBackgroundLifecycleCapableAdapter;
       const cases = [
@@ -3984,7 +3984,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "retains a secure zero-byte Bash artifact when persistence is always",
     async () => {
-      const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-bash-empty-artifact-"));
+      const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-bash-empty-artifact-"));
       const adapter = new NodeExecutionAdapter({ outputRootDir });
 
       try {
@@ -4039,7 +4039,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "settles Bash output preparation failures before spawning",
     async () => {
-      const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-bash-output-prepare-"));
+      const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-bash-output-prepare-"));
       const blockedSessionPath = join(outputRootDir, "blocked-session");
       await writeFile(blockedSessionPath, "not a directory");
       const adapter = new NodeExecutionAdapter({ outputRootDir });
@@ -4090,7 +4090,7 @@ describe("NodeExecutionAdapter", () => {
   );
 
   it.skipIf(!POSIX_BASH_PATH)("settles a Bash artifact open failure before spawning", async () => {
-    const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-bash-output-open-"));
+    const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-bash-output-open-"));
     const outputPath = join(outputRootDir, "open-failure-session", "open-failure-tool-stdout.log");
     await mkdir(outputPath, { recursive: true });
     const adapter = new NodeExecutionAdapter({ outputRootDir });
@@ -4130,7 +4130,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it.skipIf(!POSIX_BASH_PATH)("does not create a parent WriteStream for Bash output", async () => {
-    const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-bash-output-write-"));
+    const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-bash-output-write-"));
     const outputPath = join(
       outputRootDir,
       "write-failure-session",
@@ -4198,7 +4198,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH || process.platform === "win32")(
     "rejects a symlinked Bash canonical output path",
     async () => {
-      const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-bash-output-symlink-"));
+      const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-bash-output-symlink-"));
       const sessionDir = join(outputRootDir, "symlink-session");
       const targetPath = join(outputRootDir, "target.log");
       const outputPath = join(sessionDir, "symlink-tool-stdout.log");
@@ -4280,7 +4280,7 @@ describe("NodeExecutionAdapter", () => {
     "settles the background task at root exit before late descendant output",
     async () => {
       const bashPath = POSIX_BASH_PATH ?? WINDOWS_GIT_BASH_PATH!;
-      const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-bash-descendant-progress-"));
+      const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-bash-descendant-progress-"));
       const adapter = new NodeExecutionAdapter({
         outputRootDir,
         progressIntervalMs: 50,
@@ -4362,7 +4362,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "deletes redundant Bash files and keeps complete retained files without losing observed size",
     async () => {
-      const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-bash-cap-"));
+      const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-bash-cap-"));
       const processEnv = { ...process.env };
       delete processEnv.BASH_MAX_OUTPUT_LENGTH;
       const adapter = new NodeExecutionAdapter({ outputRootDir, processEnv });
@@ -4438,7 +4438,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "allows a short Bash command to finish before the first soft-limit check",
     async () => {
-      const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-bash-limit-"));
+      const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-bash-limit-"));
       const processEnv = { ...process.env };
       delete processEnv.BASH_MAX_OUTPUT_LENGTH;
       const adapter = new NodeExecutionAdapter({
@@ -4506,7 +4506,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "applies BASH_MAX_OUTPUT_LENGTH when reading the Bash output file",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-exec-bash-env-limit-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-exec-bash-env-limit-"));
       const adapter = new NodeExecutionAdapter({
         outputRootDir: root,
         processEnv: {
@@ -4555,7 +4555,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "keeps the 30000-byte Bash boundary inline and persists byte 30001",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-exec-bash-default-limit-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-exec-bash-default-limit-"));
       const processEnv = { ...process.env };
       delete processEnv.BASH_MAX_OUTPUT_LENGTH;
       const adapter = new NodeExecutionAdapter({
@@ -4620,7 +4620,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("persists full stream output once inline output is truncated", async () => {
-    const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-output-"));
+    const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-output-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir });
 
     try {
@@ -4654,7 +4654,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("uses the Nibi storage root for persisted output when no output root is injected", async () => {
-    const storageRoot = await mkdtemp(join(tmpdir(), "zcode-exec-storage-root-"));
+    const storageRoot = await mkdtemp(join(tmpdir(), "nibi-exec-storage-root-"));
     const adapter = new NodeExecutionAdapter({
       processEnv: {
         ...process.env,
@@ -4692,7 +4692,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("caps persisted stream output while continuing to drain the child", async () => {
-    const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-output-"));
+    const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-output-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir });
 
     try {
@@ -4720,7 +4720,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("kills the process when persisted output reaches a watchdog limit", async () => {
-    const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-output-"));
+    const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-output-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir });
 
     try {
@@ -4751,7 +4751,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("shares one persisted watchdog limit across stdout and stderr", async () => {
-    const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-aggregate-output-"));
+    const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-aggregate-output-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir });
 
     try {
@@ -4795,7 +4795,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("tracks background executions until completion", async () => {
-    const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-exec-background-"));
+    const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-exec-background-"));
     const adapter = new NodeExecutionAdapter({ outputRootDir });
 
     try {
@@ -4844,7 +4844,7 @@ describe("NodeExecutionAdapter", () => {
   });
 
   it("does not capture cwd for background shell executions", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-exec-background-cwd-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-exec-background-cwd-"));
     const child = join(root, "child");
     await mkdir(child);
     const adapter = new NodeExecutionAdapter();
@@ -4880,7 +4880,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "runs posix-bash shell profile commands in background executions",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-exec-bg-bash-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-exec-bg-bash-"));
       const home = join(root, "home");
       await mkdir(home, { recursive: true });
 
@@ -4927,7 +4927,7 @@ describe("NodeExecutionAdapter", () => {
   it.skipIf(!POSIX_BASH_PATH)(
     "keeps one canonical Bash output file across explicit background commit",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-exec-bg-bash-output-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-exec-bg-bash-output-"));
       const home = join(root, "home");
       await mkdir(home, { recursive: true });
       const adapter = new NodeExecutionAdapter({

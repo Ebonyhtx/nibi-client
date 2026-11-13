@@ -89,7 +89,7 @@ afterEach(() => {
 
 describe("virtual project CLI session facts", () => {
   it("升级本分支旧 ID 时先执行上游迁移，保留正文、软删除与结果且不重跑", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-merge-old-id-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-merge-old-id-"));
     const dbPath = join(root, "session.sqlite");
     const db = new DatabaseSync(dbPath);
     const oldId = "0020_session_soft_delete_outcome";
@@ -830,7 +830,7 @@ describe("SQLite session store", () => {
   });
 
   it("backfills legacy project permissions into local settings", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-permission-migration-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-permission-migration-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const projectID = createProjectId("legacy-permission");
     const created = 1_700_000_000_000;
@@ -877,7 +877,7 @@ describe("SQLite session store", () => {
   });
 
   it("rejects edited migration SQL by checksum", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-migration-checksum-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-migration-checksum-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const db = new DatabaseSync(dbPath);
     db.exec(`
@@ -912,7 +912,7 @@ describe("SQLite session store", () => {
   });
 
   it("exposes a startup gate opener for migrated session stores", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-startup-session-store-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-startup-session-store-"));
     const dbPath = join(tempRoot, "session.sqlite");
 
     try {
@@ -1160,7 +1160,7 @@ describe("SQLite session store", () => {
   });
 
   it("atomically creates a fork child and idempotent command fact", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-stable-fork-child-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-stable-fork-child-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const parentSessionId = createSessionId("stable-fork-parent");
     const firstChildId = createSessionId("stable-fork-child-first");
@@ -1240,7 +1240,7 @@ describe("SQLite session store", () => {
   });
 
   it("accepts an empty before-input prefix for a first-turn compact edit", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-root-before-input-fork-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-root-before-input-fork-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const parentSessionId = createSessionId("root-before-input-parent");
     const childSessionId = createSessionId("root-before-input-child");
@@ -1284,7 +1284,7 @@ describe("SQLite session store", () => {
   });
 
   it("commits fork child, copied transcript, admission and parent fact in one transaction", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-fork-bundle-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-fork-bundle-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const parentSessionId = createSessionId("bundle-parent");
     const childSessionId = createSessionId("bundle-child");
@@ -1483,7 +1483,7 @@ describe("SQLite session store", () => {
   });
 
   it("commits selection_side_chat child fact while root session queries keep it hidden", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-selection-side-bundle-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-selection-side-bundle-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const parentSessionId = createSessionId("selection-side-parent");
     const childSessionId = createSessionId("selection-side-child");
@@ -1556,7 +1556,7 @@ describe("SQLite session store", () => {
       "beforeCommit",
     ] as const;
     for (const stage of stages) {
-      const tempRoot = await mkdtemp(join(tmpdir(), `zcode-fork-stage-${stage}-`));
+      const tempRoot = await mkdtemp(join(tmpdir(), `nibi-fork-stage-${stage}-`));
       const dbPath = join(tempRoot, "session.sqlite");
       const parentSessionId = createSessionId(`fault-parent-${stage}`);
       const childSessionId = createSessionId(`fault-child-${stage}`);
@@ -1669,7 +1669,7 @@ describe("SQLite session store", () => {
   });
 
   it("rejects a fork bundle whose child-local assistant parent still points at parent transcript", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-fork-parent-leak-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-fork-parent-leak-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const parentSessionId = createSessionId("parent-leak-parent");
     const childSessionId = createSessionId("parent-leak-child");
@@ -1747,7 +1747,7 @@ describe("SQLite session store", () => {
   });
 
   it("stable fork bundle commits without creating a child input admission", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-stable-bundle-no-input-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-stable-bundle-no-input-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const parentSessionId = createSessionId("stable-no-input-parent");
     const childSessionId = createSessionId("stable-no-input-child");
@@ -1813,7 +1813,7 @@ describe("SQLite session store", () => {
       },
     ];
     for (const [index, result] of invalidResults.entries()) {
-      const tempRoot = await mkdtemp(join(tmpdir(), `zcode-fork-result-${index}-`));
+      const tempRoot = await mkdtemp(join(tmpdir(), `nibi-fork-result-${index}-`));
       const dbPath = join(tempRoot, "session.sqlite");
       const parentSessionId = createSessionId(`result-parent-${index}`);
       const childSessionId = createSessionId(`result-child-${index}`);
@@ -1867,7 +1867,7 @@ describe("SQLite session store", () => {
   });
 
   it("rolls back fork child when command metadata persistence fails", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-stable-fork-rollback-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-stable-fork-rollback-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const parentSessionId = createSessionId("stable-fork-rollback-parent");
     const childSessionId = createSessionId("stable-fork-rollback-child");
@@ -2635,7 +2635,7 @@ describe("SQLite session store", () => {
   });
 
   it("reopens Bash prefix and exact rules without migrating their JSON shape", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-bash-permission-reopen-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bash-permission-reopen-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const projectID = createProjectId("bash-permission-reopen");
     const permission = {
@@ -2670,7 +2670,7 @@ describe("SQLite session store", () => {
   });
 
   it("persists the typed project mode local setting", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-local-setting-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-local-setting-"));
     const store = await createSqliteSessionStore({
       dbPath: join(tempRoot, "session.sqlite"),
     });
@@ -2689,7 +2689,7 @@ describe("SQLite session store", () => {
   });
 
   it("persists edit project permission mode", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-local-setting-edit-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-local-setting-edit-"));
     const store = await createSqliteSessionStore({
       dbPath: join(tempRoot, "session.sqlite"),
     });
@@ -2707,7 +2707,7 @@ describe("SQLite session store", () => {
   });
 
   it("records project input history with global retention and duplicate suppression", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-input-history-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-input-history-"));
     const store = await createSqliteSessionStore({
       dbPath: join(tempRoot, "session.sqlite"),
     });
@@ -2812,7 +2812,7 @@ describe("SQLite session store", () => {
   });
 
   it("persists usage observability facts and prunes rows outside retention", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-usage-observability-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-usage-observability-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const store = await createSqliteSessionStore({ dbPath });
     const sessionID = createSessionId("usage-observability");
@@ -2937,7 +2937,7 @@ describe("SQLite session store", () => {
   });
 
   it("maps the domain reasoning level to the legacy model usage variant column", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-usage-reasoning-level-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-usage-reasoning-level-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const store = await createSqliteSessionStore({ dbPath });
     const sessionID = createSessionId("usage-reasoning-level");

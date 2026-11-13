@@ -119,7 +119,7 @@
 
 ```json
 {
-  "name": "zcode-plugins-official",
+  "name": "nibi-plugins-official",
   "description": "Official ZCode plugins marketplace",
   "plugins": [
     {
@@ -164,7 +164,7 @@ Phase 1 zip 安装步骤：
    - 其他 `type`：报 unsupported/invalid source。
    - 校验 `url` / `sha256` / `path` / `headers` / `stripRoot` shape。
    - 调用 `resolveZipPluginSource({ url, sha256, path, headers, stripRoot, signal })`。
-4. `resolveZipPluginSource()` 创建临时目录，例如 `mkdtemp(join(tmpdir(), "zcode-plugin-zip-"))`。
+4. `resolveZipPluginSource()` 创建临时目录，例如 `mkdtemp(join(tmpdir(), "nibi-plugin-zip-"))`。
 5. 下载 zip 到临时文件或流式写入临时文件：
    - 使用与 marketplace 操作一致的 AbortSignal。
    - 对齐 `NIBI_HTTP_PROXY` / `NIBI_HTTPS_PROXY` / `NIBI_NO_PROXY` / CA 等网络出口配置。

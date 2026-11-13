@@ -191,8 +191,8 @@ fn harness(workspace_parent: Option<&Path>, a_stall_at: Option<usize>) -> Harnes
     let store = Arc::new(NodeStore::new(paths, ids.clone()));
     // 与入口相同：输出文件放在系统临时目录（cli `shell::config`），这里换成临时 HOME 旁边的目录。
     let shell = ShellConfig {
-        scratch: base.join("zcode-shell/sessions"),
-        ledger: base.join("zcode-shell/ledger"),
+        scratch: base.join("nibi-shell/sessions"),
+        ledger: base.join("nibi-shell/ledger"),
         bash: Some(PathBuf::from("/bin/bash")),
         bwrap: None,
         embedded: None,

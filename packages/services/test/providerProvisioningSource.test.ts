@@ -41,7 +41,7 @@ function personalRepository(root: string) {
 
 describe("Provider Provisioning Source", () => {
   it("exports sparse Personal Config, default, account settings and only provider credentials", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-provider-provisioning-source-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-provider-provisioning-source-"));
     const credentialsPath = join(root, "credentials.json");
     const cipher = createCredentialCipherProvider({ env: { NIBI_CREDENTIAL_SECRET: "source" } });
     await writeFile(
@@ -113,7 +113,7 @@ describe("Provider Provisioning Source", () => {
   });
 
   it("still rejects malformed allowlist credential records", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-provider-provisioning-source-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-provider-provisioning-source-"));
     const credentialsPath = join(root, "credentials.json");
     await writeFile(
       credentialsPath,

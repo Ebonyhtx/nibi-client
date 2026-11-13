@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/status_line.rs（feat/rs 79b6691c55）：回合、字数与推理来自
+// 改写自 apps/nibi-host/crates/tui/src/ui/status_line.rs（feat/rs 79b6691c55）：回合、字数与推理来自
 // `view::Transcript`；标题没有任务清单（L7），用每个回合固定的动词。
 //! 运行中的状态行（docs/specs/rust-tui.md §8.3）：`图标 标题… (用时 · ↓ N tokens · 思考状态)`。图标是点阵
 //! spinner（docs/specs/rust-cli/tui-display.md §2.1.2）；标题是进行中的任务，没有时用每个回合固定选的一个动词。运行中 10 秒

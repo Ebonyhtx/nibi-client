@@ -47,7 +47,7 @@ describe("MCP telemetry source provenance", () => {
 });
 
 async function discoverPluginMcp(channel: "builtin" | "official-cdn" | "inline") {
-  const root = await mkdtemp(join(tmpdir(), `zcode-${channel}-plugin-mcp-source-`));
+  const root = await mkdtemp(join(tmpdir(), `nibi-${channel}-plugin-mcp-source-`));
   const pluginRoot = join(root, PLUGIN_NAME);
   const storageRoot = join(root, "storage");
   const marketplace = channel === "inline" ? "inline" : "nibi-official";

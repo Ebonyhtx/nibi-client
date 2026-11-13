@@ -133,7 +133,7 @@ describe("PLM-UI-001 UI 插件市场与项目配置", () => {
             (await browser.electron.execute(async (electron) => {
               const guests = electron.webContents
                 .getAllWebContents()
-                .filter((guest) => guest.getURL().startsWith("zcode-sandbox://"));
+                .filter((guest) => guest.getURL().startsWith("nibi-sandbox://"));
               for (const guest of guests) {
                 for (const frame of guest.mainFrame.frames) {
                   const ready = await frame

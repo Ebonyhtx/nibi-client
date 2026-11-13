@@ -37,8 +37,8 @@ function destroyLockStreamBestEffort(stream: StdioStream): void {
 }
 
 function buildRemoteDeployLockScript(lockDir: string, ownerToken: string): string {
-  const acquiredMarker = `zcode-deploy-lock-acquired:${ownerToken}`;
-  const releaseMarker = `zcode-deploy-lock-release:${ownerToken}`;
+  const acquiredMarker = `nibi-deploy-lock-acquired:${ownerToken}`;
+  const releaseMarker = `nibi-deploy-lock-release:${ownerToken}`;
   return [
     "set -eu",
     `lock_dir=${quotePosixPathArg(lockDir)}`,
@@ -125,8 +125,8 @@ export async function acquireRemoteDeployLock(
     1,
     Math.floor(options.releaseTimeoutMs ?? DEFAULT_RELEASE_TIMEOUT_MS),
   );
-  const acquiredMarker = `zcode-deploy-lock-acquired:${ownerToken}`;
-  const releaseMarker = `zcode-deploy-lock-release:${ownerToken}`;
+  const acquiredMarker = `nibi-deploy-lock-acquired:${ownerToken}`;
+  const releaseMarker = `nibi-deploy-lock-release:${ownerToken}`;
   const stream = await backend.exec(buildRemoteDeployLockCommand(lockDir, ownerToken));
   const close = createStreamClosePromise(stream);
   let stderrText = "";

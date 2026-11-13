@@ -32,7 +32,7 @@ const RESOLVED_DOCKER_COMMAND = "/resolved/bin/docker";
 function createBackend(): DockerBackend {
   return new DockerBackend({
     kind: "docker",
-    container: "zcode-dev",
+    container: "nibi-dev",
   });
 }
 
@@ -83,7 +83,7 @@ describe("DockerBackend docker command resolution", () => {
       {
         id: "abc123",
         image: "ubuntu:24.04",
-        name: "zcode-dev",
+        name: "nibi-dev",
         state: "running",
         status: "Up 2 minutes",
       },
@@ -116,7 +116,7 @@ describe("DockerBackend docker command resolution", () => {
     },
   );
 
-  it.each(["dev_1.test-name", "a".repeat(64), "abc123", " zcode-dev "])(
+  it.each(["dev_1.test-name", "a".repeat(64), "abc123", " nibi-dev "])(
     "直接路径接受名称和 ID 且不增加 CLI 往返：%j",
     async (container) => {
       const backend = new DockerBackend({ kind: "docker", container });
@@ -138,7 +138,7 @@ describe("DockerBackend docker command resolution", () => {
     expect(mocks.execFile).not.toHaveBeenCalled();
     expect(mocks.spawn).toHaveBeenCalledWith(
       RESOLVED_DOCKER_COMMAND,
-      ["exec", "-i", "zcode-dev", "sh", "-lc", "printf ok"],
+      ["exec", "-i", "nibi-dev", "sh", "-lc", "printf ok"],
       expect.any(Object),
     );
     await backend.exec("printf again");
@@ -159,7 +159,7 @@ describe("DockerBackend docker command resolution", () => {
 
     expect(mocks.spawn).toHaveBeenCalledWith(
       RESOLVED_DOCKER_COMMAND,
-      ["exec", "-i", "zcode-dev", "sh", "-lc", "cat > '/root/.nibi/server/server.tgz'"],
+      ["exec", "-i", "nibi-dev", "sh", "-lc", "cat > '/root/.nibi/server/server.tgz'"],
       expect.any(Object),
     );
     expect(mocks.execFile.mock.calls.some((call) => (call[1] as string[])[0] === "cp")).toBe(false);
@@ -202,7 +202,7 @@ describe("DockerBackend docker command resolution", () => {
     expect(mocks.execFile).toHaveBeenCalledTimes(1);
     expect(mocks.execFile).toHaveBeenCalledWith(
       RESOLVED_DOCKER_COMMAND,
-      ["exec", "-i", "zcode-dev", "sh", "-lc", "cat \"$HOME\"/'.nibi/server/run/ingress-token'"],
+      ["exec", "-i", "nibi-dev", "sh", "-lc", "cat \"$HOME\"/'.nibi/server/run/ingress-token'"],
       expect.any(Object),
       expect.any(Function),
     );
@@ -227,7 +227,7 @@ describe("DockerBackend docker command resolution", () => {
 
     expect(mocks.spawn).toHaveBeenCalledWith(
       RESOLVED_DOCKER_COMMAND,
-      ["exec", "-i", "zcode-dev", "sh", "-lc", "cat > '/root/.nibi/tmp/attachment.bin'"],
+      ["exec", "-i", "nibi-dev", "sh", "-lc", "cat > '/root/.nibi/tmp/attachment.bin'"],
       expect.any(Object),
     );
     expect(progress.at(-1)).toEqual({

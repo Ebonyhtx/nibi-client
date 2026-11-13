@@ -157,7 +157,7 @@ export type OAuthCachedSessionRestoreResult =
 export type OAuthSessionState = "signed-in" | "signed-out";
 
 /** Host 在检测到 Nibi JWT 失效后通知 Renderer 展示确认并重启。 */
-export const NIBI_JWT_INVALID_BROADCAST_CHANNEL = "auth:zcode-jwt-invalid";
+export const NIBI_JWT_INVALID_BROADCAST_CHANNEL = "auth:nibi-jwt-invalid";
 
 export type JwtExpirationResult =
   | { kind: "valid"; expiresAt: number }

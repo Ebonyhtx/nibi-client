@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/notice.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/notice.rs（feat/rs 79b6691c55）。
 //! footer 的临时提示与连按两次的按键（docs/specs/rust-tui.md §8.4、§8.6）。提示到时自动消失；连按的
 //! 判断只看这条提示：同一种按键在它显示期间（800 ms）再按一次就生效。
 use std::time::{Duration, Instant};

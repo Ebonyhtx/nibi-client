@@ -10,7 +10,7 @@ agentConversationTransport
   ▼
 Host: sendConversationCommandV4
   ▼
-workspaceKey 对应的 zcode-cli
+workspaceKey 对应的 nibi-cli
   ├─ command inbox 裁决
   ├─ core 执行
   └─ ProductProjection 更新
@@ -78,7 +78,7 @@ desktop attachment；`DetachServicePort` 只释放一个逻辑 workspace 的 RPC
 | UI pane             | `packages/ui/src/v4/SessionPane.tsx`                                       |
 | UI transport        | `packages/ui/src/v4/agentConversationTransport.ts`                         |
 | UI projection       | `packages/ui/src/v4/sessionDataLayer.ts`、`packages/ui/src/v4/conversationProjectionStore.ts` |
-| Host service        | `packages/services/src/zcode-agent/zcodeAgentService.ts`                   |
+| Host service        | `packages/services/src/nibi-agent/zcodeAgentService.ts`                   |
 | V4 schema           | `packages/shared/src/nibi-protocol-v4/`                                   |
 | CLI gateway/reducer | `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/`                 |
 | Desktop host        | `packages/desktop/src/host/index.ts`                                       |

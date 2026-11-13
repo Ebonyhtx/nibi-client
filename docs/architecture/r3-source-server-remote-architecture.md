@@ -15,7 +15,7 @@
 - [R2 独立 Server CLI 与 daemon 规格](./r2-server-cli-and-daemon.md)（已实施；`verify-remote-ssh.mjs` 为 R3 SSH Transport 的最小形态预演）
 - [R3 Source Server 发布测试方案（历史，已归档）](../archive/remote-r3/r3-source-server-release-test-plan.md)：REMOTE-01—15 稳定编号现由 [conversation-session-case-catalog.md](../conversation-session-case-catalog.md) 承载，当前执行方案见 [r3-remote-automation-plan.md](../testing/r3-remote-automation-plan.md)
 - [远程工作区投影与持久化兼容](./remote-domain-simplification-and-conversation-workspace-spec.md)（统一 projection、open set、strict schema 与 R4 剩余事项）
-- [ZCode Lite / Server 统一多端架构实施计划](./unified-zcode-lite-server-multi-server-plan.md)（目标架构背景）
+- [ZCode Lite / Server 统一多端架构实施计划](./unified-nibi-lite-server-multi-server-plan.md)（目标架构背景）
 - [Remote Target 抽象](./remote-target-abstraction.md)（现有旧主链的 target/backend 事实）
 
 R3 交付：
@@ -56,7 +56,7 @@ R3 不交付：
 | 服务集合         | 三种连接方式统一采用「全转发」模式（与现有 server transport 的 `createServerRemoteWorkspaceServiceCollection` 一致）；`LegacyRemoteWorkspaceRpcContract` 更名为版本化的 `RemoteWorkspaceRpcContract` 并作为握手校验的一部分                                                                                                                                                                                                                                                                                                                                                             |
 | 连接记录模型     | `lastWorkspaceSession` 的「连接与 workspace 合一实体」拆分为三实体：`SourceServerRecord`（握手后建立）、`ConnectionProfile`（线路+凭据引用）、workspace 打开历史（引用前两者）。凭据 key 从 `remote-workspace:<workspaceKey>:*` 迁到 `connection-profile:<profileId>:*`                                                                                                                                                                                                                                                                                                                 |
 | 远端数据迁移     | **R3 不做破坏性 key 重写**。Server Core 维护 path → canonical key 的 alias 解析层，按 workspace 打开惰性执行；单线路历史零数据改动（新旧版本读写同一批行，回退与混连天然兼容）；仅多线路变体历史做一次性合并到 canonical（备份 + ledger），失败按 workspace 粒度阻止打开、不阻塞连接。R4 才执行 server-local 清洁化                                                                                                                                                                                                                                                                     |
-| 目录共存         | 旧主链资产（`~/.nibi/server` 下 `node`、`<daemon bundle>`（改名前叫 `zcode-server.cjs`，现在叫 `nibi-server.cjs`）、`agents/`、`tools/`、`build/` 散文件）与 R2 release 布局同目录共存。R3 安装不清理旧散文件（保护未升级 Desktop 的回滚路径），清理留待 R4                                                                                                                                                                                                                                                                                                                                                                                    |
+| 目录共存         | 旧主链资产（`~/.nibi/server` 下 `node`、`<daemon bundle>`（改名前叫 `nibi-server.cjs`，现在叫 `nibi-server.cjs`）、`agents/`、`tools/`、`build/` 散文件）与 R2 release 布局同目录共存。R3 安装不清理旧散文件（保护未升级 Desktop 的回滚路径），清理留待 R4                                                                                                                                                                                                                                                                                                                                                                                    |
 | 自动重连         | 启动按最近在线排序尝试全部保存连接，不按 7 天过滤（并发和单次预算见[当前恢复合同](../remote/desktop-remote-session-renderer-reattach.md)，各尝试一次）；在线断连按 2/4/8s 重试 3 次；离线每 2 分钟静默探测。仅对「凭据可静默获得」的 Profile 生效；需要交互（密码未存、版本不兼容、迁移失败）时停在离线态等待用户                                                                                                                                                                                                                                                                       |
 | 窗口模型         | 沿用 R1 窗口级隔离；一期按单窗口（主窗口）设计与验收，启动自动重连由主窗口 Host 执行，多窗口行为不做产品承诺                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | 远端 automation  | 一期不支持。cron 调度与 run 生命周期当前在窗口 Host 进程内（`cronAutomationRepo`/`cronRunLifecycle`），迁往 Core 涉及调度器移植、错过补跑语义（方案已列为后续能力）与管理 UI 多 Source 化，改动独立且不小；daemon 常驻已为后续实现铺路，R3 架构不设障碍                                                                                                                                                                                                                                                                                                                                 |
@@ -230,7 +230,7 @@ Controller 写路由（pin/archive/delete/open/resume）以 `sourceServerId + wo
 
 ```text
 Window Host（R1）
-├─ LocalSource ── stdio ── local zcode-cli
+├─ LocalSource ── stdio ── local nibi-cli
 └─ RemoteConnectionRegistry
    ├─ SSH entry ─ ssh2 exec ─ deployServer 部署散资产 ─ 启动前台 stdio nibi-server（entry-stdio）
    │                               版本必须严格相等          │ SERVICE_AUTHORITY_MODE=desktop-attached-remote
@@ -246,7 +246,7 @@ R3 后：
 
 ```text
 Window Host（R3）
-├─ LocalSource ── stdio ── local zcode-cli（不变）
+├─ LocalSource ── stdio ── local nibi-cli（不变）
 └─ SourceServerConnectionManager（RemoteConnectionRegistry 演进）
    ├─ ServerDirectory（app 级持久化读写：SourceServerRecord + ConnectionProfile）
    ├─ 每个在线 Source Server 一条窗口级连接
@@ -376,7 +376,7 @@ probe ──已安装且 daemon ready──────────────�
 - 判定为需要更新之后，两种策略的更新逻辑必须完全一致：连接流程只把 Profile 置为 `needs-upgrade + updateAvailability: required` 并以 `source-server-upgrade-required` 拒绝连接，不得在连接流程内直接执行 archive update；更新本身统一由 §6.3 的 `updateSource → Manager.updateServer` 执行（`updating` 状态、操作日志、`force:false` 先行、running-task guard 后由用户显式确认再 `force:true`）。因此连接向导内的自动更新、启动重连/断线恢复的「立即更新」入口和强制更新确认对开发态同样生效。（R3A-B-06 修正：此前开发态在连接流程内直接 `installOrUpdate`，guard 只能表现为普通连接失败，UI 没有强制更新入口。）
 - 开发态内容刷新只接受本轮本地 staging 的 descriptor/archive，并统一走 Desktop 上传；即使 SSH Profile 保存的是 `remote-download` 也不得改从 CDN 获取同版本产物。若本地产物缺失、校验失败或更新被 running-task guard 阻断，连接必须 fail-closed，禁止回退 CDN 或继续运行旧 release。
 - 开发态 `bootstrap:with-remote` 必须调用与 CI 相同的 Source Server staging 入口并刷新 descriptor/archive；普通 `bootstrap` 继续跳过远端资源。成功返回表示所有仓库源码派生的 runtime、插件与 archive 都在本轮构建，只有固定版本且经校验的外部二进制允许复用缓存。staging 开始先使旧 descriptor 失效，四个平台 archive 全部原子落盘并校验后再原子发布新 descriptor；失败不得留下可被开发连接消费的旧 generation。Linux 开发专用入口 `prepare:remote-assets:linux` 复用同一路径，只构建并发布 `linux-x64` / `linux-arm64`，descriptor 只列本轮目标，不混入历史 macOS 条目；环境与使用约定见 [Bootstrap 命令](../bootstrap.md)。
-- 远端 `~/.nibi/server` 内旧主链散文件（`node`、`<daemon bundle>`、`agents/`、`build/`、`tools/`）与 R2 布局共目录：R3 安装**不删除**这些旧文件——未升级的旧版本 Desktop 仍依赖它们运行旧主链；清理属于 R4。改名前的 daemon bundle 叫 `zcode-server.cjs`、改后叫 `nibi-server.cjs`；卸载清单只列新名，改名前的远端实例会留下旧的散文件，由 R4 清理。R2 的 uninstall allowlist 需扩展列出这批旧路径，保证 R3 之后的 `zcode uninstall` 能一并清理并写入 `preservedPaths` 对账。
+- 远端 `~/.nibi/server` 内旧主链散文件（`node`、`<daemon bundle>`、`agents/`、`build/`、`tools/`）与 R2 布局共目录：R3 安装**不删除**这些旧文件——未升级的旧版本 Desktop 仍依赖它们运行旧主链；清理属于 R4。改名前的 daemon bundle 叫 `nibi-server.cjs`、改后叫 `nibi-server.cjs`；卸载清单只列新名，改名前的远端实例会留下旧的散文件，由 R4 清理。R2 的 uninstall allowlist 需扩展列出这批旧路径，保证 R3 之后的 `zcode uninstall` 能一并清理并写入 `preservedPaths` 对账。
 
 ## 6. 握手、鉴权与版本兼容
 
@@ -664,7 +664,7 @@ Source transport 断开
 | channel 组                                                              | remote scope 权威/行为                                                                         | 一期限制                                                                                                                                                                                                                           |
 | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | file/file-watcher/git/git-checkpoint/system/terminal                    | Source Server 全转发                                                                           | `workspacePath` 只用于远端 IO                                                                                                                                                                                                      |
-| zcode-task/zcode-agent/zcode-session                                    | Source Server/CLI 全转发                                                                       | Desktop continuous；手机保持 replayable attachment                                                                                                                                                                                 |
+| nibi-task/nibi-agent/nibi-session                                    | Source Server/CLI 全转发                                                                       | Desktop continuous；手机保持 replayable attachment                                                                                                                                                                                 |
 | setting/credential/broadcast                                            | Source Server 全转发                                                                           | Connection Profile、Theme、Locale 仍属控制端 base attachment                                                                                                                                                                       |
 | onboarding-record                                                       | Source Server 全转发（与 setting/OAuth 同源）                                                  | 不借用控制端记录；手机 replayable allowlist 放行，见 onboarding-record-spec §5.1                                                                                                                                                   |
 | provider-settings/model-selection/media-preview                         | Source Server 全转发（远端 Facade 读远端 Registry）                                            | 设置页「模型设置」不消费远端 `provider-settings`（永远绑定本地，§8.2）；对话区 / Subagents / Automation 模型目录消费目标 Host 的 `model-selection`；`media-preview` 是合同必有 channel，由 `assertRemoteWorkspaceRpcContract` 校验 |
@@ -831,7 +831,7 @@ Core 启动（server-core/core.ts runServerCore）
   layout = resolveServerLayout(NIBI_SERVER_ROOT)
   ├─ NIBI_BUILTIN_PROVIDER_CONFIG_FILE 显式指定 ──► 直接使用该文件
   ├─ 否则 materializeZCodeBuiltinProviderConfig({ runtimeRoot: layout.serverRoot, content })
-  │     └─► ~/.nibi/server/config/provider/zcode-builtin-<sha256(content)>.json（tmp + rename；同 hash 幂等，内容不一致则失败）
+  │     └─► ~/.nibi/server/config/provider/nibi-builtin-<sha256(content)>.json（tmp + rename；同 hash 幂等，内容不一致则失败）
   └─ 两者皆无 ──► 启动失败（fail-closed）
 ```
 
@@ -1175,5 +1175,5 @@ R3 保留源码但已从生产入口不可达、R4 再物理删除：
   - 若产品仍需要「查看 / 手动同步某台远端的模型配置」，在 `IProviderSettingsService` 之上重建只读设备视图 + 显式「立即下发」按钮（复用 `coordinator.requestAll("personal-config")`），不复活 `provider-sync` / journal 体系。
   - Provisioning lane 的 Environment key 由 `buildRemoteEnvironmentKey(target)` 按 transport 派生，未接入 `sourceServerId`；同一 Source 经不同线路连接会形成两条 lane（结果幂等，但重复首连同步）。可评估在 descriptor 携带 `sourceServerId` 时以其为 key。
   - `REMOTE_WORKSPACE_RPC_CONTRACT_VERSION` 仍为 v1，但 channel 集合已变；当前靠「兼容门默认同版本」兜底，若未来放宽 `zcodeCompatibility.minCompatibleVersion`，需先决定是否升 v2 并在握手中协商。
-  - `zcode uninstall` allowlist 不含 `config/`，`config/provider/zcode-builtin-*.json` 卸载后会留在 `preservedPaths`；是否纳入 allowlist 待定。
+  - `zcode uninstall` allowlist 不含 `config/`，`config/provider/nibi-builtin-*.json` 卸载后会留在 `preservedPaths`；是否纳入 allowlist 待定。
   - R3-ISSUE-012（API Key 明文持久化规格冲突）已按明文 Personal Config 新基线关闭为不修复，见问题台账。

@@ -104,7 +104,7 @@ describe("compact media policy projection", () => {
           maxOutputTokens: 1,
           mode: "plan",
           systemPrompt: "You are an auto compact media capability test agent.",
-          workingDirectory: `/tmp/zcode-runtime-auto-compact-media-capability-${unsupportedKind}`,
+          workingDirectory: `/tmp/nibi-runtime-auto-compact-media-capability-${unsupportedKind}`,
         },
         {
           artifactStore: createTestImageArtifactStore(),

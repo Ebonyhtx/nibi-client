@@ -75,7 +75,7 @@ beforeEach(async () => {
   fsMocks.open.mockImplementation(actualFs.open);
   fsMocks.readdir.mockReset();
   fsMocks.readdir.mockImplementation(actualFs.readdir);
-  tempDir = await mkdtemp(join(tmpdir(), "zcode-project-memory-service-"));
+  tempDir = await mkdtemp(join(tmpdir(), "nibi-project-memory-service-"));
   setDataBaseDir(tempDir);
 });
 

@@ -304,9 +304,9 @@ task needs it.
 
 ## Final response citations
 
-Place `::zcode-file-citation{...}` inline in prose, not in a trailing list. Use `purpose="source"` for Q&A/no-op and `purpose="output"` for create/edit.
+Place `::nibi-file-citation{...}` inline in prose, not in a trailing list. Use `purpose="source"` for Q&A/no-op and `purpose="output"` for create/edit.
 
-- [HARD REQUIREMENT] Create/edit: cite each final file exactly once with a plain output citation. Summarize representative changes; do not cite every section/page or add a separate filename, path, or Markdown link. Example: `Created ::zcode-file-citation{path="/abs/path/launch-plan.docx" purpose="output"}, highlighting the rollout and owners.`
+- [HARD REQUIREMENT] Create/edit: cite each final file exactly once with a plain output citation. Summarize representative changes; do not cite every section/page or add a separate filename, path, or Markdown link. Example: `Created ::nibi-file-citation{path="/abs/path/launch-plan.docx" purpose="output"}, highlighting the rollout and owners.`
 - Q&A: do not edit/re-export.
 
 ### Document
@@ -316,7 +316,7 @@ For page-specific evidence, use a page number verified against the latest render
 Locators support only `page_number`; otherwise use a plain citation. Do not guess or add object, label, paragraph, table, or cell IDs. Do not cite intermediates unless asked. Inspect complete relevant pages and preserve material headings, question/table labels, footnotes, sources, and sample sizes; cite each needed page once.
 
 ```text
-::zcode-file-citation{path="/abs/path/file.docx" purpose="source" artifact_kind="document" page_number=4}
+::nibi-file-citation{path="/abs/path/file.docx" purpose="source" artifact_kind="document" page_number=4}
 ```
 
 ### PDF
@@ -331,8 +331,8 @@ For non-in-place edits, preserve the source and export a copy; if unchanged, cit
 Use only locators verified against the latest render/inspection:
 
 ```text
-::zcode-file-citation{path="/abs/path/deck.pptx" purpose="source" artifact_kind="presentation" slide_number=3}
-::zcode-file-citation{path="/abs/path/deck.pptx" purpose="source" artifact_kind="presentation" slide_number=1 slide_id="sl/gs5z1kshq0xv" object_id="ch/pz9t1r3ka8vn" label="ARR by segment chart"}
+::nibi-file-citation{path="/abs/path/deck.pptx" purpose="source" artifact_kind="presentation" slide_number=3}
+::nibi-file-citation{path="/abs/path/deck.pptx" purpose="source" artifact_kind="presentation" slide_number=1 slide_id="sl/gs5z1kshq0xv" object_id="ch/pz9t1r3ka8vn" label="ARR by segment chart"}
 ```
 
 If IDs are not exact, stop at `slide_number`; never guess or cite intermediates unless asked.
@@ -343,7 +343,7 @@ If IDs are not exact, stop at `slide_number`; never guess or cite intermediates 
 - Calculations: cite only distinct inputs, drivers, formulas, or results the answer needs.
 
 ```text
-::zcode-file-citation{path="/abs/path/book.xlsx" purpose="source" artifact_kind="workbook" sheet="Revenue Model" range="C27"}
+::nibi-file-citation{path="/abs/path/book.xlsx" purpose="source" artifact_kind="workbook" sheet="Revenue Model" range="C27"}
 ```
 
 Never cite intermediates unless asked.

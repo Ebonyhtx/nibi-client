@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createMcpSyncService } from "../src/mcp-sync/mcpSyncService.js";
 
 function makeHome() {
-  return mkdtempSync(join(tmpdir(), "zcode-mcp-sync-home-"));
+  return mkdtempSync(join(tmpdir(), "nibi-mcp-sync-home-"));
 }
 
 async function writeNibiUserMcp(

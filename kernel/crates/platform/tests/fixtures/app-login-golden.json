@@ -64,7 +64,7 @@
       "loginFile": "{\n  \"oauth:zai:access_token\": \"enc:v1:O6--KsT4cPB4TUfj.gq_i8KNK87doKVPm7v-HcA.zjLbo83auQ\",\n  \"zcodejwttoken\": \"enc:v1:0lKtvauoIpjUo_oX.HpRKWKhbyKhoy1-TQeXT4g.vm5cRbeEupZI\",\n  \"oauth:zai:user_info\": \"enc:v1:-Q3R8aviUa9IQgQu.s0Ee1pL9rM-ICmbcKZjy9g.LwW62w5XbO8_kuq0O3owlD4SILSQtOQHUxbKxXgQXkLcxaB0_uHoHdHP7ZmpJVEVvpAZy-6FoUwQJQpYf_PIcRWFTgGaiBhWrFXxamVxTTZB0FOdvTEox1eUGyY-d3oaLESPIoRs1WznVUwjNoJIDmEs3MMQWYLWnQ\",\n  \"oauth:active_provider\": \"enc:v1:gkd8JzI0nTT-Gdb6.6QguVd7wwBO3_I7HlHbGQQ.hA1T\"\n}\n",
       "loginRecord": {
         "oauth:zai:access_token": "jwt-zai",
-        "zcodejwttoken": "zcode-jwt",
+        "zcodejwttoken": "nibi-jwt",
         "oauth:zai:user_info": "{\"user_id\":\"u-1\",\"name\":\" Dev \",\"email\":\"dev@example.com\",\"avatar\":\" https://avatar.example.com/a.png \",\"locale\":\"zh-CN\"}",
         "oauth:active_provider": "zai"
       },
@@ -91,7 +91,7 @@
           "path": "/api/biz/v1/organization/org-1/projects/p-1/api_keys",
           "authorization": "Bearer jwt-zai",
           "body": {
-            "name": "zcode-api-key",
+            "name": "nibi-api-key",
             "usageScene": 1
           }
         },
@@ -155,7 +155,7 @@
       "loginRecord": {
         "oauth:bigmodel:access_token": "at-big",
         "oauth:bigmodel:refresh_token": "rt-big",
-        "zcodejwttoken": "zcode-jwt",
+        "zcodejwttoken": "nibi-jwt",
         "oauth:bigmodel:user_info": "{\"id\":\"u-1\",\"username\":\"Dev\",\"displayName\":\"Dev\",\"avatarUrl\":\"https://avatar.example.com/a.png\",\"rawProfile\":{\"user_id\":\"u-1\",\"name\":\" Dev \",\"email\":\"dev@example.com\",\"avatar\":\" https://avatar.example.com/a.png \",\"locale\":\"zh-CN\",\"nibiProfileSchemaVersion\":2}}",
         "oauth:active_provider": "bigmodel"
       },
@@ -182,7 +182,7 @@
           "path": "/api/biz/v1/organization/org-1/projects/p-1/api_keys",
           "authorization": "at-big",
           "body": {
-            "name": "zcode-api-key",
+            "name": "nibi-api-key",
             "usageScene": 1
           }
         },
@@ -1392,7 +1392,7 @@
       "oauth:bigmodel:access_token": "at-big",
       "oauth:bigmodel:refresh_token": "rt-big",
       "oauth:bigmodel:user_info": "{\"id\":\"u-big\",\"username\":\"dev\",\"displayName\":\"Dev\"}",
-      "zcodejwttoken": "zcode-jwt",
+      "zcodejwttoken": "nibi-jwt",
       "oauth:login_attribution": "{\"source\":\"x\"}",
       "account-provider:coding-plan:account:zai-individual-coding-plan:account:u-zai:api-key": "legacy-zai",
       "account-provider:coding-plan:account:bigmodel-individual-coding-plan:account:u-big:api-key": "legacy-big",

@@ -317,7 +317,7 @@ async function main() {
   writeFileSync(
     join(workflowDir, "baseline.dwf.ts"),
     [
-      "/* zcode-workflow",
+      "/* nibi-workflow",
       "description: baseline scenario probe",
       "*/",
       'const worker = agent("worker", "You answer questions.");',

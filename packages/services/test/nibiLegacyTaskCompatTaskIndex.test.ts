@@ -81,7 +81,7 @@ afterEach(async () => {
 });
 
 function useTempDataBaseDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "zcode-task-index-"));
+  const dir = mkdtempSync(join(tmpdir(), "nibi-task-index-"));
   tempDirs.push(dir);
   setDataBaseDir(dir);
   return dir;

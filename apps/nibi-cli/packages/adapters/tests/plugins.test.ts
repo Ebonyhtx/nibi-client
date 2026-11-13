@@ -111,7 +111,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("follows marketplace redirects through the configured system proxy without leaking headers", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-marketplace-proxy-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-marketplace-proxy-"));
     const storageRoot = join(dir, "storage");
     const proxyRequests: Array<{ token: string | undefined; url: string }> = [];
     const proxy = createServer((request, response) => {
@@ -195,7 +195,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("fetches and persists optional icons while refreshing the Claude official marketplace", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-claude-icons-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-claude-icons-"));
     const storageRoot = join(dir, "storage");
     const sourceDir = join(dir, "claude-marketplace");
     try {
@@ -274,7 +274,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("enriches an existing Claude catalog without refreshing its marketplace", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-existing-claude-icons-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-existing-claude-icons-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(storageRoot, "marketplaces", "claude-plugins-official");
     try {
@@ -347,7 +347,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("uses the cached icon mapping when the optional CDN request fails", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-cached-claude-icons-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-cached-claude-icons-"));
     const storageRoot = join(dir, "storage");
     const sourceDir = join(dir, "claude-marketplace");
     try {
@@ -427,7 +427,7 @@ describe("NodePluginAdapter", () => {
   // by an app upgrade (seeding only deletes the current version's targetRoot) used to
   // re-surface an uninstalled built-in. Suppression must not depend on physical deletion.
   it("suppresses official plugins from discovery even when stale cache version dirs exist", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-suppress-official-cache-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-suppress-official-cache-"));
     const storageRoot = join(dir, "storage");
     const officialCacheRoot = join(storageRoot, "cache", "nibi-official");
 
@@ -470,7 +470,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("prefers the official marketplace cache path when stale plugin versions coexist", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-current-official-cache-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-current-official-cache-"));
     const storageRoot = join(dir, "storage");
     const pluginRoot = join(storageRoot, "cache", "nibi-official", "browser-use");
     const staleRoot = join(pluginRoot, "0.2.1");
@@ -535,7 +535,7 @@ describe("NodePluginAdapter", () => {
   // Guard: suppression only targets official candidates. An inline/cache plugin whose id
   // collides with a suppressed string must NOT be dropped.
   it("does not suppress inline plugins that share a suppressed built-in's name", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-suppress-inline-guard-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-suppress-inline-guard-"));
     const pluginRoot = join(dir, "skill-creator-inline");
 
     try {
@@ -565,7 +565,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("rejects an untrusted marketplace that impersonates an official id", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-official-impersonate-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-official-impersonate-"));
     const storageRoot = join(dir, "storage");
 
     try {
@@ -586,7 +586,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("does not clobber the local official manifest dir when rejecting an impersonator", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-official-clobber-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-official-clobber-"));
     const storageRoot = join(dir, "storage");
     const sourceDir = join(dir, "evil");
 
@@ -617,7 +617,7 @@ describe("NodePluginAdapter", () => {
   // id by renaming its manifest. trustedId pins the refresh to the record's own id, so an
   // official name coming from a record whose id is not that official id is rejected.
   it("records a failed trusted refresh when a non-official manifest renames to an official id", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-official-rename-attack-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-official-rename-attack-"));
     const storageRoot = join(dir, "storage");
     const sourceDir = join(dir, "evil-source");
 
@@ -653,7 +653,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("seeds Claude official marketplace without overwriting an existing record", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-default-marketplace-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-default-marketplace-"));
     const storageRoot = join(dir, "storage");
 
     try {
@@ -700,7 +700,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("lazy-loads a known marketplace manifest before installing", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-known-marketplace-install-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-known-marketplace-install-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const pluginRoot = join(marketplaceRoot, "plugins", "hello");
@@ -750,7 +750,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("loads Claude-compatible local plugin components", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-"));
     const pluginRoot = join(dir, "ios-plugin");
 
     try {
@@ -887,7 +887,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("loads representative Claude marketplace plugin layouts for skills, commands, and MCP servers", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-triplet-marketplace-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-triplet-marketplace-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const workingDirectory = join(dir, "workspace");
@@ -1001,7 +1001,7 @@ describe("NodePluginAdapter", () => {
   it("still projects authoritative skill component names for a DISABLED plugin", async () => {
     // 核心回归：停用插件过去走 emptyComponents() 使 skillCount=0，UI join 也拿不到名称，
     // 导致详情弹窗整个技能分组消失。现在 components 由插件根目录权威枚举，与启用态无关。
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-disabled-components-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-disabled-components-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const workingDirectory = join(dir, "workspace");
@@ -1063,7 +1063,7 @@ describe("NodePluginAdapter", () => {
   it("describes a bundled official plugin whose marketplace source is 'filesystem'", async () => {
     // Bugfix 回归：内置 official 插件 seed 时 source 写裸字符串 "filesystem"，describe 过去把它
     // 当路径解析后抛错，市场详情页对内置插件枚举不出组件。现在按 cachePath 直接定位缓存目录。
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-filesystem-describe-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-filesystem-describe-"));
     const storageRoot = join(dir, "storage");
     const cacheRoot = join(storageRoot, "cache", "nibi-official", "superpowers", "5.1.0");
     const marketplaceRoot = join(storageRoot, "marketplaces", "nibi-official");
@@ -1118,7 +1118,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("describes MCP and hook components from loader-compatible convention files", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-describe-components-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-describe-components-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const pluginRoot = join(marketplaceRoot, "plugins", "airtable");
@@ -1241,7 +1241,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("describes valid components when convention MCP config is invalid", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-describe-invalid-mcp-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-describe-invalid-mcp-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const pluginRoot = join(marketplaceRoot, "plugins", "broken-mcp");
@@ -1281,7 +1281,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("adds a Claude marketplace directory and installs relative plugin sources", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-marketplace-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-marketplace-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const pluginRoot = join(marketplaceRoot, "plugins", "hello");
@@ -1374,7 +1374,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("installs Claude marketplace url sources that point at pinned plugin subdirectories", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-marketplace-url-path-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-marketplace-url-path-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const repoRoot = join(dir, "remote-plugin");
@@ -1398,7 +1398,7 @@ describe("NodePluginAdapter", () => {
           "-c",
           "user.name=Nibi Test",
           "-c",
-          "user.email=zcode-test@example.com",
+          "user.email=nibi-test@example.com",
           "commit",
           "-m",
           "wrong plugin",
@@ -1422,7 +1422,7 @@ describe("NodePluginAdapter", () => {
           "-c",
           "user.name=Nibi Test",
           "-c",
-          "user.email=zcode-test@example.com",
+          "user.email=nibi-test@example.com",
           "commit",
           "-m",
           "test plugin",
@@ -1447,7 +1447,7 @@ describe("NodePluginAdapter", () => {
           "-c",
           "user.name=Nibi Test",
           "-c",
-          "user.email=zcode-test@example.com",
+          "user.email=nibi-test@example.com",
           "commit",
           "-m",
           "wrong plugin after pin",
@@ -1520,7 +1520,7 @@ describe("NodePluginAdapter", () => {
   // 旧逻辑用 entry.version ?? "0.0.0" 拼缓存路径，导致 Root path 落到 .../<name>/0.0.0，而 UI 展示
   // 读插件自带 plugin.json 的真实版本（6.0.3），两者割裂。修复后缓存路径段与安装记录均取真实版本。
   it("uses the cloned plugin.json version for the cache path when the marketplace entry omits version", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-version-from-manifest-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-version-from-manifest-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const repoRoot = join(dir, "remote-plugin");
@@ -1541,7 +1541,7 @@ describe("NodePluginAdapter", () => {
           "-c",
           "user.name=Nibi Test",
           "-c",
-          "user.email=zcode-test@example.com",
+          "user.email=nibi-test@example.com",
           "commit",
           "-m",
           "superpowers plugin",
@@ -1602,7 +1602,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("installs a marketplace plugin from a real zip URL source", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-marketplace-url-zip-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-marketplace-url-zip-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     let server: Server | undefined;
@@ -1704,7 +1704,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("does not fall back to a local plugin when an explicit URL source is invalid", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-invalid-url-source-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-invalid-url-source-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
 
@@ -1749,7 +1749,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("reports invalid zip source option shapes", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-invalid-zip-shape-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-invalid-zip-shape-"));
     const marketplaceRoot = join(dir, "marketplace");
 
     try {
@@ -1923,7 +1923,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("rejects a zip root without a manifest before replacing existing cache", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-marketplace-url-zip-root-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-marketplace-url-zip-root-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const existingCacheRoot = join(
@@ -1984,7 +1984,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("rejects marketplace zip sources with mismatched sha256 without installing", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-marketplace-url-zip-sha-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-marketplace-url-zip-sha-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     let server: Server | undefined;
@@ -2031,7 +2031,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("rejects unsafe zip entry paths before cache materialization", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-marketplace-url-zip-slip-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-marketplace-url-zip-slip-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     let server: Server | undefined;
@@ -2082,7 +2082,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("adds a public GitHub marketplace and installs its GitHub plugin without system Git", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-github-archive-no-git-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-github-archive-no-git-"));
     const storageRoot = join(dir, "storage");
     const marketplaceArchive = createStoredZip([
       {
@@ -2160,7 +2160,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("preserves Git sparse checkout semantics for public GitHub marketplace sources", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-github-sparse-marketplace-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-github-sparse-marketplace-"));
     const storageRoot = join(dir, "storage");
     const archive = createStoredZip([
       {
@@ -2196,7 +2196,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("falls back to Git when a plugin subdirectory inherits LFS attributes from an ancestor", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-github-ancestor-lfs-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-github-ancestor-lfs-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const archive = createStoredZip([
@@ -2292,7 +2292,7 @@ describe("NodePluginAdapter", () => {
   ])(
     "materializes public GitHub %s plugin sources through the pinned Archive",
     async (_label, source) => {
-      const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-github-source-variant-"));
+      const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-github-source-variant-"));
       const storageRoot = join(dir, "storage");
       const marketplaceRoot = join(dir, "marketplace");
       const archive = createStoredZip([
@@ -2338,7 +2338,7 @@ describe("NodePluginAdapter", () => {
   );
 
   it("returns an actionable error when a non-GitHub source requires unavailable system Git", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-system-git-unavailable-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-system-git-unavailable-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
 
@@ -2374,7 +2374,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("redacts Git URL credentials from unavailable and persisted refresh diagnostics", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-git-credential-redaction-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-git-credential-redaction-"));
     const storageRoot = join(dir, "storage");
     const credentialSource = "https://private-user:private-secret@example.test/plugins.git";
     try {
@@ -2416,7 +2416,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("does not fall back to system Git for a GitHub Archive server failure", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-github-archive-network-failure-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-github-archive-network-failure-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
 
@@ -2452,7 +2452,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("falls back from an anonymous GitHub 404 and explains when system Git is unavailable", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-github-private-fallback-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-github-private-fallback-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
 
@@ -2490,7 +2490,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("isolates marketplace refresh failures and clears the persisted failure after recovery", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-marketplace-refresh-isolation-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-marketplace-refresh-isolation-"));
     const storageRoot = join(dir, "storage");
     const goodSource = join(dir, "good-source");
     const badSource = join(dir, "bad-source");
@@ -2559,7 +2559,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("does not persist an operation cancellation as a marketplace refresh failure", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-marketplace-refresh-cancel-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-marketplace-refresh-cancel-"));
     const storageRoot = join(dir, "storage");
     const controller = new AbortController();
 
@@ -2609,7 +2609,7 @@ describe("NodePluginAdapter", () => {
 
   it("keeps the previous Claude settings snapshot when timeout fires during manifest persistence", async () => {
     vi.useFakeTimers();
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-claude-settings-timeout-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-claude-settings-timeout-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(storageRoot, "marketplaces", "claude-plugins-official");
 
@@ -2710,7 +2710,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("rolls back a settings marketplace manifest when known state persistence fails", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-settings-known-state-failure-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-settings-known-state-failure-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(storageRoot, "marketplaces", "settings-market");
 
@@ -2793,7 +2793,7 @@ describe("NodePluginAdapter", () => {
 
   it("rolls back Claude manifest and known state when timeout fires during authority persistence", async () => {
     vi.useFakeTimers();
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-claude-authority-timeout-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-claude-authority-timeout-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(storageRoot, "marketplaces", "claude-plugins-official");
 
@@ -2902,7 +2902,7 @@ describe("NodePluginAdapter", () => {
 
   it("fails Claude marketplace refresh after 30 seconds without blocking other markets", async () => {
     vi.useFakeTimers();
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-claude-marketplace-timeout-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-claude-marketplace-timeout-"));
     const storageRoot = join(dir, "storage");
     const claudeSnapshot = join(storageRoot, "marketplaces", "claude-plugins-official");
     const goodSource = join(dir, "good-source");
@@ -3001,7 +3001,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("keeps the active directory when atomic staging cannot copy the replacement", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-atomic-directory-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-atomic-directory-"));
     const targetPath = join(dir, "active");
     try {
       await mkdir(targetPath, { recursive: true });
@@ -3021,7 +3021,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("recovers state files and marketplace directories left in the atomic commit window", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-atomic-recovery-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-atomic-recovery-"));
     const storageRoot = join(dir, "storage");
     const installedPath = join(storageRoot, "installed_plugins.json");
     const marketplacePath = join(storageRoot, "marketplaces", "recover-market");
@@ -3069,7 +3069,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("does not let a normal read recover an active directory transaction", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-atomic-active-read-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-atomic-active-read-"));
     const authorityPath = join(dir, "installed_plugins.json");
     const sourcePath = join(dir, "source");
     const targetPath = join(dir, "active");
@@ -3117,7 +3117,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("rejects a concurrent activation for the same target without losing its rollback snapshot", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-atomic-concurrent-target-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-atomic-concurrent-target-"));
     const authorityPath = join(dir, "installed_plugins.json");
     const firstSourcePath = join(dir, "source-first");
     const secondSourcePath = join(dir, "source-second");
@@ -3165,7 +3165,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("does not overwrite an atomic transaction owned by another live process", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-atomic-live-owner-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-atomic-live-owner-"));
     const sourcePath = join(dir, "source");
     const targetPath = join(dir, "active");
     const transactionPath = join(dir, ".active.transaction.json");
@@ -3207,7 +3207,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("recovers a coordinated directory according to the authority transaction generation", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-atomic-generation-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-atomic-generation-"));
     const authorityPath = join(dir, "installed_plugins.json");
     const targetPath = join(dir, "active");
     const backupPath = join(dir, ".active.backup");
@@ -3262,7 +3262,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("rolls back earlier dependency cache activations when a later dependency install fails", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-install-transaction-rollback-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-install-transaction-rollback-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const rootSource = join(dir, "root-source");
@@ -3319,7 +3319,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("discovers an installed cache offline without system Git or source network access", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-offline-installed-cache-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-offline-installed-cache-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const pluginRoot = join(marketplaceRoot, "plugins", "offline-plugin");
@@ -3375,7 +3375,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("materializes Claude command object mappings into custom command roots", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-command-metadata-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-command-metadata-"));
     const pluginRoot = join(dir, "commands-plugin");
 
     try {
@@ -3432,7 +3432,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("dry-runs marketplace source validation against real plugin manifests", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-marketplace-dry-run-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-marketplace-dry-run-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const pluginRoot = join(marketplaceRoot, "plugins", "risky");
@@ -3489,7 +3489,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("defers remote plugin roots while validating marketplace sources", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-marketplace-remote-dry-run-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-marketplace-remote-dry-run-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const localRoot = join(marketplaceRoot, "plugins", "local-risky");
@@ -3552,7 +3552,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("runs Marketplace cache hooks from third-party marketplaces when enabled", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-marketplace-hooks-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-marketplace-hooks-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const pluginRoot = join(marketplaceRoot, "plugins", "hooked");
@@ -3626,7 +3626,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("runs hooks from official Claude marketplace cache plugins when enabled", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-marketplace-official-hooks-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-marketplace-official-hooks-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const pluginRoot = join(marketplaceRoot, "plugins", "hookify");
@@ -3712,7 +3712,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("disables an MCP server when a required ZCODE variable is missing", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-env-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-env-"));
     const pluginRoot = join(dir, "env-plugin");
 
     try {
@@ -3753,7 +3753,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("expands arbitrary process environment variables only in MCP secret sinks", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-secret-env-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-secret-env-"));
     const pluginRoot = join(dir, "secret-env-plugin");
 
     try {
@@ -3814,7 +3814,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("disables an MCP server when an arbitrary secret environment variable is missing", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-missing-secret-env-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-missing-secret-env-"));
     const pluginRoot = join(dir, "missing-secret-env-plugin");
 
     try {
@@ -3857,7 +3857,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("diagnoses MCP variables that require unavailable runtime contexts", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-missing-context-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-missing-context-"));
     const pluginRoot = join(dir, "missing-context-plugin");
 
     try {
@@ -3910,7 +3910,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("loads plugins that only provide a Claude manifest", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-claude-plugin-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-claude-plugin-"));
     const pluginRoot = join(dir, "claude-only");
 
     try {
@@ -3943,7 +3943,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("prefers Claude manifest over Codex manifest when no Nibi manifest exists", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-codex-plugin-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-codex-plugin-"));
     const pluginRoot = join(dir, "multi-manifest");
 
     try {
@@ -3974,7 +3974,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("removes the record, cache, and data directory on thorough uninstall", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-uninstall-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-uninstall-"));
     const storageRoot = join(dir, "storage");
     const marketplaceRoot = join(dir, "marketplace");
     const pluginRoot = join(marketplaceRoot, "plugins", "hello");
@@ -4028,7 +4028,7 @@ describe("NodePluginAdapter", () => {
   });
 
   it("returns null and keeps state when uninstalling an unknown plugin id", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-uninstall-missing-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-uninstall-missing-"));
     const storageRoot = join(dir, "storage");
 
     try {
@@ -4047,7 +4047,7 @@ describe("NodePluginAdapter", () => {
   // Bugfix 回归（差一层目录）：Claude 插件规范里 manifest skills 数组项指向「技能目录本身」
   // （项内直接是 SKILL.md），此前 Nibi 把每项当作技能根去项下找子目录，扫描恒为空。
   it("discovers skills for plugin manifest skills array entries pointing at skill directories", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-array-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-array-skills-"));
     const pluginRoot = join(dir, "mattpocock");
     const skillEntries = ["./skills/engineering/tdd", "./skills/productivity/writing"];
 
@@ -4116,7 +4116,7 @@ describe("NodePluginAdapter", () => {
   // frontmatter 之前按目录 basename 提前去重，会把第二个技能丢掉，与按路径去重的
   // 运行时发现结果（skillCount）不一致。必须解析 frontmatter 后按最终 name 去重。
   it("keeps same-named leaf skill directories from different declared roots in components", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-same-leaf-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-same-leaf-skills-"));
     const pluginRoot = join(dir, "same-leaf");
     const entries: Array<{ entry: string; name: string }> = [
       { entry: "./skills/engineering/tdd", name: "tdd" },
@@ -4176,7 +4176,7 @@ describe("NodePluginAdapter", () => {
   // 跨根去重：声明项（根自身即技能）与默认 skills/ 根（一层子目录布局）会命中同一个
   // SKILL.md，计数必须按文件路径去重，不能翻倍。
   it("dedupes skill files across overlapping declared and default skill roots", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-overlap-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-overlap-skills-"));
     const pluginRoot = join(dir, "overlap");
 
     try {
@@ -4224,7 +4224,7 @@ describe("NodePluginAdapter", () => {
   // 或含 ..${sep}），越界声明在 resolveComponentRoots 落成 plugin_component_path_invalid
   // error 诊断；本用例把该边界固定，防止后续重构 scanner 时重新引入路径穿越。
   it("rejects skills paths escaping the plugin root and keeps legitimate skills working", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-path-escape-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-path-escape-"));
     const pluginRoot = join(dir, "plugin");
     // 插件根外的诱饵技能目录；若防线失效会被扫描进结果。
     const outsideSkill = join(dir, "outside-skill");
@@ -4302,7 +4302,7 @@ describe("NodePluginAdapter", () => {
   // 拒绝路径。Windows 普通权限下创建文件 symlink 会 EPERM，此时才跳过——
   // 开发者模式或管理员 CI 上本用例会真实执行，不整体按平台跳过。
   it("rejects file-level SKILL.md symlinks escaping the plugin root", async (ctx) => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-file-symlink-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-file-symlink-"));
     const pluginRoot = join(dir, "plugin");
     const outsideFile = join(dir, "outside-secret.md");
 
@@ -4375,7 +4375,7 @@ describe("NodePluginAdapter", () => {
   // Windows 用 junction 创建（无需特权；lstat/Dirent 对 junction 同样报告
   // isSymbolicLink=true），CR-02 的 Windows 形态在本用例获得真实覆盖。
   it("strips symlink escapes from plugin skills and warns on escaping declared roots", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-symlink-escape-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-symlink-escape-"));
     const pluginRoot = join(dir, "plugin");
     const outsideSkill = join(dir, "outside-skill");
 
@@ -4446,7 +4446,7 @@ describe("NodePluginAdapter", () => {
   // 去静默：manifest 显式声明的技能路径扫描为 0 个技能时必须发 warning（路径写进 message，
   // 因为协议 wire schema 不携带 path）；纯默认目录为空不告警；显式声明默认目录名同样算声明。
   it("warns when a declared skill path yields no skills", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-empty-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-empty-skills-"));
 
     async function discover(pluginRoot: string, manifest: Record<string, unknown>) {
       await writePluginManifest(pluginRoot, manifest, ".claude-plugin");

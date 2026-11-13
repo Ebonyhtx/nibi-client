@@ -3,8 +3,8 @@
 // 699b62b8d6，工作线 F47）。改动见 platform.md §5.4：整条换取按账号与项目单飞；HTTP 经 net；时钟注入。
 //! OAuth 登录的 Coding Plan 项目令牌（platform.md §5.4、§9.4）。
 //!
-//! 用 login token 换短期项目令牌（PAT）：找到项目位置（组织、项目、`zcode-api-key` 或团队的
-//! `zcode-team-api-key`，存进 `credentials.json`）；再签发 PAT。login token 是 bigmodel 的 access token 或 zai 存好的
+//! 用 login token 换短期项目令牌（PAT）：找到项目位置（组织、项目、`nibi-api-key` 或团队的
+//! `nibi-team-api-key`，存进 `credentials.json`）；再签发 PAT。login token 是 bigmodel 的 access token 或 zai 存好的
 //! 业务 JWT（F47 照 App：请求期不再换业务 JWT，只有登录时换一次，[`ProjectTokens::business`]）。结果缓存在
 //! 进程内，到刷新点（到期前 120 秒再减 0–60 秒抖动）前直接给出。
 //!

@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/list_tests.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/list_tests.rs（feat/rs 79b6691c55）。
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use super::*;

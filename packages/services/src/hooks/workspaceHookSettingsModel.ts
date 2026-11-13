@@ -207,7 +207,7 @@ export function fromUserNibiSource(input: {
     toHook({
       entry,
       source: input.source!,
-      id: `hook-zcode-user-${index}`,
+      id: `hook-nibi-user-${index}`,
       location: input.location,
     }),
   );

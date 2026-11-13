@@ -84,7 +84,7 @@ export function resolveAutomationModelItem(
     if (providerMatches.length === 1) return providerMatches[0] ?? null;
   }
   // 历史 automation 可能只保存纯模型名；同名模型跨 provider 时不能猜测来源。
-  // workspace runtime 也可能返回 zcode-openai-compatible/model 这类包装值，provider 对不上时
+  // workspace runtime 也可能返回 nibi-openai-compatible/model 这类包装值，provider 对不上时
   // 只有模型名全局唯一才允许回填菜单项，避免默认模型丢失对应的 think 元数据。
   return modelMatches.length === 1 ? (modelMatches[0] ?? null) : null;
 }

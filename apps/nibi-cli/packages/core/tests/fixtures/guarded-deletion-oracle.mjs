@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 
 // 只执行固定命令，cwd/目标全部属于本次临时目录；不接收用户提供的删除目标。
 const exec = promisify(execFile);
-const root = await mkdtemp(join(tmpdir(), "zcode-deletion-oracle-"));
+const root = await mkdtemp(join(tmpdir(), "nibi-deletion-oracle-"));
 const results = [];
 async function exists(path) {
   try {

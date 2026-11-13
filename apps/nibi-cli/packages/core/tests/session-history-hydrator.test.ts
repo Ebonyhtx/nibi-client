@@ -1716,7 +1716,7 @@ describe("session history hydrator", () => {
     const userID = createMessageId("user-video-order");
     const dataUrl = "data:video/mp4;base64,dmlkZW8=";
     const artifactUri = "nibi-artifact://hydrate-video-order/attachment-1";
-    const derivedPath = "/tmp/zcode-video-cache/hydrated-video.mp4";
+    const derivedPath = "/tmp/nibi-video-cache/hydrated-video.mp4";
     const artifactStore = createMemoryArtifactStore(
       { [artifactUri]: dataUrl },
       { [artifactUri]: derivedPath },
@@ -2147,7 +2147,7 @@ describe("session history hydrator", () => {
     const imagePartID = createPartId("user-image-artifact");
     const history = new MessageHistoryImpl();
     const artifactUri = "nibi-artifact://hydrate-image-artifact/attachment-1";
-    const derivedPath = "/tmp/zcode-image-cache/hydrated-screen.png";
+    const derivedPath = "/tmp/nibi-image-cache/hydrated-screen.png";
     const artifactStore = createMemoryArtifactStore(
       {
         [artifactUri]: "data:image/png;base64,aW1hZ2U=",
@@ -2247,14 +2247,14 @@ describe("session history hydrator", () => {
   it.each([
     {
       dataUrl: "data:image/png;base64,aW1hZ2U=",
-      derivedPath: "/tmp/zcode-image-cache/restored-image.png",
+      derivedPath: "/tmp/nibi-image-cache/restored-image.png",
       label: "Image",
       mediaType: "image/png",
       type: "image",
     },
     {
       dataUrl: "data:video/mp4;base64,dmlkZW8=",
-      derivedPath: "/tmp/zcode-video-cache/restored-video.mp4",
+      derivedPath: "/tmp/nibi-video-cache/restored-video.mp4",
       label: "Video",
       mediaType: "video/mp4",
       type: "video",

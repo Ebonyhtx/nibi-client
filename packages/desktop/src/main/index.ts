@@ -2067,7 +2067,7 @@ app.whenReady().then(async () => {
   installLocalMediaPreviewProtocol(session.defaultSession.protocol, {
     isPathAuthorized: localMediaPreviewPathRegistry.isAuthorized,
   });
-  // 插件 UI 沙箱：注册表 + renderer 可调 IPC；scheme 的 privileged 注册已随 zcode-media 在 ready 前完成。
+  // 插件 UI 沙箱：注册表 + renderer 可调 IPC；scheme 的 privileged 注册已随 nibi-media 在 ready 前完成。
   installPluginSandboxHost({
     preloadPath: join(import.meta.dirname, "../preload/pluginSandbox.cjs"),
     rendererDir: join(import.meta.dirname, "../renderer"),

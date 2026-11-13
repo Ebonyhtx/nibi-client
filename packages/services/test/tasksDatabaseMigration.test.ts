@@ -17,7 +17,7 @@ describe("DB109 App 库统一迁移", () => {
   };
   let backupRoot: string;
   beforeEach(async () => {
-    backupRoot = await mkdtemp(join(tmpdir(), "zcode-db109-backup-"));
+    backupRoot = await mkdtemp(join(tmpdir(), "nibi-db109-backup-"));
   });
   const migrate = (db: DatabaseSync) =>
     runTasksDatabaseMigrations(db, join(backupRoot, "tasks.sqlite"));
@@ -224,7 +224,7 @@ describe("DB109 App 库统一迁移", () => {
   });
 
   it("DB109-06：两个独立线程同时打开旧库，数据转换只发生一次", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-db109-concurrent-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-db109-concurrent-"));
     const path = join(root, "tasks.sqlite");
     const db = new DatabaseSync(path);
     const workers: Worker[] = [];

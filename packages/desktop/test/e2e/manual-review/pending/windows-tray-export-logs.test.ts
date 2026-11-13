@@ -72,7 +72,7 @@ describe("Windows 托盘导出日志", () => {
         { timeout: 30_000, timeoutMsg: "托盘导出未生成日志包并请求系统定位" },
       );
       const archivePath = String(reveal.mock.calls[0]?.[0]);
-      expect(archivePath).toMatch(/zcode-logs-[^/\\]+\.zip$/);
+      expect(archivePath).toMatch(/nibi-logs-[^/\\]+\.zip$/);
       expect((await readFile(archivePath)).subarray(0, 4).toString("hex")).toBe("504b0304");
       expect(
         await browser.electron.execute((electron) =>

@@ -91,7 +91,7 @@ export async function prepareAccessToken401Fixture(options: {
         loginCompletions++;
         data = {
           status: "ready",
-          token: "e2e-distinct-zcode-jwt",
+          token: "e2e-distinct-nibi-jwt",
           user: { user_id: "e2e-user", name: "Fixture User" },
           bigmodel: { access_token: "e2e-business-access-token" },
         };
@@ -182,7 +182,7 @@ export async function prepareAccessToken401Fixture(options: {
       // 只记录是否匹配合成登录凭据，避免 token 原文进入测试产物。
       if (
         request.headers.authorization?.replace(/^Bearer\s+/i, "") ===
-        (sharedJwt ? "e2e-distinct-zcode-jwt" : "e2e-business-access-token")
+        (sharedJwt ? "e2e-distinct-nibi-jwt" : "e2e-business-access-token")
       )
         businessRequestCount++;
       if (rejected) {
@@ -262,7 +262,7 @@ export async function prepareAccessToken401Fixture(options: {
               ...(projectRecovery ? { rawProfile: { nibiProfileSchemaVersion: 2 } } : {}),
             },
       ),
-      "nibi-jwttoken": "e2e-distinct-zcode-jwt",
+      "nibi-jwttoken": "e2e-distinct-nibi-jwt",
       "bot:e2e:credential": "e2e-independent-bot-token",
       ...(projectRecovery
         ? {

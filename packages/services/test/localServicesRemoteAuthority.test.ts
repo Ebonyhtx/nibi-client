@@ -11,7 +11,7 @@ const tempHomes: string[] = [];
 const RETIRED_ZAPI_PROVIDER_ID = "builtin:zapi";
 
 function makeTempHome(): string {
-  const home = mkdtempSync(join(tmpdir(), "zcode-local-services-remote-authority-"));
+  const home = mkdtempSync(join(tmpdir(), "nibi-local-services-remote-authority-"));
   tempHomes.push(home);
   return home;
 }

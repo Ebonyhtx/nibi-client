@@ -287,7 +287,7 @@ describe("NodeHttpClientAdapter", () => {
   });
 
   it("loads CA certificates from custom TLS env files", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "zcode-http-ca-"));
+    const directory = await mkdtemp(join(tmpdir(), "nibi-http-ca-"));
     const certPath = join(directory, "ca.pem");
     const pem = "-----BEGIN CERTIFICATE-----\nTEST\n-----END CERTIFICATE-----\n";
 
@@ -307,7 +307,7 @@ describe("NodeHttpClientAdapter", () => {
   });
 
   it("destroys proxy fetch response streams when aborted after headers", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "zcode-http-abort-"));
+    const directory = await mkdtemp(join(tmpdir(), "nibi-http-abort-"));
     const certPath = join(directory, "ca.pem");
     const serverClosed = deferred();
     const server = http.createServer((_request, response) => {
@@ -343,7 +343,7 @@ describe("NodeHttpClientAdapter", () => {
   });
 
   it("destroys proxy fetch requests when aborted before response headers", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "zcode-http-abort-pending-"));
+    const directory = await mkdtemp(join(tmpdir(), "nibi-http-abort-pending-"));
     const certPath = join(directory, "ca.pem");
     const requestReceived = deferred();
     const serverClosed = deferred();

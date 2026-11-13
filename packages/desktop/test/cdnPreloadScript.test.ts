@@ -145,7 +145,7 @@ process.stdout.write("\\n");
       cdnUrlsIn,
       [
         "https://cdn-zcode.z.ai/zcode/electron/releases/1.3.0/Nibi-1.3.0-linux-arm64.AppImage\t3145728",
-        "https://cdn.zcode-ai.com/zcode/electron/releases/1.3.0/Nibi-1.3.0-linux-arm64.AppImage\t3145728",
+        "https://cdn.nibi-ai.com/zcode/electron/releases/1.3.0/Nibi-1.3.0-linux-arm64.AppImage\t3145728",
       ].join("\n"),
       "utf-8",
     );
@@ -168,8 +168,8 @@ done
 if [[ "$2" == "PushObjectCache" ]]; then
   if [[ "$profile" == "z-ai-account" ]]; then
     printf '%s\\n' '{"PushTaskId":"task-z-ai"}'
-  elif [[ "$profile" == "zcode-ai-account" ]]; then
-    printf '%s\\n' '{"PushTaskId":"task-zcode-ai"}'
+  elif [[ "$profile" == "nibi-ai-account" ]]; then
+    printf '%s\\n' '{"PushTaskId":"task-nibi-ai"}'
   else
     echo "unexpected profile: $profile" >&2
     exit 1
@@ -207,8 +207,8 @@ else process.stdout.write("\\n");
         ...process.env,
         PATH: `${binDir}:${process.env.PATH ?? ""}`,
         CDN_URLS_IN: cdnUrlsIn,
-        CDN_DOMAIN: "cdn-zcode.z.ai,cdn.zcode-ai.com",
-        CDN_PRELOAD_PROFILE: "z-ai-account,zcode-ai-account",
+        CDN_DOMAIN: "cdn-zcode.z.ai,cdn.nibi-ai.com",
+        CDN_PRELOAD_PROFILE: "z-ai-account,nibi-ai-account",
         POLL_INTERVAL: "0",
       },
       timeout: 25_000,
@@ -234,7 +234,7 @@ else process.stdout.write("\\n");
     ).toBe(true);
     expect(
       pushCalls.some(
-        (line) => line.includes("cdn.zcode-ai.com") && line.includes("--profile zcode-ai-account"),
+        (line) => line.includes("cdn.nibi-ai.com") && line.includes("--profile nibi-ai-account"),
       ),
     ).toBe(true);
     expect(pushCalls.every((line) => !line.includes("--region"))).toBe(true);
@@ -246,7 +246,7 @@ else process.stdout.write("\\n");
     ).toBe(true);
     expect(
       describeCalls.some(
-        (line) => line.includes("task-zcode-ai") && line.includes("--profile zcode-ai-account"),
+        (line) => line.includes("task-nibi-ai") && line.includes("--profile nibi-ai-account"),
       ),
     ).toBe(true);
     expect(describeCalls.every((line) => !line.includes("--region"))).toBe(true);

@@ -46,7 +46,7 @@ class HangingRipgrepWorker extends EventEmitter {
 
 describe("Node file and context adapters", () => {
   it("creates directory parents idempotently through FileSystemPort", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-directory-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-directory-"));
     const path = join(dir, "nested", "memory");
     const fs = createNodeFileSystemAdapter();
 
@@ -60,7 +60,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("reads and atomically writes text files through FileSystemPort", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-port-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-port-"));
     const path = join(dir, "nested", "file.txt");
     const fs = createNodeFileSystemAdapter();
 
@@ -99,7 +99,7 @@ describe("Node file and context adapters", () => {
   it.skipIf(process.platform === "win32")(
     "preserves executable permissions when atomically rewriting existing files",
     async () => {
-      const dir = await mkdtemp(join(tmpdir(), "zcode-fs-mode-"));
+      const dir = await mkdtemp(join(tmpdir(), "nibi-fs-mode-"));
       const path = join(dir, "run.sh");
       const fs = createNodeFileSystemAdapter();
 
@@ -124,7 +124,7 @@ describe("Node file and context adapters", () => {
   it.skipIf(process.platform === "win32")(
     "rejects atomic writes through symlink targets",
     async () => {
-      const dir = await mkdtemp(join(tmpdir(), "zcode-fs-symlink-"));
+      const dir = await mkdtemp(join(tmpdir(), "nibi-fs-symlink-"));
       const targetPath = join(dir, "target.txt");
       const linkPath = join(dir, "link.txt");
       const fs = createNodeFileSystemAdapter();
@@ -154,7 +154,7 @@ describe("Node file and context adapters", () => {
   );
 
   it("normalizes CRLF reads and preserves requested CRLF writes", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-eol-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-eol-"));
     const path = join(dir, "file.txt");
     const fs = createNodeFileSystemAdapter();
 
@@ -181,7 +181,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("reads true line ranges from large files and rejects unbounded over-budget reads", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-range-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-range-"));
     const path = join(dir, "large.txt");
     const fs = createNodeFileSystemAdapter();
     const line = `${"x".repeat(120)}\n`;
@@ -216,7 +216,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("enforces the binary maxBytes contract without returning truncated content", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-binary-limit-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-binary-limit-"));
     const path = join(dir, "video.mp4");
     const fs = createNodeFileSystemAdapter();
 
@@ -236,7 +236,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("continues reading after a non-EOF short binary read", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-binary-short-read-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-binary-short-read-"));
     const path = join(dir, "video.mp4");
     const fs = createNodeFileSystemAdapter();
     let readSpy: ReturnType<typeof vi.spyOn> | undefined;
@@ -273,7 +273,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("detects UTF-16LE text files and keeps their line ending metadata", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-utf16-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-utf16-"));
     const path = join(dir, "file.txt");
     const fs = createNodeFileSystemAdapter();
 
@@ -299,7 +299,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("reads ranges from the GB2312 fixture as logical Unicode text", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-gb2312-read-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-gb2312-read-"));
     const path = join(dir, "gb2312.js");
     const fs = createNodeFileSystemAdapter();
 
@@ -324,7 +324,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("preserves GB2312 bytes when rewriting the fixture", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-gb2312-write-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-gb2312-write-"));
     const path = join(dir, "gb2312.js");
     const fs = createNodeFileSystemAdapter();
 
@@ -353,7 +353,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("rejects unencodable GB2312 writes without modifying the file", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-gb2312-reject-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-gb2312-reject-"));
     const path = join(dir, "gb2312.js");
     const fs = createNodeFileSystemAdapter();
 
@@ -396,7 +396,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("lists directory entries through FileSystemPort", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-list-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-list-"));
     const fs = createNodeFileSystemAdapter();
 
     try {
@@ -429,7 +429,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("searches files and text through FileSystemPort", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-search-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-search-"));
     const fs = createNodeFileSystemAdapter();
 
     try {
@@ -477,7 +477,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("searches text with bundled ripgrep semantics", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-ripgrep-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-ripgrep-"));
     const fs = createNodeFileSystemAdapter();
 
     try {
@@ -565,7 +565,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("maps ripgrep regex failures to FileSystemPort invalid_pattern errors", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-ripgrep-error-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-ripgrep-error-"));
     const fs = createNodeFileSystemAdapter();
 
     try {
@@ -586,7 +586,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("ignores onlyMatching outside content mode in JavaScript grep fallback", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-grep-only-matching-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-grep-only-matching-"));
     const fs = createNodeFileSystemAdapter({ textSearchEngine: "javascript" });
 
     try {
@@ -613,7 +613,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("keeps context lines and match-line count for onlyMatching content", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-grep-only-matching-context-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-grep-only-matching-context-"));
     const engines = [
       createNodeFileSystemAdapter(),
       createNodeFileSystemAdapter({ textSearchEngine: "javascript" }),
@@ -649,7 +649,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("expands multiline onlyMatching content into line entries", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-grep-multiline-only-matching-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-grep-multiline-only-matching-"));
     const engines = [
       createNodeFileSystemAdapter(),
       createNodeFileSystemAdapter({ textSearchEngine: "javascript" }),
@@ -725,7 +725,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("keeps zero-length onlyMatching entries aligned between ripgrep and fallback", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-grep-zero-only-matching-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-grep-zero-only-matching-"));
     const engines = [
       createNodeFileSystemAdapter(),
       createNodeFileSystemAdapter({ textSearchEngine: "javascript" }),
@@ -758,7 +758,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("maps cancelled grep searches to FileSystemPort cancelled errors", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-grep-cancel-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-grep-cancel-"));
     const fs = createNodeFileSystemAdapter({ textSearchEngine: "javascript" });
     const controller = new AbortController();
 
@@ -783,7 +783,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("terminates bundled ripgrep worker when grep search is cancelled", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-ripgrep-cancel-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-ripgrep-cancel-"));
     const fs = createNodeFileSystemAdapter();
     const controller = new AbortController();
     const worker = new HangingRipgrepWorker();
@@ -820,7 +820,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("terminates bundled ripgrep worker when grep search times out", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-fs-ripgrep-timeout-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-fs-ripgrep-timeout-"));
     const fs = createNodeFileSystemAdapter();
     const worker = new HangingRipgrepWorker();
     let resolveStarted: () => void = () => undefined;
@@ -855,7 +855,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("resolves context sources outside core", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-context-port-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-context-port-"));
     const adapter = createNodeContextSourceAdapter({ env: { HOME: dir, SHELL: "/bin/zsh" } });
 
     try {
@@ -886,7 +886,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("uses the effective Bash shell display name when provided by runtime", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-context-shell-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-context-shell-"));
     const adapter = createNodeContextSourceAdapter({ env: { HOME: dir, SHELL: "/bin/fish" } });
 
     try {
@@ -902,7 +902,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("falls back to ~/.nibi/AGENTS.md when workspace AGENTS.md is absent", async () => {
-    const home = await mkdtemp(join(tmpdir(), "zcode-context-home-"));
+    const home = await mkdtemp(join(tmpdir(), "nibi-context-home-"));
     const workspace = join(home, "workspace");
     const nestedCwd = join(workspace, "packages", "app");
     const adapter = createNodeContextSourceAdapter({
@@ -962,7 +962,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("uses USERPROFILE for default user instructions when HOME is absent", async () => {
-    const home = await mkdtemp(join(tmpdir(), "zcode-context-userprofile-"));
+    const home = await mkdtemp(join(tmpdir(), "nibi-context-userprofile-"));
     const workspace = join(home, "workspace");
     const adapter = createNodeContextSourceAdapter({
       env: { USERPROFILE: home, SHELL: "/bin/zsh" },
@@ -989,7 +989,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("does not use the default AGENTS.md fallback for custom priority files", async () => {
-    const home = await mkdtemp(join(tmpdir(), "zcode-context-priority-"));
+    const home = await mkdtemp(join(tmpdir(), "nibi-context-priority-"));
     const workspace = join(home, "workspace");
     const adapter = createNodeContextSourceAdapter({
       env: { HOME: home, SHELL: "/bin/zsh" },
@@ -1016,7 +1016,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("captures a session-start git snapshot when the workspace is a repository", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-context-git-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-context-git-"));
     const adapter = createNodeContextSourceAdapter({ env: { SHELL: "/bin/zsh" } });
 
     try {
@@ -1062,7 +1062,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("keeps git status entries until the 2k character boundary", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-context-git-large-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-context-git-large-"));
     const adapter = createNodeContextSourceAdapter({ env: { SHELL: "/bin/zsh" } });
 
     try {
@@ -1093,7 +1093,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("truncates git status by 2k characters with the truncation prompt text", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-context-git-2k-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-context-git-2k-"));
     const adapter = createNodeContextSourceAdapter({ env: { SHELL: "/bin/zsh" } });
 
     try {
@@ -1129,7 +1129,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("uses the main branch fallback when origin HEAD is unavailable", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-context-git-main-fallback-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-context-git-main-fallback-"));
     const adapter = createNodeContextSourceAdapter({ env: { SHELL: "/bin/zsh" } });
 
     try {
@@ -1157,7 +1157,7 @@ describe("Node file and context adapters", () => {
   });
 
   it("reports HEAD as the current branch in detached checkout", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-context-git-detached-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-context-git-detached-"));
     const adapter = createNodeContextSourceAdapter({ env: { SHELL: "/bin/zsh" } });
 
     try {

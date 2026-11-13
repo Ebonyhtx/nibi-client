@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/bottom.rs（feat/rs 79b6691c55）：排队的消息来自视图；`@` 文件列表按
+// 改写自 apps/nibi-host/crates/tui/src/ui/bottom.rs（feat/rs 79b6691c55）：排队的消息来自视图；`@` 文件列表按
 // tui-input.md §1.2 重写。
 //! 底部区域的两部分（docs/specs/rust-tui.md §8.3、§8.4）：排队的消息（含下面那一行立即发送的键，
 //! docs/specs/rust-cli/tui.md §5.1.1）、斜杠命令与 `@` 文件的弹出列表。

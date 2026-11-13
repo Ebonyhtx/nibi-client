@@ -1,4 +1,4 @@
-//! 远端执行器的线上协议 `zcode-exec/1`（docs/specs/rust-cli/remote-exec.md §7、§18）：消息、能力位与帧的编解码。
+//! 远端执行器的线上协议 `nibi-exec/1`（docs/specs/rust-cli/remote-exec.md §7、§18）：消息、能力位与帧的编解码。
 //!
 //! 只有数据，不做 IO；不认识传输（stdio、以后的 gRPC），也不依赖 kernel-api（§15.1 原则 3）。
 //! - [`admin`]：管理帧（常驻执行器的状态与停止，§19.6）；

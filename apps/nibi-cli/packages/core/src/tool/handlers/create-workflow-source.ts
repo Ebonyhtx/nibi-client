@@ -231,7 +231,7 @@ async function resolvePathSource(
 
   if (file.meta === undefined && model.args !== undefined) {
     return failure(
-      `The workflow script file ${file.described} declares no arguments (it has no \`/* zcode-workflow\` metadata block), so it takes none. Drop \`args\`, or add a block declaring them.`,
+      `The workflow script file ${file.described} declares no arguments (it has no \`/* nibi-workflow\` metadata block), so it takes none. Drop \`args\`, or add a block declaring them.`,
     );
   }
 

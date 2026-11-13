@@ -85,11 +85,11 @@ pnpm --filter @nibi/desktop e2e:docker:admit -- \
 
 `smoke.test.ts` 会进一步验证 renderer 是否进入可交互工作区主界面；如果它失败，应按普通桌面 E2E 问题继续排查，不把 workaround 写进业务默认路径。
 
-首次运行会下载 Electron 对应的 Chromedriver，并缓存到 Docker volume。默认平台是 `linux/amd64`，默认缓存名是 `zcode-desktop-e2e-driver-cache-linux-amd64`；后续运行会复用缓存。需要调整时可使用：
+首次运行会下载 Electron 对应的 Chromedriver，并缓存到 Docker volume。默认平台是 `linux/amd64`，默认缓存名是 `nibi-desktop-e2e-driver-cache-linux-amd64`；后续运行会复用缓存。需要调整时可使用：
 
 ```bash
 DOCKER_PLATFORM=linux/amd64 \
-DRIVER_CACHE_VOLUME=my-zcode-e2e-driver-cache \
+DRIVER_CACHE_VOLUME=my-nibi-e2e-driver-cache \
 DRIVER_PREFETCH_TIMEOUT=600 \
 pnpm run test:e2e:container
 ```
@@ -107,7 +107,7 @@ pnpm run test:e2e:container
 
 ```bash
 NIBI_E2E_RUN_ID=my-regression-run \
-E2E_ARTIFACT_DIR=/tmp/zcode-e2e-report \
+E2E_ARTIFACT_DIR=/tmp/nibi-e2e-report \
 pnpm run test:e2e:container
 ```
 

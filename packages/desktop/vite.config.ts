@@ -246,7 +246,7 @@ export default defineConfig(({ mode }) => {
             __dirname,
             "src/renderer/workspace-open-confirm.html",
           ),
-          // 插件 UI 沙箱的受信 shell，经 zcode-sandbox:// 提供
+          // 插件 UI 沙箱的受信 shell，经 nibi-sandbox:// 提供
           "plugin-sandbox": resolve(__dirname, "src/renderer/plugin-sandbox.html"),
         },
       },

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { expect, it, vi } from "vitest";
 import { resolveNibiAgentSpawnCwd } from "../src/nibi-agent/nibiAgentSpawnCwd.js";
 it("shares fallback behavior for missing paths, files and ENOTDIR", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-spawn-cwd-"));
+  const dir = await mkdtemp(join(tmpdir(), "nibi-spawn-cwd-"));
   try {
     const file = join(dir, "file");
     await writeFile(file, "x");

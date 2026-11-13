@@ -541,7 +541,7 @@ describe("SourceServerDirectory", () => {
           sourceServerId,
           transport: "docker",
           displayName: "dev container",
-          target: { kind: "docker", container: "zcode-dev" },
+          target: { kind: "docker", container: "nibi-dev" },
           createdAt: 1,
           lifecycleState: "active",
         },
@@ -561,7 +561,7 @@ describe("SourceServerDirectory", () => {
     ).rejects.toThrow("Docker container is required");
     expect(settings.read().connectionProfiles?.[0]).toMatchObject({
       profileId,
-      target: { kind: "docker", container: "zcode-dev" },
+      target: { kind: "docker", container: "nibi-dev" },
     });
   });
 
@@ -778,14 +778,14 @@ describe("SourceServerDirectory", () => {
         {
           profileId,
           transport: "docker",
-          target: { kind: "docker", container: "zcode-dev" },
+          target: { kind: "docker", container: "nibi-dev" },
           createdAt: 1,
         },
       ],
       sourceServerWorkspaceHistory: [
         {
           workspacePath: "/workspace",
-          legacyWorkspaceIdentity: "remote:docker:zcode-dev:/workspace",
+          legacyWorkspaceIdentity: "remote:docker:nibi-dev:/workspace",
           profileId,
           lastOpenedAt: 1,
         },
@@ -833,7 +833,7 @@ describe("SourceServerDirectory", () => {
     expect(settings.read().sourceServerWorkspaceHistory?.[0]).toMatchObject({
       sourceServerId,
       workspaceIdentity: `remote:server:${sourceServerId}:/workspace`,
-      legacyWorkspaceIdentity: "remote:docker:zcode-dev:/workspace",
+      legacyWorkspaceIdentity: "remote:docker:nibi-dev:/workspace",
     });
   });
 
@@ -887,7 +887,7 @@ describe("SourceServerDirectory", () => {
         {
           profileId,
           transport: "docker",
-          target: { kind: "docker", container: "zcode-dev" },
+          target: { kind: "docker", container: "nibi-dev" },
           createdAt: 1,
         },
       ],
@@ -1611,7 +1611,7 @@ describe("SourceServerDirectory", () => {
         {
           profileId,
           transport: "docker",
-          target: { kind: "docker", container: "zcode-dev" },
+          target: { kind: "docker", container: "nibi-dev" },
           createdAt: 1,
         },
       ],
@@ -1720,7 +1720,7 @@ describe("SourceServerDirectory", () => {
           profileId,
           sourceServerId,
           transport: "docker",
-          target: { kind: "docker", container: "zcode-dev" },
+          target: { kind: "docker", container: "nibi-dev" },
           createdAt: 1,
         },
       ],
@@ -1763,7 +1763,7 @@ describe("SourceServerDirectory", () => {
           profileId,
           sourceServerId,
           transport: "docker",
-          target: { kind: "docker", container: "zcode-dev" },
+          target: { kind: "docker", container: "nibi-dev" },
           createdAt: 1,
         },
       ],
@@ -1809,7 +1809,7 @@ describe("SourceServerDirectory", () => {
           profileId,
           sourceServerId,
           transport: "docker",
-          target: { kind: "docker", container: "zcode-dev" },
+          target: { kind: "docker", container: "nibi-dev" },
           createdAt: 1,
         },
         {
@@ -1917,7 +1917,7 @@ describe("SourceServerDirectory", () => {
           profileId,
           sourceServerId,
           transport: "docker",
-          target: { kind: "docker", container: "zcode-dev" },
+          target: { kind: "docker", container: "nibi-dev" },
           createdAt: 1,
         },
       ],

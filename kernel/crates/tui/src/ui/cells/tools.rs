@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/cells/tools.rs（feat/rs 79b6691c55）：输入换成 `view::ToolRow`。
+// 改写自 apps/nibi-host/crates/tui/src/ui/cells/tools.rs（feat/rs 79b6691c55）：输入换成 `view::ToolRow`。
 //! 工具类的块：`⏺ 名称(参数)`，细节挂在 `  ⎿  ` 下面。文件改动的细节见 `patch`。
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};

@@ -6,7 +6,7 @@ import test from "node:test";
 import { collectSeaOfficialPluginAssets, officialSeaPlugins } from "../scripts/sea-official-plugin-assets.mjs";
 
 test("includes the document judge agent in official SEA assets", async () => {
-  const stagingDirectory = await mkdtemp(join(tmpdir(), "zcode-sea-document-agent-"));
+  const stagingDirectory = await mkdtemp(join(tmpdir(), "nibi-sea-document-agent-"));
   const root = join(import.meta.dirname, "../../..");
 
   try {
@@ -56,7 +56,7 @@ test("includes the document judge agent in official SEA assets", async () => {
 });
 
 test("rejects an incomplete documents SEA seed", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-sea-document-agent-missing-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-sea-document-agent-missing-"));
   const root = join(directory, "root");
   const stagingDirectory = join(directory, "staging");
 

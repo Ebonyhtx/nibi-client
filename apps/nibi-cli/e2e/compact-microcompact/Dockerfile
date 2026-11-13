@@ -35,7 +35,7 @@ COPY packages/swift-bridge/package.json packages/swift-bridge/package.json
 COPY packages/tui/package.json packages/tui/package.json
 COPY tools/typescript/package.json tools/typescript/package.json
 
-RUN --mount=type=cache,id=zcode-pnpm-store,target=/pnpm/store \
+RUN --mount=type=cache,id=nibi-pnpm-store,target=/pnpm/store \
   pnpm config set store-dir /pnpm/store && \
   pnpm config set @mbears:registry ${MBEARS_NPM_CONFIG_REGISTRY} && \
   pnpm config set fetch-retries 5 && \

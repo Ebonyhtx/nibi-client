@@ -386,7 +386,7 @@ describe(marker, () => {
     ).toBe(1);
     expect((await directory()).entries).toHaveLength(0);
     expect((await snapshot()).servers.map((server) => server.sourceServerId)).toContain(sourceId);
-    for (const close of await $$('#zcode-toast-host button[aria-label="关闭"]'))
+    for (const close of await $$('#nibi-toast-host button[aria-label="关闭"]'))
       await close.click();
     await back();
 
@@ -402,7 +402,7 @@ describe(marker, () => {
     expect(await waitHeld()).toBeUndefined();
     await releaseConnection();
     await assertUninterrupted(text, true);
-    const noticeContinue = $('//div[@id="zcode-toast-host"]//button[normalize-space(.)="继续"]');
+    const noticeContinue = $('//div[@id="nibi-toast-host"]//button[normalize-space(.)="继续"]');
     await noticeContinue.waitForDisplayed({ timeout: 90_000 });
     await browser.saveScreenshot(
       join(process.env.NIBI_E2E_ARTIFACT_DIR!, "background-completion-notice.png"),
@@ -553,7 +553,7 @@ describe(marker, () => {
     await releaseConnection();
     await assertUninterrupted(text);
     const continueNotice = $(
-      '(//div[@id="zcode-toast-host"]//button[normalize-space(.)="继续"])[last()]',
+      '(//div[@id="nibi-toast-host"]//button[normalize-space(.)="继续"])[last()]',
     );
     await continueNotice.waitForDisplayed({ timeout: 90_000 });
     await holdSourceReads();

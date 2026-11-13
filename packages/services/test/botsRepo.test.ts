@@ -9,7 +9,7 @@ describe("BotsRepo", () => {
   let tempDir: string | null = null;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "zcode-bots-repo-"));
+    tempDir = mkdtempSync(join(tmpdir(), "nibi-bots-repo-"));
     setDataBaseDir(tempDir);
   });
 

@@ -39,8 +39,8 @@ import {
 
 const MAX_SYNC_TIMEOUT_MS = 120_000;
 const UNTRUSTED_SESSION_KEY = "__unscoped__";
-const WORKER_KIND = "zcode-node-repl-call";
-export const NODE_REPL_MCP_PROCESS_TITLE = "zcode-node-repl-mcp";
+const WORKER_KIND = "nibi-node-repl-call";
+export const NODE_REPL_MCP_PROCESS_TITLE = "nibi-node-repl-mcp";
 // 插件 ABI 兼容层：上游 Nibi 插件注入的仍是旧名（只影响插件运行时，宿主配置不读）。
 const pluginRoot =
   process.env.NIBI_PLUGIN_ROOT ??

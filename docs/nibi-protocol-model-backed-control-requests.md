@@ -120,13 +120,13 @@ UI 的“取消增强”必须调用 `prompt/enhance/cancel`，不能只让旧�
 
 ### 现象
 
-2026-09-09 的用户日志（`zcode-logs-20260909-035718`，构建 3.11.2 / c4d5b5bc）里，两个 dwf run
+2026-09-09 的用户日志（`nibi-logs-20260909-035718`，构建 3.11.2 / c4d5b5bc）里，两个 dwf run
 （`dwfrun-920daa62` 5 个子代理、`dwfrun-5e8d371f` 3 个子代理，provider 都是
 `builtin:bigmodel-start-plan`）的全部 8 个子代理各自打出一条 `model.request.started` 之后再无
 任何事件，直到 80 分钟后日志导出：没有完成、没有失败、也没有 `model.stream.stalled`（600 秒
 stream idle 计时器要等首个 SSE 事件才起跑，请求根本没发出去）。CLI 侧每个子代理的最后一行是
 `nibi_protocol.session.require_missing`，桌面侧对应 8 条
-`zcode-agent.respondProviderRuntimeHeaders FAIL … Session is not active: sess_dwf-…`；同一天主会话
+`nibi-agent.respondProviderRuntimeHeaders FAIL … Session is not active: sess_dwf-…`；同一天主会话
 的 38 次同类交换全部 OK。
 
 ### 根因链路

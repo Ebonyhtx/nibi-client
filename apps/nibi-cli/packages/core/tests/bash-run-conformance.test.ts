@@ -51,7 +51,7 @@ test.skipIf(process.platform === "win32")(
     timeout: 15_000,
   },
   async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bash-lifecycle-conformance-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bash-lifecycle-conformance-"));
     const executionPort = new NodeExecutionAdapter({ outputRootDir: root });
     const parentTurn = new AbortController();
     testRoot = root;
@@ -86,7 +86,7 @@ test.skipIf(process.platform === "win32")(
 test.skipIf(process.platform === "win32")(
   "nibi-cli Bash keeps first-token sleep on the hard-timeout foreground path",
   async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bash-sleep-timeout-conformance-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bash-sleep-timeout-conformance-"));
     const executionPort = new NodeExecutionAdapter({ outputRootDir: root });
     testRoot = root;
 
@@ -146,7 +146,7 @@ test("nibi-cli Bash handler auto-backgrounds eligible foreground commands on tim
       return {
         kind: "backgrounded" as const,
         task: {
-          outputPath: "/tmp/zcode-bash-output.log",
+          outputPath: "/tmp/nibi-bash-output.log",
           startedAt: new Date(),
           status: "running" as const,
           taskId: "exec_auto_background",
@@ -179,7 +179,7 @@ test("nibi-cli Bash handler auto-backgrounds eligible foreground commands on tim
   expect(output.backgroundTaskId).toBe("exec_auto_background");
   expect(output.assistantAutoBackgrounded).toBeUndefined();
   expect(output.backgroundedByUser).toBeUndefined();
-  expect(output.persistedOutputPath).toBe("/tmp/zcode-bash-output.log");
+  expect(output.persistedOutputPath).toBe("/tmp/nibi-bash-output.log");
 });
 
 test("nibi-cli Bash handler does not auto-background sleep commands on timeout", async () => {
@@ -263,7 +263,7 @@ test("nibi-cli Bash handler auto-backgrounds assignment-prefixed sleep commands 
       return {
         kind: "backgrounded" as const,
         task: {
-          outputPath: "/tmp/zcode-bash-output.log",
+          outputPath: "/tmp/nibi-bash-output.log",
           startedAt: new Date(),
           status: "running" as const,
           taskId: "exec_assignment_sleep",

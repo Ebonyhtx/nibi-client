@@ -29,7 +29,7 @@ const DIGEST_A = "a".repeat(64);
 const DEAD_PID = 999_999_999; // 远超典型 pid 上限，进程不存在的概率趋近 1
 
 async function root(): Promise<string> {
-  const value = await mkdtemp(join(tmpdir(), "zcode-hook-store-lock-"));
+  const value = await mkdtemp(join(tmpdir(), "nibi-hook-store-lock-"));
   roots.push(value);
   return value;
 }

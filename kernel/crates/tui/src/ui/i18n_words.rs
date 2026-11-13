@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/i18n.rs（feat/rs 79b6691c55），按 400 行上限拆出；权限模式
+// 复制自 apps/nibi-host/crates/tui/src/ui/i18n.rs（feat/rs 79b6691c55），按 400 行上限拆出；权限模式
 // 的名称换成内核的模式（docs/specs/rust-cli/tui.md §7）。
 //! 带参数的界面文字。
 use nibi_kernel_api::compaction::ContextNotice;

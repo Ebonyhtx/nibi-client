@@ -24,7 +24,7 @@ describe("旧 Session 当前选择的单次迁移", () => {
   // Windows 上 afterEach 的 rm 因此 EBUSY（Linux 删得掉，所以只在 Windows 暴露）。
   const openedStores: Array<Awaited<ReturnType<typeof createSqliteSessionStore>>> = [];
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "zcode-selection-migration-"));
+    root = await mkdtemp(join(tmpdir(), "nibi-selection-migration-"));
     const dbPath = join(root, "session.sqlite");
     store = await createSqliteSessionStore({ dbPath });
     openedStores.push(store);

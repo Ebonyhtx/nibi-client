@@ -19,6 +19,6 @@ function sync() {
     history.replaceState(null, '', url);
   }
 }
-window.addEventListener('zcode-rewards-context', sync);
+window.addEventListener('nibi-rewards-context', sync);
 sync();
 </script></body></html>`;

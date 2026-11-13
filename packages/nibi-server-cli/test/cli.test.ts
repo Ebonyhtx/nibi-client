@@ -169,7 +169,7 @@ describe("Server CLI routing", () => {
   });
 
   it("installs a first release from a local archive before a daemon exists", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-cli-archive-install-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-cli-archive-install-"));
     const serverRoot = join(root, "server");
     const layout = await resolveCanonicalServerLayout(serverRoot);
     const { archivePath } = await createTestReleaseArchive(root, "3.9.0-test");
@@ -320,7 +320,7 @@ describe("Server CLI routing", () => {
   });
 
   it("routes migrate retry to the Source Server workspace migration owner", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-cli-migrate-retry-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-cli-migrate-retry-"));
     const retryFailedWorkspace = vi.fn().mockResolvedValue({
       canonicalKey: "remote:ssh:host:22:alice:/workspace",
       mergedKeys: [],
@@ -374,7 +374,7 @@ describe("Server CLI routing", () => {
   });
 
   it("treats stop as an idempotent no-op after the supervisor socket is gone", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-cli-stop-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-cli-stop-"));
     vi.stubEnv("NIBI_DATA_BASE_DIR", root);
     const layout = await resolveCanonicalServerLayout();
     await mkdir(layout.runDir, { recursive: true });
@@ -412,7 +412,7 @@ describe("Server CLI routing", () => {
   });
 
   it("uses an explicit absolute --server-root for status instead of the process default", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-cli-explicit-root-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-cli-explicit-root-"));
     const serverRoot = join(root, ".nibi", "server");
     const layout = await resolveCanonicalServerLayout(serverRoot);
     await mkdir(layout.runDir, { recursive: true });
@@ -456,7 +456,7 @@ describe("Server CLI routing", () => {
 
   it("rejects update before fetching or installing when tasks are running", async () => {
     const root = await mkdtemp(
-      join(process.platform === "win32" ? tmpdir() : "/tmp", "zcode-r2-cli-update-guard-"),
+      join(process.platform === "win32" ? tmpdir() : "/tmp", "nibi-r2-cli-update-guard-"),
     );
     const layout = await resolveCanonicalServerLayout(join(root, ".nibi", "server"));
     const commands: string[] = [];
@@ -523,7 +523,7 @@ describe("Server CLI routing", () => {
 
   it("discards a prepared release when a task starts during preparation", async () => {
     const root = await mkdtemp(
-      join(process.platform === "win32" ? tmpdir() : "/tmp", "zcode-r2-cli-update-race-"),
+      join(process.platform === "win32" ? tmpdir() : "/tmp", "nibi-r2-cli-update-race-"),
     );
     const layout = await resolveCanonicalServerLayout(join(root, "server"));
     const release = await createTestReleaseArchive(root, "4.0.0");
@@ -591,7 +591,7 @@ describe("Server CLI routing", () => {
 
   it("discards a prepared release when apply-update observes a late task", async () => {
     const root = await mkdtemp(
-      join(process.platform === "win32" ? tmpdir() : "/tmp", "zcode-r2-cli-update-late-guard-"),
+      join(process.platform === "win32" ? tmpdir() : "/tmp", "nibi-r2-cli-update-late-guard-"),
     );
     const layout = await resolveCanonicalServerLayout(join(root, "server"));
     const release = await createTestReleaseArchive(root, "4.0.1");
@@ -656,7 +656,7 @@ describe("Server CLI routing", () => {
 
   it("returns a successful up-to-date outcome without sending apply-update", async () => {
     const root = await mkdtemp(
-      join(process.platform === "win32" ? tmpdir() : "/tmp", "zcode-r2-cli-up-to-date-"),
+      join(process.platform === "win32" ? tmpdir() : "/tmp", "nibi-r2-cli-up-to-date-"),
     );
     const layout = await resolveCanonicalServerLayout(join(root, ".nibi", "server"));
     const releases = new ReleaseManager(layout);
@@ -745,7 +745,7 @@ describe("Server CLI routing", () => {
 
   it("reports a clear source error when neither catalog nor pending release exists", async () => {
     const root = await mkdtemp(
-      join(process.platform === "win32" ? tmpdir() : "/tmp", "zcode-r2-cli-no-source-"),
+      join(process.platform === "win32" ? tmpdir() : "/tmp", "nibi-r2-cli-no-source-"),
     );
     const layout = await resolveCanonicalServerLayout(join(root, ".nibi", "server"));
     const errors: string[] = [];
@@ -768,7 +768,7 @@ describe("Server CLI routing", () => {
 
   it("applies an offline pending release when no catalog is configured", async () => {
     const root = await mkdtemp(
-      join(process.platform === "win32" ? tmpdir() : "/tmp", "zcode-r2-offline-"),
+      join(process.platform === "win32" ? tmpdir() : "/tmp", "nibi-r2-offline-"),
     );
     const layout = await resolveCanonicalServerLayout(join(root, ".nibi", "server"));
     const releases = new ReleaseManager(layout);
@@ -815,7 +815,7 @@ describe("Server CLI routing", () => {
   });
 
   it("cancels uninstall unless both confirmations are exactly DELETE (R2-CLI-10)", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-cli-uninstall-cancel-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-cli-uninstall-cancel-"));
     vi.stubEnv("NIBI_DATA_BASE_DIR", root);
     const errors: string[] = [];
     try {
@@ -837,7 +837,7 @@ describe("Server CLI routing", () => {
   });
 
   it("does not start uninstall while an update owns the lifecycle handoff", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-update-uninstall-gate-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-update-uninstall-gate-"));
     const layout = await resolveCanonicalServerLayout(join(root, "server"));
     const updateLock = new DataRootLock(layout.updateLockFile);
     await updateLock.acquire();
@@ -858,7 +858,7 @@ describe("Server CLI routing", () => {
   });
 
   it("refuses to uninstall a directory without Nibi Server ownership", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-cli-uninstall-unowned-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-cli-uninstall-unowned-"));
     const serverRoot = join(root, "Documents");
     await mkdir(serverRoot, { recursive: true });
     await writeFile(join(serverRoot, "taxes.pdf"), "user data", "utf8");
@@ -875,7 +875,7 @@ describe("Server CLI routing", () => {
   });
 
   it("uninstalls runtime assets while preserving identity and user files for reinstall (R2-CLI-11)", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-cli-uninstall-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-cli-uninstall-"));
     vi.stubEnv("NIBI_DATA_BASE_DIR", root);
     try {
       const layout = await resolveCanonicalServerLayout();
@@ -927,7 +927,7 @@ describe("Server CLI routing", () => {
   });
 
   it("fails closed when control is unavailable and the lock is malformed", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-cli-uninstall-corrupt-lock-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-cli-uninstall-corrupt-lock-"));
     vi.stubEnv("NIBI_DATA_BASE_DIR", root);
     try {
       const layout = await resolveCanonicalServerLayout();
@@ -950,7 +950,7 @@ describe("Server CLI routing", () => {
   });
 
   it("fails closed when a live lock owner is present even if status is corrupt", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-cli-uninstall-live-lock-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-cli-uninstall-live-lock-"));
     vi.stubEnv("NIBI_DATA_BASE_DIR", root);
     const layout = await resolveCanonicalServerLayout();
     const lock = new DataRootLock(layout.lockFile);
@@ -976,7 +976,7 @@ describe("Server CLI routing", () => {
   });
 
   it("returns a complete stopped status when the endpoint and snapshot are absent", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-cli-status-fallback-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-cli-status-fallback-"));
     const serverRoot = join(root, "server");
     const output: string[] = [];
     const exit = await runServerCli(["status", "--server-root", serverRoot, "--json"], {

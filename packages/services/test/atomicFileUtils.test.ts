@@ -138,7 +138,7 @@ describe("atomicWriteText", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "zcode-atomic-write-"));
+    tempDir = mkdtempSync(join(tmpdir(), "nibi-atomic-write-"));
     fsMockState.renameFailures.length = 0;
     fsMockState.lockRemoveFailure = null;
     fsMockState.renameDelayMs = 0;
@@ -566,7 +566,7 @@ describe("json object config updates", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "zcode-config-update-"));
+    tempDir = mkdtempSync(join(tmpdir(), "nibi-config-update-"));
     fsMockState.renameFailures.length = 0;
     fsMockState.lockRemoveFailure = null;
     fsMockState.renameDelayMs = 0;

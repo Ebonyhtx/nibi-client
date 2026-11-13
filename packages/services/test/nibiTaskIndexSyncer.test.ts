@@ -53,7 +53,7 @@ function createNibiTaskIndexSyncer(
 }
 
 beforeEach(() => {
-  tempDir = mkdtempSync(join(tmpdir(), "zcode-task-index-syncer-"));
+  tempDir = mkdtempSync(join(tmpdir(), "nibi-task-index-syncer-"));
   setDataBaseDir(tempDir);
 });
 

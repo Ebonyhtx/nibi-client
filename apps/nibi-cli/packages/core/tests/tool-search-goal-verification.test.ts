@@ -12,7 +12,7 @@ import { createTestModelFactory } from "./test-runtime-model.js";
 import { createTestSessionEventStore } from "./test-event-store.js";
 
 it("keeps a SQLite goal active when the no-tool verifier rejects completion after a real ToolSearch result", async () => {
-  const root = await mkdtemp(join(tmpdir(), "zcode-toolsearch-goal-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-toolsearch-goal-"));
   const store = await createSqliteSessionStore({ dbPath: join(root, "session.sqlite") });
   const sessionId = createSessionId("toolsearch-goal-verification");
   const requests: ModelRequest[] = [];

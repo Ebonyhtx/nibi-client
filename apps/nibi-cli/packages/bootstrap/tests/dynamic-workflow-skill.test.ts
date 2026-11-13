@@ -559,7 +559,7 @@ describe("bundled dynamic-workflows skill", () => {
  */
 describe("gray release gate names stay pinned to the real bundled assets", () => {
   function bundledRoots(): SkillRoot[] {
-    return resolveBundledSkillRoots({ cliStorageRoot: join(tmpdir(), "zcode-unused-cli-storage") });
+    return resolveBundledSkillRoots({ cliStorageRoot: join(tmpdir(), "nibi-unused-cli-storage") });
   }
 
   it("内置技能包解析到真实的 skills 目录，且剔除路径正好落在 dynamic-workflows SKILL.md 上", () => {
@@ -613,7 +613,7 @@ describe("gray release gate names stay pinned to the real bundled assets", () =>
       const names = skills.map((skill) => skill.name);
       expect(names).not.toContain(SKILL_NAME);
       // 反向断言：门只剔一个 SKILL.md，其他根没有被连坐。
-      // NIBI 的引导技能目录已去品牌：configuration-guide（上游叫 zcode-configuration-guide）。
+      // NIBI 的引导技能目录已去品牌：configuration-guide（上游叫 nibi-configuration-guide）。
       expect(names).toContain("configuration-guide");
       expect(names.length).toBeGreaterThan(1);
     });

@@ -28,7 +28,7 @@ afterEach(() => {
 
 vi.mock("electron", () => ({
   app: {
-    getPath: vi.fn(() => "/tmp/zcode-test"),
+    getPath: vi.fn(() => "/tmp/nibi-test"),
     get isPackaged() {
       return electronMock.isPackaged;
     },

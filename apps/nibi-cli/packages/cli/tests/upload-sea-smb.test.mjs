@@ -49,7 +49,7 @@ test("parses upload arguments with defaults and overrides", () => {
     version: undefined,
   });
 
-  const cwd = "/tmp/zcode-upload";
+  const cwd = "/tmp/nibi-upload";
   assert.deepEqual(
     parseUploadSeaSmbArgs(
       [
@@ -92,7 +92,7 @@ test("uses INTRANET_MACHINE_HOST for the default SMB URL", () => {
 });
 
 test("reads root package version and rejects path-like release versions", async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-upload-version-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-upload-version-"));
   t.after(() =>
     rm(directory, {
       force: true,
@@ -108,7 +108,7 @@ test("reads root package version and rejects path-like release versions", async 
 });
 
 test("collects all SEA upload binaries and reports missing files", async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-upload-files-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-upload-files-"));
   t.after(() =>
     rm(directory, {
       force: true,
@@ -146,7 +146,7 @@ test("collects all SEA upload binaries and reports missing files", async (t) => 
 });
 
 test("uploads release binaries into a versioned destination with progress events", async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-upload-release-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-upload-release-"));
   t.after(() =>
     rm(directory, {
       force: true,
@@ -179,7 +179,7 @@ test("uploads release binaries into a versioned destination with progress events
 });
 
 test("abandons an existing release when the user chooses abandon", async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-upload-abandon-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-upload-abandon-"));
   t.after(() =>
     rm(directory, {
       force: true,
@@ -209,7 +209,7 @@ test("abandons an existing release when the user chooses abandon", async (t) => 
 });
 
 test("force replaces an existing release directory", async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-upload-force-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-upload-force-"));
   t.after(() =>
     rm(directory, {
       force: true,

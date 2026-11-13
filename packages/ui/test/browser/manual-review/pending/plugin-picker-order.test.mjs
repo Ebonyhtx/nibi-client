@@ -207,9 +207,9 @@ for (const [width, locale, theme] of [
       assert.ok(calls.some((x) => x.sessionId === "frozen-session"));
       assert.ok(calls.some((x) => !x.sessionId));
       assert.deepEqual(errors, []);
-      await mkdir(join(tmpdir(), "zcode-plugin-picker-order"), { recursive: true });
+      await mkdir(join(tmpdir(), "nibi-plugin-picker-order"), { recursive: true });
       await page.screenshot({
-        path: join(tmpdir(), "zcode-plugin-picker-order", `${width}-${locale}.png`),
+        path: join(tmpdir(), "nibi-plugin-picker-order", `${width}-${locale}.png`),
       });
     } catch (error) {
       console.error(error, { errors, calls, requests }, await page.locator("body").innerText());

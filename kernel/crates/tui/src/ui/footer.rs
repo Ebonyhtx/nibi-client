@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/footer.rs（feat/rs 79b6691c55）：权限模式换成内核的模式；
+// 改写自 apps/nibi-host/crates/tui/src/ui/footer.rs（feat/rs 79b6691c55）：权限模式换成内核的模式；
 // 去掉子代理、后台 shell、任务清单与回退浏览的提示；上下文提示来自 `ContextNotice` 事件。
 //! 输入框下面的一行（docs/specs/rust-tui.md §8.4）：footer 与 `?` 快捷键帮助。footer 左侧是权限模式
 //! 与一条提示，右侧是模型与剩余上下文。提示经按键提示组件画（按键亮色粗体、说明灰色），模型名用 `model`

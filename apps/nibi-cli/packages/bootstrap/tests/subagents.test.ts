@@ -38,7 +38,7 @@ function pluginMetadata(input: {
 
 describe("loadNibiAgentProfiles", () => {
   it("一次读取迁移后的插件覆盖注入规范名和别名，不修改插件文件或串用另一插件覆盖", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-selection-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-selection-"));
     try {
       const storageRoot = join(root, "state");
       const pluginRoot = join(root, "plugin");
@@ -110,7 +110,7 @@ describe("loadNibiAgentProfiles", () => {
   });
 
   it("loads only direct user and project Markdown files from beta-compatible roots", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-subagents-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-subagents-"));
     const storageRoot = join(root, "home");
     const workingDirectory = join(root, "workspace");
     try {
@@ -129,7 +129,7 @@ describe("loadNibiAgentProfiles", () => {
       await writeFile(
         join(storageRoot, "agents", "reviewer.md"),
         `---
-name: zcode-reviewer
+name: nibi-reviewer
 description: 用户级中文审查 agent
 ---
 用户级 prompt`,
@@ -138,7 +138,7 @@ description: 用户级中文审查 agent
       await writeFile(
         join(workingDirectory, ".nibi", "agents", "reviewer.md"),
         `---
-name: zcode-reviewer
+name: nibi-reviewer
 description: 项目级中文审查 agent
 ---
 项目级 prompt`,
@@ -159,7 +159,7 @@ description: 项目级中文审查 agent
   });
 
   it("ignores project Markdown permissionMode because project profiles are untrusted", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-subagents-project-permission-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-subagents-project-permission-"));
     const storageRoot = join(root, "home");
     const workingDirectory = join(root, "workspace");
     try {
@@ -198,7 +198,7 @@ permissionMode: bypassPermissions
   });
 
   it("reports diagnostics for invalid agent Markdown without failing the load", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-subagents-invalid-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-subagents-invalid-"));
     const storageRoot = join(root, "home");
     const workingDirectory = join(root, "workspace");
     try {
@@ -223,7 +223,7 @@ prompt`,
   });
 
   it("skips disabled user Markdown profiles from shared subagent state", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-subagents-disabled-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-subagents-disabled-"));
     const storageRoot = join(root, "home");
     const workingDirectory = join(root, "workspace");
     try {
@@ -232,7 +232,7 @@ prompt`,
       await writeFile(
         join(storageRoot, "agents", "reviewer.md"),
         `---
-name: zcode-reviewer
+name: nibi-reviewer
 description: 用户级中文审查 agent
 ---
 用户级 prompt`,
@@ -241,7 +241,7 @@ description: 用户级中文审查 agent
       await writeFile(
         join(storageRoot, "agents", "runner.md"),
         `---
-name: zcode-runner
+name: nibi-runner
 description: 用户级运行 agent
 ---
 用户级 prompt`,
@@ -249,21 +249,21 @@ description: 用户级运行 agent
       );
       await writeFile(
         join(storageRoot, "v2", "agents-state.json"),
-        JSON.stringify({ disabledAgentIds: ["user:user:zcode-reviewer"] }),
+        JSON.stringify({ disabledAgentIds: ["user:user:nibi-reviewer"] }),
         "utf8",
       );
 
       const result = await loadNibiAgentProfiles({ storageRoot, workingDirectory });
 
       expect(result.diagnostics).toEqual([]);
-      expect(result.profiles.map((profile) => profile.name)).toEqual(["zcode-runner"]);
+      expect(result.profiles.map((profile) => profile.name)).toEqual(["nibi-runner"]);
     } finally {
       await rm(root, { force: true, recursive: true });
     }
   });
 
   it("loads structured built-in model selections from shared subagent state", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-subagents-built-in-models-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-subagents-built-in-models-"));
     const storageRoot = join(root, "home");
     const workingDirectory = join(root, "workspace");
     try {
@@ -316,7 +316,7 @@ description: 用户级运行 agent
 
 describe("loadPluginAgentProfiles", () => {
   it("SA97-09：用户迁移和重新加载不改项目/插件文件或其显式旧身份", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-subagent-scope-migration-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-subagent-scope-migration-"));
     const storageRoot = join(root, "storage");
     const workingDirectory = join(root, "workspace");
     const pluginRoot = join(root, "plugin");
@@ -371,7 +371,7 @@ describe("loadPluginAgentProfiles", () => {
   });
 
   it("loads enabled plugin agents as runtime profiles", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-subagents-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-subagents-"));
     const pluginRoot = join(root, "feature-dev");
     try {
       await mkdir(join(pluginRoot, "agents"), { recursive: true });
@@ -429,7 +429,7 @@ tools:
   ] as const)(
     "marks %s plugin permissionMode %s as restrict-only on canonical and alias profiles",
     async (marketplace, permissionMode) => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-plugin-subagents-permission-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-plugin-subagents-permission-"));
       const pluginRoot = join(root, "fixture");
       try {
         await mkdir(join(pluginRoot, "agents"), { recursive: true });
@@ -473,7 +473,7 @@ permissionMode: ${permissionMode}
   );
 
   it("applies plugin agent model overrides from shared subagent state to canonical and alias profiles", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-subagents-overrides-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-subagents-overrides-"));
     const storageRoot = join(root, "home");
     const pluginRoot = join(root, "document-skills");
     try {
@@ -564,7 +564,7 @@ thoughtLevel: low
   });
 
   it("skips disabled plugin agents and ambiguous bare aliases", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-subagents-ambiguous-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-subagents-ambiguous-"));
     const firstRoot = join(root, "feature-dev");
     const secondRoot = join(root, "pr-review-toolkit");
     try {
@@ -617,7 +617,7 @@ architect prompt`,
 });
 
 it("附加目录 subagent 用限定名并存，权限仍按项目级规则过滤", async () => {
-  const root = await mkdtemp(join(tmpdir(), "zcode-additional-agents-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-additional-agents-"));
   try {
     const main = join(root, "frontend"),
       extra = join(root, "backend");

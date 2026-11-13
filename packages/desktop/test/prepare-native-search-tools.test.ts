@@ -66,7 +66,7 @@ const remoteTargets = localTargets.filter(([platform]) => platform !== "win32");
 
 const temporaryDirectories: string[] = [];
 async function createTemporaryDirectory(): Promise<string> {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-prepare-native-search-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-prepare-native-search-"));
   temporaryDirectories.push(directory);
   return directory;
 }

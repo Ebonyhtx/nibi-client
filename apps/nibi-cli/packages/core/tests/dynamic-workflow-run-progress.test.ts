@@ -18,7 +18,7 @@ import { createTestSessionEventStore } from "./test-event-store.js";
 function makeRuntime(name: string): { runtime: AgentRuntime; events: SessionEvent[] } {
   const runtime = new AgentRuntime(
     createSessionId(name),
-    { agentName: "dwf-progress-test", workingDirectory: "/tmp/zcode-dwf-progress" },
+    { agentName: "dwf-progress-test", workingDirectory: "/tmp/nibi-dwf-progress" },
     { eventStore: createTestSessionEventStore(), modelAdapter: {} as never },
   );
   const events: SessionEvent[] = [];

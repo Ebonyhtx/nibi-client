@@ -7,7 +7,7 @@ import { createHooksService } from "../src/hooks/hooksService.js";
 const roots: string[] = [];
 
 function makeRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "zcode-hook-trust-corrupt-"));
+  const root = mkdtempSync(join(tmpdir(), "nibi-hook-trust-corrupt-"));
   roots.push(root);
   return root;
 }

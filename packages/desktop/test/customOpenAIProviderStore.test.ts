@@ -17,7 +17,7 @@ describe("custom OpenAI Provider E2E seed", () => {
   });
 
   it("只写版本化 Personal Config，不再制造旧 Provider 事实来源", async () => {
-    const homeDir = await mkdtemp(join(tmpdir(), "zcode-provider-seed-"));
+    const homeDir = await mkdtemp(join(tmpdir(), "nibi-provider-seed-"));
     const cliConfigFile = join(homeDir, ".nibi", "cli", "config.json");
     await writeFileWithParents(
       cliConfigFile,
@@ -118,7 +118,7 @@ describe("custom OpenAI Provider E2E seed", () => {
   });
 
   it("E2E 观察保留 Coding Plan API Key，而不把已保存凭据投影为空", async () => {
-    const homeDir = await mkdtemp(join(tmpdir(), "zcode-provider-key-read-"));
+    const homeDir = await mkdtemp(join(tmpdir(), "nibi-provider-key-read-"));
     vi.stubEnv("NIBI_E2E_HOME_DIR", homeDir);
     await writeFileWithParents(
       join(homeDir, ".nibi", "v2", "provider_config.json"),
@@ -151,7 +151,7 @@ describe("custom OpenAI Provider E2E seed", () => {
   });
 
   it("E2E 诊断不再读取旧 Provider Store", async () => {
-    const homeDir = await mkdtemp(join(tmpdir(), "zcode-provider-read-"));
+    const homeDir = await mkdtemp(join(tmpdir(), "nibi-provider-read-"));
     await writeFileWithParents(
       join(homeDir, ".nibi", "v2", "model-providers.json"),
       JSON.stringify([

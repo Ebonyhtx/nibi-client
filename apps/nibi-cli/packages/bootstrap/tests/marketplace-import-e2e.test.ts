@@ -56,7 +56,7 @@ async function makeLocalMarketplace(root: string, name: string): Promise<void> {
 
 describe("marketplace 自定义导入 E2E (真实 agent facade)", () => {
   it("本地目录导入：raw 目录路径 -> directory 来源 -> 落盘 + overview 可见", async () => {
-    const base = await mkdtemp(join(tmpdir(), "zcode-e2e-localdir-"));
+    const base = await mkdtemp(join(tmpdir(), "nibi-e2e-localdir-"));
     const storageRoot = join(base, "storage");
     const market = join(base, "my-local-market");
     try {
@@ -94,7 +94,7 @@ describe("marketplace 自定义导入 E2E (真实 agent facade)", () => {
   });
 
   it("非法来源：facade 抛错（驱动 store 失败分支 -> 返回 false -> popover 保留输入），且不误落盘", async () => {
-    const base = await mkdtemp(join(tmpdir(), "zcode-e2e-invalid-"));
+    const base = await mkdtemp(join(tmpdir(), "nibi-e2e-invalid-"));
     const storageRoot = join(base, "storage");
     try {
       // popover 里随手敲的一个不存在的本地路径。

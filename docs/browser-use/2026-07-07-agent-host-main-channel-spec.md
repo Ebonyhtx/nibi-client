@@ -43,7 +43,7 @@ main: desktopHostProcess child.on("message") case BrowserExecuteRequest
 
 ## 3. Leg B：host router + host↔main bridge
 
-### host router（`packages/services/src/zcode-agent/zcodeAgentService.ts` onRequest）
+### host router（`packages/services/src/nibi-agent/zcodeAgentService.ts` onRequest）
 - 在末尾 `respondError(-32601)` 前加 case `request.method === nibiProtocolMethods.interactionBrowserExecute`：
   - `zcodeBrowserExecuteParamsSchema.safeParse(request.params)`，失败 `respondError(-32602)`。
   - 调 `browserControlMainBridge.execute({sessionId, command})`（注入的可选依赖）。

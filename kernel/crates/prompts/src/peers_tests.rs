@@ -2,7 +2,7 @@
 
 use super::*;
 
-const SOCKET: &str = "uds:/tmp/zcode-socks/16124.sock";
+const SOCKET: &str = "uds:/tmp/nibi-socks/16124.sock";
 const MSG: &str = "b2be28a3-2a45-47e8-8022-291d0957c8d1";
 
 #[test]

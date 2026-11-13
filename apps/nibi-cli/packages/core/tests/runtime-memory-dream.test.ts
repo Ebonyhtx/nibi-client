@@ -456,7 +456,7 @@ async function waitFor(predicate: () => boolean): Promise<void> {
 }
 
 async function temporaryDirectory(): Promise<string> {
-  const path = await mkdtemp(join(tmpdir(), "zcode-runtime-memory-dream-"));
+  const path = await mkdtemp(join(tmpdir(), "nibi-runtime-memory-dream-"));
   temporaryDirectories.push(path);
   return path;
 }

@@ -67,7 +67,7 @@ describe("daemon service registration", () => {
   });
 
   it("starts a detached daemon when the OS user service manager is unavailable", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-daemon-fallback-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-daemon-fallback-"));
     const layout = await resolveCanonicalServerLayout(join(root, "server"));
     const output: string[] = [];
     await mkdir(layout.runDir, { recursive: true });
@@ -111,7 +111,7 @@ describe("daemon service registration", () => {
   });
 
   it("returns registration failure without starting a disguised fallback", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-daemon-registration-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-daemon-registration-"));
     const errors: string[] = [];
     vi.stubEnv("NIBI_SERVER_SKIP_SERVICE_REGISTRATION", "0");
 

@@ -12,14 +12,14 @@ MCP 设置页打开开关后，曾出现不可连接 server 初始显示为绿�
 {
   "mcp": {
     "servers": {
-      "zcode-unreachable-http-test": {
+      "nibi-unreachable-http-test": {
         "type": "http",
         "url": "http://127.0.0.1:9/mcp",
         "timeoutMs": 3000
       },
-      "zcode-unreachable-stdio-test": {
+      "nibi-unreachable-stdio-test": {
         "type": "stdio",
-        "command": "zcode-mcp-stdio-server-that-does-not-exist-for-test",
+        "command": "nibi-mcp-stdio-server-that-does-not-exist-for-test",
         "args": [],
         "timeoutMs": 3000
       }
@@ -38,7 +38,7 @@ MCP 设置页打开开关后，曾出现不可连接 server 初始显示为绿�
 ## 预期验证
 
 1. 启动桌面端后打开 Settings -> MCP Servers。
-2. `zcode-unreachable-http-test` 和 `zcode-unreachable-stdio-test` 应出现在 ZCode Agent MCP 列表中。
+2. `nibi-unreachable-http-test` 和 `nibi-unreachable-stdio-test` 应出现在 ZCode Agent MCP 列表中。
 3. 打开任一 server 开关或刷新 MCP 状态时，不应长期保持绿色 connected。
 4. 真实连接完成后应展示 failed/error，并保留错误信息；STDIO 测试项的错误应指向命令无法启动或找不到。
 

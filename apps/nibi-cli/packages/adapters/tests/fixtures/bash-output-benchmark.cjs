@@ -21,7 +21,7 @@ const shell = {
 };
 
 async function main() {
-  const root = await fs.mkdtemp(join(tmpdir(), "zcode-bash-bench-"));
+  const root = await fs.mkdtemp(join(tmpdir(), "nibi-bash-bench-"));
   const writer = join(root, "writer.cjs");
   await fs.writeFile(
     writer,

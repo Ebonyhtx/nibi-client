@@ -145,14 +145,14 @@ for (const [width, locale, theme] of [
       // 配置先到、市场目录仍在途，也不能闪现空态。
       assert.equal(await page.getByTestId("side-pane-ui-empty").count(), 0);
       assert.equal(await page.getByTestId("side-pane-ui-loading").count(), 1);
-      const loadingArtifacts = join(tmpdir(), "zcode-side-pane-plugin-menu");
+      const loadingArtifacts = join(tmpdir(), "nibi-side-pane-plugin-menu");
       await mkdir(loadingArtifacts, { recursive: true });
       await page.screenshot({ path: join(loadingArtifacts, `loading-${width}-${theme}.png`) });
       catalogGate.resolve();
       await page.locator(launcherItems).first().waitFor();
       assert.equal(await page.locator(launcherItems).count(), 2);
       assert.equal(await page.getByTestId("side-pane-plugin-market").count(), 1);
-      const artifacts = join(tmpdir(), "zcode-side-pane-plugin-menu");
+      const artifacts = join(tmpdir(), "nibi-side-pane-plugin-menu");
       await mkdir(artifacts, { recursive: true });
       // 空态启动页与原型对照：横向行、短分割线、UI 插件区。
       await page.screenshot({ path: join(artifacts, `launcher-${width}-${locale}-${theme}.png`) });
@@ -368,7 +368,7 @@ if (process.env.NIBI_UI_RECOMMENDATIONS_LIVE_CONFIG_URL) {
       await page.locator(launcherItems).first().waitFor();
       assert.equal(await page.locator(launcherItems).count(), entries.length);
       await page.screenshot({
-        path: join(tmpdir(), "zcode-side-pane-plugin-menu", "staging-recommendations.png"),
+        path: join(tmpdir(), "nibi-side-pane-plugin-menu", "staging-recommendations.png"),
       });
       await page.locator(launcherItems).first().click();
       await page.waitForFunction(
@@ -590,7 +590,7 @@ for (const [width, locale, theme] of [
           await items.nth(1).click();
           await assertProgress(1);
           assert.equal(attempts.length, 2);
-          const artifacts = join(tmpdir(), "zcode-side-pane-plugin-menu");
+          const artifacts = join(tmpdir(), "nibi-side-pane-plugin-menu");
           await mkdir(artifacts, { recursive: true });
           await page.screenshot({
             path: join(artifacts, `progress-${operation}-${existing}-${width}-${theme}.png`),
@@ -700,7 +700,7 @@ for (const [width, locale, theme] of [
         );
         assert.equal(await items.first().isDisabled(), true);
         assert.equal(await items.first().getByTestId("side-pane-plugin-progress").count(), 1);
-        const artifacts = join(tmpdir(), "zcode-side-pane-plugin-menu");
+        const artifacts = join(tmpdir(), "nibi-side-pane-plugin-menu");
         await mkdir(artifacts, { recursive: true });
         await page.screenshot({
           path: join(artifacts, `concurrent-${existing}-${width}-${theme}.png`),

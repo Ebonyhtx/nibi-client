@@ -122,7 +122,7 @@ describe("反馈上传授权（manual review）", () => {
         await logs.scrollIntoView();
         await expect(logs).toBeDisplayed();
         await browser.saveScreenshot(
-          join(screenshotDirectory, `zcode-feedback-${locale}-${theme}.png`),
+          join(screenshotDirectory, `nibi-feedback-${locale}-${theme}.png`),
         );
       }
       await browser.keys("Escape");
@@ -160,7 +160,7 @@ describe("反馈上传授权（manual review）", () => {
         }, theme);
         for (const marker of requiredMarkers) await expect(marker).toBeDisplayed();
         await browser.saveScreenshot(
-          join(screenshotDirectory, `zcode-feature-request-${locale}-${theme}.png`),
+          join(screenshotDirectory, `nibi-feature-request-${locale}-${theme}.png`),
         );
       }
       await browser.keys("Escape");

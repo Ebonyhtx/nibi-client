@@ -66,7 +66,7 @@
   `interaction/browserList` / `interaction/browserExecute`；会话关闭时对登记过的连接发
   `closeSession`（`Server::close_session`）。
 - 放行与注入：Host 有 `browserControlExecutor` 时在 Rust spawn env 里设
-  `NIBI_HOST_BROWSER_BROKER=1`（`packages/services/src/zcode-agent/nodeReplHostEnv.ts`）；
+  `NIBI_HOST_BROWSER_BROKER=1`（`packages/services/src/nibi-agent/nodeReplHostEnv.ts`）；
   `app_server` 据此启动 broker，把 socket/token 放进 `Extensions.node_repl_env`；
   `runtime/src/node_repl.rs` 只按 `BROWSER_ENV` 白名单复制给 `node_repl` 子进程；选择器放行
   `browser-use` 的 skill（`select.rs` 的 `host_browser_broker`）。
@@ -222,7 +222,7 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
 - 选择器：`NIBI_HOST_NODE_REPL=1` 时放行 `node-repl-host` 与 `computer-use`；
   `browser-use` 还要 `NIBI_HOST_BROWSER_BROKER=1`（见 §2）。
 - Host：Rust 内核的 agent spawn env 带 `NIBI_HOST_NODE_REPL=1` + `NIBI_NODE_EXEC_PATH=<process.execPath>`
-  （`packages/services/src/zcode-agent/nodeReplHostEnv.ts`）；Node 内核不读这两个变量。
+  （`packages/services/src/nibi-agent/nodeReplHostEnv.ts`）；Node 内核不读这两个变量。
 - 测试：`runtime` 5 条（装配/白名单/fail-closed）、`ext` 2 条（插件准入）、Host 1 条（env 契约）。
 
 ### 5.4 CUA 操作事件（已补；permission-observation 不补）

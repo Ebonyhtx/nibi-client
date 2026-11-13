@@ -106,7 +106,7 @@ describe("resolveBundledSkillRoots", () => {
   let tempRoot: string;
 
   beforeEach(async () => {
-    tempRoot = await mkdtemp(join(tmpdir(), "zcode-bundled-skills-"));
+    tempRoot = await mkdtemp(join(tmpdir(), "nibi-bundled-skills-"));
     fakeBaseDirs.dirs = undefined;
   });
 

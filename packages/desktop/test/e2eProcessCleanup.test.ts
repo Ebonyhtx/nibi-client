@@ -160,7 +160,7 @@ describe("desktop e2e process cleanup", () => {
     expect(
       collectE2EProcessTreePids(processes, {
         currentPid: 999,
-        homeDir: "/tmp/zcode-e2e-run-a",
+        homeDir: "/tmp/nibi-e2e-run-a",
         runId: "run-a",
       }),
     ).toEqual([12, 11, 10]);
@@ -177,7 +177,7 @@ describe("desktop e2e process cleanup", () => {
     expect(
       collectE2EProcessTreePids(processes, {
         currentPid: 999,
-        homeDir: "/tmp/zcode-e2e-run-a",
+        homeDir: "/tmp/nibi-e2e-run-a",
         rootPids: [10],
         runId: "run-a",
       }),
@@ -185,7 +185,7 @@ describe("desktop e2e process cleanup", () => {
   });
 
   it("recovers markerless ChromeDriver and Electron ancestors from a marked renderer", () => {
-    const currentHome = "/tmp/zcode-e2e-run-a";
+    const currentHome = "/tmp/nibi-e2e-run-a";
     const processes = [
       { command: "node wdio.conf.ts", pid: 9, ppid: 1 },
       { command: "chromedriver --port=55089", pid: 10, ppid: 9 },
@@ -214,7 +214,7 @@ describe("desktop e2e process cleanup", () => {
   });
 
   it("keeps ChromeDriver out of the per-session reload exit barrier", () => {
-    const currentHome = "/tmp/zcode-e2e-run-a";
+    const currentHome = "/tmp/nibi-e2e-run-a";
     const processes = [
       { command: "node wdio.conf.ts", pid: 9, ppid: 1 },
       { command: "chromedriver --port=55089", pid: 10, ppid: 9 },
@@ -251,7 +251,7 @@ describe("desktop e2e process cleanup", () => {
       { command: "Electron Helper", pid: 13, ppid: 11 },
       { command: "node nibi-agent", pid: 14, ppid: 13 },
       {
-        command: "chrome_crashpad_handler --database=/tmp/zcode-e2e-run-a/.nibi/crash",
+        command: "chrome_crashpad_handler --database=/tmp/nibi-e2e-run-a/.nibi/crash",
         pid: 15,
         ppid: 1,
       },
@@ -272,7 +272,7 @@ describe("desktop e2e process cleanup", () => {
     const identity = {
       chromiumProfileRootDir,
       currentPid: 9,
-      homeDir: "/tmp/zcode-e2e-run-a",
+      homeDir: "/tmp/nibi-e2e-run-a",
       runId: "run-a",
     };
 
@@ -326,7 +326,7 @@ describe("desktop e2e process cleanup", () => {
       { command: "Nibi E2E", pid: 11, ppid: 10 },
       {
         command:
-          "Electron Helper --user-data-dir=/repo/.e2e-cache/run-a/chromium-profiles/0-51 --config=/tmp/zcode-e2e-run-a/.nibi/config.json",
+          "Electron Helper --user-data-dir=/repo/.e2e-cache/run-a/chromium-profiles/0-51 --config=/tmp/nibi-e2e-run-a/.nibi/config.json",
         pid: 12,
         ppid: 11,
       },
@@ -335,7 +335,7 @@ describe("desktop e2e process cleanup", () => {
     expect(
       collectE2EProcessTreePids(processes, {
         currentPid: 99,
-        homeDir: "/tmp/zcode-e2e-run-a",
+        homeDir: "/tmp/nibi-e2e-run-a",
         runId: "run-a",
       }),
     ).toEqual([12, 11, 10]);
@@ -352,7 +352,7 @@ describe("desktop e2e process cleanup", () => {
 
     expect(
       listE2EProcessTreePids(
-        { currentPid: 999, homeDir: "/tmp/zcode-e2e-run-a", runId: "run-a" },
+        { currentPid: 999, homeDir: "/tmp/nibi-e2e-run-a", runId: "run-a" },
         { platform: "linux", runCommand },
       ),
     ).toEqual([12, 11, 10]);
@@ -365,7 +365,7 @@ describe("desktop e2e process cleanup", () => {
         "10 1 Nibi E2E",
         "11 10 nibi-host-local-1",
         "12 11 nibi-cli",
-        "13 12 zcode-browser-use-mcp",
+        "13 12 nibi-browser-use-mcp",
         "20 1 unrelated",
       ].join("\n"),
     );
@@ -379,7 +379,7 @@ describe("desktop e2e process cleanup", () => {
       { command: "Nibi E2E", pid: 10, ppid: 1 },
       { command: "nibi-host-local-1", pid: 11, ppid: 10 },
       { command: "nibi-cli", pid: 12, ppid: 11 },
-      { command: "zcode-browser-use-mcp", pid: 13, ppid: 12 },
+      { command: "nibi-browser-use-mcp", pid: 13, ppid: 12 },
     ]);
   });
 
@@ -424,7 +424,7 @@ describe("desktop e2e process cleanup", () => {
     expect(
       collectE2EProcessTreePids(processes, {
         currentPid: 999,
-        homeDir: "/tmp/zcode-e2e-run-a",
+        homeDir: "/tmp/nibi-e2e-run-a",
         runId: "run-a",
       }),
     ).toEqual([]);
@@ -514,7 +514,7 @@ describe("desktop e2e process cleanup", () => {
     expect(
       collectE2EProcessTreePids(processes, {
         currentPid: 999,
-        homeDir: "/tmp/zcode-e2e-run-1",
+        homeDir: "/tmp/nibi-e2e-run-1",
         runId: "run-1",
       }),
     ).toEqual([20]);

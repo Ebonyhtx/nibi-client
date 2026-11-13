@@ -1,9 +1,9 @@
 // 复制自 rust/crates/async/src/lib.rs 与 rust/crates/kit/src/lib.rs（feat/rs 79b6691c55）。
 //! 基础层：任务监督、秘密值、脱敏、JavaScript 语义的文本工具（docs/specs/rust-cli/README.md §3）。
 //!
-//! - [`TaskScope`] / [`owned`] / [`catch_panic`]：任务归属与 panic 转错误（原 zcode-async）。
-//! - [`secret::RedactedString`]、[`redact::redact_secrets`]：秘密值与按值脱敏（原 zcode-kit）。
-//! - [`js`]：与 JavaScript 语义一致的字符串、`JSON.stringify`、`toISOString`（原 zcode-kit）。
+//! - [`TaskScope`] / [`owned`] / [`catch_panic`]：任务归属与 panic 转错误（原 nibi-async）。
+//! - [`secret::RedactedString`]、[`redact::redact_secrets`]：秘密值与按值脱敏（原 nibi-kit）。
+//! - [`js`]：与 JavaScript 语义一致的字符串、`JSON.stringify`、`toISOString`（原 nibi-kit）。
 //! - [`names`]：产品目录与文件的名字（`.nibi`、`AGENTS.md` 等），同一个名字只定义一处（F55）。
 //! - [`random`]：随机数的入口（`RandomState` 的种子，F58）。
 //! - [`glob`]、[`path`]、[`reminder`]、[`log_text`]：几个 crate 共用的小函数，只定义一处（F58，README §4.1）。

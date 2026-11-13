@@ -16,7 +16,7 @@ it("registers restricted Gen UI provenance with synchronous, escaped initial sta
         sandboxId: "sandbox",
         initId: 1,
         partition: "gen-ui",
-        shellUrl: "zcode-sandbox://fixture",
+        shellUrl: "nibi-sandbox://fixture",
       };
     },
   });
@@ -43,7 +43,7 @@ it("registers restricted Gen UI provenance with synchronous, escaped initial sta
     expect(input?.csp?.connectDomains).toEqual([]);
     expect(input?.csp?.frameDomains).toEqual([]);
     expect(input?.html).not.toContain("<script>evil()");
-    expect(input!.html.indexOf("zcode-gen-ui-initial-state")).toBeLessThan(
+    expect(input!.html.indexOf("nibi-gen-ui-initial-state")).toBeLessThan(
       input!.html.indexOf("__NIBI_GEN_UI_RUNTIME__"),
     );
     await expect(

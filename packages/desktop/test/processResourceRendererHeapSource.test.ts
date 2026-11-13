@@ -13,7 +13,7 @@ vi.mock("electron", () => ({
     getAppMetrics: vi.fn(() => []),
     getPath: vi.fn(() => "/tmp"),
     isPackaged: false,
-    getAppPath: vi.fn(() => "/tmp/zcode-app"),
+    getAppPath: vi.fn(() => "/tmp/nibi-app"),
   },
   BrowserWindow: { getAllWindows: vi.fn(() => []) },
   ipcMain: {

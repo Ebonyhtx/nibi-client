@@ -181,7 +181,7 @@ describe("图片下载与添加文件引用", () => {
 let menuProbe = 0;
 async function openImageMenu() {
   await browser.waitUntil(
-    () => browser.execute(() => !document.querySelector("#zcode-toast-host")?.textContent?.trim()),
+    () => browser.execute(() => !document.querySelector("#nibi-toast-host")?.textContent?.trim()),
     { timeout: 8000, timeoutMsg: "上一条操作提示没有退场" },
   );
   await browser.waitUntil(() =>

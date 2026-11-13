@@ -6,7 +6,7 @@ import { inspectNibiSkill, listNibiSkills } from "../src/skills.js";
 
 describe("inspectNibiSkill", () => {
   it("loads one discovered skill through the configured skill adapter", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-bootstrap-skill-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-bootstrap-skill-"));
     const skillDir = join(dir, ".nibi", "skills", "demo");
 
     try {
@@ -43,7 +43,7 @@ describe("inspectNibiSkill", () => {
   });
 
   it("returns a stable missing-skill error", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-bootstrap-skill-missing-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-bootstrap-skill-missing-"));
 
     try {
       await expect(
@@ -62,7 +62,7 @@ describe("inspectNibiSkill", () => {
   it("discovers the built-in dynamic-workflows skill as a bundled system skill, outside any plugin", async () => {
     // 2026-09-19 事故：技能住在可卸载的 nibi-guide 插件里，插件一停用技能就没了。现在它来自
     // packages/bundled-skills（bootstrap/src/app/bundled-skills.ts），与插件启停无关。
-    const dir = await mkdtemp(join(tmpdir(), "zcode-bootstrap-bundled-skill-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-bootstrap-bundled-skill-"));
 
     try {
       const outcome = await listNibiSkills({
@@ -84,7 +84,7 @@ describe("inspectNibiSkill", () => {
   });
 
   it("discovers bundled content skills through default-enabled official plugins", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-bootstrap-document-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-bootstrap-document-skills-"));
 
     try {
       const env = { NIBI_STORAGE_DIR: join(dir, "storage") };

@@ -54,7 +54,7 @@ describe(`${CASE_MARKER}: 远端安装真实阶段`, () => {
     this.timeout(10 * 60_000);
     // 只允许 harness 的独立目标；在本 case 内真实首装，再制造同版本新 SHA 验证更新。
     expect(process.env.NIBI_E2E_SSH_CONTAINER).toMatch(
-      /^zcode-(?:progress-e2e-|r3-server-[a-f0-9]{16}-)/u,
+      /^nibi-(?:progress-e2e-|r3-server-[a-f0-9]{16}-)/u,
     );
     const config = readSingleSSHWorkspaceRuntimeConfig(CASE_MARKER);
     // 隔离 HOME 首次进入职业引导；先退出引导，再使用已有 workspace 准备链。
@@ -89,7 +89,7 @@ describe(`${CASE_MARKER}: 远端安装真实阶段`, () => {
       state.__duplicateUpdateToasts = [];
       const capture = () => {
         // 从连接发起前持续观察，捕获 needs-upgrade 到 updating 之间短暂出现的重复按钮。
-        const toastHost = document.querySelector<HTMLElement>("#zcode-toast-host");
+        const toastHost = document.querySelector<HTMLElement>("#nibi-toast-host");
         if (
           [...(toastHost?.querySelectorAll("button") ?? [])].some((button) =>
             /^(立即更新|Update now)$/iu.test(button.textContent?.trim() ?? ""),

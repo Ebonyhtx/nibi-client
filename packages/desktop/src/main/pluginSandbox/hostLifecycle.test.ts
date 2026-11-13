@@ -22,7 +22,7 @@ describe("MCP App native lifecycle", () => {
       assets: { rendererDir: "/fixture", aliasDir: "/fixture" },
       readAsset: async () => new TextEncoder().encode("fixture"),
     });
-    const plugin = `zcode-sandbox://plugin-${input.instance.appIdentity}/instance/${handle.sandboxId}/`;
+    const plugin = `nibi-sandbox://plugin-${input.instance.appIdentity}/instance/${handle.sandboxId}/`;
     for (const url of [
       handle.shellUrl,
       `${handle.shellUrl}assets/shell.js`,
@@ -81,7 +81,7 @@ describe("MCP App native lifecycle", () => {
     const pending = gate.request({
       permission: "media",
       mediaTypes: ["video"],
-      requestingUrl: `zcode-sandbox://plugin-${input.instance.appIdentity}/instance/${a.sandboxId}/index.html`,
+      requestingUrl: `nibi-sandbox://plugin-${input.instance.appIdentity}/instance/${a.sandboxId}/index.html`,
       guestUrl: a.shellUrl,
       isCurrent: () => true,
     });
@@ -96,7 +96,7 @@ describe("MCP App native lifecycle", () => {
       registry,
       assets: { rendererDir: "/unused", aliasDir: "/unused" },
     });
-    const good = `zcode-sandbox://plugin-${input.instance.appIdentity}/instance/${a.sandboxId}/index.html`;
+    const good = `nibi-sandbox://plugin-${input.instance.appIdentity}/instance/${a.sandboxId}/index.html`;
     expect((await read(new Request(good))).status).toBe(200);
     expect(
       (await read(new Request(good.replace(input.instance.appIdentity, "b".repeat(64))))).status,
@@ -117,7 +117,7 @@ describe("MCP App native lifecycle", () => {
         return system.promise;
       },
     });
-    const origin = `zcode-sandbox://plugin-${input.instance.appIdentity}`;
+    const origin = `nibi-sandbox://plugin-${input.instance.appIdentity}`;
     const pending = gate.request({
       permission: "media",
       mediaTypes: ["video"],

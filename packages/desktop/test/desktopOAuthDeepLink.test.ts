@@ -414,7 +414,7 @@ describe("desktopOAuthDeepLink OAuth routing", () => {
 });
 
 function createTempWorkspace(): string {
-  const dir = mkdtempSync(join(tmpdir(), "zcode-workspace-open-"));
+  const dir = mkdtempSync(join(tmpdir(), "nibi-workspace-open-"));
   tempDirs.push(dir);
   return dir;
 }

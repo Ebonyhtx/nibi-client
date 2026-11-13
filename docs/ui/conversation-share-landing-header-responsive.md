@@ -25,8 +25,8 @@
 
 Header 右侧保留一个图标主题按钮，位于「去 ZCode 继续」之前；只读分享没有继续按钮时仍显示主题按钮。按钮根据当前解析后的主题显示太阳或月亮图标，并通过 `aria-label` 和 `title` 说明下一步操作。
 
-- 分享入口优先读取 `zcode-theme`，没有已保存偏好时默认 `zai-light`；`system` 继续按系统偏好解析。
-- 点击主题按钮将当前解析主题切换为显式的 `zai-light` 或 `zai-dark`，同步根节点主题 class、浏览器主题元信息和 `zcode-theme` 持久化值。
+- 分享入口优先读取 `nibi-theme`，没有已保存偏好时默认 `zai-light`；`system` 继续按系统偏好解析。
+- 点击主题按钮将当前解析主题切换为显式的 `zai-light` 或 `zai-dark`，同步根节点主题 class、浏览器主题元信息和 `nibi-theme` 持久化值。
 - 继续按钮只使用 `bg-primary text-primary-foreground`：浅色主题为黑底白字，深色主题为白底黑字。
 - 主题按钮与继续按钮共同参与右侧几何测量，不能挤压标题或在窄屏下被隐藏。
 

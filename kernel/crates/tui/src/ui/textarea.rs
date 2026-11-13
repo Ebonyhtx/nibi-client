@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/textarea.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/textarea.rs（feat/rs 79b6691c55）。
 //! 输入框的编辑区（docs/specs/rust-tui.md §8.5）：一个字符串加光标（字节下标，总在字符边界上）。
 //! 支持 Emacs 风格的移动与删除、kill ring（ctrl+y 粘回、alt+y 轮换）、撤销、按宽度折行后的
 //! 上下移动，以及鼠标选区（§8.7）：输入与粘贴替换选区，删除键删掉选区，移动键取消选区。

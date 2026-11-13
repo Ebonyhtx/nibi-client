@@ -11,7 +11,7 @@ afterEach(async () => {
 
 describe("debug API", () => {
   it("returns trace details through Hono", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-debug-api-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-debug-api-"));
     roots.push(root);
     const eventPath = join(root, "events.jsonl");
     await writeFile(

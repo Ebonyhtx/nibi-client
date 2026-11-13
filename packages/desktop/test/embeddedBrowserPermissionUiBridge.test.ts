@@ -259,7 +259,7 @@ describe("createEmbeddedBrowserSitePermissionStore", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "zcode-site-permissions-"));
+    dir = await mkdtemp(join(tmpdir(), "nibi-site-permissions-"));
   });
 
   afterEach(async () => {

@@ -108,7 +108,7 @@ function main() {
     target,
   ]);
 
-  const e2eRoot = mkdtempSync(join(tmpdir(), "zcode-sea-runtime-tools-e2e-"));
+  const e2eRoot = mkdtempSync(join(tmpdir(), "nibi-sea-runtime-tools-e2e-"));
   try {
     const isolatedBinary = join(e2eRoot, basename(outputBinaryName(target)));
     copyFileSync(join(cliPackageRoot, "dist", outputBinaryName(target)), isolatedBinary);

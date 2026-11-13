@@ -19,7 +19,7 @@ const desktopAppMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("./e2e/helpers/desktop-app.js", () => ({
-  DEFAULT_WORKSPACE: "/tmp/zcode-e2e-workspace",
+  DEFAULT_WORKSPACE: "/tmp/nibi-e2e-workspace",
   ...desktopAppMocks,
 }));
 
@@ -57,7 +57,7 @@ describe("Upstream E2E 工具栏偏好种子", () => {
 
     await ensureUpstreamProviderForE2E({ skipToolbarSelection: true });
 
-    expect(storage.getItem("nibi-model-selection-recent-v1:/tmp/zcode-e2e-workspace")).toBe(
+    expect(storage.getItem("nibi-model-selection-recent-v1:/tmp/nibi-e2e-workspace")).toBe(
       JSON.stringify({
         providerId: UPSTREAM_PROVIDER_ID,
         modelId: UPSTREAM_MODEL,

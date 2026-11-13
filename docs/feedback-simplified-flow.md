@@ -83,7 +83,7 @@
 - `type`：默认 `bug`。后续由后端 AI 基于原文、截图和日志重新分类。
 - `severity`：默认 `P2-中`。
 - `module`：默认 `其它`。后续由后端 AI/规则重新归类。
-- `framework`：固定 `zcode-agent`。
+- `framework`：固定 `nibi-agent`。
 - `source`：保持 `desktop-app`。
 - `contact`：用户填写后提交；空值不传。
 - `locale`：当前界面语言。

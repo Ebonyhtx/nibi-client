@@ -4,14 +4,14 @@
 
 设置页在“索引库”之后新增“浏览器”分区，集中承载 Browser Use 的可用性和本机浏览器数据管理：
 
-1. “内置浏览器控制”直接读写官方插件 `browser-use@zcode-plugins-official` 的启用状态，不新增第二份开关。
+1. “内置浏览器控制”直接读写官方插件 `browser-use@nibi-plugins-official` 的启用状态，不新增第二份开关。
 2. “导入 Chrome 登录状态”与“开启内置浏览器控制”同属“浏览器控制”分组的同一张卡片，作为开启控制后的第一步配套动作；“浏览器数据”分组只保留清除类的破坏性操作。文案以用户收益为主语（AI 直接打开已登录网站），不以内部数据结构（Cookie / LocalStorage / Profile）作为面向用户的说明主体。
 3. macOS/Linux 的“导入 Chrome 登录状态”先确认本机存在可执行的 Chrome/Chromium，再发现 Profile；未安装时立即返回 `chrome_executable_not_found` 并显示“Chrome 未找到”，不得访问 Profile 或修改内置浏览器数据。可执行文件发现依次覆盖显式环境变量、运行中进程、系统注册位置（macOS Spotlight 应用注册、Linux XDG desktop entry/PATH）和标准目录，从而兼容非默认安装目录；不做全盘扫描。确认安装后，按 `Local State.profile.last_used` → `Default` → 唯一可用 Profile 的顺序选择源，一次点击完成 Cookie 与 LocalStorage 的一次性导入，不提供 Profile 选择器和持续同步，也不读取密码库。Windows 桌面端暂时不渲染导入行，但继续保留清缓存和清全部数据；既有 App-Bound `v20` 原生导入实现、手动构建脚本及测试保留，待入口恢复后仍遵循显式 UAC、一次性 `LocalSystem` 服务和 fail-closed 边界。默认 Windows 开发、CI 和发布构建不得编译、签名或打包该 helper；只有显式设置 `NIBI_ENABLE_WINDOWS_BROWSER_IMPORT=1` 时才恢复 helper 资产链路，该构建开关本身不恢复 UI 入口。macOS 请求 Chrome Safe Storage 钥匙串访问时，用户明确拒绝或取消授权必须终止整次导入，不写入 Cookie，也不再启动 LocalStorage 导入，并显示未授权提示。Linux `v11` Cookie 由同品牌 Chrome/Chromium helper 通过当前桌面会话的 Libsecret/KWallet 解密；ZCode 不直接读取密钥环。导入不主动刷新已打开的页面，用户手动刷新或新开 tab 后读取新数据；Chrome 中可恢复的 session Cookie 在内置持久化分区中保持可恢复，避免 ZCode 重启后立即丢失登录态。
 4. “清除浏览器缓存”清理内置浏览器分区的 HTTP cache、Cache Storage、Service Worker 和 shader cache，保留 Cookie、LocalStorage 与 IndexedDB。
 5. “清除全部浏览器数据”作为次级危险操作，二次确认后清理内置浏览器分区的全部站点数据。
 6. Browser 数据操作按钮与设置页同层级的 Terminal font 操作控件统一使用 `lg` 尺寸：高度 `32px`、`rounded-lg`；不同操作仍通过 outline/destructive 语义区分，不以尺寸制造层级差异。
 
-内置浏览器分区继续使用 `persist:zcode-embedded-browser`。数据管理属于桌面宿主能力；Web/手机设置页保留相同信息结构，但操作项禁用并提示需在桌面端完成，不在 relay、desktop main 之外创建新的 Browser Use runtime 或业务状态。
+内置浏览器分区继续使用 `persist:nibi-embedded-browser`。数据管理属于桌面宿主能力；Web/手机设置页保留相同信息结构，但操作项禁用并提示需在桌面端完成，不在 relay、desktop main 之外创建新的 Browser Use runtime 或业务状态。
 
 ## 澄清记录
 
@@ -43,7 +43,7 @@
 
 - Plugin / skill / MCP：开关状态唯一来源是官方插件。
 - Desktop lifecycle / native capability：Chrome Profile 发现、系统凭据访问和 Electron session 清理只在桌面 main 执行。
-- Persistence / auth：Chrome Cookie、LocalStorage 和 `persist:zcode-embedded-browser` 是不同持久化源；不得记录 Cookie/LocalStorage 值或解密材料。
+- Persistence / auth：Chrome Cookie、LocalStorage 和 `persist:nibi-embedded-browser` 是不同持久化源；不得记录 Cookie/LocalStorage 值或解密材料。
 - Theme / locale / responsive：设置页复用现有 Settings card、Switch、Button、Dialog 和 i18n，兼容窄屏图标侧栏。
 
 高风险交叉：
@@ -66,7 +66,7 @@
 | 概念             | 状态所有者                         | 当前事实/落点                                                                                               | 本功能行为                                  |
 | ---------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
 | Browser Use 开关 | ZCode plugin config                | `docs/browser-use/browser-use-plugin-runtime-boundary.md`、`packages/ui/src/store/pluginManagementStore.ts` | 调用 `plugins/setEnabled`，复用现有能力刷新 |
-| 内置浏览器数据   | Electron persistent session        | `packages/ui/src/browser-use/UnifiedBrowserView.tsx` 的 `persist:zcode-embedded-browser`                    | main 通过 `session.fromPartition` 导入/清理 |
+| 内置浏览器数据   | Electron persistent session        | `packages/ui/src/browser-use/UnifiedBrowserView.tsx` 的 `persist:nibi-embedded-browser`                    | main 通过 `session.fromPartition` 导入/清理 |
 | Chrome 源数据    | 本机 Chrome/Chromium Profile       | 标准或可安全发现的 User Data 目录；`Local State` 持有最近使用 Profile                                       | 自动选择源；只读快照；不修改 Chrome 文件    |
 | 设置导航         | renderer UI                        | `packages/ui/src/settings/settingsPageConfig.ts`、`packages/ui/src/lib/settingsNavigation.ts`               | Browser 排在 Indexing 后                    |
 | 跨端能力         | `IPlatformService`                 | `packages/shared/src/platform.ts`                                                                           | Desktop 实现；Web fallback 返回 unsupported |

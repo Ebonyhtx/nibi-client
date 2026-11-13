@@ -31,7 +31,7 @@ import {
 const temporaryDirectories: string[] = [];
 
 function createTemporaryDirectory(): string {
-  const directory = mkdtempSync(join(tmpdir(), "zcode-native-search-download-test-"));
+  const directory = mkdtempSync(join(tmpdir(), "nibi-native-search-download-test-"));
   temporaryDirectories.push(directory);
   return directory;
 }

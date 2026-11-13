@@ -176,7 +176,7 @@ so.
 | **run** | one execution of one script under one run id | `dwfrun-<uuid>`; noun 实例 (工作流实例, N 个实例), verbs stay 运行 (停止运行, 恢复运行) |
 | **phase** | a named stage the script declares with `phase("…")`; a station on the timeline | 阶段 |
 | **artifact** | on the facade and every user surface: what the script publishes for the user to keep (`artifact.file`, `.markdown`, or a `chart`/`table`/`metrics`/`board` fed by tagged `report` items). At most one is the **primary**, the deliverable the surfaces lead with (`primary: true`; a lone artifact counts). In engine identifiers only: a site's typed output or the script's return value | 产物; the primary is never labelled in the UI |
-| **saved workflow** | a `<name>.dwf.ts` file: a `/* zcode-workflow */` metadata block, then the script | 已保存的工作流 |
+| **saved workflow** | a `<name>.dwf.ts` file: a `/* nibi-workflow */` metadata block, then the script | 已保存的工作流 |
 | **scope** | where a saved workflow lives: `project` (`<cwd>/.nibi/workflows/`) or `global` (`~/.nibi/workflows/`); a project workflow hides a global one of the same name | 「项目」 / 「全局」 |
 | **world read** | a journaled call into the workspace: `files.*`, `git.*`, `world.run` | `world-read#N` |
 | **journal** | the durable record of a run: run, subagents, nodes, events | `dwf_run`, `dwf_actor`, `dwf_node`, `dwf_event` |

@@ -2,7 +2,7 @@
 
 ## 背景
 
-桌面 App 退出会进入 `before-quit`，main process 等待各 workspace window 的 Local Host 以及仍存活的 Remote Host 完成资源回收。每个 Host 再等待其按 workspaceKey 托管的 ZCode CLI 进程树退出，避免 `zcode-cli` / `app-server` / MCP 子进程在 Windows、macOS、Linux 上残留。
+桌面 App 退出会进入 `before-quit`，main process 等待各 workspace window 的 Local Host 以及仍存活的 Remote Host 完成资源回收。每个 Host 再等待其按 workspaceKey 托管的 ZCode CLI 进程树退出，避免 `nibi-cli` / `app-server` / MCP 子进程在 Windows、macOS、Linux 上残留。
 
 2026-06-12 的运行日志显示，普通关闭从 `waiting for host process cleanup` 到 `host process cleanup completed` 约 2.4s 到 2.7s。静态代码确认主要原因是 `terminateProcessTreeAndWait()` 固定等待 `DEFAULT_FORCE_AFTER_MS + DEFAULT_WAIT_AFTER_FORCE_MS`，即使 agent 进程已经提前退出也不会立即返回。
 

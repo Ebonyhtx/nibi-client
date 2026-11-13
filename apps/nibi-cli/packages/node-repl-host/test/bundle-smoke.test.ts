@@ -62,7 +62,7 @@ describe("node_repl host and browser-use runtime bundles", () => {
   let browserClientOutfile = "";
 
   beforeAll(async () => {
-    outputDirectory = await mkdtemp(join(tmpdir(), "zcode-node-repl-bundle-"));
+    outputDirectory = await mkdtemp(join(tmpdir(), "nibi-node-repl-bundle-"));
     // 宿主产物由本包构建；browser-client 仍由 browser-use 构建。两个 bundle 都是 ESM，
     // 都可能被 CJS 依赖在加载期炸掉，所以一起 smoke。
     // 临时目录不在 type=module package 下；用 .mjs 保证直接 spawn 与正式 .js 产物语义一致。

@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/base/src/store/process.rs（07ab266d4b）。
+// 复制自 apps/nibi-host/crates/base/src/store/process.rs（07ab266d4b）。
 //! 进程存活判断，与 Node `process.kill(pid, 0)` 语义相同：能发信号或无权限都算存活。
 
 #[cfg(unix)]

@@ -15,7 +15,7 @@ describe("MCP config protocolVersion", () => {
     it.each([undefined, "auto", "legacy", "2026-07-28"])(
       "preserves protocolVersion=%s through file loading",
       async (protocolVersion) => {
-        const root = await mkdtemp(join(tmpdir(), "zcode-mcp-protocol-config-"));
+        const root = await mkdtemp(join(tmpdir(), "nibi-mcp-protocol-config-"));
         const path = join(root, "config.json");
         const server = {
           ...transport,

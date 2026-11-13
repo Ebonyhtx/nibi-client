@@ -158,7 +158,7 @@ export function isAmendWorkflowOwnedPredecessor(predecessor: unknown): boolean {
 export const AmendWorkflowInputSchema = AmendWorkflowModelInputSchema.extend({
   predecessor: AmendWorkflowPredecessorSchema.optional(),
   /**
-   * 正文行 → 文件行的偏移，`path` 文件带 `/* zcode-workflow` 块时才非零。与 `predecessor`
+   * 正文行 → 文件行的偏移，`path` 文件带 `/* nibi-workflow` 块时才非零。与 `predecessor`
    * 同一个姿态：解析结果，不是可填的参数，模型的 JSON schema 不列它。
    */
   script_line_offset: z.number().int().nonnegative().optional(),

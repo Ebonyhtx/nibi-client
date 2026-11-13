@@ -212,7 +212,7 @@ function readPresentation(row: TaskIndexRow): NibiTaskMeta {
 
   return {
     taskId: row.task_id,
-    traceId: `zcode-${row.task_id}`,
+    traceId: `nibi-${row.task_id}`,
     title: "",
     titleOverridden: row.title_overridden === 1,
     workspacePath: row.workspace_path,
@@ -344,7 +344,7 @@ function migrateLegacyTaskMetaJson(
     traceId:
       typeof parsed.traceId === "string" && parsed.traceId
         ? parsed.traceId
-        : `zcode-${fallback.taskId}`,
+        : `nibi-${fallback.taskId}`,
     title: fallback.title,
     workspacePath: fallback.workspacePath,
     workspaceIdentity: fallback.workspaceIdentity,

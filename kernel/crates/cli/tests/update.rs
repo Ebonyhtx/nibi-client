@@ -186,7 +186,7 @@ fn the_update_command_has_commander_help_and_errors() {
 fn with_a_handoff_the_update_command_writes_latest_and_runs_nothing() {
     let home = tempfile::tempdir().unwrap();
     fake_managers(&home.path().join("bin"));
-    let handoff = home.path().join("zcode-update-handoff.json");
+    let handoff = home.path().join("nibi-update-handoff.json");
     let handoff_text = handoff.display().to_string();
     let mut vars = NPM.to_vec();
     vars.push(("NIBI_MANAGED_UPDATE_HANDOFF", &handoff_text));

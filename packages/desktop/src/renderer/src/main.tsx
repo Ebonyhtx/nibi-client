@@ -245,7 +245,7 @@ function StartupReadyNotifier() {
       Date.now();
     // HTML 启动壳的弹出动画结束时，React 首屏可能还没 commit，直接移除壳会露出空白。
     // 这里在 React commit 后通知 index.html，再由启动壳统一判断动画和 React ready 两个条件后退场。
-    window.dispatchEvent(new Event("zcode-react-startup-ready"));
+    window.dispatchEvent(new Event("nibi-react-startup-ready"));
   }, []);
 
   return null;

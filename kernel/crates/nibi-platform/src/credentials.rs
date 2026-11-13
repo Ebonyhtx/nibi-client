@@ -8,7 +8,7 @@
 //!
 //! - AES-256-GCM，IV 12B，tag 16B，base64url 无填充；
 //! - v2 密钥是每安装随机 32B，落在 `.nibi/machine/credential-v2.key`（base64url 文本）；
-//! - `enc:v1:` 仍可读（旧 fallback 密钥 = sha256(`zcode-credential-fallback:<platform>:<home>:<username>`)）；
+//! - `enc:v1:` 仍可读（旧 fallback 密钥 = sha256(`nibi-credential-fallback:<platform>:<home>:<username>`)）；
 //! - 显式 `NIBI_CREDENTIAL_SECRET` 时两代都用 sha256(secret)，且不生成/读取钥匙文件；
 //! - v2 解密 fail-closed：钥匙缺失/损坏/只拷走 credentials.json 都失败，绝不静默重铸；
 //! - 写入侧 `wx` 独占创建，并发进程只有一个写成功，其余读回同一把钥匙。
@@ -224,11 +224,11 @@ pub fn is_legacy_encrypted_value(value: &str) -> bool {
 }
 
 /// Node `resolveFallbackCredentialSecret()` 的逐字复刻：
-/// `zcode-credential-fallback:<platform>:<homedir>:<username>`。
+/// `nibi-credential-fallback:<platform>:<homedir>:<username>`。
 /// `platform` 用 Node 的取值（`win32`/`darwin`/`linux`）。
 pub fn fallback_v1_secret(node_platform: &str, home: &Path, username: &str) -> String {
     format!(
-        "zcode-credential-fallback:{node_platform}:{}:{username}",
+        "nibi-credential-fallback:{node_platform}:{}:{username}",
         home.display()
     )
 }
@@ -569,7 +569,7 @@ mod tests {
         let secret = fallback_v1_secret("win32", Path::new("C:/Users/ebony"), "ebony");
         assert_eq!(
             secret,
-            "zcode-credential-fallback:win32:C:/Users/ebony:ebony"
+            "nibi-credential-fallback:win32:C:/Users/ebony:ebony"
         );
     }
 }

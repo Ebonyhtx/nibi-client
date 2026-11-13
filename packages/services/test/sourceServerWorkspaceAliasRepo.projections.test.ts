@@ -58,7 +58,7 @@ async function restartFromPreProjectionLegacyDb(wrapperKey: string): Promise<voi
 }
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "zcode-alias-projections-"));
+  root = await mkdtemp(join(tmpdir(), "nibi-alias-projections-"));
   taskDbPath = join(root, "tasks-index.sqlite");
   index = new TaskIndexRepo(undefined, undefined, taskDbPath);
   await index.ensureReady();

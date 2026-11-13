@@ -6,7 +6,7 @@ import { createNodeCustomCommandAdapter } from "../src/commands/index.js";
 
 describe("NodeCustomCommandAdapter", () => {
   it("discovers project custom commands with frontmatter", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-commands-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-commands-"));
     const commandDir = join(dir, ".nibi", "commands", "frontend");
 
     try {
@@ -39,7 +39,7 @@ describe("NodeCustomCommandAdapter", () => {
   });
 
   it("filters out commands disabled via config (enable:false path)", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-commands-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-commands-"));
     const commandDir = join(dir, ".nibi", "commands");
     const disabledPath = join(commandDir, "disabled.md");
 
@@ -71,7 +71,7 @@ describe("NodeCustomCommandAdapter", () => {
   });
 
   it("loads custom command body without frontmatter", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-commands-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-commands-"));
     const commandDir = join(dir, ".nibi", "commands");
 
     try {
@@ -93,7 +93,7 @@ describe("NodeCustomCommandAdapter", () => {
   });
 
   it("discovers command names with underscores", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-commands-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-commands-"));
     const commandDir = join(dir, ".nibi", "commands");
 
     try {
@@ -111,7 +111,7 @@ describe("NodeCustomCommandAdapter", () => {
   });
 
   it("keeps the higher-priority duplicate command", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-commands-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-commands-"));
     const projectDir = join(dir, ".nibi", "commands");
     const userDir = join(dir, "home", ".nibi", "commands");
 
@@ -135,7 +135,7 @@ describe("NodeCustomCommandAdapter", () => {
   });
 
   it("discovers commands under .agents/commands", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-commands-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-commands-"));
     const commandDir = join(dir, ".agents", "commands");
 
     try {
@@ -153,7 +153,7 @@ describe("NodeCustomCommandAdapter", () => {
   });
 
   it("merges .zcode/commands and .agents/commands with .zcode winning duplicates", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-commands-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-commands-"));
     const nibiDir = join(dir, ".nibi", "commands");
     const agentsDir = join(dir, ".agents", "commands");
 
@@ -182,7 +182,7 @@ describe("NodeCustomCommandAdapter", () => {
   it("discovers commands imported as file symlinks", async () => {
     // 回归测试：外部 agent 导入默认 importMode="symlink"，命令文件是指向源文件的软链。
     // 旧逻辑只检查 entry.isFile() 会漏掉 symlink（readdir 报告为 isSymbolicLink()）。
-    const dir = await mkdtemp(join(tmpdir(), "zcode-commands-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-commands-"));
     const sourceDir = join(dir, "source");
     const commandDir = join(dir, ".nibi", "commands");
 
@@ -210,7 +210,7 @@ describe("NodeCustomCommandAdapter", () => {
   });
 
   it("discovers commands inside a symlinked directory", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-commands-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-commands-"));
     const sourceDir = join(dir, "source-commands");
     const commandRoot = join(dir, ".nibi", "commands");
 
@@ -231,7 +231,7 @@ describe("NodeCustomCommandAdapter", () => {
   });
 
   it("skips dangling command symlinks without failing the scan", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-commands-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-commands-"));
     const commandDir = join(dir, ".nibi", "commands");
 
     try {
@@ -257,7 +257,7 @@ async function writeCommand(dir: string, name: string, description: string): Pro
 }
 
 it("附加目录命令使用目录限定名并保留原 cwd 命令", async () => {
-  const root = await mkdtemp(join(tmpdir(), "zcode-additional-commands-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-additional-commands-"));
   try {
     const main = join(root, "frontend"),
       extra = join(root, "backend");

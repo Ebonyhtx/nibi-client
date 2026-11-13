@@ -98,7 +98,7 @@ fn the_path_is_a_single_quoted_literal() {
 async fn the_edited_file_comes_back_and_the_temp_file_is_removed() {
     let root = tempfile::tempdir().unwrap();
     // 私有目录还不存在：编辑前按 0700 建好（F58）。
-    let dir = root.path().join("zcode-private");
+    let dir = root.path().join("nibi-private");
     let script = "printf 'edited\\n' >";
     let editor = ProcessEditor {
         visual: Some(script.to_owned()),

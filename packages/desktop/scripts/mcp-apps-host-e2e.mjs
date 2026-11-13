@@ -10,7 +10,7 @@ import { DatabaseSync } from "node:sqlite";
 const require = createRequire(import.meta.url);
 const desktop = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const root = resolve(desktop, "../..");
-const output = await mkdtemp(join(tmpdir(), "zcode-mcp-host-e2e-"));
+const output = await mkdtemp(join(tmpdir(), "nibi-mcp-host-e2e-"));
 if (process.env.NIBI_MCP_E2E_DEBUG) console.error(`[e2e] output: ${output}`);
 const fixture = join(desktop, "scripts/mcp-apps-host-fixture");
 // `--rust`：宿主夹具改为拉起 Rust app-server（交互走 v4 pendingInteractions），
@@ -23,7 +23,7 @@ const showcaseServer = process.env.NIBI_SHOWCASE_SERVER;
 if (process.argv.includes("--showcase-only")) {
   if (!showcaseServer)
     throw new Error(
-      "Set NIBI_SHOWCASE_SERVER to the built Showcase dist/server.mjs from zcode-plugins",
+      "Set NIBI_SHOWCASE_SERVER to the built Showcase dist/server.mjs from nibi-plugins",
     );
   await access(showcaseServer);
 }

@@ -16,7 +16,7 @@ function makeServices(id: string): IServiceAccessor {
     terminalService: { id, service: "terminal" },
     promptAttachmentTransferService: { id, service: "prompt-attachment-transfer" },
     nibiAgentService: { id, service: "nibi-agent" },
-    nibiTaskService: { id, service: "zcode-task" },
+    nibiTaskService: { id, service: "nibi-task" },
     nibiSessionService: { id, service: "nibi-session" },
     conversationShareService: { id, service: "conversation-share" },
     fileWatcherService: { id, service: "fileWatcher" },

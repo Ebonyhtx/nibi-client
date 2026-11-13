@@ -36,7 +36,7 @@ export function createLocalTtftExporter(options: {
         : undefined,
     );
   const resource = resourceFromAttributes({
-    "service.name": "zcode-local-ttft",
+    "service.name": "nibi-local-ttft",
     "service.version": options.version,
     "os.type": process.platform,
     "zcode.telemetry.schema_version": 1,

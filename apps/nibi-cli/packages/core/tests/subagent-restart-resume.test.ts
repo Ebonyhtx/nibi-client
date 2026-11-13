@@ -61,7 +61,7 @@ interface RestartHarness {
 }
 
 async function createHarness(name: string): Promise<RestartHarness> {
-  const dir = await mkdtemp(join(tmpdir(), `zcode-subagent-restart-${name}-`));
+  const dir = await mkdtemp(join(tmpdir(), `nibi-subagent-restart-${name}-`));
   tempDirs.push(dir);
   const store = await createSqliteSessionStore({ dbPath: join(dir, "session.sqlite") });
   openStores.push(store);

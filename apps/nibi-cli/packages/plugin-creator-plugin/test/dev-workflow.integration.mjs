@@ -11,7 +11,7 @@ import { upsertDevMarketplace } from "../skills/plugin-creator/scripts/upsert-de
 if (!process.argv[2])
   throw new Error("Usage: node dev-workflow.integration.mjs <built-nibi-cli-js>");
 const cli = resolve(process.argv[2]);
-const root = await mkdtemp(join(tmpdir(), "zcode-dev-workflow-"));
+const root = await mkdtemp(join(tmpdir(), "nibi-dev-workflow-"));
 const execute = promisify(execFile);
 const env = { ...process.env, NIBI_STORAGE_DIR: join(root, "storage") };
 async function command(...args) {

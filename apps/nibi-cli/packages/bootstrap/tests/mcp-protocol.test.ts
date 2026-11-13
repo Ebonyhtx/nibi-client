@@ -138,7 +138,7 @@ describe("mcp protocol contracts", () => {
 // 会命中连接池里的旧 entry 并回放陈旧快照（见 adapters/src/mcp/pool.ts revalidateEntry）。
 describe("mcp/list connection revalidation", () => {
   it("asks the pool to revalidate on the default connect mode and skips it for status mode", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-mcp-list-revalidate-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-mcp-list-revalidate-"));
     const previousStorageDir = process.env.NIBI_STORAGE_DIR;
     process.env.NIBI_STORAGE_DIR = join(root, "cli");
     const connectConfiguredServers = vi.fn(async () => ({ statuses: {}, tools: [] }));

@@ -5,7 +5,7 @@
 ## 行为
 
 - 仅本地开发运行时显示菜单项并生效，测试/正式安装包不显示。
-- 开关状态写入 `~/.nibi/v2/dev/zcode-stdio-tap.json`。
+- 开关状态写入 `~/.nibi/v2/dev/nibi-stdio-tap.json`。
 - 抓包文件写入 `~/.nibi/v2/dev/stdio-traffic/<workspaceHash>/`。
 - `latest.txt` 指向最近一次 proxy 生成的 `.ndjson` 文件。
 - 已运行的 agent 不会被重启；开关只影响后续新启动的 agent 进程。

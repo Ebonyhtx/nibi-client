@@ -22,7 +22,7 @@ function resolveElectronExecutable() {
 const electronExecutable = resolveElectronExecutable();
 
 if (!existsSync(electronExecutable)) {
-  console.error(`[zcode-debug] Electron executable not found: ${electronExecutable}`);
+  console.error(`[nibi-debug] Electron executable not found: ${electronExecutable}`);
   process.exit(1);
 }
 

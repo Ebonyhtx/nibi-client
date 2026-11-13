@@ -15,7 +15,7 @@ const originalHome = process.env.HOME;
 const tempRoots: string[] = [];
 
 function makeTempRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "zcode-commands-"));
+  const root = mkdtempSync(join(tmpdir(), "nibi-commands-"));
   tempRoots.push(root);
   return root;
 }

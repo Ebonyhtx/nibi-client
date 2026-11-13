@@ -32,7 +32,7 @@ afterEach(async () => {
 });
 
 async function createCredentialsPath(): Promise<string> {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-lease-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-lease-"));
   temporaryDirectories.push(directory);
   return join(directory, "credentials.json");
 }

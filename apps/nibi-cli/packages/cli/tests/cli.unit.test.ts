@@ -184,7 +184,7 @@ test("prepares a sanitized CLI runtime env with Nibi-owned runtime keys", () => 
     NODE_ENV: "development",
     HTTP_PROXY: "http://ambient-proxy:8080",
     NODE_EXTRA_CA_CERTS: "/tmp/ambient-ca.pem",
-    NIBI_HTTP_PROXY: "http://zcode-proxy:8080",
+    NIBI_HTTP_PROXY: "http://nibi-proxy:8080",
     no_proxy: ".example.test",
     npm_config_proxy: "http://npm-proxy:8080",
   };
@@ -193,7 +193,7 @@ test("prepares a sanitized CLI runtime env with Nibi-owned runtime keys", () => 
   const toolEnv = readNibiToolEnvPassthroughEnv(env);
 
   assert.equal(env.NIBI_RUNTIME_ENV, "production");
-  assert.equal(env.NIBI_HTTP_PROXY, "http://zcode-proxy:8080");
+  assert.equal(env.NIBI_HTTP_PROXY, "http://nibi-proxy:8080");
   assert.deepEqual(toolEnv, {
     HTTP_PROXY: "http://ambient-proxy:8080",
     NODE_EXTRA_CA_CERTS: "/tmp/ambient-ca.pem",
@@ -220,8 +220,8 @@ test("prepares beta CLI runtime env with beta storage root", () => {
 });
 
 test("上游 beta 文件名不再切换存储根", () => {
-  // 这条分支原来按 argv 里的 `zcode-beta` 推断 beta 通道，等于让上游文件名能改我们的存储根。
-  const env = prepareCliRuntimeEnv({}, ["/usr/bin/node", "/workspace/bin/zcode-beta"]);
+  // 这条分支原来按 argv 里的 `nibi-beta` 推断 beta 通道，等于让上游文件名能改我们的存储根。
+  const env = prepareCliRuntimeEnv({}, ["/usr/bin/node", "/workspace/bin/nibi-beta"]);
 
   assert.equal(env.NIBI_STORAGE_DIR, undefined);
 });
@@ -230,12 +230,12 @@ test("preserves explicit storage root when beta mode is enabled", () => {
   const env = prepareCliRuntimeEnv(
     {
       NIBI_BETA: "1",
-      NIBI_STORAGE_DIR: "/tmp/custom-zcode-home",
+      NIBI_STORAGE_DIR: "/tmp/custom-nibi-home",
     },
     ["/usr/bin/node", "/workspace/bin/zcode.js"],
   );
 
-  assert.equal(env.NIBI_STORAGE_DIR, "/tmp/custom-zcode-home");
+  assert.equal(env.NIBI_STORAGE_DIR, "/tmp/custom-nibi-home");
 });
 
 test("opens the TUI by default", async () => {
@@ -374,7 +374,7 @@ test("passes configured TUI theme into the TUI", async () => {
 });
 
 test("suggests workspace paths for TUI file mentions", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-tui-paths-"));
+  const dir = await mkdtemp(join(tmpdir(), "nibi-tui-paths-"));
 
   try {
     await mkdir(join(dir, "public"));
@@ -562,7 +562,7 @@ test("injects process provider endpoint routing into headless prompts", async ()
     ...createPromptDeps(),
     createProviderEndpointRoutingPort: (options) => {
       routingFactoryCalls += 1;
-      assert.equal(options.workingDirectory, "/tmp/zcode-routing-headless");
+      assert.equal(options.workingDirectory, "/tmp/nibi-routing-headless");
       return providerEndpointRoutingPort;
     },
     createNibiApp: (options) => {
@@ -581,7 +581,7 @@ test("injects process provider endpoint routing into headless prompts", async ()
         traceId: "trace-routing-headless",
       } as never;
     },
-    cwd: () => "/tmp/zcode-routing-headless",
+    cwd: () => "/tmp/nibi-routing-headless",
   });
 
   assert.equal(exitCode, 0);
@@ -599,7 +599,7 @@ test("borrows one process provider registry for a headless prompt and disposes i
   const exitCode = await run(ctx, {
     ...createPromptDeps(),
     skipUserConfig: false,
-    userConfigPath: "/tmp/zcode-legacy-cli.json",
+    userConfigPath: "/tmp/nibi-legacy-cli.json",
     startProcessProviderRegistryRuntime: async (_env, options) => {
       runtimeStarts += 1;
       // 刷新回调是当前 CLI 装配的一部分，仍验证唯一 Runtime。
@@ -4705,7 +4705,7 @@ test("rejects unknown skills subcommands", async () => {
 });
 
 test("loads nearest dotenv without overriding shell env", async () => {
-  const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dotenv-"));
+  const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dotenv-"));
   const nested = join(tempRoot, "project", "nested");
 
   try {
@@ -6269,7 +6269,7 @@ test("reuses one process provider registry across TUI app replacements", async (
   const exitCode = await run(ctx, {
     ...createPromptDeps(),
     skipUserConfig: false,
-    userConfigPath: "/tmp/zcode-legacy-tui.json",
+    userConfigPath: "/tmp/nibi-legacy-tui.json",
     startProcessProviderRegistryRuntime: async (_env, options) => {
       runtimeStarts += 1;
       // 刷新回调是当前 CLI 装配的一部分，仍验证唯一 Runtime。
@@ -6346,7 +6346,7 @@ test("rejects an invalid explicit browser executable before creating the app", a
   const ctx = createContext([
     "--browser-use=headless",
     "--browser-executable",
-    "/definitely/missing/zcode-chromium",
+    "/definitely/missing/nibi-chromium",
     "--prompt",
     "browser smoke",
   ]);

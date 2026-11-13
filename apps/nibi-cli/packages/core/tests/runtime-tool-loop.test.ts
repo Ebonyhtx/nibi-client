@@ -149,7 +149,7 @@ describe("AgentRuntime tool loop", () => {
         async waitForBackgroundTask(taskId: string) {
           return {
             completedAt: new Date(),
-            outputPath: "/tmp/zcode-bash-output.log",
+            outputPath: "/tmp/nibi-bash-output.log",
             result: {
               cancelled: false,
               completedAt: new Date(),
@@ -163,7 +163,7 @@ describe("AgentRuntime tool loop", () => {
                 truncated: false,
               },
               stdout: {
-                artifactPath: "/tmp/zcode-bash-output.log",
+                artifactPath: "/tmp/nibi-bash-output.log",
                 bytes: 4,
                 text: "done",
                 truncated: false,
@@ -193,7 +193,7 @@ describe("AgentRuntime tool loop", () => {
       } as any,
       {
         backgroundTaskId: "exec_direct_wait",
-        persistedOutputPath: "/tmp/zcode-bash-output.log",
+        persistedOutputPath: "/tmp/nibi-bash-output.log",
         status: "backgrounded",
       },
       {
@@ -223,7 +223,7 @@ describe("AgentRuntime tool loop", () => {
     expect(notifications[0].text).not.toContain("Use Read on the output file");
     expect(runtimeTaskRegistry.get("exec_direct_wait")).toMatchObject({
       isBackgrounded: true,
-      outputFile: "/tmp/zcode-bash-output.log",
+      outputFile: "/tmp/nibi-bash-output.log",
       status: "completed",
       taskId: "exec_direct_wait",
       type: "local_bash",
@@ -486,7 +486,7 @@ describe("AgentRuntime tool loop", () => {
         async waitForBackgroundTask(taskId: string) {
           return {
             completedAt,
-            outputPath: "/tmp/zcode-bash-output.log",
+            outputPath: "/tmp/nibi-bash-output.log",
             result: {
               cancelled: false,
               completedAt,
@@ -500,7 +500,7 @@ describe("AgentRuntime tool loop", () => {
                 truncated: false,
               },
               stdout: {
-                artifactPath: "/tmp/zcode-bash-output.log",
+                artifactPath: "/tmp/nibi-bash-output.log",
                 bytes: 4,
                 text: "done",
                 truncated: false,
@@ -530,7 +530,7 @@ describe("AgentRuntime tool loop", () => {
       } as any,
       {
         backgroundTaskId: "exec_notify_before_event",
-        persistedOutputPath: "/tmp/zcode-bash-output.log",
+        persistedOutputPath: "/tmp/nibi-bash-output.log",
         status: "backgrounded",
       },
       {
@@ -666,7 +666,7 @@ describe("AgentRuntime tool loop", () => {
       } as any,
       {
         backgroundTaskId: "exec_lost",
-        persistedOutputPath: "/tmp/zcode-bash-lost.log",
+        persistedOutputPath: "/tmp/nibi-bash-lost.log",
         status: "backgrounded",
       },
       {
@@ -705,7 +705,7 @@ describe("AgentRuntime tool loop", () => {
     const notifications: any[] = [];
     const completedSnapshot = {
       completedAt,
-      outputPath: "/tmp/zcode-bash-output.log",
+      outputPath: "/tmp/nibi-bash-output.log",
       result: {
         cancelled: false,
         completedAt,
@@ -719,7 +719,7 @@ describe("AgentRuntime tool loop", () => {
           truncated: false,
         },
         stdout: {
-          artifactPath: "/tmp/zcode-bash-output.log",
+          artifactPath: "/tmp/nibi-bash-output.log",
           bytes: 5,
           text: "ready",
           truncated: false,
@@ -740,7 +740,7 @@ describe("AgentRuntime tool loop", () => {
       executionPort: {
         async getBackgroundTask(taskId: string) {
           return {
-            outputPath: "/tmp/zcode-bash-output.log",
+            outputPath: "/tmp/nibi-bash-output.log",
             startedAt,
             status: "running" as const,
             stdoutBytes: 5,
@@ -769,7 +769,7 @@ describe("AgentRuntime tool loop", () => {
       } as any,
       {
         backgroundTaskId: "exec_direct_wait_updates",
-        persistedOutputPath: "/tmp/zcode-bash-output.log",
+        persistedOutputPath: "/tmp/nibi-bash-output.log",
         status: "backgrounded",
       },
       {
@@ -806,7 +806,7 @@ describe("AgentRuntime tool loop", () => {
         async waitForBackgroundTask(taskId: string) {
           return {
             completedAt: new Date(),
-            outputPath: "/tmp/zcode-bash-output.log",
+            outputPath: "/tmp/nibi-bash-output.log",
             result: {
               cancelled: true,
               completedAt: new Date(),
@@ -819,7 +819,7 @@ describe("AgentRuntime tool loop", () => {
                 truncated: false,
               },
               stdout: {
-                artifactPath: "/tmp/zcode-bash-output.log",
+                artifactPath: "/tmp/nibi-bash-output.log",
                 bytes: 0,
                 text: "",
                 truncated: false,
@@ -848,7 +848,7 @@ describe("AgentRuntime tool loop", () => {
       } as any,
       {
         backgroundTaskId: "exec_stopped_notification",
-        persistedOutputPath: "/tmp/zcode-bash-output.log",
+        persistedOutputPath: "/tmp/nibi-bash-output.log",
         status: "backgrounded",
       },
       {
@@ -885,7 +885,7 @@ describe("AgentRuntime tool loop", () => {
         async waitForBackgroundTask(taskId: string) {
           return {
             completedAt: new Date(),
-            outputPath: "/tmp/zcode-bash-output.log",
+            outputPath: "/tmp/nibi-bash-output.log",
             result: {
               cancelled: false,
               completedAt: new Date(),
@@ -899,7 +899,7 @@ describe("AgentRuntime tool loop", () => {
                 truncated: false,
               },
               stdout: {
-                artifactPath: "/tmp/zcode-bash-output.log",
+                artifactPath: "/tmp/nibi-bash-output.log",
                 bytes: 4,
                 text: "done",
                 truncated: false,
@@ -926,7 +926,7 @@ describe("AgentRuntime tool loop", () => {
     } as any;
     const output = {
       backgroundTaskId: "exec_direct_wait_retry",
-      persistedOutputPath: "/tmp/zcode-bash-output.log",
+      persistedOutputPath: "/tmp/nibi-bash-output.log",
       status: "backgrounded",
     };
     const traceContext = {
@@ -1006,7 +1006,7 @@ describe("AgentRuntime tool loop", () => {
       {
         mode: "yolo",
         taskType: "subagent_child",
-        workingDirectory: "/tmp/zcode-sealed-subagent-bg-bash",
+        workingDirectory: "/tmp/nibi-sealed-subagent-bg-bash",
       },
       {
         eventStore,
@@ -1124,7 +1124,7 @@ describe("AgentRuntime tool loop", () => {
       parentSessionId,
       {
         mode: "yolo",
-        workingDirectory: "/tmp/zcode-default-child-runtime-seal",
+        workingDirectory: "/tmp/nibi-default-child-runtime-seal",
       },
       {
         eventStore,
@@ -1177,8 +1177,8 @@ describe("AgentRuntime tool loop", () => {
         turnId: childTurnId,
       },
       turnId: childTurnId,
-      workingDirectory: "/tmp/zcode-default-child-runtime-seal",
-      workspaceRoot: "/tmp/zcode-default-child-runtime-seal",
+      workingDirectory: "/tmp/nibi-default-child-runtime-seal",
+      workspaceRoot: "/tmp/nibi-default-child-runtime-seal",
     });
 
     expect(output).toMatchObject({
@@ -1237,7 +1237,7 @@ describe("AgentRuntime tool loop", () => {
           mode: "yolo",
           taskType: "subagent_child",
           subagents: { backgroundBashMaxMs: 10 },
-          workingDirectory: "/tmp/zcode-subagent-bash-timeout",
+          workingDirectory: "/tmp/nibi-subagent-bash-timeout",
         },
         {
           eventStore,
@@ -1293,7 +1293,7 @@ describe("AgentRuntime tool loop", () => {
       {
         mode: "yolo",
         taskType: "subagent_child",
-        workingDirectory: "/tmp/zcode-child-cancel",
+        workingDirectory: "/tmp/nibi-child-cancel",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -1595,7 +1595,7 @@ describe("AgentRuntime tool loop", () => {
     const sessionStore = new RecordingSessionStore();
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "yolo", workingDirectory: "/tmp/zcode-bg-notify" },
+      { mode: "yolo", workingDirectory: "/tmp/nibi-bg-notify" },
       {
         eventStore,
         executionPort,
@@ -1688,7 +1688,7 @@ describe("AgentRuntime tool loop", () => {
     let modelCallCount = 0;
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "yolo", workingDirectory: "/tmp/zcode-bg-shutdown" },
+      { mode: "yolo", workingDirectory: "/tmp/nibi-bg-shutdown" },
       {
         eventStore: createTestSessionEventStore(),
         modelFactory: createTestModelFactory({
@@ -1788,7 +1788,7 @@ describe("AgentRuntime tool loop", () => {
     };
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "yolo", workingDirectory: "/tmp/zcode-bg-idle-wake" },
+      { mode: "yolo", workingDirectory: "/tmp/nibi-bg-idle-wake" },
       {
         eventStore,
         executionPort,
@@ -1901,7 +1901,7 @@ describe("AgentRuntime tool loop", () => {
     });
     runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "yolo", workingDirectory: "/tmp/zcode-active-loop-bg" },
+      { mode: "yolo", workingDirectory: "/tmp/nibi-active-loop-bg" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -2588,8 +2588,8 @@ describe("AgentRuntime tool loop", () => {
   it("persists successful foreground Bash cwd across tool calls", async () => {
     const sessionId = createSessionId("runtime-bash-cwd-persistence");
     const eventStore = createTestSessionEventStore();
-    const initialCwd = "/tmp/zcode-runtime-initial";
-    const nextCwd = "/tmp/zcode-runtime-initial/next";
+    const initialCwd = "/tmp/nibi-runtime-initial";
+    const nextCwd = "/tmp/nibi-runtime-initial/next";
     const requests: Parameters<ExecutionPort["run"]>[0][] = [];
     const rootObservations: string[] = [];
     const registry = createToolRegistry();
@@ -2716,8 +2716,8 @@ describe("AgentRuntime tool loop", () => {
   it("resets Bash cwd to workspace root after a successful command leaves the workspace", async () => {
     const sessionId = createSessionId("runtime-bash-cwd-reset-reminder");
     const eventStore = createTestSessionEventStore();
-    const workspaceRoot = "/tmp/zcode-bash-root";
-    const outsideCwd = "/tmp/zcode-bash-outside";
+    const workspaceRoot = "/tmp/nibi-bash-root";
+    const outsideCwd = "/tmp/nibi-bash-outside";
     const requests: Parameters<ExecutionPort["run"]>[0][] = [];
     let secondRequestMessages: Array<{ content?: unknown }> = [];
     const now = new Date();
@@ -2813,8 +2813,8 @@ describe("AgentRuntime tool loop", () => {
     const sessionId = createSessionId("runtime-bash-cwd-stable-message-root");
     const eventStore = createTestSessionEventStore();
     const sessionStore = new RecordingSessionStore();
-    const initialCwd = "/tmp/zcode-runtime-root";
-    const nextCwd = "/tmp/zcode-runtime-root/subdir";
+    const initialCwd = "/tmp/nibi-runtime-root";
+    const nextCwd = "/tmp/nibi-runtime-root/subdir";
     const now = new Date();
     const executionPort: ExecutionPort = {
       async run() {
@@ -2896,7 +2896,7 @@ describe("AgentRuntime tool loop", () => {
       sessionId,
       {
         mode: "build",
-        workingDirectory: "/tmp/zcode-synthetic-notice-default-runtime-metadata",
+        workingDirectory: "/tmp/nibi-synthetic-notice-default-runtime-metadata",
       },
       { sessionStore },
     );
@@ -3063,7 +3063,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -3197,7 +3197,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-loop" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-loop" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -3272,7 +3272,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-loop-prompt" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-loop-prompt" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -3354,7 +3354,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-loop-error" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-loop-error" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -3421,7 +3421,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-loop-plain" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-loop-plain" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -3468,7 +3468,7 @@ describe("AgentRuntime tool loop", () => {
       sessionId,
       {
         mode: "build",
-        workingDirectory: "/tmp/zcode-runtime-target-loop-manual",
+        workingDirectory: "/tmp/nibi-runtime-target-loop-manual",
       },
       {
         eventStore,
@@ -3533,7 +3533,7 @@ describe("AgentRuntime tool loop", () => {
       sessionId,
       {
         mode: "build",
-        workingDirectory: "/tmp/zcode-runtime-target-loop-manual-queues",
+        workingDirectory: "/tmp/nibi-runtime-target-loop-manual-queues",
       },
       {
         eventStore,
@@ -3612,7 +3612,7 @@ describe("AgentRuntime tool loop", () => {
       sessionId,
       {
         mode: "build",
-        workingDirectory: "/tmp/zcode-runtime-target-loop-queued-pause",
+        workingDirectory: "/tmp/nibi-runtime-target-loop-queued-pause",
       },
       {
         eventStore,
@@ -3707,7 +3707,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-bg-defer" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-bg-defer" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -3761,7 +3761,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-registry-only-bash" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-registry-only-bash" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -3828,7 +3828,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-registry-stale" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-registry-stale" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -3889,7 +3889,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-bg-continue" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-bg-continue" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -3935,7 +3935,7 @@ describe("AgentRuntime tool loop", () => {
     const modelInputs: string[] = [];
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-gate" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-gate" },
       {
         eventStore,
         hookRunner: {
@@ -4023,7 +4023,7 @@ describe("AgentRuntime tool loop", () => {
       {
         maxOutputTokens: 131_072,
         mode: "build",
-        workingDirectory: "/tmp/zcode-runtime-target-verifier-queue",
+        workingDirectory: "/tmp/nibi-runtime-target-verifier-queue",
       },
       {
         eventStore,
@@ -4164,7 +4164,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-notification-order" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-notification-order" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -4266,7 +4266,7 @@ describe("AgentRuntime tool loop", () => {
       sessionId,
       {
         mode: "build",
-        workingDirectory: "/tmp/zcode-runtime-target-notification-clear",
+        workingDirectory: "/tmp/nibi-runtime-target-notification-clear",
       },
       {
         eventStore,
@@ -4324,7 +4324,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-notification-loop" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-notification-loop" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -4416,7 +4416,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-notification-yield" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-notification-yield" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -4523,7 +4523,7 @@ describe("AgentRuntime tool loop", () => {
       {
         mode: "build",
         targetCompletionVerification: { enabled: false },
-        workingDirectory: "/tmp/zcode-runtime-target-notification-disabled",
+        workingDirectory: "/tmp/nibi-runtime-target-notification-disabled",
       },
       {
         eventStore,
@@ -4579,7 +4579,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-notification-no-goal" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-notification-no-goal" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -4646,7 +4646,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-bg-still-running" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-bg-still-running" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -4701,7 +4701,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-prompt-yield" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-prompt-yield" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -4770,7 +4770,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -4836,7 +4836,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-stop-order" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-stop-order" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -4963,7 +4963,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-goal-pause-before-scheduling" },
+      { mode: "build", workingDirectory: "/tmp/nibi-goal-pause-before-scheduling" },
       {
         eventStore: baseEventStore,
         modelFactory: createTestModelFactory({
@@ -5095,7 +5095,7 @@ describe("AgentRuntime tool loop", () => {
       },
       handler: async () => ({
         content: "export const value = 2;\n",
-        filePath: "/tmp/zcode-goal-pause-checkpoint/src/checkpoint.ts",
+        filePath: "/tmp/nibi-goal-pause-checkpoint/src/checkpoint.ts",
         originalFile: "export const value = 1;\n",
         structuredPatch: [
           {
@@ -5125,7 +5125,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "yolo", workingDirectory: "/tmp/zcode-goal-pause-checkpoint" },
+      { mode: "yolo", workingDirectory: "/tmp/nibi-goal-pause-checkpoint" },
       {
         artifactStore,
         eventStore: baseEventStore,
@@ -5243,7 +5243,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-goal-pause-during-terminal" },
+      { mode: "build", workingDirectory: "/tmp/nibi-goal-pause-during-terminal" },
       {
         eventStore: baseEventStore,
         modelFactory: createTestModelFactory({
@@ -5357,7 +5357,7 @@ describe("AgentRuntime tool loop", () => {
     let modelCallCount = 0;
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-goal-pause-order" },
+      { mode: "build", workingDirectory: "/tmp/nibi-goal-pause-order" },
       {
         eventStore: baseEventStore,
         modelFactory: createTestModelFactory({
@@ -5469,7 +5469,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "plan", workingDirectory: "/tmp/zcode-runtime-target" },
+      { mode: "plan", workingDirectory: "/tmp/nibi-runtime-target" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -5506,7 +5506,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -5550,7 +5550,7 @@ describe("AgentRuntime tool loop", () => {
       sessionId,
       {
         mode: "build",
-        workingDirectory: "/tmp/zcode-todo-current-turn-context",
+        workingDirectory: "/tmp/nibi-todo-current-turn-context",
       },
       {
         eventStore,
@@ -5607,7 +5607,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-todo-reminder-cadence" },
+      { mode: "build", workingDirectory: "/tmp/nibi-todo-reminder-cadence" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -5679,7 +5679,7 @@ describe("AgentRuntime tool loop", () => {
       {
         mode: "build",
         toolAllowlist: ["Read"],
-        workingDirectory: "/tmp/zcode-todo-reminder-tool-unavailable",
+        workingDirectory: "/tmp/nibi-todo-reminder-tool-unavailable",
       },
       {
         eventStore,
@@ -5738,7 +5738,7 @@ describe("AgentRuntime tool loop", () => {
           name: "Learning",
           prompt: "Explain tradeoffs while solving the task.",
         },
-        workingDirectory: "/tmp/zcode-output-style-in-memory-history",
+        workingDirectory: "/tmp/nibi-output-style-in-memory-history",
       },
       {
         eventStore,
@@ -5800,7 +5800,7 @@ describe("AgentRuntime tool loop", () => {
           name: "Learning",
           prompt: "Explain tradeoffs while solving the task.",
         },
-        workingDirectory: "/tmp/zcode-output-style-single-per-turn",
+        workingDirectory: "/tmp/nibi-output-style-single-per-turn",
       },
       {
         eventStore,
@@ -5844,7 +5844,7 @@ describe("AgentRuntime tool loop", () => {
       sessionId,
       {
         mode: "build",
-        workingDirectory: "/tmp/zcode-todo-reminder-resume-marker",
+        workingDirectory: "/tmp/nibi-todo-reminder-resume-marker",
       },
       {
         eventStore,
@@ -5871,7 +5871,7 @@ describe("AgentRuntime tool loop", () => {
       sessionId,
       {
         mode: "build",
-        workingDirectory: "/tmp/zcode-todo-reminder-resume-marker",
+        workingDirectory: "/tmp/nibi-todo-reminder-resume-marker",
       },
       {
         eventStore,
@@ -5915,7 +5915,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -6037,7 +6037,7 @@ describe("AgentRuntime tool loop", () => {
       {
         mode: "build",
         modelSelection: createTestModelSelection(requestModel),
-        workingDirectory: "/tmp/zcode-runtime-target",
+        workingDirectory: "/tmp/nibi-runtime-target",
       },
       {
         eventStore,
@@ -6110,7 +6110,7 @@ describe("AgentRuntime tool loop", () => {
           modelId: "GLM-5.2" as never,
           providerId: providerId as never,
         },
-        workingDirectory: "/tmp/zcode-runtime-target",
+        workingDirectory: "/tmp/nibi-runtime-target",
       },
       {
         eventStore,
@@ -6210,7 +6210,7 @@ describe("AgentRuntime tool loop", () => {
           modelId: "gpt-5" as never,
           providerId: providerId as never,
         },
-        workingDirectory: "/tmp/zcode-runtime-target",
+        workingDirectory: "/tmp/nibi-runtime-target",
       },
       {
         eventStore,
@@ -6288,7 +6288,7 @@ describe("AgentRuntime tool loop", () => {
       sessionId,
       {
         mode: "build",
-        workingDirectory: "/tmp/zcode-runtime-target",
+        workingDirectory: "/tmp/nibi-runtime-target",
       },
       {
         eventStore,
@@ -6373,7 +6373,7 @@ describe("AgentRuntime tool loop", () => {
       {
         mode: "build",
         targetCompletionVerification: { enabled: false },
-        workingDirectory: "/tmp/zcode-runtime-target",
+        workingDirectory: "/tmp/nibi-runtime-target",
       },
       {
         eventStore,
@@ -6434,7 +6434,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -6478,7 +6478,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -6546,7 +6546,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -6655,7 +6655,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -6747,7 +6747,7 @@ describe("AgentRuntime tool loop", () => {
 
     const runtime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-runtime-target-replace-race" },
+      { mode: "build", workingDirectory: "/tmp/nibi-runtime-target-replace-race" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -9152,7 +9152,7 @@ describe("AgentRuntime tool loop", () => {
 
     const firstRuntime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-steer-recover" },
+      { mode: "build", workingDirectory: "/tmp/nibi-steer-recover" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -9195,7 +9195,7 @@ describe("AgentRuntime tool loop", () => {
     let capturedMessages: any[] = [];
     const secondRuntime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-steer-recover" },
+      { mode: "build", workingDirectory: "/tmp/nibi-steer-recover" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -9241,7 +9241,7 @@ describe("AgentRuntime tool loop", () => {
 
     const firstRuntime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-todo-resume-context" },
+      { mode: "build", workingDirectory: "/tmp/nibi-todo-resume-context" },
       {
         eventStore,
         modelFactory: createTestModelFactory({
@@ -9281,7 +9281,7 @@ describe("AgentRuntime tool loop", () => {
     let capturedMessages: any[] = [];
     const secondRuntime = createTestAgentRuntime(
       sessionId,
-      { mode: "build", workingDirectory: "/tmp/zcode-todo-resume-context" },
+      { mode: "build", workingDirectory: "/tmp/nibi-todo-resume-context" },
       {
         eventStore,
         modelFactory: createTestModelFactory({

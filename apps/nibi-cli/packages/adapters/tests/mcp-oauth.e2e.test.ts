@@ -27,9 +27,9 @@ import { createMcpOAuthTokenProvider } from "../src/mcp/oauth-provider.js";
 
 const OAUTH_ACCESS_TOKEN = "oauth-e2e-access-token";
 const OAUTH_CLIENT_ID = "nibi-client";
-const OAUTH_CLIENT_SECRET = "zcode-secret";
+const OAUTH_CLIENT_SECRET = "nibi-secret";
 const DYNAMIC_CLIENT_ID = "dynamic-nibi-client";
-const DYNAMIC_CLIENT_SECRET = "dynamic-zcode-secret";
+const DYNAMIC_CLIENT_SECRET = "dynamic-nibi-secret";
 const MCP_SCOPE = "mcp:tools";
 
 const servers: Server[] = [];
@@ -157,7 +157,7 @@ describe("MCP OAuth client credentials e2e", () => {
     );
     mcpUrl = `${serverBaseUrl(mcpServer)}/mcp`;
 
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: {
         NIBI_CREDENTIAL_SECRET: "mcp-oauth-e2e-secret",
@@ -285,7 +285,7 @@ describe("MCP OAuth client credentials e2e", () => {
     );
     mcpUrl = `${serverBaseUrl(mcpServer)}/mcp`;
 
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-race-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-race-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-race-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -392,7 +392,7 @@ describe("MCP OAuth client credentials e2e", () => {
     );
     mcpUrl = `${serverBaseUrl(mcpServer)}/mcp`;
 
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-stale-client-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-stale-client-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-stale-client-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -502,7 +502,7 @@ describe("MCP OAuth client credentials e2e", () => {
     );
     mcpUrl = `${serverBaseUrl(mcpServer)}/mcp`;
 
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-passive-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-passive-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-passive-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -603,7 +603,7 @@ describe("MCP OAuth client credentials e2e", () => {
     );
     mcpUrl = `${serverBaseUrl(mcpServer)}/mcp`;
 
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-runtime-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-runtime-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-runtime-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -691,7 +691,7 @@ describe("MCP OAuth client credentials e2e", () => {
     );
     mcpUrl = `${serverBaseUrl(mcpServer)}/mcp`;
 
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-stepup-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-stepup-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-stepup-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -745,7 +745,7 @@ describe("MCP OAuth client credentials e2e", () => {
   });
 
   it("binds dynamically registered client information to each OAuth transaction", async () => {
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-client-transaction-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-client-transaction-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-client-transaction-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -771,7 +771,7 @@ describe("MCP OAuth client credentials e2e", () => {
   });
 
   it("restores dynamically registered client information after provider reconstruction", async () => {
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-client-recovery-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-client-recovery-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-client-recovery-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -796,7 +796,7 @@ describe("MCP OAuth client credentials e2e", () => {
   });
 
   it("retries credential snapshots after a transient load failure", async () => {
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-load-retry-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-load-retry-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-load-retry-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -835,7 +835,7 @@ describe("MCP OAuth client credentials e2e", () => {
   });
 
   it("does not fail session close when verifier cleanup fails", async () => {
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-close-cleanup-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-close-cleanup-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-close-cleanup-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -876,7 +876,7 @@ describe("MCP OAuth client credentials e2e", () => {
   });
 
   it("publishes client information and tokens as one credential snapshot", async () => {
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-client-token-pair-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-client-token-pair-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-client-token-pair-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -908,7 +908,7 @@ describe("MCP OAuth client credentials e2e", () => {
   });
 
   it("preserves v1 canonical credentials across legacy migration states", async () => {
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-v1-migration-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-v1-migration-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-v1-migration-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -993,7 +993,7 @@ describe("MCP OAuth client credentials e2e", () => {
   });
 
   it("keeps legacy readers and writers coherent during the canonical migration window", async () => {
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-mixed-version-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-mixed-version-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-mixed-version-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -1082,7 +1082,7 @@ describe("MCP OAuth client credentials e2e", () => {
   });
 
   it("does not combine a pending legacy client with another legacy refresh", async () => {
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-legacy-race-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-legacy-race-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-legacy-race-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -1124,7 +1124,7 @@ describe("MCP OAuth client credentials e2e", () => {
   });
 
   it("does not invalidate a credential snapshot replaced by another transaction", async () => {
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-compare-delete-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-compare-delete-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-compare-delete-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -1185,7 +1185,7 @@ describe("MCP OAuth client credentials e2e", () => {
     );
     authBaseUrl = serverBaseUrl(authServer);
 
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-refresh-pair-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-refresh-pair-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-refresh-pair-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -1254,7 +1254,7 @@ describe("MCP OAuth client credentials e2e", () => {
   });
 
   it("preserves a canonical credential snapshot written by a newer version", async () => {
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-future-credentials-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-future-credentials-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-future-credentials-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -1295,7 +1295,7 @@ describe("MCP OAuth client credentials e2e", () => {
   });
 
   it("removes both legacy credential halves when the legacy client is invalid", async () => {
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-legacy-invalidation-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-legacy-invalidation-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "mcp-oauth-legacy-invalidation-secret" },
       filePath: join(credentialsDir, "credentials.json"),
@@ -1367,7 +1367,7 @@ describe("MCP OAuth client credentials e2e", () => {
     );
     mcpUrl = `${serverBaseUrl(mcpServer)}/mcp`;
 
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-auto-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-auto-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: {
         NIBI_CREDENTIAL_SECRET: "mcp-oauth-e2e-secret",
@@ -1440,7 +1440,7 @@ describe("MCP OAuth client credentials e2e", () => {
   });
 
   it("isolates persisted authorization_code credentials by authorization config", async () => {
-    const credentialsDir = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-"));
+    const credentialsDir = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-"));
     const credentialStore = createSharedNibiCredentialStore({
       env: {
         NIBI_CREDENTIAL_SECRET: "mcp-oauth-e2e-secret",

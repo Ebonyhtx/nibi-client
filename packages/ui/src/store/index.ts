@@ -63,7 +63,7 @@ export interface LoginEntryAttempt {
 const CODE_PREVIEW_SETTINGS_KEY = "nibi-code-preview-settings";
 const PERFORMANCE_MODE_STORAGE_KEY = "nibi-performance-mode";
 export const FILE_MANAGER_NAVIGATION_PREFERENCES_STORAGE_KEY =
-  "zcode-file-manager-navigation-preferences";
+  "nibi-file-manager-navigation-preferences";
 
 function loadFileManagerNavigationPreferences(): Record<string, boolean> {
   try {

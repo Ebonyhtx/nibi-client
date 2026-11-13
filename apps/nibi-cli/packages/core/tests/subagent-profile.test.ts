@@ -76,9 +76,9 @@ Review carefully.`,
   it("parses the P0 custom agent fields consumed by nibi-cli", () => {
     const result = parseAgentProfileFromMarkdown({
       source: "project",
-      path: "/workspace/.nibi/agents/zcode-reviewer.md",
+      path: "/workspace/.nibi/agents/nibi-reviewer.md",
       content: `---
-name: zcode-reviewer
+name: nibi-reviewer
 description: 检查实现边界\\n输出中文结论
 model: custom-openai/reviewer-model
 thoughtLevel: high
@@ -95,7 +95,7 @@ injectAgentsMd: "false"
 mcpServers:
   - local-tools
 ---
-你是 zcode-reviewer。
+你是 nibi-reviewer。
 只输出中文。`,
     });
 
@@ -112,11 +112,11 @@ mcpServers:
         modelId: "reviewer-model",
         options: { reasoningLevel: "high" },
       },
-      name: "zcode-reviewer",
-      path: "/workspace/.nibi/agents/zcode-reviewer.md",
+      name: "nibi-reviewer",
+      path: "/workspace/.nibi/agents/nibi-reviewer.md",
       skills: ["code", "review"],
       source: "project",
-      systemPrompt: "你是 zcode-reviewer。\n只输出中文。",
+      systemPrompt: "你是 nibi-reviewer。\n只输出中文。",
       tools: ["Read", "Grep", "Bash"],
     });
     expect(result.profile?.mcpServers).toEqual(["local-tools"]);
@@ -237,7 +237,7 @@ tools:
   it("formats available profiles for Agent tool descriptions with built-in default agents", () => {
     const prompt = formatAgentProfilesForPrompt([
       {
-        name: "zcode-reviewer",
+        name: "nibi-reviewer",
         description: "检查实现边界。",
         source: "project",
         systemPrompt: "只输出中文。",
@@ -249,7 +249,7 @@ tools:
     expect(prompt).toContain("Available agent types and the tools they have access to:");
     expect(prompt).toContain("general-purpose");
     expect(prompt).toContain("Explore");
-    expect(prompt).toContain("- zcode-reviewer: 检查实现边界。 (Tools: Read)");
+    expect(prompt).toContain("- nibi-reviewer: 检查实现边界。 (Tools: Read)");
     expect(prompt).not.toContain("tools: Read");
     expect(prompt).not.toContain("background: true");
     expect(prompt).not.toContain("model:");

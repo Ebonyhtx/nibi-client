@@ -134,7 +134,7 @@ fn script_quotes_the_command_and_records_the_cwd() {
     );
 }
 
-/// 缺陷 R2-1：输出文件与进程账本原来在共享的 `<tmp>/zcode-shell`，默认权限，别的用户能读输出、
+/// 缺陷 R2-1：输出文件与进程账本原来在共享的 `<tmp>/nibi-shell`，默认权限，别的用户能读输出、
 /// 抢先建目录。现在都在本用户私有的临时目录里：目录 0700，输出文件 0600。
 #[tokio::test]
 #[expect(clippy::disallowed_methods, reason = "测试检查目录与文件的权限")]

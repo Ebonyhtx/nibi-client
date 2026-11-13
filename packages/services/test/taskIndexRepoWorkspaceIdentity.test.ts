@@ -11,7 +11,7 @@ let repo: TaskIndexRepo;
 let tempDir: string;
 
 beforeEach(() => {
-  tempDir = mkdtempSync(join(tmpdir(), "zcode-task-index-workspace-identity-"));
+  tempDir = mkdtempSync(join(tmpdir(), "nibi-task-index-workspace-identity-"));
   setDataBaseDir(tempDir);
   repo = new TaskIndexRepo();
 });

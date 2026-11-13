@@ -258,7 +258,7 @@ test("prepares every SEA target in the desktop bundled-tools layout", () => {
 });
 
 test("downloads the complete SEA runtime tool set before asset collection", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-sea-runtime-prepare-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-sea-runtime-prepare-"));
   const archives = new Map();
   let requestCount = 0;
   const server = createServer((request, response) => {
@@ -398,7 +398,7 @@ for (const fixture of [
   },
 ]) {
   test(`includes target runtime tools for ${fixture.target}`, async () => {
-    const directory = await mkdtemp(join(tmpdir(), "zcode-sea-runtime-tools-"));
+    const directory = await mkdtemp(join(tmpdir(), "nibi-sea-runtime-tools-"));
     const root = join(directory, "root");
     const stagingDirectory = join(directory, "staging");
 
@@ -433,13 +433,13 @@ for (const fixture of [
         const expectedBytes = Buffer.from(`${fixture.target}:${tool.id}`);
         assert.equal(tool.size, expectedBytes.byteLength);
         assert.equal(tool.sha256, createHash("sha256").update(expectedBytes).digest("hex"));
-        const assetKey = `zcode-runtime-tools/${tool.id}/${tool.sha256}/${tool.binaryName}`;
+        const assetKey = `nibi-runtime-tools/${tool.id}/${tool.sha256}/${tool.binaryName}`;
         assert.equal(assets[assetKey].endsWith(tool.binaryName), true);
       }
-      const notices = await readFile(assets["zcode-runtime-tools/THIRD-PARTY-NOTICES.txt"], "utf8");
+      const notices = await readFile(assets["nibi-runtime-tools/THIRD-PARTY-NOTICES.txt"], "utf8");
       assert.ok(notices.startsWith("NATIVE SEARCH THIRD-PARTY NOTICES"));
       assert.deepEqual(
-        await readFile(assets["zcode-runtime-tools/SOURCES.json"]),
+        await readFile(assets["nibi-runtime-tools/SOURCES.json"]),
         await readFile(join(root, "third-party/native-search/sources.json")),
       );
     } finally {
@@ -452,7 +452,7 @@ for (const fixture of [
 }
 
 test("fails SEA packaging when a target runtime tool is missing", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-sea-runtime-tools-missing-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-sea-runtime-tools-missing-"));
 
   try {
     await assert.rejects(
@@ -472,7 +472,7 @@ test("fails SEA packaging when a target runtime tool is missing", async () => {
 });
 
 test("includes TUI workspace runtime package assets", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-sea-tui-assets-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-sea-tui-assets-"));
   const root = join(import.meta.dirname, "../../..");
 
   try {
@@ -532,7 +532,7 @@ test("includes TUI workspace runtime package assets", async () => {
 });
 
 test("loads TUI from an extracted SEA runtime dependency closure", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-sea-tui-runtime-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-sea-tui-runtime-"));
   const root = join(import.meta.dirname, "../../..");
   const stagingDirectory = join(directory, "staging");
   const runtimeDirectory = join(directory, "runtime");
@@ -579,7 +579,7 @@ test("loads TUI from an extracted SEA runtime dependency closure", async () => {
 });
 
 test("includes the pinned Playwright runtime required by headless Browser Use", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-sea-playwright-assets-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-sea-playwright-assets-"));
   const root = join(import.meta.dirname, "../../..");
 
   try {
@@ -666,7 +666,7 @@ test("keeps SEA official plugin versions aligned with package and plugin manifes
 });
 
 test("includes bundled official plugin assets", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-sea-plugin-assets-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-sea-plugin-assets-"));
   const root = join(import.meta.dirname, "../../..");
 
   try {
@@ -771,7 +771,7 @@ test("includes bundled official plugin assets", async () => {
 });
 
 test("includes the bundled skill pack as content-hashed SEA assets", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-sea-bundled-skill-assets-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-sea-bundled-skill-assets-"));
   const root = join(import.meta.dirname, "../../..");
 
   try {
@@ -802,7 +802,7 @@ test("includes the bundled skill pack as content-hashed SEA assets", async () =>
 });
 
 test("rejects a bundled skill pack that lost a required file", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-sea-bundled-skill-incomplete-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-sea-bundled-skill-incomplete-"));
   const root = join(directory, "root");
 
   try {
@@ -818,7 +818,7 @@ test("rejects a bundled skill pack that lost a required file", async () => {
 });
 
 test("allows skill-only official plugins when SEA runtime assets are required", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-sea-plugin-runtime-assets-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-sea-plugin-runtime-assets-"));
   const root = join(directory, "root");
   const stagingDirectory = join(directory, "staging");
 
@@ -928,7 +928,7 @@ test("allows skill-only official plugins when SEA runtime assets are required", 
 });
 
 test("requires SEA runtime assets for runtime-backed official plugins", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-sea-plugin-missing-runtime-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-sea-plugin-missing-runtime-"));
   const root = join(directory, "root");
   const stagingDirectory = join(directory, "staging");
 
@@ -967,7 +967,7 @@ test("requires SEA runtime assets for runtime-backed official plugins", async ()
 });
 
 test("requires the Browser Use client alongside the SEA MCP runtime", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-sea-browser-client-missing-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-sea-browser-client-missing-"));
   const root = join(directory, "root");
   const stagingDirectory = join(directory, "staging");
 
@@ -1085,7 +1085,7 @@ test("ad-hoc signs only macOS targets built on macOS hosts", () => {
 });
 
 test("resolves postject from a hoisted ancestor node_modules", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-sea-postject-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-sea-postject-"));
   const cliDirectory = join(directory, "apps", "nibi-cli", "packages", "cli");
   const binDirectory = join(directory, "node_modules", ".bin");
   const postjectPath = join(binDirectory, "postject");
@@ -1166,7 +1166,7 @@ test("rejects Windows Authenticode directories outside the file range", () => {
 });
 
 test("removes Windows Authenticode signatures from files", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-sea-authenticode-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-sea-authenticode-"));
   const binaryPath = join(directory, "nibi-windows-x64.exe");
   const { contents, securityDirectoryEntryOffset } = createPeFixture();
 

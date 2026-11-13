@@ -12,7 +12,7 @@ import {
 
 describe("Source Server remote release assets", () => {
   it("invalidates the previous descriptor before a new staging generation starts", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-source-release-generation-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-source-release-generation-"));
     const versionReleaseDir = join(root, "releases", "3.8.0");
     const descriptorPath = join(versionReleaseDir, SOURCE_SERVER_RELEASE_DESCRIPTOR_FILE_NAME);
     await mkdir(versionReleaseDir, { recursive: true });
@@ -24,7 +24,7 @@ describe("Source Server remote release assets", () => {
   });
 
   it("fails closed when any POSIX Source Server archive is missing", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-source-release-missing-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-source-release-missing-"));
     const distReleaseDir = join(root, "dist-release");
     await mkdir(distReleaseDir, { recursive: true });
     await writeFile(join(distReleaseDir, "nibi-server-linux-x64.tar.gz"), "linux-x64");
@@ -44,7 +44,7 @@ describe("Source Server remote release assets", () => {
   });
 
   it("copies exactly four POSIX archives into the version release root", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-source-release-complete-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-source-release-complete-"));
     const distReleaseDir = join(root, "dist-release");
     const versionReleaseDir = join(root, "releases", "3.8.0");
     await mkdir(distReleaseDir, { recursive: true });
@@ -92,7 +92,7 @@ describe("Source Server remote release assets", () => {
   });
 
   it("publishes only the requested Linux archives and removes stale descriptor targets", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-source-release-linux-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-source-release-linux-"));
     try {
       const distReleaseDir = join(root, "dist-release");
       const versionReleaseDir = join(root, "releases", "3.8.0");

@@ -42,9 +42,9 @@
 
 - `packages/services/src/session/zcodeTaskService.ts`：新增 `ZCodeModelTrajectory*` 类型与
   `IZCodeTaskService.getModelTrajectory({ taskId, limit })`。
-- `packages/services/src/zcode-agent/modelTrajectory.ts`：异步、有界地读取 session 单文件尾部，还原 delta messages、
+- `packages/services/src/nibi-agent/modelTrajectory.ts`：异步、有界地读取 session 单文件尾部，还原 delta messages、
   归一化 messages / parts / toolCalls / usage，按 `startedAt` 排序，超出 `limit`（默认 200）保留最近 N 条。
-- `packages/services/src/zcode-agent/zcodeTaskServiceAdapter.ts`：实现 `getModelTrajectory`。
+- `packages/services/src/nibi-agent/zcodeTaskServiceAdapter.ts`：实现 `getModelTrajectory`。
 
 UI 层：
 

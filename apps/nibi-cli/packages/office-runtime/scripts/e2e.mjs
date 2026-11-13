@@ -376,7 +376,7 @@ try {
     assert.ok(
       await frame.evaluate(() =>
         [...document.fonts].some(
-          (face) => face.family.startsWith("zcode-cjk-") && face.status === "loaded",
+          (face) => face.family.startsWith("nibi-cjk-") && face.status === "loaded",
         ),
       ),
       "CJK faces are registered before the page is drawn",
@@ -400,7 +400,7 @@ try {
       window.FontFace = class extends NativeFontFace {
         constructor(family, source, descriptors) {
           const local = typeof source === "string" && source.includes("local(");
-          super(family, local ? 'local("zcode-e2e-missing")' : source, descriptors);
+          super(family, local ? 'local("nibi-e2e-missing")' : source, descriptors);
         }
       };
     });
@@ -408,14 +408,14 @@ try {
     await bare.frame.waitForFunction(
       () =>
         [...document.fonts].filter(
-          (face) => face.family === "zcode-cjk-fallback" && face.status === "loaded",
+          (face) => face.family === "nibi-cjk-fallback" && face.status === "loaded",
         ).length >= 50,
       null,
       { timeout: 30000 },
     );
     assert.equal(
       await bare.frame.evaluate(() =>
-        [...document.fonts].some((face) => /^zcode-cjk-(sc|tc|jp|kr)-/.test(face.family)),
+        [...document.fonts].some((face) => /^nibi-cjk-(sc|tc|jp|kr)-/.test(face.family)),
       ),
       false,
       "faces without an installed font are not registered",

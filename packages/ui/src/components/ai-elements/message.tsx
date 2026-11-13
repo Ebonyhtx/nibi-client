@@ -382,7 +382,7 @@ export type MessageResponseProps = {
   onOpenCodeViewer?: (source: CodeViewerSource) => void;
   onOpenFileLink?: (target: MessageFileLinkTarget) => void;
   onOpenExternalUrl?: (url: string) => void;
-  /** 仅 Assistant 正文开启：把完整 zcode-file-citation 投影为现有文件链接。 */
+  /** 仅 Assistant 正文开启：把完整 nibi-file-citation 投影为现有文件链接。 */
   renderNibiFileCitations?: boolean;
 };
 

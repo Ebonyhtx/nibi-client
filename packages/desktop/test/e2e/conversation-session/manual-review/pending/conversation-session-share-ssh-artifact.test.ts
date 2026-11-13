@@ -51,7 +51,7 @@ async function readPublishState() {
 
 describe(`${CASE_MARKER}: Desktop SSH 产物分享`, () => {
   const config = readSSHRuntimeConfig(CASE_MARKER);
-  const workspacePath = `${config.workspacePaths[0]}/zcode-share-${Date.now()}`;
+  const workspacePath = `${config.workspacePaths[0]}/nibi-share-${Date.now()}`;
   let tunnel: ReplayTunnel | null = null;
   const facts: Record<string, unknown> = {};
 

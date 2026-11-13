@@ -83,7 +83,7 @@ describe("Todo144：迁移启动状态与真实 SQLite 锁", () => {
   });
 
   it("同库持锁超过旧 5 秒，异步等待不阻塞持有者提交；异库独立就绪", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-startup-lock-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-startup-lock-"));
     dirs.push(dir);
     const path = join(dir, "db.sqlite");
     const holder = open(path);
@@ -132,7 +132,7 @@ describe("Todo144：迁移启动状态与真实 SQLite 锁", () => {
   });
 
   it("等待预算用尽只失败等待者，保留持有者事务", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-startup-deadline-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-startup-deadline-"));
     dirs.push(dir);
     const path = join(dir, "db.sqlite");
     const holder = open(path);
@@ -222,7 +222,7 @@ it("SILENTDB-02/04: reports real migration kind and counts only committed SQL as
 });
 
 it("SILENTDB-03: another writer can finish the observed migrations without this waiter executing any", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-startup-other-writer-"));
+  const dir = await mkdtemp(join(tmpdir(), "nibi-startup-other-writer-"));
   dirs.push(dir);
   const path = join(dir, "db.sqlite");
   const holder = open(path);

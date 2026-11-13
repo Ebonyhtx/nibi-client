@@ -11,10 +11,10 @@ small mirror of the default-enabled official plugin ids because it reads the
 official plugin cache directly. The mirror must include every default-enabled
 official content plugin:
 
-- `document-skills@zcode-plugins-official`
-- `browser-use@zcode-plugins-official`
-- `skill-creator@zcode-plugins-official`
-- `nibi-guide@zcode-plugins-official`
+- `document-skills@nibi-plugins-official`
+- `browser-use@nibi-plugins-official`
+- `skill-creator@nibi-plugins-official`
+- `nibi-guide@nibi-plugins-official`
 
 Bugfix note: if `nibi-guide` is omitted from the services mirror, the plugin may
 still appear enabled in plugin management while its `diagnosing-*` skills are

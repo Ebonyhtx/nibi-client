@@ -69,7 +69,7 @@ function makeRuntime(name: string): {
   const terminal = makeTerminalQueue();
   const runtime = new AgentRuntime(
     createSessionId(name),
-    { agentName: "dwf-track-test", workingDirectory: "/tmp/zcode-dwf-track" },
+    { agentName: "dwf-track-test", workingDirectory: "/tmp/nibi-dwf-track" },
     {
       eventStore: createTestSessionEventStore(),
       modelAdapter: {} as never,

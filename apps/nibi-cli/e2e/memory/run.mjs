@@ -24,8 +24,8 @@ async function main() {
   const options = parseArgs(process.argv.slice(2));
   const artifactsRoot = options.artifacts
     ? resolve(options.artifacts)
-    : await mkdtemp(join(tmpdir(), "zcode-memory-e2e-artifacts-"));
-  const runRoot = await mkdtemp(join(tmpdir(), "zcode-memory-e2e-run-"));
+    : await mkdtemp(join(tmpdir(), "nibi-memory-e2e-artifacts-"));
+  const runRoot = await mkdtemp(join(tmpdir(), "nibi-memory-e2e-run-"));
   await mkdir(artifactsRoot, { recursive: true });
 
   const modules = await loadNibiModules();

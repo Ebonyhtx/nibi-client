@@ -20,7 +20,7 @@ vi.mock("../src/main/desktopNetworkTelemetry.js", () => ({
 
 vi.mock("../src/main/desktopRuntimeEnv.js", () => ({
   desktopRuntimeEnv: "development",
-  runtimeApplicationName: "zcode-test",
+  runtimeApplicationName: "nibi-test",
 }));
 
 vi.mock("../src/main/logger.js", () => ({
@@ -306,13 +306,13 @@ describe("appARMSBootstrap beforeReport", () => {
       type: "crash",
       source: "crashReporter",
       meta: { process_type: "browser" },
-      binary_images: [{ name: "zcode-test" }, { name: "Electron Framework" }],
+      binary_images: [{ name: "nibi-test" }, { name: "Electron Framework" }],
     };
     const helperCrash = {
       event_type: "exception",
       type: "crash",
       source: "crashReporter",
-      binary_images: [{ name: "zcode-test Helper (Renderer)" }],
+      binary_images: [{ name: "nibi-test Helper (Renderer)" }],
     };
     const customEvent = { event_type: "custom", name: "perf_app_start" };
 
@@ -352,7 +352,7 @@ describe("appARMSBootstrap beforeReport", () => {
       event_type: "exception",
       type: "crash",
       source: "crashReporter",
-      binary_images: [{ name: "zcode-test" }],
+      binary_images: [{ name: "nibi-test" }],
     };
 
     const result = beforeReport({ events: [dump] }) as {
@@ -376,8 +376,8 @@ describe("appARMSBootstrap beforeReport", () => {
       event_type: "exception",
       type: "crash",
       source: "crashReporter",
-      meta: { process: "zcode-test", process_type: "browser" },
-      binary_images: [{ name: "zcode-test" }],
+      meta: { process: "nibi-test", process_type: "browser" },
+      binary_images: [{ name: "nibi-test" }],
     };
 
     const result = beforeReport({ events: [dump] }) as {
@@ -415,11 +415,11 @@ describe("appARMSBootstrap beforeReport", () => {
         event_type: "exception",
         type: "crash",
         source: "crashReporter",
-        binary_images: [{ name: "zcode-test" }],
+        binary_images: [{ name: "nibi-test" }],
         ...eventPatch,
       };
 
-      const events = filterAndEnrichNativeCrashEvents([dump], "zcode-test", "zcode-test");
+      const events = filterAndEnrichNativeCrashEvents([dump], "nibi-test", "nibi-test");
 
       expect(events[0]).toMatchObject({
         properties: {
@@ -460,10 +460,10 @@ describe("appARMSBootstrap beforeReport", () => {
         type: "crash",
         source: "crashReporter",
         meta: { process_type: processRole },
-        binary_images: [{ name: "zcode-test" }],
+        binary_images: [{ name: "nibi-test" }],
       };
 
-      const events = filterAndEnrichNativeCrashEvents([dump], "zcode-test", "zcode-test");
+      const events = filterAndEnrichNativeCrashEvents([dump], "nibi-test", "nibi-test");
 
       expect(events[0]).toMatchObject({
         properties: {
@@ -481,10 +481,10 @@ describe("appARMSBootstrap beforeReport", () => {
       type: "crash",
       source: "crashReporter",
       meta: { process_type: "browser" },
-      binary_images: [{ name: "zcode-test" }],
+      binary_images: [{ name: "nibi-test" }],
     };
 
-    const events = filterAndEnrichNativeCrashEvents([dump], "zcode-test", "zcode-test");
+    const events = filterAndEnrichNativeCrashEvents([dump], "nibi-test", "nibi-test");
 
     expect(events[0]).toMatchObject({
       properties: {
@@ -498,7 +498,7 @@ describe("appARMSBootstrap beforeReport", () => {
     {
       runtime: "Linux Preview",
       applicationName: "Nibi Preview",
-      executableName: "zcode-preview",
+      executableName: "nibi-preview",
     },
     {
       runtime: "local development",

@@ -11,7 +11,7 @@ import { pathToFileURL } from "node:url";
 const repoRoot = resolve(import.meta.dirname, "..");
 const startScript = join(repoRoot, "docker/web-app/start.mjs");
 
-const tempDir = await mkdtemp(join(tmpdir(), "zcode-web-app-gateway-reset-"));
+const tempDir = await mkdtemp(join(tmpdir(), "nibi-web-app-gateway-reset-"));
 const dataDir = join(tempDir, "data");
 const workspaceDir = join(tempDir, "workspace");
 const webDistDir = join(tempDir, "web");

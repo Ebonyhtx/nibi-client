@@ -91,7 +91,7 @@ async function main() {
   });
   if (positionals.length !== 1)
     throw new Error(
-      "Usage: node validate-plugin.mjs <plugin-path> [--cli zcode-executable-or-js-entry]",
+      "Usage: node validate-plugin.mjs <plugin-path> [--cli nibi-executable-or-js-entry]",
     );
   await validatePlugin(positionals[0], values.cli);
 }

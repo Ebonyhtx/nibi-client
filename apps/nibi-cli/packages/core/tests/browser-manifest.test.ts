@@ -133,7 +133,7 @@ describe("browser capability manifest", () => {
     expect(bootstrapSource).toBeTruthy();
     if (!bootstrapSource) return;
 
-    const pluginRoot = await mkdtemp(join(tmpdir(), "zcode-browser-skill-"));
+    const pluginRoot = await mkdtemp(join(tmpdir(), "nibi-browser-skill-"));
     const previousPluginRoot = process.env.NIBI_PLUGIN_ROOT;
     let session: NodeReplSession | undefined;
     try {

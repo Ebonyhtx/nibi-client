@@ -187,7 +187,7 @@ const prepareSeaBlob = async (target) => {
         },
         disableExperimentalSEAWarning: true,
         main: "dist/nibi.cjs",
-        output: `dist/zcode-${target}.sea.blob`,
+        output: `dist/nibi-${target}.sea.blob`,
         useCodeCache: false,
         useSnapshot: false,
       },

@@ -1,7 +1,7 @@
 Unicode true
 Name "Nibi installer.nsh smoke"
 OutFile "${OUTPUT_FILE}"
-InstallDir "$TEMP\zcode-installer-nsh-smoke"
+InstallDir "$TEMP\nibi-installer-nsh-smoke"
 RequestExecutionLevel user
 SilentInstall silent
 

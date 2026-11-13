@@ -29,7 +29,7 @@ async function main() {
     baseURL: rawOptions.baseURL ?? DEFAULT_BASE_URL,
     model: rawOptions.model ?? DEFAULT_MODEL,
   };
-  const runRoot = await mkdtemp(join(tmpdir(), "zcode-compact-e2e-"));
+  const runRoot = await mkdtemp(join(tmpdir(), "nibi-compact-e2e-"));
   const artifactsRoot = options.artifactsDir ? resolve(options.artifactsDir) : runRoot;
   const resultPath = join(artifactsRoot, "result.json");
   const eventsIndexPath = join(artifactsRoot, "events.json");

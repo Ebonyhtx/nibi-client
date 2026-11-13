@@ -14,7 +14,7 @@ const oldFields = {
 };
 
 async function setup(raw: unknown = oldFields) {
-  const home = await mkdtemp(join(tmpdir(), "zcode-team-migration-"));
+  const home = await mkdtemp(join(tmpdir(), "nibi-team-migration-"));
   homes.push(home);
   process.env.HOME = home;
   const dir = join(home, ".nibi", "v2");

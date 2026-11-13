@@ -101,7 +101,7 @@ async function prepareGitRepositoryFixture(): Promise<void> {
   const fixturePath = join(DEFAULT_WORKSPACE, GIT_FIXTURE_FILE);
   await mkdir(dirname(fixturePath), { recursive: true });
   await execGit("git", ["init", "-q"], { cwd: DEFAULT_WORKSPACE });
-  await execGit("git", ["config", "user.email", "zcode-e2e@example.invalid"], {
+  await execGit("git", ["config", "user.email", "nibi-e2e@example.invalid"], {
     cwd: DEFAULT_WORKSPACE,
   });
   await execGit("git", ["config", "user.name", "Nibi E2E"], {

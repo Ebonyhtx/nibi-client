@@ -2,7 +2,7 @@
 
 ## 核心思路
 
-ZCode Agent 以前每个平台都内置一份独立的原生二进制（改名前的旧名是 `zcode-agent`，现在叫 `nibi-agent`；SEA：官方 Node + `zcode.cjs` + TUI 资源 + 官方插件），单平台 ~180MB，里面**自带一份 Node**。
+ZCode Agent 以前每个平台都内置一份独立的原生二进制（改名前的旧名是 `nibi-agent`，现在叫 `nibi-agent`；SEA：官方 Node + `zcode.cjs` + TUI 资源 + 官方插件），单平台 ~180MB，里面**自带一份 Node**。
 
 但无论桌面还是远端，运行 agent 的环境里**本来就已经有一份 Node**：
 
@@ -33,10 +33,10 @@ process.execPath  <Electron Helper>
 esbuild `target` 从 `node26` 降到 **`node22`**，取两端运行时里最低的 Node 版本（远端 v22.16）。保证同一份 `zcode.cjs` 在桌面 Node 24 和远端 Node 22 上都不会用到目标运行时不支持的语法。
 
 **桌面**
-- `zcode-agent-runtime.ts`：描述符加 `nodeBundleEntryFile: "zcode.cjs"` + `resolveNodeBundleSegments()`。
+- `nibi-agent-runtime.ts`：描述符加 `nodeBundleEntryFile: "zcode.cjs"` + `resolveNodeBundleSegments()`。
 - `providerRuntimeResolver.ts`：`findZCodeAgentRuntimeNodeBundle()` 定位 `resources/nibi/zcode.cjs`。
 - `zcodeAgentProcessManager.ts`：`resolveElectronRuntimeZCodeAgentCommand`，插在 monorepo dev 与 native-binary 兜底之间。
-- 打包：`prepare:agent-bundle`（`prepare-agent-node-bundle.mjs`）构建 cli、把 `zcode.cjs` stage 进 `bundled-agents/<平台>/glm/`、删掉旧原生 `zcode-agent`；`prepare:runtime-assets` 本机列表用它替换 `prepare:glm`；electron-builder 整目录拷 `resources/nibi`。
+- 打包：`prepare:agent-bundle`（`prepare-agent-node-bundle.mjs`）构建 cli、把 `zcode.cjs` stage 进 `bundled-agents/<平台>/glm/`、删掉旧原生 `nibi-agent`；`prepare:runtime-assets` 本机列表用它替换 `prepare:glm`；electron-builder 整目录拷 `resources/nibi`。
 
 **远端**
 - `@nibi/server-cli stage:remote-assets` 为四个平台生成完整 archive；`runtime/zcode.cjs` 与 Server CLI/Core 使用同一 descriptor SHA 身份。

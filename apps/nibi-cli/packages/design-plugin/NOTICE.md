@@ -1,7 +1,7 @@
 # Design plugin provenance
 
 This plugin is derived from the upstream `design` plugin (`0.7.2`) shipped in
-`zai-org/ZCode` under `apps/zcode-cli/packages/design-plugin`, licensed under
+`zai-org/ZCode` under `apps/nibi-cli/packages/design-plugin`, licensed under
 Apache-2.0.
 
 NIBI modifications: plugin manifest moved to `.nibi-plugin`, plugin host

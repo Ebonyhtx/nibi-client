@@ -1,4 +1,4 @@
-//! App 协议的物理帧 wire v3（`packages/shared/src/zcode-protocol-v4/wire.ts`、`wire-codec.ts`）：逻辑帧放进 `complete`
+//! App 协议的物理帧 wire v3（`packages/shared/src/nibi-protocol-v4/wire.ts`、`wire-codec.ts`）：逻辑帧放进 `complete`
 //! 帧；太大的逻辑帧按 UTF-8 字节分片（`fragment`，整段逻辑帧的 crc32、每片 base64），对端的装配器拼回去。
 
 use base64::Engine;

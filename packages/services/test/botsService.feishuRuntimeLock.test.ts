@@ -26,7 +26,7 @@ afterEach(() => {
 });
 
 function useTempDataDir() {
-  tempDir = mkdtempSync(join(tmpdir(), "zcode-bots-feishu-runtime-lock-"));
+  tempDir = mkdtempSync(join(tmpdir(), "nibi-bots-feishu-runtime-lock-"));
   setDataBaseDir(tempDir);
 }
 

@@ -141,7 +141,7 @@ fn registry_for(id: &str, version: &str, tarball: Vec<u8>) -> (Registry, String,
     let registry = Registry::start();
     let name = format!("@nibi-studio/cli-{id}");
     let packument = format!("/@nibi%2fcli-{id}");
-    let tarball_path = format!("/{name}/-/zcode-{id}-{version}.tgz");
+    let tarball_path = format!("/{name}/-/nibi-{id}-{version}.tgz");
     let integrity = format!(
         "sha512-{}",
         base64::engine::general_purpose::STANDARD.encode(Sha512::digest(&tarball))

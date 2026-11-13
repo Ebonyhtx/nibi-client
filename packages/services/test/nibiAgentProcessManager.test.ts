@@ -78,7 +78,7 @@ describe("E2E agent coverage", () => {
         "coverage",
         "raw",
         "cli",
-        "zcode-e2e-coverage-preload.cjs",
+        "nibi-e2e-coverage-preload.cjs",
       );
 
       expect(env).toEqual({
@@ -227,7 +227,7 @@ describe("resolveDefaultNibiAgentCommand", () => {
         configurable: true,
         value: electron ? "41.0.3" : undefined,
       });
-      const root = mkdtempSync(join(tmpdir(), "zcode-bytecode-resolver-"));
+      const root = mkdtempSync(join(tmpdir(), "nibi-bytecode-resolver-"));
       createdDirs.push(root);
       const source = join(root, "apps/nibi-cli/packages/cli/dist/nibi.cjs");
       const bytecode = join(dirname(source), "zcode.bytecode.cjs");
@@ -253,7 +253,7 @@ describe("resolveDefaultNibiAgentCommand", () => {
     delete process.env.NIBI_AGENT_SERVER_COMMAND;
     process.env.NIBI_DESKTOP_AGENT_BYTECODE = "1";
     Object.defineProperty(process.versions, "electron", { configurable: true, value: "41.0.3" });
-    const root = mkdtempSync(join(tmpdir(), "zcode-bytecode-missing-"));
+    const root = mkdtempSync(join(tmpdir(), "nibi-bytecode-missing-"));
     createdDirs.push(root);
     const source = join(root, "apps/nibi-cli/packages/cli/dist/nibi.cjs");
     mkdirSync(dirname(source), { recursive: true });
@@ -1028,7 +1028,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
   });
 
   it("观测超时保留真实 Agent，持续观测也不能阻止空闲回收", async () => {
-    const workspacePath = mkdtempSync(join(tmpdir(), "zcode-observation-"));
+    const workspacePath = mkdtempSync(join(tmpdir(), "nibi-observation-"));
     createdDirs.push(workspacePath);
     const manager = new NibiAgentProcessManager({
       idleTimeoutMs: 250,
@@ -1599,7 +1599,7 @@ describe("NIBI_KERNEL 灰度开关", () => {
   }
 
   function sandboxWithBundle(): string {
-    const root = mkdtempSync(join(tmpdir(), "zcode-kernel-switch-"));
+    const root = mkdtempSync(join(tmpdir(), "nibi-kernel-switch-"));
     createdDirs.push(root);
     // 打包位的候选根之一：cwd/bundled-resources/<bundledResourceDir>/nibi.cjs
     const bundle = join(root, "bundled-resources", "nibi", "nibi.cjs");
@@ -1714,7 +1714,7 @@ describe("NIBI_KERNEL 灰度开关", () => {
   });
 
   it("默认 Rust 但找不到 Rust 二进制时回落到 node 链路", () => {
-    const root = mkdtempSync(join(tmpdir(), "zcode-kernel-nobinary-"));
+    const root = mkdtempSync(join(tmpdir(), "nibi-kernel-nobinary-"));
     createdDirs.push(root);
     process.chdir(root);
     delete process.env.NIBI_KERNEL;

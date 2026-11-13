@@ -233,7 +233,7 @@ describe("AgentRuntime session persistence", () => {
       sessionId,
       {
         modelSelection,
-        workingDirectory: "/tmp/zcode-runtime-initial-model-selection",
+        workingDirectory: "/tmp/nibi-runtime-initial-model-selection",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -258,7 +258,7 @@ describe("AgentRuntime session persistence", () => {
 
   it("reuses messages materialized by the cold-resume caller", async () => {
     const sessionId = createSessionId("runtime-persistence-preloaded-resume-messages");
-    const workingDirectory = "/tmp/zcode-runtime-preloaded-resume-messages";
+    const workingDirectory = "/tmp/nibi-runtime-preloaded-resume-messages";
     const store = createRecordingSessionStore();
     await store.createSession({
       directory: workingDirectory,
@@ -293,7 +293,7 @@ describe("AgentRuntime session persistence", () => {
     const messagesSpy = vi.spyOn(store, "messages");
     const runtime = createTestAgentRuntime(
       sessionId,
-      { workingDirectory: "/tmp/zcode-runtime-stale-directory" },
+      { workingDirectory: "/tmp/nibi-runtime-stale-directory" },
       {
         eventStore: createTestSessionEventStore(),
         sessionStore: store,
@@ -314,9 +314,9 @@ describe("AgentRuntime session persistence", () => {
 
   it("persists and restores the opaque workspace identity before Memory context initialization", async () => {
     const sessionId = createSessionId("runtime-persistence-memory-workspace");
-    const persistedDirectory = "/tmp/zcode-runtime-persisted-memory-workspace";
-    const startupDirectory = "/tmp/zcode-runtime-stale-memory-workspace";
-    const cliStorageRoot = "/tmp/zcode-runtime-memory-storage/cli";
+    const persistedDirectory = "/tmp/nibi-runtime-persisted-memory-workspace";
+    const startupDirectory = "/tmp/nibi-runtime-stale-memory-workspace";
+    const cliStorageRoot = "/tmp/nibi-runtime-memory-storage/cli";
     const workspaceIdentity = "ssh:example:/workspace/app";
     const expectedMemoryRoot = resolveProjectMemoryRoot({
       cliStorageRoot,
@@ -405,8 +405,8 @@ describe("AgentRuntime session persistence", () => {
 
   it("falls back to the persisted directory when the resumed session has no workspace identity", async () => {
     const sessionId = createSessionId("runtime-persistence-memory-directory-fallback");
-    const persistedDirectory = "/tmp/zcode-runtime-persisted-memory-directory";
-    const cliStorageRoot = "/tmp/zcode-runtime-memory-storage/cli";
+    const persistedDirectory = "/tmp/nibi-runtime-persisted-memory-directory";
+    const cliStorageRoot = "/tmp/nibi-runtime-memory-storage/cli";
     const expectedMemoryRoot = resolveProjectMemoryRoot({
       cliStorageRoot,
       workspacePath: persistedDirectory,
@@ -433,7 +433,7 @@ describe("AgentRuntime session persistence", () => {
           workspaceIdentity: "stale-workspace-identity",
         },
         taskType: "workflow_child",
-        workingDirectory: "/tmp/zcode-runtime-stale-memory-directory",
+        workingDirectory: "/tmp/nibi-runtime-stale-memory-directory",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -462,8 +462,8 @@ describe("AgentRuntime session persistence", () => {
 
   it("loads the current MEMORY.md read state after cold-resume history hydration", async () => {
     const sessionId = createSessionId("runtime-persistence-current-memory-index-state");
-    const workingDirectory = "/tmp/zcode-runtime-current-memory-index-state";
-    const cliStorageRoot = "/tmp/zcode-runtime-current-memory-index-state-storage/cli";
+    const workingDirectory = "/tmp/nibi-runtime-current-memory-index-state";
+    const cliStorageRoot = "/tmp/nibi-runtime-current-memory-index-state-storage/cli";
     const memoryRoot = resolveProjectMemoryRoot({
       cliStorageRoot,
       workspacePath: workingDirectory,
@@ -538,7 +538,7 @@ describe("AgentRuntime session persistence", () => {
       {
         memory: { cliStorageRoot, enabled: true, use: true },
         mode: "edit",
-        workingDirectory: "/tmp/zcode-runtime-stale-memory-index-state",
+        workingDirectory: "/tmp/nibi-runtime-stale-memory-index-state",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -568,7 +568,7 @@ describe("AgentRuntime session persistence", () => {
       sessionId,
       {
         agentName: "persistence-test",
-        workingDirectory: "/tmp/zcode-runtime-persistence-auto-resolution",
+        workingDirectory: "/tmp/nibi-runtime-persistence-auto-resolution",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -638,7 +638,7 @@ describe("AgentRuntime session persistence", () => {
       {
         agentName: "persistence-test",
         mode: "plan",
-        workingDirectory: "/tmp/zcode-runtime-persistence",
+        workingDirectory: "/tmp/nibi-runtime-persistence",
       },
       {
         appVersion: "9.8.7",
@@ -694,7 +694,7 @@ describe("AgentRuntime session persistence", () => {
       sessionId,
       {
         agentName: "persistence-test",
-        workingDirectory: "/tmp/zcode-runtime-persistence-model-change",
+        workingDirectory: "/tmp/nibi-runtime-persistence-model-change",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -744,7 +744,7 @@ describe("AgentRuntime session persistence", () => {
       sessionId,
       {
         agentName: "persistence-test",
-        workingDirectory: "/tmp/zcode-runtime-persistence-initial-child-model",
+        workingDirectory: "/tmp/nibi-runtime-persistence-initial-child-model",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -798,7 +798,7 @@ describe("AgentRuntime session persistence", () => {
         mode: "build",
         modelSelection: createTestModelSelection(requestModel),
         modelStreaming: "on",
-        workingDirectory: "/tmp/zcode-runtime-persistence-provider-cancellation",
+        workingDirectory: "/tmp/nibi-runtime-persistence-provider-cancellation",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -920,7 +920,7 @@ describe("AgentRuntime session persistence", () => {
       {
         agentName: "title-event-test",
         mode: "build",
-        workingDirectory: "/tmp/zcode-runtime-first-input-title",
+        workingDirectory: "/tmp/nibi-runtime-first-input-title",
       },
       {
         eventStore,
@@ -972,7 +972,7 @@ describe("AgentRuntime session persistence", () => {
       sessionId,
       {
         mode: "build",
-        workingDirectory: "/tmp/zcode-runtime-persistence-lifecycle-log",
+        workingDirectory: "/tmp/nibi-runtime-persistence-lifecycle-log",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -1016,8 +1016,8 @@ describe("AgentRuntime session persistence", () => {
       sessionId,
       {
         mode: "build",
-        workingDirectory: "/tmp/zcode-runtime-local-workspace",
-        workspacePath: "/tmp/zcode-runtime-local-workspace/",
+        workingDirectory: "/tmp/nibi-runtime-local-workspace",
+        workspacePath: "/tmp/nibi-runtime-local-workspace/",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -1029,8 +1029,8 @@ describe("AgentRuntime session persistence", () => {
 
     expect(store.createdSessions).toEqual([
       expect.objectContaining({
-        directory: "/tmp/zcode-runtime-local-workspace/",
-        path: "/tmp/zcode-runtime-local-workspace/",
+        directory: "/tmp/nibi-runtime-local-workspace/",
+        path: "/tmp/nibi-runtime-local-workspace/",
       }),
     ]);
   });
@@ -1075,8 +1075,8 @@ describe("AgentRuntime session persistence", () => {
       parentID: parentSessionId,
       projectID: createProjectId("runtime-persistence-fork-title"),
       slug: "runtime-persistence-fork-title",
-      directory: "/tmp/zcode-runtime-fork-title",
-      path: "/tmp/zcode-runtime-fork-title",
+      directory: "/tmp/nibi-runtime-fork-title",
+      path: "/tmp/nibi-runtime-fork-title",
       title: "Fork of Checkpoint复现目标",
       titleSource: "generated",
       version: "test",
@@ -1086,7 +1086,7 @@ describe("AgentRuntime session persistence", () => {
       sessionId,
       {
         mode: "build",
-        workingDirectory: "/tmp/zcode-runtime-fork-title",
+        workingDirectory: "/tmp/nibi-runtime-fork-title",
       },
       {
         eventStore,
@@ -1119,7 +1119,7 @@ describe("AgentRuntime session persistence", () => {
 
   it("does not derive collaboration mode from checkpoint-only resume events", async () => {
     const sessionId = createSessionId("runtime-persistence-checkpoint-mode");
-    const workingDirectory = "/tmp/zcode-runtime-checkpoint-mode";
+    const workingDirectory = "/tmp/nibi-runtime-checkpoint-mode";
     const store = createRecordingSessionStore();
     await store.createSession({
       id: sessionId,
@@ -1181,7 +1181,7 @@ describe("AgentRuntime session persistence", () => {
 
   it("gives an invocation mode priority over an authoritative restored mode", async () => {
     const sessionId = createSessionId("runtime-persistence-invocation-mode");
-    const workingDirectory = "/tmp/zcode-runtime-invocation-mode";
+    const workingDirectory = "/tmp/nibi-runtime-invocation-mode";
     const store = createRecordingSessionStore();
     await store.createSession({
       id: sessionId,
@@ -1227,7 +1227,7 @@ describe("AgentRuntime session persistence", () => {
       sessionId,
       {
         currentDate: "2026-06-02",
-        workingDirectory: "/tmp/zcode-runtime-date-resume",
+        workingDirectory: "/tmp/nibi-runtime-date-resume",
       },
       {
         eventStore,
@@ -1253,7 +1253,7 @@ describe("AgentRuntime session persistence", () => {
       sessionId,
       {
         currentDate: "2026-06-03",
-        workingDirectory: "/tmp/zcode-runtime-date-resume",
+        workingDirectory: "/tmp/nibi-runtime-date-resume",
       },
       {
         eventStore,
@@ -1286,7 +1286,7 @@ describe("AgentRuntime session persistence", () => {
 
   it("resumes compact history even when persisted rewind metadata points before compact", async () => {
     const sessionId = createSessionId("runtime-persistence-resume-stale-revert-after-compact");
-    const workingDirectory = "/tmp/zcode-runtime-resume-stale-revert-after-compact";
+    const workingDirectory = "/tmp/nibi-runtime-resume-stale-revert-after-compact";
     const store = createRecordingSessionStore();
     await store.createSession({
       directory: workingDirectory,
@@ -1400,7 +1400,7 @@ describe("AgentRuntime session persistence", () => {
 
   it("hydrates read file state into the resumed runtime tool executor", async () => {
     const sessionId = createSessionId("runtime-persistence-read-state-resume");
-    const workingDirectory = resolve("/tmp/zcode-runtime-read-state-resume");
+    const workingDirectory = resolve("/tmp/nibi-runtime-read-state-resume");
     const file = resolve(workingDirectory, "existing.txt");
     const store = createRecordingSessionStore();
     await store.createSession({
@@ -1500,7 +1500,7 @@ describe("AgentRuntime session persistence", () => {
 
   it("persists structured Read file state metadata on completed Read tool parts", async () => {
     const sessionId = createSessionId("runtime-persistence-read-state-metadata");
-    const workingDirectory = resolve("/tmp/zcode-runtime-read-state-metadata");
+    const workingDirectory = resolve("/tmp/nibi-runtime-read-state-metadata");
     const file = resolve(workingDirectory, "existing.txt");
     const store = createRecordingSessionStore();
     const responses = [
@@ -1571,7 +1571,7 @@ describe("AgentRuntime session persistence", () => {
 
   it("persists Read metadata from the snapshot returned by that Read", async () => {
     const sessionId = createSessionId("runtime-persistence-read-state-metadata-snapshot");
-    const workingDirectory = resolve("/tmp/zcode-runtime-read-state-metadata-snapshot");
+    const workingDirectory = resolve("/tmp/nibi-runtime-read-state-metadata-snapshot");
     const file = resolve(workingDirectory, "existing.txt");
     const store = createRecordingSessionStore();
     const responses = [
@@ -1646,7 +1646,7 @@ describe("AgentRuntime session persistence", () => {
 
   it("persists structured read state metadata on completed Write and Edit tool parts", async () => {
     const sessionId = createSessionId("runtime-persistence-write-edit-read-state-metadata");
-    const workingDirectory = resolve("/tmp/zcode-runtime-write-edit-read-state-metadata");
+    const workingDirectory = resolve("/tmp/nibi-runtime-write-edit-read-state-metadata");
     const file = resolve(workingDirectory, "existing.txt");
     const store = createRecordingSessionStore();
     const responses = [
@@ -1758,7 +1758,7 @@ describe("AgentRuntime session persistence", () => {
 
   it("rejects Edit after resume when the file changed after persisted Edit metadata", async () => {
     const sessionId = createSessionId("runtime-persistence-edit-stale-after-resume");
-    const workingDirectory = resolve("/tmp/zcode-runtime-edit-stale-after-resume");
+    const workingDirectory = resolve("/tmp/nibi-runtime-edit-stale-after-resume");
     const file = resolve(workingDirectory, "existing.txt");
     const store = createRecordingSessionStore();
     await store.createSession({
@@ -1853,7 +1853,7 @@ describe("AgentRuntime session persistence", () => {
   it("persists the Bash shell selection captured when the session is first created", async () => {
     const sessionId = createSessionId("runtime-persistence-shell-snapshot");
     const store = createRecordingSessionStore();
-    const workingDirectory = "/tmp/zcode-runtime-shell-snapshot";
+    const workingDirectory = "/tmp/nibi-runtime-shell-snapshot";
     const runtime = createTestAgentRuntime(
       sessionId,
       {
@@ -1907,7 +1907,7 @@ describe("AgentRuntime session persistence", () => {
   it("announces legacy cold-resume Bash shell drift when no shell snapshot exists", async () => {
     const sessionId = createSessionId("runtime-persistence-shell-resume");
     const store = createRecordingSessionStore();
-    const workingDirectory = "/tmp/zcode-runtime-shell-resume";
+    const workingDirectory = "/tmp/nibi-runtime-shell-resume";
     const firstRuntime = createTestAgentRuntime(
       sessionId,
       {
@@ -1980,7 +1980,7 @@ describe("AgentRuntime session persistence", () => {
   it("announces Windows Git Bash shell when legacy env shell is blank", async () => {
     const sessionId = createSessionId("runtime-persistence-windows-git-bash-blank-shell");
     const store = createRecordingSessionStore();
-    const workingDirectory = "/tmp/zcode-runtime-windows-git-bash-blank-shell";
+    const workingDirectory = "/tmp/nibi-runtime-windows-git-bash-blank-shell";
     const firstRuntime = createTestAgentRuntime(
       sessionId,
       {
@@ -2045,7 +2045,7 @@ describe("AgentRuntime session persistence", () => {
   it("does not duplicate the Windows Git Bash migration reminder after repeated resume", async () => {
     const sessionId = createSessionId("runtime-persistence-windows-git-bash-migration-once");
     const store = createRecordingSessionStore();
-    const workingDirectory = "/tmp/zcode-runtime-windows-git-bash-migration-once";
+    const workingDirectory = "/tmp/nibi-runtime-windows-git-bash-migration-once";
     const firstRuntime = createTestAgentRuntime(
       sessionId,
       {
@@ -2124,7 +2124,7 @@ describe("AgentRuntime session persistence", () => {
   it("restores the persisted Bash shell selection before resumed tool execution", async () => {
     const sessionId = createSessionId("runtime-persistence-shell-tool-snapshot");
     const store = createRecordingSessionStore();
-    const workingDirectory = mkdtempSync(join(tmpdir(), "zcode-shell-tool-snapshot-"));
+    const workingDirectory = mkdtempSync(join(tmpdir(), "nibi-shell-tool-snapshot-"));
     const shellPath = createExecutableShell(workingDirectory, "git-bash");
 
     try {
@@ -2225,7 +2225,7 @@ describe("AgentRuntime session persistence", () => {
   it("falls back to the current Bash shell selection when the persisted snapshot is stale", async () => {
     const sessionId = createSessionId("runtime-persistence-stale-shell-snapshot");
     const store = createRecordingSessionStore();
-    const tempRoot = mkdtempSync(join(tmpdir(), "zcode-stale-shell-snapshot-"));
+    const tempRoot = mkdtempSync(join(tmpdir(), "nibi-stale-shell-snapshot-"));
     const oldShellPath = createExecutableShell(tempRoot, "old-bash");
     const newShellPath = createExecutableShell(tempRoot, "new-zsh");
 
@@ -2339,7 +2339,7 @@ describe("AgentRuntime session persistence", () => {
   it("reads local image attachments into model messages and persisted file parts", async () => {
     const sessionId = createSessionId("runtime-persistence-attachment");
     const store = createRecordingSessionStore();
-    const workingDirectory = resolve("/tmp/zcode-runtime-attachments");
+    const workingDirectory = resolve("/tmp/nibi-runtime-attachments");
     const attachedPath = resolve(workingDirectory, "screen.png");
     let capturedMessages: ModelInputMessage[] = [];
     const runtime = createTestAgentRuntime(
@@ -2434,7 +2434,7 @@ describe("AgentRuntime session persistence", () => {
       {
         agentName: "persistence-test",
         mode: "plan",
-        workingDirectory: "/tmp/zcode-runtime-inline-image-path",
+        workingDirectory: "/tmp/nibi-runtime-inline-image-path",
       },
       {
         artifactStore,
@@ -2500,7 +2500,7 @@ describe("AgentRuntime session persistence", () => {
       {
         agentName: "persistence-test",
         mode: "plan",
-        workingDirectory: "/tmp/zcode-runtime-image-path-failure",
+        workingDirectory: "/tmp/nibi-runtime-image-path-failure",
       },
       {
         artifactStore,
@@ -2523,7 +2523,7 @@ describe("AgentRuntime session persistence", () => {
   it("projects local text file attachments as synthetic read system reminders", async () => {
     const sessionId = createSessionId("runtime-persistence-text-attachment-reminder");
     const store = createRecordingSessionStore();
-    const workingDirectory = resolve("/tmp/zcode-runtime-text-attachments");
+    const workingDirectory = resolve("/tmp/nibi-runtime-text-attachments");
     const attachedPath = resolve(workingDirectory, "docs/notes.md");
     let capturedMessages: ModelInputMessage[] = [];
     const runtime = createTestAgentRuntime(
@@ -2596,7 +2596,7 @@ describe("AgentRuntime session persistence", () => {
 
   it("reads large text attachments through the Read partial-view path", async () => {
     const sessionId = createSessionId("runtime-persistence-large-attachment-reference");
-    const workingDirectory = resolve("/tmp/zcode-runtime-truncated-attachments");
+    const workingDirectory = resolve("/tmp/nibi-runtime-truncated-attachments");
     const attachedPath = resolve(workingDirectory, "long.md");
     const content = Array.from(
       { length: 1800 },
@@ -2639,7 +2639,7 @@ describe("AgentRuntime session persistence", () => {
 
   it("reads text attachments above the Read full-read size guard through a partial Read view", async () => {
     const sessionId = createSessionId("runtime-persistence-too-large-attachment-reference");
-    const workingDirectory = resolve("/tmp/zcode-runtime-too-large-attachments");
+    const workingDirectory = resolve("/tmp/nibi-runtime-too-large-attachments");
     const attachedPath = resolve(workingDirectory, "too-large.md");
     const content = Array.from({ length: 2_100 }, (_, index) => `line ${index + 1}`).join("\n");
     let capturedMessages: ModelInputMessage[] = [];
@@ -2686,7 +2686,7 @@ describe("AgentRuntime session persistence", () => {
 
   it("keeps token-capped partial Read output for text attachments above the full-read size guard", async () => {
     const sessionId = createSessionId("runtime-persistence-too-large-token-capped-attachment");
-    const workingDirectory = resolve("/tmp/zcode-runtime-too-large-token-attachments");
+    const workingDirectory = resolve("/tmp/nibi-runtime-too-large-token-attachments");
     const attachedPath = resolve(workingDirectory, "huge-lines.md");
     const content = Array.from(
       { length: 2_100 },
@@ -2733,7 +2733,7 @@ describe("AgentRuntime session persistence", () => {
 
   it("projects text attachment read failures as metadata-only placeholders", async () => {
     const sessionId = createSessionId("runtime-persistence-failed-attachment-reminder");
-    const workingDirectory = resolve("/tmp/zcode-runtime-failed-attachments");
+    const workingDirectory = resolve("/tmp/nibi-runtime-failed-attachments");
     const attachedPath = resolve(workingDirectory, "missing.md");
     let capturedMessages: ModelInputMessage[] = [];
     const runtime = createTestAgentRuntime(
@@ -2781,7 +2781,7 @@ describe("AgentRuntime session persistence", () => {
       {
         agentName: "persistence-test",
         mode: "plan",
-        workingDirectory: "/tmp/zcode-runtime-url-attachments",
+        workingDirectory: "/tmp/nibi-runtime-url-attachments",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -2814,7 +2814,7 @@ describe("AgentRuntime session persistence", () => {
   it("resizes local image attachments before adding them to model messages", async () => {
     const sessionId = createSessionId("runtime-persistence-resized-attachment");
     const store = createRecordingSessionStore();
-    const workingDirectory = resolve("/tmp/zcode-runtime-resized-attachments");
+    const workingDirectory = resolve("/tmp/nibi-runtime-resized-attachments");
     const attachedPath = resolve(workingDirectory, "screen.png");
     const prepareRequests: Parameters<ImageProcessorPort["prepareForModel"]>[0][] = [];
     let capturedMessages: ModelInputMessage[] = [];

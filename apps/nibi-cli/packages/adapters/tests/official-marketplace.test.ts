@@ -18,7 +18,7 @@ describe("Nibi official marketplace partitions", () => {
   });
 
   async function makeStorageRoot(): Promise<string> {
-    const storageRoot = await mkdtemp(join(tmpdir(), "zcode-official-marketplace-"));
+    const storageRoot = await mkdtemp(join(tmpdir(), "nibi-official-marketplace-"));
     cleanups.push(storageRoot);
     return storageRoot;
   }
@@ -143,7 +143,7 @@ describe("Nibi official marketplace partitions", () => {
 
     expect(() =>
       writeCdnOfficialMarketplacePartitionSync({
-        manifest: { name: "zcode-plugins", plugins: [] },
+        manifest: { name: "nibi-plugins", plugins: [] },
         storageRoot,
       }),
     ).toThrow("Official marketplace manifest must be named nibi-official");

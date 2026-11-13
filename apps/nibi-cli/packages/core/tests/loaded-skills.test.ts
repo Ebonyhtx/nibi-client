@@ -54,7 +54,7 @@ describe("sessionHasLoadedSkill", () => {
 
     const other = historyWith((h) => {
       h.addAssistant("", [
-        { id: "call_1", name: "Skill", input: { skill: "zcode-configuration-guide" } },
+        { id: "call_1", name: "Skill", input: { skill: "nibi-configuration-guide" } },
       ]);
       h.addToolResult("call_1", "Skill", "ok", true);
       h.addAssistant("", [{ id: "call_2", name: "Read", input: { file_path: "SKILL.md" } }]);

@@ -332,7 +332,7 @@ describe("remote asset installer command builders", () => {
     "tries the next artifact URL when a downloaded candidate fails sha256 validation",
     async () => {
       const shellCommand = localShellCommand ?? "sh";
-      const dir = await mkdtemp(join(tmpdir(), "zcode-installer-download-"));
+      const dir = await mkdtemp(join(tmpdir(), "nibi-installer-download-"));
       const badArchive = join(dir, "bad.tar.gz");
       const goodArchive = join(dir, "good.tar.gz");
       const outputPath = join(dir, "component.tar.gz");
@@ -369,7 +369,7 @@ describe("remote asset installer command builders", () => {
 
 describe("LocalUploadAssetInstaller", () => {
   it("已取消连接不得开始写入远端 staging", async () => {
-    const releaseDir = await mkdtemp(join(tmpdir(), "zcode-installer-pre-cancel-test-"));
+    const releaseDir = await mkdtemp(join(tmpdir(), "nibi-installer-pre-cancel-test-"));
     await mkdir(join(releaseDir, "server"), { recursive: true });
     await writeFile(join(releaseDir, "server", "nibi-server.cjs"), "server", "utf8");
     const controller = new AbortController();
@@ -407,7 +407,7 @@ describe("LocalUploadAssetInstaller", () => {
   });
 
   shellBackedIt("SSH staging janitor 只删除超过 24 小时的 owner 文件", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-installer-stale-shell-test-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-installer-stale-shell-test-"));
     try {
       const releaseDir = join(rootDir, "release");
       const remoteDir = join(rootDir, "remote");
@@ -450,7 +450,7 @@ describe("LocalUploadAssetInstaller", () => {
   });
 
   it("文件上传取消后不再执行正式文件替换", async () => {
-    const releaseDir = await mkdtemp(join(tmpdir(), "zcode-installer-cancel-test-"));
+    const releaseDir = await mkdtemp(join(tmpdir(), "nibi-installer-cancel-test-"));
     await mkdir(join(releaseDir, "server"), { recursive: true });
     await writeFile(join(releaseDir, "server", "nibi-server.cjs"), "server", "utf8");
     const controller = new AbortController();
@@ -500,7 +500,7 @@ describe("LocalUploadAssetInstaller", () => {
   });
 
   it("目录上传取消后不再通过已释放连接执行远端清理", async () => {
-    const releaseDir = await mkdtemp(join(tmpdir(), "zcode-installer-dir-cancel-test-"));
+    const releaseDir = await mkdtemp(join(tmpdir(), "nibi-installer-dir-cancel-test-"));
     const sourceDir = join(releaseDir, "tools", "linux-x64", "ripgrep");
     await mkdir(sourceDir, { recursive: true });
     await writeFile(join(sourceDir, "rg"), "ripgrep", "utf8");
@@ -551,7 +551,7 @@ describe("LocalUploadAssetInstaller", () => {
   });
 
   it("新的 SSH 目录上传会先清理超过 24 小时的归档和解压 staging", async () => {
-    const releaseDir = await mkdtemp(join(tmpdir(), "zcode-installer-stale-dir-test-"));
+    const releaseDir = await mkdtemp(join(tmpdir(), "nibi-installer-stale-dir-test-"));
     const sourceDir = join(releaseDir, "tools", "linux-x64", "ripgrep");
     await mkdir(sourceDir, { recursive: true });
     await writeFile(join(sourceDir, "rg"), "ripgrep", "utf8");
@@ -580,7 +580,7 @@ describe("LocalUploadAssetInstaller", () => {
   });
 
   it("uses a unique staging path for each uploaded file replacement", async () => {
-    const releaseDir = await mkdtemp(join(tmpdir(), "zcode-installer-test-"));
+    const releaseDir = await mkdtemp(join(tmpdir(), "nibi-installer-test-"));
     await mkdir(join(releaseDir, "server"), { recursive: true });
     await writeFile(join(releaseDir, "server", "nibi-server.cjs"), "server", "utf8");
     const backend = new InstallerBackend();
@@ -604,7 +604,7 @@ describe("LocalUploadAssetInstaller", () => {
   });
 
   it("非取消文件替换失败时清理当前 owner staging", async () => {
-    const releaseDir = await mkdtemp(join(tmpdir(), "zcode-installer-cleanup-test-"));
+    const releaseDir = await mkdtemp(join(tmpdir(), "nibi-installer-cleanup-test-"));
     await mkdir(join(releaseDir, "node"), { recursive: true });
     await writeFile(join(releaseDir, "node", "node"), "node", "utf8");
     const backend = new FailingReplaceBackend();
@@ -630,7 +630,7 @@ describe("LocalUploadAssetInstaller", () => {
   });
 
   it("resolves component versions from per-component release dirs", async () => {
-    const releaseDir = await mkdtemp(join(tmpdir(), "zcode-installer-test-"));
+    const releaseDir = await mkdtemp(join(tmpdir(), "nibi-installer-test-"));
     await writeFile(
       join(releaseDir, "manifest-linux-x64.json"),
       JSON.stringify({
@@ -669,7 +669,7 @@ describe("LocalUploadAssetInstaller", () => {
   });
 
   it("allows callers to probe optional local assets without throwing", async () => {
-    const releaseDir = await mkdtemp(join(tmpdir(), "zcode-installer-test-"));
+    const releaseDir = await mkdtemp(join(tmpdir(), "nibi-installer-test-"));
     const installer = new LocalUploadAssetInstaller(
       new InstallerBackend(),
       { releaseDir, platformArch: "linux-x64" },
@@ -688,7 +688,7 @@ describe("LocalUploadAssetInstaller", () => {
   });
 
   it("creates directory upload archives without relying on local system tar", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-installer-test-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-installer-test-"));
     const releaseDir = join(rootDir, "release");
     const sourceDir = join(releaseDir, "tools", "linux-x64", "ripgrep");
     const backend = new InstallerBackend();
@@ -732,7 +732,7 @@ describe("LocalUploadAssetInstaller", () => {
   });
 
   it("falls back to CDN cache when local directory exists but required child paths are missing", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-installer-test-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-installer-test-"));
     const staleReleaseDir = join(rootDir, "stale-release");
     const cdnReleaseDir = join(rootDir, "cdn-release");
     const sourceRelativePath = "glm/linux-x64/packages";
@@ -780,7 +780,7 @@ describe("LocalUploadAssetInstaller", () => {
   });
 
   it("bounds the internal CDN fallback with the configured manifest deadline", async () => {
-    const releaseDir = await mkdtemp(join(tmpdir(), "zcode-installer-test-"));
+    const releaseDir = await mkdtemp(join(tmpdir(), "nibi-installer-test-"));
     const fetchMock = vi.fn(
       async (_input: RequestInfo | URL, init?: RequestInit) =>
         await new Promise<Response>((_resolve, reject) => {
@@ -825,7 +825,7 @@ describe("RemoteDownloadAssetInstaller", () => {
   )(
     "远端 $stage 失败保留原始错误并清理，恢复后可重试（progress=$supportsProgress）",
     async ({ stage, diagnostic, supportsProgress }) => {
-      const rootDir = await mkdtemp(join(tmpdir(), "zcode-installer-download-failure-"));
+      const rootDir = await mkdtemp(join(tmpdir(), "nibi-installer-download-failure-"));
       const sourcePath = join(rootDir, "nibi-server.cjs");
       const archivePath = join(rootDir, "component.tar.gz");
       await writeFile(sourcePath, "current server");

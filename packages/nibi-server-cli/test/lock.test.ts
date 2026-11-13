@@ -10,7 +10,7 @@ const DEAD_PID = 2 ** 30;
 
 describe("DataRootLock", () => {
   it("recovers a stale lock left behind by a dead process", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-lock-stale-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-lock-stale-"));
     const lockFile = join(root, "run", "server.lock");
     await mkdir(join(root, "run"), { recursive: true });
     await writeFile(lockFile, `${JSON.stringify({ pid: DEAD_PID, acquiredAt: 0 })}\n`, "utf8");
@@ -22,7 +22,7 @@ describe("DataRootLock", () => {
   });
 
   it("recovers a corrupted lock file", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-lock-corrupt-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-lock-corrupt-"));
     const lockFile = join(root, "run", "server.lock");
     await mkdir(join(root, "run"), { recursive: true });
     await writeFile(lockFile, "not-json", "utf8");
@@ -33,7 +33,7 @@ describe("DataRootLock", () => {
   });
 
   it("refuses to steal the lock from a live process", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-lock-live-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-lock-live-"));
     const lockFile = join(root, "run", "server.lock");
     await mkdir(join(root, "run"), { recursive: true });
     await writeFile(lockFile, `${JSON.stringify({ pid: process.pid, acquiredAt: Date.now() })}\n`, "utf8");
@@ -43,7 +43,7 @@ describe("DataRootLock", () => {
   });
 
   it("reports missing, stale, active and malformed lock owners without mutating the file", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-lock-inspect-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-lock-inspect-"));
     const lockFile = join(root, "run", "server.lock");
     const lock = new DataRootLock(lockFile);
 
@@ -59,8 +59,8 @@ describe("DataRootLock", () => {
   });
 
   it("keeps locks under different data roots isolated (R2-CLI-13)", async () => {
-    const rootA = await mkdtemp(join(tmpdir(), "zcode-r2-lock-a-"));
-    const rootB = await mkdtemp(join(tmpdir(), "zcode-r2-lock-b-"));
+    const rootA = await mkdtemp(join(tmpdir(), "nibi-r2-lock-a-"));
+    const rootB = await mkdtemp(join(tmpdir(), "nibi-r2-lock-b-"));
     const lockA = new DataRootLock(join(rootA, "run", "server.lock"));
     const lockB = new DataRootLock(join(rootB, "run", "server.lock"));
     await lockA.acquire();
@@ -73,7 +73,7 @@ describe("DataRootLock", () => {
   });
 
   it.skipIf(process.platform === "win32")("does not delete a replacement lock owned by another token during release", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-lock-owner-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-lock-owner-"));
     const lockFile = join(root, "run", "server.lock");
     const replacement = join(root, "run", "replacement.lock");
     const lock = new DataRootLock(lockFile);
@@ -93,7 +93,7 @@ describe("DataRootLock", () => {
   });
 
   it("allows only one real process to claim the same stale lock", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-lock-race-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-lock-race-"));
     const lockFile = join(root, "server.lock");
     const barrierFile = join(root, "go");
     const resultsFile = join(root, "results");

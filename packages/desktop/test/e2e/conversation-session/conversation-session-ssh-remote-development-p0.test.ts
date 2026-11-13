@@ -54,7 +54,7 @@ describe(`${CASE_MARKER}: SSH 远端开发基础能力 P0`, () => {
         `cd '${fixturePath}'`,
         `printf '%s\\n' '${FILE_MARKER}' > README.txt`,
         "git init -q",
-        "git config user.email 'zcode-e2e@example.invalid'",
+        "git config user.email 'nibi-e2e@example.invalid'",
         "git config user.name 'Nibi E2E'",
         "git add README.txt",
         "git commit -qm 'test fixture baseline'",

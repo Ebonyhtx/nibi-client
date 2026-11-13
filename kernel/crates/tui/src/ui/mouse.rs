@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/mouse.rs（feat/rs 79b6691c55）：去掉子代理、任务面板、后台任务、
+// 改写自 apps/nibi-host/crates/tui/src/ui/mouse.rs（feat/rs 79b6691c55）：去掉子代理、任务面板、后台任务、
 // 背景标志的目标；点击网址不打开浏览器（tui 不起进程，docs/specs/rust-cli/tui.md §9）。
 //! 鼠标（docs/specs/rust-tui.md §8.7、nibi-kernel/tui-select.md §2、§3）：每一帧绘制时记下可点击区域（[`Hits`]），
 //! 鼠标事件只按上一帧的这份记录处理。transcript 的选区两端按（块的键，块内第几行，列）记录，追加新内容时不漂移；

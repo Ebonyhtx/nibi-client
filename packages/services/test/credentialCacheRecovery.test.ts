@@ -19,7 +19,7 @@ const deferred = () => {
 };
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "zcode-cache-recovery-"));
+  root = await mkdtemp(join(tmpdir(), "nibi-cache-recovery-"));
   setDataBaseDir(root);
   file = join(root, ".nibi", "v2", "credentials.json");
 });

@@ -361,7 +361,7 @@ async function importMarketplaceSourceArchiveInternal(
   archive: Uint8Array,
   maxArchiveBytes: number,
 ) {
-  const tempRoot = join(tmpdir(), `zcode-plugin-marketplace-source-${randomUUID()}`);
+  const tempRoot = join(tmpdir(), `nibi-plugin-marketplace-source-${randomUUID()}`);
   try {
     await extractPluginSyncArchive(archive, tempRoot, {
       maxExtractedBytes: maxArchiveBytes,
@@ -439,7 +439,7 @@ async function importPluginsArchive(
   archive: Uint8Array,
   maxArchiveBytes: number,
 ): Promise<PluginSyncImportResult> {
-  const tempRoot = join(tmpdir(), `zcode-plugin-sync-${randomUUID()}`);
+  const tempRoot = join(tmpdir(), `nibi-plugin-sync-${randomUUID()}`);
   try {
     await extractPluginSyncArchive(archive, tempRoot, {
       maxExtractedBytes: maxArchiveBytes,

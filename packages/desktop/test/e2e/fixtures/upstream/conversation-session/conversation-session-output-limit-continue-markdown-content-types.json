@@ -1419,13 +1419,13 @@
       }
     },
     {
-      "id": "otc10-zcode-file-citation-partial",
-      "description": "OTC10/zcode-file-citation 首段在本类型 token 内以 max_tokens 截断。",
+      "id": "otc10-nibi-file-citation-partial",
+      "description": "OTC10/nibi-file-citation 首段在本类型 token 内以 max_tokens 截断。",
       "metadata": {
         "kind": "main",
         "timingPolicy": "fast-text",
         "source": "synthetic",
-        "syntheticReason": "确定性验证 OTC10/zcode-file-citation 自己的 Continue 拼接缝，不依赖其他 Markdown 类型。"
+        "syntheticReason": "确定性验证 OTC10/nibi-file-citation 自己的 Continue 拼接缝，不依赖其他 Markdown 类型。"
       },
       "maxMatches": 1,
       "match": {
@@ -1444,17 +1444,17 @@
           "cache-control": "no-cache",
           "content-type": "text/event-stream; charset=utf-8"
         },
-        "body": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"otc10-zcode-file-citation-partial\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"deepseek-v4-flash\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":72,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"::zcode-file-citation{path=\\\".nibi-e2e/continue-markdown-otc10/cita\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"max_tokens\",\"stop_sequence\":null},\"usage\":{\"input_tokens\":72,\"output_tokens\":8}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+        "body": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"otc10-nibi-file-citation-partial\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"deepseek-v4-flash\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":72,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"::nibi-file-citation{path=\\\".nibi-e2e/continue-markdown-otc10/cita\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"max_tokens\",\"stop_sequence\":null},\"usage\":{\"input_tokens\":72,\"output_tokens\":8}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
       }
     },
     {
-      "id": "otc10-zcode-file-citation-final",
-      "description": "OTC10/zcode-file-citation 续段闭合本类型并正常结束。",
+      "id": "otc10-nibi-file-citation-final",
+      "description": "OTC10/nibi-file-citation 续段闭合本类型并正常结束。",
       "metadata": {
         "kind": "main",
         "timingPolicy": "fast-text",
         "source": "synthetic",
-        "syntheticReason": "确定性验证 OTC10/zcode-file-citation 自己的 Continue 拼接缝，不依赖其他 Markdown 类型。"
+        "syntheticReason": "确定性验证 OTC10/nibi-file-citation 自己的 Continue 拼接缝，不依赖其他 Markdown 类型。"
       },
       "maxMatches": 1,
       "match": {
@@ -1473,7 +1473,7 @@
           "cache-control": "no-cache",
           "content-type": "text/event-stream; charset=utf-8"
         },
-        "body": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"otc10-zcode-file-citation-final\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"deepseek-v4-flash\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":73,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"tion.txt\\\" purpose=\\\"output\\\"}\\n\\nNIBI_FILE_CITATION_DONE\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null},\"usage\":{\"input_tokens\":73,\"output_tokens\":8}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+        "body": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"otc10-nibi-file-citation-final\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"deepseek-v4-flash\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":73,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"tion.txt\\\" purpose=\\\"output\\\"}\\n\\nNIBI_FILE_CITATION_DONE\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null},\"usage\":{\"input_tokens\":73,\"output_tokens\":8}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
       }
     }
   ]

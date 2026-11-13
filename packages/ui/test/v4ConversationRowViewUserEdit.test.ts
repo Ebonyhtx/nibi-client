@@ -1155,7 +1155,7 @@ describe("ConversationRowView user query editing", () => {
 
   it("opens a Desktop local media URL without creating or revoking a Blob URL", async () => {
     const readAttachment = vi.fn().mockResolvedValue({
-      url: "zcode-media://local/desktop-video",
+      url: "nibi-media://local/desktop-video",
       mediaType: "video/mp4",
     });
     const createObjectUrl = vi.spyOn(URL, "createObjectURL");
@@ -1189,7 +1189,7 @@ describe("ConversationRowView user query editing", () => {
       signal: expect.any(AbortSignal),
     });
     expect(attachmentPropsById.get(`${row.rowId}-0`)).toMatchObject({
-      data: { url: "zcode-media://local/desktop-video" },
+      data: { url: "nibi-media://local/desktop-video" },
     });
     const openPreview = attachmentPropsById.get(`${row.rowId}-0`)?.onOpen;
     expect(openPreview).toBeTypeOf("function");
@@ -1207,7 +1207,7 @@ describe("ConversationRowView user query editing", () => {
           alt: "demo.mp4",
           filename: "demo.mp4",
           mediaType: "video/mp4",
-          src: "zcode-media://local/desktop-video",
+          src: "nibi-media://local/desktop-video",
           loading: false,
           error: false,
         },

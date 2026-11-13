@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/tests/suite/host_flow.rs（feat/rs 79b6691c55）：经 TUI 的事件循环走
+// 改写自 apps/nibi-host/crates/tui/tests/suite/host_flow.rs（feat/rs 79b6691c55）：经 TUI 的事件循环走
 // 建会话 → 流式回复 → 中断（docs/specs/rust-cli/tui.md §4）。
 use crossterm::event::{KeyCode, KeyModifiers};
 use nibi_kernel_api::message::ContentBlock;

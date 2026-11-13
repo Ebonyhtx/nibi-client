@@ -21,7 +21,7 @@ export async function seedRemoteOnboardingFixture(options: {
   // 保留匿名条目供 live 账号登录认领，不伪造真实账号或绕开服务的认领规则。
   const record = onboardingRecordFileSchema.parse({
     version: 1,
-    deviceMid: "zcode-remote-e2e-device",
+    deviceMid: "nibi-remote-e2e-device",
     entries: [options.userId, null].map((userId) => ({
       userId,
       occupation: "developer",

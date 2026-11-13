@@ -7,7 +7,7 @@ import { PluginSandboxChannels } from "@nibi/shared";
  * 不暴露任何 contextBridge API；插件 iframe 在 shell 内的子 frame 里，且 nodeIntegrationInSubFrames=false，
  * 因此这段代码只在 shell 顶层 frame 运行。
  */
-const PLUGIN_SANDBOX_SCHEME = "zcode-sandbox:";
+const PLUGIN_SANDBOX_SCHEME = "nibi-sandbox:";
 
 if (window.location.protocol === PLUGIN_SANDBOX_SCHEME && window.top === window) {
   ipcRenderer.on(

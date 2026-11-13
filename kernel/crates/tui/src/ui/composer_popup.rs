@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/composer_popup.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/composer_popup.rs（feat/rs 79b6691c55）。
 //! 斜杠命令的弹出列表（docs/specs/rust-tui.md §8.4）：随输入出现与关闭、排序、移动与选中。
 use super::{Composer, FREQUENT, Popup};
 use crate::ui::commands::{self, Command, Entry};

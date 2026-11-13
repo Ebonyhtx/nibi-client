@@ -11,7 +11,7 @@
 - [给自己的插件接入 UI](#给自己的插件接入-ui)
 - [其他示例](#其他示例插件)
 
-本篇面向主仓库的宿主联调；插件开发与构建在独立的 `zcode-plugins` 仓库完成。
+本篇面向主仓库的宿主联调；插件开发与构建在独立的 `nibi-plugins` 仓库完成。
 
 ## UI Plugin 能做什么
 
@@ -192,7 +192,7 @@ flowchart LR
 | 仓库地址                                                          | 分支             | 修改范围                                       | 运行位置                                                |
 | ----------------------------------------------------------------- | ---------------- | ---------------------------------------------- | ------------------------------------------------------- |
 | [zai-org/ZCode](https://github.com/zai-org/ZCode)                 | `feat/ui-plugin` | 宿主协议、侧栏和内联展示、沙箱、审批与生命周期 | `pnpm dev:desktop`                                      |
-| [zai-org/zcode-plugins](https://github.com/zai-org/zcode-plugins) | `feat/ui-plugin` | 插件清单、MCP 服务、页面、业务数据与资源打包   | `ui-plugins/<name>` 为源码；`plugins/<name>` 为安装产物 |
+| [zai-org/nibi-plugins](https://github.com/zai-org/nibi-plugins) | `feat/ui-plugin` | 插件清单、MCP 服务、页面、业务数据与资源打包   | `ui-plugins/<name>` 为源码；`plugins/<name>` 为安装产物 |
 
 本文的开发与调试步骤对应两个仓库各自的 `feat/ui-plugin` 分支。**ZCode 公开仓库的该分支目前尚未建好**，待分支准备就绪后再从上述仓库检出并联调。
 
@@ -202,10 +202,10 @@ flowchart LR
 
 ```sh
 NIBI_REPO=/path/to/z-code
-PLUGINS_REPO=/path/to/zcode-plugins
+PLUGINS_REPO=/path/to/nibi-plugins
 
 # 可选隔离开发配置；后续 CLI 和桌面启动保持同一个值。
-export NIBI_DATA_BASE_DIR="$HOME/.zcode-ui-plugin-dev"
+export NIBI_DATA_BASE_DIR="$HOME/.nibi-ui-plugin-dev"
 
 # 主仓库首次初始化；已完成时跳过。
 cd "$NIBI_REPO"
@@ -219,13 +219,13 @@ pnpm build
 # 主仓库：使用刚构建的 CLI，将插件装进同一个开发配置。
 cd "$NIBI_REPO"
 node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins marketplace add "$PLUGINS_REPO/dist/local-marketplace" --scope user
-node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins install excalidraw@zcode-plugins-local --scope user
-node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins enable excalidraw@zcode-plugins-local --scope user
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins install excalidraw@nibi-plugins-local --scope user
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins enable excalidraw@nibi-plugins-local --scope user
 node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins list --json
 pnpm dev:desktop
 ```
 
-也可以在同一桌面实例的 **插件市场 → 新增** 中添加 `dist/local-marketplace` 的绝对路径，再选插件安装和启用。默认本地来源名是 `zcode-plugins-local`；根清单的官方名称是保留名称，不能直接添加仓库根目录。`pnpm dev:desktop` 只启动宿主，不自动注册插件。
+也可以在同一桌面实例的 **插件市场 → 新增** 中添加 `dist/local-marketplace` 的绝对路径，再选插件安装和启用。默认本地来源名是 `nibi-plugins-local`；根清单的官方名称是保留名称，不能直接添加仓库根目录。`pnpm dev:desktop` 只启动宿主，不自动注册插件。
 
 如只用现成桌面客户端，在插件仓库构建后走上述 UI 安装即可；客户端本身需要支持本文功能。使用已安装的 `zcode` CLI 时，确认它和桌面使用同一个数据配置。首次使用隔离配置时，也需在该配置中完成登录或模型设置。
 
@@ -235,8 +235,8 @@ pnpm dev:desktop
 cd "$PLUGINS_REPO"
 pnpm build
 cd "$NIBI_REPO"
-node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins marketplace update zcode-plugins-local
-node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins install excalidraw@zcode-plugins-local --scope user
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins marketplace update nibi-plugins-local
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins install excalidraw@nibi-plugins-local --scope user
 ```
 
 随后重启对应桌面实例，打开新会话验证。源码监听不会把插件仓库的修改自动复制到已安装插件；刷新来源只刷新目录，重新安装才更新代码副本。开发时同版本重装会重新复制；正式分发内容变化仍需升级插件清单、marketplace 和源码包版本。
@@ -283,7 +283,7 @@ stdio MCP 服务的 stdout 只输出协议消息，调试日志写 stderr。定�
 
 ### 提交 PR 时声明插件类型
 
-**向 `zcode-plugins` 提交 PR 时，必须在 PR 模板中明确声明插件类型，并填写涉及插件的清单 `name`，再发起评审。** 选择且只选择一项：
+**向 `nibi-plugins` 提交 PR 时，必须在 PR 模板中明确声明插件类型，并填写涉及插件的清单 `name`，再发起评审。** 选择且只选择一项：
 
 | 选项                  | 判断标准                                                                                    |
 | --------------------- | ------------------------------------------------------------------------------------------- |
@@ -458,4 +458,4 @@ async function saveViewState(state: unknown) {
 | API 限额、sampling 参数与别名类型 | [MCP Apps 契约](packages/shared/src/mcp-apps/contract.ts)、[sampling.ts](packages/shared/src/mcp-apps/sampling.ts)、[aliasApi.ts](packages/desktop/src/renderer/src/plugin-sandbox/aliasApi.ts) |
 | 实际桌面集成测试                  | [mcp-apps-host-e2e.mjs](packages/desktop/scripts/mcp-apps-host-e2e.mjs)                                                                                                                         |
 
-五个插件的业务源码位于独立 `zcode-plugins` 仓库，其根目录也提供 `UI_PLUGIN.md`。本仓库负责宿主，不复制插件成品；宿主 API 变化时同步维护两边文档中英文版的能力与 API 表。
+五个插件的业务源码位于独立 `nibi-plugins` 仓库，其根目录也提供 `UI_PLUGIN.md`。本仓库负责宿主，不复制插件成品；宿主 API 变化时同步维护两边文档中英文版的能力与 API 表。

@@ -281,7 +281,7 @@ export function createDefaultSubagentPort(
               agentPrompt: agentPrompt ?? "",
               ...(agentsMdInstructions ? { userInstructions: agentsMdInstructions } : {}),
             },
-            agentName: `zcode-${request.agentType}`,
+            agentName: `nibi-${request.agentType}`,
             maxTurns: request.maxTurns ?? this.config.subagents?.maxTurns ?? 4,
             parentSessionId: this.sessionId,
             taskType: "subagent_child",

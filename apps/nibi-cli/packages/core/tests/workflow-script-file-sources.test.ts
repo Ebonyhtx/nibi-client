@@ -641,7 +641,7 @@ describe("SaveWorkflow — `script_path`", () => {
     const saved = readFileSync(output.path, "utf8");
     expect(saved).toBe(serializeSavedWorkflow({ description: "new words" }, body));
     // 块只出现一次：草稿里那一份被丢掉了，而不是被叠在新块后面。
-    expect(saved.split("/* zcode-workflow")).toHaveLength(2);
+    expect(saved.split("/* nibi-workflow")).toHaveLength(2);
   });
 
   it("refuses a call that gives both sources, and one that gives neither", async () => {

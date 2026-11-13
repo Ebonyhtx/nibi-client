@@ -6,7 +6,7 @@
 | --- | --- |
 | Change | Add a built-in `/init` prompt command that creates or updates the current workspace `AGENTS.md`. |
 | User-visible surfaces | Desktop app slash suggestions, app `--stdio` prompt send path, CLI/TUI slash command help and dispatch. |
-| Existing docs | `docs/architecture/zcode-code-architecture-overview.md`, `docs/architecture/message-flow.md`, `apps/nibi-cli/docs/design/agents-user-instructions-merge.md`, `docs/settings-directory-sources.md`. |
+| Existing docs | `docs/architecture/nibi-code-architecture-overview.md`, `docs/architecture/message-flow.md`, `apps/nibi-cli/docs/design/agents-user-instructions-merge.md`, `docs/settings-directory-sources.md`. |
 | Existing code owners | Agent bootstrap input facade, ZCode Protocol slash command list, CLI command center, UI slash suggestions. |
 | Out of scope | New ZCode Protocol method, mobile-only replay semantics, global `~/.nibi/AGENTS.md` initialization, conversation E2E expansion. |
 
@@ -25,7 +25,7 @@
 | Command semantics | `/init` is a normal prompt command, not a session command. | The UI sends `/init` through normal prompt send/queue flow; agent rewrites it into an initialization prompt. | No `session/init` protocol method and no special UI session-control path. | `docs/architecture/message-flow.md`, code inspection |
 | Target file | Current workspace root `AGENTS.md`. | Missing file creation; existing file read and patch. | `CLAUDE.md`, `AGNENTS.md`, user-global `~/.nibi/AGENTS.md`. | User request and `agents-user-instructions-merge.md` |
 | Existing hidden instructions | Check workspace `.nibi/AGENTS.md` and `.agents/AGENTS.md` before creating a new root file. | If either hidden-path instruction file exists, tell the user instructions already exist and no new file is needed. | Creating a duplicate root `AGENTS.md` in that case. | User follow-up |
-| App support | Support app `--stdio` by reusing `session/send`. | `session/send -> record.app.sendInput -> input facade prompt resolver -> runtime turn`. | Relay/main ownership of business state. | `docs/architecture/zcode-code-architecture-overview.md` |
+| App support | Support app `--stdio` by reusing `session/send`. | `session/send -> record.app.sendInput -> input facade prompt resolver -> runtime turn`. | Relay/main ownership of business state. | `docs/architecture/nibi-code-architecture-overview.md` |
 | Command ownership | Built-in `/init` reserves the `init` name. | App slash list and CLI help include `/init`; custom `/init` is hidden by reserved-name filtering. | Letting custom `/init` override builtin behavior. | Existing reserved command model |
 | Running session behavior | `/init` behaves like ordinary prompt input. | Completed sessions send immediately; running/compacting behavior follows existing queue/steer guards. | Special compact/goal control handling. | `docs/conversation-protocol-declaration.md` |
 | Visible query text | Provider input and UI-visible query are split. | The model receives the expanded `/init` prompt; TurnStarted, transcript, title seed, and UI snapshots keep the original `/init ...` user query. | Showing the long built-in prompt in the user bubble. | Runtime bug report `sess_12c80069-7d45-4288-959f-fb64c608cb97` |
@@ -34,7 +34,7 @@
 
 | Domain | Include? | Why it can change behavior | Primary sources |
 | --- | --- | --- | --- |
-| Architecture/process boundary | yes | The requested app support depends on stdio and ownership boundaries. | `docs/architecture/zcode-code-architecture-overview.md`, `docs/architecture/message-flow.md` |
+| Architecture/process boundary | yes | The requested app support depends on stdio and ownership boundaries. | `docs/architecture/nibi-code-architecture-overview.md`, `docs/architecture/message-flow.md` |
 | Conversation/session behavior | yes | `/init` enters through normal prompt send and queue behavior. | `docs/conversation-protocol-declaration.md`, `docs/conversation-product-state-space.md` |
 | Permission/tool/MCP/subagents | yes | The generated turn may use `Read`, `Glob`, `Grep`, `Bash`, `Write`, and `Edit`, all through existing permission flow. | `docs/permission-project-approval.md`, protocol tool event code |
 | UI shell/theme/locale/responsive | limited | UI change is only slash suggestion visibility, no new component or layout. | `DESIGN.md`, `packages/ui/src/slashCommandHelpers.ts` |

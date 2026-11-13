@@ -10,7 +10,7 @@ function createBatch(): RendererActionTraceBatchV1 {
     sequence: 1,
     droppedSinceLastFlush: 0,
     resource: {
-      serviceName: "zcode-desktop-renderer",
+      serviceName: "nibi-desktop-renderer",
       serviceVersion: "1.0.0",
       deploymentEnvironment: "test",
       rendererInstanceId: "renderer-test",

@@ -23,7 +23,7 @@ WSL remote workspace 通过 `wsl.exe` 启动远端 host 和 agent。WSL 不需�
 - 不在 `@` 菜单中自动 sudo 或静默提权。
 - 不为 WSL user 增加密码字段；`wsl.exe --user` 要求目标 Linux 用户已存在，本身不消费密码。
 - 不改变桌面 `desktop-continuous` 与手机 `/remote` `web-remote-replayable` 的 realtime 边界。
-- 不在本次修复里自动清理历史已经写入 `/tmp/zcode-prompt-attachments` 的附件目录；旧目录需要用户或后续迁移脚本手动处理。
+- 不在本次修复里自动清理历史已经写入 `/tmp/nibi-prompt-attachments` 的附件目录；旧目录需要用户或后续迁移脚本手动处理。
 
 ## 验证点
 

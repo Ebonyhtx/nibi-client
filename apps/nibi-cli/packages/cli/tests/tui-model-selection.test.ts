@@ -254,7 +254,7 @@ test("preference write failures keep successful model and effort changes visible
 });
 
 test("TUI persists defaults through the shared repository across new sessions and restarts", async (t) => {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-tui-model-selection-"));
+  const dir = await mkdtemp(join(tmpdir(), "nibi-tui-model-selection-"));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const filePath = join(dir, "provider_config.json");
   const seed = new NodePersonalProviderConfigRepository({ filePath, pollingIntervalMs: false });

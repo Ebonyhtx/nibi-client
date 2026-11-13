@@ -8,7 +8,7 @@ const { tmpdir } = require("node:os");
 
 async function main() {
   assert.equal(process.platform, "win32", "Run this negative control on Windows");
-  const root = await mkdtemp(join(tmpdir(), "zcode-flags-probe-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-flags-probe-"));
   const cases = [];
   const shells = [
     [

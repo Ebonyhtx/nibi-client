@@ -69,8 +69,8 @@ describe("ConversationDraftSuggestedPrompts", () => {
     render(createElement(ConversationDraftSuggestedPrompts, { items }));
     const rows = screen.getAllByRole("button");
 
-    expect(rows[0]?.style.getPropertyValue("--zcode-draft-prompt-waterfall-delay")).toBe("0ms");
-    expect(rows[1]?.style.getPropertyValue("--zcode-draft-prompt-waterfall-delay")).toBe("65ms");
+    expect(rows[0]?.style.getPropertyValue("--nibi-draft-prompt-waterfall-delay")).toBe("0ms");
+    expect(rows[1]?.style.getPropertyValue("--nibi-draft-prompt-waterfall-delay")).toBe("65ms");
   });
 
   it("loads the configured Lucide name without rendering an image URL", async () => {

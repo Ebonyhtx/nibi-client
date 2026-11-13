@@ -50,7 +50,7 @@ describe("dev Electron app bundle", () => {
   });
 
   it("copies the runtime and patches only the Dev bundle plist", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-dev-bundle-test-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-dev-bundle-test-"));
     tempRoots.push(root);
     const sourceApp = join(root, "source", "Electron.app");
     const sourceContents = join(sourceApp, "Contents");
@@ -86,7 +86,7 @@ describe("dev Electron app bundle", () => {
   it.skipIf(process.platform === "win32")(
     "keeps framework symlinks relative so sandboxed helpers stay inside the bundle",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-dev-bundle-symlink-test-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-dev-bundle-symlink-test-"));
       tempRoots.push(root);
       const sourceApp = join(root, "source", "Electron.app");
       const sourceContents = join(sourceApp, "Contents");
@@ -128,7 +128,7 @@ describe("dev Electron app bundle", () => {
   );
 
   it("rebuilds a cached bundle whose stamp predates the current layout format", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-dev-bundle-format-test-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-dev-bundle-format-test-"));
     tempRoots.push(root);
     const sourceApp = join(root, "source", "Electron.app");
     const sourceContents = join(sourceApp, "Contents");
@@ -176,7 +176,7 @@ describe("dev Electron app bundle", () => {
   });
 
   it("rebuilds the ignored bundle when the source Electron launcher changes", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-dev-bundle-refresh-test-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-dev-bundle-refresh-test-"));
     tempRoots.push(root);
     const sourceApp = join(root, "source", "Electron.app");
     const sourceContents = join(sourceApp, "Contents");
@@ -215,7 +215,7 @@ describe("dev Electron app bundle", () => {
   });
 
   it("reuses the ignored bundle when the source Electron launcher is unchanged", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-dev-bundle-reuse-test-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-dev-bundle-reuse-test-"));
     tempRoots.push(root);
     const sourceApp = join(root, "source", "Electron.app");
     const sourceContents = join(sourceApp, "Contents");

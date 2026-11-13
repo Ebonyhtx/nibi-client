@@ -793,7 +793,7 @@ function captureEvents(events: ModelNetworkStatusEvent[]) {
 function providerNetworkBusinessError(): ProviderBusinessError {
   return new ProviderBusinessError({
     providerCode: PROVIDER_NETWORK_BUSINESS_CODE,
-    providerId: "zcode-anthropic",
+    providerId: "nibi-anthropic",
     providerKind: "openai-compatible",
     providerMessage: PROVIDER_NETWORK_MESSAGE,
     providerRequestId: PROVIDER_NETWORK_REQUEST_ID,
@@ -814,7 +814,7 @@ function providerFlowLimitBusinessError(
 ): ProviderBusinessError {
   return new ProviderBusinessError({
     providerCode: PROVIDER_FLOW_LIMIT_BUSINESS_CODE,
-    providerId: "zcode-anthropic",
+    providerId: "nibi-anthropic",
     providerKind: "openai-compatible",
     providerMessage: PROVIDER_FLOW_LIMIT_MESSAGE,
     providerRequestId: PROVIDER_FLOW_LIMIT_REQUEST_ID,

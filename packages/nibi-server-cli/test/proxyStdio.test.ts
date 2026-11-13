@@ -36,7 +36,7 @@ describe("server proxy-stdio", () => {
     await new Promise<void>((resolve) => echo.listen(0, "127.0.0.1", resolve));
     const address = echo.address();
     if (!address || typeof address === "string") throw new Error("missing echo port");
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-proxy-stdio-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-proxy-stdio-"));
     const layout = resolveServerLayout(join(root, "server"));
     await writeReadyStatus(layout.serverRoot, address.port);
     const input = new PassThrough();
@@ -54,7 +54,7 @@ describe("server proxy-stdio", () => {
   });
 
   it("fails before writing channel bytes when daemon status is missing", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-proxy-stdio-missing-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-proxy-stdio-missing-"));
     const layout = resolveServerLayout(join(root, "server"));
     await expect(
       runProxyStdio({

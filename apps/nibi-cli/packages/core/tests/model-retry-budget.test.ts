@@ -28,7 +28,7 @@ describe("AgentRuntime model requests carry modelRetryBudget", () => {
     const runtime = createTestAgentRuntime(
       createSessionId(`runtime-retry-budget-${taskType}`),
       {
-        agentName: "zcode-general-purpose",
+        agentName: "nibi-general-purpose",
         modelStreaming: "off",
         taskType,
         workingDirectory: "/tmp/runtime-retry-budget",

@@ -241,7 +241,7 @@ function createContext(
     sessionStore,
     toolCallId: "target-call",
     traceId: "trace-target" as never,
-    workingDirectory: "/tmp/zcode-target-tool",
-    workspaceRoot: "/tmp/zcode-target-tool",
+    workingDirectory: "/tmp/nibi-target-tool",
+    workspaceRoot: "/tmp/nibi-target-tool",
   };
 }

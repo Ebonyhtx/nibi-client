@@ -28,7 +28,7 @@ Live updates are delivered through the extension notification:
 
 - `zcode.dev/workflow/event`
 
-When workflow transport is reconnected, the adapter must map that notification into a workspace event with type `workspace_workflow_event`, preserving `kind`, `nodeId`, and small structured `payload` fields. Preserving these fields is required for incremental scheduler/frontier updates from `zcode-cli`; older clients that dropped them had to reload the full snapshot to understand node movement.
+When workflow transport is reconnected, the adapter must map that notification into a workspace event with type `workspace_workflow_event`, preserving `kind`, `nodeId`, and small structured `payload` fields. Preserving these fields is required for incremental scheduler/frontier updates from `nibi-cli`; older clients that dropped them had to reload the full snapshot to understand node movement.
 
 The graph view uses the `snapshot.graph` payload returned by `zcode.dev/workflow/get`.
 When the response also includes `scheduler`, the graph view prefers that derived server state and falls back to local graph derivation for older agents.

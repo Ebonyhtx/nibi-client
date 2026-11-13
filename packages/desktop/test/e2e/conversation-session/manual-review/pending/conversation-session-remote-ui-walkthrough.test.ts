@@ -300,7 +300,7 @@ async function startStallServer() {
 /** 只允许操作本用例专属、带 r3-server 标签的目标容器，绝不碰共享的开发容器。 */
 async function ownedContainer(): Promise<string | null> {
   const name = process.env.NIBI_E2E_SSH_CONTAINER?.trim();
-  if (!name || !/^zcode-r3-server-[a-z0-9-]+$/u.test(name)) return null;
+  if (!name || !/^nibi-r3-server-[a-z0-9-]+$/u.test(name)) return null;
   try {
     const { stdout } = await run("docker", [
       "inspect",

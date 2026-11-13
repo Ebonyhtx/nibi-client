@@ -1550,7 +1550,7 @@ try {
     writeFileSync(
       join(workspace, ".nibi", "workflows", "probe.dwf.ts"),
       [
-        "/* zcode-workflow",
+        "/* nibi-workflow",
         "description: drive probe",
         "*/",
         'const worker = agent("worker", "You answer questions.");',
@@ -1678,7 +1678,7 @@ try {
     writeFileSync(
       join(workspace, ".nibi", "workflows", "hold.dwf.ts"),
       [
-        "/* zcode-workflow",
+        "/* nibi-workflow",
         "description: hold probe",
         "*/",
         'const worker = agent("worker", "You answer questions.");',
@@ -1761,7 +1761,7 @@ try {
     writeFileSync(
       join(workspace, ".nibi", "workflows", "amend.dwf.ts"),
       [
-        "/* zcode-workflow",
+        "/* nibi-workflow",
         "description: amend probe",
         "*/",
         // persona 点名模型（launch.md「Models the script names」）：launch 时对目录解成绑定表，
@@ -2067,7 +2067,7 @@ try {
     writeFileSync(
       join(workspace, ".nibi", "workflows", "escalate.dwf.ts"),
       [
-        "/* zcode-workflow",
+        "/* nibi-workflow",
         "description: escalate probe",
         "*/",
         'const worker = agent("worker", "You answer questions.");',
@@ -2439,7 +2439,7 @@ try {
     writeFileSync(
       join(workspace, ".nibi", "workflows", "holeprobe.dwf.ts"),
       [
-        "/* zcode-workflow",
+        "/* nibi-workflow",
         "description: hole probe",
         "*/",
         'return await hole<string>("fill the verdict", "What should I return for the probe?");',
@@ -2692,7 +2692,7 @@ try {
     writeFileSync(
       join(workspace, ".nibi", "workflows", "pinhold.dwf.ts"),
       [
-        "/* zcode-workflow",
+        "/* nibi-workflow",
         "description: resume pin probe",
         "*/",
         'const worker = agent("worker", "You answer questions.");',

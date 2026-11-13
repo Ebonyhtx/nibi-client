@@ -146,7 +146,7 @@ async function main() {
     process.platform === "darwin" || process.platform === "linux" || process.platform === "win32",
     "this E2E must run on macOS, Linux, or Windows",
   );
-  const e2eRoot = mkdtempSync(join(tmpdir(), "zcode-native-search-e2e-"));
+  const e2eRoot = mkdtempSync(join(tmpdir(), "nibi-native-search-e2e-"));
 
   try {
     const plan = await resolveNativeSearchPlan(join(e2eRoot, "runtime-tools"));

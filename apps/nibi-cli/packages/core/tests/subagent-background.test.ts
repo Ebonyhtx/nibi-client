@@ -138,7 +138,7 @@ describe("subagent background notifications", () => {
     const runtime = createTestAgentRuntime(
       sessionId,
       {
-        workingDirectory: "/tmp/zcode-background-notification-idle-wake",
+        workingDirectory: "/tmp/nibi-background-notification-idle-wake",
       },
       {
         eventStore,
@@ -489,7 +489,7 @@ describe("subagent background notifications", () => {
       let requestCount = 0;
       const runtime = createTestAgentRuntime(
         sessionId,
-        { workingDirectory: `/tmp/zcode-background-title-${scenario.id}` },
+        { workingDirectory: `/tmp/nibi-background-title-${scenario.id}` },
         {
           eventStore,
           modelFactory: createTestModelFactory({
@@ -585,7 +585,7 @@ describe("subagent background notifications", () => {
       const runtime = createTestAgentRuntime(
         sessionId,
         {
-          workingDirectory: `/tmp/zcode-background-notification-${terminalOutcome}`,
+          workingDirectory: `/tmp/nibi-background-notification-${terminalOutcome}`,
         },
         {
           eventStore: createTestSessionEventStore(),
@@ -681,7 +681,7 @@ describe("subagent background notifications", () => {
     const runtime = createTestAgentRuntime(
       sessionId,
       {
-        workingDirectory: "/tmp/zcode-background-notification-idle-wake-ref",
+        workingDirectory: "/tmp/nibi-background-notification-idle-wake-ref",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -729,7 +729,7 @@ describe("subagent background notifications", () => {
     const abortController = new AbortController();
     const runtime = createTestAgentRuntime(
       sessionId,
-      { workingDirectory: "/tmp/zcode-background-notification-pre-loop-cancel" },
+      { workingDirectory: "/tmp/nibi-background-notification-pre-loop-cancel" },
       {
         eventStore,
         modelAdapter: {
@@ -779,7 +779,7 @@ describe("subagent background notifications", () => {
     const runtime = createTestAgentRuntime(
       sessionId,
       {
-        workingDirectory: "/tmp/zcode-background-active-loop-drain",
+        workingDirectory: "/tmp/nibi-background-active-loop-drain",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -863,7 +863,7 @@ describe("subagent background notifications", () => {
     const sessionStore = new RecordingSessionStore();
     const runtime = createTestAgentRuntime(
       sessionId,
-      { workingDirectory: "/tmp/zcode-background-active-loop-stale-branch" },
+      { workingDirectory: "/tmp/nibi-background-active-loop-stale-branch" },
       {
         eventStore: createTestSessionEventStore(),
         modelFactory: createTestModelFactory({ generateText: vi.fn() } as never),
@@ -933,7 +933,7 @@ describe("subagent background notifications", () => {
     const runtime = createTestAgentRuntime(
       sessionId,
       {
-        workingDirectory: "/tmp/zcode-background-active-loop-continuous-drain",
+        workingDirectory: "/tmp/nibi-background-active-loop-continuous-drain",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -1006,7 +1006,7 @@ describe("subagent background notifications", () => {
     const runtime = createTestAgentRuntime(
       sessionId,
       {
-        workingDirectory: "/tmp/zcode-background-active-loop-prompt-drain",
+        workingDirectory: "/tmp/nibi-background-active-loop-prompt-drain",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -1067,7 +1067,7 @@ describe("subagent background notifications", () => {
       sessionId,
       {
         taskType: "subagent_child",
-        workingDirectory: "/tmp/zcode-background-sealed-child-queued-bash",
+        workingDirectory: "/tmp/nibi-background-sealed-child-queued-bash",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -1141,7 +1141,7 @@ describe("subagent background notifications", () => {
       sessionId,
       {
         taskType: "subagent_child",
-        workingDirectory: "/tmp/zcode-background-filtered-batch-members",
+        workingDirectory: "/tmp/nibi-background-filtered-batch-members",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -1250,7 +1250,7 @@ describe("subagent background notifications", () => {
     const runtime = createTestAgentRuntime(
       sessionId,
       {
-        workingDirectory: "/tmp/zcode-background-notification-waits-for-prompt",
+        workingDirectory: "/tmp/nibi-background-notification-waits-for-prompt",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -1891,8 +1891,8 @@ function createSubagentRunRequest(input: {
       turnId: input.turnId,
     },
     turnId: input.turnId,
-    workingDirectory: "/tmp/zcode-subagent-auto-background",
-    workspaceRoot: "/tmp/zcode-subagent-auto-background",
+    workingDirectory: "/tmp/nibi-subagent-auto-background",
+    workspaceRoot: "/tmp/nibi-subagent-auto-background",
   };
 }
 

@@ -476,7 +476,7 @@ function readWeixinContextToken(message: Record<string, unknown>): string | unde
 }
 
 function buildWeixinClientId(): string {
-  return `zcode-weixin-${randomUUID()}`;
+  return `nibi-weixin-${randomUUID()}`;
 }
 
 function buildWeixinText(message: BotOutboundMessage): string {

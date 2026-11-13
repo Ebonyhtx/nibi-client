@@ -1176,7 +1176,7 @@ describe("ContextBuilder meta user context", () => {
       },
       agentProfiles: [
         {
-          name: "zcode-reviewer",
+          name: "nibi-reviewer",
           description: "检查实现边界。",
           source: "user",
           systemPrompt: "只输出中文。",
@@ -1194,7 +1194,7 @@ describe("ContextBuilder meta user context", () => {
       "subagents" as ContextMetaUserAttachmentSource,
     );
     expect(providerContextText).not.toContain("Available agent types");
-    expect(providerContextText).not.toContain("zcode-reviewer");
+    expect(providerContextText).not.toContain("nibi-reviewer");
   });
 
   it("lists additional directory paths immediately after the primary working directory", () => {

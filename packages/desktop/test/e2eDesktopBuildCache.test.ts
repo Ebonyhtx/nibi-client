@@ -15,7 +15,7 @@ import {
   writeE2EDesktopBuildStampAtomic,
 } from "../scripts/ensure-e2e-desktop-build.mjs";
 
-const ROOT = resolve(tmpdir(), `zcode-e2e-build-cache-${process.pid}`);
+const ROOT = resolve(tmpdir(), `nibi-e2e-build-cache-${process.pid}`);
 
 afterEach(() => {
   rmSync(ROOT, { force: true, recursive: true });

@@ -2,7 +2,7 @@
 
 use super::*;
 
-const SOCKET: &str = "/tmp/zcode-peers/26151.sock";
+const SOCKET: &str = "/tmp/nibi-peers/26151.sock";
 
 #[test]
 fn the_reference_is_the_sha256_prefix_of_the_socket() {

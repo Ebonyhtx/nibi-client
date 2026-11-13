@@ -34,7 +34,7 @@ afterEach(async () => {
 });
 
 async function createTempHome(): Promise<string> {
-  const homeDir = await mkdtemp(join(tmpdir(), "zcode-ssh-alias-test-"));
+  const homeDir = await mkdtemp(join(tmpdir(), "nibi-ssh-alias-test-"));
   tempDirs.push(homeDir);
   await mkdir(join(homeDir, ".ssh"), { recursive: true });
   return homeDir;

@@ -46,7 +46,7 @@ describe("remote asset cache Windows directory commit", () => {
   });
 
   it("retries transient EPERM while committing a staged release component directory", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-cache-rename-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-cache-rename-"));
     const sourceRoot = join(rootDir, "source");
     const cdnRoot = join(rootDir, "cdn", NIBI_VERSION);
     const remoteCacheDir = join(rootDir, "remote-cache");

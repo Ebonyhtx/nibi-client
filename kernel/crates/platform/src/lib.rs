@@ -9,7 +9,7 @@
 //!
 //! 另给入口登录与退出（[`Platform::begin_login`]、[`Platform::configure_api_key`]、[`Platform::logout`]）。
 //!
-//! Provider 配置的格式与语义复制自 Host（`apps/zcode-host/crates/providers`）与 Node 独立 CLI，读写同一份
+//! Provider 配置的格式与语义复制自 Host（`apps/nibi-host/crates/providers`）与 Node 独立 CLI，读写同一份
 //! `~/.nibi/v2`；文件经 `nibi-kernel-fs`（写入持与 Node 同形的目录锁），网络经 `nibi-kernel-net`，路径由
 //! `StoragePaths` 解析，不读进程环境（入口读好后传入）。
 

@@ -180,7 +180,7 @@ afterEach(async () => {
 
 describe("terminateProcessTree", () => {
   it("回收 runtime wrapper 时会一并结束其派生子进程", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-runtime-terminator-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-runtime-terminator-"));
     tempDirs.add(dir);
     const grandchildPidPath = join(dir, "grandchild.pid");
     const child = spawn(
@@ -223,7 +223,7 @@ setInterval(() => {}, 1000);
   it.runIf(process.platform !== "win32")(
     "关闭 runtime wrapper 时先给进程处理 SIGTERM 的窗口",
     async () => {
-      const dir = await mkdtemp(join(tmpdir(), "zcode-runtime-terminator-"));
+      const dir = await mkdtemp(join(tmpdir(), "nibi-runtime-terminator-"));
       tempDirs.add(dir);
       const markerPath = join(dir, "graceful-exit.txt");
       const child = spawn(
@@ -264,7 +264,7 @@ setInterval(() => {}, 1000);
   it.runIf(process.platform !== "win32")(
     "POSIX 下会兜底清理脱离原进程组的后代进程",
     async () => {
-      const dir = await mkdtemp(join(tmpdir(), "zcode-runtime-terminator-"));
+      const dir = await mkdtemp(join(tmpdir(), "nibi-runtime-terminator-"));
       tempDirs.add(dir);
       const grandchildPidPath = join(dir, "detached-grandchild.pid");
       const child = spawn(

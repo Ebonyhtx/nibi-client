@@ -15,7 +15,7 @@ import {
 const roots: string[] = [];
 
 function makeRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "zcode-hook-digest-parity-"));
+  const root = mkdtempSync(join(tmpdir(), "nibi-hook-digest-parity-"));
   roots.push(root);
   return root;
 }

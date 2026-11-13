@@ -33,7 +33,7 @@ const SOCKET_PATH_LIMIT: usize = 103;
 pub struct PeerConfig {
     /// 登记目录（`StoragePaths::peers`）。
     pub registry: PathBuf,
-    /// socket 路径太长时依次退回的目录（`<tmp>/zcode-<uid>/peers`、`/tmp/zcode-<uid>/peers`）；入口已建好并核对过
+    /// socket 路径太长时依次退回的目录（`<tmp>/nibi-<uid>/peers`、`/tmp/nibi-<uid>/peers`）；入口已建好并核对过
     /// 属主（proc 的私有目录）。
     pub fallback_sockets: Vec<PathBuf>,
     pub pid: u32,

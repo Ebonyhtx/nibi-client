@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/cells/group.rs（feat/rs 79b6691c55）：输入换成视图行。
+// 改写自 apps/nibi-host/crates/tui/src/ui/cells/group.rs（feat/rs 79b6691c55）：输入换成视图行。
 //! 工作段（rust-tui.md §8.2.1）：连续的推理与读取类工具并成一个块。紧凑形式是一行摘要（进行中再加
 //! 最近一项），详细形式是每个成员的详细形式。
 use ratatui::style::{Modifier, Style};

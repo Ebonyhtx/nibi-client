@@ -13,7 +13,7 @@
  *        [--fail-on all|initialize|tools/call]
  *        [--mcp-path /api/v1/mcp/server/image_search]
  *
- * 路由形态刻意与 zcode-server 对齐（`POST /api/v1/mcp/server/:mcp_group`，gin）：非匹配路径回
+ * 路由形态刻意与 nibi-server 对齐（`POST /api/v1/mcp/server/:mcp_group`，gin）：非匹配路径回
  * 404、路径带尾斜杠回 307。这样把线上那两个易错点（漏 group 段、多写尾斜杠）在本地就能复现。
  *
  * 只监听 127.0.0.1，不属于任何发布产物。
@@ -25,7 +25,7 @@ const { values } = parseArgs({
   options: {
     port: { default: "3999", short: "p", type: "string" },
     // 与线上真实端点同形：/api/v1/mcp/server/:mcp_group。image_search 是服务端目前唯一注册的
-    // group（zcode-server internal/domain/servermcp/service.go 的 MCPGroupTools）。
+    // group（nibi-server internal/domain/servermcp/service.go 的 MCPGroupTools）。
     "mcp-path": { default: "/api/v1/mcp/server/image_search", type: "string" },
     // 故障注入：验证 spec §6.3.3 的失败分类。
     //   ok          正常
@@ -69,7 +69,7 @@ const PLUGIN_NAME = "dev-official-mcp";
 const MCP_KEY = "dev-search";
 const QUALIFIED_TOOL_NAME = `mcp__plugin_${PLUGIN_NAME}_${MCP_KEY}__${TOOL_NAME}`;
 
-// 业务级失败的结果文本，与线上逐字段同形：zcode-server 的 ToolError.Error() 渲染成一行 JSON，
+// 业务级失败的结果文本，与线上逐字段同形：nibi-server 的 ToolError.Error() 渲染成一行 JSON，
 // 客户端只认 error_code 并据此在输入框上方提示（quota-banner spec §4）；形状不一致会让本地
 // 看到的提示与线上不是一回事。
 const IN_BAND_TOOL_FAILURES = {
@@ -206,7 +206,7 @@ const server = createServer((request, response) => {
           : ""),
     );
 
-    // 路由：与 zcode-server 的 gin 路由树同形，把线上两个易错点在本地复现。
+    // 路由：与 nibi-server 的 gin 路由树同形，把线上两个易错点在本地复现。
     const requestPath = (request.url ?? "/").split("?")[0];
     if (requestPath === `${MCP_PATH}/`) {
       console.log(`   ✗ 路径多了尾斜杠 → 回 307（gin 同行为）。客户端 redirect:"manual"，`);

@@ -10,7 +10,7 @@ import {
 } from "../src/lib/userActionTelemetry.js";
 
 const resource: RendererActionTraceResourceV1 = {
-  serviceName: "zcode-desktop-renderer",
+  serviceName: "nibi-desktop-renderer",
   serviceVersion: "test",
   deploymentEnvironment: "test",
   rendererInstanceId: "renderer-test",

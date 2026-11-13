@@ -5,7 +5,7 @@
 状态：**已实现**（v3.12.1）。2026-09-14 设计定稿，2026-09-15 完成契约收口。
 验收执行状态见「验收 Case」与「收口验证记录」；平台限定和真实远端验证单独列出，不等同于全部验收通过。
 本文是 CPU / 内存资源遥测的当前规范；[性能监控](./performance-monitoring.md)、
-[CLI 资源上报](./zcode-cli-resource-telemetry.md)与[MCP 生命周期](./mcp-process-arms-telemetry.md)
+[CLI 资源上报](./nibi-cli-resource-telemetry.md)与[MCP 生命周期](./mcp-process-arms-telemetry.md)
 中的旧资源内容均已替换为本文入口。旧事件的停发版本见[事件字典](./performance-telemetry-catalog.md)。
 
 ### 复审修复契约（2026-09-15）
@@ -158,10 +158,10 @@ Electron App（单实例）
 │   │    └─ <webview> guest renderer       ×N/内置浏览器 tab
 │   ├─ 辅助 renderer                       按需短命：update-status / 资源管理器 / about / DevTools 等
 │   ├─ Host（utilityProcess）              ×1/主窗口
-│   │    ├─ zcode-cli chat lane            ×1/workspaceKey
+│   │    ├─ nibi-cli chat lane            ×1/workspaceKey
 │   │    │    ├─ MCP stdio 子进程          ×1/已连接 MCP
 │   │    │    └─ Bash 工具子进程            ×N，短命
-│   │    ├─ zcode-cli plugin / mcp-status lane
+│   │    ├─ nibi-cli plugin / mcp-status lane
 │   │    ├─ node-pty shell、git 等短命子进程
 │   │    ├─ Windows CUA Helper             Windows，×1/Host
 │   │    └─ wsl.exe / docker exec          ×1/远端连接
@@ -183,8 +183,8 @@ remote 模式桌面端不新增进程，远端 nibi-server 及其 CLI / MCP / pt
 | `chromium_other` | network 等 utility、辅助窗口 renderer、DevTools，及其余未归类 Chromium 进程 | 同上                                                                                                  | 无                                                          | 聚合                    |
 | `host`           | 窗口 Host                                                                   | 同上                                                                                                  | 自采，60 秒，parentPort 送 main                             | 聚合：总量 + 最大单进程 |
 | `scheduler`      | cron scheduler                                                              | 同上                                                                                                  | 自采，60 秒，parentPort 送 main                             | 单进程                  |
-| `cli_chat`       | 每 workspace 一个 zcode-cli                                                 | CLI 自采 60 秒，经 Host 转 main                                                                       | 同一次采样                                                  | 聚合：总量 + 最大单进程 |
-| `cli_aux`        | plugin、mcp-status 两个 lane 的 zcode-cli                                   | 同上                                                                                                  | 同一次采样                                                  | 聚合                    |
+| `cli_chat`       | 每 workspace 一个 nibi-cli                                                 | CLI 自采 60 秒，经 Host 转 main                                                                       | 同一次采样                                                  | 聚合：总量 + 最大单进程 |
+| `cli_aux`        | plugin、mcp-status 两个 lane 的 nibi-cli                                   | 同上                                                                                                  | 同一次采样                                                  | 聚合                    |
 | `mcp`            | 每个 MCP 服务的进程树                                                       | CLI 每 5 分钟采一次；macOS `ps` 读取进程表后筛选根与后代，Linux 读 `/proc`，Windows `tasklist` 仅内存 | 无                                                          | 每 mcp_id 一条          |
 
 角色归属规则：main 用 `collectChromiumProcessRolePids` 同源的 pid 集合归类。主窗口 webContents 的
@@ -782,7 +782,7 @@ HAVING COUNT(DISTINCT device_mid) >= 100
 
 1. 用 `pnpm dev:desktop` 起开发构建（开发态窗口是 1 分钟，不是 5 分钟）。
 2. 连接一个真实远端 workspace（SSH / WSL / Docker / Server 任一），进入该 workspace 发一次对话，
-   确认远端 zcode-cli 已拉起。
+   确认远端 nibi-cli 已拉起。
 3. 停留 90 秒以上，让远端 CLI 至少自采一次（60 秒）并跨过一个上报窗口。
 4. 读事件：E2E 环境用 `ReadFinalArmsCustomEventsE2E` 通道取 main 最终发出的自定义事件；
    手工联调直接看 main 的 ARMS 出口日志。筛 `perf_process_window` 且 `runtime_surface=remote`。
@@ -834,7 +834,7 @@ SSH/WSL/Docker 保留原订阅路径。旧 Server 的通用 RPC 未知事件行�
 - Bash 15 秒门槛是采样策略而非异常判定：短命令没有采样机会也没有信息量。
 - 与 [memory-diagnostics-log.md](./memory-diagnostics-log.md) 的关系：本地日志继续存在，但 host 与
   renderer 的采样源与本 spec 共用，CLI 已是共用形态，main 的 heap 读取并入同一 tick。
-- 与 [zcode-data-size-arms-telemetry.md](./zcode-data-size-arms-telemetry.md) 的关系：数据目录体积事件
+- 与 [nibi-data-size-arms-telemetry.md](./nibi-data-size-arms-telemetry.md) 的关系：数据目录体积事件
   沿用 `resolveResourceUsageScene` 判断后台，本 spec 保留该函数语义。
 
 ## 架构治理决策记录

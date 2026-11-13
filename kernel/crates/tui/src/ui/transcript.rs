@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/transcript.rs（feat/rs 79b6691c55），按 400 行上限拆成两个文件；
+// 复制自 apps/nibi-host/crates/tui/src/ui/transcript.rs（feat/rs 79b6691c55），按 400 行上限拆成两个文件；
 // 组装部分在 `transcript_lines.rs`。
 //! transcript 的排版（rust-tui.md §8.1、§8.2）：会话头、cell、本地 cell 依次排列，cell 之间空一行。
 //! 排版结果按块缓存（行版本、宽度、展开、明暗、类型），布局共享缓存里的行，不复制；还在变化的 cell

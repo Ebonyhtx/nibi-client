@@ -138,5 +138,5 @@ function resolveFallbackCredentialSecret(): string {
     // Some packaged or sandboxed runtimes cannot resolve OS user info.
   }
 
-  return `zcode-credential-fallback:${platform()}:${homedir()}:${username}`;
+  return `nibi-credential-fallback:${platform()}:${homedir()}:${username}`;
 }

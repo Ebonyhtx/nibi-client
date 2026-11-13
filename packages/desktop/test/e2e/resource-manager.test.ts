@@ -96,7 +96,7 @@ describe("资源管理器", () => {
 
     const snapshot = await readResourceUsageSnapshot();
     expect(snapshot).not.toBeNull();
-    expect(snapshot!.processes.some((process) => process.name === "zcode-main")).toBe(true);
+    expect(snapshot!.processes.some((process) => process.name === "nibi-main")).toBe(true);
     expect(snapshot!.processes.some((process) => process.name.startsWith("nibi-host-"))).toBe(
       true,
     );

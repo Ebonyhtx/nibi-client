@@ -16,7 +16,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 async function fixture() {
-  const root = await mkdtemp(join(tmpdir(), "zcode-remote-schema-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-remote-schema-"));
   roots.push(root);
   const taskDbPath = join(root, "tasks.sqlite");
   const sessionDbPath = join(root, "session.sqlite");

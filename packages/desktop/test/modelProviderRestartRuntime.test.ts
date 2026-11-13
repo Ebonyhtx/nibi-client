@@ -42,7 +42,7 @@ describe("model provider restart runtime", () => {
   });
 
   it("通过正式 Model Selection Config 设置冷启动默认模型", async () => {
-    const homeDir = await mkdtemp(join(tmpdir(), "zcode-restart-selection-"));
+    const homeDir = await mkdtemp(join(tmpdir(), "nibi-restart-selection-"));
     vi.stubEnv("NIBI_E2E_HOME_DIR", homeDir);
     const { seedTurboAgentStartupModel } =
       await import("./e2e/helpers/model-provider-restart-runtime.js");

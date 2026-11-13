@@ -55,7 +55,7 @@
 3. 每个平台生成一个完整 archive，并写入统一 `source-server-release.json`。
 4. 开发态与生产态使用同一 archive 安装合同，不再生成散组件、wrapper 或 legacy manifest。
 
-桌面侧与 remote 侧共用同一份编译后的 `zcode.cjs`，不再按平台下载内嵌 Node 的原生 `zcode-agent`：
+桌面侧与 remote 侧共用同一份编译后的 `zcode.cjs`，不再按平台下载内嵌 Node 的原生 `nibi-agent`：
 
 - `scripts/build-desktop-agent-cli.mjs` 构建 `apps/nibi-cli/packages/cli/dist/zcode.cjs`，并构建、校验 node-repl-host、Browser Use client 和模拟器等 Dev 必需的官方插件 runtime。`pnpm dev:desktop` 在 `pre-dev` 后执行该脚本，开发态 resolver 优先直接使用 workspace 内的 bundle；`stage:remote-assets` 也通过它取得 Agent bundle。
 - 桌面打包的 `prepare:agent-bundle` 将 `zcode.cjs` 和官方插件 seed 资源写入 `packages/desktop/bundled-agents/<platform>/nibi/`，再由 electron-builder 复制到安装包。

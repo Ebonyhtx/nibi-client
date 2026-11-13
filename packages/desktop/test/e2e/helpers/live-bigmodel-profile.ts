@@ -39,7 +39,7 @@ export async function importLiveBigModelCredentials(caseMarker: string): Promise
   const username = userInfo().username;
   const sourceCipher = createCredentialCipherProvider({
     env: {
-      NIBI_CREDENTIAL_SECRET: `zcode-credential-fallback:${platform()}:${sourceHome}:${username}`,
+      NIBI_CREDENTIAL_SECRET: `nibi-credential-fallback:${platform()}:${sourceHome}:${username}`,
     },
   });
   const original = JSON.parse(
@@ -72,7 +72,7 @@ export async function importLiveBigModelCredentials(caseMarker: string): Promise
   setDataBaseDir(paths.homeDir);
   const targetCipher = createCredentialCipherProvider({
     env: {
-      NIBI_CREDENTIAL_SECRET: `zcode-credential-fallback:${platform()}:${paths.homeDir}:${username}`,
+      NIBI_CREDENTIAL_SECRET: `nibi-credential-fallback:${platform()}:${paths.homeDir}:${username}`,
     },
   });
   const service = createCredentialService({ cipherProvider: targetCipher });

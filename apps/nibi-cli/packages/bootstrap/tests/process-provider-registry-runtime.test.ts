@@ -329,7 +329,7 @@ it.skip("真实 Built-in 下完整状态跨协议往返；仅切 current 即更�
             },
           },
           templates: {
-            "zcode-template": {
+            "nibi-template": {
               access: { type: "api-key" },
               api: {
                 type: "anthropic-messages",
@@ -380,7 +380,7 @@ it.skip("真实 Built-in 下完整状态跨协议往返；仅切 current 即更�
         personalRelease([
           {
             providerId: "personal-api",
-            templateId: "zcode-template",
+            templateId: "nibi-template",
             config: {
               group: "standard-personal",
               access: { type: "api-key", apiKey: "secret" },
@@ -635,7 +635,7 @@ it.skip("真实 Built-in 下完整状态跨协议往返；仅切 current 即更�
 });
 
 async function temporaryDirectory(): Promise<string> {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-process-provider-registry-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-process-provider-registry-"));
   temporaryDirectories.push(directory);
   return directory;
 }

@@ -27,7 +27,7 @@ describe("虚拟项目 Composer 候选", () => {
   it("VP14：多 root 文件分别可选，# 在全局草稿显示已有项目任务", async () => {
     await waitForWorkspaceApp(DEFAULT_WORKSPACE, 45_000);
     const home = process.env.NIBI_E2E_HOME_DIR!;
-    if (!home || !basename(home).startsWith("zcode-virtual-project-e2e-"))
+    if (!home || !basename(home).startsWith("nibi-virtual-project-e2e-"))
       throw new Error("隔离 HOME required");
     const roots = [join(home, "E2E_VP14_A"), join(home, "E2E_VP14_B")];
     for (const root of roots) {

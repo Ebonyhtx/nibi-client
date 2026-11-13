@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/terminal.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/terminal.rs（feat/rs 79b6691c55）。
 //! 终端的进入、恢复与临时交还（docs/specs/rust-tui.md §8.1）：常驻 alternate screen、raw mode、
 //! 鼠标、括号粘贴、焦点事件；能区分 shift+enter 的终端打开键盘增强。退出、出错、导致退出的 panic 都恢复原样；
 //! 被捕获的 panic 不碰终端（修复线 F109，docs/specs/rust-cli/tui.md §7.9）；外部编辑器运行期间把终端临时交还。

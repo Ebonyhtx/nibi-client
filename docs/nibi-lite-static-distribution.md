@@ -11,14 +11,14 @@ http://intranet.example.invalid:12345/zcode/deps/
   -> /Users/dev/shared/zcode/deps/
 ```
 
-因此 ZCode Lite 不依赖 `npx --registry`。发布产物放在 `zcode-lite` 目录下，安装入口优先使用 `install.sh`，tarball 作为可直接下载的备选产物。
+因此 ZCode Lite 不依赖 `npx --registry`。发布产物放在 `nibi-lite` 目录下，安装入口优先使用 `install.sh`，tarball 作为可直接下载的备选产物。
 
 ## 目标
 
 - 构建脚本能在本地生成一套可上传到静态下载源的 ZCode Lite 发布目录。
 - 发布目录包含安装脚本、版本 manifest、压缩包和校验文件。
 - 用户机器只要求已有 Node.js，不随 ZCode Lite 打包 Node runtime。
-- `zcode-lite serve` 默认随机选择可用端口、绑定 `127.0.0.1`、自动打开浏览器。
+- `nibi-lite serve` 默认随机选择可用端口、绑定 `127.0.0.1`、自动打开浏览器。
 - 用户显式传 `--host 0.0.0.0` 时允许局域网访问，并默认启用访问 token。
 
 ## 非目标
@@ -32,20 +32,20 @@ http://intranet.example.invalid:12345/zcode/deps/
 
 ```text
 内网静态下载源
-  /zcode/deps/zcode-lite/
+  /zcode/deps/nibi-lite/
     install.sh
     latest.json
     releases/<version>/
-      zcode-lite-<version>.tar.gz
+      nibi-lite-<version>.tar.gz
       sha256.txt
 
 用户机器
   ~/.nibi/lite/releases/<version>
   ~/.nibi/lite/current -> releases/<version>
-  ~/.local/bin/zcode-lite
+  ~/.local/bin/nibi-lite
 
 运行时
-  zcode-lite serve [--host <host>] [--port <port>]
+  nibi-lite serve [--host <host>] [--port <port>]
       |
       v
   Node local server
@@ -70,7 +70,7 @@ mobile browser -> relay -> desktop main -> existing host/services -> existing ru
 
 ## 当前普通 Web 支持边界
 
-这里的“普通 Web”指浏览器直接连接 `@nibi/server` 的同源 `/ws`，包括开发环境的 Web 入口和 `zcode-lite serve` 打开的 ZCode Lite 页面；它不包括手机 `/remote`。
+这里的“普通 Web”指浏览器直接连接 `@nibi/server` 的同源 `/ws`，包括开发环境的 Web 入口和 `nibi-lite serve` 打开的 ZCode Lite 页面；它不包括手机 `/remote`。
 
 当前普通 Web 没有 Desktop 的窗口级 Local Host 进程，因此也没有 Window Host Controller。依赖 Window Host Controller 聚合本地及远程 source 的左侧全局任务列表，暂时不支持普通 Web / ZCode Lite；Controller 不可用时，不在 Web renderer 中另外实现一套聚合或 fallback 逻辑。
 
@@ -96,14 +96,14 @@ mobile /remote -> relay/main 透传 -> Desktop Window Local Host
 
 这条边界只限制依赖 Window Host Controller 的全局任务列表和多 source 聚合，不表示普通 Web 的静态页面、文件、终端、会话等现有 `/ws` 能力整体不可用，也不改变 Desktop 本地、Desktop 远程 workspace 或手机 `/remote` 的现有链路。
 
-后续只有在 Lite / Browser Controller Runtime（或经架构确认的等价服务端 Controller 边界）实现，并补齐普通 Web、Desktop 和手机 `/remote` 回归验证后，才重新支持普通 Web 的全局任务列表。目标架构见 `docs/architecture/unified-zcode-lite-server-multi-server-plan.md`。
+后续只有在 Lite / Browser Controller Runtime（或经架构确认的等价服务端 Controller 边界）实现，并补齐普通 Web、Desktop 和手机 `/remote` 回归验证后，才重新支持普通 Web 的全局任务列表。目标架构见 `docs/architecture/unified-nibi-lite-server-multi-server-plan.md`。
 
 ## 命令行为
 
 默认命令：
 
 ```bash
-zcode-lite serve
+nibi-lite serve
 ```
 
 默认行为：
@@ -117,7 +117,7 @@ zcode-lite serve
 常用服务端启动：
 
 ```bash
-zcode-lite serve --host 0.0.0.0 --port 3030 --no-open
+nibi-lite serve --host 0.0.0.0 --port 3030 --no-open
 ```
 
 ## 安全边界
@@ -131,18 +131,18 @@ zcode-lite serve --host 0.0.0.0 --port 3030 --no-open
 build 脚本只生成本地目录，例如：
 
 ```text
-dist/zcode-lite/
+dist/nibi-lite/
   install.sh
   latest.json
   releases/<version>/
-    zcode-lite-<version>.tar.gz
+    nibi-lite-<version>.tar.gz
     sha256.txt
 ```
 
 上传是临时动作，不落脚本。当前内网上传目标是：
 
 ```text
-/Users/dev/shared/zcode/deps/zcode-lite/
+/Users/dev/shared/zcode/deps/nibi-lite/
 ```
 
 ## 验证
@@ -151,6 +151,6 @@ dist/zcode-lite/
 
 - `pnpm --filter @nibi/server test -- serverInfoHttp.test.ts` 覆盖静态资源和 token 保护。
 - `pnpm --filter @nibi/web build` 确认 Web bootstrap 能读取 `/api/server-info`。
-- `node scripts/build-zcode-lite.mjs --skip-build` 能生成发布目录和 tarball。
-- 解压 tarball 后运行 `node bin/zcode-lite.mjs serve --port 0 --no-open` 能启动 server 并输出 URL。
+- `node scripts/build-nibi-lite.mjs --skip-build` 能生成发布目录和 tarball。
+- 解压 tarball 后运行 `node bin/nibi-lite.mjs serve --port 0 --no-open` 能启动 server 并输出 URL。
 - 提交前执行 `pnpm typecheck` 和 `pnpm lint`。

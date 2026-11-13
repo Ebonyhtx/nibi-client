@@ -31,7 +31,7 @@ async function initializeGit(cwd) {
 }
 
 async function fixture(files, fn) {
-  const cwd = await mkdtemp(join(tmpdir(), "zcode-architecture-"));
+  const cwd = await mkdtemp(join(tmpdir(), "nibi-architecture-"));
   try {
     for (const [relative, content] of Object.entries(files)) {
       const target = join(cwd, relative);

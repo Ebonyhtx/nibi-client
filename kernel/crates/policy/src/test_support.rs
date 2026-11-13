@@ -35,7 +35,7 @@ pub fn paths() -> PathContext {
         roots: vec![CWD.to_owned()],
         home: Some("/home/dev".to_owned()),
         style: PathStyle::Posix,
-        internal: vec!["/tmp/zcode-shell/sessions/s1/tasks".to_owned()],
+        internal: vec!["/tmp/nibi-shell/sessions/s1/tasks".to_owned()],
         plans: PlanFiles::in_workspace(
             &PathFacts {
                 home: Some(EnvPath::new("/home/dev")),

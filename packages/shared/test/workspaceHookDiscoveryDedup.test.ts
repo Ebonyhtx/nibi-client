@@ -10,7 +10,7 @@ import {
 const roots: string[] = [];
 
 function makeRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "zcode-hook-dedup-"));
+  const root = mkdtempSync(join(tmpdir(), "nibi-hook-dedup-"));
   roots.push(root);
   return root;
 }

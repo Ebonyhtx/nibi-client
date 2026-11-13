@@ -9,13 +9,13 @@ import { writeStableLauncher } from "../src/runtime/stableLauncher.js";
 
 describe("release installer", () => {
   it("rejects a release version before constructing a path", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-release-installer-invalid-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-release-installer-invalid-"));
     const layout = resolveServerLayout(join(root, "server"));
     await expect(new ReleaseInstaller(layout).installArchive({ archivePath: join(root, "missing.tar.gz"), target: "linux-x64", version: "../escape" })).rejects.toThrow(/Invalid release version/);
   });
 
   it("installs a tar release, writes pending and creates a stable launcher", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-release-installer-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-release-installer-"));
     const layout = resolveServerLayout(join(root, "server"));
     const archiveRoot = join(root, "nibi-server-linux-x64");
     await mkdir(join(archiveRoot, "runtime"), { recursive: true });
@@ -46,7 +46,7 @@ describe("release installer", () => {
   });
 
   it("installs a Windows zip and writes a launcher that is safe for quoted paths", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-release-installer-win-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-release-installer-win-"));
     const layout = resolveServerLayout(join(root, "server"));
     const archiveRoot = join(root, "nibi-server-win32-x64");
     await mkdir(join(archiveRoot, "runtime"), { recursive: true });
@@ -78,7 +78,7 @@ describe("release installer", () => {
   // 单次约 0.4 秒，并行跑 1391 个测试文件时超过 30 秒超时。改由系统 /bin/sh 读取脚本，exec 目标是系统二进制，
   // 不再触发扫描；shebang 与可执行位改为直接断言。
   it.skipIf(process.platform === "win32")("fails closed when the POSIX stable launcher reads an external current release", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-release-launcher-boundary-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-release-launcher-boundary-"));
     const layout = resolveServerLayout(join(root, "server"));
     const launcherPath = await writeStableLauncher(layout, "linux");
     expect((await readFile(launcherPath, "utf8")).startsWith("#!/bin/sh\n")).toBe(true);
@@ -98,7 +98,7 @@ describe("release installer", () => {
   // 却用逻辑 pwd 计算 root，两者前缀不同，合法 release 被判越界，SSH 连接固定报
   // "Invalid current NIBI Server release"。这里按真实调用方式，从别名路径执行 launcher。
   it.skipIf(process.platform === "win32")("runs the canonical current release when the POSIX launcher is invoked through a symlinked root", async () => {
-    const root = await realpath(await mkdtemp(join(tmpdir(), "zcode-release-launcher-alias-")));
+    const root = await realpath(await mkdtemp(join(tmpdir(), "nibi-release-launcher-alias-")));
     await mkdir(join(root, "volume1", "homes", "dev"), { recursive: true });
     await mkdir(join(root, "var", "services"), { recursive: true });
     await symlink(join(root, "volume1", "homes"), join(root, "var", "services", "homes"));
@@ -130,7 +130,7 @@ describe("release installer", () => {
   });
 
   it("reuses an identical immutable release without deleting or replacing its live directory", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-release-installer-immutable-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-release-installer-immutable-"));
     const layout = resolveServerLayout(join(root, "server"));
     const archiveRoot = join(root, "nibi-server-linux-x64");
     await mkdir(join(archiveRoot, "runtime"), { recursive: true });
@@ -166,7 +166,7 @@ describe("release installer", () => {
   });
 
   it("rejects an existing release whose immutable archive identity is missing", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-release-installer-conflict-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-release-installer-conflict-"));
     const layout = resolveServerLayout(join(root, "server"));
     const archiveRoot = join(root, "nibi-server-linux-x64");
     await mkdir(join(archiveRoot, "runtime"), { recursive: true });

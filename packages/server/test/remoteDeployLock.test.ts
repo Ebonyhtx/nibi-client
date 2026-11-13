@@ -87,9 +87,9 @@ describe("acquireRemoteDeployLock", () => {
     expect(lockScript).toContain("sleep 30");
     expect(lockScript).toContain("-ge 600");
     expect(lockScript).toContain("current_owner");
-    expect(lockScript).toContain("zcode-deploy-lock-acquired:owner-test");
+    expect(lockScript).toContain("nibi-deploy-lock-acquired:owner-test");
 
-    backend.stdout.write("zcode-deploy-lock-acquired:owner-test\n");
+    backend.stdout.write("nibi-deploy-lock-acquired:owner-test\n");
     const handle = await acquirePromise;
     expect(handle.ownerToken).toBe("owner-test");
 
@@ -100,7 +100,7 @@ describe("acquireRemoteDeployLock", () => {
     const releasePromise = handle.release();
     await vi.waitFor(() =>
       expect(stdinChunks.join("")).toContain(
-        "zcode-deploy-lock-release:owner-test",
+        "nibi-deploy-lock-release:owner-test",
       ),
     );
     backend.closeEmitter.fire(0);
@@ -156,7 +156,7 @@ describe("acquireRemoteDeployLock", () => {
       releaseTimeoutMs: 20,
     });
     await vi.waitFor(() => expect(backend.commands).toHaveLength(1));
-    backend.stdout.write("zcode-deploy-lock-acquired:owner-timeout\n");
+    backend.stdout.write("nibi-deploy-lock-acquired:owner-timeout\n");
     const handle = await acquirePromise;
 
     vi.useFakeTimers();

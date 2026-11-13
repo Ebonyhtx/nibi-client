@@ -23,7 +23,7 @@ describe("useSystemService intranet probe request key", () => {
         {
           kind: "service",
           url: `http://${INTRANET_MACHINE_HOST}:${INTRANET_PROBE_SERVICE_PORT}/healthz`,
-          expectedMarker: "zcode-intranet",
+          expectedMarker: "nibi-intranet",
           token: "probe-token",
         },
       ],
@@ -41,7 +41,7 @@ describe("useSystemService intranet probe request key", () => {
         {
           kind: "service",
           url: `http://${INTRANET_MACHINE_HOST}:${INTRANET_PROBE_SERVICE_PORT}/healthz`,
-          expectedMarker: "zcode-intranet",
+          expectedMarker: "nibi-intranet",
           token: "probe-token",
         },
       ],

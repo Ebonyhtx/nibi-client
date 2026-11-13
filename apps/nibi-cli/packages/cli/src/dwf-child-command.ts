@@ -1,5 +1,5 @@
 /**
- * 隐藏子命令 `__zcode-dwf-child <entry path>`：dynamic workflow 的沙箱子进程入口。
+ * 隐藏子命令 `__nibi-dwf-child <entry path>`：dynamic workflow 的沙箱子进程入口。
  *
  * 存在理由：SEA 单文件二进制**不解释 Node CLI 旗标**——harness 缺省的
  * `node --max-old-space-size=… <entry>` 里的旗标会原样落进 CLI 的严格 parseArgs，子进程立刻报错

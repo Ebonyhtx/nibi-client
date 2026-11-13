@@ -194,7 +194,7 @@ describe("sandbox child spawn strategy", () => {
     // 替身脚本只接受 argv.length === 3，所以多一个 token 必然让它自述失败——这正好证明
     // 「prefix 原样透传、入口路径在末位」不是靠巧合成立的。
     const { settlement } = await runOnce({
-      childSpawn: { argsPrefix: [standIn, "__zcode-dwf-child"] },
+      childSpawn: { argsPrefix: [standIn, "__nibi-dwf-child"] },
       timeoutMs: 20000,
     });
 
@@ -202,7 +202,7 @@ describe("sandbox child spawn strategy", () => {
     expect(settlement).toMatchObject({ status: "stopped", reason: "interrupted" });
     expect(spawnCalls[0]!.args).toEqual([
       standIn,
-      "__zcode-dwf-child",
+      "__nibi-dwf-child",
       expect.stringMatching(/run\.mjs$/),
     ]);
   });

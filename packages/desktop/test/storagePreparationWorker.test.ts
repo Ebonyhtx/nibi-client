@@ -7,7 +7,7 @@ vi.mock("@nibi/services/storage-startup", () => ({ resolveDefaultNibiAgentComman
 import { prepareSessionStorage } from "../src/host/database-startup/storagePreparationProcesses.js";
 
 it("uses a Host-owned Worker and waits for the preparation completion frame", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-preparation-worker-"));
+  const dir = await mkdtemp(join(tmpdir(), "nibi-preparation-worker-"));
   const entry = join(dir, "prepare.cjs");
   await writeFile(
     entry,
@@ -55,7 +55,7 @@ it("uses a Host-owned Worker and waits for the preparation completion frame", as
 });
 
 it("SILENTDB-06: reuses only successful paths in this attempt and keeps different databases separate", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-preparation-dedup-"));
+  const dir = await mkdtemp(join(tmpdir(), "nibi-preparation-dedup-"));
   const entry = join(dir, "prepare.cjs");
   await writeFile(
     entry,

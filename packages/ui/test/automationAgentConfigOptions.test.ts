@@ -171,7 +171,7 @@ describe("automation model/thought linkage", () => {
   });
 
   it("runtime provider 包装值只在模型名唯一时映射回菜单项", () => {
-    expect(resolveAutomationModelItem(groups, "zcode-openai-compatible/model-a")?.value).toBe(
+    expect(resolveAutomationModelItem(groups, "nibi-openai-compatible/model-a")?.value).toBe(
       encodeCustomModelValue("demo", "model-a"),
     );
   });

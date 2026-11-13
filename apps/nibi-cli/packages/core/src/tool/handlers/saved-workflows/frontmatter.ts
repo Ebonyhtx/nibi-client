@@ -4,7 +4,7 @@
 //
 // 文件形状：
 //
-//     /* zcode-workflow
+//     /* nibi-workflow
 //     description: ...
 //     args:
 //       pr: { type: string, required: true }
@@ -22,7 +22,7 @@ import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { SavedWorkflowMetaSchema, type SavedWorkflowMeta } from "@nibi/contracts";
 
 /** frontmatter 的开启标记。必须是文件的第一段非空白内容。 */
-export const SAVED_WORKFLOW_SENTINEL = "/* zcode-workflow";
+export const SAVED_WORKFLOW_SENTINEL = "/* nibi-workflow";
 
 /** frontmatter 的结束标记：一行只有块注释的收尾符。 */
 const SAVED_WORKFLOW_TERMINATOR = "*/";

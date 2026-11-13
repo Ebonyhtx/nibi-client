@@ -173,15 +173,15 @@ describe("resolveMessageStreamdownMode", () => {
           },
           [
             "普通文件 report.pdf。",
-            ':zcode-file-citation{path="docs/年度 报告.pdf" purpose="output" page_number=2}',
-            ':::zcode-file-citation{path="docs/论文.pdf" purpose="source"}',
+            ':nibi-file-citation{path="docs/年度 报告.pdf" purpose="output" page_number=2}',
+            ':::nibi-file-citation{path="docs/论文.pdf" purpose="source"}',
           ].join("\n\n"),
         ),
       ),
     );
 
     expect(html).toContain("普通文件 report.pdf");
-    expect(html).not.toContain(":zcode-file-citation");
+    expect(html).not.toContain(":nibi-file-citation");
     expect(html).toContain("<button");
     expect(html).toContain('title="/workspace/docs/年度 报告.pdf"');
     expect(html).toContain('title="/workspace/docs/论文.pdf"');
@@ -201,7 +201,7 @@ describe("resolveMessageStreamdownMode", () => {
             onOpenFileLink: vi.fn(),
           },
           [
-            '规划完成。已生成 ：:zcode-file-citation{path=“/workspace/冰岛 行程.pdf” purpose="output"}',
+            '规划完成。已生成 ：:nibi-file-citation{path=“/workspace/冰岛 行程.pdf” purpose="output"}',
             "[说明](‘docs/说明.md’)",
           ].join("\n\n"),
         ),
@@ -228,12 +228,12 @@ describe("resolveMessageStreamdownMode", () => {
             workspacePath: "/workspace",
             onOpenFileLink: vi.fn(),
           },
-          '正文\n::zcode-file-citation{path="docs/report.pdf"',
+          '正文\n::nibi-file-citation{path="docs/report.pdf"',
         ),
       ),
     );
     expect(html).toContain("正文");
-    expect(html).not.toContain("::zcode-file-citation");
+    expect(html).not.toContain("::nibi-file-citation");
 
     const malformedHtml = renderToStaticMarkup(
       createElement(
@@ -247,7 +247,7 @@ describe("resolveMessageStreamdownMode", () => {
             workspacePath: "/workspace",
             onOpenFileLink: vi.fn(),
           },
-          '正文\n::zcode-file-citation{path="docs/report.pdf"\n后续说明仍然可见',
+          '正文\n::nibi-file-citation{path="docs/report.pdf"\n后续说明仍然可见',
         ),
       ),
     );
@@ -269,7 +269,7 @@ describe("resolveMessageStreamdownMode", () => {
             workspacePath: "C:\\workspace",
             onOpenFileLink: vi.fn(),
           },
-          `::zcode-file-citation{path="${path}" purpose="output"}`,
+          `::nibi-file-citation{path="${path}" purpose="output"}`,
         ),
       ),
     );
@@ -280,7 +280,7 @@ describe("resolveMessageStreamdownMode", () => {
   });
 
   it("越界 citation 保持原文且不生成文件链接", () => {
-    const directive = '::zcode-file-citation{path="foo/../../private.pdf"}';
+    const directive = '::nibi-file-citation{path="foo/../../private.pdf"}';
     const html = renderToStaticMarkup(
       createElement(
         MessageResponse,
@@ -293,13 +293,13 @@ describe("resolveMessageStreamdownMode", () => {
       ),
     );
 
-    expect(html).toContain("::zcode-file-citation");
+    expect(html).toContain("::nibi-file-citation");
     expect(html).not.toContain('title="/workspace/foo/../../private.pdf"');
   });
 
   it("citation 不解析代码节点，并保留 Streamdown 默认 GFM 表格", () => {
-    const directive = '::zcode-file-citation{path="docs/report.pdf"}';
-    const compatibilityDirective = ':zcode-file-citation{path="docs/legacy.pdf"}';
+    const directive = '::nibi-file-citation{path="docs/report.pdf"}';
+    const compatibilityDirective = ':nibi-file-citation{path="docs/legacy.pdf"}';
     const html = renderToStaticMarkup(
       createElement(
         NibiIntlProvider,
@@ -327,8 +327,8 @@ describe("resolveMessageStreamdownMode", () => {
       ),
     );
 
-    expect(html).toContain("::zcode-file-citation");
-    expect(html).toContain(":zcode-file-citation");
+    expect(html).toContain("::nibi-file-citation");
+    expect(html).toContain(":nibi-file-citation");
     expect(html).toContain("<table");
     expect(html).not.toContain('title="/workspace/docs/report.pdf"');
     expect(html).not.toContain('title="/workspace/docs/legacy.pdf"');

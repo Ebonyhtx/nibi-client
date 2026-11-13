@@ -33,7 +33,7 @@ import type {
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await mkdtemp(join(tmpdir(), "zcode-edit-contract-"));
+  tmpDir = await mkdtemp(join(tmpdir(), "nibi-edit-contract-"));
 });
 
 afterEach(async () => {

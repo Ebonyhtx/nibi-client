@@ -111,21 +111,21 @@ search runtime）。历史 `resourcePackages.selectedPackageIds` 只兼容读取
   预编译归档，旧 `prepare:rg` 不再作为独立维护入口暴露。
 - `pnpm dev:desktop` 的本地 runtime 自检只补齐当前平台的 native-search 工具集和必需平台 helper：
   macOS/Linux 的工具集为 `bfs`、`ugrep`、`ripgrep`，Windows x64/arm64 为 `ugrep`、`ripgrep`；自检不再
-  检查或下载 `glm/nibi-agent`（改名前的旧名是 `zcode-agent`）。开发态 Agent 由 `dev-desktop-env.mjs` 在 `pre-dev` 后调用
+  检查或下载 `glm/nibi-agent`（改名前的旧名是 `nibi-agent`）。开发态 Agent 由 `dev-desktop-env.mjs` 在 `pre-dev` 后调用
   `build-desktop-agent-cli.mjs` 构建，运行时优先使用 workspace 内的 `dist/zcode.cjs`。
 - 桌面安装包携带 `resources/nibi/zcode.cjs`、`resources/tools/ugrep` 与 `resources/tools/ripgrep`；
   macOS/Linux 另携带 `resources/tools/bfs`。
 
-Agent runtime 版本事实源是 `packages/shared/src/zcode-agent-runtime.ts`。本地开发、desktop build、remote
+Agent runtime 版本事实源是 `packages/shared/src/nibi-agent-runtime.ts`。本地开发、desktop build、remote
 manifest 和下载逻辑应共同读取它，不再从旧 provider runtime 清单推断。
 
 ## 当前入口
 
-- `packages/services/src/zcode-agent/zcodeAgentService.ts`
-- `packages/services/src/zcode-agent/zcodeAgentProcessManager.ts`
-- `packages/services/src/zcode-agent/nibiProtocolClient.ts`
-- `packages/services/src/zcode-agent/zcodeStdioTransport.ts`
-- `packages/services/src/zcode-agent/zcodeAgentConnectionScope.ts`
+- `packages/services/src/nibi-agent/zcodeAgentService.ts`
+- `packages/services/src/nibi-agent/zcodeAgentProcessManager.ts`
+- `packages/services/src/nibi-agent/nibiProtocolClient.ts`
+- `packages/services/src/nibi-agent/zcodeStdioTransport.ts`
+- `packages/services/src/nibi-agent/zcodeAgentConnectionScope.ts`
 - `packages/ui/src/v4/V4ConversationContext.tsx`
 - `packages/ui/src/v4/SessionPane.tsx`
 - `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-entrypoint.ts`

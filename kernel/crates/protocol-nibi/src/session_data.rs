@@ -1,4 +1,4 @@
-//! `v4/storage/sessionData/measure` / `purge`（上游 `packages/shared/src/zcode-protocol-v4/
+//! `v4/storage/sessionData/measure` / `purge`（上游 `packages/shared/src/nibi-protocol-v4/
 //! session-data/contract.ts`）。
 //!
 //! 载荷与上游 zod 的 `.strict()` 同形：`{sessionIds, directories}`，目录是

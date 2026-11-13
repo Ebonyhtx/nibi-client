@@ -9,7 +9,7 @@
 3. 必须严格串行执行：按 S1、S2、S3 ... 的顺序逐个执行，上一条 Bash tool result 返回后再发下一条 Bash tool call。平台不适用的 optional case 可以跳过。
 4. 除非 case 单独写了 tool 参数，否则只传 `command` 和 `description`。
 5. 不要使用 `Read` / `Grep` / `Glob` / `Edit` / `Write` / `Agent` / `WebSearch` 等其他工具。
-6. 除了 `/tmp/zcode-bash-shell-profile-*` 和 `/tmp/zcode-bash-shell-profile-last-*`，不要创建或修改其他测试文件。
+6. 除了 `/tmp/nibi-bash-shell-profile-*` 和 `/tmp/nibi-bash-shell-profile-last-*`，不要创建或修改其他测试文件。
 7. 即使命令返回非 0，也继续执行后续 Bash tool call。
 8. 执行完成后，只回复一行：`DONE`。
 
@@ -57,7 +57,7 @@ Tool 参数：`timeout: 3000`
 {
   "description": "Confirm stdin closes without blocking",
   "timeout": 3000,
-  "command": "cat >/tmp/zcode-bash-shell-profile-stdin.txt\nprintf 'CASE05 after-cat\\n'"
+  "command": "cat >/tmp/nibi-bash-shell-profile-stdin.txt\nprintf 'CASE05 after-cat\\n'"
 }
 ```
 
@@ -66,7 +66,7 @@ Tool 参数：`timeout: 3000`
 ```json
 {
   "description": "Set persisted working directory inside workspace",
-  "command": "START=\"$(pwd -P)\"\nif [ -d \"$START/apps/nibi-cli\" ]; then\n  NEXT=\"$START/apps/nibi-cli\"\nelif [ -d \"$START/packages/core\" ]; then\n  NEXT=\"$START/packages/core\"\nelif [ -d \"$START/src\" ]; then\n  NEXT=\"$START/src\"\nelse\n  NEXT=\"$START\"\nfi\nprintf '%s\\n' \"$START\" > /tmp/zcode-bash-shell-profile-last-start-cwd\nprintf '%s\\n' \"$NEXT\" > /tmp/zcode-bash-shell-profile-last-inside-cwd\ncd \"$NEXT\"\nprintf 'CASE06 start=%s\\n' \"$START\"\nprintf 'CASE06 pwd=%s\\n' \"$(pwd -P)\"\nprintf 'CASE06 cwd-set-inside\\n'"
+  "command": "START=\"$(pwd -P)\"\nif [ -d \"$START/apps/nibi-cli\" ]; then\n  NEXT=\"$START/apps/nibi-cli\"\nelif [ -d \"$START/packages/core\" ]; then\n  NEXT=\"$START/packages/core\"\nelif [ -d \"$START/src\" ]; then\n  NEXT=\"$START/src\"\nelse\n  NEXT=\"$START\"\nfi\nprintf '%s\\n' \"$START\" > /tmp/nibi-bash-shell-profile-last-start-cwd\nprintf '%s\\n' \"$NEXT\" > /tmp/nibi-bash-shell-profile-last-inside-cwd\ncd \"$NEXT\"\nprintf 'CASE06 start=%s\\n' \"$START\"\nprintf 'CASE06 pwd=%s\\n' \"$(pwd -P)\"\nprintf 'CASE06 cwd-set-inside\\n'"
 }
 ```
 
@@ -75,7 +75,7 @@ Tool 参数：`timeout: 3000`
 ```json
 {
   "description": "Use persisted working directory",
-  "command": "printf 'CASE07 pwd=%s\\n' \"$(pwd -P)\"\nprintf 'CASE07 saved=%s\\n' \"$(cat /tmp/zcode-bash-shell-profile-last-inside-cwd)\"\nprintf 'CASE07 cwd-persisted-inside\\n'"
+  "command": "printf 'CASE07 pwd=%s\\n' \"$(pwd -P)\"\nprintf 'CASE07 saved=%s\\n' \"$(cat /tmp/nibi-bash-shell-profile-last-inside-cwd)\"\nprintf 'CASE07 cwd-persisted-inside\\n'"
 }
 ```
 
@@ -84,7 +84,7 @@ Tool 参数：`timeout: 3000`
 ```json
 {
   "description": "Fail after changing directory",
-  "command": "FAILED_OUT=\"/tmp/zcode-bash-shell-profile-failed-cwd-${USER:-user}-$(date +%s)-$$\"\nmkdir -p \"$FAILED_OUT\"\ncd \"$FAILED_OUT\"\nprintf 'CASE08 before-fail-pwd=%s\\n' \"$(pwd -P)\"\nexit 3"
+  "command": "FAILED_OUT=\"/tmp/nibi-bash-shell-profile-failed-cwd-${USER:-user}-$(date +%s)-$$\"\nmkdir -p \"$FAILED_OUT\"\ncd \"$FAILED_OUT\"\nprintf 'CASE08 before-fail-pwd=%s\\n' \"$(pwd -P)\"\nexit 3"
 }
 ```
 
@@ -102,7 +102,7 @@ Tool 参数：`timeout: 3000`
 ```json
 {
   "description": "Change to outside temp directory successfully",
-  "command": "OUTSIDE=\"/tmp/zcode-bash-shell-profile-reset-cwd-${USER:-user}-$(date +%s)-$$\"\nmkdir -p \"$OUTSIDE\"\nprintf '%s\\n' \"$OUTSIDE\" > /tmp/zcode-bash-shell-profile-last-outside-cwd\ncd \"$OUTSIDE\"\nprintf 'CASE10 outside-success-pwd=%s\\n' \"$(pwd -P)\"\nprintf 'CASE10 outside-success\\n'"
+  "command": "OUTSIDE=\"/tmp/nibi-bash-shell-profile-reset-cwd-${USER:-user}-$(date +%s)-$$\"\nmkdir -p \"$OUTSIDE\"\nprintf '%s\\n' \"$OUTSIDE\" > /tmp/nibi-bash-shell-profile-last-outside-cwd\ncd \"$OUTSIDE\"\nprintf 'CASE10 outside-success-pwd=%s\\n' \"$(pwd -P)\"\nprintf 'CASE10 outside-success\\n'"
 }
 ```
 
@@ -111,7 +111,7 @@ Tool 参数：`timeout: 3000`
 ```json
 {
   "description": "Print working directory after outside reset",
-  "command": "printf 'CASE11 after-reset-pwd=%s\\n' \"$(pwd -P)\"\nprintf 'CASE11 start=%s\\n' \"$(cat /tmp/zcode-bash-shell-profile-last-start-cwd)\"\nprintf 'CASE11 outside=%s\\n' \"$(cat /tmp/zcode-bash-shell-profile-last-outside-cwd)\""
+  "command": "printf 'CASE11 after-reset-pwd=%s\\n' \"$(pwd -P)\"\nprintf 'CASE11 start=%s\\n' \"$(cat /tmp/nibi-bash-shell-profile-last-start-cwd)\"\nprintf 'CASE11 outside=%s\\n' \"$(cat /tmp/nibi-bash-shell-profile-last-outside-cwd)\""
 }
 ```
 
@@ -174,7 +174,7 @@ Tool 参数：`timeout: 3000`
 ```json
 {
   "description": "Run ripgrep no match command",
-  "command": "TMP=\"$(mktemp -d /tmp/zcode-bash-shell-profile-rg.XXXXXX)\"\nprintf 'abc\\n' > \"$TMP/file.txt\"\nrg 'definitely-no-match-zcode-shell-profile' \"$TMP\""
+  "command": "TMP=\"$(mktemp -d /tmp/nibi-bash-shell-profile-rg.XXXXXX)\"\nprintf 'abc\\n' > \"$TMP/file.txt\"\nrg 'definitely-no-match-nibi-shell-profile' \"$TMP\""
 }
 ```
 

@@ -62,7 +62,7 @@ export type ConversationSelectionAppendResult =
 const ADD_EVENT = "nibi:conversation-selection-add";
 const USER_SELECT_BLOCK_PATTERN = /(?:\n\n)?# userselect:\n```userselect\n([\s\S]*?)\n```\s*$/;
 const LEGACY_BLOCK_PATTERN =
-  /(?:\n\n)?# Conversation selections:\n```zcode-conversation-selections\n([\s\S]*?)\n```\s*$/;
+  /(?:\n\n)?# Conversation selections:\n```nibi-conversation-selections\n([\s\S]*?)\n```\s*$/;
 const referencesByScope = new Map<string, readonly ConversationSelectionReference[]>();
 const limitReasonByScope = new Map<string, ConversationSelectionLimitReason>();
 

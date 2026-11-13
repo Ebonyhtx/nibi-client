@@ -25,7 +25,7 @@
     {
       "path": ".nibi-e2e/continue-markdown-otc10/citation.txt",
       "source": "created-by-spec",
-      "description": "OTC10 zcode-file-citation 的固定目标文件。"
+      "description": "OTC10 nibi-file-citation 的固定目标文件。"
     }
   ],
   "requests": [
@@ -454,20 +454,20 @@
       "syntheticReason": "确定性验证 OTC10/mermaid 自己的 Continue 拼接缝，不依赖其他 Markdown 类型。"
     },
     {
-      "id": "otc10-zcode-file-citation-partial",
-      "description": "OTC10/zcode-file-citation 首段在本类型 token 内以 max_tokens 截断。",
+      "id": "otc10-nibi-file-citation-partial",
+      "description": "OTC10/nibi-file-citation 首段在本类型 token 内以 max_tokens 截断。",
       "kind": "main",
       "source": "synthetic",
       "timingPolicy": "fast-text",
-      "syntheticReason": "确定性验证 OTC10/zcode-file-citation 自己的 Continue 拼接缝，不依赖其他 Markdown 类型。"
+      "syntheticReason": "确定性验证 OTC10/nibi-file-citation 自己的 Continue 拼接缝，不依赖其他 Markdown 类型。"
     },
     {
-      "id": "otc10-zcode-file-citation-final",
-      "description": "OTC10/zcode-file-citation 续段闭合本类型并正常结束。",
+      "id": "otc10-nibi-file-citation-final",
+      "description": "OTC10/nibi-file-citation 续段闭合本类型并正常结束。",
       "kind": "main",
       "source": "synthetic",
       "timingPolicy": "fast-text",
-      "syntheticReason": "确定性验证 OTC10/zcode-file-citation 自己的 Continue 拼接缝，不依赖其他 Markdown 类型。"
+      "syntheticReason": "确定性验证 OTC10/nibi-file-citation 自己的 Continue 拼接缝，不依赖其他 Markdown 类型。"
     }
   ]
 }

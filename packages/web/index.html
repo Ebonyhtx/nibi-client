@@ -54,7 +54,7 @@
                 const normalizedTheme = snapshot.theme === "dark" ? "dark" : "light";
                 bootstrapTheme = normalizedTheme;
                 document.documentElement.style.setProperty(
-                  "--zcode-bootstrap-bg",
+                  "--nibi-bootstrap-bg",
                   typeof snapshot.background === "string"
                     ? snapshot.background
                     : normalizedTheme === "dark"
@@ -62,7 +62,7 @@
                       : "#f9f2e4",
                 );
                 document.documentElement.style.setProperty(
-                  "--zcode-bootstrap-fg",
+                  "--nibi-bootstrap-fg",
                   typeof snapshot.foreground === "string"
                     ? snapshot.foreground
                     : normalizedTheme === "dark"
@@ -71,13 +71,13 @@
                 );
                 if (typeof snapshot.border === "string") {
                   document.documentElement.style.setProperty(
-                    "--zcode-bootstrap-border",
+                    "--nibi-bootstrap-border",
                     snapshot.border,
                   );
                 }
                 if (typeof snapshot.card === "string") {
                   document.documentElement.style.setProperty(
-                    "--zcode-bootstrap-card",
+                    "--nibi-bootstrap-card",
                     snapshot.card,
                   );
                 }
@@ -126,8 +126,8 @@
       }
 
       body {
-        background: var(--zcode-bootstrap-bg, var(--color-background, #171716));
-        color: var(--zcode-bootstrap-fg, var(--color-foreground, #e2e8f0));
+        background: var(--nibi-bootstrap-bg, var(--color-background, #171716));
+        color: var(--nibi-bootstrap-fg, var(--color-foreground, #e2e8f0));
         font-family:
           Inter,
           -apple-system,
@@ -137,8 +137,8 @@
       }
 
       html[data-nibi-bootstrap-theme="light"] body {
-        background: var(--zcode-bootstrap-bg, var(--color-background, #f9f2e4));
-        color: var(--zcode-bootstrap-fg, var(--color-foreground, #334155));
+        background: var(--nibi-bootstrap-bg, var(--color-background, #f9f2e4));
+        color: var(--nibi-bootstrap-fg, var(--color-foreground, #334155));
       }
 
       html[data-nibi-browser-theme-surface],
@@ -146,13 +146,13 @@
       html[data-nibi-browser-theme-surface] #root {
         /* 修复原因：共享 UI 样式为 Electron vibrancy 强制透明根背景；浏览器入口必须用语义背景
            覆盖该桌面专属行为，否则浏览器工具栏、overscroll 和页面画布会回退为系统白色。 */
-        background: var(--color-background, var(--zcode-bootstrap-bg, #171716)) !important;
+        background: var(--color-background, var(--nibi-bootstrap-bg, #171716)) !important;
       }
 
       html[data-nibi-browser-theme-surface="light"],
       html[data-nibi-browser-theme-surface="light"] body,
       html[data-nibi-browser-theme-surface="light"] #root {
-        background: var(--color-background, var(--zcode-bootstrap-bg, #f9f2e4)) !important;
+        background: var(--color-background, var(--nibi-bootstrap-bg, #f9f2e4)) !important;
       }
 
       .nibi-boot-loading {
@@ -162,13 +162,13 @@
         width: 100%;
         height: 100%;
         /* Bugfix: UI 全局样式会把 body/#root 置为透明，预渲染壳必须自己承接主题背景，否则深色主题会露出浏览器白底。 */
-        background: var(--zcode-bootstrap-bg, var(--color-background, #171716));
-        color: var(--zcode-bootstrap-fg, var(--color-foreground, #e2e8f0));
+        background: var(--nibi-bootstrap-bg, var(--color-background, #171716));
+        color: var(--nibi-bootstrap-fg, var(--color-foreground, #e2e8f0));
       }
 
       html[data-nibi-bootstrap-theme="light"] .nibi-boot-loading {
-        background: var(--zcode-bootstrap-bg, var(--color-background, #f9f2e4));
-        color: var(--zcode-bootstrap-fg, var(--color-foreground, #334155));
+        background: var(--nibi-bootstrap-bg, var(--color-background, #f9f2e4));
+        color: var(--nibi-bootstrap-fg, var(--color-foreground, #334155));
       }
 
       .nibi-boot-loading__logo {

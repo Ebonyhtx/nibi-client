@@ -111,7 +111,7 @@ describe("Explore subagent", () => {
     async (withFailedUsage) => {
       const sessionId = createSessionId("parent-usage");
       const traceId = createTraceId();
-      const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-subagent-usage-"));
+      const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-subagent-usage-"));
       const normalUsage = { inputTokens: 3, outputTokens: 1, totalTokens: 4 };
       const port = createExploreSubagentPort({
         outputRootDir,
@@ -172,7 +172,7 @@ describe("Explore subagent", () => {
   );
 
   it("fails a foreground run after the child runner stays inactive", async () => {
-    const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-subagent-inactive-"));
+    const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-subagent-inactive-"));
     const emittedEvents: any[] = [];
     const port = createExploreSubagentPort({
       createAgentId: () => "agent_inactive",
@@ -229,7 +229,7 @@ describe("Explore subagent", () => {
   });
 
   it("fails a foreground run when the child stays inactive before session ready", async () => {
-    const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-subagent-pre-ready-inactive-"));
+    const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-subagent-pre-ready-inactive-"));
     const emittedEvents: SessionEvent[] = [];
     const childStarted = createDeferred<void>();
     const port = createExploreSubagentPort({
@@ -283,7 +283,7 @@ describe("Explore subagent", () => {
   });
 
   it("stops waiting when the parent aborts while the child runner is unresponsive", async () => {
-    const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-subagent-abort-"));
+    const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-subagent-abort-"));
     const abortController = new AbortController();
     const emittedEvents: any[] = [];
     const port = createExploreSubagentPort({
@@ -346,7 +346,7 @@ describe("Explore subagent", () => {
   });
 
   it("stops waiting when the parent aborts before the child session is ready", async () => {
-    const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-subagent-pre-ready-abort-"));
+    const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-subagent-pre-ready-abort-"));
     const abortController = new AbortController();
     const emittedEvents: SessionEvent[] = [];
     const childStarted = createDeferred<void>();
@@ -2818,7 +2818,7 @@ describe("Explore subagent", () => {
   it("returns after launching background Explore and consumes notification on the next turn", async () => {
     const sessionId = createSessionId("runtime-background-explore-join");
     const eventStore = createTestSessionEventStore();
-    const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-subagent-output-"));
+    const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-subagent-output-"));
     const parentRequests: any[] = [];
     const childRequests: any[] = [];
     let releaseChild!: () => void;
@@ -3086,7 +3086,7 @@ describe("Explore subagent", () => {
   it("can SendMessage to a running background local_agent", async () => {
     const sessionId = createSessionId("runtime-background-local-agent-send-message");
     const eventStore = createTestSessionEventStore();
-    const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-subagent-output-"));
+    const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-subagent-output-"));
     const parentRequests: any[] = [];
     const childRequests: any[] = [];
     let capturedAgentId = "";
@@ -3875,7 +3875,7 @@ describe("Explore subagent", () => {
         },
         modelContextBudgetStrategy: "legacy",
         subagents: {
-          outputRootDir: await mkdtemp(join(tmpdir(), "zcode-subagent-compact-budget-")),
+          outputRootDir: await mkdtemp(join(tmpdir(), "nibi-subagent-compact-budget-")),
           profiles: [
             {
               name: "compact-reviewer",

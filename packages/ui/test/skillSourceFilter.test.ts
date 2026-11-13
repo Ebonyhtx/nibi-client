@@ -19,11 +19,11 @@ const demoSkills = [
     path: "/tmp/workspace/.nibi/skills/glm-only/SKILL.md",
   },
   {
-    id: "glm:workspace:zcode-common:abc123",
+    id: "glm:workspace:nibi-common:abc123",
     path: "/tmp/workspace/.nibi/skills/common/SKILL.md",
   },
   {
-    id: "claude:workspace:zcode-common:abc123",
+    id: "claude:workspace:nibi-common:abc123",
     path: "/tmp/workspace/.nibi/skills/common-from-legacy-list/SKILL.md",
   },
   {
@@ -60,8 +60,8 @@ describe("skillSourceFilter", () => {
   it("过滤混合来源时保留 Nibi Agent 技能", () => {
     const expectedIds = [
       "skill-glm-by-path",
-      "glm:workspace:zcode-common:abc123",
-      "claude:workspace:zcode-common:abc123",
+      "glm:workspace:nibi-common:abc123",
+      "claude:workspace:nibi-common:abc123",
       "glm:user:mirrored:abc123",
       "skill-plugin-by-scope",
       "skill-plugin-by-path",

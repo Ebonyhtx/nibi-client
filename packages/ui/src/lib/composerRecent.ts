@@ -105,7 +105,7 @@ function resolveComposerRecentKey(
   workspaceIdentity?: string,
   scope?: ComposerScope,
 ): string {
-  if (scope) return `zcode-composer-recent:v2:${composerScopeKey(scope)}`;
+  if (scope) return `nibi-composer-recent:v2:${composerScopeKey(scope)}`;
   const workspaceKey = workspaceIdentity?.trim() || workspacePath;
   return `${COMPOSER_RECENT_KEY_PREFIX}:${workspaceKey}`;
 }

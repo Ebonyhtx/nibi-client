@@ -89,7 +89,7 @@ interface V8CoveragePayload {
       url?: string | null;
     }
   >;
-  "zcode-e2e-normalized-source-map-root"?: string;
+  "nibi-e2e-normalized-source-map-root"?: string;
 }
 
 const COVERAGE_ENABLED_VALUE = "1";
@@ -194,7 +194,7 @@ export function compactV8CoverageDirectory(params: {
     } catch {
       continue;
     }
-    if (payload["zcode-e2e-normalized-source-map-root"] === normalizedSourceMapRoot) {
+    if (payload["nibi-e2e-normalized-source-map-root"] === normalizedSourceMapRoot) {
       compactedFileNames.add(rawFileName);
       compactedFileIndexChanged = true;
       continue;
@@ -203,7 +203,7 @@ export function compactV8CoverageDirectory(params: {
     normalizeV8CoveragePayload(payload, params.sourceMapRoot, {
       excludeSourceMapUrls: retainedSourceMapUrls,
     });
-    payload["zcode-e2e-normalized-source-map-root"] = normalizedSourceMapRoot;
+    payload["nibi-e2e-normalized-source-map-root"] = normalizedSourceMapRoot;
     const retainedByThisFile = Object.keys(payload["source-map-cache"] ?? {});
     // Bug 根因：V8 会为每个短生命周期 Electron/Host/CLI 进程重复落整份 bundle
     // source map，全量（含 manual-review）在 finalize 前即可超过百 GB。进程退出后立即

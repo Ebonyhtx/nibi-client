@@ -30,7 +30,7 @@ afterEach(async () => {
 async function controlledArchiveDownload(overallTimeoutMs = 1_000) {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   const payload = Buffer.from("abcdefgh");
-  const root = await mkdtemp(join(tmpdir(), "zcode-release-download-clock-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-release-download-clock-"));
   const destination = join(root, "release.tar.gz");
   let input!: ReadableStreamDefaultController<Uint8Array>;
   let closed = false;
@@ -137,7 +137,7 @@ describe("release downloader", () => {
     if (!address || typeof address === "string") throw new Error("server did not listen");
     const catalog = await fetchReleaseCatalog(`http://127.0.0.1:${address.port}/catalog.json`);
     expect(catalog.releases[0]?.version).toBe("2.0.0");
-    const dir = await mkdtemp(join(tmpdir(), "zcode-release-download-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-release-download-"));
     const destination = join(dir, "release.tar.gz");
     await new ReleaseDownloader().download({
       url: `http://127.0.0.1:${address.port}/archive.tar.gz`,
@@ -155,7 +155,7 @@ describe("release downloader", () => {
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("server did not listen");
-    const dir = await mkdtemp(join(tmpdir(), "zcode-release-download-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-release-download-"));
     const destination = join(dir, "release.tar.gz");
     await expect(
       new ReleaseDownloader().download({
@@ -176,7 +176,7 @@ describe("release downloader", () => {
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("server did not listen");
-    const dir = await mkdtemp(join(tmpdir(), "zcode-release-download-size-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-release-download-size-"));
     const destination = join(dir, "release.tar.gz");
     await expect(
       new ReleaseDownloader().download({
@@ -276,7 +276,7 @@ describe("release downloader", () => {
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("server did not listen");
-    const dir = await mkdtemp(join(tmpdir(), "zcode-release-download-retry-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-release-download-retry-"));
 
     await new ReleaseDownloader().download({
       url: `http://127.0.0.1:${address.port}/archive.tar.gz`,

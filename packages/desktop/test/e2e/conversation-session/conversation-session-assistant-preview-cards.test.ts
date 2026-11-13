@@ -250,7 +250,7 @@ describe("Assistant Preview Cards E2E", () => {
       () => document.querySelector<HTMLVideoElement>("video[controls]")?.currentSrc ?? "",
     );
     expect(mediaUrl).not.toBe("");
-    expect(new URL(mediaUrl).protocol).toBe("zcode-media:");
+    expect(new URL(mediaUrl).protocol).toBe("nibi-media:");
     await assertPreviewVideoSurvivesResizeAndFullscreen();
     await assertLocalMediaPreviewLogs(logSnapshot);
   }).timeout(180_000);
@@ -379,7 +379,7 @@ async function readPreviewCards(
     (titles) => {
       const openLabels = new Set(["Open", "打开", "Preview", "预览"]);
       return Array.from(
-        document.querySelectorAll<HTMLElement>('[data-zcode-stream-animate="true"]'),
+        document.querySelectorAll<HTMLElement>('[data-nibi-stream-animate="true"]'),
       )
         .filter((row) =>
           Array.from(row.querySelectorAll<HTMLButtonElement>("button")).some((button) =>
@@ -422,7 +422,7 @@ async function clickPreviewCard(title: string) {
   const result = await browser.execute((expectedTitle) => {
     const openLabels = new Set(["Open", "打开", "Preview", "预览"]);
     const row = Array.from(
-      document.querySelectorAll<HTMLElement>('[data-zcode-stream-animate="true"]'),
+      document.querySelectorAll<HTMLElement>('[data-nibi-stream-animate="true"]'),
     ).find((candidate) => candidate.innerText.includes(expectedTitle));
     const button = Array.from(row?.querySelectorAll<HTMLButtonElement>("button") ?? []).find(
       (candidate) => openLabels.has((candidate.textContent ?? "").trim()),
@@ -446,7 +446,7 @@ async function assertFileOpenApps(filename: string) {
     const base = await platform.getInstalledEditors();
     return { apps: apps.map((app) => app.name), base: base.map((app) => app.name) };
   }, path);
-  const rows = await browser.$$('[data-zcode-stream-animate="true"]');
+  const rows = await browser.$$('[data-nibi-stream-animate="true"]');
   const row = (
     await rows.map(async (candidate) => ({ candidate, text: await candidate.getText() }))
   ).find((item) => item.text.includes(filename))?.candidate;
@@ -480,7 +480,7 @@ async function assertLocalHtmlExternalOpen() {
   await openPath.mockResolvedValue("");
   try {
     const expectedTitle = basename(SOURCE_HTML_RELATIVE_PATH);
-    const rows = await browser.$$('[data-zcode-stream-animate="true"]');
+    const rows = await browser.$$('[data-nibi-stream-animate="true"]');
     const row = (
       await rows.map(async (candidate) => ({
         candidate,

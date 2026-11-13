@@ -603,7 +603,7 @@ function addSessionForkSnapshotFallback(
   return [
     ...messages,
     {
-      id: `zcode-timeline-fork-${parentSessionId}-`,
+      id: `nibi-timeline-fork-${parentSessionId}-`,
       role: "user",
       content: "",
       timestamp: snapshot.session.createdAt,
@@ -669,9 +669,9 @@ function goalVerificationTimelineMessageId(
   item: Extract<NibiGoalVerificationTimelineMeta, { type: "goal_verification" }>,
 ): string {
   if (typeof item.goalIteration === "number") {
-    return `zcode-goal-verification-${item.targetId}-${item.goalIteration}`;
+    return `nibi-goal-verification-${item.targetId}-${item.goalIteration}`;
   }
-  return `zcode-goal-verification-${item.verificationId}`;
+  return `nibi-goal-verification-${item.verificationId}`;
 }
 
 function insertGoalVerificationTimelineMessages(

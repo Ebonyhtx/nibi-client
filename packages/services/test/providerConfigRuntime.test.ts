@@ -25,7 +25,7 @@ function emptyBuiltinRelease(revision = 1) {
 
 describe("ProviderConfigRuntime", () => {
   it("保留含非法 endpoint 的 Personal Provider，并把问题留给 Registry 完整性校验", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-provider-runtime-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-provider-runtime-"));
     const nibiBuiltinFilePath = join(root, "nibiBuiltin.json");
     const personalFilePath = join(root, "provider_config.json");
     await writeFile(nibiBuiltinFilePath, JSON.stringify(emptyBuiltinRelease()), "utf8");
@@ -84,7 +84,7 @@ describe("ProviderConfigRuntime", () => {
 
 
   it("本地候选 ready 后后台同步远端 Release，并把 Active 路径暴露给 Worker", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-provider-runtime-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-provider-runtime-"));
     const bundledFilePath = join(root, "bundled.json");
     const activeFilePath = join(root, "cache", "active.json");
     await writeFile(bundledFilePath, JSON.stringify(emptyBuiltinRelease()), "utf8");

@@ -35,7 +35,7 @@ it.each([
     const searchInput = large
       ? { query: "lookup", max_results: -1 }
       : { query: "select:WebFetch,TodoWrite", max_results: 5 };
-    const root = await mkdtemp(join(tmpdir(), "zcode-toolsearch-hook-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-toolsearch-hook-"));
     const dbPath = join(root, "session.sqlite");
     const sessionId = createSessionId("toolsearch-hook-cold");
     let store = await createSqliteSessionStore({ dbPath });

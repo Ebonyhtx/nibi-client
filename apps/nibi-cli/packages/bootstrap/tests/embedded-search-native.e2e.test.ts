@@ -48,7 +48,7 @@ describe.skipIf(!nativeE2eEnabled)("native embedded search E2E", () => {
   let systemRgAdapter: NodeExecutionAdapter;
 
   beforeAll(async () => {
-    fixtureRoot = await mkdtemp(join(tmpdir(), "zcode-native-embedded-search-"));
+    fixtureRoot = await mkdtemp(join(tmpdir(), "nibi-native-embedded-search-"));
     const home = join(fixtureRoot, "home");
     const isolatedBin = join(fixtureRoot, "isolated-bin");
     const systemBin = join(fixtureRoot, "system-bin");

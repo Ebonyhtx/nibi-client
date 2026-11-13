@@ -591,7 +591,7 @@ describe("ConversationShareService", () => {
       ...rows[1]!,
       text: [
         "~/Code/vibe/shows/deliver/晨报.pdf",
-        '::zcode-file-citation{path="/workspace/晨报.pdf" purpose="output"}',
+        '::nibi-file-citation{path="/workspace/晨报.pdf" purpose="output"}',
         "build_mn/qa/layout-review.md",
         "out/one.mp4 out/two.mp4 out/three.mp4",
       ].join("\n"),

@@ -26,7 +26,7 @@ if (process.platform !== "win32") {
     getBinFromUrl("nsis-3.0.4.1", "nsis-3.0.4.1.7z", NSIS_CHECKSUM),
     getBinFromUrl("nsis-resources-3.4.1", "nsis-resources-3.4.1.7z", NSIS_RESOURCES_CHECKSUM),
   ]);
-  const tempRoot = mkdtempSync(join(tmpdir(), "zcode-preserve-files-"));
+  const tempRoot = mkdtempSync(join(tmpdir(), "nibi-preserve-files-"));
   try {
     const makensisPath = resolve(nsisDir, "makensis.exe");
     const uninstallerOutput = join(tempRoot, "uninstaller.exe");

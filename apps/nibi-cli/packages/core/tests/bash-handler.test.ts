@@ -89,7 +89,7 @@ describe("Bash cwd policy", () => {
   it.skipIf(process.platform === "win32")(
     "keeps cwd when a symlink workspace resolves to a physical child path",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-bash-cwd-policy-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-bash-cwd-policy-"));
       const realRoot = join(root, "real-project");
       const linkRoot = join(root, "project-link");
       const realChild = join(realRoot, "child");
@@ -531,7 +531,7 @@ describe("bashHandler", () => {
   });
 
   it("resets main Bash cwd to workspace root and exposes the cwd reset stderr when final cwd leaves workspace", async () => {
-    const outsideCwd = resolve("/tmp/zcode-outside");
+    const outsideCwd = resolve("/tmp/nibi-outside");
     let observedCwd: string | undefined;
     const executionPort: ExecutionPort = {
       async run() {
@@ -545,7 +545,7 @@ describe("bashHandler", () => {
     };
 
     const output = (await bashHandler(
-      { command: "cd /tmp/zcode-outside && echo done" } satisfies BashInput,
+      { command: "cd /tmp/nibi-outside && echo done" } satisfies BashInput,
       contextWith(executionPort, {
         workingDirectory: projectRoot,
         workspaceRoot: projectRoot,
@@ -565,7 +565,7 @@ describe("bashHandler", () => {
   });
 
   it("preserves existing stderr content when appending cwd reset stderr", async () => {
-    const outsideCwd = resolve("/tmp/zcode-stderr-outside");
+    const outsideCwd = resolve("/tmp/nibi-stderr-outside");
     const executionPort: ExecutionPort = {
       async run() {
         return executionResult({
@@ -580,7 +580,7 @@ describe("bashHandler", () => {
 
     const output = (await bashHandler(
       {
-        command: "cd /tmp/zcode-stderr-outside && echo done",
+        command: "cd /tmp/nibi-stderr-outside && echo done",
       } satisfies BashInput,
       contextWith(executionPort, {
         workingDirectory: projectRoot,
@@ -592,7 +592,7 @@ describe("bashHandler", () => {
   });
 
   it("does not leave stray carriage returns when appending cwd reset stderr", async () => {
-    const outsideCwd = resolve("/tmp/zcode-crlf-stderr-outside");
+    const outsideCwd = resolve("/tmp/nibi-crlf-stderr-outside");
     const executionPort: ExecutionPort = {
       async run() {
         return executionResult({
@@ -607,7 +607,7 @@ describe("bashHandler", () => {
 
     const output = (await bashHandler(
       {
-        command: "cd /tmp/zcode-crlf-stderr-outside && echo done",
+        command: "cd /tmp/nibi-crlf-stderr-outside && echo done",
       } satisfies BashInput,
       contextWith(executionPort, {
         workingDirectory: projectRoot,
@@ -621,7 +621,7 @@ describe("bashHandler", () => {
   it("keeps cwd reset stderr even when project cwd env is present", async () => {
     const previousEnv = process.env.CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR;
     process.env.CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR = "1";
-    const outsideCwd = resolve("/tmp/zcode-env-outside");
+    const outsideCwd = resolve("/tmp/nibi-env-outside");
     let observedCwd: string | undefined;
     const executionPort: ExecutionPort = {
       async run() {
@@ -637,7 +637,7 @@ describe("bashHandler", () => {
     try {
       const output = (await bashHandler(
         {
-          command: "cd /tmp/zcode-env-outside && echo done",
+          command: "cd /tmp/nibi-env-outside && echo done",
         } satisfies BashInput,
         contextWith(executionPort, {
           workingDirectory: projectRoot,
@@ -844,7 +844,7 @@ describe("bashHandler", () => {
 
     const output = (await bashHandler(
       {
-        command: "cd /missing-zcode-path && pwd",
+        command: "cd /missing-nibi-path && pwd",
       } satisfies BashInput,
       contextWith(executionPort, {
         workingDirectory: projectRoot,
@@ -1122,7 +1122,7 @@ describe("bashHandler", () => {
   });
 
   it("reads artifact-backed image stdout before resizing provider-visible image output", async () => {
-    const testRoot = await mkdtemp(join(tmpdir(), "zcode-bash-image-"));
+    const testRoot = await mkdtemp(join(tmpdir(), "nibi-bash-image-"));
     const tinyPng =
       "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/l2tzWQAAAABJRU5ErkJggg==";
     const outputPath = join(testRoot, "stdout.txt");

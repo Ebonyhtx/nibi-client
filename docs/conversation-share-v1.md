@@ -28,7 +28,7 @@ Desktop 分享浮窗
 Desktop 导入
   -> continuation（可选登录态）
   -> 下载并校验产物
-  -> 原子写入 <workspace>/.zcode-share/<share-id>/
+  -> 原子写入 <workspace>/.nibi-share/<share-id>/
   -> 新建会话 + shared_context
 ```
 
@@ -59,7 +59,7 @@ Desktop 导入
 - Deep link 只携带 share code；JWT、Signed URL、Rows 正文和文件内容不进入日志。
 - 公开页把发布者可控的正文当作不可信内容：远程图片语法降级为普通链接，CSP 的 `img-src` 只允许 `'self' data: blob:`。
 - 分享页需要 `script-src 'wasm-unsafe-eval'` 以支持代码高亮的 WebAssembly；`eval` 与 `new Function` 仍然禁止。
-- 导入产物只写入 `<workspace>/.zcode-share/<share-id>/shared-artifacts/`，路径必须经过 containment 校验；缺失或非法路径退回只读展示。
+- 导入产物只写入 `<workspace>/.nibi-share/<share-id>/shared-artifacts/`，路径必须经过 containment 校验；缺失或非法路径退回只读展示。
 - 上传前校验 size、MIME 与 SHA-256；下载前检查 `Content-Length`，不得把超过 manifest 声明的响应读入内存。
 - 失败时不得留下半个分享、半个 artifact 目录或半个会话。
 

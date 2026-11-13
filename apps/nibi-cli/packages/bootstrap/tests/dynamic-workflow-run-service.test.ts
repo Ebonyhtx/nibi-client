@@ -1919,7 +1919,7 @@ describe("dynamic workflow run service — 本 run 的子代理模型", () => {
     // 前驱的子代理跑在 pin 上；AmendWorkflow 带 `subagent_model` 换模型，run-launched 记下新选择、
     // 确认窗说「Subagents run on Z」，而 driver 仍按 pin 造会话——每个有 live 工作的续跑子代理都
     // 跑错模型。省略即继承，显式值即替换：pin 只守没有 run 选择时的隐式缺省。
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-amend-model-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-amend-model-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     const journal = new SweepableJournalStore();
     try {
@@ -2928,7 +2928,7 @@ describe("dynamic workflow run service — actor sessions", () => {
    * 走真库：actor 的消息真的落库，边界必须等于同一个存取面数出来的长度。
    */
   it("接上会话存储后，ask 节点带上消息数边界（service → launch → driver 的透传）", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-boundary-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-boundary-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     try {
       const harness = makeHarness({ sessionStore: store as never });
@@ -4024,7 +4024,7 @@ describe("dynamic workflow run service — 孤儿 run 收敛", () => {
   // running」那个 bug。这条用例因此走真实的 sqlite session store，即生产那条
   // resolveDynamicWorkflowJournalStore 路径。
   it("真实 sqlite journal 上收敛生效，且只碰本会话", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-sweep-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-sweep-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     try {
       const journal = resolveDynamicWorkflowJournalStore(store as never);
@@ -4079,7 +4079,7 @@ let otherCwd = "";
 let introspectCwdRoot = "";
 
 beforeAll(async () => {
-  introspectCwdRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-cwd-"));
+  introspectCwdRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-cwd-"));
   projectCwd = join(introspectCwdRoot, "project");
   otherCwd = join(introspectCwdRoot, "other");
   await mkdir(projectCwd, { recursive: true });
@@ -4101,7 +4101,7 @@ afterAll(async () => {
 async function withSqliteJournal(
   run: (journal: JournalStorePort & DwfRunIntrospectionQueries) => Promise<void>,
 ): Promise<void> {
-  const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-introspect-"));
+  const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-introspect-"));
   const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
   try {
     const journal = resolveDynamicWorkflowJournalStore(store as never);
@@ -6311,7 +6311,7 @@ describe("dynamic workflow run service — amend-resume 的温启动", () => {
   // 工具（executor → resolveInput → getScript → prepareApproval → handler）接真实的 run service。
   // 只改并发上界的修订跑的是前驱逐字节的脚本，所以每一问都命中缓存：零 turn，上界却换成了新值。
   it("AmendWorkflow 省略 script：工具经 getScript 沿用前驱脚本，全部命中缓存、只换上界", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-amend-keep-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-amend-keep-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     const journal = new SweepableJournalStore();
     try {
@@ -6408,7 +6408,7 @@ describe("dynamic workflow run service — amend-resume 的温启动", () => {
   // 修订 run 从空表开始，缓存命中又没有 node-queued——命中的结算必须自己点名子代理，否则 GUI 上
   // 一个全部 ask 都命中的子代理是「待开始」，点开是「尚未启动」（2026-09-22 用户报告）。
   it("修订 run 的缓存命中归到子代理名下，transcript 指向前驱里真有消息的那条会话；分歧后换回本 run 的", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-amend-attrib-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-amend-attrib-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     const journal = new SweepableJournalStore();
     try {
@@ -6510,7 +6510,7 @@ describe("dynamic workflow run service — amend-resume 的温启动", () => {
   });
 
   it("前缀零派发命中、分歧点起 live、边界与 lineage 落库", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-amend-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-amend-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     const journal = new SweepableJournalStore();
     try {
@@ -6676,7 +6676,7 @@ describe("dynamic workflow run service — amend-resume 的温启动", () => {
   }
 
   it("前驱在飞的 ask 被同一条指令续上：新会话以前驱**整段**转录开场", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-amend-inflight-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-amend-inflight-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     const journal = new SweepableJournalStore();
     const script = amendScript("second question");
@@ -6742,7 +6742,7 @@ describe("dynamic workflow run service — amend-resume 的温启动", () => {
    * 上文了。新会话只接到第一问的边界为止，在飞那段被丢弃——也就是本特性之前的行为。
    */
   it("修订改掉了在飞的那条指令：不接续，新会话只到完结前缀的边界", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-amend-inflight-miss-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-amend-inflight-miss-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     const journal = new SweepableJournalStore();
     try {
@@ -6792,7 +6792,7 @@ describe("dynamic workflow run service — amend-resume 的温启动", () => {
    * 闸门到点后**不**把它当静默继续用：接续取消，完结前缀照旧导入——正是本特性之前的行为。
    */
   it("前驱会话到点仍在被写 → 不接续，完结前缀照旧导入", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-amend-inflight-noisy-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-amend-inflight-noisy-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     const journal = new SweepableJournalStore();
     const script = amendScript("second question");
@@ -6854,7 +6854,7 @@ describe("dynamic workflow run service — 用量沿 lineage 累计", () => {
     // docs/dynamic-workflow/launch.md「The AmendWorkflow tool」：完成卡与详情页上的 token 是
     // **整条 lineage** 的花费。真 session store：命中要拷消息边界，而预检要求每个完结 ask 都有边界，
     // 链式修订（runB 再作前驱）全靠这条。
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-lineage-tokens-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-lineage-tokens-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     const journal = new SweepableJournalStore();
     try {
@@ -6964,7 +6964,7 @@ describe("dynamic workflow run service — 用量沿 lineage 累计", () => {
   it("间隙读面（dwf_run 行藏起来）报继承值而不是 0", async () => {
     // 间隙 = 注册表已有条目、journal 还没有行（藏读模拟，见 hideRunsFromReads）。修订 run 在这里
     // 报 0 会说「这条 lineage 没花钱」，而它的起点在 amend 那一刻就已确定。
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-lineage-gap-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-lineage-gap-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     try {
       const real = resolveDynamicWorkflowJournalStore(store as never) as JournalStorePort &
@@ -7039,7 +7039,7 @@ describe("dynamic workflow run service — amend-resume 的崩溃后重建", () 
     // apps/nibi-cli/packages/dynamic-workflow/docs/execution-engine.md「Amend-resume」：runB 里 alpha 分歧转 live 并挂住；进程没了。
     // 转 live 本身不关门——alpha 一个字节都没写，beta 读的工作区就是前驱留下的那个。resume 重建导入表后
     // beta 照常命中。（这条曾断言相反的结论：那时「任一 ask live 即关门」，是拿时钟代替依赖。）
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-amend-resume-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-amend-resume-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     const journal = new SweepableJournalStore();
     try {
@@ -7132,7 +7132,7 @@ describe("dynamic workflow run service — amend-resume 的崩溃后重建", () 
     // resume 只认那条事件；beta 于是 live 重跑——它读的工作区可能已被 alpha 改过。
     // （工具在这套夹具里会因 fakeFileSystemPort 而失败，无妨：ToolCallStarted 在 handler 之前就发了，
     //   而这条链要验的正是「调用发生过」。）
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-amend-resume-write-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-amend-resume-write-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     const journal = new SweepableJournalStore();
     try {
@@ -7240,7 +7240,7 @@ describe("dynamic workflow run service — amend-resume 的崩溃后重建", () 
   });
 
   it("前驱被清理 → resume 仍成功，未消费的导入降级为 live 重跑", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-amend-lost-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-amend-lost-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     const journal = new SweepableJournalStore();
     try {
@@ -7946,7 +7946,7 @@ describe("dynamic workflow run service · 出生阶段（phaseName）", () => {
   });
 
   it("resume 时 cached 的 node-settled 带回与前一世相同的出生阶段", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-birth-phase-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-birth-phase-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     const journal = new SweepableJournalStore();
     try {

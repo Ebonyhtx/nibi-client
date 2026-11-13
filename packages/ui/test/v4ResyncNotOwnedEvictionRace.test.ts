@@ -1,4 +1,4 @@
-// fault.subscription.notOwned 线上竞态（zcode-logs-full-20260730-204321 三起事件）的机制层还原
+// fault.subscription.notOwned 线上竞态（nibi-logs-full-20260730-204321 三起事件）的机制层还原
 // 与修复验证。
 //
 // 竞态时序（renderer ⇄ host 为异步链路，远程 SSH workspace 下窗口达数百 ms）：

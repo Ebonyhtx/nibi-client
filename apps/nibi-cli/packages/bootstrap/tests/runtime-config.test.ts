@@ -430,7 +430,7 @@ describe("resolveAppRuntimeConfig", () => {
       configResult: createConfigResult(),
       options: {
         env: {
-          NIBI_EMBEDDED_SEARCH_COMMAND: "/tmp/zcode-test",
+          NIBI_EMBEDDED_SEARCH_COMMAND: "/tmp/nibi-test",
         },
       },
       workingDirectory,
@@ -438,7 +438,7 @@ describe("resolveAppRuntimeConfig", () => {
 
     expect(resolved.runtimeConfig.embeddedSearchBackend).toEqual({
       kind: "internal-cli",
-      command: "/tmp/zcode-test",
+      command: "/tmp/nibi-test",
       args: ["__internal-search"],
     });
   });
@@ -446,7 +446,7 @@ describe("resolveAppRuntimeConfig", () => {
   it("preserves an explicit embedded search backend override", () => {
     const backend = {
       kind: "argv0-dispatch" as const,
-      command: "/tmp/zcode-argv0",
+      command: "/tmp/nibi-argv0",
     };
     const resolved = resolveAppRuntimeConfig({
       cliStorageRoot: "/tmp/nibi-cli",
@@ -727,7 +727,7 @@ describe("resolveAppRuntimeConfig：dynamicWorkflowEnabled 透传", () => {
       cliStorageRoot: "/tmp/nibi-cli-storage",
       configResult: createConfigResult(),
       options: { runtimeConfig: input },
-      subagentOutputRootDir: "/tmp/zcode-subagent-output",
+      subagentOutputRootDir: "/tmp/nibi-subagent-output",
       workingDirectory,
     });
     expect(runtimeConfig.dynamicWorkflowEnabled).toBe(expected);
@@ -743,7 +743,7 @@ describe("resolveAppRuntimeConfig：dynamicWorkflowEnabled 透传", () => {
       cliStorageRoot: "/tmp/nibi-cli-storage",
       configResult: createConfigResult(),
       options: { runtimeConfig: input },
-      subagentOutputRootDir: "/tmp/zcode-subagent-output",
+      subagentOutputRootDir: "/tmp/nibi-subagent-output",
       workingDirectory,
     });
     expect(runtimeConfig.dynamicWorkflowToolsOnDemand).toBe(expected);

@@ -114,29 +114,29 @@ describe("saved workflow frontmatter codec", () => {
   });
 
   it("names an unterminated block", () => {
-    const parsed = parseSavedWorkflow("/* zcode-workflow\ndescription: x\n");
+    const parsed = parseSavedWorkflow("/* nibi-workflow\ndescription: x\n");
     expect(parsed).toMatchObject({ ok: false, reason: "unterminated_frontmatter" });
   });
 
   it("names a body that is not YAML", () => {
-    const parsed = parseSavedWorkflow("/* zcode-workflow\n  a: [1\n bad: : :\n*/\nreturn 1;");
+    const parsed = parseSavedWorkflow("/* nibi-workflow\n  a: [1\n bad: : :\n*/\nreturn 1;");
     expect(parsed).toMatchObject({ ok: false, reason: "invalid_yaml" });
   });
 
   it("names a body that is YAML but not valid metadata", () => {
-    const parsed = parseSavedWorkflow("/* zcode-workflow\nwhenToUse: no description\n*/\n");
+    const parsed = parseSavedWorkflow("/* nibi-workflow\nwhenToUse: no description\n*/\n");
     expect(parsed).toMatchObject({ ok: false, reason: "invalid_metadata" });
   });
 
   // .strict()：拼错一个键必须被指出来，而不是被静默丢弃——这些文件是用户手改的。
   it("rejects an unknown metadata key", () => {
-    const parsed = parseSavedWorkflow("/* zcode-workflow\ndescription: x\nwhenToUseIt: typo\n*/\n");
+    const parsed = parseSavedWorkflow("/* nibi-workflow\ndescription: x\nwhenToUseIt: typo\n*/\n");
     expect(parsed).toMatchObject({ ok: false, reason: "invalid_metadata" });
   });
 
   it("rejects an argument declared with an unknown type", () => {
     const parsed = parseSavedWorkflow(
-      "/* zcode-workflow\ndescription: x\nargs:\n  a:\n    type: date\n*/\n",
+      "/* nibi-workflow\ndescription: x\nargs:\n  a:\n    type: date\n*/\n",
     );
     expect(parsed).toMatchObject({ ok: false, reason: "invalid_metadata" });
   });
@@ -253,7 +253,7 @@ describe("saved workflow store", () => {
     const badPath = writeRaw(
       cwd,
       "bad.dwf.ts",
-      "/* zcode-workflow\nwhenToUse: no description\n*/\n",
+      "/* nibi-workflow\nwhenToUse: no description\n*/\n",
     );
 
     const { entries, invalid } = listSavedWorkflows({ cwd });

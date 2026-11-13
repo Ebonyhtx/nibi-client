@@ -36,7 +36,7 @@ async function waitFor(check) {
 }
 
 async function probe(shell, name, execute) {
-  const root = await fs.mkdtemp(join(tmpdir(), "zcode-adapter-probe-"));
+  const root = await fs.mkdtemp(join(tmpdir(), "nibi-adapter-probe-"));
   const cwd = join(root, "输出 with spaces");
   await fs.mkdir(cwd);
   const writer = join(cwd, "writer.cjs");

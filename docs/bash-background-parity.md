@@ -109,7 +109,7 @@ child conversation 正常更新。旧 snapshot 缺字段仍可读。
 CRLF、超 100 行、部分尾窗、估算单调和终态迟到。V4 覆盖两种 profile、终态清理及 subagent 隔离；
 Desktop BG14 以分段输出与放行 barrier 验证收起无输出、展开实时预览、不显示计数和终态清理。
 
-执行能力位于 zcode-cli runtime/tool/execution adapter；共享协议增加可选有界 outputPreview 与 bash_output 结果 display；Desktop 复用共享 Execute renderer，使用语义颜色与窄屏换行，不新增端专属传输逻辑。desktop continuous 与 mobile replayable 的 task command / snapshot 边界不变；background completion 仍通过 runtime command queue 消费，不新增并发 `executeTurn` 入口。
+执行能力位于 nibi-cli runtime/tool/execution adapter；共享协议增加可选有界 outputPreview 与 bash_output 结果 display；Desktop 复用共享 Execute renderer，使用语义颜色与窄屏换行，不新增端专属传输逻辑。desktop continuous 与 mobile replayable 的 task command / snapshot 边界不变；background completion 仍通过 runtime command queue 消费，不新增并发 `executeTurn` 入口。
 
 ## 前台输出视口与跟随（2026-09-10）
 

@@ -24,7 +24,7 @@ pnpm --filter @nibi/bootstrap build
 
 pnpm --filter @nibi/prompt-trajectory record -- \
   --fixture fixtures/prompt/basic-live.json \
-  --out /tmp/zcode-prompt-trajectory/basic-live
+  --out /tmp/nibi-prompt-trajectory/basic-live
 
 pnpm --filter @nibi/prompt-trajectory record:prompt -- \
   --prompt "Say hello in one short sentence."
@@ -33,11 +33,11 @@ pnpm --filter @nibi/prompt-trajectory run:testcases -- \
   --cases testcases
 
 pnpm --filter @nibi/prompt-trajectory derive -- \
-  --out /tmp/zcode-prompt-trajectory/basic-live
+  --out /tmp/nibi-prompt-trajectory/basic-live
 
 pnpm --filter @nibi/prompt-trajectory model-io -- \
   --input ~/.nibi/cli/rollout/model-io-<session>.jsonl \
-  --out /tmp/zcode-prompt-trajectory/model-io-session
+  --out /tmp/nibi-prompt-trajectory/model-io-session
 ```
 
 `record` writes `/out/trajectory.jsonl` while proxying provider requests, then

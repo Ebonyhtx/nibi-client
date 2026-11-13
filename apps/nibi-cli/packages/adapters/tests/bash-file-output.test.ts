@@ -27,7 +27,7 @@ afterEach(async () => {
 });
 
 async function fixture(platform: NodeJS.Platform = process.platform) {
-  const root = await mkdtemp(join(tmpdir(), "zcode-bash-file-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-bash-file-"));
   roots.push(root);
   const path = join(root, "输出 with spaces.log");
   const output = new BashFileOutput(path, platform, null);

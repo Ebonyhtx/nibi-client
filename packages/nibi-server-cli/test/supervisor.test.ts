@@ -74,7 +74,7 @@ describe("Supervisor lifecycle", () => {
   });
 
   it("keeps lifecycle state in Supervisor and consumes Core activity snapshots", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-supervisor-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-supervisor-"));
     const core = new FakeCore();
     const supervisor = new Supervisor({
       layout: resolveServerLayout(join(root, "server")),
@@ -221,7 +221,7 @@ describe("Supervisor lifecycle", () => {
 
   it("does not leave the data-root lock after control server startup fails", async () => {
     if (process.platform === "win32") return;
-    const root = await mkdtemp(join("/tmp", "zcode-r2-start-failure-"));
+    const root = await mkdtemp(join("/tmp", "nibi-r2-start-failure-"));
     const layout = resolveServerLayout(join(root, "server"));
     await mkdir(layout.controlEndpoint, { recursive: true });
     await writeFile(join(layout.controlEndpoint, "occupied"), "occupied", "utf8");
@@ -348,7 +348,7 @@ describe("Supervisor lifecycle", () => {
   });
 
   it("fails closed when current release points outside the managed releases directory", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-invalid-current-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-invalid-current-"));
     const layout = resolveServerLayout(join(root, "server"));
     const releaseManager = new ReleaseManager(layout);
     await releaseManager.ensure();
@@ -369,7 +369,7 @@ describe("Supervisor lifecycle", () => {
   });
 
   it("backs off 1/2/4/8/16s on crashes and enters crash-loop-stopped when the budget is exhausted", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-crashloop-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-crashloop-"));
     vi.useFakeTimers();
     const cores: FakeCore[] = [];
     const supervisor = new Supervisor({
@@ -407,7 +407,7 @@ describe("Supervisor lifecycle", () => {
   });
 
   it("blocks update and uninstall while tasks are running, and allows them once idle or forced", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-guard-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-guard-"));
     const layout = resolveServerLayout(join(root, "server"));
     const releases = new ReleaseManager(layout);
     await releases.ensure();
@@ -480,7 +480,7 @@ describe("Supervisor lifecycle", () => {
   });
 
   it("does not restart the failed candidate while rollback pointer restore is pending", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-rollback-race-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-rollback-race-"));
     const layout = resolveServerLayout(join(root, "server"));
     const releases = new ReleaseManager(layout);
     await releases.ensure();
@@ -572,7 +572,7 @@ describe("Supervisor lifecycle", () => {
   });
 
   it("survives a real fork spawn error and rolls back to the previous release without an exit event", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-spawn-error-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-spawn-error-"));
     const layout = resolveServerLayout(join(root, "server"));
     const releases = new ReleaseManager(layout);
     await releases.ensure();
@@ -620,7 +620,7 @@ describe("Supervisor lifecycle", () => {
   });
 
   it("stops a still-running Core before rolling back after the ready timeout", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-rbto-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-rbto-"));
     const layout = resolveServerLayout(join(root, "server"));
     const releases = new ReleaseManager(layout);
     await releases.ensure();
@@ -662,7 +662,7 @@ describe("Supervisor lifecycle", () => {
   });
 
   it("stops an unready rollback Core and ignores its late ready message", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-rb-old-timeout-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-rb-old-timeout-"));
     const layout = resolveServerLayout(join(root, "server"));
     const releases = new ReleaseManager(layout);
     await releases.ensure();
@@ -851,7 +851,7 @@ describe("Supervisor lifecycle", () => {
   });
 
   it("keeps the lock and enters stop-failed until Core termination is observed", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-stop-failed-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-stop-failed-"));
     const layout = resolveServerLayout(join(root, "server"));
     const core = new FakeCore();
     core.exitOnShutdown = false;
@@ -935,7 +935,7 @@ describe("Supervisor lifecycle", () => {
   }, 20_000);
 
   it("clears Core-scoped state and ignores stale child or generation messages", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-generation-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-generation-"));
     vi.useFakeTimers();
     const cores: FakeCore[] = [];
     const supervisor = new Supervisor({

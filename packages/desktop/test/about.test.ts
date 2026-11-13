@@ -30,7 +30,7 @@ describe("about", () => {
       release: "25.0.0",
       version: "Darwin Kernel Version 25.0.0",
       arch: "arm64",
-      hostname: "zcode-mbp",
+      hostname: "nibi-mbp",
     },
   });
 
@@ -64,7 +64,7 @@ describe("about", () => {
     expect(detail).toContain("V8: 14.1.146.11-electron.0");
     expect(detail).toContain("OS Platform: darwin");
     expect(detail).toContain("OS Arch: arm64");
-    expect(detail).toContain("Hostname: zcode-mbp");
+    expect(detail).toContain("Hostname: nibi-mbp");
   });
 
   it("应生成接近系统 About 面板的 macOS 展示信息", () => {

@@ -43,14 +43,14 @@ describe("planStorageClean", () => {
         candidate("v2/logs/2026-09-09.log", yesterday),
         candidate("v2/logs/2026-09-10.log", now - 60_000),
         candidate("v2/crash/live/current.dmp", yesterday),
-        candidate("cli/log/zcode-2026-09-01.jsonl", yesterday - 8 * 24 * 3600 * 1000),
+        candidate("cli/log/nibi-2026-09-01.jsonl", yesterday - 8 * 24 * 3600 * 1000),
       ],
       context,
       now,
     });
     expect(plan.targets.map((t) => t.relativePath)).toEqual([
       "v2/logs/2026-09-09.log",
-      "cli/log/zcode-2026-09-01.jsonl",
+      "cli/log/nibi-2026-09-01.jsonl",
     ]);
   });
 

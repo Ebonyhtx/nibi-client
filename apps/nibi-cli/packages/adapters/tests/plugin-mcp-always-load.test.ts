@@ -22,7 +22,7 @@ describe.each(["file", "manifest"] as const)("plugin MCP alwaysLoad from %s", (s
     { label: "string", input: "true", expected: undefined },
     { label: "number", input: 1, expected: undefined },
   ])("preserves boolean semantics ($label) for every transport", async ({ input, expected }) => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-always-load-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-always-load-"));
     const pluginRoot = join(root, PLUGIN_NAME);
     const servers = Object.fromEntries(
       Object.entries(TRANSPORTS).map(([name, transport]) => [

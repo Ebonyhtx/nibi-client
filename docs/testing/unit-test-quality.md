@@ -88,7 +88,7 @@ Android instrumentation 属于设备验收，不纳入本次单测删减；空�
 | `packages/desktop/test/cuaHelperOperationsDocs.test.ts`             | 锁定文档旧名称、命令示例和 feature graph 原文，不验证 Helper 操作或签名。                      |
 | `packages/desktop/test/hostMediaPreviewLogging.test.ts`             | 只断言限额字面值及日志文本，未运行限流或授权路径。                                             |
 | `packages/desktop/test/rendererMessageHandler.test.ts`              | 四个 case 只断言源码命名、调用与属性文本；顶部 mock 未被实际业务调用消费。                     |
-| `packages/provider-node/test/zcode-builtin-map-formatting.test.ts`  | 主要锁 CEL 表达式排版和缩进；实际编译和解析仍由 builtin integrity 与 option-map 行为测试保护。 |
+| `packages/provider-node/test/nibi-builtin-map-formatting.test.ts`  | 主要锁 CEL 表达式排版和缩进；实际编译和解析仍由 builtin integrity 与 option-map 行为测试保护。 |
 | `packages/services/test/cuaProducerSurfaceSimplification.test.ts`   | 只对旧 facade 与别名做源码禁词扫描；不验证 consumer 行为。                                     |
 | `packages/ui/test/appQuickPickCommandStability.test.ts`             | 只锁定 useMemo、依赖名称和 props 装配，未执行重渲染或验证引用稳定性                            |
 | `packages/ui/test/appearanceSettingsLayout.test.ts`                 | 复制布局 class、locale key 与文案常量，未验证设置或语言切换行为                                |

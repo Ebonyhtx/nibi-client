@@ -25,7 +25,7 @@ export async function createToolSearchCliFixture(
 ) {
   const responses = await loadToolSearchResponses(caseName);
   const repoRoot = resolve(process.cwd(), "../..");
-  const root = await mkdtemp(join(tmpdir(), "zcode-toolsearch-process-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-toolsearch-process-"));
   const workspace = join(root, "workspace");
   const configPath = join(root, ".nibi", "cli", "config.json");
   const personalPath = join(root, "provider.json");

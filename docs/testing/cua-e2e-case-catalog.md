@@ -204,7 +204,7 @@ Dev Helper:
 
 Retained evidence:
 
-- producer ZGE reports under `evals/zcode-gui-eval/artifacts/`, notably
+- producer ZGE reports under `evals/nibi-gui-eval/artifacts/`, notably
   `cua-internal-frame-direct-core-final.json`,
   `cua-internal-frame-c18-final3.json`, and
   `cua-internal-frame-m12-final.json`;

@@ -27,7 +27,7 @@ import type {
   ExecutionShellDialect,
 } from "@nibi/contracts";
 
-const BASH_TEMP_DIRECTORY_PREFIX = "zcode-bash-";
+const BASH_TEMP_DIRECTORY_PREFIX = "nibi-bash-";
 const BASH_TEMP_UNAVAILABLE_CODES = new Set([
   "EACCES",
   "EPERM",

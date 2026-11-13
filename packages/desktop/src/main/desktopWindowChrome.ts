@@ -48,7 +48,7 @@ const ALLOWED_EMBEDDED_BROWSER_PROTOCOLS = new Set([
   "data:",
   "http:",
   "https:",
-  "zcode-browser-restore:",
+  "nibi-browser-restore:",
   `${BROWSER_LOCAL_PREVIEW_SCHEME}:`,
 ]);
 const ALLOWED_EMBEDDED_BROWSER_NEW_WINDOW_PROTOCOLS = new Set(["http:", "https:"]);

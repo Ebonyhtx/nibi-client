@@ -8,7 +8,7 @@ import { ReleaseManager } from "../src/runtime/releaseManager.js";
 
 describe("server runtime layout", () => {
   it("derives one layout identity from symlink aliases, including missing roots", async () => {
-    const physicalParent = await mkdtemp(join(tmpdir(), "zcode-r2-canonical-parent-"));
+    const physicalParent = await mkdtemp(join(tmpdir(), "nibi-r2-canonical-parent-"));
     const aliasParent = `${physicalParent}-alias`;
     await symlink(physicalParent, aliasParent, process.platform === "win32" ? "junction" : "dir");
     const physicalRoot = join(physicalParent, "missing", "server");
@@ -24,7 +24,7 @@ describe("server runtime layout", () => {
   });
 
   it("keeps release switching under server data root and writes atomically", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-layout-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-layout-"));
     const layout = resolveServerLayout(root);
     const releases = new ReleaseManager(layout);
     await releases.ensure();
@@ -41,7 +41,7 @@ describe("server runtime layout", () => {
   });
 
   it("uses unique temporary files for concurrent JSON writes in one process", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-atomic-write-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-atomic-write-"));
     const layout = resolveServerLayout(root);
     const releases = new ReleaseManager(layout);
     await releases.ensure();
@@ -63,7 +63,7 @@ describe("server runtime layout", () => {
   });
 
   it("recovers an interrupted release transaction before the next daemon start", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-release-recovery-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-release-recovery-"));
     const layout = resolveServerLayout(root);
     const releases = new ReleaseManager(layout);
     await releases.ensure();
@@ -84,7 +84,7 @@ describe("server runtime layout", () => {
   });
 
   it("publishes one complete ownership marker under concurrent ensure calls", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r2-ownership-race-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r2-ownership-race-"));
     const layout = resolveServerLayout(root);
 
     await expect(Promise.all(

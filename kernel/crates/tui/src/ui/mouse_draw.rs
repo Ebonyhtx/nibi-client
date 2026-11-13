@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/mouse.rs（feat/rs 79b6691c55），按 400 行上限拆出绘制部分；F25 改写复制
+// 复制自 apps/nibi-host/crates/tui/src/ui/mouse.rs（feat/rs 79b6691c55），按 400 行上限拆出绘制部分；F25 改写复制
 // 结果的提示并加全屏视图的选区（docs/specs/rust-cli/tui-select.md §2、§3.3）。
 //! 鼠标的绘制部分：选区的文字与底色、复制结果、悬停的反馈。
 use ratatui::layout::Rect;

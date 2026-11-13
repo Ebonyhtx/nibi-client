@@ -149,7 +149,7 @@ describe("deriveTrajectoriesFromModelIoEntries", () => {
 
 describe("writeModelIoAnthropicTrajectory", () => {
   it("writes a single Anthropic trajectory JSON for main_turn records by default", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-model-io-trajectory-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-model-io-trajectory-"));
     const inputPath = join(root, "model-io.jsonl");
     const entries: ModelIoJsonlEntry[] = [
       {
@@ -202,7 +202,7 @@ describe("writeModelIoAnthropicTrajectory", () => {
   });
 
   it("projects recorded mid-conversation system blocks to the final wire string", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-model-io-mcs-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-model-io-mcs-"));
     const inputPath = join(root, "model-io.jsonl");
     const entries: ModelIoJsonlEntry[] = [
       {

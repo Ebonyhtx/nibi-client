@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/cells/words.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/cells/words.rs（feat/rs 79b6691c55）。
 //! transcript 块里的固定说法（docs/specs/rust-tui.md §8.2）：中文与英文。
 use crate::ui::i18n::Lang;
 

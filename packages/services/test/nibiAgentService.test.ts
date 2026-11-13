@@ -1669,7 +1669,7 @@ describe("createNibiAgentService", () => {
   });
 
   it("reserves native create ownership before sending the assigned session ID", async () => {
-    const workspacePath = mkdtempSync(join(tmpdir(), "zcode-native-project-"));
+    const workspacePath = mkdtempSync(join(tmpdir(), "nibi-native-project-"));
     createdDirs.push(workspacePath);
     const scriptPath = join(workspacePath, "agent.cjs");
     const logPath = join(workspacePath, "protocol.log");

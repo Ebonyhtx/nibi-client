@@ -69,10 +69,10 @@ describe("grouped projection", () => {
 
 it("localizes only untouched system group names", () => {
   expect(taskGroupTitleMessageId({ id: "custom", title: "cron" })).toBeUndefined();
-  expect(taskGroupTitleMessageId({ id: "zcode-default-group-cron", title: "cron" })).toBe(
+  expect(taskGroupTitleMessageId({ id: "nibi-default-group-cron", title: "cron" })).toBe(
     "taskGroup.cron",
   );
   expect(
-    taskGroupTitleMessageId({ id: "zcode-default-group-cron", title: "renamed" }),
+    taskGroupTitleMessageId({ id: "nibi-default-group-cron", title: "renamed" }),
   ).toBeUndefined();
 });

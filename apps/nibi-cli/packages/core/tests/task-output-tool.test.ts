@@ -206,7 +206,7 @@ describe("TaskOutput tool", () => {
   });
 
   it("prefers the completed Agent result over disk output and joins blocks with one newline", async () => {
-    const outputRoot = await mkdtemp(join(tmpdir(), "zcode-task-output-agent-"));
+    const outputRoot = await mkdtemp(join(tmpdir(), "nibi-task-output-agent-"));
     const outputFile = join(outputRoot, "task.output");
     await writeFile(outputFile, "raw transcript", "utf8");
     const registry = registryWithTask(
@@ -346,7 +346,7 @@ describe("TaskOutput tool", () => {
   });
 
   it("reads the canonical Bash output file when the execution snapshot has no streams", async () => {
-    const outputRoot = await mkdtemp(join(tmpdir(), "zcode-task-output-bash-"));
+    const outputRoot = await mkdtemp(join(tmpdir(), "nibi-task-output-bash-"));
     const outputFile = join(outputRoot, "bash.output");
     await writeFile(outputFile, "persisted bash output", "utf8");
     const registry = registryWithTask(
@@ -396,7 +396,7 @@ describe("TaskOutput tool", () => {
   });
 
   it("reads running Bash output from the canonical file instead of progress tails", async () => {
-    const outputRoot = await mkdtemp(join(tmpdir(), "zcode-task-output-bash-running-"));
+    const outputRoot = await mkdtemp(join(tmpdir(), "nibi-task-output-bash-running-"));
     const outputFile = join(outputRoot, "bash.output");
     await writeFile(outputFile, "stdout-1\nstderr-1\nstdout-2\n", "utf8");
     const registry = registryWithTask(
@@ -448,7 +448,7 @@ describe("TaskOutput tool", () => {
 
   it("reads a fixed 30000-byte prefix from a running Bash output file", async () => {
     vi.stubEnv("BASH_MAX_OUTPUT_LENGTH", "1");
-    const outputRoot = await mkdtemp(join(tmpdir(), "zcode-task-output-bash-running-prefix-"));
+    const outputRoot = await mkdtemp(join(tmpdir(), "nibi-task-output-bash-running-prefix-"));
     const outputFile = join(outputRoot, "bash.output");
     const expectedPrefix = "a".repeat(30_000);
     await writeFile(outputFile, `${expectedPrefix}${"z".repeat(10_000)}`, "utf8");
@@ -502,7 +502,7 @@ describe("TaskOutput tool", () => {
 
   it("applies the Bash prefix limit before TaskOutput truncation after a blocking timeout", async () => {
     vi.stubEnv("TASK_MAX_OUTPUT_LENGTH", "20000");
-    const outputRoot = await mkdtemp(join(tmpdir(), "zcode-task-output-bash-timeout-prefix-"));
+    const outputRoot = await mkdtemp(join(tmpdir(), "nibi-task-output-bash-timeout-prefix-"));
     const outputFile = join(outputRoot, "bash.output");
     const expectedPrefix = `${"a".repeat(29_999)}P`;
     await writeFile(outputFile, `${expectedPrefix}${"z".repeat(10_000)}`, "utf8");
@@ -600,7 +600,7 @@ describe("TaskOutput tool", () => {
   });
 
   it("keeps legacy split Bash files readable without advertising either as complete output", async () => {
-    const outputRoot = await mkdtemp(join(tmpdir(), "zcode-task-output-bash-legacy-split-"));
+    const outputRoot = await mkdtemp(join(tmpdir(), "nibi-task-output-bash-legacy-split-"));
     const stdoutPath = join(outputRoot, "stdout.log");
     const stderrPath = join(outputRoot, "stderr.log");
     const stdout = `stdout-${"s".repeat(20_000)}`;
@@ -667,7 +667,7 @@ describe("TaskOutput tool", () => {
   });
 
   it("uses the canonical Bash file as the truthful Full output target", async () => {
-    const outputRoot = await mkdtemp(join(tmpdir(), "zcode-task-output-bash-full-output-"));
+    const outputRoot = await mkdtemp(join(tmpdir(), "nibi-task-output-bash-full-output-"));
     const outputFile = join(outputRoot, "bash.output");
     const fullOutput = `first-line\n${"x".repeat(40_000)}\nlast-line`;
     await writeFile(outputFile, fullOutput, "utf8");
@@ -716,7 +716,7 @@ describe("TaskOutput tool", () => {
   });
 
   it("does not advertise the canonical file when framework stderr is appended", async () => {
-    const outputRoot = await mkdtemp(join(tmpdir(), "zcode-task-output-bash-framework-error-"));
+    const outputRoot = await mkdtemp(join(tmpdir(), "nibi-task-output-bash-framework-error-"));
     const outputFile = join(outputRoot, "bash.output");
     await writeFile(outputFile, "merged command output", "utf8");
     const registry = registryWithTask(
@@ -763,7 +763,7 @@ describe("TaskOutput tool", () => {
   });
 
   it("uses the Agent output file and error when no completed result is available", async () => {
-    const outputRoot = await mkdtemp(join(tmpdir(), "zcode-task-output-agent-failed-"));
+    const outputRoot = await mkdtemp(join(tmpdir(), "nibi-task-output-agent-failed-"));
     const outputFile = join(outputRoot, "agent.output");
     await writeFile(outputFile, "partial agent output", "utf8");
     const registry = registryWithTask(
@@ -1016,7 +1016,7 @@ describe("TaskOutput tool", () => {
   });
 
   it("tails generic task output at 8 MiB with the omitted-output prefix", async () => {
-    const outputRoot = await mkdtemp(join(tmpdir(), "zcode-task-output-tail-"));
+    const outputRoot = await mkdtemp(join(tmpdir(), "nibi-task-output-tail-"));
     const outputFile = join(outputRoot, "workflow.output");
     await writeFile(outputFile, `${"a".repeat(1024)}${"b".repeat(8 * 1024 * 1024)}`, "utf8");
     const registry = registryWithTask(

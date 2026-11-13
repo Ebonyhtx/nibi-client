@@ -59,7 +59,7 @@ export function createGenUiService(
         workspaceIdentity: input.workspaceIdentity,
         sessionId: input.sessionId,
         scopeId: input.instanceKey,
-        html: `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><!--__NIBI_GEN_UI_STYLES__--><script type="application/json" id="zcode-gen-ui-initial-state">${initial}</script><script src="__NIBI_GEN_UI_RUNTIME__"></script></head><body>${input.html}<!--__NIBI_GEN_UI_INNER_KIT__--></body></html>`,
+        html: `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><!--__NIBI_GEN_UI_STYLES__--><script type="application/json" id="nibi-gen-ui-initial-state">${initial}</script><script src="__NIBI_GEN_UI_RUNTIME__"></script></head><body>${input.html}<!--__NIBI_GEN_UI_INNER_KIT__--></body></html>`,
         csp: {
           connectDomains: [],
           resourceDomains: GEN_UI_STATIC_DOMAINS.map((host) => `https://${host}`),

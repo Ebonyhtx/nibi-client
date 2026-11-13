@@ -31,11 +31,11 @@ describe("resolveDefaultEmbeddedSearchBackend", () => {
   it("preserves the explicit internal CLI compatibility override", () => {
     expect(
       resolveDefaultEmbeddedSearchBackend({
-        env: { NIBI_EMBEDDED_SEARCH_COMMAND: "/tmp/zcode-test" },
+        env: { NIBI_EMBEDDED_SEARCH_COMMAND: "/tmp/nibi-test" },
       }),
     ).toEqual({
       kind: "internal-cli",
-      command: "/tmp/zcode-test",
+      command: "/tmp/nibi-test",
       args: ["__internal-search"],
     });
   });

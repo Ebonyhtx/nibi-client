@@ -45,8 +45,8 @@ fn accept_edits_allows_file_commands_inside_and_asks_outside() {
     let accept = |command| verdict(PermissionMode::AcceptEdits, &[], command);
     assert_eq!(accept("mkdir made && touch made/x.txt"), "allow");
     assert_eq!(
-        accept("touch /tmp/zcode-outside.txt"),
-        "ask: touch in '/tmp/zcode-outside.txt' needs approval. The path is outside the working directories for this session ('/w'). Allowing runs the command as written."
+        accept("touch /tmp/nibi-outside.txt"),
+        "ask: touch in '/tmp/nibi-outside.txt' needs approval. The path is outside the working directories for this session ('/w'). Allowing runs the command as written."
     );
     assert_eq!(
         accept("npm --version"),
@@ -117,7 +117,7 @@ fn reads_outside_the_working_directories_ask() {
     );
     // 命令输出目录不必询问。
     assert_eq!(
-        default("cat /tmp/zcode-shell/sessions/s1/tasks/b1.output"),
+        default("cat /tmp/nibi-shell/sessions/s1/tasks/b1.output"),
         "allow"
     );
 }

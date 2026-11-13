@@ -86,7 +86,7 @@ describe(`${CASE_MARKER}: 设置设备卡与未完成连接`, () => {
       // 模拟旧版本缺少草稿范围或同目录残留其他项目；最近项目必须由 Host 入口决定归属。
       await browser.execute(
         (identity, hostId, projectId) => {
-          const key = `zcode-composer-workspace-scope:v1:${JSON.stringify(["desktop", identity])}`;
+          const key = `nibi-composer-workspace-scope:v1:${JSON.stringify(["desktop", identity])}`;
           if (projectId === null) localStorage.removeItem(key);
           else
             localStorage.setItem(
@@ -137,7 +137,7 @@ describe(`${CASE_MARKER}: 设置设备卡与未完成连接`, () => {
       );
       expect(projectId).toBe(original.projectId);
       const rememberedProjectId = await browser.execute((identity) => {
-        const key = `zcode-composer-workspace-scope:v1:${JSON.stringify(["desktop", identity])}`;
+        const key = `nibi-composer-workspace-scope:v1:${JSON.stringify(["desktop", identity])}`;
         return JSON.parse(localStorage.getItem(key) ?? "null")?.projectId;
       }, identity);
       expect(rememberedProjectId).toBe(original.projectId);

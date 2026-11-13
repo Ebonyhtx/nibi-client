@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/markdown_table.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/markdown_table.rs（feat/rs 79b6691c55）。
 //! markdown 表格（docs/specs/rust-tui.md §8.2）：放得下时画线框、表头粗体，表头下一条分隔线；放不下
 //! 时每行转成 `表头: 值` 的记录。
 use ratatui::style::{Modifier, Style};

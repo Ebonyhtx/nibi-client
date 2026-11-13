@@ -10,7 +10,7 @@ import {
 
 describe("observation events", () => {
   it("emits SSE changes when observed JSONL files change", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-debug-events-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-debug-events-"));
     const logDir = join(root, "log");
     const logPath = join(logDir, "debug.jsonl");
     await mkdir(logDir);
@@ -45,7 +45,7 @@ describe("observation events", () => {
   });
 
   it("exposes the observation event stream from the API", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-debug-events-api-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-debug-events-api-"));
     const logDir = join(root, "log");
     await mkdir(logDir);
 
@@ -70,7 +70,7 @@ describe("observation events", () => {
   });
 
   it("includes SQLite WAL companion files in the fingerprint set", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-debug-events-sqlite-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-debug-events-sqlite-"));
     const dbPath = join(root, "db.sqlite");
     const sources = await fingerprintObservationSources({
       logDir: join(root, "missing-log"),
@@ -83,7 +83,7 @@ describe("observation events", () => {
   });
 
   it("does not treat SQLite SHM mtime churn as a source change", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-debug-events-sqlite-shm-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-debug-events-sqlite-shm-"));
     const dbPath = join(root, "db.sqlite");
     const shmPath = `${dbPath}-shm`;
     await writeFile(shmPath, "shared-memory-index", "utf8");

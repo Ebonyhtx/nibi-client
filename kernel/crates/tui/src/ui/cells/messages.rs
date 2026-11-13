@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/cells/messages.rs（feat/rs 79b6691c55）：输入换成视图行的字段。
+// 改写自 apps/nibi-host/crates/tui/src/ui/cells/messages.rs（feat/rs 79b6691c55）：输入换成视图行的字段。
 //! 消息类的块：用户消息、回复、推理、时间线标记、错误与启动头。
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};

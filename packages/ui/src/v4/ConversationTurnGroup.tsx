@@ -148,7 +148,7 @@ function TurnChatLoadingSlot({
     retryStatus && retryStatus.attempt >= MIN_VISIBLE_API_RETRY_ATTEMPT ? retryStatus : null;
   if (!visibleRetryStatus && !eligible) return null;
   return (
-    <div data-zcode-chat-loading-slot="true" className="min-h-5">
+    <div data-nibi-chat-loading-slot="true" className="min-h-5">
       {visibleRetryStatus ? (
         <ChatApiRetryStatus apiRetry={visibleRetryStatus} intl={intl} locale={locale} />
       ) : (
@@ -1117,7 +1117,7 @@ function ConversationTurnGroupImpl({
     () =>
       codeCommentCardsEnabled &&
       assistantRawCopyText !== undefined &&
-      // 卡片与 zcode-file-citation 的预览卡片保持一致：流式期间只投影正文，
+      // 卡片与 nibi-file-citation 的预览卡片保持一致：流式期间只投影正文，
       // 只有终态 row 才生成卡片，避免运行中卡片先出现又因模型续写而回滚。
       (latestAssistantTextRow?.state === "complete" ||
         latestAssistantTextRow?.state === "interrupted")

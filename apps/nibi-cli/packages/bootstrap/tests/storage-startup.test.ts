@@ -13,7 +13,7 @@ afterEach(async () => {
 });
 describe("迁移前的 stdio 启动控制帧", () => {
   it("真实 Writable 回调完成前不执行 SQL；无账号/Provider 参数也能准备数据库", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-storage-wire-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-storage-wire-"));
     dirs.push(dir);
     const dbPath = join(dir, "db.sqlite");
     const packets: unknown[] = [];

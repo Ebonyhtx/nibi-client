@@ -537,7 +537,7 @@ describe("workflow driver — resume 会话身份互证", () => {
 
 /** 一次性 sqlite session store（真实持久层），用完即删。 */
 async function withSessionStore(run: (store: SessionStorePort) => Promise<void>): Promise<void> {
-  const root = await mkdtemp(join(tmpdir(), "zcode-dwf-transcript-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-dwf-transcript-"));
   const store = await createSqliteSessionStore({ dbPath: join(root, "session.sqlite") });
   try {
     await run(store as unknown as SessionStorePort);

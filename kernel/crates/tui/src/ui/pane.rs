@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/pane.rs（feat/rs 79b6691c55）：待处理交互来自视图；去掉登录、
+// 改写自 apps/nibi-host/crates/tui/src/ui/pane.rs（feat/rs 79b6691c55）：待处理交互来自视图；去掉登录、
 // 后台任务、任务清单与子代理列表。
 //! 底部区域的组装：视图替换整个底部区域；否则依次是状态行、排队预览、快捷键面板（F26 起在输入框上面）、
 //! 输入框、弹出列表或 footer。同时记下可点击的行。

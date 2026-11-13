@@ -942,7 +942,7 @@ async function uploadOssForm(
   // ⚠️ 这里必须走 apiClient（它出口带 host 的代理 dispatcher，见 nodeApiNetwork.ts），
   // 不能用裸 node:https —— 实测（2026-10-08）：用户线路直连 api.nibistudio.cn 会被重置，
   // 走代理的工单/凭证都成功、只有附件上传 read ECONNRESET，整条提交被判失败。
-  const boundary = `----zcode-feedback-${randomUUID()}`;
+  const boundary = `----nibi-feedback-${randomUUID()}`;
   const fields = buildOssFormFields(credential);
   const fieldBuffers = fields.map(([name, value]) => createMultipartField(boundary, name, value));
   const fileHeader = Buffer.from(

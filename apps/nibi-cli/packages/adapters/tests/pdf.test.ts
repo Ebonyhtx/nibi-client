@@ -434,7 +434,7 @@ function stream(text: string) {
 }
 
 async function temporaryRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "zcode-pdf-adapter-test-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-pdf-adapter-test-"));
   roots.push(root);
   return root;
 }

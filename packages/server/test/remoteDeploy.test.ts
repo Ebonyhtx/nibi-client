@@ -208,7 +208,7 @@ class FakeRemoteBackend implements IRemoteBackend {
     const lockOwner = command.match(/\.holder-([\w-]+)\.sh/u)?.[1];
     if (lockOwner) {
       return createLockHolderStream(
-        `zcode-deploy-lock-acquired:${lockOwner}`,
+        `nibi-deploy-lock-acquired:${lockOwner}`,
         this.lockReleaseMarkers,
         this.lockCloseCode,
         this.lockAcquireGate,
@@ -1088,7 +1088,7 @@ afterEach(async () => {
 
 describe("deployServer legacy agent node-script bundle deployment", () => {
   it("调用方已串行化部署时不创建远端 install-root lock", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const mockCdnDir = join(rootDir, "mock-cdn");
     await stageRemoteRuntimeRelease(mockCdnDir);
@@ -1115,7 +1115,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("rechecks the server version after acquiring the install-root lock", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const mockCdnDir = join(rootDir, "mock-cdn");
     await stageRemoteRuntimeRelease(mockCdnDir);
@@ -1135,12 +1135,12 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     expect(deployed).toBe(false);
     expect(backend.commands.filter((command) => command.endsWith("--version"))).toHaveLength(2);
     expect(backend.commands.join("\n")).toContain(".deploy.lock.holder-");
-    expect(backend.lockReleaseMarkers[0]).toMatch(/^zcode-deploy-lock-release:/u);
+    expect(backend.lockReleaseMarkers[0]).toMatch(/^nibi-deploy-lock-release:/u);
     expect(backend.uploads).toEqual([]);
   });
 
   it("waits for the install-root lock before pinning the deployment manifest", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const mockCdnDir = join(rootDir, "mock-cdn");
     const cdnRoot = join(rootDir, "cdn");
@@ -1181,7 +1181,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("部署与 lock release 同时失败时应保留两个错误", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const backend = new FakeRemoteBackend({}, { lockCloseCode: 91 });
 
@@ -1234,7 +1234,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("server 版本相同但远端缺少 node-pty 时应补传", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const mockCdnDir = join(rootDir, "mock-cdn");
     await stageRemoteRuntimeRelease(mockCdnDir);
@@ -1257,7 +1257,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("server 版本相同但远端主 server 缺少 sync channel 时应补传主 server", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const mockCdnDir = join(rootDir, "mock-cdn");
     await stageRemoteRuntimeRelease(mockCdnDir);
@@ -1291,7 +1291,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("忽略历史资源包选择并部署完整默认远端资源", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const mockCdnDir = join(rootDir, "mock-cdn");
     await stageRemoteRuntimeRelease(mockCdnDir);
@@ -1333,7 +1333,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("darwin server 版本相同但远端缺少 spawn-helper 时应补传", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const mockCdnDir = join(rootDir, "mock-cdn");
     await stageRemoteRuntimeRelease(mockCdnDir, {
@@ -1816,7 +1816,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     "bundled-skills/skills/dynamic-workflows/patterns.md",
     "bundled-skills/skills/dynamic-workflows/examples.md",
   ])("开发态缺少 %s 时应在上传前拒绝残缺资源", async (missingAsset) => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-dev-agent-missing-browser-client-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-dev-agent-missing-browser-client-"));
     tempDirs.push(rootDir);
     const repoDir = join(rootDir, "z-code");
     const cliBundlePath = join(
@@ -1863,7 +1863,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("开发态 SSH 部署应上传本地 nibi.cjs 并生成远端 wrapper", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-dev-agent-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-dev-agent-"));
     tempDirs.push(rootDir);
     const repoDir = join(rootDir, "z-code");
     const cliBundlePath = join(
@@ -1965,7 +1965,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     async (scenario) => {
       const bundleMatches = scenario !== "bundle-changed";
       const reuse = scenario === "matching";
-      const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-dev-agent-skip-"));
+      const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-dev-agent-skip-"));
       tempDirs.push(rootDir);
       const repoDir = join(rootDir, "z-code");
       const cliBundlePath = join(
@@ -2050,7 +2050,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   );
 
   it("darwin 远端强制部署时应上传 node-pty 的 spawn-helper", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const mockCdnDir = join(rootDir, "mock-cdn");
     await stageRemoteRuntimeRelease(mockCdnDir, {
@@ -2075,7 +2075,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("远端覆盖替换应绕过 shell alias/function 并强制覆盖", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const mockCdnDir = join(rootDir, "mock-cdn");
     await stageRemoteRuntimeRelease(mockCdnDir);
@@ -2114,7 +2114,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       return;
     }
 
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-replace-cmd-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-replace-cmd-"));
     tempDirs.push(rootDir);
     const sourcePath = join(rootDir, "node.new");
     const targetPath = join(rootDir, "node");
@@ -2145,7 +2145,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("远端 replace 命令非 0 退出时应立即中断部署", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const mockCdnDir = join(rootDir, "mock-cdn");
     await stageRemoteRuntimeRelease(mockCdnDir);
@@ -2173,7 +2173,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
         },
       ),
     ).rejects.toThrow(/exit code 23/);
-    expect(backend.lockReleaseMarkers[0]).toMatch(/^zcode-deploy-lock-release:/u);
+    expect(backend.lockReleaseMarkers[0]).toMatch(/^nibi-deploy-lock-release:/u);
   });
 
   it("生产态未接入 CDN 下载占位时应抛出明确错误", async () => {
@@ -2187,7 +2187,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
         { platform: "linux", arch: "arm64" },
         {
           force: false,
-          remoteCacheDir: "/tmp/zcode-remote-cache",
+          remoteCacheDir: "/tmp/nibi-remote-cache",
         },
       ),
     ).rejects.toThrow(
@@ -2208,14 +2208,14 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
           force: false,
           remoteCdnBaseUrl:
             "https://cdn.example.com/zcode/electron/releases-sandbox/fix-small-issues/0.2.7",
-          remoteCacheDir: "/tmp/zcode-remote-cache",
+          remoteCacheDir: "/tmp/nibi-remote-cache",
         },
       ),
     ).rejects.toThrow(/remoteCdnBaseUrl 版本不匹配/);
   });
 
   it("生产态 manifest 存在时应优先下载组件产物并写入 cache（不走 legacy 整包）", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -2271,7 +2271,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("本地下载后上传通过注入的远程资源网络出口获取 manifest 和组件", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -2323,7 +2323,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("远程资源网络出口失败时不回退 global fetch", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const directFetch = vi
       .spyOn(globalThis, "fetch")
@@ -2354,7 +2354,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("mock-cdn 版本目录存在但缺目标平台组件时应回退 CDN cache", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -2402,7 +2402,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("mock manifest 存在但 GLM 文件缺失时应使用 CDN SHA 决策与部署", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const mockCdnDir = join(rootDir, "mock-cdn");
     const cdnSourceDir = join(rootDir, "cdn-source");
@@ -2451,7 +2451,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("本地上传的 GLM hash 变化时不应复用完整的旧语义版本 cache", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -2543,7 +2543,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("并发预热复用 release 锁后仍应按当前 required paths 补齐残缺 component cache", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -2617,7 +2617,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("node-runtime manifest version 带内容 hash 时，远端已安装语义版本应继续跳过", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -2670,7 +2670,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("ssh remote-download mode installs server assets without local uploads", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -2726,7 +2726,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("生产态 manifest 初次 404 后同进程重试应重新探测 manifest", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -2786,7 +2786,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("生产态 remoteCdnBaseUrl 已固定版本时组件应从跨版本 components 根下载", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -2831,7 +2831,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("生产态主 CDN 缺失组件时应回退到备选 CDN 下载组件", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -2908,7 +2908,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("manifest 命中备 CDN 时应优先从同一 CDN 下载 GLM 制品", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -2959,7 +2959,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("生产态 manifest 缺失时不应再回退 legacy remote-assets 归档", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -3006,7 +3006,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("生产态 cache 命中时不应重复下载组件产物", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -3062,7 +3062,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("生产态主 server 过期时应同时刷新 glm bundle", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -3148,7 +3148,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("local-download-upload 下 App 版本变化时即使 server-bundle 与 GLM SHA cache 命中也应重新下载上传", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -3221,7 +3221,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("App 版本变化后 GLM 部署失败时下次连接应继续强制刷新 cache", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -3340,7 +3340,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("remote-download 下 App 版本变化时即使 server-bundle 与 GLM SHA 匹配也应重新下载部署", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -3421,7 +3421,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("remote-download 下 App 版本变化后中间部署失败时应在重试中继续强刷 GLM cache", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -3518,7 +3518,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("开发态 mock-cdn 有匹配组件版本时主 server 过期不应重传 node runtime", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -3570,7 +3570,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("生产态主 server 过期但 node 版本不匹配时应记录原因并重传 node", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -3639,7 +3639,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("版本匹配但 runtime tool binary 缺失时应补传并记录原因", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const mockCdnDir = join(rootDir, "mock-cdn");
     await stageRemoteRuntimeRelease(mockCdnDir);
@@ -3675,7 +3675,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("主 server 版本匹配但 glm wrapper 缺失时应补传", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const mockCdnDir = join(rootDir, "mock-cdn");
     await stageRemoteRuntimeRelease(mockCdnDir);
@@ -3715,7 +3715,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("主 server 版本匹配且 glm SHA 相同但版本不同时不应补传", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const mockCdnDir = join(rootDir, "mock-cdn");
     await stageRemoteRuntimeRelease(mockCdnDir);
@@ -3753,7 +3753,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("生产态远端 GLM SHA 匹配时只读取 manifest 而不下载制品", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -3794,7 +3794,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("远端已部署时 manifest 响应超时应有界失败且允许下一次连接重试", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const cdnRoot = join(rootDir, "cdn");
@@ -3838,7 +3838,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("首次部署的 manifest 超时不应在锁内降级重拉", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const cdnRoot = join(rootDir, "cdn");
     const remoteCacheDir = join(rootDir, "remote-cache");
@@ -3871,7 +3871,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("component version resolver 应透传 manifest request deadline", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const cdnRoot = join(rootDir, "cdn");
     const remoteCacheDir = join(rootDir, "remote-cache");
@@ -3902,7 +3902,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("remote-download manifest 超时应保留 CDN 候选诊断", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
     const cdnRoot = join(rootDir, "cdn");
     const manifestPath = `/${NIBI_VERSION}/manifest-linux-arm64.json`;
@@ -3929,7 +3929,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("同一进程内 GLM 版本不变但 manifest SHA 更新时应重新部署", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -3985,7 +3985,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("同一 App 版本内 server-bundle SHA 更新时应下载并上传新制品", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -4066,7 +4066,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("并发 GLM SHA 检查应共享一次 fresh manifest 请求", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -4138,7 +4138,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("并发 GLM 部署应按各自 manifest SHA 快照隔离 release", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -4218,7 +4218,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("同一 GLM SHA 的普通下载与强制刷新并发时应复用一次已校验下载", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -4296,7 +4296,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("生产态组件 cache 未命中时应从旧 release cache 迁移相同内容组件", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -4377,7 +4377,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("生产态 GLM 不应按语义版本复用旧 hash 目录组件", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -4452,7 +4452,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("生产态不同 remoteCacheDir 并发预热时不应共享同一把下载锁", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -4507,7 +4507,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("生产态 manifest mount 路径校验失败时应抛出错误", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");
@@ -4549,7 +4549,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
   });
 
   it("生产态下载 remote 资源时应输出百分比/体积/速度进度日志", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-remote-deploy-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
     tempDirs.push(rootDir);
 
     const mockCdnDir = join(rootDir, "mock-cdn");

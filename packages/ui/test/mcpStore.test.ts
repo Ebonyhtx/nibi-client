@@ -291,7 +291,7 @@ describe("mcpStore", () => {
     vi.stubGlobal(
       "localStorage",
       createLocalStorageStub({
-        "zcode-mcp-config": JSON.stringify({
+        "nibi-mcp-config": JSON.stringify({
           mcp: { mcpServers: { legacyHttp: { type: "http", url: "https://legacy.example.test/mcp" } } },
         }),
       }),

@@ -11,7 +11,7 @@ import { hydrateReadFileStateFromSession } from "../src/agent/read-file-state-hy
 import { createReadFileStateKey } from "../src/tool/read-file-state.js";
 import type { ReadFileStateMap } from "../src/tool/types.js";
 
-const workspaceRoot = "/tmp/zcode-read-state-hydrator";
+const workspaceRoot = "/tmp/nibi-read-state-hydrator";
 
 describe("read file state hydrator", () => {
   it("restores full Read state from structured completed metadata", async () => {

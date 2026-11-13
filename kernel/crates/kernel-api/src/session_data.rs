@@ -1,5 +1,5 @@
 //! 会话数据的测量与彻底删除（上游 `v4/storage/sessionData/measure` / `purge`，
-//! `packages/shared/src/zcode-protocol-v4/session-data/contract.ts`）。
+//! `packages/shared/src/nibi-protocol-v4/session-data/contract.ts`）。
 //!
 //! 协议层只负责方法名与入参形状；测量/删除的语义在运行时（`nibi-kernel-runtime`）与存储
 //! （`nibi-kernel-node-store`）：按会话根展开附属后代、运行中/被引用保留、先删文件再删行。

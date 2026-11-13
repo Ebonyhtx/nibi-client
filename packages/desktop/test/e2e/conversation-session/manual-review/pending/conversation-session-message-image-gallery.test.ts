@@ -30,7 +30,7 @@ const IMAGE_NAMES = [
 ] as const;
 const SAVED_IMAGE_PATH = join(
   tmpdir(),
-  `zcode-e2e-message-image-gallery-${Date.now()}.svg`,
+  `nibi-e2e-message-image-gallery-${Date.now()}.svg`,
 );
 
 let replayServer: Awaited<

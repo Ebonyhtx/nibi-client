@@ -24,7 +24,7 @@ afterEach(async () => {
 });
 
 async function setup(options: SourceServerWorkspaceAliasRepoOptions = {}) {
-  const root = await mkdtemp(join(tmpdir(), "zcode-alias-concurrent-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-alias-concurrent-"));
   roots.push(root);
   const taskDbPath = join(root, "tasks-index.sqlite");
   const index = new TaskIndexRepo(undefined, undefined, taskDbPath);

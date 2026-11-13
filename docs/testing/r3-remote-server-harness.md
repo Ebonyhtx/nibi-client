@@ -243,7 +243,7 @@ Host / Agent 最大数量各为 1。RSS 首尾采样 1220 / 1211 MB；这只是�
 │   └─ wdio → Electron Desktop（每 case 独立 HOME/profile）  │
 │         │ 产品 SSH 弹窗：127.0.0.1:<映射端口>，dev / 每轮随机密码  │
 │         ▼                                                          │
-│   docker: zcode-r3-server-a  [dev + tunnel 用户]                  │
+│   docker: nibi-r3-server-a  [dev + tunnel 用户]                  │
 │                          c / d / e / f / dt（其余档位）            │
 │                                                                    │
 │   replay provider ──SSH forwardIn(tunnel 用户)──► 容器内 127.0.0.1 │
@@ -260,7 +260,7 @@ Host / Agent 最大数量各为 1。RSS 首尾采样 1220 / 1211 MB；这只是�
 | 环节              | 实现                                                                                                                                                                    |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 连接              | 产品 SSH 弹窗真实填 host/port/user/password，仅密码认证                                                                                                                 |
-| 远端主机          | 同机 Docker 容器（`zcode-remote-ssh:test`），每 case 重建                                                                                                               |
+| 远端主机          | 同机 Docker 容器（`nibi-remote-ssh:test`），每 case 重建                                                                                                               |
 | 远端 server/Agent | 真装真跑，测试读远端 PID/startTicks/日志对账                                                                                                                            |
 | server 产物       | 本机构建的 `mock-cdn/releases/<版本>`，走"本地下载/上传"安装，不用真 CDN                                                                                                |
 | 模型请求          | 默认 replay：`createSSHReplayTunnel` 经 SSH 反向端口转发把本机 replay server 暴露成容器内 `127.0.0.1:<port>`；`tunnel` 用户单独承载，避免被"杀 dev 的 sshd"故障连带     |

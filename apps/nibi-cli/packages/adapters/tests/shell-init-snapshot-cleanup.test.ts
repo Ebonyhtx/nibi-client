@@ -13,7 +13,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 describe("shell init snapshot cleanup", () => {
   it("unlinks snapshots registered by the current adapter process", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-shell-init-cleanup-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-shell-init-cleanup-"));
     const registry = new ShellInitSnapshotCleanupRegistry();
     const snapshotPath = join(shellInitSnapshotsDir(rootDir), "snapshot-bash.sh");
 
@@ -32,7 +32,7 @@ describe("shell init snapshot cleanup", () => {
   });
 
   it("treats already-missing registered snapshots as cleaned", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-shell-init-cleanup-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-shell-init-cleanup-"));
     const registry = new ShellInitSnapshotCleanupRegistry();
     const snapshotPath = join(shellInitSnapshotsDir(rootDir), "missing.sh");
 
@@ -50,7 +50,7 @@ describe("shell init snapshot cleanup", () => {
   });
 
   it("removes stale top-level .sh files under shell-snapshots and keeps fresh or non-sh files", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-shell-init-retention-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-shell-init-retention-"));
     const snapshotsDir = shellInitSnapshotsDir(rootDir);
     const staleSnapshot = join(snapshotsDir, "stale.sh");
     const freshSnapshot = join(snapshotsDir, "fresh.sh");

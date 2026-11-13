@@ -54,7 +54,7 @@ async fn a_failing_child_reports_its_stderr() {
 /// future 先于派生的转发任务被调度，所以收的一方总是先看到子进程退出。
 #[tokio::test]
 async fn stderr_is_read_to_its_end_before_the_link_ends() {
-    let pid_file = std::env::temp_dir().join(format!("zcode-stdio-tail-{}", std::process::id()));
+    let pid_file = std::env::temp_dir().join(format!("nibi-stdio-tail-{}", std::process::id()));
     let _ = std::fs::remove_file(&pid_file);
     let script = format!(
         "echo $$ > '{}'; echo 'executor: cannot start' >&2; exit 3",
@@ -94,7 +94,7 @@ fn block_until_exited(pid_file: &std::path::Path) {
 #[tokio::test]
 async fn a_missing_program_cannot_connect() {
     let missing = StdioConnector::new(ChildCommand {
-        program: PathBuf::from("/nonexistent/zcode-executor"),
+        program: PathBuf::from("/nonexistent/nibi-executor"),
         args: Vec::new(),
         env: Vec::new(),
         cwd: None,
@@ -109,7 +109,7 @@ async fn a_missing_program_cannot_connect() {
 /// ssh 的连接（`kill_on_drop`）：丢掉连接时子进程被结束，不会一直留着（remote-exec.md §19.2）。
 #[tokio::test]
 async fn a_dropped_link_kills_the_child_when_asked() {
-    let dir = std::env::temp_dir().join(format!("zcode-stdio-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("nibi-stdio-{}", std::process::id()));
     let _ = std::fs::remove_file(&dir);
     let script = format!("echo $$ > '{}'; exec sleep 30", dir.display());
     let mut command = ChildCommand {

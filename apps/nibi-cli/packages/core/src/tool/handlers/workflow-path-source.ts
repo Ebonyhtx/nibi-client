@@ -53,7 +53,7 @@ export function resolveWorkflowScriptFilePath(cwd: string, inputPath: string): s
  * 模型只会以为是自己刚写错了什么，然后原样重试一遍。
  *
  * `parseFrontmatter: false` 用于 `EvalWorkflowSnippet`：片段没有保存定义那套语义，整个文件
- * 就是代码，一段恰好以 `/* zcode-workflow` 开头的片段也不该被当成声明块吞掉。
+ * 就是代码，一段恰好以 `/* nibi-workflow` 开头的片段也不该被当成声明块吞掉。
  */
 export async function readWorkflowScriptFile(options: {
   cwd: string;

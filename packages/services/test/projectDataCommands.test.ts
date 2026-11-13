@@ -221,7 +221,7 @@ describe("项目数据清理命令", () => {
   });
 
   it("真实任务索引库把 target_task_id 与 automation_runs.session_id 都报为 cron 引用", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "zcode-project-data-refs-"));
+    const directory = await mkdtemp(join(tmpdir(), "nibi-project-data-refs-"));
     const index = new TaskIndexRepo(undefined, undefined, join(directory, "tasks-index.sqlite"));
     try {
       const repo = await index.getProjectRepository();

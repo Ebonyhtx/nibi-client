@@ -106,7 +106,7 @@ describe("资源管理器网络", () => {
             "renderer-network-test",
           ),
         );
-        await browser.saveScreenshot(join(tmpdir(), `zcode-network-${theme}.png`));
+        await browser.saveScreenshot(join(tmpdir(), `nibi-network-${theme}.png`));
       }
       await $('//button[normalize-space(.)="Clear" or normalize-space(.)="清空"]').click();
       await browser.waitUntil(

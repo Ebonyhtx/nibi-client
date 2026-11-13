@@ -16,7 +16,7 @@ describe("Node tool artifact store", () => {
   });
 
   it("persists tool result artifacts under a session directory", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-tool-artifacts-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-tool-artifacts-"));
     const store = createNodeToolArtifactStore({
       imageCacheRootDir: join(rootDir, "image-cache"),
       rootDir,
@@ -58,7 +58,7 @@ describe("Node tool artifact store", () => {
   });
 
   it("injects fs faults before text artifact writes", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-tool-artifacts-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-tool-artifacts-"));
     const store = createNodeToolArtifactStore({
       imageCacheRootDir: join(rootDir, "image-cache"),
       rootDir,
@@ -100,7 +100,7 @@ describe("Node tool artifact store", () => {
   });
 
   it("persists binary tool result artifacts without text encoding", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-tool-artifacts-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-tool-artifacts-"));
     const store = createNodeToolArtifactStore({
       imageCacheRootDir: join(rootDir, "image-cache"),
       rootDir,
@@ -159,7 +159,7 @@ describe("Node tool artifact store", () => {
   // Bug 根因（2026-09-04）：文本读回按文件名推 contentType，办公文件扩展名不在表里 → 当作
   // application/json 走 utf8 解码 → 字节损坏。二进制读回返回原始字节，不经任何编码。
   it("reads binary artifacts back as raw bytes regardless of extension", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-tool-artifacts-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-tool-artifacts-"));
     const store = createNodeToolArtifactStore({
       imageCacheRootDir: join(rootDir, "image-cache"),
       rootDir,
@@ -204,7 +204,7 @@ describe("Node tool artifact store", () => {
   });
 
   it("primes one derived image path and rebuilds it from the durable data URL artifact", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-tool-artifacts-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-tool-artifacts-"));
     const rootDir = join(tempRoot, "artifacts");
     const imageCacheRootDir = join(tempRoot, "image-cache");
     const store = createNodeToolArtifactStore({
@@ -264,7 +264,7 @@ describe("Node tool artifact store", () => {
   });
 
   it("materializes one video path and rebuilds it from the durable data URL artifact", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-tool-artifacts-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-tool-artifacts-"));
     const rootDir = join(tempRoot, "artifacts");
     const videoCacheRootDir = join(tempRoot, "video-cache");
     const store = createNodeToolArtifactStore({
@@ -316,7 +316,7 @@ describe("Node tool artifact store", () => {
   });
 
   it("materializes one PDF path and rebuilds it from the durable data URL artifact", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-tool-artifacts-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-tool-artifacts-"));
     const rootDir = join(tempRoot, "artifacts");
     const pdfCacheRootDir = join(tempRoot, "pdf-cache");
     const store = createNodeToolArtifactStore({
@@ -369,7 +369,7 @@ describe("Node tool artifact store", () => {
   });
 
   it("skips unsupported image cache media types without interrupting the attachment flow", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-tool-artifacts-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-tool-artifacts-"));
     const imageCacheRootDir = join(rootDir, "image-cache");
     const store = createNodeToolArtifactStore({
       imageCacheRootDir,
@@ -416,7 +416,7 @@ describe("Node tool artifact store", () => {
   });
 
   it("injects fs faults before binary artifact directory creation", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-tool-artifacts-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-tool-artifacts-"));
     const store = createNodeToolArtifactStore({
       imageCacheRootDir: join(rootDir, "image-cache"),
       rootDir,

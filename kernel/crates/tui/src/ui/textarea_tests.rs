@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/textarea_tests.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/textarea_tests.rs（feat/rs 79b6691c55）。
 use super::*;
 
 fn area(text: &str) -> TextArea {

@@ -52,10 +52,10 @@ describe("shell init snapshot", () => {
       configPath: "/home/user/.bashrc",
       configExists: true,
       shellKind: "bash",
-      snapshotPath: "/tmp/zcode-snapshot.sh",
+      snapshotPath: "/tmp/nibi-snapshot.sh",
     });
 
-    expect(script).toContain("SNAPSHOT_FILE='/tmp/zcode-snapshot.sh'");
+    expect(script).toContain("SNAPSHOT_FILE='/tmp/nibi-snapshot.sh'");
     expect(script).toContain('source "/home/user/.bashrc" < /dev/null');
     expect(script).toContain('echo "# Snapshot file" >| "$SNAPSHOT_FILE"');
     expect(script).toContain('echo "shopt -s expand_aliases" >> "$SNAPSHOT_FILE"');
@@ -75,10 +75,10 @@ describe("shell init snapshot", () => {
       configPath: "/home/user/.zshrc",
       configExists: true,
       shellKind: "zsh",
-      snapshotPath: "/tmp/zcode-zsh-snapshot.sh",
+      snapshotPath: "/tmp/nibi-zsh-snapshot.sh",
     });
 
-    expect(script).toContain("SNAPSHOT_FILE='/tmp/zcode-zsh-snapshot.sh'");
+    expect(script).toContain("SNAPSHOT_FILE='/tmp/nibi-zsh-snapshot.sh'");
     expect(script).toContain('source "/home/user/.zshrc" < /dev/null');
     expect(script).toContain("typeset +f | grep -vE '^_[^_]'");
     expect(script).toContain("typeset -f \"$func\"");
@@ -93,10 +93,10 @@ describe("shell init snapshot", () => {
       configPath: "/home/user/.bashrc",
       configExists: false,
       shellKind: "bash",
-      snapshotPath: "/tmp/zcode-snapshot.sh",
+      snapshotPath: "/tmp/nibi-snapshot.sh",
     });
 
-    expect(script).toContain("SNAPSHOT_FILE='/tmp/zcode-snapshot.sh'");
+    expect(script).toContain("SNAPSHOT_FILE='/tmp/nibi-snapshot.sh'");
     expect(script).not.toContain('source "/home/user/.bashrc" < /dev/null');
     expect(script).toContain('echo "shopt -s expand_aliases" >> "$SNAPSHOT_FILE"');
     expect(script).not.toContain("declare -F");
@@ -104,7 +104,7 @@ describe("shell init snapshot", () => {
   });
 
   it("caches successful snapshot creation with snapshot-<shell>-<time>-<id> names", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-shell-init-snapshot-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-shell-init-snapshot-"));
     const execFile = vi.fn(async (_file: string, args: string[]) => {
       const script = args.at(-1) ?? "";
       const match = script.match(/SNAPSHOT_FILE='([^']+)'/u);
@@ -144,7 +144,7 @@ describe("shell init snapshot", () => {
   });
 
   it("deduplicates concurrent snapshot creation for matching requests", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-shell-init-snapshot-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-shell-init-snapshot-"));
     let markCreationStarted: (() => void) | undefined;
     let releaseCreation: (() => void) | undefined;
     const creationStarted = new Promise<void>((resolve) => {
@@ -197,7 +197,7 @@ describe("shell init snapshot", () => {
   });
 
   it("keeps bash and zsh snapshots separate for the same session", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-shell-init-snapshot-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-shell-init-snapshot-"));
     const execFile = vi.fn(async (_file: string, args: string[]) => {
       const script = args.at(-1) ?? "";
       const match = script.match(/SNAPSHOT_FILE='([^']+)'/u);
@@ -243,7 +243,7 @@ describe("shell init snapshot", () => {
   });
 
   it("creates a new random snapshot for a new manager instead of reusing cold-resume leftovers", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-shell-init-snapshot-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-shell-init-snapshot-"));
     const execFile = vi.fn(async (_file: string, args: string[]) => {
       const script = args.at(-1) ?? "";
       const match = script.match(/SNAPSHOT_FILE='([^']+)'/u);
@@ -291,7 +291,7 @@ describe("shell init snapshot", () => {
   it.skipIf(process.platform === "win32")(
     "uses host paths in creation scripts and Git Bash paths when sourcing snapshots",
     async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-shell-init-snapshot-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-shell-init-snapshot-"));
     const windowsLikeRoot = join(rootDir, "C:\\Users\\me\\Nibi");
     let creationSnapshotPath = "";
     const execFile = vi.fn(async (_file: string, args: string[]) => {
@@ -334,7 +334,7 @@ describe("shell init snapshot", () => {
   );
 
   it("caches failed snapshot creation and keeps later calls failed", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-shell-init-snapshot-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-shell-init-snapshot-"));
     const execFile = vi.fn(async () => {
       throw new Error("shell init failed");
     });

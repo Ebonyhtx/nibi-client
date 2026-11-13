@@ -313,8 +313,8 @@ fn bwrap(env: &[(String, String)]) -> Option<PathBuf> {
 
 /// 输出文件与进程账本放在本用户私有的临时目录。
 ///
-/// 缺陷修复 R2-1：原来是共享的 `<tmp>/zcode-shell/{sessions,ledger}`，没有 uid，别的用户能读输出、伪造账本
-/// 记录。现在是 `<tmp>/zcode-<uid>`（Windows `<tmp>/zcode`），两者共用它：执行环境与账本每次用之前都核对
+/// 缺陷修复 R2-1：原来是共享的 `<tmp>/nibi-shell/{sessions,ledger}`，没有 uid，别的用户能读输出、伪造账本
+/// 记录。现在是 `<tmp>/nibi-<uid>`（Windows `<tmp>/zcode`），两者共用它：执行环境与账本每次用之前都核对
 /// 它是本用户私有的目录（核对的是根本身，所以不再分子目录）。
 ///
 /// `find_and_grep`：启动参数没有点名 Glob / Grep（embedded-search.md §8.1）。取不到本进程二进制的路径

@@ -1925,7 +1925,7 @@ describe("ConversationTurnGroup ChatLoading lifecycle", () => {
 
     expect(html).not.toContain("重新连接中...");
     expect(html).toContain('data-testid="chat-loading"');
-    expect(html).toContain('data-zcode-chat-loading-slot="true"');
+    expect(html).toContain('data-nibi-chat-loading-slot="true"');
   });
 
   it("attempt<=2 时仍遵守阻塞交互的 loading gate", () => {

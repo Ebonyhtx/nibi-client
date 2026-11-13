@@ -147,7 +147,7 @@ describe("server info HTTP endpoint", () => {
   });
 
   it("serves static web files with SPA fallback", async () => {
-    const staticRoot = await mkdtemp(join(tmpdir(), "zcode-lite-static-"));
+    const staticRoot = await mkdtemp(join(tmpdir(), "nibi-lite-static-"));
     tempDirs.push(staticRoot);
     await writeFile(join(staticRoot, "index.html"), "<html>lite</html>", "utf8");
     await writeFile(join(staticRoot, "app.js"), "console.log('lite');", "utf8");

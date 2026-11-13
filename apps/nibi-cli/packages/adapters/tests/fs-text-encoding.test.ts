@@ -28,7 +28,7 @@ describe("text encoding at a sampled file boundary", () => {
   });
 
   async function createFile(bytes: Buffer): Promise<string> {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-text-encoding-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-text-encoding-"));
     directories.push(dir);
     const path = join(dir, "sample.txt");
     await writeFile(path, bytes);

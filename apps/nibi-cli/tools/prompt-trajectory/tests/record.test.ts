@@ -21,7 +21,7 @@ describe("buildRecorderRuntimeConfig", () => {
         steps: [{ text: "hello", type: "submitPrompt" }],
       },
       modelSelection: { model: "fake", provider: "openai" },
-      workingDirectory: "/tmp/zcode-trajectory",
+      workingDirectory: "/tmp/nibi-trajectory",
     });
 
     deepStrictEqual(runtimeConfig.outputStyle, outputStyle);
@@ -45,7 +45,7 @@ describe("buildRecorderRuntimeConfig", () => {
         steps: [{ text: "hello", type: "submitPrompt" }],
       },
       modelSelection: { model: "fake", provider: "openai" },
-      workingDirectory: "/tmp/zcode-trajectory",
+      workingDirectory: "/tmp/nibi-trajectory",
     });
 
     equal(runtimeConfig.currentDate, "2026-06-04");
@@ -66,7 +66,7 @@ describe("buildRecorderRuntimeConfig", () => {
         steps: [{ text: "hello", type: "submitPrompt" }],
       },
       modelSelection: { model: "fake", provider: "openai" },
-      workingDirectory: "/tmp/zcode-trajectory",
+      workingDirectory: "/tmp/nibi-trajectory",
     });
 
     deepStrictEqual(runtimeConfig.subagents, {

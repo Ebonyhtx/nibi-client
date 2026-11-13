@@ -15,7 +15,7 @@ import { join } from "node:path";
 
 describe("config adapters", () => {
   it("migrates the legacy official CUA plugin id to the canonical id", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-cua-identity-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-cua-identity-"));
     const configPath = join(dir, "config.json");
 
     try {
@@ -56,7 +56,7 @@ describe("config adapters", () => {
   });
 
   it("persists the canonical CUA plugin id while loading legacy config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-cua-writeback-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-cua-writeback-"));
     const path = join(dir, "config.json");
     await writeFile(
       path,
@@ -86,7 +86,7 @@ describe("config adapters", () => {
   });
 
   it("writes canonical CUA ids when removing legacy config entries", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-cua-write-migration-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-cua-write-migration-"));
     const configPath = join(dir, "config.json");
 
     try {
@@ -121,7 +121,7 @@ describe("config adapters", () => {
   });
 
   it("clears only explicitly selected Plugin option keys", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-plugin-option-clear-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-plugin-option-clear-"));
     const configPath = join(dir, "config.json");
     const pluginId = "secret-plugin@fixture";
 
@@ -161,7 +161,7 @@ describe("config adapters", () => {
   });
 
   it("deep merges Workspace Plugin enablement and options over User config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-workspace-plugins-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-workspace-plugins-"));
     const userPath = join(dir, "user.json");
     const workspacePath = join(dir, ".nibi", "config.json");
 
@@ -243,7 +243,7 @@ describe("config adapters", () => {
   });
 
   it("keeps Marketplace declarations in the User config layer", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-workspace-marketplaces-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-workspace-marketplaces-"));
     const userPath = join(dir, "user.json");
     const workspacePath = join(dir, "workspace.json");
 
@@ -307,7 +307,7 @@ describe("config adapters", () => {
       NIBI_STORAGE_DIR: "/tmp/zcode",
       NIBI_HTTP_PROXY: "http://127.0.0.1:7890",
       NIBI_NO_PROXY: "localhost,127.0.0.1",
-      NIBI_AGENT_CA_CERT: "/tmp/zcode-ca.pem",
+      NIBI_AGENT_CA_CERT: "/tmp/nibi-ca.pem",
       NIBI_HTTP_TIMEOUT: "1234",
       NIBI_LOCALE: "zh-CN",
       NIBI_LOG_FORMAT: "json",
@@ -317,7 +317,7 @@ describe("config adapters", () => {
     expect(config.storage?.dir).toBe("/tmp/zcode");
     expect(config.network?.httpProxy).toBe("http://127.0.0.1:7890");
     expect(config.network?.noProxy).toBe("localhost,127.0.0.1");
-    expect(config.network?.caCertFile).toBe("/tmp/zcode-ca.pem");
+    expect(config.network?.caCertFile).toBe("/tmp/nibi-ca.pem");
     expect(config.network?.timeout).toBe(1234);
     expect(config.ui).toBeUndefined();
     expect(config.logging?.format).toBe("json");
@@ -325,7 +325,7 @@ describe("config adapters", () => {
   });
 
   it("loads the supported memory config fields", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-memory-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-memory-"));
     const path = join(dir, "config.json");
 
     try {
@@ -367,7 +367,7 @@ describe("config adapters", () => {
   });
 
   it("loads no-proxy rules from file config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -377,7 +377,7 @@ describe("config adapters", () => {
           network: {
             httpProxy: "http://127.0.0.1:7890",
             noProxy: "localhost,127.0.0.1",
-            caCertFile: "/tmp/zcode-ca.pem",
+            caCertFile: "/tmp/nibi-ca.pem",
           },
         }),
       );
@@ -386,7 +386,7 @@ describe("config adapters", () => {
 
       expect(merged.config.network.httpProxy).toBe("http://127.0.0.1:7890");
       expect(merged.config.network.noProxy).toBe("localhost,127.0.0.1");
-      expect(merged.config.network.caCertFile).toBe("/tmp/zcode-ca.pem");
+      expect(merged.config.network.caCertFile).toBe("/tmp/nibi-ca.pem");
     } finally {
       await rm(dir, { force: true, recursive: true });
     }
@@ -402,7 +402,7 @@ describe("config adapters", () => {
   });
 
   it("loads yolo mode from file config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -418,7 +418,7 @@ describe("config adapters", () => {
   });
 
   it("loads edit mode from file config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -434,7 +434,7 @@ describe("config adapters", () => {
   });
 
   it("loads skill/command enable overrides from file config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -461,7 +461,7 @@ describe("config adapters", () => {
   });
 
   it("parses plugins.suppressedBuiltins as a string array", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-suppressed-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-suppressed-"));
     const path = join(dir, "config.json");
     await writeFile(
       path,
@@ -474,7 +474,7 @@ describe("config adapters", () => {
   });
 
   it("maps skills path enable entries to skill overrides", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -508,7 +508,7 @@ describe("config adapters", () => {
   });
 
   it("loads top-level skills config from file config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -544,7 +544,7 @@ describe("config adapters", () => {
   });
 
   it("loads UI locale from file config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -562,7 +562,7 @@ describe("config adapters", () => {
   });
 
   it("loads auto UI locale from file config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -580,7 +580,7 @@ describe("config adapters", () => {
   });
 
   it("loads UI theme from file config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -598,7 +598,7 @@ describe("config adapters", () => {
   });
 
   it("rejects unsupported UI theme values from file config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -614,7 +614,7 @@ describe("config adapters", () => {
   });
 
   it("patches UI locale while preserving unrelated config fields", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -659,7 +659,7 @@ describe("config adapters", () => {
   });
 
   it("creates config files when patching UI locale", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "nested", "config.json");
 
     try {
@@ -677,7 +677,7 @@ describe("config adapters", () => {
   });
 
   it("rejects unsupported UI locale values from file config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -693,7 +693,7 @@ describe("config adapters", () => {
   });
 
   it("loads MCP server config from file config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -780,7 +780,7 @@ describe("config adapters", () => {
   });
 
   it("keeps an MCP server disabled when legacy enable:false coexists with enabled:true", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -812,7 +812,7 @@ describe("config adapters", () => {
   });
 
   it("keeps an MCP server disabled when enabled:false coexists with legacy enable:true", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -842,7 +842,7 @@ describe("config adapters", () => {
   });
 
   it("keeps an MCP server enabled when both enable and enabled are true", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -872,7 +872,7 @@ describe("config adapters", () => {
   });
 
   it("preserves fresh HTTP MCP config without writing implicit OAuth", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -906,7 +906,7 @@ describe("config adapters", () => {
   });
 
   it("skips invalid MCP OAuth config without dropping unrelated config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -949,7 +949,7 @@ describe("config adapters", () => {
   });
 
   it("normalizes app-managed MCP config aliases from file config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -1007,7 +1007,7 @@ describe("config adapters", () => {
   });
 
   it("normalizes legacy MCP http_headers to runtime headers", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -1044,7 +1044,7 @@ describe("config adapters", () => {
   });
 
   it("normalizes legacy MCP remote/environment fields without dropping plugins config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -1112,7 +1112,7 @@ describe("config adapters", () => {
   });
 
   it("keeps non-MCP config when one MCP server is invalid", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const logDir = join(dir, "log");
     const path = join(dir, "config.json");
 
@@ -1186,7 +1186,7 @@ describe("config adapters", () => {
   });
 
   it("reports invalid discovered project config diagnostics", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-project-config-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-project-config-"));
     const logDir = join(root, "log");
     const projectConfigPath = join(root, "nibi.json");
 
@@ -1234,7 +1234,7 @@ describe("config adapters", () => {
   });
 
   it("discovers project MCP config from the worktree root", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-project-config-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-project-config-"));
     const cwd = join(root, "packages", "app");
 
     try {
@@ -1276,7 +1276,7 @@ describe("config adapters", () => {
   });
 
   it("merges project configs from root to cwd with nearest config winning", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-project-config-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-project-config-"));
     const cwd = join(root, "packages", "app");
     const cwdConfigDir = join(cwd, ".nibi");
 
@@ -1331,7 +1331,7 @@ describe("config adapters", () => {
   });
 
   it("lets user MCP servers override same-name project MCP servers", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-project-config-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-project-config-"));
     const userConfigPath = join(root, "home", "config.json");
 
     try {
@@ -1401,7 +1401,7 @@ describe("config adapters", () => {
   });
 
   it("does not scan project config above the worktree root", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "zcode-project-config-"));
+    const parent = await mkdtemp(join(tmpdir(), "nibi-project-config-"));
     const root = join(parent, "repo");
     const cwd = join(root, "packages", "app");
 
@@ -1436,7 +1436,7 @@ describe("config adapters", () => {
   });
 
   it("keeps CLI feature overrides above project MCP config", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-project-config-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-project-config-"));
 
     try {
       await mkdir(join(root, ".git"));
@@ -1467,7 +1467,7 @@ describe("config adapters", () => {
   });
 
   it("loads process hook config from file config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -1519,7 +1519,7 @@ describe("config adapters", () => {
   });
 
   it("drops hooks from discovered project config files because project hooks are untrusted code", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-project-hooks-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-project-hooks-"));
 
     try {
       await mkdir(join(root, ".git"));
@@ -1588,7 +1588,7 @@ describe("config adapters", () => {
   });
 
   it("keeps user hooks while dropping untrusted project hooks", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-user-project-hooks-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-user-project-hooks-"));
     const userConfigPath = join(root, "user-config.json");
 
     try {
@@ -1655,7 +1655,7 @@ describe("config adapters", () => {
   });
 
   it("loads model stream idle timeout config from file config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -1680,7 +1680,7 @@ describe("config adapters", () => {
   });
 
   it("merges model stream idle timeout into runtime config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -1702,7 +1702,7 @@ describe("config adapters", () => {
   });
 
   it("loads model anomaly guard config from file config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -1729,7 +1729,7 @@ describe("config adapters", () => {
   });
 
   it("rejects unknown hook events from file config", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-"));
     const path = join(dir, "config.json");
 
     try {
@@ -1781,7 +1781,7 @@ describe("config adapters", () => {
   ])(
     "ignores retired provider config while preserving active configuration: %j",
     async (legacy) => {
-      const dir = await mkdtemp(join(tmpdir(), "zcode-config-retired-model-"));
+      const dir = await mkdtemp(join(tmpdir(), "nibi-config-retired-model-"));
       try {
         const path = join(dir, "config.json");
         await writeFile(path, JSON.stringify({ ...legacy, features: { memory: false } }));
@@ -1797,7 +1797,7 @@ describe("config adapters", () => {
   );
 
   it("rejects invalid active configuration", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-invalid-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-invalid-"));
     try {
       const path = join(dir, "config.json");
       await writeFile(path, JSON.stringify({ network: { timeout: "invalid" } }));
@@ -1810,7 +1810,7 @@ describe("config adapters", () => {
   });
 
   it("removes a plugin's enabled flag and options on uninstall while preserving others", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-plugin-remove-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-plugin-remove-"));
     const configPath = join(dir, "config.json");
 
     try {
@@ -1848,7 +1848,7 @@ describe("config adapters", () => {
   });
 
   it("is a no-op when removing a plugin that has no config footprint", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-plugin-remove-missing-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-plugin-remove-missing-"));
     const configPath = join(dir, "config.json");
 
     try {
@@ -1869,7 +1869,7 @@ describe("config adapters", () => {
   });
 
   it("adds and removes a suppressed builtin id atomically", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-config-suppress-patch-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-config-suppress-patch-"));
     const path = join(dir, "config.json");
     const id = "skill-creator@nibi-official";
 

@@ -19,7 +19,7 @@ describe("recordStreamTextDebug failed-stream aggregate settling", () => {
   let debugDir: string;
 
   beforeEach(async () => {
-    debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-debug-"));
+    debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-debug-"));
   });
 
   afterEach(async () => {

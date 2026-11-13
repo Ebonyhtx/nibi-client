@@ -16,7 +16,7 @@ it.each([
         "oauth:active_provider": "zai",
         "oauth:zai:access_token": "fake-access-token",
         "oauth:zai:user_info": "{}",
-        "nibi-jwttoken": "fake-zcode-jwt",
+        "nibi-jwttoken": "fake-nibi-jwt",
       },
     }),
   ).toEqual({});

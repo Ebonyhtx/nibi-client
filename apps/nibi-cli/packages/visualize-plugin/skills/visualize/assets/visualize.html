@@ -9,7 +9,7 @@
   const { autoUpdate, computePosition, flip, offset, shift, size } =
     window.FloatingUIDOM;
   const tooltipPlacements = new Set(["top", "right", "bottom", "left"]);
-  const tooltipId = `zcode-visualization-tooltip-${
+  const tooltipId = `nibi-visualization-tooltip-${
     window.crypto?.randomUUID?.() ?? Date.now().toString(36)
   }`;
   const tooltipGap = 5;
@@ -305,7 +305,7 @@
   window.addEventListener("pagehide", destroy, { once: true });
 })();
 </script>
-<script id="zcode-visualization-tabs">
+<script id="nibi-visualization-tabs">
 (() => {
   const selector = '.nav[role="tablist"] [role="tab"]';
   const disabled = ':disabled,[aria-disabled="true"]';
@@ -372,7 +372,7 @@
   }, { once: true });
 })();
 </script>
-<script id="zcode-visualization-carousel">
+<script id="nibi-visualization-carousel">
   (() => {
     for (const root of document.querySelectorAll(".viz-carousel")) {
       const panels = Array.from(
@@ -397,7 +397,7 @@
       const controls = document.createElement("div");
       controls.className = "viz-carousel-controls";
       // Portable copy of the settings dropdown's legacy glyph; no 14px icon-package preset matches it.
-      // https://github.com/zcode/zcode/blob/master/zcode/zcode-apps/webview/src/icons/chevron.svg
+      // https://github.com/zcode/zcode/blob/master/zcode/nibi-apps/webview/src/icons/chevron.svg
       controls.innerHTML = `
       <button type="button" class="viz-carousel-previous cursor-interaction"><i data-lucide="chevron-left" aria-hidden="true"></i></button>
       <details class="viz-carousel-picker">
@@ -500,7 +500,7 @@
     }
   })();
 </script>
-<script id="zcode-visualization-lucide" async src="https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js"></script>
+<script id="nibi-visualization-lucide" async src="https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js"></script>
 <script>
 (() => {
   const initialize = () => {
@@ -511,7 +511,7 @@
     return;
   }
   document
-    .getElementById("zcode-visualization-lucide")
+    .getElementById("nibi-visualization-lucide")
     ?.addEventListener("load", initialize, { once: true });
 })();
 </script>

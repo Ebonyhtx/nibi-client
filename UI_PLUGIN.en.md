@@ -11,7 +11,7 @@ Start with Excalidraw to see how UI Plugins let the Agent and the user edit and 
 - [Add a UI to your plugin](#adding-a-ui-to-your-plugin)
 - [Explore the other examples](#other-example-plugins)
 
-This guide focuses on testing plugins with the host in the main repository. Plugin development and builds take place in the separate `zcode-plugins` repository.
+This guide focuses on testing plugins with the host in the main repository. Plugin development and builds take place in the separate `nibi-plugins` repository.
 
 ## What UI Plugins Can Do
 
@@ -192,7 +192,7 @@ Implementation and page examples: [Gen UI contract](packages/ui/src/gen-ui/CONTR
 | Repository                                                        | Branch           | What to change                                                                 | Where to run or find it                                                   |
 | ----------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
 | [zai-org/ZCode](https://github.com/zai-org/ZCode)                 | `feat/ui-plugin` | Host protocol, side panels and inline views, sandbox, approvals, and lifecycle | `pnpm dev:desktop`                                                        |
-| [zai-org/zcode-plugins](https://github.com/zai-org/zcode-plugins) | `feat/ui-plugin` | Plugin manifests, MCP servers, pages, application data, and resource packaging | Sources in `ui-plugins/<name>`; installable artifacts in `plugins/<name>` |
+| [zai-org/nibi-plugins](https://github.com/zai-org/nibi-plugins) | `feat/ui-plugin` | Plugin manifests, MCP servers, pages, application data, and resource packaging | Sources in `ui-plugins/<name>`; installable artifacts in `plugins/<name>` |
 
 The development and debugging steps in this guide target the `feat/ui-plugin` branch in each repository. **This branch is not yet available in the public ZCode repository.** Once it is ready, check it out from the repository above to test plugins with the host.
 
@@ -202,10 +202,10 @@ The shell examples below target macOS / Linux. Replace both paths with your own 
 
 ```sh
 NIBI_REPO=/path/to/z-code
-PLUGINS_REPO=/path/to/zcode-plugins
+PLUGINS_REPO=/path/to/nibi-plugins
 
 # Optional isolated development profile; use the same value for the CLI and desktop.
-export NIBI_DATA_BASE_DIR="$HOME/.zcode-ui-plugin-dev"
+export NIBI_DATA_BASE_DIR="$HOME/.nibi-ui-plugin-dev"
 
 # Initialize the main repository once; skip if already done.
 cd "$NIBI_REPO"
@@ -219,13 +219,13 @@ pnpm build
 # Use the freshly built CLI to install into the same development profile.
 cd "$NIBI_REPO"
 node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins marketplace add "$PLUGINS_REPO/dist/local-marketplace" --scope user
-node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins install excalidraw@zcode-plugins-local --scope user
-node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins enable excalidraw@zcode-plugins-local --scope user
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins install excalidraw@nibi-plugins-local --scope user
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins enable excalidraw@nibi-plugins-local --scope user
 node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins list --json
 pnpm dev:desktop
 ```
 
-Alternatively, open **Plugin Marketplace → Add** in the same desktop instance, add the absolute path to `dist/local-marketplace`, and choose the plugins to install and enable. The default local source name is `zcode-plugins-local`. The official name in the root manifest is reserved, so do not add the repository root directly. `pnpm dev:desktop` starts the host; it does not register plugins automatically.
+Alternatively, open **Plugin Marketplace → Add** in the same desktop instance, add the absolute path to `dist/local-marketplace`, and choose the plugins to install and enable. The default local source name is `nibi-plugins-local`. The official name in the root manifest is reserved, so do not add the repository root directly. `pnpm dev:desktop` starts the host; it does not register plugins automatically.
 
 If you are using an existing desktop client, build the plugin repository and install through the UI as described above. That client must support the features in this guide. When using an installed `zcode` CLI, ensure it uses the same data profile as the desktop app. A new isolated profile also needs its own login or model setup.
 
@@ -235,8 +235,8 @@ If you are using an existing desktop client, build the plugin repository and ins
 cd "$PLUGINS_REPO"
 pnpm build
 cd "$NIBI_REPO"
-node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins marketplace update zcode-plugins-local
-node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins install excalidraw@zcode-plugins-local --scope user
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins marketplace update nibi-plugins-local
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins install excalidraw@nibi-plugins-local --scope user
 ```
 
 Restart the corresponding desktop instance and verify in a new session. Source watching does not automatically copy plugin repository changes into installed plugins. Refreshing a source updates the catalogue; reinstalling updates the installed code. During development, reinstalling the same version copies the files again. Changes to distributed content still require version bumps in the plugin manifest, marketplace entry, and source package.
@@ -283,7 +283,7 @@ A stdio MCP server must write only protocol messages to stdout and send debug lo
 
 ### Declare the Plugin Type in Pull Requests
 
-**Before requesting review of a PR in `zcode-plugins`, you must declare the plugin type in the PR template and list the affected manifest `name` values.** Select exactly one option:
+**Before requesting review of a PR in `nibi-plugins`, you must declare the plugin type in the PR template and list the affected manifest `name` values.** Select exactly one option:
 
 | Option              | Classification rule                                                                                                           |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
@@ -458,4 +458,4 @@ See the [MCP Apps API](https://apps.extensions.modelcontextprotocol.io/api/) and
 | API limits, sampling parameters, and alias types | [MCP Apps contract](packages/shared/src/mcp-apps/contract.ts), [sampling.ts](packages/shared/src/mcp-apps/sampling.ts), [aliasApi.ts](packages/desktop/src/renderer/src/plugin-sandbox/aliasApi.ts) |
 | Desktop integration tests                        | [mcp-apps-host-e2e.mjs](packages/desktop/scripts/mcp-apps-host-e2e.mjs)                                                                                                                             |
 
-The five plugins' application source lives in the separate `zcode-plugins` repository, which also provides a root `UI_PLUGIN.en.md`. This repository owns the host and does not copy plugin products into its tree. When host APIs change, update the capability and API tables in both repositories and both languages.
+The five plugins' application source lives in the separate `nibi-plugins` repository, which also provides a root `UI_PLUGIN.en.md`. This repository owns the host and does not copy plugin products into its tree. When host APIs change, update the capability and API tables in both repositories and both languages.

@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/cells/mod.rs（feat/rs 79b6691c55）：输入从 V4 行换成
+// 改写自 apps/nibi-host/crates/tui/src/ui/cells/mod.rs（feat/rs 79b6691c55）：输入从 V4 行换成
 // `view::Row`（docs/specs/rust-cli/tui.md §3）。
 //! transcript 的块：视图里的行归类成块，每个块按当前宽度与紧凑 / 详细模式排版。块不保存状态；
 //! 缓存键由所含行的 id 与版本组成。

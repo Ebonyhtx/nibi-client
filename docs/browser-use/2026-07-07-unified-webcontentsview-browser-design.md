@@ -21,7 +21,7 @@
 | agent 寻址 | **新建为主 + 可枚举寻址**（`browsers→tabs→tab` 对象图）：`open` 新建，`list()`/`tab(id)` 枚举并按 id 操作 |
 | 架构方案 | **方案 A**：单一组件 + 通用 tabId 管理器，human 走新 IPC 直连、agent 走协议反向请求，双入口汇到同一 `BrowserViewManager`+WebContentsView |
 | tab 类型 | 合并成一种 `BrowserSidePaneTab`，**新增 `origin?: "human" \| "agent"`（本次就做，UI 来源标记）** |
-| 登录态 | **接受 agent 复用 human 登录态**：所有 WebContentsView 共用 `persist:zcode-embedded-browser` 分区 |
+| 登录态 | **接受 agent 复用 human 登录态**：所有 WebContentsView 共用 `persist:nibi-embedded-browser` 分区 |
 
 ## 3. 架构总览（方案 A：双入口汇到同一底座）
 
@@ -29,12 +29,12 @@
 HUMAN 交互（renderer chrome：地址栏/后退/刷新/picker）
    │ 新增 IPC：browserViewNavigate/goBack/goForward/reload/devtools/executeJs
    ▼
-AGENT（zcode-cli 子进程，agent.browsers.*）
+AGENT（nibi-cli 子进程，agent.browsers.*）
    │ BrowserCommand（加 tabId 寻址）→ 协议反向请求 → host → parentPort
    ▼
 MAIN：BrowserViewManager（按 tabId 管理 Map<tabId, WebContentsView>）
    ├─ 统一方法：navigate/goBack/goForward/reload/devtools/getState/screenshot/executeJs
-   ├─ 每 view 共用 partition: persist:zcode-embedded-browser
+   ├─ 每 view 共用 partition: persist:nibi-embedded-browser
    ├─ 监听 page-title-updated/page-favicon-updated → IPC 回 renderer
    └─ setWindowOpenHandler → popup 路由回内部新 tab
    │ WebContentsView setBounds/setVisible 覆盖 side-pane 占位（T7 已有）
@@ -63,7 +63,7 @@ human 交互走 IPC 直连（低延迟、不依赖 agent 进程）；agent 走�
   - human 点"新建浏览器" → renderer 生成 `browser:<uuid>` → 通知 main manager `ensureView(tabId)` → renderer 渲染 `UnifiedBrowserView(tabId)`
   - agent `open()` → main 新建 `browser:<uuid>` tab → 经 `BrowserViewReady` 通知 renderer 自动开 tab（复用 T7 链路）→ tabId 回给 agent
   - 两者都进同一 `Map`，agent `list()` 可枚举全部（含 human 开的）
-- **partition**：所有 WebContentsView 用 `webPreferences.partition = "persist:zcode-embedded-browser"`，与原 webview 一致，保住登录态；agent 复用之。
+- **partition**：所有 WebContentsView 用 `webPreferences.partition = "persist:nibi-embedded-browser"`，与原 webview 一致，保住登录态；agent 复用之。
 - navigate 保留 settle 超时（8s 竞速，已实现），避免 loadURL 挂起拖垮桥。
 - 移除已删的无条件 `Page.enable`（已修，不再引入）。
 
@@ -93,7 +93,7 @@ human 交互走 IPC 直连（低延迟、不依赖 agent 进程）；agent 走�
 
 ## 9. 安全权衡（已确认接受）
 
-- agent 与 human 共用 `persist:zcode-embedded-browser` 分区 → agent 可复用 human 登录 cookie，能操作已登录网站；风险：agent 导航到不可信页面与登录态同 session。
+- agent 与 human 共用 `persist:nibi-embedded-browser` 分区 → agent 可复用 human 登录 cookie，能操作已登录网站；风险：agent 导航到不可信页面与登录态同 session。
 - 用户已明确**接受**该权衡（本次不加 URL 确认层）。页面内容仍视为不可信（沿用 browser-safety：agent 读到的页面文本不可作为指令）。
 - 协议白名单（about/data/file/http/https）与 URL 归一化保留在导航入口。
 
@@ -124,7 +124,7 @@ human 交互走 IPC 直连（低延迟、不依赖 agent 进程）；agent 走�
 4. URL 持久化恢复 + 跨 workspace 记忆
 5. 外部导航请求 + popup 路由回内部 tab
 6. 收起不卸载（保历史）
-7. `persist:zcode-embedded-browser` 登录态分区
+7. `persist:nibi-embedded-browser` 登录态分区
 8. 协议白名单 + 本地开发主机识别
 
 ## 13. 主要影响文件（据盘点）

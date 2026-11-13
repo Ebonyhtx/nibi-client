@@ -54,7 +54,7 @@ From the repository root:
 pnpm --filter @nibi/desktop prepare:native-search
 
 # Prepare a specific target, optionally into a separate staging directory.
-node scripts/prepare-native-search-tools.mjs --platform linux --arch x64 --output-dir /tmp/zcode-native-search
+node scripts/prepare-native-search-tools.mjs --platform linux --arch x64 --output-dir /tmp/nibi-native-search
 
 # Package the CLI, including the prepared target tools.
 pnpm build:sea

@@ -17,7 +17,7 @@ const readArg = (flag) => {
 };
 const target = resolveVerificationTarget(readArg("--target"));
 const archive = join(packageRoot, "dist-release", `nibi-server-${target}.tar.gz`);
-const containerName = `zcode-proxy-stdio-${process.pid}`;
+const containerName = `nibi-proxy-stdio-${process.pid}`;
 const image = process.env.NIBI_PROXY_STDIO_IMAGE ?? "node:24-bookworm-slim";
 
 function run(command, args, options = {}) {
@@ -61,9 +61,9 @@ try {
     "sh",
     "-lc",
     [
-      "mkdir -p /tmp/zcode-bootstrap",
-      "tar -xzf /tmp/nibi-server.tar.gz -C /tmp/zcode-bootstrap --strip-components=1",
-      "/tmp/zcode-bootstrap/bin/zcode update --from-archive /tmp/nibi-server.tar.gz --server-root /root/.nibi/server --json",
+      "mkdir -p /tmp/nibi-bootstrap",
+      "tar -xzf /tmp/nibi-server.tar.gz -C /tmp/nibi-bootstrap --strip-components=1",
+      "/tmp/nibi-bootstrap/bin/zcode update --from-archive /tmp/nibi-server.tar.gz --server-root /root/.nibi/server --json",
       "NIBI_SERVER_SKIP_SERVICE_REGISTRATION=1 /root/.nibi/server/bin/zcode serve --daemon --server-root /root/.nibi/server --json",
     ].join(" && "),
   ]);

@@ -11,7 +11,7 @@ describe("迁移进程在提交边界崩溃", () => {
   it.each(["committing", "ready"] as const)(
     "%s 时终止：以磁盘账本决定重试，不依赖完成通知",
     async (stopAt) => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-migration-crash-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-migration-crash-"));
       const dbPath = join(root, "db.sqlite");
       const child = fork(
         new URL("./fixtures/session-migration-crash-process.ts", import.meta.url),

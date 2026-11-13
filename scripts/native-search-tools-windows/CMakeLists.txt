@@ -23,7 +23,7 @@ set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 
 # 随机构建目录不能进入最终 PE，否则同版本工具无法跨 CLI 复用同一份 runtime cache。
 if(DEFINED NIBI_BUILD_PATH)
-  add_compile_options("/pathmap:${NIBI_BUILD_PATH}=zcode-native-search")
+  add_compile_options("/pathmap:${NIBI_BUILD_PATH}=nibi-native-search")
 endif()
 
 set(BUILD_STATIC_LIBS ON CACHE BOOL "" FORCE)

@@ -54,7 +54,7 @@ describe("debug analyzer", () => {
   });
 
   it("builds overlapping execution spans for Gantt views", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-debug-spans-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-debug-spans-"));
     const logDir = join(root, "logs");
     await mkdir(logDir);
     const eventPath = join(root, "events.jsonl");
@@ -180,7 +180,7 @@ describe("debug analyzer", () => {
   });
 
   it("uses debug context-built logs as full context snapshots when section content is present", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-debug-context-log-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-debug-context-log-"));
     const logDir = join(root, "logs");
     await mkdir(logDir);
     await writeFile(
@@ -322,7 +322,7 @@ describe("debug analyzer", () => {
   });
 
   it("keeps timeline summaries and payloads untruncated", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-debug-full-timeline-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-debug-full-timeline-"));
     const logDir = join(root, "logs");
     await mkdir(logDir);
     const eventPath = join(root, "events.jsonl");
@@ -502,7 +502,7 @@ describe("debug analyzer", () => {
 });
 
 async function createFixture(options: { includeBadLine?: boolean } = {}) {
-  const root = await mkdtemp(join(tmpdir(), "zcode-debug-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-debug-"));
   const logDir = join(root, "logs");
   await mkdir(logDir);
   const eventPath = join(root, "events.jsonl");
@@ -596,7 +596,7 @@ async function createFixture(options: { includeBadLine?: boolean } = {}) {
 }
 
 async function createProjectFixture() {
-  const root = await mkdtemp(join(tmpdir(), "zcode-debug-project-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-debug-project-"));
   const logDir = join(root, "logs");
   await mkdir(logDir);
   const eventPath = join(root, "events.jsonl");

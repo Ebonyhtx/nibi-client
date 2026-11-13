@@ -198,7 +198,7 @@ describe("虚拟项目", () => {
   it("VP22：已有目录列表、设为主要与编辑器删除", async function () {
     this.timeout(90_000);
     const testHome = process.env.NIBI_E2E_HOME_DIR!;
-    if (!basename(testHome).startsWith("zcode-virtual-project-e2e-"))
+    if (!basename(testHome).startsWith("nibi-virtual-project-e2e-"))
       throw new Error("隔离 HOME required");
     const paths = ["test-aaa", "test-bbb"].map((name) =>
       join(DEFAULT_WORKSPACE, ".nibi-e2e", "project-editor", name),
@@ -303,7 +303,7 @@ describe("虚拟项目", () => {
     this.timeout(90_000);
     await waitForWorkspaceApp(DEFAULT_WORKSPACE, 45_000);
     const testHome = process.env.NIBI_E2E_HOME_DIR!;
-    if (!testHome || !basename(testHome).startsWith("zcode-virtual-project-e2e-"))
+    if (!testHome || !basename(testHome).startsWith("nibi-virtual-project-e2e-"))
       throw new Error("隔离 HOME required");
     const cwd = join(testHome, "E2E_VP12_SHARED_ROOT");
     await mkdir(cwd, { recursive: true });
@@ -400,7 +400,7 @@ describe("虚拟项目", () => {
     this.timeout(60_000);
     await waitForWorkspaceApp(DEFAULT_WORKSPACE, 45_000);
     const testHome = process.env.NIBI_E2E_HOME_DIR;
-    if (!testHome || !basename(testHome).startsWith("zcode-virtual-project-e2e-"))
+    if (!testHome || !basename(testHome).startsWith("nibi-virtual-project-e2e-"))
       throw new Error("isolated temporary E2E HOME required");
     for (const [path, migrationId] of [
       [join(testHome, ".nibi", "v2", "tasks-index.sqlite"), "0005_projects"],
@@ -420,7 +420,7 @@ describe("虚拟项目", () => {
     this.timeout(90_000);
     await waitForWorkspaceApp(DEFAULT_WORKSPACE, 45_000);
     const testHome = process.env.NIBI_E2E_HOME_DIR;
-    if (!testHome || !basename(testHome).startsWith("zcode-virtual-project-e2e-"))
+    if (!testHome || !basename(testHome).startsWith("nibi-virtual-project-e2e-"))
       throw new Error("isolated temporary E2E HOME required");
     const db = new DatabaseSync(join(testHome, ".nibi", "v2", "tasks-index.sqlite"));
     try {
@@ -526,7 +526,7 @@ describe("虚拟项目", () => {
   it("VP08/VP17/VP18 URL：元数据无 tab，远端任务执行、重开与 CLI 冷恢复", async function () {
     this.timeout(120_000);
     const testHome = process.env.NIBI_E2E_HOME_DIR;
-    if (!testHome || !basename(testHome).startsWith("zcode-virtual-project-e2e-"))
+    if (!testHome || !basename(testHome).startsWith("nibi-virtual-project-e2e-"))
       throw new Error("isolated E2E HOME required");
     const serverHome = join(testHome, "url-server");
     await mkdir(join(serverHome, ".nibi", "v2"), { recursive: true });
@@ -1053,7 +1053,7 @@ describe("虚拟项目", () => {
   it("VP11：设置目录来自去重 roots，未打开的目录可以选择", async function () {
     this.timeout(90_000);
     const testHome = process.env.NIBI_E2E_HOME_DIR!;
-    if (!basename(testHome).startsWith("zcode-virtual-project-e2e-"))
+    if (!basename(testHome).startsWith("nibi-virtual-project-e2e-"))
       throw new Error("隔离 HOME required");
     const roots = [join(testHome, "E2E_VP11_A"), join(testHome, "E2E_VP11_B")];
     await Promise.all(roots.map((path) => mkdir(path, { recursive: true })));

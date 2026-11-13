@@ -36,7 +36,7 @@
 | ARMS main             | `platform` / `app_version` / `arms_env` / `device_mid`（+各 group 专有维度，见下）                                                                |
 | ARMS ui_perf          | 同上 + `renderer_id`（由 main IPC handler 补齐）                                                                                                  |
 | `/report` agent_trace | `model_name` / `model_provider` / `ask_mode` / `agent` / `talk_id` / `message_id` / `workspace_kind` / `remote_kind`（version 由后端注入）        |
-| ARMS CLI Agent        | `service.name=zcode-cli-agent` + `uid`（hash）/ `device_mid` / `session_id` / `turn_id` / `trace_id` / `rid` / `operation` / `provider` / `model` |
+| ARMS CLI Agent        | `service.name=nibi-cli-agent` + `uid`（hash）/ `device_mid` / `session_id` / `turn_id` / `trace_id` / `rid` / `operation` / `provider` / `model` |
 
 ---
 
@@ -157,7 +157,7 @@ Chromium 使用同 tick 精确合计，CLI / MCP 使用最近样本（120 / 600 
 ### 独立资源事件
 
 `perf_resource_zcode_data_size` 保持本地 ZCode 数据根逻辑字节数口径，每台设备最多 24 小时一次，
-见[ZCode 数据目录占用 ARMS 上报](./zcode-data-size-arms-telemetry.md)。更早的 `perf_resource_cpu`
+见[ZCode 数据目录占用 ARMS 上报](./nibi-data-size-arms-telemetry.md)。更早的 `perf_resource_cpu`
 等仅用于历史查询。MCP 的三个稳定性生命周期事件见[MCP 进程 ARMS 可观测性](./mcp-process-arms-telemetry.md)。
 
 ---
@@ -333,7 +333,7 @@ Skill tool step 始终携带 `skill_name`（仅取通过遥测校验的已解析
 
 ## 六、ARMS CLI Agent 模型 API（OTLP Trace）
 
-`service.name=zcode-cli-agent`，不走 Electron RUM `/rum/web/v2`，也不新增客户端数据库表。
+`service.name=nibi-cli-agent`，不走 Electron RUM `/rum/web/v2`，也不新增客户端数据库表。
 
 | span.name             | 粒度                                        | 关键字段                                                                                                                                                                           |
 | --------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

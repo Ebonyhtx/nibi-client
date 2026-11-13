@@ -89,7 +89,7 @@ describe("E2E network capture redaction", () => {
   });
 
   it("removes expired or key-mismatched MITM leaf certificates before capture starts", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-e2e-network-cert-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-e2e-network-cert-"));
     const certsDir = join(root, "certs");
     const keysDir = join(root, "keys");
     await mkdir(certsDir);

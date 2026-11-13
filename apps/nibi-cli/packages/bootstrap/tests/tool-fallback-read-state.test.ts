@@ -20,7 +20,7 @@ describe("fallback Read snapshots through SQLite", () => {
   it.each(["resume", "rewind"] as const)(
     "keeps model history and allows Edit after %s",
     async (restore) => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-fallback-read-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-fallback-read-"));
       const file = join(root, "target.txt");
       const dbPath = join(root, "session.sqlite");
       const sessionId = createSessionId("fallback-read-state");

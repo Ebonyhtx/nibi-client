@@ -94,7 +94,7 @@ URL 原样交给主 renderer 的 DOM 导航或脚本执行路径。
 
 | 状态            | 节点 / 边                                                                                                 | 原因                                   | 动作                                                                                 |
 | --------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------ |
-| confirmed drift | 原图缺少 Office file preview capability / surface / local render owner / binary preview service           | live code 和已有 spec 已存在该产品能力 | 已补充 `.agents/skills/feature-boundary-planner/references/zcode-feature-graph.yaml` |
+| confirmed drift | 原图缺少 Office file preview capability / surface / local render owner / binary preview service           | live code 和已有 spec 已存在该产品能力 | 已补充 `.agents/skills/feature-boundary-planner/references/nibi-feature-graph.yaml` |
 | confirmed delta | Office surface reads through workspace file service，并与 desktop continuous / web remote replayable 隔离 | 本次替换保持既有边界                   | 已写入节点、edge、code seed；YAML 完整性和 seed 文件检查通过                         |
 
 ### Unresolved Questions

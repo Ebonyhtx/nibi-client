@@ -65,7 +65,7 @@ export async function startElectronWindowRecording(
 ): Promise<ElectronWindowRecordingSession> {
   const outputPath = resolveElectronRecordingOutputPath(options.outputPath);
   const frameDir = resolve(
-    options.frameDir ?? join(tmpdir(), `zcode-electron-recording-${randomUUID()}`),
+    options.frameDir ?? join(tmpdir(), `nibi-electron-recording-${randomUUID()}`),
   );
   const frameIntervalMs = normalizeFrameIntervalMs(options.frameIntervalMs);
   const preRollDurationMs = normalizePreRollDurationMs(options.preRollDurationMs);

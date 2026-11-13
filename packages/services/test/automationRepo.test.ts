@@ -58,7 +58,7 @@ describe("AutomationRepo 调度状态机", () => {
   let repo: AutomationRepo;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "zcode-automation-repo-"));
+    tempDir = mkdtempSync(join(tmpdir(), "nibi-automation-repo-"));
     dbPath = buildTempDbPath(tempDir);
     repo = new AutomationRepo(dbPath);
   });
@@ -1789,7 +1789,7 @@ describe("automation workspace 隔离", () => {
   const KEY_B = "/tmp/ws-b";
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "zcode-automation-iso-"));
+    tempDir = mkdtempSync(join(tmpdir(), "nibi-automation-iso-"));
     dbPath = buildTempDbPath(tempDir);
     repo = new AutomationRepo(dbPath);
   });

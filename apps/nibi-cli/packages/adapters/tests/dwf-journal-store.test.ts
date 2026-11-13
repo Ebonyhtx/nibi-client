@@ -94,7 +94,7 @@ const NODE: NodeRecord = {
 
 describe("SQLite dwf journal store", () => {
   it("survives closing and reopening the database file", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-journal-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-journal-"));
     const dbPath = join(tempRoot, "session.sqlite");
 
     try {
@@ -146,7 +146,7 @@ describe("SQLite dwf journal store", () => {
   // 「Two bounds on a run」）。契约套件已经钉住读写语义；这里钉的是内存实现表达不了的两件事：
   // UPDATE 真的只列了这一列（其余列逐字不动），以及新值跨进程重开还在——resume 沿用的正是它。
   it("retunes caps_max_concurrency in place, touching no other column", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-journal-caps-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-journal-caps-"));
     const dbPath = join(tempRoot, "session.sqlite");
     try {
       const first = await createSqliteSessionStore({ dbPath });
@@ -199,7 +199,7 @@ describe("SQLite dwf journal store", () => {
   });
 
   it("run 产物跨重开数据库文件存活", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-result-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-result-"));
     const dbPath = join(tempRoot, "session.sqlite");
 
     try {

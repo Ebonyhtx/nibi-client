@@ -4,11 +4,11 @@
  *
  * 为什么单列一条：这是**跨语言的数据契约**，两边各写各的常量，没有任何编译器或类型能
  * 把它们连起来。实测踩过：改 Rust 的 `records::AGENT` 却漏了 Node 的
- * `agentName ?? "zcode-agent"`（散在 10 个持久化方法里），结果是同一个会话在两种内核下
+ * `agentName ?? "nibi-agent"`（散在 10 个持久化方法里），结果是同一个会话在两种内核下
  * 写出不同的 `agent` 值——而当时逐条测试全是绿的，因为读侧对未知值宽容。
  *
  * 判据两件事：
- * 1. Node 侧不得再写上游名（`agent: "zcode-agent"` / `agentName ?? "zcode-agent"`）；
+ * 1. Node 侧不得再写上游名（`agent: "nibi-agent"` / `agentName ?? "nibi-agent"`）；
  * 2. Node 的缺省值与 Rust 的 `AGENT` 常量逐字相同。
  *
  * 用法：node scripts/check-session-agent-identity.mjs

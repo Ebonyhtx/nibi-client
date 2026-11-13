@@ -387,7 +387,7 @@ function stageBundle() {
 
 /** 插件根下是否有可识别的清单（NIBI 格式优先，兼容上游格式）。 */
 function hasPluginManifest(root) {
-  return ["nibi-plugin", "zcode-plugin"].some((dir) =>
+  return ["nibi-plugin", "nibi-plugin"].some((dir) =>
     existsSync(resolve(root, `.${dir}`, "plugin.json")),
   );
 }
@@ -395,7 +395,7 @@ function hasPluginManifest(root) {
 function stageOfficialPlugins() {
   for (const plugin of officialPluginPackages) {
     const sourceRoot = resolve(repoRoot, plugin.relativePath);
-    const manifestPath = ["nibi-plugin", "zcode-plugin"]
+    const manifestPath = ["nibi-plugin", "nibi-plugin"]
       .map((dir) => resolve(sourceRoot, `.${dir}`, "plugin.json"))
       .find((candidate) => existsSync(candidate));
     if (!existsSync(manifestPath)) {

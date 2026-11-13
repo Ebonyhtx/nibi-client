@@ -1,6 +1,6 @@
 //! MCP Apps（插件面板）的数据面：连接身份、资源读取与可见性（141 审计 §9 第 6 项 F7 的第二段）。
 //!
-//! Node 侧的实现是 `apps/nibi-cli/packages/bootstrap/src/zcode-protocol/mcp-ui/`：
+//! Node 侧的实现是 `apps/nibi-cli/packages/bootstrap/src/nibi-protocol/mcp-ui/`：
 //!
 //! - **连接身份**（`appConnectionSnapshot`）：每个已连接的服务器给出 `{identity, generation}`。
 //!   `identity` 是配置与工作区的摘要，`generation` 每次换连接加一；实例凭证绑定这一对，

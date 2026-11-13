@@ -334,7 +334,7 @@ helper 只拥有一次 HTTP 请求的取消资源；导航由 Entry 持有，soc
 `WebRemoteControlEntry` 是入口视图、设备列表请求和自动连接 admission 的唯一 owner；页面只渲染其投影并发送选择、刷新和切换账号命令。凭据继续由 `WebAuthService` 持有，设备在线事实来自当前账号的 `GET /api/v1/remote/device`，localStorage 最近 SID/MID 仅是偏好，不能证明归属或在线；同源 localStorage 记住的设备名和平台同样只是展示偏好，不参与身份、归属或在线判断。
 
 1. 回调模式和登录门禁保持优先；有 SID 沿用 05 直接连接，不查询设备列表。
-2. 已登录且无 SID 时，读取同源 localStorage 的 `zcode-web-remote-last-device-sid` 与 `zcode-web-remote-last-device-mid`，拉取当前账号的设备列表，按以下顺序决定落点：
+2. 已登录且无 SID 时，读取同源 localStorage 的 `nibi-web-remote-last-device-sid` 与 `nibi-web-remote-last-device-mid`，拉取当前账号的设备列表，按以下顺序决定落点：
    - 返回列表包含最近 SID 且 `online=true`：自动连接该 SID。
    - 最近 SID 不在线（离线或已被桌面重新注册删除），但最近 MID 在当前列表中恰好只有 1 个在线 SID：自动连接这个 SID。同一台电脑重新注册后 SID 会变化，MID 代表同一台机器，列表已限定为当前账号，因此可以直接接上。最近 MID 缺失（只记录过 SID 的旧偏好）时，取列表中最近 SID 记录的 MID。
    - 同 MID 有多个在线 SID、无记录、或上述都不满足：展示列表，不任选其他电脑或连接。
@@ -430,7 +430,7 @@ sequenceDiagram
 
 服务端只在设备在线时通过 `auth_init.meta` 携带主机名和平台，离线记录的 `meta` 为空。为了让离线设备仍可辨认，手机端把见过的在线设备名和平台记在本机，作用范围是这台手机的同源 localStorage，不同步到服务端或其他手机。
 
-- 存储键 `zcode-web-remote-device-names`，值为 JSON 数组 `[[device_mid, name, platform?], …]`，按最近更新顺序排列，最多 50 条；超出时淘汰最久未更新的条目。键是完整 `device_mid`，同一台电脑每次注册产生的新 SID 共用同一份记录。读取兼容只有 `[device_mid, name]` 两项的旧条目（平台视为未知）。
+- 存储键 `nibi-web-remote-device-names`，值为 JSON 数组 `[[device_mid, name, platform?], …]`，按最近更新顺序排列，最多 50 条；超出时淘汰最久未更新的条目。键是完整 `device_mid`，同一台电脑每次注册产生的新 SID 共用同一份记录。读取兼容只有 `[device_mid, name]` 两项的旧条目（平台视为未知）。
 - 写入时机：每次设备列表刷新成功并通过账号校验后，把当前响应中有在线连接、且显示名或平台非空的设备项按 MID 写入，并移到最近位置；电脑改名后下次上线即覆盖旧名。选择设备、配对成功和扫码直连不额外写入。
 - 读取时机：同一次刷新中先读取缓存，再用它补全离线记录的显示名与平台。显示名的优先级为当前响应的 `meta.name`、本地记住的名字、空名（显示“未命名设备”）；平台同理。连接过程页的平台图标也按当前连接的 MID 读取这份记录，读不到时显示通用电脑图标。
 - 读取失败、内容不是合法 JSON 或条目形状不对，按没有记住任何记录处理；写入失败静默忽略。两者都不阻断列表展示与连接。
@@ -542,7 +542,7 @@ GET 设备记录成功 → 账号校验通过 → 读取本地设备名/平台�
 | 全量单测                            | 1921文件/18002项通过，3文件/3项失败，2文件/12项跳过，另1个 Vitest teardown 异常；详见下述边界，不宣称全量通过                                                                                                                                                                                                              |
 | 测试环境真机                        | 未执行：仍需真实手机无码选设备连接、刷新恢复、跨账号归属失败与切换账号；本地受控 OAuth/relay 不替代该项                                                                                                                                                                                                                    |
 
-全量失败中，`packages/desktop/test/e2eRuntimePaths.test.ts` 指出已有 `feedback/manual-review/pending/feedback-upload-privacy.test.ts` 使用裸系统临时路径，定向重跑仍失败且本票未修改该文件。`packages/provider-node/test/zcode-builtin-process.test.ts` 全量运行等待子进程超时、`packages/desktop/test/webRemoteControlTransport.test.ts` 的 KICKED 恢复时序断言失败，分别定向重跑通过（1项/11项）；`packages/services/test/conversationShareComposition.test.ts` 报 Vitest worker teardown 异常，定向2项通过。不能用这些定向通过替代全量成功。本票依根规则保留改动、不自动提交，issue 在真机与剩余验证完成前保持 `in-progress`。
+全量失败中，`packages/desktop/test/e2eRuntimePaths.test.ts` 指出已有 `feedback/manual-review/pending/feedback-upload-privacy.test.ts` 使用裸系统临时路径，定向重跑仍失败且本票未修改该文件。`packages/provider-node/test/nibi-builtin-process.test.ts` 全量运行等待子进程超时、`packages/desktop/test/webRemoteControlTransport.test.ts` 的 KICKED 恢复时序断言失败，分别定向重跑通过（1项/11项）；`packages/services/test/conversationShareComposition.test.ts` 报 Vitest worker teardown 异常，定向2项通过。不能用这些定向通过替代全量成功。本票依根规则保留改动、不自动提交，issue 在真机与剩余验证完成前保持 `in-progress`。
 
 ## 模块边界与架构验收（2026-10-11）
 

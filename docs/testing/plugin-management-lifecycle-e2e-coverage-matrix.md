@@ -97,7 +97,7 @@ Anthropic Claude Marketplace，并按目录中的固定 SHA 安装 `aikido`。Ma
 
 - 用例：`packages/ui/test/browser/manual-review/pending/plugin-installed-strip.test.mjs`，真实 `PluginStoreListView` + 测试动作回调。
 - Chrome/macOS 浏览器 8/8 通过：390/1200px × 中英文 × 明暗主题，验证首末项角标和焦点空间、hover 后命中区域、滚动末尾更新点击、无误开详情及页面横向溢出。原样式复现 top=false / hit=false。
-- 截图：系统临时目录 `zcode-plugin-strip-clipping/`。根 typecheck、desktop typecheck:e2e、lint、architecture 检查通过，已有更新入口单测 5/5。
+- 截图：系统临时目录 `nibi-plugin-strip-clipping/`。根 typecheck、desktop typecheck:e2e、lint、architecture 检查通过，已有更新入口单测 5/5。
 - Pending，未晋升；浏览器渲染与点击验证不代表完整 Electron 插件更新、手机真机或 Windows/Linux 验证。
 
 ## Plugin Creator 与本地化
@@ -213,12 +213,12 @@ Windows/Linux、真实手机和其它第三方插件需独立验证。
 `PLM-UI-CONNECTION-READY`：`--managed-only` 控制真实 MCP initialize 完成顺序，验证生产
 React 面板等待连接后自动运行、无错误闪现和重复实例。2026-10-16 macOS Electron 专项通过；未晋升 CI。
 独立 worktree 使用标准命令整组回归，`managed` 27 项、`managed-empty` 1 项、`interaction` 1 项全部通过，
-证据批次 `zcode-mcp-host-e2e-f1vN0y`。此前整组运行出现过 guest 崩溃重建超时和锚点切换后
+证据批次 `nibi-mcp-host-e2e-f1vN0y`。此前整组运行出现过 guest 崩溃重建超时和锚点切换后
 点击断言失败，独立复跑均通过；保留原失败证据，不据此认定稳定性问题已解决。
 
 ## PLM-CONCURRENT-INSTALL：并发安装忙碌态
 
-- 浏览器候选：`packages/ui/test/browser/manual-review/pending/plugin-concurrent-install.test.mjs`。真实 store 和安装按钮，390/1200px × 中英文 × 深浅主题共 8 组通过；旧实现 8 组均在第二次安装清掉第一次忙碌态处失败。日志和截图写入系统临时目录的 `zcode-plugin-concurrent-install/`。
+- 浏览器候选：`packages/ui/test/browser/manual-review/pending/plugin-concurrent-install.test.mjs`。真实 store 和安装按钮，390/1200px × 中英文 × 深浅主题共 8 组通过；旧实现 8 组均在第二次安装清掉第一次忙碌态处失败。日志和截图写入系统临时目录的 `nibi-plugin-concurrent-install/`。
 - 桌面候选：`plugins/manual-review/pending/plugin-concurrent-install.test.ts`。macOS Electron + 真实 CLI，个人来源本地 HTTP 下载响应门验证两项同时安装中、第一项失败不清理第二项、两项失败后均可重试；运行 `desktop-e2e-20261015143344848-p62610-27dafbf8f737df99` 通过。截图位于 `.e2e-artifacts/plugin-management/plm-concurrent-install/both-pending.png`。
 - 离线执行：`NIBI_E2E_MANUAL_REVIEW=1 E2E_PROVIDER_HTTP_MODE=replay E2E_PROVIDER_REPLAY_FIXTURE_PATH=packages/desktop/test/e2e/fixtures/upstream/common.json pnpm --filter @nibi/desktop test:e2e -- --spec './test/e2e/plugins/manual-review/pending/plugin-concurrent-install.test.ts'`。
 - PLM-DETAIL-DURING-INSTALL：同一桌面用例中，A 下载被响应门挂起、B 排在 A 后面时打开本地插件详情，组件区 30 秒内渲染技能，返回后两项仍为安装中。修复后运行 `desktop-e2e-20261019044431890-p93406-b0458048236a975f` 通过，截图 `.e2e-artifacts/plugin-management/plm-detail-during-install/detail-loaded.png`；还原 CLI 修复后运行 `desktop-e2e-20261019044633752-p3203-b44c097feed8ea0d` 在组件区等待处失败。
@@ -227,5 +227,5 @@ React 面板等待连接后自动运行、无错误闪现和重复实例。2026-
 
 ## PLM-BUILTIN-UI-UNINSTALL：内置 UI 插件卸载后的分组
 
-- 桌面候选：`plugins/manual-review/pending/plugin-builtin-ui-uninstall.test.ts`。macOS Electron + 真实 CLI，卸载 `documents@zcode-plugins-official` 后卡片仍在 UI 插件专区。修复后运行 `desktop-e2e-20261019071852360-p65132-d5426628aee5a21e` 通过，截图 `.e2e-artifacts/plugin-management/plm-builtin-ui-uninstall/restorable-in-ui-section.png`；还原 CLI 修复后运行 `desktop-e2e-20261019072006864-p72979-1022c7e87a447a4e` 在 restorable 阶段失败（卡片不在 UI 插件专区）。
+- 桌面候选：`plugins/manual-review/pending/plugin-builtin-ui-uninstall.test.ts`。macOS Electron + 真实 CLI，卸载 `documents@nibi-plugins-official` 后卡片仍在 UI 插件专区。修复后运行 `desktop-e2e-20261019071852360-p65132-d5426628aee5a21e` 通过，截图 `.e2e-artifacts/plugin-management/plm-builtin-ui-uninstall/restorable-in-ui-section.png`；还原 CLI 修复后运行 `desktop-e2e-20261019072006864-p72979-1022c7e87a447a4e` 在 restorable 阶段失败（卡片不在 UI 插件专区）。
 - bootstrap 单测：内置定义 `ui` 组件类型与插件包 `ui.surfaces` 一致；卸载后官方目录与可恢复列表都带 `ui`。两条旧实现失败、新实现通过。Windows/Linux、手机远控未执行；用例 pending。

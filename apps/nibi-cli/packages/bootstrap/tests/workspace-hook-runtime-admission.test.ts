@@ -20,7 +20,7 @@ afterEach(async () => {
 
 describe("createNibiApp workspace Hook admission", () => {
   it("首次 activation 等待 Trust store load；pending blocked，exact pretrust 后执行同一 snapshot", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-workspace-hook-runtime-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-workspace-hook-runtime-"));
     roots.push(root);
     const workspace = join(root, "workspace");
     const userConfigPath = join(root, "home", "config.json");
@@ -136,7 +136,7 @@ describe("createNibiApp workspace Hook admission", () => {
   });
 
   it("feature flag 关闭时即使已有 persistent Trust 也不执行且不发 review", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-workspace-hook-rollout-off-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-workspace-hook-rollout-off-"));
     roots.push(root);
     const workspace = join(root, "workspace");
     const userConfigPath = join(root, "home", "config.json");
@@ -218,7 +218,7 @@ describe("createNibiApp workspace Hook admission", () => {
   });
 
   it("软门禁：activation 跳过 pending hooks，信任选中项后只更新后续准入", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-workspace-hook-review-runtime-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-workspace-hook-review-runtime-"));
     roots.push(root);
     const workspace = join(root, "workspace");
     const userConfigPath = join(root, "home", "config.json");
@@ -343,7 +343,7 @@ describe("createNibiApp workspace Hook admission", () => {
   // 修复后：skipLifecycle 的 hook 从参与列表剔除 → hookCount=1，1 条 blocked
   // execution，state 终态。
   it("H1 场景 A:configured-disabled + pending SessionStart → hookCount=1、1 blocked、state 终态", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-hook-h1-scenario-a-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-hook-h1-scenario-a-"));
     roots.push(root);
     const workspace = join(root, "workspace");
     const userConfigPath = join(root, "home", "config.json");
@@ -428,7 +428,7 @@ describe("createNibiApp workspace Hook admission", () => {
 
   // 持久信任只影响之后自然发生的生命周期事件；SessionStart 不做 catch-up。
   it("两个 pending SessionStart 信任后，当前任务后续 turn 不补跑", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-hook-h2-scenario-b-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-hook-h2-scenario-b-"));
     roots.push(root);
     const workspace = join(root, "workspace");
     const userConfigPath = join(root, "home", "config.json");

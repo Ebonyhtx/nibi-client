@@ -23,7 +23,7 @@ afterEach(async () => {
 describe("E2E UI coverage collector", () => {
   it("快照失败后 stop 仍会复位，after hook 重入不再访问已关闭 CDP", async () => {
     process.env.NIBI_E2E_COVERAGE = "1";
-    const artifactDir = await mkdtemp(join(tmpdir(), "zcode-e2e-ui-coverage-"));
+    const artifactDir = await mkdtemp(join(tmpdir(), "nibi-e2e-ui-coverage-"));
     temporaryDirectories.push(artifactDir);
     const collector = createE2EUICoverageCollector({
       artifactDir,

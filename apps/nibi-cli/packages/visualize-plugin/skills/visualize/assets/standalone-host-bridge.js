@@ -8,7 +8,7 @@
   const stringify = JSON.stringify;
   const parse = JSON.parse;
   const encode = TextEncoder.prototype.encode.bind(new TextEncoder());
-  const initialStateElement = document.getElementById("zcode-visualization-widget-state");
+  const initialStateElement = document.getElementById("nibi-visualization-widget-state");
   const initialGlobals = parse(initialStateElement?.textContent ?? "{}");
   initialStateElement?.remove();
   /** @type {Record<string, unknown> | null} */
@@ -168,7 +168,7 @@
         hostPort != null ||
         source !== parentWindow ||
         typeof data !== "object" ||
-        data?.type !== "zcode-visualization-initialize" ||
+        data?.type !== "nibi-visualization-initialize" ||
         !isArray(ports) ||
         ports.length !== 1
       ) {

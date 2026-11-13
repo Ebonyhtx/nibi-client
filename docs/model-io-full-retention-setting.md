@@ -33,7 +33,7 @@ Settings Switch
                               workspace/updateModelIoPreferences
                                             |
                                             v
-                              workspace-scoped zcode-cli process
+                              workspace-scoped nibi-cli process
                                             |
                           +-----------------+-----------------+
                           |                                   |

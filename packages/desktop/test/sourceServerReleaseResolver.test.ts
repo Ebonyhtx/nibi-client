@@ -54,7 +54,7 @@ describe("Source Server release resolver", () => {
     ).toBe(true);
   });
   it("uses and verifies a staged local archive for local-download-upload", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-source-release-local-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-source-release-local-"));
     const releaseDir = join(root, "releases", NIBI_VERSION);
     const contents = "local-source-server";
     await mkdir(releaseDir, { recursive: true });
@@ -76,7 +76,7 @@ describe("Source Server release resolver", () => {
   });
 
   it("uses the staged local archive for development even when SSH prefers remote download", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-source-release-dev-local-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-source-release-dev-local-"));
     const releaseDir = join(root, "releases", NIBI_VERSION);
     const contents = "development-source-server";
     await mkdir(releaseDir, { recursive: true });
@@ -121,7 +121,7 @@ describe("Source Server release resolver", () => {
   });
 
   it("resolves descriptor URLs without downloading the archive for remote-download", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-source-release-remote-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-source-release-remote-"));
     const contents = "remote-source-server";
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
@@ -153,7 +153,7 @@ describe("Source Server release resolver", () => {
   });
 
   it("downloads and verifies the descriptor archive into the Desktop cache", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-source-release-cache-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-source-release-cache-"));
     const contents = "cached-source-server";
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
@@ -180,7 +180,7 @@ describe("Source Server release resolver", () => {
   });
 
   it("uses the injected remote asset network for descriptor and archive downloads", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-source-release-proxy-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-source-release-proxy-"));
     const contents = "proxy-source-server";
     const remoteAssetFetch = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
@@ -211,7 +211,7 @@ describe("Source Server release resolver", () => {
   });
 
   it("does not fall back to direct fetch when the injected network fails", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-source-release-proxy-failure-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-source-release-proxy-failure-"));
     const directFetch = vi.fn<typeof fetch>(
       async () => new Response(JSON.stringify(descriptor("direct-source-server"))),
     );

@@ -148,7 +148,7 @@ export async function prepareMarketingHero(
     return {
       hero: {
         type: "interactive_bundle",
-        runtime: "zcode-hero-sandbox-v1",
+        runtime: "nibi-hero-sandbox-v1",
         bundle,
         resolvedUrl: lease.url,
         viewport: { aspectRatio: "4:3" },

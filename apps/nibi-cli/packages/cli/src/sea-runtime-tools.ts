@@ -44,7 +44,7 @@ export interface EnsureSeaRuntimeToolsOptions {
   storageRoot?: string;
 }
 
-const assetPrefix = "zcode-runtime-tools/";
+const assetPrefix = "nibi-runtime-tools/";
 const manifestAssetKey = `${assetPrefix}manifest.json`;
 const markerFileName = ".nibi-runtime-tool.json";
 const runtimeToolIds = new Set<RuntimeToolId>(["bfs", "ripgrep", "ugrep"]);

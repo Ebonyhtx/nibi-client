@@ -107,8 +107,8 @@ export function TaskInteractionBadge({
   const style =
     progress !== undefined
       ? ({
-          "--zcode-interaction-progress": String(progress),
-          "--zcode-interaction-remaining-ms": `${remainingMs}ms`,
+          "--nibi-interaction-progress": String(progress),
+          "--nibi-interaction-remaining-ms": `${remainingMs}ms`,
         } as CSSProperties)
       : undefined;
   const canSnooze = presentation.canSnooze && Boolean(interaction) && Boolean(onSnoozeCountdown);
@@ -141,7 +141,7 @@ export function TaskInteractionBadge({
       {progress !== undefined ? (
         <span
           aria-hidden="true"
-          className="zcode-task-interaction-countdown-fill absolute inset-0 origin-left bg-interaction-ask-fill transition-opacity group-hover/interaction-badge:opacity-0 group-focus-visible/interaction-badge:opacity-0 motion-reduce:transition-none"
+          className="nibi-task-interaction-countdown-fill absolute inset-0 origin-left bg-interaction-ask-fill transition-opacity group-hover/interaction-badge:opacity-0 group-focus-visible/interaction-badge:opacity-0 motion-reduce:transition-none"
         />
       ) : null}
       {canSnooze ? (

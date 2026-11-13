@@ -13,7 +13,7 @@ import {
 let tempRoot = "";
 
 beforeEach(async () => {
-  tempRoot = await mkdtemp(join(tmpdir(), "zcode-chrome-discovery-test-"));
+  tempRoot = await mkdtemp(join(tmpdir(), "nibi-chrome-discovery-test-"));
 });
 
 afterEach(async () => {

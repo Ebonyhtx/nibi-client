@@ -1906,7 +1906,7 @@ apps/nibi-cli/packages/core/src/hooks/workspace-hook-admission.ts
 
 主要位置：
 
-- `packages/services/src/zcode-agent/zcodeAgentService.ts`
+- `packages/services/src/nibi-agent/zcodeAgentService.ts`
 - `packages/services/src/hooks/hooksService.ts`
 - Desktop main ↔ renderer request/event bridge
 - task realtime owner/lease/stale-run route

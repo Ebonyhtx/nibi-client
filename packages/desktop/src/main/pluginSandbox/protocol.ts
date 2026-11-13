@@ -21,7 +21,7 @@ export interface PluginSandboxSchemeRegistrar {
   ): void;
 }
 
-/** 与 zcode-media 必须在同一次 registerSchemesAsPrivileged 调用里注册（第二次调用会覆盖第一次）。 */
+/** 与 nibi-media 必须在同一次 registerSchemesAsPrivileged 调用里注册（第二次调用会覆盖第一次）。 */
 export const PLUGIN_SANDBOX_PRIVILEGED_SCHEME = {
   scheme: PLUGIN_SANDBOX_SCHEME,
   privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: false },
@@ -51,7 +51,7 @@ export interface PluginSandboxRequestTarget {
   pathname: string;
 }
 
-/** 解析 zcode-sandbox:// URL；host 不匹配前缀、带凭据或端口一律 null。 */
+/** 解析 nibi-sandbox:// URL；host 不匹配前缀、带凭据或端口一律 null。 */
 export function parsePluginSandboxUrl(rawUrl: string): PluginSandboxRequestTarget | null {
   let url: URL;
   try {
@@ -152,7 +152,7 @@ export function createPluginSandboxProtocolHandler(options: {
         "Permissions-Policy": buildPluginSandboxPermissionsPolicy(record.permissions, "shell"),
       };
       if (options.assets.devServerUrl) {
-        // dev：同源代理整个 shell 路径空间，vite 的模块脚本才能在 zcode-sandbox://shell-<id> 下解析。
+        // dev：同源代理整个 shell 路径空间，vite 的模块脚本才能在 nibi-sandbox://shell-<id> 下解析。
         const upstreamPath =
           target.pathname === "/" || target.pathname === "/index.html"
             ? `/${PLUGIN_SANDBOX_SHELL_HTML_FILE}`
@@ -236,7 +236,7 @@ export function createPluginSandboxProtocolHandler(options: {
             html.slice(0, index) +
             decode(kit).replace("<!--__INLINE_VISUALIZATION_FRAGMENT__-->", "") +
             // 标签切换的短暂溢出可能在撑高后残留空滚动条；只隐藏根滚动条，不裁切内容或禁用作者滚动区。
-            '<style id="zcode-gen-ui-document-scrollbar">html,body{scrollbar-width:none!important}html::-webkit-scrollbar,body::-webkit-scrollbar{display:none!important}</style>' +
+            '<style id="nibi-gen-ui-document-scrollbar">html,body{scrollbar-width:none!important}html::-webkit-scrollbar,body::-webkit-scrollbar{display:none!important}</style>' +
             html.slice(index + marker.length);
         } catch {
           // 资源缺失不能返回半成品文档，否则页面看似加载成功但交互静默失效。

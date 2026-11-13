@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/keys.rs（feat/rs 79b6691c55）：去掉启动失败页、登录、任务面板、
+// 改写自 apps/nibi-host/crates/tui/src/ui/keys.rs（feat/rs 79b6691c55）：去掉启动失败页、登录、任务面板、
 // 后台任务、子代理与回退浏览；交互的回答换成 `Action::Resolve`。
 //! 按键处理：视图（列表、页面、详细视图、快捷键面板）→ 选区 → 待处理交互 → 搜索模式 → 历史搜索 → 弹出列表 →
 //! 输入框与全局键。

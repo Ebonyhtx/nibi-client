@@ -10,7 +10,7 @@ import { join } from "node:path";
  */
 export async function readPluginName(pluginRoot) {
   // 双格式：内置件已迁到 .nibi-plugin，第三方/旧副本可能仍是 .nibi-plugin。
-  const candidates = ["nibi-plugin", "zcode-plugin"].map((dir) => join(pluginRoot, `.${dir}`, "plugin.json"));
+  const candidates = ["nibi-plugin", "nibi-plugin"].map((dir) => join(pluginRoot, `.${dir}`, "plugin.json"));
   const manifestPath = candidates.find((path) => existsSync(path));
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   if (typeof manifest.name !== "string" || manifest.name.length === 0)

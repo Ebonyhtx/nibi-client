@@ -23,7 +23,7 @@ const ZIP_MAX_ENTRIES = 20_000;
 const ZIP_MAX_SINGLE_FILE_BYTES = 50 * 1024 * 1024;
 const ZIP_MAX_REDIRECTS = 5;
 const ZIP_DOWNLOAD_TIMEOUT_MS = 180_000;
-const ZIP_TEMP_PREFIX = "zcode-plugin-zip-";
+const ZIP_TEMP_PREFIX = "nibi-plugin-zip-";
 const ZIP_DENIED_HEADERS = new Set([
   "authorization",
   "cookie",

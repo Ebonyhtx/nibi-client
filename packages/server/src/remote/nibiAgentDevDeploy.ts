@@ -316,7 +316,7 @@ async function uploadDevelopmentOfficialPluginPackages(params: {
   remoteProviderDir: string;
   loggers: DeployLoggers;
 }): Promise<void> {
-  const tempDir = await mkdtemp(join(tmpdir(), "zcode-remote-agent-packages-"));
+  const tempDir = await mkdtemp(join(tmpdir(), "nibi-remote-agent-packages-"));
   const packagesDir = join(tempDir, REMOTE_AGENT_OFFICIAL_PLUGIN_DIR_NAME);
   const archivePath = join(tempDir, `${REMOTE_AGENT_OFFICIAL_PLUGIN_DIR_NAME}.tar.gz`);
   try {

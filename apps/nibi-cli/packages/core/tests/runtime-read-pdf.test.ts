@@ -12,7 +12,7 @@ import { createTestAgentRuntime } from "./test-agent-runtime.js";
 import { createTestSessionEventStore } from "./test-event-store.js";
 import { createTestModelFactory } from "./test-runtime-model.js";
 
-const WORKSPACE_PATH = join(tmpdir(), "zcode-runtime-read-pdf");
+const WORKSPACE_PATH = join(tmpdir(), "nibi-runtime-read-pdf");
 const PDF_PATH = join(WORKSPACE_PATH, "report.pdf");
 const PDF_CONTENT = new Uint8Array(Buffer.from("%PDF-1.7\nfixture"));
 const TOOL_CALL_ID = "read-pdf";

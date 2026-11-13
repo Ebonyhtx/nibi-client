@@ -18,7 +18,7 @@ describe("official plugin runtime manifest", () => {
   });
 
   it("does not rewrite an unchanged runtime manifest", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-runtime-manifest-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-runtime-manifest-"));
     cleanups.push(root);
     const manifestPath = join(root, ".nibi-plugin", "plugin.json");
     await writeJson(manifestPath, {
@@ -52,7 +52,7 @@ describe("official plugin runtime manifest", () => {
   });
 
   it("repairs cached entries from the seed and leaves HTTP servers untouched", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-entry-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-entry-"));
     cleanups.push(root);
     const manifestPath = join(root, ".nibi-plugin", "plugin.json");
     await writeJson(manifestPath, { mcpServers: { pdf: { command: "node", args: ["wrong.js"] } } });
@@ -84,7 +84,7 @@ describe("official plugin runtime manifest", () => {
   });
 
   it("keeps invalid mcpServers structural errors fatal", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-runtime-invalid-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-runtime-invalid-"));
     cleanups.push(root);
     await writeJson(join(root, ".nibi-plugin", "plugin.json"), {
       mcpServers: "invalid",
@@ -104,7 +104,7 @@ describe("official plugin runtime manifest", () => {
   // 只重写 plugin.json 会让它们以 `command: "node"`、没有 ELECTRON_RUN_AS_NODE 的形态
   // 进入缓存，桌面机上没装 Node 时 MCP server 直接起不来。
   it("rewrites Claude-compatible .mcp.json entries in place, idempotently", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-mcp-json-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-mcp-json-"));
     cleanups.push(root);
     await writeJson(join(root, ".nibi-plugin", "plugin.json"), {
       name: "ios-simulator",

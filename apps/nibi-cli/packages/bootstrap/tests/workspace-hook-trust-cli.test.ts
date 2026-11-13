@@ -15,7 +15,7 @@ afterEach(async () => {
 });
 
 async function fixture() {
-  const root = await mkdtemp(join(tmpdir(), "zcode-hook-trust-cli-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-hook-trust-cli-"));
   roots.push(root);
   const workspacePath = join(root, "workspace");
   const storagePath = join(root, "user-data");

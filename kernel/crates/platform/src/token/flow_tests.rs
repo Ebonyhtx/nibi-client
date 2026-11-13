@@ -89,7 +89,7 @@ async fn zai_uses_the_stored_business_jwt_and_caches_a_project_token() {
     assert_eq!(requests[1].header("authorization"), Some("Bearer at-zai"));
     assert_eq!(
         requests[2].json(),
-        json!({"name": "zcode-api-key", "usageScene": 1})
+        json!({"name": "nibi-api-key", "usageScene": 1})
     );
     assert_eq!(requests[3].header("authorization"), Some("Bearer at-zai"));
     assert_eq!(
@@ -163,7 +163,7 @@ async fn rejected_tokens_are_replaced_and_late_rejections_are_ignored() {
     let harness = Harness::new(&server.url()).await;
     zai_login(&harness, "at-zai").await;
     let first = pat(&harness, ZAI_PLAN, None).await.unwrap();
-    // 列表里已有 zcode-api-key：不创建。
+    // 列表里已有 nibi-api-key：不创建。
     assert_eq!(
         server.count("/api/biz/v1/organization/org-1/projects/p-1/api_keys"),
         2

@@ -22,7 +22,7 @@ describe("Goal Verifier bound model options", () => {
     [undefined, 64_000, false],
     ["high", 64_000, true],
   ] as const)("inherits %s and the %i output limit (retry=%s)", async (level, limit, retry) => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-verifier-options-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-verifier-options-"));
     const sessionId = createSessionId("verifier-options");
     const store = await createSqliteSessionStore({ dbPath: join(root, "session.sqlite") });
     const requests: Required<ModelOptions>[] = [];

@@ -45,7 +45,7 @@ async function waitForArchiveAnimations() {
 describe("归档管理", () => {
   before(async function () {
     this.timeout(60000);
-    if (!home || !basename(home).startsWith("zcode-archive-e2e-"))
+    if (!home || !basename(home).startsWith("nibi-archive-e2e-"))
       throw new Error("isolated archive HOME required");
     await waitForWorkspaceApp(DEFAULT_WORKSPACE, 45000);
     const db = new DatabaseSync(join(home, ".nibi/v2/tasks-index.sqlite"));

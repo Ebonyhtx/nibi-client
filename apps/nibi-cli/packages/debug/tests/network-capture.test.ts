@@ -43,7 +43,7 @@ describe("network capture", () => {
   });
 
   it("captures HTTP proxy requests and keeps trace-linked records", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-debug-network-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-debug-network-"));
     const upstream = createServer((incoming, response) => {
       response.writeHead(200, {
         "content-type": "text/plain",

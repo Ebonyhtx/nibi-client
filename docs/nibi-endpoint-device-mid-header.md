@@ -29,7 +29,7 @@ App 层访问 ZCode endpoint（默认 `https://zcode.z.ai`，或当前 `NIBI_BAS
 main ──ensureDesktopDeviceMidSync──┐     entry-stdio ──ensureTelemetryDeviceMid──┐
                                    ├─> ~/.nibi/v2/telemetry-state.json.deviceMid <─┤
 host ──buildZCodeSourceHeaders 读──┘     services ──buildZCodeSourceHeaders 读──────┤
-                                          zcode-cli ──ensureCliDeviceMid──────────┘
+                                          nibi-cli ──ensureCliDeviceMid──────────┘
 ```
 
 - 远端 server 在 `packages/server/src/entry-stdio.ts` 握手完成后、services 创建前调用 `ensureRemoteServerDeviceMid()`，内部复用 `@nibi/services/node` 的 `ensureTelemetryDeviceMid()`，与 telemetry 上报、CLI 使用同一个文件、字段与锁，同一主机上 server 与 Agent 得到同一个 `deviceMid`。

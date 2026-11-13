@@ -143,7 +143,7 @@ describe("Dream touched paths", () => {
 });
 
 async function temporaryDirectory(): Promise<string> {
-  const path = await mkdtemp(join(tmpdir(), "zcode-memory-dream-"));
+  const path = await mkdtemp(join(tmpdir(), "nibi-memory-dream-"));
   temporaryDirectories.push(path);
   return path;
 }

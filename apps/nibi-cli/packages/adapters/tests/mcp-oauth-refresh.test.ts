@@ -109,7 +109,7 @@ async function seedCredentials(input: {
   legacyWithoutTimestamps?: boolean;
   secret: string;
 }): Promise<SeededCredentials> {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-refresh-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-refresh-"));
   temporaryDirectories.push(directory);
   const credentialStore = createSharedNibiCredentialStore({
     env: { NIBI_CREDENTIAL_SECRET: input.secret },
@@ -361,7 +361,7 @@ describe("MCP OAuth refresh single-flight", () => {
         },
       }),
     });
-    const directory = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-appeared-"));
+    const directory = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-appeared-"));
     temporaryDirectories.push(directory);
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "appeared-secret" },
@@ -444,7 +444,7 @@ describe("MCP OAuth refresh single-flight", () => {
     const authServer = await startFakeAuthorizationServer({
       respond: () => ({ status: 200, payload: {} }),
     });
-    const directory = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-no-refresh-"));
+    const directory = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-no-refresh-"));
     temporaryDirectories.push(directory);
     const credentialStore = createSharedNibiCredentialStore({
       env: { NIBI_CREDENTIAL_SECRET: "refresh-none-secret" },

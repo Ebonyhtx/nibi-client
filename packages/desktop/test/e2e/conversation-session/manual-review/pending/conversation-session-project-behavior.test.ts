@@ -22,7 +22,7 @@ describe("虚拟项目旧产品体验", () => {
     this.timeout(60_000);
     await waitForWorkspaceApp(DEFAULT_WORKSPACE, 45_000);
     const home = process.env.NIBI_E2E_HOME_DIR;
-    if (!home || !basename(home).startsWith("zcode-project-behavior-e2e-"))
+    if (!home || !basename(home).startsWith("nibi-project-behavior-e2e-"))
       throw new Error("isolated project behavior E2E HOME required");
     const root = join(DEFAULT_WORKSPACE, ".nibi-e2e", "project-behavior");
     await mkdir(root, { recursive: true });

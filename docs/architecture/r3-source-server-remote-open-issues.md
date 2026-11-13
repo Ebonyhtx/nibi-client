@@ -135,7 +135,7 @@
 - 根因：`disconnect()` 把 online 物理 owner 误当成 Source 生命周期是否存在的判据；意外断线已经摘除该 owner，因此显式断开只清理恢复 timer 后提前返回。已经启动的恢复 flight 也没有 Source 级取消 owner，迟到成功仍可重新发布 online。
 - 修复：显式断开先捕获 Source 的全部 Profile，再清理恢复状态并统一发布 offline；已识别 Source 的 connect flight 持有可取消 owner，disconnect 会使旧 flight 失效，异步边界在发布状态前检查取消信号，迟到连接只释放、不发布 online 或 reconnect event。
 - 验证：Manager focused tests 24 项通过，覆盖多 Profile retrying-disconnect、取消全部 timer/probe 和 in-flight 迟到成功；Registry、Main、Renderer 三条终态 focused tests 通过；真实定时器最小复现保持 offline、无恢复次数且没有新增连接；全量 unit 1496 个文件、13247 项通过；`pnpm typecheck`、`pnpm lint` 与 `pnpm verify:pre-push` 通过。
-- 当前 HEAD `86f5701e10` 通过真实 SSH/进程故障注入复验：停止专用 `zcode-ssh-linux-amd64` 容器后，Source 从“已连接”进入“连接中”；在 mounted `SourceServerManagementPanel` 使用的真实 `ISourceServerManagementService` 上调用 `disconnectSource(sourceServerId)`，Host 日志记录 `source-server-management.disconnectSource OK (3.1ms)`，状态立即变为“未连接”。恢复容器并等待 6 秒后仍保持“未连接”，没有迟到 reconnect 复活；测试后容器、daemon 与 Desktop 均已恢复在线。
+- 当前 HEAD `86f5701e10` 通过真实 SSH/进程故障注入复验：停止专用 `nibi-ssh-linux-amd64` 容器后，Source 从“已连接”进入“连接中”；在 mounted `SourceServerManagementPanel` 使用的真实 `ISourceServerManagementService` 上调用 `disconnectSource(sourceServerId)`，Host 日志记录 `source-server-management.disconnectSource OK (3.1ms)`，状态立即变为“未连接”。恢复容器并等待 6 秒后仍保持“未连接”，没有迟到 reconnect 复活；测试后容器、daemon 与 Desktop 均已恢复在线。
 - 交互边界：设置页和 Sidebar 当前只在 aggregated status 为 online 时展示“断开”，retrying/connecting 时没有可点击的用户入口。因此本轮证明的是生产 Renderer → MessagePort RPC → Host → Manager 的运行时合同，不是纯 UI 点击路径；若产品要求用户在恢复中主动取消，需要另补交互入口或调整按钮可见性。
 
 ### R3-ISSUE-005：同一 Source 的不同 Profile 可能产生两个 logical owner
@@ -373,7 +373,7 @@
 
 #### 修复记录 2026-09-13
 
-- 已做：新增 `docs/remote/README.md` 作为远程主链阅读入口并在 AGENTS.md 登记；主规格 §1 状态改为「已实现（基线 `fad93b9e57`）」、§7.1 启动重连门禁字段改为 `lastOnlineAt`、新增 §8.4 设备管理合同、§9.1 并入控制端逐表盘点、§15 并入 Provider 合并遗留项；领域简化规格标注 Phase 0–4 已实现；`desktop-remote-session-renderer-reattach.md` 门禁描述改为「Host 设备级 7 天 + Renderer 不按 connected 历史过滤」；18 份过程 / 评审 / 实机记录文档移入 `docs/archive/remote-r3/`，全部入站链接（含 `.agents/skills/feature-boundary-planner/references/zcode-feature-graph.yaml`）已改指归档路径；`r3-remote-ui-redesign.md` 删除 §11–§19 历史日志并标注原型未入库；`zcode-agent-remote-deployment.md`、`server-remote-workspace-connection.md` 加旧主链状态注记；coverage matrix 修正 SSH-P0-LIFE-03 的不存在 spec 引用。
+- 已做：新增 `docs/remote/README.md` 作为远程主链阅读入口并在 AGENTS.md 登记；主规格 §1 状态改为「已实现（基线 `fad93b9e57`）」、§7.1 启动重连门禁字段改为 `lastOnlineAt`、新增 §8.4 设备管理合同、§9.1 并入控制端逐表盘点、§15 并入 Provider 合并遗留项；领域简化规格标注 Phase 0–4 已实现；`desktop-remote-session-renderer-reattach.md` 门禁描述改为「Host 设备级 7 天 + Renderer 不按 connected 历史过滤」；18 份过程 / 评审 / 实机记录文档移入 `docs/archive/remote-r3/`，全部入站链接（含 `.agents/skills/feature-boundary-planner/references/nibi-feature-graph.yaml`）已改指归档路径；`r3-remote-ui-redesign.md` 删除 §11–§19 历史日志并标注原型未入库；`nibi-agent-remote-deployment.md`、`server-remote-workspace-connection.md` 加旧主链状态注记；coverage matrix 修正 SSH-P0-LIFE-03 的不存在 spec 引用。
 - 未做：统一「candidate SHA + 自动化结果 + 实机 artifact」的发布状态入口仍由本文与 `docs/testing/r3-remote-full-rerun-2026-09-10.md` 分担；R3-ISSUE-001 / 020 关闭后在本文补发布结论即可关闭本项。
 
 ### R3-ISSUE-020：历史实机记录不能证明当前 HEAD

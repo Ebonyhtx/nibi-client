@@ -31,7 +31,7 @@ Read/Search/Browser/MCP 等其他工具未统一简化。手动压缩措辞保�
 ```text
 设置页 / 头像菜单
     -> ZCodeStore.setInterfaceMode
-        -> localStorage: zcode-interface-mode
+        -> localStorage: nibi-interface-mode
         -> state:interfaceMode 广播 -> 其他窗口 setter（抑制回声）
         -> 共享 UI 的展示 / 新建入口
 

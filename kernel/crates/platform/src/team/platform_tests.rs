@@ -128,9 +128,9 @@ impl Service {
                     .find(|project| p.contains(project))
                     .map_or("key-own".to_owned(), |project| format!("key-{project}"));
                 let name = if team {
-                    "zcode-team-api-key"
+                    "nibi-team-api-key"
                 } else {
-                    "zcode-api-key"
+                    "nibi-api-key"
                 };
                 ok(json!([{"name": name, "apiKey": id, "keyType": if team { 2 } else { 1 }}]))
             }
@@ -179,7 +179,7 @@ async fn login(harness: &Harness, token: &str) {
         .write_credentials(&json!({
             "oauth:bigmodel:access_token": token,
             "oauth:bigmodel:user_info": r#"{"id":"key-1","username":"dev","displayName":"Dev"}"#,
-            "zcodejwttoken": "zcode-jwt",
+            "zcodejwttoken": "nibi-jwt",
         }))
         .await;
 }
@@ -587,7 +587,7 @@ async fn a_stale_zcode_jwt_is_not_a_bigmodel_login() {
     let (server, harness) = start(Service::new(&[])).await;
     // 旧版本误把 zcodejwttoken 写进 bigmodel 的 access token：团队未连接，不查、不授权（App 相同）。个人套餐照 App
     // 没有这条防御，照常换令牌、查订阅（§5.7）。
-    login(&harness, "zcode-jwt").await;
+    login(&harness, "nibi-jwt").await;
     assert!(
         rows(&harness)
             .await

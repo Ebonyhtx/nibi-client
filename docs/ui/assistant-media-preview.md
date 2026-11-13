@@ -32,7 +32,7 @@ terminal assistant text (complete/interrupted latest row)
   -> visible cards (10 max)
        -> conversation-share candidate (same visible set)
   -> PreviewPane media source
-       -> local Desktop: authorized zcode-media:// URL
+       -> local Desktop: authorized nibi-media:// URL
        -> Desktop SSH/WSL/Docker: Host loopback HTTP Range URL
        -> mobile /remote: bounded inline preview when the file is small enough
 ```
@@ -48,7 +48,7 @@ continues through the selected workspace Host.
 ## Data-plane boundary
 
 Desktop local playback uses the existing canonical-path authorization registry
-and `zcode-media://` file protocol. Main only authorizes exact real paths and
+and `nibi-media://` file protocol. Main only authorizes exact real paths and
 maps the privileged protocol; it does not own media or conversation state.
 
 Desktop remote workspace media does not use a server upload or object-storage
@@ -75,7 +75,7 @@ and Host-global request slots. A changed or expired lease fails closed. The
 player keeps the card and external-open action when native decoding, Range
 forwarding or inline preview is unavailable.
 
-Local `zcode-media://` authorization is limited to 256 canonical paths with a
+Local `nibi-media://` authorization is limited to 256 canonical paths with a
 30-minute TTL. The synchronous protocol callback revalidates the current
 realpath and regular-file type before handing a path to Electron's native file
 loader, and the registry is cleared during app shutdown.

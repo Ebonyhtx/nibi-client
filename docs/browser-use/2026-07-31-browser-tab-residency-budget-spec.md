@@ -237,7 +237,7 @@ Desktop bootstrap/main production wiring 不调用、不注入持久化 store。
 | Spec update | 本文 | complete |
 | Case catalog | `docs/conversation-session-case-catalog.md` BTL | complete |
 | Coverage matrix | conversation + Browser Use matrices | complete |
-| Feature graph | `zcode-feature-graph.yaml` | complete |
+| Feature graph | `nibi-feature-graph.yaml` | complete |
 | E2E handoff | `browser-tab-residency.test.ts` | complete |
 
 ## 10. 完成门槛

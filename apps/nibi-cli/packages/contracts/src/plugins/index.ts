@@ -30,7 +30,7 @@ export const CLAUDE_OFFICIAL_PLUGIN_MARKETPLACE = "claude-plugins-official";
 export const NIBI_INLINE_PLUGIN_MARKETPLACE = "inline";
 export const NIBI_PLUGIN_HOST_COMMAND = "__nibi-plugin-host";
 /**
- * 隐藏子命令：dynamic workflow 的沙箱子进程入口（`__zcode-dwf-child <entry path>`；argv 末位是
+ * 隐藏子命令：dynamic workflow 的沙箱子进程入口（`__nibi-dwf-child <entry path>`；argv 末位是
  * harness 写好的入口文件路径，payload 不过命令行）。
  *
  * 与 {@link NIBI_PLUGIN_HOST_COMMAND} 同族、同机制：SEA 单文件二进制不解释 Node CLI 旗标，
@@ -39,7 +39,7 @@ export const NIBI_PLUGIN_HOST_COMMAND = "__nibi-plugin-host";
  * 常量放在 contracts 而非 dynamic-workflow-runtime：后者刻意不依赖 contracts（app-free 证明），
  * 由 bootstrap 在 SEA 判定后把它作为 argsPrefix 递给 harness。
  */
-export const NIBI_DWF_CHILD_COMMAND = "__zcode-dwf-child";
+export const NIBI_DWF_CHILD_COMMAND = "__nibi-dwf-child";
 
 export function isOfficialMarketplaceId(id: string): boolean {
   return id === NIBI_OFFICIAL_PLUGIN_MARKETPLACE || id === CLAUDE_OFFICIAL_PLUGIN_MARKETPLACE;

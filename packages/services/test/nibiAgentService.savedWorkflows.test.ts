@@ -319,7 +319,7 @@ describe("NibiAgentService 全局档载体运行时选择（无 workspace）", (
   });
 
   it("(b) 跳过远程 runtime，回落到管理面 workspace 载体", async () => {
-    process.env.NIBI_DATA_BASE_DIR = mkdtempSync(join(tmpdir(), "zcode-svc-carrier-"));
+    process.env.NIBI_DATA_BASE_DIR = mkdtempSync(join(tmpdir(), "nibi-svc-carrier-"));
     const request = vi.fn(async (method: string) => replyForMethod(method));
     const { service, getClient } = await createServiceWithRequest(request);
     // 唯一活跃 runtime 是远程的（SSH identity + remoteSessionId）。
@@ -343,7 +343,7 @@ describe("NibiAgentService 全局档载体运行时选择（无 workspace）", (
   });
 
   it("(c) 没有任何本地 runtime 时回落到管理面 workspace 载体", async () => {
-    process.env.NIBI_DATA_BASE_DIR = mkdtempSync(join(tmpdir(), "zcode-svc-carrier-"));
+    process.env.NIBI_DATA_BASE_DIR = mkdtempSync(join(tmpdir(), "nibi-svc-carrier-"));
     const request = vi.fn(async (method: string) => replyForMethod(method));
     const { service } = await createServiceWithRequest(request);
     await service.listSavedWorkflows({ scope: "global" });

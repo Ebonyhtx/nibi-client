@@ -129,7 +129,7 @@ describe("MCP dual-era version negotiation", () => {
   });
 
   async function createVersionedServerFixture(mode: "dual-era" | "legacy") {
-    const root = await mkdtemp(join(tmpdir(), "zcode-mcp-version-negotiation-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-mcp-version-negotiation-"));
     cleanupRoots.add(root);
     const serverPath = join(root, "server.mjs");
     const spawnLogPath = join(root, "spawns.log");

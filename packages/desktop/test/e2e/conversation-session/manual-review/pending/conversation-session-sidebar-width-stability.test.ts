@@ -10,7 +10,7 @@ const moreSelector = './/button[normalize-space(.)="显示更多" or normalize-s
 // 合成索引仅准备分页/长标题布局，不恢复这些任务，也不请求模型。
 async function seedTaskRows() {
   const home = process.env.NIBI_E2E_HOME_DIR;
-  if (!home || !basename(home).startsWith("zcode-sidebar-width-"))
+  if (!home || !basename(home).startsWith("nibi-sidebar-width-"))
     throw new Error("隔离 HOME required");
   const root = join(home, "E2E_SIDEBAR_WIDTH_ROOT");
   await mkdir(root, { recursive: true });

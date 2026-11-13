@@ -8,7 +8,7 @@ import { withOfficialPluginSeedLock } from "../src/app/official-plugin-seed-lock
 
 describe("official plugin seed lock", () => {
   it("waits for another process to release the same version lock", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-seed-lock-wait-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-seed-lock-wait-"));
     const targetRoot = join(root, "zcode-cua", "0.5.2");
     const lockRoot = `${targetRoot}.seed-lock`;
 
@@ -50,7 +50,7 @@ describe("official plugin seed lock", () => {
   });
 
   it("takes over a stale lock left by a crashed process", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-seed-lock-stale-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-seed-lock-stale-"));
     const targetRoot = join(root, "zcode-cua", "0.5.2");
     const lockRoot = `${targetRoot}.seed-lock`;
     const staleTime = new Date(Date.now() - 60_000);
@@ -73,7 +73,7 @@ describe("official plugin seed lock", () => {
   });
 
   it("does not take over an old lock while its owner process is alive", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-seed-lock-live-owner-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-seed-lock-live-owner-"));
     const targetRoot = join(root, "zcode-cua", "0.5.2");
     const lockRoot = `${targetRoot}.seed-lock`;
     const staleTime = new Date(Date.now() - 60_000);

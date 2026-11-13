@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/tests/suite/support.rs（feat/rs 79b6691c55）：真实 Host 与本地假模型换成
+// 改写自 apps/nibi-host/crates/tui/tests/suite/support.rs（feat/rs 79b6691c55）：真实 Host 与本地假模型换成
 // LocalKernel 与 kernel-api `testing` 的替身；终端换成 ratatui 的 `TestBackend`（docs/specs/rust-cli/tui.md §8）。
 //! 集成测试共用：内核替身、可控节奏的模型、虚拟终端与按键。
 //!

@@ -60,7 +60,7 @@ import {
 const posixShellTest = process.platform === "win32" ? it.skip : it;
 describe("session persistence", () => {
   it("primes image and cold-rebuilds image and video paths from durable artifacts", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-prompt-image-cache-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-prompt-image-cache-"));
     const artifactRootDir = join(tempRoot, "artifacts");
     const imageCacheRootDir = join(tempRoot, "image-cache");
     const videoCacheRootDir = join(tempRoot, "video-cache");
@@ -148,7 +148,7 @@ describe("session persistence", () => {
   });
 
   it("previews the exact persisted media artifact before a mutable original path", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-sent-media-preview-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-sent-media-preview-"));
     const originalPath = join(tempRoot, "same.mov");
     const artifactStore = createNodeToolArtifactStore({
       imageCacheRootDir: join(tempRoot, "image-cache"),
@@ -286,7 +286,7 @@ describe("session persistence", () => {
   });
 
   it("returns an authorized metadata-only local video path without reading the file", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-sent-local-ref-preview-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-sent-local-ref-preview-"));
     const originalPath = join(tempRoot, "oversized.mp4");
     const store = await createSqliteSessionStore({ dbPath: ":memory:" });
     const sessionId = createSessionId("sent-local-ref-preview");
@@ -363,7 +363,7 @@ describe("session persistence", () => {
   });
 
   it("filters skills disabled through skills path config during app startup", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-bootstrap-skill-disable-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bootstrap-skill-disable-"));
     const configPath = join(tempRoot, "config.json");
     const enabledSkillPath = join(
       tempRoot,
@@ -549,7 +549,7 @@ describe("session persistence", () => {
   });
 
   it("persists UI locale changes through the app facade", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-bootstrap-locale-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bootstrap-locale-"));
     const configPath = join(tempRoot, "config.json");
     const store = await createSqliteSessionStore({ dbPath: ":memory:" });
     const requests: string[][] = [];
@@ -607,7 +607,7 @@ describe("session persistence", () => {
   });
 
   it("persists session.version from the injected app version", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-bootstrap-session-version-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bootstrap-session-version-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const store = await createSqliteSessionStore({ dbPath });
     const sessionId = createSessionId("bootstrap-session-version");
@@ -691,7 +691,7 @@ describe("session persistence", () => {
   });
 
   it("emits an idempotent target_changed clear event when no goal exists", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-bootstrap-idempotent-goal-clear-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bootstrap-idempotent-goal-clear-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const eventStore = createInMemorySessionEventStore();
     const store = await createSqliteSessionStore({ dbPath });
@@ -746,7 +746,7 @@ describe("session persistence", () => {
   });
 
   it("persists a newly set goal objective as the visible user prompt", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-bootstrap-goal-visible-prompt-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bootstrap-goal-visible-prompt-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const eventStore = createInMemorySessionEventStore();
     const store = await createSqliteSessionStore({ dbPath });
@@ -877,7 +877,7 @@ describe("session persistence", () => {
   });
 
   posixShellTest("initializes the Bash shell snapshot before a goal-only first input persists the session", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-bootstrap-goal-shell-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bootstrap-goal-shell-"));
     const shellDir = join(tempRoot, "bin");
     const zshPath = join(shellDir, "zsh");
     const dbPath = join(tempRoot, "session.sqlite");
@@ -933,7 +933,7 @@ describe("session persistence", () => {
   });
 
   it("persists replacement goal objective as real user prompt without state reminders", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-bootstrap-goal-replace-hidden-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bootstrap-goal-replace-hidden-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const eventStore = createInMemorySessionEventStore();
     const store = await createSqliteSessionStore({ dbPath });
@@ -1020,7 +1020,7 @@ describe("session persistence", () => {
   });
 
   it("persists model-only goal state change reminders for goal lifecycle changes", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-bootstrap-goal-state-reminders-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bootstrap-goal-state-reminders-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const store = await createSqliteSessionStore({ dbPath });
 
@@ -1094,7 +1094,7 @@ describe("session persistence", () => {
   });
 
   it("uses the current model for new expert workflow child sessions after a model switch", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-bootstrap-workflow-model-switch-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bootstrap-workflow-model-switch-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const store = await createSqliteSessionStore({ dbPath });
     const requestModels: string[] = [];
@@ -1167,7 +1167,7 @@ describe("session persistence", () => {
   });
 
   posixShellTest("initializes the Bash shell snapshot before direct expert workflow child sessions", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-bootstrap-workflow-shell-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bootstrap-workflow-shell-"));
     const configPath = join(tempRoot, "config.json");
     const shellDir = join(tempRoot, "bin");
     const zshPath = join(shellDir, "zsh");
@@ -1246,7 +1246,7 @@ describe("session persistence", () => {
   });
 
   it("reads built-in expert workflow snapshots without requiring an external expert definition file", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-bootstrap-workflow-builtin-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bootstrap-workflow-builtin-"));
     const workflowStore = createNodeWorkflowStore({
       rootDir: join(tempRoot, "cli", "workflows"),
     });
@@ -1330,7 +1330,7 @@ describe("session persistence", () => {
   });
 
   it("opens the default session store from the configured db path", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-bootstrap-session-db-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bootstrap-session-db-"));
     const dbPath = join(tempRoot, "db", "db.sqlite");
 
     try {
@@ -1350,7 +1350,7 @@ describe("session persistence", () => {
   });
 
   it("blocks app startup on database migration before resolving model config", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-bootstrap-migration-gate-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bootstrap-migration-gate-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const db = new DatabaseSync(dbPath);
     db.exec(`
@@ -1498,7 +1498,7 @@ describe("session persistence", () => {
   });
 
   it("loads project AGENTS.md into the default prompt context", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-bootstrap-instructions-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bootstrap-instructions-"));
     const workspace = join(tempRoot, "workspace");
     const nestedCwd = join(workspace, "packages", "app");
     const dbPath = join(tempRoot, "session.sqlite");
@@ -1570,7 +1570,7 @@ describe("session persistence", () => {
   });
 
   it("wires oversized tool results into the default artifact store", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-bootstrap-artifacts-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bootstrap-artifacts-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const eventStore = createInMemorySessionEventStore();
     const store = await createSqliteSessionStore({ dbPath });
@@ -1828,7 +1828,7 @@ describe("session persistence", () => {
   });
 
   it("registers submitPrompt live event handlers only for the active turn", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-submit-live-events-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-submit-live-events-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const logDir = join(tempRoot, "log");
     const responses = [
@@ -1967,7 +1967,7 @@ describe("session persistence", () => {
   });
 
   it("keeps sendInput(auto) queued until the command layer promotes it", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-send-input-steer-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-send-input-steer-"));
     const modelStarted = deferred();
     const finishFirstModel = deferred();
     const liveEventTypes: string[] = [];
@@ -2041,7 +2041,7 @@ describe("session persistence", () => {
   });
 
   it("records accepted prompt and steered input history through the app contract", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-input-history-app-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-input-history-app-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     const modelStarted = deferred();
     const finishFirstModel = deferred();
@@ -2116,8 +2116,8 @@ describe("session persistence", () => {
   });
 
   it("restores project-scoped mode from local settings unless CLI overrides it", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-project-mode-local-setting-"));
-    const otherRoot = await mkdtemp(join(tmpdir(), "zcode-project-mode-other-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-project-mode-local-setting-"));
+    const otherRoot = await mkdtemp(join(tmpdir(), "nibi-project-mode-other-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
 
     try {
@@ -2237,7 +2237,7 @@ describe("session persistence", () => {
   });
 
   it("keeps a headless invocation mode when resuming a session with persisted checkpoints", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-headless-resume-mode-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-headless-resume-mode-"));
     const store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
     const sessionId = createSessionId("headless-resume-mode");
     const firstFile = join(tempRoot, "step1.txt");
@@ -2312,7 +2312,7 @@ describe("session persistence", () => {
   });
 
   it("hydrates persisted history when resuming a session in a fresh app", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-resume-history-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-resume-history-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const store = await createSqliteSessionStore({ dbPath });
     const sessionId = createSessionId("resume-history");
@@ -2413,7 +2413,7 @@ describe("session persistence", () => {
   });
 
   it("can explicitly hydrate a resumed app before the next prompt", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-explicit-resume-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-explicit-resume-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const store = await createSqliteSessionStore({ dbPath });
     const sessionId = createSessionId("explicit-resume");
@@ -2508,7 +2508,7 @@ describe("session persistence", () => {
   });
 
   posixShellTest("initializes the Bash shell snapshot before direct app prompt submission", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-direct-shell-snapshot-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-direct-shell-snapshot-"));
     const shellDir = join(tempRoot, "bin");
     const zshPath = join(shellDir, "zsh");
     const store = await createSqliteSessionStore({ dbPath: ":memory:" });
@@ -2560,7 +2560,7 @@ describe("session persistence", () => {
   });
 
   posixShellTest("initializes a direct app resume fallback before explicit hydration", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-direct-resume-shell-snapshot-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-direct-resume-shell-snapshot-"));
     const oldShellDir = join(tempRoot, "old-bin");
     const newShellDir = join(tempRoot, "new-bin");
     const oldZshPath = join(oldShellDir, "zsh");
@@ -2651,7 +2651,7 @@ describe("session persistence", () => {
   });
 
   it("projects persisted user and assistant transcript rows for resume UIs", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-resume-transcript-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-resume-transcript-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const store = await createSqliteSessionStore({ dbPath });
     const sessionId = createSessionId("resume-transcript");
@@ -2727,7 +2727,7 @@ describe("session persistence", () => {
   });
 
   it("preserves the original git snapshot across resume so later repository changes do not rewrite the cached system prompt", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-resume-git-snapshot-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-resume-git-snapshot-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const store = await createSqliteSessionStore({ dbPath });
     const sessionId = createSessionId("resume-git-snapshot");

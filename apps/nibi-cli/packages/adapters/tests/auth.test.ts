@@ -22,7 +22,7 @@ afterEach(() => {
 
 describe("shared NIBI credentials", () => {
   it("stores ZAI login credentials with z-code compatible encrypted keys", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-auth-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-auth-"));
 
     try {
       const store = createSharedNibiCredentialStore({
@@ -32,7 +32,7 @@ describe("shared NIBI credentials", () => {
 
       await store.saveZaiLoginCredentials({
         accessToken: "zai-access-token",
-        jwtToken: "zcode-jwt-token",
+        jwtToken: "nibi-jwt-token",
         user: {
           email: "alice@example.com",
           name: "Alice",
@@ -50,7 +50,7 @@ describe("shared NIBI credentials", () => {
       expect(await store.load(SHARED_NIBI_CREDENTIAL_KEYS.zaiAccessToken)).toBe(
         "zai-access-token",
       );
-      expect(await store.load(SHARED_NIBI_CREDENTIAL_KEYS.nibiJwtToken)).toBe("zcode-jwt-token");
+      expect(await store.load(SHARED_NIBI_CREDENTIAL_KEYS.nibiJwtToken)).toBe("nibi-jwt-token");
       expect(
         loadSharedNibiCredentialSync(SHARED_NIBI_CREDENTIAL_KEYS.zaiAccessToken, {
           baseDir: dir,
@@ -63,7 +63,7 @@ describe("shared NIBI credentials", () => {
   });
 
   it("reads legacy plaintext credential values", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-auth-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-auth-"));
     const credentialsDir = join(dir, ".nibi", "v2");
     const credentialsPath = join(credentialsDir, "credentials.json");
 
@@ -88,7 +88,7 @@ describe("shared NIBI credentials", () => {
   });
 
   it("preserves every key across concurrent read-modify-write mutations", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-auth-concurrent-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-auth-concurrent-"));
     const store = createSharedNibiCredentialStore({
       baseDir: dir,
       env: TEST_ENV,
@@ -109,7 +109,7 @@ describe("shared NIBI credentials", () => {
   });
 
   it("deletes a credential only when its expected plaintext value is still current", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-auth-compare-delete-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-auth-compare-delete-"));
     const store = createSharedNibiCredentialStore({
       baseDir: dir,
       env: TEST_ENV,
@@ -128,7 +128,7 @@ describe("shared NIBI credentials", () => {
   });
 
   it("publishes a replacement credential and removes legacy keys in one mutation", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-auth-replace-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-auth-replace-"));
     const store = createSharedNibiCredentialStore({
       baseDir: dir,
       env: TEST_ENV,
@@ -152,7 +152,7 @@ describe("shared NIBI credentials", () => {
   });
 
   it("preserves every key across independent Node processes", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-auth-processes-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-auth-processes-"));
     const credentialsPath = join(dir, "credentials.json");
     const processCount = 4;
     const keysPerProcess = 8;
@@ -178,7 +178,7 @@ describe("shared NIBI credentials", () => {
   }, 15_000);
 
   it("backs up corrupt JSON and refuses to overwrite it", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-auth-corrupt-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-auth-corrupt-"));
     const credentialsPath = join(dir, "credentials.json");
     const store = createSharedNibiCredentialStore({
       env: TEST_ENV,
@@ -214,7 +214,7 @@ describe("shared NIBI credentials", () => {
   });
 
   it("deduplicates corrupt credential backups across independent Node processes", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-auth-corrupt-processes-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-auth-corrupt-processes-"));
     const credentialsPath = join(dir, "credentials.json");
 
     try {

@@ -500,7 +500,7 @@ describe("pluginStoreListing", () => {
   it("orders personal marketplace groups by lastUpdated descending, sinking unknown to the end", () => {
     const groups = [
       { marketplace: "claude-plugins-official", title: "Claude Code Plugins", items: [] },
-      { marketplace: "zcode-plugins-test", title: "zcode-plugins-test", items: [] },
+      { marketplace: "nibi-plugins-test", title: "nibi-plugins-test", items: [] },
       { marketplace: "never-refreshed", title: "never-refreshed", items: [] },
       { marketplace: "paid-demo-market", title: "paid-demo-market", items: [] },
     ];
@@ -508,16 +508,16 @@ describe("pluginStoreListing", () => {
       groups,
       [
         makeMarketplace({ id: "claude-plugins-official", lastUpdated: "2026-01-01T00:00:00Z" }),
-        makeMarketplace({ id: "zcode-plugins-test", lastUpdated: "2026-08-20T12:00:00Z" }),
+        makeMarketplace({ id: "nibi-plugins-test", lastUpdated: "2026-08-20T12:00:00Z" }),
         makeMarketplace({ id: "paid-demo-market", lastUpdated: "2026-08-20T12:00:00Z" }),
         // never-refreshed 无记录：没有 lastUpdated，按缺失沉底。
       ],
       "en-US",
     );
     expect(sorted.map((group) => group.marketplace)).toEqual([
-      // 最近刷新的在前；同刻（zcode-plugins-test / paid-demo-market）按显示名字母序。
+      // 最近刷新的在前；同刻（nibi-plugins-test / paid-demo-market）按显示名字母序，Nibi 在前。
+      "nibi-plugins-test",
       "paid-demo-market",
-      "zcode-plugins-test",
       "claude-plugins-official",
       "never-refreshed",
     ]);
@@ -531,8 +531,8 @@ describe("pluginStoreListing", () => {
           name: "Never Refreshed",
         }),
         makeMarketplace({
-          id: "zcode-plugins-test",
-          name: "zcode-plugins-test",
+          id: "nibi-plugins-test",
+          name: "nibi-plugins-test",
           lastUpdated: "2026-08-20T12:00:00Z",
         }),
         makeMarketplace({
@@ -546,8 +546,8 @@ describe("pluginStoreListing", () => {
           lastUpdated: "2026-08-20T23:00:00Z",
         }),
         makeMarketplace({
-          id: "zcode-labs",
-          name: "zcode-labs",
+          id: "nibi-labs",
+          name: "nibi-labs",
           lastUpdated: "2026-08-20T12:00:00Z",
         }),
       ],
@@ -557,8 +557,8 @@ describe("pluginStoreListing", () => {
     expect(sorted.map((marketplace) => marketplace.id)).toEqual([
       "nibi-official",
       "claude-plugins-official",
-      "zcode-labs",
-      "zcode-plugins-test",
+      "nibi-labs",
+      "nibi-plugins-test",
       "never-refreshed",
     ]);
   });

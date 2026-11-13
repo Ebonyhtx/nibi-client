@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/detail.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/detail.rs（feat/rs 79b6691c55）。
 //! 详细视图（docs/specs/rust-tui.md §8.5）：ctrl+o 打开，占满整个屏幕，显示 transcript 的详细形式；
 //! 可滚动与搜索。滚动按离底部的行数记，新内容追加时停在末尾。
 use crossterm::event::{KeyCode, KeyEvent};

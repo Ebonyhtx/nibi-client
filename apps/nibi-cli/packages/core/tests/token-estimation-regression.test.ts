@@ -106,7 +106,7 @@ describe("token estimation regression", () => {
   });
 
   it("uses the shared divisor when deciding whether to inline post-compact read content", () => {
-    const filePath = "/tmp/zcode-compact-three-char-divisor.txt";
+    const filePath = "/tmp/nibi-compact-three-char-divisor.txt";
     const content = "x".repeat(31);
     const readFileState: ReadFileStateMap = new Map();
     readFileState.set(createReadFileStateKey(filePath, 1, undefined), {

@@ -71,7 +71,7 @@ describe("stdio Desktop presentation surface", () => {
   });
 
   it("让 Desktop attached remote authority 贯穿 stdio 装配并生成 Desktop Agent 命令", async () => {
-    const home = await mkdtemp(join(tmpdir(), "zcode-stdio-desktop-surface-"));
+    const home = await mkdtemp(join(tmpdir(), "nibi-stdio-desktop-surface-"));
     tempHomes.push(home);
     process.env.HOME = home;
     setDataBaseDir(home);

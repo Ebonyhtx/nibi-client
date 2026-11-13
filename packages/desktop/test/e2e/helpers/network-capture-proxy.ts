@@ -30,7 +30,7 @@ export const DEFAULT_E2E_NETWORK_CAPTURE_NO_PROXY = [
   "zcode.z.ai",
   // Plugin 商店原始图标 CDN 不需要进入模型请求抓包；直连也避免 Electron MITM 证书导致图片回退。
   "cdn-zcode.z.ai",
-  "cdn.zcode-ai.com",
+  "cdn.nibi-ai.com",
 ].join(",");
 export interface E2ENetworkCaptureRecord {
   completedAt?: string;

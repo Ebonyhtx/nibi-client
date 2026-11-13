@@ -14,7 +14,7 @@ describe("prepareNibiTelemetryEnv", () => {
   });
 
   it("从进程捕获区异步准备 identity，但不把 OTLP 凭据写回业务 env", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-telemetry-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-telemetry-"));
     try {
       const env: NodeJS.ProcessEnv = {
         OTEL_EXPORTER_OTLP_HEADERS: "x-arms-license-key=secret",

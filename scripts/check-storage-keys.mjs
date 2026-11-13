@@ -4,14 +4,14 @@
  *
  * 为什么单独一条判据：`check-identity-residue.mjs` 只扫**构建产物**，而且盯的是实例身份
  * （数据根、CLI 名、请求头）。持久化键是另一类问题——它不体现在打包结果里，
- * 但它决定「我们会去读写哪个产品的数据」。键名带着 `zcode-` / `zai-` 时，
+ * 但它决定「我们会去读写哪个产品的数据」。键名带着 `nibi-` / `zai-` 时，
  * 同一台机器上装了上游 ZCode 就是在共享它的存储。
  *
  * 扫的是**源码**（不像 identity-residue 扫产物）：键名在源码里就是字面量或常量，
  * 不需要构建就能判；而且越早发现越好。
  *
  * 判据范围：`localStorage.*( / sessionStorage.*(` 调用里的键名，以及
- * `*_STORAGE_KEY = "..."` 这类常量定义。其它地方出现的 `zcode-`（插件名、IPC 通道、
+ * `*_STORAGE_KEY = "..."` 这类常量定义。其它地方出现的 `nibi-`（插件名、IPC 通道、
  * 文件名）不在本判据范围，别在这里加规则。
  *
  * 允许清单：与**外部**交换的键（第三方 Gen-UI / MCP / CUA 面板读同一份数据），
@@ -63,7 +63,7 @@ const STORAGE_CALL =
 /**
  * 我们自己的安全包装（`readSafeLocalStorage("...")` 等）。
  *
- * 只认裸 `localStorage.*(` 会漏掉它们——实测踩过：`zcode-locale` 就是这样
+ * 只认裸 `localStorage.*(` 会漏掉它们——实测踩过：`nibi-locale` 就是这样
  * 一直留在 `store/index.ts` 里而判据是绿的。
  */
 const SAFE_STORAGE_CALL =

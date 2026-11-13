@@ -139,14 +139,14 @@ async function main() {
     `${sshTargetHost}:/root/`,
   ]);
   await ssh(
-    `mkdir -p /root/zcode-bootstrap && tar -xzf /root/nibi-server-${target}.tar.gz -C /root/zcode-bootstrap --strip-components=1`,
+    `mkdir -p /root/nibi-bootstrap && tar -xzf /root/nibi-server-${target}.tar.gz -C /root/nibi-bootstrap --strip-components=1`,
   );
 
   log("install archive through bootstrap bin/zcode");
   const serverRoot = "/root/.nibi/server";
   const remoteArchive = `/root/nibi-server-${target}.tar.gz`;
   const { stdout: installOutput } = await ssh(
-    `/root/zcode-bootstrap/bin/zcode update --from-archive ${remoteArchive} --server-root ${serverRoot} --json`,
+    `/root/nibi-bootstrap/bin/zcode update --from-archive ${remoteArchive} --server-root ${serverRoot} --json`,
   );
   const installResult = JSON.parse(installOutput.trim().split("\n").pop());
   assert(installResult.applied === true, `archive install applied, got: ${installOutput}`);
@@ -274,7 +274,7 @@ async function main() {
   // linux 的 pty.node 走 @lydell 补齐路径（打包时特殊处理），必须在真实目标平台验证可加载。
   log("verify node-pty spawns a real pty on remote");
   await ssh(
-    `RELEASE_DIR=$(/root/zcode-bootstrap/runtime/node -e "console.log(JSON.parse(require('node:fs').readFileSync('${serverRoot}/current.json','utf8')).releaseDir)") && cd "$RELEASE_DIR/runtime" && ./node -e "const pty=require('node-pty');const p=pty.spawn('/bin/echo',['pty-ok'],{cols:80,rows:24});let o='';p.onData(d=>o+=d);p.onExit(()=>{process.exit(o.includes('pty-ok')?0:1)})"`,
+    `RELEASE_DIR=$(/root/nibi-bootstrap/runtime/node -e "console.log(JSON.parse(require('node:fs').readFileSync('${serverRoot}/current.json','utf8')).releaseDir)") && cd "$RELEASE_DIR/runtime" && ./node -e "const pty=require('node-pty');const p=pty.spawn('/bin/echo',['pty-ok'],{cols:80,rows:24});let o='';p.onData(d=>o+=d);p.onExit(()=>{process.exit(o.includes('pty-ok')?0:1)})"`,
   );
   log("node-pty ok");
 

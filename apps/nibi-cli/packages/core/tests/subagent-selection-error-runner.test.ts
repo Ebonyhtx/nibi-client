@@ -10,7 +10,7 @@ import { modelContentForToolResult } from "../src/runtime/helpers/tool-result.js
 
 describe("Subagent 选择错误经过真实前后台 runner", () => {
   it.each([false, true])("background=%s 的启动失败向父模型保留原因", async (background) => {
-    const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-selection-error-"));
+    const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-selection-error-"));
     const events: unknown[] = [];
     const sessionId = createSessionId("selection-error-parent");
     const turnId = createTurnId("selection-error-turn");

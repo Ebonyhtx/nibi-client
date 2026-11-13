@@ -263,7 +263,7 @@ export function MermaidBlock({
 
     setRenderState({ status: "loading" });
     onPreviewSvgChange?.(null);
-    const renderId = `zcode-mermaid-${renderIdPrefix}-${hashMermaidCode(renderKey)}`;
+    const renderId = `nibi-mermaid-${renderIdPrefix}-${hashMermaidCode(renderKey)}`;
 
     void enqueueMermaidRender(async () => {
       const renderer = mermaidPlugin.getMermaid(mermaidConfig);

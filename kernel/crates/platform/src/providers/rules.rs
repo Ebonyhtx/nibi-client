@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/providers/src/providers/resolve.rs（1f0bfd1b71）的规则部分：配置覆盖、
+// 复制自 apps/nibi-host/crates/providers/src/providers/resolve.rs（1f0bfd1b71）的规则部分：配置覆盖、
 // 归属排序、模型规则、手动规则清理、模型完整性与 provider 校验。改动：provider 校验只给出问题代码
 // （CLI 不展示 issue 详情）；只保留 CLI 执行需要的部分，UI 视图（候选、有效配置视图）没有复制。
 //! Provider 配置的解析规则（docs/specs/rust-cli/platform.md §3.2）。

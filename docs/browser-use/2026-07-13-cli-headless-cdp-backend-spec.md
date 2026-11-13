@@ -81,7 +81,7 @@ zcode --browser-use=headless \
     tab: []
   },
   metadata: {
-    provider: "zcode-cli",
+    provider: "nibi-cli",
     launchMode: "managed",
     headless: "true"
   }

@@ -22,8 +22,8 @@ const OWNED_CHILD_TASK_TYPES: [&str; 4] = [
 /// SQL 的 `IN` 列表一次最多绑定这么多参数（上游 `SQL_ID_CHUNK` 同一上限）。
 const SQL_ID_CHUNK: usize = 400;
 
-/// 上游 `zcode-artifact://` 与本工程品牌化后的 `nibi-artifact://` 都认：库里可能还有 Node 写的行。
-const ARTIFACT_SCHEMES: [&str; 2] = ["nibi-artifact://", "zcode-artifact://"];
+/// 上游 `nibi-artifact://` 与本工程品牌化后的 `nibi-artifact://` 都认：库里可能还有 Node 写的行。
+const ARTIFACT_SCHEMES: [&str; 2] = ["nibi-artifact://", "nibi-artifact://"];
 
 fn chunks<T>(items: &[T]) -> impl Iterator<Item = &[T]> {
     items.chunks(SQL_ID_CHUNK)

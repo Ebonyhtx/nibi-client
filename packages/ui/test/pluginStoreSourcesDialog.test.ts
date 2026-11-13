@@ -58,8 +58,8 @@ describe("PluginStoreSourcesDialog", () => {
               refreshFailure: failure,
             },
             {
-              id: "zcode-labs",
-              name: "zcode-labs",
+              id: "nibi-labs",
+              name: "nibi-labs",
               source: {},
               pluginCount: 0,
               refreshFailure: failure,
@@ -78,7 +78,7 @@ describe("PluginStoreSourcesDialog", () => {
       failures[0]!
         .closest("[data-testid='plugin-store-source-row']")
         ?.getAttribute("data-marketplace-id"),
-    ).toBe("zcode-labs");
+    ).toBe("nibi-labs");
   });
 
   it("renders an add failure inside the add marketplace dialog", () => {
@@ -118,8 +118,8 @@ describe("PluginStoreSourcesDialog", () => {
               pluginCount: 0,
             },
             {
-              id: "zcode-plugins-test",
-              name: "zcode-plugins-test",
+              id: "nibi-plugins-test",
+              name: "nibi-plugins-test",
               source: {},
               pluginCount: 0,
               lastUpdated: "2026-08-20T12:00:00Z",
@@ -139,8 +139,8 @@ describe("PluginStoreSourcesDialog", () => {
               lastUpdated: "2026-08-20T23:00:00Z",
             },
             {
-              id: "zcode-labs",
-              name: "zcode-labs",
+              id: "nibi-labs",
+              name: "nibi-labs",
               source: {},
               pluginCount: 0,
               lastUpdated: "2026-08-20T12:00:00Z",
@@ -160,8 +160,8 @@ describe("PluginStoreSourcesDialog", () => {
     ).toEqual([
       "nibi-official",
       "claude-plugins-official",
-      "zcode-labs",
-      "zcode-plugins-test",
+      "nibi-labs",
+      "nibi-plugins-test",
       "never-refreshed",
     ]);
   });

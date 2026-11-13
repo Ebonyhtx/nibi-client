@@ -86,7 +86,7 @@ describe("NibiAgentService process resource telemetry", () => {
   });
 
   it("PRT-025 旧格式样本通过校验并分发，新字段透传，lane 由 services 按进程管理器打标", async () => {
-    const workspacePath = mkdtempSync(join(tmpdir(), "zcode-resource-telemetry-"));
+    const workspacePath = mkdtempSync(join(tmpdir(), "nibi-resource-telemetry-"));
     tempDirs.push(workspacePath);
     const scriptPath = join(workspacePath, "resource-agent.cjs");
     writeFileSync(scriptPath, RESOURCE_SAMPLE_FAKE_AGENT);

@@ -215,7 +215,7 @@ export async function waitForLastSelectedAgentConfig(params: {
   } catch {
     const storedAgentPreferences = await browser.execute(() =>
       Object.fromEntries(
-        Object.entries(window.localStorage).filter(([key]) => key.startsWith("zcode-last-agent-")),
+        Object.entries(window.localStorage).filter(([key]) => key.startsWith("nibi-last-agent-")),
       ),
     );
     throw new Error(

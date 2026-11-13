@@ -87,7 +87,7 @@ fn server(subscription: &'static str) -> (String, Seen) {
                 ("GET", p) if p == keys => ("application/json", ok(json!([]))),
                 ("POST", p) if p == keys => (
                     "application/json",
-                    ok(json!({"name": "zcode-api-key", "apiKey": "key-1"})),
+                    ok(json!({"name": "nibi-api-key", "apiKey": "key-1"})),
                 ),
                 ("POST", p) if p == format!("{keys}/key-1/access_tokens") => (
                     "application/json",

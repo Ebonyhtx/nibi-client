@@ -69,7 +69,7 @@ describe("Todo121：只补 0020 回填后未动过的会话档位", () => {
     );
   }
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "zcode-reasoning-repair-"));
+    root = await mkdtemp(join(tmpdir(), "nibi-reasoning-repair-"));
     path = join(root, "session.sqlite");
     db = new DatabaseSync(path);
     db.exec(

@@ -18,7 +18,7 @@ describe("远程单目录项目展示", () => {
       /^\.e2e-home-r3-[a-f0-9]{16}$/u.test(basename(home));
     if (
       !home ||
-      (!basename(home).startsWith("zcode-remote-project-policy-e2e-") && !isolatedRunnerHome)
+      (!basename(home).startsWith("nibi-remote-project-policy-e2e-") && !isolatedRunnerHome)
     )
       throw new Error("isolated HOME required");
     const db = new DatabaseSync(join(home, ".nibi/v2/tasks-index.sqlite"));

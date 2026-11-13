@@ -12,7 +12,7 @@ describe("Session 完整选择的实际保存与冷恢复", () => {
   it.each(["guarded", "yolo"] as const)(
     "%s 与完整选择落 SQLite；新 App 冷恢复不降级",
     async (mode) => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-selection-resume-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-selection-resume-"));
     const dbPath = join(root, "sessions.sqlite");
     const initial = {
       providerId: "provider-a",

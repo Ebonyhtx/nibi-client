@@ -68,7 +68,7 @@ const BROKEN_SCRIPT = 'const x: number = "s";';
 // executor 缺省的工作目录是 "."，会解析到 vitest 进程的 cwd——也就是本包目录——于是每跑一遍
 // 就往源码树里漏几十个草稿（该目录自带 `*` 的 .gitignore，git status 看不见）。所以每个调用都
 // 落在这个临时目录里，跑完删掉。
-const TEST_CWD = mkdtempSync(join(tmpdir(), "zcode-create-workflow-permission-"));
+const TEST_CWD = mkdtempSync(join(tmpdir(), "nibi-create-workflow-permission-"));
 
 afterAll(() => {
   rmSync(TEST_CWD, { recursive: true, force: true });

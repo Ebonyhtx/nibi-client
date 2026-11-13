@@ -20,7 +20,7 @@ const base =
   process.env.CI_MERGE_REQUEST_DIFF_BASE_SHA || process.env.SQLITE_SCHEMA_BASE_REF || "HEAD";
 const exec = promisify(execFile);
 await exec("git", ["rev-parse", "--verify", `${base}^{commit}`]);
-const directory = await mkdtemp(join(tmpdir(), "zcode-schema-check-"));
+const directory = await mkdtemp(join(tmpdir(), "nibi-schema-check-"));
 const cli = new DatabaseSync(":memory:");
 setDataBaseDir(directory);
 const repos = [new AutomationRepo(), new TaskIndexRepo()];

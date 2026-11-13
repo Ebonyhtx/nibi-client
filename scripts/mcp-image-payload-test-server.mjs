@@ -6,7 +6,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-const SERVER_NAME = "zcode-image-payload-test";
+const SERVER_NAME = "nibi-image-payload-test";
 const SERVER_VERSION = "0.1.0";
 const DEFAULT_PRESET = "below_limit";
 const PRESETS = {
@@ -139,7 +139,7 @@ function createPngWithTextPayload(textPayload) {
 
   const scanline = Buffer.from([0x00, 0x2f, 0x80, 0xff, 0xff]);
   const idat = deflateSync(scanline, { level: 9 });
-  const text = Buffer.from(`zcode-mcp-payload\0${textPayload}`, "latin1");
+  const text = Buffer.from(`nibi-mcp-payload\0${textPayload}`, "latin1");
 
   return Buffer.concat([
     PNG_SIGNATURE,

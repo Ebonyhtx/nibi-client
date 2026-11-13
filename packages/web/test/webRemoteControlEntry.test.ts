@@ -480,7 +480,7 @@ it("账号在列表显示后变化时，旧设备选择重新经过当前账号�
 
 it("存储不可用不阻断手动选择；已有 SID 业务状态保持原样", async () => {
   const h = setup("jwt", "https://zcode.z.ai/remote/v4");
-  h.storage.set("zcode-web-remote-client-id:last-device", "existing-client");
+  h.storage.set("nibi-web-remote-client-id:last-device", "existing-client");
   vi.spyOn(h.storageAdapter, "getItem").mockImplementation(() => {
     throw new Error("blocked");
   });
@@ -493,7 +493,7 @@ it("存储不可用不阻断手动选择；已有 SID 业务状态保持原样",
   h.entry.selectDevice("last-device");
   expect(h.connect).toHaveBeenCalledOnce();
   h.connect.mock.calls[0][0].onPaired();
-  expect(h.storage.get("zcode-web-remote-client-id:last-device")).toBe("existing-client");
+  expect(h.storage.get("nibi-web-remote-client-id:last-device")).toBe("existing-client");
 });
 
 it("最近 SID 不属于当前账号时不连接；同名按 MID/SID 排序且没有轮询", async () => {

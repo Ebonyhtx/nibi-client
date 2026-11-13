@@ -9,7 +9,7 @@ import {
 } from "./sea-runtime-package-resolution.mjs";
 import { stageSeaPackageAssets } from "./sea-workspace-package-assets.mjs";
 
-export const seaTuiAssetPrefix = "zcode-tui-runtime/";
+export const seaTuiAssetPrefix = "nibi-tui-runtime/";
 export const seaTuiManifestAssetKey = `${seaTuiAssetPrefix}manifest.json`;
 
 const workspacePackageParentDirectoryNames = ["packages", "tools"];

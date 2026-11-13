@@ -5,5 +5,5 @@
 # 第三方源码与许可证声明按字节保存（THIRD-PARTY-NOTICES.txt 里有带 CRLF 的许可证原文），不做换行转换。
 /vendor/** -text
 # 计数文件 build-number（docs/specs/rust-cli/version.md §2、§5）：固定 LF；合并冲突时取较大值，配置了驱动
-# zcode-build-number 的克隆自动处理（git config 的命令见 version.md §5；没配置时 git 用缺省的文本合并）。
-/build-number text eol=lf merge=zcode-build-number
+# nibi-build-number 的克隆自动处理（git config 的命令见 version.md §5；没配置时 git 用缺省的文本合并）。
+/build-number text eol=lf merge=nibi-build-number

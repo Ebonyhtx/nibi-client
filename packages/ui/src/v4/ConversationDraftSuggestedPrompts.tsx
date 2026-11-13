@@ -94,7 +94,7 @@ const SuggestedPromptCard = forwardRef<HTMLButtonElement, SuggestedPromptCardPro
         className={cn(
           // 根因：旧草稿卡是固定 h-8 的横排 chip，办公推荐是竖排列表，两套圆角/图标/间距各不相同。
           // 这里统一成同一种卡片；默认高度由 line-clamp 内容决定，不再依赖固定槽位或滚动容器。
-          "zcode-draft-prompt-waterfall group/prompt flex w-full min-w-0 text-left text-foreground",
+          "nibi-draft-prompt-waterfall group/prompt flex w-full min-w-0 text-left text-foreground",
           "border border-card-border bg-background",
           "transition-colors hover:border-border-hover hover:bg-hover active:bg-surface-hover",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused",
@@ -108,7 +108,7 @@ const SuggestedPromptCard = forwardRef<HTMLButtonElement, SuggestedPromptCardPro
         {...buttonProps}
         style={
           {
-            "--zcode-draft-prompt-waterfall-delay": `${waterfallDelayMs}ms`,
+            "--nibi-draft-prompt-waterfall-delay": `${waterfallDelayMs}ms`,
           } as CSSProperties
         }
       >

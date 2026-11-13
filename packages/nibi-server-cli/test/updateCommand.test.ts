@@ -10,7 +10,7 @@ vi.mock("../src/runtime/updatePreparation.js", () => ({ prepareOnlineUpdate }));
 const { runUpdateCommand } = await import("../src/runtime/updateCommand.js");
 
 describe("runUpdateCommand cleanup errors", () => {
-  const layout = resolveServerLayout("/tmp/zcode-update-command-test");
+  const layout = resolveServerLayout("/tmp/nibi-update-command-test");
 
   beforeEach(() => {
     requestControl.mockReset();

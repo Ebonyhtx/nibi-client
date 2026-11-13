@@ -2605,7 +2605,7 @@ export function createLocalServices(options: {
     nibiLicenseSync,
     onProviderLogout: handleOAuthProviderLogout,
   });
-  const nibiJwtLogoutLogger = createServiceLogger("zcode-jwt-logout");
+  const nibiJwtLogoutLogger = createServiceLogger("nibi-jwt-logout");
   nibiJwtLogoutHandlerRef.current = (input, headers) => {
     // 条件退出本身已串行去重；不能丢弃等待旧候选期间到来的新凭据 401。
     void oauthService

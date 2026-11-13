@@ -15,7 +15,7 @@ const originalHome = process.env.HOME;
 const tempHomes: string[] = [];
 
 function makeTempHome(): string {
-  const home = mkdtempSync(join(tmpdir(), "zcode-paths-home-"));
+  const home = mkdtempSync(join(tmpdir(), "nibi-paths-home-"));
   tempHomes.push(home);
   return home;
 }

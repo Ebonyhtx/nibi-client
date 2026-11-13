@@ -12,7 +12,7 @@ describe("localMediaPreviewProtocol", () => {
     registerLocalMediaPreviewScheme(protocol);
     expect(protocol.registerSchemesAsPrivileged).toHaveBeenCalledWith([
       {
-        scheme: "zcode-media",
+        scheme: "nibi-media",
         privileges: { standard: true, secure: true, stream: true },
       },
     ]);
@@ -84,9 +84,9 @@ describe("localMediaPreviewProtocol", () => {
     installLocalMediaPreviewProtocol(protocol, { isPathAuthorized: () => false });
 
     for (const url of [
-      "zcode-media://local/not-absolute",
+      "nibi-media://local/not-absolute",
       buildLocalMediaPreviewUrl("/etc/passwd"),
-      "zcode-media://other/value",
+      "nibi-media://other/value",
     ]) {
       const callback = vi.fn();
       handler?.({ url }, callback);

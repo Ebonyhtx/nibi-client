@@ -56,7 +56,7 @@ describe("dwf 子代理的 Browser Use（真 app 装配）", () => {
   let sessionStore: Awaited<ReturnType<typeof createSqliteSessionStore>>;
 
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "zcode-dwf-actor-browser-"));
+    root = await mkdtemp(join(tmpdir(), "nibi-dwf-actor-browser-"));
     sessionStore = await createSqliteSessionStore({ dbPath: ":memory:" });
   });
 

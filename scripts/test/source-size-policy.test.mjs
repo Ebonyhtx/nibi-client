@@ -10,7 +10,7 @@ const exec = promisify(execFile);
 const root = resolve(import.meta.dirname, "../..");
 
 test("800 行为默认阻断阈值，已接纳的大文件仅降级行数诊断", async () => {
-  const cwd = await mkdtemp(join(tmpdir(), "zcode-size-policy-"));
+  const cwd = await mkdtemp(join(tmpdir(), "nibi-size-policy-"));
   try {
     const { config } = ts.parseConfigFileTextToJson(
       ".oxlintrc.json",

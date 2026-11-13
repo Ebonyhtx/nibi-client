@@ -25,7 +25,7 @@ fn script() -> tokio::process::Command {
     reason = "测试：账本路径放在系统临时目录（不会写入）"
 )]
 async fn spawn(containment: Containment) -> super::super::Tracked {
-    let ledger = Ledger::open(std::env::temp_dir().join("zcode-proc-unused-ledger"));
+    let ledger = Ledger::open(std::env::temp_dir().join("nibi-proc-unused-ledger"));
     ledger
         .spawn(
             &mut script(),

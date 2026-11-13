@@ -22,27 +22,27 @@
   胶囊、长描述、「MCP 服务器」「技能」等组件分区、「信息」区（开发者/类别/版本/网站/
   隐私政策/服务条款）。
 
-公开与社区分段共同使用官方市场 `zcode-plugins-official`（内置插件 + CDN zip 插件，目录源
+公开与社区分段共同使用官方市场 `nibi-plugins-official`（内置插件 + CDN zip 插件，目录源
 `https://cdn-zcode.z.ai/zcode/official-plugin/marketplace.json`），按发布条目 `publisherType` 区分维护归属；个人分段承载其余一切
 个人来源（claude-plugins-official、用户自加市场、inline）。
 
 ### 官方市场单一身份与合并合同
 
-`zcode-plugins-official` 是 ZCode 官方市场唯一 id。内置插件和 CDN 插件不是两个市场，
-而是同一市场的两个目录分片；不得再注册、展示或生成 `zcode-plugins` 市场及
-`<name>@zcode-plugins` 插件 id。
+`nibi-plugins-official` 是 ZCode 官方市场唯一 id。内置插件和 CDN 插件不是两个市场，
+而是同一市场的两个目录分片；不得再注册、展示或生成 `nibi-plugins` 市场及
+`<name>@nibi-plugins` 插件 id。
 
 ```text
 应用内置目录分片 ─┐
-                  ├─ 按 name 合并（CDN 优先）─> zcode-plugins-official/marketplace.json
-CDN 目录分片 ─────┘                    └─ 所有插件 id: <name>@zcode-plugins-official
+                  ├─ 按 name 合并（CDN 优先）─> nibi-plugins-official/marketplace.json
+CDN 目录分片 ─────┘                    └─ 所有插件 id: <name>@nibi-plugins-official
 ```
 
 边界决策（2026-07-15 用户确认）：
 
 | 边界     | 决策                                                      | 剪枝 / 非目标                                  |
 | -------- | --------------------------------------------------------- | ---------------------------------------------- |
-| 市场身份 | 内置与 CDN 统一使用 `zcode-plugins-official`              | 不保留 `zcode-plugins` alias，不迁移旧测试数据 |
+| 市场身份 | 内置与 CDN 统一使用 `nibi-plugins-official`              | 不保留 `nibi-plugins` alias，不迁移旧测试数据 |
 | 刷新语义 | 刷新官方市场只替换 CDN 分片，再与当前应用内置分片重新合并 | CDN 刷新不得删除或改写内置插件缓存             |
 | 同名冲突 | CDN 市场条目优先，忽略内置分片中的同名目录条目            | 仅改变合并目录选择，不删除或改写应用内置缓存   |
 | 更新来源 | 内置分片随应用版本更新；CDN 分片由市场刷新更新            | 不把内置插件二进制改成 CDN 热更新              |
@@ -54,15 +54,15 @@ CDN 目录分片 ─────┘                    └─ 所有插件 id: <
 | ---------------------- | ---------------------------------------------------------------- | ------------------------------------------------------ | ----------------------- |
 | 内置目录分片           | 当前应用 bundle / SEA assets                                     | 官方市场目录下的内置分片快照                           | seed 单测、cache marker |
 | CDN 目录分片           | 官方 CDN manifest                                                | 官方市场目录下的 CDN 分片快照                          | refresh 单测、网络响应  |
-| 合并目录               | 上述两个分片按 name 合并                                         | `marketplaces/zcode-plugins-official/marketplace.json` | overview / install 单测 |
-| 市场 source 与刷新时间 | `known_marketplaces.json` 中唯一的 `zcode-plugins-official` 记录 | UI marketplace summary                                 | 协议结果、设置页        |
+| 合并目录               | 上述两个分片按 name 合并                                         | `marketplaces/nibi-plugins-official/marketplace.json` | overview / install 单测 |
+| 市场 source 与刷新时间 | `known_marketplaces.json` 中唯一的 `nibi-plugins-official` 记录 | UI marketplace summary                                 | 协议结果、设置页        |
 
 接受的回归 case：
 
 | Case                      | Setup                        | Action                  | Assertions                                           | Evidence                |
 | ------------------------- | ---------------------------- | ----------------------- | ---------------------------------------------------- | ----------------------- |
 | `official-merge-initial`  | 新 storage，仅应用内置分片   | 打开插件页              | 单一官方市场；内置插件可见；source 指向 CDN          | manifest + overview     |
-| `official-merge-refresh`  | 已有内置分片，CDN 返回新插件 | 刷新官方市场            | 新插件使用 `@zcode-plugins-official`；内置插件仍存在 | manifest + protocol     |
+| `official-merge-refresh`  | 已有内置分片，CDN 返回新插件 | 刷新官方市场            | 新插件使用 `@nibi-plugins-official`；内置插件仍存在 | manifest + protocol     |
 | `official-merge-conflict` | CDN 含与内置同名条目         | 刷新官方市场            | 保留 CDN 条目并忽略内置同名目录条目                  | manifest + adapter test |
 | `official-merge-reseed`   | 已缓存 CDN 分片              | 重启/重新 seed 内置插件 | CDN 条目仍存在；合并目录按新内置分片重建             | filesystem test         |
 
@@ -134,7 +134,7 @@ flowchart TD
 
 - 标题与操作组同一行：左侧标题，右侧操作组；窄宽度时换行。全部按钮使用 `secondary`，纯图标按钮 `icon-lg`，文字按钮 `lg`。顺序如下：
   - **刷新**（Manual Refresh）：触发 `plugins/marketplace/update(null)`（全部市场），复用现有 loading 态；不受自动刷新节流限制。
-  - **目录自动刷新**（Catalog Auto-Refresh）：进入商店页后只刷新 `zcode-plugins-official`，
+  - **目录自动刷新**（Catalog Auto-Refresh）：进入商店页后只刷新 `nibi-plugins-official`，
     判据为 `now - max(lastUpdated, lastAttemptAt) >= 10 分钟`。`lastUpdated` 来自 Host 用户级
     目录持久化；`lastAttemptAt` 是 Renderer 模块内的尝试时间，发起时占位，跨页面重新挂载保留，
     进程重启清零。窗口内的失败、在途请求不因重进页面重复发起；成功的手动刷新会更新持久时间。
@@ -143,7 +143,7 @@ flowchart TD
     桌面与 Web 共用此 UI 和服务，不改变 user inventory、workspaceIdentity 或请求路由。
   - **齿轮**：进入**市场源管理**——现有 marketplace source 管理能力换位置（列出已有源：
     更新/校验/删除/诊断）。「添加」不放这里。
-    市场源行按以下规则排序：`zcode-plugins-official`、`claude-plugins-official` 固定置顶；
+    市场源行按以下规则排序：`nibi-plugins-official`、`claude-plugins-official` 固定置顶；
     其余自定义源按 `lastUpdated` 倒序排列；缺少 `lastUpdated` 的自定义源沉底；同一时间按本地化
     展示名称稳定排序。
   - **添加**：下拉菜单，包含创建插件和添加市场源，收编现有 AddMarketplacePopover 的
@@ -481,7 +481,7 @@ Agent 保留 `source: missing` / `packageStatus: missing` 的记录作为 User/W
 
 ### 文档插件默认排序（2026-09-17）
 
-官方完整 ID `pdf`、`presentations`、`spreadsheets`、`documents`（均来自 `zcode-plugins-official`）
+官方完整 ID `pdf`、`presentations`、`spreadsheets`、`documents`（均来自 `nibi-plugins-official`）
 按 PDF → PPT → Excel → Word 排在管理页预置分组前四位。缺少的插件跳过，停用不影响排序，个人来源同名插件不置顶；2026-10-11 已移除市场已安装图标条。
 公开分类及复用其排序的引用选择器，在同一分类内默认按上述顺序优先；服务端显式分类/插件排序仍优先，其余规则保持。
 桌面/手机、中英文及深浅主题使用相同顺序。排序仅改变展示，不改安装、启停、配置或原数组。

@@ -103,13 +103,13 @@ describe("desktop Linux deep link registration helpers", () => {
       await import("../src/main/desktopLinuxDeepLinkRegistration.js");
 
     const entry = createLinuxDeepLinkDesktopEntry({
-      executablePath: "/opt/Nibi Preview/zcode-preview",
+      executablePath: "/opt/Nibi Preview/nibi-preview",
       productName: "Nibi Preview",
     });
 
     expect(entry).toContain("Name=Nibi Preview");
     expect(entry).toContain("StartupWMClass=Nibi Preview");
-    expect(entry).toContain('Exec="/opt/Nibi Preview/zcode-preview" %U');
+    expect(entry).toContain('Exec="/opt/Nibi Preview/nibi-preview" %U');
     expect(entry).toContain("MimeType=x-scheme-handler/nibi;");
   });
 
@@ -132,7 +132,7 @@ describe("desktop Linux deep link registration helpers", () => {
       await import("../src/main/desktopLinuxDeepLinkRegistration.js");
     const { installLinuxAppImageDesktopIcon, shouldInstallAppImageDesktopIcon } =
       await import("../src/main/desktopLinuxAppImageIcon.js");
-    const tempRoot = mkdtempSync(join(tmpdir(), "zcode-linux-icon-"));
+    const tempRoot = mkdtempSync(join(tmpdir(), "nibi-linux-icon-"));
     const iconSourcePath = join(import.meta.dirname, "..", "build", "icons", "512x512.png");
     const homeDir = join(tempRoot, "home");
     const dataDir = resolveLinuxUserDataDir({ homeDir });
@@ -195,7 +195,7 @@ describe("desktop Linux deep link registration helpers", () => {
   it("keeps desktop entry registration when optional AppImage icon install fails", async () => {
     const { registerLinuxDeepLinkProtocol } =
       await import("../src/main/desktopLinuxDeepLinkRegistration.js");
-    const tempRoot = mkdtempSync(join(tmpdir(), "zcode-linux-registration-"));
+    const tempRoot = mkdtempSync(join(tmpdir(), "nibi-linux-registration-"));
     const homeDir = join(tempRoot, "home");
     const badIconSourcePath = join(tempRoot, "icon-source-directory");
     const warnings: unknown[][] = [];
@@ -265,7 +265,7 @@ describe("desktop Linux deep link registration helpers", () => {
   it("removes the stale owned user-level entry when a system-level entry exists", async () => {
     const { registerLinuxDeepLinkProtocol } =
       await import("../src/main/desktopLinuxDeepLinkRegistration.js");
-    const tempRoot = mkdtempSync(join(tmpdir(), "zcode-linux-system-entry-"));
+    const tempRoot = mkdtempSync(join(tmpdir(), "nibi-linux-system-entry-"));
     const homeDir = join(tempRoot, "home");
     const systemApplicationsDir = join(tempRoot, "system", "applications");
     const desktopFilePath = join(homeDir, ".local", "share", "applications", "nibi.desktop");
@@ -333,7 +333,7 @@ describe("desktop Linux deep link registration helpers", () => {
   it("keeps a custom user-level entry untouched when a system-level entry exists", async () => {
     const { registerLinuxDeepLinkProtocol } =
       await import("../src/main/desktopLinuxDeepLinkRegistration.js");
-    const tempRoot = mkdtempSync(join(tmpdir(), "zcode-linux-custom-entry-"));
+    const tempRoot = mkdtempSync(join(tmpdir(), "nibi-linux-custom-entry-"));
     const homeDir = join(tempRoot, "home");
     const systemApplicationsDir = join(tempRoot, "system", "applications");
     const desktopFilePath = join(homeDir, ".local", "share", "applications", "nibi.desktop");
@@ -380,7 +380,7 @@ describe("desktop Linux deep link registration helpers", () => {
   it("does not shadow a system-level entry for AppImage launches", async () => {
     const { registerLinuxDeepLinkProtocol } =
       await import("../src/main/desktopLinuxDeepLinkRegistration.js");
-    const tempRoot = mkdtempSync(join(tmpdir(), "zcode-linux-appimage-system-"));
+    const tempRoot = mkdtempSync(join(tmpdir(), "nibi-linux-appimage-system-"));
     const homeDir = join(tempRoot, "home");
     const systemApplicationsDir = join(tempRoot, "system", "applications");
     const desktopFilePath = join(homeDir, ".local", "share", "applications", "nibi.desktop");
@@ -433,7 +433,7 @@ describe("desktop Linux deep link registration helpers", () => {
   it("still writes the user-level entry when no system-level entry exists", async () => {
     const { registerLinuxDeepLinkProtocol } =
       await import("../src/main/desktopLinuxDeepLinkRegistration.js");
-    const tempRoot = mkdtempSync(join(tmpdir(), "zcode-linux-no-system-"));
+    const tempRoot = mkdtempSync(join(tmpdir(), "nibi-linux-no-system-"));
     const homeDir = join(tempRoot, "home");
     const desktopFilePath = join(homeDir, ".local", "share", "applications", "nibi.desktop");
 
@@ -457,7 +457,7 @@ describe("desktop Linux deep link registration helpers", () => {
   it("ignores non-regular system-level paths when probing for shadow entries", async () => {
     const { registerLinuxDeepLinkProtocol } =
       await import("../src/main/desktopLinuxDeepLinkRegistration.js");
-    const tempRoot = mkdtempSync(join(tmpdir(), "zcode-linux-dir-system-"));
+    const tempRoot = mkdtempSync(join(tmpdir(), "nibi-linux-dir-system-"));
     const homeDir = join(tempRoot, "home");
     // 系统目录下的 nibi.desktop 是一个目录而非普通文件，不得视为有效系统条目。
     const systemApplicationsDir = join(tempRoot, "system", "applications");
@@ -484,7 +484,7 @@ describe("desktop Linux deep link registration helpers", () => {
   it("keeps an unreadable user-level entry and continues protocol registration", async () => {
     const { registerLinuxDeepLinkProtocol } =
       await import("../src/main/desktopLinuxDeepLinkRegistration.js");
-    const tempRoot = mkdtempSync(join(tmpdir(), "zcode-linux-unreadable-"));
+    const tempRoot = mkdtempSync(join(tmpdir(), "nibi-linux-unreadable-"));
     const homeDir = join(tempRoot, "home");
     const systemApplicationsDir = join(tempRoot, "system", "applications");
     const desktopFilePath = join(homeDir, ".local", "share", "applications", "nibi.desktop");
@@ -545,7 +545,7 @@ describe("desktop Linux deep link registration helpers", () => {
   it("recognizes ownership markers with CRLF line endings", async () => {
     const { registerLinuxDeepLinkProtocol } =
       await import("../src/main/desktopLinuxDeepLinkRegistration.js");
-    const tempRoot = mkdtempSync(join(tmpdir(), "zcode-linux-crlf-"));
+    const tempRoot = mkdtempSync(join(tmpdir(), "nibi-linux-crlf-"));
     const homeDir = join(tempRoot, "home");
     const systemApplicationsDir = join(tempRoot, "system", "applications");
     const desktopFilePath = join(homeDir, ".local", "share", "applications", "nibi.desktop");
@@ -604,7 +604,7 @@ describe("desktop Linux deep link registration helpers", () => {
     async () => {
       const { registerLinuxDeepLinkProtocol } =
         await import("../src/main/desktopLinuxDeepLinkRegistration.js");
-      const tempRoot = mkdtempSync(join(tmpdir(), "zcode-linux-rm-fail-"));
+      const tempRoot = mkdtempSync(join(tmpdir(), "nibi-linux-rm-fail-"));
       const homeDir = join(tempRoot, "home");
       const systemApplicationsDir = join(tempRoot, "system", "applications");
       const applicationsDir = join(homeDir, ".local", "share", "applications");

@@ -22,7 +22,7 @@ describe.each([null, 0o000, 0o400, 0o100])(
     it.skipIf(skipCase).each(["manual", "automatic"] as const)(
       "%s：单个目录失效只拒绝该项目，修复后可以重连",
       async (mode) => {
-        const root = await realpath(await mkdtemp(join(tmpdir(), "zcode-workspace-admission-")));
+        const root = await realpath(await mkdtemp(join(tmpdir(), "nibi-workspace-admission-")));
         const paths = [1, 2, 3].map((n) => join(root, `workspace-${n}`));
         const closedListeners = new Set<
           (event: { exitCode: number | null; signal: string | null; recoverable: boolean }) => void
@@ -130,7 +130,7 @@ describe("远程工作区目录 admission", () => {
   it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
     "可读取、可遍历但不可写的空目录仍可绑定",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-workspace-readonly-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-workspace-readonly-"));
       const bindIdentity = vi.fn();
       try {
         await chmod(root, 0o500);
@@ -151,7 +151,7 @@ describe("远程工作区目录 admission", () => {
   );
 
   it("新目录绑定拒绝普通文件，且不执行身份写入", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-workspace-file-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-workspace-file-"));
     const path = join(root, "file");
     const bindIdentity = vi.fn();
     try {

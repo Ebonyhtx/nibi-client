@@ -246,7 +246,7 @@ export function extractAssistantFileReferences(
     if (overlapsRanges(start, end, protectedRanges)) continue;
 
     // 普通正文里的 `~/...` 是给用户看的 shell 路径，不是稳定的预览卡片引用。
-    // 明确的 zcode-file-citation 仍在上面的专用分支处理。
+    // 明确的 nibi-file-citation 仍在上面的专用分支处理。
     if (/^~[\\/]/.test(raw)) {
       protectedRanges.push([start, end]);
       continue;

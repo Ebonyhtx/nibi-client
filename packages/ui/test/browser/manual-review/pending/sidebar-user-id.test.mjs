@@ -9,7 +9,7 @@ import { chromium } from "playwright-core";
 
 const root = fileURLToPath(new URL("../../../../../../", import.meta.url));
 const entry = "/packages/ui/test/browser/manual-review/pending/sidebar-user-id.fixture.tsx";
-const artifacts = "/tmp/zcode-sidebar-user-id";
+const artifacts = "/tmp/nibi-sidebar-user-id";
 let server, browser, origin;
 before(async () => {
   await mkdir(artifacts, { recursive: true });

@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/selection.rs（feat/rs 79b6691c55）；F25 改了词的字符类、
+// 复制自 apps/nibi-host/crates/tui/src/ui/selection.rs（feat/rs 79b6691c55）；F25 改了词的字符类、
 // 软折行的拼接与选区的底色（docs/specs/rust-cli/tui-select.md §2）。
 //! 鼠标选区的文字处理（docs/specs/rust-tui.md §8.7）：按显示列取文字、找词与网址、换底色、选区范围。
 use ratatui::style::{Modifier, Style};

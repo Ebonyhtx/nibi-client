@@ -194,7 +194,7 @@ describe("gitCliRepo", () => {
   });
 
   it("identifies main-tree workspaces via repoRoot/.git directory", async () => {
-    const repoRoot = makeTempDir("zcode-git-main-tree-");
+    const repoRoot = makeTempDir("nibi-git-main-tree-");
     mkdirSync(join(repoRoot, ".git"));
     const workspacePath = join(repoRoot, "packages", "app");
     mkdirSync(workspacePath, { recursive: true });
@@ -222,9 +222,9 @@ describe("gitCliRepo", () => {
   });
 
   it("identifies linked worktree workspaces via repoRoot/.git file", async () => {
-    const mainTreeRoot = makeTempDir("zcode-git-worktree-main-");
+    const mainTreeRoot = makeTempDir("nibi-git-worktree-main-");
     mkdirSync(join(mainTreeRoot, ".git", "worktrees", "feature"), { recursive: true });
-    const worktreeRoot = makeTempDir("zcode-git-worktree-linked-");
+    const worktreeRoot = makeTempDir("nibi-git-worktree-linked-");
     writeFileSync(
       join(worktreeRoot, ".git"),
       `gitdir: ${join(mainTreeRoot, ".git", "worktrees", "feature")}\n`,

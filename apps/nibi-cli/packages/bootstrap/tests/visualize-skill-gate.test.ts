@@ -28,7 +28,7 @@ describe("visualize protocol-only skill discovery", () => {
   let env: NodeJS.ProcessEnv;
 
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "zcode-visualize-gate-"));
+    root = await mkdtemp(join(tmpdir(), "nibi-visualize-gate-"));
     env = { NIBI_STORAGE_DIR: join(root, "storage") };
   });
 

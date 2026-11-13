@@ -11,7 +11,7 @@ const require = createRequire(import.meta.url);
 const desktop = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const root = resolve(desktop, "../..");
 const fixture = join(desktop, "scripts/gen-ui-fixture");
-const output = await mkdtemp(join(tmpdir(), "zcode-gen-ui-e2e-"));
+const output = await mkdtemp(join(tmpdir(), "nibi-gen-ui-e2e-"));
 await copyGenUiRuntimeAssets(output);
 const shared = JSON.parse(await readFile(join(root, "packages/shared/package.json"), "utf8"));
 const alias = {

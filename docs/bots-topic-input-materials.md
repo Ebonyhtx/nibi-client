@@ -126,8 +126,8 @@ Desktop 保持 desktop-continuous；手机保持 web-remote-replayable。远端�
 5. 普通发送另一张图片或文件，随后另发 @ 请求分析该历史附件。历史 txt 列出资源索引，内置 ReadSessionContext 按需读取；不得跨话题读取，不要求扫码。
 6. 在 Desktop 排队项编辑／立即发送后确认引用和附件仍在。手机远控应连接同一 Host，单独验证预览与恢复；窄窗口检查不能代替真实手机链路。
 
-本次本机测试文件：`/tmp/zcode-topic-materials-20260908.txt`，包含独立校验码及多行文字。该路径仅用于开发验收，不是产品运行依赖。
-历史资源使用另一份 `/tmp/zcode-topic-history-resource-20260908.txt`，其中校验码不同，避免误把读取此前引用附件的结果当作历史资源读取成功。
+本次本机测试文件：`/tmp/nibi-topic-materials-20260908.txt`，包含独立校验码及多行文字。该路径仅用于开发验收，不是产品运行依赖。
+历史资源使用另一份 `/tmp/nibi-topic-history-resource-20260908.txt`，其中校验码不同，避免误把读取此前引用附件的结果当作历史资源读取成功。
 
 ## 本次验证记录（2026-09-08）
 

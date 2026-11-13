@@ -15,7 +15,7 @@ async function createReleasePair(): Promise<{
   previous: ReleaseManifest;
   target: ReleaseManifest;
 }> {
-  const root = await mkdtemp(join(tmpdir(), "zcode-update-handoff-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-update-handoff-"));
   const layout = resolveServerLayout(join(root, "server"));
   const releases = new ReleaseManager(layout);
   await releases.ensure();

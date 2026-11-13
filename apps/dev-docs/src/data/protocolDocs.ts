@@ -543,7 +543,7 @@ export const structures: StructureDoc[] = [
     ],
   },
   {
-    id: "zcode-stream-event",
+    id: "nibi-stream-event",
     title: "NibiStreamEvent / TaskStreamMirrorableEvent",
     path: "packages/shared/src/nibi-task-types.ts",
     purpose: "Host 到 renderer 的实时事件结构。现在同时携带 traceId 和可选 inputId。",
@@ -713,7 +713,7 @@ export const structures: StructureDoc[] = [
     ],
   },
   {
-    id: "zcode-event-envelope",
+    id: "nibi-event-envelope",
     title: "NIBI Event Envelope",
     path: "packages/shared/src/nibi-protocol/index.ts",
     purpose: "协议事件外壳。它描述事件日志顺序和观测链路，不描述 UI 输入归属。",

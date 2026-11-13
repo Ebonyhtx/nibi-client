@@ -15,7 +15,7 @@ afterEach(async () => {
 describe("createProviderEndpointRoutingSourceHeaders", () => {
   it("adds runtime attribution and reuses an existing deviceMid for the config GET", async () => {
     const dataBaseDir = await mkdtemp(
-      join(tmpdir(), "zcode-routing-source-headers-"),
+      join(tmpdir(), "nibi-routing-source-headers-"),
     );
     tempDirs.push(dataBaseDir);
     const stateDir = join(dataBaseDir, ".nibi", "v2");
@@ -54,7 +54,7 @@ describe("createProviderEndpointRoutingSourceHeaders", () => {
 
   it("defaults to CLI attribution and does not create a missing device identity", async () => {
     const dataBaseDir = await mkdtemp(
-      join(tmpdir(), "zcode-routing-no-device-mid-"),
+      join(tmpdir(), "nibi-routing-no-device-mid-"),
     );
     tempDirs.push(dataBaseDir);
 

@@ -143,7 +143,7 @@ function workspaceScopeKey(
   identity: string | undefined,
   clientNamespace: string,
 ): string {
-  return `zcode-composer-workspace-scope:v1:${JSON.stringify([clientNamespace, identity?.trim() || path])}`;
+  return `nibi-composer-workspace-scope:v1:${JSON.stringify([clientNamespace, identity?.trim() || path])}`;
 }
 export function rememberComposerWorkspaceScope(
   path: string,
@@ -187,7 +187,7 @@ function draftStorageKey(
 ): string {
   // 同目录可以属于多个项目；新建草稿按组织归属隔离，正式 session 仍按工作区隔离。
   return scopeId === V4_DRAFT_SCOPE_ROOT && scope
-    ? `zcode-v4-composer-project-drafts:v1:${composerScopeKey(scope)}`
+    ? `nibi-v4-composer-project-drafts:v1:${composerScopeKey(scope)}`
     : getV4ComposerDraftStorageKey(path, identity);
 }
 export const V4_DRAFT_SCOPE_ROOT = "__draft__";

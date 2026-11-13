@@ -177,7 +177,7 @@ export const OFFICIAL_SKILL_CREATOR_REQUIRED_SEED_PATHS = [
 // 修复原因（2026-08-24）：nibi-guide 原本没有 requiredSeedPaths，seed 丢文件时会静默装出一个
 // 残缺插件而没有任何诊断。0.3.0 起 `/workflow` 与 dynamic-workflows 技能不再随本插件发布
 // （命令编进 CLI，技能进 packages/bundled-skills，见 docs/dynamic-workflow/authoring.md）。
-// NIBI：去品牌副本的技能目录名是 `configuration-guide`（上游为 `zcode-configuration-guide`），
+// NIBI：去品牌副本的技能目录名是 `configuration-guide`（上游为 `nibi-configuration-guide`），
 // 并补齐全部 diagnosing-* 正文——缺任一都拒绝生成残缺缓存。
 export const OFFICIAL_NIBI_GUIDE_REQUIRED_SEED_PATHS = [
   ".nibi-plugin/plugin.json",

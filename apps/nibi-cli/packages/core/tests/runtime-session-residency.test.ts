@@ -13,7 +13,7 @@ function createRuntime(
     registry,
     runtime: createTestAgentRuntime(
       sessionId,
-      { workingDirectory: "/tmp/zcode-runtime-residency" },
+      { workingDirectory: "/tmp/nibi-runtime-residency" },
       {
         eventStore: createTestSessionEventStore(),
         runtimeTaskRegistry: registry,

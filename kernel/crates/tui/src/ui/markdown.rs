@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/markdown.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/markdown.rs（feat/rs 79b6691c55）。
 //! markdown → 终端行（docs/specs/rust-tui.md §8.2）。标题粗体（一级加下划线、三级起加斜体），
 //! 行内代码与代码块按主题着色，链接下划线，引用前缀 `> `，列表 `• ` / `1. `，任务 ☐ / ☑，
 //! 嵌套列表缩进 4 列。缩进由前缀栈管理：每层有首行前缀与续行前缀。

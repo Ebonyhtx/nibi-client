@@ -139,7 +139,7 @@ function createContext(sessionStore: SessionStorePort): ToolExecutionContext {
     sessionStore,
     toolCallId: "todo-call",
     traceId: "trace-todo" as never,
-    workingDirectory: "/tmp/zcode-todo-tool",
-    workspaceRoot: "/tmp/zcode-todo-tool",
+    workingDirectory: "/tmp/nibi-todo-tool",
+    workspaceRoot: "/tmp/nibi-todo-tool",
   };
 }

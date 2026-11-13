@@ -26,7 +26,7 @@ async function withApp(
     sessionStore: Awaited<ReturnType<typeof createSqliteSessionStore>>;
   }) => Promise<void>,
 ): Promise<void> {
-  const root = await mkdtemp(join(tmpdir(), "zcode-dwf-on-demand-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-dwf-on-demand-"));
   const sessionStore = await createSqliteSessionStore({ dbPath: ":memory:" });
   const requests: ModelRequest[] = [];
   try {

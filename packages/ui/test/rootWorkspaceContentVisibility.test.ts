@@ -93,7 +93,7 @@ describe("RootWorkspaceContent", () => {
   });
 
   it("keeps rendering App for a disconnected remote workspace", async () => {
-    const workspaceIdentity = "remote:docker:zcode-ssh-linux-amd64:/root";
+    const workspaceIdentity = "remote:docker:nibi-ssh-linux-amd64:/root";
     const html = await renderRootWorkspaceContent(false, {
       workspaceIdentity,
     });

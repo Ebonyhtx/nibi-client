@@ -6,7 +6,7 @@ import { after, test } from "node:test";
 
 import { createBuildTimeConfigDefines, resolveBuildTimeConfig } from "../build-time-config.mjs";
 
-const dir = await mkdtemp(join(tmpdir(), "zcode-build-time-config-"));
+const dir = await mkdtemp(join(tmpdir(), "nibi-build-time-config-"));
 after(() => rm(dir, { recursive: true, force: true }));
 
 async function writeDefaults(name, content) {
@@ -74,7 +74,7 @@ test("上报端点硬拒绝上游域名与明文非回环地址", async () => {
   );
   await assert.rejects(
     resolveBuildTimeConfig(
-      { NIBI_TELEMETRY_REPORT_ENDPOINT: "https://cdn.zcode-upstream.invalid/event" },
+      { NIBI_TELEMETRY_REPORT_ENDPOINT: "https://cdn.nibi-upstream.invalid/event" },
       missing,
     ),
     /上游域名/,

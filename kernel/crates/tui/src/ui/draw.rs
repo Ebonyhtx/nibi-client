@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/draw.rs（feat/rs 79b6691c55）：去掉启动失败页、任务面板、管理
+// 改写自 apps/nibi-host/crates/tui/src/ui/draw.rs（feat/rs 79b6691c55）：去掉启动失败页、任务面板、管理
 // 页面、回退浏览与加载更早的行；时间由调用方给出。背景标志按 2f982570bb 接回（修复线 F26）。
 //! 整屏布局（rust-tui.md §8.1）：上方 transcript（从顶部开始排，超过一屏时跟随末尾，可上滚），中间 1 行
 //! gap，底部区域贴底。详细视图与独立页面单独占满屏幕。

@@ -24,7 +24,7 @@ export const SAVE_WORKFLOW_SOURCE_ERROR =
 
 /** 模型把自带 frontmatter 的脚本传进来时的业务失败说明。 */
 export const SAVE_WORKFLOW_SENTINEL_IN_SCRIPT_ERROR =
-  "The `script` must be the workflow body only — it already starts with a `/* zcode-workflow` metadata block. Pass the metadata through the `description` / `whenToUse` / `args` fields instead; the block is written for you.";
+  "The `script` must be the workflow body only — it already starts with a `/* nibi-workflow` metadata block. Pass the metadata through the `description` / `whenToUse` / `args` fields instead; the block is written for you.";
 
 export const SaveWorkflowInputSchema = z
   .object({

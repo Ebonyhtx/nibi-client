@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/base/src/store/lock.rs（07ab266d4b）。改动：随机 token 不用 getrandom（与
+// 复制自 apps/nibi-host/crates/base/src/store/lock.rs（07ab266d4b）。改动：随机 token 不用 getrandom（与
 // 临时文件名同一做法）；错误是 io::Error（超时为 `ErrorKind::TimedOut`）；回收与存活判断拆到 `lock/` 下。
 //! 跨进程的目录锁（docs/specs/rust-cli/platform.md §5.5；Node `packages/shared/src/node/atomicFileLock.ts`、
 //! `privateFilePersistence.ts`）。

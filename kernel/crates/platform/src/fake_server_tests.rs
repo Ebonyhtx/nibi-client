@@ -295,7 +295,7 @@ pub fn jwt(exp_seconds: u64, tag: usize) -> String {
 pub struct Account {
     pub business: AtomicUsize,
     pub issued: AtomicUsize,
-    /// key 列表里是否已有 `zcode-api-key`。
+    /// key 列表里是否已有 `nibi-api-key`。
     pub has_key: bool,
 }
 
@@ -329,12 +329,12 @@ impl Account {
             ("GET", "/api/biz/v1/organization/org-1/projects/p-1/api_keys") => {
                 let mut keys = vec![json!({"name": "other", "apiKey": "key-0"})];
                 if self.has_key {
-                    keys.push(json!({"name": "zcode-api-key", "apiKey": " key-1 ", "keyType": 1}));
+                    keys.push(json!({"name": "nibi-api-key", "apiKey": " key-1 ", "keyType": 1}));
                 }
                 ok(Value::Array(keys))
             }
             ("POST", "/api/biz/v1/organization/org-1/projects/p-1/api_keys") => {
-                ok(json!({"name": "zcode-api-key", "apiKey": "key-1"}))
+                ok(json!({"name": "nibi-api-key", "apiKey": "key-1"}))
             }
             // 个人订阅（App `/api/biz/subscription/list`，工作线 F50）：一个有效的 Coding Plan。
             ("GET", "/api/biz/subscription/list") => ok(json!([

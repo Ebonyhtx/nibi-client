@@ -52,8 +52,8 @@ function runGit(cwd: string | undefined, args: string[]): string {
 }
 
 function createRepo() {
-  const repoPath = makeTempDir("zcode-git-checkpoint-repo-");
-  const dataBaseDir = makeTempDir("zcode-git-checkpoint-data-");
+  const repoPath = makeTempDir("nibi-git-checkpoint-repo-");
+  const dataBaseDir = makeTempDir("nibi-git-checkpoint-data-");
   setDataBaseDir(dataBaseDir);
   const workspacePath = join(repoPath, "packages", "app");
   mkdirSync(workspacePath, { recursive: true });

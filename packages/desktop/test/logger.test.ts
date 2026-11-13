@@ -13,7 +13,7 @@ describe("desktop main logger", () => {
   });
 
   it("swallows injected append faults for main and dedicated log files", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-desktop-log-fault-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-desktop-log-fault-"));
     vi.spyOn(console, "log").mockImplementation(() => undefined);
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
 

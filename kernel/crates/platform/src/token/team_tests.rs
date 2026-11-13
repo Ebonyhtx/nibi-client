@@ -145,7 +145,7 @@ async fn team_locations_are_checked_and_re_resolved() {
     let server = Server::start(move |request| {
         reply(
             &customer,
-            &json!([{"name": "zcode-team-api-key", "apiKey": "key-team", "keyType": 2}]),
+            &json!([{"name": "nibi-team-api-key", "apiKey": "key-team", "keyType": 2}]),
             request,
         )
     })
@@ -227,7 +227,7 @@ async fn invalid_team_keys_are_rejected() {
         if request.method == "POST" && request.path.ends_with("/api_keys") {
             Reply::json(
                 200,
-                &json!({"code": 200, "data": {"name": "zcode-team-api-key", "apiKey": "k", "keyType": 1}}),
+                &json!({"code": 200, "data": {"name": "nibi-team-api-key", "apiKey": "k", "keyType": 1}}),
             )
         } else {
             reply(&customer, &json!([]), request)

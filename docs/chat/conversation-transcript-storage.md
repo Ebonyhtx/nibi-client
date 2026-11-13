@@ -319,7 +319,7 @@ legacy compaction/session_entry/text metadata fallback 先保留，直到 UI 完
 | contracts | `apps/nibi-cli/packages/contracts/src/interfaces/session-store.port.ts` |
 | runtime writes | `apps/nibi-cli/packages/core/src/runtime/methods/message-persistence.ts`、`compact-persistence.ts`、`session-fork.ts`、`events.ts`、model set path |
 | protocol | `packages/shared/src/nibi-protocol/index.ts`、`apps/nibi-cli/packages/bootstrap/src/nibi-protocol/message-mapper.ts` |
-| shared read compatibility | `packages/shared/src/zcode-session-visible-content.ts`、`packages/shared/src/zcodePersistedMessageMerge.ts` |
+| shared read compatibility | `packages/shared/src/nibi-session-visible-content.ts`、`packages/shared/src/zcodePersistedMessageMerge.ts` |
 | V4 transcript hydration | `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/transcript-hydration.ts`、`product-projection.ts` |
 | UI projection | `packages/ui/src/v4/conversationProjectionStore.ts`、`packages/ui/src/v4/sessionDataLayer.ts` |
 

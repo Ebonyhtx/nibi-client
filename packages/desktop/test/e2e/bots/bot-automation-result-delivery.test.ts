@@ -72,7 +72,7 @@ describe("Bot automation terminal result delivery E2E", () => {
       chatType: "private",
     });
 
-    dataDir = await mkdtemp(join(tmpdir(), "zcode-bot-automation-e2e-"));
+    dataDir = await mkdtemp(join(tmpdir(), "nibi-bot-automation-e2e-"));
     setDataBaseDir(dataDir);
     repo = new AutomationRepo();
     const automation = await repo.create(

@@ -21,11 +21,11 @@ import { installGenUiTweakRuntime } from "./genUiTweakRuntime.js";
 import { dispatchPanelEvent } from "./dispatchPanelEvent.js";
 
 const initial = JSON.parse(
-  document.getElementById("zcode-gen-ui-initial-state")?.textContent ?? "null",
+  document.getElementById("nibi-gen-ui-initial-state")?.textContent ?? "null",
 ) as unknown;
 let state: GenUiWidgetState | null =
   initial === null ? null : genUiWidgetStateSchema.parse(initial);
-const app = new App({ name: "zcode-gen-ui", version: "1" }, {}, { autoResize: false });
+const app = new App({ name: "nibi-gen-ui", version: "1" }, {}, { autoResize: false });
 
 function observeContentSize() {
   const body = document.body;

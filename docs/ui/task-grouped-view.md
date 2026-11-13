@@ -25,7 +25,7 @@
   登记挂起或失败不得占住目录读取、阻塞其他任务或触发重复创建；失败沿用原 creationId 重试。
 - 系统组继续接收新定时/闲时任务；首次登记与成员/顺序同事务提交，
   重复同步不重新置顶，用户移出或整理后重启不得拉回。
-- 展示偏好归当前客户端；优先沿用有效新视图。新偏好尚不存在时迁移旧 `zcode-sidebar-task-preferences.organizeBy`：
+- 展示偏好归当前客户端；优先沿用有效新视图。新偏好尚不存在时迁移旧 `nibi-sidebar-task-preferences.organizeBy`：
   `grouped` → 按分组、`chronological` → 最近更新、`project` → 按项目；无有效偏好默认按项目。
   升级前选分组的用户，升级后默认仍选按分组；之后显式切换以新偏好为准。
   项目和分组顺序互不影响，Composer 项目目录不响应视图切换。
@@ -194,7 +194,7 @@ GUI 用例保持 manual-review/pending，不据此扩展到实体手机、Window
 `Grouped` 视图复用侧栏任务区标题旁的 `Expand all` / `Collapse all` 工具按钮。
 
 - 当当前 grouped view 至少存在一个 group 时显示批量按钮。
-- 展开/收起是当前用户、当前设备/浏览器的显示偏好，持久化在 UI 侧 `localStorage`，key 为 `zcode-grouped-task-collapsed-groups`。
+- 展开/收起是当前用户、当前设备/浏览器的显示偏好，持久化在 UI 侧 `localStorage`，key 为 `nibi-grouped-task-collapsed-groups`。
 - 持久化值只保存 `{ [groupId]: true }` 形式的收起 group id；未出现的 group 视为展开。这样新建 group 默认展开，也避免把全量 group 顺序复制进 UI 偏好。
 - 若所有 group 都未收起，按钮显示 `Collapse all`，点击后把当前 view 内所有 group id 写入 collapsed set 并同步 localStorage。
 - 若任意 group 已收起，按钮显示 `Expand all`，点击后清空 collapsed set 并同步 localStorage。

@@ -58,7 +58,7 @@ describe("conversation share service composition", () => {
 
   it("registers a real API-backed service for a local desktop host", async () => {
     const nibiBuiltinProviderConfigFilePath = await createProviderFixture(
-      "zcode-conversation-share-",
+      "nibi-conversation-share-",
     );
     const [nodeModule, servicesModule] = await Promise.all([
       import("@nibi/services/node"),
@@ -83,7 +83,7 @@ describe("conversation share service composition", () => {
 
   it("keeps desktop-attached remote hosts behind the publishing boundary", async () => {
     const nibiBuiltinProviderConfigFilePath = await createProviderFixture(
-      "zcode-conversation-share-remote-",
+      "nibi-conversation-share-remote-",
     );
     const [nodeModule, servicesModule] = await Promise.all([
       import("@nibi/services/node"),

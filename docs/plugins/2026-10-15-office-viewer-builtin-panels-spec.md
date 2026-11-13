@@ -6,7 +6,7 @@
 
 ## 1. 背景与决策
 
-四个文档插件是随应用发布的内置插件（`zcode-plugins-official`），插件 ID 为 `<name>@zcode-plugins-official`。插件仓库的 CDN 目录若发布同名条目，合并目录会以 CDN 条目展示，但运行时发现先加载内置副本、同 ID 的市场安装被判为重复忽略，内置插件也不参与市场更新。因此查看面板不能从插件仓库单独发布，必须随内置插件升级。
+四个文档插件是随应用发布的内置插件（`nibi-plugins-official`），插件 ID 为 `<name>@nibi-plugins-official`。插件仓库的 CDN 目录若发布同名条目，合并目录会以 CDN 条目展示，但运行时发现先加载内置副本、同 ID 的市场安装被判为重复忽略，内置插件也不参与市场更新。因此查看面板不能从插件仓库单独发布，必须随内置插件升级。
 
 决策：
 
@@ -102,18 +102,18 @@ PDF 字体（未嵌入）── 名称（含 GBK / Big5 / Shift-JIS / EUC-KR 解
         ▼
 文种 sc | tc | jp | kr（默认 sc）× 字形 serif | sans | kai | fang（名称未识别时取 Serif 标志）
         ▼
-canvas font = <pdf.js 原字体链（去掉末尾通用族）>, "zcode-cjk-<文种>-<字形>",
-              ["zcode-cjk-<文种>-serif"（kai / fang 时）], ["zcode-cjk-fallback"], <通用族>
+canvas font = <pdf.js 原字体链（去掉末尾通用族）>, "nibi-cjk-<文种>-<字形>",
+              ["nibi-cjk-<文种>-serif"（kai / fang 时）], ["nibi-cjk-fallback"], <通用族>
 ```
 
-- `zcode-cjk-*` 是面板注册的 `FontFace`：来源为三端常见同类字体的 `local()` 列表（macOS 宋体-简 / 苹方 / 楷体-简…，Windows SimSun / Microsoft YaHei / KaiTi…，Linux Noto / Source Han / 文泉驿…），`unicode-range` 只覆盖 CJK 字符与全角标点，因此不改变拉丁文字的回退。
-- 面板在文档打开前加载全部 `zcode-cjk-*`（`local()` 查找，无下载）。pdf.js 的原字体链放在最前：系统真的装有同名字体（如 Windows 的 SimSun）时仍用它。
+- `nibi-cjk-*` 是面板注册的 `FontFace`：来源为三端常见同类字体的 `local()` 列表（macOS 宋体-简 / 苹方 / 楷体-简…，Windows SimSun / Microsoft YaHei / KaiTi…，Linux Noto / Source Han / 文泉驿…），`unicode-range` 只覆盖 CJK 字符与全角标点，因此不改变拉丁文字的回退。
+- 面板在文档打开前加载全部 `nibi-cjk-*`（`local()` 查找，无下载）。pdf.js 的原字体链放在最前：系统真的装有同名字体（如 Windows 的 SimSun）时仍用它。
 - 只作用于 pdf.js 标记为缺字体文件的字体（`missingFile`），Type 3 与嵌入字体不变。
 - 实现方式：构建时 esbuild 插件改写 pdf.js 画布 `setFont` 中计算字体链的一行（找不到原文即构建失败），调用 `ui/cjkFonts.ts` 的 `pdfTypeface`。
 
 ### 6.2 内置兜底字体
 
-系统没有任何 CJK 字体（全部 `zcode-cjk-*` 都加载失败，常见于精简 Linux）时，面板在打开第一个 PDF 前加载随插件分发的 Noto Sans SC 400（Fontsource 5.3.1，OFL-1.1，按 unicode-range 切成 97 片、约 2.4 MiB、覆盖 GB2312 99.5%），注册为 `zcode-cjk-fallback`，排在字体链的通用族之前。画布绘制不等待字体，所以兜底字体必须在首次绘制前就绪，而不是绘制后补加载再重画。面板生命周期内只加载一次；有任一系统 CJK 字体的机器不会加载。字体文件以 `ui://pdf/assets/fonts/*.woff2` 资源读取，清单为 `ui://pdf/assets/cjk-fallback.json`；只有 pdf 插件的构建产出它们。
+系统没有任何 CJK 字体（全部 `nibi-cjk-*` 都加载失败，常见于精简 Linux）时，面板在打开第一个 PDF 前加载随插件分发的 Noto Sans SC 400（Fontsource 5.3.1，OFL-1.1，按 unicode-range 切成 97 片、约 2.4 MiB、覆盖 GB2312 99.5%），注册为 `nibi-cjk-fallback`，排在字体链的通用族之前。画布绘制不等待字体，所以兜底字体必须在首次绘制前就绪，而不是绘制后补加载再重画。面板生命周期内只加载一次；有任一系统 CJK 字体的机器不会加载。字体文件以 `ui://pdf/assets/fonts/*.woff2` 资源读取，清单为 `ui://pdf/assets/cjk-fallback.json`；只有 pdf 插件的构建产出它们。
 
 ### 6.3 文字提取归一
 
@@ -126,7 +126,7 @@ Chrome / Skia 打印出的 PDF 常把部分汉字的 ToUnicode 写成部首兼�
 ### 6.5 验收
 
 - 单测：字体分类与字体链（`ui/cjkFonts.test.ts`）、部首归一（`src/domain/cjk.test.ts`）、`fixtures/cjk.pdf` 的提取与搜索（`parse.test.ts`）、资源白名单（`src/adapters/assets.test.ts`）。
-- pdf 插件 `test:e2e`：打开 `docs/cjk.pdf`，断言 `zcode-cjk-*` 字体在绘制前已加载、按归一后的引文定位与查找命中；另开一页让所有 `local()` 查找失败，断言只注册了 `zcode-cjk-fallback` 并截图留档；`smoke` 读取 wasm 与兜底字体资源。
+- pdf 插件 `test:e2e`：打开 `docs/cjk.pdf`，断言 `nibi-cjk-*` 字体在绘制前已加载、按归一后的引文定位与查找命中；另开一页让所有 `local()` 查找失败，断言只注册了 `nibi-cjk-fallback` 并截图留档；`smoke` 读取 wasm 与兜底字体资源。
 - 待补：Windows / Linux 真机与无 CJK 字体环境的人工验证。
 
 ## 7. Review 收口：隐私、视图与导入生命周期

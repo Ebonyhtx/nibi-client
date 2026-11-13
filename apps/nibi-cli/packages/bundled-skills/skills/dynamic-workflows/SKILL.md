@@ -1079,7 +1079,7 @@ Compilation errors come back as diagnostics, counted in the script's file (§13)
   is the one call that does not need this skill loaded.
 - `path`: a script file on disk, relative to the working directory or absolute — normally
   the file a previous result named. Pass `args` alongside it when the file declares
-  arguments in its `/* zcode-workflow` block.
+  arguments in its `/* nibi-workflow` block.
 
 Either way the user confirms the run, and the confirmation shows the actual script.
 
@@ -1547,7 +1547,7 @@ Saves a script with its metadata so it can be run again by name — through `Cre
   files, commands, conventions or layout; `global` when it depends on nothing in the
   project.
 - `script` or `script_path`, never both. `script_path` saves a draft a `CreateWorkflow` or
-  `AmendWorkflow` result named without re-emitting it; a `/* zcode-workflow` block in that
+  `AmendWorkflow` result named without re-emitting it; a `/* nibi-workflow` block in that
   file is dropped, because the metadata comes from this call's fields. `script` is the body
   only — no metadata block.
 - `args`: name exactly the values that would change between runs — a PR number, a
@@ -1555,7 +1555,7 @@ Saves a script with its metadata so it can be run again by name — through `Cre
   `boolean`, or `json` for anything else), and optionally a `description`, `required: true`
   and a `default`; every future call is validated against them.
 
-The saved file is valid TypeScript: a `/* zcode-workflow` block of YAML metadata, then the
+The saved file is valid TypeScript: a `/* nibi-workflow` block of YAML metadata, then the
 script verbatim. The script is typechecked by the same compiler as `CreateWorkflow`, before
 the user is asked; diagnostics mean nothing was written. The rules in §16.3 apply, phases
 included — future callers did not see this conversation, so the phase names are all they

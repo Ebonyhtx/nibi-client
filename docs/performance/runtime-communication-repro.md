@@ -10,7 +10,7 @@ This reproduction suite keeps the first phase focused on building repeatable env
 
 ```text
 Provider replay SSE
-  -> zcode-cli runtime events
+  -> nibi-cli runtime events
   -> @nibi/protocol stdio NDJSON
   -> host process session services
   -> renderer desktop-continuous subscription

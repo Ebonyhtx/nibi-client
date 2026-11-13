@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/list.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/list.rs（feat/rs 79b6691c55）。
 //! 通用选择列表（docs/specs/rust-tui.md §7.3、§8.5）：模型、权限、恢复会话、登录方式等选择器共用。
 //! 第一行是强调色的 `─` 线，标题粗体，可选的副标题 dim；焦点行按选择列表组件画（`› ` 加底色条，
 //! docs/specs/rust-cli/tui.md §7.4，修复线 F26；原来是强调色的 `❯ `），当前值后面绿色的 ` ✔`；

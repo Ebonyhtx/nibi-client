@@ -3667,7 +3667,7 @@
       }
     },
     {
-      "id": "upstream-background-agent-control-preserve-zcode-one-child-result",
+      "id": "upstream-background-agent-control-preserve-nibi-one-child-result",
       "description": "BG24: first zcode peer Agent completes first.",
       "metadata": {
         "kind": "subagent",
@@ -3686,13 +3686,13 @@
         "statusCode": 200,
         "delayMs": 4000,
         "text": {
-          "id": "upstream-e2e-bg24-zcode-one-child-done",
+          "id": "upstream-e2e-bg24-nibi-one-child-done",
           "text": "E2E_BG24_NIBI_ONE_CHILD_DONE"
         }
       }
     },
     {
-      "id": "upstream-background-agent-control-preserve-zcode-two-child-result",
+      "id": "upstream-background-agent-control-preserve-nibi-two-child-result",
       "description": "BG24: second zcode peer Agent completes second.",
       "metadata": {
         "kind": "subagent",
@@ -3711,13 +3711,13 @@
         "statusCode": 200,
         "delayMs": 14000,
         "text": {
-          "id": "upstream-e2e-bg24-zcode-two-child-done",
+          "id": "upstream-e2e-bg24-nibi-two-child-done",
           "text": "E2E_BG24_NIBI_TWO_CHILD_DONE"
         }
       }
     },
     {
-      "id": "upstream-background-agent-control-preserve-zcode-three-child-result",
+      "id": "upstream-background-agent-control-preserve-nibi-three-child-result",
       "description": "BG24: third zcode peer Agent completes third.",
       "metadata": {
         "kind": "subagent",
@@ -3736,7 +3736,7 @@
         "statusCode": 200,
         "delayMs": 24000,
         "text": {
-          "id": "upstream-e2e-bg24-zcode-three-child-done",
+          "id": "upstream-e2e-bg24-nibi-three-child-done",
           "text": "E2E_BG24_NIBI_THREE_CHILD_DONE"
         }
       }
@@ -3777,7 +3777,7 @@
       }
     },
     {
-      "id": "upstream-background-agent-control-preserve-zcode-one-notification",
+      "id": "upstream-background-agent-control-preserve-nibi-one-notification",
       "description": "BG24: first zcode background Agent completion notification is consumed before the third completion reproducer.",
       "metadata": {
         "kind": "main",
@@ -3810,13 +3810,13 @@
       "response": {
         "statusCode": 200,
         "text": {
-          "id": "upstream-e2e-background-agent-control-preserve-zcode-one-notification",
-          "text": "background-agent-control-preserve-zcode-one-notification-ok"
+          "id": "upstream-e2e-background-agent-control-preserve-nibi-one-notification",
+          "text": "background-agent-control-preserve-nibi-one-notification-ok"
         }
       }
     },
     {
-      "id": "upstream-background-agent-control-preserve-zcode-two-notification",
+      "id": "upstream-background-agent-control-preserve-nibi-two-notification",
       "description": "BG24: second zcode background Agent completion notification is consumed before the third completion reproducer.",
       "metadata": {
         "kind": "main",
@@ -3850,13 +3850,13 @@
         "statusCode": 200,
         "delayMs": 12000,
         "text": {
-          "id": "upstream-e2e-background-agent-control-preserve-zcode-two-notification",
-          "text": "background-agent-control-preserve-zcode-two-notification-ok"
+          "id": "upstream-e2e-background-agent-control-preserve-nibi-two-notification",
+          "text": "background-agent-control-preserve-nibi-two-notification-ok"
         }
       }
     },
     {
-      "id": "upstream-background-agent-control-preserve-zcode-three-notification",
+      "id": "upstream-background-agent-control-preserve-nibi-three-notification",
       "description": "BG24: third zcode background Agent completion notification asks the main model to update todos before the final reply.",
       "metadata": {
         "kind": "main",
@@ -3931,8 +3931,8 @@
         "statusCode": 200,
         "delayMs": 15000,
         "text": {
-          "id": "upstream-e2e-background-agent-control-preserve-zcode-notification",
-          "text": "background-agent-control-preserve-zcode-notification-ok"
+          "id": "upstream-e2e-background-agent-control-preserve-nibi-notification",
+          "text": "background-agent-control-preserve-nibi-notification-ok"
         }
       }
     },

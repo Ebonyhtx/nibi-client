@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createPluginSyncService } from "../src/plugin-sync/pluginSyncService.js";
 
 function makeHome() {
-  return mkdtempSync(join(tmpdir(), "zcode-plugin-sync-home-"));
+  return mkdtempSync(join(tmpdir(), "nibi-plugin-sync-home-"));
 }
 
 async function writeNibiUserConfig(

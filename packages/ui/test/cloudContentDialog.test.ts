@@ -46,7 +46,7 @@ describe("CloudContentDialog", () => {
             ...payload.dialog,
             hero: {
               type: "interactive_bundle",
-              runtime: "zcode-hero-sandbox-v1",
+              runtime: "nibi-hero-sandbox-v1",
               resolvedUrl: "https://example.com/hero.html",
               data: {},
             },

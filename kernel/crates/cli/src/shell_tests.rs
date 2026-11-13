@@ -382,7 +382,7 @@ mod system {
         );
         // 裸名字：access 按 cwd 找不到，`bash --version` 按 PATH 找到、退出码 0。
         assert!(system.executable("bash").await);
-        assert!(!system.executable("zcode-no-such-shell").await);
+        assert!(!system.executable("nibi-no-such-shell").await);
     }
 }
 

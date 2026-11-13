@@ -25,7 +25,7 @@ it.each([
 ])(
   "persists real ToolSearch completion and cold resumes ($streaming, force=$force)",
   async ({ streaming, force }) => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-toolsearch-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-toolsearch-"));
     const dbPath = join(root, "session.sqlite");
     let store = await createSqliteSessionStore({ dbPath });
     const sessionId = createSessionId("toolsearch-cold");

@@ -74,7 +74,7 @@ export async function assertZodBundleIdentity(metafile, { workingDirectory, expe
 
 export function createZodDedupePlugin({ expectedV4Version }) {
   return {
-    name: "zcode-zod-dedupe",
+    name: "nibi-zod-dedupe",
     setup(builder) {
       const packages = new Map();
       const cache = new Map();

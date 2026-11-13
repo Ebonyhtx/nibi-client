@@ -61,7 +61,7 @@ describe("protocol slash command surface", () => {
   });
 
   it("expands prompt custom commands without taking over reserved builtins", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-custom-command-prompt-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-custom-command-prompt-"));
     const workspace = join(tempRoot, "workspace");
     const home = join(tempRoot, "home");
     const userCommands = join(home, ".nibi", "commands");
@@ -175,7 +175,7 @@ describe("protocol slash command surface", () => {
   });
 
   it("hands plugin command shell blocks to the model without running them", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-plugin-command-shell-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-plugin-command-shell-"));
     const workspace = join(tempRoot, "workspace");
     const pluginRoot = join(tempRoot, "ralph-loop");
     const commandsRoot = join(pluginRoot, "commands");
@@ -235,7 +235,7 @@ describe("protocol slash command surface", () => {
   });
 
   it("holds back shell blocks whose variables only a skill or bash environment can provide", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-command-shell-missing-context-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-command-shell-missing-context-"));
     const workspace = join(tempRoot, "workspace");
     const home = join(tempRoot, "home");
     const userCommands = join(home, ".nibi", "commands");

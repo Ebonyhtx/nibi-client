@@ -8,7 +8,7 @@
 回滚后恢复以下历史语义：
 
 - Desktop、Host 和 bundled Agent 的默认用户数据目录统一为 `~/.nibi`。
-- 不再根据源码开发、Stable 或 Preview 选择 `.zcode-dev`、`.zcode-beta` 等目录。
+- 不再根据源码开发、Stable 或 Preview 选择 `.nibi-dev`、`.nibi-beta` 等目录。
 - 设置页的 `dataBaseDir` 仍只通过既有 `NIBI_DATA_BASE_DIR` 传给 Host，用于 App 数据迁移。
 - Host 不向子进程注入 `NIBI_STORAGE_PROFILE`、`NIBI_STORAGE_DIR` 或 `NIBI_HOME`。
 - 用户级 session、plugins、agents、commands、skills、logs 和 rollout 继续沿用既有
@@ -23,7 +23,7 @@ session、插件、子智能体和命令同时缺失。3.7.2 只在 Agent spawn 
 Host/UI 与 Agent 分别读取两套目录，不能完整恢复历史数据。
 
 回滚实现还必须同时清理所有已删除 storage profile 模块的 import，并让保留的 E2E 路径
-helper 明确返回隔离 HOME 下的 `.zcode`。只恢复调用点而遗留 `zcode-storage-root` 的静态
+helper 明确返回隔离 HOME 下的 `.zcode`。只恢复调用点而遗留 `nibi-storage-root` 的静态
 引用，会导致 bundled Agent CLI 在 TypeScript 构建阶段失败；删除 E2E helper 的旧导出却
 保留调用方，则会让仓库 typecheck 失败。
 

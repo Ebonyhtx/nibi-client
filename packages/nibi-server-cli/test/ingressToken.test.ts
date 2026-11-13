@@ -7,7 +7,7 @@ import { resolveServerLayout } from "../src/runtime/paths.js";
 
 describe("Server ingress token", () => {
   it("rotates a random 0600 token inside the Server run directory", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-ingress-token-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-ingress-token-"));
     const layout = resolveServerLayout(join(root, "server"));
     await mkdir(layout.runDir, { recursive: true });
 

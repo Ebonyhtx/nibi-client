@@ -141,7 +141,7 @@ BrowserViewReady --------------------> <webview> -> attachGuest -> CDP ready
 ### 5.4 图谱漂移
 
 现有功能图已声明 Browser tab 在面板折叠、切换对话后保持挂载，但没有声明自动化主视图可以在不展示
-Side Pane 时触发后台 Browser Use。实现前把该已确认关系补到 `zcode-feature-graph.yaml`。
+Side Pane 时触发后台 Browser Use。实现前把该已确认关系补到 `nibi-feature-graph.yaml`。
 
 ## 6. 实现合同
 

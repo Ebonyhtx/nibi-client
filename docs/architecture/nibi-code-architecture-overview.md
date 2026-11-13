@@ -13,8 +13,8 @@ Electron App
    ├─ Renderer
    └─ Window Host（唯一 PID）
       ├─ LocalSource
-      │  ├─ workspaceKey A ── stdio ── zcode-cli A
-      │  └─ workspaceKey B ── stdio ── zcode-cli B
+      │  ├─ workspaceKey A ── stdio ── nibi-cli A
+      │  └─ workspaceKey B ── stdio ── nibi-cli B
       ├─ RemoteConnectionRegistry
       │  ├─ SSH / WSL pooled connection
       │  ├─ Docker / Server dedicated connection
@@ -45,7 +45,7 @@ Electron App
 
 真实窗口关闭、app quit 和 update install 只等待该窗口唯一 Host；Host 内部对 attachment、远端 registry 和本地 services 做有界释放。手机 attachment 断开只释放 attachment，不进入 Host shutdown 屏障。
 
-### zcode-cli
+### nibi-cli
 
 每个 workspaceKey 最多一个聊天 CLI 进程。CLI 承载 session/core runtime、V4 command inbox、幂等/CAS 裁决、ProductProjection reducer、conversation topic、queue、goal、interaction、tool 与模型运行态。
 

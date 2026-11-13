@@ -26,7 +26,7 @@ const INPUT_SCHEMA = {
 it.each(["file", "manifest"] as const)(
   "keeps plugin alwaysLoad tools in the first Anthropic request (%s)",
   async (source) => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-schema-wire-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-schema-wire-"));
     const mcp = createMcpAdapter({ workingDirectory: root });
     const rpcMethods: string[] = [];
     const server = createServer(async (request, response) => {

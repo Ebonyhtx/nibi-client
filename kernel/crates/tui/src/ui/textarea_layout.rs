@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/textarea.rs（feat/rs 79b6691c55），按 400 行上限拆出。
+// 复制自 apps/nibi-host/crates/tui/src/ui/textarea.rs（feat/rs 79b6691c55），按 400 行上限拆出。
 //! 编辑区按宽度折行后的位置计算：行、光标位置、上下移动、点击定位与按单位选择。
 use unicode_width::UnicodeWidthChar;
 

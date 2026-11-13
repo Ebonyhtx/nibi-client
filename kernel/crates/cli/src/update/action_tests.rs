@@ -125,7 +125,7 @@ async fn a_handoff_writes_the_version_and_runs_nothing() {
     let dir = tempfile::tempdir().unwrap();
     fake_manager(dir.path(), "npm");
     let args = dir.path().join("args");
-    let handoff = dir.path().join("zcode-update-1.json");
+    let handoff = dir.path().join("nibi-update-1.json");
     let vars = env(&[
         ("PATH", format!("{}:/usr/bin:/bin", dir.path().display())),
         ("FAKE_ARGS", args.display().to_string()),

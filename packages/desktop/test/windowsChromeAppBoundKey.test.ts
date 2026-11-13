@@ -19,7 +19,7 @@ const execFileAsync = promisify(execFile);
 let tempRoot = "";
 
 beforeEach(async () => {
-  tempRoot = await mkdtemp(join(tmpdir(), "zcode-app-bound-test-"));
+  tempRoot = await mkdtemp(join(tmpdir(), "nibi-app-bound-test-"));
   vi.clearAllMocks();
 });
 
@@ -29,7 +29,7 @@ afterEach(async () => {
 
 async function createFixture(): Promise<{ helperPath: string; userDataDir: string }> {
   const helperRoot = join(tempRoot, "browser-import");
-  const helperPath = join(helperRoot, "zcode-browser-import-helper.exe");
+  const helperPath = join(helperRoot, "nibi-browser-import-helper.exe");
   const userDataDir = join(tempRoot, "User Data");
   await mkdir(helperRoot, { recursive: true });
   await mkdir(userDataDir, { recursive: true });
@@ -70,7 +70,7 @@ describe("windowsChromeAppBoundKey", () => {
       "powershell.exe",
     );
     const commandPath = process.env.COMSPEC ?? "C:\\Windows\\System32\\cmd.exe";
-    const marker = "zcode-native-helper-ok";
+    const marker = "nibi-native-helper-ok";
     const { stdout } = await execFileAsync(
       powershellPath,
       createEncodedPowerShellArgs(

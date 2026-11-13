@@ -33,7 +33,7 @@ pub(crate) struct ProcessEditor {
     /// `$VISUAL` / `$EDITOR`（去掉首尾空白，空的当没有）。
     visual: Option<String>,
     editor: Option<String>,
-    /// 临时文件所在的本用户私有目录（`<临时目录>/zcode-<uid>`，proc `private::user_dir`）。
+    /// 临时文件所在的本用户私有目录（`<临时目录>/nibi-<uid>`，proc `private::user_dir`）。
     temp_dir: PathBuf,
     /// 临时文件名里的 uuid（F7：经入口的 `NodeIds`，不直接 `Uuid::new_v4`）。
     ids: Arc<NodeIds>,

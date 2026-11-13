@@ -20,7 +20,7 @@ test("counts empty files and trailing newlines consistently", () => {
 });
 
 test("collects TypeScript files and skips generated directories and excluded packages", async (t) => {
-  const root = await mkdtemp(join(tmpdir(), "zcode-count-ts-lines-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-count-ts-lines-"));
   t.after(() => rm(root, { force: true, recursive: true }));
 
   await mkdir(join(root, "packages", "core", "src"), { recursive: true });
@@ -60,7 +60,7 @@ test("identifies colocated and directory-based test files", () => {
 });
 
 test("formats measurements by descending line count", async (t) => {
-  const root = await mkdtemp(join(tmpdir(), "zcode-count-ts-lines-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-count-ts-lines-"));
   t.after(() => rm(root, { force: true, recursive: true }));
 
   await mkdir(join(root, "src"), { recursive: true });

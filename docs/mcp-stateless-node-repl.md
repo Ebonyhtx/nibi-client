@@ -160,7 +160,7 @@ BrowserControl/desktop guest manager: tab/page authority
   真实 tool result 中的动态 stable tab id 执行 `tabs.get`。每次工具终态先断言 completed 和结果 marker，
   V4 投影滞后时以模型收到的 `tool_result.is_error` 为准；`ReferenceError` 等失败必须在工具边界直接
   暴露，不能退化成后续 UI 或 provider matcher 超时。
-- 同 workspace 两个 session 只保留一个稳定 `zcode-node-repl-mcp` frontend/PID；A/B 的 global、
+- 同 workspace 两个 session 只保留一个稳定 `nibi-node-repl-mcp` frontend/PID；A/B 的 global、
   module dirs、tool result、权限和 tab 隔离。
 - `tools/list` 仍要求 title；直接 runtime call 接受 code-only。
 - `control-browser` 与 Browser API 文档保留升级前全部非状态 guidance；只替换 persistent/fresh、

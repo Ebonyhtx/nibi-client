@@ -20,7 +20,7 @@ describe("Linux 自动更新下载集成", () => {
     [RpmUpdater, "rpm"],
     [PacmanUpdater, "pkg.tar.zst"],
   ] as const)("%s 下载 %s 并写入可安装缓存", async (Updater, extension) => {
-    const directory = await mkdtemp(join(tmpdir(), "zcode-update-"));
+    const directory = await mkdtemp(join(tmpdir(), "nibi-update-"));
     const content = Buffer.from("ZCT-2100231841920471040 update download fixture");
     const checksum = createHash("sha512").update(content).digest("base64");
     const requests: string[] = [];

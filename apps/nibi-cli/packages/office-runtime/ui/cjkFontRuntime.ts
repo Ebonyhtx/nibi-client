@@ -12,7 +12,7 @@ import {
 } from "#ui/cjkFonts.ts";
 
 /**
- * Registers the `zcode-cjk-*` faces and the bundled fallback for the PDF canvas. scripts/build.mjs
+ * Registers the `nibi-cjk-*` faces and the bundled fallback for the PDF canvas. scripts/build.mjs
  * patches pdf.js so the canvas asks `pdfTypeface` for every font it sets.
  */
 
@@ -20,7 +20,7 @@ let prepared: Promise<void> | undefined;
 let fallbackReady = false;
 
 /**
- * Look up the installed fonts behind every `zcode-cjk-*` face (local() only, nothing is
+ * Look up the installed fonts behind every `nibi-cjk-*` face (local() only, nothing is
  * downloaded); with no CJK font installed at all, load the bundled fallback instead. Runs before a
  * PDF opens: the canvas never waits for a font, so every face must be ready before the first page
  * is drawn.
@@ -48,7 +48,7 @@ export function prepareCjkFonts(): Promise<void> {
   })());
 }
 
-/** Register the bundled Noto Sans SC slices as `zcode-cjk-fallback`; false when that failed. */
+/** Register the bundled Noto Sans SC slices as `nibi-cjk-fallback`; false when that failed. */
 async function loadFallback(): Promise<boolean> {
   try {
     const manifest = JSON.parse(await readText(FALLBACK_MANIFEST)) as {
@@ -70,7 +70,7 @@ async function loadFallback(): Promise<boolean> {
 
 /**
  * The CSS font-family list for a font the PDF canvas sets. `css` is pdf.js's own list; fonts pdf.js
- * has no file for get the `zcode-cjk-*` faces before its generic family.
+ * has no file for get the `nibi-cjk-*` faces before its generic family.
  */
 export function pdfTypeface(font: PdfFontLike, css: string): string {
   return withCjkFamilies(css, cjkFamilies(font, fallbackReady));

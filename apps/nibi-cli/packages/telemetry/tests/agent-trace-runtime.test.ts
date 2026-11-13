@@ -308,7 +308,7 @@ describe("AgentExecutionTelemetryRuntime V5", () => {
           causationMode: "child",
           context: {
             actorKind: "subagent",
-            agentName: "zcode-general-purpose",
+            agentName: "nibi-general-purpose",
             launchSurface: "desktop",
             parentSessionId: "session-1",
             sessionId: "session-child",
@@ -391,7 +391,7 @@ describe("AgentExecutionTelemetryRuntime V5", () => {
       causationMode: "linked_root",
       context: {
         actorKind: "subagent",
-        agentName: "zcode-general-purpose",
+        agentName: "nibi-general-purpose",
         launchSurface: "desktop",
         parentSessionId: "session-1",
         sessionId: "session-background",

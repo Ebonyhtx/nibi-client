@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const tempHomes: string[] = [];
 
 function makeTempHome(): string {
-  const home = mkdtempSync(join(tmpdir(), "zcode-telemetry-delivery-"));
+  const home = mkdtempSync(join(tmpdir(), "nibi-telemetry-delivery-"));
   tempHomes.push(home);
   return home;
 }

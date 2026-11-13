@@ -66,34 +66,34 @@ describe("cjkFamilies", () => {
   });
 
   it("uses the name first, then the PDF's serif flag, Simplified Chinese by default", () => {
-    expect(cjkFamilies(font("SimSun"), false)).toEqual(["zcode-cjk-sc-serif"]);
-    expect(cjkFamilies(font("Unknown", "serif"), false)).toEqual(["zcode-cjk-sc-serif"]);
-    expect(cjkFamilies(font("Unknown"), false)).toEqual(["zcode-cjk-sc-sans"]);
-    expect(cjkFamilies(font("HeiseiMin-W3"), false)).toEqual(["zcode-cjk-jp-serif"]);
+    expect(cjkFamilies(font("SimSun"), false)).toEqual(["nibi-cjk-sc-serif"]);
+    expect(cjkFamilies(font("Unknown", "serif"), false)).toEqual(["nibi-cjk-sc-serif"]);
+    expect(cjkFamilies(font("Unknown"), false)).toEqual(["nibi-cjk-sc-sans"]);
+    expect(cjkFamilies(font("HeiseiMin-W3"), false)).toEqual(["nibi-cjk-jp-serif"]);
   });
 
   it("falls back from kai / fang to the serif face, then to the bundled font", () => {
     expect(cjkFamilies(font("KaiTi"), true)).toEqual([
-      "zcode-cjk-sc-kai",
-      "zcode-cjk-sc-serif",
-      "zcode-cjk-fallback",
+      "nibi-cjk-sc-kai",
+      "nibi-cjk-sc-serif",
+      "nibi-cjk-fallback",
     ]);
   });
 });
 
 describe("withCjkFamilies", () => {
   it("inserts the families before the trailing generic family", () => {
-    expect(withCjkFamilies('"SimSun",g_d0_s1,sans-serif', ["zcode-cjk-sc-serif"])).toBe(
-      '"SimSun",g_d0_s1,"zcode-cjk-sc-serif",sans-serif',
+    expect(withCjkFamilies('"SimSun",g_d0_s1,sans-serif', ["nibi-cjk-sc-serif"])).toBe(
+      '"SimSun",g_d0_s1,"nibi-cjk-sc-serif",sans-serif',
     );
-    expect(withCjkFamilies('"g_d0_f2", serif', ["zcode-cjk-sc-serif"])).toBe(
-      '"g_d0_f2","zcode-cjk-sc-serif",serif',
+    expect(withCjkFamilies('"g_d0_f2", serif', ["nibi-cjk-sc-serif"])).toBe(
+      '"g_d0_f2","nibi-cjk-sc-serif",serif',
     );
   });
 
   it("appends when the chain has no generic family", () => {
-    expect(withCjkFamilies('"SimSun",g_d0_s1', ["zcode-cjk-sc-serif"])).toBe(
-      '"SimSun",g_d0_s1,"zcode-cjk-sc-serif"',
+    expect(withCjkFamilies('"SimSun",g_d0_s1', ["nibi-cjk-sc-serif"])).toBe(
+      '"SimSun",g_d0_s1,"nibi-cjk-sc-serif"',
     );
   });
 

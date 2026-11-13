@@ -297,10 +297,10 @@ function AssistantPreviewCardRow({
         <div
           className="relative flex w-full items-center gap-3 rounded-xl border border-card-border bg-card p-3 pr-4 text-foreground"
           data-preview-card-title={card.title}
-          data-zcode-stream-animate="true"
+          data-nibi-stream-animate="true"
           style={
             {
-              "--zcode-stream-animation-delay": `${animationDelayMs}ms`,
+              "--nibi-stream-animation-delay": `${animationDelayMs}ms`,
             } as CSSProperties
           }
         >

@@ -4,7 +4,7 @@
 
 2026-09-16：插件市场、插件管理 User 视图共用“添加”菜单，只有“创建插件”和“添加插件市场”两项；不提供录制技能。Workspace 配置视图不出现市场写入入口，空态“浏览插件”保持原行为。
 
-创建插件只打开新任务草稿，预填官方 `plugin-creator@zcode-plugins-official` 所提供的 `plugin-creator` Skill canonical 引用和一个尾空格。不自动发送，不切换模型，不安装或启用插件。使用标准 Root 新任务编排及其草稿持久化。
+创建插件只打开新任务草稿，预填官方 `plugin-creator@nibi-plugins-official` 所提供的 `plugin-creator` Skill canonical 引用和一个尾空格。不自动发送，不切换模型，不安装或启用插件。使用标准 Root 新任务编排及其草稿持久化。
 
 ```text
 点击创建 -> 解析 Root 新任务目标 -> 该 workspace 的 skillsService.list
@@ -72,7 +72,7 @@ Skill 按 scaffold -> optional components -> validate -> install/update 流程�
 | creator-dev-workflow | 实际 CLI 创建、登记、安装、版本更新 | available/installed ID 与版本一致；安装目录与源码分离；内容更新生效且保留显式禁用 |
 | creator-manual-handoff | 无 CLI/Node、首次添加、已有插件更新、取消/失败 | 给出真实目录与界面步骤；无自动登记安装；不编造安装引用；未完成状态明确 |
 
-UI/草稿 owner：管理和商店组件负责展示/入口，Root 负责新任务，Composer draft store 负责预填事实；Skill/Plugin 内容以目标 host discovery 为准。共享菜单、prefill builder 和两处搜索是 must-inspect，runtime 是 invariant-only。Codegraph 已用于旧工作区定位；实现工作区未建索引，按已定位文件读当前源码。架构门禁的 ui/zcode-cli 当前非 managed，门禁通过不能替代语义检查。
+UI/草稿 owner：管理和商店组件负责展示/入口，Root 负责新任务，Composer draft store 负责预填事实；Skill/Plugin 内容以目标 host discovery 为准。共享菜单、prefill builder 和两处搜索是 must-inspect，runtime 是 invariant-only。Codegraph 已用于旧工作区定位；实现工作区未建索引，按已定位文件读当前源码。架构门禁的 ui/nibi-cli 当前非 managed，门禁通过不能替代语义检查。
 
 对应 E2E 保留在 plugins/manual-review/pending，需人工审核后另行转正；桌面宽屏中文浅色、窄屏英文深色覆盖展示，远控身份用定向单测覆盖，未运行真实手机/SSH 时必须列为待验。
 
@@ -98,4 +98,4 @@ UI/草稿 owner：管理和商店组件负责展示/入口，Root 负责新任�
 
 ## 插件创建器图标
 
-官方 `plugin-creator@zcode-plugins-official` 在商店卡片、已安装条、详情与管理列表使用本地 `packages/ui/src/assets/plugin-icons/plugin-creator.png`：蓝色渐变圆角积木与白色加号，透明底，延续现有文档插件图标风格。既有缓存中的旧图片由该官方身份的本地图标覆盖，其他市场同名插件保留自己的 listing 图标。
+官方 `plugin-creator@nibi-plugins-official` 在商店卡片、已安装条、详情与管理列表使用本地 `packages/ui/src/assets/plugin-icons/plugin-creator.png`：蓝色渐变圆角积木与白色加号，透明底，延续现有文档插件图标风格。既有缓存中的旧图片由该官方身份的本地图标覆盖，其他市场同名插件保留自己的 listing 图标。

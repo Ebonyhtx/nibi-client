@@ -319,7 +319,7 @@ async fn a_late_subscriber_folds_the_same_screen_from_fewer_events() {
     std::fs::create_dir_all(&home).unwrap();
     std::fs::create_dir_all(&root).unwrap();
     let (release, paused) = oneshot::channel();
-    let kernel = kernel(home, base.join("zcode-shell"), paused);
+    let kernel = kernel(home, base.join("nibi-shell"), paused);
     let workspace = WorkspaceRef {
         environment: EnvironmentId::new("local"),
         root: EnvPath::new(root.to_string_lossy()),

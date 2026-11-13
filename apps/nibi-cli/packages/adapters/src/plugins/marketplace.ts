@@ -1792,7 +1792,7 @@ async function clonePluginSource(
   sha?: string,
   signal?: AbortSignal,
 ): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-src-"));
+  const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-src-"));
   const args = ["clone"];
   if (!sha) args.push("--depth", "1");
   if (ref) args.push("--branch", ref);
@@ -2047,7 +2047,7 @@ async function cloneMarketplaceSource(
   sparsePaths: string[] | undefined,
   signal?: AbortSignal,
 ): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-marketplace-src-"));
+  const dir = await mkdtemp(join(tmpdir(), "nibi-marketplace-src-"));
   const args = ["clone", "--depth", "1"];
   if (ref) args.push("--branch", ref);
   if (sparsePaths?.length) args.push("--filter=blob:none", "--sparse");

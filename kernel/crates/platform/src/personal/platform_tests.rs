@@ -48,7 +48,7 @@ fn subscribed() -> Reply {
     )
 }
 
-/// 假账号服务：customerInfo 是 golden 的那一份（App 生成 golden 时的回复），key 列表里没有 `zcode-api-key`（要创建），
+/// 假账号服务：customerInfo 是 golden 的那一份（App 生成 golden 时的回复），key 列表里没有 `nibi-api-key`（要创建），
 /// 签发依次给 `pat-1`、`pat-2`……；订阅列表按 `subscriptions` 依次回复（最后一个一直用）；没有团队。
 struct App {
     subscriptions: Mutex<Vec<Reply>>,
@@ -80,7 +80,7 @@ impl App {
                 ok(json!([{"name": "other", "apiKey": "key-0"}]))
             }
             ("POST", "/api/biz/v1/organization/org-1/projects/p-1/api_keys") => {
-                ok(json!({"name": "zcode-api-key", "apiKey": "key-1"}))
+                ok(json!({"name": "nibi-api-key", "apiKey": "key-1"}))
             }
             (
                 "POST",
@@ -174,7 +174,7 @@ async fn zai_login(harness: &Harness, user: &str, token: &str) {
     harness
         .write_credentials(&json!({
             "oauth:zai:access_token": token,
-            "zcodejwttoken": "zcode-jwt",
+            "zcodejwttoken": "nibi-jwt",
             "oauth:zai:user_info": json!({"user_id": user, "name": "Dev"}).to_string(),
             "oauth:active_provider": "zai",
         }))
@@ -472,7 +472,7 @@ async fn a_rejected_token_is_not_retried_after_the_zcode_jwt_changed() {
     // App 的账号范围含 zcodejwttoken：它变了之后，旧令牌的 401 不拿新范围重发。
     harness
         .store()
-        .mutate(|credentials| credentials.set("zcodejwttoken", "zcode-jwt-2"))
+        .mutate(|credentials| credentials.set("zcodejwttoken", "nibi-jwt-2"))
         .await
         .unwrap();
     let message = match harness

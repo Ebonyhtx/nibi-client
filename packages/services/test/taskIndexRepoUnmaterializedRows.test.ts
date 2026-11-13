@@ -28,7 +28,7 @@ function realTask(overrides: Partial<NibiTaskMeta> = {}): NibiTaskMeta {
 }
 
 beforeEach(async () => {
-  tempDir = await mkdtemp(join(tmpdir(), "zcode-task-index-placeholder-"));
+  tempDir = await mkdtemp(join(tmpdir(), "nibi-task-index-placeholder-"));
   setDataBaseDir(tempDir);
   repo = new TaskIndexRepo();
 });

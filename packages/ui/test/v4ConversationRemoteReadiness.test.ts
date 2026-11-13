@@ -432,7 +432,7 @@ describe("V4ConversationProvider remote readiness", () => {
     const root = createRoot(container);
     mountedRoots.push(root);
     const local = makePreviewServices("local-preview");
-    const createLocalMediaPreviewUrl = vi.fn(() => "zcode-media://local/preview");
+    const createLocalMediaPreviewUrl = vi.fn(() => "nibi-media://local/preview");
     const platform = { createLocalMediaPreviewUrl } as unknown as IPlatformService;
     let attachmentRead: V4ConversationContextValue["attachmentRead"] | undefined;
     registerBaseWorkspaceServices(local.services);
@@ -461,7 +461,7 @@ describe("V4ConversationProvider remote readiness", () => {
         ref: "/workspace/local/demo.mp4",
         mediaType: "video/mp4",
       }),
-    ).resolves.toEqual({ url: "zcode-media://local/preview", mediaType: "video/mp4" });
+    ).resolves.toEqual({ url: "nibi-media://local/preview", mediaType: "video/mp4" });
     expect(local.attachmentPreviewSourceV4).toHaveBeenCalledOnce();
     expect(local.attachmentReadV4).not.toHaveBeenCalled();
   });
@@ -472,7 +472,7 @@ describe("V4ConversationProvider remote readiness", () => {
     mountedRoots.push(root);
     const baseServices = makeServices("base-remote-preview");
     const remote = makePreviewServices("remote-preview");
-    const createLocalMediaPreviewUrl = vi.fn(() => "zcode-media://local/wrong-host");
+    const createLocalMediaPreviewUrl = vi.fn(() => "nibi-media://local/wrong-host");
     const platform = { createLocalMediaPreviewUrl } as unknown as IPlatformService;
     const workspaceIdentity = "remote:ssh:dev:/remote/work";
     const remoteSessionId = "remote-session-preview";

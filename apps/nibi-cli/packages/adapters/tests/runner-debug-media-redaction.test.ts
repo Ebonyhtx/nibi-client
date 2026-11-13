@@ -17,7 +17,7 @@ describe("model-io media dataUrl redaction", () => {
   let debugDir: string;
 
   beforeEach(async () => {
-    debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-media-"));
+    debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-media-"));
   });
 
   afterEach(async () => {

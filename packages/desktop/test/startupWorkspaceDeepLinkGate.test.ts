@@ -143,7 +143,7 @@ describe("startup workspace deep link gate", () => {
 });
 
 function createTempWorkspace(): string {
-  const dir = mkdtempSync(join(tmpdir(), "zcode-startup-deep-link-"));
+  const dir = mkdtempSync(join(tmpdir(), "nibi-startup-deep-link-"));
   tempDirs.push(dir);
   return dir;
 }

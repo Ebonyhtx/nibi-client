@@ -34,7 +34,7 @@ function bytesOf(text: string): Uint8Array {
 }
 
 beforeEach(async () => {
-  tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-artifact-file-"));
+  tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-artifact-file-"));
   setDataBaseDir(tempRoot);
 });
 

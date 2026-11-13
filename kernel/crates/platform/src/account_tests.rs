@@ -184,7 +184,7 @@ async fn request_credentials_follow_the_login_source() {
             r#"{"id":"u-big","username":"a","displayName":"A"}"#,
         ),
         ("oauth:bigmodel:access_token", "at"),
-        ("zcodejwttoken", "zcode-jwt"),
+        ("zcodejwttoken", "nibi-jwt"),
     ])
     .await;
     // 手工 key 盖过 App 的 OAuth 登录。
@@ -205,7 +205,7 @@ async fn request_credentials_follow_the_login_source() {
             login.access_token.expose(),
             login.zcode_jwt.as_ref().map(RedactedString::expose)
         ),
-        ("u-big", "at", Some("zcode-jwt"))
+        ("u-big", "at", Some("nibi-jwt"))
     );
     let other = request_auth(&manual, "account:zai-start-plan", "zai", "start-plan");
     assert!(matches!(other, Err(ModelError::Authentication { .. })));

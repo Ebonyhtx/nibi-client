@@ -106,7 +106,7 @@ def _render_document(fragment: str, title: str) -> str:
 html>body{{padding:0}}</style>
 </head>
 <body>
-<script type="application/json" id="zcode-visualization-widget-state">__NIBI_VISUALIZATION_WIDGET_STATE__</script>
+<script type="application/json" id="nibi-visualization-widget-state">__NIBI_VISUALIZATION_WIDGET_STATE__</script>
 <script>{host_bridge}</script>
 {inner_html}
 </body>
@@ -123,7 +123,7 @@ html>body{{padding:0}}</style>
 <style>:root{{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}}html,body{{margin:0}}body{{box-sizing:border-box;padding:1rem;background:inherit}}iframe{{display:block;width:100%;height:calc(100vh - 2rem);margin:0 auto;border:0}}</style>
 </head>
 <body>
-<iframe id="zcode-visualization" sandbox="allow-scripts" referrerpolicy="no-referrer" title="{document_title}" data-srcdoc="{escape(frame_html)}"></iframe>
+<iframe id="nibi-visualization" sandbox="allow-scripts" referrerpolicy="no-referrer" title="{document_title}" data-srcdoc="{escape(frame_html)}"></iframe>
 <script>{shell}</script>
 </body>
 </html>

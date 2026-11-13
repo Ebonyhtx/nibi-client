@@ -15,7 +15,7 @@ let repo: TaskIndexRepo;
 let tempDir: string;
 
 beforeEach(async () => {
-  tempDir = await mkdtemp(join(tmpdir(), "zcode-task-index-unread-cas-"));
+  tempDir = await mkdtemp(join(tmpdir(), "nibi-task-index-unread-cas-"));
   setDataBaseDir(tempDir);
   repo = new TaskIndexRepo();
 });

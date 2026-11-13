@@ -345,7 +345,7 @@ async function createCredentials(secret: string): Promise<{
   credentialStore: SharedNibiCredentialStore;
   credentialsPath: string;
 }> {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-cross-process-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-mcp-oauth-cross-process-"));
   temporaryDirectories.push(directory);
   const credentialsPath = join(directory, "credentials.json");
   return {

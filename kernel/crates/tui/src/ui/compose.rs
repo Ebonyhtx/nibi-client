@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/compose.rs（feat/rs 79b6691c55）：投递方式
+// 改写自 apps/nibi-host/crates/tui/src/ui/compose.rs（feat/rs 79b6691c55）：投递方式
 // （docs/specs/rust-cli/tui.md §5.1）；去掉任务面板、子代理与回退编辑。输入能力的键在 `compose_input.rs`
 // （tui-input.md）。
 //! 输入框与全局键：编辑键与撤销、发送（运行中 enter 插话）、esc / ctrl+c / ctrl+d 的连按、输入历史、

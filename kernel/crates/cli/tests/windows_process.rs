@@ -287,7 +287,7 @@ fn the_update_is_handed_to_the_launcher() {
         "Error: Cannot update NIBI while it is running on Windows. Please run `npm install -g @nibi/cli` after it exits.\n"
     );
     assert!(output.stdout.is_empty(), "{output:?}");
-    let handoff = sandbox.base.join("zcode-update-handoff.json");
+    let handoff = sandbox.base.join("nibi-update-handoff.json");
     let handoff_text = handoff.display().to_string();
     let output = run(&[("NIBI_MANAGED_UPDATE_HANDOFF", &handoff_text)]);
     assert_eq!(output.status.code(), Some(0), "{output:?}");

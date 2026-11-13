@@ -231,7 +231,7 @@ describe("readWebRemoteReplayableSessionConfigOptions", () => {
   it("resumes with the historical model before reading active mobile task toolbar settings", async () => {
     const calls: string[] = [];
     const historicalModel = {
-      providerId: "china-llm-zcode-dev:demo",
+      providerId: "china-llm-nibi-dev:demo",
       modelId: "deepseek-v4-flash",
     };
     const nibiSessionService = {

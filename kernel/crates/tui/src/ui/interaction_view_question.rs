@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/interaction_view_question.rs（feat/rs 79b6691c55）：输入换成
+// 改写自 apps/nibi-host/crates/tui/src/ui/interaction_view_question.rs（feat/rs 79b6691c55）：输入换成
 // `InteractionRequest`，选项的值就是标签。
 //! 提问的排版（docs/specs/rust-tui.md §8.5；选项的画法见 docs/specs/rust-cli/tui.md §7.6，工作线 F74）：多于一题时
 //! 第一行是标签页 `← ☐ 题头  ✔ Submit →`（已答 `☒`，当前页反色）；问题粗体；选项 `❯ 1. 标签` 下面 dim 的说明；最后

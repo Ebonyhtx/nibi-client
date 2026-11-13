@@ -463,7 +463,7 @@ describe("background task control", () => {
   it("aborts a running background subagent and enqueues one stopped notification", async () => {
     const sessionId = createSessionId("background-control-agent-port");
     const turnId = createTurnId("turn_background_control_agent_port");
-    const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-background-control-agent-port-"));
+    const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-background-control-agent-port-"));
     const aborted = deferred();
     let abortObserved = false;
     const notifications: string[] = [];
@@ -555,7 +555,7 @@ describe("background task control", () => {
     const sessionId = createSessionId("background-control-agent-startup-failure");
     const turnId = createTurnId("turn_background_control_agent_startup_failure");
     const outputRootDir = await mkdtemp(
-      join(tmpdir(), "zcode-background-control-agent-startup-failure-"),
+      join(tmpdir(), "nibi-background-control-agent-startup-failure-"),
     );
     const registry = new InMemoryRuntimeTaskRegistry();
     let runCalled = false;
@@ -607,7 +607,7 @@ describe("background task control", () => {
     const sessionId = createSessionId("background-control-agent-stop-finalize-failure");
     const turnId = createTurnId("turn_background_control_agent_stop_final_failure");
     const outputRootDir = await mkdtemp(
-      join(tmpdir(), "zcode-background-control-agent-stop-finalize-failure-"),
+      join(tmpdir(), "nibi-background-control-agent-stop-finalize-failure-"),
     );
     const aborted = deferred();
     let abortObserved = false;
@@ -671,7 +671,7 @@ describe("background task control", () => {
     const sessionId = createSessionId("background-control-agent-resume");
     const turnId = createTurnId("turn_background_control_agent_resume");
     const childSessionId = createSessionId("subagent_agent_resume");
-    const outputRootDir = await mkdtemp(join(tmpdir(), "zcode-background-control-agent-resume-"));
+    const outputRootDir = await mkdtemp(join(tmpdir(), "nibi-background-control-agent-resume-"));
     const agentOutputDir = join(outputRootDir, sessionId, "agent_resume");
     const aborted = deferred();
     const parentEvents: SessionEvent[] = [];

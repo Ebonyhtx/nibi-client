@@ -450,8 +450,8 @@ describe("runtime compact helpers", () => {
   });
 
   it("skips read reminders for files already present in preserved recent Read context", () => {
-    const preservedFile = "/tmp/zcode-compact-preserved-read/src/current.ts";
-    const reminderFile = "/tmp/zcode-compact-preserved-read/src/other.ts";
+    const preservedFile = "/tmp/nibi-compact-preserved-read/src/current.ts";
+    const reminderFile = "/tmp/nibi-compact-preserved-read/src/other.ts";
     const readFileState: ReadFileStateMap = new Map();
     readFileState.set(createReadFileStateKey(preservedFile, 1, undefined), {
       content: "export const preserved = 1;\n",
@@ -508,7 +508,7 @@ describe("runtime compact helpers", () => {
   });
 
   it("uses the file path, not range input JSON, for oversized post-compact read references", () => {
-    const largeFile = "/tmp/zcode-compact-large-read/src/large.ts";
+    const largeFile = "/tmp/nibi-compact-large-read/src/large.ts";
     const readFileState: ReadFileStateMap = new Map();
     readFileState.set(createReadFileStateKey(largeFile, 100, 20), {
       content: "export const large = 1;\n".repeat(100),
@@ -1001,7 +1001,7 @@ describe("AgentRuntime manual compact", () => {
       sessionId,
       {
         systemPrompt: "You are a compact MCP tool cache seed agent.",
-        workingDirectory: "/tmp/zcode-runtime-compact-mcp-tools",
+        workingDirectory: "/tmp/nibi-runtime-compact-mcp-tools",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -1093,7 +1093,7 @@ describe("AgentRuntime manual compact", () => {
       sessionId,
       {
         systemPrompt: "You are a compact tool threshold test agent.",
-        workingDirectory: "/tmp/zcode-runtime-compact-tool-threshold",
+        workingDirectory: "/tmp/nibi-runtime-compact-tool-threshold",
       },
       {
         eventStore,
@@ -1483,7 +1483,7 @@ describe("AgentRuntime manual compact", () => {
       sessionId,
       {
         systemPrompt: "You are a persistence compact test agent.",
-        workingDirectory: "/tmp/zcode-runtime-compact-resume",
+        workingDirectory: "/tmp/nibi-runtime-compact-resume",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -1593,7 +1593,7 @@ describe("AgentRuntime manual compact", () => {
       sessionId,
       {
         systemPrompt: "You are a compact todo test agent.",
-        workingDirectory: "/tmp/zcode-runtime-compact-todos",
+        workingDirectory: "/tmp/nibi-runtime-compact-todos",
       },
       {
         eventStore,
@@ -1686,7 +1686,7 @@ describe("AgentRuntime manual compact", () => {
       sessionId,
       {
         systemPrompt: "You are a compact read-state reminder test agent.",
-        workingDirectory: "/tmp/zcode-runtime-compact-read-state",
+        workingDirectory: "/tmp/nibi-runtime-compact-read-state",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -1722,11 +1722,11 @@ describe("AgentRuntime manual compact", () => {
 
     const readFileState = (runtime as unknown as { readFileState: Map<string, unknown> })
       .readFileState;
-    const smallFile = "/tmp/zcode-runtime-compact-read-state/src/current.ts";
-    const rangeFile = "/tmp/zcode-runtime-compact-read-state/src/range.ts";
-    const largeFile = "/tmp/zcode-runtime-compact-read-state/src/large.ts";
-    const writtenFile = "/tmp/zcode-runtime-compact-read-state/src/written.ts";
-    const planFile = "/tmp/zcode-runtime-compact-read-state/docs/superpowers/plans/secret-plan.md";
+    const smallFile = "/tmp/nibi-runtime-compact-read-state/src/current.ts";
+    const rangeFile = "/tmp/nibi-runtime-compact-read-state/src/range.ts";
+    const largeFile = "/tmp/nibi-runtime-compact-read-state/src/large.ts";
+    const writtenFile = "/tmp/nibi-runtime-compact-read-state/src/written.ts";
+    const planFile = "/tmp/nibi-runtime-compact-read-state/docs/superpowers/plans/secret-plan.md";
     const memoryFile = "/Users/dev/.codex/memories/private-note.md";
     readFileState.set(createReadFileStateKey(smallFile, 1, undefined), {
       content: "export const current = 42;\n",
@@ -1834,7 +1834,7 @@ describe("AgentRuntime manual compact", () => {
       sessionId,
       {
         systemPrompt: "You are a compact persisted read-state reminder test agent.",
-        workingDirectory: "/tmp/zcode-runtime-compact-read-state-resume",
+        workingDirectory: "/tmp/nibi-runtime-compact-read-state-resume",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -1847,7 +1847,7 @@ describe("AgentRuntime manual compact", () => {
 
     const readFileState = (runtime as unknown as { readFileState: Map<string, unknown> })
       .readFileState;
-    const filePath = "/tmp/zcode-runtime-compact-read-state-resume/src/current.ts";
+    const filePath = "/tmp/nibi-runtime-compact-read-state-resume/src/current.ts";
     readFileState.set(createReadFileStateKey(filePath, 1, undefined), {
       content: "export const persisted = 42;\n",
       isPartialView: false,
@@ -2009,7 +2009,7 @@ describe("AgentRuntime manual compact", () => {
       sessionId,
       {
         systemPrompt: "You are a compact recovery test agent.",
-        workingDirectory: "/tmp/zcode-runtime-compact-resume-interrupted",
+        workingDirectory: "/tmp/nibi-runtime-compact-resume-interrupted",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -2046,8 +2046,8 @@ describe("AgentRuntime manual compact", () => {
       mode: "build",
       agent: "nibi-agent",
       path: {
-        cwd: "/tmp/zcode-runtime-compact-resume-interrupted",
-        root: "/tmp/zcode-runtime-compact-resume-interrupted",
+        cwd: "/tmp/nibi-runtime-compact-resume-interrupted",
+        root: "/tmp/nibi-runtime-compact-resume-interrupted",
       },
       cost: 0,
       tokens: {
@@ -2130,7 +2130,7 @@ describe("AgentRuntime manual compact", () => {
       sessionId,
       {
         systemPrompt: "You are a compact retrying recovery test agent.",
-        workingDirectory: "/tmp/zcode-runtime-compact-resume-retrying",
+        workingDirectory: "/tmp/nibi-runtime-compact-resume-retrying",
       },
       {
         eventStore: createTestSessionEventStore(),
@@ -2167,8 +2167,8 @@ describe("AgentRuntime manual compact", () => {
       mode: "build",
       agent: "nibi-agent",
       path: {
-        cwd: "/tmp/zcode-runtime-compact-resume-retrying",
-        root: "/tmp/zcode-runtime-compact-resume-retrying",
+        cwd: "/tmp/nibi-runtime-compact-resume-retrying",
+        root: "/tmp/nibi-runtime-compact-resume-retrying",
       },
       cost: 0,
       tokens: {
@@ -2249,7 +2249,7 @@ describe("AgentRuntime manual compact", () => {
 
   it("does not anchor post-resume compact timelines to preserved pre-compact messages", async () => {
     const sessionId = createSessionId("runtime-compact-resume-preserved-latest-anchor");
-    const workingDirectory = "/tmp/zcode-runtime-compact-resume-preserved-latest-anchor";
+    const workingDirectory = "/tmp/nibi-runtime-compact-resume-preserved-latest-anchor";
     const store = createRecordingSessionStore();
     await store.createSession({
       directory: workingDirectory,
@@ -2410,7 +2410,7 @@ describe("AgentRuntime manual compact", () => {
       sessionId,
       {
         systemPrompt: "You are a compact-after-resume test agent.",
-        workingDirectory: "/tmp/zcode-runtime-compact-after-resume",
+        workingDirectory: "/tmp/nibi-runtime-compact-after-resume",
       },
       {
         eventStore: firstEventStore,
@@ -2925,7 +2925,7 @@ describe("AgentRuntime manual compact", () => {
       sessionId,
       {
         systemPrompt: "You are a compact persistence failure test agent.",
-        workingDirectory: "/tmp/zcode-runtime-compact-persist-fail",
+        workingDirectory: "/tmp/nibi-runtime-compact-persist-fail",
       },
       {
         eventStore,
@@ -2979,7 +2979,7 @@ describe("AgentRuntime manual compact", () => {
       sessionId,
       {
         systemPrompt: "You are a compact reminder persistence failure test agent.",
-        workingDirectory: "/tmp/zcode-runtime-compact-reminder-persist-fail",
+        workingDirectory: "/tmp/nibi-runtime-compact-reminder-persist-fail",
       },
       {
         eventStore,
@@ -3008,8 +3008,8 @@ describe("AgentRuntime manual compact", () => {
 
     const readFileState = (runtime as unknown as { readFileState: Map<string, unknown> })
       .readFileState;
-    const firstFile = "/tmp/zcode-runtime-compact-reminder-persist-fail/src/first.ts";
-    const secondFile = "/tmp/zcode-runtime-compact-reminder-persist-fail/src/second.ts";
+    const firstFile = "/tmp/nibi-runtime-compact-reminder-persist-fail/src/first.ts";
+    const secondFile = "/tmp/nibi-runtime-compact-reminder-persist-fail/src/second.ts";
     readFileState.set(createReadFileStateKey(firstFile, 1, undefined), {
       content: `export const first = "${firstReminderMarker}";\n`,
       isPartialView: false,
@@ -4368,7 +4368,7 @@ describe("AgentRuntime manual compact", () => {
     await runtime.executeTurn("second reactive resume setup");
     const readFileState = (runtime as unknown as { readFileState: Map<string, unknown> })
       .readFileState;
-    const readFilePath = "/tmp/zcode-reactive-compact-resume-tail/src/current.ts";
+    const readFilePath = "/tmp/nibi-reactive-compact-resume-tail/src/current.ts";
     readFileState.set(createReadFileStateKey(readFilePath, 1, undefined), {
       content: "export const reactiveResume = 42;\n",
       isPartialView: false,

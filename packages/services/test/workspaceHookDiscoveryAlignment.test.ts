@@ -8,7 +8,7 @@ import { atomicWriteWorkspaceHookConfig } from "../src/hooks/workspaceHookConfig
 const roots: string[] = [];
 
 function makeRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "zcode-hook-settings-phase1-"));
+  const root = mkdtempSync(join(tmpdir(), "nibi-hook-settings-phase1-"));
   roots.push(root);
   return root;
 }
@@ -49,7 +49,7 @@ describe("workspace hook Settings/Runtime discovery alignment", () => {
       hooks: {
         enabled: true,
         events: {
-          Stop: [{ hooks: [{ type: "command", command: "echo zcode-json" }] }],
+          Stop: [{ hooks: [{ type: "command", command: "echo nibi-json" }] }],
         },
       },
     });
@@ -103,7 +103,7 @@ describe("workspace hook Settings/Runtime discovery alignment", () => {
     const savedCurrent = JSON.parse(readFileSync(join(workspace, ".nibi", "config.json"), "utf8"));
     expect(savedCurrent.hooks.events.SessionStart).toHaveLength(1);
     expect(savedCurrent.hooks.events.Stop).toBeUndefined();
-    expect(readFileSync(join(repo, "nibi.json"), "utf8")).toContain("echo zcode-json");
+    expect(readFileSync(join(repo, "nibi.json"), "utf8")).toContain("echo nibi-json");
   });
 
   it("Settings 只读 discovery 叠加 exact persistent Trust record", async () => {

@@ -196,7 +196,7 @@ let workspace: string;
 let outside: string;
 
 beforeAll(async () => {
-  const root = await mkdtemp(join(tmpdir(), "zcode-dwf-artifact-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-dwf-artifact-"));
   workspace = join(root, "workspace");
   outside = join(root, "outside");
   await mkdir(join(workspace, "out"), { recursive: true });

@@ -19,7 +19,7 @@ vi.mock("../src/host/database-startup/storagePreparationProcesses.js", () => ({
 import { createHostDatabaseStartup } from "../src/host/database-startup/hostDatabaseStartup.js";
 
 it("prepares actual restored working directories before publishing services, without a fake workspace", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-startup-cwd-"));
+  const dir = await mkdtemp(join(tmpdir(), "nibi-startup-cwd-"));
   const sequence: string[] = [];
   fixtures.host.mockImplementation(async () => {
     sequence.push("host");
@@ -49,7 +49,7 @@ it("prepares actual restored working directories before publishing services, wit
 });
 
 it("uses the normal Agent fallback for ENOTDIR and preserves actual database failures", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-startup-invalid-cwd-"));
+  const dir = await mkdtemp(join(tmpdir(), "nibi-startup-invalid-cwd-"));
   const parent = join(dir, "former-directory");
   await writeFile(parent, "now a file");
   const cwd = join(parent, "old-project");
@@ -89,7 +89,7 @@ it("uses the normal Agent fallback for ENOTDIR and preserves actual database fai
 });
 
 it("only marks the last session database as eligible for global saving/finishing", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-startup-final-db-"));
+  const dir = await mkdtemp(join(tmpdir(), "nibi-startup-final-db-"));
   const states: import("@nibi/shared").DatabaseStartupState[] = [];
   const migration = { kind: "upgrade", executedCount: 1, committedCount: 0 };
   fixtures.host.mockImplementation(async (_path, report) => report("committing", migration));

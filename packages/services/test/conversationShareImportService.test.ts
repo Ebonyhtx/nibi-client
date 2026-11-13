@@ -18,8 +18,8 @@ afterEach(async () => {
 
 describe("ConversationShareService import", () => {
   it("installs imported artifacts under the captured local workspace without deleting siblings on failure", async () => {
-    const conversationRoot = await mkdtemp(join(tmpdir(), "zcode-share-import-default-"));
-    const targetRoot = await mkdtemp(join(tmpdir(), "zcode-share-import-target-"));
+    const conversationRoot = await mkdtemp(join(tmpdir(), "nibi-share-import-default-"));
+    const targetRoot = await mkdtemp(join(tmpdir(), "nibi-share-import-target-"));
     roots.push(conversationRoot, targetRoot);
     await writeFile(join(targetRoot, "keep.txt"), "keep", "utf8");
     const apiClient = new ConversationShareMockApiClient({ now: () => 10_000 });
@@ -94,7 +94,7 @@ describe("ConversationShareService import", () => {
   });
 
   it("发布后导入到新 workspace，并把 shared_context 交给原子 session create", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-share-import-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-share-import-"));
     roots.push(root);
     const apiClient = new ConversationShareMockApiClient({ now: () => 10_000 });
     const client = new ConversationShareHttpClient({
@@ -203,7 +203,7 @@ describe("ConversationShareService import", () => {
   });
 
   it("英文界面：标题带 From Share 前缀，但持久化的回链仍是规范 /cn/share/", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-share-import-locale-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-share-import-locale-"));
     roots.push(root);
     const apiClient = new ConversationShareMockApiClient({ now: () => 10_000 });
     const client = new ConversationShareHttpClient({
@@ -284,7 +284,7 @@ describe("ConversationShareService import", () => {
   });
 
   it("落盘公开 rows，并能按 contextId 取回用于只读块", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-share-import-rows-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-share-import-rows-"));
     roots.push(root);
     const apiClient = new ConversationShareMockApiClient({ now: () => 10_000 });
     const client = new ConversationShareHttpClient({
@@ -377,7 +377,7 @@ describe("ConversationShareService import", () => {
   });
 
   it("reuses the completed import for the same client request", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-share-import-dedupe-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-share-import-dedupe-"));
     roots.push(root);
     const apiClient = new ConversationShareMockApiClient({ now: () => 10_000 });
     const client = new ConversationShareHttpClient({
@@ -452,7 +452,7 @@ describe("ConversationShareService import", () => {
 
   it("对象存储把 .md 标成别的 content-type 时仍能导入；SHA-256 不符仍然拒绝", async () => {
     const mdBytes = new TextEncoder().encode("# feature map\n");
-    const root = await mkdtemp(join(tmpdir(), "zcode-share-import-mime-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-share-import-mime-"));
     roots.push(root);
     const apiClient = new ConversationShareMockApiClient({ now: () => 10_000 });
     const client = new ConversationShareHttpClient({
@@ -588,7 +588,7 @@ describe("ConversationShareService import", () => {
 
   it("Content-Length 超过 manifest 声明时在读 body 前中断，不把超大响应读进内存", async () => {
     const mdBytes = new TextEncoder().encode("# feature map\n");
-    const root = await mkdtemp(join(tmpdir(), "zcode-share-import-oversize-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-share-import-oversize-"));
     roots.push(root);
     const apiClient = new ConversationShareMockApiClient({ now: () => 10_000 });
     const client = new ConversationShareHttpClient({
@@ -701,7 +701,7 @@ describe("ConversationShareService import", () => {
 
   it("下载挂住时按超时以 network 失败，不会无限停在 downloading 阶段", async () => {
     const mdBytes = new TextEncoder().encode("# feature map\n");
-    const root = await mkdtemp(join(tmpdir(), "zcode-share-import-timeout-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-share-import-timeout-"));
     roots.push(root);
     const apiClient = new ConversationShareMockApiClient({ now: () => 10_000 });
     const client = new ConversationShareHttpClient({
@@ -809,7 +809,7 @@ describe("ConversationShareService import", () => {
   it("回链跟随环境，不再写死生产站", async () => {
     // Bug 根因：兜底写死 https://zcode.z.ai/cn/share，测试环境（API base 走
     // zcode.z.ai）导入后点分割线会打开另一个环境的分享页。
-    const root = await mkdtemp(join(tmpdir(), "zcode-share-import-endpoint-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-share-import-endpoint-"));
     roots.push(root);
     const apiClient = new ConversationShareMockApiClient({ now: () => 10_000 });
     const client = new ConversationShareHttpClient({
@@ -914,7 +914,7 @@ describe("ConversationShareService import", () => {
   // 的 provenance 引用的 artifacts 删掉，用户拿到一个引用缺失文件的会话。
   // 失败半径必须止于 createSession 之前。
   it("createSession 成功后的失败不再删除已提交的 importRoot", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-share-import-commit-radius-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-share-import-commit-radius-"));
     roots.push(root);
     const apiClient = new ConversationShareMockApiClient({ now: () => 10_000 });
     const client = new ConversationShareHttpClient({
@@ -1002,7 +1002,7 @@ describe("ConversationShareService import", () => {
   // rejected，之后每一次 persistCompletedImportIndex 都变成静默 no-op，导入索引永久
   // 丢失且没有自愈路径（marker 成功即删），再导入同一 share 会永久报 already in progress。
   it("索引写入失败一次后不会永久毒化写入链", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-share-import-index-chain-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-share-import-index-chain-"));
     roots.push(root);
     const apiClient = new ConversationShareMockApiClient({ now: () => 10_000 });
     const client = new ConversationShareHttpClient({
@@ -1096,7 +1096,7 @@ describe("ConversationShareService import", () => {
    * projection_sha256，报「分享文件校验失败，已停止导入」并给一个永远不会成功的重试按钮。
    */
   it("导入更新版本发布的分享：未知字段不破坏完整性，未知 row kind 只被跳过", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-share-import-future-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-share-import-future-"));
     roots.push(root);
     // 一行带未来才有的 optional 字段，一行是本端完全不认识的 kind。
     const rawRows = [

@@ -106,9 +106,9 @@ describe("buildConnectedRemoteWorkspaceSessionTargets", () => {
             id: "remote-connected",
             label: "Remote Connected",
             workspacePath: "/root",
-            workspaceIdentity: "remote:docker:zcode-ssh-container:/root",
+            workspaceIdentity: "remote:docker:nibi-ssh-container:/root",
             remoteSessionId: "remote-session-1",
-            remoteTarget: { kind: "docker", container: "zcode-ssh-container" },
+            remoteTarget: { kind: "docker", container: "nibi-ssh-container" },
           }),
           createWorkspaceTab({
             id: "remote-placeholder",
@@ -130,7 +130,7 @@ describe("buildConnectedRemoteWorkspaceSessionTargets", () => {
         label: "Remote Connected",
         kind: "remote",
         connectionState: "connected",
-        workspaceIdentity: "remote:docker:zcode-ssh-container:/root",
+        workspaceIdentity: "remote:docker:nibi-ssh-container:/root",
         remoteSessionId: "remote-session-1",
       },
     ]);

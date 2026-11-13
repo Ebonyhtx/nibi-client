@@ -341,7 +341,7 @@ export class WebRemoteControlTerminalTransport {
     this.emitDiagnostic({ type: "pair-status", pairStatus: status, state: this.state });
     if (webRemoteControlV2PairState(status) === "waiting_terminal") {
       if (this.wasPaired) {
-        // Bugfix: zcode-remote-hub 的 waiting 是合法配对状态，表示当前 device 不在 hub 里，
+        // Bugfix: nibi-remote-hub 的 waiting 是合法配对状态，表示当前 device 不在 hub 里，
         // 不是 terminal WS 损坏信号。已配对后降级为 waiting 时保持同一条手机端 WS，
         // 继续轻量查询，避免把桌面端短暂重连放大成手机端反复踢旧连接。
         this.staleWaitingCount = 0;
@@ -588,7 +588,7 @@ export class WebRemoteControlTerminalTransport {
   }
 
   private enterWaitingForDeviceAfterRelayError(message: string): void {
-    // Bugfix: zcode-remote-hub 在已认证连接上转发 data 找不到 device 时只返回 INTERNAL，
+    // Bugfix: nibi-remote-hub 在已认证连接上转发 data 找不到 device 时只返回 INTERNAL，
     // 不会关闭当前 terminal WS。这里保持手机端 WS，降级为 waiting 并继续查询配对状态，
     // 避免把“桌面端暂时不在”放大成手机端反复重连。
     this.options.onError(new Error(message));

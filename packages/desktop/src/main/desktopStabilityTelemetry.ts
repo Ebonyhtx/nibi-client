@@ -715,7 +715,7 @@ function mapChildProcessGoneToProcessRoleWithName(
   processName?: string,
 ): StabilityProcessRole {
   // 进程名由 `shared/src/process-names.ts` 统一铸造，前缀恒为 NIBI_PROCESS_PREFIX = "nibi"；
-  // 这里只认真实形态。旧 `zcode-*` 不是外部契约：那是由旧版本代码拉起的进程，不会由本版遥测
+  // 这里只认真实形态。旧 `nibi-*` 不是外部契约：那是由旧版本代码拉起的进程，不会由本版遥测
   // 观察，留兼容分支只会是永不命中的死代码。
   if (processName?.startsWith("nibi-host")) {
     return "host";

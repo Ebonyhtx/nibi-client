@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/commands.rs（feat/rs 79b6691c55）。
+// 改写自 apps/nibi-host/crates/tui/src/ui/commands.rs（feat/rs 79b6691c55）。
 //! 斜杠命令（docs/specs/rust-cli/tui.md §6）：名称、别名与说明固定，产品名换成
 //! NIBI。依赖其他工作线的命令也列出来，执行时提示“未实现”。内置提示词命令（`/init`、`/security-review`，修复线 L-A）
 //! 是内核给出的 skill 命令，不在这张表里。

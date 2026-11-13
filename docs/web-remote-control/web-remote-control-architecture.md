@@ -232,7 +232,7 @@ remote host relay 对下游 id 做长度前缀 namespace。port close 串行发�
 subscriptions，旧 SAT/DRN/timer 不得复活。
 
 `nibi-server /ws` 对所有普通连接固定为 replayable；旧的
-`x-zcode-rpc-client-mode` header 会被忽略，不能把浏览器或普通 WebSocket 升格为
+`x-nibi-rpc-client-mode` header 会被忽略，不能把浏览器或普通 WebSocket 升格为
 continuous。desktop server-remote 的 Node host 先通过受现有 server auth middleware
 保护的 `POST /api/rpc-host-capability` 获取短期、一次性随机 capability，再在 Node-only
 header 中携带它连接专用 `/ws/host`。服务端消费成功后才创建 continuous trusted relay

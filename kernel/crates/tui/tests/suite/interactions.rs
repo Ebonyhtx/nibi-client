@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/tests/suite/interactions.rs（feat/rs 79b6691c55）：审批的回答由真实的
+// 改写自 apps/nibi-host/crates/tui/tests/suite/interactions.rs（feat/rs 79b6691c55）：审批的回答由真实的
 // 执行管线验证（docs/specs/rust-cli/tui.md §5.2）。模型发起 Bash 调用，TUI 按键作答，工具结果回到模型。
 use crossterm::event::KeyCode;
 use nibi_kernel_api::testing::{text_response, tool_use_response};

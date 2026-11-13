@@ -90,7 +90,7 @@ Changed-file formatting and `git diff --check` passed.
 
 Live verification resumed on 2026-09-08 after the Mac was unlocked. The existing
 `pnpm dev:desktop` process completed startup (Electron PID 17515, local Host 17711;
-development log `/tmp/zcode-topic-dev.log`). Computer Use operated Ryan Bot in the
+development log `/tmp/nibi-topic-dev.log`). Computer Use operated Ryan Bot in the
 real `ZCode 群聊验证` group (`oc_da0fa1e9e7e9f852894c8d6aaca1c044`).
 
 - `/history on` returned the native opt-in confirmation. An ordinary root message
@@ -584,7 +584,7 @@ regressions, not a real phone, native attachment upload or native card race test
 ### Native dedicated-topic file boundary (2026-09-08, incomplete)
 
 Computer Use uploaded the synthetic 154-byte file
-`zcode-topic-attachment-verification.txt` to CEDAR in the dedicated test group.
+`nibi-topic-attachment-verification.txt` to CEDAR in the dedicated test group.
 The native history API confirmed file message `om_x100b66ccd1ebe0a8c22a536e7f67b07`
 in thread `omt_19fa0d1df1cfda52`, chat `oc_6596fb27f96a81b6ee5c34cc09be6089`.
 No bot mention was sent with this file, and no file-analysis input was admitted.
@@ -705,7 +705,7 @@ TP-03 的 Feishu／Lark 交互卡服务场景2条通过，共2个文件通过，
 不作为原生卡片或端到端 UI 证据；TP-01 不覆盖真实飞书文件下载。
 
 14:31:46 开发进程恢复，Host33325 记录 `local services ready, all channels registered`，
-日志 `/tmp/zcode-topic-post-wdio-dev.log`。本次重新构建包含取消／断连修复；
+日志 `/tmp/nibi-topic-post-wdio-dev.log`。本次重新构建包含取消／断连修复；
 提交前校验另在 `/tmp/topic-post-wdio-prepush.log` 运行，原生读取结果仍待用户重测。
 
 该次提交前检查最终退出1：related Vitest 被 SIGSEGV 终止，未输出完整断言报告，
@@ -740,7 +740,7 @@ Desktop 与手机远控分别验证（窄 Desktop 不代替手机）；窄屏机
 - 浏览器：桌面/手机宽度 × 中英文 × 深浅主题，真实组件和样式；准备、等待、失败移除及接收重叠；正文沿用正式消息折叠/展开，loading 位于渠道/姓名旁。
 - 真实 Desktop/手机远控/飞书 E2E 待验证，不将窄屏 Chrome 计为真实手机验收。
 
-本次组件验证：上述浏览器 8 组通过并人工查看深浅主题截图；准备态/原始消息展开/消息编辑 42 项单测及时间线/标记回归 33 项通过；根 typecheck、architecture:check --changed 通过，lint 0 error、48 warning。截图在系统临时目录 `zcode-topic-preparation/`。
+本次组件验证：上述浏览器 8 组通过并人工查看深浅主题截图；准备态/原始消息展开/消息编辑 42 项单测及时间线/标记回归 33 项通过；根 typecheck、architecture:check --changed 通过，lint 0 error、48 warning。截图在系统临时目录 `nibi-topic-preparation/`。
 
 2026-09-17 后续修正：准备消息进入 ConversationTurnGroup 消息流，共用完整正文组件，状态/失败/重试在同一气泡 DOM 内。新增 render-unit 与真实 turn-group 组件回归，覆盖未产生 CLI rows、running live tail 保留及正式输入接替；140 项相关单测通过。根 typecheck、lint（0 error，48 warning）、架构检查通过；浏览器 8 组通过。真实飞书与手机远控仍待验收。
 

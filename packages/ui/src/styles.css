@@ -1199,7 +1199,7 @@ html[data-document-hidden] *::after {
   }
 }
 
-@keyframes zcode-stream-text-in {
+@keyframes nibi-stream-text-in {
   0% {
     opacity: 0;
   }
@@ -1209,7 +1209,7 @@ html[data-document-hidden] *::after {
   }
 }
 
-@keyframes zcode-draft-prompt-waterfall {
+@keyframes nibi-draft-prompt-waterfall {
   from {
     opacity: 0;
     clip-path: inset(0 0 100% 0);
@@ -1223,13 +1223,13 @@ html[data-document-hidden] *::after {
   }
 }
 
-.zcode-draft-prompt-waterfall {
-  animation: zcode-draft-prompt-waterfall 260ms cubic-bezier(0.22, 1, 0.36, 1)
-    var(--zcode-draft-prompt-waterfall-delay, 0ms) both;
+.nibi-draft-prompt-waterfall {
+  animation: nibi-draft-prompt-waterfall 260ms cubic-bezier(0.22, 1, 0.36, 1)
+    var(--nibi-draft-prompt-waterfall-delay, 0ms) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zcode-draft-prompt-waterfall {
+  .nibi-draft-prompt-waterfall {
     animation: none;
   }
 }
@@ -1262,7 +1262,7 @@ html[data-document-hidden] *::after {
   }
 }
 
-@keyframes zcode-stream-marker-in {
+@keyframes nibi-stream-marker-in {
   0% {
     color: transparent;
   }
@@ -1272,35 +1272,35 @@ html[data-document-hidden] *::after {
   }
 }
 
-[data-zcode-stream-animate="true"] {
-  animation: zcode-stream-text-in 900ms cubic-bezier(0.16, 1, 0.3, 1)
-    var(--zcode-stream-animation-delay, 0ms) both;
+[data-nibi-stream-animate="true"] {
+  animation: nibi-stream-text-in 900ms cubic-bezier(0.16, 1, 0.3, 1)
+    var(--nibi-stream-animation-delay, 0ms) both;
   will-change: opacity;
 }
 
-[data-zcode-stream-marker-animate="true"]::marker {
-  animation: zcode-stream-marker-in 900ms cubic-bezier(0.16, 1, 0.3, 1)
-    var(--zcode-stream-animation-delay, 0ms) both;
+[data-nibi-stream-marker-animate="true"]::marker {
+  animation: nibi-stream-marker-in 900ms cubic-bezier(0.16, 1, 0.3, 1)
+    var(--nibi-stream-animation-delay, 0ms) both;
 }
 
-[data-zcode-tool-stream-animate="true"],
-[data-zcode-chat-loading-animate="true"] {
-  animation: zcode-stream-text-in 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+[data-nibi-tool-stream-animate="true"],
+[data-nibi-chat-loading-animate="true"] {
+  animation: nibi-stream-text-in 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: opacity;
 }
 
 /* Bugfix: Radix Collapsible 在测量 closed 高度时会写入 inline animation-name:none。
    assistant 历史区自动结束收起需要在延迟卸载期间继续播放高度动画，
    所以这里用 !important 覆盖 Radix 的 inline style，只作用于显式标记的收起窗口。 */
-[data-zcode-collapsible-animate-close="true"][data-state="closed"] {
-  animation: zcode-collapsible-up 300ms ease-in-out forwards !important;
+[data-nibi-collapsible-animate-close="true"][data-state="closed"] {
+  animation: nibi-collapsible-up 300ms ease-in-out forwards !important;
 }
 
-[data-zcode-collapsible-animate-close="true"][data-state="closed"] > * {
-  animation: zcode-collapsible-fade-out 300ms ease-in-out forwards !important;
+[data-nibi-collapsible-animate-close="true"][data-state="closed"] > * {
+  animation: nibi-collapsible-fade-out 300ms ease-in-out forwards !important;
 }
 
-@keyframes zcode-collapsible-up {
+@keyframes nibi-collapsible-up {
   from {
     height: var(--radix-collapsible-content-height);
   }
@@ -1310,7 +1310,7 @@ html[data-document-hidden] *::after {
   }
 }
 
-@keyframes zcode-collapsible-fade-out {
+@keyframes nibi-collapsible-fade-out {
   from {
     opacity: 1;
   }
@@ -1321,28 +1321,28 @@ html[data-document-hidden] *::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-zcode-stream-animate="true"],
-  [data-zcode-stream-marker-animate="true"]::marker,
-  [data-zcode-tool-stream-animate="true"],
-  [data-zcode-chat-loading-animate="true"],
-  [data-zcode-collapsible-animate-close="true"][data-state="closed"],
-  [data-zcode-collapsible-animate-close="true"][data-state="closed"] > * {
+  [data-nibi-stream-animate="true"],
+  [data-nibi-stream-marker-animate="true"]::marker,
+  [data-nibi-tool-stream-animate="true"],
+  [data-nibi-chat-loading-animate="true"],
+  [data-nibi-collapsible-animate-close="true"][data-state="closed"],
+  [data-nibi-collapsible-animate-close="true"][data-state="closed"] > * {
     animation: none;
   }
 }
 
 /* 点赞/点踩选中时的反馈动画：参考微信/X 的做法，只做图标回弹 + 细小粒子飞散两段，
    粒子用 box-shadow 画在 ::after 上且跟随 currentColor，零额外 DOM、不引入新颜色。 */
-.zcode-reaction-burst {
+.nibi-reaction-burst {
   position: relative;
   display: inline-flex;
 }
 
-.zcode-reaction-burst > svg {
-  animation: zcode-reaction-pop 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+.nibi-reaction-burst > svg {
+  animation: nibi-reaction-pop 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.zcode-reaction-burst::after {
+.nibi-reaction-burst::after {
   content: "";
   position: absolute;
   top: 50%;
@@ -1354,14 +1354,14 @@ html[data-document-hidden] *::after {
   background: transparent;
   opacity: 0;
   pointer-events: none;
-  animation: zcode-reaction-particles 560ms cubic-bezier(0.16, 1, 0.3, 1) 60ms forwards;
+  animation: nibi-reaction-particles 560ms cubic-bezier(0.16, 1, 0.3, 1) 60ms forwards;
 }
 
-.animate-zcode-alarm-ring {
-  animation: zcode-alarm-ring 600ms ease-in-out infinite;
+.animate-nibi-alarm-ring {
+  animation: nibi-alarm-ring 600ms ease-in-out infinite;
 }
 
-@keyframes zcode-alarm-ring {
+@keyframes nibi-alarm-ring {
   0%,
   100% {
     transform: rotate(-10deg);
@@ -1372,7 +1372,7 @@ html[data-document-hidden] *::after {
   }
 }
 
-@keyframes zcode-reaction-pop {
+@keyframes nibi-reaction-pop {
   0% {
     transform: scale(0);
   }
@@ -1390,7 +1390,7 @@ html[data-document-hidden] *::after {
   }
 }
 
-@keyframes zcode-reaction-particles {
+@keyframes nibi-reaction-particles {
   0% {
     opacity: 0;
     box-shadow:
@@ -1419,8 +1419,8 @@ html[data-document-hidden] *::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zcode-reaction-burst > svg,
-  .zcode-reaction-burst::after {
+  .nibi-reaction-burst > svg,
+  .nibi-reaction-burst::after {
     animation: none;
   }
 }
@@ -1438,24 +1438,24 @@ html[data-document-hidden] *::after {
   }
 }
 
-@keyframes zcode-task-interaction-countdown {
+@keyframes nibi-task-interaction-countdown {
   from {
-    transform: scaleX(var(--zcode-interaction-progress, 1));
+    transform: scaleX(var(--nibi-interaction-progress, 1));
   }
   to {
     transform: scaleX(0);
   }
 }
 
-.zcode-task-interaction-countdown-fill {
-  animation: zcode-task-interaction-countdown var(--zcode-interaction-remaining-ms, 240000ms) linear
+.nibi-task-interaction-countdown-fill {
+  animation: nibi-task-interaction-countdown var(--nibi-interaction-remaining-ms, 240000ms) linear
     forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zcode-task-interaction-countdown-fill {
+  .nibi-task-interaction-countdown-fill {
     animation: none;
-    transform: scaleX(var(--zcode-interaction-progress, 1));
+    transform: scaleX(var(--nibi-interaction-progress, 1));
   }
 }
 
@@ -1463,12 +1463,12 @@ html[data-document-hidden] *::after {
   animation: workspace-remote-connecting-breathe 1.8s ease-in-out infinite;
 }
 
-.zcode-update-charge-progress [data-slot="progress-indicator"] {
+.nibi-update-charge-progress [data-slot="progress-indicator"] {
   position: relative;
   overflow: hidden;
 }
 
-.zcode-update-charge-progress [data-slot="progress-indicator"]::after {
+.nibi-update-charge-progress [data-slot="progress-indicator"]::after {
   content: "";
   position: absolute;
   bottom: 0;
@@ -1481,11 +1481,11 @@ html[data-document-hidden] *::after {
     color-mix(in oklab, var(--color-primary-foreground) 62%, transparent),
     transparent
   );
-  animation: zcode-update-charge-sweep 1.15s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  animation: nibi-update-charge-sweep 1.15s cubic-bezier(0.65, 0, 0.35, 1) infinite;
   transform: translateX(-120%);
 }
 
-@keyframes zcode-update-charge-sweep {
+@keyframes nibi-update-charge-sweep {
   0% {
     opacity: 0.35;
     transform: translateX(-120%);
@@ -1502,7 +1502,7 @@ html[data-document-hidden] *::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zcode-update-charge-progress [data-slot="progress-indicator"]::after {
+  .nibi-update-charge-progress [data-slot="progress-indicator"]::after {
     animation: none;
     opacity: 0.2;
     transform: none;

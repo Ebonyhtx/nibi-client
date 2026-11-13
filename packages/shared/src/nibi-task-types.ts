@@ -43,7 +43,7 @@ export function createQueryId(): QueryId {
 }
 
 /** cron 定时任务生成的 session 默认归入的系统分组固定 id。 */
-export const CRON_DEFAULT_GROUP_ID = "zcode-default-group-cron";
+export const CRON_DEFAULT_GROUP_ID = "nibi-default-group-cron";
 
 type CronTaskIdentity = Pick<NibiTaskMeta, "cronAutomationId"> & {
   automationId?: string;

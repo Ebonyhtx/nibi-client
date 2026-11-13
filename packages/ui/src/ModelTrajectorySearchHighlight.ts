@@ -1,8 +1,8 @@
 import { findTrajectoryTextMatches, type TrajectorySearchMatch } from "@/ModelTrajectorySearch.js";
 
-const HIGHLIGHT_NAME = "zcode-model-trajectory-find";
-const ACTIVE_HIGHLIGHT_NAME = "zcode-model-trajectory-find-active";
-const STYLE_ID = "zcode-model-trajectory-find-highlight-style";
+const HIGHLIGHT_NAME = "nibi-model-trajectory-find";
+const ACTIVE_HIGHLIGHT_NAME = "nibi-model-trajectory-find-active";
+const STYLE_ID = "nibi-model-trajectory-find-highlight-style";
 const HIGHLIGHT_STYLE = `
 ::highlight(${HIGHLIGHT_NAME}) {
   background-color: var(--color-find-highlight, #fde68a);

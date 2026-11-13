@@ -151,7 +151,7 @@ describe("NodeApiClient endpoint rewriting", () => {
   });
 
   it("给当前 zcode endpoint 请求补既有 deviceMid header", async () => {
-    const dataBaseDir = mkdtempSync(join(tmpdir(), "zcode-device-mid-"));
+    const dataBaseDir = mkdtempSync(join(tmpdir(), "nibi-device-mid-"));
     tempDirs.push(dataBaseDir);
     setDataBaseDir(dataBaseDir);
     const configDir = join(dataBaseDir, ".nibi", "v2");
@@ -180,7 +180,7 @@ describe("NodeApiClient endpoint rewriting", () => {
     { name: "deviceMid 为空字符串", content: JSON.stringify({ deviceMid: "" }) },
     { name: "deviceMid 含不可打印字符", content: JSON.stringify({ deviceMid: "mid\n1" }) },
   ])("$name 时不注入 deviceMid header", async ({ content }) => {
-    const dataBaseDir = mkdtempSync(join(tmpdir(), "zcode-device-mid-invalid-"));
+    const dataBaseDir = mkdtempSync(join(tmpdir(), "nibi-device-mid-invalid-"));
     tempDirs.push(dataBaseDir);
     setDataBaseDir(dataBaseDir);
     const configDir = join(dataBaseDir, ".nibi", "v2");

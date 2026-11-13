@@ -26,7 +26,7 @@ describe("tool order through runtime and SQLite", () => {
   it.each(scenarios)(
     "preserves history and streaming behavior: %s",
     async (scenario) => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-tool-order-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-tool-order-"));
       const dbPath = join(root, "session.sqlite");
       const sessionId = createSessionId("tool-order");
       // 合并适配：SQLite store 已改为异步打开，必须等初始化完成后再注入持久化故障。

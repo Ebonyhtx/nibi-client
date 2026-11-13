@@ -1127,7 +1127,7 @@ describe("v4 冷恢复（集成：真 sqlite + server + binder）", () => {
   let tempRoot: string;
 
   beforeEach(async () => {
-    tempRoot = await mkdtemp(join(tmpdir(), "zcode-v4-cold-resume-"));
+    tempRoot = await mkdtemp(join(tmpdir(), "nibi-v4-cold-resume-"));
   });
 
   afterEach(async () => {

@@ -25,7 +25,7 @@
 ## 3. 分层架构（4 进程边界）
 
 ```
-AGENT (zcode-cli 子进程, stdio NDJSON ZCode Protocol)
+AGENT (nibi-cli 子进程, stdio NDJSON ZCode Protocol)
   node_repl: 每 session 一个持久 vm.Context（sandbox === globalThis，跨调用保持）
              + nodeRepl.write sink + 动态 import() + require
   browser-client 库: setupBrowserRuntime({globals,execute}) → agent.browsers.*

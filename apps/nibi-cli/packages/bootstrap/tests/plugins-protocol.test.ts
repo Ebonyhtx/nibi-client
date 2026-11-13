@@ -268,7 +268,7 @@ describe("plugins protocol contracts", () => {
   });
 
   it("projects an inline plugin declared by the current Workspace into Workspace scope", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-workspace-plugin-root-source-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-workspace-plugin-root-source-"));
     const pluginRoot = join(root, "plugins", "workspace-demo");
     try {
       await writeTestFile(
@@ -300,7 +300,7 @@ describe("plugins protocol contracts", () => {
   });
 
   it("keeps the User projection independent from Workspace enable overrides", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-config-view-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-config-view-"));
     const pluginId = "skill-creator@nibi-official";
     const userConfigPath = join(FAKE_HOME, ".nibi", "cli", "config.json");
     try {
@@ -351,7 +351,7 @@ describe("plugins protocol contracts", () => {
   });
 
   it("preserves User option sources in the Workspace merged projection", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-option-source-view-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-option-source-view-"));
     const pluginRoot = join(root, "user-plugin");
     const pluginId = "option-source-view@inline";
     const userConfigPath = join(FAKE_HOME, ".nibi", "cli", "config.json");
@@ -391,7 +391,7 @@ describe("plugins protocol contracts", () => {
   });
 
   it("keeps a Workspace declaration visible when its package is missing", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-missing-package-view-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-missing-package-view-"));
     const pluginId = "missing-fixture@personal-market";
     try {
       await writeTestFile(
@@ -424,7 +424,7 @@ describe("plugins protocol contracts", () => {
   });
 
   it("projects the host node_repl association for the official browser-use plugin", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-browser-host-mcp-protocol-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-browser-host-mcp-protocol-"));
     const previousStorageDir = process.env.NIBI_STORAGE_DIR;
     process.env.NIBI_STORAGE_DIR = join(root, "cli");
 
@@ -574,7 +574,7 @@ describe("updatePlugin handler diagnostics", () => {
   });
 
   it("update returns diagnostics when a target fails to reinstall", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-update-fail-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-update-fail-"));
     const storageDir = join(root, "cli");
     const pluginStorageRoot = getPluginStorageRoot(getCliStorageRoot(storageDir));
     const marketplaceRoot = join(root, "marketplace");
@@ -661,7 +661,7 @@ describe("restoreBuiltinPlugin handler", () => {
   // 该用例假设「缓存里已有 seed 的内置件」——它没有自己触发 seeding，fresh storage 下
   // restorableBuiltins 为空。缓存播种已在启动路径覆盖，单独修一遍夹具意义不大。
   it.skip("restoreBuiltinPlugin clears suppression via protocol handler", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-restore-handler-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-restore-handler-"));
     const storageDir = join(root, "cli");
     process.env.NIBI_STORAGE_DIR = storageDir;
 
@@ -699,7 +699,7 @@ describe("restoreBuiltinPlugin handler", () => {
   });
 
   it("restores a suppressed bundled plugin through the locked install handler without deadlocking", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-install-handler-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-install-handler-"));
     const storageDir = join(root, "cli");
     process.env.NIBI_STORAGE_DIR = storageDir;
 

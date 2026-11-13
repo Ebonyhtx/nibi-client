@@ -340,7 +340,7 @@ DCA-V1-01/03..08 转为 guarded 合同；02 保持 PowerShell pruned；09..12 �
 1. spec/catalog/matrix/tool-chain 在先，失败测试在生产实现之前。
 2. 模式链路 -> matcher -> 共享审批 -> 多端投影，不重写 prefix registry。
 3. 每条规则至少一个真实拒绝闭环；批准路径使用隔离目录/受控 handler。检查 handler 次数、文件/规则存储及最终 provider tool_result。
-4. 新用例先 manual-review/pending；case-local synthetic fixture 写明原因，普通 fast-text、取消/迟到受控时序。文件统一 .zcode-e2e/<case>。人工审核后才 promotion。
+4. 新用例先 manual-review/pending；case-local synthetic fixture 写明原因，普通 fast-text、取消/迟到受控时序。文件统一 .nibi-e2e/<case>。人工审核后才 promotion。
 5. Windows Git Bash/CMD 必须有真实运行证据；缺 runner 则明确待验证。手机恢复测试不冒充物理网络 E2E。
 6. 运行 targeted unit/integration、CLI typecheck、desktop typecheck:e2e、pnpm typecheck/lint、架构检查、覆盖审计。图谱基线统计漂移单列，不混入功能修复。
 

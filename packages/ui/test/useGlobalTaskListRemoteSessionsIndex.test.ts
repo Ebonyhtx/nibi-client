@@ -490,7 +490,7 @@ describe("useGlobalTaskList remote shard tasks-index 行 + sessions-index detail
         ],
         [nibiProjectIdentity]: [
           createSession({
-            sessionId: "s-zcode-project",
+            sessionId: "s-nibi-project",
             workspaceId: nibiProjectIdentity,
             lastActivityAt: 40,
           }),
@@ -601,7 +601,7 @@ describe("useGlobalTaskList remote shard tasks-index 行 + sessions-index detail
       await flushMicrotasks();
     });
     expect((latest?.items ?? []).map((item) => item.taskId)).toEqual([
-      "s-zcode-project",
+      "s-nibi-project",
       "s-zcode",
       "s-mac-project",
       "s-mac",

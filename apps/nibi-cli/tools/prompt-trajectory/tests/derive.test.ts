@@ -242,7 +242,7 @@ describe("deriveTrajectoriesFromEntries", () => {
   });
 
   it("writes Anthropic request-body snapshots alongside OpenAI-compatible snapshots", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-derive-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-derive-"));
     const inputPath = join(root, "trajectory.jsonl");
     const entries: TrajectoryJsonlEntry[] = [
       {

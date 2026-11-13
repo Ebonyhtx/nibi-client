@@ -10,7 +10,7 @@ import {
 
 describe("bash source script materializer", () => {
   it("writes a hash-scoped script and sources it before the command", () => {
-    const rootDir = mkdtempSync(join(tmpdir(), "zcode-bash-startup-"));
+    const rootDir = mkdtempSync(join(tmpdir(), "nibi-bash-startup-"));
     try {
       const materialized = materializeBashInternalSourceScript(
         {
@@ -39,7 +39,7 @@ describe("bash source script materializer", () => {
   });
 
   it("skips CMD and legacy shell dialects", () => {
-    const rootDir = mkdtempSync(join(tmpdir(), "zcode-bash-startup-"));
+    const rootDir = mkdtempSync(join(tmpdir(), "nibi-bash-startup-"));
     try {
       for (const shellDialect of ["cmd", "legacy-shell"] as const) {
         expect(
@@ -73,7 +73,7 @@ describe("bash source script materializer", () => {
   });
 
   it("sources shell init snapshots before embedded search prelude scripts", () => {
-    const rootDir = mkdtempSync(join(tmpdir(), "zcode-bash-startup-"));
+    const rootDir = mkdtempSync(join(tmpdir(), "nibi-bash-startup-"));
     try {
       const request = {
         command: {
@@ -113,7 +113,7 @@ describe("bash source script materializer", () => {
   });
 
   it("keeps Git Bash shell snapshot sources ahead of converted embedded search prelude scripts", () => {
-    const rootDir = mkdtempSync(join(tmpdir(), "zcode-bash-startup-"));
+    const rootDir = mkdtempSync(join(tmpdir(), "nibi-bash-startup-"));
     try {
       const request = {
         command: {

@@ -55,7 +55,7 @@ describe("managed CDP browser adapter", () => {
     expect(() => validateExplicitBrowserExecutable("relative/chromium")).toThrow(
       /must be absolute/u,
     );
-    expect(() => validateExplicitBrowserExecutable("/definitely/missing/zcode-chromium")).toThrow(
+    expect(() => validateExplicitBrowserExecutable("/definitely/missing/nibi-chromium")).toThrow(
       /missing or not executable/u,
     );
     expect(validateExplicitBrowserExecutable(process.execPath)).toBe(process.execPath);

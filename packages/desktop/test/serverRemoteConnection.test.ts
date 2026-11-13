@@ -149,7 +149,7 @@ describe("server remote connection", () => {
   it.each(process.platform === "win32" ? ["ENOENT"] : ["ENOENT", "ELOOP"])(
     "真实远端 File RPC 保留 %s，目录校验失败不关闭共享连接",
     async (code) => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-remote-stat-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-remote-stat-"));
       const deleted = join(root, "deleted");
       const surviving = join(root, "surviving");
       try {
@@ -206,7 +206,7 @@ describe("server remote connection", () => {
   it.skipIf(process.platform === "win32" || process.getuid?.() === 0).each([0o000, 0o400, 0o100])(
     "真实 File RPC 拒绝权限 %s 的叶目录，同设备其他项目与修复重试仍可用",
     async (permissions) => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-remote-permission-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-remote-permission-"));
       const denied = join(root, "denied");
       const surviving = join(root, "surviving");
       try {

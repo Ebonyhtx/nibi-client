@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/cells/group_tests.rs（feat/rs 79b6691c55）：行换成 `view::Row`。
+// 改写自 apps/nibi-host/crates/tui/src/ui/cells/group_tests.rs（feat/rs 79b6691c55）：行换成 `view::Row`。
 use std::time::Duration;
 
 use ratatui::style::Modifier;

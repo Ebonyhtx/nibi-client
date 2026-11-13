@@ -19,7 +19,7 @@ const readArg = (flag) => {
 const target = resolveVerificationTarget(readArg("--target"));
 const distro = readArg("--distro");
 const archive = join(packageRoot, "dist-release", `nibi-server-${target}.tar.gz`);
-const operationId = `zcode-wsl-verify-${process.pid}`;
+const operationId = `nibi-wsl-verify-${process.pid}`;
 const archivePath = `/tmp/${operationId}.tar.gz`;
 const bootstrapDir = `/tmp/${operationId}-bootstrap`;
 const serverRoot = `/tmp/${operationId}-server`;

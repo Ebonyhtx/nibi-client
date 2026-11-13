@@ -84,12 +84,12 @@ function detectArch() {
 }
 
 export function resolveGlmDownloadName(platform, arch) {
-  // Bugfix：Windows 产物命名恢复为 zcode-windows-*.exe，避免继续请求到错误文件名。
+  // Bugfix：Windows 产物命名恢复为 nibi-windows-*.exe，避免继续请求到错误文件名。
   if (platform === "win32") {
-    return `zcode-windows-${arch}.exe`;
+    return `nibi-windows-${arch}.exe`;
   }
 
-  return `zcode-${platform}-${arch}`;
+  return `nibi-${platform}-${arch}`;
 }
 
 export function resolveGlmDownloadBaseUrl(env = process.env) {

@@ -13,7 +13,7 @@ import {
 import { classifyRequest, requestText } from "./memory-e2e-provider.mjs";
 import { loadNibiModules } from "./memory-e2e-runtime.mjs";
 
-const artifactsRoot = await mkdtemp(join(tmpdir(), "zcode-memory-bench-artifacts-"));
+const artifactsRoot = await mkdtemp(join(tmpdir(), "nibi-memory-bench-artifacts-"));
 const memoryContent =
   "E2E_MEMORY_BENCH_WRITTEN: Always require staging approval before deployment.";
 const prompt = "E2E_MEMORY_BENCH Remember that every deployment requires staging approval.";
@@ -21,7 +21,7 @@ console.log(`Memory bench artifacts: ${artifactsRoot}`);
 
 for (const scenario of ["wait", "default", "disabled", "cancel"]) {
   test(`CLI Memory bench: ${scenario}`, { timeout: 45_000 }, async (t) => {
-    const runRoot = await mkdtemp(join(tmpdir(), "zcode-memory-bench-run-"));
+    const runRoot = await mkdtemp(join(tmpdir(), "nibi-memory-bench-run-"));
     const workspace = join(runRoot, "workspace");
     const storageRoot = join(runRoot, "storage");
     const artifacts = join(artifactsRoot, scenario);

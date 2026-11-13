@@ -139,7 +139,7 @@ async function main() {
   // `C:\Users\RUNNER~1\...`），而安装器里 PowerShell 读回的快捷方式目标是长名
   // （`C:\Users\runneradmin\...`）——两侧拼写不一致会让下面的路径比较假红。
   // `.native` 走 OS 调用、会把短名展开（实测 `realpathSync` 不展开，别用错）。
-  const tempRoot = realpathSync.native(mkdtempSync(join(tmpdir(), "zcode-installer-nsh-smoke-")));
+  const tempRoot = realpathSync.native(mkdtempSync(join(tmpdir(), "nibi-installer-nsh-smoke-")));
 
   try {
     const uninstallerFixturePath = join(tempRoot, "uninstaller-fixture.exe");

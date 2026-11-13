@@ -73,7 +73,7 @@ export async function loadFixture(path: string): Promise<PromptTrajectoryFixture
 }
 
 export async function createFixtureWorkspace(fixture: PromptTrajectoryFixture): Promise<string> {
-  const workspace = await mkdtemp(join(tmpdir(), "zcode-prompt-trajectory-"));
+  const workspace = await mkdtemp(join(tmpdir(), "nibi-prompt-trajectory-"));
   for (const [relativePath, content] of Object.entries(fixture.workspaceFiles ?? {})) {
     const target = join(workspace, relativePath);
     await mkdir(dirname(target), { recursive: true });

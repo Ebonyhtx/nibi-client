@@ -4,7 +4,7 @@
  *
  * pdf.js 对未嵌入字体只找同名系统字体，找不到就退回通用 serif / sans-serif：宋体被画成黑体，
  * GBK 等多字节字体名直接放弃替换。这里按字体名（含多字节解码）与 PDF 的 Serif 标志选出同类的
- * `zcode-cjk-<文种>-<字形>` 字体族，插进 pdf.js 字体链的通用族之前。
+ * `nibi-cjk-<文种>-<字形>` 字体族，插进 pdf.js 字体链的通用族之前。
  */
 
 export type CjkScript = "sc" | "tc" | "jp" | "kr";
@@ -24,7 +24,7 @@ export interface PdfFontLike {
   isType3Font?: boolean;
 }
 
-export const FALLBACK_FAMILY = "zcode-cjk-fallback";
+export const FALLBACK_FAMILY = "nibi-cjk-fallback";
 /** Manifest of the bundled fallback font, written by scripts/build.mjs for the pdf plugin. */
 export const FALLBACK_MANIFEST = "cjk-fallback.json";
 
@@ -181,7 +181,7 @@ export const LOCAL_FONTS = {
 
 export type FaceKey = keyof typeof LOCAL_FONTS;
 
-export const familyOf = (key: FaceKey) => `zcode-cjk-${key}`;
+export const familyOf = (key: FaceKey) => `nibi-cjk-${key}`;
 
 // 规则按顺序匹配小写、去空格与下划线的字体名。仿/楷 先于 宋（FangSong 含 song）；
 // HeiseiMin 的 hei 不算黑体。
@@ -260,7 +260,7 @@ export function classifyFontName(name: string): CjkProfile | null {
 }
 
 /**
- * The `zcode-cjk-*` families for a font pdf.js has no file for, best first; empty for embedded and
+ * The `nibi-cjk-*` families for a font pdf.js has no file for, best first; empty for embedded and
  * Type 3 fonts.
  */
 export function cjkFamilies(font: PdfFontLike, fallbackReady: boolean): string[] {

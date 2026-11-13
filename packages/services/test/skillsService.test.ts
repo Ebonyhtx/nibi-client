@@ -19,7 +19,7 @@ const originalProcessLabel = process.env.NIBI_PROCESS_LABEL;
 const tempHomes: string[] = [];
 
 function makeTempHome(): string {
-  const home = mkdtempSync(join(tmpdir(), "zcode-skills-home-"));
+  const home = mkdtempSync(join(tmpdir(), "nibi-skills-home-"));
   tempHomes.push(home);
   return home;
 }
@@ -165,7 +165,7 @@ describe("skillsService", () => {
 name: repo-review
 description: from zcode
 ---
-zcode-body`,
+nibi-body`,
     );
     writeSkill(
       join(workspacePath, ".nibi", "cli", "skills"),
@@ -421,9 +421,9 @@ body`,
     const workspacePath = join(home, "workspace");
     writeSkill(
       userSkillRoot(home),
-      "zcode-global",
+      "nibi-global",
       `---
-name: zcode-global
+name: nibi-global
 description: user zcode
 ---
 body`,
@@ -444,7 +444,7 @@ body`,
 name: copied-global
 description: copied into zcode
 ---
-zcode-body`,
+nibi-body`,
     );
     writeSkill(
       userAgentsSkillRoot(home),
@@ -462,7 +462,7 @@ agents-body`,
 name: shared-review
 description: zcode version
 ---
-zcode-review-body`,
+nibi-review-body`,
     );
     writeSkill(
       userAgentsSkillRoot(home),
@@ -490,8 +490,8 @@ body`,
     expect(result.skills.map((skill) => skill.name)).toEqual([
       "agents-global",
       "copied-global",
+      "nibi-global",
       "shared-review",
-      "zcode-global",
     ]);
     expect(realpathSync.native(result.skills.find((skill) => skill.name === "copied-global")!.path)).toContain(
       realpathSync.native(join(home, ".nibi", "skills", "copied-global")),
@@ -847,9 +847,9 @@ bundle-root-body`,
     const workspacePath = join(home, "workspace");
     writeSkill(
       userSkillRoot(home),
-      "zcode-global",
+      "nibi-global",
       `---
-name: zcode-global
+name: nibi-global
 description: user zcode
 ---
 body`,

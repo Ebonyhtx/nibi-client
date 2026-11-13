@@ -121,7 +121,7 @@ export async function waitForResourceManagerReady(): Promise<void> {
   await browser.waitUntil(
     async () => {
       const snapshot = await readResourceUsageSnapshot();
-      return Boolean(snapshot?.processes.some((process) => process.name === "zcode-main"));
+      return Boolean(snapshot?.processes.some((process) => process.name === "nibi-main"));
     },
     {
       timeout: 15_000,

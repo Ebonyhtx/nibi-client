@@ -3,7 +3,7 @@
 ## 2026-09-12 制作工作区迁移
 
 Banner / Hero 源码、模板、数据样例及打包工具已迁到独立本地工作区
-`/Users/dev/Projects/zcode-marketing-resources`（不建立 Git），本 App 仓库不再维护资源制作目录。
+`/Users/dev/Projects/nibi-marketing-resources`（不建立 Git），本 App 仓库不再维护资源制作目录。
 当前入口为该工作区 README.md，资源分别在 packages/weekend-banner、packages/weekend-hero，
 产物在 dist/<包名>/<版本>/。运行 `npm test`、`npm run check`、`npm run test:browser`、`npm run build`。
 原有完整目录和旧协议草稿保留在该工作区 archive/app-cleanup-20260912-qJ2R6s；
@@ -42,7 +42,7 @@ Hero 权益明细行的单项额度按语言缩写（10亿 / 1B），顶部合�
   → destroy → 清理
 ```
 
-沿用 `zcode-cloud-hero-v1`。visibility/reducedMotion 无动画可暂停，保持静态。
+沿用 `nibi-cloud-hero-v1`。visibility/reducedMotion 无动画可暂停，保持静态。
 仅接受 parent 消息及当前 instanceId；所有可配置文字转义后绘制。
 args 支持 titleZh/titleEn、amountZh/amountEn、modelsZh/modelsEn、unit；旧 cta 字段忽略。
 未配置时使用原模板示例（100亿 / 10B）；这些是展示样例，不是用户实时权益。

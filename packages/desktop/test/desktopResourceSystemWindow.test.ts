@@ -57,9 +57,9 @@ vi.mock("node:os", async (importOriginal) => {
 vi.mock("electron", () => ({
   app: {
     getAppMetrics: getAppMetricsMock,
-    getPath: vi.fn((name: string) => (name === "userData" ? "/tmp/zcode-user" : "/tmp")),
+    getPath: vi.fn((name: string) => (name === "userData" ? "/tmp/nibi-user" : "/tmp")),
     isPackaged: false,
-    getAppPath: vi.fn(() => "/tmp/zcode-app"),
+    getAppPath: vi.fn(() => "/tmp/nibi-app"),
   },
   BrowserWindow: {
     getAllWindows: getAllWindowsMock,

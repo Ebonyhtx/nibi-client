@@ -17,7 +17,7 @@ import { isV4TurnCompleted } from "../../../helpers/v4-turn-completion.js";
 
 const NODE_REPL_TOOL = "mcp__node_repl__js";
 const NODE_REPL_SERVER = "node_repl";
-const NODE_REPL_PROCESS_TITLE = "zcode-node-repl-mcp";
+const NODE_REPL_PROCESS_TITLE = "nibi-node-repl-mcp";
 const SESSION_A_MARKER = "E2E_NODE_REPL_BROWSER_STATELESS_A";
 const SESSION_B_MARKER = "E2E_NODE_REPL_BROWSER_STATELESS_B";
 const SESSION_A_DONE = "E2E_NODE_REPL_BROWSER_STATELESS_A_DONE";

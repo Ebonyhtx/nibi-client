@@ -40,8 +40,8 @@ afterEach(() => {
 
 describe("ClaudeNativeSessionImportRepo", () => {
   it("会从真实 HOME 扫描原生 Claude session，并复制到 zcode Claude 目录", async () => {
-    const home = makeTempDir("zcode-claude-native-home-");
-    const dataBaseDir = makeTempDir("zcode-claude-native-db-");
+    const home = makeTempDir("nibi-claude-native-home-");
+    const dataBaseDir = makeTempDir("nibi-claude-native-db-");
     process.env.HOME = home;
     process.env.NIBI_DATA_BASE_DIR = dataBaseDir;
 
@@ -154,7 +154,7 @@ describe("ClaudeNativeSessionImportRepo", () => {
   });
 
   it("不传 workspacePath 时会返回多个 workspace 的候选 session", async () => {
-    const home = makeTempDir("zcode-claude-native-home-all-");
+    const home = makeTempDir("nibi-claude-native-home-all-");
     process.env.HOME = home;
 
     vi.resetModules();
@@ -233,7 +233,7 @@ describe("ClaudeNativeSessionImportRepo", () => {
   });
 
   it("扫描和查找导入候选时会过滤 Claude 临时 worktree workspace", async () => {
-    const home = makeTempDir("zcode-claude-native-home-worktree-");
+    const home = makeTempDir("nibi-claude-native-home-worktree-");
     process.env.HOME = home;
 
     vi.resetModules();
@@ -293,7 +293,7 @@ describe("ClaudeNativeSessionImportRepo", () => {
   });
 
   it("扫描和查找 Claude 原生历史时会跳过 subagents sidechain transcript", async () => {
-    const home = makeTempDir("zcode-claude-import-home-");
+    const home = makeTempDir("nibi-claude-import-home-");
     process.env.HOME = home;
     vi.resetModules();
     vi.doMock("node:os", async () => {

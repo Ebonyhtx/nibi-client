@@ -154,7 +154,7 @@ export async function ensureNativeSearchDeps({
 
   mkdirSync(resolve(tempBaseDir), { recursive: true });
   const workDir = mkdtempSync(
-    join(resolve(tempBaseDir), `zcode-native-search-deps-${plan.platformKey}-`),
+    join(resolve(tempBaseDir), `nibi-native-search-deps-${plan.platformKey}-`),
   );
   const stagingDepsRoot = join(workDir, "deps");
   const buildOutputDir = join(workDir, "binaries");

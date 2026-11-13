@@ -73,7 +73,7 @@ describe("powershell-command", () => {
         ),
         {
           encoding: "utf8",
-          env: { ...process.env, PSModulePath: "Z:\\zcode-invalid-psmodulepath" },
+          env: { ...process.env, PSModulePath: "Z:\\nibi-invalid-psmodulepath" },
         },
       );
 

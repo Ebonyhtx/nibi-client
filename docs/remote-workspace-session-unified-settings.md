@@ -23,10 +23,10 @@
   {
     "kind": "remote",
     "workspacePath": "/home/ubuntu",
-    "workspaceIdentity": "remote:docker:zcode-ssh-container:/home/ubuntu",
+    "workspaceIdentity": "remote:docker:nibi-ssh-container:/home/ubuntu",
     "target": {
       "kind": "docker",
-      "container": "zcode-ssh-container"
+      "container": "nibi-ssh-container"
     },
     "lastOpenedAt": 1776220448653,
     "lastConnectionStatus": "failed",

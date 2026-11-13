@@ -19,10 +19,10 @@ const sourceServerId = "3cd4f9da-cd79-426c-9d70-75f36e9f6a87";
 const profile: ConnectionProfile = {
   profileId,
   transport: "docker",
-  target: { kind: "docker", container: "zcode-dev" },
+  target: { kind: "docker", container: "nibi-dev" },
   createdAt: 1,
 };
-const target: RemoteTarget = { kind: "docker", container: "zcode-dev" };
+const target: RemoteTarget = { kind: "docker", container: "nibi-dev" };
 const sshProfile: ConnectionProfile = {
   ...profile,
   transport: "ssh",
@@ -648,14 +648,14 @@ describe("SourceServerConnectionManager", () => {
             ...profile,
             profileId: "08484abc-244e-43cb-a54e-599941885224",
           },
-          target: { kind: "docker", container: "zcode-dev-2" },
+          target: { kind: "docker", container: "nibi-dev-2" },
         },
         {
           profile: {
             ...profile,
             profileId: "ad187998-9185-42bc-bd9b-5750441a1aec",
           },
-          target: { kind: "docker", container: "zcode-dev-3" },
+          target: { kind: "docker", container: "nibi-dev-3" },
         },
         {
           profile: {
@@ -2366,7 +2366,7 @@ describe("SourceServerConnectionManager", () => {
       const secondProfile: ConnectionProfile = {
         ...profile,
         profileId: "3d317149-48a0-4f50-81bd-021273d0aa48",
-        target: { kind: "docker", container: "zcode-dev-alias" },
+        target: { kind: "docker", container: "nibi-dev-alias" },
       };
       await manager.connect({ profile, target });
       await manager.connect({ profile: secondProfile, target: secondProfile.target });
@@ -2598,7 +2598,7 @@ describe("SourceServerConnectionManager", () => {
     const siblingProfile: ConnectionProfile = {
       ...profile,
       profileId: "3d317149-48a0-4f50-81bd-021273d0aa48",
-      target: { kind: "docker", container: "zcode-dev-alias" },
+      target: { kind: "docker", container: "nibi-dev-alias" },
     };
 
     const joining = manager.connect({ profile: siblingProfile, target: siblingProfile.target });

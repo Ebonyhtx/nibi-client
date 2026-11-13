@@ -9,7 +9,7 @@ describe("Compact E2E App admission", () => {
   let root: string;
 
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "zcode-compact-helper-"));
+    root = await mkdtemp(join(tmpdir(), "nibi-compact-helper-"));
   });
 
   afterEach(async () => {

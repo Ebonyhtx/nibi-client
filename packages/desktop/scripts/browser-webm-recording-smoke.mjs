@@ -169,7 +169,7 @@ async function run() {
   let exitCode = 0;
   try {
     await app.whenReady();
-    root = await mkdtemp(join(tmpdir(), "zcode-browser-webm-smoke-"));
+    root = await mkdtemp(join(tmpdir(), "nibi-browser-webm-smoke-"));
     const outputPath = OUTPUT_PATH || join(root, "recording.webm");
     hostWindow = new BrowserWindow({
       show: true,

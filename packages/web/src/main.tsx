@@ -724,7 +724,7 @@ function createWebRemoteControlRequestId(prefix: string): string {
 }
 
 function seedStableWebRemoteControlClientId(deviceSid: string): void {
-  const storageKey = `zcode-web-remote-client-id:${deviceSid}`;
+  const storageKey = `nibi-web-remote-client-id:${deviceSid}`;
   try {
     const existing = globalThis.localStorage?.getItem(storageKey)?.trim();
     if (existing) {

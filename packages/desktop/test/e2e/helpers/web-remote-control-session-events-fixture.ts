@@ -8,7 +8,7 @@ export const WEB_REMOTE_CONTROL_FIXTURE_CREDENTIALS = {
   "oauth:active_provider": "zai",
   "oauth:zai:access_token": "mock-token",
   "oauth:zai:user_info": JSON.stringify({
-    id: "zcode-e2e-user",
+    id: "nibi-e2e-user",
     username: "Nibi E2E",
     displayName: "Nibi E2E",
   }),
@@ -23,7 +23,7 @@ export async function prepareWebRemoteControlSessionEventsFixture(options: {
   webUrl?: string;
 }): Promise<() => Promise<void>> {
   const relay = await createFakeRelayV2({
-    users: { "mock-token": "zcode-e2e-user" },
+    users: { "mock-token": "nibi-e2e-user" },
     onHttp: (call) => {
       if (call.path.startsWith("/api/v1/remote/")) return;
       // 完整工作区会读取推荐场景；配置对象不能冒充场景数组，否则真实首页渲染会崩溃。

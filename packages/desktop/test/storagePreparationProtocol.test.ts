@@ -6,7 +6,7 @@ import { expect, it } from "vitest";
 import { prepareProtocolStartupStorage } from "../../../apps/nibi-cli/packages/bootstrap/src/nibi-protocol/storage-startup.js";
 
 it("waits for path observation before opening storage and exits without business startup", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-storage-only-"));
+  const dir = await mkdtemp(join(tmpdir(), "nibi-storage-only-"));
   const input = new PassThrough();
   const output = new PassThrough();
   const frames: Array<{ method: string; params: Record<string, unknown> }> = [];
@@ -34,7 +34,7 @@ it("waits for path observation before opening storage and exits without business
 });
 
 it("SILENTDB-06: Host reuse acknowledgement skips opening the already prepared storage", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-storage-reuse-"));
+  const dir = await mkdtemp(join(tmpdir(), "nibi-storage-reuse-"));
   const path = join(dir, "not-created.sqlite");
   const input = new PassThrough();
   const output = new PassThrough();

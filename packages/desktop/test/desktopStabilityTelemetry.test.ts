@@ -554,7 +554,7 @@ describe("desktopStabilityTelemetry", () => {
           "request URL contains sk-1234567890abcdefghijklmnopqrstuv",
           `    at Socket._write (${workspacePath}/child.js:10:20)`,
           "    at open (/Users/bob/.nibi/state.db:30:40)",
-          "    at load (/opt/zcode-private/tool.js:50:60)",
+          "    at load (/opt/nibi-private/tool.js:50:60)",
           "  code: 'EPIPE',",
           "x".repeat(1_000),
           "x".repeat(1_000),
@@ -592,7 +592,7 @@ describe("desktopStabilityTelemetry", () => {
       expect(properties.error_stack).toContain("<workspace>");
       expect(properties.error_stack).not.toContain(workspacePath);
       expect(properties.error_stack).not.toContain("/Users/bob");
-      expect(properties.error_stack).not.toContain("/opt/zcode-private");
+      expect(properties.error_stack).not.toContain("/opt/nibi-private");
       expect(properties.error_stack).toContain("<home>/.nibi/state.db");
       expect(properties.error_stack).toContain("<path>");
       expect(properties.error_stack).not.toContain("super-secret");

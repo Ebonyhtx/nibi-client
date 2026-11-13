@@ -60,8 +60,8 @@ pnpm docker:run:web-app
 可覆盖变量：
 
 ```bash
-IMAGE=zcode-web-app:dev NODE_BASE_IMAGE=node:24-bookworm-slim pnpm docker:build:web-app
-PORT=3030 DATA_VOLUME=zcode-web-data WORKSPACE_DIR="$PWD" pnpm docker:run:web-app
+IMAGE=nibi-web-app:dev NODE_BASE_IMAGE=node:24-bookworm-slim pnpm docker:build:web-app
+PORT=3030 DATA_VOLUME=nibi-web-data WORKSPACE_DIR="$PWD" pnpm docker:run:web-app
 ```
 
 访问 `http://localhost:3030/`。

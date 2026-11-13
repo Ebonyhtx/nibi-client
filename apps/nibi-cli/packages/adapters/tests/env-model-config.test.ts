@@ -16,7 +16,7 @@ describe("env model config", () => {
   });
 
   it("does not let legacy env or file model config enter RuntimeConfig", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-env-model-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-env-model-"));
     const path = join(dir, "config.json");
 
     try {

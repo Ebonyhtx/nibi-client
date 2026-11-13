@@ -7,7 +7,7 @@ describe("Windows 本地文件定位 IPC", () => {
   it("同一请求只通过 shell 定位一次中文及空格文件", async function () {
     if (process.platform !== "win32") this.skip();
     await waitForDefaultWorkspaceReady(30000);
-    const directory = await mkdtemp(join(tmpdir(), "zcode-reveal-"));
+    const directory = await mkdtemp(join(tmpdir(), "nibi-reveal-"));
     const filePath = join(directory, "生成 文件.html");
     try {
       await writeFile(filePath, "<html></html>");

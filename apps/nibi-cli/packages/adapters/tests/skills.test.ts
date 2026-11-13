@@ -6,7 +6,7 @@ import { createNodeSkillAdapter } from "../src/skills/index.js";
 
 describe("NodeSkillAdapter", () => {
   it("discovers project skills from SKILL.md metadata", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-skills-"));
     const skillDir = join(dir, ".nibi", "skills", "demo-skill");
 
     try {
@@ -35,7 +35,7 @@ describe("NodeSkillAdapter", () => {
   });
 
   it("filters out skills disabled via config (enable:false path)", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-skills-"));
     const keptDir = join(dir, ".nibi", "skills", "kept-skill");
     const disabledDir = join(dir, ".nibi", "skills", "disabled-skill");
 
@@ -62,7 +62,7 @@ describe("NodeSkillAdapter", () => {
   });
 
   it("loads skill body without frontmatter", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-skills-"));
     const skillDir = join(dir, ".nibi", "skills", "agent-skill");
 
     try {
@@ -94,7 +94,7 @@ describe("NodeSkillAdapter", () => {
   });
 
   it("discovers user skills imported as directory symlinks", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-skills-"));
     const sourceSkill = join(dir, "external-skills", "linked-skill");
     const userSkillRoot = join(dir, "home", ".nibi", "skills");
     const linkedSkill = join(userSkillRoot, "linked-skill");
@@ -121,7 +121,7 @@ describe("NodeSkillAdapter", () => {
   });
 
   it("filters disabled skills when the scanned skill is a symlink to the configured path", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-skills-"));
     const sourceSkill = join(dir, "cloud-skills", "linked-disabled-skill");
     const userSkillRoot = join(dir, "home", ".nibi", "skills");
     const linkedSkill = join(userSkillRoot, "linked-disabled-skill");
@@ -148,7 +148,7 @@ describe("NodeSkillAdapter", () => {
   });
 
   it("loads skills without frontmatter by folder name", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-skills-"));
     const skillDir = join(dir, ".nibi", "skills", "plain-skill");
 
     try {
@@ -170,7 +170,7 @@ describe("NodeSkillAdapter", () => {
   });
 
   it("keeps same-name skills from different paths", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-skills-"));
     const projectSkill = join(dir, ".nibi", "skills", "same-skill");
     const userSkill = join(dir, "home", ".nibi", "skills", "same-skill");
 
@@ -198,7 +198,7 @@ describe("NodeSkillAdapter", () => {
   });
 
   it("discovers project skills from ancestors up to the worktree root", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-skills-"));
     const nestedDirectory = join(dir, "packages", "core");
     const rootSkill = join(dir, ".nibi", "skills", "root-skill");
 
@@ -219,7 +219,7 @@ describe("NodeSkillAdapter", () => {
   });
 
   it("keeps same-name skills from nearest and ancestor roots", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-skills-"));
     const nestedDirectory = join(dir, "packages", "core");
     const ancestorSkill = join(dir, ".nibi", "skills", "same-skill");
     const nearestSkill = join(nestedDirectory, ".nibi", "skills", "same-skill");
@@ -248,7 +248,7 @@ describe("NodeSkillAdapter", () => {
   });
 
   it("discovers skills under .agents/skills", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-skills-"));
     const skillDir = join(dir, ".agents", "skills", "agents-dir-skill");
 
     try {
@@ -266,7 +266,7 @@ describe("NodeSkillAdapter", () => {
   });
 
   it("loads plugin skills by fully qualified plugin alias", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-plugin-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-skills-"));
     const pluginRoot = join(dir, "superpowers");
     const manifestDir = join(pluginRoot, ".claude-plugin");
     const skillRoot = join(pluginRoot, "skills");
@@ -327,7 +327,7 @@ describe("NodeSkillAdapter", () => {
   });
 
   it("parses multiline descriptions from .agents/skills frontmatter", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-skills-"));
     const foldedSkillDir = join(dir, ".agents", "skills", "folded-skill");
     const literalSkillDir = join(dir, ".agents", "skills", "literal-skill");
 
@@ -378,7 +378,7 @@ describe("NodeSkillAdapter", () => {
   });
 
   it("merges .zcode/skills and .agents/skills with .zcode winning same-name loads", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-skills-"));
     const nibiSkill = join(dir, ".nibi", "skills", "dup");
     const agentsSkill = join(dir, ".agents", "skills", "dup");
     const agentsOnlySkill = join(dir, ".agents", "skills", "agents-only");
@@ -414,7 +414,7 @@ describe("NodeSkillAdapter", () => {
   // Bugfix 回归（差一层目录）：技能根自身含 SKILL.md 时根自身就是一个技能（插件 manifest
   // skills 数组项语义），此前只扫一层子目录导致这类根扫描结果恒为空。
   it("discovers a skill whose SKILL.md sits directly in the skill root", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-skills-root-own-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-skills-root-own-"));
     const rootOwnSkill = join(dir, "bundle", "engineering", "tdd");
     const nestedSkill = join(dir, "bundle", "nested-skill");
 
@@ -441,7 +441,7 @@ describe("NodeSkillAdapter", () => {
   });
 
   it("returns no skills and no diagnostics for an empty skill root", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-skills-empty-root-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-skills-empty-root-"));
     const emptyRoot = join(dir, "empty");
 
     try {
@@ -465,7 +465,7 @@ describe("NodeSkillAdapter", () => {
   it.skipIf(process.platform === "win32")(
     "reports a scan diagnostic when the skill root is unreadable",
     async () => {
-      const dir = await mkdtemp(join(tmpdir(), "zcode-skills-eacces-"));
+      const dir = await mkdtemp(join(tmpdir(), "nibi-skills-eacces-"));
       const lockedRoot = join(dir, "locked");
       const skillDir = join(lockedRoot, "hidden-skill");
 
@@ -495,7 +495,7 @@ describe("NodeSkillAdapter", () => {
   );
 
   it("ignores node_modules and dot directories directly under a skill root", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "zcode-skills-"));
+    const dir = await mkdtemp(join(tmpdir(), "nibi-skills-"));
     const skillsRoot = join(dir, ".nibi", "skills");
     const realDir = join(skillsRoot, "real-skill");
     // Bugfix（ZCT-2070384010482601984）：agent 端与桌面端共享排除策略，
@@ -530,7 +530,7 @@ async function writeSkill(dir: string, name: string, description: string): Promi
 
 describe("附加目录技能", () => {
   it("保留同名能力，以目录限定名加载，并且不读取附加目录祖先", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-additional-skills-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-additional-skills-"));
     try {
       const main = join(root, "frontend"),
         extra = join(root, "backend");

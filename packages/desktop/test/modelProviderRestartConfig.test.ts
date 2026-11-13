@@ -22,7 +22,7 @@ describe("model provider restart config", () => {
   it.each(["anthropic-messages", "openai-chat-completions", "openai-responses"] as const)(
     "%s replay 默认模型在没有本机 Built-in 的远端仍可选择",
     async (apiFormat) => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-remote-seed-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-remote-seed-"));
       roots.push(root);
       const file = join(root, "provider_config.json");
       await seedPersonalProviderConfig(file, {
@@ -55,7 +55,7 @@ describe("model provider restart config", () => {
   it.each([true, false])(
     "显式思考选项和模型启用状态 %s 在独立 Registry 中保持",
     async (enabled) => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-remote-seed-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-remote-seed-"));
       roots.push(root);
       const file = join(root, "provider_config.json");
       await seedPersonalProviderConfig(file, {
@@ -95,7 +95,7 @@ describe("model provider restart config", () => {
   );
 
   it("把 replay provider 写入唯一的版本化 Personal Config", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-restart-provider-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-restart-provider-"));
     roots.push(root);
     const file = join(root, "config.json");
     const provider: PersonalProviderConfigSeed = {

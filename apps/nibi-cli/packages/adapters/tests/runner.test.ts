@@ -884,7 +884,7 @@ describe("AiSdkModelAdapter", () => {
   });
 
   it("writes raw AI SDK request and response bodies in development mode", async () => {
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-"));
     const runtime: AiSdkModelRuntime = {
       async generateText(options) {
         return {
@@ -988,7 +988,7 @@ describe("AiSdkModelAdapter", () => {
   });
 
   it("does not write model-io for a generate request marked to skip transcripts", async () => {
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-skip-transcript-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-skip-transcript-"));
     const runtime: AiSdkModelRuntime = {
       async generateText() {
         return {
@@ -1028,7 +1028,7 @@ describe("AiSdkModelAdapter", () => {
   });
 
   it("reuses normalized native-null tool input in generateText model-io", async () => {
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-generate-null-tool-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-generate-null-tool-"));
     const logs: CapturedLog[] = [];
     const runtime: AiSdkModelRuntime = {
       async generateText() {
@@ -1099,7 +1099,7 @@ describe("AiSdkModelAdapter", () => {
 
   it("writes raw AI SDK request and response bodies for streamText in development mode", async () => {
     // 回归用例:桌面/协议端默认走流式,旧实现不写 model-io,这里确保流式也落盘。
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-stream-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-stream-"));
     const runtime: AiSdkModelRuntime = {
       async generateText() {
         throw new Error("not used");
@@ -1222,7 +1222,7 @@ describe("AiSdkModelAdapter", () => {
   });
 
   it("writes request payload into model-io when streamText fails before response metadata", async () => {
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-stream-fail-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-stream-fail-"));
     const runtime: AiSdkModelRuntime = {
       async generateText() {
         throw new Error("not used");
@@ -1296,7 +1296,7 @@ describe("AiSdkModelAdapter", () => {
   });
 
   it("prefers stream result request body when fullStream fails during consumption", async () => {
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-stream-consume-fail-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-stream-consume-fail-"));
     const runtime: AiSdkModelRuntime = {
       async generateText() {
         throw new Error("not used");
@@ -1366,7 +1366,7 @@ describe("AiSdkModelAdapter", () => {
   });
 
   it("does not wait for pending stream response metadata after mid-stream abort", async () => {
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-stream-abort-pending-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-stream-abort-pending-"));
     const abortController = new AbortController();
     const pendingResponse = new Promise<never>(() => undefined);
     const runtime: AiSdkModelRuntime = {
@@ -1430,7 +1430,7 @@ describe("AiSdkModelAdapter", () => {
   });
 
   it("keeps failed stream request body messages full across repeated model-io records", async () => {
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-stream-fail-full-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-stream-fail-full-"));
     let callCount = 0;
     const runtime: AiSdkModelRuntime = {
       async generateText() {
@@ -1495,7 +1495,7 @@ describe("AiSdkModelAdapter", () => {
   });
 
   it("appends model-io records into one session file and stores repeated messages as deltas", async () => {
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-session-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-session-"));
     const runtime: AiSdkModelRuntime = {
       async generateText(options) {
         return {
@@ -1578,7 +1578,7 @@ describe("AiSdkModelAdapter", () => {
   });
 
   it("writes a bounded tail baseline when production model-io cache is missing", async () => {
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-tail-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-tail-"));
     const filePath = join(debugDir, "model-io-sess_tail.jsonl");
     const longMessages = Array.from({ length: 70 }, (_, index) => ({
       role: index % 2 === 0 ? "user" : "assistant",
@@ -1655,7 +1655,7 @@ describe("AiSdkModelAdapter", () => {
   });
 
   it("resets an oversized production model-io session file before writing", async () => {
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-reset-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-reset-"));
     const filePath = join(debugDir, "model-io-sess_reset.jsonl");
     const longMessages = Array.from({ length: 70 }, (_, index) => ({
       role: index % 2 === 0 ? "user" : "assistant",
@@ -1731,7 +1731,7 @@ describe("AiSdkModelAdapter", () => {
   it("caps production model-io session files at 3 and evicts the oldest", async () => {
     // 生产态(NIBI_RUNTIME_ENV=production)写 rollout,需限量;这里用显式 debugDir 验证淘汰逻辑。
     // 每个 session 一个文件,顺序写 5 个 session 后应只剩最新的 3 个。
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-rollout-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-rollout-"));
     const runtime: AiSdkModelRuntime = {
       async generateText() {
         throw new Error("not used");
@@ -1792,7 +1792,7 @@ describe("AiSdkModelAdapter", () => {
   });
 
   it("keeps complete production ModelIO records and all session files when full retention is enabled", async () => {
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-full-retention-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-full-retention-"));
     const runtime: AiSdkModelRuntime = {
       async generateText() {
         throw new Error("not used");
@@ -1882,7 +1882,7 @@ describe("AiSdkModelAdapter", () => {
 
   it("does not record model-io in test env (NIBI_RUNTIME_ENV=test)", async () => {
     // 安全网:测试态不应产生磁盘副作用。
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-testenv-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-testenv-"));
     const runtime: AiSdkModelRuntime = {
       async generateText() {
         throw new Error("not used");
@@ -2083,7 +2083,7 @@ describe("AiSdkModelAdapter", () => {
   });
 
   it("retries one rejected Anthropic thinking signature and records each request-local attempt", async () => {
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-signature-repair-generate-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-signature-repair-generate-"));
     const statusEvents: ModelNetworkStatusEvent[] = [];
     const captured: AiSdkGenerateTextOptions[] = [];
     const messages = signatureReplayMessages();
@@ -3591,7 +3591,7 @@ describe("AiSdkModelAdapter", () => {
   });
 
   it("retries one rejected Anthropic thinking signature from a pre-output stream error", async () => {
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-signature-repair-stream-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-signature-repair-stream-"));
     const statusEvents: ModelNetworkStatusEvent[] = [];
     const captured: AiSdkStreamTextOptions[] = [];
     const messages = signatureReplayMessages();
@@ -4978,7 +4978,7 @@ describe("AiSdkModelAdapter", () => {
   ])(
     "reuses normalized final $name in stream model-io without warning twice",
     async ({ aggregateInput, delta, expectedLog, rawInput, slug }) => {
-      const debugDir = await mkdtemp(join(tmpdir(), `zcode-model-io-${slug}-tool-`));
+      const debugDir = await mkdtemp(join(tmpdir(), `nibi-model-io-${slug}-tool-`));
       const logs: CapturedLog[] = [];
       const toolCallId = `call_model_io_${slug}`;
       const runtime: AiSdkModelRuntime = {
@@ -6866,7 +6866,7 @@ describe("AiSdkModelAdapter", () => {
     // 回归（v3.2.6/v3.3.0）：流出过 chunk 后 abort，AI SDK 的 request/response 聚合
     // promise 永不 settle；失败路径的 model-io 记录若无限 await 会把 catch 挂死，
     // turn 永不结束，session 后续 send 全部报 "A prompt is already running for this session"。
-    const debugDir = await mkdtemp(join(tmpdir(), "zcode-model-io-abort-hang-"));
+    const debugDir = await mkdtemp(join(tmpdir(), "nibi-model-io-abort-hang-"));
     const abortController = new AbortController();
     const runtime: AiSdkModelRuntime = {
       async generateText() {

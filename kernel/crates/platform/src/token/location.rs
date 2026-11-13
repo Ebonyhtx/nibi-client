@@ -18,9 +18,9 @@ use crate::token::Family;
 
 const DEFAULT_ORGANIZATION_NAME: &str = "默认机构";
 const DEFAULT_PROJECT_NAME: &str = "默认项目";
-const KEY_NAME: &str = "zcode-api-key";
+const KEY_NAME: &str = "nibi-api-key";
 /// 团队项目的 key（App `BIGMODEL_TEAM_PLAN_API_KEY_NAME`）与类型。
-const TEAM_KEY_NAME: &str = "zcode-team-api-key";
+const TEAM_KEY_NAME: &str = "nibi-team-api-key";
 const TEAM_KEY_TYPE: u64 = 2;
 /// `API_KEY_USAGE_SCENE.CODING_PLAN`。
 pub(crate) const CODING_PLAN_USAGE_SCENE: u64 = 1;

@@ -305,7 +305,7 @@ describe("PermissionDialog", () => {
       // 动态工作流子代理的 origin（docs/dynamic-workflow/launch.md「Permissions inside a run」）。
       origin: {
         ...SUBAGENT_ORIGIN,
-        agentType: "zcode-workflow",
+        agentType: "nibi-workflow",
         description: "reviewer (agent#1@0)",
       },
     });
@@ -313,7 +313,7 @@ describe("PermissionDialog", () => {
     expect(html).toContain('data-interaction-origin-badge="subagent"');
     expect(html).toContain("子智能体 · reviewer (agent#1@0)");
     // 截断时完整文本留在 tooltip 里，且仍带 agentType。
-    expect(html).toContain("来自子智能体：zcode-workflow · reviewer (agent#1@0)");
+    expect(html).toContain("来自子智能体：nibi-workflow · reviewer (agent#1@0)");
   });
 
   it("renders a compact implementation plan placeholder for switch mode requests", () => {

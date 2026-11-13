@@ -604,7 +604,7 @@ describe(`${marker}: 设置内连接独立完成`, () => {
     await card.$('[data-remote-connection-status="offline"]').waitForExist({ timeout: 30_000 });
 
     // 主机改成不可解析的 .invalid 域名，连接后由真实 ENOTFOUND 给出「修改主机」操作。
-    const missingHost = "zcode-e2e-missing.invalid";
+    const missingHost = "nibi-e2e-missing.invalid";
     await card.$('.//button[normalize-space(.)="编辑"]').click();
     await $(editConnectionDialog).waitForDisplayed();
     await replaceInputValue(

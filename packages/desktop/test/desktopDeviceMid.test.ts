@@ -7,7 +7,7 @@ import { ensureDesktopDeviceMidSync } from "../src/main/desktopDeviceMid.js";
 const tempDirs: string[] = [];
 
 function makeTempDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "zcode-device-mid-"));
+  const dir = mkdtempSync(join(tmpdir(), "nibi-device-mid-"));
   tempDirs.push(dir);
   return dir;
 }

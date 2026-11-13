@@ -205,7 +205,7 @@ describe("SaveWorkflow", () => {
     // 逐字节：脚本本体是 run 的 script_hash 的基准，序列化不许顺手规范化它。
     expect(readFileSync(output.path, "utf8")).toBe(
       [
-        "/* zcode-workflow",
+        "/* nibi-workflow",
         "description: Review a pull request",
         "whenToUse: When the user asks for a PR review",
         "args:",
@@ -324,7 +324,7 @@ describe("SaveWorkflow", () => {
       input: {
         name: "double",
         description: "already has frontmatter",
-        script: `/* zcode-workflow\ndescription: smuggled\n*/\n${cleanScript("save-sentinel")}`,
+        script: `/* nibi-workflow\ndescription: smuggled\n*/\n${cleanScript("save-sentinel")}`,
         scope: "project",
       },
       name: "save-sentinel",

@@ -373,7 +373,7 @@ describe("desktopRuntimeEnv resolveRemoteAssetDirs", () => {
   });
 
   it("remote asset cache 目录支持环境变量覆盖", async () => {
-    const overrideCacheDir = join(tmpdir(), "zcode-prod-remote-assets-cache");
+    const overrideCacheDir = join(tmpdir(), "nibi-prod-remote-assets-cache");
     process.env["NIBI_REMOTE_ASSET_CACHE_DIR"] = overrideCacheDir;
     const { resolveRemoteAssetDirs } = await import("../src/main/desktopRuntimeEnv.js");
     const dirs = resolveRemoteAssetDirs({
@@ -385,7 +385,7 @@ describe("desktopRuntimeEnv resolveRemoteAssetDirs", () => {
   });
 
   it("remote asset cache 目录支持本地 env 文件覆盖", async () => {
-    const overrideCacheDir = join(tmpdir(), "zcode-local-env-remote-assets-cache");
+    const overrideCacheDir = join(tmpdir(), "nibi-local-env-remote-assets-cache");
     const { resolveRemoteAssetDirs } = await import("../src/main/desktopRuntimeEnv.js");
     const dirs = resolveRemoteAssetDirs(
       {
@@ -401,7 +401,7 @@ describe("desktopRuntimeEnv resolveRemoteAssetDirs", () => {
   });
 
   it("开发态本地 env 文件可切到 CDN 并覆盖 CDN 与 cache", async () => {
-    const overrideCacheDir = join(tmpdir(), "zcode-local-env-cdn-remote-assets-cache");
+    const overrideCacheDir = join(tmpdir(), "nibi-local-env-cdn-remote-assets-cache");
     const { resolveRemoteAssetDirs } = await import("../src/main/desktopRuntimeEnv.js");
     const dirs = resolveRemoteAssetDirs(
       {
@@ -731,7 +731,7 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
   });
 
   it("bundled GLM runtime 优先于本地显式 NIBI_AGENT_BINARY_PATH", async () => {
-    const sandboxRoot = mkdtempSync(join(tmpdir(), "zcode-desktop-runtime-env-"));
+    const sandboxRoot = mkdtempSync(join(tmpdir(), "nibi-desktop-runtime-env-"));
     createdDirs.push(sandboxRoot);
     const platformKey = `${process.platform}-${process.arch}`;
     const bundledBinaryName = process.platform === "win32" ? "nibi-agent.exe" : "nibi-agent";
@@ -959,17 +959,17 @@ describe("desktopRuntimeEnv runtime identity", () => {
 
   it("e2e 可通过环境变量隔离应用名和 Electron 数据目录", async () => {
     process.env["NIBI_DESKTOP_APPLICATION_NAME"] = "Nibi E2E";
-    process.env["NIBI_DESKTOP_HOME_DIR"] = "/tmp/zcode-e2e/home";
-    process.env["NIBI_DESKTOP_USER_DATA_DIR"] = "/tmp/zcode-e2e/user-data";
-    process.env["NIBI_DESKTOP_SESSION_DATA_DIR"] = "/tmp/zcode-e2e/session-data";
+    process.env["NIBI_DESKTOP_HOME_DIR"] = "/tmp/nibi-e2e/home";
+    process.env["NIBI_DESKTOP_USER_DATA_DIR"] = "/tmp/nibi-e2e/user-data";
+    process.env["NIBI_DESKTOP_SESSION_DATA_DIR"] = "/tmp/nibi-e2e/session-data";
 
     const { runtimeApplicationName, runtimeHomePath, runtimeSessionDataPath, runtimeUserDataPath } =
       await import("../src/main/desktopRuntimeEnv.js");
 
     expect(runtimeApplicationName).toBe("Nibi E2E");
-    expect(runtimeHomePath).toBe("/tmp/zcode-e2e/home");
-    expect(runtimeUserDataPath).toBe("/tmp/zcode-e2e/user-data");
-    expect(runtimeSessionDataPath).toBe("/tmp/zcode-e2e/session-data");
+    expect(runtimeHomePath).toBe("/tmp/nibi-e2e/home");
+    expect(runtimeUserDataPath).toBe("/tmp/nibi-e2e/user-data");
+    expect(runtimeSessionDataPath).toBe("/tmp/nibi-e2e/session-data");
   });
 
   it("打包测试环境使用 Preview 应用名和独立 Electron 数据目录", async () => {

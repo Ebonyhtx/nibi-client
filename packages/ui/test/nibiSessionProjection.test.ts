@@ -858,7 +858,7 @@ describe("nibiSessionProjection", () => {
           tool: "Read",
           state: {
             status: "completed",
-            input: { file_path: "/tmp/zcode-e2e-tool-action-guard.txt" },
+            input: { file_path: "/tmp/nibi-e2e-tool-action-guard.txt" },
             output: "E2E_TOOL_FILE_CONTENT",
             title: "Read",
             metadata: {},
@@ -1386,7 +1386,7 @@ describe("nibiSessionProjection", () => {
     expect(snapshot.runtime?.goalVerificationTimeline).toHaveLength(1);
     expect(snapshot.messages).toHaveLength(3);
     expect(snapshot.messages[2]).toMatchObject({
-      id: "zcode-goal-verification-target_1-2",
+      id: "nibi-goal-verification-target_1-2",
       role: "assistant",
       content: "",
       timestamp: 20,
@@ -1529,7 +1529,7 @@ describe("nibiSessionProjection", () => {
     expect(snapshot.messages.map((message) => message.id)).toEqual([
       "msg_goal_user",
       "msg_assistant_first",
-      "zcode-goal-verification-goal_1-1",
+      "nibi-goal-verification-goal_1-1",
       "msg_followup_user",
     ]);
     expect(snapshot.messages[1]?.mergedMessageIds).toEqual([
@@ -1838,7 +1838,7 @@ describe("nibiSessionProjection", () => {
 
     expect(snapshot.messages).toHaveLength(3);
     expect(snapshot.messages[2]).toMatchObject({
-      id: "zcode-timeline-fork-parent-session-",
+      id: "nibi-timeline-fork-parent-session-",
       role: "user",
       content: "",
       syntheticTimeline: {
@@ -2948,7 +2948,7 @@ describe("nibiSessionProjection", () => {
         type: "agent_message_chunk",
         taskId: "sess_1",
         traceId: "trace_goal_verify",
-        messageId: "zcode-goal-verification-target_1-2",
+        messageId: "nibi-goal-verification-target_1-2",
         content: "",
         nibiTimeline: {
           version: 1,
@@ -2997,7 +2997,7 @@ describe("nibiSessionProjection", () => {
         type: "agent_message_chunk",
         taskId: "sess_1",
         traceId: "trace_goal_verify",
-        messageId: "zcode-goal-verification-target_1-3",
+        messageId: "nibi-goal-verification-target_1-3",
         content: "",
         nibiTimeline: {
           version: 1,

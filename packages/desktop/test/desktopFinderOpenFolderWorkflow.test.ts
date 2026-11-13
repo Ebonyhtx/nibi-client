@@ -67,7 +67,7 @@ describe("desktopFinderOpenFolderWorkflow", () => {
 });
 
 function createTempHome(): string {
-  const dir = mkdtempSync(join(tmpdir(), "zcode-finder-workflow-"));
+  const dir = mkdtempSync(join(tmpdir(), "nibi-finder-workflow-"));
   tempDirs.push(dir);
   return dir;
 }

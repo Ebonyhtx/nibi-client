@@ -85,7 +85,7 @@ const REQUIRED_LOCAL_RUNTIME_ASSETS = [
           label: "Windows browser import helper",
           script: "prepare:browser-import-helper",
           isReady: () =>
-            existsSync(join(bundledToolsRoot, "browser-import", "zcode-browser-import-helper.exe")),
+            existsSync(join(bundledToolsRoot, "browser-import", "nibi-browser-import-helper.exe")),
         },
       ]
     : []),

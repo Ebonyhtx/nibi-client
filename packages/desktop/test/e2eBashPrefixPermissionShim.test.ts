@@ -13,7 +13,7 @@ describe("Bash prefix permission E2E pnpm shim", () => {
   });
 
   it("prepends a case-owned executable only for the BPR spec", async () => {
-    const homeDir = await mkdtemp(join(tmpdir(), "zcode-bpr-shim-"));
+    const homeDir = await mkdtemp(join(tmpdir(), "nibi-bpr-shim-"));
     roots.push(homeDir);
     const environment: NodeJS.ProcessEnv = { PATH: "/usr/bin:/bin" };
 
@@ -52,7 +52,7 @@ describe("Bash prefix permission E2E pnpm shim", () => {
   });
 
   it("does not change PATH for unrelated specs", async () => {
-    const homeDir = await mkdtemp(join(tmpdir(), "zcode-bpr-shim-unrelated-"));
+    const homeDir = await mkdtemp(join(tmpdir(), "nibi-bpr-shim-unrelated-"));
     roots.push(homeDir);
     const environment: NodeJS.ProcessEnv = { PATH: "/usr/bin:/bin" };
 
@@ -67,7 +67,7 @@ describe("Bash prefix permission E2E pnpm shim", () => {
   });
 
   it("preserves the Windows-style Path key instead of creating a competing PATH key", async () => {
-    const homeDir = await mkdtemp(join(tmpdir(), "zcode-bpr-shim-path-key-"));
+    const homeDir = await mkdtemp(join(tmpdir(), "nibi-bpr-shim-path-key-"));
     roots.push(homeDir);
     const environment: NodeJS.ProcessEnv = { Path: "/usr/bin:/bin" };
 

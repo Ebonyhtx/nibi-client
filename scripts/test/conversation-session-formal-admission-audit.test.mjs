@@ -105,7 +105,7 @@ test("projects pending fixture metadata rejection into audit errors", async () =
 });
 
 test("actual audit CLI reports overridden formal rejection in JSON and text", async () => {
-  const root = await mkdtemp(join(tmpdir(), "zcode-formal-cli-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-formal-cli-"));
   const specPath = join(
     root,
     "packages/desktop/test/e2e/conversation-session/cli-rejected.test.ts",
@@ -135,7 +135,7 @@ test("actual audit CLI reports overridden formal rejection in JSON and text", as
 });
 
 test("ordinary audit CLI rejects the formal root override as test-only", async () => {
-  const root = await mkdtemp(join(tmpdir(), "zcode-formal-cli-untrusted-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-formal-cli-untrusted-"));
   const env = {
     ...process.env,
     NODE_ENV: "test",

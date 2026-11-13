@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/account/src/account/credential.rs（1f0bfd1b71）的 `CredentialCipher` 与读取
+// 复制自 apps/nibi-host/crates/account/src/account/credential.rs（1f0bfd1b71）的 `CredentialCipher` 与读取
 // 部分。改动：文件经 nibi-kernel-fs 读写；密钥构造失败返回错误而不是 panic；密钥材料（平台、home、用户名）
 // 由入口给出，不在这里读进程环境。写入取 Node `shared-credentials.ts` 的 `mutateRawCredentialRecord`
 // （33a9541140）：目录锁内读改写，原子写回（platform.md §5.5）。
@@ -6,7 +6,7 @@
 //!
 //! 与 Node Host、Node CLI 共用：值用 AES-256-GCM 加密成 `enc:v1:<iv>.<tag>.<ciphertext>`（无填充 base64url），
 //! 密钥是 `sha256(secret)`，secret 是 `NIBI_CREDENTIAL_SECRET`，没有时是
-//! `zcode-credential-fallback:<platform>:<homedir>:<username>`（Node `resolveCredentialSecret`）。
+//! `nibi-credential-fallback:<platform>:<homedir>:<username>`（Node `resolveCredentialSecret`）。
 //! 不缓存文件内容：每次读取都以磁盘为准。写入在与 Node 同形的目录锁内读改写（[`CredentialStore::mutate`]）。
 
 use base64::Engine;
@@ -74,7 +74,7 @@ impl CredentialSecret {
         match &self.explicit {
             Some(secret) if !secret.expose().trim().is_empty() => secret.expose().trim().to_owned(),
             _ => format!(
-                "zcode-credential-fallback:{}:{}:{}",
+                "nibi-credential-fallback:{}:{}:{}",
                 self.platform, self.home, self.username
             ),
         }

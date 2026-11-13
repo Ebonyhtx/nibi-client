@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/interaction_view_plan.rs（feat/rs 79b6691c55）：排版按
+// 改写自 apps/nibi-host/crates/tui/src/ui/interaction_view_plan.rs（feat/rs 79b6691c55）：排版按
 // ExitPlanMode 的界面，选项按 Node 的计划审批（修复线 F20，docs/specs/rust-cli/tui.md §5.2）。
 //! 计划审批的排版：`Ready to code?`，虚线之间是计划（最多 12 行），然后 1. 批准（退出 plan，权限模式不变）；
 //! 2. 继续计划（这一行直接是输入）。

@@ -8,7 +8,7 @@ import { appendWorkspaceToFilesystemMcpServers } from "../src/session/mcpWorkspa
 const tempDirs: string[] = [];
 
 async function makeWorkspaceDir(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-mcp-workspace-"));
+  const dir = await mkdtemp(join(tmpdir(), "nibi-mcp-workspace-"));
   tempDirs.push(dir);
   return dir;
 }

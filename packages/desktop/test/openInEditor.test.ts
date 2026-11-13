@@ -86,7 +86,7 @@ describe("openInEditor", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "zcode-open-in-editor-"));
+    tempDir = mkdtempSync(join(tmpdir(), "nibi-open-in-editor-"));
     accessMock.mockReset();
     accessMock.mockResolvedValue(undefined);
     execFileMock.mockReset();

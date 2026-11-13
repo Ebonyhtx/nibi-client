@@ -39,7 +39,7 @@ pnpm --dir apps/nibi-cli run test:e2e:memory
 复用已构建产物：
 
 ```bash
-pnpm --dir apps/nibi-cli/e2e/memory run e2e -- --artifacts /tmp/zcode-memory-e2e
+pnpm --dir apps/nibi-cli/e2e/memory run e2e -- --artifacts /tmp/nibi-memory-e2e
 ```
 
 输出：

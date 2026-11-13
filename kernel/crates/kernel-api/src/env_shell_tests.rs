@@ -130,7 +130,7 @@ fn command_events_and_notices_round_trip() {
     });
     round_trip(&ShellState {
         cwd: path("/w/sub"),
-        outputs: Some(path("/tmp/zcode-shell/sessions/s1/tasks")),
+        outputs: Some(path("/tmp/nibi-shell/sessions/s1/tasks")),
         background: vec![ShellTaskId::new("b1")],
     });
     round_trip(&NetworkPolicy::LocalOnly {

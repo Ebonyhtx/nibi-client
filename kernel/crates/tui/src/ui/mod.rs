@@ -1,4 +1,4 @@
-//! 终端界面的组件层（docs/specs/rust-cli/tui.md §3）：复制自 `apps/zcode-host/crates/tui/src/ui`，
+//! 终端界面的组件层（docs/specs/rust-cli/tui.md §3）：复制自 `apps/nibi-host/crates/tui/src/ui`，
 //! 只持有草稿、滚动、视图等界面状态；会话内容来自 `view::Transcript`，每一帧按当前宽度重新排版。
 pub mod afk;
 pub mod agents;

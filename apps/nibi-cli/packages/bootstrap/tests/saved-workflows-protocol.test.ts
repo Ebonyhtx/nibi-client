@@ -77,8 +77,8 @@ async function seedGlobalWorkflow(
 }
 
 beforeEach(async () => {
-  cwd = await mkdtemp(join(tmpdir(), "zcode-saved-workflows-protocol-"));
-  home = await mkdtemp(join(tmpdir(), "zcode-saved-workflows-home-"));
+  cwd = await mkdtemp(join(tmpdir(), "nibi-saved-workflows-protocol-"));
+  home = await mkdtemp(join(tmpdir(), "nibi-saved-workflows-home-"));
   prevHome = process.env.HOME;
   prevUserProfile = process.env.USERPROFILE;
   process.env.HOME = home;
@@ -136,7 +136,7 @@ describe("workflows/* protocol methods", () => {
     await seedWorkflow("release-check", { description: "发布前检查" });
     await writeFile(
       join(cwd, ".nibi", "workflows", "broken.dwf.ts"),
-      "/* zcode-workflow\nx: [\n*/\n",
+      "/* nibi-workflow\nx: [\n*/\n",
     );
 
     const hit = await getSavedWorkflowOp(contextWith(), {

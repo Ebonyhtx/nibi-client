@@ -88,7 +88,7 @@ describe("虚拟项目手机 shared-host 导航", () => {
     this.timeout(180_000);
     await waitForWorkspaceApp(DEFAULT_WORKSPACE, 45_000);
     const testHome = process.env.NIBI_E2E_HOME_DIR!;
-    if (!testHome || !basename(testHome).startsWith("zcode-virtual-project-e2e-"))
+    if (!testHome || !basename(testHome).startsWith("nibi-virtual-project-e2e-"))
       throw new Error("隔离 HOME required");
     const cwd = join(testHome, "E2E_VP13_UNOPENED");
     const additionalRoot = join(testHome, "E2E_VP13_ADDITIONAL");

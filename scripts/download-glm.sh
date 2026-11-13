@@ -57,10 +57,10 @@ fi
 
 # Bugfix: GLM 二进制按 nibi-cli 版本发布，默认下载目录必须跟随 shared runtime 里的 glm.version。
 DOWNLOAD_BASE_URL="${GLM_BINARY_DOWNLOAD_BASE_URL:-http://${INTRANET_MACHINE_HOST}:12345/zcode/deps/nibi-cli-${GLM_RUNTIME_VERSION}}"
-# Bugfix：Windows 制品命名恢复为 zcode-windows-*.exe，避免继续请求错误文件名。
-DOWNLOAD_NAME="zcode-${PLATFORM}-${ARCH}"
+# Bugfix：Windows 制品命名恢复为 nibi-windows-*.exe，避免继续请求错误文件名。
+DOWNLOAD_NAME="nibi-${PLATFORM}-${ARCH}"
 if [ "$PLATFORM" = "win32" ]; then
-  DOWNLOAD_NAME="zcode-windows-${ARCH}.exe"
+  DOWNLOAD_NAME="nibi-windows-${ARCH}.exe"
 fi
 DOWNLOAD_URL="${DOWNLOAD_BASE_URL}/${DOWNLOAD_NAME}"
 

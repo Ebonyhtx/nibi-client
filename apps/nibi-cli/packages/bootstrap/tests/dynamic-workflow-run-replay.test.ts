@@ -31,7 +31,7 @@ let store: Awaited<ReturnType<typeof createSqliteSessionStore>>;
 let journal: Journal;
 
 beforeEach(async () => {
-  tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-replay-"));
+  tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-replay-"));
   store = await createSqliteSessionStore({ dbPath: join(tempRoot, "session.sqlite") });
   const resolved = resolveDynamicWorkflowJournalStore(store as never);
   if (resolved === undefined) throw new Error("sqlite store must expose the dwf journal");

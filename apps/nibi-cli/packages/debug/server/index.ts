@@ -33,7 +33,7 @@ export function createDebugApp(options: DebugAppOptions = {}): Hono {
   app.get("/api/health", (context) =>
     context.json({
       ok: true,
-      service: "zcode-debug",
+      service: "nibi-debug",
     }),
   );
 
@@ -80,7 +80,7 @@ export function createDebugApp(options: DebugAppOptions = {}): Hono {
     const certificate = await readFile(path, "utf8");
     return context.body(certificate, 200, {
       "Content-Type": "application/x-pem-file; charset=utf-8",
-      "Content-Disposition": 'inline; filename="zcode-debug-ca.pem"',
+      "Content-Disposition": 'inline; filename="nibi-debug-ca.pem"',
     });
   });
 

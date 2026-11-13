@@ -656,7 +656,7 @@ function createCodingPlanUpgradeMockState(
 
 function buildManualClaimStartPlanBalance(claimed: boolean, newBucketReady: boolean) {
   const nowSeconds = Math.floor(Date.now() / 1_000);
-  const oldPlanId = "zcode-v3-start-plan";
+  const oldPlanId = "nibi-v3-start-plan";
   const newPlanId = "weekend-plan-e2e";
   const oldPlan = {
     ends_at: nowSeconds + 4 * 86_400,

@@ -337,8 +337,8 @@ describe("EditConnectionProfileDialog", () => {
       transport: "docker" as const,
       target: { kind: "docker" as const, container: "old-container" },
       fieldLabel: "docker.container",
-      fieldValue: "zcode-dev",
-      expectedTarget: { kind: "docker", container: "zcode-dev" },
+      fieldValue: "nibi-dev",
+      expectedTarget: { kind: "docker", container: "nibi-dev" },
     },
   ])("updates a $transport connection without exposing SSH-only fields", async (entry) => {
     const profile: ConnectionProfile = {

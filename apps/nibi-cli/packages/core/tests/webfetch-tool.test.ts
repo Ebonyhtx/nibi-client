@@ -965,8 +965,8 @@ function createContext(options: {
     toolCallId: "webfetch-call",
     traceId: "trace-webfetch" as never,
     turnId: createTurnId("webfetch"),
-    workingDirectory: "/tmp/zcode-webfetch-tool",
-    workspaceRoot: "/tmp/zcode-webfetch-tool",
+    workingDirectory: "/tmp/nibi-webfetch-tool",
+    workspaceRoot: "/tmp/nibi-webfetch-tool",
   };
 }
 

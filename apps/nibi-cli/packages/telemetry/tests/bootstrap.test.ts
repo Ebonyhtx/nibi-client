@@ -82,7 +82,7 @@ describe("Telemetry V4 bootstrap", () => {
   });
 
   it("Standalone 异步生成并复用随机 installation id", async () => {
-    const home = await mkdtemp(join(tmpdir(), "zcode-telemetry-"));
+    const home = await mkdtemp(join(tmpdir(), "nibi-telemetry-"));
     const env = {
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "http://127.0.0.1:1/v1/traces",
       NIBI_HOME: home,

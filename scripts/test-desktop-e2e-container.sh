@@ -9,7 +9,7 @@ set -euo pipefail
 # 这个脚本的参数全是容器侧路径，关掉转换是唯一正确的做法；Linux / CI 上该变量无影响。
 export MSYS_NO_PATHCONV=1
 
-IMAGE_NAME="${IMAGE_NAME:-zcode-desktop-e2e-demo}"
+IMAGE_NAME="${IMAGE_NAME:-nibi-desktop-e2e-demo}"
 DOCKERFILE="${DOCKERFILE:-Dockerfile.desktop-e2e}"
 DOCKER_PLATFORM="${DOCKER_PLATFORM:-linux/amd64}"
 PNPM_VERSION="${PNPM_VERSION:-10.33.2}"
@@ -76,7 +76,7 @@ esac
 E2E_SPEC="${E2E_SPEC:-$PRESET_E2E_SPEC}"
 E2E_NETWORK_MODE="${E2E_NETWORK_MODE:-replay-isolated}"
 SHM_SIZE="${SHM_SIZE:-2g}"
-DEFAULT_DRIVER_CACHE_VOLUME="zcode-desktop-e2e-driver-cache-${DOCKER_PLATFORM//\//-}"
+DEFAULT_DRIVER_CACHE_VOLUME="nibi-desktop-e2e-driver-cache-${DOCKER_PLATFORM//\//-}"
 DRIVER_CACHE_VOLUME="${DRIVER_CACHE_VOLUME:-$DEFAULT_DRIVER_CACHE_VOLUME}"
 DRIVER_CACHE_DIR="${DRIVER_CACHE_DIR:-/workspace/.cache/wdio-browser-drivers}"
 DRIVER_PREFETCH_TIMEOUT="${DRIVER_PREFETCH_TIMEOUT:-300}"
@@ -85,7 +85,7 @@ E2E_ARTIFACT_ROOT="${E2E_ARTIFACT_ROOT:-$PWD/packages/desktop/.e2e-artifacts}"
 HOST_ARTIFACT_DIR="${E2E_ARTIFACT_DIR:-$E2E_ARTIFACT_ROOT/$E2E_RUN_ID}"
 CONTAINER_ARTIFACT_DIR="/workspace/packages/desktop/.e2e-artifacts/$E2E_RUN_ID"
 CONTAINER_NETWORK_CAPTURE_DIR="$CONTAINER_ARTIFACT_DIR/network-capture"
-CONTAINER_NAME="${CONTAINER_NAME:-zcode-desktop-e2e-${E2E_RUN_ID}}"
+CONTAINER_NAME="${CONTAINER_NAME:-nibi-desktop-e2e-${E2E_RUN_ID}}"
 PERF_SAMPLE_INTERVAL_SECONDS="${PERF_SAMPLE_INTERVAL_SECONDS:-3}"
 CONTAINER_STATS_PATH="$HOST_ARTIFACT_DIR/perf/container-samples.ndjson"
 

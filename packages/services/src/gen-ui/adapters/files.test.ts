@@ -10,7 +10,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 async function fixture(workspaceIdentity?: string, workspaceContainsOutput = false) {
-  const root = await mkdtemp(join(tmpdir(), "zcode-gen-ui-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-gen-ui-"));
   roots.push(root);
   const workspacePath = workspaceContainsOutput ? root : join(root, "workspace"),
     outputRoot = join(root, "user-data", "visualizations");

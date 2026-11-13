@@ -37,7 +37,7 @@ const popplerAvailable =
 
 describe("Read PDF provider and cold-resume E2E", () => {
   it("preserves the final Chat page order after a real runtime cold resume", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-read-pdf-provider-e2e-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-read-pdf-provider-e2e-"));
     const pdfPath = join(root, "two-pages.pdf");
     const sessionId = createSessionId("read-pdf-provider-e2e");
     const databasePath = join(root, "session.sqlite");
@@ -110,7 +110,7 @@ describe("Read PDF provider and cold-resume E2E", () => {
 
 describe.skipIf(!popplerAvailable)("Read PDF Poppler E2E", () => {
   it("runs the runtime descriptor and executor through Poppler in page order", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-read-pdf-e2e-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-read-pdf-e2e-"));
     const pdfPath = join(root, "two-pages.pdf");
     const executionPort = createNodeExecutionAdapter({
       outputRootDir: join(root, "exec-output"),

@@ -72,7 +72,7 @@ const emptyInputs: SourceInputs = {
   sessionId: "",
 };
 
-const lastProjectStorageKey = "zcode-debug:last-project-id";
+const lastProjectStorageKey = "nibi-debug:last-project-id";
 type EnvShell = "posix" | "powershell" | "cmd";
 type DebugView = "trace" | "gantt" | "network";
 

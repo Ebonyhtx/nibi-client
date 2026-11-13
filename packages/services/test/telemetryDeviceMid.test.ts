@@ -12,7 +12,7 @@ describe("ensureTelemetryDeviceMid", () => {
   const tempDirs: string[] = [];
 
   function createIsolatedDataBaseDir(): { dataBaseDir: string; stateFile: string } {
-    const dataBaseDir = mkdtempSync(join(tmpdir(), "zcode-remote-device-mid-"));
+    const dataBaseDir = mkdtempSync(join(tmpdir(), "nibi-remote-device-mid-"));
     tempDirs.push(dataBaseDir);
     setDataBaseDir(dataBaseDir);
     return {

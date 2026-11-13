@@ -48,7 +48,7 @@ flowchart LR
 ## 第一步：构建镜像
 
 ```bash
-# 默认 ref=staging，镜像 tag = zcode-plugin-eval:<ref>
+# 默认 ref=staging，镜像 tag = nibi-plugin-eval:<ref>
 docker/plugin-eval/bin/build-image.sh
 
 # 指定分支、走代理、显式给 token 文件
@@ -66,8 +66,8 @@ docker/plugin-eval/bin/build-image.sh --ref feat-cli-plugins-parity \
    `HOME=/data`、`NIBI_DATA_BASE_DIR=/data`、`NIBI_STORAGE_DIR=/data/.zcode`、`NIBI_BASE_URL=https://zcode.z.ai`。
    内置插件不在 `zcode.cjs` 里，CLI 在入口文件同级的 `packages/<name>-plugin` 找根目录，所以 builder 阶段把
    document-skills、nibi-guide、skill-creator、restore-legacy-sessions 四个纯内容型内置插件 stage 到 `/opt/zcode/packages/`；
-   同理 CLI 启动必读的内置 provider 目录 `config/provider/zcode-builtin.json` 放到 `/opt/zcode/provider/`。
-4. 构建期执行 `zcode plugins marketplace update zcode-plugins-official`，再把 `list --available --json` 中
+   同理 CLI 启动必读的内置 provider 目录 `config/provider/nibi-builtin.json` 放到 `/opt/zcode/provider/`。
+4. 构建期执行 `zcode plugins marketplace update nibi-plugins-official`，再把 `list --available --json` 中
    `installed == false` 的条目逐个 `plugins install`，基线清单落在 `/data/plugins-baseline.json`。
 
 构建结束脚本会打印被测源码 ref@sha 和烘进镜像的插件数（当前 CDN 市场 19 个 + 内置 4 个 = 23）。
@@ -79,7 +79,7 @@ docker/plugin-eval/bin/build-image.sh --ref feat-cli-plugins-parity \
 node docker/plugin-eval/bin/prepare-auth.mjs --list-providers
 
 # 生成容器用凭据目录；provider 可写名字或 id，模型 id 与 reasoning 档位必须显式给
-node docker/plugin-eval/bin/prepare-auth.mjs --out ./.zcode-eval-auth \
+node docker/plugin-eval/bin/prepare-auth.mjs --out ./.nibi-eval-auth \
   --provider ZAPI --model GLM-5.3-Highspeed --reasoning max
 # 末尾会打印：export NIBI_EVAL_CREDENTIAL_SECRET=...   （复制执行）
 ```
@@ -131,8 +131,8 @@ export NIBI_EVAL_CREDENTIAL_SECRET=...   # 第二步打印的值
 docker/plugin-eval/bin/run-suite.sh \
   --tasks docker/plugin-eval/tasks \
   --out ./eval-results \
-  --auth-dir ./.zcode-eval-auth \
-  --image zcode-plugin-eval:staging \
+  --auth-dir ./.nibi-eval-auth \
+  --image nibi-plugin-eval:staging \
   --jobs 2                       # 可选并行度；--filter 'finance-*' 只跑一部分
 ```
 

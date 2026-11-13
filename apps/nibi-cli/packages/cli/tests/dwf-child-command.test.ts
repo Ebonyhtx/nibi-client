@@ -1,5 +1,5 @@
 /**
- * 隐藏子命令 `__zcode-dwf-child` 的分派与执行。
+ * 隐藏子命令 `__nibi-dwf-child` 的分派与执行。
  *
  * Bug 根因（docs/dynamic-workflow/launch.md「Single-executable builds」）：SEA 单文件二进制不解释 Node
  * CLI 旗标，harness 缺省的 `node --max-old-space-size=… <entry>` 在 SEA 下会把旗标交给严格

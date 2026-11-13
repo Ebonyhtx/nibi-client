@@ -62,7 +62,7 @@ const revealProject = async (id: string) => {
 
 describe("当前任务元数据与自动归档", () => {
   before(async () => {
-    if (!home || !basename(home).startsWith("zcode-active-task-e2e-"))
+    if (!home || !basename(home).startsWith("nibi-active-task-e2e-"))
       throw new Error("isolated active-task HOME required");
     await waitForWorkspaceApp(DEFAULT_WORKSPACE, 45_000);
     const db = new DatabaseSync(join(home, ".nibi/v2/tasks-index.sqlite"));

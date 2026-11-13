@@ -2195,7 +2195,7 @@ describe("会话区 Background Runtime Task E2E", () => {
     );
     expect(nibiOneNotificationIndex).toBeGreaterThan(launchIndex);
     await waitForV4AssistantMessageContaining(
-      "background-agent-control-preserve-zcode-one-notification-ok",
+      "background-agent-control-preserve-nibi-one-notification-ok",
     );
     await waitForBackgroundTaskControlRow(
       "agent",
@@ -2241,7 +2241,7 @@ describe("会话区 Background Runtime Task E2E", () => {
       "BG24 第二个 notification 处理中切回原 task 后 cc running Agent row 没有恢复",
     );
     await waitForV4AssistantMessageContaining(
-      "background-agent-control-preserve-zcode-two-notification-ok",
+      "background-agent-control-preserve-nibi-two-notification-ok",
     );
     await waitForBackgroundTaskControlRow(
       "agent",
@@ -2277,7 +2277,7 @@ describe("会话区 Background Runtime Task E2E", () => {
     );
     expect(afterTodoIndex).toBeGreaterThan(nibiNotificationIndex);
     await waitForV4AssistantMessageContaining(
-      "background-agent-control-preserve-zcode-notification-ok",
+      "background-agent-control-preserve-nibi-notification-ok",
     );
     await waitForIdle("BG24 zcode Agent notification 后会话没有回到 idle");
     const presenceProbe = await stopBackgroundTaskControlPresenceProbe();

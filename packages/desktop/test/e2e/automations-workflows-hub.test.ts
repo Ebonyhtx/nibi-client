@@ -65,7 +65,7 @@ const SCRIPT = [
   "",
 ].join("\n");
 const SEED = [
-  "/* zcode-workflow",
+  "/* nibi-workflow",
   "description: 发布前检查",
   "whenToUse: 准备发版时",
   "args:",
@@ -250,7 +250,7 @@ describe("已保存工作流中枢 E2E", () => {
       { timeout: 15000, timeoutMsg: "保存后磁盘文件的说明没有更新" },
     );
     const saved = await readFile(WORKFLOW_FILE, "utf-8");
-    expect(saved.startsWith("/* zcode-workflow\n")).toBe(true);
+    expect(saved.startsWith("/* nibi-workflow\n")).toBe(true);
     expect(saved.endsWith(`*/\n${SCRIPT}`)).toBe(true);
     expect(saved).toContain("whenToUse: 准备发版时");
     expect(saved).toContain("required: true");
@@ -296,7 +296,7 @@ const GLOBAL_SCRIPT = [
   "",
 ].join("\n");
 const GLOBAL_SEED = [
-  "/* zcode-workflow",
+  "/* nibi-workflow",
   "description: 深度调研（全局）",
   "*/",
   GLOBAL_SCRIPT,
@@ -424,7 +424,7 @@ const LAUNCH_OK_FILE = join(WORKFLOWS_DIR, `${LAUNCH_OK_NAME}.dwf.ts`);
 // 脚本体：无 agent()、立即返回常量。声明一个必填实参 `topic`，好让「运行」弹出实参窗
 // （无实参的项目档点击即跑、不弹窗，见 spec）。编译干净（`return <字面量>` 是合法脚本体）。
 const LAUNCH_OK_SEED = [
-  "/* zcode-workflow",
+  "/* nibi-workflow",
   "description: 常量工作流（直接启动 E2E）",
   "args:",
   "  topic:",
@@ -443,7 +443,7 @@ const LAUNCH_OK_SEED = [
 const LAUNCH_SLEEP_NAME = "direct-launch-sleeping";
 const LAUNCH_SLEEP_FILE = join(WORKFLOWS_DIR, `${LAUNCH_SLEEP_NAME}.dwf.ts`);
 const LAUNCH_SLEEP_SEED = [
-  "/* zcode-workflow",
+  "/* nibi-workflow",
   "description: 停留 running 的常量工作流（composer 徽标直达 E2E）",
   "*/",
   'await world.run("sleep", ["40"]);',
@@ -458,7 +458,7 @@ const LAUNCH_SAVE_NAME = "direct-launch-save";
 const LAUNCH_SAVE_FILE = join(WORKFLOWS_DIR, `${LAUNCH_SAVE_NAME}.dwf.ts`);
 const LAUNCH_SAVE_SCRIPT = "return { ok: true, savedFromRun: 1 };\n";
 const LAUNCH_SAVE_SEED = [
-  "/* zcode-workflow",
+  "/* nibi-workflow",
   "description: 保存与再次运行（直接启动 E2E）",
   "*/",
   LAUNCH_SAVE_SCRIPT,
@@ -472,7 +472,7 @@ const LAUNCH_ARTIFACT_FILE = join(WORKFLOWS_DIR, `${LAUNCH_ARTIFACT_NAME}.dwf.ts
 const LAUNCH_ARTIFACT_ID = "e2e-report";
 const LAUNCH_ARTIFACT_MARKDOWN = "# E2E 报告\n\n作为文件打开。\n";
 const LAUNCH_ARTIFACT_SEED = [
-  "/* zcode-workflow",
+  "/* nibi-workflow",
   "description: 发布 markdown 产物（作为文件打开 E2E）",
   "*/",
   `await artifact.markdown(${JSON.stringify(LAUNCH_ARTIFACT_ID)}, ${JSON.stringify(
@@ -488,7 +488,7 @@ const LAUNCH_FAIL_FILE = join(WORKFLOWS_DIR, `${LAUNCH_FAIL_NAME}.dwf.ts`);
 // 赋给 number）。编译只在启动的 ② 阶段发生，因此错误在 startSavedWorkflow 的 ACK 里以
 // compile_failed 回来，被实参窗行内错误区接住——会话在此之前不存在（不变式 2）。
 const LAUNCH_FAIL_SEED = [
-  "/* zcode-workflow",
+  "/* nibi-workflow",
   "description: 编译失败工作流（直接启动 E2E）",
   "args:",
   "  topic:",
@@ -507,7 +507,7 @@ const LAUNCH_MODEL_NAME = "direct-launch-unknown-model";
 const LAUNCH_MODEL_FILE = join(WORKFLOWS_DIR, `${LAUNCH_MODEL_NAME}.dwf.ts`);
 const LAUNCH_MODEL_UNKNOWN = "no-such-model-e2e";
 const LAUNCH_MODEL_SEED = [
-  "/* zcode-workflow",
+  "/* nibi-workflow",
   "description: 点名未知模型的工作流（直接启动 E2E）",
   "args:",
   "  topic:",
@@ -528,7 +528,7 @@ const LAUNCH_MANY_FILE = join(WORKFLOWS_DIR, `${LAUNCH_MANY_NAME}.dwf.ts`);
 const LAUNCH_MANY_COUNT = 40;
 const LAUNCH_MANY_REQUIRED = "arg20";
 const LAUNCH_MANY_SEED = [
-  "/* zcode-workflow",
+  "/* nibi-workflow",
   "description: 实参很多的常量工作流（实参窗限高 E2E）",
   "args:",
   ...Array.from({ length: LAUNCH_MANY_COUNT }, (_, index) => {
@@ -1268,7 +1268,7 @@ describe("直接启动 E2E", () => {
       timeoutMsg: "直接保存后磁盘上没有出现工作流文件",
     });
     const written = await readFile(LAUNCH_SAVE_FILE, "utf-8");
-    expect(written.startsWith("/* zcode-workflow")).toBe(true);
+    expect(written.startsWith("/* nibi-workflow")).toBe(true);
     expect(written.endsWith(`*/\n${LAUNCH_SAVE_SCRIPT}`)).toBe(true);
 
     // 7) 卡片立刻翻面：芯片回来，动词又是「再次运行」。

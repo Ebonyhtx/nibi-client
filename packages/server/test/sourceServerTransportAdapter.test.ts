@@ -150,7 +150,7 @@ class FakeBackend implements IRemoteBackend {
 const targets: RemoteTarget[] = [
   { kind: "ssh", host: "example.com", username: "alice" },
   { kind: "wsl", distro: "Ubuntu-24.04", user: "alice" },
-  { kind: "docker", container: "zcode-dev" },
+  { kind: "docker", container: "nibi-dev" },
 ];
 
 it("reads the installed release identity only when development probing requests it", async () => {

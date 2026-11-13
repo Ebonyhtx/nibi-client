@@ -494,7 +494,7 @@ describe("@nibi/provider-node", () => {
 });
 
 async function temporaryDirectory(): Promise<string> {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-provider-node-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-provider-node-"));
   temporaryDirectories.push(directory);
   return directory;
 }

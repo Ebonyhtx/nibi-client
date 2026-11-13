@@ -160,7 +160,7 @@ describe("AgentRuntime telemetry integration", () => {
       const runtime = createTestAgentRuntime(
         createSessionId(`runtime-subagent-telemetry-${causationMode}`),
         {
-          agentName: "zcode-general-purpose",
+          agentName: "nibi-general-purpose",
           modelStreaming: "off",
           parentSessionId,
           taskType: "subagent_child",
@@ -202,7 +202,7 @@ describe("AgentRuntime telemetry integration", () => {
         causationMode,
         context: {
           actorKind: "subagent",
-          agentName: "zcode-general-purpose",
+          agentName: "nibi-general-purpose",
           parentSessionId,
           parentTurnId: "turn-parent",
         },

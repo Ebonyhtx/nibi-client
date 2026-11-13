@@ -31,7 +31,7 @@ test("does nothing outside a SEA runtime", async () => {
 });
 
 test("extracts target tools into version and hash addressed cache directories", async () => {
-  const storageRoot = await mkdtemp(join(tmpdir(), "zcode-sea-runtime-cache-"));
+  const storageRoot = await mkdtemp(join(tmpdir(), "nibi-sea-runtime-cache-"));
   const fixture = createSeaFixture({
     target: "darwin-arm64",
     tools: defaultToolFixtures(),
@@ -73,7 +73,7 @@ test("extracts target tools into version and hash addressed cache directories", 
 });
 
 test("reuses unchanged tools when another tool changes", async () => {
-  const storageRoot = await mkdtemp(join(tmpdir(), "zcode-sea-runtime-reuse-"));
+  const storageRoot = await mkdtemp(join(tmpdir(), "nibi-sea-runtime-reuse-"));
   const firstFixture = createSeaFixture({
     target: "darwin-arm64",
     tools: defaultToolFixtures(),
@@ -112,7 +112,7 @@ test("reuses unchanged tools when another tool changes", async () => {
 });
 
 test("repairs caches with invalid size, hash, marker, or executable mode", async () => {
-  const storageRoot = await mkdtemp(join(tmpdir(), "zcode-sea-runtime-repair-"));
+  const storageRoot = await mkdtemp(join(tmpdir(), "nibi-sea-runtime-repair-"));
   const fixture = createSeaFixture({
     target: "darwin-arm64",
     tools: defaultToolFixtures(),
@@ -157,7 +157,7 @@ test("repairs caches with invalid size, hash, marker, or executable mode", async
 });
 
 test("concurrent first runs converge without temporary cache residue", async () => {
-  const storageRoot = await mkdtemp(join(tmpdir(), "zcode-sea-runtime-race-"));
+  const storageRoot = await mkdtemp(join(tmpdir(), "nibi-sea-runtime-race-"));
   const fixture = createSeaFixture({
     target: "darwin-arm64",
     tools: defaultToolFixtures(),
@@ -187,7 +187,7 @@ test("concurrent first runs converge without temporary cache residue", async () 
 });
 
 test("preserves explicit runtime tool overrides", async () => {
-  const storageRoot = await mkdtemp(join(tmpdir(), "zcode-sea-runtime-override-"));
+  const storageRoot = await mkdtemp(join(tmpdir(), "nibi-sea-runtime-override-"));
   const fixture = createSeaFixture({
     target: "darwin-arm64",
     tools: defaultToolFixtures(),
@@ -211,7 +211,7 @@ test("preserves explicit runtime tool overrides", async () => {
 });
 
 test("extracts Windows SEA tools using the win target and executable name", async () => {
-  const storageRoot = await mkdtemp(join(tmpdir(), "zcode-sea-runtime-win-"));
+  const storageRoot = await mkdtemp(join(tmpdir(), "nibi-sea-runtime-win-"));
   const fixture = createSeaFixture({
     target: "win-x64",
     tools: [
@@ -248,7 +248,7 @@ test("extracts Windows SEA tools using the win target and executable name", asyn
 });
 
 test("rejects corrupt assets and target mismatches", async () => {
-  const storageRoot = await mkdtemp(join(tmpdir(), "zcode-sea-runtime-invalid-"));
+  const storageRoot = await mkdtemp(join(tmpdir(), "nibi-sea-runtime-invalid-"));
   const fixture = createSeaFixture({
     target: "darwin-arm64",
     tools: defaultToolFixtures(),
@@ -303,7 +303,7 @@ function createSeaFixture(input: { target: string; tools: ToolFixture[] }): {
   const assets = new Map<string, Buffer>();
   const tools = input.tools.map((tool) => {
     const sha256 = createHash("sha256").update(tool.bytes).digest("hex");
-    const assetKey = `zcode-runtime-tools/${tool.id}/${sha256}/${tool.binaryName}`;
+    const assetKey = `nibi-runtime-tools/${tool.id}/${sha256}/${tool.binaryName}`;
     assets.set(assetKey, tool.bytes);
     return { ...tool, assetKey, sha256 };
   });

@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/input_box.rs（feat/rs 79b6691c55）：状态来自 `view::Transcript`。
+// 改写自 apps/nibi-host/crates/tui/src/ui/input_box.rs（feat/rs 79b6691c55）：状态来自 `view::Transcript`。
 //! 输入框（docs/specs/rust-tui.md §8.4）：上下各一条 dim 的 `─` 线；上边线右侧是会话标题，浏览输入
 //! 历史时左侧是 `History k/n`。提示符 `❯ `（运行中 dim），续行缩进 2 列；行数超出时内部滚动，右侧
 //! 显示 `↑` / `↓`。查看子代理时边线换成子代理色，标题换成子代理的描述（修复线 F62，docs/specs/rust-cli/tui-panels.md

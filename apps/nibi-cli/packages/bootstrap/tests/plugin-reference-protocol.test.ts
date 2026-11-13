@@ -14,7 +14,7 @@ vi.mock("node:os", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:os")>();
   const { mkdtempSync } = await import("node:fs");
   const { join: joinPath } = await import("node:path");
-  const fakeHome = mkdtempSync(joinPath(actual.tmpdir(), "zcode-plugin-reference-home-"));
+  const fakeHome = mkdtempSync(joinPath(actual.tmpdir(), "nibi-plugin-reference-home-"));
   (globalThis as { __pluginReferenceFakeHome?: string }).__pluginReferenceFakeHome = fakeHome;
   return { ...actual, homedir: () => fakeHome };
 });
@@ -140,7 +140,7 @@ describe("plugins/referenceCatalog protocol", () => {
   });
 
   it("serves the live workspace catalog when no sessionId is provided (draft picker)", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-plugin-reference-workspace-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-plugin-reference-workspace-"));
     const previousStorageDir = process.env.NIBI_STORAGE_DIR;
     process.env.NIBI_STORAGE_DIR = join(root, "cli");
     try {

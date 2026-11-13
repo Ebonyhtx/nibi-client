@@ -5,13 +5,13 @@ import {
   resolveNibiFileCitationPreviewKind,
 } from "@/lib/nibiFileCitation.js";
 
-describe("zcode-file-citation parser", () => {
+describe("nibi-file-citation parser", () => {
   it("只保留 path、purpose 和 artifact_kind，并容忍其它定位参数", () => {
     const content = [
-      '前文 ::zcode-file-citation{path="docs/年度 报告.docx" purpose="output" artifact_kind="document" page_number=4 future_locator="ignored"} 后文',
-      String.raw`::zcode-file-citation{path='C:\Users\张三\演示 文稿.pptx', artifact_kind=presentation, slide_number=3}`,
-      ':zcode-file-citation{path="sheets/年度 总结.xlsx" purpose="source" artifact_kind="workbook" sheet_name="总览"}',
-      ':::zcode-file-citation{path="reports/论文.pdf" purpose="source"}',
+      '前文 ::nibi-file-citation{path="docs/年度 报告.docx" purpose="output" artifact_kind="document" page_number=4 future_locator="ignored"} 后文',
+      String.raw`::nibi-file-citation{path='C:\Users\张三\演示 文稿.pptx', artifact_kind=presentation, slide_number=3}`,
+      ':nibi-file-citation{path="sheets/年度 总结.xlsx" purpose="source" artifact_kind="workbook" sheet_name="总览"}',
+      ':::nibi-file-citation{path="reports/论文.pdf" purpose="source"}',
     ].join("\n");
 
     expect(extractNibiFileCitations(content)).toEqual([
@@ -20,39 +20,39 @@ describe("zcode-file-citation parser", () => {
         end: content.indexOf("} 后文") + 1,
         path: "docs/年度 报告.docx",
         purpose: "output",
-        raw: '::zcode-file-citation{path="docs/年度 报告.docx" purpose="output" artifact_kind="document" page_number=4 future_locator="ignored"}',
+        raw: '::nibi-file-citation{path="docs/年度 报告.docx" purpose="output" artifact_kind="document" page_number=4 future_locator="ignored"}',
         start: 3,
       },
       {
         artifactKind: "presentation",
-        end: content.indexOf("\n:zcode-file-citation"),
+        end: content.indexOf("\n:nibi-file-citation"),
         path: String.raw`C:\Users\张三\演示 文稿.pptx`,
         purpose: undefined,
-        raw: String.raw`::zcode-file-citation{path='C:\Users\张三\演示 文稿.pptx', artifact_kind=presentation, slide_number=3}`,
-        start: content.indexOf("\n::zcode-file-citation") + 1,
+        raw: String.raw`::nibi-file-citation{path='C:\Users\张三\演示 文稿.pptx', artifact_kind=presentation, slide_number=3}`,
+        start: content.indexOf("\n::nibi-file-citation") + 1,
       },
       {
         artifactKind: "workbook",
-        end: content.indexOf("\n:::zcode-file-citation"),
+        end: content.indexOf("\n:::nibi-file-citation"),
         path: "sheets/年度 总结.xlsx",
         purpose: "source",
-        raw: ':zcode-file-citation{path="sheets/年度 总结.xlsx" purpose="source" artifact_kind="workbook" sheet_name="总览"}',
-        start: content.indexOf("\n:zcode-file-citation") + 1,
+        raw: ':nibi-file-citation{path="sheets/年度 总结.xlsx" purpose="source" artifact_kind="workbook" sheet_name="总览"}',
+        start: content.indexOf("\n:nibi-file-citation") + 1,
       },
       {
         end: content.length,
         path: "reports/论文.pdf",
         purpose: "source",
-        raw: ':::zcode-file-citation{path="reports/论文.pdf" purpose="source"}',
-        start: content.indexOf("\n:::zcode-file-citation") + 1,
+        raw: ':::nibi-file-citation{path="reports/论文.pdf" purpose="source"}',
+        start: content.indexOf("\n:::nibi-file-citation") + 1,
       },
     ]);
   });
 
   it("支持 citation 参数使用中文智能单双引号", () => {
     const content = [
-      '::zcode-file-citation{path=“docs/年度 报告.docx” purpose=‘output’ artifact_kind="document"}',
-      "::zcode-file-citation{path='docs/普通 报告.pdf' purpose=\"output\"}",
+      '::nibi-file-citation{path=“docs/年度 报告.docx” purpose=‘output’ artifact_kind="document"}',
+      "::nibi-file-citation{path='docs/普通 报告.pdf' purpose=\"output\"}",
     ].join("\n");
 
     expect(
@@ -79,62 +79,62 @@ describe("zcode-file-citation parser", () => {
     expect(
       extractNibiFileCitations(
         [
-          '::zcode-file-citation{purpose="output"}',
-          '::zcode-file-citation{path "missing equals.pdf"}',
-          '::zcode-file-citation{path="unclosed.pdf"',
-          ':zcode-file-citation{path "single-colon-missing-equals.pdf"}',
-          '::::zcode-file-citation{path="too-many-colons.pdf"}',
+          '::nibi-file-citation{purpose="output"}',
+          '::nibi-file-citation{path "missing equals.pdf"}',
+          '::nibi-file-citation{path="unclosed.pdf"',
+          ':nibi-file-citation{path "single-colon-missing-equals.pdf"}',
+          '::::nibi-file-citation{path="too-many-colons.pdf"}',
         ].join("\n"),
       ),
     ).toEqual([]);
   });
 
   it("错配智能引号时 fail closed", () => {
-    expect(extractNibiFileCitations("::zcode-file-citation{path=“docs/report.pdf'}")).toEqual([]);
+    expect(extractNibiFileCitations("::nibi-file-citation{path=“docs/report.pdf'}")).toEqual([]);
   });
 
   it("streaming 隐藏最后一行未闭合 citation，但不吞掉异常输出后的正文", () => {
     const incomplete = projectNibiFileCitations(
-      '正文\n::zcode-file-citation{path="reports/result.pdf"',
+      '正文\n::nibi-file-citation{path="reports/result.pdf"',
       { streaming: true },
     );
     expect(incomplete.visibleText).toBe("正文\n");
 
     const inlineIncomplete = projectNibiFileCitations(
-      '请注意 ::zcode-file-citation{path="reports/result.pdf"',
+      '请注意 ::nibi-file-citation{path="reports/result.pdf"',
       { streaming: true },
     );
     expect(inlineIncomplete.visibleText).toBe("请注意 ");
 
     const malformedWithFollowingText = projectNibiFileCitations(
-      '正文\n::zcode-file-citation{path="reports/result.pdf"\n后续说明仍然可见',
+      '正文\n::nibi-file-citation{path="reports/result.pdf"\n后续说明仍然可见',
       { streaming: true },
     );
     expect(malformedWithFollowingText.visibleText).toContain("后续说明仍然可见");
-    expect(malformedWithFollowingText.visibleText).toContain("::zcode-file-citation");
+    expect(malformedWithFollowingText.visibleText).toContain("::nibi-file-citation");
 
     const inlineMalformed = projectNibiFileCitations(
-      '请注意 ::zcode-file-citation{path="reports/result.pdf" 后续说明',
+      '请注意 ::nibi-file-citation{path="reports/result.pdf" 后续说明',
       { streaming: true },
     );
     expect(inlineMalformed.visibleText).toContain("请注意");
     expect(inlineMalformed.visibleText).toContain("后续说明");
 
     const legacyIncomplete = projectNibiFileCitations(
-      '正文\n:zcode-file-citation{path="reports/legacy.pdf"',
+      '正文\n:nibi-file-citation{path="reports/legacy.pdf"',
       { streaming: true },
     );
     expect(legacyIncomplete.visibleText).toBe("正文\n");
 
     const legacyMalformed = projectNibiFileCitations(
-      '正文\n:zcode-file-citation{path="reports/legacy.pdf"\n后续说明仍然可见',
+      '正文\n:nibi-file-citation{path="reports/legacy.pdf"\n后续说明仍然可见',
       { streaming: true },
     );
     expect(legacyMalformed.visibleText).toContain("后续说明仍然可见");
-    expect(legacyMalformed.visibleText).toContain(":zcode-file-citation");
+    expect(legacyMalformed.visibleText).toContain(":nibi-file-citation");
 
     const tripleIncomplete = projectNibiFileCitations(
-      '正文\n:::zcode-file-citation{path="reports/triple.pdf"',
+      '正文\n:::nibi-file-citation{path="reports/triple.pdf"',
       { streaming: true },
     );
     expect(tripleIncomplete.visibleText).toBe("正文\n");
@@ -143,25 +143,25 @@ describe("zcode-file-citation parser", () => {
   it("streaming 在 citation 名称尚未闭合前暂存协议前缀", () => {
     expect(projectNibiFileCitations("正文\n::", { streaming: true }).visibleText).toBe("正文\n");
     expect(
-      projectNibiFileCitations("正文\n::zcode-file-cit", { streaming: true }).visibleText,
+      projectNibiFileCitations("正文\n::nibi-file-cit", { streaming: true }).visibleText,
     ).toBe("正文\n");
     expect(projectNibiFileCitations("正文\n:", { streaming: true }).visibleText).toBe("正文\n:");
     expect(
-      projectNibiFileCitations("正文\n:zcode-file-cit", { streaming: true }).visibleText,
+      projectNibiFileCitations("正文\n:nibi-file-cit", { streaming: true }).visibleText,
     ).toBe("正文\n");
     expect(
-      projectNibiFileCitations("正文\n:::zcode-file-cit", { streaming: true }).visibleText,
+      projectNibiFileCitations("正文\n:::nibi-file-cit", { streaming: true }).visibleText,
     ).toBe("正文\n");
     expect(
-      projectNibiFileCitations("正文\n::zcode-file-citationX", { streaming: true }).visibleText,
-    ).toContain("::zcode-file-citationX");
+      projectNibiFileCitations("正文\n::nibi-file-citationX", { streaming: true }).visibleText,
+    ).toContain("::nibi-file-citationX");
     expect(
-      projectNibiFileCitations("正文\n:zcode-file-citationX", { streaming: true }).visibleText,
-    ).toContain(":zcode-file-citationX");
+      projectNibiFileCitations("正文\n:nibi-file-citationX", { streaming: true }).visibleText,
+    ).toContain(":nibi-file-citationX");
   });
 
   it("智能引号未闭合时仍隐藏流式 citation 尾部", () => {
-    const result = projectNibiFileCitations("正文\n::zcode-file-citation{path=“docs/report.pdf”", {
+    const result = projectNibiFileCitations("正文\n::nibi-file-citation{path=“docs/report.pdf”", {
       streaming: true,
     });
     expect(result.visibleText).toBe("正文\n");

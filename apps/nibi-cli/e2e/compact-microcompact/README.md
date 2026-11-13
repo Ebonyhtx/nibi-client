@@ -77,14 +77,14 @@ node e2e/compact-microcompact/run.mjs --dry-run
 ## Docker
 
 ```bash
-docker build -f e2e/compact-microcompact/Dockerfile -t zcode-compact-microcompact .
-docker run --rm -e NIBI_API_KEY zcode-compact-microcompact
+docker build -f e2e/compact-microcompact/Dockerfile -t nibi-compact-microcompact .
+docker run --rm -e NIBI_API_KEY nibi-compact-microcompact
 ```
 
 Run only the local scripted background Bash case in Docker, with no API key:
 
 ```bash
-docker run --rm zcode-compact-microcompact --case=background-bash
+docker run --rm nibi-compact-microcompact --case=background-bash
 ```
 
 To export artifacts from a disposable Docker run:
@@ -94,7 +94,7 @@ mkdir -p .tmp/compact-e2e
 docker run --rm \
   --env-file .env \
   -v "$PWD/.tmp/compact-e2e:/artifacts" \
-  zcode-compact-microcompact \
+  nibi-compact-microcompact \
   --artifacts-dir=/artifacts
 ```
 
@@ -114,7 +114,7 @@ docker build \
   --build-arg NODE_IMAGE=node:24-bookworm-slim \
   --build-arg NPM_CONFIG_REGISTRY=https://registry.npmmirror.com \
   -f e2e/compact-microcompact/Dockerfile \
-  -t zcode-compact-microcompact .
+  -t nibi-compact-microcompact .
 ```
 
 `@mbears` packages default back to `https://registry.npmjs.org/` because some mirrors may not sync private or scoped packages. Override `MBEARS_NPM_CONFIG_REGISTRY` only when your mirror has those packages.
@@ -126,7 +126,7 @@ docker run --rm \
   --env-file .env \
   -e NODE_EXTRA_CA_CERTS=/certs/provider-ca.pem \
   -v /path/to/provider-ca.pem:/certs/provider-ca.pem:ro \
-  zcode-compact-microcompact
+  nibi-compact-microcompact
 ```
 
 If your base image has working distro package repositories, you can also build with `--build-arg INSTALL_CA_CERTIFICATES=true`.

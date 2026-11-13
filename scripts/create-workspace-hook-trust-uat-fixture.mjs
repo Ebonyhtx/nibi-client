@@ -42,7 +42,7 @@ if (parsed.values.verify !== undefined) {
 
 const workspacePath = parsed.values.target
   ? resolve(parsed.values.target)
-  : await mkdtemp(join(tmpdir(), "zcode-workspace-hook-trust-uat-"));
+  : await mkdtemp(join(tmpdir(), "nibi-workspace-hook-trust-uat-"));
 
 if (parsed.values.target) {
   await mkdir(workspacePath);

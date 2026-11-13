@@ -158,7 +158,7 @@ window trustworthy: everything downstream of step 3 sees one and the same script
    `adjustable_settings` block the window reads (see "Adjusting the settings in the window"),
    overwriting any value the model supplied.
    For `path` it reads that file (relative to the session's working directory, or absolute),
-   strips a `/* zcode-workflow` block when the file carries one, validates `args` against the
+   strips a `/* nibi-workflow` block when the file carries one, validates `args` against the
    block's declaration (and rejects `args` when there is no block), and rewrites the input to
    `{ name, script, path: <absolute>, args? }`. A missing or unreadable file is a structured
    failure naming the path. When the file (a `path` file, or a saved one) carries a metadata
@@ -1127,7 +1127,7 @@ scan is the truth, and every operation reads the disk.
 ### The file
 
 ```
-/* zcode-workflow
+/* nibi-workflow
 description: Pre-release check for this repository: lint, tests, changelog
 whenToUse: when the user asks to release / ship / do a pre-release check
 args:
@@ -1145,7 +1145,7 @@ const found = await reviewer.ask<string>(`Check ${String(args.target)}`);
 return found;
 ```
 
-The file is `<name>.dwf.ts`, valid TypeScript: a `/* zcode-workflow` block comment carrying
+The file is `<name>.dwf.ts`, valid TypeScript: a `/* nibi-workflow` block comment carrying
 YAML metadata, closed by a line containing only `*/`, followed by the script byte for byte.
 The block comment (not a `---` fence) keeps editors working; YAML (not JSON) tolerates hand
 edits; `.dwf.ts` (not `.ts`) lets a scan tell workflows from sources without opening them.
@@ -1222,7 +1222,7 @@ The call follows the same lifecycle as `CreateWorkflow`:
 
 1. `validateInput`: the name is valid, exactly one of `script` and `script_path` is given
    (the field is not called `path` here only because `path` is already this tool's resolved
-   destination), and an inline script does not itself start with `/* zcode-workflow`
+   destination), and an inline script does not itself start with `/* nibi-workflow`
    (metadata goes through the fields; there is no clever merge).
 2. `resolveInput` reads a `script_path` file and rewrites the input with its body as `script`,
    dropping a metadata block the file may carry (a draft copied from a saved workflow keeps
@@ -1444,7 +1444,7 @@ and the model's first `Edit` asks for a `Read`, as before.
 
 `path` names a script file, relative to the session's working directory or absolute. Any
 readable file is accepted, exactly as `Read` accepts it. A file whose first non-blank line
-is `/* zcode-workflow` is parsed as a saved workflow ("Saved workflows"): the block is
+is `/* nibi-workflow` is parsed as a saved workflow ("Saved workflows"): the block is
 stripped, the body is the script, and the top-level `args` field is validated against the
 block's declaration with the rules of `saved.args`. Any other file is the script whole, and
 `args` is rejected because nothing declares them. `resolveInput` reads the file once and
@@ -2157,7 +2157,7 @@ run is recorded as `stopped` (`interrupted`) and can be resumed.
 ### Single-executable builds
 
 A single-executable build cannot spawn `node --eval`, so the CLI has a hidden subcommand
-`__zcode-dwf-child <entry path>` dispatched before argument parsing, and the sandbox is
+`__nibi-dwf-child <entry path>` dispatched before argument parsing, and the sandbox is
 started by re-executing the CLI itself with that subcommand. The child script is written
 to an entry file, `<cwd>/.nibi/workflow-runs/<runId>.mjs` (with a temp-directory fallback
 and a `.gitignore`), and the command line carries only its path, so a long script never

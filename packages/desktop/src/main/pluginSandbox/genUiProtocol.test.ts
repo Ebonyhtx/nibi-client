@@ -42,7 +42,7 @@ function fixture(kind: "gen-ui" | "mcp-app", html = fragment, missing = false) {
     dispose: () => registry.dispose(handle.sandboxId, handle.initId),
     request: (path = "", identity = instance.appIdentity) =>
       handler(
-        new Request(`zcode-sandbox://plugin-${identity}/instance/${handle.sandboxId}/${path}`),
+        new Request(`nibi-sandbox://plugin-${identity}/instance/${handle.sandboxId}/${path}`),
       ),
   };
 }
@@ -77,7 +77,7 @@ describe("Gen UI resource composition", () => {
     expect(html.indexOf("/__nibi__/gen-ui.js")).toBeLessThan(html.indexOf("author()"));
     expect(html.indexOf("author()")).toBeLessThan(html.indexOf("innerKit()"));
     expect(html.indexOf("author()")).toBeLessThan(
-      html.indexOf('id="zcode-gen-ui-document-scrollbar"'),
+      html.indexOf('id="nibi-gen-ui-document-scrollbar"'),
     );
     expect(html).toContain("html,body{scrollbar-width:none!important}");
     expect(html).toContain(
@@ -105,7 +105,7 @@ describe("Gen UI resource composition", () => {
     const html = await (await request()).text();
     expect(html).toContain("/__nibi__/alias.js");
     expect(html).not.toContain("innerKit()");
-    expect(html).not.toContain("zcode-gen-ui-document-scrollbar");
+    expect(html).not.toContain("nibi-gen-ui-document-scrollbar");
     expect(readAsset).not.toHaveBeenCalled();
   });
   it("returns an explicit failure when the packaged runtime is missing", async () => {

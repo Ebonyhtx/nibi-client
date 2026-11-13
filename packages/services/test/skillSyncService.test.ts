@@ -13,7 +13,7 @@ async function symlinkSkillDirectory(target: string, linkPath: string) {
 }
 
 function makeHome() {
-  return mkdtempSync(join(tmpdir(), "zcode-skill-sync-home-"));
+  return mkdtempSync(join(tmpdir(), "nibi-skill-sync-home-"));
 }
 
 async function writeSkill(

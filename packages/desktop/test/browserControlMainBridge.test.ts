@@ -88,7 +88,7 @@ describe("browserControlMainBridge", () => {
           startedAt: 1,
           updatedAt: 2,
           artifact: {
-            path: "/tmp/zcode-recording.webm",
+            path: "/tmp/nibi-recording.webm",
             mimeType: "video/webm",
             width: 1280,
             height: 720,
@@ -108,7 +108,7 @@ describe("browserControlMainBridge", () => {
       expect.objectContaining({
         outputPath: "recordings/demo.webm",
         workspacePath: "/workspace",
-        localPath: "/tmp/zcode-recording.webm",
+        localPath: "/tmp/nibi-recording.webm",
       }),
     );
     bridge.dispose();

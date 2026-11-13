@@ -27,7 +27,7 @@ import { buildProviderRequestMessages } from "../src/runtime/helpers/provider-re
 it.each(["off", "on"] as const)(
   "persists one target lifecycle and restores wrapper history through fork, modes and compact (stream=%s)",
   async (modelStreaming) => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-local-search-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-local-search-"));
     const dbPath = join(root, "session.sqlite");
     const sessionId = createSessionId("local-search-cold");
     let store = await createSqliteSessionStore({ dbPath });

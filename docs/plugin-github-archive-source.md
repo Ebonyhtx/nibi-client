@@ -218,7 +218,7 @@ interface MarketplaceRefreshFailure {
 
 ## 跨端与远程边界
 
-- 来源分类、下载、解压、Git fallback 和原子激活全部位于 zcode-cli adapter；
+- 来源分类、下载、解压、Git fallback 和原子激活全部位于 nibi-cli adapter；
 - Desktop/Web/mobile 只经 typed plugin service 和当前 workspace Agent Host 调用；
 - remote workspace 继续使用 `workspaceIdentity` / `remoteSessionId` 选择权威 Agent，不创建独立 runtime；
 - remote plugin source archive sync 是另一条“本地已物化目录传远端”的路径，本功能不删除它；

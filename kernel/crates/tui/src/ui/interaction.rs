@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/interaction.rs（feat/rs 79b6691c55）：输入换成
+// 改写自 apps/nibi-host/crates/tui/src/ui/interaction.rs（feat/rs 79b6691c55）：输入换成
 // `InteractionRequest`，回答换成 kernel-api 的回答类型（docs/specs/rust-cli/tui.md §5.2）。
 //! 审批、提问与计划审批：内容来自视图的待处理交互，这里只保存选择状态。弹出后 150 ms 内的按键不生效
 //! （防止连按误批）。

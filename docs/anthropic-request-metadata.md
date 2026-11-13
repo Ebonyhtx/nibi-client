@@ -2,13 +2,13 @@
 
 ## 状态
 
-- 本文是 zcode-cli Anthropic 模型请求 `metadata.user_id` 的事实规范。
+- 本文是 nibi-cli Anthropic 模型请求 `metadata.user_id` 的事实规范。
 - 设备身份沿用 `{dataBaseDir}/.nibi/v2/telemetry-state.json` 的 `deviceMid`。
-- metadata 的拼装与注入只发生在 zcode-cli，不修改 Desktop、Host、Web 或 app-agent 协议。
+- metadata 的拼装与注入只发生在 nibi-cli，不修改 Desktop、Host、Web 或 app-agent 协议。
 
 ## 请求契约
 
-所有由 zcode-cli AI SDK adapter 发出的 Anthropic 格式请求都必须携带：
+所有由 nibi-cli AI SDK adapter 发出的 Anthropic 格式请求都必须携带：
 
 ```json
 {
@@ -21,7 +21,7 @@
 `metadata.user_id` 是 JSON 字符串，内部字段语义如下：
 
 - `device_id`：当前 Agent 运行环境的持久化 `deviceMid`，原样使用 UUID，不转换为另一种 ID。
-- `account_uuid`：当前固定为空字符串；zcode-cli 尚无对应的 Anthropic OAuth account UUID。
+- `account_uuid`：当前固定为空字符串；nibi-cli 尚无对应的 Anthropic OAuth account UUID。
 - `session_id`：当前模型请求的 session id，复用 `x-session-id` 的外部归一化逻辑，剥离
   `sess_` 和 `subagent_agent_` 内部前缀；底层调用没有 session context 时使用空字符串。
 
@@ -31,17 +31,17 @@
 
 ## DeviceMid 所有权
 
-Desktop、远端 nibi-server 和 zcode-cli 拥有彼此独立的“确保 deviceMid 存在”入口，但共同读写同一份状态：
+Desktop、远端 nibi-server 和 nibi-cli 拥有彼此独立的“确保 deviceMid 存在”入口，但共同读写同一份状态：
 
 ```text
 Desktop ensure（同步） ─────────┐
 远端 server ensure（启动时异步）├─> {dataBaseDir}/.nibi/v2/telemetry-state.json.deviceMid
 CLI ensure（异步） ─────────────┘                          │
                                                   v
-                                  zcode-cli Anthropic metadata.device_id
+                                  nibi-cli Anthropic metadata.device_id
 ```
 
-- 本地 Desktop 通常会在 Agent 启动前生成 `deviceMid`，zcode-cli 读取并消费同一个值。
+- 本地 Desktop 通常会在 Agent 启动前生成 `deviceMid`，nibi-cli 读取并消费同一个值。
 - 独立 CLI 或 SSH/WSL/Docker Agent 无需依赖 Desktop，由 CLI 自己生成并持久化；SSH/WSL/Docker 远端的 `nibi-server` 启动时也会确保同一文件里有 `deviceMid`，Agent 随后读到同一个值。
 - CLI 使用与 Desktop/telemetry 相同的 `createUuid()` 格式，并保留 state 文件中的其他字段。
 - CLI 使用 `telemetry-state.lock` 协调并发读写，进程内按 state 文件缓存同一个 ensure promise。
@@ -85,7 +85,7 @@ account_uuid ─────────────────固定空字符�
 | Out of scope     | UI、app services 请求头、协议、conversation/replay 状态、非 Anthropic provider                                       |
 
 UI Surface Matrix：无 UI 入口。权威持久化是 Agent 所在主机的
-`telemetry-state.json.deviceMid`；zcode-cli model adapter 是 metadata commit sink。
+`telemetry-state.json.deviceMid`；nibi-cli model adapter 是 metadata commit sink。
 
 | Rank           | Relationship                                  | Reason                                    |
 | -------------- | --------------------------------------------- | ----------------------------------------- |

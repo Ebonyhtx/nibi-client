@@ -18,7 +18,7 @@
 
 ```
 RENDERER (React UI)
-  UnifiedBrowserView：chrome(地址栏/前进后退/刷新/DevTools/picker) + <webview partition="persist:zcode-embedded-browser">
+  UnifiedBrowserView：chrome(地址栏/前进后退/刷新/DevTools/picker) + <webview partition="persist:nibi-embedded-browser">
     - webview 随 DOM 布局定位（不再 setBounds/setVisible 覆盖）
     - dom-ready 时 getWebContentsId() → IPC 上报 { key, webContentsId } 给 main
     - webview 事件(did-navigate/page-title-updated/did-fail-load) 驱动本地 chrome 状态
@@ -88,7 +88,7 @@ MAIN
 - **guestId 时序**：dom-ready 前 getWebContentsId 可能无效；用 dom-ready 事件为准。webview 崩溃/重载后 guestId 变 → 需重新 attach（监听 destroyed/did-attach）。
 - **CDP attach 冲突**：同 guest 只允许一个 debugger；打开 DevTools 会占用 → attach 失败需结构化处理。
 - **`<webview>` 官方长期不推荐**：但 Electron 41 仍支持，且它是让页面内容参与 DOM 合成、可被菜单覆盖的方案；接受。
-- **partition 登录态**：webview 显式 `partition="persist:zcode-embedded-browser"`，与之前一致。
+- **partition 登录态**：webview 显式 `partition="persist:nibi-embedded-browser"`，与之前一致。
 
 ## 7. Popup / 新标签页创建期契约（2026-07-20 补充）
 

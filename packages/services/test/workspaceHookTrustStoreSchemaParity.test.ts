@@ -26,7 +26,7 @@ import {
 const roots: string[] = [];
 
 function makeRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "zcode-hook-trust-parity-"));
+  const root = mkdtempSync(join(tmpdir(), "nibi-hook-trust-parity-"));
   roots.push(root);
   return root;
 }

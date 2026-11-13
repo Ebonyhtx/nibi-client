@@ -37,7 +37,7 @@ const WRITE_USER_MODIFIED_NOTE = " The user modified your proposed content befor
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await mkdtemp(join(tmpdir(), "zcode-write-contract-"));
+  tmpDir = await mkdtemp(join(tmpdir(), "nibi-write-contract-"));
 });
 
 afterEach(async () => {

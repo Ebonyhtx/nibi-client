@@ -19,7 +19,7 @@ import { createApiKeyProviderConfig } from "./provider-config-fixtures.js";
 
 describe("script workflow runtime", () => {
   it("extracts workflow meta and runs a body in a child process", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-script-workflow-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-script-workflow-"));
     const scriptPath = join(tempRoot, "review.workflow.js");
     await writeFile(
       scriptPath,

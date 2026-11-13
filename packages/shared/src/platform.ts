@@ -73,7 +73,7 @@ export type BrowserTabResidencyState =
   | "restoring";
 
 /** 仅用于创建尚未提交首个 navigation entry 的 residency restore guest。 */
-export const BROWSER_VIEW_RESTORE_BOOTSTRAP_URL = "zcode-browser-restore://pending";
+export const BROWSER_VIEW_RESTORE_BOOTSTRAP_URL = "nibi-browser-restore://pending";
 
 /**
  * 本地 HTML 预览的私有 scheme：file: 只作为模型输入，内置浏览器最终加载的是
@@ -117,7 +117,7 @@ export interface BrowserViewCloseTabRequest {
   sessionId: string;
 }
 
-export const LOCAL_MEDIA_PREVIEW_SCHEME = "zcode-media";
+export const LOCAL_MEDIA_PREVIEW_SCHEME = "nibi-media";
 
 export function buildLocalMediaPreviewUrl(path: string): string {
   const url = new URL(`${LOCAL_MEDIA_PREVIEW_SCHEME}://local/preview`);

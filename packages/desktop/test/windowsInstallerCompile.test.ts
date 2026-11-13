@@ -44,7 +44,7 @@ it("compiles real UAC calls when the plugin directory follows the custom include
   // 新版返回 plugins 根目录（旧版返回 resources 根，需再拼一层 "plugins"）。
   const pluginsDir = await getNsisPluginsPath(undefined, undefined);
   const compiler = makensis.path;
-  const temp = await mkdtemp(join(tmpdir(), "zcode-nsis-compile-"));
+  const temp = await mkdtemp(join(tmpdir(), "nibi-nsis-compile-"));
   try {
     for (const uninstaller of [false, true]) {
       const output = join(temp, uninstaller ? "uninstaller.exe" : "installer.exe");

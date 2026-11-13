@@ -89,7 +89,7 @@ export function injectNodeReplBrowserBroker(
 function createSocketPath(platform: NodeJS.Platform | string): string {
   const id = randomUUID();
   return platform === "win32"
-    ? `\\\\.\\pipe\\zcode-node-repl-${id}`
+    ? `\\\\.\\pipe\\nibi-node-repl-${id}`
     : join(tmpdir(), `znr-${id}.sock`);
 }
 

@@ -22,7 +22,7 @@ async function main() {
 
   const writeTool = requireTool(writeToolEntry, "Write");
   const editTool = requireTool(editToolEntry, "Edit");
-  const runRoot = await mkdtemp(join(tmpdir(), "zcode-file-tools-atomic-e2e-"));
+  const runRoot = await mkdtemp(join(tmpdir(), "nibi-file-tools-atomic-e2e-"));
   const fsPort = createNodeFileSystemAdapter();
   const results = [];
 

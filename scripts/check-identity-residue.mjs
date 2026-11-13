@@ -15,8 +15,8 @@
  * 三类判据：
  *   1. `ZCODE_*` 环境变量与路径段 `.zcode`（原来的两条）；
  *   2. 第三方 CDN 域名（A1/A2）；
- *   3. 实例身份词：`X-ZCode-*` 请求头、`zcode-` kebab 的用户可见文件名/日志标签/进程名。
- *      这一类原先完全漏掉——`zcode-server.cjs`、`zcode-data-size`、`zcode-window-bounds`
+ *   3. 实例身份词：`X-ZCode-*` 请求头、`nibi-` kebab 的用户可见文件名/日志标签/进程名。
+ *      这一类原先完全漏掉——`nibi-server.cjs`、`nibi-data-size`、`nibi-window-bounds`
  *      都过门禁。逐条枚举的理由见 [`FORBIDDEN_IDENTITY_TOKENS`]。
  *
  * 允许清单写在下面，每条都要写清为什么不能改。新增白名单等于放宽判据，必须给理由。
@@ -72,14 +72,14 @@ const ARTIFACT_ROOTS = [
 const FORBIDDEN_THIRD_PARTY_HOSTS = [
   { host: "cdn.codegeex.cn", reason: "上游（智谱系）CDN，不得作为我们的下载源" },
   { host: "cdn-zcode.z.ai", reason: "上游 CDN，不得作为我们的下载源" },
-  { host: "cdn.zcode-ai.com", reason: "上游 CDN，不得作为我们的下载源" },
+  { host: "cdn.nibi-ai.com", reason: "上游 CDN，不得作为我们的下载源" },
 ];
 
 /**
- * 实例身份词（`zcode-` kebab / `X-ZCode-` 头 / 用户可见文件名）。
+ * 实例身份词（`nibi-` kebab / `X-ZCode-` 头 / 用户可见文件名）。
  *
- * 为什么单列、且**逐条枚举**而不是写 `/zcode-/`：泛正则会同时命中大量合法名字——
- * 兼容用的插件包格式 `zcode-plugin`、移植过来的插件名（`nibi-guide` 等）。
+ * 为什么单列、且**逐条枚举**而不是写 `/nibi-/`：泛正则会同时命中大量合法名字——
+ * 兼容用的插件包格式 `nibi-plugin`、移植过来的插件名（`nibi-guide` 等）。
  * 判据一旦产噪声就没人看，等于空转。
  * 所以这里只放「确属我们的实例身份、且当前源码里已经清干净」的词，
  * 每加一条都要先把它清掉，否则门禁立刻红。
@@ -89,7 +89,7 @@ const FORBIDDEN_THIRD_PARTY_HOSTS = [
  * - **源码目录名** 已改成 `packages/services/src/nibi-agent/`、`src/nibi-session/` 等，会出现在
  *   产物 sourcemap 的路径里，所以**不能**写泛化的 `nibi-agent` / `nibi-session`（会天天假红）；
  *   这里只钉方括号形式的日志作用域等运行时字面量。
- * - `/* zcode-workflow` 已保存工作流文件的元数据块标记：文件格式契约，改名要迁就存量文件。
+ * - `/* nibi-workflow` 已保存工作流文件的元数据块标记：文件格式契约，改名要迁就存量文件。
  * - 日志正文里的 "ZCode agent …" 措辞：只影响日志文本，且 e2e 覆盖率工具按其中一条
  *   （`ZCode agent process exited`）切片，改名要同批改那处解析。
  */
@@ -101,7 +101,7 @@ const FORBIDDEN_IDENTITY_TOKENS = [
   { token: "zcode-error-", reason: "用户可见的导出文件名前缀" },
   { token: "zcode-save-file-", reason: "用户可见的保存文件名前缀" },
   // 远端执行器（现在叫 `nibi-server.cjs` / `nibi-server-<target>.tar.gz`）。
-  // 不写泛化的 `zcode-server`：历史产物与兼容串里仍有零散命中，泛词会让判据天天假红；
+  // 不写泛化的 `nibi-server`：历史产物与兼容串里仍有零散命中，泛词会让判据天天假红；
   // 这里只钉运行时真会暴露的那几个具体名字。
   { token: "zcode-server.cjs", reason: "远端执行器的 bundle 文件名（部署到远端 ~/.nibi/server/）" },
   { token: "zcode-server.tar.gz", reason: "远端 bootstrap 归档名" },

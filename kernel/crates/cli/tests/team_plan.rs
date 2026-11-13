@@ -99,7 +99,7 @@ fn server(status: &'static str) -> (String, Seen) {
                 p if p.ends_with("/api_keys") && project.is_some() => (
                     "application/json",
                     ok(
-                        json!([{"name": "zcode-team-api-key", "apiKey": format!("key-{}", project.unwrap()), "keyType": 2}]),
+                        json!([{"name": "nibi-team-api-key", "apiKey": format!("key-{}", project.unwrap()), "keyType": 2}]),
                     ),
                 ),
                 p if p.ends_with("/access_tokens") && project.is_some() => (
@@ -133,7 +133,7 @@ fn prepare(home: &Path, url: &str) -> std::path::PathBuf {
         "oauth:active_provider": "bigmodel",
         "oauth:bigmodel:access_token": "at-big",
         "oauth:bigmodel:user_info": r#"{"id":"key-1","username":"dev","displayName":"Dev"}"#,
-        "zcodejwttoken": "zcode-jwt",
+        "zcodejwttoken": "nibi-jwt",
     });
     std::fs::write(v2.join("credentials.json"), credentials.to_string()).unwrap();
     let settings = json!({

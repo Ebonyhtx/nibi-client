@@ -13,7 +13,7 @@
 - [ZCode 统一多端远程连接架构与产品方案（评审稿）](https://internal-docs.example.invalid/redacted)
 - [R1 窗口级单 Host 进程重构规格](./r1-single-window-host-refactor.md)
 - [Agent Electron/Node runtime 事实](../runtime-tools/agent-electron-node-runtime.md)
-- [ZCode Lite / Server 统一多端架构实施计划](./unified-zcode-lite-server-multi-server-plan.md)
+- [ZCode Lite / Server 统一多端架构实施计划](./unified-nibi-lite-server-multi-server-plan.md)
 
 R2 交付：
 
@@ -365,7 +365,7 @@ Agent 接线约定：发行包内 Core 不在 monorepo、也没有 Electron runt
 ├── bin/zcode                       # Windows 为 zcode.cmd；OS service 稳定入口
 ├── service/<root-hash>.<platform>  # 运行时按 canonical root 生成，显式携带 --server-root
 ├── cache/components/<target>/<component>/<sha256>/
-├── config/provider/zcode-builtin-<sha256>.json   # Core 启动时按内容 hash 物化的 ZCode Built-in Provider Config（2026-09-07 起）
+├── config/provider/nibi-builtin-<sha256>.json   # Core 启动时按内容 hash 物化的 ZCode Built-in Provider Config（2026-09-07 起）
 └── run/
     ├── server.lock
     ├── update.lock                  # 跨 Supervisor handoff 的 CLI update/uninstall 单 owner
@@ -374,7 +374,7 @@ Agent 接线约定：发行包内 Core 不在 monorepo、也没有 Electron runt
     └── control.sock / named pipe
 ```
 
-`config/provider/zcode-builtin-<sha256>.json` 由 Core（`server-core/core.ts`）在启动时从构建期 define
+`config/provider/nibi-builtin-<sha256>.json` 由 Core（`server-core/core.ts`）在启动时从构建期 define
 `__NIBI_BUILTIN_PROVIDER_CONFIG_JSON__` 物化（tmp + rename；同 hash 幂等，内容不一致则启动失败），
 `NIBI_BUILTIN_PROVIDER_CONFIG_FILE` 显式指定时跳过物化。它落在 server root 而不是 release 自带的
 `runtime/`：release 目录不可变，同一 releaseId 重装时 `assertExistingReleaseMatches` 会重算整棵树的内容

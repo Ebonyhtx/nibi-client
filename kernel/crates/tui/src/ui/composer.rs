@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/composer.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/composer.rs（feat/rs 79b6691c55）。
 //! 输入框的状态（docs/specs/rust-tui.md §8.3、§8.5）：编辑区、输入历史与搜索、粘贴折叠、斜杠命令
 //! 弹出列表与 `@` 文件补全（docs/specs/rust-cli/tui-input.md §1.2，`composer_files.rs`）。历史只在内存里
 //! （docs/specs/rust-cli/tui.md §9）。

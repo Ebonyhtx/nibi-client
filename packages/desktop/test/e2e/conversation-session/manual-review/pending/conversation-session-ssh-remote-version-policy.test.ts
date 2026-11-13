@@ -242,7 +242,7 @@ describe(`${MARKER}: 版本兼容策略`, () => {
       expect(current.version).toBe(scenario === "optional" ? version : before.version);
       if (scenario === "optional") {
         expect(await $('[data-testid="ssh-dialog"]').isExisting()).toBe(false);
-        expect(await $("#zcode-toast-host").getText()).not.toMatch(/更新|update/iu);
+        expect(await $("#nibi-toast-host").getText()).not.toMatch(/更新|update/iu);
         await clickTestIdByDom(TID_TASK_SETTINGS_BUTTON);
         await clickTestIdByDom(testId(TID_SETTINGS_SECTION_NAV, "remoteDevices"));
         // 设置页挂载后异步读取兼容状态；卡片出现不代表更新投影已到达。

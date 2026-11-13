@@ -371,8 +371,8 @@ const E2E_AUTH_PROVIDER_ID = "zai";
 const E2E_AUTH_TOKEN = "e2e-oauth-token";
 const E2E_USER_PROFILE = {
   displayName: "NIBI E2E",
-  id: "zcode-e2e-user",
-  username: "zcode-e2e-user",
+  id: "nibi-e2e-user",
+  username: "nibi-e2e-user",
 };
 const GLM_HIGHSPEED_E2E_PROVIDER_ID = "e2e-glmhighspeed";
 const GLM_HIGHSPEED_E2E_MODEL = "glm-5.1-highspeed";
@@ -1457,7 +1457,7 @@ async function startCodingPlanTeamMockIfNeeded(specs: string[] = []) {
       writeJson(response, {
         code: 0,
         data: {
-          token: "e2e-subagent-login-zcode-jwt",
+          token: "e2e-subagent-login-nibi-jwt",
           bigmodel: {
             access_token: "e2e-subagent-login-bigmodel-token",
             refresh_token: "e2e-subagent-login-bigmodel-refresh-token",
@@ -1541,7 +1541,7 @@ async function startCodingPlanTeamMockIfNeeded(specs: string[] = []) {
         data: {
           plans: [
             {
-              plan_id: "zcode-v3-start-plan",
+              plan_id: "nibi-v3-start-plan",
               name: "NIBI V3 Start Plan",
               status: "active",
             },
@@ -1799,7 +1799,7 @@ async function startCodingPlanTeamMockIfNeeded(specs: string[] = []) {
           {
             apiKey: personal ? "personal-ak" : "team-ak",
             keyType: personal ? 1 : 2,
-            name: personal ? "nibi-api-key" : "zcode-team-api-key",
+            name: personal ? "nibi-api-key" : "nibi-team-api-key",
           },
         ],
       });
@@ -3209,7 +3209,7 @@ function seedE2EGitCommitDialogWorkspace(specs: string[] = []) {
   runGitE2ECommand(workspacePath, ["init"]);
   runGitE2ECommand(workspacePath, ["checkout", "-B", "main"]);
   runGitE2ECommand(workspacePath, ["config", "user.name", "NIBI E2E"]);
-  runGitE2ECommand(workspacePath, ["config", "user.email", "zcode-e2e@example.com"]);
+  runGitE2ECommand(workspacePath, ["config", "user.email", "nibi-e2e@example.com"]);
   runGitE2ECommand(workspacePath, ["add", "README.md"]);
   runGitE2ECommand(workspacePath, ["commit", "-m", "chore: seed git commit dialog e2e"]);
   runGitE2ECommand(workspacePath, ["branch", "e2e-target"]);
@@ -3465,7 +3465,7 @@ function createCorruptOAuthCredentialSeed(authProviderId: string): Record<string
     [`oauth:${BIGMODEL_PROVIDER_ID}:access_token`]: "stale-bigmodel-access-token",
     [`oauth:${BIGMODEL_PROVIDER_ID}:refresh_token`]: "stale-bigmodel-refresh-token",
     [`oauth:${BIGMODEL_PROVIDER_ID}:user_info`]: JSON.stringify(E2E_USER_PROFILE),
-    "nibi-jwttoken": "stale-zcode-jwt-token",
+    "nibi-jwttoken": "stale-nibi-jwt-token",
     "bot:e2e:credential": "e2e-independent-bot-token",
   };
 }

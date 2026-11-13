@@ -25,7 +25,7 @@ describe("marketplace store listing", () => {
   }
 
   it("parses listing fields and top-level featured from a CDN-shaped manifest", async () => {
-    const storageRoot = await makeStorageRoot("zcode-marketplace-listing-");
+    const storageRoot = await makeStorageRoot("nibi-marketplace-listing-");
     const marketplaceDir = join(storageRoot, "marketplaces", "nibi-official");
     await mkdir(marketplaceDir, { recursive: true });
     await writeFile(
@@ -163,7 +163,7 @@ describe("marketplace store listing", () => {
   });
 
   it("returns manifest display metadata from describeMarketplacePlugin for installed plugins", async () => {
-    const storageRoot = await makeStorageRoot("zcode-describe-metadata-");
+    const storageRoot = await makeStorageRoot("nibi-describe-metadata-");
     const pluginRoot = join(storageRoot, "cache", "hello-market", "hello", "1.2.3");
     await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
     await writeFile(

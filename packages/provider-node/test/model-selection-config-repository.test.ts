@@ -16,7 +16,7 @@ const roots: string[] = [];
 const owners: NodePersonalProviderConfigRepository[] = [];
 // Windows 无开发者模式时创建 symlink 会 EPERM；symlink 主题用例按能力探测跳过
 const canCreateSymlink = await (async () => {
-  const probeRoot = await mkdtemp(join(tmpdir(), "zcode-symlink-probe-"));
+  const probeRoot = await mkdtemp(join(tmpdir(), "nibi-symlink-probe-"));
   try {
     await symlink(probeRoot, join(probeRoot, "link"), "dir");
     return true;
@@ -43,7 +43,7 @@ afterEach(async () => {
 describe("NodeModelSelectionConfigRepository", () => {
 
   it("损坏 Personal 读取降级但保留原文件，禁止默认保存覆盖它", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-model-selection-config-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-model-selection-config-"));
     roots.push(root);
     const filePath = join(root, "provider_config.json");
     await writeFile(filePath, "{not-json", "utf8");
@@ -60,7 +60,7 @@ describe("NodeModelSelectionConfigRepository", () => {
   (canCreateSymlink ? it : it.skip)(
     "does not delete the target when reading fails before content can be decoded",
     async () => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-model-selection-config-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-model-selection-config-"));
       roots.push(root);
       const directory = join(root, "configured-default-directory");
       const filePath = join(root, "provider_config.json");

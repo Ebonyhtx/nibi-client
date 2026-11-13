@@ -12,7 +12,7 @@ import { useNibiStore } from "@/store/StoreProvider.js";
 function createDiffsWorker(): Worker {
   return new Worker(new URL("../workers/diffs.worker.ts", import.meta.url), {
     type: "module",
-    name: "zcode-diffs-worker",
+    name: "nibi-diffs-worker",
   });
 }
 

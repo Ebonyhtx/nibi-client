@@ -60,7 +60,7 @@ describe("providerRuntimeResolver clean env", () => {
   });
 
   it("glm clean env 会把 HOME 切到 dataBaseDir，保证 session 读写目录一致", () => {
-    const dataBaseDir = mkdtempSync(join(tmpdir(), "zcode-glm-home-"));
+    const dataBaseDir = mkdtempSync(join(tmpdir(), "nibi-glm-home-"));
     createdDirs.push(dataBaseDir);
     setDataBaseDir(dataBaseDir);
 

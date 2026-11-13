@@ -28,7 +28,7 @@ export const EvalWorkflowSnippetInputSchema = z
       .describe("The snippet, inline. This OR `path`, never both."),
     /**
      * 片段的第二条来源。**整个文件就是代码**：
-     * 片段没有保存定义那套语义，一段恰好以 `/* zcode-workflow` 开头的文件也不该被当成声明块剥掉。
+     * 片段没有保存定义那套语义，一段恰好以 `/* nibi-workflow` 开头的文件也不该被当成声明块剥掉。
      */
     path: z
       .string()

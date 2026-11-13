@@ -351,7 +351,7 @@ describe("desktopCommandHandlers resolveFeedbackUrl", () => {
     expect(promptWindow?.loadURL).toHaveBeenCalledWith(expect.stringContaining("data:text/html"));
 
     promptWindow?.emitTitle(
-      "zcode-endpoint-submit:" + encodeURIComponent("http://localhost:3030/path"),
+      "nibi-endpoint-submit:" + encodeURIComponent("http://localhost:3030/path"),
     );
     await commandPromise;
 
@@ -539,7 +539,7 @@ function createCommandOptions(options?: {
       get: vi.fn(async () => options?.settings ?? {}),
       update: vi.fn(async () => undefined),
     },
-    credentialsDir: "/tmp/zcode-test",
+    credentialsDir: "/tmp/nibi-test",
     currentApplicationLocale: "zh-CN" as const,
   };
 }

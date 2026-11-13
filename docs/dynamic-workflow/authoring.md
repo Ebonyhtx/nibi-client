@@ -617,7 +617,7 @@ How the pack reaches each runtime:
   in the deployment hash and checks the required files before reusing a remote installation.
   Both paths reject a missing or incomplete pack before publishing or uploading. They do
   not depend on an old plugin cache or on the server's working directory.
-- SEA binaries embed `skills/**` under the `zcode-bundled-skills/` asset prefix
+- SEA binaries embed `skills/**` under the `nibi-bundled-skills/` asset prefix
   (`cli/scripts/sea-bundled-skill-assets.mjs`) with a manifest whose hash covers every file.
   On start the CLI extracts the pack once into `~/.nibi/cli/bundled-skills/<hash>/`; the
   directory name is the content identity, so restarts are idempotent and concurrent starts
@@ -642,7 +642,7 @@ what result each returns), then write the script and call `CreateWorkflow`. It n
 `Agent` tool, because the older script-workflow feature still exists under the same word.
 
 `workflow` is a reserved slash-command name (it has an entry in
-`packages/shared/src/zcode-slash-command-help.ts`, which is also where the catalog's
+`packages/shared/src/nibi-slash-command-help.ts`, which is also where the catalog's
 description and input hint come from). A user or plugin command of the same name is not
 advertised and is never expanded, so nothing can shadow the built-in or reach around the
 gray gate through a look-alike custom command.

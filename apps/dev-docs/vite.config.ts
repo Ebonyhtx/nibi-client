@@ -11,11 +11,11 @@ const STDIO_TRAFFIC_API_PATH = "/api/dev/stdio-traffic";
 const STDIO_TRAFFIC_LOG_DIR = join(homedir(), ".nibi", "v2", "dev", "stdio-traffic");
 const MAX_TAIL_BYTES = 2 * 1024 * 1024;
 const DEFAULT_RECORD_LIMIT = 300;
-const FEATURE_BOUNDARY_GRAPH_MODULE_ID = "virtual:zcode-feature-boundary-graph";
+const FEATURE_BOUNDARY_GRAPH_MODULE_ID = "virtual:nibi-feature-boundary-graph";
 const FEATURE_BOUNDARY_GRAPH_RESOLVED_ID = `\0${FEATURE_BOUNDARY_GRAPH_MODULE_ID}`;
 const FEATURE_BOUNDARY_GRAPH_SOURCE_PATH = resolve(
   __dirname,
-  "../../.agents/skills/feature-boundary-planner/references/zcode-feature-graph.yaml",
+  "../../.agents/skills/feature-boundary-planner/references/nibi-feature-graph.yaml",
 );
 
 interface StdioTrafficFile {
@@ -134,7 +134,7 @@ async function buildFeatureBoundaryGraphModule() {
 function featureBoundaryGraphPlugin(): Plugin {
   let moduleSource = "";
   return {
-    name: "zcode-dev-docs-feature-boundary-graph",
+    name: "nibi-dev-docs-feature-boundary-graph",
     configureServer(server) {
       server.watcher.add(FEATURE_BOUNDARY_GRAPH_SOURCE_PATH);
     },
@@ -193,7 +193,7 @@ function parseRecordLines(lines: string[]) {
 
 function stdioTrafficApiPlugin(): Plugin {
   return {
-    name: "zcode-dev-docs-stdio-traffic-api",
+    name: "nibi-dev-docs-stdio-traffic-api",
     configureServer(server) {
       server.middlewares.use(STDIO_TRAFFIC_API_PATH, async (request, response) => {
         try {

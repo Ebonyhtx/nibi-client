@@ -12,7 +12,7 @@ describe("materializeBundledNibiBuiltinProviderConfig", () => {
   });
 
   it("在环境固定路径物化 Nibi Built-in Provider Config，并复用相同内容", async () => {
-    const runtimeRoot = await mkdtemp(join(tmpdir(), "zcode-remote-provider-config-"));
+    const runtimeRoot = await mkdtemp(join(tmpdir(), "nibi-remote-provider-config-"));
     tempDirs.push(runtimeRoot);
     const content = emptyRelease(1);
 
@@ -33,7 +33,7 @@ describe("materializeBundledNibiBuiltinProviderConfig", () => {
   });
 
   it("内容变化时在固定路径替换资源副本", async () => {
-    const runtimeRoot = await mkdtemp(join(tmpdir(), "zcode-remote-provider-config-"));
+    const runtimeRoot = await mkdtemp(join(tmpdir(), "nibi-remote-provider-config-"));
     tempDirs.push(runtimeRoot);
     const firstContent = emptyRelease(1);
     const secondContent = emptyRelease(2);
@@ -52,7 +52,7 @@ describe("materializeBundledNibiBuiltinProviderConfig", () => {
   });
 
   it("发现损坏资源副本时从有效随包资源重建", async () => {
-    const runtimeRoot = await mkdtemp(join(tmpdir(), "zcode-remote-provider-config-"));
+    const runtimeRoot = await mkdtemp(join(tmpdir(), "nibi-remote-provider-config-"));
     tempDirs.push(runtimeRoot);
     const content = emptyRelease(1);
     const filePath = await materializeBundledNibiBuiltinProviderConfig({

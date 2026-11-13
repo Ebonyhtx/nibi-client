@@ -6,7 +6,7 @@ import { createNodeSessionMailboxAdapter } from "../src/mailbox/index.js";
 
 describe("NodeSessionMailboxAdapter", () => {
   it("drains unread messages to read", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-mailbox-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-mailbox-"));
     const mailbox = createNodeSessionMailboxAdapter({ rootDir });
     const messageId = "mailbox-message-1";
     const unreadDir = join(rootDir, "sess_target", "unread");
@@ -47,7 +47,7 @@ describe("NodeSessionMailboxAdapter", () => {
   });
 
   it("rejects session ids that would escape the mailbox root", async () => {
-    const parentDir = await mkdtemp(join(tmpdir(), "zcode-mailbox-parent-"));
+    const parentDir = await mkdtemp(join(tmpdir(), "nibi-mailbox-parent-"));
     const rootDir = join(parentDir, "mailbox", "root");
     const mailbox = createNodeSessionMailboxAdapter({ rootDir });
 

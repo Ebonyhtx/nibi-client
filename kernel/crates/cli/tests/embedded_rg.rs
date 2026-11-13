@@ -160,7 +160,7 @@ fn other_names_are_zcode() {
     let home = tempfile::tempdir().unwrap();
     let bin = tempfile::tempdir().unwrap();
     let version = env!("NIBI_BUILD_VERSION");
-    for name in ["rgx", "zcode-rg", "grep"] {
+    for name in ["rgx", "nibi-rg", "grep"] {
         let program = alias(bin.path(), name);
         let output = run(&program, &["--version"], home.path(), home.path(), &[]);
         assert_eq!(

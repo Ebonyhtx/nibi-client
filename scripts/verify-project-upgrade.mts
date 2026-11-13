@@ -5,7 +5,7 @@ import { basename, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 const [repoRoot, phase, testHome] = process.argv.slice(2);
 assert(repoRoot && testHome && phase);
-assert(basename(testHome).startsWith("zcode-project-upgrade-"));
+assert(basename(testHome).startsWith("nibi-project-upgrade-"));
 for (const key of ["HOME", "USERPROFILE", "NIBI_DATA_BASE_DIR"])
   assert.equal(
     resolve(process.env[key] ?? ""),

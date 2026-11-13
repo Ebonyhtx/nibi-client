@@ -19,7 +19,7 @@ afterEach(async () => {
 });
 
 async function fixture() {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-migration-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-migration-"));
   directories.push(directory);
   const db = new DatabaseSync(":memory:");
   databases.push(db);

@@ -7,7 +7,7 @@
         ↓
 Host logout 清理凭据与派生 provider
         ↓
-auth:zcode-jwt-invalid 广播
+auth:nibi-jwt-invalid 广播
         ↓
 Renderer AlertDialog
         ↓ 用户确认

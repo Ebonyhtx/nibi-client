@@ -297,7 +297,7 @@ async fn the_update_command_without_a_marker_asks_for_a_manual_update() {
 #[tokio::test]
 async fn the_handoff_carries_latest_for_the_command_and_the_prompted_version_for_update_now() {
     let dir = tempfile::tempdir().unwrap();
-    let handoff_path = dir.path().join("zcode-update-1.json");
+    let handoff_path = dir.path().join("nibi-update-1.json");
     let mut env = marked();
     env.push((
         handoff::VARIABLE.to_owned(),

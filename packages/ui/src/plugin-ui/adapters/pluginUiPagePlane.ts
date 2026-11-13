@@ -234,7 +234,7 @@ export function createPluginUiPagePlane(events: {
       unmount();
       handleId = handle.sandboxId;
       frame = document.createElement("webview");
-      frame.setAttribute("data-zcode-retained-sandbox", "");
+      frame.setAttribute("data-nibi-retained-sandbox", "");
       frame.setAttribute("src", handle.shellUrl);
       frame.setAttribute("partition", handle.partition);
       frame.setAttribute("data-testid", "plugin-ui-webview");

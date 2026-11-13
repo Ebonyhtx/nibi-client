@@ -142,7 +142,7 @@ export function UpdateStatusDialog({
             </div>
             <Progress
               value={progressValue}
-              className="zcode-update-charge-progress h-2 bg-primary/15 dark:bg-primary/20"
+              className="nibi-update-charge-progress h-2 bg-primary/15 dark:bg-primary/20"
               indicatorClassName="bg-primary"
             />
           </section>

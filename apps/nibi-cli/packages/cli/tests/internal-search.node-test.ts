@@ -68,7 +68,7 @@ function createContext(argv: string[]): RunContext & {
 }
 
 async function fixture() {
-  const root = await mkdtemp(join(tmpdir(), "zcode-embedded-search-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-embedded-search-"));
   await mkdir(join(root, "src"), { recursive: true });
   await mkdir(join(root, "src", "ignored"), { recursive: true });
   await mkdir(join(root, ".git"), { recursive: true });
@@ -299,7 +299,7 @@ nativeSearchTest("internal grep exits quietly when downstream pipe closes early"
 
 nativeSearchTest("internal grep abort signal force kills the native child", async () => {
   const root = await fixture();
-  const binDir = await mkdtemp(join(tmpdir(), "zcode-embedded-search-bin-"));
+  const binDir = await mkdtemp(join(tmpdir(), "nibi-embedded-search-bin-"));
   const pidFile = join(root, "fake-grep.pid");
   await writeIgnoringSigtermCommand(join(binDir, "grep"), pidFile);
 

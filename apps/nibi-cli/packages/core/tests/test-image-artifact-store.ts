@@ -31,7 +31,7 @@ export function createTestImageArtifactStore(): ToolArtifactStorePort {
     async ensureMediaAttachmentPath(request) {
       return {
         status: "ready",
-        path: `/tmp/zcode-test-image-cache/${encodeURIComponent(request.uri)}.png`,
+        path: `/tmp/nibi-test-image-cache/${encodeURIComponent(request.uri)}.png`,
       } as const;
     },
   };

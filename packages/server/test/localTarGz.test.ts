@@ -26,7 +26,7 @@ const gunzipAsync = promisify(gunzip);
 
 describe("local tar.gz archive helper", () => {
   it("creates and extracts directory entries without a system tar binary", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-local-tar-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-local-tar-"));
     const sourceDir = join(rootDir, "source");
     const archivePath = join(rootDir, "archive.tar.gz");
     const extractDir = join(rootDir, "extract");
@@ -45,7 +45,7 @@ describe("local tar.gz archive helper", () => {
   });
 
   it("normalizes directory entry modes for POSIX remote extraction", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-local-tar-mode-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-local-tar-mode-"));
     const sourceDir = join(rootDir, "source");
     const nestedDir = join(sourceDir, "nested");
     const archivePath = join(rootDir, "archive.tar.gz");
@@ -67,7 +67,7 @@ describe("local tar.gz archive helper", () => {
   });
 
   it("rejects path traversal entries while extracting", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-local-tar-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-local-tar-"));
     const sourceFile = join(rootDir, "evil.txt");
     const archivePath = join(rootDir, "evil.tar.gz");
     const extractDir = join(rootDir, "extract");
@@ -83,7 +83,7 @@ describe("local tar.gz archive helper", () => {
   });
 
   (isWindows ? it.skip : it)("preserves safe relative symlinks while creatingand extracting archives", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-local-tar-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-local-tar-"));
     const sourceDir = join(rootDir, "source");
     const archivePath = join(rootDir, "archive.tar.gz");
     const extractDir = join(rootDir, "extract");
@@ -106,7 +106,7 @@ describe("local tar.gz archive helper", () => {
   });
 
   it("rejects symlink targets that escape the extraction root", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-local-tar-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-local-tar-"));
     const archivePath = join(rootDir, "unsafe-link.tar.gz");
     const extractDir = join(rootDir, "extract");
 
@@ -132,7 +132,7 @@ describe("local tar.gz archive helper", () => {
   });
 
   (isWindows ? it.skip : it)("rejects unsafe local symlink targets while creating archives", async ()=> {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-local-tar-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-local-tar-"));
     const sourceDir = join(rootDir, "source");
     const outsideFile = join(rootDir, "outside.txt");
     const archivePath = join(rootDir, "unsafe-local-link.tar.gz");
@@ -149,7 +149,7 @@ describe("local tar.gz archive helper", () => {
   });
 
   (isWindows ? it.skip : it)("rejects local symlink targets that are too long for ustar", async () => {
-    const rootDir = await mkdtemp(join(tmpdir(), "zcode-local-tar-"));
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-local-tar-"));
     const sourceDir = join(rootDir, "source");
     const archivePath = join(rootDir, "long-link.tar.gz");
 

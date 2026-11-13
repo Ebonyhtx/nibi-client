@@ -12,7 +12,7 @@ async function archiveSha256(path: string): Promise<string> {
 
 describe("component cache", () => {
   it("reuses a content-addressed component and assembles an atomic release directory", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-component-cache-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-component-cache-"));
     const layout = resolveServerLayout(join(root, "server"));
     const base = join(root, "base");
     await mkdir(join(base, "runtime"), { recursive: true });
@@ -33,7 +33,7 @@ describe("component cache", () => {
   });
 
   it("validates component content before publishing the assembled release", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-component-integrity-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-component-integrity-"));
     const layout = resolveServerLayout(join(root, "server"));
     const base = join(root, "base");
     await mkdir(join(base, "runtime"), { recursive: true });
@@ -87,7 +87,7 @@ describe("component cache", () => {
   });
 
   it("reuses an identical immutable release without moving or overwriting the target", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-component-immutable-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-component-immutable-"));
     const layout = resolveServerLayout(join(root, "server"));
     const base = join(root, "base");
     await mkdir(join(base, "runtime"), { recursive: true });
@@ -139,7 +139,7 @@ describe("component cache", () => {
   });
 
   it("ignores a cache entry whose archive bytes no longer match its marker", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-component-cache-integrity-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-component-cache-integrity-"));
     const layout = resolveServerLayout(join(root, "server"));
     const componentRoot = join(root, "component");
     await mkdir(componentRoot, { recursive: true });
@@ -166,7 +166,7 @@ describe("component cache", () => {
   // Bugfix: Windows 普通用户无 symlink 权限，junction 会被 bsdtar 归档成普通目录
   // （不产生 POSIX symlink 条目），无法在归档内构造出待拒绝的符号链接场景，仅 POSIX 宿主运行。
   it.skipIf(process.platform === "win32")("rejects symbolic links in component archives before extraction", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-component-link-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-component-link-"));
     const layout = resolveServerLayout(join(root, "server"));
     const base = join(root, "base");
     await mkdir(base, { recursive: true });
@@ -191,7 +191,7 @@ describe("component cache", () => {
   });
 
   it("removes files belonging to components removed from the new manifest", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-component-remove-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-component-remove-"));
     const layout = resolveServerLayout(join(root, "server"));
     const base = join(root, "base");
     await mkdir(join(base, "runtime", "packages", "legacy-plugin"), { recursive: true });

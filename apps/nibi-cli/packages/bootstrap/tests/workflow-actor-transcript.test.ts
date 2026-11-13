@@ -121,7 +121,7 @@ async function createSessionRow(store: Store, sessionId: SessionId): Promise<voi
 }
 
 async function withStore(body: (store: Store) => Promise<void>): Promise<void> {
-  const tempRoot = await mkdtemp(join(tmpdir(), "zcode-dwf-seed-"));
+  const tempRoot = await mkdtemp(join(tmpdir(), "nibi-dwf-seed-"));
   const store = (await createSqliteSessionStore({
     dbPath: join(tempRoot, "session.sqlite"),
   })) as unknown as Store;

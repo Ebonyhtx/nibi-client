@@ -21,7 +21,7 @@ describe("DB109：配置可失效，回滚和再升级的内容读取不可报�
   let db: DatabaseSync;
   let store: Awaited<ReturnType<typeof createSqliteSessionStore>> | undefined;
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "zcode-readability-"));
+    root = await mkdtemp(join(tmpdir(), "nibi-readability-"));
     path = join(root, "session.sqlite");
     db = new DatabaseSync(path);
     db.exec(

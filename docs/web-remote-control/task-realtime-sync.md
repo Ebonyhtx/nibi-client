@@ -214,7 +214,7 @@ work 或 continuation inbox，不 rewind 共享 workspace；父 session 原样�
 - `packages/desktop/src/main/taskRealtimeBus.ts`：owner lease、stale-run 和跨 host 路由。
 - `packages/shared/src/nibi-protocol-v4/`：V4 wire、topic、command 与 runtime schema。
 - `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/`：gateway、publisher、projection 与 CommandInbox。
-- `packages/services/src/zcode-agent/`：connection-scoped V4 service facade。
+- `packages/services/src/nibi-agent/`：connection-scoped V4 service facade。
 - `packages/ui/src/v4/`：owned subscription client apply、pending-command 对账与 projection store。
 
 relay/main 不得新增 session/task stream、queue、snapshot 或 fork 业务状态；这些状态必须能从 CLI

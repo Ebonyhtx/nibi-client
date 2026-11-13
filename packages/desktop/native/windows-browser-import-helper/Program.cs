@@ -110,7 +110,7 @@ internal static class Program
         {
             request = ReadBoundedLine(Console.In);
             ValidateImportRequest(request);
-            pipeName = "zcode-browser-import-broker-" + Guid.NewGuid().ToString("N");
+            pipeName = "nibi-browser-import-broker-" + Guid.NewGuid().ToString("N");
             token = CreateToken();
             pipe = CreatePipeServer(pipeName, true);
         }
@@ -347,7 +347,7 @@ internal static class Program
         int brokerPid)
     {
         string serviceName = "NibiBrowserImport_" + Guid.NewGuid().ToString("N");
-        string pipeName = "zcode-browser-import-system-" + Guid.NewGuid().ToString("N");
+        string pipeName = "nibi-browser-import-system-" + Guid.NewGuid().ToString("N");
         string token = CreateToken();
         IntPtr scm = IntPtr.Zero;
         IntPtr service = IntPtr.Zero;

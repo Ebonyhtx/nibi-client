@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/cells/patch.rs（feat/rs 79b6691c55）：本工程的工具结果没有
+// 改写自 apps/nibi-host/crates/tui/src/ui/cells/patch.rs（feat/rs 79b6691c55）：本工程的工具结果没有
 // `structuredPatch`，diff 从工具输入算（Edit 的 old_string / new_string，Write 的 content），不带行号。
 //! 文件改动的细节：`Added N lines, removed M lines` 或 `Wrote N lines to 路径`，下面是带 `+`/`-` 的
 //! diff。新增与删除行整行着底色，配对的行里改动的词再加深一档。紧凑模式最多显示

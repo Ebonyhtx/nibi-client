@@ -47,7 +47,7 @@ const appListeners = new Map<string, Array<(...args: unknown[]) => void>>();
 const appMock = {
   isPackaged: true,
   getVersion: vi.fn(() => "0.1.24"),
-  getAppPath: vi.fn(() => "/tmp/zcode-app"),
+  getAppPath: vi.fn(() => "/tmp/nibi-app"),
   relaunch: vi.fn(),
   exit: vi.fn(),
   on: vi.fn((event: string, listener: (...args: unknown[]) => void) => {
@@ -85,7 +85,7 @@ autoUpdaterMock.setFeedURL = vi.fn();
 autoUpdaterMock.forceDevUpdateConfig = false;
 autoUpdaterMock.currentVersion = null;
 autoUpdaterMock.installerPath =
-  "C:\\Users\\demo\\AppData\\Local\\zcode-updater\\pending\\Nibi-0.1.25-win-x64.exe";
+  "C:\\Users\\demo\\AppData\\Local\\nibi-updater\\pending\\Nibi-0.1.25-win-x64.exe";
 autoUpdaterMock.autoRunAppAfterInstall = true;
 autoUpdaterMock.installDirectory = null;
 autoUpdaterMock.downloadedUpdateHelper = null;
@@ -221,7 +221,7 @@ describe("autoUpdater ready state sync", () => {
     autoUpdaterMock.forceDevUpdateConfig = false;
     autoUpdaterMock.currentVersion = null;
     autoUpdaterMock.installerPath =
-      "C:\\Users\\demo\\AppData\\Local\\zcode-updater\\pending\\Nibi-0.1.25-win-x64.exe";
+      "C:\\Users\\demo\\AppData\\Local\\nibi-updater\\pending\\Nibi-0.1.25-win-x64.exe";
     autoUpdaterMock.autoRunAppAfterInstall = true;
     autoUpdaterMock.installDirectory = null;
     autoUpdaterMock.downloadedUpdateHelper = null;
@@ -234,10 +234,10 @@ describe("autoUpdater ready state sync", () => {
     appListeners.clear();
     appMock.getVersion.mockImplementation(() => "0.1.24");
     appMock.getAppPath.mockClear();
-    appMock.getAppPath.mockReturnValue("/tmp/zcode-app");
+    appMock.getAppPath.mockReturnValue("/tmp/nibi-app");
     appMock.isPackaged = true;
     Object.defineProperty(process, "resourcesPath", {
-      value: "/tmp/zcode-resources",
+      value: "/tmp/nibi-resources",
       configurable: true,
     });
     delete process.env["TEST_UPDATER_ARCH"];

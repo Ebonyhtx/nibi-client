@@ -27,7 +27,7 @@ describe("虚拟项目多目录冷恢复", () => {
   it("VP16：运行实例保持旧 roots，完整进程重建才采用新 roots，cwd 与主目录配置链不变", async function () {
     await waitForWorkspaceApp(DEFAULT_WORKSPACE, 45_000);
     const home = process.env.NIBI_E2E_HOME_DIR!;
-    if (!home || !basename(home).startsWith("zcode-virtual-project-e2e-"))
+    if (!home || !basename(home).startsWith("nibi-virtual-project-e2e-"))
       throw new Error("隔离 HOME required");
     const roots = ["A", "B", "C"].map((name) => join(home, `E2E_VP16_${name}`));
     for (const [i, root] of roots.entries()) {

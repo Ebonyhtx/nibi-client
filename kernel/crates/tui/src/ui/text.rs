@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/text.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/text.rs（feat/rs 79b6691c55）。
 //! 折行与截断（docs/specs/rust-tui.md §8.2）：按显示宽度计算，CJK 占两列；优先在空白处断开，
 //! 单词超过一行时硬断。首行与续行可以有不同的前缀（`• ` 与两个空格、`└ ` 与四个空格）。
 use ratatui::style::Style;

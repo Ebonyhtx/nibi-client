@@ -8,7 +8,7 @@ import type {
 import { createHash } from "node:crypto";
 
 /** privileged scheme 与 URL / partition 派生规则。 */
-export const PLUGIN_SANDBOX_SCHEME = "zcode-sandbox";
+export const PLUGIN_SANDBOX_SCHEME = "nibi-sandbox";
 export const PLUGIN_SANDBOX_SHELL_HOST_PREFIX = "shell-";
 export const PLUGIN_SANDBOX_PLUGIN_HOST_PREFIX = "plugin-";
 /**

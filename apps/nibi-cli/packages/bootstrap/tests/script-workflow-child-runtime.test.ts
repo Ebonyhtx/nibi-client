@@ -65,7 +65,7 @@ describe("script workflow child runtime — actor transcript 直播通道", () =
   let forwarded: SessionEvent[];
 
   beforeEach(async () => {
-    tempRoot = await mkdtemp(join(tmpdir(), "zcode-actor-transcript-"));
+    tempRoot = await mkdtemp(join(tmpdir(), "nibi-actor-transcript-"));
     parentStore = createInMemorySessionEventStore();
     sessionStore = await createSqliteSessionStore({ dbPath: ":memory:" });
     forwarded = [];
@@ -355,7 +355,7 @@ describe("script workflow child runtime — 与父会话共享 model factory", (
   let tempRoot: string;
 
   beforeEach(async () => {
-    tempRoot = await mkdtemp(join(tmpdir(), "zcode-actor-model-"));
+    tempRoot = await mkdtemp(join(tmpdir(), "nibi-actor-model-"));
   });
 
   afterEach(async () => {
@@ -512,7 +512,7 @@ describe("script workflow child runtime — 对外交互端口由父 runtime 铸
   let permissionRequests: Array<{ sessionId: string; origin?: unknown }>;
 
   beforeEach(async () => {
-    tempRoot = await mkdtemp(join(tmpdir(), "zcode-actor-routing-"));
+    tempRoot = await mkdtemp(join(tmpdir(), "nibi-actor-routing-"));
     refreshes = [];
     permissionRequests = [];
     parentRuntime = createTestAgentRuntime(parentSessionId, { workingDirectory: tempRoot }, {
@@ -652,7 +652,7 @@ describe("script workflow child runtime — 子代理经父 broker 请求权限�
   let firstToolCall: { id: string; name: string; input: Record<string, unknown> };
 
   beforeEach(async () => {
-    tempRoot = await mkdtemp(join(tmpdir(), "zcode-actor-guarded-"));
+    tempRoot = await mkdtemp(join(tmpdir(), "nibi-actor-guarded-"));
     requests = [];
     modelRequests = [];
     firstToolCall = {
@@ -980,7 +980,7 @@ describe("script workflow child runtime — 子代理的 Browser Use", () => {
   let parentRuntime: AgentRuntime;
 
   beforeEach(async () => {
-    tempRoot = await mkdtemp(join(tmpdir(), "zcode-actor-browser-"));
+    tempRoot = await mkdtemp(join(tmpdir(), "nibi-actor-browser-"));
     parentRuntime = createTestAgentRuntime(
       parentSessionId,
       { workingDirectory: tempRoot },
@@ -1153,7 +1153,7 @@ describe("script workflow child runtime — 子代理的技能清单", () => {
   let tempRoot: string;
 
   beforeEach(async () => {
-    tempRoot = await mkdtemp(join(tmpdir(), "zcode-actor-skills-"));
+    tempRoot = await mkdtemp(join(tmpdir(), "nibi-actor-skills-"));
   });
 
   afterEach(async () => {

@@ -390,7 +390,7 @@ function ToolCallBlockComponent({
         data-tool-call-id={toolCall.toolId}
         data-tool-name={toolCall.toolName ?? toolCall.kind ?? ""}
         data-status={toolCall.status}
-        data-zcode-tool-stream-animate={shouldPlayEntranceAnimation ? "true" : undefined}
+        data-nibi-tool-stream-animate={shouldPlayEntranceAnimation ? "true" : undefined}
       >
         {toolCall.kind === "cuaGroup" ? (
           <CuaGroupToolCallBlock

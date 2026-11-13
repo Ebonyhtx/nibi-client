@@ -9,7 +9,7 @@ import {
 } from "../src/skill-sync/skillSyncArchive.js";
 
 async function tempDir() {
-  return await mkdtemp(join(tmpdir(), "zcode-skill-sync-"));
+  return await mkdtemp(join(tmpdir(), "nibi-skill-sync-"));
 }
 
 describe("skill sync archive", () => {

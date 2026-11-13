@@ -124,7 +124,7 @@
 
 ```bash
 NIBI_E2E_MANUAL_REVIEW=1 \
-NIBI_BUILTIN_PROVIDER_CONFIG_FILE="$PWD/config/provider/zcode-builtin.json" \
+NIBI_BUILTIN_PROVIDER_CONFIG_FILE="$PWD/config/provider/nibi-builtin.json" \
   mise exec -- pnpm --filter @nibi/desktop test:e2e -- \
   --spec './test/e2e/ui-shell/manual-review/pending/general-coding-mode.test.ts'
 ```

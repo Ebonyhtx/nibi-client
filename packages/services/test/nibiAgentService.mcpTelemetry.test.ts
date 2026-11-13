@@ -56,7 +56,7 @@ describe("NibiAgentService MCP telemetry", () => {
   });
 
   it("strictly validates MCP telemetry before publishing the process-level event", async () => {
-    const workspacePath = mkdtempSync(join(tmpdir(), "zcode-mcp-telemetry-"));
+    const workspacePath = mkdtempSync(join(tmpdir(), "nibi-mcp-telemetry-"));
     tempDirs.push(workspacePath);
     const scriptPath = join(workspacePath, "mcp-telemetry-agent.cjs");
     writeFileSync(scriptPath, MCP_TELEMETRY_FAKE_AGENT);
@@ -106,7 +106,7 @@ describe("NibiAgentService MCP telemetry", () => {
     }
   });
   it("通过真实 stdio 解析资源数组，丢弃含 PID 的通知", async () => {
-    const workspacePath = mkdtempSync(join(tmpdir(), "zcode-mcp-resources-"));
+    const workspacePath = mkdtempSync(join(tmpdir(), "nibi-mcp-resources-"));
     tempDirs.push(workspacePath);
     const scriptPath = join(workspacePath, "agent.cjs");
     writeFileSync(scriptPath, MCP_TELEMETRY_FAKE_AGENT);

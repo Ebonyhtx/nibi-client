@@ -117,7 +117,7 @@ E2E summary 和 e2e-report viewer 只展示覆盖率总览、逐文件摘要和 
 - `renderer`：`packages/ui/src` 与 `packages/desktop/src/renderer` 的 Istanbul 源码覆盖率。
 - `main`：Electron main 及其打包进 main graph 的一方源码覆盖率。
 - `host`：Electron utility host 及其打包进 host graph 的一方源码覆盖率。
-- `cli`：桌面启动的 zcode-cli `app-server` 及其打包进 CLI graph 的一方源码覆盖率。
+- `cli`：桌面启动的 nibi-cli `app-server` 及其打包进 CLI graph 的一方源码覆盖率。
 
 覆盖率数据链路如下：
 

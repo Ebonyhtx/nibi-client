@@ -38,7 +38,7 @@ const FILE_UNCHANGED_STUB =
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await mkdtemp(join(tmpdir(), "zcode-read-contract-"));
+  tmpDir = await mkdtemp(join(tmpdir(), "nibi-read-contract-"));
 });
 
 afterEach(async () => {

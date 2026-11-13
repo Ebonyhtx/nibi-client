@@ -15,8 +15,8 @@
 
 | 场景                      | 新路径                                                                                             | 生命周期                                       |
 | ------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| zcode-cli Bash 持久化输出 | `<os.tmpdir()>/zcode-bash-<随机标识>/<session>/<tool>-stdout.log`；降级到 `<storageRoot>/cli/exec` | 具名临时文件，沿用前后台保留规则，接受系统清理 |
-| zcode-cli 剪贴板图片      | `~/.nibi/clipboard`                                                                               | 单次读取后删除                                 |
+| nibi-cli Bash 持久化输出 | `<os.tmpdir()>/nibi-bash-<随机标识>/<session>/<tool>-stdout.log`；降级到 `<storageRoot>/cli/exec` | 具名临时文件，沿用前后台保留规则，接受系统清理 |
+| nibi-cli 剪贴板图片      | `~/.nibi/clipboard`                                                                               | 单次读取后删除                                 |
 | 日志导出 staging          | `~/.nibi/export-log-stage`                                                                        | 打包完成后删除，异常退出允许残留               |
 | 日志导出结果              | `~/.nibi/export-log`                                                                              | 用户可见导出结果，默认保留                     |
 | feedback 附件和日志包     | `~/.nibi/feedback`                                                                                | 上传完成后删除                                 |
@@ -50,6 +50,6 @@ stdout/stderr 继续直接写同一文件，输出编码只解析一次。准备
 
 ## 非目标
 
-- 不清理已有 `$TMPDIR/zcode-*` 残留。
+- 不清理已有 `$TMPDIR/nibi-*` 残留。
 - 不修改 remote asset cache fallback。
 - 不修改 `apps/nibi-cli/packages/ios-simulator-plugin` 与 `apps/nibi-cli/packages/android-emulator-plugin` 的数据目录。

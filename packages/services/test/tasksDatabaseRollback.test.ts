@@ -11,7 +11,7 @@ import {
 } from "./fixtures/staging-backup-task-readers.mjs";
 
 it("DB109-01/09/10/13：八表内容保留，旧版读取新增/更新任务无需模型双写，再升级不补迁", async () => {
-  const root = await mkdtemp(join(tmpdir(), "zcode-db109-rollback-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-db109-rollback-"));
   const path = join(root, "tasks.sqlite");
   const automation = new AutomationRepo(path);
   const db = new DatabaseSync(path);

@@ -1806,7 +1806,7 @@ describe("botsService messageFlow", () => {
       bots: [
         {
           ...f.baseConfig.bots[0]!,
-          webhookUrl: "https://example.test/zcode-bot-outbound",
+          webhookUrl: "https://example.test/nibi-bot-outbound",
         },
       ],
     });
@@ -1879,7 +1879,7 @@ describe("botsService messageFlow", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://example.test/zcode-bot-outbound",
+      "https://example.test/nibi-bot-outbound",
       expect.objectContaining({
         method: "POST",
         body: expect.stringContaining("完成了。"),
@@ -2554,7 +2554,7 @@ describe("botsService messageFlow", () => {
       bots: [
         {
           ...f.baseConfig.bots[0]!,
-          webhookUrl: "https://example.test/zcode-bot-outbound",
+          webhookUrl: "https://example.test/nibi-bot-outbound",
         },
       ],
     });
@@ -2651,7 +2651,7 @@ describe("botsService messageFlow", () => {
       bots: [
         {
           ...f.baseConfig.bots[0]!,
-          webhookUrl: "https://example.test/zcode-bot-outbound",
+          webhookUrl: "https://example.test/nibi-bot-outbound",
         },
       ],
     });
@@ -2775,7 +2775,7 @@ describe("botsService messageFlow", () => {
       bots: [
         {
           ...f.baseConfig.bots[0]!,
-          webhookUrl: "https://example.test/zcode-bot-outbound",
+          webhookUrl: "https://example.test/nibi-bot-outbound",
         },
       ],
     });
@@ -3357,7 +3357,7 @@ describe("botsService messageFlow", () => {
       bots: [
         {
           ...f.baseConfig.bots[0]!,
-          webhookUrl: "https://example.test/zcode-bot-outbound",
+          webhookUrl: "https://example.test/nibi-bot-outbound",
         },
       ],
     });
@@ -3865,7 +3865,7 @@ describe("botsService messageFlow", () => {
   });
 
   it("creates a task from an attachment-only bot message with the default prompt", async () => {
-    vi.stubEnv("NIBI_DATA_BASE_DIR", `/tmp/zcode-bot-attachments-${Date.now()}`);
+    vi.stubEnv("NIBI_DATA_BASE_DIR", `/tmp/nibi-bot-attachments-${Date.now()}`);
     const repo = f.createMemoryRepo(f.baseConfig);
     const legacyTaskService = f.createLegacyTaskService();
     const service = f.createBotsService({
@@ -3916,7 +3916,7 @@ describe("botsService messageFlow", () => {
   });
 
   it("adds unsupported bot files to the prompt as cached path context", async () => {
-    vi.stubEnv("NIBI_DATA_BASE_DIR", `/tmp/zcode-bot-files-${Date.now()}`);
+    vi.stubEnv("NIBI_DATA_BASE_DIR", `/tmp/nibi-bot-files-${Date.now()}`);
     const repo = f.createMemoryRepo(f.baseConfig);
     const legacyTaskService = f.createLegacyTaskService();
     const service = f.createBotsService({

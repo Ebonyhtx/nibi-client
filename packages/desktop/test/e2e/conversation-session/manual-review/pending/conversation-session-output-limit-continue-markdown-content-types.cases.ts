@@ -44,7 +44,7 @@ export type MarkdownContinueCaseId =
   | "inline-math"
   | "display-math"
   | "mermaid"
-  | "zcode-file-citation";
+  | "nibi-file-citation";
 
 export interface MarkdownContinueCaseDefinition {
   finalAnchor: string;
@@ -211,8 +211,8 @@ export const MARKDOWN_CONTINUE_CASES: readonly MarkdownContinueCaseDefinition[] 
     finalAnchor: "MERMAID_DONE",
   },
   {
-    id: "zcode-file-citation",
-    partial: `::zcode-file-citation{path="${FIXTURE_DIR_RELATIVE}/cita`,
+    id: "nibi-file-citation",
+    partial: `::nibi-file-citation{path="${FIXTURE_DIR_RELATIVE}/cita`,
     continuation: 'tion.txt" purpose="output"}\n\nNIBI_FILE_CITATION_DONE',
     finalAnchor: "NIBI_FILE_CITATION_DONE",
   },

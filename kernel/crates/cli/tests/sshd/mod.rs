@@ -20,7 +20,7 @@ pub mod local;
 pub const BIN: &str = env!("CARGO_BIN_EXE_nibi-rs");
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const BASE_IMAGE: &str = "alpine:3.20";
-pub const HOST: &str = "zcode-test";
+pub const HOST: &str = "nibi-test";
 
 /// 容器的系统（F100，remote-exec.md §26.9 的测试）：alpine 是 musl；debian 是 glibc。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -132,7 +132,7 @@ impl Sshd {
         let path = |name: &str| dir.path().join(name);
         for key in ["id_ed25519", "ssh_host_ed25519_key"] {
             let output = Command::new("ssh-keygen")
-                .args(["-q", "-t", "ed25519", "-N", "", "-C", "zcode-test", "-f"])
+                .args(["-q", "-t", "ed25519", "-N", "", "-C", "nibi-test", "-f"])
                 .arg(path(key))
                 .output()
                 .unwrap();

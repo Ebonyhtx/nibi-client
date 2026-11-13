@@ -55,7 +55,7 @@ const PREVIEW_EXTENSION_TO_KIND: Readonly<Record<string, NibiFileCitationPreview
   ".webm": "video",
   ".weba": "audio",
 };
-const NIBI_FILE_CITATION_DIRECTIVE_NAME = "zcode-file-citation";
+const NIBI_FILE_CITATION_DIRECTIVE_NAME = "nibi-file-citation";
 const NIBI_FILE_CITATION_SINGLE_COLON_PREFIX_LENGTH = ":zcode".length;
 const NIBI_FILE_CITATION_SYNTAX = {
   allowSingleColon: true,

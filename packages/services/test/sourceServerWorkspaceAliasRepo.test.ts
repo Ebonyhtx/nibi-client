@@ -43,7 +43,7 @@ describe("Source Server workspace canonical alias", () => {
     ["config-conflict", "rollback"],
     ["abandon", "rollback"],
   ] as const)("%s preserves the original SQLite error after %s", async (stage, failure) => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-alias-full-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-alias-full-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const sessionDbPath = join(root, "db.sqlite");
     const workspacePath = "/repo";
@@ -150,7 +150,7 @@ describe("Source Server workspace canonical alias", () => {
   it.each(["completed", "running", "phase", "canonical", "variants", "deleted"] as const)(
     "rejects abandon when %s changes before the write transaction without overwriting the winner",
     async (change) => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-abandon-race-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-abandon-race-"));
       const taskDbPath = join(root, "tasks-index.sqlite");
       const canonicalKey = "remote:ssh:canonical:22:user:/repo";
       const sourceKey = "remote:ssh:source:22:user:/repo";
@@ -210,7 +210,7 @@ describe("Source Server workspace canonical alias", () => {
   );
 
   it("uses the legacy digest algorithm for unversioned abandoned baselines", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-abandoned-digest-v1-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-abandoned-digest-v1-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     (await createTaskDb(taskDbPath)).close();
     const repo = new SourceServerWorkspaceAliasRepo({
@@ -251,7 +251,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("captures task writes committed by the abandon transaction in its digest baseline", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-abandon-digest-transaction-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-abandon-digest-transaction-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     (await createTaskDb(taskDbPath)).close();
     const repo = new SourceServerWorkspaceAliasRepo({
@@ -293,7 +293,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("counts only the latest path state and exposes migration recovery metadata", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-migration-report-metadata-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-migration-report-metadata-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     (await createTaskDb(taskDbPath)).close();
     const repo = new SourceServerWorkspaceAliasRepo({
@@ -336,7 +336,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("refuses to abandon a failed ledger that still owns a resumable phase", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-abandon-resume-owner-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-abandon-resume-owner-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     (await createTaskDb(taskDbPath)).close();
     const repo = new SourceServerWorkspaceAliasRepo({
@@ -358,7 +358,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("fails closed on a newer migration schema version", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-newer-schema-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-newer-schema-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const db = await createTaskDb(taskDbPath);
     db.exec(`CREATE TABLE workspace_migration_schema_version (
@@ -375,7 +375,7 @@ describe("Source Server workspace canonical alias", () => {
     );
   });
   it("chooses the most recently active legacy key, backs up and merges both databases", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-workspace-alias-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-workspace-alias-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const sessionDbPath = join(root, "db.sqlite");
     const backupRoot = join(root, "backups");
@@ -462,7 +462,7 @@ describe("Source Server workspace canonical alias", () => {
   it.each(["remote:docker:dev:/workspace", "remote:server:owner:/workspace"])(
     "uses route hint %s without rewriting data when the workspace has no history",
     async (hint) => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-r3-workspace-alias-empty-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-r3-workspace-alias-empty-"));
       const taskDbPath = join(root, "tasks-index.sqlite");
       (await createTaskDb(taskDbPath)).close();
       const repo = new SourceServerWorkspaceAliasRepo({
@@ -481,7 +481,7 @@ describe("Source Server workspace canonical alias", () => {
   );
 
   it("resumes the same migration plan after task DB commit without re-electing canonical", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-workspace-alias-resume-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-workspace-alias-resume-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const sessionDbPath = join(root, "db.sqlite");
     const workspacePath = "/srv/project";
@@ -561,7 +561,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("persists the frozen plan before creating backups", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-workspace-alias-preflight-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-workspace-alias-preflight-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const workspacePath = "/srv/project";
     const sourceKey = "remote:ssh:source.example:22:alice:/srv/project";
@@ -610,7 +610,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("fails the frozen resume plan before moving data when a new identity conflict appears", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-workspace-alias-resume-conflict-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-workspace-alias-resume-conflict-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const workspacePath = "/srv/project";
     const sourceKey = "remote:ssh:source.example:22:alice:/srv/project";
@@ -697,7 +697,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("rechecks config conflicts before resuming a frozen pre-merge plan", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-workspace-alias-resume-config-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-workspace-alias-resume-config-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const workspacePath = "/srv/project";
     const sourceKey = "remote:ssh:source.example:22:alice:/srv/project";
@@ -761,7 +761,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("checks task identity conflicts inside the task merge transaction", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-workspace-alias-transaction-conflict-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-workspace-alias-transaction-conflict-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const workspacePath = "/srv/project";
     const sourceKey = "remote:ssh:source.example:22:alice:/srv/project";
@@ -811,7 +811,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("records a structured config conflict that appears after resume preflight", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-late-config-conflict-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-late-config-conflict-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const workspacePath = "/srv/project";
     const sourceKey = "remote:ssh:source.example:22:alice:/srv/project";
@@ -859,7 +859,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("fails closed when a frozen session backup generation disappears", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-missing-frozen-session-db-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-missing-frozen-session-db-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     (await createTaskDb(taskDbPath)).close();
     const repo = new SourceServerWorkspaceAliasRepo({
@@ -889,7 +889,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("fails closed when the session database is recreated at the same path after session merge", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-recreated-session-db-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-recreated-session-db-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const sessionDbPath = join(root, "db.sqlite");
     const workspacePath = "/repo";
@@ -936,7 +936,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("resumes a legacy v2 post-merge ledger by validating the session backup lineage", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-v2-session-generation-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-v2-session-generation-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const sessionDbPath = join(root, "db.sqlite");
     const backupRoot = join(root, "backups");
@@ -1001,7 +1001,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("allows abandoning a pre-merge plan when a populated session database appears", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-empty-late-session-db-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-empty-late-session-db-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const sessionDbPath = join(root, "db.sqlite");
     const workspacePath = "/repo";
@@ -1049,7 +1049,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("ignores an empty session database created after a session-less plan was frozen", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-empty-late-session-db-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-empty-late-session-db-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const sessionDbPath = join(root, "db.sqlite");
     const workspacePath = "/repo";
@@ -1098,7 +1098,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("fails a frozen resume when a new workspace variant appears", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-new-frozen-variant-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-new-frozen-variant-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const workspacePath = "/repo";
     const canonicalKey = "remote:ssh:canonical:22:user:/repo";
@@ -1158,7 +1158,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("finishes a post-merge frozen plan before migrating a newly appeared variant", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-post-merge-follow-up-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-post-merge-follow-up-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const workspacePath = "/repo";
     const canonicalKey = "remote:ssh:canonical:22:user:/repo";
@@ -1223,7 +1223,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("bounds follow-up migrations when new variants keep appearing", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-follow-up-budget-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-follow-up-budget-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const workspacePath = "/repo";
     const canonicalKey = "remote:ssh:canonical:22:user:/repo";
@@ -1270,7 +1270,7 @@ describe("Source Server workspace canonical alias", () => {
     "alias-published",
     "completed",
   ])("resumes idempotently after %s", async (crashPhase) => {
-    const root = await mkdtemp(join(tmpdir(), `zcode-r3-workspace-alias-${crashPhase}-`));
+    const root = await mkdtemp(join(tmpdir(), `nibi-r3-workspace-alias-${crashPhase}-`));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const workspacePath = "/srv/project";
     const sourceKey = "remote:ssh:source.example:22:alice:/srv/project";
@@ -1313,7 +1313,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("incrementally merges a new legacy route variant after the alias already exists", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-workspace-alias-incremental-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-workspace-alias-incremental-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const sessionDbPath = join(root, "db.sqlite");
     const workspacePath = "/srv/project";
@@ -1374,7 +1374,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("merges a hinted late variant that only owns a run and session config", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-workspace-alias-hinted-late-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-workspace-alias-hinted-late-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const workspacePath = "/srv/project";
     const canonicalKey = "remote:ssh:canonical.example:22:alice:/srv/project";
@@ -1428,7 +1428,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("merges every workspace-owned row and session config file into canonical", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-workspace-alias-inventory-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-workspace-alias-inventory-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const sessionDbPath = join(root, "db.sqlite");
     const workspacePath = "/srv/project";
@@ -1541,7 +1541,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("fails config collisions before backup or row movement and records one report", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-workspace-alias-config-conflict-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-workspace-alias-config-conflict-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const workspacePath = "/srv/project";
     const sourceKey = "remote:ssh:source.example:22:alice:/srv/project";
@@ -1615,7 +1615,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("discovers and merges variants that exist only in automation-owned tables", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-workspace-alias-automation-only-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-workspace-alias-automation-only-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const workspacePath = "/srv/project";
     const sourceKey = "remote:ssh:source.example:22:alice:/srv/project";
@@ -1662,7 +1662,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("fails the whole workspace idempotently before moving data when task identity conflicts", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-workspace-alias-conflict-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-workspace-alias-conflict-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const workspacePath = "/srv/project";
     const canonicalKey = "remote:ssh:canonical.example:22:alice:/srv/project";
@@ -1914,7 +1914,7 @@ describe("Source Server workspace canonical alias", () => {
   ] as const)(
     "detects %s conflicts between sources before backups when %s",
     async (field, canonicalShape) => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-r3-workspace-alias-source-conflict-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-r3-workspace-alias-source-conflict-"));
       const taskDbPath = join(root, "tasks-index.sqlite");
       const sessionDbPath = join(root, "db.sqlite");
       const backupRoot = join(root, "backups");
@@ -2015,7 +2015,7 @@ describe("Source Server workspace canonical alias", () => {
   );
 
   it("merges a task shared by sources when their identities are compatible", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-workspace-alias-source-merge-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-workspace-alias-source-merge-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const workspacePath = "/srv/project";
     const canonicalKey = "remote:ssh:a.example:22:alice:/srv/project";
@@ -2071,7 +2071,7 @@ describe("Source Server workspace canonical alias", () => {
   });
 
   it("rebuilds the legacy ledger schema for phases and abandoned audit without losing rows", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-r3-workspace-alias-schema-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-r3-workspace-alias-schema-"));
     const taskDbPath = join(root, "tasks-index.sqlite");
     const legacy = await createTaskDb(taskDbPath);
     legacy.exec(`

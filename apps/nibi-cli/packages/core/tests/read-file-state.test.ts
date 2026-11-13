@@ -9,8 +9,8 @@ import type { ReadFileStateMap } from "../src/tool/types.js";
 
 describe("read file state path keys", () => {
   it("treats equivalent Windows drive-letter paths as the same read-state file", () => {
-    expect(createReadFileStatePathKey("c:/zcode-readwrite-repro/repro.txt", "win32")).toBe(
-      createReadFileStatePathKey("C:\\zcode-readwrite-repro\\repro.txt", "win32"),
+    expect(createReadFileStatePathKey("c:/nibi-readwrite-repro/repro.txt", "win32")).toBe(
+      createReadFileStatePathKey("C:\\nibi-readwrite-repro\\repro.txt", "win32"),
     );
   });
 

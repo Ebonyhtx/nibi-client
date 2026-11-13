@@ -23,15 +23,15 @@ sourceOfTruth:
     - packages/provider/src/registry.ts
     - packages/provider-node/src/model-selection-config-file-codec.ts
     - packages/provider-node/src/model-selection-config-repository.ts
-    - packages/provider-node/src/zcode-builtin-release.ts
-    - packages/provider-node/src/zcode-builtin-provider-config-source.ts
-    - packages/provider-node/src/zcode-builtin-remote-synchronizer.ts
+    - packages/provider-node/src/nibi-builtin-release.ts
+    - packages/provider-node/src/nibi-builtin-provider-config-source.ts
+    - packages/provider-node/src/nibi-builtin-remote-synchronizer.ts
     - apps/nibi-cli/packages/bootstrap/src/app/provider-registry-model-runtime.ts
     - apps/nibi-cli/packages/adapters/src/model/runner.ts
     - apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/commands/handlers/model-config.ts
     - apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/commands/input-intent.ts
   graph:
-    - .agents/skills/feature-boundary-planner/references/zcode-feature-graph.yaml
+    - .agents/skills/feature-boundary-planner/references/nibi-feature-graph.yaml
   graphIndex:
     status: unavailable
     note: No live codegraph index was present; live-code evidence was checked with rg and direct source reading.
@@ -167,7 +167,7 @@ dimensions:
   - id: provider-source
     category: provider
     values:
-      - id: zcode-builtin
+      - id: nibi-builtin
       - id: account-builtin
       - id: personal
       - id: legacy-import
@@ -714,7 +714,7 @@ constraints:
               builtin-subagent,
             ]
         - dimension: provider-source
-          in: [zcode-builtin, account-builtin, personal, remote-host-mirror]
+          in: [nibi-builtin, account-builtin, personal, remote-host-mirror]
     decision: signature-class-representative
     effect: Model IDs are grouped by provider/auth/API/capability/reasoning signatures; literal model IDs are not all multiplied together.
     invariant: model-id-is-opaque-but-wire-profile-is-the-test-equivalence-key

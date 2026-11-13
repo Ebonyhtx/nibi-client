@@ -34,7 +34,7 @@ const PROXY_NO_PROXY = [
   ".z.ai",
   ".codegeex.cn",
   ".z.ai",
-  ".zcode-ai.com",
+  ".nibi-ai.com",
   "js.stripe.com",
 ].join(",");
 

@@ -164,7 +164,7 @@ describe("desktop e2e worker isolation", () => {
   });
 
   it("assigns each worker a separate Chromium profile and replaces stale profile args", () => {
-    const rootDir = "/tmp/zcode-e2e/chromium-profiles";
+    const rootDir = "/tmp/nibi-e2e/chromium-profiles";
     const firstProfile = resolveE2EWorkerChromiumProfileDir(rootDir, "0-1");
     const secondProfile = resolveE2EWorkerChromiumProfileDir(rootDir, "0/2");
 

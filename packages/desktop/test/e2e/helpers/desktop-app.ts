@@ -51,8 +51,8 @@ const REMOVE_APP_DATA_RETRY_DELAYS_MS = [200, 500, 1000, 2000, 3000];
 const REMOVE_APP_DATA_MAX_ATTEMPTS = REMOVE_APP_DATA_RETRY_DELAYS_MS.length;
 const E2E_USER_PROFILE = {
   displayName: "Nibi E2E",
-  id: "zcode-e2e-user",
-  username: "zcode-e2e-user",
+  id: "nibi-e2e-user",
+  username: "nibi-e2e-user",
 };
 
 interface WindowInfo {

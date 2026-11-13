@@ -32,7 +32,7 @@ const PERSISTED: Locale = "en-US";
 const SWITCHED: Locale = "zh-CN";
 const HOST_PRELOAD = fileURLToPath(new URL("../helpers/subagent-host-faults.cjs", import.meta.url));
 
-// spec：docs/zcode-endpoint-client-language-header.md。
+// spec：docs/nibi-endpoint-client-language-header.md。
 // Host 请求经 NodeApiClient，带 x-request-id；Main 请求经 Electron net，不带。以此区分两条链路。
 const isHost = (request: Request) => Boolean(request.headers["x-request-id"]);
 function expectLanguage(requests: Request[], locale: Locale) {

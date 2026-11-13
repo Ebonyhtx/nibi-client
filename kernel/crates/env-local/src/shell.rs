@@ -44,7 +44,7 @@ pub(crate) use sandbox::Backend;
 #[derive(Debug, Clone, Default)]
 pub struct ShellConfig {
     /// 输出文件与 cwd 文件的根目录：`<scratch>/<会话>/tasks/<任务>.output`。必须是本用户私有的目录
-    /// （每次启动命令前经 `nibi_kernel_proc::private::ensure` 核对）；入口给的是 `<tmp>/zcode-<uid>`。
+    /// （每次启动命令前经 `nibi_kernel_proc::private::ensure` 核对）；入口给的是 `<tmp>/nibi-<uid>`。
     pub scratch: PathBuf,
     /// 进程树账本目录（`nibi-kernel-proc`，同样核对）；所在进程被强杀后，下一次启动时清扫。入口给的与
     /// `scratch` 相同。

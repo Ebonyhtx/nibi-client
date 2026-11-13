@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/i18n.rs（feat/rs 79b6691c55）：删掉 V4 / Host 专用的文字。
+// 改写自 apps/nibi-host/crates/tui/src/ui/i18n.rs（feat/rs 79b6691c55）：删掉 V4 / Host 专用的文字。
 //! 界面文字（docs/specs/rust-cli/tui.md §7）：中文与英文。语言按配置的 `ui.locale` 与系统语言（§7.1）。
 //! 带参数的文字用函数（`i18n_words.rs`、`i18n_account.rs`），词序随语言变化。
 use std::collections::BTreeMap;

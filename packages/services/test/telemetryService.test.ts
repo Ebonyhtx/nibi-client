@@ -9,7 +9,7 @@ const originalCrypto = globalThis.crypto;
 const tempHomes: string[] = [];
 
 function makeTempHome(): string {
-  const home = mkdtempSync(join(tmpdir(), "zcode-telemetry-home-"));
+  const home = mkdtempSync(join(tmpdir(), "nibi-telemetry-home-"));
   tempHomes.push(home);
   // Bugfix: paths.ts 会在模块加载时固定默认 dataBaseDir，测试隔离必须显式覆盖。
   setDataBaseDir(home);

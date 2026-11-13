@@ -39,7 +39,7 @@ async function resolve(entry: ToolEntry, input: unknown, context: ToolInputResol
 describe("dynamic-workflow skill gate", () => {
   let cwd: string;
   beforeEach(async () => {
-    cwd = await mkdtemp(join(tmpdir(), "zcode-skill-gate-"));
+    cwd = await mkdtemp(join(tmpdir(), "nibi-skill-gate-"));
   });
   afterEach(async () => {
     await rm(cwd, { force: true, recursive: true });

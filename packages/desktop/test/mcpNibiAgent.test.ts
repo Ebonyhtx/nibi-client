@@ -13,7 +13,7 @@ const originalHome = process.env.HOME;
 const tempRoots: string[] = [];
 
 function makeTempRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "zcode-mcp-"));
+  const root = mkdtempSync(join(tmpdir(), "nibi-mcp-"));
   tempRoots.push(root);
   return root;
 }
@@ -93,7 +93,7 @@ describe("MCP enabled state", () => {
       JSON.stringify({
         mcp: {
           servers: {
-            nibiWorkspace: { command: "zcode-workspace" },
+            nibiWorkspace: { command: "nibi-workspace" },
           },
         },
       }),
@@ -114,7 +114,7 @@ describe("MCP enabled state", () => {
       JSON.stringify({
         mcp: {
           servers: {
-            nibiUser: { command: "zcode-user" },
+            nibiUser: { command: "nibi-user" },
           },
         },
       }),

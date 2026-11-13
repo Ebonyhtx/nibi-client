@@ -198,7 +198,7 @@ export function buildE2EAgentCoverageEnv(
   }
   const directory = resolve(artifactDir, "coverage", "raw", "cli");
   mkdirSync(directory, { recursive: true });
-  const preloadPath = resolve(directory, "zcode-e2e-coverage-preload.cjs");
+  const preloadPath = resolve(directory, "nibi-e2e-coverage-preload.cjs");
   // CLI bundle 未压缩时解析耗时可能超过 E2E 的早退窗口，普通 shutdown
   // handler 尚未注册就收到 SIGTERM。用 NODE_OPTIONS preload 在解析 bundle 前接管落盘。
   writeFileSync(preloadPath, E2E_COVERAGE_PRELOAD_SOURCE, "utf8");

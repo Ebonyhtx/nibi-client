@@ -27,7 +27,7 @@ type SeaTuiRuntimeManifest = {
   version: 1;
 };
 
-const assetPrefix = "zcode-tui-runtime/";
+const assetPrefix = "nibi-tui-runtime/";
 const manifestAssetKey = `${assetPrefix}manifest.json`;
 const packageEntryPath = "node_modules/@nibi/tui/dist/index.js";
 const manifestFileName = "manifest.json";

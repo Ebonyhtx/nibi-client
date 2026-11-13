@@ -191,7 +191,7 @@ describe("R3 Source Server contracts", () => {
     },
     {
       transport: "docker",
-      target: { kind: "docker", container: "zcode-dev" },
+      target: { kind: "docker", container: "nibi-dev" },
     },
   ] as const)("accepts a strict $transport Connection Profile", ({ transport, target }) => {
     expect(
@@ -273,7 +273,7 @@ describe("R3 Source Server contracts", () => {
       connectionProfileSchema.safeParse({
         profileId,
         transport: "docker",
-        target: { kind: "docker", container: "zcode-dev" },
+        target: { kind: "docker", container: "nibi-dev" },
         createdAt: 1,
         unexpected: true,
       }).success,

@@ -282,7 +282,7 @@ Host execution admission
   旧版 daemon（无 target）不会在 R3 主链上收到 Envelope：`NIBI_MIN_COMPATIBLE_VERSION` 默认等于
   产品版本，R3 兼容门在握手阶段就判定“需升级”并先执行远端更新，更新后的 Core 才进入首连 Provisioning。
   Core 使用的 ZCode Built-in Provider Config 由构建期 define 按内容 hash 物化到
-  `~/.nibi/server/config/provider/zcode-builtin-<sha256>.json`（不写进不可变 release 目录）。
+  `~/.nibi/server/config/provider/nibi-builtin-<sha256>.json`（不写进不可变 release 目录）。
   R3 侧接线见 [r3-source-server-remote-architecture.md §8.3](../architecture/r3-source-server-remote-architecture.md)。
 
   ```text

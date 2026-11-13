@@ -234,7 +234,7 @@ describe("agent V4 connection transports", () => {
       mediaType: "video/quicktime",
     });
     const createLocalMediaPreviewUrl = vi.fn(
-      (path: string) => `zcode-media://local/${encodeURIComponent(path)}`,
+      (path: string) => `nibi-media://local/${encodeURIComponent(path)}`,
     );
     const transport = createAgentConversationTransport(agent as never, {
       workspacePath: "/repo",
@@ -250,7 +250,7 @@ describe("agent V4 connection transports", () => {
         attachmentIndex: 1,
       }),
     ).resolves.toEqual({
-      url: expect.stringMatching(/^zcode-media:\/\/local\//u),
+      url: expect.stringMatching(/^nibi-media:\/\/local\//u),
       mediaType: "video/quicktime",
     });
     expect(agent.attachmentPreviewSourceV4).toHaveBeenCalledWith(

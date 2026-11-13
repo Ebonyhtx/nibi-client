@@ -31,7 +31,7 @@ function restoreEnvValue(key: string, value: string | undefined): void {
 }
 
 function makeTempHome(): string {
-  const home = mkdtempSync(join(tmpdir(), "zcode-setting-home-"));
+  const home = mkdtempSync(join(tmpdir(), "nibi-setting-home-"));
   tempHomes.push(home);
   return home;
 }

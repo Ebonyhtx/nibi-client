@@ -95,7 +95,7 @@ describe.skipIf(process.platform === "win32")("Bash shutdown in an isolated Node
   let directory: string;
   let driver: string;
   beforeAll(async () => {
-    directory = await mkdtemp(join(tmpdir(), "zcode-bash-shutdown-"));
+    directory = await mkdtemp(join(tmpdir(), "nibi-bash-shutdown-"));
     driver = join(directory, "driver.cjs");
     await build({
       stdin: { contents: driverSource, resolveDir: process.cwd() },
@@ -124,7 +124,7 @@ describe.skipIf(process.platform === "win32")("Bash shutdown in an isolated Node
     try {
       await vi.waitFor(() => expect(stdout).toContain("OUTPUT_PATH "), { timeout: 10_000 });
       const path = /OUTPUT_PATH ([^\r\n]+)/u.exec(stdout)![1]!;
-      expect(path).toContain("zcode-bash-");
+      expect(path).toContain("nibi-bash-");
       expect(await readFile(path, "utf8")).toBe("root output");
       child.kill("SIGKILL");
       await closed;

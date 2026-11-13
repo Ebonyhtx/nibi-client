@@ -22,7 +22,7 @@ describe("runtimeToolResolver", () => {
   });
 
   it("会发现内置 bfs 和 ugrep 并把两个原生目录追加到 PATH", () => {
-    const sandboxRoot = mkdtempSync(join(tmpdir(), "zcode-native-search-tools-"));
+    const sandboxRoot = mkdtempSync(join(tmpdir(), "nibi-native-search-tools-"));
     createdDirs.push(sandboxRoot);
     const appRepoDir = join(sandboxRoot, "z-code-2");
     const userBinDir = join(sandboxRoot, "user-bin");
@@ -67,7 +67,7 @@ describe("runtimeToolResolver", () => {
   });
 
   it("会从 bundled-tools 平台目录发现 ripgrep binary 并追加到 PATH", () => {
-    const sandboxRoot = mkdtempSync(join(tmpdir(), "zcode-ripgrep-tool-"));
+    const sandboxRoot = mkdtempSync(join(tmpdir(), "nibi-ripgrep-tool-"));
     createdDirs.push(sandboxRoot);
 
     const appRepoDir = join(sandboxRoot, "z-code-2");
@@ -106,7 +106,7 @@ describe("runtimeToolResolver", () => {
   });
 
   it("优先使用调用方环境指定的 runtime binary", () => {
-    const sandboxRoot = mkdtempSync(join(tmpdir(), "zcode-runtime-tool-env-"));
+    const sandboxRoot = mkdtempSync(join(tmpdir(), "nibi-runtime-tool-env-"));
     createdDirs.push(sandboxRoot);
     const binaryPath = join(sandboxRoot, process.platform === "win32" ? "bfs.exe" : "bfs");
     writeFileSync(binaryPath, "bfs\n");

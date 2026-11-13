@@ -39,7 +39,7 @@ afterEach(async () => {
 });
 
 async function fixture(shell: ExecutionShellSelection, code: string, useTmp = false) {
-  const root = await mkdtemp(join(tmpdir(), "zcode-direct-"));
+  const root = await mkdtemp(join(tmpdir(), "nibi-direct-"));
   const cwd = join(root, "中文 with spaces");
   await mkdir(cwd);
   const tempParent = join(root, "temporary-output");
@@ -442,7 +442,7 @@ describe.each(shells)("temporary Bash output $display.name", (shell) => {
         expect(done?.result?.stdout.artifactPath).toBe(actualPath);
       }
       expect(relative(tempParent, actualPath)).toMatch(
-        /^zcode-bash-[^/\\]+[/\\]probe[/\\]direct-stdout\.log$/,
+        /^nibi-bash-[^/\\]+[/\\]probe[/\\]direct-stdout\.log$/,
       );
       expect(prepare).toHaveBeenCalledTimes(1);
       expect(encoding).toHaveBeenCalledTimes(1);

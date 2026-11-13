@@ -362,7 +362,7 @@ describe("Guarded finite command contract", () => {
     "native macOS rm treats trailing help/version as deletion operands in an isolated directory",
     async () => {
       // 独立 oracle：不调用 matcher 来决定真实程序应如何解析；所有删除目标都由本测试创建。
-      const directory = await mkdtemp(join(tmpdir(), "zcode-guarded-rm-oracle-"));
+      const directory = await mkdtemp(join(tmpdir(), "nibi-guarded-rm-oracle-"));
       try {
         await mkdir(join(directory, "target"));
         await writeFile(join(directory, "target", "keep.txt"), "case-owned");

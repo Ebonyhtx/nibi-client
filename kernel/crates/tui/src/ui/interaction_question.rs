@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/interaction_question.rs（feat/rs 79b6691c55）：去掉旧式 userInput。
+// 改写自 apps/nibi-host/crates/tui/src/ui/interaction_question.rs（feat/rs 79b6691c55）：去掉旧式 userInput。
 //! 提问的按键：多于一题时有标签页与确认页。选项之后是 `Other` 行（直接输入）；单选题选中即到下一题，
 //! 多选题空格或数字勾选；←/→ 或 tab 切换标签页；esc 拒绝回答。
 use crossterm::event::{KeyCode, KeyEvent};

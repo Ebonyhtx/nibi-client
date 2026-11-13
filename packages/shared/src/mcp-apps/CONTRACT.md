@@ -9,7 +9,7 @@
 - agent 对每个 MCP server 的 `initialize` 必须宣告 `extensions["io.modelcontextprotocol/ui"].mimeTypes = ["text/html;profile=mcp-app"]`（`buildMcpAppsClientCapabilities`），否则按官方模板写的 server 只会注册纯文本工具。
 - Nibi 扩展能力一律放 `hostCapabilities.experimental["zcode/…"]`（widgetState、resourceSubscribe、surface、csp），官方 SDK 的 zod 会剥掉标准位之外的未知键。
 - CSP 缺省按规范块；`'unsafe-eval'` / `'wasm-unsafe-eval'` 只在资源 `_meta["zcode/csp"]` 声明为 true 时放行，未知键与非布尔值丢弃。
-- 沙箱句柄的 `shellUrl` 由 `sandboxId` 派生（`zcode-sandbox://shell-<id>/`）；`partition` 由 server 身份派生（`persist:plugin-sandbox-v1-<hash>`），同一 server 的页面共享持久存储，卡片关闭不清；`sandboxId` 只含 `[A-Za-z0-9-]`（CSP host-source 字符集）。
+- 沙箱句柄的 `shellUrl` 由 `sandboxId` 派生（`nibi-sandbox://shell-<id>/`）；`partition` 由 server 身份派生（`persist:plugin-sandbox-v1-<hash>`），同一 server 的页面共享持久存储，卡片关闭不清；`sandboxId` 只含 `[A-Za-z0-9-]`（CSP host-source 字符集）。
 - 宿主 renderer ↔ relay shell 只有一条 MessageChannel（`PLUGIN_SANDBOX_PORT_NAME`），上面跑原始 JSON-RPC；shell 不解析协议。
 - `widgetState` 是 Nibi 扩展：初值经 hostContext 的 `zcode/widgetState` 键随握手下发，页面经 `ui/set-widget-state { widgetState }` 交给宿主 renderer 内存保存（不持久化、无可见性参数；模型可见信息一律走 `ui/update-model-context`）。
 - `_meta.ui.surface` 与清单 surface id 共用字符集 `^[A-Za-z0-9][A-Za-z0-9_.-]*$`、≤ 128 字符，非法即丢弃。

@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/highlight.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/highlight.rs（feat/rs 79b6691c55）。
 //! 代码高亮（docs/specs/rust-tui.md §8.6）：深色背景用 Catppuccin Mocha，浅色用 Latte。
 //! 16 色终端不高亮。语法与主题集合在第一次使用时加载一次。
 use std::cell::RefCell;

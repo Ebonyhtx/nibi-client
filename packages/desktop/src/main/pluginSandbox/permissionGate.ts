@@ -52,13 +52,13 @@ export function createPluginSandboxPermissionGate(deps: {
     try {
       if (!url || !guestUrl) return null;
       const guest = new URL(guestUrl);
-      if (guest.protocol !== "zcode-sandbox:" || !guest.hostname.startsWith("shell-")) return null;
+      if (guest.protocol !== "nibi-sandbox:" || !guest.hostname.startsWith("shell-")) return null;
       const record = deps.registry.get(guest.pathname.split("/")[2] ?? "");
       if (
         !record ||
         guestUrl !== record.shellUrl ||
         `${new URL(url).protocol}//${new URL(url).host}` !==
-          `zcode-sandbox://plugin-${record.instance.appIdentity}`
+          `nibi-sandbox://plugin-${record.instance.appIdentity}`
       )
         return null;
       return record;

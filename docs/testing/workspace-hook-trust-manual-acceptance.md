@@ -25,7 +25,7 @@ node scripts/create-workspace-hook-trust-uat-fixture.mjs
 最后一条命令会输出一个新的临时 workspace，例如：
 
 ```text
-/private/tmp/zcode-workspace-hook-trust-uat-XXXXXX
+/private/tmp/nibi-workspace-hook-trust-uat-XXXXXX
 ```
 
 记录该路径，并启动 Desktop：

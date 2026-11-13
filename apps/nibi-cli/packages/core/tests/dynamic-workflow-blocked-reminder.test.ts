@@ -208,7 +208,7 @@ function makeRuntime(
   });
   const runtime = new AgentRuntime(
     createSessionId(name),
-    { agentName: "dwf-blocked-test", workingDirectory: "/tmp/zcode-dwf-blocked" },
+    { agentName: "dwf-blocked-test", workingDirectory: "/tmp/nibi-dwf-blocked" },
     {
       dynamicWorkflowRunPort: { getTask } as unknown as DynamicWorkflowRunPort,
       eventStore: createTestSessionEventStore(),

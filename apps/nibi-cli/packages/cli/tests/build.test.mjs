@@ -16,7 +16,7 @@ import {
 } from "../scripts/build.mjs";
 
 async function withZodFixture(run) {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-zod-bundle-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-zod-bundle-"));
   try {
     for (const [consumer, version] of [
       ["first", "4.6.5"],
@@ -136,7 +136,7 @@ test("Zod resolver preserves missing-export failures", async () => {
 });
 
 test("reads CLI build version from the repository root package", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-root-version-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-root-version-"));
 
   try {
     await mkdir(join(directory, "packages", "cli"), {
@@ -163,7 +163,7 @@ test("reads CLI build version from the repository root package", async () => {
 });
 
 test("rejects missing root package versions during CLI builds", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "zcode-root-version-"));
+  const directory = await mkdtemp(join(tmpdir(), "nibi-root-version-"));
 
   try {
     await writeFile(join(directory, "package.json"), JSON.stringify({ name: "nibi-cli" }));

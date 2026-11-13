@@ -12,7 +12,7 @@ import { OPENAI_SET_GLOBALS_EVENT } from "./openaiAlias.js";
 // `window.nibi`（preload 桥）的类型。这里只用 defineProperty / `in` 检查，不需要类型声明。
 
 const app = new App(
-  { name: "zcode-alias", version: "1" },
+  { name: "nibi-alias", version: "1" },
   {},
   // 用别名的页面自己调 notifyIntrinsicHeight；自动 ResizeObserver 会与页面自建的 App 重复上报。
   { autoResize: false },

@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/tests/suite/settings.rs 与 manage.rs（feat/rs 79b6691c55）的用意：斜杠
+// 改写自 apps/nibi-host/crates/tui/tests/suite/settings.rs 与 manage.rs（feat/rs 79b6691c55）的用意：斜杠
 // 命令的核心子集（docs/specs/rust-cli/tui.md §6）。
 use crossterm::event::KeyCode;
 use nibi_kernel_api::testing::text_response;

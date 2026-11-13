@@ -106,7 +106,7 @@ const BUNDLED_ANDROID_PLUGIN_DIST_PATH = fileURLToPath(
 
 describe("Nibi plugins", () => {
   it("starts cached Claude icon migration without blocking overview callers", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-icon-migration-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-icon-migration-"));
     const pluginStorageRoot = join(root, "plugins");
     const marketplaceRoot = join(pluginStorageRoot, "marketplaces", "claude-plugins-official");
     try {
@@ -159,7 +159,7 @@ describe("Nibi plugins", () => {
   });
 
   it("resolves relative listing icons against the marketplace manifest URL", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-relative-icons-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-relative-icons-"));
     const pluginStorageRoot = join(root, "plugins");
     try {
       await writeKnownMarketplaces(pluginStorageRoot, [
@@ -275,7 +275,7 @@ describe("Nibi plugins", () => {
   });
 
   it("can disable one document plugin without disabling the other formats", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-document-toggle-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-document-toggle-"));
     try {
       const userConfigPath = join(root, "config.json");
       await writeFile(
@@ -299,7 +299,7 @@ describe("Nibi plugins", () => {
   });
 
   it("keeps same-name marketplace listings isolated by stable plugin id", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-plugin-listing-id-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-plugin-listing-id-"));
     const pluginStorageRoot = join(root, "plugins");
 
     try {
@@ -345,7 +345,7 @@ describe("Nibi plugins", () => {
   });
 
   it("keeps the catalog and immutable cache for suppressed built-ins", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-suppressed-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-suppressed-"));
 
     try {
       const pluginStorageRoot = join(root, "plugins");
@@ -382,7 +382,7 @@ describe("Nibi plugins", () => {
   });
 
   it("marks update-available when a newer version exists in the manifest", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-update-detect-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-update-detect-"));
     const pluginStorageRoot = join(root, "plugins");
     const marketplaceRoot = join(root, "marketplace");
     const pluginRoot = join(marketplaceRoot, "plugins", "demo");
@@ -455,7 +455,7 @@ describe("Nibi plugins", () => {
   // compare installed record.source.sha vs manifest entry.source.sha, not entry.version.
   // (docs/plugin-marketplace-update-detection-handoff.md)
   it("marks update-available via source.sha when the manifest entry has no version", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-update-sha-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-update-sha-"));
     const pluginStorageRoot = join(root, "plugins");
     const configPath = join(root, "config.json");
 
@@ -525,7 +525,7 @@ describe("Nibi plugins", () => {
   });
 
   it("marks update-available via zip source sha256 when the manifest entry has no version", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-update-zip-sha-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-update-zip-sha-"));
     const pluginStorageRoot = join(root, "plugins");
     const configPath = join(root, "config.json");
 
@@ -593,7 +593,7 @@ describe("Nibi plugins", () => {
   });
 
   it("lists suppressed official plugins as restorable built-ins", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-restorable-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-restorable-"));
     const pluginStorageRoot = join(root, "plugins");
     const userConfigPath = join(root, "config.json");
 
@@ -620,7 +620,7 @@ describe("Nibi plugins", () => {
   });
 
   it("keeps the ui component type on a suppressed bundled document plugin", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-restorable-ui-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-restorable-ui-"));
     const pluginStorageRoot = join(root, "plugins");
     const userConfigPath = join(root, "config.json");
     const documentsId = "documents@nibi-official";
@@ -648,7 +648,7 @@ describe("Nibi plugins", () => {
   });
 
   it("includes only the NIBI official marketplace for empty storage", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-default-marketplace-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-default-marketplace-"));
 
     try {
       const pluginStorageRoot = join(root, "plugins");
@@ -691,7 +691,7 @@ describe("Nibi plugins", () => {
   });
 
   it("installs from a known marketplace by lazy-loading its missing manifest", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-lazy-marketplace-install-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-lazy-marketplace-install-"));
     const pluginStorageRoot = join(root, "plugins");
     const marketplaceRoot = join(root, "marketplace");
     const pluginRoot = join(marketplaceRoot, "plugins", "hello");
@@ -787,7 +787,7 @@ describe("Nibi plugins", () => {
   });
 
   it("installs and enables a marketplace plugin from a zip URL source through the facade", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-zip-marketplace-install-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-zip-marketplace-install-"));
     const pluginStorageRoot = join(root, "plugins");
     const marketplaceRoot = join(root, "marketplace");
     const configPath = join(root, "config.json");
@@ -885,7 +885,7 @@ describe("Nibi plugins", () => {
   });
 
   it("respects an explicit disabled choice when reinstalling a plugin", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-reinstall-disabled-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-reinstall-disabled-"));
     const pluginStorageRoot = join(root, "plugins");
     const marketplaceRoot = join(root, "marketplace");
     const pluginRoot = join(marketplaceRoot, "plugins", "hello");
@@ -944,7 +944,7 @@ describe("Nibi plugins", () => {
   });
 
   it("thoroughly uninstalls a plugin and prunes its user config footprint", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-uninstall-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-uninstall-"));
     const pluginStorageRoot = join(root, "plugins");
     const marketplaceRoot = join(root, "marketplace");
     const pluginRoot = join(marketplaceRoot, "plugins", "hello");
@@ -1028,7 +1028,7 @@ describe("Nibi plugins", () => {
   });
 
   it("treats an installed official-CDN cache entry as marketplace-owned during uninstall", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-uninstall-official-cdn-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-uninstall-official-cdn-"));
     const pluginStorageRoot = join(root, "plugins");
     const userConfigPath = join(root, "config.json");
     const pluginId = "example-plugin@nibi-official";
@@ -1101,7 +1101,7 @@ describe("Nibi plugins", () => {
   });
 
   it("clears stale built-in suppression while removing an installed marketplace record", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-uninstall-stale-suppression-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-uninstall-stale-suppression-"));
     const pluginStorageRoot = join(root, "plugins");
     const userConfigPath = join(root, "config.json");
     const pluginId = "example-plugin@nibi-official";
@@ -1160,7 +1160,7 @@ describe("Nibi plugins", () => {
   });
 
   it("uninstalls a built-in by suppressing it and purging config", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-uninstall-builtin-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-uninstall-builtin-"));
     const pluginStorageRoot = join(root, "plugins");
     const userConfigPath = join(root, "config.json");
 
@@ -1238,7 +1238,7 @@ describe("Nibi plugins", () => {
   // suppressedBuiltins, so a built-in uninstalled via the facade re-appeared on the next
   // listPlugins() in the SAME process. The facade must also track suppressedBuiltins.
   it("keeps a built-in uninstalled within the same facade session", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-facade-uninstall-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-facade-uninstall-"));
     const pluginStorageRoot = join(root, "plugins");
     const userConfigPath = join(root, "config.json");
 
@@ -1270,7 +1270,7 @@ describe("Nibi plugins", () => {
   });
 
   it("restores a suppressed built-in so it re-seeds on next resolve", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-restore-builtin-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-restore-builtin-"));
     const pluginStorageRoot = join(root, "plugins");
     const userConfigPath = join(root, "config.json");
 
@@ -1315,7 +1315,7 @@ describe("Nibi plugins", () => {
   });
 
   it("routes a direct install of a suppressed bundled plugin to restore without creating a marketplace record", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-install-bundled-restore-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-install-bundled-restore-"));
     const pluginStorageRoot = join(root, "plugins");
     const userConfigPath = join(root, "config.json");
 
@@ -1357,7 +1357,7 @@ describe("Nibi plugins", () => {
   });
 
   it("clears stale builtin suppression when an official CDN entry with the same id is installed", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-cdn-suppression-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-cdn-suppression-"));
     const pluginStorageRoot = join(root, "plugins");
     const userConfigPath = join(root, "config.json");
     const cdnSourceRoot = join(root, "cdn-documents");
@@ -1429,7 +1429,7 @@ describe("Nibi plugins", () => {
   });
 
   it("returns null when uninstalling a plugin that is not installed", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-uninstall-missing-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-uninstall-missing-"));
     const pluginStorageRoot = join(root, "plugins");
 
     try {
@@ -1446,7 +1446,7 @@ describe("Nibi plugins", () => {
   });
 
   it("returns diagnostics when lazy marketplace refresh fails during validation", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-lazy-marketplace-offline-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-lazy-marketplace-offline-"));
     const pluginStorageRoot = join(root, "plugins");
 
     try {
@@ -1483,7 +1483,7 @@ describe("Nibi plugins", () => {
   });
 
   it("returns and persists marketplace refresh diagnostics while keeping the last snapshot", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-marketplace-refresh-failure-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-marketplace-refresh-failure-"));
     const pluginStorageRoot = join(root, "plugins");
     const snapshotRoot = join(pluginStorageRoot, "marketplaces", "offline-market");
 
@@ -1552,7 +1552,7 @@ describe("Nibi plugins", () => {
   });
 
   it("returns plugin_git_unavailable for an install source that requires system Git", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-plugin-git-unavailable-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-plugin-git-unavailable-"));
     const pluginStorageRoot = join(root, "plugins");
     const snapshotRoot = join(pluginStorageRoot, "marketplaces", "private-market");
 
@@ -1607,7 +1607,7 @@ describe("Nibi plugins", () => {
 
   // 触发条件是 POSIX 的可执行位；Windows 上 chmod 位恒为 0，这套前提不成立。
   it.skipIf(process.platform === "win32")("reseeds official plugin cache when hook executable mode changes", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-plugin-mode-reseed-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-plugin-mode-reseed-"));
     const entryRoot = join(root, "resources", "glm");
     const pluginStorageRoot = join(root, "plugins");
     // 用仍登记的官方插件（skill-creator）做载体；文件全是 fixture 伪造的，清单目录用当前的 .nibi-plugin，
@@ -1665,7 +1665,7 @@ describe("Nibi plugins", () => {
   });
 
   it("projects bundled iOS simulator skills, commands, and MCP when enabled", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-plugins-enabled-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-plugins-enabled-"));
     const configPath = join(root, "config.json");
     const pluginStorageRoot = join(root, "plugins");
 
@@ -1750,7 +1750,7 @@ describe("Nibi plugins", () => {
   });
 
   it("projects bundled Android emulator skills, commands, and MCP when enabled", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-plugins-android-enabled-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-plugins-android-enabled-"));
     const configPath = join(root, "config.json");
     const pluginStorageRoot = join(root, "plugins");
 
@@ -1843,7 +1843,7 @@ describe("Nibi plugins", () => {
   });
 
   it("persists sensitive plugin options in the selected User or Workspace config", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-plugin-options-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-plugin-options-"));
     const userConfigPath = join(root, "user-config.json");
     const workspaceConfigPath = join(root, ".nibi", "config.json");
     const pluginStorageRoot = join(root, "plugins");
@@ -1961,7 +1961,7 @@ describe("Nibi plugins", () => {
   });
 
   it("writes Workspace enablement without mutating User config", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-plugin-scope-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-plugin-scope-"));
     const userConfigPath = join(root, "user-config.json");
     const workspaceConfigPath = join(root, ".nibi", "config.json");
     const pluginStorageRoot = join(root, "plugins");
@@ -2010,7 +2010,7 @@ describe("Nibi plugins", () => {
   });
 
   it("writes nested Workspace plugin state to the Workspace-owned config", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-nested-plugin-scope-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-nested-plugin-scope-"));
     const repositoryRoot = join(root, "repository");
     const workspaceRoot = join(repositoryRoot, "packages", "app");
     const repositoryConfigPath = join(repositoryRoot, ".nibi", "config.json");
@@ -2068,7 +2068,7 @@ describe("Nibi plugins", () => {
   });
 
   it("resets Workspace plugin keys so effective config inherits User", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-plugin-reset-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-plugin-reset-"));
     const userConfigPath = join(root, "user-config.json");
     const workspaceConfigPath = join(root, ".nibi", "config.json");
     const pluginId = "workspace-plugin@inline";
@@ -2118,7 +2118,7 @@ describe("Nibi plugins", () => {
   });
 
   it("keeps Marketplace default enablement in User config for a legacy Workspace scope", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-user-marketplace-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-user-marketplace-"));
     const pluginStorageRoot = join(root, "plugins");
     const marketplaceRoot = join(root, "user-marketplace");
     const pluginRoot = join(marketplaceRoot, "plugins", "workspace-demo");
@@ -2273,7 +2273,7 @@ describe("Nibi plugins", () => {
   });
 
   it("ignores Marketplace declarations from Workspace config", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-ignore-workspace-marketplace-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-ignore-workspace-marketplace-"));
     const marketplaceId = "workspace-market";
     try {
       await writeTestFile(
@@ -2312,7 +2312,7 @@ describe("Nibi plugins", () => {
   });
 
   it("resolves User relative marketplace paths from the declaring config directory", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-user-marketplace-path-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-user-marketplace-path-"));
     const userConfigPath = join(root, "user", "config.json");
     const workspacePath = join(root, "workspace");
     try {
@@ -2353,7 +2353,7 @@ describe("Nibi plugins", () => {
   });
 
   it("keeps official marketplace projection when User declares a reserved id", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-reserved-marketplace-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-reserved-marketplace-"));
     const pluginStorageRoot = join(root, "plugins");
     const userConfigPath = join(root, "user-config.json");
     try {
@@ -2401,7 +2401,7 @@ describe("Nibi plugins", () => {
   });
 
   it("does not repoint an existing Host marketplace from a Workspace declaration", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-marketplace-repoint-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-marketplace-repoint-"));
     const pluginStorageRoot = join(root, "plugins");
     const originalSource = join(root, "original-marketplace");
     const workspaceSource = join(root, "workspace-marketplace");
@@ -2490,7 +2490,7 @@ describe("Nibi plugins", () => {
   });
 
   it("propagates cancellation while refreshing a declared marketplace", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-marketplace-refresh-abort-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-marketplace-refresh-abort-"));
     const pluginStorageRoot = join(root, "plugins");
     const marketplaceRoot = join(root, "workspace-marketplace");
     const userConfigPath = join(root, "user-config.json");
@@ -2548,7 +2548,7 @@ describe("Nibi plugins", () => {
   // path does. Without forwarding the default-enabled set, `/skill skill-creator`
   // failed with "Skill not found" inside a session even though it was bundled.
   it("default-enables skill-creator through the app-startup plugin discovery path", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-startup-plugins-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-startup-plugins-"));
     const pluginStorageRoot = join(root, "plugins");
 
     try {

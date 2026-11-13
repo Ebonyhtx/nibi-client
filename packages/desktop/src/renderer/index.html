@@ -194,7 +194,7 @@
         document.body.classList.add("nibi-startup-ready");
         startupLoading?.remove();
       } else {
-        window.addEventListener("zcode-react-startup-ready", markReactReady, { once: true });
+        window.addEventListener("nibi-react-startup-ready", markReactReady, { once: true });
       }
 
       if (isUpdateStatusWindow || reduceMotion || !startupLogoShell) {

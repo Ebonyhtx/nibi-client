@@ -69,7 +69,7 @@ export const PLUGIN_SANDBOX_SHELL_CSP = [
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
-  "frame-src zcode-sandbox:",
+  "frame-src nibi-sandbox:",
   "connect-src 'none'",
   "form-action 'none'",
   "base-uri 'self'",

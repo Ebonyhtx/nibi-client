@@ -15,7 +15,7 @@ const DAY = 24 * 60 * 60 * 1000;
 
 describe("queryAppUsage", () => {
   it("aggregates tokens, tools, and per-day buckets within range", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-usage-query-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-usage-query-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const store = await createSqliteSessionStore({ dbPath });
     const sessionID = createSessionId("uq");
@@ -131,7 +131,7 @@ describe("queryAppUsage", () => {
   });
 
   it("supports all-time app usage queries without the default 30 day cutoff", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-usage-all-query-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-usage-all-query-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const store = await createSqliteSessionStore({ dbPath });
     const sessionID = createSessionId("uq-all");
@@ -211,7 +211,7 @@ describe("queryAppUsage", () => {
 
 describe("queryTaskUsage", () => {
   it("aggregates model usage by session id", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-task-usage-query-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-task-usage-query-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const store = await createSqliteSessionStore({ dbPath });
     const sessionID = createSessionId("task-usage");
@@ -299,7 +299,7 @@ describe("queryTaskUsage", () => {
   });
 
   it("counts repeated context sources by incremental input and survives compaction resets", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-task-usage-incremental-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-task-usage-incremental-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const store = await createSqliteSessionStore({ dbPath });
     const sessionID = createSessionId("task-usage-incremental");

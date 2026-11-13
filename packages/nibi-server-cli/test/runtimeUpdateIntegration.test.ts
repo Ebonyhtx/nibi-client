@@ -68,7 +68,7 @@ async function waitForHttpClosed(port: number): Promise<boolean> {
 
 describe.skipIf(process.platform === "win32")("runtime update integration", () => {
   it("收口 Supervisor IPC 断连后的 Core，避免遗留孤儿监听进程", async () => {
-    const root = await mkdtemp(join("/tmp", "zcode-orphan-"));
+    const root = await mkdtemp(join("/tmp", "nibi-orphan-"));
     const layout = resolveServerLayout(join(root, ".nibi", "server"));
     await new ReleaseManager(layout).ensure();
     const coreEntry = fileURLToPath(new URL("../src/server-core/entry.ts", import.meta.url));
@@ -127,7 +127,7 @@ describe.skipIf(process.platform === "win32")("runtime update integration", () =
     // POSIX Unix socket 有路径长度限制，macOS 的 tmpdir() 可能位于很长的 /var/folders 路径；
     // 保持短路径，Windows 则使用其可移植的系统临时目录。
     const root = await mkdtemp(
-      join(process.platform === "win32" ? tmpdir() : "/tmp", "zcode-runtime-"),
+      join(process.platform === "win32" ? tmpdir() : "/tmp", "nibi-runtime-"),
     );
     const layout = resolveServerLayout(join(root, ".nibi", "server"));
     const canonicalLayout = await resolveCanonicalServerLayout(layout.serverRoot);

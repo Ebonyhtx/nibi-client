@@ -10,7 +10,7 @@ const NATIVE_FILE_PICKER_TIMEOUT_MS = 180000;
 const ATTACHMENT_LIMIT = 8;
 
 describe("会话区 native 文件选择器附件数量边界 E2E", () => {
-  const fixtureRoot = join(tmpdir(), `zcode-e2e-native-file-picker-attachments-${Date.now()}`);
+  const fixtureRoot = join(tmpdir(), `nibi-e2e-native-file-picker-attachments-${Date.now()}`);
   let showOpenDialogMock: ElectronMock | null = null;
 
   before(async function () {
@@ -267,7 +267,7 @@ async function getAttachmentDomSnapshot() {
 async function getAttachmentLimitWarningSnapshot() {
   return browser.execute(() => {
     const candidates = Array.from(
-      document.querySelectorAll<HTMLElement>("#zcode-toast-host .rounded-2xl"),
+      document.querySelectorAll<HTMLElement>("#nibi-toast-host .rounded-2xl"),
     );
     const warning = candidates.find((element) => {
       const text = element.innerText.replace(/\u00a0/g, " ");

@@ -32,7 +32,7 @@ describe("DB109 会话库正式数据迁移", () => {
   let db: DatabaseSync;
   let store: Awaited<ReturnType<typeof createSqliteSessionStore>> | undefined;
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "zcode-db109-"));
+    root = await mkdtemp(join(tmpdir(), "nibi-db109-"));
     path = join(root, "session.sqlite");
     db = new DatabaseSync(path);
     db.exec("PRAGMA foreign_keys=ON");

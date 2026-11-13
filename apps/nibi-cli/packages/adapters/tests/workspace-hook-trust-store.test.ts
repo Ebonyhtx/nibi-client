@@ -13,7 +13,7 @@ const DIGEST_A = "a".repeat(64);
 const DIGEST_B = "b".repeat(64);
 
 async function root(): Promise<string> {
-  const value = await mkdtemp(join(tmpdir(), "zcode-workspace-hook-store-"));
+  const value = await mkdtemp(join(tmpdir(), "nibi-workspace-hook-store-"));
   roots.push(value);
   return value;
 }

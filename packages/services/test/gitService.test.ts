@@ -116,7 +116,7 @@ function resolveGitPath(repoPath: string, gitPath: string): string {
 }
 
 function createRepoTemplate(): string {
-  const repoPath = mkdtempSync(join(tmpdir(), "zcode-git-template-"));
+  const repoPath = mkdtempSync(join(tmpdir(), "nibi-git-template-"));
   const workspacePath = join(repoPath, "packages", "app");
   mkdirSync(workspacePath, { recursive: true });
   mkdirSync(join(repoPath, "packages", "other"), { recursive: true });
@@ -144,14 +144,14 @@ async function createRepo(options?: { withRemote?: boolean }) {
 
   // Bugfix: 每个 case 原本都通过 8 个同步 Git 子进程从零建库；related 测试并发时会耗尽
   // macOS 的进程启动队列。复用一次性模板并复制独立工作树，保留真实 Git 行为与 case 隔离。
-  const repoContainer = makeTempDir("zcode-git-repo-");
+  const repoContainer = makeTempDir("nibi-git-repo-");
   const repoPath = join(repoContainer, "repo");
   await cp(repoTemplatePath, repoPath, { recursive: true });
   const workspacePath = join(repoPath, "packages", "app");
 
   let remotePath: string | null = null;
   if (options?.withRemote) {
-    remotePath = makeTempDir("zcode-git-remote-");
+    remotePath = makeTempDir("nibi-git-remote-");
     runGit(undefined, ["init", "--bare", remotePath]);
     runGit(repoPath, ["remote", "add", "origin", remotePath]);
     runGit(repoPath, ["push", "-u", "origin", "main"]);

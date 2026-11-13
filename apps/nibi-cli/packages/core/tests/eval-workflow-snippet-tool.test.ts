@@ -144,7 +144,7 @@ describe("EvalWorkflowSnippet — the `path` source", () => {
     const cwd = mkdtempSync(join(tmpdir(), "dwf-snippet-path-"));
     try {
       // 恰好以起始标记开头的文件也整个是代码：片段没有保存定义那套语义。
-      const source = '/* zcode-workflow\ndescription: not a workflow\n*/\nreturn 1;';
+      const source = '/* nibi-workflow\ndescription: not a workflow\n*/\nreturn 1;';
       writeFileSync(join(cwd, "snippet.ts"), source, "utf8");
       const resolution = await resolve({ path: "snippet.ts" }, cwd);
       expect(resolution).toMatchObject({ result: true });

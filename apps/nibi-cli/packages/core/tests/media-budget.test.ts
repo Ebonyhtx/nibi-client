@@ -103,7 +103,7 @@ describe("model request media budget", () => {
       createSessionId("runtime-media-budget-literal-system-reminder"),
       {
         mode: "plan",
-        workingDirectory: "/tmp/zcode-runtime-media-budget-literal-system-reminder",
+        workingDirectory: "/tmp/nibi-runtime-media-budget-literal-system-reminder",
       },
       {
         artifactStore: createTestImageArtifactStore(),
@@ -377,7 +377,7 @@ describe("model request media budget", () => {
       createSessionId("runtime-compact-media-budget"),
       {
         mode: "plan",
-        workingDirectory: "/tmp/zcode-runtime-compact-media-budget",
+        workingDirectory: "/tmp/nibi-runtime-compact-media-budget",
       },
       {
         artifactStore: createTestImageArtifactStore(),
@@ -438,7 +438,7 @@ describe("model request media budget", () => {
       createSessionId("runtime-media-capability-text-only"),
       {
         mode: "plan",
-        workingDirectory: "/tmp/zcode-runtime-media-capability-text-only",
+        workingDirectory: "/tmp/nibi-runtime-media-capability-text-only",
       },
       {
         artifactStore: createTestImageArtifactStore(),
@@ -474,7 +474,7 @@ describe("model request media budget", () => {
       createSessionId("runtime-media-capability-unknown"),
       {
         mode: "plan",
-        workingDirectory: "/tmp/zcode-runtime-media-capability-unknown",
+        workingDirectory: "/tmp/nibi-runtime-media-capability-unknown",
       },
       {
         artifactStore: createTestImageArtifactStore(),
@@ -505,7 +505,7 @@ describe("model request media budget", () => {
       createSessionId("runtime-media-budget"),
       {
         mode: "plan",
-        workingDirectory: "/tmp/zcode-runtime-media-budget",
+        workingDirectory: "/tmp/nibi-runtime-media-budget",
       },
       {
         artifactStore: createTestImageArtifactStore(),

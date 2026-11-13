@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/cells/diff.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-host/crates/tui/src/ui/cells/diff.rs（feat/rs 79b6691c55）。
 //! 配对的删除 / 新增行按词比较（docs/specs/rust-tui.md §8.2）：改动的词再加深一档底色；改动超过这一
 //! 行的 40% 时不按词高亮（整行都变了，按词标出来只会更乱）。
 

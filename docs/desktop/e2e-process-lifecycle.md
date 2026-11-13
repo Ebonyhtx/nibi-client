@@ -6,7 +6,7 @@ Desktop WDIO E2E uses one run identity for both file isolation and process clean
 
 - `NIBI_E2E_RUN_ID`
 - `NIBI_E2E_HOME_DIR`
-- Electron app arg `--zcode-e2e-run-id=<runId>`
+- Electron app arg `--nibi-e2e-run-id=<runId>`
 
 `NIBI_E2E_HOME_DIR` isolates persisted app data. `NIBI_E2E_RUN_ID` is also passed on the Electron command line so process scans can identify the root process for the current WDIO run without relying on shared build paths.
 

@@ -25,7 +25,7 @@ describe("Node logging adapter", () => {
   });
 
   it("writes structured JSONL and redacts sensitive context keys", async () => {
-    const logDir = await mkdtemp(join(tmpdir(), "zcode-log-"));
+    const logDir = await mkdtemp(join(tmpdir(), "nibi-log-"));
 
     try {
       const logger = createNodeLoggerFactory({ logDir, minLevel: LogLevel.Debug })
@@ -67,7 +67,7 @@ describe("Node logging adapter", () => {
   });
 
   it("does not throw when the log sink cannot be written", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-log-fail-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-log-fail-"));
     const fileAsDirectory = join(tempRoot, "not-a-directory");
 
     try {
@@ -81,7 +81,7 @@ describe("Node logging adapter", () => {
   });
 
   it("swallows injected fs faults before JSONL append", async () => {
-    const logDir = await mkdtemp(join(tmpdir(), "zcode-log-fault-"));
+    const logDir = await mkdtemp(join(tmpdir(), "nibi-log-fault-"));
 
     setStorageFsFaultInjectorForTests(
       createStorageFsFaultInjector([
@@ -105,7 +105,7 @@ describe("Node logging adapter", () => {
   });
 
   it("swallows injected fs faults before log directory creation", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-log-fault-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-log-fault-"));
     const logDir = join(tempRoot, "logs");
 
     setStorageFsFaultInjectorForTests(
@@ -130,7 +130,7 @@ describe("Node logging adapter", () => {
   });
 
   it("defaults to debug logging in development mode", async () => {
-    const logDir = await mkdtemp(join(tmpdir(), "zcode-log-dev-"));
+    const logDir = await mkdtemp(join(tmpdir(), "nibi-log-dev-"));
 
     try {
       const logger = createNodeLoggerFactory({
@@ -152,7 +152,7 @@ describe("Node logging adapter", () => {
   });
 
   it("ignores ambient NODE_ENV when resolving development logging", async () => {
-    const logDir = await mkdtemp(join(tmpdir(), "zcode-log-node-env-ignored-"));
+    const logDir = await mkdtemp(join(tmpdir(), "nibi-log-node-env-ignored-"));
 
     try {
       const logger = createNodeLoggerFactory({
@@ -170,7 +170,7 @@ describe("Node logging adapter", () => {
   });
 
   it("ignores NIBI_LOG_LEVEL so development mode keeps debug logging", async () => {
-    const logDir = await mkdtemp(join(tmpdir(), "zcode-log-dev-env-ignored-"));
+    const logDir = await mkdtemp(join(tmpdir(), "nibi-log-dev-env-ignored-"));
 
     try {
       const logger = createNodeLoggerFactory({
@@ -192,7 +192,7 @@ describe("Node logging adapter", () => {
   });
 
   it("writes error cause chains with redacted diagnostic context", async () => {
-    const logDir = await mkdtemp(join(tmpdir(), "zcode-log-cause-"));
+    const logDir = await mkdtemp(join(tmpdir(), "nibi-log-cause-"));
 
     try {
       const logger = createNodeLoggerFactory({ logDir, minLevel: LogLevel.Debug })
@@ -295,7 +295,7 @@ describe("Node logging adapter", () => {
   });
 
   it("schedules retention cleanup once with the startup delay and unrefs the timer", async () => {
-    const logDir = await mkdtemp(join(tmpdir(), "zcode-log-schedule-"));
+    const logDir = await mkdtemp(join(tmpdir(), "nibi-log-schedule-"));
     const factory = createNodeLoggerFactory({ logDir });
     const timer = {
       unrefCalls: 0,

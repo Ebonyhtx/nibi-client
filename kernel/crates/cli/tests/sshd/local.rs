@@ -76,7 +76,7 @@ impl LocalSshd {
             .map_err(|error| error.to_string())?;
         for key in ["id_ed25519", "ssh_host_ed25519_key"] {
             let output = Command::new("ssh-keygen")
-                .args(["-q", "-t", "ed25519", "-N", "", "-C", "zcode-test", "-f"])
+                .args(["-q", "-t", "ed25519", "-N", "", "-C", "nibi-test", "-f"])
                 .arg(dir.join(key))
                 .output()
                 .map_err(|error| format!("ssh-keygen: {error}"))?;
@@ -358,7 +358,7 @@ impl Registry {
         use sha2::{Digest, Sha512};
         let name = format!("@nibi-studio/cli-{id}");
         let packument = format!("/@nibi%2fcli-{id}");
-        let tarball_path = format!("/{name}/-/zcode-{id}-{version}.tgz");
+        let tarball_path = format!("/{name}/-/nibi-{id}-{version}.tgz");
         let integrity = format!(
             "sha512-{}",
             base64::engine::general_purpose::STANDARD.encode(Sha512::digest(&tarball))

@@ -39,7 +39,7 @@ const PDF_OMITTED_TEXT =
 
 describe("Read PDF model capability switching E2E", () => {
   it("omits and restores raw PDF data in final provider requests", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-read-pdf-model-switch-e2e-"));
+    const root = await mkdtemp(join(tmpdir(), "nibi-read-pdf-model-switch-e2e-"));
     const pdfPath = join(root, "switchable.pdf");
     const sessionId = createSessionId("read-pdf-model-switch-e2e");
     const sessionStore = await createSqliteSessionStore({ dbPath: join(root, "session.sqlite") });

@@ -67,7 +67,7 @@ const config = {
     pluginOrder: { productivity: [`p5@${official}`, `p4@${official}`] },
   },
 };
-const artifacts = join(tmpdir(), "zcode-plugin-mode-order");
+const artifacts = join(tmpdir(), "nibi-plugin-mode-order");
 for (const [width, locale, theme] of [
   [1200, "en-US", "light"],
   [1200, "zh-CN", "dark"],

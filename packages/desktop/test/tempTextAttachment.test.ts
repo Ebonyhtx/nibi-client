@@ -17,7 +17,7 @@ afterEach(async () => {
 
 describe("createTempTextAttachment", () => {
   it("writes pasted text under the zcode temp attachment directory", async () => {
-    tempRoot = await mkdtemp(join(tmpdir(), "zcode-temp-text-"));
+    tempRoot = await mkdtemp(join(tmpdir(), "nibi-temp-text-"));
     setDataBaseDir(tempRoot);
 
     const result = await createTempTextAttachment({

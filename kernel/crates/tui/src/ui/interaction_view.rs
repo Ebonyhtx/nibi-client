@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/interaction_view.rs（feat/rs 79b6691c55）：输入换成
+// 改写自 apps/nibi-host/crates/tui/src/ui/interaction_view.rs（feat/rs 79b6691c55）：输入换成
 // `InteractionRequest`；改动预览用 transcript 的 diff（从工具输入算）。
 //! 审批的排版：强调色的 `─` 线、粗体标题，内容放在两条 dim 虚线之间，然后是原因、问题与选项，最后一行
 //! 提示。计划审批与提问的排版见 `interaction_view_plan.rs`、`interaction_view_question.rs`。

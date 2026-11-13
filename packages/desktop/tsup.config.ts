@@ -322,7 +322,7 @@ export default defineConfig([
   },
   {
     // 插件 iframe 内的 window.nibi / window.openai 别名脚本（官方 ext-apps `App` 上的薄封装）：IIFE、浏览器平台，
-    // 由 zcode-sandbox:// protocol handler 同源服务。
+    // 由 nibi-sandbox:// protocol handler 同源服务。
     name: "plugin-sandbox-alias",
     loader: { ".css": "text" },
     entry: {

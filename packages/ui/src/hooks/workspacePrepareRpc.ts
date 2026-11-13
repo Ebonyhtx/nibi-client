@@ -17,7 +17,7 @@ export async function prepareWorkspaceWithNibiSessionService(params: {
   nibiSessionService: Pick<INibiSessionService, "readWorkspacePresentation">;
 }): Promise<NibiWorkspacePrepareResult> {
   const startedAt = Date.now();
-  logger.info("[zcode-workspace-presentation] workspace prepare start", {
+  logger.info("[nibi-workspace-presentation] workspace prepare start", {
     workspacePath: params.workspacePath,
     workspaceIdentity: params.workspaceIdentity ?? null,
     provider: params.provider,
@@ -30,7 +30,7 @@ export async function prepareWorkspaceWithNibiSessionService(params: {
       workspaceIdentity: params.workspaceIdentity,
     });
   } catch (error) {
-    logger.warn("[zcode-workspace-presentation] readWorkspacePresentation failed", {
+    logger.warn("[nibi-workspace-presentation] readWorkspacePresentation failed", {
       workspacePath: params.workspacePath,
       workspaceIdentity: params.workspaceIdentity ?? null,
       provider: params.provider,
@@ -43,7 +43,7 @@ export async function prepareWorkspaceWithNibiSessionService(params: {
   const readPresentationDurationMs = Date.now() - startedAt;
   const configOptions = nibiWorkspacePresentationToConfigOptions(presentation.mode);
   const totalDurationMs = Date.now() - startedAt;
-  logger.info("[zcode-workspace-presentation] readWorkspacePresentation done", {
+  logger.info("[nibi-workspace-presentation] readWorkspacePresentation done", {
     workspacePath: params.workspacePath,
     workspaceIdentity: params.workspaceIdentity ?? null,
     provider: params.provider,

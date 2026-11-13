@@ -1,5 +1,5 @@
 (() => {
-  const frame = document.getElementById("zcode-visualization");
+  const frame = document.getElementById("nibi-visualization");
   if (!(frame instanceof HTMLIFrameElement)) {
     return;
   }
@@ -165,7 +165,7 @@
   frame.addEventListener(
     "load",
     () => {
-      frame.contentWindow?.postMessage({ type: "zcode-visualization-initialize" }, "*", [
+      frame.contentWindow?.postMessage({ type: "nibi-visualization-initialize" }, "*", [
         channel.port2,
       ]);
     },
@@ -173,9 +173,9 @@
   );
   // Match the trusted bootstrap element, not the same text in an authored title.
   frame.srcdoc = srcdoc.replace(
-    '<script type="application/json" id="zcode-visualization-widget-state">__NIBI_VISUALIZATION_WIDGET_STATE__</script>',
+    '<script type="application/json" id="nibi-visualization-widget-state">__NIBI_VISUALIZATION_WIDGET_STATE__</script>',
     () =>
-      '<script type="application/json" id="zcode-visualization-widget-state">' +
+      '<script type="application/json" id="nibi-visualization-widget-state">' +
       JSON.stringify(initialGlobals).replaceAll("<", "\\u003c") +
       "</script>",
   );

@@ -88,7 +88,7 @@ async function prepareFileChangeFindFixture() {
     cwd: DEFAULT_WORKSPACE,
     stdio: "ignore",
   });
-  execFileSync(GIT_BINARY, ["config", "user.email", "zcode-e2e@example.com"], {
+  execFileSync(GIT_BINARY, ["config", "user.email", "nibi-e2e@example.com"], {
     cwd: DEFAULT_WORKSPACE,
     stdio: "ignore",
   });

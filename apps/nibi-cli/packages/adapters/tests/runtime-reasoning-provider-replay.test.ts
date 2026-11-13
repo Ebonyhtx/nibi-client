@@ -57,7 +57,7 @@ describe.each(["off", "on"] as const)(
     it.each(cases)(
       "restores %s and replays into %s without changing old bytes",
       async (source, target) => {
-        const root = await mkdtemp(join(tmpdir(), "zcode-reasoning-replay-"));
+        const root = await mkdtemp(join(tmpdir(), "nibi-reasoning-replay-"));
         const sessionID = createSessionId("reasoning-replay");
         let store = await createSqliteSessionStore({ dbPath: join(root, "session.sqlite") });
         const db = new DatabaseSync(join(root, "session.sqlite"));

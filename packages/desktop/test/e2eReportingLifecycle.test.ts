@@ -13,7 +13,7 @@ import type {
 const createdDirs: string[] = [];
 
 async function createArtifactsDir(): Promise<string> {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "zcode-e2e-reporting-lifecycle-"));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "nibi-e2e-reporting-lifecycle-"));
   createdDirs.push(dir);
   return dir;
 }
@@ -45,7 +45,7 @@ describe("desktop e2e reporting lifecycle", () => {
       await writeFile(rawFile, JSON.stringify({ result: [] }));
       reporter.recordTestResult({ title: "case after reload" }, { duration: 1, passed: true });
       const raw = JSON.parse(await readFile(rawFile, "utf8"));
-      expect(raw["zcode-e2e-normalized-source-map-root"]).toBe(
+      expect(raw["nibi-e2e-normalized-source-map-root"]).toBe(
         path.join(artifactsDir, "out", "main").replaceAll("\\", "/"),
       );
       expect(raw.result).toEqual([]);

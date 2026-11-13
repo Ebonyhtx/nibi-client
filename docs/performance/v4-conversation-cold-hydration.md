@@ -525,7 +525,7 @@ rehydration 与 wire 编码，不应归因成单一阶段。具体职责边界�
 
 ## E2E Handoff Notes
 
-- Provider fixture: 不需要；使用 `zcode-large-task-fixture` 直接构造持久 conversation。
+- Provider fixture: 不需要；使用 `nibi-large-task-fixture` 直接构造持久 conversation。
 - File-system fixture: 无。
 - Timing strategy: 单独 manual performance run；focused benchmark 只守复杂度趋势，避免 CI 绝对墙钟抖动。
 - Docker preset: 不进入常规 conversation suite。

@@ -27,7 +27,7 @@
 当前项目的通道包括：
 
 - `MessagePort`：Renderer 与 Window Host 之间的本地端口。
-- `stdio`：Host 与 `zcode-cli`，以及 `nibi-server` 与其 Agent 子进程之间的标准输入输出。
+- `stdio`：Host 与 `nibi-cli`，以及 `nibi-server` 与其 Agent 子进程之间的标准输入输出。
 - `WebSocket`：连接已存在的 `nibi-server`，或连接手机远控 Relay。
 - Electron IPC：Renderer 与 Main 之间的平台调用。
 - UtilityProcess `postMessage`：Main 与 Window Host 之间的进程控制消息。
@@ -55,7 +55,7 @@
 
 ### ZCode Protocol JSON envelope
 
-Host 与 `zcode-cli` 使用的 JSON 请求/响应/通知外壳，典型结构如下（为便于阅读省略了部分身份字段）：
+Host 与 `nibi-cli` 使用的 JSON 请求/响应/通知外壳，典型结构如下（为便于阅读省略了部分身份字段）：
 
 ```json
 {
@@ -101,7 +101,7 @@ V4 负责 Agent 会话和对话事实，例如：
 - 订阅、断线恢复、resync；
 - `desktop-continuous` 与 `web-remote-replayable` 交付语义。
 
-V4 的最终事实源和命令裁决者是 workspace 对应的 `zcode-cli`，不是 Renderer、Main 或 Relay。
+V4 的最终事实源和命令裁决者是 workspace 对应的 `nibi-cli`，不是 Renderer、Main 或 Relay。
 
 ### Service API
 
@@ -161,7 +161,7 @@ nibi-server
   第 1 层：子进程 stdio
         │
         ▼
-远端 zcode-cli
+远端 nibi-cli
   CommandInbox 裁决并执行 sendText
 ```
 
@@ -178,11 +178,11 @@ V4 调用 = 调用 Service API，把这条命令送到下一跳
 
 ## 相关实现入口
 
-- [代码架构总览](./zcode-code-architecture-overview.md)
+- [代码架构总览](./nibi-code-architecture-overview.md)
 - [Message Flow](./message-flow.md)
 - [`@nibi/rpc` 分层实现](../../packages/rpc/src/index.ts)
 - [V4 command schema](../../packages/shared/src/nibi-protocol-v4/command.ts)
 - [V4 transport schema](../../packages/shared/src/nibi-protocol-v4/transport.ts)
 - [远程 RPC 连接](../../packages/server/src/remote/connect.ts)
 - [nibi-server stdio RPC server](../../packages/server/src/stdio.ts)
-- [Agent ZCode Protocol client](../../packages/services/src/zcode-agent/nibiProtocolClient.ts)
+- [Agent ZCode Protocol client](../../packages/services/src/nibi-agent/nibiProtocolClient.ts)

@@ -8,7 +8,7 @@ import type { McpServerFailureKind } from "./nibi-protocol/index.js";
 
 // CUA official plugin 身份常量（port 自 feat；UI 设置面板 + bootstrap 复用以避免字面量漂移）。
 export const NIBI_CUA_OFFICIAL_PLUGIN_ID = "computer-use@nibi-official";
-// CUA server 身份串（port 自 feat mcp.ts）：server key = 模型可见工具前缀段（刻意不带 zcode-）；
+// CUA server 身份串（port 自 feat mcp.ts）：server key = 模型可见工具前缀段（刻意不带 nibi-）；
 // namespace name = official plugin 运行时命名空间 plugin:<pluginId>:<serverKey>。
 export const NIBI_CUA_OFFICIAL_MCP_NAMESPACE_NAME = "plugin:computer-use:computer-use";
 // 插件身份 env key：resolver（adapters/src/plugins/mcp.ts）权威写入 loaded.id，manifest/user env 不可覆盖。

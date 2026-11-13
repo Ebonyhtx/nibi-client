@@ -90,11 +90,11 @@ const labels: PptxPreviewViewerLabels = {
 };
 
 function queryPrintHost() {
-  return document.querySelector("[data-zcode-pptx-print-host]");
+  return document.querySelector("[data-nibi-pptx-print-host]");
 }
 
 function queryPrintStyle() {
-  return document.querySelector("style[data-zcode-pptx-print-style]");
+  return document.querySelector("style[data-nibi-pptx-print-style]");
 }
 
 beforeEach(() => {
@@ -122,7 +122,7 @@ describe("renderPresentationToPrintHost", () => {
     expect(renderOrder).toEqual([0, 1, 2]);
     const host = queryPrintHost();
     expect(host).toBeTruthy();
-    expect(host?.querySelectorAll("[data-zcode-pptx-print-page]")).toHaveLength(3);
+    expect(host?.querySelectorAll("[data-nibi-pptx-print-page]")).toHaveLength(3);
     const style = queryPrintStyle();
     expect(style?.textContent).toContain("@page");
     expect(style?.textContent).toContain("size: 1280px 720px");

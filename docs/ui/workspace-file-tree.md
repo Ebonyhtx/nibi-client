@@ -32,7 +32,7 @@ Workspace 文件树入口位于项目和任务行的操作区，也可从右侧�
 - Git 状态颜色统一走设计 token：`--color-git-modified`、`--color-git-added`、`--color-git-deleted`、`--color-git-renamed`、`--color-git-untracked`、`--color-git-none`、`--color-git-ignored`、`--color-git-descendant`，避免文件树把状态色散落为 diff / warning 的临时借用。
 - 标题栏刷新按钮左侧提供更多菜单：本地 workspace 可打开系统文件管理器定位 workspace 根目录，也可以复制 workspace 路径；远程 workspace 禁用本机文件管理器入口，避免把远端路径交给本机打开。
 - Desktop Project Memory 项目列表可复用 Markdown 本地目录链接的 Shell 分流入口，将通过 Base Local Host 安全解析出的 Memory 根目录作为 temporary external directory 打开；该入口不改变当前 workspace 身份，也不向 Web Remote / Mobile 暴露本机路径。
-- 文件拖拽使用 `application/x-zcode-workspace-file` 自定义 MIME，同时写入 `text/plain` 作为降级文本。
+- 文件拖拽使用 `application/x-nibi-workspace-file` 自定义 MIME，同时写入 `text/plain` 作为降级文本。
 - 文件或目录开始拖拽后隐藏拖拽源行的层级引导线，拖拽结束、放下或窗口失焦时恢复，避免竖线穿过系统拖拽预览。
 - Prompt 输入框接收该 MIME 后转成和 `@` 文件提及一致的 Markdown mention。
 

@@ -1,4 +1,4 @@
-// 改写自 apps/zcode-host/crates/tui/src/ui/transcript.rs（feat/rs 79b6691c55）的组装部分：行来自
+// 改写自 apps/nibi-host/crates/tui/src/ui/transcript.rs（feat/rs 79b6691c55）的组装部分：行来自
 // `view::Transcript`，去掉子代理视图与 V4 的 `lastError`（失败原因已是视图里的错误行）。
 //! transcript 的全部行：会话头、cell、本地 cell；排版结果按块缓存。
 use std::collections::HashMap;

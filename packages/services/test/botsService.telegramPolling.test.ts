@@ -16,7 +16,7 @@ afterEach(() => {
 });
 
 function useTempDataDir() {
-  tempDir = mkdtempSync(join(tmpdir(), "zcode-bots-telegram-polling-"));
+  tempDir = mkdtempSync(join(tmpdir(), "nibi-bots-telegram-polling-"));
   setDataBaseDir(tempDir);
 }
 

@@ -5,7 +5,7 @@ const restoredOAuthCredentials = {
   "oauth:active_provider": "zai",
   "oauth:zai:access_token": "fake-access-token",
   "oauth:zai:user_info": "{}",
-  "nibi-jwttoken": "fake-zcode-jwt",
+  "nibi-jwttoken": "fake-nibi-jwt",
 };
 
 describe("desktop e2e startup credentials", () => {
@@ -42,7 +42,7 @@ describe("desktop e2e startup credentials", () => {
       "oauth:zai:access_token": "fake-access-token",
       "oauth:zai:user_info": "{}",
     });
-    expect(fixture["nibi-jwttoken"]).toBe("fake-zcode-jwt");
+    expect(fixture["nibi-jwttoken"]).toBe("fake-nibi-jwt");
   });
 
   it("远程回放优先保持匿名，不采用本地账号 mock", () => {
@@ -111,7 +111,7 @@ describe("desktop e2e startup credentials", () => {
         legacyAuthToken: "fake-auth-token",
         restoredOAuthCredentials,
       })["nibi-jwttoken"],
-    ).toBe("fake-zcode-jwt");
+    ).toBe("fake-nibi-jwt");
   });
   it("纯 Provider 冷恢复 spec 不播种会访问账号控制面的假登录态", () => {
     expect(

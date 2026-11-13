@@ -1,6 +1,6 @@
 # ZCode Protocol（当前事实）
 
-ZCode Protocol 是 App、Host Process 与 `zcode-cli` 之间唯一的 Agent 协议。当前聊天主链路使用 V4 conversation topic、权威 projection 与 command inbox；`packages/shared/src/nibi-protocol/index.ts` 中仍保留的旧 session schema 只服务尚未删除的兼容调用，不是新增功能入口。
+ZCode Protocol 是 App、Host Process 与 `nibi-cli` 之间唯一的 Agent 协议。当前聊天主链路使用 V4 conversation topic、权威 projection 与 command inbox；`packages/shared/src/nibi-protocol/index.ts` 中仍保留的旧 session schema 只服务尚未删除的兼容调用，不是新增功能入口。
 
 ## 核心约束
 
@@ -19,7 +19,7 @@ Renderer
 Host Process
   │ stdio NDJSON
   ▼
-zcode-cli app-server
+nibi-cli app-server
   ├─ command inbox
   ├─ ProductProjection reducer
   └─ conversation topic publisher
@@ -104,10 +104,10 @@ Remote Host 承载。所有 Host 都以 `workspaceKey = workspaceIdentity?.trim(
 App
   └─ workspace window
       ├─ Local Host
-      │  ├─ workspaceKey A ── zcode-cli A
-      │  └─ workspaceKey B ── zcode-cli B
+      │  ├─ workspaceKey A ── nibi-cli A
+      │  └─ workspaceKey B ── nibi-cli B
       └─ Remote Host(s)
-          └─ remoteSessionId / attachment ── workspaceKey C ── zcode-cli C
+          └─ remoteSessionId / attachment ── workspaceKey C ── nibi-cli C
 ```
 
 `workspacePath` 只用于文件系统与命令 cwd；身份、缓存、队列、会话绑定和跨进程关联必须使用 workspaceKey。远程 workspace 必须贯穿传递 `workspaceIdentity` 和 `remoteSessionId`。

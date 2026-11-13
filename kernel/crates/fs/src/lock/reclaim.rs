@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-host/crates/base/src/store/lock.rs（07ab266d4b）的回收部分。
+// 复制自 apps/nibi-host/crates/base/src/store/lock.rs（07ab266d4b）的回收部分。
 //! 失效锁的回收（Node `removeAbandonedLock`）：只回收 owner 已退出，或没有 PID 且超过 grace 的锁。
 
 use std::collections::HashMap;
