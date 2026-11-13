@@ -9,8 +9,6 @@
  * 决定是否绕过；地址非法时由具体出口决定 fail closed（Host API）或按未配置处理。
  */
 
-import { getNibiMirrorOrigin } from "../nibiContentMirror.js";
-
 /** 代理方式：system=跟随操作系统代理；manual=只用手填地址（留空即直连）。 */
 export type HttpProxyMode = "system" | "manual";
 
@@ -127,11 +125,9 @@ function isLoopbackOrLocalHost(host: string): boolean {
 }
 
 /**
- * 隐式直连主机：本机回环与国内镜像。
+ * 隐式直连主机：本机回环。
  *
- * 这两类地址**永远不能**走用户代理：
- * - 回环是本地网关/面板/MCP 服务，发到代理会直接失败（实测 127.0.0.1:8890 经代理不可达）；
- * - 国内镜像是 PLAN B，本身就是为了「没有代理/代理出不去」的用户准备的，经境外代理反而绕远。
+ * 回环是本地网关/面板/MCP 服务，发到代理会直接失败（实测 127.0.0.1:8890 经代理不可达）。
  * 这是产品规则，不该让用户靠「不使用代理的地址」手工维护。
  */
 export function isImplicitDirectUrl(target: string | URL): boolean {
@@ -144,28 +140,12 @@ export function isImplicitDirectUrl(target: string | URL): boolean {
   if (url.protocol !== "http:" && url.protocol !== "https:" && url.protocol !== "ws:" && url.protocol !== "wss:") {
     return false;
   }
-  if (isLoopbackOrLocalHost(url.hostname)) return true;
-  const mirrorOrigin = getNibiMirrorOrigin();
-  if (!mirrorOrigin) return false;
-  try {
-    return url.origin === new URL(mirrorOrigin).origin;
-  } catch {
-    return false;
-  }
+  return isLoopbackOrLocalHost(url.hostname);
 }
 
 /** 把隐式直连规则并入用户 noProxy（用于注入子进程 env / Electron bypass）。 */
 export function mergeImplicitNoProxy(noProxy: string | null | undefined): string {
-  const mirrorHost = (() => {
-    const origin = getNibiMirrorOrigin();
-    if (!origin) return "";
-    try {
-      return new URL(origin).hostname;
-    } catch {
-      return "";
-    }
-  })();
-  const defaults = ["localhost", "127.0.0.1", "::1", mirrorHost].filter(Boolean);
+  const defaults = ["localhost", "127.0.0.1", "::1"];
   const user = (noProxy ?? "")
     .split(",")
     .map((rule) => rule.trim())
@@ -178,7 +158,7 @@ export function resolveEgressProxyForUrl(
   target: string | URL,
   settings: EgressProxySettings | null | undefined,
 ): string | null {
-  // 隐式直连优先于显式代理：本机与国内镜像永不进代理。
+  // 隐式直连优先于显式代理：本机回环永不进代理。
   if (isImplicitDirectUrl(target)) return null;
   const proxyUrl = normalizeEgressProxyUrl(settings?.httpProxy);
   if (!proxyUrl) return null;

@@ -43,13 +43,6 @@ export {
   verifyNibiContentSignature,
 } from "./node/nibiContentSignature.js";
 export {
-  NIBI_MIRROR_CA_PEM,
-  NIBI_MIRROR_ORIGIN,
-  isNibiMirrorUrl,
-  nibiContentUrlCandidates,
-  nibiMirrorUrlFor,
-} from "./node/nibiContentMirror.js";
-export {
   migrateUserSubagentMarkdown,
   migrateSubagentStateFile,
 } from "./node/subagentMarkdownMigration.js";

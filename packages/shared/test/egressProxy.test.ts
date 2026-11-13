@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   isImplicitDirectUrl,
   matchesNoProxyRule,
@@ -8,15 +8,9 @@ import {
   resolveHttpProxyMode,
   withEffectiveEgressProxy,
 } from "../src/node/egressProxy.js";
-import { setNibiMirrorOrigin } from "../src/nibiContentMirror.js";
-
-const TEST_MIRROR = "https://mirror.example.test:8443";
 
 // 出口代理规则只有一份（中继、分享产物下载共用）；这里的用例就是线上语义。
 describe("出口代理解析", () => {
-  beforeEach(() => setNibiMirrorOrigin(TEST_MIRROR));
-  afterEach(() => setNibiMirrorOrigin(""));
-
   it("只接受 http/https 代理，其它按未配置处理", () => {
     expect(normalizeEgressProxyUrl("http://127.0.0.1:7897")).toBe("http://127.0.0.1:7897/");
     expect(normalizeEgressProxyUrl(" https://proxy.example.com:8443 ")).toBe(
@@ -60,13 +54,12 @@ describe("出口代理解析", () => {
     ).toBeNull();
   });
 
-  it("本机回环与国内镜像永远直连，即使配置了代理", () => {
+  it("本机回环永远直连，即使配置了代理", () => {
     const settings = { httpProxy: "http://127.0.0.1:7897" };
     for (const url of [
       "http://127.0.0.1:8890/api",
       "http://localhost:3000/",
       "http://[::1]:8080/",
-      `${TEST_MIRROR}/plugins/marketplace.json`,
     ]) {
       expect(isImplicitDirectUrl(url)).toBe(true);
       expect(resolveEgressProxyForUrl(url, settings)).toBeNull();
@@ -80,7 +73,6 @@ describe("出口代理解析", () => {
       "localhost",
       "127.0.0.1",
       "::1",
-      "mirror.example.test",
       ".corp.example",
     ]);
   });

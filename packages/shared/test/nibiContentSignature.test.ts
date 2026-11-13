@@ -1,12 +1,12 @@
 import { createHash, generateKeyPairSync, sign } from "node:crypto";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   NIBI_CONTENT_SIGNING_PUBLIC_KEY_SPKI_BASE64,
   isNibiSignedContentUrl,
   verifyContentSignatureWithKey,
   verifyNibiContentSignature,
 } from "../src/node.js";
-import { setNibiMirrorOrigin } from "../src/nibiContentMirror.js";
+import { isNibiPrimaryContentUrl } from "../src/nibiContentHosts.js";
 
 // The production private key is held by the release pipeline and is not in the
 // repository. Positive cases use an ephemeral key pair; negative cases exercise
@@ -17,8 +17,6 @@ const publicKeySpkiBase64 = publicKey.export({ format: "der", type: "spki" }).to
 function signPayload(payload: Uint8Array): string {
   return sign(null, payload, privateKey).toString("hex");
 }
-
-afterEach(() => setNibiMirrorOrigin(""));
 
 describe("NIBI 内容签名（清单/配置 .sig sidecar）", () => {
   it("接受同一密钥对签出的 128 位 hex 签名", () => {
@@ -70,15 +68,19 @@ describe("NIBI 内容签名（清单/配置 .sig sidecar）", () => {
     expect(verifyNibiContentSignature(payload, signPayload(payload))).toBe(false);
   });
 
+  it("主内容 host 白名单只认 api/dl", () => {
+    expect(isNibiPrimaryContentUrl("https://api.nibistudio.cn/plugins/x")).toBe(true);
+    expect(isNibiPrimaryContentUrl("https://dl.nibistudio.cn/plugins/x")).toBe(true);
+    expect(isNibiPrimaryContentUrl("https://api.nibistudio.cn.evil.com/x")).toBe(false);
+    expect(isNibiPrimaryContentUrl("https://example.com/x")).toBe(false);
+    expect(isNibiPrimaryContentUrl("not a url")).toBe(false);
+  });
+
   it("只有我们的内容主机且 https 才强制验签", () => {
     expect(isNibiSignedContentUrl("https://api.nibistudio.cn/plugins/marketplace.json")).toBe(
       true,
     );
     expect(isNibiSignedContentUrl("https://dl.nibistudio.cn/plugins/marketplace.json")).toBe(true);
-    setNibiMirrorOrigin("https://mirror.example.test:8443");
-    expect(isNibiSignedContentUrl("https://mirror.example.test:8443/plugins/marketplace.json")).toBe(
-      true,
-    );
     // 明文降级不认：签名文件本身走同一通道，http 下无法防中间人。
     expect(isNibiSignedContentUrl("http://api.nibistudio.cn/plugins/marketplace.json")).toBe(
       false,

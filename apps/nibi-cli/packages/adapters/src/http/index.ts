@@ -39,8 +39,6 @@ export interface NodeHttpClientAdapterOptions {
   proxyUrl?: string;
   noProxy?: string;
   caCertFile?: string;
-  /** 内联 PEM CA（国内镜像自签 CA）；仅当目标 URL 是镜像主机时传入，与系统根证书合并。 */
-  caCertPem?: string;
   dnsLookup?: DnsLookup;
   capturedUserProxyEnvFallback?: boolean;
 }
@@ -135,7 +133,6 @@ export class NodeHttpClientAdapter implements HttpClientPort {
     if (!this.tlsCaLoaded) {
       this.tlsCaCertificates = loadTlsCaCertificates({
         caCertFile: this.options.caCertFile,
-        ...(this.options.caCertPem ? { caCertPem: this.options.caCertPem } : {}),
         env: this.options.env,
       });
       this.tlsCaLoaded = true;

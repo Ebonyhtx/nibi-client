@@ -1,5 +1,5 @@
 import forge from "node-forge";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Session } from "electron";
 import {
   applyDesktopChromiumNetworkPolicies,
@@ -7,14 +7,10 @@ import {
   buildElectronProxyConfig,
   certificateChainMatchesCustomCa,
   createCustomCaCertificateVerifyProc,
-  createNibiMirrorCertificateVerifyProc,
   readCustomCaFingerprintsFromPem,
 } from "../src/main/desktopNetworkPolicy.js";
 import { EMBEDDED_BROWSER_PARTITION } from "../src/main/browserDataManager.js";
-import { NIBI_MEMBERSHIP_WEBVIEW_PARTITION, setNibiMirrorOrigin } from "@nibi/shared";
-
-beforeEach(() => setNibiMirrorOrigin("https://203.0.113.10"));
-afterEach(() => setNibiMirrorOrigin(""));
+import { NIBI_MEMBERSHIP_WEBVIEW_PARTITION } from "@nibi/shared";
 
 describe("desktopNetworkPolicy", () => {
   it("applies the startup network policy to default, embedded Browser, and NIBI membership sessions", async () => {
@@ -51,11 +47,11 @@ describe("desktopNetworkPolicy", () => {
     for (const target of [defaultSession, embeddedBrowserSession, membershipSession]) {
       expect(target.setProxy).toHaveBeenCalledWith({
         mode: "fixed_servers",
-        proxyBypassRules: "localhost,127.0.0.1,::1,203.0.113.10",
+        proxyBypassRules: "localhost,127.0.0.1,::1",
         proxyRules: "http://127.0.0.1:7890",
       });
       expect(target.closeAllConnections).toHaveBeenCalledTimes(1);
-      // 公开构建未配置镜像 CA：各 session 都交回 Chromium 默认严格校验。
+      // 公开构建未配置自定义 CA：各 session 都交回 Chromium 默认严格校验。
       expect(target.setCertificateVerifyProc.mock.calls.at(0)?.[0]).toBeNull();
     }
     expect(unrelatedSession.setProxy).not.toHaveBeenCalled();
@@ -105,7 +101,7 @@ describe("desktopNetworkPolicy", () => {
     expect(membershipSession.setProxy).toHaveBeenCalledWith({ mode: "system" });
     expect(embeddedBrowserSession.closeAllConnections).toHaveBeenCalledTimes(1);
     expect(membershipSession.closeAllConnections).toHaveBeenCalledTimes(1);
-    // 公开构建未配置镜像 CA 时，内置浏览器仍使用 Chromium 默认严格校验。
+    // 公开构建未配置自定义 CA 时，内置浏览器仍使用 Chromium 默认严格校验。
     expect(embeddedBrowserSession.setCertificateVerifyProc.mock.calls.at(0)?.[0]).toBeNull();
     expect(logger.warn).toHaveBeenCalledWith(
       "[desktop-network] default-session network policy apply failed:",
@@ -154,7 +150,7 @@ describe("desktopNetworkPolicy", () => {
     );
 
     // 放行只属于内置浏览器出口；defaultSession 承载 NIBI 自身的后端与模型流量，
-    // 公开构建未配置镜像 CA 时保持 Chromium 默认严格校验。
+    // 公开构建未配置自定义 CA 时保持 Chromium 默认严格校验。
     expect(defaultSession.setCertificateVerifyProc.mock.calls.at(0)?.[0]).toBeNull();
   });
 
@@ -202,7 +198,7 @@ describe("desktopNetworkPolicy", () => {
       buildElectronProxyConfig("127.0.0.1:7890", " localhost, 127.0.0.1 ,.example.com ", "direct", null),
     ).toEqual({
       mode: "fixed_servers",
-      proxyBypassRules: "localhost,127.0.0.1,::1,203.0.113.10,.example.com",
+      proxyBypassRules: "localhost,127.0.0.1,::1,.example.com",
       proxyRules: "http://127.0.0.1:7890",
     });
   });
@@ -224,7 +220,7 @@ describe("desktopNetworkPolicy", () => {
     ).toEqual({
       mode: "fixed_servers",
       proxyRules: "http://127.0.0.1:7897",
-      proxyBypassRules: "localhost,127.0.0.1,::1,203.0.113.10",
+      proxyBypassRules: "localhost,127.0.0.1,::1",
     });
   });
 
@@ -232,40 +228,9 @@ describe("desktopNetworkPolicy", () => {
     // 兜底模式只在留空时生效；显式代理仍必须原样落到 fixed_servers，避免设置页配置被系统代理顶掉。
     expect(buildElectronProxyConfig("127.0.0.1:7890", "localhost", "system", null)).toEqual({
       mode: "fixed_servers",
-      proxyBypassRules: "localhost,127.0.0.1,::1,203.0.113.10",
+      proxyBypassRules: "localhost,127.0.0.1,::1",
       proxyRules: "http://127.0.0.1:7890",
     });
-  });
-
-  it("镜像主机：只放行由镜像 CA 签发、SAN 覆盖该主机的叶子证书", () => {
-    setNibiMirrorOrigin("https://203.0.113.10");
-    const { caPem, leafPem } = generateCaAndLeafForIp("203.0.113.10");
-    const proc = createNibiMirrorCertificateVerifyProc(caPem, null);
-    expect(proc).toBeTypeOf("function");
-
-    const accepted: number[] = [];
-    proc?.(
-      buildVerifyRequestForHost(leafPem, "203.0.113.10"),
-      (result: number) => accepted.push(result),
-    );
-    expect(accepted).toEqual([0]);
-
-    // 非镜像主机：交回 Chromium 默认校验
-    const otherHost: number[] = [];
-    proc?.(
-      buildVerifyRequestForHost(leafPem, "example.com"),
-      (result: number) => otherHost.push(result),
-    );
-    expect(otherHost).toEqual([-3]);
-
-    // 镜像主机但证书不是我们 CA 签的：同样拒绝
-    const otherCa = generateCaAndLeafForIp("203.0.113.10");
-    const foreign: number[] = [];
-    proc?.(
-      buildVerifyRequestForHost(otherCa.leafPem, "203.0.113.10"),
-      (result: number) => foreign.push(result),
-    );
-    expect(foreign).toEqual([-3]);
   });
 
   it("accepts only certificate chains that include the configured custom CA", () => {
@@ -328,47 +293,6 @@ function buildVerifyRequest(certPem: string): VerifyRequest {
 }
 
 
-function buildVerifyRequestForHost(certPem: string, hostname: string): VerifyRequest {
-  return {
-    certificate: { data: certPem, issuerCert: null },
-    hostname,
-    isIssuedByKnownRoot: false,
-    validatedCertificate: { data: certPem, issuerCert: null },
-    verificationResult: "CERT_AUTHORITY_INVALID",
-    errorCode: -202,
-  } as unknown as VerifyRequest;
-}
-
-/** 生成「测试 CA + 该 CA 签发、SAN 覆盖指定 IP 的叶子证书」，用于验证镜像信任边界。 */
-function generateCaAndLeafForIp(ip: string): { caPem: string; leafPem: string } {
-  const caKeys = forge.pki.rsa.generateKeyPair(1024);
-  const ca = forge.pki.createCertificate();
-  ca.publicKey = caKeys.publicKey;
-  ca.serialNumber = "0a";
-  ca.validity.notBefore = new Date("2026-01-01T00:00:00Z");
-  ca.validity.notAfter = new Date("2036-01-01T00:00:00Z");
-  const caAttrs = [{ name: "commonName", value: "Test Mirror CA" }];
-  ca.setSubject(caAttrs);
-  ca.setIssuer(caAttrs);
-  ca.setExtensions([{ name: "basicConstraints", cA: true, critical: true }]);
-  ca.sign(caKeys.privateKey, forge.md.sha256.create());
-
-  const leafKeys = forge.pki.rsa.generateKeyPair(1024);
-  const leaf = forge.pki.createCertificate();
-  leaf.publicKey = leafKeys.publicKey;
-  leaf.serialNumber = "0b";
-  leaf.validity.notBefore = new Date("2026-01-01T00:00:00Z");
-  leaf.validity.notAfter = new Date("2036-01-01T00:00:00Z");
-  leaf.setSubject([{ name: "commonName", value: ip }]);
-  leaf.setIssuer(caAttrs);
-  leaf.setExtensions([{ name: "subjectAltName", altNames: [{ type: 7, ip }] }]);
-  leaf.sign(caKeys.privateKey, forge.md.sha256.create());
-  return {
-    caPem: forge.pki.certificateToPem(ca),
-    leafPem: forge.pki.certificateToPem(leaf),
-  };
-}
-
 function generateSelfSignedCertPem(commonName: string): string {
   const keys = forge.pki.rsa.generateKeyPair(1024);
   const cert = forge.pki.createCertificate();
@@ -396,7 +320,7 @@ describe("代理方式对 Chromium 出口的裁决", () => {
     ).toEqual({
       mode: "fixed_servers",
       proxyRules: "http://127.0.0.1:7897",
-      proxyBypassRules: "localhost,127.0.0.1,::1,203.0.113.10",
+      proxyBypassRules: "localhost,127.0.0.1,::1",
     });
   });
 

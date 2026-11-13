@@ -3,11 +3,6 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, posix, relative, resolve, sep } from "node:path";
 import * as yauzl from "yauzl";
-import {
-  isNibiMirrorUrl,
-  NIBI_MIRROR_CA_PEM,
-  nibiContentUrlCandidates,
-} from "@nibi/shared/node";
 import { isNibiPrimaryContentUrl } from "@nibi/shared";
 import { createNodeWebFetchHttpClientAdapter } from "../http/index.js";
 import {
@@ -43,8 +38,6 @@ export interface ResolvedZipPluginSourceRoot {
 }
 
 export interface ResolveZipPluginSourceInput {
-  /** false = 只走主源，不派生国内镜像候选（付费件带会员凭证，不能发到镜像）。 */
-  allowMirror?: boolean;
   headers?: Record<string, string>;
   path?: string;
   /** 会员凭证。只在候选 URL 命中 NIBI 自有内容源时作为 X-Nibi-License 注入。 */
@@ -58,7 +51,6 @@ export interface ResolveZipPluginSourceInput {
 }
 
 export interface ResolveHttpZipSourceInput {
-  allowMirror?: boolean;
   headers?: Record<string, string>;
   path?: string;
   /** 会员凭证。只在候选 URL 命中 NIBI 自有内容源时作为 X-Nibi-License 注入。 */
@@ -95,7 +87,6 @@ export async function resolveZipPluginSource(
 ): Promise<ResolvedZipPluginSourceRoot> {
   validateZipSourceInput(input);
   const resolved = await resolveHttpZipSource({
-    allowMirror: input.allowMirror,
     headers: input.headers,
     path: input.path,
     ...(input.paidLicenseToken ? { paidLicenseToken: input.paidLicenseToken } : {}),
@@ -126,42 +117,21 @@ export async function resolveHttpZipSource(
 
   try {
     throwIfAborted(input.signal);
-    // 交付面候选：主源（德国为主）在前，国内镜像在后（兜底）。
-    // 失败、超时、sha 不匹配都要落到下一个候选——镜像滞后时 sha 会对不上，这正是它该被跳过的信号。
-    // 付费件关闭镜像：会员凭证只发给主源。
-    const candidates = input.allowMirror === false ? [input.url] : nibiContentUrlCandidates(input.url);
-    let zipBytes: Uint8Array | null = null;
-    let lastError: unknown;
-    for (const candidate of candidates) {
-      throwIfAborted(input.signal);
-      try {
-        const downloaded = await downloadZipArchive({
-          headers: withPaidLicenseHeaderForNibiHosts({
-            headers: input.headers,
-            licenseToken: input.paidLicenseToken,
-            deviceId: input.paidDeviceId,
-            url: candidate,
-          }),
-          signal: input.signal,
-          url: candidate,
-          ...(isNibiMirrorUrl(candidate) ? { caCertPem: NIBI_MIRROR_CA_PEM } : {}),
-        });
-        const candidateSha256 = createHash("sha256").update(downloaded).digest("hex");
-        if (input.sha256 !== undefined && candidateSha256 !== input.sha256.toLowerCase()) {
-          throw new Error(
-            `Plugin zip sha256 mismatch: expected=${input.sha256.toLowerCase()}, actual=${candidateSha256}`,
-          );
-        }
-        zipBytes = downloaded;
-        break;
-      } catch (error) {
-        lastError = error;
-      }
-    }
-    if (zipBytes === null) {
-      throw lastError instanceof Error
-        ? lastError
-        : new Error("Plugin zip download failed for all candidates");
+    const zipBytes = await downloadZipArchive({
+      headers: withPaidLicenseHeaderForNibiHosts({
+        headers: input.headers,
+        licenseToken: input.paidLicenseToken,
+        deviceId: input.paidDeviceId,
+        url: input.url,
+      }),
+      signal: input.signal,
+      url: input.url,
+    });
+    const actualSha256 = createHash("sha256").update(zipBytes).digest("hex");
+    if (input.sha256 !== undefined && actualSha256 !== input.sha256.toLowerCase()) {
+      throw new Error(
+        `Plugin zip sha256 mismatch: expected=${input.sha256.toLowerCase()}, actual=${actualSha256}`,
+      );
     }
 
     await writeFile(archivePath, zipBytes);
@@ -185,8 +155,8 @@ export async function resolveHttpZipSource(
 }
 
 /**
- * 会员凭证只发给 NIBI 自有内容源：镜像与第三方源一律不带 X-Nibi-License。
- * 白名单与内容镜像的 primary hosts 同一份配置（api/dl.nibistudio.cn）。
+ * 会员凭证只发给 NIBI 自有内容源：第三方源一律不带 X-Nibi-License。
+ * 白名单是 api/dl.nibistudio.cn（见 shared/nibiContentHosts）。
  */
 export function withPaidLicenseHeaderForNibiHosts(input: {
   headers?: Record<string, string>;
@@ -237,12 +207,9 @@ async function downloadZipArchive(input: {
   headers?: Record<string, string>;
   signal?: AbortSignal;
   url: string;
-  /** 国内镜像主机用的自签 CA（只在镜像 URL 上注入，与系统根证书合并）。 */
-  caCertPem?: string;
 }): Promise<Uint8Array> {
   // agent 会封存用户 shell 代理，ZIP 下载必须和其他应用层 fetch 一样读取 captured proxy fallback。
   const client = createNodeWebFetchHttpClientAdapter({
-    ...(input.caCertPem ? { caCertPem: input.caCertPem } : {}),
     env: process.env,
     maxResponseBytes: ZIP_DOWNLOAD_MAX_BYTES,
     timeoutMs: ZIP_DOWNLOAD_TIMEOUT_MS,

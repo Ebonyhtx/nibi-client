@@ -5,9 +5,9 @@ declare const __NIBI_REMOTE_CDN_RELEASE_ROOTS__: readonly string[] | undefined;
 /**
  * 远端资源（SSH source server 的 release 包）下载源**只允许自有域名**。
  *
- * 这里刻意**不提供任何默认域名**：上游代码原本在这里写死了 `cdn.codegeex.cn` 与
- * `cdn-zcode.z.ai` 两个第三方 CDN，并在"构建期没注入 CDN_DOMAIN"时回落到它们——
- * 等于把用户的远端连接行为外发给上游。NIBI 分家后不能保留这条回落：
+ * 这里刻意**不提供任何默认域名**：上游代码原本在这里写死了两个第三方 CDN，并在
+ * "构建期没注入 CDN_DOMAIN"时回落到它们——等于把用户的远端连接行为外发给上游。
+ * NIBI 分家后不能保留这条回落：
  * 没有配置就是**这个功能不可用**，返回空数组，由调用方给出可读诊断。
  *
  * 配置方式（任一）：

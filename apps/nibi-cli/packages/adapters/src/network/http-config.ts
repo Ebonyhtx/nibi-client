@@ -1,4 +1,3 @@
-import { rootCertificates } from "node:tls";
 import { readFileSync } from "node:fs";
 import {
   NIBI_AGENT_CA_CERT_ENV_KEY,
@@ -17,8 +16,6 @@ interface NetworkProxyOptions {
 
 interface NetworkTlsOptions {
   caCertFile?: string;
-  /** 内联 PEM CA（如国内镜像自签 CA）。与系统根证书**合并**，永不替换。 */
-  caCertPem?: string;
   env?: Record<string, string | undefined>;
 }
 
@@ -68,7 +65,7 @@ function resolveProxyForRequestInternal(
     return { noProxyMatched: false };
   }
 
-  // 产品级隐式直连：本机回环（本地网关/面板/MCP）与国内镜像永不进代理。
+  // 产品级隐式直连：本机回环（本地网关/面板/MCP）永不进代理。
   // 与 shared/node/egressProxy、host API 共用同一份判据，避免各出口再次分叉。
   if (isImplicitDirectUrl(url)) {
     return { noProxyMatched: true };
@@ -138,15 +135,10 @@ export function resolveTlsCaCertFile(options: NetworkTlsOptions): string | undef
 
 export function loadTlsCaCertificates(options: NetworkTlsOptions): string[] | Buffer | undefined {
   const caCertFile = resolveTlsCaCertFile(options);
-  if (!caCertFile) {
-    return options.caCertPem?.trim() ? [...rootCertificates, options.caCertPem] : undefined;
-  }
-  const fileCa = readFileSync(caCertFile);
+  if (!caCertFile) return undefined;
   // 自定义 CA 必须与系统根证书合并：Node 的 tls.ca 是"替换"语义，单给自签 CA 会让
   // 所有正常 HTTPS 站点失去信任链（企业代理那套已经踩过同一个坑，见 nodeApiNetwork）。
-  return options.caCertPem?.trim()
-    ? [...rootCertificates, options.caCertPem, fileCa.toString("utf8")]
-    : fileCa;
+  return readFileSync(caCertFile);
 }
 
 function readExplicitNoProxyValue(options: NetworkProxyOptions): string | undefined {

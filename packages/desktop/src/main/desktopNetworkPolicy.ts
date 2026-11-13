@@ -1,9 +1,8 @@
 import { X509Certificate } from "node:crypto";
 import { readFileSync } from "node:fs";
 import type { ProxyConfig, Session } from "electron";
-import { NIBI_MEMBERSHIP_WEBVIEW_PARTITION, getNibiMirrorOrigin } from "@nibi/shared";
+import { NIBI_MEMBERSHIP_WEBVIEW_PARTITION } from "@nibi/shared";
 import {
-  NIBI_MIRROR_CA_PEM,
   detectSystemProxy,
   mergeImplicitNoProxy,
   type SystemProxyDetection,
@@ -128,15 +127,13 @@ export async function applyDesktopSessionNetworkPolicy(
   await targetSession.closeAllConnections();
 
   // 全放行比自定义 CA 更宽松，两者同时配置时按前者生效，避免出现「开了开关仍被拒」的困惑。
-  // 默认 session 额外信任**国内镜像主机**的自签 CA（只放行该主机，且必须命中我们的 CA）：
-  // 商店图标等 `<img>` 在主源被线路阻断时会回退到镜像，渲染进程不认这张自签证书就会整片降级。
   const userCaProc = createCustomCaCertificateVerifyProcFromFile(
     settings.httpProxyCaCertPath,
     logger,
   );
   const verifyProc = options.allowInsecureCertificates
     ? createInsecureCertificateVerifyProc()
-    : createNibiMirrorCertificateVerifyProc(NIBI_MIRROR_CA_PEM, userCaProc);
+    : userCaProc;
   targetSession.setCertificateVerifyProc(verifyProc);
 
   const bypassState = proxyConfig.proxyBypassRules ? "enabled" : "disabled";
@@ -144,98 +141,6 @@ export async function applyDesktopSessionNetworkPolicy(
   logger.info(
     `[desktop-network] renderer proxy mode=${proxyConfig.mode ?? "fixed_servers"} bypass=${bypassState} customCa=${customCaState} insecureCerts=${options.allowInsecureCertificates ? "allowed" : "rejected"}`,
   );
-}
-
-/**
- * 在用户自定义 CA 之外，额外信任**国内镜像主机**的自签证书。
- *
- * 为什么不能沿用「CA 指纹在链里」的判定：镜像只发送叶子证书（实测 chain 长度 1），
- * Chromium 自己又建不出到我们 CA 的链，`issuerCert` 走不到 CA。这里改为**真正校验**：
- * 叶子证书必须由我们的 CA 签发（`checkIssued` + 公钥验签）、在有效期内、且 SAN 覆盖镜像主机。
- * 其它主机、其它错误一律交回用户 CA 校验或 Chromium 默认行为。
- */
-export function createNibiMirrorCertificateVerifyProc(
-  mirrorCaPem: string,
-  fallbackProc: CertificateVerifyProc | null,
-): CertificateVerifyProc | null {
-  const mirrorCas = parseCertificates(mirrorCaPem);
-  if (mirrorCas.length === 0 && !fallbackProc) return null;
-  let mirrorHost = "";
-  const mirrorOrigin = getNibiMirrorOrigin();
-  if (mirrorOrigin) {
-    try {
-      mirrorHost = new URL(mirrorOrigin).hostname.toLowerCase();
-    } catch {
-      mirrorHost = "";
-    }
-  }
-  return (request, callback) => {
-    if (request.verificationResult === "OK") {
-      callback(USE_CHROMIUM_DEFAULT_VERIFICATION);
-      return;
-    }
-    if (
-      mirrorHost &&
-      request.hostname?.toLowerCase() === mirrorHost &&
-      leafMatchesMirrorCa(request.certificate, mirrorCas, mirrorHost)
-    ) {
-      callback(ACCEPT_CERTIFICATE);
-      return;
-    }
-    if (fallbackProc) {
-      fallbackProc(request, callback);
-      return;
-    }
-    callback(USE_CHROMIUM_DEFAULT_VERIFICATION);
-  };
-}
-
-function parseCertificates(pem: string): X509Certificate[] {
-  const blocks = pem.match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g) ?? [];
-  const certificates: X509Certificate[] = [];
-  for (const block of blocks) {
-    try {
-      certificates.push(new X509Certificate(block));
-    } catch {
-      // 坏证书块直接跳过：镜像信任失败只影响图标兜底，不能影响应用启动。
-    }
-  }
-  return certificates;
-}
-
-function leafMatchesMirrorCa(
-  certificate: CertificateLike | undefined,
-  mirrorCas: readonly X509Certificate[],
-  host: string,
-): boolean {
-  const pem = certificate?.data;
-  if (typeof pem !== "string" || !pem.includes("BEGIN CERTIFICATE")) return false;
-  let leaf: X509Certificate;
-  try {
-    leaf = new X509Certificate(pem);
-  } catch {
-    return false;
-  }
-  const now = Date.now();
-  const from = Date.parse(leaf.validFrom);
-  const to = Date.parse(leaf.validTo);
-  if (Number.isFinite(from) && from > now) return false;
-  if (Number.isFinite(to) && to < now) return false;
-  let hostMatches = false;
-  try {
-    hostMatches = Boolean(leaf.checkIP(host)) || Boolean(leaf.checkHost(host));
-  } catch {
-    hostMatches = false;
-  }
-  if (!hostMatches) return false;
-  for (const ca of mirrorCas) {
-    try {
-      if (leaf.checkIssued(ca) && leaf.verify(ca.publicKey)) return true;
-    } catch {
-      // 继续试下一个 CA（轮换期可能同时带旧新两张）
-    }
-  }
-  return false;
 }
 
 /**
@@ -269,7 +174,7 @@ export function buildElectronProxyConfig(
         ? "manual"
         : "system";
   // 系统代理若是 PAC，Chromium 自己能求值，交给 system 模式；若是固定地址，则转成
-  // fixed_servers 以便附带我们的隐式直连规则（本机回环 + 国内镜像），这也是设置页不再
+  // fixed_servers 以便附带我们的隐式直连规则（本机回环），这也是设置页不再
   // 要求用户手填 noProxy 的原因。
   // Chromium 的 fixed_servers 只吃 `http://host:port`（不能带尾部斜杠），
   // 系统探测返回的是 URL.href（带 /）；直接塞进去会让所有请求 ERR_NO_SUPPORTED_PROXIES。

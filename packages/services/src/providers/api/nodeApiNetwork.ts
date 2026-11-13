@@ -2,8 +2,6 @@ import { readFile } from "node:fs/promises";
 import { rootCertificates } from "node:tls";
 import {
   isImplicitDirectUrl,
-  isNibiMirrorUrl,
-  NIBI_MIRROR_CA_PEM,
   resolveSystemProxyUrl as defaultResolveSystemProxyUrl,
   withEffectiveEgressProxy,
   type HttpProxyMode,
@@ -34,7 +32,6 @@ export function mergeHostApiCaCertificates(
 ): string[] {
   // Node 的 tls.ca 会替换而不是追加默认根证书。只传企业代理 CA 会让未被
   // 中间人重签的公网证书失去信任链，因此必须同时保留 Node 默认根证书。
-  // 国内镜像的自签 CA 也在这里合并：它只用于一个主机，且是公开材料。
   const customCas = typeof customCa === "string" ? [customCa] : customCa;
   return [...defaultCa, ...customCas];
 }
@@ -82,7 +79,7 @@ export function resolveHostProxyForUrl(
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     return { kind: "direct" };
   }
-  // 本机回环与国内镜像是产品级隐式直连：不受用户代理/设置影响（见 shared/node/egressProxy）。
+  // 本机回环是产品级隐式直连：不受用户代理/设置影响（见 shared/node/egressProxy）。
   if (isImplicitDirectUrl(url)) {
     return { kind: "direct", noProxyMatched: true };
   }
@@ -156,13 +153,11 @@ export function createHostApiNetworkTransport(
     if (route.kind === "invalid") {
       throw new Error(route.reason);
     }
-    // 目标是我们自己的内容镜像时要注入自签 CA，因此不能走 globalThis.fetch 快路径。
-    const needsMirrorCa = isNibiMirrorUrl(requestUrl);
-    if (route.kind === "direct" && !effectiveOptions.caCertPath && !needsMirrorCa) {
+    if (route.kind === "direct" && !effectiveOptions.caCertPath) {
       return globalThis.fetch(input as Parameters<typeof fetch>[0], init);
     }
 
-    const dispatcherKey = `${route.kind}:${route.kind === "proxy" ? route.proxyUrl : "direct"}:${effectiveOptions.caCertPath ?? ""}:${needsMirrorCa ? "mirror-ca" : ""}`;
+    const dispatcherKey = `${route.kind}:${route.kind === "proxy" ? route.proxyUrl : "direct"}:${effectiveOptions.caCertPath ?? ""}`;
     let dispatcherPromise = dispatcherPromises.get(dispatcherKey);
     if (!dispatcherPromise) {
       if (disposed) {
@@ -263,10 +258,7 @@ async function createDispatcher(
   caCertPath: string | undefined,
 ): Promise<Dispatcher> {
   const customCa = caCertPath ? await readFile(caCertPath, "utf8") : undefined;
-  const customCas = [customCa, NIBI_MIRROR_CA_PEM].filter(
-    (value): value is string => typeof value === "string" && value.trim().length > 0,
-  );
-  const ca = customCas.length > 0 ? mergeHostApiCaCertificates(customCas) : undefined;
+  const ca = customCa ? mergeHostApiCaCertificates(customCa) : undefined;
   if (route.kind === "proxy") {
     return new ProxyAgent({
       uri: route.proxyUrl,

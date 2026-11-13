@@ -9,12 +9,10 @@ import { createNodeWebFetchHttpClientAdapter } from "../src/http/index.js";
 /**
  * 回归：经 HTTP CONNECT 代理访问 HTTPS 时，必须把目标主机名作为 servername 交给
  * TLS 层。https-proxy-agent 在升级 TLS 前会丢掉 host；不显式传 servername 时 Node
- * 退到默认 "localhost"，会让所有代理链路上的证书名校验失败
- * （线上实测：镜像主机的证书报 `Host: localhost ... IP:203.0.113.10`）。
+ * 退到默认 "localhost"，会让所有代理链路上的证书名校验失败。
  */
 
 const FIXTURES = join(import.meta.dirname, "fixtures", "proxy-tls");
-const CA_PEM = readFileSync(join(FIXTURES, "ca.pem"), "utf8");
 const LEAF_PEM = readFileSync(join(FIXTURES, "leaf.pem"), "utf8");
 const LEAF_KEY = readFileSync(join(FIXTURES, "leaf-key.pem"), "utf8");
 
@@ -88,7 +86,7 @@ function startConnectProxy(): Promise<number> {
 
 function createAdapter(proxyPort: number) {
   return createNodeWebFetchHttpClientAdapter({
-    caCertPem: CA_PEM,
+    caCertFile: join(FIXTURES, "ca.pem"),
     env: {},
     maxResponseBytes: 1024 * 1024,
     proxyUrl: `http://127.0.0.1:${proxyPort}`,

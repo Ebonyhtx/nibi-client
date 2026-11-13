@@ -2400,7 +2400,7 @@ export function createLocalServices(options: {
               noProxy: settings.httpProxyNoProxy,
             };
       // system 用系统代理，manual 只用手填地址（空即直连，不回落系统）。
-      // 回环与国内镜像另有隐式直连规则（agent 侧同款），noProxy 始终合并这两类默认值。
+      // 回环另有隐式直连规则（agent 侧同款），noProxy 始终合并这组默认值。
       const effectiveAgentProxy = withEffectiveEgressProxy(
         agentNetwork,
         await resolveSystemProxyUrl(),

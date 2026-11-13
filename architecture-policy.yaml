@@ -1166,10 +1166,10 @@ exceptions:
     rule: unmanaged-new-file
     paths:
       - packages/services/src/conversation-share/proxyAwareDownload.ts
-      - packages/shared/src/nibiContentMirror.ts
+      - packages/shared/src/nibiContentHosts.ts
       - packages/shared/src/node/egressProxy.ts
       - packages/shared/src/node/systemProxy.ts
-    reason: 出口代理与国内镜像的单一规则；沿用既有 unmanaged 大包同目录的依赖方向，不新增模块边界。
+    reason: 出口代理与内容主机白名单的单一规则；沿用既有 unmanaged 大包同目录的依赖方向，不新增模块边界。
   - id: nibi-fork-membership-and-license
     rule: unmanaged-new-file
     paths:
@@ -1180,11 +1180,10 @@ exceptions:
       - packages/services/src/oauth/providers/nibiProviderConfig.ts
       - packages/services/src/nibi-agent/nibiProtocolTransport.ts
       - packages/shared/src/nibiLicense.ts
-      - packages/shared/src/node/nibiContentMirror.ts
       - packages/shared/src/node/nibiContentSignature.ts
       - packages/desktop/src/preload/membershipWebview.ts
       - packages/ui/src/settings/NibiMembershipDialog.tsx
-    reason: 会员购买、许可校验、内容镜像与协议传输是 NIBI 替换上游套餐后的自有实现，落在上游 unmanaged 大包的既有目录里，与同目录上游文件共用分层，不引入新模块边界。
+    reason: 会员购买、许可校验与协议传输是 NIBI 替换上游套餐后的自有实现，落在上游 unmanaged 大包的既有目录里，与同目录上游文件共用分层，不引入新模块边界。
   - id: nibi-fork-desktop-shell
     rule: unmanaged-new-file
     paths:

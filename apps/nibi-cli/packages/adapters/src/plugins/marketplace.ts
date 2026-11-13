@@ -24,13 +24,7 @@ import {
   NIBI_PLUGIN_MANIFEST_DIR,
   sanitizeNibiRuntimeEnv,
 } from "@nibi/shared";
-import {
-  isNibiMirrorUrl,
-  isNibiSignedContentUrl,
-  NIBI_MIRROR_CA_PEM,
-  nibiContentUrlCandidates,
-  verifyNibiContentSignature,
-} from "@nibi/shared/node";
+import { isNibiSignedContentUrl, verifyNibiContentSignature } from "@nibi/shared/node";
 import { loadPluginMcpServerDefinitions, resolvePluginMcpServers } from "./mcp.js";
 import {
   appendPluginSourceCleanupError,
@@ -747,15 +741,6 @@ async function loadClaudePluginIconSources(
   }
 }
 
-/**
- * NIBI 内容主机的主/备源候选：主源（api/dl，德国为主）+ 国内镜像（兜底）。
- * 候选与 CA 的决定权都在 @nibi/shared/node 的 nibiContentMirror（唯一定义处）；
- * 其它市场/自定义来源原样单源返回，不受影响。
- */
-function nibiMarketplaceUrlCandidates(url: string): string[] {
-  return nibiContentUrlCandidates(url);
-}
-
 /** 有界重定向 / 尺寸 / 超时的市场清单抓取；返回正文 Bytes（验签需要 Byte 级正文，解析由调用方做）。 */
 async function requestMarketplaceBytes(
   url: string,
@@ -767,7 +752,6 @@ async function requestMarketplaceBytes(
     env: process.env,
     maxResponseBytes: MARKETPLACE_JSON_MAX_BYTES,
     timeoutMs,
-    ...(isNibiMirrorUrl(url) ? { caCertPem: NIBI_MIRROR_CA_PEM } : {}),
   });
   let currentHeaders = headers;
   let currentUrl = url;
@@ -1630,7 +1614,7 @@ async function resolvePluginSourceRoot(input: {
         return resolveZipPluginSource({
           headers: readPluginSourceHeaders(source),
           path: readOptionalZipPluginSourcePath(source),
-          // X-Nibi-License 由 zip 层按候选 URL 白名单注入（见 withPaidLicenseHeaderForNibiHosts），
+          // X-Nibi-License 由 zip 层按主源白名单注入（见 withPaidLicenseHeaderForNibiHosts），
           // 这里不把它混进 manifest headers。
           ...(input.paidLicenseToken && input.entry.paid
             ? {
@@ -1642,8 +1626,6 @@ async function resolvePluginSourceRoot(input: {
           signal: input.signal,
           stripRoot: readOptionalZipPluginSourceStripRoot(source),
           url,
-          // 付费件只从主源取：国内镜像只镜像静态内容，且不该收到会员凭证。
-          ...(input.paidLicenseToken ? { allowMirror: false } : {}),
         });
       }
       if (sourceType && sourceType !== "git") {
@@ -1918,34 +1900,27 @@ async function loadMarketplaceFromSource(
       return { manifest, sourceRoot: source.path };
     }
     case "url": {
-      // NIBI fork：我们的内容主机支持"主源失败自动切换备用源"（国内镜像，备案落地后启用——
-      // 目前候选表只有主源一项；镜像部署时在此加入，无需改动其它逻辑）。
-      const urlCandidates = nibiMarketplaceUrlCandidates(source.url);
-      let lastError: unknown;
-      for (const candidate of urlCandidates) {
-        try {
-          const body = await requestMarketplaceBytes(candidate, source.headers, options.signal);
-          const parsed = JSON.parse(new TextDecoder().decode(body)) as unknown;
-          const manifest = parseRequiredMarketplaceManifest(parsed);
-          // 官方市场来自我们自己的内容主机时必须带 Ed25519 签名（`<file>.sig`，覆盖原始字节）。
-          // 验签失败 = 本次刷新失败（保留上一份成功快照），不引入半可信清单；防回滚由 revisions/版本双轴兜底。
-          if (manifest.name === NIBI_OFFICIAL_PLUGIN_MARKETPLACE && isNibiSignedContentUrl(candidate)) {
-            const signatureBytes = await requestMarketplaceBytes(`${candidate}.sig`, undefined, options.signal);
-            if (!verifyNibiContentSignature(body, new TextDecoder().decode(signatureBytes))) {
-              throw new Error("Official marketplace manifest signature verification failed");
-            }
-            // 签名只证明「这份字节是我们发的」，不证明「它是最新的」。没有 revision 就无法
-            // 拒绝重放旧清单（旧签名同样有效），所以官方签名来源必须带单调 revision。
-            if (readManifestRevision(manifest) === undefined) {
-              throw new Error("Official marketplace manifest is missing a valid revision");
-            }
-          }
-          return { manifest };
-        } catch (error) {
-          lastError = error;
+      const body = await requestMarketplaceBytes(source.url, source.headers, options.signal);
+      const parsed = JSON.parse(new TextDecoder().decode(body)) as unknown;
+      const manifest = parseRequiredMarketplaceManifest(parsed);
+      // 官方市场来自我们自己的内容主机时必须带 Ed25519 签名（`<file>.sig`，覆盖原始字节）。
+      // 验签失败 = 本次刷新失败（保留上一份成功快照），不引入半可信清单；防回滚由 revisions/版本双轴兜底。
+      if (manifest.name === NIBI_OFFICIAL_PLUGIN_MARKETPLACE && isNibiSignedContentUrl(source.url)) {
+        const signatureBytes = await requestMarketplaceBytes(
+          `${source.url}.sig`,
+          undefined,
+          options.signal,
+        );
+        if (!verifyNibiContentSignature(body, new TextDecoder().decode(signatureBytes))) {
+          throw new Error("Official marketplace manifest signature verification failed");
+        }
+        // 签名只证明「这份字节是我们发的」，不证明「它是最新的」。没有 revision 就无法
+        // 拒绝重放旧清单（旧签名同样有效），所以官方签名来源必须带单调 revision。
+        if (readManifestRevision(manifest) === undefined) {
+          throw new Error("Official marketplace manifest is missing a valid revision");
         }
       }
-      throw lastError instanceof Error ? lastError : new Error("Marketplace fetch failed");
+      return { manifest };
     }
     case "github": {
       const resolved = await resolveRepositoryMarketplaceSource(

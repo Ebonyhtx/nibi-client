@@ -15,14 +15,14 @@
  * monotonic revision check.
  */
 import { createPublicKey, verify } from "node:crypto";
-import { isNibiMirrorContentUrl } from "../nibiContentMirror.js";
+import { NIBI_PRIMARY_CONTENT_HOSTS } from "../nibiContentHosts.js";
 
 /** DER/SPKI base64 of the NIBI content-signing public key. */
 export const NIBI_CONTENT_SIGNING_PUBLIC_KEY_SPKI_BASE64 =
   "MCowBQYDK2VwAyEAfjUkJYlbWMyNQOR1E7m+/a0USdAUZYp7GHFoSsQlQ7k=";
 
 /** NIBI content hosts that must be signed (https only). */
-const SIGNED_HOSTS = new Set(["api.nibistudio.cn", "dl.nibistudio.cn"]);
+const SIGNED_HOSTS = NIBI_PRIMARY_CONTENT_HOSTS;
 
 let cachedPublicKey: ReturnType<typeof createPublicKey> | undefined;
 
@@ -31,7 +31,7 @@ export function isNibiSignedContentUrl(raw: string): boolean {
   try {
     const url = new URL(raw);
     if (url.protocol !== "https:") return false;
-    return SIGNED_HOSTS.has(url.hostname) || isNibiMirrorContentUrl(raw);
+    return SIGNED_HOSTS.has(url.hostname);
   } catch {
     return false;
   }

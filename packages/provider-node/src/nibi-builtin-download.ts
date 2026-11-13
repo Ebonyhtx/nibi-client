@@ -1,8 +1,4 @@
-import {
-  isNibiSignedContentUrl,
-  nibiContentUrlCandidates,
-  verifyNibiContentSignature,
-} from "@nibi/shared/node";
+import { isNibiSignedContentUrl, verifyNibiContentSignature } from "@nibi/shared/node";
 import { z } from "zod";
 import { decodeNibiBuiltinRelease, type NibiBuiltinRelease } from "./nibi-builtin-release.js";
 
@@ -59,30 +55,18 @@ export async function downloadNibiBuiltinRelease(
     const downloadUrl = payload.data.configs.builtin_provider_config_json;
     if (downloadUrl === undefined) return null;
     stage = "cdn";
-    // 交付面候选：主源（api/dl，德国为主）在前，国内镜像在后（兜底）。
-    // 签名与正文必须来自同一候选（`.sig` 由该候选 URL 派生），否则会出现混搭。
-    const candidates = nibiContentUrlCandidates(downloadUrl);
-    let lastError: unknown;
-    for (const candidate of candidates) {
-      try {
-        const releaseUrl = new URL(candidate);
-        // NIBI fork：我们的内容主机必须带 Ed25519 签名（`<file>.sig`，覆盖原始字节）；
-        // 校验失败按拉取失败处理（保留上一份成功快照 + 退避重试），不引入半可信内容。
-        const releaseBytes = await readBytes(releaseUrl);
-        if (isNibiSignedContentUrl(releaseUrl.toString())) {
-          stage = "signature";
-          const signatureBytes = await readBytes(new URL(`${releaseUrl.toString()}.sig`));
-          if (!verifyNibiContentSignature(releaseBytes, new TextDecoder().decode(signatureBytes))) {
-            throw new DownloadBoundaryError("signature verification failed");
-          }
-        }
-        return decodeNibiBuiltinRelease(parseJsonBytes(releaseBytes));
-      } catch (error) {
-        lastError = error;
-        stage = "cdn";
+    const releaseUrl = new URL(downloadUrl);
+    // NIBI fork：我们的内容主机必须带 Ed25519 签名（`<file>.sig`，覆盖原始字节）；
+    // 校验失败按拉取失败处理（保留上一份成功快照 + 退避重试），不引入半可信内容。
+    const releaseBytes = await readBytes(releaseUrl);
+    if (isNibiSignedContentUrl(releaseUrl.toString())) {
+      stage = "signature";
+      const signatureBytes = await readBytes(new URL(`${releaseUrl.toString()}.sig`));
+      if (!verifyNibiContentSignature(releaseBytes, new TextDecoder().decode(signatureBytes))) {
+        throw new DownloadBoundaryError("signature verification failed");
       }
     }
-    throw lastError instanceof Error ? lastError : new DownloadBoundaryError("all candidates failed");
+    return decodeNibiBuiltinRelease(parseJsonBytes(releaseBytes));
   } catch (error) {
     // 不能把带 query 的 URL、响应正文或 Schema 输入（可能含凭据）交给上层日志。
     const reason = signal.aborted
