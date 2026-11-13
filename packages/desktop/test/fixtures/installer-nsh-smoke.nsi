@@ -16,7 +16,7 @@ SilentInstall silent
 
 !define APP_DESCRIPTION "Nibi NSIS smoke fixture"
 !define APP_FILENAME "Nibi"
-!define APP_ID "dev.zcode.installer-nsh-smoke"
+!define APP_ID "dev.nibistudio.nibi.installer-nsh-smoke"
 !define UNINSTALL_FILENAME "uninstaller.exe"
 ; This fixture invokes the cleanup macro from a normal section; electron-builder's real uninstaller uses un.*.
 !ifdef BUILD_UNINSTALLER

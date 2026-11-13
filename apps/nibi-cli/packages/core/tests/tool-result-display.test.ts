@@ -253,7 +253,7 @@ describe("tool result display", () => {
           "zcode.cua/request-access-status-v1": {
             schemaVersion: 1,
             platform: "darwin",
-            grantOwner: "dev.zcode.cua-helper.dev",
+            grantOwner: "dev.nibistudio.nibi.cua-helper.dev",
             accessibility: "unknown",
             screenRecording: "denied",
           },

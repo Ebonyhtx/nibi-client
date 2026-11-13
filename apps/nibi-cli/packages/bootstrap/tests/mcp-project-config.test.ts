@@ -136,7 +136,7 @@ describe("project MCP config", () => {
     try {
       process.env[NIBI_CUA_BROKER_SOCKET_ENV] = socketPath;
       process.env[LEGACY_BROKER_TOKEN_ENV] = token;
-      process.env[NIBI_CUA_PLUGIN_AUTHORITY_ENV_KEY] = "dev.zcode.cua-helper/dev";
+      process.env[NIBI_CUA_PLUGIN_AUTHORITY_ENV_KEY] = "dev.nibistudio.nibi.cua-helper/dev";
       process.env["NIBI_CUA_PERMISSION_BROKER_REFRESH_MARKER"] =
         `${socketPath}.permission-refresh.json`;
       delete process.env[NIBI_CUA_BROKER_UNAVAILABLE_ENV];
@@ -160,7 +160,7 @@ describe("project MCP config", () => {
       // process.env 也必须止步于 sanitize，不得被重新注入给 node_repl —— 否则等于把一个
       // 旧 Helper 认的口令又发给了子进程。
       expect(env[LEGACY_BROKER_TOKEN_ENV]).toBeUndefined();
-      expect(env[NIBI_CUA_PLUGIN_AUTHORITY_ENV_KEY]).toBe("dev.zcode.cua-helper/dev");
+      expect(env[NIBI_CUA_PLUGIN_AUTHORITY_ENV_KEY]).toBe("dev.nibistudio.nibi.cua-helper/dev");
       expect(env["NIBI_CUA_PERMISSION_BROKER_REFRESH_MARKER"]).toBe(
         `${socketPath}.permission-refresh.json`,
       );
@@ -191,7 +191,7 @@ describe("project MCP config", () => {
       const spawnEnv: Record<string, string | undefined> = {
         [NIBI_CUA_BROKER_SOCKET_ENV]: "/tmp/captured.sock",
         [LEGACY_BROKER_TOKEN_ENV]: "captured-token",
-        [NIBI_CUA_PLUGIN_AUTHORITY_ENV_KEY]: "dev.zcode.cua-helper/captured",
+        [NIBI_CUA_PLUGIN_AUTHORITY_ENV_KEY]: "dev.nibistudio.nibi.cua-helper/captured",
       };
       sanitizeNibiRuntimeEnvInPlace(spawnEnv);
       // 运行时 env 里残留/被注入了不同的 broker 值：绝不能覆盖 captured。
@@ -211,7 +211,7 @@ describe("project MCP config", () => {
       expect(env[NIBI_CUA_BROKER_SOCKET_ENV]).toBe("/tmp/captured.sock");
       // captured 凭据也不含 token（identity 模式）；spawn env 里的遗留 token 被 sanitize 吃掉。
       expect(env[LEGACY_BROKER_TOKEN_ENV]).toBeUndefined();
-      expect(env[NIBI_CUA_PLUGIN_AUTHORITY_ENV_KEY]).toBe("dev.zcode.cua-helper/captured");
+      expect(env[NIBI_CUA_PLUGIN_AUTHORITY_ENV_KEY]).toBe("dev.nibistudio.nibi.cua-helper/captured");
     } finally {
       resetCapturedNibiCuaBrokerCredentialsForTest();
       if (previousSocket === undefined) delete process.env[NIBI_CUA_BROKER_SOCKET_ENV];

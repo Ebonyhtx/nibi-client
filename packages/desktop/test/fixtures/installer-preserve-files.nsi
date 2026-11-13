@@ -11,7 +11,7 @@ SilentInstall silent
 !include "LogicLib.nsh"
 
 !define APP_FILENAME "Nibi"
-!define APP_ID "dev.zcode.preserve-files-smoke"
+!define APP_ID "dev.nibistudio.nibi.preserve-files-smoke"
 !define UNINSTALL_FILENAME "uninstaller.exe"
 !define isUpdated `1 == 1`
 ; This fixture has no electron-builder uninstaller.nsh section; use a normal function for log smoke coverage.

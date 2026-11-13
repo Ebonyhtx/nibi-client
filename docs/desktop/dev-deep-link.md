@@ -21,7 +21,7 @@ Electron bundle 的 `Info.plist` 没有 `CFBundleURLTypes`，系统登记后得�
 
 1. 以当前 checkout 的 Electron runtime 为源，在 `.codex-runtime/desktop-dev/` 下准备副本。
 2. 只修改副本的 `Info.plist`，写入：
-   - `CFBundleIdentifier=dev.zcode.app.development`；
+   - `CFBundleIdentifier=dev.nibistudio.nibi.development`；
    - `CFBundleName/CFBundleDisplayName=ZCode Dev`；
    - `CFBundleURLTypes` 中的 `zcode` scheme。
 3. 仍以 `packages/desktop` 目录作为 Electron 的开发入口启动副本，保留 Vite、HMR、
@@ -55,7 +55,7 @@ pnpm dev:desktop:test
 ## 验收标准
 
 1. `pnpm dev:desktop:test` 启动日志记录 Dev bundle 路径和 `zcode` 注册成功。
-2. macOS LaunchServices 的 `zcode` handler 指向 `dev.zcode.app.development`，而不是
+2. macOS LaunchServices 的 `zcode` handler 指向 `dev.nibistudio.nibi.development`，而不是
    `com.github.electron`。
 3. 线上 Share 页面仍显示原 CTA 和原 `nibi://share/import` href。
 4. Dev 已运行时点击 CTA，不出现 Electron 默认页，现有 Dev 窗口收到 `ShareImport`。

@@ -726,7 +726,7 @@ describe("NibiAgent connection-scoped service facade", () => {
       permissionStatus: {
         schemaVersion: 1,
         platform: "darwin",
-        grantOwner: "dev.zcode.cua-helper.dev",
+        grantOwner: "dev.nibistudio.nibi.cua-helper.dev",
         accessibility: "denied",
         screenRecording: "granted",
       },

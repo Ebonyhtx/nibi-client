@@ -108,7 +108,7 @@ describe("tool result display metadata", () => {
       permissionStatus: {
         schemaVersion: 1,
         platform: "darwin",
-        grantOwner: "dev.zcode.cua-helper.dev",
+        grantOwner: "dev.nibistudio.nibi.cua-helper.dev",
         accessibility: "denied",
         screenRecording: "unknown",
       },

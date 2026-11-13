@@ -78,7 +78,7 @@ describe("createNibiSessionService", () => {
             { name: "NIBI_PLUGIN_ID", value: "computer-use@nibi-official" },
             {
               name: "NIBI_CUA_PLUGIN_AUTHORITY",
-              value: "dev.zcode.cua-helper/dev",
+              value: "dev.nibistudio.nibi.cua-helper/dev",
             },
           ],
         },
