@@ -427,9 +427,8 @@ export function resolveRemoteAssetDirs(
   };
 }
 
-export function resolveBundledNibiAgentBinaryPath(): string | undefined {
+function resolveBundledAgentEntry(entrySegments: readonly string[]): string | undefined {
   const runtime = NIBI_AGENT_RUNTIME;
-  const entrySegments = runtime.resolveEntrySegments(process.platform);
   const platformKey = resolvePlatformKeyForPackagedApp();
   const candidates = [
     isElectronAppPackaged()
@@ -464,6 +463,22 @@ export function resolveBundledNibiAgentBinaryPath(): string | undefined {
   ].filter((candidate): candidate is string => Boolean(candidate));
 
   return candidates.find((candidate) => existsSync(candidate));
+}
+
+/** 原生 nibi-agent 二进制（Node 内核退役后仅作旧包兜底）。 */
+export function resolveBundledNibiAgentBinaryPath(): string | undefined {
+  return resolveBundledAgentEntry(NIBI_AGENT_RUNTIME.resolveEntrySegments(process.platform));
+}
+
+/**
+ * 随包 Node bundle（resources/nibi/nibi.cjs）。
+ *
+ * Node 内核退役后原生 nibi-agent 不再随包，但 Host 的官方插件 seed 与插件宿主入口仍要以
+ * `nibi.cjs` 所在目录作为 `NIBI_BUNDLED_AGENT_RESOURCE_DIR`；过去直接复用原生二进制解析，
+ * 缺原生二进制时整条 env 都不注入，干净 HOME 下 14 个内置插件因此一个都不播种。
+ */
+export function resolveBundledNibiAgentNodeBundlePath(): string | undefined {
+  return resolveBundledAgentEntry(NIBI_AGENT_RUNTIME.resolveNodeBundleSegments());
 }
 
 function resolveBundledRuntimeToolBinaryPath(

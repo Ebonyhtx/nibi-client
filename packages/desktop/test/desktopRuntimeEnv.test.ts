@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 const appMock = {
   isPackaged: false,
@@ -42,6 +42,8 @@ vi.mock("@nibi/shared", () => ({
     resolveEntrySegments: (platform: string) => [
       platform === "win32" ? "nibi-agent.exe" : "nibi-agent",
     ],
+    nodeBundleEntryFile: "nibi.cjs",
+    resolveNodeBundleSegments: () => ["nibi.cjs"],
   },
   NIBI_ENV: "test",
   get NIBI_PRODUCT_FLAVOR() {
@@ -419,6 +421,31 @@ describe("desktopRuntimeEnv resolveRemoteAssetDirs", () => {
     expect(dirs.remoteCdnBaseUrl).toBe("https://cdn.example.com/releases");
     expect(dirs.remoteCdnBaseUrls).toEqual(["https://cdn.example.com/releases"]);
     expect(dirs.remoteCacheDir).toBe(overrideCacheDir);
+  });
+});
+
+describe("desktopRuntimeEnv bundled agent entry", () => {
+  it("Node 内核退役后由 nibi.cjs 解析随包资源目录", async () => {
+    const root = mkdtempSync(join(tmpdir(), "nibi-bundled-agent-"));
+    const bundlePath = join(
+      root,
+      "bundled-agents",
+      `${process.platform}-${process.arch}`,
+      "nibi",
+      "nibi.cjs",
+    );
+    mkdirSync(dirname(bundlePath), { recursive: true });
+    writeFileSync(bundlePath, "");
+    const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue(root);
+    try {
+      const { resolveBundledNibiAgentNodeBundlePath } = await import(
+        "../src/main/desktopRuntimeEnv.js"
+      );
+      expect(resolveBundledNibiAgentNodeBundlePath()).toBe(bundlePath);
+    } finally {
+      cwdSpy.mockRestore();
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 
