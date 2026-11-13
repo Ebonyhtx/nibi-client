@@ -128,13 +128,13 @@ export function readTaskStoreSnapshotInBrowser(
   };
   const bridge = (
     window as typeof window & {
-      __zcodeSessionStoreE2E?: {
+      __nibiSessionStoreE2E?: {
         getState?: () => {
           workspaces?: Record<string, BrowserWorkspaceState>;
         };
       };
     }
-  ).__zcodeSessionStoreE2E;
+  ).__nibiSessionStoreE2E;
   const bridgeMissing = typeof bridge?.getState !== "function";
   const state = bridge?.getState?.();
   const workspaces = state?.workspaces ?? {};

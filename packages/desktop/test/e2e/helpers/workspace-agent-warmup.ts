@@ -27,11 +27,11 @@ export async function waitForActiveWorkspacePath(
         return await browser.execute((expectedPath) => {
           const tabStore = (
             window as Window & {
-              __zcodeTabStoreE2E?: {
+              __nibiTabStoreE2E?: {
                 getState?: () => { activeWorkspacePath?: string | null };
               };
             }
-          ).__zcodeTabStoreE2E;
+          ).__nibiTabStoreE2E;
           return tabStore?.getState?.().activeWorkspacePath === expectedPath;
         }, expectedWorkspacePath);
       } catch {

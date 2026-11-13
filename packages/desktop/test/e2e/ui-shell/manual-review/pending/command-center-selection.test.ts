@@ -15,8 +15,8 @@ describe("Command Center 重名任务选中", () => {
         (row) => row.textContent,
       ),
       tabs: (
-        window as typeof window & { __zcodeTabStoreE2E?: { getState(): unknown } }
-      ).__zcodeTabStoreE2E?.getState(),
+        window as typeof window & { __nibiTabStoreE2E?: { getState(): unknown } }
+      ).__nibiTabStoreE2E?.getState(),
     }));
     await writeFile(
       join(process.env.NIBI_E2E_ARTIFACT_DIR!, "command-center-state.json"),

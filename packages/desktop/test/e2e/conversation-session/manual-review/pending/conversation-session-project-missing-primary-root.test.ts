@@ -11,7 +11,7 @@ const HISTORY_BODY = "E2E_MISSING_PRIMARY_HISTORY_BODY";
 const REASON = "该项目主文件夹已被删除或移动";
 type TestWindow = Window & {
   __testActions?: { setLocale(locale: "zh-CN"): void; setTheme(theme: string): void };
-  __zcodeTabStoreE2E?: { getState(): { activeWorkspacePath: string | null } };
+  __nibiTabStoreE2E?: { getState(): { activeWorkspacePath: string | null } };
 };
 
 describe("项目主目录失效", () => {
@@ -53,7 +53,7 @@ describe("项目主目录失效", () => {
     await empty.waitForDisplayed();
     const readActive = () =>
       browser.execute(
-        () => (window as TestWindow).__zcodeTabStoreE2E!.getState().activeWorkspacePath,
+        () => (window as TestWindow).__nibiTabStoreE2E!.getState().activeWorkspacePath,
       );
     if ((await toggle.getAttribute("aria-expanded")) === "true") await toggle.click();
     const activeBefore = await readActive();

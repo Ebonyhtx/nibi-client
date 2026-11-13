@@ -491,14 +491,14 @@ async function waitForUnsupportedVideo(filename: string) {
 async function installVideoBlobProbe() {
   await browser.execute(() => {
     const probeWindow = window as Window & {
-      __zcodeVideoBlobProbe?: {
+      __nibiVideoBlobProbe?: {
         calls: Array<{ size: number; type: string }>;
         original: typeof URL.createObjectURL;
       };
     };
     const original = URL.createObjectURL.bind(URL);
     const calls: Array<{ size: number; type: string }> = [];
-    probeWindow.__zcodeVideoBlobProbe = { calls, original };
+    probeWindow.__nibiVideoBlobProbe = { calls, original };
     URL.createObjectURL = (object: Blob | MediaSource) => {
       if (object instanceof Blob) calls.push({ size: object.size, type: object.type });
       return original(object);
@@ -511,10 +511,10 @@ async function waitForVideoBlob(mediaType: string) {
     () =>
       browser.execute((expectedMediaType) => {
         const probeWindow = window as Window & {
-          __zcodeVideoBlobProbe?: { calls: Array<{ size: number; type: string }> };
+          __nibiVideoBlobProbe?: { calls: Array<{ size: number; type: string }> };
         };
         return (
-          probeWindow.__zcodeVideoBlobProbe?.calls.some(
+          probeWindow.__nibiVideoBlobProbe?.calls.some(
             (call) => call.type === expectedMediaType && call.size > 0,
           ) === true
         );
@@ -526,20 +526,20 @@ async function waitForVideoBlob(mediaType: string) {
 async function readVideoBlobCalls(): Promise<Array<{ size: number; type: string }>> {
   return browser.execute(() => {
     const probeWindow = window as Window & {
-      __zcodeVideoBlobProbe?: { calls: Array<{ size: number; type: string }> };
+      __nibiVideoBlobProbe?: { calls: Array<{ size: number; type: string }> };
     };
-    return probeWindow.__zcodeVideoBlobProbe?.calls ?? [];
+    return probeWindow.__nibiVideoBlobProbe?.calls ?? [];
   });
 }
 
 async function restoreVideoBlobProbe() {
   await browser.execute(() => {
     const probeWindow = window as Window & {
-      __zcodeVideoBlobProbe?: { original: typeof URL.createObjectURL };
+      __nibiVideoBlobProbe?: { original: typeof URL.createObjectURL };
     };
-    const probe = probeWindow.__zcodeVideoBlobProbe;
+    const probe = probeWindow.__nibiVideoBlobProbe;
     if (probe) URL.createObjectURL = probe.original;
-    delete probeWindow.__zcodeVideoBlobProbe;
+    delete probeWindow.__nibiVideoBlobProbe;
   });
 }
 

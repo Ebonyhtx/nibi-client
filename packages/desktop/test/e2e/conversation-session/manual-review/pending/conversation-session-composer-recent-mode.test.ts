@@ -78,8 +78,8 @@ async function captureState(step: string) {
         ([key]) => key.includes("composer-") || key.includes("pending-command"),
       ),
       navigation: (
-        window as unknown as { __zcodeTabStoreE2E: { getState(): unknown } }
-      ).__zcodeTabStoreE2E.getState(),
+        window as unknown as { __nibiTabStoreE2E: { getState(): unknown } }
+      ).__nibiTabStoreE2E.getState(),
     })),
   };
   await writeFile(join(EVIDENCE_DIR, `${step}.json`), JSON.stringify(state, null, 2));
@@ -108,7 +108,7 @@ describe("Composer Recent 权限继承", () => {
           (await getV4PaneSnapshot()).sessionId === "draft" &&
           (await browser.execute(() => {
             const w = window as unknown as {
-              __zcodeTabStoreE2E: { getState(): { activeWorkspacePath: string } };
+              __nibiTabStoreE2E: { getState(): { activeWorkspacePath: string } };
             };
             const pending = JSON.parse(
               localStorage.getItem('nibi-pending-task-draft:v1:["desktop","local",null]') ??
@@ -116,7 +116,7 @@ describe("Composer Recent 权限继承", () => {
             );
             return Boolean(
               pending?.workspacePath &&
-              pending.workspacePath === w.__zcodeTabStoreE2E.getState().activeWorkspacePath,
+              pending.workspacePath === w.__nibiTabStoreE2E.getState().activeWorkspacePath,
             );
           })),
       );
@@ -126,9 +126,9 @@ describe("Composer Recent 权限继承", () => {
         () =>
           (
             window as unknown as {
-              __zcodeTabStoreE2E: { getState(): { activeWorkspacePath: string } };
+              __nibiTabStoreE2E: { getState(): { activeWorkspacePath: string } };
             }
-          ).__zcodeTabStoreE2E.getState().activeWorkspacePath,
+          ).__nibiTabStoreE2E.getState().activeWorkspacePath,
       );
     await startTask();
     await switchV4Model(UPSTREAM_PROVIDER_ID, UPSTREAM_MODEL, "");
@@ -242,7 +242,7 @@ describe("Composer Recent 权限继承", () => {
           (await getV4PaneSnapshot()).sessionId === "draft" &&
           (await browser.execute(() => {
             const w = window as unknown as {
-              __zcodeTabStoreE2E: { getState(): { activeWorkspacePath: string } };
+              __nibiTabStoreE2E: { getState(): { activeWorkspacePath: string } };
             };
             const pending = JSON.parse(
               localStorage.getItem('nibi-pending-task-draft:v1:["desktop","local",null]') ??
@@ -250,7 +250,7 @@ describe("Composer Recent 权限继承", () => {
             );
             return Boolean(
               pending?.workspacePath &&
-              pending.workspacePath === w.__zcodeTabStoreE2E.getState().activeWorkspacePath,
+              pending.workspacePath === w.__nibiTabStoreE2E.getState().activeWorkspacePath,
             );
           })),
       );
@@ -260,9 +260,9 @@ describe("Composer Recent 权限继承", () => {
         () =>
           (
             window as unknown as {
-              __zcodeTabStoreE2E: { getState(): { activeWorkspacePath: string } };
+              __nibiTabStoreE2E: { getState(): { activeWorkspacePath: string } };
             }
-          ).__zcodeTabStoreE2E.getState().activeWorkspacePath,
+          ).__nibiTabStoreE2E.getState().activeWorkspacePath,
       );
     await startTask();
     await switchV4Model(UPSTREAM_PROVIDER_ID, UPSTREAM_MODEL, "");

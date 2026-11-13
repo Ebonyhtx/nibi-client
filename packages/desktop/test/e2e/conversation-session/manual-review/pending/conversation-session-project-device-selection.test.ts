@@ -58,9 +58,9 @@ async function activeTabId() {
     () =>
       (
         window as Window & {
-          __zcodeTabStoreE2E?: { getState(): { activeTabId: string | null } };
+          __nibiTabStoreE2E?: { getState(): { activeTabId: string | null } };
         }
-      ).__zcodeTabStoreE2E!.getState().activeTabId,
+      ).__nibiTabStoreE2E!.getState().activeTabId,
   );
 }
 async function holdProjectConnection() {

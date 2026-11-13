@@ -40,7 +40,7 @@ function readTabs(): Promise<{ active: string | null; tabs: TabRow[] }> {
   return browser.execute(() => {
     const store = (
       window as Window & {
-        __zcodeTabStoreE2E?: {
+        __nibiTabStoreE2E?: {
           getState?: () => {
             activeWorkspaceIdentity?: string | null;
             activeWorkspacePath?: string | null;
@@ -53,7 +53,7 @@ function readTabs(): Promise<{ active: string | null; tabs: TabRow[] }> {
           };
         };
       }
-    ).__zcodeTabStoreE2E;
+    ).__nibiTabStoreE2E;
     const state = store?.getState?.();
     return {
       active: state?.activeWorkspaceIdentity ?? state?.activeWorkspacePath ?? null,

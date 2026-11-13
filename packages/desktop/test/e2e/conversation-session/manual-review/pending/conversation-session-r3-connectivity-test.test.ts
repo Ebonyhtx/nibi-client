@@ -202,7 +202,7 @@ describe(`${CASE_MARKER}: 激活远端 workspace 时模型设置连通性测试�
     const closedLocal = await browser.execute((localPath) => {
       const store = (
         window as Window & {
-          __zcodeTabStoreE2E?: {
+          __nibiTabStoreE2E?: {
             getState?: () => {
               tabs?: Array<{
                 id: string;
@@ -215,7 +215,7 @@ describe(`${CASE_MARKER}: 激活远端 workspace 时模型设置连通性测试�
             };
           };
         }
-      ).__zcodeTabStoreE2E;
+      ).__nibiTabStoreE2E;
       const state = store?.getState?.();
       const locals = (state?.tabs ?? []).filter(
         (tab) => tab.kind === "workspace" && !tab.workspaceIdentity && !tab.remoteSessionId,
@@ -241,12 +241,12 @@ describe(`${CASE_MARKER}: 激活远端 workspace 时模型设置连通性测试�
       };
       const store = (
         window as Window & {
-          __zcodeTabStoreE2E?: {
+          __nibiTabStoreE2E?: {
             getState(): { tabs: Tab[]; activeWorkspaceIdentity?: string | null };
             setState(patch: { tabs: Tab[] }): void;
           };
         }
-      ).__zcodeTabStoreE2E;
+      ).__nibiTabStoreE2E;
       if (!store) throw new Error("缺少 TabStore fixture bridge");
       const state = store.getState();
       const remote = state.tabs.find((tab) => tab.workspaceIdentity === identity);

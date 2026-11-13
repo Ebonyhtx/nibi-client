@@ -15,9 +15,9 @@ export async function sendWithConversationDelayE2E(
   const host =
     typeof window === "undefined"
       ? undefined
-      : (window as Window & { __zcodeTransportDelayE2E?: DelayPlan });
+      : (window as Window & { __nibiTransportDelayE2E?: DelayPlan });
   const plan =
-    shouldExposeE2EStoreBridge() && envelope.ttft ? host?.__zcodeTransportDelayE2E : undefined;
+    shouldExposeE2EStoreBridge() && envelope.ttft ? host?.__nibiTransportDelayE2E : undefined;
   if (!plan || plan.consumed) return send();
   plan.consumed = true;
   const delay = (ms: number) =>

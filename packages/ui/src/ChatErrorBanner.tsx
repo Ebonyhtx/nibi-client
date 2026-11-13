@@ -123,11 +123,11 @@ export function resolveChatErrorBannerDisplayMessage(
     // 重新本地化，否则英文界面会混入中文错误提示。
     return parsed.args
       ? intl.formatMessage(
-          { id: "zcode.error.CLAUDE_UNKNOWN_COMMAND_WITH_ARGS" },
+          { id: "nibi.error.CLAUDE_UNKNOWN_COMMAND_WITH_ARGS" },
           { command: parsed.command, args: parsed.args },
         )
       : intl.formatMessage(
-          { id: "zcode.error.CLAUDE_UNKNOWN_COMMAND" },
+          { id: "nibi.error.CLAUDE_UNKNOWN_COMMAND" },
           { command: parsed.command },
         );
   }
@@ -140,11 +140,11 @@ export function resolveChatErrorBannerDisplayMessage(
   }
 
   if (isSuspiciousEmptyModelResultMessage(error.message)) {
-    return intl.formatMessage({ id: "zcode.error.modelSuspiciousEmpty" });
+    return intl.formatMessage({ id: "nibi.error.modelSuspiciousEmpty" });
   }
 
   return error.code && LOCALIZED_ERROR_CODES.has(error.code)
-    ? intl.formatMessage({ id: `zcode.error.${error.code}` })
+    ? intl.formatMessage({ id: `nibi.error.${error.code}` })
     : error.message;
 }
 

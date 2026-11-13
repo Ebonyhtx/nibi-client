@@ -44,13 +44,13 @@ describe("TSL08: unavailable startup project opens an unclassified draft", () =>
     await waitForV4Pane((pane) => pane.sessionId === "draft", "失效项目未自动进入任务草稿");
     const target = await browser.execute(() => {
       const e2eWindow = window as Window & {
-        __zcodeTabStoreE2E?: {
+        __nibiTabStoreE2E?: {
           getState(): {
             activeWorkspacePath: string | null;
             tabs: Array<{ kind: string; workspacePath?: string; workspacePurpose?: string }>;
           };
         };
-        __zcodeSessionStoreE2E?: {
+        __nibiSessionStoreE2E?: {
           getState(): {
             getWorkspaceState(path: string): {
               activeTaskId: string | null;
@@ -59,13 +59,13 @@ describe("TSL08: unavailable startup project opens an unclassified draft", () =>
           };
         };
       };
-      const tabState = e2eWindow.__zcodeTabStoreE2E?.getState();
+      const tabState = e2eWindow.__nibiTabStoreE2E?.getState();
       const path = tabState?.activeWorkspacePath;
       if (!path) throw new Error("没有活动草稿工作区");
       const tab = tabState.tabs.find(
         (item) => item.kind === "workspace" && item.workspacePath === path,
       );
-      const workspace = e2eWindow.__zcodeSessionStoreE2E?.getState().getWorkspaceState(path);
+      const workspace = e2eWindow.__nibiSessionStoreE2E?.getState().getWorkspaceState(path);
       return {
         path,
         purpose: tab?.workspacePurpose,

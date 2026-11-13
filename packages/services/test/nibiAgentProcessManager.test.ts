@@ -230,7 +230,7 @@ describe("resolveDefaultNibiAgentCommand", () => {
       const root = mkdtempSync(join(tmpdir(), "nibi-bytecode-resolver-"));
       createdDirs.push(root);
       const source = join(root, "apps/nibi-cli/packages/cli/dist/nibi.cjs");
-      const bytecode = join(dirname(source), "zcode.bytecode.cjs");
+      const bytecode = join(dirname(source), "nibi.bytecode.cjs");
       mkdirSync(dirname(source), { recursive: true });
       writeFileSync(source, "");
       writeFileSync(bytecode, "");

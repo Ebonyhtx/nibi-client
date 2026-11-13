@@ -385,9 +385,9 @@ describe("虚拟项目", () => {
         await browser.execute((path) => {
           const store = (
             window as Window & {
-              __zcodeTabStoreE2E?: { getState(): { tabs: Array<{ workspacePath?: string }> } };
+              __nibiTabStoreE2E?: { getState(): { tabs: Array<{ workspacePath?: string }> } };
             }
-          ).__zcodeTabStoreE2E;
+          ).__nibiTabStoreE2E;
           return store?.getState().tabs.some((tab) => tab.workspacePath === path) ?? false;
         }, cwd),
       ).toBe(false);
@@ -620,13 +620,13 @@ describe("虚拟项目", () => {
         browser.execute(() => {
           const state = (
             window as Window & {
-              __zcodeTabStoreE2E?: {
+              __nibiTabStoreE2E?: {
                 getState(): {
                   tabs: { workspacePath?: string; workspaceIdentity?: string; kind?: string }[];
                 };
               };
             }
-          ).__zcodeTabStoreE2E?.getState();
+          ).__nibiTabStoreE2E?.getState();
           return state?.tabs.map((tab) => tab.workspaceIdentity || tab.workspacePath || tab.kind);
         });
       const tabs = await readTabs();
@@ -728,13 +728,13 @@ describe("虚拟项目", () => {
       await $(`[data-testid="${TID_V4_COMPOSER_INPUT}"]`).waitForDisplayed();
       const draftOwner = await browser.execute(() => {
         const testWindow = window as Window & {
-          __zcodeTabStoreE2E?: {
+          __nibiTabStoreE2E?: {
             getState(): {
               activeWorkspacePath: string | null;
               activeWorkspaceIdentity?: string | null;
             };
           };
-          __zcodeSessionStoreE2E?: {
+          __nibiSessionStoreE2E?: {
             getState(): {
               getWorkspaceState(
                 path: string,
@@ -743,9 +743,9 @@ describe("虚拟项目", () => {
             };
           };
         };
-        const tabs = testWindow.__zcodeTabStoreE2E?.getState();
+        const tabs = testWindow.__nibiTabStoreE2E?.getState();
         const draft = tabs?.activeWorkspacePath
-          ? testWindow.__zcodeSessionStoreE2E
+          ? testWindow.__nibiSessionStoreE2E
               ?.getState()
               .getWorkspaceState(
                 tabs.activeWorkspacePath,
@@ -969,13 +969,13 @@ describe("虚拟项目", () => {
     const readDraft = () =>
       browser.execute(() => {
         const bridge = window as Window & {
-          __zcodeTabStoreE2E?: {
+          __nibiTabStoreE2E?: {
             getState(): {
               activeWorkspacePath: string | null;
               activeWorkspaceIdentity?: string | null;
             };
           };
-          __zcodeSessionStoreE2E?: {
+          __nibiSessionStoreE2E?: {
             getState(): {
               getWorkspaceState(
                 path: string,
@@ -984,10 +984,10 @@ describe("虚拟项目", () => {
             };
           };
         };
-        const tabs = bridge.__zcodeTabStoreE2E?.getState();
+        const tabs = bridge.__nibiTabStoreE2E?.getState();
         const path = tabs?.activeWorkspacePath;
         const state = path
-          ? bridge.__zcodeSessionStoreE2E
+          ? bridge.__nibiSessionStoreE2E
               ?.getState()
               .getWorkspaceState(path, tabs?.activeWorkspaceIdentity ?? undefined)
           : undefined;
@@ -1075,9 +1075,9 @@ describe("虚拟项目", () => {
       browser.execute(() => {
         const store = (
           window as Window & {
-            __zcodeTabStoreE2E?: { getState(): { tabs: Array<{ workspacePath?: string }> } };
+            __nibiTabStoreE2E?: { getState(): { tabs: Array<{ workspacePath?: string }> } };
           }
-        ).__zcodeTabStoreE2E;
+        ).__nibiTabStoreE2E;
         return (
           store
             ?.getState()

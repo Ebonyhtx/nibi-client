@@ -45,9 +45,9 @@ describe("Markdown preview selection", () => {
       (paneTestId, inputTestId) => {
         const input = document.querySelector(
           `[data-testid="${paneTestId}"] [data-testid="${inputTestId}"]`,
-        ) as HTMLElement & { __zcodeLexicalInputE2E?: { setText: (text: string) => void } };
-        if (!input?.__zcodeLexicalInputE2E) throw new Error("Composer bridge missing");
-        input.__zcodeLexicalInputE2E.setText("E2E_MARKDOWN_DRAFT_KEEP");
+        ) as HTMLElement & { __nibiLexicalInputE2E?: { setText: (text: string) => void } };
+        if (!input?.__nibiLexicalInputE2E) throw new Error("Composer bridge missing");
+        input.__nibiLexicalInputE2E.setText("E2E_MARKDOWN_DRAFT_KEEP");
       },
       paneId,
       TID_V4_COMPOSER_INPUT,
@@ -106,11 +106,11 @@ describe("Markdown preview selection", () => {
       (paneTestId, inputTestId) => {
         const pane = document.querySelector(`[data-testid="${paneTestId}"]`)!;
         const input = pane.querySelector(`[data-testid="${inputTestId}"]`) as HTMLElement & {
-          __zcodeLexicalInputE2E?: { getText: () => string };
+          __nibiLexicalInputE2E?: { getText: () => string };
         };
         return {
           session: pane.getAttribute("data-session-id"),
-          text: input.__zcodeLexicalInputE2E?.getText(),
+          text: input.__nibiLexicalInputE2E?.getText(),
         };
       },
       paneId,
@@ -177,8 +177,8 @@ describe("Markdown preview selection", () => {
       (paneTestId, inputTestId) => {
         const input = document.querySelector(
           `[data-testid="${paneTestId}"] [data-testid="${inputTestId}"]`,
-        ) as HTMLElement & { __zcodeLexicalInputE2E: { setText: (text: string) => void } };
-        input.__zcodeLexicalInputE2E.setText("E2E_MARKDOWN_MAIN_KEEP");
+        ) as HTMLElement & { __nibiLexicalInputE2E: { setText: (text: string) => void } };
+        input.__nibiLexicalInputE2E.setText("E2E_MARKDOWN_MAIN_KEEP");
       },
       paneId,
       TID_V4_COMPOSER_INPUT,
@@ -207,13 +207,13 @@ describe("Markdown preview selection", () => {
     const sideState = await browser.execute((inputTestId) => {
       const pane = document.querySelector('[data-testid^="v4-session-pane-selection-side-chat:"]')!;
       const input = pane.querySelector(`[data-testid="${inputTestId}"]`) as HTMLElement & {
-        __zcodeLexicalInputE2E?: { getText: () => string };
+        __nibiLexicalInputE2E?: { getText: () => string };
       };
       const main = document.querySelector('[data-testid="v4-session-pane-workspace-main"]')!;
       const mainInput = main.querySelector(`[data-testid="${inputTestId}"]`) as typeof input;
       return {
-        sideText: input.__zcodeLexicalInputE2E?.getText(),
-        mainText: mainInput.__zcodeLexicalInputE2E?.getText(),
+        sideText: input.__nibiLexicalInputE2E?.getText(),
+        mainText: mainInput.__nibiLexicalInputE2E?.getText(),
         distinct: pane.getAttribute("data-session-id") !== main.getAttribute("data-session-id"),
       };
     }, TID_V4_COMPOSER_INPUT);

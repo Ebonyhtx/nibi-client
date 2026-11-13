@@ -20,8 +20,8 @@
 
 ### 2.1 ref 快照机制（复用已有 executeJavaScript 通道）
 - Phase 3 已给 manager 加了 `executeJavaScript(win,key,script)` + `wc.executeJavaScript`。本阶段给 **executor 的 `ControlledView.webContents` 接口补 `executeJavaScript(script): Promise<unknown>`**，manager.toControlledView wire 到 `wc.executeJavaScript`。executor 由此可向页面注入脚本。
-- `snapshot` 命令：注入 `SNAPSHOT_SCRIPT` 遍历可见 DOM，给每个**可交互/有语义**元素（a/button/input/textarea/select/[role]/[onclick]/可点击文本节点）分配 ref（`e1`/`e2`/…），在页面挂 `window.__zcodeRefs = Map<ref, Element>`，返回**紧凑文本树**（每行 `ref role "name" [href/value]`）+ 每个 ref 的 `bbox`（getBoundingClientRect，viewport CSS px）。
-- ref 生命周期：页面导航后 `window.__zcodeRefs` 失效。约定"每次交互前重新 snapshot"。ref 在下次 snapshot 重新分配。
+- `snapshot` 命令：注入 `SNAPSHOT_SCRIPT` 遍历可见 DOM，给每个**可交互/有语义**元素（a/button/input/textarea/select/[role]/[onclick]/可点击文本节点）分配 ref（`e1`/`e2`/…），在页面挂 `window.__nibiRefs = Map<ref, Element>`，返回**紧凑文本树**（每行 `ref role "name" [href/value]`）+ 每个 ref 的 `bbox`（getBoundingClientRect，viewport CSS px）。
+- ref 生命周期：页面导航后 `window.__nibiRefs` 失效。约定"每次交互前重新 snapshot"。ref 在下次 snapshot 重新分配。
 
 ### 2.2 click/type/press/scroll —— CDP 真实输入（非合成事件）
 - **click({ref})**：注入 JS `resolveRef(ref)` → `el.scrollIntoView({block:"center"})` + 返回 `bbox` 中心点（viewport CSS px）；executor 再发 CDP `Input.dispatchMouseEvent`（mousePressed + mouseReleased，button:"left"，clickCount:1）打该坐标。真实内核事件,站点识别为可信。
@@ -37,7 +37,7 @@
 - `result.ts` 已有 `snapshot?: browserSnapshotSchema`。**snapshot 结果结构是权威且固定的**（`packages/shared/src/browser-use/snapshot.ts`）：
   `{ url, title, truncated, elements: Array<{ ref, tag, role?, name?, text?, value?, disabled?, checked?, selector, xpath, rect:{x,y,width,height}, inViewport }> }`。
   SNAPSHOT_SCRIPT **必须严格产出该结构**（含 selector/xpath/rect/inViewport），executor 直接把它塞进 `result.snapshot`。无需改 schema。
-- click 用 ref 定位时,resolveRef 脚本从 `window.__zcodeRefs.get(ref)` 拿元素 → scrollIntoView + 返回 `rect` 中心；也可直接用 snapshot 里该 ref 的 `rect`（但可能已滚动失效,故 click 时重解析更稳）。
+- click 用 ref 定位时,resolveRef 脚本从 `window.__nibiRefs.get(ref)` 拿元素 → scrollIntoView + 返回 `rect` 中心；也可直接用 snapshot 里该 ref 的 `rect`（但可能已滚动失效,故 click 时重解析更稳）。
 - facade `Tab`：去掉 `snapshot/click/type` 的 throw,改为构造对应 BrowserCommand → execute；补 `press/scroll`；对外签名为 `click(ref)`/`type(text,opts)`/`press(key,opts)`/`scroll(opts)`。`playwright/cua/dom_cua` getter 暂仍 throw（本阶段不做）。
 
 ### 2.4 安全（沿用 browser-safety）
@@ -49,7 +49,7 @@
 - **T-A：ControlledView 补 executeJavaScript + snapshot 命令**
   - ControlledViewWebContents 加 `executeJavaScript(script): Promise<unknown>`；manager.toControlledView wire。
   - executor `case "snapshot"`：注入 SNAPSHOT_SCRIPT，返回 `{ok:true, snapshot:{tree, elements}}`。
-  - SNAPSHOT_SCRIPT 作为常量字符串（页面内自执行,分配 ref+挂 __zcodeRefs+返回结构）。
+  - SNAPSHOT_SCRIPT 作为常量字符串（页面内自执行,分配 ref+挂 __nibiRefs+返回结构）。
   - 单测：stub `executeJavaScript` 返回假快照 JSON → 断言 result.snapshot 结构；核对 browserSnapshotSchema。
 - **T-B：click / scroll（CDP 鼠标）**
   - executor `case "click"`：executeJavaScript resolveRef→bbox 中心 → cdp Input.dispatchMouseEvent×2。

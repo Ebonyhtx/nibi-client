@@ -188,7 +188,7 @@ async function seedRendererPromptSources(seed: {
             }) => void;
           };
         };
-        __zcodeSessionStoreE2E?: {
+        __nibiSessionStoreE2E?: {
           getState: () => {
             setSlashCommands: (
               workspacePath: string,
@@ -202,7 +202,7 @@ async function seedRendererPromptSources(seed: {
           };
         };
       };
-      const sessionStore = e2eWindow.__zcodeSessionStoreE2E;
+      const sessionStore = e2eWindow.__nibiSessionStoreE2E;
       const skillStore = e2eWindow.__skillStoreE2E;
       const subagentsStore = e2eWindow.__subagentsStoreE2E;
       const whiteboardStore = e2eWindow.__whiteboardStoreE2E;
@@ -304,12 +304,12 @@ async function setComposerText(text: string) {
         const input = document.querySelector<HTMLElement>(
           `[data-testid="${inputTestId}"]`,
         ) as (HTMLElement & {
-          __zcodeLexicalInputE2E?: {
+          __nibiLexicalInputE2E?: {
             focus: () => void;
             setText: (value: string) => void;
           };
         }) | null;
-        const bridge = input?.__zcodeLexicalInputE2E;
+        const bridge = input?.__nibiLexicalInputE2E;
         if (!bridge) {
           return false;
         }
@@ -427,8 +427,8 @@ function getComposerMarkdown(): Promise<string> {
     const input = document.querySelector<HTMLElement>(
       `[data-testid="${inputTestId}"]`,
     ) as (HTMLElement & {
-      __zcodeLexicalInputE2E?: { getText: () => string };
+      __nibiLexicalInputE2E?: { getText: () => string };
     }) | null;
-    return input?.__zcodeLexicalInputE2E?.getText() ?? "";
+    return input?.__nibiLexicalInputE2E?.getText() ?? "";
   }, TID_V4_COMPOSER_INPUT);
 }

@@ -30,7 +30,7 @@ export interface ConversationTelemetryParityScenarioResult {
 
 declare global {
   interface Window {
-    __zcodeConversationTelemetryParityE2E?: {
+    __nibiConversationTelemetryParityE2E?: {
       variant: "current" | "legacy";
       run(caseId: string): Promise<ConversationTelemetryParityScenarioResult>;
     };
@@ -49,10 +49,10 @@ export function installConversationTelemetryParityE2EBridge(input: {
     variant: "current" as const,
     run: (caseId: string) => runCurrentScenario(input.platform, caseId),
   };
-  window.__zcodeConversationTelemetryParityE2E = bridge;
+  window.__nibiConversationTelemetryParityE2E = bridge;
   return () => {
-    if (window.__zcodeConversationTelemetryParityE2E === bridge) {
-      delete window.__zcodeConversationTelemetryParityE2E;
+    if (window.__nibiConversationTelemetryParityE2E === bridge) {
+      delete window.__nibiConversationTelemetryParityE2E;
     }
   };
 }

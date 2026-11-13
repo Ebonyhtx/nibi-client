@@ -18,7 +18,7 @@ describe("mobile presentation package boundary", () => {
     },
   );
   it("retains logo and accessible dialog trigger exports", () => {
-    expect(renderToStaticMarkup(createElement(NibiAppLogo))).toContain('data-app-logo="zcode"');
+    expect(renderToStaticMarkup(createElement(NibiAppLogo))).toContain('data-app-logo="nibi"');
     expect(
       renderToStaticMarkup(
         createElement(BottomSheet, {}, createElement(BottomSheetTrigger, {}, "Choose")),

@@ -60,7 +60,7 @@ interface AssistantHistoryToggleProbe {
 
 declare global {
   interface Window {
-    __zcodeChatLoadingLayoutProbe?: ChatLoadingLayoutProbe;
+    __nibiChatLoadingLayoutProbe?: ChatLoadingLayoutProbe;
   }
 }
 
@@ -550,7 +550,7 @@ function assertMonotonicToggleValues(
 
 async function installChatLoadingLayoutProbe() {
   await browser.execute(() => {
-    const existing = window.__zcodeChatLoadingLayoutProbe;
+    const existing = window.__nibiChatLoadingLayoutProbe;
     if (
       existing?.animationFrameId !== null &&
       existing?.animationFrameId !== undefined
@@ -567,7 +567,7 @@ async function installChatLoadingLayoutProbe() {
       running: true,
       samples: [],
     };
-    window.__zcodeChatLoadingLayoutProbe = probe;
+    window.__nibiChatLoadingLayoutProbe = probe;
 
     const readSample = (): ChatLoadingLayoutSample | null => {
       const timeline = document.querySelector<HTMLElement>(
@@ -674,7 +674,7 @@ async function installChatLoadingLayoutProbe() {
 
 async function stopChatLoadingLayoutProbe(): Promise<ChatLoadingLayoutProbeResult> {
   return browser.execute(() => {
-    const probe = window.__zcodeChatLoadingLayoutProbe;
+    const probe = window.__nibiChatLoadingLayoutProbe;
     if (!probe) return { resizeSamples: [], samples: [] };
     probe.running = false;
     if (probe.animationFrameId !== null) {

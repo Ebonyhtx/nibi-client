@@ -171,7 +171,7 @@ describe("TTFT01 真实 Composer 到最终 OTLP", () => {
     this.timeout(120000);
     await waitForV4ConversationState((state) => state.state === "idle", "正文轮尚未完成");
     await browser.execute(() => {
-      (window as unknown as { __zcodeTransportDelayE2E: unknown }).__zcodeTransportDelayE2E = {
+      (window as unknown as { __nibiTransportDelayE2E: unknown }).__nibiTransportDelayE2E = {
         commandMs: 250,
         ackMs: 7000,
       };
@@ -202,9 +202,9 @@ describe("TTFT01 真实 Composer 到最终 OTLP", () => {
     const ackReleased = await browser.execute(() => {
       const plan = (
         window as unknown as {
-          __zcodeTransportDelayE2E?: { consumed?: boolean; ackReleased?: boolean };
+          __nibiTransportDelayE2E?: { consumed?: boolean; ackReleased?: boolean };
         }
-      ).__zcodeTransportDelayE2E;
+      ).__nibiTransportDelayE2E;
       if (!plan?.consumed) throw new Error("真实 command 未进入延迟 seam");
       return plan.ackReleased === true;
     });

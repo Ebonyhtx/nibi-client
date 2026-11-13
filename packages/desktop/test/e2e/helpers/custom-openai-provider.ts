@@ -96,9 +96,9 @@ export async function refreshSeededOpenAIProvidersThroughSettings(
       () =>
         (
           window as Window & {
-            __zcodeTabStoreE2E?: { getState?: () => { activeWorkspacePath?: string | null } };
+            __nibiTabStoreE2E?: { getState?: () => { activeWorkspacePath?: string | null } };
           }
-        ).__zcodeTabStoreE2E?.getState?.().activeWorkspacePath ?? null,
+        ).__nibiTabStoreE2E?.getState?.().activeWorkspacePath ?? null,
     )) ||
     DEFAULT_WORKSPACE;
   await openModelProviderSettings();

@@ -33,7 +33,7 @@ DYNAMIC_HINTS = ("${", "`")
 def load_keys(path: Path) -> set[str]:
     """收集语言文件里的键，**包括通过 spread 引入的**。
 
-    踩过的坑：`zcode.error.modelSuspiciousEmpty` 由 `...requestSecurityMessagesEnUS`
+    踩过的坑：`nibi.error.modelSuspiciousEmpty` 由 `...requestSecurityMessagesEnUS`
     提供，只扫本文件会判它缺失，于是补了一份 → TS2783 重复键。
     这里把 `import { x } from "path"` 与 `...x,` 对上，递归读被 spread 的文件。
     """

@@ -30,7 +30,7 @@ function install() {
     ],
   };
   const window = {
-    __zcodeTabStoreE2E: { getState: () => ({ activeWorkspacePath: "/fixture/unclassified" }) },
+    __nibiTabStoreE2E: { getState: () => ({ activeWorkspacePath: "/fixture/unclassified" }) },
   };
   vi.stubGlobal("$", () => ({ waitForDisplayed: vi.fn() }));
   vi.stubGlobal("browser", {

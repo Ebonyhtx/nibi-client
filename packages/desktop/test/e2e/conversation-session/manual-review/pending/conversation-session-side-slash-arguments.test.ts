@@ -116,13 +116,13 @@ async function setPaneComposerText(paneTestId: string, text: string): Promise<vo
           const bridge = (
             input as
               | (HTMLElement & {
-                  __zcodeLexicalInputE2E?: {
+                  __nibiLexicalInputE2E?: {
                     getText: () => string;
                     setText: (value: string) => void;
                   };
                 })
               | undefined
-          )?.__zcodeLexicalInputE2E;
+          )?.__nibiLexicalInputE2E;
           if (!bridge) return false;
           bridge.setText(nextText);
           return bridge.getText() === nextText;

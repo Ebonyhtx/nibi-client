@@ -78,7 +78,7 @@ describe("turn error 后打开历史任务不刷新侧栏修改时间", () => {
     expect(await readTaskRowText(sessionId)).toMatch(/\d+(天|d)/);
     // 只观察本次点击后的配置 ACK，避免启动草稿的同步让断言提前通过。
     await browser.execute(() => {
-      (window as Window & { __zcodeV4CommandAcksE2E?: unknown[] }).__zcodeV4CommandAcksE2E = [];
+      (window as Window & { __nibiV4CommandAcksE2E?: unknown[] }).__nibiV4CommandAcksE2E = [];
     });
     await selectV4TaskById(sessionId);
     await waitForV4TimelineContaining(SOURCE_MARKER, 60_000);

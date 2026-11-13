@@ -81,9 +81,9 @@ async function readPluginMentionPresentation(pluginId: string): Promise<{
 async function focusV4Composer(): Promise<void> {
   await browser.execute((inputTestId) => {
     const input = document.querySelector<
-      HTMLElement & { __zcodeLexicalInputE2E?: { focus: () => void } }
+      HTMLElement & { __nibiLexicalInputE2E?: { focus: () => void } }
     >(`[data-testid="${inputTestId}"]`);
-    input?.__zcodeLexicalInputE2E?.focus();
+    input?.__nibiLexicalInputE2E?.focus();
   }, TID_V4_COMPOSER_INPUT);
 }
 

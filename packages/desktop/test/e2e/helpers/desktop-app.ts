@@ -309,7 +309,7 @@ export async function setInputValueByTestIdDom(
   // 修复原因：同一类容器坐标异常会让输入框无法通过 WebDriver 聚焦。
   // 这里使用原生 value setter 并派发 input/change/blur，继续走页面保存逻辑。
   // M5：v4 composer 恢复为 Lexical contenteditable——写入改走编辑器挂载的
-  // __zcodeLexicalInputE2E bridge（驱动真实 editor state，避免 DOM 直改绕过 Lexical）。
+  // __nibiLexicalInputE2E bridge（驱动真实 editor state，避免 DOM 直改绕过 Lexical）。
   // bridge 由 E2ELexicalInputBridgePlugin 短轮询补挂，可能晚于节点出现，故带重试。
   await waitForTestIdByDom(testId, { timeout, timeoutMsg });
   type SetInputResult = {
@@ -333,13 +333,13 @@ export async function setInputValueByTestIdDom(
         ) {
           const bridge = (
             element as HTMLElement & {
-              __zcodeLexicalInputE2E?: {
+              __nibiLexicalInputE2E?: {
                 focus: () => void;
                 getText: () => string;
                 setText: (text: string) => void;
               };
             }
-          ).__zcodeLexicalInputE2E;
+          ).__nibiLexicalInputE2E;
           if (!bridge) {
             return {
               ok: false,
@@ -446,14 +446,14 @@ export async function setInputValueByTestIdDom(
                     document.querySelectorAll<HTMLElement>("[data-testid]"),
                   ).find((item) => item.dataset.testid === currentTestId) as
                     | (HTMLElement & {
-                        __zcodeLexicalInputE2E?: {
+                        __nibiLexicalInputE2E?: {
                           focus: () => void;
                           getText: () => string;
                           setText: (text: string) => void;
                         };
                       })
                     | undefined;
-                  const bridge = element?.__zcodeLexicalInputE2E;
+                  const bridge = element?.__nibiLexicalInputE2E;
                   if (!element?.isContentEditable || !bridge) {
                     done({ ok: false, reason: "lexical-not-editable" });
                     return;
@@ -931,9 +931,9 @@ export function probeWorkspaceAppState(
   const workspaceItem =
     (
       window as Window & {
-        __zcodeTabStoreE2E?: { getState(): { activeWorkspacePath?: string | null } };
+        __nibiTabStoreE2E?: { getState(): { activeWorkspacePath?: string | null } };
       }
-    ).__zcodeTabStoreE2E?.getState().activeWorkspacePath === params.expectedPath;
+    ).__nibiTabStoreE2E?.getState().activeWorkspacePath === params.expectedPath;
   const conversationWorkspaceReady =
     params.expectedPath.replace(/\\/g, "/").endsWith("/.nibi/workspace/default") &&
     Boolean(document.querySelector(`[data-testid="${params.composerWorkspaceTriggerTestId}"]`));
@@ -991,9 +991,9 @@ async function isWorkspaceAppVisible(workspacePath: string) {
         if (
           (
             window as Window & {
-              __zcodeTabStoreE2E?: { getState(): { activeWorkspacePath: string | null } };
+              __nibiTabStoreE2E?: { getState(): { activeWorkspacePath: string | null } };
             }
-          ).__zcodeTabStoreE2E?.getState().activeWorkspacePath === expectedPath &&
+          ).__nibiTabStoreE2E?.getState().activeWorkspacePath === expectedPath &&
           document.querySelector(`[data-testid^="${sessionPanePrefix}-"]`)
         )
           return true;

@@ -58,10 +58,10 @@ async function openFromChat(locale = "zh-CN", evidence?: string) {
 function readChatIdentity() {
   return browser.execute(() => {
     const windowState = window as Window & {
-      __zcodeTabStoreE2E?: {
+      __nibiTabStoreE2E?: {
         getState(): { activeWorkspacePath: string | null; activeWorkspaceIdentity: string | null };
       };
-      __zcodeSessionStoreE2E?: {
+      __nibiSessionStoreE2E?: {
         getState(): {
           workspaces: Record<
             string,
@@ -70,9 +70,9 @@ function readChatIdentity() {
         };
       };
     };
-    const tabs = windowState.__zcodeTabStoreE2E!.getState();
+    const tabs = windowState.__nibiTabStoreE2E!.getState();
     const workspaceKey = tabs.activeWorkspaceIdentity?.trim() || tabs.activeWorkspacePath!;
-    const workspace = windowState.__zcodeSessionStoreE2E!.getState().workspaces[workspaceKey]!;
+    const workspace = windowState.__nibiSessionStoreE2E!.getState().workspaces[workspaceKey]!;
     return {
       workspaceKey,
       workspacePath: tabs.activeWorkspacePath!,

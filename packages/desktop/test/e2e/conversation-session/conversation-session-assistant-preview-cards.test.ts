@@ -661,8 +661,8 @@ async function assertPreviewVideoSurvivesResizeAndFullscreen() {
   const videoReady = await browser.execute(() => {
     const video = document.querySelector<HTMLVideoElement>("video[controls][playsinline]");
     if (!video) return false;
-    const probeWindow = window as Window & { __zcodePreviewVideo?: HTMLVideoElement };
-    probeWindow.__zcodePreviewVideo = video;
+    const probeWindow = window as Window & { __nibiPreviewVideo?: HTMLVideoElement };
+    probeWindow.__nibiPreviewVideo = video;
     window.dispatchEvent(new Event("resize"));
     return true;
   });
@@ -671,10 +671,10 @@ async function assertPreviewVideoSurvivesResizeAndFullscreen() {
   // resize settling 的 state update 应该已经完成；媒体节点不能被替换或卸载。
   await browser.pause(80);
   const sameVideoAfterResize = await browser.execute(() => {
-    const probeWindow = window as Window & { __zcodePreviewVideo?: HTMLVideoElement };
+    const probeWindow = window as Window & { __nibiPreviewVideo?: HTMLVideoElement };
     return (
       document.querySelector<HTMLVideoElement>("video[controls][playsinline]") ===
-      probeWindow.__zcodePreviewVideo
+      probeWindow.__nibiPreviewVideo
     );
   });
   expect(sameVideoAfterResize).toBe(true);
@@ -698,9 +698,9 @@ async function assertPreviewVideoSurvivesResizeAndFullscreen() {
   if (fullscreenResult === "entered") {
     await browser.pause(500);
     const sameVideoInFullscreen = await browser.execute(() => {
-      const probeWindow = window as Window & { __zcodePreviewVideo?: HTMLVideoElement };
+      const probeWindow = window as Window & { __nibiPreviewVideo?: HTMLVideoElement };
       const video = document.querySelector<HTMLVideoElement>("video[controls][playsinline]");
-      return video === probeWindow.__zcodePreviewVideo && document.fullscreenElement === video;
+      return video === probeWindow.__nibiPreviewVideo && document.fullscreenElement === video;
     });
     expect(sameVideoInFullscreen).toBe(true);
     await browser.execute(() => {

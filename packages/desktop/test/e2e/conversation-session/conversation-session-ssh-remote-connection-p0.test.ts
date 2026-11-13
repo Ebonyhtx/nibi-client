@@ -27,7 +27,7 @@ async function readRemoteWorkspaceTabCount(): Promise<number> {
   return browser.execute(() => {
     const store = (
       window as Window & {
-        __zcodeTabStoreE2E?: {
+        __nibiTabStoreE2E?: {
           getState: () => {
             tabs: Array<{
               remoteTarget?: unknown;
@@ -37,7 +37,7 @@ async function readRemoteWorkspaceTabCount(): Promise<number> {
           };
         };
       }
-    ).__zcodeTabStoreE2E;
+    ).__nibiTabStoreE2E;
     if (!store) throw new Error("SSH P0 缺少真实 tab store 取证入口");
     return store
       .getState()

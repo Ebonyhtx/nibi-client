@@ -391,8 +391,8 @@ async function upsertRendererSessionTargetForE2E(
       };
 
       const storeApi = (
-        window as Window & { __zcodeSessionStoreE2E?: RendererStore }
-      ).__zcodeSessionStoreE2E;
+        window as Window & { __nibiSessionStoreE2E?: RendererStore }
+      ).__nibiSessionStoreE2E;
       const state = storeApi?.getState?.();
       if (!state?.upsertOptimisticTaskListItem) {
         return { ok: false, reason: "store-api-missing" };
@@ -503,8 +503,8 @@ async function injectRendererQueuedPromptForE2E(
       };
 
       const storeApi = (
-        window as Window & { __zcodeSessionStoreE2E?: RendererStore }
-      ).__zcodeSessionStoreE2E;
+        window as Window & { __nibiSessionStoreE2E?: RendererStore }
+      ).__nibiSessionStoreE2E;
       const state = storeApi?.getState?.();
       if (!state?.enqueueTaskQueuedPrompt || !state.setTaskStopRequested) {
         return { ok: false, reason: "store-api-missing" };

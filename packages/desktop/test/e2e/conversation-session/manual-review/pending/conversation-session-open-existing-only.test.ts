@@ -70,9 +70,9 @@ async function clearSessionOpenArmsEvents(): Promise<void> {
   await browser.execute(() => {
     (
       window as Window & {
-        __zcodeArmsCustomEventsE2E?: Array<ArmsCustomEventPayload & { recordedAt?: number }>;
+        __nibiArmsCustomEventsE2E?: Array<ArmsCustomEventPayload & { recordedAt?: number }>;
       }
-    ).__zcodeArmsCustomEventsE2E = [];
+    ).__nibiArmsCustomEventsE2E = [];
   });
 }
 
@@ -82,9 +82,9 @@ async function readSessionOpenArmsEvents(sessionId: string): Promise<ArmsCustomE
       const events =
         (
           window as Window & {
-            __zcodeArmsCustomEventsE2E?: Array<ArmsCustomEventPayload & { recordedAt?: number }>;
+            __nibiArmsCustomEventsE2E?: Array<ArmsCustomEventPayload & { recordedAt?: number }>;
           }
-        ).__zcodeArmsCustomEventsE2E ?? [];
+        ).__nibiArmsCustomEventsE2E ?? [];
       return events
         .filter(
           (event) =>

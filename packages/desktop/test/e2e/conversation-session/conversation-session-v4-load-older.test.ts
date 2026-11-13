@@ -61,9 +61,9 @@ function startV4TimelineWindowObservation(): Promise<void> {
       samples: V4TimelineWindowObservation[];
     }
     const target = window as typeof window & {
-      __zcodeV4TimelineWindowObservation?: BrowserObservationState;
+      __nibiV4TimelineWindowObservation?: BrowserObservationState;
     };
-    target.__zcodeV4TimelineWindowObservation?.observer.disconnect();
+    target.__nibiV4TimelineWindowObservation?.observer.disconnect();
 
     const samples: V4TimelineWindowObservation[] = [];
     const capture = () => {
@@ -103,7 +103,7 @@ function startV4TimelineWindowObservation(): Promise<void> {
     };
     const observer = new MutationObserver(() => {
       capture();
-      const state = target.__zcodeV4TimelineWindowObservation;
+      const state = target.__nibiV4TimelineWindowObservation;
       if (!state) return;
       if (state.frame !== null) cancelAnimationFrame(state.frame);
       state.frame = requestAnimationFrame(capture);
@@ -114,7 +114,7 @@ function startV4TimelineWindowObservation(): Promise<void> {
       childList: true,
       subtree: true,
     });
-    target.__zcodeV4TimelineWindowObservation = {
+    target.__nibiV4TimelineWindowObservation = {
       capture,
       frame: null,
       observer,
@@ -127,7 +127,7 @@ function startV4TimelineWindowObservation(): Promise<void> {
 async function stopV4TimelineWindowObservation(): Promise<V4TimelineWindowObservation[]> {
   return await browser.execute(async () => {
     const target = window as typeof window & {
-      __zcodeV4TimelineWindowObservation?: {
+      __nibiV4TimelineWindowObservation?: {
         capture: () => void;
         frame: number | null;
         observer: MutationObserver;
@@ -137,12 +137,12 @@ async function stopV4TimelineWindowObservation(): Promise<V4TimelineWindowObserv
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     });
-    const state = target.__zcodeV4TimelineWindowObservation;
+    const state = target.__nibiV4TimelineWindowObservation;
     if (!state) return [];
     state.capture();
     state.observer.disconnect();
     if (state.frame !== null) cancelAnimationFrame(state.frame);
-    delete target.__zcodeV4TimelineWindowObservation;
+    delete target.__nibiV4TimelineWindowObservation;
     return state.samples;
   });
 }
@@ -154,12 +154,12 @@ function getObservedPrependAnchorState(fullRawRows: number): Promise<{
   return browser.execute(
     (expectedFullRawRows, snapshotTailRawRows, historyTurns, maxDeltaPx) => {
       const target = window as typeof window & {
-        __zcodeV4TimelineWindowObservation?: {
+        __nibiV4TimelineWindowObservation?: {
           capture: () => void;
           samples: V4TimelineWindowObservation[];
         };
       };
-      const state = target.__zcodeV4TimelineWindowObservation;
+      const state = target.__nibiV4TimelineWindowObservation;
       if (!state) return { samples: [], stable: false };
       state.capture();
       const truncatedIndex = state.samples.findIndex(

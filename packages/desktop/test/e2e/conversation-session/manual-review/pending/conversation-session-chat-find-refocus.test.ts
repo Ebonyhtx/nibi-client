@@ -138,7 +138,7 @@ async function injectLongCompletedConversation() {
     (workspacePath, injectedTaskId, assistantContent) => {
       const store = (
         window as Window & {
-          __zcodeSessionStoreE2E?: {
+          __nibiSessionStoreE2E?: {
             getState?: () => {
               setActiveTaskId?: (workspacePath: string, taskId: string) => void;
               setTaskMessages?: (
@@ -161,7 +161,7 @@ async function injectLongCompletedConversation() {
             };
           };
         }
-      ).__zcodeSessionStoreE2E?.getState?.();
+      ).__nibiSessionStoreE2E?.getState?.();
       if (
         !store?.setActiveTaskId ||
         !store.setTaskMessages ||

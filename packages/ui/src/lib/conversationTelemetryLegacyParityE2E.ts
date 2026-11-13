@@ -81,7 +81,7 @@ interface LegacyScenarioResult {
 
 declare global {
   interface Window {
-    __zcodeConversationTelemetryParityE2E?: {
+    __nibiConversationTelemetryParityE2E?: {
       variant: "current" | "legacy";
       run(caseId: string): Promise<LegacyScenarioResult>;
     };
@@ -97,10 +97,10 @@ export function installLegacyConversationTelemetryParityE2EBridge(input: {
     variant: "legacy" as const,
     run: (caseId: string) => runLegacyScenario(input.platform, caseId),
   };
-  window.__zcodeConversationTelemetryParityE2E = bridge;
+  window.__nibiConversationTelemetryParityE2E = bridge;
   return () => {
-    if (window.__zcodeConversationTelemetryParityE2E === bridge) {
-      delete window.__zcodeConversationTelemetryParityE2E;
+    if (window.__nibiConversationTelemetryParityE2E === bridge) {
+      delete window.__nibiConversationTelemetryParityE2E;
     }
   };
 }

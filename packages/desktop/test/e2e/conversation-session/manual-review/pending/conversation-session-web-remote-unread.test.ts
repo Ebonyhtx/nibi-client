@@ -337,14 +337,14 @@ describe(`${CASE}: 实际 Web 查看与桌面唯一未读写者`, () => {
       const promoted: UnreadTaskAddress = await page.evaluate((taskId) => {
         const tabs = (
           window as Window & {
-            __zcodeTabStoreE2E?: {
+            __nibiTabStoreE2E?: {
               getState(): {
                 activeWorkspacePath: string | null;
                 activeWorkspaceIdentity?: string | null;
               };
             };
           }
-        ).__zcodeTabStoreE2E?.getState();
+        ).__nibiTabStoreE2E?.getState();
         if (!tabs?.activeWorkspacePath) throw new Error("MRO03 promoted workspace missing");
         return {
           taskId,

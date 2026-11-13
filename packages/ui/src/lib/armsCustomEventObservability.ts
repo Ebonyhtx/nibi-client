@@ -8,7 +8,7 @@ export interface ArmsCustomEventE2EEntry extends ArmsCustomEventPayload {
 const MAX_ARMS_CUSTOM_EVENT_ENTRIES = 200;
 
 type ArmsCustomEventDebugWindow = Window & {
-  __zcodeArmsCustomEventsE2E?: ArmsCustomEventE2EEntry[];
+  __nibiArmsCustomEventsE2E?: ArmsCustomEventE2EEntry[];
 };
 
 /**
@@ -27,7 +27,7 @@ export function recordArmsCustomEventForE2E(
   if (!enabled || (typeof window === "undefined" && !options.host)) return;
 
   const host = options.host ?? (window as ArmsCustomEventDebugWindow);
-  const buffer = (host.__zcodeArmsCustomEventsE2E ??= []);
+  const buffer = (host.__nibiArmsCustomEventsE2E ??= []);
   buffer.push({
     ...payload,
     ...(payload.properties ? { properties: { ...payload.properties } } : {}),

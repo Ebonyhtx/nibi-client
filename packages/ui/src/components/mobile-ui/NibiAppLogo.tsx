@@ -15,7 +15,7 @@ export function NibiAppLogo({ className }: NibiAppLogoProps) {
       aria-hidden="true"
       draggable={false}
       // 稳定的测试/E2E 钩子：打包器可能把 SVG 内联为 data URL，不能靠文件名断言。
-      data-app-logo="zcode"
+      data-app-logo="nibi"
       className={cn("shrink-0 select-none object-contain", className)}
     />
   );

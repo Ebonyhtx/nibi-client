@@ -308,7 +308,7 @@ export async function selectPluginSettingsScope(scope: "user" | "workspace"): Pr
           await browser.execute(() => {
             const tabStore = (
               window as typeof window & {
-                __zcodeTabStoreE2E?: {
+                __nibiTabStoreE2E?: {
                   getState?: () => {
                     activeWorkspacePath?: string | null;
                     activeWorkspaceIdentity?: string | null;
@@ -316,7 +316,7 @@ export async function selectPluginSettingsScope(scope: "user" | "workspace"): Pr
                   };
                 };
               }
-            ).__zcodeTabStoreE2E;
+            ).__nibiTabStoreE2E;
             const state = tabStore?.getState?.();
             return {
               activeWorkspacePath: state?.activeWorkspacePath ?? null,
@@ -906,7 +906,7 @@ export async function waitForPluginDraftRuntimeInvalidation(
       browser.execute((path) => {
         const store = (
           window as typeof window & {
-            __zcodeSessionStoreE2E?: {
+            __nibiSessionStoreE2E?: {
               getState: () => {
                 getWorkspaceState: (workspacePath: string) => {
                   draftSessionId: string | null;
@@ -914,7 +914,7 @@ export async function waitForPluginDraftRuntimeInvalidation(
               };
             };
           }
-        ).__zcodeSessionStoreE2E;
+        ).__nibiSessionStoreE2E;
         return store?.getState().getWorkspaceState(path).draftSessionId === null;
       }, workspacePath),
     {

@@ -2443,16 +2443,16 @@ export class BrowserGuestManager {
       const up = () => {
         cursor.style.transform = "translate(-50%,-50%) scale(1)";
       };
-      window["__zcodeBrowserRecordingCursorCleanup"]?.();
+      window["__nibiBrowserRecordingCursorCleanup"]?.();
       window.addEventListener("mousemove", move, true);
       window.addEventListener("mousedown", down, true);
       window.addEventListener("mouseup", up, true);
-      window["__zcodeBrowserRecordingCursorCleanup"] = () => {
+      window["__nibiBrowserRecordingCursorCleanup"] = () => {
         window.removeEventListener("mousemove", move, true);
         window.removeEventListener("mousedown", down, true);
         window.removeEventListener("mouseup", up, true);
         cursor.remove();
-        delete window["__zcodeBrowserRecordingCursorCleanup"];
+        delete window["__nibiBrowserRecordingCursorCleanup"];
       };
     })()`);
   }
@@ -2460,7 +2460,7 @@ export class BrowserGuestManager {
   private async removeRecordingCursorOverlay(guest: GuestWebContents): Promise<void> {
     if (guest.isDestroyed()) return;
     await guest
-      .executeJavaScript('window["__zcodeBrowserRecordingCursorCleanup"]?.()')
+      .executeJavaScript('window["__nibiBrowserRecordingCursorCleanup"]?.()')
       .catch(() => undefined);
   }
 

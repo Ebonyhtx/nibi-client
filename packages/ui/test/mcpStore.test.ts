@@ -1036,7 +1036,7 @@ describe("mcpStore", () => {
     expect(
       useMcpStore
         .getState()
-        .getEnabledMcpServersForNibi(undefined)
+        .getEnabledMcpServersForNibi()
         .map((server) => server.name),
     ).toEqual(["user_probe"]);
 
@@ -1056,7 +1056,7 @@ describe("mcpStore", () => {
     expect(
       useMcpStore
         .getState()
-        .getEnabledMcpServersForNibi(undefined)
+        .getEnabledMcpServersForNibi()
         .map((server) => server.name)
         .sort(),
     ).toEqual(["probe", "user_probe"]);
@@ -1114,7 +1114,7 @@ describe("mcpStore", () => {
 
     // 未信任：开关仍展示配置值，但不会进入 Agent 输入。
     expect(useMcpStore.getState().servers[0]?.enabled).toBe(true);
-    expect(useMcpStore.getState().getEnabledMcpServersForNibi(undefined)).toEqual([]);
+    expect(useMcpStore.getState().getEnabledMcpServersForNibi()).toEqual([]);
 
     await expect(
       useMcpStore.getState().decideWorkspaceTrust("probe", true),
@@ -1132,7 +1132,7 @@ describe("mcpStore", () => {
     expect(
       useMcpStore
         .getState()
-        .getEnabledMcpServersForNibi(undefined)
+        .getEnabledMcpServersForNibi()
         .map((server) => server.name),
     ).toEqual(["probe"]);
   });
@@ -1196,7 +1196,7 @@ describe("mcpStore", () => {
     });
     expect(useMcpStore.getState().workspaceTrust.probe?.trusted).toBe(false);
     expect(
-      useMcpStore.getState().getEnabledMcpServersForNibi(undefined).map((server) => server.name),
+      useMcpStore.getState().getEnabledMcpServersForNibi().map((server) => server.name),
     ).toEqual([]);
   });
 

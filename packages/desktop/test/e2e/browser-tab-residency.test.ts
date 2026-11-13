@@ -292,14 +292,14 @@ function readActiveWorkspaceKey(): Promise<string | null> {
   return browser.execute(() => {
     const bridge = (
       window as Window & {
-        __zcodeTabStoreE2E?: {
+        __nibiTabStoreE2E?: {
           getState?: () => {
             activeWorkspaceIdentity?: string | null;
             activeWorkspacePath?: string | null;
           };
         };
       }
-    ).__zcodeTabStoreE2E;
+    ).__nibiTabStoreE2E;
     const state = bridge?.getState?.();
     return state?.activeWorkspaceIdentity?.trim() || state?.activeWorkspacePath || null;
   });

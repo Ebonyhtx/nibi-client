@@ -801,7 +801,7 @@ export function readRemoteTabSnapshot(
       };
       const store = (
         window as Window & {
-          __zcodeTabStoreE2E?: {
+          __nibiTabStoreE2E?: {
             getState?: () => {
               activeWorkspaceIdentity?: string | null;
               activeWorkspacePath?: string | null;
@@ -809,7 +809,7 @@ export function readRemoteTabSnapshot(
             };
           };
         }
-      ).__zcodeTabStoreE2E;
+      ).__nibiTabStoreE2E;
       const state = store?.getState?.();
       const candidates =
         state?.tabs?.filter((candidate) =>
@@ -863,7 +863,7 @@ export async function waitForSSHConversation(
           };
           const store = (
             window as Window & {
-              __zcodeTabStoreE2E?: {
+              __nibiTabStoreE2E?: {
                 getState?: () => {
                   activeWorkspaceIdentity?: string | null;
                   activeWorkspacePath?: string | null;
@@ -871,7 +871,7 @@ export async function waitForSSHConversation(
                 };
               };
             }
-          ).__zcodeTabStoreE2E;
+          ).__nibiTabStoreE2E;
           const state = store?.getState?.();
           // dual target 场景下,先连接的设备在表单提交时也会自动打开自己的设备级
           // conversation(路径同为 ~/.nibi/workspace/default)。只按路径匹配会把 A 的

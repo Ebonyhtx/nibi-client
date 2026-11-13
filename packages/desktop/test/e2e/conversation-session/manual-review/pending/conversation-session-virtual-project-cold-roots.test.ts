@@ -62,11 +62,11 @@ describe("虚拟项目多目录冷恢复", () => {
       browser.execute((cwd) => {
         const store = (
           window as Window & {
-            __zcodeSessionStoreE2E?: {
+            __nibiSessionStoreE2E?: {
               getState(): { getWorkspaceState(path: string): { activeTaskId: string | null } };
             };
           }
-        ).__zcodeSessionStoreE2E;
+        ).__nibiSessionStoreE2E;
         return store?.getState().getWorkspaceState(cwd).activeTaskId ?? null;
       }, roots[0]!);
     const inspect = async (phase: string, expectedExtra: "B" | "C") => {

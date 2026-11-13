@@ -196,13 +196,13 @@ async function counts() {
   const workspaceScopes = await browser.execute(() => {
     const store = (
       window as Window & {
-        __zcodeTabStoreE2E?: {
+        __nibiTabStoreE2E?: {
           getState(): {
             tabs: Array<{ type: string; workspacePath?: string; workspaceIdentity?: string }>;
           };
         };
       }
-    ).__zcodeTabStoreE2E;
+    ).__nibiTabStoreE2E;
     if (!store) throw new Error("E2E tab store unavailable");
     return store
       .getState()

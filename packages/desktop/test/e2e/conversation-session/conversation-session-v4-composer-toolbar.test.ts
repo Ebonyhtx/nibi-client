@@ -338,8 +338,8 @@ describe("v4 M5 门禁：composer 工具条与 slash 候选面板", () => {
         const acks = await browser
           .execute(() =>
             JSON.stringify(
-              (window as Window & { __zcodeV4CommandAcksE2E?: unknown[] })
-                .__zcodeV4CommandAcksE2E ?? [],
+              (window as Window & { __nibiV4CommandAcksE2E?: unknown[] })
+                .__nibiV4CommandAcksE2E ?? [],
             ),
           )
           .catch(() => "acks unavailable");

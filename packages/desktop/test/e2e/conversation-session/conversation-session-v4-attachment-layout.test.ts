@@ -144,9 +144,9 @@ async function dispatchComposerContexts(): Promise<void> {
   const dispatched = await browser.execute(() => {
     const tabState = (
       window as typeof window & {
-        __zcodeTabStoreE2E?: { getState(): { activeWorkspacePath?: string } };
+        __nibiTabStoreE2E?: { getState(): { activeWorkspacePath?: string } };
       }
-    ).__zcodeTabStoreE2E?.getState();
+    ).__nibiTabStoreE2E?.getState();
     const workspacePath = tabState?.activeWorkspacePath;
     if (!workspacePath) return false;
     window.dispatchEvent(

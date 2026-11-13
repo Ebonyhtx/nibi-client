@@ -26,7 +26,7 @@ const sessionStoreUrl = `/@fs${resolve(import.meta.dirname, "../../../../../../u
 
 interface DirectoryTestWindow extends Window {
   __mro02RestoreClipboard?: () => void;
-  __zcodeTabStoreE2E?: {
+  __nibiTabStoreE2E?: {
     getState(): { activeWorkspacePath: string | null; activeWorkspaceIdentity?: string | null };
   };
 }
@@ -61,7 +61,7 @@ async function showDirectory(page: Page): Promise<void> {
 async function waitForWorkspace(page: Page, path: string, identity?: string): Promise<void> {
   await page.waitForFunction(
     ({ path, identity }) => {
-      const state = (window as DirectoryTestWindow).__zcodeTabStoreE2E?.getState();
+      const state = (window as DirectoryTestWindow).__nibiTabStoreE2E?.getState();
       return (
         state?.activeWorkspacePath === path &&
         (state.activeWorkspaceIdentity ?? null) === (identity ?? null)

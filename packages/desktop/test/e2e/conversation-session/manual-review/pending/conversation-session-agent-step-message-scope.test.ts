@@ -211,7 +211,7 @@ async function prepareArmsCapture(): Promise<FinalArmsCaptureMode> {
   const hasFinalBridge = await browser.execute(
     async (targetArmsEvents) => {
       type DebugWindow = Window & {
-        __zcodeArmsCustomEventsE2E?: Array<ArmsCustomEventPayload & { recordedAt?: number }>;
+        __nibiArmsCustomEventsE2E?: Array<ArmsCustomEventPayload & { recordedAt?: number }>;
         __nibiFinalArmsCustomEventsE2E?: {
           clear(): Promise<void>;
           configure(request: { suppressedEventNames: string[] }): Promise<void>;
@@ -221,7 +221,7 @@ async function prepareArmsCapture(): Promise<FinalArmsCaptureMode> {
         };
       };
       const host = window as DebugWindow;
-      host.__zcodeArmsCustomEventsE2E = [];
+      host.__nibiArmsCustomEventsE2E = [];
 
       const finalBridge = host.__nibiFinalArmsCustomEventsE2E;
       if (finalBridge) {
@@ -288,9 +288,9 @@ async function readTargetRendererArms(): Promise<ArmsCustomEventPayload[]> {
       const buffer =
         (
           window as Window & {
-            __zcodeArmsCustomEventsE2E?: Array<ArmsCustomEventPayload & { recordedAt?: number }>;
+            __nibiArmsCustomEventsE2E?: Array<ArmsCustomEventPayload & { recordedAt?: number }>;
           }
-        ).__zcodeArmsCustomEventsE2E ?? [];
+        ).__nibiArmsCustomEventsE2E ?? [];
       return buffer
         .filter(
           (entry) =>

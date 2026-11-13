@@ -7,7 +7,7 @@ import type {
 
 // UI-only sidecar：不进入 shared task meta/schema，也不写回 tasks-index。
 // 字段名使用明确的内部前缀，避免调用方把它误当成持久化 task 属性。
-export const TASK_LIST_ROW_ACTIVITY_FIELD = "__zcodeSessionActivity" as const;
+export const TASK_LIST_ROW_ACTIVITY_FIELD = "__nibiSessionActivity" as const;
 
 export interface TaskListRowActivity {
   phase: SessionSummary["phase"];

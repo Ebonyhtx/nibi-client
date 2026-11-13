@@ -263,7 +263,7 @@ export function getToolCallDiagnostics(
         chatView?.getAttribute("data-task-id") ||
         (v4SessionId && v4SessionId !== "draft" ? v4SessionId : null);
       const e2eWindow = window as Window & {
-        __zcodeSessionStoreE2E?: {
+        __nibiSessionStoreE2E?: {
           getState: () => {
             workspaces?: Record<
               string,
@@ -277,7 +277,7 @@ export function getToolCallDiagnostics(
           };
         };
       };
-      const storeApi = e2eWindow.__zcodeSessionStoreE2E;
+      const storeApi = e2eWindow.__nibiSessionStoreE2E;
       const rendererStore = (() => {
         if (!storeApi) {
           return {

@@ -2841,13 +2841,13 @@ async function inspectE2ERendererBridgePreflight(): Promise<E2ERendererBridgePre
         (requiredBridgeMethods, requiredStateMethods) => {
           const bridge = (
             window as typeof window & {
-              __zcodeSessionStoreE2E?: Record<string, unknown> & {
+              __nibiSessionStoreE2E?: Record<string, unknown> & {
                 getState?: () => Record<string, unknown>;
                 setState?: (...args: unknown[]) => unknown;
                 subscribe?: (...args: unknown[]) => unknown;
               };
             }
-          ).__zcodeSessionStoreE2E;
+          ).__nibiSessionStoreE2E;
           const bridgeMethods = Object.fromEntries(
             requiredBridgeMethods.map((method) => [method, typeof bridge?.[method] === "function"]),
           ) as Record<string, boolean>;

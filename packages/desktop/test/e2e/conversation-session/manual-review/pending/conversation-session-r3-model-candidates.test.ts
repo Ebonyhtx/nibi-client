@@ -163,14 +163,14 @@ describe(`${CASE_MARKER}: 远端 tab 候选读目标远端（离线不 fallback 
         const activated = await browser.execute((identity) => {
           const store = (
             window as Window & {
-              __zcodeTabStoreE2E?: {
+              __nibiTabStoreE2E?: {
                 getState(): {
                   tabs: Array<{ id: string; workspaceIdentity?: string }>;
                   activateTab(id: string): void;
                 };
               };
             }
-          ).__zcodeTabStoreE2E;
+          ).__nibiTabStoreE2E;
           const state = store?.getState();
           const tab = state?.tabs.find((item) => item.workspaceIdentity === identity);
           if (!tab) return false;

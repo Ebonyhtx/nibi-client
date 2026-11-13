@@ -916,9 +916,9 @@ function E2ELexicalInputBridgePlugin({ inputTestId }: { inputTestId?: string }) 
     const detachBridge = (input: HTMLElement | null) => {
       if (
         input &&
-        (input as { __zcodeLexicalInputE2E?: typeof bridge }).__zcodeLexicalInputE2E === bridge
+        (input as { __nibiLexicalInputE2E?: typeof bridge }).__nibiLexicalInputE2E === bridge
       ) {
-        delete (input as { __zcodeLexicalInputE2E?: typeof bridge }).__zcodeLexicalInputE2E;
+        delete (input as { __nibiLexicalInputE2E?: typeof bridge }).__nibiLexicalInputE2E;
       }
       input?.removeAttribute("data-e2e-lexical-bridge");
     };
@@ -933,7 +933,7 @@ function E2ELexicalInputBridgePlugin({ inputTestId }: { inputTestId?: string }) 
 
       // E2E 需要驱动真实 Lexical state；只改 DOM contenteditable 会绕过 editor update，
       // 容易把文本误打到主输入框，导致测试结论和产品行为脱节。
-      Object.defineProperty(input, "__zcodeLexicalInputE2E", {
+      Object.defineProperty(input, "__nibiLexicalInputE2E", {
         configurable: true,
         value: bridge,
       });

@@ -886,7 +886,7 @@ async function isUpstreamThoughtLevelSelected(thoughtLevel: string) {
       const normalize = (value: string) => value.replace(/\s+/g, " ").trim().toLowerCase();
       const readCurrentThoughtLevel = () => {
         const e2eWindow = window as Window & {
-          __zcodeSessionStoreE2E?: {
+          __nibiSessionStoreE2E?: {
             getState: () => {
               getWorkspaceState?: (
                 workspacePath: string,
@@ -912,7 +912,7 @@ async function isUpstreamThoughtLevelSelected(thoughtLevel: string) {
             };
           };
         };
-        const workspaceState = e2eWindow.__zcodeSessionStoreE2E
+        const workspaceState = e2eWindow.__nibiSessionStoreE2E
           ?.getState()
           .getWorkspaceState?.(defaultWorkspace);
         const readFromOptions = (
@@ -976,7 +976,7 @@ export function getSelectedUpstreamThoughtLevelLabel() {
     (triggerTestId, modelConfigTestId, defaultWorkspace) => {
       const readCurrentValue = () => {
         const e2eWindow = window as Window & {
-          __zcodeSessionStoreE2E?: {
+          __nibiSessionStoreE2E?: {
             getState: () => {
               getWorkspaceState?: (
                 workspacePath: string,
@@ -1002,7 +1002,7 @@ export function getSelectedUpstreamThoughtLevelLabel() {
             };
           };
         };
-        const workspaceState = e2eWindow.__zcodeSessionStoreE2E
+        const workspaceState = e2eWindow.__nibiSessionStoreE2E
           ?.getState()
           .getWorkspaceState?.(defaultWorkspace);
         const readFromOptions = (
@@ -1206,7 +1206,7 @@ async function collectModelDropdownDiagnostics(
         locked: element.getAttribute("data-model-option-locked"),
       }));
       const e2eWindow = window as Window & {
-        __zcodeSessionStoreE2E?: {
+        __nibiSessionStoreE2E?: {
           getState: () => {
             getWorkspaceState?: (
               workspacePath: string,
@@ -1244,7 +1244,7 @@ async function collectModelDropdownDiagnostics(
           };
         };
       };
-      const storeState = e2eWindow.__zcodeSessionStoreE2E?.getState();
+      const storeState = e2eWindow.__nibiSessionStoreE2E?.getState();
       const workspaceState = storeState?.getWorkspaceState?.(defaultWorkspace);
       const selectSummary = (
         options:

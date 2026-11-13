@@ -42,7 +42,7 @@ function renderDraft({
   text = "",
 } = {}) {
   document.body.innerHTML = `<div data-testid="${testId(TID_V4_SESSION_PANE, "workspace-main")}" data-session-id="${session}"><div data-testid="${TID_V4_COMPOSER_INPUT}" contenteditable="true">${text}</div></div><button data-testid="${TID_COMPOSER_WORKSPACE_TRIGGER}">${project}</button>`;
-  vi.stubGlobal("__zcodeTabStoreE2E", { getState: () => ({ activeWorkspacePath: path }) });
+  vi.stubGlobal("__nibiTabStoreE2E", { getState: () => ({ activeWorkspacePath: path }) });
 }
 
 beforeEach(() => {

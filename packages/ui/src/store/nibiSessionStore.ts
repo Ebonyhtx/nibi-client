@@ -26,13 +26,13 @@ type NibiSessionStoreE2EBridge = typeof useNibiSessionStore;
 
 declare global {
   interface Window {
-    __zcodeSessionStoreE2E?: NibiSessionStoreE2EBridge;
+    __nibiSessionStoreE2E?: NibiSessionStoreE2EBridge;
   }
 }
 
 if (shouldExposeE2EStoreBridge()) {
   // E2E 诊断入口必须由 WDIO 显式打开，不能复用 NIBI_ENV=test，避免产品测试环境暴露可变全局 store。
-  window.__zcodeSessionStoreE2E = useNibiSessionStore;
+  window.__nibiSessionStoreE2E = useNibiSessionStore;
 }
 
 // ────────────────────────────────────────────

@@ -327,17 +327,17 @@ async function installContextWindowProjectionRecorder(
         subscribe: (listener: (state: SessionStoreState) => void) => () => void;
       }
       interface RecorderHost {
-        __zcodeContextWindowColdResumeE2E?: {
+        __nibiContextWindowColdResumeE2E?: {
           dom: number[];
           observer: MutationObserver;
           store: number[];
           unsubscribe: () => void;
         };
-        __zcodeSessionStoreE2E?: SessionStoreBridge;
+        __nibiSessionStoreE2E?: SessionStoreBridge;
       }
       const host = window as unknown as RecorderHost;
-      host.__zcodeContextWindowColdResumeE2E?.observer.disconnect();
-      host.__zcodeContextWindowColdResumeE2E?.unsubscribe();
+      host.__nibiContextWindowColdResumeE2E?.observer.disconnect();
+      host.__nibiContextWindowColdResumeE2E?.unsubscribe();
 
       const dom: number[] = [];
       const store: number[] = [];
@@ -363,7 +363,7 @@ async function installContextWindowProjectionRecorder(
         subtree: true,
       });
 
-      const bridge = host.__zcodeSessionStoreE2E;
+      const bridge = host.__nibiSessionStoreE2E;
       if (!bridge) {
         throw new Error("Nibi session E2E store bridge 未注册");
       }
@@ -375,7 +375,7 @@ async function installContextWindowProjectionRecorder(
       const unsubscribe = bridge.subscribe(recordStore);
       recordStore(bridge.getState());
       recordDom();
-      host.__zcodeContextWindowColdResumeE2E = {
+      host.__nibiContextWindowColdResumeE2E = {
         dom,
         observer,
         store,
@@ -393,9 +393,9 @@ async function readContextWindowProjectionRecorder(): Promise<number[]> {
   const recorder = await browser.execute(() => {
     const value = (
       window as unknown as {
-        __zcodeContextWindowColdResumeE2E?: ContextWindowProjectionRecorder;
+        __nibiContextWindowColdResumeE2E?: ContextWindowProjectionRecorder;
       }
-    ).__zcodeContextWindowColdResumeE2E;
+    ).__nibiContextWindowColdResumeE2E;
     return value ? { dom: [...value.dom], store: [...value.store] } : null;
   });
   if (!recorder) {

@@ -188,14 +188,14 @@ async function activateRemoteTab(identity: string): Promise<void> {
   const activated = await browser.execute((id) => {
     const store = (
       window as Window & {
-        __zcodeTabStoreE2E?: {
+        __nibiTabStoreE2E?: {
           getState?: () => {
             tabs?: Array<{ id: string; workspaceIdentity?: string }>;
             activateTab?: (tabId: string) => void;
           };
         };
       }
-    ).__zcodeTabStoreE2E;
+    ).__nibiTabStoreE2E;
     const state = store?.getState?.();
     const tab = state?.tabs?.find((candidate) => candidate.workspaceIdentity === id);
     if (!tab || !state?.activateTab) return false;

@@ -500,11 +500,11 @@ describe("executeBrowserCommandOnView", () => {
     const view = makeView();
     const r = await executeBrowserCommandOnView(view, { method: "snapshot" });
     expect(view.webContents.executeJavaScript).toHaveBeenCalledTimes(1);
-    // 传入的应是包含 __zcodeRefs 的注入脚本字符串。
+    // 传入的应是包含 __nibiRefs 的注入脚本字符串。
     const script = (view.webContents.executeJavaScript as ReturnType<typeof vi.fn>).mock
       .calls[0][0];
     expect(typeof script).toBe("string");
-    expect(script).toContain("__zcodeRefs");
+    expect(script).toContain("__nibiRefs");
     expect(script).toContain("DOM_SEL");
     expect(script).toContain("domTruncated");
     expect(r.ok).toBe(true);
@@ -749,8 +749,8 @@ describe("executeBrowserCommandOnView", () => {
     const pasteExpression = expressions.find((expression) =>
       expression.includes("const pageFunction = async"),
     );
-    expect(fillExpression).toContain("__zcodeIabInputTargetToken");
-    expect(pasteExpression).toContain("__zcodeIabInputTargetToken");
+    expect(fillExpression).toContain("__nibiIabInputTargetToken");
+    expect(pasteExpression).toContain("__nibiIabInputTargetToken");
     expect(cdpSend).not.toHaveBeenCalledWith("Input.insertText", expect.anything());
   });
 
@@ -826,7 +826,7 @@ describe("executeBrowserCommandOnView", () => {
 
     expect(result.ok).toBe(true);
     expect(
-      expressions.some((expression) => expression.includes("__zcodeIabInputTargetToken")),
+      expressions.some((expression) => expression.includes("__nibiIabInputTargetToken")),
     ).toBe(true);
     expect(cdpSend).toHaveBeenCalledWith("Input.dispatchKeyEvent", {
       type: "keyDown",
@@ -878,7 +878,7 @@ describe("executeBrowserCommandOnView", () => {
         ),
     };
     const runtime = createContext({
-      __zcodePlaywrightInjected: injected,
+      __nibiPlaywrightInjected: injected,
       document: {},
       innerHeight: 800,
       innerWidth: 1200,
@@ -1076,7 +1076,7 @@ describe("executeBrowserCommandOnView", () => {
       strictModeViolationError: () => new Error("strict violation"),
     };
     const runtime = createContext({
-      __zcodePlaywrightInjected: injected,
+      __nibiPlaywrightInjected: injected,
       document: {},
       innerHeight: 800,
       innerWidth: 1200,
@@ -1281,7 +1281,7 @@ describe("executeBrowserCommandOnView", () => {
       if (method === "Runtime.evaluate") {
         const expression = String((params as { expression?: unknown }).expression ?? "");
         if (expression.startsWith("Boolean(globalThis.")) return { result: { value: false } };
-        if (expression.includes("globalThis.__zcodePlaywrightInjected = new")) {
+        if (expression.includes("globalThis.__nibiPlaywrightInjected = new")) {
           return { result: { value: true } };
         }
         if (expression.includes("elementsFromPoint(options.x, options.y)")) {
@@ -1859,7 +1859,7 @@ describe("executeBrowserCommandOnView", () => {
     expect(r.error?.code).toBe("execution_error");
   });
 
-  it("select 注入脚本(含 __zcodeRefs)，脚本回 ok → ok:true", async () => {
+  it("select 注入脚本(含 __nibiRefs)，脚本回 ok → ok:true", async () => {
     const exec = vi.fn(async () => ({ ok: true }));
     const view = makeView({ executeJavaScript: exec });
     const r = await executeBrowserCommandOnView(view, {
@@ -1869,7 +1869,7 @@ describe("executeBrowserCommandOnView", () => {
     });
     expect(r.ok).toBe(true);
     const script = exec.mock.calls[0][0] as string;
-    expect(script).toContain("__zcodeRefs");
+    expect(script).toContain("__nibiRefs");
     // values 经 JSON.stringify 内插。
     expect(script).toContain('["opt-a"]');
   });
@@ -1921,7 +1921,7 @@ describe("executeBrowserCommandOnView", () => {
     });
     expect(r.ok).toBe(true);
     const script = exec.mock.calls[0][0] as string;
-    expect(script).toContain("__zcodeRefs");
+    expect(script).toContain("__nibiRefs");
     expect(script).toContain("var want=true");
   });
 

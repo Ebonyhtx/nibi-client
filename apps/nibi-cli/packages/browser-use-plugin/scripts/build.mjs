@@ -16,8 +16,8 @@ const executableFileMode = 0o755;
 // 这里注入真实的 createRequire，让 shim 落到可用的 require 上（产物仍是 ESM）。
 // 两个 bundle 都加：browser-client 目前没有 CJS 依赖，但同样是 ESM 产物，后续被拖进一个
 // CJS 依赖就会以同样的方式在加载期炸掉。
-const nodeRequireBanner = `import { createRequire as __zcodeCreateRequire } from "node:module";
-const require = __zcodeCreateRequire(import.meta.url);`;
+const nodeRequireBanner = `import { createRequire as __nibiCreateRequire } from "node:module";
+const require = __nibiCreateRequire(import.meta.url);`;
 
 const createBundleOptions = ({ entryPoint, outfile }) => ({
   banner: {

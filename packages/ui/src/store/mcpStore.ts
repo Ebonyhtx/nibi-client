@@ -151,7 +151,7 @@ interface McpStoreState {
     serverName: string,
     trusted: boolean,
   ) => Promise<WorkspaceMcpTrustDecision>;
-  getEnabledMcpServersForNibi: (provider: string) => NibiAgentMcpServer[];
+  getEnabledMcpServersForNibi: () => NibiAgentMcpServer[];
   checkAllServerStatus: (
     tester: (config: McpServerConfig) => Promise<{ success: boolean; error?: string }>,
   ) => Promise<void>;
@@ -754,7 +754,7 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
       return decision;
     },
 
-    getEnabledMcpServersForNibi: (_provider) => {
+    getEnabledMcpServersForNibi: () => {
       const { servers, enabledStates, currentProjectPath, workspaceTrust, workspaceTrustKnown } =
         get();
       const candidates = new Map<string, NibiMcpServer>();

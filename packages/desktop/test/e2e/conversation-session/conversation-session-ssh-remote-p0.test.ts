@@ -526,7 +526,7 @@ function readRemoteTabSnapshot(
       };
       const store = (
         window as Window & {
-          __zcodeTabStoreE2E?: {
+          __nibiTabStoreE2E?: {
             getState?: () => {
               activeTabId?: string | null;
               activeWorkspaceIdentity?: string | null;
@@ -535,7 +535,7 @@ function readRemoteTabSnapshot(
             };
           };
         }
-      ).__zcodeTabStoreE2E;
+      ).__nibiTabStoreE2E;
       const state = store?.getState?.();
       const matchingRemoteTab = state?.tabs?.find((tab) =>
         identity ? tab.workspaceIdentity === identity : tab.workspacePath === workspacePath,

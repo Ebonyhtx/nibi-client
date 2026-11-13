@@ -19,7 +19,7 @@ it("still accepts native session drops with the full workspace identity", () => 
   const props = fixture();
   const { container } = render(createElement(ProjectNode, props));
   const payload = {
-    kind: "zcode/session" as const,
+    kind: "nibi/session" as const,
     workspacePath: "/repo",
     workspaceIdentity: "remote:server:one:/repo",
     sessionId: "s",
@@ -176,7 +176,7 @@ it("highlights the whole session target across nested rows and clears on leave, 
     types: [WORKBENCH_SESSION_DRAG_MIME],
     getData: () =>
       serializeWorkbenchSessionDragPayload({
-        kind: "zcode/session",
+        kind: "nibi/session",
         workspacePath: "/repo",
         sessionId: "s",
       }),
@@ -207,7 +207,7 @@ it("does not highlight unrelated or read-only drops and clears when availability
     types: [WORKBENCH_SESSION_DRAG_MIME],
     getData: () =>
       serializeWorkbenchSessionDragPayload({
-        kind: "zcode/session",
+        kind: "nibi/session",
         workspacePath: "/repo",
         sessionId: "s",
       }),

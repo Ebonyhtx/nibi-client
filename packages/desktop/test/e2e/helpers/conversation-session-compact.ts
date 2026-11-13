@@ -163,7 +163,7 @@ function getCompactMarkerDiagnostics() {
       }));
       const input = document.querySelector<
         HTMLElement & {
-          __zcodeLexicalInputE2E?: { getText?: () => string };
+          __nibiLexicalInputE2E?: { getText?: () => string };
         }
       >(`[data-testid="${inputTestId}"]`);
 
@@ -179,7 +179,7 @@ function getCompactMarkerDiagnostics() {
         },
         compactMarkers: [...legacyCompactMarkers, ...v4CompactMarkers],
         composer: {
-          bridgeText: input?.__zcodeLexicalInputE2E?.getText?.() ?? null,
+          bridgeText: input?.__nibiLexicalInputE2E?.getText?.() ?? null,
           domText: (input?.innerText || input?.textContent || "")
             .replace(/\u00a0/g, " ")
             .trim(),

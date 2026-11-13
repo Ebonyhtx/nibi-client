@@ -120,7 +120,7 @@ describe(`${CASE_MARKER}: 设置设备卡与未完成连接`, () => {
       const projectId = await browser.execute(
         (path, identity) => {
           const bridge = window as Window & {
-            __zcodeSessionStoreE2E?: {
+            __nibiSessionStoreE2E?: {
               getState(): {
                 getWorkspaceState(
                   path: string,
@@ -129,7 +129,7 @@ describe(`${CASE_MARKER}: 设置设备卡与未完成连接`, () => {
               };
             };
           };
-          return bridge.__zcodeSessionStoreE2E?.getState().getWorkspaceState(path, identity)
+          return bridge.__nibiSessionStoreE2E?.getState().getWorkspaceState(path, identity)
             .draftProjectId;
         },
         config.workspacePaths[0],

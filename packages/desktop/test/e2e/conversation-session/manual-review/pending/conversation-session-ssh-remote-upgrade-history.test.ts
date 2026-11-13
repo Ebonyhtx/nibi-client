@@ -346,14 +346,14 @@ async function selectMigratedTask(taskId: string, facts: Record<string, unknown>
       after: await browser.execute(() => {
         const state = (
           window as Window & {
-            __zcodeTabStoreE2E?: {
+            __nibiTabStoreE2E?: {
               getState(): {
                 activeWorkspaceIdentity?: string | null;
                 tabs?: Array<{ workspaceIdentity?: string; remoteSessionId?: string }>;
               };
             };
           }
-        ).__zcodeTabStoreE2E?.getState();
+        ).__nibiTabStoreE2E?.getState();
         return {
           activeIdentity: state?.activeWorkspaceIdentity,
           tabs: state?.tabs?.map((tab) => ({

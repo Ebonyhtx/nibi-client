@@ -78,7 +78,7 @@ const activityStore = {
       items: [
         attachTaskListRowActivity(tree.tasks[0]!, {
           phase: complete ? "completedSuccess" : "running",
-          lastActivityAt: activitySnapshot.items[0]!.__zcodeSessionActivity.lastActivityAt + 1,
+          lastActivityAt: activitySnapshot.items[0]!.__nibiSessionActivity.lastActivityAt + 1,
           hasBackgroundWork: false,
         }),
       ],
@@ -164,7 +164,7 @@ function Controls() {
   const [refreshes, setRefreshes] = useState(0);
   const taskActivity = (
     directory.tree.tasks[0] as (typeof activitySnapshot.items)[number] | undefined
-  )?.__zcodeSessionActivity;
+  )?.__nibiSessionActivity;
   return (
     <>
       {activity && (
@@ -191,7 +191,7 @@ function Controls() {
           <output data-testid="activity-version">
             {
               (directory.tree.tasks[0] as (typeof activitySnapshot.items)[number])
-                ?.__zcodeSessionActivity?.lastActivityAt
+                ?.__nibiSessionActivity?.lastActivityAt
             }
           </output>
         </>

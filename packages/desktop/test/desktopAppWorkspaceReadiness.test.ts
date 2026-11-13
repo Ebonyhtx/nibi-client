@@ -57,7 +57,7 @@ describe("desktop e2e workspace readiness probe", () => {
   it("is ready when the active workspace and a v4 session pane both exist", () => {
     appendTestId(testId(TID_WORKSPACE_ITEM, PROJECT_PATH));
     appendTestId(`${TID_V4_SESSION_PANE}-pane-1`);
-    vi.stubGlobal("__zcodeTabStoreE2E", {
+    vi.stubGlobal("__nibiTabStoreE2E", {
       getState: () => ({ activeWorkspacePath: PROJECT_PATH }),
     });
 
@@ -69,7 +69,7 @@ describe("desktop e2e workspace readiness probe", () => {
     appendTestId(testId(TID_WORKSPACE_ITEM, windowsPath));
     appendTestId(`${TID_V4_SESSION_PANE}-pane-1`);
 
-    vi.stubGlobal("__zcodeTabStoreE2E", { getState: () => ({ activeWorkspacePath: windowsPath }) });
+    vi.stubGlobal("__nibiTabStoreE2E", { getState: () => ({ activeWorkspacePath: windowsPath }) });
     expect(probe(windowsPath)).toBe("ready");
   });
 

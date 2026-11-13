@@ -450,7 +450,7 @@ async function assertDraftConfigModelValue(
   });
   const snapshot = await browser.execute((workspacePath) => {
     const e2eWindow = window as Window & {
-      __zcodeSessionStoreE2E?: {
+      __nibiSessionStoreE2E?: {
         getState: () => {
           getWorkspaceState?: (
             workspacePath: string,
@@ -478,7 +478,7 @@ async function assertDraftConfigModelValue(
         };
       };
     };
-    const workspaceState = e2eWindow.__zcodeSessionStoreE2E
+    const workspaceState = e2eWindow.__nibiSessionStoreE2E
       ?.getState()
       .getWorkspaceState?.(workspacePath);
     const modelOption = (workspaceState?.configOptions ?? []).find(

@@ -269,8 +269,8 @@ async function injectRendererTaskMetaTargetForE2E(
       };
 
       const storeApi = (
-        window as Window & { __zcodeSessionStoreE2E?: RendererStore }
-      ).__zcodeSessionStoreE2E;
+        window as Window & { __nibiSessionStoreE2E?: RendererStore }
+      ).__nibiSessionStoreE2E;
       const state = storeApi?.getState?.();
       if (!state?.upsertOptimisticTaskListItem) {
         return { ok: false, reason: "store-api-missing" };
@@ -366,8 +366,8 @@ function readRendererTaskMetaTargetStatusForE2E(taskId: string) {
       getState?: () => { workspaces?: Record<string, RendererWorkspace> };
     };
     const storeApi = (
-      window as Window & { __zcodeSessionStoreE2E?: RendererStore }
-    ).__zcodeSessionStoreE2E;
+      window as Window & { __nibiSessionStoreE2E?: RendererStore }
+    ).__nibiSessionStoreE2E;
     const state = storeApi?.getState?.();
     for (const workspace of Object.values(state?.workspaces ?? {})) {
       const task =
@@ -413,8 +413,8 @@ async function injectRendererQueuedPromptForE2E(taskId: string, content: string)
       };
 
       const storeApi = (
-        window as Window & { __zcodeSessionStoreE2E?: RendererStore }
-      ).__zcodeSessionStoreE2E;
+        window as Window & { __nibiSessionStoreE2E?: RendererStore }
+      ).__nibiSessionStoreE2E;
       const state = storeApi?.getState?.();
       if (!state?.enqueueTaskQueuedPrompt) {
         return { ok: false, reason: "store-api-missing" };

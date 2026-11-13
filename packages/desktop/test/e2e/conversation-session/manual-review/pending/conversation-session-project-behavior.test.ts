@@ -706,8 +706,8 @@ describe("虚拟项目旧产品体验", () => {
     const activeBefore = await browser.execute(
       () =>
         (
-          window as Window & { __zcodeTabStoreE2E?: { getState(): { activeTabId: string | null } } }
-        ).__zcodeTabStoreE2E?.getState().activeTabId,
+          window as Window & { __nibiTabStoreE2E?: { getState(): { activeTabId: string | null } } }
+        ).__nibiTabStoreE2E?.getState().activeTabId,
     );
     await files.click();
     const taskBack = $(
@@ -724,9 +724,9 @@ describe("虚拟项目旧产品体验", () => {
         () =>
           (
             window as Window & {
-              __zcodeTabStoreE2E?: { getState(): { activeTabId: string | null } };
+              __nibiTabStoreE2E?: { getState(): { activeTabId: string | null } };
             }
-          ).__zcodeTabStoreE2E?.getState().activeTabId,
+          ).__nibiTabStoreE2E?.getState().activeTabId,
       ),
     ).toBe(activeBefore);
     const ordinary = $(rowSelector).$(taskSelector);
@@ -961,10 +961,10 @@ async function sampleProjectMotion(reverse: boolean) {
 async function readNavigation() {
   return browser.execute(() => {
     const bridge = window as Window & {
-      __zcodeTabStoreE2E?: {
+      __nibiTabStoreE2E?: {
         getState(): { activeWorkspacePath: string | null; activeWorkspaceIdentity?: string | null };
       };
-      __zcodeSessionStoreE2E?: {
+      __nibiSessionStoreE2E?: {
         getState(): {
           getWorkspaceState(
             path: string,
@@ -977,8 +977,8 @@ async function readNavigation() {
         };
       };
     };
-    const tabs = bridge.__zcodeTabStoreE2E?.getState();
-    const sessions = bridge.__zcodeSessionStoreE2E?.getState();
+    const tabs = bridge.__nibiTabStoreE2E?.getState();
+    const sessions = bridge.__nibiSessionStoreE2E?.getState();
     if (!tabs || !sessions || !tabs.activeWorkspacePath)
       throw new Error("missing E2E navigation bridge");
     const state = sessions.getWorkspaceState(

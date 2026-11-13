@@ -9,7 +9,7 @@ declare global {
     __skillStoreE2E?: typeof useSkillStore;
     __subagentsStoreE2E?: typeof useSubagentsStore;
     __whiteboardStoreE2E?: typeof useWhiteboardStore;
-    __zcodeSessionStoreE2E?: typeof useNibiSessionStore;
+    __nibiSessionStoreE2E?: typeof useNibiSessionStore;
   }
 }
 
@@ -20,7 +20,7 @@ export function registerE2EStoreBridges() {
 
   // 部分 E2E 从设置页、错误页或特殊路由启动时，不一定自然 import
   // 对应 store 模块。renderer bootstrap 显式注册，保证 preflight 和测试注入稳定。
-  window.__zcodeSessionStoreE2E = useNibiSessionStore;
+  window.__nibiSessionStoreE2E = useNibiSessionStore;
   window.__skillStoreE2E = useSkillStore;
   window.__subagentsStoreE2E = useSubagentsStore;
   window.__whiteboardStoreE2E = useWhiteboardStore;

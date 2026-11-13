@@ -285,7 +285,7 @@ export const MemoTaskItem = memo(function TaskListItem({
       // 原因：此行同时可复制到分屏、移动到项目；只允许 copy 会让浏览器拒绝项目的 move/drop。
       event.dataTransfer.effectAllowed = "copyMove";
       const payload = {
-        kind: "zcode/session" as const,
+        kind: "nibi/session" as const,
         workspacePath,
         ...(task.workspaceIdentity?.trim() ? { workspaceIdentity: task.workspaceIdentity } : {}),
         ...(remoteSessionId ? { remoteSessionId } : {}),

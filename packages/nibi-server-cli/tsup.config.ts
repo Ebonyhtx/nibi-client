@@ -36,7 +36,7 @@ export default defineConfig({
   sourcemap: true,
   splitting: false,
   banner: {
-    js: 'import { fileURLToPath as __zcodeFileURLToPath } from "node:url"; import { dirname as __zcodeDirname } from "node:path"; const __filename = __zcodeFileURLToPath(import.meta.url); const __dirname = __zcodeDirname(__filename);',
+    js: 'import { fileURLToPath as __nibiFileURLToPath } from "node:url"; import { dirname as __nibiDirname } from "node:path"; const __filename = __nibiFileURLToPath(import.meta.url); const __dirname = __nibiDirname(__filename);',
   },
   noExternal: ["@nibi/shared", "@nibi/rpc", "@nibi/services"],
   define: SERVER_CLI_DEFINES,

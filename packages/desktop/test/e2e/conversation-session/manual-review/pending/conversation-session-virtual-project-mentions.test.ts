@@ -153,9 +153,9 @@ describe("虚拟项目 Composer 候选", () => {
         (testId) =>
           (
             document.querySelector(`[data-testid="${testId}"]`) as HTMLElement & {
-              __zcodeLexicalInputE2E?: { getText(): string };
+              __nibiLexicalInputE2E?: { getText(): string };
             }
-          )?.__zcodeLexicalInputE2E?.getText(),
+          )?.__nibiLexicalInputE2E?.getText(),
         TID_V4_COMPOSER_INPUT,
       );
     await panel.$(`[data-option-id="file:${join(roots[0]!, "src", "same.ts")}"]`).click();
@@ -183,11 +183,11 @@ describe("虚拟项目 Composer 候选", () => {
     const taskId = await browser.execute(() => {
       const state = (
         window as Window & {
-          __zcodeSessionStoreE2E?: {
+          __nibiSessionStoreE2E?: {
             getState(): { workspaces: Record<string, { activeTaskId?: string | null }> };
           };
         }
-      ).__zcodeSessionStoreE2E?.getState();
+      ).__nibiSessionStoreE2E?.getState();
       return (
         Object.values(state?.workspaces ?? {}).find((workspace) => workspace.activeTaskId)
           ?.activeTaskId ?? null

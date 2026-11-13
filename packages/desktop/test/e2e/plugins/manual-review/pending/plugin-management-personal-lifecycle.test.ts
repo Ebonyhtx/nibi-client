@@ -107,20 +107,20 @@ describe("PLM-LC-003 Personal Source 插件主生命周期 E2E", () => {
         }
         const store = (
           window as typeof window & {
-            __zcodeSessionStoreE2E?: {
+            __nibiSessionStoreE2E?: {
               getState: () => { workspaces: Record<string, ComposerEvidenceWorkspace> };
             };
           }
-        ).__zcodeSessionStoreE2E;
+        ).__nibiSessionStoreE2E;
         const state = store?.getState();
         return {
           composers: Array.from(
             document.querySelectorAll<
-              HTMLElement & { __zcodeLexicalInputE2E?: { getText: () => string } }
+              HTMLElement & { __nibiLexicalInputE2E?: { getText: () => string } }
             >('[data-testid="v4-composer-input"]'),
           ).map(
             (element) =>
-              element.__zcodeLexicalInputE2E?.getText() ??
+              element.__nibiLexicalInputE2E?.getText() ??
               element.innerText ??
               element.textContent ??
               "",

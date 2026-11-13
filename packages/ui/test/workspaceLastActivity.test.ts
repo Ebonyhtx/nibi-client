@@ -28,7 +28,7 @@ describe("current task last activity", () => {
     vi.setSystemTime(1_000_000);
     const task = {
       updatedAt: 1,
-      __zcodeSessionActivity: { lastActivityAt: 999_000 },
+      __nibiSessionActivity: { lastActivityAt: 999_000 },
     } as unknown as NibiTaskMeta;
     expect(renderToStaticMarkup(createElement(WorkspaceLastActivity, { task }))).toContain(
       "最近活动 刚刚",

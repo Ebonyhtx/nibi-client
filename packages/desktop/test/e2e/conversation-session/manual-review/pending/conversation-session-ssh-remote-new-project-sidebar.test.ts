@@ -98,7 +98,7 @@ async function waitForSidebarState(taskId: string, expected: Omit<SidebarState, 
   } catch (cause) {
     const navigation = await browser.execute(() => {
       const target = window as Window & {
-        __zcodeTabStoreE2E?: {
+        __nibiTabStoreE2E?: {
           getState(): {
             activeTabId?: string;
             activeWorkspaceIdentity?: string;
@@ -111,15 +111,15 @@ async function waitForSidebarState(taskId: string, expected: Omit<SidebarState, 
             }>;
           };
         };
-        __zcodeSessionStoreE2E?: {
+        __nibiSessionStoreE2E?: {
           getState(): {
             workspaces?: Record<string, { activeTaskId?: string }>;
             taskNavHistory?: unknown;
           };
         };
       };
-      const tabs = target.__zcodeTabStoreE2E?.getState();
-      const state = target.__zcodeSessionStoreE2E?.getState();
+      const tabs = target.__nibiTabStoreE2E?.getState();
+      const state = target.__nibiSessionStoreE2E?.getState();
       const tab = tabs?.tabs?.find((item) => item.id === tabs.activeTabId);
       return {
         activeTab: tab
@@ -310,11 +310,11 @@ describe(`${CASE_MARKER}: 新建远程项目首次任务的侧栏实时状态`, 
     ).not.toBe(tab.workspaceIdentity);
     const cachedTask = await browser.execute((identity) => {
       const target = window as Window & {
-        __zcodeSessionStoreE2E?: {
+        __nibiSessionStoreE2E?: {
           getState(): { workspaces: Record<string, { activeTaskId: string | null }> };
         };
       };
-      return target.__zcodeSessionStoreE2E?.getState().workspaces[identity]?.activeTaskId;
+      return target.__nibiSessionStoreE2E?.getState().workspaces[identity]?.activeTaskId;
     }, tab.workspaceIdentity);
     expect(cachedTask).toBe(taskId);
     await holdProjectUnread(taskId, tab.workspaceIdentity);

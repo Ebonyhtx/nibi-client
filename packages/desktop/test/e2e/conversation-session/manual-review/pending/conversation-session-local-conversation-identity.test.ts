@@ -31,7 +31,7 @@ interface NavigationTab {
 }
 
 interface NavigationWindow extends Window {
-  __zcodeTabStoreE2E?: {
+  __nibiTabStoreE2E?: {
     getState(): {
       tabs: NavigationTab[];
       activeTabId: string | null;
@@ -48,7 +48,7 @@ interface NavigationWindow extends Window {
 
 async function readNavigation() {
   return browser.execute(() => {
-    const state = (window as NavigationWindow).__zcodeTabStoreE2E?.getState();
+    const state = (window as NavigationWindow).__nibiTabStoreE2E?.getState();
     if (!state) throw new Error("导航 store 未就绪");
     return {
       activeTabId: state.activeTabId,
@@ -86,7 +86,7 @@ describe(`${CASE_MARKER}: 本地项目解除绑定按完整工作区身份匹配
     // 只构造离线 open-set，不连接 SSH；调用真实 store 的 add/activate，复现新 tab 置顶的顺序。
     const localId = await browser.execute(
       (path, identity) => {
-        const store = (window as NavigationWindow).__zcodeTabStoreE2E;
+        const store = (window as NavigationWindow).__nibiTabStoreE2E;
         const localTab = store
           ?.getState()
           .tabs.find(

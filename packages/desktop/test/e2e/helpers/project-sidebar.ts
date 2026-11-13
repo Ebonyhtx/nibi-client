@@ -229,11 +229,11 @@ export async function startDraftFromProject(
   const previousDraftVersion = await browser.execute((key) => {
     const bridge = (
       window as unknown as {
-        __zcodeSessionStoreE2E?: {
+        __nibiSessionStoreE2E?: {
           getState(): { workspaces: Record<string, { draftFocusVersion?: number }> };
         };
       }
-    ).__zcodeSessionStoreE2E;
+    ).__nibiSessionStoreE2E;
     return bridge?.getState().workspaces[key]?.draftFocusVersion ?? 0;
   }, draftKey);
   if (options.workspaceIdentity) {
@@ -265,21 +265,21 @@ export async function startDraftFromProject(
           const activeIdentity = identity
             ? (
                 window as Window & {
-                  __zcodeTabStoreE2E?: {
+                  __nibiTabStoreE2E?: {
                     getState(): { activeWorkspaceIdentity?: string | null };
                   };
                 }
-              ).__zcodeTabStoreE2E?.getState().activeWorkspaceIdentity
+              ).__nibiTabStoreE2E?.getState().activeWorkspaceIdentity
             : undefined;
           return (
             // 目录准备是异步的；同项目已经显示草稿时，旧 DOM 不能证明本次新建已提交。
             ((
               window as unknown as {
-                __zcodeSessionStoreE2E?: {
+                __nibiSessionStoreE2E?: {
                   getState(): { workspaces: Record<string, { draftFocusVersion?: number }> };
                 };
               }
-            ).__zcodeSessionStoreE2E?.getState().workspaces[key]?.draftFocusVersion ?? 0) >
+            ).__nibiSessionStoreE2E?.getState().workspaces[key]?.draftFocusVersion ?? 0) >
               previousVersion &&
             (!identity || activeIdentity === identity) &&
             inputs.length === 1 &&

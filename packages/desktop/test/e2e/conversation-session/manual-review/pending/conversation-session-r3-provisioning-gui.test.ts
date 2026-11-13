@@ -766,7 +766,7 @@ describe(`${CASE_MARKER}: 本地 Provider 保存/删除/断线期间修改经 Pr
         };
         const store = (
           window as Window & {
-            __zcodeTabStoreE2E?: {
+            __nibiTabStoreE2E?: {
               getState?: () => {
                 activeWorkspaceIdentity?: string | null;
                 activeWorkspacePath?: string | null;
@@ -774,7 +774,7 @@ describe(`${CASE_MARKER}: 本地 Provider 保存/删除/断线期间修改经 Pr
               };
             };
           }
-        ).__zcodeTabStoreE2E?.getState?.();
+        ).__nibiTabStoreE2E?.getState?.();
         return {
           tabs: (store?.tabs ?? []).map((tab) => ({
             identity: tab.workspaceIdentity ?? null,

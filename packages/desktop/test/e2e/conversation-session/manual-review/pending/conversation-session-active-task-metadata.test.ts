@@ -47,11 +47,11 @@ const activeTask = () =>
   browser.execute((cwd) => {
     const store = (
       window as typeof window & {
-        __zcodeSessionStoreE2E: {
+        __nibiSessionStoreE2E: {
           getState(): { getWorkspaceState(path: string): { activeTaskId: string | null } };
         };
       }
-    ).__zcodeSessionStoreE2E;
+    ).__nibiSessionStoreE2E;
     return store.getState().getWorkspaceState(cwd).activeTaskId;
   }, DEFAULT_WORKSPACE);
 const revealProject = async (id: string) => {

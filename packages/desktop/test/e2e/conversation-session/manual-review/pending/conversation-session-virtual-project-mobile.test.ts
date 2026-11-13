@@ -40,14 +40,14 @@ const SAVED_REMOTE_HOST = "remote:server:e2e-mobile-saved-device";
 
 type VirtualProjectTestWindow = Window & {
   __testActions?: { getTheme(): string; setTheme(theme: string): void };
-  __zcodeTabStoreE2E?: {
+  __nibiTabStoreE2E?: {
     getState(): {
       tabs: unknown[];
       activeWorkspacePath: string | null;
       activeWorkspaceIdentity?: string | null;
     };
   };
-  __zcodeSessionStoreE2E?: {
+  __nibiSessionStoreE2E?: {
     getState(): {
       getWorkspaceState(
         path: string,
@@ -133,7 +133,7 @@ describe("虚拟项目手机 shared-host 导航", () => {
     // 取证后关闭检查器：持续的 800ms 子进程查询会在 CLI 启动期间超时并回收 runtime。
     await closeResourceManagerWindow();
     const desktopTabs = await browser.execute(
-      () => (window as VirtualProjectTestWindow).__zcodeTabStoreE2E?.getState().tabs.length,
+      () => (window as VirtualProjectTestWindow).__nibiTabStoreE2E?.getState().tabs.length,
     );
     let receivePair!: (url: string) => void;
     const pairing = new Promise<string>((resolve) => {
@@ -530,10 +530,10 @@ describe("虚拟项目手机 shared-host 导航", () => {
       await mobileProject.getByTestId("virtual-project-create-task").click();
       const readDraft = () =>
         page.evaluate(() => {
-          const tabs = (window as VirtualProjectTestWindow).__zcodeTabStoreE2E?.getState();
+          const tabs = (window as VirtualProjectTestWindow).__nibiTabStoreE2E?.getState();
           const path = tabs?.activeWorkspacePath;
           const draft = path
-            ? (window as VirtualProjectTestWindow).__zcodeSessionStoreE2E
+            ? (window as VirtualProjectTestWindow).__nibiSessionStoreE2E
                 ?.getState()
                 .getWorkspaceState(path, tabs?.activeWorkspaceIdentity ?? undefined)
             : undefined;
@@ -751,7 +751,7 @@ describe("虚拟项目手机 shared-host 导航", () => {
       expect(await taskInput.textContent()).toBe("");
       expect(
         await browser.execute(
-          () => (window as VirtualProjectTestWindow).__zcodeTabStoreE2E?.getState().tabs.length,
+          () => (window as VirtualProjectTestWindow).__nibiTabStoreE2E?.getState().tabs.length,
         ),
       ).toBe(desktopTabs);
       await page.getByRole("button", { name: /返回任务首页|Back to task home/ }).click();

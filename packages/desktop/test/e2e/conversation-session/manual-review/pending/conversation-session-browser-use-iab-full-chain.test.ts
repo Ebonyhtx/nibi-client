@@ -615,13 +615,13 @@ function readV4ComposerSnapshot() {
     const bridge = (
       element as
         | (HTMLElement & {
-            __zcodeLexicalInputE2E?: {
+            __nibiLexicalInputE2E?: {
               focus: () => void;
               getText: () => string;
             };
           })
         | null
-    )?.__zcodeLexicalInputE2E;
+    )?.__nibiLexicalInputE2E;
     return {
       focused: Boolean(
         element &&
@@ -644,13 +644,13 @@ async function focusEmptyV4Composer(timeout = 10000) {
         const bridge = (
           element as
             | (HTMLElement & {
-                __zcodeLexicalInputE2E?: {
+                __nibiLexicalInputE2E?: {
                   focus: () => void;
                   getText: () => string;
                 };
               })
             | null
-        )?.__zcodeLexicalInputE2E;
+        )?.__nibiLexicalInputE2E;
         bridge?.focus();
         return {
           focused: Boolean(
