@@ -3,7 +3,7 @@ import type { ApplicationIconRequest } from "@nibi/shared";
 /**
  * producer 的 `appKey` → 平台图标 locator。
  *
- * `appKey` 由 zcode-cua 的 `deriveApplicationKey` 生成，形态是 `<scheme>:<value>`：
+ * `appKey` 由 computer-use 的 `deriveApplicationKey` 生成，形态是 `<scheme>:<value>`：
  * `darwin:<bundleId>`（小写）、`windows-aumid:<aumid>`、`windows-exe:<canonical path>`、
  * `linux-exe:<path>`。会话协议只承载这个字符串，图标字节由平台服务按 locator 现取。
  *

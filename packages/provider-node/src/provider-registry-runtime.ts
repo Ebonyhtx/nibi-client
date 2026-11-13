@@ -43,7 +43,7 @@ export class NodeProviderRegistryRuntime {
     await this.#configRuntime.start();
     if (this.#accountSource instanceof MutableAccountProviderConfigSource) {
       const account = await this.#accountSource.read();
-      if (account.basedOnZCodeBuiltinRevision === "uninitialized") {
+      if (account.basedOnNibiBuiltinRevision === "uninitialized") {
         this.#accountSource.replace(
           createFailClosedAccountProviderConfigSnapshot(await this.configService.read()),
           "initial-fail-closed",

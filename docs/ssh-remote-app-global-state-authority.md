@@ -75,7 +75,7 @@ Environment Provider Sources
 ```
 
 Host 可以通过 `provider/updateAccountConfig` 把本 Environment 的无 Secret Account Overlay 发送给自己的
-Core Worker。该协议只承载 `revision + basedOnZCodeBuiltinRevision + ProviderConfigMap`，不承载 API Key、
+Core Worker。该协议只承载 `revision + basedOnNibiBuiltinRevision + ProviderConfigMap`，不承载 API Key、
 JWT 或动态 Header。它是进程间一致性机制，不是 Desktop-to-remote Provider 同步。
 
 Host 与 Worker 的 Registry 都由 Source 变化后自行重建；Registry View 不跨进程共享。已经创建的 Active

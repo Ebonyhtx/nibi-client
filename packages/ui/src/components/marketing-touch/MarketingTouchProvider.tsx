@@ -129,7 +129,7 @@ export function MarketingTouchProvider({
               if (!controller.store.getState().dialog)
                 toast(intl.formatMessage({ id: "manualClaimPlan.claim.share.copyTextSucceeded" }));
             } else if (action.args.page === "rewards") {
-              // 「邀请好友」是上游的 rewards 页面（zcode.z.ai），NIBI 不提供，已移除入口与 Provider。
+              // 「邀请好友」是上游的 rewards 页面（上游），NIBI 不提供，已移除入口与 Provider。
               // 服务端若仍下发这条导航，这里 fail-closed：不打开别家站点，只如实记一条。
               logger.warn("[marketing-touch] rewards 页面在 NIBI 中不可用，已忽略该导航");
               return { status: "cancelled" };

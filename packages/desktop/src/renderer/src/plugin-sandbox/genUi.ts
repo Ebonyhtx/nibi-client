@@ -177,10 +177,8 @@ const api = Object.freeze({
     if (result.isError) throw new Error("External link was denied");
   },
 });
-// 同 alias.ts：nibi 为主名，zcode 只作已发布插件的别名（同一对象）。
-for (const name of ["nibi", "zcode"] as const) {
-  Object.defineProperty(window, name, { value: api, writable: false, configurable: false });
-}
+// 与 alias.ts 一致：面板公开桥只暴露 nibi，不再保留旧品牌别名。
+Object.defineProperty(window, "nibi", { value: api, writable: false, configurable: false });
 const openAnchor = (event: MouseEvent) => {
   if (event.defaultPrevented || (event.button !== 0 && event.button !== 1)) return;
   const anchor = event.composedPath().find((node) => node instanceof HTMLAnchorElement);

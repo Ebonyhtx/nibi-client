@@ -324,7 +324,7 @@ export function createGitCheckpointRepo(options?: {
             "commit-tree",
             treeResult.stdout.trim(),
             "-m",
-            `zcode checkpoint ${params.checkpointId}`,
+            `nibi checkpoint ${params.checkpointId}`,
           ],
           env,
         });

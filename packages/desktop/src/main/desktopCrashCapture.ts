@@ -17,7 +17,7 @@ import {
   summarizeCrashDumpAnnotations,
 } from "./crashDumpAnnotations.js";
 
-const LOCAL_ONLY_CRASH_SUBMIT_URL = "https://zcode.invalid/local-crash-only";
+const LOCAL_ONLY_CRASH_SUBMIT_URL = "https://nibi.invalid/local-crash-only";
 const CRASH_DUMP_STABLE_AFTER_MS = 1_000;
 const CRASH_ARCHIVE_RETRY_DELAYS_MS = [1_500, 5_000] as const;
 const CRASH_ARCHIVE_MAX_FILES = 5;

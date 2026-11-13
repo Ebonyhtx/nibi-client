@@ -94,9 +94,9 @@ function configSnapshot(revision: string, modelId: string): ProviderConfigSnapsh
 
 function accountSnapshot(
   revision = "account-1",
-  basedOnZCodeBuiltinRevision = "config-1",
+  basedOnNibiBuiltinRevision = "config-1",
 ): AccountProviderConfigSnapshot {
-  return { revision, basedOnZCodeBuiltinRevision, providers: ProviderConfigMap.empty() };
+  return { revision, basedOnNibiBuiltinRevision, providers: ProviderConfigMap.empty() };
 }
 
 function deferred<T>() {

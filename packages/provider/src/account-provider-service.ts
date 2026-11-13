@@ -177,9 +177,9 @@ export class AccountProviderService implements ProviderSource<AccountProviderCon
           this.#pendingReasons.add("superseded-resolution");
           continue;
         }
-        const basedOnZCodeBuiltinRevision = config.nibiBuiltinRevision;
+        const basedOnNibiBuiltinRevision = config.nibiBuiltinRevision;
         const next = createAccountProviderConfigSnapshot(
-          basedOnZCodeBuiltinRevision,
+          basedOnNibiBuiltinRevision,
           providers,
           states,
         );

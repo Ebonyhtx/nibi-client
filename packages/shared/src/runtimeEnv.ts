@@ -66,10 +66,10 @@ const SANITIZED_RUNTIME_ENV_KEYS = [
   NIBI_REMOTE_HTTP_PROXY_ENV_KEY,
   NIBI_REMOTE_HTTP_PROXY_MODE_ENV_KEY,
   NIBI_REMOTE_NO_PROXY_ENV_KEY,
-  // CUA broker socket 是只该给目标 zcode-cua MCP server 的连接材料（由 desktop/CLI 在
+  // CUA broker socket 是只该给目标 computer-use MCP server 的连接材料（由 desktop/CLI 在
   // 解析该 server 时定向注入其 env）。绝不能随 agent 全局 env 泄漏给其它 MCP server / Bash / tool
   // 子进程 —— 否则同 agent 内的恶意 MCP 或被 prompt-injection 触发的命令能直接驱动
-  // 已授权 Helper（confused-deputy）。这里统一从所有子进程 env 剔除；zcode-cua server 的定向
+  // 已授权 Helper（confused-deputy）。这里统一从所有子进程 env 剔除；computer-use server 的定向
   // env 注入在 buildMcpStdioEnv 之后 spread，因此仍能拿到（见 adapters/mcp StdioClientTransport）。
   NIBI_CUA_BROKER_SOCKET_ENV_KEY,
   // 遗留 bearer token：当前 broker 是 identity 模式（socket + authority，无口令，见
@@ -149,8 +149,8 @@ const capturedNibiAgentTelemetryEnv: Record<string, string> = {};
 
 // CUA broker socket 会被上面的 sanitize 从子进程 env 中剔除（confused-deputy 防护 —— 不能让
 // 其它 MCP server / Bash / tool 子进程直接驱动已授权 Helper）。但 CLI 入口在 bootstrap
-// 解析全局 ~/.nibi/cli/config.json 里的 `zcode-cua` server 之前就会先 sanitize process.env，导致
-// 定向注入时已经读不到凭据 → 全局 zcode-cua 回退 `--backend auto`，让 Python/uvx 成为 TCC 主体
+// 解析全局 ~/.nibi/cli/config.json 里的 `computer-use` server 之前就会先 sanitize process.env，导致
+// 定向注入时已经读不到凭据 → 全局 computer-use 回退 `--backend auto`，让 Python/uvx 成为 TCC 主体
 // （fail-open，违反 "Python/uvx must never become the implicit permission owner"）。因此在剔除前把
 // 凭据捕获进本进程私有存储，只经 getCapturedNibiCuaBrokerCredentials() 暴露给 bootstrap 的定向
 // 注入路径，绝不写回任何子进程 env。

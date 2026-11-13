@@ -4855,7 +4855,7 @@ describe("NibiProtocolAgentServer", () => {
       method: nibiProtocolMethods.providerUpdateAccountConfig,
       params: {
         revision: "account-1",
-        basedOnZCodeBuiltinRevision: "nibi-builtin:1",
+        basedOnNibiBuiltinRevision: "nibi-builtin:1",
         states: {
           "account:zai-individual-coding-plan": {
             availability: "available",
@@ -4880,7 +4880,7 @@ describe("NibiProtocolAgentServer", () => {
     expect(syncAccountProviderConfig).toHaveBeenCalledTimes(1);
     const snapshot = syncAccountProviderConfig.mock.calls[0]?.[0];
     expect(snapshot?.revision).toBe("account-1");
-    expect(snapshot?.basedOnZCodeBuiltinRevision).toBe("nibi-builtin:1");
+    expect(snapshot?.basedOnNibiBuiltinRevision).toBe("nibi-builtin:1");
     expect(snapshot?.states?.["account:zai-individual-coding-plan"].current).toBe(false);
     expect(snapshot?.providers.get("account:zai-individual-coding-plan")?.toJSON()).toEqual({
       access: { type: "zhipu-account", entitled: true },

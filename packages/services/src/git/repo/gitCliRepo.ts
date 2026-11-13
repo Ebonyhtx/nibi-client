@@ -1026,7 +1026,7 @@ export function createGitCliRepo(options?: { commandProvider?: GitCommandProvide
         cwd: resolution.repoRoot,
         args: [
           "log",
-          // --all 会把 refs/zcode/checkpoints 等内部 hidden refs 拉进 Git Graph。
+          // --all 会把 refs/nibi/checkpoints 等内部 hidden refs 拉进 Git Graph。
           // Graph 只展示用户可见历史，因此限定到 HEAD、分支、标签和远端分支。
           "HEAD",
           "--branches",

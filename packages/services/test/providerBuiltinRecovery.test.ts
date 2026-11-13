@@ -72,7 +72,7 @@ describe("App Built-in / Account 失败恢复", () => {
         ),
       );
       const next = runtime.registryService.getSnapshot()!;
-      expect(next.account.basedOnZCodeBuiltinRevision).toBe(next.config.nibiBuiltinRevision);
+      expect(next.account.basedOnNibiBuiltinRevision).toBe(next.config.nibiBuiltinRevision);
       expect(resolve.mock.calls.length).toBe(beforeRecovery + 1);
       expect(download).toHaveBeenCalledTimes(1);
     } finally {

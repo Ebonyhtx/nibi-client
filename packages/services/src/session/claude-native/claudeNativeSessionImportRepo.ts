@@ -60,7 +60,7 @@ export class ClaudeNativeSessionImportRepo {
       homes.add(dataBaseDir);
     }
 
-    // 关键业务逻辑：扫描 Claude Code 原生历史目录 ~/.claude/projects，不是 zcode 自己的数据目录。
+    // 关键业务逻辑：扫描 Claude Code 原生历史目录 ~/.claude/projects，不是 NIBI 自己的数据目录。
     // 当 NIBI_DATA_BASE_DIR 把 .nibi 放到别处时，原生 .claude 往往仍在真实用户 HOME 下。
     return [...homes].map((homePath) => join(homePath, ".claude", "projects"));
   }

@@ -1,7 +1,7 @@
 /**
  * Computer Use SDK —— 模型可见的 `cua` 对象面（只含 computer 部分，不含 browser）。
  *
- * 设计文档：zcode-cua/docs/refactor-port-specs/2026-09-10-cua-sdk-v3-api.md
+ * 设计文档：上游 CUA 设计文档
  *
  * 三条原则（文档 §1）：
  *   R1 同名同签 —— 公开方法的名字、位置参数顺序、选项键名、返回类型保持冻结。
@@ -26,7 +26,7 @@ import { join } from "node:path";
 
 const BRIDGE_SYMBOL = Symbol.for("nibi.node-repl.computer-use-bridge");
 
-/** 存活的工具面（= `cua.computer`）。协议层的事实来源在 zcode-cua/src/tools/manifest.ts。 */
+/** 存活的工具面（= `cua.computer`）。协议层的事实来源在 上游 CUA tools manifest。 */
 const COMPUTER_METHOD_NAMES = Object.freeze([
   "list_apps",
   "list_windows",
@@ -45,12 +45,12 @@ const COMPUTER_METHOD_NAMES = Object.freeze([
 ]);
 
 /**
- * 平台面收缩：某些工具在某些平台上**不存在**。事实来源同为 zcode-cua/src/tools/manifest.ts
+ * 平台面收缩：某些工具在某些平台上**不存在**。事实来源同为 上游 CUA tools manifest
  * 的 TOOL_PLATFORM_EXCLUSIONS —— 那边不注册 handler，这边不挂到 `cua.computer` 上，
  * 两侧必须一致，否则模型看得见一个调用即报错的方法，又会去猜替代写法。
  *
  * 2026-09-16：`open_application` 已在 producer 侧**整体删除**（不再只是 darwin 排除）——
- * 启动与激活并入 get_app_state 的透明拉起（见 zcode-cua/src/tools/manifest.ts 的说明），
+ * 启动与激活并入 get_app_state 的透明拉起（见 上游 CUA tools manifest 的说明），
  * 模型面不再有单独的启动/激活原语。于是这张表暂时为空：
  * 留着它是因为「按平台收缩」这个机制本身还需要，下一个平台专属工具直接往里加。
  */
@@ -399,7 +399,7 @@ function alternateAppRef(target, windowId) {
  * 根因（2026-09-15，NIBIArena 151 例批次）：原本匹配的是
  * `target app is not running and could not be launched`，而 producer 的文案早已改成
  * `target app is not running, and no installed application matched the ...`
- * （zcode-cua 的 nativeAxSource.ts）。一个逗号加改写就让下面的 alternateAppRef 备用查询
+ * （上游 CUA 的 nativeAxSource.ts）。一个逗号加改写就让下面的 alternateAppRef 备用查询
  * **一次都没执行过** —— 批次里 App 无法解析报错 47 次 / 23 例，模型只发了一次 name 查询就放弃。
  * 与 #29 同类：字符串在两个仓库各写一遍，一侧改了另一侧不知道。
  *

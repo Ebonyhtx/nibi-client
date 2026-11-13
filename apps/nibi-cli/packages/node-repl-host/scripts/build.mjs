@@ -21,7 +21,7 @@ const require = __nibiCreateRequire(import.meta.url);`;
 // `helperInstaller` 因此随本 bundle 进入正式包。但 `__NIBI_CUA_HELPER_BUILD_ID__` 此前
 // **只有** packages/desktop/tsup.config.ts 注入（Electron main / app.asar），本文件的
 // esbuild 调用一个 define 都没有。于是正式包里 producer 的 `NIBI_CUA_HELPER_BUILD_ID`
-// 折叠成空串（见 zcode-cua/src/broker/shared/cua-version.ts 的兜底），
+// 折叠成空串（见 computer-use/src/broker/shared/cua-version.ts 的兜底），
 // `resolveExpectedCuaHelperBuildId()` 返回 null，helperInstaller 撞上 fail-closed 守卫：
 //
 //   "Packaged NIBI is missing its embedded Computer Use Helper build identity;

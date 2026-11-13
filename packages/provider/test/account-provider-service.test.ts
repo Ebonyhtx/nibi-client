@@ -83,7 +83,7 @@ describe("AccountProviderService", () => {
     await service.read();
     const published: string[] = [];
     service.onDidChange(() => {
-      void service.read().then((snapshot) => published.push(snapshot.basedOnZCodeBuiltinRevision));
+      void service.read().then((snapshot) => published.push(snapshot.basedOnNibiBuiltinRevision));
     });
     resolve.mockImplementationOnce(async () => {
       await new Promise<void>((done) => {
@@ -98,7 +98,7 @@ describe("AccountProviderService", () => {
     configSource.emit("builtin-update");
     release();
     await pending;
-    expect((await service.read()).basedOnZCodeBuiltinRevision).toBe("config-3");
+    expect((await service.read()).basedOnNibiBuiltinRevision).toBe("config-3");
     expect(published).toEqual(["config-3"]);
     service.dispose();
   });
@@ -134,7 +134,7 @@ describe("AccountProviderService", () => {
         access: { type: "zhipu-account", entitled: true },
       },
     });
-    expect(snapshot.basedOnZCodeBuiltinRevision).toBe("config-1");
+    expect(snapshot.basedOnNibiBuiltinRevision).toBe("config-1");
     service.dispose();
   });
 
@@ -215,7 +215,7 @@ describe("AccountProviderService", () => {
       });
     });
     expect(changed).toHaveBeenCalledWith("config:personal-saved");
-    expect((await service.read()).basedOnZCodeBuiltinRevision).toBe("config-2");
+    expect((await service.read()).basedOnNibiBuiltinRevision).toBe("config-2");
     service.dispose();
   });
 
@@ -243,7 +243,7 @@ describe("AccountProviderService", () => {
     configSource.emit("remote-updated");
 
     await vi.waitFor(async () =>
-      expect((await service.read()).basedOnZCodeBuiltinRevision).toBe("builtin-2"),
+      expect((await service.read()).basedOnNibiBuiltinRevision).toBe("builtin-2"),
     );
     expect((await service.read()).revision).not.toBe(initial.revision);
     expect(changed).toHaveBeenCalledOnce();
@@ -356,7 +356,7 @@ describe("AccountProviderService", () => {
     service.onDidRefreshError(refreshError);
 
     await expect(service.read()).resolves.toMatchObject({
-      basedOnZCodeBuiltinRevision: "config-1",
+      basedOnNibiBuiltinRevision: "config-1",
       providers: expect.any(ProviderConfigMap),
     });
     expect((await service.read()).providers.get("account-plan")?.access).toMatchObject({

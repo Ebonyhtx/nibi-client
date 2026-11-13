@@ -191,7 +191,7 @@ function sanitizeNibiEndpointOrigin(value: unknown): unknown {
   if (parsed.success && typeof parsed.data === "string") {
     return { ...raw, nibiEndpointOrigin: parsed.data };
   }
-  const { nibiEndpointOrigin: _zcodeEndpointOrigin, ...next } = raw;
+  const { nibiEndpointOrigin: _nibiEndpointOrigin, ...next } = raw;
   // 非生产 endpoint override 是开发辅助字段，坏值只丢弃该字段，不能拖垮整个 settings 读取。
   return next;
 }

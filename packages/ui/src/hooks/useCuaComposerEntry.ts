@@ -73,7 +73,7 @@ export function useCuaComposerEntry({
   const togglingPluginId = usePluginManagementStore((state) => state.togglingPluginId);
   const pluginStoreError = usePluginManagementStore((state) => state.error);
   // store.error 是插件面共享字段（marketplace/validate/load/任意插件 setEnabled
-  // 失败都写）。只有失败操作的目标是 zcode-cua 时才映射为本按钮的错误态，
+  // 失败都写）。只有失败操作的目标是 computer-use 时才映射为本按钮的错误态，
   // 归属由 store 的 lastFailedPluginId 记录。
   const lastFailedPluginId = usePluginManagementStore((state) => state.lastFailedPluginId);
   const initializePlugins = usePluginManagementStore((state) => state.initialize);

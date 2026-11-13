@@ -294,12 +294,12 @@ export function createPluginSandboxAliasRuntime(options: {
         return Reflect.get(object, key, receiver);
       },
     });
-  const zcode = lazy(nibiTarget);
+  const nibiApi = lazy(nibiTarget);
   const openai = lazy(createOpenAiCompatApi(nibiTarget));
 
   return {
-    // 面板公开桥：属性名用 nibi（与 interface 一致）；局部变量 zcode 只是实现细节。
-    nibi: zcode,
+    // 面板公开桥：属性名与局部变量都只用 nibi。
+    nibi: nibiApi,
     openai,
     get connecting() {
       return connectPromise !== null;

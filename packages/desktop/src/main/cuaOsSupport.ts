@@ -5,7 +5,7 @@ import type { CuaOsSupport } from "@nibi/shared";
 // 2026-08 事故：地板检查缺位时，低版本 macOS 用户只看到授权反复无响应
 // （真因是 LaunchServices -10825 拒启 Helper）。
 export const CUA_MINIMUM_MACOS_VERSION = "12.0";
-// 地板与上游 zcode-cua helperAppBundle.ts 的 Info.plist LSMinimumSystemVersion(12.0) 联动，
+// 地板与上游 computer-use helperAppBundle.ts 的 Info.plist LSMinimumSystemVersion(12.0) 联动，
 // bump 任一侧必须同步其余常量。
 const CUA_MINIMUM_DARWIN_MAJOR = 21; // Darwin major - 9 = macOS major（21↔12, 22↔13）
 

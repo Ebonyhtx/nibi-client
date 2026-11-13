@@ -90,7 +90,7 @@ export function writeOfficialPluginRuntimeManifest(input: OfficialRuntimeManifes
   if (manifest.mcpServers === undefined) return;
   const mcpServers = asRecord(manifest.mcpServers);
 
-  // 保留对其他历史 official plugin MCP 的通用重写；zcode-cua 当前是 skill/SDK-only，
+  // 保留对其他历史 official plugin MCP 的通用重写；computer-use 当前是 skill/SDK-only，
   // 不会进入这个分支，也不会生成独立的 CUA MCP server。
   for (const [serverKey, serverRaw] of Object.entries(mcpServers)) {
     const mcpServer = asRecord(serverRaw);

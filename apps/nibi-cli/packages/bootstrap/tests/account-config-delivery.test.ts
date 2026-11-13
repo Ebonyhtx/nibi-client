@@ -94,7 +94,7 @@ describe("托管 Worker 账号交付", () => {
     expect(() =>
       parseProcessAccountProviderConfigSnapshot({
         revision: "incomplete",
-        basedOnZCodeBuiltinRevision: "builtin-A",
+        basedOnNibiBuiltinRevision: "builtin-A",
         providers: {
           "account:bigmodel-individual-coding-plan": {
             access: { type: "zhipu-account", entitled: true },
@@ -112,7 +112,7 @@ describe("托管 Worker 账号交付", () => {
     expect(() =>
       parseProcessAccountProviderConfigSnapshot({
         revision: "allowed",
-        basedOnZCodeBuiltinRevision: "builtin-A",
+        basedOnNibiBuiltinRevision: "builtin-A",
         states: {},
         providers: { [providerId]: { access: { type: "zhipu-account", entitled } } },
       }),

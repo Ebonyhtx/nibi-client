@@ -442,7 +442,7 @@ export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterCompon
                 {membershipEntryLabel}
               </DropdownMenuItem>
             ) : null}
-            {/* 「邀请好友」是上游的 rewards 功能：入口点开的是 https://zcode.z.ai/rewards，
+            {/* 「邀请好友」是上游的 rewards 功能：入口点开的是 上游 rewards 页面，
                 属于别家的站点与活动，NIBI 不提供。2026-10-20 移除（连同 RewardsProvider）。 */}
             {onLogin && !user ? (
               <>

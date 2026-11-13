@@ -110,7 +110,7 @@ function throwIfRemoteConnectAborted(signal: AbortSignal | undefined): void {
 }
 
 /**
- * Connect to a remote zcode server via an IRemoteBackend.
+ * Connect to a remote NIBI server via an IRemoteBackend.
  *
  * Steps:
  * 1. detect() → { platform, arch }

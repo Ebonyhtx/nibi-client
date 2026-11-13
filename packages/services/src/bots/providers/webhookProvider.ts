@@ -118,7 +118,7 @@ function parseWebhookAttachments(
 function parseWebhookElicitationResponse(
   payload: Record<string, unknown>,
 ): BotStructuredElicitationResponse | undefined {
-  if (payload.type !== "zcode.bot.elicitation_response") {
+  if (payload.type !== "nibi.bot.elicitation_response") {
     return undefined;
   }
   const requestId =
@@ -189,7 +189,7 @@ export function createWebhookBotProvider(
             [bot.webhookAuthHeaderName || "x-nibi-bot-secret"]: secret ?? "",
           },
           body: JSON.stringify({
-            type: "zcode.bot.test",
+            type: "nibi.bot.test",
             botId: bot.id,
             provider: "webhook",
             sentAt: Date.now(),
@@ -225,7 +225,7 @@ export function createWebhookBotProvider(
         method: "POST",
         headers,
         body: JSON.stringify({
-          type: "zcode.bot.message",
+          type: "nibi.bot.message",
           botId: bot.id,
           provider: "webhook",
           userId: message.providerUserId,
@@ -233,7 +233,7 @@ export function createWebhookBotProvider(
           selection: message.selection,
           elicitation: message.elicitation,
           ...(message.elicitation
-            ? { type: "zcode.bot.elicitation_request" }
+            ? { type: "nibi.bot.elicitation_request" }
             : {}),
           sentAt: Date.now(),
         }),

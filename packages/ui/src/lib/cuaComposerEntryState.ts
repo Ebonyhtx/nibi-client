@@ -32,11 +32,11 @@ export interface CuaComposerEntryInputs {
   hiddenBySettings: boolean;
   /** cuaPermissionService 是否存在；远端 host 上为 false。 */
   permissionServiceAvailable: boolean;
-  /** zcode-cua 插件启用态。 */
+  /** computer-use 插件启用态。 */
   pluginEnabled: boolean;
-  /** zcode-cua 插件正在切换中。 */
+  /** computer-use 插件正在切换中。 */
   pluginToggling: boolean;
-  /** 最近一次 zcode-cua 插件操作失败。 */
+  /** 最近一次 computer-use 插件操作失败。 */
   pluginError: boolean;
   /** Helper 权限状态。入口不查询权限，恒为 null（idle 中性态）；真值只在设置页读。 */
   permissionStatus: CuaPermissionStatusResult | null;

@@ -188,7 +188,7 @@ export interface NibiAgentResumeSessionParams extends NibiAgentSessionTarget {
   model?: ModelSelection;
   thoughtLevel?: string;
   mcpServers?: NibiAgentMcpServer[];
-  // 冷恢复会重建 runtime，工具面隔离必须和 create 保持同一安全边界（CUA 只放行 zcode-cua 工具、
+  // 冷恢复会重建 runtime，工具面隔离必须和 create 保持同一安全边界（CUA 只放行 computer-use 工具、
   // 禁 Bash 等）。否则 resume 后模型可见工具面/执行权限会比创建时更宽。
   toolAllowlist?: string[];
   toolDenylist?: string[];

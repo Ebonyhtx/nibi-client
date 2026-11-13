@@ -241,18 +241,18 @@ describeIfGit("gitService", () => {
       "commit-tree",
       "HEAD^{tree}",
       "-m",
-      "zcode checkpoint hidden",
+      "nibi checkpoint hidden",
     ]);
     runGit(repoPath, [
       "update-ref",
-      "refs/zcode/checkpoints/test-workspace/hidden",
+      "refs/nibi/checkpoints/test-workspace/hidden",
       hiddenCheckpointOid,
     ]);
 
     const graph = await service.getCommitGraph({ workspacePath, maxCount: 10 });
 
     expect(graph.hasMore).toBe(false);
-    expect(graph.commits.map((commit) => commit.subject)).not.toContain("zcode checkpoint hidden");
+    expect(graph.commits.map((commit) => commit.subject)).not.toContain("nibi checkpoint hidden");
     expect(graph.commits[0]).toMatchObject({
       subject: "merge graph branch",
       parents: expect.arrayContaining([

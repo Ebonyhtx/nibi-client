@@ -313,7 +313,7 @@ describe("ProviderRuntime", () => {
     );
     const accountSource = new StaticAccountSource({
       revision: "account-1",
-      basedOnZCodeBuiltinRevision: await readBuiltinRevision(nibiBuiltinFilePath),
+      basedOnNibiBuiltinRevision: await readBuiltinRevision(nibiBuiltinFilePath),
       providers: new ProviderConfigMap([
         [
           "account-plan",
@@ -473,7 +473,7 @@ describe("ProviderRuntime", () => {
     );
     const accountSource = new StaticAccountSource({
       revision: "account-1",
-      basedOnZCodeBuiltinRevision: await readBuiltinRevision(nibiBuiltinFilePath),
+      basedOnNibiBuiltinRevision: await readBuiltinRevision(nibiBuiltinFilePath),
       providers: new ProviderConfigMap([
         [
           "account-plan",

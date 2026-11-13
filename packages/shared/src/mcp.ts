@@ -12,7 +12,7 @@ export const NIBI_CUA_OFFICIAL_PLUGIN_ID = "computer-use@nibi-official";
 // namespace name = official plugin 运行时命名空间 plugin:<pluginId>:<serverKey>。
 export const NIBI_CUA_OFFICIAL_MCP_NAMESPACE_NAME = "plugin:computer-use:computer-use";
 // 插件身份 env key：resolver（adapters/src/plugins/mcp.ts）权威写入 loaded.id，manifest/user env 不可覆盖。
-// bootstrap + cli/plugin-host-command.ts 复用此常量识别 official zcode-cua plugin server，避免字面量漂移。
+// bootstrap + cli/plugin-host-command.ts 复用此常量识别 official computer-use plugin server，避免字面量漂移。
 export const NIBI_PLUGIN_ID_ENV_KEY = "NIBI_PLUGIN_ID";
 
 export type McpSource =

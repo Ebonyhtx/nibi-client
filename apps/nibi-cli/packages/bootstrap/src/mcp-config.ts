@@ -71,7 +71,7 @@ export async function listMcpServerStatuses(
   const statuses: Record<string, McpServerStatus> = {};
 
   for (const [name, config] of Object.entries(servers)) {
-    // 迁移后旧的 zcode-cua MCP 只是历史配置，不再进入状态投影；CUA
+    // 迁移后旧的 computer-use MCP 只是历史配置，不再进入状态投影；CUA
     // 由 shared node_repl 承载，避免设置页继续把已删除的 server 显示为可用。
     if (isRetiredCuaMcpServer(name, config)) continue;
     const configuredStatus = getConfiguredServerStatus(name, config, untrustedServerNames);

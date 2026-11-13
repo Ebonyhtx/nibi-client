@@ -1414,7 +1414,7 @@ describe("Nibi legacy task compat task index", () => {
     expect(observations).toEqual([
       {
         transport: "http",
-        interface: "zcode_agent.model.openai-compatible.sse.api.example.com/v1",
+        interface: "nibi_agent.model.openai-compatible.sse.api.example.com/v1",
         durationMs: 456,
         ok: true,
         attempt: 2,

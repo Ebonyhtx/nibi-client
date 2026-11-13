@@ -57,7 +57,7 @@ function parseEmbeddedMcpResult(value: string): EmbeddedMcpResult | undefined {
  * 被 exact-raster 门按「每个结果只允许一张最终 raster」把整帧原子否决 —— 模型一张都没拿到。
  *
  * 「最新者胜」本来就是 producer 的既定语义：坐标只对最新那张 raster 有效
- * （zcode-cua 的 frame-pixel-latest-only 测试即此契约），旧帧对模型没有使用价值。
+ * （computer-use 的 frame-pixel-latest-only 测试即此契约），旧帧对模型没有使用价值。
  * 所以这里保留最后一对 image/authority、丢掉更早的，与契约一致，不是放宽门禁 ——
  * 真正的两张不同 raster 同时有效仍然不被允许。
  *

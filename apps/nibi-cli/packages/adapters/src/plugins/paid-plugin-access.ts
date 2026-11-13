@@ -2,7 +2,7 @@
  * 收费插件的本地门禁（agent 侧）。
  *
  * 为什么在 agent 里而不是 UI 里：安装/更新/描述都要走这条路径，CLI、桌面、远控共用；
- * 只挡 UI 的话，`zcode plugins install` 仍能把别人的付费 zip 装进来。
+ * 只挡 UI 的话，`nibi plugins install` 仍能把别人的付费 zip 装进来。
  *
  * 判定用的是**离线验签**（公钥在 @nibi/shared），网络只用于下载；下载时带上
  * `X-Nibi-License`，服务端还会再验一次（主防线在服务端）。

@@ -41,7 +41,7 @@ export interface OfficialPluginDefinition {
    */
   componentTypes?: readonly string[];
   // 内容型 plugin (无 MCP server / 无系统依赖) 可以设为 true,
-  // 这样用户首次 `/skill <name>` 就能用,不必先 `zcode plugins enable`。
+  // 这样用户首次 `/skill <name>` 就能用,不必先 `nibi plugins enable`。
   // 默认 false 保持 ios-simulator / android-emulator 这类重负载 plugin 原来行为。
   defaultEnabled?: boolean;
   listing?: OfficialPluginListingSeed;
@@ -492,8 +492,8 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
     // isNibiCuaInternalFeatureEnabled（打包层默认 true）与输入框入口 hidden 默认值的联动语义。
     name: "computer-use",
     hostMcpServerNames: ["node_repl"],
-    // 用户露出名统一为「Computer Use / 电脑控制」。包名与 producer workspace 包仍保持 zcode-cua，
-    // 以兼容原生 Helper identity；EN 描述基线走 manifest
+    // 用户露出名统一为「Computer Use / 电脑控制」。producer workspace 包是 @nibi/cua /
+    // @nibi/cua-plugin，以兼容原生 Helper identity；EN 描述基线走 manifest
     // description，这里只放 zh-CN 覆盖；resolveLocalizedText 在 en-US 时回退到 manifest。
     listing: {
       author: NIBI_AUTHOR,
@@ -517,7 +517,7 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
     // Dev/desktop 会把最小 Sharp 闭包 stage 到这里；官方 cache 必须继续携带 node_modules，
     // 否则 seed 原子替换后首次截图才会报 Cannot find module 'sharp'。
     runtimeTopLevelPaths: ["node_modules"],
-    // 这里的 version 追踪上游 zcode-cua runtime 版本，使插件 UI 展示、缓存路径、
+    // 这里的 version 追踪 CUA producer runtime 版本，使插件 UI 展示、缓存路径、
     // marketplace 条目都对齐；具体版本由原子 producer bump 工作流维护。
     version: "0.6.6",
   },

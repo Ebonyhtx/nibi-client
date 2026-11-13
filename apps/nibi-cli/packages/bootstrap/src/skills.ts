@@ -110,7 +110,7 @@ function createSkillDiscovery(options: ListNibiSkillsOptions):
     workingDirectory,
   });
 
-  // 内置技能包与插件技能根并列注入：`zcode skills list`、引用目录与 runtime 看到同一份发现结果。
+  // 内置技能包与插件技能根并列注入：`nibi skills list`、引用目录与 runtime 看到同一份发现结果。
   const bundledSkillRoots = resolveBundledSkillRoots({
     cliStorageRoot: getCliStorageRoot(resolvePath(configResult.config.storage.dir)),
     logger: options.logger,

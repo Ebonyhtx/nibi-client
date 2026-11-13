@@ -20,7 +20,7 @@ function report() {
   process.send?.({
     pid: process.pid,
     builtin: snapshot.config.nibiBuiltinRevision,
-    account: snapshot.account.basedOnZCodeBuiltinRevision,
+    account: snapshot.account.basedOnNibiBuiltinRevision,
   });
 }
 runtime.registryService.onDidChange(report);

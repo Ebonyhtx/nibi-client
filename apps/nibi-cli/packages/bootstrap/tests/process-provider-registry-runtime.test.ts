@@ -95,7 +95,7 @@ describe("process provider registry runtime", () => {
         ),
       );
       const next = runtime.runtime.registryService.getSnapshot()!;
-      expect(next.account.basedOnZCodeBuiltinRevision).toBe(next.config.nibiBuiltinRevision);
+      expect(next.account.basedOnNibiBuiltinRevision).toBe(next.config.nibiBuiltinRevision);
       expect(JSON.parse(await readFile(active, "utf8")).revision).toBe(builtin.revision);
       expect(JSON.parse(await readFile(bundled, "utf8")).revision).toBe(builtin.revision - 1);
       const worker = await startProcessProviderRegistryRuntime(env);
@@ -136,7 +136,7 @@ describe("process provider registry runtime", () => {
       await vi.waitFor(() => {
         const next = runtime.runtime.registryService.getSnapshot()!;
         expect(next.config.nibiBuiltinRevision).toMatch(`nibi-builtin:${builtin.revision}:`);
-        expect(next.account.basedOnZCodeBuiltinRevision).toBe(next.config.nibiBuiltinRevision);
+        expect(next.account.basedOnNibiBuiltinRevision).toBe(next.config.nibiBuiltinRevision);
       });
       expect(
         runtime.runtime.registryService.getProvider("account:bigmodel-individual-coding-plan"),
@@ -217,7 +217,7 @@ it.skip("真实 Built-in 下完整状态跨协议往返；仅切 current 即更�
     } as const;
     const parsed = parseProcessAccountProviderConfigSnapshot({
       revision: "account-1",
-      basedOnZCodeBuiltinRevision: "nibi-builtin:1",
+      basedOnNibiBuiltinRevision: "nibi-builtin:1",
       states,
       providers: {
         account: {
@@ -237,7 +237,7 @@ it.skip("真实 Built-in 下完整状态跨协议往返；仅切 current 即更�
         builtinModelIds: ["model-a"],
       },
     });
-    expect(parsed.basedOnZCodeBuiltinRevision).toBe("nibi-builtin:1");
+    expect(parsed.basedOnNibiBuiltinRevision).toBe("nibi-builtin:1");
     expect(parsed.states).toEqual(states);
   });
 
@@ -245,7 +245,7 @@ it.skip("真实 Built-in 下完整状态跨协议往返；仅切 current 即更�
     expect(() =>
       parseProcessAccountProviderConfigSnapshot({
         revision: "account-invalid",
-        basedOnZCodeBuiltinRevision: "nibi-builtin:1",
+        basedOnNibiBuiltinRevision: "nibi-builtin:1",
         providers: {
           api: {
             access: {
@@ -262,7 +262,7 @@ it.skip("真实 Built-in 下完整状态跨协议往返；仅切 current 即更�
     expect(() =>
       parseProcessAccountProviderConfigSnapshot({
         revision: "account-invalid-static-field",
-        basedOnZCodeBuiltinRevision: "nibi-builtin:1",
+        basedOnNibiBuiltinRevision: "nibi-builtin:1",
         providers: {
           account: {
             access: { type: "zhipu-account", entitled: true },
@@ -401,7 +401,7 @@ it.skip("真实 Built-in 下完整状态跨协议往返；仅切 current 即更�
     started?.accountSource.replace(
       {
         revision: "account-access-1",
-        basedOnZCodeBuiltinRevision: started!.snapshot.config.nibiBuiltinRevision,
+        basedOnNibiBuiltinRevision: started!.snapshot.config.nibiBuiltinRevision,
         providers: new ProviderConfigMap([
           [
             "account",
@@ -423,7 +423,7 @@ it.skip("真实 Built-in 下完整状态跨协议往返；仅切 current 即更�
     const beforeSwitch = await started.accountSource.read();
     const switched = parseProcessAccountProviderConfigSnapshot({
       revision: "account-access-2",
-      basedOnZCodeBuiltinRevision: beforeSwitch.basedOnZCodeBuiltinRevision,
+      basedOnNibiBuiltinRevision: beforeSwitch.basedOnNibiBuiltinRevision,
       providers: Object.fromEntries(
         [...beforeSwitch.providers.entries()].map(([id, config]) => [id, config.toJSON()]),
       ),

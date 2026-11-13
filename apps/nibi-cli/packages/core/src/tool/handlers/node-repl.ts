@@ -126,8 +126,8 @@ function buildInjectedGlobals(
             const includeOpenTabs = result.ok && isBrowserSurfaceSideEffect(command);
 
             onBrowserResponseMeta({
-              "zcode/browserUse": true,
-              "zcode/toolSurface": {
+              "nibi/browserUse": true,
+              "nibi/toolSurface": {
                 kind: "browserUse",
                 backend: meta.backendType,
                 browserId: meta.browserId,
@@ -137,7 +137,7 @@ function buildInjectedGlobals(
               browser_use: meta.currentUrl ? { url: meta.currentUrl } : {},
               ...(result.ok && meta.tabId && isAutoScreenshotTriggerCommand(command)
                 ? {
-                    "zcode/browserTurnScreenshot": {
+                    "nibi/browserTurnScreenshot": {
                       browserGeneration: meta.browserGeneration,
                       browserId: meta.browserId,
                       tabId: meta.tabId,

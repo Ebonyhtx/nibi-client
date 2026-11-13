@@ -233,7 +233,7 @@ export function parseCuaActivityMessage(message: unknown): CuaActivityEvent | nu
 }
 
 /**
- * Parse a `zcode-cua-windows-dev/v1` control message from the helper child.
+ * Parse a `nibi-cua-windows-dev/v1` control message from the helper child.
  *
  * "transport_ready" means the named pipe is bound and authenticated, while
  * "ready" remains the full health handshake. "error" is the helper's OWN startup-failure

@@ -38,7 +38,7 @@ export function buildPluginUiHostContext(input: PluginUiHostContextInput): McpUi
     },
     safeAreaInsets: { top: 0, right: 0, bottom: 0, left: 0 },
     platform: "desktop",
-    userAgent: "zcode",
+    userAgent: "nibi",
     timeZone: input.timeZone ?? resolveTimeZone(),
     // 桌面宿主固定有 hover、无 touch。
     deviceCapabilities: { hover: true, touch: false },

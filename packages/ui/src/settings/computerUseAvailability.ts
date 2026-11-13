@@ -58,7 +58,7 @@ export function resolveComputerUseAvailability({
   return { kind: "local-linux", supported: false };
 }
 
-const COMPUTER_USE_SEARCH_TERMS = ["电脑控制", "computer use", "zcode-cua", "cua"];
+const COMPUTER_USE_SEARCH_TERMS = ["电脑控制", "computer use", "computer-use", "cua"];
 
 export function matchesComputerUseSearch(query: string): boolean {
   const normalized = query.trim().toLocaleLowerCase();

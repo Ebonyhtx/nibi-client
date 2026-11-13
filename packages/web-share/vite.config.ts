@@ -19,11 +19,11 @@ export default defineConfig(({ command, mode }) => {
   const env = { ...loadEnv(mode, REPO_ROOT, ""), ...process.env };
   const nibiEnv = env.NIBI_ENV?.trim().toLowerCase() === "production" ? "production" : "test";
   // 发布档硬门禁：NIBI_ENV 不是 production 时，下面的 define 会把 VITE_NIBI_BASE_URL 烘焙成
-  // 测试档（https://zcode.z.ai），部署后整页请求打到上游、表现为 CORS 失败。
+  // 上游测试档，部署后整页请求打到上游、表现为 CORS 失败。
   // 2026-10-26 实际踩过一次，所以在构建入口直接拦下，而不是靠人记。
   if (command === "build" && nibiEnv !== "production" && env.NIBI_ALLOW_NON_PRODUCTION_BUILD !== "1") {
     throw new Error(
-      "[web-share] build 必须 NIBI_ENV=production：否则 API 源会被烘焙成测试档（zcode.z.ai）。" +
+      "[web-share] build 必须 NIBI_ENV=production：否则 API 源会被烘焙成上游测试档。" +
         "确需测试档构建请显式设 NIBI_ALLOW_NON_PRODUCTION_BUILD=1。",
     );
   }
@@ -44,12 +44,6 @@ export default defineConfig(({ command, mode }) => {
     resolve: {
       alias: [
         { find: "@", replacement: resolve(REPO_ROOT, "packages/ui/src") },
-        // Docker 只给 web-share 安装依赖，复用的 Web/UI 源文件找不到同级依赖链接。
-        // 根入口必须精确匹配，避免把 shared/mcp-apps 等子路径改写成 index.ts/mcp-apps。
-        {
-          find: /^@zcode\/shared$/,
-          replacement: resolve(REPO_ROOT, "packages/shared/src/index.ts"),
-        },
         // Share 镜像不安装 @nibi/ui（它会带入 services/rpc 闭包），子路径导入必须显式指向源码。
         {
           find: "@nibi/ui/useTheme",

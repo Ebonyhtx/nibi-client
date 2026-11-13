@@ -89,7 +89,7 @@ export class ProviderRuntime {
         this.configService.read(),
         accountSource.read(),
       ]);
-      if (!this.#disposed && config.nibiBuiltinRevision !== account.basedOnZCodeBuiltinRevision) {
+      if (!this.#disposed && config.nibiBuiltinRevision !== account.basedOnNibiBuiltinRevision) {
         await accountSource.refresh?.("builtin-account-recovery");
       }
     });

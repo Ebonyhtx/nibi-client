@@ -186,7 +186,7 @@ export function usePluginUiSidePaneModel({
     toolResult,
     toolCallId,
     toolCancelled,
-    hostVersion: "zcode",
+    hostVersion: "nibi",
     availableDisplayModes: canReturnInline ? INLINE_AND_FULLSCREEN : FULLSCREEN_ONLY,
     onDisplayModeRequest: handleDisplayModeRequest,
     onOpenExternal: onOpenBrowserUrl,

@@ -8,7 +8,7 @@ import { OPENAI_SET_GLOBALS_EVENT } from "./openaiAlias.js";
  * 官方 `App` 上的薄封装：只与父窗口（受信 relay shell，origin 为 shell-<id>）通信；懒连接，
  * 自建官方 `App` 的页面不会因为别名多一次 ui/initialize。
  */
-// 不在这里 `declare global` 扩 Window：别名脚本与宿主 renderer 共用 tsconfig，`zcode?: unknown` 会覆盖宿主对
+// 不在这里 `declare global` 扩 Window：别名脚本与宿主 renderer 共用 tsconfig，额外的全局声明会覆盖宿主对
 // `window.nibi`（preload 桥）的类型。这里只用 defineProperty / `in` 检查，不需要类型声明。
 
 const app = new App(
@@ -36,17 +36,13 @@ window.addEventListener("message", (event) => {
   if (data && typeof data === "object" && data.jsonrpc === "2.0") runtime.markForeignApp();
 });
 
-// 面板公开桥：`nibi` 是主名（技能文档与新建面板都用它）；`zcode` 是同一对象的别名，
-// 只为一件事存在——已发布的第三方插件面板里写的是 window.nibi，删掉会让它们整页失效。
-// 不是两套实现：别名指向同一个 runtime.nibi，行为与状态完全同源。
-for (const name of ["nibi", "zcode"] as const) {
-  Object.defineProperty(window, name, {
-    value: runtime.nibi,
-    writable: false,
-    configurable: false,
-    enumerable: true,
-  });
-}
+// 面板公开桥只暴露 `nibi`。第三方插件已全部下线，不再保留旧品牌别名。
+Object.defineProperty(window, "nibi", {
+  value: runtime.nibi,
+  writable: false,
+  configurable: false,
+  enumerable: true,
+});
 // 页面若自带 window.openai（如页面自带的 polyfill），不覆盖。
 if (!("openai" in window)) {
   Object.defineProperty(window, "openai", {

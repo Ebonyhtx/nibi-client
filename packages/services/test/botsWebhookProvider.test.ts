@@ -47,7 +47,7 @@ describe("webhook bot provider", () => {
 
     expect(
       provider.parseCallback({
-        type: "zcode.bot.elicitation_response",
+        type: "nibi.bot.elicitation_response",
         botId: "webhook-1",
         userId: "user-1",
         requestId: "elicit-1",
@@ -114,7 +114,7 @@ describe("webhook bot provider", () => {
       }),
     );
     const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as { type?: string; text?: string };
-    expect(body).toMatchObject({ type: "zcode.bot.message", text: "hello" });
+    expect(body).toMatchObject({ type: "nibi.bot.message", text: "hello" });
   });
 
   it("posts structured elicitation requests to webhook URLs", async () => {
@@ -171,7 +171,7 @@ describe("webhook bot provider", () => {
       type?: string;
       elicitation?: unknown;
     };
-    expect(body.type).toBe("zcode.bot.elicitation_request");
+    expect(body.type).toBe("nibi.bot.elicitation_request");
     expect(body.elicitation).toMatchObject({ requestId: "elicit-1" });
   });
 });

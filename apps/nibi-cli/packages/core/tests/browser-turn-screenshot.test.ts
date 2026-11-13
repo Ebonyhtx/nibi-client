@@ -53,7 +53,7 @@ describe("browser turn screenshot", () => {
       output: {
         _meta: {
           "zcode/nodeReplEmittedImage": true,
-          "zcode/browserTurnScreenshot": {
+          "nibi/browserTurnScreenshot": {
             browserGeneration: 2,
             browserId: "iab-1",
             tabId: "tab-1",
@@ -128,7 +128,7 @@ describe("browser turn screenshot", () => {
       output: {
         _meta: {
           "zcode/nodeReplEmittedImage": true,
-          "zcode/browserTurnScreenshot": {
+          "nibi/browserTurnScreenshot": {
             browserGeneration: 2,
             browserId: "iab-1",
             tabId: "tab-1",

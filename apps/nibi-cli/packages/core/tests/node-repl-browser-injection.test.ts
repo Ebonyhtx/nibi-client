@@ -359,14 +359,14 @@ describe("node_repl browser injection", () => {
     )) as JsOutput;
 
     expect(out.responseMeta).toEqual({
-      "zcode/browserUse": true,
-      "zcode/toolSurface": expect.objectContaining({
+      "nibi/browserUse": true,
+      "nibi/toolSurface": expect.objectContaining({
         kind: "browserUse",
         backend: "iab",
         browserId: IAB.id,
       }),
       browser_use: { url: "https://x" },
-      "zcode/browserTurnScreenshot": {
+      "nibi/browserTurnScreenshot": {
         browserGeneration: IAB.generation,
         browserId: IAB.id,
         tabId: "tab-1",
@@ -413,7 +413,7 @@ describe("node_repl browser injection", () => {
       c,
     )) as JsOutput;
     expect(out.responseMeta).toMatchObject({
-      "zcode/toolSurface": {
+      "nibi/toolSurface": {
         kind: "browserUse",
         backend: "iab",
         browserId: IAB.id,
@@ -421,7 +421,7 @@ describe("node_repl browser injection", () => {
       },
     });
     expect(
-      (out.responseMeta?.["zcode/toolSurface"] as Record<string, unknown>)?.screenshot,
+      (out.responseMeta?.["nibi/toolSurface"] as Record<string, unknown>)?.screenshot,
     ).toBeUndefined();
     expect(out.images).toBeUndefined();
     disposeNodeReplSession("bs-side-effect-meta" as ToolExecutionContext["sessionId"]);

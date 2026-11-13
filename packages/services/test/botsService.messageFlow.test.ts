@@ -2702,7 +2702,7 @@ describe("botsService messageFlow", () => {
       elicitation?: { requestId?: string };
       selection?: { action?: string; token?: string };
     };
-    expect(body.type).toBe("zcode.bot.elicitation_request");
+    expect(body.type).toBe("nibi.bot.elicitation_request");
     expect(body.elicitation?.requestId).toBe("elicit-1");
     expect(body.selection?.action).toBe("elicitation.respond");
     expect(body.selection?.token).toMatch(/^[a-f0-9]{12}$/u);

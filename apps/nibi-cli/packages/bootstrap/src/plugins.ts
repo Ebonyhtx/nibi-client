@@ -193,7 +193,7 @@ export interface UninstallNibiMarketplacePluginOptions extends ResolveNibiPlugin
   pluginName?: string;
   marketplace?: string;
   removeCache?: boolean;
-  /** 保留 data/<plugin-id> 用户数据目录（`zcode plugins uninstall --keep-data`）。 */
+  /** 保留 data/<plugin-id> 用户数据目录（`nibi plugins uninstall --keep-data`）。 */
   keepData?: boolean;
 }
 
@@ -906,7 +906,7 @@ export async function uninstallNibiMarketplacePlugin(
 }
 
 /**
- * `zcode plugins update <plugin>`：先刷新所属 marketplace 目录，再按同一条目重装。
+ * `nibi plugins update <plugin>`：先刷新所属 marketplace 目录，再按同一条目重装。
  * cacheMarketplacePlugin 对已存在的安装记录做原地覆盖并保留 installedAt；启用态只会给
  * 用户配置里尚未显式声明的 id 补默认值，因此更新不会改变用户已经做过的开关选择。
  */
@@ -940,7 +940,7 @@ export async function updateNibiMarketplacePlugin(
   return { ...installed, previousVersion: record.version };
 }
 
-/** `zcode plugins validate <path>`：只读校验本地插件目录或 marketplace 目录。 */
+/** `nibi plugins validate <path>`：只读校验本地插件目录或 marketplace 目录。 */
 export async function validateNibiPluginPath(
   options: ValidateNibiPluginPathOptions,
 ): Promise<PluginLoadOutcome["diagnostics"]> {

@@ -335,8 +335,8 @@ export class NodeReplSession {
   /** browser-client transport 在同一次 js run 内把 backend meta 合并进工具结果。 */
   mergeResponseMeta(meta: Record<string, unknown>): void {
     if (!this.currentSink) return;
-    const currentSurface = this.currentSink.responseMeta["zcode/toolSurface"];
-    const nextSurface = meta["zcode/toolSurface"];
+    const currentSurface = this.currentSink.responseMeta["nibi/toolSurface"];
+    const nextSurface = meta["nibi/toolSurface"];
     // 工具结果需保留同一 cell 内最后一次成功 side-effect 的 openTabIds/sessionEnded。Nibi 不做
     // 自动 preview，但同一 cell 后续 title/url/domSnapshot 读取不能把先前动作 meta 覆盖掉。
     if (
@@ -349,7 +349,7 @@ export class NodeReplSession {
     ) {
       this.setResponseMeta({
         ...meta,
-        "zcode/toolSurface": {
+        "nibi/toolSurface": {
           ...(currentSurface as Record<string, unknown>),
           ...(nextSurface as Record<string, unknown>),
         },

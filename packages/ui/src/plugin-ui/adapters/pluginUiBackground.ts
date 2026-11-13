@@ -34,7 +34,7 @@ export function attachPluginUiToolResults(
       scope,
       displayMode: "inline",
       width: 0,
-      hostVersion: "zcode",
+      hostVersion: "nibi",
       toolCallId: result.toolCallId,
       toolInput: result.input,
       toolResult: buildPluginUiToolResult(

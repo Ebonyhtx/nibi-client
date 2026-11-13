@@ -23,7 +23,7 @@ export function isPluginHostInvocation(argv: readonly string[]): boolean {
 // __nibi-plugin-host 在 agent 子进程里运行 official plugin 的 MCP server（server.js）。
 // CLI 入口 main.ts 的 applyCliRuntimeEnvSanitization 会先把 broker token 从 process.env 剔除进
 // 进程内 capture；因此这里是恢复 bearer token 的最后一道宿主边界。capture 本身只证明某个
-// Agent 进程曾收到过 Helper 凭据，不能证明当前传入的 server 就是官方 zcode-cua：
+// Agent 进程曾收到过 Helper 凭据，不能证明当前传入的 server 就是官方 computer-use：
 // 只凭存在 capture 就把 token 恢复给任意 server path，第三方/被替换的插件可借此取得 CUA
 // broker 的 TCC 能力。必须同时验证 resolver 权威写入的 plugin id、完整的捕获凭据组，
 // 以及 canonical broker socket；任一字段不匹配都在 import 之前拒绝，避免加载不受信模块后再暴露 token。

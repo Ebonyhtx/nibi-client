@@ -640,7 +640,7 @@ export class SourceServerConnectionManager {
     try {
       context.signal?.throwIfAborted();
       const adapter = this.getAdapter(options.profile.transport);
-      // Bug 原因：已握手分支曾改走远端 `zcode update`，但正常安装链没有配置远端 release
+      // Bug 原因：已握手分支曾改走远端 `nibi update`，但正常安装链没有配置远端 release
       // manifest URL，生产更新必然失败。所有 Profile 都由 Desktop 解析同一 archive 并经 Adapter 应用。
       const probe = await adapter.probe(options.target, context);
       context.signal?.throwIfAborted();

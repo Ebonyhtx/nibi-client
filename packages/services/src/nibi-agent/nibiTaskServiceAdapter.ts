@@ -971,7 +971,7 @@ export function createNibiTaskServiceAdapter(
 
     if (changed) {
       logger.debug(undefined, "Nibi snapshot 合并 live tool projection", {
-        event: "zcode_task.snapshot.live_tool_projection.merged",
+        event: "nibi_task.snapshot.live_tool_projection.merged",
         liveToolCount: liveTools.length,
         mergedToolCount,
         taskId: meta.taskId,
@@ -4500,7 +4500,7 @@ function logStreamingToolInputProjection(
 ): void {
   logger.debug(traceId, "Nibi streaming tool input projected", {
     ...details,
-    event: "zcode.task.streaming_tool_input.projected",
+    event: "nibi.task.streaming_tool_input.projected",
   });
 }
 
@@ -5549,7 +5549,7 @@ function buildAgentModelNetworkInterface(payload: Record<string, unknown>): stri
   const providerKind = safeNetworkDimension(stringValue(payload.providerKind)) ?? "unknown";
   const transport = safeNetworkDimension(stringValue(payload.transport)) ?? "unknown";
   const base = normalizeAgentModelBaseUrl(stringValue(payload.baseURL));
-  return `zcode_agent.model.${providerKind}.${transport}.${base}`;
+  return `nibi_agent.model.${providerKind}.${transport}.${base}`;
 }
 
 function normalizeAgentModelBaseUrl(value: string | undefined): string {

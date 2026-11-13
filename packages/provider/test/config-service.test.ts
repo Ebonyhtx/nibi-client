@@ -357,7 +357,7 @@ describe("ProviderConfigService", () => {
     });
     const account = new MutableSource<AccountProviderConfigSnapshot>({
       revision: "account-1",
-      basedOnZCodeBuiltinRevision: "builtin-1",
+      basedOnNibiBuiltinRevision: "builtin-1",
       providers: new ProviderConfigMap([
         [
           "account",
@@ -1264,7 +1264,7 @@ describe("ProviderConfigService", () => {
     });
     const accountSource = new MutableSource<AccountProviderConfigSnapshot>({
       revision: "account-1",
-      basedOnZCodeBuiltinRevision: "nibiBuiltin-1",
+      basedOnNibiBuiltinRevision: "nibiBuiltin-1",
       providers: ProviderConfigMap.empty(),
     });
     const registry = new ProviderRegistryService({
@@ -1283,7 +1283,7 @@ describe("ProviderConfigService", () => {
     nibiBuiltin.emit("catalog-updated");
     accountSource.current = {
       revision: "account-2",
-      basedOnZCodeBuiltinRevision: "nibiBuiltin-2",
+      basedOnNibiBuiltinRevision: "nibiBuiltin-2",
       providers: ProviderConfigMap.empty(),
     };
     accountSource.emit("builtin-recomputed");

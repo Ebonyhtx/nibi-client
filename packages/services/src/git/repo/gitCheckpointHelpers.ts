@@ -27,7 +27,7 @@ export function getWorkspacePathspec(workspaceInRepoPath: string): string {
 
 export function getCheckpointRefName(workspacePath: string, checkpointId: string): string {
   const workspaceHash = getWorkspaceHash(workspacePath);
-  return `refs/zcode/checkpoints/${workspaceHash}/${checkpointId}`;
+  return `refs/nibi/checkpoints/${workspaceHash}/${checkpointId}`;
 }
 
 function mapNameStatusKind(status: string): GitCheckpointFileDiff["kind"] {
@@ -185,9 +185,9 @@ export function buildCheckpointEnv(tempIndexPath: string): NodeJS.ProcessEnv {
   return {
     GIT_INDEX_FILE: tempIndexPath,
     GIT_AUTHOR_NAME: "NIBI Checkpoint",
-    GIT_AUTHOR_EMAIL: "checkpoint@zcode.local",
+    GIT_AUTHOR_EMAIL: "checkpoint@nibi.local",
     GIT_COMMITTER_NAME: "NIBI Checkpoint",
-    GIT_COMMITTER_EMAIL: "checkpoint@zcode.local",
+    GIT_COMMITTER_EMAIL: "checkpoint@nibi.local",
   };
 }
 

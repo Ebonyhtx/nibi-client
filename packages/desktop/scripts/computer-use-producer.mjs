@@ -4,8 +4,8 @@ import { dirname, resolve } from "node:path";
 /**
  * producer 包在 node_modules 里的候选目录名（按优先级）。
  *
- * 2026-10-26 修：scope 改名 `@zcode/*` → `@nibi/*` 后包名变成 `@nibi/cua`，而这里仍只找
- * `@zcode/zcode-cua` → 真实 producer 永远被判「未安装」→ Windows Helper 的 node_modules
+ * 2026-10-26 修：scope 改名 `旧 scope` → `@nibi/*` 后包名变成 `@nibi/cua`，而这里仍只找
+ * `旧 CUA 包名` → 真实 producer 永远被判「未安装」→ Windows Helper 的 node_modules
  * 映射被跳过 → 装出来的包有 manifest/entry 却缺原生 addon，`resolveWindowsCuaRuntime` 失败、
  * 不注入配方，CUA 全部 fail-closed（实测 4.0.0 安装包即此状态）。
  */

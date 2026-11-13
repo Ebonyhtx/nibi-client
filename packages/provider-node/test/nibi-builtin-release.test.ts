@@ -447,7 +447,7 @@ describe("Nibi Built-in Release", () => {
       await source.refresh({ force: true });
       const second = await registry.refresh("endpoint-switch");
       expect(second.sourceRevisions.config).not.toBe(first.sourceRevisions.config);
-      expect(second.account.basedOnZCodeBuiltinRevision).toBe(second.config.nibiBuiltinRevision);
+      expect(second.account.basedOnNibiBuiltinRevision).toBe(second.config.nibiBuiltinRevision);
       expect(second.resolution.resolvedProviders[0]?.models.map((model) => model.modelId)).toEqual([
         "model-b",
       ]);

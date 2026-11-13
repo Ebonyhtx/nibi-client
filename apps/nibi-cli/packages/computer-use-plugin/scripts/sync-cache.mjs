@@ -37,7 +37,7 @@ const ENTRIES = [
 ];
 
 /**
- * Resolve the CLI cache dir for zcode-cua. Prefer the cachePath declared in the
+ * Resolve the CLI cache dir for NIBI CUA. Prefer the cachePath declared in the
  * nibi-plugins-official marketplace.json; fall back to the single version dir under
  * the cache root. Throws if neither yields an existing dir (plugin not installed).
  */
@@ -72,7 +72,7 @@ async function resolveCacheDir() {
     }
   }
   throw new Error(
-    `Could not resolve the zcode-cua CLI cache dir. The plugin does not appear to be ` +
+    `Could not resolve the NIBI CUA CLI cache dir. The plugin does not appear to be ` +
       `installed — run it once from the nibi UI/TUI to install, then re-run sync:cache. ` +
       `(looked in marketplace.json and ${cacheRoot})`,
   );

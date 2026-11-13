@@ -324,7 +324,7 @@ export class NodeApiClient implements ApiClient {
       );
       if (isRequestForEndpoint(requestInput, activeEndpointOrigin)) {
         // 调试说明：这里只记录 header key，避免 Authorization / token 等敏感值落盘。
-        log.debug(undefined, "zcode endpoint request headers prepared", {
+        log.debug(undefined, "nibi endpoint request headers prepared", {
           headerKeys: readHeaderKeys(requestHeaders),
           method,
           url,
@@ -379,7 +379,7 @@ export class NodeApiClient implements ApiClient {
           );
         } catch (error) {
           if (signal?.aborted) throw new DOMException("The operation was aborted.", "AbortError");
-          log.warn("zcode jwt invalid response observation failed", { error });
+          log.warn("nibi jwt invalid response observation failed", { error });
         }
       }
       if (signal?.aborted) throw new DOMException("The operation was aborted.", "AbortError");

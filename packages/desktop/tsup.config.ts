@@ -277,7 +277,7 @@ export default defineConfig([
       "@nibi/provider",
       "@nibi/provider-node",
       // services 已内联进 main，但其 producer import 曾被保留为裸包引用；
-      // electron-builder 又会排除 node_modules/@zcode，导致安装包启动即 ERR_MODULE_NOT_FOUND。
+      // electron-builder 又会排除 node_modules/@nibi，导致安装包启动即 ERR_MODULE_NOT_FOUND。
       // producer 的 JS broker 必须跟随 services 一起内联，原生 addon 仍只存在于独立 Helper。
       "@nibi/cua",
     ],

@@ -293,7 +293,7 @@ export interface WorkflowHostApi {
 // Boundary B：driver port
 // ————————————————————————————————————————————————————————————————
 
-/** 一个 actor 会话的不透明引用（生产侧是 zcode session id）。 */
+/** 一个 actor 会话的不透明引用（生产侧是 NIBI session id）。 */
 export interface SessionRef {
   readonly id: string;
 }

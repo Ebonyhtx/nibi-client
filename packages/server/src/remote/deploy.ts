@@ -88,7 +88,7 @@ export interface DeployOptions {
 }
 
 /**
- * Deploy the zcode server to the remote machine.
+ * Deploy the NIBI server to the remote machine.
  * Uploads Node.js binary, server bundle, and node-pty prebuild.
  *
  * Returns true if a deploy was performed, false if skipped (version matches).

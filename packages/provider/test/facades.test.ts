@@ -123,7 +123,7 @@ async function createService(): Promise<ProviderRegistryService> {
   const account: AccountProviderConfigSnapshot = {
     revision: "account-1",
     states: { account: { availability: "available", entitled: true, current: true } },
-    basedOnZCodeBuiltinRevision: "builtin-1",
+    basedOnNibiBuiltinRevision: "builtin-1",
     providers: new ProviderConfigMap([
       ["account", createAccountProviderConfig({ models: ["m1"], entitled: true })],
     ]),

@@ -581,7 +581,7 @@ function ensurePluginManagementWorkspacePath(): string {
 // session/create params (the app→protocol channel). It is deliberately independent of the
 // CLI/bootstrap MCP servers configured in ~/.nibi/cli/config.json (mcp.servers), which the agent
 // runtime connects separately and reports via the `mcp.server.connected`/toolCount events. So a
-// createSession log line with mcpServerCount:0 is EXPECTED when zcode-cua is a CLI-config MCP server
+// createSession log line with mcpServerCount:0 is EXPECTED when computer-use is a CLI-config MCP server
 // (e.g. the product Helper broker path injected through the gated bootstrap env): the model still receives those
 // tools — the two numbers describe different channels, not a missing tool set. Verified on-machine:
 // real kimi-k2.6 turns call mcp__computer-use__* tools (get_app_state/type/open_application, status
@@ -1405,7 +1405,7 @@ export function createNibiAgentService(
     // 远端 Host transport 仍存活但设置 responder 不返回时，旧 pending
     // 没有终止条件，会阻塞 Session 生命周期。超时只结束本次请求，不重试或降级。
     logger.warn(undefined, "运行时偏好请求等待 Host 响应超时", {
-      event: "zcode_agent.runtime_preferences.host_response_timeout",
+      event: "nibi_agent.runtime_preferences.host_response_timeout",
       module: "services.nibi_agent",
       requestId,
       scope: pending.request.scope,
@@ -1470,7 +1470,7 @@ export function createNibiAgentService(
             nibiProtocolMethods.providerUpdateAccountConfig,
             {
               revision: snapshot.revision,
-              basedOnZCodeBuiltinRevision: snapshot.basedOnZCodeBuiltinRevision,
+              basedOnNibiBuiltinRevision: snapshot.basedOnNibiBuiltinRevision,
               // Account 是运行时事实信封，不是磁盘 Provider 规则集合；保持原有协议字典。
               providers: Object.fromEntries(
                 [...snapshot.providers.entries()].map(([providerId, config]) => [
@@ -2415,7 +2415,7 @@ export function createNibiAgentService(
             workspaceKey: resolveWorkspaceKey(workspace),
           });
           logger.info(undefined, "运行时偏好请求已转发给 Host", {
-            event: "zcode_agent.runtime_preferences.host_request_dispatched",
+            event: "nibi_agent.runtime_preferences.host_request_dispatched",
             module: "services.nibi_agent",
             requestId,
             scope: dynamicRequest.scope,
@@ -5182,14 +5182,14 @@ export function createNibiAgentService(
       const pending = takePendingSessionRuntimePreferences(params.requestId);
       if (!pending) {
         logger.warn(undefined, "运行时偏好响应找不到 pending 请求", {
-          event: "zcode_agent.runtime_preferences.response_without_pending",
+          event: "nibi_agent.runtime_preferences.response_without_pending",
           module: "services.nibi_agent",
           requestId: params.requestId,
         });
         throw new Error(`NIBI session runtime preferences request not found: ${params.requestId}`);
       }
       const responseContext = {
-        event: "zcode_agent.runtime_preferences.host_response_received",
+        event: "nibi_agent.runtime_preferences.host_response_received",
         module: "services.nibi_agent",
         requestId: params.requestId,
         scope: pending.request.scope,

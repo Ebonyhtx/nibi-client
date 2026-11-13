@@ -3,13 +3,13 @@
 ## 常用入口
 
 ```sh
-zcode
-zcode --prompt "任务说明" --cwd /absolute/path/to/project --mode yolo --json
-zcode doctor --json
-zcode skills list --json
-zcode commands list --json
-zcode plugins list --json
-zcode hooks trust status --workspace /absolute/path/to/project --json
+nibi
+nibi --prompt "任务说明" --cwd /absolute/path/to/project --mode yolo --json
+nibi doctor --json
+nibi skills list --json
+nibi commands list --json
+nibi plugins list --json
+nibi hooks trust status --workspace /absolute/path/to/project --json
 ```
 
 无参数进入 TUI。`--prompt`/`-p` 必须带非空文本；不要把 `-p` 当作无需值的开关，也不要用裸位置参数替代 prompt。`app-server` 是协议服务入口，不是批量任务的普通问答命令。

@@ -849,7 +849,7 @@ describe("createNibiAgentService provider registry", () => {
     const { createNibiAgentService } = await import("../src/nibi-agent/nibiAgentService.js");
     const accountSnapshot: AccountProviderConfigSnapshot = {
       revision: "account-1",
-      basedOnZCodeBuiltinRevision: "nibi-builtin:1",
+      basedOnNibiBuiltinRevision: "nibi-builtin:1",
       states: {
         "account:zai-individual-coding-plan": {
           availability: "available",
@@ -895,7 +895,7 @@ describe("createNibiAgentService provider registry", () => {
       nibiProtocolMethods.providerUpdateAccountConfig,
       {
         revision: "account-1",
-        basedOnZCodeBuiltinRevision: "nibi-builtin:1",
+        basedOnNibiBuiltinRevision: "nibi-builtin:1",
         states: accountSnapshot.states,
         providers: {
           "account:zai-individual-coding-plan": {
@@ -915,7 +915,7 @@ describe("createNibiAgentService provider registry", () => {
   it("pushes changed Account Config without rebuilding the Workspace Snapshot", async () => {
     const accountSource = createAccountProviderConfigChangeSource({
       revision: "account-1",
-      basedOnZCodeBuiltinRevision: "nibi-builtin:1",
+      basedOnNibiBuiltinRevision: "nibi-builtin:1",
       providers: new ProviderConfigMap([
         [
           "account:zai-individual-coding-plan",
@@ -968,7 +968,7 @@ describe("createNibiAgentService provider registry", () => {
 
     accountSource.emit("team-plan-selected", {
       revision: "account-2",
-      basedOnZCodeBuiltinRevision: "nibi-builtin:1",
+      basedOnNibiBuiltinRevision: "nibi-builtin:1",
       providers: new ProviderConfigMap([
         [
           "account:zai-individual-coding-plan",
@@ -1104,7 +1104,7 @@ describe("createNibiAgentService provider registry", () => {
     async (refreshResult) => {
       const accountSource = createAccountProviderConfigChangeSource({
         revision: "account-1",
-        basedOnZCodeBuiltinRevision: "nibi-builtin:1",
+        basedOnNibiBuiltinRevision: "nibi-builtin:1",
         providers: new ProviderConfigMap([]),
       });
       let finishRefresh!: () => void;

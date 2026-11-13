@@ -1,7 +1,7 @@
 /**
  * 内存版 {@link JournalStorePort}：阶段一用于 fake-driver 测试与 replay/resume。
  * 纯内存、同步；深拷贝进出以杜绝调用方持有的引用被后续写入意外改动（模拟存储边界）。
- * 生产实现落在 zcode session store 的 node:sqlite（DatabaseSync，同步）之上，共用 JournalStorePort；
+ * 生产实现落在 NIBI session store 的 node:sqlite（DatabaseSync，同步）之上，共用 JournalStorePort；
  * 事务性不在端口面上，由 driver 组合 journal+session 写入。
  */
 

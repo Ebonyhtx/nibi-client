@@ -22,7 +22,7 @@
           "type": "string",
           "minLength": 1
         },
-        "basedOnZCodeBuiltinRevision": {
+        "basedOnNibiBuiltinRevision": {
           "type": "string",
           "minLength": 1
         },
@@ -82,7 +82,7 @@
       },
       "required": [
         "revision",
-        "basedOnZCodeBuiltinRevision",
+        "basedOnNibiBuiltinRevision",
         "providers",
         "states"
       ],

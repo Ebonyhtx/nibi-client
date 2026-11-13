@@ -51,7 +51,7 @@ export function recordBrowserTurnToolResult(input: {
   if (input.toolName !== "js" && input.toolName !== "mcp__node_repl__js") return;
   const output = asRecord(input.output);
   const responseMeta = asRecord(output?._meta) ?? asRecord(output?.responseMeta);
-  const candidate = asRecord(responseMeta?.["zcode/browserTurnScreenshot"]);
+  const candidate = asRecord(responseMeta?.["nibi/browserTurnScreenshot"]);
   if (
     typeof candidate?.browserId !== "string" ||
     typeof candidate.browserGeneration !== "number" ||
