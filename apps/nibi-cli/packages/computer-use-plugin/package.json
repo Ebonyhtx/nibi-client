@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@nibi/cua-plugin",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "private": true,
   "description": "NIBI CUA SDK and skill package; execution is provided by the shared node_repl host.",
   "license": "Apache-2.0",

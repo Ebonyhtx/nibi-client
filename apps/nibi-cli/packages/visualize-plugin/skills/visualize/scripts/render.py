@@ -13,6 +13,7 @@ _FRAGMENT_PLACEHOLDER = "<!--__INLINE_VISUALIZATION_FRAGMENT__-->"
 _MAX_FRAGMENT_BYTES = 1_000_000
 _DOCUMENT_MARKUP = re.compile(r"<!doctype\s|<\s*(?:html|head|body)(?:\s|>)", re.IGNORECASE)
 _HOST_API_REFERENCE = re.compile(r"\b(?:window|globalThis)\.nibi\b")
+_CJK_TEXT = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]")
 _RESOURCE_SOURCES = " ".join(
     (
         "blob:",
@@ -94,8 +95,9 @@ def _render_document(fragment: str, title: str) -> str:
     )
     inner_html = embed_vendor_scripts(inner_kit.replace(_FRAGMENT_PLACEHOLDER, calendar_script(fragment) + fragment))
     document_title = escape(title)
+    document_language = "zh-CN" if _CJK_TEXT.search(fragment) or _CJK_TEXT.search(title) else "en"
     frame_html = f"""<!doctype html>
-<html lang="en" data-visualize-standalone>
+<html lang="{document_language}" data-visualize-standalone>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -113,7 +115,7 @@ html>body{{padding:0}}</style>
 </html>
 """
     return f"""<!doctype html>
-<html lang="en" data-visualize-standalone>
+<html lang="{document_language}" data-visualize-standalone>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

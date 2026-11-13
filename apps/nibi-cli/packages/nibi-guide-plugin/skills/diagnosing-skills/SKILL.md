@@ -1,6 +1,6 @@
 ---
 name: diagnosing-skills
-description: Use to diagnose and fix Nibi skill configuration problems in the Nibi client. Applies when a skill is not discovered, is installed but does not trigger automatically, is shadowed by a higher-precedence skill of the same name, is disabled by configuration, has a SKILL.md frontmatter error, fails to load because its description is too long, or disappears because the plugin providing it is disabled. Provides the discovery order, how to inspect skills in the client, common pitfalls, and a step-by-step localization and repair workflow.
+description: Use to diagnose and fix NIBI skill configuration problems in the NIBI client. Applies when a skill is not discovered, is installed but does not trigger automatically, is shadowed by a higher-precedence skill of the same name, is disabled by configuration, has a SKILL.md frontmatter error, fails to load because its description is too long, or disappears because the plugin providing it is disabled. Provides the discovery order, how to inspect skills in the client, common pitfalls, and a step-by-step localization and repair workflow. 用于诊断 NIBI 技能未发现、不自动触发、被同名覆盖或被配置禁用。
 ---
 
 # Diagnosing Skill Configuration

@@ -1,6 +1,6 @@
 ---
 name: xlsx-viewer
-description: View and discuss Excel (.xlsx) workbooks with the user in the Spreadsheets side panel. Use when the user wants to open, look through or ask about a workbook in the workspace together, refers to cells they selected or referenced in the Spreadsheets viewer, or should check a workbook you just produced.
+description: View and discuss Excel (.xlsx) workbooks with the user in the Spreadsheets side panel. Use when the user wants to open, look through or ask about a workbook in the workspace together, refers to cells they selected or referenced in the Spreadsheets viewer, or should check a workbook you just produced. 用于在电子表格侧栏查看和讨论 Excel（.xlsx）文件并定位单元格。
 ---
 
 # Excel viewer

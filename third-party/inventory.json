@@ -9,7 +9,7 @@
     "apps/nibi-cli/packages/adapters/package.json": "782023aab469137ba9f2d7406fd8b8059afa41ac9a2052f501f57b956cd51899",
     "apps/nibi-cli/packages/android-emulator-plugin/package.json": "2df25aaa70149d231d9e1feaaab4ba785b84418684768b92b1200d456a062b7b",
     "apps/nibi-cli/packages/bootstrap/package.json": "7d25a43531210753c6d8a5972ea65369de060f91b63fa2c7b07135dcd0c89cc0",
-    "apps/nibi-cli/packages/browser-use-plugin/package.json": "f37747250de8e94723cb9c2d32326addf8635f1d5083776e28b49a0588200a78",
+    "apps/nibi-cli/packages/browser-use-plugin/package.json": "5ef90cd538d6ce5c4f636739c1a7f0396fa0242cd1c6a016aacbc4128644a9f3",
     "apps/nibi-cli/packages/cli/package.json": "f65aefaf259bcd0718e895e80626beaa880338139c4b0d4195c97225bd838437",
     "apps/nibi-cli/packages/contracts/package.json": "88457db4021268aec228e710e70038990e4c600078126b270e694d00709e50a3",
     "apps/nibi-cli/packages/core/package.json": "f993a5960274c3b42e9c4d0e76d71c42f5cef0a8418252628c703d088d09f77c",
@@ -19,7 +19,7 @@
     "apps/nibi-cli/packages/dynamic-workflow-runtime/package.json": "fe379b53c2ce31568eae4d4a36d6809a51defeef8f1be851e28a48b31b56b135",
     "apps/nibi-cli/packages/dynamic-workflow/package.json": "2c15b676afa00b58203a789da8b23e6d5cdc7bb627af32844ed98a9cbd2015ac",
     "apps/nibi-cli/packages/i18n/package.json": "cb68328a807a8b715e5c0aed8a36f373ab16197556f2240cb757eabb123f5296",
-    "apps/nibi-cli/packages/ios-simulator-plugin/package.json": "63b2b791094aab083eaf5f4699f4eaea5730f81bb444b359358d82695cb84965",
+    "apps/nibi-cli/packages/ios-simulator-plugin/package.json": "91ad2905077c0e8408d92e984de881d21a5f5f729382241c56ae0df786d2781b",
     "apps/nibi-cli/packages/node-repl-host/package.json": "eab19e2b630909bb7d1a1dcf5c4f51946b331d461a11985c0c3e6f4334cb7c08",
     "apps/nibi-cli/packages/office-runtime/package.json": "361acf14cee4e9f0551ebbe82128494b4e15ea93a51c7a48459e5ef307085332",
     "apps/nibi-cli/packages/pdf-plugin/package.json": "6a59eef770f51ee6c825342fa12b5c8cd41be8b736d4dc2d0e0e4348b958e646",
@@ -2683,7 +2683,7 @@
     "third-party/upstream/f29b60ea39a2132e3baa98927c2d473b349a54143da44a0c6762b243e6459452.txt": "f29b60ea39a2132e3baa98927c2d473b349a54143da44a0c6762b243e6459452",
     "third-party/upstream/f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af.txt": "f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af",
     "third-party/upstream/fc7d762e0ebf8720d0a03cf00058aaa3a198347e9651be2f50a25e3b3ec13985.txt": "fc7d762e0ebf8720d0a03cf00058aaa3a198347e9651be2f50a25e3b3ec13985",
-    "apps/nibi-cli/packages/computer-use-plugin/package.json": "fbe95e3e90f9b105435d6ea97387f514de9ec2475282d37547a5ee2de3d8b317"
+    "apps/nibi-cli/packages/computer-use-plugin/package.json": "78d53da7cebce0a63bf037d664b5e7f32111192d7c3f293f945100aa47a7b12d"
   },
   "packages": [
     {

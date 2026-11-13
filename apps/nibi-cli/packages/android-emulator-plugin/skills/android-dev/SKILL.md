@@ -1,6 +1,6 @@
 ---
 name: android-dev
-description: Build, run, inspect, and lightly automate Android apps with the android-emulator MCP tools.
+description: Build, run, inspect, and lightly automate Android apps with the android-emulator MCP tools. 用于创建、构建、运行、调试、截图和操作 Android 应用与模拟器/真机。
 ---
 
 # Android Dev

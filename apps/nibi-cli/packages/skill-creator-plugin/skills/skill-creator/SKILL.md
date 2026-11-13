@@ -1,11 +1,11 @@
 ---
 name: skill-creator
-description: Create new skills, edit existing skills, and iterate wording. Use when writing SKILL.md from scratch, improving existing skills, turning repeated workflows into reusable skills, or refining skill descriptions to improve trigger reliability.
+description: Create new skills, edit existing skills, and iterate wording. Use when writing SKILL.md from scratch, improving existing skills, turning repeated workflows into reusable skills, or refining skill descriptions to improve trigger reliability. 用于编写或修改 NIBI 技能（SKILL.md），迭代描述与触发可靠性。
 ---
 
 # Skill Creator
 
-A skill for authoring and iteratively improving local Nibi skills.
+A skill for authoring and iteratively improving local NIBI skills.
 
 At a high level, the loop is:
 
@@ -38,7 +38,7 @@ Useful questions:
 
 ### Where skills live
 
-Nibi discovers skills in these directories (highest priority first):
+NIBI discovers skills in these directories (highest priority first):
 
 - `<project>/.nibi/skills/<name>/SKILL.md`
 - `<project>/.agents/skills/<name>/SKILL.md`
@@ -64,6 +64,7 @@ Required frontmatter:
 
 - `name` — the skill's identifier. Lowercase kebab-case, 1–64 chars. Must match the directory name.
 - `description` — when this skill should trigger and what it does. This is the primary triggering signal — both *what* the skill does and *in what contexts* belong here, not in the body. Models tend to *under*-trigger skills, so write descriptions a little bit pushy: instead of "How to build a dashboard for internal data," write "How to build a fast dashboard for internal data. Use whenever the user mentions dashboards, data visualization, internal metrics, or wants to display any company data — even if they don't explicitly say 'dashboard'."
+- When the user works in Chinese, put the Chinese trigger words in the same `description` instead of translating the whole skill. NIBI routes on the full description, so bilingual triggers make Chinese requests match as reliably as English ones.
 
 Optional (reserved) frontmatter fields are listed in the Nibi skill spec; for most skills you only need `name` and `description`.
 

@@ -603,7 +603,7 @@ test("includes the pinned Playwright runtime required by headless Browser Use", 
 test("keeps the Browser Use SEA release at 0.5.1 with complete runtime assets", async () => {
   const root = join(import.meta.dirname, "../../..");
   const browserUsePlugin = officialSeaPlugins.find((plugin) => plugin.name === "browser-use");
-  assert.equal(browserUsePlugin?.version, "0.5.1");
+  assert.equal(browserUsePlugin?.version, "0.5.2");
   assert.deepEqual(browserUsePlugin?.requiredRuntimePaths, [
     "scripts/browser-client.mjs",
     "docs/api.json",
@@ -627,9 +627,9 @@ test("keeps the Browser Use SEA release at 0.5.1 with complete runtime assets", 
       sea: browserUsePlugin.version,
     },
     {
-      manifest: "0.5.1",
-      package: "0.5.1",
-      sea: "0.5.1",
+      manifest: "0.5.2",
+      package: "0.5.2",
+      sea: "0.5.2",
     },
   );
   // Bug 原因：新增录屏能力时重写了整段插件描述，并把原生 WebM 误写成 MP4。

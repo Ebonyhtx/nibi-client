@@ -1,6 +1,6 @@
 ---
 name: diagnosing-commands
-description: Use to diagnose and fix Nibi custom slash-command (/command) configuration problems in the Nibi client. Applies when a command is missing, is overridden by a higher-precedence command of the same name, has a frontmatter parse error, is dropped for having an empty body, has an invalid name, does not substitute $ARGUMENTS/$1, uses a colon rather than a slash for nested names, has a misspelled frontmatter key, or disappears because the plugin providing it is disabled. Provides the discovery order, how to inspect commands in the client, common pitfalls, and a step-by-step localization and repair workflow.
+description: Use to diagnose and fix NIBI custom slash-command (/command) configuration problems in the NIBI client. Applies when a command is missing, is overridden by a higher-precedence command of the same name, has a frontmatter parse error, is dropped for having an empty body, has an invalid name, does not substitute $ARGUMENTS/$1, uses a colon rather than a slash for nested names, has a misspelled frontmatter key, or disappears because the plugin providing it is disabled. Provides the discovery order, how to inspect commands in the client, common pitfalls, and a step-by-step localization and repair workflow. 用于诊断 NIBI 斜杠命令缺失、被覆盖、frontmatter 解析失败或未注册。
 ---
 
 # Diagnosing Command Configuration

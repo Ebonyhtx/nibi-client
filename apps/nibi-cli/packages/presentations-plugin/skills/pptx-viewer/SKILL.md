@@ -1,6 +1,6 @@
 ---
 name: pptx-viewer
-description: View and discuss PowerPoint (.pptx) decks with the user in the Presentations side panel. Use when the user wants to open, review or ask about a deck in the workspace together, refers to a slide or shape they selected or referenced in the Presentations viewer, or should check a deck you just produced.
+description: View and discuss PowerPoint (.pptx) decks with the user in the Presentations side panel. Use when the user wants to open, review or ask about a deck in the workspace together, refers to a slide or shape they selected or referenced in the Presentations viewer, or should check a deck you just produced. 用于在演示文稿侧栏查看和讨论 PowerPoint（.pptx）文件并定位幻灯片与形状。
 ---
 
 # PowerPoint viewer

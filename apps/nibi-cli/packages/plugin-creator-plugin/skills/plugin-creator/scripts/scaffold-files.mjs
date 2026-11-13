@@ -4,6 +4,10 @@ export function scaffoldFiles(name, components) {
     name,
     version: "0.1.0",
     description: `${name} plugin`,
+    description_i18n: {
+      en: `${name} plugin`,
+      "zh-CN": `${name} 插件`,
+    },
     author: { name: "Local developer" },
   };
   const files = new Map();
@@ -37,7 +41,7 @@ export function scaffoldFiles(name, components) {
                 hooks: [
                   {
                     type: "command",
-                    command: 'node "${CLAUDE_PLUGIN_ROOT}/scripts/session-start.mjs"',
+                    command: 'node "${NIBI_PLUGIN_ROOT}/scripts/session-start.mjs"',
                   },
                 ],
               },
@@ -60,7 +64,7 @@ export function scaffoldFiles(name, components) {
       JSON.stringify(
         {
           mcpServers: {
-            [name]: { command: "node", args: ["${CLAUDE_PLUGIN_ROOT}/scripts/mcp-server.mjs"] },
+            [name]: { command: "node", args: ["${NIBI_PLUGIN_ROOT}/scripts/mcp-server.mjs"] },
           },
         },
         null,

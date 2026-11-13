@@ -1,6 +1,6 @@
 ---
 name: plugin-creator
-description: Create or update NIBI plugin source and a local test marketplace, then guide the user to add, install, update and try it in the app. Use for new plugins or changes to an existing plugin's capabilities, manifest or local distribution.
+description: Create or update NIBI plugin source and a local test marketplace, then guide the user to add, install, update and try it in the app. Use for new plugins or changes to an existing plugin's capabilities, manifest or local distribution. 用于创建或修改 NIBI 插件、脚手架与本地测试市场，并完成安装、更新与试用交接。
 ---
 
 # Plugin Creator

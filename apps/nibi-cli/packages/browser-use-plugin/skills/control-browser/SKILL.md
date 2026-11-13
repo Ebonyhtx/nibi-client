@@ -1,6 +1,6 @@
 ---
 name: control-browser
-description: "Use when opening, navigating, inspecting, testing, clicking, typing, filling, screenshotting, or verifying web pages and local HTTP targets (localhost, 127.0.0.1, ::1) inside Nibi, including browser/web-UI automation, rendered-page scraping, frontend checks, and visible page-state reading. Prefer this over Computer Use for anything that stays inside a web page, unless the user explicitly asks for Computer Use. Main agent only."
+description: "Use when opening, navigating, inspecting, testing, clicking, typing, filling, screenshotting, or verifying web pages and local HTTP targets (localhost, 127.0.0.1, ::1) inside NIBI, including browser/web-UI automation, rendered-page scraping, frontend checks, and visible page-state reading. Prefer this over Computer Use for anything that stays inside a web page, unless the user explicitly asks for Computer Use. Main agent only. 用于打开或导航网页、点击输入、截图录制、检查渲染内容与验证本地/线上页面。"
 ---
 
 # Browser automation (agent.browsers)

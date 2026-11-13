@@ -1,6 +1,6 @@
 ---
 name: diagnosing-plugins
-description: Use to diagnose and fix Nibi plugin and marketplace problems in the Nibi client. Applies when a plugin is not listed, adding a marketplace or installing a plugin fails, a plugin is enabled but its skills or commands are missing, a built-in plugin still appears after being disabled, a plugin is not enabled as expected, a plugin.json manifest has a parse error, a plugin name is invalid, a dependency is unresolved or blocked across marketplaces, or a sensitive configuration value cannot be entered in the interface. Provides the plugin lifecycle, manifest schema, how to manage plugins in the client, and a step-by-step localization and repair workflow.
+description: Use to diagnose and fix NIBI plugin and marketplace problems in the NIBI client. Applies when a plugin is not listed, adding a marketplace or installing a plugin fails, a plugin is enabled but its skills or commands are missing, a built-in plugin still appears after being disabled, a plugin is not enabled as expected, a plugin.json manifest has a parse error, a plugin name is invalid, a dependency is unresolved or blocked across marketplaces, or a sensitive configuration value cannot be entered in the interface. Provides the plugin lifecycle, manifest schema, how to manage plugins in the client, and a step-by-step localization and repair workflow. 用于诊断 NIBI 插件未列出、市场添加/安装失败、启用后技能或命令缺失。
 ---
 
 # Diagnosing Plugin Configuration

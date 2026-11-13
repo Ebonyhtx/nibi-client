@@ -3,7 +3,7 @@ name: docx
 metadata:
   author: NIBI
   version: "1.1"
-description: "Complete DOCX document creation, editing, and analysis capabilities with support for revisions, comments, formatting preservation, and text extraction. Also handles Word format conversion: legacy .doc → .docx, DOCX → PDF, DOCX → images (PNG/JPG) for visual review or previews, and DOCX → Markdown/plain text extraction. Use for creating new documents, modifying content, handling revisions, adding comments, other professional Word document tasks, or when the user asks to convert, export, or render a Word document to another format (e.g. 'Word转PDF', 'doc转docx', 'export this docx as PDF/images')."
+description: "Complete DOCX document creation, editing, and analysis capabilities with support for revisions, comments, formatting preservation, and text extraction. Also handles Word format conversion: legacy .doc → .docx, DOCX → PDF, DOCX → images (PNG/JPG) for visual review or previews, and DOCX → Markdown/plain text extraction. Use for creating new documents, modifying content, handling revisions, adding comments, other professional Word document tasks, or when the user asks to convert, export, or render a Word document to another format (e.g. 'Word转PDF', 'doc转docx', 'export this docx as PDF/images'). 用于创建、编辑、审阅、批注 Word 文档，以及 doc→docx、docx→PDF/图片/Markdown 转换。"
 license: Proprietary. LICENSE.txt has complete terms
 ---
 

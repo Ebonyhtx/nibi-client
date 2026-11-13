@@ -1,6 +1,6 @@
 ---
 name: pdf-viewer
-description: View and discuss PDF files with the user in the PDF side panel. Use when the user wants to open, read, review or ask about a PDF in the workspace, refers to something they selected or referenced in the PDF viewer, or should check a PDF you just produced.
+description: View and discuss PDF files with the user in the PDF side panel. Use when the user wants to open, read, review or ask about a PDF in the workspace, refers to something they selected or referenced in the PDF viewer, or should check a PDF you just produced. 用于在 PDF 侧栏查看和讨论 PDF 文件并定位引用段落或页面。
 ---
 
 # PDF viewer

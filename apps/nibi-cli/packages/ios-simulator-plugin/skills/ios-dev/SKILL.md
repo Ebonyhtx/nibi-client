@@ -1,6 +1,6 @@
 ---
 name: ios-dev
-description: Build, run, inspect, and lightly automate iOS simulator apps with the ios-simulator MCP tools.
+description: Build, run, inspect, and lightly automate iOS simulator apps with the ios-simulator MCP tools. 用于创建、构建、运行、调试、截图和操作 iOS 模拟器应用。
 ---
 
 # iOS Dev

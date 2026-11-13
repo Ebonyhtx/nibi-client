@@ -12,7 +12,7 @@ A plugin uses `.nibi-plugin/plugin.json`. Its `name` is its stable identifier; t
 }
 ```
 
-Optional components: `skills` and `commands` point to directories; `hooks` points to `hooks/hooks.json`; `mcpServers` can point to `.mcp.json` or contain the server configuration. Only declare real resources. Paths stay within the plugin root. Use `${CLAUDE_PLUGIN_ROOT}` in MCP arguments and hook commands for the runtime plugin location. The loader handles the token; shell scripts must not guess the install cache path.
+Optional components: `skills` and `commands` point to directories; `hooks` points to `hooks/hooks.json`; `mcpServers` can point to `.mcp.json` or contain the server configuration. Only declare real resources. Paths stay within the plugin root. Use `${NIBI_PLUGIN_ROOT}` in MCP arguments and hook commands for the runtime plugin location (`${CLAUDE_PLUGIN_ROOT}` remains a compatibility alias for imported plugins). The loader handles the token; shell scripts must not guess the install cache path.
 
 Skills contain `<name>/SKILL.md` with `name` and `description` YAML frontmatter. Commands are Markdown documents. The generator provides minimal examples for skills, commands, MCP and SessionStart hooks. Implement the actual requested behavior before reporting success.
 

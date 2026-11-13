@@ -53,7 +53,7 @@ export const officialSeaPlugins = [
       "skills/visualize/assets/standalone-shell.js",
     ],
     rootPath: join("packages", "visualize-plugin"),
-    version: "0.1.2",
+    version: "0.1.3",
   },
   {
     marketplace: "nibi-official",
@@ -67,7 +67,7 @@ export const officialSeaPlugins = [
       "hooks/run-hook.cmd",
     ],
     rootPath: join("packages", "design-plugin"),
-    version: "0.7.2",
+    version: "0.7.3",
   },
   {
     // node_repl 宿主：Browser Use 与 Computer Use 共用的运行时产物，自己不是面向用户的插件
@@ -170,7 +170,7 @@ export const officialSeaPlugins = [
     rootPath: join("packages", "browser-use-plugin"),
     // SEA 清单仍指向旧版时，runtime 会与官方 definition 精确匹配失败，
     // 导致发布产物不 seed browser-use，进而无法装配宿主 node_repl MCP。
-    version: "0.5.1",
+    version: "0.5.2",
   },
   {
     marketplace: "nibi-official",
@@ -179,7 +179,7 @@ export const officialSeaPlugins = [
     requiresRuntime: true,
     requiredRuntimePaths: ["dist/mcp/server.js"],
     rootPath: join("packages", "ios-simulator-plugin"),
-    version: "0.1.0",
+    version: "0.1.1",
   },
   {
     marketplace: "nibi-official",
@@ -187,7 +187,7 @@ export const officialSeaPlugins = [
     packageName: "@nibi/skill-creator-plugin",
     requiresRuntime: false,
     rootPath: join("packages", "skill-creator-plugin"),
-    version: "0.1.0",
+    version: "0.1.1",
   },
   {
     marketplace: "nibi-official",
@@ -195,7 +195,7 @@ export const officialSeaPlugins = [
     packageName: "@nibi/plugin-creator-plugin",
     requiresRuntime: false,
     rootPath: join("packages", "plugin-creator-plugin"),
-    version: "0.1.1",
+    version: "0.1.2",
   },
   {
     // 纯内容型（只提供 skills）：requiresRuntime:false，SEA 构建不校验 dist/mcp/server.js。
@@ -216,9 +216,10 @@ export const officialSeaPlugins = [
       "skills/diagnosing-mcp/SKILL.md",
       "skills/diagnosing-plugins/SKILL.md",
       "skills/diagnosing-skills/SKILL.md",
+      "skills/diagnosing-agent-runtime/SKILL.md",
     ],
     rootPath: join("packages", "nibi-guide-plugin"),
-    version: "0.3.1",
+    version: "0.4.0",
   },
   // superpowers 已从内置插件下线，改走 UI 推荐区按需安装；这里不再打入 SEA 资源清单。
 ];

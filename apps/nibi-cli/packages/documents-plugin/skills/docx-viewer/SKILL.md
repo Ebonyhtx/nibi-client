@@ -1,6 +1,6 @@
 ---
 name: docx-viewer
-description: View and discuss Word (.docx) files with the user in the Documents side panel. Use when the user wants to open, read, review or ask about a Word document in the workspace, refers to something they selected or referenced in the Documents viewer, or should check a document you just produced.
+description: View and discuss Word (.docx) files with the user in the Documents side panel. Use when the user wants to open, read, review or ask about a Word document in the workspace, refers to something they selected or referenced in the Documents viewer, or should check a document you just produced. 用于在文档侧栏查看和讨论 Word（.docx）文件并定位引用段落。
 ---
 
 # Word viewer

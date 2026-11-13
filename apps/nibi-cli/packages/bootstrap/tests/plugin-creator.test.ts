@@ -16,7 +16,7 @@ describe("bundled Plugin Creator", () => {
     const definition = OFFICIAL_PLUGIN_DEFINITIONS.find((item) => item.name === "plugin-creator");
     expect(definition).toMatchObject({
       defaultEnabled: true,
-      version: "0.1.1",
+      version: "0.1.2",
       listing: { displayName_i18n: { "zh-CN": "插件创建器" } },
     });
     const root = fileURLToPath(new URL("../../plugin-creator-plugin/", import.meta.url));

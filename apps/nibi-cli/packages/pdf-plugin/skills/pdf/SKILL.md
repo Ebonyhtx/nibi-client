@@ -3,7 +3,7 @@ name: pdf
 metadata:
   author: NIBI
   version: "1.1"
-description: "Professional PDF toolkit covering four production workflows: reports, creative visuals, academic LaTeX, and existing PDF processing. Routes automatically by document type and supports reports, posters, papers, resumes, extraction, merging, splitting, and form filling. Use this skill for any conversion whose output is a PDF: Office → PDF (.docx/.doc/.pptx/.ppt/.xlsx/.xls/.odt/.odp/.ods/.rtf/.csv/.txt → PDF), HTML → PDF, and LaTeX/.tex → PDF; also PDF → images, PDF → text, and PDF → tables when reading a PDF apart. Trigger when the user asks to convert, export, render, print, or turn a file into a PDF, or to merge/split/extract from one — including phrasings like 'Word转PDF', 'PPT转PDF', 'Excel转PDF', 'html转pdf', '导出为PDF', 'save/export as PDF', or 'PDF转图片/文字'."
+description: "Professional PDF toolkit covering four production workflows: reports, creative visuals, academic LaTeX, and existing PDF processing. Routes automatically by document type and supports reports, posters, papers, resumes, extraction, merging, splitting, and form filling. Use this skill for any conversion whose output is a PDF: Office → PDF (.docx/.doc/.pptx/.ppt/.xlsx/.xls/.odt/.odp/.ods/.rtf/.csv/.txt → PDF), HTML → PDF, and LaTeX/.tex → PDF; also PDF → images, PDF → text, and PDF → tables when reading a PDF apart. Trigger when the user asks to convert, export, render, print, or turn a file into a PDF, or to merge/split/extract from one — including phrasings like 'Word转PDF', 'PPT转PDF', 'Excel转PDF', 'html转pdf', '导出为PDF', 'save/export as PDF', or 'PDF转图片/文字'. 用于生成报告、简历、海报、论文、封面等 PDF，以及 Office/HTML/LaTeX→PDF、PDF→图片/文本/表格。"
 license: Proprietary. LICENSE.txt has complete terms
 ---
 

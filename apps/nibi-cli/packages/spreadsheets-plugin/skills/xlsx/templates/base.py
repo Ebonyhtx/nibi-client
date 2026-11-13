@@ -28,8 +28,10 @@ def _resolve_font(candidates: list) -> str:
     """Return the first font name likely available on this OS."""
     system = platform.system()
     _platform_hints = {
-        "Darwin":  {"Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC"},
-        "Windows": {"Noto Sans SC", "Noto Sans SC", "Noto Serif SC"},
+        "Darwin":  {"Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "PingFang SC"},
+        # Windows 默认不带 Noto；微软雅黑/等线/黑体才是系统自带的中文字体。
+        "Windows": {"Microsoft YaHei", "微软雅黑", "DengXian", "等线", "SimHei", "黑体",
+                    "Noto Serif SC"},
         "Linux":   {"Noto Sans CJK SC", "WenQuanYi Micro Hei", "Source Han Sans SC"},
     }
     available = _platform_hints.get(system, set())
@@ -44,6 +46,11 @@ CJK_BODY_CHAIN = [
     "Noto Sans SC",        # Free (OFL), bundled, cross-platform
     "Noto Sans CJK SC",    # Linux / Android
     "Source Han Sans SC",  # Adobe cross-platform (OFL)
+    "Microsoft YaHei",     # Windows built-in
+    "微软雅黑",             # Windows built-in (localized name)
+    "DengXian",            # Windows built-in
+    "等线",                 # Windows built-in (localized name)
+    "PingFang SC",         # macOS built-in
     "WenQuanYi Micro Hei", # Linux fallback (GPL)
 ]
 

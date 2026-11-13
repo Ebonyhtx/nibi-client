@@ -1,6 +1,6 @@
 ---
 name: configuration-guide
-description: Use when configuring NIBI's extension resources (MCP servers, slash commands, skills, hooks, and plugins) or instruction files such as AGENTS.md in the NIBI client. Explains where each resource is configured at the user and workspace scope, the discovery order, precedence, and merge rules, plus guidance on which location to choose. Use when someone asks how to add an MCP server, command, skill, hook, plugin, or AGENTS.md instructions, where a configuration file lives, why a configuration is not taking effect, or needs routing to a specific diagnostic skill.
+description: Use when configuring NIBI's extension resources (MCP servers, slash commands, skills, hooks, and plugins) or instruction files such as AGENTS.md in the NIBI client. Explains where each resource is configured at the user and workspace scope, the discovery order, precedence, and merge rules, plus guidance on which location to choose. Use when someone asks how to add an MCP server, command, skill, hook, plugin, or AGENTS.md instructions, where a configuration file lives, why a configuration is not taking effect, or needs routing to a specific diagnostic skill. 用于配置 NIBI 的 MCP、命令、技能、钩子与插件，并说明用户级/工作区级位置与优先级。
 ---
 
 # NIBI Configuration Guide

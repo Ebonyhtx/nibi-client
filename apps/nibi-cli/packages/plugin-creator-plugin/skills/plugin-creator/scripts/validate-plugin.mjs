@@ -4,7 +4,7 @@ import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 
-const ROOT_TOKEN = "${CLAUDE_PLUGIN_ROOT}/";
+const ROOT_TOKENS = ["${NIBI_PLUGIN_ROOT}/", "${CLAUDE_PLUGIN_ROOT}/"];
 const PLACEHOLDER = /\bTODO\b|\bFIXME\b|<your[-_ ][^>]+>|YOUR_API_KEY/u;
 function outside(root, path) {
   const value = relative(root, path);
@@ -21,8 +21,13 @@ export async function preflightPlugin(path) {
   function inspect(value) {
     if (typeof value === "string") {
       if (PLACEHOLDER.test(value)) errors.push("Unresolved TODO/placeholder");
-      const offset = value.indexOf(ROOT_TOKEN);
-      if (offset >= 0) resources.push(value.slice(offset + ROOT_TOKEN.length).split(/["'\s]/u)[0]);
+      for (const token of ROOT_TOKENS) {
+        let offset = value.indexOf(token);
+        while (offset >= 0) {
+          resources.push(value.slice(offset + token.length).split(/["'\s]/u)[0]);
+          offset = value.indexOf(token, offset + token.length);
+        }
+      }
     } else if (Array.isArray(value)) value.forEach(inspect);
     else if (value && typeof value === "object") Object.values(value).forEach(inspect);
   }

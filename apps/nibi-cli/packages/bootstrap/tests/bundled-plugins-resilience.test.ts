@@ -112,11 +112,11 @@ import { OFFICIAL_PLUGIN_DEFINITIONS } from "../src/app/official-plugin-definiti
 import { resolveNibiPlugins } from "../src/plugins.js";
 
 const OFFICIAL_CACHE_ROOT = join("cache", "nibi-official");
-const BROWSER_CACHE_SUFFIX = join(OFFICIAL_CACHE_ROOT, "browser-use", "0.5.1");
+const BROWSER_CACHE_SUFFIX = join(OFFICIAL_CACHE_ROOT, "browser-use", "0.5.2");
 // 文档四件套在 plugin.json 里声明 mcpServers（会走运行时清单重写）；android/ios 只在
 // `.mcp.json` 声明。锁重写失败要有一个「确实会写入 plugin.json」的插件才能触发。
 const ANDROID_CACHE_SUFFIX = join(OFFICIAL_CACHE_ROOT, "documents", "0.2.2");
-const SKILL_CREATOR_CACHE_SUFFIX = join(OFFICIAL_CACHE_ROOT, "skill-creator", "0.1.0");
+const SKILL_CREATOR_CACHE_SUFFIX = join(OFFICIAL_CACHE_ROOT, "skill-creator", "0.1.1");
 const ANDROID_MANIFEST_SUFFIX = join(ANDROID_CACHE_SUFFIX, ".nibi-plugin", "plugin.json");
 const CUA_DEFINITION = OFFICIAL_PLUGIN_DEFINITIONS.find(({ name }) => name === "computer-use");
 if (!CUA_DEFINITION) throw new Error("computer-use official plugin definition is missing");
@@ -236,7 +236,7 @@ describe("bundled official plugin cache resilience", () => {
     await mkdir(join(incompletePluginRoot, ".nibi-plugin"), { recursive: true });
     await writeFile(
       join(incompletePluginRoot, ".nibi-plugin", "plugin.json"),
-      JSON.stringify({ name: "browser-use", version: "0.5.1" }),
+      JSON.stringify({ name: "browser-use", version: "0.5.2" }),
     );
     process.argv[1] = join(entrypointRoot, "nibi.cjs");
     const logger = createLogger();
@@ -279,7 +279,7 @@ describe("bundled official plugin cache resilience", () => {
     await mkdir(join(incompletePluginRoot, ".nibi-plugin"), { recursive: true });
     await writeFile(
       join(incompletePluginRoot, ".nibi-plugin", "plugin.json"),
-      JSON.stringify({ name: "browser-use", version: "0.5.1" }),
+      JSON.stringify({ name: "browser-use", version: "0.5.2" }),
     );
     process.argv[1] = join(entrypointRoot, "nibi.cjs");
     const logger = createLogger();

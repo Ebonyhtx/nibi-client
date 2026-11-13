@@ -3,7 +3,7 @@ name: xlsx
 metadata:
   author: NIBI
   version: "1.1"
-description: "Use this skill any time a spreadsheet file is the primary input or output. This means any task where the user wants to: open, read, edit, or fix an existing .xlsx, .xlsm, .csv, or .tsv file; create a new spreadsheet from scratch or from other data sources; analyze data and output results as an Excel file with charts; convert between tabular file formats (CSV/TSV/JSON/PDF-table → XLSX, or XLSX → CSV/JSON); clean, merge, pivot, or transform tabular data. Trigger especially when the user references a spreadsheet file by name or path, says 'make a table/report/model', mentions Excel/CSV/数据分析/报表/汇总, asks to convert or export a spreadsheet (e.g. 'csv转excel', 'json转表格', 'export as CSV'), or wants data visualization inside a spreadsheet."
+description: "Use this skill any time a spreadsheet file is the primary input or output. This means any task where the user wants to: open, read, edit, or fix an existing .xlsx, .xlsm, .csv, or .tsv file; create a new spreadsheet from scratch or from other data sources; analyze data and output results as an Excel file with charts; convert between tabular file formats (CSV/TSV/JSON/PDF-table → XLSX, or XLSX → CSV/JSON); clean, merge, pivot, or transform tabular data. Trigger especially when the user references a spreadsheet file by name or path, says 'make a table/report/model', mentions Excel/CSV/数据分析/报表/汇总, asks to convert or export a spreadsheet (e.g. 'csv转excel', 'json转表格', 'export as CSV'), or wants data visualization inside a spreadsheet. 用于创建、编辑、分析电子表格，制作图表、转换格式并清洗 CSV/JSON/表格数据。"
 license: Proprietary. LICENSE.txt has complete terms
 ---
 

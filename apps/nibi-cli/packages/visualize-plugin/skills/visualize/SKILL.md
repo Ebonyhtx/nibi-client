@@ -1,6 +1,6 @@
 ---
 name: visualize
-description: "Create visualizations and interactive tools directly in conversation. Proactively use to show how something works; explore 'what happens when', 'what changes', or 'help me understand'; compare or inspect; create simulations, maps, charts, graphs, and mockups. Use standard tools for static scientific figures."
+description: "Create visualizations and interactive tools directly in conversation. Proactively use to show how something works; explore 'what happens when', 'what changes', or 'help me understand'; compare or inspect; create simulations, maps, charts, graphs, and mockups. Use standard tools for static scientific figures. 用于在对话中创建可交互可视化、图表、模拟和解释器，帮助理解“如果……会怎样”。"
 ---
 
 # Visualize

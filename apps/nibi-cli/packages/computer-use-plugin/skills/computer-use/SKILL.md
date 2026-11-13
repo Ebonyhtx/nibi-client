@@ -1,6 +1,6 @@
 ---
 name: computer-use
-description: "Use when a task needs a native desktop app's own UI or the OS. For anything inside a web page, use Browser Use. Main agent only."
+description: "Use when a task needs a native desktop app's own UI or the OS. For anything inside a web page, use Browser Use. Main agent only. 用于操控桌面应用自身界面或操作系统；网页内部请改用 Browser Use。"
 ---
 
 # Computer Use

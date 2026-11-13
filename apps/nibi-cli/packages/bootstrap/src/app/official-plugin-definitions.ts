@@ -187,6 +187,7 @@ export const OFFICIAL_NIBI_GUIDE_REQUIRED_SEED_PATHS = [
   "skills/diagnosing-mcp/SKILL.md",
   "skills/diagnosing-plugins/SKILL.md",
   "skills/diagnosing-skills/SKILL.md",
+  "skills/diagnosing-agent-runtime/SKILL.md",
 ] as const;
 
 export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = [
@@ -234,7 +235,7 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
       "../../visualize-plugin",
       "../../../visualize-plugin",
     ],
-    version: "0.1.2",
+    version: "0.1.3",
   },
   {
     defaultEnabled: true,
@@ -260,7 +261,7 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
       "../../design-plugin",
       "../../../design-plugin",
     ],
-    version: "0.7.2",
+    version: "0.7.3",
   },
   {
     // 无 listing：宿主不进市场、不对用户露出。它必须始终可用，因为 node_repl 的注册门禁
@@ -326,7 +327,7 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
     ],
     // 插件 package/manifest 升版时遗漏官方 seed 版本，会继续加载旧缓存目录。
     // package、manifest、definition 三处版本应保持一致，避免发布内容和安装版本再次分叉。
-    version: "0.5.1",
+    version: "0.5.2",
   },
   ...(
     [
@@ -394,12 +395,12 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
       "../../../ios-simulator-plugin",
     ],
     requiredSeedPaths: OFFICIAL_IOS_SIMULATOR_REQUIRED_SEED_PATHS,
-    version: "0.1.0",
+    version: "0.1.1",
   },
   {
     defaultEnabled: true,
     name: "plugin-creator",
-    version: "0.1.1",
+    version: "0.1.2",
     listing: {
       author: NIBI_AUTHOR,
       category: "utilities",
@@ -446,7 +447,7 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
       "../../../skill-creator-plugin",
     ],
     requiredSeedPaths: OFFICIAL_SKILL_CREATOR_REQUIRED_SEED_PATHS,
-    version: "0.1.0",
+    version: "0.1.1",
   },
   {
     // 纯内容型插件（只有 commands + skills，无 MCP / 无系统依赖），默认启用，
@@ -478,7 +479,7 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
       "../../../nibi-guide-plugin",
     ],
     // NIBI：内置副本 manifest 已升到 0.3.1（含去品牌技能目录），definition 与它保持一致。
-    version: "0.3.1",
+    version: "0.4.0",
   },
   {
     // 产品决策：电脑控制回退为默认关闭，需用户在设置页显式开启。
@@ -518,7 +519,7 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
     runtimeTopLevelPaths: ["node_modules"],
     // 这里的 version 追踪上游 zcode-cua runtime 版本，使插件 UI 展示、缓存路径、
     // marketplace 条目都对齐；具体版本由原子 producer bump 工作流维护。
-    version: "0.6.5",
+    version: "0.6.6",
   },
 ];
 

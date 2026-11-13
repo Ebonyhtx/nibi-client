@@ -83,7 +83,7 @@ const OFFICIAL_PLUGIN_CACHE_PATH = join(
   "cache",
   "nibi-official",
   "ios-simulator",
-  "0.1.0",
+  "0.1.1",
 );
 const OFFICIAL_ANDROID_PLUGIN_CACHE_PATH = join(
   "cache",
@@ -95,7 +95,7 @@ const OFFICIAL_SKILL_CREATOR_PLUGIN_CACHE_PATH = join(
   "cache",
   "nibi-official",
   "skill-creator",
-  "0.1.0",
+  "0.1.1",
 );
 const BUNDLED_PLUGIN_DIST_PATH = fileURLToPath(
   new URL("../../ios-simulator-plugin/dist/mcp/server.js", import.meta.url),
@@ -1720,7 +1720,7 @@ describe("Nibi plugins", () => {
           "cache",
           "nibi-official",
           "ios-simulator",
-          "0.1.0",
+          "0.1.1",
           "dist",
           "mcp",
           "server.js",

@@ -1,6 +1,6 @@
 ---
 name: diagnosing-mcp
-description: Use to diagnose and fix Nibi MCP (Model Context Protocol) server configuration problems in the Nibi client. Applies when an MCP server will not connect, its tools (mcp__server__tool) do not appear, it shows as disabled or failed, connections time out, a command cannot be found, template variables are not expanded, or a server defined in a configuration file has no effect. Provides configuration locations, how to inspect status in Settings, common pitfalls, and a step-by-step localization and repair workflow.
+description: Use to diagnose and fix NIBI MCP (Model Context Protocol) server configuration problems in the NIBI client. Applies when an MCP server will not connect, its tools (mcp__server__tool) do not appear, it shows as disabled or failed, connections time out, a command cannot be found, template variables are not expanded, or a server defined in a configuration file has no effect. Provides configuration locations, how to inspect status in Settings, common pitfalls, and a step-by-step localization and repair workflow. 用于诊断 NIBI MCP 服务器连不上、工具不出现、被禁用或连接超时。
 ---
 
 # Diagnosing MCP Configuration
@@ -32,7 +32,7 @@ Override order across scopes for a same-named server: **CLI → environment → 
 - Standard field names are `env` for stdio environment variables and `headers` for HTTP/SSE request headers. `command` is a string and `args` is an array of strings; do not paste OpenCode-style `command: ["npx", "-y", "..."]` into Nibi's JSON editor.
 - When `type` is omitted it is inferred: a `command` implies `stdio`, a `url` implies `http`. Legacy forms are migrated automatically when the CLI reads config directly (`type: "remote"` → `http`, `environment` → `env`, `enable` → `enabled`, `http_headers` → `headers`). Desktop app-managed session creation may bypass part of that CLI file parser, so prefer canonical fields (`env`, `headers`, `enabled`, `type: "http"`) in files that the desktop Settings → MCP page reads.
 - The configuration-file server schema is **strict**: an **unknown key causes the server to be dropped**.
-- **Template variables `${...}` are expanded only for plugin-provided MCP servers** (for example `${CLAUDE_PLUGIN_ROOT}` / `${NIBI_PLUGIN_ROOT}`, `${CLAUDE_PROJECT_DIR}`, `${user_config.KEY}`). Configuration-file MCP servers do **not** expand templates — use absolute paths there.
+- **Template variables `${...}` are expanded only for plugin-provided MCP servers** (for example `${NIBI_PLUGIN_ROOT}` / `${CLAUDE_PLUGIN_ROOT}`, `${NIBI_PROJECT_DIR}` / `${CLAUDE_PROJECT_DIR}`, `${user_config.KEY}`). Configuration-file MCP servers do **not** expand templates — use absolute paths there.
 - The default timeout is 30000 ms.
 
 Canonical examples:
