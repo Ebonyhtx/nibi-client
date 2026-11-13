@@ -2119,7 +2119,7 @@ function logStreamingToolInputProjection(details: {
 }): void {
   logger.debug("[streamingToolInput] projected", {
     ...details,
-    event: "ui.zcode_session.streaming_tool_input.projected",
+    event: "ui.nibi_session.streaming_tool_input.projected",
   });
 }
 
@@ -2152,7 +2152,7 @@ function logStreamingToolInputProjectionSample(details: {
   // 这里保留 debug 采样，排查时仍能打开细节。
   logger.debug("[streamingToolInput] projection sampled", {
     ...details,
-    event: "ui.zcode_session.streaming_tool_input.projection_sampled",
+    event: "ui.nibi_session.streaming_tool_input.projection_sampled",
   });
 }
 

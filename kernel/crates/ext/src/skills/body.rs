@@ -21,13 +21,13 @@ fn variables(text: String, skill: &Skill, context: &ToolUseContext) -> String {
     [
         (vars::CLAUDE_SKILL_DIR, dir.as_str()),
         (vars::NIBI_SKILL_DIR, dir.as_str()),
-        (vars::ZCODE_SKILL_DIR, dir.as_str()),
+        (vars::NIBI_SKILL_DIR, dir.as_str()),
         (vars::CLAUDE_PROJECT_DIR, root),
         (vars::NIBI_PROJECT_DIR, root),
-        (vars::ZCODE_PROJECT_DIR, root),
+        (vars::NIBI_PROJECT_DIR, root),
         (vars::CLAUDE_SESSION_ID, session),
         (vars::NIBI_SESSION_ID, session),
-        (vars::ZCODE_SESSION_ID, session),
+        (vars::NIBI_SESSION_ID, session),
     ]
     .iter()
     .fold(text, |text, (name, value)| {

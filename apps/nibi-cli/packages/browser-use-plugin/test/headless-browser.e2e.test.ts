@@ -152,7 +152,7 @@ realBrowserTest(
 
 function requestMeta(turnId: string) {
   return {
-    "com.zcode/request-context": {
+    "com.nibistudio.nibi/request-context": {
       runtime_scope: "main" as const,
       session_id: "headless-e2e-session",
       turn_id: turnId,

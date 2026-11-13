@@ -77,7 +77,7 @@ export async function main() {
 
       const { stdout, stderr } = await execFileAsync(
         process.execPath,
-        [outfile, "__zcode-plugin-host", serverPath, "--prompt", "plugin argument"],
+        [outfile, "__nibi-plugin-host", serverPath, "--prompt", "plugin argument"],
         { env: { ...process.env, NODE_ENV: "untrusted" }, timeout: processTimeoutMs },
       );
       assert.equal(stderr, "");
@@ -103,7 +103,7 @@ export async function main() {
       };
       const authorized = await execFileAsync(
         process.execPath,
-        [outfile, "__zcode-plugin-host", serverPath, "--permission-broker-socket", brokerSocket],
+        [outfile, "__nibi-plugin-host", serverPath, "--permission-broker-socket", brokerSocket],
         { env: authorizedEnv, timeout: processTimeoutMs },
       );
       assert.equal(authorized.stderr, "");
@@ -125,7 +125,7 @@ export async function main() {
       await assert.rejects(
         execFileAsync(
           process.execPath,
-          [outfile, "__zcode-plugin-host", serverPath, "--permission-broker-socket", brokerSocket],
+          [outfile, "__nibi-plugin-host", serverPath, "--permission-broker-socket", brokerSocket],
           { env: unauthorizedEnv, timeout: processTimeoutMs },
         ),
         (error) =>

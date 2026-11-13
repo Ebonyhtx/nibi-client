@@ -30,7 +30,7 @@
 
 - 插件候选是包含 manifest 的目录。
 - manifest 优先级：
-  1. `.zcode-plugin/plugin.json`
+  1. `.nibi-plugin/plugin.json`
   2. `.claude-plugin/plugin.json`
   3. `.codex-plugin/plugin.json`
 - manifest 必须是 JSON object，且 `name` 为非空字符串；`version` 读不到时不展示。
@@ -65,6 +65,6 @@
 ## 验证
 
 - 覆盖缺失目录、空目录、同名跳过、用户级导入、工作区级导入、copy/symlink 两种模式。
-- 覆盖 `.zcode-plugin/plugin.json` 与 `.claude-plugin/plugin.json` 两种 manifest。
+- 覆盖 `.nibi-plugin/plugin.json` 与 `.claude-plugin/plugin.json` 两种 manifest。
 - UI 覆盖导入按钮、弹窗来源列表、导入完成刷新。
 - 必须运行 `pnpm typecheck` 和 `pnpm lint`。

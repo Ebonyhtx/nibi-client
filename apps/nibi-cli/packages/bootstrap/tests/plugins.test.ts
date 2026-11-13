@@ -1049,7 +1049,7 @@ describe("Nibi plugins", () => {
 
     try {
       await writeTestFile(
-        join(installPath, ".zcode-plugin", "plugin.json"),
+        join(installPath, ".nibi-plugin", "plugin.json"),
         JSON.stringify({
           name: "example-plugin",
           version: "0.2.0",
@@ -1122,7 +1122,7 @@ describe("Nibi plugins", () => {
 
     try {
       await writeTestFile(
-        join(installPath, ".zcode-plugin", "plugin.json"),
+        join(installPath, ".nibi-plugin", "plugin.json"),
         JSON.stringify({ name: "example-plugin", version: "0.2.0" }),
       );
       await writeTestFile(
@@ -1379,9 +1379,9 @@ describe("Nibi plugins", () => {
           },
         }),
       );
-      await mkdir(join(cdnSourceRoot, ".zcode-plugin"), { recursive: true });
+      await mkdir(join(cdnSourceRoot, ".nibi-plugin"), { recursive: true });
       await writeFile(
-        join(cdnSourceRoot, ".zcode-plugin", "plugin.json"),
+        join(cdnSourceRoot, ".nibi-plugin", "plugin.json"),
         JSON.stringify({
           name: "documents",
           version: "1.0.0",
@@ -1802,7 +1802,7 @@ describe("Nibi plugins", () => {
           "utf8",
         ),
       ).resolves.toContain(IOS_SIMULATOR_PLUGIN_ID.split("@")[0] ?? "ios-simulator");
-      expect(existsSync(join(expectedRoot, ".zcode-plugin-seed.json"))).toBe(true);
+      expect(existsSync(join(expectedRoot, ".nibi-plugin-seed.json"))).toBe(true);
       expect(existsSync(join(expectedRoot, "dist", "mcp", "server.js"))).toBe(
         existsSync(BUNDLED_PLUGIN_DIST_PATH),
       );
@@ -1895,7 +1895,7 @@ describe("Nibi plugins", () => {
           "server.js",
         ),
       );
-      expect(existsSync(join(expectedRoot, ".zcode-plugin-seed.json"))).toBe(true);
+      expect(existsSync(join(expectedRoot, ".nibi-plugin-seed.json"))).toBe(true);
       expect(existsSync(join(expectedRoot, "dist", "mcp", "server.js"))).toBe(
         existsSync(BUNDLED_ANDROID_PLUGIN_DIST_PATH),
       );
@@ -1922,7 +1922,7 @@ describe("Nibi plugins", () => {
 
     try {
       await writeTestFile(
-        join(pluginRoot, ".zcode-plugin", "plugin.json"),
+        join(pluginRoot, ".nibi-plugin", "plugin.json"),
         JSON.stringify({
           name: "secret-plugin",
           userConfig: {
@@ -2040,7 +2040,7 @@ describe("Nibi plugins", () => {
 
     try {
       await writeTestFile(
-        join(pluginRoot, ".zcode-plugin", "plugin.json"),
+        join(pluginRoot, ".nibi-plugin", "plugin.json"),
         JSON.stringify({ name: "workspace-plugin", userConfig: {} }),
       );
       await writeTestFile(userConfigPath, JSON.stringify({ plugins: { dirs: [pluginRoot] } }));
@@ -2092,7 +2092,7 @@ describe("Nibi plugins", () => {
     try {
       await mkdir(join(repositoryRoot, ".git"), { recursive: true });
       await writeTestFile(
-        join(pluginRoot, ".zcode-plugin", "plugin.json"),
+        join(pluginRoot, ".nibi-plugin", "plugin.json"),
         JSON.stringify({ name: "workspace-plugin", userConfig: {} }),
       );
       await writeTestFile(userConfigPath, JSON.stringify({ plugins: { dirs: [pluginRoot] } }));

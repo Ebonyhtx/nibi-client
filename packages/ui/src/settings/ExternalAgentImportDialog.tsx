@@ -228,7 +228,7 @@ function formatAgentName(
     case "agents":
       return intl.formatMessage({ id: "settingsSync.agent.agents" });
     case "zcode":
-      return intl.formatMessage({ id: "settingsSync.agent.zcode" });
+      return intl.formatMessage({ id: "settingsSync.agent.nibi" });
     default:
       return agent;
   }

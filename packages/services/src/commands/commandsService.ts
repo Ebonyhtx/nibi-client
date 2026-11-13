@@ -51,7 +51,7 @@ const HOME_PREFIX = "~/";
 const NIBI_OFFICIAL_PLUGIN_MARKETPLACE = "nibi-official";
 const NIBI_INLINE_PLUGIN_MARKETPLACE = "inline";
 // 清单目录双格式：NIBI 自有优先，已发布第三方包仍是上游格式。
-const NIBI_PLUGIN_MANIFEST_PATHS = [join(".nibi-plugin", "plugin.json"), join(".zcode-plugin", "plugin.json")];
+const NIBI_PLUGIN_MANIFEST_PATHS = [join(".nibi-plugin", "plugin.json"), join(".nibi-plugin", "plugin.json")];
 const CLAUDE_PLUGIN_MANIFEST_PATH = join(".claude-plugin", "plugin.json");
 const CODEX_PLUGIN_MANIFEST_PATH = join(".codex-plugin", "plugin.json");
 const NIBI_COMMAND_DESCRIPTOR: CommandAgentSourceDescriptor = {

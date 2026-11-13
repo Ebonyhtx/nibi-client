@@ -435,14 +435,14 @@ server.listen(port, "127.0.0.1", () => {
   console.log("=== 四步 ===\n");
   console.log("1) 建本地 marketplace（含一个插件）：");
   console.log(`
-mkdir -p ${marketRoot}/.claude-plugin ${marketRoot}/${PLUGIN_NAME}/.zcode-plugin
+mkdir -p ${marketRoot}/.claude-plugin ${marketRoot}/${PLUGIN_NAME}/.nibi-plugin
 cat > ${marketRoot}/.claude-plugin/marketplace.json <<'JSON'
 {
   "name": "${marketplace}",
   "plugins": [{ "name": "${PLUGIN_NAME}", "source": "./${PLUGIN_NAME}" }]
 }
 JSON
-cat > ${marketRoot}/${PLUGIN_NAME}/.zcode-plugin/plugin.json <<'JSON'
+cat > ${marketRoot}/${PLUGIN_NAME}/.nibi-plugin/plugin.json <<'JSON'
 { "name": "${PLUGIN_NAME}", "version": "0.0.1" }
 JSON
 cat > ${marketRoot}/${PLUGIN_NAME}/.mcp.json <<'JSON'

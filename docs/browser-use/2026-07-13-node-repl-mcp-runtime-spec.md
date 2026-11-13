@@ -61,7 +61,7 @@ description 必须在开头明确：
 descriptions，并由 `tools/list` 自动化锁定。
 
 当前模型路由与 Browser Use guidance 合同以 Browser Use plugin `0.3.0` 发布。插件包 `package.json`、
-`.zcode-plugin/plugin.json`、`OFFICIAL_PLUGIN_DEFINITIONS`、SEA `officialSeaPlugins` 与
+`.nibi-plugin/plugin.json`、`OFFICIAL_PLUGIN_DEFINITIONS`、SEA `officialSeaPlugins` 与
 `NODE_REPL_SERVER_VERSION` 的版本必须完全一致；bootstrap 自动化负责校验前三处，SEA build
 自动化负责校验 package/manifest/SEA 清单，MCP server 自动化负责校验 serverInfo 与 package，
 通过重叠事实源把五处版本机械闭环。禁止再次出现插件内容已升版、官方 seed、SEA asset path 或
@@ -134,7 +134,7 @@ kernel 跨 `js` 调用持久；timeout/cancel 后必须废弃旧 context，迟�
 - 宿主 `node_repl` 在用户/plugin MCP 合并后覆盖同名项；第三方/inline plugin 仍强制
   `plugin:<plugin>:<server>` namespace，不能冒充 `mcp__node_repl__*`。
 - browser-use plugin 增加 `scripts/browser-client.mjs`。skill 必须从宿主注入的
-  `ZCODE_PLUGIN_ROOT`（兼容 `CLAUDE_PLUGIN_ROOT`）读取插件根目录，再通过 `node:path.join` 和
+  `NIBI_PLUGIN_ROOT`（兼容 `CLAUDE_PLUGIN_ROOT`）读取插件根目录，再通过 `node:path.join` 和
   `node:url.pathToFileURL` 生成跨平台绝对 file URL 后动态导入；禁止保留 `<plugin root>` 占位符，
   也禁止根据 Skill base directory 猜测插件根目录。这样既不依赖模型路径推理，也不依赖 core 在每个
   REPL context 中提前注入 `agent.browsers`。
@@ -201,7 +201,7 @@ stdin/stdout/stderr、exit/kill/chdir，以免破坏 MCP stdio 或关闭 child�
 | NRM-05 | add dir           | 绝对路径首次 true、重复 false、相对路径拒绝                                                                                               |
 | NRM-06 | output            | write/console/result、BigInt/circular error、image blocks、`_meta` 投影正确                                                               |
 | NRM-07 | timeout/cancel    | kernel reset，旧 async continuation 和旧 browser bridge 不可复用                                                                          |
-| NRM-08 | browser bootstrap | 使用宿主 `ZCODE_PLUGIN_ROOT` 构造跨平台 file URL 并 import `scripts/browser-client.mjs` 后 `agent.browsers` 可用；不从 Skill 目录猜路径   |
+| NRM-08 | browser bootstrap | 使用宿主 `NIBI_PLUGIN_ROOT` 构造跨平台 file URL 并 import `scripts/browser-client.mjs` 后 `agent.browsers` 可用；不从 Skill 目录猜路径   |
 | NRM-09 | browser command   | pipe 校验 token/schema/context，调用同 session BrowserControlPort                                                                         |
 | NRM-10 | forged pipe       | 错 token、非法 op/command、错误 session 均 fail closed                                                                                    |
 | NRM-11 | plugin disabled   | browser skill/client bridge 不注入，宿主 `node_repl` 仍可执行通用 JS                                                                      |
@@ -221,7 +221,7 @@ stdin/stdout/stderr、exit/kill/chdir，以免破坏 MCP stdio 或关闭 child�
   identity；filesystem seed 与 SEA 使用一致的顶层资产白名单，Dev 缓存必须包含
   `scripts/browser-client.mjs`。
 - browser bootstrap 不再让模型把 `scripts/browser-client.mjs` 相对到 `skills/control-browser`；插件根目录
-  由 `node_repl` MCP child 的只读 `process.env.ZCODE_PLUGIN_ROOT` 提供，并在 Skill 模板内用
+  由 `node_repl` MCP child 的只读 `process.env.NIBI_PLUGIN_ROOT` 提供，并在 Skill 模板内用
   `pathToFileURL(join(...))` 转为可移植的 ESM import URL。
 - `node_repl` MCP 的模型输入 schema 复用 `@nibi/contracts`；新调用强制提供用户可读 title，执行层继续
   接受旧 code-only 调用，避免 UI 再次退回固定完成文案，同时保持历史兼容。

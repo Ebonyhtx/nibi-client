@@ -59,9 +59,9 @@ function writePluginManifest(
   pluginRoot: string,
   manifest: Record<string, unknown>,
 ): void {
-  mkdirSync(join(pluginRoot, ".zcode-plugin"), { recursive: true });
+  mkdirSync(join(pluginRoot, ".nibi-plugin"), { recursive: true });
   writeFileSync(
-    join(pluginRoot, ".zcode-plugin", "plugin.json"),
+    join(pluginRoot, ".nibi-plugin", "plugin.json"),
     JSON.stringify(manifest, null, 2),
     "utf-8",
   );

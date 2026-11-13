@@ -297,7 +297,7 @@
 
 - 根因：controller handler 全部为 optional，生产只装配 `open-conversation`；Root 继续向 Sidebar、Settings、Dialog 和 tab lifecycle 暴露分散的连接、断开、项目打开、重连和关闭回调。
 - 修复：六类 handler 改为强类型必填，在 `useRemoteWorkspaceHistory` 内按 Source/attachment/persistence owner 完整装配单一 controller，并通过 Root provider 供 UI 使用；普通 Profile 连接统一携带 `open-conversation` completion intent。项目选择、设备断开、workspace 重连和 user-close 均先 dispatch，再进入既有 owner helper。
-- 验证：controller 全 intent/错误传播、Root production wiring、Settings disconnect 和 Sidebar 禁止直接 `disconnectSource` 的 focused tests 通过；全量 unit（1500 passed，1 skipped）、`pnpm typecheck` 与 `pnpm lint` 通过。`pnpm bootstrap:with-remote` 构建成功，`VITE_ZCODE_E2E_STORE_BRIDGE=1 pnpm dev:desktop` 启动成功并监听 CDP 9229。
+- 验证：controller 全 intent/错误传播、Root production wiring、Settings disconnect 和 Sidebar 禁止直接 `disconnectSource` 的 focused tests 通过；全量 unit（1500 passed，1 skipped）、`pnpm typecheck` 与 `pnpm lint` 通过。`pnpm bootstrap:with-remote` 构建成功，`VITE_NIBI_E2E_STORE_BRIDGE=1 pnpm dev:desktop` 启动成功并监听 CDP 9229。
 - 真实 SSH/CDP（2026-08-28）：使用 SSH alias `linux-amd64-dev`（`dev@localhost:2222`，密码由测试环境注入）连接真实设备，远端 `~/.nibi/server/current.json` 为 `3.9.1`，设备 `4fedce9b49f0`，Source Server 为 `32a10b89-141c-469b-aa97-850f41ab7deb`。设置页普通连接完成后自动打开 `/home/dev/.nibi/workspace/default` 的 `conversation` tab，`workspaceIdentity=remote:server:<sourceServerId>:/home/dev/.nibi/workspace/default`；断开后卡片由“已连接”变为“未连接”，远程 attachment/session 被释放；再次连接生成新的 `remoteSessionId` 并重新打开 conversation。随后从 conversation 选择 `/home/dev` 打开 project，project 与 conversation 使用不同 `remoteSessionId`；通过真实 tab close 触发 user-close 后 project 被移除且 conversation 保留。
 - 自动化 SSH E2E：`E2E_SSH_REMOTE_PROJECT_CONVERSATION_SCOPE` 1 项通过，报告 [`desktop-e2e-20260828-153721-524`](../../packages/desktop/.e2e-artifacts/desktop-e2e-20260828-153721-524/summary.md)。同轮执行的 pending-cancel 手工复核因代理 socket 在 30 秒断言窗口后约 1.5 秒才关闭而失败（`desktop-e2e-20260828-153846-870`）；该失败路径不涉及本 issue 的 controller 写入口变更，未将其计入 R3-ISSUE-015 关闭条件。
 
@@ -312,7 +312,7 @@
 - 根因：`buildRemoteWorkspaceProjection()` 使用全部 `input.tabs` 构建 `openWorkspaces`；本地 tab 没有 `remoteSessionId`，随后被 `stateForOpenWorkspace()` 误标为 `disconnected`。同时 Sidebar、Root 和 Source 管理面板没有完整消费 projection join 结果。
 - 修复：`openWorkspaces` 先按统一 remote-tab 判定过滤；`executionContexts` 保留全部 local/remote tab，并只为 remote context 关联 open workspace。Sidebar 合并为单次 projection 计算，Root 的 Source open-tab 集合及 Source 管理面板的设备 Profile/聚合状态改从 projection 读取；新增本地 tab 回归与生产接线测试，并将边界合同写入远程 workspace 规格。
 - 自动化验证：受影响的 6 个 UI 测试文件 56 项通过；全量单测 1500 个文件、13290 项通过（1 个文件 skipped、11 项 skipped）；`pnpm typecheck` 通过；`pnpm lint` 0 errors（保留 38 个既有 warning）。`pnpm verify:pre-push` 首轮因旧静态断言失败，修正该断言后等价全量 `pnpm test:unit` 已通过。
-- 运行时验证：`VITE_ZCODE_E2E_STORE_BRIDGE=1 pnpm dev:desktop` 成功完成 Desktop/Host 构建，Electron 监听 CDP 9229，Renderer 加载 ZCode 页面并显示本地与远程历史 workspace。已补做真实 local + SSH remote 混合 TabStore/Projection/Sidebar 复验，详见下方 SSH/CDP 记录。
+- 运行时验证：`VITE_NIBI_E2E_STORE_BRIDGE=1 pnpm dev:desktop` 成功完成 Desktop/Host 构建，Electron 监听 CDP 9229，Renderer 加载 ZCode 页面并显示本地与远程历史 workspace。已补做真实 local + SSH remote 混合 TabStore/Projection/Sidebar 复验，详见下方 SSH/CDP 记录。
 - 剩余风险：真实 attachment fact 仍未由该 projection 在所有入口注入，远程 workspace 的 ready/attaching 细节需继续由各 attachment 生命周期验证；该风险不会使 local tab 进入 `openWorkspaces`。手机 `/remote` relay 实机不在本次 SSH 环境内，沿用 focused mobile tests，属于独立跨端验证项。
 
 #### 真实 SSH/CDP 复验 2026-08-29
@@ -408,7 +408,7 @@
 
 - 状态：已关闭
 - 根因：删除 legacy 资产链时，“构建并断言官方插件 MCP runtime”的责任没有落到新 staging 链任何一环。
-- 修复：`scripts/build-desktop-agent-cli.mjs` 的 MCP runtime 清单补入 `@nibi/android-emulator-plugin` 与 `@nibi/ios-simulator-plugin`，该脚本是桌面与 Source Server staging 共用的唯一构建入口；`stage.ts` 复制每个插件后新增 `assertOfficialPluginRuntime`，manifest 缺失或 `mcpServers` 引用的 `${ZCODE_PLUGIN_ROOT}/...` 文件不存在即抛错。R2 spec 新增“官方插件 MCP runtime 不变量”条目。
+- 修复：`scripts/build-desktop-agent-cli.mjs` 的 MCP runtime 清单补入 `@nibi/android-emulator-plugin` 与 `@nibi/ios-simulator-plugin`，该脚本是桌面与 Source Server staging 共用的唯一构建入口；`stage.ts` 复制每个插件后新增 `assertOfficialPluginRuntime`，manifest 缺失或 `mcpServers` 引用的 `${NIBI_PLUGIN_ROOT}/...` 文件不存在即抛错。R2 spec 新增“官方插件 MCP runtime 不变量”条目。
 - 自动化验证：`packaging.test.ts` 新增 2 项 fail-closed 用例（缺 MCP 入口、缺 manifest），修复前失败、修复后通过；既有插件 staging 用例补断言 `dist/mcp/server.js` 被打包；`runtime-asset-scripts.test.ts` 清单断言同步。
 - 运行时验证：本地删除 `apps/nibi-cli/packages/{android-emulator,ios-simulator}-plugin/dist` 后执行 `pnpm --filter @nibi/server-cli stage --target linux-x64`，构建链实际重建两个插件，`nibi-server-linux-x64.tar.gz` 内四个 MCP 插件的 `runtime/packages/*/dist/mcp/server.js` 均存在，耗时约 1 分钟。未运行真实 CI `build:remote:assets`。
 - 剩余风险：`stageRelease` 现在会对所有被复制的 `*-plugin` 目录做校验，若未来新增声明 mcpServers 却不在构建清单中的官方插件，staging 会显式失败而非静默残缺，这是预期行为。

@@ -44,8 +44,8 @@ zcode.cjs app-server
 ## 数据与工作区
 
 - `HOME=/data`
-- `ZCODE_DATA_BASE_DIR=/data`
-- `ZCODE_STORAGE_DIR=/data/.zcode`
+- `NIBI_DATA_BASE_DIR=/data`
+- `NIBI_STORAGE_DIR=/data/.zcode`
 - 默认工作区为 `/workspace`
 
 启动脚本只在 `setting.json` 缺失或 workspace 列表为空时 seed `/workspace`，不会覆盖已有 volume 中的模型、账号或任务数据。

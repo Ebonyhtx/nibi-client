@@ -14,7 +14,7 @@
 以下当前版本事实源必须统一为 `0.2.1`：
 
 1. workspace package `package.json`；
-2. `.zcode-plugin/plugin.json`；
+2. `.nibi-plugin/plugin.json`；
 3. Bootstrap `OFFICIAL_PLUGIN_DEFINITIONS`；
 4. SEA `officialSeaPlugins`；
 5. `node_repl` MCP `serverInfo.version`。
@@ -56,7 +56,7 @@
 | State/fact               | Authoritative owner           | Commit/build sink    | Persistence/cache                      | Evidence               |
 | ------------------------ | ----------------------------- | -------------------- | -------------------------------------- | ---------------------- |
 | workspace plugin version | `package.json`                | workspace build      | package metadata                       | package file           |
-| runtime plugin identity  | `.zcode-plugin/plugin.json`   | plugin discovery     | seeded cache manifest                  | manifest               |
+| runtime plugin identity  | `.nibi-plugin/plugin.json`   | plugin discovery     | seeded cache manifest                  | manifest               |
 | bundled current version  | `OFFICIAL_PLUGIN_DEFINITIONS` | filesystem seed      | official cache + marketplace partition | Bootstrap source/tests |
 | SEA embedded version     | `officialSeaPlugins`          | SEA asset collection | embedded manifest then official cache  | SEA source/tests       |
 | MCP runtime version      | `NODE_REPL_SERVER_VERSION`    | `serverInfo`         | runtime handshake                      | MCP server source/test |

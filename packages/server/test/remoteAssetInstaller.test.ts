@@ -737,7 +737,7 @@ describe("LocalUploadAssetInstaller", () => {
     const cdnReleaseDir = join(rootDir, "cdn-release");
     const sourceRelativePath = "glm/linux-x64/packages";
     await mkdir(join(staleReleaseDir, sourceRelativePath), { recursive: true });
-    await mkdir(join(cdnReleaseDir, sourceRelativePath, "skill-creator-plugin", ".zcode-plugin"), {
+    await mkdir(join(cdnReleaseDir, sourceRelativePath, "skill-creator-plugin", ".nibi-plugin"), {
       recursive: true,
     });
     await writeFile(
@@ -745,7 +745,7 @@ describe("LocalUploadAssetInstaller", () => {
         cdnReleaseDir,
         sourceRelativePath,
         "skill-creator-plugin",
-        ".zcode-plugin",
+        ".nibi-plugin",
         "plugin.json",
       ),
       '{"name":"skill-creator-plugin"}',
@@ -774,7 +774,7 @@ describe("LocalUploadAssetInstaller", () => {
 
     await expect(
       installer.tryResolveLocalPath(["glm"], sourceRelativePath, [
-        `${sourceRelativePath}/skill-creator-plugin/.zcode-plugin/plugin.json`,
+        `${sourceRelativePath}/skill-creator-plugin/.nibi-plugin/plugin.json`,
       ]),
     ).resolves.toBe(join(cdnReleaseDir, sourceRelativePath));
   });

@@ -25,10 +25,10 @@ import type { OpenAiCompatApi, NibiAliasApi } from "./aliasApi.js";
 import { createOpenAiCompatApi, readOpenAiGlobals } from "./openaiAlias.js";
 
 /**
- * 插件 iframe 内 `window.zcode` / `window.openai` 别名的运行时：官方 ext-apps `App` 上的薄封装，协议、握手、
+ * 插件 iframe 内 `window.nibi` / `window.openai` 别名的运行时：官方 ext-apps `App` 上的薄封装，协议、握手、
  * 错误码全部来自 SDK，自己不持有 JSON-RPC。纯逻辑（消息经注入的 App 收发），alias.ts 负责接 DOM。
  *
- * 懒连接：别名脚本注入到每个插件页面，而用官方 SDK 自建 `App` 的页面（官方示例）不会碰 `window.zcode`；
+ * 懒连接：别名脚本注入到每个插件页面，而用官方 SDK 自建 `App` 的页面（官方示例）不会碰 `window.nibi`；
  * 首次访问任一成员才握手，避免同一页面对宿主发两次 ui/initialize。
  */
 export interface AliasAppLike {

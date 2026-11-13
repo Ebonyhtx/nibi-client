@@ -38,7 +38,7 @@ function writePlugin(
   rootPath: string,
   folder: string,
   manifest: Record<string, unknown>,
-  manifestDir = ".zcode-plugin",
+  manifestDir = ".nibi-plugin",
 ): string {
   const pluginDir = join(rootPath, folder);
   mkdirSync(join(pluginDir, manifestDir), { recursive: true });
@@ -597,7 +597,7 @@ describe("settingsSyncService plugins import", () => {
         version: "1.2.3",
       },
     ]);
-    expect(existsSync(join(importedPath, ".zcode-plugin", "plugin.json"))).toBe(true);
+    expect(existsSync(join(importedPath, ".nibi-plugin", "plugin.json"))).toBe(true);
     expect(lstatSync(importedPath).isSymbolicLink()).toBe(true);
     expect(config.plugins?.dirs).toEqual([importedPath]);
   });

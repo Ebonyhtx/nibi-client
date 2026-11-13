@@ -37,7 +37,7 @@ describe("node_repl MCP server", () => {
     runtimeScope: "main" | "subagent" = "main",
     turnId = "turn-1",
   ) => ({
-    "com.zcode/request-context": {
+    "com.nibistudio.nibi/request-context": {
       runtime_scope: runtimeScope,
       session_id: sessionId,
       turn_id: turnId,

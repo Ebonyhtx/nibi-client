@@ -64,7 +64,7 @@ The inline mobile preview limit is 8 MiB. Desktop remote Range previews allow
 files up to 512 MiB, with a 1 MiB maximum chunk, four active Host requests, a
 10-minute idle lease timeout and a 2-hour absolute lease TTL. Opening a card
 starts preparation lazily; card rendering alone does not read or transfer media
-files. The kill switch `ZCODE_REMOTE_MEDIA_RANGE_PREVIEW_ENABLED=0` disables
+files. The kill switch `NIBI_REMOTE_MEDIA_RANGE_PREVIEW_ENABLED=0` disables
 the Desktop remote Range service and falls back to the existing inline limit.
 
 The media service state is `validating`, `local`, `host-range`, `inline`, or

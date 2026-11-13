@@ -33,15 +33,15 @@ import {
 const OFFICIAL_PLUGIN_MARKETPLACE = NIBI_OFFICIAL_PLUGIN_MARKETPLACE;
 const SEA_PLUGIN_ASSET_PREFIX = "zcode-official-plugins/";
 const SEA_PLUGIN_MANIFEST_ASSET_KEY = `${SEA_PLUGIN_ASSET_PREFIX}manifest.json`;
-const SEED_MARKER_FILE = ".zcode-plugin-seed.json";
+const SEED_MARKER_FILE = ".nibi-plugin-seed.json";
 const SEED_LOCK_TOTAL_BUDGET_MS = 15_000;
 
 const includedTopLevelPaths = new Set([
   ".mcp.json",
-  // 两种清单目录都放行：内置件已迁到 .nibi-plugin，而第三方/旧副本可能仍是 .zcode-plugin。
+  // 两种清单目录都放行：内置件已迁到 .nibi-plugin，而第三方/旧副本可能仍是 .nibi-plugin。
   // 漏掉任一个都会让 seed 静默裁掉清单目录，装完插件没有 plugin.json。
   ".nibi-plugin",
-  ".zcode-plugin",
+  ".nibi-plugin",
   "README.md",
   // 官方内容插件新增 agents 后，filesystem seed 的顶层白名单未同步，目录被静默裁掉。
   "agents",
@@ -760,10 +760,10 @@ function hashText(text: string): string {
  * 清单路径判定：NIBI 自有格式优先，其次上游格式。
  *
  * 内置件的包目录由内置插件源 `plugins/*` 同步而来，两种布局都可能出现：
- * 迁移期旧副本还是 `.zcode-plugin`、新副本是 `.nibi-plugin`。这里按同一顺序识别，
+ * 迁移期旧副本还是 `.nibi-plugin`、新副本是 `.nibi-plugin`。这里按同一顺序识别，
  * 与 `@nibi/shared` 的 PLUGIN_MANIFEST_DIRS 保持一致。
  */
-const PLUGIN_MANIFEST_RELATIVE_PATHS = [".nibi-plugin/plugin.json", ".zcode-plugin/plugin.json"] as const;
+const PLUGIN_MANIFEST_RELATIVE_PATHS = [".nibi-plugin/plugin.json", ".nibi-plugin/plugin.json"] as const;
 
 function isPluginManifestPath(path: string): boolean {
   return (PLUGIN_MANIFEST_RELATIVE_PATHS as readonly string[]).includes(path);

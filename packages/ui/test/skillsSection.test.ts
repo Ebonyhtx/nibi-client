@@ -210,7 +210,7 @@ vi.mock("@/i18n/IntlProvider.js", () => ({
           "settings.skills.removeFromCommon": "Remove from Common",
           "settingsSync.action.skip": "Not now",
           "settingsSync.action.rescan": "Scan again",
-          "settingsSync.agent.zcode": "Nibi Agent",
+          "settingsSync.agent.nibi": "Nibi Agent",
           "settingsSync.agent.claudeCode": "Claude Code",
           "settingsSync.agent.codexCli": "Codex CLI",
           "settingsSync.agent.openCode": "OpenCode",

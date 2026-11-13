@@ -12,7 +12,7 @@
 同步来源为内部插件仓库 `zcode-marketplace/zcode-plugins-test`，
 `origin/main` 提交 `e19dca8be86cf981ed2e0c2b4855c6ee6ee15265` 的对应 `plugins/<插件名>` 目录。
 四个内置发布版本均为 `0.1.8`（高于旧聚合插件 `0.1.5`）。导入目录逐字节对齐上游，
-仅允许 package.json 与 .zcode-plugin/plugin.json 的内置版本字段差异；本次内容差异均来自上游导出，版本字段按内置发布序列升版。
+仅允许 package.json 与 .nibi-plugin/plugin.json 的内置版本字段差异；本次内容差异均来自上游导出，版本字段按内置发布序列升版。
 
 许可证：四个文档插件与搜图插件均为 Apache-2.0（2026-10-08 起，文档插件原为非商业许可，随开源改为 Apache-2.0，0.1.8 起生效；上游插件仓库需同步修改许可，否则下次同步会把旧许可带回）。
 
@@ -29,7 +29,7 @@ Bootstrap 官方 definition 是内置目录与默认启用的权威来源；Sett
 
 每个插件提供 `agents/visual-judge.md`，使用 `<插件名>:visual-judge` 限定名。
 原 `judge` 名称不再由内置插件提供。每个插件只携带自己的格式 skill；四个插件本身不再声明
-`image_search` MCP，图片搜索由默认启用的 `image-search` 插件提供，版本为 `0.1.1`，通过既有官方 JWT 认证访问 `${ZCODE_BASE_URL}/api/v1/mcp/server/image_search`；不新增本地 MCP runtime。
+`image_search` MCP，图片搜索由默认启用的 `image-search` 插件提供，版本为 `0.1.1`，通过既有官方 JWT 认证访问 `${NIBI_BASE_URL}/api/v1/mcp/server/image_search`；不新增本地 MCP runtime。
 `image-search` 缓存路径为 `~/.nibi/cli/plugins/cache/zcode-plugins-official/image-search/0.1.1/`。
 
 ## 打包与验收

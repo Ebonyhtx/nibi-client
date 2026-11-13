@@ -2111,7 +2111,7 @@ function mcpRequestMeta(request: McpCallToolRequest): Record<string, unknown> {
   };
   return {
     ...requestContext,
-    "com.zcode/request-context": requestContext,
+    "com.nibistudio.nibi/request-context": requestContext,
   };
 }
 

@@ -31,7 +31,7 @@ function agentsWithCategory(
 function formatAgentName(agent: string, intl: ReturnType<typeof useNibiIntl>["intl"]): string {
   switch (agent) {
     case "zcode":
-      return intl.formatMessage({ id: "settingsSync.agent.zcode" });
+      return intl.formatMessage({ id: "settingsSync.agent.nibi" });
     case "claudeCode":
       return intl.formatMessage({ id: "settingsSync.agent.claudeCode" });
     case "codexCli":

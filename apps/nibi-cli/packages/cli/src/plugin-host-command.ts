@@ -20,7 +20,7 @@ export function isPluginHostInvocation(argv: readonly string[]): boolean {
   return argv[0] === NIBI_PLUGIN_HOST_COMMAND;
 }
 
-// __zcode-plugin-host 在 agent 子进程里运行 official plugin 的 MCP server（server.js）。
+// __nibi-plugin-host 在 agent 子进程里运行 official plugin 的 MCP server（server.js）。
 // CLI 入口 main.ts 的 applyCliRuntimeEnvSanitization 会先把 broker token 从 process.env 剔除进
 // 进程内 capture；因此这里是恢复 bearer token 的最后一道宿主边界。capture 本身只证明某个
 // Agent 进程曾收到过 Helper 凭据，不能证明当前传入的 server 就是官方 zcode-cua：

@@ -9,15 +9,15 @@
 
 - Desktop、Host 和 bundled Agent 的默认用户数据目录统一为 `~/.nibi`。
 - 不再根据源码开发、Stable 或 Preview 选择 `.zcode-dev`、`.zcode-beta` 等目录。
-- 设置页的 `dataBaseDir` 仍只通过既有 `ZCODE_DATA_BASE_DIR` 传给 Host，用于 App 数据迁移。
-- Host 不向子进程注入 `ZCODE_STORAGE_PROFILE`、`ZCODE_STORAGE_DIR` 或 `ZCODE_HOME`。
+- 设置页的 `dataBaseDir` 仍只通过既有 `NIBI_DATA_BASE_DIR` 传给 Host，用于 App 数据迁移。
+- Host 不向子进程注入 `NIBI_STORAGE_PROFILE`、`NIBI_STORAGE_DIR` 或 `NIBI_HOME`。
 - 用户级 session、plugins、agents、commands、skills、logs 和 rollout 继续沿用既有
   `~/.nibi` 数据，避免升级后表现为历史数据丢失。
 - workspace 内的 `.nibi/*` 路径保持不变。
 
 ## 根因
 
-storage profile 把 App 自定义数据根作为精确 `ZCODE_STORAGE_DIR` 注入 Host，随后该环境
+storage profile 把 App 自定义数据根作为精确 `NIBI_STORAGE_DIR` 注入 Host，随后该环境
 被 CLI 资源扫描和 Agent 子进程继承。用户原有资源仍位于 `~/.nibi`，因此运行时出现
 session、插件、子智能体和命令同时缺失。3.7.2 只在 Agent spawn 边界覆盖 CLI 根，造成
 Host/UI 与 Agent 分别读取两套目录，不能完整恢复历史数据。
@@ -31,7 +31,7 @@ helper 明确返回隔离 HOME 下的 `.zcode`。只恢复调用点而遗留 `zc
 
 | Case | 条件 | 期望 |
 | --- | --- | --- |
-| STORAGE-ROLLBACK-001 | 任意 Desktop 运行形态启动 Host | 不注入 storage profile、精确 storage root 或 `ZCODE_HOME` |
+| STORAGE-ROLLBACK-001 | 任意 Desktop 运行形态启动 Host | 不注入 storage profile、精确 storage root 或 `NIBI_HOME` |
 | STORAGE-ROLLBACK-002 | 用户配置 App 自定义 `dataBaseDir` | App 数据按既有逻辑迁移；CLI 用户资源仍从 `~/.nibi` 读取 |
 | STORAGE-ROLLBACK-003 | Stable/Preview/源码开发访问同一用户资源 | session、plugins、agents、commands、skills 均沿用 `~/.nibi` |
 | STORAGE-ROLLBACK-004 | 打开含 `.zcode` 配置的 workspace | 项目级 agents、commands、skills 路径不变 |

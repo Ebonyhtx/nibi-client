@@ -302,8 +302,8 @@ export const collectSeaOfficialPluginAssets = async ({
   };
 };
 
-// 插件清单目录按优先级探测：NIBI 自有格式优先，`.zcode-plugin` 只作为互操作回退。
-const pluginManifestDirectories = [".nibi-plugin", ".zcode-plugin"];
+// 插件清单目录按优先级探测：NIBI 自有格式优先，`.nibi-plugin` 只作为互操作回退。
+const pluginManifestDirectories = [".nibi-plugin", ".nibi-plugin"];
 
 function findPluginManifestDirectory(pluginRoot) {
   return pluginManifestDirectories.find((directory) =>
@@ -369,7 +369,7 @@ const shouldSkipDirectory = (name) =>
 const includedTopLevelPaths = new Set([
   ".mcp.json",
   ".nibi-plugin",
-  ".zcode-plugin",
+  ".nibi-plugin",
   "README.md",
   // SEA 资源采集曾只允许 skills/commands，导致 document-skills 的 judge 子代理未进入可执行文件。
   "agents",

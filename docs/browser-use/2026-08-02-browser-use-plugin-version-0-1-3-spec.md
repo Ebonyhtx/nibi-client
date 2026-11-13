@@ -16,7 +16,7 @@ locator、action expected-effect 与 popup 双 registry 原子观察 guidance �
 所有当前版本事实源必须统一为 `0.1.3`：
 
 1. workspace package `package.json`；
-2. `.zcode-plugin/plugin.json`；
+2. `.nibi-plugin/plugin.json`；
 3. Bootstrap `OFFICIAL_PLUGIN_DEFINITIONS`；
 4. SEA `officialSeaPlugins`；
 5. Bootstrap cache-path 契约与 SEA/version alignment 契约；
@@ -68,7 +68,7 @@ locator、action expected-effect 与 popup 双 registry 原子观察 guidance �
 | State/fact | Draft/display owner | Authoritative owner | Commit command/service | Persistence/cache | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | workspace plugin version | package metadata | `package.json` | build/package collection | workspace package | package file |
-| runtime plugin identity | plugin manifest | `.zcode-plugin/plugin.json` | plugin discovery | seeded cache manifest | manifest |
+| runtime plugin identity | plugin manifest | `.nibi-plugin/plugin.json` | plugin discovery | seeded cache manifest | manifest |
 | bundled current version | Bootstrap | `OFFICIAL_PLUGIN_DEFINITIONS` | `resolveOfficialPluginRoots` | official cache + marketplace partition | bundled plugin source/tests |
 | SEA embedded version | SEA asset collector | `officialSeaPlugins` | SEA build | embedded manifest then official cache | SEA source/tests |
 

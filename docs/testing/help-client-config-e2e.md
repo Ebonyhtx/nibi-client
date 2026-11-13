@@ -120,6 +120,6 @@ pnpm --filter @nibi/desktop test:e2e -- --spec ./test/e2e/help-client-config.tes
 
 - 正式路径默认 replay：8/8 passed，artifact `desktop-e2e-20260904063506750-p72944-12b19ddcc35e5a3d`。
 - 正式路径仅 common fixture replay：8/8 passed，artifact `desktop-e2e-20260904063636183-p75423-66532649b7413591`。
-- 两轮均未设置 `ZCODE_E2E_MANUAL_REVIEW`，正式 spec 被 desktop WDIO 正常执行。
+- 两轮均未设置 `NIBI_E2E_MANUAL_REVIEW`，正式 spec 被 desktop WDIO 正常执行。
 - `typecheck:e2e`、`pnpm typecheck`、`pnpm lint` 通过（41 个既有 warning，0 error）；格式与 diff 检查通过。
 - manifest 校验确认正式路径存在、8 个 synthetic 场景均注明原因、file fixture 存在、provider policy 为 none。

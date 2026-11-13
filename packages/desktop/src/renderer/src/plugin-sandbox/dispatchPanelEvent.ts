@@ -5,7 +5,7 @@
  * 里写死了旧名；只改派发名会让它们收不到状态更新（面板看着能用，但主题/状态永远不刷新）。
  * 反之只发旧名又会让新文档教出来的写法失效。所以两个名字都发，detail 完全同源。
  *
- * 与 `window.zcode` 别名同一口径：别名只为一件事存在——已发布插件不失效；
+ * 与 `window.nibi` 别名同一口径：别名只为一件事存在——已发布插件不失效；
  * 我们自己的面板、技能文档、新写的面板一律用 nibi 名。
  */
 export const LEGACY_EVENT_NAMES: Readonly<Record<string, string>> = Object.freeze({

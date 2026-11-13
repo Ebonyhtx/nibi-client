@@ -110,7 +110,7 @@
       });
     }
     state = storedState;
-    globalThis.zcode.widgetState = state;
+    globalThis.nibi.widgetState = state;
     globalThis.dispatchEvent(
       new CustomEvent("nibi:set_globals", {
         detail: { globals: { widgetState: state } },
@@ -132,8 +132,8 @@
   const syncTheme = () => {
     const theme = mediaQuery.matches ? "dark" : "light";
     root.dataset.theme = theme;
-    globalThis.zcode = {
-      ...globalThis.zcode,
+    globalThis.nibi = {
+      ...globalThis.nibi,
       openExternal,
       sendFollowUpMessage,
       setWidgetState,
@@ -146,7 +146,7 @@
     };
     globalThis.dispatchEvent(
       new CustomEvent("nibi:set_globals", {
-        detail: { globals: globalThis.zcode },
+        detail: { globals: globalThis.nibi },
       }),
     );
   };

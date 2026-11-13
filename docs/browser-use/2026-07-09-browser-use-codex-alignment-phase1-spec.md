@@ -20,7 +20,7 @@ Phase 1 当时把 browser use 视为由官方 `browser` plugin 整体控制的�
 
 ## 非目标
 
-- 不修改 `.zcode-plugin/plugin.json` schema。
+- 不修改 `.nibi-plugin/plugin.json` schema。
 - 不新增 Chrome / external browser 支持。
 - 不改 desktop browser command 协议的核心 `BrowserCommandResult` 结构。
 - 不在第一阶段完成 UI 对 `responseMeta` 的展示消费，只提供元数据链路。

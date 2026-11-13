@@ -402,7 +402,7 @@ function hasPluginManifest(rootPath: string): boolean {
   // 的 zip」当成非插件包拒掉（与 PLUGIN_MANIFEST_DIRS 的顺序保持一致）。
   return (
     fileExists(join(rootPath, ".nibi-plugin", "plugin.json")) ||
-    fileExists(join(rootPath, ".zcode-plugin", "plugin.json")) ||
+    fileExists(join(rootPath, ".nibi-plugin", "plugin.json")) ||
     fileExists(join(rootPath, ".claude-plugin", "plugin.json")) ||
     fileExists(join(rootPath, ".codex-plugin", "plugin.json"))
   );

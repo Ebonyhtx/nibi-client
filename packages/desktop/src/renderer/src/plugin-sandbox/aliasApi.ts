@@ -12,7 +12,7 @@ import type {
 } from "@modelcontextprotocol/ext-apps";
 import type { McpAppsDownloadFileItem } from "@nibi/shared/mcp-apps";
 
-/** `window.zcode` / `window.openai` 的公开形状；实现在 aliasRuntime / openaiAlias，两边只依赖这里。 */
+/** `window.nibi` / `window.openai` 的公开形状；实现在 aliasRuntime / openaiAlias，两边只依赖这里。 */
 export interface NibiAliasApi {
   readonly toolInput: Record<string, unknown> | null;
   readonly toolOutput: unknown;

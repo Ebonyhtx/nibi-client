@@ -59,7 +59,7 @@ main → 环境清理 / SEA 工具准备 → plugin-host 鉴权 → MCP server �
                               └ 普通 CLI 命令 → Provider 准备 → run / Agent Runtime
 ```
 
-`__zcode-plugin-host` 必须在导入通用 `run.ts` 和 Provider 初始化模块之前分流。REPL 子进程
+`__nibi-plugin-host` 必须在导入通用 `run.ts` 和 Provider 初始化模块之前分流。REPL 子进程
 不求值 Agent Runtime、工具注册表或工作流模块；这些模块继续由对话所属的父 Agent 使用。
 复用原有 plugin-host 的凭据校验、argv 透传和退出 owner：鉴权失败在 import 前拒绝，成功 MCP
 继续依靠 stdio 存活，初始化失败仍由现有 watchdog 收口。插件参数不触发 Provider 初始化。

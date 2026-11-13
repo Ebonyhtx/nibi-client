@@ -7,7 +7,7 @@
  * `kernel/target/debug/nibi-rs.exe app-server --stdio`，按 LF-JSON 协议驱动：
  *   startup/storageState → v4/command createSession → sendText →（流式帧）→ turn 完成
  *   → compact → forkAssistant → retryTurn，每步断言 ACK。
- * 不写真实 ~/.zcode / ~/.nibi；不调用真实模型。
+ * 不写真实 ~/.nibi / ~/.nibi；不调用真实模型。
  */
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";

@@ -276,9 +276,9 @@ const bundledSkillPack = {
 };
 const includedOfficialPluginTopLevelPaths = new Set([
   ".mcp.json",
-  // 两种清单目录都放行：内置件已迁 .nibi-plugin，第三方/旧副本仍可能是 .zcode-plugin。
+  // 两种清单目录都放行：内置件已迁 .nibi-plugin，第三方/旧副本仍可能是 .nibi-plugin。
   ".nibi-plugin",
-  ".zcode-plugin",
+  ".nibi-plugin",
   "README.md",
   // Electron 生产资源复制有独立白名单，遗漏 agents 会让首启 filesystem seed 永久缺少子代理。
   "agents",

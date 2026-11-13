@@ -485,6 +485,6 @@ export function installGenUiTweakRuntime(callTool) {
     globalThis.addEventListener("click", onPointerEvent, true);
     globalThis.addEventListener("keydown", onKeyDown);
     globalThis.addEventListener("pagehide", onPageHide);
-    onGlobals({ detail: { globals: globalThis.zcode } });
+    onGlobals({ detail: { globals: globalThis.nibi } });
   }
 }

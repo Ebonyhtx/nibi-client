@@ -9,7 +9,7 @@ import { readPluginName } from "./plugin-name.mjs";
 
 // Builds the plugin package in the current directory into its dist/. The package declares its
 // panel title and formats under "office" in package.json.
-// 插件名取自 .zcode-plugin/plugin.json：内置插件包目录名（如 pdf-plugin）与插件名不同。
+// 插件名取自 .nibi-plugin/plugin.json：内置插件包目录名（如 pdf-plugin）与插件名不同。
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const target = process.cwd();
 const pkg = JSON.parse(await readFile(join(target, "package.json"), "utf8"));

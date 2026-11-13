@@ -307,7 +307,7 @@ describe("createMcpAdapter", () => {
         arguments: { code: "1 + 1" },
         name: "js",
         _meta: {
-          "com.zcode/request-context": {
+          "com.nibistudio.nibi/request-context": {
             parent_span_id: "parent-1",
             runtime_scope: "subagent",
             session_id: "session-1",

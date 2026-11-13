@@ -18,9 +18,9 @@ staging 仍计算各组件的 `paths`、`sha256`、`sizeBytes` 并写入包内 m
 重新 staging 时清理该目标的旧组件归档，避免把历史文件误认成本轮产物；完整资源组装、
 插件 runtime 与许可声明校验、整包 SHA/大小及 descriptor 发布规则均保持原行为。
 
-新命令的 `ZCODE_ENV` 未设置或空白时默认为 `production`，与 `pnpm dev:desktop` 一致；
+新命令的 `NIBI_ENV` 未设置或空白时默认为 `production`，与 `pnpm dev:desktop` 一致；
 显式值去除首尾空白并转为小写，只接受 `test` / `production`，非法值在构建和产物变更前失败。
-测试环境使用 `ZCODE_ENV=test pnpm prepare:remote-assets:linux`，随后启动
+测试环境使用 `NIBI_ENV=test pnpm prepare:remote-assets:linux`，随后启动
 `pnpm dev:desktop:test`。原 `prepare:remote-assets` 和 `bootstrap:with-remote` 仍构建四个平台。
 
 ```text
@@ -46,7 +46,7 @@ archive/descriptor 发布和旧条目淘汰；不以完整远端构建或 SSH �
 
 ## 远程初始化的产品环境
 
-`bootstrap:with-remote` 在入口统一选择产品环境：未设置或空白的 `ZCODE_ENV` 默认选择
+`bootstrap:with-remote` 在入口统一选择产品环境：未设置或空白的 `NIBI_ENV` 默认选择
 `production`，与随后执行的 `pnpm dev:desktop` 一致；显式 `test` / `production` 经去除首尾
 空白、转为小写后传给全部构建子进程。非法值必须在安装依赖、清理或构建之前报错。
 本地 runtime、Source Server Core 与远端 Agent 必须使用同一选择，不能在子构建中重新退回
@@ -59,7 +59,7 @@ archive/descriptor 发布和旧条目淘汰；不以完整远端构建或 SSH �
         dev:desktop           -> production -> 生产凭据与模型地址匹配
 ```
 
-测试环境联调时，先以 `ZCODE_ENV=test` 执行 `bootstrap:with-remote`，再运行
+测试环境联调时，先以 `NIBI_ENV=test` 执行 `bootstrap:with-remote`，再运行
 `pnpm dev:desktop:test`。显式选择测试环境后，普通 `dev:desktop` 仍然表示 production，
 不会自动重建或转换远程安装包。已有测试环境 archive 需要重新构建并更新远端才能改为生产环境。
 

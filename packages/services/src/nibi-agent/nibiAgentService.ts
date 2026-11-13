@@ -1406,7 +1406,7 @@ export function createNibiAgentService(
     // 没有终止条件，会阻塞 Session 生命周期。超时只结束本次请求，不重试或降级。
     logger.warn(undefined, "运行时偏好请求等待 Host 响应超时", {
       event: "zcode_agent.runtime_preferences.host_response_timeout",
-      module: "services.zcode_agent",
+      module: "services.nibi_agent",
       requestId,
       scope: pending.request.scope,
       sessionId: pending.request.sessionId,
@@ -2416,7 +2416,7 @@ export function createNibiAgentService(
           });
           logger.info(undefined, "运行时偏好请求已转发给 Host", {
             event: "zcode_agent.runtime_preferences.host_request_dispatched",
-            module: "services.zcode_agent",
+            module: "services.nibi_agent",
             requestId,
             scope: dynamicRequest.scope,
             sessionId: dynamicRequest.sessionId,
@@ -5183,14 +5183,14 @@ export function createNibiAgentService(
       if (!pending) {
         logger.warn(undefined, "运行时偏好响应找不到 pending 请求", {
           event: "zcode_agent.runtime_preferences.response_without_pending",
-          module: "services.zcode_agent",
+          module: "services.nibi_agent",
           requestId: params.requestId,
         });
         throw new Error(`NIBI session runtime preferences request not found: ${params.requestId}`);
       }
       const responseContext = {
         event: "zcode_agent.runtime_preferences.host_response_received",
-        module: "services.zcode_agent",
+        module: "services.nibi_agent",
         requestId: params.requestId,
         scope: pending.request.scope,
         sessionId: pending.request.sessionId,

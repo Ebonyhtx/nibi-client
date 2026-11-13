@@ -49,7 +49,7 @@ test("protocol lifecycle follows the command, not an option value", () => {
   assert.equal(isProtocolServerInvocation(["--prompt", "app-server"]), false);
   assert.equal(isProtocolServerInvocation(["--cwd", "app-server", "doctor"]), false);
   assert.equal(isProtocolServerInvocation(["--target", "agent-server"]), false);
-  assert.equal(isProtocolServerInvocation(["__zcode-plugin-host", "app-server"]), false);
+  assert.equal(isProtocolServerInvocation(["__nibi-plugin-host", "app-server"]), false);
   assert.equal(isProtocolServerInvocation(["app-server", "--help"]), false);
   assert.equal(isProtocolServerInvocation(["--cwd", "/tmp", "app-server", "--stdio"]), true);
   assert.equal(isProtocolServerInvocation(["agent-server", "--stdio"]), true);

@@ -33,7 +33,7 @@ const DEFAULT_ENABLED: [&str; 11] = [
 /// 能力来自 Node 宿主注入的 `node_repl` MCP 的官方插件（Node `hostMcpServerNames` 与宿主本身）。
 const NODE_REPL: [&str; 3] = ["node-repl-host", "browser-use", "computer-use"];
 /// Node `NIBI_PLUGIN_HOST_COMMAND`：播种缓存时改写进 MCP 的启动参数。
-const PLUGIN_HOST_ARG: &str = "__zcode-plugin-host";
+const PLUGIN_HOST_ARG: &str = "__nibi-plugin-host";
 /// 需要 App 内联视图宿主的官方插件（Node `filterVisualizeSkillRoots`）。
 const VIEW_HOST: &str = "visualize";
 

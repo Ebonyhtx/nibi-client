@@ -182,7 +182,7 @@ async fn connects_lists_and_calls_tools() {
         .find(|(_, message)| message["method"] == "tools/call")
         .unwrap();
     // `_meta`：本工程的 tool_use ID + node_repl 需要的 request-context（平铺键与
-    // `com.zcode/request-context` 嵌套副本各一份）。缺 session_id 时 Browser Use 会拒绝调用。
+    // `com.nibistudio.nibi/request-context` 嵌套副本各一份）。缺 session_id 时 Browser Use 会拒绝调用。
     let request_context = json!({
         "session_id": "sess_1",
         "turn_id": "run_1",
@@ -195,7 +195,7 @@ async fn connects_lists_and_calls_tools() {
     for (key, value) in request_context.as_object().unwrap() {
         expected_meta.insert(key.clone(), value.clone());
     }
-    expected_meta.insert("com.zcode/request-context".to_owned(), request_context);
+    expected_meta.insert("com.nibistudio.nibi/request-context".to_owned(), request_context);
     assert_eq!(
         call.1["params"]["_meta"],
         serde_json::Value::Object(expected_meta)

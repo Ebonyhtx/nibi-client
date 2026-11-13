@@ -193,11 +193,6 @@ function resolveMcpServerConfig(server: unknown, context: VariableContext): McpS
         NIBI_PROJECT_DIR: context.workingDirectory,
         CLAUDE_PLUGIN_DATA: context.dataPath,
         CLAUDE_PLUGIN_ROOT: context.loaded.rootPath,
-        // 插件 ABI 兼容层：移植过来的上游 Nibi 插件仍读这三个旧名。只输出给插件子进程，
-        // 宿主自己的配置读取从不使用（边界见 step9b-brand-inventory §0.6）。
-        ZCODE_PLUGIN_DATA: context.dataPath,
-        ZCODE_PLUGIN_ROOT: context.loaded.rootPath,
-        ZCODE_PROJECT_DIR: context.workingDirectory,
         ...(isRecord(server.env) ? server.env : {}),
       },
       context,
@@ -332,16 +327,12 @@ function resolveTemplate(
     switch (name) {
       case "CLAUDE_PLUGIN_ROOT":
       case "NIBI_PLUGIN_ROOT":
-      // 插件 ABI 兼容层：上游插件的清单模板（边界见 step9b-brand-inventory §0.6）。
-      case "ZCODE_PLUGIN_ROOT":
         return context.loaded.rootPath;
       case "CLAUDE_PLUGIN_DATA":
       case "NIBI_PLUGIN_DATA":
-      case "ZCODE_PLUGIN_DATA":
         return context.dataPath;
       case "CLAUDE_PROJECT_DIR":
       case "NIBI_PROJECT_DIR":
-      case "ZCODE_PROJECT_DIR":
         return context.workingDirectory;
       case "CLAUDE_CODE_SESSION_ID":
       case "CLAUDE_SESSION_ID":

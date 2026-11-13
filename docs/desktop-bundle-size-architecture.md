@@ -20,7 +20,7 @@
 - 生产安装包不再包含 `remote-assets`
 - 生产态 remote 资源通过 CDN 版本根的 `source-server-release.json` 与 `nibi-server-<platform-arch>.tar.gz` 分发
 - 首次安装或显式更新时按 descriptor 校验 SHA-256/大小；本地下载模式缓存完整 archive 后上传，SSH 远端下载模式在目标机下载同一 archive，最终都进入 immutable release installer
-- `ZCODE_ENV=production` 时默认内置两组官方 CDN：
+- `NIBI_ENV=production` 时默认内置两组官方 CDN：
   - 国内：`https://cdn.codegeex.cn/zcode/electron/releases/<version>`
   - 海外：`https://cdn-zcode.z.ai/zcode/electron/releases/<version>`
 - CI 若配置 `CDN_DOMAIN` / `OSS_PATH_PREFIX`，生产包会在构建期把这些变量展开为 remote CDN 候选列表。
@@ -30,21 +30,21 @@
   - `locale` 为中文，且时区处于 UTC+8：优先国内 CDN，海外 CDN 作为备选
   - 其他情况：优先海外 CDN，国内 CDN 作为备选
 - 如果构建期注入了 `CDN_DOMAIN` 列表，则按 CI 列表顺序使用，不再按语言/时区重排。
-- `ZCODE_ENV=test` 时默认使用内网测试资源根：
+- `NIBI_ENV=test` 时默认使用内网测试资源根：
   `http://intranet.example.invalid:12345/ssh-remote-assets/<version>`。该目录由 CI 的
   `build:remote:assets` job 同步 descriptor 与四个 archive。
 - `remoteCdnBaseUrl` 仍可通过环境变量覆盖；一旦显式设置，就只使用该自定义基址，不再套用
-  `ZCODE_ENV` 默认值或 production 地区分流
+  `NIBI_ENV` 默认值或 production 地区分流
 - SSH 远端服务器下载模式会在远端临时目录下载并校验完整 archive；最终安装到 `~/.nibi/server/releases/`，并通过 `current.json` 原子切换。
 
 ## 开发态切换公网 CDN
 
 - 开发态默认使用本轮 Source Server staging 写入的 `mock-cdn/releases/<version>/...`
-- 若要在开发态强制走公网 CDN，可设置环境变量：`ZCODE_DEV_REMOTE_ASSET_USE_CDN=1`
+- 若要在开发态强制走公网 CDN，可设置环境变量：`NIBI_DEV_REMOTE_ASSET_USE_CDN=1`
 - 开启后，remote deploy 不再读取 `mock-cdn`，会直接进入 descriptor/CDN + 本地 archive cache 链路
-- 未设置 `ZCODE_REMOTE_ASSET_CDN_BASE_URL` 时，仍按上面的地区分流规则生成“主 CDN + 备选 CDN”候选列表
-- 可配合 `ZCODE_REMOTE_ASSET_CDN_BASE_URL` 指向自定义 CDN 基址
-- 可设置 `ZCODE_REMOTE_ASSET_CACHE_DIR` 覆盖 remote cache 目录；例如 dev 启动时指向正式版 `~/Library/Application Support/ZCode/remote-assets-cache`，只复用 remote 资源缓存，不切换 Electron `userData`
+- 未设置 `NIBI_REMOTE_ASSET_CDN_BASE_URL` 时，仍按上面的地区分流规则生成“主 CDN + 备选 CDN”候选列表
+- 可配合 `NIBI_REMOTE_ASSET_CDN_BASE_URL` 指向自定义 CDN 基址
+- 可设置 `NIBI_REMOTE_ASSET_CACHE_DIR` 覆盖 remote cache 目录；例如 dev 启动时指向正式版 `~/Library/Application Support/ZCode/remote-assets-cache`，只复用 remote 资源缓存，不切换 Electron `userData`
 - 上述 remote asset 环境变量可从 shell 传入，也可写在仓库根目录或 `packages/desktop` 下的 `.env.local`；shell 环境变量优先级更高
 - 若要一键启动“desktop dev + 生产态 remote SSH 下载/cache 链路”，使用 `pnpm dev:desktop:remote-prod`
 
@@ -103,4 +103,4 @@ asar 内容审计必须由 Node 直接调用项目锁定版本的 `@electron/asa
 获取待解析输出，避免 workspace engine warning 等 pnpm 诊断信息混入 stdout 后被误判为 asar 条目。
 
 `pnpm-workspace.yaml#supportedArchitectures` 只控制工作区安装阶段允许准备哪些平台依赖，不能作为安装包
-资源边界。最终安装包资源集合必须由 `ZCODE_TARGET_OS` / `ZCODE_TARGET_ARCH` 决定。
+资源边界。最终安装包资源集合必须由 `NIBI_TARGET_OS` / `NIBI_TARGET_ARCH` 决定。

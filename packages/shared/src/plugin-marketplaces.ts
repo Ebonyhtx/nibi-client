@@ -101,20 +101,17 @@ export function isPublicStoreMarketplaceId(id: string): boolean {
 // 插件包 = 一个目录，里面必须有一个 `<清单目录>/plugin.json`。宿主按下面的顺序探测，
 // 命中第一个存在的即用；这是**互操作层**，不是品牌标识：
 //   .nibi-plugin    ← NIBI 自有格式（我们的内置件与市场上架件都迁到这里）
-//   .zcode-plugin   ← 上游 Nibi 格式：已发布的第三方包仍用它，保留读取
 //   .claude-plugin  ← Claude 插件生态
 //   .codex-plugin   ← Codex 插件生态
 //
 // 顺序有意义：同名目录并存时优先读 NIBI 的，避免重打包前后的两个清单互相打架。
 export const NIBI_PLUGIN_MANIFEST_DIR = ".nibi-plugin";
-export const ZCODE_PLUGIN_MANIFEST_DIR = ".zcode-plugin";
 export const CLAUDE_PLUGIN_MANIFEST_DIR = ".claude-plugin";
 export const CODEX_PLUGIN_MANIFEST_DIR = ".codex-plugin";
 
 /** 按发现优先级排列的清单目录；第一个是 NIBI 自己的写入格式。 */
 export const PLUGIN_MANIFEST_DIRS = [
   NIBI_PLUGIN_MANIFEST_DIR,
-  ZCODE_PLUGIN_MANIFEST_DIR,
   CLAUDE_PLUGIN_MANIFEST_DIR,
   CODEX_PLUGIN_MANIFEST_DIR,
 ] as const;

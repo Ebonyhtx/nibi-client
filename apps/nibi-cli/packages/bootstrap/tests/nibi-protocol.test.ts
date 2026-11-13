@@ -1627,7 +1627,7 @@ describe("NibiProtocolAgentServer", () => {
 
     try {
       await mkdir(join(root, ".git"));
-      await mkdir(join(pluginRoot, ".zcode-plugin"), { recursive: true });
+      await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
       await mkdir(workspacePath, { recursive: true });
       await writeFile(
         join(root, "nibi.json"),
@@ -1646,7 +1646,7 @@ describe("NibiProtocolAgentServer", () => {
         }),
       );
       await writeFile(
-        join(pluginRoot, ".zcode-plugin", "plugin.json"),
+        join(pluginRoot, ".nibi-plugin", "plugin.json"),
         JSON.stringify({
           name: "status-plugin",
           mcpServers: {

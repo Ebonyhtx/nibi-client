@@ -130,7 +130,7 @@ v1 文件不做启动迁移：读取时视为 `decisions: []`，下一次业务�
 - **会话库路径只镜像 host 可确定性复制的定位来源，无法确定按"未知"跳过**（评审
   三轮 CR-01：不在 host 复制完整 CLI 解析规则——相对路径按 agent 工作区 cwd、
   project 级配置按 workspace 叠加，host 均无法镜像）。可镜像来源按序：
-  1. env `ZCODE_SESSION_DB_PATH` / `ZCODE_SESSION_DB`（双别名并存按 env 键序取
+  1. env `NIBI_SESSION_DB_PATH` / `NIBI_SESSION_DB`（双别名并存按 env 键序取
      后者，与 CLI env adapter 覆盖顺序一致）；
   2. `~/.nibi/cli/config.json` 的 `storage.sessionDbPath`（CLI `createConfig`
      默认 user config 位置在 home，**不随 App dataBaseDir 迁移**）；

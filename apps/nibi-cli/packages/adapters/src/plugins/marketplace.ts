@@ -22,7 +22,6 @@ import {
   isNibiPrimaryContentUrl,
   migrateLegacyNibiUrl,
   NIBI_PLUGIN_MANIFEST_DIR,
-  ZCODE_PLUGIN_MANIFEST_DIR,
   sanitizeNibiRuntimeEnv,
 } from "@nibi/shared";
 import {
@@ -91,8 +90,6 @@ const MARKETPLACE_JSON_TIMEOUT_MS = 180_000;
 const claudeIconMigrationAttempts = new Set<string>();
 const CLAUDE_MARKETPLACE_FILE = join(".claude-plugin", "marketplace.json");
 const NIBI_MANIFEST_PATH = join(NIBI_PLUGIN_MANIFEST_DIR, "plugin.json");
-// 已发布第三方包仍用上游格式；发现顺序里排在 NIBI 之后。
-const LEGACY_ZCODE_MANIFEST_PATH = join(ZCODE_PLUGIN_MANIFEST_DIR, "plugin.json");
 const CLAUDE_MANIFEST_PATH = join(CLAUDE_PLUGIN_MANIFEST_DIR, "plugin.json");
 const CODEX_MANIFEST_PATH = join(CODEX_PLUGIN_MANIFEST_DIR, "plugin.json");
 const DEFAULT_VERSION = "0.0.0";
@@ -2615,7 +2612,6 @@ function findMarketplaceManifestPath(rootPath: string, explicitPath?: string): s
 function findPluginManifestPath(rootPath: string): string | null {
   for (const candidate of [
     NIBI_MANIFEST_PATH,
-    LEGACY_ZCODE_MANIFEST_PATH,
     CLAUDE_MANIFEST_PATH,
     CODEX_MANIFEST_PATH,
   ]) {

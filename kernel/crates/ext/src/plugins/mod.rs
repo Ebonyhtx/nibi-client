@@ -2,7 +2,7 @@
 //! 候选目录由入口层给出（`--plugin-dir`、Node 配置的 `plugins.dirs`、内置缓存与已安装插件），文件经执行
 //! 环境端口读；来源与启用判定见 [`select`]。市场与安装未覆盖。
 //!
-//! manifest 按 Node `findManifest` 依次找本工程的 `.zcode-plugin` 与另外两种插件格式的目录下的 `plugin.json`
+//! manifest 按 Node `findManifest` 依次找本工程的 `.nibi-plugin` 与另外两种插件格式的目录下的 `plugin.json`
 //! （同时兼容几种插件格式）；`--plugin-dir` 没有 manifest 时插件名取目录名。
 
 mod reference;
@@ -29,7 +29,7 @@ pub use self::select::{
 /// manifest 的位置，按 Node `PLUGIN_MANIFEST_DIRS` 的顺序（NIBI 自有清单目录第一位）。
 const MANIFESTS: [&str; 4] = [
     ".nibi-plugin/plugin.json",
-    ".zcode-plugin/plugin.json",
+    ".nibi-plugin/plugin.json",
     ".claude-plugin/plugin.json",
     ".codex-plugin/plugin.json",
 ];
@@ -362,7 +362,7 @@ impl Reader<'_> {
                     for (name, value) in [
                         (vars::CLAUDE_PLUGIN_ROOT, variables.root),
                         (vars::NIBI_PLUGIN_ROOT, variables.root),
-                        (vars::ZCODE_PLUGIN_ROOT, variables.root),
+                        (vars::NIBI_PLUGIN_ROOT, variables.root),
                     ] {
                         env.entry(name.to_owned())
                             .or_insert_with(|| value.to_owned());
@@ -371,7 +371,7 @@ impl Reader<'_> {
                         for name in [
                             vars::CLAUDE_PLUGIN_DATA,
                             vars::NIBI_PLUGIN_DATA,
-                            vars::ZCODE_PLUGIN_DATA,
+                            vars::NIBI_PLUGIN_DATA,
                         ] {
                             env.entry(name.to_owned())
                                 .or_insert_with(|| data.to_owned());
@@ -380,7 +380,7 @@ impl Reader<'_> {
                     for (name, value) in [
                         (vars::CLAUDE_PROJECT_DIR, variables.project),
                         (vars::NIBI_PROJECT_DIR, variables.project),
-                        (vars::ZCODE_PROJECT_DIR, variables.project),
+                        (vars::NIBI_PROJECT_DIR, variables.project),
                     ] {
                         env.entry(name.to_owned())
                             .or_insert_with(|| value.to_owned());
@@ -794,16 +794,16 @@ fn resolve_variable(
     allow_sensitive: bool,
 ) -> Result<Option<String>, String> {
     match name {
-        vars::CLAUDE_PLUGIN_ROOT | vars::NIBI_PLUGIN_ROOT | vars::ZCODE_PLUGIN_ROOT => {
+        vars::CLAUDE_PLUGIN_ROOT | vars::NIBI_PLUGIN_ROOT => {
             return Ok(Some(variables.root.to_owned()));
         }
-        vars::CLAUDE_PLUGIN_DATA | vars::NIBI_PLUGIN_DATA | vars::ZCODE_PLUGIN_DATA => {
+        vars::CLAUDE_PLUGIN_DATA | vars::NIBI_PLUGIN_DATA => {
             let data = variables
                 .data
                 .ok_or_else(|| format!("Missing plugin variable: {name}"))?;
             return Ok(Some(data.to_owned()));
         }
-        vars::CLAUDE_PROJECT_DIR | vars::NIBI_PROJECT_DIR | vars::ZCODE_PROJECT_DIR => {
+        vars::CLAUDE_PROJECT_DIR | vars::NIBI_PROJECT_DIR => {
             return Ok(Some(variables.project.to_owned()));
         }
         vars::CLAUDE_CODE_SESSION_ID | vars::CLAUDE_SESSION_ID | vars::NIBI_SESSION_ID => {
@@ -811,7 +811,7 @@ fn resolve_variable(
                 "Plugin variable requires a runtime session context: {name}"
             ));
         }
-        vars::CLAUDE_SKILL_DIR | vars::NIBI_SKILL_DIR | vars::ZCODE_SKILL_DIR => {
+        vars::CLAUDE_SKILL_DIR | vars::NIBI_SKILL_DIR => {
             return Err(format!(
                 "Plugin variable requires a skill context: {name}"
             ));

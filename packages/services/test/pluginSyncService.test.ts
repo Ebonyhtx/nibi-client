@@ -30,9 +30,9 @@ async function writeInlinePlugin(
   manifest: Record<string, unknown> = {},
 ): Promise<string> {
   const pluginRoot = join(root, directoryName);
-  await mkdir(join(pluginRoot, ".zcode-plugin"), { recursive: true });
+  await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
   await writeFile(
-    join(pluginRoot, ".zcode-plugin", "plugin.json"),
+    join(pluginRoot, ".nibi-plugin", "plugin.json"),
     `${JSON.stringify({
       name: directoryName,
       description: `${directoryName} description`,
@@ -196,7 +196,7 @@ describe("plugin sync service", () => {
       },
     ]);
     const remotePluginRoot = join(remoteHome, ".nibi", "plugins", "remote-tools");
-    expect(existsSync(join(remotePluginRoot, ".zcode-plugin", "plugin.json"))).toBe(true);
+    expect(existsSync(join(remotePluginRoot, ".nibi-plugin", "plugin.json"))).toBe(true);
     const remoteConfig = await readNibiUserConfig(remoteHome);
     expect(remoteConfig).toMatchObject({
       plugins: {
@@ -447,7 +447,7 @@ describe("plugin sync service", () => {
       ],
     });
     expect(
-      existsSync(join(imported.path, "plugins", "formatter", ".zcode-plugin", "plugin.json")),
+      existsSync(join(imported.path, "plugins", "formatter", ".nibi-plugin", "plugin.json")),
     ).toBe(true);
   });
 

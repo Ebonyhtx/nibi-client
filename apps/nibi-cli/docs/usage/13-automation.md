@@ -6,7 +6,7 @@ CLI 可以作为任务执行器；数据准备、环境隔离、资源预算和�
 
 保存构建提交或二进制 SHA-256、CLI 版本与 doctor 输出、平台、模型与 provider 协议、非敏感模型选项、任务输入、工作区提交、扩展清单、工具过滤、权限模式和运行时限。API Key 与登录凭据不要归档。
 
-每个独立样本使用独立的工作目录、用户目录和数据基目录。只换 sessionId 或只设置 `ZCODE_STORAGE_DIR` 不足以隔离个人配置、插件、记忆和用户指令。允许跨轮复用的实验应显式记录复用关系。
+每个独立样本使用独立的工作目录、用户目录和数据基目录。只换 sessionId 或只设置 `NIBI_STORAGE_DIR` 不足以隔离个人配置、插件、记忆和用户指令。允许跨轮复用的实验应显式记录复用关系。
 
 ## 跨平台启动方式
 
@@ -31,7 +31,7 @@ for (const [key, value] of Object.entries(process.env)) {
     env[key] = value;
   }
 }
-Object.assign(env, { HOME: runHome, USERPROFILE: runHome, ZCODE_DATA_BASE_DIR: runHome });
+Object.assign(env, { HOME: runHome, USERPROFILE: runHome, NIBI_DATA_BASE_DIR: runHome });
 
 const args = [
   // 使用 Node bundle 时，在这里先加入 zcode.cjs 的绝对路径。

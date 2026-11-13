@@ -27,7 +27,7 @@ function providerLocaleOf(locale: string | undefined): ProviderLocale {
  * 关键点：写入路径由 `NIBI_BUILTIN_PROVIDER_CONFIG_FILE` 与
  * `NIBI_PERSONAL_PROVIDER_CONFIG_FILE` 决定，而这两个变量**不看**
  * `NIBI_DATA_BASE_DIR`。只用 `NIBI_DATA_BASE_DIR` 做隔离时，写入会落到用户
- * 真实的数据根（实测过：隔离运行把配置写进了 ~/.zcode，覆盖了桌面端正在用的
+ * 真实的数据根（实测过：隔离运行把配置写进了 ~/.nibi，覆盖了桌面端正在用的
  * 那份）。所以这里复用 CLI 启动时的同一套解析，把两个路径显式补进 env。
  */
 async function prepareProviderEnv(deps: RunDependencies) {

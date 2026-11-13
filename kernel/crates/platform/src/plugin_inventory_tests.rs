@@ -122,17 +122,17 @@ async fn official_roots_scan_the_cache_without_a_partition() {
     assert!(official_plugin_roots(&root).await.is_empty());
     let cache = root.as_path().join("cache/nibi-official");
     write(
-        &cache.join("zcode-guide/0.3.0/.zcode-plugin/plugin.json"),
+        &cache.join("zcode-guide/0.3.0/.nibi-plugin/plugin.json"),
         "{}",
     )
     .await;
     write(
-        &cache.join("zcode-guide/0.2.0/.zcode-plugin/plugin.json"),
+        &cache.join("zcode-guide/0.2.0/.nibi-plugin/plugin.json"),
         "{}",
     )
     .await;
     write(
-        &cache.join("browser-use/0.5.1/.zcode-plugin/plugin.json"),
+        &cache.join("browser-use/0.5.1/.nibi-plugin/plugin.json"),
         "{}",
     )
     .await;

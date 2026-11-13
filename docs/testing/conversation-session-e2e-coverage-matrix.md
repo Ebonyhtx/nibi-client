@@ -182,7 +182,7 @@ GRP06/CR-01 增加 placement RPC 挂起 → 导航取消 → 新项目可见 →
 
 > **闲时后台修订：** 设计、Core/协议证据及 OP10 三种桌面变体结果见 [实施计划](../off-peak-task/background-lifecycle-plan.md#最终验证记录2026-10-08)。用例仍为 manual-review/pending；手机整机交互未验证，不改变本矩阵原有准入与交付范围。
 
-> **2026-10-09 review 回归：** OP10 增加 `ZCODE_E2E_OFFPEAK_HANDOFF_FAULT=1` 变体，在真实 Host/CLI stdio 边界让已安装新票的首个确认失败，延后完成通知直到相同交接收到确认；断言自动重试同一 execution/renewal/ticket、卡片最终完成且原始 prompt/Bash 只执行一次。连续确认失败、旧回执与新续票交错、接管/完成后未安装候选票释放由 service focused tests 覆盖；旧执行迟到 cancel 不影响新用户轮由 Core 运行时测试覆盖。只覆盖 desktop continuous，不新增手机 replayable 或重启恢复语义；本变体在容器 Electron/真实 Host/CLI 下 1/1 通过（`desktop-e2e-20261009-082511-005`），仍为 manual-review/pending。
+> **2026-10-09 review 回归：** OP10 增加 `NIBI_E2E_OFFPEAK_HANDOFF_FAULT=1` 变体，在真实 Host/CLI stdio 边界让已安装新票的首个确认失败，延后完成通知直到相同交接收到确认；断言自动重试同一 execution/renewal/ticket、卡片最终完成且原始 prompt/Bash 只执行一次。连续确认失败、旧回执与新续票交错、接管/完成后未安装候选票释放由 service focused tests 覆盖；旧执行迟到 cancel 不影响新用户轮由 Core 运行时测试覆盖。只覆盖 desktop continuous，不新增手机 replayable 或重启恢复语义；本变体在容器 Electron/真实 Host/CLI 下 1/1 通过（`desktop-e2e-20261009-082511-005`），仍为 manual-review/pending。
 > 2026-09-15 / TSL08 默认本地项目失效：新增 pending
 > `conversation-session-unavailable-project-draft.test.ts`，完整重启验证无项目草稿可输入、
 > `activeTaskId=null`、无项目归属及刷新保持。`remoteWorkspaceSessionPersistence.test.ts`
@@ -201,7 +201,7 @@ RDUX-BASELINE（accepted / pending）：侧栏项目行与聊天框项目列表�
 | Case             | 设置、动作及断言                                                                                                                                                                                                                                                                                                           | 自动化                                                                                                                                                                                                                                                      |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | RDUX-A11Y        | 真实 SSH；设置添加完成不选目录，再用键盘经项目入口选择设备/目录并保存，继续侧栏/设置操作；保留焦点、状态/标签、浅深 × 中英 × 1400/900px 和侧栏 264px 截图                                                                                                                                                                  | `conversation-session/manual-review/pending/conversation-session-remote-accessibility.test.ts`；Linux 真实 SSH 批次 `r3-server-20261014155202497-829e79`：1/1 PASS（134.1 秒），48 张矩阵截图 + 1 张拖拽截图；pending，无模型请求，未验证原生 macOS/Windows |
-| RDUX-WALKTHROUGH | 真实 SSH 走查（证据型，不做视觉断言）：项目表单、设置分类添加、Docker/SSH 表单、首装确认与实时进度、设置完成定位、侧栏详情/菜单/编辑、重复添加在线目标复用、设置卡/日志/菜单/编辑/移除确认/断开、断线占位与重连、不可达/认证失败/取消/后台失败、未完成连接、停容器掉线恢复、拖拽；每态浅深各一张 + 全程录屏 + `index.json` | `conversation-session/manual-review/pending/conversation-session-remote-ui-walkthrough.test.ts`；需要专属 `zcode-r3-server-*` 容器（`ZCODE_E2E_SSH_CONTAINER`）才会执行停/起容器段；无模型请求                                                              |
+| RDUX-WALKTHROUGH | 真实 SSH 走查（证据型，不做视觉断言）：项目表单、设置分类添加、Docker/SSH 表单、首装确认与实时进度、设置完成定位、侧栏详情/菜单/编辑、重复添加在线目标复用、设置卡/日志/菜单/编辑/移除确认/断开、断线占位与重连、不可达/认证失败/取消/后台失败、未完成连接、停容器掉线恢复、拖拽；每态浅深各一张 + 全程录屏 + `index.json` | `conversation-session/manual-review/pending/conversation-session-remote-ui-walkthrough.test.ts`；需要专属 `zcode-r3-server-*` 容器（`NIBI_E2E_SSH_CONTAINER`）才会执行停/起容器段；无模型请求                                                              |
 
 ## 侧栏与设备菜单（RDUX-SIDEBAR，accepted）
 
@@ -444,7 +444,7 @@ Docker preset 未新增，Windows Electron GUI、Linux 与手机实机边界不�
 2026-09-18 正式 CI 入口补验：修复 Coding Plan mock 选择器遗漏正式目录 glob 的问题，
 统一 Windows 分隔符及可选 `./` 前缀。单测先复现 6 个失败，修复后相关 5 文件 / 47 项通过。
 macOS 使用 CI 相同的 `conversation-session/*.test.ts`、`plugins/*.test.ts` 和
-`workspace-file-tree-refresh.test.ts` 入口，通过 `ZCODE_E2E_EXCLUDE_SPEC` 仅保留 ToolSearch；
+`workspace-file-tree-refresh.test.ts` 入口，通过 `NIBI_E2E_EXCLUDE_SPEC` 仅保留 ToolSearch；
 完整构建后 8 spec / 29 项通过，0 failed/skip。
 报告：`packages/desktop/.e2e-artifacts/desktop-e2e-20260918081246277-p87381-f4a3b25321ee626b/summary.md`。
 根目录及 Desktop E2E typecheck、lint（43 条既有 warning）、本次修改文件格式、架构和覆盖审计通过。
@@ -504,7 +504,7 @@ PTY 按键 / 产品入口 → CLI → Runtime → 本地受控 HTTP
 运行命令：
 
 ```bash
-ZCODE_E2E_MANUAL_REVIEW=1 pnpm --filter @nibi/desktop test:e2e -- --spec 'test/e2e/conversation-session/manual-review/pending/conversation-session-toolsearch*.test.ts'
+NIBI_E2E_MANUAL_REVIEW=1 pnpm --filter @nibi/desktop test:e2e -- --spec 'test/e2e/conversation-session/manual-review/pending/conversation-session-toolsearch*.test.ts'
 ```
 
 根目录 `pnpm typecheck`、Desktop `typecheck:e2e`、`pnpm lint`、变更文件格式检查与 `architecture:check --changed` 均通过；lint 保留 43 条既有 warning，无新增错误。6 份受控 provider manifest 的规范目标路径、fixture/harness 路径及 syntheticReason 均已校验；尚未做静态 replay fixture 转正。手机远控环境仍待提供；其余未覆盖分支见上方剩余边界。修改留在工作区，未提交。
@@ -564,7 +564,7 @@ compact/fork/rewind 与可替换 definitions 的组合通过 Core focused tests 
 
 ## Todo103 闲时工具测试前置
 
-OffPeakCreate 新建/冷恢复、闲时 Subagent 继承和失效 Ticket 的隔离回放，必须同时准备账号控制面与闲时网关。仅启用 `ZCODE_OFFPEAK_MOCK` 不会创建当前 Account Provider 权益；应复用现有 Coding Plan mock 并播种具体个人套餐连接，使普通 Registry 和隐藏 Off-Peak Selection View 来自正常解析。OP10 使用当前 GLM-5.3；历史用例的单模型白名单 GLM-5.2 通过 case-local Built-in 的 `builtinModelIds` 提供，不再从退役 client-config 字段提供；产品配置不变。不得在生产代码里绕过权益或直接塞候选来让测试通过。四类用例仍为 pending；录像依赖安装在隔离工具目录，不更改用户应用数据。
+OffPeakCreate 新建/冷恢复、闲时 Subagent 继承和失效 Ticket 的隔离回放，必须同时准备账号控制面与闲时网关。仅启用 `NIBI_OFFPEAK_MOCK` 不会创建当前 Account Provider 权益；应复用现有 Coding Plan mock 并播种具体个人套餐连接，使普通 Registry 和隐藏 Off-Peak Selection View 来自正常解析。OP10 使用当前 GLM-5.3；历史用例的单模型白名单 GLM-5.2 通过 case-local Built-in 的 `builtinModelIds` 提供，不再从退役 client-config 字段提供；产品配置不变。不得在生产代码里绕过权益或直接塞候选来让测试通过。四类用例仍为 pending；录像依赖安装在隔离工具目录，不更改用户应用数据。
 
 OP10 下一普通轮通过工具栏显式选择 replay provider 和思考档位；未发送时不更新后台 Selection。新建闲时 Session 不继承尚未提交的 Composer 草稿；不完整的 configuredDefault 不能证明普通轮应使用 DeepSeek。仍须检查普通请求不携带闲时 Ticket、不请求闲时网关。
 
@@ -1093,7 +1093,7 @@ PV4-01/02/06 专项覆盖。
 
 ## 闲时任务（Off-Peak）覆盖口径
 
-case 语义见 catalog `OP` 组（`（实现与测试见源码）` 为产品真源，Telemetry V1 字段与投递边界见 `（实现与测试见源码）`）。E2E 全部由进程内 mock 网关驱动（`ZCODE_OFFPEAK_MOCK=1`），桌面 `desktop-continuous` 链路。自动化范围经用户 2026-07-15 剪枝确认为 5 条核心，2026-08-03 增补 execution-scoped foreground subagent 继承回归 OP10；Telemetry 不新增 WDIO spec，复用 OP01/OP02/OP05/OP06 主路径并由 focused tests 覆盖字段排列。
+case 语义见 catalog `OP` 组（`（实现与测试见源码）` 为产品真源，Telemetry V1 字段与投递边界见 `（实现与测试见源码）`）。E2E 全部由进程内 mock 网关驱动（`NIBI_OFFPEAK_MOCK=1`），桌面 `desktop-continuous` 链路。自动化范围经用户 2026-07-15 剪枝确认为 5 条核心，2026-08-03 增补 execution-scoped foreground subagent 继承回归 OP10；Telemetry 不新增 WDIO spec，复用 OP01/OP02/OP05/OP06 主路径并由 focused tests 覆盖字段排列。
 
 服务层机制已由 `packages/services/test/offPeakE2eIntegration.test.ts` 端到端集成测试覆盖（mock 网关 + server client + 编排服务 + repo 全链路真跑：取号→轮询晋级 ready→准入固定响应→settle 核销 / 400/3001 续跑重取号 / Pause-ready 过期-Continue 重取号）——OP02/OP04/OP07 的服务层机制在此为 covered；WDIO GUI 层（OPF/OPA/OPP/OPR/OPB）仍 planned，依赖桌面构建与真实 renderer 交互。mock 网关 resolveUpstream 返回 null 时回固定 Anthropic 响应，E2E 无需真实模型 key。
 
@@ -1793,7 +1793,7 @@ matcher 正反例与 executor 七类拒绝/批准/YOLO 对照均需独立验证�
 
 2026-09-17 DCA-V1-13 视觉补充：Guarded 浅蓝色、Edit 同款图标，YOLO 保留橙色警示。更新后的 Desktop E2E 16/16（本机报告 `desktop-e2e-20260917-104756-745`） 通过，包含实际计算颜色和图标断言；组件/调用方相关 70 条单测通过，不改变 provider fixture 或权限合同。
 
-2026-09-17 DCA-V1-06 录屏依赖修复：默认回放不再强制生成视频，仅 `ZCODE_E2E_MANUAL_REVIEW=1` 启用录屏和阅读停留；截图、交互轨迹与业务断言不变。未配置 ffmpeg 的默认回放 1/1（本机报告 `desktop-e2e-20260917-110126-662`） 与 显式录屏回放 1/1（本机报告 `desktop-e2e-20260917-110306-504`） 均通过，分别确认无视频及视频实际生成；未改生产代码、fixture 或覆盖状态。
+2026-09-17 DCA-V1-06 录屏依赖修复：默认回放不再强制生成视频，仅 `NIBI_E2E_MANUAL_REVIEW=1` 启用录屏和阅读停留；截图、交互轨迹与业务断言不变。未配置 ffmpeg 的默认回放 1/1（本机报告 `desktop-e2e-20260917-110126-662`） 与 显式录屏回放 1/1（本机报告 `desktop-e2e-20260917-110306-504`） 均通过，分别确认无视频及视频实际生成；未改生产代码、fixture 或覆盖状态。
 
 2026-09-19 staging `0fd17f1ed3` 合并复验：两份正式 spec 复用职业引导 UI helper 完成新隔离 profile 的前置流程，不改审批断言或 provider fixture。初次联跑 Guarded 16/16 通过，Hook spec 在引导页阻塞、未进入业务用例；适配后 default replay 联跑 17/17 通过（本机报告 `desktop-e2e-20260918-201846-556`，flaky/infra failure 均为 0）。fixture check、E2E/root/CLI typecheck、根 lint、架构检查及相关 587 条单测/集成通过；CLI 全量 lint 仍因 staging 已有的文件行数限制失败，不将其记为全门禁通过，不扩充手机、Windows 或 scheduler 覆盖状态。
 
@@ -2661,7 +2661,7 @@ transport fixture 无稳定注入点，保留为确定性单元/集成证据，�
 | SSH-P0-TASK-01      | 同 target 两个 workspace 各自首发并切回续发；task row、请求历史、回复、identity/session、单 Host 与 Environment 级 Provisioning 合并 | Electron E2E + real Ubuntu SSH + case-local replay                     | `conversation-session-ssh-remote-p0.test.ts`；2026-08-10 人工审阅并晋升 formal；原默认 replay 1 passing，artifact `desktop-e2e-20260810-074921-918`；原显式 case-local replay 1 passing，artifact `desktop-e2e-20260810-075053-683`。2026-09-01 新增第二个 Workspace 不增加远端 Provisioning `records[]` 的断言；E2E typecheck 通过，实跑因 MacBook Pro 缺少 SSH E2E 凭据标记 `blocked-environment`。2026-09-14 迁到真实 Linux 服务器实跑：spec 私有的 SSH 向导轮询副本只认旧 ConfirmDialog 安装确认与目录页，在首装目标上等满 600s；改为复用 `helpers/ssh-remote-p0.ts` 共享流程（内联“安装并继续”→ 边界确认 → 向导收起后经设备卡进入目录选择），telemetry `remote_kind` 断言按 `（实现与测试见源码）` 合同由 `ssh` 改为 `server`；1 passing，artifact `r3-server-r6-p0main`（容器 zcode-r3-server-b）                                                                                                                                                                                                                                            | Covered |
 | SSH-P0-TASK-02      | 关闭 A 后 B 继续发送，重新打开 A 复用共享 Host                                                                                       | Electron E2E + real Ubuntu SSH + case-local replay                     | `conversation-session-ssh-remote-task-lifecycle.test.ts`；pending，待真实 SSH replay 验证                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Pending |
 | SSH-P0-TASK-03      | 远程 workspace 任务运行中打开/关闭设置页，侧栏 task 行随任务完成收敛，不因第二条 sessions-index 订阅被 CLI 顶掉而永久转圈            | Electron E2E + real Ubuntu SSH + case-local replay（续发 delayMs 15s） | `manual-review/pending/conversation-session-ssh-remote-settings-overlay-sidebar-status.test.ts`；fixture check 已通过；根因/单元回归见 `packages/ui/test/rootWorkspaceShellTarget.test.ts`、`rootSettingsSessionsIndexSubscription.test.ts`；待真实 SSH 人工审阅                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Pending |
-| SSH-P0-TASK-04      | 新建空远程项目云图标、首发权限徽标、后台完成自动未读与打开清除；前台完成后切走保持已读，无需重启                                     | Electron E2E + 独占 Ubuntu SSH 容器 + case-local controlled replay     | `manual-review/pending/conversation-session-ssh-remote-new-project-sidebar.test.ts`；原闭环 2026-10-13 macOS → 独占 Ubuntu 22.04 arm64 SSH 容器 1 passing，artifact `desktop-e2e-20261013040956978-p88150-ab5c996223605697`；本次扩展回归 2026-10-13 macOS → 独占 Ubuntu 22.04 arm64 SSH 容器 1 passing（32.7s），artifact `desktop-e2e-20261013043823383-p82417-de21bcf0b9fb2b79`；新增 `foreground-completed-read.png` 核对前台完成切草稿后 Controller 投影和 UI 均无未读。Host 读取暂挂期间查看又切走由 Host/renderer 集成单测确定性覆盖。权限/后台未读截图及 1200/390px 深浅主题桌面截图（非手机），无重启；模型响应为 controlled replay；待人工审阅，不改变重复项目及单目录合同 CR-01：2026-10-13 macOS → 独占 Ubuntu arm64 SSH 容器，artifact `desktop-e2e-20261013-052644-593`，1 passing；`cross-workspace-sibling-keeps-unread.png` 与真实 mutation 回包确认点击 T2 不清 T1，随后打开 T1 才清除。运行使用 `ZCODE_E2E_REMOTE_PROFILE=1` 与 case-local replay。手机项目导航复验 artifact `desktop-e2e-20261013-053022-894`，1 passing；两者均保持 pending，未转正。 | Pending |
+| SSH-P0-TASK-04      | 新建空远程项目云图标、首发权限徽标、后台完成自动未读与打开清除；前台完成后切走保持已读，无需重启                                     | Electron E2E + 独占 Ubuntu SSH 容器 + case-local controlled replay     | `manual-review/pending/conversation-session-ssh-remote-new-project-sidebar.test.ts`；原闭环 2026-10-13 macOS → 独占 Ubuntu 22.04 arm64 SSH 容器 1 passing，artifact `desktop-e2e-20261013040956978-p88150-ab5c996223605697`；本次扩展回归 2026-10-13 macOS → 独占 Ubuntu 22.04 arm64 SSH 容器 1 passing（32.7s），artifact `desktop-e2e-20261013043823383-p82417-de21bcf0b9fb2b79`；新增 `foreground-completed-read.png` 核对前台完成切草稿后 Controller 投影和 UI 均无未读。Host 读取暂挂期间查看又切走由 Host/renderer 集成单测确定性覆盖。权限/后台未读截图及 1200/390px 深浅主题桌面截图（非手机），无重启；模型响应为 controlled replay；待人工审阅，不改变重复项目及单目录合同 CR-01：2026-10-13 macOS → 独占 Ubuntu arm64 SSH 容器，artifact `desktop-e2e-20261013-052644-593`，1 passing；`cross-workspace-sibling-keeps-unread.png` 与真实 mutation 回包确认点击 T2 不清 T1，随后打开 T1 才清除。运行使用 `NIBI_E2E_REMOTE_PROFILE=1` 与 case-local replay。手机项目导航复验 artifact `desktop-e2e-20261013-053022-894`，1 passing；两者均保持 pending，未转正。 | Pending |
 | SSH-P0-LIFE-01      | 显式断开使保留工作区全部 failed 后，完整 App 重启按近 7 天 Server + 静默凭据自动重连、恢复 A/B attachments 并继续原 task             | Electron cold restart E2E + real Ubuntu SSH + replay                   | `manual-review/pending/conversation-session-ssh-remote-cold-reconnect.test.ts`；必须使用 `reloadSession`，renderer reload 不能替代；2026-09-07 独立 SSH 容器运行被首次 Provider Provisioning failed 阻断，尚未到达冷恢复断言（artifact `desktop-e2e-20260907-142159-576`）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Pending |
 | RUI-SIMPLE-11       | 已识别 Source 与 pending SSH/Docker 离线行统一 icon-only，pending 入口仍触发既有重连动作                                             | Electron UI E2E + focused render tests                                 | `manual-review/pending/conversation-session-remote-offline-icons.test.ts`；无 provider 请求；2026-09-07 macOS Electron 1 passing，artifact `desktop-e2e-20260907-142159-576`，待人工审阅                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Pending |
 | SSH-P0-LIFE-02      | 远端 server 退出导致同组断连；重连一个 workspace 批量恢复 A/B                                                                        | Electron E2E + controlled SSH process fault                            | `conversation-session-ssh-remote-server-fault.test.ts`；只终止当前 case 新建且记录的 `nibi-server`，不操作 `sshd`；pending                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Pending |
@@ -3152,11 +3152,11 @@ WFA01：pending，`manual-review/pending/workflow-face-motion.test.mjs`。独立
 灰度档位由 case-local 配置网关 `packages/desktop/test/e2e/helpers/dynamic-workflow-config-mock-server.ts` 提供：
 它复用 `packages/desktop/test/e2e/fixtures/coding-plan-client-configs.json`，只改写 `dynamicWorkflow` 这一个键，
 并按 spec 文件名选档（与 `model-context-budget-config-mock-server.ts` 同一套路），在 wdio 的 `beforeSession` 注入
-`ZCODE_BASE_URL` / `ZCODE_TEST_BASE_URL` / `ZCODE_ENDPOINT_ORIGIN`。disabled 与 alwaysOn 两档 spec 必须分属不同 worker；
+`NIBI_BASE_URL` / `NIBI_TEST_BASE_URL` / `NIBI_ENDPOINT_ORIGIN`。disabled 与 alwaysOn 两档 spec 必须分属不同 worker；
 用户选择 spec 与保存确认窗 spec（DWS-01）的文件名都含 always-on 档片段，与 DWG-08-B 同档：后者靠它让工作流工具进工具集。
 两档共用的定位与观测原语在 `packages/desktop/test/e2e/helpers/dynamic-workflow-gray.ts`。
 
-不覆盖：`onDemand` 档位、本地 `ZCODE_DYNAMIC_WORKFLOW_MODE` 覆盖、已存在 run 的渲染与 Resume 收回、
+不覆盖：`onDemand` 档位、本地 `NIBI_DYNAMIC_WORKFLOW_MODE` 覆盖、已存在 run 的渲染与 Resume 收回、
 手机远控与远端 Host；这些由 DWG-01～DWG-07 的单测承担。
 
 ## SHARE. 会话分享与继续工作覆盖
@@ -3508,7 +3508,7 @@ accepted / pending（已实现）：依据 virtual-project-design 的同名章�
 
 桌面验证：`desktop-e2e-20260915131918480-p99856-ceccb6286a056017`，8/8 通过；含 SBV01–05、旧项目交互及 1200/390px 明暗主题截图。相关单测 7 文件 / 45 条通过；`pnpm typecheck`、`pnpm lint`（47 条既有 warning，0 error）及 desktop E2E 类型检查通过。相对 HEAD 的架构检查 0 违规；默认相对 origin/staging 仍有开工前已存在的 `packages/ui/src/root/resolveConversationWorkspaceTarget.ts` 未受管文件错误，本次不改其模块归属。
 
-手机验证：`desktop-e2e-20260915133055419-p10183-be1302f33f03e81a`，1/1 通过；Chrome for Testing 以 390×844、hasTouch/isMobile 访问本仓 Web，经真实 relay/shared-host 完成搜索、两种视图与刷新恢复、任务重开和连续切换保留当前任务，桌面 task 标记及 Host/tab 数断言通过。用例使用隔离 HOME 与既有 synthetic provider fixture；新入口使用 touch tap，菜单关闭后继续下一操作。取 Host 证据后关闭资源管理器，避免检查器持续采样干扰待启动 CLI。通过 `ZCODE_E2E_BROWSER_NO_PROXY=1` 与 `ZCODE_E2E_MOBILE_BROWSER_EXECUTABLE` 选用测试浏览器直连，未关闭 TLS 校验。
+手机验证：`desktop-e2e-20260915133055419-p10183-be1302f33f03e81a`，1/1 通过；Chrome for Testing 以 390×844、hasTouch/isMobile 访问本仓 Web，经真实 relay/shared-host 完成搜索、两种视图与刷新恢复、任务重开和连续切换保留当前任务，桌面 task 标记及 Host/tab 数断言通过。用例使用隔离 HOME 与既有 synthetic provider fixture；新入口使用 touch tap，菜单关闭后继续下一操作。取 Host 证据后关闭资源管理器，避免检查器持续采样干扰待启动 CLI。通过 `NIBI_E2E_BROWSER_NO_PROXY=1` 与 `NIBI_E2E_MOBILE_BROWSER_EXECUTABLE` 选用测试浏览器直连，未关闭 TLS 校验。
 
 范围说明：手机证据为浏览器触屏模拟中的真实 shared-host 链路，不是实体手机；Windows/Linux 快捷键由单测覆盖，未在对应操作系统跑 GUI。跨 Host 同路径/同 taskId 的排序身份由单测覆盖，未新增 SSH/WSL 真机验证。默认 staging 架构基线问题保持单独记录，不记为本次增量通过。
 
@@ -3558,7 +3558,7 @@ RPN-16 回归（2026-09-16）：`remoteWorkspacePreparation.test.ts` 覆盖真�
 2026-10-19 类型回归：SAT30 覆盖 subagent_child、workflow_child、selection_side_chat 与历史 nested_workflow_child；
 项目父链继承与只读准入分开。SAT28 只拒绝三类 agent child，辅助对话继续发送；SAT29 清理四类隐藏索引，保留 fork 与未确认身份。
 远端 UI 候选已通过 macOS 客户端 → SSH → Linux arm64 Server 发布包回归（`r3-server-workflow-hotfix-2f5c48dd`）：工作流 actor 正文可读且只读、显式 GLM-5.3 路由、辅助对话首发与续发、主列表不泄漏；模型回复使用回放。辅助对话 Recent 查所属主会话项目，命令仍发给 child。
-Server 启动时须设置开发态 `ZCODE_DYNAMIC_WORKFLOW_MODE=alwaysOn`，WDIO 为该独立文件设置相同前置；常驻 Server 不继承客户端环境。保持 manual-review pending，不据此声明手机 UI 或 Linux x64 实测；桌面 continuous / 手机 replayable 的身份和准入由协议回归覆盖。
+Server 启动时须设置开发态 `NIBI_DYNAMIC_WORKFLOW_MODE=alwaysOn`，WDIO 为该独立文件设置相同前置；常驻 Server 不继承客户端环境。保持 manual-review pending，不据此声明手机 UI 或 Linux x64 实测；桌面 continuous / 手机 replayable 的身份和准入由协议回归覆盖。
 
 SAT30（远端子会话项目目录）：`zcodeAgentService.v4.test.ts` 覆盖运行中/已完成、两种 clientMode、
 Agent 重启后的重订阅、旧 child 索引、无项目主任务及缺失/成环/跨 workspace 父链；
@@ -3596,7 +3596,7 @@ CLI `v4-cold-resume.test.ts` 覆盖无独立 workspace identity 的 child 按持
 | SCB05 | desktop continuous 与 mobile replayable / remote workspace | shared-host、identity 与 scope 不变；remote 不注册闲时工具，预算不联网           | accepted / 协议与 remote Host 单测                |
 
 新 case：`conversation-session-config-independent-startup.test.ts` 位于 manual-review/pending；
-provider fixture 使用同名 canonical formal target。配置网关不能启用 ZCODE_OFFPEAK_MOCK 绕过真实读取。
+provider fixture 使用同名 canonical formal target。配置网关不能启用 NIBI_OFFPEAK_MOCK 绕过真实读取。
 不做跨版本旧运行进程热切换；网络慢与永久失败用 pending 屏障代表，不做延迟参数全排列。
 
 ## GLOBALDB：主界面前数据库准备（2026-09-14，已实现，GUI 待验收）
@@ -4211,7 +4211,7 @@ MR !2806 第三轮 CR-01：预检响应处理异常进入可重试阻断，条�
 
 SPT05：manual-review pending。`packages/ui/test/browser/manual-review/pending/collapsible-measurement.test.mjs` 使用真实共享组件，测量批量隐藏详情、首开/收起/快速反向动画、键盘、嵌套、forceMount 和重挂载记忆。桌面与手机尺寸、深浅主题；不替代完整应用侧栏/真实手机传输。SRM10 继续验证时间线滚动契约。规格见 [Tool Display Rendering](../ui/tool-display-rendering.md)。
 
-2026-10-16：SPT05 浏览器 4/4、macOS Electron 独立 renderer 深浅主题 2/2 通过；134 个收起工具每次挂载的隐藏尺寸读取从 134 降到 0，样式重算中位数从 136 降到 2，同机浏览器夹具主线程耗时中位数约 139ms → 121ms（12 次采样，开发模式，不代表用户原 trace 的端到端收益）。ESM/CommonJS 6 项测量回归通过。SRM10 普通长会话与含 134 工具的后台结果轮各 4/4 通过，覆盖跟随、离底、会话记忆和定位；重工具模式使用 `ZCODE_RESIZE_HEAVY_TOOLS=1`。SPT03 项目侧栏四项通过，相关单测共 6 文件/144 项；affected 选中并通过新增测量测试 1 文件/6 项。根类型、E2E 类型、浏览器夹具类型、lint、架构、代码格式和 frozen lockfile 检查通过。Electron 回放可通过 `ZCODE_COLLAPSIBLE_ELECTRON_PATH` 指定可执行文件，证据目录可用 `ZCODE_E2E_ARTIFACT_DIR` 指定。候选保持 pending；未验证完整应用原会话、Windows/Linux 整机或手机真实传输。
+2026-10-16：SPT05 浏览器 4/4、macOS Electron 独立 renderer 深浅主题 2/2 通过；134 个收起工具每次挂载的隐藏尺寸读取从 134 降到 0，样式重算中位数从 136 降到 2，同机浏览器夹具主线程耗时中位数约 139ms → 121ms（12 次采样，开发模式，不代表用户原 trace 的端到端收益）。ESM/CommonJS 6 项测量回归通过。SRM10 普通长会话与含 134 工具的后台结果轮各 4/4 通过，覆盖跟随、离底、会话记忆和定位；重工具模式使用 `NIBI_RESIZE_HEAVY_TOOLS=1`。SPT03 项目侧栏四项通过，相关单测共 6 文件/144 项；affected 选中并通过新增测量测试 1 文件/6 项。根类型、E2E 类型、浏览器夹具类型、lint、架构、代码格式和 frozen lockfile 检查通过。Electron 回放可通过 `NIBI_COLLAPSIBLE_ELECTRON_PATH` 指定可执行文件，证据目录可用 `NIBI_E2E_ARTIFACT_DIR` 指定。候选保持 pending；未验证完整应用原会话、Windows/Linux 整机或手机真实传输。
 
 | Case  | 自动化路径                                                                     | 验证边界                                                                                                                                 |
 | ----- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
@@ -4221,7 +4221,7 @@ SPT05：manual-review pending。`packages/ui/test/browser/manual-review/pending/
 | SPT04 | `packages/ui/test/browser/manual-review/pending/new-task-shortcut.test.mjs`    | 真实 Electron Dev App；多项目、深浅主题、Cmd/Ctrl+N 菜单事件、项目归属、回选会话与项目行渲染次数；保留 trace 和首帧采样。不发送 prompt。 |
 | SPT06 | `packages/ui/test/browser/manual-review/pending/new-task-rendering.test.mjs`   | 独立浏览器夹具；实际目录投影、Context 和项目组件，fixture 注入实时活动；44 项目、桌面/手机、深浅主题。运行态更新、两处 loading 合成动画与操作回归，pending，不覆盖真实远端传输。 |
 
-运行：`node --test packages/ui/test/browser/manual-review/pending/side-pane-toggle.test.mjs`（可通过 `ZCODE_E2E_CDP_URL` 指定 Dev CDP）；`node --test packages/ui/test/browser/manual-review/pending/composer-toolbar-fit.test.mjs`；`node --test packages/ui/test/browser/manual-review/pending/new-task-rendering.test.mjs`；`ZCODE_E2E_TRACE=1 node --test packages/ui/test/browser/manual-review/pending/new-task-shortcut.test.mjs`。SPT04 需已运行且至少有 40 个项目的 Dev App；macOS 使用原生按键，`ZCODE_E2E_ARTIFACT_DIR` 可指定证据目录。保持 pending，不自动晋级 CI。
+运行：`node --test packages/ui/test/browser/manual-review/pending/side-pane-toggle.test.mjs`（可通过 `NIBI_E2E_CDP_URL` 指定 Dev CDP）；`node --test packages/ui/test/browser/manual-review/pending/composer-toolbar-fit.test.mjs`；`node --test packages/ui/test/browser/manual-review/pending/new-task-rendering.test.mjs`；`NIBI_E2E_TRACE=1 node --test packages/ui/test/browser/manual-review/pending/new-task-shortcut.test.mjs`。SPT04 需已运行且至少有 40 个项目的 Dev App；macOS 使用原生按键，`NIBI_E2E_ARTIFACT_DIR` 可指定证据目录。保持 pending，不自动晋级 CI。
 
 SPT04 本地回放（2026-10-16，macOS Dev，44 项目）：深浅主题各两轮，修复前每轮 44 个项目内容重渲染，修复后每轮为零；菜单事件到草稿首帧中位数从 1,060 ms 降到 643 ms。SPT03 桌面/手机、深浅主题四项通过。时长仅代表该开发现场；Windows/Linux 原生快捷键和手机真实传输未在此次回放中验证。
 
@@ -4255,9 +4255,9 @@ Linux Electron 重建后 run `desktop-e2e-20261014-120739-442`，TD01/03/04 1/1 
 | SPR01 | `packages/desktop/test/e2e/conversation-session/manual-review/pending/conversation-session-snapshot-retention.test.ts` | 独立生产 renderer CDP E2E；固定 8 会话、136 次真实点击、keep-warm 后 GC 和堆对象断言；无 provider 请求。使用 `pnpm exec tsx --test <file>`，不使用 WDIO。 |
 | SPR02 | `packages/ui/test/v4SessionPaneModelSwitchRecovery.test.ts`                                                            | lease owner、草稿晋升、返回草稿、layer 换代和 Suspense 中止 render；同时回归模型恢复、停止与手机 Plan 交互。                                        |
 
-独立 E2E 通过 `ZCODE_RETENTION_CDP_URL` 连接隔离 App，并由 `ZCODE_RETENTION_ARTIFACT_DIR` 保存原始堆快照、逐次加载断言、截图与测量。必须使用未启用 E2E store bridge 的生产 renderer，保留真实 30 秒 keep-warm。保持 pending，不声明 WDIO formal / Docker 准入。
+独立 E2E 通过 `NIBI_RETENTION_CDP_URL` 连接隔离 App，并由 `NIBI_RETENTION_ARTIFACT_DIR` 保存原始堆快照、逐次加载断言、截图与测量。必须使用未启用 E2E store bridge 的生产 renderer，保留真实 30 秒 keep-warm。保持 pending，不声明 WDIO formal / Docker 准入。
 
-离线历史由 `packages/desktop/test/e2e/helpers/session-pane-retention-fixture.ts` 播种。运行前同时隔离 HOME、USERPROFILE、ZCODE_DATA_BASE_DIR 与 Electron userData；不要指向真实用户数据。
+离线历史由 `packages/desktop/test/e2e/helpers/session-pane-retention-fixture.ts` 播种。运行前同时隔离 HOME、USERPROFILE、NIBI_DATA_BASE_DIR 与 Electron userData；不要指向真实用户数据。
 
 验证（2026-10-16）：macOS arm64 / Electron 41.0.3、当前源码的生产 renderer，136 次切换及闲置对照通过。5 个 GC 检查点均只有当前会话的 1 个 snapshot、1 个 store；非当前 snapshot 与 closed store 均为 0。受影响单测 27 文件 / 317 项通过，typecheck、E2E typecheck、lint、架构和改动代码格式检查通过。新增用例保持 pending；未声明 Windows 整机冻结或真实手机 remote 链路已复验。
 

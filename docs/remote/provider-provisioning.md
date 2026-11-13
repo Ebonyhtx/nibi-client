@@ -271,7 +271,7 @@ Host execution admission
   `error` 不直接转抄到 Main 日志或 Renderer。
 
 - 首次连接的旧远端不支持 Provisioning capability 时返回 `unsupported`，不发送 Secret，也不发布 Remote Workspace ready。
-- HTTP `nibi-server` 只有在配置 `ZCODE_SERVER_AUTH_TOKEN` 后才开放受信 Desktop Host 的
+- HTTP `nibi-server` 只有在配置 `NIBI_SERVER_AUTH_TOKEN` 后才开放受信 Desktop Host 的
   Provisioning target；未配置认证时保持“不支持”，避免把跨 Environment 凭据写入口暴露给匿名连接。
 - R3 Source Server Core（`packages/nibi-server-cli`，`serviceAuthorityMode: "standalone-server"`）
   **始终**注册 Provisioning target：R3 ingress token（`<serverRoot>/run/ingress-token`，0600）常在，
@@ -279,7 +279,7 @@ Host execution admission
   `desktop-continuous` 连接（capability ticket + ingress token）拿到真实 `IProviderProvisioningTargetService`；
   `/ws` 的 `web-remote-replayable` 连接在 `exposeWebSocket` 中被 override 为抛错 stub
   （“Provider Provisioning 仅支持受信 Desktop Host”），Window Host 的手机 allowlist 也不含该 channel。
-  旧版 daemon（无 target）不会在 R3 主链上收到 Envelope：`ZCODE_MIN_COMPATIBLE_VERSION` 默认等于
+  旧版 daemon（无 target）不会在 R3 主链上收到 Envelope：`NIBI_MIN_COMPATIBLE_VERSION` 默认等于
   产品版本，R3 兼容门在握手阶段就判定“需升级”并先执行远端更新，更新后的 Core 才进入首连 Provisioning。
   Core 使用的 ZCode Built-in Provider Config 由构建期 define 按内容 hash 物化到
   `~/.nibi/server/config/provider/zcode-builtin-<sha256>.json`（不写进不可变 release 目录）。

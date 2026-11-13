@@ -50,7 +50,7 @@ def plugin_root() -> Path:
 def plugin_name(root: Path | None = None) -> str:
     """插件名：优先读清单（唯一权威），读不到退回目录名。"""
     root = root or plugin_root()
-    for relative in (Path(".nibi-plugin") / "plugin.json", Path(".zcode-plugin") / "plugin.json", Path(".claude-plugin") / "plugin.json"):
+    for relative in (Path(".nibi-plugin") / "plugin.json", Path(".nibi-plugin") / "plugin.json", Path(".claude-plugin") / "plugin.json"):
         try:
             data = json.loads((root / relative).read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):

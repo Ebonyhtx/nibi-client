@@ -64,7 +64,7 @@ runtime projection 与下游 skill/command/MCP adapter 是否能完整兼容。
 - manifest path 形式（例如 `skills: "./skills/"`、`commands: "./commands/"`、
   `mcpServers: "./.mcp.json"`）可投影。
 - `.mcp.json` 可被读取并转换为 ZCode `McpServerConfig`。
-- MCP env 中 `${CLAUDE_PLUGIN_ROOT}`、`${CLAUDE_PLUGIN_DATA}`、`${ZCODE_PROJECT_DIR}`
+- MCP env 中 `${CLAUDE_PLUGIN_ROOT}`、`${CLAUDE_PLUGIN_DATA}`、`${NIBI_PROJECT_DIR}`
   等变量可替换。
 
 认为不兼容或需单独诊断：

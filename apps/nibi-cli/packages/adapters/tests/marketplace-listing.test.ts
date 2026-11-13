@@ -165,9 +165,9 @@ describe("marketplace store listing", () => {
   it("returns manifest display metadata from describeMarketplacePlugin for installed plugins", async () => {
     const storageRoot = await makeStorageRoot("zcode-describe-metadata-");
     const pluginRoot = join(storageRoot, "cache", "hello-market", "hello", "1.2.3");
-    await mkdir(join(pluginRoot, ".zcode-plugin"), { recursive: true });
+    await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
     await writeFile(
-      join(pluginRoot, ".zcode-plugin", "plugin.json"),
+      join(pluginRoot, ".nibi-plugin", "plugin.json"),
       JSON.stringify({
         name: "hello",
         version: "1.2.3",

@@ -45,14 +45,14 @@ export const NODE_REPL_MCP_PROCESS_TITLE = "zcode-node-repl-mcp";
 const pluginRoot =
   process.env.NIBI_PLUGIN_ROOT ??
   process.env.CLAUDE_PLUGIN_ROOT ??
-  process.env.ZCODE_PLUGIN_ROOT ??
+  process.env.NIBI_PLUGIN_ROOT ??
   process.cwd();
 // CUA 与 Browser Use 共用 node_repl host，但文档和 native 依赖必须按领域隔离；
 // 否则 CUA skill 会因为 host root 恰好来自 Browser Use 而再次产生隐式依赖。
 const browserDocumentationRoot = resolve(pluginRoot, "docs");
 const cuaDocumentationRoot = resolve(
   process.env.NIBI_CUA_PLUGIN_ROOT ??
-    process.env.ZCODE_CUA_PLUGIN_ROOT ??
+    process.env.NIBI_CUA_PLUGIN_ROOT ??
     pluginRoot,
   "docs",
 );
@@ -307,7 +307,7 @@ function invalidParams(message: string): never {
 }
 
 function buildRequestMeta(meta: Record<string, unknown> | undefined): NodeReplRequestMeta {
-  const parsed = requestContextSchema.safeParse(meta?.["com.zcode/request-context"]);
+  const parsed = requestContextSchema.safeParse(meta?.["com.nibistudio.nibi/request-context"]);
   // 安全边界：顶层 MCP _meta 是第三方可扩展字段，不能成为 Nibi session 路由凭据。
   // 只有 host client 写入的命名空间会进入 Browser bridge；旧 client 的普通 JS 仍可执行。
   return parsed.success ? parsed.data : {};

@@ -28,7 +28,7 @@ Execute renderer、TaskOutput/TaskStop；相邻 Hook 用例验证共享 pipe col
 | 输出文件链接 | Desktop code viewer | 打开真实输出路径，不执行额外 Bash |
 | Hook | 通用 execution pipe | stdin 与 stdout/stderr 仍经 collector 正常交付 |
 
-测量使用 `ZCODE_E2E_COVERAGE=1` 的四域报告。每个报告必须 `complete=true`。
+测量使用 `NIBI_E2E_COVERAGE=1` 的四域报告。每个报告必须 `complete=true`。
 四域分别统计，不合并百分比；用例通过率与代码命中率分别列出。
 改动行口径为 **Istanbul 源码语句起始行 ∩ 新增/修改 diff 行**，不把类型、import/export、
 注释、空行或删除行放入分母。同一域多个 run 按源码位置取命中并集，不混用 statement ID。
@@ -196,7 +196,7 @@ fixture check 唯一提示为 response-only 的 `E2E_BDO_QUERY_NOTIFIED` 未作�
 从仓库根目录运行两个正式 spec（加入 BDO07 后为 10 条用例，不使用全局 preset）：
 
 ```bash
-ZCODE_E2E_COVERAGE=1 \
+NIBI_E2E_COVERAGE=1 \
 pnpm --filter @nibi/desktop test:e2e -- \
   --spec ./test/e2e/conversation-session/conversation-session-bash-direct-output.test.ts \
   --spec ./test/e2e/conversation-session/conversation-session-terminal-expanded-details-and-status.test.ts
@@ -207,7 +207,7 @@ pnpm --filter @nibi/desktop test:e2e -- \
 V4 background-work 的本次证据仅取 Bash cancel 单条；不把整个文件中的其它场景算入验收集。
 
 最终 run 复用了同一工作区、同一 coverage 配置下已完成的 Desktop/CLI 构建，以
-`ZCODE_E2E_SKIP_BUILD=1 ZCODE_E2E_SKIP_AGENT_BUILD=1` 直接执行 `wdio run wdio.conf.ts`。
+`NIBI_E2E_SKIP_BUILD=1 NIBI_E2E_SKIP_AGENT_BUILD=1` 直接执行 `wdio run wdio.conf.ts`。
 首次回归和修正测试配置后的回归均走过完整构建；没有使用其它 checkout 的产物。
 本轮没有跑 Windows/Linux Desktop E2E，也没有跑手机 replayable 或 TUI。
 

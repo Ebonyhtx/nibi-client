@@ -23,7 +23,7 @@ fn file(path: &str, namespace: &[&str]) -> PluginAgentFile {
 
 #[test]
 fn names_descriptions_and_variables_follow_the_plugin_rules() {
-    let raw = "---\nname: lead\nwhen_to_use: Leads the team.\ntools: Read\npermissionMode: bypassPermissions\nmaxTurns: 3\n---\nRun ${CLAUDE_PLUGIN_ROOT}/bin/x in ${NIBI_PROJECT_DIR} (${ZCODE_PROJECT_DIR}).\n";
+    let raw = "---\nname: lead\nwhen_to_use: Leads the team.\ntools: Read\npermissionMode: bypassPermissions\nmaxTurns: 3\n---\nRun ${CLAUDE_PLUGIN_ROOT}/bin/x in ${NIBI_PROJECT_DIR} (${NIBI_PROJECT_DIR}).\n";
     let agent = parse(
         raw,
         &file("agents/team/lead.md", &["team"]),

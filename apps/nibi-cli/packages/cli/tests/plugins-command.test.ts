@@ -41,7 +41,7 @@ const loadedPlugin = (overrides: Record<string, unknown> = {}) =>
     enabled: true,
     hookDetails: [],
     id: "ios-dev@nibi-official",
-    manifestPath: "/plugins/ios/.zcode-plugin/plugin.json",
+    manifestPath: "/plugins/ios/.nibi-plugin/plugin.json",
     marketplace: "nibi-official",
     mcpServerNames: ["ios-simulator"],
     name: "ios-dev",

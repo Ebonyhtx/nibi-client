@@ -20,7 +20,7 @@
 apps/nibi-cli/packages/<name>-plugin/package.json  ── office.title / office.kinds
                 │ pnpm --filter @nibi/<name>-plugin build
                 ▼
-office-runtime/scripts/build.mjs（插件名取自 .zcode-plugin/plugin.json）
+office-runtime/scripts/build.mjs（插件名取自 .nibi-plugin/plugin.json）
                 ▼
 <name>-plugin/dist/
   server.mjs                 MCP server，esbuild 全量打包，运行时不读 node_modules
@@ -45,7 +45,7 @@ office-runtime/scripts/build.mjs（插件名取自 .zcode-plugin/plugin.json）
 | `scripts/build-desktop-agent-cli.mjs`                 | dev 链路构建四个插件并校验 `dist/server.mjs`                                                                             |
 | `server/src/remote/zcodeAgentOfficialPluginAssets.ts` | 远端必需资产加入 viewer skill 与面板产物                                                                                 |
 | `docker/plugin-eval/Dockerfile`                       | 评测镜像在 stage 前构建四个插件                                                                                          |
-| 各插件 `package.json` / `.zcode-plugin/plugin.json`   | 版本 0.2.0（pdf 0.2.1）                                                                                                  |
+| 各插件 `package.json` / `.nibi-plugin/plugin.json`   | 版本 0.2.0（pdf 0.2.1）                                                                                                  |
 
 `requiredSeedPaths` 缺项时 seed 只拒绝该插件并回退到可用旧缓存，不影响其他插件；因此未构建的开发环境会看到这四个插件停留在旧缓存或缺失，而不是全部插件失败。
 

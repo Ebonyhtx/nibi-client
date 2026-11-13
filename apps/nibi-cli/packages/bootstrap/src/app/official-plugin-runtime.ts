@@ -64,7 +64,7 @@ interface OfficialRuntimeManifestInput {
 }
 
 export function writeOfficialPluginRuntimeManifest(input: OfficialRuntimeManifestInput): void {
-  // 内置件已迁到 .nibi-plugin；写死 .zcode-plugin 会让新格式的插件整段跳过重写，
+  // 内置件已迁到 .nibi-plugin；写死 .nibi-plugin 会让新格式的插件整段跳过重写，
   // MCP server 于是以 `command: "node"`（且没有 ELECTRON_RUN_AS_NODE）进入缓存，
   // 桌面应用里会被当成 Electron main 启动。按发现优先级取第一个存在的清单目录。
   const manifestDir =
@@ -216,7 +216,7 @@ export function officialPluginHostPrefixArgs(): string[] | undefined {
 
   // 测试进程绝不能把测试运行器的 argv 固化进用户缓存。实测（2026-11-09）：一次在
   // `cli.unit.test.ts` 里跑的启动流程把 `--import tsx .../cli.unit.test.ts
-  // __zcode-plugin-host` 写进了 `~/.nibi/cli/plugins/cache/nibi-official/{documents,pdf,
+  // __nibi-plugin-host` 写进了 `~/.nibi/cli/plugins/cache/nibi-official/{documents,pdf,
   // presentations,spreadsheets}/*/.nibi-plugin/plugin.json`，四件套的 MCP server 从此
   // 拉起的是一个单元测试文件——面板、工具全部不可用，而且缓存看着是“已就绪”。
   if (isTestProcess(entrypoint)) return undefined;

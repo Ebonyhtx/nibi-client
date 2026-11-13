@@ -61,4 +61,4 @@ IPC：`nibi:membership-purchase-complete`（`NibiMembershipWebviewChannels.Purch
 | 桥 | `window.nibiBridge`（只暴露购买完成） |
 | 可达性 | 客户端会员入口 |
 
-上游 Coding Plan 页及其 `window.zcodeBridge`、官方 MCP 套餐鉴权、Off-peak/Highspeed 已在 2026-10-22 随上游套餐业务整体移除。
+上游 Coding Plan 页及其 `window.nibiBridge`、官方 MCP 套餐鉴权、Off-peak/Highspeed 已在 2026-10-22 随上游套餐业务整体移除。

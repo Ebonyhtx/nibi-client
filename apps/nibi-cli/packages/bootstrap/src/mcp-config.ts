@@ -179,8 +179,8 @@ function isNibiCuaStdioServer(
 ): config is McpStdioServerConfig {
   if (config.type !== "stdio") return false;
   if (name === "computer-use") return true;
-  // 内置 official zcode-cua plugin 的 MCP server 走 __zcode-plugin-host，command 是 Helper
-  // (非 zcode-cua)、args 是 [nibi.cjs, __zcode-plugin-host, server.js]（非 zcode-cua package arg），
+  // 内置 official zcode-cua plugin 的 MCP server 走 __nibi-plugin-host，command 是 Helper
+  // (非 zcode-cua)、args 是 [nibi.cjs, __nibi-plugin-host, server.js]（非 zcode-cua package arg），
   // 上面的 name/command/args 三条都匹配不到。_plugin id 由 adapters resolver 权威写入 env
   // （manifest/user env 不可覆盖），用它识别 official plugin server。
   if (

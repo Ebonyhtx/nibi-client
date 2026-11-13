@@ -33,7 +33,7 @@ export async function createPluginRuntimeEnvFixture(
   const pluginRoot = join(marketplaceRoot, "plugins", PLUGIN_RUNTIME_ENV_NAME);
   await rm(marketplaceRoot, { force: true, recursive: true });
 
-  await writeJson(join(pluginRoot, ".zcode-plugin", "plugin.json"), {
+  await writeJson(join(pluginRoot, ".nibi-plugin", "plugin.json"), {
     name: PLUGIN_RUNTIME_ENV_NAME,
     version: "1.0.0",
     description: "E2E plugin MCP secret env and agent projection fixture",

@@ -40,14 +40,14 @@ async function resolveComputerUseDevEnv() {
   );
   return {
     // Standard dev launch must test the Helper built from this checkout.
-    // Falling back to ~/.zcode can silently reuse a same-version stale
+    // Falling back to ~/.nibi can silently reuse a same-version stale
     // Helper and make native changes appear verified when they never ran.
     NIBI_CUA_BUNDLED_HELPER_APP_PATH: sourceBuiltCuaHelperApp,
     NIBI_CUA_HELPER_VERSION: sourceBuiltCuaHelperVersion,
     // Keep Dev Desktop separate from signed Stable/Preview and standalone MCP installs.
     NIBI_CUA_HELPER_INSTALL_VARIANT: "dev-desktop",
     // 修复原因：仅传 bundled path 不会进入 unsigned-local 的同版本内容刷新分支，
-    // 导致标准 dev 启动继续复用 ~/.zcode 中 native ABI 已过期的 Helper。
+    // 导致标准 dev 启动继续复用 ~/.nibi 中 native ABI 已过期的 Helper。
     ...(process.platform === "darwin" ? { NIBI_CUA_HELPER_ALLOW_UNSIGNED_LOCAL: "1" } : {}),
     // Windows 侧对应物：缺省把 CUA runtime 绑到本 checkout 已安装的 producer，
     // 否则 host 会去读 dev 下不存在的 resources/tools/cua-helper。见 dev-desktop-cua-env.mjs。

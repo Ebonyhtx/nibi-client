@@ -28,7 +28,7 @@ export {
 export const NIBI_OFFICIAL_PLUGIN_MARKETPLACE = "nibi-official";
 export const CLAUDE_OFFICIAL_PLUGIN_MARKETPLACE = "claude-plugins-official";
 export const NIBI_INLINE_PLUGIN_MARKETPLACE = "inline";
-export const NIBI_PLUGIN_HOST_COMMAND = "__zcode-plugin-host";
+export const NIBI_PLUGIN_HOST_COMMAND = "__nibi-plugin-host";
 /**
  * 隐藏子命令：dynamic workflow 的沙箱子进程入口（`__zcode-dwf-child <entry path>`；argv 末位是
  * harness 写好的入口文件路径，payload 不过命令行）。

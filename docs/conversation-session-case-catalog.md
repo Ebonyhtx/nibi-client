@@ -74,7 +74,7 @@ GRP06/CR-01（accepted）：首发 accepted 后挂起组织登记，取消原 pa
 
 > **闲时后台修订：** 设计、Core/协议证据及 OP10 三种桌面变体结果见 [实施计划](./off-peak-task/background-lifecycle-plan.md#最终验证记录2026-10-08)。用例仍为 manual-review/pending；手机整机交互未验证，不改变本矩阵原有准入与交付范围。
 
-> **2026-10-09 review 回归：** OP10 增加 `ZCODE_E2E_OFFPEAK_HANDOFF_FAULT=1` 变体，在真实 Host/CLI stdio 边界让已安装新票的首个确认失败，延后完成通知直到相同交接收到确认；断言自动重试同一 execution/renewal/ticket、卡片最终完成且原始 prompt/Bash 只执行一次。连续确认失败、旧回执与新续票交错、接管/完成后未安装候选票释放由 service focused tests 覆盖；旧执行迟到 cancel 不影响新用户轮由 Core 运行时测试覆盖。只覆盖 desktop continuous，不新增手机 replayable 或重启恢复语义；本变体在容器 Electron/真实 Host/CLI 下 1/1 通过（`desktop-e2e-20261009-082511-005`），仍为 manual-review/pending。
+> **2026-10-09 review 回归：** OP10 增加 `NIBI_E2E_OFFPEAK_HANDOFF_FAULT=1` 变体，在真实 Host/CLI stdio 边界让已安装新票的首个确认失败，延后完成通知直到相同交接收到确认；断言自动重试同一 execution/renewal/ticket、卡片最终完成且原始 prompt/Bash 只执行一次。连续确认失败、旧回执与新续票交错、接管/完成后未安装候选票释放由 service focused tests 覆盖；旧执行迟到 cancel 不影响新用户轮由 Core 运行时测试覆盖。只覆盖 desktop continuous，不新增手机 replayable 或重启恢复语义；本变体在容器 Electron/真实 Host/CLI 下 1/1 通过（`desktop-e2e-20261009-082511-005`），仍为 manual-review/pending。
 > 2026-10-11 远程验收采用 [当前项目整合合同](superpowers/specs/2026-10-10-session-manage-upstream-integration.md)。
 > 业务基线 `d31e735905cf744e75a0a93548a80acabe871ae5` 的完整队列与逐项复验见
 > [远程测试服务器结果](testing/r3-remote-server-harness.md)。下方早期 PASS 仅对应各自历史批次；本轮不自动转正。
@@ -86,7 +86,7 @@ RDUX-BASELINE（accepted / pending）：侧栏项目行与聊天框项目列表�
 | Case             | 设置、动作及断言                                                                                                                                                                                                                                                                                                                                                | 自动化                                                                                                                                                                                                                                                      |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | RDUX-A11Y        | 真实 SSH；键盘操作设置表单、密码显隐、下载选择、安装和首次说明；连接完成留在设备管理，再从项目入口选设备/目录、保存项目，继续侧栏菜单/编辑、拖拽设备标签和设置卡；键盘焦点可达，外观沿用组件样式而不强制 outline，状态/标签可读；浅深 × 中英 × 1400/900px、侧栏 264px 截图                                                                                      | `conversation-session/manual-review/pending/conversation-session-remote-accessibility.test.ts`；Linux 真实 SSH 批次 `r3-server-20261014155202497-829e79`：1/1 PASS（134.1 秒），48 张矩阵截图 + 1 张拖拽截图；pending，无模型请求，未验证原生 macOS/Windows |
-| RDUX-WALKTHROUGH | 真实 SSH 走查（截图供视觉复核；段落、状态等待或录屏失败影响最终结果）：项目表单、设置分类添加、Docker/SSH 表单、首装确认与实时进度、设置完成定位、项目菜单/编辑、设备设置、重复添加在线目标复用、设置卡/日志/菜单/编辑/移除确认/断开、断线占位与重连、不可达/认证失败/取消/后台失败、未完成连接、停容器掉线恢复、拖拽；每态浅深各一张 + 全程录屏 + `index.json` | `conversation-session/manual-review/pending/conversation-session-remote-ui-walkthrough.test.ts`；需要专属 `zcode-r3-server-*` 容器（`ZCODE_E2E_SSH_CONTAINER`）才会执行停/起容器段；无模型请求                                                              |
+| RDUX-WALKTHROUGH | 真实 SSH 走查（截图供视觉复核；段落、状态等待或录屏失败影响最终结果）：项目表单、设置分类添加、Docker/SSH 表单、首装确认与实时进度、设置完成定位、项目菜单/编辑、设备设置、重复添加在线目标复用、设置卡/日志/菜单/编辑/移除确认/断开、断线占位与重连、不可达/认证失败/取消/后台失败、未完成连接、停容器掉线恢复、拖拽；每态浅深各一张 + 全程录屏 + `index.json` | `conversation-session/manual-review/pending/conversation-session-remote-ui-walkthrough.test.ts`；需要专属 `zcode-r3-server-*` 容器（`NIBI_E2E_SSH_CONTAINER`）才会执行停/起容器段；无模型请求                                                              |
 
 ## 侧栏与设备菜单（RDUX-SIDEBAR，accepted）
 
@@ -1205,7 +1205,7 @@ replayable 不创建、恢复、持久化或消费 group。
 2026-10-19 类型回归：SAT30 覆盖 subagent_child、workflow_child、selection_side_chat 与历史 nested_workflow_child；
 项目父链继承与只读准入分开。SAT28 只拒绝三类 agent child，辅助对话继续发送；SAT29 清理四类隐藏索引，保留 fork 与未确认身份。
 远端 UI 候选已通过 macOS 客户端 → SSH → Linux arm64 Server 发布包回归（`r3-server-workflow-hotfix-2f5c48dd`）：工作流 actor 正文可读且只读、显式 GLM-5.3 路由、辅助对话首发与续发、主列表不泄漏；模型回复使用回放。辅助对话 Recent 查所属主会话项目，命令仍发给 child。
-Server 启动时须设置开发态 `ZCODE_DYNAMIC_WORKFLOW_MODE=alwaysOn`，WDIO 为该独立文件设置相同前置；常驻 Server 不继承客户端环境。保持 manual-review pending，不据此声明手机 UI 或 Linux x64 实测；桌面 continuous / 手机 replayable 的身份和准入由协议回归覆盖。
+Server 启动时须设置开发态 `NIBI_DYNAMIC_WORKFLOW_MODE=alwaysOn`，WDIO 为该独立文件设置相同前置；常驻 Server 不继承客户端环境。保持 manual-review pending，不据此声明手机 UI 或 Linux x64 实测；桌面 continuous / 手机 replayable 的身份和准入由协议回归覆盖。
 
 SAT30（远端项目归属回归）：远端子会话运行中及完成后可查看，重订阅复用 Agent 持久化父链解析主任务项目；
 child 不进入主任务索引。desktop-continuous 与 web-remote-replayable 共用服务入口；普通无项目远端任务、
@@ -3519,7 +3519,7 @@ grep；`rg` 只选一个代表命令证明两种开关状态一致。
 
 ## OP. Off-Peak Task / 闲时任务
 
-来源：`（实现与测试见源码）`（D1–D33 定案）。闲时任务是 Automations 体系下的一次性后台任务：表单创建即取号排队，服务端 ready 后派发新建 session 无人值守执行（idle plan per-turn 注入，D33），3h 时间盒自动续跑（D26）。E2E 由进程内 mock 网关驱动（`ZCODE_OFFPEAK_MOCK=1`，工序 3 交付），属桌面 `desktop-continuous` 链路，不据此推断手机 replayable 语义。
+来源：`（实现与测试见源码）`（D1–D33 定案）。闲时任务是 Automations 体系下的一次性后台任务：表单创建即取号排队，服务端 ready 后派发新建 session 无人值守执行（idle plan per-turn 注入，D33），3h 时间盒自动续跑（D26）。E2E 由进程内 mock 网关驱动（`NIBI_OFFPEAK_MOCK=1`，工序 3 交付），属桌面 `desktop-continuous` 链路，不据此推断手机 replayable 语义。
 
 等价类：
 
@@ -3765,7 +3765,7 @@ WFS03（accepted）：Snippet 运行→完成/失败；运行摘要计时且代�
 两档共用同一组动作、相反断言。`goal` 不参与灰度，两档都必须在场，作为「CLI catalog 已送达」的正向对照；
 `disabled` 档额外要求在观察窗内标签不会迟到出现，避免把「还没渲染」读成「已关闭」。
 不扩展 `onDemand`（本版本行为与 `alwaysOn` 相同，由 `isDynamicWorkflowModeEnabled` 单测覆盖）、
-本地 `ZCODE_DYNAMIC_WORKFLOW_MODE` 覆盖档位、手机远控与 SSH/WSL/Docker 远端 Host。
+本地 `NIBI_DYNAMIC_WORKFLOW_MODE` 覆盖档位、手机远控与 SSH/WSL/Docker 远端 Host。
 
 ## SHARE. 会话分享与继续工作
 
@@ -4001,7 +4001,7 @@ VP-ROOT-01 历史浏览修订验证：Electron `desktop-e2e-20260915062045042-p6
 | SCB05 | desktop continuous 与 mobile replayable / remote workspace | shared-host、identity 与 scope 不变；remote 不注册闲时工具，预算不联网           | accepted / 协议与 remote Host 单测                |
 
 新 case：`conversation-session-config-independent-startup.test.ts` 位于 manual-review/pending；
-provider fixture 使用同名 canonical formal target。配置网关不能启用 ZCODE_OFFPEAK_MOCK 绕过真实读取。
+provider fixture 使用同名 canonical formal target。配置网关不能启用 NIBI_OFFPEAK_MOCK 绕过真实读取。
 不做跨版本旧运行进程热切换；网络慢与永久失败用 pending 屏障代表，不做延迟参数全排列。
 
 ## GLOBALDB：主界面前数据库准备（2026-09-14，已实现，GUI 待验收）
@@ -4106,7 +4106,7 @@ accepted / pending（已实现）：依据 virtual-project-design 的同名章�
 
 桌面验证：`desktop-e2e-20260915131918480-p99856-ceccb6286a056017`，8/8 通过；含 SBV01–05、旧项目交互及 1200/390px 明暗主题截图。相关单测 7 文件 / 45 条通过；`pnpm typecheck`、`pnpm lint`（47 条既有 warning，0 error）及 desktop E2E 类型检查通过。相对 HEAD 的架构检查 0 违规；默认相对 origin/staging 仍有开工前已存在的 `packages/ui/src/root/resolveConversationWorkspaceTarget.ts` 未受管文件错误，本次不改其模块归属。
 
-手机验证：`desktop-e2e-20260915133055419-p10183-be1302f33f03e81a`，1/1 通过；Chrome for Testing 以 390×844、hasTouch/isMobile 访问本仓 Web，经真实 relay/shared-host 完成搜索、两种视图与刷新恢复、任务重开和连续切换保留当前任务，桌面 task 标记及 Host/tab 数断言通过。用例使用隔离 HOME 与既有 synthetic provider fixture；新入口使用 touch tap，菜单关闭后继续下一操作。取 Host 证据后关闭资源管理器，避免检查器持续采样干扰待启动 CLI。通过 `ZCODE_E2E_BROWSER_NO_PROXY=1` 与 `ZCODE_E2E_MOBILE_BROWSER_EXECUTABLE` 选用测试浏览器直连，未关闭 TLS 校验。
+手机验证：`desktop-e2e-20260915133055419-p10183-be1302f33f03e81a`，1/1 通过；Chrome for Testing 以 390×844、hasTouch/isMobile 访问本仓 Web，经真实 relay/shared-host 完成搜索、两种视图与刷新恢复、任务重开和连续切换保留当前任务，桌面 task 标记及 Host/tab 数断言通过。用例使用隔离 HOME 与既有 synthetic provider fixture；新入口使用 touch tap，菜单关闭后继续下一操作。取 Host 证据后关闭资源管理器，避免检查器持续采样干扰待启动 CLI。通过 `NIBI_E2E_BROWSER_NO_PROXY=1` 与 `NIBI_E2E_MOBILE_BROWSER_EXECUTABLE` 选用测试浏览器直连，未关闭 TLS 校验。
 
 范围说明：手机证据为浏览器触屏模拟中的真实 shared-host 链路，不是实体手机；Windows/Linux 快捷键由单测覆盖，未在对应操作系统跑 GUI。跨 Host 同路径/同 taskId 的排序身份由单测覆盖，未新增 SSH/WSL 真机验证。默认 staging 架构基线问题保持单独记录，不记为本次增量通过。
 

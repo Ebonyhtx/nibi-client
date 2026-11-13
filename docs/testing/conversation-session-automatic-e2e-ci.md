@@ -8,7 +8,7 @@
 
 ## 手动正式集合
 
-`ZCODE_E2E_SPEC` 当前使用正式目录 glob：
+`NIBI_E2E_SPEC` 当前使用正式目录 glob：
 
 ```bash
 ./test/e2e/conversation-session/*.test.ts,
@@ -18,7 +18,7 @@
 
 conversation-session glob 动态机械收集 direct-root formal spec，不用固定数量作为门禁。每个 spec 都必须先通过 formal admission audit：禁止旧 aggregate helper，必须具备 case manifest、case-local provider fixture，以及与 manifest 一致的请求 ledger。plugins glob 收集已转正插件域用例；`workspace-file-tree-refresh.test.ts` 是文件树域已转正的跨域正式用例：不触发 provider 请求，使用真实 workspace 文件 fixture 验证刷新按钮和 watcher 实时刷新链路。
 
-CI 不再维护第二份 `ZCODE_E2E_EXCLUDE_SPEC` quarantine。formal 是否可收集由目录位置和 admission audit 共同决定；尚未满足合同的 case 留在 `manual-review/pending`，不能先放进 direct-root 再靠 CI 排除。
+CI 不再维护第二份 `NIBI_E2E_EXCLUDE_SPEC` quarantine。formal 是否可收集由目录位置和 admission audit 共同决定；尚未满足合同的 case 留在 `manual-review/pending`，不能先放进 direct-root 再靠 CI 排除。
 
 ## 触发规则
 
@@ -34,15 +34,15 @@ CI job 使用 macOS shell runner 在宿主机上执行桌面端 WDIO Electron E2
 
 ```bash
 E2E_PROVIDER_HTTP_MODE=replay \
-ZCODE_E2E_SPEC='./test/e2e/conversation-session/*.test.ts,./test/e2e/workspace-file-tree-refresh.test.ts' \
+NIBI_E2E_SPEC='./test/e2e/conversation-session/*.test.ts,./test/e2e/workspace-file-tree-refresh.test.ts' \
 pnpm --filter @nibi/e2e-report build:node
 
 E2E_PROVIDER_HTTP_MODE=replay \
-ZCODE_E2E_SPEC='./test/e2e/conversation-session/*.test.ts,./test/e2e/workspace-file-tree-refresh.test.ts' \
+NIBI_E2E_SPEC='./test/e2e/conversation-session/*.test.ts,./test/e2e/workspace-file-tree-refresh.test.ts' \
 pnpm --filter @nibi/desktop exec wdio run wdio.conf.ts
 ```
 
-`ZCODE_E2E_SPEC` 只作为环境变量交给 `wdio.conf.ts` 解析。CI 不再把同一个 glob追加到 WDIO CLI `--spec`，避免出现两套 spec 过滤入口，让 job 只跑到 `onPrepare` / 构建阶段却没有稳定调度 worker。
+`NIBI_E2E_SPEC` 只作为环境变量交给 `wdio.conf.ts` 解析。CI 不再把同一个 glob追加到 WDIO CLI `--spec`，避免出现两套 spec 过滤入口，让 job 只跑到 `onPrepare` / 构建阶段却没有稳定调度 worker。
 
 普通 replay 会启动本地 provider fixture replay server，不访问真实模型上游，也不依赖 CI 里的 API key。该入口不启动 Docker。
 
@@ -51,7 +51,7 @@ pnpm --filter @nibi/desktop exec wdio run wdio.conf.ts
 Windows job 使用 GitLab `parallel` 生成四个独立 job。四个 job 不再使用 WDIO native
 连续切片；启动 WDIO 前先展开同一份 formal glob，读取
 `packages/desktop/test/e2e/conversation-ci-spec-duration-weights.json`，按历史 worker 耗时使用确定性 LPT
-分配到四个桶，再由 `CI_NODE_INDEX` 选择当前桶并写回显式 `ZCODE_E2E_SPEC`。这样同时
+分配到四个桶，再由 `CI_NODE_INDEX` 选择当前桶并写回显式 `NIBI_E2E_SPEC`。这样同时
 平衡长 spec、单 spec 多 case 和新 spec fallback，不会因为文件名顺序让第一个 shard
 长期承载 background/goal 等重型集合。每个 job 的 summary 只校验自己选中的显式子集；
 分配器测试负责证明四桶并集等于全量 formal 集合、没有重复且估算耗时受控。
@@ -70,7 +70,7 @@ Windows job 使用 GitLab `parallel` 生成四个独立 job。四个 job 不再�
 ```text
 formal glob -> expand -> historical duration profile -> LPT bucket 1..4
                                                      -> CI_NODE_INDEX
-                                                     -> explicit ZCODE_E2E_SPEC
+                                                     -> explicit NIBI_E2E_SPEC
                                                      -> WDIO -> subset summary gate
 ```
 
@@ -93,8 +93,8 @@ CI 工具启动路径，不改变 pnpm store、workspace、E2E HOME、artifact �
 ## SSH remote assets 自动准备
 
 conversation formal glob 包含 `conversation-session-ssh-remote*.test.ts`。当 runner 配置了
-`ZCODE_E2E_SSH_HOST` + `ZCODE_E2E_SSH_USERNAME` + `ZCODE_E2E_SSH_PASSWORD`（或任一
-`ZCODE_E2E_SSH_HOST` / `ZCODE_E2E_SSH_A_HOST` / `ZCODE_E2E_SSH_B_HOST`）时，WDIO `onPrepare`
+`NIBI_E2E_SSH_HOST` + `NIBI_E2E_SSH_USERNAME` + `NIBI_E2E_SSH_PASSWORD`（或任一
+`NIBI_E2E_SSH_HOST` / `NIBI_E2E_SSH_A_HOST` / `NIBI_E2E_SSH_B_HOST`）时，WDIO `onPrepare`
 的 `stageDesktopE2EAppOutput` 会把 `packages/desktop/mock-cdn/releases/<repo version>`
 stage 到 runId 隔离目录，供 SSH remote runtime 使用。
 
@@ -137,7 +137,7 @@ wdio onPrepare (stageDesktopE2EAppOutput)
 
 ## CI stdout
 
-该 job 默认设置 `ZCODE_E2E_CI_STDOUT_MODE=summary`。在这个模式下，依赖安装、Electron binary 修复和 WDIO E2E 的完整 stdout/stderr 都写入 artifact 文件，GitLab 控制台只打印：
+该 job 默认设置 `NIBI_E2E_CI_STDOUT_MODE=summary`。在这个模式下，依赖安装、Electron binary 修复和 WDIO E2E 的完整 stdout/stderr 都写入 artifact 文件，GitLab 控制台只打印：
 
 - 当前步骤的日志文件路径
 - E2E 结束后的 run id、exit code、耗时、通过/失败数量
@@ -146,7 +146,7 @@ wdio onPrepare (stageDesktopE2EAppOutput)
 
 这样可以避免 WDIO / Electron / app-server 的高频日志把 GitLab job stdout 打爆，同时仍保留完整排查材料。
 
-需要临时看实时输出时，可以在 Web pipeline 里把 `ZCODE_E2E_CI_STDOUT_MODE` 覆盖为 `verbose`。
+需要临时看实时输出时，可以在 Web pipeline 里把 `NIBI_E2E_CI_STDOUT_MODE` 覆盖为 `verbose`。
 
 ## 边界
 

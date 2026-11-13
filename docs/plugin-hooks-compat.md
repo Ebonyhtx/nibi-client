@@ -4,17 +4,17 @@
 
 ZCode 已经支持官方插件、inline 插件、skills、commands、MCP server 和插件级 hooks。以 `superpowers` 为代表的现有插件通常把启动上下文注入写在 `hooks/hooks.json`，并使用 shell command hook、插件根目录变量和 `SessionStart` 的 `additionalContext` 输出。
 
-本规范定义 ZCode 对插件 hooks 的兼容边界，目标是让 `.zcode-plugin/plugin.json` 插件成为一等形态，同时兼容 Claude / Codex 插件 manifest 的发现顺序。
+本规范定义 ZCode 对插件 hooks 的兼容边界，目标是让 `.nibi-plugin/plugin.json` 插件成为一等形态，同时兼容 Claude / Codex 插件 manifest 的发现顺序。
 
 ## Manifest 发现顺序
 
 插件根目录按以下顺序查找 manifest：
 
-1. `.zcode-plugin/plugin.json`
+1. `.nibi-plugin/plugin.json`
 2. `.claude-plugin/plugin.json`
 3. `.codex-plugin/plugin.json`
 
-`.zcode-plugin` 始终优先；当外部插件同时包含 Claude 与 Codex manifest 时，Claude manifest 优先于 Codex manifest。这个顺序用于读取插件元数据、skills / commands / MCP / hooks 声明和插件 id。
+`.nibi-plugin` 始终优先；当外部插件同时包含 Claude 与 Codex manifest 时，Claude manifest 优先于 Codex manifest。这个顺序用于读取插件元数据、skills / commands / MCP / hooks 声明和插件 id。
 
 ## Hooks 发现
 
@@ -35,7 +35,7 @@ ZCode 已经支持官方插件、inline 插件、skills、commands、MCP server 
 - 标准 `hooks/hooks.json` 自动加载；manifest 不应重复指向同一个文件，重复时记录诊断并跳过。
 - 只加载当前 ZCode runtime 支持的 hook event；未知 event 记录 warning，不阻断插件加载。
 
-插件 hooks 只在插件启用后进入 runtime。用户/项目 hooks 先执行，插件 hooks 后执行。不同插件的 hook 去重必须带上插件根目录，避免多个插件使用 `${ZCODE_PLUGIN_ROOT}` 或 `${CLAUDE_PLUGIN_ROOT}` 模板时互相覆盖。
+插件 hooks 只在插件启用后进入 runtime。用户/项目 hooks 先执行，插件 hooks 后执行。不同插件的 hook 去重必须带上插件根目录，避免多个插件使用 `${NIBI_PLUGIN_ROOT}` 或 `${CLAUDE_PLUGIN_ROOT}` 模板时互相覆盖。
 
 ## Hook 类型
 
@@ -59,17 +59,17 @@ ZCode 保留现有 `process` hook，并新增兼容 `command` hook：
 
 插件 hook 子进程注入以下环境变量：
 
-- `ZCODE_PLUGIN_ROOT`：当前插件安装根目录。
-- `ZCODE_PLUGIN_DATA`：当前插件持久化数据目录。
-- `ZCODE_PLUGIN_ID`：`<name>@<marketplace>`。
-- `ZCODE_PLUGIN_NAME`：插件 manifest name。
+- `NIBI_PLUGIN_ROOT`：当前插件安装根目录。
+- `NIBI_PLUGIN_DATA`：当前插件持久化数据目录。
+- `NIBI_PLUGIN_ID`：`<name>@<marketplace>`。
+- `NIBI_PLUGIN_NAME`：插件 manifest name。
 
 为兼容现有插件，同时注入并替换：
 
 - `CLAUDE_PLUGIN_ROOT`
 - `CLAUDE_PLUGIN_DATA`
 
-命令字符串中的 `${ZCODE_PLUGIN_ROOT}`、`${ZCODE_PLUGIN_DATA}`、`${CLAUDE_PLUGIN_ROOT}`、`${CLAUDE_PLUGIN_DATA}` 在执行前替换为对应路径。替换值来自插件发现阶段解析出的 root / data path，不从用户环境读取。
+命令字符串中的 `${NIBI_PLUGIN_ROOT}`、`${NIBI_PLUGIN_DATA}`、`${CLAUDE_PLUGIN_ROOT}`、`${CLAUDE_PLUGIN_DATA}` 在执行前替换为对应路径。替换值来自插件发现阶段解析出的 root / data path，不从用户环境读取。
 
 ## Hook stdin 兼容字段
 
@@ -126,7 +126,7 @@ Subagent 兼容的完整边界见 `docs/subagent-compatibility.md`。
 
 `superpowers` 作为官方内置插件发布：
 
-- 使用 `.zcode-plugin/plugin.json` 作为主 manifest。
+- 使用 `.nibi-plugin/plugin.json` 作为主 manifest。
 - 默认关闭；用户显式启用后才向 runtime 注入 skills/hooks。
 - 提供 `skills/` 与 `hooks/hooks.json`。
 - `SessionStart` hook 在 `startup|clear|compact` 时注入 `using-superpowers` 上下文。
@@ -141,7 +141,7 @@ Superpowers 的 plugin skills 同时支持裸名和 fully qualified alias。模�
 
 实现完成后必须覆盖：
 
-- `.zcode-plugin`、`.claude-plugin`、`.codex-plugin` manifest 优先级。
+- `.nibi-plugin`、`.claude-plugin`、`.codex-plugin` manifest 优先级。
 - `hooks/hooks.json` 自动加载。
 - manifest `hooks` 文件和 inline hooks 合并。
 - `command` hook 通过 shell 执行，并收到 ZCode / Claude 兼容环境变量。

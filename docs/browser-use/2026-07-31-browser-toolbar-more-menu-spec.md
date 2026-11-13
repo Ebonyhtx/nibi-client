@@ -52,7 +52,7 @@
       -> Web fallback: window.open
 ```
 
-- 不新增 UI 直接访问 `window.zcode`。
+- 不新增 UI 直接访问 `window.nibi`。
 - 不新增 Desktop main / host process 业务状态，也不新增同步 IO。
 - Desktop `desktop-continuous` 与手机 `web-remote-replayable` 的 stream、snapshot、queue、owner/lease 语义均不变化。
 - Web 当前不暴露 embedded-browser capability；共享组件仍保持平台注入兼容。

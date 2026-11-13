@@ -2425,7 +2425,7 @@ export function createLocalServices(options: {
         // env 推导，test env + 自定义端点时两侧信任判定的输入分叉、官方 MCP 整体 fail closed。
         ...buildAgentEndpointOriginEnv(await resolveCurrentNibiEndpointOrigin()),
         // broker 凭据（socket/token）注入 agent spawn env，让内置 zcode-cua plugin 的
-        // computer-use MCP server 经 __zcode-plugin-host 恢复 token 后连上 broker。
+        // computer-use MCP server 经 __nibi-plugin-host 恢复 token 后连上 broker。
         ...cuaProductHelperEnv,
         // Rust 内核没有 Node bootstrap：Browser Use / Computer Use 共用的 `node_repl` MCP
         // 服务器由内核自己装配（kernel/crates/runtime/src/node_repl.rs），Host 只给 Node

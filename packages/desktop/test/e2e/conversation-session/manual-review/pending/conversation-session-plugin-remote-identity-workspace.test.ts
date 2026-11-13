@@ -205,11 +205,11 @@ async function seedRemoteFixture(
   const command = [
     "set -eu",
     `rm -rf -- ${quoteShell(workspacePath)}`,
-    `mkdir -p -- ${quoteShell(posix.join(pluginRoot, ".zcode-plugin"))}`,
+    `mkdir -p -- ${quoteShell(posix.join(pluginRoot, ".nibi-plugin"))}`,
     `mkdir -p -- ${quoteShell(posix.join(pluginRoot, "skills", "identity"))}`,
     `mkdir -p -- ${quoteShell(posix.join(workspacePath, ".nibi"))}`,
     writeBase64Command(
-      posix.join(pluginRoot, ".zcode-plugin", "plugin.json"),
+      posix.join(pluginRoot, ".nibi-plugin", "plugin.json"),
       `${JSON.stringify(manifest, null, 2)}\n`,
     ),
     writeBase64Command(posix.join(pluginRoot, "skills", "identity", "SKILL.md"), skill),

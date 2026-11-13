@@ -63,7 +63,7 @@ class Browser {
 
 ## 4. P0 验收（端到端，真机）
 
-`ZCODE_BROWSER_USE=1`(或临时在 desktop 装配无条件启用 includeNodeRepl + browserControlPort) 起 desktop → agent 会话里模型：
+`NIBI_BROWSER_USE=1`(或临时在 desktop 装配无条件启用 includeNodeRepl + browserControlPort) 起 desktop → agent 会话里模型：
 ```js
 const b = await agent.browsers.open("https://example.com");
 nodeRepl.write(JSON.stringify(await b.getState()));

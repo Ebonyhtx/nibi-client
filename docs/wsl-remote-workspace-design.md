@@ -235,10 +235,10 @@ WSL 有两种访问方式：
 与 SSH 完全相同：
 ```bash
 # SSH
-ssh user@host "ZCODE_SERVER_RUNTIME_ROOT=~/.nibi/server ~/.nibi/server/node ..."
+ssh user@host "NIBI_SERVER_RUNTIME_ROOT=~/.nibi/server ~/.nibi/server/node ..."
 
 # WSL
-wsl.exe --exec bash -c "ZCODE_SERVER_RUNTIME_ROOT=~/.nibi/server ~/.nibi/server/node ..."
+wsl.exe --exec bash -c "NIBI_SERVER_RUNTIME_ROOT=~/.nibi/server ~/.nibi/server/node ..."
 ```
 
 ### 4. 检测可用 WSL 分发版

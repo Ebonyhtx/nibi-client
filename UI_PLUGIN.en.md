@@ -295,7 +295,7 @@ Select UI Plugin even when only changing that plugin's docs or skills, or when a
 
 ## Adding a UI to Your Plugin
 
-Use the ordinary plugin installation directory and marketplace entry. Source packages that need compilation declare their own `build` script; use an optional `stage` script for additional resources. Here is a minimal page example for the installable manifest, `.zcode-plugin/plugin.json`:
+Use the ordinary plugin installation directory and marketplace entry. Source packages that need compilation declare their own `build` script; use an optional `stage` script for additional resources. Here is a minimal page example for the installable manifest, `.nibi-plugin/plugin.json`:
 
 ```json
 {

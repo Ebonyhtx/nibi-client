@@ -13,7 +13,7 @@ Browser Use 新增 IAB WebView 录屏 API 后，将官方插件发布身份从 `
 以下五个当前版本事实源必须统一为 `0.3.0`：
 
 1. `apps/nibi-cli/packages/browser-use-plugin/package.json`；
-2. `apps/nibi-cli/packages/browser-use-plugin/.zcode-plugin/plugin.json`；
+2. `apps/nibi-cli/packages/browser-use-plugin/.nibi-plugin/plugin.json`；
 3. Bootstrap `OFFICIAL_PLUGIN_DEFINITIONS`；
 4. SEA `officialSeaPlugins`；
 5. MCP `NODE_REPL_SERVER_VERSION`。

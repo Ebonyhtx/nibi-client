@@ -26,7 +26,7 @@ zcode plugins marketplace remove example-market
 
 ```text
 example-plugin/
-  .zcode-plugin/plugin.json
+  .nibi-plugin/plugin.json
   skills/greet/SKILL.md
   commands/hello.md
 ```

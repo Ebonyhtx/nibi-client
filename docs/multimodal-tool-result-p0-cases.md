@@ -23,8 +23,8 @@ P0 runner 只读取环境变量，不在代码或 fixture 中保存 API key：
 
 ```bash
 ANTHROPIC_API_KEY=... \
-ZCODE_MODEL=glm-x-preview-f \
-ZCODE_BASE_URL=https://open.bigmodel.cn/api/anthropic \
+NIBI_MODEL=glm-x-preview-f \
+NIBI_BASE_URL=https://open.bigmodel.cn/api/anthropic \
 node scripts/multimodal-tool-result-p0.mjs
 ```
 

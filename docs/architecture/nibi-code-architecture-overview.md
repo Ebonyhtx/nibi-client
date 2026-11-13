@@ -100,7 +100,7 @@ desktop 和 mobile 共享这条事实链。差别只在 delivery profile：桌�
 ## 平台抽象与 UI 规则
 
 - UI 通过 `IPlatformService` 访问目录选择、外链等平台能力。
-- 组件通过 `useServices()`、`usePlatform()` 等 hooks 获取依赖，不直接使用 `window.zcode` 或 service 单例。
+- 组件通过 `useServices()`、`usePlatform()` 等 hooks 获取依赖，不直接使用 `window.nibi` 或 service 单例。
 - Desktop/Web/Mobile 差异通过装配和依赖注入处理，不在共享组件里硬编码平台分支。
 
 ## 当前事实入口

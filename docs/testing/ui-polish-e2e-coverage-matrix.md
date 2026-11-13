@@ -115,7 +115,7 @@ feature graph; this test task does not change its state or persistence contract.
 ## Runtime Evidence
 
 - Formal Electron run after promotion: `desktop-e2e-20260819044246639-p7031-0eaf856fbfb1eeae`
-- Formal result: 3/3 passed without `ZCODE_E2E_MANUAL_REVIEW`.
+- Formal result: 3/3 passed without `NIBI_E2E_MANUAL_REVIEW`.
 - Formal artifact: `packages/desktop/.e2e-artifacts/desktop-e2e-20260819044246639-p7031-0eaf856fbfb1eeae/summary.md`.
 - Electron manual-review run: `desktop-e2e-20260819042607776-p64629-52e741b6f1da02f5`
 - Result: 3/3 passed (UP-01, MP-UI-01, MP-UI-02).

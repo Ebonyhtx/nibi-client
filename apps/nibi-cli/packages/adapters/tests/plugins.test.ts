@@ -4665,7 +4665,7 @@ async function symlinkDir(target: string, linkPath: string): Promise<void> {
 async function writePluginManifest(
   pluginRoot: string,
   manifest: Record<string, unknown>,
-  manifestDir = ".zcode-plugin",
+  manifestDir = ".nibi-plugin",
 ): Promise<void> {
   await mkdir(join(pluginRoot, manifestDir), { recursive: true });
   await writeFile(join(pluginRoot, manifestDir, "plugin.json"), JSON.stringify(manifest));

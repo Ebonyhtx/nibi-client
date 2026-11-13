@@ -26,7 +26,7 @@ import {
 const LEGACY_BROKER_TOKEN_ENV = "NIBI_CUA_PERMISSION_BROKER_TOKEN";
 
 describe("project MCP config", () => {
-  // CUA 已不再声明任何 MCP server（.zcode-plugin/plugin.json 去掉 mcpServers，执行面搬到
+  // CUA 已不再声明任何 MCP server（.nibi-plugin/plugin.json 去掉 mcpServers，执行面搬到
   // 共享 node_repl 宿主），因此官方 CUA server 不出现在任何默认连接集合里。
   // 旧 server 的剔除由 mcp-project-config-startup.test.ts 的启动/状态用例及下方 direct-CLI 用例覆盖；
   // 产品凭据只向可信 node_repl 注入，另有 sanitize 与 captured 优先级用例。

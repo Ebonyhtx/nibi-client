@@ -189,7 +189,7 @@ describe("bundled official plugin cache resilience", () => {
     const storageRoot = await createStorageRoot(cleanups);
     resolveOfficialPluginRoots({ storageRoot });
     const browserRoot = join(storageRoot, BROWSER_CACHE_SUFFIX);
-    const markerPath = join(browserRoot, ".zcode-plugin-seed.json");
+    const markerPath = join(browserRoot, ".nibi-plugin-seed.json");
     const staleMarker = `${await readFile(markerPath, "utf8")}\n`;
     await writeFile(markerPath, staleMarker.replace('"hash": "', '"hash": "stale-'));
     const logger = createLogger();
@@ -233,9 +233,9 @@ describe("bundled official plugin cache resilience", () => {
     // 未构建 dist 的旧 checkout）；其余插件继续从真实 monorepo 源解析。
     const entrypointRoot = join(storageRoot, "stale-entrypoint");
     const incompletePluginRoot = join(entrypointRoot, "packages", "browser-use-plugin");
-    await mkdir(join(incompletePluginRoot, ".zcode-plugin"), { recursive: true });
+    await mkdir(join(incompletePluginRoot, ".nibi-plugin"), { recursive: true });
     await writeFile(
-      join(incompletePluginRoot, ".zcode-plugin", "plugin.json"),
+      join(incompletePluginRoot, ".nibi-plugin", "plugin.json"),
       JSON.stringify({ name: "browser-use", version: "0.5.1" }),
     );
     process.argv[1] = join(entrypointRoot, "nibi.cjs");
@@ -276,9 +276,9 @@ describe("bundled official plugin cache resilience", () => {
     // 全新安装：storageRoot 从未 seed 过，也没有任何旧版本缓存可回退。
     const entrypointRoot = join(storageRoot, "fresh-install-entrypoint");
     const incompletePluginRoot = join(entrypointRoot, "packages", "browser-use-plugin");
-    await mkdir(join(incompletePluginRoot, ".zcode-plugin"), { recursive: true });
+    await mkdir(join(incompletePluginRoot, ".nibi-plugin"), { recursive: true });
     await writeFile(
-      join(incompletePluginRoot, ".zcode-plugin", "plugin.json"),
+      join(incompletePluginRoot, ".nibi-plugin", "plugin.json"),
       JSON.stringify({ name: "browser-use", version: "0.5.1" }),
     );
     process.argv[1] = join(entrypointRoot, "nibi.cjs");
@@ -440,7 +440,7 @@ describe("bundled official plugin cache resilience", () => {
     const storageRoot = await createStorageRoot(cleanups);
     resolveOfficialPluginRoots({ storageRoot });
     const browserRoot = join(storageRoot, BROWSER_CACHE_SUFFIX);
-    const markerPath = join(browserRoot, ".zcode-plugin-seed.json");
+    const markerPath = join(browserRoot, ".nibi-plugin-seed.json");
     const staleMarker = `${await readFile(markerPath, "utf8")}\n`;
     await writeFile(markerPath, staleMarker.replace('"hash": "', '"hash": "stale-'));
     faults.moveTargetSuffix = BROWSER_CACHE_SUFFIX;
@@ -457,7 +457,7 @@ describe("bundled official plugin cache resilience", () => {
     const storageRoot = await createStorageRoot(cleanups);
     resolveOfficialPluginRoots({ storageRoot });
     const browserRoot = join(storageRoot, BROWSER_CACHE_SUFFIX);
-    const markerPath = join(browserRoot, ".zcode-plugin-seed.json");
+    const markerPath = join(browserRoot, ".nibi-plugin-seed.json");
     const staleMarker = `${await readFile(markerPath, "utf8")}\n`;
     await writeFile(markerPath, staleMarker.replace('"hash": "', '"hash": "stale-'));
     faults.promoteCurrentTargetSuffix = BROWSER_CACHE_SUFFIX;

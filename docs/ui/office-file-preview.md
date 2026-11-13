@@ -22,7 +22,7 @@ URL 原样交给主 renderer 的 DOM 导航或脚本执行路径。
 - PDF 预览当前强制 `renderAnnotationLayer={false}`，因此链接注解不会进入主 renderer DOM；若未来启用 annotation layer，必须先在 PDF 挂载点接入同一链接净化与受控外链回调，不能仅依赖 pdf.js 默认导航行为。
 - 当前第三方 Office renderer 没有统一的 relationship 拦截接口，因此 DOM 门禁是强制收口；后续若 parser 暴露 Target hook，应复用同一白名单前置拒绝。
 - 未来若 renderer 需要保留文档内链接交互，应放入无 preload、无 Node、禁止导航/弹窗的 sandbox iframe；主 renderer 不得直接承载第三方文档脚本。
-- 外链打开必须走受控回调；不能把不可信 `href` 直接传给 `window.zcode` 或 `shell.openExternal`。
+- 外链打开必须走受控回调；不能把不可信 `href` 直接传给 `window.nibi` 或 `shell.openExternal`。
 
 安全回归必须覆盖协议白名单、编码/控制字符绕过、DOCX 真实 hyperlink relationship，以及 Desktop 主 renderer 点击后的人工验收。
 同时必须锁定 PDF annotation layer 关闭状态，并验证异步新增链接只净化变更子树而不重复扫描整个预览根节点。

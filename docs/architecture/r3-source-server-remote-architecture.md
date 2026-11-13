@@ -126,7 +126,7 @@ interface SourceServerResolveWorkspaceResult {
 /** 双端构建产物内嵌的兼容清单。 */
 interface CompatibilityManifest {
   schemaVersion: 1;
-  productVersion: string; // = ZCODE_VERSION
+  productVersion: string; // = NIBI_VERSION
   minCompatibleVersion: string;
 }
 ```
@@ -800,8 +800,8 @@ EnvironmentCoordinator               (registered by                             
        └─ 兼容 → /ws/host → assertRemoteWorkspaceRpcContract → Provisioning 首连屏障（§8.3.2）
 ```
 
-- `ZCODE_MIN_COMPATIBLE_VERSION` 默认等于产品版本（根 `package.json` 未声明 `zcodeCompatibility`），因此不带 Provisioning target 的旧 daemon 在握手阶段就被判「需升级」并先走 §6.3 更新，更新后的 Core 必然注册 target；R3 主链不会对 pre-Provisioning daemon 发出 Envelope。
-- `unsupported` 拒连语义按 Provisioning 事实文档原样保留，仍覆盖：本机 `ProviderProvisioningSource` 不可用（Window Host 尚无 active local services，`sourceServices` 为空）、远端 Core 未注册 target（例如 `kind:"server"` dev 直连到未配置 `ZCODE_SERVER_AUTH_TOKEN` 的 `packages/server` HTTP nibi-server）。
+- `NIBI_MIN_COMPATIBLE_VERSION` 默认等于产品版本（根 `package.json` 未声明 `zcodeCompatibility`），因此不带 Provisioning target 的旧 daemon 在握手阶段就被判「需升级」并先走 §6.3 更新，更新后的 Core 必然注册 target；R3 主链不会对 pre-Provisioning daemon 发出 Envelope。
+- `unsupported` 拒连语义按 Provisioning 事实文档原样保留，仍覆盖：本机 `ProviderProvisioningSource` 不可用（Window Host 尚无 active local services，`sourceServices` 为空）、远端 Core 未注册 target（例如 `kind:"server"` dev 直连到未配置 `NIBI_SERVER_AUTH_TOKEN` 的 `packages/server` HTTP nibi-server）。
 - `unsupported` / `failed` / `rollback_failed` 首连一律走正式连接失败通道：不发布 Remote Workspace ready、不发送 Secret、不静默重试；Renderer 看到普通连接失败与日志，用户修正后重连即重试。
 
 #### 8.3.4 非桌面 clientMode 拒绝 stub
@@ -825,11 +825,11 @@ Window Host（windowHostAttachmentRpcPolicy.ts）
 
 ```text
 nibi-server-cli 构建
-  tsup define SERVER_CLI_DEFINES = { __ZCODE_VERSION__, __ZCODE_MIN_COMPATIBLE_VERSION__, __ZCODE_BUILTIN_PROVIDER_CONFIG_JSON__ }
+  tsup define SERVER_CLI_DEFINES = { __NIBI_VERSION__, __NIBI_MIN_COMPATIBLE_VERSION__, __NIBI_BUILTIN_PROVIDER_CONFIG_JSON__ }
         │
 Core 启动（server-core/core.ts runServerCore）
-  layout = resolveServerLayout(ZCODE_SERVER_ROOT)
-  ├─ ZCODE_BUILTIN_PROVIDER_CONFIG_FILE 显式指定 ──► 直接使用该文件
+  layout = resolveServerLayout(NIBI_SERVER_ROOT)
+  ├─ NIBI_BUILTIN_PROVIDER_CONFIG_FILE 显式指定 ──► 直接使用该文件
   ├─ 否则 materializeZCodeBuiltinProviderConfig({ runtimeRoot: layout.serverRoot, content })
   │     └─► ~/.nibi/server/config/provider/zcode-builtin-<sha256(content)>.json（tmp + rename；同 hash 幂等，内容不一致则失败）
   └─ 两者皆无 ──► 启动失败（fail-closed）

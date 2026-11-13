@@ -14,7 +14,7 @@ Plugins are managed in **Settings → Plugin Management** — the **Installed** 
 ## 1. Plugin lifecycle and persistence
 
 - **Discovery sources** (first match wins): inline directories, bundled official plugins, the official plugin cache, and marketplace-installed plugins. The entire subsystem is governed by the `plugins.enabled` master switch.
-- **Manifest location** (probed in order): `.nibi-plugin/plugin.json` (preferred), then `.zcode-plugin/plugin.json`, then `.claude-plugin/plugin.json`, then `.codex-plugin/plugin.json`. A plugin's identity is `<name>@<marketplace>`.
+- **Manifest location** (probed in order): `.nibi-plugin/plugin.json` (preferred), then `.nibi-plugin/plugin.json`, then `.claude-plugin/plugin.json`, then `.codex-plugin/plugin.json`. A plugin's identity is `<name>@<marketplace>`.
 - **Enable/disable resolution**: an explicit enable/disable entry always wins; only when no entry exists does the plugin's default-enabled status apply. A disabled plugin still appears in the list as disabled, but its components resolve to nothing.
 - **Persistence** (all under `plugins` in `~/.nibi/cli/config.json`): the enable/disable map, per-plugin configuration values, and the list of suppressed (uninstalled) built-in plugins. Because a built-in plugin ships with the application and cannot be deleted, "uninstalling" one records a suppression marker that hides it from discovery.
 - **Built-in seeding**: on first launch, bundled official plugins are materialized into the plugin cache and registered in the official marketplace listing. This is idempotent and only re-materializes on a content or version change.

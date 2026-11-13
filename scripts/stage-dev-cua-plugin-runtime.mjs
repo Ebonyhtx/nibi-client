@@ -6,9 +6,9 @@ import { stageSharpIntoBundledAgents } from "../packages/desktop/scripts/sharp-p
 const repositoryRoot = resolve(import.meta.dirname, "..");
 
 // 清单目录按宿主同一优先级探测：NIBI 自有格式在前，旧 Nibi 格式仍在用（互操作层）。
-// 2026-10-26 修：身份隔离把插件清单迁到 `.nibi-plugin/`，这里只找 `.zcode-plugin/` 会误报
+// 2026-10-26 修：身份隔离把插件清单迁到 `.nibi-plugin/`，这里只找 `.nibi-plugin/` 会误报
 // 「CUA plugin manifest is missing」并让整个 agent bundle 构建失败。
-const PLUGIN_MANIFEST_DIRS = [".nibi-plugin", ".zcode-plugin", ".claude-plugin", ".codex-plugin"];
+const PLUGIN_MANIFEST_DIRS = [".nibi-plugin", ".nibi-plugin", ".claude-plugin", ".codex-plugin"];
 
 export function stageDevCuaPluginRuntime({
   env = process.env,

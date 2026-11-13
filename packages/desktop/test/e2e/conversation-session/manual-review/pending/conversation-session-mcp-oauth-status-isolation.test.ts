@@ -56,7 +56,7 @@ const INSTALLED_PLUGINS_FILE = join(
   "installed_plugins.json",
 );
 const PLUGIN_ROOT = join(E2E_PATHS.homeDir, ".nibi", "cli", "e2e-fixtures", PLUGIN_NAME);
-const PLUGIN_MANIFEST_FILE = join(PLUGIN_ROOT, ".zcode-plugin", "plugin.json");
+const PLUGIN_MANIFEST_FILE = join(PLUGIN_ROOT, ".nibi-plugin", "plugin.json");
 const CASE_ROOT = join(E2E_PATHS.workspace, "mcp-oauth-status-isolation-e2e");
 const DIRECT_MCP_CALL_LOG = join(CASE_ROOT, "direct-mcp-calls.ndjson");
 const DIRECT_MCP_SERVER_SCRIPT = resolve(
@@ -322,7 +322,7 @@ async function waitForOpenedAuthorizationUrl(
 async function writeMcpFixtures(mcpUrl: string, plainHttpMcpUrl: string): Promise<void> {
   await mkdir(CASE_ROOT, { recursive: true });
   await rm(DIRECT_MCP_CALL_LOG, { force: true });
-  await mkdir(join(PLUGIN_ROOT, ".zcode-plugin"), { recursive: true });
+  await mkdir(join(PLUGIN_ROOT, ".nibi-plugin"), { recursive: true });
   await mkdir(join(E2E_PATHS.homeDir, ".nibi", "cli", "plugins"), {
     recursive: true,
   });

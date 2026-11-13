@@ -24,7 +24,7 @@ export const OFFICE_RUNTIME_OUTPUTS = [
 ] as const;
 
 export interface OfficeRuntimeContract {
-  /** 插件声明的面板配置；插件名取自其 .zcode-plugin/plugin.json，决定 MCP 服务与 ui:// 资源地址。 */
+  /** 插件声明的面板配置；插件名取自其 .nibi-plugin/plugin.json，决定 MCP 服务与 ui:// 资源地址。 */
   config: OfficePluginConfig;
   /** 构建保证产出的文件，相对插件根目录。 */
   outputs: typeof OFFICE_RUNTIME_OUTPUTS;

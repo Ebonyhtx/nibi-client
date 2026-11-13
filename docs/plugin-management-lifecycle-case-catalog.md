@@ -155,7 +155,7 @@ PLM-LC-018（管理列表本地化）、PLM-LC-019（双入口创建插件草稿
 受控 Electron 回归入口：`node packages/desktop/scripts/mcp-apps-host-e2e.mjs --background-only`。
 无卡片冷启动、隐藏但仍挂载的 tab、握手后的多帧初始化、窗口最小化执行、session 空闲时内部工作继续、
 同窗空闲 guest 隔离、离屏期限保留内存、删除释放，详见 [后台执行契约](plugin-ui-background-execution.md)。
-设置 `ZCODE_PHOTOCRAFT_SERVER` 指向构建后的 PhotoCraft `dist/server.mjs`，使用
+设置 `NIBI_PHOTOCRAFT_SERVER` 指向构建后的 PhotoCraft `dist/server.mjs`，使用
 `--photocraft-background-only` 使用未修改的 PhotoCraft 0.2.2 验证真实 WASM 后台启动、图片/图层操作、编辑状态保留，
 恢复后截图检查画布与新增图层；从可见编辑器切到其它主页面后，断言 UI 隐藏且不可命中，再后台新增图层并返回检查同一 guest 与文档。该入口不是正式 WDIO CI 准入，不自动晋级。
 

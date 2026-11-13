@@ -1557,7 +1557,7 @@ describe("NIBI Protocol", () => {
   });
 
   it("mcp_tool 只携带 server/tool 事实；随官方 MCP 移除的 unavailable 载荷被拒", () => {
-    // 官方 MCP（com.zcode/official-mcp-auth）与上游套餐配额已从 fork 移除，display.unavailable
+    // 官方 MCP（com.nibistudio.nibi/official-mcp-auth）与上游套餐配额已从 fork 移除，display.unavailable
     // 没有生产方。成员 schema 是 strict 的：旧载荷必须整条拒绝，而不是静默留一个渲染不出来的字段。
     const row = conversationRowSchema.parse({
       rowId: 5,

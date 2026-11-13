@@ -5,9 +5,8 @@
  *   L1（本判据守的）：**实例身份** —— 数据根 `~/.nibi`、环境变量 `NIBI_*`、CLI 名 `nibi`。
  *   L2（2026-10-22 已改完，本判据只留必须保留的别名）：IPC 通道 `nibi:*`、
  *       线协议字段 `nibi_type`、主 renderer 的 `window.nibi` 桥、`nibiBuiltin*` 属性、
- *       `config/provider/nibi-builtin.json`。仍允许残留的只有三类外部契约：
- *       插件包格式 `.zcode-plugin/`、元数据键 `com.zcode/`、插件面板的 `window.zcode`
- *       别名（同一对象，见 ALLOWED_ZCODE_PATH 注释）。
+ *       `config/provider/nibi-builtin.json`。插件 ABI 已统一为 `.nibi-plugin/`、
+ *       `NIBI_*`、`window.nibi` 与 `com.nibistudio.nibi/`，旧名不再放行。
  *
  * 为什么必须扫**产物**而不是源码：源码干净不代表产物干净。esbuild/vite 会把
  * define 注入值、依赖包里的字面量、内联的第三方代码一起打进来；`skill` 文档、
@@ -58,39 +57,6 @@ const ARTIFACT_ROOTS = [
   },
 ];
 
-/**
- * 允许残留的 token：**插件包格式** + **插件 ABI 兼容层**（只输出给插件子进程/清单模板）。
- * 宿主自己的配置读取仍然只认 `NIBI_*`，这里不会成为宿主回退。
- */
-const ALLOWED_ZCODE_ENV = new Set([
-  // 插件包格式的两个兼容常量：`.zcode-plugin/` 目录名与它的清单路径。
-  // 已发布的第三方包仍用该目录，宿主必须能读；常量名带 ZCODE_ 只是因为它指的就是这个目录。
-  "ZCODE_PLUGIN_MANIFEST_DIR",
-  "ZCODE_MANIFEST_PATH",
-  "ZCODE_MANIFEST_PATH2",
-  // 插件 ABI 兼容层（step9b-brand-inventory §0.6）：移植过来的上游 ZCode 插件在 manifest/脚本里
-  // 仍使用这些名字。只出现在“给插件子进程组装环境”和“解析插件清单模板”的出口，宿主从不读取。
-  "ZCODE_PLUGIN_ROOT",
-  "ZCODE_PLUGIN_DATA",
-  "ZCODE_PROJECT_DIR",
-  "ZCODE_SESSION_ID",
-  "ZCODE_SKILL_DIR",
-  "ZCODE_CUA_PLUGIN_ROOT",
-]);
-
-/** 允许残留的 `.zcode*` 字面量：包格式、上游域名、深链 URL、插件桥别名。 */
-const ALLOWED_ZCODE_PATH = [
-  /\.zcode-plugin/, // 插件包格式目录，市场 zip 内结构
-  /cdn\.zcode-ai\.com/, // 上游 CDN 域名，属外部契约
-  /com\.zcode\//, // 元数据命名空间键
-  // 插件面板的桥别名：宿主同时注入 window.nibi（主名）与 window.zcode（同一对象），
-  // 只为已发布的第三方面板不失效；技能文档与我们自己的面板一律用 nibi。
-  /window\.zcode/,
-  // 深链 URL 的历史形态（nibi://oauth/...）。IPC 通道前缀已全部改为 nibi:，
-  // 这里只放行 URL 形态，任何 `zcode:` 通道名都会重新被判据抓到。
-  /"zcode:\/\//,
-  /'zcode:\/\//,
-];
 
 /**
  * A1/A2（分家标准 §6）：**第三方 CDN 域名不得出现在产物里**。
@@ -241,18 +207,13 @@ function findOffenders(line) {
   const found = [];
 
   for (const match of line.matchAll(/ZCODE_[A-Z0-9_]+/g)) {
-    const token = match[0];
-    if (!ALLOWED_ZCODE_ENV.has(token)) {
-      found.push({ token, kind: "env" });
-    }
+    found.push({ token: match[0], kind: "env" });
   }
 
   // 只认「路径段」形态的 .zcode：前后都不能是标识符字符。
   // 这样 meta.zcode / record.zcode（上游消息 _meta 的 JSON 命名空间）不会被当成残留。
   for (const match of line.matchAll(/(?<![\w.])\.zcode(?![-_\w])/g)) {
-    const token = match[0];
-    if (ALLOWED_ZCODE_PATH.some((pattern) => pattern.test(line))) continue;
-    found.push({ token, kind: "path" });
+    found.push({ token: match[0], kind: "path" });
   }
 
   // A1/A2：第三方 CDN 域名（不带 ZCODE_ 前缀，身份规则抓不到）。
@@ -392,3 +353,5 @@ async function main() {
 }
 
 await main();
+
+

@@ -63,7 +63,7 @@ docker/plugin-eval/bin/build-image.sh --ref feat-cli-plugins-parity \
 2. `builder` 阶段 `pnpm install --frozen-lockfile --filter "@nibi/cli..." --filter zcode`，然后按仓库脚本
    `scripts/build-desktop-agent-cli.mjs` 的顺序构建 shared-types → contracts → core → adapters → i18n → telemetry → bootstrap → cli。
 3. `runtime` 阶段只带 `node + zcode.cjs + jq/python3/git/ripgrep`，以 uid 10001 的 `zcode` 用户运行；
-   `HOME=/data`、`ZCODE_DATA_BASE_DIR=/data`、`ZCODE_STORAGE_DIR=/data/.zcode`、`ZCODE_BASE_URL=https://zcode.z.ai`。
+   `HOME=/data`、`NIBI_DATA_BASE_DIR=/data`、`NIBI_STORAGE_DIR=/data/.zcode`、`NIBI_BASE_URL=https://zcode.z.ai`。
    内置插件不在 `zcode.cjs` 里，CLI 在入口文件同级的 `packages/<name>-plugin` 找根目录，所以 builder 阶段把
    document-skills、zcode-guide、skill-creator、restore-legacy-sessions 四个纯内容型内置插件 stage 到 `/opt/zcode/packages/`；
    同理 CLI 启动必读的内置 provider 目录 `config/provider/zcode-builtin.json` 放到 `/opt/zcode/provider/`。
@@ -81,13 +81,13 @@ node docker/plugin-eval/bin/prepare-auth.mjs --list-providers
 # 生成容器用凭据目录；provider 可写名字或 id，模型 id 与 reasoning 档位必须显式给
 node docker/plugin-eval/bin/prepare-auth.mjs --out ./.zcode-eval-auth \
   --provider ZAPI --model GLM-5.3-Highspeed --reasoning max
-# 末尾会打印：export ZCODE_EVAL_CREDENTIAL_SECRET=...   （复制执行）
+# 末尾会打印：export NIBI_EVAL_CREDENTIAL_SECRET=...   （复制执行）
 ```
 
 为什么不能直接把 `~/.nibi/v2` 拷进容器：
 
 - `credentials.json` 的值用 aes-256-gcm 加密，默认密钥由 `platform:homedir:username` 派生。容器里三者全变，直接拷贝必然解密失败。
-  脚本在主机上用本机密钥解密，再用 `ZCODE_EVAL_CREDENTIAL_SECRET` 重加密；容器运行时以 `ZCODE_CREDENTIAL_SECRET` 传入同一个值。
+  脚本在主机上用本机密钥解密，再用 `NIBI_EVAL_CREDENTIAL_SECRET` 重加密；容器运行时以 `NIBI_CREDENTIAL_SECRET` 传入同一个值。
 - headless 的模型选择只读 `provider_config.json` 的 `config.defaultModelSelection`，且必须是
   `{providerId, modelId, options.reasoningLevel}` 全形态。缺 `reasoningLevel` 时 CLI 会静默回退到第一个 provider 的第一个模型，
   表现为莫名其妙的 422 或模型名不对。脚本把选择写死，杜绝这一类漂移。
@@ -127,7 +127,7 @@ node docker/plugin-eval/bin/prepare-auth.mjs --out ./.zcode-eval-auth \
 ## 第四步：跑套件
 
 ```bash
-export ZCODE_EVAL_CREDENTIAL_SECRET=...   # 第二步打印的值
+export NIBI_EVAL_CREDENTIAL_SECRET=...   # 第二步打印的值
 docker/plugin-eval/bin/run-suite.sh \
   --tasks docker/plugin-eval/tasks \
   --out ./eval-results \
@@ -144,7 +144,7 @@ sequenceDiagram
   participant C as 容器 entrypoint
   participant Z as zcode CLI
   R->>C: docker run（挂 task.json / auth / out）
-  C->>C: 拷贝凭据到 $ZCODE_STORAGE_DIR/v2
+  C->>C: 拷贝凭据到 $NIBI_STORAGE_DIR/v2
   C->>Z: plugins disable --all
   C->>Z: plugins enable <白名单…>
   C->>Z: plugins list --json
@@ -183,10 +183,10 @@ eval-results/
 - **模型会绕过限制**：headless 默认 yolo 权限。一次冒烟里模型在拿不到 MCP 工具时，自行用 Bash 解密了容器内的
   `credentials.json` 并手动 curl 数据接口。评测容器必须视为可读到全部注入凭据的环境：只注入评测账号、用完即弃、
   不要复用生产账号；判分时用 `mcpToolsInvoked` 而不是最终答案来判断插件能力是否真的被使用。
-- **`ZCODE_BASE_URL` 必须显式设置**：插件 manifest 里的 MCP 地址写作 `${ZCODE_BASE_URL}/api/v1/mcp/...`，
+- **`NIBI_BASE_URL` 必须显式设置**：插件 manifest 里的 MCP 地址写作 `${NIBI_BASE_URL}/api/v1/mcp/...`，
   独立 CLI 不注入该变量时 `plugins list --json` 会出现 `plugin_variable_missing`，对应 MCP 直接被丢弃。镜像已内置生产值，
-  打测试环境时用 `docker run -e ZCODE_BASE_URL=...` 覆盖。
-- **代理**：CLI 自己的网络只认 `ZCODE_HTTP_PROXY`，不读 `http_proxy`；构建用 `--proxy`，运行用 `run-suite.sh --proxy`。
+  打测试环境时用 `docker run -e NIBI_BASE_URL=...` 覆盖。
+- **代理**：CLI 自己的网络只认 `NIBI_HTTP_PROXY`，不读 `http_proxy`；构建用 `--proxy`，运行用 `run-suite.sh --proxy`。
 - **依赖桌面底座的内置插件不纳入**：browser-use、computer-use、ios-simulator、android-emulator 需要桌面 WebView、
   独立 MCP runtime 或模拟器，headless 容器里没有对应底座，镜像不 stage 它们，`plugins list` 也看不到。
 - **`--plugin-dir`（会话级加载本地插件）尚未落地**：评测未发布插件请先 `zcode plugins marketplace add <本地目录>` 再 `install`。
@@ -200,8 +200,8 @@ eval-results/
 | 容器退出 64 | `container.log` | task.json 缺 `id`/`prompt`，或路径没挂对 |
 | 容器退出 65 | `plugins.json`、`plugins-enable.log` | 白名单里的插件名拼错、同名多市场需要写 `name@marketplace` |
 | 422 / 模型不对 | `stderr.log`、`summary.json.source` | `defaultModelSelection` 不完整，重跑 `prepare-auth.mjs` 显式给 `--model --reasoning` |
-| 全部 401 / auth_failed | `stderr.log` | `ZCODE_EVAL_CREDENTIAL_SECRET` 与生成时不一致，或本机登录态已过期 |
-| `plugin_variable_missing` | `plugins.json` diagnostics | 运行时覆盖了 `ZCODE_BASE_URL` 为空 |
+| 全部 401 / auth_failed | `stderr.log` | `NIBI_EVAL_CREDENTIAL_SECRET` 与生成时不一致，或本机登录态已过期 |
+| `plugin_variable_missing` | `plugins.json` diagnostics | 运行时覆盖了 `NIBI_BASE_URL` 为空 |
 | skill 没被调用 | `events.jsonl` 中 `tool.updated` | prompt 没点名插件/skill；或插件未在白名单 |
 
 ## 验证记录

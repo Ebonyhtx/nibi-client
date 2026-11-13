@@ -11,7 +11,7 @@
 账号登录凭据 → 凭据存储，不作为普通模型配置公开
 ```
 
-`ZCODE_DATA_BASE_DIR` 改变 provider/凭据等数据基目录。个人模型文件可显式用 `ZCODE_PERSONAL_PROVIDER_CONFIG_FILE` 指定。不同构建的路径和兼容入口可能不同，先核对本次 CLI 的行为。
+`NIBI_DATA_BASE_DIR` 改变 provider/凭据等数据基目录。个人模型文件可显式用 `NIBI_PERSONAL_PROVIDER_CONFIG_FILE` 指定。不同构建的路径和兼容入口可能不同，先核对本次 CLI 的行为。
 
 运行配置一般按内置默认、用户、项目、环境变量及入口参数叠加。同名 MCP server 的用户配置具有更高优先级；项目 Hook 还必须通过独立的工作区信任。不能用一条“后写覆盖前写”规则概括所有字段。
 
@@ -67,7 +67,7 @@
 个人模型文件已存在 → 读取个人配置 → 后续修改个人配置
 ```
 
-因此，迁移后继续改旧文件中的 `model`/`provider`，不能作为可靠的切换方式。项目级旧 provider、旧 `ZCODE_MODEL`/`ZCODE_API_KEY` 环境变量也不能当成新格式的通用覆盖入口。`ZCODE_BASE_URL` 在当前代码中还与产品服务端点有关，不能把模型 API 地址填进去代替 `api.baseUrl`。
+因此，迁移后继续改旧文件中的 `model`/`provider`，不能作为可靠的切换方式。项目级旧 provider、旧 `NIBI_MODEL`/`NIBI_API_KEY` 环境变量也不能当成新格式的通用覆盖入口。`NIBI_BASE_URL` 在当前代码中还与产品服务端点有关，不能把模型 API 地址填进去代替 `api.baseUrl`。
 
 旧模型配置可能包含无法迁移的字段；发现错误时先保留原文件并查看诊断，不要删除个人配置来反复强制导入。
 
@@ -89,8 +89,8 @@
 
 ## 环境变量与网络
 
-常用运行变量包括 `ZCODE_STORAGE_DIR`、`ZCODE_SESSION_DB_PATH`、`ZCODE_LOG_DIR`、`ZCODE_LOG_CONSOLE=1`、`ZCODE_HTTP_PROXY`、`ZCODE_NO_PROXY`、`ZCODE_AGENT_CA_CERT` 和 `ZCODE_MAX_TOOL_CONCURRENCY`。`ZCODE_LOG_LEVEL` 不是受支持的日志级别设置。
+常用运行变量包括 `NIBI_STORAGE_DIR`、`NIBI_SESSION_DB_PATH`、`NIBI_LOG_DIR`、`NIBI_LOG_CONSOLE=1`、`NIBI_HTTP_PROXY`、`NIBI_NO_PROXY`、`NIBI_AGENT_CA_CERT` 和 `NIBI_MAX_TOOL_CONCURRENCY`。`NIBI_LOG_LEVEL` 不是受支持的日志级别设置。
 
-CLI 会从有效工作目录向上查找 `.env`，既有环境变量不被覆盖。评测工作区及其父目录不要遗留意外的 `.env`。使用 `network.httpProxy` 或 `ZCODE_HTTP_PROXY` 配置 CLI 网络；不要假设调用者的所有标准代理、证书或 telemetry 变量会原样进入运行时。
+CLI 会从有效工作目录向上查找 `.env`，既有环境变量不被覆盖。评测工作区及其父目录不要遗留意外的 `.env`。使用 `network.httpProxy` 或 `NIBI_HTTP_PROXY` 配置 CLI 网络；不要假设调用者的所有标准代理、证书或 telemetry 变量会原样进入运行时。
 
 完整隔离需要同时考虑用户目录、数据基目录、工作目录和已有环境变量，见[批量任务](13-automation.md)。

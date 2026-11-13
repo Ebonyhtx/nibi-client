@@ -11,7 +11,7 @@
 默认全量 desktop E2E 不会执行 manual review spec。需要显式打开：
 
 ```bash
-ZCODE_E2E_MANUAL_REVIEW=1 \
+NIBI_E2E_MANUAL_REVIEW=1 \
 E2E_PROVIDER_API_KEY=<real-provider-key> \
 pnpm exec wdio run wdio.conf.ts \
   --spec ./test/e2e/conversation-session/conversation-session-goal-run-cases.test.ts

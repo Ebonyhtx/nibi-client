@@ -212,7 +212,7 @@ const E2E_HOME_DIR = resolve(
 const E2E_PACKAGED_APP_BINARY_PATH = process.env.NIBI_E2E_PACKAGED_APP_PATH?.trim()
   ? resolve(process.env.NIBI_E2E_PACKAGED_APP_PATH)
   : null;
-// 目录隔离已回滚：所有 Desktop E2E 继续使用历史 ~/.zcode 布局。
+// 目录隔离已回滚：所有 Desktop E2E 继续使用历史 ~/.nibi 布局。
 const E2E_STORAGE_ROOT = resolve(E2E_HOME_DIR, ".nibi");
 const E2E_APP_CONFIG_DIR = resolve(E2E_STORAGE_ROOT, "v2");
 const E2E_APP_SETTINGS_FILE = resolve(E2E_APP_CONFIG_DIR, "setting.json");

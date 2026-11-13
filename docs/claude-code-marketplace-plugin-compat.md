@@ -80,7 +80,7 @@ marketplace id，例如 `claude-plugins-official`。
     {marketplace}/marketplace.json
   cache/
     {marketplace}/{plugin}/{version}/
-      .zcode-plugin/plugin.json
+      .nibi-plugin/plugin.json
       .claude-plugin/plugin.json
       .mcp.json
       skills/
@@ -110,7 +110,7 @@ CDN 市场条目优先。Claude 官方 `claude-plugins-official` 只内置 marke
 - 设置页首次加载、市场详情、校验等会懒加载 Claude catalog 的路径同样受 30 秒预算保护；
   已有本地 manifest 时继续离线读取，不为概览读取强制联网。
 - 所有 marketplace catalog、Claude 图标和 GitHub Archive 的 HTTP 请求必须经过统一的
-  Web HTTP egress adapter，遵守 `ZCODE_HTTP_PROXY` / `ZCODE_NO_PROXY`，并在 Agent 封存
+  Web HTTP egress adapter，遵守 `NIBI_HTTP_PROXY` / `NIBI_NO_PROXY`，并在 Agent 封存
   用户 shell 后回退使用捕获的系统代理；禁止这些路径直接调用未配置代理的原生 `fetch`。
 - 该预算只约束 Claude **marketplace catalog**。用户实际安装的第三方插件源仍按其自身
   source 类型执行，不把 catalog 超时误当作插件安装超时。
@@ -240,7 +240,7 @@ Bugfix 约束：`plugins/describe` 的 MCP 与 hook 枚举口径必须对齐真�
 - `command` / `args`：执行命令及参数。
 - `timeoutMs` / `timeout`、`async`、`shell`、`statusMessage`：原始 hook 配置中
   ZCode 已识别的运行参数。
-- `sourcePath`：明细来自 `.claude-plugin/plugin.json`、`.zcode-plugin/plugin.json`
+- `sourcePath`：明细来自 `.claude-plugin/plugin.json`、`.nibi-plugin/plugin.json`
   还是 `hooks/hooks.json`。
 - `runnable`：当前 runtime 是否会把该 hook 注入执行。官方 marketplace / inline
   受信插件可以为 `true`；第三方 marketplace 在 V1 默认必须为 `false`，仅诊断展示。

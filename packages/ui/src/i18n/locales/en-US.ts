@@ -5225,7 +5225,7 @@ const enUS: Record<string, string> = {
   "settingsSync.action.importSelected": "Import selected",
   "settingsSync.action.importing": "Importing...",
   "settingsSync.action.finish": "Start using NIBI",
-  "settingsSync.agent.zcode": "NIBI Agent",
+  "settingsSync.agent.nibi": "NIBI Agent",
   "settingsSync.agent.claudeCode": "Claude Code",
   "settingsSync.agent.codexCli": "Codex CLI",
   "settingsSync.agent.openCode": "OpenCode",

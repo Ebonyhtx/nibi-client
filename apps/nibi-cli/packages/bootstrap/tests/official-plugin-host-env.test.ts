@@ -30,7 +30,7 @@ describe("Host-provided bundled plugin environment", () => {
     process.env[BINARY_PATH_ENV] = "/opt/nibi/resources/glm/nibi.cjs";
     expect(officialPluginHostPrefixArgs()).toEqual([
       "/opt/nibi/resources/glm/nibi.cjs",
-      "__zcode-plugin-host",
+      "__nibi-plugin-host",
     ]);
   });
 

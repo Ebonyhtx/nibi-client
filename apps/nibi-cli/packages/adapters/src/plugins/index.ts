@@ -3,7 +3,6 @@ import {
   CLAUDE_PLUGIN_MANIFEST_DIR,
   CODEX_PLUGIN_MANIFEST_DIR,
   NIBI_PLUGIN_MANIFEST_DIR,
-  ZCODE_PLUGIN_MANIFEST_DIR,
 } from "@nibi/shared";
 import { basename, dirname, join, resolve } from "node:path";
 import type {
@@ -134,7 +133,6 @@ export {
 const NIBI_MANIFEST_PATH = join(NIBI_PLUGIN_MANIFEST_DIR, "plugin.json");
 const CLAUDE_MANIFEST_PATH = join(CLAUDE_PLUGIN_MANIFEST_DIR, "plugin.json");
 const CODEX_MANIFEST_PATH = join(CODEX_PLUGIN_MANIFEST_DIR, "plugin.json");
-const LEGACY_ZCODE_MANIFEST_PATH = join(ZCODE_PLUGIN_MANIFEST_DIR, "plugin.json");
 const DEFAULT_VERSION = "0.0.0";
 const FIRST_PLUGIN_PRIORITY = 1_000;
 const PRIORITY_STEP = 10;
@@ -1181,11 +1179,6 @@ function findManifest(rootPath: string): string | null {
     return nibiPath;
   }
 
-  // 兼容不同 manifest 目录约定，发现阶段按稳定优先级回退。
-  const legacyManifestPath = join(rootPath, LEGACY_ZCODE_MANIFEST_PATH);
-  if (fileExists(legacyManifestPath)) {
-    return legacyManifestPath;
-  }
   const claudePath = join(rootPath, CLAUDE_MANIFEST_PATH);
   if (fileExists(claudePath)) {
     return claudePath;

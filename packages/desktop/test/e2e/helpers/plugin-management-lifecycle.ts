@@ -179,7 +179,7 @@ export async function createInvalidOfficialCollisionFixture(): Promise<string> {
 export async function seedInlineLifecyclePlugin(): Promise<string> {
   const { homeDir } = getE2EAppDataPaths();
   const root = join(homeDir, "fixtures", PLUGIN_INLINE_NAME);
-  await writeJson(join(root, ".zcode-plugin", "plugin.json"), {
+  await writeJson(join(root, ".nibi-plugin", "plugin.json"), {
     name: PLUGIN_INLINE_NAME,
     version: "1.0.0",
     description: "E2E inline plugin lifecycle smoke fixture",
@@ -1048,7 +1048,7 @@ async function writeLifecyclePlugin(
   version: string,
   withUi = false,
 ): Promise<void> {
-  await writeJson(join(pluginRoot, ".zcode-plugin", "plugin.json"), {
+  await writeJson(join(pluginRoot, ".nibi-plugin", "plugin.json"), {
     name: PLUGIN_LIFECYCLE_NAME,
     version,
     description: `E2E plugin management lifecycle fixture ${version}`,
@@ -1130,7 +1130,7 @@ async function writeLifecyclePlugin(
 }
 
 async function writeSimplePlugin(pluginRoot: string, index: number): Promise<void> {
-  await writeJson(join(pluginRoot, ".zcode-plugin", "plugin.json"), {
+  await writeJson(join(pluginRoot, ".nibi-plugin", "plugin.json"), {
     name: `e2e-lifecycle-extra-${index}`,
     version: "1.0.0",
     description: `E2E lifecycle category expansion plugin ${index}`,

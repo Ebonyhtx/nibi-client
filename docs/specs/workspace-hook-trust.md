@@ -1597,8 +1597,8 @@ zcode hooks trust revoke --workspace <path-or-identity> [--hook-digest <sha256>|
 V1 不支持：
 
 ```text
-ZCODE_TRUST_WORKSPACE_HOOKS=1
-ZCODE_ALWAYS_ALLOW_PROJECT_HOOKS=1
+NIBI_TRUST_WORKSPACE_HOOKS=1
+NIBI_ALWAYS_ALLOW_PROJECT_HOOKS=1
 ```
 
 如果未来引入 automation token，必须是短期、绑定 workspace identity 与精确 declaration digest set、可撤销且可审计的能力，而不是全局布尔值。

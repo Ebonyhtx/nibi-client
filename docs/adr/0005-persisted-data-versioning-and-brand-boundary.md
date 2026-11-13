@@ -65,8 +65,8 @@ NIBI 与上游 ZCode 可能装在同一台机器上。两者的持久化数据�
 下列名字属于**与外部交换的契约**，不在本决策的改名范围（`check-storage-keys.mjs` 的
 `ALLOWED_KEYS` 与 `check-identity-residue.mjs` 的允许清单维护它们）：
 
-- 插件包格式 `.zcode-plugin/`、元数据键 `com.zcode/`、面板桥别名 `window.zcode`；
-- 插件环境变量 `ZCODE_PLUGIN_*` 等（只**输出**给插件子进程与清单模板，宿主从不读取）；
+- 插件包格式 `.nibi-plugin/`、元数据键 `com.nibistudio.nibi/`、面板桥别名 `window.nibi`；
+- 插件环境变量 `NIBI_PLUGIN_*` 等（只**输出**给插件子进程与清单模板，宿主从不读取）；
 - Gen-UI / MCP Apps 元数据键（`zcode/genUiTweaks` 等）；
 - 模型 provider id（`zai` / `bigmodel`）与服务端契约字段 `clientType: "zcode"`。
 

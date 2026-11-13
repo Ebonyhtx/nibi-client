@@ -295,7 +295,7 @@ stdio MCP 服务的 stdout 只输出协议消息，调试日志写 stderr。定�
 
 ## 给自己的插件接入 UI
 
-沿用普通插件的安装目录与市场条目；需要编译的源码包声明自己的 `build`，额外资源使用可选 `stage`。下面是安装清单 `.zcode-plugin/plugin.json` 的最小页面示例：
+沿用普通插件的安装目录与市场条目；需要编译的源码包声明自己的 `build`，额外资源使用可选 `stage`。下面是安装清单 `.nibi-plugin/plugin.json` 的最小页面示例：
 
 ```json
 {

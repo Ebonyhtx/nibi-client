@@ -129,7 +129,7 @@ main 进程(唯一数据源)
   mainSettingService(设置持久化)──closeToTrayOnWindows──→ 关窗分支
         │ ipcMain.handle(GetCloseToTrayCapability)
         ▼
-preload bridge(window.zcode.getCloseToTrayCapability)
+preload bridge(window.nibi.getCloseToTrayCapability)
         ▼
 renderer desktopPlatform(IPlatformService 适配)
         ▼

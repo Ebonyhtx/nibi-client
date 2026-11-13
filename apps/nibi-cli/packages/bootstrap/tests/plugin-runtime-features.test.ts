@@ -14,7 +14,7 @@ function plugin(id: string, enabled: boolean, rootPath = "/tmp/plugin"): PluginM
     enabled,
     hookDetails: [],
     id,
-    manifestPath: `${rootPath}/.zcode-plugin/plugin.json`,
+    manifestPath: `${rootPath}/.nibi-plugin/plugin.json`,
     marketplace,
     mcpServerNames: [],
     name,

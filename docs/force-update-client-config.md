@@ -16,13 +16,13 @@ ZCode Desktop 需要支持远端按版本拉闸。当远端配置明确下发强
 }
 ```
 
-Desktop main 启动前守卫读取当前 `ZCODE_ENV` / endpoint override 解析出的 active ZCode endpoint：`pnpm dev:desktop` 默认等同 `dev:desktop:prod`，因此请求正式服务端；测试环境必须显式运行 `pnpm dev:desktop:test`。静态 `https://cdn.zcode-ai.com/zcode/config/default.json` 的同名字段形态仅作为解析兼容，不再作为 Desktop 启动前守卫的固定读取地址。业务服务里的 client config 解析继续复用同一字段语义。
+Desktop main 启动前守卫读取当前 `NIBI_ENV` / endpoint override 解析出的 active ZCode endpoint：`pnpm dev:desktop` 默认等同 `dev:desktop:prod`，因此请求正式服务端；测试环境必须显式运行 `pnpm dev:desktop:test`。静态 `https://cdn.zcode-ai.com/zcode/config/default.json` 的同名字段形态仅作为解析兼容，不再作为 Desktop 启动前守卫的固定读取地址。业务服务里的 client config 解析继续复用同一字段语义。
 
 ## 判定规则
 
 - 只有 `forceUpdate.minimalVersion` 是非空字符串时才进入比较。
 - 未下发 `forceUpdate`，或 `minimalVersion` 缺失、为空、不是合法 semver 时，不触发强制升级。
-- 本地版本使用编译期 `ZCODE_VERSION`。
+- 本地版本使用编译期 `NIBI_VERSION`。
 - 使用 semver 语义比较本地版本与 `minimalVersion`；本地版本小于最低版本时判定为需要强制升级。
 - 预发布版本遵循 semver 规则：例如 `4.0.0-beta.1` 小于 `4.0.0`。
 - 读取远端和本地配置都失败时不拉闸，预留完全离线状态下跳过更新校验进入界面的接口；后续如需显式离线策略，应在 Desktop main 守卫中接入，不下沉到 UI Root。

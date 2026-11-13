@@ -268,12 +268,12 @@ impl Tool for McpTool {
         let settings = manager.settings();
         // 这个服务器的 `timeoutMs`，没有时 `MCP_TOOL_TIMEOUT`（ext.md §3.1）。
         let timeout_ms = settings.tool_timeout_for(manager.options(server));
-        // node_repl 的 browser/CUA bridge **只**认 `_meta["com.zcode/request-context"]` 里的
+        // node_repl 的 browser/CUA bridge **只**认 `_meta["com.nibistudio.nibi/request-context"]` 里的
         // `session_id` / `runtime_scope`（`node-repl-host/src/server.ts#buildRequestMeta`）：
         // 缺 `session_id` 时 Browser Use 第一步就报 "node_repl browser request is missing
         // session_id metadata"，整个浏览器/可视化面板链路废掉。Node 侧所有 MCP 调用都由
         // `mcpRequestMeta` 统一下发这一组平铺键 + 同名嵌套副本；Rust 以前只带 toolUseId。
-        // 嵌套键名是上游插件协议（`com.zcode/request-context`），插件按它读，不能品牌化改名。
+        // 嵌套键名是上游插件协议（`com.nibistudio.nibi/request-context`），插件按它读，不能品牌化改名。
         let runtime_scope = if context.agent.is_some() { "subagent" } else { "main" };
         let workspace_path = context.workspace.root.as_str();
         let request_context = json!({
@@ -290,7 +290,7 @@ impl Tool for McpTool {
                 meta.insert(key.clone(), value.clone());
             }
         }
-        meta.insert("com.zcode/request-context".to_owned(), request_context);
+        meta.insert("com.nibistudio.nibi/request-context".to_owned(), request_context);
         let params = json!({
             "name": self.info.tool,
             "arguments": input,

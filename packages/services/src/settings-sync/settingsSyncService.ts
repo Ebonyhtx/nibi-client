@@ -410,7 +410,7 @@ const SUPPORTED_MCP_AGENT_SOURCES: ExternalAgentMcpPathSource[] = [
 
 const NIBI_PLUGIN_MANIFEST_PATHS = [
   [".nibi-plugin", "plugin.json"],
-  [".zcode-plugin", "plugin.json"],
+  [".nibi-plugin", "plugin.json"],
 ] as const;
 const CLAUDE_PLUGIN_MANIFEST_PATH = [".claude-plugin", "plugin.json"] as const;
 const CODEX_PLUGIN_MANIFEST_PATH = [".codex-plugin", "plugin.json"] as const;

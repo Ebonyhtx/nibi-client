@@ -137,7 +137,7 @@ server。该变更不改变 conversation UI/product state，不新增 conversati
 
 另增 Desktop 真实进程 E2E `packages/desktop/test/e2e/settings/mcp-dual-era-version-negotiation.test.ts`，
 用隔离 HOME 中的真实 CLI 配置启动 modern/legacy stdio fixture，并从 worker 专属
-`ZCODE_LOG_DIR` 读取 `mcp.server.connected` JSONL。这条 E2E 必须同时锁定：
+`NIBI_LOG_DIR` 读取 `mcp.server.connected` JSONL。这条 E2E 必须同时锁定：
 
 - modern fixture 实际协商 `2026-07-28`，无 legacy `initialize`；
 - legacy fixture 经 disposable probe 后由真实 session child 完成 `initialize`；

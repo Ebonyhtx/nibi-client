@@ -123,13 +123,13 @@
 首次从干净构建运行（需仓库依赖已安装）：
 
 ```bash
-ZCODE_E2E_MANUAL_REVIEW=1 \
-ZCODE_BUILTIN_PROVIDER_CONFIG_FILE="$PWD/config/provider/zcode-builtin.json" \
+NIBI_E2E_MANUAL_REVIEW=1 \
+NIBI_BUILTIN_PROVIDER_CONFIG_FILE="$PWD/config/provider/zcode-builtin.json" \
   mise exec -- pnpm --filter @nibi/desktop test:e2e -- \
   --spec './test/e2e/ui-shell/manual-review/pending/general-coding-mode.test.ts'
 ```
 
-本轮先完成完整 E2E 构建，后续只修改测试时使用框架的 `ZCODE_E2E_SKIP_BUILD=1 ZCODE_E2E_SKIP_AGENT_BUILD=1` 复用构建。显式 provider config 防止测试启动回到无法完成的远端配置初始化；不改变模型响应，也不发送对话请求。
+本轮先完成完整 E2E 构建，后续只修改测试时使用框架的 `NIBI_E2E_SKIP_BUILD=1 NIBI_E2E_SKIP_AGENT_BUILD=1` 复用构建。显式 provider config 防止测试启动回到无法完成的远端配置初始化；不改变模型响应，也不发送对话请求。
 
 Electron 通过报告：`packages/desktop/.e2e-artifacts/desktop-e2e-20260910161155755-p86485-1e1dbe00b0b94651/summary.md`。
 
@@ -154,6 +154,6 @@ Windows/Linux 原生运行、实际手机远控、其他语言/主题、Docker r
 
 用户已确认验收，将同一文件内 MODE-01 与 MODE-02/03 两个测试转正到 `packages/desktop/test/e2e/ui-shell/general-coding-mode.test.ts`，修正 helper 相对路径并同步目录与矩阵引用。上文 pending 路径和状态保留为历史验证记录。
 
-现有 `e2e:promote` 脚本仅支持 conversation-session，dry run 拒绝 ui-shell 路径；本次按原领域直接迁移，不改脚本或挪入错误领域。用例只操作 UI 与本地 PTY，不发送模型请求，因此没有 case-local 模型响应 fixture。正式路径的运行不使用 `ZCODE_E2E_MANUAL_REVIEW`。Docker preset admission 尚未执行，不声明 Docker CI 覆盖。
+现有 `e2e:promote` 脚本仅支持 conversation-session，dry run 拒绝 ui-shell 路径；本次按原领域直接迁移，不改脚本或挪入错误领域。用例只操作 UI 与本地 PTY，不发送模型请求，因此没有 case-local 模型响应 fixture。正式路径的运行不使用 `NIBI_E2E_MANUAL_REVIEW`。Docker preset admission 尚未执行，不声明 Docker CI 覆盖。
 
 转正验证：macOS 正式路径 2/2 通过（未开启 manual-review），报告 `packages/desktop/.e2e-artifacts/desktop-e2e-20260914135304096-p28302-df659cf52d0d2fbd/summary.md`。typecheck、desktop typecheck:e2e、lint、架构检查通过。额外执行 conversation coverage audit 失败；将全部本轮修改临时恢复到 HEAD 后复跑，审计输出完全相同，确认为既有统计/生成文档漂移，本次未新增审计失败。

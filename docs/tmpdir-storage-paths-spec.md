@@ -28,8 +28,8 @@
 - 写入前须准备业务子目录，不能依赖 `mkdtemp` 自动创建父目录。Bash 的系统 tmp 父目录不存在时按 `ENOENT` 降级，不自行创建系统 tmp 根。
 - 短生命周期目录必须使用单次唯一子目录，结束后在 `finally` 中清理；Bash retained 输出不随 adapter 关闭删除。
 - 失败清理不能影响主流程结果。Bash tmp 输出暂不纳入 App 存储占用统计或清理，其余目录沿用现有管理范围。
-- Bash 的自定义 `ZCODE_STORAGE_DIR` / `storageRoot` 也仅作为降级位置；其他文件仍优先使用解析后的 `storageRoot`。
-- service / desktop 侧使用现有 data base dir 语义，默认落到 `~/.nibi`，配置了 `ZCODE_DATA_BASE_DIR` 时落到 `{dataBaseDir}/.zcode`。
+- Bash 的自定义 `NIBI_STORAGE_DIR` / `storageRoot` 也仅作为降级位置；其他文件仍优先使用解析后的 `storageRoot`。
+- service / desktop 侧使用现有 data base dir 语义，默认落到 `~/.nibi`，配置了 `NIBI_DATA_BASE_DIR` 时落到 `{dataBaseDir}/.zcode`。
 
 ## Bash 输出例外
 

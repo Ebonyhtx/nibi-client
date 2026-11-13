@@ -4,11 +4,11 @@
 
 Desktop WDIO E2E uses one run identity for both file isolation and process cleanup:
 
-- `ZCODE_E2E_RUN_ID`
-- `ZCODE_E2E_HOME_DIR`
+- `NIBI_E2E_RUN_ID`
+- `NIBI_E2E_HOME_DIR`
 - Electron app arg `--zcode-e2e-run-id=<runId>`
 
-`ZCODE_E2E_HOME_DIR` isolates persisted app data. `ZCODE_E2E_RUN_ID` is also passed on the Electron command line so process scans can identify the root process for the current WDIO run without relying on shared build paths.
+`NIBI_E2E_HOME_DIR` isolates persisted app data. `NIBI_E2E_RUN_ID` is also passed on the Electron command line so process scans can identify the root process for the current WDIO run without relying on shared build paths.
 
 ## Cleanup Boundary
 
@@ -32,7 +32,7 @@ Shared markers are intentionally not cleanup identities:
 - `APP_ENTRY_POINT`
 - `out/main`
 
-Those values only prove that a process belongs to this repository or product test build. They do not prove it belongs to the current WDIO run. Using them as kill conditions lets one shard or local run terminate another shard with a different `ZCODE_E2E_HOME_DIR`, causing DevTools disconnects, `DevToolsActivePort` failures, white screens, or random suite exits.
+Those values only prove that a process belongs to this repository or product test build. They do not prove it belongs to the current WDIO run. Using them as kill conditions lets one shard or local run terminate another shard with a different `NIBI_E2E_HOME_DIR`, causing DevTools disconnects, `DevToolsActivePort` failures, white screens, or random suite exits.
 
 ## Platform Notes
 
@@ -56,7 +56,7 @@ create run-specific `packages/desktop/.e2e-home-<run>-shard-*` siblings. The
 serial entry point applies only to this continuous loop. Other E2E entry points
 may keep their own sharding policy.
 
-The loop never resets or discards repository changes. A dirty checkout, failed fetch, or non-fast-forward branch skips that iteration and retries after the configured delay. Generated E2E HOME directories are ignored by Git so test state from a prior interrupted run is not mistaken for a source change. Bitable credentials and `ZCODE_FEEDBACK_NOTIFICATION_TOKEN` remain environment variables consumed by the upload scripts. `-Once` runs one iteration for maintenance or validation.
+The loop never resets or discards repository changes. A dirty checkout, failed fetch, or non-fast-forward branch skips that iteration and retries after the configured delay. Generated E2E HOME directories are ignored by Git so test state from a prior interrupted run is not mistaken for a source change. Bitable credentials and `NIBI_FEEDBACK_NOTIFICATION_TOKEN` remain environment variables consumed by the upload scripts. `-Once` runs one iteration for maintenance or validation.
 
 Before each fetch, the loop removes only runner-owned transient state from the
 previous iteration: the fixed `packages/desktop/.e2e-home/`, legacy
@@ -75,4 +75,4 @@ pwsh -File .\scripts\ci\run-e2e-bitable-loop.ps1
 pwsh -File .\scripts\ci\run-e2e-bitable-loop.ps1 -Once
 ```
 
-The runner validates `LARK_E2E_APP_ID`, `LARK_E2E_APP_SECRET`, `LARK_E2E_BITABLE_TOKEN`, `LARK_E2E_TABLE_ID`, and `ZCODE_FEEDBACK_NOTIFICATION_TOKEN` before starting the first E2E run. `ZCODE_FEEDBACK_BASE_URL` remains optional and uses the report uploader default when omitted.
+The runner validates `LARK_E2E_APP_ID`, `LARK_E2E_APP_SECRET`, `LARK_E2E_BITABLE_TOKEN`, `LARK_E2E_TABLE_ID`, and `NIBI_FEEDBACK_NOTIFICATION_TOKEN` before starting the first E2E run. `NIBI_FEEDBACK_BASE_URL` remains optional and uses the report uploader default when omitted.

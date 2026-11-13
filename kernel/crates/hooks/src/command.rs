@@ -26,14 +26,14 @@ use crate::result::Raw;
 const PROJECT_DIR_VARS: [&str; 3] = [
     vars::NIBI_PROJECT_DIR,
     vars::CLAUDE_PROJECT_DIR,
-    vars::ZCODE_PROJECT_DIR,
+    vars::NIBI_PROJECT_DIR,
 ];
 /// 会话 ID 的环境变量名（Node `createPluginEnvOverlay` 的三个名字，另带上游插件别名）。
 const SESSION_ID_VARS: [&str; 4] = [
     vars::NIBI_SESSION_ID,
     vars::CLAUDE_SESSION_ID,
     vars::CLAUDE_CODE_SESSION_ID,
-    vars::ZCODE_SESSION_ID,
+    vars::NIBI_SESSION_ID,
 ];
 
 /// stdout 与 stderr 在内存里合计最多留这么多字节（hooks.md §5.1、D16）：与后台任务输出的内存上限相同。
@@ -85,7 +85,7 @@ fn single_quote(text: &str) -> String {
 const PLUGIN_ROOT_VARS: [&str; 3] = [
     vars::CLAUDE_PLUGIN_ROOT,
     vars::NIBI_PLUGIN_ROOT,
-    vars::ZCODE_PLUGIN_ROOT,
+    vars::NIBI_PLUGIN_ROOT,
 ];
 
 /// 插件的 hook：命令里的插件目录变量先换成插件目录。
