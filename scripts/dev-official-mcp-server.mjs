@@ -2,7 +2,7 @@
 /*
  * 本地自测用的 fake 官方 Server MCP（Streamable HTTP）。
  *
- * 用途：验证运行中的 ZCode 实际发出的官方 MCP 身份头是否正确——包括当前登录身份的 JWT、
+ * 用途：验证运行中的 Nibi 实际发出的官方 MCP 身份头是否正确——包括当前登录身份的 JWT、
  * 选中 Coding Plan 的 key、Bigmodel-Target-Type，以及 Team 场景的 organization/project。
  * 同时跟踪协议生命周期（initialize / initialized / tools/list / tools/call），把每一步是否
  * 成功、失败原因、以及工具调用的入参与结果都打印出来。
@@ -485,7 +485,7 @@ pnpm dev:desktop
 `);
   console.log("   该开关只接受 http loopback，无法把凭证导向远端；不设置时一切 fail closed。");
   console.log(
-    "   正式规则是「官方 marketplace 的 plugin + origin 等于当前 ZCode API origin」。\n" +
+    "   正式规则是「官方 marketplace 的 plugin + origin 等于当前 Nibi API origin」。\n" +
       `   本地 marketplace 叫 ${marketplace}（非官方），且 origin 是 loopback，\n` +
       "   因此自测必须依赖该开关。\n",
   );

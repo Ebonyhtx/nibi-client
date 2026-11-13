@@ -9,7 +9,7 @@ import {
 } from "./contract.js";
 
 /**
- * 以下 schema 是 mcp-apps-protocol 的运行时校验面：只覆盖 ZCode 自己的投影 / 元数据形状。
+ * 以下 schema 是 mcp-apps-protocol 的运行时校验面：只覆盖 Nibi 自己的投影 / 元数据形状。
  * 页面 ↔ 宿主的 `ui/*` 参数由官方 SDK（`McpUi*Schema`）校验，这里不重复。类型见 contract.ts。
  */
 

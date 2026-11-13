@@ -2,7 +2,7 @@ import { app } from "electron";
 import { join } from "node:path";
 import { NIBI_ENV } from "@nibi/shared";
 
-export function resolveZCodeBuiltinProviderConfigFilePath(options?: {
+export function resolveNibiBuiltinProviderConfigFilePath(options?: {
   readonly appPath?: string;
   readonly env?: Readonly<Record<string, string | undefined>>;
   readonly isPackaged?: boolean;

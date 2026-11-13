@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import { Emitter } from "@nibi/rpc";
 import type { NibiProtocolMessage } from "@nibi/shared";
-import { zcodeSessionStateSnapshotSchema } from "@nibi/shared";
+import { nibiSessionStateSnapshotSchema } from "@nibi/shared";
 import {
   DEFAULT_NIBI_PROTOCOL_REQUEST_TIMEOUT_MS,
   NibiProtocolClient,
-} from "../src/zcode-agent/nibiProtocolClient.js";
+} from "../src/nibi-agent/nibiProtocolClient.js";
 import type {
   NibiProtocolTransport,
   NibiProtocolTransportClosedEvent,
-} from "../src/zcode-agent/nibiProtocolTransport.js";
+} from "../src/nibi-agent/nibiProtocolTransport.js";
 
 const protocolModelProperties = {
   inputFormat: {
@@ -22,7 +22,7 @@ const protocolModelProperties = {
   outputFormat: { supportsText: true },
 };
 
-class FakeZCodeTransport implements NibiProtocolTransport {
+class FakeNibiTransport implements NibiProtocolTransport {
   readonly kind = "memory" as const;
   readonly sent: NibiProtocolMessage[] = [];
 
@@ -95,7 +95,7 @@ describe("NibiProtocolClient", () => {
   it("dispose 批量拒绝不会把 fire-and-forget 请求的外层 Promise 判为 unhandled", async () => {
     // CR 复现：request() 返回的外层 Promise 才是 unhandledRejection 判定对象；
     // 调用方在启动后、挂靠 .catch 前 dispose，内外两层都必须已有兜底 handler。
-    const transport = new FakeZCodeTransport();
+    const transport = new FakeNibiTransport();
     const client = new NibiProtocolClient(transport);
     const unhandled: unknown[] = [];
     const onUnhandled = (reason: unknown) => unhandled.push(reason);
@@ -116,7 +116,7 @@ describe("NibiProtocolClient", () => {
 
   it("观测超时不触发进程 watchdog，业务请求仍可完成", async () => {
     vi.useFakeTimers();
-    const transport = new FakeZCodeTransport();
+    const transport = new FakeNibiTransport();
     const client = new NibiProtocolClient(transport);
     const timedOut = vi.fn(() => client.dispose());
     client.onRequestTimeout(timedOut);
@@ -140,7 +140,7 @@ describe("NibiProtocolClient", () => {
   });
 
   it("观测不阻止业务 idle，成功和取消也不续期 idle", async () => {
-    const transport = new FakeZCodeTransport();
+    const transport = new FakeNibiTransport();
     const client = new NibiProtocolClient(transport);
     const drained = vi.fn();
     client.onPendingRequestsDrained(drained);
@@ -173,7 +173,7 @@ describe("NibiProtocolClient", () => {
   it("迁移期间不发送业务请求，ready 后才开始普通请求 timeout", async () => {
     vi.useFakeTimers();
     try {
-      const transport = new FakeZCodeTransport();
+      const transport = new FakeNibiTransport();
       const client = new NibiProtocolClient(transport, {
         requireStorageStartup: true,
         requestTimeoutMs: 10,
@@ -216,7 +216,7 @@ describe("NibiProtocolClient", () => {
   it("自定义命令主动声明启动状态后，已经发出的首个握手请求也不会误触普通 watchdog", async () => {
     vi.useFakeTimers();
     try {
-      const transport = new FakeZCodeTransport();
+      const transport = new FakeNibiTransport();
       const client = new NibiProtocolClient(transport, { requestTimeoutMs: 10 });
       const result = client.request("session/read", { sessionId: "s" });
       const packet = {
@@ -245,13 +245,13 @@ describe("NibiProtocolClient", () => {
   });
 
   it("matches requests with responses and validates result schemas", async () => {
-    const transport = new FakeZCodeTransport();
+    const transport = new FakeNibiTransport();
     const client = new NibiProtocolClient(transport);
 
     const request = client.request(
       "session/read",
       { sessionId: "sess_1" },
-      zcodeSessionStateSnapshotSchema,
+      nibiSessionStateSnapshotSchema,
     );
 
     expect(transport.sent).toMatchObject([
@@ -266,7 +266,7 @@ describe("NibiProtocolClient", () => {
   });
 
   it("emits notifications without requiring a jsonrpc field", () => {
-    const transport = new FakeZCodeTransport();
+    const transport = new FakeNibiTransport();
     const client = new NibiProtocolClient(transport);
     const notifications: unknown[] = [];
     client.onNotification((event) => notifications.push(event));
@@ -279,13 +279,13 @@ describe("NibiProtocolClient", () => {
   });
 
   it("serializes protocol traces on the request envelope", async () => {
-    const transport = new FakeZCodeTransport();
+    const transport = new FakeNibiTransport();
     const client = new NibiProtocolClient(transport);
 
     const request = client.request(
       "session/create",
       { workspace: { workspacePath: "/workspace/app", workspaceKey: "/workspace/app" } },
-      zcodeSessionStateSnapshotSchema,
+      nibiSessionStateSnapshotSchema,
       { trace: { traceId: "trace_from_app" } },
     );
 
@@ -305,7 +305,7 @@ describe("NibiProtocolClient", () => {
   it("uses a per-request timeout override when provided", async () => {
     vi.useFakeTimers();
     try {
-      const transport = new FakeZCodeTransport();
+      const transport = new FakeNibiTransport();
       const client = new NibiProtocolClient(transport, { requestTimeoutMs: 10 });
       const timeouts: unknown[] = [];
       client.onRequestTimeout((event) => timeouts.push(event));
@@ -347,7 +347,7 @@ describe("NibiProtocolClient", () => {
   it("uses a three minute default request timeout", async () => {
     vi.useFakeTimers();
     try {
-      const transport = new FakeZCodeTransport();
+      const transport = new FakeNibiTransport();
       const client = new NibiProtocolClient(transport);
       const timeouts: unknown[] = [];
       client.onRequestTimeout((event) => timeouts.push(event));
@@ -387,7 +387,7 @@ describe("NibiProtocolClient", () => {
   });
 
   it("cancels a pending request with an AbortSignal", async () => {
-    const transport = new FakeZCodeTransport();
+    const transport = new FakeNibiTransport();
     const client = new NibiProtocolClient(transport);
     const controller = new AbortController();
 
@@ -405,7 +405,7 @@ describe("NibiProtocolClient", () => {
   });
 
   it("does not send a request when its AbortSignal is already aborted", async () => {
-    const transport = new FakeZCodeTransport();
+    const transport = new FakeNibiTransport();
     const client = new NibiProtocolClient(transport);
     const controller = new AbortController();
     controller.abort(new DOMException("cancelled", "AbortError"));
@@ -419,7 +419,7 @@ describe("NibiProtocolClient", () => {
   });
 
   it("supports server-to-client requests and responses", async () => {
-    const transport = new FakeZCodeTransport();
+    const transport = new FakeNibiTransport();
     const client = new NibiProtocolClient(transport);
     client.onRequest((request) => {
       void client.respond(request.id, { decision: "allow" });
@@ -438,7 +438,7 @@ describe("NibiProtocolClient", () => {
   // client.onClose 尚未触发时 activeClientsByWorkspaceKey 仍指向已 disposed 的 client。
   // getClient 必须能在复用前通过 isDisposed 判断，避免对 disposed client 发请求秒败。
   it("exposes isDisposed so callers can detect a recycled client before reuse", async () => {
-    const transport = new FakeZCodeTransport();
+    const transport = new FakeNibiTransport();
     const client = new NibiProtocolClient(transport);
 
     expect(client.isDisposed).toBe(false);

@@ -9,7 +9,7 @@ import {
   testId,
 } from "@nibi/shared/test-ids";
 import { PlatformProvider } from "@/hooks/usePlatform.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { ConversationComposer } from "@/v4/ConversationComposer.js";
 
 const attachmentState = vi.hoisted(() => ({
@@ -147,7 +147,7 @@ function renderComposer(
   });
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       platform ? createElement(PlatformProvider, { platform }, composer) : composer,
     ),

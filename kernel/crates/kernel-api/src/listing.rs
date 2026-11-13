@@ -87,7 +87,7 @@ pub struct InvokedSkill {
 }
 
 /// 一个 skill 在 Composer 引用面板里的样子（`skills/referenceCatalog` 的条目，与 Host 的
-/// `zcodeSkillReferenceCatalogEntrySchema` 同形）。
+/// `nibiSkillReferenceCatalogEntrySchema` 同形）。
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SkillReference {
@@ -122,7 +122,7 @@ impl SkillReferenceScope {
 }
 
 /// 插件在 Composer `@` 面板里的身份（`plugins/referenceCatalog` 的条目，Host 的
-/// `zcodePluginReferenceCatalogEntrySchema`）。
+/// `nibiPluginReferenceCatalogEntrySchema`）。
 ///
 /// 身份与能力字段是 identifiers-only：`plugin_id` 是规范身份（`<manifest.name>@<marketplace>`），
 /// `skill_qualified_names` / `mcp_server_names` / `subagent_names` 是「声明」的能力名，与 live 发现取交集后
@@ -169,7 +169,7 @@ impl PluginDisplay {
 
 /// 官方市场目录里的一条（未安装也有）：推荐插件的安装前解析与 Picker 展示都用它。
 ///
-/// 字段与 Host 的 `zcodePluginStoreListingSchema` 对齐；缺失的键不下发（Host 按降级矩阵处理）。
+/// 字段与 Host 的 `nibiPluginStoreListingSchema` 对齐；缺失的键不下发（Host 按降级矩阵处理）。
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginListing {

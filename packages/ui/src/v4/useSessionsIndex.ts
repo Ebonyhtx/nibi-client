@@ -23,22 +23,22 @@ export function useSessionsIndex(
   workspacePath: string,
   workspaceIdentity?: string,
 ): UseSessionsIndexResult {
-  const { zcodeAgentService } = useServices();
+  const { nibiAgentService } = useServices();
 
   const store = useMemo(
     () => new SessionsIndexStore(),
     // 每个 workspace 一个 store 实例（依赖变化 → 全新 store 冷启动）。
-    [workspacePath, workspaceIdentity, zcodeAgentService],
+    [workspacePath, workspaceIdentity, nibiAgentService],
   );
 
   useEffect(() => {
-    const transport = createAgentSessionsIndexTransport(zcodeAgentService, {
+    const transport = createAgentSessionsIndexTransport(nibiAgentService, {
       workspacePath,
       ...(workspaceIdentity ? { workspaceIdentity } : {}),
     });
     void store.connect(transport, { forceSnapshot: true });
     return () => store.close();
-  }, [store, workspacePath, workspaceIdentity, zcodeAgentService]);
+  }, [store, workspacePath, workspaceIdentity, nibiAgentService]);
 
   // useSyncExternalStore：store.subscribe/getState 是类字段箭头函数，引用稳定。
   const state = useSyncExternalStore(store.subscribe, store.getState);

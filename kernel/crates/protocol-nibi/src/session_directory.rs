@@ -1,6 +1,6 @@
 //! `session/list`（Host 的任务列表、项目谱系校验与分享导入去重）。
 //!
-//! 语义逐条对齐 Node `listSessions`（`apps/zcode-cli/packages/bootstrap/src/nibi-protocol/
+//! 语义逐条对齐 Node `listSessions`（`apps/nibi-cli/packages/bootstrap/src/nibi-protocol/
 //! server-operations.ts`）：
 //!
 //! - 给了 `sessionIds` 就逐个按持久化身份读，**不看目录与任务类型**——Host 用它沿父链证明
@@ -26,7 +26,7 @@ use crate::server::Server;
 /// Node `isAuxiliarySessionKind`：只有这几类可以沿父链证明归属。
 ///
 /// `fork` 与 `workflow_parent` **不在**其中——它们是独立任务，即使有父会话也不能沿父链
-/// 改写项目（Node 同一裁决，见 `zcodeSessionKindSchema` 下面的注释）。
+/// 改写项目（Node 同一裁决，见 `nibiSessionKindSchema` 下面的注释）。
 fn is_auxiliary(task_type: &str) -> bool {
     matches!(
         task_type,
@@ -126,7 +126,7 @@ async fn owned(
     }
 }
 
-/// `zcodeSessionInfo`（`packages/shared/src/nibi-protocol-legacy-types.ts`）。
+/// `nibiSessionInfo`（`packages/shared/src/nibi-protocol-legacy-types.ts`）。
 ///
 /// 目录读法不带 app / projection，所以 Node 的 `mapSessionInfo` 给的就是缺省值：
 /// `mode: "build"`、`status: "idle"`，`model` / `target` 不出现（两者在 schema 里都可选）。

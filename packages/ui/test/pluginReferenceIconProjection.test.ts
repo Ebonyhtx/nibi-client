@@ -1,4 +1,4 @@
-import type { ZCodePluginReferenceCatalogEntry } from "@nibi/shared";
+import type { NibiPluginReferenceCatalogEntry } from "@nibi/shared";
 import { describe, expect, it } from "vitest";
 import {
   buildSessionPluginIconMap,
@@ -6,7 +6,7 @@ import {
   isSessionPluginCatalogReady,
 } from "@/v4/pluginReferenceIconProjection.js";
 
-function plugin(pluginId: string, icon?: string): ZCodePluginReferenceCatalogEntry {
+function plugin(pluginId: string, icon?: string): NibiPluginReferenceCatalogEntry {
   const [name = pluginId, marketplace = "market"] = pluginId.split("@");
   return {
     pluginId,

@@ -23,7 +23,7 @@ fn facts() -> SourceFacts {
     }
 }
 
-/// 键序与取值同 Node `buildCliZCodeSourceHeaders`。
+/// 键序与取值同 Node `buildCliNibiSourceHeaders`。
 #[test]
 fn source_headers_follow_node() {
     let headers = source_headers(&facts());
@@ -182,7 +182,7 @@ fn provider_headers_sit_between_the_source_and_the_request_headers() {
             ("ACCEPT", "*/*"),
             ("x-nibi-query-source", "static"),
             ("X-Session-Type", "kept"),
-            ("X-ZCode-Session-Type", "static"),
+            ("X-Nibi-Session-Type", "static"),
             ("X-Request-Id", "static"),
         ],
     );

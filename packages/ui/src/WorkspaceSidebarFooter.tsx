@@ -45,9 +45,9 @@ import { NibiMembershipDialog } from "@/settings/NibiMembershipDialog.js";
 import { nibiMembershipEntryLabelKey } from "@/settings/nibiMembershipState.js";
 import { useNibiMembership } from "@/settings/useNibiMembership.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useShortcutCommandLabel } from "@/shortcuts/useShortcutBindings.js";
-import { useZCodeStore } from "@/store/StoreProvider.js";
+import { useNibiStore } from "@/store/StoreProvider.js";
 import { normalizeInterfaceMode } from "@/lib/interfaceMode.js";
 import type { Theme } from "@/useTheme.js";
 import { WorkspaceWebRemoteControlTrigger } from "@/WorkspaceWebRemoteControlTrigger.js";
@@ -75,7 +75,7 @@ function getSidebarProfileName(user?: UserInfo | null): string {
 
 function getSidebarProfileBadge(
   user: UserInfo | null | undefined,
-  formatMessage: ReturnType<typeof useZCodeIntl>["intl"]["formatMessage"],
+  formatMessage: ReturnType<typeof useNibiIntl>["intl"]["formatMessage"],
 ): string {
   if (user) {
     return getSidebarProfileName(user);
@@ -128,14 +128,14 @@ export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterCompon
   showCompanion?: boolean;
   className?: string;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const platform = usePlatform();
-  const interfaceMode = useZCodeStore((state) => state.interfaceMode);
-  const setInterfaceMode = useZCodeStore((state) => state.setInterfaceMode);
+  const interfaceMode = useNibiStore((state) => state.interfaceMode);
+  const setInterfaceMode = useNibiStore((state) => state.setInterfaceMode);
   const zoomInShortcutLabel = useShortcutCommandLabel("zoomIn");
   const zoomOutShortcutLabel = useShortcutCommandLabel("zoomOut");
   const resetZoomShortcutLabel = useShortcutCommandLabel("resetZoom");
-  const isRestoringOAuthSession = useZCodeStore((state) => state.isRestoringOAuthSession);
+  const isRestoringOAuthSession = useNibiStore((state) => state.isRestoringOAuthSession);
   const profileBadge = getSidebarProfileBadge(user, intl.formatMessage);
   const avatarFallbackText = getAvatarFallbackText(user);
   const avatarKey = user?.avatarUrl ?? user?.id ?? "guest";

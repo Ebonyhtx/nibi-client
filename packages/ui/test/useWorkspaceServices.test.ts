@@ -855,7 +855,7 @@ describe("useWorkspaceServices 核心路由逻辑覆盖", () => {
       const base = makeMockServices("base");
       const state = useRemoteWorkspaceSessionStore.getState();
       const result = resolveWorkspaceServices(context, null, base, state.sessionsById, true);
-      const transport = createAgentSessionsIndexTransport(result.zcodeAgentService, {
+      const transport = createAgentSessionsIndexTransport(result.nibiAgentService, {
         workspacePath: "/root",
         workspaceIdentity: "remote:ssh:198.44.179.20:2222:root:/root",
       });

@@ -153,7 +153,7 @@ try {
           theme,
           events: {
             ...channels.events,
-            [`${ServiceChannels.ZCodeAgent}:onDynamicConversationFrame`]: frames.event,
+            [`${ServiceChannels.NibiAgent}:onDynamicConversationFrame`]: frames.event,
           },
           responses: {
             ...channels.responses,
@@ -163,7 +163,7 @@ try {
               return channels.responses["window-project-changes:getCapabilities"](...args);
             },
             [`${ServiceChannels.SettingsSync}:getFirstRunPromptState`]: { handled: true },
-            [`${ServiceChannels.ZCodeAgent}:helloConversationV4`]: {
+            [`${ServiceChannels.NibiAgent}:helloConversationV4`]: {
               kind: "hello",
               protocolVersion: V4_WIRE_PROTOCOL_VERSION,
               connectionId: bridge.bridgeSessionId,
@@ -178,17 +178,17 @@ try {
                 compression: "none",
               },
             },
-            [`${ServiceChannels.ZCodeAgent}:initializeConversationV4`]: null,
-            [`${ServiceChannels.ZCodeAgent}:subscribeConversationV4`]: (input) => {
+            [`${ServiceChannels.NibiAgent}:initializeConversationV4`]: null,
+            [`${ServiceChannels.NibiAgent}:subscribeConversationV4`]: (input) => {
               const subscriptionId = `sub-${bridge.bridgeSessionId}-${input.sessionId}`;
               snapshots.set(input.sessionId, () =>
                 frames.fire(taskSnapshotFrame(input.sessionId, subscriptionId)),
               );
               return { ack: { subscriptionId, mode: "snapshot", logEpoch: "e2e" } };
             },
-            [`${ServiceChannels.ZCodeAgent}:unsubscribeConversationV4`]: null,
-            [`${ServiceChannels.ZCodeAgent}:conversationWorkflowRunsV4`]: { runs: [] },
-            [`${ServiceChannels.ZCodeAgent}:conversationPlansV4`]: { plans: [] },
+            [`${ServiceChannels.NibiAgent}:unsubscribeConversationV4`]: null,
+            [`${ServiceChannels.NibiAgent}:conversationWorkflowRunsV4`]: { runs: [] },
+            [`${ServiceChannels.NibiAgent}:conversationPlansV4`]: { plans: [] },
           },
         });
         bridges.set(bridge.bridgeSessionId, desktopBridge);
@@ -230,7 +230,7 @@ try {
         new URL("/remote/v4?app_version=3.15.1&sid=e2e-device&mid=e2e-mid", origin).href,
       );
       const onboarding = page.getByTestId("onboarding-page");
-      const welcome = page.getByRole("dialog", { name: /欢迎使用 ZCode|Welcome to ZCode/ });
+      const welcome = page.getByRole("dialog", { name: /欢迎使用 Nibi|Welcome to Nibi/ });
       await local().or(onboarding).or(welcome).first().waitFor();
       if (await onboarding.isVisible())
         await onboarding.getByRole("button", { name: /退出引导|Exit onboarding/ }).click();

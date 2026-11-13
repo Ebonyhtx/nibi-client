@@ -3,7 +3,7 @@ use super::*;
 
 #[test]
 fn cmd_exe_receives_the_text_verbatim_inside_one_pair_of_quotes() {
-    // 与 hooks 的现有写法一致（apps/zcode-cli-rust/crates/tools/src/hook_process.rs）：
+    // 与 hooks 的现有写法一致（apps/nibi-cli-rust/crates/tools/src/hook_process.rs）：
     // `/s` 让 cmd.exe 只去掉最外层的一对引号，其余字符原样执行，`"` 不能被改写成 `\"`。
     assert_eq!(
         cmd_exe_arguments(r#"echo "a b" > "c d.txt" & type "c d.txt""#),

@@ -3,7 +3,7 @@ import { TID_AUTOMATIONS_OPEN } from "@nibi/shared/test-ids";
 import type { ProjectSidebarProps } from "@/project-sidebar/contract.js";
 import { Button } from "@/components/ui/button.js";
 import { NewTaskButtonGroup } from "@/NewTaskButtonGroup.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { WebRemoteControlDeviceHeader } from "@/web-remote-control/WebRemoteControlDeviceHeader.js";
 
 /** 顶部导航只展示 Shell 的选中状态，路由仍由 Shell 唯一持有。 */
@@ -23,7 +23,7 @@ export function ProjectSidebarNavigation({
   >;
   onCreate(): void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const deviceNavigation = props.webRemoteControlWorkspaceSwitcher?.deviceNavigation;
   const updatesAvailable = props.pluginUpdatesAvailable ?? 0;
   return (

@@ -8,7 +8,7 @@ import { useRootProviderSettingsSnapshot } from "@/root/useRootProviderSettingsS
 import { logger } from "@/logger.js";
 vi.mock("@/hooks/useAlertDialog.js", () => ({ useAlertDialog: () => vi.fn() }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
+  useNibiIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
 }));
 vi.mock("@/logger.js", () => ({
   logger: {

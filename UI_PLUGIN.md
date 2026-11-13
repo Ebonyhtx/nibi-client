@@ -173,7 +173,7 @@ flowchart LR
 
 上面的 Excalidraw 截图展示的是 **UI Plugin**。如果需要按当前问题生成一个可调参数的小页面，使用 **Gen UI**；如果要分发一个长期使用、带服务和文档管理的工具，开发 UI Plugin。两者虽都可能出现 `window.nibi`，可用方法和状态结构不同，不能混用。UI Plugin 的开发与 API 见[开发与调试](#开发与调试)和[页面 API 速查](#页面-api-速查)。
 
-实现与页面示例：[Gen UI 契约](packages/ui/src/gen-ui/CONTRACT.md)、[页面 API 示例](apps/zcode-cli/packages/visualize-plugin/skills/visualize/references/api.md)、[Tweak 指南](apps/zcode-cli/packages/visualize-plugin/skills/visualize/tweak.md)。桌面集成验证入口为 `node packages/desktop/scripts/gen-ui-e2e.mjs`。
+实现与页面示例：[Gen UI 契约](packages/ui/src/gen-ui/CONTRACT.md)、[页面 API 示例](apps/nibi-cli/packages/visualize-plugin/skills/visualize/references/api.md)、[Tweak 指南](apps/nibi-cli/packages/visualize-plugin/skills/visualize/tweak.md)。桌面集成验证入口为 `node packages/desktop/scripts/gen-ui-e2e.mjs`。
 
 ## 其他示例插件
 
@@ -218,10 +218,10 @@ pnpm build
 
 # 主仓库：使用刚构建的 CLI，将插件装进同一个开发配置。
 cd "$NIBI_REPO"
-node apps/zcode-cli/packages/cli/dist/nibi.cjs plugins marketplace add "$PLUGINS_REPO/dist/local-marketplace" --scope user
-node apps/zcode-cli/packages/cli/dist/nibi.cjs plugins install excalidraw@zcode-plugins-local --scope user
-node apps/zcode-cli/packages/cli/dist/nibi.cjs plugins enable excalidraw@zcode-plugins-local --scope user
-node apps/zcode-cli/packages/cli/dist/nibi.cjs plugins list --json
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins marketplace add "$PLUGINS_REPO/dist/local-marketplace" --scope user
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins install excalidraw@zcode-plugins-local --scope user
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins enable excalidraw@zcode-plugins-local --scope user
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins list --json
 pnpm dev:desktop
 ```
 
@@ -235,8 +235,8 @@ pnpm dev:desktop
 cd "$PLUGINS_REPO"
 pnpm build
 cd "$NIBI_REPO"
-node apps/zcode-cli/packages/cli/dist/nibi.cjs plugins marketplace update zcode-plugins-local
-node apps/zcode-cli/packages/cli/dist/nibi.cjs plugins install excalidraw@zcode-plugins-local --scope user
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins marketplace update zcode-plugins-local
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins install excalidraw@zcode-plugins-local --scope user
 ```
 
 随后重启对应桌面实例，打开新会话验证。源码监听不会把插件仓库的修改自动复制到已安装插件；刷新来源只刷新目录，重新安装才更新代码副本。开发时同版本重装会重新复制；正式分发内容变化仍需升级插件清单、marketplace 和源码包版本。

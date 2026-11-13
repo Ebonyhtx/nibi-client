@@ -25,7 +25,7 @@ import {
 import { buildWorkflowTimeline } from "@/components/workflow-timeline/timeline-model.js";
 import { WorkflowTimeline } from "@/components/workflow-timeline/WorkflowTimeline.js";
 import { WorkflowRunPhaseList } from "@/app-shell/WorkflowRunPhaseList.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 // 留白 id 是名字键 `hole#<8 位十六进制>`（docs/analysis.md「Sites」）；渲染器只认形状。
 const H1 = "hole#a0000001"; // 决定分组（体里两个阶段）
@@ -105,7 +105,7 @@ function run(filledAt = 1): WorkflowRunState {
 }
 
 function wrap(node: ReturnType<typeof createElement>) {
-  return render(createElement(ZCodeIntlProvider, { initialLocale: "zh-CN" }, node));
+  return render(createElement(NibiIntlProvider, { initialLocale: "zh-CN" }, node));
 }
 
 afterEach(cleanup);

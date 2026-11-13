@@ -85,7 +85,7 @@ async function focus() {
 }
 
 async function setInteractionBehavior(behavior: "queue" | "guide") {
-  if ((await readSettings()).zcodeInteractionBehavior === behavior) return;
+  if ((await readSettings()).nibiInteractionBehavior === behavior) return;
   await clickTestIdByDom(TID_TASK_SETTINGS_BUTTON);
   await clickTestIdByDom(testId(TID_SETTINGS_SECTION_NAV, "general"));
   await browser.waitUntil(
@@ -118,7 +118,7 @@ async function setInteractionBehavior(behavior: "queue" | "guide") {
     { timeout: 15000 },
   );
   await browser.waitUntil(
-    async () => (await readSettings()).zcodeInteractionBehavior === behavior,
+    async () => (await readSettings()).nibiInteractionBehavior === behavior,
     { timeout: 15000 },
   );
   await clickTestIdByDom(TID_SETTINGS_BACK_BUTTON);

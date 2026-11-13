@@ -1,5 +1,5 @@
 //! `zcode hooks trust`（docs/specs/rust-cli/config.md §4.3）：与 Node CLI 同形
-//! （`apps/zcode-cli/packages/cli/src/hooks-trust-command.ts`、`bootstrap/src/workspace-hook-trust-cli.ts`），
+//! （`apps/nibi-cli/packages/cli/src/hooks-trust-command.ts`、`bootstrap/src/workspace-hook-trust-cli.ts`），
 //! 文本与错误逐字取 Node。信任记录与 Node CLI、App 共用。
 
 use nibi_kernel_api::env::{EnvPath, WorkspaceRef};

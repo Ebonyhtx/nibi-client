@@ -1,6 +1,6 @@
 //! OpenAI Chat Completions 协议（docs/specs/rust-cli/model.md §10.1）。
 //!
-//! 请求体与 Node 的 Provider 适配器（`apps/zcode-cli-rust/crates/model/src/model_protocol.rs`，对齐 Node）
+//! 请求体与 Node 的 Provider 适配器（`apps/nibi-cli-rust/crates/model/src/model_protocol.rs`，对齐 Node）
 //! 相同的键序：
 //!
 //! ```text

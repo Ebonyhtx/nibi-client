@@ -9,7 +9,7 @@ import {
   readChatSessionScrollMemoryState,
   saveChatSessionScrollMemoryState,
 } from "@/lib/chatSessionScrollMemory.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import type { ConversationRowRenderContext } from "@/v4/conversationRowContext.js";
 import { ConversationTimeline } from "@/v4/ConversationTimeline.js";
 
@@ -315,7 +315,7 @@ function renderTimeline(
   const timelineRows = options.rows ?? [row];
   root.render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(ConversationTimeline, {
         canLoadOlder: options.canLoadOlder,

@@ -69,7 +69,7 @@ vi.mock("@/hooks/useOAuth.js", () => ({
 }));
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }) => id,
     },
@@ -77,7 +77,7 @@ vi.mock("@/i18n/IntlProvider.js", () => ({
 }));
 
 vi.mock("@/store/StoreProvider.js", () => ({
-  useZCodeStore: (selector: (state: unknown) => unknown) =>
+  useNibiStore: (selector: (state: unknown) => unknown) =>
     selector({
       user: null,
       oauthError: storeState.oauthError,

@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button.js";
 import { toast } from "@/components/ui/toast.js";
 import { cn } from "@/components/lib/utils.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 import { SettingsFormTextarea } from "@/settings/SettingsFormTextarea.js";
 import { SettingsGroupCard } from "@/settings/SettingsPageParts.js";
@@ -37,7 +37,7 @@ export function formatAgentsFileKb(bytes: number): string {
  * 这里即使从远端 workspace 打开设置页，也不能读写远端 Home。
  */
 export function PersonalizationSection() {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const localHostServices = useBaseWorkspaceServices();
   const service = localHostServices.settingsSyncService;
   const editorId = useId();

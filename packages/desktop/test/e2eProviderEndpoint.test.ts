@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { resolveBigModelApiOrigin, resolveRuntimeZCodeEndpointOrigin } from "@nibi/shared";
+import { resolveBigModelApiOrigin, resolveRuntimeNibiEndpointOrigin } from "@nibi/shared";
 import {
   getE2EProviderEndpointEnv,
   shouldUseProductionE2EProviderEndpoint,
@@ -25,7 +25,7 @@ describe("E2E provider endpoint ownership", () => {
       NIBI_ENV: "test",
       ...getE2EProviderEndpointEnv([spec], "deepseek", "replay"),
     };
-    expect(resolveRuntimeZCodeEndpointOrigin(env)).toBe("https://zcode.z.ai");
+    expect(resolveRuntimeNibiEndpointOrigin(env)).toBe("https://zcode.z.ai");
     expect(resolveBigModelApiOrigin(env)).toBe("https://bigmodel.cn");
     // SSH 只透传环境档位，不透传 BIGMODEL_API_BASE_URL；远端仍必须解析到生产域。
     expect(env.NIBI_ENV).toBe("production");

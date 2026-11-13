@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu.js";
 import { toast } from "@/components/ui/toast.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   TID_WORKSPACE_FILE_TREE_PANEL,
   TID_WORKSPACE_FILE_TREE_REFRESH_BUTTON,
@@ -98,7 +98,7 @@ export function WorkspaceFileTree({
   onOpenBrowserUrl,
   onOpenPreview,
 }: WorkspaceFileTreeProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const platform = usePlatform();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);

@@ -10,7 +10,7 @@ import { Emitter, Event, SocketProtocol, VSBuffer, type ISocket } from "@nibi/rp
 import {
   ServiceCollection,
   ISystemService,
-  IZCodeAgentService,
+  INibiAgentService,
   IFileService,
 } from "@nibi/services";
 import { createFileService } from "../../services/src/file/fileService.js";
@@ -330,7 +330,7 @@ describe("server remote connection", () => {
 
   it("routes reverse resource RPC to the exact authenticated Desktop peer and removes it on close", async () => {
     const peers = createTopicResourcePeers();
-    const services = new ServiceCollection().register(IZCodeAgentService, {
+    const services = new ServiceCollection().register(INibiAgentService, {
       queryConversationCommandsV4: async () => ({ results: [] }),
     } as never);
     const server = await startLoopbackServer(services, 0, { topicResourcePeers: peers });
@@ -358,7 +358,7 @@ describe("server remote connection", () => {
       workspaceIdentity: "server://host/work",
       remoteSessionId: "remote-a",
     };
-    await connection.services.zcodeAgentService.queryConversationCommandsV4({
+    await connection.services.nibiAgentService.queryConversationCommandsV4({
       ...request,
       commands: [],
     });
@@ -388,7 +388,7 @@ describe("server remote connection", () => {
           totalTargets: 0,
         })),
       })
-      .register(IZCodeAgentService, {
+      .register(INibiAgentService, {
         helloConversationV4: vi.fn(),
         initializeConversationV4: vi.fn(),
       } as never);
@@ -422,7 +422,7 @@ describe("server remote connection", () => {
       workspaces: [{ path: "/home/dev/project" }],
     });
     await expect(
-      connection.services.zcodeAgentService.helloConversationV4(),
+      connection.services.nibiAgentService.helloConversationV4(),
     ).resolves.toMatchObject({
       clientMode: "desktop-continuous",
       deliveryProfile: "continuous",
@@ -432,7 +432,7 @@ describe("server remote connection", () => {
     const browserServices = await connectViaWebSocket(`ws://127.0.0.1:${address.port}/ws`, {
       onOpenSocket: (socket) => (browserSocket = socket),
     });
-    await expect(browserServices.zcodeAgentService.helloConversationV4()).resolves.toMatchObject({
+    await expect(browserServices.nibiAgentService.helloConversationV4()).resolves.toMatchObject({
       clientMode: "web-remote-replayable",
       deliveryProfile: "replayable",
     });
@@ -442,7 +442,7 @@ describe("server remote connection", () => {
       "x-nibi-rpc-client-mode": "desktop-continuous",
     });
     await expect(
-      legacyHeaderConnection.services.zcodeAgentService.helloConversationV4(),
+      legacyHeaderConnection.services.nibiAgentService.helloConversationV4(),
     ).resolves.toMatchObject({
       clientMode: "web-remote-replayable",
       deliveryProfile: "replayable",
@@ -489,7 +489,7 @@ describe("server remote connection", () => {
   });
 
   it("connector 使用 token 贯穿受保护的 capability endpoint 与 /ws/host", async () => {
-    const services = new ServiceCollection().register(IZCodeAgentService, {
+    const services = new ServiceCollection().register(INibiAgentService, {
       helloConversationV4: vi.fn(),
       initializeConversationV4: vi.fn(),
     } as never);
@@ -516,7 +516,7 @@ describe("server remote connection", () => {
     disposables.push(connection);
 
     await expect(
-      connection.services.zcodeAgentService.helloConversationV4(),
+      connection.services.nibiAgentService.helloConversationV4(),
     ).resolves.toMatchObject({
       clientMode: "desktop-continuous",
       deliveryProfile: "continuous",
@@ -547,7 +547,7 @@ describe("server remote connection", () => {
           : {}),
       };
       const server = await startLoopbackServer(
-        new ServiceCollection().register(IZCodeAgentService, service as never),
+        new ServiceCollection().register(INibiAgentService, service as never),
         0,
       );
       const address = server.address() as AddressInfo;
@@ -567,8 +567,8 @@ describe("server remote connection", () => {
       const postMessage = vi.fn();
       const telemetry = registerHostServiceResourceTelemetry({
         services: new ServiceCollection().register(
-          IZCodeAgentService,
-          connection.services.zcodeAgentService,
+          INibiAgentService,
+          connection.services.nibiAgentService,
         ),
         runtimeSurface: "remote",
         telemetrySupported: connection.serverInfo.capabilities.processResourceTelemetry === true,
@@ -578,7 +578,7 @@ describe("server remote connection", () => {
 
       // 同一连接的 RPC 应答是前面 EventListen 已处理的屏障，无需 sleep 猜测订阅时序。
       await expect(
-        connection.services.zcodeAgentService.helloConversationV4(),
+        connection.services.nibiAgentService.helloConversationV4(),
       ).resolves.toMatchObject({
         deliveryProfile: "continuous",
       });
@@ -601,7 +601,7 @@ describe("server remote connection", () => {
   );
 
   it("/ws/host 只接受已申请的一次性 capability，重放被拒绝", async () => {
-    const services = new ServiceCollection().register(IZCodeAgentService, {
+    const services = new ServiceCollection().register(INibiAgentService, {
       helloConversationV4: vi.fn(),
       initializeConversationV4: vi.fn(),
     } as never);
@@ -631,7 +631,7 @@ describe("server remote connection", () => {
     const trusted = await connectNodeRpc(wsHost, {
       "x-nibi-rpc-host-capability": ticket.capability,
     });
-    await expect(trusted.services.zcodeAgentService.helloConversationV4()).resolves.toMatchObject({
+    await expect(trusted.services.nibiAgentService.helloConversationV4()).resolves.toMatchObject({
       clientMode: "desktop-continuous",
       deliveryProfile: "continuous",
     });

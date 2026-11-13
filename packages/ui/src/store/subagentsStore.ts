@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import {
-  normalizeAgentProviderToZCodeAgent,
+  normalizeAgentProviderToNibiAgent,
   NIBI_AGENT_PROVIDER,
-  type ZCodeProvider,
+  type NibiProvider,
   type AgentSummary,
   type AgentsCapability,
   type SubAgentConfig,
@@ -24,8 +24,8 @@ interface SubagentsStoreState {
   workspaceIdentity: string | null;
   loadedWorkspacePath: string | null;
   loadedWorkspaceIdentity: string | null;
-  provider: ZCodeProvider;
-  loadedProvider: ZCodeProvider | null;
+  provider: NibiProvider;
+  loadedProvider: NibiProvider | null;
   agents: AgentSummary[];
   capability: AgentsCapability | null;
   loading: boolean;
@@ -34,7 +34,7 @@ interface SubagentsStoreState {
   operatingAgentId: string | null;
   initialize: (
     workspacePath: string,
-    providerOrSubagentsService: ZCodeProvider | ISubagentsService,
+    providerOrSubagentsService: NibiProvider | ISubagentsService,
     maybeSubagentsService?: ISubagentsService,
     workspaceIdentity?: string,
   ) => Promise<void>;
@@ -47,7 +47,7 @@ interface SubagentsStoreState {
   ) => Promise<void>;
   createAgent: (
     config: SubAgentConfig,
-    provider: ZCodeProvider,
+    provider: NibiProvider,
     subagentsService: ISubagentsService,
     workspaceIdentity?: string,
   ) => Promise<AgentSummary | null>;
@@ -55,7 +55,7 @@ interface SubagentsStoreState {
     agentId: string,
     config: SubAgentConfig,
     oldFilePath: string | undefined,
-    provider: ZCodeProvider,
+    provider: NibiProvider,
     subagentsService: ISubagentsService,
     workspaceIdentity?: string,
   ) => Promise<AgentSummary | null>;
@@ -83,13 +83,13 @@ export const useSubagentsStore = create<SubagentsStoreState>((set, get) => ({
   operatingAgentId: null,
   async initialize(
     workspacePath: string,
-    providerOrSubagentsService: ZCodeProvider | ISubagentsService,
+    providerOrSubagentsService: NibiProvider | ISubagentsService,
     maybeSubagentsService?: ISubagentsService,
     workspaceIdentity?: string,
   ) {
     const currentState = get();
     const hasProvider = typeof providerOrSubagentsService === "string";
-    const provider = normalizeAgentProviderToZCodeAgent(
+    const provider = normalizeAgentProviderToNibiAgent(
       hasProvider ? providerOrSubagentsService : NIBI_AGENT_PROVIDER,
     );
     const subagentsService = hasProvider ? maybeSubagentsService : providerOrSubagentsService;
@@ -168,7 +168,7 @@ export const useSubagentsStore = create<SubagentsStoreState>((set, get) => ({
     }
     const workspaceIdentityFromState =
       workspaceIdentity?.trim() || get().workspaceIdentity || undefined;
-    const provider = normalizeAgentProviderToZCodeAgent(get().provider);
+    const provider = normalizeAgentProviderToNibiAgent(get().provider);
     const serviceAuthorityId = getServiceAuthorityId(subagentsService);
     const hasCachedAgents =
       get().agents.length > 0 && loadedSubagentsServiceAuthorityId === serviceAuthorityId;
@@ -246,7 +246,7 @@ export const useSubagentsStore = create<SubagentsStoreState>((set, get) => ({
   },
   async createAgent(
     config: SubAgentConfig,
-    provider: ZCodeProvider,
+    provider: NibiProvider,
     subagentsService: ISubagentsService,
     workspaceIdentity?: string,
   ) {
@@ -260,7 +260,7 @@ export const useSubagentsStore = create<SubagentsStoreState>((set, get) => ({
     try {
       const result = await subagentsService.createAgent({
         config,
-        provider: normalizeAgentProviderToZCodeAgent(provider),
+        provider: normalizeAgentProviderToNibiAgent(provider),
       });
       await get().refresh(subagentsService, workspaceIdentityFromState);
       return result.agent;
@@ -277,7 +277,7 @@ export const useSubagentsStore = create<SubagentsStoreState>((set, get) => ({
     agentId: string,
     config: SubAgentConfig,
     oldFilePath: string | undefined,
-    provider: ZCodeProvider,
+    provider: NibiProvider,
     subagentsService: ISubagentsService,
     workspaceIdentity?: string,
   ) {
@@ -293,7 +293,7 @@ export const useSubagentsStore = create<SubagentsStoreState>((set, get) => ({
         agentId,
         config,
         oldFilePath,
-        provider: normalizeAgentProviderToZCodeAgent(provider),
+        provider: normalizeAgentProviderToNibiAgent(provider),
       });
       await get().refresh(subagentsService, workspaceIdentityFromState);
       return result.agent;

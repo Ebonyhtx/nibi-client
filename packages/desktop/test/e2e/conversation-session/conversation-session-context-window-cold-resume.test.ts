@@ -365,7 +365,7 @@ async function installContextWindowProjectionRecorder(
 
       const bridge = host.__zcodeSessionStoreE2E;
       if (!bridge) {
-        throw new Error("ZCode session E2E store bridge 未注册");
+        throw new Error("Nibi session E2E store bridge 未注册");
       }
       const recordStore = (state: SessionStoreState) => {
         const runtime =

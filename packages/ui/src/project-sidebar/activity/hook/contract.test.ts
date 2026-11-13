@@ -21,8 +21,8 @@ vi.mock("@/store/TabStoreProvider.js", () => ({
   useTabStore: () => mocks.tabs,
   useTabStoreApi: () => ({ subscribe: () => () => {} }),
 }));
-vi.mock("@/store/zcodeSessionStore.js", () => ({
-  useZCodeSessionStore: Object.assign(() => 0, { subscribe: () => () => {} }),
+vi.mock("@/store/nibiSessionStore.js", () => ({
+  useNibiSessionStore: Object.assign(() => 0, { subscribe: () => () => {} }),
 }));
 vi.mock("@/v4/useWorkspaceSessionsIndexItems.js", () => ({
   useWorkspaceSessionsIndexItems: () => ({ items: [] }),

@@ -1,4 +1,4 @@
-//! `v4/storage/sessionData/*` 的纯 SQL 仓储（上游 `apps/zcode-cli/packages/adapters/src/storage/
+//! `v4/storage/sessionData/*` 的纯 SQL 仓储（上游 `apps/nibi-cli/packages/adapters/src/storage/
 //! session-store/repositories/sessions.ts` 的 `listOwnedSessionTrees` / `listArtifactReferrers` /
 //! `purgeSessions`）。
 //!

@@ -16,7 +16,7 @@ import {
   v4ConversationAttachmentStatParamsSchema,
   v4ConversationAttachmentStatResultSchema,
 } from "../src/nibi-protocol-v4/index.js";
-import { VIDEO_INPUT_MAX_BYTES } from "../src/zcode-media-policy.js";
+import { VIDEO_INPUT_MAX_BYTES } from "../src/nibi-media-policy.js";
 
 const sha256 = `sha256:${"a".repeat(64)}`;
 const VIDEO_INPUT_MAX_MIB = 30;

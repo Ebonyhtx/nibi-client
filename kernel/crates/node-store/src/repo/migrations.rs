@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/state/src/node/migrations.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-cli-rust/crates/state/src/node/migrations.rs（feat/rs 79b6691c55）。
 //! Node 会话库的迁移（`adapters/.../session-store/migrations.ts`），SQL 原文逐字节内嵌
 //! （docs/specs/rust-m11-node-storage.md §2.2）。
 //!

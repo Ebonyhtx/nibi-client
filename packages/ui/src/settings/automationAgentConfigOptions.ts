@@ -1,8 +1,8 @@
 import {
-  getZCodeAgentModeSelectOptions,
+  getNibiAgentModeSelectOptions,
   type ModelSelection,
-  type ZCodeConfigOption,
-  type ZCodeProvider,
+  type NibiConfigOption,
+  type NibiProvider,
 } from "@nibi/shared";
 import type { ModelSelectionView } from "@nibi/services";
 import type { ModelSelectGroup, ModelSelectGroupItem } from "@/ModelConfigSelect.js";
@@ -10,7 +10,7 @@ import {
   buildRegistryModelSelectGroups,
   type ModelProviderGroupLabelOptions,
 } from "@/lib/modelSelectionGroups.js";
-import { decodeCustomModelValue, encodeCustomModelValue } from "@/lib/zcodeCustomModelValue.js";
+import { decodeCustomModelValue, encodeCustomModelValue } from "@/lib/nibiCustomModelValue.js";
 import { resolveV4ModelTriggerLabel } from "@/v4/composer/modelTriggerDisplay.js";
 
 // 定时任务表单必须是纯本地草稿，不能借用 workspace 默认配置写接口来获取选项；
@@ -28,7 +28,7 @@ export function resolveAutomationPreferredModelValue(
 }
 
 export function buildAutomationModelSelectGroups(params: {
-  selectedProvider: ZCodeProvider;
+  selectedProvider: NibiProvider;
   labels: ModelProviderGroupLabelOptions;
   registrySelectionView: ModelSelectionView;
 }): ModelSelectGroup[] {
@@ -39,14 +39,14 @@ export function buildAutomationModelSelectGroups(params: {
   );
 }
 
-export function buildAutomationModeOption(currentValue: string): ZCodeConfigOption {
+export function buildAutomationModeOption(currentValue: string): NibiConfigOption {
   return {
     id: "mode",
     name: "Mode",
     category: "mode",
     type: "select",
     currentValue,
-    options: getZCodeAgentModeSelectOptions(),
+    options: getNibiAgentModeSelectOptions(),
   };
 }
 
@@ -128,9 +128,9 @@ export function resolveAutomationModelTriggerLabel(params: {
 }
 
 export function buildAutomationThoughtLevelOption(
-  runtimeOption: ZCodeConfigOption | undefined,
+  runtimeOption: NibiConfigOption | undefined,
   currentValue: string,
-): ZCodeConfigOption | null {
+): NibiConfigOption | null {
   const options = runtimeOption?.options ?? [];
   if (options.length === 0) return null;
   const validCurrentValue = options.some((option) => option.value === currentValue);

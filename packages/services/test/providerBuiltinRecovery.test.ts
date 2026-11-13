@@ -55,7 +55,7 @@ describe("App Built-in / Account 失败恢复", () => {
     });
     try {
       await runtime.start();
-      await configRuntime.refreshZCodeBuiltin();
+      await configRuntime.refreshNibiBuiltin();
       const old = runtime.registryService.getSnapshot()!;
       fail = true;
       await writeFile(builtin, JSON.stringify({ ...release, revision: 2 }));

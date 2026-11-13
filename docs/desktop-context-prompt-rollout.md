@@ -7,7 +7,7 @@
 
 服务端通过 `/api/v1/client/configs` 下发单功能灰度：`data.configs.desktopContextPrompt.enabled`。
 - `enabled: true`：Agent 以 **desktop surface** 启动，系统提示注入 `::code-comment{...}` 指令段
-  （`apps/zcode-cli/packages/core/src/context/sections/desktop.ts`），助手输出内联 code-comment。
+  （`apps/nibi-cli/packages/core/src/context/sections/desktop.ts`），助手输出内联 code-comment。
 - `enabled: false` 或未下发：Agent 以 **terminal surface** 启动，跳过该段，输出普通 terminal prompt。
 
 ## 2. 冻结链路（核心事实）

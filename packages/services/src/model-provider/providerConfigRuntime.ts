@@ -12,7 +12,7 @@ export interface ProviderConfigRuntimeOptions {
   readonly nibiBuiltinActiveFilePath?: string;
   readonly nibiBuiltinRemote?: NodeProviderConfigRuntimeOptions["nibiBuiltinRemote"];
   readonly nibiBuiltinEnvironment?: NodeProviderConfigRuntimeOptions["nibiBuiltinEnvironment"];
-  readonly onZCodeBuiltinRefreshError?: (error: unknown) => void;
+  readonly onNibiBuiltinRefreshError?: (error: unknown) => void;
   readonly onPersonalConfigRecovery?: (event: PersonalProviderConfigRecoveryEvent) => void;
   readonly onPersonalConfigPollingError?: (error: unknown) => void;
   readonly personalFilePath?: string;
@@ -36,7 +36,7 @@ export class ProviderConfigRuntime {
       nibiBuiltinActiveFilePath: options.nibiBuiltinActiveFilePath,
       nibiBuiltinRemote: options.nibiBuiltinRemote,
       nibiBuiltinEnvironment: options.nibiBuiltinEnvironment,
-      onZCodeBuiltinRefreshError: options.onZCodeBuiltinRefreshError,
+      onNibiBuiltinRefreshError: options.onNibiBuiltinRefreshError,
       onPersonalConfigRecovery: options.onPersonalConfigRecovery,
       onPersonalConfigPollingError: options.onPersonalConfigPollingError,
       personalFilePath:
@@ -56,16 +56,16 @@ export class ProviderConfigRuntime {
     return this.#runtime.personalRepository;
   }
 
-  resolveZCodeBuiltinActiveFilePath(): Promise<string> {
-    return this.#runtime.resolveZCodeBuiltinActiveFilePath();
+  resolveNibiBuiltinActiveFilePath(): Promise<string> {
+    return this.#runtime.resolveNibiBuiltinActiveFilePath();
   }
 
-  refreshZCodeBuiltin(options?: { readonly force?: boolean }) {
-    return this.#runtime.refreshZCodeBuiltin(options);
+  refreshNibiBuiltin(options?: { readonly force?: boolean }) {
+    return this.#runtime.refreshNibiBuiltin(options);
   }
 
-  onDidCheckZCodeBuiltin(listener: () => Promise<void>): () => void {
-    return this.#runtime.onDidCheckZCodeBuiltin(listener);
+  onDidCheckNibiBuiltin(listener: () => Promise<void>): () => void {
+    return this.#runtime.onDidCheckNibiBuiltin(listener);
   }
 
   dispose(): void {

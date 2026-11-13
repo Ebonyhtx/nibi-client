@@ -59,7 +59,7 @@ class FakeConnectBackend implements IRemoteBackend {
       queueMicrotask(() => {
         stdout.write(
           `${JSON.stringify({
-            type: "zcode-hello",
+            type: "nibi-hello",
             version: NIBI_VERSION,
             platform: "linux",
             arch: "arm64",

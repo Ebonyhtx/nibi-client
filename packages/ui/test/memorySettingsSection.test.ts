@@ -15,7 +15,7 @@ import {
 } from "@nibi/shared/test-ids";
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     locale: "zh-CN",
     intl: {
       formatMessage: ({ id }: { id: string }, values?: Record<string, string | number>) =>

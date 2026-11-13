@@ -12,9 +12,9 @@ export interface HandshakeResult {
 
 /**
  * Perform the client-side handshake:
- * 1. Read lines from stdout until we find a zcode-hello JSON
+ * 1. Read lines from stdout until we find a nibi-hello JSON
  *    (skip SSH banner/motd lines)
- * 2. Send a zcode-hello-ack to stdin
+ * 2. Send a nibi-hello-ack to stdin
  * 3. Return the hello info and any remaining data
  */
 export function performHandshake(
@@ -46,7 +46,7 @@ export function performHandshake(
     };
 
     const timeout = setTimeout(() => {
-      rejectWithDiagnostics("Handshake timeout: no zcode-hello received within timeout");
+      rejectWithDiagnostics("Handshake timeout: no nibi-hello received within timeout");
     }, timeoutMs);
 
     const onData = (chunk: Buffer) => {
@@ -76,7 +76,7 @@ export function performHandshake(
 
               // Send ack
               const ack: HelloAckMessage = {
-                type: "zcode-hello-ack",
+                type: "nibi-hello-ack",
                 version: NIBI_VERSION,
                 clientId,
               };
@@ -92,9 +92,9 @@ export function performHandshake(
               rawValue &&
               typeof rawValue === "object" &&
               "type" in rawValue &&
-              (rawValue as { type?: unknown }).type === "zcode-hello"
+              (rawValue as { type?: unknown }).type === "nibi-hello"
             ) {
-              rejectWithDiagnostics(`Invalid zcode-hello: ${formatZodError(result.error)}`);
+              rejectWithDiagnostics(`Invalid nibi-hello: ${formatZodError(result.error)}`);
               return;
             }
           } catch {

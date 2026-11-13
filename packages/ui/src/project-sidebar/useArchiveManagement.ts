@@ -7,19 +7,19 @@ import { findArchiveTaskRowRect, playNibiFeatherFallFromRect } from "@/lib/nibiF
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { resolveRemoteWorkspaceSessionIdForTarget } from "@/hooks/useResolvedRemoteWorkspaceSessionId.js";
 import { useRemoteWorkspaceSessionStore } from "@/store/remoteWorkspaceSessionStore.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 
 export type ArchiveOperation = "unarchive" | "delete";
 export function useArchiveManagement() {
   const directory = useProjectDirectory();
-  const { zcodeTaskService: service, windowControllerService: controller } =
+  const { nibiTaskService: service, windowControllerService: controller } =
     useBaseWorkspaceServices();
-  const removeTaskState = useZCodeSessionStore((s) => s.removeTaskState);
+  const removeTaskState = useNibiSessionStore((s) => s.removeTaskState);
   const confirm = useConfirmDialog();
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{
     succeeded: number;

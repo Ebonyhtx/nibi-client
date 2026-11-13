@@ -9,7 +9,7 @@ import type { StorePluginItem } from "../src/settings/pluginStoreListing.js";
 const state = vi.hoisted(() => ({ locale: "zh-CN" }));
 vi.mock("@/hooks/useInterfaceMode.js", () => ({ useIsOfficeMode: () => false }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     locale: state.locale,
     intl: { formatMessage: ({ id }: { id: string }) => id },
   }),

@@ -5,7 +5,7 @@ import type { BotConfig, BotRuntimeInfo } from "@nibi/shared";
 import { ALL_BOT_WORKSPACES } from "@nibi/shared";
 import { BotSummaryCard } from "@/BotsDialog/BotSummaryCard.js";
 import { ProviderSettingsCard } from "@/BotsDialog/ProviderSettingsCard.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 const bot: BotConfig = {
   id: "feishu-bot",
@@ -29,7 +29,7 @@ const runtime: BotRuntimeInfo = {
 
 function renderZh(element: ReturnType<typeof createElement>): string {
   return renderToStaticMarkup(
-    createElement(ZCodeIntlProvider, { initialLocale: "zh-CN" }, element),
+    createElement(NibiIntlProvider, { initialLocale: "zh-CN" }, element),
   );
 }
 

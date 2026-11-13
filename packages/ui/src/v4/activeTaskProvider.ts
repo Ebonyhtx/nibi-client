@@ -1,16 +1,16 @@
-import type { ZCodeProvider } from "@nibi/shared";
-import { selectWorkspaceZCodeState, useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
-import type { WorkspaceZCodeUIState } from "@/store/zcodeSessionStoreTypes.js";
+import type { NibiProvider } from "@nibi/shared";
+import { selectWorkspaceNibiState, useNibiSessionStore } from "@/store/nibiSessionStore.js";
+import type { WorkspaceNibiUIState } from "@/store/nibiSessionStoreTypes.js";
 import { useTabStore } from "@/store/TabStoreProvider.js";
 import { isWorkspaceTab } from "@/store/tabStore.js";
 
 export function resolveChatViewActiveTaskProvider(
   taskId: string | null,
   workspaceState: Pick<
-    WorkspaceZCodeUIState,
+    WorkspaceNibiUIState,
     "selectedProvider" | "taskListCache" | "optimisticTaskListByTaskId"
   >,
-): ZCodeProvider {
+): NibiProvider {
   if (!taskId) {
     return workspaceState.selectedProvider;
   }
@@ -47,8 +47,8 @@ export function useChatViewActiveTaskProvider(
   });
   const resolvedWorkspaceIdentity = workspaceIdentity ?? activeTabWorkspaceIdentity;
 
-  return useZCodeSessionStore((state) => {
-    const workspaceState = selectWorkspaceZCodeState(
+  return useNibiSessionStore((state) => {
+    const workspaceState = selectWorkspaceNibiState(
       state,
       workspacePath,
       resolvedWorkspaceIdentity,

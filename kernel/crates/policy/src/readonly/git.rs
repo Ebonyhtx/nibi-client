@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash/src/git.rs（07ab266d4b）；不 panic，失败时按不放行处理。
+// 复制自 apps/nibi-cli-rust/crates/bash/src/git.rs（07ab266d4b）；不 panic，失败时按不放行处理。
 //! Git argv handling (`bash-readonly-policy-argv-git.ts`) and the command-name
 //! checks of `bash-git-runtime-safety.ts`.
 use super::{argv::strip_wrappers, flags::argv_allowed, tables::tables};

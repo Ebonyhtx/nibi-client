@@ -195,7 +195,7 @@ it("refreshes a remote market after synchronization even when the global store t
       workspacePath: "/project/a",
       workspaceIdentity,
       reason: "review-regression",
-      zcodeAgentService: {} as never,
+      nibiAgentService: {} as never,
       skillsService: { list: vi.fn() } as never,
       commandsService: {
         list: vi.fn(async () => ({
@@ -311,7 +311,7 @@ it("completes remote capability refresh while a projection listener is stuck", a
     workspacePath: "/project/a",
     workspaceIdentity: "remote:server:remote-host:/project/a",
     reason: "review-regression",
-    zcodeAgentService: {} as never,
+    nibiAgentService: {} as never,
     skillsService: { list: vi.fn() } as never,
     commandsService: { list: commands } as never,
     mcpSyncService: { loadMcpFromUserDirectory: mcp } as never,

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { ZCodeTaskMeta } from "@nibi/shared";
-import { getTaskMeta, getTaskUnreadIndicator } from "@/store/zcodeSessionStore.js";
-import { getDefaultWorkspaceState } from "@/store/zcodeSessionStoreTypes.js";
+import type { NibiTaskMeta } from "@nibi/shared";
+import { getTaskMeta, getTaskUnreadIndicator } from "@/store/nibiSessionStore.js";
+import { getDefaultWorkspaceState } from "@/store/nibiSessionStoreTypes.js";
 
-function createTaskMeta(overrides: Partial<ZCodeTaskMeta> = {}): ZCodeTaskMeta {
+function createTaskMeta(overrides: Partial<NibiTaskMeta> = {}): NibiTaskMeta {
   return {
     taskId: "task-unread",
     traceId: "trace-unread",

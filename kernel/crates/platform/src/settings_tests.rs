@@ -11,7 +11,7 @@ async fn settings_are_read_from_disk_and_tolerate_bad_files() {
     let file = paths.settings().as_path().to_path_buf();
     write(
         &file,
-        r#"{"zcodeEndpointOrigin":" https://zcode.example.com ","theme":"dark"}"#,
+        r#"{"nibiEndpointOrigin":" https://zcode.example.com ","theme":"dark"}"#,
     )
     .await;
     assert_eq!(settings.read().await["theme"], "dark");

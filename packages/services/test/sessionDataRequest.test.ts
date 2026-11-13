@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  isZCodeAgentSessionDataUnsupportedError,
+  isNibiAgentSessionDataUnsupportedError,
   NIBI_AGENT_SESSION_DATA_UNSUPPORTED_ERROR_CODE,
-} from "../src/zcode-agent/zcodeAgentErrors.js";
+} from "../src/nibi-agent/nibiAgentErrors.js";
 import {
   requestSessionDataMeasure,
   requestSessionDataPurge,
-} from "../src/zcode-agent/sessionDataRequest.js";
+} from "../src/nibi-agent/sessionDataRequest.js";
 
 const params = {
   sessionIds: ["s1"],
@@ -43,7 +43,7 @@ describe("sessionData 请求边界", () => {
   ] as const)("旧内核的 %s -32601 映射为稳定 unsupported", async (_name, call) => {
     const request = vi.fn().mockRejectedValue({ code: -32601 });
     const error = await call({ request }, params).catch((cause: unknown) => cause);
-    expect(isZCodeAgentSessionDataUnsupportedError(error)).toBe(true);
+    expect(isNibiAgentSessionDataUnsupportedError(error)).toBe(true);
     expect((error as Error).message).toContain("does not support");
     expect(request).toHaveBeenCalledTimes(1);
   });

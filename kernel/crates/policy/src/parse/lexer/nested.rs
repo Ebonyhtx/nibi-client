@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash-parse/src/lexer/nested.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
+// 复制自 apps/nibi-cli-rust/crates/bash-parse/src/lexer/nested.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
 //! `skipDQ` / `extractBalanced`：跳过嵌套的双引号与 `$(...)`。
 //!
 //! JS 中二者互相递归（`"$("$(...` 可嵌套上千层）。这里改用显式栈，逐步执行与 JS 完全相同的分支，

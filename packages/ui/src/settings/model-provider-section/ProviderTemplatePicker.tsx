@@ -10,7 +10,7 @@ import {
 } from "@nibi/shared/test-ids";
 import { Button } from "@/components/ui/button.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 import { ProviderLogo } from "./ProviderLogo.js";
 import { useProviderDetailFeedback } from "./ProviderDetailFeedback.js";
@@ -52,7 +52,7 @@ export function ProviderTemplatePicker({
   onCreateCustom: CustomProviderCreate;
   creating: boolean;
 }) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const { dismissFeedback, showFeedback } = useProviderDetailFeedback();
   // NIBI：不再特殊对待任何模板——GLM 卡片与其它供应商同组、同地位（内容侧已完成去品牌：
   // 云端清单由服务端转换，随包快照同源）。

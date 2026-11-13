@@ -37,7 +37,7 @@ function remainingWindowsCleanupMs(options: ProcessTreeTerminatorOptions): numbe
  * 照样超时；查询一超时就返回空进程表，于是"进程已经杀掉、只是没观察到"被误报成残留
  * （`runtime process tree cleanup incomplete`）。放大只影响等待，不改变残留判定语义。
  *
- * 直接读环境变量而不从 `zcode-agent` 引入，避免 `process/` ↔ `zcode-agent/` 的循环依赖。
+ * 直接读环境变量而不从 `nibi-agent` 引入，避免 `process/` ↔ `nibi-agent/` 的循环依赖。
  */
 function windowsLookupTimeoutScale(): number {
   const raw = process.env.NIBI_PROCESS_TREE_CLEANUP_BUDGET_SCALE?.trim();

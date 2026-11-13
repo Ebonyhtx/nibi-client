@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { normalize } from "node:path";
-import type { ZCodeAgentMcpServer } from "@nibi/shared";
+import type { NibiAgentMcpServer } from "@nibi/shared";
 
 function normalizePathForCompare(value: string): string {
   const normalized = normalize(value.trim()).replace(/[\\/]+$/, "");
@@ -8,8 +8,8 @@ function normalizePathForCompare(value: string): string {
 }
 
 function isFilesystemServer(
-  server: ZCodeAgentMcpServer,
-): server is Extract<ZCodeAgentMcpServer, { command: string }> {
+  server: NibiAgentMcpServer,
+): server is Extract<NibiAgentMcpServer, { command: string }> {
   return (
     "command" in server &&
     server.name === "filesystem" &&
@@ -18,9 +18,9 @@ function isFilesystemServer(
 }
 
 export function appendWorkspaceToFilesystemMcpServers(
-  mcpServers: ZCodeAgentMcpServer[] | undefined,
+  mcpServers: NibiAgentMcpServer[] | undefined,
   workspacePath: string,
-): ZCodeAgentMcpServer[] | undefined {
+): NibiAgentMcpServer[] | undefined {
   if (!mcpServers || mcpServers.length === 0) {
     return mcpServers;
   }

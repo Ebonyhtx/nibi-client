@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { WorkspaceAccessCard } from "@/BotsDialog/WorkspaceAccessCard.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import type { BotConfig } from "@nibi/shared";
 vi.mock("@/components/ui/select.js", () => ({
   Select: ({
@@ -46,7 +46,7 @@ it("切换指定项目时保存真实项目 ID，不能保存当前 tab cwd", ()
   };
   render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "en-US" },
       createElement(WorkspaceAccessCard, props),
     ),
@@ -58,7 +58,7 @@ it("切换指定项目时保存真实项目 ID，不能保存当前 tab cwd", ()
 it("没有项目时说明要先添加或打开项目，且不显示成可配置的全部项目", () => {
   render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "en-US" },
       createElement(WorkspaceAccessCard, {
         bot: { allowedWorkspaces: ["*"] } as BotConfig,

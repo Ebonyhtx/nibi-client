@@ -1,5 +1,5 @@
 // 工具条只展示 Composer 的下一次提交选择；Session 不是存活编辑器的补值来源。
-import type { ZCodeConfigOption } from "@nibi/shared";
+import type { NibiConfigOption } from "@nibi/shared";
 import type { ModelSelectionView } from "@nibi/services";
 import type { SessionConfigState } from "@nibi/shared/nibi-protocol-v4";
 import { resolveModelThoughtOption } from "@/lib/modelThoughtOption.js";
@@ -24,7 +24,7 @@ export function resolveDraftModelThoughtOption(
   providerId: string,
   modelId: string,
   modelSelectionView: ModelSelectionView | null,
-): ZCodeConfigOption | null {
+): NibiConfigOption | null {
   if (!modelSelectionView) return null;
   return resolveModelThoughtOption({
     modelSelectionView,

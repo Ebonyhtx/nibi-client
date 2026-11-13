@@ -1,13 +1,13 @@
 /* eslint-disable max-lines -- Bot service 的共享测试桩集中维护协议、任务和模型 registry 能力。 */
 import { afterEach, vi } from "vitest";
 import type {
-  ZCodeConfigOption,
+  NibiConfigOption,
   BotsConfigFile,
   BotsStateFile,
   Locale,
   ModelSelection,
-  ZCodeTaskMode,
-  ZCodeSessionSettingsState,
+  NibiTaskMode,
+  NibiSessionSettingsState,
 } from "@nibi/shared";
 import {
   NIBI_MODEL_REASONING_SEPARATOR,
@@ -16,8 +16,8 @@ import {
   botsConfigFileSchema,
 } from "@nibi/shared";
 export { botsConfigFileSchema };
-import type { IZCodeSessionService } from "../src/zcode-session/zcodeSession.js";
-import type { IZCodeTaskService } from "../src/session/zcodeTaskService.js";
+import type { INibiSessionService } from "../src/nibi-session/nibiSession.js";
+import type { INibiTaskService } from "../src/session/nibiTaskService.js";
 import type { IBroadcastService } from "../src/broadcast/broadcast.js";
 import type { ICredentialService } from "../src/credential/credential.js";
 import type { ISettingService } from "../src/setting/setting.js";
@@ -72,7 +72,7 @@ export function createMemoryRepo(config: BotsConfigFile, state?: BotsStateFile) 
   };
 }
 
-export function createLegacyTaskService(): IZCodeTaskService {
+export function createLegacyTaskService(): INibiTaskService {
   return {
     listTasks: vi.fn(async () => []),
     listDeletedTaskIds: vi.fn(async () => []),
@@ -129,7 +129,7 @@ export function createLegacyTaskService(): IZCodeTaskService {
     respondElicitation: vi.fn(async () => true),
     stopGeneration: vi.fn(async () => undefined),
     onDynamicStreamEvent: vi.fn(() => () => ({ dispose() {} })),
-  } as unknown as IZCodeTaskService;
+  } as unknown as INibiTaskService;
 }
 
 export function createCredentialService(values: Record<string, string> = {}): ICredentialService {
@@ -229,7 +229,7 @@ function parseModelSelectionForTest(value: string): ModelSelection {
   };
 }
 
-function normalizeZCodeModeForTest(value: unknown): ZCodeTaskMode {
+function normalizeNibiModeForTest(value: unknown): NibiTaskMode {
   switch (value) {
     case "plan":
     case "build":
@@ -247,18 +247,18 @@ function normalizeZCodeModeForTest(value: unknown): ZCodeTaskMode {
 }
 
 function readSelectOption(
-  configOptions: readonly ZCodeConfigOption[],
+  configOptions: readonly NibiConfigOption[],
   category: string,
-): (ZCodeConfigOption & { type: "select" }) | undefined {
+): (NibiConfigOption & { type: "select" }) | undefined {
   return configOptions.find(
-    (option): option is ZCodeConfigOption & { type: "select" } =>
+    (option): option is NibiConfigOption & { type: "select" } =>
       option.type === "select" && (option.category === category || option.id === category),
   );
 }
 
-export function createZCodeSessionSettingsFromConfigOptions(
-  configOptions: readonly ZCodeConfigOption[] = [],
-): ZCodeSessionSettingsState {
+export function createNibiSessionSettingsFromConfigOptions(
+  configOptions: readonly NibiConfigOption[] = [],
+): NibiSessionSettingsState {
   const modelOption = readSelectOption(configOptions, "model");
   const currentModelValue =
     typeof modelOption?.currentValue === "string"
@@ -295,17 +295,17 @@ export function createZCodeSessionSettingsFromConfigOptions(
         })) ?? [],
     },
     mode: {
-      current: normalizeZCodeModeForTest(modeOption?.currentValue),
+      current: normalizeNibiModeForTest(modeOption?.currentValue),
     },
     permission: {
-      mode: normalizeZCodeModeForTest(modeOption?.currentValue),
+      mode: normalizeNibiModeForTest(modeOption?.currentValue),
     },
   };
 }
 
-function createZCodeWorkspaceState(
-  settings: ZCodeSessionSettingsState = createZCodeSessionSettingsFromConfigOptions(),
-): ZCodeWorkspaceStateSnapshot {
+function createNibiWorkspaceState(
+  settings: NibiSessionSettingsState = createNibiSessionSettingsFromConfigOptions(),
+): NibiWorkspaceStateSnapshot {
   return {
     workspace: {
       workspacePath: "/tmp/workspace",
@@ -316,10 +316,10 @@ function createZCodeWorkspaceState(
   };
 }
 
-export function createZCodeSessionService(
-  settings: ZCodeSessionSettingsState = createZCodeSessionSettingsFromConfigOptions(),
-): IZCodeSessionService {
-  const workspaceState = createZCodeWorkspaceState(settings);
+export function createNibiSessionService(
+  settings: NibiSessionSettingsState = createNibiSessionSettingsFromConfigOptions(),
+): INibiSessionService {
+  const workspaceState = createNibiWorkspaceState(settings);
   return {
     initializeWorkspace: vi.fn(async () => ({
       available: true,
@@ -337,34 +337,34 @@ export function createZCodeSessionService(
       applied: true,
       revision: "test-provider-registry",
     })),
-  } as unknown as IZCodeSessionService;
+  } as unknown as INibiSessionService;
 }
 
 export function createBotsService(
   deps: Omit<
     Parameters<typeof createBotsServiceImpl>[0],
-    "zcodeSessionService" | "zcodeTaskService" | "projectService"
+    "nibiSessionService" | "nibiTaskService" | "projectService"
   > & {
-    zcodeTaskService?: IZCodeTaskService;
-    /** 旧测试名保留为别名；真实注入的是 ZCode task service。 */
-    legacyTaskService?: IZCodeTaskService;
-    zcodeSessionService?: IZCodeSessionService;
+    nibiTaskService?: INibiTaskService;
+    /** 旧测试名保留为别名；真实注入的是 Nibi task service。 */
+    legacyTaskService?: INibiTaskService;
+    nibiSessionService?: INibiSessionService;
     projectService?: Parameters<typeof createBotsServiceImpl>[0]["projectService"];
   },
 ): ReturnType<typeof createBotsServiceImpl> {
   const {
     legacyTaskService,
-    zcodeTaskService: providedZCodeTaskService,
-    zcodeSessionService: _providedZCodeSessionService,
+    nibiTaskService: providedNibiTaskService,
+    nibiSessionService: _providedNibiSessionService,
     ...rest
   } = deps;
-  const zcodeTaskService =
-    providedZCodeTaskService ?? legacyTaskService ?? createLegacyTaskService();
+  const nibiTaskService =
+    providedNibiTaskService ?? legacyTaskService ?? createLegacyTaskService();
   const modelSelectionService =
     deps.modelSelectionService ??
     createModelSelectionService([{ id: "glm", name: "GLM", models: ["default"] }]);
   return createBotsServiceImpl({
-    ...createBotProjectServices(undefined, (target) => zcodeTaskService.listTasks(target)),
+    ...createBotProjectServices(undefined, (target) => nibiTaskService.listTasks(target)),
     settingService: createSettingService({
       locale: "zh-CN",
       lastWorkspaceSession: [
@@ -378,12 +378,12 @@ export function createBotsService(
     remoteWorkspaceService: {
       isConnected: vi.fn(async () => true),
       ensureConnected: vi.fn(async () => ({ ok: true })),
-      getZCodeTaskService: vi.fn(async () => zcodeTaskService),
+      getNibiTaskService: vi.fn(async () => nibiTaskService),
       getModelSelectionService: vi.fn(async () => modelSelectionService),
     },
     modelSelectionService,
     ...rest,
-    zcodeTaskService,
+    nibiTaskService,
   });
 }
 
@@ -398,7 +398,7 @@ export function createBotProjectServices(
   readTasks?: (target: {
     workspacePath: string;
     workspaceIdentity?: string;
-  }) => ReturnType<IZCodeTaskService["listTasks"]>,
+  }) => ReturnType<INibiTaskService["listTasks"]>,
 ) {
   const projects: VirtualProject[] = workspaces.map((workspace, index) => ({
     id: `project-${index}`,

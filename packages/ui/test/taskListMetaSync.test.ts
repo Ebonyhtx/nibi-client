@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import { insertTaskIntoTaskCaches, syncTaskMetaToTaskCaches } from "@/lib/taskListMetaSync.js";
 import { buildTaskListCacheDescriptor, buildTaskWorkspaceKey } from "@/lib/taskQueryCache.js";
-import { getTaskMeta, useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { getTaskMeta, useNibiSessionStore } from "@/store/nibiSessionStore.js";
 import {
   upsertTaskQueryCacheTaskMeta,
   useTaskQueryCacheStore,
@@ -11,7 +11,7 @@ import {
 const WORKSPACE_PATH = "/repo/goal-clear-cache";
 const TASK_ID = "task-goal-clear-cache";
 
-function createTaskMeta(overrides: Partial<ZCodeTaskMeta> = {}): ZCodeTaskMeta {
+function createTaskMeta(overrides: Partial<NibiTaskMeta> = {}): NibiTaskMeta {
   return {
     createdAt: 1,
     mode: "default",
@@ -26,7 +26,7 @@ function createTaskMeta(overrides: Partial<ZCodeTaskMeta> = {}): ZCodeTaskMeta {
 }
 
 beforeEach(() => {
-  useZCodeSessionStore.setState((state) => ({
+  useNibiSessionStore.setState((state) => ({
     ...state,
     workspaces: {},
   }));
@@ -55,7 +55,7 @@ describe("syncTaskMetaToTaskCaches", () => {
       visibleLimit: 5,
     });
     const queryKey = "collapsed-workspace-query";
-    const store = useZCodeSessionStore.getState();
+    const store = useNibiSessionStore.getState();
     store.setTaskListCache(WORKSPACE_PATH, existingTasks);
     for (const task of existingTasks) {
       store.upsertOptimisticTaskListItem(WORKSPACE_PATH, task);
@@ -96,7 +96,7 @@ describe("syncTaskMetaToTaskCaches", () => {
       title: "New session",
       updatedAt: 10,
     });
-    const store = useZCodeSessionStore.getState();
+    const store = useNibiSessionStore.getState();
     store.setTaskListCache(WORKSPACE_PATH, [optimisticTask]);
     store.upsertOptimisticTaskListItem(WORKSPACE_PATH, optimisticTask);
     upsertTaskQueryCacheTaskMeta(optimisticTask);
@@ -107,7 +107,7 @@ describe("syncTaskMetaToTaskCaches", () => {
       membership: { pinned: false, archived: false },
     });
 
-    const workspaceState = useZCodeSessionStore.getState().getWorkspaceState(WORKSPACE_PATH);
+    const workspaceState = useNibiSessionStore.getState().getWorkspaceState(WORKSPACE_PATH);
     const entityKey = `${buildTaskWorkspaceKey(WORKSPACE_PATH)}::${TASK_ID}`;
 
     expect(getTaskMeta(workspaceState, TASK_ID)?.title).toBe("首发问题标题");
@@ -136,7 +136,7 @@ describe("syncTaskMetaToTaskCaches", () => {
       task: rawSnapshotTask,
     });
 
-    const workspaceState = useZCodeSessionStore.getState().getWorkspaceState(WORKSPACE_PATH);
+    const workspaceState = useNibiSessionStore.getState().getWorkspaceState(WORKSPACE_PATH);
     const workspaceTask = getTaskMeta(workspaceState, TASK_ID);
     const queryTask = useTaskQueryCacheStore.getState().taskMetaByEntityKey[entityKey];
 

@@ -7,7 +7,7 @@ import type {
   ConversationSnapshot,
 } from "@nibi/shared/nibi-protocol-v4";
 import { SessionPane } from "@/v4/SessionPane.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { dispatchConversationSelectionAdd } from "@/lib/conversationSelectionReference.js";
 import {
   buildSelectionSideChatKey,
@@ -63,11 +63,11 @@ const projectionState = vi.hoisted(() => ({
 
 const servicesMock = vi.hoisted(() => ({
   // 修复原因：readiness hook 将 service 作为 effect 依赖；每次 render 重建会导致无限重渲染直至 OOM。
-  zcodeSessionService: {
+  nibiSessionService: {
     updateProviderRegistry: vi.fn(),
     readSession: vi.fn(async () => ({})),
   },
-  zcodeTaskService: {
+  nibiTaskService: {
     restartWorkspaceProcess: vi.fn(),
   },
 }));
@@ -80,7 +80,7 @@ vi.mock("@/v4/BotGroupDeliveryAction.js", () => ({
 
 vi.mock("@/hooks/useSettingService.js", () => ({
   useSettings: () => ({
-    settings: { zcodeInteractionBehavior: "guide" },
+    settings: { nibiInteractionBehavior: "guide" },
     loading: false,
     error: null,
     update: vi.fn(async () => {}),
@@ -110,7 +110,7 @@ vi.mock("@/v4/V4ConversationContext.js", () => ({
 }));
 
 vi.mock("@/store/StoreProvider.js", () => ({
-  useZCodeStoreWithDefault: (_selector: unknown, fallback: unknown) => fallback,
+  useNibiStoreWithDefault: (_selector: unknown, fallback: unknown) => fallback,
 }));
 
 vi.mock("@/v4/composer/useDraftConfigControl.js", () => ({
@@ -344,7 +344,7 @@ describe("SessionPane followupMode app setting sync", () => {
       await act(async () => {
         root.render(
           createElement(
-            ZCodeIntlProvider,
+            NibiIntlProvider,
             { initialLocale: "zh-CN" },
             createElement(SessionPane, {
               paneId: "workspace-main",
@@ -399,7 +399,7 @@ describe("SessionPane followupMode app setting sync", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(SessionPane, {
             paneId: "workspace-main",

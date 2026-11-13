@@ -1,20 +1,20 @@
 import { useCallback, useMemo, useState } from "react";
-import type { ZCodeInstalledPluginSummary, ZCodePluginInfo } from "@nibi/shared";
+import type { NibiInstalledPluginSummary, NibiPluginInfo } from "@nibi/shared";
 import type { IPluginManagementService } from "@nibi/services";
 import { usePluginManagementStore } from "@/store/pluginManagementStore.js";
 
 interface UsePluginUninstallInput {
   store?: typeof usePluginManagementStore;
   pluginService: IPluginManagementService;
-  installedPlugins: ZCodeInstalledPluginSummary[];
-  plugins: ZCodePluginInfo[];
+  installedPlugins: NibiInstalledPluginSummary[];
+  plugins: NibiPluginInfo[];
   activeOperations: ReadonlyArray<{ id: string }>;
   // 卸载会让插件提供的技能/命令失效，调用方传入统一的「能力变更后刷新」收尾逻辑。
   onAfterUninstall: () => Promise<void>;
 }
 
 export interface PluginUninstallController {
-  pendingPlugin: ZCodePluginInfo | ZCodeInstalledPluginSummary | null;
+  pendingPlugin: NibiPluginInfo | NibiInstalledPluginSummary | null;
   uninstalling: boolean;
   requestUninstall: (pluginId: string) => void;
   cancelUninstall: () => void;

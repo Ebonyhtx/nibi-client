@@ -4,7 +4,7 @@
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 vi.mock("@/components/ai-elements/code-block.js", () => ({
   CodeBlockHeader: () => null,
@@ -40,7 +40,7 @@ function render(
 ): string {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: locale },
       createElement(WorkflowNotificationToolRow, {
         notification: HOLE,

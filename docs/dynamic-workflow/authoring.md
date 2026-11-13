@@ -4,8 +4,8 @@ Status: implemented. This document describes what the model and the user see whe
 workflow is written: the facade the script is written against, the `/workflow` command and
 the authoring skill, the prompts a subagent receives, the artifact channel, `world.run`, and
 the snippet tool. The analyzer that checks the script is in
-`apps/zcode-cli/packages/dynamic-workflow/docs/analysis.md`; what happens after the script
-is accepted is in `apps/zcode-cli/packages/dynamic-workflow/docs/execution-engine.md`; the
+`apps/nibi-cli/packages/dynamic-workflow/docs/analysis.md`; what happens after the script
+is accepted is in `apps/nibi-cli/packages/dynamic-workflow/docs/execution-engine.md`; the
 tools that submit and confirm a run are in `docs/dynamic-workflow/launch.md`.
 
 ## The authoring surface
@@ -588,7 +588,7 @@ teaching material now have the same lifetime.
 | Asset                     | Where it lives                                                                                       | How it ships                      |
 | ------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------- |
 | `/workflow`               | `bootstrap/src/builtin-workflow-command.ts`, expanded by `builtin-prompt-command.ts` next to `/init` | compiled into the CLI             |
-| `dynamic-workflows` skill | `apps/zcode-cli/packages/bundled-skills/skills/dynamic-workflows/`                                   | the **bundled skill pack**, below |
+| `dynamic-workflows` skill | `apps/nibi-cli/packages/bundled-skills/skills/dynamic-workflows/`                                   | the **bundled skill pack**, below |
 
 The bundled skill pack (`bootstrap/src/app/bundled-skills.ts`) is a skill root with
 `source: "bundled"` and `scope: "system"`, injected next to the plugin skill roots wherever
@@ -1332,7 +1332,7 @@ already cumulative; a cache hit adds nothing, since its cost is inside the inher
 resumed run continues its own count. In both cases the engine re-emits the carried total right
 after `run-started`, so a card never shows zero for a run that has already cost something.
 The predecessor keeps its own figure; it is the successor that reports the whole
-(`apps/zcode-cli/packages/dynamic-workflow/docs/execution-engine.md`, "Usage across the lineage").
+(`apps/nibi-cli/packages/dynamic-workflow/docs/execution-engine.md`, "Usage across the lineage").
 
 ## Alternatives not taken
 

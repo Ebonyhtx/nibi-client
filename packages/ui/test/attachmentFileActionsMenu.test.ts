@@ -5,7 +5,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { IPlatformService, SaveFileRequest } from "@nibi/shared";
 import { PlatformProvider } from "@/hooks/usePlatform.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { AttachmentFileActionsMenu } from "@/v4/AttachmentFileActionsMenu.js";
 
 // Radix 菜单在关闭态不渲染内容，且 jsdom 里没有完整 pointer capture；
@@ -56,7 +56,7 @@ function renderMenu(
 ) {
   return render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "en-US" },
       createElement(
         PlatformProvider,

@@ -1,4 +1,4 @@
-import { createLocalServices, type ZCodeAgentCommandResolver } from "@nibi/services/node";
+import { createLocalServices, type NibiAgentCommandResolver } from "@nibi/services/node";
 import type { IChannel } from "@nibi/rpc";
 import {
   parseServiceAuthorityMode,
@@ -12,7 +12,7 @@ export interface CreateStdioServicesOptions {
   topicResourceRelayChannel?: () => IChannel;
   env?: Record<string, string | undefined>;
   nibiBuiltinProviderConfigFilePath: string;
-  zcodeAgentCommandResolver?: ZCodeAgentCommandResolver;
+  nibiAgentCommandResolver?: NibiAgentCommandResolver;
 }
 
 export interface RemoteAgentNetworkOptions {
@@ -45,7 +45,7 @@ export function createStdioServices(options: CreateStdioServicesOptions) {
     nibiBuiltinProviderConfigFilePath: options.nibiBuiltinProviderConfigFilePath,
     topicResourceRelayChannel: options.topicResourceRelayChannel,
     serviceAuthorityMode: authorityModeParseResult.mode,
-    zcodeAgentCommandResolver: options.zcodeAgentCommandResolver,
+    nibiAgentCommandResolver: options.nibiAgentCommandResolver,
     remoteAgentNetwork,
   });
 

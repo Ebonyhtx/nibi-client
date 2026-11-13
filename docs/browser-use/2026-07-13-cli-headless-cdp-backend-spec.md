@@ -203,13 +203,13 @@ adapter，不足以证明 ZCode Browser Use。
 本机真实浏览器链路：
 
 ```bash
-pnpm --dir apps/zcode-cli test:browser-headless
+pnpm --dir apps/nibi-cli test:browser-headless
 ```
 
 Linux、非 root、无 `DISPLAY`/Xvfb 的容器验收：
 
 ```bash
-pnpm --dir apps/zcode-cli test:browser-headless:linux
+pnpm --dir apps/nibi-cli test:browser-headless:linux
 ```
 
 ## 10. 非目标

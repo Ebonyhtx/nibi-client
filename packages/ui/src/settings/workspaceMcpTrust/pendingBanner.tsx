@@ -1,11 +1,11 @@
 import { memo, useCallback, useMemo, useState } from "react";
-import type { ZCodeMcpServer } from "@nibi/shared";
+import type { NibiMcpServer } from "@nibi/shared";
 import {
   TID_V4_WORKSPACE_MCP_TRUST_PENDING_BANNER,
   TID_V4_WORKSPACE_MCP_TRUST_PENDING_DISMISS,
   TID_V4_WORKSPACE_MCP_TRUST_PENDING_REVIEW,
 } from "@nibi/shared/test-ids";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { setPendingSettingsSectionIntent } from "@/lib/settingsNavigation.js";
 import { useOptionalTabStore } from "@/store/TabStoreProvider.js";
 import { useMcpStore } from "@/store/mcpStore.js";
@@ -27,7 +27,7 @@ export interface WorkspaceMcpTrustPendingInput {
   trust: Record<string, WorkspaceMcpTrustReviewView>;
   unreviewable: readonly string[];
   enabledStates: Record<string, boolean>;
-  servers: ZCodeMcpServer[];
+  servers: NibiMcpServer[];
 }
 
 /**
@@ -104,7 +104,7 @@ export const WorkspaceMcpTrustPendingBanner = memo(
     workspacePath: string;
     workspaceIdentity?: string;
   }) {
-    const { intl } = useZCodeIntl();
+    const { intl } = useNibiIntl();
     const openSettingsTab = useOptionalTabStore((state) => state.openSettingsTab);
     const currentProjectPath = useMcpStore((state) => state.currentProjectPath);
     const currentWorkspaceIdentity = useMcpStore(

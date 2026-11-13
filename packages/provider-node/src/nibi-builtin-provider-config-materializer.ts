@@ -2,11 +2,11 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { atomicWritePrivateTextFile, withFileLock } from "@nibi/shared/node";
 import {
-  decodeZCodeBuiltinRelease,
-  serializeZCodeBuiltinRelease,
+  decodeNibiBuiltinRelease,
+  serializeNibiBuiltinRelease,
 } from "./nibi-builtin-release.js";
 
-export interface MaterializeZCodeBuiltinProviderConfigOptions {
+export interface MaterializeNibiBuiltinProviderConfigOptions {
   readonly environmentConfigRoot: string;
   readonly content: string;
 }
@@ -15,11 +15,11 @@ export interface MaterializeZCodeBuiltinProviderConfigOptions {
  * 在环境目录释放唯一随包基线；升级以退出旧进程为前提，不保留历史 hash 副本。
  * 与下载配置分离，并复用统一锁及原子写入，避免并发启动读到半份 JSON。
  */
-export async function materializeZCodeBuiltinProviderConfig(
-  options: MaterializeZCodeBuiltinProviderConfigOptions,
+export async function materializeNibiBuiltinProviderConfig(
+  options: MaterializeNibiBuiltinProviderConfigOptions,
 ): Promise<string> {
-  const content = `${serializeZCodeBuiltinRelease(
-    decodeZCodeBuiltinRelease(JSON.parse(options.content)),
+  const content = `${serializeNibiBuiltinRelease(
+    decodeNibiBuiltinRelease(JSON.parse(options.content)),
   )}\n`;
   const filePath = join(
     options.environmentConfigRoot,

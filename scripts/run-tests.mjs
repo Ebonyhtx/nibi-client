@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const filters = process.argv.slice(2).filter((arg) => !arg.startsWith("-"));
-const PACKAGE_ROOTS = ["packages", "apps/zcode-cli/packages"];
+const PACKAGE_ROOTS = ["packages", "apps/nibi-cli/packages"];
 const TEST_SUFFIXES = [".test.ts", ".test.mts", ".test.js", ".test.mjs"];
 
 function collectTestFiles(dir) {

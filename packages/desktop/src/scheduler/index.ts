@@ -9,9 +9,9 @@
 import { AutomationRepo, computeAutomationNextRunAt, isOneShotAutomation } from "@nibi/services/node";
 import {
   resolveWorkspaceKey,
-  type ZCodeAutomation,
-  type ZCodeAutomationTrigger,
-  type ZCodeAutomationRun,
+  type NibiAutomation,
+  type NibiAutomationTrigger,
+  type NibiAutomationRun,
 } from "@nibi/shared";
 import type { MainToSchedulerMessage, SchedulerToMainMessage } from "./schedulerProtocol.js";
 import { settleManualClaimForDispatchResult } from "./manualClaimRelease.js";
@@ -33,7 +33,7 @@ const { parentPort } = process;
 type InFlight = {
   automationId: string;
   workspaceKey: string;
-  trigger: ZCodeAutomationTrigger;
+  trigger: NibiAutomationTrigger;
 };
 
 const repo = new AutomationRepo();
@@ -59,7 +59,7 @@ function log(level: "info" | "warn" | "error", message: string): void {
 }
 
 /** 派发时间戳：优先用 next_run_at（重试期间不变，保证 runId 稳定），退到 retry_at / now。 */
-function resolveScheduledAt(automation: ZCodeAutomation, now: number): number {
+function resolveScheduledAt(automation: NibiAutomation, now: number): number {
   return automation.nextRunAt ?? automation.retryAt ?? now;
 }
 
@@ -103,7 +103,7 @@ function requestTick(): void {
   void tick();
 }
 
-async function handleClaimed(automation: ZCodeAutomation, now: number): Promise<void> {
+async function handleClaimed(automation: NibiAutomation, now: number): Promise<void> {
   const scheduledAt = resolveScheduledAt(automation, now);
   const runId = buildRunId(automation.automationId, scheduledAt);
   const workspaceKey = resolveWorkspaceKey({
@@ -156,9 +156,9 @@ async function handleClaimed(automation: ZCodeAutomation, now: number): Promise<
 }
 
 function postDispatchRequest(
-  automation: ZCodeAutomation,
+  automation: NibiAutomation,
   runId: string,
-  fixedSelection?: ZCodeAutomationRun["modelSelection"],
+  fixedSelection?: NibiAutomationRun["modelSelection"],
 ): void {
   const request: SchedulerToMainMessage = {
     type: "cron-dispatch-request",
@@ -180,8 +180,8 @@ function postDispatchRequest(
 }
 
 async function handleClaimedManual(
-  automation: ZCodeAutomation,
-  run: ZCodeAutomationRun,
+  automation: NibiAutomation,
+  run: NibiAutomationRun,
 ): Promise<void> {
   inFlight.set(run.runId, {
     automationId: automation.automationId,
@@ -203,7 +203,7 @@ async function settleDispatchResult(
   // 从 runId 还原 automationId（context 丢失时兜底，如 scheduler 重启后收到迟到回报）。
   const automationId = context?.automationId ?? msg.runId.split(":")[0]!;
   const workspaceKey = context?.workspaceKey;
-  const trigger: ZCodeAutomationTrigger =
+  const trigger: NibiAutomationTrigger =
     context?.trigger ?? (msg.runId.includes(":manual:") ? "manual" : "schedule");
   const settleManualClaim = async (ok: boolean): Promise<void> => {
     await settleManualClaimForDispatchResult({

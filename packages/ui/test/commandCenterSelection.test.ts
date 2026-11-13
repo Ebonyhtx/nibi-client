@@ -3,11 +3,11 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import { CommandCenterDialog } from "@/command-center/CommandCenterDialog.js";
 
 const fixture = vi.hoisted(() => ({
-  items: [] as Array<ZCodeTaskMeta & { searchSnippets?: string[] }>,
+  items: [] as Array<NibiTaskMeta & { searchSnippets?: string[] }>,
 }));
 vi.mock("@/hooks/useGlobalTaskList.js", () => ({
   useGlobalTaskList: () => ({ items: fixture.items, loading: false }),
@@ -16,10 +16,10 @@ vi.mock("@/hooks/useServices.js", () => ({
   useServices: () => ({ fileService: {} }),
 }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
+  useNibiIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
 }));
 
-function task(taskId: string, overrides: Partial<ZCodeTaskMeta> = {}): ZCodeTaskMeta {
+function task(taskId: string, overrides: Partial<NibiTaskMeta> = {}): NibiTaskMeta {
   return {
     taskId,
     traceId: `trace-${taskId}`,

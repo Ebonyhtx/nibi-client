@@ -60,7 +60,7 @@ pub use automation::HostAutomation;
 pub use topic::HostTopic;
 pub use server::Defaults;
 
-/// 存储的启动状态（`startup/storageState`，`zcodeStorageStartupStateSchema`）：checking → ready / failed。迁移与备份只由
+/// 存储的启动状态（`startup/storageState`，`nibiStorageStartupStateSchema`）：checking → ready / failed。迁移与备份只由
 /// Node 的存储准备 Worker 做，这里只报本进程打开会话库的结果。
 pub struct Startup {
     context: Arc<Context>,

@@ -1,7 +1,7 @@
 import {
   decodeCustomModelValue,
   NIBI_MODEL_REASONING_SEPARATOR,
-  type ZCodeConfigOption,
+  type NibiConfigOption,
 } from "@nibi/shared";
 
 function normalizeModelIdentity(value: string | null | undefined): string | null {
@@ -30,7 +30,7 @@ function normalizeModelIdentity(value: string | null | undefined): string | null
 }
 
 export function readModelCurrentValueForModelStateGuard(
-  configOptions: readonly ZCodeConfigOption[],
+  configOptions: readonly NibiConfigOption[],
 ): string | null {
   const modelOption = configOptions.find(
     (option) => option.category === "model" && option.type === "select",

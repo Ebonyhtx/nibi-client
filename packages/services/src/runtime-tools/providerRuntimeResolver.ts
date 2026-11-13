@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, resolve as resolvePath } from "node:path";
-import { NIBI_AGENT_RUNTIME, sanitizeZCodeRuntimeEnvInPlace } from "@nibi/shared";
+import { NIBI_AGENT_RUNTIME, sanitizeNibiRuntimeEnvInPlace } from "@nibi/shared";
 import { getDataBaseDir, getProviderWorkspaceConfigDir } from "../paths.js";
 import { buildRuntimeProcessEnvPatch } from "./runtimeCommandEnv.js";
 
@@ -42,7 +42,7 @@ export function buildCleanEnv(
   }
   // 修复原因：provider/agent runtime 子进程不能默认继承 shell 里的 NODE_ENV、代理或证书变量。
   // 这些运行时输入必须来自 NIBI_* 显式配置或 app 设置页，避免用户环境污染模型请求和工具子进程。
-  sanitizeZCodeRuntimeEnvInPlace(env);
+  sanitizeNibiRuntimeEnvInPlace(env);
   // Bugfix: Windows 环境变量名大小写不敏感，但 JS 普通对象区分大小写。
   // process.env 枚举时 PATH 通常以 "Path"（title case）出现，
   // 复制到普通对象后，下游 buildRuntimeProcessEnvPatch 按 "PATH"（全大写）查找会得到 undefined，
@@ -92,7 +92,7 @@ function resolvePlatformScopedBundledAgentRoots(moduleDir?: string): Array<strin
     resolvePath(process.cwd(), "bundled-agents", platformKey),
     resolvePath(process.cwd(), "packages", "desktop", "bundled-agents", platformKey),
     // dev:web 会用 pnpm --filter @nibi/server dev 启动，cwd 落在 packages/server。
-    // ZCode Agent 资源可能位于桌面包或仓库根的 bundled-agents/<platform>。
+    // Nibi Agent 资源可能位于桌面包或仓库根的 bundled-agents/<platform>。
     // 这里统一补齐仓库内所有平台化目录候选，desktop/web/server 共享一套解析链路。
     resolvePath(process.cwd(), "..", "desktop", "bundled-agents", platformKey),
     moduleDir ? resolvePath(moduleDir, "..", "..", "desktop", "bundled-agents", platformKey) : null,
@@ -110,7 +110,7 @@ function resolveLegacyBundledResourceRoots(moduleDir?: string): Array<string | n
   ];
 }
 
-export function findZCodeAgentRuntimeBinary(): string | null {
+export function findNibiAgentRuntimeBinary(): string | null {
   const runtime = NIBI_AGENT_RUNTIME;
   const entrySegments = runtime.resolveEntrySegments(process.platform);
   const resourceSegments = [runtime.bundledResourceDir, ...entrySegments];
@@ -140,15 +140,15 @@ export function findZCodeAgentRuntimeBinary(): string | null {
 /**
  * 查找 agent 的 JS bundle（resources/glm/nibi.cjs）。
  * 桌面打包态用 app 内置的 Electron Node runtime 直接执行这个 bundle，不再随包内置独立 Node 二进制。
- * 候选目录与 findZCodeAgentRuntimeBinary 完全平行，只是入口换成平台无关的 nodeBundleEntryFile。
+ * 候选目录与 findNibiAgentRuntimeBinary 完全平行，只是入口换成平台无关的 nodeBundleEntryFile。
  * 不查 GLM_BINARY_PATH——那个 env 指向原生二进制，语义不同。
  */
-export function findZCodeAgentRuntimeNodeBundle(): string | null {
+export function findNibiAgentRuntimeNodeBundle(): string | null {
   const runtime = NIBI_AGENT_RUNTIME;
   const entrySegments = runtime.resolveNodeBundleSegments();
   const resourceSegments = [runtime.bundledResourceDir, ...entrySegments];
 
-  // 与 findZCodeAgentRuntimeBinary 一致，打包后的 CJS bundle 里 import.meta.dirname 为 undefined，
+  // 与 findNibiAgentRuntimeBinary 一致，打包后的 CJS bundle 里 import.meta.dirname 为 undefined，
   // 这里做空值保护后再构建仓库内候选路径。
   const moduleDir: string | undefined = import.meta.dirname;
   const platformScopedRoots = resolvePlatformScopedBundledAgentRoots(moduleDir);

@@ -9,7 +9,7 @@ import type {
 } from "@nibi/shared";
 import {
   parseWebRemoteControlAppPayload,
-  buildZCodeEndpointUrls,
+  buildNibiEndpointUrls,
   encodeWebRemoteControlRpcTransportMessage,
 } from "@nibi/shared";
 import { createWebRemoteControlManager } from "../src/main/webRemoteControlManager.js";
@@ -475,7 +475,7 @@ describe("createWebRemoteControlManager external relay", () => {
 
   it("uses the current endpoint resolver for relay and QR URL on each start", async () => {
     const { getLatestTransportOptions, manager } = createManagerHarness({
-      getEndpointUrls: () => buildZCodeEndpointUrls("http://localhost:3030"),
+      getEndpointUrls: () => buildNibiEndpointUrls("http://localhost:3030"),
     });
 
     await manager.start(1, { workspacePath: "/workspace/demo" });

@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash/src/git_callbacks.rs（07ab266d4b）；不 panic，失败时按不放行处理。
+// 复制自 apps/nibi-cli-rust/crates/bash/src/git_callbacks.rs（07ab266d4b）；不 panic，失败时按不放行处理。
 //! Git subcommand callbacks (`bash-readonly-policy-git-callbacks.ts`).
 
 pub(crate) fn by_name(name: &str) -> Option<super::tables::Callback> {

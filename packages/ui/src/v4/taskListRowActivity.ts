@@ -1,4 +1,4 @@
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import type {
   PendingInteractionSummary,
   SessionSummary,
@@ -18,11 +18,11 @@ export interface TaskListRowActivity {
   workflowActivity?: SessionWorkflowActivity;
 }
 
-export type TaskListMetaWithActivity = ZCodeTaskMeta & {
+export type TaskListMetaWithActivity = NibiTaskMeta & {
   [TASK_LIST_ROW_ACTIVITY_FIELD]: TaskListRowActivity;
 };
 
-export function attachTaskListRowActivity<T extends ZCodeTaskMeta>(
+export function attachTaskListRowActivity<T extends NibiTaskMeta>(
   task: T,
   activity: TaskListRowActivity,
 ): T & TaskListMetaWithActivity {
@@ -32,13 +32,13 @@ export function attachTaskListRowActivity<T extends ZCodeTaskMeta>(
   };
 }
 
-export function getTaskListRowActivity(task: ZCodeTaskMeta): TaskListRowActivity | null {
+export function getTaskListRowActivity(task: NibiTaskMeta): TaskListRowActivity | null {
   const activity = (task as Partial<TaskListMetaWithActivity>)[TASK_LIST_ROW_ACTIVITY_FIELD];
   return activity ?? null;
 }
 
 /** 只采信 sessions-index 的实时 phase；tasks-index 残留 status=running 不能置顶历史任务。 */
-export function isTaskListRowRunning(task: ZCodeTaskMeta): boolean {
+export function isTaskListRowRunning(task: NibiTaskMeta): boolean {
   const phase = getTaskListRowActivity(task)?.phase;
   return phase === "prewarming" || phase === "running";
 }
@@ -51,12 +51,12 @@ export function isTaskListRowRunning(task: ZCodeTaskMeta): boolean {
  * 都落在按 updatedAt 排序的非运行层，随进度事件互相换位。后台 bash / 分离子代理同理。
  * 转圈图标仍只认 phase（isTaskListRowRunning），这里只决定排序层。
  */
-export function isTaskListRowActive(task: ZCodeTaskMeta): boolean {
+export function isTaskListRowActive(task: NibiTaskMeta): boolean {
   return isTaskListRowRunning(task) || getTaskListRowActivity(task)?.hasBackgroundWork === true;
 }
 
 export function getTaskListAttention(
-  task: ZCodeTaskMeta,
+  task: NibiTaskMeta,
 ): { kind: "permission" | "userInput"; count: number } | null {
   const summary = getTaskListRowActivity(task)?.pendingInteractions;
   if (!summary) {
@@ -73,9 +73,9 @@ export function getTaskListAttention(
 }
 
 export function mergeTaskListMembershipFields(
-  activityTask: ZCodeTaskMeta,
-  membershipTask: ZCodeTaskMeta,
-): ZCodeTaskMeta {
+  activityTask: NibiTaskMeta,
+  membershipTask: NibiTaskMeta,
+): NibiTaskMeta {
   const activity = getTaskListRowActivity(activityTask);
   if (!activity) {
     return membershipTask;

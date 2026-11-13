@@ -53,7 +53,7 @@ fn the_variable_names_keep_their_spelling() {
 
 #[test]
 fn the_managed_directory_follows_the_node_platform_name() {
-    // 必须是本产品的目录：读上游 ZCode 的机器级目录会把别的产品的规则与技能带进 NIBI 会话。
+    // 必须是本产品的目录：读上游 Nibi 的机器级目录会把别的产品的规则与技能带进 NIBI 会话。
     assert_eq!(managed_dir("darwin"), "/Library/Application Support/NIBI");
     assert_eq!(managed_dir("win32"), r"C:\ProgramData\NIBI");
     assert_eq!(managed_dir("linux"), "/etc/nibi");

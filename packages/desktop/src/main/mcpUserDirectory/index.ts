@@ -70,7 +70,7 @@ function resolveUserHomeDir(): string {
  * 必须跟**存储根**走：这里读写的是 `<存储根>/cli/config.json` 的 `mcp.servers` —— 写死用户主目录
  * 会让隔离实例（桌面端 dev / e2e）去读写**另一个实例**的 MCP 配置。同一类缺陷在 services 层多次
  * 实测（skillsService / commandsService / pluginSyncService），优先级与
- * `subagents/subagentStorage.ts#resolveZCodeStorageRoot` 一致：
+ * `subagents/subagentStorage.ts#resolveNibiStorageRoot` 一致：
  * `NIBI_STORAGE_DIR` → `NIBI_HOME` → 用户主目录。
  * `NIBI_DATA_BASE_DIR` 不是存储根（它只挪 `.nibi/v2`），混用会让内核与设置页读两份配置。
  */
@@ -353,16 +353,16 @@ async function readDirectoryServersFromPreferredSources(
   scope: Exclude<McpScope, "common">,
   workspacePath?: string,
 ): Promise<NativeMcpServerRecord[]> {
-  const zcodeServers = await readDirectoryServersFromFile(NIBI_MCP_DESCRIPTOR, scope, workspacePath);
+  const nibiServers = await readDirectoryServersFromFile(NIBI_MCP_DESCRIPTOR, scope, workspacePath);
   // `.nibi` 是强优先级来源；只要读到 MCP server，同 scope 的 `.agents` 就不再参与。
-  if (zcodeServers.length > 0) {
-    return zcodeServers;
+  if (nibiServers.length > 0) {
+    return nibiServers;
   }
   return readDirectoryServersFromFile(AGENTS_MCP_DESCRIPTOR, scope, workspacePath);
 }
 
 /** 写前重读 `.nibi` 的 server map，只改 update 涉及的 server，其他字段原样保留。 */
-async function updateZCodeServersInFile(
+async function updateNibiServersInFile(
   scope: Exclude<McpScope, "common">,
   workspacePath: string | undefined,
   update: (servers: Record<string, Record<string, unknown>>) => void,
@@ -395,7 +395,7 @@ export async function loadCliMcpFromUserDirectory(
   const inspectWorkspace = Boolean(workspacePath) && options?.workspaceRegistered !== false;
   const workspaceOnline = options?.online !== false;
 
-  // 去掉其他 provider 后，ZCode Agent 只按目录约定读取；先 workspace，再 user。
+  // 去掉其他 provider 后，Nibi Agent 只按目录约定读取；先 workspace，再 user。
   if (workspacePath && inspectWorkspace && workspaceOnline) {
     servers.push(...await readDirectoryServersFromPreferredSources("workspace", workspacePath));
   }
@@ -444,7 +444,7 @@ export async function saveCliMcpToUserDirectory(
   if (payload.action === "upsert" && !config) {
     throw new Error("Missing MCP config for upsert action");
   }
-  await updateZCodeServersInFile(scope, payload.projectPath, (servers) => {
+  await updateNibiServersInFile(scope, payload.projectPath, (servers) => {
     if (config) {
       servers[payload.name] = config as Record<string, unknown>;
     } else {

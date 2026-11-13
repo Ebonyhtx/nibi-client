@@ -3,7 +3,7 @@
  * 直接验证"自定义命令能否被解析 + 展开"，不跑模型、不依赖 UI。
  *
  * 用宿主的真实 loader（@nibi/bootstrap）分别走两条路径：
- *   ① `loadZCodeCustomCommand`（命令行探测用的那一半）
+ *   ① `loadNibiCustomCommand`（命令行探测用的那一半）
  *   ② `expandCustomCommandPrompt`（facade 展开用的那一半）
  * 两者都成功 = 展开链路本身是好的，问题在别处；任一步失败 = 就是它。
  *
@@ -20,10 +20,10 @@ const repoRoot = resolve(here, "..");
 // 直接用 tsx 跑源码：这两个包的 exports 只声明了 import 条件，编译产物之间
 // 还有 TS 的 .js 说明符映射，用 tsx 一次性解决。
 const bootstrap = await import(
-  pathToFileURL(join(repoRoot, "apps/zcode-cli/packages/bootstrap/src/index.ts")).href
+  pathToFileURL(join(repoRoot, "apps/nibi-cli/packages/bootstrap/src/index.ts")).href
 );
 const contracts = await import(
-  pathToFileURL(join(repoRoot, "apps/zcode-cli/packages/contracts/src/index.ts")).href
+  pathToFileURL(join(repoRoot, "apps/nibi-cli/packages/contracts/src/index.ts")).href
 );
 
 const MARKER = "RESOLVE-MARKER-4b71";
@@ -50,19 +50,19 @@ console.log(`exports: ${Object.keys(bootstrap).filter((key) => /command/i.test(k
 
 let loaded;
 try {
-  loaded = await bootstrap.loadZCodeCustomCommand({
+  loaded = await bootstrap.loadNibiCustomCommand({
     env,
     logger,
     name: "resolve-probe",
     workingDirectory: workspace,
   });
-  console.log(`\n① loadZCodeCustomCommand：成功\n${JSON.stringify({
+  console.log(`\n① loadNibiCustomCommand：成功\n${JSON.stringify({
     description: loaded?.description,
     name: loaded?.name,
     bodyChars: String(loaded?.body ?? "").length,
   })}`);
 } catch (error) {
-  console.log(`\n① loadZCodeCustomCommand：**失败** ${error?.message}`);
+  console.log(`\n① loadNibiCustomCommand：**失败** ${error?.message}`);
 }
 
 if (loaded) {

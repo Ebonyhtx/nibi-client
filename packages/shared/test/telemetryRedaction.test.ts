@@ -130,7 +130,7 @@ describe("resolveTelemetryProviderScope", () => {
     });
   });
 
-  it("旧报表身份 builtin:* 是 ZCode 固定 ID，判为内置并原样保留", () => {
+  it("旧报表身份 builtin:* 是 Nibi 固定 ID，判为内置并原样保留", () => {
     // supervisor 投影 /report detail 时会把 account:* 映射成这些旧身份，plan_ttft / perf_ui_* 复用同一份 detail。
     for (const legacyId of [
       "builtin:zai",

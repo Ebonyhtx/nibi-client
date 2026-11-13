@@ -260,8 +260,8 @@ async function dumpDiagnostics(label: string): Promise<void> {
   ).catch(() => "<missing>");
   let endpointOverride: unknown = "<missing>";
   try {
-    endpointOverride = (JSON.parse(settings) as { zcodeEndpointOrigin?: unknown })
-      .zcodeEndpointOrigin;
+    endpointOverride = (JSON.parse(settings) as { nibiEndpointOrigin?: unknown })
+      .nibiEndpointOrigin;
   } catch {
     // 设置文件不存在/还没落盘：保留原始文本标记，方便判断是“没读到”还是“没设置”。
   }

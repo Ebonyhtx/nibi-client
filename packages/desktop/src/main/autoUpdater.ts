@@ -12,7 +12,7 @@ import {
   desktopMenuMessageIds,
   formatDesktopMenuMessage,
   getDesktopMenuMessage,
-  resolveRuntimeZCodeEndpointOrigin,
+  resolveRuntimeNibiEndpointOrigin,
   type ElectronReleaseChannel,
   type Locale,
   type PostUpdateReleaseNotesPayload,
@@ -75,7 +75,7 @@ type UpdateDownloadedInfoLike = {
   path?: string | null;
   files?: Array<{ url?: string | null } | null> | null;
   packages?: Record<string, { path?: string | null } | null> | null;
-  zcodeReleaseChannel?: ElectronReleaseChannel | null;
+  nibiReleaseChannel?: ElectronReleaseChannel | null;
   releaseName?: string | null;
   releaseNotes?: string | ReleaseNoteInfoLike[] | null;
   releaseDate?: string | Date | null;
@@ -273,8 +273,8 @@ function getAutoUpdaterReleaseChannelForCurrentState(): ElectronReleaseChannel {
 function readUpdateInfoReleaseChannel(
   info: UpdateDownloadedInfoLike,
 ): ElectronReleaseChannel | null {
-  return info.zcodeReleaseChannel === "preview" || info.zcodeReleaseChannel === "stable"
-    ? info.zcodeReleaseChannel
+  return info.nibiReleaseChannel === "preview" || info.nibiReleaseChannel === "stable"
+    ? info.nibiReleaseChannel
     : null;
 }
 
@@ -821,7 +821,7 @@ function applyManifestUpdateProvider(options: InitAutoUpdaterOptions): void {
     releasePlatform: getElectronReleasePlatform(),
     deviceMid: options.deviceMid,
     resolveEndpointOrigin:
-      options.resolveEndpointOrigin ?? (() => resolveRuntimeZCodeEndpointOrigin(process.env)),
+      options.resolveEndpointOrigin ?? (() => resolveRuntimeNibiEndpointOrigin(process.env)),
     resolveReleaseChannel: async () => {
       const channel = await resolveUpdateReleaseChannel(options.settingService);
       if (!isUpdateTargetLocked()) availableUpdateChannel = channel;

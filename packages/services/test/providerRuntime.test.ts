@@ -9,7 +9,7 @@ import {
 } from "@nibi/provider";
 import {
   NodePersonalProviderConfigRepository,
-  NodeZCodeBuiltinProviderConfigSource,
+  NodeNibiBuiltinProviderConfigSource,
 } from "@nibi/provider-node";
 import type { ModelSelection } from "@nibi/shared/model-selection";
 import { describe, expect, it, vi } from "vitest";
@@ -21,7 +21,7 @@ import {
 import { createAccountProviderConfig } from "./providerConfigFixtures.js";
 
 async function readBuiltinRevision(filePath: string): Promise<string> {
-  const source = new NodeZCodeBuiltinProviderConfigSource({
+  const source = new NodeNibiBuiltinProviderConfigSource({
     bundledFilePath: filePath,
     watch: false,
   });
@@ -159,7 +159,7 @@ describe("ProviderRuntime", () => {
   it("复用组合根先创建的 Config Runtime", async () => {
     const root = await mkdtemp(join(tmpdir(), "zcode-provider-runtime-injected-config-"));
     const nibiBuiltinFilePath = join(root, "nibi-builtin.json");
-    await writeFile(nibiBuiltinFilePath, JSON.stringify(emptyZCodeBuiltinRelease()), "utf8");
+    await writeFile(nibiBuiltinFilePath, JSON.stringify(emptyNibiBuiltinRelease()), "utf8");
     const configRuntime = createProviderConfigRuntime({
       nibiBuiltinFilePath,
       personalFilePath: join(root, "personal.json"),
@@ -199,7 +199,7 @@ describe("ProviderRuntime", () => {
   it("释放组合根拥有的 Account Source", async () => {
     const root = await mkdtemp(join(tmpdir(), "zcode-provider-runtime-account-dispose-"));
     const nibiBuiltinFilePath = join(root, "nibi-builtin.json");
-    await writeFile(nibiBuiltinFilePath, JSON.stringify(emptyZCodeBuiltinRelease()), "utf8");
+    await writeFile(nibiBuiltinFilePath, JSON.stringify(emptyNibiBuiltinRelease()), "utf8");
     const configRuntime = createProviderConfigRuntime({
       nibiBuiltinFilePath,
       personalFilePath: join(root, "personal.json"),
@@ -219,7 +219,7 @@ describe("ProviderRuntime", () => {
   it("首次 Facade 调用会等待 Runtime 就绪，无需 Entry 先显式 start", async () => {
     const root = await mkdtemp(join(tmpdir(), "zcode-provider-runtime-ready-"));
     const nibiBuiltinFilePath = join(root, "nibi-builtin.json");
-    await writeFile(nibiBuiltinFilePath, JSON.stringify(emptyZCodeBuiltinRelease()), "utf8");
+    await writeFile(nibiBuiltinFilePath, JSON.stringify(emptyNibiBuiltinRelease()), "utf8");
     const runtime = createProviderRuntime({
       nibiBuiltinFilePath,
       personalFilePath: join(root, "personal.json"),
@@ -523,7 +523,7 @@ describe("ProviderRuntime", () => {
       await writeFile(
         nibiBuiltinFilePath,
         JSON.stringify(
-          emptyZCodeBuiltinRelease({
+          emptyNibiBuiltinRelease({
             properties: {
               requiresMfjsToolSchema: false,
               inputFormat: { supportsText: true, supportsAudio: false },
@@ -636,7 +636,7 @@ describe("ProviderRuntime", () => {
   it("设置服务创建 Personal Provider 后返回 Registry 已观察到的视图", async () => {
     const root = await mkdtemp(join(tmpdir(), "zcode-provider-runtime-create-"));
     const nibiBuiltinFilePath = join(root, "nibi-builtin.json");
-    await writeFile(nibiBuiltinFilePath, JSON.stringify(emptyZCodeBuiltinRelease()), "utf8");
+    await writeFile(nibiBuiltinFilePath, JSON.stringify(emptyNibiBuiltinRelease()), "utf8");
     const runtime = createProviderRuntime({
       nibiBuiltinFilePath,
       personalFilePath: join(root, "personal.json"),
@@ -655,7 +655,7 @@ describe("ProviderRuntime", () => {
     runtime.dispose();
   });
 
-  it("保存 ZCode Built-in Provider 时只写明确提交的 Personal Overlay", async () => {
+  it("保存 Nibi Built-in Provider 时只写明确提交的 Personal Overlay", async () => {
     const root = await mkdtemp(join(tmpdir(), "zcode-provider-runtime-official-save-"));
     const nibiBuiltinFilePath = join(root, "nibi-builtin.json");
     await writeFile(
@@ -762,7 +762,7 @@ describe("ProviderRuntime", () => {
   });
 });
 
-function emptyZCodeBuiltinRelease(modelDefaults: object = {}): object {
+function emptyNibiBuiltinRelease(modelDefaults: object = {}): object {
   return {
     schemaVersion: 1,
     revision: 1,

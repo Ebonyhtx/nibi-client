@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { withPluginTelemetry } from "../src/plugins/pluginManagement.js";
 import { createPluginManagementService } from "../src/plugins/pluginManagementService.js";
-import type { IZCodeAgentService } from "../src/zcode-agent/zcodeAgent.js";
+import type { INibiAgentService } from "../src/nibi-agent/nibiAgent.js";
 
 describe("plugin management terminal telemetry", () => {
   const plugin = {
@@ -18,7 +18,7 @@ describe("plugin management terminal telemetry", () => {
       ? vi.fn().mockRejectedValue(result)
       : vi.fn().mockResolvedValue(result);
     const service = createPluginManagementService({
-      zcodeAgentService: { installPlugin } as unknown as IZCodeAgentService,
+      nibiAgentService: { installPlugin } as unknown as INibiAgentService,
       reportTelemetryEvent,
     });
     return { service, installPlugin, reportTelemetryEvent };
@@ -116,7 +116,7 @@ describe("plugin install membership refresh", () => {
       diagnostics: [],
     }));
     const service = createPluginManagementService({
-      zcodeAgentService: { installPlugin, updatePlugin } as unknown as IZCodeAgentService,
+      nibiAgentService: { installPlugin, updatePlugin } as unknown as INibiAgentService,
       beforeInstall,
     });
 
@@ -139,10 +139,10 @@ describe("plugin telemetry operation boundaries", () => {
     const reportTelemetryEvent = vi.fn();
     const cancelPluginOperation = vi.fn(async () => ({ cancelled: true, operationId: "cancel-1" }));
     const service = createPluginManagementService({
-      zcodeAgentService: {
+      nibiAgentService: {
         uninstallPlugin: vi.fn(async () => ({ diagnostics: [] })),
         cancelPluginOperation,
-      } as unknown as IZCodeAgentService,
+      } as unknown as INibiAgentService,
       reportTelemetryEvent,
     });
     await service.uninstallPlugin({ workspacePath: "/work", pluginId: "demo@market" });
@@ -157,7 +157,7 @@ describe("plugin telemetry operation boundaries", () => {
   it("records explicit cancellation and batch partial separately", async () => {
     const reportTelemetryEvent = vi.fn();
     const service = createPluginManagementService({
-      zcodeAgentService: {
+      nibiAgentService: {
         installPlugin: vi.fn(async () => {
           throw Object.assign(new Error("private"), { name: "AbortError" });
         }),
@@ -166,7 +166,7 @@ describe("plugin telemetry operation boundaries", () => {
           diagnostics: [{ severity: "error", code: "failed", message: "secret" }],
           dependencyClosure: [],
         })),
-      } as unknown as IZCodeAgentService,
+      } as unknown as INibiAgentService,
       reportTelemetryEvent,
     });
     await expect(
@@ -183,9 +183,9 @@ describe("plugin telemetry operation boundaries", () => {
     let clock = 0;
     const finishes: Array<(value: unknown) => void> = [];
     const service = createPluginManagementService({
-      zcodeAgentService: {
+      nibiAgentService: {
         installPlugin: vi.fn(() => new Promise((resolve) => finishes.push(resolve))),
-      } as unknown as IZCodeAgentService,
+      } as unknown as INibiAgentService,
       reportTelemetryEvent,
       now: () => clock,
     });
@@ -235,9 +235,9 @@ describe("serialized cancellation telemetry", () => {
     });
     const reportTelemetryEvent = vi.fn();
     const service = createPluginManagementService({
-      zcodeAgentService: {
+      nibiAgentService: {
         installPlugin: vi.fn().mockRejectedValue(error),
-      } as unknown as IZCodeAgentService,
+      } as unknown as INibiAgentService,
       reportTelemetryEvent,
     });
     await expect(

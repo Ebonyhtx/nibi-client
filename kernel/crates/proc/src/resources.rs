@@ -1,6 +1,6 @@
 //! 进程资源采样（141 审计 §9 F3）：按进程组或按进程树读每个进程的 RSS 与累计 CPU 时间。
 //!
-//! Node 侧是 `createProcessProbe`（`apps/zcode-cli/packages/adapters/src/device/process-probe.ts`），
+//! Node 侧是 `createProcessProbe`（`apps/nibi-cli/packages/adapters/src/device/process-probe.ts`），
 //! 两个采样场景共用：Bash 慢命令的 `process/toolExecResource`（15 秒一拍、按进程组）与 MCP 的
 //! `process/mcpResourceSamples`（5 分钟一拍、按进程树）。
 //!

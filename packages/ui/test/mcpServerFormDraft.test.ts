@@ -2,10 +2,10 @@
 import { createElement } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ZCodeMcpServer } from "@nibi/shared";
+import type { NibiMcpServer } from "@nibi/shared";
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }) => id,
     },
@@ -74,7 +74,7 @@ describe("McpServerForm 草稿态", () => {
     expect(onSave).toHaveBeenCalledTimes(1);
     const [form, prev] = onSave.mock.calls[0] as [
       { name: string; command: string; type: string },
-      ZCodeMcpServer | undefined,
+      NibiMcpServer | undefined,
     ];
     expect(form).toMatchObject({ name: "draft-server", command: "node", type: "stdio" });
     expect(prev).toBeUndefined();
@@ -133,7 +133,7 @@ describe("McpServerForm 草稿态", () => {
   });
 
   it("编辑草稿保存时把原 server 一并回传，取消可回滚", () => {
-    const initial: ZCodeMcpServer = {
+    const initial: NibiMcpServer = {
       id: "server-1",
       name: "filesystem",
       source: "zcodeagentmcp",

@@ -4,7 +4,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { BUILTIN_MODEL_PROVIDER_IDS } from "@nibi/shared";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { resolveToolCallRenderer } from "@/ToolCallBlocks/resolveRenderer.js";
 import {
   formatContextWindow,
@@ -96,7 +96,7 @@ function renderCard(
 ) {
   return render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: locale },
       createElement(component as never, context),
     ),

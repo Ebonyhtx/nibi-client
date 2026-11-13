@@ -26,7 +26,7 @@ function createServices(settings: AppSettings) {
     broadcastService: {
       send: vi.fn(async () => {}),
     },
-    zcodeAgentService: {
+    nibiAgentService: {
       syncAppRuntimePreferences: vi.fn(async () => {}),
     },
   } as never;

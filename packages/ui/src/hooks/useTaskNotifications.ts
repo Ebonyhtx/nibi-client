@@ -94,7 +94,7 @@ export function useWorkspaceTerminalTaskNotifications({
   platform,
   formatMessage,
 }: WorkspaceTerminalTaskNotificationsParams): void {
-  const { zcodeAgentService } = useServices();
+  const { nibiAgentService } = useServices();
   const workspaceIdentity = trimOptional(rawWorkspaceIdentity);
   const endpointKey = trimOptional(rawEndpointKey);
   const workspaceKey = workspaceIdentity ?? workspacePath;
@@ -135,7 +135,7 @@ export function useWorkspaceTerminalTaskNotifications({
       ...(workspaceIdentity ? { workspaceIdentity } : {}),
       ...(endpointKey ? { endpointKey } : {}),
     };
-    const store = acquireSessionsIndex(registryScope, zcodeAgentService);
+    const store = acquireSessionsIndex(registryScope, nibiAgentService);
     const syncState = () => {
       setIndexState({
         signature,
@@ -159,7 +159,7 @@ export function useWorkspaceTerminalTaskNotifications({
     workspaceIdentity,
     workspaceKey,
     workspacePath,
-    zcodeAgentService,
+    nibiAgentService,
   ]);
 
   useEffect(() => {

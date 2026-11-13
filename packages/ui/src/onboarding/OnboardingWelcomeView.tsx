@@ -1,11 +1,11 @@
 import { ArrowRightIcon } from "lucide-react";
 import { Button } from "@/components/ui/button.js";
 import { NibiAboutLogo } from "@/components/ui/NibiAboutLogo.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { OnboardingWelcomeAsciiVisual } from "@/onboarding/OnboardingWelcomeAsciiVisual.js";
 
 export function OnboardingWelcomeView(props: { onStart: () => void; onOpenMigration: () => void }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
 
   return (
     <div className="flex h-full min-h-0">

@@ -95,7 +95,7 @@ pub fn servers_for_tool<'a>(view: &'a McpView, tool_name: &str) -> Vec<&'a McpSe
 pub struct McpChildProcess {
     pub pid: u32,
     pub server_name: String,
-    /// `builtin` / `plugin` / `custom`（Node `zcodeProcessChildProcessSchema.mcpSource` 的三个值）。
+    /// `builtin` / `plugin` / `custom`（Node `nibiProcessChildProcessSchema.mcpSource` 的三个值）。
     pub mcp_source: String,
     /// `plugin:<name>:<key>` 的插件名；其他来源没有。
     #[serde(default, skip_serializing_if = "Option::is_none")]

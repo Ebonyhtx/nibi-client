@@ -46,11 +46,11 @@ vi.mock("@/project-sidebar/ProjectDataCleanupDialog.js", () => ({
   ProjectDataCleanupDialog: () => null,
 }));
 vi.mock("@/hooks/useConfirmDialog.js", () => ({ useConfirmDialog: () => h.confirm }));
-vi.mock("@/store/zcodeSessionStore.js", () => ({
-  useZCodeSessionStore: (selector: (state: unknown) => unknown) => selector({ workspaces: {} }),
+vi.mock("@/store/nibiSessionStore.js", () => ({
+  useNibiSessionStore: (selector: (state: unknown) => unknown) => selector({ workspaces: {} }),
 }));
 vi.mock("@/components/ui/toast.js", () => ({ toast: h.toast }));
-vi.mock("@/i18n/IntlProvider.js", () => ({ useZCodeIntl: () => ({ intl: h.intl }) }));
+vi.mock("@/i18n/IntlProvider.js", () => ({ useNibiIntl: () => ({ intl: h.intl }) }));
 vi.mock("@/settings/SettingsPageParts.js", () => ({
   SettingsGroupCard: ({ children }: { children: unknown }) =>
     createElement("div", { "data-testid": "settings-group-card" }, children),

@@ -29,7 +29,7 @@ function readSvgSize(source: string): { width: number; height: number } {
 
 describe("Provider built-in logo assets", () => {
   it("Z.AI PNG 是 128px 方形图标，不再误用同名旧 SVG", () => {
-    // 4.0 起 build/icons/* 是 NIBI 鸟标；上游曾把 ZCode 应用图标复用为 Z.AI
+    // 4.0 起 build/icons/* 是 NIBI 鸟标；上游曾把 Nibi 应用图标复用为 Z.AI
     // provider 图标，这条“逐字节相等”的契约随品牌分家失效。这里只约束
     // provider 图标本身是 128px 方形 PNG，不要求等于我们的应用图标。
     const packaged = readFileSync(new URL("model-provider-zai-app.png", assetDirectory));

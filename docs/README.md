@@ -23,9 +23,9 @@
 
 ## CLI 与 Agent
 
-- [CLI 使用指南](../apps/zcode-cli/docs/usage/README.md)
-- [Bash shell provider](../apps/zcode-cli/docs/bash-shell-provider.md)
-- [Bash AST 权限语义](../apps/zcode-cli/docs/bash-tool-ast-permission-semantics.md)
+- [CLI 使用指南](../apps/nibi-cli/docs/usage/README.md)
+- [Bash shell provider](../apps/nibi-cli/docs/bash-shell-provider.md)
+- [Bash AST 权限语义](../apps/nibi-cli/docs/bash-tool-ast-permission-semantics.md)
 
 ## UI 与设计
 

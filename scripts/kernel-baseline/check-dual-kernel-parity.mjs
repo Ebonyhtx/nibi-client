@@ -22,7 +22,7 @@
  *   - metrics：provider 请求数/帧数/通知数（Node 多标题与遥测通知）。
  *
  * 前提：`cargo build -p nibi-kernel-cli` 产出 kernel/target/debug/nibi-rs.exe，
- * 且 apps/zcode-cli/packages/cli/dist/nibi.cjs 已构建。
+ * 且 apps/nibi-cli/packages/cli/dist/nibi.cjs 已构建。
  */
 import { spawn } from "node:child_process";
 import { dirname, resolve } from "node:path";

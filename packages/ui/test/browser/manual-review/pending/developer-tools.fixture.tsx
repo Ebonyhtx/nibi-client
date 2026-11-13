@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { DeveloperToolsPane } from "@/DeveloperToolsPane.js";
 import { ServiceProvider } from "@/hooks/useServices.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import type { IServiceAccessor } from "@nibi/services";
 import "@/styles.css";
 const params = new URLSearchParams(location.search);
@@ -10,7 +10,7 @@ document.documentElement.classList.add(
   params.get("theme") === "light" ? "theme-nibi-light" : "theme-nibi-dark",
 );
 const services = {
-  zcodeAgentService: {
+  nibiAgentService: {
     readSessionDebug: async (target: unknown) => {
       const response = await fetch("/debug", { method: "POST", body: JSON.stringify(target) });
       if (!response.ok) throw new Error("debug failed");
@@ -38,8 +38,8 @@ function Fixture() {
 }
 createRoot(document.getElementById("root")!).render(
   <ServiceProvider services={services}>
-    <ZCodeIntlProvider initialLocale={params.get("locale") === "en-US" ? "en-US" : "zh-CN"}>
+    <NibiIntlProvider initialLocale={params.get("locale") === "en-US" ? "en-US" : "zh-CN"}>
       <Fixture />
-    </ZCodeIntlProvider>
+    </NibiIntlProvider>
   </ServiceProvider>,
 );

@@ -4,8 +4,8 @@ import {
   NIBI_VERSION,
   NIBI_ENV,
   NIBI_TELEMETRY_REPORT_ENDPOINT,
-  buildZCodeSourceHeadersFromContext,
-  rewriteZCodeEndpointUrl,
+  buildNibiSourceHeadersFromContext,
+  rewriteNibiEndpointUrl,
   sanitizeTelemetryEventDetail,
   type TelemetryEventPayload,
   type TelemetryRendererContext,
@@ -53,7 +53,7 @@ interface TelemetryCoreDependencies {
   releaseChannel?: string;
   osVersion?: string;
   homeDir?: string;
-  resolveZCodeEndpointOrigin?: () => Promise<string> | string;
+  resolveNibiEndpointOrigin?: () => Promise<string> | string;
   /**
    * 上报端点覆盖（测试缝）。生产端点由构建期常量决定；单测用它指向本机接收器，
    * 才能验证真实出网边界（脱敏、header、重试），而不是只断言常量本身。
@@ -309,7 +309,7 @@ async function ensureDeviceMidInLockedState(
  * 确保 telemetry-state.json 里存在 deviceMid 并返回它。
  *
  * Bug 根因：远端 nibi-server 所在主机没有 Desktop main 进程，过去没有任何进程会在那里写
- * telemetry-state.json；buildZCodeSourceHeaders() 又只读不生成，于是远端发往 ZCode endpoint 的
+ * telemetry-state.json；buildNibiSourceHeaders() 又只读不生成，于是远端发往 Nibi endpoint 的
  * 请求永远缺 X-Device-Mid，billing/balance 被服务端拒绝为 parameter error，Start Plan 在远程
  * 工作区被判成未开通。这里把 telemetry 上报内部的 ensure 逻辑抽成独立入口，供远端 server 启动时
  * 调用：同一个文件、同一个字段、同一把 telemetry-state.lock，与同机 CLI 得到同一个设备身份。
@@ -461,13 +461,13 @@ export function createTelemetryCore(dependencies: TelemetryCoreDependencies = {}
     });
 
     const endpoint = String(
-      rewriteZCodeEndpointUrl(
+      rewriteNibiEndpointUrl(
         reportEndpoint,
-        (await dependencies.resolveZCodeEndpointOrigin?.()) ?? reportEndpoint,
+        (await dependencies.resolveNibiEndpointOrigin?.()) ?? reportEndpoint,
       ),
     );
 
-    const headers = buildZCodeSourceHeadersFromContext({
+    const headers = buildNibiSourceHeadersFromContext({
       appVersion,
       platform,
       arch: dependencies.arch ?? process.arch,

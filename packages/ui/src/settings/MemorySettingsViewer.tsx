@@ -16,7 +16,7 @@ import {
   testId,
 } from "@nibi/shared/test-ids";
 import { Alert, AlertDescription } from "@/components/ui/alert.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { FileDisplayIcon, resolveFileDisplayDescriptor } from "@/lib/fileDisplay.js";
 import { PluginScopeMenu } from "@/settings/PluginScopeMenu.js";
 import { PluginSearchEmptyState } from "@/settings/PluginInstallEmptyState.js";
@@ -42,7 +42,7 @@ export function MemorySettingsViewer({
   onRefresh: () => Promise<void>;
   onScopeKeyChange: (workspaceId: string) => void;
 }) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const [searchQuery, setSearchQuery] = useState("");
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {

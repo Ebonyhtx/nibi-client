@@ -26,7 +26,7 @@ vi.mock("@/ToolCallBlocks/renderers/fallback.js", () => ({
     ),
 }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
+  useNibiIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
 }));
 afterEach(() => {
   cleanup();

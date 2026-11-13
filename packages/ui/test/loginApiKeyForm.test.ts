@@ -7,7 +7,7 @@ import {
   resolveLoginApiKeyTemplateId,
   shouldShowLoginApiKeyLink,
 } from "@/login/LoginApiKeyForm.helpers.js";
-import { encodeCustomModelValue } from "@/lib/zcodeCustomModelValue.js";
+import { encodeCustomModelValue } from "@/lib/nibiCustomModelValue.js";
 
 describe("LoginApiKeyForm provider update helpers", () => {
   it("只根据 App 已解析语言决定 API key provider 默认值", () => {

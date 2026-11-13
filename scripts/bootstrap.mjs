@@ -68,15 +68,15 @@ function resolveBootstrapWithRemoteEnv(baseEnv = process.env) {
 
   // 修复原因：默认 dev:desktop 使用生产账号；远程构建若沿用通用 test 默认值，
   // 会把生产凭据发往测试模型地址并返回 401。入口统一选择环境并传给所有构建子进程。
-  const zcodeEnv = baseEnv.NIBI_ENV?.trim().toLowerCase() || "production";
-  if (zcodeEnv !== "test" && zcodeEnv !== "production") {
-    throw new Error(`Invalid NIBI_ENV for bootstrap:with-remote: ${zcodeEnv}`);
+  const nibiEnv = baseEnv.NIBI_ENV?.trim().toLowerCase() || "production";
+  if (nibiEnv !== "test" && nibiEnv !== "production") {
+    throw new Error(`Invalid NIBI_ENV for bootstrap:with-remote: ${nibiEnv}`);
   }
 
   const pathEntries = [resolvePinnedNodeBin(), resolveUserPnpmBin()].filter(Boolean);
 
   return {
-    NIBI_ENV: zcodeEnv,
+    NIBI_ENV: nibiEnv,
     // bootstrap:with-remote 是手动远程资源初始化入口，自动化等非 TTY 环境里
     // pnpm install 可能要求确认清理 node_modules。只在该入口禁用确认，不改变 CI/生产构建命令。
     HUSKY: "0",
@@ -217,7 +217,7 @@ function runBootstrapWithRemoteBuild() {
   runBootstrapDesktopBuild();
 }
 
-runGit(["submodule", "update", "--init", "--recursive", "apps/zcode-cli"]);
+runGit(["submodule", "update", "--init", "--recursive", "apps/nibi-cli"]);
 
 const clearedPatchedDependencies = await clearHoistedPatchedDependencyTargets({
   rootDir,

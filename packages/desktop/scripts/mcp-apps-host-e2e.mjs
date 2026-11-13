@@ -57,7 +57,7 @@ if (
         "pnpm",
         [
           "--dir",
-          join(root, "apps/zcode-cli"),
+          join(root, "apps/nibi-cli"),
           "--filter",
           `@nibi/${name}`,
           name === "cli" ? "build:desktop-agent" : "build",
@@ -239,7 +239,7 @@ for (const mode of modes) {
             output,
             join(output, `${mode}-profile`),
             process.execPath,
-            join(root, "apps/zcode-cli/packages/cli/dist/nibi.cjs"),
+            join(root, "apps/nibi-cli/packages/cli/dist/nibi.cjs"),
             showcaseServer ?? "",
           ]
         : mode === "managed-empty"

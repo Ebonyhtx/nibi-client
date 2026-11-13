@@ -8,7 +8,7 @@
 //      避免依赖 token 端点的 CORS，也把 userinfo 一次取回。
 //   3. client id 是公开的 SPA 标识，没有 client secret；PKCE 是唯一的持有证明。
 import {
-  buildZCodeEndpointUrls,
+  buildNibiEndpointUrls,
   DEFAULT_NIBI_ENDPOINT_ORIGIN,
   NIBI_AUTH_ORIGIN,
   NIBI_OIDC_SCOPE,
@@ -69,7 +69,7 @@ export interface NibiRefreshedTokenSet {
  * 所以本地 UI 验证用假 auth；真实登录在部署后的页面上验。
  */
 export function createNibiWebOAuthConfig(env: NibiWebOAuthEnv = {}): NibiWebOAuthConfig {
-  const endpointUrls = buildZCodeEndpointUrls(
+  const endpointUrls = buildNibiEndpointUrls(
     env.VITE_NIBI_BASE_URL?.trim() ||
       env.VITE_NIBI_ENDPOINT_ORIGIN?.trim() ||
       DEFAULT_NIBI_ENDPOINT_ORIGIN,
@@ -201,7 +201,7 @@ export class NibiWebOAuthProvider {
       tokenSet: {
         // 中继与业务 API 都只认这个 access token；没有第二条"上游令牌"可混用。
         accessToken,
-        zcodeJwtToken: accessToken,
+        nibiJwtToken: accessToken,
         ...(refreshToken ? { refreshToken } : {}),
         ...(expiresAt ? { expiresAt } : {}),
       },

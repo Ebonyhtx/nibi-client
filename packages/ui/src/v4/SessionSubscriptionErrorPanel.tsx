@@ -3,7 +3,7 @@ import { TID_V4_RETRY_SUBSCRIBE } from "@nibi/shared/test-ids";
 import { Button } from "@/components/ui/button.js";
 import { toast } from "@/components/ui/toast.js";
 import { useFeedbackStore } from "@/feedback/feedbackStore.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { buildErrorFeedbackDescription } from "@/lib/errorFeedbackDraft.js";
 
 export interface SessionSubscriptionErrorPanelProps {
@@ -19,7 +19,7 @@ export function SessionSubscriptionErrorPanel({
   workspacePath,
   onReconnect,
 }: SessionSubscriptionErrorPanelProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const openFeedbackSubmit = useFeedbackStore((state) => state.openSubmit);
   const handleOpenFeedback = useCallback(async () => {
     openFeedbackSubmit({

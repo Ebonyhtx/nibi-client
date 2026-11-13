@@ -7,7 +7,7 @@ import {
   readWorkflowRunStopReason,
   workflowRunStopReasonMessageId,
 } from "@/components/workflow-graph/run-status-presentation.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { formatWorkflowAge, formatWorkflowTokenCount } from "@/lib/workflowObservationFormat.js";
 import { WorkflowRunSubagentRoster } from "@/ToolCallBlocks/renderers/get-workflow-run-roster.js";
 import {
@@ -22,7 +22,7 @@ import type { ToolCallBlockRenderContext } from "@/ToolCallBlocks/shared.js";
 const ICON = <Gauge className="size-4 shrink-0 text-foreground-subtle" />;
 
 export function GetWorkflowRunToolCallBlock(context: ToolCallBlockRenderContext) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const { toolCall } = context.toolCallNode;
   const display = readToolResultDisplay(toolCall.raw);
   const running = context.isRunning;
@@ -122,7 +122,7 @@ function GetWorkflowRunBody({
   display: ToolCallGetWorkflowRunDisplay;
   theme: ToolCallBlockRenderContext["theme"];
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const terminal =
     display.status === "completed" || display.status === "errored" || display.status === "stopped";
   const stopReason = readWorkflowRunStopReason(display);

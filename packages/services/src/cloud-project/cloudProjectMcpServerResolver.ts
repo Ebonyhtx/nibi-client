@@ -3,26 +3,26 @@
 // 与 CUA 的 socket/token 同一套纪律：全局 env 会被所有 MCP server 与 Bash 子进程继承，
 // 能力令牌一旦全局化就变成 confused deputy（任何插件都能读写用户当前工作区的云端项目）。
 // 所以 broker 地址/令牌只在解析 `plugin:math-modeling:*` 这一条 MCP 配置时追加。
-import type { ZCodeAgentMcpServer } from "@nibi/shared";
+import type { NibiAgentMcpServer } from "@nibi/shared";
 import type { CloudProjectBroker } from "./cloudProjectBroker.js";
 
 export interface CloudProjectMcpServerResolver {
   resolveMcpServers(
-    servers: ZCodeAgentMcpServer[],
+    servers: NibiAgentMcpServer[],
     context: { workspacePath: string },
-  ): Promise<ZCodeAgentMcpServer[]>;
+  ): Promise<NibiAgentMcpServer[]>;
 }
 
 const MATH_MODELING_SERVER_PREFIX = "plugin:math-modeling:";
 
 function isMathModelingServer(
-  server: ZCodeAgentMcpServer,
-): server is Extract<ZCodeAgentMcpServer, { env: Array<{ name: string; value: string }> }> {
+  server: NibiAgentMcpServer,
+): server is Extract<NibiAgentMcpServer, { env: Array<{ name: string; value: string }> }> {
   return server.name.startsWith(MATH_MODELING_SERVER_PREFIX) && "env" in server;
 }
 
 function mergeEnv(
-  server: Extract<ZCodeAgentMcpServer, { env: Array<{ name: string; value: string }> }>,
+  server: Extract<NibiAgentMcpServer, { env: Array<{ name: string; value: string }> }>,
   additions: Record<string, string>,
 ): typeof server {
   const env = [...server.env];

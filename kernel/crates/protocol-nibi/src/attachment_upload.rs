@@ -1,6 +1,6 @@
 //! 附件事务（141 审计 §9 第 4 项）：`v4/attachment/begin|chunk|commit|abort` 的暂存表。
 //!
-//! Host 的 `AttachmentUploadRegistry`（`apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/
+//! Host 的 `AttachmentUploadRegistry`（`apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/
 //! attachment-upload-registry.ts`）是这份实现的逐条对照。为什么不直接收整份内容：旧的
 //! `attachment/put` 会把 20 MiB 的字节扩成约 26.7 MiB 的 NDJSON 单行，移动端外层再膨胀一次；
 //! 所以 wire 上只有 ≤512 KiB 的片，逐片解码后计账，只有 commit 时校验完整事实才落 artifact。

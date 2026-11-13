@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash-parse/src/lexer/redirect.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
+// 复制自 apps/nibi-cli-rust/crates/bash-parse/src/lexer/redirect.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
 //! 重定向 token（`readRedirection` / `redirectToken`）。
 //!
 //! 刻意保留的 unbash 怪癖（均已对照 Node 版验证）：

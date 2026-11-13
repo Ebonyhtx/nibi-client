@@ -12,7 +12,7 @@ describe("Window Host attachment RPC policy", () => {
     const policy = resolveWindowHostServiceExposurePolicy("web-remote-replayable");
 
     expect(policy?.allowedChannels.has(ServiceChannels.Setting)).toBe(true);
-    expect(policy?.allowedChannels.has(ServiceChannels.ZCodeTask)).toBe(true);
+    expect(policy?.allowedChannels.has(ServiceChannels.NibiTask)).toBe(true);
     expect(policy?.allowedChannels.has(ServiceChannels.Terminal)).toBe(false);
     expect(policy?.allowedChannels.has(ServiceChannels.SourceServerManagement)).toBe(false);
     expect(policy?.allowedChannels.has(ServiceChannels.ProviderProvisioningTarget)).toBe(false);

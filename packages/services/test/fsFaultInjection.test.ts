@@ -33,7 +33,7 @@ describe("fsFaultInjection", () => {
         code: "ENOSPC",
         path: "/tmp/demo/.nibi/session.json",
         syscall: "writeFile",
-        zcodeFsFaultId: "D01-session-history-enospc",
+        nibiFsFaultId: "D01-session-history-enospc",
       }),
     );
 

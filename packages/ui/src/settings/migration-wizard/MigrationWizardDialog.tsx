@@ -6,7 +6,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { AgentsFileMigrationStep } from "@/components/wizard/AgentsFileMigrationStep.js";
 import { MigrationSessionsStep } from "@/components/wizard/MigrationSessionsStep.js";
 import { WizardStepHeader, WizardStepSidebar } from "@/components/wizard/WizardChrome.js";
@@ -35,7 +35,7 @@ export function MigrationWizardDialog(props: {
   workspaceIdentity?: string;
   isDesktop?: boolean;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [running, setRunning] = useState(false);
 
   useEffect(() => {
@@ -85,7 +85,7 @@ function MigrationWizardContent(props: {
   onClose: () => void;
   onRunningChange: (running: boolean) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const wizard = useMigrationWizard({
     workspacePath: props.workspacePath,
     workspaceIdentity: props.workspaceIdentity,

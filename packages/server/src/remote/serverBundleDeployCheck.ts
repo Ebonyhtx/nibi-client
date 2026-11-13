@@ -5,7 +5,7 @@ const REQUIRED_SERVER_BUNDLE_MARKERS = [
   "skill-sync",
   "mcp-sync",
   "plugin-sync",
-  "__zcode_rpc_nested_uint8array_v1",
+  "__nibi_rpc_nested_uint8array_v1",
   "exportMarketplaceSourceArchive",
   "importMarketplaceSourceArchive",
 ];

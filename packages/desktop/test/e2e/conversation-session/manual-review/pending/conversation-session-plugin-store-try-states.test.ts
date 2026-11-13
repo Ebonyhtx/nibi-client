@@ -219,7 +219,7 @@ async function seedLifecycleMarketplaceCache(
           // install/enable 操作看似卡死。该隔离 HOME 只需声明已刷新，PLG12 不验证公网目录。
           {
             addedAt: "2026-07-31T00:00:00.000Z",
-            description: "Deterministic offline ZCode marketplace marker",
+            description: "Deterministic offline Nibi marketplace marker",
             id: "nibi-official",
             lastUpdated: "2099-01-01T00:00:00.000Z",
             name: "nibi-official",

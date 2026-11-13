@@ -17,7 +17,7 @@ function item(name: string, category?: string): StorePluginItem {
 }
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     locale: "en-US",
     intl: { formatMessage: ({ id }: { id: string }) => id },
   }),

@@ -7,11 +7,11 @@ import type {
   IWindowControllerService,
   WindowHostControllerFrame,
 } from "@nibi/services";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ServiceProvider } from "@/hooks/useServices.js";
 import { useGlobalTaskList } from "@/hooks/useGlobalTaskList.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 import type { WorkspaceTabState } from "@/store/tabStore.js";
 
 const REMOTE_IDENTITY = "remote:wsl:default:root:/root";
@@ -28,7 +28,7 @@ function remoteTab(remoteSessionId?: string): WorkspaceTabState {
   } as WorkspaceTabState;
 }
 
-function remoteTask(): ZCodeTaskMeta {
+function remoteTask(): NibiTaskMeta {
   return {
     taskId: "task-before-connect",
     traceId: "trace-task-before-connect",
@@ -43,7 +43,7 @@ function remoteTask(): ZCodeTaskMeta {
 
 describe("useGlobalTaskList remote connection generation", () => {
   afterEach(() => {
-    useZCodeSessionStore.setState({ workspaces: {} });
+    useNibiSessionStore.setState({ workspaces: {} });
   });
 
   it("同一 WSL workspace 从断开占位变为在线 session 后重新查询 Controller", async () => {

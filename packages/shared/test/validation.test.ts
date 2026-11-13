@@ -7,7 +7,7 @@ import {
   webRemoteControlAppPayloadSchema,
   hostResponseMessageSchema,
   wslConnectOptionsSchema,
-  zcodePersistedMessageSchema,
+  nibiPersistedMessageSchema,
 } from "../src/validation.js";
 
 it("PD01 手机任务草稿身份通过两层协议，且不能注入路径或混用项目", () => {
@@ -56,7 +56,7 @@ it("资源查询取消必须指定 requestId 且不接受附加字段", () => {
 
 it("accepts persisted user messages with video attachments", () => {
   expect(
-    zcodePersistedMessageSchema.safeParse({
+    nibiPersistedMessageSchema.safeParse({
       role: "user",
       content: "Summarize the video.",
       timestamp: 1,
@@ -115,7 +115,7 @@ describe("hostResponseMessageSchema", () => {
       pid: 12345,
       provider: "glm",
       workspacePath: "/repo/demo",
-      command: "/tmp/zcode-agent",
+      command: "/tmp/nibi-agent",
       args: ["--stdio"],
       startedAt: Date.now(),
       runtimeGeneration: 2,
@@ -155,7 +155,7 @@ describe("hostResponseMessageSchema", () => {
       pid: null,
       provider: "glm",
       workspacePath: "/repo/demo",
-      command: "/tmp/missing-zcode-agent",
+      command: "/tmp/missing-nibi-agent",
       args: ["app-server", "--stdio"],
       errorName: "Error",
       errorCode: "ENOENT",
@@ -178,7 +178,7 @@ describe("hostResponseMessageSchema", () => {
       pid: 12345,
       provider: "glm",
       workspacePath: "/repo/demo",
-      command: "/tmp/zcode-agent",
+      command: "/tmp/nibi-agent",
       args: ["--stdio"],
       startedAt: Date.now(),
     });
@@ -330,7 +330,7 @@ describe("hostResponseMessageSchema", () => {
     }
   });
 
-  it("rejects local host init without an ZCode Built-in Provider Config", () => {
+  it("rejects local host init without an Nibi Built-in Provider Config", () => {
     expect(
       hostIncomingMessageSchema.safeParse({
         type: "init-local",
@@ -360,7 +360,7 @@ describe("hostResponseMessageSchema", () => {
     expect(parsed.success).toBe(false);
   });
 
-  it("accepts window Host connect payload with remote ZCode Agent asset dirs", () => {
+  it("accepts window Host connect payload with remote Nibi Agent asset dirs", () => {
     const parsed = hostIncomingMessageSchema.safeParse({
       type: "connect-remote-workspace",
       requestId: "connect-docker-1",
@@ -679,15 +679,15 @@ describe("hostResponseMessageSchema", () => {
     expect(patch.computerUseComposerEntryHidden).toBe(false);
   });
 
-  it("defaults ZCode interaction behavior to queue and accepts guide patches", () => {
+  it("defaults Nibi interaction behavior to queue and accepts guide patches", () => {
     const parsed = appSettingsSchema.parse({});
     const patch = appSettingsPatchSchema.parse({
-      zcodeInteractionBehavior: "guide",
+      nibiInteractionBehavior: "guide",
     });
 
-    expect(parsed.zcodeInteractionBehavior).toBe("queue");
+    expect(parsed.nibiInteractionBehavior).toBe("queue");
     expect(patch).toMatchObject({
-      zcodeInteractionBehavior: "guide",
+      nibiInteractionBehavior: "guide",
     });
   });
 
@@ -713,7 +713,7 @@ describe("hostResponseMessageSchema", () => {
     expect(patch.providerFamilyDomainUpdatedAt).toBe(456);
   });
 
-  it("normalizes legacy enabled agent CLI providers to ZCode Agent", () => {
+  it("normalizes legacy enabled agent CLI providers to Nibi Agent", () => {
     const parsed = appSettingsSchema.parse({
       enabledBuiltinAgentCliProviders: ["claude", "codex", "gemini", "opencode"],
     });

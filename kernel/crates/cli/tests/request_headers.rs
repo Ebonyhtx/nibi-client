@@ -103,7 +103,7 @@ fn a_real_request_carries_the_node_headers() {
     for headers in &requests {
         for (name, value) in [
             // 本测试的 vars 里有 `NIBI_ENV=test`：Node 的来源是测试端点
-            // （`resolveRuntimeZCodeEndpointOrigin`）。
+            // （`resolveRuntimeNibiEndpointOrigin`）。
             ("http-referer", "https://api-test.nibistudio.cn"),
             ("user-agent", format!("NIBI/{version}").as_str()),
             ("x-nibi-app-version", version.as_str()),

@@ -105,7 +105,7 @@ function isZhipuMembershipProvider(providerId) {
   return typeof providerId === "string" && /^account:(?:zai|bigmodel)-/u.test(providerId);
 }
 
-function isUpstreamZcodeSiteRule(rule) {
+function isUpstreamNibiSiteRule(rule) {
   return typeof rule?.baseUrlMatch === "string" && /zcode/iu.test(rule.baseUrlMatch);
 }
 
@@ -127,7 +127,7 @@ export function buildSyncedConfigs({ upstream, currentProd, currentTest, revisio
     keptIds.has(rule.templateId),
   );
   const siteRules = (upstreamModelRules.providerSiteRules ?? []).filter(
-    (rule) => !isUpstreamZcodeSiteRule(rule),
+    (rule) => !isUpstreamNibiSiteRule(rule),
   );
   const builtinProviderModelRules = (upstreamModelRules.builtinProviderModelRules ?? []).filter(
     (rule) => !isZhipuMembershipProvider(rule.providerId),
@@ -227,7 +227,7 @@ export function buildRustConfig({ upstream, revision }) {
       modelConfigRules: {
         ...upstreamModelRules,
         providerSiteRules: (upstreamModelRules.providerSiteRules ?? []).filter(
-          (rule) => !isUpstreamZcodeSiteRule(rule),
+          (rule) => !isUpstreamNibiSiteRule(rule),
         ),
         builtinProviderModelRules: [],
       },
@@ -236,11 +236,11 @@ export function buildRustConfig({ upstream, revision }) {
 }
 
 async function validateRelease(release) {
-  const { decodeZCodeBuiltinRelease } = await tsImport(
+  const { decodeNibiBuiltinRelease } = await tsImport(
     pathToFileURL(resolve(repositoryRoot, "packages/provider-node/src/nibi-builtin-release.ts")).href,
     import.meta.url,
   );
-  decodeZCodeBuiltinRelease(release);
+  decodeNibiBuiltinRelease(release);
 }
 
 async function main() {
@@ -252,7 +252,7 @@ async function main() {
   );
   const upstream = await loadUpstreamRelease(args.from);
   // 不校验上游原样：它可能带着 NIBI 已删除的字段（例如套餐 access.mode）。
-  // 过滤后的两份配置才是我们的契约，必须过 decodeZCodeBuiltinRelease。
+  // 过滤后的两份配置才是我们的契约，必须过 decodeNibiBuiltinRelease。
   const result = buildSyncedConfigs({
     upstream,
     currentProd,

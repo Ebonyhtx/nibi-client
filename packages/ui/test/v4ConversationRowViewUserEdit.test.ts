@@ -22,7 +22,7 @@ import {
 import { ConversationRowView } from "@/v4/ConversationRowView.js";
 import type { ConversationRowRenderContext } from "@/v4/conversationRowContext.js";
 import { serializeComposerPromptContexts } from "@/v4/composer/composerPromptContexts.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 const {
   attachmentPropsById,
@@ -436,7 +436,7 @@ describe("ConversationRowView reasoning summary", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, { context: { ...rowContext, readAttachment }, row }),
         ),
@@ -460,7 +460,7 @@ describe("ConversationRowView reasoning summary", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, { context: rowContext, row }),
         ),
@@ -512,7 +512,7 @@ describe("ConversationRowView user query editing", () => {
       await act(async () => {
         root.render(
           createElement(
-            ZCodeIntlProvider,
+            NibiIntlProvider,
             { initialLocale: "zh-CN" },
             createElement(ConversationRowView, {
               context: { ...rowContext, compactForRemoteControl },
@@ -561,7 +561,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, { context: rowContext, row }),
         ),
@@ -598,7 +598,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
@@ -643,7 +643,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
@@ -681,7 +681,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
@@ -781,7 +781,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: { ...rowContext, readAttachment },
@@ -907,7 +907,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: { ...rowContext, readAttachment },
@@ -988,7 +988,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: { ...rowContext, readAttachment },
@@ -1094,7 +1094,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: { ...rowContext, readAttachment },
@@ -1168,7 +1168,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: { ...rowContext, readAttachment },
@@ -1246,7 +1246,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: { ...rowContext, readAttachment },
@@ -1315,7 +1315,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: { ...rowContext, readAttachment },
@@ -1349,7 +1349,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: { ...rowContext, readAttachment },
@@ -1384,7 +1384,7 @@ describe("ConversationRowView user query editing", () => {
       await act(async () => {
         root.render(
           createElement(
-            ZCodeIntlProvider,
+            NibiIntlProvider,
             { initialLocale: locale },
             createElement(ConversationRowView, {
               context: rowContext,
@@ -1417,7 +1417,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: { ...rowContext, compactForRemoteControl: true },
@@ -1449,7 +1449,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: { ...rowContext, compactForRemoteControl: true },
@@ -1505,7 +1505,7 @@ describe("ConversationRowView user query editing", () => {
       await act(async () => {
         root.render(
           createElement(
-            ZCodeIntlProvider,
+            NibiIntlProvider,
             { initialLocale: "zh-CN" },
             createElement(ConversationRowView, {
               context: rowContext,
@@ -1540,7 +1540,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: {
@@ -1560,7 +1560,7 @@ describe("ConversationRowView user query editing", () => {
     expect(messageResponseProps[0]?.onOpenExternalUrl).toBe(onOpenBrowserUrl);
     expect(messageResponseProps[0]?.onOpenCodeViewer).toBe(onOpenCodeViewer);
     expect(messageResponseProps[0]?.onOpenFileLink).toBe(onOpenFileLink);
-    expect(messageResponseProps[0]?.renderZCodeFileCitations).toBe(true);
+    expect(messageResponseProps[0]?.renderNibiFileCitations).toBe(true);
     // 回归根因：artifact 图片读取能力必须由行级生产接线继续传入 Markdown。
     expect(messageResponseProps[0]?.sessionId).toBe("session-1");
     expect(messageResponseProps[0]?.readAttachment).toBe(readAttachment);
@@ -1592,7 +1592,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
@@ -1677,7 +1677,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
@@ -1713,7 +1713,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
@@ -1744,7 +1744,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
@@ -1772,7 +1772,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
@@ -1843,7 +1843,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
@@ -1925,7 +1925,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
@@ -1973,7 +1973,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
@@ -2027,7 +2027,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
@@ -2090,7 +2090,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
@@ -2140,7 +2140,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
@@ -2221,7 +2221,7 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,

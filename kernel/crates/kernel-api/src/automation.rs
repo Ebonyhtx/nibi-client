@@ -11,7 +11,7 @@ use serde_json::Value;
 
 use crate::cron_store::{CronScheduleRule, CronScheduleUnit};
 
-/// Host 的一条 automation（`zcodeAutomationProtocolSchema`）。
+/// Host 的一条 automation（`nibiAutomationProtocolSchema`）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AutomationRecord {

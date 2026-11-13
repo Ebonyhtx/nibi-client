@@ -6,18 +6,18 @@ import { resolveEffectiveModelSelection, type ProviderRegistryView } from "@nibi
 import { ServiceProvider } from "@/hooks/useServices.js";
 import { PlatformProvider } from "@/hooks/usePlatform.js";
 import { TabStoreProvider } from "@/store/TabStoreProvider.js";
-import { ZCodeIntlProvider, useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider, useNibiIntl } from "@/i18n/IntlProvider.js";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
 import { V4ComposerModeSwitch } from "@/v4/composer/V4ComposerModeControls.js";
 import { ThoughtLevelCycleControl } from "@/chat-input-toolbar/ThoughtLevelCycleControl.js";
 import { ModelConfigSelect } from "@/ModelConfigSelect.js";
 import { buildRegistryModelSelectGroups } from "@/lib/modelSelectionGroups.js";
-import { decodeCustomModelValue, encodeCustomModelValue } from "@/lib/zcodeCustomModelValue.js";
+import { decodeCustomModelValue, encodeCustomModelValue } from "@/lib/nibiCustomModelValue.js";
 import { captureComposerRecentSubmission } from "@/lib/composerRecent.js";
 import { useDraftConfigControl } from "@/v4/composer/useDraftConfigControl.js";
 import { persistV4ComposerDraft, readV4ComposerDraft } from "@/v4/composer/composerDraftStore.js";
 import { resolveImportedComposerConfig } from "@/v4/composer/newTaskDraft.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 import type { SessionConfigState } from "@nibi/shared/nibi-protocol-v4";
 import { createComposerSubmissionConfig } from "@/v4/composer/composerSubmissionConfig.js";
 import type { V4ComposerConfigPicker } from "@/v4/composer/configPickerState.js";
@@ -63,7 +63,7 @@ const modelSelectionService: IModelSelectionService = {
   onDidChange: () => ({ dispose() {} }),
 };
 const services = {
-  zcodeSessionService: {},
+  nibiSessionService: {},
   settingService: { get: async () => ({}) },
 } as unknown as IServiceAccessor;
 const platform = {} as IPlatformService;
@@ -89,7 +89,7 @@ document.documentElement.className =
   params.get("theme") === "light" ? "light theme-nibi-light" : "dark theme-nibi-dark";
 
 function Fixture() {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [sessionId, setSessionId] = useState<string | null>(
     source.startsWith("session") ? "session" : "unrelated-history",
   );
@@ -101,7 +101,7 @@ function Fixture() {
     planTransition: { toolCallId: "historical-plan", planEnabled: true },
   });
   const navigate = (id: string | null, imported = false) => {
-    const store = useZCodeSessionStore.getState();
+    const store = useNibiSessionStore.getState();
     if (id === null) store.startDraft(workspacePath);
     else
       store.setActiveTaskId(
@@ -242,11 +242,11 @@ createRoot(document.getElementById("root")!).render(
   <ServiceProvider services={services}>
     <PlatformProvider platform={platform}>
       <TabStoreProvider>
-        <ZCodeIntlProvider locale={params.get("locale") === "zh-CN" ? "zh-CN" : "en-US"}>
+        <NibiIntlProvider locale={params.get("locale") === "zh-CN" ? "zh-CN" : "en-US"}>
           <TooltipProvider>
             <Fixture />
           </TooltipProvider>
-        </ZCodeIntlProvider>
+        </NibiIntlProvider>
       </TabStoreProvider>
     </PlatformProvider>
   </ServiceProvider>,

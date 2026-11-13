@@ -1,4 +1,4 @@
-// 移植自 apps/zcode-cli/packages/core/src/tool/handlers/guarded/git.ts（修复线 F20）。
+// 移植自 apps/nibi-cli/packages/core/src/tool/handlers/guarded/git.ts（修复线 F20）。
 //! git 的危险子命令：reset --hard、clean -f、强推、丢弃工作区、stash clear、worktree remove -f。
 
 use super::options::{COMMAND_SCAN, Hit, Table, WRAPPER_SCAN, enabled, parse, settle};

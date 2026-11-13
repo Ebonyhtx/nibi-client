@@ -12,7 +12,7 @@ import { createGenUiVendorResources, type GenUiVendorResources } from "./genUiVe
 /** 打包产物在 out/renderer 下的文件名（vite input 名 `plugin-sandbox`）。 */
 export const PLUGIN_SANDBOX_SHELL_HTML_FILE = "plugin-sandbox.html";
 /** 注入插件 HTML 顶部的 `window.nibi` 别名脚本；同源加载，避免依赖 inline nonce。 */
-export const PLUGIN_SANDBOX_ALIAS_SCRIPT_PATH = "/__zcode__/alias.js";
+export const PLUGIN_SANDBOX_ALIAS_SCRIPT_PATH = "/__nibi__/alias.js";
 export const PLUGIN_SANDBOX_ALIAS_SCRIPT_FILE = "plugin-sandbox-alias.js";
 
 export interface PluginSandboxSchemeRegistrar {
@@ -181,8 +181,8 @@ export function createPluginSandboxProtocolHandler(options: {
       return notFound();
     }
 
-    if (record.contentKind === "gen-ui" && target.pathname.startsWith("/__zcode__/vendor/")) {
-      const file = target.pathname.slice("/__zcode__/vendor/".length);
+    if (record.contentKind === "gen-ui" && target.pathname.startsWith("/__nibi__/vendor/")) {
+      const file = target.pathname.slice("/__nibi__/vendor/".length);
       try {
         if (!(await vendorResources.hasFile(file))) return notFound();
         return serveAsset(join(options.assets.aliasDir, "vendor"), file, {
@@ -192,7 +192,7 @@ export function createPluginSandboxProtocolHandler(options: {
         return new Response(null, { status: 500 });
       }
     }
-    if (record.contentKind === "gen-ui" && target.pathname === "/__zcode__/gen-ui.js") {
+    if (record.contentKind === "gen-ui" && target.pathname === "/__nibi__/gen-ui.js") {
       return serveAsset(options.assets.aliasDir, "gen-ui.js", {
         "Content-Security-Policy": record.cspHeader,
       });
@@ -207,7 +207,7 @@ export function createPluginSandboxProtocolHandler(options: {
         record.contentKind === "gen-ui"
           ? record.html.replace(
               "__NIBI_GEN_UI_RUNTIME__",
-              `/instance/${record.sandboxId}/__zcode__/gen-ui.js`,
+              `/instance/${record.sandboxId}/__nibi__/gen-ui.js`,
             )
           : injectPluginSandboxAliasScript(record.html, record.sandboxId);
       if (record.contentKind === "gen-ui") {

@@ -4,7 +4,7 @@
 
 ## 命名与固定标记
 
-- 工具命名空间（runtime）：agent 加载 plugin MCP server 后通过 `apps/zcode-cli/packages/adapters/src/mcp/descriptor.ts` 把 `plugin:<plugin-name>:<server>` 重写为 anthropic 兼容的 `mcp__plugin_<plugin-name>_<server>__<tool>`，这是真正发给模型的 tool name。本目录用例固定使用：
+- 工具命名空间（runtime）：agent 加载 plugin MCP server 后通过 `apps/nibi-cli/packages/adapters/src/mcp/descriptor.ts` 把 `plugin:<plugin-name>:<server>` 重写为 anthropic 兼容的 `mcp__plugin_<plugin-name>_<server>__<tool>`，这是真正发给模型的 tool name。本目录用例固定使用：
   - 插件：`e2e-plugin-mcp-ping`（fixture 路径 `packages/desktop/test/e2e/fixtures/plugin-mcp-skill/e2e-plugin-mcp-ping/`）
   - server：`ping`
   - plugin 命名空间（plugin 内部）：`plugin:e2e-plugin-mcp-ping:ping`（仅用于 debug 日志 / `getEnabledMcpServers`）
@@ -84,6 +84,6 @@
 
 ## 失败定位速查
 
-- `installed_plugins.json` 在 wdio 启动时如果被 agent 忽略（路径错位）→ 看 `apps/zcode-cli/packages/adapters/src/exec/index.ts:78` 的 `ZCODE_STORAGE_DIR` / `homedir()`，确认 agent 进程实际读的是 `<E2E_HOME>/.nibi/cli/`
+- `installed_plugins.json` 在 wdio 启动时如果被 agent 忽略（路径错位）→ 看 `apps/nibi-cli/packages/adapters/src/exec/index.ts:78` 的 `ZCODE_STORAGE_DIR` / `homedir()`，确认 agent 进程实际读的是 `<E2E_HOME>/.nibi/cli/`
 - `tools[]` 命名空间不是 `plugin:<name>:<server>` → 直接 grep `toNamespacedServerName` 确认实现
 - deepseek capture artifact 拿不到 `requestJson` → fallback 走 `record.requestBody` 的文本扫描（弱证据，仅证明 marker 进入请求体）

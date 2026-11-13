@@ -43,18 +43,18 @@ export function getDataBaseDir(): string {
 }
 
 /** {dataBaseDir}/.nibi */
-export function getZCodeDataRootDir(): string {
+export function getNibiDataRootDir(): string {
   return join(getDataBaseDir(), ".nibi");
 }
 
 /** 非项目对话共享的真实工作目录；默认 ~/.nibi/workspace/default。 */
 export function getConversationWorkspaceDir(): string {
-  return join(getZCodeDataRootDir(), "workspace", "default");
+  return join(getNibiDataRootDir(), "workspace", "default");
 }
 
 /** {dataBaseDir}/.nibi/v2 */
 export function getAppConfigDir(): string {
-  return join(getZCodeDataRootDir(), "v2");
+  return join(getNibiDataRootDir(), "v2");
 }
 
 function readEnvValue(env: Record<string, string | undefined>, key: string): string | undefined {
@@ -114,7 +114,7 @@ function collectWindowsForbiddenAppInstallDirs(
   const programW6432 = readEnvValue(env, "ProgramW6432");
   const localAppData = readEnvValue(env, "LOCALAPPDATA");
   // 黑名单是"数据目录不许设在程序安装目录里"。它列的是**本产品**的安装位次
-  // （productName = `NIBI` / `NIBI Preview`），不能列上游 ZCode 的——那既拦不住自己，
+  // （productName = `NIBI` / `NIBI Preview`），不能列上游 Nibi 的——那既拦不住自己，
   // 又让 NIBI 去关心一个与自己无关的目录。
   const installDirNames = ["NIBI", "NIBI Preview"] as const;
   const candidates = [
@@ -168,15 +168,15 @@ export function validateDataBaseDirTarget(
 }
 
 export function getExportLogStageDir(): string {
-  return join(getZCodeDataRootDir(), "export-log-stage");
+  return join(getNibiDataRootDir(), "export-log-stage");
 }
 
 export function getExportLogDir(): string {
-  return join(getZCodeDataRootDir(), "export-log");
+  return join(getNibiDataRootDir(), "export-log");
 }
 
 export function getFeedbackRootDir(): string {
-  return join(getZCodeDataRootDir(), "feedback");
+  return join(getNibiDataRootDir(), "feedback");
 }
 
 export function getFeedbackAttachmentDir(): string {
@@ -188,7 +188,7 @@ export function getFeedbackLogArchiveDir(): string {
 }
 
 export function getGitCheckpointIndexRootDir(): string {
-  return join(getZCodeDataRootDir(), "git-checkpoint-index");
+  return join(getNibiDataRootDir(), "git-checkpoint-index");
 }
 
 /** ~/.nibi/v2/tasks-index.sqlite */
@@ -201,7 +201,7 @@ function getWorkspaceKey(workspacePath: string, workspaceIdentity?: string): str
   return workspaceIdentity?.trim() || workspacePath;
 }
 
-/** 与 ZCode session 持久化一致：使用 workspaceKey 的 SHA-256 前 12 位 */
+/** 与 Nibi session 持久化一致：使用 workspaceKey 的 SHA-256 前 12 位 */
 export function getWorkspaceHash(workspacePath: string, workspaceIdentity?: string): string {
   return createHash("sha256")
     .update(getWorkspaceKey(workspacePath, workspaceIdentity))
@@ -234,7 +234,7 @@ export function getLegacyDeletedTaskSessionSnapshotPath(
 
 /**
  * GLM（唯一 agent provider）的配置目录：~/.nibi/cli。
- * Bugfix：GLM 配置改为直接读写新版 zcode-cli 的全局配置目录，不做 workspace 隔离，
+ * Bugfix：GLM 配置改为直接读写新版 nibi-cli 的全局配置目录，不做 workspace 隔离，
  * 避免同机不同工作区配置漂移。
  */
 export function getProviderWorkspaceConfigDir(): string {

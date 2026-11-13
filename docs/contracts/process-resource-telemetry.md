@@ -496,9 +496,9 @@ HAVING COUNT(DISTINCT device_mid) >= 100
 `Telemetry` / `process-probe` / `process-resource` / `processResource` 的文件或目录**，门禁只扫这批文件。
 
 - **受保护范围**：`packages/desktop/src/**`、`packages/services/src/**`、`packages/shared/src/**`、
-  `apps/zcode-cli/**/src/**` 中，**相对路径**含 `telemetry`、`Telemetry`、`process-probe`、`process-resource` 或 `processResource` 的源码
+  `apps/nibi-cli/**/src/**` 中，**相对路径**含 `telemetry`、`Telemetry`、`process-probe`、`process-resource` 或 `processResource` 的源码
   文件（`.ts` / `.tsx` / `.js` / `.mjs` 等）。判定看整条路径而不只是文件名——只看文件名会让
-  `apps/zcode-cli/packages/telemetry/src/`（`agent-metrics.ts`、`otlp-exporter.ts` 等）与
+  `apps/nibi-cli/packages/telemetry/src/`（`agent-metrics.ts`、`otlp-exporter.ts` 等）与
   `*/src/telemetry/` 这类整目录的遥测代码集体逃逸。受保护文件数从实际 Git 跟踪集动态统计，以门禁输出为准；来源注册表中的模块也由交叉回归保证进入扫描集。
 - **禁用关键字**：`powershell`、`Get-CimInstance`、`wmic`、`Get-Process`（大小写不敏感）。
 - **注释不算违规**：扫描前先剥离行注释与块注释，保证 spec 注释和 bugfix 注释能正常写清「为什么禁止
@@ -520,7 +520,7 @@ HAVING COUNT(DISTINCT device_mid) >= 100
 | 文件                                                                 | 状态 | 豁免关键字                      | 原因                                                                                                                                                                                                                                                                                                                        |
 | -------------------------------------------------------------------- | ---- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `packages/services/src/process/processResourceSampler.ts`            | 生效 | `powershell`、`Get-CimInstance` | 资源管理器 Host 侧进程表采样器：只在资源管理器窗口打开并主动请求时读一次整机进程表，属于**按需 UI 采样而非常驻遥测**；Windows 上需要同时拿到 RSS 与 CPU 时间，只能走 CIM。运行在 Host utility 进程，不在 main，也不参与 `perf_process_window` 上报。该文件因 processResource 命名进入扫描集，仅按此明确理由豁免两个关键字。 |
-| `apps/zcode-cli/packages/contracts/src/telemetry/agent-execution.ts` | 生效 | `powershell`                    | 纯类型文件：`powershell` 只是 `CommandShellKind` 枚举里「用户命令用的是哪种 shell」的上报标签，不启动任何进程。                                                                                                                                                                                                             |
+| `apps/nibi-cli/packages/contracts/src/telemetry/agent-execution.ts` | 生效 | `powershell`                    | 纯类型文件：`powershell` 只是 `CommandShellKind` 枚举里「用户命令用的是哪种 shell」的上报标签，不启动任何进程。                                                                                                                                                                                                             |
 
 各采集点成本核算见下表，作为红线的依据。
 
@@ -579,7 +579,7 @@ HAVING COUNT(DISTINCT device_mid) >= 100
   lane 只能在这里补：进程管理器是唯一知道「这个 client 属于哪条 lane」的地方。
   落地位置（06）：远端订阅走的是既有的 `zcodeAgentConnectionScope` 边界，不新增 services 层代码——
   远端 nibi-server 对桌面 Host 的连接是 `trusted-host-relay`（`packages/server` 的 stdio 与
-  `zcode-server-cli` 的 `/ws/host`），只有该角色能订阅 `onDynamicProcessResourceSample` /
+  `nibi-server-cli` 的 `/ws/host`），只有该角色能订阅 `onDynamicProcessResourceSample` /
   `onDynamicMcpTelemetry` / `onDynamicMcpResourceSamples`；renderer 与手机远控 attachment 是 `terminal-client`，拿到 `RpcEvent.None`。
 - **Host**：资源遥测注册模块统一转发 CLI 样本、MCP 样本、Bash 事件；Host 自身样本复用内存诊断日志的
   60 秒定时器，增加 CPU 差分，一次读数同时写本地日志与发 parentPort 消息。
@@ -736,9 +736,9 @@ HAVING COUNT(DISTINCT device_mid) >= 100
 [prt-desktop]: ../../packages/desktop/test/desktopResourceTelemetry.test.ts
 [prt-system]: ../../packages/desktop/test/desktopResourceSystemWindow.test.ts
 [prt-cli]: ../../packages/desktop/test/processResourceCliSource.test.ts
-[prt-bash]: ../../apps/zcode-cli/packages/adapters/tests/bash-resource-telemetry.test.ts
-[prt-probe]: ../../apps/zcode-cli/packages/adapters/tests/process-probe.test.ts
-[prt-mcp]: ../../apps/zcode-cli/packages/adapters/tests/mcp-resource-telemetry.test.ts
+[prt-bash]: ../../apps/nibi-cli/packages/adapters/tests/bash-resource-telemetry.test.ts
+[prt-probe]: ../../apps/nibi-cli/packages/adapters/tests/process-probe.test.ts
+[prt-mcp]: ../../apps/nibi-cli/packages/adapters/tests/mcp-resource-telemetry.test.ts
 [prt-legacy]: ../../packages/desktop/test/desktopMcpTelemetry.test.ts
 [prt-host]: ../../packages/desktop/test/hostSelfResourceTelemetry.test.ts
 [prt-renderer]: ../../packages/ui/test/memoryDiagnostics.test.ts

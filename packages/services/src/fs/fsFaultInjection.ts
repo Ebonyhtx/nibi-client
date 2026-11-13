@@ -42,7 +42,7 @@ export interface FsFaultHit {
 }
 
 export interface InjectedFsFaultError extends NodeJS.ErrnoException {
-  zcodeFsFaultId: string;
+  nibiFsFaultId: string;
 }
 
 export interface FsFaultInjector {
@@ -204,7 +204,7 @@ export function createInjectedFsFaultError(input: {
   error.code = input.code;
   error.path = input.path;
   error.syscall = input.operation;
-  error.zcodeFsFaultId = input.id;
+  error.nibiFsFaultId = input.id;
   return error;
 }
 
@@ -212,8 +212,8 @@ export function isInjectedFsFaultError(error: unknown): error is InjectedFsFault
   return (
     typeof error === "object" &&
     error !== null &&
-    "zcodeFsFaultId" in error &&
-    typeof (error as { zcodeFsFaultId?: unknown }).zcodeFsFaultId === "string"
+    "nibiFsFaultId" in error &&
+    typeof (error as { nibiFsFaultId?: unknown }).nibiFsFaultId === "string"
   );
 }
 

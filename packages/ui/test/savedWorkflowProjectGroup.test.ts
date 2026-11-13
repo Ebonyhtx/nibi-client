@@ -15,13 +15,13 @@ import {
   TID_WORKFLOW_CARD_RUN,
   TID_WORKFLOW_DETAIL,
   TID_WORKFLOW_PROJECT_GROUP,
-  type ZCodeSavedWorkflowEntry,
-  type ZCodeSavedWorkflowRun,
-  type ZCodeWorkflowsListResult,
+  type NibiSavedWorkflowEntry,
+  type NibiSavedWorkflowRun,
+  type NibiWorkflowsListResult,
 } from "@nibi/shared";
 import { testId } from "@nibi/shared/test-ids";
 import type { AutomationWorkspaceOption } from "@/settings/automationWorkspaceOptions.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { resetSavedWorkflowStoreForTests } from "@/store/savedWorkflowStore.js";
 
 const confirmMock = vi.fn(async () => true);
@@ -38,10 +38,10 @@ const fileWatcherService = {
 };
 
 function makeAgent() {
-  const listResult: { current: ZCodeWorkflowsListResult } = {
+  const listResult: { current: NibiWorkflowsListResult } = {
     current: { workflows: [], invalid: [], dir: "/beta/.nibi/workflows" },
   };
-  const runsResult: { current: ZCodeSavedWorkflowRun[] } = { current: [] };
+  const runsResult: { current: NibiSavedWorkflowRun[] } = { current: [] };
   const agent = {
     listResult,
     runsResult,
@@ -65,7 +65,7 @@ const agentByPath: Record<string, ReturnType<typeof makeAgent>> = {
 
 vi.mock("@/hooks/useWorkspaceServices.js", () => ({
   useWorkspaceServicesResolution: (workspacePath: string) => ({
-    services: { zcodeAgentService: agentByPath[workspacePath] ?? agentRepo, fileWatcherService },
+    services: { nibiAgentService: agentByPath[workspacePath] ?? agentRepo, fileWatcherService },
     remoteSessionId: null,
     isRemoteTarget: false,
     connectionKind: "local-ready" as const,
@@ -107,13 +107,13 @@ vi.mock("@/settings/saved-workflows/SavedWorkflowCard.js", () => ({
     onMove,
     onDelete,
   }: {
-    entry: ZCodeSavedWorkflowEntry;
-    lastRun: ZCodeSavedWorkflowRun | undefined;
-    onOpen: (entry: ZCodeSavedWorkflowEntry) => void;
-    onRun: (entry: ZCodeSavedWorkflowEntry) => void;
-    onRevise: (entry: ZCodeSavedWorkflowEntry) => void;
-    onMove?: (entry: ZCodeSavedWorkflowEntry) => void;
-    onDelete: (entry: ZCodeSavedWorkflowEntry) => void;
+    entry: NibiSavedWorkflowEntry;
+    lastRun: NibiSavedWorkflowRun | undefined;
+    onOpen: (entry: NibiSavedWorkflowEntry) => void;
+    onRun: (entry: NibiSavedWorkflowEntry) => void;
+    onRevise: (entry: NibiSavedWorkflowEntry) => void;
+    onMove?: (entry: NibiSavedWorkflowEntry) => void;
+    onDelete: (entry: NibiSavedWorkflowEntry) => void;
   }) =>
     createElement(
       "div",
@@ -181,8 +181,8 @@ const { SavedWorkflowProjectGroup } =
 
 function entry(
   name: string,
-  overrides: Partial<ZCodeSavedWorkflowEntry> = {},
-): ZCodeSavedWorkflowEntry {
+  overrides: Partial<NibiSavedWorkflowEntry> = {},
+): NibiSavedWorkflowEntry {
   return {
     name,
     description: `${name} 的说明`,
@@ -203,7 +203,7 @@ function mount(props: Partial<Parameters<typeof SavedWorkflowProjectGroup>[0]> =
   const onBack = vi.fn();
   const result = render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(SavedWorkflowProjectGroup, {
         project: BETA,
@@ -339,7 +339,7 @@ describe("SavedWorkflowProjectGroup", () => {
 
     rerender(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(SavedWorkflowProjectGroup, {
           project: BETA,

@@ -1,13 +1,13 @@
 //! MCP 服务器状态面（`mcp/list`，141 审计 §9 第 6 项 F7 的第一条）。
 //!
-//! Host 的 `mcp/list` 有两种模式（`zcodeMcpListParamsSchema`）：
+//! Host 的 `mcp/list` 有两种模式（`nibiMcpListParamsSchema`）：
 //!
 //! - `mode: "connect"`（缺省）：把**这次给的完整集合**收敛到连接管理里（新增、换配置重启、缺席的断开），
 //!   等连接落定后返回全部状态。设置页打开与手动刷新走这一条。
 //! - `mode: "status"`：只读运行态快照，不动连接集合。OAuth 轮询走这一条（`mode: "status"` 的
 //!   `mcpServers` 可能只是 pending 子集，不能进 replace 路径）。
 //!
-//! 返回值是 `Record<服务器名, 快照>`（Host `zcodeMcpServerStatusSnapshotSchema`）。这里给的是
+//! 返回值是 `Record<服务器名, 快照>`（Host `nibiMcpServerStatusSnapshotSchema`）。这里给的是
 //! 内核侧的类型；`updatedAt` 的 ISO 文本与 `authorization.startedAt` 由协议层按 Host 的
 //! `toISOString` 格式写出。
 //!
@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use crate::env::WorkspaceRef;
 use crate::mcp_session::SessionMcpServer;
 
-/// Host `zcodeMcpServerStatusKindSchema` 的六个值。
+/// Host `nibiMcpServerStatusKindSchema` 的六个值。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum McpServerStatusKind {
@@ -92,7 +92,7 @@ pub struct McpAuthorizationSnapshot {
     pub started_at_ms: u64,
 }
 
-/// 一个服务器的状态快照（Host `zcodeMcpServerStatusSnapshotSchema` 的字段全集）。
+/// 一个服务器的状态快照（Host `nibiMcpServerStatusSnapshotSchema` 的字段全集）。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct McpServerStatus {

@@ -1,4 +1,4 @@
-//! 自定义命令的展开与 `/` 目录（Node `resolveZCodeCustomCommandPrompt` 的镜像）：
+//! 自定义命令的展开与 `/` 目录（Node `resolveNibiCustomCommandPrompt` 的镜像）：
 //! 解析 `/<名字> [参数]`、找命令、`!` 块交权改写、参数替换，再按 Node 的提示形状交给会话。
 //!
 //! 与 skill 命令同一个 `UserCommands` 入口：自定义命令先于同名 skill（Node 的 input facade 也是先
@@ -72,7 +72,7 @@ impl CustomCommands {
         context: &ToolUseContext,
     ) -> Option<Expansion> {
         let (name, args) = parse(text)?;
-        // Node `isReservedZCodeSlashCommandName`：保留名在这里直接当“不是自定义命令”。
+        // Node `isReservedNibiSlashCommandName`：保留名在这里直接当“不是自定义命令”。
         if is_reserved(&name) {
             return None;
         }

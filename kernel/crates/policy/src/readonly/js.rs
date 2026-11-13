@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash/src/js.rs（07ab266d4b）；不 panic，失败时按不放行处理。
+// 复制自 apps/nibi-cli-rust/crates/bash/src/js.rs（07ab266d4b）；不 panic，失败时按不放行处理。
 //! ECMAScript string semantics the Node policy relies on.
 
 /// JS `\s` 与 `String.prototype.trim` 的空白（Rust 的 `char::is_whitespace` 没有 U+FEFF、多了 U+0085，不能用）

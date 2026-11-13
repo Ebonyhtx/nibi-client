@@ -1,6 +1,6 @@
 import { CheckIcon } from "lucide-react";
 import { cn } from "@/components/lib/utils.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 
 export interface WizardStepDefinition<StepKey extends string> {
   key: StepKey;
@@ -21,7 +21,7 @@ export function WizardStepSidebar<StepKey extends string>(props: {
   onSelectStep?: (step: StepKey) => void;
   navigationDisabled?: boolean;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const currentIndex = props.steps.findIndex((step) => step.key === props.currentStep);
 
   return (

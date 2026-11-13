@@ -8,8 +8,8 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
-import { useZCodeStoreWithDefault } from "@/store/StoreProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
+import { useNibiStoreWithDefault } from "@/store/StoreProvider.js";
 import { DEFAULT_CODE_PREVIEW_SETTINGS } from "@/lib/codePreviewSettings.js";
 
 interface PostUpdateReleaseNotesDialogProps {
@@ -23,10 +23,10 @@ export function PostUpdateReleaseNotesDialog({
   onAcknowledge,
   onOpenExternalUrl,
 }: PostUpdateReleaseNotesDialogProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   // M5②.5 store 耦合剥离：MessageResponse 不再自取 store，主题/代码预览设置由调用方传入。
-  const theme = useZCodeStoreWithDefault((state) => state.theme, "system");
-  const codePreviewSettings = useZCodeStoreWithDefault(
+  const theme = useNibiStoreWithDefault((state) => state.theme, "system");
+  const codePreviewSettings = useNibiStoreWithDefault(
     (state) => state.codePreviewSettings,
     DEFAULT_CODE_PREVIEW_SETTINGS,
   );

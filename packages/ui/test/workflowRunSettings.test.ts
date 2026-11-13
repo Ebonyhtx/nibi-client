@@ -42,7 +42,7 @@ function run(overrides: Partial<WorkflowRunState> = {}): WorkflowRunState {
   };
 }
 
-/** 与 ZCodeIntlProvider 同一个替换规则（`{name}` 直接替换）。 */
+/** 与 NibiIntlProvider 同一个替换规则（`{name}` 直接替换）。 */
 function formatterFor(messages: Record<string, string>) {
   return (descriptor: { id: string }, values?: Record<string, string | number>) => {
     let text = messages[descriptor.id] ?? descriptor.id;

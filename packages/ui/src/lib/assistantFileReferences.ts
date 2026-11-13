@@ -6,9 +6,9 @@ import { extractConversationPreviewFileReferences } from "@nibi/shared";
 import { decodeFilePathUriEscapes, joinFilePath } from "@/lib/path.js";
 import { MEDIA_PREVIEW_FORMATS } from "@nibi/shared";
 import {
-  extractZCodeFileCitationDirectives,
-  resolveZCodeFileCitationPreviewKind,
-} from "@/lib/zcodeFileCitation.js";
+  extractNibiFileCitationDirectives,
+  resolveNibiFileCitationPreviewKind,
+} from "@/lib/nibiFileCitation.js";
 import {
   isBalancedAssistantPathQuotePair,
   isAssistantPathQuoteCharacter,
@@ -161,14 +161,14 @@ export function extractAssistantFileReferences(
   const references: AssistantFileReference[] = [];
   const protectedRanges: Array<[number, number]> = [];
 
-  for (const citation of extractZCodeFileCitationDirectives(content)) {
+  for (const citation of extractNibiFileCitationDirectives(content)) {
     // Citation 必须占用完整保护区间，否则内部 path 会再次被普通文件正则抽取，
     // 从而绕过 citation 只允许 Office/PDF 卡片的产品边界。
     protectedRanges.push([citation.start, citation.end]);
     if (!citation.path) continue;
     const path = resolveAssistantRawFilePath(workspacePath, citation.path, options);
     const kind = path
-      ? resolveZCodeFileCitationPreviewKind({
+      ? resolveNibiFileCitationPreviewKind({
           artifactKind: citation.artifactKind,
           path,
         })

@@ -9,8 +9,8 @@ export const WEB_REMOTE_CONTROL_FIXTURE_CREDENTIALS = {
   "oauth:zai:access_token": "mock-token",
   "oauth:zai:user_info": JSON.stringify({
     id: "zcode-e2e-user",
-    username: "ZCode E2E",
-    displayName: "ZCode E2E",
+    username: "Nibi E2E",
+    displayName: "Nibi E2E",
   }),
   "nibi-jwttoken": "mock-token",
 };
@@ -98,7 +98,7 @@ export async function prepareWebRemoteControlSessionEventsFixture(options: {
     options.settingsFile,
     JSON.stringify({
       ...settings,
-      zcodeEndpointOrigin: relay.httpUrl,
+      nibiEndpointOrigin: relay.httpUrl,
       webRemoteControlLastEnabledContext: { workspacePath: options.workspacePath },
     }),
   );

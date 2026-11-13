@@ -7,7 +7,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { TID_AUTOMATIONS_PAGE_TAB } from "@nibi/shared";
 import { testId } from "@nibi/shared/test-ids";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import {
   AutomationsPageTitle,
   type AutomationsPageTab,
@@ -22,7 +22,7 @@ function Title({
 }) {
   const [tab, setTab] = useState<AutomationsPageTab>("automation");
   return createElement(
-    ZCodeIntlProvider,
+    NibiIntlProvider,
     { initialLocale: locale },
     createElement(AutomationsPageTitle, {
       workflowTabEnabled,

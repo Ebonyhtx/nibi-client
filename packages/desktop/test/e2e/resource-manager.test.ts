@@ -41,7 +41,7 @@ describe("资源管理器", () => {
     await switchToElectronRendererTarget(isResourceManagerUrl);
     await waitForResourceManagerReady();
 
-    // 默认 CPU tab：三类分组固定存在（空组也要显示），CPU 指标卡带 ZCode / 整机两个读数。
+    // 默认 CPU tab：三类分组固定存在（空组也要显示），CPU 指标卡带 Nibi / 整机两个读数。
     for (const category of ["base", "builtin-plugin", "community-plugin"]) {
       await expect($(`[data-testid="resource-manager-group-${category}"]`)).toBeDisplayed();
     }
@@ -83,7 +83,7 @@ describe("资源管理器", () => {
       async () => {
         const snapshot = await readResourceUsageSnapshot();
         const agent = snapshot?.processes.find((process) =>
-          process.name.startsWith("zcode-agent-"),
+          process.name.startsWith("nibi-agent-"),
         );
         return Boolean(agent && agent.sampled && agent.memoryBytes > 0);
       },
@@ -110,7 +110,7 @@ describe("资源管理器", () => {
         document.querySelectorAll<HTMLElement>('[data-testid="resource-manager-process-row"]'),
       ).map((element) => element.dataset.processName ?? ""),
     );
-    expect(rowNames.some((name) => name.startsWith("zcode-agent-"))).toBe(true);
+    expect(rowNames.some((name) => name.startsWith("nibi-agent-"))).toBe(true);
 
     await switchToElectronRendererTarget(isMainRendererUrl);
   });

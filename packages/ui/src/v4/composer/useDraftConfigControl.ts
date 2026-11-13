@@ -7,10 +7,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NIBI_AGENT_PROVIDER, resolveExecutionState } from "@nibi/shared";
 import type {
-  ZCodeConfigOption,
+  NibiConfigOption,
   ModelSelection,
-  ZCodeProvider,
-  ZCodeSlashCommand,
+  NibiProvider,
+  NibiSlashCommand,
 } from "@nibi/shared";
 import type { SessionConfigState } from "@nibi/shared/nibi-protocol-v4";
 import type { IModelSelectionService } from "@nibi/services";
@@ -20,10 +20,10 @@ import {
   type ModelSelectionRead,
 } from "@/hooks/useModelSelectionView.js";
 import { submissionModeSchema } from "@nibi/shared/nibi-protocol-v4";
-import { prepareWorkspaceWithZCodeSessionService } from "@/hooks/useWorkspacePrepare.js";
-import { useZCodeSessionService } from "@/hooks/useZCodeSessionService.js";
+import { prepareWorkspaceWithNibiSessionService } from "@/hooks/useWorkspacePrepare.js";
+import { useNibiSessionService } from "@/hooks/useNibiSessionService.js";
 import { useSettings } from "@/hooks/useSettingService.js";
-import { parseModelPickerValue } from "@/lib/zcodeSessionProjection.js";
+import { parseModelPickerValue } from "@/lib/nibiSessionProjection.js";
 import { resolveDraftInitialModelSelection } from "@/lib/composerRecent.js";
 import { initializeNewTaskDraft } from "@/v4/composer/newTaskDraft.js";
 import { useComposerClientNamespace } from "@/hooks/useServices.js";
@@ -37,7 +37,7 @@ import {
 } from "@/v4/composer/composerDraftStore.js";
 import { resolveAppFollowupMode } from "@/v4/composer/followupModeSettings.js";
 import { logger } from "@/logger.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 
 /** 目录水合单飞（per workspaceKey）：draft、已有 session 和严格模式双挂载共享一次 RPC。 */
 const workspaceCatalogHydrationFlights = new Map<string, Promise<void>>();
@@ -63,9 +63,9 @@ export function applyDraftModelSelection(
 }
 
 export function shouldHydrateWorkspaceCatalog(params: {
-  configOptions: readonly ZCodeConfigOption[];
+  configOptions: readonly NibiConfigOption[];
   sessionId: string | null;
-  slashCommands: readonly ZCodeSlashCommand[];
+  slashCommands: readonly NibiSlashCommand[];
 }): boolean {
   const hasModePresentation = params.configOptions.some(
     (option) => option.category === "mode" && option.type === "select",
@@ -115,7 +115,7 @@ interface ComposerState {
 export function useDraftConfigControl(params: {
   workspacePath: string;
   workspaceIdentity?: string;
-  provider?: ZCodeProvider;
+  provider?: NibiProvider;
   /** 会话切换恢复文字/模型，权限和 Plan 使用当前快照。 */
   sessionId: string | null;
   /** 仅匹配当前 Session 的首份投影可用作初始化；null 表示还没恢复完成。 */
@@ -135,19 +135,19 @@ export function useDraftConfigControl(params: {
   } = params;
   const workspaceKey = workspaceIdentity?.trim() || workspacePath;
   const displayProvider = provider ?? NIBI_AGENT_PROVIDER;
-  const zcodeSessionService = useZCodeSessionService(workspacePath, null, workspaceIdentity);
+  const nibiSessionService = useNibiSessionService(workspacePath, null, workspaceIdentity);
   const { settings: sharedSettings } = useSettings();
   const appFollowupMode = resolveAppFollowupMode(sharedSettings);
   const scopeId = sessionId ?? V4_DRAFT_SCOPE_ROOT;
   const clientNamespace = useComposerClientNamespace();
-  const draftProjectId = useZCodeSessionStore(
+  const draftProjectId = useNibiSessionStore(
     (state) => state.workspaces[workspaceKey]?.draftProjectId,
   );
   const rootScope = useMemo(
     () => resolveComposerScope(draftProjectId, workspaceIdentity, clientNamespace),
     [draftProjectId, workspaceIdentity, clientNamespace],
   );
-  const draftFocusVersion = useZCodeSessionStore((state) =>
+  const draftFocusVersion = useNibiSessionStore((state) =>
     sessionId === null ? (state.workspaces[workspaceKey]?.draftFocusVersion ?? 0) : 0,
   );
   // New Task 可以复用同一个 pane；无文字时必须重新取 Recent，不能只清磁盘留旧内存。
@@ -157,7 +157,7 @@ export function useDraftConfigControl(params: {
     draftFocusVersion,
     sessionId === null ? composerScopeKey(rootScope) : null,
   ]);
-  const navigationInitialization = useZCodeSessionStore((state) => {
+  const navigationInitialization = useNibiSessionStore((state) => {
     const workspace = state.workspaces[workspaceKey];
     return workspace?.activeTaskId === sessionId &&
       workspace?.composerInitialization?.taskId === sessionId
@@ -290,7 +290,7 @@ export function useDraftConfigControl(params: {
   draftConfigRef.current = draftConfig;
   const persistDraft = useCallback(
     (value: V4ComposerDraft) => {
-      const workspace = useZCodeSessionStore
+      const workspace = useNibiSessionStore
         .getState()
         .getWorkspaceState(workspacePath, workspaceIdentity);
       return persistV4ComposerDraft(
@@ -323,7 +323,7 @@ export function useDraftConfigControl(params: {
   }, []);
   useEffect(() => {
     if (navigationInitialization)
-      useZCodeSessionStore
+      useNibiSessionStore
         .getState()
         .consumeComposerInitialization(workspacePath, navigationInitialization, workspaceIdentity);
   }, [scopeKey, navigationInitialization, workspacePath, workspaceIdentity]);
@@ -332,7 +332,7 @@ export function useDraftConfigControl(params: {
       mountedRef.current &&
       stateRef.current.scopeKey === scopeKey &&
       (sessionId !== null ||
-        (useZCodeSessionStore.getState().getWorkspaceState(workspacePath, workspaceIdentity)
+        (useNibiSessionStore.getState().getWorkspaceState(workspacePath, workspaceIdentity)
           .draftFocusVersion ?? 0) === draftFocusVersion),
     [scopeKey, sessionId, workspacePath, workspaceIdentity, draftFocusVersion],
   );
@@ -463,7 +463,7 @@ export function useDraftConfigControl(params: {
   // 目录已 ready（reload/广播/上次水合写过）则跳过；否则读取最小 workspace presentation。
   useEffect(() => {
     const isDraft = sessionId === null;
-    const store = useZCodeSessionStore.getState();
+    const store = useNibiSessionStore.getState();
     const workspaceState = store.getWorkspaceState(workspacePath, workspaceIdentity);
     if (!agentStartupAllowed) {
       // V4 目录水合曾在无模型时直接进入 RPC，虽然 Host 不会启动 CLI，
@@ -499,11 +499,11 @@ export function useDraftConfigControl(params: {
     }
 
     store.setConfigOptionsStatus(workspacePath, "loading", workspaceIdentity);
-    const flight = prepareWorkspaceWithZCodeSessionService({
+    const flight = prepareWorkspaceWithNibiSessionService({
       workspacePath,
       workspaceIdentity,
       provider: displayProvider,
-      zcodeSessionService,
+      nibiSessionService,
     })
       .then((prepareResult) => {
         const baseOptions = prepareResult.configOptions ?? [];
@@ -517,7 +517,7 @@ export function useDraftConfigControl(params: {
           ),
           workspaceKey,
         });
-        const latest = useZCodeSessionStore.getState();
+        const latest = useNibiSessionStore.getState();
         latest.setConfigOptions(workspacePath, baseOptions, workspaceIdentity);
         latest.setConfigOptionsStatus(workspacePath, "ready", workspaceIdentity);
         latest.setSlashCommands(
@@ -527,7 +527,7 @@ export function useDraftConfigControl(params: {
         );
       })
       .catch((error) => {
-        useZCodeSessionStore
+        useNibiSessionStore
           .getState()
           .setConfigOptionsStatus(workspacePath, "error", workspaceIdentity);
         logger.warn(`[v4-workspace-catalog] workspace 目录水合失败: ${String(error)}`);
@@ -543,7 +543,7 @@ export function useDraftConfigControl(params: {
     workspaceIdentity,
     workspaceKey,
     workspacePath,
-    zcodeSessionService,
+    nibiSessionService,
   ]);
 
   const handleDraftSelectModel = useCallback(

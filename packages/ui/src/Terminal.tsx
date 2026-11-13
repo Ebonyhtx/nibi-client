@@ -2,7 +2,7 @@ import { Plus, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { IServiceAccessor } from "@nibi/services";
 import { TID_TERMINAL, TID_TERMINAL_CLOSE_BUTTON } from "@nibi/shared/test-ids";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
 import { logger } from "@/logger.js";
 import { Button } from "@/components/ui/button.js";
@@ -44,7 +44,7 @@ export function Terminal({
   onClose: () => void;
   onOpenBrowserUrl: (url: string) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const isOfficeMode = useIsOfficeMode();
   const workspaceKey = workspaceIdentity?.trim() || cwd || "__default__";
   const [panelState, setPanelState] = useState<TerminalPanelState>(() => {

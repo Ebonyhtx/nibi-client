@@ -158,7 +158,7 @@ export function createMcpSyncService(
       };
     },
     async checkRemoteUserMcpWriteAccess() {
-      return checkRemoteSyncDirectoryWriteAccess(dirname(getUserZcodeMcpConfigPath()));
+      return checkRemoteSyncDirectoryWriteAccess(dirname(getUserNibiMcpConfigPath()));
     },
     async importMcpServers(params) {
       if (params.overwrite) {
@@ -197,7 +197,7 @@ function buildUserConfigPath(descriptor: DirectoryMcpDescriptor): string {
   return buildDirectoryConfigPath(descriptor, "user");
 }
 
-export function getUserZcodeMcpConfigPath(): string {
+export function getUserNibiMcpConfigPath(): string {
   return buildUserConfigPath(NIBI_MCP_DESCRIPTOR);
 }
 
@@ -230,9 +230,9 @@ function findDescriptorByLocation(
 }
 
 export async function collectEffectiveUserMcpRecords(): Promise<UserMcpRecord[]> {
-  const zcodeRecords = await readUserMcpRecordsFromFile(NIBI_MCP_DESCRIPTOR);
-  if (zcodeRecords.length > 0) {
-    return sortMcpRecords(zcodeRecords);
+  const nibiRecords = await readUserMcpRecordsFromFile(NIBI_MCP_DESCRIPTOR);
+  if (nibiRecords.length > 0) {
+    return sortMcpRecords(nibiRecords);
   }
   return sortMcpRecords(
     await readUserMcpRecordsFromFile(AGENTS_MCP_DESCRIPTOR),
@@ -368,7 +368,7 @@ async function saveMcpToUserDirectory(
   // 根因：旧实现先宽松读取现有 server map 再整文件写回；config.json 损坏时读取被当作空对象，
   // provider、命令、插件等其他写入方的字段会被一起冲掉。
   // 修法：写前在 updateJsonObjectFile 内重读，只增删当前 server，其他字段原样保留。
-  await updateZCodeServersInFile(scope, payload.projectPath, (servers) => {
+  await updateNibiServersInFile(scope, payload.projectPath, (servers) => {
     if (config) {
       servers[payload.name] = config;
     } else {
@@ -385,13 +385,13 @@ async function readDirectoryServersFromPreferredSources(
   scope: Exclude<McpScope, "common">,
   workspacePath?: string,
 ): Promise<NativeMcpServerRecord[]> {
-  const zcodeServers = await readDirectoryServersFromFile(
+  const nibiServers = await readDirectoryServersFromFile(
     NIBI_MCP_DESCRIPTOR,
     scope,
     workspacePath,
   );
-  if (zcodeServers.length > 0) {
-    return zcodeServers;
+  if (nibiServers.length > 0) {
+    return nibiServers;
   }
   return readDirectoryServersFromFile(
     AGENTS_MCP_DESCRIPTOR,
@@ -436,7 +436,7 @@ async function readDirectoryServersFromFile(
  * 根因：旧实现先宽松读取（config.json 损坏时返回 null → 空对象）再整文件写回，
  * provider、命令、插件等其他配置会被冲掉；现在统一走 updateJsonObjectFile（损坏时抛错、字节不变）。
  */
-async function updateZCodeServersInFile(
+async function updateNibiServersInFile(
   scope: Exclude<McpScope, "common">,
   workspacePath: string | undefined,
   update: (servers: Record<string, Record<string, unknown>>) => void,
@@ -497,7 +497,7 @@ async function cleanupLegacyMcpEnabledOverride(
   location: SettingsDirectoryLocation,
   name: string,
 ): Promise<void> {
-  const filePath = getUserZcodeMcpConfigPath();
+  const filePath = getUserNibiMcpConfigPath();
   if (
     !removeLegacyMcpEnabledOverride(await readJsonObjectFileForUpdate(filePath), location, name)
       .changed
@@ -722,7 +722,7 @@ async function importMcpServers(params: {
   localWorkspacePath?: string;
   remoteWorkspacePath?: string;
 }): Promise<McpSyncImportResult> {
-  const targetPath = getUserZcodeMcpConfigPath();
+  const targetPath = getUserNibiMcpConfigPath();
   const current = (await readJsonObject(targetPath)) ?? {};
   const targetServers = readServerMapFromJson(
     current,

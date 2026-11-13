@@ -39,7 +39,7 @@ export function createSkillSyncService(options?: { maxArchiveBytes?: number }): 
       };
     },
     async listRemoteUserSkillStatuses(params): Promise<SkillSyncRemoteStatusResult> {
-      const root = getUserZcodeSkillRoot();
+      const root = getUserNibiSkillRoot();
       const existingSkillPathByName = await collectUserSkillDirectoryPathByName();
       // skill sync service 会通过 RPC 暴露给 renderer / remote 客户端；
       // directoryName 不能只信 UI 候选，必须在服务端限制为 skills 根内的安全相对路径。
@@ -111,7 +111,7 @@ export function createSkillSyncService(options?: { maxArchiveBytes?: number }): 
       };
     },
     async checkRemoteUserSkillWriteAccess() {
-      return checkRemoteSyncDirectoryWriteAccess(getUserZcodeSkillRoot());
+      return checkRemoteSyncDirectoryWriteAccess(getUserNibiSkillRoot());
     },
     async importSkillsArchive(params): Promise<SkillSyncImportResult> {
       if (params.overwrite) {
@@ -133,7 +133,7 @@ function resolveUserHomeDir(): string {
   return process.env.HOME?.trim() || process.env.USERPROFILE?.trim() || homedir();
 }
 
-function getUserZcodeSkillRoot(): string {
+function getUserNibiSkillRoot(): string {
   return join(resolveUserHomeDir(), ".nibi", "skills");
 }
 
@@ -143,26 +143,26 @@ function getUserAgentsSkillRoot(): string {
 
 async function collectUserSkillCandidates(): Promise<SkillSyncCandidate[]> {
   const seenSkillRealpaths = new Set<string>();
-  const userZcodeSkillRoot = getUserZcodeSkillRoot();
-  const rawZcodeCandidates = await collectUserSkillCandidatesInRoot(userZcodeSkillRoot);
-  const zcodeDirectoryNames = await collectCoveredSkillDirectoryNamesInRoot(userZcodeSkillRoot);
-  const zcodeSkillNameKeys = new Set(
-    rawZcodeCandidates.map((candidate) => normalizeSkillNameKey(candidate.name)),
+  const userNibiSkillRoot = getUserNibiSkillRoot();
+  const rawNibiCandidates = await collectUserSkillCandidatesInRoot(userNibiSkillRoot);
+  const nibiDirectoryNames = await collectCoveredSkillDirectoryNamesInRoot(userNibiSkillRoot);
+  const nibiSkillNameKeys = new Set(
+    rawNibiCandidates.map((candidate) => normalizeSkillNameKey(candidate.name)),
   );
-  const zcodeCandidates = await dedupeCandidatesByCanonicalSkillPath(
-    rawZcodeCandidates,
+  const nibiCandidates = await dedupeCandidatesByCanonicalSkillPath(
+    rawNibiCandidates,
     seenSkillRealpaths,
   );
   const agentsCandidates = await dedupeCandidatesByCanonicalSkillPath(
     (await collectUserSkillCandidatesInRoot(getUserAgentsSkillRoot())).filter(
       (candidate) =>
-        !zcodeDirectoryNames.has(candidate.directoryName) &&
-        !zcodeSkillNameKeys.has(normalizeSkillNameKey(candidate.name)),
+        !nibiDirectoryNames.has(candidate.directoryName) &&
+        !nibiSkillNameKeys.has(normalizeSkillNameKey(candidate.name)),
     ),
     seenSkillRealpaths,
   );
 
-  return [...zcodeCandidates, ...agentsCandidates].sort((left, right) =>
+  return [...nibiCandidates, ...agentsCandidates].sort((left, right) =>
     left.directoryName.localeCompare(right.directoryName),
   );
 }
@@ -381,7 +381,7 @@ async function collectSkillDirectoryPathByName(root: string): Promise<Map<string
 }
 
 async function collectUserSkillDirectoryPathByName(): Promise<Map<string, string>> {
-  const result = await collectSkillDirectoryPathByName(getUserZcodeSkillRoot());
+  const result = await collectSkillDirectoryPathByName(getUserNibiSkillRoot());
   const agentsSkillPathByName = await collectSkillDirectoryPathByName(getUserAgentsSkillRoot());
   for (const [nameKey, directoryPath] of agentsSkillPathByName) {
     if (!result.has(nameKey)) {
@@ -395,7 +395,7 @@ async function importArchive(
   archive: Uint8Array,
   maxArchiveBytes: number,
 ): Promise<SkillSyncImportResult> {
-  const targetRoot = getUserZcodeSkillRoot();
+  const targetRoot = getUserNibiSkillRoot();
   await mkdir(targetRoot, { recursive: true });
   const tempRoot = join(targetRoot, `.sync-tmp-${randomUUID()}`);
   await mkdir(tempRoot, { recursive: true });

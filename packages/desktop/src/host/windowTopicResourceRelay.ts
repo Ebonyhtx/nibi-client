@@ -1,16 +1,16 @@
-import { IZCodeAgentService, type IBotsService, type ServiceCollection } from "@nibi/services";
+import { INibiAgentService, type IBotsService, type ServiceCollection } from "@nibi/services";
 import { createTopicResourceRelayChannel } from "@nibi/services/node";
-import type { WindowHostAttachmentScope, ZCodeTopicResourceRelayRequest } from "@nibi/shared";
+import type { WindowHostAttachmentScope, NibiTopicResourceRelayRequest } from "@nibi/shared";
 
 /** 反向请求必须属于发起它的物理连接，并仍绑定当前 logical session，不能只比较文件路径。 */
 export function createWindowTopicResourceRelay(deps: {
-  getPeerAgentService(): IZCodeAgentService | undefined;
+  getPeerAgentService(): INibiAgentService | undefined;
   resolveServices(scope: WindowHostAttachmentScope): ServiceCollection;
   getBots(): IBotsService | undefined;
 }) {
   const resolve = (
     request: Pick<
-      ZCodeTopicResourceRelayRequest,
+      NibiTopicResourceRelayRequest,
       "remoteSessionId" | "workspaceIdentity" | "workspacePath"
     >,
   ) => {
@@ -24,7 +24,7 @@ export function createWindowTopicResourceRelay(deps: {
           workspaceIdentity: request.workspaceIdentity,
           workspacePath: request.workspacePath,
         })
-        .get(IZCodeAgentService) !== peer
+        .get(INibiAgentService) !== peer
     )
       throw new Error("Topic resource source connection mismatch");
     const bots = deps.getBots();

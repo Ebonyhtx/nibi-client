@@ -147,7 +147,7 @@ vi.mock("@/DesktopWindowFrame.js", () => ({
 }));
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }) => id,
     },
@@ -385,7 +385,7 @@ function createWorkspaceShellProps() {
     webRemoteControlWorkspaceSwitcher: undefined,
     workspaceAbsPath: "/tmp/project",
     workspaceRemoteSessionId: undefined,
-    workspaceShellZCodeState: {
+    workspaceShellNibiState: {
       activeTaskId: null,
       modelSwitchPending: false,
       modelSwitchStage: null,
@@ -877,8 +877,8 @@ describe("WorkspaceShellLayout Web remote control mobile layout", () => {
     const html = await renderWorkspaceShell({
       activeTaskId: null,
       isDesktop: true,
-      workspaceShellZCodeState: {
-        ...createWorkspaceShellProps().workspaceShellZCodeState,
+      workspaceShellNibiState: {
+        ...createWorkspaceShellProps().workspaceShellNibiState,
         activeTaskId: null,
       },
     });
@@ -894,8 +894,8 @@ describe("WorkspaceShellLayout Web remote control mobile layout", () => {
     const html = await renderWorkspaceShell({
       activeTaskId: null,
       isDesktop: false,
-      workspaceShellZCodeState: {
-        ...createWorkspaceShellProps().workspaceShellZCodeState,
+      workspaceShellNibiState: {
+        ...createWorkspaceShellProps().workspaceShellNibiState,
         activeTaskId: null,
       },
     });
@@ -910,8 +910,8 @@ describe("WorkspaceShellLayout Web remote control mobile layout", () => {
       isDesktop: true,
       isMacDesktop: false,
       isWindowsDesktop: true,
-      workspaceShellZCodeState: {
-        ...createWorkspaceShellProps().workspaceShellZCodeState,
+      workspaceShellNibiState: {
+        ...createWorkspaceShellProps().workspaceShellNibiState,
         activeTaskId: null,
       },
     });
@@ -926,8 +926,8 @@ describe("WorkspaceShellLayout Web remote control mobile layout", () => {
       isDesktop: true,
       isMacDesktop: false,
       isWindowsDesktop: false,
-      workspaceShellZCodeState: {
-        ...createWorkspaceShellProps().workspaceShellZCodeState,
+      workspaceShellNibiState: {
+        ...createWorkspaceShellProps().workspaceShellNibiState,
         activeTaskId: null,
       },
     });
@@ -941,8 +941,8 @@ describe("WorkspaceShellLayout Web remote control mobile layout", () => {
     const html = await renderWorkspaceShell({
       activeTaskId: "task-1",
       activeTaskTitle: "Task 1",
-      workspaceShellZCodeState: {
-        ...createWorkspaceShellProps().workspaceShellZCodeState,
+      workspaceShellNibiState: {
+        ...createWorkspaceShellProps().workspaceShellNibiState,
         activeTaskId: "task-1",
       },
     });
@@ -976,8 +976,8 @@ describe("WorkspaceShellLayout Web remote control mobile layout", () => {
         listWorkspaces: vi.fn(async () => ({ workspaces: [] })),
         switchWorkspace: vi.fn(async () => {}),
       },
-      workspaceShellZCodeState: {
-        ...createWorkspaceShellProps().workspaceShellZCodeState,
+      workspaceShellNibiState: {
+        ...createWorkspaceShellProps().workspaceShellNibiState,
         activeTaskId: null,
       },
     });

@@ -5,7 +5,7 @@ import type {
   CommandEnvelope,
   ConversationSnapshot,
 } from "@nibi/shared/nibi-protocol-v4";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import type { ElicitationDialog } from "@/ElicitationDialog.js";
 import { V4InteractionDialogs } from "@/v4/V4InteractionDialogs.js";
 
@@ -111,7 +111,7 @@ describe("V4 mobile plan interaction acknowledgement", () => {
 
     renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(V4InteractionDialogs, {
           sessionId: "session-plan",
@@ -146,7 +146,7 @@ describe("V4 mobile plan interaction acknowledgement", () => {
 
       renderToStaticMarkup(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(V4InteractionDialogs, {
             sessionId: "session-plan",
@@ -178,7 +178,7 @@ describe("V4 mobile plan interaction acknowledgement", () => {
 
     renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(V4InteractionDialogs, {
           sessionId: "session-plan",
@@ -208,7 +208,7 @@ describe("V4 mobile plan interaction acknowledgement", () => {
 
     renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(V4InteractionDialogs, {
           sessionId: "session-plan",

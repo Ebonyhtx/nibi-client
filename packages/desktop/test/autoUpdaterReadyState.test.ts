@@ -85,7 +85,7 @@ autoUpdaterMock.setFeedURL = vi.fn();
 autoUpdaterMock.forceDevUpdateConfig = false;
 autoUpdaterMock.currentVersion = null;
 autoUpdaterMock.installerPath =
-  "C:\\Users\\demo\\AppData\\Local\\zcode-updater\\pending\\ZCode-0.1.25-win-x64.exe";
+  "C:\\Users\\demo\\AppData\\Local\\zcode-updater\\pending\\Nibi-0.1.25-win-x64.exe";
 autoUpdaterMock.autoRunAppAfterInstall = true;
 autoUpdaterMock.installDirectory = null;
 autoUpdaterMock.downloadedUpdateHelper = null;
@@ -221,7 +221,7 @@ describe("autoUpdater ready state sync", () => {
     autoUpdaterMock.forceDevUpdateConfig = false;
     autoUpdaterMock.currentVersion = null;
     autoUpdaterMock.installerPath =
-      "C:\\Users\\demo\\AppData\\Local\\zcode-updater\\pending\\ZCode-0.1.25-win-x64.exe";
+      "C:\\Users\\demo\\AppData\\Local\\zcode-updater\\pending\\Nibi-0.1.25-win-x64.exe";
     autoUpdaterMock.autoRunAppAfterInstall = true;
     autoUpdaterMock.installDirectory = null;
     autoUpdaterMock.downloadedUpdateHelper = null;
@@ -381,7 +381,7 @@ describe("autoUpdater ready state sync", () => {
 
     autoUpdaterMock.emit("update-available", {
       version: "3.3.3",
-      zcodeReleaseChannel: "preview",
+      nibiReleaseChannel: "preview",
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -481,7 +481,7 @@ describe("autoUpdater ready state sync", () => {
     autoUpdaterMock.emit("checking-for-update");
     autoUpdaterMock.emit("update-available", {
       version: "3.3.4",
-      zcodeReleaseChannel: "stable",
+      nibiReleaseChannel: "stable",
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -505,7 +505,7 @@ describe("autoUpdater ready state sync", () => {
 
     autoUpdaterMock.emit("update-available", {
       version: "3.3.4",
-      zcodeReleaseChannel: "stable",
+      nibiReleaseChannel: "stable",
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -516,7 +516,7 @@ describe("autoUpdater ready state sync", () => {
 
     autoUpdaterMock.emit("update-available", {
       version: "3.3.5",
-      zcodeReleaseChannel: "preview",
+      nibiReleaseChannel: "preview",
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -552,7 +552,7 @@ describe("autoUpdater ready state sync", () => {
     autoUpdaterMock.emit("checking-for-update");
     autoUpdaterMock.emit("update-available", {
       version: "3.3.4",
-      zcodeReleaseChannel: "stable",
+      nibiReleaseChannel: "stable",
     });
     await Promise.resolve();
     await Promise.resolve();
@@ -605,7 +605,7 @@ describe("autoUpdater ready state sync", () => {
 
     autoUpdaterMock.emit("update-available", {
       version: "3.6.4",
-      zcodeReleaseChannel: "stable",
+      nibiReleaseChannel: "stable",
       releaseName: "Release v3.6.4",
       releaseNotes: "## Fixes",
     });
@@ -684,7 +684,7 @@ describe("autoUpdater ready state sync", () => {
 
     autoUpdaterMock.emit("update-available", {
       version: "3.3.4",
-      zcodeReleaseChannel: "stable",
+      nibiReleaseChannel: "stable",
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
     refreshAutoUpdaterReleaseChannel(false, "test stable setting changed");
@@ -697,7 +697,7 @@ describe("autoUpdater ready state sync", () => {
 
     autoUpdaterMock.emit("update-available", {
       version: "3.3.5",
-      zcodeReleaseChannel: "preview",
+      nibiReleaseChannel: "preview",
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -714,7 +714,7 @@ describe("autoUpdater ready state sync", () => {
     expect(
       resolveUpdateFeedSourceFromStartupConfig({
         argv: [
-          "ZCode",
+          "Nibi",
           "--nibi-update-feed-url",
           "https://arg.example.test/api/v1/releases/electron/manifest",
         ],
@@ -728,7 +728,7 @@ describe("autoUpdater ready state sync", () => {
     expect(
       resolveUpdateFeedSourceFromStartupConfig({
         argv: [
-          "ZCode",
+          "Nibi",
           "--nibi-update-feed-url=https://equals.example.test/api/v1/releases/electron/manifest",
         ],
         env: {},
@@ -738,7 +738,7 @@ describe("autoUpdater ready state sync", () => {
     });
     expect(
       resolveUpdateFeedSourceFromStartupConfig({
-        argv: ["ZCode"],
+        argv: ["Nibi"],
         env: {
           NIBI_UPDATE_FEED_URL: "https://env.example.test/api/v1/releases/electron/manifest",
         },
@@ -1533,12 +1533,12 @@ describe("autoUpdater ready state sync", () => {
       releaseDate: new Date("2026-06-23T13:48:54.438Z"),
       releaseNotesByLocale: {
         "zh-CN": {
-          title: "ZCode v0.1.25",
-          markdown: "# ZCode v0.1.25\n\n- 中文说明",
+          title: "Nibi v0.1.25",
+          markdown: "# Nibi v0.1.25\n\n- 中文说明",
         },
         "en-US": {
-          title: "ZCode v0.1.25",
-          markdown: "# ZCode v0.1.25\n\n- English notes",
+          title: "Nibi v0.1.25",
+          markdown: "# Nibi v0.1.25\n\n- English notes",
         },
       },
     });
@@ -1552,12 +1552,12 @@ describe("autoUpdater ready state sync", () => {
         releaseDate: "2026-06-23T13:48:54.438Z",
         releaseNotesByLocale: {
           "zh-CN": {
-            title: "ZCode v0.1.25",
-            markdown: "# ZCode v0.1.25\n\n- 中文说明",
+            title: "Nibi v0.1.25",
+            markdown: "# Nibi v0.1.25\n\n- 中文说明",
           },
           "en-US": {
-            title: "ZCode v0.1.25",
-            markdown: "# ZCode v0.1.25\n\n- English notes",
+            title: "Nibi v0.1.25",
+            markdown: "# Nibi v0.1.25\n\n- English notes",
           },
         },
       },
@@ -1575,12 +1575,12 @@ describe("autoUpdater ready state sync", () => {
         releaseDate: "2026-06-23T13:48:54.438Z",
         releaseNotesByLocale: {
           "zh-CN": {
-            title: "ZCode v0.1.25",
-            markdown: "# ZCode v0.1.25\n\n- 中文说明",
+            title: "Nibi v0.1.25",
+            markdown: "# Nibi v0.1.25\n\n- 中文说明",
           },
           "en-US": {
-            title: "ZCode v0.1.25",
-            markdown: "# ZCode v0.1.25\n\n- English notes",
+            title: "Nibi v0.1.25",
+            markdown: "# Nibi v0.1.25\n\n- English notes",
           },
         },
       },
@@ -1601,12 +1601,12 @@ describe("autoUpdater ready state sync", () => {
         releaseDate: "2026-06-23T13:48:54.438Z",
         releaseNotesByLocale: {
           "zh-CN": {
-            title: "ZCode v0.1.25",
-            markdown: "# ZCode v0.1.25\n\n- 中文说明",
+            title: "Nibi v0.1.25",
+            markdown: "# Nibi v0.1.25\n\n- 中文说明",
           },
           "en-US": {
-            title: "ZCode v0.1.25",
-            markdown: "# ZCode v0.1.25\n\n- English notes",
+            title: "Nibi v0.1.25",
+            markdown: "# Nibi v0.1.25\n\n- English notes",
           },
         },
       },

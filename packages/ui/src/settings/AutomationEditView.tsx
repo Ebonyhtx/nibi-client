@@ -16,9 +16,9 @@ import {
 } from "lucide-react";
 import {
   NIBI_AGENT_PROVIDER,
-  type ZCodeAutomation,
-  type ZCodeAutomationRun,
-  type ZCodeAutomationScheduleRule,
+  type NibiAutomation,
+  type NibiAutomationRun,
+  type NibiAutomationScheduleRule,
 } from "@nibi/shared";
 import {
   testId,
@@ -123,14 +123,14 @@ import {
   resolveAutomationEditRequiredFieldErrors,
   type AutomationEditRequiredField,
 } from "@/settings/automationEditValidation.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { useAutomationProjectOptions } from "@/hooks/useAutomationProjectOptions.js";
 import { useWorkspaceServicesResolution } from "@/hooks/useWorkspaceServices.js";
 import { useModelSelectionServiceView } from "@/hooks/useModelSelectionView.js";
 import { resolveModelThoughtOption } from "@/lib/modelThoughtOption.js";
-import { decodeCustomModelValue, encodeCustomModelValue } from "@/lib/zcodeCustomModelValue.js";
-import { parseModelPickerValue } from "@/lib/zcodeSessionProjection.js";
+import { decodeCustomModelValue, encodeCustomModelValue } from "@/lib/nibiCustomModelValue.js";
+import { parseModelPickerValue } from "@/lib/nibiSessionProjection.js";
 import { startUserAction } from "@/lib/userActionTelemetry.js";
 import { logger } from "@/logger.js";
 import {
@@ -375,7 +375,7 @@ function MonthDayPicker({
 }: {
   month: number;
   day: number;
-  intl: ReturnType<typeof useZCodeIntl>["intl"];
+  intl: ReturnType<typeof useNibiIntl>["intl"];
   onChange: (month: number, day: number) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -433,7 +433,7 @@ function WeekdayPicker({
   onChange,
 }: {
   weekdays: number[];
-  intl: ReturnType<typeof useZCodeIntl>["intl"];
+  intl: ReturnType<typeof useNibiIntl>["intl"];
   onChange: (weekdays: number[]) => void;
 }) {
   const label = WEEKDAY_ORDER.filter((day) => weekdays.includes(day))
@@ -512,7 +512,7 @@ function EndDatePicker({
   value,
 }: {
   disabled: boolean;
-  intl: ReturnType<typeof useZCodeIntl>["intl"];
+  intl: ReturnType<typeof useNibiIntl>["intl"];
   min: string;
   onChange: (value: string) => void;
   value: string;
@@ -638,7 +638,7 @@ function CustomRepeatDialog({
 }: {
   builder: CronBuilderState;
   endAt: number | undefined;
-  intl: ReturnType<typeof useZCodeIntl>["intl"];
+  intl: ReturnType<typeof useNibiIntl>["intl"];
   onConfirm: (value: {
     interval: number;
     unit: CustomRepeatUnit;
@@ -1066,7 +1066,7 @@ export interface AutomationEditSubmit {
 
 export interface AutomationEditViewProps {
   /** null = 新建；否则编辑。 */
-  editing: ZCodeAutomation | null;
+  editing: NibiAutomation | null;
   /** 新建预填(来自 More ideas 模板)。 */
   initialDraft?: { title: string; cronExpr: string; prompt: string } | null;
   /** 当前列表所在项目,作为新建的默认目标项目。 */
@@ -1077,9 +1077,9 @@ export interface AutomationEditViewProps {
   onSubmit: (params: AutomationEditSubmit) => Promise<boolean>;
   onBack: () => void;
   /** 编辑态:立即运行 / 启停 / 删除。 */
-  onRunNow?: (automation: ZCodeAutomation) => Promise<void> | void;
-  onToggle?: (automation: ZCodeAutomation, enabled: boolean) => void;
-  onDelete?: (automation: ZCodeAutomation) => void;
+  onRunNow?: (automation: NibiAutomation) => Promise<void> | void;
+  onToggle?: (automation: NibiAutomation, enabled: boolean) => void;
+  onDelete?: (automation: NibiAutomation) => void;
   /** History tab 运行历史。 */
   runsEntry?: AutomationRunsEntry;
   onLoadRuns?: () => void;
@@ -1114,7 +1114,7 @@ function defaultBuilder(): CronBuilderState {
 }
 
 function initialBuilder(
-  editing: ZCodeAutomation | null,
+  editing: NibiAutomation | null,
   initialDraft?: { title: string; cronExpr: string; prompt: string } | null,
 ): CronBuilderState {
   if (!editing) {
@@ -1141,7 +1141,7 @@ function initialBuilder(
 
 // ---- 运行历史状态映射(与 AutomationRunsDialog 保持一致) ----
 type RunStatusKind = "running" | "succeeded" | "failed" | "stopped" | "skipped";
-function resolveRunStatus(run: ZCodeAutomationRun): RunStatusKind {
+function resolveRunStatus(run: NibiAutomationRun): RunStatusKind {
   if (run.dispatchStatus === "skipped") return "skipped";
   if (run.dispatchStatus === "failed_to_dispatch") return "failed";
   switch (run.outcome) {
@@ -1179,7 +1179,7 @@ const AUTOMATION_STATUS_DOT_CLASS: Record<AutomationStatusKind, string> = {
 };
 
 function normalizeAutomationScheduleRule(
-  rule: ZCodeAutomationScheduleRule | null | undefined,
+  rule: NibiAutomationScheduleRule | null | undefined,
 ): Record<string, unknown> | null {
   if (!rule) return null;
   return {
@@ -1212,7 +1212,7 @@ export function AutomationEditView({
   onDeleteRun,
   onOpenSession,
 }: AutomationEditViewProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const confirmDialog = useConfirmDialog();
   const [tab, setTab] = useState<AutomationSettingsHistoryTab>("settings");
   const [runsPage, setRunsPage] = useState(1);
@@ -1618,7 +1618,7 @@ export function AutomationEditView({
     [editing?.automationId, requiredFieldErrors],
   );
 
-  const currentScheduleRule = useMemo<ZCodeAutomationScheduleRule | undefined>(
+  const currentScheduleRule = useMemo<NibiAutomationScheduleRule | undefined>(
     () =>
       builder.frequency === "custom"
         ? {

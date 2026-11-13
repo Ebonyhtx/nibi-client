@@ -9,8 +9,8 @@
 
 ## 1. 落点
 
-- `apps/zcode-cli/packages/core/src/browser-client/index.ts`（新）：`setupBrowserRuntime` + `agent.browsers` 对象图。
-- `apps/zcode-cli/packages/core/src/browser-client/facade.ts`（新）：`BrowsersFacade`/`Browser`/`Tab` 类，把方法调用构造成 `BrowserCommand` → `execute(cmd)`。
+- `apps/nibi-cli/packages/core/src/browser-client/index.ts`（新）：`setupBrowserRuntime` + `agent.browsers` 对象图。
+- `apps/nibi-cli/packages/core/src/browser-client/facade.ts`（新）：`BrowsersFacade`/`Browser`/`Tab` 类，把方法调用构造成 `BrowserCommand` → `execute(cmd)`。
 - 改 `packages/core/src/tool/handlers/node-repl.ts`：`getSession` 用 `context.browserControlPort` 构造注入 globals。
 
 ## 2. 对象图（P0 核心子集）

@@ -37,7 +37,7 @@ import {
 import { useSpineFillFrames } from "@/app-shell/WorkflowRunFillFrames.js";
 import { HoleFillMark } from "@/components/workflow-timeline/WorkflowHoleParts.js";
 import type { WorkflowActorInstance } from "@/app-shell/workflowRunPanel.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 
 /**
  * 运行详情页的脊线：卡上的横向时间线在
@@ -100,7 +100,7 @@ export const WorkflowRunPhaseList = memo(function WorkflowRunPhaseList({
   /** providerId → 模型清单里的 provider 名（子代理自己的模型取名用，与摘要行同一个来源）。 */
   subagentModelProviderName?: (providerId: string) => string | undefined;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const format = intl.formatMessage.bind(intl);
   // persona 点名了模型的子代理：行尾说模型名，tooltip 带规范串（presentation.md「The spine」）。
   const actorModels = useWorkflowActorModelLabels(run?.actors, subagentModelProviderName);

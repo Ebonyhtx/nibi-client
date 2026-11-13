@@ -18,13 +18,13 @@ const { version, zcodeCompatibility } = JSON.parse(readFileSync(rootPackageJsonP
 };
 const minCompatibleVersion = zcodeCompatibility?.minCompatibleVersion ?? version;
 
-const { environment: zcodeEnv, content: nibiBuiltinProviderConfigJson } =
+const { environment: nibiEnv, content: nibiBuiltinProviderConfigJson } =
   await loadBuiltinProviderConfig();
 
 export const SERVER_HTTP_DEFINES = {
   __NIBI_VERSION__: JSON.stringify(version),
   __NIBI_MIN_COMPATIBLE_VERSION__: JSON.stringify(minCompatibleVersion),
-  __NIBI_ENV__: JSON.stringify(zcodeEnv),
+  __NIBI_ENV__: JSON.stringify(nibiEnv),
   __NIBI_BUILTIN_PROVIDER_CONFIG_JSON__: JSON.stringify(nibiBuiltinProviderConfigJson),
 };
 

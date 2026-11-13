@@ -9,7 +9,7 @@ import {
   type StorePluginItem,
 } from "@/settings/pluginStoreListing.js";
 import { useUiPluginRecommendations } from "@/plugin-ui/adapters/useUiPluginRecommendations.js";
-import { invalidateDeferredDraftSessionForSkillChange } from "@/lib/zcodeDraftSkillInvalidation.js";
+import { invalidateDeferredDraftSessionForSkillChange } from "@/lib/nibiDraftSkillInvalidation.js";
 import { refreshSharedSkillStoreForWorkspace } from "@/lib/skillStoreRefresh.js";
 import { logger } from "@/logger.js";
 

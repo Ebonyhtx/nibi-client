@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 
 type FileRewindPreviewFile =
   | V4ConversationFileRewindPreviewResult["safeFiles"][number]
@@ -32,7 +32,7 @@ interface ConversationFileRewindDialogProps {
   onConversationOnly?: () => void;
 }
 
-function formatReason(reason: string, intl: ReturnType<typeof useZCodeIntl>["intl"]) {
+function formatReason(reason: string, intl: ReturnType<typeof useNibiIntl>["intl"]) {
   const fallbackReasonKey = "chat.changeSummary.rewindDialog.reason.unsupportedCheckpoint";
   const keyByReason: Record<string, string> = {
     bash_ignored: "chat.changeSummary.rewindDialog.reason.bashIgnored",
@@ -52,7 +52,7 @@ function PreviewFileList({
   files: readonly FileRewindPreviewFile[];
   type: "safe" | "unsafe" | "ignored";
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   if (files.length === 0) return null;
   return (
     <div className="grid gap-1">
@@ -87,7 +87,7 @@ export function ConversationFileRewindDialog({
   variant = "fileRewind",
   onConversationOnly,
 }: ConversationFileRewindDialogProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const safeCount = preview?.safeFiles.length ?? 0;
   const unsafeCount = preview?.unsafeFiles.length ?? 0;
   const ignoredCount = preview?.ignoredFiles.length ?? 0;

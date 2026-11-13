@@ -11,7 +11,7 @@ import { updateJsonObjectFile } from "#src/fs/atomicFileUtils.js";
 import {
   cloneMcpConfig,
   collectEffectiveUserMcpRecords,
-  getUserZcodeMcpConfigPath,
+  getUserNibiMcpConfigPath,
   normalizeMcpNameKey,
   readServerEnabled,
   readServerMapFromJson,
@@ -139,7 +139,7 @@ export function createMcpDataSyncMethods(): IDataSyncCategoryService<McpDataSync
     },
 
     async checkSyncWriteAccess() {
-      return await checkRemoteSyncDirectoryWriteAccess(dirname(getUserZcodeMcpConfigPath()));
+      return await checkRemoteSyncDirectoryWriteAccess(dirname(getUserNibiMcpConfigPath()));
     },
 
     async exportSyncItems(params) {
@@ -182,7 +182,7 @@ export function createMcpDataSyncMethods(): IDataSyncCategoryService<McpDataSync
         };
         let results: DataSyncImportResultItem[] = [];
         // 写前重读 → 只改选中的 server → 原子替换（0600）；文件损坏时抛错，不写入。
-        await updateJsonObjectFile(getUserZcodeMcpConfigPath(), (config) => {
+        await updateJsonObjectFile(getUserNibiMcpConfigPath(), (config) => {
           const servers = {
             ...readServerMapFromJson(config, NIBI_MCP_SERVERS_KEY),
           };

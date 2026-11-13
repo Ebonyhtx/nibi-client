@@ -133,5 +133,5 @@ human 交互走 IPC 直连（低延迟、不依赖 agent 进程）；agent 走�
 - 改：`packages/desktop/src/main/browserView/browserViewManager.ts`（tabId 化 + 导航方法 + partition + 事件回推 + windowOpenHandler）、`browserCommandExecutor.ts`（tabId + list + 导航命令）
 - 改：`packages/shared/src/browser-use/commands.ts`（tabId + list）、`packages/shared/src/channels.ts`+`platform.ts`+`preload`（新导航 IPC）
 - 改：`packages/ui/src/hooks/useWebElementPicker.ts`（executeJavaScript 走 IPC）、`hooks/useAppPanels.ts`、`app-shell/AnimatedSidePanePanel.tsx`、`lib/workspaceSidePane.ts`（合并 tab 类型 + origin）、`app-shell/SidePaneTabTrigger.tsx`/`SidePaneTabOverview.tsx`（回退分派）
-- 改：`apps/zcode-cli/.../browser-client/facade.ts`（list/tab/open）、`contracts/.../browser-control.port.ts`
+- 改：`apps/nibi-cli/.../browser-client/facade.ts`（list/tab/open）、`contracts/.../browser-control.port.ts`
 - 删（阶段 6）：`EmbeddedBrowserPane.tsx`/`EmbeddedBrowserPaneParts.tsx`、`electron-webview.d.ts`、`desktopWindowChrome` webview 开关

@@ -10,10 +10,10 @@ import {
   resolveMessageStreamdownMode,
 } from "@/components/ai-elements/message.js";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 vi.mock("@/store/StoreProvider.js", () => ({
-  useZCodeStore: (selector: (state: unknown) => unknown) =>
+  useNibiStore: (selector: (state: unknown) => unknown) =>
     selector({
       codePreviewSettings: {
         darkTheme: "github-dark",
@@ -162,12 +162,12 @@ describe("resolveMessageStreamdownMode", () => {
   it("Assistant citation 使用现有文件链接渲染，普通文件名仍保持原文", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           MessageResponse,
           {
-            renderZCodeFileCitations: true,
+            renderNibiFileCitations: true,
             workspacePath: "/workspace",
             onOpenFileLink: vi.fn(),
           },
@@ -191,12 +191,12 @@ describe("resolveMessageStreamdownMode", () => {
   it("citation 和 Markdown 文件链接支持智能引号且不污染路径", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           MessageResponse,
           {
-            renderZCodeFileCitations: true,
+            renderNibiFileCitations: true,
             workspacePath: "/workspace",
             onOpenFileLink: vi.fn(),
           },
@@ -218,12 +218,12 @@ describe("resolveMessageStreamdownMode", () => {
   it("streaming 时隐藏未闭合 citation，异常换行后的正文仍可见", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           MessageResponse,
           {
-            renderZCodeFileCitations: true,
+            renderNibiFileCitations: true,
             streaming: true,
             workspacePath: "/workspace",
             onOpenFileLink: vi.fn(),
@@ -237,12 +237,12 @@ describe("resolveMessageStreamdownMode", () => {
 
     const malformedHtml = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           MessageResponse,
           {
-            renderZCodeFileCitations: true,
+            renderNibiFileCitations: true,
             streaming: true,
             workspacePath: "/workspace",
             onOpenFileLink: vi.fn(),
@@ -260,12 +260,12 @@ describe("resolveMessageStreamdownMode", () => {
   ])("Assistant citation 的 Windows %s 通过 harden 后仍可点击", (_case, path, resolvedPath) => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           MessageResponse,
           {
-            renderZCodeFileCitations: true,
+            renderNibiFileCitations: true,
             workspacePath: "C:\\workspace",
             onOpenFileLink: vi.fn(),
           },
@@ -285,7 +285,7 @@ describe("resolveMessageStreamdownMode", () => {
       createElement(
         MessageResponse,
         {
-          renderZCodeFileCitations: true,
+          renderNibiFileCitations: true,
           workspacePath: "/workspace",
           onOpenFileLink: vi.fn(),
         },
@@ -302,7 +302,7 @@ describe("resolveMessageStreamdownMode", () => {
     const compatibilityDirective = ':zcode-file-citation{path="docs/legacy.pdf"}';
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           TooltipProvider,
@@ -310,7 +310,7 @@ describe("resolveMessageStreamdownMode", () => {
           createElement(
             MessageResponse,
             {
-              renderZCodeFileCitations: true,
+              renderNibiFileCitations: true,
               workspacePath: "/workspace",
               onOpenFileLink: vi.fn(),
             },
@@ -346,7 +346,7 @@ describe("resolveMessageStreamdownMode", () => {
   ])("Windows 绝对 Markdown 链接（%s）通过 harden 后仍可点击", (_case, markdown, path) => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           MessageResponse,
@@ -367,7 +367,7 @@ describe("resolveMessageStreamdownMode", () => {
   it("UNC workspace 中 Windows 绝对 Markdown 链接通过 harden 后仍可点击", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           MessageResponse,
@@ -392,7 +392,7 @@ describe("resolveMessageStreamdownMode", () => {
   ])("Windows 绝对 Markdown 图片（%s）通过 harden 后保留本地路径", (_case, markdown) => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(MessageResponse, { workspacePath: "C:\\workspace" }, markdown),
       ),
@@ -406,7 +406,7 @@ describe("resolveMessageStreamdownMode", () => {
   it("UNC workspace 中 Windows 绝对 Markdown 图片通过 harden 后保留本地路径", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           MessageResponse,
@@ -424,7 +424,7 @@ describe("resolveMessageStreamdownMode", () => {
   it("正文裸文件名保持普通文本且 GFM 表格正常渲染", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           TooltipProvider,
@@ -556,7 +556,7 @@ describe("resolveMessageStreamdownMode", () => {
   it("rewrites assistant artifact images before Streamdown hardening", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           MessageResponse,
@@ -629,7 +629,7 @@ it("通用模式回答保留代码容器和复制入口，锁定换行入口且�
   const render = (forceCodeWrap: boolean) =>
     renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           TooltipProvider,

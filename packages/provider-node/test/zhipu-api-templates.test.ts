@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { parseZCodeBuiltinModelConfigRules } from "@nibi/provider";
+import { parseNibiBuiltinModelConfigRules } from "@nibi/provider";
 
 describe("Zhipu standard API templates", () => {
   it.each(["nibi-builtin.json", "nibi-builtin.test.json"])(
@@ -17,7 +17,7 @@ describe("Zhipu standard API templates", () => {
         ).toBe("https:");
         expect(template.config.access).not.toHaveProperty("teamApiKeyManagementUrl");
       }
-      const rules = parseZCodeBuiltinModelConfigRules(release.config.modelConfigRules);
+      const rules = parseNibiBuiltinModelConfigRules(release.config.modelConfigRules);
       for (const family of ["zai", "bigmodel"]) {
         for (const standard of [true]) {
           const templateId = `${family}-standard-api`;

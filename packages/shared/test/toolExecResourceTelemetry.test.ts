@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hostResponseMessageSchema, zcodeToolExecResourceSchema } from "@nibi/shared";
+import { hostResponseMessageSchema, nibiToolExecResourceSchema } from "@nibi/shared";
 
 const sample = {
   platform: "linux",
@@ -19,7 +19,7 @@ describe("Bash 慢命令通知契约", () => {
       ...sample,
       completionToken: "d339de88-b4f7-41b1-bf97-65032e318d94",
     };
-    expect(zcodeToolExecResourceSchema.parse(identifiedSample)).toEqual(identifiedSample);
+    expect(nibiToolExecResourceSchema.parse(identifiedSample)).toEqual(identifiedSample);
     expect(
       hostResponseMessageSchema.parse({
         type: "tool-exec-resource",
@@ -27,13 +27,13 @@ describe("Bash 慢命令通知契约", () => {
         sample: identifiedSample,
       }),
     ).toMatchObject({ sample: identifiedSample });
-    expect(zcodeToolExecResourceSchema.parse(sample)).toEqual(sample);
+    expect(nibiToolExecResourceSchema.parse(sample)).toEqual(sample);
   });
 
   it.each(["", "command-output", "/private/workspace", "12345", "a".repeat(128), null, 123])(
     "拒绝非 UUID 完成标识：%s",
     (completionToken) => {
-      expect(zcodeToolExecResourceSchema.safeParse({ ...sample, completionToken }).success).toBe(
+      expect(nibiToolExecResourceSchema.safeParse({ ...sample, completionToken }).success).toBe(
         false,
       );
     },
@@ -58,6 +58,6 @@ describe("Bash 慢命令通知契约", () => {
       { treeCpuTimeMs: -1 },
       { toolName: "read" },
     ])
-      expect(zcodeToolExecResourceSchema.safeParse({ ...sample, ...extra }).success).toBe(false);
+      expect(nibiToolExecResourceSchema.safeParse({ ...sample, ...extra }).success).toBe(false);
   });
 });

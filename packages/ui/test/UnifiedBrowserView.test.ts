@@ -123,7 +123,7 @@ vi.mock("@/hooks/useSettingService.js", () => ({
 }));
 // intl 只需把 message id 原样返回即可满足 aria-label / placeholder 断言。
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }, values?: Record<string, number | string>) =>
         id === "browser.responsive.dimensionRangeError"

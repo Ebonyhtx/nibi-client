@@ -68,7 +68,7 @@ zcode --prompt "<task>" --output-format stream-json
 
 ## 验证
 
-- 单测：`apps/zcode-cli/packages/cli/tests/plugins-command.test.ts`（子命令路由、scope 映射、
+- 单测：`apps/nibi-cli/packages/cli/tests/plugins-command.test.ts`（子命令路由、scope 映射、
   `--all` 互斥、`--keep-data` 透传、JSON 形状、`plugin` 别名与旗标收集）。
 - 真实冒烟（2026-09-14，隔离 `HOME`/`ZCODE_DATA_BASE_DIR`/`ZCODE_STORAGE_DIR`，ZAPI GLM-5.3-Highspeed）：
   `marketplace list` → `marketplace update zcode-plugins-official`（8 → 27 个条目）→ `list --available --json`

@@ -1,5 +1,5 @@
 //! `zcode app-server --stdio [--surface desktop]`（docs/specs/rust-cli/app-protocol.md §3.7、§10）：App 的 Host 经 stdio
-//! 拉起的协议前端。参数照 Host 现在给 Node 的（`ZA:zcodeAgentProcessManager.ts` 的 `applyPresentationSurfaceToCommand`）。
+//! 拉起的协议前端。参数照 Host 现在给 Node 的（`ZA:nibiAgentProcessManager.ts` 的 `applyPresentationSurfaceToCommand`）。
 //!
 //! 组装与 `-p` 相同的内核（同一套提示词与工具，Surface 是交互形态；不问工作区信任、不连远端机器、
 //! 不登记跨会话通信），区别只在注入的东西：平台层的账号凭据来源经 Host（G8），前端是 `protocol-nibi`。

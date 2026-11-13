@@ -9,8 +9,8 @@ const POWERSHELL_UTF8_OUTPUT_BOOTSTRAP =
 const WINDOWS_POWERSHELL_SECURITY_BOOTSTRAP = [
   "$ErrorActionPreference='Stop';",
   "try{",
-  "$zcodeSecurityModule=[IO.Path]::Combine($PSHOME,'Modules','Microsoft.PowerShell.Security','Microsoft.PowerShell.Security.psd1');",
-  "Import-Module -Name $zcodeSecurityModule -Force -ErrorAction Stop;",
+  "$nibiSecurityModule=[IO.Path]::Combine($PSHOME,'Modules','Microsoft.PowerShell.Security','Microsoft.PowerShell.Security.psd1');",
+  "Import-Module -Name $nibiSecurityModule -Force -ErrorAction Stop;",
   "}catch{",
   "[Console]::Error.WriteLine(('Windows PowerShell Security module load failed: {0}' -f $_.Exception.Message));",
   "exit 26;",
@@ -28,7 +28,7 @@ export function createEncodedPowerShellArgs(script, values = []) {
   const valueBindings = values
     .map(
       (value, index) =>
-        `$zcodeArg${index}=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encodeUtf8Value(value)}'));`,
+        `$nibiArg${index}=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encodeUtf8Value(value)}'));`,
     )
     .join("");
   const encodedCommand = Buffer.from(

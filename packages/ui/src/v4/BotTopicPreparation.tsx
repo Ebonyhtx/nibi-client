@@ -4,7 +4,7 @@ import { LoaderCircleIcon } from "lucide-react";
 import type { BotTopicPreparation as Preparation, FeishuBotProvider } from "@nibi/shared";
 import type { ConversationRow } from "@nibi/shared/nibi-protocol-v4";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { DeliveryContext } from "@/v4/botGroupDeliveryContext.js";
 import { ConversationUserInputBubble } from "@/v4/ConversationUserInputBubble.js";
 
@@ -27,7 +27,7 @@ export function BotTopicPreparationList({
   acceptedRows?: readonly ConversationRow[];
   provider?: FeishuBotProvider;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const pending = useMemo(
     () => pendingTopicPreparations(items, acceptedRows),
     [items, acceptedRows],

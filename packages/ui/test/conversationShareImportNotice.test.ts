@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { ConversationShareImportNotice } from "@/v4/ConversationShareImportNotice.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 vi.mock("@/OpenSplitButton.js", async () => {
   const React = await import("react");
@@ -55,7 +55,7 @@ const rows = [
 function render(props: Parameters<typeof ConversationShareImportNotice>[0]) {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: props.locale },
       createElement(ConversationShareImportNotice, props),
     ),

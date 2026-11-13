@@ -111,25 +111,25 @@ export type {
   BroadcastMessage,
 } from "./broadcast/broadcast.js";
 
-// ZCode task wrapper service — task 列表/置顶/归档等 app 侧包装状态入口。
-export { IZCodeTaskService } from "./session/zcodeTaskService.js";
+// Nibi task wrapper service — task 列表/置顶/归档等 app 侧包装状态入口。
+export { INibiTaskService } from "./session/nibiTaskService.js";
 export type {
-  ZCodeArchivedTaskDeletionResult,
-  ZCodeModelTrajectory,
-  ZCodeModelTrajectoryCallSource,
-  ZCodeModelTrajectoryCallSourceKind,
-  ZCodeModelTrajectoryContentPart,
-  ZCodeModelTrajectoryMessage,
-  ZCodeModelTrajectoryRecord,
-  ZCodeModelTrajectoryUsage,
-  ZCodeTaskListKind,
-  ZCodeTaskListQuery,
-  ZCodeTaskListResult,
-  ZCodeTaskListSortBy,
-  ZCodeTaskListWorkspaceScope,
-  ZCodeTaskReadyOutcome,
-} from "./session/zcodeTaskService.js";
-export type { ZCodeTaskListItem } from "./session/zcodeTaskListTypes.js";
+  NibiArchivedTaskDeletionResult,
+  NibiModelTrajectory,
+  NibiModelTrajectoryCallSource,
+  NibiModelTrajectoryCallSourceKind,
+  NibiModelTrajectoryContentPart,
+  NibiModelTrajectoryMessage,
+  NibiModelTrajectoryRecord,
+  NibiModelTrajectoryUsage,
+  NibiTaskListKind,
+  NibiTaskListQuery,
+  NibiTaskListResult,
+  NibiTaskListSortBy,
+  NibiTaskListWorkspaceScope,
+  NibiTaskReadyOutcome,
+} from "./session/nibiTaskService.js";
+export type { NibiTaskListItem } from "./session/nibiTaskListTypes.js";
 
 export { IWindowControllerService } from "./window-controller/windowController.js";
 export {
@@ -147,74 +147,74 @@ export type {
   WindowHostTaskUnreadSignal,
 } from "./window-controller/windowController.js";
 
-// ZCode agent service — IZCodeAgentService is both a type (interface) and value (descriptor)
+// Nibi agent service — INibiAgentService is both a type (interface) and value (descriptor)
 export {
-  IZCodeAgentService,
-  type ZCodeAgentLocalRuntimeChildProcesses,
+  INibiAgentService,
+  type NibiAgentLocalRuntimeChildProcesses,
   NIBI_AGENT_RUNTIME_UNAVAILABLE_CODE,
-} from "./zcode-agent/zcodeAgent.js";
+} from "./nibi-agent/nibiAgent.js";
 export {
-  isZCodeAgentMcpStatusModeUnsupportedError,
-  isZCodeAgentSessionDataUnsupportedError,
+  isNibiAgentMcpStatusModeUnsupportedError,
+  isNibiAgentSessionDataUnsupportedError,
   NIBI_AGENT_MCP_STATUS_MODE_UNSUPPORTED_ERROR_CODE,
   NIBI_AGENT_SESSION_DATA_UNSUPPORTED_ERROR_CODE,
-  ZCodeAgentMcpStatusModeUnsupportedError,
-  ZCodeAgentSessionDataUnsupportedError,
-} from "./zcode-agent/zcodeAgentErrors.js";
+  NibiAgentMcpStatusModeUnsupportedError,
+  NibiAgentSessionDataUnsupportedError,
+} from "./nibi-agent/nibiAgentErrors.js";
 export {
-  createZCodeAgentConnectionScope,
-  readTrustedZCodeAgentV4Connection,
-} from "./zcode-agent/zcodeAgentConnectionScope.js";
+  createNibiAgentConnectionScope,
+  readTrustedNibiAgentV4Connection,
+} from "./nibi-agent/nibiAgentConnectionScope.js";
 export type {
-  ZCodeAgentConnectionScope,
-  ZCodeAgentV4ClientMode,
-  ZCodeAgentV4ConnectionContext,
-} from "./zcode-agent/zcodeAgentConnectionScope.js";
+  NibiAgentConnectionScope,
+  NibiAgentV4ClientMode,
+  NibiAgentV4ConnectionContext,
+} from "./nibi-agent/nibiAgentConnectionScope.js";
 export type {
-  ZCodeAgentAttachmentBeginParams,
-  ZCodeAgentAttachmentChunkParams,
-  ZCodeAgentAttachmentTerminalParams,
-  ZCodeAgentCreateSessionParams,
-  ZCodeAgentCuaPermissionObservation,
-  ZCodeAgentInitializeResult,
-  ZCodeAgentStorageStartupSnapshot,
-  ZCodeAgentRuntimeLifecycleEvent,
-  ZCodeAgentRuntimePolicy,
-  ZCodeAgentReadSessionParams,
-  ZCodeAgentRespondProviderRuntimeHeadersParams,
-  ZCodeAgentResumeSessionParams,
-  ZCodeAgentRunAutomationNowResult,
-  ZCodeAgentSavedWorkflowTarget,
-  ZCodeAgentSendPromptParams,
-  ZCodeAgentServiceEvent,
-  ZCodeAgentSessionDataParams,
-  ZCodeAgentSessionDataPurgeParams,
-  ZCodeAgentSessionSubscribeParams,
-  ZCodeAgentSessionTarget,
-  ZCodeAgentSetModeParams,
-  ZCodeAgentSetModelParams,
-  ZCodeAgentSetThoughtLevelParams,
-  ZCodeAgentWorkspaceTarget,
-} from "./zcode-agent/zcodeAgent.js";
+  NibiAgentAttachmentBeginParams,
+  NibiAgentAttachmentChunkParams,
+  NibiAgentAttachmentTerminalParams,
+  NibiAgentCreateSessionParams,
+  NibiAgentCuaPermissionObservation,
+  NibiAgentInitializeResult,
+  NibiAgentStorageStartupSnapshot,
+  NibiAgentRuntimeLifecycleEvent,
+  NibiAgentRuntimePolicy,
+  NibiAgentReadSessionParams,
+  NibiAgentRespondProviderRuntimeHeadersParams,
+  NibiAgentResumeSessionParams,
+  NibiAgentRunAutomationNowResult,
+  NibiAgentSavedWorkflowTarget,
+  NibiAgentSendPromptParams,
+  NibiAgentServiceEvent,
+  NibiAgentSessionDataParams,
+  NibiAgentSessionDataPurgeParams,
+  NibiAgentSessionSubscribeParams,
+  NibiAgentSessionTarget,
+  NibiAgentSetModeParams,
+  NibiAgentSetModelParams,
+  NibiAgentSetThoughtLevelParams,
+  NibiAgentWorkspaceTarget,
+} from "./nibi-agent/nibiAgent.js";
 
-// ZCode session service — app-facing session facade without ZCode Agent naming.
-export { IZCodeSessionService } from "./zcode-session/zcodeSession.js";
+// Nibi session service — app-facing session facade without Nibi Agent naming.
+export { INibiSessionService } from "./nibi-session/nibiSession.js";
 export type {
-  ZCodeSessionCreateParams,
-  ZCodeSessionEventsParams,
-  ZCodeSessionInitializeResult,
-  ZCodeSessionListParams,
-  ZCodeSessionMessagesParams,
-  ZCodeSessionReadParams,
-  ZCodeSessionResumeParams,
-  ZCodeSessionServiceEvent,
-  ZCodeSessionSetModeParams,
-  ZCodeSessionSetModelParams,
-  ZCodeSessionSetThoughtLevelParams,
-  ZCodeSessionSubscribeParams,
-  ZCodeTaskTarget,
-  ZCodeSessionWorkspaceTarget,
-} from "./zcode-session/zcodeSession.js";
+  NibiSessionCreateParams,
+  NibiSessionEventsParams,
+  NibiSessionInitializeResult,
+  NibiSessionListParams,
+  NibiSessionMessagesParams,
+  NibiSessionReadParams,
+  NibiSessionResumeParams,
+  NibiSessionServiceEvent,
+  NibiSessionSetModeParams,
+  NibiSessionSetModelParams,
+  NibiSessionSetThoughtLevelParams,
+  NibiSessionSubscribeParams,
+  NibiTaskTarget,
+  NibiSessionWorkspaceTarget,
+} from "./nibi-session/nibiSession.js";
 
 // Bots service — IBotsService is both a type (interface) and value (descriptor).
 export { IBotsService } from "./bots/bots.js";
@@ -314,7 +314,7 @@ export {
 
 // Plugins service — IPluginsService is both a type (interface) and value (descriptor)
 export { IPluginsService } from "./plugins/plugins.js";
-// 设置页插件管理薄服务（UI 平台能力面不再直触 zcodeAgentService）
+// 设置页插件管理薄服务（UI 平台能力面不再直触 nibiAgentService）
 export { IPluginManagementService, withPluginTelemetry } from "./plugins/pluginManagement.js";
 
 // Subagents service — ISubagentsService is both a type (interface) and value (descriptor)

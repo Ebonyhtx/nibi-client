@@ -128,7 +128,7 @@ then finish the remaining work and report the result.
 
 ### Node（已完成）
 
-- 新增 `apps/zcode-cli/packages/core/src/subagent/restart-entries.ts`：与 Rust 同物理形状的
+- 新增 `apps/nibi-cli/packages/core/src/subagent/restart-entries.ts`：与 Rust 同物理形状的
   `nibi-kernel/<kind>` / `<session>:nibi-kernel/<kind>:<agentId>` entry 读写、CONTINUE 文案、attempt 上限。
 - `runner.ts`：子会话持久化后写 `subagent_spawn` + `subagent_run`；所有终态（完成/失败/取消/后台失败）
   写 `subagent_result`；`restoreSession` 按 `parentID + task_type=subagent_child` 扫描，注册 registry
@@ -158,7 +158,7 @@ then finish the remaining work and report the result.
 
 ### Node 实施记录
 
-- `apps/zcode-cli/packages/core/src/subagent/restart-entries.ts`：与 Rust 同物理形状的 entry 读写；
+- `apps/nibi-cli/packages/core/src/subagent/restart-entries.ts`：与 Rust 同物理形状的 entry 读写；
   `runner.ts` 在子会话持久化后写 spawn/run、所有终态写 result，`restoreSession` 扫描直接子会话
   并复用 `runExploreAgent({ resumeFromStore: true })` 续跑；`runtime/methods/resume.ts` 冷恢复后触发；
   `SubagentPort.restoreSession` 可选、`ListSessionsInput.parentID` 过滤。

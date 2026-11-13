@@ -2,7 +2,7 @@
 //! `revokeWorkspaceHookTrust`）：快照来自 [`Kernel::workspace_hook_review`]，评审流
 //! （`reviewFlowId` / `generation` / `interactionId` / 截止时间）在这里。
 //!
-//! 语义对齐 Node 的 `WorkspaceHookReviewController`（`apps/zcode-cli/packages/bootstrap/src/app/
+//! 语义对齐 Node 的 `WorkspaceHookReviewController`（`apps/nibi-cli/packages/bootstrap/src/app/
 //! workspace-hook-review-controller.ts`）与 core 的 `WorkspaceHookReviewFlowRegistry`：
 //!
 //! - `reviewFlowId` 每个会话一份，跨 generation 不变；`generation` 单调 +1；每条 generation 一个
@@ -690,7 +690,7 @@ mod tests;
 /// 旧入口（141 F5）：`workspace/hooks/trustGrant`。
 ///
 /// Settings 页在**没有会话**时预信任一组钩子声明：Host 直接用只读控制面发这条请求
-/// （`zcodeAgentService.grantWorkspaceHookTrust` → `getReadOnlyClient`），所以这里不碰 `Live`，
+/// （`nibiAgentService.grantWorkspaceHookTrust` → `getReadOnlyClient`），所以这里不碰 `Live`，
 /// 工作区从 params 取。
 ///
 /// 判定顺序照 Node `workspace-hook-trust.ts`：信任库损坏 → 企业策略 → bundle 摘要 →

@@ -1,7 +1,7 @@
 import { registerHostToolExecResourceTelemetry } from "./hostToolExecResourceTelemetry.js";
 import { registerHostMcpResourceTelemetry } from "./hostMcpResourceTelemetry.js";
 import type { IDisposable } from "@nibi/rpc";
-import { IZCodeAgentService, type ServiceCollection } from "@nibi/services";
+import { INibiAgentService, type ServiceCollection } from "@nibi/services";
 import type { ProcessResourceRuntimeSurface } from "@nibi/shared";
 import { registerHostAgentResourceTelemetry } from "./hostAgentResourceTelemetry.js";
 import { registerHostMcpTelemetry } from "./hostMcpTelemetry.js";
@@ -50,7 +50,7 @@ export function registerHostServiceResourceTelemetry(
   if (options.telemetrySupported === false) {
     return NO_TELEMETRY;
   }
-  const agentService = options.services.getOptional(IZCodeAgentService);
+  const agentService = options.services.getOptional(INibiAgentService);
   if (!agentService) {
     return NO_TELEMETRY;
   }

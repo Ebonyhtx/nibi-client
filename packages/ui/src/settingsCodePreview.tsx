@@ -18,7 +18,7 @@ import {
   ThemeSelect,
 } from "@/settings/SettingsPageParts.js";
 import { getCodePreviewTheme } from "@/lib/codePreviewPreferences.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { CodePreviewSettings } from "@/store/index.js";
 import { THEME_MODES } from "@/settings/settingsPageConfig.js";
 import { CompanionSettingsRows } from "@/settings/CompanionSettingsRows.js";
@@ -98,7 +98,7 @@ export function AppearanceSectionContent({
   motionEnabled: boolean;
   setMotionEnabled: (enabled: boolean) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const activePreviewMode = resolveTheme(theme);
 
   return (

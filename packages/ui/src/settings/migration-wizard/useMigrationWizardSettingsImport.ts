@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import type { SettingsSyncImportResult, SettingsSyncSelection } from "@nibi/shared";
 import { useServices } from "@/hooks/useServices.js";
-import { invalidateDeferredDraftSessionForSkillChange } from "@/lib/zcodeDraftSkillInvalidation.js";
+import { invalidateDeferredDraftSessionForSkillChange } from "@/lib/nibiDraftSkillInvalidation.js";
 import { logger } from "@/logger.js";
 import type { UnifiedMigrationSettingsImport } from "@/onboarding/useOnboardingMigration.js";
 

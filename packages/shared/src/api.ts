@@ -1,10 +1,10 @@
 export interface ApiRequestInit extends RequestInit {
   timeoutMs?: number;
   /**
-   * 固定请求 URL，不参与 ZCode endpoint 改写。
+   * 固定请求 URL，不参与 Nibi endpoint 改写。
    *
    * NIBI 自家的 license / handoff 端点必须钉在 `NIBI_API_BASE_URL`：通用改写会把
-   * `api.nibistudio.cn` 的请求换成当前 ZCode endpoint（例如 `zcode.z.ai`），既让功能 404，
+   * `api.nibistudio.cn` 的请求换成当前 Nibi endpoint（例如 `zcode.z.ai`），既让功能 404，
    * 也会把 NIBI access token 发给上游。只给 NIBI 专属请求用。
    */
   skipEndpointRewrite?: boolean;

@@ -22,7 +22,7 @@ export function useMarketingTaskCompletionRefresh({
   rpcReady: boolean;
 }): void {
   const refresh = useContext(MarketingRefreshContext);
-  const { zcodeAgentService } = useServices();
+  const { nibiAgentService } = useServices();
   useEffect(() => {
     if (!refresh || !rpcReady) return;
     const identity = workspaceIdentity?.trim();
@@ -32,7 +32,7 @@ export function useMarketingTaskCompletionRefresh({
       ...(identity ? { workspaceIdentity: identity } : {}),
       ...(endpointKey ? { endpointKey } : {}),
     };
-    const store = acquireSessionsIndex(scope, zcodeAgentService);
+    const store = acquireSessionsIndex(scope, nibiAgentService);
     let previous: Map<string, SessionSummary["phase"]> | null = null;
     const observe = () => {
       // 初次历史与断连恢复只建立基线，避免把旧完成状态当成新完成事件。
@@ -58,5 +58,5 @@ export function useMarketingTaskCompletionRefresh({
       unsubscribe();
       releaseSessionsIndex(scope, store);
     };
-  }, [endpointKey, refresh, rpcReady, workspaceIdentity, workspacePath, zcodeAgentService]);
+  }, [endpointKey, refresh, rpcReady, workspaceIdentity, workspacePath, nibiAgentService]);
 }

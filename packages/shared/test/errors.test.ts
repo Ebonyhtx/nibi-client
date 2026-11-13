@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   isOpenCodeRuntimeCrashError,
-  isZCodeFileLockTimeoutError,
+  isNibiFileLockTimeoutError,
   normalizeUnknownError,
   NIBI_FILE_LOCK_TIMEOUT_ERROR_CODE,
 } from "../src/errors.js";
@@ -38,25 +38,25 @@ describe("normalizeUnknownError", () => {
 describe("isOpenCodeRuntimeCrashError", () => {
   it("matches Bun crash signatures", () => {
     expect(isOpenCodeRuntimeCrashError("oh no: Bun has crashed. Segmentation fault")).toBe(true);
-    expect(isOpenCodeRuntimeCrashError("[ZCode Agent] opencode runtime 崩溃 (code=3221226505)")).toBe(true);
+    expect(isOpenCodeRuntimeCrashError("[Nibi Agent] opencode runtime 崩溃 (code=3221226505)")).toBe(true);
   });
 
   it("does not match generic connection failures", () => {
-    expect(isOpenCodeRuntimeCrashError("ZCode Agent connection closed")).toBe(false);
+    expect(isOpenCodeRuntimeCrashError("Nibi Agent connection closed")).toBe(false);
   });
 });
 
-describe("isZCodeFileLockTimeoutError", () => {
+describe("isNibiFileLockTimeoutError", () => {
   it("matches direct and RPC-wrapped timeout codes", () => {
-    expect(isZCodeFileLockTimeoutError({ code: NIBI_FILE_LOCK_TIMEOUT_ERROR_CODE })).toBe(true);
+    expect(isNibiFileLockTimeoutError({ code: NIBI_FILE_LOCK_TIMEOUT_ERROR_CODE })).toBe(true);
     expect(
-      isZCodeFileLockTimeoutError({
+      isNibiFileLockTimeoutError({
         error: { code: NIBI_FILE_LOCK_TIMEOUT_ERROR_CODE, message: "lock timeout" },
       }),
     ).toBe(true);
   });
 
   it("does not classify legacy EEXIST as the explicit timeout code", () => {
-    expect(isZCodeFileLockTimeoutError({ code: "EEXIST" })).toBe(false);
+    expect(isNibiFileLockTimeoutError({ code: "EEXIST" })).toBe(false);
   });
 });

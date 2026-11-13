@@ -3,7 +3,7 @@ import {
   buildCustomSupplierKey,
   buildGhostSupplierKey,
   buildNativeSupplierKey,
-  type ZCodeConfigOption,
+  type NibiConfigOption,
 } from "@nibi/shared";
 import {
   isCustomSupplierKeyForProvider,
@@ -13,7 +13,7 @@ import {
   type ModelConfigSyncWorkspaceSnapshot,
 } from "../src/lib/modelConfigSync.js";
 
-function createModelOption(currentValue: string): ZCodeConfigOption {
+function createModelOption(currentValue: string): NibiConfigOption {
   return {
     id: "model",
     name: "Model",

@@ -25,7 +25,7 @@ export function createTelemetryReportFixture() {
       osMatches:
         req.headers["x-os-category"] === body.device_os_category &&
         req.headers["x-os-version"] === body.device_os_version,
-      userAgentMatches: req.headers["user-agent"] === `ZCode/${body.app_version}`,
+      userAgentMatches: req.headers["user-agent"] === `Nibi/${body.app_version}`,
       title: req.headers["x-title"],
       platform: Boolean(req.headers["x-platform"]),
       channel: Boolean(req.headers["x-release-channel"]),

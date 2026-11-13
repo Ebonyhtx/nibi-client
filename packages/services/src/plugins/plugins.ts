@@ -1,7 +1,7 @@
 import type {
   PluginScope,
   PluginsOverviewResult,
-  ZCodePluginsMarketplaceMutationResult,
+  NibiPluginsMarketplaceMutationResult,
 } from "@nibi/shared";
 import { ServiceChannels } from "@nibi/shared";
 import { createServiceDescriptor } from "../descriptors.js";
@@ -25,7 +25,7 @@ export interface IPluginsService {
     workspacePath: string;
     workspaceIdentity?: string;
     marketplace?: string;
-  }): Promise<ZCodePluginsMarketplaceMutationResult | void>;
+  }): Promise<NibiPluginsMarketplaceMutationResult | void>;
   installPlugin(params: {
     workspacePath: string;
     workspaceIdentity?: string;

@@ -84,7 +84,7 @@ tokio = { workspace = true, features = ["io-std", "signal", "sync"] }
 tokio-util.workspace = true
 uuid.workspace = true
 bytes.workspace = true
-# 账号服务地址的环境变量取 origin（Node `normalizeZCodeEndpointOrigin`）。
+# 账号服务地址的环境变量取 origin（Node `normalizeNibiEndpointOrigin`）。
 url.workspace = true
 tracing.workspace = true
 

@@ -39,7 +39,7 @@ interface PanelSnapshot {
 
 // seed 产生的待清理状态：新目录 + 手动创建的 .nibiignore + .gitignore 的原内容恢复。
 let seededDirs: string[] = [];
-let createdZcodeIgnore = false;
+let createdNibiIgnore = false;
 let originalGitignore: string | null = null;
 
 describe("会话区 .nibiignore 工作区搜索忽略规则 E2E", () => {
@@ -58,9 +58,9 @@ describe("会话区 .nibiignore 工作区搜索忽略规则 E2E", () => {
   after(async () => {
     await Promise.all(seededDirs.map((dir) => rm(dir, { recursive: true, force: true })));
     seededDirs = [];
-    if (createdZcodeIgnore) {
+    if (createdNibiIgnore) {
       await rm(join(DEFAULT_WORKSPACE, ".nibiignore"), { force: true });
-      createdZcodeIgnore = false;
+      createdNibiIgnore = false;
     }
     const gitignorePath = join(DEFAULT_WORKSPACE, ".gitignore");
     if (originalGitignore === null) {
@@ -103,14 +103,14 @@ describe("会话区 .nibiignore 工作区搜索忽略规则 E2E", () => {
     await waitForPanelNoOptionContaining("obj/Debug", "obj/ 下被忽略文件不应进入候选");
 
     // 管理入口隐藏期间，搜索不应自动在工作区创建配置文件。
-    const zcodeIgnorePath = join(DEFAULT_WORKSPACE, ".nibiignore");
-    await expect(stat(zcodeIgnorePath)).rejects.toMatchObject({ code: "ENOENT" });
+    const nibiIgnorePath = join(DEFAULT_WORKSPACE, ".nibiignore");
+    await expect(stat(nibiIgnorePath)).rejects.toMatchObject({ code: "ENOENT" });
 
     // 2) 手动创建规则文件放开 obj/：设置入口当前隐藏（HIDDEN_SETTINGS_SECTIONS），
     // 真实用户路径是直接编辑 .nibiignore；写入空规则等价于"删除全部排除规则"。
     // 用数组 join 写出字面 "\n" 结尾内容，避免字符串字面量跨行。
-    await writeFile(zcodeIgnorePath, ["# emptied by e2e", ""].join(LINE_SEP), "utf-8");
-    createdZcodeIgnore = true;
+    await writeFile(nibiIgnorePath, ["# emptied by e2e", ""].join(LINE_SEP), "utf-8");
+    createdNibiIgnore = true;
 
     // 3) 规则放开生效：先输入普通文本关闭 @ 面板（本地 30s TTL 缓存已移除——面板
     // 关闭即清理、重新打开必然重扫，spec 2026-08-26 2026-09-15 更新），随后刻意复用

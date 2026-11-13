@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAgentTelemetrySpawnEnv } from "../src/zcode-agent/agentTelemetryEnv.js";
+import { buildAgentTelemetrySpawnEnv } from "../src/nibi-agent/agentTelemetryEnv.js";
 
 describe("buildAgentTelemetrySpawnEnv", () => {
   it("未配置 OTLP 时不注入身份", () => {

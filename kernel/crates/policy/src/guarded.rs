@@ -1,4 +1,4 @@
-// 移植自 apps/zcode-cli/packages/core/src/tool/handlers/guarded/command.ts（修复线 F20）。
+// 移植自 apps/nibi-cli/packages/core/src/tool/handlers/guarded/command.ts（修复线 F20）。
 //! guarded 模式的危险命令识别（Node `matchDangerousCommand`，docs/specs/rust-cli/shell-permissions.md §4.6.1）。
 //!
 //! 命中时判决链先询问一次（只批准这一次），没命中或认不出时同 bypassPermissions 放行。认不出（Unsupported）与

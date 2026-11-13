@@ -8,7 +8,7 @@
 | Capability       | Computer Use observation tool projection                                                            |
 | Change layer     | validation + presentation                                                                           |
 | Operating mode   | planning                                                                                            |
-| Primary seeds    | `apps/zcode-cli/packages/core/src/mcp/index.ts`、`packages/ui/src/ToolCallBlocks/renderers/cua.tsx` |
+| Primary seeds    | `apps/nibi-cli/packages/core/src/mcp/index.ts`、`packages/ui/src/ToolCallBlocks/renderers/cua.tsx` |
 | Out of scope     | 修改 Computer Use Helper 权限边界、改变 `get_app_state` 的观察结果、要求其他 CUA 工具提供标题                |
 
 ## Product Contract

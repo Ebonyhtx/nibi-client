@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/state/src/node/entries.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-cli-rust/crates/state/src/node/entries.rs（feat/rs 79b6691c55）。
 //! `session_entry` 行（Node `repositories/session-entries.ts`，docs/specs/rust-m11-node-storage.md §4）。
 use super::codecs::{MODEL_SELECTION_ENTRY, decode_entry_data};
 use super::sessions::touch;

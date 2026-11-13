@@ -1,7 +1,7 @@
-import type { ZCodeTaskChangeSummary } from "@nibi/shared";
+import type { NibiTaskChangeSummary } from "@nibi/shared";
 
 export function formatGroupedTaskHoverChangeParts(
-  summary: ZCodeTaskChangeSummary | null,
+  summary: NibiTaskChangeSummary | null,
 ): string[] {
   if (!summary) {
     return [];

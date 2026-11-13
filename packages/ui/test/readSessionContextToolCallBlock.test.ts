@@ -3,7 +3,7 @@ import { createElement } from "react";
 import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { StoreProvider } from "@/store/StoreProvider.js";
 import { ToolCallBlock } from "../src/ToolCallBlocks.js";
 import { ReadSessionContextToolCallBlock } from "../src/ToolCallBlocks/renderers/read-session-context.js";
@@ -57,7 +57,7 @@ const displayModel = {
 function renderWithProviders(element: ReactElement) {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(StoreProvider, { broadcastService: mockBroadcastService }, element),
     ),

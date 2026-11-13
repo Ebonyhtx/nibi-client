@@ -1,8 +1,8 @@
 /* oxlint-disable eslint(max-lines) -- re-home 产物：旧协议消息/会话承重类型集中迁移，保持单文件契约面。 */
 // re-home 迁移产物（为删除旧协议树铺路）。
 // 本文件承载旧 NIBI Protocol 中仍被存活栈（validation/background-task-notifications/
-// v4 投影等）消费的承重类型与 schema：ZCodeSessionInfo / ZCodeMessageWithParts /
-// ZCodePermissionResponse / ZCodeInteractionRequestOrigin 及其依赖闭包。
+// v4 投影等）消费的承重类型与 schema：NibiSessionInfo / NibiMessageWithParts /
+// NibiPermissionResponse / NibiInteractionRequestOrigin 及其依赖闭包。
 // 旧协议死亡（nibi-protocol/index.ts 删除）后，这是该协议面的唯一幸存面。
 
 import { z } from "zod";
@@ -11,9 +11,9 @@ import { modelSelectionSchema } from "./model-selection.js";
 const nonEmptyString = z.string().trim().min(1);
 const jsonObjectSchema = z.record(z.string(), z.unknown());
 const timestampMsSchema = z.number().int().nonnegative();
-export const zcodeDeliveryKindSchema = z.enum(["desktop-continuous", "web-remote-replayable"]);
-export const zcodeMessageVisibilitySchema = z.enum(["user-visible", "model-only"]);
-export const zcodeSyntheticUserMessageSourceSchema = z.enum([
+export const nibiDeliveryKindSchema = z.enum(["desktop-continuous", "web-remote-replayable"]);
+export const nibiMessageVisibilitySchema = z.enum(["user-visible", "model-only"]);
+export const nibiSyntheticUserMessageSourceSchema = z.enum([
   "agent_listing_delta",
   "background_task",
   "fork",
@@ -33,7 +33,7 @@ export const zcodeSyntheticUserMessageSourceSchema = z.enum([
   "workflow_launch",
   "shared_context",
 ]);
-export const zcodeWorkspaceRefSchema = z
+export const nibiWorkspaceRefSchema = z
   .object({
     workspacePath: nonEmptyString,
     workspaceIdentity: nonEmptyString.optional(),
@@ -41,8 +41,8 @@ export const zcodeWorkspaceRefSchema = z
     workspaceKey: nonEmptyString,
   })
   .strict();
-export const zcodePermissionDecisionSchema = z.enum(["allow", "deny", "escalate", "modify"]);
-export const zcodePermissionRuleBehaviorSchema = z.enum(["allow", "deny", "ask"]);
+export const nibiPermissionDecisionSchema = z.enum(["allow", "deny", "escalate", "modify"]);
+export const nibiPermissionRuleBehaviorSchema = z.enum(["allow", "deny", "ask"]);
 /** Backward-compatible wire/storage key interpreted only for trusted official CUA tools. */
 export const OFFICIAL_CUA_PERMISSION_RULE_TOOL_NAME = "nibi:permission-capability:official_cua";
 /**
@@ -51,30 +51,30 @@ export const OFFICIAL_CUA_PERMISSION_RULE_TOOL_NAME = "nibi:permission-capabilit
  * 该选项只在 v4 链路投放。
  */
 export const WORKFLOW_REFINE_PERMISSION_OPTION_ID = "workflowRefine";
-export const zcodePermissionRuleValueSchema = z
+export const nibiPermissionRuleValueSchema = z
   .object({
     toolName: nonEmptyString,
     ruleContent: z.string().optional(),
   })
   .strict();
-export const zcodePermissionUpdateSchema = z
+export const nibiPermissionUpdateSchema = z
   .object({
     type: z.literal("addRules"),
-    behavior: zcodePermissionRuleBehaviorSchema,
-    rules: z.array(zcodePermissionRuleValueSchema).min(1),
+    behavior: nibiPermissionRuleBehaviorSchema,
+    rules: z.array(nibiPermissionRuleValueSchema).min(1),
   })
   .strict();
-export const zcodePermissionResponseSchema = z
+export const nibiPermissionResponseSchema = z
   .object({
-    decision: zcodePermissionDecisionSchema,
+    decision: nibiPermissionDecisionSchema,
     reason: z.string().optional(),
     modifiedInput: z.unknown().optional(),
-    permissionUpdates: z.array(zcodePermissionUpdateSchema).optional(),
+    permissionUpdates: z.array(nibiPermissionUpdateSchema).optional(),
   })
   .strict();
-export type ZCodePermissionResponse = z.infer<typeof zcodePermissionResponseSchema>;
-export const zcodeSessionModeSchema = z.enum(["plan", "build", "edit", "yolo", "guarded", "auto"]);
-export const zcodeSessionStatusSchema = z.enum([
+export type NibiPermissionResponse = z.infer<typeof nibiPermissionResponseSchema>;
+export const nibiSessionModeSchema = z.enum(["plan", "build", "edit", "yolo", "guarded", "auto"]);
+export const nibiSessionStatusSchema = z.enum([
   "idle",
   "running",
   "waiting",
@@ -82,7 +82,7 @@ export const zcodeSessionStatusSchema = z.enum([
   "completed",
   "error",
 ]);
-export const zcodeSessionKindSchema = z.enum([
+export const nibiSessionKindSchema = z.enum([
   "interactive",
   "fork",
   "selection_side_chat",
@@ -102,7 +102,7 @@ export function isReadonlyAgentSessionKind(kind: string | undefined): boolean {
   return kind === "subagent_child" || kind === "workflow_child" || kind === "nested_workflow_child";
 }
 
-export const zcodeSessionGoalSchema = z
+export const nibiSessionGoalSchema = z
   .object({
     sessionId: nonEmptyString,
     targetId: nonEmptyString,
@@ -121,7 +121,7 @@ export const zcodeSessionGoalSchema = z
     updatedAt: timestampMsSchema,
   })
   .strict();
-export const zcodeSessionGoalVerificationSchema = z
+export const nibiSessionGoalVerificationSchema = z
   .object({
     nextAction: z.string().nullable().optional(),
     passed: z.boolean(),
@@ -154,7 +154,7 @@ export const zcodeSessionGoalVerificationSchema = z
       .optional(),
   })
   .strict();
-export const zcodeSessionGoalVerificationTimelineSchema = z
+export const nibiSessionGoalVerificationTimelineSchema = z
   .object({
     version: z.literal(1),
     kind: z.literal("synthetic"),
@@ -163,7 +163,7 @@ export const zcodeSessionGoalVerificationTimelineSchema = z
     targetId: nonEmptyString,
     verificationId: nonEmptyString,
     status: z.enum(["started", "completed", "failed_closed", "cancelled"]),
-    verification: zcodeSessionGoalVerificationSchema.optional(),
+    verification: nibiSessionGoalVerificationSchema.optional(),
     goalIteration: z.number().int().positive().optional(),
     anchorAssistantMessageId: nonEmptyString.optional(),
     anchorTurnId: nonEmptyString.optional(),
@@ -171,25 +171,25 @@ export const zcodeSessionGoalVerificationTimelineSchema = z
     updatedAt: timestampMsSchema,
   })
   .strict();
-export const zcodeSessionInfoSchema = z
+export const nibiSessionInfoSchema = z
   .object({
     sessionId: nonEmptyString,
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     parentSessionId: nonEmptyString.optional(),
     traceId: nonEmptyString.optional(),
-    sessionKind: zcodeSessionKindSchema,
+    sessionKind: nibiSessionKindSchema,
     title: z.string(),
     titleSource: z.enum(["default", "first_input", "generated", "custom"]).optional(),
-    mode: zcodeSessionModeSchema,
-    status: zcodeSessionStatusSchema,
+    mode: nibiSessionModeSchema,
+    status: nibiSessionStatusSchema,
     model: modelSelectionSchema.optional(),
-    target: zcodeSessionGoalSchema.nullable().optional(),
+    target: nibiSessionGoalSchema.nullable().optional(),
     createdAt: timestampMsSchema,
     updatedAt: timestampMsSchema,
   })
   .strict();
-export type ZCodeSessionInfo = z.infer<typeof zcodeSessionInfoSchema>;
-export const zcodeInteractionRequestOriginSchema = z
+export type NibiSessionInfo = z.infer<typeof nibiSessionInfoSchema>;
+export const nibiInteractionRequestOriginSchema = z
   .object({
     kind: z.literal("subagent"),
     agentId: nonEmptyString,
@@ -202,14 +202,14 @@ export const zcodeInteractionRequestOriginSchema = z
     parentTurnId: nonEmptyString.optional(),
   })
   .strict();
-export type ZCodeInteractionRequestOrigin = z.infer<typeof zcodeInteractionRequestOriginSchema>;
+export type NibiInteractionRequestOrigin = z.infer<typeof nibiInteractionRequestOriginSchema>;
 const messageTimeSchema = z
   .object({
     created: timestampMsSchema,
     completed: timestampMsSchema.optional(),
   })
   .strict();
-export const zcodeTokenUsageSchema = z
+export const nibiTokenUsageSchema = z
   .object({
     total: z.number().int().nonnegative().optional(),
     input: z.number().int().nonnegative(),
@@ -223,7 +223,7 @@ export const zcodeTokenUsageSchema = z
       .strict(),
   })
   .strict();
-export const zcodeMessageSemanticsSchema = z
+export const nibiMessageSemanticsSchema = z
   .object({
     origin: z.enum(["real_user", "agent_runtime", "system", "migration", "import"]),
     kind: z.enum([
@@ -247,7 +247,7 @@ export const zcodeMessageSemanticsSchema = z
     transcriptVisibility: z.enum(["visible", "hidden"]),
   })
   .strict();
-export const zcodeUserMessageInfoSchema = z
+export const nibiUserMessageInfoSchema = z
   .object({
     messageId: nonEmptyString,
     sessionId: nonEmptyString,
@@ -259,13 +259,13 @@ export const zcodeUserMessageInfoSchema = z
     system: z.string().optional(),
     tools: z.record(z.string(), z.boolean()).optional(),
     synthetic: z.boolean().optional(),
-    source: zcodeSyntheticUserMessageSourceSchema.optional(),
-    visibility: zcodeMessageVisibilitySchema.optional(),
-    semantics: zcodeMessageSemanticsSchema.optional(),
+    source: nibiSyntheticUserMessageSourceSchema.optional(),
+    visibility: nibiMessageVisibilitySchema.optional(),
+    semantics: nibiMessageSemanticsSchema.optional(),
     metadata: jsonObjectSchema.optional(),
   })
   .strict();
-export const zcodeAssistantMessageInfoSchema = z
+export const nibiAssistantMessageInfoSchema = z
   .object({
     messageId: nonEmptyString,
     sessionId: nonEmptyString,
@@ -281,24 +281,24 @@ export const zcodeAssistantMessageInfoSchema = z
       })
       .strict(),
     cost: z.number().nonnegative(),
-    tokens: zcodeTokenUsageSchema,
+    tokens: nibiTokenUsageSchema,
     finish: z.string().optional(),
     error: jsonObjectSchema.optional(),
-    semantics: zcodeMessageSemanticsSchema.optional(),
+    semantics: nibiMessageSemanticsSchema.optional(),
     structured: z.unknown().optional(),
   })
   .strict();
-export const zcodeMessageInfoSchema = z.discriminatedUnion("role", [
-  zcodeUserMessageInfoSchema,
-  zcodeAssistantMessageInfoSchema,
+export const nibiMessageInfoSchema = z.discriminatedUnion("role", [
+  nibiUserMessageInfoSchema,
+  nibiAssistantMessageInfoSchema,
 ]);
-export type ZCodeMessageInfo = z.infer<typeof zcodeMessageInfoSchema>;
+export type NibiMessageInfo = z.infer<typeof nibiMessageInfoSchema>;
 const partBaseSchema = z.object({
   partId: nonEmptyString,
   sessionId: nonEmptyString,
   messageId: nonEmptyString,
 });
-export const zcodeToolStateSchema = z.discriminatedUnion("status", [
+export const nibiToolStateSchema = z.discriminatedUnion("status", [
   z
     .object({
       status: z.literal("pending"),
@@ -337,16 +337,16 @@ export const zcodeToolStateSchema = z.discriminatedUnion("status", [
     })
     .strict(),
 ]);
-const zcodeTimelineModelSelectionSchema = modelSelectionSchema.extend({
+const nibiTimelineModelSelectionSchema = modelSelectionSchema.extend({
   label: z.string().optional(),
 });
-const zcodeTimelinePartTimeSchema = z
+const nibiTimelinePartTimeSchema = z
   .object({
     start: timestampMsSchema.optional(),
     end: timestampMsSchema.optional(),
   })
   .strict();
-export const zcodeTimelinePartSchema = partBaseSchema
+export const nibiTimelinePartSchema = partBaseSchema
   .extend({
     type: z.literal("timeline"),
     timelineType: z.enum([
@@ -359,7 +359,7 @@ export const zcodeTimelinePartSchema = partBaseSchema
     status: z.string().optional(),
     anchorMessageId: nonEmptyString.optional(),
     anchorTurnId: nonEmptyString.optional(),
-    time: zcodeTimelinePartTimeSchema.optional(),
+    time: nibiTimelinePartTimeSchema.optional(),
     operationId: z.string().optional(),
     trigger: z.enum(["manual", "auto", "partial", "reactive", "session_memory"]).optional(),
     phase: z.enum(["standalone_turn", "pre_request", "mid_turn", "reactive"]).optional(),
@@ -387,15 +387,15 @@ export const zcodeTimelinePartSchema = partBaseSchema
     targetMessageId: nonEmptyString.optional(),
     targetCheckpointId: z.string().optional(),
     restoredFileCount: z.number().int().nonnegative().optional(),
-    fromModel: zcodeTimelineModelSelectionSchema.optional(),
-    toModel: zcodeTimelineModelSelectionSchema
+    fromModel: nibiTimelineModelSelectionSchema.optional(),
+    toModel: nibiTimelineModelSelectionSchema
       .extend({
         label: nonEmptyString,
       })
       .optional(),
   })
   .strict();
-export const zcodeMessagePartSchema = z.discriminatedUnion("type", [
+export const nibiMessagePartSchema = z.discriminatedUnion("type", [
   partBaseSchema
     .extend({
       type: z.literal("text"),
@@ -426,7 +426,7 @@ export const zcodeMessagePartSchema = z.discriminatedUnion("type", [
       type: z.literal("tool"),
       callId: nonEmptyString,
       tool: nonEmptyString,
-      state: zcodeToolStateSchema,
+      state: nibiToolStateSchema,
       metadata: jsonObjectSchema.optional(),
     })
     .strict(),
@@ -439,7 +439,7 @@ export const zcodeMessagePartSchema = z.discriminatedUnion("type", [
       reason: z.string(),
       snapshot: z.string().optional(),
       cost: z.number().nonnegative(),
-      tokens: zcodeTokenUsageSchema,
+      tokens: nibiTokenUsageSchema,
     })
     .strict(),
   partBaseSchema.extend({ type: z.literal("snapshot"), snapshot: z.string() }).strict(),
@@ -459,7 +459,7 @@ export const zcodeMessagePartSchema = z.discriminatedUnion("type", [
       metadata: jsonObjectSchema.optional(),
     })
     .strict(),
-  zcodeTimelinePartSchema,
+  nibiTimelinePartSchema,
   partBaseSchema
     .extend({
       type: z.literal("subagent"),
@@ -479,15 +479,15 @@ export const zcodeMessagePartSchema = z.discriminatedUnion("type", [
     })
     .strict(),
 ]);
-export type ZCodeMessagePart = z.infer<typeof zcodeMessagePartSchema>;
-export const zcodeMessageWithPartsSchema = z
+export type NibiMessagePart = z.infer<typeof nibiMessagePartSchema>;
+export const nibiMessageWithPartsSchema = z
   .object({
-    info: zcodeMessageInfoSchema,
-    parts: z.array(zcodeMessagePartSchema),
+    info: nibiMessageInfoSchema,
+    parts: z.array(nibiMessagePartSchema),
   })
   .strict();
-export type ZCodeMessageWithParts = z.infer<typeof zcodeMessageWithPartsSchema>;
-export const zcodeSessionApiRetryStatusSchema = z
+export type NibiMessageWithParts = z.infer<typeof nibiMessageWithPartsSchema>;
+export const nibiSessionApiRetryStatusSchema = z
   .object({
     kind: z.literal("api_retry"),
     attempt: z.number().int().positive(),
@@ -497,7 +497,7 @@ export const zcodeSessionApiRetryStatusSchema = z
     error: z.string(),
   })
   .strict();
-export const zcodeSessionContextCacheUsageSchema = z
+export const nibiSessionContextCacheUsageSchema = z
   .object({
     inputTokens: z.number().int().nonnegative(),
     cacheReadTokens: z.number().int().nonnegative(),
@@ -510,7 +510,7 @@ export const zcodeSessionContextCacheUsageSchema = z
     hitRate: z.number().nonnegative().nullable(),
   })
   .strict();
-export const zcodeContextUsageBreakdownSourceSchema = z.enum([
+export const nibiContextUsageBreakdownSourceSchema = z.enum([
   "system_prompt",
   "meta_user_context",
   "skills",
@@ -519,15 +519,15 @@ export const zcodeContextUsageBreakdownSourceSchema = z.enum([
   "mcp_tool_schemas",
   "messages",
 ]);
-export const zcodeContextUsageBreakdownItemSchema = z
+export const nibiContextUsageBreakdownItemSchema = z
   .object({
-    source: zcodeContextUsageBreakdownSourceSchema,
+    source: nibiContextUsageBreakdownSourceSchema,
     chars: z.number().int().nonnegative(),
   })
   .strict();
-export type ZCodeContextUsageBreakdownItem = z.infer<typeof zcodeContextUsageBreakdownItemSchema>;
-export const zcodeContextUsageBreakdownSchema = z.array(zcodeContextUsageBreakdownItemSchema);
-export const zcodeSessionContextUsageSchema = z
+export type NibiContextUsageBreakdownItem = z.infer<typeof nibiContextUsageBreakdownItemSchema>;
+export const nibiContextUsageBreakdownSchema = z.array(nibiContextUsageBreakdownItemSchema);
+export const nibiSessionContextUsageSchema = z
   .object({
     used: z.number().int().nonnegative(),
     size: z.number().int().positive(),
@@ -539,29 +539,29 @@ export const zcodeSessionContextUsageSchema = z
       .strict()
       .nullable()
       .optional(),
-    cache: zcodeSessionContextCacheUsageSchema.optional(),
-    breakdown: zcodeContextUsageBreakdownSchema.optional(),
+    cache: nibiSessionContextCacheUsageSchema.optional(),
+    breakdown: nibiContextUsageBreakdownSchema.optional(),
   })
   .strict();
-export const zcodeSessionRuntimeStateSchema = z
+export const nibiSessionRuntimeStateSchema = z
   .object({
     eventSeq: z.number().int().nonnegative(),
     stateRevision: z.number().int().nonnegative(),
-    deliveryKind: zcodeDeliveryKindSchema.optional(),
+    deliveryKind: nibiDeliveryKindSchema.optional(),
     activeTurnId: nonEmptyString.optional(),
     activeTurnKind: z.enum(["regular", "compact", "rewind"]).optional(),
     pendingRequestIds: z.array(nonEmptyString),
-    apiRetry: zcodeSessionApiRetryStatusSchema.nullable().optional(),
-    contextUsage: zcodeSessionContextUsageSchema.optional(),
-    goalVerifications: z.array(zcodeSessionGoalVerificationSchema).optional(),
-    goalVerificationTimeline: z.array(zcodeSessionGoalVerificationTimelineSchema).optional(),
+    apiRetry: nibiSessionApiRetryStatusSchema.nullable().optional(),
+    contextUsage: nibiSessionContextUsageSchema.optional(),
+    goalVerifications: z.array(nibiSessionGoalVerificationSchema).optional(),
+    goalVerificationTimeline: z.array(nibiSessionGoalVerificationTimelineSchema).optional(),
   })
   .strict();
-export type ZCodeSessionRuntimeState = z.infer<typeof zcodeSessionRuntimeStateSchema>;
-export type ZCodeSessionActiveTurnKind = NonNullable<ZCodeSessionRuntimeState["activeTurnKind"]>;
-export function textFromZCodeMessageParts(parts: readonly ZCodeMessagePart[]): string {
+export type NibiSessionRuntimeState = z.infer<typeof nibiSessionRuntimeStateSchema>;
+export type NibiSessionActiveTurnKind = NonNullable<NibiSessionRuntimeState["activeTurnKind"]>;
+export function textFromNibiMessageParts(parts: readonly NibiMessagePart[]): string {
   return parts
-    .filter((part): part is Extract<ZCodeMessagePart, { type: "text" }> => part.type === "text")
+    .filter((part): part is Extract<NibiMessagePart, { type: "text" }> => part.type === "text")
     .map((part) => part.text)
     .join("");
 }

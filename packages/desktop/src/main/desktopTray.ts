@@ -70,7 +70,7 @@ export function createDesktopTray(options: {
     desktopTray?.setContextMenu(
       Menu.buildFromTemplate([
         {
-          label: getLabel(desktopMenuMessageIds.trayOpenZCode),
+          label: getLabel(desktopMenuMessageIds.trayOpenNibi),
           click: showTrayWindow,
         },
         { type: "separator" },

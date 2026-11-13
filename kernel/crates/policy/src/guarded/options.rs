@@ -1,4 +1,4 @@
-// 移植自 apps/zcode-cli/packages/core/src/tool/handlers/guarded/options.ts 与 wrappers.ts（修复线 F20）。
+// 移植自 apps/nibi-cli/packages/core/src/tool/handlers/guarded/options.ts 与 wrappers.ts（修复线 F20）。
 //! 有限的选项文法：先吃掉已声明 arity 的参数值，未知选项不猜 arity；`env` / `time` / `sudo` 包装的剥离。
 
 use super::word::{Word, basename};

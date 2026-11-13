@@ -54,7 +54,7 @@ async function setup(active = false) {
     await rm(root, { recursive: true, force: true });
   });
   await runtime.start();
-  await configRuntime.refreshZCodeBuiltin();
+  await configRuntime.refreshNibiBuiltin();
   return {
     runtime,
     configRuntime,

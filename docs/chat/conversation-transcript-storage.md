@@ -314,13 +314,13 @@ legacy compaction/session_entry/text metadata fallback 先保留，直到 UI 完
 
 | 层 | 文件 |
 | --- | --- |
-| migration | `apps/zcode-cli/packages/adapters/src/storage/session-store/migrations.ts` |
-| rows/repositories | `apps/zcode-cli/packages/adapters/src/storage/session-store/rows.ts`、`repositories/messages.ts` |
-| contracts | `apps/zcode-cli/packages/contracts/src/interfaces/session-store.port.ts` |
-| runtime writes | `apps/zcode-cli/packages/core/src/runtime/methods/message-persistence.ts`、`compact-persistence.ts`、`session-fork.ts`、`events.ts`、model set path |
-| protocol | `packages/shared/src/nibi-protocol/index.ts`、`apps/zcode-cli/packages/bootstrap/src/nibi-protocol/message-mapper.ts` |
+| migration | `apps/nibi-cli/packages/adapters/src/storage/session-store/migrations.ts` |
+| rows/repositories | `apps/nibi-cli/packages/adapters/src/storage/session-store/rows.ts`、`repositories/messages.ts` |
+| contracts | `apps/nibi-cli/packages/contracts/src/interfaces/session-store.port.ts` |
+| runtime writes | `apps/nibi-cli/packages/core/src/runtime/methods/message-persistence.ts`、`compact-persistence.ts`、`session-fork.ts`、`events.ts`、model set path |
+| protocol | `packages/shared/src/nibi-protocol/index.ts`、`apps/nibi-cli/packages/bootstrap/src/nibi-protocol/message-mapper.ts` |
 | shared read compatibility | `packages/shared/src/zcode-session-visible-content.ts`、`packages/shared/src/zcodePersistedMessageMerge.ts` |
-| V4 transcript hydration | `apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/transcript-hydration.ts`、`product-projection.ts` |
+| V4 transcript hydration | `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/transcript-hydration.ts`、`product-projection.ts` |
 | UI projection | `packages/ui/src/v4/conversationProjectionStore.ts`、`packages/ui/src/v4/sessionDataLayer.ts` |
 
 ## CLI / 数据层实施轨迹

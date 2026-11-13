@@ -6,7 +6,7 @@ import type {
   V4ConversationFileChangesResult,
 } from "@nibi/shared/nibi-protocol-v4";
 import { DEFAULT_CODE_PREVIEW_SETTINGS } from "@/lib/codePreviewSettings.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { ConversationFileSummaryPanel } from "@/v4/ConversationFileSummaryPanel.js";
 import type { ConversationRowRenderContext } from "@/v4/conversationRowContext.js";
 
@@ -201,7 +201,7 @@ describe("ConversationFileSummaryPanel", () => {
       await act(async () => {
         root.render(
           createElement(
-            ZCodeIntlProvider,
+            NibiIntlProvider,
             { initialLocale: "zh-CN" },
             createElement(ConversationFileSummaryPanel, {
               header: header({
@@ -239,7 +239,7 @@ describe("ConversationFileSummaryPanel", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationFileSummaryPanel, {
             header: header(),
@@ -282,7 +282,7 @@ describe("ConversationFileSummaryPanel", () => {
     };
     const render = (rowId: number) =>
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(ConversationFileSummaryPanel, {
           header: header({ rowId, entityId: `header-${rowId}` }),
@@ -320,7 +320,7 @@ describe("ConversationFileSummaryPanel", () => {
     await act(async () =>
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationFileSummaryPanel, {
             header: header(),
@@ -379,7 +379,7 @@ describe("ConversationFileSummaryPanel", () => {
     await act(async () => {
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(ConversationFileSummaryPanel, {
             header: header(),
@@ -464,7 +464,7 @@ describe("ConversationFileSummaryPanel", () => {
     };
     const renderPanelForState = (state: TurnHeaderRow["state"]) =>
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(ConversationFileSummaryPanel, {
           header: header({ state }),
@@ -527,7 +527,7 @@ describe("ConversationFileSummaryPanel", () => {
     };
     const renderPanelForFileState = (state: "active" | "reverted") =>
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(ConversationFileSummaryPanel, {
           header: header({

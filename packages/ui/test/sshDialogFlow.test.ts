@@ -47,7 +47,7 @@ const ports = vi.hoisted(() => ({
   confirm: vi.fn(async () => true),
 }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     locale: ports.locale,
     intl: {
       formatMessage: ({ id }: { id: string }, values: Record<string, string> = {}) => {

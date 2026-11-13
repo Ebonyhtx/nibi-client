@@ -1,4 +1,4 @@
-// 语义复制自 apps/zcode-cli/packages/adapters/src/auth/zai-business-token-cache.ts（33a9541140）。
+// 语义复制自 apps/nibi-cli/packages/adapters/src/auth/zai-business-token-cache.ts（33a9541140）。
 //! Z.ai 业务 token（platform.md §5.4、§5.6）：Z.ai 的项目接口不认 OAuth access token，先用它换业务 JWT。
 //! 修复线 F47 起只在登录时换一次，存进 `oauth:zai:access_token`（App 的语义），请求期不再换。
 //!

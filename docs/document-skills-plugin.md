@@ -4,10 +4,10 @@
 
 | 插件          | Skill | 源码目录                                       |
 | ------------- | ----- | ---------------------------------------------- |
-| documents     | docx  | `apps/zcode-cli/packages/documents-plugin`     |
-| pdf           | pdf   | `apps/zcode-cli/packages/pdf-plugin`           |
-| presentations | pptx  | `apps/zcode-cli/packages/presentations-plugin` |
-| spreadsheets  | xlsx  | `apps/zcode-cli/packages/spreadsheets-plugin`  |
+| documents     | docx  | `apps/nibi-cli/packages/documents-plugin`     |
+| pdf           | pdf   | `apps/nibi-cli/packages/pdf-plugin`           |
+| presentations | pptx  | `apps/nibi-cli/packages/presentations-plugin` |
+| spreadsheets  | xlsx  | `apps/nibi-cli/packages/spreadsheets-plugin`  |
 
 同步来源为内部插件仓库 `zcode-marketplace/zcode-plugins-test`，
 `origin/main` 提交 `e19dca8be86cf981ed2e0c2b4855c6ee6ee15265` 的对应 `plugins/<插件名>` 目录。

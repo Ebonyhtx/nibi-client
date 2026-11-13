@@ -40,9 +40,9 @@ describe.skipIf(isWindows)("cdn-preload.sh", () => {
     writeFileSync(
       cdnUrlsIn,
       [
-        "https://cdn-zcode.z.ai/zcode/electron/releases/1.3.0/ZCode-1.3.0-mac-arm64.dmg\t3145728",
+        "https://cdn-zcode.z.ai/zcode/electron/releases/1.3.0/Nibi-1.3.0-mac-arm64.dmg\t3145728",
         "https://cdn-zcode.z.ai/zcode/electron/releases/update/mac/arm64/latest-mac.yml\t128",
-        "https://cdn-zcode.z.ai/zcode/electron/releases/1.3.0/ZCode-1.3.0-mac-arm64.zip",
+        "https://cdn-zcode.z.ai/zcode/electron/releases/1.3.0/Nibi-1.3.0-mac-arm64.zip",
         "",
       ].join("\n"),
       "utf-8",
@@ -115,7 +115,7 @@ process.stdout.write("\\n");
     expect(output).toContain("no minimum file size threshold is applied");
     expect(output).toContain("Filtered URLs: 2, Skipped URLs: 1");
     expect(output).toContain(
-      "skip preload (missing/invalid recorded size): https://cdn-zcode.z.ai/zcode/electron/releases/1.3.0/ZCode-1.3.0-mac-arm64.zip",
+      "skip preload (missing/invalid recorded size): https://cdn-zcode.z.ai/zcode/electron/releases/1.3.0/Nibi-1.3.0-mac-arm64.zip",
     );
 
     const aliyunCalls = readFileSync(aliyunLogPath, "utf-8")
@@ -128,7 +128,7 @@ process.stdout.write("\\n");
     const describeCalls = aliyunCalls.filter((line) => line.includes("DescribeRefreshTaskById"));
     expect(pushCalls).toHaveLength(2);
     expect(pushCalls.some((line) => line.includes("latest-mac.yml"))).toBe(true);
-    expect(pushCalls.some((line) => line.includes("ZCode-1.3.0-mac-arm64.dmg"))).toBe(true);
+    expect(pushCalls.some((line) => line.includes("Nibi-1.3.0-mac-arm64.dmg"))).toBe(true);
     expect(pushCalls.every((line) => !line.includes("--Area"))).toBe(true);
     expect(output).not.toContain("--Area");
     expect(describeCalls).toHaveLength(2);
@@ -144,8 +144,8 @@ process.stdout.write("\\n");
     writeFileSync(
       cdnUrlsIn,
       [
-        "https://cdn-zcode.z.ai/zcode/electron/releases/1.3.0/ZCode-1.3.0-linux-arm64.AppImage\t3145728",
-        "https://cdn.zcode-ai.com/zcode/electron/releases/1.3.0/ZCode-1.3.0-linux-arm64.AppImage\t3145728",
+        "https://cdn-zcode.z.ai/zcode/electron/releases/1.3.0/Nibi-1.3.0-linux-arm64.AppImage\t3145728",
+        "https://cdn.zcode-ai.com/zcode/electron/releases/1.3.0/Nibi-1.3.0-linux-arm64.AppImage\t3145728",
       ].join("\n"),
       "utf-8",
     );
@@ -262,7 +262,7 @@ else process.stdout.write("\\n");
     writeFileSync(
       cdnUrlsIn,
       [
-        "https://cdn.codegeex.cn/zcode/electron/releases/1.3.0/ZCode-1.3.0-mac-arm64.dmg\t3145728",
+        "https://cdn.codegeex.cn/zcode/electron/releases/1.3.0/Nibi-1.3.0-mac-arm64.dmg\t3145728",
         "https://cdn.codegeex.cn/zcode/electron/releases/update/mac/arm64/latest-mac.yml\t128",
       ].join("\n"),
       "utf-8",
@@ -327,7 +327,7 @@ else process.stdout.write("\\n");
 
     expect(aliyunCalls).toHaveLength(2);
     expect(aliyunCalls[0]).toContain("PushObjectCache");
-    expect(aliyunCalls[0]).toContain("ZCode-1.3.0-mac-arm64.dmg");
+    expect(aliyunCalls[0]).toContain("Nibi-1.3.0-mac-arm64.dmg");
     expect(aliyunCalls[1]).toContain("DescribeRefreshTaskById");
   }, 30_000);
 
@@ -341,7 +341,7 @@ else process.stdout.write("\\n");
     mkdirSync(binDir, { recursive: true });
     writeFileSync(
       cdnUrlsIn,
-      "https://cdn.codegeex.cn/zcode/electron/releases/1.6.0/ZCode-1.6.0-mac-arm64.dmg\t3145728\n",
+      "https://cdn.codegeex.cn/zcode/electron/releases/1.6.0/Nibi-1.6.0-mac-arm64.dmg\t3145728\n",
       "utf-8",
     );
 
@@ -422,7 +422,7 @@ else process.stdout.write("\\n");
     mkdirSync(binDir, { recursive: true });
     writeFileSync(
       cdnUrlsIn,
-      "https://cdn.codegeex.cn/zcode/electron/releases/1.6.0/ZCode-1.6.0-mac-arm64.dmg\t3145728\n",
+      "https://cdn.codegeex.cn/zcode/electron/releases/1.6.0/Nibi-1.6.0-mac-arm64.dmg\t3145728\n",
       "utf-8",
     );
 
@@ -487,7 +487,7 @@ process.stdout.write("\\n");
     mkdirSync(binDir, { recursive: true });
     writeFileSync(
       cdnUrlsIn,
-      "https://cdn.codegeex.cn/zcode/electron/releases/1.6.0/ZCode-1.6.0-mac-arm64.dmg\t3145728\n",
+      "https://cdn.codegeex.cn/zcode/electron/releases/1.6.0/Nibi-1.6.0-mac-arm64.dmg\t3145728\n",
       "utf-8",
     );
 

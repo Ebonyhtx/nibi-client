@@ -84,7 +84,7 @@ describe("redactArmsEventBatch - exception", () => {
         type: "error",
         source: "uncaughtException",
         message: "boom",
-        file: "file:///C:/Users/erin/AppData/Local/Programs/ZCode/resources/app.asar/dist/renderer/assets/index-9f3a.js",
+        file: "file:///C:/Users/erin/AppData/Local/Programs/Nibi/resources/app.asar/dist/renderer/assets/index-9f3a.js",
         line: 1,
         column: 2345,
       },

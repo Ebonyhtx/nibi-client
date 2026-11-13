@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash-parse/src/lexer/dollar.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
+// 复制自 apps/nibi-cli-rust/crates/bash-parse/src/lexer/dollar.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
 //! 双引号、`$` 开头的各种展开、反引号和 ANSI-C 字符串（readDoubleQuoted / readDollar 等）。
 
 use super::{

@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.js";
 import { Input } from "@/components/ui/input.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useRemoteConnectionForm } from "@/hooks/useRemoteConnectionForm.js";
 import { RemoteConnectionFields } from "@/RemoteConnectionFields.js";
 import { collectRemoteFormFieldErrors } from "@/lib/remoteConnectionWizard.js";
@@ -44,7 +44,7 @@ function EditConnectionProfileForm({
   onSaved,
   focusField,
 }: EditConnectionProfileDialogProps & { profile: ConnectionProfile }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const form = useRemoteConnectionForm({
     open,
     isWindowsDesktop: profile.transport === "wsl",

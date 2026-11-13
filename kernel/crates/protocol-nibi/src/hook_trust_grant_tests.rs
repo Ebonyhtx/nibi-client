@@ -1,7 +1,7 @@
 //! `workspace/hooks/trustGrant`（旧入口 141 F5）：Settings 页在**没有会话**时预信任钩子声明。
 //!
 //! 断言两件事：
-//! 1. wire 形状——Host 的 `zcodeWorkspaceHookTrustGrantResultSchema` 是 `.strict()`，
+//! 1. wire 形状——Host 的 `nibiWorkspaceHookTrustGrantResultSchema` 是 `.strict()`，
 //!    只接受 `{accepted}` 与可选的 `reasonCode`，底层错误文本不能越界；
 //! 2. 判定顺序与 Node `workspace-hook-trust.ts` 一致：信任库损坏 → 企业策略 → bundle 摘要 →
 //!    声明在不在快照里 → 写入 → 回读确认。

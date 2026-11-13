@@ -104,7 +104,7 @@ async function prepareGitRepositoryFixture(): Promise<void> {
   await execGit("git", ["config", "user.email", "zcode-e2e@example.invalid"], {
     cwd: DEFAULT_WORKSPACE,
   });
-  await execGit("git", ["config", "user.name", "ZCode E2E"], {
+  await execGit("git", ["config", "user.name", "Nibi E2E"], {
     cwd: DEFAULT_WORKSPACE,
   });
   await writeFile(fixturePath, "baseline\n", "utf8");

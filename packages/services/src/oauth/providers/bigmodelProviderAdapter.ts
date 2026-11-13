@@ -13,7 +13,7 @@ import { parseOAuthLoginAttribution } from "../callbackAttribution.js";
 import type { OAuthProviderRuntimeConfig } from "../runtimeConfig.js";
 import type { OAuthProviderAdapter, OAuthProviderContext } from "./providerAdapter.js";
 
-interface BigModelZcodeTokenEnvelope {
+interface BigModelNibiTokenEnvelope {
   code?: number;
   msg?: string;
   data?: {
@@ -119,14 +119,14 @@ export class BigModelProviderAdapter implements OAuthProviderAdapter {
     params: OAuthCallbackParams,
     _context: OAuthProviderContext,
   ): Promise<OAuthTokenSet> {
-    const tokenSet = await this.exchangeZcodeJwtToken(params, _context);
+    const tokenSet = await this.exchangeNibiJwtToken(params, _context);
 
     return {
       ...tokenSet,
     };
   }
 
-  private async exchangeZcodeJwtToken(
+  private async exchangeNibiJwtToken(
     params: OAuthCallbackParams,
     context: OAuthProviderContext,
   ): Promise<OAuthTokenSet> {
@@ -144,7 +144,7 @@ export class BigModelProviderAdapter implements OAuthProviderAdapter {
     });
 
     try {
-      const payload = await readApiJson<BigModelZcodeTokenEnvelope>(
+      const payload = await readApiJson<BigModelNibiTokenEnvelope>(
         this.apiClient,
         this.config.tokenUrl,
         {
@@ -173,8 +173,8 @@ export class BigModelProviderAdapter implements OAuthProviderAdapter {
           payload.msg?.trim() || `BigModel zcode token 交换失败（code: ${payload.code}）`,
         );
       }
-      const zcodeJwtToken = payload.data?.token?.trim() || "";
-      if (!zcodeJwtToken) {
+      const nibiJwtToken = payload.data?.token?.trim() || "";
+      if (!nibiJwtToken) {
         log.warn(undefined, "zcode token response missing data.token", {
           code: payload.code,
           msg: payload.msg,
@@ -200,7 +200,7 @@ export class BigModelProviderAdapter implements OAuthProviderAdapter {
       return {
         accessToken,
         ...(refreshToken ? { refreshToken } : {}),
-        zcodeJwtToken,
+        nibiJwtToken,
       };
     } catch (error) {
       // BigModel callback code 是一次性的，客户端不能再先调用
@@ -224,7 +224,7 @@ export class BigModelProviderAdapter implements OAuthProviderAdapter {
     tokenSet: OAuthTokenSet,
     _context: OAuthProviderContext,
   ): Promise<OAuthUserProfile> {
-    if (tokenSet.zcodeJwtToken && tokenSet.accessToken === tokenSet.zcodeJwtToken) {
+    if (tokenSet.nibiJwtToken && tokenSet.accessToken === tokenSet.nibiJwtToken) {
       // 移除 tokenByAuthCode 后 callback 阶段没有 BigModel access token。
       // zcode JWT 不能调用 bigmodel.cn 的 customer 接口，避免无意义的鉴权失败请求。
       return {
@@ -298,7 +298,7 @@ export class BigModelProviderAdapter implements OAuthProviderAdapter {
   }
 }
 
-function resolveBigModelBusinessAccessToken(payload: BigModelZcodeTokenEnvelope): string {
+function resolveBigModelBusinessAccessToken(payload: BigModelNibiTokenEnvelope): string {
   return (
     payload.data?.bigmodel?.access_token?.trim() ??
     payload.data?.bigmodel?.accessToken?.trim() ??

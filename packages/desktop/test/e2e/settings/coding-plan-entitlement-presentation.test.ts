@@ -247,7 +247,7 @@ describe("套餐权益展示与购买入口", () => {
   it("CTP-18: 同时存在过期和有效 Start，仅显示有效计划", async function () {
     this.timeout(120000);
     await prepare({ ...empty, start: "mixed" }, "start");
-    await textVisible("ZCode V3 Start Plan");
+    await textVisible("Nibi V3 Start Plan");
     await textVisible("Today's balance");
     await textVisible("E2E_EXPIRED_PLAN", false);
     await textVisible("E2E_EXPIRED_BALANCE", false);
@@ -268,7 +268,7 @@ describe("套餐权益展示与购买入口", () => {
           `coding-plan:${BUILTIN_MODEL_PROVIDER_IDS.bigmodelStartPlan}`,
         ),
       );
-      await textVisible("ZCode V3 Start Plan");
+      await textVisible("Nibi V3 Start Plan");
       await models(true);
       await banners(false);
       await textVisible("Upgrade", false);

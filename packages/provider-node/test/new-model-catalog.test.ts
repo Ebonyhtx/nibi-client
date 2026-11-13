@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { parseZCodeBuiltinModelConfigRules } from "@nibi/provider";
+import { parseNibiBuiltinModelConfigRules } from "@nibi/provider";
 
 describe("2026-09 新模型官方目录", () => {
   it("模型身份、能力和值域独立声明，不能从旧型号宽匹配猜测", async () => {
@@ -10,7 +10,7 @@ describe("2026-09 新模型官方目录", () => {
         "utf8",
       ),
     );
-    const rules = parseZCodeBuiltinModelConfigRules(release.config.modelConfigRules);
+    const rules = parseNibiBuiltinModelConfigRules(release.config.modelConfigRules);
     const templates = release.config.providerConfigRules.templateRules;
     for (const [templateId, modelId, context, output, levels] of [
       ["openai", "gpt-6-astra", 1050000, 128000, ["low", "medium", "high", "xhigh", "max"]],

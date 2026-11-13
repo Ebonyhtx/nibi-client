@@ -23,11 +23,11 @@ import {
 import {
   hostTarget,
   outputBinaryName,
-} from "../apps/zcode-cli/packages/cli/scripts/sea-targets.mjs";
+} from "../apps/nibi-cli/packages/cli/scripts/sea-targets.mjs";
 import { resolveSpawnRuntimeOptions } from "./spawn-command.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const cliWorkspace = join(repoRoot, "apps", "zcode-cli");
+const cliWorkspace = join(repoRoot, "apps", "nibi-cli");
 const cliPackageRoot = join(cliWorkspace, "packages", "cli");
 
 function execute(command, args, { cwd = repoRoot, env = process.env, stdio = "inherit" } = {}) {

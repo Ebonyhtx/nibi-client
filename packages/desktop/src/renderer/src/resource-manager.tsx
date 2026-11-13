@@ -8,7 +8,7 @@ import "@nibi/ui/styles.css";
 import {
   DEFAULT_THEME,
   ResourceManagerApp,
-  ZCodeIntlProvider,
+  NibiIntlProvider,
   applyMotionPreference,
   applyUiFontSizePx,
   loadMotionEnabled,
@@ -75,7 +75,7 @@ const root = document.getElementById("root");
 if (root) {
   createRoot(root).render(
     // 语言沿用主窗口写入 localStorage 的偏好；不接 settingService，避免独立窗口再起一份 RPC。
-    <ZCodeIntlProvider>
+    <NibiIntlProvider>
       <ResourceManagerApp
         setSamplingActive={window.resourceManager?.setSamplingActive}
         getSnapshot={
@@ -84,6 +84,6 @@ if (root) {
         storage={window.resourceManager?.storage}
         network={window.resourceManager?.network}
       />
-    </ZCodeIntlProvider>,
+    </NibiIntlProvider>,
   );
 }

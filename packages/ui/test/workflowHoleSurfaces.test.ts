@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { WorkflowRunState } from "@nibi/shared/nibi-protocol-v4";
 import type { WorkflowCausalityGraphData } from "@/components/workflow-graph/types.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 vi.mock("@/ControlHintTooltip.js", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/ControlHintTooltip.js")>()),
@@ -55,7 +55,7 @@ const H2 = "hole#a0000002"; // 评判
 const H11 = "hole#a0000011"; // 挑选（在 H1 的体里）
 
 function html(node: ReactNode, locale: "zh-CN" | "en-US" = "zh-CN"): string {
-  return renderToStaticMarkup(createElement(ZCodeIntlProvider, { initialLocale: locale }, node));
+  return renderToStaticMarkup(createElement(NibiIntlProvider, { initialLocale: locale }, node));
 }
 
 const OPEN: WorkflowCausalityGraphData = {

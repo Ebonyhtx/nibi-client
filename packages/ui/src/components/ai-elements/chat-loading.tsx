@@ -2,7 +2,7 @@
 
 import type { ComponentPropsWithoutRef } from "react";
 import { cn } from "@/components/lib/utils.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 
 export interface ChatLoadingProps extends ComponentPropsWithoutRef<"div"> {
   loading: boolean;
@@ -11,7 +11,7 @@ export interface ChatLoadingProps extends ComponentPropsWithoutRef<"div"> {
 }
 
 export function ChatLoading({ loading, size = "default", className, ...props }: ChatLoadingProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
 
   if (!loading) {
     return null;

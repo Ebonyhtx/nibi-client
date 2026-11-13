@@ -310,7 +310,7 @@ describe("fileService", () => {
   // ── createScratchWorkspace ───────────────────────────────────────
 
   describe("createScratchWorkspace", () => {
-    const scratchRoot = join(homedir(), "ZCodeProject");
+    const scratchRoot = join(homedir(), "NibiProject");
     const testWorkspaceName = `zcode-file-service-test-${Date.now()}`;
     const testWorkspacePath = join(scratchRoot, testWorkspaceName);
 

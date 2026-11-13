@@ -103,7 +103,7 @@ export async function createToolSearchCliFixture(
     root,
     workspace,
     env,
-    cliPath: join(repoRoot, "apps/zcode-cli/packages/cli/dist/nibi.cjs"),
+    cliPath: join(repoRoot, "apps/nibi-cli/packages/cli/dist/nibi.cjs"),
     requests,
     select,
     reply,
@@ -119,7 +119,7 @@ export async function createToolSearchCliFixture(
       const child = spawn(
         process.execPath,
         [
-          join(repoRoot, "apps/zcode-cli/packages/cli/dist/nibi.cjs"),
+          join(repoRoot, "apps/nibi-cli/packages/cli/dist/nibi.cjs"),
           ...args,
           "--no-browser",
           "--output-format",

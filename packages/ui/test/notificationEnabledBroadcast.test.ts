@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { IBroadcastService } from "@nibi/services";
-import { createZCodeStore } from "@/store/index.js";
+import { createNibiStore } from "@/store/index.js";
 
 function createBroadcastFixture() {
   let receive: Parameters<IBroadcastService["onMessage"]>[0] | undefined;
@@ -25,7 +25,7 @@ describe("任务通知开关跨窗口同步", () => {
 
   it("切换开关广播 state:notificationEnabled，其他窗口按广播应用且不回播", () => {
     const { send, service, receive } = createBroadcastFixture();
-    const store = createZCodeStore(service);
+    const store = createNibiStore(service);
     expect(store.getState().notificationEnabled).toBe(true);
 
     // 窗口 A 关闭通知：本地生效并广播
@@ -48,7 +48,7 @@ describe("任务通知开关跨窗口同步", () => {
   it("新窗口启动从 localStorage 读最新开关值（跨窗口共享持久层）", () => {
     localStorage.setItem("nibi-notification-enabled", "false");
     const { service } = createBroadcastFixture();
-    const store = createZCodeStore(service);
+    const store = createNibiStore(service);
     expect(store.getState().notificationEnabled).toBe(false);
   });
 });

@@ -40,7 +40,7 @@ const E2E_HOME_DIR =
 // 隔离由测试 HOME 保证，目录名保持生产历史语义 .zcode。
 const E2E_STORAGE_ROOT = join(E2E_HOME_DIR, ".nibi");
 const E2E_APP_DATA_DIR = join(E2E_STORAGE_ROOT, "v2");
-export const DEFAULT_WORKSPACE = join(E2E_HOME_DIR, "ZCodeProject");
+export const DEFAULT_WORKSPACE = join(E2E_HOME_DIR, "NibiProject");
 export const DEFAULT_CONVERSATION_WORKSPACE = join(E2E_STORAGE_ROOT, "workspace", "default");
 const SETTINGS_FILE = join(E2E_APP_DATA_DIR, "setting.json");
 const CREDENTIALS_FILE = join(E2E_APP_DATA_DIR, "credentials.json");
@@ -50,7 +50,7 @@ const AGENTS_STATE_FILE = join(E2E_APP_DATA_DIR, "agents-state.json");
 const REMOVE_APP_DATA_RETRY_DELAYS_MS = [200, 500, 1000, 2000, 3000];
 const REMOVE_APP_DATA_MAX_ATTEMPTS = REMOVE_APP_DATA_RETRY_DELAYS_MS.length;
 const E2E_USER_PROFILE = {
-  displayName: "ZCode E2E",
+  displayName: "Nibi E2E",
   id: "zcode-e2e-user",
   username: "zcode-e2e-user",
 };
@@ -543,7 +543,7 @@ export async function clearAppData() {
 export async function quitElectronAppGracefully() {
   try {
     const result = (await browser.electron.execute((electron) => {
-      if (electron.app.getName() !== "ZCode E2E") {
+      if (electron.app.getName() !== "Nibi E2E") {
         return { quit: false, pid: process.pid };
       }
       // 修复原因：clearAppData 常在 spec after 中运行；如果把 app.quit 延迟
@@ -1448,10 +1448,10 @@ export async function clickAboutMenuItem() {
     const menu = electron.Menu.getApplicationMenu();
     const topMenuLabel = process.platform === "darwin" ? electron.app.name : "Help";
     const topMenu = menu?.items.find((item) => item.label === topMenuLabel);
-    const menuItem = topMenu?.submenu?.items.find((item) => item.label === "About ZCode");
+    const menuItem = topMenu?.submenu?.items.find((item) => item.label === "About Nibi");
 
     if (!menuItem) {
-      throw new Error(`未找到 About ZCode 菜单项: ${topMenuLabel}`);
+      throw new Error(`未找到 About Nibi 菜单项: ${topMenuLabel}`);
     }
 
     menuItem.click(undefined as never, undefined, undefined as never);

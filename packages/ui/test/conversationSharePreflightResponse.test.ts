@@ -17,7 +17,7 @@ import {
 } from "@/v4/conversationSharePreflightCache.js";
 vi.mock("@/logger.js", () => ({ logger: { warn: vi.fn(), error: vi.fn() } }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: { formatMessage: ({ id }: { id: string }) => id },
   }),
 }));

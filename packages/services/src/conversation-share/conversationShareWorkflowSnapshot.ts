@@ -15,11 +15,11 @@ import {
   type WorkflowRunsState,
   type ToolCallCreateWorkflowCausalityGraph,
 } from "@nibi/shared/nibi-protocol-v4";
-import type { IZCodeAgentService } from "../zcode-agent/zcodeAgent.js";
+import type { INibiAgentService } from "../nibi-agent/nibiAgent.js";
 import type { PublishTextConversationInput } from "./conversationShare.js";
 
 export type ShareWorkflowReader = Pick<
-  IZCodeAgentService,
+  INibiAgentService,
   | "conversationWorkflowRunsV4"
   | "conversationWorkflowRunEventsV4"
   | "conversationWorkflowRunArtifactsV4"

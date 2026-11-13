@@ -24,7 +24,7 @@ function formatZhMessage({ id }: { id: string }, values?: Record<string, string 
 }
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: { formatMessage: formatZhMessage },
     locale: "zh-CN",
   }),

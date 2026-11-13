@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { PlatformProvider } from "@/hooks/usePlatform.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { RemoteConnectionFields } from "@/RemoteConnectionFields.js";
 import type { IPlatformService } from "@nibi/shared";
 
@@ -36,7 +36,7 @@ function renderRemoteConnectionFields() {
       PlatformProvider,
       { platform },
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(RemoteConnectionFields, {
           kind: "docker",

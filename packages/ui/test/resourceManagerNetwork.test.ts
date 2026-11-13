@@ -5,7 +5,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { NetworkSection } from "@/resource-manager/NetworkSection.js";
 import type { NetworkCaptureSnapshot } from "@nibi/shared";
 const { intl } = vi.hoisted(() => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }));
-vi.mock("@/i18n/index.js", () => ({ useZCodeIntl: () => ({ intl, locale: "zh-CN" }) }));
+vi.mock("@/i18n/index.js", () => ({ useNibiIntl: () => ({ intl, locale: "zh-CN" }) }));
 afterEach(() => {
   cleanup();
   vi.useRealTimers();

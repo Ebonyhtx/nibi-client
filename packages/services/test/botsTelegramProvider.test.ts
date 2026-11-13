@@ -230,7 +230,7 @@ describe("telegram bot provider", () => {
     const fetchMock = vi.fn(
       async () =>
         new Response(
-          JSON.stringify({ ok: true, result: { first_name: "ZCode Bot", username: "zcode_bot" } }),
+          JSON.stringify({ ok: true, result: { first_name: "Nibi Bot", username: "zcode_bot" } }),
         ),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -238,10 +238,10 @@ describe("telegram bot provider", () => {
       loadCredential: vi.fn(async () => "token"),
     });
 
-    await expect(provider.resolveName?.(bot)).resolves.toBe("ZCode Bot");
+    await expect(provider.resolveName?.(bot)).resolves.toBe("Nibi Bot");
     await expect(provider.test(bot)).resolves.toMatchObject({
       ok: true,
-      name: "ZCode Bot",
+      name: "Nibi Bot",
     });
   });
 

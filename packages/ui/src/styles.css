@@ -897,11 +897,11 @@ html[data-document-hidden] *::after {
  * 会命中上面的全局滚动条样式，在幻灯片内部露出滚动条。幻灯片内容不存在用户滚动交互，
  * 这里整体隐藏渲染表面内部的原生滚动条。
  */
-[data-zcode-pptx-render-surface] * {
+[data-nibi-pptx-render-surface] * {
   scrollbar-width: none;
 }
 
-[data-zcode-pptx-render-surface] *::-webkit-scrollbar {
+[data-nibi-pptx-render-surface] *::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;

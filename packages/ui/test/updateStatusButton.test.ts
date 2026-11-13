@@ -9,7 +9,7 @@ import {
   type UpdateStatusDialogPhase,
 } from "@/updateStatusModel.js";
 import { formatUpdateReleaseDate, getLocalizedUpdateReleaseNotes } from "@/updateReleaseNotes.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import type { IntlInstance } from "@/i18n/IntlProvider.js";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
 import { PlatformProvider } from "@/hooks/usePlatform.js";
@@ -51,7 +51,7 @@ function renderUpdateStatusButton(
           PlatformProvider,
           { platform: noopPlatform },
           createElement(
-            ZCodeIntlProvider,
+            NibiIntlProvider,
             { initialLocale: "zh-CN" },
             createElement(UpdateStatusButton, {
               platform: noopPlatform,
@@ -287,22 +287,22 @@ describe("UpdateStatusButton release notes", () => {
       markdown: "- 默认说明",
       releaseNotesByLocale: {
         "zh-CN": {
-          title: "ZCode v3.1.3",
+          title: "Nibi v3.1.3",
           markdown: "- 中文说明",
         },
         "en-US": {
-          title: "ZCode v3.1.3",
+          title: "Nibi v3.1.3",
           markdown: "- English notes",
         },
       },
     };
 
     expect(getLocalizedUpdateReleaseNotes(payload, "en-US")).toEqual({
-      title: "ZCode v3.1.3",
+      title: "Nibi v3.1.3",
       markdown: "- English notes",
     });
     expect(getLocalizedUpdateReleaseNotes(payload, "zh-CN")).toEqual({
-      title: "ZCode v3.1.3",
+      title: "Nibi v3.1.3",
       markdown: "- 中文说明",
     });
   });

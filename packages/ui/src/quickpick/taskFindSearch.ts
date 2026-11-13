@@ -1,10 +1,10 @@
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import { formatTaskChangedFileLabel } from "@/lib/taskChangeSummary.js";
 
 type TaskFindScope = "conversation" | "changes";
 
 interface TaskFindEntry {
-  task: ZCodeTaskMeta;
+  task: NibiTaskMeta;
   searchText: string;
 }
 
@@ -19,7 +19,7 @@ function normalizeTaskFindText(value: string): string {
   return value.trim().toLocaleLowerCase();
 }
 
-function getTaskChangeSearchText(task: ZCodeTaskMeta): string {
+function getTaskChangeSearchText(task: NibiTaskMeta): string {
   const summary = task.changeSummary;
   if (!summary || summary.files.length === 0) {
     return "";
@@ -31,7 +31,7 @@ function getTaskChangeSearchText(task: ZCodeTaskMeta): string {
 }
 
 export function createTaskFindEntries(
-  tasks: readonly ZCodeTaskMeta[],
+  tasks: readonly NibiTaskMeta[],
   scope: TaskFindScope,
 ): TaskFindEntry[] {
   return tasks.map((task) => ({

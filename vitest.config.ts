@@ -4,10 +4,10 @@ import { configDefaults, defineConfig } from "vitest/config";
 
 const processLifecycleTests = [
   "packages/services/test/processTreeTerminator.test.ts",
-  "packages/services/test/zcodeAgentService.test.ts",
-  "packages/services/test/zcodeAgentService.v4.test.ts",
-  "packages/services/test/zcodeAgentProcessManager.test.ts",
-  "packages/services/test/zcodeStdioTransport.test.ts",
+  "packages/services/test/nibiAgentService.test.ts",
+  "packages/services/test/nibiAgentService.v4.test.ts",
+  "packages/services/test/nibiAgentProcessManager.test.ts",
+  "packages/services/test/nibiStdioTransport.test.ts",
 ];
 const forkIsolatedTests = [
   ...processLifecycleTests,
@@ -50,7 +50,7 @@ const forkIsolatedTests = [
   "packages/services/test/runtimeToolResolver.test.ts",
   // 该集成测试会真实启动 tsx、Supervisor 与多代 Core；放在普通 threads 中时，
   // 并行 worker 的进程启动压力会让 15 秒 ready barrier 偶发超时。
-  "packages/zcode-server-cli/test/runtimeUpdateIntegration.test.ts",
+  "packages/nibi-server-cli/test/runtimeUpdateIntegration.test.ts",
   // Bugfix: pdfjs-dist legacy build 在 threads worker 内偶发原生崩溃（0xC0000005，
   // 测试自身通过、worker 收尾时崩，会把整场全量跑拦腰截断）。隔离到 fork 池后崩溃
   // 波及面收敛到本文件，其余测试结果可完整收集；崩溃根因见
@@ -80,15 +80,15 @@ const windowsOnlyTests = [
   // 这两个文件承载的是 Windows 那条路（含 8.3 短名、taskkill 失败码）的判据。
   "packages/services/test/processTreeTerminator.test.ts",
   "packages/services/test/processTreeTerminator.windows.test.ts",
-  "packages/services/test/zcodeAgentProcessManager.test.ts",
-  "packages/services/test/zcodeStdioTransport.test.ts",
+  "packages/services/test/nibiAgentProcessManager.test.ts",
+  "packages/services/test/nibiStdioTransport.test.ts",
   // 终端面板的 shell 方言矩阵含 PowerShell/pwsh 专属项。
   "packages/services/test/terminalService.test.ts",
   // 真 Electron 编译字节码：产物与运行时都按平台走，Linux 上 7 条用例全红（实测）。
   "packages/desktop/test/desktopAgentBytecode.test.ts",
   // 为 Windows 目标打包/安装：需要在 Windows 宿主上执行（stage/install 的 Windows 分支）。
-  "packages/zcode-server-cli/test/packaging.test.ts",
-  "packages/zcode-server-cli/test/releaseInstaller.test.ts",
+  "packages/nibi-server-cli/test/packaging.test.ts",
+  "packages/nibi-server-cli/test/releaseInstaller.test.ts",
 ];
 
 /**

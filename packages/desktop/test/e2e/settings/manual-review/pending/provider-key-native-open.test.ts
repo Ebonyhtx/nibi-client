@@ -51,7 +51,7 @@ describe("Todo116 单一 Key 链接原生打开", () => {
         received.add(request.url!);
         response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
         response.end(
-          "<title>ZCode E2E</title><p>API Key link verification passed. You may close this test tab.</p>",
+          "<title>Nibi E2E</title><p>API Key link verification passed. You may close this test tab.</p>",
         );
       } else {
         response.writeHead(404);

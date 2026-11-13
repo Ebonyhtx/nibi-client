@@ -1,4 +1,4 @@
-// 语义复制自 apps/zcode-cli/packages/adapters/src/auth/coding-plan-api-key.ts（33a9541140）的 `request`。
+// 语义复制自 apps/nibi-cli/packages/adapters/src/auth/coding-plan-api-key.ts（33a9541140）的 `request`。
 //! 项目令牌的 HTTP（platform.md §5.4）：经 net 发出，按 Node 的规则把响应分成 JSON、404 与故障。
 //!
 //! 每个请求 15 秒（net `timeout::ACCOUNT`）、响应体最多 64 KiB。网络错误、超时、429、5xx 是临时故障（调用方可能沿用未过期的

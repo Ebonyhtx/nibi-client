@@ -5,7 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Emitter } from "@nibi/rpc";
 import type { IServiceAccessor } from "@nibi/services";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import type {
   SessionsIndexTopicFrame,
   SessionsIndexTopicWireFrame,
@@ -17,7 +17,7 @@ import { useSessionsMentionProvider } from "@/mentions/providers/sessionsMention
 import { useRemoteWorkspaceSessionStore } from "@/store/remoteWorkspaceSessionStore.js";
 import { TabStoreProvider } from "@/store/TabStoreProvider.js";
 import { useTaskQueryCacheStore } from "@/store/taskQueryCacheStore.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 import type { WorkspaceTabState } from "@/store/tabStore.js";
 import {
   buildWorkspaceSessionsIndexSourceKey,
@@ -42,7 +42,7 @@ function createSession(overrides: Partial<SessionSummary> = {}): SessionSummary 
   };
 }
 
-function createTaskMeta(taskId: string, overrides: Partial<ZCodeTaskMeta> = {}): ZCodeTaskMeta {
+function createTaskMeta(taskId: string, overrides: Partial<NibiTaskMeta> = {}): NibiTaskMeta {
   return {
     taskId,
     traceId: `trace-${taskId}`,
@@ -52,7 +52,7 @@ function createTaskMeta(taskId: string, overrides: Partial<ZCodeTaskMeta> = {}):
     updatedAt: 2,
     mode: "default",
     ...overrides,
-  } as ZCodeTaskMeta;
+  } as NibiTaskMeta;
 }
 
 function createMinimalElement(ownerDocument: Document, tagName = "div") {
@@ -170,8 +170,8 @@ interface EndpointMockOptions {
   sessionsByWorkspaceKey?: Record<string, SessionSummary[]>;
   pinnedTaskIds?: string[];
   /** listTasks 返回的 tasks-index 持久行。 */
-  activeTaskMetas?: ZCodeTaskMeta[];
-  pinnedTaskMetas?: ZCodeTaskMeta[];
+  activeTaskMetas?: NibiTaskMeta[];
+  pinnedTaskMetas?: NibiTaskMeta[];
   /** 用于覆盖 ACK 延迟期间 scope 集合变化的竞态。 */
   subscribeGate?: Promise<void>;
   subscribeGatesByWorkspaceKey?: Record<string, Promise<void>>;
@@ -250,7 +250,7 @@ function createEndpointServices(options: EndpointMockOptions) {
   const defaultTaskMetasForScope = (params: {
     workspacePath: string;
     workspaceIdentity?: string;
-  }): ZCodeTaskMeta[] => {
+  }): NibiTaskMeta[] => {
     const workspaceKey = params.workspaceIdentity?.trim() || params.workspacePath;
     const sessions = options.sessionsByWorkspaceKey?.[workspaceKey] ?? options.sessions;
     return sessions.map((session) =>
@@ -307,10 +307,10 @@ function createEndpointServices(options: EndpointMockOptions) {
       unsubscribeControllerV4: vi.fn(async () => {}),
       onDynamicControllerFrame: () => controllerFrames.event,
     },
-    zcodeTaskService: {
+    nibiTaskService: {
       listTaskList,
       listPinnedTaskIds: vi.fn(async (): Promise<string[]> => options.pinnedTaskIds ?? []),
-      listArchivedTasks: vi.fn(async (): Promise<ZCodeTaskMeta[]> => []),
+      listArchivedTasks: vi.fn(async (): Promise<NibiTaskMeta[]> => []),
       listTasks: vi.fn(
         async (params: { workspacePath: string; workspaceIdentity?: string }) =>
           options.activeTaskMetas ??
@@ -323,7 +323,7 @@ function createEndpointServices(options: EndpointMockOptions) {
       ),
       onDynamicWorkspaceEvent: () => () => ({ dispose() {} }),
     },
-    zcodeAgentService: {
+    nibiAgentService: {
       ...v4Handshake(`connection-${options.workspaceId}`),
       subscribeSessionsIndexV4,
       unsubscribeSessionsIndexV4,
@@ -441,20 +441,20 @@ describe("useGlobalTaskList remote shard tasks-index 行 + sessions-index detail
       sessionIdByWorkspaceIdentity: {},
       sessionIdByWorkspacePath: {},
     });
-    useZCodeSessionStore.setState({ workspaces: {} });
+    useNibiSessionStore.setState({ workspaces: {} });
     delete (globalThis as { document?: unknown }).document;
     delete (globalThis as { window?: unknown }).window;
     delete (globalThis as { IS_REACT_ACT_ENVIRONMENT?: unknown }).IS_REACT_ACT_ENVIRONMENT;
   });
 
   it("remote A 已就绪后分步追加并移除 ACK 延迟的 remote B，不重启 A", async () => {
-    const zcodeAck = createDeferred();
+    const nibiAck = createDeferred();
     const base = createEndpointServices({
       workspaceId: "ws-base",
       sessions: [],
     });
     const macIdentity = "remote:ssh:mac:/Users/dev";
-    const macProjectIdentity = "remote:ssh:mac:/Users/dev/ZCodeProject";
+    const macProjectIdentity = "remote:ssh:mac:/Users/dev/NibiProject";
     const mac = createEndpointServices({
       workspaceId: "ws-mac",
       sessions: [],
@@ -475,52 +475,52 @@ describe("useGlobalTaskList remote shard tasks-index 行 + sessions-index detail
         ],
       },
     });
-    const zcodeIdentity = "remote:ssh:zcode:/root";
-    const zcodeProjectIdentity = "remote:ssh:zcode:/root/demo-project";
+    const nibiIdentity = "remote:ssh:zcode:/root";
+    const nibiProjectIdentity = "remote:ssh:zcode:/root/demo-project";
     const zcode = createEndpointServices({
       workspaceId: "ws-zcode",
       sessions: [],
       sessionsByWorkspaceKey: {
-        [zcodeIdentity]: [
+        [nibiIdentity]: [
           createSession({
             sessionId: "s-zcode",
-            workspaceId: zcodeIdentity,
+            workspaceId: nibiIdentity,
             lastActivityAt: 30,
           }),
         ],
-        [zcodeProjectIdentity]: [
+        [nibiProjectIdentity]: [
           createSession({
             sessionId: "s-zcode-project",
-            workspaceId: zcodeProjectIdentity,
+            workspaceId: nibiProjectIdentity,
             lastActivityAt: 40,
           }),
         ],
       },
-      subscribeGate: zcodeAck.promise,
+      subscribeGate: nibiAck.promise,
     });
     const macScope: WorkspaceSessionsIndexScope = {
       endpointKey: "remote-mac",
       workspacePath: "/Users/dev",
       workspaceIdentity: macIdentity,
-      agentService: mac.services.zcodeAgentService,
+      agentService: mac.services.nibiAgentService,
     };
     const macProjectScope: WorkspaceSessionsIndexScope = {
       endpointKey: "remote-mac",
-      workspacePath: "/Users/dev/ZCodeProject",
+      workspacePath: "/Users/dev/NibiProject",
       workspaceIdentity: macProjectIdentity,
-      agentService: mac.services.zcodeAgentService,
+      agentService: mac.services.nibiAgentService,
     };
-    const zcodeScope: WorkspaceSessionsIndexScope = {
+    const nibiScope: WorkspaceSessionsIndexScope = {
       endpointKey: "remote-zcode",
       workspacePath: "/root",
-      workspaceIdentity: zcodeIdentity,
-      agentService: zcode.services.zcodeAgentService,
+      workspaceIdentity: nibiIdentity,
+      agentService: zcode.services.nibiAgentService,
     };
-    const zcodeProjectScope: WorkspaceSessionsIndexScope = {
+    const nibiProjectScope: WorkspaceSessionsIndexScope = {
       endpointKey: "remote-zcode",
       workspacePath: "/root/demo-project",
-      workspaceIdentity: zcodeProjectIdentity,
-      agentService: zcode.services.zcodeAgentService,
+      workspaceIdentity: nibiProjectIdentity,
+      agentService: zcode.services.nibiAgentService,
     };
     let scopes: WorkspaceSessionsIndexScope[] = [macScope, macProjectScope];
     let latest: ReturnType<typeof useWorkspaceSessionsIndexItems> | null = null;
@@ -571,7 +571,7 @@ describe("useGlobalTaskList remote shard tasks-index 行 + sessions-index detail
     expect(latest?.sourceRevisionByScopeKey[macSourceKey]).not.toBe(macRevisionBefore);
     expect(latest?.sourceRevisionByScopeKey[macProjectSourceKey]).toBe(macProjectRevisionBefore);
 
-    scopes = [macScope, macProjectScope, zcodeScope];
+    scopes = [macScope, macProjectScope, nibiScope];
     await act(async () => {
       root.render(
         createElement(ServiceProvider, { services: base.services }, createElement(Probe)),
@@ -585,7 +585,7 @@ describe("useGlobalTaskList remote shard tasks-index 行 + sessions-index detail
     expect(latest?.hydratingEndpointKeys).toEqual(["remote-zcode"]);
     expect((latest?.items ?? []).map((item) => item.taskId)).toEqual(["s-mac-project", "s-mac"]);
 
-    scopes = [macScope, macProjectScope, zcodeScope, zcodeProjectScope];
+    scopes = [macScope, macProjectScope, nibiScope, nibiProjectScope];
     await act(async () => {
       root.render(
         createElement(ServiceProvider, { services: base.services }, createElement(Probe)),
@@ -597,7 +597,7 @@ describe("useGlobalTaskList remote shard tasks-index 行 + sessions-index detail
     expect(zcode.subscribeSessionsIndexV4).toHaveBeenCalledTimes(2);
 
     await act(async () => {
-      zcodeAck.resolve();
+      nibiAck.resolve();
       await flushMicrotasks();
     });
     expect((latest?.items ?? []).map((item) => item.taskId)).toEqual([
@@ -648,13 +648,13 @@ describe("useGlobalTaskList remote shard tasks-index 行 + sessions-index detail
     });
     const localScope: WorkspaceSessionsIndexScope = {
       workspacePath: "/workspace",
-      agentService: local.services.zcodeAgentService,
+      agentService: local.services.nibiAgentService,
     };
     const remoteScope: WorkspaceSessionsIndexScope = {
       endpointKey: "remote-added",
       workspacePath: "/remote-added",
       workspaceIdentity: "remote:ssh:added:/remote-added",
-      agentService: remote.services.zcodeAgentService,
+      agentService: remote.services.nibiAgentService,
     };
     let scopes: WorkspaceSessionsIndexScope[] = [localScope];
     let latest: ReturnType<typeof useWorkspaceSessionsIndexItems> | null = null;
@@ -832,7 +832,7 @@ describe("useGlobalTaskList remote shard tasks-index 行 + sessions-index detail
     });
     const localScope: WorkspaceSessionsIndexScope = {
       workspacePath: "/workspace-generation",
-      agentService: local.services.zcodeAgentService,
+      agentService: local.services.nibiAgentService,
     };
     const remoteScopeBase = {
       endpointKey: "remote-generation",
@@ -843,7 +843,7 @@ describe("useGlobalTaskList remote shard tasks-index 行 + sessions-index detail
       localScope,
       {
         ...remoteScopeBase,
-        agentService: remoteOld.services.zcodeAgentService,
+        agentService: remoteOld.services.nibiAgentService,
       },
     ];
     let latest: ReturnType<typeof useWorkspaceSessionsIndexItems> | null = null;
@@ -865,7 +865,7 @@ describe("useGlobalTaskList remote shard tasks-index 行 + sessions-index detail
       localScope,
       {
         ...remoteScopeBase,
-        agentService: remoteNew.services.zcodeAgentService,
+        agentService: remoteNew.services.nibiAgentService,
       },
     ];
     await act(async () => {

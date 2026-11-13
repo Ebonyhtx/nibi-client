@@ -26,7 +26,7 @@ import {
 import { toast } from "@/components/ui/toast.js";
 import { cn } from "@/components/lib/utils.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 import { projectDataCleanupAvailable } from "@/project-sidebar/project-data-cleanup.js";
 import { useProjectDataCleanupSupport } from "@/project-sidebar/useProjectDataCleanupSupport.js";
@@ -40,7 +40,7 @@ import { remoteHostLabel } from "@/project-sidebar/RemoteHostSection.js";
 import { formatDateTime, formatRelativeToNow, type IntlLike } from "@/settings/automationFormat.js";
 import { SettingsGroupCard } from "@/settings/SettingsPageParts.js";
 import { SettingsSearchInput } from "@/settings/SettingsSearchInput.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 import type {
   ProjectAvailability,
   ProjectTask,
@@ -250,7 +250,7 @@ export function ProjectsSection({ isDesktop = false }: { isDesktop?: boolean }) 
 }
 
 function ProjectsSectionContent() {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const directory = useProjectDirectory();
   const { tree, availability, service, remoteService, refresh, loading, error } = directory;
   const confirm = useConfirmDialog();
@@ -265,7 +265,7 @@ function ProjectsSectionContent() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [cleanupTarget, setCleanupTarget] = useState<VirtualProject | null>(null);
 
-  const runningTaskIds = useZCodeSessionStore((state) => {
+  const runningTaskIds = useNibiSessionStore((state) => {
     const ids: string[] = [];
     for (const workspace of Object.values(state.workspaces)) {
       for (const [taskId, runtime] of Object.entries(workspace.taskRuntimeByTaskId ?? {})) {

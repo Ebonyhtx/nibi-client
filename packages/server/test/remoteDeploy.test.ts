@@ -16,7 +16,7 @@ import {
   NIBI_VERSION,
 } from "@nibi/shared";
 import type { IRemoteBackend, StdioStream } from "@nibi/server/remote/backend.js";
-import { deployZCodeAgentRuntime } from "@nibi/server/remote/zcodeAgentDeploy.js";
+import { deployNibiAgentRuntime } from "@nibi/server/remote/nibiAgentDeploy.js";
 import { deployServer } from "@nibi/server/remote/deploy.js";
 import {
   createRemoteComponentVersionResolver,
@@ -29,16 +29,16 @@ import {
   type RemoteAssetInstaller,
 } from "@nibi/server/remote/remoteAssetInstaller.js";
 import { createTarGzArchive } from "@nibi/server/remote/localTarGz.js";
-import { buildRemoteAgentBundleWrapper } from "@nibi/server/remote/zcodeAgentBundleWrapper.js";
+import { buildRemoteAgentBundleWrapper } from "@nibi/server/remote/nibiAgentBundleWrapper.js";
 import {
   REMOTE_AGENT_OFFICIAL_PLUGIN_INCLUDED_TOP_LEVEL_PATHS,
   REMOTE_AGENT_OFFICIAL_PLUGIN_PACKAGE_NAMES,
   REMOTE_AGENT_OFFICIAL_PLUGIN_REQUIRED_RELATIVE_PATHS,
-} from "@nibi/server/remote/zcodeAgentOfficialPluginAssets.js";
+} from "@nibi/server/remote/nibiAgentOfficialPluginAssets.js";
 
 const retiredProtocolPrefix = `${"a"}${"cp"}`;
 const retiredProxyRuntimeId = `${retiredProtocolPrefix}-proxy-runtime`;
-// 远端 ZCode Agent bundle 文件名（与 REMOTE_AGENT_BUNDLE_NAME 保持一致）。
+// 远端 Nibi Agent bundle 文件名（与 REMOTE_AGENT_BUNDLE_NAME 保持一致）。
 const REMOTE_AGENT_BUNDLE_FILE_NAME = "nibi.cjs";
 const REMOTE_AGENT_WRAPPER_FILE_NAME = "nibi-agent";
 const BROWSER_USE_REQUIRED_RELATIVE_PATHS = [
@@ -461,7 +461,7 @@ async function stageRemoteRuntimeRelease(
     const binaryDir = join(releaseDir, runtime.bundledResourceDir, platformKey);
     await mkdir(binaryDir, { recursive: true });
     await writeFile(join(binaryDir, binaryName), `${provider} binary`, "utf8");
-    // ZCode Agent（glm）远端不再发原生二进制，而是发编译产物 nibi.cjs，
+    // Nibi Agent（glm）远端不再发原生二进制，而是发编译产物 nibi.cjs，
     // 由远端已部署的 node 通过 wrapper 执行，故 source release 需提供该 bundle。
     if (provider === "glm") {
       await writeFile(join(binaryDir, REMOTE_AGENT_BUNDLE_FILE_NAME), `${provider} bundle`, "utf8");
@@ -517,7 +517,7 @@ function createFullyDeployedRemoteFiles(platformKey: RemotePlatformKey): Record<
         ] = "claude native binary";
       }
     } else if (provider === "glm") {
-      // ZCode Agent 远端部署后：wrapper（nibi-agent）+ 编译产物 bundle（nibi.cjs）。
+      // Nibi Agent 远端部署后：wrapper（nibi-agent）+ 编译产物 bundle（nibi.cjs）。
       const entrySegments = runtime.resolveEntrySegments(platform);
       const wrapperName = entrySegments[entrySegments.length - 1];
       if (wrapperName) {
@@ -619,7 +619,7 @@ async function writeTestOfficialPluginPackages(repoDir: string): Promise<void> {
   for (const name of ["SKILL.md", "patterns.md", "examples.md"]) {
     const path = join(
       repoDir,
-      "apps/zcode-cli/packages/bundled-skills/skills/dynamic-workflows",
+      "apps/nibi-cli/packages/bundled-skills/skills/dynamic-workflows",
       name,
     );
     await mkdir(dirname(path), { recursive: true });
@@ -630,7 +630,7 @@ async function writeTestOfficialPluginPackages(repoDir: string): Promise<void> {
       const manifestPath = join(
         repoDir,
         "apps",
-        "zcode-cli",
+        "nibi-cli",
         "packages",
         pluginName,
         ".nibi-plugin",
@@ -887,7 +887,7 @@ async function computeDevelopmentAgentAssetsSha256ForTest(
   hash.update("bundle:nibi.cjs\n");
   hash.update(await readFile(cliBundlePath));
   for (const packageName of OFFICIAL_PLUGIN_PACKAGE_NAMES) {
-    const packageRoot = join(repoDir, "apps", "zcode-cli", "packages", packageName);
+    const packageRoot = join(repoDir, "apps", "nibi-cli", "packages", packageName);
     hash.update(`plugin:${packageName}\n`);
     for (const topLevelPath of OFFICIAL_PLUGIN_INCLUDED_TOP_LEVEL_PATHS) {
       const sourcePath = join(packageRoot, topLevelPath);
@@ -900,7 +900,7 @@ async function computeDevelopmentAgentAssetsSha256ForTest(
   }
   await hashLocalPathForTest(
     hash,
-    join(repoDir, "apps/zcode-cli/packages/bundled-skills"),
+    join(repoDir, "apps/nibi-cli/packages/bundled-skills"),
     "bundled-skills",
   );
   return hash.digest("hex");
@@ -1059,10 +1059,10 @@ async function createStaticFileServer(
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();
 const originalRemoteDevAgentBundleEnv = process.env.NIBI_REMOTE_DEV_AGENT_BUNDLE;
-const originalZCodeRuntimeEnv = process.env[NIBI_RUNTIME_ENV_KEY];
+const originalNibiRuntimeEnv = process.env[NIBI_RUNTIME_ENV_KEY];
 const DEV_CLI_BUNDLE_TEST_SUFFIX = join(
   "apps",
-  "zcode-cli",
+  "nibi-cli",
   "packages",
   "cli",
   "dist",
@@ -1076,10 +1076,10 @@ afterEach(async () => {
   } else {
     process.env.NIBI_REMOTE_DEV_AGENT_BUNDLE = originalRemoteDevAgentBundleEnv;
   }
-  if (originalZCodeRuntimeEnv === undefined) {
+  if (originalNibiRuntimeEnv === undefined) {
     delete process.env[NIBI_RUNTIME_ENV_KEY];
   } else {
-    process.env[NIBI_RUNTIME_ENV_KEY] = originalZCodeRuntimeEnv;
+    process.env[NIBI_RUNTIME_ENV_KEY] = originalNibiRuntimeEnv;
   }
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { force: true, recursive: true })));
 });
@@ -1285,7 +1285,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     expect(backend.commands.join("\n")).toContain("plugin-sync");
     expect(backend.commands.join("\n")).toContain("exportMarketplaceSourceArchive");
     expect(backend.commands.join("\n")).toContain("importMarketplaceSourceArchive");
-    expect(backend.commands.join("\n")).toContain("__zcode_rpc_nested_uint8array_v1");
+    expect(backend.commands.join("\n")).toContain("__nibi_rpc_nested_uint8array_v1");
   });
 
   it("忽略历史资源包选择并部署完整默认远端资源", async () => {
@@ -1362,7 +1362,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     ).toBe(false);
   });
 
-  it("默认部署只处理 ZCode Agent，旧 node-script meta 不再阻断", async () => {
+  it("默认部署只处理 Nibi Agent，旧 node-script meta 不再阻断", async () => {
     const backend = new FakeRemoteBackend();
     const installedFiles: string[] = [];
     const installedDirectories: Array<{
@@ -1384,7 +1384,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       },
     };
 
-    await deployZCodeAgentRuntime(
+    await deployNibiAgentRuntime(
       backend,
       { platform: "linux", arch: "arm64" },
       {
@@ -1417,7 +1417,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     ).toBe(false);
   });
 
-  it("强制部署 ZCode Agent 时应要求 installer 刷新 glm 缓存", async () => {
+  it("强制部署 Nibi Agent 时应要求 installer 刷新 glm 缓存", async () => {
     const backend = new FakeRemoteBackend();
     const installRequests: Array<{
       componentId: string;
@@ -1434,7 +1434,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       },
     };
 
-    await deployZCodeAgentRuntime(
+    await deployNibiAgentRuntime(
       backend,
       { platform: "linux", arch: "arm64" },
       {
@@ -1451,7 +1451,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     ]);
   });
 
-  it("WSL 部署 ZCode Agent wrapper 时应走上传避免 shell 提前展开", async () => {
+  it("WSL 部署 Nibi Agent wrapper 时应走上传避免 shell 提前展开", async () => {
     const backend = new FakeWslRemoteBackend();
     const installedFiles: string[] = [];
     const installedDirectories: string[] = [];
@@ -1465,7 +1465,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       },
     };
 
-    await deployZCodeAgentRuntime(
+    await deployNibiAgentRuntime(
       backend,
       { platform: "linux", arch: "arm64" },
       {
@@ -1505,7 +1505,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       },
     };
 
-    await deployZCodeAgentRuntime(
+    await deployNibiAgentRuntime(
       backend,
       { platform: "linux", arch: "arm64" },
       {
@@ -1522,7 +1522,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     expect(installedDirectories).toEqual(["glm:~/.nibi/server/agents/glm/packages"]);
   });
 
-  it("ZCode Agent 版本匹配但远端缺 builtin plugin 资产时应复用 cache 补部署 packages", async () => {
+  it("Nibi Agent 版本匹配但远端缺 builtin plugin 资产时应复用 cache 补部署 packages", async () => {
     const remoteOfficialPluginDir = "~/.nibi/server/agents/glm/packages";
     const remoteFiles = createFullyDeployedRemoteFiles("linux-arm64");
     remoteFiles[remoteOfficialPluginDir] = "directory marker";
@@ -1558,7 +1558,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       },
     };
 
-    await deployZCodeAgentRuntime(
+    await deployNibiAgentRuntime(
       backend,
       { platform: "linux", arch: "arm64" },
       {
@@ -1614,7 +1614,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       },
     };
 
-    await deployZCodeAgentRuntime(
+    await deployNibiAgentRuntime(
       backend,
       { platform: "linux", arch: "arm64" },
       {
@@ -1672,7 +1672,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       },
     };
 
-    await deployZCodeAgentRuntime(
+    await deployNibiAgentRuntime(
       backend,
       { platform: "linux", arch: "arm64" },
       {
@@ -1705,7 +1705,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     ]);
   });
 
-  it("ZCode Agent 升级时权限修复失败仍应尝试替换 packages", async () => {
+  it("Nibi Agent 升级时权限修复失败仍应尝试替换 packages", async () => {
     const remoteFiles = createFullyDeployedRemoteFiles("linux-arm64");
     remoteFiles["~/.nibi/server/agents/glm/.version"] = "3.3.3\n";
     const backend = new FakeRemoteBackend(remoteFiles, {
@@ -1729,7 +1729,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     };
     const warnings: string[] = [];
 
-    await deployZCodeAgentRuntime(
+    await deployNibiAgentRuntime(
       backend,
       { platform: "linux", arch: "arm64" },
       {
@@ -1748,7 +1748,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     ]);
   });
 
-  it("ZCode Agent 升级时 chmod 失败后 packages 替换失败不应继续更新 bundle", async () => {
+  it("Nibi Agent 升级时 chmod 失败后 packages 替换失败不应继续更新 bundle", async () => {
     const remoteFiles = createFullyDeployedRemoteFiles("linux-arm64");
     remoteFiles["~/.nibi/server/agents/glm/.version"] = "3.3.3\n";
     const backend = new FakeRemoteBackend(remoteFiles, {
@@ -1773,7 +1773,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     };
 
     await expect(
-      deployZCodeAgentRuntime(
+      deployNibiAgentRuntime(
         backend,
         { platform: "linux", arch: "arm64" },
         {
@@ -1820,7 +1820,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     const cliBundlePath = join(
       repoDir,
       "apps",
-      "zcode-cli",
+      "nibi-cli",
       "packages",
       "cli",
       "dist",
@@ -1829,7 +1829,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     await mkdir(dirname(cliBundlePath), { recursive: true });
     await writeFile(cliBundlePath, "console.log('dev zcode agent');\n", "utf8");
     await writeTestOfficialPluginPackages(repoDir);
-    await rm(join(repoDir, "apps/zcode-cli/packages", missingAsset));
+    await rm(join(repoDir, "apps/nibi-cli/packages", missingAsset));
     process.chdir(repoDir);
     process.env.NIBI_REMOTE_DEV_AGENT_BUNDLE = "1";
     process.env[NIBI_RUNTIME_ENV_KEY] = "development";
@@ -1846,7 +1846,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     };
 
     await expect(
-      deployZCodeAgentRuntime(
+      deployNibiAgentRuntime(
         backend,
         { platform: "linux", arch: "arm64" },
         {
@@ -1867,7 +1867,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     const cliBundlePath = join(
       repoDir,
       "apps",
-      "zcode-cli",
+      "nibi-cli",
       "packages",
       "cli",
       "dist",
@@ -1902,7 +1902,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       },
     };
 
-    await deployZCodeAgentRuntime(
+    await deployNibiAgentRuntime(
       backend,
       { platform: "linux", arch: "arm64" },
       {
@@ -1969,7 +1969,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       const cliBundlePath = join(
         repoDir,
         "apps",
-        "zcode-cli",
+        "nibi-cli",
         "packages",
         "cli",
         "dist",
@@ -2008,7 +2008,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
         await writeFile(
           join(
             repoDir,
-            "apps/zcode-cli/packages/bundled-skills/skills/dynamic-workflows/examples.md",
+            "apps/nibi-cli/packages/bundled-skills/skills/dynamic-workflows/examples.md",
           ),
           "updated examples",
         );
@@ -2026,7 +2026,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
         },
       };
 
-      await deployZCodeAgentRuntime(
+      await deployNibiAgentRuntime(
         backend,
         { platform: "linux", arch: "arm64" },
         {

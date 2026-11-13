@@ -48,7 +48,7 @@ const ACTIONABILITY_RESULT_MARKER = "E2E_BROWSER_USE_IAB_ACTIONABILITY_OK";
 const BOOTSTRAP_PERMISSION_TITLE = "打开 Browser Use 测试页面";
 const ACTION_PERMISSION_TITLE = "填写并截图 Browser Use 测试页面";
 const FIXTURE_TITLE = "E2E Browser Use Fixture";
-const SUBMITTED_TEXT = "Submitted ZCode / ZCode";
+const SUBMITTED_TEXT = "Submitted Nibi / Nibi";
 const DESKTOP_ZOOM_LEVEL_CHANGED = PlatformChannels.DesktopZoomLevelChanged;
 
 interface BrowserSurfaceSnapshot {
@@ -108,9 +108,9 @@ describe("Browser Use Desktop IAB 全链 E2E", () => {
 
     await prepareV4ConversationE2E();
     const prompt = [
-      `${PROMPT_MARKER}: control the ZCode in-app browser against the supplied local fixture.`,
+      `${PROMPT_MARKER}: control the Nibi in-app browser against the supplied local fixture.`,
       `E2E_BROWSER_FIXTURE_URL:${fixtureUrl}`,
-      "Inspect the form, fill Name with ZCode, submit it, take one explicit screenshot, and report the result.",
+      "Inspect the form, fill Name with Nibi, submit it, take one explicit screenshot, and report the result.",
     ].join(" ");
 
     await sendV4Prompt(prompt);
@@ -211,8 +211,8 @@ describe("Browser Use Desktop IAB 全链 E2E", () => {
     const guest = await waitForGuestSnapshot(originalWebContentsId as number);
     expect(guest.url).toBe(fixtureUrl);
     expect(guest.title).toBe(FIXTURE_TITLE);
-    expect(guest.inputValue).toBe("ZCode");
-    expect(guest.animatedInputValue).toBe("ZCode");
+    expect(guest.inputValue).toBe("Nibi");
+    expect(guest.animatedInputValue).toBe("Nibi");
     expect(guest.hiddenInputValue).toBe("");
     expect(guest.coveredClicks).toBe(0);
     expect(guest.status).toBe(SUBMITTED_TEXT);

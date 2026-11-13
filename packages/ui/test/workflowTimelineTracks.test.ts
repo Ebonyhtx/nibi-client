@@ -14,7 +14,7 @@ import {
   WorkflowTimeline,
 } from "@/components/workflow-timeline/WorkflowTimeline.js";
 import { timelineRailPieces } from "@/components/workflow-timeline/WorkflowTimelineTracks.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 interface GraphSpec {
   names: readonly string[];
@@ -98,7 +98,7 @@ function modelOf(spec: GraphSpec, run?: WorkflowRunState) {
 function renderTimeline(model: ReturnType<typeof buildWorkflowTimeline>) {
   return render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "en-US" },
       createElement(WorkflowTimeline, { model }),
     ),

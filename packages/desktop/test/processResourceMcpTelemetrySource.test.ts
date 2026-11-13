@@ -8,11 +8,11 @@ import {
   resetExternalAppResourceSamples,
 } from "@desktop/main/processResourceExternalAppSamples";
 import type { ProcessRoleSample } from "@desktop/main/processResourceWindowAggregator";
-import type { ZCodeMcpResourceSample } from "@nibi/shared";
+import type { NibiMcpResourceSample } from "@nibi/shared";
 
 const debug = vi.hoisted(() => vi.fn());
 vi.mock("@desktop/main/logger", () => ({ logger: { debug } }));
-function sample(overrides: Partial<ZCodeMcpResourceSample> = {}): ZCodeMcpResourceSample {
+function sample(overrides: Partial<NibiMcpResourceSample> = {}): NibiMcpResourceSample {
   return {
     mcpId: "builtin:node_repl",
     instanceToken: "cli-instance-01",

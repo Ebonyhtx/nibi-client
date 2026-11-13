@@ -42,12 +42,12 @@ vi.mock("@/components/ui/dropdown-menu.js", () => {
 
 vi.mock("@/lib/pickerFocus.js", () => ({ isCoarseTouchDevice: () => false }));
 
-vi.mock("@/hooks/useZCodeConfig.js", () => ({
+vi.mock("@/hooks/useNibiConfig.js", () => ({
   useToolbarConfigOptions: () => ({ configOptions: [] }),
 }));
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }) => id,
     },

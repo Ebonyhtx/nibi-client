@@ -1,6 +1,6 @@
 //! 附件事务的暂存表（141 审计 §9 第 4 项）：幂等、顺序、有界，以及 commit 的完整事实校验。
 //!
-//! 对照 Host 的 `AttachmentUploadRegistry`（`apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/
+//! 对照 Host 的 `AttachmentUploadRegistry`（`apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/
 //! attachment-upload-registry.ts`）与它的 `v4-native-attachments.test.ts`：同一组用例，同一组
 //! `fault.attachment.*` 码。
 

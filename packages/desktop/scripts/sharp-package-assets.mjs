@@ -1,9 +1,9 @@
 // Sharp native module staging for the shared node_repl runtime.
 //
 // Why this exists: the bundled node_repl server
-// (apps/zcode-cli/packages/browser-use-plugin/dist/mcp/server.js) externalizes `sharp` because it loads a native `.node`
+// (apps/nibi-cli/packages/browser-use-plugin/dist/mcp/server.js) externalizes `sharp` because it loads a native `.node`
 // binary that esbuild cannot inline. In dev the workspace's hoisted
-// `node_modules/sharp` resolves fine. In the installed ZCode.app the server
+// `node_modules/sharp` resolves fine. In the installed Nibi.app the server
 // runs from `<Resources>/glm/packages/browser-use-plugin/dist/mcp/server.js` and
 // Node walks up looking for `node_modules/sharp`. Nothing in that walk reaches
 // the Electron app.asar tree, so without staging sharp into the glm/ tree the
@@ -211,7 +211,7 @@ export function stageSharpIntoBundledAgents({ desktopPackageRoot, glmDir, target
  * Resolve the absolute path of the staged sharp directory inside the packaged
  * app, for afterPack assertion. This is where Node's resolution walk lands
  * when the plugin's server.js does `import sharp from "sharp"` in the
- * installed ZCode.app.
+ * installed Nibi.app.
  */
 export function resolvePackagedSharpDir({
   resourcesDir,

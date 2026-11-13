@@ -253,22 +253,22 @@ describe("任务分组独立视图", () => {
       await browser.keys("Escape");
       await $('[data-testid="task-group-move-menu"]').waitForExist({ reverse: true });
     }
-    await callHandoffHost(ServiceChannels.ZCodeTask, "setTaskPinned", [
+    await callHandoffHost(ServiceChannels.NibiTask, "setTaskPinned", [
       { ...target, pinned: true },
     ]);
     await browser.execute(() => window.dispatchEvent(new Event("focus")));
     await $('[data-testid="project-pinned-tasks"]').$(selector).waitForDisplayed();
     expect(await $$(`[data-testid="task-grouped-view"] ${selector}`)).toHaveLength(0);
-    await callHandoffHost(ServiceChannels.ZCodeTask, "setTaskPinned", [
+    await callHandoffHost(ServiceChannels.NibiTask, "setTaskPinned", [
       { ...target, pinned: false },
     ]);
-    await callHandoffHost(ServiceChannels.ZCodeTask, "archiveTask", [target]);
+    await callHandoffHost(ServiceChannels.NibiTask, "archiveTask", [target]);
     await browser.execute(() => window.dispatchEvent(new Event("focus")));
     await $(selector).waitForExist({ reverse: true });
     expect((await read()).members.some((m) => m.taskId === taskId && m.groupId === groupId)).toBe(
       true,
     );
-    await callHandoffHost(ServiceChannels.ZCodeTask, "unarchiveTask", [target]);
+    await callHandoffHost(ServiceChannels.NibiTask, "unarchiveTask", [target]);
     await browser.execute(() => window.dispatchEvent(new Event("focus")));
     await $(selector).waitForDisplayed();
     await $('[data-testid="task-group-add"]').click();

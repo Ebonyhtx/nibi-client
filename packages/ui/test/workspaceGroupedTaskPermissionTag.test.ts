@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { ProjectTask as ZCodeTaskMeta } from "@/project-sidebar/contract.js";
+import type { ProjectTask as NibiTaskMeta } from "@/project-sidebar/contract.js";
 import { SidebarTooltipProvider } from "@/ControlHintTooltip.js";
 import { GroupedTaskRow } from "@/project-sidebar/grouped/task-row.js";
 import { attachTaskListRowActivity } from "@/v4/taskListRowActivity.js";
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }, values?: Record<string, string>) => {
         const messages: Record<string, string> = {
@@ -55,7 +55,7 @@ vi.mock("@/useTaskListItemContextActions.js", () => ({
   }),
 }));
 
-function createTaskMeta(overrides: Partial<ZCodeTaskMeta> = {}): ZCodeTaskMeta {
+function createTaskMeta(overrides: Partial<NibiTaskMeta> = {}): NibiTaskMeta {
   return {
     hostId: "local",
     projectId: null,
@@ -73,7 +73,7 @@ function createTaskMeta(overrides: Partial<ZCodeTaskMeta> = {}): ZCodeTaskMeta {
 
 function renderGroupedTaskRow(
   params: {
-    task?: Partial<ZCodeTaskMeta>;
+    task?: Partial<NibiTaskMeta>;
     unreadAt?: number;
     permissionCount?: number;
     userInputCount?: number;

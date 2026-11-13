@@ -15,7 +15,7 @@ import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { parse as parseYaml } from "yaml";
 import type {
-  ZCodeProvider,
+  NibiProvider,
   SkillDiagnostic,
   SkillMetadata,
   SkillScope,
@@ -29,7 +29,7 @@ import type { ISkillsService } from "./skills.js";
 import { SKILL_FILE_NAME, walkSkillMarkdownPaths } from "./skillDiscoveryWalk.js";
 import { readInstalledPluginRoots } from "#src/plugins/installedPluginRoots.js";
 import { updateJsonObjectFile } from "#src/fs/atomicFileUtils.js";
-import { resolveZCodeStorageRoot } from "#src/subagents/subagentStorage.js";
+import { resolveNibiStorageRoot } from "#src/subagents/subagentStorage.js";
 
 interface DiscoverResult {
   skills: SkillSummary[];
@@ -56,7 +56,7 @@ const NIBI_PLUGIN_MANIFEST_PATHS = [join(".nibi-plugin", "plugin.json"), join(".
 const CLAUDE_PLUGIN_MANIFEST_PATH = join(".claude-plugin", "plugin.json");
 const CODEX_PLUGIN_MANIFEST_PATH = join(".codex-plugin", "plugin.json");
 
-/** 对齐 apps/zcode-cli/packages/adapters/src/skills/index.ts:19 */
+/** 对齐 apps/nibi-cli/packages/adapters/src/skills/index.ts:19 */
 const MAX_DESCRIPTION_LENGTH = 1024;
 function resolveUserHomeDir() {
   const envHome = process.env.HOME?.trim() || process.env.USERPROFILE?.trim();
@@ -85,15 +85,15 @@ export function resolveSkillSettingsDir(): string {
  * 必须跟**数据根**走：`config.json` 记的是"这个实例装了/开了哪些插件"，写死用户主目录会让
  * 隔离实例去读写另一个实例的配置 —— 实测 dev 实例里"创建插件"因此判定不可用：桌面侧技能
  * 服务读到的是线上实例的插件表（github 的技能来自线上 cache），而本实例的 plugin-creator
- * 根本不在视野里。解析顺序与 `subagents/subagentStorage.ts#resolveZCodeStorageRoot` 一致：
+ * 根本不在视野里。解析顺序与 `subagents/subagentStorage.ts#resolveNibiStorageRoot` 一致：
  * 数据根环境变量（dev / 换根部署）→ 用户 CLI 配置里的 storage.dir → `~/.nibi`。
  */
 export async function resolveSkillCliSettingsDir(): Promise<string> {
-  return join(await resolveZCodeStorageRoot(), "cli");
+  return join(await resolveNibiStorageRoot(), "cli");
 }
 
-/** ZCode Agent 工作区级技能目录。 */
-function getWorkspaceZcodeSkillRoot(workspacePath: string): string {
+/** Nibi Agent 工作区级技能目录。 */
+function getWorkspaceNibiSkillRoot(workspacePath: string): string {
   return join(workspacePath, ".nibi", "skills");
 }
 
@@ -102,8 +102,8 @@ function getWorkspaceAgentsSkillRoot(workspacePath: string): string {
   return join(workspacePath, ".agents", "skills");
 }
 
-/** ZCode Agent 用户级技能目录。 */
-function getUserZcodeSkillRoot(): string {
+/** Nibi Agent 用户级技能目录。 */
+function getUserNibiSkillRoot(): string {
   return join(resolveUserHomeDir(), ".nibi", "skills");
 }
 
@@ -139,25 +139,25 @@ async function collectSkillNameKeysInRoot(rootPath: string): Promise<Set<string>
   return nameKeys;
 }
 
-async function isUserAgentsSkillCoveredByZcode(params: {
+async function isUserAgentsSkillCoveredByNibi(params: {
   skillPath: string;
   rootPath: string;
-  userZcodeSkillNameKeys: Set<string>;
+  userNibiSkillNameKeys: Set<string>;
 }): Promise<boolean> {
-  const { skillPath, rootPath, userZcodeSkillNameKeys } = params;
+  const { skillPath, rootPath, userNibiSkillNameKeys } = params;
   if (rootPath !== getUserAgentsSkillRoot()) {
     return false;
   }
-  if (await exists(join(getUserZcodeSkillRoot(), basename(dirname(skillPath)), SKILL_FILE_NAME))) {
+  if (await exists(join(getUserNibiSkillRoot(), basename(dirname(skillPath)), SKILL_FILE_NAME))) {
     return true;
   }
-  return userZcodeSkillNameKeys.has(await readSkillNameKey(skillPath));
+  return userNibiSkillNameKeys.has(await readSkillNameKey(skillPath));
 }
 
 /**
  * 从 workspacePath 向上走到 worktree 根（含 .git 标记），把每一层的
  * `.nibi/skills` 与 `.agents/skills` 都收集起来。
- * 对齐 apps/zcode-cli/packages/adapters/src/skills/roots.ts:60-72。
+ * 对齐 apps/nibi-cli/packages/adapters/src/skills/roots.ts:60-72。
  * 找不到 .git 时退回 workspacePath 自身。
  */
 async function resolveAncestorWorkspaceRoots(workspacePath: string): Promise<string[]> {
@@ -180,7 +180,7 @@ async function resolveAncestorWorkspaceRoots(workspacePath: string): Promise<str
     // Agent runtime 会合并扫描两个 workspace skill 根。UI 之前把 `.agents`
     // 当成 `.nibi` 的 fallback，导致同层 `.nibi` 只要有一个技能，`/`、`$` 和设置页
     // 就会整根漏掉 `.agents` 技能，形成“模型可执行但 UI 无法引用”的发现语义分裂。
-    roots.push(getWorkspaceZcodeSkillRoot(dir));
+    roots.push(getWorkspaceNibiSkillRoot(dir));
     roots.push(getWorkspaceAgentsSkillRoot(dir));
   }
   return roots;
@@ -257,7 +257,7 @@ function hashStableIdPart(value: string): string {
 }
 
 function buildSkillId(params: {
-  provider: ZCodeProvider;
+  provider: NibiProvider;
   scope: SkillScope;
   name: string;
   path: string;
@@ -691,7 +691,7 @@ function resolveCliStorageRoot(storageDir: string): string {
 /**
  * 插件 cache / 安装记录的根（`<存储根>/cli/plugins`）。
  *
- * 存储根优先级与 `subagents/subagentStorage.ts#resolveZCodeStorageRoot` 一致：
+ * 存储根优先级与 `subagents/subagentStorage.ts#resolveNibiStorageRoot` 一致：
  * `NIBI_STORAGE_DIR` / `NIBI_HOME` → 配置里的 `storage.dir` → `~/.nibi`。
  * `NIBI_DATA_BASE_DIR` 不在这里：它只挪 `.nibi/v2`（配置与 tasks-index），与内核
  * `resolveCliStorageRoot` 同一口径。混用的后果是内核能加载、设置页却看不到插件。
@@ -886,7 +886,7 @@ async function discoverSkills(params: {
   workspacePath: string;
   workspaceIdentity?: string;
   includeUserSkills: boolean;
-  provider: ZCodeProvider;
+  provider: NibiProvider;
 }): Promise<DiscoverResult> {
   const workspaceRoots = dedupeRoots(
     await resolveAncestorWorkspaceRoots(params.workspacePath),
@@ -900,7 +900,7 @@ async function discoverSkills(params: {
     // `.agents/skills` 会导致外部 Agent 的全局技能在导入后从设置页消失。
     roots.push({
       scope: "user" as const,
-      rootPath: getUserZcodeSkillRoot(),
+      rootPath: getUserNibiSkillRoot(),
     });
     roots.push({
       scope: "user" as const,
@@ -912,8 +912,8 @@ async function discoverSkills(params: {
   const diagnostics: SkillDiagnostic[] = [];
   const skills: SkillSummary[] = [];
   const seenSkillPaths = new Set<string>();
-  const userZcodeSkillNameKeys = params.includeUserSkills
-    ? await collectSkillNameKeysInRoot(getUserZcodeSkillRoot())
+  const userNibiSkillNameKeys = params.includeUserSkills
+    ? await collectSkillNameKeysInRoot(getUserNibiSkillRoot())
     : new Set<string>();
   const scanRootPaths = await dedupeScanRootsByRealpath(roots.map((root) => root.rootPath));
   const rootByPath = new Map(roots.map((root) => [root.rootPath, root]));
@@ -930,10 +930,10 @@ async function discoverSkills(params: {
     const skillPaths = await collectSkillMarkdownPaths(root.rootPath, diagnostics);
     for (const skillPath of skillPaths) {
       if (
-        await isUserAgentsSkillCoveredByZcode({
+        await isUserAgentsSkillCoveredByNibi({
           skillPath,
           rootPath: root.rootPath,
-          userZcodeSkillNameKeys,
+          userNibiSkillNameKeys,
         })
       ) {
         continue;
@@ -991,7 +991,7 @@ async function discoverSkills(params: {
       }
 
       // frontmatter 扩展字段通常来自不同 skill 生态的元信息。
-      // 这些字段不影响 ZCode 读取 name/description，继续报 warning 只会制造无操作价值的噪音。
+      // 这些字段不影响 Nibi 读取 name/description，继续报 warning 只会制造无操作价值的噪音。
 
       const body = parsed.body.trim();
       const metadata = await readSkillMetadata(skillPath);
@@ -1083,7 +1083,7 @@ export function createSkillsService(options?: SkillsServiceOptions): ISkillsServ
     async list(params: {
       workspacePath: string;
       workspaceIdentity?: string;
-      provider?: ZCodeProvider;
+      provider?: NibiProvider;
     }): Promise<SkillsListResult> {
       const capability = resolveCapabilities(options);
       const provider = "glm";
@@ -1104,7 +1104,7 @@ export function createSkillsService(options?: SkillsServiceOptions): ISkillsServ
     async setEnabled(params: {
       workspacePath: string;
       workspaceIdentity?: string;
-      provider?: ZCodeProvider;
+      provider?: NibiProvider;
       scope?: SkillScope;
       skillId: string;
       enabled: boolean;
@@ -1135,7 +1135,7 @@ export function createSkillsService(options?: SkillsServiceOptions): ISkillsServ
     async buildPromptContext(params: {
       workspacePath: string;
       workspaceIdentity?: string;
-      provider?: ZCodeProvider;
+      provider?: NibiProvider;
       prompt: string;
     }): Promise<SkillsPromptContext> {
       const mentionedSkillNames = collectMentionedSkillNames(params.prompt);
@@ -1187,8 +1187,8 @@ export function createSkillsService(options?: SkillsServiceOptions): ISkillsServ
       // 通用目录根据 skill 原 scope 确定 user 还是 workspace 级
       const commonRoot =
         skill.scope === "workspace"
-          ? getWorkspaceZcodeSkillRoot(params.workspacePath)
-          : getUserZcodeSkillRoot();
+          ? getWorkspaceNibiSkillRoot(params.workspacePath)
+          : getUserNibiSkillRoot();
       const targetDir = join(commonRoot, basename(sourceDir));
       // 不覆盖已有目录
       if (await exists(targetDir)) {
@@ -1213,8 +1213,8 @@ export function createSkillsService(options?: SkillsServiceOptions): ISkillsServ
         throw new Error(`Skill not found: ${params.skillId}`);
       }
       const normalizedPath = skill.path.replaceAll("\\", "/").toLowerCase();
-      const userCommonRoot = getUserZcodeSkillRoot().replaceAll("\\", "/").toLowerCase();
-      const workspaceCommonRoot = getWorkspaceZcodeSkillRoot(params.workspacePath)
+      const userCommonRoot = getUserNibiSkillRoot().replaceAll("\\", "/").toLowerCase();
+      const workspaceCommonRoot = getWorkspaceNibiSkillRoot(params.workspacePath)
         .replaceAll("\\", "/")
         .toLowerCase();
       const inUserCommon = normalizedPath.includes(`${userCommonRoot}/`);
@@ -1260,7 +1260,7 @@ export function createSkillsService(options?: SkillsServiceOptions): ISkillsServ
       // 安全护栏：删除是 `rm -rf` 目录的破坏性操作，仅允许命中受控技能根。
       // 收集工作区各层级（沿 worktree 向上）的 .nibi/skills 与 .agents/skills，外加用户级两根。
       const allowedRootCandidates = await resolveAncestorWorkspaceRoots(params.workspacePath);
-      allowedRootCandidates.push(getUserZcodeSkillRoot());
+      allowedRootCandidates.push(getUserNibiSkillRoot());
       allowedRootCandidates.push(getUserAgentsSkillRoot());
 
       // 用 realpath 后的父目录与 realpath 后的根比较：父目录必须落在（或等于）某个受控根内。

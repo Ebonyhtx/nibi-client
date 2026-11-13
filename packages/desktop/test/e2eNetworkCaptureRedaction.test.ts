@@ -142,7 +142,7 @@ function createCertificate(commonName: string, notAfter: Date): { certificate: s
   certificate.validity.notBefore = new Date("2024-01-01T00:00:00Z");
   certificate.validity.notAfter = notAfter;
   certificate.setSubject([{ name: "commonName", value: commonName }]);
-  certificate.setIssuer([{ name: "commonName", value: "ZCode E2E Test CA" }]);
+  certificate.setIssuer([{ name: "commonName", value: "Nibi E2E Test CA" }]);
   certificate.sign(keys.privateKey, forge.md.sha256.create());
   return {
     certificate: forge.pki.certificateToPem(certificate),

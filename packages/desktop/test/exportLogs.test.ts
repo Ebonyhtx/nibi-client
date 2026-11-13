@@ -387,7 +387,7 @@ describe("export logs archive", () => {
     });
   });
 
-  it("导出日志时应额外带上 zcode-cli 用户日志", async () => {
+  it("导出日志时应额外带上 nibi-cli 用户日志", async () => {
     const originalHome = process.env["HOME"];
     try {
       await withTempDir(async (tempDir) => {
@@ -399,11 +399,11 @@ describe("export logs archive", () => {
           await import("@desktop/main/exportLogs.js");
 
         const sourceDir = join(tempDir, "source");
-        const zcodeCliLogDir = join(fakeHome, ".nibi", "cli", "log");
+        const nibiCliLogDir = join(fakeHome, ".nibi", "cli", "log");
         await mkdir(join(sourceDir, "logs"), { recursive: true });
-        await mkdir(zcodeCliLogDir, { recursive: true });
+        await mkdir(nibiCliLogDir, { recursive: true });
         await writeFile(join(sourceDir, "logs", "main.log"), "main-log", "utf-8");
-        await writeFile(join(zcodeCliLogDir, "agent.log"), "zcode-cli-agent-log", "utf-8");
+        await writeFile(join(nibiCliLogDir, "agent.log"), "nibi-cli-agent-log", "utf-8");
 
         const artifacts = await createLogArchiveArtifacts(sourceDir);
         const zipPath = join(tempDir, "logs-with-external-agents.zip");
@@ -411,7 +411,7 @@ describe("export logs archive", () => {
 
         const entries = await readZipEntries(zipPath);
         expect(entries.get("logs/main.log")).toBe("main-log");
-        expect(entries.get(".nibi/cli/log/agent.log")).toBe("zcode-cli-agent-log");
+        expect(entries.get(".nibi/cli/log/agent.log")).toBe("nibi-cli-agent-log");
       });
     } finally {
       if (originalHome == null) {
@@ -423,7 +423,7 @@ describe("export logs archive", () => {
     }
   });
 
-  it("导出日志应带上 zcode-cli 的 config.json、rollout 且排除 debug 目录", async () => {
+  it("导出日志应带上 nibi-cli 的 config.json、rollout 且排除 debug 目录", async () => {
     const originalHome = process.env["HOME"];
     try {
       await withTempDir(async (tempDir) => {
@@ -435,13 +435,13 @@ describe("export logs archive", () => {
           await import("@desktop/main/exportLogs.js");
 
         const sourceDir = join(tempDir, "source");
-        const zcodeCliDir = join(fakeHome, ".nibi", "cli");
-        const rolloutDir = join(zcodeCliDir, "rollout");
-        const debugDir = join(zcodeCliDir, "debug");
+        const nibiCliDir = join(fakeHome, ".nibi", "cli");
+        const rolloutDir = join(nibiCliDir, "rollout");
+        const debugDir = join(nibiCliDir, "debug");
         await mkdir(join(sourceDir, "logs"), { recursive: true });
         await mkdir(rolloutDir, { recursive: true });
         await mkdir(debugDir, { recursive: true });
-        await writeFile(join(zcodeCliDir, "config.json"), '{"model":"glm"}', "utf-8");
+        await writeFile(join(nibiCliDir, "config.json"), '{"model":"glm"}', "utf-8");
         await writeFile(join(rolloutDir, "model-io-recent.jsonl"), "rollout-recent", "utf-8");
         await writeFile(join(debugDir, "model-io-old.jsonl"), "debug-old", "utf-8");
         // 故意把 rollout 文件改成远超 3 天窗口的旧时间，验证 rollout 不参与时间过滤。
@@ -536,15 +536,15 @@ describe("export logs archive", () => {
 
         const sourceDir = join(tempDir, "source");
         const feedbackLogDir = join(tempDir, "feedback-logs");
-        const zcodeCliDir = join(fakeHome, ".nibi", "cli");
+        const nibiCliDir = join(fakeHome, ".nibi", "cli");
         await mkdir(join(sourceDir, "logs"), { recursive: true });
         await mkdir(join(sourceDir, "agent-config", "codex", "workspace-a"), {
           recursive: true,
         });
         await mkdir(join(sourceDir, "certs"), { recursive: true });
-        await mkdir(join(zcodeCliDir, "log"), { recursive: true });
-        await mkdir(join(zcodeCliDir, "rollout"), { recursive: true });
-        await mkdir(join(zcodeCliDir, "debug"), { recursive: true });
+        await mkdir(join(nibiCliDir, "log"), { recursive: true });
+        await mkdir(join(nibiCliDir, "rollout"), { recursive: true });
+        await mkdir(join(nibiCliDir, "debug"), { recursive: true });
 
         await writeFile(join(sourceDir, "logs", "main.log"), "main-log", "utf-8");
         await writeFile(join(sourceDir, "credentials.json"), '{"token":"app-secret"}', "utf-8");
@@ -554,9 +554,9 @@ describe("export logs archive", () => {
           "utf-8",
         );
         await writeFile(join(sourceDir, "certs", "app-ca.pem"), "certificate-state", "utf-8");
-        await writeFile(join(zcodeCliDir, "log", "agent.log"), "agent-log", "utf-8");
+        await writeFile(join(nibiCliDir, "log", "agent.log"), "agent-log", "utf-8");
         await writeFile(
-          join(zcodeCliDir, "config.json"),
+          join(nibiCliDir, "config.json"),
           JSON.stringify({
             model: "glm",
             apiKey: "config-secret",
@@ -570,18 +570,18 @@ describe("export logs archive", () => {
           }),
           "utf-8",
         );
-        await writeFile(join(zcodeCliDir, "rollout", "trace.jsonl"), "rollout-today", "utf-8");
-        await writeFile(join(zcodeCliDir, "rollout", "old-trace.jsonl"), "rollout-old", "utf-8");
-        await writeFile(join(zcodeCliDir, "debug", "trace.jsonl"), "debug", "utf-8");
+        await writeFile(join(nibiCliDir, "rollout", "trace.jsonl"), "rollout-today", "utf-8");
+        await writeFile(join(nibiCliDir, "rollout", "old-trace.jsonl"), "rollout-old", "utf-8");
+        await writeFile(join(nibiCliDir, "debug", "trace.jsonl"), "debug", "utf-8");
 
         const progressEvents: Array<{ processedBytes: number; totalBytes: number }> = [];
         const feedbackDate = new Date("2026-06-15T01:02:03");
         await utimes(join(sourceDir, "logs", "main.log"), feedbackDate, feedbackDate);
-        await utimes(join(zcodeCliDir, "log", "agent.log"), feedbackDate, feedbackDate);
-        await utimes(join(zcodeCliDir, "rollout", "trace.jsonl"), feedbackDate, feedbackDate);
+        await utimes(join(nibiCliDir, "log", "agent.log"), feedbackDate, feedbackDate);
+        await utimes(join(nibiCliDir, "rollout", "trace.jsonl"), feedbackDate, feedbackDate);
         const oldRolloutDate = new Date("2026-06-14T23:59:59");
         await utimes(
-          join(zcodeCliDir, "rollout", "old-trace.jsonl"),
+          join(nibiCliDir, "rollout", "old-trace.jsonl"),
           oldRolloutDate,
           oldRolloutDate,
         );
@@ -678,12 +678,12 @@ describe("export logs archive", () => {
         );
         await writeTimedFile(
           join(fakeHome, ".nibi", "cli", "log", "recent.log"),
-          "recent-zcode-cli-log",
+          "recent-nibi-cli-log",
           recentTime,
         );
         await writeTimedFile(
           join(fakeHome, ".nibi", "cli", "log", "old.log"),
-          "old-zcode-cli-log",
+          "old-nibi-cli-log",
           oldTime,
         );
 
@@ -1042,7 +1042,7 @@ describe("export logs archive", () => {
       const result = await exportLogs({
         ...createExportLogTestDirs(tempDir),
         now: () => new Date("2026-04-20T01:02:03"),
-        getZCodeDataDir: () => sourceDir,
+        getNibiDataDir: () => sourceDir,
         createLogArchiveArtifacts: async () => {
           await rm(transientFile, { force: true });
           return {
@@ -1125,7 +1125,7 @@ describe("export logs archive", () => {
         const result = await exportLogs({
           ...createExportLogTestDirs(tempDir),
           now: () => new Date("2026-04-20T01:02:03"),
-          getZCodeDataDir: () => sourceDir,
+          getNibiDataDir: () => sourceDir,
         });
 
         expect(result.success).toBe(true);
@@ -1191,7 +1191,7 @@ describe("export logs archive", () => {
         const result = await exportLogs({
           ...createExportLogTestDirs(tempDir),
           now: () => new Date("2026-04-20T01:02:03"),
-          getZCodeDataDir: () => sourceDir,
+          getNibiDataDir: () => sourceDir,
           createLogArchiveArtifacts: async () => ({
             files: [
               { absolutePath: stableFile, archivePath: "logs/stable.log" },
@@ -1245,7 +1245,7 @@ describe("export logs archive", () => {
       const result = await exportLogs({
         ...createExportLogTestDirs(tempDir),
         now: () => new Date("2026-04-20T01:02:03"),
-        getZCodeDataDir: () => sourceDir,
+        getNibiDataDir: () => sourceDir,
         createLogArchiveArtifacts: async () => ({
           files: [{ absolutePath: sourceFile, archivePath: "logs/main.log" }],
           aboutContent: "about-fallback",

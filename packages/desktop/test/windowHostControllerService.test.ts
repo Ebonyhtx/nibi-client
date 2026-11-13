@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { Emitter } from "@nibi/rpc";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import type {
-  IZCodeAgentService,
-  IZCodeTaskService,
+  INibiAgentService,
+  INibiTaskService,
   WindowHostControllerFrame,
 } from "@nibi/services";
 import {
@@ -17,7 +17,7 @@ function meta(params: {
   workspacePath?: string;
   workspaceIdentity?: string;
   createdAt?: number;
-}): ZCodeTaskMeta {
+}): NibiTaskMeta {
   return {
     taskId: params.taskId,
     traceId: `trace-${params.taskId}`,
@@ -31,10 +31,10 @@ function meta(params: {
 }
 
 function taskService(params: {
-  active?: ZCodeTaskMeta[];
-  pinned?: ZCodeTaskMeta[];
-  archived?: ZCodeTaskMeta[];
-  search?: ZCodeTaskMeta[];
+  active?: NibiTaskMeta[];
+  pinned?: NibiTaskMeta[];
+  archived?: NibiTaskMeta[];
+  search?: NibiTaskMeta[];
 }) {
   return {
     listTasks: vi.fn(async () => params.active ?? []),
@@ -52,7 +52,7 @@ function taskService(params: {
     unarchiveTask: vi.fn(async () => meta({ taskId: "unarchived" })),
     deleteTask: vi.fn(async () => undefined),
     setTaskUnread: vi.fn(async () => meta({ taskId: "unread" })),
-  } as unknown as IZCodeTaskService;
+  } as unknown as INibiTaskService;
 }
 
 const remoteIdentity = "remote:ssh:dev:22:user:/work/demo";
@@ -188,7 +188,7 @@ describe("WindowHostControllerService", () => {
       }),
       resyncSessionsIndexV4: vi.fn(),
       unsubscribeSessionsIndexV4: vi.fn(async () => undefined),
-    } as unknown as IZCodeAgentService;
+    } as unknown as INibiAgentService;
     const local = taskService({ active: [meta({ taskId: "live" })] });
     const runtime = createWindowHostControllerRuntime({
       createId: () => "id",
@@ -646,7 +646,7 @@ describe("WindowHostControllerService", () => {
       active: [meta({ taskId: "new", workspaceIdentity: remoteIdentity })],
     });
     let sessionId = "remote-old";
-    let service: IZCodeTaskService = oldService;
+    let service: INibiTaskService = oldService;
     const runtime = createWindowHostControllerRuntime({
       createId: () => "id",
       resolveSource: (scope) => ({
@@ -778,7 +778,7 @@ describe("WindowHostControllerService", () => {
       dispose: disposeDynamicSubscription,
     }));
     let sessionId = "remote-old";
-    let service: IZCodeTaskService = oldService;
+    let service: INibiTaskService = oldService;
     let sourceAvailability: "online" | "offline" = "online";
     const runtime = createWindowHostControllerRuntime({
       createId: () => "id",

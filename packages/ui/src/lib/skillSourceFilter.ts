@@ -1,4 +1,4 @@
-import type { ZCodeProvider } from "@nibi/shared";
+import type { NibiProvider } from "@nibi/shared";
 
 type SkillSourceType = "glm" | "unknown";
 
@@ -15,7 +15,7 @@ export function resolveSkillSourceType(skillPath: string): SkillSourceType {
 
 const SKILL_ID_PROVIDER_RE = /^glm:/;
 
-function isZcodeSkill(skill: { id?: string; path: string; scope?: string }): boolean {
+function isNibiSkill(skill: { id?: string; path: string; scope?: string }): boolean {
   return (
     // plugin skill 的真实路径在 CLI plugin cache 下，不在 `.nibi/skills`。
     // 服务层已用 scope 标记来源，前端过滤时要放行，否则 `/` 和 `$` 面板会漏掉插件技能。
@@ -27,7 +27,7 @@ function isZcodeSkill(skill: { id?: string; path: string; scope?: string }): boo
 
 export function filterSkillsForProvider<T extends { path: string; id?: string; scope?: string }>(
   skills: T[],
-  _legacyProvider: ZCodeProvider,
+  _legacyProvider: NibiProvider,
 ): T[] {
-  return skills.filter(isZcodeSkill);
+  return skills.filter(isNibiSkill);
 }

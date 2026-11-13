@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import {
   buildTaskListCacheDescriptor,
   buildTaskListCacheKeyFromDescriptor,
@@ -16,7 +16,7 @@ import { attachTaskListRowActivity, getTaskListRowActivity } from "@/v4/taskList
 
 const WORKSPACE_PATH = "/repo/app";
 
-function createTaskMeta(overrides: Partial<ZCodeTaskMeta>): ZCodeTaskMeta {
+function createTaskMeta(overrides: Partial<NibiTaskMeta>): NibiTaskMeta {
   return {
     taskId: "task-default",
     traceId: "trace-default",

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ZCodePluginInfo } from "@nibi/shared";
+import type { NibiPluginInfo } from "@nibi/shared";
 import { clearAppData, getE2EAppDataPaths } from "../../../helpers/desktop-app.js";
 import {
   capturePluginManualReview,
@@ -91,7 +91,7 @@ describe("PLM-LC-007b Desktop real official CDN ZIP smoke", () => {
   });
 });
 
-function componentNames(plugin: ZCodePluginInfo | undefined, kind: "command" | "skill"): string[] {
+function componentNames(plugin: NibiPluginInfo | undefined, kind: "command" | "skill"): string[] {
   return (
     plugin?.components?.find((group) => group.kind === kind)?.items.map((item) => item.name) ?? []
   );

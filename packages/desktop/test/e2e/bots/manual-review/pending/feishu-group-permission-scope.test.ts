@@ -25,7 +25,7 @@ import {
 } from "../../../helpers/v4-conversation.js";
 
 /**
- * 验收用例（manual-review）：真实 Desktop → botsService → zcodeTaskService.createTask
+ * 验收用例（manual-review）：真实 Desktop → botsService → nibiTaskService.createTask
  * （`permissionScope: "session"`）→ 真实 Host/Kernel 建会话 → 群会话里的权限弹窗与授权。
  *
  * 断言：

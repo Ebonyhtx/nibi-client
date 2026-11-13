@@ -18,10 +18,10 @@ import {
 } from "#src/project/index.js";
 import { createProjectDataPort } from "#src/project/data/project-data-port.js";
 import { shouldReserveCreatedTask } from "#src/project-storage/project-repository.js";
-import { isZCodeAgentSessionDataUnsupportedError } from "#src/zcode-agent/zcodeAgentErrors.js";
+import { isNibiAgentSessionDataUnsupportedError } from "#src/nibi-agent/nibiAgentErrors.js";
 export { createLegacySingleRootProjectService } from "#src/project/index.js";
 export { createRemoteProjectService } from "#src/remote-projects/index.js";
-import { getZCodeDataRootDir as projectDataRoot } from "#src/paths.js";
+import { getNibiDataRootDir as projectDataRoot } from "#src/paths.js";
 import { getAppConfigDir, getWorkspaceHash } from "./paths.js";
 import { createTaskGroupService, ITaskGroupService, groupTaskKey } from "#src/task-groups/index.js";
 import { IGenUiService } from "./gen-ui/contract.js";
@@ -53,7 +53,7 @@ import {
 } from "@nibi/shared";
 
 export {
-  materializeZCodeBuiltinProviderConfig,
+  materializeNibiBuiltinProviderConfig,
   NIBI_BUILTIN_PROVIDER_CONFIG_FILE_ENV,
 } from "@nibi/provider-node";
 import { randomUUID } from "node:crypto";
@@ -67,12 +67,12 @@ import type { IChannel } from "@nibi/rpc";
 import {
   readTopicResourceFromRelay,
   validateTopicResourceFromRelay,
-} from "./zcode-agent/topicResourceRelayClient.js";
+} from "./nibi-agent/topicResourceRelayClient.js";
 export {
   createTopicResourcePeers,
   type TopicResourcePeers,
-} from "./zcode-agent/topicResourcePeers.js";
-export { createTopicResourceRelayChannel } from "./zcode-agent/topicResourceRelayChannel.js";
+} from "./nibi-agent/topicResourcePeers.js";
+export { createTopicResourceRelayChannel } from "./nibi-agent/topicResourceRelayChannel.js";
 
 export { createFileService } from "./file/fileService.js";
 export {
@@ -120,7 +120,7 @@ export {
 export {
   setDataBaseDir,
   getDataBaseDir,
-  getZCodeDataRootDir,
+  getNibiDataRootDir,
   getConversationWorkspaceDir,
   getAppConfigDir,
   getExportLogStageDir,
@@ -146,31 +146,31 @@ export {
 } from "./setting/settingService.js";
 export { createCredentialService } from "./credential/credentialService.js";
 export { createBroadcastService } from "./broadcast/broadcastService.js";
-export { createZCodeAgentService } from "./zcode-agent/zcodeAgentService.js";
-export { createZCodeTaskServiceAdapter } from "./zcode-agent/zcodeTaskServiceAdapter.js";
-export { createZCodeSessionService } from "./zcode-session/zcodeSessionService.js";
-import { resolveKernelSelection } from "./zcode-agent/zcodeAgentProcessManager.js";
-import { buildMcpNodeFallbackHostEnv } from "./zcode-agent/mcpNodeFallback/index.js";
-import { buildNodeReplHostEnv } from "./zcode-agent/nodeReplHostEnv.js";
+export { createNibiAgentService } from "./nibi-agent/nibiAgentService.js";
+export { createNibiTaskServiceAdapter } from "./nibi-agent/nibiTaskServiceAdapter.js";
+export { createNibiSessionService } from "./nibi-session/nibiSessionService.js";
+import { resolveKernelSelection } from "./nibi-agent/nibiAgentProcessManager.js";
+import { buildMcpNodeFallbackHostEnv } from "./nibi-agent/mcpNodeFallback/index.js";
+import { buildNodeReplHostEnv } from "./nibi-agent/nodeReplHostEnv.js";
 export {
-  resolveDefaultZCodeAgentCommand,
-  ZCodeAgentProcessManager,
-} from "./zcode-agent/zcodeAgentProcessManager.js";
+  resolveDefaultNibiAgentCommand,
+  NibiAgentProcessManager,
+} from "./nibi-agent/nibiAgentProcessManager.js";
 export type {
-  ZCodeAgentCommand,
-  ZCodeAgentCommandResolver,
-  ZCodeAgentCommandResolverContext,
-  ZCodeAgentProcessManagerOptions,
-} from "./zcode-agent/zcodeAgentProcessManager.js";
-export { NibiProtocolClient } from "./zcode-agent/nibiProtocolClient.js";
-export type { NibiProtocolTransport } from "./zcode-agent/nibiProtocolTransport.js";
-export { ZCodeStdioTransport } from "./zcode-agent/zcodeStdioTransport.js";
+  NibiAgentCommand,
+  NibiAgentCommandResolver,
+  NibiAgentCommandResolverContext,
+  NibiAgentProcessManagerOptions,
+} from "./nibi-agent/nibiAgentProcessManager.js";
+export { NibiProtocolClient } from "./nibi-agent/nibiProtocolClient.js";
+export type { NibiProtocolTransport } from "./nibi-agent/nibiProtocolTransport.js";
+export { NibiStdioTransport } from "./nibi-agent/nibiStdioTransport.js";
 export {
-  getZCodeStdioTapDevLogDir,
-  readZCodeStdioTapDevState,
-  setZCodeStdioTapDevEnabled,
-} from "./zcode-agent/zcodeStdioTapDevConfig.js";
-export type { ZCodeStdioTapDevState } from "@nibi/shared";
+  getNibiStdioTapDevLogDir,
+  readNibiStdioTapDevState,
+  setNibiStdioTapDevEnabled,
+} from "./nibi-agent/nibiStdioTapDevConfig.js";
+export type { NibiStdioTapDevState } from "@nibi/shared";
 export {
   createCuaHelperInstaller,
   requestHelperAccessibilityPermissionViaLaunchServices,
@@ -395,10 +395,10 @@ import { ISettingService } from "./setting/setting.js";
 import { IOnboardingRecordService } from "./onboarding/onboardingRecord.js";
 import { ICredentialService } from "./credential/credential.js";
 import { IBroadcastService } from "./broadcast/broadcast.js";
-import { IZCodeTaskService } from "./session/zcodeTaskService.js";
-import { IZCodeAgentService } from "./zcode-agent/zcodeAgent.js";
-import type { CuaOperationStateReporter } from "./zcode-agent/cuaOperationTurnTracker.js";
-import { IZCodeSessionService } from "./zcode-session/zcodeSession.js";
+import { INibiTaskService } from "./session/nibiTaskService.js";
+import { INibiAgentService } from "./nibi-agent/nibiAgent.js";
+import type { CuaOperationStateReporter } from "./nibi-agent/cuaOperationTurnTracker.js";
+import { INibiSessionService } from "./nibi-session/nibiSession.js";
 import {
   createUnsupportedConversationShareService,
   IConversationShareService,
@@ -453,13 +453,13 @@ import { createHostProjectSyncClient } from "./project-sync/projectSyncTransport
 import { createCloudProjectBroker } from "./cloud-project/cloudProjectBroker.js";
 import { createCloudProjectMcpServerResolver } from "./cloud-project/cloudProjectMcpServerResolver.js";
 import { createBroadcastService } from "./broadcast/broadcastService.js";
-import { createZCodeAgentService } from "./zcode-agent/zcodeAgentService.js";
-import type { ZCodeAgentCommandResolver } from "./zcode-agent/zcodeAgentProcessManager.js";
-import { buildAgentTelemetrySpawnEnv } from "./zcode-agent/agentTelemetryEnv.js";
-import { resolveZCodeAgentPresentationSurface } from "./zcode-agent/zcodeAgentPresentationSurface.js";
-import { createZCodeTaskServiceAdapter } from "./zcode-agent/zcodeTaskServiceAdapter.js";
-import { createZCodeSessionService } from "./zcode-session/zcodeSessionService.js";
-import { createZCodeTaskIndexSyncer } from "./zcode-agent/zcodeTaskIndexSyncer.js";
+import { createNibiAgentService } from "./nibi-agent/nibiAgentService.js";
+import type { NibiAgentCommandResolver } from "./nibi-agent/nibiAgentProcessManager.js";
+import { buildAgentTelemetrySpawnEnv } from "./nibi-agent/agentTelemetryEnv.js";
+import { resolveNibiAgentPresentationSurface } from "./nibi-agent/nibiAgentPresentationSurface.js";
+import { createNibiTaskServiceAdapter } from "./nibi-agent/nibiTaskServiceAdapter.js";
+import { createNibiSessionService } from "./nibi-session/nibiSessionService.js";
+import { createNibiTaskIndexSyncer } from "./nibi-agent/nibiTaskIndexSyncer.js";
 import { TaskIndexRepo } from "./session/taskIndexRepo.js";
 import { AutomationRepo } from "#src/session/automationRepo.js";
 import type { AppSettings } from "@nibi/shared";
@@ -488,7 +488,7 @@ import {
 } from "./model-provider/accountProviderConnectionResolver.js";
 import { bindAccountProviderInvalidation } from "./model-provider/accountProviderInvalidation.js";
 import { createProviderConfigRuntime } from "./model-provider/providerConfigRuntime.js";
-import { fetchZCodeBuiltinRemoteRelease } from "./model-provider/nibiBuiltinRemoteConfig.js";
+import { fetchNibiBuiltinRemoteRelease } from "./model-provider/nibiBuiltinRemoteConfig.js";
 import {
   createProviderRuntimeFromConfigRuntime,
   type ProviderRuntime,
@@ -570,7 +570,7 @@ import {
   ICuaPermissionService,
   ICuaPipSessionService,
   isOfficialCuaPluginEnabledForWorkspace,
-  isPotentialZCodeCuaAgentMcpServer,
+  isPotentialNibiCuaAgentMcpServer,
   isScreenCaptureProbeSuccess,
   reapOrphanedHelpers,
   resolveStandaloneStatusLaunchAppPath,
@@ -609,22 +609,22 @@ import {
   BIGMODEL_PROVIDER_ID,
   type ProviderFamilyDomain,
   type ServiceAuthorityMode,
-  resolveRuntimeZCodeEndpointOrigin,
+  resolveRuntimeNibiEndpointOrigin,
   type BrowserBackendDescriptor,
   type BrowserClientMode,
   type BrowserCommand,
-  isZCodeCuaMcpCommand,
-  isZCodeCuaMcpPackageArg,
-  isZCodeCuaInternalFeatureEnabled,
+  isNibiCuaMcpCommand,
+  isNibiCuaMcpPackageArg,
+  isNibiCuaInternalFeatureEnabled,
   NIBI_CUA_PLUGIN_AUTHORITY_ENV_KEY,
-  type ZCodeAutomation,
-  type ZCodeAutomationRun,
-  getCapturedZCodeAgentTelemetryEnv,
+  type NibiAutomation,
+  type NibiAutomationRun,
+  getCapturedNibiAgentTelemetryEnv,
   NIBI_DESKTOP_CONTEXT_PROMPT_ENABLED_ENV,
   ZAI_PROVIDER_ID,
   NIBI_VERSION,
   NIBI_ENV,
-  buildRuntimeZCodeApiUrl,
+  buildRuntimeNibiApiUrl,
 } from "@nibi/shared";
 
 // 这些 conversation-share 实现依赖 Node 文件系统；仅通过 @nibi/services/node 暴露，
@@ -740,10 +740,10 @@ export function shouldEnableDefaultCuaProductHelper(
     env?: NodeJS.ProcessEnv;
   } = {},
 ): boolean {
-  // CUA 已随正式版默认开启（isZCodeCuaInternalFeatureEnabled 默认 ON，仅显式 0/false/off 关闭；2026-08 注释更正——旧注释称默认关闭已过期）。显式开启后 macOS 使用既有产品 Helper，Windows 使用安装包内 runtime；
+  // CUA 已随正式版默认开启（isNibiCuaInternalFeatureEnabled 默认 ON，仅显式 0/false/off 关闭；2026-08 注释更正——旧注释称默认关闭已过期）。显式开启后 macOS 使用既有产品 Helper，Windows 使用安装包内 runtime；
   // 两端都保持按需启动。关闭时不创建 host、不探测资源、不产生子进程或权限提示。
   const env = options.env ?? process.env;
-  if (!isZCodeCuaInternalFeatureEnabled(env)) return false;
+  if (!isNibiCuaInternalFeatureEnabled(env)) return false;
   const platform = options.platform ?? process.platform;
   return platform === "darwin" || platform === "win32";
 }
@@ -850,7 +850,7 @@ export function createDynamicCuaProductMcpServerResolver(options: {
       // delegate 可能跨过 Helper start/health await；dispose 在等待中置 terminal 时，不能把旧代际
       // 刚注入的 socket/token 交给晚到 Agent。移除 CUA candidate，保持其它 MCP 原样。
       return options.isResolverCurrent?.(resolver, context) === false
-        ? servers?.filter((server) => !isPotentialZCodeCuaAgentMcpServer(server))
+        ? servers?.filter((server) => !isPotentialNibiCuaAgentMcpServer(server))
         : resolved;
     },
     async restart() {
@@ -1114,7 +1114,7 @@ export function resolveBundledCuaHelperAppPath(
 
 export { isOfficialCuaPluginEnabledForWorkspace };
 
-export function hasGlobalCliZCodeCuaServer(env: NodeJS.ProcessEnv = process.env): boolean {
+export function hasGlobalCliNibiCuaServer(env: NodeJS.ProcessEnv = process.env): boolean {
   const home = env.HOME?.trim() || homedir();
   const configPath = join(home, ".nibi", "cli", "config.json");
   let parsed: unknown;
@@ -1127,11 +1127,11 @@ export function hasGlobalCliZCodeCuaServer(env: NodeJS.ProcessEnv = process.env)
   if (isRecord(parsed.features) && parsed.features.mcp === false) return false;
   if (!isRecord(parsed.mcp) || !isRecord(parsed.mcp.servers)) return false;
   return Object.entries(parsed.mcp.servers).some(([name, config]) =>
-    isGlobalCliZCodeCuaServer(name, config),
+    isGlobalCliNibiCuaServer(name, config),
   );
 }
 
-function isGlobalCliZCodeCuaServer(name: string, config: unknown): boolean {
+function isGlobalCliNibiCuaServer(name: string, config: unknown): boolean {
   if (!isRecord(config)) return false;
   if (config.enabled === false) return false;
   if (typeof config.type === "string" && config.type !== "stdio") return false;
@@ -1139,12 +1139,12 @@ function isGlobalCliZCodeCuaServer(name: string, config: unknown): boolean {
   // 与 desktop/services resolver 和 CLI bootstrap 共用 @nibi/shared 的单一事实源，避免第三处
   // 判定漂移：git/.git/本地路径形态的 zcode-cua 若这里漏判，全局 CLI env 注入不会带 broker
   // socket/token，agent 会回退成 Python/uvx 自己持有 macOS TCC（违反 product broker 边界）。
-  if (typeof config.command === "string" && isZCodeCuaMcpCommand(config.command)) {
+  if (typeof config.command === "string" && isNibiCuaMcpCommand(config.command)) {
     return true;
   }
   return (
     Array.isArray(config.args) &&
-    config.args.some((arg) => typeof arg === "string" && isZCodeCuaMcpPackageArg(arg))
+    config.args.some((arg) => typeof arg === "string" && isNibiCuaMcpPackageArg(arg))
   );
 }
 
@@ -1162,7 +1162,7 @@ export interface LocalPluginManagementBackend {
     workspacePath: string;
     workspaceIdentity?: string;
     remoteSessionId?: string;
-  }) => Promise<import("@nibi/shared").ZCodePluginsListUiSurfacesResult>;
+  }) => Promise<import("@nibi/shared").NibiPluginsListUiSurfacesResult>;
 }
 
 /**
@@ -1191,7 +1191,7 @@ export function createLocalServices(options: {
   >["prepareLegacyAccountConnections"];
   /** 注入后由 ServiceCollection 接管释放，并供 Host 其它 app-managed 下载复用。 */
   hostApiNetworkTransport?: HostApiNetworkTransport;
-  /** Desktop Host 注入 Main 推送的实时界面语言，供 ZCode endpoint 的 X-Client-Language；远端 server 不注入。 */
+  /** Desktop Host 注入 Main 推送的实时界面语言，供 Nibi endpoint 的 X-Client-Language；远端 server 不注入。 */
   resolveClientLanguage?: () => string | undefined;
   /** Desktop Host 请求 Main 登记 Agent 已授权的精确本地视频路径。 */
   authorizeLocalMediaPreviewPath?: (path: string) => Promise<string>;
@@ -1221,27 +1221,27 @@ export function createLocalServices(options: {
    * 兼容 CLI/stdin 宿主与远端。
    */
   pluginManagementFactory?: (input: {
-    zcodeAgentService: IZCodeAgentService;
+    nibiAgentService: INibiAgentService;
   }) => LocalPluginManagementBackend;
   /** desktop local host 在 manual run 落库后直接派发，不经过 scheduler 正常路径。 */
   onAutomationManualRunRequested?: (params: {
-    automation: ZCodeAutomation;
-    run: ZCodeAutomationRun;
+    automation: NibiAutomation;
+    run: NibiAutomationRun;
   }) => Promise<void>;
   // 注入点：默认 resolver 已能覆盖 dev/桌面/SSH 远端三类形态；
   // 测试或特殊宿主想强制走自定义 binary/参数时从这里注入。
-  zcodeAgentCommandResolver?: ZCodeAgentCommandResolver;
+  nibiAgentCommandResolver?: NibiAgentCommandResolver;
   /** Desktop Main 提前异步采集的本机 runtime 环境；Local Host 注入后不再同步启动 login shell。 */
   runtimeProcessEnvPatch?: Record<string, string>;
   /** 本地桌面上次 workspace 缺失时，仅用于 Agent 子进程 spawn.cwd 兜底。 */
-  zcodeAgentSpawnFallbackCwd?: string;
+  nibiAgentSpawnFallbackCwd?: string;
   /** desktop-attached remote server 从 Desktop Host 收到的一次性 Agent 网络配置。 */
   remoteAgentNetwork?: {
     httpProxy?: string;
     httpProxyMode?: "system" | "manual";
     noProxy?: string;
   };
-  /** 所属 Environment 的 ZCode Built-in Provider Config 物理路径。 */
+  /** 所属 Environment 的 Nibi Built-in Provider Config 物理路径。 */
   nibiBuiltinProviderConfigFilePath: string;
   /** HTTP Server 只有在调用方明确配置认证时才暴露跨 Environment Provisioning target。 */
   providerProvisioningTargetEnabled?: boolean;
@@ -1299,9 +1299,9 @@ export function createLocalServices(options: {
   const isDesktopAttachedRemote = options?.serviceAuthorityMode === "desktop-attached-remote";
   // host / remote server 以前直接沿用当前进程环境启动后续服务。
   // GUI 启动的 desktop、SSH/WSL/Docker 拉起的 remote server 往往拿不到用户 login shell 里的 PATH，
-  // 导致 bun 这类只在 shell profile 里追加的命令在 ZCode Agent/终端里不可见。
+  // 导致 bun 这类只在 shell profile 里追加的命令在 Nibi Agent/终端里不可见。
   // 这里在所有本地服务启动前统一修正运行时环境，并顺带把内置 rg 注入 PATH，
-  // 让 ZCode Agent、终端、认证 runtime 共用同一套命令解析结果。
+  // 让 Nibi Agent、终端、认证 runtime 共用同一套命令解析结果。
   initializeRuntimeProcessEnv(options?.runtimeProcessEnvPatch);
 
   const desktopContextPromptEnabledRaw =
@@ -1325,9 +1325,9 @@ export function createLocalServices(options: {
   const settingService = createObservableSettingService(
     options?.settingService ?? localSettings!.service,
   );
-  const resolveCurrentZCodeEndpointOrigin = async () =>
-    resolveRuntimeZCodeEndpointOrigin(process.env, {
-      overrideOrigin: (await settingService.get()).zcodeEndpointOrigin,
+  const resolveCurrentNibiEndpointOrigin = async () =>
+    resolveRuntimeNibiEndpointOrigin(process.env, {
+      overrideOrigin: (await settingService.get()).nibiEndpointOrigin,
     });
   let invalidatePluginUiAccounts: (() => void) | undefined;
   // license 同步实例在 apiClient 之后创建；凭据钩子先注册，用 ref 延迟绑定。
@@ -1393,32 +1393,32 @@ export function createLocalServices(options: {
         caCertPath: settings.httpProxyCaCertPath,
       };
     });
-  const zcodeJwtLogoutHandlerRef: {
+  const nibiJwtLogoutHandlerRef: {
     current: ((input: string | URL, headers: Headers) => void) | null;
   } = { current: null };
   const apiClient = createNodeApiClient({
     fetchImpl: hostApiNetworkTransport.fetch,
-    onZcodeJwtInvalid: (input, headers) => zcodeJwtLogoutHandlerRef.current?.(input, headers),
-    isZcodeJwtRequest: (input, headers) =>
+    onNibiJwtInvalid: (input, headers) => nibiJwtLogoutHandlerRef.current?.(input, headers),
+    isNibiJwtRequest: (input, headers) =>
       isCurrentOAuthCredentialRequest({ input, headers, credentialService }),
     isBusinessUnauthorizedRequest: (input, _headers) =>
       isOAuthBusinessRequest({ input, credentialService }),
     resolveBusinessCredentialValidationRequest: (input, headers) =>
       resolveOAuthBusinessCredentialValidationRequest({ input, headers, credentialService }),
-    resolveZCodeEndpointOrigin: resolveCurrentZCodeEndpointOrigin,
+    resolveNibiEndpointOrigin: resolveCurrentNibiEndpointOrigin,
     resolveClientLanguage: options?.resolveClientLanguage,
   });
   const nibiLicenseSync = createNibiLicenseSync({
     credentialService,
     apiClient,
-    resolveEndpointOrigin: resolveCurrentZCodeEndpointOrigin,
+    resolveEndpointOrigin: resolveCurrentNibiEndpointOrigin,
   });
   nibiLicenseSyncRef.current = nibiLicenseSync;
   // 云端项目同步：令牌只留在宿主；面板/UI 经 RPC 调用，不直接持有 access token。
   const projectSyncClient = createHostProjectSyncClient({
     apiClient,
     credentials: credentialService,
-    resolveEndpointOrigin: resolveCurrentZCodeEndpointOrigin,
+    resolveEndpointOrigin: resolveCurrentNibiEndpointOrigin,
   });
   // agent 侧 project_* MCP 工具不直接持 NIBI token：宿主起一个本机 broker，
   // 按工作区发短时能力令牌，broker 再用上面这个 client 调真实服务。
@@ -1534,14 +1534,14 @@ export function createLocalServices(options: {
       environmentConfigRoot: resolveAppConfigDir(),
       platform: clientConfigPlatform,
       appVersion: NIBI_VERSION,
-      resolveEndpointOrigin: resolveCurrentZCodeEndpointOrigin,
+      resolveEndpointOrigin: resolveCurrentNibiEndpointOrigin,
       onRefreshResult: (event) => {
         if (event.result === "updated")
-          providerConfigLog.info(undefined, "ZCode Built-in CDN 配置已更新", event);
-        else providerConfigLog.debug(undefined, "ZCode Built-in 刷新检查", event);
+          providerConfigLog.info(undefined, "Nibi Built-in CDN 配置已更新", event);
+        else providerConfigLog.debug(undefined, "Nibi Built-in 刷新检查", event);
       },
       fetchRelease: (endpointOrigin, signal) =>
-        fetchZCodeBuiltinRemoteRelease({
+        fetchNibiBuiltinRemoteRelease({
           apiClient,
           endpointOrigin,
           signal,
@@ -1549,8 +1549,8 @@ export function createLocalServices(options: {
           platform: clientConfigPlatform,
         }),
     },
-    onZCodeBuiltinRefreshError: (error) => {
-      providerConfigLog.warn(undefined, "ZCode Built-in Config 远端刷新失败", { error });
+    onNibiBuiltinRefreshError: (error) => {
+      providerConfigLog.warn(undefined, "Nibi Built-in Config 远端刷新失败", { error });
     },
     onPersonalConfigRecovery: (event) => {
       providerConfigLog.warn(
@@ -1613,7 +1613,7 @@ export function createLocalServices(options: {
     },
   );
   let providerConnectivityAgentService:
-    | Pick<IZCodeAgentService, "testModelConnectivity">
+    | Pick<INibiAgentService, "testModelConnectivity">
     | undefined;
   const providerRuntime = createProviderRuntimeFromConfigRuntime({
     configRuntime: providerConfigRuntime,
@@ -1641,11 +1641,11 @@ export function createLocalServices(options: {
   });
   const sourceServerWorkspaceService =
     options.sourceServerWorkspaceService ?? createSourceServerWorkspaceService();
-  // mcpSync/hooks 里引用 zcodeAgentService 的闭包是惰性调用，声明顺序不影响初始化。
+  // mcpSync/hooks 里引用 nibiAgentService 的闭包是惰性调用，声明顺序不影响初始化。
   const skillsService = createSkillsService({ isDesktopRuntime: true });
   const mcpSyncService = createMcpSyncService({
     // mcp/list 的 host 消费点收拢到 mcpSync 服务；真实状态检查仍在 agent 进程。
-    listMcpServerStatuses: (params) => zcodeAgentService.listMcpServerStatuses(params),
+    listMcpServerStatuses: (params) => nibiAgentService.listMcpServerStatuses(params),
   });
   const pluginSyncService = createPluginSyncService();
   const pluginUiAccounts = createPluginUiAccountBindings({
@@ -1654,8 +1654,8 @@ export function createLocalServices(options: {
       const profile = provider ? await oauthCredentialRepo.loadUserProfile(provider) : null;
       return [provider, profile?.id ?? null];
     },
-    open: (params) => zcodeAgentService.openMcpUiInstance(params),
-    close: (params) => zcodeAgentService.closeMcpUiInstance(params),
+    open: (params) => nibiAgentService.openMcpUiInstance(params),
+    close: (params) => nibiAgentService.closeMcpUiInstance(params),
   });
   invalidatePluginUiAccounts = () => pluginUiAccounts.invalidate();
   // Host 进程注入本地插件 backend 时，插件 UI 入口也走同一份工作区投影；
@@ -1666,42 +1666,42 @@ export function createLocalServices(options: {
     reportTelemetryEvent: options?.reportPluginTelemetryEvent,
     openInstance: (params) => pluginUiAccounts.open(params),
     closeInstance: (params) => pluginUiAccounts.close(params),
-    validateInstance: (params) => zcodeAgentService.validateMcpUiInstance(params),
-    recycleInstance: (params) => zcodeAgentService.recycleMcpUiInstance(params),
+    validateInstance: (params) => nibiAgentService.validateMcpUiInstance(params),
+    recycleInstance: (params) => nibiAgentService.recycleMcpUiInstance(params),
     // 插件 UI：资源读取与 UI 工具调用都发生在 session 所在的 agent 进程；host 只做校验与登记。
-    readMcpResource: (params) => zcodeAgentService.readMcpResource(params),
-    callMcpToolForUi: (params) => zcodeAgentService.callMcpToolForUi(params),
-    cancelMcpToolCallForUi: (params) => zcodeAgentService.cancelMcpToolCallForUi(params),
-    readMcpResourceForUi: (params) => zcodeAgentService.readMcpResourceForUi(params),
-    listMcpResourcesForUi: (params) => zcodeAgentService.listMcpResourcesForUi(params),
+    readMcpResource: (params) => nibiAgentService.readMcpResource(params),
+    callMcpToolForUi: (params) => nibiAgentService.callMcpToolForUi(params),
+    cancelMcpToolCallForUi: (params) => nibiAgentService.cancelMcpToolCallForUi(params),
+    readMcpResourceForUi: (params) => nibiAgentService.readMcpResourceForUi(params),
+    listMcpResourcesForUi: (params) => nibiAgentService.listMcpResourcesForUi(params),
     listMcpResourceTemplatesForUi: (params) =>
-      zcodeAgentService.listMcpResourceTemplatesForUi(params),
-    subscribeMcpResourceForUi: (params) => zcodeAgentService.subscribeMcpResourceForUi(params),
-    unsubscribeMcpResourceForUi: (params) => zcodeAgentService.unsubscribeMcpResourceForUi(params),
+      nibiAgentService.listMcpResourceTemplatesForUi(params),
+    subscribeMcpResourceForUi: (params) => nibiAgentService.subscribeMcpResourceForUi(params),
+    unsubscribeMcpResourceForUi: (params) => nibiAgentService.unsubscribeMcpResourceForUi(params),
     listPluginUiSurfaces: (params) =>
       localPluginManagement?.listPluginUiSurfaces?.(params) ??
-      zcodeAgentService.listPluginUiSurfaces(params),
+      nibiAgentService.listPluginUiSurfaces(params),
     registerSandbox: options?.registerPluginSandbox,
     // 云端项目：面板经受限 RPC 调到这里；工作区与令牌都留在宿主侧。
     projectSync: projectSyncClient,
   });
   // App-Provided Tools：页面工具登记与模型调用的认领 / 回传都发生在 session 所在的 agent 进程。
   const pluginUiSamplingService = createPluginUiSamplingService({
-    sample: (params) => zcodeAgentService.sampleMcpApp(params),
-    cancelSampling: (params) => zcodeAgentService.cancelMcpAppSampling(params),
+    sample: (params) => nibiAgentService.sampleMcpApp(params),
+    cancelSampling: (params) => nibiAgentService.cancelMcpAppSampling(params),
   });
   const pluginUiAppToolsService = createPluginUiAppToolsService({
-    registerAppToolsForUi: (params) => zcodeAgentService.registerAppToolsForUi(params),
-    unregisterAppToolsForUi: (params) => zcodeAgentService.unregisterAppToolsForUi(params),
-    claimAppToolCallForUi: (params) => zcodeAgentService.claimAppToolCallForUi(params),
-    resolveAppToolCallForUi: (params) => zcodeAgentService.resolveAppToolCallForUi(params),
+    registerAppToolsForUi: (params) => nibiAgentService.registerAppToolsForUi(params),
+    unregisterAppToolsForUi: (params) => nibiAgentService.unregisterAppToolsForUi(params),
+    claimAppToolCallForUi: (params) => nibiAgentService.claimAppToolCallForUi(params),
+    resolveAppToolCallForUi: (params) => nibiAgentService.resolveAppToolCallForUi(params),
   });
   const subagentsService = createSubagentsService({
     isDesktopRuntime: true,
   });
   const commandsService = createCommandsService({ isDesktopRuntime: true });
   const hooksService = createHooksService({
-    grantWorkspaceHookTrust: (params) => zcodeAgentService.grantWorkspaceHookTrust(params),
+    grantWorkspaceHookTrust: (params) => nibiAgentService.grantWorkspaceHookTrust(params),
   });
   const memoryService = createMemoryService();
   // 只要当前进程已经装配 Provider Runtime，就由该 Environment 自己的 Selection View
@@ -1712,8 +1712,8 @@ export function createLocalServices(options: {
   // 约束：lifecycle coordinator 懒获取 + 代际 fence（dispose 仅来自显式 workspace 生命周期）；
   // 不创建定时健康探测；Helper restart 尽可能复用 host transport，既有 Agent 的 session、
   // 进程与 MCP stream 保持不变。
-  // P1-a mitigation：createDefaultCuaProductHelper() 在 zcodeAgentService 存在之前就要组装 resolver，
-  // 但"是否有活跃 turn"这个信号只有 zcodeAgentService 建好之后才能查询。用前向引用占位——resolver 真正
+  // P1-a mitigation：createDefaultCuaProductHelper() 在 nibiAgentService 存在之前就要组装 resolver，
+  // 但"是否有活跃 turn"这个信号只有 nibiAgentService 建好之后才能查询。用前向引用占位——resolver 真正
   // 调用 hasActiveTurn() 发生在后续某次 resolveMcpServers（异步），那时 hasActiveTurnRef 早已被赋值。
   // 先用前向引用连接 agent service 的 CUA turn tracker，避免在活跃 CUA 请求中途重启 Helper；
   // service 创建完成后再赋值。Helper recovery 始终不能回收 Agent。
@@ -1721,9 +1721,9 @@ export function createLocalServices(options: {
   const isCuaEnabledForContext = (context?: CuaProductMcpServerResolverContext): boolean =>
     // 保留 main 原有 gate 行为（避免回归）：dev/internal 特性开启时（NIBI_CUA_DEV_MODE=1 或
     // NIBI_CUA_PRODUCT_HELPER=1）即视为启用，不依赖 config.json 显式 enable——main 的 bootstrap
-    // 用 isZCodeCuaInternalFeatureEnabled 门控 bundled plugin，与 feat 的 workspace enablement 不同。
+    // 用 isNibiCuaInternalFeatureEnabled 门控 bundled plugin，与 feat 的 workspace enablement 不同。
     // 生产路径（dev mode off）回落到官方插件 workspace enablement 判定（与 feat 一致）。
-    isZCodeCuaInternalFeatureEnabled(process.env) ||
+    isNibiCuaInternalFeatureEnabled(process.env) ||
     isOfficialCuaPluginEnabledForWorkspace({
       env: process.env,
       workingDirectory: context?.workspacePath,
@@ -1736,7 +1736,7 @@ export function createLocalServices(options: {
     context?: CuaProductMcpServerResolverContext,
   ): ManagedDefaultCuaProductHelper | undefined => {
     const helper = createDefaultCuaProductHelper({
-      // 转发活跃-turn 查询（前向引用，zcodeAgentService 建好后赋值）。
+      // 转发活跃-turn 查询（前向引用，nibiAgentService 建好后赋值）。
       hasActiveTurn: () => hasActiveTurnRef?.() ?? false,
     });
     if (!helper) return undefined;
@@ -1899,7 +1899,7 @@ export function createLocalServices(options: {
     enabled: cuaPipSessionEnabled,
     resolveCredentials: async () => {
       const host = defaultCuaProductHelperLifecycle.peek()?.helper.macPermissionHost;
-      // PiP 客户端以 role=presentation 声明，资格由 Helper 按对端（ZCode 主进程）签名 identifier 裁决。
+      // PiP 客户端以 role=presentation 声明，资格由 Helper 按对端（Nibi 主进程）签名 identifier 裁决。
       if (host?.running && host.socketPath) {
         return {
           socketPath: host.socketPath,
@@ -2115,7 +2115,7 @@ export function createLocalServices(options: {
   };
   // 动态工作流的用户选择（docs/dynamic-workflow/launch.md「The user's choice」）：本机设置文件是唯一来源，
   // 每次使用时读取。desktop-attached remote Host 读不到桌面的设置，选择由 desktop 推送
-  // （zcodeAgentService.syncDynamicWorkflowUserMode），这里不注入。读取失败按「跟随」处理。
+  // （nibiAgentService.syncDynamicWorkflowUserMode），这里不注入。读取失败按「跟随」处理。
   const resolveDynamicWorkflowUserMode = isDesktopAttachedRemote
     ? undefined
     : async () => (await settingService.get()).dynamicWorkflowMode;
@@ -2156,7 +2156,7 @@ export function createLocalServices(options: {
   });
   // 项目数据清理的 Agent 适配器：agent service 在本函数稍后创建，端口先拿一个 late-bound 引用。
   // 旧内核的 -32601 在边界映射为 project.data-unsupported，UI 据此隐藏清理入口。
-  let projectDataAgent: ReturnType<typeof createZCodeAgentService> | undefined;
+  let projectDataAgent: ReturnType<typeof createNibiAgentService> | undefined;
   const projectDataPort = createProjectDataPort({
     agent: {
       supported: () => projectDataAgent?.supportsSessionData() ?? Promise.resolve(undefined),
@@ -2165,7 +2165,7 @@ export function createLocalServices(options: {
         try {
           return await projectDataAgent.measureSessionData(params);
         } catch (error) {
-          if (isZCodeAgentSessionDataUnsupportedError(error))
+          if (isNibiAgentSessionDataUnsupportedError(error))
             throw new Error("project.data-unsupported");
           throw error;
         }
@@ -2175,7 +2175,7 @@ export function createLocalServices(options: {
         try {
           return await projectDataAgent.purgeSessionData(params);
         } catch (error) {
-          if (isZCodeAgentSessionDataUnsupportedError(error))
+          if (isNibiAgentSessionDataUnsupportedError(error))
             throw new Error("project.data-unsupported");
           throw error;
         }
@@ -2233,7 +2233,7 @@ export function createLocalServices(options: {
     hostId: options?.projectStorageHostId ?? "local",
     workspaceIdentity: undefined,
   });
-  const zcodeAgentService = createZCodeAgentService({
+  const nibiAgentService = createNibiAgentService({
     prepareProjectExecution,
     prepareSessionCreation: async (target) => {
       // 无项目、无显式额外目录的 createSession 是草稿预热/全局新任务。CLI facts 首次
@@ -2278,18 +2278,18 @@ export function createLocalServices(options: {
       ),
     ...(resolveDynamicWorkflowUserMode ? { resolveDynamicWorkflowUserMode } : {}),
     forwardDynamicWorkflowUserMode: options?.forwardDynamicWorkflowUserMode,
-    commandResolver: options?.zcodeAgentCommandResolver,
-    presentationSurface: resolveZCodeAgentPresentationSurface({
+    commandResolver: options?.nibiAgentCommandResolver,
+    presentationSurface: resolveNibiAgentPresentationSurface({
       runtimeSurface: options?.agentTelemetry?.runtimeSurface,
       serviceAuthorityMode: options?.serviceAuthorityMode,
       desktopContextPromptEnabled,
     }),
     onAutomationManualRunRequested: options?.onAutomationManualRunRequested,
     // createLocalServices 虽然暴露了 reporter 注入点，旧装配却没有继续传给
-    // ZCodeAgentProcessManager，导致 host 永远不向 main 上报 Agent spawn/exit，进程监控器
+    // NibiAgentProcessManager，导致 host 永远不向 main 上报 Agent spawn/exit，进程监控器
     // 因而看不到实际运行的 Agent，也无法验证只读到可写升级是否复用同一进程。
     processLifecycleReporter: options?.processLifecycleReporter,
-    spawnFallbackCwd: options?.zcodeAgentSpawnFallbackCwd,
+    spawnFallbackCwd: options?.nibiAgentSpawnFallbackCwd,
     // browser-use：host→main 执行桥透传给 agent service 的 onRequest browserExecute 路由。
     browserControlExecutor: options?.browserControlExecutor,
     // 机器人凭据只归属于授权 Host；远端独立服务不能借用本机配置扩大读取范围。
@@ -2344,7 +2344,7 @@ export function createLocalServices(options: {
     })
       ? options?.cuaOperationStateReporter
       : undefined,
-    // ZCode 只发布 turn/session 事实；面板 terminal policy 由 producer coordinator 决定。
+    // Nibi 只发布 turn/session 事实；面板 terminal policy 由 producer coordinator 决定。
     ...(options?.serviceAuthorityMode === "desktop-local"
       ? {
           onCuaPipSessionLifecycle: (_workspace, event) => {
@@ -2401,7 +2401,7 @@ export function createLocalServices(options: {
           }
         }
       }
-      const telemetryEnv = getCapturedZCodeAgentTelemetryEnv();
+      const telemetryEnv = getCapturedNibiAgentTelemetryEnv();
       const telemetryConfigured = Boolean(
         telemetryEnv.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT || telemetryEnv.OTEL_EXPORTER_OTLP_ENDPOINT,
       );
@@ -2423,7 +2423,7 @@ export function createLocalServices(options: {
         }),
         // 把 host 解析出的权威 origin（含 settings 覆盖）下发给 agent，否则 agent 侧只按
         // env 推导，test env + 自定义端点时两侧信任判定的输入分叉、官方 MCP 整体 fail closed。
-        ...buildAgentEndpointOriginEnv(await resolveCurrentZCodeEndpointOrigin()),
+        ...buildAgentEndpointOriginEnv(await resolveCurrentNibiEndpointOrigin()),
         // broker 凭据（socket/token）注入 agent spawn env，让内置 zcode-cua plugin 的
         // computer-use MCP server 经 __zcode-plugin-host 恢复 token 后连上 broker。
         ...cuaProductHelperEnv,
@@ -2451,7 +2451,7 @@ export function createLocalServices(options: {
         ...createNodeProviderRuntimePathEnv({
           // Built-in Active 路径按当前 Endpoint 隔离，不能通过同步的固定路径
           // getter 读取；Agent spawn 必须等待本轮 Endpoint Source 完成解析和物化。
-          nibiBuiltinFilePath: await providerConfigRuntime.resolveZCodeBuiltinActiveFilePath(),
+          nibiBuiltinFilePath: await providerConfigRuntime.resolveNibiBuiltinActiveFilePath(),
           personalFilePath: join(resolveAppConfigDir(), PERSONAL_PROVIDER_CONFIG_FILE_NAME),
         }),
       };
@@ -2483,17 +2483,17 @@ export function createLocalServices(options: {
           },
         }),
   });
-  projectDataAgent = zcodeAgentService;
-  providerConnectivityAgentService = zcodeAgentService;
+  projectDataAgent = nibiAgentService;
+  providerConnectivityAgentService = nibiAgentService;
   // Helper health probe 短暂超时不应在 Computer Use turn 中途回收 Agent。resolver 会把 restart
   // 推迟到下一个 request/turn 边界；若 broker 确实已失效，当前 turn 会自然失败并由下一次请求恢复。
-  hasActiveTurnRef = () => zcodeAgentService.hasActiveCuaOperationTurn();
-  // desktop-continuous UI 直接订阅 zcodeSessionService，绕开 ZCode task adapter 的
+  hasActiveTurnRef = () => nibiAgentService.hasActiveCuaOperationTurn();
+  // desktop-continuous UI 直接订阅 nibiSessionService，绕开 Nibi task adapter 的
   // mapServiceEvent 路径，导致 task_complete 永远不会写回 sqlite，侧边栏 spinner 不停。
   // 在 services 层装配一个共享的 taskIndexRepo + syncer，session 任意入口都会唤醒
   // shadow 订阅，把 runtime 终态收敛进 sqlite。
-  const zcodeTaskIndexSyncer = createZCodeTaskIndexSyncer({
-    agentService: zcodeAgentService,
+  const nibiTaskIndexSyncer = createNibiTaskIndexSyncer({
+    agentService: nibiAgentService,
     taskIndexRepo,
   });
   // 自动归档只由这里的定时扫描触发（启动首轮 + 每小时 + 设置变更补扫）；readTree 与任务点击
@@ -2505,7 +2505,7 @@ export function createLocalServices(options: {
       const days = Math.max(1, Math.floor(settings.taskAutoArchiveOlderThanDays ?? 30));
       return {
         cutoff: Date.now() - days * 86_400_000,
-        activeTasks: zcodeTaskIndexSyncer.activeTaskRefs(),
+        activeTasks: nibiTaskIndexSyncer.activeTaskRefs(),
       };
     },
     repository: () => taskIndexRepo.getProjectRepository(),
@@ -2528,9 +2528,9 @@ export function createLocalServices(options: {
   });
   const cuaProductMcpServerResolver =
     options?.cuaProductMcpServerResolver ?? defaultCuaProductMcpServerResolver;
-  const zcodeSessionService = createZCodeSessionService({
-    agentService: zcodeAgentService,
-    taskIndexSyncer: zcodeTaskIndexSyncer,
+  const nibiSessionService = createNibiSessionService({
+    agentService: nibiAgentService,
+    taskIndexSyncer: nibiTaskIndexSyncer,
     cuaProductMcpServerResolver,
     cloudProjectMcpServerResolver,
   });
@@ -2544,7 +2544,7 @@ export function createLocalServices(options: {
     },
     textGenerator: {
       async generateText(params) {
-        return await zcodeAgentService.generateWorkspaceText({
+        return await nibiAgentService.generateWorkspaceText({
           workspacePath: params.workspacePath,
           ...(params.workspaceIdentity ? { workspaceIdentity: params.workspaceIdentity } : {}),
           selection: params.selection,
@@ -2558,11 +2558,11 @@ export function createLocalServices(options: {
   const gitService = createGitService({
     commitMessageGenerator: gitCommitMessageGenerator,
   });
-  // task wrapper 由 ZCode task service adapter 提供；核心 session 状态由 ZCode agent server 维护。
-  const zcodeTaskService = createZCodeTaskServiceAdapter({
-    zcodeAgentService,
+  // task wrapper 由 Nibi task service adapter 提供；核心 session 状态由 Nibi agent server 维护。
+  const nibiTaskService = createNibiTaskServiceAdapter({
+    nibiAgentService,
     taskIndexRepo,
-    taskIndexSyncer: zcodeTaskIndexSyncer,
+    taskIndexSyncer: nibiTaskIndexSyncer,
     settingService,
     cuaProductMcpServerResolver,
     cloudProjectMcpServerResolver,
@@ -2605,8 +2605,8 @@ export function createLocalServices(options: {
     nibiLicenseSync,
     onProviderLogout: handleOAuthProviderLogout,
   });
-  const zcodeJwtLogoutLogger = createServiceLogger("zcode-jwt-logout");
-  zcodeJwtLogoutHandlerRef.current = (input, headers) => {
+  const nibiJwtLogoutLogger = createServiceLogger("zcode-jwt-logout");
+  nibiJwtLogoutHandlerRef.current = (input, headers) => {
     // 条件退出本身已串行去重；不能丢弃等待旧候选期间到来的新凭据 401。
     void oauthService
       .logoutIfCurrentCredentialRequest(input, headers)
@@ -2620,7 +2620,7 @@ export function createLocalServices(options: {
         }
       })
       .catch((error) => {
-        zcodeJwtLogoutLogger.warn("ZCode JWT logout failed", { error });
+        nibiJwtLogoutLogger.warn("Nibi JWT logout failed", { error });
       });
   };
   const fileService = createFileService({
@@ -2635,14 +2635,14 @@ export function createLocalServices(options: {
     // 分享运行时始终走真实 API；测试/Mock 场景应在 service 单测或 Web fixture 中显式注入，
     // 不能让开发环境默认生成仅存在于进程内存的 mock-share 链接。
     apiClient,
-    baseUrl: buildRuntimeZCodeApiUrl(process.env, "/api/v1"),
+    baseUrl: buildRuntimeNibiApiUrl(process.env, "/api/v1"),
     tokenProvider: async (): Promise<string | null> => {
       const activeProvider = await oauthCredentialRepo.getActiveProvider();
       if (!activeProvider) {
         return null;
       }
       const tokenSet = await oauthCredentialRepo.loadTokenSet(activeProvider);
-      return tokenSet?.zcodeJwtToken ?? tokenSet?.accessToken ?? null;
+      return tokenSet?.nibiJwtToken ?? tokenSet?.accessToken ?? null;
     },
   });
   const conversationShareService: IConversationShareServiceType = isDesktopAttachedRemote
@@ -2650,8 +2650,8 @@ export function createLocalServices(options: {
         message: "Conversation publishing is not available for remote workspaces",
       })
     : new ConversationShareService({
-        zcodeAgentService,
-        zcodeSessionService,
+        nibiAgentService,
+        nibiSessionService,
         client: conversationShareClient,
         artifactSource: createLocalConversationShareArtifactSource(),
         // 产物下载按签名绝对 URL 直连；必须走用户配置的代理，否则「只有代理能出网」的
@@ -2667,7 +2667,7 @@ export function createLocalServices(options: {
         }),
       });
   // agent service 已构造：此时才能把本地插件 backend 接到前面的 UI 桥闭包与下面的注册点。
-  localPluginManagement = options?.pluginManagementFactory?.({ zcodeAgentService });
+  localPluginManagement = options?.pluginManagementFactory?.({ nibiAgentService });
   // 注册链上的懒工厂会各自创建 tasks-index sqlite repo；先收集到本数组，
   // services 集合建好后在 return 前统一登记进 sharedSqliteRepos 侧表
   const sqliteReposToClose: Array<{ close(): void }> = [];
@@ -2681,7 +2681,7 @@ export function createLocalServices(options: {
         apiClient,
         getToken: () => credentialService.load("nibi-jwttoken"),
         getDeviceMid: () => options?.agentTelemetry?.getDeviceMid?.(),
-        baseUrl: buildRuntimeZCodeApiUrl(process.env, "/"),
+        baseUrl: buildRuntimeNibiApiUrl(process.env, "/"),
         appVersion: NIBI_VERSION,
         onSnapshot: (snapshot) => marketingAssets.accept(snapshot),
       }),
@@ -2703,9 +2703,9 @@ export function createLocalServices(options: {
     .register(IOnboardingRecordService, onboardingRecordService)
     .register(ICredentialService, credentialService)
     .register(IBroadcastService, broadcastService)
-    .register(IZCodeTaskService, zcodeTaskService)
-    .register(IZCodeAgentService, zcodeAgentService)
-    .register(IZCodeSessionService, zcodeSessionService)
+    .register(INibiTaskService, nibiTaskService)
+    .register(INibiAgentService, nibiAgentService)
+    .register(INibiSessionService, nibiSessionService)
     .register(IProjectService, projectService)
     .register(ITaskGroupService, taskGroupService)
     .register(IRemoteProjectService, remoteProjectService)
@@ -2720,7 +2720,7 @@ export function createLocalServices(options: {
         remoteProjectService,
         ownerHostId: options?.projectStorageHostId ?? "local",
         credentialService,
-        zcodeTaskService,
+        nibiTaskService,
         broadcastService,
         settingService,
         modelSelectionService: providerRuntime.modelSelection,
@@ -2738,7 +2738,7 @@ export function createLocalServices(options: {
     .register(
       IUsageStatsService,
       createUsageStatsService({
-        zcodeAgentService,
+        nibiAgentService,
       }),
     )
     .register(
@@ -2746,7 +2746,7 @@ export function createLocalServices(options: {
       createClientConfigService({
         apiClient,
         resolveRequestContext: async () => ({
-          endpointOrigin: await resolveCurrentZCodeEndpointOrigin(),
+          endpointOrigin: await resolveCurrentNibiEndpointOrigin(),
           appVersion: NIBI_VERSION,
           platform: `${process.platform}-${process.arch}`,
         }),
@@ -2773,7 +2773,7 @@ export function createLocalServices(options: {
       IPluginManagementService,
       createPluginManagementService({
         // Host 进程可注入 local backend（17 条直答）；缺省仍走 agent 代理。
-        zcodeAgentService: localPluginManagement?.service ?? zcodeAgentService,
+        nibiAgentService: localPluginManagement?.service ?? nibiAgentService,
         reportTelemetryEvent: options?.reportPluginTelemetryEvent,
         // 4.0 重建时这行接线跟着上游注册表一起被替换掉了，只剩函数定义——
         // 结果是官网刚买完会员、客户端不重启仍装不了收费件。净室验收补回。
@@ -2785,7 +2785,7 @@ export function createLocalServices(options: {
     .register(
       IHooksService,
       createHooksService({
-        grantWorkspaceHookTrust: (params) => zcodeAgentService.grantWorkspaceHookTrust(params),
+        grantWorkspaceHookTrust: (params) => nibiAgentService.grantWorkspaceHookTrust(params),
       }),
     )
     .register(IMemoryService, createMemoryService())
@@ -2899,7 +2899,7 @@ export function createTelemetryUserIdLoader(
   };
 }
 
-/** 仅给同一事件账号返回当前 ZCode JWT；不缓存、不修改登录凭据。 */
+/** 仅给同一事件账号返回当前 Nibi JWT；不缓存、不修改登录凭据。 */
 export function createTelemetryAuthorizationLoader(
   credentialService: Pick<ICredentialService, "load">,
 ): (userId: string) => Promise<string | null> {
@@ -2967,9 +2967,9 @@ export function disposeServiceResources(services: ServiceCollection): void {
   // 这里集中调用各服务的本地 disposeAll 钩子，把“退出 app = 回收所有托管资源”落成机械动作。
   const disposableServices = [
     services.getOptional(ITerminalService),
-    services.getOptional(IZCodeTaskService),
-    services.getOptional(IZCodeAgentService),
-    services.getOptional(IZCodeSessionService),
+    services.getOptional(INibiTaskService),
+    services.getOptional(INibiAgentService),
+    services.getOptional(INibiSessionService),
     services.getOptional(IBotsService),
     services.getOptional(IFileWatcherService),
     services.getOptional(ISubagentsService),
@@ -3006,13 +3006,13 @@ export async function disposeServiceResourcesAndWait(services: ServiceCollection
     services.getOptional(IGenUiService) as (IGenUiService & { dispose?(): void }) | undefined
   )?.dispose?.();
   // app 关闭时 host 需要等 agent 进程树完成 graceful + force 清理。
-  // 旧的同步 dispose 会在 host 退出时丢掉强杀 timer，导致 zcode-cli/app-server 变成孤儿进程。
+  // 旧的同步 dispose 会在 host 退出时丢掉强杀 timer，导致 nibi-cli/app-server 变成孤儿进程。
   const disposableServices = [
     services.getOptional(ICloudContentService),
     services.getOptional(ITerminalService),
-    services.getOptional(IZCodeTaskService),
-    services.getOptional(IZCodeAgentService),
-    services.getOptional(IZCodeSessionService),
+    services.getOptional(INibiTaskService),
+    services.getOptional(INibiAgentService),
+    services.getOptional(INibiSessionService),
     services.getOptional(IBotsService),
     services.getOptional(IFileWatcherService),
     services.getOptional(ISubagentsService),
@@ -3127,4 +3127,4 @@ export async function createServerHostServices(options: {
 }
 
 export { scopeConversationShareServiceForAttachment } from "./conversation-share/conversationShareConnectionScope.js";
-export { localRuntimeNetworkCapture } from "./zcode-agent/localRuntimeNetworkCapture.js";
+export { localRuntimeNetworkCapture } from "./nibi-agent/localRuntimeNetworkCapture.js";

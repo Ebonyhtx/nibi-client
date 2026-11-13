@@ -9,7 +9,7 @@ import {
 } from "@nibi/shared/test-ids";
 import { probeWorkspaceAppState } from "./e2e/helpers/desktop-app.js";
 
-const PROJECT_PATH = "/Users/dev/Code/z-code/.e2e-home/ZCodeProject";
+const PROJECT_PATH = "/Users/dev/Code/z-code/.e2e-home/NibiProject";
 
 function probe(expectedPath = PROJECT_PATH) {
   return probeWorkspaceAppState({
@@ -65,7 +65,7 @@ describe("desktop e2e workspace readiness probe", () => {
   });
 
   it("matches a Windows active workspace path", () => {
-    const windowsPath = String.raw`C:\gitlab-runner\builds\project\packages\desktop\.e2e-home\ZCodeProject`;
+    const windowsPath = String.raw`C:\gitlab-runner\builds\project\packages\desktop\.e2e-home\NibiProject`;
     appendTestId(testId(TID_WORKSPACE_ITEM, windowsPath));
     appendTestId(`${TID_V4_SESSION_PANE}-pane-1`);
 

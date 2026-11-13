@@ -136,7 +136,7 @@ V4PaneWorkbench ────┼─→ pane 渲染（先渲染，不阻塞）
 | 8 | `packages/ui/src/v4/workbenchSessionPlacement.ts` / `V4WorkspaceChatArea.tsx` / `app-shell/WorkspaceShellLayout.tsx` | 拖拽、右键分屏和普通点击共享 placement resolver/executor；入口只提供 intent、side、anchor 和完整 workspace scope，叶子达上限且目标无已有归属时禁用 |
 | 9 | subagent child 详情 | 已迁移到 workspace 右侧 tabs，不再进入 split-pane workbench；普通 session「在分屏打开」保持不变 |
 | 10 | `packages/ui/src/v4/index.ts` | 导出面更新（新旧转移函数/类型替换） |
-| 11 | `apps/zcode-cli/packages/bootstrap/src/nibi-protocol/v4-bridge.ts` | `createSessionRecord` 的 `workspaceId` 经远程 identity 对偶解析（`buildRemoteWorkspaceIdentity` 家族），补单测——远程 pane draft 首发建会话的前置 |
+| 11 | `apps/nibi-cli/packages/bootstrap/src/nibi-protocol/v4-bridge.ts` | `createSessionRecord` 的 `workspaceId` 经远程 identity 对偶解析（`buildRemoteWorkspaceIdentity` 家族），补单测——远程 pane draft 首发建会话的前置 |
 | 12 | 历史三条 `conversation-session-v4-split*.test.ts` | 2026-07-13 因显式按钮下线而删除；Task 列表拖拽入口的回归覆盖仍需维护 |
 
 不动的面：`tabStore`（及其 ~46 个 `activeTabId` 消费者）、`splitPaneEntryContext` 闸门语义、手机 `/remote` 的 `V4ChatPane` 链路、`nibi-protocol-v4` schema、host/services 层（`processesByWorkspaceKey` 分桶已就绪）。

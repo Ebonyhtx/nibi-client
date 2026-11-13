@@ -1,5 +1,5 @@
 import { Emitter } from "@nibi/rpc";
-import type { IZCodeAgentService, ZCodeAgentRuntimeLifecycleEvent } from "@nibi/services";
+import type { INibiAgentService, NibiAgentRuntimeLifecycleEvent } from "@nibi/services";
 import type {
   SessionsIndexTopicWireCandidate,
   SessionSummary,
@@ -24,7 +24,7 @@ function summary(overrides: Partial<SessionSummary> = {}): SessionSummary {
 describe("WindowHostSessionsIndexObserver", () => {
   it("runtime available 在 subscribe ACK 前到达时不会递归创建第二条订阅", async () => {
     const frames = new Emitter<SessionsIndexTopicWireCandidate>();
-    const lifecycle = new Emitter<ZCodeAgentRuntimeLifecycleEvent>();
+    const lifecycle = new Emitter<NibiAgentRuntimeLifecycleEvent>();
     const subscribeSessionsIndexV4 = vi.fn(async () => {
       lifecycle.fire({
         workspaceKey: "/work/demo",
@@ -45,7 +45,7 @@ describe("WindowHostSessionsIndexObserver", () => {
       subscribeSessionsIndexV4,
       resyncSessionsIndexV4: vi.fn(),
       unsubscribeSessionsIndexV4: vi.fn(async () => undefined),
-    } as unknown as IZCodeAgentService;
+    } as unknown as INibiAgentService;
     const observer = createWindowHostSessionsIndexObserver({
       agentService,
       target: { workspacePath: "/work/demo" },
@@ -95,7 +95,7 @@ describe("WindowHostSessionsIndexObserver", () => {
       }),
       resyncSessionsIndexV4: vi.fn(),
       unsubscribeSessionsIndexV4,
-    } as unknown as IZCodeAgentService;
+    } as unknown as INibiAgentService;
     const observer = createWindowHostSessionsIndexObserver({
       agentService,
       target: { workspacePath: "/work/demo" },

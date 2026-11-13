@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.js";
 import { isHighPermissionModeValue } from "@/chat-input-toolbar/display.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 
 /** 能力清单按上游文案固定三项；图标只做视觉锚点，读屏依赖标题和描述。 */
 const CAPABILITIES: readonly {
@@ -48,7 +48,7 @@ export function FullAccessModeConfirmDialog({
   onOpenChange,
   onConfirm,
 }: FullAccessModeConfirmDialogProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [acknowledged, setAcknowledged] = useState(false);
   const acknowledgeRef = useRef<HTMLButtonElement>(null);
   const acknowledgeId = useId();

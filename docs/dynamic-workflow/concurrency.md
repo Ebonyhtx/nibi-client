@@ -2,7 +2,7 @@
 
 Status: implemented. This document describes how many model requests a workflow run may
 have in flight and how that number moves; its sibling
-`apps/zcode-cli/packages/dynamic-workflow/docs/execution-engine.md` owns what happens to a
+`apps/nibi-cli/packages/dynamic-workflow/docs/execution-engine.md` owns what happens to a
 run when a model error is not recoverable.
 
 ## Two bounds on a run

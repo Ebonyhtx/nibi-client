@@ -335,8 +335,8 @@ export class WebAuthService {
     return this.repo.loadCachedSessionState();
   }
 
-  getZCodeJwtToken(): string | null {
-    return this.repo.loadZCodeJwtToken();
+  getNibiJwtToken(): string | null {
+    return this.repo.loadNibiJwtToken();
   }
 
   /** 设备页账号行的展示资料；只读，不参与登录判断。 */

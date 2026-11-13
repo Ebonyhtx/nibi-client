@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useClaudeSessionMigration } from "@/hooks/useClaudeSessionMigration.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { useServices } from "@/hooks/useServices.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useOnboardingAgentsFileMigration } from "@/onboarding/useOnboardingAgentsFileMigration.js";
 import {
   shouldAutoScanSessions,
@@ -33,7 +33,7 @@ export function useMigrationWizard(params: {
   workspaceIdentity?: string;
   isDesktop: boolean;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const confirmDialog = useConfirmDialog();
   const { settingsSyncService } = useServices();
   const [step, setStep] = useState<MigrationWizardStep>("session");

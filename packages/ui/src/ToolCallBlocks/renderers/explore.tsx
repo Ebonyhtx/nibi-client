@@ -2,7 +2,7 @@
 import { SearchIcon } from "lucide-react";
 import { extractPlanStepsFromToolInput, extractPlanStepsFromToolOutput } from "@nibi/shared";
 import { ToolSnapshotFieldNotice } from "@/ToolCallBlocks/ToolSnapshotFieldNotice.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { getExecuteSecondaryText } from "@/ToolCallBlocks/renderers/execute.js";
 import { buildReadSummary, ReadFileChip } from "@/ToolCallBlocks/renderers/read.js";
 import { getWebFetchPrimaryText } from "@/ToolCallBlocks/renderers/web-fetch.js";
@@ -13,7 +13,7 @@ import { ToolLayout } from "../ToolLayout.js";
 import type { ToolCallBlockRenderContext } from "../shared.js";
 import { useCallback, type ReactNode } from "react";
 import type { TaskChatToolCallTreeNode } from "@/lib/toolCallTree.js";
-import type { ZCodePlanStep } from "@nibi/shared";
+import type { NibiPlanStep } from "@nibi/shared";
 
 const EXPLORE_TOOL_ICON = <SearchIcon className="size-4 shrink-0 text-foreground-subtle" />;
 
@@ -241,7 +241,7 @@ function renderChildActionKindPrefix(actionKindLabel: string | null, content: Re
 
 function readTodoPlanFromToolCall(
   childToolCall: ToolCallBlockRenderContext["toolCallNode"]["toolCall"],
-): ZCodePlanStep[] | null {
+): NibiPlanStep[] | null {
   return (
     extractPlanStepsFromToolOutput({
       title: childToolCall.title,
@@ -418,7 +418,7 @@ export function getLatestExploreChildSummaryFromChildren(
 
 export function ExploreToolCallBlock(context: ToolCallBlockRenderContext) {
   const ToolCallBlock = context.nestedToolRenderer;
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const { toolCallNode, isRunning, statusLabel, errorText } = context;
   const { toolCall, childToolCalls } = toolCallNode;
   const counts = childToolCalls.reduce<Record<ExploreBucket, number>>(

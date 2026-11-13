@@ -207,7 +207,7 @@ describe("buildTreemappingActivityModel", () => {
     expect(model.files[0]).toMatchObject({ kind: "modified", added: 3, removed: 1 });
   });
 
-  it("uses ZCode file_diff display stats without treating title=Write as written", () => {
+  it("uses Nibi file_diff display stats without treating title=Write as written", () => {
     const filePath = "/workspace/src/app/components/TodoList.tsx";
     const model = buildTreemappingActivityModel(
       message([
@@ -276,7 +276,7 @@ describe("buildTreemappingActivityModel", () => {
     });
   });
 
-  it("uses rawOutput content type as the ZCode write/edit/delete source of truth", () => {
+  it("uses rawOutput content type as the Nibi write/edit/delete source of truth", () => {
     const createPath = "/workspace/src/created.ts";
     const updatePath = "/workspace/src/updated.ts";
     const deletePath = "/workspace/src/deleted.ts";

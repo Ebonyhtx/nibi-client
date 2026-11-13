@@ -189,7 +189,7 @@ describe("Provider Facades", () => {
     expect(JSON.parse(JSON.stringify(view))).toEqual(view);
   });
 
-  it("Settings 模型配置解析复用 ZCodeBuiltin 与 Personal Model Config Rules", async () => {
+  it("Settings 模型配置解析复用 NibiBuiltin 与 Personal Model Config Rules", async () => {
     const service = await createService();
     const facade = new ProviderSettingsFacade(service);
     const current = facade.getView();

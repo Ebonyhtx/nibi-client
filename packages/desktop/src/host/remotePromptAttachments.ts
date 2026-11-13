@@ -1,6 +1,6 @@
 import type { IRemoteBackend, RemoteUploadOptions } from "@nibi/server/remote";
 import { quotePosixPathArg } from "@nibi/server/remote/posixShell.js";
-import type { TraceId, ZCodePromptAttachment } from "@nibi/shared";
+import type { TraceId, NibiPromptAttachment } from "@nibi/shared";
 import { randomUUID } from "node:crypto";
 
 export const REMOTE_PROMPT_ATTACHMENT_ROOT = "~/.nibi/tmp/prompt-attachments";
@@ -10,12 +10,12 @@ export interface RemotePromptAttachmentMaterializeInput {
   taskId?: string;
   content: string;
   traceId: TraceId | string;
-  attachments?: ZCodePromptAttachment[];
+  attachments?: NibiPromptAttachment[];
 }
 
 export interface RemotePromptAttachmentMaterializeResult {
   content: string;
-  attachments?: ZCodePromptAttachment[];
+  attachments?: NibiPromptAttachment[];
   uploadedCount: number;
 }
 
@@ -32,7 +32,7 @@ export async function materializeRemotePromptAttachments(
   }
 
   const replacements = new Map<string, string>();
-  const nextAttachments: ZCodePromptAttachment[] = [];
+  const nextAttachments: NibiPromptAttachment[] = [];
   let remoteRootPromise: Promise<string> | undefined;
   let uploadedCount = 0;
   let changed = false;
@@ -88,7 +88,7 @@ export async function materializeRemotePromptAttachments(
     nextAttachments.push({
       ...attachment,
       localPath: remotePath,
-    } as ZCodePromptAttachment);
+    } as NibiPromptAttachment);
     replacements.set(localPath, remotePath);
     uploadedCount += 1;
     changed = true;
@@ -222,7 +222,7 @@ async function waitForRemoteCommand(
   });
 }
 
-function getAttachmentLocalPath(attachment: ZCodePromptAttachment): string | undefined {
+function getAttachmentLocalPath(attachment: NibiPromptAttachment): string | undefined {
   const localPath = attachment.localPath?.trim();
   return localPath ? attachment.localPath : undefined;
 }

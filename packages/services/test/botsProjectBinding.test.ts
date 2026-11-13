@@ -40,7 +40,7 @@ function setup(initial = [project("p")], state?: Parameters<typeof f.createMemor
   const service = f.createBotsService({
     repo: repo as never,
     credentialService: f.createCredentialService({ "secret-1": "secret" }),
-    zcodeTaskService: task,
+    nibiTaskService: task,
     projectService: {
       readProjects: async () => projects,
       prepareSession,

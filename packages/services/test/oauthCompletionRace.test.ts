@@ -134,7 +134,7 @@ describe("OAuth completion arbitration", () => {
       expect(first === "callback" ? f.normalizePolledTokenSet : f.parse).not.toHaveBeenCalled();
       (first === "callback" ? f.exchange : f.normalize).resolve({
         accessToken: "winner",
-        zcodeJwtToken: "winner-jwt",
+        nibiJwtToken: "winner-jwt",
       });
       expect(await firstCall).toMatchObject({ kind: "session" });
       const secondResult = await secondCall;
@@ -163,7 +163,7 @@ describe("OAuth completion arbitration", () => {
       (first === "callback" ? f.exchange : f.normalize).reject(new Error("first route failed"));
       (first === "callback" ? f.normalize : f.exchange).resolve({
         accessToken: "fallback",
-        zcodeJwtToken: "fallback-jwt",
+        nibiJwtToken: "fallback-jwt",
       });
       const results = await Promise.all([firstCall, secondCall]);
       expect(results.filter((r) => r?.kind === "session")).toHaveLength(1);
@@ -175,7 +175,7 @@ describe("OAuth completion arbitration", () => {
   it("preserves attribution from a late callback without parsing its code", async () => {
     const f = await setup();
     f.ready();
-    f.normalize.resolve({ accessToken: "poll", zcodeJwtToken: "jwt" });
+    f.normalize.resolve({ accessToken: "poll", nibiJwtToken: "jwt" });
     await f.service.pollPendingOAuth();
     expect(await f.service.handleCallback(f.callback)).toMatchObject({ kind: "duplicate" });
     expect(f.parse).not.toHaveBeenCalled();

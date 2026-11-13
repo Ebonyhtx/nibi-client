@@ -1,0 +1,467 @@
+import type { NibiEnv } from "./env.js";
+
+// NIBI fork：默认端点指向我们自己的服务（配置两跳 / 更新清单等都在该 origin 下）。
+// 上游原值 https://zcode.z.ai；env（NIBI_BASE_URL / NIBI_ENDPOINT_ORIGIN）仍可覆盖，便于本地调试。
+export const DEFAULT_NIBI_ENDPOINT_ORIGIN = "https://api.nibistudio.cn";
+// 上游的默认端点。**保留它是为了识别"编译期注入的旧常量"**：构建期配置
+// （scripts/build-time-config.mjs 的 private defaults / vitest 的 define）里可能仍写着上游域名，
+// 而 rewriteNibiEndpointUrl 只改写"认得的来源"——不认这个就会出现"要改写的 URL 命中不了"
+// （遥测绕过我们的端点直发上游）。见该函数注释。
+export const UPSTREAM_NIBI_ENDPOINT_ORIGIN = "https://zcode.z.ai";
+// test 档端点：NIBI 自有域名的保留位（尚未部署测试后端）。
+// 分家前这里是上游 https://zcode.z.ai；任何默认回退到上游都违反端点隔离
+// （test 档构建会把登录换证/许可证检查发给上游）。未部署时 DNS 失败即 fail-closed，
+// 测试/E2E 必须显式注入 NIBI_BASE_URL 或本地 mock。
+export const TEST_NIBI_ENDPOINT_ORIGIN = "https://api-test.nibistudio.cn";
+// NIBI 会员购买页（我们自己的官网）。客户端内嵌的是这一页，不是上游 Coding Plan 页。
+export const DEFAULT_NIBI_WEB_ORIGIN = "https://nibistudio.cn";
+export const NIBI_WEB_ORIGIN_ALIASES: readonly string[] = ["https://www.nibistudio.cn"];
+// 本地开发：Astro dev 默认 4321；保留 3000 兼容旧的本地站点服务。
+export const NIBI_MEMBERSHIP_LOCAL_WEBVIEW_ORIGINS: readonly string[] = [
+  "http://localhost:4321",
+  "http://localhost:3000",
+];
+export const DEFAULT_BIGMODEL_API_ORIGIN = "https://bigmodel.cn";
+export const TEST_BIGMODEL_API_ORIGIN = "https://bigmodel.cn";
+export const DEFAULT_ZAI_OAUTH_ORIGIN = "https://chat.z.ai";
+export const TEST_ZAI_OAUTH_ORIGIN = "https://chat.z.ai";
+export const DEFAULT_ZAI_BUSINESS_BASE_URL = "https://api.z.ai";
+export const TEST_ZAI_BUSINESS_BASE_URL = "https://api.z.ai";
+export const DEFAULT_ZAI_OAUTH_CLIENT_ID = "client_P8X5CMWmlaRO9gyO-KSqtg";
+export const TEST_ZAI_OAUTH_CLIENT_ID = "client_P8X5CMWmlaRO9gyO-KSqtg";
+export const DEFAULT_WEB_REMOTE_CONTROL_RELAY_WS_URL = "wss://api.nibistudio.cn/api/v1/remote/ws2";
+export const WEB_REMOTE_CONTROL_V4_MIN_APP_VERSION = "3.4.0";
+
+export interface BuildNibiEndpointUrlsOptions {
+  appVersion?: string;
+}
+
+function isWebRemoteControlV4AppVersion(appVersion: string | undefined): boolean {
+  if (!appVersion) {
+    return false;
+  }
+
+  // nibiEndpoint 会被 Vite 配置在 Node 加载期直接导入，不能依赖源码态 `.js` runtime import。
+  // 这里只比较固定的稳定版门槛；高于 3.4.0 的预发布版本仍满足门槛，3.4.0 自身的预发布版本不满足。
+  const normalizedVersion = appVersion.trim().replace(/^v/i, "");
+  const match = normalizedVersion.match(
+    /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([^+]+))?(?:\+(.+))?$/,
+  );
+  if (!match) {
+    return false;
+  }
+
+  const prereleaseIdentifiers = match[4]?.split(".");
+  const hasValidPrerelease =
+    prereleaseIdentifiers === undefined ||
+    prereleaseIdentifiers.every(
+      (identifier) =>
+        /^[0-9A-Za-z-]+$/.test(identifier) &&
+        (!/^\d+$/.test(identifier) || /^(0|[1-9]\d*)$/.test(identifier)),
+    );
+  const buildIdentifiers = match[5]?.split(".");
+  const hasValidBuild =
+    buildIdentifiers === undefined ||
+    buildIdentifiers.every((identifier) => /^[0-9A-Za-z-]+$/.test(identifier));
+  if (!hasValidPrerelease || !hasValidBuild) {
+    return false;
+  }
+
+  const versionParts = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const floorParts = WEB_REMOTE_CONTROL_V4_MIN_APP_VERSION.split(".").map(Number);
+  for (let index = 0; index < floorParts.length; index += 1) {
+    if (versionParts[index]! !== floorParts[index]!) {
+      return versionParts[index]! > floorParts[index]!;
+    }
+  }
+
+  return prereleaseIdentifiers === undefined;
+}
+
+export interface NibiEndpointUrls {
+  origin: string;
+  apiBaseUrl: string;
+  remoteUrl: string;
+  webRemoteCallbackUrl: string;
+  webShareCallbackUrl: string;
+  relayWsUrl: string;
+}
+
+export interface RuntimeNibiEndpointEnv {
+  [key: string]: string | undefined;
+  NIBI_ENV?: string;
+  NIBI_BASE_URL?: string;
+  NIBI_ENDPOINT_ORIGIN?: string;
+  NIBI_TEST_BASE_URL?: string;
+  NIBI_PRODUCTION_BASE_URL?: string;
+}
+
+export interface RuntimeBigModelApiEnv {
+  [key: string]: string | undefined;
+  NIBI_ENV?: string;
+  BIGMODEL_API_BASE_URL?: string;
+  BIGMODEL_TEST_API_BASE_URL?: string;
+  BIGMODEL_PRODUCTION_API_BASE_URL?: string;
+}
+
+export interface RuntimeZaiEndpointEnv {
+  [key: string]: string | undefined;
+  NIBI_ENV?: string;
+  ZAI_OAUTH_ORIGIN?: string;
+  ZAI_TEST_OAUTH_ORIGIN?: string;
+  ZAI_PRODUCTION_OAUTH_ORIGIN?: string;
+  ZAI_BUSINESS_BASE_URL?: string;
+  ZAI_TEST_BUSINESS_BASE_URL?: string;
+  ZAI_PRODUCTION_BUSINESS_BASE_URL?: string;
+  ZAI_OAUTH_CLIENT_ID?: string;
+  ZAI_TEST_OAUTH_CLIENT_ID?: string;
+  ZAI_PRODUCTION_OAUTH_CLIENT_ID?: string;
+  ZAI_OAUTH_APP_ID?: string;
+}
+
+export interface RuntimeProductEndpointEnv
+  extends RuntimeNibiEndpointEnv, RuntimeBigModelApiEnv, RuntimeZaiEndpointEnv {}
+
+export interface RuntimeProductEndpointConfig {
+  nibiEnv: NibiEnv;
+  nibiEndpointOrigin: string;
+  nibiEndpointUrls: NibiEndpointUrls;
+  zaiOAuthOrigin: string;
+  zaiBusinessBaseUrl: string;
+  zaiOAuthClientId: string;
+  bigModelApiOrigin: string;
+}
+
+function readRuntimeEnvValue(
+  env: Record<string, string | undefined>,
+  key: string,
+): string | undefined {
+  const value = env[key]?.trim();
+  return value ? value : undefined;
+}
+
+function readRuntimeNibiEnvScopedValue(
+  env: Record<string, string | undefined>,
+  nibiEnv: NibiEnv,
+  testKey: string,
+  productionKey: string,
+): string | undefined {
+  return readRuntimeEnvValue(env, nibiEnv === "production" ? productionKey : testKey);
+}
+
+export function normalizeNibiEndpointOrigin(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    throw new Error("NIBI endpoint origin is empty");
+  }
+
+  const parsed = new URL(trimmed);
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new Error("NIBI endpoint origin must use http or https");
+  }
+  return parsed.origin;
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
+export function isTrustedNibiWebviewOrigin(
+  value: string | null | undefined,
+  options?: {
+    e2eStoreBridgeEnabled?: boolean;
+  },
+): boolean {
+  if (!value) return false;
+  try {
+    const origin = normalizeNibiEndpointOrigin(value);
+    if (
+      origin === DEFAULT_NIBI_WEB_ORIGIN ||
+      NIBI_WEB_ORIGIN_ALIASES.includes(origin) ||
+      NIBI_MEMBERSHIP_LOCAL_WEBVIEW_ORIGINS.includes(origin)
+    ) {
+      return true;
+    }
+    const parsed = new URL(origin);
+    return options?.e2eStoreBridgeEnabled === true && isLoopbackHostname(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 会员购买页只接受官网的 `/membership` 及其子路径（支付回跳在未来接）。
+ * 不能按“域名信任”注入桥：同一域名下的其它页面不应继承 App 通信能力。
+ */
+export function isTrustedNibiMembershipWebviewUrl(
+  value: string | null | undefined,
+  options?: {
+    e2eStoreBridgeEnabled?: boolean;
+  },
+): boolean {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    if (!isTrustedNibiWebviewOrigin(url.origin, options)) return false;
+    return url.pathname === "/membership" || url.pathname.startsWith("/membership/");
+  } catch {
+    return false;
+  }
+}
+
+export function resolveNibiEndpointOrigin(options?: {
+  env?: NibiEnv;
+  envBaseOrigin?: string | null;
+  overrideOrigin?: string | null;
+}): string {
+  const env = options?.env ?? "test";
+  const envBaseOrigin = options?.envBaseOrigin?.trim();
+  if (env === "production") {
+    return envBaseOrigin
+      ? normalizeNibiEndpointOrigin(envBaseOrigin)
+      : DEFAULT_NIBI_ENDPOINT_ORIGIN;
+  }
+
+  const overrideOrigin = options?.overrideOrigin?.trim();
+  if (overrideOrigin) {
+    return normalizeNibiEndpointOrigin(overrideOrigin);
+  }
+
+  return envBaseOrigin ? normalizeNibiEndpointOrigin(envBaseOrigin) : TEST_NIBI_ENDPOINT_ORIGIN;
+}
+
+export function resolveRuntimeNibiEnv(env: RuntimeNibiEndpointEnv = {}): NibiEnv {
+  // 独立 CLI / 服务测试未注入 NIBI_ENV 时默认生产域；桌面测试包会显式下发 NIBI_ENV=test。
+  return env.NIBI_ENV?.trim().toLowerCase() === "test" ? "test" : "production";
+}
+
+export function resolveRuntimeNibiEndpointOrigin(
+  env: RuntimeNibiEndpointEnv = {},
+  options?: { overrideOrigin?: string | null },
+): string {
+  const nibiEnv = resolveRuntimeNibiEnv(env);
+  const scopedBaseOrigin =
+    nibiEnv === "production"
+      ? readRuntimeEnvValue(env, "NIBI_PRODUCTION_BASE_URL")
+      : readRuntimeEnvValue(env, "NIBI_TEST_BASE_URL");
+
+  return resolveNibiEndpointOrigin({
+    env: nibiEnv,
+    envBaseOrigin:
+      readRuntimeEnvValue(env, "NIBI_BASE_URL") ??
+      readRuntimeEnvValue(env, "NIBI_ENDPOINT_ORIGIN") ??
+      scopedBaseOrigin,
+    overrideOrigin: options?.overrideOrigin,
+  });
+}
+
+export function buildRuntimeNibiEndpointUrls(
+  env: RuntimeNibiEndpointEnv = {},
+): NibiEndpointUrls {
+  return buildNibiEndpointUrls(resolveRuntimeNibiEndpointOrigin(env));
+}
+
+export function buildRuntimeNibiApiUrl(env: RuntimeNibiEndpointEnv = {}, path: string): string {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${resolveRuntimeNibiEndpointOrigin(env)}${normalizedPath}`;
+}
+
+export function resolveWebRemoteControlRelayWsUrl(options?: {
+  endpointOrigin?: string | null | undefined;
+  overrideUrl?: string | null | undefined;
+}): string {
+  const overrideUrl = options?.overrideUrl?.trim();
+  if (overrideUrl) {
+    return overrideUrl;
+  }
+
+  const origin = new URL(
+    normalizeNibiEndpointOrigin(options?.endpointOrigin?.trim() || DEFAULT_NIBI_ENDPOINT_ORIGIN),
+  );
+  origin.protocol = origin.protocol === "https:" ? "wss:" : "ws:";
+  origin.pathname = "/api/v1/remote/ws2";
+  return origin.toString();
+}
+
+export function resolveBigModelApiOrigin(env: RuntimeBigModelApiEnv = {}): string {
+  const nibiEnv = resolveRuntimeNibiEnv(env);
+  const scopedBaseOrigin =
+    nibiEnv === "production"
+      ? readRuntimeEnvValue(env, "BIGMODEL_PRODUCTION_API_BASE_URL")
+      : readRuntimeEnvValue(env, "BIGMODEL_TEST_API_BASE_URL");
+  const fallbackOrigin =
+    nibiEnv === "production" ? DEFAULT_BIGMODEL_API_ORIGIN : TEST_BIGMODEL_API_ORIGIN;
+
+  return normalizeNibiEndpointOrigin(
+    readRuntimeEnvValue(env, "BIGMODEL_API_BASE_URL") ?? scopedBaseOrigin ?? fallbackOrigin,
+  );
+}
+
+export function buildBigModelApiUrl(env: RuntimeBigModelApiEnv = {}, path: string): string {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${resolveBigModelApiOrigin(env)}${normalizedPath}`;
+}
+
+export function resolveZaiOAuthOrigin(env: RuntimeZaiEndpointEnv = {}): string {
+  const nibiEnv = resolveRuntimeNibiEnv(env);
+  const scopedOrigin = readRuntimeNibiEnvScopedValue(
+    env,
+    nibiEnv,
+    "ZAI_TEST_OAUTH_ORIGIN",
+    "ZAI_PRODUCTION_OAUTH_ORIGIN",
+  );
+  const fallbackOrigin =
+    nibiEnv === "production" ? DEFAULT_ZAI_OAUTH_ORIGIN : TEST_ZAI_OAUTH_ORIGIN;
+
+  return normalizeNibiEndpointOrigin(
+    readRuntimeEnvValue(env, "ZAI_OAUTH_ORIGIN") ?? scopedOrigin ?? fallbackOrigin,
+  );
+}
+
+export function resolveZaiBusinessBaseUrl(env: RuntimeZaiEndpointEnv = {}): string {
+  const nibiEnv = resolveRuntimeNibiEnv(env);
+  const scopedOrigin = readRuntimeNibiEnvScopedValue(
+    env,
+    nibiEnv,
+    "ZAI_TEST_BUSINESS_BASE_URL",
+    "ZAI_PRODUCTION_BUSINESS_BASE_URL",
+  );
+  const fallbackOrigin =
+    nibiEnv === "production" ? DEFAULT_ZAI_BUSINESS_BASE_URL : TEST_ZAI_BUSINESS_BASE_URL;
+
+  return normalizeNibiEndpointOrigin(
+    readRuntimeEnvValue(env, "ZAI_BUSINESS_BASE_URL") ?? scopedOrigin ?? fallbackOrigin,
+  );
+}
+
+export function resolveZaiOAuthClientId(env: RuntimeZaiEndpointEnv = {}): string {
+  const nibiEnv = resolveRuntimeNibiEnv(env);
+  const scopedClientId = readRuntimeNibiEnvScopedValue(
+    env,
+    nibiEnv,
+    "ZAI_TEST_OAUTH_CLIENT_ID",
+    "ZAI_PRODUCTION_OAUTH_CLIENT_ID",
+  );
+  const fallbackClientId =
+    nibiEnv === "production" ? DEFAULT_ZAI_OAUTH_CLIENT_ID : TEST_ZAI_OAUTH_CLIENT_ID;
+
+  return (
+    readRuntimeEnvValue(env, "ZAI_OAUTH_CLIENT_ID") ??
+    scopedClientId ??
+    readRuntimeEnvValue(env, "ZAI_OAUTH_APP_ID") ??
+    fallbackClientId
+  );
+}
+
+export function buildZaiOAuthUrl(origin: string, path: string): string {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${normalizeNibiEndpointOrigin(origin)}${normalizedPath}`;
+}
+
+export function buildRuntimeZaiOAuthUrl(env: RuntimeZaiEndpointEnv = {}, path: string): string {
+  return buildZaiOAuthUrl(resolveZaiOAuthOrigin(env), path);
+}
+
+export function buildRuntimeZaiBusinessUrl(env: RuntimeZaiEndpointEnv = {}, path: string): string {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${resolveZaiBusinessBaseUrl(env)}${normalizedPath}`;
+}
+
+export function resolveRuntimeProductEndpointConfig(
+  env: RuntimeProductEndpointEnv = {},
+): RuntimeProductEndpointConfig {
+  const nibiEnv = resolveRuntimeNibiEnv(env);
+  const nibiEndpointOrigin = resolveRuntimeNibiEndpointOrigin(env);
+
+  return {
+    nibiEnv,
+    nibiEndpointOrigin,
+    nibiEndpointUrls: buildNibiEndpointUrls(nibiEndpointOrigin),
+    zaiOAuthOrigin: resolveZaiOAuthOrigin(env),
+    zaiBusinessBaseUrl: resolveZaiBusinessBaseUrl(env),
+    zaiOAuthClientId: resolveZaiOAuthClientId(env),
+    bigModelApiOrigin: resolveBigModelApiOrigin(env),
+  };
+}
+
+export function buildNibiEndpointUrls(
+  origin: string,
+  options: BuildNibiEndpointUrlsOptions = {},
+): NibiEndpointUrls {
+  const normalizedOrigin = normalizeNibiEndpointOrigin(origin);
+  const parsed = new URL(normalizedOrigin);
+  const wsProtocol = parsed.protocol === "https:" ? "wss:" : "ws:";
+  const wsOrigin = `${wsProtocol}//${parsed.host}`;
+  // 无法解析或低于分界版本时保守使用 v3，避免开发版本和旧客户端进入未兼容的 v4 页面。
+  const remoteVersion = isWebRemoteControlV4AppVersion(options.appVersion) ? "v4" : "v3";
+
+  return {
+    origin: normalizedOrigin,
+    apiBaseUrl: `${normalizedOrigin}/api/v1`,
+    remoteUrl: `${normalizedOrigin}/remote/${remoteVersion}`,
+    webRemoteCallbackUrl: `${normalizedOrigin}/remote/v4`,
+    webShareCallbackUrl: `${normalizedOrigin}/cn/share/callback`,
+    relayWsUrl: `${wsOrigin}/api/v1/remote/ws2`,
+  };
+}
+
+export function rewriteNibiEndpointUrl(input: string | URL, endpointOrigin: string): string | URL {
+  const originalUrl = typeof input === "string" ? input : input.toString();
+  let parsed: URL;
+  try {
+    parsed = new URL(originalUrl);
+  } catch {
+    return input;
+  }
+  // 认这两个 origin 作为"可改写的来源"：
+  //   ① 我们自己的（DEFAULT_NIBI_ENDPOINT_ORIGIN，fork 后 = api.nibistudio.cn）
+  //   ② 上游的（UPSTREAM_NIBI_ENDPOINT_ORIGIN = zcode.z.ai）
+  // ② 是**兜底重写**，不是允许配置上游：构建期 `scripts/build-time-config.mjs` 已硬拒绝
+  // 上游端点，正常构建不会出现它；保留这一支只处理历史常量/遗留 bundle 里可能带出的上游
+  // URL，把它改写回我们的端点，避免"配错了反而直发上游"。
+  const sourceOrigins = [DEFAULT_NIBI_ENDPOINT_ORIGIN, UPSTREAM_NIBI_ENDPOINT_ORIGIN];
+  if (!sourceOrigins.includes(parsed.origin)) {
+    return input;
+  }
+
+  const targetOrigin = normalizeNibiEndpointOrigin(endpointOrigin);
+  // 目标与当前 origin 相同就不必改写（避免把 URL 规范化成另一种等价写法）。
+  if (targetOrigin === parsed.origin) {
+    return input;
+  }
+
+  const target = new URL(targetOrigin);
+  target.pathname = parsed.pathname;
+  target.search = parsed.search;
+  target.hash = parsed.hash;
+  return target.toString();
+}
+
+/**
+ * 分家迁移前的旧 NIBI 主机名 → 现主机名。
+ *
+ * 持久化状态（插件市场源、插件下载地址等）里可能残留旧域名的绝对 URL。旧域名已停止
+ * 解析，继续使用会在 TLS 阶段直接断开（表现为 "Client network socket disconnected
+ * before secure TLS connection was established"）。只在 hostname 精确匹配时替换，
+ * 其它 URL（含本地路径、第三方域名）原样返回。
+ */
+const LEGACY_NIBI_HOSTNAMES: Readonly<Record<string, string>> = {
+  "api.nibistudio.top": "api.nibistudio.cn",
+  "auth.nibistudio.top": "auth.nibistudio.cn",
+  "dl.nibistudio.top": "dl.nibistudio.cn",
+  "www.nibistudio.top": "www.nibistudio.cn",
+  "nibistudio.top": "nibistudio.cn",
+};
+
+export function migrateLegacyNibiUrl(input: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(input);
+  } catch {
+    return input;
+  }
+  const replacement = LEGACY_NIBI_HOSTNAMES[parsed.hostname.toLowerCase()];
+  if (replacement === undefined) return input;
+  parsed.hostname = replacement;
+  return parsed.toString();
+}

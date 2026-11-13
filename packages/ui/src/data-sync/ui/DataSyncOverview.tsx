@@ -1,6 +1,6 @@
 import { UploadCloud } from "lucide-react";
 import { Button } from "@/components/ui/button.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { DataSyncCategoryController } from "@/data-sync/app/useDataSyncCategory.js";
 import type {
   DataSyncCategoryId,
@@ -29,7 +29,7 @@ function pushResultErrorText(intl: Intl, result: DataSyncCategoryPushResult): st
 }
 
 function PushAllSummaryPanel({ summary }: { summary: DataSyncPushAllSummary }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const failedCategories = summary.results.filter(hasPushAllCategoryFailure);
   return (
     <div
@@ -85,7 +85,7 @@ function OverviewRow({
   controller: DataSyncCategoryController;
   onSelect(id: DataSyncCategoryId): void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const ready = controller.phase === "ready";
   const status = ready
     ? controller.importBlockedReason
@@ -165,7 +165,7 @@ export function OverviewPanel({
   onClearSelection(): void;
   onPushAll(): void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <div className="space-y-3">
       <p className="text-ui-sm text-foreground-subtle">

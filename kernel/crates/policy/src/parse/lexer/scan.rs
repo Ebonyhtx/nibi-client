@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash-parse/src/lexer/scan.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
+// 复制自 apps/nibi-cli-rust/crates/bash-parse/src/lexer/scan.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
 //! `skipSQ` 与 `scanBraceExpansion`。
 
 use super::{AMP, BACKSLASH, COMMA, DOT, LBRACE, Lexer, PIPE, RBRACE, SEMI, SPACE, SQUOTE};

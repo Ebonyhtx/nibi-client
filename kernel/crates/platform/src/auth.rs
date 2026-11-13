@@ -1,4 +1,4 @@
-// 语义复制自 apps/zcode-cli/packages/bootstrap/src/app/standalone-account-provider-runtime.ts（33a9541140）的
+// 语义复制自 apps/nibi-cli/packages/bootstrap/src/app/standalone-account-provider-runtime.ts（33a9541140）的
 // `createStandaloneProviderRuntimeHeadersPort`（手工 key）；OAuth 的个人与团队分支取 packages/services/src/
 // model-provider/accountProviderRequestAuthService.ts 与 accountProviderTeamPlanRequestKey.ts（staging 699b62b8d6，
 // 工作线 F47；个人分支 F50）。改动：`expectedAccountScope` 不经模型适配器回传，改由本进程记下的“令牌指纹 → 账号范围”

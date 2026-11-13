@@ -22,11 +22,11 @@ function createFixture(provider = "zai", env: NodeJS.ProcessEnv = { NIBI_ENV: "p
   const fetchImpl = vi.fn(async () => new Response("", { status: 401 }));
   const client = createNodeApiClient({
     fetchImpl,
-    isZcodeJwtRequest: observe,
+    isNibiJwtRequest: observe,
     isBusinessUnauthorizedRequest: observeBusiness,
     resolveBusinessCredentialValidationRequest: (input, headers) =>
       resolveOAuthBusinessCredentialValidationRequest({ input, headers, credentialService, env }),
-    onZcodeJwtInvalid: notified,
+    onNibiJwtInvalid: notified,
   });
   return { credentials, credentialService, observe, notified, fetchImpl, client };
 }
@@ -223,7 +223,7 @@ describe("当前 App 登录凭据的 HTTP 401 识别", () => {
     expect(fixture.notified).not.toHaveBeenCalled();
   });
 
-  it("保留原 ZCode JWT 401 判断", async () => {
+  it("保留原 Nibi JWT 401 判断", async () => {
     const fixture = createFixture();
     await fixture.client.request("https://zcode.z.ai/api/v1/zcode-plan/billing/balance", {
       headers: { Authorization: "Bearer current-zcode-jwt" },
@@ -381,7 +381,7 @@ describe("当前 App 登录凭据的 HTTP 401 识别", () => {
     },
   );
 
-  it("userinfo 分类不受无关的 ZCode base 配置异常影响", async () => {
+  it("userinfo 分类不受无关的 Nibi base 配置异常影响", async () => {
     const fixture = createFixture("zai", { NIBI_ENV: "production", NIBI_BASE_URL: "invalid" });
     await expect(
       fixture.observe(

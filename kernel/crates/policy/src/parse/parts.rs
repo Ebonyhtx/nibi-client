@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash-parse/src/parts.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
+// 复制自 apps/nibi-cli-rust/crates/bash-parse/src/parts.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
 //! 单词的结构化部件（unbash `WordPart`）以及 `word.value` / 动态判定。
 //!
 //! unbash 的 `Word.parts` 是惰性的：首次访问时在 `[pos, end)` 上新建一个有界 lexer 重新扫描。

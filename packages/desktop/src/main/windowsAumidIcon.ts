@@ -17,7 +17,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 
-public static class ZCodeAumidIcon {
+public static class NibiAumidIcon {
   [StructLayout(LayoutKind.Sequential)]
   private struct SIZE { public int cx; public int cy; }
 
@@ -64,8 +64,8 @@ public static class ZCodeAumidIcon {
   }
 }
 '@;
-$zcodeIconBytes=[ZCodeAumidIcon]::Read($zcodeArg0);
-[Console]::Out.Write([Convert]::ToBase64String($zcodeIconBytes));
+$nibiIconBytes=[NibiAumidIcon]::Read($nibiArg0);
+[Console]::Out.Write([Convert]::ToBase64String($nibiIconBytes));
 `;
 
 interface WindowsAumidIconDependencies {

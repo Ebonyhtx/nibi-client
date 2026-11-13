@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
 import type {
-  ZCodeImportSessionsResult,
-  ZCodeImportableSessionCandidate,
+  NibiImportSessionsResult,
+  NibiImportableSessionCandidate,
 } from "@nibi/shared";
 import { logger } from "@/logger.js";
-import { useZCodeTaskService } from "@/hooks/useZCodeTaskService.js";
+import { useNibiTaskService } from "@/hooks/useNibiTaskService.js";
 import { useTabStoreApi } from "@/store/TabStoreProvider.js";
 import { invalidateTaskQueryCacheByScopes } from "@/store/taskQueryCacheStore.js";
 
@@ -63,7 +63,7 @@ export function useClaudeSessionMigration(params: {
   workspaceIdentity?: string;
   isDesktop?: boolean;
 }) {
-  const zcodeTaskService = useZCodeTaskService(
+  const nibiTaskService = useNibiTaskService(
     params.workspacePath ?? undefined,
     undefined,
     params.workspaceIdentity,
@@ -73,12 +73,12 @@ export function useClaudeSessionMigration(params: {
     useState<ClaudeMigrationWorkspaceFilterMode>("all");
   const [range, setRange] = useState<ClaudeMigrationRange>("30d");
   const [limitInput, setLimitInput] = useState(String(DEFAULT_LIMIT));
-  const [candidates, setCandidates] = useState<ZCodeImportableSessionCandidate[]>([]);
+  const [candidates, setCandidates] = useState<NibiImportableSessionCandidate[]>([]);
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
   const [scanError, setScanError] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [lastImportResult, setLastImportResult] =
-    useState<ZCodeImportSessionsResult | null>(null);
+    useState<NibiImportSessionsResult | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
 
@@ -156,7 +156,7 @@ export function useClaudeSessionMigration(params: {
       logger.info(
         `[Migration] 开始扫描 Claude 原生历史 workspaceFilter=${effectiveWorkspacePath ?? "all"} range=${range} limit=${scanLimit ?? "unlimited"}`,
       );
-      const nextCandidates = await zcodeTaskService.scanImportableClaudeSessions({
+      const nextCandidates = await nibiTaskService.scanImportableClaudeSessions({
         workspacePath: effectiveWorkspacePath,
         ...(effectiveWorkspaceIdentity
           ? { workspaceIdentity: effectiveWorkspaceIdentity }
@@ -183,7 +183,7 @@ export function useClaudeSessionMigration(params: {
       setIsScanning(false);
     }
   }, [
-    zcodeTaskService,
+    nibiTaskService,
     effectiveWorkspaceIdentity,
     effectiveWorkspacePath,
     range,
@@ -203,7 +203,7 @@ export function useClaudeSessionMigration(params: {
       logger.info(
         `[Migration] 开始导入 Claude 原生历史 workspaceFilter=${effectiveWorkspacePath ?? "all"} selected=${sessionIds.length}`,
       );
-      const result = await zcodeTaskService.importClaudeSessions({
+      const result = await nibiTaskService.importClaudeSessions({
         workspacePath: effectiveWorkspacePath,
         ...(effectiveWorkspaceIdentity
           ? { workspaceIdentity: effectiveWorkspaceIdentity }
@@ -247,7 +247,7 @@ export function useClaudeSessionMigration(params: {
       setIsImporting(false);
     }
   }, [
-    zcodeTaskService,
+    nibiTaskService,
     effectiveWorkspaceIdentity,
     effectiveWorkspacePath,
     supportState.supported,

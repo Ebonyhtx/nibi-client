@@ -23,8 +23,8 @@ const REPO_ROOT = resolve(process.argv[2] ?? join(HERE, ".."));
 
 /** Node 侧写 `agent` 的地方（持久化方法）。列成目录而不是硬编码文件：新加持久化方法要自动纳入。 */
 const NODE_METHOD_DIRS = [
-  "apps/zcode-cli/packages/core/src/runtime/methods",
-  "apps/zcode-cli/packages/bootstrap/src/nibi-protocol",
+  "apps/nibi-cli/packages/core/src/runtime/methods",
+  "apps/nibi-cli/packages/bootstrap/src/nibi-protocol",
 ];
 const RUST_RECORDS = "kernel/crates/node-store/src/records.rs";
 

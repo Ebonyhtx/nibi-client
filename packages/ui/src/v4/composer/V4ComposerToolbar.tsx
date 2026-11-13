@@ -17,7 +17,7 @@
  */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/components/lib/utils.js";
-import { NIBI_AGENT_PROVIDER, type ZCodeConfigOption, type ZCodeProvider } from "@nibi/shared";
+import { NIBI_AGENT_PROVIDER, type NibiConfigOption, type NibiProvider } from "@nibi/shared";
 import { TID_V4_MODEL_CONFIG, TID_V4_COMPOSER_INPUT } from "@nibi/shared/test-ids";
 import type {
   SessionConfigState,
@@ -48,11 +48,11 @@ import type {
 } from "@/hooks/useModelSelectionView.js";
 import { useComposerConnectionSwitch } from "@/hooks/useComposerConnectionSwitch.js";
 import { chooseConnectionModel } from "@/lib/composerPlanGroups.js";
-import { useToolbarConfigOptions } from "@/hooks/useZCodeConfig.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useToolbarConfigOptions } from "@/hooks/useNibiConfig.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useShortcutCommandLabel } from "@/shortcuts/useShortcutBindings.js";
 import { logger } from "@/logger.js";
-import { decodeCustomModelValue, encodeCustomModelValue } from "@/lib/zcodeCustomModelValue.js";
+import { decodeCustomModelValue, encodeCustomModelValue } from "@/lib/nibiCustomModelValue.js";
 import { buildRegistryModelSelectGroups } from "@/lib/modelSelectionGroups.js";
 import {
   resolveDraftDisplayedConfig,
@@ -84,7 +84,7 @@ export interface V4ComposerToolbarProps {
   modelSelectionRefresh?: () => Promise<ModelSelectionRefreshResult>;
   sessionId: string | null;
   phase: SessionPhase | null;
-  provider?: ZCodeProvider;
+  provider?: NibiProvider;
   /** 当前工具条是否运行在 Web 远控壳中。 */
   isWebRemoteControl?: boolean;
   /** 当前视口是否为手机输入布局。 */
@@ -141,7 +141,7 @@ function V4ComposerModelControlsImpl({
   onSendCompressionCommand,
   onRecoverCustomModelSelection,
 }: V4ComposerToolbarProps) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const displayProvider = provider ?? NIBI_AGENT_PROVIDER;
   // 配置面读取：workspace 缺省目录（taskId=null），不读旧会话态。
   const { error: configOptionsError } = useToolbarConfigOptions(
@@ -172,7 +172,7 @@ function V4ComposerModelControlsImpl({
         type: "select",
         currentValue: "",
         options: [],
-      } satisfies ZCodeConfigOption)
+      } satisfies NibiConfigOption)
     : undefined;
 
   // 空模型/档位曾被 Session 旧值补回，界面显示与实际不可提交状态矛盾。
@@ -372,7 +372,7 @@ function V4ComposerModelControlsImpl({
   );
 
   // 候选档位只来自目标 Host 的 ModelSelectionView，已选档位只来自 Composer。
-  const thoughtOption = useMemo<ZCodeConfigOption | null>(() => {
+  const thoughtOption = useMemo<NibiConfigOption | null>(() => {
     if (!effectiveConfig) return null;
     if (!draftModelThoughtOption) return null;
     return {

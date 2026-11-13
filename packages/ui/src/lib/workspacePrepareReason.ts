@@ -1,4 +1,4 @@
-import type { ZCodeProvider } from "@nibi/shared";
+import type { NibiProvider } from "@nibi/shared";
 
 type DraftWorkspacePrepareReason = "mount" | "select-provider";
 type WorkspacePrepareReason =
@@ -7,9 +7,9 @@ type WorkspacePrepareReason =
   | "first-send";
 
 interface ResolveDraftWorkspacePrepareReasonOptions {
-  previousDraftProvider: ZCodeProvider | null;
-  previousTaskProvider: ZCodeProvider | null;
-  selectedProvider: ZCodeProvider;
+  previousDraftProvider: NibiProvider | null;
+  previousTaskProvider: NibiProvider | null;
+  selectedProvider: NibiProvider;
   returningFromTask: boolean;
 }
 

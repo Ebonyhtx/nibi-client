@@ -4,7 +4,7 @@ import { useStore } from "zustand";
 import { marketingNavigation, finishMarketingNavigation } from "@/lib/marketingNavigation.js";
 import type { ProviderSettingsFormProvider } from "@/lib/providerSettingsFormTypes.js";
 import type { ModelConnectivityResult } from "@nibi/shared";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { Button } from "@/components/ui/button.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { useModelProviders } from "@/hooks/useModelProviders.js";
@@ -60,7 +60,7 @@ export function ModelProviderSection({
   pendingModelProviderTarget?: SettingsModelProviderTarget;
   onConsumePendingModelProviderTarget?: () => void;
 } = {}) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const confirmDialog = useConfirmDialog();
   const platform = usePlatform();
   const {

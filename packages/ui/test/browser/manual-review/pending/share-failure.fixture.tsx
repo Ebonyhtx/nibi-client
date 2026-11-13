@@ -1,7 +1,7 @@
 import { classifyConversationShareError } from "@nibi/shared";
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { ConversationShareConfirmationDock } from "@/v4/ConversationShareConfirmationDock.js";
 import { ConversationShareSelectionDock } from "@/v4/ConversationShareSelectionDock.js";
 import {
@@ -97,7 +97,7 @@ function Fixture() {
   );
 }
 createRoot(document.getElementById("root")!).render(
-  <ZCodeIntlProvider initialLocale={params.get("locale") === "en-US" ? "en-US" : "zh-CN"}>
+  <NibiIntlProvider initialLocale={params.get("locale") === "en-US" ? "en-US" : "zh-CN"}>
     <Fixture />
-  </ZCodeIntlProvider>,
+  </NibiIntlProvider>,
 );

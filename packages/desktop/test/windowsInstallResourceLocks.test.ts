@@ -35,7 +35,7 @@ describe("windows install resource locks", () => {
       "AppData",
       "Local",
       "Programs",
-      "ZCode",
+      "Nibi",
       "resources",
     );
 
@@ -46,14 +46,14 @@ describe("windows install resource locks", () => {
   });
 
   it("matches resource paths regardless of slash direction or case", () => {
-    const markers = ["C:\\Users\\demo\\AppData\\Local\\Programs\\ZCode\\resources\\glm"];
+    const markers = ["C:\\Users\\demo\\AppData\\Local\\Programs\\Nibi\\resources\\glm"];
 
     expect(
       isWindowsProcessReferencingResourceMarkers(
         {
           pid: 42,
           commandLine:
-            '"C:/Users/demo/AppData/Local/Programs/ZCode/ZCode.exe" "C:/Users/demo/AppData/Local/Programs/ZCode/resources/GLM/zcode-agent.exe"',
+            '"C:/Users/demo/AppData/Local/Programs/Nibi/Nibi.exe" "C:/Users/demo/AppData/Local/Programs/Nibi/resources/GLM/nibi-agent.exe"',
         },
         markers,
       ),
@@ -61,7 +61,7 @@ describe("windows install resource locks", () => {
   });
 
   it("does not match unrelated processes", () => {
-    const markers = ["C:\\Users\\demo\\AppData\\Local\\Programs\\ZCode\\resources\\glm"];
+    const markers = ["C:\\Users\\demo\\AppData\\Local\\Programs\\Nibi\\resources\\glm"];
 
     expect(
       isWindowsProcessReferencingResourceMarkers(
@@ -121,7 +121,7 @@ describe("windows install resource locks", () => {
   });
 
   it("terminates only processes still verified against packaged resources", async () => {
-    const marker = "C:\\ZCode\\resources\\glm";
+    const marker = "C:\\Nibi\\resources\\glm";
     const scan = vi
       .fn()
       .mockResolvedValueOnce([
@@ -132,11 +132,11 @@ describe("windows install resource locks", () => {
         },
         {
           pid: 30,
-          commandLine: `"${marker}\\zcode-agent.exe"`,
+          commandLine: `"${marker}\\nibi-agent.exe"`,
         },
         {
           pid: 30,
-          executablePath: `${marker}\\zcode-agent.exe`,
+          executablePath: `${marker}\\nibi-agent.exe`,
         },
       ])
       .mockResolvedValueOnce([]);
@@ -159,13 +159,13 @@ describe("windows install resource locks", () => {
   });
 
   it("keeps update cleanup fail-open when scan or taskkill fails", async () => {
-    const marker = "C:\\ZCode\\resources\\glm";
+    const marker = "C:\\Nibi\\resources\\glm";
     const scan = vi
       .fn()
       .mockResolvedValueOnce([
         {
           pid: 10,
-          executablePath: `${marker}\\zcode-agent.exe`,
+          executablePath: `${marker}\\nibi-agent.exe`,
         },
       ])
       .mockRejectedValueOnce(new Error("rescan timeout"));
@@ -190,7 +190,7 @@ describe("windows install resource locks", () => {
     const terminate = vi.fn(async () => []);
 
     const result = await runWindowsUpdateProcessCleanup({
-      resourceLockMarkers: ["C:\\ZCode\\resources\\glm"],
+      resourceLockMarkers: ["C:\\Nibi\\resources\\glm"],
       lockReleaseGraceMs: 300,
       scan: async () => {
         throw new Error("powershell timeout");

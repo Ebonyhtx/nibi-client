@@ -47,7 +47,7 @@ pnpm dev:desktop
 
 `pnpm bootstrap` installs workspace dependencies, prepares local desktop runtime assets, and builds the base packages.
 
-The agent CLI and runtime live in [apps/zcode-cli/](apps/zcode-cli/) as a regular directory; no submodule is required.
+The agent CLI and runtime live in [apps/nibi-cli/](apps/nibi-cli/) as a regular directory; no submodule is required.
 
 Other entry points:
 
@@ -72,16 +72,16 @@ NIBI_DATA_BASE_DIR="$HOME/.nibi-dev" pnpm dev:desktop
 | `packages/desktop` | Electron main, host, renderer, and desktop packaging |
 | `packages/web` | Web client |
 | `packages/server` | HTTP / WebSocket services and remote connections |
-| `packages/zcode-server-cli` | Standalone server launcher and process management |
+| `packages/nibi-server-cli` | Standalone server launcher and process management |
 | `packages/ui` | Shared React components, hooks, and Zustand state |
 | `packages/services` | Domain services and persistence |
 | `packages/shared`, `packages/rpc`, `packages/client` | Shared protocols, RPC framework, agent client SDK |
 | `packages/provider`, `packages/provider-node` | Provider primitives and Node implementation |
-| `apps/zcode-cli` | Agent CLI, TUI, runtime, and tools |
+| `apps/nibi-cli` | Agent CLI, TUI, runtime, and tools |
 | `packages/zcode-cua` | Public Computer Use contract and placeholder |
 | `scripts`, `config`, `third-party` | Build tooling, built-in config, third-party notices |
 
-> `apps/zcode-cli`, `packages/zcode-server-cli`, and `packages/zcode-cua` are upstream source-directory names. Package names, CLI commands, and build outputs are NIBI (`nibi-cli`, `@nibi/server-cli`, `@nibi/cua`, `dist/nibi/`, and the remote executor `nibi-server.cjs` / `nibi-server-<target>.tar.gz`). Renaming the directories would break the upstream snapshot and 300+ references, so it is intentionally not done as a mechanical rename; every runtime-visible name has been renamed to NIBI.
+> `apps/nibi-cli` and `packages/nibi-server-cli` have been renamed to NIBI; upstream pristine files are still verified through the local-to-upstream prefix map in `scripts/architecture/upstream-snapshot.json` (snapshot keys remain upstream paths). `packages/zcode-cua` will be migrated separately with the CUA engine upgrade. Package names, CLI commands, and build outputs are NIBI (`nibi-cli`, `@nibi/server-cli`, `@nibi/cua`, `dist/nibi/`, and the remote executor `nibi-server.cjs` / `nibi-server-<target>.tar.gz`).
 
 ## Development and verification
 

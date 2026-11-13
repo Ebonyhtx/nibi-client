@@ -66,12 +66,12 @@
 
 ## 6. 交付与验收
 
-- skill 位于 `apps/zcode-cli/packages/browser-use-plugin/skills/web-gui-tester/SKILL.md`，目录名与
+- skill 位于 `apps/nibi-cli/packages/browser-use-plugin/skills/web-gui-tester/SKILL.md`，目录名与
   frontmatter `name` 一致。
 - `SKILL.md` 的 frontmatter、正文、代码示例和报告字段全部使用英文。
 - ZCode UI 通过 `builtinSkillI18n.ts` 为该官方 skill 提供 `zh-CN` 与 `en-US` 展示描述；
   pluginName 为 `browser-use` 时即使路径不带官方 cache 标记，也必须按官方 skill 本地化。
-- 原临时根目录 `apps/zcode-cli/packages/browser-use-plugin/SKILL.md` 不再保留。
+- 原临时根目录 `apps/nibi-cli/packages/browser-use-plugin/SKILL.md` 不再保留。
 - 插件 README 同时列出 `control-browser` 与 `web-gui-tester`。
 - 官方插件技能发现测试覆盖 `web-gui-tester`。
 - 静态合同测试确认 tester 保持工具无关、要求语义/视觉双证据并识别宿主截图 artifact path，且不包含

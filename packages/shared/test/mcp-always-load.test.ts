@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { convertToZCodeAgentMcpServer, nibiProtocolMcpServerSchema } from "@nibi/shared";
+import { convertToNibiAgentMcpServer, nibiProtocolMcpServerSchema } from "@nibi/shared";
 
 describe.each([
   { type: "stdio", command: "node" },
@@ -9,7 +9,7 @@ describe.each([
   it.each([true, false])(
     "preserves alwaysLoad=%s through JSON and protocol validation",
     (alwaysLoad) => {
-      const server = convertToZCodeAgentMcpServer("demo", { ...config, alwaysLoad });
+      const server = convertToNibiAgentMcpServer("demo", { ...config, alwaysLoad });
       expect(server?.alwaysLoad).toBe(alwaysLoad);
       const received = nibiProtocolMcpServerSchema.parse(JSON.parse(JSON.stringify(server)));
       expect(received.alwaysLoad).toBe(alwaysLoad);
@@ -17,7 +17,7 @@ describe.each([
   );
 
   it.each([undefined, null, "true", 1])("omits missing or invalid alwaysLoad=%s", (alwaysLoad) => {
-    const server = convertToZCodeAgentMcpServer("demo", { ...config, alwaysLoad });
+    const server = convertToNibiAgentMcpServer("demo", { ...config, alwaysLoad });
     expect(server).not.toHaveProperty("alwaysLoad");
     const received = nibiProtocolMcpServerSchema.parse(JSON.parse(JSON.stringify(server)));
     expect(received).not.toHaveProperty("alwaysLoad");

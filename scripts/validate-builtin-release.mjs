@@ -1,5 +1,5 @@
 // 校验一份内置 Provider 配置是否满足运行时 Release schema——与构建期同一解码器
-// （decodeZCodeBuiltinRelease → parseZCodeBuiltinProviderConfigRules），避免"自研检查
+// （decodeNibiBuiltinRelease → parseNibiBuiltinProviderConfigRules），避免"自研检查
 // 全绿、客户端却整体拒收"（实测：logo.key 被剥掉时只有这里报得出来）。
 //
 // 用法：node NIBI-Client/scripts/validate-builtin-release.mjs <nibi-builtin.json>
@@ -17,11 +17,11 @@ if (!file) {
 const repositoryRoot = resolve(import.meta.dirname, "..");
 try {
   const content = JSON.parse(await readFile(file, "utf8"));
-  const { decodeZCodeBuiltinRelease } = await tsImport(
+  const { decodeNibiBuiltinRelease } = await tsImport(
     pathToFileURL(resolve(repositoryRoot, "packages/provider-node/src/nibi-builtin-release.ts")).href,
     import.meta.url,
   );
-  decodeZCodeBuiltinRelease(content);
+  decodeNibiBuiltinRelease(content);
   console.log("OK");
 } catch (error) {
   const cause = error?.cause;

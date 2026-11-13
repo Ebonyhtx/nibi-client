@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash-parse/src/js.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
+// 复制自 apps/nibi-cli-rust/crates/bash-parse/src/js.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
 //! 复刻 JS 字符串语义的小工具。
 
 /// `String.prototype.trim` 使用的空白集合（WhiteSpace 加 LineTerminator：含 U+FEFF，不含 U+0085）与 JS

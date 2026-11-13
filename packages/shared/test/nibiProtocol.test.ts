@@ -3,41 +3,41 @@ import {
   DEFAULT_NIBI_MODEL_CONTEXT_BUDGET_STRATEGY,
   NIBI_PROTOCOL_NAME,
   NIBI_PROTOCOL_VERSION,
-  zcodeComputerUseOperationEventSchema,
-  zcodeProviderRuntimeHeadersRequestParamsSchema,
-  zcodeProviderRuntimeHeadersResponseSchema,
+  nibiComputerUseOperationEventSchema,
+  nibiProviderRuntimeHeadersRequestParamsSchema,
+  nibiProviderRuntimeHeadersResponseSchema,
   nibiProtocolMethods,
   nibiProtocolMessageSchema,
-  zcodeProcessResourceSampleSchema,
+  nibiProcessResourceSampleSchema,
   nibiProtocolNotifications,
-  zcodeMcpListParamsSchema,
-  zcodeModelFormatPropertiesSchema,
-  zcodeMcpTelemetryEventSchema,
-  zcodeSessionCreateParamsSchema,
-  zcodeSessionCompactParamsSchema,
-  zcodeSessionEventSchema,
-  zcodeSessionEventsResultSchema,
-  zcodeSessionResumeParamsSchema,
-  zcodeSessionSubagentsParamsSchema,
-  zcodeSessionSubagentsResultSchema,
-  zcodeSessionSendParamsSchema,
-  zcodeSessionSetModelParamsSchema,
-  zcodeSessionSetThoughtLevelParamsSchema,
-  zcodeSessionRuntimePreferencesResultSchema,
-  zcodeSessionSettingsStateSchema,
-  zcodeSessionStateSnapshotSchema,
-  zcodeStateUpdatedNotificationSchema,
-  zcodeWorkspacePresentationSchema,
-  zcodeWorkspaceReadPresentationParamsSchema,
-  zcodeWorkspaceUpdateInteractionPreferencesParamsSchema,
-  zcodeWorkspaceUpdateInteractionPreferencesResultSchema,
-  zcodeWorkspaceUpdateModelIoPreferencesParamsSchema,
-  zcodeWorkspaceUpdateModelIoPreferencesResultSchema,
-  zcodeAutomationCreateParamsSchema,
-  zcodeAutomationCheckTaskBindingParamsSchema,
-  zcodeAutomationCheckTaskBindingResultSchema,
-  zcodeAutomationUpdateParamsSchema,
-  zcodeAutomationProtocolSchema,
+  nibiMcpListParamsSchema,
+  nibiModelFormatPropertiesSchema,
+  nibiMcpTelemetryEventSchema,
+  nibiSessionCreateParamsSchema,
+  nibiSessionCompactParamsSchema,
+  nibiSessionEventSchema,
+  nibiSessionEventsResultSchema,
+  nibiSessionResumeParamsSchema,
+  nibiSessionSubagentsParamsSchema,
+  nibiSessionSubagentsResultSchema,
+  nibiSessionSendParamsSchema,
+  nibiSessionSetModelParamsSchema,
+  nibiSessionSetThoughtLevelParamsSchema,
+  nibiSessionRuntimePreferencesResultSchema,
+  nibiSessionSettingsStateSchema,
+  nibiSessionStateSnapshotSchema,
+  nibiStateUpdatedNotificationSchema,
+  nibiWorkspacePresentationSchema,
+  nibiWorkspaceReadPresentationParamsSchema,
+  nibiWorkspaceUpdateInteractionPreferencesParamsSchema,
+  nibiWorkspaceUpdateInteractionPreferencesResultSchema,
+  nibiWorkspaceUpdateModelIoPreferencesParamsSchema,
+  nibiWorkspaceUpdateModelIoPreferencesResultSchema,
+  nibiAutomationCreateParamsSchema,
+  nibiAutomationCheckTaskBindingParamsSchema,
+  nibiAutomationCheckTaskBindingResultSchema,
+  nibiAutomationUpdateParamsSchema,
+  nibiAutomationProtocolSchema,
 } from "../src/nibi-protocol/index.js";
 import {
   APP_RUNTIME_PREFERENCES_CHANGED_BROADCAST_CHANNEL,
@@ -46,7 +46,7 @@ import {
 import {
   isAuxiliarySessionKind,
   isReadonlyAgentSessionKind,
-  zcodeUserMessageInfoSchema,
+  nibiUserMessageInfoSchema,
 } from "../src/nibi-protocol-legacy-types.js";
 import { conversationRowSchema, workflowLaunchMetaSchema } from "../src/nibi-protocol-v4/rows.js";
 import { errorAttributionSchema } from "../src/nibi-protocol-v4/snapshot.js";
@@ -86,16 +86,16 @@ describe("NIBI Protocol", () => {
       outputFormat: { supportsText: true },
     };
 
-    expect(zcodeModelFormatPropertiesSchema.parse(properties)).toEqual(properties);
+    expect(nibiModelFormatPropertiesSchema.parse(properties)).toEqual(properties);
     expect(() =>
-      zcodeModelFormatPropertiesSchema.parse({
+      nibiModelFormatPropertiesSchema.parse({
         supportsImages: true,
         supportsPdf: true,
         supportsVideo: false,
       }),
     ).toThrow();
     expect(() =>
-      zcodeModelFormatPropertiesSchema.parse({
+      nibiModelFormatPropertiesSchema.parse({
         inputFormat: {
           supportsText: true,
           supportsImage: false,
@@ -122,10 +122,10 @@ describe("NIBI Protocol", () => {
     };
 
     const payloads = [
-      [zcodeSessionCreateParamsSchema, { workspace, model, runtimeModel }],
-      [zcodeSessionResumeParamsSchema, { sessionId: "session-1", runtimeModel }],
+      [nibiSessionCreateParamsSchema, { workspace, model, runtimeModel }],
+      [nibiSessionResumeParamsSchema, { sessionId: "session-1", runtimeModel }],
       [
-        zcodeSessionSendParamsSchema,
+        nibiSessionSendParamsSchema,
         {
           sessionId: "session-1",
           content: "hello",
@@ -133,10 +133,10 @@ describe("NIBI Protocol", () => {
           runtimeModel,
         },
       ],
-      [zcodeSessionCompactParamsSchema, { sessionId: "session-1", runtimeModel }],
-      [zcodeSessionSetModelParamsSchema, { sessionId: "session-1", model, runtimeModel }],
+      [nibiSessionCompactParamsSchema, { sessionId: "session-1", runtimeModel }],
+      [nibiSessionSetModelParamsSchema, { sessionId: "session-1", model, runtimeModel }],
       [
-        zcodeSessionSetThoughtLevelParamsSchema,
+        nibiSessionSetThoughtLevelParamsSchema,
         { sessionId: "session-1", thoughtLevel: "high", runtimeModel },
       ],
     ] as const;
@@ -159,7 +159,7 @@ describe("NIBI Protocol", () => {
 
     expect(nibiProtocolNotifications.processResourceSample).toBe("process/resourceSample");
     // PRT-025：旧 CLI 发来的样本没有新字段，仍必须通过校验（新增字段全部可选，握手版本不递增）。
-    expect(zcodeProcessResourceSampleSchema.parse(sample)).toEqual(sample);
+    expect(nibiProcessResourceSampleSchema.parse(sample)).toEqual(sample);
     const sampleWithTelemetryFields = {
       ...sample,
       heapUsedKb: 20_480,
@@ -167,36 +167,36 @@ describe("NIBI Protocol", () => {
       totalMemoryGb: 16,
       instanceToken: "9f2c4a1b7d0e5638",
     };
-    expect(zcodeProcessResourceSampleSchema.parse(sampleWithTelemetryFields)).toEqual(
+    expect(nibiProcessResourceSampleSchema.parse(sampleWithTelemetryFields)).toEqual(
       sampleWithTelemetryFields,
     );
     // lane 由 app 侧 services 按所属进程管理器打标，CLI 不知道自己的 lane，也不允许自报。
-    expect(() => zcodeProcessResourceSampleSchema.parse({ ...sample, lane: "chat" })).toThrow();
+    expect(() => nibiProcessResourceSampleSchema.parse({ ...sample, lane: "chat" })).toThrow();
     // instanceToken 只用于 main 统计进程数，绝不能被拿来夹带 pid、路径或 workspace 标识。
     expect(() =>
-      zcodeProcessResourceSampleSchema.parse({ ...sample, instanceToken: "/private/repo" }),
+      nibiProcessResourceSampleSchema.parse({ ...sample, instanceToken: "/private/repo" }),
     ).toThrow();
     expect(() =>
-      zcodeProcessResourceSampleSchema.parse({ ...sample, instanceToken: "" }),
+      nibiProcessResourceSampleSchema.parse({ ...sample, instanceToken: "" }),
     ).toThrow();
-    expect(() => zcodeProcessResourceSampleSchema.parse({ ...sample, heapUsedKb: -1 })).toThrow();
+    expect(() => nibiProcessResourceSampleSchema.parse({ ...sample, heapUsedKb: -1 })).toThrow();
     expect(() =>
-      zcodeProcessResourceSampleSchema.parse({ ...sample, uptimeMinutes: 1.5 }),
+      nibiProcessResourceSampleSchema.parse({ ...sample, uptimeMinutes: 1.5 }),
     ).toThrow();
     expect(() =>
-      zcodeProcessResourceSampleSchema.parse({
+      nibiProcessResourceSampleSchema.parse({
         ...sample,
         workspacePath: "/private/repo",
       }),
     ).toThrow();
     expect(() =>
-      zcodeProcessResourceSampleSchema.parse({
+      nibiProcessResourceSampleSchema.parse({
         ...sample,
         cpuCores: Number.NaN,
       }),
     ).toThrow();
     expect(() =>
-      zcodeProcessResourceSampleSchema.parse({
+      nibiProcessResourceSampleSchema.parse({
         ...sample,
         logicalCpuCount: 0,
       }),
@@ -271,9 +271,9 @@ describe("NIBI Protocol", () => {
     ];
 
     expect(nibiProtocolNotifications.mcpTelemetry).toBe("process/mcpTelemetry");
-    expect(events.map((event) => zcodeMcpTelemetryEventSchema.parse(event))).toEqual(events);
+    expect(events.map((event) => nibiMcpTelemetryEventSchema.parse(event))).toEqual(events);
     expect(() =>
-      zcodeMcpTelemetryEventSchema.parse({
+      nibiMcpTelemetryEventSchema.parse({
         ...events[0],
         mcpServerName: "private-company-server",
       }),
@@ -282,7 +282,7 @@ describe("NIBI Protocol", () => {
 
   it("accepts a default thought level in session settings", () => {
     expect(
-      zcodeSessionSettingsStateSchema.parse({
+      nibiSessionSettingsStateSchema.parse({
         model: {
           current: model,
           available: [{ ref: model, label: "GLM 4.6", properties: modelProperties }],
@@ -316,7 +316,7 @@ describe("NIBI Protocol", () => {
     };
 
     expect(
-      zcodeSessionSettingsStateSchema.parse({
+      nibiSessionSettingsStateSchema.parse({
         model: { current: model, available: [currentModelOption] },
         thoughtLevel: { enabled: true, available: [], current: undefined },
         mode: { current: "build" },
@@ -331,7 +331,7 @@ describe("NIBI Protocol", () => {
       "supportsJsonSchemaOutput",
     ]) {
       expect(() =>
-        zcodeSessionSettingsStateSchema.parse({
+        nibiSessionSettingsStateSchema.parse({
           model: {
             current: model,
             available: [{ ...currentModelOption, [removedField]: true }],
@@ -343,7 +343,7 @@ describe("NIBI Protocol", () => {
     }
 
     expect(() =>
-      zcodeSessionSettingsStateSchema.parse({
+      nibiSessionSettingsStateSchema.parse({
         model: {
           current: model,
           available: [{ ...currentModelOption, reasoning: { enabled: true, levels: [] } }],
@@ -376,7 +376,7 @@ describe("NIBI Protocol", () => {
 
   it("accepts bounded browser ambient context on session/send while staying strict", () => {
     expect(
-      zcodeSessionSendParamsSchema.parse({
+      nibiSessionSendParamsSchema.parse({
         sessionId: "sess_1",
         content: "continue",
         browserAmbientContext: {
@@ -386,14 +386,14 @@ describe("NIBI Protocol", () => {
       }).browserAmbientContext,
     ).toEqual({ tabCount: 1, currentUrl: "https://example.com/current?q=1" });
     expect(() =>
-      zcodeSessionSendParamsSchema.parse({
+      nibiSessionSendParamsSchema.parse({
         sessionId: "sess_1",
         content: "continue",
         browserAmbientContext: { tabCount: 0 },
       }),
     ).toThrow();
     expect(() =>
-      zcodeSessionSendParamsSchema.parse({
+      nibiSessionSendParamsSchema.parse({
         sessionId: "sess_1",
         content: "continue",
         browserAmbientContext: { tabCount: 1, pageText: "secret" },
@@ -409,21 +409,21 @@ describe("NIBI Protocol", () => {
       chatType: "private" as const,
     };
     expect(
-      zcodeSessionSendParamsSchema.parse({
+      nibiSessionSendParamsSchema.parse({
         sessionId: "sess_1",
         content: "创建定时任务",
         botDeliveryTarget,
       }).botDeliveryTarget,
     ).toEqual(botDeliveryTarget);
     expect(
-      zcodeAutomationCreateParamsSchema.parse({
+      nibiAutomationCreateParamsSchema.parse({
         cronExpr: "0 9 * * *",
         prompt: "日报",
         botDeliveryTarget,
       }).botDeliveryTarget,
     ).toEqual(botDeliveryTarget);
     expect(() =>
-      zcodeAutomationCreateParamsSchema.parse({
+      nibiAutomationCreateParamsSchema.parse({
         cronExpr: "0 9 * * *",
         prompt: "日报",
         botDeliveryTarget: { ...botDeliveryTarget, provider: "discord" },
@@ -485,7 +485,7 @@ describe("NIBI Protocol", () => {
       },
       { ...base, kind: "session-closed" },
     ]) {
-      expect(zcodeComputerUseOperationEventSchema.safeParse(event).success).toBe(true);
+      expect(nibiComputerUseOperationEventSchema.safeParse(event).success).toBe(true);
     }
 
     for (const event of [
@@ -514,22 +514,22 @@ describe("NIBI Protocol", () => {
       { ...base, kind: "session-closed", toolName: "must-not-pass" },
       { ...base, kind: "unknown-kind" },
     ]) {
-      expect(zcodeComputerUseOperationEventSchema.safeParse(event).success).toBe(false);
+      expect(nibiComputerUseOperationEventSchema.safeParse(event).success).toBe(false);
     }
   });
 
   it("workspace/readPresentation 只接受 workspace identity", () => {
     expect(() =>
-      zcodeWorkspaceReadPresentationParamsSchema.parse({
+      nibiWorkspaceReadPresentationParamsSchema.parse({
         workspace,
         runtimeModel: {},
       }),
     ).toThrow();
-    expect(zcodeWorkspaceReadPresentationParamsSchema.parse({ workspace })).toEqual({ workspace });
+    expect(nibiWorkspaceReadPresentationParamsSchema.parse({ workspace })).toEqual({ workspace });
   });
 
   it("preserves automation runtime config in strict protocol schemas", () => {
-    const create = zcodeAutomationCreateParamsSchema.parse({
+    const create = nibiAutomationCreateParamsSchema.parse({
       title: "daily report",
       cronExpr: "0 9 * * *",
       prompt: "summarize",
@@ -541,7 +541,7 @@ describe("NIBI Protocol", () => {
       mode: "plan",
     });
     expect(
-      zcodeAutomationCreateParamsSchema.parse({
+      nibiAutomationCreateParamsSchema.parse({
         title: "3分钟后提醒",
         cronExpr: "* * * * *",
         relativeDelayMinutes: 3,
@@ -559,7 +559,7 @@ describe("NIBI Protocol", () => {
     });
 
     expect(
-      zcodeAutomationProtocolSchema.parse({
+      nibiAutomationProtocolSchema.parse({
         automationId: "automation-1",
         ...create,
         enabled: true,
@@ -570,7 +570,7 @@ describe("NIBI Protocol", () => {
     ).toMatchObject({ mode: "plan", modelSelection: { modelId: "glm-5.2" } });
 
     expect(
-      zcodeAutomationProtocolSchema.parse({
+      nibiAutomationProtocolSchema.parse({
         automationId: "automation-default-mode",
         title: "daily report",
         cronExpr: "0 9 * * *",
@@ -586,7 +586,7 @@ describe("NIBI Protocol", () => {
 
   it("将会话 Cron interval carrier 严格限制为 1-200 并要求成对提交", () => {
     expect(
-      zcodeAutomationCreateParamsSchema.parse({
+      nibiAutomationCreateParamsSchema.parse({
         cronExpr: "* * * * *",
         prompt: "提醒我",
         intervalUnit: "minute",
@@ -594,7 +594,7 @@ describe("NIBI Protocol", () => {
       }),
     ).toMatchObject({ intervalUnit: "minute", interval: 200 });
     expect(() =>
-      zcodeAutomationCreateParamsSchema.parse({
+      nibiAutomationCreateParamsSchema.parse({
         cronExpr: "* * * * *",
         prompt: "提醒我",
         intervalUnit: "minute",
@@ -602,7 +602,7 @@ describe("NIBI Protocol", () => {
       }),
     ).toThrow();
     expect(() =>
-      zcodeAutomationCreateParamsSchema.parse({
+      nibiAutomationCreateParamsSchema.parse({
         cronExpr: "* * * * *",
         prompt: "提醒我",
         intervalUnit: "minute",
@@ -610,14 +610,14 @@ describe("NIBI Protocol", () => {
     ).toThrow();
 
     expect(
-      zcodeAutomationUpdateParamsSchema.parse({
+      nibiAutomationUpdateParamsSchema.parse({
         automationId: "automation-1",
         intervalUnit: "yearly",
         interval: 200,
       }),
     ).toMatchObject({ intervalUnit: "yearly", interval: 200 });
     expect(() =>
-      zcodeAutomationUpdateParamsSchema.parse({
+      nibiAutomationUpdateParamsSchema.parse({
         automationId: "automation-1",
         intervalUnit: "yearly",
         interval: 1.5,
@@ -625,7 +625,7 @@ describe("NIBI Protocol", () => {
     ).toThrow();
     // carrier 必须保持无限循环，避免 host 直接收到 recurring=false / 有限次数的矛盾状态。
     expect(
-      zcodeAutomationUpdateParamsSchema.parse({
+      nibiAutomationUpdateParamsSchema.parse({
         automationId: "automation-1",
         intervalUnit: "yearly",
         interval: 200,
@@ -635,7 +635,7 @@ describe("NIBI Protocol", () => {
     ).toMatchObject({ recurring: true, maxRuns: null });
     for (const invalidMode of [{ recurring: false }, { maxRuns: 2 }]) {
       expect(() =>
-        zcodeAutomationUpdateParamsSchema.parse({
+        nibiAutomationUpdateParamsSchema.parse({
           automationId: "automation-1",
           intervalUnit: "yearly",
           interval: 200,
@@ -645,7 +645,7 @@ describe("NIBI Protocol", () => {
     }
     for (const invalidMode of [{ recurring: false }, { maxRuns: 2 }]) {
       expect(() =>
-        zcodeAutomationCreateParamsSchema.parse({
+        nibiAutomationCreateParamsSchema.parse({
           cronExpr: "* * * * *",
           prompt: "提醒我",
           intervalUnit: "minute",
@@ -658,22 +658,22 @@ describe("NIBI Protocol", () => {
 
   it("validates the dedicated automation task-binding query", () => {
     expect(
-      zcodeAutomationCheckTaskBindingParamsSchema.parse({ targetTaskId: "session-1" }),
+      nibiAutomationCheckTaskBindingParamsSchema.parse({ targetTaskId: "session-1" }),
     ).toEqual({ targetTaskId: "session-1" });
-    expect(zcodeAutomationCheckTaskBindingResultSchema.parse({ bound: true })).toEqual({
+    expect(nibiAutomationCheckTaskBindingResultSchema.parse({ bound: true })).toEqual({
       bound: true,
     });
     expect(() =>
-      zcodeAutomationCheckTaskBindingParamsSchema.parse({ targetTaskId: " " }),
+      nibiAutomationCheckTaskBindingParamsSchema.parse({ targetTaskId: " " }),
     ).toThrow();
     expect(() =>
-      zcodeAutomationCheckTaskBindingResultSchema.parse({ bound: false, automations: [] }),
+      nibiAutomationCheckTaskBindingResultSchema.parse({ bound: false, automations: [] }),
     ).toThrow();
   });
 
   it("validates a strict non-empty automation update patch", () => {
     expect(
-      zcodeAutomationUpdateParamsSchema.parse({
+      nibiAutomationUpdateParamsSchema.parse({
         automationId: "automation-1",
         cronExpr: "0 10 * * *",
         recurring: true,
@@ -686,7 +686,7 @@ describe("NIBI Protocol", () => {
       maxRuns: null,
     });
     expect(
-      zcodeAutomationUpdateParamsSchema.parse({
+      nibiAutomationUpdateParamsSchema.parse({
         automationId: "automation-1",
         recurring: true,
       }),
@@ -696,30 +696,30 @@ describe("NIBI Protocol", () => {
     });
 
     expect(() =>
-      zcodeAutomationUpdateParamsSchema.parse({ automationId: "automation-1" }),
+      nibiAutomationUpdateParamsSchema.parse({ automationId: "automation-1" }),
     ).toThrow();
     expect(() =>
-      zcodeAutomationUpdateParamsSchema.parse({
+      nibiAutomationUpdateParamsSchema.parse({
         automationId: "automation-1",
         title: "new title",
         enabled: false,
       }),
     ).toThrow();
     expect(() =>
-      zcodeAutomationUpdateParamsSchema.parse({
+      nibiAutomationUpdateParamsSchema.parse({
         automationId: "automation-1",
         maxRuns: null,
       }),
     ).toThrow("clearing maxRuns requires recurring=true");
     expect(() =>
-      zcodeAutomationUpdateParamsSchema.parse({
+      nibiAutomationUpdateParamsSchema.parse({
         automationId: "automation-1",
         recurring: false,
         maxRuns: null,
       }),
     ).toThrow("clearing maxRuns requires recurring=true");
     expect(() =>
-      zcodeAutomationUpdateParamsSchema.parse({
+      nibiAutomationUpdateParamsSchema.parse({
         automationId: "automation-1",
         recurring: true,
         maxRuns: 3,
@@ -729,13 +729,13 @@ describe("NIBI Protocol", () => {
 
   it("accepts an explicit session title-generation switch while staying strict", () => {
     expect(
-      zcodeSessionCreateParamsSchema.parse({
+      nibiSessionCreateParamsSchema.parse({
         workspace,
         titleGenerationEnabled: false,
       }).titleGenerationEnabled,
     ).toBe(false);
     expect(() =>
-      zcodeSessionCreateParamsSchema.parse({
+      nibiSessionCreateParamsSchema.parse({
         workspace,
         titleGenerationEnabled: "false",
       }),
@@ -744,7 +744,7 @@ describe("NIBI Protocol", () => {
 
   it("validates the paged session subagent projection", () => {
     expect(
-      zcodeSessionSubagentsParamsSchema.parse({
+      nibiSessionSubagentsParamsSchema.parse({
         sessionId: "sess_parent",
         endedCursor: "cursor-20",
         endedLimit: 20,
@@ -756,7 +756,7 @@ describe("NIBI Protocol", () => {
     });
 
     expect(
-      zcodeSessionSubagentsResultSchema.parse({
+      nibiSessionSubagentsResultSchema.parse({
         revision: 7,
         childSessionIds: ["sess_child_running", "sess_child_failed"],
         running: [
@@ -792,13 +792,13 @@ describe("NIBI Protocol", () => {
     });
 
     expect(() =>
-      zcodeSessionSubagentsParamsSchema.parse({
+      nibiSessionSubagentsParamsSchema.parse({
         sessionId: "sess_parent",
         endedLimit: 0,
       }),
     ).toThrow();
     expect(() =>
-      zcodeSessionSubagentsResultSchema.parse({
+      nibiSessionSubagentsResultSchema.parse({
         revision: 0,
         childSessionIds: ["sess_child"],
         running: [],
@@ -834,7 +834,7 @@ describe("NIBI Protocol", () => {
 
   it("allows MCP list requests to carry explicit MCP servers", () => {
     expect(
-      zcodeMcpListParamsSchema.parse({
+      nibiMcpListParamsSchema.parse({
         workspace,
         mcpServers: [
           {
@@ -885,18 +885,18 @@ describe("NIBI Protocol", () => {
       },
     ];
 
-    expect(zcodeSessionCreateParamsSchema.parse({ workspace, mcpServers }).mcpServers).toEqual(
+    expect(nibiSessionCreateParamsSchema.parse({ workspace, mcpServers }).mcpServers).toEqual(
       mcpServers,
     );
     expect(
-      zcodeSessionResumeParamsSchema.parse({
+      nibiSessionResumeParamsSchema.parse({
         sessionId: "sess_1",
         workspace,
         mcpServers,
       }).mcpServers,
     ).toEqual(mcpServers);
     expect(() =>
-      zcodeSessionCreateParamsSchema.parse({
+      nibiSessionCreateParamsSchema.parse({
         workspace,
         mcpServers: [
           {
@@ -909,7 +909,7 @@ describe("NIBI Protocol", () => {
   });
 
   it("accepts session create tool lists while staying strict", () => {
-    const parsed = zcodeSessionCreateParamsSchema.parse({
+    const parsed = nibiSessionCreateParamsSchema.parse({
       workspace,
       toolAllowlist: ["mcp__zcode-cua__request_access", "mcp__zcode-cua__list_apps"],
       toolDenylist: ["Bash"],
@@ -921,7 +921,7 @@ describe("NIBI Protocol", () => {
     ]);
     expect(parsed.toolDenylist).toEqual(["Bash"]);
     expect(() =>
-      zcodeSessionCreateParamsSchema.parse({
+      nibiSessionCreateParamsSchema.parse({
         workspace,
         toolAllowlist: ["Read"],
         unexpectedToolPolicy: true,
@@ -931,7 +931,7 @@ describe("NIBI Protocol", () => {
 
   it("accepts session RESUME tool lists too (cold resume keeps the same isolation)", () => {
     // 冷恢复必须和 create 同边界地带工具面约束，否则 CUA 会话 resume 后会重新可见 Bash 等被禁工具。
-    const parsed = zcodeSessionResumeParamsSchema.parse({
+    const parsed = nibiSessionResumeParamsSchema.parse({
       sessionId: "sess_1",
       toolAllowlist: ["mcp__zcode-cua__request_access"],
       toolDenylist: ["Bash"],
@@ -940,7 +940,7 @@ describe("NIBI Protocol", () => {
     expect(parsed.toolDenylist).toEqual(["Bash"]);
     // 仍 strict：未知字段拒绝。
     expect(() =>
-      zcodeSessionResumeParamsSchema.parse({
+      nibiSessionResumeParamsSchema.parse({
         sessionId: "sess_1",
         unexpectedToolPolicy: true,
       }),
@@ -948,7 +948,7 @@ describe("NIBI Protocol", () => {
   });
 
   it("models provider runtime header refresh as a strict interaction request", () => {
-    const params = zcodeProviderRuntimeHeadersRequestParamsSchema.parse({
+    const params = nibiProviderRuntimeHeadersRequestParamsSchema.parse({
       requestId: "header-refresh-1",
       sessionId: "sess_1",
       turnId: "turn_1",
@@ -962,7 +962,7 @@ describe("NIBI Protocol", () => {
       "X-Request-Scoped-Param": "request-token",
       "X-Request-Scoped-Region": "cn",
     };
-    const response = zcodeProviderRuntimeHeadersResponseSchema.parse({
+    const response = nibiProviderRuntimeHeadersResponseSchema.parse({
       headersApplied: true,
       requestAuth: {
         apiKey: "request-key",
@@ -971,12 +971,12 @@ describe("NIBI Protocol", () => {
     });
     expect(response).toMatchObject({ requestAuth: { headers: runtimeProviderHeaders } });
     expect(() =>
-      zcodeProviderRuntimeHeadersResponseSchema.parse({
+      nibiProviderRuntimeHeadersResponseSchema.parse({
         headersApplied: true,
       }),
     ).toThrow();
     expect(() =>
-      zcodeProviderRuntimeHeadersResponseSchema.parse({
+      nibiProviderRuntimeHeadersResponseSchema.parse({
         headersApplied: true,
         runtimeProviderHeaders,
         providerRevision: "rev-2",
@@ -987,7 +987,7 @@ describe("NIBI Protocol", () => {
       "interaction/requestProviderRuntimeHeaders",
     );
     expect(() =>
-      zcodeProviderRuntimeHeadersRequestParamsSchema.parse({
+      nibiProviderRuntimeHeadersRequestParamsSchema.parse({
         ...params,
         staleHeader: "must-not-pass-through",
       }),
@@ -997,7 +997,7 @@ describe("NIBI Protocol", () => {
   it.each(["start-plan", "individual-coding-plan", "team-coding-plan"] as const)(
     "runtime headers 直接接受 Registry zhipu access mode: %s",
     (mode) => {
-      const parsed = zcodeProviderRuntimeHeadersRequestParamsSchema.parse({
+      const parsed = nibiProviderRuntimeHeadersRequestParamsSchema.parse({
         requestId: `request-${mode}`,
         sessionId: "sess_1",
         workspace,
@@ -1023,7 +1023,7 @@ describe("NIBI Protocol", () => {
 
   it("runtime headers 拒绝已经退出 Registry 的旧 planKind Access 形状", () => {
     expect(() =>
-      zcodeProviderRuntimeHeadersRequestParamsSchema.parse({
+      nibiProviderRuntimeHeadersRequestParamsSchema.parse({
         requestId: "request-legacy",
         sessionId: "sess_1",
         workspace,
@@ -1040,7 +1040,7 @@ describe("NIBI Protocol", () => {
   });
 
   it("parses subagent mirrored tool updates with explicit protocol metadata", () => {
-    const scheduled = zcodeSessionEventSchema.parse({
+    const scheduled = nibiSessionEventSchema.parse({
       eventId: "evt_subagent_tool_scheduled",
       seq: 12,
       sessionId: "sess_parent",
@@ -1062,7 +1062,7 @@ describe("NIBI Protocol", () => {
         description: "Inspect workspace",
       },
     });
-    const started = zcodeSessionEventSchema.parse({
+    const started = nibiSessionEventSchema.parse({
       eventId: "evt_subagent_tool_started",
       seq: 13,
       sessionId: "sess_parent",
@@ -1087,7 +1087,7 @@ describe("NIBI Protocol", () => {
     expect(scheduled.payload.parentToolCallId).toBe("call_parent_agent");
     expect(started.payload.source).toBe("subagent");
     expect(() =>
-      zcodeSessionEventSchema.parse({
+      nibiSessionEventSchema.parse({
         ...scheduled,
         payload: {
           ...scheduled.payload,
@@ -1098,7 +1098,7 @@ describe("NIBI Protocol", () => {
   });
 
   it("parses background subagent mirrored tool updates", () => {
-    const event = zcodeSessionEventSchema.parse({
+    const event = nibiSessionEventSchema.parse({
       eventId: "evt_background_subagent_tool_started",
       seq: 14,
       sessionId: "sess_parent",
@@ -1123,7 +1123,7 @@ describe("NIBI Protocol", () => {
   });
 
   it("parses subagent mirrored permission events with routing metadata", () => {
-    const requested = zcodeSessionEventSchema.parse({
+    const requested = nibiSessionEventSchema.parse({
       eventId: "evt_subagent_permission_requested",
       seq: 14,
       sessionId: "sess_parent",
@@ -1150,7 +1150,7 @@ describe("NIBI Protocol", () => {
         ],
       },
     });
-    const resolved = zcodeSessionEventSchema.parse({
+    const resolved = nibiSessionEventSchema.parse({
       eventId: "evt_subagent_permission_resolved",
       seq: 15,
       sessionId: "sess_parent",
@@ -1175,7 +1175,7 @@ describe("NIBI Protocol", () => {
   });
 
   it("parses scheduled tool updates that reference model-streamed input", () => {
-    const scheduled = zcodeSessionEventSchema.parse({
+    const scheduled = nibiSessionEventSchema.parse({
       eventId: "evt_tool_scheduled_tombstone",
       seq: 15,
       sessionId: "sess_parent",
@@ -1221,20 +1221,20 @@ describe("NIBI Protocol", () => {
         };
 
         // 旧 CLI 没有消息归属字段时仍须兼容；新 CLI 的字段不能导致整条调度事件丢失。
-        expect(zcodeSessionEventSchema.parse(event).payload).toEqual(event.payload);
+        expect(nibiSessionEventSchema.parse(event).payload).toEqual(event.payload);
         const payload = { ...event.payload, assistantMessageId: "msg_assistant" };
-        expect(zcodeSessionEventSchema.parse({ ...event, payload })).toEqual({ ...event, payload });
+        expect(nibiSessionEventSchema.parse({ ...event, payload })).toEqual({ ...event, payload });
 
         for (const assistantMessageId of ["", null, 42]) {
           expect(
-            zcodeSessionEventSchema.safeParse({
+            nibiSessionEventSchema.safeParse({
               ...event,
               payload: { ...payload, assistantMessageId },
             }).success,
           ).toBe(false);
         }
         expect(
-          zcodeSessionEventSchema.safeParse({
+          nibiSessionEventSchema.safeParse({
             ...event,
             payload: { ...payload, unknownField: true },
           }).success,
@@ -1244,7 +1244,7 @@ describe("NIBI Protocol", () => {
   );
 
   it("parses a server-authoritative session state snapshot", () => {
-    const snapshot = zcodeSessionStateSnapshotSchema.parse({
+    const snapshot = nibiSessionStateSnapshotSchema.parse({
       protocol: {
         name: NIBI_PROTOCOL_NAME,
         version: NIBI_PROTOCOL_VERSION,
@@ -1347,7 +1347,7 @@ describe("NIBI Protocol", () => {
   });
 
   it("parses agent-owned session title update events", () => {
-    const event = zcodeSessionEventSchema.parse({
+    const event = nibiSessionEventSchema.parse({
       eventId: "evt_title_1",
       seq: 8,
       sessionId: "sess_1",
@@ -1366,7 +1366,7 @@ describe("NIBI Protocol", () => {
   });
 
   it("preserves attribution on legacy turn.failed events", () => {
-    const event = zcodeSessionEventSchema.parse({
+    const event = nibiSessionEventSchema.parse({
       eventId: "evt_failed_1",
       seq: 9,
       sessionId: "sess_1",
@@ -1412,7 +1412,7 @@ describe("NIBI Protocol", () => {
   });
 
   it("accepts complete steer queue and drain facts emitted by the CLI", () => {
-    const queued = zcodeSessionEventSchema.parse({
+    const queued = nibiSessionEventSchema.parse({
       eventId: "evt_steer_queued_1",
       seq: 9,
       sessionId: "sess_1",
@@ -1432,7 +1432,7 @@ describe("NIBI Protocol", () => {
         queueLength: 1,
       },
     });
-    const drained = zcodeSessionEventSchema.parse({
+    const drained = nibiSessionEventSchema.parse({
       eventId: "evt_steer_drained_1",
       seq: 10,
       sessionId: "sess_1",
@@ -1463,7 +1463,7 @@ describe("NIBI Protocol", () => {
   });
 
   it("parses typed session events for tool updates", () => {
-    const event = zcodeSessionEventSchema.parse({
+    const event = nibiSessionEventSchema.parse({
       eventId: "evt_tool_1",
       seq: 12,
       sessionId: "sess_1",
@@ -1509,14 +1509,14 @@ describe("NIBI Protocol", () => {
       },
     };
 
-    expect(zcodeSessionEventSchema.parse(event).payload).toMatchObject({
+    expect(nibiSessionEventSchema.parse(event).payload).toMatchObject({
       kind: "result",
       result: {
         display: { kind: "node_repl_images", source: "browser_turn_end" },
       },
     });
     expect(() =>
-      zcodeSessionEventSchema.parse({
+      nibiSessionEventSchema.parse({
         ...event,
         payload: {
           ...event.payload,
@@ -1623,12 +1623,12 @@ describe("NIBI Protocol", () => {
       },
     };
 
-    expect(zcodeSessionEventSchema.parse(event).payload).toMatchObject({
+    expect(nibiSessionEventSchema.parse(event).payload).toMatchObject({
       kind: "result",
       result: { display: { kind: "create_workflow", ok: false, errorCount: 1 } },
     });
     expect(() =>
-      zcodeSessionEventSchema.parse({
+      nibiSessionEventSchema.parse({
         ...event,
         payload: {
           ...event.payload,
@@ -1750,7 +1750,7 @@ describe("NIBI Protocol", () => {
     };
 
     // Legacy protocol: result.display superRefine.
-    const event = zcodeSessionEventSchema.parse({
+    const event = nibiSessionEventSchema.parse({
       eventId: "evt_tool_workflow_graph",
       seq: 16,
       sessionId: "sess_1",
@@ -1866,7 +1866,7 @@ describe("NIBI Protocol", () => {
     };
 
     // Legacy protocol: result.display superRefine.
-    const event = zcodeSessionEventSchema.parse({
+    const event = nibiSessionEventSchema.parse({
       eventId: "evt_tool_workflow_holes",
       seq: 22,
       sessionId: "sess_1",
@@ -2031,7 +2031,7 @@ describe("NIBI Protocol", () => {
     };
 
     // Legacy protocol: result.display superRefine.
-    const event = zcodeSessionEventSchema.parse({
+    const event = nibiSessionEventSchema.parse({
       eventId: "evt_tool_workflow_may_set",
       seq: 18,
       sessionId: "sess_1",
@@ -2168,7 +2168,7 @@ describe("NIBI Protocol", () => {
     };
 
     // Legacy protocol: result.display superRefine.
-    const event = zcodeSessionEventSchema.parse({
+    const event = nibiSessionEventSchema.parse({
       eventId: "evt_tool_workflow_phases",
       seq: 20,
       sessionId: "sess_1",
@@ -2232,7 +2232,7 @@ describe("NIBI Protocol", () => {
     };
     expect(() => parseWith(emptyVocabulary)).not.toThrow();
     expect(
-      zcodeSessionEventSchema.parse({
+      nibiSessionEventSchema.parse({
         eventId: "evt_tool_workflow_phases_empty",
         seq: 21,
         sessionId: "sess_1",
@@ -2357,7 +2357,7 @@ describe("NIBI Protocol", () => {
     const verdicts = (causalityGraph: unknown) => {
       const row = conversationRowSchema.safeParse(rowOf(causalityGraph));
       return [
-        zcodeSessionEventSchema.safeParse(eventOf(causalityGraph)).success,
+        nibiSessionEventSchema.safeParse(eventOf(causalityGraph)).success,
         row.success && row.data.kind === "toolCall" && row.data.display !== undefined,
       ];
     };
@@ -2502,7 +2502,7 @@ describe("NIBI Protocol", () => {
   });
 
   it("parses replayable session event batches", () => {
-    const batch = zcodeSessionEventsResultSchema.parse({
+    const batch = nibiSessionEventsResultSchema.parse({
       events: [
         {
           eventId: "evt_turn_1",
@@ -2527,7 +2527,7 @@ describe("NIBI Protocol", () => {
   it.each([undefined, "desktop-continuous", "web-remote-replayable"])(
     "accepts the complete runtime turn.started payload (%s)",
     (deliveryKind) => {
-      const event = zcodeSessionEventSchema.parse({
+      const event = nibiSessionEventSchema.parse({
         eventId: "evt_turn_runtime",
         seq: 2,
         sessionId: "sess_1",
@@ -2564,7 +2564,7 @@ describe("NIBI Protocol", () => {
   );
 
   it("parses subagent message model-only inputs for replayable delivery", () => {
-    const event = zcodeSessionEventSchema.parse({
+    const event = nibiSessionEventSchema.parse({
       eventId: "evt_subagent_response",
       seq: 2,
       sessionId: "sess_1",
@@ -2587,7 +2587,7 @@ describe("NIBI Protocol", () => {
   });
 
   it("parses persisted model-only subagent messages across the app/agent boundary", () => {
-    const message = zcodeUserMessageInfoSchema.parse({
+    const message = nibiUserMessageInfoSchema.parse({
       messageId: "msg_subagent_response",
       sessionId: "sess_1",
       role: "user",
@@ -2603,7 +2603,7 @@ describe("NIBI Protocol", () => {
 
   it("parses strict workspace interaction preference updates", () => {
     expect(
-      zcodeWorkspaceUpdateInteractionPreferencesParamsSchema.parse({
+      nibiWorkspaceUpdateInteractionPreferencesParamsSchema.parse({
         workspace,
         preferences: {
           askUserQuestionAutoResolutionEnabled: false,
@@ -2616,7 +2616,7 @@ describe("NIBI Protocol", () => {
       },
     });
     expect(
-      zcodeWorkspaceUpdateInteractionPreferencesResultSchema.parse({
+      nibiWorkspaceUpdateInteractionPreferencesResultSchema.parse({
         workspace,
         askUserQuestionAutoResolutionEnabled: false,
         snoozedInteractionCount: 2,
@@ -2626,7 +2626,7 @@ describe("NIBI Protocol", () => {
       snoozedInteractionCount: 2,
     });
     expect(() =>
-      zcodeWorkspaceUpdateInteractionPreferencesParamsSchema.parse({
+      nibiWorkspaceUpdateInteractionPreferencesParamsSchema.parse({
         workspace,
         preferences: {
           askUserQuestionAutoResolutionEnabled: false,
@@ -2638,7 +2638,7 @@ describe("NIBI Protocol", () => {
 
   it("parses strict workspace ModelIO retention preference updates", () => {
     expect(
-      zcodeWorkspaceUpdateModelIoPreferencesParamsSchema.parse({
+      nibiWorkspaceUpdateModelIoPreferencesParamsSchema.parse({
         workspace,
         preferences: { fullRetentionEnabled: true },
       }),
@@ -2647,7 +2647,7 @@ describe("NIBI Protocol", () => {
       preferences: { fullRetentionEnabled: true },
     });
     expect(
-      zcodeWorkspaceUpdateModelIoPreferencesResultSchema.parse({
+      nibiWorkspaceUpdateModelIoPreferencesResultSchema.parse({
         workspace,
         fullRetentionEnabled: true,
         updatedSessionCount: 2,
@@ -2657,7 +2657,7 @@ describe("NIBI Protocol", () => {
       updatedSessionCount: 2,
     });
     expect(() =>
-      zcodeWorkspaceUpdateModelIoPreferencesParamsSchema.parse({
+      nibiWorkspaceUpdateModelIoPreferencesParamsSchema.parse({
         workspace,
         preferences: { fullRetentionEnabled: true, ignored: true },
       }),
@@ -2666,19 +2666,19 @@ describe("NIBI Protocol", () => {
 
   it("validates ToolSearch startup preferences and defaults old Host responses off", () => {
     expect(
-      zcodeSessionRuntimePreferencesResultSchema.parse({ nativeSearchEnhancementsEnabled: true })
+      nibiSessionRuntimePreferencesResultSchema.parse({ nativeSearchEnhancementsEnabled: true })
         .toolSearchMode,
     ).toBe("off");
     for (const mode of ["auto", "local", "off"]) {
       expect(
-        zcodeSessionRuntimePreferencesResultSchema.parse({
+        nibiSessionRuntimePreferencesResultSchema.parse({
           nativeSearchEnhancementsEnabled: true,
           toolSearchMode: mode,
         }).toolSearchMode,
       ).toBe(mode);
     }
     expect(
-      zcodeSessionRuntimePreferencesResultSchema.safeParse({
+      nibiSessionRuntimePreferencesResultSchema.safeParse({
         nativeSearchEnhancementsEnabled: true,
         toolSearchMode: "native",
       }).success,
@@ -2688,7 +2688,7 @@ describe("NIBI Protocol", () => {
   it("keeps runtime preference compatibility by defaulting missing fields", () => {
     expect(DEFAULT_NIBI_MODEL_CONTEXT_BUDGET_STRATEGY).toBe("preflight-v1");
     expect(
-      zcodeSessionRuntimePreferencesResultSchema.parse({
+      nibiSessionRuntimePreferencesResultSchema.parse({
         nativeSearchEnhancementsEnabled: true,
       }),
     ).toMatchObject({
@@ -2697,14 +2697,14 @@ describe("NIBI Protocol", () => {
       modelContextBudgetStrategy: DEFAULT_NIBI_MODEL_CONTEXT_BUDGET_STRATEGY,
     });
     expect(
-      zcodeSessionRuntimePreferencesResultSchema.parse({
+      nibiSessionRuntimePreferencesResultSchema.parse({
         nativeSearchEnhancementsEnabled: true,
         askUserQuestionAutoResolutionEnabled: false,
         modelContextBudgetStrategy: "preflight-v1",
       }).askUserQuestionAutoResolutionEnabled,
     ).toBe(false);
     expect(() =>
-      zcodeSessionRuntimePreferencesResultSchema.parse({
+      nibiSessionRuntimePreferencesResultSchema.parse({
         nativeSearchEnhancementsEnabled: true,
         modelContextBudgetStrategy: "unknown",
       }),
@@ -2712,7 +2712,7 @@ describe("NIBI Protocol", () => {
   });
 
   it("accepts turn.completed cache stats and history round count from runtime events", () => {
-    const event = zcodeSessionEventSchema.parse({
+    const event = nibiSessionEventSchema.parse({
       type: "turn.completed",
       eventId: "evt_1",
       sessionId: "sess_1",
@@ -2746,7 +2746,7 @@ describe("NIBI Protocol", () => {
   });
 
   it("parses state.updated notifications as the core state sync primitive", () => {
-    const event = zcodeStateUpdatedNotificationSchema.parse({
+    const event = nibiStateUpdatedNotificationSchema.parse({
       type: "state.updated",
       scope: "session",
       workspace,
@@ -2767,7 +2767,7 @@ describe("NIBI Protocol", () => {
 
   it("workspace presentation rejects model facts", () => {
     expect(() =>
-      zcodeWorkspacePresentationSchema.parse({
+      nibiWorkspacePresentationSchema.parse({
         workspace,
         mode: "build",
         slashCommands: [],

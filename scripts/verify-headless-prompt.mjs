@@ -33,7 +33,7 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..");
-const cliEntry = join(repoRoot, "apps/zcode-cli/packages/cli/dist/nibi.cjs");
+const cliEntry = join(repoRoot, "apps/nibi-cli/packages/cli/dist/nibi.cjs");
 
 const args = process.argv.slice(2);
 function option(name, fallback) {

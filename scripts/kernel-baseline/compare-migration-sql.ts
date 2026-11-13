@@ -18,7 +18,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 
-import { SQLITE_MIGRATIONS } from "../../apps/zcode-cli/packages/adapters/src/storage/session-store/migrations.js";
+import { SQLITE_MIGRATIONS } from "../../apps/nibi-cli/packages/adapters/src/storage/session-store/migrations.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..", "..");

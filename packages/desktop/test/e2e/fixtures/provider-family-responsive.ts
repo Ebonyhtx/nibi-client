@@ -14,7 +14,7 @@ export function buildProviderResponsiveStartBalance(model = "GLM-5-Turbo") {
       plans: [
         {
           plan_id: planId,
-          name: "ZCode V3 Start Plan",
+          name: "Nibi V3 Start Plan",
           status: "active",
           starts_at: now - 86400,
           ends_at: now + 86400,

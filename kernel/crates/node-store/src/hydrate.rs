@@ -1,7 +1,7 @@
 //! Node 记录 → 内核消息（docs/specs/rust-cli/node-store.md §5）。
 //!
 //! 规则取自 Node `hydrateMessageHistoryFromSession` 的文本子集（复制来源
-//! `apps/zcode-cli-rust/crates/domain/src/node_history/hydrate.rs`）：
+//! `apps/nibi-cli-rust/crates/domain/src/node_history/hydrate.rs`）：
 //! - 本工程写的合成消息（attachment、meta、中断）按 `metadata.rustCli` 还原（[`crate::notices`]）；
 //! - user：未忽略的非合成 text part，`metadata.modelInput` 优先；压缩摘要（`summary`）连合成 part
 //!   一起读；Node 自己的提醒（只有合成 part）、未接入的共享上下文跳过。

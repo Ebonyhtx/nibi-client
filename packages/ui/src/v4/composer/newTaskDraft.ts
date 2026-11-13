@@ -1,4 +1,4 @@
-import type { ComposerInitialConfig } from "@/store/zcodeSessionStoreTypes.js";
+import type { ComposerInitialConfig } from "@/store/nibiSessionStoreTypes.js";
 import type { ModelSelectionView } from "@nibi/services";
 import { readComposerRecent, resolveDraftInitialModelSelection } from "@/lib/composerRecent.js";
 import {

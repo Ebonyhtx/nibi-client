@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { Worker } from "node:worker_threads";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import { getTasksIndexDatabasePath, setDataBaseDir } from "#src/paths.js";
 import { projectStorage } from "#src/project-storage/index.js";
 import { TaskIndexRepo } from "#src/session/taskIndexRepo.js";
@@ -28,7 +28,7 @@ afterEach(async () => {
   await rm(tempDir, { recursive: true, force: true });
 });
 
-function createTask(unreadAt: number): ZCodeTaskMeta {
+function createTask(unreadAt: number): NibiTaskMeta {
   return {
     taskId: "task-1",
     traceId: "trace-task-1",

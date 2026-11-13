@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { ZCodePluginReferenceCatalogEntry } from "@nibi/shared";
+import type { NibiPluginReferenceCatalogEntry } from "@nibi/shared";
 import {
   buildWorkspacePluginMention,
   isWorkspacePluginReferenceable,
 } from "../src/workspace-plugin-preview/index.js";
 
 function entry(
-  overrides: Partial<ZCodePluginReferenceCatalogEntry> = {},
-): ZCodePluginReferenceCatalogEntry {
+  overrides: Partial<NibiPluginReferenceCatalogEntry> = {},
+): NibiPluginReferenceCatalogEntry {
   return {
     pluginId: "pdf@nibi-official",
     name: "pdf",

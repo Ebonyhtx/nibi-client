@@ -21,7 +21,7 @@ import {
   MCP_APPS_SET_WIDGET_STATE_METHOD,
   MCP_APPS_WIDGET_STATE_CONTEXT_KEY,
 } from "@nibi/shared/mcp-apps";
-import type { OpenAiCompatApi, ZcodeAliasApi } from "./aliasApi.js";
+import type { OpenAiCompatApi, NibiAliasApi } from "./aliasApi.js";
 import { createOpenAiCompatApi, readOpenAiGlobals } from "./openaiAlias.js";
 
 /**
@@ -46,7 +46,7 @@ export interface AliasAppLike {
   }): Promise<CallToolResult>;
   readServerResource(params: { uri: string }): Promise<ReadResourceResult>;
   listServerResources(params?: { cursor?: string }): Promise<ListResourcesResult>;
-  /** 规范方法（resources/templates/list、resources/subscribe…）与 ZCode 扩展方法走基类 request。 */
+  /** 规范方法（resources/templates/list、resources/subscribe…）与 Nibi 扩展方法走基类 request。 */
   request(
     request: { method: string; params?: Record<string, unknown> },
     resultSchema: unknown,
@@ -73,7 +73,7 @@ export interface AliasAppLike {
 export const NIBI_GLOBALS_EVENT = "nibi:globals";
 
 export interface PluginSandboxAliasRuntime {
-  nibi: ZcodeAliasApi;
+  nibi: NibiAliasApi;
   openai: OpenAiCompatApi;
   /** 是否已经（或正在）握手；诊断用。 */
   readonly connecting: boolean;
@@ -165,7 +165,7 @@ export function createPluginSandboxAliasRuntime(options: {
   const whenReady = <T>(run: () => Promise<T>): Promise<T> => ready().then(run);
 
   const hostContext = () => app.getHostContext() ?? null;
-  const zcodeTarget: ZcodeAliasApi = {
+  const nibiTarget: NibiAliasApi = {
     get toolInput() {
       return toolInput;
     },
@@ -294,8 +294,8 @@ export function createPluginSandboxAliasRuntime(options: {
         return Reflect.get(object, key, receiver);
       },
     });
-  const zcode = lazy(zcodeTarget);
-  const openai = lazy(createOpenAiCompatApi(zcodeTarget));
+  const zcode = lazy(nibiTarget);
+  const openai = lazy(createOpenAiCompatApi(nibiTarget));
 
   return {
     // 面板公开桥：属性名用 nibi（与 interface 一致）；局部变量 zcode 只是实现细节。

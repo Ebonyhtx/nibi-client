@@ -131,11 +131,11 @@ try {
               locale,
               theme,
               events: {
-                [`${ServiceChannels.ZCodeAgent}:onDynamicConversationFrame`]: frames.event,
+                [`${ServiceChannels.NibiAgent}:onDynamicConversationFrame`]: frames.event,
               },
               responses: {
                 [`${ServiceChannels.SettingsSync}:getFirstRunPromptState`]: { handled: true },
-                [`${ServiceChannels.ZCodeAgent}:helloConversationV4`]: {
+                [`${ServiceChannels.NibiAgent}:helloConversationV4`]: {
                   kind: "hello",
                   protocolVersion: V4_WIRE_PROTOCOL_VERSION,
                   connectionId: bridge.bridgeSessionId,
@@ -150,16 +150,16 @@ try {
                     compression: "none",
                   },
                 },
-                [`${ServiceChannels.ZCodeAgent}:initializeConversationV4`]: null,
+                [`${ServiceChannels.NibiAgent}:initializeConversationV4`]: null,
                 [`${ServiceChannels.Project}:readTree`]: (params) => ({
                   projects: projects.filter((p) => p.hostId === (params?.hostId || "local")),
                   tasks: tasks.filter((t) => t.hostId === (params?.hostId || "local")),
                 }),
                 [`${ServiceChannels.RemoteProjects}:readDirectory`]: directory,
                 [`${ServiceChannels.RemoteProjects}:refreshEntry`]: null,
-                [`${ServiceChannels.ZCodeTask}:getTaskMeta`]: (input) =>
+                [`${ServiceChannels.NibiTask}:getTaskMeta`]: (input) =>
                   tasks.find((t) => t.taskId === input.taskId) ?? null,
-                [`${ServiceChannels.ZCodeAgent}:subscribeConversationV4`]: (input) => {
+                [`${ServiceChannels.NibiAgent}:subscribeConversationV4`]: (input) => {
                   traffic.subscriptions.push({
                     workspacePath: input.workspacePath,
                     workspaceIdentity: input.workspaceIdentity,
@@ -177,9 +177,9 @@ try {
                     },
                   };
                 },
-                [`${ServiceChannels.ZCodeAgent}:unsubscribeConversationV4`]: null,
-                [`${ServiceChannels.ZCodeAgent}:conversationWorkflowRunsV4`]: { runs: [] },
-                [`${ServiceChannels.ZCodeAgent}:conversationPlansV4`]: { plans: [] },
+                [`${ServiceChannels.NibiAgent}:unsubscribeConversationV4`]: null,
+                [`${ServiceChannels.NibiAgent}:conversationWorkflowRunsV4`]: { runs: [] },
+                [`${ServiceChannels.NibiAgent}:conversationPlansV4`]: { plans: [] },
               },
             }),
           );
@@ -258,7 +258,7 @@ try {
         const local = page.locator('[data-project-name="E2E_MRO01_LOCAL"]');
         const remote = page.locator('[data-project-name="E2E_MRO01_REMOTE"]');
         const onboarding = page.getByTestId("onboarding-page");
-        const welcome = page.getByRole("dialog", { name: /欢迎使用 ZCode|Welcome to ZCode/ });
+        const welcome = page.getByRole("dialog", { name: /欢迎使用 Nibi|Welcome to Nibi/ });
         await local.or(onboarding).or(welcome).first().waitFor();
         if (await onboarding.isVisible())
           await onboarding.getByRole("button", { name: /退出引导|Exit onboarding/ }).click();

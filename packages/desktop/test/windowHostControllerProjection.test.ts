@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import {
   CONTROLLER_TASKS_INDEX_TOPIC,
   CONTROLLER_WORKSPACES_TOPIC,
@@ -12,7 +12,7 @@ function taskMeta(params: {
   workspaceIdentity?: string;
   title?: string;
   updatedAt?: number;
-}): ZCodeTaskMeta {
+}): NibiTaskMeta {
   return {
     taskId: params.taskId,
     traceId: `trace-${params.taskId}`,

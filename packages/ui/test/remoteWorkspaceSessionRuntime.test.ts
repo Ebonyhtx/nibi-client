@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import {
   DEFAULT_TASK_RUNTIME_STATE,
   getDefaultWorkspaceState,
-} from "@/store/zcodeSessionStore.js";
+} from "@/store/nibiSessionStore.js";
 import { markRemoteWorkspaceRunningTasksFailed } from "@/lib/remoteWorkspaceSessionRuntime.js";
 
-function createTask(taskId: string, status: ZCodeTaskMeta["status"]): ZCodeTaskMeta {
+function createTask(taskId: string, status: NibiTaskMeta["status"]): NibiTaskMeta {
   return {
     taskId,
     traceId: `trace-${taskId}`,

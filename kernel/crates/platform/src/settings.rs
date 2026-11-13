@@ -36,11 +36,11 @@ impl Settings {
         }
     }
 
-    /// 设置页的 NIBI 端点覆盖 `zcodeEndpointOrigin`（去掉首尾空白，空值视为没有）。
+    /// 设置页的 NIBI 端点覆盖 `nibiEndpointOrigin`（去掉首尾空白，空值视为没有）。
     pub async fn zcode_endpoint_origin(&self) -> Option<String> {
         self.read()
             .await
-            .get("zcodeEndpointOrigin")
+            .get("nibiEndpointOrigin")
             .and_then(Value::as_str)
             .map(str::trim)
             .filter(|origin| !origin.is_empty())

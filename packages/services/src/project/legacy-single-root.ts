@@ -1,4 +1,4 @@
-import type { AppSettings, FileEntry, SystemInfo, ZCodeTaskMeta } from "@nibi/shared";
+import type { AppSettings, FileEntry, SystemInfo, NibiTaskMeta } from "@nibi/shared";
 import { createHash } from "node:crypto";
 import { posix, win32 } from "node:path";
 import { remoteHostIdFromWorkspaceIdentity } from "@nibi/shared";
@@ -15,7 +15,7 @@ interface LegacyProjectReadPort {
   readTasks(input: {
     workspacePath: string;
     kind: "active" | "pinned" | "archived";
-  }): Promise<ZCodeTaskMeta[]>;
+  }): Promise<NibiTaskMeta[]>;
   ensureConversation(): Promise<string>;
   readKnownWorkspaces?(): Promise<
     readonly { workspacePath: string; workspacePurpose?: "project" | "conversation" }[]

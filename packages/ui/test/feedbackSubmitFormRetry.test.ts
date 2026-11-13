@@ -96,7 +96,7 @@ vi.mock("@/feedback/feedbackSubmitSubmission.js", () => ({
   startSimplifiedFeedbackSubmission: formCapture.startSubmission,
 }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: { formatMessage: ({ id }: { id: string }) => id },
     locale: "en-US",
   }),
@@ -105,9 +105,9 @@ vi.mock("@/store/TabStoreProvider.js", () => ({
   useTabStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({ activeWorkspaceIdentity: null, activeWorkspacePath: null }),
 }));
-vi.mock("@/store/zcodeSessionStore.js", () => ({
-  selectWorkspaceZCodeState: () => null,
-  useZCodeSessionStore: (selector: (state: Record<string, unknown>) => unknown) => selector({}),
+vi.mock("@/store/nibiSessionStore.js", () => ({
+  selectWorkspaceNibiState: () => null,
+  useNibiSessionStore: (selector: (state: Record<string, unknown>) => unknown) => selector({}),
 }));
 
 const mountedRoots: Root[] = [];

@@ -1,5 +1,5 @@
 import {
-  isPublicZCodeErrorCode,
+  isPublicNibiErrorCode,
   REMOTE_BIND_CANCELED_ERROR_CODE,
   REMOTE_RECOVERY_BUDGET_EXHAUSTED_ERROR_CODE,
   REMOTE_WORKSPACE_BIND_SESSION_MISSING_ERROR_CODE,
@@ -17,7 +17,7 @@ import {
   WORKSPACE_MIGRATION_PLAN_DIVERGED_ERROR_CODE,
   WORKSPACE_SESSION_GENERATION_CHANGED_ERROR_CODE,
   WORKSPACE_TASK_IDENTITY_CONFLICT_ERROR_CODE,
-  type PublicZCodeErrorCode,
+  type PublicNibiErrorCode,
 } from "@nibi/shared";
 
 import type { RemoteTarget } from "@nibi/shared";
@@ -33,7 +33,7 @@ export interface RemoteConnectionErrorPresentation {
   allowRemoteDownload: boolean;
 }
 
-const messageIdByCode: Record<PublicZCodeErrorCode, string> = {
+const messageIdByCode: Record<PublicNibiErrorCode, string> = {
   "remote-authentication-failed": "remote.error.authentication",
   "remote-host-unreachable": "remote.error.hostUnreachable",
   "remote-connection-timeout": "remote.error.connectionTimeout",
@@ -81,8 +81,8 @@ export function classifyRemoteConnectionError(input: {
   recoveryLimit?: number;
 }): RemoteConnectionErrorPresentation {
   const code = input.errorCode ?? "";
-  let titleId = isPublicZCodeErrorCode(code) ? messageIdByCode[code] : "remote.error.unknown";
-  let category = isPublicZCodeErrorCode(code) ? code : "unrecognized";
+  let titleId = isPublicNibiErrorCode(code) ? messageIdByCode[code] : "remote.error.unknown";
+  let category = isPublicNibiErrorCode(code) ? code : "unrecognized";
   let primaryAction: RemoteConnectionAction = "retry";
   switch (code) {
     case "remote-authentication-failed":

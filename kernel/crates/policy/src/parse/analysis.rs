@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash-parse/src/analysis.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
+// 复制自 apps/nibi-cli-rust/crates/bash-parse/src/analysis.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
 //! Node `collectStatementCommands` / `collectSimpleCommand` / `freezeAnalysis` 的移植。
 //!
 //! 求值顺序与 Node 一致：先计算全部 argv、环境变量值和重定向目标（Node 对它们调用 `map`），

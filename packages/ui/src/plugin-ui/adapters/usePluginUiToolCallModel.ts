@@ -1,4 +1,4 @@
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   buildTaskSidePaneMemoryKey,
   claimPluginUiSidePaneAutoOpen,
@@ -48,7 +48,7 @@ const INLINE_ONLY: readonly McpAppsDisplayMode[] = ["inline"];
 export function usePluginUiToolCallModel(
   context: ToolCallBlockRenderContext,
 ): Omit<PluginUiToolCallViewProps, "fallback"> {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const presentation = useMemo(
     () => readPluginUiPresentation(context.toolCallNode.toolCall.raw),
     [context.toolCallNode.toolCall.raw],

@@ -19,7 +19,7 @@
     "./config-schema": "./src/config-schema.ts",
     "./node": "./src/node.ts",
     "./sqlite-migrations": "./src/sqlite-migrations/index.ts",
-    "./zcodeEndpoint": "./src/zcodeEndpoint.ts",
+    "./nibiEndpoint": "./src/nibiEndpoint.ts",
     "./workspaceFileSearch": "./src/workspaceFileSearch.ts",
     "./workspaceFileEntriesCodec": "./src/workspaceFileEntriesCodec.ts",
     "./nibi-protocol-v4": "./src/nibi-protocol-v4/index.ts",

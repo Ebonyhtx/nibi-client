@@ -37,7 +37,7 @@ import type {
 } from "./settingsSync.js";
 import { SETTINGS_SYNC_USER_AGENTS_FILE_MAX_BYTES } from "./settingsSync.js";
 import { atomicWriteText, updateJsonObjectFile } from "#src/fs/atomicFileUtils.js";
-import { resolveZCodeStorageRoot } from "#src/subagents/subagentStorage.js";
+import { resolveNibiStorageRoot } from "#src/subagents/subagentStorage.js";
 
 const log = createServiceLogger("settings-sync");
 
@@ -421,36 +421,36 @@ function resolveUserHomeDir(): string {
   return envHome && envHome.length > 0 ? envHome : homedir();
 }
 
-function getWorkspaceZcodeSkillRoot(workspacePath: string): string {
+function getWorkspaceNibiSkillRoot(workspacePath: string): string {
   return join(workspacePath, ".nibi", "skills");
 }
 
-function getUserZcodeSkillRoot(): string {
+function getUserNibiSkillRoot(): string {
   return join(resolveUserHomeDir(), ".nibi", "skills");
 }
 
-function getWorkspaceZcodeCommandRoot(workspacePath: string): string {
+function getWorkspaceNibiCommandRoot(workspacePath: string): string {
   return join(workspacePath, ".nibi", "commands");
 }
 
-function getUserZcodeCommandRoot(): string {
+function getUserNibiCommandRoot(): string {
   return join(resolveUserHomeDir(), ".nibi", "commands");
 }
 
-function getWorkspaceZcodePluginRoot(workspacePath: string): string {
+function getWorkspaceNibiPluginRoot(workspacePath: string): string {
   return join(workspacePath, ".nibi", "plugins");
 }
 
-function getUserZcodePluginRoot(): string {
+function getUserNibiPluginRoot(): string {
   return join(resolveUserHomeDir(), ".nibi", "plugins");
 }
 
 /** CLI 配置路径：跟数据根走（隔离实例不能读写另一个实例的插件开关）。 */
-async function getUserZcodeCliConfigPath(): Promise<string> {
-  return join(await resolveZCodeStorageRoot(), "cli", "config.json");
+async function getUserNibiCliConfigPath(): Promise<string> {
+  return join(await resolveNibiStorageRoot(), "cli", "config.json");
 }
 
-function getWorkspaceZcodeConfigPath(workspacePath: string): string {
+function getWorkspaceNibiConfigPath(workspacePath: string): string {
   return join(workspacePath, ".nibi", "config.json");
 }
 
@@ -458,7 +458,7 @@ function getClaudeUserAgentsFileSourcePath(): string {
   return join(resolveUserHomeDir(), ".claude", "CLAUDE.md");
 }
 
-function getUserZcodeAgentsFilePath(): string {
+function getUserNibiAgentsFilePath(): string {
   return join(resolveUserHomeDir(), ".nibi", "AGENTS.md");
 }
 
@@ -467,9 +467,9 @@ function resolveTargetRootForScope(
   workspacePath: string | undefined,
 ): string | null {
   if (targetScope === "global") {
-    return getUserZcodeSkillRoot();
+    return getUserNibiSkillRoot();
   }
-  return workspacePath ? getWorkspaceZcodeSkillRoot(workspacePath) : null;
+  return workspacePath ? getWorkspaceNibiSkillRoot(workspacePath) : null;
 }
 
 function resolveCandidateTargetRoot(
@@ -477,8 +477,8 @@ function resolveCandidateTargetRoot(
   workspacePath: string | undefined,
 ): string | null {
   return sourceScope === "workspace"
-    ? workspacePath ? getWorkspaceZcodeSkillRoot(workspacePath) : null
-    : getUserZcodeSkillRoot();
+    ? workspacePath ? getWorkspaceNibiSkillRoot(workspacePath) : null
+    : getUserNibiSkillRoot();
 }
 
 function resolveCommandTargetRootForScope(
@@ -486,9 +486,9 @@ function resolveCommandTargetRootForScope(
   workspacePath: string | undefined,
 ): string | null {
   if (targetScope === "global") {
-    return getUserZcodeCommandRoot();
+    return getUserNibiCommandRoot();
   }
-  return workspacePath ? getWorkspaceZcodeCommandRoot(workspacePath) : null;
+  return workspacePath ? getWorkspaceNibiCommandRoot(workspacePath) : null;
 }
 
 function resolveCommandCandidateTargetRoot(
@@ -496,8 +496,8 @@ function resolveCommandCandidateTargetRoot(
   workspacePath: string | undefined,
 ): string | null {
   return sourceScope === "workspace"
-    ? workspacePath ? getWorkspaceZcodeCommandRoot(workspacePath) : null
-    : getUserZcodeCommandRoot();
+    ? workspacePath ? getWorkspaceNibiCommandRoot(workspacePath) : null
+    : getUserNibiCommandRoot();
 }
 
 function resolvePluginTargetRootForScope(
@@ -505,9 +505,9 @@ function resolvePluginTargetRootForScope(
   workspacePath: string | undefined,
 ): string | null {
   if (targetScope === "global") {
-    return getUserZcodePluginRoot();
+    return getUserNibiPluginRoot();
   }
-  return workspacePath ? getWorkspaceZcodePluginRoot(workspacePath) : null;
+  return workspacePath ? getWorkspaceNibiPluginRoot(workspacePath) : null;
 }
 
 function resolvePluginCandidateTargetRoot(
@@ -515,8 +515,8 @@ function resolvePluginCandidateTargetRoot(
   workspacePath: string | undefined,
 ): string | null {
   return sourceScope === "workspace"
-    ? workspacePath ? getWorkspaceZcodePluginRoot(workspacePath) : null
-    : getUserZcodePluginRoot();
+    ? workspacePath ? getWorkspaceNibiPluginRoot(workspacePath) : null
+    : getUserNibiPluginRoot();
 }
 
 async function resolvePluginConfigPathForScope(
@@ -524,9 +524,9 @@ async function resolvePluginConfigPathForScope(
   workspacePath: string | undefined,
 ): Promise<string | null> {
   if (targetScope === "global") {
-    return await getUserZcodeCliConfigPath();
+    return await getUserNibiCliConfigPath();
   }
-  return workspacePath ? getWorkspaceZcodeConfigPath(workspacePath) : null;
+  return workspacePath ? getWorkspaceNibiConfigPath(workspacePath) : null;
 }
 
 async function resolveMcpConfigPathForScope(
@@ -534,9 +534,9 @@ async function resolveMcpConfigPathForScope(
   workspacePath: string | undefined,
 ): Promise<string | null> {
   if (targetScope === "global") {
-    return await getUserZcodeCliConfigPath();
+    return await getUserNibiCliConfigPath();
   }
-  return workspacePath ? getWorkspaceZcodeConfigPath(workspacePath) : null;
+  return workspacePath ? getWorkspaceNibiConfigPath(workspacePath) : null;
 }
 
 async function importSkillDirectory(
@@ -1018,7 +1018,7 @@ function stripExternalMcpTimeoutFields(config: McpServerConfig): McpServerConfig
   return rest as McpServerConfig;
 }
 
-function readZcodeMcpServers(parsed: Record<string, unknown>): Record<string, McpServerConfig> {
+function readNibiMcpServers(parsed: Record<string, unknown>): Record<string, McpServerConfig> {
   if (!isRecord(parsed.mcp)) {
     return {};
   }
@@ -1094,7 +1094,7 @@ async function collectExistingMcpServerNameKeys(
   const nameKeys = new Set<string>();
   const targetConfigPath = await resolveMcpConfigPathForScope(targetScope, workspacePath);
   if (targetConfigPath) {
-    for (const name of Object.keys(readZcodeMcpServers(await readJsonFileOrEmpty(targetConfigPath)))) {
+    for (const name of Object.keys(readNibiMcpServers(await readJsonFileOrEmpty(targetConfigPath)))) {
       nameKeys.add(normalizeMcpServerNameKey(name));
     }
   }
@@ -1108,7 +1108,7 @@ async function collectExistingMcpServerNameKeys(
  * 修法：改用 updateJsonObjectFile——文件损坏时报错不写，写前重读，只改自己的字段，原子替换。
  * 错误交给 importXxxForAgent 的 catch，按现有方式把该项标为 failed 显示在迁移结果里。
  */
-async function addMcpServerToZcodeConfig(
+async function addMcpServerToNibiConfig(
   filePath: string,
   name: string,
   config: McpServerConfig,
@@ -1120,7 +1120,7 @@ async function addMcpServerToZcodeConfig(
       mcp: {
         ...currentMcp,
         servers: {
-          ...readZcodeMcpServers(current),
+          ...readNibiMcpServers(current),
           [name]: config,
         },
       },
@@ -2144,7 +2144,7 @@ async function importMcpServersForAgent(
       continue;
     }
     try {
-      await addMcpServerToZcodeConfig(selectedConfigPath, candidate.name, candidate.config);
+      await addMcpServerToNibiConfig(selectedConfigPath, candidate.name, candidate.config);
       importedCount += 1;
       const existingNameKeys = existingNameKeysByTargetScope.get(selectedTargetScope);
       if (existingNameKeys) {
@@ -2209,7 +2209,7 @@ function shouldScanMcpServers(request: {
 async function getClaudeAgentsFileMigrationStatus(): Promise<SettingsSyncClaudeAgentsFileMigrationStatus> {
   const sourcePath = getClaudeUserAgentsFileSourcePath();
   const sourceExists = await pathExists(sourcePath);
-  const targetPath = getUserZcodeAgentsFilePath();
+  const targetPath = getUserNibiAgentsFilePath();
   const targetExists = await pathExists(targetPath);
 
   return {
@@ -2222,11 +2222,11 @@ async function getClaudeAgentsFileMigrationStatus(): Promise<SettingsSyncClaudeA
   };
 }
 
-async function copyClaudeAgentsFileToZcodeAgentsFile(params: {
+async function copyClaudeAgentsFileToNibiAgentsFile(params: {
   overwrite?: boolean;
 }): Promise<SettingsSyncClaudeAgentsFileCopyResult> {
   const sourcePath = getClaudeUserAgentsFileSourcePath();
-  const targetPath = getUserZcodeAgentsFilePath();
+  const targetPath = getUserNibiAgentsFilePath();
   const sourceExists = await pathExists(sourcePath);
   const targetExists = await pathExists(targetPath);
 
@@ -2262,7 +2262,7 @@ async function copyClaudeAgentsFileToZcodeAgentsFile(params: {
 }
 
 async function readUserAgentsFile(): Promise<SettingsSyncUserAgentsFile> {
-  const targetPath = getUserZcodeAgentsFilePath();
+  const targetPath = getUserNibiAgentsFilePath();
   try {
     const content = await readFile(targetPath, "utf-8");
     return { path: targetPath, content, exists: true };
@@ -2279,7 +2279,7 @@ async function readUserAgentsFile(): Promise<SettingsSyncUserAgentsFile> {
 async function writeUserAgentsFile(params: {
   content: string;
 }): Promise<SettingsSyncUserAgentsFileWriteResult> {
-  const targetPath = getUserZcodeAgentsFilePath();
+  const targetPath = getUserNibiAgentsFilePath();
   const bytes = Buffer.byteLength(params.content, "utf8");
   // 上限按 UTF-8 字节而非字符数：中文用户写满 10 万字会远超 100 KB。
   if (bytes > SETTINGS_SYNC_USER_AGENTS_FILE_MAX_BYTES) {
@@ -2306,8 +2306,8 @@ export function createSettingsSyncService(
       return getClaudeAgentsFileMigrationStatus();
     },
 
-    async copyClaudeAgentsFileToZcodeAgentsFile(request = {}): Promise<SettingsSyncClaudeAgentsFileCopyResult> {
-      const result = await copyClaudeAgentsFileToZcodeAgentsFile({
+    async copyClaudeAgentsFileToNibiAgentsFile(request = {}): Promise<SettingsSyncClaudeAgentsFileCopyResult> {
+      const result = await copyClaudeAgentsFileToNibiAgentsFile({
         overwrite: request.overwrite,
       });
       log.info("[settings-sync] Claude AGENTS.md migration completed", {

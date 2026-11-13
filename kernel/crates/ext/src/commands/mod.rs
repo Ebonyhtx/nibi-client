@@ -1,4 +1,4 @@
-//! 用户自定义斜杠命令（Node `resolveZCodeCustomCommandPrompt` / `custom-commands` 的镜像）：
+//! 用户自定义斜杠命令（Node `resolveNibiCustomCommandPrompt` / `custom-commands` 的镜像）：
 //! `.nibi/commands`、`.agents/commands`、插件 `commands/` 的发现与解析，以及展开。
 //!
 //! 发现顺序与 Node `resolveDefaultCustomCommandRoots` 一致：用户级根在最前（同名时用户命令盖项目命令），

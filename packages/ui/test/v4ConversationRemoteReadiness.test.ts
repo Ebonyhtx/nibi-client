@@ -95,7 +95,7 @@ function installMinimalDom() {
 function makeServices(id: string): IServiceAccessor {
   return {
     __testId: id,
-    zcodeAgentService: {
+    nibiAgentService: {
       onDynamicConversationFrame: () => () => ({ dispose: () => {} }),
       onAgentRuntimeRestarted: () => ({ dispose: () => {} }),
     },
@@ -107,7 +107,7 @@ function makeObservableServices(id: string) {
   return {
     services: {
       __testId: id,
-      zcodeAgentService: {
+      nibiAgentService: {
         onDynamicConversationFrame,
         onAgentRuntimeRestarted: () => ({ dispose: () => {} }),
       },
@@ -131,7 +131,7 @@ function makePreviewServices(id: string) {
   return {
     services: {
       __testId: id,
-      zcodeAgentService: {
+      nibiAgentService: {
         helloConversationV4: vi.fn(async () => ({
           kind: "hello" as const,
           protocolVersion: 3 as const,

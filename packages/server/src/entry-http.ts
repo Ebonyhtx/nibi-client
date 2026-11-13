@@ -4,15 +4,15 @@ import {
   getAppConfigDir,
 } from "@nibi/services/node";
 import {
-  materializeBundledZCodeBuiltinProviderConfig,
-  readBundledZCodeBuiltinProviderConfig,
-} from "./bundledZCodeBuiltinProviderConfig.js";
+  materializeBundledNibiBuiltinProviderConfig,
+  readBundledNibiBuiltinProviderConfig,
+} from "./bundledNibiBuiltinProviderConfig.js";
 import { createHttpServer, resolveHttpServerId } from "./http.js";
 
 async function main(): Promise<void> {
-  const nibiBuiltinProviderConfigFilePath = await materializeBundledZCodeBuiltinProviderConfig({
+  const nibiBuiltinProviderConfigFilePath = await materializeBundledNibiBuiltinProviderConfig({
     environmentConfigRoot: getAppConfigDir(),
-    content: readBundledZCodeBuiltinProviderConfig(),
+    content: readBundledNibiBuiltinProviderConfig(),
   });
   const port = Number(process.env["PORT"]) || 3030;
   const host = process.env["NIBI_SERVER_HOST"]?.trim() || process.env["HOST"]?.trim() || undefined;

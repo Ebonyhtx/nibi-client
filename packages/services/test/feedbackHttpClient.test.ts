@@ -893,7 +893,7 @@ describe("createFeedbackService", () => {
     vi.unstubAllEnvs();
   });
 
-  it("uses the test ZCode API base by default when NIBI_ENV=test", async () => {
+  it("uses the test Nibi API base by default when NIBI_ENV=test", async () => {
     vi.stubEnv("NIBI_ENV", "test");
     // Bugfix: 开发机 shell 可能导出 NIBI_BASE_URL / NIBI_ENDPOINT_ORIGIN（resolver 最高优先级覆盖），
     // 会压过 NIBI_ENV=test 的默认域推断，把「默认 base」用例变成环境敏感；置空恢复封闭性。

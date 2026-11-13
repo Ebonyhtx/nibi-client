@@ -134,7 +134,7 @@ describe("Todo99 Worker 有效选择真实执行", () => {
         modelSelectionService: host.modelSelectionService,
       });
       // 只替换测试 harness 的 task port；以下读取、命令、发送、订阅均为生产 adapter。
-      Object.assign(harness.zcodeTaskService, host.task);
+      Object.assign(harness.nibiTaskService, host.task);
       const sendBot = (text: string) =>
         harness.service.handleInboundMessage({
           botId: "feishu-e2e",

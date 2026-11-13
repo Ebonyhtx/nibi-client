@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { zcodePermissionRequestedEventPayloadSchema } from "../src/nibi-protocol/index.js";
+import { nibiPermissionRequestedEventPayloadSchema } from "../src/nibi-protocol/index.js";
 import {
   pendingInteractionSchema,
   permissionRequestPayloadSchema,
@@ -177,7 +177,7 @@ describe("v4 permission payload compatibility", () => {
   });
 
   it("keeps the legacy permission.requested event inside the pre-MR strict rule shape", () => {
-    const event = zcodePermissionRequestedEventPayloadSchema.parse({
+    const event = nibiPermissionRequestedEventPayloadSchema.parse({
       input: {},
       options: [
         {

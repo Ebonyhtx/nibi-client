@@ -64,8 +64,8 @@
 | tab guest、CDP attachment、lifecycle、scope | `BrowserGuestManager`                        | `packages/desktop/src/main/browserView/browserGuestManager.ts`                                |
 | logical tab 上限、保护 lease、恢复状态      | `BrowserTabResidencyCoordinator`             | `packages/desktop/src/main/browserView/browserTabResidencyCoordinator.ts`                     |
 | tab 可见 webview 和用户关闭动作             | renderer side pane                           | `packages/ui/src/hooks/useAppPanels.ts`、`packages/ui/src/browser-use/UnifiedBrowserView.tsx` |
-| turn/session lifecycle 通知                 | ZCode agent runtime → browser control broker | `apps/zcode-cli/packages/core/src/runtime/methods/turn.ts`、`agent-runtime.ts`                |
-| 模型 API 与 guidance                        | browser-use plugin API/docs/skill            | `apps/zcode-cli/packages/browser-use-plugin`                                                  |
+| turn/session lifecycle 通知                 | ZCode agent runtime → browser control broker | `apps/nibi-cli/packages/core/src/runtime/methods/turn.ts`、`agent-runtime.ts`                |
+| 模型 API 与 guidance                        | browser-use plugin API/docs/skill            | `apps/nibi-cli/packages/browser-use-plugin`                                                  |
 | 进程退出                                    | Electron main/window lifecycle               | `packages/desktop/src/main/index.ts`                                                          |
 
 ## Dimensions and candidate decisions

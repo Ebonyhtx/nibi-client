@@ -1,42 +1,42 @@
 import {
-  collectVisibleZCodeBackgroundTaskControlItems,
-  getZCodeBackgroundTaskControlItemElapsedMs,
-  isActiveZCodeBackgroundTaskControlItem,
-  parseZCodeBackgroundTaskControlItems,
-  type ZCodeBackgroundTaskControlItem,
-  type ZCodeBackgroundTaskControlStatus,
+  collectVisibleNibiBackgroundTaskControlItems,
+  getNibiBackgroundTaskControlItemElapsedMs,
+  isActiveNibiBackgroundTaskControlItem,
+  parseNibiBackgroundTaskControlItems,
+  type NibiBackgroundTaskControlItem,
+  type NibiBackgroundTaskControlStatus,
 } from "./background-task-controls.js";
 
-export type ZCodeBackgroundBashJobStatus = ZCodeBackgroundTaskControlStatus;
-export type ZCodeBackgroundBashJob = ZCodeBackgroundTaskControlItem & {
+export type NibiBackgroundBashJobStatus = NibiBackgroundTaskControlStatus;
+export type NibiBackgroundBashJob = NibiBackgroundTaskControlItem & {
   taskKind: "bash";
 };
 
-export function parseZCodeBackgroundBashJobs(value: unknown): ZCodeBackgroundBashJob[] {
-  return parseZCodeBackgroundTaskControlItems(value).filter(isBackgroundBashJob);
+export function parseNibiBackgroundBashJobs(value: unknown): NibiBackgroundBashJob[] {
+  return parseNibiBackgroundTaskControlItems(value).filter(isBackgroundBashJob);
 }
 
-export function isActiveZCodeBackgroundBashJob(job: ZCodeBackgroundBashJob): boolean {
-  return isActiveZCodeBackgroundTaskControlItem(job);
+export function isActiveNibiBackgroundBashJob(job: NibiBackgroundBashJob): boolean {
+  return isActiveNibiBackgroundTaskControlItem(job);
 }
 
-export function getZCodeBackgroundBashJobElapsedMs(
-  job: ZCodeBackgroundBashJob,
+export function getNibiBackgroundBashJobElapsedMs(
+  job: NibiBackgroundBashJob,
   now = Date.now(),
 ): number {
-  return getZCodeBackgroundTaskControlItemElapsedMs(job, now);
+  return getNibiBackgroundTaskControlItemElapsedMs(job, now);
 }
 
-export function collectVisibleZCodeBackgroundBashJobs(
-  jobs: readonly ZCodeBackgroundBashJob[],
+export function collectVisibleNibiBackgroundBashJobs(
+  jobs: readonly NibiBackgroundBashJob[],
   now = Date.now(),
   thresholdMs = 30_000,
-): Array<ZCodeBackgroundBashJob & { elapsedMs: number }> {
-  return collectVisibleZCodeBackgroundTaskControlItems(jobs, now, thresholdMs) as Array<
-    ZCodeBackgroundBashJob & { elapsedMs: number }
+): Array<NibiBackgroundBashJob & { elapsedMs: number }> {
+  return collectVisibleNibiBackgroundTaskControlItems(jobs, now, thresholdMs) as Array<
+    NibiBackgroundBashJob & { elapsedMs: number }
   >;
 }
 
-function isBackgroundBashJob(job: ZCodeBackgroundTaskControlItem): job is ZCodeBackgroundBashJob {
+function isBackgroundBashJob(job: NibiBackgroundTaskControlItem): job is NibiBackgroundBashJob {
   return job.taskKind === "bash";
 }

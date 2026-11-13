@@ -5,15 +5,15 @@ import { createElement, type ReactNode } from "react";
 import {
   resolveLocalePreferenceFromSettings,
   shouldApplyLocaleBroadcastMessage,
-  useZCodeIntl,
-  ZCodeIntlProvider,
+  useNibiIntl,
+  NibiIntlProvider,
 } from "@/i18n/IntlProvider.js";
 import type { Locale } from "@nibi/shared";
 import { NIBI_PREFS_KEY } from "@/lib/nibiStorage.js";
 import type { BroadcastMessage } from "@nibi/services";
 
 function LocaleProbe() {
-  const { locale, localePreference } = useZCodeIntl();
+  const { locale, localePreference } = useNibiIntl();
   return createElement(
     "div",
     null,
@@ -23,7 +23,7 @@ function LocaleProbe() {
 }
 
 function LocaleControls() {
-  const { setLocalePreference } = useZCodeIntl();
+  const { setLocalePreference } = useNibiIntl();
   return createElement(
     "div",
     null,
@@ -76,7 +76,7 @@ function renderIntlProvider({
   const settingService = createSettingService(settings, update);
   render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       {
         settingService,
         resolveSystemLocale,

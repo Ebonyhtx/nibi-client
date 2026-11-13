@@ -120,12 +120,12 @@ describe("桌面远控登录门禁", () => {
       await enterWorkspace();
       await browser.waitUntil(
         async () =>
-          (await $(`[data-testid="${TID_LOGIN_TRIGGER}"]`).getText()).includes("ZCode E2E"),
+          (await $(`[data-testid="${TID_LOGIN_TRIGGER}"]`).getText()).includes("Nibi E2E"),
         { timeout: 20_000, timeoutMsg: "缓存OAuth用户未恢复" },
       );
       await openRemoteControlDialog("Mobile remote control");
       await waitForTestIdByDom("web-remote-control-auth-required");
-      expect(await $(`[data-testid="${TID_LOGIN_TRIGGER}"]`).getText()).toContain("ZCode E2E");
+      expect(await $(`[data-testid="${TID_LOGIN_TRIGGER}"]`).getText()).toContain("Nibi E2E");
       const login = $('[data-testid="web-remote-control-login"]');
       await login.waitForEnabled({ timeout: 10_000 });
       await login.click();

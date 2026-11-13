@@ -16,7 +16,7 @@ import type { ISettingService } from "../src/setting/setting.js";
 
 const originalHome = process.env.HOME;
 const originalDesktopHome = process.env.NIBI_DESKTOP_HOME_DIR;
-const originalZCodeEnv = process.env.NIBI_ENV;
+const originalNibiEnv = process.env.NIBI_ENV;
 const originalFsFaults = process.env.NIBI_E2E_FS_FAULTS;
 const originalFsFaultsAllow = process.env.NIBI_E2E_FS_FAULTS_ALLOW;
 const originalSettingWriteQueueTimeout = process.env.NIBI_SETTING_WRITE_QUEUE_TIMEOUT_MS;
@@ -49,7 +49,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   restoreEnvValue("HOME", originalHome);
   restoreEnvValue("NIBI_DESKTOP_HOME_DIR", originalDesktopHome);
-  restoreEnvValue("NIBI_ENV", originalZCodeEnv);
+  restoreEnvValue("NIBI_ENV", originalNibiEnv);
   restoreEnvValue("NIBI_E2E_FS_FAULTS", originalFsFaults);
   restoreEnvValue("NIBI_E2E_FS_FAULTS_ALLOW", originalFsFaultsAllow);
   restoreEnvValue("NIBI_SETTING_WRITE_QUEUE_TIMEOUT_MS", originalSettingWriteQueueTimeout);
@@ -982,25 +982,25 @@ describe("settingService", () => {
     });
   });
 
-  it("支持清空非生产 ZCode endpoint override", async () => {
+  it("支持清空非生产 Nibi endpoint override", async () => {
     const home = makeTempHome();
     const settingsFile = join(home, ".nibi", "v2", "setting.json");
     const service = await createSettingServiceInHome(home);
 
-    await service.update({ zcodeEndpointOrigin: "https://zcode.z.ai/path" });
+    await service.update({ nibiEndpointOrigin: "https://zcode.z.ai/path" });
     await expect(service.get()).resolves.toMatchObject({
-      zcodeEndpointOrigin: "https://zcode.z.ai",
+      nibiEndpointOrigin: "https://zcode.z.ai",
     });
 
-    await service.update({ zcodeEndpointOrigin: "" });
+    await service.update({ nibiEndpointOrigin: "" });
 
-    await expect(service.get()).resolves.not.toHaveProperty("zcodeEndpointOrigin");
+    await expect(service.get()).resolves.not.toHaveProperty("nibiEndpointOrigin");
     expect(JSON.parse(readFileSync(settingsFile, "utf-8"))).not.toHaveProperty(
-      "zcodeEndpointOrigin",
+      "nibiEndpointOrigin",
     );
   });
 
-  it("忽略损坏的 ZCode endpoint override，保留其它 settings", async () => {
+  it("忽略损坏的 Nibi endpoint override，保留其它 settings", async () => {
     const home = makeTempHome();
     const settingsDir = join(home, ".nibi", "v2");
     const settingsFile = join(settingsDir, "setting.json");
@@ -1010,7 +1010,7 @@ describe("settingService", () => {
       JSON.stringify({
         locale: "en-US",
         recentProjects: ["/tmp/demo"],
-        zcodeEndpointOrigin: ["ftp://invalid.example"],
+        nibiEndpointOrigin: ["ftp://invalid.example"],
       }),
       "utf-8",
     );
@@ -1021,7 +1021,7 @@ describe("settingService", () => {
       locale: "en-US",
       recentProjects: ["/tmp/demo"],
     });
-    await expect(service.get()).resolves.not.toHaveProperty("zcodeEndpointOrigin");
+    await expect(service.get()).resolves.not.toHaveProperty("nibiEndpointOrigin");
   });
 
   it("会持久化 task 自动归档配置", async () => {
@@ -1210,7 +1210,7 @@ describe("settingService", () => {
       code: "EACCES",
       path: settingsFile,
       syscall: "writeFile",
-      zcodeFsFaultId: "D03-setting-write-eacces",
+      nibiFsFaultId: "D03-setting-write-eacces",
     });
 
     expect(existsSync(settingsFile)).toBe(false);
@@ -1232,16 +1232,16 @@ describe("settingService", () => {
     });
   });
 
-  it("会持久化 ZCode 交互行为配置", async () => {
+  it("会持久化 Nibi 交互行为配置", async () => {
     const home = makeTempHome();
     const service = await createSettingServiceInHome(home);
 
     await service.update({
-      zcodeInteractionBehavior: "guide",
+      nibiInteractionBehavior: "guide",
     });
 
     await expect(service.get()).resolves.toMatchObject({
-      zcodeInteractionBehavior: "guide",
+      nibiInteractionBehavior: "guide",
     });
   });
 

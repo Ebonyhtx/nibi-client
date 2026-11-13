@@ -46,7 +46,7 @@ const REPO_ROOT = resolve(process.argv[2] ?? join(HERE, ".."));
  * "构建是否发生在最后一次源码改动之后"才是真正要问的问题。
  */
 const ARTIFACT_ROOTS = [
-  { path: "apps/zcode-cli/packages/cli/dist", stamps: ["nibi.cjs"] },
+  { path: "apps/nibi-cli/packages/cli/dist", stamps: ["nibi.cjs"] },
   {
     path: "packages/desktop/out",
     stamps: [".main-build-ready", ".host-build-ready"],
@@ -113,17 +113,16 @@ const FORBIDDEN_THIRD_PARTY_HOSTS = [
  * 实例身份词（`zcode-` kebab / `X-ZCode-` 头 / 用户可见文件名）。
  *
  * 为什么单列、且**逐条枚举**而不是写 `/zcode-/`：泛正则会同时命中大量合法名字——
- * 兼容用的插件包格式 `zcode-plugin`、移植过来的插件名（`zcode-guide` 等）、
- * `packages/zcode-server-cli` 这个包名本身。判据一旦产噪声就没人看，等于空转。
+ * 兼容用的插件包格式 `zcode-plugin`、移植过来的插件名（`zcode-guide` 等）。
+ * 判据一旦产噪声就没人看，等于空转。
  * 所以这里只放「确属我们的实例身份、且当前源码里已经清干净」的词，
  * 每加一条都要先把它清掉，否则门禁立刻红。
  *
  * 尚未清完、因此暂不列入的（列在这里是为了别忘，不是因为可以接受）：
  *
- * - **源码目录名** `packages/services/src/zcode-agent/`、`src/zcode-session/` 等：会出现在产物
- *   sourcemap 的路径里，所以不能写泛化的 `zcode-agent` / `zcode-session`。改名要连带动 300+
- *   处 import，属独立工程；**用户可见的值已全部清干净**（日志作用域、工单框架值、诊断标记、
- *   探针标签都已登记在下面）。
+ * - **源码目录名** 已改成 `packages/services/src/nibi-agent/`、`src/nibi-session/` 等，会出现在
+ *   产物 sourcemap 的路径里，所以**不能**写泛化的 `nibi-agent` / `nibi-session`（会天天假红）；
+ *   这里只钉方括号形式的日志作用域等运行时字面量。
  * - `/* zcode-workflow` 已保存工作流文件的元数据块标记：文件格式契约，改名要迁就存量文件。
  * - 日志正文里的 "ZCode agent …" 措辞：只影响日志文本，且 e2e 覆盖率工具按其中一条
  *   （`ZCode agent process exited`）切片，改名要同批改那处解析。
@@ -136,8 +135,8 @@ const FORBIDDEN_IDENTITY_TOKENS = [
   { token: "zcode-error-", reason: "用户可见的导出文件名前缀" },
   { token: "zcode-save-file-", reason: "用户可见的保存文件名前缀" },
   // 远端执行器（现在叫 `nibi-server.cjs` / `nibi-server-<target>.tar.gz`）。
-  // 不写泛化的 `zcode-server`：源码目录名 `packages/zcode-server-cli` 是上游沿用、刻意不改的，
-  // 它会出现在产物 sourcemap 的路径里，泛词会让判据天天假红。这里只钉运行时真会暴露的那几个。
+  // 不写泛化的 `zcode-server`：历史产物与兼容串里仍有零散命中，泛词会让判据天天假红；
+  // 这里只钉运行时真会暴露的那几个具体名字。
   { token: "zcode-server.cjs", reason: "远端执行器的 bundle 文件名（部署到远端 ~/.nibi/server/）" },
   { token: "zcode-server.tar.gz", reason: "远端 bootstrap 归档名" },
   { token: "zcode-server-linux-", reason: "远端发布包名（linux-x64 / linux-arm64）" },
@@ -175,7 +174,7 @@ const TEXT_SUFFIX = /\.(cjs|mjs|js|json|map|txt|md|yml|yaml)$/i;
  *
  * 2026-10-22 改口径：用**构建标记**判断新鲜度（见 ARTIFACT_ROOTS.stamps）。
  * 2026-10-22 再改口径：源码基线只认 **git 跟踪的文件**（`git ls-files`）。
- * 构建会在源码树里**生成**文件（`apps/zcode-cli` 的 `dist-types/`、`scripts/browser-client.mjs`、
+ * 构建会在源码树里**生成**文件（`apps/nibi-cli` 的 `dist-types/`、`scripts/browser-client.mjs`、
  * node-repl-host 的桥接文件），它们比构建开始时刻更晚写出，会把基线一直往前推 →
  * 判据永远判陈旧、永远空转（实测：三次全量构建后仍是"陈旧"）。
  * 跟踪文件才是"源码改动"的语义来源；生成物归产物侧。

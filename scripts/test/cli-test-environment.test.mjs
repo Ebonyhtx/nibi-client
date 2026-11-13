@@ -4,7 +4,7 @@ import test from "node:test";
 
 test("CUA producer checkout 参与 CLI 测试缓存键并由 Turbo 传入", async () => {
   const config = JSON.parse(
-    await readFile(new URL("../../apps/zcode-cli/turbo.json", import.meta.url), "utf8"),
+    await readFile(new URL("../../apps/nibi-cli/turbo.json", import.meta.url), "utf8"),
   );
   assert.ok(config.tasks.test.env.includes("NIBI_CUA_REPO"));
   assert.ok(config.tasks.test.env.includes("VITEST_MAX_WORKERS"));
@@ -12,7 +12,7 @@ test("CUA producer checkout 参与 CLI 测试缓存键并由 Turbo 传入", asyn
 
 test("CLI 全量测试先准备跨 workspace 的模型映射构建产物", async () => {
   const manifest = JSON.parse(
-    await readFile(new URL("../../apps/zcode-cli/package.json", import.meta.url), "utf8"),
+    await readFile(new URL("../../apps/nibi-cli/package.json", import.meta.url), "utf8"),
   );
   assert.equal(manifest.scripts.pretest, "pnpm --dir ../.. --filter @nibi/model-option-map build");
 });

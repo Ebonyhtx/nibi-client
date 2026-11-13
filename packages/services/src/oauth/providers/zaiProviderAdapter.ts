@@ -356,8 +356,8 @@ export class ZaiProviderAdapter implements OAuthProviderAdapter {
       throw new Error(tokenPayload.msg?.trim() || "ZAI 后端 token 交换失败");
     }
 
-    const zcodeJwtToken = tokenPayload.data?.token;
-    if (!zcodeJwtToken) {
+    const nibiJwtToken = tokenPayload.data?.token;
+    if (!nibiJwtToken) {
       throw new Error("Token 交换失败：响应缺少 data.token");
     }
 
@@ -384,7 +384,7 @@ export class ZaiProviderAdapter implements OAuthProviderAdapter {
 
     return {
       accessToken: businessAccessToken,
-      zcodeJwtToken,
+      nibiJwtToken,
       ...(expiresAt ? { expiresAt } : {}),
     };
   }

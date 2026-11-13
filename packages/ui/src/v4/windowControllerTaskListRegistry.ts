@@ -2,7 +2,7 @@ import type {
   IWindowControllerService,
   WindowHostControllerFrame,
   WindowHostControllerTaskListResult,
-  ZCodeTaskListQuery,
+  NibiTaskListQuery,
 } from "@nibi/services";
 import {
   CONTROLLER_TASKS_INDEX_TOPIC,
@@ -27,7 +27,7 @@ export interface WindowControllerTaskListRegistry {
   list(
     queryKey: string,
     version: WindowControllerTaskListVersion,
-    query: ZCodeTaskListQuery,
+    query: NibiTaskListQuery,
   ): Promise<WindowHostControllerTaskListResult>;
 }
 
@@ -63,7 +63,7 @@ function taskAddressKey(address: WindowHostControllerTaskRow["address"]): string
 }
 
 function queryContainsWorkspace(
-  query: ZCodeTaskListQuery,
+  query: NibiTaskListQuery,
   address: WindowHostControllerTaskRow["address"],
 ): boolean {
   const workspaceKey = address.workspaceIdentity?.trim() || address.workspacePath;
@@ -99,7 +99,7 @@ export function getWindowControllerTaskListRegistry(
     {
       versionKey: string;
       promise: Promise<WindowHostControllerTaskListResult>;
-      query: ZCodeTaskListQuery;
+      query: NibiTaskListQuery;
     }
   >();
   const taskRows = new Map<string, WindowHostControllerTaskRow>();

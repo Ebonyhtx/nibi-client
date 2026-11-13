@@ -1,17 +1,17 @@
-export interface ZCodeStreamingToolInputState {
+export interface NibiStreamingToolInputState {
   deltaCount?: number;
   lastPreviewAt?: number;
   lastPreviewRawInputLength?: number;
   rawInput: string;
 }
 
-export interface ZCodeStreamingToolInputPreview {
+export interface NibiStreamingToolInputPreview {
   complete: boolean;
   input: unknown;
   rawInput: string;
 }
 
-export type ZCodeStreamingToolInputPreviewMode = "active-live" | "background-summary";
+export type NibiStreamingToolInputPreviewMode = "active-live" | "background-summary";
 
 export const NIBI_ACTIVE_STREAMING_TOOL_INPUT_EAGER_DELTA_COUNT = 1;
 export const NIBI_ACTIVE_STREAMING_TOOL_INPUT_PREVIEW_MIN_INTERVAL_MS = 750;
@@ -51,10 +51,10 @@ const PARTIAL_JSON_STRING_FIELD_KEYS = [
   "script",
 ] as const;
 
-export function appendZCodeStreamingToolInputDelta(
-  state: ZCodeStreamingToolInputState | undefined,
+export function appendNibiStreamingToolInputDelta(
+  state: NibiStreamingToolInputState | undefined,
   delta: string,
-): ZCodeStreamingToolInputState {
+): NibiStreamingToolInputState {
   return {
     ...state,
     deltaCount: (state?.deltaCount ?? 0) + 1,
@@ -62,10 +62,10 @@ export function appendZCodeStreamingToolInputDelta(
   };
 }
 
-export function buildZCodeStreamingToolInputPreview(
+export function buildNibiStreamingToolInputPreview(
   rawInput: string,
   completeInput?: unknown,
-): ZCodeStreamingToolInputPreview {
+): NibiStreamingToolInputPreview {
   if (completeInput !== undefined) {
     return {
       complete: true,
@@ -90,10 +90,10 @@ export function buildZCodeStreamingToolInputPreview(
   };
 }
 
-export function shouldMaterializeZCodeStreamingToolInputPreview(
-  state: ZCodeStreamingToolInputState,
+export function shouldMaterializeNibiStreamingToolInputPreview(
+  state: NibiStreamingToolInputState,
   options: {
-    mode?: ZCodeStreamingToolInputPreviewMode;
+    mode?: NibiStreamingToolInputPreviewMode;
     now?: number;
     toolName?: string;
   } = {},
@@ -106,7 +106,7 @@ export function shouldMaterializeZCodeStreamingToolInputPreview(
     return true;
   }
   const lastPreviewAt = state.lastPreviewAt ?? 0;
-  if (isZCodeFileStreamingToolInputPreviewTool(options.toolName)) {
+  if (isNibiFileStreamingToolInputPreviewTool(options.toolName)) {
     // 性能修复：Write/Edit 的半截 JSON 会触发全量内容恢复和行级 diff。
     // 大字节 chunk 不能绕过一秒窗口，否则模型输出越快，UI 反而更新越频繁。
     return (
@@ -130,13 +130,13 @@ export function shouldMaterializeZCodeStreamingToolInputPreview(
   return state.rawInput.length <= NIBI_ACTIVE_STREAMING_TOOL_INPUT_TIME_BUDGET_MAX_RAW_INPUT;
 }
 
-export function isZCodeFileStreamingToolInputPreviewTool(toolName?: string): boolean {
+export function isNibiFileStreamingToolInputPreviewTool(toolName?: string): boolean {
   const normalized = toolName?.trim().toLowerCase();
   return normalized === "write" || normalized === "edit";
 }
 
-export function markZCodeStreamingToolInputPreviewMaterialized(
-  state: ZCodeStreamingToolInputState,
+export function markNibiStreamingToolInputPreviewMaterialized(
+  state: NibiStreamingToolInputState,
   now = Date.now(),
 ): void {
   state.lastPreviewAt = now;

@@ -57,7 +57,7 @@ vi.mock("react-dom/client", () => ({
 vi.mock("@nibi/ui", () => ({
   AppErrorBoundary: ({ children }: { children: unknown }) => children,
   Root: () => null,
-  ZCodeIntlProvider: ({ children }: { children: unknown }) => children,
+  NibiIntlProvider: ({ children }: { children: unknown }) => children,
   generateMobileDeviceFingerprint: vi.fn(() => "test-mobile-fingerprint"),
   installDocumentHiddenMotionPause: vi.fn(),
   playTaskNotificationSound: vi.fn(),

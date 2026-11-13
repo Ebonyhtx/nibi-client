@@ -1,7 +1,7 @@
 import type {
   Hook,
   HookDataSyncPayload,
-  ZCodeWorkspaceHookTrustGrantResult,
+  NibiWorkspaceHookTrustGrantResult,
 } from "@nibi/shared";
 import type { WorkspaceHookBundleSnapshotData } from "@nibi/shared/workspace-hook-discovery";
 import { ServiceChannels } from "@nibi/shared";
@@ -44,7 +44,7 @@ export interface IHooksService extends IDataSyncCategoryService<HookDataSyncPayl
     workspacePath: string;
     bundleDigest: string;
     hookDeclarationDigest: string;
-  }): Promise<ZCodeWorkspaceHookTrustGrantResult>;
+  }): Promise<NibiWorkspaceHookTrustGrantResult>;
 }
 
 export const IHooksService = createServiceDescriptor<IHooksService>(ServiceChannels.Hooks);

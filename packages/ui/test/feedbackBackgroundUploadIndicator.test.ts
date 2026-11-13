@@ -14,7 +14,7 @@ import {
   dismissFeedbackSubmissionJob,
   startFeedbackSubmissionJob,
 } from "@/feedback/feedbackSubmissionJob.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 function createTicket(id: string): FeedbackTicketDetail {
   const summary: FeedbackTicketSummary = {
@@ -62,7 +62,7 @@ function createFeedbackService(overrides: Partial<IFeedbackService> = {}): IFeed
 function renderIndicator(props?: Partial<FeedbackBackgroundUploadIndicatorViewProps>) {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(FeedbackBackgroundUploadIndicatorView, {
         status: "running",
@@ -145,7 +145,7 @@ describe("FeedbackBackgroundUploadIndicator", () => {
     expect(
       renderToStaticMarkup(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(FeedbackBackgroundUploadIndicator, {
             feedbackDialogOpen: true,
@@ -184,7 +184,7 @@ describe("FeedbackBackgroundUploadIndicator", () => {
 
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(FeedbackBackgroundUploadIndicator, {
           feedbackDialogOpen: false,

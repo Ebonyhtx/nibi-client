@@ -3,7 +3,7 @@
 // 这里是 renderer-local 壳子状态：只管 session 到 pane/group 的归属与本地持久化，
 // 不下沉到协议、agent、main process 或 web-remote replayable 状态。
 import { create } from "zustand";
-import type { ZCodeTaskClientMode } from "@nibi/shared";
+import type { NibiTaskClientMode } from "@nibi/shared";
 import {
   INITIAL_PANE_LAYOUT,
   MAX_WORKBENCH_PANES,
@@ -52,7 +52,7 @@ export interface WorkbenchGroupSnapshot {
 }
 
 export interface WorkbenchGroupStore extends WorkbenchGroupSnapshot {
-  configureClientMode: (clientMode: ZCodeTaskClientMode) => void;
+  configureClientMode: (clientMode: NibiTaskClientMode) => void;
   openSessionFromSidebar: (binding: WorkbenchSessionBinding) => void;
   splitSessionIntoGroup: (
     anchorPaneId: string,
@@ -81,7 +81,7 @@ export const INITIAL_WORKBENCH_GROUP_STATE: WorkbenchGroupSnapshot = {
   sessionIndex: {},
 };
 
-let workbenchGroupClientMode: ZCodeTaskClientMode = "desktop-continuous";
+let workbenchGroupClientMode: NibiTaskClientMode = "desktop-continuous";
 let desktopGroupsHydrated = false;
 
 function workbenchGroupsEnabled(): boolean {

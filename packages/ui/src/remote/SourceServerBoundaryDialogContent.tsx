@@ -2,7 +2,7 @@ import { LaptopIcon, ServerIcon } from "lucide-react";
 import { TID_CONFIRM_DIALOG_CONFIRM } from "@nibi/shared/test-ids";
 import { Button } from "@/components/ui/button.js";
 import { DialogDescription, DialogTitle } from "@/components/ui/dialog.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 
 export function SourceServerBoundaryDialogContent({
   title,
@@ -15,7 +15,7 @@ export function SourceServerBoundaryDialogContent({
   confirmLabel: string;
   onConfirm: () => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
 
   return (
     <div className="grid sm:grid-cols-5">

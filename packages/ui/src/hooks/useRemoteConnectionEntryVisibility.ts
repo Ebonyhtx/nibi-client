@@ -1,7 +1,7 @@
-import type { ZCodeEnv } from "@nibi/shared";
+import type { NibiEnv } from "@nibi/shared";
 
 export function shouldShowRemoteConnectionEntry(params: {
-  env: ZCodeEnv;
+  env: NibiEnv;
   isIntranet: boolean;
 }): boolean {
   void params;

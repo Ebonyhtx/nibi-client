@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
-  getZCodeAgentAvailableModes,
-  getZCodeAgentModeSelectOptions,
-  normalizeAvailableZCodeMode,
-} from "../src/zcode-agent-model-state.js";
+  getNibiAgentAvailableModes,
+  getNibiAgentModeSelectOptions,
+  normalizeAvailableNibiMode,
+} from "../src/nibi-agent-model-state.js";
 import { submissionModeSchema } from "../src/nibi-protocol-v4/submission.js";
-import { zcodeSessionModeSchema } from "../src/nibi-protocol-legacy-types.js";
+import { nibiSessionModeSchema } from "../src/nibi-protocol-legacy-types.js";
 import { executionStateSchema, resolveExecutionState } from "../src/execution-state.js";
 
 describe("guarded wire and mode catalog", () => {
@@ -19,17 +19,17 @@ describe("guarded wire and mode catalog", () => {
   });
   it("round trips the opt-in value without changing the default", () => {
     expect(submissionModeSchema.parse("guarded")).toBe("guarded");
-    expect(zcodeSessionModeSchema.parse("guarded")).toBe("guarded");
-    expect(normalizeAvailableZCodeMode("guarded")).toBe("guarded");
-    const ids = getZCodeAgentAvailableModes().map((mode) => mode.id);
+    expect(nibiSessionModeSchema.parse("guarded")).toBe("guarded");
+    expect(normalizeAvailableNibiMode("guarded")).toBe("guarded");
+    const ids = getNibiAgentAvailableModes().map((mode) => mode.id);
     expect(ids).toEqual(["build", "guarded", "plan", "yolo"]);
-    expect(getZCodeAgentModeSelectOptions().map((option) => option.value)).toEqual(ids);
+    expect(getNibiAgentModeSelectOptions().map((option) => option.value)).toEqual(ids);
     expect(submissionModeSchema.safeParse("unknown").success).toBe(false);
   });
   it("keeps historical edit valid without advertising it as a new choice", () => {
     expect(submissionModeSchema.parse("edit")).toBe("edit");
-    expect(zcodeSessionModeSchema.parse("edit")).toBe("edit");
-    expect(normalizeAvailableZCodeMode("edit")).toBe("edit");
-    expect(getZCodeAgentAvailableModes().some((mode) => mode.id === "edit")).toBe(false);
+    expect(nibiSessionModeSchema.parse("edit")).toBe("edit");
+    expect(normalizeAvailableNibiMode("edit")).toBe("edit");
+    expect(getNibiAgentAvailableModes().some((mode) => mode.id === "edit")).toBe(false);
   });
 });

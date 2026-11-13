@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { testId, TID_TOOL_SUMMARY_TRIGGER } from "@nibi/shared/test-ids";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ServiceProvider } from "@/hooks/useServices.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { StoreProvider } from "@/store/StoreProvider.js";
 import { useSubagentsStore } from "@/store/subagentsStore.js";
 import { AgentToolCallBlock } from "../src/ToolCallBlocks/renderers/agent.js";
@@ -64,7 +64,7 @@ describe("AgentToolCallBlock", () => {
   it("keeps an Agent without a persisted child as a static one-line summary", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,
@@ -131,7 +131,7 @@ describe("AgentToolCallBlock", () => {
   it("uses a side-pane summary action instead of expandable details", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,
@@ -201,7 +201,7 @@ describe("AgentToolCallBlock", () => {
   it("never falls back to inline prompt or child output", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,
@@ -286,7 +286,7 @@ describe("AgentToolCallBlock", () => {
 
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,
@@ -344,7 +344,7 @@ describe("AgentToolCallBlock", () => {
   it("keeps the agent type blank while subagent_type may still be streaming", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,
@@ -405,7 +405,7 @@ describe("AgentToolCallBlock", () => {
   it("falls back to the default general-purpose agent type only after complete input omits subagent_type", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,
@@ -470,7 +470,7 @@ describe("AgentToolCallBlock", () => {
   it("uses the latest child tool summary for a collapsed running subagent", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,
@@ -553,7 +553,7 @@ describe("AgentToolCallBlock", () => {
   it("does not keep a completed subagent visually running while a child tool is running", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,
@@ -638,7 +638,7 @@ describe("AgentToolCallBlock", () => {
   it("keeps the child action label for completed subagent child summaries", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,
@@ -718,7 +718,7 @@ describe("AgentToolCallBlock", () => {
   it("summarizes TodoWrite child tools with todo progress and active content", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,
@@ -814,7 +814,7 @@ describe("AgentToolCallBlock", () => {
   it("uses SubAgent as the outer kind instead of the resolved agent type", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,
@@ -889,7 +889,7 @@ describe("AgentToolCallBlock", () => {
   it("uses spawn_agent subagent nickname as the summary primary text", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,
@@ -961,7 +961,7 @@ describe("AgentToolCallBlock", () => {
   it("falls back to spawn_agent agent_type when nickname is not available", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,
@@ -1023,7 +1023,7 @@ describe("AgentToolCallBlock", () => {
   it("renders prompt and child tool calls without result content", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,
@@ -1114,7 +1114,7 @@ describe("AgentToolCallBlock", () => {
   it("keeps background agent internals out of the static summary", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,
@@ -1189,7 +1189,7 @@ describe("AgentToolCallBlock", () => {
   it("does not inline background child activity", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,
@@ -1259,7 +1259,7 @@ describe("AgentToolCallBlock", () => {
   it("does not inline either task notification or raw background transcript", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           ServiceProvider,

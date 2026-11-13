@@ -2,7 +2,7 @@
 //! 内核里的 cron 工具经这条端口把定义交给 Host，Host 负责记录、调度、卡片与历史。
 //!
 //! 与 `topic.rs` 同一种形态：`Context::peer.request` 发 `automation/*`，Host 的
-//! `zcodeAgentService` 处理并回包；连接断开时等着的请求一起失败。
+//! `nibiAgentService` 处理并回包；连接断开时等着的请求一起失败。
 
 use async_trait::async_trait;
 use nibi_kernel_api::automation::{

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { beforeAll, describe, expect, it } from "vitest";
 import { compileModelOptionMaps } from "@nibi/model-option-map";
-import { ModelConfig, ModelConfigRules, parseZCodeBuiltinModelConfigRules } from "@nibi/provider";
+import { ModelConfig, ModelConfigRules, parseNibiBuiltinModelConfigRules } from "@nibi/provider";
 
 const url = "https://opencode.ai/zen/go/v1";
 let rules: ModelConfigRules;
@@ -18,7 +18,7 @@ beforeAll(async () => {
   const release = JSON.parse(
     await readFile(new URL("../../../config/provider/nibi-builtin.json", import.meta.url), "utf8"),
   );
-  rules = parseZCodeBuiltinModelConfigRules(release.config.modelConfigRules);
+  rules = parseNibiBuiltinModelConfigRules(release.config.modelConfigRules);
   templates = release.config.providerConfigRules.templateRules;
 });
 const input = (modelId: string, apiType = "openai-chat-completions", baseUrl = url) => ({

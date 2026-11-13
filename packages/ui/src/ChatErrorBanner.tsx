@@ -3,7 +3,7 @@ import { formatRemoteConnectionError } from "@/lib/remoteConnectionPresentation.
 /**
  * ChatErrorBanner — 错误提示组件
  *
- * 显示 ZCode Agent 链路中的错误，带 traceId 方便排查。
+ * 显示 Nibi Agent 链路中的错误，带 traceId 方便排查。
  */
 import { useState } from "react";
 import {
@@ -17,7 +17,7 @@ import {
   TID_CHAT_ERROR_HOOK_ICON,
 } from "@nibi/shared/test-ids";
 import { AnchorIcon, CopyIcon, InfoIcon, SettingsIcon, X } from "lucide-react";
-import { useZCodeIntl } from "./i18n/IntlProvider.js";
+import { useNibiIntl } from "./i18n/IntlProvider.js";
 import type { IntlInstance } from "./i18n/IntlProvider.js";
 import { Button } from "./components/ui/button.js";
 import {
@@ -36,7 +36,7 @@ import {
   isSuspiciousEmptyModelResultMessage,
   resolveRequestVerificationBusinessCode,
 } from "@/lib/providerBusinessError.js";
-import type { ZCodeUiError } from "@/lib/zcodeUiError.js";
+import type { NibiUiError } from "@/lib/nibiUiError.js";
 
 const HISTORICAL_MODEL_UNAVAILABLE_MESSAGES = [
   "历史任务使用的模型已不可用",
@@ -63,7 +63,7 @@ const MODEL_CONFIG_MISSING_CODES = new Set([
   "ModelConfigMissing",
 ]);
 
-function isModelConfigMissingError(error: Pick<ZCodeUiError, "code" | "message">): boolean {
+function isModelConfigMissingError(error: Pick<NibiUiError, "code" | "message">): boolean {
   // Bugfix: 桌面端发送前 registry 为空时，agent 会退回 CLI config 并抛 Model config is missing。
   // 真实原因是“当前没有可用模型”，不能把 CLI 配置路径直接暴露给桌面用户。
   // 这里只按结构化 code 识别，避免 UNKNOWN/SEND_FAILED 等包装错误的可读 message
@@ -93,7 +93,7 @@ function parseClaudeUnknownCommandMessage(message: string): {
 export type ChatErrorBannerModelConfigTarget = "local" | "remote";
 
 export function resolveChatErrorBannerDisplayMessage(
-  error: ZCodeUiError,
+  error: NibiUiError,
   intl: IntlInstance,
   modelConfigTarget: ChatErrorBannerModelConfigTarget = "local",
 ): string {
@@ -149,7 +149,7 @@ export function resolveChatErrorBannerDisplayMessage(
 }
 
 export function shouldSuppressChatErrorBanner(
-  error: Pick<ZCodeUiError, "code" | "message">,
+  error: Pick<NibiUiError, "code" | "message">,
 ): boolean {
   // 只有历史恢复残留的模型不可用提示才隐藏；当前发送/草稿报错需要展示，
   // 否则 registry 移除模型后用户会看到“请求没返回”而没有任何可操作反馈。
@@ -170,7 +170,7 @@ export function ChatErrorBanner({
   onReconnect,
   remoteKind,
 }: {
-  error: ZCodeUiError;
+  error: NibiUiError;
   onReconnect?: () => void;
   remoteKind?: string;
   onRetry?: () => void;
@@ -180,7 +180,7 @@ export function ChatErrorBanner({
   onOpenModelSettings?: () => void;
   modelConfigTarget?: ChatErrorBannerModelConfigTarget;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const openFeedbackSubmit = useFeedbackStore((state) => state.openSubmit);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const actionButtonClassName = "shrink-0";

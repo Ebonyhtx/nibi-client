@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash-parse/src/lexer/token.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
+// 复制自 apps/nibi-cli-rust/crates/bash-parse/src/lexer/token.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
 //! Token 类型（unbash `Token` / `TokenValue` / `LexContext`）。
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

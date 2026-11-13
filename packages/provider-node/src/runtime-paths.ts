@@ -25,7 +25,7 @@ export function resolveNodeProviderRuntimePaths(
   const personalFilePath = env[NIBI_PERSONAL_PROVIDER_CONFIG_FILE_ENV]?.trim();
   if (!nibiBuiltinFilePath && !personalFilePath) return null;
   if (!nibiBuiltinFilePath || !personalFilePath) {
-    throw new Error("ZCode Built-in 与 Personal Provider Config 路径必须同时提供");
+    throw new Error("Nibi Built-in 与 Personal Provider Config 路径必须同时提供");
   }
   return Object.freeze({ nibiBuiltinFilePath, personalFilePath });
 }

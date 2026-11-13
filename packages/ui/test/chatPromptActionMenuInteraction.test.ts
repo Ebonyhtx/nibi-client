@@ -25,7 +25,7 @@ vi.mock("@/mentions/providers/sessionsMentionProvider.js", () => ({
 }));
 vi.mock("@/v4/activeTaskProvider.js", () => ({ useChatViewActiveTaskProvider: () => "zcode" }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
+  useNibiIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
 }));
 vi.mock("@/ControlHintTooltip.js", () => ({
   ControlHintTooltip: ({ children }: { children: ReactNode }) => children,

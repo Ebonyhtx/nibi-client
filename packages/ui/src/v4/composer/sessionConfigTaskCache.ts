@@ -1,9 +1,9 @@
-import type { ZCodeConfigOption } from "@nibi/shared";
+import type { NibiConfigOption } from "@nibi/shared";
 import type { SessionConfigState } from "@nibi/shared/nibi-protocol-v4";
-import { parseModelPickerValue } from "@/lib/zcodeSessionProjection.js";
+import { parseModelPickerValue } from "@/lib/nibiSessionProjection.js";
 
 function resolveModelDisplayValue(
-  options: readonly ZCodeConfigOption[],
+  options: readonly NibiConfigOption[],
   config: Pick<SessionConfigState, "provider" | "model">,
 ): string {
   const provider = config.provider.trim();
@@ -31,9 +31,9 @@ function resolveModelDisplayValue(
  * 目录项和候选列表保持原引用语义，仅替换 model/mode/thought 的 currentValue。
  */
 export function projectSessionConfigToTaskConfigOptions(
-  options: readonly ZCodeConfigOption[],
+  options: readonly NibiConfigOption[],
   config: Pick<SessionConfigState, "provider" | "model" | "mode" | "thought">,
-): ZCodeConfigOption[] {
+): NibiConfigOption[] {
   const modelValue = resolveModelDisplayValue(options, config);
   return options.map((option) => {
     if (option.type !== "select") {

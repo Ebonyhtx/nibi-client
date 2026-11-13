@@ -2,7 +2,7 @@ import { FileTextIcon, GlobeIcon } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { MessageFileLinkTarget } from "@/components/ai-elements/message.js";
 import { useWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   type AssistantPreviewCard,
   type AssistantPreviewCardFileStatService,
@@ -194,7 +194,7 @@ export function AssistantPreviewCards({
   onAutoOpenPptx,
   compactForRemoteControl,
 }: AssistantPreviewCardsProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const { visibleCards, settled } = useAssistantPreviewCardValidation(cards, {
     workspacePath,
     workspaceIdentity,

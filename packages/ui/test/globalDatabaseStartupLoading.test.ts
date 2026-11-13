@@ -3,13 +3,13 @@ import { createRoot } from "react-dom/client";
 import { act, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it, vi } from "vitest";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { GlobalDatabaseStartupLoading } from "@/root/GlobalDatabaseStartupLoading.js";
 
 it("explains FULL, provides manual recovery, and never claims all changes rolled back", () => {
   const html = renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(GlobalDatabaseStartupLoading, {
         state: {
@@ -43,7 +43,7 @@ function renderStartup(
 ) {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: locale },
       createElement(GlobalDatabaseStartupLoading, {
         state,
@@ -144,7 +144,7 @@ it("SILENTDB-01: silent UI mounts no timer and migration-to-failure clears the p
     await act(async () =>
       root.render(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(GlobalDatabaseStartupLoading, {
             state,

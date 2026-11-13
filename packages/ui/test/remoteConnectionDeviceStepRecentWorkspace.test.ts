@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SourceServerManagementSnapshot } from "@nibi/shared";
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: { formatMessage: ({ id }: { id: string }) => id },
     locale: "zh-CN",
   }),

@@ -1,8 +1,8 @@
-//! `mcp/list`（Host `zcodeMcpListParamsSchema`，141 审计 §9 第 6 项 F7 的第一条）。
+//! `mcp/list`（Host `nibiMcpListParamsSchema`，141 审计 §9 第 6 项 F7 的第一条）。
 //!
 //! 参数是 `{workspace, mcpServers?, mode}`：`mode` 缺省是 `connect`（收敛连接集合并等连接落定），
 //! `status` 只读快照。结果是 `{statuses: Record<服务器名, 快照>}`，快照的字段与 Host 的
-//! `zcodeMcpServerStatusSnapshotSchema` 一一对应。
+//! `nibiMcpServerStatusSnapshotSchema` 一一对应。
 //!
 //! `oauth` 与 `protocolVersion` 都按 Node 的语义接上：`oauth` 的令牌由入口给的令牌端口取（
 //! `authorization_code` 读桌面端写进共享凭据的令牌、`client_credentials` 自己换），401 时刷新一次；
@@ -445,7 +445,7 @@ pub(crate) async fn cancel_call(server: &Server, params: &Value) -> Result<Value
     Ok(json!({"cancelled": cancelled}))
 }
 
-/// `tools/call` 的结果只留 Host `zcodeMcpUiCallToolResultSchema` 的四个键；`content` 缺失是服务器的
+/// `tools/call` 的结果只留 Host `nibiMcpUiCallToolResultSchema` 的四个键；`content` 缺失是服务器的
 /// 协议错误（MCP 要求它一定在）。
 fn call_tool_result(value: Value) -> Result<Value, RpcError> {
     let Some(content) = value.get("content").and_then(Value::as_array).cloned() else {
@@ -643,7 +643,7 @@ pub(crate) async fn resolve_app_tool_call(
     Ok(json!({"accepted": accepted}))
 }
 
-/// App 工具的实例身份：作用域与代际（Node `zcodeMcpUiAppToolInstanceShape`）。
+/// App 工具的实例身份：作用域与代际（Node `nibiMcpUiAppToolInstanceShape`）。
 fn app_tool_instance(
     params: &Map<String, Value>,
     server: &Server,

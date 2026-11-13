@@ -9,7 +9,7 @@ import { useRemoteWorkspaceSessionStore } from "@/store/remoteWorkspaceSessionSt
 import { openWebRemoteControlTask } from "@/hooks/useWebRemoteControlTaskOpen.js";
 import { logger } from "@/logger.js";
 import { toast } from "@/components/ui/toast.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 import { useTabStore } from "@/store/TabStoreProvider.js";
 
 /** 打开任务才绑定 workspace；列表 mutation 不借导航创建 scope。 */
@@ -35,7 +35,7 @@ export function useProjectTaskNavigation(
     const { props, tree, remoteService, activeWorkspaceIdentity } = latest.current;
     const readFocus = () =>
       props.workspacePath
-        ? useZCodeSessionStore
+        ? useNibiSessionStore
             .getState()
             .getWorkspaceState(props.workspacePath, activeWorkspaceIdentity ?? undefined)
         : undefined;

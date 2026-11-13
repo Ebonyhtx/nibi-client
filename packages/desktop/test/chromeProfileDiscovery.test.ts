@@ -219,7 +219,7 @@ describe("chromeProfileDiscovery", () => {
   it("忽略 Electron/Chrome 的 crashpad 与 helper 子进程", () => {
     expect(
       parseRunningChromeInstallations([
-        "/Applications/ZCode.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler --user-data-dir=/tmp/zcode",
+        "/Applications/Nibi.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler --user-data-dir=/tmp/zcode",
       ]),
     ).toEqual([]);
   });

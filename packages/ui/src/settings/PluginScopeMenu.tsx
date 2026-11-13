@@ -24,7 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.js";
 import { InputGroup, InputGroupAddon } from "@/components/ui/input-group.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { getContainingDirectoryPath, getPathLeaf } from "@/lib/path.js";
 import {
   useSettingsScopeDevice,
@@ -80,7 +80,7 @@ function DeviceScopeMenu({
   workspaceTabs = [],
   onScopeKeyChange,
 }: PluginScopeMenuProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const { device: contextDevice, userAvailable } = useSettingsScopeDevice();
   const menuGroups: readonly SettingsScopeGroup[] = groups ?? [
     {
@@ -230,7 +230,7 @@ function ScopeProjectList({
   projects: readonly SettingsScopeOption[];
   workspaceOptionTestIdPrefix?: string;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [query, setQuery] = useState("");
   const labelCounts = new Map<string, number>();
   for (const option of projects) {
@@ -320,7 +320,7 @@ function FlatScopeMenu({
   workspaceOptions = [],
   onScopeKeyChange,
 }: PluginScopeMenuProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const selectedWorkspace = workspaceOptions.find(
     (workspace) => workspace.key === selectedScopeKey,
   );

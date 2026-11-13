@@ -58,7 +58,7 @@ function useWorkflowRunPaneSaveHost(params: WorkflowRunPaneSaveParams): Workflow
         }),
       );
       if (ack.status !== "accepted") {
-        logger.warn("[workflow-run] 交给 ZCode 提炼保存的那条消息被拒", {
+        logger.warn("[workflow-run] 交给 Nibi 提炼保存的那条消息被拒", {
           reasonCode: ack.reasonCode ?? null,
           runId: tab.runId,
           status: ack.status,

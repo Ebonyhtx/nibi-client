@@ -1,12 +1,12 @@
 import { useCallback, useState } from "react";
 import type { GitChangeSourceId } from "@nibi/shared";
 import { toast } from "@/components/ui/toast.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 
 export function useGitActions(options: { workspacePath: string }) {
   const { workspacePath } = options;
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [refreshVersion, setRefreshVersion] = useState(0);
 
   const announcePlaceholder = useCallback(

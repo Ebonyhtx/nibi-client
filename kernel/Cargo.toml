@@ -140,7 +140,7 @@ regex = "1"
 regress = "0.12"
 # nibi-kernel-platform：credentials.json 的 AES-256-GCM（与 rustls 共用同一个 ring）。
 ring = "0.17"
-# 只在 nibi-kernel-net。与 apps/zcode-cli-rust 同为 0.13；关闭 system-proxy（默认特性），代理只按显式配置。
+# 只在 nibi-kernel-net。与 apps/nibi-cli-rust 同为 0.13；关闭 system-proxy（默认特性），代理只按显式配置。
 # rustls-no-provider 不自带算法，统一用 ring（与 rustls 的 ring 特性配套）。
 reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "socks"] }
 rustls = { version = "0.23", default-features = false, features = ["ring"] }

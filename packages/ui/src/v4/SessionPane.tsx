@@ -37,8 +37,8 @@ import type {
   ConversationShareAccessMode,
   GitChangeSourceId,
   GitRepositorySummary,
-  ZCodeProvider,
-  ZCodeTaskChangeSummary,
+  NibiProvider,
+  NibiTaskChangeSummary,
 } from "@nibi/shared";
 import type {
   AttachmentRef,
@@ -67,7 +67,7 @@ import type {
 } from "@nibi/services";
 import { toast } from "@/components/ui/toast.js";
 import { cn } from "@/components/lib/utils.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { DEFAULT_CODE_PREVIEW_SETTINGS } from "@/lib/codePreviewSettings.js";
 import type { CodeViewerSource } from "@/lib/codeViewer.js";
 import type { OpenAutomationsMain } from "@/lib/taskNavigationHistory.js";
@@ -87,9 +87,9 @@ import { useWorkflowRunJournalSummaries } from "@/hooks/useWorkflowRunJournalSum
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { buildGenUiModelContext } from "@nibi/shared/gen-ui";
 import { useWorkspaceHomePath } from "@/hooks/useWorkspaceHomePath.js";
-import { prepareWorkspaceWithZCodeSessionService } from "@/hooks/useWorkspacePrepare.js";
-import { decodeCustomModelValue, encodeCustomModelValue } from "@/lib/zcodeCustomModelValue.js";
-import { parseModelPickerValue } from "@/lib/zcodeSessionProjection.js";
+import { prepareWorkspaceWithNibiSessionService } from "@/hooks/useWorkspacePrepare.js";
+import { decodeCustomModelValue, encodeCustomModelValue } from "@/lib/nibiCustomModelValue.js";
+import { parseModelPickerValue } from "@/lib/nibiSessionProjection.js";
 import { prepareComposerRecentReceipt } from "@/lib/composerRecent.js";
 import { useComposerClientNamespace } from "@/hooks/useServices.js";
 import {
@@ -115,8 +115,8 @@ import { projectSessionConfigToTaskConfigOptions } from "@/v4/composer/sessionCo
 import { useDraftRuntimeRebuildGate } from "@/v4/composer/useDraftRuntimeRebuildGate.js";
 import { useDraftModelReadinessGate } from "@/v4/composer/useDraftModelReadinessGate.js";
 import { useSettings } from "@/hooks/useSettingService.js";
-import { useZCodeStoreWithDefault } from "@/store/StoreProvider.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { useNibiStoreWithDefault } from "@/store/StoreProvider.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 import {
   DEFAULT_CONVERSATION_SHARE_ACCESS_MODE,
   DEFAULT_CONVERSATION_SHARE_DOCK_STATE,
@@ -250,7 +250,7 @@ import {
   hasChatLoadingBlockingActiveWork,
   hasChatLoadingBlockingInteraction,
 } from "@/v4/chatLoadingVisibility.js";
-import type { ZCodeUiError } from "@/lib/zcodeUiError.js";
+import type { NibiUiError } from "@/lib/nibiUiError.js";
 import type { ChatErrorBannerModelConfigTarget } from "@/ChatErrorBanner.js";
 import { isProviderNotReadyError } from "@/lib/chatPrepareError.js";
 import { setPendingSettingsSectionIntent } from "@/lib/settingsNavigation.js";
@@ -316,7 +316,7 @@ export interface SessionPaneProps {
   /** Prompt 模板埋点当前仅覆盖 Desktop；Web / 手机远控保留 UI 行为但不触发该事件。 */
   isDesktop?: boolean;
   compactForRemoteControl?: boolean;
-  provider?: ZCodeProvider;
+  provider?: NibiProvider;
   onSessionCreated?: (sessionId: string) => void;
   /** deleteSession：删除当前会话后回到 draft（shell 起新草稿）。 */
   onSessionDeleted?: () => void;
@@ -350,7 +350,7 @@ export interface SessionPaneProps {
   gitDirtyFileCount?: number;
   gitWorktreeReviewSourceId?: GitChangeSourceId | null;
   gitWorktreeChangeSummary?: { added: number; removed: number } | null;
-  activeTaskChangeSummary?: ZCodeTaskChangeSummary | null;
+  activeTaskChangeSummary?: NibiTaskChangeSummary | null;
   summaryPanelVariantOverride?: ChatViewSummaryPanelVariant | null;
   onSummaryPanelVariantOverrideChange?: (variant: ChatViewSummaryPanelVariant | null) => void;
   onRefreshGit?: () => void;
@@ -409,7 +409,7 @@ const MAX_CONVERSATION_FILE_CHANGES_CACHE_ENTRIES = 20;
 function toComposerUiError(
   sessionId: string | null | undefined,
   error: SessionErrorInfo,
-): ZCodeUiError {
+): NibiUiError {
   return {
     code: error.code,
     message: error.message,
@@ -602,21 +602,21 @@ export function SessionPane({
   const {
     conversationShareService,
     modelSelectionService,
-    zcodeSessionService,
-    zcodeTaskService,
+    nibiSessionService,
+    nibiTaskService,
   } = useServices();
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const slashCommands = useSlashCommands(workspacePath, workspaceIdentity);
   const baseWorkspaceServices = useBaseWorkspaceServices();
   const composerClientNamespace = useComposerClientNamespace();
-  const composerProjectId = useZCodeSessionStore(
+  const composerProjectId = useNibiSessionStore(
     (store) => store.getWorkspaceState(workspacePath, workspaceIdentity).draftProjectId,
   );
   const newTaskComposerScope = useMemo(
     () => resolveComposerScope(composerProjectId, workspaceIdentity, composerClientNamespace),
     [composerProjectId, workspaceIdentity, composerClientNamespace],
   );
-  const composerDraftGeneration = useZCodeSessionStore(
+  const composerDraftGeneration = useNibiSessionStore(
     (store) => store.getWorkspaceState(workspacePath, workspaceIdentity).draftFocusVersion,
   );
   const pendingAtEntry = useMemo(() => {
@@ -1065,7 +1065,7 @@ export function SessionPane({
     [fileChanges, sessionId, snapshot?.logEpoch],
   );
   const [dismissedErrorKeys, setDismissedErrorKeys] = useState<readonly string[]>([]);
-  const [sendSubmissionError, setSendSubmissionError] = useState<ZCodeUiError | null>(null);
+  const [sendSubmissionError, setSendSubmissionError] = useState<NibiUiError | null>(null);
   const [paneLocalSummaryPanelVariantOverride, setPaneLocalSummaryPanelVariantOverride] =
     useState<ChatViewSummaryPanelVariant | null>(null);
   const [terminalSectionOpen, setTerminalSectionOpen] = useState(false);
@@ -1174,7 +1174,7 @@ export function SessionPane({
       generation: paneBindingRef.current.generation + 1,
     };
   }
-  const workspaceConfigOptions = useZCodeSessionStore(
+  const workspaceConfigOptions = useNibiSessionStore(
     (store) => store.getWorkspaceState(workspacePath, workspaceIdentity).configOptions,
   );
   useEffect(() => {
@@ -1190,7 +1190,7 @@ export function SessionPane({
     // Bug 原因：V4 session 配置只存在 ConversationSnapshot，legacy task 配置桶一直为空；
     // 用户从 custom model 会话新建任务时，startDraft 只能继承 workspace 默认模型。
     // 这里仅把权威配置叠到完整目录并按 task 缓存，不改变 session 或 workspace 事实源。
-    useZCodeSessionStore
+    useNibiSessionStore
       .getState()
       .setTaskConfigOptions(
         workspacePath,
@@ -1237,19 +1237,19 @@ export function SessionPane({
     // 生命周期边界，避免长时间 workbench 中 Set 随会话数增长。
     autoOpenedAssistantPptxKeysRef.current.clear();
   }, [sessionId, snapshot?.logEpoch, workspaceKey]);
-  const composerTextInsertRequest = useZCodeSessionStore(
+  const composerTextInsertRequest = useNibiSessionStore(
     (store) => store.getWorkspaceState(workspacePath, workspaceIdentity).composerTextInsertRequest,
   );
-  const timelineBottomRequest = useZCodeSessionStore(
+  const timelineBottomRequest = useNibiSessionStore(
     (store) => store.getWorkspaceState(workspacePath, workspaceIdentity).timelineBottomRequest,
   );
-  const draftRuntimeInvalidationVersion = useZCodeSessionStore(
+  const draftRuntimeInvalidationVersion = useNibiSessionStore(
     (store) =>
       store.getWorkspaceState(workspacePath, workspaceIdentity).draftRuntimeInvalidationVersion,
   );
   const handleExternalTextInsertApplied = useCallback(
     (requestId: number) => {
-      useZCodeSessionStore
+      useNibiSessionStore
         .getState()
         .clearComposerTextInsertRequest(workspacePath, requestId, workspaceIdentity);
     },
@@ -1401,7 +1401,7 @@ export function SessionPane({
     // Selection View。旧预热会话冻结了早期 fallback，即使最新 View 已包含当前账号连接，
     // Renderer 也会永久停在旧模型。未发送且无显式选择的草稿不是执行事实；View 更新时
     // 回收并按最新选择事实重建，已显式选择和正式会话仍保持冻结。
-    useZCodeSessionStore.getState().invalidateDraftRuntime(workspacePath, workspaceIdentity);
+    useNibiSessionStore.getState().invalidateDraftRuntime(workspacePath, workspaceIdentity);
   }, [draftConfigRef, modelSelectionView?.revision, sessionId, workspaceIdentity, workspacePath]);
   const createSubmissionFromComposer = useCallback(
     () => createComposerSubmissionConfig(draftConfigRef.current, modelSelectionView),
@@ -1554,8 +1554,8 @@ export function SessionPane({
 
   // 注入模式对齐 PermissionDialog：theme/codePreviewSettings 在宿主取 store，
   // 经稳定引用的 rowContext 下发给 memo 行组件（MessageResponse/ToolCallBlocks）。
-  const theme = useZCodeStoreWithDefault((state) => state.theme, "system");
-  const codePreviewSettings = useZCodeStoreWithDefault(
+  const theme = useNibiStoreWithDefault((state) => state.theme, "system");
+  const codePreviewSettings = useNibiStoreWithDefault(
     (state) => state.codePreviewSettings,
     DEFAULT_CODE_PREVIEW_SETTINGS,
   );
@@ -1657,7 +1657,7 @@ export function SessionPane({
         type === "createSession"
           ? creationProjectId !== undefined
             ? creationProjectId
-            : useZCodeSessionStore.getState().getWorkspaceState(workspacePath, workspaceIdentity)
+            : useNibiSessionStore.getState().getWorkspaceState(workspacePath, workspaceIdentity)
                 .draftProjectId
           : undefined;
       // 必须早于第一次上行：transport error/renderer refresh 后仍有可查询线索。
@@ -1684,12 +1684,12 @@ export function SessionPane({
               taskGroupId:
                 creationTaskGroupId !== undefined
                   ? creationTaskGroupId
-                  : useZCodeSessionStore
+                  : useNibiSessionStore
                       .getState()
                       .getWorkspaceState(workspacePath, workspaceIdentity).draftTaskGroupId,
               sessionCreateSource:
                 sessionCreateSource ??
-                useZCodeSessionStore.getState().getWorkspaceState(workspacePath, workspaceIdentity)
+                useNibiSessionStore.getState().getWorkspaceState(workspacePath, workspaceIdentity)
                   .draftCreateSource,
             }
           : recentReceipt
@@ -1700,12 +1700,12 @@ export function SessionPane({
                       projectId: recentScope.projectId,
                       taskGroupId:
                         creationTaskGroupId ??
-                        useZCodeSessionStore
+                        useNibiSessionStore
                           .getState()
                           .getWorkspaceState(workspacePath, workspaceIdentity).draftTaskGroupId,
                       sessionCreateSource:
                         sessionCreateSource ??
-                        useZCodeSessionStore
+                        useNibiSessionStore
                           .getState()
                           .getWorkspaceState(workspacePath, workspaceIdentity).draftCreateSource,
                     }
@@ -2191,7 +2191,7 @@ export function SessionPane({
         let replacesChildSessionId: string | undefined;
         if (targetChildSessionId) {
           try {
-            await zcodeSessionService.readSession({
+            await nibiSessionService.readSession({
               workspacePath,
               ...(workspaceIdentity ? { workspaceIdentity } : {}),
               sessionId: targetChildSessionId,
@@ -2269,7 +2269,7 @@ export function SessionPane({
       workspaceIdentity,
       workspaceKey,
       workspacePath,
-      zcodeSessionService,
+      nibiSessionService,
     ],
   );
 
@@ -2478,7 +2478,7 @@ export function SessionPane({
   );
 
   /**
-   * 「让 ZCode 帮我提炼保存」那条用户消息的发送口（docs/dynamic-workflow/transcript-and-notifications.md
+   * 「让 Nibi 帮我提炼保存」那条用户消息的发送口（docs/dynamic-workflow/transcript-and-notifications.md
    * 「The message the lead sends」）：与中枢的「提升为全局」同一条先例——GUI 写、自动发、用户不再确认。
    *
    * 经 ref 转一手而不是直接引 `handleSendText`：后者定义在本文件更下面，而 rowContext 的 memo
@@ -2489,7 +2489,7 @@ export function SessionPane({
     const send = sendTextRef.current;
     if (send === null) throw new Error("send path not mounted");
     const result = await send(text);
-    // 被挡下（会话忙着确认别的、队列暂停待确认）就不是「已交给 ZCode」：抛回弹层，让它留在原处。
+    // 被挡下（会话忙着确认别的、队列暂停待确认）就不是「已交给 Nibi」：抛回弹层，让它留在原处。
     if (result !== "sent") throw new Error(`workflow save request not sent: ${result}`);
   }, []);
 
@@ -3172,7 +3172,7 @@ export function SessionPane({
 
   const dispatchSendText = useCallback(
     (text: string, options?: ConversationComposerSendOptions) => {
-      const createSource = useZCodeSessionStore
+      const createSource = useNibiSessionStore
         .getState()
         .getWorkspaceState(workspacePath, workspaceIdentity).draftCreateSource;
       const submissionOptions = {
@@ -3182,7 +3182,7 @@ export function SessionPane({
       };
       const taskGroupId =
         sessionId === null
-          ? useZCodeSessionStore.getState().getWorkspaceState(workspacePath, workspaceIdentity)
+          ? useNibiSessionStore.getState().getWorkspaceState(workspacePath, workspaceIdentity)
               .draftTaskGroupId
           : undefined;
       // followupMode 仍通过 Session CAS 同步；模型和模式已封装进 Submission，不再
@@ -3763,7 +3763,7 @@ export function SessionPane({
         provider: modelSelection.providerId,
         model: modelSelection.modelId,
       });
-      const store = useZCodeSessionStore.getState();
+      const store = useNibiSessionStore.getState();
       store.setModelSelectionResolution(
         workspacePath,
         {
@@ -3782,18 +3782,18 @@ export function SessionPane({
       });
 
       try {
-        await zcodeTaskService.restartWorkspaceProcess({
+        await nibiTaskService.restartWorkspaceProcess({
           workspacePath,
           workspaceIdentity,
           provider: displayProvider,
           bumpRuntimeEpoch: true,
         });
 
-        const prepareResult = await prepareWorkspaceWithZCodeSessionService({
+        const prepareResult = await prepareWorkspaceWithNibiSessionService({
           workspacePath,
           workspaceIdentity,
           provider: displayProvider,
-          zcodeSessionService,
+          nibiSessionService,
         });
         handleDraftSelectModel(modelSelection.providerId, modelSelection.modelId);
         store.setConfigOptions(workspacePath, prepareResult.configOptions ?? [], workspaceIdentity);
@@ -3823,8 +3823,8 @@ export function SessionPane({
       showModelChangeNotice,
       workspaceIdentity,
       workspacePath,
-      zcodeSessionService,
-      zcodeTaskService,
+      nibiSessionService,
+      nibiTaskService,
     ],
   );
 
@@ -4092,7 +4092,7 @@ export function SessionPane({
       scrollToBottom();
       secondFrame = window.requestAnimationFrame(() => {
         if (!scrollToBottom()) return;
-        useZCodeSessionStore
+        useNibiSessionStore
           .getState()
           .clearTimelineBottomRequest(
             workspacePath,
@@ -5111,7 +5111,7 @@ export function SessionPane({
                   backgroundScrollLocked={false}
                   headerSlot={
                     // unsupportedRowCount 也要开这个门：整份副本的行都被本 build 跳过时
-                    // rows 为空，但只读块必须留下来显示「需要更新 ZCode」，不能整块消失。
+                    // rows 为空，但只读块必须留下来显示「需要更新 Nibi」，不能整块消失。
                     importedShare &&
                     (importedShare.rows.length > 0 || importedShare.unsupportedRowCount > 0) ? (
                       <ConversationShareImportNotice

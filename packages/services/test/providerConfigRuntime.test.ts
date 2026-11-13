@@ -112,8 +112,8 @@ describe("ProviderConfigRuntime", () => {
     await runtime.start();
     const initial = await runtime.configService.read();
     expect(initial.revision).toContain("nibi-builtin:1");
-    await expect(runtime.resolveZCodeBuiltinActiveFilePath()).resolves.toBe(activeFilePath);
-    await expect(runtime.refreshZCodeBuiltin({ force: true })).resolves.toBe("updated");
+    await expect(runtime.resolveNibiBuiltinActiveFilePath()).resolves.toBe(activeFilePath);
+    await expect(runtime.refreshNibiBuiltin({ force: true })).resolves.toBe("updated");
     expect((await runtime.configService.read()).revision).toContain("nibi-builtin:2");
     runtime.dispose();
   });

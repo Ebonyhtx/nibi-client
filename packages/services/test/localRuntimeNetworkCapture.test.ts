@@ -1,7 +1,7 @@
 import { Emitter } from "@nibi/rpc";
 import { expect, it, vi } from "vitest";
-import { LocalRuntimeNetworkCapture } from "../src/zcode-agent/localRuntimeNetworkCapture.js";
-import type { NibiProtocolClient } from "../src/zcode-agent/nibiProtocolClient.js";
+import { LocalRuntimeNetworkCapture } from "../src/nibi-agent/localRuntimeNetworkCapture.js";
+import type { NibiProtocolClient } from "../src/nibi-agent/nibiProtocolClient.js";
 import type { NibiProtocolNotification } from "@nibi/shared";
 
 it("已有和新本地 CLI 继承启停，旧批次隔离，不注册的 remote 不控制", () => {

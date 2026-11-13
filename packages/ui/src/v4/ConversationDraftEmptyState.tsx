@@ -1,5 +1,5 @@
 /**
- * 草稿态空态问候：时间问候语 + ZCode Logo。
+ * 草稿态空态问候：时间问候语 + Nibi Logo。
  * 自旧版 ChatView/ChatViewEmptyState.tsx 恢复（该组件随旧 ChatView 删除，
  * i18n key `chat.empty.greeting.*` 一直保留）；边界时刻自动换档逻辑保真。
  * 手机远控复用同一组件，但继续保留 20px 紧凑标题；桌面草稿首页才按标题自身宽度适配。
@@ -12,7 +12,7 @@ import {
   useState,
 } from "react";
 import { cn } from "@/components/lib/utils.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
 import { logger } from "@/logger.js";
 import nibiLoopLightUrl from "@/assets/nibi/nibi-loop-light.png";
@@ -129,7 +129,7 @@ export function ConversationDraftEmptyState({
   className?: string;
   compactForRemoteControl?: boolean;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const isOfficeMode = useIsOfficeMode();
   // 解码完成前不画鸟：否则重新解码时的首帧只有上半张，看起来像「小鸟只显示一半」。
   const [logoReady, setLogoReady] = useState(() => loopSpriteDecoded);
@@ -247,7 +247,7 @@ export function ConversationDraftEmptyState({
       {/* 上游是"绝对定位的 Z 水印 + 文字压在上面"；NIBI 的鸟是实心角色，压字很难看，
           改成正常流：鸟在上、问候语在下。整帧映射的单元自带约 39px 底边留白，用负 margin
           抵掉它，否则鸟和问候语之间会空出一大块。 */}
-      <ZCodeEmptyStateLogo
+      <NibiEmptyStateLogo
         className={cn("-mb-10", logoReady ? "opacity-100" : "opacity-0")}
       />
       <p
@@ -278,7 +278,7 @@ export function ConversationDraftEmptyState({
   );
 }
 
-function ZCodeEmptyStateLogo({ className }: { className?: string }) {
+function NibiEmptyStateLogo({ className }: { className?: string }) {
   return (
     <>
       {/* NIBI 品牌角色：沿用 NIBI 桌面原型「新建会话页」那套 108 帧循环动画

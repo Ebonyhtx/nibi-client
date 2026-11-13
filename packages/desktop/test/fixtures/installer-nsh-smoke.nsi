@@ -1,5 +1,5 @@
 Unicode true
-Name "ZCode installer.nsh smoke"
+Name "Nibi installer.nsh smoke"
 OutFile "${OUTPUT_FILE}"
 InstallDir "$TEMP\zcode-installer-nsh-smoke"
 RequestExecutionLevel user
@@ -14,8 +14,8 @@ SilentInstall silent
   !include "StrContains.nsh"
 !endif
 
-!define APP_DESCRIPTION "ZCode NSIS smoke fixture"
-!define APP_FILENAME "ZCode"
+!define APP_DESCRIPTION "Nibi NSIS smoke fixture"
+!define APP_FILENAME "Nibi"
 !define APP_ID "dev.zcode.installer-nsh-smoke"
 !define UNINSTALL_FILENAME "uninstaller.exe"
 ; This fixture invokes the cleanup macro from a normal section; electron-builder's real uninstaller uses un.*.
@@ -56,8 +56,8 @@ Var keepShortcuts
 
 Section
   SetOutPath "$INSTDIR"
-  File /oname=ZCode.exe "${FIXTURE_EXE}"
-  StrCpy $appExe "$INSTDIR\ZCode.exe"
+  File /oname=Nibi.exe "${FIXTURE_EXE}"
+  StrCpy $appExe "$INSTDIR\Nibi.exe"
   StrCpy $launchLink "$INSTDIR\stale-target.exe"
   StrCpy $newStartMenuLink "$INSTDIR\start-menu.lnk"
   StrCpy $newDesktopLink "$INSTDIR\desktop.lnk"
@@ -74,7 +74,7 @@ Section
 
     !ifndef BUILD_UNINSTALLER
       Push "$newStartMenuLink"
-      Call ZCodeReadShortcutTarget
+      Call NibiReadShortcutTarget
       Pop $R8
       FileOpen $0 "$INSTDIR\read-shortcut-target.txt" w
       FileWrite $0 "$R8"

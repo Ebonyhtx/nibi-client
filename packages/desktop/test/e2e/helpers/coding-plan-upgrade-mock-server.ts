@@ -1,5 +1,5 @@
 import { requestSecurityClientConfig } from "./request-security-edition/index.js";
-/* eslint-disable max-lines -- E2E fixture server 需要集中维护 ZCode client config 与 BigModel 购买接口响应 */
+/* eslint-disable max-lines -- E2E fixture server 需要集中维护 Nibi client config 与 BigModel 购买接口响应 */
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { once } from "node:events";
 import { readFile } from "node:fs/promises";
@@ -286,7 +286,7 @@ async function handleRequest(
           : [
               {
                 plan_id: "weekend-plan-e2e",
-                name: "ZCode Weekend Build",
+                name: "Nibi Weekend Build",
                 description: "Deterministic manual claim fixture",
                 priority: 100,
                 entitlements: [
@@ -447,7 +447,7 @@ async function handleRequest(
           plans: [
             {
               plan_id: "weekend-plan-e2e",
-              name: "ZCode Weekend Build",
+              name: "Nibi Weekend Build",
               status: "active",
               starts_at: nowSeconds,
               ends_at: nowSeconds + 86_400,
@@ -667,7 +667,7 @@ function buildManualClaimStartPlanBalance(claimed: boolean, newBucketReady: bool
         show_name: "GLM-5-Turbo",
       },
     ],
-    name: "ZCode V3 Start Plan",
+    name: "Nibi V3 Start Plan",
     plan_id: oldPlanId,
     starts_at: nowSeconds - 86_400,
     status: "active",
@@ -693,7 +693,7 @@ function buildManualClaimStartPlanBalance(claimed: boolean, newBucketReady: bool
         show_name: "GLM-5.3-Flash",
       },
     ],
-    name: "ZCode Weekend Build",
+    name: "Nibi Weekend Build",
     plan_id: newPlanId,
     starts_at: nowSeconds - 60,
     status: "active",

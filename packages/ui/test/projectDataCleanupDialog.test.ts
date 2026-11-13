@@ -14,7 +14,7 @@ import enUS from "@/i18n/locales/en-US.js";
 
 const mock = vi.hoisted(() => ({ locale: "zh-CN" }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     locale: mock.locale,
     intl: {
       formatMessage: ({ id }: { id: string }, values: Record<string, number | string> = {}) =>

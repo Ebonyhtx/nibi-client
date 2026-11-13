@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/state/src/node/codecs.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-cli-rust/crates/state/src/node/codecs.rs（feat/rs 79b6691c55）。
 //! Node 会话库的行解码（Node `session-store/codecs.ts`，docs/specs/rust-m11-node-storage.md §2.3）。
 use serde_json::{Map, Value, json};
 

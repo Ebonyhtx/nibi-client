@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import type { WorkflowRunState } from "@nibi/shared/nibi-protocol-v4";
 import { cn } from "@/components/lib/utils.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { CodeViewerSource } from "@/lib/codeViewer.js";
 import { resolveFileDisplayDescriptor } from "@/lib/fileDisplay.js";
 import { ReadFileChip, type ReadSummary } from "@/ToolCallBlocks/renderers/read.js";
@@ -118,7 +118,7 @@ export const WorkflowWorkspaceCard = memo(function WorkflowWorkspaceCard({
   sessionId,
   workspacePath,
 }: WorkflowWorkspaceCardProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const format = intl.formatMessage.bind(intl);
   const { node, kind } = card;
   const { status, replayed } = workspaceCardStatus(node, run);

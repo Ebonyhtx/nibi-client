@@ -16,7 +16,7 @@ vi.mock("electron", () => ({
   app: {
     setAsDefaultProtocolClient: mocks.register,
     isPackaged: true,
-    name: "ZCode",
+    name: "Nibi",
     getPath: () => "/test-home",
   },
   BrowserWindow: {},

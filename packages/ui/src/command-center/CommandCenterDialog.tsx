@@ -16,7 +16,7 @@ import {
   SearchIcon,
   Trash2Icon,
 } from "lucide-react";
-import type { WorkspaceFileEntry, ZCodeTaskChangeSummary, ZCodeTaskMeta } from "@nibi/shared";
+import type { WorkspaceFileEntry, NibiTaskChangeSummary, NibiTaskMeta } from "@nibi/shared";
 import {
   Command,
   CommandDialog,
@@ -30,7 +30,7 @@ import { cn } from "@/components/lib/utils.js";
 import { toast } from "@/components/ui/toast.js";
 import { useGlobalTaskList } from "@/hooks/useGlobalTaskList.js";
 import { useServices } from "@/hooks/useServices.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { FileDisplayIcon, resolveFileDisplayDescriptor } from "@/lib/fileDisplay.js";
 import { formatTaskRelativeTime } from "@/lib/taskListItemPresentation.js";
 import { toWorkspaceRelativePath } from "@/lib/taskChangeSummary.js";
@@ -78,11 +78,11 @@ const commandCenterListClassName = cn(
 );
 
 type CommandCenterSectionId = "commands" | "conversations" | "files";
-type TaskSearchResultItem = ZCodeTaskMeta & {
+type TaskSearchResultItem = NibiTaskMeta & {
   searchSnippet?: string;
   searchSnippets?: string[];
 };
-type TaskChangedFileSummary = ZCodeTaskChangeSummary["files"][number];
+type TaskChangedFileSummary = NibiTaskChangeSummary["files"][number];
 type TaskSearchResultRow = {
   key: string;
   task: TaskSearchResultItem;
@@ -148,7 +148,7 @@ function getUniqueTaskSearchSnippets(task: TaskSearchResultItem): string[] {
   return uniqueSnippets;
 }
 
-function getTaskTitle(task: ZCodeTaskMeta, untitledLabel: string): string {
+function getTaskTitle(task: NibiTaskMeta, untitledLabel: string): string {
   return task.title.trim() || untitledLabel;
 }
 
@@ -417,7 +417,7 @@ export const CommandCenterDialog = memo(function CommandCenterDialogComponent({
   workspaceAbsPath: string;
   workspaceIdentity?: string;
   activeTaskId?: string | null;
-  activeTaskChangeSummary?: ZCodeTaskChangeSummary | null;
+  activeTaskChangeSummary?: NibiTaskChangeSummary | null;
   workspaceTabs: WorkspaceTabState[];
   onOpenChange: (open: boolean) => void;
   onSelectTask: (
@@ -431,7 +431,7 @@ export const CommandCenterDialog = memo(function CommandCenterDialogComponent({
   onOpenCodeViewer: (source: CodeViewerSource) => void;
 }) {
   const { fileService } = useServices();
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const workspaceKey = workspaceIdentity?.trim() || workspaceAbsPath;
   const [rawQuery, setRawQuery] = useState("");
   const [manualScope, setManualScope] = useState<CommandCenterSearchScope>("all");
@@ -702,7 +702,7 @@ export const CommandCenterDialog = memo(function CommandCenterDialogComponent({
   );
 
   const selectRecentTask = useCallback(
-    (task: ZCodeTaskMeta) => {
+    (task: NibiTaskMeta) => {
       onSelectTask(task.workspacePath, task.taskId, task.workspaceIdentity);
       closeDialog();
     },
@@ -786,7 +786,7 @@ export const CommandCenterDialog = memo(function CommandCenterDialogComponent({
     rows = recentTaskPreviewRows,
     showEmpty = false,
   }: {
-    rows?: ZCodeTaskMeta[];
+    rows?: NibiTaskMeta[];
     showEmpty?: boolean;
   } = {}) => {
     if (hasSearchQuery || (rows.length === 0 && !showEmpty)) {

@@ -41,7 +41,7 @@ describe("BrowserOAuthCredentialRepo", () => {
 
     repo.saveTokenSet(
       {
-        zcodeJwtToken: "jwt-token",
+        nibiJwtToken: "jwt-token",
         zaiAccessToken: "zai-token",
       },
       "zai",
@@ -87,7 +87,7 @@ describe("BrowserOAuthCredentialRepo", () => {
     const localStorage = new MemoryStorage();
     const repo = new BrowserOAuthCredentialRepo({ localStorage });
 
-    repo.saveTokenSet({ zcodeJwtToken: "jwt-token", accessToken: "bigmodel-token" }, "bigmodel");
+    repo.saveTokenSet({ nibiJwtToken: "jwt-token", accessToken: "bigmodel-token" }, "bigmodel");
     repo.saveUserInfo({ user_id: "53291785835589288", name: "Ada" }, "bigmodel");
     repo.setActiveProvider("bigmodel");
 
@@ -96,7 +96,7 @@ describe("BrowserOAuthCredentialRepo", () => {
       username: "Ada",
       displayName: "Ada",
     });
-    expect(repo.loadZCodeJwtToken()).toBe("jwt-token");
+    expect(repo.loadNibiJwtToken()).toBe("jwt-token");
     expect(localStorage.getItem("oauth:bigmodel:access_token")).toBe("bigmodel-token");
     // 不能污染 zai 的 key 段
     expect(localStorage.getItem("oauth:zai:access_token")).toBeNull();
@@ -106,12 +106,12 @@ describe("BrowserOAuthCredentialRepo", () => {
     const localStorage = new MemoryStorage();
     const repo = new BrowserOAuthCredentialRepo({ localStorage });
 
-    repo.saveTokenSet({ zcodeJwtToken: "jwt-zai", zaiAccessToken: "zai-token" }, "zai");
+    repo.saveTokenSet({ nibiJwtToken: "jwt-zai", zaiAccessToken: "zai-token" }, "zai");
     repo.saveUserInfo({ user_id: "uuid-1", name: "Ada" }, "zai");
     repo.setActiveProvider("zai");
 
     repo.clearAll();
-    repo.saveTokenSet({ zcodeJwtToken: "jwt-bm", accessToken: "bm-token" }, "bigmodel");
+    repo.saveTokenSet({ nibiJwtToken: "jwt-bm", accessToken: "bm-token" }, "bigmodel");
     repo.saveUserInfo({ user_id: "53291785835589288", name: "Ada" }, "bigmodel");
     repo.setActiveProvider("bigmodel");
 
@@ -208,13 +208,13 @@ describe("BrowserOAuthCredentialRepo", () => {
     const localStorage = new MemoryStorage();
     const repo = new BrowserOAuthCredentialRepo({ localStorage });
 
-    repo.saveTokenSet({ accessToken: "nibi-access", zcodeJwtToken: "nibi-access" }, "nibi");
+    repo.saveTokenSet({ accessToken: "nibi-access", nibiJwtToken: "nibi-access" }, "nibi");
     repo.saveUserInfo({ id: "u-1", username: "ada", displayName: "Ada" }, "nibi");
     repo.setActiveProvider("nibi");
 
     expect(localStorage.getItem("oauth:nibi:access_token")).toBe("nibi-access");
     expect(localStorage.getItem("oauth:nibi:user_info")).toContain("Ada");
-    expect(repo.loadZCodeJwtToken()).toBe("nibi-access");
+    expect(repo.loadNibiJwtToken()).toBe("nibi-access");
     expect(repo.loadCachedSession()).toEqual({
       id: "u-1",
       username: "ada",
@@ -279,7 +279,7 @@ describe("NIBI refresh token persistence", () => {
     repo.saveTokenSet(
       {
         accessToken: access,
-        zcodeJwtToken: access,
+        nibiJwtToken: access,
         refreshToken: "refresh-1",
         expiresAt: now + 3600_000,
       },
@@ -300,7 +300,7 @@ describe("NIBI refresh token persistence", () => {
     const repo = new BrowserOAuthCredentialRepo({ localStorage }, { now: () => now });
     const expired = jwt(now / 1000 - 60);
     repo.saveTokenSet(
-      { accessToken: expired, zcodeJwtToken: expired, refreshToken: "refresh-1" },
+      { accessToken: expired, nibiJwtToken: expired, refreshToken: "refresh-1" },
       "nibi",
     );
     repo.saveUserInfo({ sub: "user-1", name: "Ada" }, "nibi");
@@ -317,7 +317,7 @@ describe("NIBI refresh token persistence", () => {
     const localStorage = new MemoryStorage();
     const repo = new BrowserOAuthCredentialRepo({ localStorage }, { now: () => now });
     const expired = jwt(now / 1000 - 60);
-    repo.saveTokenSet({ accessToken: expired, zcodeJwtToken: expired }, "nibi");
+    repo.saveTokenSet({ accessToken: expired, nibiJwtToken: expired }, "nibi");
     repo.saveUserInfo({ sub: "user-1", name: "Ada" }, "nibi");
     repo.setActiveProvider("nibi");
 
@@ -334,7 +334,7 @@ describe("NIBI refresh token persistence", () => {
     const repo = new BrowserOAuthCredentialRepo({ localStorage }, { now: () => now });
     const access = jwt(now / 1000 + 3600);
     repo.saveTokenSet(
-      { accessToken: access, zcodeJwtToken: access, refreshToken: "refresh-1" },
+      { accessToken: access, nibiJwtToken: access, refreshToken: "refresh-1" },
       "nibi",
     );
     repo.saveUserInfo({ sub: "user-1", name: "Ada" }, "nibi");
@@ -347,7 +347,7 @@ describe("NIBI refresh token persistence", () => {
       expiresAt: now + 7200_000,
     });
 
-    expect(repo.loadZCodeJwtToken()).toBe(next);
+    expect(repo.loadNibiJwtToken()).toBe(next);
     expect(repo.loadNibiRefreshState()?.refreshToken).toBe("refresh-2");
     expect(repo.loadActiveAccount()?.userInfo.displayName).toBe("Ada");
   });

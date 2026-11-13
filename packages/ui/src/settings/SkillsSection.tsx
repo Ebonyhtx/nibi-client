@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button.js";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.js";
 import { Switch } from "@/components/ui/switch.js";
 import type {
-  ZCodeProvider,
+  NibiProvider,
   SkillDiagnostic,
   SkillDiagnosticCode,
   SkillSummary,
@@ -24,7 +24,7 @@ import type {
 import type { IServiceAccessor } from "@nibi/services";
 import { NIBI_AGENT_PROVIDER } from "@nibi/shared";
 import type { CreateTaskRequest } from "@/app-shell/types.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { toast } from "@/components/ui/toast.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
@@ -32,7 +32,7 @@ import { useConfigWorkspaceServicesResolution as useWorkspaceServicesResolution 
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { buildSkillMentionMarkdown } from "@/mentions/mentionMarkdown.js";
 import { filterSkillsForProvider } from "@/lib/skillSourceFilter.js";
-import { invalidateDeferredDraftSessionForSkillChange } from "@/lib/zcodeDraftSkillInvalidation.js";
+import { invalidateDeferredDraftSessionForSkillChange } from "@/lib/nibiDraftSkillInvalidation.js";
 import { PluginStoreAvatar } from "@/settings/PluginStoreAvatar.js";
 import { SettingsResourceHeaderActions } from "@/settings/SettingsResourceHeaderActions.js";
 import {
@@ -175,7 +175,7 @@ export function SkillsSection({
   unscopedServices,
   cacheAuthorityKey,
 }: SkillsSectionProps) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const platform = usePlatform();
   const baseServices = useBaseWorkspaceServices();
   const plugins = usePluginManagementStore((state) => state.plugins);
@@ -380,9 +380,9 @@ export function SkillsSection({
       if (!activeWorkspacePath) {
         return;
       }
-      // 移除三方来源后，技能状态统一写入 ZCode Agent 上下文，避免旧 provider 前缀带来分桶漂移。
+      // 移除三方来源后，技能状态统一写入 Nibi Agent 上下文，避免旧 provider 前缀带来分桶漂移。
       const targetSkill = skills.find((skill) => skill.id === skillId);
-      const effectiveProvider: ZCodeProvider = NIBI_AGENT_PROVIDER;
+      const effectiveProvider: NibiProvider = NIBI_AGENT_PROVIDER;
       try {
         await skillsService.setEnabled({
           workspacePath: activeWorkspacePath,
@@ -520,7 +520,7 @@ export function SkillsSection({
     if (!activeWorkspacePath || !onCreateTask) {
       return;
     }
-    const effectiveProvider: ZCodeProvider = NIBI_AGENT_PROVIDER;
+    const effectiveProvider: NibiProvider = NIBI_AGENT_PROVIDER;
     const skillCreator = filterSkillsForProvider(skills, effectiveProvider).find(
       (skill) => skill.name === "skill-creator",
     );

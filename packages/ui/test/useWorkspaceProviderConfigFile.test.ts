@@ -3,18 +3,18 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ILegacyTaskService } from "@nibi/services";
 import {
-  resolveWorkspaceProviderConfigZCodeService,
+  resolveWorkspaceProviderConfigNibiService,
   useWorkspaceProviderConfigFile,
 } from "@/hooks/useWorkspaceProviderConfigFile.js";
 
-const { stableWorkspaceZCodeService } = vi.hoisted(() => ({
-  stableWorkspaceZCodeService: {
+const { stableWorkspaceNibiService } = vi.hoisted(() => ({
+  stableWorkspaceNibiService: {
     getWorkspaceProviderConfigFile: vi.fn(),
   },
 }));
 
-vi.mock("@/hooks/useZCodeTaskService.js", () => ({
-  useZCodeTaskService: () => stableWorkspaceZCodeService,
+vi.mock("@/hooks/useNibiTaskService.js", () => ({
+  useNibiTaskService: () => stableWorkspaceNibiService,
 }));
 
 vi.mock("@/hooks/useResolvedRemoteWorkspaceSessionId.js", () => ({
@@ -27,7 +27,7 @@ vi.mock("@/store/remoteWorkspaceSessionStore.js", () => ({
   ) => selector({ baseServices: null }),
 }));
 
-function createMockZCodeService(tag: string): ILegacyTaskService {
+function createMockNibiService(tag: string): ILegacyTaskService {
   return {
     // 这里只需要 identity 区分，不会真的调用方法。
     __tag: tag,
@@ -101,49 +101,49 @@ function installMinimalDom() {
   return createMinimalElement(documentMock);
 }
 
-describe("resolveWorkspaceProviderConfigZCodeService", () => {
+describe("resolveWorkspaceProviderConfigNibiService", () => {
   afterEach(() => {
-    stableWorkspaceZCodeService.getWorkspaceProviderConfigFile.mockReset();
+    stableWorkspaceNibiService.getWorkspaceProviderConfigFile.mockReset();
     delete (globalThis as { document?: unknown }).document;
     delete (globalThis as { window?: unknown }).window;
     delete (globalThis as { IS_REACT_ACT_ENVIRONMENT?: unknown }).IS_REACT_ACT_ENVIRONMENT;
   });
 
-  it("workspace 作用域始终使用 workspace ZCode session service", () => {
-    const workspaceZCodeService = createMockZCodeService("workspace");
-    const baseZCodeService = createMockZCodeService("base");
+  it("workspace 作用域始终使用 workspace Nibi session service", () => {
+    const workspaceNibiService = createMockNibiService("workspace");
+    const baseNibiService = createMockNibiService("base");
 
-    const resolved = resolveWorkspaceProviderConfigZCodeService({
+    const resolved = resolveWorkspaceProviderConfigNibiService({
       configuredServiceScope: "workspace",
-      workspaceZCodeService,
-      baseZCodeService,
+      workspaceNibiService,
+      baseNibiService,
       remoteSessionId: "remote-session-1",
     });
 
-    expect(resolved).toBe(workspaceZCodeService);
+    expect(resolved).toBe(workspaceNibiService);
   });
 
-  it("base 作用域优先使用 base ZCode session service", () => {
-    const workspaceZCodeService = createMockZCodeService("workspace");
-    const baseZCodeService = createMockZCodeService("base");
+  it("base 作用域优先使用 base Nibi session service", () => {
+    const workspaceNibiService = createMockNibiService("workspace");
+    const baseNibiService = createMockNibiService("base");
 
-    const resolved = resolveWorkspaceProviderConfigZCodeService({
+    const resolved = resolveWorkspaceProviderConfigNibiService({
       configuredServiceScope: "base",
-      workspaceZCodeService,
-      baseZCodeService,
+      workspaceNibiService,
+      baseNibiService,
       remoteSessionId: "remote-session-1",
     });
 
-    expect(resolved).toBe(baseZCodeService);
+    expect(resolved).toBe(baseNibiService);
   });
 
   it("base 作用域在远程会话且 base service 缺失时返回 null，避免误回退远程路径", () => {
-    const workspaceZCodeService = createMockZCodeService("workspace");
+    const workspaceNibiService = createMockNibiService("workspace");
 
-    const resolved = resolveWorkspaceProviderConfigZCodeService({
+    const resolved = resolveWorkspaceProviderConfigNibiService({
       configuredServiceScope: "base",
-      workspaceZCodeService,
-      baseZCodeService: null,
+      workspaceNibiService,
+      baseNibiService: null,
       remoteSessionId: "remote-session-1",
     });
 
@@ -151,16 +151,16 @@ describe("resolveWorkspaceProviderConfigZCodeService", () => {
   });
 
   it("base 作用域在本地会话且 base service 缺失时回退 workspace service", () => {
-    const workspaceZCodeService = createMockZCodeService("workspace");
+    const workspaceNibiService = createMockNibiService("workspace");
 
-    const resolved = resolveWorkspaceProviderConfigZCodeService({
+    const resolved = resolveWorkspaceProviderConfigNibiService({
       configuredServiceScope: "base",
-      workspaceZCodeService,
-      baseZCodeService: null,
+      workspaceNibiService,
+      baseNibiService: null,
       remoteSessionId: null,
     });
 
-    expect(resolved).toBe(workspaceZCodeService);
+    expect(resolved).toBe(workspaceNibiService);
   });
 
   it("memoizes the returned provider config object across parent rerenders when fields are unchanged", () => {

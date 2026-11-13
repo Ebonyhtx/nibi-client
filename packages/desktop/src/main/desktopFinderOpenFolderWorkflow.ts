@@ -4,8 +4,8 @@ import { join } from "node:path";
 import { spawn } from "node:child_process";
 import type { Locale } from "@nibi/shared";
 
-// NIBI 从未发布过，磁盘上没有"既有产物"要兼容；沿用上游的 `Open in ZCode.workflow`
-// 反而会和用户机器上真正的 ZCode 安装抢同一个文件（两边的 workflow 指向不同 scheme）。
+// NIBI 从未发布过，磁盘上没有"既有产物"要兼容；沿用上游的 `Open in Nibi.workflow`
+// 反而会和用户机器上真正的 Nibi 安装抢同一个文件（两边的 workflow 指向不同 scheme）。
 const WORKFLOW_NAME = "Open in NIBI.workflow";
 const WORKFLOW_BUNDLE_ID = "dev.nibi.app.finder-open-workflow";
 const WORKFLOW_VERSION = "5";

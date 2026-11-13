@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ZCodeAgentMcpServer } from "@nibi/shared";
+import type { NibiAgentMcpServer } from "@nibi/shared";
 import { createCloudProjectMcpServerResolver } from "../src/cloud-project/cloudProjectMcpServerResolver.js";
 import {
   CLOUD_PROJECT_BROKER_TOKEN_ENV,
@@ -7,7 +7,7 @@ import {
   type CloudProjectBroker,
 } from "../src/cloud-project/cloudProjectBroker.js";
 
-function mathServer(): ZCodeAgentMcpServer {
+function mathServer(): NibiAgentMcpServer {
   return {
     name: "plugin:math-modeling:math-modeling",
     command: "python",
@@ -16,7 +16,7 @@ function mathServer(): ZCodeAgentMcpServer {
   };
 }
 
-function otherServer(): ZCodeAgentMcpServer {
+function otherServer(): NibiAgentMcpServer {
   return {
     name: "plugin:other:server",
     command: "node",

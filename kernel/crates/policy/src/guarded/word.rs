@@ -1,4 +1,4 @@
-// 移植自 apps/zcode-cli/packages/core/src/tool/handlers/guarded/word.ts（修复线 F20）。
+// 移植自 apps/nibi-cli/packages/core/src/tool/handlers/guarded/word.ts（修复线 F20）。
 //! 一个词的字面事实（Node `CommandWord` 去掉位置）：不做展开，未知的词不当作已知选项。
 
 use crate::parse::WordText;

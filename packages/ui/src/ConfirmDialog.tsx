@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useConfirmDialogStore } from "@/store/confirmDialogStore.js";
 import { cn } from "@/components/lib/utils.js";
 import {
@@ -22,7 +22,7 @@ import {
 import { SourceServerBoundaryDialogContent } from "@/remote/SourceServerBoundaryDialogContent.js";
 
 export function ConfirmDialogHost() {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const pendingRequest = useConfirmDialogStore((state) => state.pendingRequest);
   const settleConfirmation = useConfirmDialogStore((state) => state.settleConfirmation);
 

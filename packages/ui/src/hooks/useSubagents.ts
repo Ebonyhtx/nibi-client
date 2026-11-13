@@ -1,4 +1,4 @@
-import type { ZCodeProvider } from "@nibi/shared";
+import type { NibiProvider } from "@nibi/shared";
 import { useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useServices } from "./useServices.js";
@@ -11,7 +11,7 @@ import { useSubagentsStore } from "@/store/subagentsStore.js";
 
 export function useSubagents(
   workspacePath: string | null,
-  provider: ZCodeProvider,
+  provider: NibiProvider,
   explicitWorkspaceIdentity?: string,
 ) {
   const { subagentsService } = useServices();

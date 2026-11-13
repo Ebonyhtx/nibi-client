@@ -93,7 +93,7 @@ describe("Builtin 下载失败时的套餐操作", () => {
         afterElectronProcessExit: async () => {
           await seedBigModelStartPlanCredential();
           await seedBigModelConnectionSelection({ kind: "individual-coding-plan" });
-          await seedSettings({ zcodeEndpointOrigin: `http://127.0.0.1:${port}` });
+          await seedSettings({ nibiEndpointOrigin: `http://127.0.0.1:${port}` });
         },
       });
       await browser.waitUntil(() => controlRequests > 0, {

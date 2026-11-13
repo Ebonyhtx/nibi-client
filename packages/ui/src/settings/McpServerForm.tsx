@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { McpSource, ZCodeMcpServer } from "@nibi/shared";
+import type { McpSource, NibiMcpServer } from "@nibi/shared";
 import { Button } from "@/components/ui/button.js";
 import { Input } from "@/components/ui/input.js";
 import {
@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { PluginScopeMenu } from "@/settings/PluginScopeMenu.js";
 import type { ConfigWorkspaceTarget } from "@/workspace-config-catalog/index.js";
 import { SettingsFormTextarea } from "@/settings/SettingsFormTextarea.js";
@@ -38,7 +38,7 @@ function McpFormFieldLabel({ children }: { children: string }) {
 }
 
 function McpDraftErrorList({ messageIds, testId }: { messageIds?: string[]; testId: string }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   if (!messageIds?.length) {
     return null;
   }
@@ -74,7 +74,7 @@ function McpScopeMenu({
   workspaceTabs: ConfigWorkspaceTarget[];
   onChange: (scopeKey: string) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const scopeLabel = intl.formatMessage({ id: "settings.scope.label" });
 
   return (
@@ -104,7 +104,7 @@ export function McpServerForm({
   workspaceTabs,
   onScopeKeyChange,
 }: {
-  initial?: ZCodeMcpServer;
+  initial?: NibiMcpServer;
   editingId?: string;
   editorMode: McpEditorMode;
   source?: McpSource;
@@ -112,13 +112,13 @@ export function McpServerForm({
   workspaceTabs: ConfigWorkspaceTarget[];
   onScopeKeyChange: (scopeKey: string) => void;
   onEditorModeChange: (mode: McpEditorMode) => void;
-  onSave: (form: FormState, prevServer?: ZCodeMcpServer) => void;
+  onSave: (form: FormState, prevServer?: NibiMcpServer) => void;
   onCancel: () => void;
-  onDelete?: (server: ZCodeMcpServer) => void;
+  onDelete?: (server: NibiMcpServer) => void;
   /** 草稿是否包含未保存修改；分区据此在离开/切换 server 前弹确认。 */
   onDirtyChange?: (dirty: boolean) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   // baseline 在挂载时固定：编辑期间 store 的状态快照会不断重建 server 对象，
   // 若每帧重算 baseline，用户刚输入的内容会被误判成"未修改"或反复重置。
   const [baselineForm] = useState<FormState>(() =>

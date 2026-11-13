@@ -3,7 +3,7 @@
  *
  * ## 为什么要有这一层
  *
- * NIBI 与上游 ZCode 可能装在同一台机器、甚至同一个 origin 上，`zcode-*` / `zai*` 这些键
+ * NIBI 与上游 Nibi 可能装在同一台机器、甚至同一个 origin 上，`zcode-*` / `zai*` 这些键
  * 就是**另一个产品的数据**。运营者定的规则是：除插件兼容外，绝不与上游有任何数据关联。
  * 只靠"写代码时记得别读"守不住——迟早有人为了兼容或图省事加一条回退。
  *
@@ -127,7 +127,7 @@ export function removeNibiStorage(key: string): void {
 /**
  * 把任意版本的偏好升到当前版本。
  *
- * 这里**只处理 NIBI 自己的旧版本**。上游 ZCode 的值永远不是迁移源：它根本进不来，
+ * 这里**只处理 NIBI 自己的旧版本**。上游 Nibi 的值永远不是迁移源：它根本进不来，
  * 因为调用方只会把从 {@link NIBI_PREFS_KEY} 读到的内容交给这个函数。
  */
 function migratePrefs(prefs: NibiPrefs): NibiPrefs {

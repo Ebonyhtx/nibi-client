@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { appSettingsSchema, type ZCodeTaskMeta } from "@nibi/shared";
+import { appSettingsSchema, type NibiTaskMeta } from "@nibi/shared";
 import { createLegacySingleRootProjectService } from "#src/project/index.js";
 
 function fixture() {
@@ -18,7 +18,7 @@ function fixture() {
       workspacePath,
       title: suffix,
       updatedAt: 1,
-    }) as ZCodeTaskMeta;
+    }) as NibiTaskMeta;
   const tasks = {
     listTasks: vi.fn(async ({ workspacePath }: { workspacePath: string }) => [
       row(workspacePath, "active"),
@@ -116,7 +116,7 @@ describe("legacy single-root project adapter", () => {
         workspacePath,
         title: "active",
         updatedAt: 1,
-      } as ZCodeTaskMeta,
+      } as NibiTaskMeta,
     ]);
     const tree = await service.readTree();
     expect(tree.tasks.filter((task) => task.taskId === "/a-active")).toHaveLength(1);

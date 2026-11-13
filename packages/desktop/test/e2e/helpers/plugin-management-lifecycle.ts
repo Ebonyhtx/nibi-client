@@ -3,11 +3,11 @@ import { existsSync } from "node:fs";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
-  type ZCodePluginsInstallResult,
-  type ZCodePluginsListResult,
-  type ZCodePluginsMarketplaceMutationResult,
-  type ZCodePluginsOverviewResult,
-  type ZCodePluginsReferenceCatalogResult,
+  type NibiPluginsInstallResult,
+  type NibiPluginsListResult,
+  type NibiPluginsMarketplaceMutationResult,
+  type NibiPluginsOverviewResult,
+  type NibiPluginsReferenceCatalogResult,
 } from "@nibi/shared";
 import {
   TID_PLUGIN_STORE_BROWSE,
@@ -809,7 +809,7 @@ export async function restartPluginLifecycleApp(): Promise<void> {
 export async function getPluginOverview(
   workspacePath = DEFAULT_WORKSPACE,
   configScope?: "user" | "workspace",
-): Promise<ZCodePluginsOverviewResult> {
+): Promise<NibiPluginsOverviewResult> {
   return callPluginTestAction("getPluginsOverview", {
     workspacePath,
     ...(configScope ? { configScope } : {}),
@@ -819,7 +819,7 @@ export async function getPluginOverview(
 export async function addMarketplaceSourceThroughAgent(
   source: string,
   workspacePath = DEFAULT_WORKSPACE,
-): Promise<ZCodePluginsMarketplaceMutationResult> {
+): Promise<NibiPluginsMarketplaceMutationResult> {
   return callPluginTestAction("addPluginMarketplace", {
     source,
     workspacePath,
@@ -829,7 +829,7 @@ export async function addMarketplaceSourceThroughAgent(
 export async function updateMarketplaceThroughAgent(
   marketplace: string,
   workspacePath = DEFAULT_WORKSPACE,
-): Promise<ZCodePluginsMarketplaceMutationResult> {
+): Promise<NibiPluginsMarketplaceMutationResult> {
   return callPluginTestAction("updatePluginMarketplace", {
     marketplace,
     workspacePath,
@@ -840,7 +840,7 @@ export async function installMarketplacePluginThroughAgent(
   pluginName: string,
   marketplace: string,
   workspacePath = DEFAULT_WORKSPACE,
-): Promise<ZCodePluginsInstallResult> {
+): Promise<NibiPluginsInstallResult> {
   return callPluginTestAction("installPlugin", {
     marketplace,
     pluginName,
@@ -853,7 +853,7 @@ export async function getPluginList(
   workspacePath = DEFAULT_WORKSPACE,
   workspaceIdentity?: string,
   configScope?: "user" | "workspace",
-): Promise<ZCodePluginsListResult> {
+): Promise<NibiPluginsListResult> {
   return callPluginTestAction("listPlugins", {
     workspacePath,
     ...(workspaceIdentity ? { workspaceIdentity } : {}),
@@ -867,7 +867,7 @@ export async function getPluginReferenceCatalog(
     workspaceIdentity?: string;
     workspacePath?: string;
   } = {},
-): Promise<ZCodePluginsReferenceCatalogResult> {
+): Promise<NibiPluginsReferenceCatalogResult> {
   return callPluginTestAction("getPluginReferenceCatalog", {
     workspacePath: options.workspacePath ?? DEFAULT_WORKSPACE,
     ...(options.workspaceIdentity ? { workspaceIdentity: options.workspaceIdentity } : {}),
@@ -876,7 +876,7 @@ export async function getPluginReferenceCatalog(
 }
 
 export async function waitUntilPluginOverview(
-  predicate: (overview: ZCodePluginsOverviewResult) => boolean,
+  predicate: (overview: NibiPluginsOverviewResult) => boolean,
   timeoutMsg: string,
   timeout = 30000,
 ): Promise<void> {
@@ -887,7 +887,7 @@ export async function waitUntilPluginOverview(
 }
 
 export async function waitUntilPluginList(
-  predicate: (list: ZCodePluginsListResult) => boolean,
+  predicate: (list: NibiPluginsListResult) => boolean,
   timeoutMsg: string,
   timeout = 30000,
 ): Promise<void> {
@@ -1052,7 +1052,7 @@ async function writeLifecyclePlugin(
     name: PLUGIN_LIFECYCLE_NAME,
     version,
     description: `E2E plugin management lifecycle fixture ${version}`,
-    author: { name: "ZCode E2E" },
+    author: { name: "Nibi E2E" },
     homepage: "https://example.com/e2e-plugin-lifecycle",
     commands: "commands",
     agents: "agents",
@@ -1165,7 +1165,7 @@ async function writeMarketplaceManifest(marketplaceRoot: string, version: string
         description: `Deterministic plugin lifecycle fixture ${version}`,
         description_i18n: { "zh-CN": `确定性插件生命周期测试 ${version}` },
         category: "productivity",
-        author: { name: "ZCode E2E", url: "https://example.com" },
+        author: { name: "Nibi E2E", url: "https://example.com" },
         homepage: "https://example.com/e2e-plugin-lifecycle",
         privacyPolicy: "https://example.com/privacy",
         termsOfService: "https://example.com/terms",

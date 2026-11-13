@@ -61,7 +61,7 @@ describe("model provider restart runtime", () => {
       },
     });
     await expect(
-      stat(join(homeDir, "ZCodeProject", ".nibi", "config.json")),
+      stat(join(homeDir, "NibiProject", ".nibi", "config.json")),
     ).rejects.toMatchObject({ code: "ENOENT" });
   });
 });

@@ -11,7 +11,7 @@ import {
   Undo2Icon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { AnnotationTool } from "@/image-preview-editor/geometry.js";
 
 const TOOLS = [
@@ -49,7 +49,7 @@ export function ImageEditorToolbar({
   canClear: boolean;
   disabled: boolean;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <div
       role="toolbar"

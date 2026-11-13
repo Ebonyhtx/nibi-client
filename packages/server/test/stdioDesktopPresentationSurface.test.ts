@@ -1,13 +1,13 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { IModelSelectionService, IZCodeAgentService } from "@nibi/services";
+import { IModelSelectionService, INibiAgentService } from "@nibi/services";
 import {
   disposeServiceResourcesAndWait,
-  resolveDefaultZCodeAgentCommand,
+  resolveDefaultNibiAgentCommand,
   setDataBaseDir,
-  type ZCodeAgentCommand,
-  type ZCodeAgentCommandResolverContext,
+  type NibiAgentCommand,
+  type NibiAgentCommandResolverContext,
 } from "@nibi/services/node";
 import {
   SERVICE_AUTHORITY_MODE_ENV,
@@ -75,7 +75,7 @@ describe("stdio Desktop presentation surface", () => {
     tempHomes.push(home);
     process.env.HOME = home;
     setDataBaseDir(home);
-    // Bugfix: 开发机可能导出 NIBI_DESKTOP_CONTEXT_PROMPT_ENABLED=0（如本机 ZCode 安装的 shell 集成），
+    // Bugfix: 开发机可能导出 NIBI_DESKTOP_CONTEXT_PROMPT_ENABLED=0（如本机 Nibi 安装的 shell 集成），
     // 会把 desktop-attached-remote 推导出的 presentationSurface 灭成 undefined，
     // 让「surface 贯穿装配」断言变成环境敏感；显式置 1 恢复用例封闭性。
     process.env[NIBI_DESKTOP_CONTEXT_PROMPT_ENABLED_ENV] = "1";
@@ -183,9 +183,9 @@ describe("stdio Desktop presentation surface", () => {
       "utf8",
     );
 
-    let resolvedCommand: ZCodeAgentCommand | null = null;
-    const commandResolver = vi.fn((context: ZCodeAgentCommandResolverContext) => {
-      resolvedCommand = resolveDefaultZCodeAgentCommand(context);
+    let resolvedCommand: NibiAgentCommand | null = null;
+    const commandResolver = vi.fn((context: NibiAgentCommandResolverContext) => {
+      resolvedCommand = resolveDefaultNibiAgentCommand(context);
       // 集成测试只验证入口装配与最终命令，不启动长驻 Agent 子进程。
       return null;
     });
@@ -194,7 +194,7 @@ describe("stdio Desktop presentation surface", () => {
         [SERVICE_AUTHORITY_MODE_ENV]: "desktop-attached-remote",
       },
       nibiBuiltinProviderConfigFilePath,
-      zcodeAgentCommandResolver: commandResolver,
+      nibiAgentCommandResolver: commandResolver,
     });
 
     try {
@@ -210,7 +210,7 @@ describe("stdio Desktop presentation surface", () => {
         },
       );
       await expect(
-        bootstrap.services.get(IZCodeAgentService).initialize({
+        bootstrap.services.get(INibiAgentService).initialize({
           workspaceIdentity: "ssh://host/workspace/project",
           workspacePath: "/workspace/project",
         }),

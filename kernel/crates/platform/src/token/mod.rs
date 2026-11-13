@@ -1,4 +1,4 @@
-// 语义复制自 apps/zcode-cli/packages/adapters/src/auth/coding-plan-api-key.ts、
+// 语义复制自 apps/nibi-cli/packages/adapters/src/auth/coding-plan-api-key.ts、
 // packages/shared/src/project-access-token{,-client}.ts（33a9541140；团队变体与 non-team 个人选择取 staging
 // 699b62b8d6，工作线 F47）。改动见 platform.md §5.4：整条换取按账号与项目单飞；HTTP 经 net；时钟注入。
 //! OAuth 登录的 Coding Plan 项目令牌（platform.md §5.4、§9.4）。

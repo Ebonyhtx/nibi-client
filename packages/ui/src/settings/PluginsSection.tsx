@@ -13,11 +13,11 @@ import { toast } from "@/components/ui/toast.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.js";
 import { Switch } from "@/components/ui/switch.js";
 import { TID_PLUGIN_STORE_BROWSE } from "@nibi/shared/test-ids";
-import type { ZCodePluginInfo, ZCodePluginScope, ZCodePluginUserConfigOption } from "@nibi/shared";
+import type { NibiPluginInfo, NibiPluginScope, NibiPluginUserConfigOption } from "@nibi/shared";
 import type { CreateTaskRequest } from "@/app-shell/types.js";
 import type { IServiceAccessor } from "@nibi/services";
 import { useConfigWorkspaceServicesResolution as useWorkspaceServicesResolution } from "@/workspace-config-catalog/index.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { McpSettingsSection } from "@/settings/McpSettingsSection.js";
 import { SkillsSection } from "@/settings/SkillsSection.js";
 import { CommandsSection } from "@/settings/CommandsSection.js";
@@ -152,7 +152,7 @@ function PluginList({
   inMarketplace?: boolean;
   onOpenUi?: PluginsSectionProps["onOpenUi"];
   target: ConfigWorkspaceTarget | null;
-  configScope: ZCodePluginScope;
+  configScope: NibiPluginScope;
   searchQuery: string;
   isDesktop: boolean;
   isMacDesktop: boolean;
@@ -167,7 +167,7 @@ function PluginList({
   unscopedServices?: IServiceAccessor;
   cacheAuthorityKey?: string;
 }) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const targetServiceResolution = useWorkspaceServicesResolution(
     target?.workspacePath,
     target?.remoteSessionId,
@@ -458,9 +458,9 @@ function PluginList({
     }));
   };
   const getPluginOptionValue = (
-    plugin: ZCodePluginInfo,
+    plugin: NibiPluginInfo,
     key: string,
-    option: ZCodePluginUserConfigOption,
+    option: NibiPluginUserConfigOption,
   ): string | number | boolean => {
     const draft = pluginOptionsDrafts[plugin.id]?.[key];
     if (draft === null) return "";
@@ -471,7 +471,7 @@ function PluginList({
       (option.type === "boolean" ? false : "")
     );
   };
-  const savePluginOptions = async (plugin: ZCodePluginInfo) => {
+  const savePluginOptions = async (plugin: NibiPluginInfo) => {
     const { options, clearOptionKeys } = buildPluginConfigPatch(
       plugin,
       pluginOptionsDrafts[plugin.id] ?? {},
@@ -557,7 +557,7 @@ function PluginList({
     targetServiceResolution.rpcReady,
   ]);
 
-  const renderPluginRows = (items: ZCodePluginInfo[]) => (
+  const renderPluginRows = (items: NibiPluginInfo[]) => (
     <div className="overflow-hidden rounded-xl bg-surface">
       {items.map((plugin, index) => (
         <Fragment key={plugin.id}>
@@ -991,7 +991,7 @@ export function PluginsSection({
   onOpenPluginStore,
   showMarketplaceBreadcrumb = false,
 }: PluginsSectionProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const storeActiveWorkspacePath = useTabStore((state) => state.activeWorkspacePath);
   const storeActiveWorkspaceIdentity = useTabStore((state) => state.activeWorkspaceIdentity);
   const activeWorkspacePath = workspacePath ?? storeActiveWorkspacePath;

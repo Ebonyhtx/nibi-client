@@ -5,7 +5,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import type { Locale } from "@nibi/shared";
 import { afterEach, describe, expect, it } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import {
   isModelSelectGroupSelected,
   ModelConfigSelect,
@@ -32,7 +32,7 @@ function createGroup(key: string): ModelSelectGroup {
 function renderWithTooltipProvider(element: ReactElement, locale: Locale = "zh-CN") {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: locale },
       createElement(TooltipProvider, null, element),
     ),
@@ -42,7 +42,7 @@ function renderWithTooltipProvider(element: ReactElement, locale: Locale = "zh-C
 function renderInteractive(element: ReactElement, locale: Locale) {
   return render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: locale },
       createElement(TooltipProvider, null, element),
     ),

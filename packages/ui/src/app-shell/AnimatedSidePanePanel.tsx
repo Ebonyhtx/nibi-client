@@ -18,7 +18,7 @@ import { horizontalListSortingStrategy, SortableContext } from "@dnd-kit/sortabl
 import type { BrowserViewScreenshotSurfacePreparePayload, GitChangeSourceId } from "@nibi/shared";
 import { FileManagerPane } from "@/WorkspaceFileTree.js";
 import type { FileManagerTarget } from "@/lib/workspaceSidePane.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 import { composerScopeKey, resolveComposerScope } from "@/v4/composer/composerDraftStore.js";
 import { SidePaneTerminalPane } from "@/SidePaneTerminalPane.js";
 import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
@@ -106,7 +106,7 @@ import {
 import { inferMediaPreview, type CodeViewerSource } from "@/lib/codeViewer.js";
 import type { MessageFileLinkTarget } from "@/components/ai-elements/message.js";
 import { getVisibleSidePaneTabs } from "@/lib/workspaceSidePane.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   BugIcon,
   ChevronRightIcon,
@@ -456,7 +456,7 @@ export function AnimatedSidePanePanel({
   mobileStacked?: boolean;
 }) {
   const onOpenPluginUi = useOpenPluginUi();
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const isOfficeMode = useIsOfficeMode();
   const developerToolsEnabled = useDeveloperToolsVisibility();
   const isMobileTextInputViewport = useIsMobileTextInputViewport();
@@ -464,7 +464,7 @@ export function AnimatedSidePanePanel({
   const isResizeDisabled = !isVisible;
   const workspaceKey = workspaceIdentity?.trim() || workspaceAbsPath;
   const composerClientNamespace = useComposerClientNamespace();
-  const draftProjectId = useZCodeSessionStore(
+  const draftProjectId = useNibiSessionStore(
     (state) => state.workspaces[workspaceKey]?.draftProjectId,
   );
   const draftScopeKey = composerScopeKey(

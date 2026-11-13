@@ -3,7 +3,7 @@ import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { cn } from "@/components/lib/utils.js";
 import { Button } from "@/components/ui/button.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { WINDOWS_CAPTION_CONTROL_CLASS } from "@/windowCaptionControls.js";
 
 export function WorkspaceSidePaneToggleButton({
@@ -17,7 +17,7 @@ export function WorkspaceSidePaneToggleButton({
   shortcutLabel?: string;
   useWindowsCaptionSpacing?: boolean;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const SidePaneToggleIcon = isSidePaneOpen ? PanelRightClose : PanelRightOpen;
 
   return (

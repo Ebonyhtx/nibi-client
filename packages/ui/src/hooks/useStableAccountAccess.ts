@@ -1,7 +1,7 @@
 import { useRef } from "react";
-import type { ZCodeAccountAccess, ZCodeProviderAccountAccess } from "@nibi/shared";
+import type { NibiAccountAccess, NibiProviderAccountAccess } from "@nibi/shared";
 
-type StableAccountAccess = ZCodeProviderAccountAccess | ZCodeAccountAccess;
+type StableAccountAccess = NibiProviderAccountAccess | NibiAccountAccess;
 
 /** Schema 解析会为同一份 Account Access 生成新对象；hook 依赖必须按配置值稳定。 */
 export function useStableAccountAccess(

@@ -147,7 +147,7 @@ describe("serializeChatComposerAttachment", () => {
     });
   });
 
-  it("图片仍保持 ZCode Agent image 附件格式", async () => {
+  it("图片仍保持 Nibi Agent image 附件格式", async () => {
     const file = new File(["png-bytes"], "image.png", {
       type: "image/png",
     });

@@ -67,11 +67,11 @@ import {
   captureLoginShellEnvSnapshot,
   getConversationWorkspaceDir,
   getDataBaseDir,
-  getZCodeDataRootDir,
+  getNibiDataRootDir,
   normalizeRuntimeProcessEnv,
   setDataBaseDir,
   migrateApplicationStorage,
-  resolveDefaultZCodeAgentCommand,
+  resolveDefaultNibiAgentCommand,
   startupStorage,
 } from "@nibi/services/node";
 import {
@@ -87,9 +87,9 @@ import {
   DEFAULT_LOCALE,
   TEST_NIBI_ENDPOINT_ORIGIN,
   NIBI_VERSION,
-  buildZCodeEndpointUrls,
+  buildNibiEndpointUrls,
   resolveWebRemoteControlRelayWsUrl,
-  resolveZCodeEndpointOrigin,
+  resolveNibiEndpointOrigin,
   shouldEnableE2ETestBridge,
   type UpdateStatePayload,
   type TelemetryEventPayload,
@@ -149,7 +149,7 @@ import {
   getDesktopMenuLabel as getDesktopMenuLabelByLocale,
   rebuildApplicationMenu,
   resolveSystemApplicationLocale,
-  updateZCodeStdioTapDevMenuState,
+  updateNibiStdioTapDevMenuState,
 } from "./desktopApplicationMenu.js";
 import { applyAppIcon } from "./desktopWindowChrome.js";
 import { resolveWindowsAppUserModelIdForFlavor } from "../../scripts/desktop-product-identity.mjs";
@@ -172,7 +172,7 @@ import {
   syncApplicationUnreadBadge,
   handleDesktopWindowCloseRequest,
 } from "./desktopWindowLifecycle.js";
-import { resolveZCodeBuiltinProviderConfigFilePath } from "./desktopProviderConfig.js";
+import { resolveNibiBuiltinProviderConfigFilePath } from "./desktopProviderConfig.js";
 import {
   getCredentialsDir,
   isDockerDaemonAvailable,
@@ -181,7 +181,7 @@ import {
   listAvailableWSLDistros,
   loadHostProcessEnvFromLocalFiles,
   resolveRemoteAssetDirs,
-  resolveZCodeEndpointEnvBaseOrigin,
+  resolveNibiEndpointEnvBaseOrigin,
   desktopRuntimeEnv,
   runtimeApplicationName,
   runtimeHomePath,
@@ -256,9 +256,9 @@ import {
 } from "./desktopResourceTelemetry.js";
 import { registerRendererHeapSampleIpc } from "./processResourceRendererHeapSource.js";
 import {
-  registerDesktopZCodeDataSizeTelemetry,
-  stopDesktopZCodeDataSizeTelemetry,
-} from "./desktopZCodeDataSizeTelemetry.js";
+  registerDesktopNibiDataSizeTelemetry,
+  stopDesktopNibiDataSizeTelemetry,
+} from "./desktopNibiDataSizeTelemetry.js";
 import { configureDesktopMcpTelemetry, reportMcpTelemetryToArms } from "./desktopMcpTelemetry.js";
 import {
   configureDesktopNetworkTelemetry,
@@ -273,7 +273,7 @@ import {
   createEmbeddedBrowserPermissionUiBridge,
   setActiveEmbeddedBrowserPermissionUiBridge,
 } from "./embeddedBrowserPermissionUiBridge.js";
-import { mapZCodeEnvToArmsRumEnv } from "@nibi/shared";
+import { mapNibiEnvToArmsRumEnv } from "@nibi/shared";
 import {
   findWindowsProcessesReferencingResourceMarkers,
   probeWindowsPackagedResourceWritable,
@@ -296,7 +296,7 @@ registerLocalMediaPreviewScheme(protocol, [
 const localMediaPreviewPathRegistry = createLocalMediaPreviewPathRegistry();
 
 // e2e 由 Chromedriver 管理远程调试端口；如果这里继续固定到 9229，
-// 会和开发态已打开的 ZCode Dev 抢端口，导致 WebDriver session 创建前白屏超时。
+// 会和开发态已打开的 Nibi Dev 抢端口，导致 WebDriver session 创建前白屏超时。
 // 仅本地开发运行默认开启远程调试端口，并允许 e2e 通过环境变量交给 Chromedriver 接管。
 if (!app.isPackaged && process.env.NIBI_DISABLE_FIXED_REMOTE_DEBUGGING_PORT !== "1") {
   app.commandLine.appendSwitch("remote-debugging-port", "9229");
@@ -726,11 +726,11 @@ const webRemoteControlCredentialService = createCredentialService();
 const appLaunchGate = createAppLaunchGate();
 const appLaunchCoordinator = createAppLaunchCoordinator(appLaunchGate);
 const appTelemetryCredentialService = createCredentialService();
-async function resolveCurrentZCodeEndpointOrigin() {
-  return resolveZCodeEndpointOrigin({
+async function resolveCurrentNibiEndpointOrigin() {
+  return resolveNibiEndpointOrigin({
     env: NIBI_ENV,
-    envBaseOrigin: resolveZCodeEndpointEnvBaseOrigin(hostProcessLocalEnv),
-    overrideOrigin: (await mainSettingService.get()).zcodeEndpointOrigin,
+    envBaseOrigin: resolveNibiEndpointEnvBaseOrigin(hostProcessLocalEnv),
+    overrideOrigin: (await mainSettingService.get()).nibiEndpointOrigin,
   });
 }
 let desktopContextPromptRollout: ReturnType<typeof createDesktopContextPromptRollout> | undefined;
@@ -783,7 +783,7 @@ const appTelemetryCore = createTelemetryCore({
   loadUserId: createTelemetryUserIdLoader(appTelemetryCredentialService),
   loadAuthorization: createTelemetryAuthorizationLoader(appTelemetryCredentialService),
   loadMarketingParams: createTelemetryMarketingParamsLoader(appTelemetryCredentialService),
-  resolveZCodeEndpointOrigin: resolveCurrentZCodeEndpointOrigin,
+  resolveNibiEndpointOrigin: resolveCurrentNibiEndpointOrigin,
   fetchImpl: createDesktopTelemetryFetch({
     fetch: (input, init) => net.fetch(input instanceof URL ? input.toString() : input, init),
   }),
@@ -821,7 +821,7 @@ function syncAppTelemetryInteractiveState(): void {
 app.on("browser-window-focus", (_event, win) => {
   syncAppTelemetryInteractiveState();
   rebuildMenu();
-  // 设置/更新等无 Host 的 ZCode 窗口也算前台：router 会先把旧 workspace Host 清成 null，
+  // 设置/更新等无 Host 的 Nibi 窗口也算前台：router 会先把旧 workspace Host 清成 null，
   // 再把无 Host 的新窗口事实静默丢弃，避免旧会话 PiP 继续显示。
   cuaPipFocusRouter.focusWindow(resolveCuaPipWindowKey(win));
 });
@@ -861,7 +861,7 @@ const readHelpConfig = createDesktopHelpConfigReader({
   appVersion: NIBI_VERSION || app.getVersion(),
   deviceMid,
   getClientLanguage: () => currentApplicationLocale,
-  resolveEndpointOrigin: resolveCurrentZCodeEndpointOrigin,
+  resolveEndpointOrigin: resolveCurrentNibiEndpointOrigin,
 });
 // 同一个 /api/v1/client/configs fetcher 供两个灰度 rollout 共用（请求参数与鉴权完全一致，
 // 各自独立缓存/去重，服务端按 data.configs.<key> 区分功能）。
@@ -869,7 +869,7 @@ const electronClientConfigsFetcher = createElectronDesktopContextPromptConfigFet
   appVersion: NIBI_VERSION || app.getVersion(),
   deviceMid,
   getClientLanguage: () => currentApplicationLocale,
-  resolveEndpointOrigin: resolveCurrentZCodeEndpointOrigin,
+  resolveEndpointOrigin: resolveCurrentNibiEndpointOrigin,
 });
 desktopContextPromptRollout = createDesktopContextPromptRollout({
   fetchConfig: electronClientConfigsFetcher,
@@ -900,7 +900,7 @@ const armsUserIdentitySync = createArmsUserIdentitySync({
   setUser: (user) => armsRum.setConfig("user", user),
 });
 const webRemoteControlAppVersion = NIBI_VERSION || app.getVersion();
-const defaultZCodeEndpointUrls = buildZCodeEndpointUrls(DEFAULT_NIBI_ENDPOINT_ORIGIN, {
+const defaultNibiEndpointUrls = buildNibiEndpointUrls(DEFAULT_NIBI_ENDPOINT_ORIGIN, {
   appVersion: webRemoteControlAppVersion,
 });
 const webRemoteControlRelayWsEnvOverride =
@@ -931,7 +931,7 @@ let startupOpenWorkspaceRequest: ExplicitStartupWorkspaceRequest | null =
 
 const webRemoteControlManager = createWebRemoteControlManager({
   getEndpointUrls: async () => {
-    const derived = buildZCodeEndpointUrls(await resolveCurrentZCodeEndpointOrigin(), {
+    const derived = buildNibiEndpointUrls(await resolveCurrentNibiEndpointOrigin(), {
       appVersion: webRemoteControlAppVersion,
     });
     return {
@@ -947,7 +947,7 @@ const webRemoteControlManager = createWebRemoteControlManager({
     endpointOrigin: DEFAULT_NIBI_ENDPOINT_ORIGIN,
     overrideUrl: webRemoteControlRelayWsEnvOverride,
   }),
-  mobileRemoteControlUrl: webRemoteControlUrlEnvOverride || defaultZCodeEndpointUrls.remoteUrl,
+  mobileRemoteControlUrl: webRemoteControlUrlEnvOverride || defaultNibiEndpointUrls.remoteUrl,
   deviceMid,
   deviceName: hostname(),
   appVersion: webRemoteControlAppVersion,
@@ -1203,7 +1203,7 @@ async function prepareAppQuit(reason: string, kind: AppShutdownKind = "normal"):
   // Bug 根因：资源样本改为 5 分钟窗口后，退出仍直接 stop 会清空未满窗口的数据。
   // 退出时只排空已存在的角色 / Agent 内存窗口，不启动新采样、目录扫描或外部探针。
   stopDesktopResourceTelemetry({ flushPendingWindows: true });
-  stopDesktopZCodeDataSizeTelemetry();
+  stopDesktopNibiDataSizeTelemetry();
   stopDesktopNetworkTelemetry();
   stopRemoteUsageArmsPeriodicSampling();
   disposeRendererActionTraceIpc?.();
@@ -1267,7 +1267,7 @@ async function prepareAppQuit(reason: string, kind: AppShutdownKind = "normal"):
     })
     .finally(() => {
       // before-quit 是同步事件。只发 Dispose 就继续退出 main 的话，
-      // host 还没等到 agent 进程树的 SIGTERM/SIGKILL 兜底完成就被带走，zcode-cli 会被 init 接管成残留进程。
+      // host 还没等到 agent 进程树的 SIGTERM/SIGKILL 兜底完成就被带走，nibi-cli 会被 init 接管成残留进程。
       // 这里先拦截第一次退出，等待 host 清理完成后再放行第二次 app.quit。
       hasPreparedAppQuit = true;
       appQuitPreparationInFlight = null;
@@ -1539,14 +1539,14 @@ async function executeDesktopCommandForApp(
     command,
     senderWindow,
     logger,
-    updateZCodeStdioTapDevMenuState,
+    updateNibiStdioTapDevMenuState,
     onDesktopZoomChanged: (zoomLevel) => {
       currentDesktopZoomLevel = clampDesktopZoomLevel(zoomLevel);
       rebuildMenu();
     },
     settingService: mainSettingService,
-    onZCodeEndpointChanged: handleZCodeEndpointChanged,
-    zcodeEndpointEnvBaseOrigin: resolveZCodeEndpointEnvBaseOrigin(hostProcessLocalEnv),
+    onNibiEndpointChanged: handleNibiEndpointChanged,
+    nibiEndpointEnvBaseOrigin: resolveNibiEndpointEnvBaseOrigin(hostProcessLocalEnv),
     onRelaunchApp: async () => {
       // 开发态重启只会拉起一个没有 dev server 的 Electron（窗口空白）；开发态重载渲染进程即可。
       if (reloadRendererInDevelopment(logger)) {
@@ -1561,11 +1561,11 @@ async function executeDesktopCommandForApp(
   });
 }
 
-async function resolveZCodeEndpointSelection(): Promise<"production" | "test" | "custom"> {
+async function resolveNibiEndpointSelection(): Promise<"production" | "test" | "custom"> {
   if (NIBI_ENV === "production") {
     return "production";
   }
-  const origin = await resolveCurrentZCodeEndpointOrigin();
+  const origin = await resolveCurrentNibiEndpointOrigin();
   if (origin === DEFAULT_NIBI_ENDPOINT_ORIGIN) {
     return "production";
   }
@@ -1575,7 +1575,7 @@ async function resolveZCodeEndpointSelection(): Promise<"production" | "test" | 
   return "custom";
 }
 
-async function handleZCodeEndpointChanged() {
+async function handleNibiEndpointChanged() {
   rebuildMenu();
   for (const win of getApplicationWindowsExcludingCuaIndicator()) {
     await webRemoteControlManagerRef.current?.suspend(win.id, "endpoint-changed");
@@ -1617,11 +1617,11 @@ function resetShortcutRecordingForWebContents(webContentsId: number) {
 }
 
 function rebuildMenu() {
-  void Promise.all([resolveZCodeEndpointSelection(), mainSettingService.get()]).then(
-    ([zcodeEndpointSelection, settings]) => {
+  void Promise.all([resolveNibiEndpointSelection(), mainSettingService.get()]).then(
+    ([nibiEndpointSelection, settings]) => {
       rebuildApplicationMenu({
         currentApplicationLocale,
-        zcodeEndpointSelection,
+        nibiEndpointSelection,
         executeDesktopCommand: executeDesktopCommandForApp,
         currentZoomLevel: resolveFocusedDesktopZoomLevel(),
         // 菜单 accelerator 跟随用户快捷键设置（shortcutBindings 用户覆盖）
@@ -1903,7 +1903,7 @@ function createWindowInstance(startupBootstrap: StartupWindowBootstrap = {}) {
         label,
         {
           ...initMessage,
-          nibiBuiltinProviderConfigFilePath: resolveZCodeBuiltinProviderConfigFilePath(),
+          nibiBuiltinProviderConfigFilePath: resolveNibiBuiltinProviderConfigFilePath(),
         },
         {
           hostProcessLocalEnv,
@@ -2222,7 +2222,7 @@ app.whenReady().then(async () => {
   logWindowsBundledRuntimeIntegrityDiagnostic();
 
   // 启动自动更新检查（后台执行，不阻塞主界面）
-  // Preview 身份无论连接哪个后端都不自动更新：stable feed 上只分发正式 ZCode 安装包，
+  // Preview 身份无论连接哪个后端都不自动更新：stable feed 上只分发正式 Nibi 安装包，
   // 不向 Preview 渠道提供更新。构建期未启用自动更新时同样不更新
   // （见 docs/desktop/build-time-optional-capabilities.md）。
   void initAutoUpdater({
@@ -2237,7 +2237,7 @@ app.whenReady().then(async () => {
     settingService: mainSettingService,
     locale: currentApplicationLocale,
     deviceMid,
-    resolveEndpointOrigin: resolveCurrentZCodeEndpointOrigin,
+    resolveEndpointOrigin: resolveCurrentNibiEndpointOrigin,
     updateFeedSource: resolveUpdateFeedSourceFromStartupConfig({
       argv: process.argv,
       env: process.env,
@@ -2338,7 +2338,7 @@ app.whenReady().then(async () => {
     },
     applyApplicationLocale: async (locale) => {
       currentApplicationLocale = locale;
-      // Host 的 ZCode endpoint 请求以此为实时语言；setting.json 写入可能滞后或失败，不能作为来源。
+      // Host 的 Nibi endpoint 请求以此为实时语言；setting.json 写入可能滞后或失败，不能作为来源。
       for (const child of windowHostProcessMap.values()) {
         child.postMessage({ type: HostMessageTypes.ApplicationLocaleChanged, locale });
       }
@@ -2441,7 +2441,7 @@ app.whenReady().then(async () => {
       deviceMid,
       platform: process.platform,
       appVersion: NIBI_VERSION,
-      armsEnv: mapZCodeEnvToArmsRumEnv(desktopRuntimeEnv),
+      armsEnv: mapNibiEnvToArmsRumEnv(desktopRuntimeEnv),
     },
     finalArmsCustomEventE2EEnabled: shouldEnableE2ETestBridge(process.env),
     webRemoteControlManager,
@@ -2490,34 +2490,34 @@ app.whenReady().then(async () => {
     deviceMid,
     platform: process.platform,
     appVersion: NIBI_VERSION,
-    armsEnv: mapZCodeEnvToArmsRumEnv(desktopRuntimeEnv),
+    armsEnv: mapNibiEnvToArmsRumEnv(desktopRuntimeEnv),
   });
   configureDesktopResourceTelemetry({
     deviceMid,
     platform: process.platform,
     appVersion: NIBI_VERSION,
-    armsEnv: mapZCodeEnvToArmsRumEnv(desktopRuntimeEnv),
+    armsEnv: mapNibiEnvToArmsRumEnv(desktopRuntimeEnv),
   });
   configureDesktopMcpTelemetry({
     deviceMid,
     appVersion: NIBI_VERSION,
-    armsEnv: mapZCodeEnvToArmsRumEnv(desktopRuntimeEnv),
+    armsEnv: mapNibiEnvToArmsRumEnv(desktopRuntimeEnv),
   });
   configureDesktopNetworkTelemetry({
     deviceMid,
     platform: process.platform,
     appVersion: NIBI_VERSION,
-    armsEnv: mapZCodeEnvToArmsRumEnv(desktopRuntimeEnv),
+    armsEnv: mapNibiEnvToArmsRumEnv(desktopRuntimeEnv),
   });
   registerDesktopStabilityMonitors(logger, crashCapturePaths);
   registerDesktopResourceTelemetry(logger);
   // 主窗口 renderer 的 60 秒 heap 样本入口；随 App 生命周期常驻，只注册一次。
   registerRendererHeapSampleIpc();
   const defaultDataBaseDir = process.env.HOME?.trim() || homedir();
-  registerDesktopZCodeDataSizeTelemetry({
+  registerDesktopNibiDataSizeTelemetry({
     context: {
       appVersion: NIBI_VERSION,
-      armsEnv: mapZCodeEnvToArmsRumEnv(desktopRuntimeEnv),
+      armsEnv: mapNibiEnvToArmsRumEnv(desktopRuntimeEnv),
       dataRootKind:
         resolve(getDataBaseDir()) === resolve(defaultDataBaseDir) ? "default" : "custom",
       deviceMid,
@@ -2525,9 +2525,9 @@ app.whenReady().then(async () => {
     },
     getSystemIdleTimeSeconds: () => powerMonitor.getSystemIdleTime(),
     isAppBackground: () => resolveResourceUsageScene() === "background",
-    isZCodeBusy: () => getRunningAgentSessionCount() > 0,
+    isNibiBusy: () => getRunningAgentSessionCount() > 0,
     logger,
-    rootPath: getZCodeDataRootDir(),
+    rootPath: getNibiDataRootDir(),
     stateFile: join(app.getPath("userData"), "nibi-data-size-telemetry.json"),
   });
   registerDesktopNetworkTelemetry(logger);
@@ -2544,7 +2544,7 @@ app.whenReady().then(async () => {
       ? await maybeBlockStartupForForceUpdate({
           locale: currentApplicationLocale,
           logger,
-          endpointOrigin: await resolveCurrentZCodeEndpointOrigin(),
+          endpointOrigin: await resolveCurrentNibiEndpointOrigin(),
           // 与两个灰度 rollout 共用同一个 fetcher：同一份 /client/configs 响应里有
           // 多个字段（minimal_version、desktop_context_prompt、renderer_action_trace），
           // 各自再发一次请求既浪费又让"同一时刻的配置"出现多个版本。

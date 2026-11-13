@@ -1,5 +1,5 @@
-// 复制自 apps/zcode-cli-rust/crates/bash-parse/src/lib.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
-//! Rust 版 `analyzeBashCommand`（apps/zcode-cli/packages/core/src/tool/handlers/bash-command-parser.ts）。
+// 复制自 apps/nibi-cli-rust/crates/bash-parse/src/lib.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
+//! Rust 版 `analyzeBashCommand`（apps/nibi-cli/packages/core/src/tool/handlers/bash-command-parser.ts）。
 //!
 //! Node 侧依赖 unbash 4.0.1 解析 bash；这里逐函数移植了 unbash 的 lexer 与 parser 中权限分析会走到
 //! 的路径，包括它的各种怪癖（见各模块注释），使 `is_permission_safe(analyze(c))` 与 Node 完全一致，

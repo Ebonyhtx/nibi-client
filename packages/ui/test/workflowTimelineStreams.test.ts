@@ -14,7 +14,7 @@ import { buildWorkflowTimeline } from "@/components/workflow-timeline/timeline-m
 import { WorkflowTimeline } from "@/components/workflow-timeline/WorkflowTimeline.js";
 import { spineLayout } from "@/app-shell/workflowRunSpine.js";
 import { WorkflowRunPhaseList } from "@/app-shell/WorkflowRunPhaseList.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 interface Spec {
   names: readonly string[];
@@ -322,7 +322,7 @@ function renderCard(spec: Spec, state?: WorkflowRunState) {
   const model = buildWorkflowTimeline(graphOf(spec), state);
   return render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "en-US" },
       createElement(WorkflowTimeline, { model }),
     ),
@@ -385,7 +385,7 @@ describe("脊线 · 流轨", () => {
     ]);
     const view = render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(WorkflowRunPhaseList, { graph, model, pendingQuestions: [], run: state }),
       ),

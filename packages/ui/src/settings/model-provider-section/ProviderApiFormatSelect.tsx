@@ -6,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   TID_MODEL_PROVIDER_API_FORMAT_ITEM,
   TID_MODEL_PROVIDER_API_FORMAT_TRIGGER,
@@ -56,7 +56,7 @@ export function ProviderApiFormatSelect({
   value: ProviderApiType;
   onChange: (value: ProviderApiType) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
 
   return (
     <Select value={value} onValueChange={(nextValue) => onChange(nextValue as ProviderApiType)}>

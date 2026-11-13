@@ -62,7 +62,7 @@ user tab 只有在 guest 存活且当前 URL 为非空、非精确 `about:blank`
 - `closeSession({ closeTabs: true })` 真正关闭该 session 名下的全部 tab：仍受控的，以及此前经
   finalize / deliverable 释放回该 session user-tab 集合的。其它 session 的 tab 不受影响。它只给永远不会
   再回来认领的 session 用——dwf 子代理的 sessionId 不是任何对话，保留的 view 无人可见、无人可认领，
-  只会一直挂着 guest（`apps/zcode-cli/packages/dynamic-workflow/docs/execution-engine.md`「Subagent sessions」）。
+  只会一直挂着 guest（`apps/nibi-cli/packages/dynamic-workflow/docs/execution-engine.md`「Subagent sessions」）。
 - window close / 用户显式 close 仍真正关闭 tab。
 
 ### 2.4 对话切换时的可见性与后台保活

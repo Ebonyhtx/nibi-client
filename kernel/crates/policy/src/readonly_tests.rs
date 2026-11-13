@@ -1,4 +1,4 @@
-//! 只读判定的代表样例（完整的对照表在 apps/zcode-cli-rust 的 Node 夹具里，未复制）。
+//! 只读判定的代表样例（完整的对照表在 apps/nibi-cli-rust 的 Node 夹具里，未复制）。
 
 use super::*;
 

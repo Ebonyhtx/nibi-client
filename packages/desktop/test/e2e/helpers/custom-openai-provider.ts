@@ -88,7 +88,7 @@ export async function refreshSeededOpenAIProvidersThroughSettings(
   providerNames: readonly string[],
   options: { workspacePath?: string | null } = {},
 ) {
-  // 根因：全局草稿可处于未分类目录，设置返回不会跳到固定 ZCodeProject；旧 helper 因此白等 30 秒。
+  // 根因：全局草稿可处于未分类目录，设置返回不会跳到固定 NibiProject；旧 helper 因此白等 30 秒。
   // 记录调用时的导航 owner，显式指定返回目标的调用仍保持原语义。
   const workspacePath =
     options.workspacePath ||

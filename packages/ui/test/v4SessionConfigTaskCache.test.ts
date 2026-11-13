@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { ZCodeConfigOption } from "@nibi/shared";
+import type { NibiConfigOption } from "@nibi/shared";
 import { projectSessionConfigToTaskConfigOptions } from "@/v4/composer/sessionConfigTaskCache.js";
 
-const OPTIONS: ZCodeConfigOption[] = [
+const OPTIONS: NibiConfigOption[] = [
   {
     id: "model",
     name: "Model",

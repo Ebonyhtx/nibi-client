@@ -26,15 +26,15 @@ export { conversationQuoteSchema, conversationQuotesSchema } from "../conversati
 // session/rewindCascade、session/previewFileRewind、session/applyFileRewind、
 // prompt/enhance 全簇（含 promptEnhanceResult 通知）、plugins/marketplace/list；
 // session/fork 客户端链已删（op+schema 留存 = v4 forkSessionAtMessage 钩子消费）。
-// 消费者：services 旧栈（nibiProtocolClient/zcodeAgent/zcodeAgentService/zcodeSession*）、
+// 消费者：services 旧栈（nibiProtocolClient/nibiAgent/nibiAgentService/nibiSession*）、
 // CLI bootstrap 旧协议 server（nibi-protocol/server-operations、plugins、session-mapper 等）、
-// UI 旧投影（zcodeSessionProjection 等读路径）。
+// UI 旧投影（nibiSessionProjection 等读路径）。
 // 上述旧协议 client/server 组删除时，本文件整体删除。
 // 注：外部零消费 schema 多为存活 schema 联合的内部依赖，随宿主文件一起处理，勿单删。
 import { z } from "zod";
 import { accountProviderUnavailableReasonSchema } from "../account-provider-state.js";
 import { bashOutputDisplaySchema } from "../bash-output-display.js";
-import { zcodeAutomationBotDeliveryTargetSchema } from "../bots.js";
+import { nibiAutomationBotDeliveryTargetSchema } from "../bots.js";
 import { executionOutputPreviewSchema } from "../execution-output-preview.js";
 import { completeModelPropertiesDataSchema } from "../model-config.js";
 import { modelExecutionSchema } from "../model-execution.js";
@@ -48,7 +48,7 @@ export * from "../process-diagnostic.js";
 export { attachmentSourceKindSchema, type AttachmentSourceKind } from "../attachment-source.js";
 import { PROTOCOL_V4_LIMITS } from "../nibi-protocol-v4/core.js";
 
-export const zcodeTopicResourceReadParamsSchema = z
+export const nibiTopicResourceReadParamsSchema = z
   .object({
     requestId: z.string().min(1).max(256),
     taskId: z.string().min(1).max(256),
@@ -58,7 +58,7 @@ export const zcodeTopicResourceReadParamsSchema = z
     resourceIndex: z.number().int().nonnegative(),
   })
   .strict();
-export const zcodeTopicResourceReadResultSchema = z
+export const nibiTopicResourceReadResultSchema = z
   .object({
     ref: z.string().min(1),
     fileName: z.string().min(1).max(1024),
@@ -66,12 +66,12 @@ export const zcodeTopicResourceReadResultSchema = z
     bytes: z.number().int().min(0).max(PROTOCOL_V4_LIMITS.attachmentMaxBytes),
   })
   .strict();
-export const zcodeTopicResourceCancelParamsSchema = z
+export const nibiTopicResourceCancelParamsSchema = z
   .object({ requestId: z.string().min(1).max(256), taskId: z.string().min(1).max(256) })
   .strict();
-export const zcodeTopicResourceCancelResultSchema = z.object({ cancelled: z.boolean() }).strict();
-export type ZCodeTopicResourceReadParams = z.infer<typeof zcodeTopicResourceReadParamsSchema>;
-export type ZCodeTopicResourceReadResult = z.infer<typeof zcodeTopicResourceReadResultSchema>;
+export const nibiTopicResourceCancelResultSchema = z.object({ cancelled: z.boolean() }).strict();
+export type NibiTopicResourceReadParams = z.infer<typeof nibiTopicResourceReadParamsSchema>;
+export type NibiTopicResourceReadResult = z.infer<typeof nibiTopicResourceReadResultSchema>;
 export { activeWorkSummarySchema, type ActiveWorkSummary } from "../nibi-protocol-v4/snapshot.js";
 // browser-use 命令/结果契约单一来源：agent 构造、协议校验和 main executor 共用同一 schema。
 import {
@@ -82,29 +82,29 @@ import { browserClientModeSchema, browserCommandSchema } from "../browser-use/co
 import { browserCommandResultSchema } from "../browser-use/result.js";
 import { appToolSearchModeSchema } from "../app-runtime-preferences.js";
 import { integratedTerminalShellSelectionSchema } from "../validationAppSettings.js";
-import { zcodeTaskModeSchema } from "../zcode-task-mode-schema.js";
+import { nibiTaskModeSchema } from "../nibi-task-mode-schema.js";
 import {
-  zcodeSyntheticUserMessageSourceSchema as legacyZcodeSyntheticUserMessageSourceSchema,
-  zcodeDeliveryKindSchema,
-  zcodeInteractionRequestOriginSchema,
-  zcodeMessagePartSchema,
-  zcodeMessageVisibilitySchema,
-  zcodeMessageWithPartsSchema,
-  zcodePermissionDecisionSchema,
-  zcodePermissionResponseSchema,
-  zcodePermissionUpdateSchema,
-  zcodeSessionApiRetryStatusSchema,
-  zcodeSessionContextUsageSchema,
-  zcodeSessionGoalSchema,
-  zcodeSessionGoalVerificationSchema,
-  zcodeSessionGoalVerificationTimelineSchema,
-  zcodeSessionInfoSchema,
-  zcodeSessionKindSchema,
-  zcodeSessionModeSchema,
-  zcodeSessionRuntimeStateSchema,
-  zcodeSessionStatusSchema,
-  zcodeToolStateSchema,
-  zcodeWorkspaceRefSchema,
+  nibiSyntheticUserMessageSourceSchema as legacyNibiSyntheticUserMessageSourceSchema,
+  nibiDeliveryKindSchema,
+  nibiInteractionRequestOriginSchema,
+  nibiMessagePartSchema,
+  nibiMessageVisibilitySchema,
+  nibiMessageWithPartsSchema,
+  nibiPermissionDecisionSchema,
+  nibiPermissionResponseSchema,
+  nibiPermissionUpdateSchema,
+  nibiSessionApiRetryStatusSchema,
+  nibiSessionContextUsageSchema,
+  nibiSessionGoalSchema,
+  nibiSessionGoalVerificationSchema,
+  nibiSessionGoalVerificationTimelineSchema,
+  nibiSessionInfoSchema,
+  nibiSessionKindSchema,
+  nibiSessionModeSchema,
+  nibiSessionRuntimeStateSchema,
+  nibiSessionStatusSchema,
+  nibiToolStateSchema,
+  nibiWorkspaceRefSchema,
 } from "../nibi-protocol-legacy-types.js";
 
 export * from "../localTtft.js";
@@ -126,7 +126,7 @@ export const NIBI_PROTOCOL_NAME = "NIBI Protocol" as const;
 export const NIBI_PROTOCOL_VERSION = 1 as const;
 // V4 wire 与 legacy 主协议并存；禁止为了 V4 physical framing 改写 legacy 版本。
 export const NIBI_PROTOCOL_V4_WIRE_VERSION = 3 as const;
-export const zcodeRuntimeCapabilitiesSchema = z.object({
+export const nibiRuntimeCapabilitiesSchema = z.object({
   historyFirst: z.boolean().optional(),
   independentPlanState: z.boolean().optional(),
 });
@@ -141,7 +141,7 @@ const protocolInstantSchema = z.union([timestampMsSchema, nonEmptyString, z.date
 
 // Tool result display 不受模型文本 budget 约束；Node REPL 图片必须在 Agent/App 协议边界
 // 做严格限长，避免截图把 continuous 或 replayable 消息扩成无界载荷。
-export const zcodeNodeReplImageToolResultDisplaySchema = z
+export const nibiNodeReplImageToolResultDisplaySchema = z
   .object({
     kind: z.literal("node_repl_images"),
     images: z
@@ -172,7 +172,7 @@ export const zcodeNodeReplImageToolResultDisplaySchema = z
 // 字面量（head）与最后一个洞之后的字面量（tail）。至少一个在场，两者都已 trim 且含实义字符。
 // Bug 修复：这两个字段随 0a8b059f40 落进 contracts 与 v4 镜像，v3 这份漏改——.strict()
 // 之下带插值名的工作流会让整个 display 验证失败、图整块消失，所以这里必须与 v4 逐字段对齐。
-const zcodeWorkflowNamePatternSchema = z
+const nibiWorkflowNamePatternSchema = z
   .object({
     head: z.string().min(1).max(128).optional(),
     tail: z.string().min(1).max(128).optional(),
@@ -180,7 +180,7 @@ const zcodeWorkflowNamePatternSchema = z
   .strict();
 
 // 一条边 = runs after；step 边与阶段边同形，`back` 只标循环回边。
-const zcodeWorkflowEdgeSchema = z
+const nibiWorkflowEdgeSchema = z
   .object({
     from: z.string().min(1).max(64),
     to: z.string().min(1).max(64),
@@ -188,7 +188,7 @@ const zcodeWorkflowEdgeSchema = z
   })
   .strict();
 
-const zcodeCreateWorkflowCausalityGraphDisplaySchema = z
+const nibiCreateWorkflowCausalityGraphDisplaySchema = z
   .object({
     steps: z
       .array(
@@ -199,7 +199,7 @@ const zcodeCreateWorkflowCausalityGraphDisplaySchema = z
             kind: z.enum(["ask", "world-read", "hole"]),
             label: z.string().min(1).max(128),
             // 内联 `agent()` receiver 让 label 落到兜底串时，那个名字的静态形状。
-            labelPattern: zcodeWorkflowNamePatternSchema.optional(),
+            labelPattern: nibiWorkflowNamePatternSchema.optional(),
             line: z.number().int().positive().optional(),
             column: z.number().int().positive().optional(),
             lane: z.string().min(1).max(64),
@@ -224,7 +224,7 @@ const zcodeCreateWorkflowCausalityGraphDisplaySchema = z
             id: z.string().min(1).max(64),
             name: z.string().min(1).max(128).optional(),
             // `name` 缺席而 agent() 首参是带洞的模板串时的静态形状；与 name 互斥。
-            namePattern: zcodeWorkflowNamePatternSchema.optional(),
+            namePattern: nibiWorkflowNamePatternSchema.optional(),
             line: z.number().int().positive().optional(),
             column: z.number().int().positive().optional(),
           })
@@ -251,7 +251,7 @@ const zcodeCreateWorkflowCausalityGraphDisplaySchema = z
       .max(64),
     handoffs: z
       .array(
-        zcodeWorkflowEdgeSchema
+        nibiWorkflowEdgeSchema
           .extend({ types: z.array(z.string().min(1).max(128)).min(1).max(8).optional() })
           .strict(),
       )
@@ -278,7 +278,7 @@ const zcodeCreateWorkflowCausalityGraphDisplaySchema = z
       )
       .max(32)
       .optional(),
-    phaseEdges: z.array(zcodeWorkflowEdgeSchema).max(128).optional(),
+    phaseEdges: z.array(nibiWorkflowEdgeSchema).max(128).optional(),
     // 阶段流（docs/dynamic-workflow/presentation.md「Streams」）：两端互为 alongside 的 data 边，
     // 只有 {from, to}——不是 runs after，不进 phaseEdges、不带 back。与词汇表同进同退。
     phaseStreams: z
@@ -307,7 +307,7 @@ const zcodeCreateWorkflowCausalityGraphDisplaySchema = z
   })
   .strict();
 
-export const zcodeCreateWorkflowToolResultDisplaySchema = z
+export const nibiCreateWorkflowToolResultDisplaySchema = z
   .object({
     kind: z.literal("create_workflow"),
     ok: z.boolean(),
@@ -324,7 +324,7 @@ export const zcodeCreateWorkflowToolResultDisplaySchema = z
           .strict(),
       )
       .max(100),
-    causalityGraph: zcodeCreateWorkflowCausalityGraphDisplaySchema.optional(),
+    causalityGraph: nibiCreateWorkflowCausalityGraphDisplaySchema.optional(),
     truncated: z.boolean().optional(),
     // FillWorkflowHole 行补的是哪处留白（docs/dynamic-workflow/presentation.md「The fill row」）；镜像 v4。
     // 修复原因：dwf-recursive 只给 contracts 与 v4 加了留白字段，v3 的 .strict() 拒掉整条 tool.updated，
@@ -341,15 +341,15 @@ export const zcodeCreateWorkflowToolResultDisplaySchema = z
   })
   .strict();
 
-const zcodeToolResultObjectSchema = jsonObjectSchema.superRefine((result, context) => {
+const nibiToolResultObjectSchema = jsonObjectSchema.superRefine((result, context) => {
   const display = result.display;
   if (typeof display !== "object" || display === null || Array.isArray(display)) {
     return;
   }
   const kind = (display as Record<string, unknown>).kind;
   const schemaByKind: Record<string, z.ZodTypeAny> = {
-    node_repl_images: zcodeNodeReplImageToolResultDisplaySchema,
-    create_workflow: zcodeCreateWorkflowToolResultDisplaySchema,
+    node_repl_images: nibiNodeReplImageToolResultDisplaySchema,
+    create_workflow: nibiCreateWorkflowToolResultDisplaySchema,
     bash_output: bashOutputDisplaySchema,
   };
   const schema = typeof kind === "string" ? schemaByKind[kind] : undefined;
@@ -367,7 +367,7 @@ export type NibiProtocolRequestId = z.infer<typeof nibiProtocolRequestIdSchema>;
 // 远程历史附件仅通过现有连接的私有反向频道传输，单块保持在 RPC 帧预算内。
 export const TOPIC_RESOURCE_RELAY_CHUNK_BYTES = 384 * 1024;
 export const TOPIC_RESOURCE_RELAY_CHANNEL = "host-topic-resource";
-export const zcodeTopicResourceRelayRequestSchema = zcodeTopicResourceReadParamsSchema
+export const nibiTopicResourceRelayRequestSchema = nibiTopicResourceReadParamsSchema
   .extend({
     workspacePath: z.string().min(1).max(4096),
     workspaceIdentity: z.string().min(1).max(4096),
@@ -375,14 +375,14 @@ export const zcodeTopicResourceRelayRequestSchema = zcodeTopicResourceReadParams
     trace: nibiProtocolTraceSchema.optional(),
   })
   .strict();
-export type ZCodeTopicResourceRelayRequest = z.infer<typeof zcodeTopicResourceRelayRequestSchema>;
-export const zcodeTopicResourceRelayKeySchema = zcodeTopicResourceCancelParamsSchema;
-export const zcodeTopicResourceRelayChunkRequestSchema = zcodeTopicResourceRelayKeySchema
+export type NibiTopicResourceRelayRequest = z.infer<typeof nibiTopicResourceRelayRequestSchema>;
+export const nibiTopicResourceRelayKeySchema = nibiTopicResourceCancelParamsSchema;
+export const nibiTopicResourceRelayChunkRequestSchema = nibiTopicResourceRelayKeySchema
   .extend({
     index: z.number().int().nonnegative(),
   })
   .strict();
-export const zcodeTopicResourceRelayMetadataSchema = z
+export const nibiTopicResourceRelayMetadataSchema = z
   .object({
     fileName: z.string().min(1).max(1024),
     mime: z.string().min(1).max(256),
@@ -395,7 +395,7 @@ export const zcodeTopicResourceRelayMetadataSchema = z
     checksum: z.string().regex(/^sha256:[a-f0-9]{64}$/),
   })
   .strict();
-export const zcodeTopicResourceRelayChunkSchema = z
+export const nibiTopicResourceRelayChunkSchema = z
   .object({
     dataBase64: z.string().max((TOPIC_RESOURCE_RELAY_CHUNK_BYTES / 3) * 4),
   })
@@ -462,7 +462,7 @@ export const nibiProtocolNotifications = {
 } as const;
 
 /** 启动控制面独立于 task stream；数据库身份不可携带路径/凭据。 */
-export const zcodeStorageStartupStateSchema = z
+export const nibiStorageStartupStateSchema = z
   .object({
     schemaVersion: z.literal(1),
     attemptId: z.string().min(1).max(128),
@@ -483,9 +483,9 @@ export const zcodeStorageStartupStateSchema = z
     if (state.phase === "failed" && !state.errorCode)
       context.addIssue({ code: "custom", message: "failed requires errorCode" });
   });
-export type ZCodeStorageStartupState = z.infer<typeof zcodeStorageStartupStateSchema>;
+export type NibiStorageStartupState = z.infer<typeof nibiStorageStartupStateSchema>;
 
-const zcodeMcpTelemetryPlatformSchema = z.enum([
+const nibiMcpTelemetryPlatformSchema = z.enum([
   "aix",
   "android",
   "darwin",
@@ -498,7 +498,7 @@ const zcodeMcpTelemetryPlatformSchema = z.enum([
   "win32",
   "cygwin",
 ]);
-const zcodeMcpTelemetryArchSchema = z.enum([
+const nibiMcpTelemetryArchSchema = z.enum([
   "arm",
   "arm64",
   "ia32",
@@ -512,14 +512,14 @@ const zcodeMcpTelemetryArchSchema = z.enum([
   "s390x",
   "x64",
 ]);
-const zcodeMcpTelemetryBaseSchema = z
+const nibiMcpTelemetryBaseSchema = z
   .object({
-    arch: zcodeMcpTelemetryArchSchema,
+    arch: nibiMcpTelemetryArchSchema,
     occurredAt: z.number().int().nonnegative(),
-    platform: zcodeMcpTelemetryPlatformSchema,
+    platform: nibiMcpTelemetryPlatformSchema,
   })
   .strict();
-const zcodeMcpProcessTelemetryBaseShape = {
+const nibiMcpProcessTelemetryBaseShape = {
   mcpId: z
     .string()
     .regex(
@@ -530,24 +530,24 @@ const zcodeMcpProcessTelemetryBaseShape = {
   mcpSource: z.enum(["builtin", "plugin", "custom"]),
 } as const;
 
-export const zcodeMcpTelemetryEventSchema = z.discriminatedUnion("kind", [
-  zcodeMcpTelemetryBaseSchema
+export const nibiMcpTelemetryEventSchema = z.discriminatedUnion("kind", [
+  nibiMcpTelemetryBaseSchema
     .extend({
       kind: z.literal("process_start"),
-      ...zcodeMcpProcessTelemetryBaseShape,
+      ...nibiMcpProcessTelemetryBaseShape,
     })
     .strict(),
-  zcodeMcpTelemetryBaseSchema
+  nibiMcpTelemetryBaseSchema
     .extend({
       kind: z.literal("process_crash"),
-      ...zcodeMcpProcessTelemetryBaseShape,
+      ...nibiMcpProcessTelemetryBaseShape,
       affectedSessionCount: z.number().int().nonnegative().max(10_000),
       exitCode: z.number().int().nullable(),
       signal: nonEmptyString.nullable(),
       uptimeMs: z.number().finite().nonnegative().max(Number.MAX_SAFE_INTEGER),
     })
     .strict(),
-  zcodeMcpTelemetryBaseSchema
+  nibiMcpTelemetryBaseSchema
     .extend({
       kind: z.literal("session_startup"),
       configuredCount: z.number().int().nonnegative().max(10_000),
@@ -557,10 +557,10 @@ export const zcodeMcpTelemetryEventSchema = z.discriminatedUnion("kind", [
       sessionId: nonEmptyString,
     })
     .strict(),
-  zcodeMcpTelemetryBaseSchema
+  nibiMcpTelemetryBaseSchema
     .extend({
       kind: z.literal("memory"),
-      ...zcodeMcpProcessTelemetryBaseShape,
+      ...nibiMcpProcessTelemetryBaseShape,
       memoryKb: z.number().finite().nonnegative().max(Number.MAX_SAFE_INTEGER),
       memoryScope: z.enum(["process_tree", "direct_process"]),
       orphanSuspected: z.boolean(),
@@ -569,14 +569,14 @@ export const zcodeMcpTelemetryEventSchema = z.discriminatedUnion("kind", [
     })
     .strict(),
 ]);
-export type ZCodeMcpTelemetryEvent = z.infer<typeof zcodeMcpTelemetryEventSchema>;
+export type NibiMcpTelemetryEvent = z.infer<typeof nibiMcpTelemetryEventSchema>;
 
 /** MCP 每五分钟只探测一次，周期由生产者与设备总量过期判据共用。 */
 export const NIBI_MCP_RESOURCE_SAMPLE_INTERVAL_MS = 5 * 60_000;
 
-export const zcodeMcpResourceSampleSchema = z
+export const nibiMcpResourceSampleSchema = z
   .object({
-    mcpId: zcodeMcpProcessTelemetryBaseShape.mcpId,
+    mcpId: nibiMcpProcessTelemetryBaseShape.mcpId,
     instanceToken: z.string().regex(/^[A-Za-z0-9_-]{8,64}$/),
     sampledAt: z.number().int().nonnegative(),
     intervalMs: z.number().finite().positive(),
@@ -585,25 +585,25 @@ export const zcodeMcpResourceSampleSchema = z
     rssKbMaxProcess: z.number().finite().nonnegative().max(Number.MAX_SAFE_INTEGER),
     cpuTimeMsDelta: z.number().finite().nonnegative().max(Number.MAX_SAFE_INTEGER),
     uptimeMinutes: z.number().int().nonnegative(),
-    platform: zcodeMcpTelemetryPlatformSchema,
-    arch: zcodeMcpTelemetryArchSchema,
+    platform: nibiMcpTelemetryPlatformSchema,
+    arch: nibiMcpTelemetryArchSchema,
     logicalCpuCount: z.number().int().positive().max(4_096),
     totalMemoryGb: z.number().int().nonnegative().max(1_048_576),
   })
   .strict();
-export type ZCodeMcpResourceSample = z.infer<typeof zcodeMcpResourceSampleSchema>;
+export type NibiMcpResourceSample = z.infer<typeof nibiMcpResourceSampleSchema>;
 // 通知输入有界；main 另按每个上报窗口的 32 个 MCP 分组执行事件额度。
-export const zcodeMcpResourceSamplesSchema = z.array(zcodeMcpResourceSampleSchema).max(1_024);
+export const nibiMcpResourceSamplesSchema = z.array(nibiMcpResourceSampleSchema).max(1_024);
 
 export const BASH_RESOURCE_SAMPLE_INTERVAL_MS = 15_000;
 export const BASH_RESOURCE_MAX_SAMPLES = 20;
 
 /** Bash 子进程的有界完成事实；禁止命令、路径与会话标识进入遥测旁路。 */
-export const zcodeToolExecResourceSchema = z
+export const nibiToolExecResourceSchema = z
   .object({
     // 同一完成事实可能经多个 Host 转发；随机标识仅供 main 去重，旧 CLI 缺字段仍兼容。
     completionToken: z.string().uuid().optional(),
-    platform: zcodeMcpTelemetryPlatformSchema,
+    platform: nibiMcpTelemetryPlatformSchema,
     toolName: z.literal("bash"),
     durationMs: z.number().finite().min(BASH_RESOURCE_SAMPLE_INTERVAL_MS),
     exitKind: z.enum(["completed", "timeout", "killed", "error"]),
@@ -614,9 +614,9 @@ export const zcodeToolExecResourceSchema = z
     systemFreeMemoryKb: z.number().finite().nonnegative(),
   })
   .strict();
-export type ZCodeToolExecResource = z.infer<typeof zcodeToolExecResourceSchema>;
+export type NibiToolExecResource = z.infer<typeof nibiToolExecResourceSchema>;
 
-export const zcodeProcessResourceSampleSchema = z
+export const nibiProcessResourceSampleSchema = z
   .object({
     platform: z.enum([
       "aix",
@@ -677,10 +677,10 @@ export const zcodeProcessResourceSampleSchema = z
       .optional(),
   })
   .strict();
-export type ZCodeProcessResourceSample = z.infer<typeof zcodeProcessResourceSampleSchema>;
+export type NibiProcessResourceSample = z.infer<typeof nibiProcessResourceSampleSchema>;
 
-export const zcodeProcessChildProcessesParamsSchema = z.object({}).strict();
-export const zcodeProcessChildProcessSchema = z
+export const nibiProcessChildProcessesParamsSchema = z.object({}).strict();
+export const nibiProcessChildProcessSchema = z
   .object({
     pid: z.number().int().positive(),
     serverName: nonEmptyString,
@@ -689,31 +689,31 @@ export const zcodeProcessChildProcessSchema = z
     pluginName: nonEmptyString.optional(),
   })
   .strict();
-export const zcodeProcessChildProcessesResultSchema = z
+export const nibiProcessChildProcessesResultSchema = z
   .object({
-    processes: z.array(zcodeProcessChildProcessSchema).max(10_000),
+    processes: z.array(nibiProcessChildProcessSchema).max(10_000),
   })
   .strict();
-export type ZCodeProcessChildProcess = z.infer<typeof zcodeProcessChildProcessSchema>;
-export type ZCodeProcessChildProcessesResult = z.infer<
-  typeof zcodeProcessChildProcessesResultSchema
+export type NibiProcessChildProcess = z.infer<typeof nibiProcessChildProcessSchema>;
+export type NibiProcessChildProcessesResult = z.infer<
+  typeof nibiProcessChildProcessesResultSchema
 >;
 
-export type ZCodeDeliveryKind = z.infer<typeof zcodeDeliveryKindSchema>;
+export type NibiDeliveryKind = z.infer<typeof nibiDeliveryKindSchema>;
 // TurnStarted 与持久 message 必须共用同一来源词表；否则 live event 能通过而 cold
 // message 在 app/agent 边界被拒绝，造成 continuous/replayable 语义分叉。
 // 持久消息与输入沿用同一 source schema；agent_listing_delta 只作 provider context，不触发新 turn。
-const zcodeTurnInputSourceSchema = legacyZcodeSyntheticUserMessageSourceSchema;
-export const zcodeSessionPersistenceSchema = z.enum(["immediate", "deferred"]);
-export type ZCodeSessionPersistence = z.infer<typeof zcodeSessionPersistenceSchema>;
-export type ZCodeWorkspaceRef = z.infer<typeof zcodeWorkspaceRefSchema>;
-export const zcodePermissionOptionSchema = z
+const nibiTurnInputSourceSchema = legacyNibiSyntheticUserMessageSourceSchema;
+export const nibiSessionPersistenceSchema = z.enum(["immediate", "deferred"]);
+export type NibiSessionPersistence = z.infer<typeof nibiSessionPersistenceSchema>;
+export type NibiWorkspaceRef = z.infer<typeof nibiWorkspaceRefSchema>;
+export const nibiPermissionOptionSchema = z
   .object({
     optionId: nonEmptyString,
     kind: nonEmptyString,
     name: nonEmptyString,
     description: z.string().optional(),
-    response: zcodePermissionResponseSchema,
+    response: nibiPermissionResponseSchema,
   })
   .strict();
 
@@ -775,7 +775,7 @@ export const nibiProtocolMcpServerSchema = z.union([
 ]);
 export type NibiProtocolMcpServer = z.infer<typeof nibiProtocolMcpServerSchema>;
 
-export const zcodeMcpServerStatusKindSchema = z.enum([
+export const nibiMcpServerStatusKindSchema = z.enum([
   "connecting",
   "connected",
   "disabled",
@@ -806,9 +806,9 @@ export const MCP_SERVER_FAILURE_KINDS = [
 ] as const;
 export const mcpServerFailureKindSchema = z.enum(MCP_SERVER_FAILURE_KINDS);
 export type McpServerFailureKind = z.infer<typeof mcpServerFailureKindSchema>;
-export const zcodeMcpServerStatusSnapshotSchema = z
+export const nibiMcpServerStatusSnapshotSchema = z
   .object({
-    status: zcodeMcpServerStatusKindSchema,
+    status: nibiMcpServerStatusKindSchema,
     transport: z.enum(["stdio", "http", "sse"]),
     toolCount: z.number().int().nonnegative(),
     updatedAt: nonEmptyString,
@@ -826,31 +826,31 @@ export const zcodeMcpServerStatusSnapshotSchema = z
       .optional(),
   })
   .strict();
-export type ZCodeMcpServerStatusSnapshot = z.infer<typeof zcodeMcpServerStatusSnapshotSchema>;
+export type NibiMcpServerStatusSnapshot = z.infer<typeof nibiMcpServerStatusSnapshotSchema>;
 
-export const zcodeMcpListModeSchema = z.enum(["connect", "status"]);
-export type ZCodeMcpListMode = z.infer<typeof zcodeMcpListModeSchema>;
+export const nibiMcpListModeSchema = z.enum(["connect", "status"]);
+export type NibiMcpListMode = z.infer<typeof nibiMcpListModeSchema>;
 
-export const zcodeMcpListParamsSchema = z
+export const nibiMcpListParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     mcpServers: z.array(nibiProtocolMcpServerSchema).optional(),
-    mode: zcodeMcpListModeSchema.default("connect"),
+    mode: nibiMcpListModeSchema.default("connect"),
   })
   .strict();
-export const zcodeMcpListResultSchema = z
+export const nibiMcpListResultSchema = z
   .object({
-    statuses: z.record(z.string(), zcodeMcpServerStatusSnapshotSchema),
+    statuses: z.record(z.string(), nibiMcpServerStatusSnapshotSchema),
   })
   .strict();
-export type ZCodeMcpListResult = z.infer<typeof zcodeMcpListResultSchema>;
+export type NibiMcpListResult = z.infer<typeof nibiMcpListResultSchema>;
 
 // 插件 UI：UI 发起的 MCP 资源读取与工具调用，
 // 按 pluginId 限定 server 归属，agent 侧 fail closed。
-export const zcodeMcpUiOpenInstanceParamsSchema = z
+export const nibiMcpUiOpenInstanceParamsSchema = z
   .object({
     accountContext: z.string().max(256).optional(),
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     sessionId: nonEmptyString,
     pluginId: nonEmptyString,
     serverName: nonEmptyString,
@@ -859,25 +859,25 @@ export const zcodeMcpUiOpenInstanceParamsSchema = z
     ownerWebContentsId: z.number().int().positive(),
   })
   .strict();
-export const zcodeMcpUiOpenInstanceResultSchema = mcpAppInstanceSchema;
-export type ZCodeMcpUiOpenInstanceParams = z.infer<typeof zcodeMcpUiOpenInstanceParamsSchema>;
-const zcodeMcpUiPluginScopeShape = {
+export const nibiMcpUiOpenInstanceResultSchema = mcpAppInstanceSchema;
+export type NibiMcpUiOpenInstanceParams = z.infer<typeof nibiMcpUiOpenInstanceParamsSchema>;
+const nibiMcpUiPluginScopeShape = {
   instance: mcpAppInstanceSchema,
 
-  workspace: zcodeWorkspaceRefSchema,
+  workspace: nibiWorkspaceRefSchema,
   sessionId: nonEmptyString,
   pluginId: nonEmptyString,
   serverName: nonEmptyString,
 };
-export const zcodeMcpUiCloseInstanceParamsSchema = z
-  .object({ ...zcodeMcpUiPluginScopeShape, onlyIfIdle: z.boolean().optional() })
+export const nibiMcpUiCloseInstanceParamsSchema = z
+  .object({ ...nibiMcpUiPluginScopeShape, onlyIfIdle: z.boolean().optional() })
   .strict();
-export const zcodeMcpUiCloseInstanceResultSchema = z.object({ closed: z.boolean() }).strict();
-export const zcodeMcpReadResourceParamsSchema = z
-  .object({ ...zcodeMcpUiPluginScopeShape, uri: nonEmptyString.max(2048) })
+export const nibiMcpUiCloseInstanceResultSchema = z.object({ closed: z.boolean() }).strict();
+export const nibiMcpReadResourceParamsSchema = z
+  .object({ ...nibiMcpUiPluginScopeShape, uri: nonEmptyString.max(2048) })
   .strict();
-export type ZCodeMcpReadResourceParams = z.infer<typeof zcodeMcpReadResourceParamsSchema>;
-export const zcodeMcpResourceContentSchema = z
+export type NibiMcpReadResourceParams = z.infer<typeof nibiMcpReadResourceParamsSchema>;
+export const nibiMcpResourceContentSchema = z
   .object({
     uri: z.string(),
     mimeType: z.string().optional(),
@@ -886,18 +886,18 @@ export const zcodeMcpResourceContentSchema = z
     _meta: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
-export const zcodeMcpReadResourceResultSchema = z
-  .object({ contents: z.array(zcodeMcpResourceContentSchema) })
+export const nibiMcpReadResourceResultSchema = z
+  .object({ contents: z.array(nibiMcpResourceContentSchema) })
   .strict();
-export type ZCodeMcpReadResourceResult = z.infer<typeof zcodeMcpReadResourceResultSchema>;
+export type NibiMcpReadResourceResult = z.infer<typeof nibiMcpReadResourceResultSchema>;
 
 /**
  * 插件页面发起的 `resources/read` 代理。
  * 与 `mcp/readResource`（宿主取 ui:// HTML）参数同形，但结果去掉 `_meta`、受 8 MiB 与 mimeType 白名单约束。
  */
-export const zcodeMcpUiReadResourceParamsSchema = zcodeMcpReadResourceParamsSchema;
-export type ZCodeMcpUiReadResourceParams = z.infer<typeof zcodeMcpUiReadResourceParamsSchema>;
-export const zcodeMcpUiResourceContentSchema = z
+export const nibiMcpUiReadResourceParamsSchema = nibiMcpReadResourceParamsSchema;
+export type NibiMcpUiReadResourceParams = z.infer<typeof nibiMcpUiReadResourceParamsSchema>;
+export const nibiMcpUiResourceContentSchema = z
   .object({
     uri: z.string(),
     mimeType: z.string().optional(),
@@ -905,48 +905,48 @@ export const zcodeMcpUiResourceContentSchema = z
     blob: z.string().optional(),
   })
   .strict();
-export const zcodeMcpUiReadResourceResultSchema = z
-  .object({ contents: z.array(zcodeMcpUiResourceContentSchema) })
+export const nibiMcpUiReadResourceResultSchema = z
+  .object({ contents: z.array(nibiMcpUiResourceContentSchema) })
   .strict();
-export type ZCodeMcpUiReadResourceResult = z.infer<typeof zcodeMcpUiReadResourceResultSchema>;
+export type NibiMcpUiReadResourceResult = z.infer<typeof nibiMcpUiReadResourceResultSchema>;
 
-export const zcodeMcpUiSamplingParamsSchema = z
+export const nibiMcpUiSamplingParamsSchema = z
   .object({
-    ...zcodeMcpUiPluginScopeShape,
+    ...nibiMcpUiPluginScopeShape,
     operationId: nonEmptyString.max(128),
     request: mcpAppsSamplingParamsSchema,
   })
   .strict();
-export const zcodeMcpUiCancelSamplingParamsSchema = z
-  .object({ ...zcodeMcpUiPluginScopeShape, operationId: nonEmptyString.max(128) })
+export const nibiMcpUiCancelSamplingParamsSchema = z
+  .object({ ...nibiMcpUiPluginScopeShape, operationId: nonEmptyString.max(128) })
   .strict();
-export const zcodeMcpUiSamplingResultSchema = mcpAppsSamplingResultSchema;
-export type ZCodeMcpUiSamplingParams = z.infer<typeof zcodeMcpUiSamplingParamsSchema>;
-export type ZCodeMcpUiCancelSamplingParams = z.infer<typeof zcodeMcpUiCancelSamplingParamsSchema>;
+export const nibiMcpUiSamplingResultSchema = mcpAppsSamplingResultSchema;
+export type NibiMcpUiSamplingParams = z.infer<typeof nibiMcpUiSamplingParamsSchema>;
+export type NibiMcpUiCancelSamplingParams = z.infer<typeof nibiMcpUiCancelSamplingParamsSchema>;
 
-export const zcodeMcpUiCallToolParamsSchema = z
+export const nibiMcpUiCallToolParamsSchema = z
   .object({
-    ...zcodeMcpUiPluginScopeShape,
+    ...nibiMcpUiPluginScopeShape,
     toolName: nonEmptyString,
     arguments: z.record(z.string(), z.unknown()).optional(),
     /** 宿主生成的调用 id，配合 `mcp/uiCancelCall` 取消进行中的调用。 */
     callId: nonEmptyString.max(128),
   })
   .strict();
-export type ZCodeMcpUiCallToolParams = z.infer<typeof zcodeMcpUiCallToolParamsSchema>;
+export type NibiMcpUiCallToolParams = z.infer<typeof nibiMcpUiCallToolParamsSchema>;
 /** 取消页面发起的工具调用（卡片卸载、会话切换）；agent 侧 abort 到 MCP client。 */
-export const zcodeMcpUiCancelCallParamsSchema = z
-  .object({ ...zcodeMcpUiPluginScopeShape, callId: nonEmptyString.max(128) })
+export const nibiMcpUiCancelCallParamsSchema = z
+  .object({ ...nibiMcpUiPluginScopeShape, callId: nonEmptyString.max(128) })
   .strict();
-export type ZCodeMcpUiCancelCallParams = z.infer<typeof zcodeMcpUiCancelCallParamsSchema>;
-export const zcodeMcpUiCancelCallResultSchema = z.object({ cancelled: z.boolean() }).strict();
-export type ZCodeMcpUiCancelCallResult = z.infer<typeof zcodeMcpUiCancelCallResultSchema>;
+export type NibiMcpUiCancelCallParams = z.infer<typeof nibiMcpUiCancelCallParamsSchema>;
+export const nibiMcpUiCancelCallResultSchema = z.object({ cancelled: z.boolean() }).strict();
+export type NibiMcpUiCancelCallResult = z.infer<typeof nibiMcpUiCancelCallResultSchema>;
 /** 页面发起的 resources/list、resources/templates/list、subscribe、unsubscribe 代理。 */
-export const zcodeMcpUiListResourcesParamsSchema = z
-  .object({ ...zcodeMcpUiPluginScopeShape, cursor: nonEmptyString.max(2048).optional() })
+export const nibiMcpUiListResourcesParamsSchema = z
+  .object({ ...nibiMcpUiPluginScopeShape, cursor: nonEmptyString.max(2048).optional() })
   .strict();
-export type ZCodeMcpUiListResourcesParams = z.infer<typeof zcodeMcpUiListResourcesParamsSchema>;
-const zcodeMcpUiResourceDescriptorSchema = z
+export type NibiMcpUiListResourcesParams = z.infer<typeof nibiMcpUiListResourcesParamsSchema>;
+const nibiMcpUiResourceDescriptorSchema = z
   .object({
     uri: z.string(),
     name: z.string().optional(),
@@ -957,14 +957,14 @@ const zcodeMcpUiResourceDescriptorSchema = z
     _meta: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
-export const zcodeMcpUiListResourcesResultSchema = z
+export const nibiMcpUiListResourcesResultSchema = z
   .object({
-    resources: z.array(zcodeMcpUiResourceDescriptorSchema),
+    resources: z.array(nibiMcpUiResourceDescriptorSchema),
     nextCursor: z.string().optional(),
   })
   .strict();
-export type ZCodeMcpUiListResourcesResult = z.infer<typeof zcodeMcpUiListResourcesResultSchema>;
-export const zcodeMcpUiListResourceTemplatesResultSchema = z
+export type NibiMcpUiListResourcesResult = z.infer<typeof nibiMcpUiListResourcesResultSchema>;
+export const nibiMcpUiListResourceTemplatesResultSchema = z
   .object({
     resourceTemplates: z.array(
       z
@@ -980,72 +980,72 @@ export const zcodeMcpUiListResourceTemplatesResultSchema = z
     nextCursor: z.string().optional(),
   })
   .strict();
-export type ZCodeMcpUiListResourceTemplatesResult = z.infer<
-  typeof zcodeMcpUiListResourceTemplatesResultSchema
+export type NibiMcpUiListResourceTemplatesResult = z.infer<
+  typeof nibiMcpUiListResourceTemplatesResultSchema
 >;
 /** 订阅者身份 = 会话 + 沙箱作用域 + 实例代际（initId）；dispose 只退订本代际，新实例不受影响。 */
-export const zcodeMcpUiResourceSubscriptionParamsSchema = z
+export const nibiMcpUiResourceSubscriptionParamsSchema = z
   .object({
-    ...zcodeMcpUiPluginScopeShape,
+    ...nibiMcpUiPluginScopeShape,
     scopeId: nonEmptyString.max(256),
     generation: z.number().int().nonnegative(),
     uri: nonEmptyString.max(2048),
   })
   .strict();
-export type ZCodeMcpUiResourceSubscriptionParams = z.infer<
-  typeof zcodeMcpUiResourceSubscriptionParamsSchema
+export type NibiMcpUiResourceSubscriptionParams = z.infer<
+  typeof nibiMcpUiResourceSubscriptionParamsSchema
 >;
-export const zcodeMcpUiResourceSubscriptionResultSchema = z.object({}).strict();
+export const nibiMcpUiResourceSubscriptionResultSchema = z.object({}).strict();
 /**
  * App-Provided Tools：实例身份 = 会话 + 沙箱作用域 + 代际（与资源订阅同一三元组）。
  * 登记按实例整体替换；调用认领 / 回传按 callId 幂等。
  */
-const zcodeMcpUiAppToolInstanceShape = {
-  ...zcodeMcpUiPluginScopeShape,
+const nibiMcpUiAppToolInstanceShape = {
+  ...nibiMcpUiPluginScopeShape,
   scopeId: nonEmptyString.max(256),
   generation: z.number().int().nonnegative(),
 };
-export const zcodeMcpUiRegisterAppToolsParamsSchema = z
+export const nibiMcpUiRegisterAppToolsParamsSchema = z
   .object({
-    ...zcodeMcpUiAppToolInstanceShape,
+    ...nibiMcpUiAppToolInstanceShape,
     tools: z.array(mcpAppsAppToolDescriptorSchema).max(MCP_APPS_APP_TOOLS_MAX_PER_INSTANCE),
   })
   .strict();
-export type ZCodeMcpUiRegisterAppToolsParams = z.infer<
-  typeof zcodeMcpUiRegisterAppToolsParamsSchema
+export type NibiMcpUiRegisterAppToolsParams = z.infer<
+  typeof nibiMcpUiRegisterAppToolsParamsSchema
 >;
-export const zcodeMcpUiRegisterAppToolsResultSchema = z
+export const nibiMcpUiRegisterAppToolsResultSchema = z
   .object({ tools: z.array(z.object({ name: z.string(), modelName: z.string() }).strict()) })
   .strict();
-export type ZCodeMcpUiRegisterAppToolsResult = z.infer<
-  typeof zcodeMcpUiRegisterAppToolsResultSchema
+export type NibiMcpUiRegisterAppToolsResult = z.infer<
+  typeof nibiMcpUiRegisterAppToolsResultSchema
 >;
-export const zcodeMcpUiUnregisterAppToolsParamsSchema = z
-  .object(zcodeMcpUiAppToolInstanceShape)
+export const nibiMcpUiUnregisterAppToolsParamsSchema = z
+  .object(nibiMcpUiAppToolInstanceShape)
   .strict();
-export type ZCodeMcpUiUnregisterAppToolsParams = z.infer<
-  typeof zcodeMcpUiUnregisterAppToolsParamsSchema
+export type NibiMcpUiUnregisterAppToolsParams = z.infer<
+  typeof nibiMcpUiUnregisterAppToolsParamsSchema
 >;
-export const zcodeMcpUiUnregisterAppToolsResultSchema = z
+export const nibiMcpUiUnregisterAppToolsResultSchema = z
   .object({ removed: z.number().int().nonnegative() })
   .strict();
-export type ZCodeMcpUiUnregisterAppToolsResult = z.infer<
-  typeof zcodeMcpUiUnregisterAppToolsResultSchema
+export type NibiMcpUiUnregisterAppToolsResult = z.infer<
+  typeof nibiMcpUiUnregisterAppToolsResultSchema
 >;
-export const zcodeMcpUiClaimAppToolCallParamsSchema = z
+export const nibiMcpUiClaimAppToolCallParamsSchema = z
   .object({
-    ...zcodeMcpUiAppToolInstanceShape,
+    ...nibiMcpUiAppToolInstanceShape,
     callId: nonEmptyString.max(MCP_APPS_APP_TOOL_CALL_ID_MAX_CHARS),
   })
   .strict();
-export type ZCodeMcpUiClaimAppToolCallParams = z.infer<
-  typeof zcodeMcpUiClaimAppToolCallParamsSchema
+export type NibiMcpUiClaimAppToolCallParams = z.infer<
+  typeof nibiMcpUiClaimAppToolCallParamsSchema
 >;
-export const zcodeMcpUiAppToolAcceptedResultSchema = z.object({ accepted: z.boolean() }).strict();
-export type ZCodeMcpUiAppToolAcceptedResult = z.infer<typeof zcodeMcpUiAppToolAcceptedResultSchema>;
-export const zcodeMcpUiResolveAppToolCallParamsSchema = z
+export const nibiMcpUiAppToolAcceptedResultSchema = z.object({ accepted: z.boolean() }).strict();
+export type NibiMcpUiAppToolAcceptedResult = z.infer<typeof nibiMcpUiAppToolAcceptedResultSchema>;
+export const nibiMcpUiResolveAppToolCallParamsSchema = z
   .object({
-    ...zcodeMcpUiAppToolInstanceShape,
+    ...nibiMcpUiAppToolInstanceShape,
     callId: nonEmptyString.max(MCP_APPS_APP_TOOL_CALL_ID_MAX_CHARS),
     result: mcpAppsAppToolCallResultSchema.optional(),
     error: z
@@ -1057,10 +1057,10 @@ export const zcodeMcpUiResolveAppToolCallParamsSchema = z
   .refine((value) => (value.result === undefined) !== (value.error === undefined), {
     message: "exactly one of result or error is required",
   });
-export type ZCodeMcpUiResolveAppToolCallParams = z.infer<
-  typeof zcodeMcpUiResolveAppToolCallParamsSchema
+export type NibiMcpUiResolveAppToolCallParams = z.infer<
+  typeof nibiMcpUiResolveAppToolCallParamsSchema
 >;
-export const zcodeMcpUiCallToolResultSchema = z
+export const nibiMcpUiCallToolResultSchema = z
   .object({
     content: z.array(z.record(z.string(), z.unknown())),
     structuredContent: z.unknown().optional(),
@@ -1068,25 +1068,25 @@ export const zcodeMcpUiCallToolResultSchema = z
     _meta: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
-export type ZCodeMcpUiCallToolResult = z.infer<typeof zcodeMcpUiCallToolResultSchema>;
+export type NibiMcpUiCallToolResult = z.infer<typeof nibiMcpUiCallToolResultSchema>;
 
-export const zcodeSessionImportMessageSchema = z
+export const nibiSessionImportMessageSchema = z
   .object({
     role: z.enum(["user", "assistant"]),
     content: z.string(),
     timestamp: timestampMsSchema.optional(),
   })
   .strict();
-export type ZCodeSessionImportMessage = z.infer<typeof zcodeSessionImportMessageSchema>;
+export type NibiSessionImportMessage = z.infer<typeof nibiSessionImportMessageSchema>;
 
-export const zcodeSessionImportHistorySchema = z.discriminatedUnion("source", [
+export const nibiSessionImportHistorySchema = z.discriminatedUnion("source", [
   z
     .object({
       source: z.literal("claudeCode"),
       title: z.string().optional(),
       createdAt: timestampMsSchema.optional(),
       updatedAt: timestampMsSchema.optional(),
-      messages: z.array(zcodeSessionImportMessageSchema).min(1),
+      messages: z.array(nibiSessionImportMessageSchema).min(1),
     })
     .strict(),
   z
@@ -1118,30 +1118,30 @@ export const zcodeSessionImportHistorySchema = z.discriminatedUnion("source", [
     })
     .strict(),
 ]);
-export type ZCodeSessionImportHistory = z.infer<typeof zcodeSessionImportHistorySchema>;
+export type NibiSessionImportHistory = z.infer<typeof nibiSessionImportHistorySchema>;
 
-export const zcodeThoughtLevelOptionSchema = z
+export const nibiThoughtLevelOptionSchema = z
   .object({
     value: nonEmptyString,
     label: nonEmptyString,
     description: z.string().optional(),
   })
   .strict();
-export const zcodeModelReasoningOptionsSchema = z
+export const nibiModelReasoningOptionsSchema = z
   .object({
-    levels: z.array(zcodeThoughtLevelOptionSchema),
+    levels: z.array(nibiThoughtLevelOptionSchema),
     defaultLevel: nonEmptyString.optional(),
   })
   .strict();
-export type ZCodeModelReasoningOptions = z.infer<typeof zcodeModelReasoningOptionsSchema>;
+export type NibiModelReasoningOptions = z.infer<typeof nibiModelReasoningOptionsSchema>;
 
-export const zcodeModelFormatPropertiesSchema = completeModelPropertiesDataSchema.pick({
+export const nibiModelFormatPropertiesSchema = completeModelPropertiesDataSchema.pick({
   inputFormat: true,
   outputFormat: true,
 });
-export type ZCodeModelFormatProperties = z.infer<typeof zcodeModelFormatPropertiesSchema>;
+export type NibiModelFormatProperties = z.infer<typeof nibiModelFormatPropertiesSchema>;
 
-export const zcodeModelOptionSchema = z
+export const nibiModelOptionSchema = z
   .object({
     ref: modelSelectionSchema,
     label: nonEmptyString,
@@ -1149,14 +1149,14 @@ export const zcodeModelOptionSchema = z
     description: z.string().optional(),
     contextWindow: z.number().int().positive().optional(),
     maxOutputTokens: z.number().int().positive().optional(),
-    reasoning: zcodeModelReasoningOptionsSchema.optional(),
-    properties: zcodeModelFormatPropertiesSchema,
+    reasoning: nibiModelReasoningOptionsSchema.optional(),
+    properties: nibiModelFormatPropertiesSchema,
     disabledReason: z.string().optional(),
   })
   .strict();
-export type ZCodeModelOption = z.infer<typeof zcodeModelOptionSchema>;
+export type NibiModelOption = z.infer<typeof nibiModelOptionSchema>;
 
-export const zcodeAccountAccessSchema = z.discriminatedUnion("planKind", [
+export const nibiAccountAccessSchema = z.discriminatedUnion("planKind", [
   z
     .object({
       type: z.literal("zhipu-account"),
@@ -1182,10 +1182,10 @@ export const zcodeAccountAccessSchema = z.discriminatedUnion("planKind", [
     })
     .strict(),
 ]);
-export type ZCodeAccountAccess = z.infer<typeof zcodeAccountAccessSchema>;
+export type NibiAccountAccess = z.infer<typeof nibiAccountAccessSchema>;
 
 /** Active Model 固定的账号访问类别；当前商品和 Team scope 由账号服务在请求期解析。 */
-export const zcodeProviderAccountAccessSchema = z
+export const nibiProviderAccountAccessSchema = z
   .object({
     type: z.literal("zhipu-account"),
     accountType: z.enum(["zai", "bigmodel"]),
@@ -1193,20 +1193,20 @@ export const zcodeProviderAccountAccessSchema = z
     entitled: z.boolean(),
   })
   .strict();
-export type ZCodeProviderAccountAccess = z.infer<typeof zcodeProviderAccountAccessSchema>;
+export type NibiProviderAccountAccess = z.infer<typeof nibiProviderAccountAccessSchema>;
 
-export type ZCodeSessionMode = z.infer<typeof zcodeSessionModeSchema>;
-export type ZCodeSessionKind = z.infer<typeof zcodeSessionKindSchema>;
-export type ZCodeSessionGoal = z.infer<typeof zcodeSessionGoalSchema>;
+export type NibiSessionMode = z.infer<typeof nibiSessionModeSchema>;
+export type NibiSessionKind = z.infer<typeof nibiSessionKindSchema>;
+export type NibiSessionGoal = z.infer<typeof nibiSessionGoalSchema>;
 
-export const zcodeSessionTodoItemSchema = z
+export const nibiSessionTodoItemSchema = z
   .object({
     content: nonEmptyString,
     status: z.enum(["pending", "in_progress", "completed"]),
     priority: z.enum(["high", "medium", "low"]),
   })
   .strict();
-export const zcodeSessionGoalStatsSchema = z
+export const nibiSessionGoalStatsSchema = z
   .object({
     timeUsedSeconds: z.number().int().nonnegative(),
     tokensUsed: z.number().int().nonnegative(),
@@ -1217,13 +1217,13 @@ export const zcodeSessionGoalStatsSchema = z
     iterationCount: z.number().int().nonnegative(),
   })
   .strict();
-export type ZCodeSessionGoalStats = z.infer<typeof zcodeSessionGoalStatsSchema>;
-export type ZCodeSessionGoalVerification = z.infer<typeof zcodeSessionGoalVerificationSchema>;
-export type ZCodeSessionGoalVerificationTimeline = z.infer<
-  typeof zcodeSessionGoalVerificationTimelineSchema
+export type NibiSessionGoalStats = z.infer<typeof nibiSessionGoalStatsSchema>;
+export type NibiSessionGoalVerification = z.infer<typeof nibiSessionGoalVerificationSchema>;
+export type NibiSessionGoalVerificationTimeline = z.infer<
+  typeof nibiSessionGoalVerificationTimelineSchema
 >;
 
-export const zcodeSessionTodoGroupSchema = z
+export const nibiSessionTodoGroupSchema = z
   .object({
     id: nonEmptyString,
     source: z.enum(["goal_iteration", "session"]),
@@ -1231,18 +1231,18 @@ export const zcodeSessionTodoGroupSchema = z
     targetId: nonEmptyString.optional(),
     startedAt: timestampMsSchema.optional(),
     updatedAt: timestampMsSchema.optional(),
-    todos: z.array(zcodeSessionTodoItemSchema),
+    todos: z.array(nibiSessionTodoItemSchema),
   })
   .strict();
-export type ZCodeSessionTodoGroup = z.infer<typeof zcodeSessionTodoGroupSchema>;
+export type NibiSessionTodoGroup = z.infer<typeof nibiSessionTodoGroupSchema>;
 
-export const zcodeSessionSettingsStateSchema = z
+export const nibiSessionSettingsStateSchema = z
   .object({
     model: z
       .object({
         // 未绑定是合法恢复状态；不能为满足协议而伪造模型或阻断历史读取。
         current: modelSelectionSchema.optional(),
-        available: z.array(zcodeModelOptionSchema),
+        available: z.array(nibiModelOptionSchema),
         lastUsed: modelSelectionSchema.optional(),
       })
       .strict(),
@@ -1251,25 +1251,25 @@ export const zcodeSessionSettingsStateSchema = z
         enabled: z.boolean(),
         current: nonEmptyString.optional(),
         defaultLevel: nonEmptyString.optional(),
-        available: z.array(zcodeThoughtLevelOptionSchema),
+        available: z.array(nibiThoughtLevelOptionSchema),
       })
       .strict(),
     mode: z
       .object({
-        current: zcodeSessionModeSchema,
+        current: nibiSessionModeSchema,
       })
       .strict(),
     permission: z
       .object({
-        mode: zcodeSessionModeSchema.optional(),
+        mode: nibiSessionModeSchema.optional(),
         rulesRevision: z.number().int().nonnegative().optional(),
       })
       .strict()
       .optional(),
   })
   .strict();
-export type ZCodeSessionSettingsState = z.infer<typeof zcodeSessionSettingsStateSchema>;
-export const zcodePendingPermissionSchema = z
+export type NibiSessionSettingsState = z.infer<typeof nibiSessionSettingsStateSchema>;
+export const nibiPendingPermissionSchema = z
   .object({
     requestId: nonEmptyString,
     toolCallId: nonEmptyString,
@@ -1277,14 +1277,14 @@ export const zcodePendingPermissionSchema = z
     reason: z.string(),
     riskLevel: z.enum(["low", "medium", "high", "critical"]),
     input: z.unknown().optional(),
-    origin: zcodeInteractionRequestOriginSchema.optional(),
-    options: z.array(zcodePermissionOptionSchema).min(1),
+    origin: nibiInteractionRequestOriginSchema.optional(),
+    options: z.array(nibiPermissionOptionSchema).min(1),
     requestedAt: timestampMsSchema,
   })
   .strict();
-export type ZCodePendingPermission = z.infer<typeof zcodePendingPermissionSchema>;
+export type NibiPendingPermission = z.infer<typeof nibiPendingPermissionSchema>;
 
-export const zcodeActiveToolCallSchema = z
+export const nibiActiveToolCallSchema = z
   .object({
     toolCallId: nonEmptyString,
     toolName: nonEmptyString,
@@ -1292,22 +1292,22 @@ export const zcodeActiveToolCallSchema = z
     startedAt: timestampMsSchema.optional(),
   })
   .strict();
-export type ZCodeActiveToolCall = z.infer<typeof zcodeActiveToolCallSchema>;
+export type NibiActiveToolCall = z.infer<typeof nibiActiveToolCallSchema>;
 
-export const zcodeSessionProjectionSchema = z
+export const nibiSessionProjectionSchema = z
   .object({
     sessionId: nonEmptyString,
-    status: zcodeSessionStatusSchema,
-    mode: zcodeSessionModeSchema,
+    status: nibiSessionStatusSchema,
+    mode: nibiSessionModeSchema,
     turnCount: z.number().int().nonnegative(),
     totalTokenCount: z.number().int().nonnegative(),
     contextUsed: z.number().int().nonnegative(),
     contextWindow: z.number().int().nonnegative(),
     currentTurnId: nonEmptyString.optional(),
-    pendingPermissions: z.array(zcodePendingPermissionSchema),
-    activeToolCalls: z.array(zcodeActiveToolCallSchema),
+    pendingPermissions: z.array(nibiPendingPermissionSchema),
+    activeToolCalls: z.array(nibiActiveToolCallSchema),
     backgroundJobs: z.array(jsonObjectSchema),
-    target: zcodeSessionGoalSchema.nullable().optional(),
+    target: nibiSessionGoalSchema.nullable().optional(),
     lastError: z
       .object({
         type: nonEmptyString,
@@ -1320,9 +1320,9 @@ export const zcodeSessionProjectionSchema = z
       .optional(),
   })
   .strict();
-export type ZCodeSessionProjection = z.infer<typeof zcodeSessionProjectionSchema>;
-export type ZCodeToolState = z.infer<typeof zcodeToolStateSchema>;
-export const zcodeSlashCommandSchema = z
+export type NibiSessionProjection = z.infer<typeof nibiSessionProjectionSchema>;
+export type NibiToolState = z.infer<typeof nibiToolStateSchema>;
+export const nibiSlashCommandSchema = z
   .object({
     name: nonEmptyString,
     description: z.string(),
@@ -1330,9 +1330,9 @@ export const zcodeSlashCommandSchema = z
     source: z.enum(["builtin", "custom"]).optional(),
   })
   .strict();
-export type ZCodeSessionApiRetryStatus = z.infer<typeof zcodeSessionApiRetryStatusSchema>;
-export type ZCodeSessionContextUsage = z.infer<typeof zcodeSessionContextUsageSchema>;
-export const zcodeModelStreamingKindSchema = z.enum([
+export type NibiSessionApiRetryStatus = z.infer<typeof nibiSessionApiRetryStatusSchema>;
+export type NibiSessionContextUsage = z.infer<typeof nibiSessionContextUsageSchema>;
+export const nibiModelStreamingKindSchema = z.enum([
   "start",
   "finish",
   "error",
@@ -1347,20 +1347,20 @@ export const zcodeModelStreamingKindSchema = z.enum([
   "tool_input_end",
   "tool_call",
 ]);
-export const zcodeModelStreamingEventPayloadSchema = z
+export const nibiModelStreamingEventPayloadSchema = z
   .object({
     assistantMessageId: z.string().optional(),
     delta: z.string().optional(),
     done: z.boolean().optional(),
     input: z.unknown().optional(),
-    kind: zcodeModelStreamingKindSchema,
+    kind: nibiModelStreamingKindSchema,
     partId: z.string().optional(),
     providerExecuted: z.boolean().optional(),
     toolCallId: z.string().optional(),
     toolName: z.string().optional(),
   })
   .strict();
-export const zcodeSessionStateSnapshotSchema = z
+export const nibiSessionStateSnapshotSchema = z
   .object({
     protocol: z
       .object({
@@ -1368,20 +1368,20 @@ export const zcodeSessionStateSnapshotSchema = z
         version: z.literal(NIBI_PROTOCOL_VERSION),
       })
       .strict(),
-    session: zcodeSessionInfoSchema,
-    settings: zcodeSessionSettingsStateSchema,
-    projection: zcodeSessionProjectionSchema,
-    runtime: zcodeSessionRuntimeStateSchema,
-    messages: z.array(zcodeMessageWithPartsSchema),
-    goalStats: zcodeSessionGoalStatsSchema.optional(),
-    todos: z.array(zcodeSessionTodoItemSchema).optional(),
-    todoGroups: z.array(zcodeSessionTodoGroupSchema).optional(),
-    slashCommands: z.array(zcodeSlashCommandSchema).optional(),
+    session: nibiSessionInfoSchema,
+    settings: nibiSessionSettingsStateSchema,
+    projection: nibiSessionProjectionSchema,
+    runtime: nibiSessionRuntimeStateSchema,
+    messages: z.array(nibiMessageWithPartsSchema),
+    goalStats: nibiSessionGoalStatsSchema.optional(),
+    todos: z.array(nibiSessionTodoItemSchema).optional(),
+    todoGroups: z.array(nibiSessionTodoGroupSchema).optional(),
+    slashCommands: z.array(nibiSlashCommandSchema).optional(),
   })
   .strict();
-export type ZCodeSessionStateSnapshot = z.infer<typeof zcodeSessionStateSnapshotSchema>;
+export type NibiSessionStateSnapshot = z.infer<typeof nibiSessionStateSnapshotSchema>;
 
-export const zcodeEventEnvelopeSchema = z
+export const nibiEventEnvelopeSchema = z
   .object({
     eventId: nonEmptyString,
     sessionId: nonEmptyString,
@@ -1389,11 +1389,11 @@ export const zcodeEventEnvelopeSchema = z
     seq: z.number().int().nonnegative(),
     traceId: nonEmptyString.optional(),
     timestamp: timestampMsSchema,
-    deliveryKind: zcodeDeliveryKindSchema.optional(),
+    deliveryKind: nibiDeliveryKindSchema.optional(),
   })
   .strict();
 
-const zcodeComputerUseOperationEventBaseSchema = z
+const nibiComputerUseOperationEventBaseSchema = z
   .object({
     eventId: nonEmptyString,
     sequenceNumber: z.number().int().nonnegative(),
@@ -1402,19 +1402,19 @@ const zcodeComputerUseOperationEventBaseSchema = z
   })
   .strict();
 
-const zcodeComputerUseTurnStartedEventSchema = zcodeComputerUseOperationEventBaseSchema.extend({
+const nibiComputerUseTurnStartedEventSchema = nibiComputerUseOperationEventBaseSchema.extend({
   kind: z.literal("turn-started"),
   turnId: nonEmptyString,
 });
-const zcodeComputerUseTurnCompletedEventSchema = zcodeComputerUseOperationEventBaseSchema.extend({
+const nibiComputerUseTurnCompletedEventSchema = nibiComputerUseOperationEventBaseSchema.extend({
   kind: z.literal("turn-completed"),
   turnId: nonEmptyString,
 });
-const zcodeComputerUseTurnFailedEventSchema = zcodeComputerUseOperationEventBaseSchema.extend({
+const nibiComputerUseTurnFailedEventSchema = nibiComputerUseOperationEventBaseSchema.extend({
   kind: z.literal("turn-failed"),
   turnId: nonEmptyString,
 });
-const zcodeComputerUseToolScheduledEventSchema = zcodeComputerUseOperationEventBaseSchema.extend({
+const nibiComputerUseToolScheduledEventSchema = nibiComputerUseOperationEventBaseSchema.extend({
   kind: z.literal("tool-scheduled"),
   turnId: nonEmptyString,
   toolCallId: nonEmptyString,
@@ -1425,27 +1425,27 @@ const zcodeComputerUseToolScheduledEventSchema = zcodeComputerUseOperationEventB
   // 只挂在 scheduled 上：ToolCallStartedPayload 没有 input，start 时已拿不到模型源码。
   computerUse: z.literal(true).optional(),
 });
-const zcodeComputerUseToolStartedEventSchema = zcodeComputerUseOperationEventBaseSchema.extend({
+const nibiComputerUseToolStartedEventSchema = nibiComputerUseOperationEventBaseSchema.extend({
   kind: z.literal("tool-started"),
   turnId: nonEmptyString.optional(),
   toolCallId: nonEmptyString,
   toolName: nonEmptyString.optional(),
 });
-const zcodeComputerUseSessionClosedEventSchema = zcodeComputerUseOperationEventBaseSchema.extend({
+const nibiComputerUseSessionClosedEventSchema = nibiComputerUseOperationEventBaseSchema.extend({
   kind: z.literal("session-closed"),
 });
 
-export const zcodeComputerUseOperationEventSchema = z.discriminatedUnion("kind", [
-  zcodeComputerUseTurnStartedEventSchema,
-  zcodeComputerUseTurnCompletedEventSchema,
-  zcodeComputerUseTurnFailedEventSchema,
-  zcodeComputerUseToolScheduledEventSchema,
-  zcodeComputerUseToolStartedEventSchema,
-  zcodeComputerUseSessionClosedEventSchema,
+export const nibiComputerUseOperationEventSchema = z.discriminatedUnion("kind", [
+  nibiComputerUseTurnStartedEventSchema,
+  nibiComputerUseTurnCompletedEventSchema,
+  nibiComputerUseTurnFailedEventSchema,
+  nibiComputerUseToolScheduledEventSchema,
+  nibiComputerUseToolStartedEventSchema,
+  nibiComputerUseSessionClosedEventSchema,
 ]);
-export type ZCodeComputerUseOperationEvent = z.infer<typeof zcodeComputerUseOperationEventSchema>;
+export type NibiComputerUseOperationEvent = z.infer<typeof nibiComputerUseOperationEventSchema>;
 
-export const zcodeSessionEventTypeSchema = z.enum([
+export const nibiSessionEventTypeSchema = z.enum([
   "session.created",
   "session.resumed",
   "session.updated",
@@ -1472,7 +1472,7 @@ export const zcodeSessionEventTypeSchema = z.enum([
   "rewind.triggered",
   "streamRecovery.updated",
 ]);
-export type ZCodeSessionEventType = z.infer<typeof zcodeSessionEventTypeSchema>;
+export type NibiSessionEventType = z.infer<typeof nibiSessionEventTypeSchema>;
 
 export const nibiProtocolErrorDetailSchema = z
   .object({
@@ -1488,13 +1488,13 @@ export const nibiProtocolErrorDetailSchema = z
     data: z.unknown().optional(),
   })
   .strict();
-export const zcodeSessionCreatedEventPayloadSchema = z
+export const nibiSessionCreatedEventPayloadSchema = z
   .object({
-    mode: zcodeSessionModeSchema,
+    mode: nibiSessionModeSchema,
     contextWindow: z.number().int().nonnegative(),
   })
   .strict();
-export const zcodeSessionResumedEventPayloadSchema = z
+export const nibiSessionResumedEventPayloadSchema = z
   .object({
     directory: nonEmptyString,
     interruptedToolCount: z.number().int().nonnegative(),
@@ -1505,7 +1505,7 @@ export const zcodeSessionResumedEventPayloadSchema = z
     resumedTodoCount: z.number().int().nonnegative().optional(),
   })
   .strict();
-export const zcodeSessionTitleUpdatedEventPayloadSchema = z
+export const nibiSessionTitleUpdatedEventPayloadSchema = z
   .object({
     messageID: nonEmptyString.optional(),
     previousTitle: z.string(),
@@ -1513,7 +1513,7 @@ export const zcodeSessionTitleUpdatedEventPayloadSchema = z
     title: z.string(),
   })
   .strict();
-export const zcodeTurnStartedEventPayloadSchema = z
+export const nibiTurnStartedEventPayloadSchema = z
   .object({
     // CLI 的高精度执行时间可含小数；漏声明会使 strict 校验丢弃整条开始事件，Bot 因此无法清空上一轮回复。
     executionStartedAt: z.number().nonnegative().optional(),
@@ -1521,8 +1521,8 @@ export const zcodeTurnStartedEventPayloadSchema = z
     input: z.string(),
     inputId: nonEmptyString.optional(),
     queryId: nonEmptyString.optional(),
-    inputSource: zcodeTurnInputSourceSchema.optional(),
-    inputVisibility: zcodeMessageVisibilitySchema.optional(),
+    inputSource: nibiTurnInputSourceSchema.optional(),
+    inputVisibility: nibiMessageVisibilitySchema.optional(),
     executionKind: z.enum(["agent", "controlOnly"]).optional(),
     targetId: nonEmptyString.optional(),
     messageId: nonEmptyString.optional(),
@@ -1534,11 +1534,11 @@ export const zcodeTurnStartedEventPayloadSchema = z
     attachments: z.array(jsonObjectSchema).optional(),
   })
   .strict();
-const zcodeTurnSteerSourceSchema = z.enum(["plan_approval_feedback", "workflow_refine_feedback"]);
-const zcodeTurnSteerCommandKindSchema = z.enum(["sendText", "sendGoalCommand", "compact"]);
-const zcodeTurnSteerDeliverySchema = z.enum(["queue", "guide"]);
+const nibiTurnSteerSourceSchema = z.enum(["plan_approval_feedback", "workflow_refine_feedback"]);
+const nibiTurnSteerCommandKindSchema = z.enum(["sendText", "sendGoalCommand", "compact"]);
+const nibiTurnSteerDeliverySchema = z.enum(["queue", "guide"]);
 
-export const zcodeTurnSteerQueuedEventPayloadSchema = z
+export const nibiTurnSteerQueuedEventPayloadSchema = z
   .object({
     pendingInputId: nonEmptyString,
     inputId: nonEmptyString.optional(),
@@ -1546,16 +1546,16 @@ export const zcodeTurnSteerQueuedEventPayloadSchema = z
     input: z.string(),
     inputPreview: z.string(),
     inputSize: z.number().int().nonnegative(),
-    commandKind: zcodeTurnSteerCommandKindSchema.optional(),
-    source: zcodeTurnSteerSourceSchema.optional(),
+    commandKind: nibiTurnSteerCommandKindSchema.optional(),
+    source: nibiTurnSteerSourceSchema.optional(),
     toolDisallowlist: z.array(nonEmptyString).optional(),
-    delivery: zcodeTurnSteerDeliverySchema.optional(),
+    delivery: nibiTurnSteerDeliverySchema.optional(),
     targetTurnId: nonEmptyString,
     queueLength: z.number().int().nonnegative(),
     intent: jsonObjectSchema.optional(),
   })
   .strict();
-export const zcodeTurnSteerDrainedEventPayloadSchema = z
+export const nibiTurnSteerDrainedEventPayloadSchema = z
   .object({
     pendingInputIds: z.array(nonEmptyString),
     queryIds: z.array(nonEmptyString).optional(),
@@ -1568,7 +1568,7 @@ export const zcodeTurnSteerDrainedEventPayloadSchema = z
             pendingInputId: nonEmptyString,
             messageId: nonEmptyString,
             text: z.string(),
-            delivery: zcodeTurnSteerDeliverySchema.optional(),
+            delivery: nibiTurnSteerDeliverySchema.optional(),
             intent: jsonObjectSchema.optional(),
             toolDisallowlist: z.array(nonEmptyString).optional(),
           })
@@ -1577,7 +1577,7 @@ export const zcodeTurnSteerDrainedEventPayloadSchema = z
       .optional(),
   })
   .strict();
-export const zcodeTurnCompletedEventPayloadSchema = z
+export const nibiTurnCompletedEventPayloadSchema = z
   .object({
     response: z.string(),
     tokenCount: z.number().int().nonnegative(),
@@ -1609,7 +1609,7 @@ export const zcodeTurnCompletedEventPayloadSchema = z
     backgroundSubagentResultConsumed: z.boolean().optional(),
   })
   .strict();
-export const zcodeTurnFailedEventPayloadSchema = z
+export const nibiTurnFailedEventPayloadSchema = z
   .object({
     error: nibiProtocolErrorDetailSchema,
     turnPhase: z.string(),
@@ -1617,7 +1617,7 @@ export const zcodeTurnFailedEventPayloadSchema = z
     backgroundSubagentResultConsumed: z.boolean().optional(),
   })
   .strict();
-export const zcodeMessageUpsertedEventPayloadSchema = z
+export const nibiMessageUpsertedEventPayloadSchema = z
   .object({
     content: z.string(),
     attachments: z.array(z.unknown()).optional(),
@@ -1626,13 +1626,13 @@ export const zcodeMessageUpsertedEventPayloadSchema = z
     compactBoundary: z.unknown().optional(),
   })
   .strict();
-export const zcodeMessageRemovedEventPayloadSchema = z
+export const nibiMessageRemovedEventPayloadSchema = z
   .object({
     messageId: nonEmptyString,
     reason: z.string().optional(),
   })
   .strict();
-export const zcodeMessagePartDeltaEventPayloadSchema = z
+export const nibiMessagePartDeltaEventPayloadSchema = z
   .object({
     messageId: nonEmptyString,
     partId: nonEmptyString,
@@ -1640,19 +1640,19 @@ export const zcodeMessagePartDeltaEventPayloadSchema = z
     delta: z.string(),
   })
   .strict();
-export const zcodeMessagePartUpsertedEventPayloadSchema = z
+export const nibiMessagePartUpsertedEventPayloadSchema = z
   .object({
-    part: zcodeMessagePartSchema,
+    part: nibiMessagePartSchema,
   })
   .strict();
-export const zcodeMessagePartRemovedEventPayloadSchema = z
+export const nibiMessagePartRemovedEventPayloadSchema = z
   .object({
     messageId: nonEmptyString,
     partId: nonEmptyString,
     reason: z.string().optional(),
   })
   .strict();
-const zcodeToolCallBasePayloadSchema = z
+const nibiToolCallBasePayloadSchema = z
   .object({
     toolCallId: nonEmptyString,
     toolName: z.string().optional(),
@@ -1668,8 +1668,8 @@ const zcodeToolCallBasePayloadSchema = z
   })
   .strict();
 
-export const zcodeToolUpdatedEventPayloadSchema = z.discriminatedUnion("kind", [
-  zcodeToolCallBasePayloadSchema
+export const nibiToolUpdatedEventPayloadSchema = z.discriminatedUnion("kind", [
+  nibiToolCallBasePayloadSchema
     .extend({
       kind: z.literal("scheduled"),
       // 修复：CLI 调度事件已携带所属消息 ID；漏声明会让严格校验丢弃整条事件。
@@ -1685,13 +1685,13 @@ export const zcodeToolUpdatedEventPayloadSchema = z.discriminatedUnion("kind", [
       schedule: jsonObjectSchema.optional(),
     })
     .strict(),
-  zcodeToolCallBasePayloadSchema
+  nibiToolCallBasePayloadSchema
     .extend({
       kind: z.literal("started"),
       startedAt: protocolInstantSchema,
     })
     .strict(),
-  zcodeToolCallBasePayloadSchema
+  nibiToolCallBasePayloadSchema
     .extend({
       kind: z.literal("progress"),
       elapsedMs: z.number().nonnegative().optional(),
@@ -1704,14 +1704,14 @@ export const zcodeToolUpdatedEventPayloadSchema = z.discriminatedUnion("kind", [
       stderrTail: z.string().optional(),
     })
     .strict(),
-  zcodeToolCallBasePayloadSchema
+  nibiToolCallBasePayloadSchema
     .extend({
       kind: z.literal("result"),
-      result: zcodeToolResultObjectSchema,
+      result: nibiToolResultObjectSchema,
       duration: z.number().nonnegative(),
     })
     .strict(),
-  zcodeToolCallBasePayloadSchema
+  nibiToolCallBasePayloadSchema
     .extend({
       kind: z.literal("error"),
       error: nibiProtocolErrorDetailSchema,
@@ -1725,14 +1725,14 @@ export const zcodeToolUpdatedEventPayloadSchema = z.discriminatedUnion("kind", [
       errorCount: z.number().int().nonnegative(),
     })
     .strict(),
-  zcodeToolCallBasePayloadSchema
+  nibiToolCallBasePayloadSchema
     .extend({
       kind: z.literal("raw"),
       payload: jsonObjectSchema,
     })
     .strict(),
 ]);
-export const zcodePermissionRequestedEventPayloadSchema = z
+export const nibiPermissionRequestedEventPayloadSchema = z
   .object({
     requestId: nonEmptyString.optional(),
     toolCallId: nonEmptyString,
@@ -1740,20 +1740,20 @@ export const zcodePermissionRequestedEventPayloadSchema = z
     riskLevel: z.enum(["low", "medium", "high", "critical"]),
     reason: z.string(),
     input: z.unknown(),
-    suggestedPermissionUpdates: z.array(zcodePermissionUpdateSchema).optional(),
+    suggestedPermissionUpdates: z.array(nibiPermissionUpdateSchema).optional(),
     approvalMode: z.literal("user-once").optional(),
-    origin: zcodeInteractionRequestOriginSchema.optional(),
-    options: z.array(zcodePermissionOptionSchema).min(1),
+    origin: nibiInteractionRequestOriginSchema.optional(),
+    options: z.array(nibiPermissionOptionSchema).min(1),
     childSessionId: nonEmptyString.optional(),
     background: z.boolean().optional(),
   })
   .strict();
-export const zcodePermissionResolvedEventPayloadSchema = z
+export const nibiPermissionResolvedEventPayloadSchema = z
   .object({
     requestId: nonEmptyString.optional(),
     toolCallId: nonEmptyString,
     toolName: nonEmptyString.optional(),
-    decision: zcodePermissionDecisionSchema.optional(),
+    decision: nibiPermissionDecisionSchema.optional(),
     reason: z.string().optional(),
     modifiedInput: z.unknown().optional(),
     inputSummary: z.unknown().optional(),
@@ -1761,7 +1761,7 @@ export const zcodePermissionResolvedEventPayloadSchema = z
     background: z.boolean().optional(),
   })
   .strict();
-export const zcodeUserInputRequestedEventPayloadSchema = z
+export const nibiUserInputRequestedEventPayloadSchema = z
   .object({
     requestId: nonEmptyString,
     prompt: z.string(),
@@ -1769,106 +1769,106 @@ export const zcodeUserInputRequestedEventPayloadSchema = z
     choices: z.array(z.string()).optional(),
   })
   .strict();
-export const zcodeUserInputResolvedEventPayloadSchema = z
+export const nibiUserInputResolvedEventPayloadSchema = z
   .object({
     requestId: nonEmptyString,
     value: z.unknown().optional(),
     cancelled: z.boolean().optional(),
   })
   .strict();
-export const zcodeSessionClosedEventPayloadSchema = z
+export const nibiSessionClosedEventPayloadSchema = z
   .object({
     reason: z.string().optional(),
   })
   .strict();
 
-function zcodeSessionEventEnvelopeFor<T extends ZCodeSessionEventType>(
+function nibiSessionEventEnvelopeFor<T extends NibiSessionEventType>(
   type: T,
   payload: z.ZodTypeAny,
 ) {
-  return zcodeEventEnvelopeSchema.extend({
+  return nibiEventEnvelopeSchema.extend({
     type: z.literal(type),
     payload: payload.optional(),
   });
 }
 
-export const zcodeSessionEventSchema = z.discriminatedUnion("type", [
-  zcodeSessionEventEnvelopeFor("session.created", zcodeSessionCreatedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("session.resumed", zcodeSessionResumedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("session.updated", jsonObjectSchema),
-  zcodeSessionEventEnvelopeFor("session.titleUpdated", zcodeSessionTitleUpdatedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("session.closed", zcodeSessionClosedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("turn.started", zcodeTurnStartedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("turn.steerQueued", zcodeTurnSteerQueuedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("turn.steerDrained", zcodeTurnSteerDrainedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("turn.completed", zcodeTurnCompletedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("turn.failed", zcodeTurnFailedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("message.upserted", zcodeMessageUpsertedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("message.removed", zcodeMessageRemovedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("part.started", zcodeMessagePartUpsertedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("part.delta", zcodeMessagePartDeltaEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("part.upserted", zcodeMessagePartUpsertedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("part.removed", zcodeMessagePartRemovedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("model.streaming", zcodeModelStreamingEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("tool.updated", zcodeToolUpdatedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("permission.requested", zcodePermissionRequestedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("permission.resolved", zcodePermissionResolvedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("userInput.requested", zcodeUserInputRequestedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("userInput.resolved", zcodeUserInputResolvedEventPayloadSchema),
-  zcodeSessionEventEnvelopeFor("checkpoint.created", jsonObjectSchema),
-  zcodeSessionEventEnvelopeFor("rewind.triggered", jsonObjectSchema),
-  zcodeSessionEventEnvelopeFor("streamRecovery.updated", jsonObjectSchema),
+export const nibiSessionEventSchema = z.discriminatedUnion("type", [
+  nibiSessionEventEnvelopeFor("session.created", nibiSessionCreatedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("session.resumed", nibiSessionResumedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("session.updated", jsonObjectSchema),
+  nibiSessionEventEnvelopeFor("session.titleUpdated", nibiSessionTitleUpdatedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("session.closed", nibiSessionClosedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("turn.started", nibiTurnStartedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("turn.steerQueued", nibiTurnSteerQueuedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("turn.steerDrained", nibiTurnSteerDrainedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("turn.completed", nibiTurnCompletedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("turn.failed", nibiTurnFailedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("message.upserted", nibiMessageUpsertedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("message.removed", nibiMessageRemovedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("part.started", nibiMessagePartUpsertedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("part.delta", nibiMessagePartDeltaEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("part.upserted", nibiMessagePartUpsertedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("part.removed", nibiMessagePartRemovedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("model.streaming", nibiModelStreamingEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("tool.updated", nibiToolUpdatedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("permission.requested", nibiPermissionRequestedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("permission.resolved", nibiPermissionResolvedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("userInput.requested", nibiUserInputRequestedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("userInput.resolved", nibiUserInputResolvedEventPayloadSchema),
+  nibiSessionEventEnvelopeFor("checkpoint.created", jsonObjectSchema),
+  nibiSessionEventEnvelopeFor("rewind.triggered", jsonObjectSchema),
+  nibiSessionEventEnvelopeFor("streamRecovery.updated", jsonObjectSchema),
 ]);
-export type ZCodeSessionEvent = z.infer<typeof zcodeSessionEventSchema>;
+export type NibiSessionEvent = z.infer<typeof nibiSessionEventSchema>;
 
-export const zcodeSessionEventsResultSchema = z
+export const nibiSessionEventsResultSchema = z
   .object({
-    events: z.array(zcodeSessionEventSchema),
+    events: z.array(nibiSessionEventSchema),
   })
   .strict();
-export const zcodeSessionMessagesResultSchema = z
+export const nibiSessionMessagesResultSchema = z
   .object({
-    messages: z.array(zcodeMessageWithPartsSchema),
+    messages: z.array(nibiMessageWithPartsSchema),
   })
   .strict();
-export const zcodeStateUpdatedNotificationSchema = z
+export const nibiStateUpdatedNotificationSchema = z
   .object({
     type: z.literal("state.updated"),
     scope: z.enum(["server", "workspace", "session"]),
-    workspace: zcodeWorkspaceRefSchema.optional(),
+    workspace: nibiWorkspaceRefSchema.optional(),
     sessionId: nonEmptyString.optional(),
     revision: z.number().int().nonnegative(),
     reason: z.string().optional(),
     patch: z.unknown(),
   })
   .strict();
-export type ZCodeStateUpdatedNotification = z.infer<typeof zcodeStateUpdatedNotificationSchema>;
+export type NibiStateUpdatedNotification = z.infer<typeof nibiStateUpdatedNotificationSchema>;
 
-export const zcodeSessionSubscribeParamsSchema = z
+export const nibiSessionSubscribeParamsSchema = z
   .object({
     sessionId: nonEmptyString,
-    deliveryKind: zcodeDeliveryKindSchema,
+    deliveryKind: nibiDeliveryKindSchema,
     afterSeq: z.number().int().nonnegative().optional(),
     includeSnapshot: z.boolean().default(false),
   })
   .strict();
-export type ZCodeSessionSubscribeParams = z.infer<typeof zcodeSessionSubscribeParamsSchema>;
+export type NibiSessionSubscribeParams = z.infer<typeof nibiSessionSubscribeParamsSchema>;
 
-export const zcodeSessionSubscribeResultSchema = z
+export const nibiSessionSubscribeResultSchema = z
   .object({
     sessionId: nonEmptyString,
     eventSeq: z.number().int().nonnegative(),
-    events: z.array(zcodeSessionEventSchema),
-    snapshot: zcodeSessionStateSnapshotSchema.optional(),
+    events: z.array(nibiSessionEventSchema),
+    snapshot: nibiSessionStateSnapshotSchema.optional(),
   })
   .strict();
-export const zcodeSessionListResultSchema = z
+export const nibiSessionListResultSchema = z
   .object({
-    sessions: z.array(zcodeSessionInfoSchema),
+    sessions: z.array(nibiSessionInfoSchema),
   })
   .strict();
 
-const zcodeSessionSubagentBaseSchema = z
+const nibiSessionSubagentBaseSchema = z
   .object({
     childSessionId: nonEmptyString,
     agentId: nonEmptyString.optional(),
@@ -1881,63 +1881,63 @@ const zcodeSessionSubagentBaseSchema = z
   })
   .strict();
 
-export const zcodeSessionRunningSubagentSchema = zcodeSessionSubagentBaseSchema.extend({
+export const nibiSessionRunningSubagentSchema = nibiSessionSubagentBaseSchema.extend({
   status: z.enum(["running", "waiting", "blocked"]),
 });
-export type ZCodeSessionRunningSubagent = z.infer<typeof zcodeSessionRunningSubagentSchema>;
+export type NibiSessionRunningSubagent = z.infer<typeof nibiSessionRunningSubagentSchema>;
 
-export const zcodeSessionEndedSubagentSchema = zcodeSessionSubagentBaseSchema.extend({
+export const nibiSessionEndedSubagentSchema = nibiSessionSubagentBaseSchema.extend({
   status: z.enum(["success", "failed", "cancelled", "lost"]),
 });
-export type ZCodeSessionEndedSubagent = z.infer<typeof zcodeSessionEndedSubagentSchema>;
+export type NibiSessionEndedSubagent = z.infer<typeof nibiSessionEndedSubagentSchema>;
 
-export const zcodeSessionSubagentsResultSchema = z
+export const nibiSessionSubagentsResultSchema = z
   .object({
     revision: z.number().int().nonnegative(),
     childSessionIds: z.array(nonEmptyString),
-    running: z.array(zcodeSessionRunningSubagentSchema),
+    running: z.array(nibiSessionRunningSubagentSchema),
     ended: z
       .object({
         total: z.number().int().nonnegative(),
-        items: z.array(zcodeSessionEndedSubagentSchema),
+        items: z.array(nibiSessionEndedSubagentSchema),
         nextCursor: nonEmptyString.optional(),
       })
       .strict(),
   })
   .strict();
-export type ZCodeSessionSubagentsResult = z.infer<typeof zcodeSessionSubagentsResultSchema>;
+export type NibiSessionSubagentsResult = z.infer<typeof nibiSessionSubagentsResultSchema>;
 /** 服务端 feature key 的取值域在协议里的 zod 形态（packages/shared/src/dynamic-workflow-feature.ts）。 */
-export const zcodeDynamicWorkflowModeSchema = z.enum(DYNAMIC_WORKFLOW_MODES);
+export const nibiDynamicWorkflowModeSchema = z.enum(DYNAMIC_WORKFLOW_MODES);
 
-export const zcodeSessionCreateParamsSchema = z
+export const nibiSessionCreateParamsSchema = z
   .object({
     additionalDirectories: z.array(nonEmptyString).max(256).optional(),
     sessionId: nonEmptyString.optional(),
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     parentSessionId: nonEmptyString.optional(),
-    mode: zcodeSessionModeSchema.optional(),
+    mode: nibiSessionModeSchema.optional(),
     model: modelSelectionSchema.optional(),
-    persistence: zcodeSessionPersistenceSchema.optional(),
+    persistence: nibiSessionPersistenceSchema.optional(),
     thoughtLevel: nonEmptyString.optional(),
     titleGenerationEnabled: z.boolean().optional(),
     mcpServers: z.array(nibiProtocolMcpServerSchema).optional(),
     toolAllowlist: z.array(nonEmptyString).optional(),
     toolDenylist: z.array(nonEmptyString).optional(),
-    importedHistory: zcodeSessionImportHistorySchema.optional(),
+    importedHistory: nibiSessionImportHistorySchema.optional(),
     // 动态工作流灰度：host 裁决后下发，缺省不下发 = 不注册工作流工具簇（fail-closed）。
     dynamicWorkflowEnabled: z.boolean().optional(),
     // 灰度 mode 随布尔同行下发（launch.md「On demand: activation」）：`onDemand` 让 CLI 把十个
     // 工具推迟到会话首次 `/workflow` 才注册；缺席 = 按布尔行事（alwaysOn），供旧 Host 配对。
-    dynamicWorkflowMode: zcodeDynamicWorkflowModeSchema.optional(),
+    dynamicWorkflowMode: nibiDynamicWorkflowModeSchema.optional(),
   })
   .strict();
-export type ZCodeSessionCreateParams = z.infer<typeof zcodeSessionCreateParamsSchema>;
+export type NibiSessionCreateParams = z.infer<typeof nibiSessionCreateParamsSchema>;
 
-export const zcodeSessionResumeParamsSchema = z
+export const nibiSessionResumeParamsSchema = z
   .object({
     additionalDirectories: z.array(nonEmptyString).max(256).optional(),
     sessionId: nonEmptyString,
-    workspace: zcodeWorkspaceRefSchema.optional(),
+    workspace: nibiWorkspaceRefSchema.optional(),
     // 旧 session 尚无 runtime/model_selection entry 时，由同 task 的索引元数据提供迁移 hint。
     thoughtLevel: nonEmptyString.optional(),
     mcpServers: z.array(nibiProtocolMcpServerSchema).optional(),
@@ -1946,42 +1946,42 @@ export const zcodeSessionResumeParamsSchema = z
     toolDenylist: z.array(nonEmptyString).optional(),
     // 与 create 同语义；resume 不带会导致冷恢复丢工作流工具簇。
     dynamicWorkflowEnabled: z.boolean().optional(),
-    dynamicWorkflowMode: zcodeDynamicWorkflowModeSchema.optional(),
+    dynamicWorkflowMode: nibiDynamicWorkflowModeSchema.optional(),
   })
   .strict();
-export type ZCodeSessionResumeParams = z.infer<typeof zcodeSessionResumeParamsSchema>;
+export type NibiSessionResumeParams = z.infer<typeof nibiSessionResumeParamsSchema>;
 
-export const zcodeSessionListParamsSchema = z
+export const nibiSessionListParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema.optional(),
+    workspace: nibiWorkspaceRefSchema.optional(),
     sessionIds: z.array(nonEmptyString).min(1).max(64).optional(),
     limit: z.number().int().positive().optional(),
   })
   .strict();
-export type ZCodeSessionListParams = z.infer<typeof zcodeSessionListParamsSchema>;
+export type NibiSessionListParams = z.infer<typeof nibiSessionListParamsSchema>;
 
-export const zcodeSessionSubagentsParamsSchema = z
+export const nibiSessionSubagentsParamsSchema = z
   .object({
     sessionId: nonEmptyString,
     endedCursor: nonEmptyString.optional(),
     endedLimit: z.number().int().positive().max(100).default(20),
   })
   .strict();
-export type ZCodeSessionSubagentsParams = z.infer<typeof zcodeSessionSubagentsParamsSchema>;
+export type NibiSessionSubagentsParams = z.infer<typeof nibiSessionSubagentsParamsSchema>;
 
-export const zcodeUsageStatsParamsSchema = z
+export const nibiUsageStatsParamsSchema = z
   .object({
     range: z.enum(APP_USAGE_RANGES),
     timeZone: z.string().optional(),
   })
   .strict();
-export const zcodeUsageStatsResultSchema = appUsageSnapshotSchema;
-export const zcodeTaskTokenUsageParamsSchema = z
+export const nibiUsageStatsResultSchema = appUsageSnapshotSchema;
+export const nibiTaskTokenUsageParamsSchema = z
   .object({
     sessionId: nonEmptyString,
   })
   .strict();
-export const zcodeTaskTokenUsageResultSchema = z
+export const nibiTaskTokenUsageResultSchema = z
   .object({
     sessionId: nonEmptyString,
     totalTokens: z.number().int().nonnegative(),
@@ -1995,12 +1995,12 @@ export const zcodeTaskTokenUsageResultSchema = z
     inputBaselineBySource: z.record(z.string(), z.number().int().nonnegative()),
   })
   .strict();
-export type ZCodeTaskTokenUsageResult = z.infer<typeof zcodeTaskTokenUsageResultSchema>;
+export type NibiTaskTokenUsageResult = z.infer<typeof nibiTaskTokenUsageResultSchema>;
 
-export const zcodeSessionReadParamsSchema = z
+export const nibiSessionReadParamsSchema = z
   .object({
     sessionId: nonEmptyString,
-    deliveryKind: zcodeDeliveryKindSchema.optional(),
+    deliveryKind: nibiDeliveryKindSchema.optional(),
     messageLimit: z.number().int().positive().optional(),
     afterSeq: z.number().int().nonnegative().optional(),
     // "index"：仅 task index resync 使用，返回剥离 tool/reasoning/data URL 大载荷的同结构 snapshot，
@@ -2008,32 +2008,32 @@ export const zcodeSessionReadParamsSchema = z
     contentProfile: z.enum(["full", "index"]).optional(),
   })
   .strict();
-export type ZCodeSessionReadParams = z.infer<typeof zcodeSessionReadParamsSchema>;
+export type NibiSessionReadParams = z.infer<typeof nibiSessionReadParamsSchema>;
 
-export const zcodeSessionMessagesParamsSchema = z
+export const nibiSessionMessagesParamsSchema = z
   .object({
     sessionId: nonEmptyString,
     afterMessageId: nonEmptyString.optional(),
     limit: z.number().int().positive().optional(),
   })
   .strict();
-export type ZCodeSessionMessagesParams = z.infer<typeof zcodeSessionMessagesParamsSchema>;
+export type NibiSessionMessagesParams = z.infer<typeof nibiSessionMessagesParamsSchema>;
 
-export const zcodeSessionEventsParamsSchema = z
+export const nibiSessionEventsParamsSchema = z
   .object({
     sessionId: nonEmptyString,
     afterSeq: z.number().int().nonnegative().optional(),
     limit: z.number().int().positive().optional(),
   })
   .strict();
-export type ZCodeSessionEventsParams = z.infer<typeof zcodeSessionEventsParamsSchema>;
+export type NibiSessionEventsParams = z.infer<typeof nibiSessionEventsParamsSchema>;
 
-export const zcodeSessionRuntimePreferencesScopeSchema = z.enum([
+export const nibiSessionRuntimePreferencesScopeSchema = z.enum([
   "runtime-materialization",
   "user-execution",
 ]);
-export type ZCodeSessionRuntimePreferencesScope = z.infer<
-  typeof zcodeSessionRuntimePreferencesScopeSchema
+export type NibiSessionRuntimePreferencesScope = z.infer<
+  typeof nibiSessionRuntimePreferencesScopeSchema
 >;
 
 // subagents/readRuntimeConfig 返回 Host 已解析的完整快照或显式内置回退，不再传 Markdown。
@@ -2041,29 +2041,29 @@ export {
   subagentRuntimeConfigSchema,
   type SubagentRuntimeConfig,
 } from "../subagent-runtime-config.js";
-export const zcodeSubagentsReadRuntimeConfigParamsSchema = z
+export const nibiSubagentsReadRuntimeConfigParamsSchema = z
   .object({ sessionId: nonEmptyString })
   .strict();
 
 export const NIBI_SESSION_RUNTIME_PREFERENCES_REQUEST_TIMEOUT_MS = 15_000;
 
-export const zcodeSessionRequestRuntimePreferencesParamsSchema = z
+export const nibiSessionRequestRuntimePreferencesParamsSchema = z
   .object({
     sessionId: nonEmptyString,
-    scope: zcodeSessionRuntimePreferencesScopeSchema,
+    scope: nibiSessionRuntimePreferencesScopeSchema,
   })
   .strict();
-export type ZCodeSessionRequestRuntimePreferencesParams = z.infer<
-  typeof zcodeSessionRequestRuntimePreferencesParamsSchema
+export type NibiSessionRequestRuntimePreferencesParams = z.infer<
+  typeof nibiSessionRequestRuntimePreferencesParamsSchema
 >;
 
 export const DEFAULT_NIBI_MODEL_CONTEXT_BUDGET_STRATEGY = "preflight-v1" as const;
 
 // 3.12.2：legacy 仅为旧协议接收兼容；Runtime 一律归一为上面的共享默认策略。
-export const zcodeModelContextBudgetStrategySchema = z.enum(["legacy", "preflight-v1"]);
-export type ZCodeModelContextBudgetStrategy = z.infer<typeof zcodeModelContextBudgetStrategySchema>;
+export const nibiModelContextBudgetStrategySchema = z.enum(["legacy", "preflight-v1"]);
+export type NibiModelContextBudgetStrategy = z.infer<typeof nibiModelContextBudgetStrategySchema>;
 
-export const zcodeSessionRuntimePreferencesResultSchema = z
+export const nibiSessionRuntimePreferencesResultSchema = z
   .object({
     additionalDirectories: z.array(nonEmptyString).max(256).optional(),
     nativeSearchEnhancementsEnabled: z.boolean(),
@@ -2073,28 +2073,28 @@ export const zcodeSessionRuntimePreferencesResultSchema = z
     askUserQuestionAutoResolutionEnabled: z.boolean().default(true),
     integratedTerminalShell: integratedTerminalShellSelectionSchema.optional(),
     // 兼容旧 Host：缺少字段时在协议解析边界使用当前默认策略。
-    modelContextBudgetStrategy: zcodeModelContextBudgetStrategySchema.default(
+    modelContextBudgetStrategy: nibiModelContextBudgetStrategySchema.default(
       DEFAULT_NIBI_MODEL_CONTEXT_BUDGET_STRATEGY,
     ),
   })
   .strict();
-export type ZCodeSessionRuntimePreferencesResult = z.infer<
-  typeof zcodeSessionRuntimePreferencesResultSchema
+export type NibiSessionRuntimePreferencesResult = z.infer<
+  typeof nibiSessionRuntimePreferencesResultSchema
 >;
 
 /**
  * App 在提交 prompt 前只读采集的 IAB 可见状态。该字段只用于 provider-visible
  * ambient context，不进入用户可见 transcript；内容有界，禁止携带页面正文或凭据。
  */
-export const zcodeBrowserAmbientContextSchema = z
+export const nibiBrowserAmbientContextSchema = z
   .object({
     tabCount: z.number().int().positive().max(100),
     currentUrl: z.string().trim().min(1).max(4096).optional(),
   })
   .strict();
-export type ZCodeBrowserAmbientContext = z.infer<typeof zcodeBrowserAmbientContextSchema>;
+export type NibiBrowserAmbientContext = z.infer<typeof nibiBrowserAmbientContextSchema>;
 
-export const zcodeSessionSendParamsSchema = z
+export const nibiSessionSendParamsSchema = z
   .object({
     sessionId: nonEmptyString,
     modelSelection: modelSelectionSchema.optional(),
@@ -2103,11 +2103,11 @@ export const zcodeSessionSendParamsSchema = z
     queryId: nonEmptyString.optional(),
     content: z.string(),
     attachments: z.array(jsonObjectSchema).optional(),
-    browserAmbientContext: zcodeBrowserAmbientContextSchema.optional(),
+    browserAmbientContext: nibiBrowserAmbientContextSchema.optional(),
     expectedRevision: z.number().int().nonnegative().optional(),
     expectedProviderRevision: nonEmptyString.optional(),
     automationId: nonEmptyString.optional(),
-    botDeliveryTarget: zcodeAutomationBotDeliveryTargetSchema.optional(),
+    botDeliveryTarget: nibiAutomationBotDeliveryTargetSchema.optional(),
     toolDenylist: z.array(nonEmptyString).optional(),
   })
   .strict()
@@ -2120,16 +2120,16 @@ export const zcodeSessionSendParamsSchema = z
       });
     }
   });
-export const zcodeSessionSendResultSchema = z
+export const nibiSessionSendResultSchema = z
   .object({
     sessionId: nonEmptyString,
     accepted: z.literal(true),
     stateRevision: z.number().int().nonnegative(),
   })
   .strict();
-export type ZCodeSessionSendResult = z.infer<typeof zcodeSessionSendResultSchema>;
+export type NibiSessionSendResult = z.infer<typeof nibiSessionSendResultSchema>;
 
-export const zcodeSessionHistoryTargetSchema = z.discriminatedUnion("kind", [
+export const nibiSessionHistoryTargetSchema = z.discriminatedUnion("kind", [
   z
     .object({
       kind: z.literal("turn"),
@@ -2154,32 +2154,32 @@ export const zcodeSessionHistoryTargetSchema = z.discriminatedUnion("kind", [
     })
     .strict(),
 ]);
-export type ZCodeSessionHistoryTarget = z.infer<typeof zcodeSessionHistoryTargetSchema>;
+export type NibiSessionHistoryTarget = z.infer<typeof nibiSessionHistoryTargetSchema>;
 
-export const zcodeSessionForkParamsSchema = z
+export const nibiSessionForkParamsSchema = z
   .object({
     sessionId: nonEmptyString,
-    target: zcodeSessionHistoryTargetSchema.default({
+    target: nibiSessionHistoryTargetSchema.default({
       kind: "latestCheckpoint",
     }),
     expectedRevision: z.number().int().nonnegative().optional(),
   })
   .strict();
-export type ZCodeSessionForkParams = z.infer<typeof zcodeSessionForkParamsSchema>;
+export type NibiSessionForkParams = z.infer<typeof nibiSessionForkParamsSchema>;
 
-export const zcodeSessionForkResultSchema = z
+export const nibiSessionForkResultSchema = z
   .object({
     forkedSessionId: nonEmptyString,
     parentSessionId: nonEmptyString.optional(),
     targetMessageId: nonEmptyString.optional(),
     targetCheckpointId: nonEmptyString.optional(),
     response: z.string(),
-    snapshot: zcodeSessionStateSnapshotSchema,
+    snapshot: nibiSessionStateSnapshotSchema,
   })
   .strict();
-export type ZCodeSessionForkResult = z.infer<typeof zcodeSessionForkResultSchema>;
+export type NibiSessionForkResult = z.infer<typeof nibiSessionForkResultSchema>;
 
-export const zcodeSessionCompactParamsSchema = z
+export const nibiSessionCompactParamsSchema = z
   .object({
     sessionId: nonEmptyString,
     inputId: nonEmptyString.optional(),
@@ -2187,12 +2187,12 @@ export const zcodeSessionCompactParamsSchema = z
     expectedRevision: z.number().int().nonnegative().optional(),
   })
   .strict();
-export type ZCodeSessionCompactParams = z.infer<typeof zcodeSessionCompactParamsSchema>;
+export type NibiSessionCompactParams = z.infer<typeof nibiSessionCompactParamsSchema>;
 
-export const zcodeSessionCompactResultSchema = z
+export const nibiSessionCompactResultSchema = z
   .object({
     response: z.string(),
-    snapshot: zcodeSessionStateSnapshotSchema,
+    snapshot: nibiSessionStateSnapshotSchema,
     compact: z
       .object({
         state: z.enum(["accepted", "already_running"]),
@@ -2203,9 +2203,9 @@ export const zcodeSessionCompactResultSchema = z
       .optional(),
   })
   .strict();
-export type ZCodeSessionCompactResult = z.infer<typeof zcodeSessionCompactResultSchema>;
+export type NibiSessionCompactResult = z.infer<typeof nibiSessionCompactResultSchema>;
 
-export const zcodeSessionGoalActionSchema = z.enum([
+export const nibiSessionGoalActionSchema = z.enum([
   "show",
   "set",
   "replace",
@@ -2213,34 +2213,34 @@ export const zcodeSessionGoalActionSchema = z.enum([
   "resume",
   "clear",
 ]);
-export type ZCodeSessionGoalAction = z.infer<typeof zcodeSessionGoalActionSchema>;
+export type NibiSessionGoalAction = z.infer<typeof nibiSessionGoalActionSchema>;
 
-export const zcodeSessionGoalParamsSchema = z
+export const nibiSessionGoalParamsSchema = z
   .object({
     sessionId: nonEmptyString,
     inputId: nonEmptyString.optional(),
-    action: zcodeSessionGoalActionSchema,
+    action: nibiSessionGoalActionSchema,
     objective: z.string().optional(),
     expectedRevision: z.number().int().nonnegative().optional(),
   })
   .strict();
-export type ZCodeSessionGoalParams = z.infer<typeof zcodeSessionGoalParamsSchema>;
+export type NibiSessionGoalParams = z.infer<typeof nibiSessionGoalParamsSchema>;
 
-export const zcodeSessionGoalResultSchema = z
+export const nibiSessionGoalResultSchema = z
   .object({
     response: z.string(),
-    snapshot: zcodeSessionStateSnapshotSchema,
+    snapshot: nibiSessionStateSnapshotSchema,
     startedTurn: z.boolean().optional(),
   })
   .strict();
-export type ZCodeSessionGoalResult = z.infer<typeof zcodeSessionGoalResultSchema>;
+export type NibiSessionGoalResult = z.infer<typeof nibiSessionGoalResultSchema>;
 
-export const zcodeSessionStopParamsSchema = z
+export const nibiSessionStopParamsSchema = z
   .object({
     sessionId: nonEmptyString,
   })
   .strict();
-const zcodeBackgroundTaskInfoStatusSchema = z.enum([
+const nibiBackgroundTaskInfoStatusSchema = z.enum([
   "running",
   "completed",
   "failed",
@@ -2250,7 +2250,7 @@ const zcodeBackgroundTaskInfoStatusSchema = z.enum([
   "lost",
 ]);
 
-export const zcodeBackgroundTaskInfoSchema = z
+export const nibiBackgroundTaskInfoSchema = z
   .object({
     taskId: nonEmptyString,
     toolCallId: nonEmptyString.optional(),
@@ -2262,7 +2262,7 @@ export const zcodeBackgroundTaskInfoSchema = z
     cancelRequestedAt: protocolInstantSchema.optional(),
     command: z.string().optional(),
     description: z.string().optional(),
-    status: zcodeBackgroundTaskInfoStatusSchema,
+    status: nibiBackgroundTaskInfoStatusSchema,
     pid: z.number().int().positive().optional(),
     startedAt: protocolInstantSchema.optional(),
     completedAt: protocolInstantSchema.optional(),
@@ -2279,30 +2279,30 @@ export const zcodeBackgroundTaskInfoSchema = z
     terminalId: nonEmptyString.optional(),
   })
   .strict();
-export const zcodeSessionCancelBackgroundTaskParamsSchema = z
+export const nibiSessionCancelBackgroundTaskParamsSchema = z
   .object({
     sessionId: nonEmptyString,
     taskId: nonEmptyString,
   })
   .strict();
-export type ZCodeSessionCancelBackgroundTaskParams = z.infer<
-  typeof zcodeSessionCancelBackgroundTaskParamsSchema
+export type NibiSessionCancelBackgroundTaskParams = z.infer<
+  typeof nibiSessionCancelBackgroundTaskParamsSchema
 >;
 
-export const zcodeSessionCancelBackgroundTaskResultSchema = z
+export const nibiSessionCancelBackgroundTaskResultSchema = z
   .object({
     cancelled: z.boolean(),
     reason: z.string().optional(),
-    snapshot: zcodeBackgroundTaskInfoSchema.optional(),
-    status: zcodeBackgroundTaskInfoStatusSchema,
+    snapshot: nibiBackgroundTaskInfoSchema.optional(),
+    status: nibiBackgroundTaskInfoStatusSchema,
     taskId: nonEmptyString,
   })
   .strict();
-export type ZCodeSessionCancelBackgroundTaskResult = z.infer<
-  typeof zcodeSessionCancelBackgroundTaskResultSchema
+export type NibiSessionCancelBackgroundTaskResult = z.infer<
+  typeof nibiSessionCancelBackgroundTaskResultSchema
 >;
 
-export const zcodeSessionSetModelParamsSchema = z
+export const nibiSessionSetModelParamsSchema = z
   .object({
     sessionId: nonEmptyString,
     model: modelSelectionSchema,
@@ -2310,9 +2310,9 @@ export const zcodeSessionSetModelParamsSchema = z
     persistAsWorkspaceLastUsed: z.boolean().default(true),
   })
   .strict();
-export type ZCodeSessionSetModelParams = z.infer<typeof zcodeSessionSetModelParamsSchema>;
+export type NibiSessionSetModelParams = z.infer<typeof nibiSessionSetModelParamsSchema>;
 
-export const zcodeSessionSetThoughtLevelParamsSchema = z
+export const nibiSessionSetThoughtLevelParamsSchema = z
   .object({
     sessionId: nonEmptyString,
     thoughtLevel: nonEmptyString.optional(),
@@ -2320,55 +2320,55 @@ export const zcodeSessionSetThoughtLevelParamsSchema = z
     persistAsWorkspaceLastUsed: z.boolean().default(true),
   })
   .strict();
-export type ZCodeSessionSetThoughtLevelParams = z.infer<
-  typeof zcodeSessionSetThoughtLevelParamsSchema
+export type NibiSessionSetThoughtLevelParams = z.infer<
+  typeof nibiSessionSetThoughtLevelParamsSchema
 >;
 
-export const zcodeSessionSetModeParamsSchema = z
+export const nibiSessionSetModeParamsSchema = z
   .object({
     sessionId: nonEmptyString,
-    mode: zcodeSessionModeSchema,
+    mode: nibiSessionModeSchema,
     expectedRevision: z.number().int().nonnegative().optional(),
   })
   .strict();
-export type ZCodeSessionSetModeParams = z.infer<typeof zcodeSessionSetModeParamsSchema>;
+export type NibiSessionSetModeParams = z.infer<typeof nibiSessionSetModeParamsSchema>;
 
-export const zcodeSessionCloseParamsSchema = z
+export const nibiSessionCloseParamsSchema = z
   .object({
     sessionId: nonEmptyString,
-    expectedPersistence: zcodeSessionPersistenceSchema.optional(),
+    expectedPersistence: nibiSessionPersistenceSchema.optional(),
   })
   .strict();
-export type ZCodeSessionCloseParams = z.infer<typeof zcodeSessionCloseParamsSchema>;
-export const zcodeSessionCloseResultSchema = z
+export type NibiSessionCloseParams = z.infer<typeof nibiSessionCloseParamsSchema>;
+export const nibiSessionCloseResultSchema = z
   .object({
     closed: z.boolean().optional(),
   })
   .strict();
-export type ZCodeSessionCloseResult = z.infer<typeof zcodeSessionCloseResultSchema>;
-export const zcodeWorkspaceReadPresentationParamsSchema = z
-  .object({ workspace: zcodeWorkspaceRefSchema })
+export type NibiSessionCloseResult = z.infer<typeof nibiSessionCloseResultSchema>;
+export const nibiWorkspaceReadPresentationParamsSchema = z
+  .object({ workspace: nibiWorkspaceRefSchema })
   .strict();
-export const zcodeWorkspacePresentationSchema = z
+export const nibiWorkspacePresentationSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
-    mode: zcodeSessionModeSchema,
-    slashCommands: z.array(zcodeSlashCommandSchema),
+    workspace: nibiWorkspaceRefSchema,
+    mode: nibiSessionModeSchema,
+    slashCommands: z.array(nibiSlashCommandSchema),
   })
   .strict();
-export type ZCodeWorkspacePresentation = z.infer<typeof zcodeWorkspacePresentationSchema>;
+export type NibiWorkspacePresentation = z.infer<typeof nibiWorkspacePresentationSchema>;
 const workspaceHookSha256DigestSchema = z.string().regex(/^[a-f0-9]{64}$/u);
-export const zcodeWorkspaceHookTrustGrantParamsSchema = z
+export const nibiWorkspaceHookTrustGrantParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     bundleDigest: workspaceHookSha256DigestSchema,
     hookDeclarationDigest: workspaceHookSha256DigestSchema,
   })
   .strict();
-export type ZCodeWorkspaceHookTrustGrantParams = z.infer<
-  typeof zcodeWorkspaceHookTrustGrantParamsSchema
+export type NibiWorkspaceHookTrustGrantParams = z.infer<
+  typeof nibiWorkspaceHookTrustGrantParamsSchema
 >;
-export const zcodeWorkspaceHookTrustGrantReasonCodeSchema = z.enum([
+export const nibiWorkspaceHookTrustGrantReasonCodeSchema = z.enum([
   "workspace_hooks_blocked_by_policy",
   "workspace_hooks_bundle_changed",
   "workspace_hooks_snapshot_mismatch",
@@ -2376,33 +2376,33 @@ export const zcodeWorkspaceHookTrustGrantReasonCodeSchema = z.enum([
   "workspace_hooks_trust_store_corrupt",
   "workspace_hooks_config_unreadable",
 ]);
-export type ZCodeWorkspaceHookTrustGrantReasonCode = z.infer<
-  typeof zcodeWorkspaceHookTrustGrantReasonCodeSchema
+export type NibiWorkspaceHookTrustGrantReasonCode = z.infer<
+  typeof nibiWorkspaceHookTrustGrantReasonCodeSchema
 >;
-export const zcodeWorkspaceHookTrustGrantResultSchema = z
+export const nibiWorkspaceHookTrustGrantResultSchema = z
   .object({
     accepted: z.boolean(),
-    reasonCode: zcodeWorkspaceHookTrustGrantReasonCodeSchema.optional(),
+    reasonCode: nibiWorkspaceHookTrustGrantReasonCodeSchema.optional(),
   })
   .strict();
-export type ZCodeWorkspaceHookTrustGrantResult = z.infer<
-  typeof zcodeWorkspaceHookTrustGrantResultSchema
+export type NibiWorkspaceHookTrustGrantResult = z.infer<
+  typeof nibiWorkspaceHookTrustGrantResultSchema
 >;
-const zcodeWorkspaceModelToolCallSchema = z
+const nibiWorkspaceModelToolCallSchema = z
   .object({
     id: nonEmptyString,
     name: nonEmptyString,
     input: z.unknown(),
   })
   .strict();
-const zcodeWorkspaceModelMessageSchema = z.discriminatedUnion("role", [
+const nibiWorkspaceModelMessageSchema = z.discriminatedUnion("role", [
   z.object({ role: z.literal("system"), content: z.string() }).strict(),
   z.object({ role: z.literal("user"), content: z.string() }).strict(),
   z
     .object({
       role: z.literal("assistant"),
       content: z.string(),
-      toolCalls: z.array(zcodeWorkspaceModelToolCallSchema).optional(),
+      toolCalls: z.array(nibiWorkspaceModelToolCallSchema).optional(),
     })
     .strict(),
   z
@@ -2415,7 +2415,7 @@ const zcodeWorkspaceModelMessageSchema = z.discriminatedUnion("role", [
     })
     .strict(),
 ]);
-const zcodeWorkspaceModelToolSchema = z
+const nibiWorkspaceModelToolSchema = z
   .object({
     name: nonEmptyString,
     description: z.string().optional(),
@@ -2423,13 +2423,13 @@ const zcodeWorkspaceModelToolSchema = z
   })
   .strict();
 
-export const zcodeWorkspaceGenerateTextParamsSchema = z
+export const nibiWorkspaceGenerateTextParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     selection: modelSelectionSchema,
     prompt: nonEmptyString.optional(),
-    messages: z.array(zcodeWorkspaceModelMessageSchema).min(1).optional(),
-    tools: z.array(zcodeWorkspaceModelToolSchema).optional(),
+    messages: z.array(nibiWorkspaceModelMessageSchema).min(1).optional(),
+    tools: z.array(nibiWorkspaceModelToolSchema).optional(),
     querySource: nonEmptyString,
     maxOutputTokens: z.number().int().positive().optional(),
     operationId: nonEmptyString.optional(),
@@ -2438,11 +2438,11 @@ export const zcodeWorkspaceGenerateTextParamsSchema = z
   .refine((value) => value.prompt !== undefined || value.messages !== undefined, {
     message: "prompt 或 messages 至少需要提供一个",
   });
-export const zcodeWorkspaceGenerateTextResultSchema = z
+export const nibiWorkspaceGenerateTextResultSchema = z
   .object({
     text: z.string(),
     selection: modelSelectionSchema,
-    toolCalls: z.array(zcodeWorkspaceModelToolCallSchema).optional(),
+    toolCalls: z.array(nibiWorkspaceModelToolCallSchema).optional(),
     // 可选以兼容仍在运行的旧 app-server；新 CLI 始终返回结构化结束原因。
     finishReason: z.string().optional(),
     usage: z
@@ -2465,38 +2465,38 @@ export const zcodeWorkspaceGenerateTextResultSchema = z
       .optional(),
   })
   .strict();
-export type ZCodeWorkspaceGenerateTextParams = z.infer<
-  typeof zcodeWorkspaceGenerateTextParamsSchema
+export type NibiWorkspaceGenerateTextParams = z.infer<
+  typeof nibiWorkspaceGenerateTextParamsSchema
 >;
-export type ZCodeWorkspaceModelMessage = z.infer<typeof zcodeWorkspaceModelMessageSchema>;
-export type ZCodeWorkspaceModelTool = z.infer<typeof zcodeWorkspaceModelToolSchema>;
-export type ZCodeWorkspaceGenerateTextResult = z.infer<
-  typeof zcodeWorkspaceGenerateTextResultSchema
+export type NibiWorkspaceModelMessage = z.infer<typeof nibiWorkspaceModelMessageSchema>;
+export type NibiWorkspaceModelTool = z.infer<typeof nibiWorkspaceModelToolSchema>;
+export type NibiWorkspaceGenerateTextResult = z.infer<
+  typeof nibiWorkspaceGenerateTextResultSchema
 >;
-export const zcodeWorkspaceCancelGenerateTextParamsSchema = z
+export const nibiWorkspaceCancelGenerateTextParamsSchema = z
   .object({ operationId: nonEmptyString })
   .strict();
-export const zcodeWorkspaceCancelGenerateTextResultSchema = z
+export const nibiWorkspaceCancelGenerateTextResultSchema = z
   .object({ operationId: nonEmptyString, cancelled: z.boolean() })
   .strict();
 
-export const zcodeProviderTestModelConnectivityParamsSchema = z
+export const nibiProviderTestModelConnectivityParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     selection: modelSelectionSchema,
   })
   .strict();
-export const zcodeProviderTestModelConnectivityResultSchema = z
+export const nibiProviderTestModelConnectivityResultSchema = z
   .object({ success: z.literal(true) })
   .strict();
-export type ZCodeProviderTestModelConnectivityParams = z.infer<
-  typeof zcodeProviderTestModelConnectivityParamsSchema
+export type NibiProviderTestModelConnectivityParams = z.infer<
+  typeof nibiProviderTestModelConnectivityParamsSchema
 >;
-export type ZCodeProviderTestModelConnectivityResult = z.infer<
-  typeof zcodeProviderTestModelConnectivityResultSchema
+export type NibiProviderTestModelConnectivityResult = z.infer<
+  typeof nibiProviderTestModelConnectivityResultSchema
 >;
 
-export const zcodeProviderUpdateAccountConfigParamsSchema = z
+export const nibiProviderUpdateAccountConfigParamsSchema = z
   .object({
     revision: nonEmptyString,
     basedOnZCodeBuiltinRevision: nonEmptyString,
@@ -2518,7 +2518,7 @@ export const zcodeProviderUpdateAccountConfigParamsSchema = z
     ),
   })
   .strict();
-export const zcodeProviderUpdateAccountConfigResultSchema = z
+export const nibiProviderUpdateAccountConfigResultSchema = z
   .object({
     // 收到账号结果不代表配套 Built-in 已到达；应用版本只能读取 Registry 快照。
     receivedRevision: nonEmptyString,
@@ -2526,106 +2526,106 @@ export const zcodeProviderUpdateAccountConfigResultSchema = z
     status: z.enum(["received", "unchanged"]),
   })
   .strict();
-export type ZCodeProviderUpdateAccountConfigResult = z.infer<
-  typeof zcodeProviderUpdateAccountConfigResultSchema
+export type NibiProviderUpdateAccountConfigResult = z.infer<
+  typeof nibiProviderUpdateAccountConfigResultSchema
 >;
 /** Worker 从所属 Environment 的正式 Config Store 重建进程内 Provider Registry。 */
-export const zcodeProviderRefreshRegistryParamsSchema = z
+export const nibiProviderRefreshRegistryParamsSchema = z
   .object({
     reason: nonEmptyString,
   })
   .strict();
-export const zcodeProviderRefreshRegistryResultSchema = z
+export const nibiProviderRefreshRegistryResultSchema = z
   .object({
     refreshed: z.literal(true),
   })
   .strict();
-export type ZCodeProviderRefreshRegistryParams = z.infer<
-  typeof zcodeProviderRefreshRegistryParamsSchema
+export type NibiProviderRefreshRegistryParams = z.infer<
+  typeof nibiProviderRefreshRegistryParamsSchema
 >;
-export type ZCodeProviderRefreshRegistryResult = z.infer<
-  typeof zcodeProviderRefreshRegistryResultSchema
+export type NibiProviderRefreshRegistryResult = z.infer<
+  typeof nibiProviderRefreshRegistryResultSchema
 >;
-export const zcodeInteractionPreferencesSchema = z
+export const nibiInteractionPreferencesSchema = z
   .object({
     askUserQuestionAutoResolutionEnabled: z.boolean(),
   })
   .strict();
-export type ZCodeInteractionPreferences = z.infer<typeof zcodeInteractionPreferencesSchema>;
+export type NibiInteractionPreferences = z.infer<typeof nibiInteractionPreferencesSchema>;
 
-export const zcodeWorkspaceUpdateInteractionPreferencesParamsSchema = z
+export const nibiWorkspaceUpdateInteractionPreferencesParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
-    preferences: zcodeInteractionPreferencesSchema,
+    workspace: nibiWorkspaceRefSchema,
+    preferences: nibiInteractionPreferencesSchema,
   })
   .strict();
-export type ZCodeWorkspaceUpdateInteractionPreferencesParams = z.infer<
-  typeof zcodeWorkspaceUpdateInteractionPreferencesParamsSchema
+export type NibiWorkspaceUpdateInteractionPreferencesParams = z.infer<
+  typeof nibiWorkspaceUpdateInteractionPreferencesParamsSchema
 >;
 
-export const zcodeWorkspaceUpdateInteractionPreferencesResultSchema = z
+export const nibiWorkspaceUpdateInteractionPreferencesResultSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     askUserQuestionAutoResolutionEnabled: z.boolean(),
     snoozedInteractionCount: z.number().int().nonnegative(),
   })
   .strict();
-export type ZCodeWorkspaceUpdateInteractionPreferencesResult = z.infer<
-  typeof zcodeWorkspaceUpdateInteractionPreferencesResultSchema
+export type NibiWorkspaceUpdateInteractionPreferencesResult = z.infer<
+  typeof nibiWorkspaceUpdateInteractionPreferencesResultSchema
 >;
 
-export const zcodeModelIoPreferencesSchema = z
+export const nibiModelIoPreferencesSchema = z
   .object({
     fullRetentionEnabled: z.boolean(),
   })
   .strict();
-export type ZCodeModelIoPreferences = z.infer<typeof zcodeModelIoPreferencesSchema>;
+export type NibiModelIoPreferences = z.infer<typeof nibiModelIoPreferencesSchema>;
 
-export const zcodeWorkspaceUpdateModelIoPreferencesParamsSchema = z
+export const nibiWorkspaceUpdateModelIoPreferencesParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
-    preferences: zcodeModelIoPreferencesSchema,
+    workspace: nibiWorkspaceRefSchema,
+    preferences: nibiModelIoPreferencesSchema,
   })
   .strict();
-export type ZCodeWorkspaceUpdateModelIoPreferencesParams = z.infer<
-  typeof zcodeWorkspaceUpdateModelIoPreferencesParamsSchema
+export type NibiWorkspaceUpdateModelIoPreferencesParams = z.infer<
+  typeof nibiWorkspaceUpdateModelIoPreferencesParamsSchema
 >;
 
-export const zcodeWorkspaceUpdateModelIoPreferencesResultSchema = z
+export const nibiWorkspaceUpdateModelIoPreferencesResultSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     fullRetentionEnabled: z.boolean(),
     updatedSessionCount: z.number().int().nonnegative(),
   })
   .strict();
-export type ZCodeWorkspaceUpdateModelIoPreferencesResult = z.infer<
-  typeof zcodeWorkspaceUpdateModelIoPreferencesResultSchema
+export type NibiWorkspaceUpdateModelIoPreferencesResult = z.infer<
+  typeof nibiWorkspaceUpdateModelIoPreferencesResultSchema
 >;
 
 // 动态工作流灰度门禁：workspace 级事实，host→CLI 同步；旧 CLI method-not-found → host 降级忽略。
-export const zcodeWorkspaceUpdateDynamicWorkflowPolicyParamsSchema = z
+export const nibiWorkspaceUpdateDynamicWorkflowPolicyParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     enabled: z.boolean(),
     // launch.md「On demand: activation」：mode 与布尔同行；缺席时 CLI 按布尔行事（alwaysOn）。
-    mode: zcodeDynamicWorkflowModeSchema.optional(),
+    mode: nibiDynamicWorkflowModeSchema.optional(),
   })
   .strict();
-export type ZCodeWorkspaceUpdateDynamicWorkflowPolicyParams = z.infer<
-  typeof zcodeWorkspaceUpdateDynamicWorkflowPolicyParamsSchema
+export type NibiWorkspaceUpdateDynamicWorkflowPolicyParams = z.infer<
+  typeof nibiWorkspaceUpdateDynamicWorkflowPolicyParamsSchema
 >;
 
-export const zcodeWorkspaceUpdateDynamicWorkflowPolicyResultSchema = z
+export const nibiWorkspaceUpdateDynamicWorkflowPolicyResultSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     enabled: z.boolean(),
   })
   .strict();
-export type ZCodeWorkspaceUpdateDynamicWorkflowPolicyResult = z.infer<
-  typeof zcodeWorkspaceUpdateDynamicWorkflowPolicyResultSchema
+export type NibiWorkspaceUpdateDynamicWorkflowPolicyResult = z.infer<
+  typeof nibiWorkspaceUpdateDynamicWorkflowPolicyResultSchema
 >;
 
-export const zcodePermissionRequestParamsSchema = z
+export const nibiPermissionRequestParamsSchema = z
   .object({
     requestId: nonEmptyString,
     sessionId: nonEmptyString,
@@ -2635,14 +2635,14 @@ export const zcodePermissionRequestParamsSchema = z
     reason: z.string(),
     riskLevel: z.enum(["low", "medium", "high", "critical"]),
     input: z.unknown(),
-    origin: zcodeInteractionRequestOriginSchema.optional(),
-    options: z.array(zcodePermissionOptionSchema).min(1),
+    origin: nibiInteractionRequestOriginSchema.optional(),
+    options: z.array(nibiPermissionOptionSchema).min(1),
   })
   .strict();
-export type ZCodePermissionRequestParams = z.infer<typeof zcodePermissionRequestParamsSchema>;
+export type NibiPermissionRequestParams = z.infer<typeof nibiPermissionRequestParamsSchema>;
 
 /** Agent 请求 app 枚举当前 workspace/session 可达且已完成握手的 browser backend。 */
-export const zcodeBrowserListParamsSchema = z
+export const nibiBrowserListParamsSchema = z
   .object({
     requestId: nonEmptyString,
     sessionId: nonEmptyString,
@@ -2655,13 +2655,13 @@ export const zcodeBrowserListParamsSchema = z
     sessionContext: browserSessionContextKindSchema,
   })
   .strict();
-export type ZCodeBrowserListParams = z.infer<typeof zcodeBrowserListParamsSchema>;
+export type NibiBrowserListParams = z.infer<typeof nibiBrowserListParamsSchema>;
 
-export const zcodeBrowserListResultSchema = browserBackendListResultSchema;
-export type ZCodeBrowserListResult = z.infer<typeof zcodeBrowserListResultSchema>;
+export const nibiBrowserListResultSchema = browserBackendListResultSchema;
+export type NibiBrowserListResult = z.infer<typeof nibiBrowserListResultSchema>;
 
 /** Agent 把一条 browser-use 命令发送给 app 执行。 */
-export const zcodeBrowserExecuteParamsSchema = z
+export const nibiBrowserExecuteParamsSchema = z
   .object({
     requestId: nonEmptyString,
     sessionId: nonEmptyString,
@@ -2677,14 +2677,14 @@ export const zcodeBrowserExecuteParamsSchema = z
     command: browserCommandSchema,
   })
   .strict();
-export type ZCodeBrowserExecuteParams = z.infer<typeof zcodeBrowserExecuteParamsSchema>;
+export type NibiBrowserExecuteParams = z.infer<typeof nibiBrowserExecuteParamsSchema>;
 
 // browser command result 是 app/agent 的同源协议结果；其中 duplicate_request_id 用于在真正维护
 // pending/running 生命周期的边界拒绝 correlation key 冲突，不能依赖上游 UUID 概率保证。
-export const zcodeBrowserExecuteResultSchema = browserCommandResultSchema;
-export type ZCodeBrowserExecuteResult = z.infer<typeof zcodeBrowserExecuteResultSchema>;
+export const nibiBrowserExecuteResultSchema = browserCommandResultSchema;
+export type NibiBrowserExecuteResult = z.infer<typeof nibiBrowserExecuteResultSchema>;
 
-export const zcodeUserInputOptionSchema = z
+export const nibiUserInputOptionSchema = z
   .object({
     value: nonEmptyString,
     label: nonEmptyString,
@@ -2692,17 +2692,17 @@ export const zcodeUserInputOptionSchema = z
     preview: z.string().optional(),
   })
   .strict();
-export const zcodeUserInputQuestionSchema = z
+export const nibiUserInputQuestionSchema = z
   .object({
     question: nonEmptyString,
     header: nonEmptyString,
-    options: z.array(zcodeUserInputOptionSchema).min(1),
+    options: z.array(nibiUserInputOptionSchema).min(1),
     multiSelect: z.boolean().optional(),
   })
   .strict();
-export type ZCodeUserInputQuestion = z.infer<typeof zcodeUserInputQuestionSchema>;
+export type NibiUserInputQuestion = z.infer<typeof nibiUserInputQuestionSchema>;
 
-export const zcodeUserInputRequestParamsSchema = z
+export const nibiUserInputRequestParamsSchema = z
   .object({
     requestId: nonEmptyString,
     sessionId: nonEmptyString,
@@ -2710,33 +2710,33 @@ export const zcodeUserInputRequestParamsSchema = z
     toolCallId: nonEmptyString.optional(),
     toolName: nonEmptyString.optional(),
     prompt: z.string().optional(),
-    questions: z.array(zcodeUserInputQuestionSchema).min(1).optional(),
+    questions: z.array(nibiUserInputQuestionSchema).min(1).optional(),
     input: z.unknown().optional(),
-    origin: zcodeInteractionRequestOriginSchema.optional(),
+    origin: nibiInteractionRequestOriginSchema.optional(),
     schema: z.unknown().optional(),
   })
   .strict();
-export type ZCodeUserInputRequestParams = z.infer<typeof zcodeUserInputRequestParamsSchema>;
+export type NibiUserInputRequestParams = z.infer<typeof nibiUserInputRequestParamsSchema>;
 
-export const zcodeUserInputResponseSchema = z
+export const nibiUserInputResponseSchema = z
   .object({
     action: z.enum(["accept", "decline", "cancel"]),
     content: jsonObjectSchema.optional(),
     reason: z.string().optional(),
   })
   .strict();
-export type ZCodeUserInputResponse = z.infer<typeof zcodeUserInputResponseSchema>;
+export type NibiUserInputResponse = z.infer<typeof nibiUserInputResponseSchema>;
 
-export const zcodeProviderRuntimeHeadersRequestReasonSchema = z.enum(requestVerificationReasons);
-export const zcodeProviderRuntimeHeadersRequestParamsSchema = z
+export const nibiProviderRuntimeHeadersRequestReasonSchema = z.enum(requestVerificationReasons);
+export const nibiProviderRuntimeHeadersRequestParamsSchema = z
   .object({
     requestId: nonEmptyString,
     sessionId: nonEmptyString,
     turnId: nonEmptyString.optional(),
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     modelSelection: modelSelectionSchema,
     providerId: nonEmptyString,
-    accountAccess: zcodeProviderAccountAccessSchema.optional(),
+    accountAccess: nibiProviderAccountAccessSchema.optional(),
     expectedAccountScope: z
       .string()
       .regex(/^[a-f0-9]{64}$/)
@@ -2745,26 +2745,26 @@ export const zcodeProviderRuntimeHeadersRequestParamsSchema = z
       .string()
       .regex(/^[a-f0-9]{64}$/)
       .optional(),
-    reason: zcodeProviderRuntimeHeadersRequestReasonSchema,
+    reason: nibiProviderRuntimeHeadersRequestReasonSchema,
   })
   .strict();
-export type ZCodeProviderRuntimeHeadersRequestParams = z.infer<
-  typeof zcodeProviderRuntimeHeadersRequestParamsSchema
+export type NibiProviderRuntimeHeadersRequestParams = z.infer<
+  typeof nibiProviderRuntimeHeadersRequestParamsSchema
 >;
 
 /** 请求取消只作用于同 workspace/session 的这一轮凭据刷新。 */
-export const zcodeProviderRuntimeHeadersCancelledSchema = z
+export const nibiProviderRuntimeHeadersCancelledSchema = z
   .object({
     requestId: nonEmptyString,
     sessionId: nonEmptyString,
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
   })
   .strict();
-export type ZCodeProviderRuntimeHeadersCancelled = z.infer<
-  typeof zcodeProviderRuntimeHeadersCancelledSchema
+export type NibiProviderRuntimeHeadersCancelled = z.infer<
+  typeof nibiProviderRuntimeHeadersCancelledSchema
 >;
 
-export const zcodeProviderRuntimeHeadersResponseSchema = z.discriminatedUnion("headersApplied", [
+export const nibiProviderRuntimeHeadersResponseSchema = z.discriminatedUnion("headersApplied", [
   z
     .object({
       headersApplied: z.literal(true),
@@ -2790,17 +2790,17 @@ export const zcodeProviderRuntimeHeadersResponseSchema = z.discriminatedUnion("h
     })
     .strict(),
 ]);
-export type ZCodeProviderRuntimeHeadersResponse = z.infer<
-  typeof zcodeProviderRuntimeHeadersResponseSchema
+export type NibiProviderRuntimeHeadersResponse = z.infer<
+  typeof nibiProviderRuntimeHeadersResponseSchema
 >;
 
 // ── Plugin management (list + enable/disable) ──
 // 镜像 @nibi/contracts 的 PluginMetadata, 仅保留 UI 需要的可序列化字段。
-export const zcodePluginOptionValueSchema = z.union([z.string(), z.number(), z.boolean()]);
-export type ZCodePluginOptionValue = z.infer<typeof zcodePluginOptionValueSchema>;
-export const zcodePluginScopeSchema = z.enum(["user", "workspace"]);
-export type ZCodePluginScope = z.infer<typeof zcodePluginScopeSchema>;
-export const zcodePluginHookDetailSchema = z
+export const nibiPluginOptionValueSchema = z.union([z.string(), z.number(), z.boolean()]);
+export type NibiPluginOptionValue = z.infer<typeof nibiPluginOptionValueSchema>;
+export const nibiPluginScopeSchema = z.enum(["user", "workspace"]);
+export type NibiPluginScope = z.infer<typeof nibiPluginScopeSchema>;
+export const nibiPluginHookDetailSchema = z
   .object({
     event: nonEmptyString,
     matcher: z.string().optional(),
@@ -2816,9 +2816,9 @@ export const zcodePluginHookDetailSchema = z
     runnable: z.boolean(),
   })
   .strict();
-export const zcodePluginUserConfigOptionSchema = z
+export const nibiPluginUserConfigOptionSchema = z
   .object({
-    default: zcodePluginOptionValueSchema.optional(),
+    default: nibiPluginOptionValueSchema.optional(),
     description: z.string().optional(),
     required: z.boolean().optional(),
     sensitive: z.boolean().optional(),
@@ -2826,29 +2826,29 @@ export const zcodePluginUserConfigOptionSchema = z
     type: z.enum(["string", "number", "boolean", "directory", "file"]).optional(),
   })
   .strict();
-export type ZCodePluginUserConfigOption = z.infer<typeof zcodePluginUserConfigOptionSchema>;
+export type NibiPluginUserConfigOption = z.infer<typeof nibiPluginUserConfigOptionSchema>;
 
 // 组件类型与详情弹窗/市场详情共用的分组顺序保持一致：agent / command / skill / hook / mcp。
-// 注意：这三个 schema 必须定义在 zcodePluginInfoSchema 之前，因为后者（.strict()）的 components 字段引用了它们。
-export const zcodePluginComponentKindSchema = z.enum(["agent", "command", "skill", "hook", "mcp"]);
-export type ZCodePluginComponentKind = z.infer<typeof zcodePluginComponentKindSchema>;
+// 注意：这三个 schema 必须定义在 nibiPluginInfoSchema 之前，因为后者（.strict()）的 components 字段引用了它们。
+export const nibiPluginComponentKindSchema = z.enum(["agent", "command", "skill", "hook", "mcp"]);
+export type NibiPluginComponentKind = z.infer<typeof nibiPluginComponentKindSchema>;
 
-export const zcodePluginComponentItemSchema = z
+export const nibiPluginComponentItemSchema = z
   .object({
     name: nonEmptyString,
     // 描述来自组件 frontmatter（SKILL.md / command / agent）或 manifest；缺失时省略，不伪造。
     description: z.string().optional(),
   })
   .strict();
-export const zcodePluginComponentGroupSchema = z
+export const nibiPluginComponentGroupSchema = z
   .object({
-    kind: zcodePluginComponentKindSchema,
-    items: z.array(zcodePluginComponentItemSchema),
+    kind: nibiPluginComponentKindSchema,
+    items: z.array(nibiPluginComponentItemSchema),
   })
   .strict();
-export type ZCodePluginComponentGroup = z.infer<typeof zcodePluginComponentGroupSchema>;
+export type NibiPluginComponentGroup = z.infer<typeof nibiPluginComponentGroupSchema>;
 
-export const zcodePluginUiSurfaceSchema = z
+export const nibiPluginUiSurfaceSchema = z
   .object({
     pluginId: nonEmptyString,
     pluginName: nonEmptyString,
@@ -2861,9 +2861,9 @@ export const zcodePluginUiSurfaceSchema = z
     availability: z.literal("session"),
   })
   .strict();
-export type ZCodePluginUiSurface = z.infer<typeof zcodePluginUiSurfaceSchema>;
+export type NibiPluginUiSurface = z.infer<typeof nibiPluginUiSurfaceSchema>;
 
-export const zcodePluginInfoSchema = z
+export const nibiPluginInfoSchema = z
   .object({
     id: nonEmptyString,
     name: nonEmptyString,
@@ -2894,25 +2894,25 @@ export const zcodePluginInfoSchema = z
       .optional(),
     // 权威组件清单（名称 + 可选描述），由 CLI 对插件根目录枚举得出，与启用态无关。
     // 详情 UI 直接展示，取代旧的「数量取协议、名称靠 UI 侧 join」脆弱方案。optional 兼容旧 payload。
-    components: z.array(zcodePluginComponentGroupSchema).optional(),
-    uiSurfaces: z.array(zcodePluginUiSurfaceSchema).optional(),
+    components: z.array(nibiPluginComponentGroupSchema).optional(),
+    uiSurfaces: z.array(nibiPluginUiSurfaceSchema).optional(),
     declaredMcpServerNames: z.array(z.string()).optional(),
     hostMcpServerNames: z.array(z.string()).optional(),
     mcpServerNames: z.array(z.string()),
-    hookDetails: z.array(zcodePluginHookDetailSchema).optional(),
+    hookDetails: z.array(nibiPluginHookDetailSchema).optional(),
     rootPath: z.string(),
-    userConfig: z.record(z.string(), zcodePluginUserConfigOptionSchema).optional(),
-    configuredOptions: z.record(z.string(), zcodePluginOptionValueSchema).optional(),
+    userConfig: z.record(z.string(), nibiPluginUserConfigOptionSchema).optional(),
+    configuredOptions: z.record(z.string(), nibiPluginOptionValueSchema).optional(),
     // 缺省表示 package 可用；missing 用于保留已声明但目标 Host 尚未物化的配置行。
     packageStatus: z.literal("missing").optional(),
-    rootSource: zcodePluginScopeSchema.optional(),
-    enabledSource: zcodePluginScopeSchema.optional(),
-    optionSources: z.record(z.string(), zcodePluginScopeSchema).optional(),
+    rootSource: nibiPluginScopeSchema.optional(),
+    enabledSource: nibiPluginScopeSchema.optional(),
+    optionSources: z.record(z.string(), nibiPluginScopeSchema).optional(),
   })
   .strict();
-export type ZCodePluginInfo = z.infer<typeof zcodePluginInfoSchema>;
+export type NibiPluginInfo = z.infer<typeof nibiPluginInfoSchema>;
 
-export const zcodePluginDiagnosticSchema = z
+export const nibiPluginDiagnosticSchema = z
   .object({
     code: z.string(),
     message: z.string(),
@@ -2920,35 +2920,35 @@ export const zcodePluginDiagnosticSchema = z
     pluginId: z.string().optional(),
   })
   .strict();
-export type ZCodePluginDiagnostic = z.infer<typeof zcodePluginDiagnosticSchema>;
+export type NibiPluginDiagnostic = z.infer<typeof nibiPluginDiagnosticSchema>;
 
-export const zcodePluginsListParamsSchema = z
+export const nibiPluginsListParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
-    configScope: zcodePluginScopeSchema.optional(),
+    workspace: nibiWorkspaceRefSchema,
+    configScope: nibiPluginScopeSchema.optional(),
   })
   .strict();
-export const zcodePluginsListResultSchema = z
+export const nibiPluginsListResultSchema = z
   .object({
-    plugins: z.array(zcodePluginInfoSchema),
-    diagnostics: z.array(zcodePluginDiagnosticSchema),
+    plugins: z.array(nibiPluginInfoSchema),
+    diagnostics: z.array(nibiPluginDiagnosticSchema),
   })
   .strict();
-export type ZCodePluginsListResult = z.infer<typeof zcodePluginsListResultSchema>;
+export type NibiPluginsListResult = z.infer<typeof nibiPluginsListResultSchema>;
 
 // ── 插件 UI 面板入口──
 // 工作区级只读投影：已启用插件清单 `ui.surfaces[]` 的合法条目；插件启停后 host 重新拉取。
-export const zcodePluginsListUiSurfacesParamsSchema = z
-  .object({ workspace: zcodeWorkspaceRefSchema })
+export const nibiPluginsListUiSurfacesParamsSchema = z
+  .object({ workspace: nibiWorkspaceRefSchema })
   .strict();
-export type ZCodePluginsListUiSurfacesParams = z.infer<
-  typeof zcodePluginsListUiSurfacesParamsSchema
+export type NibiPluginsListUiSurfacesParams = z.infer<
+  typeof nibiPluginsListUiSurfacesParamsSchema
 >;
-export const zcodePluginsListUiSurfacesResultSchema = z
-  .object({ surfaces: z.array(zcodePluginUiSurfaceSchema) })
+export const nibiPluginsListUiSurfacesResultSchema = z
+  .object({ surfaces: z.array(nibiPluginUiSurfaceSchema) })
   .strict();
-export type ZCodePluginsListUiSurfacesResult = z.infer<
-  typeof zcodePluginsListUiSurfacesResultSchema
+export type NibiPluginsListUiSurfacesResult = z.infer<
+  typeof nibiPluginsListUiSurfacesResultSchema
 >;
 
 // ── Plugin 对话引用 catalog（docs/plugin-reference-mention.md）──
@@ -2956,7 +2956,7 @@ export type ZCodePluginsListUiSurfacesResult = z.infer<
 // 不带 → workspace 当前 catalog（新建草稿 Picker）。身份与能力字段保持
 // identifiers-only，不携带 rootPath/配置等；可选 icon/displayName(I18n)/description(I18n)
 // 仅供 UI 展示与 Picker 搜索，不参与身份、权限或 runtime reminder。
-export const zcodePluginReferenceCatalogEntrySchema = z
+export const nibiPluginReferenceCatalogEntrySchema = z
   .object({
     // 仅 referenceCatalogWithCategory 返回；旧入口保持原结构。
     category: nonEmptyString.optional(),
@@ -2981,36 +2981,36 @@ export const zcodePluginReferenceCatalogEntrySchema = z
     subagentNames: z.array(nonEmptyString).default([]),
   })
   .strict();
-export type ZCodePluginReferenceCatalogEntry = z.infer<
-  typeof zcodePluginReferenceCatalogEntrySchema
+export type NibiPluginReferenceCatalogEntry = z.infer<
+  typeof nibiPluginReferenceCatalogEntrySchema
 >;
 
-export const zcodePluginsReferenceCatalogParamsSchema = z
+export const nibiPluginsReferenceCatalogParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     // 已有 Session 的 Picker 必须带 sessionId 才能拿到 session-owned catalog；
     // session 不存在时按协议错误 fail closed，禁止静默回退 workspace authority。
     sessionId: nonEmptyString.optional(),
   })
   .strict();
-export type ZCodePluginsReferenceCatalogParams = z.infer<
-  typeof zcodePluginsReferenceCatalogParamsSchema
+export type NibiPluginsReferenceCatalogParams = z.infer<
+  typeof nibiPluginsReferenceCatalogParamsSchema
 >;
-export const zcodePluginsReferenceCatalogResultSchema = z
+export const nibiPluginsReferenceCatalogResultSchema = z
   .object({
     authority: z.enum(["session", "workspace"]),
-    plugins: z.array(zcodePluginReferenceCatalogEntrySchema),
+    plugins: z.array(nibiPluginReferenceCatalogEntrySchema),
   })
   .strict();
-export type ZCodePluginsReferenceCatalogResult = z.infer<
-  typeof zcodePluginsReferenceCatalogResultSchema
+export type NibiPluginsReferenceCatalogResult = z.infer<
+  typeof nibiPluginsReferenceCatalogResultSchema
 >;
 
 // ── Skill 对话引用 catalog──
 // 新草稿读取 workspace 当前目录；已有 Session 读取 AgentRuntime 首次 context
 // 初始化时冻结的发现结果。该协议只承载 Composer 的只读引用投影，不替代 Settings
 // 的 Skill 管理接口，也不持久化 runtime 快照。
-export const zcodeSkillReferenceCatalogEntrySchema = z
+export const nibiSkillReferenceCatalogEntrySchema = z
   .object({
     id: nonEmptyString,
     name: nonEmptyString,
@@ -3021,27 +3021,27 @@ export const zcodeSkillReferenceCatalogEntrySchema = z
     pluginName: nonEmptyString.optional(),
   })
   .strict();
-export type ZCodeSkillReferenceCatalogEntry = z.infer<typeof zcodeSkillReferenceCatalogEntrySchema>;
+export type NibiSkillReferenceCatalogEntry = z.infer<typeof nibiSkillReferenceCatalogEntrySchema>;
 
-export const zcodeSkillsReferenceCatalogParamsSchema = z
+export const nibiSkillsReferenceCatalogParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     // 带 sessionId 时必须命中该进程内的 resident Session；未知 Session fail closed，
     // 禁止回退到 workspace 当前目录而把新 Skill 泄漏进旧对话。
     sessionId: nonEmptyString.optional(),
   })
   .strict();
-export type ZCodeSkillsReferenceCatalogParams = z.infer<
-  typeof zcodeSkillsReferenceCatalogParamsSchema
+export type NibiSkillsReferenceCatalogParams = z.infer<
+  typeof nibiSkillsReferenceCatalogParamsSchema
 >;
-export const zcodeSkillsReferenceCatalogResultSchema = z
+export const nibiSkillsReferenceCatalogResultSchema = z
   .object({
     authority: z.enum(["session", "workspace"]),
-    skills: z.array(zcodeSkillReferenceCatalogEntrySchema),
+    skills: z.array(nibiSkillReferenceCatalogEntrySchema),
   })
   .strict();
-export type ZCodeSkillsReferenceCatalogResult = z.infer<
-  typeof zcodeSkillsReferenceCatalogResultSchema
+export type NibiSkillsReferenceCatalogResult = z.infer<
+  typeof nibiSkillsReferenceCatalogResultSchema
 >;
 
 // ── 已保存工作流的 GUI 中枢──
@@ -3049,180 +3049,180 @@ export type ZCodeSkillsReferenceCatalogResult = z.infer<
 // `<cwd>/.nibi/workflows/`（挂载时快照会漏掉手改的文件）。形状与 @nibi/contracts 的
 // saved-workflow.ts 逐字对齐——依赖方向是 contracts → shared，所以这里结构化地再声明一遍，
 // 而不是 import；两边的 strict 形状由 bootstrap 侧的协议测试互相钉住。
-export const zcodeSavedWorkflowArgTypeSchema = z.enum(["string", "number", "boolean", "json"]);
-export type ZCodeSavedWorkflowArgType = z.infer<typeof zcodeSavedWorkflowArgTypeSchema>;
-export const zcodeSavedWorkflowArgDeclarationSchema = z
+export const nibiSavedWorkflowArgTypeSchema = z.enum(["string", "number", "boolean", "json"]);
+export type NibiSavedWorkflowArgType = z.infer<typeof nibiSavedWorkflowArgTypeSchema>;
+export const nibiSavedWorkflowArgDeclarationSchema = z
   .object({
-    type: zcodeSavedWorkflowArgTypeSchema,
+    type: nibiSavedWorkflowArgTypeSchema,
     description: z.string().optional(),
     required: z.boolean().optional(),
     default: z.unknown().optional(),
   })
   .strict();
-export type ZCodeSavedWorkflowArgDeclaration = z.infer<
-  typeof zcodeSavedWorkflowArgDeclarationSchema
+export type NibiSavedWorkflowArgDeclaration = z.infer<
+  typeof nibiSavedWorkflowArgDeclarationSchema
 >;
-export const zcodeSavedWorkflowArgsDeclarationSchema = z.record(
+export const nibiSavedWorkflowArgsDeclarationSchema = z.record(
   z.string(),
-  zcodeSavedWorkflowArgDeclarationSchema,
+  nibiSavedWorkflowArgDeclarationSchema,
 );
-export type ZCodeSavedWorkflowArgsDeclaration = z.infer<
-  typeof zcodeSavedWorkflowArgsDeclarationSchema
+export type NibiSavedWorkflowArgsDeclaration = z.infer<
+  typeof nibiSavedWorkflowArgsDeclarationSchema
 >;
-export const zcodeSavedWorkflowMetaSchema = z
+export const nibiSavedWorkflowMetaSchema = z
   .object({
     description: nonEmptyString,
     whenToUse: nonEmptyString.optional(),
-    args: zcodeSavedWorkflowArgsDeclarationSchema.optional(),
+    args: nibiSavedWorkflowArgsDeclarationSchema.optional(),
   })
   .strict();
-export type ZCodeSavedWorkflowMeta = z.infer<typeof zcodeSavedWorkflowMetaSchema>;
+export type NibiSavedWorkflowMeta = z.infer<typeof nibiSavedWorkflowMetaSchema>;
 // 作用域两档：项目档落 `<cwd>/.nibi/workflows/`、全局档落 agent 机器的 `~/.nibi/workflows/`。作用域由文件所在目录推得，frontmatter 不存 scope。
-export const zcodeSavedWorkflowScopeSchema = z.enum(["project", "global"]);
-export type ZCodeSavedWorkflowScope = z.infer<typeof zcodeSavedWorkflowScopeSchema>;
-export const zcodeSavedWorkflowEntrySchema = z
+export const nibiSavedWorkflowScopeSchema = z.enum(["project", "global"]);
+export type NibiSavedWorkflowScope = z.infer<typeof nibiSavedWorkflowScopeSchema>;
+export const nibiSavedWorkflowEntrySchema = z
   .object({
     name: nonEmptyString,
     description: z.string(),
     whenToUse: z.string().optional(),
-    args: zcodeSavedWorkflowArgsDeclarationSchema.optional(),
-    scope: zcodeSavedWorkflowScopeSchema,
+    args: nibiSavedWorkflowArgsDeclarationSchema.optional(),
+    scope: nibiSavedWorkflowScopeSchema,
     path: nonEmptyString,
   })
   .strict();
-export type ZCodeSavedWorkflowEntry = z.infer<typeof zcodeSavedWorkflowEntrySchema>;
-export const zcodeSavedWorkflowInvalidEntrySchema = z
+export type NibiSavedWorkflowEntry = z.infer<typeof nibiSavedWorkflowEntrySchema>;
+export const nibiSavedWorkflowInvalidEntrySchema = z
   .object({ path: nonEmptyString, reason: nonEmptyString })
   .strict();
-export type ZCodeSavedWorkflowInvalidEntry = z.infer<typeof zcodeSavedWorkflowInvalidEntrySchema>;
+export type NibiSavedWorkflowInvalidEntry = z.infer<typeof nibiSavedWorkflowInvalidEntrySchema>;
 /** 名字非法 / 未找到 / frontmatter 坏 / 读错——与 core store 的 resolve 失败四态逐字对应。 */
-export const zcodeSavedWorkflowFailureReasonSchema = z.enum([
+export const nibiSavedWorkflowFailureReasonSchema = z.enum([
   "invalid_name",
   "not_found",
   "parse_error",
   "read_error",
 ]);
-export type ZCodeSavedWorkflowFailureReason = z.infer<typeof zcodeSavedWorkflowFailureReasonSchema>;
-const zcodeSavedWorkflowFailureSchema = z
+export type NibiSavedWorkflowFailureReason = z.infer<typeof nibiSavedWorkflowFailureReasonSchema>;
+const nibiSavedWorkflowFailureSchema = z
   .object({
     ok: z.literal(false),
-    reason: zcodeSavedWorkflowFailureReasonSchema,
+    reason: nibiSavedWorkflowFailureReasonSchema,
     detail: z.string().optional(),
   })
   .strict();
 
-export const zcodeWorkflowsListParamsSchema = z
+export const nibiWorkflowsListParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     // 缺省即 `project`（本项目档）。给 `global` 时改扫本机 `~/.nibi/workflows/`；此时 `workspace`
     // 仍必填，但只是**载体运行时**——协议处理器对全局档不读它的路径。
-    scope: zcodeSavedWorkflowScopeSchema.optional(),
+    scope: nibiSavedWorkflowScopeSchema.optional(),
   })
   .strict();
-export type ZCodeWorkflowsListParams = z.infer<typeof zcodeWorkflowsListParamsSchema>;
-export const zcodeWorkflowsListResultSchema = z
+export type NibiWorkflowsListParams = z.infer<typeof nibiWorkflowsListParamsSchema>;
+export const nibiWorkflowsListResultSchema = z
   .object({
-    workflows: z.array(zcodeSavedWorkflowEntrySchema),
-    invalid: z.array(zcodeSavedWorkflowInvalidEntrySchema),
+    workflows: z.array(nibiSavedWorkflowEntrySchema),
+    invalid: z.array(nibiSavedWorkflowInvalidEntrySchema),
     // 扫过的目录（本地绝对路径），即使目录还不存在也回：GUI 的文件监听靠它 watch。
     dir: nonEmptyString,
   })
   .strict();
-export type ZCodeWorkflowsListResult = z.infer<typeof zcodeWorkflowsListResultSchema>;
+export type NibiWorkflowsListResult = z.infer<typeof nibiWorkflowsListResultSchema>;
 
-export const zcodeWorkflowsGetParamsSchema = z
+export const nibiWorkflowsGetParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     name: nonEmptyString,
     // 缺省 `project`；`global` 时只查本机全局根。`workspace` 语义同 list（全局档只当载体）。
-    scope: zcodeSavedWorkflowScopeSchema.optional(),
+    scope: nibiSavedWorkflowScopeSchema.optional(),
   })
   .strict();
-export type ZCodeWorkflowsGetParams = z.infer<typeof zcodeWorkflowsGetParamsSchema>;
-export const zcodeWorkflowsGetResultSchema = z.union([
+export type NibiWorkflowsGetParams = z.infer<typeof nibiWorkflowsGetParamsSchema>;
+export const nibiWorkflowsGetResultSchema = z.union([
   z
     .object({
       ok: z.literal(true),
       name: nonEmptyString,
       path: nonEmptyString,
-      scope: zcodeSavedWorkflowScopeSchema,
-      meta: zcodeSavedWorkflowMetaSchema,
+      scope: nibiSavedWorkflowScopeSchema,
+      meta: nibiSavedWorkflowMetaSchema,
       /** 脚本本体（frontmatter 之后逐字节），即被类型检查与执行的那一份。 */
       script: z.string(),
     })
     .strict(),
-  zcodeSavedWorkflowFailureSchema,
+  nibiSavedWorkflowFailureSchema,
 ]);
-export type ZCodeWorkflowsGetResult = z.infer<typeof zcodeWorkflowsGetResultSchema>;
+export type NibiWorkflowsGetResult = z.infer<typeof nibiWorkflowsGetResultSchema>;
 
-export const zcodeWorkflowsUpdateMetaParamsSchema = z
+export const nibiWorkflowsUpdateMetaParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     name: nonEmptyString,
-    meta: zcodeSavedWorkflowMetaSchema,
+    meta: nibiSavedWorkflowMetaSchema,
     // 缺省 `project`；`global` 时只写本机全局根那一份。`workspace` 语义同 list。
-    scope: zcodeSavedWorkflowScopeSchema.optional(),
+    scope: nibiSavedWorkflowScopeSchema.optional(),
   })
   .strict();
-export type ZCodeWorkflowsUpdateMetaParams = z.infer<typeof zcodeWorkflowsUpdateMetaParamsSchema>;
-export const zcodeWorkflowsUpdateMetaResultSchema = z.union([
+export type NibiWorkflowsUpdateMetaParams = z.infer<typeof nibiWorkflowsUpdateMetaParamsSchema>;
+export const nibiWorkflowsUpdateMetaResultSchema = z.union([
   z.object({ ok: z.literal(true), path: nonEmptyString }).strict(),
-  zcodeSavedWorkflowFailureSchema,
+  nibiSavedWorkflowFailureSchema,
 ]);
-export type ZCodeWorkflowsUpdateMetaResult = z.infer<typeof zcodeWorkflowsUpdateMetaResultSchema>;
+export type NibiWorkflowsUpdateMetaResult = z.infer<typeof nibiWorkflowsUpdateMetaResultSchema>;
 
-export const zcodeWorkflowsDeleteParamsSchema = z
+export const nibiWorkflowsDeleteParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     name: nonEmptyString,
     // 缺省 `project`；`global` 时按 scope 选根删除（不再写死 roots[0]）。`workspace` 语义同 list。
-    scope: zcodeSavedWorkflowScopeSchema.optional(),
+    scope: nibiSavedWorkflowScopeSchema.optional(),
   })
   .strict();
-export type ZCodeWorkflowsDeleteParams = z.infer<typeof zcodeWorkflowsDeleteParamsSchema>;
-export const zcodeWorkflowsDeleteResultSchema = z.union([
+export type NibiWorkflowsDeleteParams = z.infer<typeof nibiWorkflowsDeleteParamsSchema>;
+export const nibiWorkflowsDeleteResultSchema = z.union([
   z.object({ ok: z.literal(true), path: nonEmptyString }).strict(),
-  zcodeSavedWorkflowFailureSchema,
+  nibiSavedWorkflowFailureSchema,
 ]);
-export type ZCodeWorkflowsDeleteResult = z.infer<typeof zcodeWorkflowsDeleteResultSchema>;
+export type NibiWorkflowsDeleteResult = z.infer<typeof nibiWorkflowsDeleteResultSchema>;
 
 export const NIBI_WORKFLOWS_RUNS_MAX_LIMIT = 50;
-export const zcodeWorkflowsRunsParamsSchema = z
+export const nibiWorkflowsRunsParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     /** 只要这个名字的 run（`dwf_run.name` 字面等值）；缺省即本项目全部 run。 */
     name: nonEmptyString.optional(),
     limit: z.number().int().min(1).max(NIBI_WORKFLOWS_RUNS_MAX_LIMIT),
     // 缺省 `project`：只查 `dwf_run.cwd === workspacePath` 的 run。`global` 时**不**按 cwd 过滤，
     // 跨所有项目取该名字的运行历史（全局工作流在任何项目里跑，历史因此跨 cwd）；结果行带 `cwd`
     // 供 GUI 标项目。`workspace` 语义同 list（全局档只当载体）。
-    scope: zcodeSavedWorkflowScopeSchema.optional(),
+    scope: nibiSavedWorkflowScopeSchema.optional(),
   })
   .strict();
-export type ZCodeWorkflowsRunsParams = z.infer<typeof zcodeWorkflowsRunsParamsSchema>;
+export type NibiWorkflowsRunsParams = z.infer<typeof nibiWorkflowsRunsParamsSchema>;
 // 三终态词汇：errored = 脚本之错，stopped = 被停下（可恢复）。
-export const zcodeSavedWorkflowRunStatusSchema = z.enum([
+export const nibiSavedWorkflowRunStatusSchema = z.enum([
   "pending",
   "running",
   "completed",
   "errored",
   "stopped",
 ]);
-export type ZCodeSavedWorkflowRunStatus = z.infer<typeof zcodeSavedWorkflowRunStatusSchema>;
-export const zcodeSavedWorkflowRunStopReasonSchema = z.enum([
+export type NibiSavedWorkflowRunStatus = z.infer<typeof nibiSavedWorkflowRunStatusSchema>;
+export const nibiSavedWorkflowRunStopReasonSchema = z.enum([
   "user",
   "model",
   "provider",
   "interrupted",
   "superseded",
 ]);
-export const zcodeSavedWorkflowRunSchema = z
+export const nibiSavedWorkflowRunSchema = z
   .object({
     runId: nonEmptyString,
     name: z.string().optional(),
-    status: zcodeSavedWorkflowRunStatusSchema,
+    status: nibiSavedWorkflowRunStatusSchema,
     // `status === "stopped"` 才在场。
-    stopReason: zcodeSavedWorkflowRunStopReasonSchema.optional(),
+    stopReason: nibiSavedWorkflowRunStopReasonSchema.optional(),
     createdAt: z.number(),
     updatedAt: z.number(),
     spentTokens: z.number(),
@@ -3254,28 +3254,28 @@ export const zcodeSavedWorkflowRunSchema = z
       .optional(),
   })
   .strict();
-export type ZCodeSavedWorkflowRun = z.infer<typeof zcodeSavedWorkflowRunSchema>;
-export const zcodeWorkflowsRunsResultSchema = z
+export type NibiSavedWorkflowRun = z.infer<typeof nibiSavedWorkflowRunSchema>;
+export const nibiWorkflowsRunsResultSchema = z
   .object({
-    runs: z.array(zcodeSavedWorkflowRunSchema),
+    runs: z.array(nibiSavedWorkflowRunSchema),
     /** 为真时才在场：还有更多 run 没进这一页（多取一条判定，不是 length === limit）。 */
     truncated: z.literal(true).optional(),
   })
   .strict();
-export type ZCodeWorkflowsRunsResult = z.infer<typeof zcodeWorkflowsRunsResultSchema>;
+export type NibiWorkflowsRunsResult = z.infer<typeof nibiWorkflowsRunsResultSchema>;
 
 // workflows/move：把本机全局根的同名文件搬到 `workspace` 项目根。**只此一向**：项目→全局不是搬文件而是模型的概括（「提升为
 // 全局」在该项目开新会话、经 SaveWorkflow 另存），所以没有 `to` 参数。同机同用户，rename 优先、EXDEV
 // 回落 copy+unlink；逐字节搬，不改内容（frontmatter 不存 scope）；`move` 不覆盖——目标已存在即拒绝
 // （覆盖是 SaveWorkflow 经确认窗才有的动作，不变式 7）。`workspace` 既是载体运行时也是目标项目。
-export const zcodeWorkflowsMoveParamsSchema = z
+export const nibiWorkflowsMoveParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     name: nonEmptyString,
   })
   .strict();
-export type ZCodeWorkflowsMoveParams = z.infer<typeof zcodeWorkflowsMoveParamsSchema>;
-export const zcodeWorkflowsMoveResultSchema = z.union([
+export type NibiWorkflowsMoveParams = z.infer<typeof nibiWorkflowsMoveParamsSchema>;
+export const nibiWorkflowsMoveResultSchema = z.union([
   z
     .object({
       ok: z.literal(true),
@@ -3296,7 +3296,7 @@ export const zcodeWorkflowsMoveResultSchema = z.union([
     })
     .strict(),
 ]);
-export type ZCodeWorkflowsMoveResult = z.infer<typeof zcodeWorkflowsMoveResultSchema>;
+export type NibiWorkflowsMoveResult = z.infer<typeof nibiWorkflowsMoveResultSchema>;
 
 // ── 从一次 run 保存工作流（docs/dynamic-workflow/transcript-and-notifications.md「Saving the
 // run, and running it again」）──
@@ -3305,35 +3305,35 @@ export type ZCodeWorkflowsMoveResult = z.infer<typeof zcodeWorkflowsMoveResultSc
 // 修订过的 run 存下的是**结算它的**那一份，而工具行入参被快照裁成预览的老对话也照样存得出
 // 同样的字节。名字合法性、覆盖、遮��与类型检查全部复用 SaveWorkflow 的同一套实现（不变式 3）。
 /** 另一档已有同名定义（遮蔽事实）；与 contracts 的 SavedWorkflowShadowing 逐字对齐。 */
-export const zcodeSavedWorkflowShadowingSchema = z.enum(["hides_global", "hidden_by_project"]);
-export type ZCodeSavedWorkflowShadowing = z.infer<typeof zcodeSavedWorkflowShadowingSchema>;
+export const nibiSavedWorkflowShadowingSchema = z.enum(["hides_global", "hidden_by_project"]);
+export type NibiSavedWorkflowShadowing = z.infer<typeof nibiSavedWorkflowShadowingSchema>;
 
-export const zcodeWorkflowsSaveParamsSchema = z
+export const nibiWorkflowsSaveParamsSchema = z
   .object({
     // 两用：既是载体运行时，也是这次 run 的项目——journal 在它那里，项目根也在它那里。
     // 全局档同样带它（与 list/get 的「全局只当载体」不同）：脚本必须从这个 agent 的 journal 读。
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     runId: nonEmptyString,
     name: nonEmptyString,
-    meta: zcodeSavedWorkflowMetaSchema,
+    meta: nibiSavedWorkflowMetaSchema,
     // 缺省 `project`。
-    scope: zcodeSavedWorkflowScopeSchema.optional(),
+    scope: nibiSavedWorkflowScopeSchema.optional(),
     // 只有 GUI 已经把覆盖警告摆给用户看过时才为 true；缺省即「目标已存在就拒绝」——
     // 覆盖是用户的决定，不是一次保存的副作用（与 `workflows/move` 不覆盖同一条纪律）。
     overwrite: z.boolean().optional(),
   })
   .strict();
-export type ZCodeWorkflowsSaveParams = z.infer<typeof zcodeWorkflowsSaveParamsSchema>;
-export const zcodeWorkflowsSaveResultSchema = z.union([
+export type NibiWorkflowsSaveParams = z.infer<typeof nibiWorkflowsSaveParamsSchema>;
+export const nibiWorkflowsSaveResultSchema = z.union([
   z
     .object({
       ok: z.literal(true),
       name: nonEmptyString,
-      scope: zcodeSavedWorkflowScopeSchema,
+      scope: nibiSavedWorkflowScopeSchema,
       path: nonEmptyString,
       /** 写的那一刻重新判定，不回抄入参里的 `overwrite`（与 SaveWorkflow 的 `overwritten` 同源）。 */
       overwritten: z.boolean(),
-      shadowing: zcodeSavedWorkflowShadowingSchema.optional(),
+      shadowing: nibiSavedWorkflowShadowingSchema.optional(),
     })
     .strict(),
   z
@@ -3354,7 +3354,7 @@ export const zcodeWorkflowsSaveResultSchema = z.union([
     })
     .strict(),
 ]);
-export type ZCodeWorkflowsSaveResult = z.infer<typeof zcodeWorkflowsSaveResultSchema>;
+export type NibiWorkflowsSaveResult = z.infer<typeof nibiWorkflowsSaveResultSchema>;
 
 // ── 一次 run 对应哪个已保存工作流 ──
 // 完成卡的「已保存」芯片与「再次运行」都问这一个问题，而答案**推导得来、不记在卡上**：重开
@@ -3362,47 +3362,47 @@ export type ZCodeWorkflowsSaveResult = z.infer<typeof zcodeWorkflowsSaveResultSc
 // （run 的 journal 记录与磁盘上的定义）都在那里；返回解析好的 entry，用户后来删掉的那一份
 // 因此会自动不再算数。
 /** 转写自对话的候选：模型用 `SaveWorkflow` 存过、并在入参里认领了这次 run。 */
-export const zcodeWorkflowsForRunCandidateSchema = z
-  .object({ name: nonEmptyString, scope: zcodeSavedWorkflowScopeSchema.optional() })
+export const nibiWorkflowsForRunCandidateSchema = z
+  .object({ name: nonEmptyString, scope: nibiSavedWorkflowScopeSchema.optional() })
   .strict();
-export type ZCodeWorkflowsForRunCandidate = z.infer<typeof zcodeWorkflowsForRunCandidateSchema>;
+export type NibiWorkflowsForRunCandidate = z.infer<typeof nibiWorkflowsForRunCandidateSchema>;
 /** 候选上界：一次 run 在一段对话里被存过的次数远小于它。 */
 export const NIBI_WORKFLOWS_FOR_RUN_MAX_CANDIDATES = 8;
-export const zcodeWorkflowsForRunParamsSchema = z
+export const nibiWorkflowsForRunParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     runId: nonEmptyString,
     candidates: z
-      .array(zcodeWorkflowsForRunCandidateSchema)
+      .array(nibiWorkflowsForRunCandidateSchema)
       .max(NIBI_WORKFLOWS_FOR_RUN_MAX_CANDIDATES)
       .optional(),
   })
   .strict();
-export type ZCodeWorkflowsForRunParams = z.infer<typeof zcodeWorkflowsForRunParamsSchema>;
-export const zcodeWorkflowsForRunResultSchema = z
+export type NibiWorkflowsForRunParams = z.infer<typeof nibiWorkflowsForRunParamsSchema>;
+export const nibiWorkflowsForRunResultSchema = z
   .object({
     /** 命中的定义；缺席即这次 run 还没有对应的已保存工作流。 */
-    entry: zcodeSavedWorkflowEntrySchema.optional(),
+    entry: nibiSavedWorkflowEntrySchema.optional(),
     /** 命中的是哪一条规则（诊断与测试用；UI 只看 entry 在不在）。 */
     match: z.enum(["candidate", "script", "name"]).optional(),
     /** 这次 run 跑时用的实参（journal 原样），供「再次运行」预填实参窗。 */
     runArgs: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
-export type ZCodeWorkflowsForRunResult = z.infer<typeof zcodeWorkflowsForRunResultSchema>;
+export type NibiWorkflowsForRunResult = z.infer<typeof nibiWorkflowsForRunResultSchema>;
 
 // 推荐 Prompt 的可信插件解析：UI 不拆解 stableId，也不从旧目录快照推断可安装性。
-export const zcodePluginSuggestedReferenceStatusSchema = z.enum([
+export const nibiPluginSuggestedReferenceStatusSchema = z.enum([
   "ready",
   "disabled",
   "missing",
   "conflict",
   "unavailable",
 ]);
-export type ZCodePluginSuggestedReferenceStatus = z.infer<
-  typeof zcodePluginSuggestedReferenceStatusSchema
+export type NibiPluginSuggestedReferenceStatus = z.infer<
+  typeof nibiPluginSuggestedReferenceStatusSchema
 >;
-export const zcodePluginOperationStateSchema = z.enum([
+export const nibiPluginOperationStateSchema = z.enum([
   "checking",
   "refreshing",
   "installing",
@@ -3412,49 +3412,49 @@ export const zcodePluginOperationStateSchema = z.enum([
   "complete",
   "failed",
 ]);
-export type ZCodePluginOperationState = z.infer<typeof zcodePluginOperationStateSchema>;
-export const zcodePluginOperationProgressNotificationSchema = z
+export type NibiPluginOperationState = z.infer<typeof nibiPluginOperationStateSchema>;
+export const nibiPluginOperationProgressNotificationSchema = z
   .object({
     operationId: nonEmptyString,
     state: z.literal("refreshing"),
   })
   .strict();
-export type ZCodePluginOperationProgressNotification = z.infer<
-  typeof zcodePluginOperationProgressNotificationSchema
+export type NibiPluginOperationProgressNotification = z.infer<
+  typeof nibiPluginOperationProgressNotificationSchema
 >;
-export const zcodePluginsResolveSuggestedReferenceParamsSchema = z
+export const nibiPluginsResolveSuggestedReferenceParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     stableId: nonEmptyString,
     operationId: nonEmptyString,
-    clientMode: zcodeDeliveryKindSchema,
-    deliveryKind: zcodeDeliveryKindSchema,
+    clientMode: nibiDeliveryKindSchema,
+    deliveryKind: nibiDeliveryKindSchema,
   })
   .strict();
-export type ZCodePluginsResolveSuggestedReferenceParams = z.infer<
-  typeof zcodePluginsResolveSuggestedReferenceParamsSchema
+export type NibiPluginsResolveSuggestedReferenceParams = z.infer<
+  typeof nibiPluginsResolveSuggestedReferenceParamsSchema
 >;
-export const zcodePluginsSetEnabledParamsSchema = z
+export const nibiPluginsSetEnabledParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     pluginId: nonEmptyString,
     enabled: z.boolean(),
     operationId: nonEmptyString.optional(),
-    scope: zcodePluginScopeSchema.optional(),
+    scope: nibiPluginScopeSchema.optional(),
   })
   .strict();
-export const zcodePluginsSetEnabledResultSchema = z
+export const nibiPluginsSetEnabledResultSchema = z
   .object({
-    plugin: zcodePluginInfoSchema,
+    plugin: nibiPluginInfoSchema,
     enabled: z.boolean(),
   })
   .strict();
-export type ZCodePluginsSetEnabledResult = z.infer<typeof zcodePluginsSetEnabledResultSchema>;
+export type NibiPluginsSetEnabledResult = z.infer<typeof nibiPluginsSetEnabledResultSchema>;
 
 // 商店信息（Store Listing）：目录条目携带的展示性元数据（显示名/icon/分类/作者/链接/hero/
 // 示例提示词），全部可选，UI 缺失时按降级矩阵处理（字母头像/隐藏区块/省略信息行）。
 // i18n 采用 `<字段>I18n` map，locale 解析复用 shared 的 plugin-display-name helper。
-export const zcodePluginStoreListingSchema = z
+export const nibiPluginStoreListingSchema = z
   .object({
     displayName: z.string().optional(),
     displayNameI18n: z.record(z.string(), z.string()).optional(),
@@ -3478,19 +3478,19 @@ export const zcodePluginStoreListingSchema = z
     requiresPaidPlan: z.boolean().optional(),
   })
   .strict();
-export type ZCodePluginStoreListing = z.infer<typeof zcodePluginStoreListingSchema>;
+export type NibiPluginStoreListing = z.infer<typeof nibiPluginStoreListingSchema>;
 
-export const zcodePluginsResolveSuggestedReferenceResultSchema = z
+export const nibiPluginsResolveSuggestedReferenceResultSchema = z
   .object({
     stableId: nonEmptyString,
-    status: zcodePluginSuggestedReferenceStatusSchema,
+    status: nibiPluginSuggestedReferenceStatusSchema,
     marketplace: nonEmptyString.optional(),
     pluginName: nonEmptyString.optional(),
     sourceTrust: z.literal("official").optional(),
     // 官方 Marketplace listing 的可选展示投影；不参与身份、安装或权限判断。
     icon: z.string().optional(),
-    listing: zcodePluginStoreListingSchema.optional(),
-    diagnostics: z.array(zcodePluginDiagnosticSchema),
+    listing: nibiPluginStoreListingSchema.optional(),
+    diagnostics: z.array(nibiPluginDiagnosticSchema),
   })
   .strict()
   .superRefine((value, context) => {
@@ -3504,11 +3504,11 @@ export const zcodePluginsResolveSuggestedReferenceResultSchema = z
       });
     }
   });
-export type ZCodePluginsResolveSuggestedReferenceResult = z.infer<
-  typeof zcodePluginsResolveSuggestedReferenceResultSchema
+export type NibiPluginsResolveSuggestedReferenceResult = z.infer<
+  typeof nibiPluginsResolveSuggestedReferenceResultSchema
 >;
 
-export const zcodePluginMarketplaceSummarySchema = z
+export const nibiPluginMarketplaceSummarySchema = z
   .object({
     id: nonEmptyString,
     name: nonEmptyString,
@@ -3529,9 +3529,9 @@ export const zcodePluginMarketplaceSummarySchema = z
       .optional(),
   })
   .strict();
-export type ZCodePluginMarketplaceSummary = z.infer<typeof zcodePluginMarketplaceSummarySchema>;
+export type NibiPluginMarketplaceSummary = z.infer<typeof nibiPluginMarketplaceSummarySchema>;
 
-export const zcodeAvailablePluginSummarySchema = z
+export const nibiAvailablePluginSummarySchema = z
   .object({
     id: nonEmptyString,
     name: nonEmptyString,
@@ -3542,12 +3542,12 @@ export const zcodeAvailablePluginSummarySchema = z
     componentTypes: z.array(z.string()).optional(),
     /** 会员专享插件（安装/更新由宿主的 license 门禁校验）。 */
     paid: z.boolean().optional(),
-    listing: zcodePluginStoreListingSchema.optional(),
+    listing: nibiPluginStoreListingSchema.optional(),
   })
   .strict();
-export type ZCodeAvailablePluginSummary = z.infer<typeof zcodeAvailablePluginSummarySchema>;
+export type NibiAvailablePluginSummary = z.infer<typeof nibiAvailablePluginSummarySchema>;
 
-export const zcodeInstalledPluginSummarySchema = z
+export const nibiInstalledPluginSummarySchema = z
   .object({
     id: nonEmptyString,
     name: nonEmptyString,
@@ -3555,31 +3555,31 @@ export const zcodeInstalledPluginSummarySchema = z
     description: z.string().optional(),
     version: z.string().optional(),
     enabled: z.boolean(),
-    scope: zcodePluginScopeSchema,
+    scope: nibiPluginScopeSchema,
     installPath: z.string().optional(),
     installedAt: z.string().optional(),
     componentTypes: z.array(z.string()).optional(),
-    hookDetails: z.array(zcodePluginHookDetailSchema).optional(),
+    hookDetails: z.array(nibiPluginHookDetailSchema).optional(),
     updateStatus: z.enum(["none", "update-available", "version-changed"]).optional(),
     latestVersion: z.string().optional(),
-    listing: zcodePluginStoreListingSchema.optional(),
+    listing: nibiPluginStoreListingSchema.optional(),
   })
   .strict();
-export type ZCodeInstalledPluginSummary = z.infer<typeof zcodeInstalledPluginSummarySchema>;
+export type NibiInstalledPluginSummary = z.infer<typeof nibiInstalledPluginSummarySchema>;
 
-export const zcodePluginsOverviewParamsSchema = z
+export const nibiPluginsOverviewParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
-    configScope: zcodePluginScopeSchema.optional(),
+    workspace: nibiWorkspaceRefSchema,
+    configScope: nibiPluginScopeSchema.optional(),
   })
   .strict();
-export const zcodePluginsOverviewResultSchema = z
+export const nibiPluginsOverviewResultSchema = z
   .object({
-    marketplaces: z.array(zcodePluginMarketplaceSummarySchema),
-    availablePlugins: z.array(zcodeAvailablePluginSummarySchema),
-    installedPlugins: z.array(zcodeInstalledPluginSummarySchema),
-    restorableBuiltins: z.array(zcodeAvailablePluginSummarySchema),
-    diagnostics: z.array(zcodePluginDiagnosticSchema),
+    marketplaces: z.array(nibiPluginMarketplaceSummarySchema),
+    availablePlugins: z.array(nibiAvailablePluginSummarySchema),
+    installedPlugins: z.array(nibiInstalledPluginSummarySchema),
+    restorableBuiltins: z.array(nibiAvailablePluginSummarySchema),
+    diagnostics: z.array(nibiPluginDiagnosticSchema),
     capability: z
       .object({
         supported: z.boolean(),
@@ -3588,156 +3588,156 @@ export const zcodePluginsOverviewResultSchema = z
       .strict(),
   })
   .strict();
-export type ZCodePluginsOverviewResult = z.infer<typeof zcodePluginsOverviewResultSchema>;
+export type NibiPluginsOverviewResult = z.infer<typeof nibiPluginsOverviewResultSchema>;
 
-export const zcodePluginsMarketplaceAddParamsSchema = z
+export const nibiPluginsMarketplaceAddParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     source: nonEmptyString,
     dryRun: z.boolean().optional(),
     operationId: nonEmptyString.optional(),
   })
   .strict();
-export const zcodePluginsMarketplaceRemoveParamsSchema = z
+export const nibiPluginsMarketplaceRemoveParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     marketplace: nonEmptyString,
   })
   .strict();
-export const zcodePluginsMarketplaceUpdateParamsSchema = z
+export const nibiPluginsMarketplaceUpdateParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     marketplace: nonEmptyString.optional(),
     operationId: nonEmptyString.optional(),
   })
   .strict();
-export const zcodePluginsMarketplaceMutationResultSchema = z
+export const nibiPluginsMarketplaceMutationResultSchema = z
   .object({
-    marketplace: zcodePluginMarketplaceSummarySchema.optional(),
-    marketplaces: z.array(zcodePluginMarketplaceSummarySchema).optional(),
-    diagnostics: z.array(zcodePluginDiagnosticSchema).optional(),
+    marketplace: nibiPluginMarketplaceSummarySchema.optional(),
+    marketplaces: z.array(nibiPluginMarketplaceSummarySchema).optional(),
+    diagnostics: z.array(nibiPluginDiagnosticSchema).optional(),
   })
   .strict();
-export type ZCodePluginsMarketplaceMutationResult = z.infer<
-  typeof zcodePluginsMarketplaceMutationResultSchema
+export type NibiPluginsMarketplaceMutationResult = z.infer<
+  typeof nibiPluginsMarketplaceMutationResultSchema
 >;
 
-export const zcodePluginsInstallParamsSchema = z
+export const nibiPluginsInstallParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     pluginName: nonEmptyString,
     marketplace: nonEmptyString,
-    scope: zcodePluginScopeSchema.optional(),
+    scope: nibiPluginScopeSchema.optional(),
     dryRun: z.boolean().optional(),
     operationId: nonEmptyString.optional(),
   })
   .strict();
-export const zcodePluginsCancelOperationParamsSchema = z
+export const nibiPluginsCancelOperationParamsSchema = z
   .object({
     operationId: nonEmptyString,
   })
   .strict();
-export type ZCodePluginsCancelOperationParams = z.infer<
-  typeof zcodePluginsCancelOperationParamsSchema
+export type NibiPluginsCancelOperationParams = z.infer<
+  typeof nibiPluginsCancelOperationParamsSchema
 >;
 
-export const zcodePluginsCancelOperationResultSchema = z
+export const nibiPluginsCancelOperationResultSchema = z
   .object({
     operationId: nonEmptyString,
     cancelled: z.boolean(),
   })
   .strict();
-export type ZCodePluginsCancelOperationResult = z.infer<
-  typeof zcodePluginsCancelOperationResultSchema
+export type NibiPluginsCancelOperationResult = z.infer<
+  typeof nibiPluginsCancelOperationResultSchema
 >;
-export const zcodePluginsUninstallParamsSchema = z
+export const nibiPluginsUninstallParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     pluginId: nonEmptyString.optional(),
     pluginName: nonEmptyString.optional(),
     marketplace: nonEmptyString.optional(),
     removeCache: z.boolean().optional(),
   })
   .strict();
-export const zcodePluginsInstallResultSchema = z
+export const nibiPluginsInstallResultSchema = z
   .object({
-    installedPlugins: z.array(zcodeInstalledPluginSummarySchema),
+    installedPlugins: z.array(nibiInstalledPluginSummarySchema),
     dependencyClosure: z.array(z.string()),
-    diagnostics: z.array(zcodePluginDiagnosticSchema),
+    diagnostics: z.array(nibiPluginDiagnosticSchema),
   })
   .strict();
-export type ZCodePluginsInstallResult = z.infer<typeof zcodePluginsInstallResultSchema>;
+export type NibiPluginsInstallResult = z.infer<typeof nibiPluginsInstallResultSchema>;
 
-export const zcodePluginsUninstallResultSchema = z
+export const nibiPluginsUninstallResultSchema = z
   .object({
-    removedPlugin: zcodeInstalledPluginSummarySchema.optional(),
-    diagnostics: z.array(zcodePluginDiagnosticSchema),
+    removedPlugin: nibiInstalledPluginSummarySchema.optional(),
+    diagnostics: z.array(nibiPluginDiagnosticSchema),
   })
   .strict();
-export type ZCodePluginsUninstallResult = z.infer<typeof zcodePluginsUninstallResultSchema>;
+export type NibiPluginsUninstallResult = z.infer<typeof nibiPluginsUninstallResultSchema>;
 
-export const zcodePluginsUpdateParamsSchema = z
+export const nibiPluginsUpdateParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     pluginId: nonEmptyString.optional(),
     marketplace: nonEmptyString.optional(),
   })
   .strict();
-export const zcodePluginsRestoreBuiltinParamsSchema = z
+export const nibiPluginsRestoreBuiltinParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     pluginId: nonEmptyString,
   })
   .strict();
-export const zcodePluginsRestoreBuiltinResultSchema = z
+export const nibiPluginsRestoreBuiltinResultSchema = z
   .object({
     pluginId: nonEmptyString,
-    diagnostics: z.array(zcodePluginDiagnosticSchema),
+    diagnostics: z.array(nibiPluginDiagnosticSchema),
   })
   .strict();
-export type ZCodePluginsRestoreBuiltinResult = z.infer<
-  typeof zcodePluginsRestoreBuiltinResultSchema
+export type NibiPluginsRestoreBuiltinResult = z.infer<
+  typeof nibiPluginsRestoreBuiltinResultSchema
 >;
 
-export const zcodePluginsConfigureParamsSchema = z
+export const nibiPluginsConfigureParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     pluginId: nonEmptyString,
     options: jsonObjectSchema,
     clearOptionKeys: z.array(nonEmptyString).optional(),
-    scope: zcodePluginScopeSchema.optional(),
+    scope: nibiPluginScopeSchema.optional(),
     dryRun: z.boolean().optional(),
   })
   .strict();
-export const zcodePluginsConfigureResultSchema = z
+export const nibiPluginsConfigureResultSchema = z
   .object({
     pluginId: nonEmptyString,
-    diagnostics: z.array(zcodePluginDiagnosticSchema),
+    diagnostics: z.array(nibiPluginDiagnosticSchema),
   })
   .strict();
-export type ZCodePluginsConfigureResult = z.infer<typeof zcodePluginsConfigureResultSchema>;
+export type NibiPluginsConfigureResult = z.infer<typeof nibiPluginsConfigureResultSchema>;
 
-export const zcodePluginsResetConfigParamsSchema = z
+export const nibiPluginsResetConfigParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     pluginId: nonEmptyString,
-    scope: zcodePluginScopeSchema.optional(),
+    scope: nibiPluginScopeSchema.optional(),
   })
   .strict();
-export type ZCodePluginsResetConfigParams = z.infer<typeof zcodePluginsResetConfigParamsSchema>;
+export type NibiPluginsResetConfigParams = z.infer<typeof nibiPluginsResetConfigParamsSchema>;
 
-export const zcodePluginsValidateParamsSchema = z
+export const nibiPluginsValidateParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     pluginName: nonEmptyString.optional(),
     marketplace: nonEmptyString.optional(),
     source: nonEmptyString.optional(),
   })
   .strict();
-export const zcodePluginsValidateResultSchema = z
+export const nibiPluginsValidateResultSchema = z
   .object({
     ok: z.boolean(),
-    diagnostics: z.array(zcodePluginDiagnosticSchema),
+    diagnostics: z.array(nibiPluginDiagnosticSchema),
     compatibility: z
       .object({
         runnable: z.array(z.string()),
@@ -3747,21 +3747,21 @@ export const zcodePluginsValidateResultSchema = z
       .strict(),
   })
   .strict();
-export type ZCodePluginsValidateResult = z.infer<typeof zcodePluginsValidateResultSchema>;
+export type NibiPluginsValidateResult = z.infer<typeof nibiPluginsValidateResultSchema>;
 
 // plugins/describe：按需枚举单个插件的组件「名称 + 描述」。
 // 已安装插件读本地缓存目录；未安装候选按需解析/临时 clone 源后枚举再清理。
-export const zcodePluginsDescribeParamsSchema = z
+export const nibiPluginsDescribeParamsSchema = z
   .object({
-    workspace: zcodeWorkspaceRefSchema,
+    workspace: nibiWorkspaceRefSchema,
     pluginName: nonEmptyString,
     marketplace: nonEmptyString,
   })
   .strict();
-export const zcodePluginsDescribeResultSchema = z
+export const nibiPluginsDescribeResultSchema = z
   .object({
-    components: z.array(zcodePluginComponentGroupSchema),
-    diagnostics: z.array(zcodePluginDiagnosticSchema).optional(),
+    components: z.array(nibiPluginComponentGroupSchema),
+    diagnostics: z.array(nibiPluginDiagnosticSchema).optional(),
     // 插件包内 plugin.json 的展示性回退字段；未安装候选详情页信息区在商店 listing 缺失时兜底。
     metadata: z
       .object({
@@ -3774,9 +3774,9 @@ export const zcodePluginsDescribeResultSchema = z
       .optional(),
   })
   .strict();
-export type ZCodePluginsDescribeResult = z.infer<typeof zcodePluginsDescribeResultSchema>;
+export type NibiPluginsDescribeResult = z.infer<typeof nibiPluginsDescribeResultSchema>;
 
-export const zcodeAutomationScheduleRuleSchema = z
+export const nibiAutomationScheduleRuleSchema = z
   .object({
     unit: z.enum(["minute", "hourly", "daily", "weekly", "monthly", "yearly"]),
     interval: z.number().int().positive(),
@@ -3790,10 +3790,10 @@ export const zcodeAutomationScheduleRuleSchema = z
     monthlyMode: z.enum(["date", "weekday"]).optional(),
   })
   .strict();
-export type ZCodeAutomationScheduleRuleProtocol = z.infer<typeof zcodeAutomationScheduleRuleSchema>;
+export type NibiAutomationScheduleRuleProtocol = z.infer<typeof nibiAutomationScheduleRuleSchema>;
 
 /** 会话侧长间隔周期 carrier 的 unit 枚举（与 scheduleRule.unit 同集）。 */
-export const zcodeAutomationIntervalUnitSchema = z.enum([
+export const nibiAutomationIntervalUnitSchema = z.enum([
   "minute",
   "hourly",
   "daily",
@@ -3802,14 +3802,14 @@ export const zcodeAutomationIntervalUnitSchema = z.enum([
   "yearly",
 ]);
 
-export const zcodeAutomationProtocolSchema = z
+export const nibiAutomationProtocolSchema = z
   .object({
     automationId: nonEmptyString,
     title: z.string(),
     cronExpr: nonEmptyString,
     prompt: nonEmptyString,
     modelSelection: modelSelectionSchema.optional(),
-    mode: zcodeTaskModeSchema.optional(),
+    mode: nibiTaskModeSchema.optional(),
     targetTaskId: nonEmptyString.optional(),
     enabled: z.boolean(),
     lifecycleStatus: z.enum(["active", "completed", "failed", "paused"]),
@@ -3820,26 +3820,26 @@ export const zcodeAutomationProtocolSchema = z
     maxRuns: z.number().int().positive().optional(),
     // 自定义重复规则；缺省时调度回退到解析 cronExpr。会话卡片必须读到本字段才能展示
     // cron 无法表达的真实间隔（如每50小时、每40天，兼容 cronExpr 只是 0 * * * *）。
-    scheduleRule: zcodeAutomationScheduleRuleSchema.optional(),
+    scheduleRule: nibiAutomationScheduleRuleSchema.optional(),
   })
   .strict();
-export type ZCodeAutomationProtocol = z.infer<typeof zcodeAutomationProtocolSchema>;
+export type NibiAutomationProtocol = z.infer<typeof nibiAutomationProtocolSchema>;
 
-export const zcodeAutomationCreateParamsSchema = z
+export const nibiAutomationCreateParamsSchema = z
   .object({
     title: z.string().optional(),
     cronExpr: nonEmptyString,
     relativeDelayMinutes: z.number().int().positive().max(525_600).optional(),
     prompt: nonEmptyString,
     modelSelection: modelSelectionSchema.optional(),
-    mode: zcodeTaskModeSchema.optional(),
+    mode: nibiTaskModeSchema.optional(),
     targetTaskId: nonEmptyString.optional(),
-    botDeliveryTarget: zcodeAutomationBotDeliveryTargetSchema.optional(),
+    botDeliveryTarget: nibiAutomationBotDeliveryTargetSchema.optional(),
     recurring: z.boolean().optional(),
     maxRuns: z.number().int().positive().optional(),
     // 会话侧自定义重复 carrier：每 N 分钟/小时/天/周/月/年均通过此字段归一化为权威 scheduleRule，
     // cronExpr 仅作合法兼容展示。
-    intervalUnit: zcodeAutomationIntervalUnitSchema.optional(),
+    intervalUnit: nibiAutomationIntervalUnitSchema.optional(),
     interval: z.number().int().min(1).max(200).optional(),
   })
   .strict()
@@ -3861,14 +3861,14 @@ export const zcodeAutomationCreateParamsSchema = z
     message: "intervalUnit is a recurring carrier and cannot combine with maxRuns",
     path: ["maxRuns"],
   });
-export type ZCodeAutomationCreateProtocolParams = z.infer<typeof zcodeAutomationCreateParamsSchema>;
+export type NibiAutomationCreateProtocolParams = z.infer<typeof nibiAutomationCreateParamsSchema>;
 
-export const zcodeAutomationCreateResultSchema = z
-  .object({ automation: zcodeAutomationProtocolSchema })
+export const nibiAutomationCreateResultSchema = z
+  .object({ automation: nibiAutomationProtocolSchema })
   .strict();
-export type ZCodeAutomationCreateProtocolResult = z.infer<typeof zcodeAutomationCreateResultSchema>;
+export type NibiAutomationCreateProtocolResult = z.infer<typeof nibiAutomationCreateResultSchema>;
 
-export const zcodeAutomationUpdateParamsSchema = z
+export const nibiAutomationUpdateParamsSchema = z
   .object({
     automationId: nonEmptyString,
     title: nonEmptyString.optional(),
@@ -3877,7 +3877,7 @@ export const zcodeAutomationUpdateParamsSchema = z
     recurring: z.boolean().optional(),
     maxRuns: z.number().int().positive().nullable().optional(),
     // 会话侧自定义重复 carrier（同 create 侧语义）。
-    intervalUnit: zcodeAutomationIntervalUnitSchema.optional(),
+    intervalUnit: nibiAutomationIntervalUnitSchema.optional(),
     interval: z.number().int().min(1).max(200).optional(),
   })
   .strict()
@@ -3919,43 +3919,43 @@ export const zcodeAutomationUpdateParamsSchema = z
       path: ["maxRuns"],
     },
   );
-export type ZCodeAutomationUpdateProtocolParams = z.infer<typeof zcodeAutomationUpdateParamsSchema>;
-export const zcodeAutomationUpdateResultSchema = z
-  .object({ automation: zcodeAutomationProtocolSchema })
+export type NibiAutomationUpdateProtocolParams = z.infer<typeof nibiAutomationUpdateParamsSchema>;
+export const nibiAutomationUpdateResultSchema = z
+  .object({ automation: nibiAutomationProtocolSchema })
   .strict();
-export type ZCodeAutomationUpdateProtocolResult = z.infer<typeof zcodeAutomationUpdateResultSchema>;
+export type NibiAutomationUpdateProtocolResult = z.infer<typeof nibiAutomationUpdateResultSchema>;
 
-export const zcodeAutomationListParamsSchema = z.object({}).strict();
-export type ZCodeAutomationListProtocolParams = z.infer<typeof zcodeAutomationListParamsSchema>;
-export const zcodeAutomationListResultSchema = z
-  .object({ automations: z.array(zcodeAutomationProtocolSchema) })
+export const nibiAutomationListParamsSchema = z.object({}).strict();
+export type NibiAutomationListProtocolParams = z.infer<typeof nibiAutomationListParamsSchema>;
+export const nibiAutomationListResultSchema = z
+  .object({ automations: z.array(nibiAutomationProtocolSchema) })
   .strict();
-export type ZCodeAutomationListProtocolResult = z.infer<typeof zcodeAutomationListResultSchema>;
+export type NibiAutomationListProtocolResult = z.infer<typeof nibiAutomationListResultSchema>;
 
-export const zcodeAutomationCheckTaskBindingParamsSchema = z
+export const nibiAutomationCheckTaskBindingParamsSchema = z
   .object({ targetTaskId: nonEmptyString })
   .strict();
-export type ZCodeAutomationCheckTaskBindingProtocolParams = z.infer<
-  typeof zcodeAutomationCheckTaskBindingParamsSchema
+export type NibiAutomationCheckTaskBindingProtocolParams = z.infer<
+  typeof nibiAutomationCheckTaskBindingParamsSchema
 >;
-export const zcodeAutomationCheckTaskBindingResultSchema = z
+export const nibiAutomationCheckTaskBindingResultSchema = z
   .object({ bound: z.boolean() })
   .strict();
-export type ZCodeAutomationCheckTaskBindingProtocolResult = z.infer<
-  typeof zcodeAutomationCheckTaskBindingResultSchema
+export type NibiAutomationCheckTaskBindingProtocolResult = z.infer<
+  typeof nibiAutomationCheckTaskBindingResultSchema
 >;
 
-export const zcodeAutomationDeleteParamsSchema = z
+export const nibiAutomationDeleteParamsSchema = z
   .object({ automationId: nonEmptyString })
   .strict();
-export type ZCodeAutomationDeleteProtocolParams = z.infer<typeof zcodeAutomationDeleteParamsSchema>;
-export const zcodeAutomationDeleteResultSchema = z.object({ deleted: z.boolean() }).strict();
-export type ZCodeAutomationDeleteProtocolResult = z.infer<typeof zcodeAutomationDeleteResultSchema>;
+export type NibiAutomationDeleteProtocolParams = z.infer<typeof nibiAutomationDeleteParamsSchema>;
+export const nibiAutomationDeleteResultSchema = z.object({ deleted: z.boolean() }).strict();
+export type NibiAutomationDeleteProtocolResult = z.infer<typeof nibiAutomationDeleteResultSchema>;
 
 // Session 运行实例生命周期；不同于 session/stop（停止生成）。
 export const sessionLifecycleParamsSchema = z.object({ sessionId: z.string().min(1) }).strict();
 export const sessionLifecycleActivationParamsSchema = sessionLifecycleParamsSchema.extend({
-  workspace: zcodeWorkspaceRefSchema.optional(),
+  workspace: nibiWorkspaceRefSchema.optional(),
 });
 export const sessionLifecycleStateSchema = z.enum([
   "unloaded",
@@ -4022,11 +4022,11 @@ export const nibiProtocolMethods = {
   sessionCompact: "session/compact",
   sessionGoal: "session/goal",
   sessionClose: "session/close",
-  // setModel 仍被 zcodeSessionService 的 desktop 旧链路消费；replayable
+  // setModel 仍被 nibiSessionService 的 desktop 旧链路消费；replayable
   // switchModelConfig 已直接由目标 Environment Registry 解析 Selection。
   sessionSetModel: "session/setModel",
   // replayable facade 的思考深度/模式已收敛 v4 switchModelConfig/
-  // switchCollaborationMode；剩余消费 = zcodeSessionService（desktop 旧链路，随
+  // switchCollaborationMode；剩余消费 = nibiSessionService（desktop 旧链路，随
   // 桌面 v4 UI 收口清零）与 setMode 的 auto 值残留（v4 值域刻意排除 auto）。
   sessionSetThoughtLevel: "session/setThoughtLevel",
   sessionSetMode: "session/setMode",
@@ -4103,7 +4103,7 @@ export const nibiProtocolMethods = {
   automationCheckTaskBinding: "automation/checkTaskBinding",
   automationList: "automation/list",
   automationDelete: "automation/delete",
-  // @deprecated：host 消费已清零（zcodeAgentService 改走 v4/usage/stats）。
+  // @deprecated：host 消费已清零（nibiAgentService 改走 v4/usage/stats）。
   // 仅剩 CLI server 的 wire 兼容 case；随旧词整体删除时一并移除。
   usageStats: "usage/stats",
   // NIBI Protocol 对 agent 只暴露 session-first 方法；task 是 UI 投影概念，不能泄露进协议方法名。
@@ -4128,88 +4128,88 @@ export const nibiProtocolEmptyResultSchema = z.object({}).strict();
 // 消费的最小契约集合，避免重新引入已移除的 legacy 方法。
 export const nibiProtocolSessionMethodContracts = {
   [nibiProtocolMethods.mcpUiOpenInstance]: {
-    params: zcodeMcpUiOpenInstanceParamsSchema,
-    result: zcodeMcpUiOpenInstanceResultSchema,
+    params: nibiMcpUiOpenInstanceParamsSchema,
+    result: nibiMcpUiOpenInstanceResultSchema,
   },
   [nibiProtocolMethods.mcpUiCloseInstance]: {
-    params: zcodeMcpUiCloseInstanceParamsSchema,
-    result: zcodeMcpUiCloseInstanceResultSchema,
+    params: nibiMcpUiCloseInstanceParamsSchema,
+    result: nibiMcpUiCloseInstanceResultSchema,
   },
   [nibiProtocolMethods.mcpUiValidateInstance]: {
-    params: zcodeMcpUiCloseInstanceParamsSchema,
-    result: zcodeMcpUiResourceSubscriptionResultSchema,
+    params: nibiMcpUiCloseInstanceParamsSchema,
+    result: nibiMcpUiResourceSubscriptionResultSchema,
   },
   [nibiProtocolMethods.workspaceHookTrustGrant]: {
-    params: zcodeWorkspaceHookTrustGrantParamsSchema,
-    result: zcodeWorkspaceHookTrustGrantResultSchema,
+    params: nibiWorkspaceHookTrustGrantParamsSchema,
+    result: nibiWorkspaceHookTrustGrantResultSchema,
   },
   [nibiProtocolMethods.mcpList]: {
-    params: zcodeMcpListParamsSchema,
-    result: zcodeMcpListResultSchema,
+    params: nibiMcpListParamsSchema,
+    result: nibiMcpListResultSchema,
   },
   [nibiProtocolMethods.mcpReadResource]: {
-    params: zcodeMcpReadResourceParamsSchema,
-    result: zcodeMcpReadResourceResultSchema,
+    params: nibiMcpReadResourceParamsSchema,
+    result: nibiMcpReadResourceResultSchema,
   },
   [nibiProtocolMethods.mcpUiSampling]: {
-    params: zcodeMcpUiSamplingParamsSchema,
-    result: zcodeMcpUiSamplingResultSchema,
+    params: nibiMcpUiSamplingParamsSchema,
+    result: nibiMcpUiSamplingResultSchema,
   },
   [nibiProtocolMethods.mcpUiCancelSampling]: {
-    params: zcodeMcpUiCancelSamplingParamsSchema,
-    result: zcodeMcpUiCancelCallResultSchema,
+    params: nibiMcpUiCancelSamplingParamsSchema,
+    result: nibiMcpUiCancelCallResultSchema,
   },
   [nibiProtocolMethods.mcpUiCallTool]: {
-    params: zcodeMcpUiCallToolParamsSchema,
-    result: zcodeMcpUiCallToolResultSchema,
+    params: nibiMcpUiCallToolParamsSchema,
+    result: nibiMcpUiCallToolResultSchema,
   },
   [nibiProtocolMethods.mcpUiCancelCall]: {
-    params: zcodeMcpUiCancelCallParamsSchema,
-    result: zcodeMcpUiCancelCallResultSchema,
+    params: nibiMcpUiCancelCallParamsSchema,
+    result: nibiMcpUiCancelCallResultSchema,
   },
   [nibiProtocolMethods.mcpUiReadResource]: {
-    params: zcodeMcpUiReadResourceParamsSchema,
-    result: zcodeMcpUiReadResourceResultSchema,
+    params: nibiMcpUiReadResourceParamsSchema,
+    result: nibiMcpUiReadResourceResultSchema,
   },
   [nibiProtocolMethods.mcpUiListResources]: {
-    params: zcodeMcpUiListResourcesParamsSchema,
-    result: zcodeMcpUiListResourcesResultSchema,
+    params: nibiMcpUiListResourcesParamsSchema,
+    result: nibiMcpUiListResourcesResultSchema,
   },
   [nibiProtocolMethods.mcpUiListResourceTemplates]: {
-    params: zcodeMcpUiListResourcesParamsSchema,
-    result: zcodeMcpUiListResourceTemplatesResultSchema,
+    params: nibiMcpUiListResourcesParamsSchema,
+    result: nibiMcpUiListResourceTemplatesResultSchema,
   },
   [nibiProtocolMethods.mcpUiSubscribeResource]: {
-    params: zcodeMcpUiResourceSubscriptionParamsSchema,
-    result: zcodeMcpUiResourceSubscriptionResultSchema,
+    params: nibiMcpUiResourceSubscriptionParamsSchema,
+    result: nibiMcpUiResourceSubscriptionResultSchema,
   },
   [nibiProtocolMethods.mcpUiUnsubscribeResource]: {
-    params: zcodeMcpUiResourceSubscriptionParamsSchema,
-    result: zcodeMcpUiResourceSubscriptionResultSchema,
+    params: nibiMcpUiResourceSubscriptionParamsSchema,
+    result: nibiMcpUiResourceSubscriptionResultSchema,
   },
   [nibiProtocolMethods.mcpUiRegisterAppTools]: {
-    params: zcodeMcpUiRegisterAppToolsParamsSchema,
-    result: zcodeMcpUiRegisterAppToolsResultSchema,
+    params: nibiMcpUiRegisterAppToolsParamsSchema,
+    result: nibiMcpUiRegisterAppToolsResultSchema,
   },
   [nibiProtocolMethods.mcpUiUnregisterAppTools]: {
-    params: zcodeMcpUiUnregisterAppToolsParamsSchema,
-    result: zcodeMcpUiUnregisterAppToolsResultSchema,
+    params: nibiMcpUiUnregisterAppToolsParamsSchema,
+    result: nibiMcpUiUnregisterAppToolsResultSchema,
   },
   [nibiProtocolMethods.mcpUiClaimAppToolCall]: {
-    params: zcodeMcpUiClaimAppToolCallParamsSchema,
-    result: zcodeMcpUiAppToolAcceptedResultSchema,
+    params: nibiMcpUiClaimAppToolCallParamsSchema,
+    result: nibiMcpUiAppToolAcceptedResultSchema,
   },
   [nibiProtocolMethods.mcpUiResolveAppToolCall]: {
-    params: zcodeMcpUiResolveAppToolCallParamsSchema,
-    result: zcodeMcpUiAppToolAcceptedResultSchema,
+    params: nibiMcpUiResolveAppToolCallParamsSchema,
+    result: nibiMcpUiAppToolAcceptedResultSchema,
   },
   [nibiProtocolMethods.interactionBrowserList]: {
-    params: zcodeBrowserListParamsSchema,
-    result: zcodeBrowserListResultSchema,
+    params: nibiBrowserListParamsSchema,
+    result: nibiBrowserListResultSchema,
   },
   [nibiProtocolMethods.interactionBrowserExecute]: {
-    params: zcodeBrowserExecuteParamsSchema,
-    result: zcodeBrowserExecuteResultSchema,
+    params: nibiBrowserExecuteParamsSchema,
+    result: nibiBrowserExecuteResultSchema,
   },
 } as const satisfies Partial<
   Record<NibiProtocolMethod, { params: z.ZodTypeAny; result: z.ZodTypeAny }>
@@ -4225,7 +4225,7 @@ export {
 } from "../sqlite-migrations/contract.js";
 
 /** 仅存储准备子进程的私有控制帧，原始路径不进入业务事件或遥测。 */
-export const zcodeStoragePreparationFrameSchema = z.discriminatedUnion("method", [
+export const nibiStoragePreparationFrameSchema = z.discriminatedUnion("method", [
   z
     .object({
       method: z.literal("startup/storagePath"),
@@ -4236,10 +4236,10 @@ export const zcodeStoragePreparationFrameSchema = z.discriminatedUnion("method",
     .object({ method: z.literal("startup/storagePrepared"), params: z.object({}).strict() })
     .strict(),
   z
-    .object({ method: z.literal("startup/storageState"), params: zcodeStorageStartupStateSchema })
+    .object({ method: z.literal("startup/storageState"), params: nibiStorageStartupStateSchema })
     .strict(),
 ]);
-export const zcodeStoragePathReadySchema = z
+export const nibiStoragePathReadySchema = z
   .object({ method: z.literal("startup/storagePathReady"), reuse: z.boolean().optional() })
   .strict();
 

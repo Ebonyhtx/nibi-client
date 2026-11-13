@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { ZCodeMcpServer } from "@nibi/shared";
+import type { NibiMcpServer } from "@nibi/shared";
 import { mergeMcpServerStatusSnapshots } from "../src/store/mcpStoreStatusList.js";
 
-const server: ZCodeMcpServer = {
+const server: NibiMcpServer = {
   config: { command: "node" },
   enabled: true,
   id: "zcodeagentmcp:demo",
@@ -43,7 +43,7 @@ describe("MCP store status diagnostics", () => {
   });
 
   it("clears stale diagnostics when a later snapshot is connected", () => {
-    const failedServer: ZCodeMcpServer = {
+    const failedServer: NibiMcpServer = {
       ...server,
       error: "old error",
       failureKind: "server_unavailable",

@@ -2,7 +2,7 @@ import {
   generateTraceId,
   resolveWorkspaceKey,
   NIBI_AGENT_PROVIDER,
-  type ZCodeTaskMeta,
+  type NibiTaskMeta,
 } from "@nibi/shared";
 import type { SessionsIndexReconcileResult } from "@nibi/shared/nibi-protocol-v4";
 import type {
@@ -84,7 +84,7 @@ export function createTaskFacts(options: {
     async ingest(target, summary) {
       refreshes.delete(key({ ...target, taskId: summary.sessionId }));
       const lastOutcome = summary.lastOutcome;
-      const meta: ZCodeTaskMeta = {
+      const meta: NibiTaskMeta = {
         taskId: summary.sessionId,
         traceId: generateTraceId(summary.sessionId),
         title: summary.title,

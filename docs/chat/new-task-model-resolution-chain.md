@@ -118,5 +118,5 @@ queue。远程链路必须贯穿 `workspaceIdentity` 和 `remoteSessionId`。
 - `packages/ui/src/hooks/workspacePrepareModelPreference.ts`
 - `packages/ui/src/v4/SessionPane.tsx`
 - `packages/ui/src/lib/zcodeModelPreference.ts`
-- `apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/commands/handlers/session-mgmt.ts`
-- `apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/commands/handlers/model-config.ts`
+- `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/commands/handlers/session-mgmt.ts`
+- `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/commands/handlers/model-config.ts`

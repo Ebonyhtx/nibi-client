@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
 import type { IChannel } from "@nibi/rpc";
-import { readTopicResourceFromRelay } from "../src/zcode-agent/topicResourceRelayClient.js";
+import { readTopicResourceFromRelay } from "../src/nibi-agent/topicResourceRelayClient.js";
 import { TOPIC_RESOURCE_RELAY_CHUNK_BYTES } from "@nibi/shared";
 
 const request = {

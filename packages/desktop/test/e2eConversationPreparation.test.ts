@@ -17,12 +17,12 @@ import { ensureUpstreamProviderForE2E, selectUpstreamModel } from "#e2e/helpers/
 import { prepareV4ConversationE2E, startNewV4Draft } from "#e2e/helpers/v4-conversation";
 
 vi.mock("./e2e/helpers/desktop-app.js", () => ({
-  DEFAULT_WORKSPACE: "/Users/dev/e2e/ZCodeProject",
+  DEFAULT_WORKSPACE: "/Users/dev/e2e/NibiProject",
   clickTestIdByDom: vi.fn(),
   waitForDefaultWorkspaceReady: vi.fn(),
 }));
 vi.mock("./e2e/helpers/project-sidebar.js", () => ({
-  projectNameForWorkspace: () => "ZCodeProject",
+  projectNameForWorkspace: () => "NibiProject",
   startDraftFromProject: vi.fn(),
   waitForProjectRow: vi.fn(),
 }));
@@ -37,7 +37,7 @@ vi.mock("./e2e/helpers/occupation-onboarding.js", () => ({
 
 function renderDraft({
   path = DEFAULT_WORKSPACE,
-  project = "ZCodeProject",
+  project = "NibiProject",
   session = "draft",
   text = "",
 } = {}) {

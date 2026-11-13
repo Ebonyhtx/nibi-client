@@ -2,7 +2,7 @@ import { workflowRunStepCounts, type WorkflowRunState } from "@nibi/shared/nibi-
 import type { ConversationRow } from "@nibi/shared/nibi-protocol-v4";
 import {
   NIBI_WORKFLOWS_FOR_RUN_MAX_CANDIDATES,
-  type ZCodeWorkflowsForRunCandidate,
+  type NibiWorkflowsForRunCandidate,
 } from "@nibi/shared";
 import type { WorkflowCausalityGraphData } from "@/components/workflow-graph/types.js";
 import type { WorkflowRunCardSummary } from "@/ToolCallBlocks/shared.js";
@@ -268,7 +268,7 @@ export function resolveWorkflowRunGraph(
  *
  * 与其他联接同一条纪律：纯函数、一遍行窗口、身份只认入参通道（display 上没有这件事）。
  */
-export type WorkflowSaveCandidate = ZCodeWorkflowsForRunCandidate;
+export type WorkflowSaveCandidate = NibiWorkflowsForRunCandidate;
 
 function readWorkflowSaveCandidate(
   row: ConversationRow,

@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { TID_V4_USER_INPUT_DIALOG } from "@nibi/shared/test-ids";
 import type { ConversationSnapshot } from "@nibi/shared/nibi-protocol-v4";
-import { ZCodeIntlProvider } from "../src/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "../src/i18n/IntlProvider.js";
 import {
   buildV4ElicitationProgressKey,
   createInteractionAutoResolutionIntentTracker,
@@ -104,7 +104,7 @@ describe("V4InteractionDialogs", () => {
 
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(V4InteractionDialogs, {
           sessionId: "sess-1",
@@ -175,7 +175,7 @@ describe("V4InteractionDialogs", () => {
 
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(V4InteractionDialogs, {
           sessionId: "sess-1",
@@ -223,7 +223,7 @@ describe("V4InteractionDialogs", () => {
 
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(V4InteractionDialogs, {
           sessionId: "sess-1",

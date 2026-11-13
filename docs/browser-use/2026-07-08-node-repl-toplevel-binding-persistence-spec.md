@@ -38,7 +38,7 @@
 - `NodeReplSession.run()` 只调 `this.executor.run(...)`，切换 executor 即切路线，主体不动。
 
 ## 4. 依赖
-- 给 `apps/zcode-cli/packages/core` 加 `meriyah`（零依赖、ESTree 兼容、随 tsup 打包）。
+- 给 `apps/nibi-cli/packages/core` 加 `meriyah`（零依赖、ESTree 兼容、随 tsup 打包）。
 
 ## 5. 实现任务（TDD）
 - **T1**：`instrument.ts` 三个纯函数 + 单测：`collectTopLevelBindingNames` 覆盖 `const a`、`let a,b`、`var`、解构 `const {x,y}=o` / `const [p,[q]]=arr` / rest、`function f(){}`、`class C{}`；忽略块内/函数内声明。`instrumentForContextPersistence` 断言注入了 `globalThis.a=a` 等；解析失败路径。
@@ -46,8 +46,8 @@
 - **T3**：文档回滚——`documentation()` 与 `js` 工具描述改回示范 `const tab = await agent.browsers.open(url)`（跨调用可用），移除"用 globalThis"的过渡说明（B 落地后 const 已能持久）。
 
 ## 6. 影响文件
-- 新增 `apps/zcode-cli/packages/core/src/repl/instrument.ts` + 测试
-- 改 `apps/zcode-cli/packages/core/src/repl/node-repl-session.ts`（executor 接缝 + run 走 instrument）
-- 改 `apps/zcode-cli/packages/core/src/browser-client/facade.ts`（documentation 回滚 const 示范）
-- 改 `apps/zcode-cli/packages/core/src/tool/handlers/node-repl.ts`（js 描述回滚）
-- `apps/zcode-cli/packages/core/package.json`（加 meriyah）
+- 新增 `apps/nibi-cli/packages/core/src/repl/instrument.ts` + 测试
+- 改 `apps/nibi-cli/packages/core/src/repl/node-repl-session.ts`（executor 接缝 + run 走 instrument）
+- 改 `apps/nibi-cli/packages/core/src/browser-client/facade.ts`（documentation 回滚 const 示范）
+- 改 `apps/nibi-cli/packages/core/src/tool/handlers/node-repl.ts`（js 描述回滚）
+- `apps/nibi-cli/packages/core/package.json`（加 meriyah）

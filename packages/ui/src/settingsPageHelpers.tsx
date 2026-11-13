@@ -4,7 +4,7 @@ import type {
   IntegratedTerminalShellOption,
   IntegratedTerminalShellSelection,
   LocalePreference,
-  ZCodeInteractionBehavior,
+  NibiInteractionBehavior,
 } from "@nibi/shared";
 import { appToolSearchModeSchema } from "@nibi/shared";
 import {
@@ -32,7 +32,7 @@ import { Input } from "@/components/ui/input.js";
 import { Button } from "@/components/ui/button.js";
 import { SettingsBadge, SettingsGroupCard, SettingsRow } from "@/settings/SettingsPageParts.js";
 import { DataBaseDirControl } from "@/settings/DataBaseDirControl.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useOptionalServices } from "@/hooks/useServices.js";
 import { ProactiveSuggestionsSetting } from "@/settings/ProactiveSuggestionsSetting.js";
 import { DynamicWorkflowModeSetting } from "@/settings/DynamicWorkflowModeSetting.js";
@@ -53,7 +53,7 @@ export { SETTINGS_SECTION_GROUPS, SETTINGS_SECTIONS };
 export { isSettingsSectionAvailable };
 
 const TASK_AUTO_ARCHIVE_DAY_OPTIONS = [3, 7, 14, 30] as const;
-const NIBI_INTERACTION_BEHAVIOR_OPTIONS: readonly ZCodeInteractionBehavior[] = ["queue", "guide"];
+const NIBI_INTERACTION_BEHAVIOR_OPTIONS: readonly NibiInteractionBehavior[] = ["queue", "guide"];
 
 /**
  * 归档偏好与归档列表集中展示，设置值和保存动作继续由 SettingsPage 持有。
@@ -70,7 +70,7 @@ export function TaskAutoArchiveSettings({
   onTaskAutoArchiveEnabledChange: (enabled: boolean) => Promise<void>;
   onTaskAutoArchiveOlderThanDaysChange: (days: number) => Promise<void>;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <SettingsGroupCard>
       <SettingsRow
@@ -164,7 +164,7 @@ export function GeneralSectionContent({
   toolGroupingExploreEnabled,
   toolGroupingTerminalEnabled,
   toolGroupingChangesEnabled,
-  zcodeInteractionBehavior,
+  nibiInteractionBehavior,
   askUserQuestionAutoResolutionEnabled = true,
   modelIoFullRetentionEnabled = false,
   onDataBaseDirChange,
@@ -187,7 +187,7 @@ export function GeneralSectionContent({
   onToolGroupingExploreEnabledChange,
   onToolGroupingTerminalEnabledChange,
   onToolGroupingChangesEnabledChange,
-  onZCodeInteractionBehaviorChange,
+  onNibiInteractionBehaviorChange,
   onAskUserQuestionAutoResolutionEnabledChange = async () => {},
   onModelIoFullRetentionEnabledChange = async () => {},
   onOpenOnboardingDialog,
@@ -238,7 +238,7 @@ export function GeneralSectionContent({
   toolGroupingExploreEnabled: boolean;
   toolGroupingTerminalEnabled: boolean;
   toolGroupingChangesEnabled: boolean;
-  zcodeInteractionBehavior: ZCodeInteractionBehavior;
+  nibiInteractionBehavior: NibiInteractionBehavior;
   askUserQuestionAutoResolutionEnabled?: boolean;
   modelIoFullRetentionEnabled?: boolean;
   onDataBaseDirChange: (dir: string) => Promise<void>;
@@ -261,12 +261,12 @@ export function GeneralSectionContent({
   onToolGroupingExploreEnabledChange: (enabled: boolean) => Promise<void>;
   onToolGroupingTerminalEnabledChange: (enabled: boolean) => Promise<void>;
   onToolGroupingChangesEnabledChange: (enabled: boolean) => Promise<void>;
-  onZCodeInteractionBehaviorChange: (behavior: ZCodeInteractionBehavior) => Promise<void>;
+  onNibiInteractionBehaviorChange: (behavior: NibiInteractionBehavior) => Promise<void>;
   onAskUserQuestionAutoResolutionEnabledChange?: (enabled: boolean) => Promise<void>;
   onModelIoFullRetentionEnabledChange?: (enabled: boolean) => Promise<void>;
   onOpenOnboardingDialog: () => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const hasServices = Boolean(useOptionalServices());
   // 部分 SSR 单测会用精简 props 直接渲染本组件，新增终端设置项后旧 helper 未必同步传值。
   // 这里把运行时缺省值兜到“继承系统 profile”，避免 undefined.trim() 把无关测试打断。
@@ -834,15 +834,15 @@ export function GeneralSectionContent({
 
       <SettingsGroupCard>
         <SettingsRow
-          label={intl.formatMessage({ id: "settings.zcodeInteractionBehavior" })}
+          label={intl.formatMessage({ id: "settings.nibiInteractionBehavior" })}
           description={intl.formatMessage({
-            id: "settings.zcodeInteractionBehaviorDescription",
+            id: "settings.nibiInteractionBehaviorDescription",
           })}
           control={
             <Select
-              value={zcodeInteractionBehavior}
+              value={nibiInteractionBehavior}
               onValueChange={(value) => {
-                void onZCodeInteractionBehaviorChange(value as ZCodeInteractionBehavior);
+                void onNibiInteractionBehaviorChange(value as NibiInteractionBehavior);
               }}
             >
               <SelectTrigger size="lg" className="w-[260px] min-w-0 justify-between">
@@ -852,7 +852,7 @@ export function GeneralSectionContent({
                 {NIBI_INTERACTION_BEHAVIOR_OPTIONS.map((behavior) => (
                   <SelectItem key={behavior} value={behavior}>
                     {intl.formatMessage({
-                      id: `settings.zcodeInteractionBehavior.option.${behavior}`,
+                      id: `settings.nibiInteractionBehavior.option.${behavior}`,
                     })}
                   </SelectItem>
                 ))}
@@ -1009,7 +1009,7 @@ export function GeneralSectionContent({
 }
 
 export function GeneralSectionHeader({ localePreference }: { localePreference: LocalePreference }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
 
   return (
     <div className="mt-4 flex flex-wrap gap-2">

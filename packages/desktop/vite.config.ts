@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import { resolveZCodeEndpointOrigin } from "@nibi/shared/zcodeEndpoint";
+import { resolveNibiEndpointOrigin } from "@nibi/shared/nibiEndpoint";
 import { pdfJsCMapsPlugin } from "../ui/vite/pdfJsCMapsPlugin.js";
 import { getBuildMetadata } from "./scripts/build-metadata.mjs";
 import { resolveDesktopProductFlavor } from "./scripts/desktop-product-identity.mjs";
@@ -56,7 +56,7 @@ export const desktopRendererDependencyAliases = {
   "lucide-react": resolveInstalledPackageRoot("lucide-react"),
 } as const;
 
-function resolveZCodeEnv(value: string | undefined): "test" | "production" {
+function resolveNibiEnv(value: string | undefined): "test" | "production" {
   return value?.trim().toLowerCase() === "production" ? "production" : "test";
 }
 
@@ -154,23 +154,23 @@ export default defineConfig(({ mode }) => {
   // `.env*` 只提供链接常量；当前产品环境由启动脚本或 CI 注入 NIBI_ENV。
   const env = loadEnv(mode, "../..", "");
   const repoRoot = resolve(__dirname, "../..");
-  const zcodeEnv = resolveZCodeEnv(env.NIBI_ENV);
+  const nibiEnv = resolveNibiEnv(env.NIBI_ENV);
   // 安装包身份与后端环境分轴；renderer 用它决定是否展示更新入口。
-  const zcodeProductFlavor = resolveDesktopProductFlavor({
+  const nibiProductFlavor = resolveDesktopProductFlavor({
     ...process.env,
     ...env,
-    NIBI_ENV: zcodeEnv,
+    NIBI_ENV: nibiEnv,
   });
   const e2eCoverageEnabled =
     env.NIBI_E2E_COVERAGE === "1" || process.env.NIBI_E2E_COVERAGE === "1";
   const e2eStoreBridgeEnabled =
     env.VITE_NIBI_E2E_STORE_BRIDGE === "1" || process.env.VITE_NIBI_E2E_STORE_BRIDGE === "1";
-  const zcodeEndpointOrigin = resolveZCodeEndpointOrigin({
-    env: zcodeEnv,
+  const nibiEndpointOrigin = resolveNibiEndpointOrigin({
+    env: nibiEnv,
     envBaseOrigin:
       env.NIBI_BASE_URL ??
       env.NIBI_ENDPOINT_ORIGIN ??
-      (zcodeEnv === "production" ? env.NIBI_PRODUCTION_BASE_URL : env.NIBI_TEST_BASE_URL),
+      (nibiEnv === "production" ? env.NIBI_PRODUCTION_BASE_URL : env.NIBI_TEST_BASE_URL),
   });
   const codingPlanWebviewOrigin =
     env.VITE_CODING_PLAN_WEBVIEW_ORIGIN ?? process.env.VITE_CODING_PLAN_WEBVIEW_ORIGIN ?? "";
@@ -205,13 +205,13 @@ export default defineConfig(({ mode }) => {
       __NIBI_MIN_COMPATIBLE_VERSION__: JSON.stringify(buildMetadata.minCompatibleVersion),
       __NIBI_COMMIT__: JSON.stringify(buildMetadata.buildCommitId),
       __NIBI_BUILD_TIME__: JSON.stringify(buildMetadata.buildTime),
-      __NIBI_ENV__: JSON.stringify(zcodeEnv),
-      __NIBI_PRODUCT_FLAVOR__: JSON.stringify(zcodeProductFlavor),
+      __NIBI_ENV__: JSON.stringify(nibiEnv),
+      __NIBI_PRODUCT_FLAVOR__: JSON.stringify(nibiProductFlavor),
       ...buildTimeConfigDefines,
       __NIBI_LOCAL_DEVELOPMENT_RUNTIME__: JSON.stringify(mode !== "production"),
-      "import.meta.env.VITE_NIBI_BASE_URL": JSON.stringify(zcodeEndpointOrigin),
+      "import.meta.env.VITE_NIBI_BASE_URL": JSON.stringify(nibiEndpointOrigin),
       // 兼容旧 renderer 读取名；新代码统一读 VITE_NIBI_BASE_URL。
-      "import.meta.env.VITE_NIBI_ENDPOINT_ORIGIN": JSON.stringify(zcodeEndpointOrigin),
+      "import.meta.env.VITE_NIBI_ENDPOINT_ORIGIN": JSON.stringify(nibiEndpointOrigin),
       "import.meta.env.VITE_CODING_PLAN_WEBVIEW_ORIGIN": JSON.stringify(codingPlanWebviewOrigin),
       "import.meta.env.VITE_REWARDS_WEBVIEW_ORIGIN": JSON.stringify(env.VITE_REWARDS_WEBVIEW_ORIGIN ?? process.env.VITE_REWARDS_WEBVIEW_ORIGIN ?? ""),
       // Bugfix: E2E store bridge 只能由 WDIO 专用变量打开，避免把 NIBI_ENV=test 产品环境误当成测试运行态。

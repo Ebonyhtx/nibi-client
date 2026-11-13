@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..", "..");
-const cliEntry = join(repoRoot, "apps/zcode-cli/packages/cli/dist/nibi.cjs");
+const cliEntry = join(repoRoot, "apps/nibi-cli/packages/cli/dist/nibi.cjs");
 const samplerPreload = join(here, "memory-sampler.cjs");
 const fakeMcpScript = join(here, "fake-mcp-server.mjs");
 const treeSamplerScript = join(here, "sample-process-tree.ps1");

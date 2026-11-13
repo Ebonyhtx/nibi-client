@@ -1,4 +1,4 @@
-import type { IZCodeAgentService } from "@nibi/services";
+import type { INibiAgentService } from "@nibi/services";
 import {
   attributeHostProcessTree,
   createProcessResourceSampler,
@@ -12,7 +12,7 @@ import {
 } from "@nibi/shared";
 
 export interface CreateHostResourceUsageResponderOptions {
-  getAgentService: () => Pick<IZCodeAgentService, "collectLocalRuntimeChildProcesses"> | undefined;
+  getAgentService: () => Pick<INibiAgentService, "collectLocalRuntimeChildProcesses"> | undefined;
   postMessage: (message: HostResourceUsageSnapshotResultResponse) => void;
   hostPid?: number;
   sampler?: ProcessResourceSampler;

@@ -9,7 +9,7 @@ import {
 } from "@nibi/shared/test-ids";
 import { Button } from "@/components/ui/button.js";
 import { Input } from "@/components/ui/input.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 
 export function DataBaseDirControl({
   dataBaseDir,
@@ -22,7 +22,7 @@ export function DataBaseDirControl({
   onDataBaseDirChange: (dir: string) => Promise<void>;
   onSelectDataBaseDir: () => Promise<string | null>;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const effectiveDir = dataBaseDir || defaultHomeDir;
   const [localDataBaseDir, setLocalDataBaseDir] = useState(effectiveDir);
   const [isPickingDataBaseDir, setIsPickingDataBaseDir] = useState(false);

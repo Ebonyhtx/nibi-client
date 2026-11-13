@@ -7,7 +7,7 @@ import {
   MarkdownImage,
   normalizeConsecutiveMarkdownImageBlocks,
 } from "@/components/ai-elements/markdown-image.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { rewriteMarkdownArtifactImageSources } from "@nibi/shared";
 import { sanitizeImageSourceForLog } from "@/components/ai-elements/image-preview-dialog.js";
 
@@ -27,7 +27,7 @@ describe("artifact-backed Markdown images", () => {
 
     const rendered = render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(MarkdownImage, {
           alt: "shot",

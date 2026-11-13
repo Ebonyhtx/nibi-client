@@ -6,7 +6,7 @@ import { RemoteProjectMenu } from "@/project-sidebar/RemoteProjectMenu.js";
 import type { SourceServerManagementSnapshot } from "@nibi/shared";
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
+  useNibiIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
 }));
 afterEach(cleanup);
 

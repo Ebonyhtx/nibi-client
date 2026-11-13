@@ -4,7 +4,7 @@ import { localTtftFactsSchema } from "../localTtft.js";
 // 阶段为类型占位（后半接通道层时启用），数据形状已按规范定稿。
 import { z } from "zod";
 import { APP_USAGE_RANGES, appUsageSnapshotSchema } from "../usage-stats.js";
-import { zcodeWorkspaceRefSchema } from "../nibi-protocol-legacy-types.js";
+import { nibiWorkspaceRefSchema } from "../nibi-protocol-legacy-types.js";
 import {
   PROTOCOL_V4_LIMITS,
   V4_WIRE_PROTOCOL_VERSION,
@@ -435,7 +435,7 @@ export const v4ConversationSubscribeParamsSchema = subscribeParamsSchema.extend(
   connectionId: z.string(),
   clientMode: z.enum(["desktop-continuous", "web-remote-replayable"]),
   // 当前可信 attachment 的 workspace；cold resume 优先使用它恢复身份，live 不消费。
-  workspace: zcodeWorkspaceRefSchema.optional(),
+  workspace: nibiWorkspaceRefSchema.optional(),
   /** host 从当前 remote workspace 的 tasks-index 精确读取的旧任务归属 allowlist。 */
   legacyTaskIds: z.array(z.string().min(1)).max(MAX_LEGACY_TASK_IDS_PER_SUBSCRIBE).optional(),
   // 仅供 host→CLI cold resume 使用；live conversation 不消费该 hint。
@@ -611,7 +611,7 @@ export type V4ConversationFileChangesResult = z.infer<typeof v4ConversationFileC
 // 判别联合，把一页只读事件塞进去等于把读放进写的词汇表，还要白背 baseRevision/幂等那套机制。
 
 /**
- * 事件日志一页的两道界，网关按它们取数（apps/zcode-cli/packages/dynamic-workflow/docs/execution-engine.md
+ * 事件日志一页的两道界，网关按它们取数（apps/nibi-cli/packages/dynamic-workflow/docs/execution-engine.md
  * 「Reading the journal」）。字节按存储里的序列化字节计、取协议单帧上限的四分之一：条数单独
  * 管不住字节，500 条带着大 report item 的事件足以顶到单帧上限。
  */

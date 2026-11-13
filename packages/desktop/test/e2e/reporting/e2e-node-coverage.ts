@@ -105,7 +105,7 @@ export function createE2ENodeCoverageCollector(
   const coverageDir = resolve(options.artifactDir, "coverage");
   const rawRoot = resolve(coverageDir, "raw");
   const sourceMapRoots: Record<E2ENodeCoverageDomain, string> = {
-    cli: resolve(options.repoRoot, "apps/zcode-cli/packages/cli/dist"),
+    cli: resolve(options.repoRoot, "apps/nibi-cli/packages/cli/dist"),
     host: resolve(options.desktopDir, "out/host"),
     main: resolve(options.desktopDir, "out/main"),
   };
@@ -366,7 +366,7 @@ function collectExpectedProcessPids(
   for (const logPath of listFiles(runtimeLogsDir, (path) => path.endsWith(".log"))) {
     const content = readFileSync(logPath, "utf-8");
     for (const line of content.split("\n")) {
-      if (!line.includes("ZCode agent process exited")) continue;
+      if (!line.includes("Nibi agent process exited")) continue;
       const match = /"pid":(\d+),"runtimeIdentity"/u.exec(line);
       if (match?.[1]) pids.add(Number(match[1]));
     }
@@ -437,7 +437,7 @@ function writeNodeIstanbulReports(params: {
     if (loadedPaths.has(normalizePath(resolve(sourceFile)))) continue;
     try {
       const instrumenter = createInstrumenter({
-        coverageVariable: "__zcode_e2e_node_baseline__",
+        coverageVariable: "__nibi_e2e_node_baseline__",
         parserPlugins: ["typescript", "jsx"],
         produceSourceMap: false,
       });

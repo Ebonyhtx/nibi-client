@@ -8,7 +8,7 @@ import {
   buildMcpNodeFallbackHostEnv,
   MCP_NODE_FALLBACK_EXEC_PATH_ENV_KEY,
   MCP_NODE_FALLBACK_NPM_ROOT_ENV_KEY,
-} from "../src/zcode-agent/mcpNodeFallback/index.js";
+} from "../src/nibi-agent/mcpNodeFallback/index.js";
 
 /**
  * 端到端钉住「没有系统 Node 时 MCP 子进程怎么找到 node」：这里生成的是真实 shim 文件，

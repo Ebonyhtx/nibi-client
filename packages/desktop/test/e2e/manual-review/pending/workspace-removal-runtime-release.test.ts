@@ -1,6 +1,6 @@
 import { rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { formatZCodeAgentProcessName } from "@nibi/shared";
+import { formatNibiAgentProcessName } from "@nibi/shared";
 import { TID_CONFIRM_DIALOG_CONFIRM } from "@nibi/shared/test-ids";
 import {
   clearAppData,
@@ -86,8 +86,8 @@ describe("workspace removal runtime release E2E", () => {
 });
 
 function buildAgentWorkspaceNameSuffix(workspacePath: string): string {
-  const placeholderPrefix = formatZCodeAgentProcessName("placeholder");
-  const formatted = formatZCodeAgentProcessName("placeholder", workspacePath);
+  const placeholderPrefix = formatNibiAgentProcessName("placeholder");
+  const formatted = formatNibiAgentProcessName("placeholder", workspacePath);
   return formatted.slice(placeholderPrefix.length);
 }
 

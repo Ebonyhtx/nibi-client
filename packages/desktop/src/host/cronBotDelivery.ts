@@ -1,15 +1,15 @@
-import type { ZCodeAutomationBotDeliveryTarget } from "@nibi/shared";
+import type { NibiAutomationBotDeliveryTarget } from "@nibi/shared";
 
 interface CronBotDeliveryRepo {
   getBotDeliveryTarget(
     automationId: string,
     workspaceKey?: string,
-  ): Promise<ZCodeAutomationBotDeliveryTarget | undefined>;
+  ): Promise<NibiAutomationBotDeliveryTarget | undefined>;
 }
 
 interface CronBotDeliveryService {
   watchAutomationRun(params: {
-    target: ZCodeAutomationBotDeliveryTarget;
+    target: NibiAutomationBotDeliveryTarget;
     runId?: string;
     taskId: string;
     workspacePath: string;

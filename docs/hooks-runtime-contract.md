@@ -47,7 +47,7 @@ HooksService / conversation projection
   -> atomic Trust mutation / supersede / revoke
 ```
 
-- Hook 的执行权只在 `apps/zcode-cli` Agent runtime。
+- Hook 的执行权只在 `apps/nibi-cli` Agent runtime。
 - UI 和 `packages/services` 只管理配置和只读来源展示，不执行 Hook。
 - 每个 session 启动时捕获 Hook 配置快照。配置修改只保证新 session
   生效；设置页保存后要关闭尚未使用的 deferred draft session，避免下一次首发继续复用旧快照。

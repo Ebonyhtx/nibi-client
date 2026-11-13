@@ -36,7 +36,7 @@ export async function assertIncomingMessage(
   const fixture = JSON.parse(
     await readFile(
       new URL(
-        "../../../../../apps/zcode-cli/packages/core/tests/fixtures/runtime-input-presentation.json",
+        "../../../../../apps/nibi-cli/packages/core/tests/fixtures/runtime-input-presentation.json",
         import.meta.url,
       ),
       "utf8",

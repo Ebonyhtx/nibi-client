@@ -734,7 +734,7 @@ describe("desktopResourceTelemetry CLI 角色与 Windows 门禁保留行为", ()
       pid: 43210,
       provider: "glm",
       workspacePath: "C:\\repo\\demo",
-      command: "zcode-agent.exe",
+      command: "nibi-agent.exe",
       args: ["--stdio"],
       startedAt: 100,
     });
@@ -1212,7 +1212,7 @@ it.each(["linux", "win32"] as const)(
       platform: "darwin",
     });
     sendCustomMock.mockClear();
-    const emitter = new Emitter<import("@nibi/shared").ZCodeToolExecResource>();
+    const emitter = new Emitter<import("@nibi/shared").NibiToolExecResource>();
     const registration = registerHostToolExecResourceTelemetry({
       agentService: { onDynamicToolExecResource: () => emitter.event },
       runtimeSurface: "remote",
@@ -1278,7 +1278,7 @@ it("PRT-032 多个 Host 转发同一完成事实只上报一次，同指标不�
     platform: "darwin",
   });
   sendCustomMock.mockClear();
-  const emitter = new Emitter<import("@nibi/shared").ZCodeToolExecResource>();
+  const emitter = new Emitter<import("@nibi/shared").NibiToolExecResource>();
   const registrations = Array.from({ length: 2 }, () =>
     registerHostToolExecResourceTelemetry({
       agentService: { onDynamicToolExecResource: () => emitter.event },

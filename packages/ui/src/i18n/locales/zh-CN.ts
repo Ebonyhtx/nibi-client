@@ -2026,11 +2026,11 @@ const zhCN: Record<string, string> = {
   "titleBar.menu.help.resourceManager": "资源管理器",
   "titleBar.menu.help.toggleNIBIStdioTap": "抓取 Agent stdio 通信",
   "titleBar.menu.help.clearAllData": "清除所有数据",
-  "titleBar.menu.help.zcodeEndpoint": "服务端点（仅测试构建）",
-  "titleBar.menu.help.zcodeEndpoint.production": "生产端点",
-  "titleBar.menu.help.zcodeEndpoint.test": "测试端点",
-  "titleBar.menu.help.zcodeEndpoint.custom": "自定义端点…",
-  "titleBar.menu.help.zcodeEndpoint.reset": "清除自定义端点",
+  "titleBar.menu.help.nibiEndpoint": "服务端点（仅测试构建）",
+  "titleBar.menu.help.nibiEndpoint.production": "生产端点",
+  "titleBar.menu.help.nibiEndpoint.test": "测试端点",
+  "titleBar.menu.help.nibiEndpoint.custom": "自定义端点…",
+  "titleBar.menu.help.nibiEndpoint.reset": "清除自定义端点",
 
   // 目录浏览
   "directoryBrowser.errorUnavailable":
@@ -3372,11 +3372,11 @@ const zhCN: Record<string, string> = {
   "settings.toolGroupingChanges": "分组文件更改",
   "settings.toolGroupingChangesDescription":
     "将连续的 Write、Edit 和 ApplyPatch 调用聚合为 Changes 分组。",
-  "settings.zcodeInteractionBehavior": "交互行为",
-  "settings.zcodeInteractionBehaviorDescription":
+  "settings.nibiInteractionBehavior": "交互行为",
+  "settings.nibiInteractionBehaviorDescription":
     "在 NIBI 运行时将后续操作加入队列，或引导至下一轮工具调用后运行。",
-  "settings.zcodeInteractionBehavior.option.queue": "队列",
-  "settings.zcodeInteractionBehavior.option.guide": "引导",
+  "settings.nibiInteractionBehavior.option.queue": "队列",
+  "settings.nibiInteractionBehavior.option.guide": "引导",
   "settings.askUserQuestionAutoResolution": "提问自动继续",
   "settings.askUserQuestionAutoResolutionDescription":
     "开启后，Agent 提问 5 分钟未回答会自动继续；关闭后，当前和后续提问会一直等待你的回答。",
@@ -4160,8 +4160,8 @@ const zhCN: Record<string, string> = {
   "sidebar.usage.plan.weekly": "每周",
   "sidebar.usage.plan.toolCalls": "工具调用",
   "sidebar.usage.plan.mcp": "NIBI MCP",
-  "sidebar.usage.plan.zcodeMcp": "NIBI MCP",
-  "sidebar.usage.plan.zcodeMcpDescription": "NIBI 预置插件 MCP 每日合计额度",
+  "sidebar.usage.plan.nibiMcp": "NIBI MCP",
+  "sidebar.usage.plan.nibiMcpDescription": "NIBI 预置插件 MCP 每日合计额度",
   "chat.planUsage.title": "套餐用量",
   "chat.planUsage.titleWithPlan": "{plan} 套餐用量",
   "chat.planUsage.providerFallback": "当前供应商",
@@ -4739,7 +4739,7 @@ const zhCN: Record<string, string> = {
   "settings.commands.description":
     "管理 NIBI Agent 的 .md 命令文件。命令可通过 /command-name 在聊天中调用。",
   "settings.commands.sourceFilterLabel": "来源筛选",
-  "settings.commands.source.zcodeAgent": "NIBI Agent",
+  "settings.commands.source.nibiAgent": "NIBI Agent",
   "settings.commands.add": "新建",
   "settings.commands.addNew": "新建命令",
   "settings.commands.addDescription": "填写命令名称和提示词，保存后返回列表。",
@@ -4881,7 +4881,7 @@ const zhCN: Record<string, string> = {
   "settings.hooks.customJson": "自定义字段 JSON",
   "settings.hooks.customJsonObjectError": "自定义字段必须是 JSON object。",
   "settings.hooks.customJsonParseError": "自定义字段 JSON 解析失败。",
-  "settings.plugins.zcodeOnly": "仅支持 NIBI Agent",
+  "settings.plugins.nibiOnly": "仅支持 NIBI Agent",
   "settingsSync.dialog.title": "导入设置",
   "settingsSync.dialog.description": "仅导入缺失项；已存在配置会自动跳过。",
   "settingsSync.action.skip": "暂不导入",

@@ -44,7 +44,7 @@ pub struct StartupPreferences {
     pub execution: SessionExecutionPreferences,
 }
 
-/// Node `zcodeSessionRuntimePreferencesResultSchema` 里本内核用得到的字段。
+/// Node `nibiSessionRuntimePreferencesResultSchema` 里本内核用得到的字段。
 pub fn parse(value: &Value) -> StartupPreferences {
     StartupPreferences {
         auto_resolution: value

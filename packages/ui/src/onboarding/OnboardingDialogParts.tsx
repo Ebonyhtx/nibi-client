@@ -3,7 +3,7 @@ import {
   WizardStepHeader,
   WizardStepSidebar,
 } from "@/components/wizard/WizardChrome.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 
 export type OnboardingView = "welcome" | "wizard";
 export type OnboardingWizardStep =
@@ -78,7 +78,7 @@ export function OnboardingWizardFooter(props: {
   /** 未选任何会话或外部导入项时禁用「开始迁移」 */
   beginMigrationDisabled?: boolean;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const isExternalImportStep = isOnboardingExternalImportStep(props.currentStep);
 
   const helperText =

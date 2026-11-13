@@ -211,7 +211,7 @@ describe("桌面 OAuth 凭据完成事件", () => {
       await quit.update();
       expect(relaunch.mock.calls.length).toBe(0);
       expect(quit.mock.calls.length).toBe(0);
-      expect(await $(`[data-testid="${TID_LOGIN_TRIGGER}"]`).getText()).toContain("ZCode E2E");
+      expect(await $(`[data-testid="${TID_LOGIN_TRIGGER}"]`).getText()).toContain("Nibi E2E");
       await writeFile(
         join(artifacts, "remote-logout-settings-failure.json"),
         JSON.stringify(

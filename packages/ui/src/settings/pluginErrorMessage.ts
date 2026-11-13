@@ -1,6 +1,6 @@
-import type { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import type { useNibiIntl } from "@/i18n/IntlProvider.js";
 
-type IntlShape = ReturnType<typeof useZCodeIntl>["intl"];
+type IntlShape = ReturnType<typeof useNibiIntl>["intl"];
 
 /**
  * 插件操作错误的用户面文案。

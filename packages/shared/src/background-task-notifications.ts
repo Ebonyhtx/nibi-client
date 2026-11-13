@@ -1,8 +1,8 @@
-import type { ZCodeMessageWithParts } from "./nibi-protocol-legacy-types.js";
-import { textFromZCodeMessageParts } from "./nibi-protocol-legacy-types.js";
-import type { ZCodeStreamEvent } from "./zcode-task-types-core.js";
+import type { NibiMessageWithParts } from "./nibi-protocol-legacy-types.js";
+import { textFromNibiMessageParts } from "./nibi-protocol-legacy-types.js";
+import type { NibiStreamEvent } from "./nibi-task-types-core.js";
 
-export interface ZCodeBackgroundTaskNotificationInfo {
+export interface NibiBackgroundTaskNotificationInfo {
   error?: string;
   outputFile?: string;
   result?: string;
@@ -11,9 +11,9 @@ export interface ZCodeBackgroundTaskNotificationInfo {
   taskId?: string;
 }
 
-export function parseZCodeBackgroundTaskNotificationText(
+export function parseNibiBackgroundTaskNotificationText(
   text: string | undefined,
-): { notification: ZCodeBackgroundTaskNotificationInfo; toolUseId: string } | null {
+): { notification: NibiBackgroundTaskNotificationInfo; toolUseId: string } | null {
   const trimmed = text?.trim();
   if (!trimmed?.startsWith("<task-notification>")) {
     return null;
@@ -35,16 +35,16 @@ export function parseZCodeBackgroundTaskNotificationText(
   };
 }
 
-export function collectZCodeBackgroundTaskNotificationsByToolUseId(
-  messages: readonly ZCodeMessageWithParts[],
-): Map<string, ZCodeBackgroundTaskNotificationInfo> {
-  const notifications = new Map<string, ZCodeBackgroundTaskNotificationInfo>();
+export function collectNibiBackgroundTaskNotificationsByToolUseId(
+  messages: readonly NibiMessageWithParts[],
+): Map<string, NibiBackgroundTaskNotificationInfo> {
+  const notifications = new Map<string, NibiBackgroundTaskNotificationInfo>();
   for (const message of messages) {
     if (message.info.role !== "user") {
       continue;
     }
-    const parsed = parseZCodeBackgroundTaskNotificationText(
-      textFromZCodeMessageParts(message.parts),
+    const parsed = parseNibiBackgroundTaskNotificationText(
+      textFromNibiMessageParts(message.parts),
     );
     if (!parsed) {
       continue;
@@ -54,10 +54,10 @@ export function collectZCodeBackgroundTaskNotificationsByToolUseId(
   return notifications;
 }
 
-export function zcodeBackgroundTaskNotificationToolUpdateStatus(
+export function nibiBackgroundTaskNotificationToolUpdateStatus(
   status: string | undefined,
 ): Extract<
-  Extract<ZCodeStreamEvent, { type: "tool_call_update" }>["status"],
+  Extract<NibiStreamEvent, { type: "tool_call_update" }>["status"],
   "completed" | "failed" | "stopped"
 > {
   if (status === "failed" || status === "lost") {
@@ -70,9 +70,9 @@ export function zcodeBackgroundTaskNotificationToolUpdateStatus(
   return "completed";
 }
 
-export function attachZCodeBackgroundTaskNotificationToRaw(
+export function attachNibiBackgroundTaskNotificationToRaw(
   raw: unknown,
-  notification: ZCodeBackgroundTaskNotificationInfo | undefined,
+  notification: NibiBackgroundTaskNotificationInfo | undefined,
 ): unknown {
   if (!notification) {
     return raw;

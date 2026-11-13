@@ -5,7 +5,7 @@
 //
 // 为什么这么做：
 // - agent 没有任何原生 NAPI 插件（ripgrep 是 WASM，其余纯 JS），可直接跑在 Electron 的 Node 上；
-// - Electron 41 内置 Node 24.x，与 zcode-cli 的目标运行时一致；
+// - Electron 41 内置 Node 24.x，与 nibi-cli 的目标运行时一致；
 // - 单平台体积从 ~180MB 降到 ~16MB，且同一份 JS 跨平台通用；
 // - app-server 命令路径不会加载 @nibi/tui，所以这里天然不打包 TUI。
 //
@@ -28,11 +28,11 @@ import { BUNDLED_NPM_VERSION, stageBundledNpm } from "./bundled-npm-assets.mjs";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const desktopRoot = resolve(scriptDir, "..");
 const repoRoot = resolve(desktopRoot, "..", "..");
-const cliBundlePath = resolve(repoRoot, "apps/zcode-cli/packages/cli/dist/nibi.cjs");
-const adaptersRoot = resolve(repoRoot, "apps/zcode-cli/packages/adapters");
+const cliBundlePath = resolve(repoRoot, "apps/nibi-cli/packages/cli/dist/nibi.cjs");
+const adaptersRoot = resolve(repoRoot, "apps/nibi-cli/packages/adapters");
 const pnpmRunEnv = {
   ...process.env,
-  // pnpm 11 会在 apps/zcode-cli 子 workspace 执行 run 前触发 install；
+  // pnpm 11 会在 apps/nibi-cli 子 workspace 执行 run 前触发 install；
   // 子 workspace 不能解析根 workspace 的 @nibi/shared，Docker/web app 打包会因此卡在插件 runtime 构建。
   PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: "false",
 };
@@ -103,7 +103,7 @@ const officeViewerRuntimePaths = ["dist/server.mjs", "dist/ui/assets.json", "dis
 const officialPluginPackages = [
   {
     packageName: "@nibi/android-emulator-plugin",
-    relativePath: "apps/zcode-cli/packages/android-emulator-plugin",
+    relativePath: "apps/nibi-cli/packages/android-emulator-plugin",
     requiresRuntime: true,
     requiredRuntimePaths: ["dist/mcp/server.js"],
     runtimeBuildScript: "scripts/build-mcp.mjs",
@@ -111,7 +111,7 @@ const officialPluginPackages = [
   },
   {
     packageName: "@nibi/documents-plugin",
-    relativePath: "apps/zcode-cli/packages/documents-plugin",
+    relativePath: "apps/nibi-cli/packages/documents-plugin",
     requiresRuntime: true,
     requiredRuntimePaths: officeViewerRuntimePaths,
     requiredSeedPaths: [
@@ -124,7 +124,7 @@ const officialPluginPackages = [
   },
   {
     packageName: "@nibi/pdf-plugin",
-    relativePath: "apps/zcode-cli/packages/pdf-plugin",
+    relativePath: "apps/nibi-cli/packages/pdf-plugin",
     requiresRuntime: true,
     requiredRuntimePaths: officeViewerRuntimePaths,
     requiredSeedPaths: [
@@ -137,7 +137,7 @@ const officialPluginPackages = [
   },
   {
     packageName: "@nibi/presentations-plugin",
-    relativePath: "apps/zcode-cli/packages/presentations-plugin",
+    relativePath: "apps/nibi-cli/packages/presentations-plugin",
     requiresRuntime: true,
     requiredRuntimePaths: officeViewerRuntimePaths,
     requiredSeedPaths: [
@@ -150,7 +150,7 @@ const officialPluginPackages = [
   },
   {
     packageName: "@nibi/spreadsheets-plugin",
-    relativePath: "apps/zcode-cli/packages/spreadsheets-plugin",
+    relativePath: "apps/nibi-cli/packages/spreadsheets-plugin",
     requiresRuntime: true,
     requiredRuntimePaths: officeViewerRuntimePaths,
     requiredSeedPaths: [
@@ -163,7 +163,7 @@ const officialPluginPackages = [
   },
   {
     packageName: "@nibi/visualize-plugin",
-    relativePath: "apps/zcode-cli/packages/visualize-plugin",
+    relativePath: "apps/nibi-cli/packages/visualize-plugin",
     requiresRuntime: false,
     requiredSeedPaths: [
       "skills/visualize/SKILL.md",
@@ -198,7 +198,7 @@ const officialPluginPackages = [
     // browser-use 只携带自己的 client script 与 skill/docs；node_repl MCP runtime 归
     // @nibi/node-repl-host（见上方常量注释）。
     packageName: "@nibi/browser-use-plugin",
-    relativePath: "apps/zcode-cli/packages/browser-use-plugin",
+    relativePath: "apps/nibi-cli/packages/browser-use-plugin",
     requiresRuntime: true,
     requiredRuntimePaths: browserUseRequiredRuntimePaths,
     runtimeBuildScript: "scripts/build.mjs",
@@ -206,7 +206,7 @@ const officialPluginPackages = [
   },
   {
     packageName: "@nibi/ios-simulator-plugin",
-    relativePath: "apps/zcode-cli/packages/ios-simulator-plugin",
+    relativePath: "apps/nibi-cli/packages/ios-simulator-plugin",
     requiresRuntime: true,
     requiredRuntimePaths: ["dist/mcp/server.js"],
     runtimeBuildScript: "scripts/build-mcp.mjs",
@@ -216,19 +216,19 @@ const officialPluginPackages = [
     // 修复原因：restore-legacy-sessions 已注册为官方插件，但 Electron 生产包只会拷贝
     // 这里列出的资源。漏掉它会导致用户生产包首次启动后 plugins list 里看不到该插件。
     packageName: "@nibi/restore-legacy-sessions-plugin",
-    relativePath: "apps/zcode-cli/packages/restore-legacy-sessions-plugin",
+    relativePath: "apps/nibi-cli/packages/restore-legacy-sessions-plugin",
     requiresRuntime: false,
     stagedPath: "packages/restore-legacy-sessions-plugin",
   },
   {
     packageName: "@nibi/skill-creator-plugin",
-    relativePath: "apps/zcode-cli/packages/skill-creator-plugin",
+    relativePath: "apps/nibi-cli/packages/skill-creator-plugin",
     requiresRuntime: false,
     stagedPath: "packages/skill-creator-plugin",
   },
   {
     packageName: "@nibi/plugin-creator-plugin",
-    relativePath: "apps/zcode-cli/packages/plugin-creator-plugin",
+    relativePath: "apps/nibi-cli/packages/plugin-creator-plugin",
     requiresRuntime: false,
     stagedPath: "packages/plugin-creator-plugin",
   },
@@ -237,7 +237,7 @@ const officialPluginPackages = [
     // Electron 生产包不是 SEA 路径，官方插件 seed 依赖这里 stage 的 resources/glm/packages/*-plugin；
     // 漏掉它会导致生产桌面包首启 seed 不到该插件，用户拿不到默认启用的配置指南技能。
     packageName: "@nibi/guide-plugin",
-    relativePath: "apps/zcode-cli/packages/zcode-guide-plugin",
+    relativePath: "apps/nibi-cli/packages/zcode-guide-plugin",
     requiresRuntime: false,
     stagedPath: "packages/zcode-guide-plugin",
   },
@@ -246,7 +246,7 @@ const officialPluginPackages = [
     // 它没有 listing（不进插件市场展示面），但生产包首启 seed 必须拿到它的 dist runtime，
     // 否则 bua/cua 任一开启时都会连不上 node_repl。
     packageName: "@nibi/node-repl-host",
-    relativePath: "apps/zcode-cli/packages/node-repl-host",
+    relativePath: "apps/nibi-cli/packages/node-repl-host",
     requiresRuntime: true,
     requiredRuntimePaths: ["dist/mcp/server.js"],
     runtimeBuildScript: "scripts/build.mjs",
@@ -255,7 +255,7 @@ const officialPluginPackages = [
   {
     // CUA 插件只携带 SDK/skill/docs；node_repl MCP runtime 归 @nibi/node-repl-host。
     packageName: "@nibi/cua-plugin",
-    relativePath: "apps/zcode-cli/packages/zcode-cua-plugin",
+    relativePath: "apps/nibi-cli/packages/zcode-cua-plugin",
     requiresRuntime: false,
     stagedPath: "packages/zcode-cua-plugin",
   },
@@ -265,7 +265,7 @@ const officialPluginPackages = [
 // 在 nibi.cjs 旁找 packages/bundled-skills 并原地读取。漏 stage 它，桌面包的 /workflow 会展开成
 // 「先加载 dynamic-workflows 技能」而技能不存在——这正是把它从可卸载的 zcode-guide 插件搬出来要修的事故形态。
 const bundledSkillPack = {
-  relativePath: "apps/zcode-cli/packages/bundled-skills",
+  relativePath: "apps/nibi-cli/packages/bundled-skills",
   requiredPaths: [
     "skills/dynamic-workflows/SKILL.md",
     "skills/dynamic-workflows/patterns.md",
@@ -308,7 +308,7 @@ function shouldCopyOfficialPluginAsset(sourcePath) {
 const isBootstrapWithRemote = process.env.NIBI_BOOTSTRAP_WITH_REMOTE === "1";
 
 function buildCliBundle() {
-  console.log("[prepare:agent-bundle] building zcode-cli app-server bundle ...");
+  console.log("[prepare:agent-bundle] building nibi-cli app-server bundle ...");
   // 复用仓库根脚本（turbo build:desktop-agent --filter=@nibi/cli），命中缓存时几乎瞬时。
   runCommand(process.execPath, [resolve(repoRoot, "scripts/build-desktop-agent-cli.mjs")], {
     cwd: repoRoot,
@@ -333,7 +333,7 @@ function buildOfficialPluginRuntimes() {
 
     runCommand(
       "pnpm",
-      ["--dir", resolve(repoRoot, "apps/zcode-cli"), "--filter", plugin.packageName, "build"],
+      ["--dir", resolve(repoRoot, "apps/nibi-cli"), "--filter", plugin.packageName, "build"],
       {
         cwd: repoRoot,
         env: pnpmRunEnv,

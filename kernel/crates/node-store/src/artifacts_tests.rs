@@ -1,4 +1,4 @@
-// segment 的用例复制自 apps/zcode-cli-rust/crates/state/src/node/artifacts.rs（feat/rs 79b6691c55）。
+// segment 的用例复制自 apps/nibi-cli-rust/crates/state/src/node/artifacts.rs（feat/rs 79b6691c55）。
 use std::path::Path;
 
 use nibi_kernel_api::ids::{ArtifactId, SessionId};

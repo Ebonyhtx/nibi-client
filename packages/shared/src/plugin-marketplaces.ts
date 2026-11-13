@@ -10,7 +10,7 @@ export interface DefaultPluginMarketplace {
 export const NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID = "nibi-official";
 
 /**
- * Claude Code 官方市场（GitHub git 源）。它不是 ZCode 的强依赖：GitHub 不可达时刷新必然失败，
+ * Claude Code 官方市场（GitHub git 源）。它不是 Nibi 的强依赖：GitHub 不可达时刷新必然失败，
  * 该失败不应作为错误提示打扰用户，UI 侧按此 id 静默处理其刷新失败（任何原因）。
  */
 export const CLAUDE_OFFICIAL_PLUGIN_MARKETPLACE_ID = "claude-plugins-official";
@@ -101,7 +101,7 @@ export function isPublicStoreMarketplaceId(id: string): boolean {
 // 插件包 = 一个目录，里面必须有一个 `<清单目录>/plugin.json`。宿主按下面的顺序探测，
 // 命中第一个存在的即用；这是**互操作层**，不是品牌标识：
 //   .nibi-plugin    ← NIBI 自有格式（我们的内置件与市场上架件都迁到这里）
-//   .zcode-plugin   ← 上游 ZCode 格式：已发布的第三方包仍用它，保留读取
+//   .zcode-plugin   ← 上游 Nibi 格式：已发布的第三方包仍用它，保留读取
 //   .claude-plugin  ← Claude 插件生态
 //   .codex-plugin   ← Codex 插件生态
 //

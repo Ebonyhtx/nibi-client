@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ModelConfigSelect } from "@/ModelConfigSelect.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import "@/styles.css";
 
 const params = new URLSearchParams(location.search);
@@ -16,7 +16,7 @@ const name =
 function Fixture() {
   const [selected, setSelected] = useState("text");
   return (
-    <ZCodeIntlProvider initialLocale="en-US">
+    <NibiIntlProvider initialLocale="en-US">
       <div className="p-8">
         <ModelConfigSelect
           modelGroups={[
@@ -45,7 +45,7 @@ function Fixture() {
         />
         <output data-testid="selected">{selected}</output>
       </div>
-    </ZCodeIntlProvider>
+    </NibiIntlProvider>
   );
 }
 createRoot(document.getElementById("root")!).render(<Fixture />);

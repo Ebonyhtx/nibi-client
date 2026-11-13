@@ -1,6 +1,6 @@
 import { useOptionalPlatform } from "@/hooks/usePlatform.js";
 import { useOptionalServices } from "@/hooks/useServices.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { isRemoteWorkspaceIdentity } from "@nibi/shared";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { buildPluginUiSurfaceKey, PLUGIN_UI_CARD_DEFAULT_HEIGHT_PX } from "../contract.js";
@@ -36,7 +36,7 @@ function pageIdentity(input: UsePluginUiHostInput): { key: string; input: UsePlu
 export function usePluginUiHost(input: UsePluginUiHostInput): UsePluginUiHostResult {
   const platform = useOptionalPlatform();
   const services = useOptionalServices();
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const local =
     !input.scope.remoteSessionId && !isRemoteWorkspaceIdentity(input.scope.workspaceIdentity ?? "");
   const identified = pageIdentity(input);

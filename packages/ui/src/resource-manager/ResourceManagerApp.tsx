@@ -7,7 +7,7 @@ import {
 } from "@nibi/shared";
 import { TID_RESOURCE_MANAGER_TAB, testId } from "@nibi/shared/test-ids";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs.js";
-import { useZCodeIntl } from "@/i18n/index.js";
+import { useNibiIntl } from "@/i18n/index.js";
 import { StorageSection } from "./storage/StorageSection.js";
 import { NetworkSection } from "./NetworkSection.js";
 import { UNSAMPLED_PLACEHOLDER, UsageGroup, UsageMeter } from "./resourceUsageParts.js";
@@ -59,7 +59,7 @@ export function ResourceManagerApp({
   refreshIntervalMs = DEFAULT_REFRESH_INTERVAL_MS,
   initialTab = "cpu",
 }: ResourceManagerAppProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [tab, setTab] = useState<ResourceManagerTab>(initialTab);
   // CPU / 内存共用一份进程快照；存储 tab 激活时停止轮询，避免和扫盘争抢 IO。
   const pollingActive = tab === "cpu" || tab === "memory";
@@ -186,7 +186,7 @@ function UsageTabContent({
   expanded: Record<ResourceUsageCategory, boolean>;
   onToggleGroup: (category: ResourceUsageCategory) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <>
       {error ? (

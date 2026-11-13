@@ -1,4 +1,4 @@
-import { isPublicZCodeErrorCode } from "@nibi/shared";
+import { isPublicNibiErrorCode } from "@nibi/shared";
 export const REMOTE_WORKSPACE_DISCONNECTED_ERROR_CODE = "NIBI_REMOTE_WORKSPACE_DISCONNECTED";
 
 export function createRemoteWorkspaceDisconnectedError(): Error & {
@@ -34,5 +34,5 @@ export function getRemoteConnectionFailureCode(error: unknown): string | undefin
   if (isRemoteWorkspaceDisconnectedError(error)) return REMOTE_WORKSPACE_DISCONNECTED_ERROR_CODE;
   if (!error || typeof error !== "object" || !("code" in error) || typeof error.code !== "string")
     return undefined;
-  return isPublicZCodeErrorCode(error.code) ? error.code : undefined;
+  return isPublicNibiErrorCode(error.code) ? error.code : undefined;
 }

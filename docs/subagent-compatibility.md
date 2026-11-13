@@ -33,9 +33,9 @@ ZCode 的子智能体调度工具名是 `Agent`，Claude Code 插件生态里的
 
 核心实现位置：
 
-- `apps/zcode-cli/packages/core/src/tool/handlers/agent.ts`
-- `apps/zcode-cli/packages/core/src/tool/handlers/index.ts`
-- `apps/zcode-cli/packages/core/src/tool/compat.ts`
+- `apps/nibi-cli/packages/core/src/tool/handlers/agent.ts`
+- `apps/nibi-cli/packages/core/src/tool/handlers/index.ts`
+- `apps/nibi-cli/packages/core/src/tool/compat.ts`
 
 ## 子 Runtime 防递归
 
@@ -50,8 +50,8 @@ ZCode 的子智能体调度工具名是 `Agent`，Claude Code 插件生态里的
 
 核心实现位置：
 
-- `apps/zcode-cli/packages/core/src/runtime/methods/subagent.ts`
-- `apps/zcode-cli/packages/core/src/tool/compat.ts`
+- `apps/nibi-cli/packages/core/src/runtime/methods/subagent.ts`
+- `apps/nibi-cli/packages/core/src/tool/compat.ts`
 
 ## Hook Matcher 兼容
 
@@ -64,10 +64,10 @@ Claude Code 插件 hook 可能写 `matcher: "Task"`，而 ZCode 原生调用可�
 
 核心实现位置：
 
-- `apps/zcode-cli/packages/core/src/hooks/types.ts`
-- `apps/zcode-cli/packages/core/src/hooks/runner.ts`
-- `apps/zcode-cli/packages/core/src/tool/executor/hook-flow.ts`
-- `apps/zcode-cli/packages/core/src/tool/compat.ts`
+- `apps/nibi-cli/packages/core/src/hooks/types.ts`
+- `apps/nibi-cli/packages/core/src/hooks/runner.ts`
+- `apps/nibi-cli/packages/core/src/tool/executor/hook-flow.ts`
+- `apps/nibi-cli/packages/core/src/tool/compat.ts`
 
 ## 后台任务与权限
 
@@ -80,9 +80,9 @@ Claude Code 插件 hook 可能写 `matcher: "Task"`，而 ZCode 原生调用可�
 
 核心实现位置：
 
-- `apps/zcode-cli/packages/core/src/tool/executor/background-tasks.ts`
-- `apps/zcode-cli/packages/core/src/permission/service.ts`
-- `apps/zcode-cli/packages/core/src/tool/scheduler.ts`
+- `apps/nibi-cli/packages/core/src/tool/executor/background-tasks.ts`
+- `apps/nibi-cli/packages/core/src/permission/service.ts`
+- `apps/nibi-cli/packages/core/src/tool/scheduler.ts`
 
 ## UI 与历史数据
 
@@ -104,11 +104,11 @@ App/UI 层需要同时识别现役 `Task` 和历史 ZCode Agent 投影：
 
 关键回归覆盖：
 
-- `apps/zcode-cli/packages/core/tests/tool-contracts.test.ts`：`Agent` / `Task` 只在 subagent port 可用时注册，且共享 handler/schema/permission；provider-visible contracts 只包含 `Agent`。
-- `apps/zcode-cli/packages/core/tests/tool-hook-context.test.ts`：`Agent` / `Task` hook matcher alias 双向匹配，hook input 不被改写。
-- `apps/zcode-cli/packages/core/tests/main-tool-pool.test.ts`：父 runtime 具备 `Agent` runtime 能力，`Task` 仅作为非 provider-visible alias 保留。
-- `apps/zcode-cli/packages/core/tests/subagent-explore.test.ts`：子 runtime 不暴露 `Agent` / `Task`。
-- `apps/zcode-cli/packages/core/tests/tool-executor-trace.test.ts`：Superpowers `SessionStart` 不再追加专用工具映射。
+- `apps/nibi-cli/packages/core/tests/tool-contracts.test.ts`：`Agent` / `Task` 只在 subagent port 可用时注册，且共享 handler/schema/permission；provider-visible contracts 只包含 `Agent`。
+- `apps/nibi-cli/packages/core/tests/tool-hook-context.test.ts`：`Agent` / `Task` hook matcher alias 双向匹配，hook input 不被改写。
+- `apps/nibi-cli/packages/core/tests/main-tool-pool.test.ts`：父 runtime 具备 `Agent` runtime 能力，`Task` 仅作为非 provider-visible alias 保留。
+- `apps/nibi-cli/packages/core/tests/subagent-explore.test.ts`：子 runtime 不暴露 `Agent` / `Task`。
+- `apps/nibi-cli/packages/core/tests/tool-executor-trace.test.ts`：Superpowers `SessionStart` 不再追加专用工具映射。
 - `packages/ui/test/toolIdentity.test.ts`：现役 `Task` 与历史 `title: "Task"` legacy 投影边界不串。
 
 ## 扩展规则

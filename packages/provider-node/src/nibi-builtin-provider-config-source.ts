@@ -6,25 +6,25 @@ import { setTimeout as delay } from "node:timers/promises";
 import type { ProviderConfigLayerSnapshot, ProviderSource } from "@nibi/provider";
 import { atomicWritePrivateTextFile, withFileLock } from "@nibi/shared/node";
 import {
-  decodeZCodeBuiltinRelease,
-  encodeZCodeBuiltinRelease,
-  serializeZCodeBuiltinRelease,
-  type ZCodeBuiltinRelease,
+  decodeNibiBuiltinRelease,
+  encodeNibiBuiltinRelease,
+  serializeNibiBuiltinRelease,
+  type NibiBuiltinRelease,
 } from "./nibi-builtin-release.js";
 
 /** fs.watch 通知与写入不原子：刷新前先让写入落地，失败再重试一次。 */
 const WATCH_SETTLE_MS = 25;
 
-export interface NodeZCodeBuiltinProviderConfigSourceOptions {
+export interface NodeNibiBuiltinProviderConfigSourceOptions {
   readonly bundledFilePath: string;
   readonly activeFilePath?: string;
   readonly watch?: boolean;
 }
 
-export type ApplyZCodeBuiltinReleaseResult = "updated" | "unchanged" | "stale";
+export type ApplyNibiBuiltinReleaseResult = "updated" | "unchanged" | "stale";
 
 /** Bundled、Active/LKG 与 Remote 共用同一 Release，并最终发布为现有 Config Snapshot。 */
-export class NodeZCodeBuiltinProviderConfigSource implements ProviderSource<ProviderConfigLayerSnapshot> {
+export class NodeNibiBuiltinProviderConfigSource implements ProviderSource<ProviderConfigLayerSnapshot> {
   readonly #bundledFilePath: string;
   readonly #activeFilePath: string;
   readonly #sourceKey: string;
@@ -35,9 +35,9 @@ export class NodeZCodeBuiltinProviderConfigSource implements ProviderSource<Prov
   #watchRefresh = Promise.resolve();
   #disposed = false;
 
-  constructor(options: NodeZCodeBuiltinProviderConfigSourceOptions) {
+  constructor(options: NodeNibiBuiltinProviderConfigSourceOptions) {
     const bundledFilePath = options.bundledFilePath.trim();
-    if (!bundledFilePath) throw new Error("ZCode Built-in bundledFilePath 不能为空");
+    if (!bundledFilePath) throw new Error("Nibi Built-in bundledFilePath 不能为空");
     this.#bundledFilePath = bundledFilePath;
     this.#activeFilePath = options.activeFilePath?.trim() || bundledFilePath;
     // 旧标识只有发布序号，不同 Endpoint 同序号会让 Registry 误复用上一来源。
@@ -52,7 +52,7 @@ export class NodeZCodeBuiltinProviderConfigSource implements ProviderSource<Prov
 
   async read(): Promise<ProviderConfigLayerSnapshot> {
     this.#assertNotDisposed();
-    let release: ZCodeBuiltinRelease;
+    let release: NibiBuiltinRelease;
     try {
       await this.#ensureWatcher();
       release = await withFileLock(this.#activeFilePath, () => this.#readAndMaterializeLocked());
@@ -65,7 +65,7 @@ export class NodeZCodeBuiltinProviderConfigSource implements ProviderSource<Prov
     return snapshotFromRelease(release, this.#sourceKey);
   }
 
-  async applyRemoteRelease(release: ZCodeBuiltinRelease): Promise<ApplyZCodeBuiltinReleaseResult> {
+  async applyRemoteRelease(release: NibiBuiltinRelease): Promise<ApplyNibiBuiltinReleaseResult> {
     this.#assertNotDisposed();
     await this.#ensureWatcher();
     const result = await withFileLock(this.#activeFilePath, async () => {
@@ -74,10 +74,10 @@ export class NodeZCodeBuiltinProviderConfigSource implements ProviderSource<Prov
       this.#assertNotDisposed();
       if (release.revision < current.revision) return "stale" as const;
       if (release.revision === current.revision) {
-        if (serializeZCodeBuiltinRelease(release) === serializeZCodeBuiltinRelease(current)) {
+        if (serializeNibiBuiltinRelease(release) === serializeNibiBuiltinRelease(current)) {
           return "unchanged" as const;
         }
-        throw new Error(`ZCode Built-in 相同 revision ${release.revision} 对应不同内容`);
+        throw new Error(`Nibi Built-in 相同 revision ${release.revision} 对应不同内容`);
       }
       await this.#writeActiveLocked(release);
       this.#observedSignature = signatureOf(release);
@@ -101,7 +101,7 @@ export class NodeZCodeBuiltinProviderConfigSource implements ProviderSource<Prov
     this.#listeners.clear();
   }
 
-  async #readAndMaterializeLocked(): Promise<ZCodeBuiltinRelease> {
+  async #readAndMaterializeLocked(): Promise<NibiBuiltinRelease> {
     const [bundled, active] = await Promise.all([
       readReleaseCandidate(this.#bundledFilePath),
       this.#activeFilePath === this.#bundledFilePath
@@ -116,11 +116,11 @@ export class NodeZCodeBuiltinProviderConfigSource implements ProviderSource<Prov
     return selected;
   }
 
-  async #writeActiveLocked(release: ZCodeBuiltinRelease): Promise<void> {
+  async #writeActiveLocked(release: NibiBuiltinRelease): Promise<void> {
     this.#assertNotDisposed();
     await atomicWritePrivateTextFile(
       this.#activeFilePath,
-      JSON.stringify(encodeZCodeBuiltinRelease(release), null, 2),
+      JSON.stringify(encodeNibiBuiltinRelease(release), null, 2),
     );
   }
 
@@ -166,24 +166,24 @@ export class NodeZCodeBuiltinProviderConfigSource implements ProviderSource<Prov
   }
 
   #assertNotDisposed(): void {
-    if (this.#disposed) throw new Error("NodeZCodeBuiltinProviderConfigSource 已 dispose");
+    if (this.#disposed) throw new Error("NodeNibiBuiltinProviderConfigSource 已 dispose");
   }
 }
 
-export function createNodeZCodeBuiltinProviderConfigSource(
-  options: NodeZCodeBuiltinProviderConfigSourceOptions,
-): NodeZCodeBuiltinProviderConfigSource {
-  return new NodeZCodeBuiltinProviderConfigSource(options);
+export function createNodeNibiBuiltinProviderConfigSource(
+  options: NodeNibiBuiltinProviderConfigSourceOptions,
+): NodeNibiBuiltinProviderConfigSource {
+  return new NodeNibiBuiltinProviderConfigSource(options);
 }
 
 interface ReleaseCandidate {
-  readonly release?: ZCodeBuiltinRelease;
+  readonly release?: NibiBuiltinRelease;
   readonly error?: unknown;
 }
 
 async function readReleaseCandidate(filePath: string): Promise<ReleaseCandidate | null> {
   try {
-    return { release: decodeZCodeBuiltinRelease(JSON.parse(await readFile(filePath, "utf8"))) };
+    return { release: decodeNibiBuiltinRelease(JSON.parse(await readFile(filePath, "utf8"))) };
   } catch (error) {
     if (isFileNotFound(error)) return null;
     return { error };
@@ -193,19 +193,19 @@ async function readReleaseCandidate(filePath: string): Promise<ReleaseCandidate 
 function selectReleaseCandidate(
   bundled: ReleaseCandidate | null,
   active: ReleaseCandidate | null,
-): ZCodeBuiltinRelease {
+): NibiBuiltinRelease {
   if (
     bundled?.release &&
     active?.release &&
     bundled.release.revision === active.release.revision &&
-    serializeZCodeBuiltinRelease(bundled.release) !== serializeZCodeBuiltinRelease(active.release)
+    serializeNibiBuiltinRelease(bundled.release) !== serializeNibiBuiltinRelease(active.release)
   ) {
     // 同 revision 冲突属于 Active 缓存失效，不能反向使可信 Bundled 无法启动。
     // 返回 Bundled 后调用方会在能够写入时原子替换 Active。
     return bundled.release;
   }
   const valid = [bundled?.release, active?.release].filter(
-    (candidate): candidate is ZCodeBuiltinRelease => candidate !== undefined,
+    (candidate): candidate is NibiBuiltinRelease => candidate !== undefined,
   );
   if (valid.length === 0) {
     throw new AggregateError(
@@ -219,7 +219,7 @@ function selectReleaseCandidate(
 }
 
 function snapshotFromRelease(
-  release: ZCodeBuiltinRelease,
+  release: NibiBuiltinRelease,
   sourceKey: string,
 ): ProviderConfigLayerSnapshot {
   return Object.freeze({
@@ -230,8 +230,8 @@ function snapshotFromRelease(
   });
 }
 
-function signatureOf(release: ZCodeBuiltinRelease): string {
-  return `${release.revision}:${serializeZCodeBuiltinRelease(release)}`;
+function signatureOf(release: NibiBuiltinRelease): string {
+  return `${release.revision}:${serializeNibiBuiltinRelease(release)}`;
 }
 
 function isFileNotFound(error: unknown): boolean {

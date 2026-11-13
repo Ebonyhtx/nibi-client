@@ -3,15 +3,15 @@ import {
   type ProviderConfigLayerSnapshot,
   type ProviderConfigLayerUpdate,
 } from "@nibi/provider";
-import { NodeZCodeBuiltinProviderConfigSource } from "./nibi-builtin-provider-config-source.js";
+import { NodeNibiBuiltinProviderConfigSource } from "./nibi-builtin-provider-config-source.js";
 import {
-  EndpointScopedZCodeBuiltinSource,
-  type EndpointScopedZCodeBuiltinSourceOptions,
+  EndpointScopedNibiBuiltinSource,
+  type EndpointScopedNibiBuiltinSourceOptions,
 } from "./endpoint-scoped-nibi-builtin-source.js";
 import {
-  ZCodeBuiltinRemoteSynchronizer,
-  type ZCodeBuiltinRemoteSynchronizerOptions,
-  type ZCodeBuiltinRefreshResult,
+  NibiBuiltinRemoteSynchronizer,
+  type NibiBuiltinRemoteSynchronizerOptions,
+  type NibiBuiltinRefreshResult,
 } from "./nibi-builtin-remote-synchronizer.js";
 import {
   NodePersonalProviderConfigRepository,
@@ -21,12 +21,12 @@ import {
 export interface NodeProviderConfigRuntimeOptions {
   readonly nibiBuiltinFilePath: string;
   readonly nibiBuiltinActiveFilePath?: string;
-  readonly nibiBuiltinRemote?: Omit<ZCodeBuiltinRemoteSynchronizerOptions, "source">;
+  readonly nibiBuiltinRemote?: Omit<NibiBuiltinRemoteSynchronizerOptions, "source">;
   readonly nibiBuiltinEnvironment?: Omit<
-    EndpointScopedZCodeBuiltinSourceOptions,
+    EndpointScopedNibiBuiltinSourceOptions,
     "bundledFilePath"
   >;
-  readonly onZCodeBuiltinRefreshError?: (error: unknown) => void;
+  readonly onNibiBuiltinRefreshError?: (error: unknown) => void;
   readonly onPersonalConfigRecovery?: (event: PersonalProviderConfigRecoveryEvent) => void;
   readonly onPersonalConfigPollingError?: (error: unknown) => void;
   readonly personalFilePath: string;
@@ -34,14 +34,14 @@ export interface NodeProviderConfigRuntimeOptions {
   readonly watch?: boolean;
 }
 
-/** 组装一个 Node.js 进程内共享的 ZCode Built-in/Personal Config 运行边界。 */
+/** 组装一个 Node.js 进程内共享的 Nibi Built-in/Personal Config 运行边界。 */
 export class NodeProviderConfigRuntime {
   readonly configService: ProviderConfigService;
   readonly #nibiBuiltinSource:
-    | NodeZCodeBuiltinProviderConfigSource
-    | EndpointScopedZCodeBuiltinSource;
+    | NodeNibiBuiltinProviderConfigSource
+    | EndpointScopedNibiBuiltinSource;
   readonly #personalRepository: NodePersonalProviderConfigRepository;
-  readonly #remoteSynchronizer?: ZCodeBuiltinRemoteSynchronizer;
+  readonly #remoteSynchronizer?: NibiBuiltinRemoteSynchronizer;
   readonly #onRemoteRefreshError?: (error: unknown) => void;
   #startPromise: Promise<void> | null = null;
   #disposed = false;
@@ -51,24 +51,24 @@ export class NodeProviderConfigRuntime {
 
   constructor(options: NodeProviderConfigRuntimeOptions) {
     this.#nibiBuiltinSource = options.nibiBuiltinEnvironment
-      ? new EndpointScopedZCodeBuiltinSource({
+      ? new EndpointScopedNibiBuiltinSource({
           bundledFilePath: options.nibiBuiltinFilePath,
           ...options.nibiBuiltinEnvironment,
         })
-      : new NodeZCodeBuiltinProviderConfigSource({
+      : new NodeNibiBuiltinProviderConfigSource({
           bundledFilePath: options.nibiBuiltinFilePath,
           activeFilePath: options.nibiBuiltinActiveFilePath,
           watch: options.watch,
         });
     this.#remoteSynchronizer =
       options.nibiBuiltinRemote &&
-      this.#nibiBuiltinSource instanceof NodeZCodeBuiltinProviderConfigSource
-        ? new ZCodeBuiltinRemoteSynchronizer({
+      this.#nibiBuiltinSource instanceof NodeNibiBuiltinProviderConfigSource
+        ? new NibiBuiltinRemoteSynchronizer({
             source: this.#nibiBuiltinSource,
             ...options.nibiBuiltinRemote,
           })
         : undefined;
-    this.#onRemoteRefreshError = options.onZCodeBuiltinRefreshError;
+    this.#onRemoteRefreshError = options.onNibiBuiltinRefreshError;
     this.#personalRepository = new NodePersonalProviderConfigRepository({
       filePath: options.personalFilePath,
       onRecovery: options.onPersonalConfigRecovery,
@@ -81,8 +81,8 @@ export class NodeProviderConfigRuntime {
     });
   }
 
-  resolveZCodeBuiltinActiveFilePath(): Promise<string> {
-    return this.#nibiBuiltinSource instanceof NodeZCodeBuiltinProviderConfigSource
+  resolveNibiBuiltinActiveFilePath(): Promise<string> {
+    return this.#nibiBuiltinSource instanceof NodeNibiBuiltinProviderConfigSource
       ? Promise.resolve(this.#nibiBuiltinSource.activeFilePath)
       : this.#nibiBuiltinSource.resolveActiveFilePath();
   }
@@ -92,7 +92,7 @@ export class NodeProviderConfigRuntime {
   }
 
   /** Environment 同一周期检查中恢复未对齐依赖，不被下载 TTL 或失败挡住。 */
-  onDidCheckZCodeBuiltin(listener: () => Promise<void>): () => void {
+  onDidCheckNibiBuiltin(listener: () => Promise<void>): () => void {
     this.#checkListeners.add(listener);
     return () => this.#checkListeners.delete(listener);
   }
@@ -106,7 +106,7 @@ export class NodeProviderConfigRuntime {
       // Managed Worker 无下载配置也无恢复 owner，不建立周期任务。
       if (
         this.#remoteSynchronizer ||
-        this.#nibiBuiltinSource instanceof EndpointScopedZCodeBuiltinSource ||
+        this.#nibiBuiltinSource instanceof EndpointScopedNibiBuiltinSource ||
         this.#checkListeners.size > 0
       ) {
         this.#checkTimer = setInterval(() => {
@@ -122,9 +122,9 @@ export class NodeProviderConfigRuntime {
     return startPromise;
   }
 
-  refreshZCodeBuiltin(options?: { readonly force?: boolean }): Promise<ZCodeBuiltinRefreshResult> {
+  refreshNibiBuiltin(options?: { readonly force?: boolean }): Promise<NibiBuiltinRefreshResult> {
     if (this.#disposed) return Promise.resolve("disposed");
-    if (this.#nibiBuiltinSource instanceof EndpointScopedZCodeBuiltinSource) {
+    if (this.#nibiBuiltinSource instanceof EndpointScopedNibiBuiltinSource) {
       return this.#nibiBuiltinSource.refresh(options);
     }
     return this.#remoteSynchronizer?.refresh(options) ?? Promise.resolve("skipped");
@@ -134,7 +134,7 @@ export class NodeProviderConfigRuntime {
     if (this.#disposed) return Promise.resolve();
     if (this.#checkInFlight) return this.#checkInFlight;
     const check = Promise.allSettled([
-      this.refreshZCodeBuiltin(),
+      this.refreshNibiBuiltin(),
       ...[...this.#checkListeners].map((listener) => Promise.resolve().then(listener)),
     ])
       .then((results) => {

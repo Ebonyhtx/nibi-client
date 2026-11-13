@@ -67,7 +67,7 @@ export const workflowNotificationMetaSchema = z.discriminatedUnion("kind", [
   // 留白（docs/dynamic-workflow/transcript-and-notifications.md「The payload」的 `hole` 种类）：run 走到一个
   // 开着的 `hole<T>()`，那条分支停驻、主代理欠一段代码。`type` 是作者写的类型原文（`Plan`）；`before` /
   // `after` 是留白两侧的阶段名；`draftPath` / `line` 指向草稿文件里留白所在的那一行。prompt 与升级问题
-  // 同一条 4000 上界，发射侧先截。与契约同名（apps/zcode-cli contracts 侧手工镜像）。
+  // 同一条 4000 上界，发射侧先截。与契约同名（apps/nibi-cli contracts 侧手工镜像）。
   z.object({
     kind: z.literal("hole"),
     siteId: z.string().min(1).max(64),

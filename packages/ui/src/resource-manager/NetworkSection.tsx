@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { NetworkCaptureBridge, NetworkCaptureSnapshot } from "@nibi/shared";
 import { Button } from "@/components/ui/button.js";
 import { Input } from "@/components/ui/input.js";
-import { useZCodeIntl } from "@/i18n/index.js";
+import { useNibiIntl } from "@/i18n/index.js";
 
 const PAGE_SIZE = 100;
 
 /** 网络页只轮询有界投影；采集生命周期属于 Main 中的窗口。 */
 export function NetworkSection({ bridge }: { bridge?: NetworkCaptureBridge }) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const timeFormat = useMemo(
     () =>
       new Intl.DateTimeFormat(locale, {

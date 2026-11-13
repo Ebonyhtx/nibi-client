@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/state/src/node/open_error.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-cli-rust/crates/state/src/node/open_error.rs（feat/rs 79b6691c55）。
 //! 打开 Node 会话库的失败，错误码沿用 Node 的 `DatabaseStartupErrorCode`
 //! （`classifyDatabaseStartupError`）。
 use rusqlite::ErrorCode;

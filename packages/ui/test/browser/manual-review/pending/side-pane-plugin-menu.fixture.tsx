@@ -7,7 +7,7 @@ import { AnimatedSidePanePanel } from "@/app-shell/AnimatedSidePanePanel.js";
 import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable.js";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
 import { ServiceProvider } from "@/hooks/useServices.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { PluginUiWorkspaceProvider, openPluginUiSidePane } from "@/plugin-ui/index.js";
 import type { OpenPluginUiSideTabRequest } from "@/plugin-ui/contract.js";
 import {
@@ -190,10 +190,10 @@ function Fixture() {
 
 createRoot(document.getElementById("root")!).render(
   <ServiceProvider services={services}>
-    <ZCodeIntlProvider initialLocale={params.get("locale") === "zh-CN" ? "zh-CN" : "en-US"}>
+    <NibiIntlProvider initialLocale={params.get("locale") === "zh-CN" ? "zh-CN" : "en-US"}>
       <TooltipProvider>
         <Fixture />
       </TooltipProvider>
-    </ZCodeIntlProvider>
+    </NibiIntlProvider>
   </ServiceProvider>,
 );

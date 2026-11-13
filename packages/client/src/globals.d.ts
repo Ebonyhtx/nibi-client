@@ -65,7 +65,7 @@ import type {
   LocalTtftBatch,
   RemoteSessionReconnectedEvent,
   WindowControlsOverlayMetrics,
-  ZCodeStdioTapDevState,
+  NibiStdioTapDevState,
   BrowserGuestAttachResult,
 } from "@nibi/shared";
 
@@ -446,7 +446,7 @@ declare global {
       /** 本地 TTFT 批量上报（单向 send） */
       reportLocalTtftBatch(batch: LocalTtftBatch): void;
       /** 开发态 stdio tap proxy 状态 */
-      getZCodeStdioTapDevState(): Promise<ZCodeStdioTapDevState>;
+      getNibiStdioTapDevState(): Promise<NibiStdioTapDevState>;
     };
   }
 }

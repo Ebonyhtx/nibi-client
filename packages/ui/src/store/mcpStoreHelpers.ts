@@ -3,7 +3,7 @@ import type {
   McpServerConfig,
   McpSource,
   NativeMcpServerRecord,
-  ZCodeMcpServer,
+  NibiMcpServer,
 } from "@nibi/shared";
 
 export const MCP_DELETED_PRELOAD_KEY = "nibi-mcp-deleted-preload";
@@ -81,8 +81,8 @@ export function buildServerList(
   nativeServers: NativeMcpServerRecord[],
   enabledStates: Record<string, boolean>,
   deletedPreload: Set<string>,
-  existingServers: ZCodeMcpServer[],
-): ZCodeMcpServer[] {
+  existingServers: NibiMcpServer[],
+): NibiMcpServer[] {
   const existingById = new Map(existingServers.map((s) => [s.id, s]));
 
   function makeServer(
@@ -90,12 +90,12 @@ export function buildServerList(
     name: string,
     serverConfig: McpServerConfig,
     source: McpSource,
-    scope: ZCodeMcpServer["scope"],
+    scope: NibiMcpServer["scope"],
     enabledBySource?: boolean,
     projectPath?: string,
-    file?: ZCodeMcpServer["file"],
-    location?: ZCodeMcpServer["location"],
-  ): ZCodeMcpServer {
+    file?: NibiMcpServer["file"],
+    location?: NibiMcpServer["location"],
+  ): NibiMcpServer {
     const prev = existingById.get(serverId);
     const configChanged = prev ? !isSameMcpServerConfig(prev.config, serverConfig) : true;
     return {
@@ -118,7 +118,7 @@ export function buildServerList(
     };
   }
 
-  const servers: ZCodeMcpServer[] = [];
+  const servers: NibiMcpServer[] = [];
 
   for (const server of nativeServers) {
     const serverId = makeServerId(server.source, server.name, server.projectPath, server.location?.source);
@@ -146,7 +146,7 @@ function isSameMcpServerConfig(left: McpServerConfig, right: McpServerConfig): b
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-export function getServerPriority(server: ZCodeMcpServer): number {
+export function getServerPriority(server: NibiMcpServer): number {
   if (server.scope === "workspace") return 2;
   if (server.scope === "user") return 1;
   return 0;

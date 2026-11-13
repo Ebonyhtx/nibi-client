@@ -47,7 +47,7 @@ pnpm dev:desktop
 
 `pnpm bootstrap` 会安装 workspace 依赖、准备桌面本地运行资源，并构建基础包。
 
-Agent CLI 与运行时源码位于 [apps/zcode-cli/](apps/zcode-cli/)，作为普通目录随仓库克隆，不需要 submodule。
+Agent CLI 与运行时源码位于 [apps/nibi-cli/](apps/nibi-cli/)，作为普通目录随仓库克隆，不需要 submodule。
 
 其他常用入口：
 
@@ -72,12 +72,12 @@ NIBI_DATA_BASE_DIR="$HOME/.nibi-dev" pnpm dev:desktop
 | `packages/desktop` | Electron Main、Host、Renderer 与桌面打包 |
 | `packages/web` | Web 客户端 |
 | `packages/server` | HTTP / WebSocket 服务与远程连接 |
-| `packages/zcode-server-cli` | 独立 Server 启动与进程管理 |
+| `packages/nibi-server-cli` | 独立 Server 启动与进程管理 |
 | `packages/ui` | 共享 React 组件、hooks 与 Zustand 状态 |
 | `packages/services` | 业务服务与持久化 |
 | `packages/shared`、`packages/rpc`、`packages/client` | 共享协议、RPC 框架、Agent 客户端 SDK |
 | `packages/provider`、`packages/provider-node` | Provider 公共能力与 Node 实现 |
-| `apps/zcode-cli` | Agent CLI、TUI、运行时与工具 |
+| `apps/nibi-cli` | Agent CLI、TUI、运行时与工具 |
 | `packages/zcode-cua` | Computer Use 公开契约与占位实现 |
 | `kernel` | **Rust 内核**（独立 Cargo workspace，37 个 crate）：协议前端、会话/工具/模型层、CLI 与 TUI |
 | `scripts`、`config`、`third-party` | 构建维护脚本、内置配置与第三方声明 |
@@ -89,7 +89,7 @@ NIBI_DATA_BASE_DIR="$HOME/.nibi-dev" pnpm dev:desktop
 > [`docs/rust-kernel-function-parity.md`](docs/rust-kernel-function-parity.md)，改造台账在
 > [`kernel/CHANGELOG-FORK.md`](kernel/CHANGELOG-FORK.md)。
 
-> `apps/zcode-cli`、`packages/zcode-server-cli`、`packages/zcode-cua` 是上游沿用的**源码目录名**；包名、CLI 命令和产物均为 NIBI（`nibi-cli`、`@nibi/server-cli`、`@nibi/cua`、`dist/nibi/`、远端执行器 `nibi-server.cjs` 与 `nibi-server-<target>.tar.gz`）。目录改名会打散上游快照与 300+ 处引用，暂不做机械改名；运行时可见的名字已全部改成 NIBI。
+> `apps/nibi-cli`、`packages/nibi-server-cli` 已完成 NIBI 目录改名；上游原样文件的校验通过 `scripts/architecture/upstream-snapshot.json` 的本地→上游前缀映射继续生效（快照键仍是上游路径）。`packages/zcode-cua` 待随 CUA 引擎升级单独迁移。包名、CLI 命令和产物均为 NIBI（`nibi-cli`、`@nibi/server-cli`、`@nibi/cua`、`dist/nibi/`、远端执行器 `nibi-server.cjs` 与 `nibi-server-<target>.tar.gz`）。
 
 ## 开发与验证
 

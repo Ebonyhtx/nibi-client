@@ -10,7 +10,7 @@ import type {
   UserInputRow,
 } from "@nibi/shared/nibi-protocol-v4";
 import { DEFAULT_CODE_PREVIEW_SETTINGS } from "@/lib/codePreviewSettings.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import type { ConversationRowRenderContext } from "@/v4/conversationRowContext.js";
 import type { ConversationTurnRenderUnit } from "@/v4/conversationTurnRenderUnits.js";
 
@@ -152,7 +152,7 @@ function renderTimeline(rows: ConversationRow[]) {
   act(() => {
     root!.render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         null,
         createElement(ConversationTimeline, {
           rows,

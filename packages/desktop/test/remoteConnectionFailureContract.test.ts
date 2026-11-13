@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   hostRemoteWorkspaceConnectFailedResponseSchema,
-  publicZCodeErrorCodeSchema,
+  publicNibiErrorCodeSchema,
   normalizeRemoteConnectionError,
 } from "@nibi/shared";
 
@@ -57,7 +57,7 @@ describe("连接失败的 Host/App 契约", () => {
     const result = normalizeRemoteConnectionError(error);
     expect(result.code).toBe(code);
     expect(result.message.trim()).not.toBe("");
-    expect(publicZCodeErrorCodeSchema.parse(result.code)).toBe(code);
+    expect(publicNibiErrorCodeSchema.parse(result.code)).toBe(code);
     expect(
       hostRemoteWorkspaceConnectFailedResponseSchema.safeParse({
         type: "remote-workspace-connect-failed",

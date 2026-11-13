@@ -9,7 +9,7 @@ export interface SubagentStorageOptions {
   /**
    * 数据根（显式传入优先）。
    *
-   * 为什么要有这一项：`resolveZCodeStorageRoot` 原先只认「用户 CLI 配置里的 storage.dir → 默认
+   * 为什么要有这一项：`resolveNibiStorageRoot` 原先只认「用户 CLI 配置里的 storage.dir → 默认
    * ~/.zcode」，**完全不看数据根环境变量**。于是数据根不是家目录时会静默读错实例：dev 实例
    * （数据根 = 工作区下的 .nibi-desktop-dev）读到的是**正式实例**的配置与插件记录 ——
    * 表现为"插件装了、技能与命令都生效、子智能体却一个都不出现"，同时还是隔离泄漏。
@@ -27,7 +27,7 @@ export function resolveUserHomeDir(options?: SubagentStorageOptions): string {
 }
 
 export async function resolveUserSubagentRoot(options?: SubagentStorageOptions): Promise<string> {
-  return join(await resolveZCodeStorageRoot(options), "agents");
+  return join(await resolveNibiStorageRoot(options), "agents");
 }
 
 export function resolveWorkspaceSubagentRoot(workspacePath: string): string {
@@ -35,10 +35,10 @@ export function resolveWorkspaceSubagentRoot(workspacePath: string): string {
 }
 
 export async function resolveSubagentStateFile(options?: SubagentStorageOptions): Promise<string> {
-  return join(await resolveZCodeStorageRoot(options), "v2", "agents-state.json");
+  return join(await resolveNibiStorageRoot(options), "v2", "agents-state.json");
 }
 
-export async function resolveZCodeStorageRoot(options?: SubagentStorageOptions): Promise<string> {
+export async function resolveNibiStorageRoot(options?: SubagentStorageOptions): Promise<string> {
   // 1) 显式传入的数据根（桌面/宿主知道自己的根，传进来最可靠）
   const explicitRoot = options?.storageRoot?.trim();
   if (explicitRoot) return resolveConfigPath(explicitRoot, options);

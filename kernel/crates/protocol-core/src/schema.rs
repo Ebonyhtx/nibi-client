@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/protocol/src/json_schema.rs（feat/rs 79b6691c55）。改动：去掉 `unwrap`（本工程的 lint），
+// 复制自 apps/nibi-cli-rust/crates/protocol/src/json_schema.rs（feat/rs 79b6691c55）。改动：去掉 `unwrap`（本工程的 lint），
 // 模块说明改成中文；关键字的范围不变（P1 生成的 schema 只用到这些）。
 //! JSON Schema 子集的校验器（docs/specs/rust-cli/app-protocol.md §7）：只认 zod `toJSONSchema` 生成的关键字。
 //!

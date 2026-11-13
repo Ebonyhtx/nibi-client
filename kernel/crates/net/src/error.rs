@@ -61,7 +61,7 @@ fn chain(error: &(dyn Error + 'static)) -> String {
     text
 }
 
-// 复制自 apps/zcode-cli-rust/crates/model/src/model_failure.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-cli-rust/crates/model/src/model_failure.rs（feat/rs 79b6691c55）。
 fn is_tls_failure(error: &(dyn Error + 'static)) -> bool {
     let mut source = Some(error);
     while let Some(cause) = source {

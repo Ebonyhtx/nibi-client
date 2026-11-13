@@ -1,6 +1,6 @@
 //! MCP Apps（插件面板）的数据面：连接身份、资源读取与可见性（141 审计 §9 第 6 项 F7 的第二段）。
 //!
-//! Node 侧的实现是 `apps/zcode-cli/packages/bootstrap/src/zcode-protocol/mcp-ui/`：
+//! Node 侧的实现是 `apps/nibi-cli/packages/bootstrap/src/zcode-protocol/mcp-ui/`：
 //!
 //! - **连接身份**（`appConnectionSnapshot`）：每个已连接的服务器给出 `{identity, generation}`。
 //!   `identity` 是配置与工作区的摘要，`generation` 每次换连接加一；实例凭证绑定这一对，
@@ -202,7 +202,7 @@ pub struct McpAppInstance {
     pub token: String,
 }
 
-/// 页面请求的作用域（Host `zcodeMcpUiPluginScopeShape` 的 `workspace/sessionId/pluginId/serverName`）。
+/// 页面请求的作用域（Host `nibiMcpUiPluginScopeShape` 的 `workspace/sessionId/pluginId/serverName`）。
 ///
 /// 归属真相是**会话自己的 MCP server 表**：插件 server 与普通 MCP server 同一张表，任何已连接的
 /// server 都能渲染 MCP App；`pluginId` 只用于展示与日志（Node `assertMcpUiServerScope` 同一条）。
@@ -465,7 +465,7 @@ pub fn visible_to_app(visibility: &[String]) -> bool {
     visibility.iter().any(|value| value == "app")
 }
 
-/// `resources/list` 的一条资源（Host `zcodeMcpUiResourceDescriptorSchema` 的字段集）。
+/// `resources/list` 的一条资源（Host `nibiMcpUiResourceDescriptorSchema` 的字段集）。
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct McpResourceDescriptor {

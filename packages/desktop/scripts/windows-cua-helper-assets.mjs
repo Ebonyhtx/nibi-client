@@ -279,9 +279,9 @@ function resolveCanonicalPackagedArtifact(root, artifact, label) {
 }
 
 // 2026-08-18：把「契约不满足」拆成逐条可读的判定。原来十一个条件挤在一个 if 里、只抛一句
-// "invalid zcodeCuaRuntime Windows artifact path contract"，看不出是 producer 少给了契约、
+// "invalid nibiCuaRuntime Windows artifact path contract"，看不出是 producer 少给了契约、
 // 还是仓库读错了目录。本次审计正是被这条报错误导：node_modules 停在改 pin 之前的旧提交
-// （git 依赖改 pin 不会自动重装），旧包没有 zcodeCuaRuntime，于是被误读成 producer 回归。
+// （git 依赖改 pin 不会自动重装），旧包没有 nibiCuaRuntime，于是被误读成 producer 回归。
 // 报错必须自证：谁（包名@版本）、在哪（源目录）、缺哪一条。
 function describeRuntimeContractViolation(packageJson) {
   if (!isPlainRecord(packageJson)) return "source package.json is not a JSON object";
@@ -291,30 +291,30 @@ function describeRuntimeContractViolation(packageJson) {
   if (!isNonEmptyTrimmedString(packageJson.version)) {
     return `invalid package version ${JSON.stringify(packageJson.version)}`;
   }
-  const contract = packageJson.zcodeCuaRuntime;
+  const contract = packageJson.nibiCuaRuntime;
   if (contract === undefined) {
-    return "zcodeCuaRuntime is missing — the producer package does not publish a Windows runtime contract";
+    return "nibiCuaRuntime is missing — the producer package does not publish a Windows runtime contract";
   }
-  if (!isPlainRecord(contract)) return "zcodeCuaRuntime is not a JSON object";
+  if (!isPlainRecord(contract)) return "nibiCuaRuntime is not a JSON object";
   if (!hasExactKeys(contract, ["schema", "windows"])) {
-    return `zcodeCuaRuntime must have exactly the keys {schema, windows}, got {${Object.keys(contract).join(", ")}}`;
+    return `nibiCuaRuntime must have exactly the keys {schema, windows}, got {${Object.keys(contract).join(", ")}}`;
   }
   if (contract.schema !== 1) {
-    return `zcodeCuaRuntime.schema must be 1, got ${JSON.stringify(contract.schema)}`;
+    return `nibiCuaRuntime.schema must be 1, got ${JSON.stringify(contract.schema)}`;
   }
   const windowsContract = contract.windows;
-  if (!isPlainRecord(windowsContract)) return "zcodeCuaRuntime.windows is not a JSON object";
+  if (!isPlainRecord(windowsContract)) return "nibiCuaRuntime.windows is not a JSON object";
   if (!hasExactKeys(windowsContract, ["entry", "nativeAddon"])) {
-    return `zcodeCuaRuntime.windows must have exactly the keys {entry, nativeAddon}, got {${Object.keys(windowsContract).join(", ")}}`;
+    return `nibiCuaRuntime.windows must have exactly the keys {entry, nativeAddon}, got {${Object.keys(windowsContract).join(", ")}}`;
   }
   if (!isCanonicalRelativeArtifactPath(windowsContract.entry)) {
-    return `zcodeCuaRuntime.windows.entry is not a canonical relative artifact path: ${JSON.stringify(windowsContract.entry)}`;
+    return `nibiCuaRuntime.windows.entry is not a canonical relative artifact path: ${JSON.stringify(windowsContract.entry)}`;
   }
   if (!isCanonicalRelativeArtifactPath(windowsContract.nativeAddon)) {
-    return `zcodeCuaRuntime.windows.nativeAddon is not a canonical relative artifact path: ${JSON.stringify(windowsContract.nativeAddon)}`;
+    return `nibiCuaRuntime.windows.nativeAddon is not a canonical relative artifact path: ${JSON.stringify(windowsContract.nativeAddon)}`;
   }
   if (windowsContract.entry === windowsContract.nativeAddon) {
-    return "zcodeCuaRuntime.windows.entry and zcodeCuaRuntime.windows.nativeAddon must differ";
+    return "nibiCuaRuntime.windows.entry and nibiCuaRuntime.windows.nativeAddon must differ";
   }
   return undefined;
 }
@@ -326,10 +326,10 @@ function readProducerRuntimeContract(packageJson, sourceRoot) {
       ? `${String(packageJson.name)}@${String(packageJson.version)}`
       : "<unreadable package.json>";
     throw new Error(
-      `[windows-cua-helper-assets] invalid zcodeCuaRuntime Windows artifact path contract in ${identity} (${sourceRoot}): ${violation}`,
+      `[windows-cua-helper-assets] invalid nibiCuaRuntime Windows artifact path contract in ${identity} (${sourceRoot}): ${violation}`,
     );
   }
-  const windowsContract = packageJson.zcodeCuaRuntime.windows;
+  const windowsContract = packageJson.nibiCuaRuntime.windows;
   return {
     packageVersion: packageJson.version,
     entry: windowsContract.entry,
@@ -853,19 +853,19 @@ export async function prepareWindowsCuaHelperAssets({
       `[windows-cua-helper-assets] invalid package version: ${String(packageJson.version)}`,
     );
   }
-  // 根因：消费端固定版本号和 artifact 目录会让生产者每次独立发版都必须同步改 ZCode。
+  // 根因：消费端固定版本号和 artifact 目录会让生产者每次独立发版都必须同步改 Nibi。
   // package.json 的严格契约才是兼容边界；version 只作为安装产物的来源追踪信息。
   const producerContract = readProducerRuntimeContract(packageJson, sourceRoot);
 
   const entryPath = resolveCanonicalPackagedArtifact(
     sourceRoot,
     producerContract.entry,
-    "zcodeCuaRuntime.windows.entry",
+    "nibiCuaRuntime.windows.entry",
   );
   const addonPath = resolveCanonicalPackagedArtifact(
     sourceRoot,
     producerContract.addon,
-    "zcodeCuaRuntime.windows.nativeAddon",
+    "nibiCuaRuntime.windows.nativeAddon",
   );
   const [entryBytes, addonBytes] = await Promise.all([
     readRegularFileSnapshot(entryPath, "entry", {

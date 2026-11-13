@@ -1,6 +1,6 @@
 //! NIBI 数据根与派生路径。
 //!
-//! 口径与 Node 侧一致（`apps/zcode-cli/packages/adapters/src/cli-storage-root.ts`、
+//! 口径与 Node 侧一致（`apps/nibi-cli/packages/adapters/src/cli-storage-root.ts`、
 //! `desktopRuntimeEnv.ts`、`shared-credentials.ts`）：
 //!
 //! - `NIBI_DATA_BASE_DIR` 管 `<base>/.nibi/v2/...`（凭据、provider、settings）；

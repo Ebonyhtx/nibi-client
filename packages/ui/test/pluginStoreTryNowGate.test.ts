@@ -1,7 +1,7 @@
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ZCodePluginInfo } from "@nibi/shared";
+import type { NibiPluginInfo } from "@nibi/shared";
 import type { StorePluginItem } from "../src/settings/pluginStoreListing.js";
 import type { PluginStoreActions } from "../src/settings/PluginStoreCard.js";
 import { runPluginTryPromptFlow } from "../src/settings/pluginTryPromptFlow.js";
@@ -27,7 +27,7 @@ vi.mock("@/ControlHintTooltip.js", () => ({
 }));
 
 function installedItem(overrides: Partial<StorePluginItem> = {}): StorePluginItem {
-  const info: ZCodePluginInfo = {
+  const info: NibiPluginInfo = {
     id: "demo@market",
     name: "demo",
     marketplace: "market",
@@ -73,10 +73,10 @@ async function renderDetail(
   } = {},
 ): Promise<string> {
   const { PluginStoreDetailView } = await import("../src/settings/PluginStoreDetailView.js");
-  const { ZCodeIntlProvider } = await import("@/i18n/IntlProvider.js");
+  const { NibiIntlProvider } = await import("@/i18n/IntlProvider.js");
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "en-US" },
       createElement(PluginStoreDetailView, {
         item,

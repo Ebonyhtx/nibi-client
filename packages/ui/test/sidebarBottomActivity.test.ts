@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createStore } from "zustand/vanilla";
 import { isMarketingBannerRenderable } from "@/components/marketing-touch/marketingTouchController.js";
 import type { MarketingTouchController } from "@/components/marketing-touch/marketingTouchController.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 // 领 token banner 的真实渲染树依赖 iframe/cloud-hero/intl，已由 marketingBanner.test.ts 覆盖；
 // 这里只验槽位仲裁，故把 MarketingBanner 换成轻量桩，保留真实的 useMarketingBannerVisible 与 Context。
@@ -39,7 +39,7 @@ const renderableBanner = {
 function renderActivity(controller: MarketingTouchController) {
   return render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(
         MarketingTouchContext.Provider,

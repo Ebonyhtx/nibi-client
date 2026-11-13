@@ -557,7 +557,7 @@ export class ConversationProjectionStore {
   }
 
   /**
-   * 有界退避重连。重订阅走 start-if-needed（zcodeAgentService.subscribeConversationV4），
+   * 有界退避重连。重订阅走 start-if-needed（nibiAgentService.subscribeConversationV4），
    * 自身即可把懒启动的 runtime 拉起来——这是 available 永不到达时唯一的自愈路径。
    * 返回 true 表示已接管，调用方不应再落 error。
    */

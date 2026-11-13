@@ -14,10 +14,10 @@ describe("pushDynamicWorkflowUserModeToRemoteHosts（DWG-21）", () => {
     const ssh = agent();
     const docker = agent();
     const server = agent();
-    const targets: Array<{ target: RemoteTarget; zcodeAgentService: ReturnType<typeof agent> }> = [
-      { target: { kind: "ssh", host: "h", username: "u" }, zcodeAgentService: ssh },
-      { target: { kind: "docker", container: "c" }, zcodeAgentService: docker },
-      { target: { kind: "server", url: "https://s.example.com" }, zcodeAgentService: server },
+    const targets: Array<{ target: RemoteTarget; nibiAgentService: ReturnType<typeof agent> }> = [
+      { target: { kind: "ssh", host: "h", username: "u" }, nibiAgentService: ssh },
+      { target: { kind: "docker", container: "c" }, nibiAgentService: docker },
+      { target: { kind: "server", url: "https://s.example.com" }, nibiAgentService: server },
     ];
     await pushDynamicWorkflowUserModeToRemoteHosts(targets, "onDemand", vi.fn());
     expect(ssh.syncDynamicWorkflowUserMode).toHaveBeenCalledWith({ mode: "onDemand" });
@@ -28,7 +28,7 @@ describe("pushDynamicWorkflowUserModeToRemoteHosts（DWG-21）", () => {
   it("跟随服务端时推不带 mode 的信号", async () => {
     const ssh = agent();
     await pushDynamicWorkflowUserModeToRemoteHosts(
-      [{ target: { kind: "ssh", host: "h", username: "u" }, zcodeAgentService: ssh }],
+      [{ target: { kind: "ssh", host: "h", username: "u" }, nibiAgentService: ssh }],
       undefined,
       vi.fn(),
     );
@@ -46,8 +46,8 @@ describe("pushDynamicWorkflowUserModeToRemoteHosts（DWG-21）", () => {
     await expect(
       pushDynamicWorkflowUserModeToRemoteHosts(
         [
-          { target: { kind: "wsl", distro: "Ubuntu" }, zcodeAgentService: broken },
-          { target: { kind: "ssh", host: "h", username: "u" }, zcodeAgentService: ok },
+          { target: { kind: "wsl", distro: "Ubuntu" }, nibiAgentService: broken },
+          { target: { kind: "ssh", host: "h", username: "u" }, nibiAgentService: ok },
         ],
         "disabled",
         onError,

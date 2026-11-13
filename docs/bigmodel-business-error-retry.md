@@ -12,14 +12,14 @@ BigModel / Z.AI 兼容接口会把一部分可恢复失败包装成业务错误�
 
 ## 实现位置
 
-- `apps/zcode-cli/packages/adapters/src/model/failure-provider-business-codes.ts`
-- `apps/zcode-cli/packages/adapters/src/model/failure-classifier.ts`
-- `apps/zcode-cli/packages/adapters/src/model/failure-inspection.ts`
-- `apps/zcode-cli/packages/adapters/src/model/provider-finish-business-error.ts`
-- `apps/zcode-cli/packages/adapters/src/model/runner-generate.ts`
-- `apps/zcode-cli/packages/adapters/src/model/runner-retry.ts`
-- `apps/zcode-cli/packages/adapters/src/model/runner-stream.ts`
-- `apps/zcode-cli/packages/adapters/src/model/runner-status.ts`
+- `apps/nibi-cli/packages/adapters/src/model/failure-provider-business-codes.ts`
+- `apps/nibi-cli/packages/adapters/src/model/failure-classifier.ts`
+- `apps/nibi-cli/packages/adapters/src/model/failure-inspection.ts`
+- `apps/nibi-cli/packages/adapters/src/model/provider-finish-business-error.ts`
+- `apps/nibi-cli/packages/adapters/src/model/runner-generate.ts`
+- `apps/nibi-cli/packages/adapters/src/model/runner-retry.ts`
+- `apps/nibi-cli/packages/adapters/src/model/runner-stream.ts`
+- `apps/nibi-cli/packages/adapters/src/model/runner-status.ts`
 
 实现继续复用既有 retry loop、stream retry 边界和日志发布路径；业务码分类、错误对象检查、SSE error chunk 重建和 delay 计算分别保持在上述文件中，避免把 provider 特例扩散到 core runtime。
 
@@ -83,4 +83,4 @@ BigModel / Z.AI 兼容接口会把一部分可恢复失败包装成业务错误�
 
 ## 后续方向
 
-如果后续要把 retry 逻辑进一步集中，可以把 provider business code mapping、HTTP status fallback、network inspection 和 retry budget 配置统一收敛到 `apps/zcode-cli/packages/adapters/src/model/retry/`。这次先不做目录级搬迁，避免扩大改动面。
+如果后续要把 retry 逻辑进一步集中，可以把 provider business code mapping、HTTP status fallback、network inspection 和 retry budget 配置统一收敛到 `apps/nibi-cli/packages/adapters/src/model/retry/`。这次先不做目录级搬迁，避免扩大改动面。

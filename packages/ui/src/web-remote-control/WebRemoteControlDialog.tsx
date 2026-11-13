@@ -32,10 +32,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.js";
 import { toast } from "@/components/ui/toast.js";
-import { useZCodeStore } from "@/store/StoreProvider.js";
+import { useNibiStore } from "@/store/StoreProvider.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import { useOAuth } from "@/hooks/useOAuth.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 import { getBotProviderRegionTagLabelId } from "@/botsUi.js";
 
@@ -51,8 +51,8 @@ const REMOTE_CONTROL_BOT_ENTRIES: Array<{
 ];
 
 function WebRemoteControlLoginButton({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
-  const { intl } = useZCodeIntl();
-  const requestLoginEntry = useZCodeStore((state) => state.requestLoginEntry);
+  const { intl } = useNibiIntl();
+  const requestLoginEntry = useNibiStore((state) => state.requestLoginEntry);
   const { loadingProviders } = useOAuth();
 
   return (
@@ -89,7 +89,7 @@ export const WebRemoteControlDialog = memo(function WebRemoteControlDialogCompon
   initialTaskId?: string;
 }) {
   const platform = usePlatform();
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [status, setStatus] = useState<WebRemoteControlStatus>({
     status: "idle",
   });

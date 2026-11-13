@@ -8,11 +8,11 @@ import {
   TID_WORKFLOW_CARD_MENU,
   TID_WORKFLOW_CARD_RUN,
   TID_WORKFLOW_ACTION_MOVE,
-  type ZCodeSavedWorkflowEntry,
-  type ZCodeSavedWorkflowRun,
+  type NibiSavedWorkflowEntry,
+  type NibiSavedWorkflowRun,
 } from "@nibi/shared";
 import { testId } from "@nibi/shared/test-ids";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import {
   SavedWorkflowCard,
   SavedWorkflowLastRunBadge,
@@ -24,7 +24,7 @@ afterEach(() => {
   cleanup();
 });
 
-function entry(overrides: Partial<ZCodeSavedWorkflowEntry> = {}): ZCodeSavedWorkflowEntry {
+function entry(overrides: Partial<NibiSavedWorkflowEntry> = {}): NibiSavedWorkflowEntry {
   return {
     name: "release-check",
     description: "跑测试、比对 changelog、准备发布说明。",
@@ -34,7 +34,7 @@ function entry(overrides: Partial<ZCodeSavedWorkflowEntry> = {}): ZCodeSavedWork
   };
 }
 
-function run(overrides: Partial<ZCodeSavedWorkflowRun> = {}): ZCodeSavedWorkflowRun {
+function run(overrides: Partial<NibiSavedWorkflowRun> = {}): NibiSavedWorkflowRun {
   return {
     runId: "run-1",
     name: "release-check",
@@ -47,7 +47,7 @@ function run(overrides: Partial<ZCodeSavedWorkflowRun> = {}): ZCodeSavedWorkflow
 }
 
 function mount(node: ReactNode) {
-  return render(createElement(ZCodeIntlProvider, { initialLocale: "zh-CN" }, node));
+  return render(createElement(NibiIntlProvider, { initialLocale: "zh-CN" }, node));
 }
 
 describe("SavedWorkflowLastRunBadge", () => {

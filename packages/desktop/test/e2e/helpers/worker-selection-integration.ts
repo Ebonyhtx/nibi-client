@@ -11,14 +11,14 @@ import {
 } from "@nibi/provider";
 import { NodeProviderRegistryRuntime, createNodeModelSelectionFacade } from "@nibi/provider-node";
 import {
-  createZCodeAgentService,
-  createZCodeTaskServiceAdapter,
+  createNibiAgentService,
+  createNibiTaskServiceAdapter,
   getDataBaseDir,
   setDataBaseDir,
 } from "@nibi/services/node";
 import { BUILTIN_MODEL_PROVIDER_IDS } from "@nibi/shared";
 import { TaskIndexRepo } from "../../../../services/src/session/taskIndexRepo.js";
-import { createZCodeTaskIndexSyncer } from "../../../../services/src/zcode-agent/zcodeTaskIndexSyncer.js";
+import { createNibiTaskIndexSyncer } from "../../../../services/src/nibi-agent/nibiTaskIndexSyncer.js";
 import { getE2EAppDataPaths } from "./desktop-app.js";
 
 /** 独立测试 Host + 真实 stdio Worker；仅账号上游和模型 HTTP 使用隔离 fixture。 */
@@ -86,10 +86,10 @@ export async function createWorkerSelectionIntegration() {
       dispose: facade.onDidChange(listener),
     }),
   };
-  const agent = createZCodeAgentService({
+  const agent = createNibiAgentService({
     commandResolver: () => ({
       command: process.execPath,
-      args: [resolve("../../apps/zcode-cli/packages/cli/dist/nibi.cjs"), "app-server", "--stdio"],
+      args: [resolve("../../apps/nibi-cli/packages/cli/dist/nibi.cjs"), "app-server", "--stdio"],
       env: {
         HOME: home,
         USERPROFILE: home,
@@ -116,9 +116,9 @@ export async function createWorkerSelectionIntegration() {
     },
   });
   const repo = new TaskIndexRepo();
-  const syncer = createZCodeTaskIndexSyncer({ agentService: agent, taskIndexRepo: repo });
-  const task = createZCodeTaskServiceAdapter({
-    zcodeAgentService: agent,
+  const syncer = createNibiTaskIndexSyncer({ agentService: agent, taskIndexRepo: repo });
+  const task = createNibiTaskServiceAdapter({
+    nibiAgentService: agent,
     taskIndexRepo: repo,
     taskIndexSyncer: syncer,
   });

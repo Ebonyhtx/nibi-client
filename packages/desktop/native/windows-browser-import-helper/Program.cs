@@ -346,7 +346,7 @@ internal static class Program
         StreamWriter brokerWriter,
         int brokerPid)
     {
-        string serviceName = "ZCodeBrowserImport_" + Guid.NewGuid().ToString("N");
+        string serviceName = "NibiBrowserImport_" + Guid.NewGuid().ToString("N");
         string pipeName = "zcode-browser-import-system-" + Guid.NewGuid().ToString("N");
         string token = CreateToken();
         IntPtr scm = IntPtr.Zero;

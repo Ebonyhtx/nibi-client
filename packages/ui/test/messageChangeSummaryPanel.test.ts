@@ -10,7 +10,7 @@ import {
   openChangeSummaryDiffViewer,
 } from "@/MessageChangeSummaryPanel.js";
 import { PlatformProvider } from "@/hooks/usePlatform.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { StoreProvider } from "@/store/StoreProvider.js";
 
 const localStorageState = new Map<string, string>();
@@ -134,7 +134,7 @@ function renderPanel(overrides: Partial<PanelProps> = {}) {
 
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(
         PlatformProvider,

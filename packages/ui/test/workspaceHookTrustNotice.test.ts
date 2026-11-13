@@ -2,7 +2,7 @@ import type { Hook, WorkspaceHookReviewTrustState } from "@nibi/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import {
   hasWorkspaceHooksRequiringReview,
   shouldShowWorkspaceHookTrustNotice,
@@ -42,7 +42,7 @@ function workspaceHook(trustState: WorkspaceHookReviewTrustState): Hook {
 function renderNotice(locale: "en-US" | "zh-CN", hooks: Hook[]): string {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: locale },
       createElement(WorkspaceHookTrustNotice, { hooks }),
     ),

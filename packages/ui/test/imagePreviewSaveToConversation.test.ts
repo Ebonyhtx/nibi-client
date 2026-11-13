@@ -6,7 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ImagePreviewDialog } from "@/components/ai-elements/image-preview-dialog.js";
 import { PlatformProvider } from "@/hooks/usePlatform.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import {
   createImageEditorAttachmentFile,
   registerImageComposerTarget,
@@ -70,7 +70,7 @@ function PreviewHarness({ onOpenChange }: { onOpenChange: (open: boolean) => voi
 function mountPreview(onOpenChange: (open: boolean) => void) {
   render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(
         PlatformProvider,

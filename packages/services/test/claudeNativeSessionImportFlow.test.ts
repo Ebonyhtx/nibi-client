@@ -32,7 +32,7 @@ afterEach(async () => {
 });
 
 describe("Claude native import flow", () => {
-  it("将 Claude jsonl 归一为 ZCodeSessionFile 并写入 legacy snapshot", async () => {
+  it("将 Claude jsonl 归一为 NibiSessionFile 并写入 legacy snapshot", async () => {
     const home = makeTempDir("zcode-claude-import-flow-");
     process.env.HOME = home;
     process.env.NIBI_DATA_BASE_DIR = home;
@@ -127,7 +127,7 @@ describe("Claude native import flow", () => {
 
   // Windows 上跳过此测试：路径编码逻辑与 Unix 不兼容，需要重构路径处理逻辑
   if (process.platform !== "win32") {
-    it("导入为真实 ZCode session，保留续聊和切模型能力", async () => {
+    it("导入为真实 Nibi session，保留续聊和切模型能力", async () => {
       const home = makeTempDir("zcode-claude-import-live-");
       process.env.HOME = home;
       process.env.NIBI_DATA_BASE_DIR = home;

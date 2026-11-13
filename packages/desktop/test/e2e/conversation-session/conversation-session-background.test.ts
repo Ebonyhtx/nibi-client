@@ -2179,7 +2179,7 @@ describe("会话区 Background Runtime Task E2E", () => {
       "BG24 初始第三个 zcode Agent background control row 没有显示在右上角面板",
     );
 
-    const zcodeOneNotificationIndex = await waitForFirstRequestIndex(
+    const nibiOneNotificationIndex = await waitForFirstRequestIndex(
       {
         includes: [
           "E2E_BACKGROUND_AGENT_CONTROL_PRESERVE",
@@ -2193,7 +2193,7 @@ describe("会话区 Background Runtime Task E2E", () => {
       launchIndex,
       "BG24 第一个 zcode background Agent completion notification 没有进入父模型请求",
     );
-    expect(zcodeOneNotificationIndex).toBeGreaterThan(launchIndex);
+    expect(nibiOneNotificationIndex).toBeGreaterThan(launchIndex);
     await waitForV4AssistantMessageContaining(
       "background-agent-control-preserve-zcode-one-notification-ok",
     );
@@ -2207,7 +2207,7 @@ describe("会话区 Background Runtime Task E2E", () => {
       "E2E BG24 cc keepalive agent",
       sourceTaskId,
     );
-    const zcodeTwoNotificationIndex = await waitForFirstRequestIndex(
+    const nibiTwoNotificationIndex = await waitForFirstRequestIndex(
       {
         includes: [
           "E2E_BACKGROUND_AGENT_CONTROL_PRESERVE",
@@ -2218,10 +2218,10 @@ describe("会话区 Background Runtime Task E2E", () => {
         ],
         lastUserMessageIncludes: ["<task-notification>"],
       },
-      zcodeOneNotificationIndex,
+      nibiOneNotificationIndex,
       "BG24 第二个 zcode background Agent completion notification 没有进入父模型请求",
     );
-    expect(zcodeTwoNotificationIndex).toBeGreaterThan(zcodeOneNotificationIndex);
+    expect(nibiTwoNotificationIndex).toBeGreaterThan(nibiOneNotificationIndex);
 
     await startNewBackgroundDraft();
     await waitForV4ConversationState(
@@ -2249,7 +2249,7 @@ describe("会话区 Background Runtime Task E2E", () => {
       "BG24 第二个 zcode Agent 完成后 cc running Agent row 被错误清掉",
     );
 
-    const zcodeNotificationIndex = await waitForFirstRequestIndex(
+    const nibiNotificationIndex = await waitForFirstRequestIndex(
       {
         includes: [
           "E2E_BACKGROUND_AGENT_CONTROL_PRESERVE",
@@ -2260,10 +2260,10 @@ describe("会话区 Background Runtime Task E2E", () => {
         ],
         lastUserMessageIncludes: ["<task-notification>"],
       },
-      zcodeTwoNotificationIndex,
+      nibiTwoNotificationIndex,
       "BG24 第三个 zcode background Agent completion notification 没有进入父模型请求",
     );
-    expect(zcodeNotificationIndex).toBeGreaterThan(zcodeTwoNotificationIndex);
+    expect(nibiNotificationIndex).toBeGreaterThan(nibiTwoNotificationIndex);
     const afterTodoIndex = await waitForFirstRequestIndex(
       {
         includes: [
@@ -2272,10 +2272,10 @@ describe("会话区 Background Runtime Task E2E", () => {
           "E2E_BG24_TODO_UPDATED",
         ],
       },
-      zcodeNotificationIndex,
+      nibiNotificationIndex,
       "BG24 zcode notification 中的 TodoWrite tool result 没有进入后续父模型请求",
     );
-    expect(afterTodoIndex).toBeGreaterThan(zcodeNotificationIndex);
+    expect(afterTodoIndex).toBeGreaterThan(nibiNotificationIndex);
     await waitForV4AssistantMessageContaining(
       "background-agent-control-preserve-zcode-notification-ok",
     );
@@ -2305,10 +2305,10 @@ describe("会话区 Background Runtime Task E2E", () => {
         ],
         lastUserMessageIncludes: ["<task-notification>"],
       },
-      zcodeNotificationIndex,
+      nibiNotificationIndex,
       "BG24 cc background Agent stop notification 没有进入父模型请求",
     );
-    expect(stopNotificationIndex).toBeGreaterThan(zcodeNotificationIndex);
+    expect(stopNotificationIndex).toBeGreaterThan(nibiNotificationIndex);
     await waitForV4AssistantMessageContaining("background-agent-control-preserve-cc-stopped-ok");
     await waitForIdle("BG24 cc Agent stop notification 后会话没有回到 idle");
     await waitForNoBackgroundTaskControlRow(

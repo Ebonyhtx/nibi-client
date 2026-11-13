@@ -48,7 +48,7 @@ async fn files_are_found_from_the_git_root_down_to_the_workspace() {
         [
             (
                 "/Users/dev/repo/nibi.json",
-                ProjectKind::ZcodeJson,
+                ProjectKind::NibiJson,
                 0,
                 false
             ),
@@ -101,7 +101,7 @@ fn relative_paths_follow_node() {
 #[test]
 fn the_kind_names_keep_their_values() {
     // F55：名字取共用的定义，值不变（进 hooks 的 digest，与 Node 逐字节一致）。
-    assert_eq!(ProjectKind::ZcodeJson.as_str(), "nibi.json");
+    assert_eq!(ProjectKind::NibiJson.as_str(), "nibi.json");
     assert_eq!(ProjectKind::DotProjectConfig.as_str(), ".nibi/config.json");
     assert_eq!(DOT_PROJECT_CONFIG, format!("{PROJECT_DOT_DIR}/{CONFIG_JSON}"));
 }

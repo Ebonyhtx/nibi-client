@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash-parse/src/nodes.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
+// 复制自 apps/nibi-cli-rust/crates/bash-parse/src/nodes.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
 //! 解析结果：只保留分析需要的简单命令信息（unbash `Command` / `Redirect` / `AssignmentPrefix`）。
 
 use std::ops::Range;

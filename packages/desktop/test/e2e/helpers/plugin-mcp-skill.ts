@@ -18,8 +18,8 @@ export const PLUGIN_MCP_PLUGIN_ROOT = PLUGIN_ROOT;
 export const PLUGIN_MCP_PLUGIN_ID = "e2e-plugin-mcp-ping@e2e-fixture";
 // Bugfix: agent adapter 注入 MCP 工具时把 namespaced server 名（`plugin:<name>:<server>`）
 // 重写成符合模型 API 工具名约束的 `mcp__plugin_<name>_<server>__<tool>`，实际发给模型的就是这个名。
-// 见 `apps/zcode-cli/packages/adapters/src/mcp/descriptor.ts` 与
-// `apps/zcode-cli/packages/adapters/src/mcp/index.ts:normalizeMcpToolDescriptor`。
+// 见 `apps/nibi-cli/packages/adapters/src/mcp/descriptor.ts` 与
+// `apps/nibi-cli/packages/adapters/src/mcp/index.ts:normalizeMcpToolDescriptor`。
 export const PLUGIN_MCP_TOOL_NAME = "mcp__plugin_e2e-plugin-mcp-ping_ping__ping";
 export const PLUGIN_MCP_MARKER_PREFIX = "E2E_PLUGIN_MCP_PING";
 

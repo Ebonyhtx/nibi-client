@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { atomicWritePrivateTextFile, withFileLock } from "@nibi/shared/node";
-import type { NodeZCodeBuiltinProviderConfigSource } from "./nibi-builtin-provider-config-source.js";
-import type { ZCodeBuiltinRelease } from "./nibi-builtin-release.js";
+import type { NodeNibiBuiltinProviderConfigSource } from "./nibi-builtin-provider-config-source.js";
+import type { NibiBuiltinRelease } from "./nibi-builtin-release.js";
 
 const HOUR_MS = 60 * 60 * 1_000;
 
-export type ZCodeBuiltinRefreshResult =
+export type NibiBuiltinRefreshResult =
   | "updated"
   | "unchanged"
   | "stale"
@@ -14,15 +14,15 @@ export type ZCodeBuiltinRefreshResult =
   | "skipped"
   | "disposed";
 
-export interface ZCodeBuiltinRemoteSynchronizerOptions {
-  readonly source: NodeZCodeBuiltinProviderConfigSource;
+export interface NibiBuiltinRemoteSynchronizerOptions {
+  readonly source: NodeNibiBuiltinProviderConfigSource;
   readonly controlFilePath: string;
   readonly resolveEndpointKey: () => string | Promise<string>;
   readonly fetchRelease: (
     endpointKey: string,
     signal: AbortSignal,
-  ) => Promise<ZCodeBuiltinRelease | null>;
-  readonly onRefreshResult?: (event: ZCodeBuiltinRefreshEvent) => void;
+  ) => Promise<NibiBuiltinRelease | null>;
+  readonly onRefreshResult?: (event: NibiBuiltinRefreshEvent) => void;
   readonly now?: () => number;
   readonly successIntervalMs?: number;
   readonly leaseDurationMs?: number;
@@ -30,8 +30,8 @@ export interface ZCodeBuiltinRemoteSynchronizerOptions {
   readonly failureMaxDelayMs?: number;
 }
 
-export interface ZCodeBuiltinRefreshEvent {
-  readonly result: ZCodeBuiltinRefreshResult;
+export interface NibiBuiltinRefreshEvent {
+  readonly result: NibiBuiltinRefreshResult;
   readonly reason?: "lease-held" | "not-due" | "endpoint-changed";
   readonly revision?: number;
 }
@@ -46,19 +46,19 @@ interface RefreshControl {
 }
 
 /** Environment 共享控制文件合并多进程刷新；网络期间不持有文件锁。 */
-export class ZCodeBuiltinRemoteSynchronizer {
-  readonly #options: ZCodeBuiltinRemoteSynchronizerOptions;
+export class NibiBuiltinRemoteSynchronizer {
+  readonly #options: NibiBuiltinRemoteSynchronizerOptions;
   readonly #now: () => number;
-  #inFlight: Promise<ZCodeBuiltinRefreshResult> | null = null;
+  #inFlight: Promise<NibiBuiltinRefreshResult> | null = null;
   #disposed = false;
   #abortController: AbortController | null = null;
 
-  constructor(options: ZCodeBuiltinRemoteSynchronizerOptions) {
+  constructor(options: NibiBuiltinRemoteSynchronizerOptions) {
     this.#options = options;
     this.#now = options.now ?? Date.now;
   }
 
-  refresh(options: { readonly force?: boolean } = {}): Promise<ZCodeBuiltinRefreshResult> {
+  refresh(options: { readonly force?: boolean } = {}): Promise<NibiBuiltinRefreshResult> {
     if (this.#disposed) return Promise.resolve("disposed");
     if (this.#inFlight) return this.#inFlight;
     const controller = new AbortController();
@@ -78,10 +78,10 @@ export class ZCodeBuiltinRemoteSynchronizer {
     this.#abortController?.abort();
   }
 
-  async #refresh(force: boolean, signal: AbortSignal): Promise<ZCodeBuiltinRefreshResult> {
+  async #refresh(force: boolean, signal: AbortSignal): Promise<NibiBuiltinRefreshResult> {
     const endpointKey = (await this.#options.resolveEndpointKey()).trim();
     if (this.#disposed) return "disposed";
-    if (!endpointKey) throw new Error("ZCode Built-in 远端 Endpoint 不能为空");
+    if (!endpointKey) throw new Error("Nibi Built-in 远端 Endpoint 不能为空");
     const leaseId = randomUUID();
     const acquired = await withFileLock(this.#options.controlFilePath, async () => {
       const now = this.#now();
@@ -129,7 +129,7 @@ export class ZCodeBuiltinRemoteSynchronizer {
     }
   }
 
-  #report(event: ZCodeBuiltinRefreshEvent): void {
+  #report(event: NibiBuiltinRefreshEvent): void {
     if (this.#disposed) return;
     try {
       this.#options.onRefreshResult?.(event);

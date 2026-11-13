@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { RemoteTarget } from "#src/remoteTarget.js";
-import { publicZCodeErrorCodeSchema } from "./errorCodes.js";
+import { publicNibiErrorCodeSchema } from "./errorCodes.js";
 import { REMOTE_ASSET_INSTALL_MODES } from "../remoteAssetInstallMode.js";
 import { isKnownRemoteResourcePackageId } from "../remoteResourcePackages.js";
 import { wslUserSchema } from "../wslUserValidation.js";
@@ -336,7 +336,7 @@ export const sourceServerConnectionStateSnapshotSchema = z
     availableVersion: nonEmptyStringSchema.optional(),
     minimumVersion: nonEmptyStringSchema.optional(),
     upgradeTarget: z.enum(["controller", "server"]).optional(),
-    errorCode: publicZCodeErrorCodeSchema.optional(),
+    errorCode: publicNibiErrorCodeSchema.optional(),
     retryable: z.boolean().optional(),
     installPreview: sourceServerInstallPreviewSchema.optional(),
     runningTasks: sourceServerRunningTasksSchema.optional(),

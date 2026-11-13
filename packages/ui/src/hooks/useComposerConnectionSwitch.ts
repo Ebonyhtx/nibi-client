@@ -1,12 +1,12 @@
 import { completeNewModelSelection } from "@nibi/provider";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWorkspaceServicesResolution } from "@/hooks/useWorkspaceServices.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { chooseConnectionModel, type ComposerConnection } from "@/lib/composerPlanGroups.js";
 import { buildRegistryModelSelectGroups } from "@/lib/modelSelectionGroups.js";
-import { decodeCustomModelValue } from "@/lib/zcodeCustomModelValue.js";
+import { decodeCustomModelValue } from "@/lib/nibiCustomModelValue.js";
 import { logger } from "@/logger.js";
-import type { ZCodeProvider } from "@nibi/shared";
+import type { NibiProvider } from "@nibi/shared";
 
 export function useComposerConnectionSwitch({
   workspacePath,
@@ -22,7 +22,7 @@ export function useComposerConnectionSwitch({
 }: {
   workspacePath: string;
   workspaceIdentity?: string;
-  agentProvider: ZCodeProvider;
+  agentProvider: NibiProvider;
   normalizedValue: string;
   onSelectModel: (value: string, reasoningLevel?: string) => void;
   waitForPresentation?: boolean;
@@ -36,7 +36,7 @@ export function useComposerConnectionSwitch({
     undefined,
     workspaceIdentity,
   );
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const workspaceKey = workspaceIdentity?.trim() || workspacePath;
   const token = useMemo(() => ({}), [target, workspaceKey]);
   const owner = useRef({ token, mounted: true });

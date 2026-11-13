@@ -1,5 +1,5 @@
 import type { IDisposable } from "@nibi/rpc";
-import { NIBI_AGENT_RUNTIME_UNAVAILABLE_CODE, type IZCodeAgentService } from "@nibi/services";
+import { NIBI_AGENT_RUNTIME_UNAVAILABLE_CODE, type INibiAgentService } from "@nibi/services";
 import {
   PROTOCOL_V4_LIMITS,
   sessionsIndexTopic,
@@ -15,14 +15,14 @@ const MAX_STAGED_WIRES = 1_024;
 const MAX_STAGED_BYTES = 32 * 1024 * 1024;
 
 type SessionsIndexAgentService = Pick<
-  IZCodeAgentService,
+  INibiAgentService,
   | "subscribeSessionsIndexV4"
   | "resyncSessionsIndexV4"
   | "unsubscribeSessionsIndexV4"
   | "onDynamicSessionsIndexFrame"
   | "onAgentRuntimeRestarted"
 > &
-  Partial<Pick<IZCodeAgentService, "onAgentRuntimeLifecycle">>;
+  Partial<Pick<INibiAgentService, "onAgentRuntimeLifecycle">>;
 
 export interface WindowHostSessionsIndexObserver {
   start(): Promise<void>;

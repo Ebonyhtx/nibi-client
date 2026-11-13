@@ -2,7 +2,7 @@ import { SelectionActionMenu } from "@/v4/SelectionActionMenu.js";
 import { useTextSelection } from "@/hooks/useTextSelection.js";
 import { useCallback, useRef, type RefObject } from "react";
 import type { ConversationRow } from "@nibi/shared/nibi-protocol-v4";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   createConversationSelectionReference,
   type ConversationSelectionContentType,
@@ -53,7 +53,7 @@ export function ConversationSelectionTooltip({
   onAddToCurrentTask: (reference: ConversationSelectionReference) => void;
   onAskInSideChat: (reference: ConversationSelectionReference) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const rowsRef = useRef(rows);
   rowsRef.current = rows;
   const inspectSelection = useCallback((): TooltipState | null => {

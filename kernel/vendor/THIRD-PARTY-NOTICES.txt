@@ -1,6 +1,6 @@
 Third-party software embedded in NIBI (rg, bfs, ugrep), and source files copied from other projects.
 NIBI 内核内嵌的第三方软件与复制代码归属（上游 docs/specs/rust-cli/embedded-search.md §9）。
-本文件逐字节复制自上游 packages/rust-cli/vendor/THIRD-PARTY-NOTICES.txt（ZCode-rs 0.1.86 / 5dfe6b46）；
+本文件逐字节复制自上游 packages/rust-cli/vendor/THIRD-PARTY-NOTICES.txt（Nibi-rs 0.1.86 / 5dfe6b46）；
 上游生成器 scripts/rust-cli/vendor/notice.mjs 不在 vendored 子树内。NIBI 补入了 vendor/copied/ 里
 复制来源的归属（见各 copied.json）；改动本文件时保持各归属原文逐字节不变。
 

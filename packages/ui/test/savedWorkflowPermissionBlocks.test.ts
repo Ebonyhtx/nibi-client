@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { ZCodePermissionRequest } from "@nibi/shared";
+import type { NibiPermissionRequest } from "@nibi/shared";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 // 与 workflowPermissionBlock.test.ts 同一组桩：CodeBlock 换成可断言的 <pre>。时间线是纯 DOM，
 // 不需要桩。
@@ -48,7 +48,7 @@ const STANDARD_OPTIONS = [
   { optionId: "deny", kind: "deny", name: "Deny", response: { decision: "deny" } },
 ];
 
-function buildRunRequest(overrides: Partial<ZCodePermissionRequest> = {}): ZCodePermissionRequest {
+function buildRunRequest(overrides: Partial<NibiPermissionRequest> = {}): NibiPermissionRequest {
   return {
     type: "permission_request",
     taskId: "task-1",
@@ -67,11 +67,11 @@ function buildRunRequest(overrides: Partial<ZCodePermissionRequest> = {}): ZCode
     },
     raw: { name: "Release check", script: SCRIPT },
     ...overrides,
-  } as ZCodePermissionRequest;
+  } as NibiPermissionRequest;
 }
 
 /** saved 源启动：归一化入参在 `script` 之外多一个 `saved`，display 形状一个字节没变。 */
-function buildSavedRunRequest(saved: Record<string, unknown> = {}): ZCodePermissionRequest {
+function buildSavedRunRequest(saved: Record<string, unknown> = {}): NibiPermissionRequest {
   return buildRunRequest({
     raw: {
       name: "Release check",
@@ -87,7 +87,7 @@ function buildSavedRunRequest(saved: Record<string, unknown> = {}): ZCodePermiss
   });
 }
 
-function buildSaveRequest(overrides: Record<string, unknown> = {}): ZCodePermissionRequest {
+function buildSaveRequest(overrides: Record<string, unknown> = {}): NibiPermissionRequest {
   return {
     type: "permission_request",
     taskId: "task-1",
@@ -112,17 +112,17 @@ function buildSaveRequest(overrides: Record<string, unknown> = {}): ZCodePermiss
       scope: "project",
       ...overrides,
     },
-  } as ZCodePermissionRequest;
+  } as NibiPermissionRequest;
 }
 
 function renderDialog(
-  request: ZCodePermissionRequest,
+  request: NibiPermissionRequest,
   locale: "en-US" | "zh-CN" = "en-US",
   onRespond: (requestId: string, option: unknown) => void = () => {},
 ) {
   return render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: locale },
       createElement(PermissionDialog, { request, onRespond, workspacePath: "/workspace" }),
     ),
@@ -311,7 +311,7 @@ describe("SaveWorkflowPermissionBlock", () => {
     renderDialog({
       ...buildSaveRequest(),
       raw: { name: "release-check" },
-    } as ZCodePermissionRequest);
+    } as NibiPermissionRequest);
 
     expect(screen.getByText("Save this workflow to the project?")).toBeTruthy();
     expect(screen.getByText("release-check")).toBeTruthy();
@@ -462,7 +462,7 @@ describe("SaveWorkflowPermissionBlock scrolling and disclosure", () => {
 
       view.rerender(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "en-US" },
           createElement(PermissionDialog, {
             request: { ...buildSaveRequest({ args: manyArgs(40) }), requestId: "perm-save-2" },

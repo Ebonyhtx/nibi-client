@@ -1,5 +1,5 @@
 /**
- * MCP (Model Context Protocol) types for ZCode
+ * MCP (Model Context Protocol) types for Nibi
  * Based on the original Tauri implementation
  */
 
@@ -155,7 +155,7 @@ export interface McpConfig {
   opencodemcp: CliMcpConfig;
 }
 
-export interface ZCodeMcpServer {
+export interface NibiMcpServer {
   id: string;
   name: string;
   config: McpServerConfig;
@@ -208,7 +208,7 @@ export interface McpTestResult {
   response_time?: number;
 }
 
-export type ZCodeAgentMcpServer =
+export type NibiAgentMcpServer =
   | {
       name: string;
       command: string;
@@ -257,10 +257,10 @@ export function getMcpServerRequestHeaders(
 }
 
 // zcode-cua MCP server 识别的单一事实源。desktop 产品 broker resolver（@nibi/services 的
-// mcpBrokerInjection）与 CLI bootstrap（apps/zcode-cli 的 mcp-config）两条注入入口必须用
+// mcpBrokerInjection）与 CLI bootstrap（apps/nibi-cli 的 mcp-config）两条注入入口必须用
 // 完全一致的判定；否则同一 MCP 配置在不同入口行为不同，可能漏注入 product broker，让
 // Python/uvx 自己持有 macOS TCC 权限（违反 fail-closed 边界）。改这里即同时改两条链路。
-function zcodeCuaArgLeaf(value: string): string {
+function nibiCuaArgLeaf(value: string): string {
   // 先去掉结尾的路径分隔符再取叶子：`.../zcode-cua/` 直接 split 会得到空串叶子 → 漏判 → fail-open。
   return (
     value
@@ -274,7 +274,7 @@ function zcodeCuaArgLeaf(value: string): string {
 // zcode-cua）；覆盖 uv/npm 的 `@version`、pip 的 `==version`、extras `[...]`、git 的 `.git`/`.git@`，
 // 以及 `python -m zcode_cua.server` 这种点号子模块（`zcode-cua.<submodule>`）。fail-closed 边界宁可
 // 过判也不漏判；仍不会误判 `zcode-cua-proxy`（短横续接，不以 `.`/`@`/`[`/`==` 边界续接）。
-function matchesZCodeCuaSpec(candidate: string): boolean {
+function matchesNibiCuaSpec(candidate: string): boolean {
   const c = candidate.replace(/_/g, "-");
   return (
     c === "zcode-cua" ||
@@ -291,8 +291,8 @@ function matchesZCodeCuaSpec(candidate: string): boolean {
  * 覆盖 `command: "zcode-cua"`、`/opt/bin/zcode-cua`，以及把包规格直接当 command 的写法
  * （`zcode-cua@1.2.3` 等）。对 fail-closed 边界宁可过判也不漏判。
  */
-export function isZCodeCuaMcpCommand(command: string): boolean {
-  return matchesZCodeCuaSpec(command) || matchesZCodeCuaSpec(zcodeCuaArgLeaf(command));
+export function isNibiCuaMcpCommand(command: string): boolean {
+  return matchesNibiCuaSpec(command) || matchesNibiCuaSpec(nibiCuaArgLeaf(command));
 }
 
 /**
@@ -300,14 +300,14 @@ export function isZCodeCuaMcpCommand(command: string): boolean {
  * `zcode-cua==1.2.3`、`zcode_cua`，以及 git / 本地路径形态（`.../zcode-cua`、`zcode-cua.git`、
  * `git+https://.../zcode-cua.git@v1`）。同时比对原始值与路径叶子，覆盖 `--from <path>`、`--from <git-url>`。
  */
-export function isZCodeCuaMcpPackageArg(value: string): boolean {
-  return matchesZCodeCuaSpec(value) || matchesZCodeCuaSpec(zcodeCuaArgLeaf(value));
+export function isNibiCuaMcpPackageArg(value: string): boolean {
+  return matchesNibiCuaSpec(value) || matchesNibiCuaSpec(nibiCuaArgLeaf(value));
 }
 
-export function convertToZCodeAgentMcpServer(
+export function convertToNibiAgentMcpServer(
   name: string,
   config: McpServerConfig,
-): ZCodeAgentMcpServer | null {
+): NibiAgentMcpServer | null {
   let inferredType = config.type;
   if (!inferredType) {
     if (config.command) inferredType = "stdio";
@@ -330,7 +330,7 @@ export function convertToZCodeAgentMcpServer(
       const unwrappedCommand = args[1];
       if ((lowerCmd === "cmd" || lowerCmd === "cmd.exe") && args[0] === "/c" && unwrappedCommand) {
         // noUncheckedIndexedAccess 下 args[1] 即使经过 length 判断也仍是 string | undefined。
-        // 先显式取值并判空，既满足类型收窄，也避免把空命令传给 ZCode Agent。
+        // 先显式取值并判空，既满足类型收窄，也避免把空命令传给 Nibi Agent。
         command = unwrappedCommand;
         args = args.slice(2);
       }

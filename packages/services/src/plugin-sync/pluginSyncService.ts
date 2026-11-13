@@ -22,7 +22,7 @@ import { normalizePluginSyncRelativePath, resolvePluginSyncPathWithin } from "./
 import { createInlinePluginDataSyncMethods } from "#src/data-sync/node.js";
 import { checkRemoteSyncDirectoriesWriteAccess } from "../remote-sync/remoteSyncWriteAccess.js";
 import { updateJsonObjectFile } from "#src/fs/atomicFileUtils.js";
-import { resolveZCodeStorageRoot } from "#src/subagents/subagentStorage.js";
+import { resolveNibiStorageRoot } from "#src/subagents/subagentStorage.js";
 
 export interface PluginManifestInfo {
   name: string;
@@ -92,7 +92,7 @@ export function createPluginSyncService(options?: {
       };
     },
     async listRemoteUserPluginStatuses(params) {
-      const targetRoot = getUserZcodePluginRoot();
+      const targetRoot = getUserNibiPluginRoot();
       const existingPluginPathById = await collectConfiguredInlinePluginPathById();
       return {
         statuses: params.plugins.map((plugin): PluginSyncRemoteStatus => {
@@ -194,8 +194,8 @@ export function createPluginSyncService(options?: {
     },
     async checkRemoteUserPluginWriteAccess() {
       return checkRemoteSyncDirectoriesWriteAccess([
-        getUserZcodePluginRoot(),
-        dirname(await getUserZcodeConfigPath()),
+        getUserNibiPluginRoot(),
+        dirname(await getUserNibiConfigPath()),
       ]);
     },
     async importMarketplaceSourceArchive(params) {
@@ -217,11 +217,11 @@ export function resolveUserHomeDir(): string {
 }
 
 /** CLI 配置路径：跟数据根走（隔离实例不能读写另一个实例的插件开关）。 */
-export async function getUserZcodeConfigPath(): Promise<string> {
-  return join(await resolveZCodeStorageRoot(), "cli", "config.json");
+export async function getUserNibiConfigPath(): Promise<string> {
+  return join(await resolveNibiStorageRoot(), "cli", "config.json");
 }
 
-export function getUserZcodePluginRoot(): string {
+export function getUserNibiPluginRoot(): string {
   return join(resolveUserHomeDir(), ".nibi", "plugins");
 }
 
@@ -375,7 +375,7 @@ async function importMarketplaceSourceArchiveInternal(
         `marketplace source archive id mismatch: ${manifest.name} !== ${metadata.marketplaceId}`,
       );
     }
-    const targetRoot = join(getUserZcodePluginRoot(), MARKETPLACE_SOURCE_ROOT_DIRECTORY);
+    const targetRoot = join(getUserNibiPluginRoot(), MARKETPLACE_SOURCE_ROOT_DIRECTORY);
     const targetPath = resolvePluginSyncPathWithin(targetRoot, directoryName);
     if (existsSync(targetPath)) {
       return {
@@ -401,7 +401,7 @@ async function importMarketplaceSourceArchiveInternal(
 }
 
 export async function readUserPluginConfigState(): Promise<UserPluginConfigState> {
-  const parsed = await readJsonFileOrEmpty(await getUserZcodeConfigPath());
+  const parsed = await readJsonFileOrEmpty(await getUserNibiConfigPath());
   const plugins = isRecord(parsed.plugins) ? parsed.plugins : {};
   const enabledPlugins = isRecord(plugins.enabledPlugins) ? plugins.enabledPlugins : {};
   const enabledOverrides = new Map<string, boolean>();
@@ -445,7 +445,7 @@ async function importPluginsArchive(
       maxExtractedBytes: maxArchiveBytes,
     });
     const metadata = await readArchiveMetadata(tempRoot);
-    const targetRoot = getUserZcodePluginRoot();
+    const targetRoot = getUserNibiPluginRoot();
     const existingPluginPathById = await collectConfiguredInlinePluginPathById();
     const results: PluginSyncImportResult["results"] = [];
 
@@ -915,7 +915,7 @@ async function addPluginDirToUserConfig(
   pluginId: string,
   enabledOverride: boolean | undefined,
 ): Promise<void> {
-  const filePath = await getUserZcodeConfigPath();
+  const filePath = await getUserNibiConfigPath();
   const resolvedPluginPath = resolve(pluginPath);
   await updateJsonObjectFile(filePath, (current) => {
     const plugins = isRecord(current.plugins) ? current.plugins : {};

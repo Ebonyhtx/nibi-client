@@ -15,7 +15,7 @@ import {
   resolveStableTransportCodeAttribution,
   resolveTrustedProviderCodeFailureReason,
 } from "@/lib/chatErrorAttributionEvidence.js";
-import type { ZCodeUiError } from "@/lib/zcodeUiError.js";
+import type { NibiUiError } from "@/lib/nibiUiError.js";
 
 const UNKNOWN_FAILURE_REASON = "unknown";
 
@@ -126,7 +126,7 @@ function resolveSourceFromStatusCode(statusCode: number): TelemetryErrorSource {
 }
 
 function resolveSourceFromAdditionalEvidence(params: {
-  error: ZCodeUiError;
+  error: NibiUiError;
   displayMessage: string;
 }): TelemetryErrorSource {
   const statusCode = params.error.attribution?.statusCode;
@@ -173,7 +173,7 @@ function resolveSourceFromAdditionalEvidence(params: {
 }
 
 export function resolveTelemetryAttribution(params: {
-  error: ZCodeUiError;
+  error: NibiUiError;
   displayMessage: string;
 }): TelemetryErrorAttribution {
   // 修复原因：adapter 的 unknown 可能是保守的产品运行时分类，不能代表 ARMS 缺少上游证据；
@@ -255,7 +255,7 @@ export function resolveTelemetryAttribution(params: {
     isLocalModelValidationMessage(params.error.message)
   ) {
     // Bug 原因：旧 transcript 的请求前 capability / option 校验只有稳定 code/message，
-    // 没有经过 runner 写入 attribution；仅匹配 ZCode 自身生成的精确文案，避免误收 provider 400。
+    // 没有经过 runner 写入 attribution；仅匹配 Nibi 自身生成的精确文案，避免误收 provider 400。
     return { errorSource: "runtime", failureReason: "invalid_request" };
   }
 

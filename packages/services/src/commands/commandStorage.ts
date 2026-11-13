@@ -10,7 +10,7 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { updateJsonObjectFile } from "#src/fs/atomicFileUtils.js";
-import { resolveZCodeStorageRoot } from "#src/subagents/subagentStorage.js";
+import { resolveNibiStorageRoot } from "#src/subagents/subagentStorage.js";
 
 const ENABLE_OVERRIDE_KEY = "enable";
 
@@ -41,10 +41,10 @@ export function getUserCommandsRoot(source: UserCommandRootSource = "nibi"): str
  * CLI 配置路径（`<数据根>/cli/config.json`）。必须跟数据根走：`config.json` 记的是"这个实例
  * 装了哪些插件/命令"，写死用户主目录会让隔离实例（桌面端 dev / e2e）去读写**另一个实例**的配置
  * —— 同一类缺陷在 skillsService / subagents 都实测过，口径见
- * `subagents/subagentStorage.ts#resolveZCodeStorageRoot`。
+ * `subagents/subagentStorage.ts#resolveNibiStorageRoot`。
  */
 export async function getUserCliConfigPath(): Promise<string> {
-  return join(await resolveZCodeStorageRoot(), "cli", "config.json");
+  return join(await resolveNibiStorageRoot(), "cli", "config.json");
 }
 
 export function isRecord(value: unknown): value is Record<string, unknown> {

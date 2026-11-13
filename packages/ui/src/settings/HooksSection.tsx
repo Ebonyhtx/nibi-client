@@ -8,14 +8,14 @@ import {
 /* eslint-disable max-lines -- Hooks 页面聚合 Scope、插件投影、搜索与配置写入流程。 */
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
-import type { Hook, HookConfig, ZCodeInstalledPluginSummary, ZCodePluginInfo } from "@nibi/shared";
+import type { Hook, HookConfig, NibiInstalledPluginSummary, NibiPluginInfo } from "@nibi/shared";
 import type { IHooksService } from "@nibi/services";
 import { Button } from "@/components/ui/button.js";
 import { toast } from "@/components/ui/toast.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { useConfigWorkspaceServicesResolution as useWorkspaceServicesResolution } from "@/workspace-config-catalog/index.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
-import { invalidateDeferredDraftSessionForRuntimeChange } from "@/lib/zcodeDraftSkillInvalidation.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
+import { invalidateDeferredDraftSessionForRuntimeChange } from "@/lib/nibiDraftSkillInvalidation.js";
 import { useHooksStore } from "@/store/hooksStore.js";
 import { usePluginManagementStore } from "@/store/pluginManagementStore.js";
 import { HookForm } from "./HookForm.js";
@@ -52,12 +52,12 @@ function isEditableHook(hook: Hook): boolean {
 // 里的只读工作区 Hook」。它们不是外部格式兼容导入源，塞进 Legacy 会让 Import 按钮
 // 必然失败（importHook 拒绝 source=zcode），也违反「只读但可逐条 Trust」的约定。
 // 这类行应留在 Installed 分组，由信任状态门控 Switch，走行内 Trust 流程。
-export function isReadOnlyZCodeHook(hook: Hook): boolean {
+export function isReadOnlyNibiHook(hook: Hook): boolean {
   return hook.editable === false && (hook.location?.source ?? "nibi") === "nibi";
 }
 
 function isInCompatibilitySection(hook: Hook): boolean {
-  return !isEditableHook(hook) && !isReadOnlyZCodeHook(hook);
+  return !isEditableHook(hook) && !isReadOnlyNibiHook(hook);
 }
 
 /**
@@ -126,8 +126,8 @@ export function resolveHookScopeTarget(
 }
 
 export function buildPluginHookRows(
-  plugins: readonly Pick<ZCodePluginInfo, "enabled" | "hookDetails" | "id" | "name">[],
-  installedPlugins: readonly Pick<ZCodeInstalledPluginSummary, "id" | "scope">[],
+  plugins: readonly Pick<NibiPluginInfo, "enabled" | "hookDetails" | "id" | "name">[],
+  installedPlugins: readonly Pick<NibiInstalledPluginSummary, "id" | "scope">[],
   scopeMetadataKnown: boolean,
 ): PluginHookRow[] {
   const scopeByPluginId = new Map(
@@ -157,7 +157,7 @@ export function filterPluginHooksByScope(
 }
 
 export function HooksSection({ workspacePath, workspaceIdentity }: HooksSectionProps) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const confirmDialog = useConfirmDialog();
   const hooksState = useHooksStore();
   const plugins = usePluginManagementStore((state) => state.plugins);
@@ -256,7 +256,7 @@ export function HooksSection({ workspacePath, workspaceIdentity }: HooksSectionP
     () =>
       hooksState.hooks.filter(
         (hook) =>
-          (isEditableHook(hook) || isReadOnlyZCodeHook(hook)) &&
+          (isEditableHook(hook) || isReadOnlyNibiHook(hook)) &&
           (hook.location?.scope ?? "user") === activeScope,
       ),
     [activeScope, hooksState.hooks],

@@ -42,7 +42,7 @@ describe("desktop e2e process cleanup", () => {
   it("passes both run and HOME identity markers through Electron appArgs", () => {
     const wdioSource = readFileSync(new URL("../wdio.conf.ts", import.meta.url), "utf8");
 
-    expect(CURRENT_HOME_MARKER).toBe(`--zcode-e2e-home=${CURRENT_HOME}`);
+    expect(CURRENT_HOME_MARKER).toBe(`--nibi-e2e-home=${CURRENT_HOME}`);
     expect(wdioSource).toMatch(
       /appArgs:\s*\[[\s\S]*?buildE2ERunIdArg\(E2E_RUN_ID\)[\s\S]*?createWindowsE2EHomeMarkerArg\(E2E_HOME_DIR\)[\s\S]*?\]/u,
     );
@@ -148,7 +148,7 @@ describe("desktop e2e process cleanup", () => {
         ppid: 1,
       },
       { command: "node host-process", pid: 11, ppid: 10 },
-      { command: "node zcode-agent", pid: 12, ppid: 11 },
+      { command: "node nibi-agent", pid: 12, ppid: 11 },
       {
         command: `Electron --app=${sharedEntryPoint} --no-sandbox ${buildE2ERunIdArg("run-b")}`,
         pid: 20,
@@ -171,7 +171,7 @@ describe("desktop e2e process cleanup", () => {
       { command: "Electron", pid: 10, ppid: 1 },
       { command: "Electron Helper (Renderer)", pid: 11, ppid: 10 },
       { command: "node host-process", pid: 12, ppid: 10 },
-      { command: "node zcode-agent", pid: 13, ppid: 12 },
+      { command: "node nibi-agent", pid: 13, ppid: 12 },
     ];
 
     expect(
@@ -189,7 +189,7 @@ describe("desktop e2e process cleanup", () => {
     const processes = [
       { command: "node wdio.conf.ts", pid: 9, ppid: 1 },
       { command: "chromedriver --port=55089", pid: 10, ppid: 9 },
-      { command: "ZCode E2E", pid: 11, ppid: 10 },
+      { command: "Nibi E2E", pid: 11, ppid: 10 },
       {
         command: `Electron Helper (Renderer) --user-data-dir=/repo/.e2e-cache/run-a/chromium-profiles/0-51 --config=${currentHome}/.nibi/config.json`,
         pid: 12,
@@ -201,7 +201,7 @@ describe("desktop e2e process cleanup", () => {
         pid: 22,
         ppid: 21,
       },
-      { command: "ZCode E2E", pid: 21, ppid: 20 },
+      { command: "Nibi E2E", pid: 21, ppid: 20 },
     ];
 
     expect(
@@ -218,7 +218,7 @@ describe("desktop e2e process cleanup", () => {
     const processes = [
       { command: "node wdio.conf.ts", pid: 9, ppid: 1 },
       { command: "chromedriver --port=55089", pid: 10, ppid: 9 },
-      { command: "ZCode E2E", pid: 11, ppid: 10 },
+      { command: "Nibi E2E", pid: 11, ppid: 10 },
       {
         command: `Electron Helper (Renderer) --config=${currentHome}/.nibi/config.json`,
         pid: 12,
@@ -242,21 +242,21 @@ describe("desktop e2e process cleanup", () => {
     const processes = [
       { command: "node wdio.conf.ts", pid: 9, ppid: 1 },
       { command: "chromedriver --port=55089", pid: 10, ppid: 9 },
-      { command: "ZCode E2E", pid: 11, ppid: 10 },
+      { command: "Nibi E2E", pid: 11, ppid: 10 },
       {
         command: `Electron Helper --type=gpu-process --user-data-dir=${chromiumProfileRootDir}/0-2`,
         pid: 12,
         ppid: 11,
       },
       { command: "Electron Helper", pid: 13, ppid: 11 },
-      { command: "node zcode-agent", pid: 14, ppid: 13 },
+      { command: "node nibi-agent", pid: 14, ppid: 13 },
       {
         command: "chrome_crashpad_handler --database=/tmp/zcode-e2e-run-a/.nibi/crash",
         pid: 15,
         ppid: 1,
       },
       { command: "chromedriver --port=55090", pid: 20, ppid: 9 },
-      { command: "ZCode E2E", pid: 21, ppid: 20 },
+      { command: "Nibi E2E", pid: 21, ppid: 20 },
       {
         command:
           "Electron Helper --user-data-dir=/repo/.e2e-cache/run-a-other/chromium-profiles/0-2",
@@ -323,7 +323,7 @@ describe("desktop e2e process cleanup", () => {
       { command: "zsh", pid: 6, ppid: 5 },
       { command: "node old-wdio-worker.js", pid: 7, ppid: 6 },
       { command: "chromedriver --port=55089", pid: 10, ppid: 7 },
-      { command: "ZCode E2E", pid: 11, ppid: 10 },
+      { command: "Nibi E2E", pid: 11, ppid: 10 },
       {
         command:
           "Electron Helper --user-data-dir=/repo/.e2e-cache/run-a/chromium-profiles/0-51 --config=/tmp/zcode-e2e-run-a/.nibi/config.json",
@@ -346,7 +346,7 @@ describe("desktop e2e process cleanup", () => {
       [
         `10 1 Electron ${buildE2ERunIdArg("run-a")}`,
         "11 10 node host-process",
-        "12 11 node zcode-agent",
+        "12 11 node nibi-agent",
       ].join("\n"),
     );
 
@@ -362,9 +362,9 @@ describe("desktop e2e process cleanup", () => {
   it("lists and scopes a read-only system process snapshot by explicit roots", async () => {
     const runCommand = vi.fn(async () =>
       [
-        "10 1 ZCode E2E",
+        "10 1 Nibi E2E",
         "11 10 nibi-host-local-1",
-        "12 11 zcode-cli",
+        "12 11 nibi-cli",
         "13 12 zcode-browser-use-mcp",
         "20 1 unrelated",
       ].join("\n"),
@@ -376,9 +376,9 @@ describe("desktop e2e process cleanup", () => {
     });
 
     expect(collectProcessTreeByRootPids(processes, [10])).toEqual([
-      { command: "ZCode E2E", pid: 10, ppid: 1 },
+      { command: "Nibi E2E", pid: 10, ppid: 1 },
       { command: "nibi-host-local-1", pid: 11, ppid: 10 },
-      { command: "zcode-cli", pid: 12, ppid: 11 },
+      { command: "nibi-cli", pid: 12, ppid: 11 },
       { command: "zcode-browser-use-mcp", pid: 13, ppid: 12 },
     ]);
   });
@@ -414,7 +414,7 @@ describe("desktop e2e process cleanup", () => {
     const sharedMainDir = "/repo/packages/desktop/out/main";
     const processes = [
       {
-        command: `Electron "ZCode E2E" --app=${sharedEntryPoint} --inspect=${sharedMainDir}`,
+        command: `Electron "Nibi E2E" --app=${sharedEntryPoint} --inspect=${sharedMainDir}`,
         pid: 10,
         ppid: 1,
       },
@@ -456,17 +456,17 @@ describe("desktop e2e process cleanup", () => {
     const sharedApp = "C:\\repo\\packages\\desktop\\out\\main\\index.js";
     const output = toProcessJson([
       {
-        command: `electron.exe --app=${sharedApp} --name="ZCode E2E" ${CURRENT_HOME_MARKER}`,
+        command: `electron.exe --app=${sharedApp} --name="Nibi E2E" ${CURRENT_HOME_MARKER}`,
         parentPid: 1,
         pid: 201,
       },
       {
-        command: `electron.exe --app=${sharedApp} --name="ZCode E2E" ${createWindowsE2EHomeMarkerArg("C:\\e2e\\shards\\other")}`,
+        command: `electron.exe --app=${sharedApp} --name="Nibi E2E" ${createWindowsE2EHomeMarkerArg("C:\\e2e\\shards\\other")}`,
         parentPid: 1,
         pid: 202,
       },
       {
-        command: `electron.exe --app=${sharedApp} --name="ZCode E2E" ${createWindowsE2EHomeMarkerArg(`${CURRENT_HOME}-copy`)}`,
+        command: `electron.exe --app=${sharedApp} --name="Nibi E2E" ${createWindowsE2EHomeMarkerArg(`${CURRENT_HOME}-copy`)}`,
         parentPid: 1,
         pid: 203,
       },

@@ -1,6 +1,6 @@
 //! `workspace/generateText` / `workspace/cancelGenerateText`（旧入口 141 F5）。
 //!
-//! Host 的「生成提交信息」（`GitActionMenu` → `gitCommitMessageGenerator` → `zcodeAgentService`）
+//! Host 的「生成提交信息」（`GitActionMenu` → `gitCommitMessageGenerator` → `nibiAgentService`）
 //! 用它做一次无会话补全。这里只做协议面：参数 → [`GenerateTextRequest`]，结果 → NIBI 的形状；
 //! 选择与预算的「辅助档」规则在内核（`runtime::generate_text`）。
 //!
@@ -19,7 +19,7 @@ use nibi_kernel_api::abort::{Abort, AbortReason};
 use crate::commands;
 use crate::server::{Server, kernel_error};
 
-/// Node `zcodeWorkspaceGenerateTextParamsSchema` 的必填项之一。
+/// Node `nibiWorkspaceGenerateTextParamsSchema` 的必填项之一。
 fn require_non_empty<'a>(params: &'a Value, field: &'a str) -> Result<&'a str, RpcError> {
     params[field]
         .as_str()

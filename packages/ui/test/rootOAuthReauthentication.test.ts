@@ -12,7 +12,7 @@ vi.mock("react", async (original) => ({
 }));
 vi.mock("@/hooks/useAlertDialog.js", () => ({ useAlertDialog: () => requestAlert }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
+  useNibiIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
 }));
 vi.mock("@/logger.js", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 import { useRootOAuthEffects } from "@/root/useRootOAuthEffects.js";

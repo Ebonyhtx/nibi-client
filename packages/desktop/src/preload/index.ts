@@ -77,7 +77,7 @@ import type {
   RemoteSessionReconnectedEvent,
   UpdateCheckResultPayload,
   UpdateStatePayload,
-  ZCodeStdioTapDevState,
+  NibiStdioTapDevState,
   LoadCliMcpFromUserDirectoryRequest,
   SaveCliMcpToUserDirectoryRequest,
   WorkspaceMcpTrustDecision,
@@ -103,7 +103,7 @@ import { unwrapRemoteWorkspaceBindResult } from "./remoteWorkspaceBindBridge.js"
 import {
   InternalChannels,
   PlatformChannels,
-  formatZCodeRendererProcessName,
+  formatNibiRendererProcessName,
   scopedServicePortPayloadSchema,
   shouldEnableE2ETestBridge,
 } from "@nibi/shared";
@@ -226,7 +226,7 @@ ipcRenderer.on(PlatformChannels.ShareImport, (_event: unknown, payload: { shareC
 });
 
 function updateRendererProcessTitle(): void {
-  process.title = formatZCodeRendererProcessName(document.title);
+  process.title = formatNibiRendererProcessName(document.title);
 }
 
 function notifyUpdateReadyCallbacks(version: string): void {
@@ -840,8 +840,8 @@ contextBridge.exposeInMainWorld("nibi", {
   clearEmbeddedBrowserData: (mode: "cache" | "all") =>
     ipcRenderer.invoke(PlatformChannels.ClearEmbeddedBrowserData, mode),
   /** 读取开发态 stdio tap proxy 开关状态 */
-  getZCodeStdioTapDevState: (): Promise<ZCodeStdioTapDevState> =>
-    ipcRenderer.invoke(PlatformChannels.GetZCodeStdioTapDevState),
+  getNibiStdioTapDevState: (): Promise<NibiStdioTapDevState> =>
+    ipcRenderer.invoke(PlatformChannels.GetNibiStdioTapDevState),
   /** 注册 main 进程修改 settings 后的通知，返回 disposer */
   onSettingsChanged: (callback: () => void): (() => void) => {
     const handler = () => callback();

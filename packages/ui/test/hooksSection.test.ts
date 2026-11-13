@@ -4,12 +4,12 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { HooksList, groupHookSections } from "@/settings/HooksList.js";
 import {
   buildPluginHookRows,
   filterPluginHooksByScope,
-  isReadOnlyZCodeHook,
+  isReadOnlyNibiHook,
   resolveHookScopeTarget,
   resolveLatestReviewScopeTarget,
 } from "@/settings/HooksSection.js";
@@ -203,7 +203,7 @@ describe("Hooks settings page", () => {
     expect(saved[0]?.hooks.map((hook) => hook.id)).toEqual(["hook-b"]);
   });
 
-  it("imports a compatibility hook as an enabled ZCode hook", async () => {
+  it("imports a compatibility hook as an enabled Nibi hook", async () => {
     const legacy: Hook = {
       id: "legacy",
       event: "Stop",
@@ -288,7 +288,7 @@ describe("Hooks settings page", () => {
 
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(
           TooltipProvider,
@@ -367,7 +367,7 @@ describe("Hooks settings page", () => {
 
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(
           TooltipProvider,
@@ -395,7 +395,7 @@ describe("Hooks settings page", () => {
     const untrustedConfiguredOn = workspaceConfiguredHook("pending_trust");
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(
           TooltipProvider,
@@ -425,7 +425,7 @@ describe("Hooks settings page", () => {
   it("持久信任后隐藏 Trust，并恢复配置开关的真实值与可操作性", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(
           TooltipProvider,
@@ -464,12 +464,12 @@ describe("Hooks settings page", () => {
         projectPath: "/workspace",
       },
     };
-    expect(isReadOnlyZCodeHook(readOnlyHook)).toBe(true);
-    expect(isReadOnlyZCodeHook(workspaceConfiguredHook("pending_trust"))).toBe(false);
+    expect(isReadOnlyNibiHook(readOnlyHook)).toBe(true);
+    expect(isReadOnlyNibiHook(workspaceConfiguredHook("pending_trust"))).toBe(false);
 
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(
           TooltipProvider,

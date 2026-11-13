@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  zcodeProviderUpdateAccountConfigParamsSchema,
-  zcodeProviderUpdateAccountConfigResultSchema,
+  nibiProviderUpdateAccountConfigParamsSchema,
+  nibiProviderUpdateAccountConfigResultSchema,
 } from "../src/nibi-protocol/index.js";
 
 describe("Account 快照协议", () => {
@@ -21,7 +21,7 @@ describe("Account 快照协议", () => {
   };
 
   it("完整往返 Account State，不将其当未知字段删除", () => {
-    expect(zcodeProviderUpdateAccountConfigParamsSchema.parse(snapshot)).toEqual(snapshot);
+    expect(nibiProviderUpdateAccountConfigParamsSchema.parse(snapshot)).toEqual(snapshot);
   });
 
   it.each(["not-authenticated", "not-connected", "credential-failed", "not-entitled"])(
@@ -34,7 +34,7 @@ describe("Account 快照协议", () => {
           working: { availability: "available", entitled: true },
         },
       };
-      expect(zcodeProviderUpdateAccountConfigParamsSchema.parse(mixedSnapshot)).toEqual(
+      expect(nibiProviderUpdateAccountConfigParamsSchema.parse(mixedSnapshot)).toEqual(
         mixedSnapshot,
       );
     },
@@ -42,24 +42,24 @@ describe("Account 快照协议", () => {
 
   it("缺少 states 的旧信封不能冒充完整快照，空账号状态仍可传递", () => {
     const { states: _states, ...withoutStates } = snapshot;
-    expect(zcodeProviderUpdateAccountConfigParamsSchema.safeParse(withoutStates).success).toBe(
+    expect(nibiProviderUpdateAccountConfigParamsSchema.safeParse(withoutStates).success).toBe(
       false,
     );
     expect(
-      zcodeProviderUpdateAccountConfigParamsSchema.parse({ ...withoutStates, states: {} }).states,
+      nibiProviderUpdateAccountConfigParamsSchema.parse({ ...withoutStates, states: {} }).states,
     ).toEqual({});
   });
 
   it("回执只确认接收，不把收到的版本宣称为已应用", () => {
     expect(
-      zcodeProviderUpdateAccountConfigResultSchema.parse({
+      nibiProviderUpdateAccountConfigResultSchema.parse({
         receivedRevision: "account-1",
         providerCount: 0,
         status: "received",
       }),
     ).toEqual({ receivedRevision: "account-1", providerCount: 0, status: "received" });
     expect(
-      zcodeProviderUpdateAccountConfigResultSchema.safeParse({
+      nibiProviderUpdateAccountConfigResultSchema.safeParse({
         appliedRevision: "account-1",
         providerCount: 0,
         status: "applied",
@@ -75,7 +75,7 @@ describe("Account 快照协议", () => {
     { unavailableReason: null },
   ])("拒绝状态的错误类型和非契约字段 %j", (invalid) => {
     expect(() =>
-      zcodeProviderUpdateAccountConfigParamsSchema.parse({
+      nibiProviderUpdateAccountConfigParamsSchema.parse({
         ...snapshot,
         states: { account: { ...snapshot.states.account, ...invalid } },
       }),

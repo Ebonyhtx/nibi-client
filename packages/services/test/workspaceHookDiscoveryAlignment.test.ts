@@ -85,12 +85,12 @@ describe("workspace hook Settings/Runtime discovery alignment", () => {
       true,
     ]);
 
-    const projectZCodeHooks = loaded.hooks.filter(
+    const projectNibiHooks = loaded.hooks.filter(
       (hook) => hook.location?.source === "nibi" && hook.location.scope === "project",
     );
-    expect(projectZCodeHooks).toHaveLength(2);
-    expect(projectZCodeHooks.map((hook) => hook.editable)).toEqual([false, true]);
-    expect(projectZCodeHooks.every((hook) => Boolean(hook.workspaceHook))).toBe(true);
+    expect(projectNibiHooks).toHaveLength(2);
+    expect(projectNibiHooks.map((hook) => hook.editable)).toEqual([false, true]);
+    expect(projectNibiHooks.every((hook) => Boolean(hook.workspaceHook))).toBe(true);
 
     const compatibility = loaded.hooks.find((hook) => hook.location?.source === "agents");
     expect(compatibility).toMatchObject({ enabled: false, editable: false });

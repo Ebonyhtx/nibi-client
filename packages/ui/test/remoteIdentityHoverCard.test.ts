@@ -5,7 +5,7 @@ import { afterEach, beforeAll, expect, it, vi } from "vitest";
 import { RemoteIdentityHoverCard } from "@/project-sidebar/RemoteIdentityHoverCard.js";
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }, values?: Record<string, unknown>) =>
         values ? `${id}${JSON.stringify(values)}` : id,

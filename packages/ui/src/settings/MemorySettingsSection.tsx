@@ -3,7 +3,7 @@ import { type IMemoryService, type ProjectMemoryWorkspaceSummary } from "@nibi/s
 import { TID_SETTINGS_MEMORY_SWITCH } from "@nibi/shared/test-ids";
 import { runUserAction, runUserActionAsync } from "@/lib/userActionTelemetry.js";
 import { Switch } from "@/components/ui/switch.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   MemorySettingsViewer,
   type MemoryViewerLoadingState,
@@ -56,7 +56,7 @@ export function MemorySettingsSection({
   projectMemoryViewerAvailable: boolean;
   workspaceDisplayNames?: readonly string[];
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const catalogRequestIdRef = useRef(0);
   const [catalogState, setCatalogState] = useState<MemoryViewerLoadingState>("idle");
   const [catalogError, setCatalogError] = useState<string | null>(null);

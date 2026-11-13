@@ -18,10 +18,10 @@
 // resolvePermissionBlockKind 里按名字判定的那两段注释。
 
 import { cleanup, render, screen } from "@testing-library/react";
-import type { ZCodePermissionRequest } from "@nibi/shared";
+import type { NibiPermissionRequest } from "@nibi/shared";
 import { createElement, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 // 只改 family 判定，其余行为保持真实实现。
 vi.mock("@/lib/toolIdentity.js", async (importOriginal) => {
@@ -169,11 +169,11 @@ describe("saved-workflow dispatch precedence over tool family", () => {
         overwrite: false,
         scope: "project",
       },
-    } as ZCodePermissionRequest;
+    } as NibiPermissionRequest;
 
     render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(PermissionDialog, {
           request,

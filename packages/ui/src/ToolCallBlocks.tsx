@@ -3,7 +3,7 @@ import { ToolPresentationCapabilitiesProvider } from "@/ToolCallBlocks/presentat
 import { memo, type ReactNode, useEffect, useMemo, useState } from "react";
 import { TID_CHAT_TOOL_CALL_BLOCK, testId } from "@nibi/shared/test-ids";
 import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { mapToolStatus } from "@/lib/mapToolStatus.js";
 import { buildToolDisplayModel } from "@/lib/toolDisplay.js";
 import type { TaskChatToolCallTreeNode } from "@/lib/toolCallTree.js";
@@ -160,7 +160,7 @@ function ToolCallBlockComponent({
   const inheritedPluginUi = PluginUi.usePluginUiToolBinding(toolCallNode.toolCall.toolId);
   const pluginUi = providedPluginUi ?? inheritedPluginUi;
   const { toolCall, childToolCalls } = toolCallNode;
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const isOfficeMode = useIsOfficeMode();
   const toolEntranceAnimationKey = `${streamingEntranceKeyPrefix}:${toolCall.toolId}`;
   // tool 在流式对话中新出现时如果没有淡入，会和同一段文字的渐入节奏割裂。

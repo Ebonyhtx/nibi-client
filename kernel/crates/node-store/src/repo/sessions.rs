@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/state/src/node/sessions.rs 与 session_update.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-cli-rust/crates/state/src/node/sessions.rs 与 session_update.rs（feat/rs 79b6691c55）。
 //! `session` 行（Node `repositories/sessions.ts`，docs/specs/rust-m11-node-storage.md §4）。
 //!
 //! 与复制来源的差异：只保留本 crate 用到的列与操作；`createSession` 的 insert 列与 Node 当前

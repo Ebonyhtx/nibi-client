@@ -3,14 +3,14 @@ import {
   bytesToKb,
   createMemorySampleWriteGate,
   formatMemorySampleLine,
-  mapZCodeEnvToArmsRumEnv,
+  mapNibiEnvToArmsRumEnv,
   memoryUsageToSampleFields,
   type MemorySample,
   type MemorySampleWriteGate,
   type ProcessResourceRole,
   type ProcessResourceRuntimeSurface,
   PROCESS_RESOURCE_EVENT_NAMES,
-  zcodeToolExecResourceSchema,
+  nibiToolExecResourceSchema,
 } from "@nibi/shared";
 import { BrowserWindow } from "electron";
 import os from "node:os";
@@ -87,7 +87,7 @@ interface ResourceGlobalContext {
   deviceMid: string;
   platform: NodeJS.Platform;
   appVersion: string;
-  armsEnv: ReturnType<typeof mapZCodeEnvToArmsRumEnv>;
+  armsEnv: ReturnType<typeof mapNibiEnvToArmsRumEnv>;
 }
 
 let globalContext: ResourceGlobalContext | null = null;
@@ -177,7 +177,7 @@ export function ingestToolExecResource(
   runtimeSurface: ProcessResourceRuntimeSurface,
 ): void {
   if (!globalContext) return;
-  const parsed = zcodeToolExecResourceSchema.safeParse(raw);
+  const parsed = nibiToolExecResourceSchema.safeParse(raw);
   if (!parsed.success) return;
   const sample = parsed.data;
   // 同一 Server 可经多个 workspace 和 window Host 转发完成事实；只在 main 唯一出口去重。

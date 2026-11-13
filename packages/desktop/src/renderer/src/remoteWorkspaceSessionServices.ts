@@ -19,12 +19,12 @@ export function buildRemoteWorkspaceSessionServices(
     // 远端附件必须由当前 workspace host 上传并改写路径；沿用本地服务会把
     // 桌面机的绝对路径原样传给 SSH/WSL/Docker 中的 CLI，导致附件无法读取。
     promptAttachmentTransferService: remoteServices.promptAttachmentTransferService,
-    // MCP / 插件状态检查走 zcodeAgentService 的控制面 app-server。
+    // MCP / 插件状态检查走 nibiAgentService 的控制面 app-server。
     // SSH 远端如果沿用本机 base service，会把远端 MCP 配置拿到本机 app-server 里检查，
     // 其 PATH / cwd 都不是远端环境，导致同步后仍显示 `spawn npx ENOENT`。
-    zcodeAgentService: remoteServices.zcodeAgentService,
-    zcodeTaskService: remoteServices.zcodeTaskService,
-    zcodeSessionService: remoteServices.zcodeSessionService,
+    nibiAgentService: remoteServices.nibiAgentService,
+    nibiTaskService: remoteServices.nibiTaskService,
+    nibiSessionService: remoteServices.nibiSessionService,
     // 分享使用本地登录/API，但 Rows 与文件必须绑定当前远端 connection scope。
     conversationShareService: remoteServices.conversationShareService,
     fileWatcherService: remoteServices.fileWatcherService,
@@ -59,7 +59,7 @@ export function buildServerRemoteWorkspaceSessionServices(
   _baseServices: IServiceAccessor,
   remoteServices: IServiceAccessor,
 ): IServiceAccessor {
-  // Server remote 连接的是完整运行中的 ZCode server；workspace/runtime/model-provider
+  // Server remote 连接的是完整运行中的 Nibi server；workspace/runtime/model-provider
   // 等状态以 server 为准，本地 renderer 只保留窗口与 UI shell 状态。
   return remoteServices;
 }

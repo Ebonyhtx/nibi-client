@@ -6,12 +6,12 @@ import {
 } from "@/lib/providerTelemetryIdentity.js";
 import type {
   InputId,
-  ZCodeContextCompactionTimelineMeta,
-  ZCodePersistedFileChange,
-  ZCodeProvider,
-  ZCodeStreamEvent,
-  ZCodeTimelineStatus,
-  ZCodeUsage,
+  NibiContextCompactionTimelineMeta,
+  NibiPersistedFileChange,
+  NibiProvider,
+  NibiStreamEvent,
+  NibiTimelineStatus,
+  NibiUsage,
 } from "@nibi/shared";
 import {
   CUSTOM_SUPPLIER_KEY_PREFIX,
@@ -38,7 +38,7 @@ interface PromptTelemetryState {
   waitingMs: number;
   permissionWaitsByRequestId: Map<string, PermissionWaitState>;
   firstTokenAt: number | null;
-  usage: ZCodeUsage | null;
+  usage: NibiUsage | null;
   usageEventKeys: Set<string>;
   finalizedAgentStepCount: number;
   toolCallTotal: number;
@@ -55,8 +55,8 @@ interface FinalizePromptTelemetryInput {
   taskId: string;
   status: string;
   finishedAt: number;
-  fileChanges?: readonly ZCodePersistedFileChange[];
-  usage?: ZCodeUsage;
+  fileChanges?: readonly NibiPersistedFileChange[];
+  usage?: NibiUsage;
   errorType?: string;
   errorMsg?: string;
   messageSource?: PromptMessageSource;
@@ -139,7 +139,7 @@ interface AgentStepUsageAttribution {
   requestIds: string[];
   requestCount: number;
   scope: "model_request" | "subagent_requests";
-  usage: ZCodeUsage;
+  usage: NibiUsage;
 }
 
 interface AgentStepToolAttribution {
@@ -178,7 +178,7 @@ const agentStepTelemetryByTask = new Map<string, AgentStepTelemetryState>();
 
 function resolvePromptTelemetryModelProvider(params: {
   modelName?: string | null;
-  provider?: ZCodeProvider;
+  provider?: NibiProvider;
   selectedSupplierKey?: string | null;
 }): string {
   const { modelName, provider, selectedSupplierKey } = params;
@@ -199,7 +199,7 @@ function resolvePromptTelemetryModelProvider(params: {
     return customProviderId || provider || "";
   }
 
-  // ghost supplier 代表尚未解析到稳定 custom provider 的临时隔离态，provider 维度统一回退到当前 ZCode Agent provider。
+  // ghost supplier 代表尚未解析到稳定 custom provider 的临时隔离态，provider 维度统一回退到当前 Nibi Agent provider。
   if (selectedSupplierKey.startsWith(GHOST_SUPPLIER_KEY_PREFIX)) {
     return provider ?? "";
   }
@@ -596,7 +596,7 @@ function closeToolSteps(
 export function buildPromptTelemetryExtraDetail(params: {
   askMode?: string | null;
   modelName?: string | null;
-  provider?: ZCodeProvider;
+  provider?: NibiProvider;
   selectedSupplierKey?: string | null;
   providerBaseURL?: string | null;
 }): Record<string, string> {
@@ -615,18 +615,18 @@ export function buildPromptTelemetryExtraDetail(params: {
     // provider_name 当前承载 provider hostname；不改 model_provider，避免影响既有 uuid/provider id 数仓口径。
     // 这里只从 URL 解析 hostname，不上报完整 endpoint，避免泄漏路径或 query。
     ...(providerHostname ? { provider_name: providerHostname } : {}),
-    // agent 字段取 ZCode Agent provider；本仓库没有独立 session.agentId。
+    // agent 字段取 Nibi Agent provider；本仓库没有独立 session.agentId。
     agent: params.provider ?? "",
   };
 }
 
-const COMPACTION_TERMINAL_STATUSES: readonly ZCodeTimelineStatus[] = [
+const COMPACTION_TERMINAL_STATUSES: readonly NibiTimelineStatus[] = [
   "completed",
   "failed",
   "interrupted",
 ];
 
-function isCompactionTerminalStatus(status: ZCodeTimelineStatus): boolean {
+function isCompactionTerminalStatus(status: NibiTimelineStatus): boolean {
   return COMPACTION_TERMINAL_STATUSES.includes(status);
 }
 
@@ -637,8 +637,8 @@ function isCompactionTerminalStatus(status: ZCodeTimelineStatus): boolean {
  * provider/model 维度复用 buildPromptTelemetryExtraDetail，version 由后端 reportEvent 注入。
  */
 export function buildCompactionTelemetryExtraDetail(params: {
-  timeline: ZCodeContextCompactionTimelineMeta;
-  provider?: ZCodeProvider;
+  timeline: NibiContextCompactionTimelineMeta;
+  provider?: NibiProvider;
   /** V4 fact 已从真实模型请求归一化出的 provider；优先于旧 UI supplier 推导。 */
   modelProvider?: string | null;
   modelName?: string | null;
@@ -685,7 +685,7 @@ export function buildCompactionTelemetryExtraDetail(params: {
 }
 
 function buildPromptUsageTelemetryExtraDetail(
-  usage: ZCodeUsage | undefined,
+  usage: NibiUsage | undefined,
   tokenSource?: string,
 ): Record<string, string> {
   if (!usage) {
@@ -698,14 +698,14 @@ function buildPromptUsageTelemetryExtraDetail(
     reasoning_tokens: String(usage.reasoningTokens ?? 0),
     cached_input_tokens: String(usage.cachedInputTokens ?? 0),
     cache_write_input_tokens: String(usage.cachedWriteInputTokens ?? 0),
-    // ZCode Agent 链路未透出 tool use prompt token，成功态显式补 0 保持 extraDetail 字段集合完整。
+    // Nibi Agent 链路未透出 tool use prompt token，成功态显式补 0 保持 extraDetail 字段集合完整。
     tool_use_prompt_tokens: "0",
     total_tokens: String(usage.totalTokens),
     ...(tokenSource ? { token_source: tokenSource } : {}),
   };
 }
 
-function mergePromptUsage(left: ZCodeUsage | null, right: ZCodeUsage): ZCodeUsage {
+function mergePromptUsage(left: NibiUsage | null, right: NibiUsage): NibiUsage {
   if (!left) {
     return {
       inputTokens: right.inputTokens,
@@ -758,7 +758,7 @@ function consumeComposerInputTiming(workspacePath: string, sendTime: number) {
   };
 }
 
-function collectFileChangeMetrics(fileChanges: readonly ZCodePersistedFileChange[] | undefined) {
+function collectFileChangeMetrics(fileChanges: readonly NibiPersistedFileChange[] | undefined) {
   if (!fileChanges || fileChanges.length === 0) {
     return {
       changedFileCount: 0,
@@ -961,7 +961,7 @@ export function rekeyQueuedPromptTelemetry(
 
 export function recordPromptModelRequestStarted(
   taskId: string,
-  event: Extract<ZCodeStreamEvent, { type: "task_network_debug_status" }>,
+  event: Extract<NibiStreamEvent, { type: "task_network_debug_status" }>,
   activeInputId?: string,
 ): void {
   if (event.statusType !== "model_request_started") {
@@ -1042,7 +1042,7 @@ export function recordSubagentToolAttribution(input: {
   providerName: string;
   agentId: string;
   agentRole?: AgentStepRole;
-  usage?: ZCodeUsage;
+  usage?: NibiUsage;
 }): void {
   const state = agentStepTelemetryByTask.get(input.taskId);
   const step = state?.toolStepsById.get(input.toolCallId);
@@ -1143,7 +1143,7 @@ function materializePendingModelUsageBeforeTool(input: {
 
 export function recordAgentStepTelemetryEvent(input: {
   taskId: string;
-  event: ZCodeStreamEvent;
+  event: NibiStreamEvent;
   activeInputId?: string;
   clientMode?: AgentStepTelemetryClientMode;
   toolAttribution?: AgentStepToolAttribution;
@@ -1187,7 +1187,7 @@ export function recordAgentStepTelemetryEvent(input: {
       return finalized;
 
     case "agent_message_chunk":
-      if (input.event.zcodeTimeline) {
+      if (input.event.nibiTimeline) {
         return finalized;
       }
       if (input.event.parentToolUseId) {
@@ -1391,7 +1391,7 @@ export function getActivePromptMessageId(taskId: string): string | undefined {
 export function recordPromptTokenUsageDelta(input: {
   taskId: string;
   eventKey: string;
-  usage: ZCodeUsage;
+  usage: NibiUsage;
   requestId?: string;
   modelName?: string;
   modelProvider?: string;

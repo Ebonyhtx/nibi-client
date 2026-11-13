@@ -1,11 +1,11 @@
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { setPendingSettingsSection } from "@/lib/settingsNavigation.js";
 import { formatUsageErrorMessage, isUsageCredentialError } from "@/lib/usageErrorCopy.js";
 
 export function UsageStatsErrorNotice({ error }: { error: string }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const usageErrorIsCredential = isUsageCredentialError(error);
 
   return (

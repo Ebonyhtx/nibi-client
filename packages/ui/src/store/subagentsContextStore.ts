@@ -1,10 +1,10 @@
 import { create } from "zustand";
 import type { ISubagentsService } from "@nibi/services";
 import {
-  normalizeAgentProviderToZCodeAgent,
+  normalizeAgentProviderToNibiAgent,
   type AgentSummary,
   type AgentsCapability,
-  type ZCodeProvider,
+  type NibiProvider,
 } from "@nibi/shared";
 import { logger } from "@/logger.js";
 import { getServiceAuthorityId } from "@/store/serviceAuthorityKey.js";
@@ -12,7 +12,7 @@ import { getServiceAuthorityId } from "@/store/serviceAuthorityKey.js";
 export interface SubagentsContextSnapshot {
   workspacePath: string;
   workspaceIdentity: string | null;
-  provider: ZCodeProvider;
+  provider: NibiProvider;
   agents: AgentSummary[];
   capability: AgentsCapability | null;
   loading: boolean;
@@ -24,19 +24,19 @@ interface SubagentsContextStoreState {
   contexts: Record<string, SubagentsContextSnapshot>;
   initialize: (
     workspacePath: string,
-    provider: ZCodeProvider,
+    provider: NibiProvider,
     subagentsService: ISubagentsService,
     workspaceIdentity?: string,
   ) => Promise<void>;
   refresh: (
     workspacePath: string,
-    provider: ZCodeProvider,
+    provider: NibiProvider,
     subagentsService: ISubagentsService,
     workspaceIdentity?: string,
   ) => Promise<void>;
   setEnabled: (
     workspacePath: string,
-    provider: ZCodeProvider,
+    provider: NibiProvider,
     agentId: string,
     enabled: boolean,
     subagentsService: ISubagentsService,
@@ -50,12 +50,12 @@ let nextRequestId = 0;
 
 export function getSubagentsContextKey(
   workspacePath: string,
-  provider: ZCodeProvider,
+  provider: NibiProvider,
   workspaceIdentity: string | null | undefined,
   subagentsService: ISubagentsService,
 ): string {
   const authority = getServiceAuthorityId(subagentsService);
-  return `${authority}::${workspaceIdentity?.trim() || workspacePath}::${normalizeAgentProviderToZCodeAgent(provider)}`;
+  return `${authority}::${workspaceIdentity?.trim() || workspacePath}::${normalizeAgentProviderToNibiAgent(provider)}`;
 }
 
 function updateContext(
@@ -69,7 +69,7 @@ function updateContext(
 function loadAgents(
   key: string,
   workspacePath: string,
-  provider: ZCodeProvider,
+  provider: NibiProvider,
   subagentsService: ISubagentsService,
   workspaceIdentity?: string,
   bypassCache = false,
@@ -90,7 +90,7 @@ function loadAgents(
 async function loadContext(
   params: {
     workspacePath: string;
-    provider: ZCodeProvider;
+    provider: NibiProvider;
     subagentsService: ISubagentsService;
     workspaceIdentity?: string;
     bypassCache: boolean;
@@ -100,7 +100,7 @@ async function loadContext(
   ) => void,
   get: () => SubagentsContextStoreState,
 ): Promise<void> {
-  const provider = normalizeAgentProviderToZCodeAgent(params.provider);
+  const provider = normalizeAgentProviderToNibiAgent(params.provider);
   const workspaceIdentity = params.workspaceIdentity?.trim() || undefined;
   const key = getSubagentsContextKey(
     params.workspacePath,

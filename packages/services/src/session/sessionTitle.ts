@@ -1,8 +1,8 @@
-import type { ZCodePromptAttachment } from "@nibi/shared";
+import type { NibiPromptAttachment } from "@nibi/shared";
 
 export function deriveSessionTitle(
   content: string,
-  attachments: readonly ZCodePromptAttachment[],
+  attachments: readonly NibiPromptAttachment[],
 ): string {
   if (content.length > 0) {
     return content.slice(0, 50) + (content.length > 50 ? "..." : "");

@@ -5,19 +5,19 @@
 // shared channels.ts（旧 host 通道表）。
 // 运行时 zod schema 与 resolveWorkspaceKey 已迁 task-realtime-core.ts（幸存面）；
 // 基础传输类型（TaskRealtimeReason/TaskStreamMirrorOp/TaskStreamWatermark 等）已迁
-// zcode-task-types-core.ts。本文件与旧 realtime 总线组同生命周期。
+// nibi-task-types-core.ts。本文件与旧 realtime 总线组同生命周期。
 import type {
-  ZCodeTaskClientMode,
-  ZCodeTaskRuntimeCommand,
-  ZCodeTaskMeta,
+  NibiTaskClientMode,
+  NibiTaskRuntimeCommand,
+  NibiTaskMeta,
   TraceId,
   TaskRealtimeReason,
   TaskStreamWatermark,
   TaskStreamMirrorUserMessageOp,
   TaskStreamMirrorStreamEventOp,
   TaskStreamMirrorOp,
-} from "./zcode-task-types-core.js";
-import type { ZCodePermissionResponse } from "./nibi-protocol-legacy-types.js";
+} from "./nibi-task-types-core.js";
+import type { NibiPermissionResponse } from "./nibi-protocol-legacy-types.js";
 import type { WorkspaceHookReviewDecision } from "./nibi-protocol-v4/workspace-hook-review.js";
 
 export interface TaskRealtimeEnvelope {
@@ -42,7 +42,7 @@ export interface TaskSnapshotInvalidatedEvent extends TaskRealtimeInvalidationBa
 export interface WorkspaceTaskListInvalidatedEvent extends TaskRealtimeInvalidationBaseEvent {
   type: "workspace_task_list_invalidated";
   taskId?: string;
-  taskMeta?: ZCodeTaskMeta;
+  taskMeta?: NibiTaskMeta;
 }
 
 export interface TaskStreamMirrorTarget {
@@ -112,7 +112,7 @@ export type TaskOwnerCommandRequest =
       runId: string;
       permissionRequestId: string;
       optionId: string;
-      response: ZCodePermissionResponse;
+      response: NibiPermissionResponse;
     }
   | {
       commandRequestId: string;
@@ -150,7 +150,7 @@ export type TaskOwnerCommandRequest =
       workspaceKey: string;
       taskId: string;
       runId: string;
-      taskCommand: Extract<ZCodeTaskRuntimeCommand, { type: "send_prompt" }>;
+      taskCommand: Extract<NibiTaskRuntimeCommand, { type: "send_prompt" }>;
     }
   | {
       commandRequestId: string;
@@ -161,7 +161,7 @@ export type TaskOwnerCommandRequest =
       taskId: string;
       runId: string;
       commandId: string;
-      clientMode: Extract<ZCodeTaskClientMode, "web-remote-replayable">;
+      clientMode: Extract<NibiTaskClientMode, "web-remote-replayable">;
     }
   | {
       commandRequestId: string;
@@ -172,7 +172,7 @@ export type TaskOwnerCommandRequest =
       taskId: string;
       runId: string;
       commandId: string;
-      clientMode: Extract<ZCodeTaskClientMode, "web-remote-replayable">;
+      clientMode: Extract<NibiTaskClientMode, "web-remote-replayable">;
     };
 
 export type TaskOwnerCommandDelivery = TaskOwnerCommandRequest & {
@@ -185,7 +185,7 @@ export type TaskOwnerCommandErrorCode =
   | "OWNER_COMMAND_FAILED";
 
 export type TaskOwnerCommandResult =
-  | { commandRequestId: string; success: true; taskCommand?: ZCodeTaskRuntimeCommand }
+  | { commandRequestId: string; success: true; taskCommand?: NibiTaskRuntimeCommand }
   | {
       commandRequestId: string;
       success: false;

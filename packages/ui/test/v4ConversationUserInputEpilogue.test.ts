@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { UserInputRow } from "@nibi/shared/nibi-protocol-v4";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
 import { DEFAULT_CODE_PREVIEW_SETTINGS } from "@/lib/codePreviewSettings.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { ConversationRowView } from "@/v4/ConversationRowView.js";
 import type { ConversationRowRenderContext } from "@/v4/conversationRowContext.js";
 
@@ -42,7 +42,7 @@ function userInputRow(overrides: Partial<UserInputRow> = {}): UserInputRow {
 function element(row: UserInputRow, locale: "en-US" | "zh-CN" = "en-US") {
   // 用户行的 MessageActions 挂着 Tooltip，需要 provider 在场（与真实宿主一致）。
   return createElement(
-    ZCodeIntlProvider,
+    NibiIntlProvider,
     { initialLocale: locale },
     createElement(TooltipProvider, null, createElement(ConversationRowView, { context, row })),
   );

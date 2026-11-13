@@ -26,7 +26,7 @@ describe("planStorageClean", () => {
       categoryId: "devTraces",
       candidates: [
         candidate("v2/dev/stdio-traffic/a/x.ndjson"),
-        candidate("v2/dev/zcode-stdio-tap.json"),
+        candidate("v2/dev/nibi-stdio-tap.json"),
         candidate("v2/logs/a.log"),
       ],
       context,

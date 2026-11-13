@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash-parse/src/parser.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
+// 复制自 apps/nibi-cli-rust/crates/bash-parse/src/parser.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
 //! unbash 4.0.1 `Parser`（dist/parser.js）中 list / and_or / pipeline / 简单命令的移植。
 //!
 //! peek 缓存与上下文无关：先以 CommandStart 预读的 token 之后用 Normal 取出时仍保持原来的类型，

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ZCodeSlashCommand } from "@nibi/shared";
+import type { NibiSlashCommand } from "@nibi/shared";
 import {
   buildAppSlashCommandSuggestions,
   buildSkillSuggestions,
@@ -20,7 +20,7 @@ describe("slashCommandHelpers", () => {
   });
 
   it("buildSlashSuggestions 逐项展示 CLI catalog，不在 UI 维护内建白名单", () => {
-    const commands: ZCodeSlashCommand[] = [
+    const commands: NibiSlashCommand[] = [
       {
         name: "review",
         description: "run review",
@@ -109,7 +109,7 @@ describe("slashCommandHelpers", () => {
     expect(result.map((item) => item.value)).toEqual(["review", "compact"]);
   });
 
-  it("buildSlashSuggestions 会规范化已带 / 的 ZCode Agent 命令名", () => {
+  it("buildSlashSuggestions 会规范化已带 / 的 Nibi Agent 命令名", () => {
     const result = buildSlashSuggestions([
       {
         name: "/compact",

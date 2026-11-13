@@ -134,7 +134,7 @@ describe("web Vite config", () => {
     },
   );
 
-  it("uses shared ZCode endpoint env override for renderer injection", async () => {
+  it("uses shared Nibi endpoint env override for renderer injection", async () => {
     vi.stubEnv("NIBI_ENV", "test");
     vi.stubEnv("NIBI_BASE_URL", "https://zcode.z.ai/custom/path");
     const webRoot = resolve(import.meta.dirname, "..");

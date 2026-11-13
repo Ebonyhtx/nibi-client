@@ -1,8 +1,8 @@
 /** MCP 每个上报窗口只交一份合计；瞬时读数不进入会话、队列或持久化。 */
 import {
-  zcodeMcpResourceSamplesSchema,
+  nibiMcpResourceSamplesSchema,
   NIBI_MCP_RESOURCE_SAMPLE_INTERVAL_MS,
-  type ZCodeMcpResourceSample,
+  type NibiMcpResourceSample,
   type ProcessResourceRuntimeSurface,
 } from "@nibi/shared";
 import { logger } from "./logger.js";
@@ -19,7 +19,7 @@ import {
 const MAX_MCP_GROUPS_PER_WINDOW = 32;
 const MAX_MCP_INSTANCE_SAMPLES = 256;
 interface StoredSample {
-  sample: ZCodeMcpResourceSample;
+  sample: NibiMcpResourceSample;
   runtimeSurface: ProcessResourceRuntimeSurface;
   environmentKey?: string;
   receivedAt: number;
@@ -38,7 +38,7 @@ export function ingestMcpResourceSamples(
   runtimeSurface: ProcessResourceRuntimeSurface,
   environmentKey?: string,
 ): void {
-  const parsed = zcodeMcpResourceSamplesSchema.safeParse(raw);
+  const parsed = nibiMcpResourceSamplesSchema.safeParse(raw);
   if (!parsed.success) return;
   const receivedAt = Date.now();
   purgeExpired(receivedAt);

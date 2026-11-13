@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { Emitter } from "@nibi/rpc";
-import type { IZCodeTaskService } from "@nibi/services";
-import type { ZCodeTaskMeta, ZCodeWorkspaceEvent } from "@nibi/shared";
+import type { INibiTaskService } from "@nibi/services";
+import type { NibiTaskMeta, NibiWorkspaceEvent } from "@nibi/shared";
 import { createWindowHostControllerRuntime } from "@desktop/host/windowHostControllerService.js";
 import {
   collectArchivedTaskDeletion,
@@ -9,10 +9,10 @@ import {
 } from "@/lib/archivedTaskDeletion.js";
 
 function createSource(count: number, workspacePath = "/isolated/probe") {
-  const events = new Emitter<ZCodeWorkspaceEvent>();
-  const rows = new Map<string, ZCodeTaskMeta>(
+  const events = new Emitter<NibiWorkspaceEvent>();
+  const rows = new Map<string, NibiTaskMeta>(
     Array.from({ length: count }, (_, index) => {
-      const task: ZCodeTaskMeta = {
+      const task: NibiTaskMeta = {
         taskId: `task-${index}`,
         traceId: `trace-${index}`,
         title: `task-${index}`,
@@ -58,7 +58,7 @@ describe("归档批次跨 UI / Controller 的刷新边界", () => {
       resolveSource: () => ({
         scope: { kind: "local", workspacePath },
         sourceAvailability: "online",
-        taskService: source as unknown as IZCodeTaskService,
+        taskService: source as unknown as INibiTaskService,
       }),
     });
     try {
@@ -112,7 +112,7 @@ describe("归档批次跨 UI / Controller 的刷新边界", () => {
       resolveSource: () => ({
         scope: { kind: "local", workspacePath },
         sourceAvailability: "online",
-        taskService: source as unknown as IZCodeTaskService,
+        taskService: source as unknown as INibiTaskService,
       }),
     });
     try {
@@ -139,7 +139,7 @@ describe("归档批次跨 UI / Controller 的刷新边界", () => {
       resolveSource: () => ({
         scope: { kind: "remote", workspacePath, workspaceIdentity, remoteSessionId },
         sourceAvailability: online ? "online" : "offline",
-        taskService: source as unknown as IZCodeTaskService,
+        taskService: source as unknown as INibiTaskService,
       }),
     });
     try {

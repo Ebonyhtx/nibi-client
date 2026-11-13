@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash-parse/src/lexer/chars.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
+// 复制自 apps/nibi-cli-rust/crates/bash-parse/src/lexer/chars.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
 //! unbash `chars.js` 常量与 lexer 的字符分类表。
 
 /// JS `charCodeAt` 越界返回 NaN：与任何字符比较都为假，也不属于任何字符表。

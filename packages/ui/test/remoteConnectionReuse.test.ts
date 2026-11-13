@@ -23,7 +23,7 @@ it.each([false, true])(
       settingService: { get: async () => ({}), update: vi.fn(async () => undefined) },
       credentialService: { load: async () => null, save, delete: vi.fn() },
       fileService: { resolvePath: async ({ path }: { path: string }) => path },
-      zcodeTaskService: {
+      nibiTaskService: {
         listPinnedTasks: async () => [],
         listTasks: async () => ({ items: [], total: 0, hasMore: false }),
       },

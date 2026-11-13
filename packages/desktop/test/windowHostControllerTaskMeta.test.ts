@@ -1,6 +1,6 @@
 import { expect, it, vi } from "vitest";
-import type { IZCodeTaskService } from "@nibi/services";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { INibiTaskService } from "@nibi/services";
+import type { NibiTaskMeta } from "@nibi/shared";
 import type { WindowHostTaskAddress } from "@nibi/shared/nibi-protocol-v4";
 import { createWindowHostControllerRuntime } from "@desktop/host/windowHostControllerService.js";
 
@@ -15,7 +15,7 @@ const remote: WindowHostTaskAddress = {
 function fixture() {
   let session = "attachment-1";
   let availability: "online" | "offline" = "online";
-  const meta = (unreadAt: number): ZCodeTaskMeta => ({
+  const meta = (unreadAt: number): NibiTaskMeta => ({
     taskId: "same",
     workspacePath: "/repo",
     title: "Task",
@@ -26,9 +26,9 @@ function fixture() {
     unreadAt,
   });
   const createService = (marker: number) => ({
-    getTaskMeta: vi.fn<IZCodeTaskService["getTaskMeta"]>().mockResolvedValue(meta(marker)),
+    getTaskMeta: vi.fn<INibiTaskService["getTaskMeta"]>().mockResolvedValue(meta(marker)),
     listTasks: vi
-      .fn<IZCodeTaskService["listTasks"]>()
+      .fn<INibiTaskService["listTasks"]>()
       .mockRejectedValue(new Error("must not hydrate list")),
   });
   const localService = createService(11);
@@ -46,12 +46,12 @@ function fixture() {
               workspaceIdentity: remote.workspaceIdentity,
             },
             sourceAvailability: availability,
-            taskService: remoteService as unknown as IZCodeTaskService,
+            taskService: remoteService as unknown as INibiTaskService,
           }
         : {
             scope: { kind: "local", workspacePath: "/repo" },
             sourceAvailability: "online",
-            taskService: localService as unknown as IZCodeTaskService,
+            taskService: localService as unknown as INibiTaskService,
           },
   });
   return {
@@ -116,7 +116,7 @@ it.each(["service", "session", "offline", "disposed"])(
   "rejects a changed owner during the read (%s)",
   async (kind) => {
     const f = fixture();
-    const read = Promise.withResolvers<ZCodeTaskMeta | null>();
+    const read = Promise.withResolvers<NibiTaskMeta | null>();
     f.remoteService.getTaskMeta.mockImplementationOnce(() => read.promise);
     try {
       const reading = f.runtime.service.getTaskMeta({ address: remote });
@@ -159,8 +159,8 @@ it("propagates owner IO failures and distinguishes a missing task", async () => 
 
 it("reads a legacy remote workspace only with its trusted current attachment ID", async () => {
   const workspaceIdentity = "remote:ssh:example.test:22:dev:/repo";
-  const getTaskMeta = vi.fn<IZCodeTaskService["getTaskMeta"]>().mockResolvedValue(null);
-  const taskService = { getTaskMeta } as unknown as IZCodeTaskService;
+  const getTaskMeta = vi.fn<INibiTaskService["getTaskMeta"]>().mockResolvedValue(null);
+  const taskService = { getTaskMeta } as unknown as INibiTaskService;
   const runtime = createWindowHostControllerRuntime({
     createId: () => crypto.randomUUID(),
     resolveSource: () => ({

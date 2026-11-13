@@ -353,7 +353,7 @@ describe(`${CASE_MARKER}: 侧栏详情和设备菜单`, () => {
       { timeout: 30_000 },
     );
     // 当前远端断线时输入框不可操作；从本地草稿验证菜单内离线项目，覆盖实际可用入口。
-    const localProject = $('[data-project-name="ZCodeProject"]');
+    const localProject = $('[data-project-name="NibiProject"]');
     await localProject.moveTo();
     await localProject.$('[data-testid="virtual-project-create-task"]').click();
     await waitForWorkspaceApp(DEFAULT_WORKSPACE, 30_000);

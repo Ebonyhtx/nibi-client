@@ -28,8 +28,8 @@ describe("providerRuntimeResolver workspace config dir identity", () => {
     }
   });
 
-  it("GLM 配置目录由 ZCode Agent home 统一承载，不再按 workspaceIdentity 计算", () => {
-    const home = mkdtempSync(join(tmpdir(), "zcode-agent-resolver-home-"));
+  it("GLM 配置目录由 Nibi Agent home 统一承载，不再按 workspaceIdentity 计算", () => {
+    const home = mkdtempSync(join(tmpdir(), "nibi-agent-resolver-home-"));
     createdDirs.push(home);
     process.env.HOME = home;
     // Bugfix: paths.ts 会在模块加载时固定默认 dataBaseDir，测试不能只改 HOME。

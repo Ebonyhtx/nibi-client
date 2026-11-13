@@ -3,7 +3,7 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState, type PointerEvent
 import { Button } from "@/components/ui/button.js";
 import { Input } from "@/components/ui/input.js";
 import { toast } from "@/components/ui/toast.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 import { exportAnnotatedImage, AnnotationLayer } from "./annotations.js";
 import { captureImageComposerTarget } from "./composerTarget.js";
@@ -68,7 +68,7 @@ export function ImageEditorSurface({
   savePlacement = "top-left",
   saveTestId,
 }: ImageEditorSurfaceProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const viewportRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const overlayRef = useRef<SVGSVGElement>(null);

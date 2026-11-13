@@ -1,6 +1,6 @@
 //! Node CLI 配置文件里的 `hooks` 段（docs/specs/rust-cli/hooks.md §2.2、config.md §4）。
 //!
-//! 外形是 Node 的 `HooksRuntimeConfigPatch`（`apps/zcode-cli/packages/contracts/src/hooks/index.ts`、
+//! 外形是 Node 的 `HooksRuntimeConfigPatch`（`apps/nibi-cli/packages/contracts/src/hooks/index.ts`、
 //! `adapters/src/config/schema.ts`）：`{enabled, timeoutMs, maxOutputBytes, events: {<事件>: [{matcher,
 //! hooks: [{type: "command" | "process", …}]}]}}`。事件名接受 hooks 设置的全部 33 个（Node 只认 7 个）。
 //! 这里只解析与转换，不做 IO；坏项跳过并给出警告（D1）。项目级的信任 digest 见 `workspace_digest`。

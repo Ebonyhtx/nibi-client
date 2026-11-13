@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import { version as readOsVersion } from "node:os";
 import { join } from "node:path";
 import {
-  buildZCodeSourceHeadersFromContext,
-  normalizeZCodeSourceHeaderValue,
+  buildNibiSourceHeadersFromContext,
+  normalizeNibiSourceHeaderValue,
   NIBI_ENV,
   NIBI_SOURCE_HEADERS,
   NIBI_VERSION,
@@ -12,7 +12,7 @@ import { getAppConfigDir } from "../paths.js";
 
 export { NIBI_SOURCE_HEADERS };
 
-interface ZCodeSourceHeaderOptions {
+interface NibiSourceHeaderOptions {
   appVersion?: string;
   arch?: string;
   clientLanguage?: string;
@@ -25,7 +25,7 @@ interface ZCodeSourceHeaderOptions {
 let cachedDeviceMid: { stateFile: string; value: string } | null = null;
 
 function normalizePrintableHeaderValue(value: string | undefined): string | undefined {
-  return normalizeZCodeSourceHeaderValue(value);
+  return normalizeNibiSourceHeaderValue(value);
 }
 
 function resolveClientLanguage(): string {
@@ -62,8 +62,8 @@ function readExistingDeviceMid(): string | undefined {
   }
 }
 
-export function buildZCodeSourceHeaders(
-  options: ZCodeSourceHeaderOptions = {},
+export function buildNibiSourceHeaders(
+  options: NibiSourceHeaderOptions = {},
 ): Record<string, string> {
   const platform = options.platform ?? process.platform;
   const arch = options.arch ?? process.arch;
@@ -76,7 +76,7 @@ export function buildZCodeSourceHeaders(
   const osVersion = normalizePrintableHeaderValue(options.osVersion ?? readOsVersion());
   const deviceMid = readExistingDeviceMid();
 
-  return buildZCodeSourceHeadersFromContext({
+  return buildNibiSourceHeadersFromContext({
     appVersion,
     arch,
     clientLanguage,

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type {
-  ZCodeAvailablePluginSummary,
-  ZCodeInstalledPluginSummary,
-  ZCodePluginInfo,
-  ZCodePluginMarketplaceSummary,
+  NibiAvailablePluginSummary,
+  NibiInstalledPluginSummary,
+  NibiPluginInfo,
+  NibiPluginMarketplaceSummary,
 } from "@nibi/shared";
 import {
   buildStoreItems,
@@ -23,8 +23,8 @@ import {
 } from "../src/settings/pluginStoreListing.js";
 
 function makeSummary(
-  overrides: Partial<ZCodeAvailablePluginSummary> & { id: string },
-): ZCodeAvailablePluginSummary {
+  overrides: Partial<NibiAvailablePluginSummary> & { id: string },
+): NibiAvailablePluginSummary {
   const [name = "", marketplace = ""] = overrides.id.split("@");
   return {
     name,
@@ -34,7 +34,7 @@ function makeSummary(
   };
 }
 
-function makeInfo(overrides: Partial<ZCodePluginInfo> & { id: string }): ZCodePluginInfo {
+function makeInfo(overrides: Partial<NibiPluginInfo> & { id: string }): NibiPluginInfo {
   const [name = "", marketplace = ""] = overrides.id.split("@");
   return {
     name,
@@ -50,8 +50,8 @@ function makeInfo(overrides: Partial<ZCodePluginInfo> & { id: string }): ZCodePl
 }
 
 function makeMarketplace(
-  overrides: Partial<ZCodePluginMarketplaceSummary> & { id: string },
-): ZCodePluginMarketplaceSummary {
+  overrides: Partial<NibiPluginMarketplaceSummary> & { id: string },
+): NibiPluginMarketplaceSummary {
   return {
     name: overrides.id,
     source: {},
@@ -129,7 +129,7 @@ describe("pluginStoreListing", () => {
           marketplace: "nibi-official",
           enabled: true,
           scope: "user",
-        } as ZCodeInstalledPluginSummary,
+        } as NibiInstalledPluginSummary,
       ],
       plugins: [
         makeInfo({ id: "a@nibi-official" }),
@@ -224,7 +224,7 @@ describe("pluginStoreListing", () => {
           marketplace: "nibi-official",
           enabled: true,
           scope: "user",
-        } as ZCodeInstalledPluginSummary,
+        } as NibiInstalledPluginSummary,
       ],
       plugins: [makeInfo({ id: "document-skills@nibi-official", enabled: true })],
       restorableBuiltins: [makeSummary({ id: "document-skills@nibi-official" })],
@@ -252,7 +252,7 @@ describe("pluginStoreListing", () => {
           enabled: true,
           scope: "user",
           updateStatus: "update-available",
-        } as ZCodeInstalledPluginSummary,
+        } as NibiInstalledPluginSummary,
       ],
       plugins: [makeInfo({ id: "orphan@personal-market" })],
       restorableBuiltins: [],
@@ -267,7 +267,7 @@ describe("pluginStoreListing", () => {
   });
 
   it("does not infer orphaned from a missing catalog listing when the source still exists", () => {
-    const installedMeta: ZCodeInstalledPluginSummary = {
+    const installedMeta: NibiInstalledPluginSummary = {
       id: "installed@personal-market",
       name: "installed",
       marketplace: "personal-market",
@@ -332,7 +332,7 @@ describe("pluginStoreListing", () => {
   });
 
   it("allows updates only when the installed item still has a marketplace source", () => {
-    const installedMeta: ZCodeInstalledPluginSummary = {
+    const installedMeta: NibiInstalledPluginSummary = {
       id: "plugin@personal-market",
       name: "plugin",
       marketplace: "personal-market",
@@ -467,7 +467,7 @@ describe("pluginStoreListing", () => {
           enabled: true,
           scope: "user",
           installedAt: "2026-01-01T00:00:00Z",
-        } as ZCodeInstalledPluginSummary,
+        } as NibiInstalledPluginSummary,
         {
           id: "new@m",
           name: "new",
@@ -475,7 +475,7 @@ describe("pluginStoreListing", () => {
           enabled: true,
           scope: "user",
           installedAt: "2026-07-01T00:00:00Z",
-        } as ZCodeInstalledPluginSummary,
+        } as NibiInstalledPluginSummary,
         {
           id: "builtin@nibi-official",
           name: "builtin",
@@ -483,7 +483,7 @@ describe("pluginStoreListing", () => {
           enabled: true,
           scope: "user",
           installedAt: "2025-01-01T00:00:00Z",
-        } as ZCodeInstalledPluginSummary,
+        } as NibiInstalledPluginSummary,
       ],
       plugins: [
         makeInfo({ id: "old@m" }),
@@ -633,12 +633,12 @@ describe("resolvePluginEnableScope", () => {
     expect(resolvePluginEnableScope({ info: undefined })).toBe("user");
     expect(
       resolvePluginEnableScope({
-        info: { enabledSource: "user" } as ZCodePluginInfo,
+        info: { enabledSource: "user" } as NibiPluginInfo,
       }),
     ).toBe("user");
     expect(
       resolvePluginEnableScope({
-        info: { enabledSource: "workspace" } as ZCodePluginInfo,
+        info: { enabledSource: "workspace" } as NibiPluginInfo,
       }),
     ).toBe("workspace");
   });

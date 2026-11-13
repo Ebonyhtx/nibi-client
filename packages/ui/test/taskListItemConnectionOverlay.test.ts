@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import {
   MemoTaskItem,
   shouldShowRemoteConnectionOverlay,
@@ -21,7 +21,7 @@ vi.mock("@/useTaskListItemContextActions.js", () => ({
 }));
 
 function renderRemoteTask(variant: "default" | "timeline") {
-  const task: ZCodeTaskMeta = {
+  const task: NibiTaskMeta = {
     taskId: "remote-task",
     traceId: "remote-trace",
     title: "Remote task",

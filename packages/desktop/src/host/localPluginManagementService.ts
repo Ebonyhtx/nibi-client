@@ -12,7 +12,7 @@
 // - `onDynamicPluginOperationProgress`：同上，继续订阅 agent 事件。
 //
 // 插件的运行时（MCP/hooks/skills/commands/UI）仍在会话内核里，不因管理面下沉而改变。
-import { resolveWorkspaceKey, type ZCodeWorkspaceRef } from "@nibi/shared";
+import { resolveWorkspaceKey, type NibiWorkspaceRef } from "@nibi/shared";
 import {
   addPluginMarketplace,
   configurePlugin,
@@ -31,13 +31,13 @@ import {
   validatePlugin,
   type PluginManagementContext,
 } from "@nibi/bootstrap/plugin-management";
-import type { IPluginManagementService, IZCodeAgentService } from "@nibi/services";
+import type { IPluginManagementService, INibiAgentService } from "@nibi/services";
 import { createServiceLogger } from "@nibi/services/node";
 
 type PluginLogger = NonNullable<PluginManagementContext["logger"]>;
 
 type PluginFallback = Pick<
-  IZCodeAgentService,
+  INibiAgentService,
   | "getPluginReferenceCatalog"
   | "resolveSuggestedPluginReference"
   | "onDynamicPluginOperationProgress"
@@ -55,7 +55,7 @@ function toWorkspaceRef(params: {
   workspacePath: string;
   workspaceIdentity?: string;
   remoteSessionId?: string;
-}): ZCodeWorkspaceRef {
+}): NibiWorkspaceRef {
   return {
     workspacePath: params.workspacePath,
     workspaceKey: resolveWorkspaceKey(params),

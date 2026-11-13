@@ -106,7 +106,7 @@ describe("settingsSyncService Provider 导入边界", () => {
 });
 
 describe("settingsSyncService Claude AGENTS.md migration", () => {
-  it("copies Claude user memory into a fresh default ZCode AGENTS.md", async () => {
+  it("copies Claude user memory into a fresh default Nibi AGENTS.md", async () => {
     const home = makeTempHome();
     const workspacePath = join(home, "workspace");
     process.env.HOME = home;
@@ -123,7 +123,7 @@ describe("settingsSyncService Claude AGENTS.md migration", () => {
       supported: true,
     });
     await expect(
-      service.copyClaudeAgentsFileToZcodeAgentsFile({
+      service.copyClaudeAgentsFileToNibiAgentsFile({
         workspacePath,
         overwrite: false,
       }),
@@ -136,7 +136,7 @@ describe("settingsSyncService Claude AGENTS.md migration", () => {
     expect(readFileSync(join(home, ".nibi", "AGENTS.md"), "utf-8")).toBe("claude memory");
   });
 
-  it("detects and overwrites default ZCode AGENTS.md from Claude user memory", async () => {
+  it("detects and overwrites default Nibi AGENTS.md from Claude user memory", async () => {
     const home = makeTempHome();
     const workspacePath = join(home, "workspace");
     process.env.HOME = home;
@@ -157,7 +157,7 @@ describe("settingsSyncService Claude AGENTS.md migration", () => {
     });
 
     await expect(
-      service.copyClaudeAgentsFileToZcodeAgentsFile({
+      service.copyClaudeAgentsFileToNibiAgentsFile({
         workspacePath,
         overwrite: false,
       }),
@@ -171,7 +171,7 @@ describe("settingsSyncService Claude AGENTS.md migration", () => {
     expect(readFileSync(join(home, ".nibi", "AGENTS.md"), "utf-8")).toBe("existing agents");
 
     await expect(
-      service.copyClaudeAgentsFileToZcodeAgentsFile({
+      service.copyClaudeAgentsFileToNibiAgentsFile({
         workspacePath,
         overwrite: true,
       }),
@@ -201,7 +201,7 @@ describe("settingsSyncService Claude AGENTS.md migration", () => {
       unavailableReason: "missingSource",
     });
     await expect(
-      service.copyClaudeAgentsFileToZcodeAgentsFile({
+      service.copyClaudeAgentsFileToNibiAgentsFile({
         workspacePath,
         overwrite: true,
       }),
@@ -232,7 +232,7 @@ describe("settingsSyncService commands import", () => {
     await expect(service.detect({ workspacePath })).resolves.toEqual({ agents: [] });
   });
 
-  it("scans and imports selected user commands into ZCode as symlinks by default", async () => {
+  it("scans and imports selected user commands into Nibi as symlinks by default", async () => {
     const home = makeTempHome();
     const workspacePath = join(home, "workspace");
     process.env.HOME = home;
@@ -726,7 +726,7 @@ describe("settingsSyncService MCP server import", () => {
     await expect(service.detect({ workspacePath })).resolves.toEqual({ agents: [] });
   });
 
-  it("scans and imports selected Claude MCP servers into global ZCode config", async () => {
+  it("scans and imports selected Claude MCP servers into global Nibi config", async () => {
     const home = makeTempHome();
     const workspacePath = join(home, "workspace");
     process.env.HOME = home;
@@ -986,7 +986,7 @@ describe("settingsSyncService skills import", () => {
     await expect(service.detect({ workspacePath })).resolves.toEqual({ agents: [] });
   });
 
-  it("imports selected user skills into the ZCode user skills directory as symlinks by default", async () => {
+  it("imports selected user skills into the Nibi user skills directory as symlinks by default", async () => {
     const home = makeTempHome();
     const workspacePath = join(home, "workspace");
     process.env.HOME = home;
@@ -1546,7 +1546,7 @@ describe("settingsSyncService skills import", () => {
     ]);
   });
 
-  it("skips imported skills when an existing ZCode skill has the same name", async () => {
+  it("skips imported skills when an existing Nibi skill has the same name", async () => {
     const home = makeTempHome();
     const workspacePath = join(home, "workspace");
     process.env.HOME = home;

@@ -181,7 +181,7 @@ describe("useRemoteWorkspaceHistory Source Directory identity projection", () =>
       fileService: {},
       modelSelectionService: {},
       providerSettingsService: {},
-      zcodeSessionService: {},
+      nibiSessionService: {},
     } as unknown as IServiceAccessor;
     const platform = {
       connectRemote,
@@ -300,7 +300,7 @@ describe("useRemoteWorkspaceHistory Source Directory identity projection", () =>
       fileService: {},
       modelSelectionService: {},
       providerSettingsService: {},
-      zcodeSessionService: {},
+      nibiSessionService: {},
     } as unknown as IServiceAccessor;
     const platform = {
       connectRemote: vi.fn(() => new Promise<string>(() => undefined)),
@@ -412,7 +412,7 @@ describe("useRemoteWorkspaceHistory Source Directory identity projection", () =>
       fileService: {},
       modelSelectionService: {},
       providerSettingsService: {},
-      zcodeSessionService: {},
+      nibiSessionService: {},
     } as unknown as IServiceAccessor;
     const platform = {
       connectRemote,

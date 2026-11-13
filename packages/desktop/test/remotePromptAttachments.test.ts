@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { PassThrough } from "node:stream";
 import type { IDisposable, Event } from "@nibi/rpc";
-import type { ZCodePromptAttachment } from "@nibi/shared";
+import type { NibiPromptAttachment } from "@nibi/shared";
 import {
   REMOTE_PROMPT_ATTACHMENT_ROOT,
   buildRemotePromptAttachmentPath,
@@ -34,7 +34,7 @@ describe("remote prompt attachment materialization", () => {
       .mockResolvedValueOnce(createClosedStream())
       .mockResolvedValueOnce(createClosedStream());
     const hostPath = "C:\\Users\\tester\\.nibi\\tmp\\paste-attachments\\pasted-text.txt";
-    const attachments: ZCodePromptAttachment[] = [
+    const attachments: NibiPromptAttachment[] = [
       {
         kind: "file",
         filename: "pasted text.txt",
@@ -85,7 +85,7 @@ describe("remote prompt attachment materialization", () => {
     const upload = vi.fn(async (_localPath: string, _remotePath: string) => undefined);
     const exec = vi.fn(async (_command: string) => createClosedStream());
     const remotePath = `${REMOTE_PROMPT_ATTACHMENT_ROOT}/trace/01-image.png`;
-    const attachments: ZCodePromptAttachment[] = [
+    const attachments: NibiPromptAttachment[] = [
       {
         kind: "image",
         filename: "image.png",
@@ -110,7 +110,7 @@ describe("remote prompt attachment materialization", () => {
     const upload = vi.fn(async (_localPath: string, _remotePath: string) => undefined);
     const exec = vi.fn(async (_command: string) => createClosedStream("/home/tester"));
     const remotePath = "/home/tester/.nibi/tmp/prompt-attachments/trace/01-image.png";
-    const attachments: ZCodePromptAttachment[] = [
+    const attachments: NibiPromptAttachment[] = [
       {
         kind: "image",
         filename: "image.png",

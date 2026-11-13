@@ -182,7 +182,7 @@ describe("botsService registration", () => {
           code: 0,
           data: {
             app: {
-              app_name: "ZCode Assistant",
+              app_name: "Nibi Assistant",
             },
           },
         }));
@@ -212,8 +212,8 @@ describe("botsService registration", () => {
       credentialValue: "secret",
     });
 
-    expect(saved.name).toBe("ZCode Assistant");
-    expect((await repo.readConfig()).bots[0]?.name).toBe("ZCode Assistant");
+    expect(saved.name).toBe("Nibi Assistant");
+    expect((await repo.readConfig()).bots[0]?.name).toBe("Nibi Assistant");
     expect(fetchMock).toHaveBeenCalledTimes(3);
     service.disposeAll();
   });

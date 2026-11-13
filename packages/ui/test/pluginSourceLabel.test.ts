@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ZCodePluginMarketplaceSummary } from "@nibi/shared";
+import type { NibiPluginMarketplaceSummary } from "@nibi/shared";
 import {
   resolveMarketplaceDisplayName,
   resolvePluginSourceLabel,
@@ -8,8 +8,8 @@ import {
 const CLAUDE_CODE_PLUGINS = "Claude Code Plugins";
 
 function makeMarketplace(
-  overrides: Partial<ZCodePluginMarketplaceSummary> = {},
-): ZCodePluginMarketplaceSummary {
+  overrides: Partial<NibiPluginMarketplaceSummary> = {},
+): NibiPluginMarketplaceSummary {
   return {
     id: "acme",
     name: "Acme Marketplace",

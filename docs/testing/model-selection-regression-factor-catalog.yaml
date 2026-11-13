@@ -26,10 +26,10 @@ sourceOfTruth:
     - packages/provider-node/src/zcode-builtin-release.ts
     - packages/provider-node/src/zcode-builtin-provider-config-source.ts
     - packages/provider-node/src/zcode-builtin-remote-synchronizer.ts
-    - apps/zcode-cli/packages/bootstrap/src/app/provider-registry-model-runtime.ts
-    - apps/zcode-cli/packages/adapters/src/model/runner.ts
-    - apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/commands/handlers/model-config.ts
-    - apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/commands/input-intent.ts
+    - apps/nibi-cli/packages/bootstrap/src/app/provider-registry-model-runtime.ts
+    - apps/nibi-cli/packages/adapters/src/model/runner.ts
+    - apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/commands/handlers/model-config.ts
+    - apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/commands/input-intent.ts
   graph:
     - .agents/skills/feature-boundary-planner/references/zcode-feature-graph.yaml
   graphIndex:
@@ -753,7 +753,7 @@ constraints:
       - docs/conversation-product-state-space.md
       - docs/conversation-protocol-declaration.md
       - docs/conversation-product-protocol.md
-      - apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/commands/input-intent.ts
+      - apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/commands/input-intent.ts
     representativeCases: [MSR-QUEUE-001]
 
   - id: MSR-BUG-001
@@ -804,7 +804,7 @@ constraints:
     effect: Old client-config model facts, magic_name, fallback, and tombstone paths are not current Registry inputs; cover only migration compatibility where explicitly requested.
     evidence:
       - docs/archive/provider-refactor/model-provider-client-config-remote-model-facts.md
-      - apps/zcode-cli/packages/bootstrap/src/app/legacy-cli-model-config.ts
+      - apps/nibi-cli/packages/bootstrap/src/app/legacy-cli-model-config.ts
 
 highRiskCrossProducts:
   - id: MSR-X-001

@@ -1,6 +1,6 @@
 import type { IBroadcastService } from "@nibi/services";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createZCodeStore } from "@/store/index.js";
+import { createNibiStore } from "@/store/index.js";
 
 const localStorageState = new Map<string, string>();
 
@@ -37,19 +37,19 @@ const mockBroadcastService: IBroadcastService = {
   onMessage: () => ({ dispose: () => {} }),
 };
 
-describe("createZCodeStore global state", () => {
+describe("createNibiStore global state", () => {
   beforeEach(() => {
     localStorageState.clear();
   });
 
   it("默认不处于 OAuth 启动恢复中", () => {
-    const store = createZCodeStore(mockBroadcastService);
+    const store = createNibiStore(mockBroadcastService);
 
     expect(store.getState().isRestoringOAuthSession).toBe(false);
   });
 
   it("支持在首次渲染前把 OAuth 恢复态初始化为 pending", () => {
-    const store = createZCodeStore(mockBroadcastService, {
+    const store = createNibiStore(mockBroadcastService, {
       initialIsRestoringOAuthSession: true,
     });
 
@@ -57,7 +57,7 @@ describe("createZCodeStore global state", () => {
   });
 
   it("支持请求统一登录入口直接进入指定 provider 的登录流程", () => {
-    const store = createZCodeStore(mockBroadcastService);
+    const store = createNibiStore(mockBroadcastService);
 
     const requestId = store.getState().requestLoginEntry("zai");
 
@@ -80,7 +80,7 @@ describe("createZCodeStore global state", () => {
   });
 
   it("登录尝试取消后不会被旧请求或后续新请求误更新", () => {
-    const store = createZCodeStore(mockBroadcastService);
+    const store = createNibiStore(mockBroadcastService);
     const cancelledId = store.getState().requestLoginEntry("zai");
     store.getState().markLoginEntryAttemptStatus(cancelledId, "cancelled");
     const currentId = store.getState().requestLoginEntry("bigmodel");
@@ -95,7 +95,7 @@ describe("createZCodeStore global state", () => {
   });
 
   it("只在用户从未登录进入登录态时推进鉴权会话序号", () => {
-    const store = createZCodeStore(mockBroadcastService);
+    const store = createNibiStore(mockBroadcastService);
     const user = { id: "user-1", username: "tester", displayName: "Tester" };
 
     store.getState().setUser(user);
@@ -111,7 +111,7 @@ describe("createZCodeStore global state", () => {
   });
 
   it("记录最近一次 OAuth 成功的平台", () => {
-    const store = createZCodeStore(mockBroadcastService);
+    const store = createNibiStore(mockBroadcastService);
 
     store.getState().markOAuthSuccess("zai");
 
@@ -120,7 +120,7 @@ describe("createZCodeStore global state", () => {
   });
 
   it("性能模式默认关闭，并持久化用户选择", () => {
-    const store = createZCodeStore(mockBroadcastService);
+    const store = createNibiStore(mockBroadcastService);
 
     expect(store.getState().performanceMode).toBe(false);
 
@@ -129,7 +129,7 @@ describe("createZCodeStore global state", () => {
     expect(store.getState().performanceMode).toBe(true);
     expect(localStorageState.get("nibi-performance-mode")).toBe("true");
     expect(
-      createZCodeStore(mockBroadcastService).getState().performanceMode,
+      createNibiStore(mockBroadcastService).getState().performanceMode,
     ).toBe(true);
   });
 });

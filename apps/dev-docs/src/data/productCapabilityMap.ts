@@ -87,7 +87,7 @@ const systemDefinitions: readonly CapabilitySystemDefinition[] = [
     "Local/Remote Host、平台服务、进程监督、协议路由与跨端交付；不复制 CLI 业务状态。",
   ],
   [
-    "zcode-cli",
+    "nibi-cli",
     "智能体运行层（NIBI CLI）",
     "CLI 运行时负责人（CLI Runtime Owner）",
     "Agent、Conversation、Model、Tool 与 Extension 的权威运行时、投影、持久化和恢复。",
@@ -247,7 +247,7 @@ const groupDefinitions: readonly CapabilityGroupDefinition[] = [
   ],
   [
     "agent-core",
-    "zcode-cli",
+    "nibi-cli",
     "智能体核心（Agent Core）",
     "智能体内核负责人（Agent Kernel Owner）",
     "负责 runtime 装配、turn 状态机、上下文、memory、compact、stream recovery 与 target continuation。",
@@ -256,7 +256,7 @@ const groupDefinitions: readonly CapabilityGroupDefinition[] = [
   ],
   [
     "conversation-runtime",
-    "zcode-cli",
+    "nibi-cli",
     "对话运行时（Conversation Runtime）",
     "对话运行时负责人（Conversation Runtime Owner）",
     "负责 session lifecycle、input admission、queue、event journal、ProductProjection 与恢复。",
@@ -265,7 +265,7 @@ const groupDefinitions: readonly CapabilityGroupDefinition[] = [
   ],
   [
     "models",
-    "zcode-cli",
+    "nibi-cli",
     "模型能力（Model Capabilities）",
     "模型能力负责人（Model Capability Owner）",
     "负责 provider runtime、模型目录、token 预算、多模态和推理工具能力。",
@@ -274,7 +274,7 @@ const groupDefinitions: readonly CapabilityGroupDefinition[] = [
   ],
   [
     "tool-safety",
-    "zcode-cli",
+    "nibi-cli",
     "工具运行时与安全（Tool Runtime & Safety）",
     "工具与安全负责人（Tool & Safety Owner）",
     "负责内置工具、调度、权限、模式策略和工具执行结果。",
@@ -283,7 +283,7 @@ const groupDefinitions: readonly CapabilityGroupDefinition[] = [
   ],
   [
     "multi-agent",
-    "zcode-cli",
+    "nibi-cli",
     "多智能体（Multi-Agent）",
     "多智能体负责人（Multi-Agent Owner）",
     "负责 Subagent profile、child runtime、交互协调与后台任务。",
@@ -292,7 +292,7 @@ const groupDefinitions: readonly CapabilityGroupDefinition[] = [
   ],
   [
     "extension-runtime",
-    "zcode-cli",
+    "nibi-cli",
     "扩展运行时（Extension Runtime）",
     "扩展运行时负责人（Extension Runtime Owner）",
     "负责 MCP、Skill、Hooks、Commands 与 Memory resources 的发现和执行。",
@@ -301,7 +301,7 @@ const groupDefinitions: readonly CapabilityGroupDefinition[] = [
   ],
   [
     "browser-runtime",
-    "zcode-cli",
+    "nibi-cli",
     "浏览器运行时（Browser Runtime）",
     "浏览器运行时负责人（Browser Runtime Owner）",
     "负责 Browser Use Plugin、Node REPL/Playwright 与 Headless backend。",
@@ -310,7 +310,7 @@ const groupDefinitions: readonly CapabilityGroupDefinition[] = [
   ],
   [
     "usage-observability",
-    "zcode-cli",
+    "nibi-cli",
     "用量可观测存储（Usage Observability）",
     "用量数据负责人（Usage Data Owner）",
     "负责 model/turn/tool usage 事实、SQLite 30 天保留和 App Usage 聚合。",

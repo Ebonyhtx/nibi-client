@@ -4,7 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { AddMarketplaceSourceDialog } from "@/settings/AddMarketplaceSourceDialog.js";
 import {
   PluginStoreSourceRefreshFailure,
@@ -19,7 +19,7 @@ describe("PluginStoreSourcesDialog", () => {
   it("shows the persisted marketplace refresh failure beside its source", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(PluginStoreSourceRefreshFailure, {
           failure: {
@@ -44,7 +44,7 @@ describe("PluginStoreSourcesDialog", () => {
     };
     render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(PluginStoreSourcesDialog, {
           open: true,
@@ -84,7 +84,7 @@ describe("PluginStoreSourcesDialog", () => {
   it("renders an add failure inside the add marketplace dialog", () => {
     render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(AddMarketplaceSourceDialog, {
           open: true,
@@ -105,7 +105,7 @@ describe("PluginStoreSourcesDialog", () => {
   it("renders official sources first and custom sources by lastUpdated", () => {
     render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(PluginStoreSourcesDialog, {
           open: true,

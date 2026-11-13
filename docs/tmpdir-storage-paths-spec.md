@@ -52,4 +52,4 @@ stdout/stderr 继续直接写同一文件，输出编码只解析一次。准备
 
 - 不清理已有 `$TMPDIR/zcode-*` 残留。
 - 不修改 remote asset cache fallback。
-- 不修改 `apps/zcode-cli/packages/ios-simulator-plugin` 与 `apps/zcode-cli/packages/android-emulator-plugin` 的数据目录。
+- 不修改 `apps/nibi-cli/packages/ios-simulator-plugin` 与 `apps/nibi-cli/packages/android-emulator-plugin` 的数据目录。

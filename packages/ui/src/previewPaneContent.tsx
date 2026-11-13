@@ -5,7 +5,7 @@ import { useMemo, type Ref, type SyntheticEvent, type UIEventHandler } from "rea
 import type { FileBinaryPreview, FileMediaPreview, FileTextSlice } from "@nibi/shared";
 import { inferCodeLanguage } from "@/lib/codeViewer.js";
 import type { CodeViewerSource } from "@/lib/codeViewer.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { CodePreviewSettings } from "@/store/index.js";
 import type { CodeCommentLabels } from "@/components/ui/code-viewer.js";
 import { MarkdownPreviewContent } from "@/previewPaneMarkdownContent.js";
@@ -136,7 +136,7 @@ export function PreviewPaneContent({
   onScroll,
   scrollContainerRef,
 }: PreviewPaneContentProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const fileMissingMessage = intl.formatMessage({ id: "codeViewer.fileMissing" });
   const mediaLabels = {
     loading: intl.formatMessage({ id: "codeViewer.loadingMedia" }),

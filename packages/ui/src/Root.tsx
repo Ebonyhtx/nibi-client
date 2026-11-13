@@ -42,7 +42,7 @@ import { useTabPersistence, type WorkspacePersistenceGate } from "@/hooks/useTab
 import { useOAuth } from "@/hooks/useOAuth.js";
 import { useTokenRefresh } from "@/hooks/useTokenRefresh.js";
 import { useWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { SSHDialog } from "@/SSHDialog.js";
 import { SettingsPage } from "@/SettingsPage.js";
 import { setPendingSettingsSectionIntent } from "@/lib/settingsNavigation.js";
@@ -58,9 +58,9 @@ import {
   shouldShowRootStartupLoading,
   shouldOpenFallbackWorkspaceAfterCreate,
 } from "@/lib/rootStartupGate.js";
-import { StoreProvider, useZCodeStore } from "@/store/StoreProvider.js";
+import { StoreProvider, useNibiStore } from "@/store/StoreProvider.js";
 import { setMcpStorePlatform } from "@/store/mcpStore.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 import { TabStoreProvider, useTabStore, useTabStoreApi } from "@/store/TabStoreProvider.js";
 import { isSettingsTab, isWorkspaceTab, type WorkspaceTabState } from "@/store/tabStore.js";
 import { logger } from "@/logger.js";
@@ -78,7 +78,7 @@ import { useModelSelectionServiceView } from "@/hooks/useModelSelectionView.js";
 import { useRootProviderSettingsSnapshot } from "@/root/useRootProviderSettingsSnapshot.js";
 import { useWebRemoteControlAuthSync } from "@/web-remote-control/app/useWebRemoteControlAuthSync.js";
 import { useRootOAuthEffects } from "@/root/useRootOAuthEffects.js";
-import { consumeZcodeJwtInvalidRestartMarker } from "@/root/zcodeJwtInvalidRestartMarker.js";
+import { consumeNibiJwtInvalidRestartMarker } from "@/root/nibiJwtInvalidRestartMarker.js";
 import { useDesktopNativeThemeSync } from "@/root/useDesktopNativeThemeSync.js";
 import { useRootPlatformEffects } from "@/root/useRootPlatformEffects.js";
 import { useRootWorkspaceActions } from "@/root/useRootWorkspaceActions.js";
@@ -271,36 +271,36 @@ function RootInner({
   // 动态工作流默认快照的唯一发布点（NIBI 自有默认，不再依赖上游套餐灰度）。
   useDynamicWorkflowAvailabilityLoader();
 
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const handleRemoteConnectionTargetChange = useSourceServerUpdateNotifications({
     enabled: isDesktop === true,
     management: services.sourceServerManagementService,
   });
-  const theme = useZCodeStore((state) => state.theme);
-  const user = useZCodeStore((state) => state.user);
-  const isRestoringOAuthSession = useZCodeStore((state) => state.isRestoringOAuthSession);
+  const theme = useNibiStore((state) => state.theme);
+  const user = useNibiStore((state) => state.user);
+  const isRestoringOAuthSession = useNibiStore((state) => state.isRestoringOAuthSession);
   useWebRemoteControlAuthSync(platform, services.oauthService, user?.id, isRestoringOAuthSession);
-  const setUser = useZCodeStore((state) => state.setUser);
-  const setIsRestoringOAuthSession = useZCodeStore((state) => state.setIsRestoringOAuthSession);
-  const setOAuthError = useZCodeStore((state) => state.setOAuthError);
-  const oauthPollingActive = useZCodeStore((state) => state.oauthPollingActive);
-  const setOAuthPollingActive = useZCodeStore((state) => state.setOAuthPollingActive);
-  const markOAuthSuccess = useZCodeStore((state) => state.markOAuthSuccess);
+  const setUser = useNibiStore((state) => state.setUser);
+  const setIsRestoringOAuthSession = useNibiStore((state) => state.setIsRestoringOAuthSession);
+  const setOAuthError = useNibiStore((state) => state.setOAuthError);
+  const oauthPollingActive = useNibiStore((state) => state.oauthPollingActive);
+  const setOAuthPollingActive = useNibiStore((state) => state.setOAuthPollingActive);
+  const markOAuthSuccess = useNibiStore((state) => state.markOAuthSuccess);
   const { settings: appSettings, refresh: refreshAppSettings } = useSettings();
   // docs/dynamic-workflow/launch.md「The user's choice」：设置里的动态工作流选择变化后，通知本窗口
   // 的 Host 重发 CLI 策略（并转发给远程 Host），再重读灰度快照。
   useDynamicWorkflowUserModeSync({
     settingsLoaded: Boolean(appSettings),
     userMode: appSettings?.dynamicWorkflowMode,
-    zcodeAgentService: services.zcodeAgentService,
+    nibiAgentService: services.nibiAgentService,
   });
   const [welcomeScreenOpenReason, setWelcomeScreenOpenReason] =
     useState<WelcomeScreenOpenReason | null>(() =>
-      consumeZcodeJwtInvalidRestartMarker() ? "session-expired" : null,
+      consumeNibiJwtInvalidRestartMarker() ? "session-expired" : null,
     );
   // 上游 provider family / 套餐域迁移已随 Coding Plan 业务线移除；启动门禁直接视为完成。
   const providerFamilyDomainMigrationComplete = true;
-  const loginEntryRequest = useZCodeStore((state) => state.loginEntryRequest);
+  const loginEntryRequest = useNibiStore((state) => state.loginEntryRequest);
   const rootModelSelectionRead = useModelSelectionServiceView(services.modelSelectionService);
   const rootModelSelectionView =
     rootModelSelectionRead.state.status === "ready" ? rootModelSelectionRead.state.view : null;
@@ -358,7 +358,7 @@ function RootInner({
           return;
         }
         void refreshAppSettings();
-        void services.zcodeAgentService.syncAppRuntimePreferences(parsed.data).catch((error) => {
+        void services.nibiAgentService.syncAppRuntimePreferences(parsed.data).catch((error) => {
           logger.warn("[settings] 同步跨窗口运行时偏好失败", error);
         });
         void services.botsService.syncAppRuntimePreferences(parsed.data).catch((error) => {
@@ -399,14 +399,14 @@ function RootInner({
     refreshAppSettings,
     services.botsService,
     services.broadcastService,
-    services.zcodeAgentService,
+    services.nibiAgentService,
   ]);
 
   useEffect(() => {
     if (!appSettings) {
       return;
     }
-    void services.zcodeAgentService
+    void services.nibiAgentService
       .syncAppRuntimePreferences({
         askUserQuestionAutoResolutionEnabled:
           appSettings.askUserQuestionAutoResolutionEnabled !== false,
@@ -428,7 +428,7 @@ function RootInner({
     appSettings?.askUserQuestionAutoResolutionEnabled,
     appSettings?.modelIoFullRetentionEnabled,
     services.botsService,
-    services.zcodeAgentService,
+    services.nibiAgentService,
   ]);
 
   const tabs = useTabStore((state) => state.tabs);
@@ -602,7 +602,7 @@ function RootInner({
   });
   const isStartupProviderLoginEntryOpen = welcomeScreenOpenReason === "startup-provider-required";
   // 首次安装时 provider 登录入口判定晚于 workspace 注入，ChatView 会先 mount 并触发草稿预热。
-  // 这里把 provider 启动检查纳入 workspace 恢复门禁，避免未连接账号前启动 ZCode session。
+  // 这里把 provider 启动检查纳入 workspace 恢复门禁，避免未连接账号前启动 Nibi session。
   const canRestoreWorkspaceSession =
     !isResolvingStartupAuthState &&
     !isResolvingProviderStartupState &&
@@ -724,7 +724,7 @@ function RootInner({
       projectId?: string | null;
     }) => {
       // 桌面重连只恢复连接，不得把已选会话覆盖成草稿；手机仍沿用 replayable 入口。
-      const selectedTask = useZCodeSessionStore
+      const selectedTask = useNibiSessionStore
         .getState()
         .getWorkspaceState(workspacePath, workspaceIdentity).activeTaskId;
       if (!isDesktop || !restoreSelection || !selectedTask) {
@@ -874,7 +874,7 @@ function RootInner({
         // 再打开首屏门禁，避免 Composer 按未归类范围读取并预热同目录的项目草稿。
         for (const tab of tabStoreApi.getState().tabs) {
           if (!isWorkspaceTab(tab)) continue;
-          const workspace = useZCodeSessionStore
+          const workspace = useNibiSessionStore
             .getState()
             .getWorkspaceState(tab.workspacePath, tab.workspaceIdentity);
           if (workspace.activeTaskId || workspace.draftProjectId !== undefined) continue;
@@ -890,7 +890,7 @@ function RootInner({
             V4_DRAFT_SCOPE_ROOT,
             scope,
           );
-          useZCodeSessionStore
+          useNibiSessionStore
             .getState()
             .startDraft(tab.workspacePath, undefined, tab.workspaceIdentity, {
               projectId: scope.projectId,
@@ -1511,7 +1511,7 @@ function RootInner({
         {requestSecurityBridgeNode}
         {remoteConnectionDialog}
         {directoryBrowserDialog}
-        {/* 修复原因：HTML 启动壳已经展示 ZCode SVG，但 React 接管 root 后旧壳会被整棵替换。
+        {/* 修复原因：HTML 启动壳已经展示 Nibi SVG，但 React 接管 root 后旧壳会被整棵替换。
             之前阻塞恢复 tab / 初始 workspace 注入时重新渲染纯文字“加载中...”，所以启动被拆成两套 loading。
             这里复用同一套 SVG 启动画面，只把文案保留到 aria-label，保证视觉始终连续且不牺牲可访问性。 */}
         <RootStartupLoading label={loadingLabel} />

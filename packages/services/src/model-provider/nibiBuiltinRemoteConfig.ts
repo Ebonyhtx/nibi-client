@@ -1,7 +1,7 @@
-import { downloadZCodeBuiltinRelease, type ZCodeBuiltinRelease } from "@nibi/provider-node";
+import { downloadNibiBuiltinRelease, type NibiBuiltinRelease } from "@nibi/provider-node";
 import type { ApiClient } from "@nibi/shared";
 
-export interface FetchZCodeBuiltinRemoteReleaseOptions {
+export interface FetchNibiBuiltinRemoteReleaseOptions {
   readonly apiClient: ApiClient;
   readonly endpointOrigin: string;
   readonly appVersion: string;
@@ -10,10 +10,10 @@ export interface FetchZCodeBuiltinRemoteReleaseOptions {
 }
 
 /** Services 仅注入既有网络装配；URL、预算与 Release 校验由 provider-node 唯一实现。 */
-export async function fetchZCodeBuiltinRemoteRelease(
-  options: FetchZCodeBuiltinRemoteReleaseOptions,
-): Promise<ZCodeBuiltinRelease | null> {
-  return downloadZCodeBuiltinRelease({
+export async function fetchNibiBuiltinRemoteRelease(
+  options: FetchNibiBuiltinRemoteReleaseOptions,
+): Promise<NibiBuiltinRelease | null> {
+  return downloadNibiBuiltinRelease({
     endpointOrigin: options.endpointOrigin,
     appVersion: options.appVersion,
     platform: options.platform,

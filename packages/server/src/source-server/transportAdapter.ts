@@ -1,12 +1,12 @@
 /* eslint-disable max-lines -- Source Server transport 在同一适配器内汇合安装、daemon、channel 与 target 生命周期，继续拆分会割裂取消边界。 */
 import { Duplex } from "node:stream";
 import {
-  isPublicZCodeErrorCode,
+  isPublicNibiErrorCode,
   normalizeRemoteConnectionError,
   normalizeRemoteAssetInstallMode,
   sourceServerInstallProgressSchema,
   type SourceServerInstallProgress,
-  type PublicZCodeErrorCode,
+  type PublicNibiErrorCode,
   type RemoteTarget,
 } from "@nibi/shared";
 import type { IRemoteBackend } from "@nibi/server/remote/backend.js";
@@ -78,7 +78,7 @@ export interface SourceServerEnsureDaemonOptions {
 export class SourceServerTransportOperationError extends Error {
   public constructor(
     message: string,
-    public readonly code: PublicZCodeErrorCode,
+    public readonly code: PublicNibiErrorCode,
     public readonly retryable?: boolean,
   ) {
     super(message);
@@ -93,7 +93,7 @@ export class SourceServerTransportOperationError extends Error {
 function createServerCommandError(result: RemoteExecResult, fallbackMessage: string): Error {
   try {
     const response = readLastJsonLine(result.stdout);
-    if (isPublicZCodeErrorCode(response.code)) {
+    if (isPublicNibiErrorCode(response.code)) {
       return new SourceServerTransportOperationError(
         typeof response.error === "string" && response.error.trim()
           ? response.error
@@ -375,7 +375,7 @@ class BackendSourceServerTransportAdapter implements SourceServerTransportAdapte
     if (result.exitCode !== 0) {
       try {
         const response = readLastJsonLine(result.stdout);
-        if (isPublicZCodeErrorCode(response.code)) {
+        if (isPublicNibiErrorCode(response.code)) {
           throw new SourceServerTransportOperationError(
             typeof response.error === "string" && response.error.trim()
               ? response.error

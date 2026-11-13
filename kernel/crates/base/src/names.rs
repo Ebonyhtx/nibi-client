@@ -88,7 +88,7 @@ pub mod vars {
     pub const NIBI_SKILL_DIR: &str = "NIBI_SKILL_DIR";
     pub const CLAUDE_SKILL_DIR: &str = "CLAUDE_SKILL_DIR";
 
-    /// 插件 ABI 兼容层（只给移植过来的上游 ZCode 插件用）：这些旧名只**输出**给插件/hook 子进程与
+    /// 插件 ABI 兼容层（只给移植过来的上游 Nibi 插件用）：这些旧名只**输出**给插件/hook 子进程与
     /// 插件清单的 `${…}` 模板解析；宿主自己的配置读取从不使用它们。边界与清单见私有仓
     /// `step9b-brand-inventory-2026-11-05.md` §0.6。
     pub const ZCODE_PLUGIN_ROOT: &str = "ZCODE_PLUGIN_ROOT";
@@ -109,8 +109,8 @@ pub mod vars {
 /// managed 规则与 skill 所在的系统目录（按 Node 的平台名）：macOS `/Library/Application Support/NIBI`、
 /// Windows `C:\ProgramData\NIBI`、其余 `/etc/nibi`（context 的规则文件与 ext 的 skill 共用）。
 ///
-/// 这里必须是**本产品**的目录，不能是上游 ZCode 的（`/Library/Application Support/ZCode`、
-/// `C:\ProgramData\ZCode`、`/etc/zcode`）。那是机器级共享目录：同一台机器上装了上游 ZCode 时，
+/// 这里必须是**本产品**的目录，不能是上游 Nibi 的（`/Library/Application Support/Nibi`、
+/// `C:\ProgramData\Nibi`、`/etc/zcode`）。那是机器级共享目录：同一台机器上装了上游 Nibi 时，
 /// 读它就是把别的产品的规则与技能读进 NIBI 的会话——属于跨产品数据泄露，不是品牌问题。
 /// NIBI 没有发布、没有存量安装，也就没有需要从这个目录继承的东西。
 pub fn managed_dir(platform: &str) -> &'static str {

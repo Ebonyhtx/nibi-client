@@ -98,7 +98,7 @@ async function readTaskIdentity(taskId: string) {
 async function createOriginalTask(target: Awaited<ReturnType<typeof readChatIdentity>>) {
   if (!target.projectId) throw new Error(`${marker}: project selection is not committed`);
   const result = await callHandoffHost<{ session: { sessionId: string } }>(
-    ServiceChannels.ZCodeAgent,
+    ServiceChannels.NibiAgent,
     "createSession",
     [
       {
@@ -118,7 +118,7 @@ async function createOriginalTask(target: Awaited<ReturnType<typeof readChatIden
     ],
   );
   const taskId = result.session.sessionId;
-  await callHandoffHost(ServiceChannels.ZCodeTask, "resumeTask", [
+  await callHandoffHost(ServiceChannels.NibiTask, "resumeTask", [
     { taskId, workspacePath: target.workspacePath },
   ]);
   const toggle = $(

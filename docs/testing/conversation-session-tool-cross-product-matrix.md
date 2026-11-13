@@ -4,7 +4,7 @@
 
 ## 覆盖边界
 
-强叉乘工具名以 `packages/shared/src/tool-identity.ts`、`apps/zcode-cli/packages/core/src/tool/handlers/index.ts` 和计划模式工具为边界。默认 active 工具要覆盖成功态；条件注册或当前未注册工具也要进入 UI 叉乘，但可以用快速失败态收束，不把工具业务成功率混进 conversation UI spec。没有暴露到本链路的工具不纳入本矩阵。
+强叉乘工具名以 `packages/shared/src/tool-identity.ts`、`apps/nibi-cli/packages/core/src/tool/handlers/index.ts` 和计划模式工具为边界。默认 active 工具要覆盖成功态；条件注册或当前未注册工具也要进入 UI 叉乘，但可以用快速失败态收束，不把工具业务成功率混进 conversation UI spec。没有暴露到本链路的工具不纳入本矩阵。
 
 | 工具                 | 默认状态                     | E2E 输入策略                                                    | 结果形态                     | 清理要求                          |
 | -------------------- | ---------------------------- | --------------------------------------------------------------- | ---------------------------- | --------------------------------- |

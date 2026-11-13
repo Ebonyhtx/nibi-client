@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type {
-  ZCodeAutomationBotDeliveryTarget,
-  ZCodeStreamEvent,
+  NibiAutomationBotDeliveryTarget,
+  NibiStreamEvent,
 } from "@nibi/shared";
 import { AutomationRepo, setDataBaseDir } from "@nibi/services/node";
 
@@ -63,7 +63,7 @@ describe("Bot automation terminal result delivery E2E", () => {
       "Bot prompt dispatch",
     );
     const creationPrompt = harness.sendPromptCalls[0] as {
-      botDeliveryTarget?: ZCodeAutomationBotDeliveryTarget;
+      botDeliveryTarget?: NibiAutomationBotDeliveryTarget;
     };
     expect(creationPrompt.botDeliveryTarget).toEqual({
       provider: "feishu",
@@ -154,7 +154,7 @@ describe("Bot automation terminal result delivery E2E", () => {
   });
 });
 
-function streamEvent(event: ZCodeStreamEvent): ZCodeStreamEvent {
+function streamEvent(event: NibiStreamEvent): NibiStreamEvent {
   return event;
 }
 

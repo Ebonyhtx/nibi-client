@@ -241,7 +241,7 @@ Desktop BG14 最终 replay `desktop-e2e-20260907-171113-863` 通过。前两次�
 
 - flags 测试覆盖 darwin/linux/win32；预置文件证明 POSIX 追加、Windows 截断，POSIX symlink
   不被跟随；前后台提交只打开一次。Windows 旧 append 失败保留为负对照，
-  可用 `apps/zcode-cli/packages/adapters/tests/fixtures/bash-windows-flags-probe.cjs` 独立复现。
+  可用 `apps/nibi-cli/packages/adapters/tests/fixtures/bash-windows-flags-probe.cjs` 独立复现。
 - 分段 barrier 证明退出前可读；覆盖无换行、中文空格路径、stdout/stderr、二进制、并发后代。
   生命周期覆盖 foreground/explicit/timeout promotion/subagent、parent abort/Stop、单次通知；
   root 先退出案例由测试清理后代，不能再断言终态文件稳定。
@@ -264,12 +264,12 @@ Desktop BG14 最终 replay `desktop-e2e-20260907-171113-863` 通过。前两次�
   产物：`desktop-e2e-20260907-121229-740`、`desktop-e2e-20260907-121411-528`、
   `desktop-e2e-20260907-123006-030`。
 - `pnpm typecheck`、`pnpm lint` 与 conversation coverage audit 通过。根 lint 配置排除
-  `apps/zcode-cli`，因此额外用相同规则对本次 Agent 变更显式 lint（移除该忽略项）。
+  `apps/nibi-cli`，因此额外用相同规则对本次 Agent 变更显式 lint（移除该忽略项）。
 - 真实测试没有跑满 5 GiB 或填满磁盘：阈值和竞争用可控文件大小/时钟验证，输出丢失诊断
   用故障注入验证。未覆盖 Windows arm64、全部 Git/MSYS 版本或手机真实远控重连；本次
   未改 App–Agent schema、desktop continuous 和 mobile replayable 路由。
 
-性能脚本：`apps/zcode-cli/packages/adapters/tests/fixtures/bash-output-benchmark.cjs`。
+性能脚本：`apps/nibi-cli/packages/adapters/tests/fixtures/bash-output-benchmark.cjs`。
 每个样本启动独立父 Node，先预热再 GC；每任务输出 256 MiB，并发 1/4，各三次，旧/新
 交替运行。两端均为 Node 24.14.0、Git Bash/系统 Bash；旧实现取变更前 `65ed641886`。
 以下为取消 64 MiB 结算截断前的历史性能对照，当时两者均验证原始字节数、30,000 bytes 返回摘要及 64 MiB artifact。下表为三次中位数；本轮完整文件保留不沿用该 artifact 验收条件，

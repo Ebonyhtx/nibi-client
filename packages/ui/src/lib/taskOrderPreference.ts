@@ -1,4 +1,4 @@
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 
 interface StorageLike {
   getItem(key: string): string | null;
@@ -65,12 +65,12 @@ export function persistTaskOrder(
   storage?.setItem(getTaskOrderStorageKey(workspacePath), JSON.stringify(normalizeTaskOrder(taskIds)));
 }
 
-export function pruneTaskOrder(taskOrder: readonly string[], tasks: readonly ZCodeTaskMeta[]): string[] {
+export function pruneTaskOrder(taskOrder: readonly string[], tasks: readonly NibiTaskMeta[]): string[] {
   const taskIds = new Set(tasks.map((task) => task.taskId));
   return normalizeTaskOrder(taskOrder).filter((taskId) => taskIds.has(taskId));
 }
 
-export function sortTasksByOrder(tasks: readonly ZCodeTaskMeta[], taskOrder: readonly string[]): ZCodeTaskMeta[] {
+export function sortTasksByOrder(tasks: readonly NibiTaskMeta[], taskOrder: readonly string[]): NibiTaskMeta[] {
   const normalizedTaskOrder = normalizeTaskOrder(taskOrder);
   const orderedIndexByTaskId = new Map(
     normalizedTaskOrder.map((taskId, index) => [taskId, index] as const),

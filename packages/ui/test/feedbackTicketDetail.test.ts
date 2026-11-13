@@ -5,7 +5,7 @@ import type { FeedbackTicketDetail } from "@nibi/shared";
 import type { IFeedbackService } from "@nibi/services";
 
 import { TicketDetailView } from "@/feedback/TicketDetail.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 function createTicket(): FeedbackTicketDetail {
   return {
@@ -43,7 +43,7 @@ describe("TicketDetailView", () => {
   it("localizes the latest process summary card in English", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(TicketDetailView, {
           ticket: createTicket(),
@@ -61,7 +61,7 @@ describe("TicketDetailView", () => {
   it("shows the localized issue id prefix with a copy action", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(TicketDetailView, {
           ticket: createTicket(),
@@ -80,7 +80,7 @@ describe("TicketDetailView", () => {
   it("uses the English issue id prefix in English", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(TicketDetailView, {
           ticket: createTicket(),

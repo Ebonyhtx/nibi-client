@@ -2,7 +2,7 @@ import { ToolPresentation } from "@/ToolCallBlocks/ToolPresentation.js";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { ExecuteGroupToolCallBlock } from "@/ToolCallBlocks/renderers/execute-group.js";
 
 function renderExecuteGroup(
@@ -12,7 +12,7 @@ function renderExecuteGroup(
 ) {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: locale },
       createElement(ExecuteGroupToolCallBlock, {
         nestedToolRenderer: ToolPresentation,

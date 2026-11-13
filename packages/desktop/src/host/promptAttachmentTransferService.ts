@@ -6,7 +6,7 @@ import type {
   PromptAttachmentStageResult,
   PromptAttachmentTransferProgress,
 } from "@nibi/services";
-import type { ZCodePromptAttachment } from "@nibi/shared";
+import type { NibiPromptAttachment } from "@nibi/shared";
 import {
   cleanupRemotePromptAttachment,
   cleanupStaleRemotePromptAttachments,
@@ -103,13 +103,13 @@ export function createRemotePromptAttachmentTransferService(
       try {
         if (previous) await cleanupRecord(params.operationId, previous);
         if (!isCurrent()) throw canceled();
-        const attachment: ZCodePromptAttachment = {
+        const attachment: NibiPromptAttachment = {
           kind: params.mime.startsWith("image/") ? "image" : "file",
           filename: params.fileName,
           localPath: params.localPath,
           mimeType: params.mime,
           sizeBytes: params.sizeBytes ?? 0,
-        } as ZCodePromptAttachment;
+        } as NibiPromptAttachment;
         const workspaceKey = params.workspaceIdentity?.trim() || params.workspacePath;
         const materialized = await materializeRemotePromptAttachments(
           {

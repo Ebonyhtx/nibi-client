@@ -193,8 +193,8 @@ export function createDesktopPlatform(options: {
     getDesktopSessionActivity: () =>
       window.nibi.getDesktopSessionActivity?.() ??
       Promise.resolve({ runningAgentSessionCount: 0 }),
-    getZCodeStdioTapDevState: () =>
-      window.nibi.getZCodeStdioTapDevState?.() ??
+    getNibiStdioTapDevState: () =>
+      window.nibi.getNibiStdioTapDevState?.() ??
       Promise.resolve({ enabled: false, visible: false, logDir: "", statePath: "" }),
     onSettingsChanged: (callback) => window.nibi.onSettingsChanged?.(callback) ?? (() => {}),
     onApplicationLocaleChanged: (callback) =>

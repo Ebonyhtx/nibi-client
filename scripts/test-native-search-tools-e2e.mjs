@@ -52,7 +52,7 @@ function verifyBashEmbeddedSearch(plan) {
     "pnpm",
     [
       "--dir",
-      join(repoRoot, "apps/zcode-cli"),
+      join(repoRoot, "apps/nibi-cli"),
       "exec",
       "vitest",
       "run",

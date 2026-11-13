@@ -1,6 +1,6 @@
 import type { Event } from "@nibi/rpc";
 import { ServiceChannels } from "@nibi/shared";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import type {
   ControllerResyncParams,
   ControllerResyncResult,
@@ -13,12 +13,12 @@ import type {
   WindowHostTaskAddress,
 } from "@nibi/shared/nibi-protocol-v4";
 import { createServiceDescriptor } from "../descriptors.js";
-import type { ZCodeArchivedTaskDeletionResult } from "#src/session/zcodeTaskService.js";
+import type { NibiArchivedTaskDeletionResult } from "#src/session/nibiTaskService.js";
 import type {
-  ZCodeTaskListItem,
-  ZCodeTaskListQuery,
-  ZCodeTaskListResult,
-} from "../session/zcodeTaskListTypes.js";
+  NibiTaskListItem,
+  NibiTaskListQuery,
+  NibiTaskListResult,
+} from "../session/nibiTaskListTypes.js";
 
 export type WindowHostControllerMutation =
   | { kind: "rename"; title: string }
@@ -31,7 +31,7 @@ export type WindowHostControllerMutation =
   | { kind: "open" }
   | { kind: "resume" };
 
-export type WindowHostControllerTaskListItem = ZCodeTaskListItem & {
+export type WindowHostControllerTaskListItem = NibiTaskListItem & {
   sourceServerId?: string;
   serverDisplayName?: string;
   remoteSessionId?: string;
@@ -40,7 +40,7 @@ export type WindowHostControllerTaskListItem = ZCodeTaskListItem & {
   activity?: WindowHostControllerTaskRow["activity"];
 };
 
-export interface WindowHostControllerTaskListResult extends Omit<ZCodeTaskListResult, "items"> {
+export interface WindowHostControllerTaskListResult extends Omit<NibiTaskListResult, "items"> {
   items: WindowHostControllerTaskListItem[];
 }
 
@@ -64,14 +64,14 @@ export interface IWindowControllerService {
   deleteArchivedTasks(params: {
     address: WindowHostTaskAddress;
     taskIds: string[];
-  }): Promise<ZCodeArchivedTaskDeletionResult>;
-  listTaskList(params: ZCodeTaskListQuery): Promise<WindowHostControllerTaskListResult>;
+  }): Promise<NibiArchivedTaskDeletionResult>;
+  listTaskList(params: NibiTaskListQuery): Promise<WindowHostControllerTaskListResult>;
   /** 直接读取所属 owner 的轻量 meta；未读 CAS 不得使用可能降级为旧快照的列表投影。 */
-  getTaskMeta(params: { address: WindowHostTaskAddress }): Promise<ZCodeTaskMeta | null>;
+  getTaskMeta(params: { address: WindowHostTaskAddress }): Promise<NibiTaskMeta | null>;
   mutateTask(params: {
     address: WindowHostTaskAddress;
     mutation: WindowHostControllerMutation;
-  }): Promise<ZCodeTaskMeta | null>;
+  }): Promise<NibiTaskMeta | null>;
   subscribeControllerV4(params: ControllerSubscribeParams): Promise<ControllerSubscribeResult>;
   resyncControllerV4(params: ControllerResyncParams): Promise<ControllerResyncResult>;
   unsubscribeControllerV4(params: ControllerUnsubscribeParams): Promise<void>;

@@ -97,7 +97,7 @@ function createServices(): ServiceHarness {
   const onFact = vi.fn(() => facts.event);
   return {
     services: {
-      zcodeAgentService: {
+      nibiAgentService: {
         onDynamicConversationTelemetryFact: onFact,
       },
     } as unknown as IServiceAccessor,

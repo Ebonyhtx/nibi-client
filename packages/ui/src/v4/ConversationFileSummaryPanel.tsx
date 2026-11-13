@@ -14,7 +14,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { FileDisplayInline } from "@/lib/fileDisplay.js";
 import { toWorkspaceRelativePath } from "@/lib/taskChangeSummary.js";
 import { buildChangeSummaryFilePreviewSource } from "@/messageChangeSummaryPreview.js";
@@ -74,7 +74,7 @@ export function ConversationFileSummaryPanel({
   context,
   assistantText = "",
 }: ConversationFileSummaryPanelProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const genUiSources = useMemo(() => collectGenUiSourcePaths(assistantText), [assistantText]);
   const filtersSources = genUiSources.length > 0;
   const [open, setOpen] = useState(false);

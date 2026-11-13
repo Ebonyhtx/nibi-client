@@ -7,7 +7,7 @@ import type {
 import { cn } from "@/components/lib/utils.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import { useWebElementPicker } from "@/hooks/useWebElementPicker.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 import { BrowserSiteSettingsEntry } from "@/browser-use/BrowserSiteSettingsEntry.js";
 import { BrowserToolbar } from "@/EmbeddedBrowserPaneParts.js";
@@ -128,7 +128,7 @@ export function UnifiedBrowserView({
   ) => void;
 }): React.JSX.Element {
   const platform = usePlatform();
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const desktopZoomFactor = useDesktopZoomFactor();
 
   const [addressValue, setAddressValue] = useState("");

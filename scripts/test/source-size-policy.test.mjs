@@ -20,15 +20,15 @@ test("800 行为默认阻断阈值，已接纳的大文件仅降级行数诊断"
     config.ignorePatterns = [];
     await writeFile(join(cwd, ".oxlintrc.json"), JSON.stringify(config));
     const regular = "packages/example/src/new.ts";
-    const accepted = "apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/v4-gateway.ts";
+    const accepted = "apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/v4-gateway.ts";
     async function lint(file, lines) {
       await mkdir(dirname(join(cwd, file)), { recursive: true });
       await writeFile(
         join(cwd, file),
         Array.from({ length: lines }, (_, i) => `export const value${i} = ${i};`).join("\n"),
       );
-      const packageRoot = file.startsWith("apps/zcode-cli/")
-        ? "apps/zcode-cli/packages/bootstrap"
+      const packageRoot = file.startsWith("apps/nibi-cli/")
+        ? "apps/nibi-cli/packages/bootstrap"
         : ".";
       const target = packageRoot === "." ? file : file.slice(packageRoot.length + 1);
       const result = await exec(

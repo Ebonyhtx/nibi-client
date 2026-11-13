@@ -1,7 +1,7 @@
 //! 请求的 `metadata.user_id`（docs/specs/rust-cli/model.md §3.3，工作线 F52，用户决定 2026-10-22：“请求里有个 metadata
 //! 字段，也得补上，只要 user_id”）。只有 Anthropic 协议发（工作线 F52b，用户决定“算了，只给 anthropic 协议加吧”）。
 //!
-//! 文本照 Node `createAnthropicRequestMetadataUserId`（`apps/zcode-cli/packages/adapters/src/model/
+//! 文本照 Node `createAnthropicRequestMetadataUserId`（`apps/nibi-cli/packages/adapters/src/model/
 //! anthropic-request-metadata.ts`）：`JSON.stringify({device_id, account_uuid: "", session_id})`；`session_id` 去掉内部前缀
 //! （Node `normalizeModelSessionIdForAttribution`，`runner-attribution.ts` 81–91）。
 

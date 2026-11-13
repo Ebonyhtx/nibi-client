@@ -68,8 +68,8 @@ describe("定时任务表单创建与管理 E2E", () => {
       timeoutMsg: "定时任务创建页没有项目选择器",
     });
     const workspaceMenuItems = await readWorkspaceMenuItems();
-    expect(workspaceMenuItems).toEqual(["ZCodeProject"]);
-    await selectWorkspaceMenuItem("ZCodeProject");
+    expect(workspaceMenuItems).toEqual(["NibiProject"]);
+    await selectWorkspaceMenuItem("NibiProject");
     await clickTestIdByWebDriver(TID_CHAT_MODEL_SELECT_TRIGGER);
     await clickTestIdByWebDriver(
       testId(TID_CHAT_MODEL_SELECT_GROUP, `registry-provider:${UPSTREAM_PROVIDER_ID}`),

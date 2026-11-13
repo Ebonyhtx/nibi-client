@@ -1163,7 +1163,7 @@ impl McpManager {
             .collect()
     }
 
-    /// `mcp/list` 的状态快照（Host `zcodeMcpServerStatusSnapshotSchema` 的内核侧字段）。
+    /// `mcp/list` 的状态快照（Host `nibiMcpServerStatusSnapshotSchema` 的内核侧字段）。
     ///
     /// 失败分类来自连接失败发生的地方（[`OpenFailure`]）；`updatedAt` 是这条服务器状态最后
     /// 一次变化的时刻。`serverRequestId` 与 `authorization` 内核没有事实源，留空。

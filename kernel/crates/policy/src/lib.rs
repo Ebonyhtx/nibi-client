@@ -11,7 +11,7 @@
 //!
 //! 规则只来自配置快照（[`PermissionRules`]，由入口层组装后交进来，“总是允许”落库后由 runtime 换上新的
 //! LocalSettings 层；进程里所有会话共用一份权限上下文）。这里不做 IO：cwd、home 与命令
-//! 输出目录都从执行环境的端口取。Bash 解析与只读判定复制自 `apps/zcode-cli-rust/crates/{bash-parse,bash}`。
+//! 输出目录都从执行环境的端口取。Bash 解析与只读判定复制自 `apps/nibi-cli-rust/crates/{bash-parse,bash}`。
 
 mod bash;
 mod bash_cd;

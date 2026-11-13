@@ -9,9 +9,9 @@ describe("远控页头品牌", () => {
     expect(html).toMatch(/<img[^>]*data-app-logo="zcode"/);
     expect(html).toMatch(/<img[^>]*alt=""/);
     expect(html).toMatch(/<img[^>]*aria-hidden="true"/);
-    // NIBI 4.0：页头品牌文字与登录页/设备列表一致，不再出现上游 ZCode。
+    // NIBI 4.0：页头品牌文字与登录页/设备列表一致，不再出现上游 Nibi。
     expect(html).toContain("NIBI");
-    expect(html).not.toContain("ZCode");
+    expect(html).not.toContain("Nibi");
     expect(html).not.toContain("<a ");
     expect(html).not.toContain("<button");
     expect(html).not.toContain("role=");

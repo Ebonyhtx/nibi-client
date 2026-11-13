@@ -16,7 +16,7 @@ const { closeSessionMock } = vi.hoisted(() => ({
 
 vi.mock("@/hooks/useServices.js", () => ({
   useServices: () => ({
-    zcodeSessionService: { closeSession: closeSessionMock },
+    nibiSessionService: { closeSession: closeSessionMock },
   }),
 }));
 

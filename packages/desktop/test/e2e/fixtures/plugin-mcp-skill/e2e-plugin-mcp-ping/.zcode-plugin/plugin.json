@@ -16,7 +16,7 @@
       "default": "E2E_USER_PLUGIN_SECRET"
     }
   },
-  "author": { "name": "ZCode E2E" },
+  "author": { "name": "Nibi E2E" },
   "license": "MIT",
   "mcpServers": {
     "ping": {

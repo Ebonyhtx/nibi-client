@@ -9,7 +9,7 @@ const OAUTH_CREDENTIAL_KEYS = [
   "nibi-jwttoken",
 ] as const;
 
-describe("ZCode JWT 401 自动退出", () => {
+describe("Nibi JWT 401 自动退出", () => {
   after(async () => {
     await browser.electron.restoreAllMocks();
     await clearAppData();

@@ -8,7 +8,7 @@ import zhCN from "@/i18n/locales/zh-CN.js";
 
 Element.prototype.scrollIntoView = vi.fn();
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }, values?: Record<string, string>) =>
         Object.entries(values ?? {}).reduce(

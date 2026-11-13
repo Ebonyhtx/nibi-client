@@ -268,7 +268,7 @@ const ZIP_MAX_SINGLE_FILE_BYTES = 50 * 1024 * 1024;
 
 当前更新检测事实：
 
-- `apps/zcode-cli/packages/bootstrap/src/plugins.ts` 构建 `latestPinByPluginId` 时读取
+- `apps/nibi-cli/packages/bootstrap/src/plugins.ts` 构建 `latestPinByPluginId` 时读取
   `entry.version` 和 `readPluginSourceSha(entry.source)`。
 - `comparePluginUpdate()` 的优先级是：
   1. latest version 存在 -> semver/version compare；
@@ -311,39 +311,39 @@ Phase 1 为最小改动，也可以扩展现有 `readPluginSourceSha()`：
 - `docs/claude-code-marketplace-plugin-compat.md`
   - 在 plugin entry source 矩阵新增 `{source:"url", type:"zip"}`。
   - 明确无 `type` 的 `{source:"url"}` 仍是 git clone 兼容路径，不代表 HTTP zip。
-- `apps/zcode-cli/packages/adapters/package.json`
+- `apps/nibi-cli/packages/adapters/package.json`
   - `@nibi/adapters` 当前没有 `yauzl`；若采用 yauzl，需要在 adapters 自己声明 dependency。
   - 仓库已有 `yauzl`：`packages/desktop/package.json` 和 `packages/services/package.json` 均依赖
     `yauzl` / `@types/yauzl`，但不能跨 package 隐式使用。
-- `apps/zcode-cli/packages/adapters/src/plugins/marketplace.ts`
+- `apps/nibi-cli/packages/adapters/src/plugins/marketplace.ts`
   - `PluginMarketplaceEntry.source` 仍是 `unknown`，但 `sourceKind === "url"` 需要按 `source.type` 分发。
   - 新增 `readPluginSourceIdentityPin()` 或扩展/重命名 `readPluginSourceSha()`。
   - `validateMarketplaceEntryShape()` 新增 zip shape 和 integrity diagnostic。
   - `getMarketplaceSourceValidationDeferral()` 可把 zip 也视为 remote plugin source，在 marketplace-level
     validate 时 deferral，避免批量下载数百个 zip。
-- `apps/zcode-cli/packages/adapters/src/plugins/zip-source.ts`（建议新文件）
+- `apps/nibi-cli/packages/adapters/src/plugins/zip-source.ts`（建议新文件）
   - `resolveZipPluginSource()`、download、sha256、safe extract、root locate。
   - 保持 marketplace.ts 体积可控。
-- `apps/zcode-cli/packages/adapters/src/plugins/index.ts`
+- `apps/nibi-cli/packages/adapters/src/plugins/index.ts`
   - 如新增 public helper 或测试需要导出，更新 barrel。
-- `apps/zcode-cli/packages/adapters/src/network/subprocess-env.ts` 或相邻 network helper
+- `apps/nibi-cli/packages/adapters/src/network/subprocess-env.ts` 或相邻 network helper
   - 抽出 HTTP fetch/proxy 对齐逻辑，避免 zip 下载绕过 `ZCODE_HTTP_PROXY` 等网络策略。
-- `apps/zcode-cli/packages/bootstrap/src/plugins.ts`
+- `apps/nibi-cli/packages/bootstrap/src/plugins.ts`
   - update overview 的 latest/installed pin 读取从 git sha 扩展到 zip sha256。
-- `apps/zcode-cli/packages/adapters/src/plugins/version-compare.ts`
+- `apps/nibi-cli/packages/adapters/src/plugins/version-compare.ts`
   - 如果保留字符串 pin，逻辑可不变但命名/注释要更新；如果区分 pin kind，更新类型和测试。
 
 必须新增/更新测试：
 
-- `apps/zcode-cli/packages/adapters/tests/plugins.test.ts`
-- `apps/zcode-cli/packages/adapters/tests/version-compare.test.ts`
+- `apps/nibi-cli/packages/adapters/tests/plugins.test.ts`
+- `apps/nibi-cli/packages/adapters/tests/version-compare.test.ts`
 - 如网络/proxy helper 抽出：对应 adapters network 单测。
 
 可能需要修改：
 
 - `pnpm-lock.yaml`
   - adapters 新增 `yauzl` dependency 后会更新。
-- `apps/zcode-cli/packages/bootstrap/tests/plugins.test.ts`
+- `apps/nibi-cli/packages/bootstrap/tests/plugins.test.ts`
   - 如果 overview schema 或 helper 语义在 bootstrap 层暴露，需要补覆盖。
 
 不应修改：
@@ -512,9 +512,9 @@ cache/{marketplace}/{plugin}/{version}/
 ## 10. Implementation task checklist
 
 - [ ] 阅读并保持本 spec 与 `docs/claude-code-marketplace-plugin-compat.md` 一致。
-- [ ] 在 adapters 增加 zip dependency：优先评估 `yauzl`，并在 `apps/zcode-cli/packages/adapters/package.json`
+- [ ] 在 adapters 增加 zip dependency：优先评估 `yauzl`，并在 `apps/nibi-cli/packages/adapters/package.json`
   显式声明，不依赖 desktop/services 的 transitive dependency。
-- [ ] 新建 `apps/zcode-cli/packages/adapters/src/plugins/zip-source.ts`：
+- [ ] 新建 `apps/nibi-cli/packages/adapters/src/plugins/zip-source.ts`：
   - [ ] `resolveZipPluginSource(input): Promise<ResolvedPluginSourceRoot>`；
   - [ ] HTTPS URL 和 redirect 校验；
   - [ ] headers allow/deny list；

@@ -1,4 +1,4 @@
-// 前两个测试复制自 apps/zcode-cli-rust/crates/model/src/sse.rs（feat/rs 79b6691c55）。
+// 前两个测试复制自 apps/nibi-cli-rust/crates/model/src/sse.rs（feat/rs 79b6691c55）。
 use super::*;
 
 fn data(events: Vec<SseEvent>) -> Vec<String> {

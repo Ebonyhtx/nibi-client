@@ -3,7 +3,7 @@ import { TEST_NIBI_ENDPOINT_ORIGIN } from "@nibi/shared";
 import { NIBI_CLIENT_SCENES_URL } from "../src/providers/api/apiEndpoints.js";
 import { createNodeApiClient } from "../src/providers/api/nodeApiClient.js";
 
-describe("ZCode API endpoints", () => {
+describe("Nibi API endpoints", () => {
   it("通过统一 ApiClient 注册并请求 client scenes", async () => {
     const requests: Array<{ headers: Headers; method: string; url: string }> = [];
     const client = createNodeApiClient({
@@ -15,7 +15,7 @@ describe("ZCode API endpoints", () => {
         });
         return new Response('{"code":0,"msg":"","data":[]}', { status: 200 });
       },
-      resolveZCodeEndpointOrigin: () => TEST_NIBI_ENDPOINT_ORIGIN,
+      resolveNibiEndpointOrigin: () => TEST_NIBI_ENDPOINT_ORIGIN,
     });
 
     await client.request(NIBI_CLIENT_SCENES_URL, { method: "GET" });

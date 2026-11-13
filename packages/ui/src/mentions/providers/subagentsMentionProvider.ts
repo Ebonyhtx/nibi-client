@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ZCodeProvider, AgentSummary } from "@nibi/shared";
+import type { NibiProvider, AgentSummary } from "@nibi/shared";
 import { useSubagents } from "@/hooks/useSubagents.js";
 import { buildSubagentMentionMarkdown } from "@/mentions/mentionMarkdown.js";
 import { filterMentionItemsWithOptions } from "@/mentions/mentionSearch.js";
@@ -82,7 +82,7 @@ export function mapSubagentsToMentionItemsForTest(agents: SubagentMentionInput[]
 
 export function useSubagentsMentionProvider(
   workspacePath: string | null,
-  provider: ZCodeProvider,
+  provider: NibiProvider,
   query: string,
   enabled: boolean,
   emptyText: string,

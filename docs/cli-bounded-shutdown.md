@@ -2,7 +2,7 @@
 
 > 状态：accepted，2026-07-22。
 
-协议型 CLI 的生命周期由[Agent Server spec](../apps/zcode-cli/docs/design/v2/nibi-protocol-agent-server.md#协议进程生命周期)
+协议型 CLI 的生命周期由[Agent Server spec](../apps/nibi-cli/docs/design/v2/nibi-protocol-agent-server.md#协议进程生命周期)
 定义：其 deadline 从首次 EOF/信号/致命错误开始，覆盖启动中和在途请求；不依赖 `run()`
 返回才启动 watchdog。下文一次性命令与 plugin-host 的既有规则保持不变。
 

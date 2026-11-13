@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/select.js";
 import { Switch } from "@/components/ui/switch.js";
 import { SettingsRow } from "@/settings/SettingsPageParts.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   setCompanionPreference,
   useCompanionPreferences,
@@ -20,7 +20,7 @@ const MODES: CompanionMode[] = ["auto", "perch", "working", "complete", "paused"
 
 /** 外观 › 小鸟伴侣：与「界面动效」同款行式布局，使用设置页现成控件。 */
 export function CompanionSettingsRows() {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const preferences = useCompanionPreferences();
 
   return (

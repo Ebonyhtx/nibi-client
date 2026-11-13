@@ -1,18 +1,18 @@
-import type { ZCodeModelTrajectoryMessage } from "@nibi/services";
+import type { NibiModelTrajectoryMessage } from "@nibi/services";
 
-export function trajectoryToolOutputs(message: ZCodeModelTrajectoryMessage): string[] {
+export function trajectoryToolOutputs(message: NibiModelTrajectoryMessage): string[] {
   return message.parts.flatMap((part) =>
     part.kind === "tool-result" ? [formatTrajectoryToolPayload(part.output)] : [],
   );
 }
 
-export function trajectoryToolCallInputs(message: ZCodeModelTrajectoryMessage): string[] {
+export function trajectoryToolCallInputs(message: NibiModelTrajectoryMessage): string[] {
   return message.parts.flatMap((part) =>
     part.kind === "tool-call" ? [formatTrajectoryToolPayload(part.input)] : [],
   );
 }
 
-export function trajectoryToolHasError(message: ZCodeModelTrajectoryMessage): boolean {
+export function trajectoryToolHasError(message: NibiModelTrajectoryMessage): boolean {
   return message.parts.some(
     (part) =>
       (part.kind === "tool-result" && isErrorTextObject(part.output)) ||
@@ -20,7 +20,7 @@ export function trajectoryToolHasError(message: ZCodeModelTrajectoryMessage): bo
   );
 }
 
-export function trajectoryToolMetadata(message: ZCodeModelTrajectoryMessage): {
+export function trajectoryToolMetadata(message: NibiModelTrajectoryMessage): {
   names: string;
   ids: string;
 } {

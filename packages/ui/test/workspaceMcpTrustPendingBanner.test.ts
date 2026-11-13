@@ -5,13 +5,13 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ZCodeMcpServer } from "@nibi/shared";
+import type { NibiMcpServer } from "@nibi/shared";
 import {
   TID_V4_WORKSPACE_MCP_TRUST_PENDING_BANNER,
   TID_V4_WORKSPACE_MCP_TRUST_PENDING_DISMISS,
   TID_V4_WORKSPACE_MCP_TRUST_PENDING_REVIEW,
 } from "@nibi/shared/test-ids";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { useMcpStore } from "@/store/mcpStore.js";
 import {
   resolveWorkspaceMcpTrustPending,
@@ -47,7 +47,7 @@ function review(trusted: boolean, declarationDigest = digest) {
   };
 }
 
-function projectServer(overrides: Partial<ZCodeMcpServer> = {}): ZCodeMcpServer {
+function projectServer(overrides: Partial<NibiMcpServer> = {}): NibiMcpServer {
   return {
     id: "zcodeagentmcp-workspace-probe",
     name: "probe",
@@ -61,7 +61,7 @@ function projectServer(overrides: Partial<ZCodeMcpServer> = {}): ZCodeMcpServer 
 }
 
 function setStoreState(input: {
-  servers?: ZCodeMcpServer[];
+  servers?: NibiMcpServer[];
   trust?: Record<string, { trusted: boolean; declarationDigest: string }>;
   trustKnown?: boolean;
   enabledStates?: Record<string, boolean>;
@@ -82,7 +82,7 @@ function setStoreState(input: {
 function renderBanner() {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(WorkspaceMcpTrustPendingBanner, { workspacePath: "/workspace" }),
     ),
@@ -92,7 +92,7 @@ function renderBanner() {
 function renderInteractive() {
   return render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(WorkspaceMcpTrustPendingBanner, { workspacePath: "/workspace" }),
     ),
@@ -192,7 +192,7 @@ describe("workspace MCP trust pending banner（A5 会话内提示）", () => {
     setStoreState({ trust: { probe: { declarationDigest: nextDigest, trusted: false } } });
     view.rerender(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(WorkspaceMcpTrustPendingBanner, { workspacePath: "/workspace" }),
       ),

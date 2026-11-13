@@ -1,21 +1,21 @@
 import {
   ApiError,
   DEFAULT_NIBI_ENDPOINT_ORIGIN,
-  normalizeZCodeEndpointOrigin,
-  rewriteZCodeEndpointUrl,
+  normalizeNibiEndpointOrigin,
+  rewriteNibiEndpointUrl,
   type ApiClient,
   type ApiRequestInit,
 } from "@nibi/shared";
 import { createServiceLogger } from "#src/logger/serviceLogger.js";
-import { buildZCodeSourceHeaders } from "../sourceHeaders.js";
+import { buildNibiSourceHeaders } from "../sourceHeaders.js";
 import { withRequestIdHeader } from "./requestIdHeaders.js";
 
 const log = createServiceLogger("node-api-client");
 
 interface NodeApiClientOptions {
   fetchImpl?: typeof fetch;
-  onZcodeJwtInvalid?: (input: string | URL, headers: Headers) => void;
-  isZcodeJwtRequest?: (input: string | URL, headers: Headers) => boolean | Promise<boolean>;
+  onNibiJwtInvalid?: (input: string | URL, headers: Headers) => void;
+  isNibiJwtRequest?: (input: string | URL, headers: Headers) => boolean | Promise<boolean>;
   isBusinessUnauthorizedRequest?: (
     input: string | URL,
     headers: Headers,
@@ -25,7 +25,7 @@ interface NodeApiClientOptions {
     input: string | URL,
     headers: Headers,
   ) => Promise<{ url: string; authorization: string; emptyBodyMeansInvalid: boolean } | null>;
-  resolveZCodeEndpointOrigin?: () => Promise<string> | string;
+  resolveNibiEndpointOrigin?: () => Promise<string> | string;
   /** 宿主内存里的实时界面语言；同步读取，未注入或无值时 X-Client-Language 回退进程 Intl locale。 */
   resolveClientLanguage?: () => string | undefined;
 }
@@ -135,18 +135,18 @@ function readHeaderKeys(headers: RequestInit["headers"] | undefined): string[] {
 
 function isRequestForEndpoint(input: string | URL, endpointOrigin: string): boolean {
   try {
-    return new URL(resolveUrl(input)).origin === normalizeZCodeEndpointOrigin(endpointOrigin);
+    return new URL(resolveUrl(input)).origin === normalizeNibiEndpointOrigin(endpointOrigin);
   } catch {
     return false;
   }
 }
 
-function withZCodeEndpointHeaders(
+function withNibiEndpointHeaders(
   headers: RequestInit["headers"] | undefined,
   endpointOrigin: string,
   clientLanguage: string | undefined,
 ): RequestInit["headers"] {
-  const next = new Headers(buildZCodeSourceHeaders({ clientLanguage }));
+  const next = new Headers(buildNibiSourceHeaders({ clientLanguage }));
   if (headers) {
     new Headers(headers).forEach((value, key) => {
       next.set(key, value);
@@ -169,17 +169,17 @@ function resolveRequestHeaders(
     return headers;
   }
 
-  // ZCode 后端请求以前只有部分业务路径手动补来源头。
+  // Nibi 后端请求以前只有部分业务路径手动补来源头。
   // 统一在 ApiClient 出口按 endpoint origin 注入，避免 OAuth/config/billing/snapshot 等链路遗漏。
-  return withZCodeEndpointHeaders(headers, endpointOrigin, clientLanguage);
+  return withNibiEndpointHeaders(headers, endpointOrigin, clientLanguage);
 }
 
 export class NodeApiClient implements ApiClient {
   private readonly fetchImpl?: typeof fetch;
-  private readonly resolveZCodeEndpointOrigin?: () => Promise<string> | string;
+  private readonly resolveNibiEndpointOrigin?: () => Promise<string> | string;
   private readonly resolveClientLanguage?: NodeApiClientOptions["resolveClientLanguage"];
-  private readonly onZcodeJwtInvalid?: (input: string | URL, headers: Headers) => void;
-  private readonly isZcodeJwtRequest?: NodeApiClientOptions["isZcodeJwtRequest"];
+  private readonly onNibiJwtInvalid?: (input: string | URL, headers: Headers) => void;
+  private readonly isNibiJwtRequest?: NodeApiClientOptions["isNibiJwtRequest"];
   private readonly isBusinessUnauthorizedRequest?: NodeApiClientOptions["isBusinessUnauthorizedRequest"];
   private readonly businessUnauthorizedObservationTimeoutMs: number;
   private readonly resolveBusinessCredentialValidationRequest?: NodeApiClientOptions["resolveBusinessCredentialValidationRequest"];
@@ -194,15 +194,15 @@ export class NodeApiClient implements ApiClient {
 
   constructor(options: NodeApiClientOptions = {}) {
     this.fetchImpl = options.fetchImpl;
-    this.onZcodeJwtInvalid = options.onZcodeJwtInvalid;
-    this.isZcodeJwtRequest = options.isZcodeJwtRequest;
+    this.onNibiJwtInvalid = options.onNibiJwtInvalid;
+    this.isNibiJwtRequest = options.isNibiJwtRequest;
     this.isBusinessUnauthorizedRequest = options.isBusinessUnauthorizedRequest;
     this.resolveBusinessCredentialValidationRequest =
       options.resolveBusinessCredentialValidationRequest;
     this.businessUnauthorizedObservationTimeoutMs =
       options.businessUnauthorizedObservationTimeoutMs ??
       DEFAULT_BUSINESS_UNAUTHORIZED_OBSERVATION_TIMEOUT_MS;
-    this.resolveZCodeEndpointOrigin = options.resolveZCodeEndpointOrigin;
+    this.resolveNibiEndpointOrigin = options.resolveNibiEndpointOrigin;
     this.resolveClientLanguage = options.resolveClientLanguage;
   }
 
@@ -282,13 +282,13 @@ export class NodeApiClient implements ApiClient {
   }
 
   async request(input: string | URL, init?: ApiRequestInit): Promise<Response> {
-    const endpointOrigin = this.resolveZCodeEndpointOrigin
-      ? await this.resolveZCodeEndpointOrigin()
+    const endpointOrigin = this.resolveNibiEndpointOrigin
+      ? await this.resolveNibiEndpointOrigin()
       : undefined;
     const activeEndpointOrigin = endpointOrigin ?? DEFAULT_NIBI_ENDPOINT_ORIGIN;
     const requestInput = init?.skipEndpointRewrite
       ? input
-      : rewriteZCodeEndpointUrl(input, activeEndpointOrigin);
+      : rewriteNibiEndpointUrl(input, activeEndpointOrigin);
     const url = resolveUrl(requestInput);
     const method = resolveMethod(init);
     const timeoutMs = init?.timeoutMs;
@@ -335,16 +335,16 @@ export class NodeApiClient implements ApiClient {
         headers: requestHeaders,
         ...(signal ? { signal } : {}),
       });
-      if ([200, 401, 403].includes(response.status) && this.onZcodeJwtInvalid) {
+      if ([200, 401, 403].includes(response.status) && this.onNibiJwtInvalid) {
         try {
           await waitWithAbort(
             (async () => {
               const requestHeadersForObservation = new Headers(requestHeaders);
-              const isCurrentZCodeJwtRequest = await this.isZcodeJwtRequest?.(
+              const isCurrentNibiJwtRequest = await this.isNibiJwtRequest?.(
                 requestInput,
                 requestHeadersForObservation,
               );
-              if (isCurrentZCodeJwtRequest) {
+              if (isCurrentNibiJwtRequest) {
                 let invalid = response.status === 401;
                 if (
                   !invalid &&
@@ -372,7 +372,7 @@ export class NodeApiClient implements ApiClient {
                     );
                 }
                 if (invalid && !signal?.aborted)
-                  this.onZcodeJwtInvalid?.(requestInput, requestHeadersForObservation);
+                  this.onNibiJwtInvalid?.(requestInput, requestHeadersForObservation);
               }
             })(),
             signal,

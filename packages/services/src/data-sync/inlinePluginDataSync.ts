@@ -18,8 +18,8 @@ import {
 import { resolvePluginSyncPathWithin } from "#src/plugin-sync/pluginSyncPath.js";
 import {
   createShortHash,
-  getUserZcodeConfigPath,
-  getUserZcodePluginRoot,
+  getUserNibiConfigPath,
+  getUserNibiPluginRoot,
   normalizePluginIdKey,
   readPluginManifestInfo,
   readUserPluginConfigState,
@@ -74,7 +74,7 @@ function inlinePluginKey(manifest: PluginManifestInfo): string {
  */
 async function resolveInlinePlugins(): Promise<Map<string, ResolvedInlinePlugin>> {
   const config = await readUserPluginConfigState();
-  const pluginRoot = getUserZcodePluginRoot();
+  const pluginRoot = getUserNibiPluginRoot();
   const result = new Map<string, ResolvedInlinePlugin>();
   for (const rawDir of config.dirs) {
     const configuredPath = resolve(rawDir);
@@ -294,8 +294,8 @@ export function createInlinePluginDataSyncMethods(options?: {
     async checkSyncWriteAccess() {
       // 新建要写插件目录和 config.json 的 plugins.dirs。
       return await checkRemoteSyncDirectoriesWriteAccess([
-        getUserZcodePluginRoot(),
-        dirname(await getUserZcodeConfigPath()),
+        getUserNibiPluginRoot(),
+        dirname(await getUserNibiConfigPath()),
       ]);
     },
 
@@ -371,7 +371,7 @@ export function createInlinePluginDataSyncMethods(options?: {
           `plugin sync archive exceeds limit: ${params.payload.archive.byteLength}/${maxItemBytes}`,
         );
       }
-      const targetRoot = getUserZcodePluginRoot();
+      const targetRoot = getUserNibiPluginRoot();
       await mkdir(targetRoot, { recursive: true });
       // 临时目录放在插件根内，保证与目标同盘，rename 是原子替换。插件只按 plugins.dirs 发现，点目录不会被读到。
       const tempRoot = join(targetRoot, `.sync-tmp-${randomUUID()}`);
@@ -426,7 +426,7 @@ async function registerCreatedPlugins(
   const created = results.filter((result) => result.status === "created" && result.created);
   if (created.length === 0) return;
   try {
-    await updateJsonObjectFile(await getUserZcodeConfigPath(), (config) => {
+    await updateJsonObjectFile(await getUserNibiConfigPath(), (config) => {
       const plugins: Record<string, unknown> = isRecord(config.plugins) ? config.plugins : {};
       const dirs = Array.isArray(plugins.dirs)
         ? plugins.dirs.filter((dir): dir is string => typeof dir === "string")

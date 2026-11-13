@@ -5,7 +5,7 @@ import {
   BotGroupDeliveryAction,
   ConnectedBotGroupDeliveryAction,
 } from "@/v4/BotGroupDeliveryAction.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import type { BotGroupDelivery } from "@nibi/shared";
 
 import { DeliveryContext } from "@/v4/botGroupDeliveryContext.js";
@@ -13,7 +13,7 @@ import { DeliveryContext } from "@/v4/botGroupDeliveryContext.js";
 const render = (results: BotGroupDelivery[]) =>
   renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(BotGroupDeliveryAction, {
         turnId: "product-turn-a",
@@ -67,7 +67,7 @@ describe("group reply delivery action", () => {
       } satisfies NonNullable<ContextType<typeof DeliveryContext>>;
       const html = renderToStaticMarkup(
         createElement(
-          ZCodeIntlProvider,
+          NibiIntlProvider,
           { initialLocale: "zh-CN" },
           createElement(
             DeliveryContext.Provider,

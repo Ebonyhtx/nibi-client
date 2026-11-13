@@ -49,7 +49,7 @@ describe("BOT-E2E-SR99 绑定 Session 后的有效选择", () => {
           },
         },
       });
-      harness.zcodeTaskService.getTaskModelSelection = async () => original;
+      harness.nibiTaskService.getTaskModelSelection = async () => original;
       try {
         const submission = harness.service.handleInboundMessage({
           botId: "feishu-e2e",

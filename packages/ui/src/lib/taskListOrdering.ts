@@ -1,4 +1,4 @@
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import { isTaskListRowActive } from "@/v4/taskListRowActivity.js";
 
 export type TaskListTimeSortBy = "created" | "updated";
@@ -62,9 +62,9 @@ export function compareTaskListItemsWithRunningFirst<T extends TaskListSortableI
   return compareTaskListItemsByTime(left, right, sortBy);
 }
 
-export function compareZCodeTaskListItems(
-  left: ZCodeTaskMeta,
-  right: ZCodeTaskMeta,
+export function compareNibiTaskListItems(
+  left: NibiTaskMeta,
+  right: NibiTaskMeta,
   sortBy: TaskListTimeSortBy,
 ): number {
   return compareTaskListItemsWithRunningFirst(left, right, sortBy, isTaskListRowActive);

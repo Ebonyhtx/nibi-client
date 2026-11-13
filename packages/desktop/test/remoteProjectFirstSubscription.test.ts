@@ -4,9 +4,9 @@ import { ServiceChannels } from "@nibi/shared";
 import {
   NIBI_AGENT_RUNTIME_UNAVAILABLE_CODE,
   type IProjectService,
-  type IZCodeAgentService,
-  type ZCodeAgentRuntimeLifecycleEvent,
-  type ZCodeAgentWorkspaceTarget,
+  type INibiAgentService,
+  type NibiAgentRuntimeLifecycleEvent,
+  type NibiAgentWorkspaceTarget,
 } from "@nibi/services";
 import {
   sessionsIndexTopic,
@@ -26,7 +26,7 @@ it.each([false, true])(
     const stable = "remote:server:source:/repo";
     const canonical = "remote:ssh:example.test:22:dev:/repo";
     const mapper = new SourceServerWorkspaceIdentityMapper();
-    const lifecycle = new Emitter<ZCodeAgentRuntimeLifecycleEvent>();
+    const lifecycle = new Emitter<NibiAgentRuntimeLifecycleEvent>();
     const emitters = new Map<string, Emitter<SessionsIndexTopicWireCandidate>>();
     const emitter = (identity: string) => {
       let value = emitters.get(identity);
@@ -37,7 +37,7 @@ it.each([false, true])(
       return value;
     };
     let running = initiallyRunning;
-    const subscribe = vi.fn(async (target: ZCodeAgentWorkspaceTarget) => {
+    const subscribe = vi.fn(async (target: NibiAgentWorkspaceTarget) => {
       if (!running || target.workspaceIdentity !== canonical)
         throw Object.assign(new Error("runtime unavailable"), {
           code: NIBI_AGENT_RUNTIME_UNAVAILABLE_CODE,
@@ -86,7 +86,7 @@ it.each([false, true])(
       };
     });
     const inner = {
-      onDynamicSessionsIndexFrame: (target: ZCodeAgentWorkspaceTarget) =>
+      onDynamicSessionsIndexFrame: (target: NibiAgentWorkspaceTarget) =>
         emitter(target.workspaceIdentity ?? target.workspacePath).event,
       onAgentRuntimeLifecycle: lifecycle.event,
       subscribeSessionsIndexV4: subscribe,
@@ -101,8 +101,8 @@ it.each([false, true])(
         },
       },
       mapper,
-    ).registerChannel(ServiceChannels.ZCodeAgent, ProxyChannel.fromService(inner));
-    const agent = ProxyChannel.toService<IZCodeAgentService>({
+    ).registerChannel(ServiceChannels.NibiAgent, ProxyChannel.fromService(inner));
+    const agent = ProxyChannel.toService<INibiAgentService>({
       call: (command, args) => channel.call("controller", command, args),
       listen: (event, args) => channel.listen("controller", event, args),
     });

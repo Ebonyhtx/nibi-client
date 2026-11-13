@@ -1,18 +1,18 @@
 import { getPluginSandboxHost } from "./pluginSandbox/index.js";
 /* eslint-disable max-lines -- 桌面命令分发需要共享窗口与平台上下文，集中维护更便于一致性 */
-import { readZCodeStdioTapDevState, setZCodeStdioTapDevEnabled } from "@nibi/services/node";
+import { readNibiStdioTapDevState, setNibiStdioTapDevEnabled } from "@nibi/services/node";
 import {
-  buildZCodeEndpointUrls,
+  buildNibiEndpointUrls,
   DEFAULT_NIBI_ENDPOINT_ORIGIN,
   DesktopCommandIds,
   NIBI_MEMBERSHIP_WEBVIEW_PARTITION,
   TEST_NIBI_ENDPOINT_ORIGIN,
   getCommunityUrlFromConfigs,
   getFeedbackUrlFromConfig,
-  normalizeZCodeEndpointOrigin,
+  normalizeNibiEndpointOrigin,
   PlatformChannels,
   resolveHelpAppConfig,
-  resolveZCodeEndpointOrigin,
+  resolveNibiEndpointOrigin,
   NIBI_ENV,
   NIBI_PRODUCT_FLAVOR,
   type AppSettings,
@@ -41,7 +41,7 @@ import { exportLogs } from "./exportLogs.js";
 import { openResourceManager } from "./resourceManagerWindow.js";
 
 export const HELP_TOGGLE_DEV_TOOLS_MENU_ID = "help.toggle-dev-tools";
-export const HELP_TOGGLE_NIBI_STDIO_TAP_MENU_ID = "help.toggle-zcode-stdio-tap";
+export const HELP_TOGGLE_NIBI_STDIO_TAP_MENU_ID = "help.toggle-nibi-stdio-tap";
 const NIBI_ENDPOINT_PROMPT_WIDTH = 460;
 const NIBI_ENDPOINT_PROMPT_HEIGHT = 210;
 function resolveTargetWindow(senderWindow?: BrowserWindow | null) {
@@ -294,11 +294,11 @@ async function openCommunity(
   await shell.openExternal(communityUrl);
 }
 
-async function promptCustomZCodeEndpoint(
+async function promptCustomNibiEndpoint(
   targetWindow: BrowserWindow | null | undefined,
   currentValue: string,
 ): Promise<string | undefined> {
-  return showZCodeEndpointPromptWindow({
+  return showNibiEndpointPromptWindow({
     currentValue,
     parentWindow: targetWindow && !targetWindow.isDestroyed() ? targetWindow : undefined,
   });
@@ -312,7 +312,7 @@ function escapeHtmlAttribute(value: string): string {
     .replace(/>/g, "&gt;");
 }
 
-function buildZCodeEndpointPromptHtml(currentValue: string): string {
+function buildNibiEndpointPromptHtml(currentValue: string): string {
   const value = escapeHtmlAttribute(currentValue);
   return `<!doctype html>
 <html>
@@ -356,7 +356,7 @@ function buildZCodeEndpointPromptHtml(currentValue: string): string {
 </html>`;
 }
 
-function showZCodeEndpointPromptWindow(options: {
+function showNibiEndpointPromptWindow(options: {
   currentValue: string;
   parentWindow?: BrowserWindow;
 }): Promise<string | undefined> {
@@ -407,24 +407,24 @@ function showZCodeEndpointPromptWindow(options: {
     // 这里改为主进程创建受控 modal 输入窗，确保 Custom... 始终有可见交互入口。
     void promptWindow.loadURL(
       `data:text/html;charset=utf-8,${encodeURIComponent(
-        buildZCodeEndpointPromptHtml(options.currentValue),
+        buildNibiEndpointPromptHtml(options.currentValue),
       )}`,
     );
   });
 }
 
-async function setZCodeEndpointOverride(options: {
+async function setNibiEndpointOverride(options: {
   value: string | undefined;
-  settingService: { update(patch: { zcodeEndpointOrigin?: string | undefined }): Promise<void> };
-  onZCodeEndpointChanged: () => Promise<void> | void;
+  settingService: { update(patch: { nibiEndpointOrigin?: string | undefined }): Promise<void> };
+  onNibiEndpointChanged: () => Promise<void> | void;
   logger: { warn: (...args: unknown[]) => void };
 }) {
   if (NIBI_ENV === "production") {
     return;
   }
-  const normalized = options.value ? normalizeZCodeEndpointOrigin(options.value) : undefined;
-  await options.settingService.update({ zcodeEndpointOrigin: normalized });
-  await options.onZCodeEndpointChanged();
+  const normalized = options.value ? normalizeNibiEndpointOrigin(options.value) : undefined;
+  await options.settingService.update({ nibiEndpointOrigin: normalized });
+  await options.onNibiEndpointChanged();
 }
 
 async function persistDesktopZoomLevel(options: {
@@ -441,13 +441,13 @@ async function persistDesktopZoomLevel(options: {
   }
 }
 
-function toggleZCodeStdioTapDevProxy(options: {
+function toggleNibiStdioTapDevProxy(options: {
   logger: { info: (...args: unknown[]) => void };
-  updateZCodeStdioTapDevMenuState: () => void;
+  updateNibiStdioTapDevMenuState: () => void;
 }) {
-  const current = readZCodeStdioTapDevState();
-  const next = setZCodeStdioTapDevEnabled(!current.enabled);
-  options.updateZCodeStdioTapDevMenuState();
+  const current = readNibiStdioTapDevState();
+  const next = setNibiStdioTapDevEnabled(!current.enabled);
+  options.updateNibiStdioTapDevMenuState();
   options.logger.info("[stdio-tap] dev proxy toggled", {
     enabled: next.enabled,
     visible: next.visible,
@@ -461,7 +461,7 @@ function resolveChangelogUrl(
 ): string {
   // 帮助菜单里的外链以前只有固定英文地址，切到中文界面后仍会落到英文 changelog。
   // 这里统一收口到主进程按当前应用语言分流，避免菜单模板里手写分支后续再出现多处不一致。
-  const origin = buildZCodeEndpointUrls(endpointOrigin).origin;
+  const origin = buildNibiEndpointUrls(endpointOrigin).origin;
   return locale === "zh-CN" ? `${origin}/cn/changelog` : `${origin}/en/changelog`;
 }
 
@@ -472,15 +472,15 @@ export async function openChangelog(
   await shell.openExternal(resolveChangelogUrl(locale, endpointOrigin));
 }
 
-async function resolveCurrentZCodeEndpointOrigin(settingService: {
-  get(): Promise<{ zcodeEndpointOrigin?: string }>;
+async function resolveCurrentNibiEndpointOrigin(settingService: {
+  get(): Promise<{ nibiEndpointOrigin?: string }>;
   envBaseOrigin?: string | null;
 }): Promise<string> {
   const settings = await settingService.get();
-  return resolveZCodeEndpointOrigin({
+  return resolveNibiEndpointOrigin({
     env: NIBI_ENV,
     envBaseOrigin: settingService.envBaseOrigin,
-    overrideOrigin: settings.zcodeEndpointOrigin,
+    overrideOrigin: settings.nibiEndpointOrigin,
   });
 }
 
@@ -493,17 +493,17 @@ export async function executeDesktopCommand(options: {
     warn: (...args: unknown[]) => void;
     error: (...args: unknown[]) => void;
   };
-  updateZCodeStdioTapDevMenuState: () => void;
+  updateNibiStdioTapDevMenuState: () => void;
   onDesktopZoomChanged?: (zoomLevel: number) => Promise<void> | void;
-  onZCodeEndpointChanged: () => Promise<void> | void;
+  onNibiEndpointChanged: () => Promise<void> | void;
   onRelaunchApp: () => Promise<void>;
   settingService: {
-    get(): Promise<Pick<AppSettings, "zcodeEndpointOrigin" | "desktopZoomLevel">>;
+    get(): Promise<Pick<AppSettings, "nibiEndpointOrigin" | "desktopZoomLevel">>;
     update(
-      patch: Partial<Pick<AppSettings, "zcodeEndpointOrigin" | "desktopZoomLevel">>,
+      patch: Partial<Pick<AppSettings, "nibiEndpointOrigin" | "desktopZoomLevel">>,
     ): Promise<void>;
   };
-  zcodeEndpointEnvBaseOrigin?: string | null;
+  nibiEndpointEnvBaseOrigin?: string | null;
   credentialsDir: string;
   currentApplicationLocale: Locale;
 }) {
@@ -592,9 +592,9 @@ export async function executeDesktopCommand(options: {
     case DesktopCommandIds.OpenChangelog:
       await openChangelog(
         options.currentApplicationLocale,
-        await resolveCurrentZCodeEndpointOrigin({
+        await resolveCurrentNibiEndpointOrigin({
           ...options.settingService,
-          envBaseOrigin: options.zcodeEndpointEnvBaseOrigin,
+          envBaseOrigin: options.nibiEndpointEnvBaseOrigin,
         }),
       );
       return;
@@ -628,40 +628,40 @@ export async function executeDesktopCommand(options: {
     case DesktopCommandIds.OpenResourceManager:
       openResourceManager();
       return;
-    case DesktopCommandIds.ToggleZCodeStdioTapDevProxy:
-      toggleZCodeStdioTapDevProxy({
+    case DesktopCommandIds.ToggleNibiStdioTapDevProxy:
+      toggleNibiStdioTapDevProxy({
         logger: options.logger,
-        updateZCodeStdioTapDevMenuState: options.updateZCodeStdioTapDevMenuState,
+        updateNibiStdioTapDevMenuState: options.updateNibiStdioTapDevMenuState,
       });
       return;
-    case DesktopCommandIds.SetZCodeEndpointProduction:
-      await setZCodeEndpointOverride({
+    case DesktopCommandIds.SetNibiEndpointProduction:
+      await setNibiEndpointOverride({
         value: DEFAULT_NIBI_ENDPOINT_ORIGIN,
         settingService: options.settingService,
-        onZCodeEndpointChanged: options.onZCodeEndpointChanged,
+        onNibiEndpointChanged: options.onNibiEndpointChanged,
         logger: options.logger,
       });
       return;
-    case DesktopCommandIds.SetZCodeEndpointTest:
-      await setZCodeEndpointOverride({
+    case DesktopCommandIds.SetNibiEndpointTest:
+      await setNibiEndpointOverride({
         value: TEST_NIBI_ENDPOINT_ORIGIN,
         settingService: options.settingService,
-        onZCodeEndpointChanged: options.onZCodeEndpointChanged,
+        onNibiEndpointChanged: options.onNibiEndpointChanged,
         logger: options.logger,
       });
       return;
-    case DesktopCommandIds.SetZCodeEndpointCustom: {
+    case DesktopCommandIds.SetNibiEndpointCustom: {
       const current =
-        (await options.settingService.get()).zcodeEndpointOrigin ?? DEFAULT_NIBI_ENDPOINT_ORIGIN;
-      const value = await promptCustomZCodeEndpoint(targetWindow, current);
+        (await options.settingService.get()).nibiEndpointOrigin ?? DEFAULT_NIBI_ENDPOINT_ORIGIN;
+      const value = await promptCustomNibiEndpoint(targetWindow, current);
       if (!value) {
         return;
       }
       try {
-        await setZCodeEndpointOverride({
+        await setNibiEndpointOverride({
           value,
           settingService: options.settingService,
-          onZCodeEndpointChanged: options.onZCodeEndpointChanged,
+          onNibiEndpointChanged: options.onNibiEndpointChanged,
           logger: options.logger,
         });
       } catch (error) {
@@ -674,11 +674,11 @@ export async function executeDesktopCommand(options: {
       }
       return;
     }
-    case DesktopCommandIds.ResetZCodeEndpoint:
-      await setZCodeEndpointOverride({
+    case DesktopCommandIds.ResetNibiEndpoint:
+      await setNibiEndpointOverride({
         value: undefined,
         settingService: options.settingService,
-        onZCodeEndpointChanged: options.onZCodeEndpointChanged,
+        onNibiEndpointChanged: options.onNibiEndpointChanged,
         logger: options.logger,
       });
       return;

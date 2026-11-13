@@ -8,7 +8,7 @@ vi.mock("react-dom/client", () => ({
 vi.mock("@nibi/ui", () => ({
   AppErrorBoundary: ({ children }: { children: unknown }) => children,
   Root: () => null,
-  ZCodeIntlProvider: ({ children }: { children: unknown }) => children,
+  NibiIntlProvider: ({ children }: { children: unknown }) => children,
   generateMobileDeviceFingerprint: vi.fn(() => "test-mobile-fingerprint"),
   installDocumentHiddenMotionPause: vi.fn(),
   playTaskNotificationSound: vi.fn(),
@@ -53,7 +53,7 @@ describe("createHomeOnlyWebRemoteControlServices", () => {
       diagnostics: [],
     });
     await expect(
-      services.zcodeTaskService.listTasks({ workspacePath: "/remote/offline" }),
+      services.nibiTaskService.listTasks({ workspacePath: "/remote/offline" }),
     ).resolves.toEqual([]);
     await expect(
       services.gitService.getRepositorySummary({ workspacePath: "/remote/offline" }),
@@ -121,9 +121,9 @@ describe("createHomeOnlyWebRemoteControlServices", () => {
     const services = createHomeOnlyWebRemoteControlServices();
     const workspace = { workspacePath: "/remote/offline" };
     const subscriptions = [
-      services.zcodeTaskService.onDynamicWorkspaceEvent(workspace)(() => {}),
-      services.zcodeAgentService.onDynamicSessionsIndexFrame(workspace)(() => {}),
-      services.zcodeAgentService.onDynamicConversationFrame(workspace)(() => {}),
+      services.nibiTaskService.onDynamicWorkspaceEvent(workspace)(() => {}),
+      services.nibiAgentService.onDynamicSessionsIndexFrame(workspace)(() => {}),
+      services.nibiAgentService.onDynamicConversationFrame(workspace)(() => {}),
     ];
 
     for (const subscription of subscriptions) {

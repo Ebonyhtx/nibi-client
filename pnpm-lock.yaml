@@ -160,7 +160,7 @@ importers:
         specifier: ^8.0.2
         version: 8.0.8(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0)
 
-  apps/zcode-cli:
+  apps/nibi-cli:
     dependencies:
       dotenv:
         specifier: ^17.4.2
@@ -206,7 +206,7 @@ importers:
         specifier: ^4.1.5
         version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@24.12.2)(typescript@5.9.3))(vite@8.0.8(@types/node@24.12.2)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
 
-  apps/zcode-cli/packages/adapters:
+  apps/nibi-cli/packages/adapters:
     dependencies:
       '@ai-sdk/anthropic':
         specifier: 3.0.81
@@ -285,7 +285,7 @@ importers:
         specifier: ^4.1.5
         version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@24.12.2)(typescript@6.0.2))(vite@8.0.8(@types/node@24.12.2)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
 
-  apps/zcode-cli/packages/android-emulator-plugin:
+  apps/nibi-cli/packages/android-emulator-plugin:
     dependencies:
       '@modelcontextprotocol/server':
         specifier: 2.0.0
@@ -307,7 +307,7 @@ importers:
         specifier: ^4.1.5
         version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@24.12.2)(typescript@5.9.3))(vite@8.0.8(@types/node@24.12.2)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
 
-  apps/zcode-cli/packages/bootstrap:
+  apps/nibi-cli/packages/bootstrap:
     dependencies:
       '@nibi/adapters':
         specifier: workspace:*
@@ -359,7 +359,7 @@ importers:
         specifier: ^3.3.1
         version: 3.3.1
 
-  apps/zcode-cli/packages/browser-use-plugin:
+  apps/nibi-cli/packages/browser-use-plugin:
     dependencies:
       '@modelcontextprotocol/server':
         specifier: 2.0.0
@@ -402,7 +402,7 @@ importers:
         specifier: ^5.9.0
         version: 5.9.3
 
-  apps/zcode-cli/packages/cli:
+  apps/nibi-cli/packages/cli:
     dependencies:
       '@nibi/adapters':
         specifier: workspace:*
@@ -444,7 +444,7 @@ importers:
         specifier: 1.59.1
         version: 1.59.1
 
-  apps/zcode-cli/packages/contracts:
+  apps/nibi-cli/packages/contracts:
     dependencies:
       '@nibi/shared':
         specifier: workspace:*
@@ -463,7 +463,7 @@ importers:
         specifier: ^4.1.5
         version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@24.12.2)(typescript@6.0.2))(vite@8.0.8(@types/node@24.12.2)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
 
-  apps/zcode-cli/packages/core:
+  apps/nibi-cli/packages/core:
     dependencies:
       '@nibi/contracts':
         specifier: workspace:*
@@ -509,7 +509,7 @@ importers:
         specifier: ^4.1.5
         version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@24.12.2)(typescript@6.0.2))(vite@8.0.8(@types/node@24.12.2)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
 
-  apps/zcode-cli/packages/debug:
+  apps/nibi-cli/packages/debug:
     dependencies:
       '@hono/node-server':
         specifier: ^1.14.4
@@ -561,13 +561,13 @@ importers:
         specifier: ^4.1.5
         version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@24.12.2)(typescript@5.9.3))(vite@7.3.3(@types/node@24.12.2)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0))
 
-  apps/zcode-cli/packages/documents-plugin:
+  apps/nibi-cli/packages/documents-plugin:
     devDependencies:
       '@nibi/office-runtime':
         specifier: workspace:*
         version: link:../office-runtime
 
-  apps/zcode-cli/packages/dynamic-workflow:
+  apps/nibi-cli/packages/dynamic-workflow:
     dependencies:
       typescript:
         specifier: ^5.9.0
@@ -580,7 +580,7 @@ importers:
         specifier: ^4.1.5
         version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@24.12.2)(typescript@5.9.3))(vite@8.0.8(@types/node@24.12.2)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
 
-  apps/zcode-cli/packages/dynamic-workflow-runtime:
+  apps/nibi-cli/packages/dynamic-workflow-runtime:
     dependencies:
       '@nibi/dynamic-workflow':
         specifier: workspace:*
@@ -593,7 +593,7 @@ importers:
         specifier: ^4.1.5
         version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@24.12.2)(typescript@6.0.2))(vite@8.0.8(@types/node@24.12.2)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
 
-  apps/zcode-cli/packages/i18n:
+  apps/nibi-cli/packages/i18n:
     dependencies:
       '@nibi/contracts':
         specifier: workspace:*
@@ -603,7 +603,7 @@ importers:
         specifier: ^4.1.5
         version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@25.6.0)(typescript@6.0.2))(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
 
-  apps/zcode-cli/packages/ios-simulator-plugin:
+  apps/nibi-cli/packages/ios-simulator-plugin:
     dependencies:
       '@modelcontextprotocol/server':
         specifier: 2.0.0
@@ -625,7 +625,7 @@ importers:
         specifier: ^4.1.5
         version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@24.12.2)(typescript@5.9.3))(vite@8.0.8(@types/node@24.12.2)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
 
-  apps/zcode-cli/packages/node-repl-host:
+  apps/nibi-cli/packages/node-repl-host:
     dependencies:
       '@modelcontextprotocol/server':
         specifier: 2.0.0
@@ -662,7 +662,7 @@ importers:
         specifier: ^4.1.5
         version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@24.12.2)(typescript@5.9.3))(vite@8.0.8(@types/node@24.12.2)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
 
-  apps/zcode-cli/packages/office-runtime:
+  apps/nibi-cli/packages/office-runtime:
     devDependencies:
       '@aiden0z/pptx-renderer':
         specifier: 1.2.4
@@ -728,45 +728,45 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
 
-  apps/zcode-cli/packages/pdf-plugin:
+  apps/nibi-cli/packages/pdf-plugin:
     devDependencies:
       '@nibi/office-runtime':
         specifier: workspace:*
         version: link:../office-runtime
 
-  apps/zcode-cli/packages/plugin-creator-plugin: {}
+  apps/nibi-cli/packages/plugin-creator-plugin: {}
 
-  apps/zcode-cli/packages/presentations-plugin:
+  apps/nibi-cli/packages/presentations-plugin:
     devDependencies:
       '@nibi/office-runtime':
         specifier: workspace:*
         version: link:../office-runtime
 
-  apps/zcode-cli/packages/restore-legacy-sessions-plugin: {}
+  apps/nibi-cli/packages/restore-legacy-sessions-plugin: {}
 
-  apps/zcode-cli/packages/shared-types:
+  apps/nibi-cli/packages/shared-types:
     devDependencies:
       '@types/node':
         specifier: ^24.0.0
         version: 24.12.2
 
-  apps/zcode-cli/packages/skill-creator-plugin: {}
+  apps/nibi-cli/packages/skill-creator-plugin: {}
 
-  apps/zcode-cli/packages/spreadsheets-plugin:
+  apps/nibi-cli/packages/spreadsheets-plugin:
     devDependencies:
       '@nibi/office-runtime':
         specifier: workspace:*
         version: link:../office-runtime
 
-  apps/zcode-cli/packages/superpowers-plugin: {}
+  apps/nibi-cli/packages/superpowers-plugin: {}
 
-  apps/zcode-cli/packages/swift-bridge:
+  apps/nibi-cli/packages/swift-bridge:
     dependencies:
       '@nibi/shared-types':
         specifier: workspace:*
         version: link:../shared-types
 
-  apps/zcode-cli/packages/telemetry:
+  apps/nibi-cli/packages/telemetry:
     dependencies:
       '@nibi/contracts':
         specifier: workspace:*
@@ -803,7 +803,7 @@ importers:
         specifier: ^4.1.5
         version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@24.12.2)(typescript@6.0.2))(vite@8.0.8(@types/node@24.12.2)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
 
-  apps/zcode-cli/packages/tui:
+  apps/nibi-cli/packages/tui:
     dependencies:
       '@mbears/opentui-core':
         specifier: 0.2.15
@@ -843,9 +843,9 @@ importers:
         specifier: ^4.20.0
         version: 4.21.0
 
-  apps/zcode-cli/packages/visualize-plugin: {}
+  apps/nibi-cli/packages/visualize-plugin: {}
 
-  apps/zcode-cli/packages/zcode-cua-plugin:
+  apps/nibi-cli/packages/zcode-cua-plugin:
     dependencies:
       '@nibi/cua':
         specifier: workspace:*
@@ -858,9 +858,9 @@ importers:
         specifier: ^5.9.0
         version: 5.9.3
 
-  apps/zcode-cli/packages/zcode-guide-plugin: {}
+  apps/nibi-cli/packages/zcode-guide-plugin: {}
 
-  apps/zcode-cli/tools/prompt-trajectory:
+  apps/nibi-cli/tools/prompt-trajectory:
     devDependencies:
       '@types/node':
         specifier: ^24.0.0
@@ -872,7 +872,7 @@ importers:
         specifier: ^5.9.0
         version: 5.9.3
 
-  apps/zcode-cli/tools/typescript: {}
+  apps/nibi-cli/tools/typescript: {}
 
   packages/client:
     dependencies:
@@ -921,7 +921,7 @@ importers:
         version: 2.0.0(@modelcontextprotocol/client@2.0.0)(@modelcontextprotocol/core@2.0.0)(@modelcontextprotocol/server@2.0.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5)
       '@nibi/bootstrap':
         specifier: workspace:*
-        version: link:../../apps/zcode-cli/packages/bootstrap
+        version: link:../../apps/nibi-cli/packages/bootstrap
       '@nibi/client':
         specifier: workspace:*
         version: link:../client
@@ -1982,7 +1982,7 @@ importers:
 
   packages/zcode-cua: {}
 
-  packages/zcode-server-cli:
+  packages/nibi-server-cli:
     dependencies:
       '@hono/node-server':
         specifier: ^1.19.11

@@ -6,7 +6,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { MinusIcon, PlusIcon } from "lucide-react";
-import { NIBI_AGENT_PROVIDER, type ZCodeConfigOption } from "@nibi/shared";
+import { NIBI_AGENT_PROVIDER, type NibiConfigOption } from "@nibi/shared";
 import { ThoughtLevelCycleControl } from "@/chat-input-toolbar/ThoughtLevelCycleControl.js";
 import { cn } from "@/components/lib/utils.js";
 import {
@@ -15,7 +15,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   MODEL_CONFIG_SELECT_BADGE_CLASS_NAME,
   ModelConfigSelect,
@@ -57,11 +57,11 @@ export function WorkflowRunSettingsModelField({
   onLevelChange: (level: string) => void;
   onValueChange: (value: string) => void;
   /** 所选模型的思考档；缺席即不画思考档控件。 */
-  thoughtOption: ZCodeConfigOption | null;
+  thoughtOption: NibiConfigOption | null;
   triggerLabel: string;
   value: string;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const levelTriggerRef = useRef<HTMLSpanElement | null>(null);
   const [levelOpen, setLevelOpen] = useState(false);
   const label = intl.formatMessage({ id: "chat.toolCall.workflow.run.settings.model" });
@@ -154,7 +154,7 @@ export function WorkflowRunSettingsBoundField({
   disabled: boolean;
   onChange: (bound: number) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const hint =
     defaultConcurrency === undefined
       ? undefined

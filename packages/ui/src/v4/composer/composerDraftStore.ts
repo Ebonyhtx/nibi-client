@@ -1,6 +1,6 @@
 // composer parity：v4 composer 的 per-session 草稿持久化（新做，轻量 localStorage）。
 //
-// 旧草稿面（zcodeSessionStore composerDraftByScopeId + chatComposerDraftStorage 写路径）
+// 旧草稿面（nibiSessionStore composerDraftByScopeId + chatComposerDraftStorage 写路径）
 // 已随 store 收尾删除；本模块是 v4 侧替代——键空间独立（v4 前缀），不与旧键互写，
 // 旧键清理仍归 chatComposerDraftStorage 的 janitor。
 // 语义：scope = sessionId（draft 态 = "__draft__"）；保存 text + editorStateJson，外部预填在
@@ -15,7 +15,7 @@ import {
   type ModelSelection,
 } from "@nibi/shared";
 import { submissionModeSchema, type SubmissionMode } from "@nibi/shared/nibi-protocol-v4";
-import type { ComposerMentionPrefill } from "@/store/zcodeSessionStoreTypes.js";
+import type { ComposerMentionPrefill } from "@/store/nibiSessionStoreTypes.js";
 
 export interface V4ComposerDraft {
   text: string;

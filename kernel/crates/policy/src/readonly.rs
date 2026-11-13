@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash/src/lib.rs（07ab266d4b），只保留只读判定。
+// 复制自 apps/nibi-cli-rust/crates/bash/src/lib.rs（07ab266d4b），只保留只读判定。
 //! Bash 命令的只读判定（docs/specs/rust-cli/shell-permissions.md §4.3）。
 //!
 //! 表与回调来自 Node 版（`bash-readonly-policy-*.ts`：命令白名单、每个命令的安全参数、危险参数回调、

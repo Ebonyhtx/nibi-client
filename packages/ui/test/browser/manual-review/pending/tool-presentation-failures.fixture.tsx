@@ -6,7 +6,7 @@ import { ToolPresentationCapabilitiesProvider } from "@/ToolCallBlocks/presentat
 import { OpenSplitButton } from "@/OpenSplitButton.js";
 import { PlatformProvider } from "@/hooks/usePlatform.js";
 import { TabStoreProvider, useTabStoreApi } from "@/store/TabStoreProvider.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { Button } from "@/components/ui/button.js";
 import "@/styles.css";
 const params = new URLSearchParams(location.search);
@@ -108,11 +108,11 @@ function Fixture() {
   );
 }
 createRoot(document.getElementById("root")!).render(
-  <ZCodeIntlProvider initialLocale={params.get("locale") === "en-US" ? "en-US" : "zh-CN"}>
+  <NibiIntlProvider initialLocale={params.get("locale") === "en-US" ? "en-US" : "zh-CN"}>
     <PlatformProvider platform={platform}>
       <TabStoreProvider>
         <Fixture />
       </TabStoreProvider>
     </PlatformProvider>
-  </ZCodeIntlProvider>,
+  </NibiIntlProvider>,
 );

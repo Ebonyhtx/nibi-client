@@ -1,7 +1,7 @@
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import type { ZCodePluginInfo } from "@nibi/shared";
+import type { NibiPluginInfo } from "@nibi/shared";
 import type { StorePluginItem } from "../src/settings/pluginStoreListing.js";
 import type { PluginStoreActions } from "../src/settings/PluginStoreCard.js";
 
@@ -37,7 +37,7 @@ function item(overrides: Partial<StorePluginItem> = {}): StorePluginItem {
   };
 }
 
-function installedInfo(): ZCodePluginInfo {
+function installedInfo(): NibiPluginInfo {
   return {
     id: "nibi-modeling@nibi-official",
     name: "nibi-modeling",
@@ -58,10 +58,10 @@ async function renderDetail(
   describeEntry?: { status: "loading" | "error" | "loaded"; data?: unknown },
 ): Promise<string> {
   const { PluginStoreDetailView } = await import("../src/settings/PluginStoreDetailView.js");
-  const { ZCodeIntlProvider } = await import("@/i18n/IntlProvider.js");
+  const { NibiIntlProvider } = await import("@/i18n/IntlProvider.js");
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "en-US" },
       createElement(PluginStoreDetailView, {
         item: detailItem,

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { DynamicWorkflowMode, WindowHostAttachmentScope } from "@nibi/shared";
 import type { IServerChannel } from "@nibi/rpc";
-import { ServiceCollection, IZCodeAgentService, type IBotsService } from "@nibi/services";
+import { ServiceCollection, INibiAgentService, type IBotsService } from "@nibi/services";
 import type {
   ServerRemoteConnection,
   ServerRemoteDuplexConnectionOptions,
@@ -10,9 +10,9 @@ import { connectDesktopSourceServer } from "../src/host/connectDesktopSourceServ
 
 function setup() {
   const sync = vi.fn(async (): Promise<void> => undefined);
-  const agent = { syncDynamicWorkflowUserMode: sync } as unknown as IZCodeAgentService;
-  const logicalA = new ServiceCollection().register(IZCodeAgentService, agent);
-  const logicalB = new ServiceCollection().register(IZCodeAgentService, agent);
+  const agent = { syncDynamicWorkflowUserMode: sync } as unknown as INibiAgentService;
+  const logicalA = new ServiceCollection().register(INibiAgentService, agent);
+  const logicalB = new ServiceCollection().register(INibiAgentService, agent);
   const scopes = new Map([
     ["a", logicalA],
     ["b", logicalB],
@@ -21,7 +21,7 @@ function setup() {
   const dispose = vi.fn();
   let captured: ServerRemoteDuplexConnectionOptions | undefined;
   const connection = {
-    services: { zcodeAgentService: agent },
+    services: { nibiAgentService: agent },
     dispose,
   } as unknown as ServerRemoteConnection;
   const connectServer = vi.fn(async (options: ServerRemoteDuplexConnectionOptions) => {
@@ -82,7 +82,7 @@ describe("Desktop Source physical connection capabilities", () => {
     expect(state.dependencies.connectServer).toHaveBeenCalledOnce();
     expect(await state.channel().call("host", "validate", request("a"))).toEqual({ valid: true });
     expect(await state.channel().call("host", "validate", request("b"))).toEqual({ valid: true });
-    state.scopes.set("b", new ServiceCollection().register(IZCodeAgentService, {} as never));
+    state.scopes.set("b", new ServiceCollection().register(INibiAgentService, {} as never));
     await expect(state.channel().call("host", "validate", request("b"))).rejects.toThrow(
       "connection mismatch",
     );

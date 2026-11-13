@@ -1,7 +1,7 @@
-//! Composer 的 `@` 插件引用面板与推荐插件的安装前解析（Host `zcodePluginsReferenceCatalogParamsSchema`、
-//! `zcodePluginsResolveSuggestedReferenceParamsSchema`）。
+//! Composer 的 `@` 插件引用面板与推荐插件的安装前解析（Host `nibiPluginsReferenceCatalogParamsSchema`、
+//! `nibiPluginsResolveSuggestedReferenceParamsSchema`）。
 //!
-//! 与 Node `apps/zcode-cli/.../nibi-protocol/plugin-reference-catalog.ts` 同口径：
+//! 与 Node `apps/nibi-cli/.../nibi-protocol/plugin-reference-catalog.ts` 同口径：
 //! - 带 `sessionId` → 该会话创建时冻结的身份目录（`authority: "session"`）；未知会话 fail closed，
 //!   不回落到当前工作区（否则新装的插件会漏进旧对话）；
 //! - 不带 → 每次按当前配置现扫工作区（`authority: "workspace"`），手改配置后不用重启；

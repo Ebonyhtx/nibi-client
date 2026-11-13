@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { buildNodeReplHostEnv } from "../src/zcode-agent/nodeReplHostEnv.js";
+import { buildNodeReplHostEnv } from "../src/nibi-agent/nodeReplHostEnv.js";
 
 it("only the Rust kernel gets the hosted node_repl contract", () => {
   expect(buildNodeReplHostEnv({ kernel: "node", execPath: "/opt/nibi/electron" })).toEqual({});

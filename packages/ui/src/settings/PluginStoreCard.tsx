@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { PluginStoreAvatar } from "@/settings/PluginStoreAvatar.js";
 import {
   canUpdatePluginItem,
@@ -57,7 +57,7 @@ export function PluginStorePaidPlanBadge({
 }: {
   item: Pick<StorePluginItem, "id" | "listing" | "paid">;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   // 收费商品（paid）与上游的「需要付费套餐才好用」（requiresPaidPlan）是两件事：
   // 前者由宿主门禁强制，文案必须说「会员专享」；后者只是使用条件提示。
   if (item.paid) {
@@ -98,7 +98,7 @@ export function PluginStorePaidPlanBadge({
  * 手动停用的普通插件不显示（那不是异常，只是用户选择）。
  */
 export function PluginStoreDisabledBadge({ item }: { item: StorePluginItem }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   if (!item.installed || !item.paid || !item.info || item.info.enabled) return null;
   const label = intl.formatMessage({ id: "settings.plugins.store.disabled" });
   const hint = intl.formatMessage({ id: "settings.plugins.store.disabledHint" });
@@ -125,7 +125,7 @@ export function PluginStoreEnabledSwitch({
   item: StorePluginItem;
   actions: PluginStoreActions;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   if (!item.info || !actions.onSetEnabled) return null;
   const enabled = item.info.enabled;
   return (
@@ -159,7 +159,7 @@ export function PluginStoreItemMenu({
   triggerVariant?: "ghost" | "outline";
   triggerSize?: "icon-md" | "icon-lg";
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const enabled = item.info?.enabled ?? false;
   const busy = isItemBusy(item, actions);
   const canToggleEnabled = Boolean(item.info && actions.onSetEnabled);
@@ -234,7 +234,7 @@ export function PluginStoreInstallButton({
   actions: PluginStoreActions;
   size?: "sm" | "default" | "lg";
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const installing =
     actions.activeOperations.some(
       (operation) => operation.id === `plugin:install:${item.name}@${item.marketplace}`,
@@ -272,7 +272,7 @@ export function PluginStoreUpdateBadge({
 }: {
   item: Pick<StorePluginItem, "id" | "installedMeta" | "orphaned"> | null | undefined;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   if (!canUpdatePluginItem(item)) return null;
   const label = intl.formatMessage({ id: "settings.plugins.list.updateAvailable" });
   return (
@@ -298,7 +298,7 @@ export function PluginStoreUpdateButton({
   actions: PluginStoreActions;
   size?: "sm" | "default" | "lg";
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   if (!item || !canUpdatePluginItem(item)) return null;
   const updating = actions.activeOperations.some(
     (operation) => operation.id === `plugin:update:${item.id}`,
@@ -341,7 +341,7 @@ export function PluginStoreCard({
   actions: PluginStoreActions;
   locale: string;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const displayName = resolveItemDisplayName(item, locale);
   const description = resolveItemDescription(item, locale);
   // 卡片整行统一进入详情；打开 UI 只走会话右侧市场提供的「打开」按钮。
@@ -411,7 +411,7 @@ export function PluginStoreOpenUiButton({
   item: StorePluginItem;
   actions: PluginStoreActions;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   if (!item.installed || !isUiPluginItem(item) || !actions.onOpenUi) return null;
   return (
     <Button

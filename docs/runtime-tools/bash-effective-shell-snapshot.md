@@ -15,7 +15,7 @@ Bash tool 的 shell 选择会同时影响三类行为：
 运行时维护一个 session 级别的 `ExecutionShellSelection`，它是 Bash tool 的有效 shell 快照。新 session 的初始状态是未初始化；第一次真正接受用户 prompt 前才把当前候选 shell 初始化为 session-start 快照。
 
 - 普通 session 创建和 deferred draft 预热都不解析用户配置的 shell selection。
-- `apps/zcode-cli/packages/core/src/runtime/methods/session-shell-environment.ts` 是 session shell environment 的唯一 owner，负责初始化、读取、EnvInfo patch、持久化和 resume 恢复。
+- `apps/nibi-cli/packages/core/src/runtime/methods/session-shell-environment.ts` 是 session shell environment 的唯一 owner，负责初始化、读取、EnvInfo patch、持久化和 resume 恢复。
 - session 第一次接受输入前，统一用户执行边界通过 `session/requestRuntimePreferences` 的 `user-execution` scope 向所属 Host 读取一次当前 shell 候选值，再由 `initializeSessionShellEnvironmentIfNeeded()` 初始化。该请求最多等待 15 秒；超时按协议错误阻断首次用户执行，不重试或静默回退到其他 shell。
 - 初始 `# Environment` 的 `Shell` 字段只展示这个 session-start 快照的 `display.name`。
 - Bash tool 执行时使用同一个 selection。
@@ -35,12 +35,12 @@ Bash tool 的 shell 选择会同时影响三类行为：
 Bash tool 运行时有三种名字相近但职责不同的 snapshot：
 
 1. session shell selection snapshot
-   - 由 `apps/zcode-cli/packages/core/src/runtime/methods/session-shell-environment.ts` 管理。
+   - 由 `apps/nibi-cli/packages/core/src/runtime/methods/session-shell-environment.ts` 管理。
    - 决定当前 session 的有效 shell、provider-visible `# Environment` Shell 字段、Explore 继承的 shell display。
    - session 创建后不会因为 settings 切换而热更新。
 
 2. shell init snapshot
-   - 由 `apps/zcode-cli/packages/adapters/src/exec/shell-init-snapshot.ts` 管理。
+   - 由 `apps/nibi-cli/packages/adapters/src/exec/shell-init-snapshot.ts` 管理。
    - POSIX/Git Bash 下，adapter 首次用 login shell 执行 snapshot creation script，source 用户 rc 文件，并把 functions、aliases、shell options、PATH 写入 ZCode storage 下的 `shell-snapshots/snapshot-${shell}-${timestamp}-${random}.sh`。
    - functions/options/aliases 的导出策略：只在用户 rc 存在时导出，过滤单下划线补全函数，options/aliases 输出最多 1000 行，并在 Git Bash/MSYS/Cygwin 下过滤 `winpty` aliases。
    - snapshot creation script 使用 adapter 侧 host path 写文件；Git Bash path 转换只发生在后续真实命令 source snapshot 时。
@@ -56,7 +56,7 @@ Bash tool 运行时有三种名字相近但职责不同的 snapshot：
    - CMD 和 legacy shell 不创建也不 source shell init snapshot。
 
 3. ZCode startup script snapshot
-   - 由 `apps/zcode-cli/packages/adapters/src/exec/bash-startup-script.ts` 根据 execution request 的 `bashPrelude` 生成并物化；不再有 core 侧 `bash-startup.ts` descriptor。
+   - 由 `apps/nibi-cli/packages/adapters/src/exec/bash-startup-script.ts` 根据 execution request 的 `bashPrelude` 生成并物化；不再有 core 侧 `bash-startup.ts` descriptor。
    - 这个脚本是 ZCode 内部执行基础设施，不是 provider-visible prompt content，也不改变 tool schema。
    - `rg` fallback 始终保留；`find` / `grep` 是否映射到 `bfs` / `ugrep`，由根 Session runtime 物化时固定的增强搜索启动偏好决定，默认启用。
 
@@ -98,7 +98,7 @@ Windows:
 
 例外是 legacy/no-usable snapshot 的 cold resume：这类会话没有稳定的 session-start shell selection 可恢复，runtime 只能用当前解析出的 selection 继续执行。若 Windows 上最终由 auto Git Bash 接管，会通过 `shell_environment_change` 插入一次短提醒，告诉模型后续 Bash command 当前使用 Git Bash 执行。这不是同 session 内 shell hot update，也不会读取用户最新设置覆盖已有可用 snapshot。
 
-`apps/zcode-cli/packages/bootstrap/src/app/create-app.ts` 在统一用户执行边界 lazy 请求一次 Host 候选值，并在 app 生命周期内复用该结果。Host 候选无效或未显式选择时，再由 CLI 运行环境的 `resolveEffectiveBashShellSelection()` 自动解析。已有或持久化 selection 的 session 会忽略候选值；持久化 selection 的读取、可用性校验和 fallback 应用统一由 `AgentRuntime.resumeFromStore()` 负责。
+`apps/nibi-cli/packages/bootstrap/src/app/create-app.ts` 在统一用户执行边界 lazy 请求一次 Host 候选值，并在 app 生命周期内复用该结果。Host 候选无效或未显式选择时，再由 CLI 运行环境的 `resolveEffectiveBashShellSelection()` 自动解析。已有或持久化 selection 的 session 会忽略候选值；持久化 selection 的读取、可用性校验和 fallback 应用统一由 `AgentRuntime.resumeFromStore()` 负责。
 
 deferred draft 预热不冻结 shell；首次真实用户执行前才读取。desktop continuous、web-remote replayable、legacy/V4 prompt、goal external activity、expert workflow 和 script workflow 都必须经过同一 app/runtime admission。desktop-attached remote 通过 workspace-scoped Agent service 请求回到 desktop shared Host 的本地 `SettingService`；手机 `/remote` 复用该 Host。relay/main 不保存 shell 设置，远端 `~/.nibi/v2` 也不作为 desktop-attached workspace 的权威源。
 

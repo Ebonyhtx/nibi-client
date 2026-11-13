@@ -3,8 +3,8 @@ import {
   BIGMODEL_PROVIDER_ID,
   type OAuthProviderId,
   type ProviderFamilyDomain,
-  type ZCodeAccountAccess,
-  type ZCodeProviderAccountAccess,
+  type NibiAccountAccess,
+  type NibiProviderAccountAccess,
   ZAI_PROVIDER_ID,
 } from "@nibi/shared";
 
@@ -18,7 +18,7 @@ export interface AccountRequestAuthMaterial {
 export interface AccountRequestAuthInput {
   providerId: string;
   modelId?: string;
-  accountAccess: ZCodeProviderAccountAccess | ZCodeAccountAccess;
+  accountAccess: NibiProviderAccountAccess | NibiAccountAccess;
   expectedAccountScope?: string;
   rejectedProjectTokenFingerprint?: string;
   reason: RequestVerificationReason | "usage";
@@ -26,7 +26,7 @@ export interface AccountRequestAuthInput {
 
 export interface AccountAccessIdentityInput {
   providerId: string;
-  accountAccess: ZCodeProviderAccountAccess | ZCodeAccountAccess;
+  accountAccess: NibiProviderAccountAccess | NibiAccountAccess;
 }
 
 export class AccountRequestCredentialUnavailableError extends Error {
@@ -37,18 +37,18 @@ export class AccountRequestCredentialUnavailableError extends Error {
 }
 
 export interface AccountRequestAuthResolver {
-  resolveAccessCurrent(access: ZCodeProviderAccountAccess): Promise<ZCodeAccountAccess | null>;
+  resolveAccessCurrent(access: NibiProviderAccountAccess): Promise<NibiAccountAccess | null>;
   resolveCurrent(input: AccountRequestAuthInput): Promise<AccountRequestAuthMaterial>;
   assertCurrent(input: AccountAccessIdentityInput): Promise<void>;
 }
 
 interface AccountProviderRequestAuthServiceOptions {
   resolveCurrentAccountAccess(
-    access: ZCodeProviderAccountAccess,
-  ): Promise<ZCodeAccountAccess | null>;
+    access: NibiProviderAccountAccess,
+  ): Promise<NibiAccountAccess | null>;
   loadOAuthTokenSet(providerId: OAuthProviderId): Promise<{
     accessToken?: string | null;
-    zcodeJwtToken?: string | null;
+    nibiJwtToken?: string | null;
   } | null>;
 }
 
@@ -59,7 +59,7 @@ class AccountProviderRequestAuthService implements AccountRequestAuthResolver {
     this.#options = options;
   }
 
-  resolveAccessCurrent(access: ZCodeProviderAccountAccess): Promise<ZCodeAccountAccess | null> {
+  resolveAccessCurrent(access: NibiProviderAccountAccess): Promise<NibiAccountAccess | null> {
     return this.#options.resolveCurrentAccountAccess(access);
   }
 
@@ -72,7 +72,7 @@ class AccountProviderRequestAuthService implements AccountRequestAuthResolver {
       throw new AccountRequestCredentialUnavailableError(providerId);
     }
     const tokenSet = await this.#options.loadOAuthTokenSet(resolveOAuthProviderId(access.family));
-    return { apiKey: requireApiKey(tokenSet?.zcodeJwtToken, providerId) };
+    return { apiKey: requireApiKey(tokenSet?.nibiJwtToken, providerId) };
   }
 
   async assertCurrent(input: AccountAccessIdentityInput): Promise<void> {
@@ -82,8 +82,8 @@ class AccountProviderRequestAuthService implements AccountRequestAuthResolver {
   }
 
   #resolveAccess(
-    access: ZCodeProviderAccountAccess | ZCodeAccountAccess,
-  ): Promise<ZCodeAccountAccess | null> {
+    access: NibiProviderAccountAccess | NibiAccountAccess,
+  ): Promise<NibiAccountAccess | null> {
     return "mode" in access
       ? this.#options.resolveCurrentAccountAccess(access)
       : Promise.resolve(access);

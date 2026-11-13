@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button.js";
 import { useOptionalPlatform } from "@/hooks/usePlatform.js";
 import { useOptionalServices } from "@/hooks/useServices.js";
 import { useSettings } from "@/hooks/useSettingService.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   supportsLocalMacCuaPermissionOnboarding,
   supportsLocalWindowsCuaEntry,
@@ -55,7 +55,7 @@ function V4ComposerCuaFullAccessHintMounted({
   onSwitchMode,
   ...entryParams
 }: V4ComposerCuaFullAccessHintProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const { settings, update } = useSettings();
   // 复用 CUA 入口的可见性判定：不可见 = 这台机器上电脑操控根本用不了 → 也就没必要引导权限。
   const { view } = useCuaComposerEntry(entryParams);

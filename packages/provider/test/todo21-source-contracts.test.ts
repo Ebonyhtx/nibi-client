@@ -3,12 +3,12 @@ import {
   parseAccountProviderConfigMap,
   parsePersonalModelConfigRules,
   parsePersonalProviderConfigMap,
-  parseZCodeBuiltinProviderConfigMap,
+  parseNibiBuiltinProviderConfigMap,
 } from "../src/index.js";
 
 describe("Todo 21 source contracts", () => {
   it("NIBI Built-in Provider 只接受 Account Family Provider", () => {
-    const providers = parseZCodeBuiltinProviderConfigMap([
+    const providers = parseNibiBuiltinProviderConfigMap([
       {
         providerId: "builtin",
         config: {
@@ -27,7 +27,7 @@ describe("Todo 21 source contracts", () => {
 
     expect(providers.get("builtin")?.group).toBe("zai-family");
     expect(() =>
-      parseZCodeBuiltinProviderConfigMap([
+      parseNibiBuiltinProviderConfigMap([
         {
           providerId: "invalid",
           config: { group: "standard-personal", personalModelIds: ["model-a"] },
@@ -35,7 +35,7 @@ describe("Todo 21 source contracts", () => {
       ]),
     ).toThrow();
     expect(() =>
-      parseZCodeBuiltinProviderConfigMap([
+      parseNibiBuiltinProviderConfigMap([
         { providerId: "invalid", config: { access: { type: "api-key" } } },
       ]),
     ).toThrow();
@@ -117,7 +117,7 @@ describe("Todo 21 source contracts", () => {
   });
 
   it("智谱产品模式属于 Provider Access", () => {
-    const providers = parseZCodeBuiltinProviderConfigMap([
+    const providers = parseNibiBuiltinProviderConfigMap([
       {
         providerId: "plan",
         config: {

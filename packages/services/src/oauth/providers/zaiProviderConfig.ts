@@ -7,7 +7,7 @@ import {
 import type { OAuthProviderRuntimeConfig } from "../runtimeConfig.js";
 import {
   buildDesktopOAuthRedirectUriFromEnv,
-  buildZCodeApiUrlFromEnv,
+  buildNibiApiUrlFromEnv,
   readBoolean,
   readEnv,
 } from "./configUtils.js";
@@ -20,7 +20,7 @@ export const ZAI_OAUTH_PROVIDER_CONFIG: Omit<OAuthProviderRuntimeConfig, "appSec
   order: 1,
   // ZAI 当前 OAuth 授权入口使用 /api/oauth 前缀，继续走 /auth/oauth 会打开旧入口。
   authorizeUrl: "https://chat.z.ai/api/oauth/authorize",
-  // 占位值，**不是**可用端点：`createZaiProviderRuntimeConfig` 总会用 `buildZCodeApiUrlFromEnv`
+  // 占位值，**不是**可用端点：`createZaiProviderRuntimeConfig` 总会用 `buildNibiApiUrlFromEnv`
   // 覆盖它（默认 `api.nibistudio.cn`）。这里刻意不写上游 `zcode.z.ai`——静态常量被直接使用时
   // 不能把凭据发到别的产品。
   tokenUrl: "",
@@ -39,7 +39,7 @@ export function createZaiProviderRuntimeConfig(env: NodeJS.ProcessEnv): OAuthPro
       readEnv(env, "ZAI_OAUTH_AUTHORIZE_URL") ??
       buildRuntimeZaiOAuthUrl(env, "/api/oauth/authorize"),
     tokenUrl:
-      readEnv(env, "ZAI_OAUTH_TOKEN_URL") ?? buildZCodeApiUrlFromEnv(env, "/api/v1/oauth/token"),
+      readEnv(env, "ZAI_OAUTH_TOKEN_URL") ?? buildNibiApiUrlFromEnv(env, "/api/v1/oauth/token"),
     userinfoUrl: resolveZaiUserinfoUrl(env),
     businessLoginUrl:
       readEnv(env, "ZAI_BUSINESS_LOGIN_URL") ??

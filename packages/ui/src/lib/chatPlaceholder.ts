@@ -1,4 +1,4 @@
-import type { ZCodeTaskRuntimeStatus } from "@nibi/shared";
+import type { NibiTaskRuntimeStatus } from "@nibi/shared";
 
 type ChatPlaceholderMessageKey =
   | "chat.placeholder.newTask"
@@ -28,7 +28,7 @@ export function resolveChatPlaceholderKey(options: {
 
 export function shouldDeferChatPlaceholder(options: {
   hasBoundTask: boolean;
-  taskStatus: ZCodeTaskRuntimeStatus;
+  taskStatus: NibiTaskRuntimeStatus;
 }): boolean {
   const { hasBoundTask, taskStatus } = options;
 

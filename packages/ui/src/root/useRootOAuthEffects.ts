@@ -10,7 +10,7 @@ import { NIBI_JWT_INVALID_BROADCAST_CHANNEL } from "@nibi/shared";
 import type { IServiceAccessor } from "@nibi/services";
 import { useAlertDialog } from "@/hooks/useAlertDialog.js";
 import { notifyOAuthLoginFailed } from "@/hooks/useOAuth.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { reportAppTelemetryEvent, resolveProviderTelemetryLabel } from "@/lib/appTelemetry.js";
 import { logger } from "@/logger.js";
 import {
@@ -72,7 +72,7 @@ export function useRootOAuthEffects({
   onReauthenticationRequired: () => void;
 }) {
   const requestAlert = useAlertDialog();
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const oauthLoginSucceededRef = useRef(false);
   const oauthLoginSuccessInFlightRef = useRef(false);
   const oauthLoginSuccessOwnerRef = useRef<"polling" | "deep-link" | null>(null);

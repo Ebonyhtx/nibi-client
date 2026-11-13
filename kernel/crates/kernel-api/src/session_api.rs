@@ -1425,7 +1425,7 @@ pub trait Kernel: Send + Sync {
         Vec::new()
     }
 
-    /// `mcp/list`（141 审计 §9 第 6 项，Host `zcodeMcpListParamsSchema`）：`connect` 收敛连接集合并
+    /// `mcp/list`（141 审计 §9 第 6 项，Host `nibiMcpListParamsSchema`）：`connect` 收敛连接集合并
     /// 等连接落定，`status` 只读快照。默认 `Unsupported`（没有 MCP 能力的实现）。
     /// Composer 的 `@` 技能引用面板（NIBI `skills/referenceCatalog`）：`session` 有值时取该会话创建时
     /// 冻结的发现结果，没有时现扫当前工作区。内置（bundled）skill 不进面板（Node 同口径）。

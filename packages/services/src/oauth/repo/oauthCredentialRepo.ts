@@ -298,7 +298,7 @@ export class OAuthCredentialRepo {
 
       const refreshToken = await this.credentialService.load(refreshTokenKey(provider));
 
-      const zcodeJwtToken =
+      const nibiJwtToken =
         provider === ZAI_PROVIDER_ID || provider === BIGMODEL_PROVIDER_ID
           ? await this.credentialService.load(NIBI_JWT_TOKEN_KEY)
           : null;
@@ -306,7 +306,7 @@ export class OAuthCredentialRepo {
       return {
         accessToken,
         ...(refreshToken ? { refreshToken } : {}),
-        ...(zcodeJwtToken ? { zcodeJwtToken } : {}),
+        ...(nibiJwtToken ? { nibiJwtToken } : {}),
       };
     } catch (error) {
       if (!isCredentialDecryptError(error)) {
@@ -347,11 +347,11 @@ export class OAuthCredentialRepo {
     }
 
     if (provider === ZAI_PROVIDER_ID || provider === BIGMODEL_PROVIDER_ID) {
-      if (tokenSet.zcodeJwtToken) {
+      if (tokenSet.nibiJwtToken) {
         // BigModel Start Plan 与 Z.ai Start Plan 一样消费 zcode JWT。
         // JWT 必须在 OAuth callback 阶段随 tokenSet 落盘，后续 balance/runtime 只读取它，
         // 不能再拿 BigModel access token 拼另一个 /oauth/token body 临时兑换。
-        await this.credentialService.save(NIBI_JWT_TOKEN_KEY, tokenSet.zcodeJwtToken);
+        await this.credentialService.save(NIBI_JWT_TOKEN_KEY, tokenSet.nibiJwtToken);
       } else {
         await this.credentialService.delete(NIBI_JWT_TOKEN_KEY);
       }
@@ -435,7 +435,7 @@ export class OAuthCredentialRepo {
     await this.credentialService.delete(accessTokenKey(provider));
     await this.credentialService.delete(refreshTokenKey(provider));
     await this.credentialService.delete(userInfoKey(provider));
-    if (shouldClearZcodeJwtOnLogout(provider)) {
+    if (shouldClearNibiJwtOnLogout(provider)) {
       await this.credentialService.delete(NIBI_JWT_TOKEN_KEY);
     }
   }
@@ -466,6 +466,6 @@ export class OAuthCredentialRepo {
   }
 }
 
-function shouldClearZcodeJwtOnLogout(provider: OAuthProviderId): boolean {
+function shouldClearNibiJwtOnLogout(provider: OAuthProviderId): boolean {
   return provider === ZAI_PROVIDER_ID || provider === BIGMODEL_PROVIDER_ID;
 }

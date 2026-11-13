@@ -24,8 +24,8 @@ describe("shared runtime env", () => {
     const env = await importFreshEnvModule();
 
     expect(env.NIBI_ENV).toBe("test");
-    expect(env.normalizeZCodeEnv("development")).toBe("test");
-    expect(env.mapZCodeEnvToArmsRumEnv("production")).toBe("local");
+    expect(env.normalizeNibiEnv("development")).toBe("test");
+    expect(env.mapNibiEnvToArmsRumEnv("production")).toBe("local");
   });
 
   it("未注入身份 define 时 flavor 跟随 NIBI_ENV", async () => {
@@ -35,8 +35,8 @@ describe("shared runtime env", () => {
     const env = await importFreshEnvModule();
 
     expect(env.NIBI_PRODUCT_FLAVOR).toBe("production");
-    expect(env.normalizeZCodeProductFlavor(undefined, "test")).toBe("preview");
-    expect(env.normalizeZCodeProductFlavor("bogus", "production")).toBe("production");
+    expect(env.normalizeNibiProductFlavor(undefined, "test")).toBe("preview");
+    expect(env.normalizeNibiProductFlavor("bogus", "production")).toBe("production");
   });
 
   it("显式注入 preview 身份时生产后端构建仍是 Preview", async () => {
@@ -49,19 +49,19 @@ describe("shared runtime env", () => {
     expect(env.NIBI_PRODUCT_FLAVOR).toBe("preview");
   });
 
-  it("mapZCodeEnvToArmsRumEnv 将非本地 production 映射为 prod", async () => {
+  it("mapNibiEnvToArmsRumEnv 将非本地 production 映射为 prod", async () => {
     vi.stubGlobal("__NIBI_ENV__", "production");
 
     const env = await importFreshEnvModule();
 
-    expect(env.mapZCodeEnvToArmsRumEnv("production")).toBe("prod");
+    expect(env.mapNibiEnvToArmsRumEnv("production")).toBe("prod");
   });
 
-  it("mapZCodeEnvToArmsRumEnv 在本地开发态忽略 production 产品环境并映射为 local", async () => {
+  it("mapNibiEnvToArmsRumEnv 在本地开发态忽略 production 产品环境并映射为 local", async () => {
     vi.stubGlobal("__NIBI_ENV__", "production");
 
     const env = await importFreshEnvModule();
 
-    expect(env.mapZCodeEnvToArmsRumEnv("development")).toBe("local");
+    expect(env.mapNibiEnvToArmsRumEnv("development")).toBe("local");
   });
 });

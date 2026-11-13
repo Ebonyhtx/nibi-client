@@ -1,4 +1,4 @@
-import type { ProjectTask as ZCodeTaskMeta } from "@/project-sidebar/contract.js";
+import type { ProjectTask as NibiTaskMeta } from "@/project-sidebar/contract.js";
 import { buildTaskWorkspaceKey } from "@/lib/taskQueryCache.js";
 
 /**
@@ -9,7 +9,7 @@ import { buildTaskWorkspaceKey } from "@/lib/taskQueryCache.js";
  * `active`，其余行的 props 完全不变，memo 可以跳过。
  */
 export function resolveGroupedTaskActive(
-  task: Pick<ZCodeTaskMeta, "taskId" | "workspacePath" | "workspaceIdentity">,
+  task: Pick<NibiTaskMeta, "taskId" | "workspacePath" | "workspaceIdentity">,
   scope: {
     activeTaskId: string | null;
     activeWorkspacePath: string;

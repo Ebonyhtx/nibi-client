@@ -1,8 +1,8 @@
-import type { ZCodeStreamEvent, ZCodeTaskRuntimeStatus } from "@nibi/shared";
+import type { NibiStreamEvent, NibiTaskRuntimeStatus } from "@nibi/shared";
 import type { TaskChatMessage } from "@/lib/taskChatMessageTypes.js";
-import { hasRunningZCodeTimeline } from "@/lib/zcodeTimelineRuntime.js";
+import { hasRunningNibiTimeline } from "@/lib/nibiTimelineRuntime.js";
 
-type TaskStreamMirrorBatchEvent = Extract<ZCodeStreamEvent, { type: "task_stream_mirror_batch" }>;
+type TaskStreamMirrorBatchEvent = Extract<NibiStreamEvent, { type: "task_stream_mirror_batch" }>;
 type TaskStreamMirrorOp = TaskStreamMirrorBatchEvent["ops"][number];
 
 export function shouldMarkMainActiveFromStreamMirrorOps(
@@ -19,7 +19,7 @@ export function shouldMarkMainActiveFromStreamMirrorOps(
   });
 }
 
-export function shouldMarkMainActiveFromStreamEvent(event: ZCodeStreamEvent): boolean {
+export function shouldMarkMainActiveFromStreamEvent(event: NibiStreamEvent): boolean {
   switch (event.type) {
     case "task_run_started":
     case "goal_iteration_started":
@@ -55,19 +55,19 @@ function isTaskChatTimelineMessage(message: TaskChatMessage): boolean {
   );
 }
 
-function isTaskRuntimeBusy(taskStatus: ZCodeTaskRuntimeStatus): boolean {
+function isTaskRuntimeBusy(taskStatus: NibiTaskRuntimeStatus): boolean {
   return taskStatus === "creating" || taskStatus === "restoring" || taskStatus === "streaming";
 }
 
 export function hasForegroundActivityFromMessages(messages: readonly TaskChatMessage[]): boolean {
-  return hasForegroundStreamingAssistantMessage(messages) || hasRunningZCodeTimeline(messages);
+  return hasForegroundStreamingAssistantMessage(messages) || hasRunningNibiTimeline(messages);
 }
 
 export function isMainActivityRuntimeBusy(params: {
   currentStatus?: "idle" | "submitting" | "streaming" | "error";
   runtimeState?: {
     activeInputId?: unknown;
-    status: ZCodeTaskRuntimeStatus;
+    status: NibiTaskRuntimeStatus;
   } | null;
   isMainActive: boolean;
   hasForegroundActivity?: boolean;
@@ -92,7 +92,7 @@ export function isMainActivityRuntimeBusy(params: {
 
 function isMainAgentStreamEvent(
   event: Extract<
-    ZCodeStreamEvent,
+    NibiStreamEvent,
     { type: "agent_message_chunk" | "agent_thought_chunk" | "tool_call" | "tool_call_update" }
   >,
 ): boolean {

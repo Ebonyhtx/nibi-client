@@ -24,7 +24,7 @@ import { TID_CRON_CREATE_CARD, TID_CRON_CREATE_OPEN, testId } from "@nibi/shared
 import { TooltipProvider } from "@/components/ui/tooltip.js";
 import { PlatformProvider } from "@/hooks/usePlatform.js";
 import { DEFAULT_CODE_PREVIEW_SETTINGS } from "@/lib/codePreviewSettings.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { ConversationTurnGroup } from "@/v4/ConversationTurnGroup.js";
 import type { ConversationRowRenderContext } from "@/v4/conversationRowContext.js";
 import {
@@ -313,7 +313,7 @@ function renderUnit(
       DeliveryContext.Provider,
       { value: options.botContext ?? null },
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: options.locale ?? "zh-CN" },
         createElement(
           PlatformProvider,

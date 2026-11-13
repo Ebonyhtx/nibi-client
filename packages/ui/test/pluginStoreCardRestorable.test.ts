@@ -1,7 +1,7 @@
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ZCodeAvailablePluginSummary, ZCodePluginInfo } from "@nibi/shared";
+import type { NibiAvailablePluginSummary, NibiPluginInfo } from "@nibi/shared";
 import type { StorePluginItem } from "../src/settings/pluginStoreListing.js";
 import type { PluginStoreActions } from "../src/settings/PluginStoreCard.js";
 
@@ -27,7 +27,7 @@ vi.mock("@/ControlHintTooltip.js", () => ({
 }));
 
 function restorableItem(overrides: Partial<StorePluginItem> = {}): StorePluginItem {
-  const summary: ZCodeAvailablePluginSummary = {
+  const summary: NibiAvailablePluginSummary = {
     id: "skill-creator@nibi-official",
     name: "skill-creator",
     marketplace: "nibi-official",
@@ -61,7 +61,7 @@ function makeActions(overrides: Partial<PluginStoreActions> = {}): PluginStoreAc
 
 function installedItemWithRuntimeInfo(): StorePluginItem {
   const item = restorableItem({ installed: true, restorable: false });
-  const info: ZCodePluginInfo = {
+  const info: NibiPluginInfo = {
     id: item.id,
     name: item.name,
     marketplace: item.marketplace,
@@ -79,10 +79,10 @@ function installedItemWithRuntimeInfo(): StorePluginItem {
 
 async function renderCard(item: StorePluginItem, actions: PluginStoreActions): Promise<string> {
   const { PluginStoreCard } = await import("../src/settings/PluginStoreCard.js");
-  const { ZCodeIntlProvider } = await import("@/i18n/IntlProvider.js");
+  const { NibiIntlProvider } = await import("@/i18n/IntlProvider.js");
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "en-US" },
       createElement(PluginStoreCard, { item, actions, locale: "en-US" }),
     ),
@@ -95,10 +95,10 @@ async function renderDetail(
   onUsePrompt: (item: StorePluginItem, prompt: string) => void = () => {},
 ): Promise<string> {
   const { PluginStoreDetailView } = await import("../src/settings/PluginStoreDetailView.js");
-  const { ZCodeIntlProvider } = await import("@/i18n/IntlProvider.js");
+  const { NibiIntlProvider } = await import("@/i18n/IntlProvider.js");
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "en-US" },
       createElement(PluginStoreDetailView, {
         item,

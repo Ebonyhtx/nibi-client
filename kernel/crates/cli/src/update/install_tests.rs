@@ -69,7 +69,7 @@ fn the_package_names_come_from_the_launcher_and_are_checked() {
     for (package, platform) in [
         (None, None),
         (Some(""), None),
-        (Some("@Scope/ZCode"), None),
+        (Some("@Scope/Nibi"), None),
         (Some("zcode; rm -rf /"), None),
         (Some("@nibi/cli"), Some("../zcode")),
     ] {
@@ -105,7 +105,7 @@ fn package_names_follow_the_npm_rules() {
         "@scope",
         "@scope/",
         "@/zcode",
-        "Zcode",
+        "Nibi",
         ".nibi",
         "_zcode",
         "zcode/x",

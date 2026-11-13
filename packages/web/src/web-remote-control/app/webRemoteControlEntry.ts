@@ -89,7 +89,7 @@ export class WebRemoteControlEntry {
     if (this.options.auth.refreshNibiSessionIfNeeded) {
       await this.options.auth.refreshNibiSessionIfNeeded();
     }
-    if (!this.options.auth.getZCodeJwtToken()) {
+    if (!this.options.auth.getNibiJwtToken()) {
       this.options.onView({ kind: "login" });
       return;
     }
@@ -139,7 +139,7 @@ export class WebRemoteControlEntry {
     const list = this.list;
     if (!list) return;
     if (list.request) return list.request;
-    const jwt = this.options.auth.getZCodeJwtToken();
+    const jwt = this.options.auth.getNibiJwtToken();
     if (!jwt) return this.switchAccount();
     if (list.acceptedJwt && list.acceptedJwt !== jwt) return this.start();
     const { signal } = this.scope;
@@ -150,7 +150,7 @@ export class WebRemoteControlEntry {
         const devices = await this.options.devices(jwt, signal);
         if (signal.aborted) return;
         // 账号变更后的响应不能为新账号提供设备或自动连接依据。
-        if (this.options.auth.getZCodeJwtToken() !== jwt) return this.start();
+        if (this.options.auth.getNibiJwtToken() !== jwt) return this.start();
         list.acceptedJwt = jwt;
         // 先读缓存补全离线记录的名字/平台，再把本次在线记录写回；它们只是展示偏好，不进入 admission。
         const knownDevices = readKnownDevices(this.options.storage);
@@ -165,7 +165,7 @@ export class WebRemoteControlEntry {
         else this.options.onView(list.view);
       } catch (error) {
         if (signal.aborted) return;
-        if (this.options.auth.getZCodeJwtToken() !== jwt) return this.start();
+        if (this.options.auth.getNibiJwtToken() !== jwt) return this.start();
         if (
           error instanceof WebRemoteControlV2ConnectionError &&
           error.reason === "auth-required"
@@ -184,7 +184,7 @@ export class WebRemoteControlEntry {
 
   selectDevice(sid: string): void {
     if (!this.list || this.list.view.loading || this.list.view.error) return;
-    if (this.list.acceptedJwt !== this.options.auth.getZCodeJwtToken()) {
+    if (this.list.acceptedJwt !== this.options.auth.getNibiJwtToken()) {
       void this.start();
       return;
     }
@@ -232,7 +232,7 @@ export class WebRemoteControlEntry {
       params,
       signal,
       getToken: (tokenSignal) => {
-        const jwt = this.options.auth.getZCodeJwtToken();
+        const jwt = this.options.auth.getNibiJwtToken();
         if (!jwt) return Promise.reject(new WebRemoteControlV2ConnectionError("auth-required"));
         return this.options.token(jwt, tokenSignal);
       },

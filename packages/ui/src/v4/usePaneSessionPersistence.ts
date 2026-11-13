@@ -48,7 +48,7 @@ export function useRemotePaneSessionLookup(
   );
   const lookup = useCallback(
     async (taskId: string) => {
-      const meta = await resolution.services.zcodeTaskService.getTaskMeta({
+      const meta = await resolution.services.nibiTaskService.getTaskMeta({
         workspacePath,
         workspaceIdentity,
         taskId,

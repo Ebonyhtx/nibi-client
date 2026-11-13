@@ -1,5 +1,5 @@
-//! Node 写入的会话冷读取：`fixtures/node-cold.json`（复制自 `apps/zcode-cli-rust/crates/state/fixtures`，
-//! 由 `scripts/zcode-cli-rust-node-cold-fixtures.mjs` 用 Node 仓储写入并记录 Node
+//! Node 写入的会话冷读取：`fixtures/node-cold.json`（复制自 `apps/nibi-cli-rust/crates/state/fixtures`，
+//! 由 `scripts/nibi-cli-rust-node-cold-fixtures.mjs` 用 Node 仓储写入并记录 Node
 //! `hydrateMessageHistoryFromSession` 的结果）。比较文本、推理、工具调用与工具结果；去掉本 crate
 //! 不读的部分：attachment 条目、只有合成 part 的提醒消息、没有任何内容的 assistant、文件 / agent
 //! part 的占位文本（docs/specs/rust-cli/node-store.md §5、§7）。Node 给未结束调用补的中断结果，本工程在同一位置补同样的

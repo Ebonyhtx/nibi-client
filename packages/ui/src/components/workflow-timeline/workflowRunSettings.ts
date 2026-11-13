@@ -11,7 +11,7 @@ import {
   type CommandAck,
   type WorkflowRunState,
 } from "@nibi/shared/nibi-protocol-v4";
-import { formatModelPickerValue, parseModelPickerValue } from "@/lib/zcodeSessionProjection.js";
+import { formatModelPickerValue, parseModelPickerValue } from "@/lib/nibiSessionProjection.js";
 
 /**
  * 会话当前模型（「会话模型」那一项的名字从它来）：优先会话持久的稀疏选择，退回 UI effective 的

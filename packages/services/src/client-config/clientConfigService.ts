@@ -1,5 +1,5 @@
 import {
-  buildZCodeEndpointUrls,
+  buildNibiEndpointUrls,
   clientConfigReadOptionsSchema,
   parseClientConfigSnapshot,
   type ApiClient,
@@ -68,7 +68,7 @@ export function createClientConfigService(dependencies: {
       const context = await dependencies.resolveRequestContext();
       const url = new URL(
         "/api/v1/client/configs",
-        buildZCodeEndpointUrls(context.endpointOrigin).origin,
+        buildNibiEndpointUrls(context.endpointOrigin).origin,
       );
       url.searchParams.set("app_version", context.appVersion);
       url.searchParams.set("platform", context.platform);

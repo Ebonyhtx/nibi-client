@@ -3,7 +3,7 @@ import { WebSocket } from "ws";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createFakeRelayV2, type FakeRelayV2Options } from "@nibi/shared/testing/fake-relay-v2";
 import {
-  buildZCodeEndpointUrls,
+  buildNibiEndpointUrls,
   type AppSettings,
   type WebRemoteControlContext,
 } from "@nibi/shared";
@@ -62,7 +62,7 @@ async function fixture(
     relayWsUrl: relay.wsUrl,
     mobileRemoteControlUrl: `${relay.httpUrl}/remote/v4`,
     getEndpointUrls: () => ({
-      ...buildZCodeEndpointUrls(endpoint, { appVersion: "3.13.0" }),
+      ...buildNibiEndpointUrls(endpoint, { appVersion: "3.13.0" }),
       relayWsUrl: endpoint.replace("http", "ws") + "/api/v1/remote/ws2",
     }),
     getLogin: readLogin,

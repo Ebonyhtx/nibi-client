@@ -7,7 +7,7 @@
 //!   （[`NoProxy`]）与根证书（[`TrustRoots`]）由入口按环境变量算出（docs/specs/rust-cli/config.md §2.4），
 //!   net 不读进程环境。
 //! - [`HttpRequest`] / [`HttpResponse`]：发送请求、按块读取响应字节流。上层不接触 reqwest。
-//! - [`sse`]：SSE 解码（复制自 `apps/zcode-cli-rust/crates/model/src/sse.rs`）。
+//! - [`sse`]：SSE 解码（复制自 `apps/nibi-cli-rust/crates/model/src/sse.rs`）。
 //! - [`uds`]：本机的 Unix 域套接字（跨会话的收件箱，docs/specs/rust-cli/cross-session.md §2.1）。
 //! - [`retry`]：与协议无关的退避策略、Retry-After 与 `x-should-retry` 解析。哪些错误可以重试由
 //!   协议适配器决定（例如 Anthropic 的 `overloaded_error`）。

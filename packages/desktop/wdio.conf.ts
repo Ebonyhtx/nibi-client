@@ -202,7 +202,7 @@ const E2E_LOCAL_ENV_FILES = [
 // 代理、证书和缓存配置。所有读取 process.env 的 runner 初始化都必须位于该调用之后。
 loadE2ELocalEnv();
 const BUILD_DESKTOP_AGENT_SCRIPT = resolve(REPO_ROOT, "scripts/build-desktop-agent-cli.mjs");
-const NIBI_CLI_ENTRYPOINT = resolve(REPO_ROOT, "apps/zcode-cli/packages/cli/dist/nibi.cjs");
+const NIBI_CLI_ENTRYPOINT = resolve(REPO_ROOT, "apps/nibi-cli/packages/cli/dist/nibi.cjs");
 const E2E_HOME_DIR = resolve(
   process.env.NIBI_E2E_HOME_DIR?.trim() ||
     // 修复原因：多个 WDIO 本地并发时会互相清理默认 .e2e-home，导致窗口白屏、
@@ -1025,7 +1025,7 @@ function createPnpmChildEnv() {
     // CI 清理 .e2e-home 后会找不到 corepack 管理的 pnpm.mjs。
     ...(HOST_HOME_DIR ? { HOME: HOST_HOME_DIR } : {}),
     ...(HOST_USERPROFILE_DIR ? { USERPROFILE: HOST_USERPROFILE_DIR } : {}),
-    // Bugfix: agent 构建脚本会进入 apps/zcode-cli 子 workspace；pnpm 11 的
+    // Bugfix: agent 构建脚本会进入 apps/nibi-cli 子 workspace；pnpm 11 的
     // verify-deps-before-run 会触发子 workspace install，但该 workspace 运行时
     // 依赖根仓库 @nibi/shared，自动 install 无法解析，必须在 E2E 构建链路关闭。
     PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: "false",
@@ -1036,10 +1036,10 @@ function createPnpmChildEnv() {
   };
 }
 
-function prepareZCodeAgentServer() {
+function prepareNibiAgentServer() {
   if (E2E_PACKAGED_APP_BINARY_PATH) {
     // 真正的 Preview 包必须使用随包 Agent，禁止测试 runner 注入源码入口掩盖漏打包。
-    configureZCodeAgentServerEnv();
+    configureNibiAgentServerEnv();
     return;
   }
   if (process.env.NIBI_E2E_SKIP_AGENT_BUILD === "1") {
@@ -1047,14 +1047,14 @@ function prepareZCodeAgentServer() {
     // 会并发覆盖同一 dist 目录。跳过时仍校验入口，避免旧或缺失产物静默启动。
     console.log("[e2e] NIBI_E2E_SKIP_AGENT_BUILD=1, skipping agent build");
     if (!existsSync(NIBI_CLI_ENTRYPOINT)) {
-      throw new Error(`ZCode CLI entrypoint not found: ${NIBI_CLI_ENTRYPOINT}`);
+      throw new Error(`Nibi CLI entrypoint not found: ${NIBI_CLI_ENTRYPOINT}`);
     }
-    configureZCodeAgentServerEnv();
+    configureNibiAgentServerEnv();
     return;
   }
 
-  // Bugfix: e2e 还在找仓库外的旧原生 zcode-agent binary，并调用已经删除的
-  // `build:agent-exe`。当前桌面端统一通过 zcode-cli 的 app-server JS bundle
+  // Bugfix: e2e 还在找仓库外的旧原生 nibi-agent binary，并调用已经删除的
+  // `build:agent-exe`。当前桌面端统一通过 nibi-cli 的 app-server JS bundle
   // 暴露 NIBI Protocol，这里复用正式开发入口的构建脚本，之后由 bundled resolver
   // 选择已校验的 bundle，保留存储准备能力和正式桌面启动契约。
   execFileSync(process.execPath, [BUILD_DESKTOP_AGENT_SCRIPT], {
@@ -1064,13 +1064,13 @@ function prepareZCodeAgentServer() {
   });
 
   if (!existsSync(NIBI_CLI_ENTRYPOINT)) {
-    throw new Error(`ZCode CLI entrypoint not found: ${NIBI_CLI_ENTRYPOINT}`);
+    throw new Error(`Nibi CLI entrypoint not found: ${NIBI_CLI_ENTRYPOINT}`);
   }
 
-  configureZCodeAgentServerEnv();
+  configureNibiAgentServerEnv();
 }
 
-function configureZCodeAgentServerEnv() {
+function configureNibiAgentServerEnv() {
   // 数据库准备只信任 bundled resolver 确认的入口。E2E 即使把本轮 bundle 填进自定义
   // command，也会按 unsupported_runtime 拒绝；清除继承的覆盖，复用正式桌面解析链。
   delete process.env.NIBI_AGENT_SERVER_COMMAND;
@@ -3063,7 +3063,7 @@ async function resetE2EHome(specs: string[] = []) {
     await seedProviderReadinessHistoryFixture({
       cliEntryPoint: NIBI_CLI_ENTRYPOINT,
       e2eHomeDir: E2E_HOME_DIR,
-      workspacePath: resolve(E2E_HOME_DIR, "ZCodeProject"),
+      workspacePath: resolve(E2E_HOME_DIR, "NibiProject"),
     });
   }
   if (usesTaskIndexRowAuthorityFixture(specs)) {
@@ -3072,21 +3072,21 @@ async function resetE2EHome(specs: string[] = []) {
     await seedTaskIndexRowAuthorityFixture({
       cliEntryPoint: NIBI_CLI_ENTRYPOINT,
       e2eHomeDir: E2E_HOME_DIR,
-      workspacePath: resolve(E2E_HOME_DIR, "ZCodeProject"),
+      workspacePath: resolve(E2E_HOME_DIR, "NibiProject"),
     });
   }
   if (specs.some((spec) => spec.includes(TASK_TITLE_MARQUEE_SPEC))) {
     await seedTaskTitleMarqueeFixture({
       cliEntryPoint: NIBI_CLI_ENTRYPOINT,
       e2eHomeDir: E2E_HOME_DIR,
-      workspacePath: resolve(E2E_HOME_DIR, "ZCodeProject"),
+      workspacePath: resolve(E2E_HOME_DIR, "NibiProject"),
     });
   }
   if (specs.some((spec) => spec.includes("usage-stats-app-usage.test.ts"))) {
     await seedAppUsageE2EFixture({
       cliEntryPoint: NIBI_CLI_ENTRYPOINT,
       e2eHomeDir: E2E_HOME_DIR,
-      workspacePath: resolve(E2E_HOME_DIR, "ZCodeProject"),
+      workspacePath: resolve(E2E_HOME_DIR, "NibiProject"),
     });
   }
   seedE2EWorkerModelStreamConfig(specs);
@@ -3104,7 +3104,7 @@ async function resetE2EHome(specs: string[] = []) {
     await seedSessionHistoryFirstFixture({
       cliEntryPoint: NIBI_CLI_ENTRYPOINT,
       e2eHomeDir: E2E_HOME_DIR,
-      workspacePath: resolve(E2E_HOME_DIR, "ZCodeProject"),
+      workspacePath: resolve(E2E_HOME_DIR, "NibiProject"),
       providerId: e2eProviderPreset.providerId,
       modelId: e2eProviderPreset.model,
       thoughtLevel: readE2EThoughtLevel(),
@@ -3177,7 +3177,7 @@ function seedE2EPluginCdnZipMarketplace(specs: string[] = []) {
 // 时执行。注意 storageRoot 在 agent 视角是 `<home>/.nibi`，而 pluginStorageRoot
 // 是 `<home>/.nibi/cli/plugins`，installed_plugins.json 必须落在后者下面才会被
 // bootstrap 的 `listInstalledPluginRecords(pluginStorageRoot)` 读到（见
-// `apps/zcode-cli/packages/adapters/src/plugins/marketplace.ts:347`）。
+// `apps/nibi-cli/packages/adapters/src/plugins/marketplace.ts:347`）。
 function seedE2EPluginMcpSkillInstalledPlugins(specs: string[] = []) {
   const state = resolvePluginMcpSkillState(specs);
   if (!state || state === "not-installed" || state === "workspace-root") return;
@@ -3203,7 +3203,7 @@ function seedE2EGitCommitDialogWorkspace(specs: string[] = []) {
     return;
   }
 
-  const workspacePath = resolve(E2E_HOME_DIR, "ZCodeProject");
+  const workspacePath = resolve(E2E_HOME_DIR, "NibiProject");
   mkdirSync(resolve(workspacePath, "src"), { recursive: true });
   writeFileSync(resolve(workspacePath, "README.md"), "Git commit dialog E2E workspace\n", "utf-8");
   runGitE2ECommand(workspacePath, ["init"]);
@@ -3240,7 +3240,7 @@ function seedE2EStartupState(specs: string[] = []) {
   const useFreshConversationWorkspace = specs.some((spec) =>
     spec.includes("conversation-session-conversation-workspace.test.ts"),
   );
-  const legacyDefaultProjectPath = resolve(E2E_HOME_DIR, "ZCodeProject");
+  const legacyDefaultProjectPath = resolve(E2E_HOME_DIR, "NibiProject");
   const agentWarmupFixture = AGENT_WARMUP_FIXTURE_SPECS.some((marker) =>
     workerSpecsContain(specs, marker),
   );
@@ -3322,7 +3322,7 @@ function seedE2EStartupState(specs: string[] = []) {
           ? {
               // steer 相关复现需要从当前 worker 的初始 settings 进入 guide 模式；
               // 运行中再改 setting.json 会被 app 启动态写回覆盖，导致实际仍跑 queue。
-              zcodeInteractionBehavior: "guide",
+              nibiInteractionBehavior: "guide",
             }
           : {}),
         providerFamilyConnectionSelections: shouldUseBigmodelAuth
@@ -3350,7 +3350,7 @@ function seedE2EStartupState(specs: string[] = []) {
       providerReadinessColdStartFixture ||
         workerSpecsContain(specs, "oauth-login-failure-cancel.test.ts")
         ? {}
-        : // Bug 根因：I20 不验证账号登录，却播种假 ZCode JWT；带账号身份的旁路请求
+        : // Bug 根因：I20 不验证账号登录，却播种假 Nibi JWT；带账号身份的旁路请求
           // 会把它发往真实控制面，401 随后弹出登录过期对话框并遮挡目标交互。
           // 该 case 只保留本地 Provider 回放，不注入无关账号身份。
           builtInSubagentModelOverridesSpec
@@ -3417,7 +3417,7 @@ function usesGitReviewEntryFixture(specs: string[] = []) {
 async function seedE2EGitReviewEntryWorkspace(specs: string[] = []) {
   if (!usesGitReviewEntryFixture(specs)) return;
 
-  const workspacePath = resolve(E2E_HOME_DIR, "ZCodeProject");
+  const workspacePath = resolve(E2E_HOME_DIR, "NibiProject");
   const caseRoot = resolve(workspacePath, ".nibi-e2e/conversation-session-git-review-entry");
   await mkdir(caseRoot, { recursive: true });
   await runGitReviewEntryCommand(workspacePath, ["init"]);
@@ -3575,7 +3575,7 @@ function seedE2EPluginMcpSkillState(specs: string[] = []) {
   const enabledPlugins = (plugins.enabledPlugins as Record<string, boolean> | undefined) ?? {};
   const pluginId = "e2e-plugin-mcp-ping@e2e-fixture";
   // Bugfix: 安装型 plugin 在 candidate 构造时 defaultEnabled=false（见
-  // apps/zcode-cli/packages/adapters/src/plugins/index.ts:resolveCandidates）；
+  // apps/nibi-cli/packages/adapters/src/plugins/index.ts:resolveCandidates）；
   // resolveEnabled 用 `config.enabledPlugins[id] ?? defaultEnabled` 判定，
   // 所以 enabled 状态必须显式写 true，不能只 "delete 字段"。
   if (state === "installed-disabled") {
@@ -3592,7 +3592,7 @@ function seedE2EWorkspacePluginState(specs: string[] = []) {
   const state = resolvePluginMcpSkillState(specs);
   if (!state?.startsWith("workspace-")) return;
 
-  const workspacePath = resolve(E2E_HOME_DIR, "ZCodeProject");
+  const workspacePath = resolve(E2E_HOME_DIR, "NibiProject");
   const userConfigPath = resolve(E2E_CLI_CONFIG_DIR, "config.json");
   const workspaceConfigPath = resolve(workspacePath, ".nibi", "config.json");
   const pluginId = "e2e-plugin-mcp-ping@e2e-fixture";
@@ -3661,7 +3661,7 @@ function seedE2EBuiltinWorkspacePluginDisable(specs: string[] = []) {
   }
 
   const pluginId = "skill-creator@nibi-official";
-  const workspaceA = resolve(E2E_HOME_DIR, "ZCodeProject");
+  const workspaceA = resolve(E2E_HOME_DIR, "NibiProject");
   const workspaceB = resolve(E2E_HOME_DIR, "WorkspaceB");
   const userConfig = JSON.parse(readFileSync(E2E_CLI_CONFIG_FILE, "utf-8")) as Record<
     string,
@@ -4608,7 +4608,7 @@ export const config: WebdriverIO.Config = {
         await cleanupE2EDirectory("onPrepare", E2E_CHROMIUM_USER_DATA_ROOT_DIR, true);
         // Bug 根因：beforeSession 发生在 WDIO worker 内，而 Electron/ChromeDriver
         // 启动链继承的是 launcher 派生 worker 时的环境。reset mock 若到 worker 才启动，
-        // Main -> Host 会继续请求真实 ZCode 域名；因此与 upgrade mock 一样在派发 worker
+        // Main -> Host 会继续请求真实 Nibi 域名；因此与 upgrade mock 一样在派发 worker
         // 前启动，并通过环境把同一个动态端口传给 Electron 和测试控制端。
         await startCodingPlanTeamMockIfNeeded(configuredE2ESpecs);
         if (codingPlanTeamMockBaseUrl) {
@@ -4662,7 +4662,7 @@ export const config: WebdriverIO.Config = {
             artifactDir: e2eReporter.artifactDir,
           });
         } else await buildAndStage();
-        prepareZCodeAgentServer();
+        prepareNibiAgentServer();
       });
     } catch (error) {
       // 修复原因：WDIO 会把 onPrepare 异常记录成 hook error 后继续派发 worker，
@@ -4763,7 +4763,7 @@ export const config: WebdriverIO.Config = {
         await runE2EBeforeSessionSetup({
           cid,
           specs,
-          configureAgentServerEnv: configureZCodeAgentServerEnv,
+          configureAgentServerEnv: configureNibiAgentServerEnv,
           configureCodingPlanTeamMockForSpecs,
           recordBeforeSession: e2eReporter.beforeSession,
           resetHome: resetE2EHome,
@@ -4787,7 +4787,7 @@ export const config: WebdriverIO.Config = {
           specs,
           credentialsFile: E2E_APP_CREDENTIALS_FILE,
           settingsFile: E2E_APP_SETTINGS_FILE,
-          workspacePath: resolve(E2E_HOME_DIR, "ZCodeProject"),
+          workspacePath: resolve(E2E_HOME_DIR, "NibiProject"),
         });
         // resetHome 之后、Electron 启动之前安装，Main -> Host -> Agent 才会同时继承
         // case-owned PATH；其他 spec 由 helper 保持 no-op。

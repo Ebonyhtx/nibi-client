@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import { MemoTaskItem as TaskItem } from "@/TaskListItem.js";
 import { attachTaskListRowActivity } from "@/v4/taskListRowActivity.js";
 
@@ -18,7 +18,7 @@ vi.mock("@/useTaskListItemContextActions.js", () => ({
   }),
 }));
 
-function createTaskMeta(overrides: Partial<ZCodeTaskMeta> = {}): ZCodeTaskMeta {
+function createTaskMeta(overrides: Partial<NibiTaskMeta> = {}): NibiTaskMeta {
   return {
     taskId: "task-permission",
     traceId: "trace-permission",
@@ -61,7 +61,7 @@ function createIntl() {
 
 function renderTaskItem(
   params: {
-    task?: Partial<ZCodeTaskMeta>;
+    task?: Partial<NibiTaskMeta>;
     permissionCount?: number;
     userInputCount?: number;
     variant?: "default" | "timeline";

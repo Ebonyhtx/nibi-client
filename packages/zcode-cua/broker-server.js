@@ -152,7 +152,7 @@ export async function waitForCuaHelperStartup(startup, _deadlineMs) {
   return await startup;
 }
 
-export function isPotentialZCodeCuaAgentMcpServer(_server) {
+export function isPotentialNibiCuaAgentMcpServer(_server) {
   return false;
 }
 

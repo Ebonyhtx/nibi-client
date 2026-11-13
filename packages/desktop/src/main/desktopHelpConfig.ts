@@ -1,7 +1,7 @@
 import { net } from "electron";
 import {
   buildHelpAppConfigUrl,
-  buildZCodeSourceHeadersFromContext,
+  buildNibiSourceHeadersFromContext,
   createHelpAppConfigReader,
   NIBI_ENV,
 } from "@nibi/shared";
@@ -24,7 +24,7 @@ export function createDesktopHelpConfigReader(options: {
         options.appVersion,
         `${process.platform}-${process.arch}`,
       ),
-      buildZCodeSourceHeadersFromContext({
+      buildNibiSourceHeadersFromContext({
         endpointOrigin,
         appVersion: options.appVersion,
         clientLanguage: options.getClientLanguage(),

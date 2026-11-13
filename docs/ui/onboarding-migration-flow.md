@@ -64,7 +64,7 @@ Claude Code 原生 `.jsonl` 与 ZCode 协议 snapshot **不是同一格式**，�
   - Owns per-step content rendering.
 - `packages/services/src/settings-sync/settingsSyncService.ts`
   - Owns the filesystem operation that copies `{HOME}/.claude/CLAUDE.md` to `{HOME}/.nibi/AGENTS.md`.
-- `apps/zcode-cli/packages/adapters/src/context/index.ts`
+- `apps/nibi-cli/packages/adapters/src/context/index.ts`
   - Resolves `{HOME}/.nibi/AGENTS.md` and workspace `AGENTS.md`, then merges both when both exist.
 
 ## UX Rules

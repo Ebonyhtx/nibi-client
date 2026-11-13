@@ -26,7 +26,7 @@ import {
   type SubAgentConfig,
   type SubagentSelectionFallbackMode,
   type SubagentsListMode,
-  type ZCodeProvider,
+  type NibiProvider,
 } from "@nibi/shared";
 import { normalizeSubagentModelSelection } from "./subagentModelSelection.js";
 import { serializeSubagentMarkdown, parseSubagentMarkdown } from "./subagentMarkdown.js";
@@ -34,7 +34,7 @@ import {
   resolveSubagentStateFile,
   resolveUserSubagentRoot,
   resolveWorkspaceSubagentRoot,
-  resolveZCodeStorageRoot,
+  resolveNibiStorageRoot,
   type SubagentStorageOptions,
 } from "./subagentStorage.js";
 import type { ISubagentsService } from "./subagents.js";
@@ -327,7 +327,7 @@ async function discoverPluginAgents(params: {
   reservedNames: Iterable<string>;
   storageOptions?: SubagentStorageOptions;
 }): Promise<PluginAgentDiscovery> {
-  const storageRoot = await resolveZCodeStorageRoot(params.storageOptions);
+  const storageRoot = await resolveNibiStorageRoot(params.storageOptions);
   const cliStorageRoot = basename(storageRoot) === "cli" ? storageRoot : join(storageRoot, "cli");
   const pluginConfig = await readPluginConfig(cliStorageRoot);
   const records = await readEnabledPluginRecords(join(cliStorageRoot, "plugins"), pluginConfig);
@@ -635,7 +635,7 @@ export function createSubagentsService(options?: SubagentsServiceOptions): ISuba
     async list(params: {
       workspacePath: string;
       workspaceIdentity?: string;
-      provider?: ZCodeProvider;
+      provider?: NibiProvider;
       mode?: SubagentsListMode;
     }): Promise<AgentsListResult> {
       const capability = resolveCapabilities(options);
@@ -755,7 +755,7 @@ export function createSubagentsService(options?: SubagentsServiceOptions): ISuba
       await mutate(runUpdate);
     },
 
-    async getPrimaryUserAgentsDirectory(_params: { provider: ZCodeProvider }): Promise<{
+    async getPrimaryUserAgentsDirectory(_params: { provider: NibiProvider }): Promise<{
       path: string;
     }> {
       const path = await resolveUserSubagentRoot(storageOptions);

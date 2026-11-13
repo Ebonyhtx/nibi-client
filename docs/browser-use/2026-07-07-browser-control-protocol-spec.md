@@ -6,7 +6,7 @@
 
 ## 1. 关键事实：@nibi/shared 单一来源
 
-`apps/zcode-cli` 在**根 pnpm-workspace** 里，agent bootstrap 的 `@nibi/shared` 解析到**根 `packages/shared`**（与 app 同一个包）。故 `BrowserCommand` 与协议方法在 `packages/shared` 定义一次，agent 与 app 双方共用，天然无契约漂移。
+`apps/nibi-cli` 在**根 pnpm-workspace** 里，agent bootstrap 的 `@nibi/shared` 解析到**根 `packages/shared`**（与 app 同一个包）。故 `BrowserCommand` 与协议方法在 `packages/shared` 定义一次，agent 与 app 双方共用，天然无契约漂移。
 
 ## 2. BrowserCommand 契约（迁移复用）
 
@@ -41,7 +41,7 @@
 
 ## 4. BrowserControlPort（agent 侧端口）
 
-- 落点：`apps/zcode-cli/packages/contracts/src/interfaces/browser-control.port.ts`（新），`interfaces/index.ts` 导出。
+- 落点：`apps/nibi-cli/packages/contracts/src/interfaces/browser-control.port.ts`（新），`interfaces/index.ts` 导出。
   ```ts
   export interface BrowserControlPort {
     execute(input: {

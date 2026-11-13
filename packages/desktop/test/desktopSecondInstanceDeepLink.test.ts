@@ -91,10 +91,10 @@ describe("desktop second-instance workspace deep link routing", () => {
     targetWindow.webContents.send.mockClear();
     const handled = handleSecondInstanceWorkspaceRequest({
       additionalData: createDeepLinkSingleInstanceData([
-        "ZCode",
+        "Nibi",
         buildWorkspaceOpenUrl(workspacePath),
       ]),
-      argv: ["ZCode"],
+      argv: ["Nibi"],
       focusForceUpdateGateWindow: vi.fn(),
       forceUpdateBlocked: false,
       handleDeepLink: (url, options) =>
@@ -132,11 +132,11 @@ describe("desktop second-instance workspace deep link routing", () => {
 
     const handled = handleSecondInstanceWorkspaceRequest({
       additionalData: createDeepLinkSingleInstanceData([
-        "ZCode",
+        "Nibi",
         "--open-workspace",
         workspacePath,
       ]),
-      argv: ["ZCode"],
+      argv: ["Nibi"],
       focusForceUpdateGateWindow: vi.fn(),
       forceUpdateBlocked: false,
       handleDeepLink: vi.fn(() => false),
@@ -168,10 +168,10 @@ describe("desktop second-instance workspace deep link routing", () => {
 
     const handled = handleSecondInstanceWorkspaceRequest({
       additionalData: createDeepLinkSingleInstanceData([
-        "ZCode",
+        "Nibi",
         buildWorkspaceOpenUrl(workspacePath),
       ]),
-      argv: ["ZCode"],
+      argv: ["Nibi"],
       focusForceUpdateGateWindow: vi.fn(),
       forceUpdateBlocked: false,
       handleDeepLink: (url, options) =>
@@ -210,10 +210,10 @@ describe("desktop second-instance workspace deep link routing", () => {
 
     const handled = handleSecondInstanceWorkspaceRequest({
       additionalData: createDeepLinkSingleInstanceData([
-        "ZCode",
+        "Nibi",
         buildWorkspaceOpenUrl("\\\\attacker\\share"),
       ]),
-      argv: ["ZCode"],
+      argv: ["Nibi"],
       focusForceUpdateGateWindow: vi.fn(),
       forceUpdateBlocked: false,
       handleDeepLink: (url, options) =>

@@ -26,7 +26,7 @@ const bin = isNode
   ? process.execPath
   : join(repo, "kernel/target/debug/nibi-rs.exe");
 const binArgs = isNode
-  ? [join(repo, "apps/zcode-cli/packages/cli/dist/nibi.cjs"), "app-server", "--stdio"]
+  ? [join(repo, "apps/nibi-cli/packages/cli/dist/nibi.cjs"), "app-server", "--stdio"]
   : ["app-server", "--stdio"];
 // Rust 内核的用户根从 2026-10-29 起与 Node 共用 `~/.nibi`（nibi-platform `DOT_DIR`），
 // 驱动脚本曾按旧 `.zcode` 落 provider_config.json，导致会话拿不到模型、整条对拍超时。

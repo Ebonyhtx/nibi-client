@@ -68,7 +68,7 @@ playwright locator 全家桶 / cua 坐标视觉 / content.export / clipboard / D
 - `packages/desktop/src/main/browserView/browserCommandExecutor.ts`（补 snapshot/click/type/press/scroll case + SNAPSHOT_SCRIPT + 键映射 + ControlledView 接口扩展）
 - `packages/desktop/src/main/browserView/browserViewManager.ts`（toControlledView wire executeJavaScript）
 - `packages/shared/src/browser-use/result.ts`（核对/扩展 snapshot 结果结构）
-- `apps/zcode-cli/packages/core/src/browser-client/facade.ts`（Tab 交互方法去 throw）
+- `apps/nibi-cli/packages/core/src/browser-client/facade.ts`（Tab 交互方法去 throw）
 - 测试：browserCommandExecutor.test.ts（新 case 单测）、facade 测试
 
 ## 6. 补充：让模型"会用"——文档协议 + 工具描述指引

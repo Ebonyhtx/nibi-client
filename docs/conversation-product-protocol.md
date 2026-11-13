@@ -4,7 +4,7 @@
 
 本文是 V4 conversation 的当前产品协议。schema 以
 `packages/shared/src/nibi-protocol-v4/` 为准，CLI 裁决与投影以
-`apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/` 为准，UI 消费以
+`apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/` 为准，UI 消费以
 `packages/ui/src/v4/` 为准。旧 `@nibi/protocol`、legacy task stream 和 renderer conversation
 reducer 只存在于历史文档或兼容层，不得覆盖本文语义。
 
@@ -24,7 +24,7 @@ reducer 只存在于历史文档或兼容层，不得覆盖本文语义。
 | [testing/conversation-session-fork-cross-product-matrix.md](./testing/conversation-session-fork-cross-product-matrix.md) | fork 专项矩阵，收敛能否 fork、历史边界和未来状态继承 |
 | `packages/shared/src/validationAppSettings.ts` | app setting `zcodeInteractionBehavior = queue | guide` 的校验与默认值 |
 | `packages/shared/src/nibi-protocol-v4/` | command、snapshot、delta、topic 和 ACK 的当前 schema |
-| `apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/` | command inbox、guard、projection、topic 发布和恢复的当前事实源 |
+| `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/` | command inbox、guard、projection、topic 发布和恢复的当前事实源 |
 | `packages/ui/src/v4/ConversationComposer.tsx`、`conversationStatusPanelModel.ts`、`SessionPane.tsx` | composer 控制、停止/状态面板、命令派发和 projection 消费逻辑 |
 | `packages/formal-proof/src/model.ts` | 当前形式化枚举器原型，作为协议可执行化参考 |
 

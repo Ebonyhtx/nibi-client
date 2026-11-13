@@ -16,7 +16,7 @@ describe("hostResourceUsage", () => {
       sampler: {
         sample: async () =>
           new Map([
-            sample(100, 60, "/Applications/ZCode.app/Contents/MacOS/ZCode"),
+            sample(100, 60, "/Applications/Nibi.app/Contents/MacOS/Nibi"),
             sample(120, 100, "node"),
           ]),
       },

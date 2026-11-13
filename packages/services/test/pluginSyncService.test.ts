@@ -9,7 +9,7 @@ function makeHome() {
   return mkdtempSync(join(tmpdir(), "zcode-plugin-sync-home-"));
 }
 
-async function writeZcodeUserConfig(
+async function writeNibiUserConfig(
   home: string,
   value: Record<string, unknown>,
 ): Promise<string> {
@@ -19,7 +19,7 @@ async function writeZcodeUserConfig(
   return configPath;
 }
 
-async function readZcodeUserConfig(home: string): Promise<Record<string, unknown>> {
+async function readNibiUserConfig(home: string): Promise<Record<string, unknown>> {
   const raw = await readFile(join(home, ".nibi", "cli", "config.json"), "utf-8");
   return JSON.parse(raw) as Record<string, unknown>;
 }
@@ -70,7 +70,7 @@ describe("plugin sync service", () => {
       commands: ["commands"],
       hooks: [{ event: "PreToolUse", command: "echo hook" }],
     });
-    await writeZcodeUserConfig(home, {
+    await writeNibiUserConfig(home, {
       plugins: {
         dirs: [pluginRoot],
         enabledPlugins: {
@@ -165,7 +165,7 @@ describe("plugin sync service", () => {
     const pluginRoot = await writeInlinePlugin(join(localHome, "external"), "remote-tools", {
       name: "remote-tools",
     });
-    await writeZcodeUserConfig(localHome, {
+    await writeNibiUserConfig(localHome, {
       plugins: {
         dirs: [pluginRoot],
         enabledPlugins: {
@@ -197,7 +197,7 @@ describe("plugin sync service", () => {
     ]);
     const remotePluginRoot = join(remoteHome, ".nibi", "plugins", "remote-tools");
     expect(existsSync(join(remotePluginRoot, ".zcode-plugin", "plugin.json"))).toBe(true);
-    const remoteConfig = await readZcodeUserConfig(remoteHome);
+    const remoteConfig = await readNibiUserConfig(remoteHome);
     expect(remoteConfig).toMatchObject({
       plugins: {
         dirs: [resolve(remotePluginRoot)],
@@ -222,7 +222,7 @@ describe("plugin sync service", () => {
     const localCommandPath = join(pluginRoot, "commands", "run.sh");
     await writeFile(localCommandPath, "#!/bin/sh\necho ok\n", "utf-8");
     await chmod(localCommandPath, 0o755);
-    await writeZcodeUserConfig(localHome, { plugins: { dirs: [pluginRoot] } });
+    await writeNibiUserConfig(localHome, { plugins: { dirs: [pluginRoot] } });
     const localService = createPluginSyncService();
     const candidates = await localService.listLocalUserPluginCandidates();
     const exported = await localService.exportPluginsArchive({
@@ -257,7 +257,7 @@ describe("plugin sync service", () => {
     const pluginRoot = await writeInlinePlugin(join(localHome, "external"), "remote-tools", {
       name: "remote-tools",
     });
-    await writeZcodeUserConfig(localHome, { plugins: { dirs: [pluginRoot] } });
+    await writeNibiUserConfig(localHome, { plugins: { dirs: [pluginRoot] } });
     const localService = createPluginSyncService();
     const candidates = await localService.listLocalUserPluginCandidates();
     const exported = await localService.exportPluginsArchive({
@@ -266,7 +266,7 @@ describe("plugin sync service", () => {
 
     const remoteHome = makeHome();
     process.env.HOME = remoteHome;
-    await writeZcodeUserConfig(remoteHome, {});
+    await writeNibiUserConfig(remoteHome, {});
     const remoteConfigDir = join(remoteHome, ".nibi", "cli");
     const remotePluginRoot = join(remoteHome, ".nibi", "plugins", "remote-tools");
     const remoteService = createPluginSyncService();
@@ -298,7 +298,7 @@ describe("plugin sync service", () => {
         path: remotePluginRoot,
       },
     ]);
-    const remoteConfig = await readZcodeUserConfig(remoteHome);
+    const remoteConfig = await readNibiUserConfig(remoteHome);
     expect(remoteConfig).toMatchObject({
       plugins: {
         dirs: [resolve(remotePluginRoot)],
@@ -312,7 +312,7 @@ describe("plugin sync service", () => {
     const pluginRoot = await writeInlinePlugin(join(localHome, "external"), "remote-tools", {
       name: "remote-tools",
     });
-    await writeZcodeUserConfig(localHome, { plugins: { dirs: [pluginRoot] } });
+    await writeNibiUserConfig(localHome, { plugins: { dirs: [pluginRoot] } });
     const localService = createPluginSyncService();
     const candidates = await localService.listLocalUserPluginCandidates();
     const exported = await localService.exportPluginsArchive({
@@ -325,7 +325,7 @@ describe("plugin sync service", () => {
       "different-dir",
       { name: "remote-tools" },
     );
-    await writeZcodeUserConfig(remoteHome, { plugins: { dirs: [existingRemoteRoot] } });
+    await writeNibiUserConfig(remoteHome, { plugins: { dirs: [existingRemoteRoot] } });
     process.env.HOME = remoteHome;
     const remoteService = createPluginSyncService();
 
@@ -340,7 +340,7 @@ describe("plugin sync service", () => {
         status: "skipped",
       },
     ]);
-    const remoteConfig = await readZcodeUserConfig(remoteHome);
+    const remoteConfig = await readNibiUserConfig(remoteHome);
     expect(remoteConfig).toMatchObject({ plugins: { dirs: [existingRemoteRoot] } });
   });
 
@@ -353,7 +353,7 @@ describe("plugin sync service", () => {
     await writeInlinePlugin(join(remoteHome, ".nibi", "plugins"), "known", {
       name: "other-known",
     });
-    await writeZcodeUserConfig(remoteHome, { plugins: { dirs: [existingRemoteRoot] } });
+    await writeNibiUserConfig(remoteHome, { plugins: { dirs: [existingRemoteRoot] } });
     const service = createPluginSyncService();
 
     const result = await service.listRemoteUserPluginStatuses({
@@ -382,7 +382,7 @@ describe("plugin sync service", () => {
     });
     await writeFile(join(home, "secret.txt"), "secret");
     symlinkSync(join(home, "secret.txt"), join(pluginRoot, "secret-link.txt"));
-    await writeZcodeUserConfig(home, { plugins: { dirs: [pluginRoot] } });
+    await writeNibiUserConfig(home, { plugins: { dirs: [pluginRoot] } });
     const service = createPluginSyncService();
     const candidates = await service.listLocalUserPluginCandidates();
 

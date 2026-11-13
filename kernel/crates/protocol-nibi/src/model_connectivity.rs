@@ -20,7 +20,7 @@ const PROBE_USER: &str = "hi";
 const QUERY_SOURCE: &str = "provider_settings_connectivity";
 
 pub async fn test(server: &Server, params: &Value) -> Result<Value, RpcError> {
-    // `workspace` 是 Host 的必填项（`zcodeProviderTestModelConnectivityParamsSchema`），
+    // `workspace` 是 Host 的必填项（`nibiProviderTestModelConnectivityParamsSchema`），
     // 探测本身不带会话，这里只校验形状。
     if params["workspace"].as_object().is_none() {
         return Err(RpcError::invalid_params("workspace is required"));

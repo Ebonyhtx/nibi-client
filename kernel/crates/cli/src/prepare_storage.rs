@@ -3,7 +3,7 @@
 //! current-thread runtime 只为异步文件读/建目录服务；打开库在当前线程阻塞跑，30 秒的确认等待用
 //! 一个 stdin 读线程 + `recv_timeout`。stdout 全程只写有界的控制帧，日志照常只进文件。
 //!
-//! 握手（`zcodeStoragePreparationFrameSchema`）：
+//! 握手（`nibiStoragePreparationFrameSchema`）：
 //! 1. 报 `startup/storagePath {path}`（会话库的绝对路径；库的位置只来自用户级配置与环境变量——
 //!    Node 的协议入口 `createConfig({env})` 没有项目层，这里同一范围）。
 //! 2. 等 Host 的一行 `startup/storagePathReady {reuse?}`：30 秒超时（`startup_status_timeout`）、

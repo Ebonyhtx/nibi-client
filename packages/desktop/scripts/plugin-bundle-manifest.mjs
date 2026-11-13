@@ -29,7 +29,7 @@ const browserUseRequiredRuntimePaths = [
 const officialPluginPackages = [
   {
     packageName: "@nibi/visualize-plugin",
-    relativePath: "apps/zcode-cli/packages/visualize-plugin",
+    relativePath: "apps/nibi-cli/packages/visualize-plugin",
     requiresRuntime: false,
     requiredSeedPaths: [
       "skills/visualize/SKILL.md",
@@ -64,7 +64,7 @@ const officialPluginPackages = [
     // browser-use 只携带自己的 client script 与 skill/docs；node_repl MCP runtime 归
     // @nibi/node-repl-host（见上方常量注释）。
     packageName: "@nibi/browser-use-plugin",
-    relativePath: "apps/zcode-cli/packages/browser-use-plugin",
+    relativePath: "apps/nibi-cli/packages/browser-use-plugin",
     requiresRuntime: true,
     requiredRuntimePaths: browserUseRequiredRuntimePaths,
     runtimeBuildScript: "scripts/build.mjs",
@@ -75,7 +75,7 @@ const officialPluginPackages = [
     // 它没有 listing（不进插件市场展示面），但生产包首启 seed 必须拿到它的 dist runtime，
     // 否则 bua/cua 任一开启时都会连不上 node_repl。
     packageName: "@nibi/node-repl-host",
-    relativePath: "apps/zcode-cli/packages/node-repl-host",
+    relativePath: "apps/nibi-cli/packages/node-repl-host",
     requiresRuntime: true,
     requiredRuntimePaths: ["dist/mcp/server.js"],
     runtimeBuildScript: "scripts/build.mjs",
@@ -84,7 +84,7 @@ const officialPluginPackages = [
   {
     // CUA 插件只携带 SDK/skill/docs；node_repl MCP runtime 归 @nibi/node-repl-host。
     packageName: "@nibi/cua-plugin",
-    relativePath: "apps/zcode-cli/packages/zcode-cua-plugin",
+    relativePath: "apps/nibi-cli/packages/zcode-cua-plugin",
     requiresRuntime: false,
     stagedPath: "packages/zcode-cua-plugin",
   },
@@ -93,7 +93,7 @@ const officialPluginPackages = [
     // 完整种子清单在 bootstrap 的 OFFICIAL_*_REQUIRED_SEED_PATHS（那是运行时的判定）；
     // 这里只钉三个代表件（打包断言够用，也免得两处长清单各自漂移）。
     packageName: "@nibi/spreadsheets-plugin",
-    relativePath: "apps/zcode-cli/packages/spreadsheets-plugin",
+    relativePath: "apps/nibi-cli/packages/spreadsheets-plugin",
     requiresRuntime: false,
     // stagedPath 必须与 bootstrap 的 rootCandidates 对齐（apps 里叫 <name>-plugin）。
     // 漏了这个字段 resolve() 会收 undefined 直接抛 ERR_INVALID_ARG_TYPE —— 打包链实测踩过。
@@ -109,7 +109,7 @@ const officialPluginPackages = [
     // 完整种子清单在 bootstrap 的 OFFICIAL_*_REQUIRED_SEED_PATHS（那是运行时的判定）；
     // 这里只钉三个代表件（打包断言够用，也免得两处长清单各自漂移）。
     packageName: "@nibi/documents-plugin",
-    relativePath: "apps/zcode-cli/packages/documents-plugin",
+    relativePath: "apps/nibi-cli/packages/documents-plugin",
     requiresRuntime: false,
     // stagedPath 必须与 bootstrap 的 rootCandidates 对齐（apps 里叫 <name>-plugin）。
     // 漏了这个字段 resolve() 会收 undefined 直接抛 ERR_INVALID_ARG_TYPE —— 打包链实测踩过。
@@ -125,7 +125,7 @@ const officialPluginPackages = [
     // 完整种子清单在 bootstrap 的 OFFICIAL_*_REQUIRED_SEED_PATHS（那是运行时的判定）；
     // 这里只钉三个代表件（打包断言够用，也免得两处长清单各自漂移）。
     packageName: "@nibi/presentations-plugin",
-    relativePath: "apps/zcode-cli/packages/presentations-plugin",
+    relativePath: "apps/nibi-cli/packages/presentations-plugin",
     requiresRuntime: false,
     // stagedPath 必须与 bootstrap 的 rootCandidates 对齐（apps 里叫 <name>-plugin）。
     // 漏了这个字段 resolve() 会收 undefined 直接抛 ERR_INVALID_ARG_TYPE —— 打包链实测踩过。
@@ -141,7 +141,7 @@ const officialPluginPackages = [
     // 完整种子清单在 bootstrap 的 OFFICIAL_*_REQUIRED_SEED_PATHS（那是运行时的判定）；
     // 这里只钉三个代表件（打包断言够用，也免得两处长清单各自漂移）。
     packageName: "@nibi/pdf-plugin",
-    relativePath: "apps/zcode-cli/packages/pdf-plugin",
+    relativePath: "apps/nibi-cli/packages/pdf-plugin",
     requiresRuntime: false,
     // stagedPath 必须与 bootstrap 的 rootCandidates 对齐（apps 里叫 <name>-plugin）。
     // 漏了这个字段 resolve() 会收 undefined 直接抛 ERR_INVALID_ARG_TYPE —— 打包链实测踩过。
@@ -155,7 +155,7 @@ const officialPluginPackages = [
   {
     // 上游随包内置、我们补齐的插件（内容与商店那份字节一致，见 sync-builtin-plugins.py）。
     packageName: "@nibi/android-emulator-plugin",
-    relativePath: "apps/zcode-cli/packages/android-emulator-plugin",
+    relativePath: "apps/nibi-cli/packages/android-emulator-plugin",
     requiresRuntime: false,
     stagedPath: "packages/android-emulator-plugin",
     requiredSeedPaths: [".nibi-plugin/plugin.json", "skills/android-dev/SKILL.md", "dist/mcp/server.js", "hooks/hooks.json"],
@@ -163,7 +163,7 @@ const officialPluginPackages = [
   {
     // 上游随包内置、我们补齐的插件（内容与商店那份字节一致，见 sync-builtin-plugins.py）。
     packageName: "@nibi/ios-simulator-plugin",
-    relativePath: "apps/zcode-cli/packages/ios-simulator-plugin",
+    relativePath: "apps/nibi-cli/packages/ios-simulator-plugin",
     requiresRuntime: false,
     stagedPath: "packages/ios-simulator-plugin",
     requiredSeedPaths: [".nibi-plugin/plugin.json", "skills/ios-dev/SKILL.md", "dist/mcp/server.js", "hooks/hooks.json"],
@@ -171,7 +171,7 @@ const officialPluginPackages = [
   {
     // 上游随包内置、我们补齐的插件（内容与商店那份字节一致，见 sync-builtin-plugins.py）。
     packageName: "@nibi/restore-legacy-sessions-plugin",
-    relativePath: "apps/zcode-cli/packages/restore-legacy-sessions-plugin",
+    relativePath: "apps/nibi-cli/packages/restore-legacy-sessions-plugin",
     requiresRuntime: false,
     stagedPath: "packages/restore-legacy-sessions-plugin",
     requiredSeedPaths: [".nibi-plugin/plugin.json", "skills/restore-legacy-sessions/SKILL.md"],
@@ -179,7 +179,7 @@ const officialPluginPackages = [
   {
     // 上游随包内置、我们补齐的插件（内容与商店那份字节一致，见 sync-builtin-plugins.py）。
     packageName: "@nibi/plugin-creator-plugin",
-    relativePath: "apps/zcode-cli/packages/plugin-creator-plugin",
+    relativePath: "apps/nibi-cli/packages/plugin-creator-plugin",
     requiresRuntime: false,
     stagedPath: "packages/plugin-creator-plugin",
     requiredSeedPaths: [".nibi-plugin/plugin.json", "skills/plugin-creator/SKILL.md"],
@@ -187,7 +187,7 @@ const officialPluginPackages = [
   {
     // 上游随包内置、我们补齐的插件（内容与商店那份字节一致，见 sync-builtin-plugins.py）。
     packageName: "@nibi/skill-creator-plugin",
-    relativePath: "apps/zcode-cli/packages/skill-creator-plugin",
+    relativePath: "apps/nibi-cli/packages/skill-creator-plugin",
     requiresRuntime: false,
     stagedPath: "packages/skill-creator-plugin",
     requiredSeedPaths: [".nibi-plugin/plugin.json", "skills/skill-creator/SKILL.md"],
@@ -195,7 +195,7 @@ const officialPluginPackages = [
   {
     // 上游随包内置、我们补齐的插件（内容与商店那份字节一致，见 sync-builtin-plugins.py）。
     packageName: "@nibi/guide-plugin",
-    relativePath: "apps/zcode-cli/packages/zcode-guide-plugin",
+    relativePath: "apps/nibi-cli/packages/zcode-guide-plugin",
     requiresRuntime: false,
     stagedPath: "packages/zcode-guide-plugin",
     requiredSeedPaths: [".nibi-plugin/plugin.json", "skills/configuration-guide/SKILL.md"],

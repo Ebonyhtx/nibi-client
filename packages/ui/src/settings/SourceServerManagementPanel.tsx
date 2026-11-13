@@ -60,7 +60,7 @@ import { cn } from "@/components/lib/utils.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { useSourceServerManagementSnapshot } from "@/hooks/useSourceServerManagementSnapshot.js";
 import { useSourceServerOperationLogs } from "@/hooks/useSourceServerOperationLogs.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { SourceServerMigrationReportPanel } from "@/settings/SourceServerMigrationReportPanel.js";
 import {
   SourceServerLogList,
@@ -253,7 +253,7 @@ export function SourceServerManagementPanel({
   onUpdateSettings?: (patch: Partial<AppSettings>) => Promise<unknown> | void;
 }) {
   const background = useRemoteConnectionProgress();
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const confirmDialog = useConfirmDialog();
   const platform = useOptionalPlatform();
   const deferredUpdates = useDeferredSourceServerUpdates();

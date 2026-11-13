@@ -163,17 +163,17 @@ describe("PLG plugin 引用：@ 面板 plugins 分组与 plugin_reference remind
     );
     const tryNowText = (await getV4ComposerText()) ?? "";
     for (const prompt of [
-      "How do I configure MCP servers in ZCode?",
-      "Diagnose my current ZCode setup",
-      "ZCode 里怎么配置 MCP 服务器？",
-      "帮我诊断当前的 ZCode 配置",
+      "How do I configure MCP servers in Nibi?",
+      "Diagnose my current Nibi setup",
+      "Nibi 里怎么配置 MCP 服务器？",
+      "帮我诊断当前的 Nibi 配置",
     ]) {
       expect(tryNowText).not.toContain(prompt);
     }
     const tryNowMention = await readPluginMentionPresentation(STORE_TRY_PLUGIN_STABLE_ID);
     expect(tryNowMention.found).toBe(true);
     expect(tryNowMention.iconSrc).toBe(STORE_TRY_PLUGIN_ICON);
-    expect(["ZCode Guide", "ZCode 使用指南"]).toContain(tryNowMention.label);
+    expect(["Nibi Guide", "Nibi 使用指南"]).toContain(tryNowMention.label);
     await captureEvidence("04-plugin-store-try-now-draft");
 
     // 回归守卫：Try now 只预填引用、没有尾随文本时，光标会落在 mention token 内部，
@@ -210,10 +210,10 @@ describe("PLG plugin 引用：@ 面板 plugins 分组与 plugin_reference remind
         return (
           text.includes(`plugin://${STORE_TRY_PLUGIN_STABLE_ID}`) &&
           [
-            "How do I configure MCP servers in ZCode?",
-            "Diagnose my current ZCode setup",
-            "ZCode 里怎么配置 MCP 服务器？",
-            "帮我诊断当前的 ZCode 配置",
+            "How do I configure MCP servers in Nibi?",
+            "Diagnose my current Nibi setup",
+            "Nibi 里怎么配置 MCP 服务器？",
+            "帮我诊断当前的 Nibi 配置",
           ].some((prompt) => text.includes(prompt))
         );
       },
@@ -225,7 +225,7 @@ describe("PLG plugin 引用：@ 面板 plugins 分组与 plugin_reference remind
     const storeMention = await readPluginMentionPresentation(STORE_TRY_PLUGIN_STABLE_ID);
     expect(storeMention.found).toBe(true);
     expect(storeMention.iconSrc).toBe(STORE_TRY_PLUGIN_ICON);
-    expect(["ZCode Guide", "ZCode 使用指南"]).toContain(storeMention.label);
+    expect(["Nibi Guide", "Nibi 使用指南"]).toContain(storeMention.label);
     await captureEvidence("03-plugin-store-try-draft");
 
     // 试用只预填，不自动发送；保持 draft 且手动清空，避免影响 wire 用例。

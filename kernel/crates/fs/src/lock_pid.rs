@@ -1,6 +1,6 @@
 //! Node 的 pid 锁文件（docs/specs/rust-cli/platform.md §10，工作线 F52）：设备身份 `telemetry-state.json` 用的
 //! `telemetry-state.lock`，照 Node CLI `withTelemetryStateLock` / `removeStaleTelemetryLockIfNeeded`
-//! （`apps/zcode-cli/packages/adapters/src/device/cli-device-mid.ts`）。与 credentials 的目录锁（[`super::lock`]）、
+//! （`apps/nibi-cli/packages/adapters/src/device/cli-device-mid.ts`）。与 credentials 的目录锁（[`super::lock`]）、
 //! hooks 信任记录的单文件锁（[`super::lock_single`]）都不是一种。
 //!
 //! 锁是调用方给的路径上的普通文件，`create_new` 独占创建（Node `open(lockFile, "wx")`），内容

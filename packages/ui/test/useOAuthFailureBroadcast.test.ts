@@ -31,13 +31,13 @@ vi.mock("@/hooks/usePlatform.js", () => ({
   }),
 }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: { formatMessage: ({ id }: { id: string }) => id },
     locale: "en-US",
   }),
 }));
 vi.mock("@/store/StoreProvider.js", () => ({
-  useZCodeStore: () => vi.fn(),
+  useNibiStore: () => vi.fn(),
 }));
 vi.mock("@/lib/appTelemetry.js", () => ({
   reportAppTelemetryEvent: vi.fn(async () => {}),

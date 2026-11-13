@@ -1,9 +1,9 @@
 import type { IServiceAccessor } from "@nibi/services";
-import type { ZCodeProvider } from "@nibi/shared";
+import type { NibiProvider } from "@nibi/shared";
 import { logger } from "@/logger.js";
-import { prepareWorkspaceWithZCodeSessionService } from "@/hooks/useWorkspacePrepare.js";
+import { prepareWorkspaceWithNibiSessionService } from "@/hooks/useWorkspacePrepare.js";
 import { resolveWorkspaceModelConfigSyncScope } from "@/lib/modelConfigSync.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 
 /**
  * 插件变更后让**正在运行的会话**也跟上。
@@ -30,14 +30,14 @@ import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
 export type PluginRuntimeReloadOutcome = "reloaded" | "deferred-active-task" | "failed";
 
 export async function reloadWorkspaceRuntimeAfterPluginChange(params: {
-  readonly services: Pick<IServiceAccessor, "zcodeTaskService" | "zcodeSessionService">;
+  readonly services: Pick<IServiceAccessor, "nibiTaskService" | "nibiSessionService">;
   readonly workspacePath: string | null | undefined;
   readonly workspaceIdentity?: string | null;
 }): Promise<PluginRuntimeReloadOutcome> {
   const workspacePath = params.workspacePath?.trim();
   if (!workspacePath) return "failed";
   const workspaceIdentity = params.workspaceIdentity?.trim() || undefined;
-  const store = useZCodeSessionStore.getState();
+  const store = useNibiSessionStore.getState();
   const workspaceState = store.getWorkspaceState(workspacePath, workspaceIdentity);
   if (workspaceState.activeTaskId) {
     logger.info("[plugins] skip runtime reload: active task", {
@@ -46,41 +46,41 @@ export async function reloadWorkspaceRuntimeAfterPluginChange(params: {
     });
     return "deferred-active-task";
   }
-  const provider = resolveWorkspaceModelConfigSyncScope(workspaceState).provider as ZCodeProvider;
+  const provider = resolveWorkspaceModelConfigSyncScope(workspaceState).provider as NibiProvider;
 
   store.setWorkspaceInitState(workspacePath, "initializing", null, workspaceIdentity);
   try {
-    await params.services.zcodeTaskService.restartWorkspaceProcess({
+    await params.services.nibiTaskService.restartWorkspaceProcess({
       workspacePath,
       ...(workspaceIdentity ? { workspaceIdentity } : {}),
       provider,
     });
-    const prepareResult = await prepareWorkspaceWithZCodeSessionService({
+    const prepareResult = await prepareWorkspaceWithNibiSessionService({
       workspacePath,
       workspaceIdentity,
       provider,
-      zcodeSessionService: params.services.zcodeSessionService,
+      nibiSessionService: params.services.nibiSessionService,
     });
     // provider 可能在 prepare 期间被用户改掉：只有仍是我们请求的那个才回写，避免覆盖新状态。
-    const latest = useZCodeSessionStore.getState().getWorkspaceState(workspacePath, workspaceIdentity);
+    const latest = useNibiSessionStore.getState().getWorkspaceState(workspacePath, workspaceIdentity);
     if (latest.selectedProvider === provider) {
-      useZCodeSessionStore
+      useNibiSessionStore
         .getState()
         .setConfigOptions(workspacePath, prepareResult.configOptions ?? [], workspaceIdentity);
-      useZCodeSessionStore
+      useNibiSessionStore
         .getState()
         .setConfigOptionsStatus(workspacePath, "ready", workspaceIdentity);
-      useZCodeSessionStore
+      useNibiSessionStore
         .getState()
         .setSlashCommands(workspacePath, prepareResult.slashCommands ?? [], workspaceIdentity);
     }
-    useZCodeSessionStore.getState().setWorkspaceInitState(workspacePath, "ready", null, workspaceIdentity);
+    useNibiSessionStore.getState().setWorkspaceInitState(workspacePath, "ready", null, workspaceIdentity);
     logger.info("[plugins] workspace runtime reloaded after plugin change", { workspacePath });
     return "reloaded";
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     logger.warn("[plugins] workspace runtime reload failed", { message, workspacePath });
-    useZCodeSessionStore
+    useNibiSessionStore
       .getState()
       .setWorkspaceInitState(workspacePath, "failed", message, workspaceIdentity);
     return "failed";

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("Provider Settings 表单边界", () => {
-  it("生产 UI 不再把旧 ZCode provider DTO 当作当前设置类型", async () => {
+  it("生产 UI 不再把旧 Nibi provider DTO 当作当前设置类型", async () => {
     const sourceRoot = join(import.meta.dirname, "../src");
     const sourceFiles = await collectSourceFiles(sourceRoot);
     const offenders: string[] = [];

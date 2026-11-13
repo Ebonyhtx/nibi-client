@@ -1,8 +1,8 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import type {
-  ZCodePersistedFileChange,
-  ZCodeTaskChangeSummary,
-  ZCodeTurnFileState,
+  NibiPersistedFileChange,
+  NibiTaskChangeSummary,
+  NibiTurnFileState,
 } from "@nibi/shared";
 import { TID_CHAT_CHANGE_SUMMARY_TOGGLE_FILES_BUTTON, testId } from "@nibi/shared/test-ids";
 import { ChevronRightIcon, Undo2 } from "lucide-react";
@@ -11,7 +11,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { CodeViewerSource } from "@/lib/codeViewer.js";
 import { FileDisplayInline } from "@/lib/fileDisplay.js";
 import { buildTurnChangeSummary, toWorkspaceRelativePath } from "@/lib/taskChangeSummary.js";
@@ -30,13 +30,13 @@ export {
 } from "@/messageChangeSummaryPreview.js";
 
 interface MessageChangeSummaryPanelProps {
-  summary: ZCodeTaskChangeSummary;
+  summary: NibiTaskChangeSummary;
   workspacePath: string;
   workspaceIdentity?: string;
   workspaceRemoteSessionId?: string;
-  changeDetails?: ZCodePersistedFileChange | null;
+  changeDetails?: NibiPersistedFileChange | null;
   readonlyDiffPatchesByPath?: ReadonlyMap<string, string>;
-  fileState?: ZCodeTurnFileState;
+  fileState?: NibiTurnFileState;
   messageId?: string;
   compactForRemoteControl?: boolean;
   animationDelayMs?: number;
@@ -61,7 +61,7 @@ export function MessageChangeSummaryPanel({
   onToggleFiles,
   onOpenCodeViewer,
 }: MessageChangeSummaryPanelProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [isFileListOpen, setIsFileListOpen] = useState(false);
 
   const turnSummary = useMemo(() => {

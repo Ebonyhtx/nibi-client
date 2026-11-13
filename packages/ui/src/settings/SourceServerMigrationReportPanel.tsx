@@ -4,7 +4,7 @@ import type {
 } from "@nibi/shared";
 import { Button } from "@/components/ui/button.js";
 import { cn } from "@/components/lib/utils.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   getSourceMigrationPhaseMessageId,
   getSourceMigrationStatusMessageId,
@@ -37,7 +37,7 @@ export function SourceServerMigrationReportPanel({
   onAbandon: (workspacePath: string, migrationId: string) => void;
   onRetry: (workspacePath: string, migrationId: string) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const latestMigrationIdByPath = new Map<string, string>();
   for (const row of report.rows) {
     if (!latestMigrationIdByPath.has(row.workspacePath)) {

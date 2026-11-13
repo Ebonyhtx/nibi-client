@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/state/src/node/open.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-cli-rust/crates/state/src/node/open.rs（feat/rs 79b6691c55）。
 //! 打开 Node 会话库：Node `SqliteSessionStore.openStartup` 与 `runSqliteSessionMigrationsAsync`
 //! （`migration-runner.ts`）、`sqlite-migrations/runner.ts` 的 `migrateExclusive`
 //! （docs/specs/rust-m11-node-storage.md §2.2、§8）。

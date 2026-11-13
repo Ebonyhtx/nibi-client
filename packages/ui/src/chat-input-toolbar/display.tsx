@@ -7,10 +7,10 @@ import {
   type RefObject,
 } from "react";
 import {
-  type ZCodeApiRetryStatus,
-  type ZCodeConfigOption,
-  type ZCodeConfigSelectValue,
-  type ZCodeProvider,
+  type NibiApiRetryStatus,
+  type NibiConfigOption,
+  type NibiConfigSelectValue,
+  type NibiProvider,
 } from "@nibi/shared";
 import {
   TID_CHAT_MODE_SELECT_ITEM,
@@ -32,7 +32,7 @@ import {
   shouldRestoreChatInputFocusAfterPickerClose,
 } from "@/lib/pickerFocus.js";
 import { cn } from "@/components/lib/utils.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 import {
   ChevronDownIcon,
@@ -63,7 +63,7 @@ type ConfigSelectTriggerVariant = ComponentProps<
  * 系统事件误当成用户选择（如 Automations 编辑页仅打开详情就被标记未保存修改）。
  * 用户只能点到已渲染的 option，值域外的选择回调一律丢弃。 */
 export function isConfigSelectValueInOptions(
-  option: ZCodeConfigOption,
+  option: NibiConfigOption,
   value: string,
 ): boolean {
   return option.options?.some((entry) => String(entry.value) === value) ?? false;
@@ -79,7 +79,7 @@ const HIGH_PERMISSION_MODE_VALUES = new Set([
 ]);
 
 function getConfigSelectTriggerTestId(
-  option: ZCodeConfigOption,
+  option: NibiConfigOption,
 ): string | undefined {
   if (option.category === "thought_level") {
     return TID_CHAT_THOUGHT_LEVEL_SELECT_TRIGGER;
@@ -93,8 +93,8 @@ function getConfigSelectTriggerTestId(
 }
 
 function getConfigSelectItemTestId(
-  option: ZCodeConfigOption,
-  entry: ZCodeConfigSelectValue,
+  option: NibiConfigOption,
+  entry: NibiConfigSelectValue,
 ): string | undefined {
   if (option.category === "thought_level") {
     return testId(TID_CHAT_THOUGHT_LEVEL_SELECT_ITEM, entry.value);
@@ -137,8 +137,8 @@ export function ChatApiRetryStatus({
   intl,
   locale,
 }: {
-  apiRetry: ZCodeApiRetryStatus | null;
-  intl: ReturnType<typeof useZCodeIntl>["intl"];
+  apiRetry: NibiApiRetryStatus | null;
+  intl: ReturnType<typeof useNibiIntl>["intl"];
   locale: string;
 }) {
   const retryLabel = useMemo(() => {
@@ -146,7 +146,7 @@ export function ChatApiRetryStatus({
       return null;
     }
 
-    // 当前 ZCode Agent 只会推送某一刻的 retryDelayMs 快照，不会每秒递减。
+    // 当前 Nibi Agent 只会推送某一刻的 retryDelayMs 快照，不会每秒递减。
     // 继续把这个值渲染成“X 秒后继续”会给用户造成倒计时在卡住的错觉。
     // 这里先收敛成稳定的重试状态文案，只展示第几次重试。
     const formatter = new Intl.NumberFormat(locale);
@@ -183,9 +183,9 @@ export function ChatApiRetryStatus({
 }
 
 export function getModeOptionDisplayLabel(
-  intl: ReturnType<typeof useZCodeIntl>["intl"],
-  provider: ZCodeProvider | undefined,
-  entry: Pick<ZCodeConfigSelectValue, "name" | "value">,
+  intl: ReturnType<typeof useNibiIntl>["intl"],
+  provider: NibiProvider | undefined,
+  entry: Pick<NibiConfigSelectValue, "name" | "value">,
 ): string {
   const labelMessageId = getModeOptionLabelMessageId(provider, entry);
   if (!labelMessageId) {
@@ -196,8 +196,8 @@ export function getModeOptionDisplayLabel(
 }
 
 export function getModeOptionLabelMessageId(
-  provider: ZCodeProvider | undefined,
-  entry: Pick<ZCodeConfigSelectValue, "value">,
+  provider: NibiProvider | undefined,
+  entry: Pick<NibiConfigSelectValue, "value">,
 ): string | null {
   if (!provider) {
     return null;
@@ -207,8 +207,8 @@ export function getModeOptionLabelMessageId(
 }
 
 export function getModeOptionDescriptionMessageId(
-  provider: ZCodeProvider | undefined,
-  entry: Pick<ZCodeConfigSelectValue, "value">,
+  provider: NibiProvider | undefined,
+  entry: Pick<NibiConfigSelectValue, "value">,
 ): string | null {
   if (!provider) {
     return null;
@@ -218,10 +218,10 @@ export function getModeOptionDescriptionMessageId(
 }
 
 export function getConfigOptionEntryLabel(
-  intl: ReturnType<typeof useZCodeIntl>["intl"],
-  provider: ZCodeProvider | undefined,
-  option: ZCodeConfigOption,
-  entry: ZCodeConfigSelectValue,
+  intl: ReturnType<typeof useNibiIntl>["intl"],
+  provider: NibiProvider | undefined,
+  option: NibiConfigOption,
+  entry: NibiConfigSelectValue,
 ): string {
   if (option.category === "mode") {
     return getModeOptionDisplayLabel(intl, provider, entry);
@@ -231,10 +231,10 @@ export function getConfigOptionEntryLabel(
 }
 
 export function getConfigOptionEntryDescription(
-  intl: ReturnType<typeof useZCodeIntl>["intl"],
-  provider: ZCodeProvider | undefined,
-  option: ZCodeConfigOption,
-  entry: ZCodeConfigSelectValue,
+  intl: ReturnType<typeof useNibiIntl>["intl"],
+  provider: NibiProvider | undefined,
+  option: NibiConfigOption,
+  entry: NibiConfigSelectValue,
 ): string | undefined {
   if (option.category !== "mode") {
     return entry.description;
@@ -294,7 +294,7 @@ export function ConfigSelect({
   provider,
   restoreFocusSelector = '[data-testid="chat-input"]',
 }: {
-  option: ZCodeConfigOption;
+  option: NibiConfigOption;
   onValueChange: (value: string) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -308,10 +308,10 @@ export function ConfigSelect({
   triggerSize?: ConfigSelectTriggerSize;
   leadingIcon?: LucideIcon;
   labelVisibilityClassName?: string;
-  provider?: ZCodeProvider;
+  provider?: NibiProvider;
   restoreFocusSelector?: string | null;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
 
   // 注意：handleContentKeyDown 必须在 early return 之前调用。
   // 之前 `if (option.type !== "select" ...) return null` 写在 useCallback 之前，

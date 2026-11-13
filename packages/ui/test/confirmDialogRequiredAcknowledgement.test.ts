@@ -7,7 +7,7 @@ import { useConfirmDialogStore } from "@/store/confirmDialogStore.js";
 import zhCN from "@/i18n/locales/zh-CN.js";
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
+  useNibiIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
 }));
 
 vi.mock("@/components/ui/button.js", () => ({

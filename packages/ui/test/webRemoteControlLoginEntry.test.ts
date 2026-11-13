@@ -39,10 +39,10 @@ const intl = vi.hoisted(() => ({ intl: { formatMessage: ({ id }: { id: string })
 
 vi.mock("@/hooks/useOAuth.js", () => ({ useOAuth: () => oauth }));
 vi.mock("@/store/StoreProvider.js", () => ({
-  useZCodeStore: (selector: (value: typeof state) => unknown) => selector(state),
+  useNibiStore: (selector: (value: typeof state) => unknown) => selector(state),
 }));
 vi.mock("@/hooks/usePlatform.js", () => ({ usePlatform: () => platform }));
-vi.mock("@/i18n/IntlProvider.js", () => ({ useZCodeIntl: () => intl }));
+vi.mock("@/i18n/IntlProvider.js", () => ({ useNibiIntl: () => intl }));
 vi.mock("@/logger.js", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 vi.mock("@/components/ui/button.js", () => ({
   Button: ({ children, ...props }: { children?: ReactNode; [key: string]: unknown }) =>

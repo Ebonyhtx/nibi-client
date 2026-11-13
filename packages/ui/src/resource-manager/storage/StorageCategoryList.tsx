@@ -7,7 +7,7 @@ import {
   testId,
 } from "@nibi/shared/test-ids";
 import { Button } from "@/components/ui/button.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { formatBytes } from "@/resource-manager/resourceUsageView.js";
 import {
   STORAGE_CATEGORY_ICONS,
@@ -29,7 +29,7 @@ export function StorageCategoryList({
   onOpen: (id: StorageCategoryId) => void;
   onClean: (id: StorageCategoryId) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <div className="overflow-hidden rounded-xl border border-card-border bg-card">
       {categories.map((category) => {

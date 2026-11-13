@@ -1,5 +1,5 @@
 //! 每请求头（工作线 F64，docs/specs/rust-cli/model.md §2.4）：照 Node `createModelRequestAttributionHeaders`
-//! （`apps/zcode-cli/packages/adapters/src/model/runner-attribution.ts`）。
+//! （`apps/nibi-cli/packages/adapters/src/model/runner-attribution.ts`）。
 //!
 //! 请求体只编码一次，发请求的一方（会话、回合、子代理、来源）在编码前取出成 [`Origin`]；每次发送（含重试）再配上新的
 //! `x-request-id` 算出这一组头。

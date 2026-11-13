@@ -1,6 +1,6 @@
 import { BarChart3Icon } from "lucide-react";
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { setPendingSettingsUsageIntent } from "@/lib/settingsNavigation.js";
 
 export function WorkspaceSidebarFooterUsageSummaryContent({
@@ -8,7 +8,7 @@ export function WorkspaceSidebarFooterUsageSummaryContent({
 }: {
   onUsageClick?: () => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <>
       <DropdownMenuSeparator />

@@ -1,7 +1,7 @@
 import {
   DEFAULT_NIBI_ENDPOINT_ORIGIN,
   NIBI_VERSION,
-  buildZCodeEndpointUrls,
+  buildNibiEndpointUrls,
   getForceUpdateMinimalVersionFromConfig,
   resolveForceUpdateRequirement,
   type ForceUpdateRequirement,
@@ -46,7 +46,7 @@ export function resolveForceUpdateClientConfigUrl(
   endpointOrigin = DEFAULT_NIBI_ENDPOINT_ORIGIN,
 ): string {
   const url = new URL(
-    `${buildZCodeEndpointUrls(endpointOrigin).origin}${NIBI_CLIENT_CONFIG_API_PATH}`,
+    `${buildNibiEndpointUrls(endpointOrigin).origin}${NIBI_CLIENT_CONFIG_API_PATH}`,
   );
   url.searchParams.set("app_version", NIBI_VERSION);
   url.searchParams.set("platform", `${process.platform}-${process.arch}`);
@@ -185,7 +185,7 @@ export function resolveForceUpdateDownloadUrl(
   locale: Locale,
   endpointOrigin = DEFAULT_NIBI_ENDPOINT_ORIGIN,
 ): string {
-  const origin = buildZCodeEndpointUrls(endpointOrigin).origin;
+  const origin = buildNibiEndpointUrls(endpointOrigin).origin;
   return locale === "zh-CN" ? `${origin}/cn` : `${origin}/en`;
 }
 

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
-  parseZCodeBuiltinModelConfigRules,
-  parseZCodeBuiltinProviderConfigRules,
+  parseNibiBuiltinModelConfigRules,
+  parseNibiBuiltinProviderConfigRules,
   type ModelConfigRules,
   type ProviderConfigMap,
   type ProviderTemplateMap,
@@ -10,16 +10,16 @@ import {
 export const NIBI_BUILTIN_RELEASE_SCHEMA_VERSION = 1 as const;
 const RETIRED_ZAPI_PROVIDER_ID = "builtin:zapi";
 
-export interface ZCodeBuiltinConfigContent {
+export interface NibiBuiltinConfigContent {
   readonly providers: ProviderConfigMap;
   readonly providerTemplates: ProviderTemplateMap;
   readonly modelConfigRules: ModelConfigRules;
 }
 
-export interface ZCodeBuiltinRelease {
+export interface NibiBuiltinRelease {
   readonly schemaVersion: typeof NIBI_BUILTIN_RELEASE_SCHEMA_VERSION;
   readonly revision: number;
-  readonly config: ZCodeBuiltinConfigContent;
+  readonly config: NibiBuiltinConfigContent;
 }
 
 const releaseSchema = z
@@ -35,15 +35,15 @@ const releaseSchema = z
   })
   .strict();
 
-export function decodeZCodeBuiltinRelease(input: unknown): ZCodeBuiltinRelease {
+export function decodeNibiBuiltinRelease(input: unknown): NibiBuiltinRelease {
   const parsed = releaseSchema.parse(input);
-  const { providers, providerTemplates } = parseZCodeBuiltinProviderConfigRules(
+  const { providers, providerTemplates } = parseNibiBuiltinProviderConfigRules(
     parsed.config.providerConfigRules,
   );
   // ZAPI 已退出产品，旧 Remote Release 或 LKG 不能在 Renderer 静态入口删除后
   // 又通过目标 Host Registry 将它重新发布。拒绝整份不兼容 Release，让 Source 回落到兼容候选。
   if (providers.has(RETIRED_ZAPI_PROVIDER_ID)) {
-    throw new Error(`ZCode Built-in Release 包含已退出的 Provider: ${RETIRED_ZAPI_PROVIDER_ID}`);
+    throw new Error(`Nibi Built-in Release 包含已退出的 Provider: ${RETIRED_ZAPI_PROVIDER_ID}`);
   }
   return Object.freeze({
     schemaVersion: NIBI_BUILTIN_RELEASE_SCHEMA_VERSION,
@@ -51,12 +51,12 @@ export function decodeZCodeBuiltinRelease(input: unknown): ZCodeBuiltinRelease {
     config: Object.freeze({
       providers,
       providerTemplates,
-      modelConfigRules: parseZCodeBuiltinModelConfigRules(parsed.config.modelConfigRules),
+      modelConfigRules: parseNibiBuiltinModelConfigRules(parsed.config.modelConfigRules),
     }),
   });
 }
 
-export function encodeZCodeBuiltinRelease(release: ZCodeBuiltinRelease): object {
+export function encodeNibiBuiltinRelease(release: NibiBuiltinRelease): object {
   return {
     schemaVersion: NIBI_BUILTIN_RELEASE_SCHEMA_VERSION,
     revision: release.revision,
@@ -65,11 +65,11 @@ export function encodeZCodeBuiltinRelease(release: ZCodeBuiltinRelease): object 
         templateRules: release.config.providerTemplates.toJSON(),
         providerRules: release.config.providers.toJSON(),
       },
-      modelConfigRules: release.config.modelConfigRules.toZCodeBuiltinJSON(),
+      modelConfigRules: release.config.modelConfigRules.toNibiBuiltinJSON(),
     },
   };
 }
 
-export function serializeZCodeBuiltinRelease(release: ZCodeBuiltinRelease): string {
-  return JSON.stringify(encodeZCodeBuiltinRelease(release));
+export function serializeNibiBuiltinRelease(release: NibiBuiltinRelease): string {
+  return JSON.stringify(encodeNibiBuiltinRelease(release));
 }

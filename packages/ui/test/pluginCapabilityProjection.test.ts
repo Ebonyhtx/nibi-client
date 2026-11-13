@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type {
   SkillSummary,
-  ZCodeCommand,
-  ZCodeInstalledPluginSummary,
-  ZCodePluginInfo,
+  NibiCommand,
+  NibiInstalledPluginSummary,
+  NibiPluginInfo,
 } from "@nibi/shared";
 import {
   filterPluginsByQuery,
@@ -35,11 +35,11 @@ const plugins = [
     enabled: true,
     source: "official",
   },
-] as ZCodePluginInfo[];
+] as NibiPluginInfo[];
 const installations = [
   { id: "lovable@market", scope: "user" },
   { id: "docs@market", scope: "workspace" },
-] as ZCodeInstalledPluginSummary[];
+] as NibiInstalledPluginSummary[];
 const skills = [
   { id: "user", name: "user-skill", scope: "user", path: "/u" },
   { id: "workspace", name: "workspace-skill", scope: "workspace", path: "/w" },
@@ -81,7 +81,7 @@ const sameNamePlugins = [
     enabled: true,
     source: "marketplace",
   },
-] as ZCodePluginInfo[];
+] as NibiPluginInfo[];
 
 describe("Plugin capability projection", () => {
   it("keeps missing package projections out of Settings groups", () => {
@@ -91,19 +91,19 @@ describe("Plugin capability projection", () => {
       enabled: true,
       source: "missing",
       packageStatus: "missing",
-    } as ZCodePluginInfo;
+    } as NibiPluginInfo;
     const installed = {
       id: "installed@market",
       name: "installed",
       enabled: true,
       source: "marketplace",
-    } as ZCodePluginInfo;
+    } as NibiPluginInfo;
     const builtIn = {
       id: "builtin@official",
       name: "builtin",
       enabled: true,
       source: "official",
-    } as ZCodePluginInfo;
+    } as NibiPluginInfo;
 
     expect(
       partitionPluginsForSettings([missing, installed, builtIn], new Set([builtIn.id])),
@@ -127,7 +127,7 @@ describe("Plugin capability projection", () => {
     const searchablePlugins = [
       { id: "lovable", name: "Lovable", marketplace: "OpenAI" },
       { id: "docs", name: "Docs Canvas", marketplace: "Cursor" },
-    ] as ZCodePluginInfo[];
+    ] as NibiPluginInfo[];
     expect(filterPluginsByQuery(searchablePlugins, "LOVA")).toEqual([searchablePlugins[0]]);
     expect(filterPluginsByQuery(searchablePlugins, "cUrSoR")).toEqual([searchablePlugins[1]]);
   });
@@ -149,11 +149,11 @@ describe("Plugin capability projection", () => {
       name: "legacy",
       enabled: true,
       enabledSource: "user",
-    } as ZCodePluginInfo;
+    } as NibiPluginInfo;
     const legacyInstallation = {
       id: legacyPlugin.id,
       scope: "workspace",
-    } as ZCodeInstalledPluginSummary;
+    } as NibiInstalledPluginSummary;
 
     expect(selectPluginsForScope([legacyPlugin], [legacyInstallation], "user")).toEqual([
       legacyPlugin,
@@ -183,7 +183,7 @@ describe("Plugin capability projection", () => {
         enabled: true,
         enabledSource: "user",
       },
-    ] as unknown as ZCodePluginInfo[];
+    ] as unknown as NibiPluginInfo[];
 
     expect(selectPluginsForScope(scopedPlugins, [], "workspace").map((item) => item.name)).toEqual([
       "workspace-root",
@@ -202,7 +202,7 @@ describe("Plugin capability projection", () => {
     const officialInstallation = {
       id: "browser@official",
       scope: "workspace",
-    } as ZCodeInstalledPluginSummary;
+    } as NibiInstalledPluginSummary;
     const installed = [...installations, officialInstallation];
 
     expect(selectBuiltInPlugins(plugins, installed)).toEqual([]);
@@ -240,7 +240,7 @@ describe("Plugin capability projection", () => {
       { id: "workspace", source: "user", location: { scope: "project" } },
       { id: "lovable", source: "plugin", pluginName: "Lovable" },
       { id: "docs", source: "plugin", pluginName: "docs" },
-    ] as ZCodeCommand[];
+    ] as NibiCommand[];
 
     expect(
       selectCommandsForScope(
@@ -303,7 +303,7 @@ describe("Plugin capability projection", () => {
         pluginName: "zcode-cua",
         pluginMarketplace: "custom-marketplace",
       },
-    ] as ZCodeCommand[];
+    ] as NibiCommand[];
 
     expect(
       selectCommandsForScope(commands, [sameNamePlugins[0]!], "user").map((command) => command.id),
@@ -317,7 +317,7 @@ describe("localized managed plugin search", () => {
     name: "lark-cli",
     marketplace: "official",
     description: "English description",
-  } as ZCodePluginInfo;
+  } as NibiPluginInfo;
   const item = {
     id: plugin.id,
     name: plugin.name,
@@ -359,7 +359,7 @@ it("puts official PDF, PPT, Excel and Word first in the preset group", () => {
         name,
         source: "official",
         enabled: false,
-      }) as ZCodePluginInfo,
+      }) as NibiPluginInfo,
   );
   const groups = partitionPluginsForSettings(plugins, new Set(plugins.map((plugin) => plugin.id)));
   expect(groups.builtIn.map((plugin) => plugin.name)).toEqual([

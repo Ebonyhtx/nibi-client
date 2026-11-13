@@ -3,7 +3,7 @@ import type { ConversationSnapshot, ConversationTopicFrame } from "@nibi/shared/
 import {
   readBotGroupRuntimeSnapshot,
   waitBotGroupExecutionEnd,
-} from "../src/zcode-agent/groupRuntimeSnapshot.js";
+} from "../src/nibi-agent/groupRuntimeSnapshot.js";
 
 afterEach(() => vi.useRealTimers());
 describe("group CLI snapshot read", () => {

@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/model/src/sse.rs（feat/rs 79b6691c55），补上 `event:` 字段。
+// 复制自 apps/nibi-cli-rust/crates/model/src/sse.rs（feat/rs 79b6691c55），补上 `event:` 字段。
 //! SSE 解码（WHATWG `text/event-stream`）。
 //!
 //! 输入是任意切分的字节块，输出是完整的事件。每个输入字节只扫描、复制一次；行与事件不限长

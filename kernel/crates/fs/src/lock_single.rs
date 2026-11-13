@@ -1,5 +1,5 @@
 //! 单文件锁（docs/specs/rust-cli/config.md §4.2）：Node 项目 hooks 信任记录用的锁
-//! （`apps/zcode-cli/packages/adapters/src/storage/workspace-hook-trust-store.ts` 的 `acquireLock` /
+//! （`apps/nibi-cli/packages/adapters/src/storage/workspace-hook-trust-store.ts` 的 `acquireLock` /
 //! `removeStaleLock` / `releaseLockIfOwned`），与 credentials 用的目录锁（[`super::lock`]）不是一种。
 //!
 //! 锁是同目录的 `<文件>.lock` 普通文件，`create_new` 独占创建，内容 `{"pid":…, "startTime":…, "token":…}\n`

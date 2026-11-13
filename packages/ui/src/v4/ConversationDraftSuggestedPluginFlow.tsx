@@ -1,13 +1,13 @@
 import {
   NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID,
-  type ZCodePluginsResolveSuggestedReferenceResult,
+  type NibiPluginsResolveSuggestedReferenceResult,
 } from "@nibi/shared";
 
 export interface DraftSuggestedPluginFlow {
   anchorItemId: string;
   operationId: string;
   plugin: { stableId: string; label: string };
-  result?: ZCodePluginsResolveSuggestedReferenceResult;
+  result?: NibiPluginsResolveSuggestedReferenceResult;
   stage: "checking" | "missing" | "disabled" | "unavailable";
 }
 
@@ -40,7 +40,7 @@ export async function trackDraftSuggestedPluginOperation<T>(
 }
 
 export function resolveDraftSuggestedPluginFlowStage(
-  result: ZCodePluginsResolveSuggestedReferenceResult,
+  result: NibiPluginsResolveSuggestedReferenceResult,
 ): DraftSuggestedPluginFlow["stage"] {
   const { status } = result;
   if (

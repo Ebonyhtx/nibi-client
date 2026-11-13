@@ -1,8 +1,8 @@
 # Bootstrap 命令
 
-`pnpm bootstrap` 是默认本地初始化入口。它会先拉取 `apps/zcode-cli` submodule，再安装依赖、准备 desktop 本地 runtime 资源，并执行 bootstrap 构建；默认不准备 remote `mock-cdn` 资源。
+`pnpm bootstrap` 是默认本地初始化入口。它会先拉取 `apps/nibi-cli` submodule，再安装依赖、准备 desktop 本地 runtime 资源，并执行 bootstrap 构建；默认不准备 remote `mock-cdn` 资源。
 
-`pnpm bootstrap:with-remote` 保留远程调试需要的完整初始化流程。它会先拉取 `apps/zcode-cli` submodule，再安装依赖、准备 desktop 本地 runtime 资源并执行 bootstrap 构建，最后通过 `@nibi/server-cli stage:remote-assets` 生成 `source-server-release.json` 与四个平台 archive。它不再生成 legacy manifest/components。
+`pnpm bootstrap:with-remote` 保留远程调试需要的完整初始化流程。它会先拉取 `apps/nibi-cli` submodule，再安装依赖、准备 desktop 本地 runtime 资源并执行 bootstrap 构建，最后通过 `@nibi/server-cli stage:remote-assets` 生成 `source-server-release.json` 与四个平台 archive。它不再生成 legacy manifest/components。
 
 如只需要单独准备 Source Server 资源，可以执行 `pnpm prepare:remote-assets`。
 
@@ -70,7 +70,7 @@ archive/descriptor 发布和旧条目淘汰；不以完整远端构建或 SSH �
 
 ## Agent 共享迁移模块的构建边界
 
-CLI、Desktop agent 与 SEA 复用 `apps/zcode-cli/packages/cli/scripts/build.mjs`
+CLI、Desktop agent 与 SEA 复用 `apps/nibi-cli/packages/cli/scripts/build.mjs`
 的 alias 配置。`@nibi/shared/sqlite-migrations` 必须精确解析到
 `packages/shared/src/node/sqliteMigrations.ts`，并打入 Agent bundle；否则通用
 `@nibi/shared` alias 会把子路径拼到 `src/index.ts` 后面，导致 bootstrap 打包失败。

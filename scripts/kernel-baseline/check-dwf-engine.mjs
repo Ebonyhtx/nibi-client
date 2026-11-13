@@ -1,7 +1,7 @@
 /**
  * DWF 引擎门禁（路线 C）：同一 driver 的两个内核各跑 `create,dwfEngine`，逐字段比较。
  *
- *   NIBI_DWF_ENGINE_CMD='{"command":"node","args":["<repo>/apps/zcode-cli/packages/cli/dist/nibi.cjs","__nibi-dwf-engine"]}' \
+ *   NIBI_DWF_ENGINE_CMD='{"command":"node","args":["<repo>/apps/nibi-cli/packages/cli/dist/nibi.cjs","__nibi-dwf-engine"]}' \
  *     node scripts/kernel-baseline/check-dwf-engine.mjs
  *
  * Rust 侧需要 `NIBI_DWF_ENGINE_CMD`（没有它三条 DWF 命令回 capabilityUnsupported）；Node 侧忽略它。

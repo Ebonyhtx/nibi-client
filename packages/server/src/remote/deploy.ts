@@ -9,7 +9,7 @@ import {
   type RemoteResourcePackageSelection,
 } from "@nibi/shared";
 import type { IRemoteBackend, RemoteEnvironment } from "./backend.js";
-import { deployZCodeAgentRuntime } from "./zcodeAgentDeploy.js";
+import { deployNibiAgentRuntime } from "./nibiAgentDeploy.js";
 import {
   deployNodePtyPrebuilds,
   deployNodeRuntime,
@@ -27,7 +27,7 @@ import {
 import { quotePosixPathArg } from "@nibi/server/remote/posixShell.js";
 import { checkServerBundleRequiredMarkers } from "@nibi/server/remote/serverBundleDeployCheck.js";
 import { deployRuntimeTools } from "@nibi/server/remote/runtimeToolDeploy.js";
-import { REMOTE_AGENT_OFFICIAL_PLUGIN_REQUIRED_RELATIVE_PATHS } from "@nibi/server/remote/zcodeAgentOfficialPluginAssets.js";
+import { REMOTE_AGENT_OFFICIAL_PLUGIN_REQUIRED_RELATIVE_PATHS } from "@nibi/server/remote/nibiAgentOfficialPluginAssets.js";
 import {
   ensureRemoteReleaseDirFromCdn,
   selectRemoteAssetManifestComponents,
@@ -289,7 +289,7 @@ export async function deployServer(
           { log, logWarn },
         );
       }
-      await deployZCodeAgentRuntime(
+      await deployNibiAgentRuntime(
         backend,
         env,
         {
@@ -370,8 +370,8 @@ export async function deployServer(
 
     log("all uploads complete");
 
-    // 部署 ZCode Agent runtime 到远程，历史资源包选择已在入口统一忽略。
-    await deployZCodeAgentRuntime(
+    // 部署 Nibi Agent runtime 到远程，历史资源包选择已在入口统一忽略。
+    await deployNibiAgentRuntime(
       backend,
       env,
       {

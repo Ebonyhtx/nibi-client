@@ -4,7 +4,7 @@
 //! 回到本进程的 RPC，本模块把它转成 [`Kernel::run_workflow_actor`] 与文件端口的调用。
 //!
 //! 线协议见 `docs/rust-kernel-dwf-design-2026-10-30.md` §3.2 与
-//! `apps/zcode-cli/packages/cli/src/dwf-engine-command.ts` 的文件头。两条不变式：
+//! `apps/nibi-cli/packages/cli/src/dwf-engine-command.ts` 的文件头。两条不变式：
 //!
 //! 1. 读线程是唯一的读者；写都经 stdin 的异步锁。`submit` 只等**受理**，结算走 `run/settled`。
 //! 2. typed ask 的 repair/nudge 循环在这一侧：`run_workflow_actor` 跑一轮 → 把 `submit_result`

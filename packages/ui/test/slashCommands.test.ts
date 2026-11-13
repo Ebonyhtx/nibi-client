@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { ZCodeSlashCommand } from "@nibi/shared";
+import type { NibiSlashCommand } from "@nibi/shared";
 import {
   extractActiveSlashQuery,
   filterSlashCommands,
   replaceActiveSlashCommand,
 } from "../src/lib/slashCommands.js";
 
-const commands: ZCodeSlashCommand[] = [
+const commands: NibiSlashCommand[] = [
   {
     name: "agent-browser",
     description: "Browser automation CLI for AI agents",

@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 
 import type { ApiClient, FeedbackDeviceInfo } from "@nibi/shared";
 import {
-  buildRuntimeZCodeApiUrl,
+  buildRuntimeNibiApiUrl,
   NIBI_BUILD_TIME,
   NIBI_COMMIT,
   NIBI_VERSION,
@@ -40,7 +40,7 @@ function resolveApiBaseUrl(explicit?: string): string {
   return (
     explicit?.trim() ||
     process.env.NIBI_FEEDBACK_API_BASE?.trim() ||
-    buildRuntimeZCodeApiUrl(process.env, "/api/v1")
+    buildRuntimeNibiApiUrl(process.env, "/api/v1")
   );
 }
 
@@ -73,12 +73,12 @@ export function createFeedbackService(options: CreateFeedbackServiceOptions): IF
     return deviceMid;
   }
 
-  async function getZcodeJwtToken(): Promise<string | undefined> {
+  async function getNibiJwtToken(): Promise<string | undefined> {
     return (await options.credentialService.load(NIBI_JWT_TOKEN_KEY))?.trim() || undefined;
   }
 
-  async function hasZcodeJwtToken(): Promise<boolean> {
-    return Boolean(await getZcodeJwtToken());
+  async function hasNibiJwtToken(): Promise<boolean> {
+    return Boolean(await getNibiJwtToken());
   }
 
   const httpClient = new FeedbackHttpClient({
@@ -92,7 +92,7 @@ export function createFeedbackService(options: CreateFeedbackServiceOptions): IF
       if (deviceMid) {
         headers["X-Device-Mid"] = deviceMid;
       }
-      const jwtToken = await getZcodeJwtToken();
+      const jwtToken = await getNibiJwtToken();
       if (jwtToken) {
         headers.Authorization = `Bearer ${jwtToken}`;
       }
@@ -138,7 +138,7 @@ export function createFeedbackService(options: CreateFeedbackServiceOptions): IF
             signal: controller.signal,
           },
         );
-        if (!(await hasZcodeJwtToken())) {
+        if (!(await hasNibiJwtToken())) {
           await localTicketStore.upsert(requireHostDeviceMid(), ticket);
         }
         return ticket;
@@ -154,7 +154,7 @@ export function createFeedbackService(options: CreateFeedbackServiceOptions): IF
       activeCreateControllers.get(key)?.abort();
     },
     list: async (query) => {
-      if (await hasZcodeJwtToken()) {
+      if (await hasNibiJwtToken()) {
         return httpClient.list(query);
       }
       const items = await localTicketStore.list(requireHostDeviceMid(), query);

@@ -8,7 +8,7 @@
 | Capability       | Office Suite & Computer Use Incubation                                                                                                                                             |
 | Change layer     | presentation                                                                                                                                                                       |
 | Operating mode   | planning                                                                                                                                                                           |
-| Primary seeds    | `packages/ui/src/PreviewPane.tsx`、`packages/ui/src/components/ui/pdf-viewer.tsx`、`apps/zcode-cli/packages/document-skills-plugin`、`packages/services/src/cua-permission-broker` |
+| Primary seeds    | `packages/ui/src/PreviewPane.tsx`、`packages/ui/src/components/ui/pdf-viewer.tsx`、`apps/nibi-cli/packages/document-skills-plugin`、`packages/services/src/cua-permission-broker` |
 | Out of scope     | 实现 DOCX/XLSX/PPTX 原生编辑器、修改 CUA 权限模型或默认开启 CUA                                                                                                                    |
 
 ## Current Fact Versus Roadmap

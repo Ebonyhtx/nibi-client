@@ -7,13 +7,13 @@ import {
   TID_V4_SPLIT_DOWN,
   TID_V4_SPLIT_OPEN,
 } from "@nibi/shared/test-ids";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { ConversationHeader } from "@/v4/ConversationHeader.js";
 
 function renderHeader(overrides: Record<string, unknown> = {}): string {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(ConversationHeader, {
         title: "这是个啥项目",

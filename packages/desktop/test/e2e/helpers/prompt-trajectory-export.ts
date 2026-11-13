@@ -11,7 +11,7 @@ interface TrajectoryManifest {
 }
 const execute = promisify(execFile);
 const cliPath = fileURLToPath(
-  new URL("../../../../../apps/zcode-cli/tools/prompt-trajectory/src/cli.ts", import.meta.url),
+  new URL("../../../../../apps/nibi-cli/tools/prompt-trajectory/src/cli.ts", import.meta.url),
 );
 const tsxCli = createRequire(cliPath).resolve("tsx/cli");
 

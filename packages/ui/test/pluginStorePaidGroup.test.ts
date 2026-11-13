@@ -8,7 +8,7 @@ import type { StorePluginItem } from "../src/settings/pluginStoreListing.js";
 
 vi.mock("@/hooks/useInterfaceMode.js", () => ({ useIsOfficeMode: () => false }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     locale: "zh-CN",
     intl: { formatMessage: ({ id }: { id: string }) => id },
   }),

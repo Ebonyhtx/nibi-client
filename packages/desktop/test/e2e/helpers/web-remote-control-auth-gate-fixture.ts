@@ -96,7 +96,7 @@ export async function prepareWebRemoteControlAuthGateFixture(options: {
     options.settingsFile,
     JSON.stringify({
       ...settings,
-      zcodeEndpointOrigin: baseUrl,
+      nibiEndpointOrigin: baseUrl,
       webRemoteControlLastEnabledContext: { workspacePath: options.workspacePath },
     }),
   );

@@ -3,8 +3,8 @@ import { PluginUiWorkspaceProvider } from "@/plugin-ui/index.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { resolveWorkspaceKey, type GitChangeSourceId, type WorkspacePurpose } from "@nibi/shared";
-import { useZCodeStore } from "@/store/StoreProvider.js";
-import { getVisibleTaskMetas, useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { useNibiStore } from "@/store/StoreProvider.js";
+import { getVisibleTaskMetas, useNibiSessionStore } from "@/store/nibiSessionStore.js";
 import { useTaskQueryCacheStore } from "@/store/taskQueryCacheStore.js";
 import { useAppPanels } from "@/hooks/useAppPanels.js";
 import { useGitAutoRefresh } from "@/hooks/useGitAutoRefresh.js";
@@ -18,7 +18,7 @@ import { useEnsureWorkspaceMcpLoaded } from "@/hooks/useEnsureWorkspaceMcpLoaded
 import { useTabStore } from "@/store/TabStoreProvider.js";
 import { isWorkspaceReadOnly, isWorkspaceTab } from "@/store/tabStore.js";
 import type { TaskChatMessage as TestChatMessage } from "@/lib/taskChatMessageTypes.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
 import { getPathLeaf } from "@/lib/path.js";
 import {
@@ -56,7 +56,7 @@ import { WorkspaceShellLayout } from "@/app-shell/WorkspaceShellLayout.js";
 import { useAppChromeState } from "@/app-shell/useAppChromeState.js";
 import { useWorkspaceSessionReload } from "@/app-shell/useWorkspaceSessionReload.js";
 import { useWorkspaceShellLifecycle } from "@/app-shell/useWorkspaceShellLifecycle.js";
-import { useWorkspaceShellZCodeState } from "@/app-shell/useWorkspaceShellZCodeState.js";
+import { useWorkspaceShellNibiState } from "@/app-shell/useWorkspaceShellNibiState.js";
 import { useWorkspaceMainViewSettingsExit } from "@/app-shell/useWorkspaceMainViewSettingsExit.js";
 import {
   useWorkspaceTaskNavigation,
@@ -142,7 +142,7 @@ export function App({
   const openWorkspaceShortcutLabel = useShortcutCommandLabel("openWorkspace");
   const isLinuxDesktop = Boolean(isDesktop && !isMacDesktop && !isWindowsDesktop);
   const supportsEmbeddedBrowser = explicitSupportsEmbeddedBrowser ?? Boolean(isDesktop);
-  const { intl, locale, setLocale } = useZCodeIntl();
+  const { intl, locale, setLocale } = useNibiIntl();
   const isOfficeMode = useIsOfficeMode();
   const platform = usePlatform();
   // 进程内存本地诊断日志：每窗口一个 60s 采样器，
@@ -205,15 +205,15 @@ export function App({
   const workspaceReadOnlyReason = workspaceReadOnly
     ? intl.formatMessage({ id: "workspaceSidebar.unavailableLocalDirectory" })
     : undefined;
-  const { workspaceShellZCodeState, reloadSessionDisabled } = useWorkspaceShellZCodeState(
+  const { workspaceShellNibiState, reloadSessionDisabled } = useWorkspaceShellNibiState(
     workspaceAbsPath,
     workspaceIdentity,
   );
-  const activeTaskId = workspaceShellZCodeState.activeTaskId;
+  const activeTaskId = workspaceShellNibiState.activeTaskId;
   const sidePaneOwnerId = activeTaskId;
   const [summaryPanelVariantOverride, setSummaryPanelVariantOverride] =
     useState<ChatViewSummaryPanelVariant | null>(null);
-  const draftFocusVersion = workspaceShellZCodeState.draftFocusVersion;
+  const draftFocusVersion = workspaceShellNibiState.draftFocusVersion;
   const {
     isTerminalOpen,
     setIsTerminalOpen,
@@ -279,7 +279,7 @@ export function App({
     }),
   });
   const workspaceKey = workspaceIdentity?.trim() || workspaceAbsPath;
-  const notificationEnabled = useZCodeStore((s) => s.notificationEnabled);
+  const notificationEnabled = useNibiStore((s) => s.notificationEnabled);
   useMarketingTaskCompletionRefresh({
     workspacePath: workspaceAbsPath,
     ...(workspaceIdentity ? { workspaceIdentity } : {}),
@@ -361,8 +361,8 @@ export function App({
     workspaceAbsPath,
     workspaceIdentity,
   });
-  const theme = useZCodeStore((s) => s.theme);
-  const setTheme = useZCodeStore((s) => s.setTheme);
+  const theme = useNibiStore((s) => s.theme);
+  const setTheme = useNibiStore((s) => s.setTheme);
   const {
     isMacFullscreen,
     desktopWindowChromeState,
@@ -397,7 +397,7 @@ export function App({
     activeTaskId,
     workspaceRemoteSessionId,
     workspaceIdentity,
-    selectedProvider: workspaceShellZCodeState.selectedProvider,
+    selectedProvider: workspaceShellNibiState.selectedProvider,
     intl,
   });
   const providerConfigFile = useWorkspaceProviderConfigFile(
@@ -732,7 +732,7 @@ export function App({
       targetWorkspacePurpose?: WorkspacePurpose,
       createSource?: import("@nibi/shared").SessionCreateSource,
     ) => {
-      const store = useZCodeSessionStore.getState();
+      const store = useNibiSessionStore.getState();
       const resolvedTargetWorkspaceIdentity =
         targetWorkspaceIdentity ??
         tabs.filter(isWorkspaceTab).find((tab) => tab.workspacePath === targetWorkspacePath)
@@ -741,7 +741,7 @@ export function App({
         return;
       }
       const targetSelectedProvider = resolveWorkspaceSwitchDraftProvider({
-        currentSelectedProvider: workspaceShellZCodeState.selectedProvider,
+        currentSelectedProvider: workspaceShellNibiState.selectedProvider,
         targetWorkspacePath,
         targetWorkspaceIdentity: resolvedTargetWorkspaceIdentity,
         workspaces: store.workspaces,
@@ -796,7 +796,7 @@ export function App({
       tabs,
       workspaceAbsPath,
       workspaceIdentity,
-      workspaceShellZCodeState.selectedProvider,
+      workspaceShellNibiState.selectedProvider,
       webRemoteControlWorkspaceSwitcher,
     ],
   );
@@ -816,9 +816,9 @@ export function App({
       ...taskListE2EActions,
       sendBotMessage: (message) => services.botsService.handleInboundMessage(message),
       submitBotGroupInput: (params) => {
-        const submit = services.zcodeTaskService.submitBotGroupInput;
+        const submit = services.nibiTaskService.submitBotGroupInput;
         if (!submit) throw new Error("Task material admission unavailable");
-        return submit.call(services.zcodeTaskService, params);
+        return submit.call(services.nibiTaskService, params);
       },
       getTheme: () => theme,
       setTheme,
@@ -828,20 +828,20 @@ export function App({
         setTestMessages([...messages]);
       },
       getChatMessageCount: () => testMessages?.length ?? 0,
-      getPluginsOverview: (params) => services.zcodeAgentService.getPluginsOverview(params),
-      addPluginMarketplace: (params) => services.zcodeAgentService.addPluginMarketplace(params),
+      getPluginsOverview: (params) => services.nibiAgentService.getPluginsOverview(params),
+      addPluginMarketplace: (params) => services.nibiAgentService.addPluginMarketplace(params),
       updatePluginMarketplace: (params) =>
-        services.zcodeAgentService.updatePluginMarketplace(params),
-      installPlugin: (params) => services.zcodeAgentService.installPlugin(params),
-      listPlugins: (params) => services.zcodeAgentService.listPlugins(params),
+        services.nibiAgentService.updatePluginMarketplace(params),
+      installPlugin: (params) => services.nibiAgentService.installPlugin(params),
+      listPlugins: (params) => services.nibiAgentService.listPlugins(params),
       getPluginReferenceCatalog: (params) =>
-        services.zcodeAgentService.getPluginReferenceCatalog(params),
+        services.nibiAgentService.getPluginReferenceCatalog(params),
     }),
     [
       locale,
       services.botsService,
-      services.zcodeTaskService,
-      services.zcodeAgentService,
+      services.nibiTaskService,
+      services.nibiAgentService,
       setLocale,
       theme,
       setTheme,
@@ -940,7 +940,7 @@ export function App({
   const handleSelectAdjacentConversation = useCallback(
     (direction: "previous" | "next") => {
       runVisibleWorkspaceCommand(() => {
-        const sessionState = useZCodeSessionStore.getState();
+        const sessionState = useNibiSessionStore.getState();
         const workspaceState = sessionState.getWorkspaceState(workspaceAbsPath, workspaceIdentity);
         const fallbackTaskIds = getVisibleTaskMetas(workspaceState).map((task) => task.taskId);
         const taskQueryCacheState = useTaskQueryCacheStore.getState();
@@ -1211,7 +1211,7 @@ export function App({
           isDesktop={isDesktop}
           isMacDesktop={isMacDesktop}
           isWindowsDesktop={isWindowsDesktop}
-          workspaceShellZCodeState={workspaceShellZCodeState}
+          workspaceShellNibiState={workspaceShellNibiState}
           theme={theme}
           isMacFullscreen={isMacFullscreen}
           desktopWindowChromeState={desktopWindowChromeState}

@@ -69,7 +69,7 @@ function fixture(provider: OAuthProviderId = "zai", responseStatus = 401) {
   );
   const client = createNodeApiClient({
     fetchImpl,
-    isZcodeJwtRequest: (input, requestHeaders) =>
+    isNibiJwtRequest: (input, requestHeaders) =>
       isCurrentOAuthCredentialRequest({
         input,
         headers: requestHeaders,
@@ -89,7 +89,7 @@ function fixture(provider: OAuthProviderId = "zai", responseStatus = 401) {
         credentialService: credentials,
         env,
       }),
-    onZcodeJwtInvalid: (input, requestHeaders) => {
+    onNibiJwtInvalid: (input, requestHeaders) => {
       const logoutTask = service
         .logoutIfCurrentCredentialRequest(input, requestHeaders)
         .then((invalidated) => {

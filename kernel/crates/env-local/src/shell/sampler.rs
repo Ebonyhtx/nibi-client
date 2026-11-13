@@ -1,6 +1,6 @@
 //! Bash 命令的资源采样（141 审计 §9 F3，`process/toolExecResource`）。
 //!
-//! Node 侧是 `createBashResourceTelemetry`（`apps/zcode-cli/packages/adapters/src/exec/
+//! Node 侧是 `createBashResourceTelemetry`（`apps/nibi-cli/packages/adapters/src/exec/
 //! bash-resource-telemetry.ts`）：命令跑着的时候每 15 秒采一次进程组，结束时（且时长 ≥ 15 秒）
 //! 报一条**完成事实**。采样挂在 Bash 已有的 1 秒进度轮询上；这里用同样的 1 秒节拍自己起一个任务，
 //! 只在 [`BashResourceSampler::due`] 为真时真去读进程表。

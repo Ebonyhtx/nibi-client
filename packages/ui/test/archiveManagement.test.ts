@@ -18,18 +18,18 @@ vi.mock("@/project-sidebar/ProjectDirectoryProvider.js", () => ({
   useProjectDirectory: () => mocks.directory,
 }));
 vi.mock("@/hooks/useWorkspaceServices.js", () => ({
-  useBaseWorkspaceServices: () => ({ windowControllerService: mocks, zcodeTaskService: {} }),
+  useBaseWorkspaceServices: () => ({ windowControllerService: mocks, nibiTaskService: {} }),
 }));
 vi.mock("@/hooks/useConfirmDialog.js", () => ({ useConfirmDialog: () => mocks.confirm }));
 vi.mock("@/lib/nibiFeatherFall.js", () => ({
   findArchiveTaskRowRect: mocks.findArchiveRow,
   playNibiFeatherFallFromRect: mocks.playFeather,
 }));
-vi.mock("@/store/zcodeSessionStore.js", () => ({
-  useZCodeSessionStore: (select: any) => select(mocks),
+vi.mock("@/store/nibiSessionStore.js", () => ({
+  useNibiSessionStore: (select: any) => select(mocks),
 }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: { formatMessage: ({ id }: any, values: any) => `${id}:${JSON.stringify(values)}` },
   }),
 }));

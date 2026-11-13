@@ -331,13 +331,13 @@ async function writeMcpFixtures(mcpUrl: string, plainHttpMcpUrl: string): Promis
     PLUGIN_MANIFEST_FILE,
     `${JSON.stringify(
       {
-        author: { name: "ZCode E2E" },
+        author: { name: "Nibi E2E" },
         description: "E2E fixture plugin with an OAuth-protected MCP server.",
         license: "MIT",
         mcpServers: {
           canva: {
             oauth: {
-              clientName: "ZCode MCP OAuth E2E",
+              clientName: "Nibi MCP OAuth E2E",
               scope: "mcp:tools",
               type: "authorization_code",
             },

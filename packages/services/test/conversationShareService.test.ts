@@ -9,11 +9,11 @@ import type {
 import { ProxyChannel } from "@nibi/rpc";
 import {
   NIBI_ATTACHMENT_FAULT_CODES,
-  ZCodeAttachmentFaultError,
+  NibiAttachmentFaultError,
 } from "@nibi/shared/nibi-protocol-v4";
 import { describe, expect, it, vi } from "vitest";
 
-import type { IZCodeAgentService } from "../src/zcode-agent/zcodeAgent.js";
+import type { INibiAgentService } from "../src/nibi-agent/nibiAgent.js";
 import {
   ConversationShareClientError,
   type ConversationShareHttpClient,
@@ -196,7 +196,7 @@ function completedRowsWithFileChanges(): ConversationRow[] {
 function createDependencies(
   rows = completedRows(),
   pollOptions: PollOptions = {},
-  workflow: Partial<IZCodeAgentService> = {},
+  workflow: Partial<INibiAgentService> = {},
 ) {
   const conversationRowsRangeV4 = vi.fn(async ({ beforeRowId }: { beforeRowId?: number }) =>
     beforeRowId === undefined
@@ -271,14 +271,14 @@ function createDependencies(
     })),
   };
   const service = new ConversationShareService({
-    zcodeAgentService: {
+    nibiAgentService: {
       ...workflow,
       conversationRowsRangeV4,
       conversationFileChangesV4,
       conversationAttachmentReadV4,
       conversationAttachmentStatV4,
     } as unknown as Pick<
-      IZCodeAgentService,
+      INibiAgentService,
       | "conversationRowsRangeV4"
       | "conversationFileChangesV4"
       | "conversationAttachmentReadV4"
@@ -540,7 +540,7 @@ describe("ConversationShareService", () => {
       allowed_artifacts: [{ type: "text", extensions: ["txt"], mime_types: ["text/plain"] }],
     });
     conversationAttachmentStatV4.mockRejectedValueOnce(
-      new ZCodeAttachmentFaultError(NIBI_ATTACHMENT_FAULT_CODES.shareStatTooLarge),
+      new NibiAttachmentFaultError(NIBI_ATTACHMENT_FAULT_CODES.shareStatTooLarge),
     );
 
     const result = await service.preflight({

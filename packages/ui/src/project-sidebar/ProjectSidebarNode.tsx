@@ -15,7 +15,7 @@ import { projectSourceServerId } from "@/project-sidebar/view.js";
 import { projectDataCleanupAvailable } from "@/project-sidebar/project-data-cleanup.js";
 import { useTabStoreApi } from "@/store/TabStoreProvider.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { setPendingSettingsSectionIntent } from "@/lib/settingsNavigation.js";
 import { toast } from "@/components/ui/toast.js";
 import { logger } from "@/logger.js";
@@ -77,7 +77,7 @@ export const ProjectSidebarNode = memo(
     dataCleanupSupported,
     ...display
   }: Props) {
-    const { intl } = useZCodeIntl();
+    const { intl } = useNibiIntl();
     const confirm = useConfirmDialog();
     const tabStore = useTabStoreApi();
     const msg = (id: string) => intl.formatMessage({ id: `project.${id}` });

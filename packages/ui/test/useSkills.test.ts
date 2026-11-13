@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { ZCodeSkillsReferenceCatalogResult } from "@nibi/shared";
+import type { NibiSkillsReferenceCatalogResult } from "@nibi/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getSkillReferenceCatalog =
-  vi.fn<(params: unknown) => Promise<ZCodeSkillsReferenceCatalogResult>>();
+  vi.fn<(params: unknown) => Promise<NibiSkillsReferenceCatalogResult>>();
 let runtimeRestartListener: ((event: { workspaceKey: string }) => void) | undefined;
 const runtimeRestartSubscription = { dispose: vi.fn() };
 const onAgentRuntimeRestarted = vi.fn((listener: (event: { workspaceKey: string }) => void) => {
@@ -14,7 +14,7 @@ const onAgentRuntimeRestarted = vi.fn((listener: (event: { workspaceKey: string 
 });
 const resolution = {
   services: {
-    zcodeAgentService: {
+    nibiAgentService: {
       getSkillReferenceCatalog,
       onAgentRuntimeRestarted,
     },
@@ -42,7 +42,7 @@ function catalog(name: string, authority: "session" | "workspace") {
         enabled: true,
       },
     ],
-  } satisfies ZCodeSkillsReferenceCatalogResult;
+  } satisfies NibiSkillsReferenceCatalogResult;
 }
 
 function deferred<T>() {
@@ -96,8 +96,8 @@ describe("useSkills conversation catalog", () => {
   });
 
   it("refetches after runtime restart and rejects a late previous-runtime result", async () => {
-    const oldRuntime = deferred<ZCodeSkillsReferenceCatalogResult>();
-    const newRuntime = deferred<ZCodeSkillsReferenceCatalogResult>();
+    const oldRuntime = deferred<NibiSkillsReferenceCatalogResult>();
+    const newRuntime = deferred<NibiSkillsReferenceCatalogResult>();
     getSkillReferenceCatalog
       .mockReturnValueOnce(oldRuntime.promise)
       .mockReturnValueOnce(newRuntime.promise);

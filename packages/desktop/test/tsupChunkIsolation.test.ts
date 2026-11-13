@@ -134,12 +134,12 @@ describe("desktop tsup chunk isolation", () => {
         NIBI_ENV: "production",
         NIBI_PACKAGED_AGENT_OTEL_ENDPOINT: "https://arms.example.com/otlp",
         NIBI_PACKAGED_AGENT_OTEL_HEADERS: "x-arms-license-key=write-only",
-        NIBI_PACKAGED_AGENT_OTEL_SERVICE_NAME: "zcode-cli-agent",
+        NIBI_PACKAGED_AGENT_OTEL_SERVICE_NAME: "nibi-cli-agent",
       }),
     ).toEqual({
       OTEL_EXPORTER_OTLP_ENDPOINT: "https://arms.example.com/otlp",
       OTEL_EXPORTER_OTLP_HEADERS: "x-arms-license-key=write-only",
-      OTEL_SERVICE_NAME: "zcode-cli-agent",
+      OTEL_SERVICE_NAME: "nibi-cli-agent",
       NIBI_TELEMETRY_RUNTIME_DISTRIBUTION: "packaged",
     });
   });

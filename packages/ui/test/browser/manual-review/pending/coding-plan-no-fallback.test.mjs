@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { chromium } from "playwright-core";
 
-// 手工回归前置：启动未登录的 ZCode Dev，打开 BigModel 设置页；静态配置没有可用的 builtin/account 商品目录。
+// 手工回归前置：启动未登录的 Nibi Dev，打开 BigModel 设置页；静态配置没有可用的 builtin/account 商品目录。
 // 连接真实 App 验证完整 hook/RPC/渲染链路，不注入套餐数据或修改登录态。
 test("未登录缺少静态套餐时隐藏购买横幅并保留外层卡片", async () => {
   const browser = await chromium.connectOverCDP(
@@ -12,7 +12,7 @@ test("未登录缺少静态套餐时隐藏购买横幅并保留外层卡片", as
     .contexts()[0]
     .pages()
     .find((candidate) => candidate.url().includes("localhost:517"));
-  assert.ok(page, "需要已运行的 ZCode Dev");
+  assert.ok(page, "需要已运行的 Nibi Dev");
   const cdp = await page.context().newCDPSession(page);
   const originalClass = await page.locator("html").getAttribute("class");
   try {

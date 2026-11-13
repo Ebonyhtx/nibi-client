@@ -36,7 +36,7 @@ vi.mock("@/hooks/useWorkspaceServices.js", () => ({
   useBaseWorkspaceServices: () => hoisted.baseServices,
 }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     locale: "en-US",
     intl: {
       formatMessage: (

@@ -5,7 +5,7 @@ import {
   type ProviderFamilyDomain,
 } from "@nibi/shared";
 import type { ModelSelectionView } from "@nibi/services";
-import { encodeCustomModelValue } from "@/lib/zcodeCustomModelValue.js";
+import { encodeCustomModelValue } from "@/lib/nibiCustomModelValue.js";
 
 export type ApiKeyProviderChoice = "zai" | "bigmodel";
 

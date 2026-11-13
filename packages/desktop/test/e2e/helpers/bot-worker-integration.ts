@@ -14,13 +14,13 @@ import {
   createNodeModelSelectionFacade,
 } from "@nibi/provider-node";
 import {
-  createZCodeAgentService,
-  createZCodeTaskServiceAdapter,
+  createNibiAgentService,
+  createNibiTaskServiceAdapter,
   getDataBaseDir,
   setDataBaseDir,
 } from "@nibi/services/node";
 import { TaskIndexRepo } from "../../../../services/src/session/taskIndexRepo.js";
-import { createZCodeTaskIndexSyncer } from "../../../../services/src/zcode-agent/zcodeTaskIndexSyncer.js";
+import { createNibiTaskIndexSyncer } from "../../../../services/src/nibi-agent/nibiTaskIndexSyncer.js";
 import { getE2EAppDataPaths } from "./desktop-app.js";
 import {
   createBotsServiceHarness,
@@ -138,7 +138,7 @@ export async function createBotWorkerIntegration(baseUrl: string, dropTextContai
     });
     const reverseReplies: unknown[] = [];
     const reverseResources: unknown[] = [];
-    const agent = createZCodeAgentService({
+    const agent = createNibiAgentService({
       // 项目化创建要求先预留 task 归属；旧夹具漏接此 Host 端口，在调用 CLI 前即失败。
       prepareSessionCreation: async (target) =>
         projects.reserveCreatedTask({
@@ -149,7 +149,7 @@ export async function createBotWorkerIntegration(baseUrl: string, dropTextContai
       commandResolver: () => ({
         command: process.execPath,
         args: [
-          resolve("../../apps/zcode-cli/packages/cli/dist/nibi.cjs"),
+          resolve("../../apps/nibi-cli/packages/cli/dist/nibi.cjs"),
           "app-server",
           "--stdio",
         ],
@@ -210,15 +210,15 @@ export async function createBotWorkerIntegration(baseUrl: string, dropTextContai
             ...rest,
           );
     }
-    const syncer = createZCodeTaskIndexSyncer({ agentService: agent, taskIndexRepo: repo });
+    const syncer = createNibiTaskIndexSyncer({ agentService: agent, taskIndexRepo: repo });
     cleanup.push(() => syncer.disposeAll());
     cleanup.push(() => bot.service.disposeAllAndWait());
-    const task = createZCodeTaskServiceAdapter({
-      zcodeAgentService: agent,
+    const task = createNibiTaskServiceAdapter({
+      nibiAgentService: agent,
       taskIndexRepo: repo,
       taskIndexSyncer: syncer,
     });
-    Object.assign(bot.zcodeTaskService, task);
+    Object.assign(bot.nibiTaskService, task);
     return {
       home,
       workspacePath,

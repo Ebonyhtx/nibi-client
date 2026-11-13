@@ -50,7 +50,7 @@ function writeLegacyZapiConfig(home: string): void {
   );
 }
 
-function writeZCodeBuiltinProviderConfig(home: string): string {
+function writeNibiBuiltinProviderConfig(home: string): string {
   const configDir = join(home, ".nibi", "provider-test");
   mkdirSync(configDir, { recursive: true });
   const filePath = join(configDir, "nibiBuiltin.json");
@@ -110,7 +110,7 @@ describe("createLocalServices remote authority", () => {
     const [{ createLocalServices, disposeServiceResourcesAndWait }, { IModelSelectionService }] =
       await Promise.all([import("../src/node.js"), import("../src/index.js")]);
     const services = createLocalServices({
-      nibiBuiltinProviderConfigFilePath: writeZCodeBuiltinProviderConfig(home),
+      nibiBuiltinProviderConfigFilePath: writeNibiBuiltinProviderConfig(home),
       serviceAuthorityMode: "desktop-attached-remote",
     });
 
@@ -134,7 +134,7 @@ describe("createLocalServices remote authority", () => {
 
     const { createLocalServices, disposeServiceResourcesAndWait } = await import("../src/node.js");
     const services = createLocalServices({
-      nibiBuiltinProviderConfigFilePath: writeZCodeBuiltinProviderConfig(home),
+      nibiBuiltinProviderConfigFilePath: writeNibiBuiltinProviderConfig(home),
       serviceAuthorityMode: "desktop-attached-remote",
     });
 
@@ -152,7 +152,7 @@ describe("createLocalServices remote authority", () => {
   it("provider runtime services do not refresh legacy model presets on startup", async () => {
     const home = makeTempHome();
     process.env.HOME = home;
-    const nibiBuiltinProviderConfigFilePath = writeZCodeBuiltinProviderConfig(home);
+    const nibiBuiltinProviderConfigFilePath = writeNibiBuiltinProviderConfig(home);
     const fetchImpl = vi.fn(
       async () =>
         new Response(JSON.stringify({ code: 0, data: { configs: {} } }), {
@@ -178,19 +178,19 @@ describe("createLocalServices remote authority", () => {
   it("desktop-attached remote 使用远端 Registry 的就绪状态，不等待 Desktop 推送", async () => {
     const home = makeTempHome();
     process.env.HOME = home;
-    const nibiBuiltinProviderConfigFilePath = writeZCodeBuiltinProviderConfig(home);
+    const nibiBuiltinProviderConfigFilePath = writeNibiBuiltinProviderConfig(home);
     const commandResolver = vi.fn(() => null);
-    const [{ createLocalServices, disposeServiceResourcesAndWait }, { IZCodeAgentService }] =
+    const [{ createLocalServices, disposeServiceResourcesAndWait }, { INibiAgentService }] =
       await Promise.all([import("../src/node.js"), import("../src/index.js")]);
     const services = createLocalServices({
       nibiBuiltinProviderConfigFilePath,
       serviceAuthorityMode: "desktop-attached-remote",
-      zcodeAgentCommandResolver: commandResolver,
+      nibiAgentCommandResolver: commandResolver,
     });
 
     try {
       await expect(
-        services.get(IZCodeAgentService).initialize({ workspacePath: "/remote/workspace" }),
+        services.get(INibiAgentService).initialize({ workspacePath: "/remote/workspace" }),
       ).resolves.toMatchObject({ available: false });
       expect(commandResolver).not.toHaveBeenCalled();
     } finally {
@@ -204,11 +204,11 @@ describe("createLocalServices remote authority", () => {
     const { createLocalServices, disposeServiceResourcesAndWait } = await import("../src/node.js");
     const { IProviderProvisioningTargetService } = await import("../src/index.js");
     const remoteServices = createLocalServices({
-      nibiBuiltinProviderConfigFilePath: writeZCodeBuiltinProviderConfig(home),
+      nibiBuiltinProviderConfigFilePath: writeNibiBuiltinProviderConfig(home),
       serviceAuthorityMode: "desktop-attached-remote",
     });
     const localServices = createLocalServices({
-      nibiBuiltinProviderConfigFilePath: writeZCodeBuiltinProviderConfig(home),
+      nibiBuiltinProviderConfigFilePath: writeNibiBuiltinProviderConfig(home),
       serviceAuthorityMode: "desktop-local",
     });
 
@@ -229,7 +229,7 @@ describe("createLocalServices remote authority", () => {
     const [{ createLocalServices, disposeServiceResourcesAndWait }, serviceDescriptors] =
       await Promise.all([import("../src/node.js"), import("../src/index.js")]);
     const services = createLocalServices({
-      nibiBuiltinProviderConfigFilePath: writeZCodeBuiltinProviderConfig(home),
+      nibiBuiltinProviderConfigFilePath: writeNibiBuiltinProviderConfig(home),
       onProviderProvisioningSourceChanged,
     });
 
@@ -300,7 +300,7 @@ describe("createLocalServices remote authority", () => {
     const [{ createLocalServices, disposeServiceResourcesAndWait }, { IPluginSyncService }] =
       await Promise.all([import("../src/node.js"), import("../src/index.js")]);
     const services = createLocalServices({
-      nibiBuiltinProviderConfigFilePath: writeZCodeBuiltinProviderConfig(home),
+      nibiBuiltinProviderConfigFilePath: writeNibiBuiltinProviderConfig(home),
       serviceAuthorityMode: "desktop-attached-remote",
     });
     const [clientProtocol, serverProtocol] = createQueuePair();

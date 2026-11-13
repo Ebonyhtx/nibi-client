@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import {
   VIDEO_INPUT_MAX_BYTES,
   type CreateTempTextAttachmentResult,
-  type ZCodePromptAttachment,
+  type NibiPromptAttachment,
 } from "@nibi/shared";
 import { PROTOCOL_V4_LIMITS } from "@nibi/shared/nibi-protocol-v4";
 import {
@@ -163,7 +163,7 @@ function estimateDecodedBase64Bytes(dataBase64: string) {
 }
 
 export function restoreChatComposerAttachment(
-  attachment: ZCodePromptAttachment,
+  attachment: NibiPromptAttachment,
 ): ChatComposerAttachment {
   const mimeType = normalizeComposerMimeType(
     attachment.mimeType || inferAttachmentMimeType(attachment.filename),
@@ -309,7 +309,7 @@ export function revokeChatComposerAttachment(attachment: ChatComposerAttachment)
 
 export async function serializeChatComposerAttachment(
   attachment: ChatComposerAttachment,
-): Promise<ZCodePromptAttachment> {
+): Promise<NibiPromptAttachment> {
   const mimeType = normalizeComposerMimeType(
     attachment.mimeType || inferAttachmentMimeType(attachment.filename),
   );
@@ -450,7 +450,7 @@ async function readAttachmentBase64(attachment: ChatComposerAttachment): Promise
   return dataUrl.slice(base64MarkerIndex + 1);
 }
 
-export function getChatAttachmentPreviewUrl(attachment: ZCodePromptAttachment): string | null {
+export function getChatAttachmentPreviewUrl(attachment: NibiPromptAttachment): string | null {
   if (!attachment.dataBase64) {
     return null;
   }

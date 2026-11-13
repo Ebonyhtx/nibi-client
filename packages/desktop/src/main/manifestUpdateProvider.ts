@@ -2,7 +2,7 @@ import { posix } from "node:path";
 import type { CustomPublishOptions, PackageFileInfo } from "builder-util-runtime";
 import {
   DEFAULT_NIBI_ENDPOINT_ORIGIN,
-  normalizeZCodeEndpointOrigin,
+  normalizeNibiEndpointOrigin,
   type ElectronReleaseChannel,
 } from "@nibi/shared";
 import {
@@ -83,7 +83,7 @@ export function buildElectronManifestUrl(options: {
 }): URL {
   const url = options.manifestUrl?.trim()
     ? new URL(options.manifestUrl.trim())
-    : new URL(ELECTRON_MANIFEST_API_PATH, normalizeZCodeEndpointOrigin(options.endpointOrigin));
+    : new URL(ELECTRON_MANIFEST_API_PATH, normalizeNibiEndpointOrigin(options.endpointOrigin));
   url.searchParams.set("platform", options.platform);
   if (options.deviceMid?.trim()) {
     url.searchParams.set("device_mid", options.deviceMid.trim());
@@ -194,7 +194,7 @@ export class ManifestUpdateProvider extends Provider<UpdateInfo> {
     this.linuxExtensions = getLinuxUpdateExtensions(updater);
     this.releasePlatform = options.releasePlatform?.trim() || getElectronReleasePlatform();
     this.resolveBaseUrl = new URL(
-      normalizeZCodeEndpointOrigin(options.endpointOrigin ?? DEFAULT_NIBI_ENDPOINT_ORIGIN),
+      normalizeNibiEndpointOrigin(options.endpointOrigin ?? DEFAULT_NIBI_ENDPOINT_ORIGIN),
     );
   }
 
@@ -235,7 +235,7 @@ export class ManifestUpdateProvider extends Provider<UpdateInfo> {
       // Bugfix: preview/stable 切换时旧 manifest 请求可能晚于新请求返回。
       // electron-updater 的 update-available 事件默认不带请求通道，main 进程无法识别过期结果；
       // 这里把本次请求通道随 UpdateInfo 带回去，避免旧通道覆盖更新弹窗内容。
-      zcodeReleaseChannel: releaseChannel,
+      nibiReleaseChannel: releaseChannel,
     } as UpdateInfo;
   }
 
@@ -248,7 +248,7 @@ export class ManifestUpdateProvider extends Provider<UpdateInfo> {
       (await this.options.resolveEndpointOrigin?.()) ??
       this.options.endpointOrigin ??
       DEFAULT_NIBI_ENDPOINT_ORIGIN;
-    return normalizeZCodeEndpointOrigin(resolved);
+    return normalizeNibiEndpointOrigin(resolved);
   }
 
   private async resolveReleaseChannel(): Promise<ElectronReleaseChannel> {

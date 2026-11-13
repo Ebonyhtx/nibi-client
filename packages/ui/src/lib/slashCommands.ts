@@ -1,4 +1,4 @@
-import type { ZCodeSlashCommand } from "@nibi/shared";
+import type { NibiSlashCommand } from "@nibi/shared";
 
 const WHITESPACE_RE = /\s/;
 
@@ -52,9 +52,9 @@ export function extractActiveSlashQuery(textBeforeCursor: string): string | null
 }
 
 export function filterSlashCommands(
-  commands: ZCodeSlashCommand[],
+  commands: NibiSlashCommand[],
   query: string | null,
-): ZCodeSlashCommand[] {
+): NibiSlashCommand[] {
   if (query === null) {
     return [];
   }
@@ -81,7 +81,7 @@ export function filterSlashCommands(
 
       return { command, score: bestScore };
     })
-    .filter((item): item is { command: ZCodeSlashCommand; score: number } => item !== null)
+    .filter((item): item is { command: NibiSlashCommand; score: number } => item !== null)
     .sort((left, right) => {
       if (left.score !== right.score) {
         return left.score - right.score;

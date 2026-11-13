@@ -108,7 +108,7 @@ async fn provider_headers_go_between_the_source_and_the_request_headers() {
         ("X-Title", "Probe"),
         ("Accept", "application/x-probe"),
         ("X-Request-Id", "static"),
-        ("X-ZCode-Query-Source", "static"),
+        ("X-Nibi-Query-Source", "static"),
         ("Anthropic-Beta", " Context-1M-2025-08-07 ,, "),
         ("X-Probe", "p1"),
     ];

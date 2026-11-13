@@ -11,9 +11,9 @@ import {
   IOnboardingRecordService,
   ICredentialService,
   IBroadcastService,
-  IZCodeTaskService,
-  IZCodeAgentService,
-  IZCodeSessionService,
+  INibiTaskService,
+  INibiAgentService,
+  INibiSessionService,
   IConversationShareService,
   createUnsupportedConversationShareService,
   IBotsService,
@@ -75,9 +75,9 @@ export const REMOTE_WORKSPACE_RPC_REGISTRATIONS = [
   ["onboardingRecordService", IOnboardingRecordService],
   ["credentialService", ICredentialService],
   ["broadcastService", IBroadcastService],
-  ["zcodeTaskService", IZCodeTaskService],
-  ["zcodeAgentService", IZCodeAgentService],
-  ["zcodeSessionService", IZCodeSessionService],
+  ["nibiTaskService", INibiTaskService],
+  ["nibiAgentService", INibiAgentService],
+  ["nibiSessionService", INibiSessionService],
   ["conversationShareService", IConversationShareService],
   ["botsService", IBotsService],
   ["fileWatcherService", IFileWatcherService],
@@ -158,7 +158,7 @@ export function resolveServerProjectService(params: {
         );
     },
     readTasks: ({ workspacePath, kind }) => {
-      const tasks = params.connectionServices.zcodeTaskService;
+      const tasks = params.connectionServices.nibiTaskService;
       const scope = { workspacePath };
       return kind === "pinned"
         ? tasks.listPinnedTasks(scope)
@@ -181,7 +181,7 @@ export function createServerRemoteWorkspaceServiceCollection(params: {
   sourceServices?: ServiceCollection;
 }): ServiceCollection {
   assertRemoteWorkspaceRpcContract(params.connectionServices);
-  // Server remote 连接的是一个已经运行的完整 ZCode server。
+  // Server remote 连接的是一个已经运行的完整 Nibi server。
   // Host 只做 RPC 转接，不替 server 决定 workspace/runtime/provider 归属；
   // Provider 配置只经 Host 私有的 Provisioning executor 从本机单向下发到远端。
   const remoteProviderProvisioningExecutor =
@@ -202,9 +202,9 @@ export function createServerRemoteWorkspaceServiceCollection(params: {
     .register(IOnboardingRecordService, params.connectionServices.onboardingRecordService)
     .register(ICredentialService, params.connectionServices.credentialService)
     .register(IBroadcastService, params.connectionServices.broadcastService)
-    .register(IZCodeTaskService, params.connectionServices.zcodeTaskService)
-    .register(IZCodeAgentService, params.connectionServices.zcodeAgentService)
-    .register(IZCodeSessionService, params.connectionServices.zcodeSessionService)
+    .register(INibiTaskService, params.connectionServices.nibiTaskService)
+    .register(INibiAgentService, params.connectionServices.nibiAgentService)
+    .register(INibiSessionService, params.connectionServices.nibiSessionService)
     // R3 的分享属于目标 Environment；不能恢复旧 SSH 的本机 JWT 混装。
     .register(
       IConversationShareService,

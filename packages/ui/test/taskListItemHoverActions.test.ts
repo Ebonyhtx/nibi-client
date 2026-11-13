@@ -1,7 +1,7 @@
 import { act, createElement, type ReactElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 
 type TestEvent = {
   bubbles?: boolean;
@@ -144,9 +144,9 @@ vi.mock("@/components/ui/toast.js", () => ({
   toast: () => {},
 }));
 
-vi.mock("@/store/zcodeSessionStore.js", async () => {
-  const actual = await vi.importActual<typeof import("@/store/zcodeSessionStore.js")>(
-    "@/store/zcodeSessionStore.js",
+vi.mock("@/store/nibiSessionStore.js", async () => {
+  const actual = await vi.importActual<typeof import("@/store/nibiSessionStore.js")>(
+    "@/store/nibiSessionStore.js",
   );
   return {
     ...actual,
@@ -154,12 +154,12 @@ vi.mock("@/store/zcodeSessionStore.js", async () => {
     getTaskUnreadIndicator: () => false,
     hasTaskPendingHumanInterventionRequest: () => false,
     hasTaskPendingPermissionRequest: () => false,
-    selectWorkspaceZCodeState: () => ({}),
-    useZCodeSessionStore: (selector: (state: Record<string, unknown>) => unknown) => selector({}),
+    selectWorkspaceNibiState: () => ({}),
+    useNibiSessionStore: (selector: (state: Record<string, unknown>) => unknown) => selector({}),
   };
 });
 
-function createTask(): ZCodeTaskMeta {
+function createTask(): NibiTaskMeta {
   return {
     createdAt: 1,
     mode: "default",
@@ -561,7 +561,7 @@ describe("TaskListItem hover action rendering", () => {
           task: {
             ...task,
             automationId: "automation-1",
-          } as ZCodeTaskMeta & { automationId: string },
+          } as NibiTaskMeta & { automationId: string },
         }),
       );
     });

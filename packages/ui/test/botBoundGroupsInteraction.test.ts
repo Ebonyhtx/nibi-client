@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BotConfig, BotState } from "@nibi/shared";
 import { BoundGroupsCard, BoundGroupsList } from "@/BotsDialog/BoundGroupsCard.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 const mocks = vi.hoisted(() => ({
   getBotStates: vi.fn(),
@@ -34,7 +34,7 @@ const group = (enabled = true): BotState => ({
 const show = (enabled = true) =>
   render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(BoundGroupsCard, { bot: { ...bot, enabled } }),
     ),
@@ -55,7 +55,7 @@ describe("bound group controls", () => {
   ] as const)("renders %s topic count %s with the real formatter", (locale, count, label) => {
     const view = render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: locale },
         createElement(BoundGroupsList, {
           rows: [{ chatId: "chat", name: "产品讨论群", enabled: true, topicCount: count }],

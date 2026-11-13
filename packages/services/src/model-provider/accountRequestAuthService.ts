@@ -4,7 +4,7 @@ import type {
   AccountRequestAuthMaterial,
   AccountRequestAuthResolver,
 } from "./accountProviderRequestAuthService.js";
-import type { ZCodeAccountAccess, ZCodeProviderAccountAccess } from "@nibi/shared";
+import type { NibiAccountAccess, NibiProviderAccountAccess } from "@nibi/shared";
 
 /**
  * 请求期 Account 鉴权边界。
@@ -13,7 +13,7 @@ import type { ZCodeAccountAccess, ZCodeProviderAccountAccess } from "@nibi/share
  * 它不保存 Provider Config，也不提供 Registry fallback。
  */
 export interface IAccountRequestAuthService {
-  resolveAccessCurrent(access: ZCodeProviderAccountAccess): Promise<ZCodeAccountAccess | null>;
+  resolveAccessCurrent(access: NibiProviderAccountAccess): Promise<NibiAccountAccess | null>;
   resolveCurrent(input: AccountRequestAuthInput): Promise<AccountRequestAuthMaterial>;
   assertCurrent(input: AccountAccessIdentityInput): Promise<void>;
 }

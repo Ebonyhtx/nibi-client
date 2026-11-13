@@ -9,7 +9,7 @@ import type {
 } from "@nibi/shared/nibi-protocol-v4";
 import { DEFAULT_CODE_PREVIEW_SETTINGS } from "@/lib/codePreviewSettings.js";
 import type { AssistantPreviewCard } from "@/lib/assistantPreviewCards.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { buildAssistantPreviewCardsForAssistantTextRow } from "@/v4/assistantPreviewCards.js";
 import { ConversationTurnGroup } from "@/v4/ConversationTurnGroup.js";
 import type { ConversationRowRenderContext } from "@/v4/conversationRowContext.js";
@@ -141,7 +141,7 @@ vi.mock("@/v4/V4ConversationContext.js", () => ({
 }));
 
 vi.mock("@/store/StoreProvider.js", () => ({
-  useZCodeStoreWithDefault: (_selector: unknown, fallback: unknown) => fallback,
+  useNibiStoreWithDefault: (_selector: unknown, fallback: unknown) => fallback,
 }));
 
 vi.mock("@/hooks/useSettingService.js", () => ({
@@ -149,7 +149,7 @@ vi.mock("@/hooks/useSettingService.js", () => ({
     error: null,
     loading: false,
     refresh: vi.fn(async () => {}),
-    settings: { zcodeInteractionBehavior: "queue" },
+    settings: { nibiInteractionBehavior: "queue" },
     update: vi.fn(async () => {}),
   }),
 }));
@@ -160,10 +160,10 @@ vi.mock("@/hooks/useServices.js", () => ({
   // Vitest 的整模块 mock 未同步新导出，导致组件进入业务断言前就直接失败。
   useOptionalServices: () => null,
   useServices: () => ({
-    zcodeSessionService: {
+    nibiSessionService: {
       updateProviderRegistry: vi.fn(),
     },
-    zcodeTaskService: {
+    nibiTaskService: {
       restartWorkspaceProcess: vi.fn(),
     },
   }),
@@ -369,7 +369,7 @@ function renderTurnWithContext(
 ): string {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(ConversationTurnGroup, {
         unit,
@@ -385,7 +385,7 @@ function renderTurnWithCodeComments(
 ): string {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(
         AssistantCodeCommentFeatureProvider,
@@ -707,7 +707,7 @@ describe("SessionPane assistant preview card handler wiring", () => {
 
     renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(SessionPane, {
           paneId: "workspace-main",

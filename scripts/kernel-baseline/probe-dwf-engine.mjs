@@ -16,7 +16,7 @@ import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { pathToFileURL } from "node:url";
 
-const packages = resolve(import.meta.dirname, "../../apps/zcode-cli/packages");
+const packages = resolve(import.meta.dirname, "../../apps/nibi-cli/packages");
 const dwf = await import(pathToFileURL(join(packages, "dynamic-workflow/dist/index.js")).href);
 const { runWorkflowScript } = await import(
   pathToFileURL(join(packages, "dynamic-workflow-runtime/dist/index.js")).href

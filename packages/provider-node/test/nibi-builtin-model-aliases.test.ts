@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { NodeZCodeBuiltinProviderConfigSource } from "../src/index.js";
+import { NodeNibiBuiltinProviderConfigSource } from "../src/index.js";
 import { compileModelOptionMaps } from "@nibi/model-option-map";
 import { parseModelConfig } from "@nibi/provider";
 
@@ -8,7 +8,7 @@ describe("发布模型规则的前后缀与覆盖顺序", () => {
   it.each(["nibi-builtin.json", "nibi-builtin.test.json"])(
     "%s：默认容量由通用规则提供，专用型号与 Personal 保留覆盖权",
     async (filename) => {
-      const source = new NodeZCodeBuiltinProviderConfigSource({
+      const source = new NodeNibiBuiltinProviderConfigSource({
         bundledFilePath: fileURLToPath(
           new URL(`../../../config/provider/${filename}`, import.meta.url),
         ),
@@ -74,7 +74,7 @@ describe("发布模型规则的前后缀与覆盖顺序", () => {
     },
   );
   it("OpenRouter Messages 的 GPT 选择实际生成对应 effort，保留完整请求型号", async () => {
-    const source = new NodeZCodeBuiltinProviderConfigSource({
+    const source = new NodeNibiBuiltinProviderConfigSource({
       bundledFilePath: fileURLToPath(
         new URL("../../../config/provider/nibi-builtin.json", import.meta.url),
       ),
@@ -114,7 +114,7 @@ describe("发布模型规则的前后缀与覆盖顺序", () => {
   it.each(["anthropic-messages", "openai-chat-completions", "openai-responses"] as const)(
     "%s：等价前后缀复用能力与 Map，不依赖聚合站点白名单",
     async (apiType) => {
-      const source = new NodeZCodeBuiltinProviderConfigSource({
+      const source = new NodeNibiBuiltinProviderConfigSource({
         bundledFilePath: fileURLToPath(
           new URL("../../../config/provider/nibi-builtin.json", import.meta.url),
         ),
@@ -202,7 +202,7 @@ describe("发布模型规则的前后缀与覆盖顺序", () => {
   );
 
   it("聚合模板的每家维护厂商有默认启用代表，所有成员能形成完整配置和请求 Map", async () => {
-    const source = new NodeZCodeBuiltinProviderConfigSource({
+    const source = new NodeNibiBuiltinProviderConfigSource({
       bundledFilePath: fileURLToPath(
         new URL("../../../config/provider/nibi-builtin.json", import.meta.url),
       ),

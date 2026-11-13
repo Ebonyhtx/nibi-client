@@ -22,7 +22,7 @@ import {
   NIBI_COMPATIBILITY_MANIFEST,
   compareCompatibilityVersions,
   evaluateSourceServerCompatibility,
-  isPublicZCodeErrorCode,
+  isPublicNibiErrorCode,
   normalizeRemoteConnectionError,
   stripRemoteTargetSecrets,
 } from "@nibi/shared";
@@ -247,7 +247,7 @@ function describeLifecycleOperationFailure(
   const normalized = normalizeRemoteConnectionError(error);
   return {
     error: normalized.message,
-    ...(isPublicZCodeErrorCode(normalized.code) ? { errorCode: normalized.code } : {}),
+    ...(isPublicNibiErrorCode(normalized.code) ? { errorCode: normalized.code } : {}),
     retryable: normalized.retryable ?? true,
   };
 }
@@ -1461,7 +1461,7 @@ export class SourceServerConnectionManager {
       )
         throw error;
       const normalized = normalizeRemoteConnectionError(error);
-      const errorCode = isPublicZCodeErrorCode(normalized.code) ? normalized.code : undefined;
+      const errorCode = isPublicNibiErrorCode(normalized.code) ? normalized.code : undefined;
       const retryable =
         error && typeof error === "object" && "retryable" in error
           ? (error as { retryable?: unknown }).retryable
@@ -1663,7 +1663,7 @@ export class SourceServerConnectionManager {
     const errorCode =
       normalized?.code &&
       normalized.code !== "remote-connection-unknown" &&
-      isPublicZCodeErrorCode(normalized.code)
+      isPublicNibiErrorCode(normalized.code)
         ? normalized.code
         : REMOTE_RECOVERY_BUDGET_EXHAUSTED_ERROR_CODE;
     for (const profileId of this.profileIdsForSource(sourceServerId, input.profile.profileId)) {
@@ -1723,7 +1723,7 @@ export class SourceServerConnectionManager {
         sourceServerId,
         ...this.compatibilityByProfileId.get(input.profile.profileId),
         error: normalized.message,
-        ...(isPublicZCodeErrorCode(normalized.code) ? { errorCode: normalized.code } : {}),
+        ...(isPublicNibiErrorCode(normalized.code) ? { errorCode: normalized.code } : {}),
         retryable: false,
       });
     }
@@ -1736,7 +1736,7 @@ export class SourceServerConnectionManager {
           state: "offline",
           sourceServerId,
           error: normalized.message,
-          ...(isPublicZCodeErrorCode(normalized.code) ? { errorCode: normalized.code } : {}),
+          ...(isPublicNibiErrorCode(normalized.code) ? { errorCode: normalized.code } : {}),
           retryable: false,
         });
       }

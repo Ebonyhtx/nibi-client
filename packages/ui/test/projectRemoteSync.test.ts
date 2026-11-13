@@ -19,7 +19,7 @@ vi.mock("@/hooks/useOpenDataSyncSettings.js", () => ({
   useOpenDataSyncSettings: () => mocks.openDataSync,
 }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
+  useNibiIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
 }));
 
 beforeEach(() => {

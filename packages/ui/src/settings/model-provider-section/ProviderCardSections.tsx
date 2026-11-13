@@ -32,7 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useServices } from "@/hooks/useServices.js";
 import { TECHNICAL_INPUT_ATTRIBUTES } from "@/lib/technicalInputAttributes.js";
 import { ApiKeyInput } from "./ApiKeyInput.js";
@@ -101,7 +101,7 @@ export function ProviderCardHeader({
   actionsVisible?: boolean;
   providerToggle?: ReactNode;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const renameRequestedRef = useRef(false);
   const secondaryActionsVisible = actionsVisible && (nameEditable || Boolean(onDelete));
 
@@ -207,7 +207,7 @@ export function ProviderConnectionSection({
   onBaseUrlCompositionStart?: () => void;
   onBaseUrlCompositionEnd?: () => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const showApiFormat = shouldShowProviderApiFormat(provider);
   const readOnlyBaseUrl = provider.config.api?.baseUrl ?? "";
   const resolvedApiFormat = provider.config.api?.type ?? "anthropic-messages";
@@ -307,7 +307,7 @@ export function ProviderApiKeySection({
   onApiKeyCompositionEnd?: () => void;
   onToggleApiKeyVisibility: () => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
 
   return (
     <div>
@@ -379,7 +379,7 @@ export function ProviderModelsSection({
   onReorderModelIds?: (modelIds: string[]) => void;
   settingsRevision?: number;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const { providerSettingsService } = useServices();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [addSaving, setAddSaving] = useState(false);

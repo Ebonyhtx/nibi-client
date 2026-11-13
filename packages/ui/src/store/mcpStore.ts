@@ -4,7 +4,7 @@
  */
 import { create } from "zustand";
 import type {
-  ZCodeAgentMcpServer,
+  NibiAgentMcpServer,
   CliMcpSource,
   McpConfig,
   McpScope,
@@ -13,11 +13,11 @@ import type {
   McpSource,
   NativeMcpServerRecord,
   WorkspaceMcpTrustDecision,
-  ZCodeMcpListMode,
-  ZCodeMcpServerStatusSnapshot,
-  ZCodeMcpServer,
+  NibiMcpListMode,
+  NibiMcpServerStatusSnapshot,
+  NibiMcpServer,
 } from "@nibi/shared";
-import { convertToZCodeAgentMcpServer } from "@nibi/shared";
+import { convertToNibiAgentMcpServer } from "@nibi/shared";
 import { logger } from "@/logger.js";
 import {
   decideWorkspaceMcpTrustThroughDirectoryService,
@@ -55,8 +55,8 @@ interface UpdateServerStatusOptions {
 interface McpStoreState {
   config: McpConfig;
   nativeServers: NativeMcpServerRecord[];
-  servers: ZCodeMcpServer[];
-  statusSnapshots: Record<string, ZCodeMcpServerStatusSnapshot>;
+  servers: NibiMcpServer[];
+  statusSnapshots: Record<string, NibiMcpServerStatusSnapshot>;
   /** 项目级 MCP 的 Host 审核状态（Host 唯一 owner；未信任的项目 server 不进入 Agent）。 */
   workspaceTrust: Record<string, WorkspaceMcpTrustReviewView>;
   /**
@@ -106,9 +106,9 @@ interface McpStoreState {
     projectPath?: string,
   ) => Promise<void>;
   deleteScopedMcpServer: (source: McpSource, name: string, projectPath?: string) => void;
-  addZCodeAgentMcpServer: (name: string, config: McpServerConfig, projectPath?: string) => void;
-  updateZCodeAgentMcpServer: (name: string, config: McpServerConfig, projectPath?: string) => void;
-  deleteZCodeAgentMcpServer: (name: string, projectPath?: string) => void;
+  addNibiAgentMcpServer: (name: string, config: McpServerConfig, projectPath?: string) => void;
+  updateNibiAgentMcpServer: (name: string, config: McpServerConfig, projectPath?: string) => void;
+  deleteNibiAgentMcpServer: (name: string, projectPath?: string) => void;
   addClaudeCliMcpServer: (name: string, config: McpServerConfig, projectPath?: string) => void;
   updateClaudeCliMcpServer: (name: string, config: McpServerConfig, projectPath?: string) => void;
   deleteClaudeCliMcpServer: (name: string, projectPath?: string) => void;
@@ -128,18 +128,18 @@ interface McpStoreState {
     error?: string,
     options?: UpdateServerStatusOptions,
   ) => void;
-  beginServerStatusListRefresh: (mode?: ZCodeMcpListMode) => number;
+  beginServerStatusListRefresh: (mode?: NibiMcpListMode) => number;
   markServerStatusListRefreshFailed: (
     error: string,
     requestEpoch: number,
-    mode?: ZCodeMcpListMode,
+    mode?: NibiMcpListMode,
   ) => void;
   mergeServerStatusSnapshots: (
-    statuses: Record<string, ZCodeMcpServerStatusSnapshot>,
+    statuses: Record<string, NibiMcpServerStatusSnapshot>,
     requestEpoch: number,
     mode?: "connect" | "status",
   ) => void;
-  getServer: (id: string) => ZCodeMcpServer | undefined;
+  getServer: (id: string) => NibiMcpServer | undefined;
   setCurrentProjectPath: (
     path: string,
     workspaceIdentity?: string,
@@ -151,7 +151,7 @@ interface McpStoreState {
     serverName: string,
     trusted: boolean,
   ) => Promise<WorkspaceMcpTrustDecision>;
-  getEnabledMcpServersForZCode: (provider: string) => ZCodeAgentMcpServer[];
+  getEnabledMcpServersForNibi: (provider: string) => NibiAgentMcpServer[];
   checkAllServerStatus: (
     tester: (config: McpServerConfig) => Promise<{ success: boolean; error?: string }>,
   ) => Promise<void>;
@@ -163,7 +163,7 @@ interface McpStoreState {
 export const useMcpStore = create<McpStoreState>((set, get) => {
   let loadMcpPromise: Promise<boolean> | null = null;
   let loadMcpWorkspaceKey: string | null = null;
-  const statusListEpochs: Record<ZCodeMcpListMode, number> = {
+  const statusListEpochs: Record<NibiMcpListMode, number> = {
     connect: 0,
     status: 0,
   };
@@ -177,7 +177,7 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
     const { currentAuthorityKey, currentDirectoryService, currentWorkspaceIdentity } = get();
     if (!currentWorkspaceIdentity && !currentAuthorityKey) {
       // 本地 workspace / 本机「用户」仍要走 desktop platform 路径，才能执行旧 common MCP
-      // 到用户级 ZCode Agent MCP 的迁移；目录服务只用于远端目标覆盖路由。
+      // 到用户级 Nibi Agent MCP 的迁移；目录服务只用于远端目标覆盖路由。
       return null;
     }
     if (!currentDirectoryService) {
@@ -300,7 +300,7 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
     loadConfig: () => {
       const config = loadPersistedConfig();
       // MCP 启停状态已经迁移到 ~/.nibi/cli/config.json，不能再读取旧 localStorage，
-      // 否则旧的本地开关会覆盖新的 ZCode Agent 配置来源。
+      // 否则旧的本地开关会覆盖新的 Nibi Agent 配置来源。
       const enabledStates: Record<string, boolean> = {};
       const deletedPreload = new Set<string>(safeReadJson<string[]>(MCP_DELETED_PRELOAD_KEY, []));
       const servers = buildServerList(config, [], enabledStates, deletedPreload, []);
@@ -432,9 +432,9 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
       safeWriteJson(MCP_DELETED_PRELOAD_KEY, Array.from(deletedPreloadMcpServers));
     },
 
-    addMcpServer: (name, config) => get().addZCodeAgentMcpServer(name, config),
-    updateMcpServer: (name, config) => get().updateZCodeAgentMcpServer(name, config),
-    deleteMcpServer: (name) => get().deleteZCodeAgentMcpServer(name),
+    addMcpServer: (name, config) => get().addNibiAgentMcpServer(name, config),
+    updateMcpServer: (name, config) => get().updateNibiAgentMcpServer(name, config),
+    deleteMcpServer: (name) => get().deleteNibiAgentMcpServer(name),
     addScopedMcpServer: async (source, name, config, projectPath) => {
       invalidateStatusListRequests();
       const targetSource: CliMcpSource = source === "mcp" ? "zcodeagentmcp" : source;
@@ -508,11 +508,11 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
       get().updateScopedMcpServer("opencodemcp", name, config, projectPath),
     deleteOpenCodeMcpServer: (name, projectPath) =>
       get().deleteScopedMcpServer("opencodemcp", name, projectPath),
-    addZCodeAgentMcpServer: (name, config, projectPath) =>
+    addNibiAgentMcpServer: (name, config, projectPath) =>
       get().addScopedMcpServer("zcodeagentmcp", name, config, projectPath),
-    updateZCodeAgentMcpServer: (name, config, projectPath) =>
+    updateNibiAgentMcpServer: (name, config, projectPath) =>
       get().updateScopedMcpServer("zcodeagentmcp", name, config, projectPath),
-    deleteZCodeAgentMcpServer: (name, projectPath) =>
+    deleteNibiAgentMcpServer: (name, projectPath) =>
       get().deleteScopedMcpServer("zcodeagentmcp", name, projectPath),
 
     toggleServer: async (id, enabled) => {
@@ -754,10 +754,10 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
       return decision;
     },
 
-    getEnabledMcpServersForZCode: (_provider) => {
+    getEnabledMcpServersForNibi: (_provider) => {
       const { servers, enabledStates, currentProjectPath, workspaceTrust, workspaceTrustKnown } =
         get();
-      const candidates = new Map<string, ZCodeMcpServer>();
+      const candidates = new Map<string, NibiMcpServer>();
 
       for (const server of servers) {
         const isEnabled = enabledStates[server.id] ?? server.enabled;
@@ -776,10 +776,10 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
         }
       }
 
-      const result: ZCodeAgentMcpServer[] = [];
+      const result: NibiAgentMcpServer[] = [];
       for (const server of candidates.values()) {
-        const zcodeAgentServer = convertToZCodeAgentMcpServer(server.name, server.config);
-        if (zcodeAgentServer) result.push(zcodeAgentServer);
+        const nibiAgentServer = convertToNibiAgentMcpServer(server.name, server.config);
+        if (nibiAgentServer) result.push(nibiAgentServer);
       }
       return result;
     },

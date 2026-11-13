@@ -16,7 +16,7 @@ import {
 } from "#src/skill-sync/skillSyncArchive.js";
 import { createSkillSyncSizeLimitError } from "#src/skill-sync/skillSyncErrors.js";
 import { resolveSkillSyncPathWithin } from "#src/skill-sync/skillSyncPath.js";
-import { resolveZCodeStorageRoot } from "#src/subagents/subagentStorage.js";
+import { resolveNibiStorageRoot } from "#src/subagents/subagentStorage.js";
 import type { IDataSyncCategoryService } from "./contract.js";
 import {
   hashDirectoryContent,
@@ -26,7 +26,7 @@ import {
 } from "./directoryContent.js";
 import {
   collectUserSkillCandidates,
-  getUserZcodeSkillRoot,
+  getUserNibiSkillRoot,
   normalizeSkillNameKey,
   parseSkillMetadata,
   readSkillFileOrNull,
@@ -53,7 +53,7 @@ interface ResolvedUserSkill {
 }
 
 async function getCliConfigPath(): Promise<string> {
-  return join(await resolveZCodeStorageRoot(), "cli", "config.json");
+  return join(await resolveNibiStorageRoot(), "cli", "config.json");
 }
 
 function normalizeSkillConfigPath(path: string): string {
@@ -62,7 +62,7 @@ function normalizeSkillConfigPath(path: string): string {
 
 /** 按归一化 name 对齐的用户级技能；同名时保留候选排序中的第一项（`.nibi` 优先）。 */
 async function resolveUserSkills(): Promise<Map<string, ResolvedUserSkill>> {
-  const nibiRoot = getUserZcodeSkillRoot();
+  const nibiRoot = getUserNibiSkillRoot();
   const result = new Map<string, ResolvedUserSkill>();
   for (const candidate of await collectUserSkillCandidates()) {
     const key = normalizeSkillNameKey(candidate.name);
@@ -358,7 +358,7 @@ export function createSkillDataSyncMethods(options: {
 
     async checkSyncWriteAccess() {
       return await checkRemoteSyncDirectoriesWriteAccess([
-        getUserZcodeSkillRoot(),
+        getUserNibiSkillRoot(),
         dirname(await getCliConfigPath()),
       ]);
     },
@@ -422,7 +422,7 @@ export function createSkillDataSyncMethods(options: {
           phase: "archive",
         });
       }
-      const targetRoot = getUserZcodeSkillRoot();
+      const targetRoot = getUserNibiSkillRoot();
       await mkdir(targetRoot, { recursive: true });
       // 临时目录放在技能根内，保证与目标同盘，rename 是原子替换。点目录不会被技能扫描读到。
       const tempRoot = join(targetRoot, `.sync-tmp-${randomUUID()}`);

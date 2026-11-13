@@ -59,15 +59,15 @@ describe("Marketing Touch 领取后的权益与模型连接", () => {
     expect((await readSettings()).providerFamilyConnectionSelections?.bigmodel).toEqual({
       kind: "start-plan",
     });
-    await waitForPlanRefreshAction("ZCode Weekend Build", true);
-    await waitForPlanRefreshAction("ZCode V3 Start Plan", false);
+    await waitForPlanRefreshAction("Nibi Weekend Build", true);
+    await waitForPlanRefreshAction("Nibi V3 Start Plan", false);
     const balanceRequestCountBeforeRefresh = countMockRequestsEndingWith(
       await readMockRequests(),
       "/api/v1/zcode-plan/billing/balance",
     );
     await markManualClaimBucketReady();
-    await clickPlanRefreshAction("ZCode Weekend Build");
-    await waitForPlanRefreshAction("ZCode Weekend Build", false, "GLM-5.3-Flash");
+    await clickPlanRefreshAction("Nibi Weekend Build");
+    await waitForPlanRefreshAction("Nibi Weekend Build", false, "GLM-5.3-Flash");
     await browser.waitUntil(
       async () =>
         countMockRequestsEndingWith(

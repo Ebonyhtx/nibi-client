@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/domain/src/node_ids.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-cli-rust/crates/domain/src/node_ids.rs（feat/rs 79b6691c55）。
 //! Node 会话库的 id 与 slug 格式（Node `contracts/src/interfaces/shared.ts`、
 //! `core/src/runtime/helpers/project.ts`，docs/specs/rust-m11-node-storage.md §2.3）。
 //!

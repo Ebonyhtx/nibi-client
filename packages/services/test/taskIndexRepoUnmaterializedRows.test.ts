@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import { setDataBaseDir } from "#src/paths.js";
 import { shouldReserveCreatedTask } from "#src/project-storage/project-repository.js";
 import { TaskIndexRepo } from "#src/session/taskIndexRepo.js";
@@ -13,7 +13,7 @@ let tempDir: string;
 
 const WORKSPACE = "/workspace/downloads";
 
-function realTask(overrides: Partial<ZCodeTaskMeta> = {}): ZCodeTaskMeta {
+function realTask(overrides: Partial<NibiTaskMeta> = {}): NibiTaskMeta {
   return {
     taskId: "session_real",
     traceId: "trace-session-real",

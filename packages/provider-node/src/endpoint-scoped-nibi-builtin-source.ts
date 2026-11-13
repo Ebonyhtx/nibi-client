@@ -1,38 +1,38 @@
 import type { ProviderConfigLayerSnapshot, ProviderSource } from "@nibi/provider";
 import {
-  normalizeZCodeBuiltinEndpointOrigin,
-  resolveZCodeBuiltinCachePaths,
+  normalizeNibiBuiltinEndpointOrigin,
+  resolveNibiBuiltinCachePaths,
 } from "./nibi-builtin-cache-paths.js";
-import { NodeZCodeBuiltinProviderConfigSource } from "./nibi-builtin-provider-config-source.js";
+import { NodeNibiBuiltinProviderConfigSource } from "./nibi-builtin-provider-config-source.js";
 import {
-  ZCodeBuiltinRemoteSynchronizer,
-  type ZCodeBuiltinRefreshResult,
-  type ZCodeBuiltinRemoteSynchronizerOptions,
+  NibiBuiltinRemoteSynchronizer,
+  type NibiBuiltinRefreshResult,
+  type NibiBuiltinRemoteSynchronizerOptions,
 } from "./nibi-builtin-remote-synchronizer.js";
 
-export interface EndpointScopedZCodeBuiltinSourceOptions {
+export interface EndpointScopedNibiBuiltinSourceOptions {
   readonly bundledFilePath: string;
   readonly environmentConfigRoot: string;
   readonly platform: string;
   readonly appVersion: string;
   readonly resolveEndpointOrigin: () => string | Promise<string>;
-  readonly fetchRelease: ZCodeBuiltinRemoteSynchronizerOptions["fetchRelease"];
-  readonly onRefreshResult?: ZCodeBuiltinRemoteSynchronizerOptions["onRefreshResult"];
+  readonly fetchRelease: NibiBuiltinRemoteSynchronizerOptions["fetchRelease"];
+  readonly onRefreshResult?: NibiBuiltinRemoteSynchronizerOptions["onRefreshResult"];
   readonly watch?: boolean;
 }
 
 /**
- * 让 Environment 的 ZCode 控制面 Endpoint 同时决定 Active/LKG 与刷新控制路径。
+ * 让 Environment 的 Nibi 控制面 Endpoint 同时决定 Active/LKG 与刷新控制路径。
  * Endpoint 切换只替换当前 Source，不读取上一 Endpoint 的缓存。
  */
-export class EndpointScopedZCodeBuiltinSource implements ProviderSource<ProviderConfigLayerSnapshot> {
-  readonly #options: EndpointScopedZCodeBuiltinSourceOptions;
+export class EndpointScopedNibiBuiltinSource implements ProviderSource<ProviderConfigLayerSnapshot> {
+  readonly #options: EndpointScopedNibiBuiltinSourceOptions;
   readonly #listeners = new Set<(reason: string) => void>();
   #current: CurrentEndpointSource | null = null;
   #ensureInFlight: Promise<CurrentEndpointSource> | null = null;
   #disposed = false;
 
-  constructor(options: EndpointScopedZCodeBuiltinSourceOptions) {
+  constructor(options: EndpointScopedNibiBuiltinSourceOptions) {
     this.#options = options;
   }
 
@@ -46,7 +46,7 @@ export class EndpointScopedZCodeBuiltinSource implements ProviderSource<Provider
     return () => this.#listeners.delete(listener);
   }
 
-  async refresh(options?: { readonly force?: boolean }): Promise<ZCodeBuiltinRefreshResult> {
+  async refresh(options?: { readonly force?: boolean }): Promise<NibiBuiltinRefreshResult> {
     return (await this.#ensureCurrent()).synchronizer.refresh(options);
   }
 
@@ -74,28 +74,28 @@ export class EndpointScopedZCodeBuiltinSource implements ProviderSource<Provider
   }
 
   async #resolveCurrent(): Promise<CurrentEndpointSource> {
-    const endpointOrigin = normalizeZCodeBuiltinEndpointOrigin(
+    const endpointOrigin = normalizeNibiBuiltinEndpointOrigin(
       await this.#options.resolveEndpointOrigin(),
     );
-    const paths = resolveZCodeBuiltinCachePaths({
+    const paths = resolveNibiBuiltinCachePaths({
       environmentConfigRoot: this.#options.environmentConfigRoot,
       platform: this.#options.platform,
       appVersion: this.#options.appVersion,
-      zcodeEndpointOrigin: endpointOrigin,
+      nibiEndpointOrigin: endpointOrigin,
     });
     if (this.#current?.activeFilePath === paths.activeFilePath) return this.#current;
 
-    const source = new NodeZCodeBuiltinProviderConfigSource({
+    const source = new NodeNibiBuiltinProviderConfigSource({
       bundledFilePath: this.#options.bundledFilePath,
       activeFilePath: paths.activeFilePath,
       watch: this.#options.watch,
     });
     const sourceDispose = source.onDidChange((reason) => this.#emit(reason));
-    const synchronizer = new ZCodeBuiltinRemoteSynchronizer({
+    const synchronizer = new NibiBuiltinRemoteSynchronizer({
       source,
       controlFilePath: paths.controlFilePath,
       resolveEndpointKey: async () =>
-        normalizeZCodeBuiltinEndpointOrigin(await this.#options.resolveEndpointOrigin()),
+        normalizeNibiBuiltinEndpointOrigin(await this.#options.resolveEndpointOrigin()),
       fetchRelease: this.#options.fetchRelease,
       onRefreshResult: this.#options.onRefreshResult,
     });
@@ -128,15 +128,15 @@ export class EndpointScopedZCodeBuiltinSource implements ProviderSource<Provider
   }
 
   #assertNotDisposed(): void {
-    if (this.#disposed) throw new Error("EndpointScopedZCodeBuiltinSource 已 dispose");
+    if (this.#disposed) throw new Error("EndpointScopedNibiBuiltinSource 已 dispose");
   }
 }
 
 class CurrentEndpointSource {
   constructor(
     readonly activeFilePath: string,
-    readonly source: NodeZCodeBuiltinProviderConfigSource,
-    readonly synchronizer: ZCodeBuiltinRemoteSynchronizer,
+    readonly source: NodeNibiBuiltinProviderConfigSource,
+    readonly synchronizer: NibiBuiltinRemoteSynchronizer,
     readonly sourceDispose: () => void,
   ) {}
 

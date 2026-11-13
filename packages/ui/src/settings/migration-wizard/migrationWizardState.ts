@@ -1,4 +1,4 @@
-import type { SettingsSyncImportResult, ZCodeImportableSessionCandidate } from "@nibi/shared";
+import type { SettingsSyncImportResult, NibiImportableSessionCandidate } from "@nibi/shared";
 import type { MigrationWorkspaceCandidate } from "@/components/wizard/MigrationSessionsStep.js";
 import type { MigrationFailureDetail } from "@/onboarding/OnboardingFlowParts.js";
 import { getPathLeaf } from "@/lib/path.js";
@@ -71,7 +71,7 @@ export function getMigrationWizardStepIndex(step: MigrationWizardStep): number {
 }
 
 export function groupSessionCandidatesByWorkspace(
-  candidates: ReadonlyArray<Pick<ZCodeImportableSessionCandidate, "workspacePath">>,
+  candidates: ReadonlyArray<Pick<NibiImportableSessionCandidate, "workspacePath">>,
 ): MigrationWorkspaceCandidate[] {
   const byWorkspace = new Map<string, MigrationWorkspaceCandidate>();
 

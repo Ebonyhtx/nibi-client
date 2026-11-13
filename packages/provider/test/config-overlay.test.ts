@@ -67,11 +67,11 @@ describe("ProviderConfigMap overlay", () => {
     });
     expect(spec.validateComplete()).toContainEqual(expect.objectContaining({ path: ["max"] }));
   });
-  it("保留 ZCodeBuiltin key 的位置，并按 Personal 顺序追加新 key", () => {
+  it("保留 NibiBuiltin key 的位置，并按 Personal 顺序追加新 key", () => {
     const nibiBuiltin = new ProviderConfigMap([
       {
         providerId: "A",
-        providerName: "ZCodeBuiltin A",
+        providerName: "NibiBuiltin A",
         config: new ProviderConfig({
           logo: { type: "builtin", key: "provider-a" },
           builtinModelIds: ["m1", "m2"],

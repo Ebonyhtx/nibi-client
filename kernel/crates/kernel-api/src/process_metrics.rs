@@ -1,6 +1,6 @@
 //! 进程资源遥测（141 审计 §9 F3）：`process/resourceSample` 的样本形状与采样端口。
 //!
-//! Node 侧是 `createNIBIProcessResourceSampler`（`apps/zcode-cli/packages/bootstrap/src/
+//! Node 侧是 `createNIBIProcessResourceSampler`（`apps/nibi-cli/packages/bootstrap/src/
 //! process-resource-sampler.ts`），每 60 秒报一条本进程的 CPU/内存样本；桌面资源面板的主数据源。
 //!
 //! 这里是**端口**而不是实现：采样要读本机进程指标（`getrusage` / `GetProcessMemoryInfo`），
@@ -18,7 +18,7 @@ use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 
-/// 一条 `process/resourceSample` 的样本（Host `zcodeProcessResourceSampleSchema` 的逐字段镜像）。
+/// 一条 `process/resourceSample` 的样本（Host `nibiProcessResourceSampleSchema` 的逐字段镜像）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResourceSample {

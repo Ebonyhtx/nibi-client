@@ -198,11 +198,11 @@
 
 ### Planned code files
 
-- `apps/zcode-cli/packages/bootstrap/src/app/bundled-plugins.ts`
-- `apps/zcode-cli/packages/bootstrap/src/plugins.ts`
-- `apps/zcode-cli/packages/bootstrap/src/app/startup-marks.ts` (only if suppression parameter is removed)
-- `apps/zcode-cli/packages/ui/src/settings/pluginStoreListing.ts`
-- `apps/zcode-cli/packages/adapters/src/plugins/marketplace.ts` only if bundled install routing requires a narrow helper
+- `apps/nibi-cli/packages/bootstrap/src/app/bundled-plugins.ts`
+- `apps/nibi-cli/packages/bootstrap/src/plugins.ts`
+- `apps/nibi-cli/packages/bootstrap/src/app/startup-marks.ts` (only if suppression parameter is removed)
+- `apps/nibi-cli/packages/ui/src/settings/pluginStoreListing.ts`
+- `apps/nibi-cli/packages/adapters/src/plugins/marketplace.ts` only if bundled install routing requires a narrow helper
 - bootstrap/adapters/services/UI tests covering the accepted cases above
 
 ### Explicitly not changed

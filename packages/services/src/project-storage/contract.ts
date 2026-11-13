@@ -56,7 +56,7 @@ export interface ProjectTaskRef {
   workspaceIdentity?: string;
   taskId: string;
 }
-export type ProjectTask = import("@nibi/shared").ZCodeTaskMeta & {
+export type ProjectTask = import("@nibi/shared").NibiTaskMeta & {
   projectId: string | null;
   hostId: string;
   pinned: boolean;

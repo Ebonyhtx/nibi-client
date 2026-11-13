@@ -6,7 +6,7 @@ import {
   RefreshCwIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { OnboardingAgentsFileMigrationState } from "@/onboarding/useOnboardingAgentsFileMigration.js";
 
 export interface AgentsFileMigrationStepLabels {
@@ -28,7 +28,7 @@ export function AgentsFileMigrationStep(props: {
   /** 可选的补充说明（例如“复制并覆盖，不会合并”）。 */
   noticeId?: string;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const status = props.migration.status;
   const supported = status?.supported === true;
   const selected = props.migration.selected && supported;

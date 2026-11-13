@@ -92,7 +92,7 @@ async function renderShare(): Promise<void> {
     <ConversationShareLandingLoader
       shareCode={shareCode}
       client={client}
-      getAccessToken={() => getMockToken() ?? webAuthService.getZCodeJwtToken()}
+      getAccessToken={() => getMockToken() ?? webAuthService.getNibiJwtToken()}
       onLogin={(provider) => {
         if (mockMode) {
           window.sessionStorage.setItem("nibi:share:mock-auth", "owner");

@@ -5,7 +5,7 @@ import { Emitter } from "@nibi/rpc";
 import type { FileWatchEvent } from "@nibi/shared";
 import { createElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 const h = vi.hoisted(() => ({
   currentByte: 1,
@@ -56,7 +56,7 @@ vi.mock("@/hooks/useWorkspaceOpenInEditorTarget.js", () => ({
 }));
 
 vi.mock("@/store/StoreProvider.js", () => ({
-  useZCodeStore: <T,>(selector: (state: Record<string, unknown>) => T) =>
+  useNibiStore: <T,>(selector: (state: Record<string, unknown>) => T) =>
     selector({
       codePreviewSettings: {
         darkTheme: "github-dark",
@@ -111,7 +111,7 @@ describe("PreviewPane PPTX file reload", () => {
     const { PreviewPane } = await import("@/PreviewPane.js");
     const view = render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(PreviewPane, {
           onClose: vi.fn(),

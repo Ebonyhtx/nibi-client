@@ -4,10 +4,10 @@ import {
   type RendererTelemetryEventPayload,
 } from "@nibi/shared";
 // 设置页插件管理薄服务实现——plugins/* 旧协议词的唯一 host 侧消费点。
-// 插件安装/市场/启停的事实源在 zcode-cli 进程（读写 ~/.zcode 插件目录并热更新
+// 插件安装/市场/启停的事实源在 nibi-cli 进程（读写 ~/.zcode 插件目录并热更新
 // 运行态），host 无副本，故实现保持 agent 协议往返；收敛价值在 UI 层不再直触
-// IZCodeAgentService，词表消费面从 UI 散点收拢到本文件一处。
-import type { IZCodeAgentService } from "../zcode-agent/zcodeAgent.js";
+// INibiAgentService，词表消费面从 UI 散点收拢到本文件一处。
+import type { INibiAgentService } from "../nibi-agent/nibiAgent.js";
 import type { IPluginManagementService } from "./pluginManagement.js";
 
 export interface PluginManagementServiceDependencies {
@@ -18,8 +18,8 @@ export interface PluginManagementServiceDependencies {
    * 钩子失败不阻断安装——门禁仍会按现有凭证判，最多是提示没生效。
    */
   beforeInstall?: () => Promise<void> | void;
-  zcodeAgentService: Pick<
-    IZCodeAgentService,
+  nibiAgentService: Pick<
+    INibiAgentService,
     | "listPlugins"
     | "getPluginReferenceCatalog"
     | "resolveSuggestedPluginReference"
@@ -44,7 +44,7 @@ export interface PluginManagementServiceDependencies {
 export function createPluginManagementService(
   dependencies: PluginManagementServiceDependencies,
 ): IPluginManagementService {
-  const agent = dependencies.zcodeAgentService;
+  const agent = dependencies.nibiAgentService;
   const now = dependencies.now ?? Date.now;
   const runBeforeInstall = async (): Promise<void> => {
     try {
@@ -54,7 +54,7 @@ export function createPluginManagementService(
     }
   };
   type Params =
-    import("../zcode-agent/zcodeAgentPluginParams.js").ZCodeAgentPluginMutationTarget & {
+    import("../nibi-agent/nibiAgentPluginParams.js").NibiAgentPluginMutationTarget & {
       pluginId?: string;
       pluginName?: string;
       marketplace?: string;

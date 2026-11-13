@@ -65,10 +65,10 @@ IAB 动态 API 不暴露 CUA/DOM CUA `downloadMedia`。这两个 helper 在静�
 
 | 领域 | 状态所有者 | 本轮作用 |
 | --- | --- | --- |
-| Agent Browser facade | `apps/zcode-cli/packages/core` | 参数校验、动态对象图、命令映射 |
+| Agent Browser facade | `apps/nibi-cli/packages/core` | 参数校验、动态对象图、命令映射 |
 | 严格协议 | `packages/shared/src/browser-use` | 完整表达 path、scroll anchor/delta、keypress |
 | IAB 执行 | `packages/desktop/src/main/browserView` | CDP trusted input、isolated world、下载动作 |
-| 插件文档 | `apps/zcode-cli/packages/browser-use-plugin` | URL、正则、networkidle、expectNavigation 和有效 API 指引 |
+| 插件文档 | `apps/nibi-cli/packages/browser-use-plugin` | URL、正则、networkidle、expectNavigation 和有效 API 指引 |
 | shared-host 路由 | host/services/main 既有 context | 不改变 `workspaceIdentity`、`remoteSessionId`、`clientMode` |
 
 不为手机端新增 runtime。`desktop-continuous` 与 `web-remote-replayable` 都通过同一 shared-host

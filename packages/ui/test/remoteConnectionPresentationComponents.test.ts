@@ -14,7 +14,7 @@ import { resolveRemoteConnectionPresentation } from "@/lib/remoteConnectionPrese
 import zh from "@/i18n/locales/zh-CN.js";
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }, values?: Record<string, string | number>) =>
         Object.entries(values ?? {}).reduce(

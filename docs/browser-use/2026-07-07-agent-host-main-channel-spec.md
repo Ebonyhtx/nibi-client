@@ -22,7 +22,7 @@ main: desktopHostProcess child.on("message") case BrowserExecuteRequest
 
 ## 2. Leg A：agent broker
 
-- 文件：`apps/zcode-cli/packages/bootstrap/src/nibi-protocol/browser-control-broker.ts`（新）。
+- 文件：`apps/nibi-cli/packages/bootstrap/src/nibi-protocol/browser-control-broker.ts`（新）。
   ```ts
   export function createProtocolBrowserControlBroker(
     context: NibiProtocolAgentServerContext,

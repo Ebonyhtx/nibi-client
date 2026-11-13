@@ -727,7 +727,7 @@ Active workspace（local / remote）──只决定工作区上下文，不改�
 #### 8.3.1 链路：Main coordinator → Window Host executor → Source Server target
 
 ```text
-Desktop Main                         Window Host                              Source Server daemon (zcode-server-cli Core)
+Desktop Main                         Window Host                              Source Server daemon (nibi-server-cli Core)
 ------------                         -----------                              --------------------------------------------
 ProviderProvisioning                 RemoteProviderProvisioningExecutor       createLocalServices({
 EnvironmentCoordinator               (registered by                             serviceAuthorityMode: "standalone-server",
@@ -824,7 +824,7 @@ Window Host（windowHostAttachmentRpcPolicy.ts）
 #### 8.3.5 Built-in Provider Config 物化目录
 
 ```text
-zcode-server-cli 构建
+nibi-server-cli 构建
   tsup define SERVER_CLI_DEFINES = { __ZCODE_VERSION__, __ZCODE_MIN_COMPATIBLE_VERSION__, __ZCODE_BUILTIN_PROVIDER_CONFIG_JSON__ }
         │
 Core 启动（server-core/core.ts runServerCore）

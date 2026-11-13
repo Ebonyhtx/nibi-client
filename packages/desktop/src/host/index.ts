@@ -51,12 +51,12 @@ import {
   IWindowControllerService,
   IConversationShareService,
   IPromptAttachmentTransferService,
-  IZCodeAgentService,
-  IZCodeTaskService,
-  IZCodeSessionService,
+  INibiAgentService,
+  INibiTaskService,
+  INibiSessionService,
   ICuaPipSessionService,
-  createZCodeAgentConnectionScope,
-  type ZCodeAgentV4ClientMode,
+  createNibiAgentConnectionScope,
+  type NibiAgentV4ClientMode,
   collectServiceMemoryDiagnostics,
 } from "@nibi/services";
 import {
@@ -84,7 +84,7 @@ import {
   HostMessageTypes,
   HostResponseTypes,
   formatLogPrefix,
-  formatZCodeHostProcessName,
+  formatNibiHostProcessName,
   formatZodError,
   buildRemoteWorkspaceIdentity,
   buildServerRemoteWorkspaceIdentity,
@@ -97,17 +97,17 @@ import {
   REMOTE_BIND_CANCELED_ERROR_CODE,
   REMOTE_WORKSPACE_BIND_SESSION_MISSING_ERROR_CODE,
   formatModelPickerValue,
-  type ZCodePromptAttachment,
-  type ZCodeStreamEvent,
-  type ZCodeTaskMeta,
+  type NibiPromptAttachment,
+  type NibiStreamEvent,
+  type NibiTaskMeta,
   type TaskStreamMirrorableEvent,
   type TraceId,
-  type ZCodeTaskMode,
+  type NibiTaskMode,
   type WindowHostAttachmentScope,
   type SourceServerArtifactPolicy,
-  type ZCodeAutomation,
-  type ZCodeAutomationRun,
-  type ZCodeAutomationRunOutcome,
+  type NibiAutomation,
+  type NibiAutomationRun,
+  type NibiAutomationRunOutcome,
   type ModelSelection,
 } from "@nibi/shared";
 import {
@@ -236,7 +236,7 @@ const hostNetworkCapture = createHostNetworkCapture(parentPort);
 
 // 进程检索体验优化：host 由 utilityProcess 拉起时外壳仍是 Electron Helper，
 // 这里根据 main 传入的窗口 label 补一层稳定的 zcode-* title，方便系统进程列表过滤。
-process.title = formatZCodeHostProcessName(process.env["NIBI_PROCESS_LABEL"]);
+process.title = formatNibiHostProcessName(process.env["NIBI_PROCESS_LABEL"]);
 
 type HostLogLevel = "info" | "warn" | "error";
 
@@ -388,7 +388,7 @@ function createFullFeedbackLogArchiveViaMain(
       onProgress: options?.onProgress,
     });
     // 问题反馈以前在 host service 内走 compactLogArchive 的 full fallback，
-    // 收集范围和“导出日志”不一致，缺少 zcode-cli 日志、rollout/debug 以及导出链路脱敏。
+    // 收集范围和“导出日志”不一致，缺少 nibi-cli 日志、rollout/debug 以及导出链路脱敏。
     // 这里把完整日志打包委托给 main process 的导出日志同源逻辑，host 只拿 zip 路径继续上传。
     try {
       parentPort.postMessage({
@@ -418,7 +418,7 @@ interface CronRunDispatchRequest {
   prompt: string;
   targetTaskId?: string;
   modelSelection?: ModelSelection;
-  mode?: ZCodeTaskMode;
+  mode?: NibiTaskMode;
   workspacePath: string;
   workspaceIdentity?: string;
   projectId?: string | null;
@@ -470,7 +470,7 @@ function markCronRunOutcome(params: {
   workspaceKey: string;
   scheduledAt: number | null;
   trigger: "schedule" | "manual";
-  outcome: ZCodeAutomationRunOutcome;
+  outcome: NibiAutomationRunOutcome;
   error?: string;
 }): void {
   void recordCronRunOutcomeBestEffort({
@@ -488,7 +488,7 @@ function disposeCronRunSubscription(key: string): void {
 }
 
 async function applyCronRunConfigToExistingTask(params: {
-  zcodeTaskService: IZCodeTaskService;
+  nibiTaskService: INibiTaskService;
   taskId: string;
   traceId: TraceId;
   modelSelection?: ModelSelection;
@@ -497,18 +497,18 @@ async function applyCronRunConfigToExistingTask(params: {
   let thoughtAppliedWithModel = false;
   let modeAppliedWithModel = false;
   if (params.modelSelection) {
-    await params.zcodeTaskService.setAutomationSessionConfig({
+    await params.nibiTaskService.setAutomationSessionConfig({
       taskId: params.taskId,
       traceId: params.traceId,
       modelSelection: params.modelSelection,
       thoughtLevel: params.modelSelection.options?.reasoningLevel,
-      mode: params.mode?.trim() as ZCodeTaskMode | undefined,
+      mode: params.mode?.trim() as NibiTaskMode | undefined,
     });
     thoughtAppliedWithModel = true;
     modeAppliedWithModel = true;
   }
   if (!modeAppliedWithModel && params.mode?.trim()) {
-    await params.zcodeTaskService.setConfigOption({
+    await params.nibiTaskService.setConfigOption({
       taskId: params.taskId,
       traceId: params.traceId,
       configId: "mode",
@@ -516,7 +516,7 @@ async function applyCronRunConfigToExistingTask(params: {
     });
   }
   if (!thoughtAppliedWithModel && params.modelSelection?.options?.reasoningLevel) {
-    await params.zcodeTaskService.setConfigOption({
+    await params.nibiTaskService.setConfigOption({
       taskId: params.taskId,
       traceId: params.traceId,
       configId: "thought_level",
@@ -526,7 +526,7 @@ async function applyCronRunConfigToExistingTask(params: {
 }
 
 function trackCronRunOutcome(params: {
-  zcodeTaskService: IZCodeTaskService;
+  nibiTaskService: INibiTaskService;
   taskId: string;
   traceId: TraceId;
   workspacePath: string;
@@ -540,7 +540,7 @@ function trackCronRunOutcome(params: {
   const key = cronRunSubscriptionKey(params.taskId, params.traceId);
   disposeCronRunSubscription(key);
   markCronRunOutcome({ ...params, outcome: "running" });
-  const disposable = params.zcodeTaskService.onDynamicTaskTerminalOutcome(params.taskId)(
+  const disposable = params.nibiTaskService.onDynamicTaskTerminalOutcome(params.taskId)(
     (result) => {
       if (result.inputId !== params.traceId) return;
       void settleCronRunTerminalOutcome({
@@ -551,7 +551,7 @@ function trackCronRunOutcome(params: {
         logWarn: (message, error) => logger.warn(message, error),
       });
       // 定时任务在后台完成后统一置为未读，真正打开 task 时再由导航链路清除。
-      void params.zcodeTaskService.setTaskUnread({
+      void params.nibiTaskService.setTaskUnread({
         taskId: params.taskId,
         workspacePath: params.workspacePath,
         ...(params.workspaceIdentity ? { workspaceIdentity: params.workspaceIdentity } : {}),
@@ -585,8 +585,8 @@ async function dispatchCronRun(request: CronRunDispatchRequest): Promise<{
   sessionId: string;
 }> {
   const targetServices = resolveAutomationTargetServices(request);
-  const zcodeTaskService = targetServices.getOptional(IZCodeTaskService);
-  if (!zcodeTaskService) {
+  const nibiTaskService = targetServices.getOptional(INibiTaskService);
+  if (!nibiTaskService) {
     throw new Error("NIBI task service is not initialized.");
   }
   const modelSelectionService = targetServices.getOptional(IModelSelectionService);
@@ -619,7 +619,7 @@ async function dispatchCronRun(request: CronRunDispatchRequest): Promise<{
   try {
     const task = request.targetTaskId
       ? { taskId: request.targetTaskId }
-      : await zcodeTaskService.createTask({
+      : await nibiTaskService.createTask({
           projectId: request.projectId,
           workspacePath: request.workspacePath,
           workspaceIdentity: request.workspaceIdentity,
@@ -636,7 +636,7 @@ async function dispatchCronRun(request: CronRunDispatchRequest): Promise<{
     if (request.targetTaskId) {
       // 绑定会话在 app 重启或切换 workspace 后通常不处于 active；旧实现直接
       // setConfig/sendPrompt 会立即报 Session is not active，看起来像「立即运行」没有触发。
-      await zcodeTaskService.resumeTask({
+      await nibiTaskService.resumeTask({
         taskId: task.taskId,
         workspacePath: request.workspacePath,
         workspaceIdentity: request.workspaceIdentity,
@@ -646,7 +646,7 @@ async function dispatchCronRun(request: CronRunDispatchRequest): Promise<{
         automationId: request.automationId,
       });
       await applyCronRunConfigToExistingTask({
-        zcodeTaskService,
+        nibiTaskService,
         taskId: task.taskId,
         traceId: promptTraceId,
         modelSelection: submissionModelSelection,
@@ -676,7 +676,7 @@ async function dispatchCronRun(request: CronRunDispatchRequest): Promise<{
     }
     trackedKey = cronRunSubscriptionKey(task.taskId, promptTraceId);
     trackCronRunOutcome({
-      zcodeTaskService,
+      nibiTaskService,
       taskId: task.taskId,
       traceId: promptTraceId,
       workspacePath: request.workspacePath,
@@ -687,7 +687,7 @@ async function dispatchCronRun(request: CronRunDispatchRequest): Promise<{
       scheduledAt,
       trigger,
     });
-    await zcodeTaskService.sendPrompt({
+    await nibiTaskService.sendPrompt({
       taskId: task.taskId,
       traceId: promptTraceId,
       content: request.prompt,
@@ -720,8 +720,8 @@ async function dispatchCronRun(request: CronRunDispatchRequest): Promise<{
 }
 
 async function dispatchManualAutomationRun(params: {
-  automation: ZCodeAutomation;
-  run: ZCodeAutomationRun;
+  automation: NibiAutomation;
+  run: NibiAutomationRun;
 }): Promise<void> {
   logger.info(
     `direct manual automation dispatch started automation=${params.automation.automationId} runId=${params.run.runId}`,
@@ -882,7 +882,7 @@ const workspaceTaskTracker = createHostWorkspaceTaskTracker((event) => {
   reportHostRunningTaskCount();
 });
 
-function isZCodeTaskMeta(value: unknown): value is ZCodeTaskMeta {
+function isNibiTaskMeta(value: unknown): value is NibiTaskMeta {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -896,12 +896,12 @@ function isZCodeTaskMeta(value: unknown): value is ZCodeTaskMeta {
 }
 
 function isRemoteMirrorableStreamEvent(
-  event: ZCodeStreamEvent,
+  event: NibiStreamEvent,
 ): event is TaskStreamMirrorableEvent {
   return event.type !== "task_stream_mirror_batch" && event.type !== "task_snapshot_updated";
 }
 
-function createReportingRemoteZCodeTaskService<T extends object>(
+function createReportingRemoteNibiTaskService<T extends object>(
   service: T,
   options?: {
     reportRunningPromptCount?: boolean;
@@ -910,8 +910,8 @@ function createReportingRemoteZCodeTaskService<T extends object>(
       taskId: string;
       traceId: TraceId;
       content: string;
-      attachments?: ZCodePromptAttachment[];
-    }) => Promise<{ content: string; attachments?: ZCodePromptAttachment[] }>;
+      attachments?: NibiPromptAttachment[];
+    }) => Promise<{ content: string; attachments?: NibiPromptAttachment[] }>;
   },
 ): T {
   const workspaceProxyState = createHostRemoteWorkspaceProxyState();
@@ -923,7 +923,7 @@ function createReportingRemoteZCodeTaskService<T extends object>(
     });
   }
 
-  function subscribeSessionMessageRequests(target: T, meta: ZCodeTaskMeta): void {
+  function subscribeSessionMessageRequests(target: T, meta: NibiTaskMeta): void {
     const onDynamicWorkspaceEvent = Reflect.get(target, "onDynamicWorkspaceEvent");
     if (typeof onDynamicWorkspaceEvent !== "function") {
       return;
@@ -949,7 +949,7 @@ function createReportingRemoteZCodeTaskService<T extends object>(
   }
 
   function rememberTaskMeta(result: unknown): void {
-    if (isZCodeTaskMeta(result)) {
+    if (isNibiTaskMeta(result)) {
       workspaceProxyState.rememberTaskMeta(result);
       subscribeSessionMessageRequests(service, result);
       parentPort?.postMessage({
@@ -989,12 +989,12 @@ function createReportingRemoteZCodeTaskService<T extends object>(
     taskId: string;
     traceId: TraceId;
     content: string;
-    attachments?: ZCodePromptAttachment[];
+    attachments?: NibiPromptAttachment[];
   }): Promise<{
     taskId: string;
     traceId: TraceId;
     content: string;
-    attachments?: ZCodePromptAttachment[];
+    attachments?: NibiPromptAttachment[];
   }> {
     if (!options?.materializePromptAttachments) {
       return params;
@@ -1012,7 +1012,7 @@ function createReportingRemoteZCodeTaskService<T extends object>(
       taskId: string;
       traceId: TraceId;
       content: string;
-      attachments?: ZCodePromptAttachment[];
+      attachments?: NibiPromptAttachment[];
     },
   ): Promise<unknown> {
     const taskRealtimePort = options?.taskRealtimePort;
@@ -1056,7 +1056,7 @@ function createReportingRemoteZCodeTaskService<T extends object>(
     //
     // 注意 1：手机远控不走这里。手机端经 Relay V2 的 RPC 隧道直接收发 v4 协议帧
     // （subscribeConversation / row.appended / pendingInteractions 都在手机端 bundle 里）。
-    // 注意 2：目前没有任何调用方给 createReportingRemoteZCodeTaskService 传
+    // 注意 2：目前没有任何调用方给 createReportingRemoteNibiTaskService 传
     // `taskRealtimePort`，所以 mirrorRemotePrompt 在函数入口就返回——这段是 Host 间镜像的
     // 预留路径，不是活链。改它不会影响线上行为，别据此推断手机端被修过。
     const dynamicTaskEvent = Reflect.get(target, "onDynamicTaskEvent");
@@ -1071,7 +1071,7 @@ function createReportingRemoteZCodeTaskService<T extends object>(
               // observer 是跨 Host 的镜像订阅：首帧要能补上运行中回合的现状。
               deliveryKind: "replayable",
             },
-          )((event: ZCodeStreamEvent) => {
+          )((event: NibiStreamEvent) => {
             if (isRemoteMirrorableStreamEvent(event)) {
               taskRealtimePort.publishStreamOp(mirrorTarget, {
                 kind: "stream_event",
@@ -1091,12 +1091,12 @@ function createReportingRemoteZCodeTaskService<T extends object>(
     }
   }
 
-  function finishWorkspaceTask(taskId: string, meta: ZCodeTaskMeta): void {
+  function finishWorkspaceTask(taskId: string, meta: NibiTaskMeta): void {
     workspaceProxyState.disposeTaskReadySubscription(taskId);
     workspaceTaskTracker.finish(taskId, meta);
   }
 
-  function beginWorkspaceTask(target: T, taskId: string, meta: ZCodeTaskMeta): boolean {
+  function beginWorkspaceTask(target: T, taskId: string, meta: NibiTaskMeta): boolean {
     const started = workspaceTaskTracker.begin(taskId, meta);
     if (!started) {
       return false;
@@ -1120,7 +1120,7 @@ function createReportingRemoteZCodeTaskService<T extends object>(
     return true;
   }
 
-  // remote workspace 的 ZCode Agent manager 跑在远端 server，desktop main 不能直接看到
+  // remote workspace 的 Nibi Agent manager 跑在远端 server，desktop main 不能直接看到
   // `handles` 状态。sendPrompt Promise 只是远端 ACK，必须等待 task ready 才能允许回收 workspace。
   return new Proxy(service, {
     get(target, property, receiver) {
@@ -1178,7 +1178,7 @@ function createReportingRemoteZCodeTaskService<T extends object>(
       }
 
       return async (...args: unknown[]) => {
-        let trackedTask: { taskId: string; meta: ZCodeTaskMeta; started: boolean } | undefined;
+        let trackedTask: { taskId: string; meta: NibiTaskMeta; started: boolean } | undefined;
         let tracksOnlyRpcLifetime = false;
         try {
           const params = args[0];
@@ -1193,10 +1193,10 @@ function createReportingRemoteZCodeTaskService<T extends object>(
               taskId: string;
               traceId: TraceId;
               content: string;
-              attachments?: ZCodePromptAttachment[];
+              attachments?: NibiPromptAttachment[];
             };
             const taskMeta = workspaceProxyState.getTaskMeta(promptParams.taskId) as
-              | ZCodeTaskMeta
+              | NibiTaskMeta
               | undefined;
             if (taskMeta) {
               trackedTask = {
@@ -1240,7 +1240,7 @@ function createReportingRemoteZCodeTaskService<T extends object>(
   });
 }
 
-function warmUpZCodeAgent(
+function warmUpNibiAgent(
   services: ServiceCollection,
   context: { workspacePath?: string; workspaceIdentity?: string },
   reason: string,
@@ -1250,11 +1250,11 @@ function warmUpZCodeAgent(
   }
   const workspacePath = context.workspacePath;
   const workspaceIdentity = context.workspaceIdentity;
-  const zcodeSessionService = services.getOptional(IZCodeSessionService);
-  if (!zcodeSessionService) {
+  const nibiSessionService = services.getOptional(INibiSessionService);
+  if (!nibiSessionService) {
     return;
   }
-  void zcodeSessionService
+  void nibiSessionService
     .initializeWorkspace({
       workspacePath,
       ...(workspaceIdentity ? { workspaceIdentity } : {}),
@@ -1263,12 +1263,12 @@ function warmUpZCodeAgent(
       if (!result.available) {
         if (result.reasonCode === "provider_not_ready") {
           logger.info(
-            `ZCode agent warmup waiting for provider/model (${reason}) workspace=${workspacePath}`,
+            `Nibi agent warmup waiting for provider/model (${reason}) workspace=${workspacePath}`,
           );
           return;
         }
         logger.warn(
-          `ZCode agent warmup unavailable (${reason}) workspace=${workspacePath} reason=${result.reason ?? "unknown"}`,
+          `Nibi agent warmup unavailable (${reason}) workspace=${workspacePath} reason=${result.reason ?? "unknown"}`,
         );
         return;
       }
@@ -1276,11 +1276,11 @@ function warmUpZCodeAgent(
       // presentation 只剩 mode 与 slash commands。预热不能为读取 presentation 额外创建
       // Agent App，否则其 MCP close 会占住协议通道并阻塞真正的 Session 初始化。
       logger.info(
-        `ZCode agent warmup ready (${reason}) workspace=${workspacePath} transport=${result.transportKind ?? "unknown"}`,
+        `Nibi agent warmup ready (${reason}) workspace=${workspacePath} transport=${result.transportKind ?? "unknown"}`,
       );
     })
     .catch((error) => {
-      logger.warn(`ZCode agent warmup failed (${reason}) workspace=${workspacePath}:`, error);
+      logger.warn(`Nibi agent warmup failed (${reason}) workspace=${workspacePath}:`, error);
     });
 }
 
@@ -1337,7 +1337,7 @@ let databaseStartup: ReturnType<typeof createHostDatabaseStartup> | undefined;
 const pendingStartupAttachments = new Map<string, () => void>();
 let activeServices: ServiceCollection | null = null;
 /**
- * Main 推送的实时界面语言，供 ZCode endpoint 请求的 X-Client-Language。
+ * Main 推送的实时界面语言，供 Nibi endpoint 请求的 X-Client-Language。
  * 过去 Host 用进程 Intl locale（Dock 启动无 LANG 会回退 en-US）；setting.json 写入可能滞后或失败，
  * 也不能代表当前界面，所以只认 Main 的 InitLocal 初值与 application-locale-changed 变更。
  */
@@ -1373,11 +1373,11 @@ function resolveBotProjectConnection(hostId: string): BotProjectConnection | und
     const services = registered.services;
     return {
       owner: registered.capabilities?.physicalOwner?.() ?? services,
-      taskService: createControllerRoutedTaskService(services.get(IZCodeTaskService), {
+      taskService: createControllerRoutedTaskService(services.get(INibiTaskService), {
         kind: "local",
       }),
       modelSelectionService: services.get(IModelSelectionService),
-      agentService: services.get(IZCodeAgentService),
+      agentService: services.get(INibiAgentService),
       bindWorkspace: async (target) => {
         await registered.capabilities?.bindWorkspaceIdentity?.({
           workspacePath: target.workspacePath,
@@ -1391,11 +1391,11 @@ function resolveBotProjectConnection(hostId: string): BotProjectConnection | und
   if (!connection) return undefined;
   return {
     owner: connection.services,
-    taskService: createControllerRoutedTaskService(connection.services.zcodeTaskService, {
+    taskService: createControllerRoutedTaskService(connection.services.nibiTaskService, {
       kind: "local",
     }),
     modelSelectionService: connection.services.modelSelectionService,
-    agentService: connection.services.zcodeAgentService,
+    agentService: connection.services.nibiAgentService,
     bindWorkspace: async (target) => {
       await connection.services.sourceServerWorkspaceService.resolveWorkspace({
         workspacePath: target.workspacePath,
@@ -1451,7 +1451,7 @@ async function ensureSourceServerConnectionManager(): Promise<SourceServerConnec
 let activeLocalResourceTelemetry: IDisposable | null = null;
 // 资源管理器采样只在 main 请求时执行一次，Host 不维护任何周期定时器。
 const hostResourceUsageResponder = createHostResourceUsageResponder({
-  getAgentService: () => activeServices?.getOptional(IZCodeAgentService),
+  getAgentService: () => activeServices?.getOptional(INibiAgentService),
   postMessage: (message) => parentPort?.postMessage(message),
 });
 let activeSessionRealtimePort: ReturnType<typeof createTaskRealtimeBridgeForHostInit> = null;
@@ -1530,7 +1530,7 @@ async function createWindowRemoteConnectionHandle(params: {
     });
     params.signal.throwIfAborted();
     topicResourceRelay = createWindowTopicResourceRelay({
-      getPeerAgentService: () => connection?.services.zcodeAgentService,
+      getPeerAgentService: () => connection?.services.nibiAgentService,
       resolveServices: (scope) => windowRemoteConnectionRegistry.resolveScopedServices(scope),
       getBots: () => activeServices?.getOptional(IBotsService),
     });
@@ -1817,7 +1817,7 @@ const windowRemoteConnectionRegistry = createWindowRemoteConnectionRegistry<
     );
   },
   releaseWorkspace: async (services, context) => {
-    await services.get(IZCodeTaskService).releaseWorkspacePreparation({
+    await services.get(INibiTaskService).releaseWorkspacePreparation({
       workspacePath: context.workspacePath,
       ...(context.workspaceIdentity ? { workspaceIdentity: context.workspaceIdentity } : {}),
       provider: "glm",
@@ -1902,8 +1902,8 @@ const windowRemoteConnectionRegistry = createWindowRemoteConnectionRegistry<
       previousScope,
       {
         scope: currentScope,
-        taskService: currentServices.get(IZCodeTaskService),
-        agentService: currentServices.getOptional(IZCodeAgentService),
+        taskService: currentServices.get(INibiTaskService),
+        agentService: currentServices.getOptional(INibiAgentService),
         sourceAvailability: "online",
       },
       {
@@ -1972,8 +1972,8 @@ const windowHostControllerRuntime = createWindowHostControllerRuntime({
       const services = windowRemoteConnectionRegistry.resolveScopedServices(controllerScope);
       return {
         scope: controllerScope,
-        taskService: services.get(IZCodeTaskService),
-        agentService: services.getOptional(IZCodeAgentService),
+        taskService: services.get(INibiTaskService),
+        agentService: services.getOptional(INibiAgentService),
         sourceAvailability: "online" as const,
       };
     }
@@ -2002,15 +2002,15 @@ const windowHostControllerRuntime = createWindowHostControllerRuntime({
             workspaceIdentity: scope.workspaceIdentity,
           },
           taskService:
-            connection?.services.zcodeTaskService ?? registered!.services.get(IZCodeTaskService),
+            connection?.services.nibiTaskService ?? registered!.services.get(INibiTaskService),
           agentService:
-            connection?.services.zcodeAgentService ??
-            registered!.services.getOptional(IZCodeAgentService),
+            connection?.services.nibiAgentService ??
+            registered!.services.getOptional(INibiAgentService),
           sourceAvailability: "online" as const,
         };
       return null;
     }
-    const taskService = activeServices?.getOptional(IZCodeTaskService);
+    const taskService = activeServices?.getOptional(INibiTaskService);
     if (!taskService) {
       return null;
     }
@@ -2021,7 +2021,7 @@ const windowHostControllerRuntime = createWindowHostControllerRuntime({
         ...(scope.workspaceIdentity ? { workspaceIdentity: scope.workspaceIdentity } : {}),
       },
       taskService,
-      agentService: activeServices?.getOptional(IZCodeAgentService),
+      agentService: activeServices?.getOptional(INibiAgentService),
       sourceAvailability: "online" as const,
     };
   },
@@ -2053,9 +2053,9 @@ type ExposedServicePortHandle = {
 };
 
 function createControllerRoutedTaskService(
-  base: IZCodeTaskService,
+  base: INibiTaskService,
   attachmentScope: WindowHostAttachmentScope,
-): IZCodeTaskService {
+): INibiTaskService {
   const route = async (
     params: {
       taskId: string;
@@ -2082,7 +2082,7 @@ function createControllerRoutedTaskService(
   return new Proxy(base, {
     get(target, property, receiver) {
       if (property === "setTaskPinned") {
-        return async (params: Parameters<IZCodeTaskService["setTaskPinned"]>[0]) => {
+        return async (params: Parameters<INibiTaskService["setTaskPinned"]>[0]) => {
           const meta = await route(params, {
             kind: "pin",
             pinned: params.pinned,
@@ -2094,8 +2094,8 @@ function createControllerRoutedTaskService(
       if (property === "archiveTask" || property === "unarchiveTask") {
         return async (
           params:
-            | Parameters<IZCodeTaskService["archiveTask"]>[0]
-            | Parameters<IZCodeTaskService["unarchiveTask"]>[0],
+            | Parameters<INibiTaskService["archiveTask"]>[0]
+            | Parameters<INibiTaskService["unarchiveTask"]>[0],
         ) => {
           const meta = await route(params, {
             kind: "archive",
@@ -2106,12 +2106,12 @@ function createControllerRoutedTaskService(
         };
       }
       if (property === "deleteTask") {
-        return async (params: Parameters<IZCodeTaskService["deleteTask"]>[0]) => {
+        return async (params: Parameters<INibiTaskService["deleteTask"]>[0]) => {
           await route(params, { kind: "delete" });
         };
       }
       if (property === "deleteArchivedTasks") {
-        return async (params: Parameters<IZCodeTaskService["deleteArchivedTasks"]>[0]) => {
+        return async (params: Parameters<INibiTaskService["deleteArchivedTasks"]>[0]) => {
           if (params.taskIds.length === 0) {
             return { deletedTaskIds: [], skippedTaskIds: [], failedTaskIds: [] };
           }
@@ -2128,7 +2128,7 @@ function createControllerRoutedTaskService(
         };
       }
       if (property === "deleteArchivedTask") {
-        return async (params: Parameters<IZCodeTaskService["deleteArchivedTask"]>[0]) =>
+        return async (params: Parameters<INibiTaskService["deleteArchivedTask"]>[0]) =>
           windowHostControllerRuntime.service.deleteArchivedTask({
             address: await windowHostControllerRuntime.resolveTaskAddress({
               ...params,
@@ -2138,7 +2138,7 @@ function createControllerRoutedTaskService(
           });
       }
       if (property === "setTaskUnread") {
-        return async (params: Parameters<IZCodeTaskService["setTaskUnread"]>[0]) => {
+        return async (params: Parameters<INibiTaskService["setTaskUnread"]>[0]) => {
           const meta = await route(
             params,
             params.unread
@@ -2176,7 +2176,7 @@ function exposeServicesOnMessagePort(
   port: Electron.MessagePortMain,
   services: ServiceCollection,
   deferInit: boolean,
-  clientMode: ZCodeAgentV4ClientMode = "desktop-continuous",
+  clientMode: NibiAgentV4ClientMode = "desktop-continuous",
   attachmentScope: WindowHostAttachmentScope = { kind: "local" },
   capabilities?: HostRemoteConnectionCapabilities,
 ): ExposedServicePortHandle {
@@ -2189,10 +2189,10 @@ function exposeServicesOnMessagePort(
   const rawServer = new ChannelServer(protocol, "host", 1000, deferInit);
   const loggedServer = new LoggingChannelServer(rawServer, logRpc);
   const server = new NetworkTelemetryChannelServer(loggedServer);
-  const agentService = services.getOptional(IZCodeAgentService);
+  const agentService = services.getOptional(INibiAgentService);
   const connectionContext = { connectionId: `host-rpc-${randomUUID()}`, clientMode };
   const connectionScope = agentService
-    ? createZCodeAgentConnectionScope(agentService, connectionContext)
+    ? createNibiAgentConnectionScope(agentService, connectionContext)
     : undefined;
   services.register(IWindowControllerService, windowHostControllerRuntime.service);
   // 未读自动写入只归窗口 base renderer；手机和 remote facade 不能重复消费同一完成信号。
@@ -2232,15 +2232,15 @@ function exposeServicesOnMessagePort(
     // dispose 只属于 Host attachment 生命周期，不暴露为 Renderer RPC。
     overrides.set(IPromptAttachmentTransferService.channelName, promptAttachmentService);
   }
-  const taskService = services.getOptional(IZCodeTaskService);
+  const taskService = services.getOptional(INibiTaskService);
   if (taskService) {
     overrides.set(
-      IZCodeTaskService.channelName,
+      INibiTaskService.channelName,
       createControllerRoutedTaskService(taskService, attachmentScope),
     );
   }
   if (connectionScope) {
-    overrides.set(IZCodeAgentService.channelName, connectionScope.service);
+    overrides.set(INibiAgentService.channelName, connectionScope.service);
   }
   const conversationShareService = services.getOptional(IConversationShareService);
   if (conversationShareService) {
@@ -2719,7 +2719,7 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
       try {
         const dispatchResult = await dispatchCronRun({
           ...msg,
-          mode: msg.mode as ZCodeTaskMode | undefined,
+          mode: msg.mode as NibiTaskMode | undefined,
         });
         parentPort.postMessage({
           type: HostResponseTypes.CronRunResult,
@@ -2762,8 +2762,8 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
   }
 
   if (msg.type === HostMessageTypes.SessionMessageDeliver) {
-    const zcodeTaskService = activeServices?.getOptional(IZCodeTaskService);
-    if (!zcodeTaskService) {
+    const nibiTaskService = activeServices?.getOptional(INibiTaskService);
+    if (!nibiTaskService) {
       parentPort.postMessage({
         type: HostResponseTypes.SessionMessageDeliverResult,
         result: {
@@ -2777,7 +2777,7 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
       return;
     }
 
-    void zcodeTaskService
+    void nibiTaskService
       .deliverSessionMessage(msg.request)
       .then((deliveryResult) => {
         parentPort.postMessage({
@@ -2801,12 +2801,12 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
   }
 
   if (msg.type === HostMessageTypes.SessionMessageDeliveryResult) {
-    const zcodeTaskService = activeServices?.getOptional(IZCodeTaskService);
-    if (!zcodeTaskService) {
-      logger.warn("session message delivery result received before ZCode task service initialized");
+    const nibiTaskService = activeServices?.getOptional(INibiTaskService);
+    if (!nibiTaskService) {
+      logger.warn("session message delivery result received before Nibi task service initialized");
       return;
     }
-    void zcodeTaskService.sendSessionMessageDeliveryResult(msg.result).catch((error) => {
+    void nibiTaskService.sendSessionMessageDeliveryResult(msg.result).catch((error) => {
       logger.warn("failed to forward session message delivery result:", error);
     });
     return;
@@ -2920,7 +2920,7 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
               const services = windowRemoteConnectionRegistry.resolveScopedServices(nextScope);
               await windowHostControllerRuntime.replaceDisconnectedSource(previousScope, {
                 scope: nextScope,
-                taskService: services.get(IZCodeTaskService),
+                taskService: services.get(INibiTaskService),
                 sourceAvailability: "online",
               });
             } catch (error) {
@@ -3322,9 +3322,9 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
               // 2 条会话权威 catalog 与 suggested 进度仍转发给持有 session 的内核。
               ...(useHostPluginManagement
                 ? {
-                    pluginManagementFactory: ({ zcodeAgentService }: { zcodeAgentService: IZCodeAgentService }) =>
+                    pluginManagementFactory: ({ nibiAgentService }: { nibiAgentService: INibiAgentService }) =>
                       createLocalPluginManagementBackend({
-                        fallback: zcodeAgentService,
+                        fallback: nibiAgentService,
                         env: process.env,
                       }),
                   }
@@ -3523,7 +3523,7 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
                     .listReadyConnections()
                     .map(({ target, services: remoteServices }) => ({
                       target,
-                      zcodeAgentService: remoteServices.get(IZCodeAgentService),
+                      nibiAgentService: remoteServices.get(INibiAgentService),
                     })),
                   mode,
                   (error) => logger.warn("remote dynamic workflow user mode forward failed", error),
@@ -3536,7 +3536,7 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
                 runtimeSurface: "desktop_local_host",
               },
               serviceAuthorityMode: "desktop-local",
-              zcodeAgentSpawnFallbackCwd: msg.agentSpawnFallbackCwd,
+              nibiAgentSpawnFallbackCwd: msg.agentSpawnFallbackCwd,
               nibiBuiltinProviderConfigFilePath: msg.nibiBuiltinProviderConfigFilePath,
               processLifecycleReporter: runtimeProcessLifecycleReporter,
               taskRuntimeReporter: runtimeTaskReporter,
@@ -3558,7 +3558,7 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
                   trigger,
                 });
               },
-              // browser-use：agent 的 interaction/browserExecute 经 zcodeAgentService 转到这个 executor，
+              // browser-use：agent 的 interaction/browserExecute 经 nibiAgentService 转到这个 executor，
               // 再经 parentPort 到 main 的 WebContentsView+CDP 执行。
               browserControlExecutor: browserControlMainBridge,
               // CUA 顶部提示属于物理 Windows 桌面投影；非 Windows 和远端 authority 都不得上报。
@@ -3570,15 +3570,15 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
             return initializedServices;
           },
         });
-        const zcodeTaskService = services.getOptional(IZCodeTaskService);
-        if (zcodeTaskService) {
-          const reportingZCodeTaskService = createReportingRemoteZCodeTaskService(
-            zcodeTaskService,
+        const nibiTaskService = services.getOptional(INibiTaskService);
+        if (nibiTaskService) {
+          const reportingNibiTaskService = createReportingRemoteNibiTaskService(
+            nibiTaskService,
             {
               reportRunningPromptCount: false,
             },
           );
-          services.register(IZCodeTaskService, reportingZCodeTaskService);
+          services.register(INibiTaskService, reportingNibiTaskService);
         }
         sourceServerDirectory = new SourceServerDirectory({
           settingService: services.get(ISettingService),
@@ -3662,7 +3662,7 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
         // Main 已把启动预热限制为 active workspace 1 个；Host 必须显式消费这份固定名单，
         // 不能让后续 task-list observer 再隐式扩大，也不能因失败扫描补位。
         agentWarmupTargets.forEach((target, index) => {
-          warmUpZCodeAgent(
+          warmUpNibiAgent(
             services,
             target,
             `local host init (${index + 1}/${agentWarmupTargets.length})`,

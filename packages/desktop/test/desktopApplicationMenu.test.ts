@@ -14,7 +14,7 @@ vi.mock("electron", () => ({
   app: {
     getLocale: vi.fn(() => envMock.locale),
     getPreferredSystemLanguages: vi.fn(() => envMock.preferredSystemLanguages),
-    name: "ZCode",
+    name: "Nibi",
     get isPackaged() {
       return envMock.isPackaged;
     },
@@ -46,11 +46,11 @@ vi.mock("@nibi/shared", () => ({
     ExportLogs: "exportLogs",
     ToggleDevTools: "toggleDevTools",
     OpenResourceManager: "openResourceManager",
-    ToggleZCodeStdioTapDevProxy: "toggleNIBIStdioTapDevProxy",
-    SetZCodeEndpointProduction: "setZCodeEndpointProduction",
-    SetZCodeEndpointTest: "setZCodeEndpointTest",
-    SetZCodeEndpointCustom: "setZCodeEndpointCustom",
-    ResetZCodeEndpoint: "resetZCodeEndpoint",
+    ToggleNibiStdioTapDevProxy: "toggleNIBIStdioTapDevProxy",
+    SetNibiEndpointProduction: "setNibiEndpointProduction",
+    SetNibiEndpointTest: "setNibiEndpointTest",
+    SetNibiEndpointCustom: "setNibiEndpointCustom",
+    ResetNibiEndpoint: "resetNibiEndpoint",
     ClearAllData: "clearAllData",
   },
   desktopMenuMessageIds: {
@@ -85,12 +85,12 @@ vi.mock("@nibi/shared", () => ({
     helpCheckForUpdates: "titleBar.menu.help.checkForUpdates",
     helpToggleDevTools: "titleBar.menu.help.toggleDevTools",
     helpResourceManager: "titleBar.menu.help.resourceManager",
-    helpToggleZCodeStdioTap: "titleBar.menu.help.toggleNIBIStdioTap",
-    helpZCodeEndpoint: "titleBar.menu.help.zcodeEndpoint",
-    helpZCodeEndpointProduction: "titleBar.menu.help.zcodeEndpoint.production",
-    helpZCodeEndpointTest: "titleBar.menu.help.zcodeEndpoint.test",
-    helpZCodeEndpointCustom: "titleBar.menu.help.zcodeEndpoint.custom",
-    helpZCodeEndpointReset: "titleBar.menu.help.zcodeEndpoint.reset",
+    helpToggleNibiStdioTap: "titleBar.menu.help.toggleNIBIStdioTap",
+    helpNibiEndpoint: "titleBar.menu.help.nibiEndpoint",
+    helpNibiEndpointProduction: "titleBar.menu.help.nibiEndpoint.production",
+    helpNibiEndpointTest: "titleBar.menu.help.nibiEndpoint.test",
+    helpNibiEndpointCustom: "titleBar.menu.help.nibiEndpoint.custom",
+    helpNibiEndpointReset: "titleBar.menu.help.nibiEndpoint.reset",
     helpFeedback: "titleBar.menu.help.feedback",
     helpExportLogs: "titleBar.menu.help.exportLogs",
     helpClearAllData: "titleBar.menu.help.clearAllData",
@@ -104,11 +104,11 @@ vi.mock("@nibi/shared", () => ({
   },
   getDesktopMenuMessage: (_locale: string, id: string) => {
     const enLabels: Record<string, string> = {
-      "titleBar.menu.help.zcodeEndpoint": "ZCode Endpoint",
-      "titleBar.menu.help.zcodeEndpoint.production": "Production (default)",
-      "titleBar.menu.help.zcodeEndpoint.test": "Test",
-      "titleBar.menu.help.zcodeEndpoint.custom": "Custom...",
-      "titleBar.menu.help.zcodeEndpoint.reset": "Reset to Default",
+      "titleBar.menu.help.nibiEndpoint": "Nibi Endpoint",
+      "titleBar.menu.help.nibiEndpoint.production": "Production (default)",
+      "titleBar.menu.help.nibiEndpoint.test": "Test",
+      "titleBar.menu.help.nibiEndpoint.custom": "Custom...",
+      "titleBar.menu.help.nibiEndpoint.reset": "Reset to Default",
     };
     const zhLabels: Record<string, string> = {
       "titleBar.menu.file": "文件",
@@ -155,13 +155,13 @@ vi.mock("../src/main/autoUpdater.js", () => ({
 
 vi.mock("../src/main/desktopCommandHandlers.js", () => ({
   HELP_TOGGLE_DEV_TOOLS_MENU_ID: "help.toggle-dev-tools",
-  HELP_TOGGLE_NIBI_STDIO_TAP_MENU_ID: "help.toggle-zcode-stdio-tap",
+  HELP_TOGGLE_NIBI_STDIO_TAP_MENU_ID: "help.toggle-nibi-stdio-tap",
   PERF_START_MENU_ID: "help.performance.start-recording",
   PERF_STOP_MENU_ID: "help.performance.stop-recording",
 }));
 
 vi.mock("@nibi/services/node", () => ({
-  readZCodeStdioTapDevState: vi.fn(() => ({ enabled: false, visible: false })),
+  readNibiStdioTapDevState: vi.fn(() => ({ enabled: false, visible: false })),
 }));
 
 describe("desktopApplicationMenu endpoint submenu", () => {
@@ -192,13 +192,13 @@ describe("desktopApplicationMenu endpoint submenu", () => {
 
     rebuildApplicationMenu({
       currentApplicationLocale: "en-US",
-      zcodeEndpointSelection: "test",
+      nibiEndpointSelection: "test",
       executeDesktopCommand: vi.fn(),
     });
 
     const template = buildFromTemplateMock.mock
       .calls[0]?.[0] as Electron.MenuItemConstructorOptions[];
-    const endpointItem = findMenuItem(template, "ZCode Endpoint");
+    const endpointItem = findMenuItem(template, "Nibi Endpoint");
     const testItem = findMenuItem(template, undefined, HELP_NIBI_ENDPOINT_TEST_MENU_ID);
     expect(endpointItem).toBeTruthy();
     expect(testItem?.checked).toBe(true);
@@ -210,13 +210,13 @@ describe("desktopApplicationMenu endpoint submenu", () => {
 
     rebuildApplicationMenu({
       currentApplicationLocale: "en-US",
-      zcodeEndpointSelection: "test",
+      nibiEndpointSelection: "test",
       executeDesktopCommand: vi.fn(),
     });
 
     const template = buildFromTemplateMock.mock
       .calls[0]?.[0] as Electron.MenuItemConstructorOptions[];
-    expect(findMenuItem(template, "ZCode Endpoint")).toBeUndefined();
+    expect(findMenuItem(template, "Nibi Endpoint")).toBeUndefined();
   });
 
   it("Preview 隐藏更新入口，生产版继续显示", async () => {
@@ -250,7 +250,7 @@ describe("desktopApplicationMenu endpoint submenu", () => {
 
     rebuildApplicationMenu({
       currentApplicationLocale: "en-US",
-      zcodeEndpointSelection: "production",
+      nibiEndpointSelection: "production",
       executeDesktopCommand: vi.fn(),
     });
 
@@ -266,7 +266,7 @@ describe("desktopApplicationMenu endpoint submenu", () => {
 
     rebuildApplicationMenu({
       currentApplicationLocale: "en-US",
-      zcodeEndpointSelection: "production",
+      nibiEndpointSelection: "production",
       executeDesktopCommand,
     });
 
@@ -286,7 +286,7 @@ describe("desktopApplicationMenu endpoint submenu", () => {
 
     rebuildApplicationMenu({
       currentApplicationLocale: "zh-CN",
-      zcodeEndpointSelection: "production",
+      nibiEndpointSelection: "production",
       executeDesktopCommand: vi.fn(),
     });
 
@@ -301,7 +301,7 @@ describe("desktopApplicationMenu endpoint submenu", () => {
     expect(findMenuItem(template, "粘贴")?.role).toBe("paste");
     expect(findMenuItem(template, "最小化")?.role).toBe("minimize");
     if (process.platform === "darwin") {
-      expect(findMenuItem(template, "隐藏 ZCode")?.role).toBe("hide");
+      expect(findMenuItem(template, "隐藏 Nibi")?.role).toBe("hide");
     }
   });
 
@@ -311,7 +311,7 @@ describe("desktopApplicationMenu endpoint submenu", () => {
 
     rebuildApplicationMenu({
       currentApplicationLocale: "en-US",
-      zcodeEndpointSelection: "production",
+      nibiEndpointSelection: "production",
       executeDesktopCommand,
       currentZoomLevel: 1,
     });
@@ -371,7 +371,7 @@ describe("desktopApplicationMenu endpoint submenu", () => {
 
     rebuildApplicationMenu({
       currentApplicationLocale: "en-US",
-      zcodeEndpointSelection: "production",
+      nibiEndpointSelection: "production",
       executeDesktopCommand,
       currentZoomLevel: 0,
     });
@@ -384,7 +384,7 @@ describe("desktopApplicationMenu endpoint submenu", () => {
 
     rebuildApplicationMenu({
       currentApplicationLocale: "en-US",
-      zcodeEndpointSelection: "production",
+      nibiEndpointSelection: "production",
       executeDesktopCommand,
       currentZoomLevel: 5,
     });
@@ -400,7 +400,7 @@ describe("desktopApplicationMenu endpoint submenu", () => {
 
     rebuildApplicationMenu({
       currentApplicationLocale: "en-US",
-      zcodeEndpointSelection: "production",
+      nibiEndpointSelection: "production",
       executeDesktopCommand,
       currentZoomLevel: -3,
     });

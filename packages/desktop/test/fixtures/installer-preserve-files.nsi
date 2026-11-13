@@ -1,5 +1,5 @@
 Unicode true
-Name "ZCode preserve-files smoke"
+Name "Nibi preserve-files smoke"
 OutFile "${OUTPUT_FILE}"
 InstallDir "$TEMP\zcode-preserve-files-smoke"
 RequestExecutionLevel user
@@ -10,7 +10,7 @@ SilentInstall silent
 !addplugindir /x86-unicode "${NSIS_PLUGIN_DIR}"
 !include "LogicLib.nsh"
 
-!define APP_FILENAME "ZCode"
+!define APP_FILENAME "Nibi"
 !define APP_ID "dev.zcode.preserve-files-smoke"
 !define UNINSTALL_FILENAME "uninstaller.exe"
 !define isUpdated `1 == 1`
@@ -25,8 +25,8 @@ Var appExe
 
 Section
   SetOutPath "$INSTDIR"
-  File /oname=ZCode.exe "${FIXTURE_EXE}"
-  StrCpy $appExe "$INSTDIR\ZCode.exe"
+  File /oname=Nibi.exe "${FIXTURE_EXE}"
+  StrCpy $appExe "$INSTDIR\Nibi.exe"
   !ifndef OMIT_MANIFEST
     FileOpen $0 "$INSTDIR\.nibi-install-manifest" w
     FileWrite $0 "owned-by-zcode.txt$\r$\n"
@@ -46,12 +46,12 @@ Section
   FileWrite $0 "keep me"
   FileClose $0
   !insertmacro customRemoveFiles
-  IfFileExists "$INSTDIR\owned-by-zcode.txt" 0 zcodeOwnedRemoved
+  IfFileExists "$INSTDIR\owned-by-zcode.txt" 0 nibiOwnedRemoved
     StrCpy $1 "present"
-    Goto zcodeWriteMarker
-  zcodeOwnedRemoved:
+    Goto nibiWriteMarker
+  nibiOwnedRemoved:
     StrCpy $1 "removed"
-  zcodeWriteMarker:
+  nibiWriteMarker:
     FileOpen $0 "$INSTDIR\remove-result.txt" w
     FileWrite $0 "$1"
     FileClose $0

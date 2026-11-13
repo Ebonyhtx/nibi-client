@@ -4,26 +4,26 @@ import {
   NIBI_REMOTE_HTTP_PROXY_ENV_KEY,
   NIBI_REMOTE_NO_PROXY_ENV_KEY,
   NIBI_REMOTE_RUNTIME_NETWORK_AUTHORITY_ENV_KEY,
-  buildZCodeToolEnvPassthroughEnv,
-  getCapturedZCodeCuaBrokerCredentials,
+  buildNibiToolEnvPassthroughEnv,
+  getCapturedNibiCuaBrokerCredentials,
   isCuaDevModeRequested,
-  isZCodeCuaInternalFeatureEnabled,
-  readZCodeAgentTelemetryEnv,
-  readZCodeToolEnvPassthroughEnv,
-  resetCapturedZCodeCuaBrokerCredentialsForTest,
-  sanitizeZCodeRuntimeEnv,
-  getCapturedZCodeAgentTelemetryEnv,
-  resetCapturedZCodeAgentTelemetryEnvForTest,
+  isNibiCuaInternalFeatureEnabled,
+  readNibiAgentTelemetryEnv,
+  readNibiToolEnvPassthroughEnv,
+  resetCapturedNibiCuaBrokerCredentialsForTest,
+  sanitizeNibiRuntimeEnv,
+  getCapturedNibiAgentTelemetryEnv,
+  resetCapturedNibiAgentTelemetryEnvForTest,
 } from "../src/runtimeEnv.js";
 
 describe("runtimeEnv", () => {
   it("enables internal CUA by default while honoring explicit false values", () => {
-    expect(isZCodeCuaInternalFeatureEnabled({})).toBe(true);
-    expect(isZCodeCuaInternalFeatureEnabled({ NIBI_CUA_PRODUCT_HELPER: "0" })).toBe(false);
-    expect(isZCodeCuaInternalFeatureEnabled({ NIBI_CUA_PRODUCT_HELPER: "false" })).toBe(false);
-    expect(isZCodeCuaInternalFeatureEnabled({ NIBI_CUA_PRODUCT_HELPER: "1" })).toBe(true);
-    expect(isZCodeCuaInternalFeatureEnabled({ NIBI_CUA_PRODUCT_HELPER: " TRUE " })).toBe(true);
-    expect(isZCodeCuaInternalFeatureEnabled({ NIBI_CUA_PRODUCT_HELPER: "on" })).toBe(true);
+    expect(isNibiCuaInternalFeatureEnabled({})).toBe(true);
+    expect(isNibiCuaInternalFeatureEnabled({ NIBI_CUA_PRODUCT_HELPER: "0" })).toBe(false);
+    expect(isNibiCuaInternalFeatureEnabled({ NIBI_CUA_PRODUCT_HELPER: "false" })).toBe(false);
+    expect(isNibiCuaInternalFeatureEnabled({ NIBI_CUA_PRODUCT_HELPER: "1" })).toBe(true);
+    expect(isNibiCuaInternalFeatureEnabled({ NIBI_CUA_PRODUCT_HELPER: " TRUE " })).toBe(true);
+    expect(isNibiCuaInternalFeatureEnabled({ NIBI_CUA_PRODUCT_HELPER: "on" })).toBe(true);
   });
 
   it("parses explicit truthy values for NIBI_CUA_DEV_MODE", () => {
@@ -45,9 +45,9 @@ describe("runtimeEnv", () => {
       npm_config_proxy: "http://npm-proxy.example:8080",
     };
 
-    const sanitized = sanitizeZCodeRuntimeEnv(sourceEnv);
-    const passthroughEnv = buildZCodeToolEnvPassthroughEnv(sourceEnv);
-    const captured = readZCodeToolEnvPassthroughEnv(passthroughEnv);
+    const sanitized = sanitizeNibiRuntimeEnv(sourceEnv);
+    const passthroughEnv = buildNibiToolEnvPassthroughEnv(sourceEnv);
+    const captured = readNibiToolEnvPassthroughEnv(passthroughEnv);
 
     expect(sanitized).toEqual({ PATH: "/usr/bin:/bin" });
     expect(captured).toEqual({
@@ -58,7 +58,7 @@ describe("runtimeEnv", () => {
   });
 
   it("ignores invalid passthrough JSON and non-network keys", () => {
-    const captured = readZCodeToolEnvPassthroughEnv({
+    const captured = readNibiToolEnvPassthroughEnv({
       [NIBI_TOOL_ENV_PASSTHROUGH_ENV_KEY]: JSON.stringify({
         HTTP_PROXY: "http://proxy.example:8080",
         NODE_ENV: "production",
@@ -70,7 +70,7 @@ describe("runtimeEnv", () => {
       HTTP_PROXY: "http://proxy.example:8080",
     });
     expect(
-      readZCodeToolEnvPassthroughEnv({
+      readNibiToolEnvPassthroughEnv({
         [NIBI_TOOL_ENV_PASSTHROUGH_ENV_KEY]: "not-json",
       }),
     ).toEqual({});
@@ -85,10 +85,10 @@ describe("runtimeEnv", () => {
       NIBI_CUA_PERMISSION_BROKER_REFRESH_MARKER:
         "/tmp/zcode-cua-me/broker-abc.sock.permission-refresh.json",
     };
-    const sanitized = sanitizeZCodeRuntimeEnv(sourceEnv);
+    const sanitized = sanitizeNibiRuntimeEnv(sourceEnv);
     expect(sanitized).toEqual({ PATH: "/usr/bin:/bin" });
 
-    const captured = readZCodeToolEnvPassthroughEnv(buildZCodeToolEnvPassthroughEnv(sourceEnv));
+    const captured = readNibiToolEnvPassthroughEnv(buildNibiToolEnvPassthroughEnv(sourceEnv));
     expect(captured).not.toHaveProperty("NIBI_CUA_PERMISSION_BROKER_SOCKET");
     expect(captured).not.toHaveProperty("NIBI_CUA_PERMISSION_BROKER_REFRESH_MARKER");
   });
@@ -101,45 +101,45 @@ describe("runtimeEnv", () => {
       [NIBI_REMOTE_NO_PROXY_ENV_KEY]: "localhost,127.0.0.1",
     };
 
-    expect(sanitizeZCodeRuntimeEnv(sourceEnv)).toEqual({ PATH: "/usr/bin:/bin" });
-    expect(readZCodeToolEnvPassthroughEnv(buildZCodeToolEnvPassthroughEnv(sourceEnv))).toEqual({});
+    expect(sanitizeNibiRuntimeEnv(sourceEnv)).toEqual({ PATH: "/usr/bin:/bin" });
+    expect(readNibiToolEnvPassthroughEnv(buildNibiToolEnvPassthroughEnv(sourceEnv))).toEqual({});
   });
 
   it("captures broker credentials as one atomic pair and clears stale state on partial rotation", () => {
-    resetCapturedZCodeCuaBrokerCredentialsForTest();
+    resetCapturedNibiCuaBrokerCredentialsForTest();
     try {
-      sanitizeZCodeRuntimeEnv({
+      sanitizeNibiRuntimeEnv({
         NIBI_CUA_PERMISSION_BROKER_SOCKET: "/tmp/broker-a.sock",
         NIBI_CUA_PLUGIN_AUTHORITY: "authority-a",
       });
-      expect(getCapturedZCodeCuaBrokerCredentials()).toEqual({
+      expect(getCapturedNibiCuaBrokerCredentials()).toEqual({
         socket: "/tmp/broker-a.sock",
         pluginAuthority: "authority-a",
       });
 
-      sanitizeZCodeRuntimeEnv({
+      sanitizeNibiRuntimeEnv({
         NIBI_CUA_PERMISSION_BROKER_SOCKET: "/tmp/broker-b.sock",
       });
-      expect(getCapturedZCodeCuaBrokerCredentials()).toEqual({
+      expect(getCapturedNibiCuaBrokerCredentials()).toEqual({
         socket: undefined,
         pluginAuthority: undefined,
       });
 
-      sanitizeZCodeRuntimeEnv({
+      sanitizeNibiRuntimeEnv({
         NIBI_CUA_PERMISSION_BROKER_SOCKET: "/tmp/broker-b.sock",
         NIBI_CUA_PLUGIN_AUTHORITY: "authority-b",
       });
-      expect(getCapturedZCodeCuaBrokerCredentials()).toEqual({
+      expect(getCapturedNibiCuaBrokerCredentials()).toEqual({
         socket: "/tmp/broker-b.sock",
         pluginAuthority: "authority-b",
       });
     } finally {
-      resetCapturedZCodeCuaBrokerCredentialsForTest();
+      resetCapturedNibiCuaBrokerCredentialsForTest();
     }
   });
 
   it("captures Agent OTLP config privately and never passes auth or identity through to tools", () => {
-    resetCapturedZCodeAgentTelemetryEnvForTest();
+    resetCapturedNibiAgentTelemetryEnvForTest();
     const sourceEnv = {
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "https://arms.example.com/v1/traces",
       OTEL_EXPORTER_OTLP_TRACES_HEADERS: "Authorization=secret",
@@ -148,15 +148,15 @@ describe("runtimeEnv", () => {
       PATH: "/usr/bin:/bin",
       NIBI_TELEMETRY_USER_SUBJECT_ID: "opaque-user",
     };
-    expect(sanitizeZCodeRuntimeEnv(sourceEnv)).toEqual({ PATH: "/usr/bin:/bin" });
-    expect(getCapturedZCodeAgentTelemetryEnv()).toMatchObject({
+    expect(sanitizeNibiRuntimeEnv(sourceEnv)).toEqual({ PATH: "/usr/bin:/bin" });
+    expect(getCapturedNibiAgentTelemetryEnv()).toMatchObject({
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "https://arms.example.com/v1/traces",
       OTEL_EXPORTER_OTLP_TRACES_HEADERS: "Authorization=secret",
       OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "https://arms.example.com/v1/metrics",
       OTEL_EXPORTER_OTLP_METRICS_HEADERS: "Authorization=metric-secret",
       NIBI_TELEMETRY_USER_SUBJECT_ID: "opaque-user",
     });
-    const toolEnv = readZCodeToolEnvPassthroughEnv(buildZCodeToolEnvPassthroughEnv(sourceEnv));
+    const toolEnv = readNibiToolEnvPassthroughEnv(buildNibiToolEnvPassthroughEnv(sourceEnv));
     expect(toolEnv).not.toHaveProperty("OTEL_EXPORTER_OTLP_TRACES_HEADERS");
     expect(toolEnv).not.toHaveProperty("OTEL_EXPORTER_OTLP_METRICS_HEADERS");
     expect(toolEnv).not.toHaveProperty("NIBI_TELEMETRY_USER_SUBJECT_ID");
@@ -164,7 +164,7 @@ describe("runtimeEnv", () => {
 
   it("extracts only the allowlisted Agent telemetry env", () => {
     expect(
-      readZCodeAgentTelemetryEnv({
+      readNibiAgentTelemetryEnv({
         OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: " https://arms.example.com/v1/traces ",
         OTEL_UNKNOWN_SECRET: "must-not-pass",
         PATH: "/bin",

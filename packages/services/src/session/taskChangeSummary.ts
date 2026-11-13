@@ -1,8 +1,8 @@
 import type {
-  ZCodePersistedFileChange,
-  ZCodeTaskChangeSummary,
-  ZCodeTaskChangedFileSummary,
-  ZCodeTaskMeta,
+  NibiPersistedFileChange,
+  NibiTaskChangeSummary,
+  NibiTaskChangedFileSummary,
+  NibiTaskMeta,
 } from "@nibi/shared";
 import { computeLineChangeStat } from "@nibi/shared";
 
@@ -19,9 +19,9 @@ interface AggregatedFileChange {
  * 每个轮次独立计算 diff，用于在每条 assistant 消息下方显示该轮的文件改动。
  */
 export function buildPerTurnChangeSummaries(
-  fileChanges: readonly ZCodePersistedFileChange[] | undefined,
-): Map<number, ZCodeTaskChangeSummary> {
-  const result = new Map<number, ZCodeTaskChangeSummary>();
+  fileChanges: readonly NibiPersistedFileChange[] | undefined,
+): Map<number, NibiTaskChangeSummary> {
+  const result = new Map<number, NibiTaskChangeSummary>();
   if (!fileChanges || fileChanges.length === 0) {
     return result;
   }
@@ -53,7 +53,7 @@ export function buildPerTurnChangeSummaries(
 
     let added = 0;
     let removed = 0;
-    const files: ZCodeTaskChangedFileSummary[] = Array.from(turnFileMap.entries())
+    const files: NibiTaskChangedFileSummary[] = Array.from(turnFileMap.entries())
       .map(([path, file]) => {
         const fileStat = computeLineChangeStat(file.beforeContent, file.afterContent);
         added += fileStat.added;
@@ -80,8 +80,8 @@ export function buildPerTurnChangeSummaries(
 }
 
 export function buildTaskChangeSummary(
-  fileChanges: readonly ZCodePersistedFileChange[] | undefined,
-): ZCodeTaskChangeSummary | undefined {
+  fileChanges: readonly NibiPersistedFileChange[] | undefined,
+): NibiTaskChangeSummary | undefined {
   if (!fileChanges || fileChanges.length === 0) {
     return undefined;
   }
@@ -114,7 +114,7 @@ export function buildTaskChangeSummary(
 
   let added = 0;
   let removed = 0;
-  const files: ZCodeTaskChangedFileSummary[] = Array.from(changedFileMap.values())
+  const files: NibiTaskChangedFileSummary[] = Array.from(changedFileMap.values())
     .map((file) => {
       const fileStat = computeLineChangeStat(file.originalContent, file.finalContent);
       added += fileStat.added;

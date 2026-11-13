@@ -20,4 +20,4 @@
   -> desktop and mobile converge
 ```
 
-当前实现入口：`apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/commands/handlers/goal-compact.ts`。
+当前实现入口：`apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/commands/handlers/goal-compact.ts`。

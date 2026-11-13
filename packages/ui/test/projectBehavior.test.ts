@@ -22,20 +22,20 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 vi.mock("@/hooks/useWorkspaceServices.js", () => ({
-  useBaseWorkspaceServices: () => ({ windowControllerService: mocks, zcodeTaskService: {} }),
+  useBaseWorkspaceServices: () => ({ windowControllerService: mocks, nibiTaskService: {} }),
 }));
 vi.mock("@/hooks/useResolvedRemoteWorkspaceSessionId.js", () => ({
   useResolvedRemoteWorkspaceSessionId: () => null,
 }));
-vi.mock("@/store/zcodeSessionStore.js", () => ({
-  useZCodeSessionStore: (select: (state: any) => unknown) =>
+vi.mock("@/store/nibiSessionStore.js", () => ({
+  useNibiSessionStore: (select: (state: any) => unknown) =>
     select({ ...mocks.state, removeTaskState: mocks.removeTaskState }),
 }));
 vi.mock("@/store/TabStoreProvider.js", () => ({
   useTabStore: (select: (state: any) => unknown) => select({ openSettingsTab: vi.fn() }),
 }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
+  useNibiIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
 }));
 vi.mock("@/TaskListItem.js", () => ({
   MemoTaskItem: (props: Record<string, any>) => {

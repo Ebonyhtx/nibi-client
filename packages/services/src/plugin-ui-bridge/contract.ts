@@ -1,4 +1,4 @@
-import type { ZCodePluginUiSurface } from "@nibi/shared";
+import type { NibiPluginUiSurface } from "@nibi/shared";
 import { ServiceChannels } from "@nibi/shared";
 import type { McpToolUiCsp, PluginSandboxHandle } from "@nibi/shared/mcp-apps";
 import { createServiceDescriptor } from "../descriptors.js";
@@ -11,7 +11,7 @@ import type {
   VersionFileSet,
 } from "../project-sync/projectSyncClient.js";
 
-/** 与 zcodeAgentService 其余方法一致的 workspace 定位；身份用 workspaceIdentity，路径用 workspacePath。 */
+/** 与 nibiAgentService 其余方法一致的 workspace 定位；身份用 workspaceIdentity，路径用 workspacePath。 */
 export interface PluginUiWorkspaceTarget {
   workspacePath: string;
   workspaceIdentity?: string;
@@ -103,7 +103,7 @@ export interface PluginUiResourceSubscriptionParams extends PluginUiPluginScope 
 }
 
 /** 工作区级面板入口（清单 `ui.surfaces[]`），来自 agent `plugins/listUiSurfaces`。 */
-export type PluginUiSurfaceEntry = ZCodePluginUiSurface;
+export type PluginUiSurfaceEntry = NibiPluginUiSurface;
 
 /**
  * 面板发起的云端项目操作。工作区**不在请求里**：一律用宿主登记的面板归属范围
@@ -138,7 +138,7 @@ export type PluginProjectSyncResult =
   | { kind: "resolve"; result: ResolveConflictResult };
 
 /**
- * 插件 UI 桥。UI 只依赖这个描述符，不直接调用 zcodeAgentService（M5 ③-3 平台能力面收敛）。
+ * 插件 UI 桥。UI 只依赖这个描述符，不直接调用 nibiAgentService（M5 ③-3 平台能力面收敛）。
  * `prepareSandbox` 以 (ownerWebContentsId, workspaceKey, sessionId, pluginId, scopeId) 幂等：重复调用返回同一
  * sandboxId 与递增 initId；同键并发调用只合并资源读取、登记各自进行（H15-a，每个调用方拿自己的 initId），
  * 顺序调用仍重新读取以拿到最新 HTML。

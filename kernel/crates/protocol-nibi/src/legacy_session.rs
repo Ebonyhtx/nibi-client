@@ -588,7 +588,7 @@ async fn mutation_snapshot(
     Ok(legacy_snapshot::snapshot(&after, Profile::Full, &times, &media))
 }
 
-/// 旧附件载荷（GUI `ZCodePromptAttachment`）→ 内容块。
+/// 旧附件载荷（GUI `NibiPromptAttachment`）→ 内容块。
 ///
 /// 与 v4 的 `AttachmentRef` 不是同一种形状：这里读 `kind` / `mimeType` / `localPath` /
 /// `dataBase64`。分法与 Node 的 `filePartToContentBlock` 一致：图片 `Image`、PDF `Document`、

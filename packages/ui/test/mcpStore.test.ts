@@ -335,7 +335,7 @@ describe("mcpStore", () => {
     expect(useMcpStore.getState().servers.map((server) => server.name)).toEqual(["platform-http"]);
   });
 
-  it("批量合并只更新 ZCode Agent MCP 行且清理 changed", () => {
+  it("批量合并只更新 Nibi Agent MCP 行且清理 changed", () => {
     useMcpStore.setState({
       servers: [
         {
@@ -374,8 +374,8 @@ describe("mcpStore", () => {
       epoch,
     );
 
-    const [zcodeServer, claudeServer] = useMcpStore.getState().servers;
-    expect(zcodeServer).toMatchObject({
+    const [nibiServer, claudeServer] = useMcpStore.getState().servers;
+    expect(nibiServer).toMatchObject({
       status: "connected",
       toolCount: 2,
       changed: false,
@@ -636,7 +636,7 @@ describe("mcpStore", () => {
     });
   });
 
-  it("批量状态刷新开始时会立即标记待检查的 ZCode Agent MCP 为连接中", () => {
+  it("批量状态刷新开始时会立即标记待检查的 Nibi Agent MCP 为连接中", () => {
     useMcpStore.setState({
       servers: [
         {
@@ -764,7 +764,7 @@ describe("mcpStore", () => {
     });
   });
 
-  it("批量状态刷新失败时会把当前连接中的 ZCode Agent MCP 收口为错误", () => {
+  it("批量状态刷新失败时会把当前连接中的 Nibi Agent MCP 收口为错误", () => {
     useMcpStore.setState({
       servers: [
         {
@@ -1036,7 +1036,7 @@ describe("mcpStore", () => {
     expect(
       useMcpStore
         .getState()
-        .getEnabledMcpServersForZCode(undefined)
+        .getEnabledMcpServersForNibi(undefined)
         .map((server) => server.name),
     ).toEqual(["user_probe"]);
 
@@ -1056,7 +1056,7 @@ describe("mcpStore", () => {
     expect(
       useMcpStore
         .getState()
-        .getEnabledMcpServersForZCode(undefined)
+        .getEnabledMcpServersForNibi(undefined)
         .map((server) => server.name)
         .sort(),
     ).toEqual(["probe", "user_probe"]);
@@ -1114,7 +1114,7 @@ describe("mcpStore", () => {
 
     // 未信任：开关仍展示配置值，但不会进入 Agent 输入。
     expect(useMcpStore.getState().servers[0]?.enabled).toBe(true);
-    expect(useMcpStore.getState().getEnabledMcpServersForZCode(undefined)).toEqual([]);
+    expect(useMcpStore.getState().getEnabledMcpServersForNibi(undefined)).toEqual([]);
 
     await expect(
       useMcpStore.getState().decideWorkspaceTrust("probe", true),
@@ -1132,7 +1132,7 @@ describe("mcpStore", () => {
     expect(
       useMcpStore
         .getState()
-        .getEnabledMcpServersForZCode(undefined)
+        .getEnabledMcpServersForNibi(undefined)
         .map((server) => server.name),
     ).toEqual(["probe"]);
   });
@@ -1196,7 +1196,7 @@ describe("mcpStore", () => {
     });
     expect(useMcpStore.getState().workspaceTrust.probe?.trusted).toBe(false);
     expect(
-      useMcpStore.getState().getEnabledMcpServersForZCode(undefined).map((server) => server.name),
+      useMcpStore.getState().getEnabledMcpServersForNibi(undefined).map((server) => server.name),
     ).toEqual([]);
   });
 

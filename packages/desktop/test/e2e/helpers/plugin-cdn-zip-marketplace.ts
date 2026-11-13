@@ -14,7 +14,7 @@ export const PLUGIN_CDN_ZIP_OFFLINE_LAST_UPDATED = "2099-01-01T00:00:00.000Z";
 // 确保走的是节流路径而不是「从未加载过」路径）。
 export const PLUGIN_STORE_AUTO_REFRESH_STALE_LAST_UPDATED = "2000-01-01T00:00:00.000Z";
 export const PLUGIN_CDN_ZIP_MARKETPLACE_ID = "nibi-official";
-export const PLUGIN_CDN_ZIP_MARKETPLACE_NAME = "ZCode Official Plugins";
+export const PLUGIN_CDN_ZIP_MARKETPLACE_NAME = "Nibi Official Plugins";
 export const PLUGIN_CDN_ZIP_NAME = "e2e-cdn-zip-plugin";
 export const PLUGIN_CDN_ZIP_ID = `${PLUGIN_CDN_ZIP_NAME}@${PLUGIN_CDN_ZIP_MARKETPLACE_ID}`;
 export const PLUGIN_CDN_ZIP_VERSION = "7.8.9";

@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { useClaudeSessionMigration } from "@/hooks/useClaudeSessionMigration.js";
 import {
   type ClaudeMigrationRange,
@@ -53,7 +53,7 @@ export function MigrationSessionsStep(props: {
   /** 设置页按上游样式在每行工作区名前展示文件夹图标；首启保持原观感。 */
   showRowIcon?: boolean;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const labels = props.labels ?? DEFAULT_SESSIONS_STEP_LABELS;
   const selectedCount = props.selectedWorkspacePaths.length;
   const totalCount = props.workspaceCandidates.length;

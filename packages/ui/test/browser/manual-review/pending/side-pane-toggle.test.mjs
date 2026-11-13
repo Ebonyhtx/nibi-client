@@ -17,7 +17,7 @@ test(
       .contexts()[0]
       .pages()
       .find((candidate) => /localhost:517/.test(candidate.url()));
-    assert.ok(page, "需要已运行的 ZCode Dev");
+    assert.ok(page, "需要已运行的 Nibi Dev");
     const toggle = () => page.getByTestId("side-pane-toggle").filter({ visible: true });
     const originalLabel = await toggle().getAttribute("aria-label");
     const originalClass = await page.locator("html").getAttribute("class");

@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/domain/src/node_journal/records.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-cli-rust/crates/domain/src/node_journal/records.rs（feat/rs 79b6691c55）。
 //! Node 记录模板（Node `message-persistence.ts`、`turn-model-step.ts`、`turn-step-finish.ts`、
 //! `execution-state.ts`、`events.ts`）。键按 Node 对象字面量的顺序插入，存储的 JSON 与 Node
 //! 逐字节一致（docs/specs/rust-m11-node-storage.md §2.3）。纯函数，没有 IO。
@@ -169,7 +169,7 @@ pub struct UserPrompt<'a> {
     pub command: Option<&'a str>,
 }
 
-/// Node `persistUserPrompt` 的消息。`agent` 是 `zcode-agent`；没有工具目录时 `tools` 为 `{}`。
+/// Node `persistUserPrompt` 的消息。`agent` 是 `nibi-agent`；没有工具目录时 `tools` 为 `{}`。
 pub fn user_message(p: &UserPrompt) -> Value {
     let mut out = json!({"id": p.id, "sessionID": p.session, "role": "user",
         "time": {"created": p.created}, "agent": AGENT});

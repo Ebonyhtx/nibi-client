@@ -158,7 +158,7 @@ agent env (it returns `Path: undefined` so Node's spawn drops the inherited vari
 - Runtime lookup: `<dir>/node-runtime/npm` for the entry file directory, then for the bundle
   directory. There is no cwd candidate, so a workspace cannot inject its own npm.
 - A candidate is valid only when `bin/npm-cli.js` and `bin/npx-cli.js` exist.
-- The desktop dev chain runs `apps/zcode-cli/packages/cli/dist/nibi.cjs`, which has no staged npm
+- The desktop dev chain runs `apps/nibi-cli/packages/cli/dist/nibi.cjs`, which has no staged npm
   (and `stageAgentBundle` wipes `glm` on every dev build). There the `node` shim works and the
   `npm`/`npx` shims exit 127 with the missing-variable message.
 

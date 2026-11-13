@@ -6,8 +6,8 @@ import {
   TID_WORKFLOW_CARD_RUN,
   TID_WORKFLOW_ACTION_DELETE,
   TID_WORKFLOW_ACTION_MOVE,
-  type ZCodeSavedWorkflowEntry,
-  type ZCodeSavedWorkflowRun,
+  type NibiSavedWorkflowEntry,
+  type NibiSavedWorkflowRun,
 } from "@nibi/shared";
 import { testId } from "@nibi/shared/test-ids";
 import { Button } from "@/components/ui/button.js";
@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.js";
 import { cn } from "@/components/lib/utils.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   AutomationMoreHorizontalIcon,
   AutomationRunNowIcon,
@@ -35,10 +35,10 @@ export function SavedWorkflowLastRunBadge({
   run,
   now,
 }: {
-  run: ZCodeSavedWorkflowRun | undefined;
+  run: NibiSavedWorkflowRun | undefined;
   now: number;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const kind = savedWorkflowRunBadgeKind(run?.status);
   if (kind === "never" || !run) {
     return (
@@ -86,17 +86,17 @@ export function SavedWorkflowLastRunBadge({
 }
 
 interface SavedWorkflowCardProps {
-  entry: ZCodeSavedWorkflowEntry;
-  lastRun: ZCodeSavedWorkflowRun | undefined;
+  entry: NibiSavedWorkflowEntry;
+  lastRun: NibiSavedWorkflowRun | undefined;
   now: number;
   busy?: boolean;
-  onOpen: (entry: ZCodeSavedWorkflowEntry) => void;
-  onRun: (entry: ZCodeSavedWorkflowEntry) => void;
-  onRevise: (entry: ZCodeSavedWorkflowEntry) => void;
-  onCopyPath: (entry: ZCodeSavedWorkflowEntry) => void;
+  onOpen: (entry: NibiSavedWorkflowEntry) => void;
+  onRun: (entry: NibiSavedWorkflowEntry) => void;
+  onRevise: (entry: NibiSavedWorkflowEntry) => void;
+  onCopyPath: (entry: NibiSavedWorkflowEntry) => void;
   /** 作用域动作：项目档「提升为全局」（AI 概括）/ 全局档「移到项目…」；仅在传入时出现。 */
-  onMove?: (entry: ZCodeSavedWorkflowEntry) => void;
-  onDelete: (entry: ZCodeSavedWorkflowEntry) => void;
+  onMove?: (entry: NibiSavedWorkflowEntry) => void;
+  onDelete: (entry: NibiSavedWorkflowEntry) => void;
 }
 
 /**
@@ -115,7 +115,7 @@ export const SavedWorkflowCard = memo(function SavedWorkflowCard({
   onMove,
   onDelete,
 }: SavedWorkflowCardProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const argNames = Object.keys(entry.args ?? {});
   const visibleArgs = argNames.slice(0, MAX_ARG_CHIPS);
   const hiddenArgCount = argNames.length - visibleArgs.length;

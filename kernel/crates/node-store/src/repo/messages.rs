@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/state/src/node/messages.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-cli-rust/crates/state/src/node/messages.rs（feat/rs 79b6691c55）。
 //! `message` 与 `part` 行（Node `repositories/messages.ts`，docs/specs/rust-m11-node-storage.md
 //! §2.3、§5）。值是带 id 成员的 Node `MessageInfo` / `MessagePart` 对象。
 //!

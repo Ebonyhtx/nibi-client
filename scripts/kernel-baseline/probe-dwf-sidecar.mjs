@@ -22,7 +22,7 @@ import { createInterface } from "node:readline";
 import { DatabaseSync } from "node:sqlite";
 import { pathToFileURL } from "node:url";
 
-const packages = resolve(import.meta.dirname, "../../apps/zcode-cli/packages");
+const packages = resolve(import.meta.dirname, "../../apps/nibi-cli/packages");
 const migrations = resolve(import.meta.dirname, "../../kernel/crates/node-store/src/repo/migrations");
 
 const SCRIPT = [

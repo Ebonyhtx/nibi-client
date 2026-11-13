@@ -1,8 +1,8 @@
 import type {
-  ZCodePermissionOption,
-  ZCodePermissionRequest,
-  ZCodePermissionResponse,
-  ZCodeElicitationRequest,
+  NibiPermissionOption,
+  NibiPermissionRequest,
+  NibiPermissionResponse,
+  NibiElicitationRequest,
 } from "@nibi/shared";
 import type {
   PendingInteraction,
@@ -21,7 +21,7 @@ const LEGACY_PERMISSION_RULE_INPUT_KEYS = [
 function permissionKindToResponse(
   kind: string,
   payload: PermissionRequestPayload,
-): ZCodePermissionResponse {
+): NibiPermissionResponse {
   if (kind === "deny" || kind === "rejectOnce" || kind === "rejectAlways") {
     return { decision: "deny" };
   }
@@ -54,16 +54,16 @@ function permissionKindToResponse(
   return { decision: "allow" };
 }
 
-/** v4 permission payload → 旧 PermissionDialog 可消费的 ZCodePermissionRequest。 */
+/** v4 permission payload → 旧 PermissionDialog 可消费的 NibiPermissionRequest。 */
 export function pendingPermissionToLegacyRequest(
   sessionId: string,
   interaction: PendingInteraction & { payload: PermissionRequestPayload },
-): ZCodePermissionRequest {
+): NibiPermissionRequest {
   const { payload } = interaction;
   const advertisedOptions = payload.fullAccessOption
     ? [...payload.options, payload.fullAccessOption]
     : payload.options;
-  const options: ZCodePermissionOption[] = advertisedOptions.map((option) => ({
+  const options: NibiPermissionOption[] = advertisedOptions.map((option) => ({
     optionId: option.optionId,
     kind: option.kind,
     name: option.label,
@@ -116,7 +116,7 @@ export function pendingUserInputToViewModel(
 export function pendingUserInputToElicitationRequest(
   sessionId: string,
   interaction: PendingInteraction & { payload: UserInputRequestPayload },
-): ZCodeElicitationRequest | null {
+): NibiElicitationRequest | null {
   const { payload } = interaction;
   if (!payload.questions || payload.questions.length === 0) {
     return null;

@@ -1,6 +1,6 @@
 import {
   BOT_TASK_BROADCAST_CHANNEL,
-  type ZCodeTaskRuntimeStatus,
+  type NibiTaskRuntimeStatus,
   type BotTaskBroadcastPayload,
 } from "@nibi/shared";
 import type { BroadcastMessage } from "@nibi/services";
@@ -83,7 +83,7 @@ export function resolveBotTaskBroadcastRefresh(
 
 export function resolveBotTaskBroadcastRuntimeStatus(
   event: BotTaskBroadcastPayload["event"],
-): ZCodeTaskRuntimeStatus {
+): NibiTaskRuntimeStatus {
   switch (event) {
     case "created":
       return "creating";

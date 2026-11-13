@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { ZCodeTaskChangeSummary } from "@nibi/shared";
+import type { NibiTaskChangeSummary } from "@nibi/shared";
 import { formatGroupedTaskHoverChangeParts } from "@/project-sidebar/grouped/task-row-tooltip.js";
 
-function createChangeSummary(added: number, removed: number): ZCodeTaskChangeSummary {
+function createChangeSummary(added: number, removed: number): NibiTaskChangeSummary {
   return {
     fileCount: 1,
     added,

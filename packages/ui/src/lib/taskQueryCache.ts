@@ -1,18 +1,18 @@
 import type {
-  ZCodeTaskListKind,
-  ZCodeTaskListSortBy,
-  ZCodeTaskListWorkspaceScope,
+  NibiTaskListKind,
+  NibiTaskListSortBy,
+  NibiTaskListWorkspaceScope,
 } from "@nibi/services";
-import type { ZCodeTaskMeta } from "@nibi/shared";
-import { resolveWorkspaceStateKey } from "@/store/zcodeSessionStoreSelectors.js";
+import type { NibiTaskMeta } from "@nibi/shared";
+import { resolveWorkspaceStateKey } from "@/store/nibiSessionStoreSelectors.js";
 
 export type TaskEntityKey = string;
 export type TaskListCacheKey = string;
-export type TaskListQueryKind = ZCodeTaskListKind | "workspace";
+export type TaskListQueryKind = NibiTaskListKind | "workspace";
 
 export interface TaskListCacheDescriptor {
   kind: TaskListQueryKind;
-  sortBy: ZCodeTaskListSortBy;
+  sortBy: NibiTaskListSortBy;
   search: string;
   expanded: boolean;
   visibleLimit: number | null;
@@ -41,14 +41,14 @@ export function buildTaskWorkspaceKey(workspacePath: string, workspaceIdentity?:
   return resolveWorkspaceStateKey(workspacePath, workspaceIdentity);
 }
 
-export function buildTaskEntityKey(task: Pick<ZCodeTaskMeta, "taskId" | "workspacePath" | "workspaceIdentity">): TaskEntityKey {
+export function buildTaskEntityKey(task: Pick<NibiTaskMeta, "taskId" | "workspacePath" | "workspaceIdentity">): TaskEntityKey {
   return `${buildTaskWorkspaceKey(task.workspacePath, task.workspaceIdentity)}::${task.taskId}`;
 }
 
 export function normalizeTaskListWorkspaceScopes(
-  scopes: ZCodeTaskListWorkspaceScope[],
-): ZCodeTaskListWorkspaceScope[] {
-  const uniqueScopes = new Map<string, ZCodeTaskListWorkspaceScope>();
+  scopes: NibiTaskListWorkspaceScope[],
+): NibiTaskListWorkspaceScope[] {
+  const uniqueScopes = new Map<string, NibiTaskListWorkspaceScope>();
 
   for (const scope of scopes) {
     const workspaceKey = buildTaskWorkspaceKey(scope.workspacePath, scope.workspaceIdentity);
@@ -69,8 +69,8 @@ function normalizeTaskListSearch(search?: string): string {
 
 export function buildTaskListCacheDescriptor(params: {
   kind: TaskListQueryKind;
-  workspaceScopes: ZCodeTaskListWorkspaceScope[];
-  sortBy: ZCodeTaskListSortBy;
+  workspaceScopes: NibiTaskListWorkspaceScope[];
+  sortBy: NibiTaskListSortBy;
   search?: string;
   expanded: boolean;
   visibleLimit?: number | null;

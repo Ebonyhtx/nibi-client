@@ -24,7 +24,7 @@ import { ClientSceneLucideIcon } from "@/components/ClientSceneLucideIcon.js";
 import { Button } from "@/components/ui/button.js";
 import { cn } from "@/components/lib/utils.js";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   resolveDraftSuggestedPromptText,
   type DraftSuggestedPromptItem,
@@ -295,7 +295,7 @@ export function ConversationDraftSuggestedPrompts({
   pluginActionPopover,
   variant = "default",
 }: ConversationDraftSuggestedPromptsProps) {
-  const { locale, intl } = useZCodeIntl();
+  const { locale, intl } = useNibiIntl();
   const [confirmClose, setConfirmClose] = useState(false);
   const isCompact = variant === "compact";
   // 服务端已按推荐优先级排好序；紧凑形态只取前四条，剩余条目不再渲染也不占位。

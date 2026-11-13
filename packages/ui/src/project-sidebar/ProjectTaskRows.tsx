@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button.js";
 import { useProjectTaskActions } from "@/project-sidebar/useProjectTaskActions.js";
 import { ProjectTaskListContext } from "@/project-sidebar/ProjectTaskListContext.js";
 import { compareProjectTaskRows } from "@/project-sidebar/view.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { timelineDateHeadings } from "@/project-sidebar/timelineDates.js";
 
 const EMPTY: ProjectTask[] = [];
@@ -27,7 +27,7 @@ export const ProjectTaskRow = memo(function Row({
   const presentation = useContext(ProjectTaskListContext);
   const { remoteSessionId, rename, pin, archive, unread } = useProjectTaskActions(task, refresh);
   const workspaceKey = task.workspaceIdentity?.trim() || task.workspacePath;
-  const activeId = useZCodeSessionStore(
+  const activeId = useNibiSessionStore(
     (state) => state.workspaces[workspaceKey]?.activeTaskId ?? null,
   );
   const rows = useMemo(() => [task], [task]);
@@ -94,7 +94,7 @@ export function ProjectTaskRows({
   onSelect: ProjectSidebarProps["onSelectTask"];
   refresh(): Promise<void>;
 }) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   // 按未读复用最近更新的日期标题与 20/+20 分页，只是集合换成未读任务。
   const timeGrouped = kind === "timeline" || kind === "unread";
   const pageSize = timeGrouped ? 20 : 5;

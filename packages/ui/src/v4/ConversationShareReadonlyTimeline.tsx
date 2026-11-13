@@ -72,7 +72,7 @@ import {
   DEFAULT_CODE_PREVIEW_SETTINGS,
   type CodePreviewSettings,
 } from "@/lib/codePreviewSettings.js";
-import { ZCodeIntlProvider, useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider, useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { Theme } from "@/useTheme.js";
 import { FileDisplayIcon, resolveFileDisplayDescriptor } from "@/lib/fileDisplay.js";
 import { formatAttachmentSize } from "@/lib/chatAttachmentMetadata.js";
@@ -321,7 +321,7 @@ const AssistantTextPresentation = memo(function AssistantTextPresentation({
           streaming={false}
           theme={theme}
           codePreviewSettings={codePreviewSettings}
-          renderZCodeFileCitations={false}
+          renderNibiFileCitations={false}
           onOpenExternalUrl={onOpenExternalUrl}
         >
           {markdown}
@@ -433,7 +433,7 @@ const ArtifactPresentation = memo(function ArtifactPresentation({
   url?: string;
   previewLabel: string;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const artifactOpenContext = useContext(ArtifactOpenContext);
   const OpenAction = artifactOpenContext?.openAction;
   // 与 AssistantPreviewCards 保持同一视觉：44px 图标底板 + 真实文件类型图标 + 中粗标题 + 类型副标题。
@@ -742,7 +742,7 @@ function ReadonlyHistoryStatus({
   labels: ReadonlyLabels;
   locale: Locale;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const duration = formatConversationWorkDuration(segment.workStatus?.durationMs, intl, locale);
   const label =
     segment.workStatus?.state === "interrupted"
@@ -1024,9 +1024,9 @@ function ReadonlyTurn({
 
 export function ConversationShareReadonlyTimeline(props: ConversationShareReadonlyTimelineProps) {
   return (
-    <ZCodeIntlProvider initialLocale={props.locale ?? "zh-CN"}>
+    <NibiIntlProvider initialLocale={props.locale ?? "zh-CN"}>
       <ConversationShareReadonlyTimelineContent {...props} />
-    </ZCodeIntlProvider>
+    </NibiIntlProvider>
   );
 }
 
@@ -1047,7 +1047,7 @@ function ConversationShareReadonlyTimelineContent({
   artifactOpenAction,
   unsupportedRowCount = 0,
 }: ConversationShareReadonlyTimelineProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const rowsById = new Map(rows.map((row) => [row.rowId, row] as const));
   const allBlocks = decodeConversationShareContentBlocks(contentBlocks).filter((block) => {
     const row = rowsById.get(block.fallback_row_id);

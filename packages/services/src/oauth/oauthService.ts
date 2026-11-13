@@ -39,7 +39,7 @@ import { OAuthCredentialRepo } from "./repo/oauthCredentialRepo.js";
 import { createOAuthRuntimeConfig } from "./runtimeConfig.js";
 import {
   buildDesktopOAuthRedirectUriFromEnv,
-  buildZCodeApiUrlFromEnv,
+  buildNibiApiUrlFromEnv,
 } from "./providers/configUtils.js";
 
 /** OAuth 超时时间（5 分钟） */
@@ -275,7 +275,7 @@ export class OAuthService implements IOAuthService {
     const expired = tokens.find(
       ({ value }) => value && resolveJwtExpiration(value, this.now()).kind === "expired",
     );
-    const zcodeJwtToken = tokens.find(({ key }) => key === NIBI_JWT_TOKEN_KEY)?.value ?? "";
+    const nibiJwtToken = tokens.find(({ key }) => key === NIBI_JWT_TOKEN_KEY)?.value ?? "";
     if (expired) {
       // NIBI 的 access token 过期时先走 refresh：refresh token 通常还有效，
       // 旧实现直接清会话会逼用户重新走浏览器登录（关机超过 token 生命期必现）。
@@ -344,7 +344,7 @@ export class OAuthService implements IOAuthService {
     }
 
     if (activeProvider === ZAI_PROVIDER_ID) {
-      if (!zcodeJwtToken) {
+      if (!nibiJwtToken) {
         // sidebar 登录入口之前只看缓存 user_info，会把“缺少 nibi-jwttoken”的状态误判成已登录。
         // 这里补充 nibi-jwttoken 门槛，确保没有后端 JWT 时统一按未登录处理。
         log("restoreCachedSession skipped: missing nibi-jwttoken:", activeProvider);
@@ -817,7 +817,7 @@ export class OAuthService implements IOAuthService {
     this.oauthFlowStartProvider = provider;
     this.clearPendingState();
     const pollToken = randomBytes(32).toString("hex");
-    const initUrl = buildZCodeApiUrlFromEnv(this.env, "/api/v1/oauth/cli/init");
+    const initUrl = buildNibiApiUrlFromEnv(this.env, "/api/v1/oauth/cli/init");
     const envelope = await readApiJson<OAuthFlowEnvelope>(this.apiClient, initUrl, {
       method: "POST",
       headers: {
@@ -894,7 +894,7 @@ export class OAuthService implements IOAuthService {
         nextPollAt: this.now(),
         pollIntervalMs,
         pollToken,
-        pollUrl: buildZCodeApiUrlFromEnv(
+        pollUrl: buildNibiApiUrlFromEnv(
           this.env,
           `/api/v1/oauth/cli/poll/${encodeURIComponent(flowId)}`,
         ),
@@ -992,9 +992,9 @@ export class OAuthService implements IOAuthService {
           pending.provider === ZAI_PROVIDER_ID
             ? readTrimmedString(zai?.access_token)
             : readTrimmedString(bigmodel?.access_token) || readTrimmedString(bigmodel?.accessToken);
-        const zcodeJwtToken = readTrimmedString(ready.token);
+        const nibiJwtToken = readTrimmedString(ready.token);
         const userId = readTrimmedString(user?.user_id);
-        if (!zcodeJwtToken || !providerAccessToken || !userId) {
+        if (!nibiJwtToken || !providerAccessToken || !userId) {
           throw new Error("OAuth flow 查询响应无效");
         }
         const username = readTrimmedString(user?.name) || readTrimmedString(user?.email) || userId;
@@ -1015,12 +1015,12 @@ export class OAuthService implements IOAuthService {
         const tokenSet = adapter.normalizePolledTokenSet
           ? await adapter.normalizePolledTokenSet({
               accessToken: providerAccessToken,
-              zcodeJwtToken,
+              nibiJwtToken,
               ...(refreshToken ? { refreshToken } : {}),
             })
           : {
               accessToken: providerAccessToken,
-              zcodeJwtToken,
+              nibiJwtToken,
               ...(refreshToken ? { refreshToken } : {}),
             };
         return { tokenSet, profile };

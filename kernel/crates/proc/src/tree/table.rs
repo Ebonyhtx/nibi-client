@@ -1,5 +1,5 @@
 // 复制自 rust/crates/proc/src/tree/table.rs（feat/rs 79b6691c55）。
-//! 进程表快照与按身份追踪的进程树（自 apps/zcode-cli-rust/crates/tools/src/process_tree.rs 移入，行为不变）。
+//! 进程表快照与按身份追踪的进程树（自 apps/nibi-cli-rust/crates/tools/src/process_tree.rs 移入，行为不变）。
 //! 没有全局进程注册表，也没有后台轮询。
 //!
 //! 远端执行 F98（docs/specs/rust-cli/remote-exec.md §25.3）：Linux 上进程表读 `/proc`，不依赖 `ps`。

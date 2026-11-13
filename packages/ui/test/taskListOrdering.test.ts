@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { ZCodeTaskMeta } from "@nibi/shared";
-import { compareZCodeTaskListItems } from "@/lib/taskListOrdering.js";
+import type { NibiTaskMeta } from "@nibi/shared";
+import { compareNibiTaskListItems } from "@/lib/taskListOrdering.js";
 import { attachTaskListRowActivity } from "@/v4/taskListRowActivity.js";
 
-function task(id: string, overrides: Partial<ZCodeTaskMeta> = {}): ZCodeTaskMeta {
+function task(id: string, overrides: Partial<NibiTaskMeta> = {}): NibiTaskMeta {
   return {
     taskId: id,
     traceId: `trace-${id}`,
@@ -19,8 +19,8 @@ function task(id: string, overrides: Partial<ZCodeTaskMeta> = {}): ZCodeTaskMeta
 function liveTask(
   id: string,
   phase: "prewarming" | "running" | "completedSuccess",
-  overrides: Partial<ZCodeTaskMeta> = {},
-): ZCodeTaskMeta {
+  overrides: Partial<NibiTaskMeta> = {},
+): NibiTaskMeta {
   const meta = task(id, overrides);
   return attachTaskListRowActivity(meta, {
     phase,
@@ -29,9 +29,9 @@ function liveTask(
   });
 }
 
-function sortedIds(tasks: ZCodeTaskMeta[], sortBy: "created" | "updated"): string[] {
+function sortedIds(tasks: NibiTaskMeta[], sortBy: "created" | "updated"): string[] {
   return [...tasks]
-    .sort((left, right) => compareZCodeTaskListItems(left, right, sortBy))
+    .sort((left, right) => compareNibiTaskListItems(left, right, sortBy))
     .map((item) => item.taskId);
 }
 

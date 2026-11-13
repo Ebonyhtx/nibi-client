@@ -41,13 +41,13 @@ vi.mock("@/hooks/usePlatform.js", () => ({
 }));
 
 vi.mock("@/store/StoreProvider.js", () => ({
-  useZCodeStore: (
+  useNibiStore: (
     selector: (state: { setOAuthPollingActive: typeof mocks.setOAuthPollingActive }) => unknown,
   ) => selector({ setOAuthPollingActive: mocks.setOAuthPollingActive }),
 }));
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: (descriptor: { id: string }) => descriptor.id,
     },

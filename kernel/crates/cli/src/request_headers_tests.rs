@@ -1,5 +1,5 @@
 //! 来源头的事实（工作线 F64，model.md §2.4）：与 Node 的对照夹具逐项相同（`scripts/rust-cli/headers-golden.mjs` 用 Node 的
-//! `buildCliZCodeSourceHeaders` 与 `Intl.DateTimeFormat` 生成 `tests/source-headers-golden.json`），以及 Windows 以外的两项读法。
+//! `buildCliNibiSourceHeaders` 与 `Intl.DateTimeFormat` 生成 `tests/source-headers-golden.json`），以及 Windows 以外的两项读法。
 
 use serde_json::Value;
 
@@ -105,7 +105,7 @@ fn without_tz_the_localtime_link_names_the_zone() {
     assert_eq!(client_time_zone(None, None), None);
 }
 
-/// 版本默认是本工程的；ZCode 服务地址无效时报错（启动失败，Node 建 App 时同样抛错）。
+/// 版本默认是本工程的；Nibi 服务地址无效时报错（启动失败，Node 建 App 时同样抛错）。
 #[test]
 fn the_version_and_the_service_address() {
     let none = |_: &str| None;

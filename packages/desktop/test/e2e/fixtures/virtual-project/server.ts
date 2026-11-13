@@ -4,7 +4,7 @@ import { join, basename, resolve } from "node:path";
 import {
   IProjectService,
   IProviderProvisioningTargetService,
-  IZCodeAgentService,
+  INibiAgentService,
   ISourceServerWorkspaceService,
 } from "@nibi/services";
 import { createServerHostServices, disposeServiceResourcesAndWait } from "@nibi/services/node";
@@ -12,7 +12,7 @@ import {
   buildServerRemoteWorkspaceIdentity,
   remoteHostIdFromWorkspaceIdentity,
 } from "@nibi/shared";
-import { createCoreHttpServer } from "../../../../../zcode-server-cli/src/server-core/http.js";
+import { createCoreHttpServer } from "../../../../../nibi-server-cli/src/server-core/http.js";
 
 const testHome = process.env.HOME;
 if (!testHome || basename(testHome) !== "url-server")
@@ -36,7 +36,7 @@ provisioning.apply = async (envelope) => {
     process.stderr.write(`E2E_VP_PROVIDER_FAILURE ${result.errorMessage}\n`);
   return result;
 };
-const agentService = services.get(IZCodeAgentService);
+const agentService = services.get(INibiAgentService);
 const sendCommand = agentService.sendConversationCommandV4.bind(agentService);
 agentService.sendConversationCommandV4 = async (params) => {
   if (params.envelope.type === "createSession")

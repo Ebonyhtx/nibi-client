@@ -11,7 +11,7 @@
 
 - `~/.nibi/cli/debug`（开发态）与 `~/.nibi/cli/rollout`（生产态，最多保留最近 3 个会话文件）
   下的 `model-io-*.jsonl`。
-- 由 `apps/zcode-cli/packages/adapters/src/model/runner-debug.ts` 落盘，文件名形如
+- 由 `apps/nibi-cli/packages/adapters/src/model/runner-debug.ts` 落盘，文件名形如
   `model-io-<sanitizedSessionId>.jsonl`。一个 session 只对应一个 JSONL 文件；首条记录保存完整
   `request.messages`，后续模型调用只保存相对上一条新增的消息 delta，避免完整上下文按梯度重复。
   每条记录带 `sessionId` / `turnId` / `traceId` / `querySource`、`request`（messages / toolNames）、

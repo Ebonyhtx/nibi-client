@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu.js";
 import { toast } from "@/components/ui/toast.js";
 import { useOptionalPlatform } from "@/hooks/usePlatform.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   canUseImageEditor,
   decodeImageDataUrl,
@@ -103,7 +103,7 @@ export function ImagePreviewContent({
   loadDownloadSource,
   composerScope,
 }: ImagePreviewContentProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const platform = useOptionalPlatform();
   const imageRef = useRef<HTMLImageElement>(null);
   const actionPendingRef = useRef(false);

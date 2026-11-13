@@ -69,7 +69,7 @@ describe("turn error 后打开历史任务不刷新侧栏修改时间", () => {
     await restartIntoWorkspace({
       afterElectronProcessExit: async () => {
         agePersistedTask(sessionId);
-        await seedSettings({ zcodeInteractionBehavior: "guide" });
+        await seedSettings({ nibiInteractionBehavior: "guide" });
       },
     });
     await ensureProjectExpanded(DEFAULT_WORKSPACE);

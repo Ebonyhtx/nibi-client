@@ -138,7 +138,7 @@ export interface OAuthTokenSet {
   accessToken: string;
   refreshToken?: string;
   expiresAt?: number;
-  zcodeJwtToken?: string;
+  nibiJwtToken?: string;
 }
 
 export interface UserInfo {
@@ -156,7 +156,7 @@ export type OAuthCachedSessionRestoreResult =
 /** OAuth owner 已完成会话凭据变更；不携带用户资料或 token。 */
 export type OAuthSessionState = "signed-in" | "signed-out";
 
-/** Host 在检测到 ZCode JWT 失效后通知 Renderer 展示确认并重启。 */
+/** Host 在检测到 Nibi JWT 失效后通知 Renderer 展示确认并重启。 */
 export const NIBI_JWT_INVALID_BROADCAST_CHANNEL = "auth:zcode-jwt-invalid";
 
 export type JwtExpirationResult =

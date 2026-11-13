@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { isZCodeAgentProvider, NIBI_AGENT_PROVIDER, type ZCodeProvider } from "@nibi/shared";
+import { isNibiAgentProvider, NIBI_AGENT_PROVIDER, type NibiProvider } from "@nibi/shared";
 import type { IModelSelectionService, ModelSelectionView } from "@nibi/services";
 import {
   buildModelConfigMissingUiError,
@@ -42,14 +42,14 @@ export function resolveModelSelectionReadinessStatus(
 export function useDraftModelReadinessGate(params: {
   workspacePath: string;
   workspaceIdentity?: string;
-  provider?: ZCodeProvider;
+  provider?: NibiProvider;
   sessionId: string | null;
   modelSelectionService: Pick<IModelSelectionService, "getView" | "onDidChange">;
 }): DraftModelReadinessGate {
   const { workspacePath, workspaceIdentity, provider, sessionId, modelSelectionService } = params;
   const workspaceKey = workspaceIdentity?.trim() || workspacePath;
   const displayProvider = provider ?? NIBI_AGENT_PROVIDER;
-  const enabled = sessionId === null && isZCodeAgentProvider(displayProvider);
+  const enabled = sessionId === null && isNibiAgentProvider(displayProvider);
   const gateKey = `${workspaceKey}\u0000${displayProvider}`;
   const scope = useMemo(() => ({ gateKey }), [enabled, gateKey, modelSelectionService]);
   const [state, setState] = useState<DraftModelReadinessState>(() => ({

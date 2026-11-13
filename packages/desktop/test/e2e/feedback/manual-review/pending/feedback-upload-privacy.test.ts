@@ -73,7 +73,7 @@ describe("反馈上传授权（manual review）", () => {
     ["zh-CN", 430, 900, "帮助", "问题上报", "默认开启"],
   ] as const) {
     it(`FB-PRIV-01/08 / FB-DESC-01 / FB-REQ-A11Y-01: ${locale} ${width}px 反馈必填标识与日志选择`, async () => {
-      await seedSettings({ locale, localePreference: locale, zcodeEndpointOrigin: server.origin });
+      await seedSettings({ locale, localePreference: locale, nibiEndpointOrigin: server.origin });
       await browser.electron.execute(
         (electron, size) => {
           electron.BrowserWindow.getAllWindows()[0]!.setSize(size.width, size.height);

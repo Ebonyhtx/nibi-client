@@ -13,7 +13,7 @@ import {
 } from "@/settings/SourceServerManagementPanel.js";
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }, values?: Record<string, number | string>) =>
         values?.projects

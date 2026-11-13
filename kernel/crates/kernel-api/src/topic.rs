@@ -17,7 +17,7 @@ use serde_json::Value;
 use crate::ids::{MessageId, SessionId};
 use crate::message::Message;
 
-/// 一次话题附件读取（Node `zcodeTopicResourceReadParamsSchema`）。
+/// 一次话题附件读取（Node `nibiTopicResourceReadParamsSchema`）。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TopicResourceRead {
     /// Host 侧的取消键（`topic/resource/cancel` 用同一个）。
@@ -30,7 +30,7 @@ pub struct TopicResourceRead {
     pub resource_index: u64,
 }
 
-/// Host 取回的附件（Node `zcodeTopicResourceReadResultSchema` + 工具后续把它写成本地文件）。
+/// Host 取回的附件（Node `nibiTopicResourceReadResultSchema` + 工具后续把它写成本地文件）。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TopicResource {
     /// 可读的 artifact 引用（`nibi-artifact://…`）。

@@ -26,7 +26,7 @@ try {
   await mkdir(dataDir, { recursive: true });
   await mkdir(workspaceDir, { recursive: true });
   await mkdir(webDistDir, { recursive: true });
-  await writeFile(join(webDistDir, "index.html"), "<!doctype html><html><body>ZCode test</body></html>\n");
+  await writeFile(join(webDistDir, "index.html"), "<!doctype html><html><body>Nibi test</body></html>\n");
   await writeFile(agentEntry, "module.exports = {};\n");
   await writeFile(
     injectResetEntry,

@@ -1,5 +1,5 @@
 //! guarded 的危险命令识别（shell-permissions.md §4.6.1）：用例移植自 Node
-//! `apps/zcode-cli/packages/core/tests/guarded-command.test.ts` 与 `guarded-deletion.test.ts`（POSIX 与 Git Bash；
+//! `apps/nibi-cli/packages/core/tests/guarded-command.test.ts` 与 `guarded-deletion.test.ts`（POSIX 与 Git Bash；
 //! CMD 方言不移植）。
 use super::*;
 

@@ -505,7 +505,7 @@ export class ModelConfigRules {
     return undefined;
   }
 
-  toZCodeBuiltinJSON(): BuiltinModelConfigRulesData {
+  toNibiBuiltinJSON(): BuiltinModelConfigRulesData {
     return builtinModelConfigRulesSchema.parse({
       modelRules: this.#collect("model"),
       modelApiRules: this.#collect("model-api"),
@@ -525,7 +525,7 @@ export class ModelConfigRules {
 
   toJSON() {
     return {
-      ...this.toZCodeBuiltinJSON(),
+      ...this.toNibiBuiltinJSON(),
       manualProviderModelRules: this.#collect("manual-provider-model"),
     };
   }

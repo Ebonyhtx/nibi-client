@@ -29,8 +29,8 @@ vi.mock("@/store/TabStoreProvider.js", () => ({
   useTabStore: () => mocks.tabs,
   useTabStoreApi: () => ({ subscribe: () => () => {} }),
 }));
-vi.mock("@/store/zcodeSessionStore.js", () => ({
-  useZCodeSessionStore: Object.assign(
+vi.mock("@/store/nibiSessionStore.js", () => ({
+  useNibiSessionStore: Object.assign(
     (selector: (state: unknown) => unknown) =>
       selector({ workspaces: {}, removeTaskState: mocks.removeTaskState }),
     { subscribe: () => () => {} },

@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { IFeedbackService } from "@nibi/services";
 import type { FeedbackTicketSummary } from "@nibi/shared";
 import { FeedbackTicketList, TicketsView } from "@/feedback/TicketsView.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 function createFeedbackService(): IFeedbackService {
   return {
@@ -28,7 +28,7 @@ function createFeedbackService(): IFeedbackService {
 function renderTicketsView(locale: "zh-CN" | "en-US") {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: locale },
       createElement(TicketsView, {
         feedbackService: createFeedbackService(),
@@ -58,7 +58,7 @@ describe("TicketsView", () => {
     };
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(FeedbackTicketList, {
           items: [ticket],

@@ -42,7 +42,7 @@ function expectLanguage(requests: Request[], locale: Locale) {
   );
 }
 
-describe("ZCode endpoint X-Client-Language 跟随界面语言", () => {
+describe("Nibi endpoint X-Client-Language 跟随界面语言", () => {
   let external: Awaited<ReturnType<typeof browser.electron.mock>>;
   const servers: HelpServer[] = [];
 
@@ -128,7 +128,7 @@ describe("ZCode endpoint X-Client-Language 跟随界面语言", () => {
     await seedSettings({
       locale: PERSISTED,
       localePreference: PERSISTED,
-      zcodeEndpointOrigin: server.origin,
+      nibiEndpointOrigin: server.origin,
       lastWorkspaceSession: [
         { kind: "local", workspacePath: DEFAULT_WORKSPACE, workspacePurpose: "project" },
       ],
@@ -182,7 +182,7 @@ describe("ZCode endpoint X-Client-Language 跟随界面语言", () => {
 
       // 公共配置按 endpoint 缓存 1 小时；换新 endpoint 才会发出新请求。
       const server = await startServer();
-      await seedSettings({ zcodeEndpointOrigin: server.origin });
+      await seedSettings({ nibiEndpointOrigin: server.origin });
 
       expectLanguage(await openHelpMenuForHostRequests(server), SWITCHED);
       await browser.switchToWindow(firstHandle);

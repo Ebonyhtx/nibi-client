@@ -7,10 +7,10 @@ import {
   ModelOptionSpecsConfig,
   validateModelSelectionOptions,
 } from "@nibi/provider";
-import { NodeZCodeBuiltinProviderConfigSource } from "../src/index.js";
+import { NodeNibiBuiltinProviderConfigSource } from "../src/index.js";
 import baseline from "./fixtures/reasoning-map-before-todo95.json";
 
-const source = new NodeZCodeBuiltinProviderConfigSource({
+const source = new NodeNibiBuiltinProviderConfigSource({
   bundledFilePath: fileURLToPath(
     new URL("../../../config/provider/nibi-builtin.json", import.meta.url),
   ),

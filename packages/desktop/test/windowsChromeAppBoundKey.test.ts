@@ -74,7 +74,7 @@ describe("windowsChromeAppBoundKey", () => {
     const { stdout } = await execFileAsync(
       powershellPath,
       createEncodedPowerShellArgs(
-        "$response=& $zcodeArg0 /d /c $zcodeArg1;[Console]::Out.Write(($response -join ''))",
+        "$response=& $nibiArg0 /d /c $nibiArg1;[Console]::Out.Write(($response -join ''))",
         [commandPath, `echo ${marker}`],
       ),
       { env, windowsHide: true },
@@ -316,7 +316,7 @@ describe("windowsChromeAppBoundKey", () => {
 
     await expect(
       readWindowsChromeAppBoundKey({
-        appExecutablePath: join(tempRoot, "ZCode.exe"),
+        appExecutablePath: join(tempRoot, "Nibi.exe"),
         chromeExecutablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
         helperPath: fixture.helperPath,
         isPackaged: true,
@@ -337,7 +337,7 @@ describe("windowsChromeAppBoundKey", () => {
 
     await expect(
       readWindowsChromeAppBoundKey({
-        appExecutablePath: join(tempRoot, "ZCode.exe"),
+        appExecutablePath: join(tempRoot, "Nibi.exe"),
         chromeExecutablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
         helperPath: fixture.helperPath,
         isPackaged: true,
@@ -374,7 +374,7 @@ describe("windowsChromeAppBoundKey", () => {
 
     await expect(
       readWindowsChromeAppBoundKey({
-        appExecutablePath: join(tempRoot, "ZCode.exe"),
+        appExecutablePath: join(tempRoot, "Nibi.exe"),
         chromeExecutablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
         expectedAppVersion: "3.4.0",
         expectedBuildCommit: "test",
@@ -408,7 +408,7 @@ describe("windowsChromeAppBoundKey", () => {
 
     await expect(
       readWindowsChromeAppBoundKey({
-        appExecutablePath: join(tempRoot, "ZCode.exe"),
+        appExecutablePath: join(tempRoot, "Nibi.exe"),
         chromeExecutablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
         expectedAppVersion: "3.4.0",
         expectedBuildCommit: "build-b",
@@ -459,7 +459,7 @@ describe("windowsChromeAppBoundKey", () => {
     );
 
     const key = await readWindowsChromeAppBoundKey({
-      appExecutablePath: join(tempRoot, "ZCode.exe"),
+      appExecutablePath: join(tempRoot, "Nibi.exe"),
       chromeExecutablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
       expectedAppVersion: "3.4.0",
       expectedBuildCommit: "build-a",

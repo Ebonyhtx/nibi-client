@@ -4,7 +4,7 @@ function normalizeToolName(value: string | null | undefined): string {
   return value?.trim().toLowerCase().replace(/_/g, "-") ?? "";
 }
 
-export function isZCodeCuaToolName(value: string | null | undefined): boolean {
+export function isNibiCuaToolName(value: string | null | undefined): boolean {
   const normalized = normalizeToolName(value);
   // server key 段为 computer-use。feat: mcp__computer-use__*；
   // main v3.5.3 的 plugin MCP 命名约定给 plugin server 加 namespace：
@@ -18,7 +18,7 @@ export function isZCodeCuaToolName(value: string | null | undefined): boolean {
 export function didReturnFromCuaPermissionSettings(
   result: CuaAccessibilitySettingsResult | null | undefined,
 ): boolean {
-  // main 只有在整组 staged pane 都完成并观察到 ZCode 应用级返回后才置 true。renderer focus
+  // main 只有在整组 staged pane 都完成并观察到 Nibi 应用级返回后才置 true。renderer focus
   // 可能来自 TCC 原生 prompt、另一窗口或普通切换，不能再作为授权完成信号。
   return (
     result?.success === true &&

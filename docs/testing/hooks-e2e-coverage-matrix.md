@@ -22,9 +22,9 @@
 
 | Domain                   | Include?            | Reason                                                            | Primary sources                                               |
 | ------------------------ | ------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------- |
-| Agent runtime/config     | yes                 | 决定 Hook 是否真实执行和影响 turn/tool                            | `apps/zcode-cli/packages/{contracts,core,adapters,bootstrap}` |
-| Permission/tool          | yes                 | 4 个 tool 事件横跨校验、permission、success/failure               | `apps/zcode-cli/packages/core/src/tool/executor`              |
-| Conversation/session     | yes                 | SessionStart、UserPromptSubmit、Stop 位于 turn lifecycle          | `apps/zcode-cli/packages/core/src/runtime`                    |
+| Agent runtime/config     | yes                 | 决定 Hook 是否真实执行和影响 turn/tool                            | `apps/nibi-cli/packages/{contracts,core,adapters,bootstrap}` |
+| Permission/tool          | yes                 | 4 个 tool 事件横跨校验、permission、success/failure               | `apps/nibi-cli/packages/core/src/tool/executor`              |
+| Conversation/session     | yes                 | SessionStart、UserPromptSubmit、Stop 位于 turn lifecycle          | `apps/nibi-cli/packages/core/src/runtime`                    |
 | Settings UI/source       | yes                 | 用户需要配置 `.zcode` 并查看 plugin hooks                         | `packages/{services,ui}`                                      |
 | Mobile remote/replayable | representative only | Hook 在共享 Agent runtime 执行，不改变 stream/snapshot/queue 语义 | 架构 invariant                                                |
 

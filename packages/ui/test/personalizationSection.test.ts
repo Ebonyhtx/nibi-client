@@ -27,7 +27,7 @@ vi.mock("@/hooks/useWorkspaceServices.js", () => ({
 }));
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => h.intlContext,
+  useNibiIntl: () => h.intlContext,
 }));
 
 vi.mock("@/components/ui/toast.js", () => ({ toast: h.toast }));

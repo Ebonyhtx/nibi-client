@@ -15,7 +15,7 @@ export function installOfflineChecks() {
       },
     );
     session.webRequest.onCompleted({ urls: ["zcode-sandbox://*/*"] }, (details) => {
-      if (details.url.includes("/__zcode__/vendor/")) localScripts.add(details.url);
+      if (details.url.includes("/__nibi__/vendor/")) localScripts.add(details.url);
     });
   });
   return {

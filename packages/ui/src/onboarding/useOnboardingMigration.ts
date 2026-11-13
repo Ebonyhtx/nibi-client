@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { SettingsSyncSelection } from "@nibi/shared";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { getPathLeaf } from "@/lib/path.js";
 import type { useClaudeSessionMigration } from "@/hooks/useClaudeSessionMigration.js";
 import {
@@ -95,7 +95,7 @@ export function useOnboardingMigration(
   settingsSync: UnifiedMigrationSettingsImport,
   options: { includeSettingsSelections?: boolean; autoStart?: boolean } = {},
 ) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [finishExecution, setFinishExecution] = useState<FinishExecutionState>(
     createInitialFinishExecutionState,
   );

@@ -1,10 +1,10 @@
 // workspace-config topic 黄金测试（M5 删波次 2 additive 演进纪律：新增 topic 必须带黄金测试）。
 // 覆盖：帧信封 round-trip（snapshot / deltas）、topic key 对偶、载荷与 host 侧
-// ZCodeConfigOption / ZCodeSlashCommand 的结构对齐（syncer 零映射直通的前提）。
+// NibiConfigOption / NibiSlashCommand 的结构对齐（syncer 零映射直通的前提）。
 import { describe, expect, it } from "vitest";
-import { zcodeSessionSettingsToZCodeConfigOptions } from "../src/zcode-agent-model-state.js";
-import type { ZCodeSessionSettingsState } from "../src/nibi-protocol/index.js";
-import type { ZCodeConfigOption, ZCodeSlashCommand } from "../src/zcode-task-types-core.js";
+import { nibiSessionSettingsToNibiConfigOptions } from "../src/nibi-agent-model-state.js";
+import type { NibiSessionSettingsState } from "../src/nibi-protocol/index.js";
+import type { NibiConfigOption, NibiSlashCommand } from "../src/nibi-task-types-core.js";
 import {
   parseWorkspaceConfigTopic,
   workspaceConfigSnapshotSchema,
@@ -115,17 +115,17 @@ describe("nibi-protocol-v4 workspace-config topic", () => {
     ).toBe(false);
   });
 
-  it("载荷与 host 侧 ZCodeConfigOption / ZCodeSlashCommand 结构对齐（零映射直通）", () => {
+  it("载荷与 host 侧 NibiConfigOption / NibiSlashCommand 结构对齐（零映射直通）", () => {
     const state: WorkspaceConfigState = workspaceConfigStateSchema.parse(goldenState);
     // 类型层面的对齐验证：v4 载荷可以直接赋给 host 侧下游消费类型。
-    const configOptions: ZCodeConfigOption[] = state.configOptions;
-    const slashCommands: ZCodeSlashCommand[] = state.slashCommands;
+    const configOptions: NibiConfigOption[] = state.configOptions;
+    const slashCommands: NibiSlashCommand[] = state.slashCommands;
     expect(configOptions[0]?.id).toBe("model");
     expect(slashCommands[0]?.name).toBe("compact");
   });
 
   it("把每个模型的 reasoning 目录投影到 model select value", () => {
-    const settings: ZCodeSessionSettingsState = {
+    const settings: NibiSessionSettingsState = {
       model: {
         current: { providerId: "anthropic", modelId: "claude-opus-4-8" },
         available: [
@@ -157,7 +157,7 @@ describe("nibi-protocol-v4 workspace-config topic", () => {
       mode: { current: "build" },
     };
 
-    const modelOption = zcodeSessionSettingsToZCodeConfigOptions(settings).find(
+    const modelOption = nibiSessionSettingsToNibiConfigOptions(settings).find(
       (option) => option.id === "model",
     );
 

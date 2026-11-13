@@ -27,7 +27,7 @@ describe("MCP App native lifecycle", () => {
       handle.shellUrl,
       `${handle.shellUrl}assets/shell.js`,
       `${plugin}index.html`,
-      `${plugin}__zcode__/alias.js`,
+      `${plugin}__nibi__/alias.js`,
     ]) {
       const response = await read(new Request(url));
       expect(response.status).toBe(200);

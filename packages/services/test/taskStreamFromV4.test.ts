@@ -5,8 +5,8 @@ import type {
   ConversationSnapshot,
   ConversationTopicFrame,
 } from "@nibi/shared/nibi-protocol-v4";
-import type { ZCodeStreamEvent } from "@nibi/shared";
-import { V4TaskStreamSink } from "../src/zcode-agent/taskStreamFromV4.js";
+import type { NibiStreamEvent } from "@nibi/shared";
+import { V4TaskStreamSink } from "../src/nibi-agent/taskStreamFromV4.js";
 
 function snapshotFrame(
   rows: ConversationRow[],
@@ -147,13 +147,13 @@ function createHarness(initialFrame: ConversationTopicFrame) {
     }),
     unsubscribeConversationV4: unsubscribe,
   };
-  const globalEvents: ZCodeStreamEvent[] = [];
+  const globalEvents: NibiStreamEvent[] = [];
   const sink = new V4TaskStreamSink({
     agent: agent as never,
     target: { workspacePath: "/work", sessionId: "task" },
     publishGlobal: (event) => globalEvents.push(event),
   });
-  const events: ZCodeStreamEvent[] = [];
+  const events: NibiStreamEvent[] = [];
   const release = sink.addListener((event) => events.push(event));
   return { agent, sink, events, globalEvents, emit, unsubscribe, release };
 }
@@ -197,7 +197,7 @@ describe("v4 task stream projection", () => {
     emit(deltasFrame([{ op: "row.upserted", row: turnHeaderRow(1, "completedSuccess") }]));
 
     const chunks = events.filter(
-      (event): event is Extract<ZCodeStreamEvent, { type: "agent_message_chunk" }> =>
+      (event): event is Extract<NibiStreamEvent, { type: "agent_message_chunk" }> =>
         event.type === "agent_message_chunk",
     );
     expect(chunks.map((event) => event.content)).toEqual(["hel", "lo"]);
@@ -303,7 +303,7 @@ describe("v4 task stream projection", () => {
       freeText: true,
     });
     expect(
-      (request as Extract<ZCodeStreamEvent, { type: "permission_request" }>).options.map(
+      (request as Extract<NibiStreamEvent, { type: "permission_request" }>).options.map(
         (option) => option.optionId,
       ),
     ).toEqual(["allowOnce", "deny"]);
@@ -451,7 +451,7 @@ describe("v4 task stream projection", () => {
     const fromState = events.filter((event) => event.type === "plan");
     expect(fromState).toHaveLength(1);
     expect(
-      (fromState[0] as Extract<ZCodeStreamEvent, { type: "plan" }>).steps.map((step) => [
+      (fromState[0] as Extract<NibiStreamEvent, { type: "plan" }>).steps.map((step) => [
         step.title,
         step.status,
       ]),
@@ -487,7 +487,7 @@ describe("v4 task stream projection", () => {
     const plans = events.filter((event) => event.type === "plan");
     expect(plans).toHaveLength(2);
     expect(
-      (plans[1] as Extract<ZCodeStreamEvent, { type: "plan" }>).steps.map((step) => step.status),
+      (plans[1] as Extract<NibiStreamEvent, { type: "plan" }>).steps.map((step) => step.status),
     ).toEqual(["completed", "completed"]);
   });
 
@@ -536,7 +536,7 @@ describe("v4 task stream projection", () => {
       ]),
     );
     const status = events.find(
-      (event): event is Extract<ZCodeStreamEvent, { type: "turn_steer_status" }> =>
+      (event): event is Extract<NibiStreamEvent, { type: "turn_steer_status" }> =>
         event.type === "turn_steer_status",
     );
     expect(status).toMatchObject({ status: "discarded", pendingInputIds: ["in-2"] });
@@ -583,7 +583,7 @@ describe("v4 task stream projection", () => {
       ]),
     );
     const statuses = events.filter(
-      (event): event is Extract<ZCodeStreamEvent, { type: "turn_steer_status" }> =>
+      (event): event is Extract<NibiStreamEvent, { type: "turn_steer_status" }> =>
         event.type === "turn_steer_status",
     );
     expect(statuses).toHaveLength(1);

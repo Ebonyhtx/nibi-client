@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog.js";
 import { Input } from "@/components/ui/input.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { ModelConfigObject } from "@nibi/provider";
 import type {
   ProviderModelDraftValues,
@@ -80,7 +80,7 @@ export function ProviderModelMetadataDialog({
   modelDefaultsLoaded?: boolean;
   onModelIdBlur?: () => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [validationAttempt, setValidationAttempt] = useState(0);
   const commit = async () => {
     const result = await onCommit();

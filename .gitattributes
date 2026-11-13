@@ -1,4 +1,4 @@
-# 行尾统一：本仓库与上游 zai-org/ZCode 的文本文件全是 LF。
+# 行尾统一：本仓库与上游 zai-org/Nibi 的文本文件全是 LF。
 # 我们曾有一批文件被写成 CRLF，导致与上游每次合并都显示"整文件重写"、真实冲突被淹掉
 # （实测：某文件原始 diff 2163 行、忽略空白后仅 17 行）。
 #
@@ -28,7 +28,7 @@ third-party/inventory.json linguist-generated=true
 # E2E PDF fixture 含规范 xref 尾空格，必须按二进制处理，避免 diff --check 误报。
 packages/desktop/test/e2e/fixtures/fs/**/*.pdf binary
 # 文档查看器测试 PDF 同理：按字节解析 xref，换行转换会破坏偏移。
-apps/zcode-cli/packages/office-runtime/fixtures/*.pdf binary
+apps/nibi-cli/packages/office-runtime/fixtures/*.pdf binary
 
 # Gen UI vendor 快照带 sha256 清单，构建时逐字节校验；autocrlf 改写换行会误报漂移，按字节保真。
-apps/zcode-cli/packages/visualize-plugin/skills/visualize/assets/vendor/** -text
+apps/nibi-cli/packages/visualize-plugin/skills/visualize/assets/vendor/** -text

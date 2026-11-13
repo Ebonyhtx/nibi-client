@@ -246,7 +246,7 @@ pub(crate) async fn get_workflow(server: &Server, raw: &Value) -> Result<Value, 
     }
 }
 
-/// meta 的严格校验（shared `zcodeSavedWorkflowMetaSchema` 与 contracts
+/// meta 的严格校验（shared `nibiSavedWorkflowMetaSchema` 与 contracts
 /// `SavedWorkflowMetaSchema` 的同一形状；两个 schema 由 bootstrap 的协议测试互相钉住）。
 /// `.strict()` 让拼错的键炸 `-32602` 而不是被静默丢掉——保存的文件是用户会手改的，错字必须
 /// 能被指出来。原样回传：sidecar 的 contracts schema 再解析一遍是「两边漂移」的追赶闸。
@@ -458,7 +458,7 @@ pub(crate) async fn for_run(server: &Server, raw: &Value) -> Result<Value, RpcEr
     }
 }
 
-/// 候选数组的严格校验（`zcodeWorkflowsForRunCandidateSchema` 的同一形状：≤ 8 条、每条
+/// 候选数组的严格校验（`nibiWorkflowsForRunCandidateSchema` 的同一形状：≤ 8 条、每条
 /// `.strict()` 只有 name + 可选 scope）。原样回传清洗后的数组——sidecar 的名字合法性检查
 /// 仍会逐条过一遍（非法候选是跳过，不是错误）。
 fn candidates_of(value: &Value) -> Result<Value, RpcError> {

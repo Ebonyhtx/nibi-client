@@ -830,7 +830,7 @@ P0-10 已满足当前目标中的“详细描述、实际验证、promotion 转�
   - 结论：补充的 adapter 单测先复现了 `openaiCompatible.extra_body` 没有进入 OpenAI-compatible SDK provider namespace 的问题；修复后证明 GLM-5.2 的请求级 providerOptions 会同时保留 `openaiCompatible` 并复制到 SDK 实际读取的 provider namespace。
 - `pnpm --filter @nibi/adapters build && pnpm --filter @nibi/cli build`
   - 结果：通过。
-  - 结论：桌面 E2E 使用 `apps/zcode-cli/packages/cli/dist/zcode.cjs`，必须重建 agent bundle 后 formal replay 才能验证最新 adapter 行为。
+  - 结论：桌面 E2E 使用 `apps/nibi-cli/packages/cli/dist/zcode.cjs`，必须重建 agent bundle 后 formal replay 才能验证最新 adapter 行为。
 - `pnpm --filter @nibi/desktop typecheck:e2e`
   - 结果：通过。
 - `pnpm --filter @nibi/desktop e2e:fixture:check -- --spec ./test/e2e/conversation-session/manual-review/pending/conversation-session-glm52-reasoning-request-shape.test.ts`

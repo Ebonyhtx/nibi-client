@@ -163,7 +163,7 @@ function createFileLockTimeoutError(
   cause?: unknown,
 ): NodeJS.ErrnoException {
   const error = new Error(
-    `Timed out after ${waitedMs}ms waiting for the ZCode file lock: ${lockFile}`,
+    `Timed out after ${waitedMs}ms waiting for the Nibi file lock: ${lockFile}`,
   ) as NodeJS.ErrnoException & { cause?: unknown };
   error.code = NIBI_FILE_LOCK_TIMEOUT_ERROR_CODE;
   error.path = filePath;

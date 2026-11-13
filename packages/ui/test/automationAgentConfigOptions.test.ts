@@ -11,7 +11,7 @@ import {
   resolveAutomationModelTriggerLabel,
   resolveAutomationThoughtLevelUpdate,
 } from "@/settings/automationAgentConfigOptions.js";
-import { encodeCustomModelValue } from "@/lib/zcodeCustomModelValue.js";
+import { encodeCustomModelValue } from "@/lib/nibiCustomModelValue.js";
 
 const groups: ModelSelectGroup[] = [
   {

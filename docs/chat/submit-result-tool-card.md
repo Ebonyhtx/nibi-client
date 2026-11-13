@@ -14,7 +14,7 @@
   对象**的 `JSON.stringify(…, null, 2)` 裸 `<pre>`（`renderers/fallback.tsx:63-67`，还用着
   off-token 的 `text-ui-xs`）；
 - 载荷全部在**输入**侧：工具输出 schema 只有 `{status: "accepted"}`
-  （`apps/zcode-cli/packages/contracts/src/tools/submit-result.ts:29-33`），输入是单键
+  （`apps/nibi-cli/packages/contracts/src/tools/submit-result.ts:29-33`），输入是单键
   `{result: <unknown>}`——每次 ask 的具体 JSON Schema 走指令尾注而非工具声明（声明冻结以保
   prompt cache）。
 

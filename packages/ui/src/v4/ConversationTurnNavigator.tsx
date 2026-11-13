@@ -13,7 +13,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   buildConversationTurnNavigatorItems,
   resolveConversationTurnNavigatorActiveUnitIndex,
@@ -72,7 +72,7 @@ const ConversationTurnNavigatorRailItem = memo(function ConversationTurnNavigato
   onHoverChange,
   onJumpToQuery,
 }: ConversationTurnNavigatorRailItemProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <div
       className="absolute left-0 top-0 h-2.5 w-9"
@@ -164,7 +164,7 @@ function ConversationTurnNavigatorImpl({
   isHydratingDirectory = false,
   onJumpToQuery,
 }: ConversationTurnNavigatorProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const prefersReducedMotion = useMotionDisabled();
   const [interactionItemIndex, setInteractionItemIndex] = useState<number | undefined>(
     undefined,

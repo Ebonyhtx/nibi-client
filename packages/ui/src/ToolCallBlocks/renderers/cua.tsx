@@ -1,8 +1,8 @@
 /* oxlint-disable eslint(max-lines) -- summary 与同源 detail 投影暂集中维护，本次 review fix 不扩大重构范围。 */
 import { type ReactNode, useCallback, useMemo } from "react";
 import type { ApplicationIconRequest } from "@nibi/shared";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
-import { isZCodeCuaToolName } from "@/lib/cuaPermissionAction.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
+import { isNibiCuaToolName } from "@/lib/cuaPermissionAction.js";
 import { ToolLayout } from "@/ToolCallBlocks/ToolLayout.js";
 import { readCuaActionDetail } from "@/ToolCallBlocks/renderers/cuaActionDetail.js";
 import { buildCuaAccessDetails } from "@/ToolCallBlocks/renderers/cuaAccessDetails.js";
@@ -332,7 +332,7 @@ function buildCuaDetailsModel(
 export function isCuaToolCall(
   toolCall: ToolCallBlockRenderContext["toolCallNode"]["toolCall"],
 ): boolean {
-  return collectToolNames(toolCall).some(isZCodeCuaToolName);
+  return collectToolNames(toolCall).some(isNibiCuaToolName);
 }
 
 export interface CuaSummaryPresentation {
@@ -346,7 +346,7 @@ export interface CuaSummaryPresentation {
   failureText?: string;
 }
 
-type CuaIntl = ReturnType<typeof useZCodeIntl>["intl"];
+type CuaIntl = ReturnType<typeof useNibiIntl>["intl"];
 
 export function buildCuaSummaryPresentation(
   toolCall: ToolCallBlockRenderContext["toolCallNode"]["toolCall"],
@@ -449,7 +449,7 @@ export function buildCuaSummaryPresentation(
 }
 
 export function CuaToolCallBlock(context: ToolCallBlockRenderContext) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const { toolCall } = context.toolCallNode;
   const summary = buildCuaSummaryPresentation(toolCall, intl, {
     fallbackErrorText: context.errorText,

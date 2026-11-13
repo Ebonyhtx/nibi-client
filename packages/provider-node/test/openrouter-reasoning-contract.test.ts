@@ -3,10 +3,10 @@ import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { compileModelOptionMaps } from "@nibi/model-option-map";
 import { ModelConfig, ModelOptionSpecsConfig } from "@nibi/provider";
-import { NodeZCodeBuiltinProviderConfigSource } from "../src/index.js";
+import { NodeNibiBuiltinProviderConfigSource } from "../src/index.js";
 
 const path = fileURLToPath(new URL("../../../config/provider/nibi-builtin.json", import.meta.url));
-const source = new NodeZCodeBuiltinProviderConfigSource({ bundledFilePath: path, watch: false });
+const source = new NodeNibiBuiltinProviderConfigSource({ bundledFilePath: path, watch: false });
 let snapshot: Awaited<ReturnType<typeof source.read>>;
 let modelIds: string[];
 beforeAll(async () => {

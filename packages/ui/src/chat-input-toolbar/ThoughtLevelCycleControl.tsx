@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import { type ZCodeConfigOption, type ZCodeProvider } from "@nibi/shared";
+import { type NibiConfigOption, type NibiProvider } from "@nibi/shared";
 import {
   TID_CHAT_THOUGHT_LEVEL_SELECT_ITEM,
   TID_CHAT_THOUGHT_LEVEL_SELECT_TRIGGER,
@@ -10,7 +10,7 @@ import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { cn } from "@/components/lib/utils.js";
 import { Button } from "@/components/ui/button.js";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select.js";
-import type { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import type { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   isCoarseTouchDevice,
   shouldRestoreChatInputFocusAfterPickerClose,
@@ -49,10 +49,10 @@ export function ThoughtLevelCycleControl({
   composerCollapsePriority?: number;
   interactionMode?: ThoughtLevelInteractionMode;
   indicatorClassName?: string;
-  intl: ReturnType<typeof useZCodeIntl>["intl"];
+  intl: ReturnType<typeof useNibiIntl>["intl"];
   labelVisibilityClassName?: string;
-  option: ZCodeConfigOption;
-  provider?: ZCodeProvider;
+  option: NibiConfigOption;
+  provider?: NibiProvider;
   showInvalidCurrentValue?: boolean;
   restoreFocusSelector?: string | null;
   shortcutLabel?: string;

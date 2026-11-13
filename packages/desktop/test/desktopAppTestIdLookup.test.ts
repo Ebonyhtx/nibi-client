@@ -11,10 +11,10 @@ afterEach(() => {
 
 describe("desktop e2e test id lookup", () => {
   it.each([
-    ["macOS", "workspace-item-/Users/dev/Code/z-code/.e2e-home/ZCodeProject"],
+    ["macOS", "workspace-item-/Users/dev/Code/z-code/.e2e-home/NibiProject"],
     [
       "Windows",
-      String.raw`workspace-item-C:\gitlab-runner\builds\project\packages\desktop\.e2e-home\ZCodeProject`,
+      String.raw`workspace-item-C:\gitlab-runner\builds\project\packages\desktop\.e2e-home\NibiProject`,
     ],
   ])("matches the %s workspace path as an exact attribute value", (_platform, testId) => {
     const element = document.createElement("button");

@@ -1,4 +1,4 @@
-// 语义复制自 apps/zcode-cli/packages/bootstrap/src/auth-login-persistence.ts 与 auth-login.ts 的凭据写入，
+// 语义复制自 apps/nibi-cli/packages/bootstrap/src/auth-login-persistence.ts 与 auth-login.ts 的凭据写入，
 // packages/provider-node/src/personal-provider-config-repository.ts 的 `update`（33a9541140）；OAuth 登录与退出的键
 // 照 App（packages/services/src/oauth/oauthService.ts、oauthProviderLogout.ts，工作线 F50）。
 //! 登录与退出写的两个文件（platform.md §5.6）：`credentials.json`（目录锁内读改写，§5.5）与个人配置

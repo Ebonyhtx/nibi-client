@@ -4,9 +4,9 @@ import { ConversationShareService } from "../src/conversation-share/conversation
 import { ConversationShareHttpClient } from "../src/conversation-share/conversationShareHttpClient.js";
 import { scopeConversationShareServiceForAttachment } from "../src/conversation-share/conversationShareConnectionScope.js";
 import {
-  createZCodeAgentConnectionScope,
-  readTrustedZCodeAgentV4Connection,
-} from "../src/zcode-agent/zcodeAgentConnectionScope.js";
+  createNibiAgentConnectionScope,
+  readTrustedNibiAgentV4Connection,
+} from "../src/nibi-agent/nibiAgentConnectionScope.js";
 
 const input = {
   workspacePath: "/workspace",
@@ -66,7 +66,7 @@ function fixture() {
       ),
   );
   const conversationRowsRangeV4 = vi.fn(async (params: unknown) => {
-    expect(readTrustedZCodeAgentV4Connection(params)?.clientMode).toBe("desktop-continuous");
+    expect(readTrustedNibiAgentV4Connection(params)?.clientMode).toBe("desktop-continuous");
     return { rows, atSeq: 2, atRevision: 1, atLogEpoch: "epoch", hasMore: false };
   });
   const agent = {
@@ -80,9 +80,9 @@ function fixture() {
     clientMode: "desktop-continuous" as const,
     role: "trusted-host-relay" as const,
   };
-  const scope = createZCodeAgentConnectionScope(agent as never, relayContext);
+  const scope = createNibiAgentConnectionScope(agent as never, relayContext);
   const real = new ConversationShareService({
-    zcodeAgentService: agent as never,
+    nibiAgentService: agent as never,
     client: new ConversationShareHttpClient({
       apiClient: { request },
       baseUrl: "https://remote-account-api.invalid/api/v1",
@@ -136,9 +136,9 @@ describe("Source Share RPC 的账号与连接边界", () => {
           headers: expect.objectContaining({ authorization: "Bearer remote-account-B" }),
         }),
       );
-      const received = readTrustedZCodeAgentV4Connection(f.rpc.preflight.mock.calls[0]?.[0]);
+      const received = readTrustedNibiAgentV4Connection(f.rpc.preflight.mock.calls[0]?.[0]);
       expect(received).toEqual(context);
-      const shareRoute = readTrustedZCodeAgentV4Connection(
+      const shareRoute = readTrustedNibiAgentV4Connection(
         f.conversationRowsRangeV4.mock.calls[0]?.[0],
       );
       await f.scope.service.conversationRowsRangeV4({
@@ -146,7 +146,7 @@ describe("Source Share RPC 的账号与连接边界", () => {
         __zcodeTrustedV4Connection: context,
       } as never);
       expect(
-        readTrustedZCodeAgentV4Connection(f.conversationRowsRangeV4.mock.calls[1]?.[0]),
+        readTrustedNibiAgentV4Connection(f.conversationRowsRangeV4.mock.calls[1]?.[0]),
       ).toEqual(shareRoute);
       expect(shareRoute?.connectionId).not.toBe(context.connectionId);
       expect(f.conversationRowsRangeV4.mock.calls[0]?.[0]).toMatchObject({

@@ -1,4 +1,4 @@
-//! 自定义命令的展开（Node `resolveZCodeCustomCommandPrompt`）：优先级、参数、skill 前言与 `!` 块交权。
+//! 自定义命令的展开（Node `resolveNibiCustomCommandPrompt`）：优先级、参数、skill 前言与 `!` 块交权。
 
 use std::sync::Arc;
 

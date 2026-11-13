@@ -165,7 +165,7 @@ Terminal fixture 同步补齐本 case 的自动标题响应，避免隔离回放
 
 ### 尚未由通过的 Bash E2E 命中的改动行
 
-以下 adapter 文件均在 `apps/zcode-cli/packages/adapters/src/exec/`；行号对应目标提交。
+以下 adapter 文件均在 `apps/nibi-cli/packages/adapters/src/exec/`；行号对应目标提交。
 
 | 文件 | 未命中行 | 原因 / 证据边界 |
 | --- | --- | --- |

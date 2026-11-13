@@ -7,7 +7,7 @@ const DIRECTORY_MENU_KEY = `HKCU\\Software\\Classes\\Directory\\shell\\${MENU_KE
 const DRIVE_MENU_KEY = `HKCU\\Software\\Classes\\Drive\\shell\\${MENU_KEY_NAME}`;
 const MENU_LABELS: Record<Locale, string> = {
   // 2026-10-13 修：上一轮去品牌只改了 en-US（品牌检查器的正则把 CJK 当词字符，
-  // 抓不到「在ZCode中打开」这种中日韩文紧邻写法），中文用户看到的仍是上游品牌。
+  // 抓不到「在Nibi中打开」这种中日韩文紧邻写法），中文用户看到的仍是上游品牌。
   "zh-CN": "在 NIBI 中打开",
   "en-US": "Open in NIBI",
 };

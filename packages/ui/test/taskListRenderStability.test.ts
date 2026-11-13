@@ -2,7 +2,7 @@ import { act, createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 
 const {
   memoTaskItemCalls,
@@ -42,11 +42,11 @@ vi.mock("@/components/ui/toast.js", () => ({
 }));
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({ intl: stableIntl }),
+  useNibiIntl: () => ({ intl: stableIntl }),
 }));
 
-vi.mock("@/store/zcodeSessionStore.js", () => ({
-  useZCodeSessionStore: (selector: (state: { startDraft: () => void }) => unknown) =>
+vi.mock("@/store/nibiSessionStore.js", () => ({
+  useNibiSessionStore: (selector: (state: { startDraft: () => void }) => unknown) =>
     selector({ startDraft: stableStartDraft }),
 }));
 
@@ -73,7 +73,7 @@ vi.mock("@/TaskListLoadingHint.js", () => ({
 vi.mock("@/TaskListItem.js", () => ({
   MemoTaskItem: (props: Record<string, unknown>) => {
     memoTaskItemCalls.push(props);
-    return createElement("li", null, (props.task as ZCodeTaskMeta).title);
+    return createElement("li", null, (props.task as NibiTaskMeta).title);
   },
   TaskListItemContextMenuContent: (props: Record<string, unknown>) => {
     taskListItemContextMenuContentCalls.push(props);
@@ -81,7 +81,7 @@ vi.mock("@/TaskListItem.js", () => ({
   },
 }));
 
-function createTask(overrides: Partial<ZCodeTaskMeta> = {}): ZCodeTaskMeta {
+function createTask(overrides: Partial<NibiTaskMeta> = {}): NibiTaskMeta {
   return {
     createdAt: 1,
     mode: "default",
@@ -337,7 +337,7 @@ describe("TaskList render stability", () => {
     });
 
     const untouchedRowInitialProps = memoTaskItemCalls.find(
-      (props) => (props.task as ZCodeTaskMeta).taskId === "task-2",
+      (props) => (props.task as NibiTaskMeta).taskId === "task-2",
     );
     expect(untouchedRowInitialProps).toBeDefined();
 
@@ -349,7 +349,7 @@ describe("TaskList render stability", () => {
 
     const untouchedRowUpdatedProps = memoTaskItemCalls
       .slice(2)
-      .find((props) => (props.task as ZCodeTaskMeta).taskId === "task-2");
+      .find((props) => (props.task as NibiTaskMeta).taskId === "task-2");
     expect(untouchedRowUpdatedProps).toBeDefined();
     expect(untouchedRowUpdatedProps?.onSelectTask).toBe(untouchedRowInitialProps?.onSelectTask);
     expect(untouchedRowUpdatedProps?.onArchiveTaskInline).toBe(

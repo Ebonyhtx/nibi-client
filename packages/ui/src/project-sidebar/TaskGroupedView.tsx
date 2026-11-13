@@ -57,13 +57,13 @@ import { findTaskRowRect, playNibiFeatherFallFromRect } from "@/lib/nibiFeatherF
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { resolveRemoteWorkspaceSessionIdForTarget } from "@/hooks/useResolvedRemoteWorkspaceSessionId.js";
 import { useRemoteWorkspaceSessionStore } from "@/store/remoteWorkspaceSessionStore.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 import {
   clearV4ComposerDraftTaskGroup,
   readV4ComposerDraft,
   V4_DRAFT_SCOPE_ROOT,
 } from "@/v4/composer/composerDraftStore.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { toast } from "@/components/ui/toast.js";
 import { logger } from "@/logger.js";
 
@@ -92,9 +92,9 @@ export function TaskGroupedView({
   scrollRef: RefObject<HTMLDivElement | null>;
 }) {
   const { groups: organization, loading } = useProjectDirectory();
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const presentation = useContext(ProjectTaskListContext);
-  const { zcodeTaskService: service, windowControllerService: controller } =
+  const { nibiTaskService: service, windowControllerService: controller } =
     useBaseWorkspaceServices();
   const workspaceKey = workspaceIdentity?.trim() || workspacePath;
   const composerClientNamespace = useComposerClientNamespace();
@@ -103,14 +103,14 @@ export function TaskGroupedView({
     workspaceIdentity,
     composerClientNamespace,
   );
-  const activeTaskId = useZCodeSessionStore(
+  const activeTaskId = useNibiSessionStore(
     (state) => state.workspaces[workspaceKey]?.activeTaskId ?? null,
   );
-  const draftFocusVersion = useZCodeSessionStore(
+  const draftFocusVersion = useNibiSessionStore(
     (state) => state.workspaces[workspaceKey]?.draftFocusVersion,
   );
   // 空正文不再持久化；分组行订阅现有内存草稿，不能靠 localStorage 或手动重绘维持归属。
-  const currentDraftGroupId = useZCodeSessionStore(
+  const currentDraftGroupId = useNibiSessionStore(
     (state) => state.workspaces[workspaceKey]?.draftTaskGroupId,
   );
   // 查看会话时仅显示尚未提交的文字草稿；首发已移除保存记录，不能复活旧的内存 placement。
@@ -201,7 +201,7 @@ export function TaskGroupedView({
   };
   const closeDraft = () => {
     clearV4ComposerDraftTaskGroup(workspacePath, workspaceIdentity, draftScope);
-    useZCodeSessionStore.getState().clearDraftTaskGroup(workspacePath, workspaceIdentity);
+    useNibiSessionStore.getState().clearDraftTaskGroup(workspacePath, workspaceIdentity);
   };
   useEffect(() => {
     if (draftGroupId !== null || !drag.root.current) return;
@@ -221,7 +221,7 @@ export function TaskGroupedView({
       getTaskRemoteSessionId(task),
     );
     if (mutation.kind === "archive" && mutation.archived) {
-      useZCodeSessionStore
+      useNibiSessionStore
         .getState()
         .removeTaskState(task.workspacePath, task.taskId, task.workspaceIdentity);
       playNibiFeatherFallFromRect(originRect);

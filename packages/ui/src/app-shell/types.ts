@@ -2,10 +2,10 @@ import type { FileManagerTarget } from "@/lib/workspaceSidePane.js";
 import type { ComposerDraftHandoff } from "@/v4/composer/composerDraftWorkspaceTransfer.js";
 import type { RefObject } from "react";
 import type {
-  ZCodeProvider,
+  NibiProvider,
   SessionCreateSource,
-  ZCodeTaskRuntimeStatus,
-  ZCodeTaskMeta,
+  NibiTaskRuntimeStatus,
+  NibiTaskMeta,
   GitChangeSourceId,
   DesktopWindowChromeState,
   IPlatformService,
@@ -35,7 +35,7 @@ import type {
   OpenScopedWorkflowWorkspaceSideTabRequest,
   WorkspaceSidePaneState,
 } from "@/lib/workspaceSidePane.js";
-import type { WorkspaceZCodeUIState } from "@/store/zcodeSessionStore.js";
+import type { WorkspaceNibiUIState } from "@/store/nibiSessionStore.js";
 import type { RemoteConnectionLogEntry } from "@/hooks/useRemoteConnectionLogs.js";
 import type { Theme } from "@/useTheme.js";
 import type {
@@ -43,20 +43,20 @@ import type {
   ChatViewSummaryPanelVariant,
   ConversationFindMatchState,
 } from "@/v4/legacyChatViewTypes.js";
-import type { ComposerMentionPrefill } from "@/store/zcodeSessionStoreTypes.js";
+import type { ComposerMentionPrefill } from "@/store/nibiSessionStoreTypes.js";
 import type { TaskFindDialogProps } from "@/quickpick/TaskFindDialog.js";
 import type { AutomationsNavigationTab, OpenAutomationsMain } from "@/lib/taskNavigationHistory.js";
 import type { SidePaneFullViewController } from "@/side-pane-full-view/contract.js";
 
-export interface WorkspaceShellZCodeState {
-  activeTaskId: WorkspaceZCodeUIState["activeTaskId"];
-  draftFocusVersion: WorkspaceZCodeUIState["draftFocusVersion"];
-  modelSwitchPending: WorkspaceZCodeUIState["modelSwitchPending"];
-  modelSwitchStage: WorkspaceZCodeUIState["modelSwitchStage"];
-  selectedProvider: WorkspaceZCodeUIState["selectedProvider"];
-  optimisticTaskListByTaskId: WorkspaceZCodeUIState["optimisticTaskListByTaskId"];
-  workspaceInit: WorkspaceZCodeUIState["workspaceInit"];
-  taskStatus: ZCodeTaskRuntimeStatus;
+export interface WorkspaceShellNibiState {
+  activeTaskId: WorkspaceNibiUIState["activeTaskId"];
+  draftFocusVersion: WorkspaceNibiUIState["draftFocusVersion"];
+  modelSwitchPending: WorkspaceNibiUIState["modelSwitchPending"];
+  modelSwitchStage: WorkspaceNibiUIState["modelSwitchStage"];
+  selectedProvider: WorkspaceNibiUIState["selectedProvider"];
+  optimisticTaskListByTaskId: WorkspaceNibiUIState["optimisticTaskListByTaskId"];
+  workspaceInit: WorkspaceNibiUIState["workspaceInit"];
+  taskStatus: NibiTaskRuntimeStatus;
   taskError: string | null;
 }
 
@@ -69,7 +69,7 @@ export interface CreateTaskOptions {
   onError?: (error: unknown) => void;
   /** 异步预填只能提交到解析 Skill 时的同一新任务目标。 */
   expectedWorkspaceKey?: string;
-  provider?: ZCodeProvider;
+  provider?: NibiProvider;
   projectId?: string | null;
   /** 未归类任务目录准备的幂等身份，不作为 session 身份。 */
   draftId?: string;
@@ -92,7 +92,7 @@ export interface CreateTaskOptions {
   };
 }
 
-export type CreateTaskRequest = ZCodeProvider | CreateTaskOptions;
+export type CreateTaskRequest = NibiProvider | CreateTaskOptions;
 
 export interface RemoteWorkspaceRecoveryStatus {
   mode: "automatic" | "manual";
@@ -224,7 +224,7 @@ export interface WorkspaceShellLayoutProps extends Omit<AppProps, "baseFeedbackS
   onOpenAutomationConsumed: () => void;
   handleOpenAutomations: OpenAutomationsMain;
   handleOpenPluginStore: () => void;
-  workspaceShellZCodeState: WorkspaceShellZCodeState;
+  workspaceShellNibiState: WorkspaceShellNibiState;
   theme: Theme;
   isMacFullscreen: boolean;
   desktopWindowChromeState: DesktopWindowChromeState | null;
@@ -273,8 +273,8 @@ export interface WorkspaceShellLayoutProps extends Omit<AppProps, "baseFeedbackS
   sidePaneOwnerId: string | null;
   activeTraceId: string | null;
   activeSessionId: string | null;
-  activeTaskProvider: ZCodeProvider | null;
-  resolvedActiveTaskMeta?: ZCodeTaskMeta | null;
+  activeTaskProvider: NibiProvider | null;
+  resolvedActiveTaskMeta?: NibiTaskMeta | null;
   activeTaskTitle: string;
   activeTaskChangeSummary: ReturnType<
     typeof import("@/lib/taskChangeSummary.js").getTaskChangeSummary
@@ -310,7 +310,7 @@ export interface WorkspaceShellLayoutProps extends Omit<AppProps, "baseFeedbackS
   reloadSessionPending: boolean;
   handleReloadSession: (options?: {
     resumeTaskId?: string | null;
-    provider?: ZCodeProvider | null;
+    provider?: NibiProvider | null;
   }) => Promise<void>;
   handleSelectTask: (
     targetWorkspacePath: string,

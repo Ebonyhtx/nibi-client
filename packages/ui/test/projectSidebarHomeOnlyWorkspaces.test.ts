@@ -34,7 +34,7 @@ vi.mock("@/hooks/useWorkspaceServices.js", () => {
     get remoteProjectService() {
       return fixture.hasProjectService ? remoteProjectService : undefined;
     },
-    zcodeTaskService: { onDynamicWorkspaceEvent: () => () => ({ dispose() {} }) },
+    nibiTaskService: { onDynamicWorkspaceEvent: () => () => ({ dispose() {} }) },
     broadcastService: { onMessage: () => ({ dispose() {} }) },
   };
   return { useBaseWorkspaceServices: () => base };
@@ -46,21 +46,21 @@ vi.mock("@/store/TabStoreProvider.js", () => ({
   // 项目目录的未读监听使用原 store 的订阅接口，首页夹具也需提供可释放的订阅。
   useTabStoreApi: () => ({ getState: () => fixture.state, subscribe: () => () => {} }),
 }));
-vi.mock("@/store/zcodeSessionStore.js", () => ({
-  useZCodeSessionStore: Object.assign(
+vi.mock("@/store/nibiSessionStore.js", () => ({
+  useNibiSessionStore: Object.assign(
     (selector: (state: unknown) => unknown) => selector({ workspaces: {} }),
     { subscribe: () => () => {} },
   ),
 }));
 vi.mock("@/store/StoreProvider.js", () => ({
-  useZCodeStoreWithDefault: () => true,
-  useZCodeStore: (selector: (state: unknown) => unknown) => selector({ setTheme: () => {} }),
+  useNibiStoreWithDefault: () => true,
+  useNibiStore: (selector: (state: unknown) => unknown) => selector({ setTheme: () => {} }),
 }));
 vi.mock("@/v4/useWorkspaceSessionsIndexItems.js", () => ({
   useWorkspaceSessionsIndexItems: () => ({ items: [] }),
 }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: { formatMessage: ({ id }: { id: string }) => id },
     localePreference: "en-US",
     setLocalePreference: () => {},

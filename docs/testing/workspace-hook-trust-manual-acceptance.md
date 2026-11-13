@@ -18,7 +18,7 @@
 
 ```bash
 nvm use 24
-pnpm --dir apps/zcode-cli/packages/cli build:desktop-agent
+pnpm --dir apps/nibi-cli/packages/cli build:desktop-agent
 node scripts/create-workspace-hook-trust-uat-fixture.mjs
 ```
 

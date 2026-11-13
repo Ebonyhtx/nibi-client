@@ -4,7 +4,7 @@ import { useCallback, useMemo, type ReactNode } from "react";
 import type { AgentColor } from "@nibi/shared";
 import { MessageResponse } from "@/components/ai-elements/message.js";
 import { cn } from "@/components/lib/utils.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { resolveSubagentColorFromName, SUBAGENT_TEXT_COLOR_CLASS } from "@/lib/subagentColors.js";
 import { ToolSnapshotFieldNotice } from "@/ToolCallBlocks/ToolSnapshotFieldNotice.js";
 import { ToolLayout } from "../ToolLayout.js";
@@ -154,7 +154,7 @@ function BackgroundAgentProcessSection({
   isRunning: boolean;
   status: string | undefined;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const msg = (id: string, fallback: string) => formatAgentMessage(intl, id, fallback);
   const launchStatus =
     status === "failed"
@@ -208,7 +208,7 @@ function BackgroundAgentProcessSection({
 }
 
 export function AgentToolCallBlock(context: ToolCallBlockRenderContext) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const { toolCall, childToolCalls } = context.toolCallNode;
   const prompt = getAgentPrompt(toolCall);
   const fallbackLabel = formatAgentMessage(intl, "chat.toolCall.agent.fallback", "SubAgent");

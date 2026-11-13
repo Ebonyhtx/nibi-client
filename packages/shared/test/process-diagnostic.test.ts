@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  parseZCodeProcessDiagnostic,
+  parseNibiProcessDiagnostic,
   NIBI_PROCESS_DIAGNOSTIC_PREFIX,
   NIBI_PROCESS_DIAGNOSTIC_MAX_LINE_CHARS,
 } from "@nibi/shared/process-diagnostic";
@@ -20,7 +20,7 @@ const diagnostic = {
 describe("CLI process diagnostic contract", () => {
   it("preserves multiline stack in one stderr frame and validates Host IPC", () => {
     const line = NIBI_PROCESS_DIAGNOSTIC_PREFIX + JSON.stringify(diagnostic);
-    expect(parseZCodeProcessDiagnostic(line)).toEqual(diagnostic);
+    expect(parseNibiProcessDiagnostic(line)).toEqual(diagnostic);
     expect(
       hostResponseMessageSchema.parse({
         type: "agent-process-exception",
@@ -42,7 +42,7 @@ describe("CLI process diagnostic contract", () => {
       { ...diagnostic, message: "x".repeat(4001) },
     ]) {
       expect(
-        parseZCodeProcessDiagnostic(NIBI_PROCESS_DIAGNOSTIC_PREFIX + JSON.stringify(value)),
+        parseNibiProcessDiagnostic(NIBI_PROCESS_DIAGNOSTIC_PREFIX + JSON.stringify(value)),
       ).toBeUndefined();
     }
     for (const line of [
@@ -50,7 +50,7 @@ describe("CLI process diagnostic contract", () => {
       NIBI_PROCESS_DIAGNOSTIC_PREFIX + "{",
       NIBI_PROCESS_DIAGNOSTIC_PREFIX + "x".repeat(NIBI_PROCESS_DIAGNOSTIC_MAX_LINE_CHARS),
     ]) {
-      expect(parseZCodeProcessDiagnostic(line)).toBeUndefined();
+      expect(parseNibiProcessDiagnostic(line)).toBeUndefined();
     }
   });
 });

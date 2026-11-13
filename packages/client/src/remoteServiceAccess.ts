@@ -11,9 +11,9 @@ import {
   IOnboardingRecordService,
   ICredentialService,
   IBroadcastService,
-  IZCodeTaskService,
-  IZCodeAgentService,
-  IZCodeSessionService,
+  INibiTaskService,
+  INibiAgentService,
+  INibiSessionService,
   IProjectService,
   ITaskGroupService,
   IRemoteProjectService,
@@ -74,10 +74,10 @@ export class RemoteServiceAccess implements IServiceAccessor {
   readonly onboardingRecordService: IOnboardingRecordService;
   readonly credentialService: ICredentialService;
   readonly broadcastService: IBroadcastService;
-  readonly zcodeTaskService: IZCodeTaskService;
+  readonly nibiTaskService: INibiTaskService;
   readonly windowControllerService: IWindowControllerService;
-  readonly zcodeAgentService: IZCodeAgentService;
-  readonly zcodeSessionService: IZCodeSessionService;
+  readonly nibiAgentService: INibiAgentService;
+  readonly nibiSessionService: INibiSessionService;
   readonly taskGroupService: ITaskGroupService;
   readonly projectService: IProjectService;
   readonly remoteProjectService: IRemoteProjectService;
@@ -169,14 +169,14 @@ export class RemoteServiceAccess implements IServiceAccessor {
     this.broadcastService = ProxyChannel.toService<IBroadcastService>(
       channelClient.getChannel(IBroadcastService.channelName),
     );
-    this.zcodeTaskService = ProxyChannel.toService<IZCodeTaskService>(
-      channelClient.getChannel(IZCodeTaskService.channelName),
+    this.nibiTaskService = ProxyChannel.toService<INibiTaskService>(
+      channelClient.getChannel(INibiTaskService.channelName),
     );
     this.windowControllerService = ProxyChannel.toService<IWindowControllerService>(
       channelClient.getChannel(IWindowControllerService.channelName),
     );
-    this.zcodeAgentService = ProxyChannel.toService<IZCodeAgentService>(
-      channelClient.getChannel(IZCodeAgentService.channelName),
+    this.nibiAgentService = ProxyChannel.toService<INibiAgentService>(
+      channelClient.getChannel(INibiAgentService.channelName),
     );
     this.remoteProjectService = ProxyChannel.toService<IRemoteProjectService>(
       channelClient.getChannel(IRemoteProjectService.channelName),
@@ -187,8 +187,8 @@ export class RemoteServiceAccess implements IServiceAccessor {
     this.projectService = ProxyChannel.toService<IProjectService>(
       channelClient.getChannel(IProjectService.channelName),
     );
-    this.zcodeSessionService = ProxyChannel.toService<IZCodeSessionService>(
-      channelClient.getChannel(IZCodeSessionService.channelName),
+    this.nibiSessionService = ProxyChannel.toService<INibiSessionService>(
+      channelClient.getChannel(INibiSessionService.channelName),
     );
     this.cuaPermissionService = ProxyChannel.toService<ICuaPermissionService>(
       channelClient.getChannel(ICuaPermissionService.channelName),

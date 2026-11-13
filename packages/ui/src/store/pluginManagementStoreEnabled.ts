@@ -1,5 +1,5 @@
 import type { IPluginManagementService } from "@nibi/services";
-import type { ZCodePluginScope } from "@nibi/shared";
+import type { NibiPluginScope } from "@nibi/shared";
 import { logger } from "@/logger.js";
 import {
   buildWorkspaceKey,
@@ -19,7 +19,7 @@ function buildToggleRequestKey(input: {
   workspacePath: string;
   workspaceIdentity: string | null;
   authorityKey: string | null;
-  configScope: ZCodePluginScope | null;
+  configScope: NibiPluginScope | null;
   pluginId: string;
 }): string {
   const workspaceKey = buildWorkspaceKey(
@@ -36,7 +36,7 @@ export async function setPluginEnabledOptimistically(
   pluginId: string,
   enabled: boolean,
   pluginService: IPluginManagementService,
-  scope: ZCodePluginScope = "user",
+  scope: NibiPluginScope = "user",
 ): Promise<boolean> {
   const { workspacePath, workspaceIdentity, authorityKey, configScope } = get();
   if (!workspacePath) return false;

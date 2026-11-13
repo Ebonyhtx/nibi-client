@@ -9,13 +9,13 @@
 
 import { useCallback, useMemo } from "react";
 import { completeNewModelSelection } from "@nibi/provider";
-import { NIBI_AGENT_PROVIDER, type ZCodeConfigOption } from "@nibi/shared";
+import { NIBI_AGENT_PROVIDER, type NibiConfigOption } from "@nibi/shared";
 import { useModelSelectionView } from "@/hooks/useModelSelectionView.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { buildRegistryModelSelectGroups } from "@/lib/modelSelectionGroups.js";
 import { resolveModelThoughtOption } from "@/lib/modelThoughtOption.js";
-import { encodeCustomModelValue } from "@/lib/zcodeCustomModelValue.js";
-import { parseModelPickerValue } from "@/lib/zcodeSessionProjection.js";
+import { encodeCustomModelValue } from "@/lib/nibiCustomModelValue.js";
+import { parseModelPickerValue } from "@/lib/nibiSessionProjection.js";
 import type { ModelSelectGroup, ModelSelectGroupItem } from "@/ModelConfigSelect.js";
 import { formatProviderModelLabel } from "@/v4/composer/modelTriggerDisplay.js";
 import { describeWorkflowSubagentModel } from "./subagent-model-label.js";
@@ -45,11 +45,11 @@ export interface WorkflowSettingsModelFace {
   /** 清单读好了却找不到它：被删或停用。 */
   unavailable: boolean;
   /** 它的思考档；没有档位（或不可用）即 null。 */
-  thoughtOption: ZCodeConfigOption | null;
+  thoughtOption: NibiConfigOption | null;
 }
 
 export function useWorkflowSettingsModelChoices(scope: WorkflowSettingsModelScope) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const format = useCallback(
     (id: string, values?: Record<string, string | number>) => intl.formatMessage({ id }, values),
     [intl],

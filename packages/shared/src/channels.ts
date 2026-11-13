@@ -104,14 +104,14 @@ export const ServiceChannels = {
   CuaPipSession: "cua-pip-session",
   /** 跨窗口广播 */
   Broadcast: "broadcast",
-  /** ZCode task wrapper 服务 */
-  ZCodeTask: "nibi-task",
+  /** Nibi task wrapper 服务 */
+  NibiTask: "nibi-task",
   /** 窗口 Host 聚合 workspace/task 投影与列表写路由 */
   WindowController: "window-controller",
   /** NIBI Protocol agent 服务 */
-  ZCodeAgent: "nibi-agent",
-  /** ZCode session 应用服务 */
-  ZCodeSession: "nibi-session",
+  NibiAgent: "nibi-agent",
+  /** Nibi session 应用服务 */
+  NibiSession: "nibi-session",
   Project: "project",
   TaskGroups: "task-groups",
   RemoteProjects: "remote-projects",
@@ -140,7 +140,7 @@ export const ServiceChannels = {
   /** 本地 usage 统计服务 */
   UsageStats: "usage-stats",
   ClientConfig: "client-config",
-  /** ZCode 客户端场景配置服务 */
+  /** Nibi 客户端场景配置服务 */
   ClientScenes: "client-scenes",
   CloudContent: "cloud-content",
   MarketingTouch: "marketing-touch",
@@ -154,7 +154,7 @@ export const ServiceChannels = {
   PluginSync: "plugin-sync",
   /** 插件管理服务 */
   Plugins: "plugins",
-  /** 设置页插件管理服务（UI 平台能力面收敛，不再直触 zcodeAgentService） */
+  /** 设置页插件管理服务（UI 平台能力面收敛，不再直触 nibiAgentService） */
   PluginManagement: "plugin-management",
   /** 插件 UI 沙箱桥：host 读取 ui:// 资源并向 main 登记、代理 UI 发起的工具调用 */
   PluginUiBridge: "plugin-ui-bridge",
@@ -356,7 +356,7 @@ export const PlatformChannels = {
    * `nibi-html://` 预览 URL；解析失败返回原因，由 UI 显示而不回退 `file:`。
    */
   ResolveBrowserLocalPreviewUrl: "nibi:resolve-browser-local-preview-url",
-  /** Renderer → Main：打开 ZCode Computer Use 权限引导 */
+  /** Renderer → Main：打开 Nibi Computer Use 权限引导 */
   OpenCuaPermissionOnboarding: "nibi:open-cua-permission-onboarding",
   /** Renderer → Main：取消当前 renderer 发起的一次权限引导 participant */
   CancelCuaPermissionOnboarding: "nibi:cancel-cua-permission-onboarding",
@@ -475,7 +475,7 @@ export const PlatformChannels = {
   /** Main → Renderer：当前窗口页面缩放档位变化 */
   DesktopZoomLevelChanged: "nibi:desktop-zoom-level-changed",
   /** Renderer → Main：读取开发态 stdio tap proxy 开关状态 */
-  GetZCodeStdioTapDevState: "nibi:get-zcode-stdio-tap-dev-state",
+  GetNibiStdioTapDevState: "nibi:get-nibi-stdio-tap-dev-state",
   /** Main → Renderer：本地 setting.json 已由 main 进程更新 */
   SettingsChanged: "nibi:settings-changed",
   /** Main → Renderer：应用语言已切换 */
@@ -630,7 +630,7 @@ export const HostMessageTypes = {
   LocalMediaPreviewPathAuthorizeResult: "local-media-preview-path-authorize-result",
   /** main → host：插件 UI 沙箱登记结果（PluginSandboxRegisterResultPayload） */
   PluginSandboxRegisterResult: "plugin-sandbox-register-result",
-  /** Main → Host：全局前台 ZCode 窗口派生的 producer focus fact。 */
+  /** Main → Host：全局前台 Nibi 窗口派生的 producer focus fact。 */
   CuaPipFocusChanged: "cua-pip-focus-changed",
   /** main → host：要求 Host 现读本地 Source，并同步指定 Remote Environment。 */
   ProviderProvisioningExecute: "provider-provisioning-execute",
@@ -638,7 +638,7 @@ export const HostMessageTypes = {
   ResourceUsageSnapshotRequest: "resource-usage-snapshot-request",
   ResourceUsageSnapshotCancel: "resource-usage-snapshot-cancel",
   NetworkCapture: "network-capture",
-  /** main → host：Main 的实时界面语言变化（Host 用于 ZCode endpoint 的 X-Client-Language） */
+  /** main → host：Main 的实时界面语言变化（Host 用于 Nibi endpoint 的 X-Client-Language） */
   ApplicationLocaleChanged: "application-locale-changed",
 } as const;
 
@@ -716,7 +716,7 @@ export const HostResponseTypes = {
   TaskOwnerCommandResult: "task-owner-command-result",
   /** host → main：Agent 请求向另一个 session 发送消息 */
   SessionMessageSendRequested: "session-message-send-requested",
-  /** host → main：声明一个 ZCode Agent session 当前归属该 host */
+  /** host → main：声明一个 Nibi Agent session 当前归属该 host */
   SessionRouteAnnounce: "session-route-announce",
   /** host → main：目标 host 完成本地 session message 投递 */
   SessionMessageDeliverResult: "session-message-deliver-result",

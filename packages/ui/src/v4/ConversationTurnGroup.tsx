@@ -12,7 +12,7 @@ import {
   useState,
 } from "react";
 import { ChevronRightIcon } from "lucide-react";
-import type { ZCodeApiRetryStatus } from "@nibi/shared";
+import type { NibiApiRetryStatus } from "@nibi/shared";
 import {
   TID_CHAT_ASSISTANT_HISTORY_CONTENT,
   TID_CHAT_ASSISTANT_HISTORY_TRIGGER,
@@ -42,7 +42,7 @@ import {
   readCronCreateAutomationSummary,
   type CronCreateAutomationSummary,
 } from "@/ToolCallBlocks/renderers/cron-create.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { AssistantPreviewCard } from "@/lib/assistantPreviewCards.js";
 import { useAssistantCodeCommentFeatureEnabled } from "@/AssistantCodeCommentFeatureProvider.js";
 import {
@@ -117,7 +117,7 @@ interface CronAutomationTurnCard {
 
 const MIN_VISIBLE_API_RETRY_ATTEMPT = 3;
 
-function toRetryStatus(apiRetry: ApiRetryState): ZCodeApiRetryStatus {
+function toRetryStatus(apiRetry: ApiRetryState): NibiApiRetryStatus {
   const attempt = Math.max(1, Math.floor(apiRetry.attempt));
   // v4 maxAttempts 包含首次请求，而展示口径是重试次数；直接展示会把
   // 默认 10 次重试写成 1/11。
@@ -139,7 +139,7 @@ function TurnChatLoadingSlot({
   apiRetry: ApiRetryState | null;
   eligible: boolean;
 }) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const retryStatus = useMemo(() => (apiRetry ? toRetryStatus(apiRetry) : null), [apiRetry]);
   // 前两次短暂恢复对用户等价于普通加载；保留 apiRetry 运行态，但只在
   // 第三次重试开始后显示计数。必须在 retry/loading 分支前收敛，否则会留下空 slot，
@@ -520,7 +520,7 @@ function AssistantHistoryStatus({
   open: boolean;
   sourceCommandIds: readonly string[];
 }) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const topicInterrupted = useBotTopicInterruption(sourceCommandIds);
   const durationLabel = formatConversationWorkDuration(
     segment.workStatus?.durationMs,

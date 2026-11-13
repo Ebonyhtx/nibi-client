@@ -21,7 +21,7 @@ const buildTimeConfigDefines = createBuildTimeConfigDefines(
 
 const buildMetadata = getBuildMetadata();
 
-function resolveZCodeEnv(value: string | undefined): "test" | "production" {
+function resolveNibiEnv(value: string | undefined): "test" | "production" {
   return value?.trim().toLowerCase() === "production" ? "production" : "test";
 }
 
@@ -67,10 +67,10 @@ function loadEnvFiles(): Record<string, string> {
 }
 
 const env = loadEnvFiles();
-const { environment: zcodeEnv } = await loadBuiltinProviderConfig();
-// 安装包身份与后端环境分轴：NIBI_PREVIEW_IDENTITY=1 让生产后端的构建仍以 ZCode Preview 身份打包运行。
-const zcodeProductFlavor = resolveDesktopProductFlavor({ ...process.env, NIBI_ENV: zcodeEnv });
-console.log(`[tsup] NIBI_ENV=${zcodeEnv} NIBI_PRODUCT_FLAVOR=${zcodeProductFlavor}`);
+const { environment: nibiEnv } = await loadBuiltinProviderConfig();
+// 安装包身份与后端环境分轴：NIBI_PREVIEW_IDENTITY=1 让生产后端的构建仍以 Nibi Preview 身份打包运行。
+const nibiProductFlavor = resolveDesktopProductFlavor({ ...process.env, NIBI_ENV: nibiEnv });
+console.log(`[tsup] NIBI_ENV=${nibiEnv} NIBI_PRODUCT_FLAVOR=${nibiProductFlavor}`);
 
 function parseCsvEnv(value: string | undefined): string[] {
   return (value ?? "")
@@ -107,7 +107,7 @@ export function resolveBuildPackagedAgentTelemetryEnv(
   const endpoint = runtimeEnv.NIBI_PACKAGED_AGENT_OTEL_ENDPOINT?.trim();
   const headers = runtimeEnv.NIBI_PACKAGED_AGENT_OTEL_HEADERS?.trim();
   const serviceName =
-    runtimeEnv.NIBI_PACKAGED_AGENT_OTEL_SERVICE_NAME?.trim() || "zcode-cli-agent";
+    runtimeEnv.NIBI_PACKAGED_AGENT_OTEL_SERVICE_NAME?.trim() || "nibi-cli-agent";
 
   if (!endpoint && !headers) {
     if (
@@ -147,7 +147,7 @@ export function resolveBuildPackagedAgentTelemetryEnv(
     throw new Error("NIBI_PACKAGED_AGENT_OTEL_ENDPOINT must be a valid HTTP(S) URL");
   }
   if (
-    resolveZCodeEnv(runtimeEnv.NIBI_ENV) === "production" &&
+    resolveNibiEnv(runtimeEnv.NIBI_ENV) === "production" &&
     parsedEndpoint.protocol !== "https:"
   ) {
     throw new Error("NIBI_PACKAGED_AGENT_OTEL_ENDPOINT must use HTTPS in production");
@@ -199,11 +199,11 @@ function createSharedDefines() {
     __NIBI_MIN_COMPATIBLE_VERSION__: JSON.stringify(buildMetadata.minCompatibleVersion),
     __NIBI_COMMIT__: JSON.stringify(buildMetadata.buildCommitId),
     __NIBI_BUILD_TIME__: JSON.stringify(buildMetadata.buildTime),
-    __NIBI_ENV__: JSON.stringify(zcodeEnv),
-    __NIBI_PRODUCT_FLAVOR__: JSON.stringify(zcodeProductFlavor),
+    __NIBI_ENV__: JSON.stringify(nibiEnv),
+    __NIBI_PRODUCT_FLAVOR__: JSON.stringify(nibiProductFlavor),
     ...buildTimeConfigDefines,
     // Computer Use Helper build identity — helperInstaller 读它决定下载哪个 Helper bundle。
-    // 缺失时 installer 抛 "Packaged ZCode is missing its embedded Computer Use Helper build identity"。
+    // 缺失时 installer 抛 "Packaged Nibi is missing its embedded Computer Use Helper build identity"。
     // CI 构建时通过 NIBI_CUA_HELPER_BUILD_ID env 注入；dev 为空串走兜底（dev helper 不走下载）。
     __NIBI_CUA_HELPER_BUILD_ID__: JSON.stringify(
       process.env.NIBI_CUA_HELPER_BUILD_ID?.trim() ?? "",
@@ -252,7 +252,7 @@ export default defineConfig([
     entry: {
       "main/index": "src/main/index.ts",
       "main/browserWebmRecorder": "src/main/browserView/electronBrowserWebmRecorder.ts",
-      "main/zcodeDataSizeWorker": "src/main/zcodeDataSizeWorker.ts",
+      "main/nibiDataSizeWorker": "src/main/nibiDataSizeWorker.ts",
       // 资源管理器「存储」tab 的扫描 Worker：main 持有 StorageService，遍历放独立线程，供 new Worker(new URL()) 解析。
       "main/storageScanWorker": "src/main/storageScanWorker.ts",
     },

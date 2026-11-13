@@ -4,7 +4,7 @@ import { compileModelOptionMaps } from "@nibi/model-option-map";
 import {
   ModelConfig,
   ModelOptionSpecsConfig,
-  parseZCodeBuiltinModelConfigRules,
+  parseNibiBuiltinModelConfigRules,
 } from "@nibi/provider";
 
 type Release = {
@@ -22,12 +22,12 @@ type Release = {
   };
 };
 let release: Release;
-let rules: ReturnType<typeof parseZCodeBuiltinModelConfigRules>;
+let rules: ReturnType<typeof parseNibiBuiltinModelConfigRules>;
 beforeAll(async () => {
   release = JSON.parse(
     await readFile(new URL("../../../config/provider/nibi-builtin.json", import.meta.url), "utf8"),
   );
-  rules = parseZCodeBuiltinModelConfigRules(release.config.modelConfigRules);
+  rules = parseNibiBuiltinModelConfigRules(release.config.modelConfigRules);
 });
 const resolve = (
   modelId: string,

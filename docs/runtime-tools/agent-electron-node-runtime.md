@@ -29,7 +29,7 @@ process.execPath  <Electron Helper>
 
 ## 实现
 
-**bundle 目标版本**（`apps/zcode-cli/packages/cli/scripts/build.mjs`）
+**bundle 目标版本**（`apps/nibi-cli/packages/cli/scripts/build.mjs`）
 esbuild `target` 从 `node26` 降到 **`node22`**，取两端运行时里最低的 Node 版本（远端 v22.16）。保证同一份 `zcode.cjs` 在桌面 Node 24 和远端 Node 22 上都不会用到目标运行时不支持的语法。
 
 **桌面**

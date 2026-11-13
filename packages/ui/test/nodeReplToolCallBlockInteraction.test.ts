@@ -6,7 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ImagePreviewDialog } from "@/components/ai-elements/image-preview-dialog.js";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { StoreProvider } from "@/store/StoreProvider.js";
 import { NodeReplToolCallBlock } from "@/ToolCallBlocks/renderers/node-repl.js";
 
@@ -74,7 +74,7 @@ function renderImageToolCall(source?: "browser_turn_end", imageCount = 1) {
 
   return render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(
         StoreProvider,
@@ -123,7 +123,7 @@ describe("node repl tool interaction", () => {
 
     render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           StoreProvider,
@@ -241,7 +241,7 @@ describe("node repl tool interaction", () => {
 
     render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(ImagePreviewDialog, {
           initialIndex: 0,
@@ -270,7 +270,7 @@ describe("node repl tool interaction", () => {
 
     render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(ImagePreviewDialog, {
           initialIndex: 0,
@@ -327,7 +327,7 @@ describe("node repl tool interaction", () => {
 
     render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(ImagePreviewDialog, {
           initialIndex: 0,

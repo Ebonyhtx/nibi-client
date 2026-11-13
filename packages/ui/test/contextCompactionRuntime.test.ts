@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { ZCodeContextCompactionTimelineMeta } from "@nibi/shared";
+import type { NibiContextCompactionTimelineMeta } from "@nibi/shared";
 import {
   isRunningContextCompactionTimeline,
   shouldContextCompactionTimelineCompleteTask,
 } from "../src/lib/contextCompactionRuntime.js";
 
 function createTimeline(
-  overrides: Partial<ZCodeContextCompactionTimelineMeta>,
-): ZCodeContextCompactionTimelineMeta {
+  overrides: Partial<NibiContextCompactionTimelineMeta>,
+): NibiContextCompactionTimelineMeta {
   return {
     version: 1,
     kind: "synthetic",

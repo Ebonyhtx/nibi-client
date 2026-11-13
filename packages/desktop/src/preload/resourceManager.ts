@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import { PlatformChannels, formatZCodeRendererProcessName } from "@nibi/shared";
+import { PlatformChannels, formatNibiRendererProcessName } from "@nibi/shared";
 import type {
   ResourceUsageSnapshot,
   NetworkCaptureBridge,
@@ -9,7 +9,7 @@ import type {
   StorageUsageSnapshot,
 } from "@nibi/shared";
 
-process.title = formatZCodeRendererProcessName("Resource Manager");
+process.title = formatNibiRendererProcessName("Resource Manager");
 
 const storage: StorageManagementBridge = {
   startScan: (): Promise<{ jobId: string }> =>

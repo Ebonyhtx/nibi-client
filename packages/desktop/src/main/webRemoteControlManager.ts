@@ -15,7 +15,7 @@ import {
   classifyRemoteUsageError,
   parseRemoteWorkspaceIdentity,
   WEB_REMOTE_CONTROL_OUTBOUND_PAYLOAD_BUFFER_TIMEOUT_MS,
-  type ZCodeEndpointUrls,
+  type NibiEndpointUrls,
   type HostPreparedProjectWorkspace,
   type HostProjectWorkspaceNavigationInput,
   resolveWebRemoteControlWorkspaceKey,
@@ -156,7 +156,7 @@ interface WindowControlRuntime {
 }
 
 interface WebRemoteControlManagerDependencies {
-  getEndpointUrls?: () => Promise<ZCodeEndpointUrls> | ZCodeEndpointUrls;
+  getEndpointUrls?: () => Promise<NibiEndpointUrls> | NibiEndpointUrls;
   relayWsUrl: string;
   mobileRemoteControlUrl: string;
   deviceMid: string;
@@ -633,7 +633,7 @@ export function createWebRemoteControlManager(dependencies: WebRemoteControlMana
       if (result.kind === "oversize") {
         // Bugfix：永久 oversize 不能伪装成临时不可发送后反复进入 50 项 buffer。
         dependencies.logger.warn("[web-remote-control] dropped oversize app payload", {
-          zcodeType: payload.nibi_type,
+          nibiType: payload.nibi_type,
           bytes: result.bytes,
           maxBytes: result.maxBytes,
         });
@@ -658,7 +658,7 @@ export function createWebRemoteControlManager(dependencies: WebRemoteControlMana
     }
     if (result.kind === "oversize") {
       dependencies.logger.warn("[web-remote-control] rejected oversize app payload", {
-        zcodeType: payload.nibi_type,
+        nibiType: payload.nibi_type,
         bytes: result.bytes,
         maxBytes: result.maxBytes,
       });

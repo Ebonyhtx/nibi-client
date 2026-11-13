@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { TID_V4_GOAL_BANNER } from "@nibi/shared/test-ids";
 import type { GoalState } from "@nibi/shared/nibi-protocol-v4";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 
 export interface ConversationGoalBannerProps {
   goal: GoalState;
@@ -12,7 +12,7 @@ export interface ConversationGoalBannerProps {
  * memo：goal 不变时不随 SessionPane 其他状态重渲染。
  */
 function ConversationGoalBannerImpl({ goal }: ConversationGoalBannerProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <div
       data-testid={TID_V4_GOAL_BANNER}

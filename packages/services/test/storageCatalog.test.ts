@@ -121,7 +121,7 @@ describe("cleanability, protection and clean scopes", () => {
       "v2/setting.json.lock",
       "v2/credentials.json",
       "computer-use/run/.tokens",
-      "v2/dev/zcode-stdio-tap.json",
+      "v2/dev/nibi-stdio-tap.json",
       "v2/crash/live/current.dmp",
     ]) {
       expect(isProtectedStoragePath(path), path).toBe(true);

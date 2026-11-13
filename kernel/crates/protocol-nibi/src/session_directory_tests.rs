@@ -1,7 +1,7 @@
 //! `session/list`（Host 的任务列表、项目谱系校验与分享导入去重）。
 //!
 //! 逻辑全在协议层（归属校验与 wire 形状），所以用最小 Kernel 替身把会话目录喂进去，经
-//! `Handler` 走真实分派断言：Host 的 `zcodeSessionInfoSchema` 是 `.strict()`，多一个键、
+//! `Handler` 走真实分派断言：Host 的 `nibiSessionInfoSchema` 是 `.strict()`，多一个键、
 //! 少一个必填键都会被拒，形状只能按 wire 断言。
 use std::sync::{Arc, Mutex};
 
@@ -217,7 +217,7 @@ fn workspace() -> Value {
     })
 }
 
-/// 目录读法：任务列表口径的行原样出 `zcodeSessionInfo`，workspace 回声，缺省字段按 Node
+/// 目录读法：任务列表口径的行原样出 `nibiSessionInfo`，workspace 回声，缺省字段按 Node
 /// `mapSessionInfo` 给（`mode: "build"`、`status: "idle"`，不写 `model` / `target`）。
 #[tokio::test]
 async fn session_list_projects_the_directory_as_session_info() {

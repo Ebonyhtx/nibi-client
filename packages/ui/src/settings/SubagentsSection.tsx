@@ -51,14 +51,14 @@ import { settingsResourceRowInteraction } from "@/settings/settingsResourceRowIn
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { useModelSelectionServiceView } from "@/hooks/useModelSelectionView.js";
 import { useConfigWorkspaceServicesResolution as useWorkspaceServicesResolution } from "@/workspace-config-catalog/index.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   buildRegistryModelSelectGroups,
   resolveModelDisplayName,
 } from "@/lib/modelSelectionGroups.js";
 import { resolveModelThoughtOption } from "@/lib/modelThoughtOption.js";
-import { parseModelPickerValue } from "@/lib/zcodeSessionProjection.js";
-import { encodeCustomModelValue } from "@/lib/zcodeCustomModelValue.js";
+import { parseModelPickerValue } from "@/lib/nibiSessionProjection.js";
+import { encodeCustomModelValue } from "@/lib/nibiCustomModelValue.js";
 import { SUBAGENT_COLORS, SUBAGENT_COLOR_CLASS } from "@/lib/subagentColors.js";
 import { SettingsResourceGroupHeader } from "@/settings/SettingsResourceGroupHeader.js";
 import { SettingsResourceHeaderActions } from "@/settings/SettingsResourceHeaderActions.js";
@@ -487,7 +487,7 @@ function AgentListRow({
   onEdit: (agent: AgentSummary) => void;
   onToggle: (agent: AgentSummary, enabled: boolean) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const editable = isEditableUserAgent(agent);
   const showEnabledToggle = supportsEnabledToggle(agent);
   const rowEditable = editable && !isOperating;
@@ -621,7 +621,7 @@ function SubagentModelOverrideControl({
     config: { model?: string; thoughtLevel?: string },
   ) => Promise<void>;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [pending, setPending] = useState(false);
   const overrideWriteInFlightRef = useRef(false);
   const [config, setConfig] = useState<{
@@ -836,7 +836,7 @@ function SubagentForm({
   workspaceTabs: ConfigWorkspaceTarget[];
   onScopeKeyChange: (scopeKey: string) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const initialFormStateKey = createSubagentFormInitialStateKey(initial);
   const initialFormState = useMemo(
     () => createSubagentFormInitialState(initial),
@@ -1286,7 +1286,7 @@ export function SubagentsSection({
   workspacePath,
   workspaceIdentity,
 }: SubagentsSectionProps) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const confirmDialog = useConfirmDialog();
   const plugins = usePluginManagementStore((state) => state.plugins);
   const availablePlugins = usePluginManagementStore((state) => state.availablePlugins);

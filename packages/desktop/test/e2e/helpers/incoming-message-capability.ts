@@ -49,7 +49,7 @@ export async function prepareIncomingMessageCapability(
   } finally {
     repository.dispose();
   }
-  await seedSettings({ zcodeInteractionBehavior: interactionBehavior });
+  await seedSettings({ nibiInteractionBehavior: interactionBehavior });
   // 冷启动 Host/Worker 形成配置生效屏障，不依赖 watcher 的偶然时序。
   await browser.reloadSession();
   await prepareV4ConversationE2E({ resetDraftBeforeProvider: true, skipProvider: true });

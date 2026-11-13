@@ -527,7 +527,7 @@ body`,
     const workspacePath = join(home, "workspace");
     const browserUsePluginRoot = officialPluginRoot(home, "browser-use");
     const documentPluginRoot = officialPluginRoot(home, "documents");
-    const zcodeGuidePluginRoot = officialPluginRoot(home, "zcode-guide");
+    const nibiGuidePluginRoot = officialPluginRoot(home, "zcode-guide");
     const iosPluginRoot = officialPluginRoot(home, "ios-simulator");
     const androidPluginRoot = officialPluginRoot(home, "android-emulator");
     writePluginManifest(browserUsePluginRoot, {
@@ -540,7 +540,7 @@ body`,
       skills: "skills",
       version: "0.1.0",
     });
-    writePluginManifest(zcodeGuidePluginRoot, {
+    writePluginManifest(nibiGuidePluginRoot, {
       name: "zcode-guide",
       skills: "skills",
       version: "0.1.0",
@@ -583,7 +583,7 @@ description: pdf skill
 pdf-body`,
     );
     writeSkill(
-      join(zcodeGuidePluginRoot, "skills"),
+      join(nibiGuidePluginRoot, "skills"),
       "diagnosing-plugins",
       `---
 name: diagnosing-plugins
@@ -649,7 +649,7 @@ android-body`,
     const browserUsePluginRoot = officialPluginRoot(home, "browser-use");
     const documentPluginRoot = officialPluginRoot(home, "documents");
     const skillCreatorPluginRoot = officialPluginRoot(home, "skill-creator");
-    const zcodeGuidePluginRoot = officialPluginRoot(home, "zcode-guide");
+    const nibiGuidePluginRoot = officialPluginRoot(home, "zcode-guide");
     writePluginManifest(browserUsePluginRoot, {
       name: "browser-use",
       skills: "skills",
@@ -665,7 +665,7 @@ android-body`,
       skills: "skills",
       version: "0.1.0",
     });
-    writePluginManifest(zcodeGuidePluginRoot, {
+    writePluginManifest(nibiGuidePluginRoot, {
       name: "zcode-guide",
       skills: "skills",
       version: "0.1.0",
@@ -698,7 +698,7 @@ description: skill creator skill
 creator-body`,
     );
     writeSkill(
-      join(zcodeGuidePluginRoot, "skills"),
+      join(nibiGuidePluginRoot, "skills"),
       "diagnosing-plugins",
       `---
 name: diagnosing-plugins

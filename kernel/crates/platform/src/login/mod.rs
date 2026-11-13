@@ -1,4 +1,4 @@
-// 语义复制自 apps/zcode-cli/packages/bootstrap/src/auth-login.ts、auth-login-persistence.ts（33a9541140）；OAuth 登录
+// 语义复制自 apps/nibi-cli/packages/bootstrap/src/auth-login.ts、auth-login-persistence.ts（33a9541140）；OAuth 登录
 // 写的键与值照 App 的轮询登录（packages/services/src/oauth/oauthService.ts 的 `pollPendingOAuth` 与
 // `persistOAuthSession`，工作线 F50）。
 //! 登录与退出（platform.md §5.6）：CLI OAuth 轮询登录、手工 key、退出。
@@ -370,7 +370,7 @@ fn app_login_writes(
 }
 
 /// App 轮询登录的 bigmodel profile（`pollPendingOAuth` 的 `profile` 经 `withProviderProfileSchema`）：
-/// `{id: user_id, username, displayName, [avatarUrl], rawProfile: {…user, zcodeProfileSchemaVersion: 2}}`。没有版本号时
+/// `{id: user_id, username, displayName, [avatarUrl], rawProfile: {…user, nibiProfileSchemaVersion: 2}}`。没有版本号时
 /// App 启动会用 userinfo 接口把 id 换成 `customerNumber`（`refreshLegacyBigModelCachedProfile`），项目位置的键随之改变。
 fn app_profile(ready: &oauth::Ready) -> Value {
     let user_id = ready.user["user_id"].as_str().unwrap_or_default();
@@ -393,8 +393,8 @@ fn app_profile(ready: &oauth::Ready) -> Value {
         profile.insert("avatarUrl".to_owned(), json!(avatar));
     }
     let mut raw = ready.raw_user.clone();
-    raw.shift_remove("zcodeProfileMigrationRetryAfter");
-    raw.insert("zcodeProfileSchemaVersion".to_owned(), json!(2));
+    raw.shift_remove("nibiProfileMigrationRetryAfter");
+    raw.insert("nibiProfileSchemaVersion".to_owned(), json!(2));
     profile.insert("rawProfile".to_owned(), Value::Object(raw));
     Value::Object(profile)
 }

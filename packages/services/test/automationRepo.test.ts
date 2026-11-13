@@ -22,8 +22,8 @@ import {
 } from "../src/session/automationCron.js";
 import {
   AUTOMATION_CREATE_LIMIT,
-  type ZCodeAutomationCreateParams,
-  type ZCodeAutomationLifecycleStatus,
+  type NibiAutomationCreateParams,
+  type NibiAutomationLifecycleStatus,
 } from "@nibi/shared";
 
 // 固定基准时间，保证退避 / 重排断言可复现。
@@ -31,8 +31,8 @@ const NOW = 1_700_000_000_000;
 const MINUTE = 60_000;
 
 function makeParams(
-  overrides: Partial<ZCodeAutomationCreateParams> = {},
-): ZCodeAutomationCreateParams {
+  overrides: Partial<NibiAutomationCreateParams> = {},
+): NibiAutomationCreateParams {
   return {
     title: "每日巡检",
     cronExpr: "0 9 * * *",
@@ -450,7 +450,7 @@ describe("AutomationRepo 调度状态机", () => {
   });
 
   it("create：所有生命周期状态合计达到 20 条后拒绝创建，删除后释放名额", async () => {
-    const statuses: ZCodeAutomationLifecycleStatus[] = ["active", "paused", "completed", "failed"];
+    const statuses: NibiAutomationLifecycleStatus[] = ["active", "paused", "completed", "failed"];
     for (let index = 0; index < AUTOMATION_CREATE_LIMIT; index += 1) {
       await repo.create(makeParams({ title: `task-${index}` }), {
         nextRunAt: NOW + MINUTE,

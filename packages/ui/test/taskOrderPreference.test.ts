@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import {
   persistTaskOrder,
   pruneTaskOrder,
@@ -7,7 +7,7 @@ import {
   sortTasksByOrder,
 } from "../src/lib/taskOrderPreference.js";
 
-function createTask(taskId: string, updatedAt: number): ZCodeTaskMeta {
+function createTask(taskId: string, updatedAt: number): NibiTaskMeta {
   return {
     taskId,
     workspacePath: "/tmp/workspace-sort",

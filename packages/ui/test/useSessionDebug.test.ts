@@ -18,7 +18,7 @@ const snapshot = (sessionId: string): SessionDebugSnapshot => ({
   cache: { hitRateRequestCount: 1, totalInputTokens: 100, totalCacheReadTokens: 80, hitRate: 0.8 },
 });
 function setup(readSessionDebug: ReturnType<typeof vi.fn>) {
-  const services = { zcodeAgentService: { readSessionDebug } } as unknown as IServiceAccessor;
+  const services = { nibiAgentService: { readSessionDebug } } as unknown as IServiceAccessor;
   return ({ children }: { children: React.ReactNode }) =>
     createElement(ServiceProvider, { services, children });
 }

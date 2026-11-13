@@ -1,6 +1,6 @@
 //! MCP 进程遥测（141 审计 §9 F3）：`process/mcpTelemetry` 的三类事件与 `mcpId` 的编码。
 //!
-//! Node 侧是 `createMcpTelemetryTracker`（`apps/zcode-cli/packages/adapters/src/mcp/telemetry.ts`）。
+//! Node 侧是 `createMcpTelemetryTracker`（`apps/nibi-cli/packages/adapters/src/mcp/telemetry.ts`）。
 //! 三类事件进 ARMS 的稳定性面板：`process_start`、`process_crash`、`session_startup`（`memory` 那类
 //! 已被五分钟资源采样取代，bootstrap 不再发，这里也不产生）。
 //!
@@ -130,7 +130,7 @@ pub struct McpProcessIdentity {
     pub started_at_ms: u64,
 }
 
-/// 一条 `process/mcpTelemetry` 事件（Host `zcodeMcpTelemetryEventSchema`）。
+/// 一条 `process/mcpTelemetry` 事件（Host `nibiMcpTelemetryEventSchema`）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum McpTelemetryEvent {

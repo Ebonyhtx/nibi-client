@@ -3,7 +3,7 @@ import { CheckIcon, Loader2Icon } from "lucide-react";
 import { Badge } from "@/components/ui/badge.js";
 import { Progress } from "@/components/ui/progress.js";
 import { cn } from "@/components/lib/utils.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   ExternalAgentImportSelectionPanel,
   type ExternalAgentImportCategoryState,
@@ -20,7 +20,7 @@ export function MigrationWizardNotice(props: {
   tone?: "info" | "warning";
   values?: Record<string, string>;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <div
       className={cn(
@@ -50,7 +50,7 @@ export function MigrationExternalImportStep(props: {
 }
 
 export function MigrationWizardUnsupportedStep(props: { messageId: string }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border bg-background-alt px-6 text-center text-ui-base text-foreground-subtle">
       {intl.formatMessage({ id: props.messageId })}
@@ -65,7 +65,7 @@ export function MigrationWizardReviewStep(props: {
   commandsCount: number;
   agentsFileSelected: boolean;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const rows: Array<{ labelId: string; value: string }> = [
     {
       labelId: "settings.dataSync.migration.review.sessions",
@@ -137,7 +137,7 @@ export function MigrationWizardRunStep(props: {
   externalImportSelected: boolean;
   externalImportCompleted: boolean;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const sessionFinished =
     props.finishExecution.sessionCompletedCount >= props.finishExecution.sessionTotalCount;
   const agentsFileFinished = props.finishExecution.agentsFileCompletedCount > 0;
@@ -217,7 +217,7 @@ export function MigrationWizardRunStep(props: {
 }
 
 function SummaryCounts(props: { counts: { imported: number; skipped: number; failed: number } }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <div className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-ui-base text-foreground-subtle">
       <span>{intl.formatMessage({ id: "settings.dataSync.migration.summary.imported" })}</span>
@@ -231,7 +231,7 @@ function SummaryCounts(props: { counts: { imported: number; skipped: number; fai
 }
 
 function SummaryCard(props: { titleId: string; children: ReactNode }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <div className="rounded-xl border border-border bg-card px-4 py-4">
       <div className="text-ui-base font-medium text-foreground">
@@ -249,7 +249,7 @@ export function MigrationWizardSummaryStep(props: {
   failureDetails: MigrationFailureDetail[];
   settingsImportError: string | null;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const agentsFileStatusId =
     props.agentsFileOutcome === "copied"
       ? "settings.dataSync.migration.summary.agentsFile.copied"

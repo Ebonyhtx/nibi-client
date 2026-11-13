@@ -4,7 +4,7 @@ cmake_policy(SET CMP0091 NEW)
 project(zcode_native_ugrep LANGUAGES C CXX)
 
 if(NOT MSVC)
-  message(FATAL_ERROR "ZCode Windows ugrep must be built with MSVC")
+  message(FATAL_ERROR "Nibi Windows ugrep must be built with MSVC")
 endif()
 
 foreach(source_name UGREP PCRE2 ZLIB BZIP2 ZSTD BROTLI)

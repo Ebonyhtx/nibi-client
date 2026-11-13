@@ -35,7 +35,7 @@ vi.mock("@nibi/shared", async (importOriginal) => {
     NIBI_ARMS_RUM_ENDPOINT: "https://example.test/endpoint",
     NIBI_ENV: "test",
     NIBI_VERSION: "0.0.0-test",
-    mapZCodeEnvToArmsRumEnv: vi.fn(() => "local"),
+    mapNibiEnvToArmsRumEnv: vi.fn(() => "local"),
   };
 });
 
@@ -234,7 +234,7 @@ describe("appARMSBootstrap beforeReport", () => {
       tracing: { sample: number };
     };
 
-    expect(shared.mapZCodeEnvToArmsRumEnv).toHaveBeenCalledWith("development");
+    expect(shared.mapNibiEnvToArmsRumEnv).toHaveBeenCalledWith("development");
     expect(config).toMatchObject({
       env: "local",
       app: { env: "local" },
@@ -293,7 +293,7 @@ describe("appARMSBootstrap beforeReport", () => {
     expect(result.events[0].properties).toBeUndefined();
   });
 
-  it("drops crashReporter dumps that do not contain the ZCode product binary", async () => {
+  it("drops crashReporter dumps that do not contain the Nibi product binary", async () => {
     const beforeReport = await getBeforeReport();
     const externalCrash = {
       event_type: "exception",
@@ -301,7 +301,7 @@ describe("appARMSBootstrap beforeReport", () => {
       source: "crashReporter",
       binary_images: [{ name: "hdc" }, { name: "libsystem_kernel.dylib" }],
     };
-    const zcodeCrash = {
+    const nibiCrash = {
       event_type: "exception",
       type: "crash",
       source: "crashReporter",
@@ -317,7 +317,7 @@ describe("appARMSBootstrap beforeReport", () => {
     const customEvent = { event_type: "custom", name: "perf_app_start" };
 
     const result = beforeReport({
-      events: [externalCrash, helperCrash, zcodeCrash, customEvent],
+      events: [externalCrash, helperCrash, nibiCrash, customEvent],
     }) as {
       events: Array<Record<string, unknown>>;
     };
@@ -497,12 +497,12 @@ describe("appARMSBootstrap beforeReport", () => {
   it.each([
     {
       runtime: "Linux Preview",
-      applicationName: "ZCode Preview",
+      applicationName: "Nibi Preview",
       executableName: "zcode-preview",
     },
     {
       runtime: "local development",
-      applicationName: "ZCode Dev",
+      applicationName: "Nibi Dev",
       executableName: "Electron",
     },
   ])(

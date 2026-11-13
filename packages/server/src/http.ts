@@ -21,8 +21,8 @@ import type { TopicResourcePeers } from "@nibi/services/node";
 import { TOPIC_RESOURCE_RELAY_CHANNEL } from "@nibi/shared";
 import {
   ServiceCollection,
-  IZCodeAgentService,
-  createZCodeAgentConnectionScope,
+  INibiAgentService,
+  createNibiAgentConnectionScope,
   IBotsService,
   IProviderProvisioningTargetService,
 } from "@nibi/services";
@@ -101,14 +101,14 @@ function setupChannelServer(
   const server = workspaceIdentityMapper
     ? new SourceServerWorkspaceIdentityChannelServer(loggedServer, workspaceIdentityMapper)
     : loggedServer;
-  const agentService = services.getOptional(IZCodeAgentService);
+  const agentService = services.getOptional(INibiAgentService);
   const reverseClient =
     clientMode === "desktop-continuous" && resourcePeers ? new ChannelClient(protocol) : undefined;
   const peer = reverseClient
     ? resourcePeers?.attach(reverseClient.getChannel(TOPIC_RESOURCE_RELAY_CHANNEL))
     : undefined;
   const connectionScope = agentService
-    ? createZCodeAgentConnectionScope(peer ? peer.wrapAgent(agentService) : agentService, {
+    ? createNibiAgentConnectionScope(peer ? peer.wrapAgent(agentService) : agentService, {
         connectionId: `server-ws-${randomUUID()}`,
         clientMode,
         role: clientMode === "desktop-continuous" ? "trusted-host-relay" : "terminal-client",
@@ -116,7 +116,7 @@ function setupChannelServer(
     : undefined;
   const overrides = new Map<string, unknown>();
   if (connectionScope) {
-    overrides.set(IZCodeAgentService.channelName, connectionScope.service);
+    overrides.set(INibiAgentService.channelName, connectionScope.service);
   }
   // Provisioning 携带跨 Environment 凭据，只允许 Desktop trusted host 使用；普通 Web
   // remote/replayable 客户端即使知道频道名，也不能获得 target 写入接口。
@@ -200,7 +200,7 @@ function createServerInfo(options: HttpServerOptions): ServerRemoteInfo {
   });
 }
 
-const zcodeLiteTokenCookieName = "zcode_lite_token";
+const nibiLiteTokenCookieName = "zcode_lite_token";
 
 const staticMimeTypes: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
@@ -252,11 +252,11 @@ function hasValidLiteToken(c: Context, token: string): boolean {
   if (url.searchParams.get("token") === token) {
     c.header(
       "Set-Cookie",
-      `${zcodeLiteTokenCookieName}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax`,
+      `${nibiLiteTokenCookieName}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax`,
     );
     return true;
   }
-  return parseCookieHeader(c.req.header("cookie")).get(zcodeLiteTokenCookieName) === token;
+  return parseCookieHeader(c.req.header("cookie")).get(nibiLiteTokenCookieName) === token;
 }
 
 function isTokenProtectedPath(pathname: string): boolean {

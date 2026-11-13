@@ -2,7 +2,7 @@
 import { createElement, useCallback, useState, type ReactNode } from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { useFullAccessModeConfirmation } from "@/v4/FullAccessModeConfirmDialog.js";
 
 afterEach(cleanup);
@@ -52,7 +52,7 @@ function renderHarness(initialMode: string, locale: "zh-CN" | "en-US" = "zh-CN")
   const handleDraftSwitchMode = vi.fn();
   render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: locale },
       createElement(Harness, { initialMode, handleDraftSwitchMode }),
     ),

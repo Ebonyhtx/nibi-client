@@ -9,7 +9,7 @@ function makeHome() {
   return mkdtempSync(join(tmpdir(), "zcode-mcp-sync-home-"));
 }
 
-async function writeZcodeUserMcp(
+async function writeNibiUserMcp(
   home: string,
   servers: Record<string, Record<string, unknown>>,
 ) {
@@ -35,7 +35,7 @@ async function writeAgentsUserMcp(
   return configPath;
 }
 
-async function readRemoteZcodeServers(home: string) {
+async function readRemoteNibiServers(home: string) {
   const raw = await readFile(join(home, ".nibi", "cli", "config.json"), "utf-8");
   const parsed = JSON.parse(raw) as {
     mcp?: { servers?: Record<string, Record<string, unknown>> };
@@ -57,7 +57,7 @@ describe("mcp sync service", () => {
   it("lists user zcode MCP servers as local candidates", async () => {
     const home = makeHome();
     process.env.HOME = home;
-    await writeZcodeUserMcp(home, {
+    await writeNibiUserMcp(home, {
       context7: {
         type: "stdio",
         command: "npx",
@@ -87,7 +87,7 @@ describe("mcp sync service", () => {
     const home = makeHome();
     process.env.HOME = home;
     // 外部工具/手工编辑写的是 enabled:false；同步侧不能把它当成启用状态。
-    await writeZcodeUserMcp(home, {
+    await writeNibiUserMcp(home, {
       context7: {
         type: "stdio",
         command: "npx",
@@ -106,7 +106,7 @@ describe("mcp sync service", () => {
     const home = makeHome();
     process.env.HOME = home;
     // 线上配置里 enable 与 enabled 并存，切换开关后不能再留下自相矛盾的字段。
-    await writeZcodeUserMcp(home, {
+    await writeNibiUserMcp(home, {
       context7: {
         command: "npx",
         args: ["-y", "@upstash/context7-mcp"],
@@ -122,7 +122,7 @@ describe("mcp sync service", () => {
       enabled: false,
     });
 
-    expect((await readRemoteZcodeServers(home)).context7).toEqual({
+    expect((await readRemoteNibiServers(home)).context7).toEqual({
       command: "npx",
       args: ["-y", "@upstash/context7-mcp"],
       enabled: false,
@@ -135,7 +135,7 @@ describe("mcp sync service", () => {
       enabled: true,
     });
 
-    expect((await readRemoteZcodeServers(home)).context7).toEqual({
+    expect((await readRemoteNibiServers(home)).context7).toEqual({
       command: "npx",
       args: ["-y", "@upstash/context7-mcp"],
     });
@@ -145,7 +145,7 @@ describe("mcp sync service", () => {
     const home = makeHome();
     process.env.HOME = home;
     // 存量配置只有桌面端历史写入的 enable；同步侧读取时应就地迁移成契约字段 enabled。
-    await writeZcodeUserMcp(home, {
+    await writeNibiUserMcp(home, {
       context7: {
         command: "npx",
         args: ["-y", "@upstash/context7-mcp"],
@@ -157,7 +157,7 @@ describe("mcp sync service", () => {
     const result = await service.listLocalUserMcpCandidates();
 
     expect(result.candidates[0]).toMatchObject({ name: "context7", enabled: false });
-    expect((await readRemoteZcodeServers(home)).context7).toEqual({
+    expect((await readRemoteNibiServers(home)).context7).toEqual({
       command: "npx",
       args: ["-y", "@upstash/context7-mcp"],
       enabled: false,
@@ -168,7 +168,7 @@ describe("mcp sync service", () => {
     const home = makeHome();
     process.env.HOME = home;
     // 线上事故配置：停用写了 enable:false，但外部导入残留 enabled:true。迁移必须保住停用语义。
-    await writeZcodeUserMcp(home, {
+    await writeNibiUserMcp(home, {
       context7: {
         command: "npx",
         args: ["-y", "@upstash/context7-mcp"],
@@ -181,7 +181,7 @@ describe("mcp sync service", () => {
     const result = await service.listLocalUserMcpCandidates();
 
     expect(result.candidates[0]).toMatchObject({ name: "context7", enabled: false });
-    expect((await readRemoteZcodeServers(home)).context7).toEqual({
+    expect((await readRemoteNibiServers(home)).context7).toEqual({
       command: "npx",
       args: ["-y", "@upstash/context7-mcp"],
       enabled: false,
@@ -266,7 +266,7 @@ describe("mcp sync service", () => {
   it("imports stdio and HTTP MCP servers while preserving secrets", async () => {
     const localHome = makeHome();
     process.env.HOME = localHome;
-    await writeZcodeUserMcp(localHome, {
+    await writeNibiUserMcp(localHome, {
       context7: {
         type: "stdio",
         command: "npx",
@@ -299,7 +299,7 @@ describe("mcp sync service", () => {
       { name: "context7", status: "synced" },
       { name: "docsApi", status: "synced" },
     ]);
-    const remoteServers = await readRemoteZcodeServers(remoteHome);
+    const remoteServers = await readRemoteNibiServers(remoteHome);
     expect(remoteServers.context7).toMatchObject({
       command: "npx",
       args: ["-y", "@upstash/context7-mcp"],
@@ -352,7 +352,7 @@ describe("mcp sync service", () => {
   it("fails remote import without overwriting an invalid zcode config file", async () => {
     const localHome = makeHome();
     process.env.HOME = localHome;
-    await writeZcodeUserMcp(localHome, {
+    await writeNibiUserMcp(localHome, {
       context7: {
         type: "stdio",
         command: "npx",
@@ -420,7 +420,7 @@ describe("mcp sync service", () => {
     const home = makeHome();
     const workspace = join(home, "workspace");
     process.env.HOME = home;
-    await writeZcodeUserMcp(home, {
+    await writeNibiUserMcp(home, {
       userOnly: { type: "http", url: "https://user.example.test/mcp" },
     });
     await mkdir(join(workspace, ".nibi"), { recursive: true });
@@ -455,7 +455,7 @@ describe("mcp sync service", () => {
     const localHome = makeHome();
     const localWorkspacePath = join(localHome, "workspace", "z-code");
     process.env.HOME = localHome;
-    await writeZcodeUserMcp(localHome, {
+    await writeNibiUserMcp(localHome, {
       filesystem: {
         type: "stdio",
         command: "npx",
@@ -484,7 +484,7 @@ describe("mcp sync service", () => {
       overwrite: false,
     });
 
-    const remoteServers = await readRemoteZcodeServers(remoteHome);
+    const remoteServers = await readRemoteNibiServers(remoteHome);
     expect(remoteServers.filesystem?.args).toEqual([
       "-y",
       "@modelcontextprotocol/server-filesystem",
@@ -496,7 +496,7 @@ describe("mcp sync service", () => {
   it("skips same-name remote MCP servers without overwriting", async () => {
     const localHome = makeHome();
     process.env.HOME = localHome;
-    await writeZcodeUserMcp(localHome, {
+    await writeNibiUserMcp(localHome, {
       context7: {
         type: "stdio",
         command: "npx",
@@ -511,7 +511,7 @@ describe("mcp sync service", () => {
 
     const remoteHome = makeHome();
     process.env.HOME = remoteHome;
-    await writeZcodeUserMcp(remoteHome, {
+    await writeNibiUserMcp(remoteHome, {
       context7: {
         type: "stdio",
         command: "existing-command",
@@ -533,7 +533,7 @@ describe("mcp sync service", () => {
         path: join(remoteHome, ".nibi", "cli", "config.json"),
       },
     ]);
-    const remoteServers = await readRemoteZcodeServers(remoteHome);
+    const remoteServers = await readRemoteNibiServers(remoteHome);
     expect(remoteServers.context7).toMatchObject({
       command: "existing-command",
     });

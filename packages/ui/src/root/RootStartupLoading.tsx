@@ -19,7 +19,7 @@ export function RootStartupLoading({ label, children, busy = true }: RootStartup
       aria-label={label}
       data-testid="root-startup-loading"
     >
-      <ZCodeStartupLogoBadge />
+      <NibiStartupLogoBadge />
       {children}
     </div>
   );
@@ -27,7 +27,7 @@ export function RootStartupLoading({ label, children, busy = true }: RootStartup
 
 /** 初始化与引导共用品牌图标：直接用应用图标本身（自带底色与圆角），
  *  不再套深色壳（套壳会把图形压小、边缘易出毛刺）。`animated` 保留呼吸式明暗。 */
-export function ZCodeStartupLogoBadge({
+export function NibiStartupLogoBadge({
   animated = true,
   size = "default",
 }: {

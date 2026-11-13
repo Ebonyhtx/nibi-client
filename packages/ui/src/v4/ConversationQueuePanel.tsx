@@ -29,7 +29,7 @@ import { ArrowUpFromLine, GripVertical, PencilIcon, Trash2Icon } from "lucide-re
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { Button } from "@/components/ui/button.js";
 import { cn } from "@/components/lib/utils.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { runUserAction, runUserActionAsync } from "@/lib/userActionTelemetry.js";
 
 export interface ConversationQueuePanelProps {
@@ -116,7 +116,7 @@ const restrictQueueDragToPanel: Modifier = ({
 interface QueueRowProps {
   item: QueueItem;
   index: number;
-  intl: ReturnType<typeof useZCodeIntl>["intl"];
+  intl: ReturnType<typeof useNibiIntl>["intl"];
   sortable: boolean;
   onDeleteItem?: (queueItemId: string) => void;
   onEditItem?: (queueItemId: string) => Promise<void> | void;
@@ -316,7 +316,7 @@ function ConversationQueuePanelImpl({
   onMoveItem,
   onResume,
 }: ConversationQueuePanelProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [resumePending, setResumePending] = useState(false);
   const sensors = useSensors(
     useSensor(PointerSensor, {

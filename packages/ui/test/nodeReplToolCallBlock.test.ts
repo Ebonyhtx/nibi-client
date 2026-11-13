@@ -2,7 +2,7 @@ import type { IBroadcastService } from "@nibi/services";
 import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { buildNodeReplDisplayModel } from "@/lib/nodeReplToolDisplay.js";
 import { StoreProvider } from "@/store/StoreProvider.js";
 import { ToolCallBlock } from "@/ToolCallBlocks.js";
@@ -52,7 +52,7 @@ const displayModel = {
 function renderWithProviders(element: ReactElement) {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(
         StoreProvider,
@@ -77,7 +77,7 @@ describe("node repl tool display", () => {
         },
         output: {
           type: "text",
-          value: "# Selected Browser\n- Name: ZCode In-app Browser",
+          value: "# Selected Browser\n- Name: Nibi In-app Browser",
         },
         status: "completed",
       }),
@@ -85,7 +85,7 @@ describe("node repl tool display", () => {
       operation: "run",
       userTitle: "选择浏览器并读取操作说明",
       code: "globalThis.browser = await agent.browsers.getDefault();",
-      resultText: "# Selected Browser\n- Name: ZCode In-app Browser",
+      resultText: "# Selected Browser\n- Name: Nibi In-app Browser",
     });
   });
 

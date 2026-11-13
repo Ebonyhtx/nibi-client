@@ -48,11 +48,11 @@ if (parsed.values.target) {
   await mkdir(workspacePath);
 }
 
-const zcodeDirectory = join(workspacePath, ".nibi");
-const recorderPath = join(zcodeDirectory, "workspace-hook-trust-uat-recorder.mjs");
-const configPath = join(zcodeDirectory, "config.json");
+const nibiDirectory = join(workspacePath, ".nibi");
+const recorderPath = join(nibiDirectory, "workspace-hook-trust-uat-recorder.mjs");
+const configPath = join(nibiDirectory, "config.json");
 const evidencePath = join(workspacePath, ".workspace-hook-trust-uat", "executions.jsonl");
-await mkdir(zcodeDirectory, { recursive: true });
+await mkdir(nibiDirectory, { recursive: true });
 
 const recorder = `import { appendFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -164,7 +164,7 @@ if (parsed.values.json) {
       `config:    ${configPath}`,
       `evidence:  ${evidencePath}`,
       "",
-      "Open the workspace in ZCode Desktop, then follow:",
+      "Open the workspace in Nibi Desktop, then follow:",
       "docs/testing/workspace-hook-trust-manual-acceptance.md",
       "",
     ].join("\n"),

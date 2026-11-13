@@ -2,7 +2,7 @@
 
 Status: implemented. This document covers every way a workflow gets started, saved, found,
 and inspected; `docs/dynamic-workflow/authoring.md` covers how the script is written, and
-`apps/zcode-cli/packages/dynamic-workflow/docs/execution-engine.md` covers what happens to
+`apps/nibi-cli/packages/dynamic-workflow/docs/execution-engine.md` covers what happens to
 the run after it starts.
 
 ## The ways a workflow starts
@@ -240,7 +240,7 @@ name fails with "This host cannot choose models; remove `model` from the persona
 The handler hands the bindings to the port as `modelBindings` (structured selections); the port
 records them once, as canonical strings, on the `run-launched` event beside `subagentModel`, and
 never infers one. When a subagent's session is created, the host looks up the persona's name in
-that table (`apps/zcode-cli/packages/dynamic-workflow/docs/execution-engine.md`, "Subagent
+that table (`apps/nibi-cli/packages/dynamic-workflow/docs/execution-engine.md`, "Subagent
 sessions"). A resume reads the table back from the event, so the names keep the models they
 were launched with, whatever the catalog says by then.
 
@@ -287,7 +287,7 @@ reported as compiled and not executed. The tool never pretends a run started.
 ## The `AmendWorkflow` tool
 
 Amending is how a run gets a revised script: a new run, with its own id, that imports the
-predecessor's finished work as a cache (`apps/zcode-cli/packages/dynamic-workflow/docs/execution-engine.md`,
+predecessor's finished work as a cache (`apps/nibi-cli/packages/dynamic-workflow/docs/execution-engine.md`,
 "Amend-resume"). It is a separate tool from `CreateWorkflow` because it is a different act
 with a different display: the model is not starting something, it is changing something the
 user is already watching, and the predecessor may still be running.
@@ -311,7 +311,7 @@ amendment, which is what every other call is.
 The amended run's token figure, on its completion card, in the run pane, in `GetWorkflowRun`
 and in the run history, is the cost of the whole lineage: it starts at the predecessor's total
 and adds only the revision's live turns, so a chain of amendments sums by construction. The
-predecessor keeps its own figure (`apps/zcode-cli/packages/dynamic-workflow/docs/execution-engine.md`,
+predecessor keeps its own figure (`apps/nibi-cli/packages/dynamic-workflow/docs/execution-engine.md`,
 "Usage across the lineage").
 
 ### Input and output
@@ -1074,7 +1074,7 @@ session whose mode is still the legacy `plan` value passes on `build`.
 (`CreateWorkflow`, `AmendWorkflow`, 「运行」 on the hub, Apply in the Configure popover) reads
 the launching session's mode at that moment and records it as `subagentPermissionMode` on the
 run's `run-launched` journal event
-(`apps/zcode-cli/packages/dynamic-workflow/docs/execution-engine.md`, "Events"). Resume reads the
+(`apps/nibi-cli/packages/dynamic-workflow/docs/execution-engine.md`, "Events"). Resume reads the
 value back from that event, so a run keeps its mode across a cancel and resume, a desktop
 restart and a cold resume. Switching the session's mode while a run is in flight changes
 nothing for that run, in either direction; an amendment is a new run and takes the mode in
@@ -2162,7 +2162,7 @@ started by re-executing the CLI itself with that subcommand. The child script is
 to an entry file, `<cwd>/.nibi/workflow-runs/<runId>.mjs` (with a temp-directory fallback
 and a `.gitignore`), and the command line carries only its path, so a long script never
 exceeds the Windows command-line limit. The sandbox itself is the engine's:
-`apps/zcode-cli/packages/dynamic-workflow/docs/execution-engine.md`.
+`apps/nibi-cli/packages/dynamic-workflow/docs/execution-engine.md`.
 
 ## Run introspection tools
 
@@ -2527,7 +2527,7 @@ Host (packages/services)
              → the automations page and the run pane read `enabled` (effective)
              → the Settings row reads `offeredMode` and `mode`
 
-CLI (apps/zcode-cli, protocol server mode)
+CLI (apps/nibi-cli, protocol server mode)
   appRuntimePreferences.dynamicWorkflowEnabled / .dynamicWorkflowMode  (default false / absent = fail-closed)
   createRecord: enabled = params.dynamicWorkflowEnabled === true || preferences flag
                 mode    = params.dynamicWorkflowMode ?? preferences mode ?? (enabled ? "alwaysOn" : "disabled")

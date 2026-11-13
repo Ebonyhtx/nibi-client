@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash-parse/src/lexer/heredoc.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
+// 复制自 apps/nibi-cli-rust/crates/bash-parse/src/lexer/heredoc.rs（07ab266d4b）；`crate::` 换成 `crate::parse::`。
 //! heredoc：定界符、正文读取（在下一个 Newline token 时）以及正文的展开扫描。
 
 use super::{

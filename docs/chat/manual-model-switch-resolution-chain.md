@@ -287,9 +287,9 @@ N05、N09–N14 仍应标为 planned；旧 legacy implementation plan 不能视�
 - `packages/ui/src/v4/composer/modelConfigPreferenceConfirmation.ts`
 - `packages/ui/src/v4/composer/useDraftConfigControl.ts`
 - `packages/ui/src/lib/zcodeModelPreference.ts`
-- `apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/commands/handlers/model-config.ts`
-- `apps/zcode-cli/packages/bootstrap/src/nibi-protocol/workspace-model-catalog.ts`
-- `apps/zcode-cli/packages/core/src/runtime/methods/subagent.ts`
-- `apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/transcript-hydration.ts`
+- `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/commands/handlers/model-config.ts`
+- `apps/nibi-cli/packages/bootstrap/src/nibi-protocol/workspace-model-catalog.ts`
+- `apps/nibi-cli/packages/core/src/runtime/methods/subagent.ts`
+- `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/transcript-hydration.ts`
 - `packages/shared/src/nibi-protocol-v4/rows.ts`
 - `packages/shared/src/nibi-protocol-v4/command.ts`

@@ -1,7 +1,7 @@
 // NIBI Protocol v4 —— 数据模型草稿（未冻结，schema 定型以黄金测试为准）。
 // 本包纪律：只放 schema 类型 + 纯函数，禁止任何运行时/IO/传输逻辑。
 import { z } from "zod";
-import { VIDEO_INPUT_MAX_BYTES } from "../zcode-media-policy.js";
+import { VIDEO_INPUT_MAX_BYTES } from "../nibi-media-policy.js";
 
 /** V4 物理 wire 协议版本；projection snapshot 继续独立使用 protocolVersion=1。 */
 export const V4_WIRE_PROTOCOL_VERSION = 3 as const;

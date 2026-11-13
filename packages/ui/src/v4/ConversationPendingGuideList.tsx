@@ -1,6 +1,6 @@
 import { memo, useMemo } from "react";
 import type { QueueItem, UserInputRow } from "@nibi/shared/nibi-protocol-v4";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { ConversationTurnRow } from "@/v4/ConversationTurnRow.js";
 import type { ConversationRowRenderContext } from "@/v4/conversationRowContext.js";
 
@@ -32,7 +32,7 @@ function ConversationPendingGuideListImpl({
   items,
   turnId,
 }: ConversationPendingGuideListProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const rows = useMemo(() => items.map((item) => pendingGuideRow(item, turnId)), [items, turnId]);
   const status = intl.formatMessage({ id: "chat.message.turnSteer.pending" });
 

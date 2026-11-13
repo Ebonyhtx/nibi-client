@@ -19,7 +19,7 @@ import { createRequire } from "node:module";
 import { join, win32 as pathWin32 } from "node:path";
 import { app, nativeImage } from "electron";
 import type { EditorInfo } from "@nibi/shared";
-import { getZCodeDataRootDir } from "@nibi/services/node";
+import { getNibiDataRootDir } from "@nibi/services/node";
 import { logger } from "./logger.js";
 import {
   getFileApplicationDefs,
@@ -531,7 +531,7 @@ function loadNativeImageFromIcnsViaSips(
   appPath: string,
   icnsPath: string,
 ): Electron.NativeImage | null {
-  const tempRootDir = join(getZCodeDataRootDir(), "editor-icon");
+  const tempRootDir = join(getNibiDataRootDir(), "editor-icon");
   mkdirSync(tempRootDir, { recursive: true });
   const tempDirPath = mkdtempSync(join(tempRootDir, "icon-"));
   const tempPngPath = join(tempDirPath, "icon.png");

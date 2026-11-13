@@ -2,10 +2,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button.js";
-import type { CommandConfig, UserCommand, ZCodeCommand } from "@nibi/shared";
+import type { CommandConfig, UserCommand, NibiCommand } from "@nibi/shared";
 import type { IServiceAccessor } from "@nibi/services";
 import { isPluginCommand, isUserCommand, NIBI_COMMAND_AGENT_SOURCE } from "@nibi/shared";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { toast } from "@/components/ui/toast.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { useCommands } from "@/hooks/useCommands.js";
@@ -66,7 +66,7 @@ export function CommandsSection({
   unscopedServices,
   cacheAuthorityKey,
 }: CommandsSectionProps) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const confirmDialog = useConfirmDialog();
 
   const currentWorkspaceKey = workspaceIdentity?.trim() || workspacePath || "";
@@ -234,7 +234,7 @@ export function CommandsSection({
   );
 
   const handleDelete = useCallback(
-    async (command: ZCodeCommand) => {
+    async (command: NibiCommand) => {
       if (!isEditableUserCommand(command)) {
         return;
       }
@@ -267,7 +267,7 @@ export function CommandsSection({
   );
 
   const handleToggle = useCallback(
-    async (command: ZCodeCommand, enabled: boolean) => {
+    async (command: NibiCommand, enabled: boolean) => {
       if (!isUserCommand(command)) {
         return;
       }
@@ -287,7 +287,7 @@ export function CommandsSection({
   );
 
   const handleEdit = useCallback(
-    (command: ZCodeCommand) => {
+    (command: NibiCommand) => {
       if (!isEditableUserCommand(command)) {
         return;
       }
@@ -358,7 +358,7 @@ export function CommandsSection({
   const directInstalledCommandCount = scopedCommands.filter(isUserCommand).length;
   const hideInstalledGroup = Boolean(searchQuery.trim()) && groupedCommands.local.length === 0;
 
-  const renderCommandList = (items: ZCodeCommand[]) => (
+  const renderCommandList = (items: NibiCommand[]) => (
     <SettingsResourceList
       items={items}
       getKey={(command) => command.id}

@@ -134,7 +134,7 @@ vi.mock("@/components/ui/switch.js", () => ({
 }));
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }, values?: Record<string, string | number>) => {
         const messages: Record<string, string> = {
@@ -166,7 +166,7 @@ vi.mock("@/i18n/IntlProvider.js", () => ({
           "settings.skills.import.mode.symlink": "Symlink",
           "settings.skills.import.mode.copy.description": "Copy mode",
           "settings.skills.import.mode.symlink.description": "Symlink mode",
-          "settings.skills.import.importing": "Importing skills into ZCode",
+          "settings.skills.import.importing": "Importing skills into Nibi",
           "settings.skills.import.imported": "Imported",
           "settings.skills.import.skipped": "Skipped",
           "settings.skills.import.failed": "Failed",
@@ -181,7 +181,7 @@ vi.mock("@/i18n/IntlProvider.js", () => ({
           "settings.skills.agent.agents": "Codex",
           "settings.skills.agent.opencode": "OpenCode",
           "settings.skills.agent.gemini": "Gemini",
-          "settings.modelProvider.testModel.agentName.zcode_agent": "ZCode Agent",
+          "settings.modelProvider.testModel.agentName.zcode_agent": "Nibi Agent",
           "settings.skills.empty": "No skills found",
           "settings.skills.noDescription": "No description",
           "settings.skills.detail.description": "Description",
@@ -210,7 +210,7 @@ vi.mock("@/i18n/IntlProvider.js", () => ({
           "settings.skills.removeFromCommon": "Remove from Common",
           "settingsSync.action.skip": "Not now",
           "settingsSync.action.rescan": "Scan again",
-          "settingsSync.agent.zcode": "ZCode Agent",
+          "settingsSync.agent.zcode": "Nibi Agent",
           "settingsSync.agent.claudeCode": "Claude Code",
           "settingsSync.agent.codexCli": "Codex CLI",
           "settingsSync.agent.openCode": "OpenCode",
@@ -249,8 +249,8 @@ vi.mock("@/store/TabStoreProvider.js", () => ({
   },
 }));
 
-vi.mock("@/store/zcodeSessionStore.js", () => ({
-  useZCodeSessionStore: Object.assign(
+vi.mock("@/store/nibiSessionStore.js", () => ({
+  useNibiSessionStore: Object.assign(
     (selector: (state: Record<string, unknown>) => unknown) =>
       selector({
         getWorkspaceState: () => ({
@@ -354,7 +354,7 @@ vi.mock("@/hooks/useWorkspaceServices.js", () => ({
     rpcReady: true,
   }),
   useWorkspaceServices: () => ({
-    zcodeTaskService: {
+    nibiTaskService: {
       createTask: vi.fn(async () => ({
         taskId: "task-1",
         provider: "claude",

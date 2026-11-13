@@ -1,5 +1,5 @@
-//! 模型请求的头（工作线 F64，docs/specs/rust-cli/model.md §2.4）：来源头的组装（照 Node `buildCliZCodeSourceHeaders`，
-//! `apps/zcode-cli/packages/bootstrap/src/model-config.ts` 与 `runtime-platform-headers.ts`）与各层的合并顺序。
+//! 模型请求的头（工作线 F64，docs/specs/rust-cli/model.md §2.4）：来源头的组装（照 Node `buildCliNibiSourceHeaders`，
+//! `apps/nibi-cli/packages/bootstrap/src/model-config.ts` 与 `runtime-platform-headers.ts`）与各层的合并顺序。
 //!
 //! ```text
 //! ① 适配器自己的头 → ② 凭据 → ③ 来源头（+ OpenRouter） → ④ Provider 配置 → ⑤ 每请求头
@@ -37,7 +37,7 @@ pub struct RequestHeaders {
 pub struct SourceFacts {
     /// 版本：设了 `NIBI_APP_VERSION` 时是它的原值（空值也算设了），否则本工程的版本。
     pub version: String,
-    /// ZCode 服务的 origin（`http-referer`）。
+    /// Nibi 服务的 origin（`http-referer`）。
     pub endpoint_origin: String,
     /// `test` 或 `production`。
     pub release_channel: String,

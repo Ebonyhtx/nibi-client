@@ -11,7 +11,7 @@ import { useRemoteWorkspaceSessionStore } from "@/store/remoteWorkspaceSessionSt
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { useOpenDataSyncSettings } from "@/hooks/useOpenDataSyncSettings.js";
 import { shouldShowDataSyncEntry } from "@/lib/dataSyncEntry.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 
 type Kind = "skills" | "mcp" | "plugins";
 
@@ -27,7 +27,7 @@ export function useProjectRemoteSync(
 ) {
   const base = useBaseWorkspaceServices();
   const sessions = useRemoteWorkspaceSessionStore((state) => state.sessionsById);
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const openDataSync = useOpenDataSyncSettings();
   const hasLocalSourceService = Boolean(base.skillSyncService);
   const actions = useCallback(

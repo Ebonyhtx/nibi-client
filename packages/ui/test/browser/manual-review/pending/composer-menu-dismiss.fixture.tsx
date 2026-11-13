@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ModelConfigSelect } from "@/ModelConfigSelect.js";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { createPluginUiPagePlane } from "@/plugin-ui/adapters/pluginUiPagePlane.js";
 import {
   SidePaneFullViewConversationHost,
@@ -116,9 +116,9 @@ function Fixture() {
   );
 }
 createRoot(document.getElementById("root")!).render(
-  <ZCodeIntlProvider initialLocale="en-US">
+  <NibiIntlProvider initialLocale="en-US">
     <TooltipProvider>
       <Fixture />
     </TooltipProvider>
-  </ZCodeIntlProvider>,
+  </NibiIntlProvider>,
 );

@@ -17,12 +17,12 @@ import {
   Maximize2,
   RotateCcw,
 } from "lucide-react";
-import type { ZCodePluginComponentKind, ZCodePluginsDescribeResult } from "@nibi/shared";
+import type { NibiPluginComponentKind, NibiPluginsDescribeResult } from "@nibi/shared";
 import { Button } from "@/components/ui/button.js";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { resolvePluginUiSurfaceTitle } from "@/plugin-ui/index.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useOptionalPlatform } from "@/hooks/usePlatform.js";
 import { PluginStoreAvatar } from "@/settings/PluginStoreAvatar.js";
 import { ThemeHeroVisual } from "@/openWorkspacePageThemeHero.js";
@@ -57,9 +57,9 @@ import type { PluginComponentDisplayGroup } from "@/settings/PluginComponentGrou
 import type { PluginDescribeEntry } from "@/store/pluginManagementStore.js";
 
 // 组件分区顺序与截图一致：MCP 服务器 → 技能 → 命令 → 子智能体 → Hooks。
-const SECTION_ORDER: ZCodePluginComponentKind[] = ["mcp", "skill", "command", "agent", "hook"];
+const SECTION_ORDER: NibiPluginComponentKind[] = ["mcp", "skill", "command", "agent", "hook"];
 
-const SECTION_TITLE_IDS: Record<ZCodePluginComponentKind, string> = {
+const SECTION_TITLE_IDS: Record<NibiPluginComponentKind, string> = {
   mcp: "settings.plugins.store.section.mcp",
   skill: "settings.plugins.store.section.skills",
   command: "settings.plugins.store.section.commands",
@@ -68,7 +68,7 @@ const SECTION_TITLE_IDS: Record<ZCodePluginComponentKind, string> = {
 };
 
 // 与各资源设置列表共用同一图标语义，避免详情页用近似图标造成识别不一致。
-const SECTION_ICONS: Record<ZCodePluginComponentKind, typeof Server> = {
+const SECTION_ICONS: Record<NibiPluginComponentKind, typeof Server> = {
   mcp: Server,
   skill: WandSparkles,
   command: Terminal,
@@ -114,7 +114,7 @@ export function PluginStoreDetailView({
   /** 高级折叠区（rootPath/Hook 明细/配置项），仅已安装且有运行时信息时由父级注入。 */
   advanced?: ReactNode;
 }) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const displayName = resolveItemDisplayName(item, locale);
   const description = resolveItemDescription(item, locale);
   const heroImage = item.listing?.heroImage;
@@ -218,7 +218,7 @@ export function PluginStoreDetailView({
         />
       ) : null}
 
-      {/* 组件分区：已安装走权威枚举（ZCodePluginInfo.components），候选走 plugins/describe 按需拉取。 */}
+      {/* 组件分区：已安装走权威枚举（NibiPluginInfo.components），候选走 plugins/describe 按需拉取。 */}
       {componentsLoading ? (
         <div
           className="flex items-center gap-2 py-2 text-ui-base text-foreground-subtle"
@@ -303,7 +303,7 @@ function TryNowButton({
   canUsePaidPlugins: boolean;
   onUsePrompt: (item: StorePluginItem, prompt: string) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const label = intl.formatMessage({ id: "settings.plugins.store.tryNow" });
   const blockedReason: "membership" | "enable" | null =
     item.paid && !canUsePaidPlugins ? "membership" : item.info?.enabled === true ? null : "enable";
@@ -352,7 +352,7 @@ function HeroSection({
   heroImage: string | undefined;
   onUsePrompt: (item: StorePluginItem, prompt: string) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [heroFailed, setHeroFailed] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const showHeroImage = isTrustedImageUrl(heroImage) && !heroFailed;
@@ -438,7 +438,7 @@ function HeroSection({
 }
 
 function ComponentSection({ group }: { group: PluginComponentDisplayGroup }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const Icon = SECTION_ICONS[group.kind];
   return (
     <section data-testid="plugin-store-component-section" data-component-kind={group.kind}>
@@ -479,9 +479,9 @@ function InfoSection({
   describeMetadata,
 }: {
   item: StorePluginItem;
-  describeMetadata: ZCodePluginsDescribeResult["metadata"];
+  describeMetadata: NibiPluginsDescribeResult["metadata"];
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const platform = useOptionalPlatform();
   const listing = item.listing;
   const developer = listing?.author ?? item.info?.author ?? describeMetadata?.author;
@@ -592,7 +592,7 @@ function pickHttpsUrl(...candidates: Array<string | undefined>): string | undefi
 
 /** 高级折叠区外壳：详情页底部的「更多详情」，内容由父级注入（rootPath/Hook 明细/配置）。 */
 export function PluginStoreAdvancedSection({ children }: { children: ReactNode }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <details
       className="group/advanced border-t border-border pt-4"

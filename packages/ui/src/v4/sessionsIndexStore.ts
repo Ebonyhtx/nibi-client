@@ -10,7 +10,7 @@ import {
   type SessionsIndexTopicFrame,
   type TopicFrameDeliveryKind,
 } from "@nibi/shared/nibi-protocol-v4";
-import { isZCodeFileLockTimeoutError } from "@nibi/shared";
+import { isNibiFileLockTimeoutError } from "@nibi/shared";
 import { NIBI_AGENT_RUNTIME_UNAVAILABLE_CODE } from "@nibi/services";
 import { logger } from "@/logger.js";
 import type { SessionsIndexTransport } from "@/v4/agentSessionsIndexTransport.js";
@@ -41,7 +41,7 @@ const TRANSIENT_SUBSCRIBE_RETRY_DELAYS_MS = [250, 1_000, 3_000] as const;
 const ERROR_RECOVERY_RETRY_DELAYS_MS = [5_000, 15_000, 60_000] as const;
 
 function isTransientSubscribeError(error: unknown): boolean {
-  if (isZCodeFileLockTimeoutError(error)) {
+  if (isNibiFileLockTimeoutError(error)) {
     return true;
   }
   const code =

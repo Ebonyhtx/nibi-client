@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { WorkspaceMcpTrustPresentation } from "./presentation.js";
 
 /**
@@ -21,7 +21,7 @@ export function WorkspaceMcpTrustPanel({
   canDecide: boolean;
   onDecide: (trusted: boolean) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const badge = intl.formatMessage({ id: presentation.badgeMessageId });
   const hint = presentation.hintMessageId
     ? intl.formatMessage({ id: presentation.hintMessageId })

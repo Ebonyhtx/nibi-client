@@ -94,7 +94,7 @@ function makeServices() {
   }));
   const loadMcpFromUserDirectory = vi.fn(async () => ({ servers: [] }));
   const services = {
-    zcodeAgentService: {
+    nibiAgentService: {
       helloConversationV4: vi.fn(async () => ({
         kind: "hello" as const,
         protocolVersion: 3 as const,

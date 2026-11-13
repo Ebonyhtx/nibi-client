@@ -115,9 +115,9 @@ subagent transcript ends in a folded engine epilogue.
 | Document | Scope |
 |---|---|
 | `docs/dynamic-workflow/authoring.md` | the facade, `/workflow` and the skill, subagent prompts, compile-time rules, artifacts, `world.run`, the snippet tool, usage accounting |
-| `apps/zcode-cli/packages/dynamic-workflow/docs/analysis.md` | sites, diagnostics, the interpreter, the four graphs, joining runtime instances |
+| `apps/nibi-cli/packages/dynamic-workflow/docs/analysis.md` | sites, diagnostics, the interpreter, the four graphs, joining runtime instances |
 | `docs/dynamic-workflow/launch.md` | `CreateWorkflow`, the confirmation window, saved workflows and scopes, the hub page, direct launch, CLI/TUI, run introspection tools |
-| `apps/zcode-cli/packages/dynamic-workflow/docs/execution-engine.md` | lowering, the sandbox, the engine core, ask lifecycle, the journal, resume, amend, terminal states, escalation, the fault-matrix test bed |
+| `apps/nibi-cli/packages/dynamic-workflow/docs/execution-engine.md` | lowering, the sandbox, the engine core, ask lifecycle, the journal, resume, amend, terminal states, escalation, the fault-matrix test bed |
 | `docs/dynamic-workflow/concurrency.md` | the two bounds, request tickets, the adaptive controller, the model-error policy, tool-side requests |
 | `docs/dynamic-workflow/presentation.md` | the display contract, the timeline model, the live overlay, the run card and run pane |
 | `docs/dynamic-workflow/transcript-and-notifications.md` | notifications, the completion card, the script transcript, the epilogue fold |

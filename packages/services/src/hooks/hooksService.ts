@@ -26,9 +26,9 @@ import { updateJsonObjectFile } from "#src/fs/atomicFileUtils.js";
 import {
   fromLegacyHooksConfig,
   fromProjectSnapshot,
-  fromUserZCodeSource,
+  fromUserNibiSource,
   resolveNextRootEnabled,
-  toZCodeHooksEvents,
+  toNibiHooksEvents,
   type LegacyHooksConfig,
 } from "./workspaceHookSettingsModel.js";
 
@@ -44,7 +44,7 @@ const HOOK_EVENTS: readonly HookEvent[] = [
   "Stop",
 ];
 
-interface ZCodeConfigFile {
+interface NibiConfigFile {
   hooks?: WorkspaceHooksConfig;
   [key: string]: unknown;
 }
@@ -111,7 +111,7 @@ async function readJsonFile<T>(filePath: string): Promise<T | null> {
   }
 }
 
-async function readUserZCodeSource(): Promise<WorkspaceHookSourceInput | undefined> {
+async function readUserNibiSource(): Promise<WorkspaceHookSourceInput | undefined> {
   const path = getConfigPath("nibi");
   const config = await readJsonFile<Record<string, unknown>>(path);
   const parsed = workspaceHooksConfigSchema.safeParse(config?.hooks);
@@ -234,10 +234,10 @@ async function loadHooksImpl(
 }> {
   const workspacePath = resolve(params.workspacePath);
   if (params.scope === "user") {
-    const userSource = await readUserZCodeSource();
+    const userSource = await readUserNibiSource();
     const runtimeRoot = resolveWorkspaceHookRuntimeRoot([userSource?.hooks]);
     const hooks = [
-      ...fromUserZCodeSource({
+      ...fromUserNibiSource({
         source: userSource,
         runtimeRoot,
         workspacePath,
@@ -251,7 +251,7 @@ async function loadHooksImpl(
   const workspaceIdentity = params.workspaceIdentity?.trim() || workspacePath;
   const [{ sources: projectSources }, userSource] = await Promise.all([
     readWorkspaceHookProjectSources({ workingDirectory: workspacePath }),
-    readUserZCodeSource(),
+    readUserNibiSource(),
   ]);
   const runtimeRoot = resolveWorkspaceHookRuntimeRoot([
     userSource?.hooks,
@@ -275,7 +275,7 @@ async function loadHooksImpl(
     }),
     ...(await loadLegacyHooksFromLocation("agents", workspacePath)),
     ...(await loadLegacyHooksFromLocation("claude", workspacePath)),
-    ...fromUserZCodeSource({
+    ...fromUserNibiSource({
       source: userSource,
       runtimeRoot,
       workspacePath,
@@ -297,19 +297,19 @@ async function loadHooksImpl(
  * config.json 里的 MCP、插件等其他配置会被冲掉。
  * 修法：改用 updateJsonObjectFile——文件损坏时报错不写，写前重读，只改 hooks 字段，原子替换。
  */
-async function writeZCodeHooksConfig(
+async function writeNibiHooksConfig(
   workspacePath: string | undefined,
   hooks: Hook[],
 ): Promise<void> {
   await updateJsonObjectFile(getConfigPath("nibi", workspacePath), (current) => {
-    const existingConfig = current as ZCodeConfigFile;
+    const existingConfig = current as NibiConfigFile;
     const enabled = resolveNextRootEnabled(existingConfig.hooks?.enabled, hooks);
     return {
       ...existingConfig,
       hooks: {
         ...existingConfig.hooks,
         ...(enabled !== undefined ? { enabled } : {}),
-        events: toZCodeHooksEvents(hooks),
+        events: toNibiHooksEvents(hooks),
       },
     };
   });
@@ -335,9 +335,9 @@ async function saveHooksImpl(params: {
       (!hook.configuredState ||
         resolve(hook.configuredState.sourcePath) === currentProjectConfigPath),
   );
-  await writeZCodeHooksConfig(undefined, userHooks);
+  await writeNibiHooksConfig(undefined, userHooks);
   if (params.scope !== "user") {
-    await writeZCodeHooksConfig(params.workspacePath, projectHooks);
+    await writeNibiHooksConfig(params.workspacePath, projectHooks);
   }
 }
 

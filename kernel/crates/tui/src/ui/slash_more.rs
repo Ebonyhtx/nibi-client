@@ -26,7 +26,7 @@ fn node_mode(name: &str) -> Option<PermissionMode> {
 
 /// 可用模式的说法（“不支持的模式”提示与命令表的参数提示同一组）。
 const NODE_MODES: &str = "build, guarded, yolo";
-/// `/mode` 选择器的三个模式，照 App 菜单的顺序（`packages/shared/src/zcode-agent-model-state.ts` 去掉 plan）。
+/// `/mode` 选择器的三个模式，照 App 菜单的顺序（`packages/shared/src/nibi-agent-model-state.ts` 去掉 plan）。
 const MENU: [PermissionMode; 3] = [
     PermissionMode::Default,
     PermissionMode::Guarded,

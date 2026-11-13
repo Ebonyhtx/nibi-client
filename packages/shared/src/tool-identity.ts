@@ -39,9 +39,9 @@ export const NIBI_KNOWN_TOOL_NAMES = [
   "submit_result",
 ] as const;
 
-export type ZCodeKnownToolName = (typeof NIBI_KNOWN_TOOL_NAMES)[number];
+export type NibiKnownToolName = (typeof NIBI_KNOWN_TOOL_NAMES)[number];
 
-export type ZCodeToolFamily =
+export type NibiToolFamily =
   | "file-read"
   | "file-write"
   | "shell"
@@ -58,7 +58,7 @@ export type ZCodeToolFamily =
   | "node-repl"
   | "workflow";
 
-const TOOL_FAMILY_BY_NAME: Record<ZCodeKnownToolName, ZCodeToolFamily> = {
+const TOOL_FAMILY_BY_NAME: Record<NibiKnownToolName, NibiToolFamily> = {
   Read: "file-read",
   Write: "file-write",
   Edit: "file-write",
@@ -96,13 +96,13 @@ const TOOL_FAMILY_BY_NAME: Record<ZCodeKnownToolName, ZCodeToolFamily> = {
   submit_result: "workflow",
 };
 
-const TOOL_NAME_BY_LOWER = new Map<string, ZCodeKnownToolName>(
+const TOOL_NAME_BY_LOWER = new Map<string, NibiKnownToolName>(
   NIBI_KNOWN_TOOL_NAMES.map((toolName) => [toolName.toLowerCase(), toolName]),
 );
 
-export function normalizeZCodeToolName(
+export function normalizeNibiToolName(
   value: string | null | undefined,
-): ZCodeKnownToolName | null {
+): NibiKnownToolName | null {
   const normalized = value?.trim();
   if (!normalized) {
     return null;
@@ -111,20 +111,20 @@ export function normalizeZCodeToolName(
   return TOOL_NAME_BY_LOWER.get(normalized.toLowerCase()) ?? null;
 }
 
-export function getZCodeToolFamilyForName(
+export function getNibiToolFamilyForName(
   value: string | null | undefined,
-): ZCodeToolFamily | null {
-  const toolName = normalizeZCodeToolName(value);
+): NibiToolFamily | null {
+  const toolName = normalizeNibiToolName(value);
   return toolName ? TOOL_FAMILY_BY_NAME[toolName] : null;
 }
 
-export function isZCodeToolFamily(
+export function isNibiToolFamily(
   value: string | null | undefined,
-  family: ZCodeToolFamily,
+  family: NibiToolFamily,
 ): boolean {
-  return getZCodeToolFamilyForName(value) === family;
+  return getNibiToolFamilyForName(value) === family;
 }
 
-export function isZCodeFileContentWriteToolName(value: string | null | undefined): boolean {
-  return normalizeZCodeToolName(value) === "Write";
+export function isNibiFileContentWriteToolName(value: string | null | undefined): boolean {
+  return normalizeNibiToolName(value) === "Write";
 }

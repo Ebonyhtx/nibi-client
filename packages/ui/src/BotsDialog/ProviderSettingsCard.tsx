@@ -15,7 +15,7 @@ import type { BotConfig, BotServiceStatus } from "@nibi/shared";
 import { isFeishuBotProvider } from "@nibi/shared";
 import { Button } from "@/components/ui/button.js";
 import { Input } from "@/components/ui/input.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { SettingsGroupCard, SettingsRow } from "@/settings/SettingsPageParts.js";
 import { cn } from "@/components/lib/utils.js";
 import { logger } from "@/logger.js";
@@ -38,7 +38,7 @@ function TelegramBotFatherQrPanel({
   onCredentialValueChange: (value: string) => void;
   onSaveSecret: () => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -157,7 +157,7 @@ export function ProviderSettingsCard({
   onUnbind: () => void;
   onCopyBindCommand: () => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   if (bot.provider === "webhook") {
     return null;
   }

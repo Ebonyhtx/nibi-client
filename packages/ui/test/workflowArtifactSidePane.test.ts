@@ -106,7 +106,7 @@ vi.mock("@/components/ai-elements/code-block.js", () => ({
 }));
 
 // eslint-disable-next-line import/first -- 必须在全部 mock 之后再引入被测组件。
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 // eslint-disable-next-line import/first
 import { WorkflowArtifactSidePane } from "@/app-shell/WorkflowArtifactSidePane.js";
 // eslint-disable-next-line import/first
@@ -171,7 +171,7 @@ function renderPane(
   });
   return render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: options.locale ?? "zh-CN" },
       options.platform === undefined
         ? pane

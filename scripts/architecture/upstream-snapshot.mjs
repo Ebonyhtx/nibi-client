@@ -11,6 +11,30 @@ export function isSnapshotPath(value) {
   );
 }
 
+/**
+ * 本地源码目录已改成 NIBI 名，但快照键必须保留上游路径——重写键等于伪造上游历史。
+ * 比较前把本地路径映射回上游路径；回传的 accepted/historical 仍是本地路径，
+ * 下游按当前工作区文件判断。
+ */
+const LOCAL_TO_UPSTREAM_PREFIXES = [
+  ["apps/nibi-cli/", "apps/nibi-cli/"],
+  ["packages/nibi-server-cli/", "packages/nibi-server-cli/"],
+];
+
+function toUpstreamPath(localPath) {
+  for (const [local, upstream] of LOCAL_TO_UPSTREAM_PREFIXES) {
+    if (localPath.startsWith(local)) return `${upstream}${localPath.slice(local.length)}`;
+  }
+  return localPath;
+}
+
+function toLocalPath(upstreamPath) {
+  for (const [local, upstream] of LOCAL_TO_UPSTREAM_PREFIXES) {
+    if (upstreamPath.startsWith(upstream)) return `${local}${upstreamPath.slice(upstream.length)}`;
+  }
+  return upstreamPath;
+}
+
 function isFileMap(files) {
   return (
     files &&
@@ -57,14 +81,23 @@ export async function readUpstreamSnapshot(cwd, snapshotPath) {
     const separator = entry.indexOf("\t");
     const file = entry.slice(separator + 1);
     const [mode, blob, stage] = entry.slice(0, separator).split(" ");
-    if (stage === "0" && !different.has(file) && snapshot.files[file] === `${mode} ${blob}`)
+    const upstreamFile = toUpstreamPath(file);
+    if (
+      stage === "0" &&
+      !different.has(file) &&
+      snapshot.files[upstreamFile] === `${mode} ${blob}`
+    )
       accepted.add(file);
     if (
       stage === "0" &&
       !different.has(file) &&
-      snapshot.historicalFiles?.[file] === `${mode} ${blob}`
+      snapshot.historicalFiles?.[upstreamFile] === `${mode} ${blob}`
     )
       historical.add(file);
   }
-  return { accepted, historical, introduced: snapshot.introduced };
+  return {
+    accepted,
+    historical,
+    introduced: snapshot.introduced.map(toLocalPath),
+  };
 }

@@ -1,4 +1,4 @@
-// 移植自 apps/zcode-cli/packages/core/src/tool/handlers/guarded/find.ts 与 windows-delete.ts 的 robocopy
+// 移植自 apps/nibi-cli/packages/core/src/tool/handlers/guarded/find.ts 与 windows-delete.ts 的 robocopy
 // （修复线 F20；CMD 的 rd / del 不移植：Bash 工具总用 bash）。
 //! `find … -delete` 与 Git Bash 下的 `robocopy /MIR`。
 

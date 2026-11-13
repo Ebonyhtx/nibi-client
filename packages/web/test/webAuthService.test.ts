@@ -668,7 +668,7 @@ describe("WebAuthService BigModel provider", () => {
     expect(h.localStorage.getItem("oauth:nibi:user_info")).toContain("Ada");
     expect(h.localStorage.getItem("nibi-jwttoken")).toBe("nibi-access");
     expect(h.localStorage.getItem("oauth:active_provider")).toBe("nibi");
-    expect(h.openPage().getZCodeJwtToken()).toBe("nibi-access");
+    expect(h.openPage().getNibiJwtToken()).toBe("nibi-access");
   });
 
   it("NIBI 缺少 PKCE verifier 时拒绝完成登录且不请求令牌", async () => {
@@ -716,7 +716,7 @@ describe("NIBI token refresh", () => {
     repo.saveTokenSet(
       {
         accessToken: access,
-        zcodeJwtToken: access,
+        nibiJwtToken: access,
         ...(options.refreshToken === undefined ? {} : { refreshToken: options.refreshToken }),
       },
       "nibi",
@@ -763,7 +763,7 @@ describe("NIBI token refresh", () => {
     });
     refreshToken.mockRejectedValue(Object.assign(new Error("invalid_grant"), { status: 400 }));
     await expect(service.refreshNibiSessionIfNeeded()).resolves.toBe(false);
-    expect(repo.loadZCodeJwtToken()).toBeNull();
+    expect(repo.loadNibiJwtToken()).toBeNull();
     expect(localStorage.getItem("oauth:nibi:refresh_token")).toBeNull();
   });
 

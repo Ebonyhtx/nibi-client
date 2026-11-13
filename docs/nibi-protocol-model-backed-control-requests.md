@@ -2,7 +2,7 @@
 
 ## 背景
 
-App 通过子进程 stdio 与 `apps/zcode-cli` 的 ZCode Protocol 通信。协议客户端把普通 request 当作短通信请求处理，默认 30 秒超时；agent 侧 NDJSON transport 又会串行处理进入的消息。若一个 protocol handler 在同步等待模型请求，后续消息会排队，甚至会挡住 agent -> app 反向 request 的 response。
+App 通过子进程 stdio 与 `apps/nibi-cli` 的 ZCode Protocol 通信。协议客户端把普通 request 当作短通信请求处理，默认 30 秒超时；agent 侧 NDJSON transport 又会串行处理进入的消息。若一个 protocol handler 在同步等待模型请求，后续消息会排队，甚至会挡住 agent -> app 反向 request 的 response。
 
 `session/send` 会快速 ACK，真实模型 turn 在后台运行，并通过 session event / `state.updated` 推送进度。过去 `session/compact` 和 `prompt/enhance` 同步等待模型请求时，会遇到同类问题：
 
@@ -262,7 +262,7 @@ node_repl broker socket ──► ProtocolBrowserControlBroker（每个 server c
   `closeBrowserSession`，连 tab 关闭；core subagent 用 `tabOwner: "parent"`，下发的 `sessionId` 换成父会话
   （与当前对话共用 tab，面板据此展开），子端口的 turnEnded / closeSession 不发往桌面，closeSession 只撤销登记
   （`docs/browser-use/2026-07-16-subagent-browser-unavailable-spec.md`）。legacy `Workflow` child 没有关闭链路，
-  不给。细节见 `apps/zcode-cli/packages/dynamic-workflow/docs/execution-engine.md`「Subagent sessions」。
+  不给。细节见 `apps/nibi-cli/packages/dynamic-workflow/docs/execution-engine.md`「Subagent sessions」。
 - 同一 server context 里 `createProtocolBrowserControlBroker` 被调用两次（进程级 node_repl broker 与每个
   app 的 runtime 端口）。连接记忆（`turnEnded` / `closeSession` 要发往哪些 browser）与子会话登记都必须
   按 context 共享：node_repl 流量走进程级实例，生命周期走 app 实例；分开存时 app 实例从未见过连接，

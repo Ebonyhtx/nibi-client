@@ -10,7 +10,7 @@ import {
   ProviderConfigMap,
   ProviderConfigResolver,
 } from "@nibi/provider";
-import { NodeZCodeBuiltinProviderConfigSource } from "@nibi/provider-node";
+import { NodeNibiBuiltinProviderConfigSource } from "@nibi/provider-node";
 
 const currentModelIds = ["mimo-v2.6-pro", "mimo-v2.6-flash"];
 const apiModelIds = [...currentModelIds, "mimo-v2.5-pro", "mimo-v2.5"];
@@ -28,7 +28,7 @@ describe("MiMo API 与 Token Plan 官方模板", () => {
   it.each(["nibi-builtin.json", "nibi-builtin.test.json"])(
     "%s 两模板复用模型规则，个人地址与旧身份不变",
     async (filename) => {
-      const source = new NodeZCodeBuiltinProviderConfigSource({
+      const source = new NodeNibiBuiltinProviderConfigSource({
         bundledFilePath: fileURLToPath(
           new URL(`../../../config/provider/${filename}`, import.meta.url),
         ),

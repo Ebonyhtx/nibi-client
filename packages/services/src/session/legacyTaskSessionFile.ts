@@ -1,15 +1,15 @@
-import type { ZCodeSessionFile, ZCodeTaskMeta } from "@nibi/shared";
-import { zcodeSessionFileSchema, zcodeTaskMetaSchema, zcodeTaskModeSchema } from "@nibi/shared";
+import type { NibiSessionFile, NibiTaskMeta } from "@nibi/shared";
+import { nibiSessionFileSchema, nibiTaskMetaSchema, nibiTaskModeSchema } from "@nibi/shared";
 
-export type LegacyTaskSessionFile = Omit<ZCodeSessionFile, "meta"> & {
-  meta: Omit<ZCodeTaskMeta, "mode"> & { mode?: ZCodeTaskMeta["mode"] };
+export type LegacyTaskSessionFile = Omit<NibiSessionFile, "meta"> & {
+  meta: Omit<NibiTaskMeta, "mode"> & { mode?: NibiTaskMeta["mode"] };
 };
 
-const legacyTaskSessionFileSchema = zcodeSessionFileSchema.extend({
+const legacyTaskSessionFileSchema = nibiSessionFileSchema.extend({
   // Claude 原生迁移会按清洗路径删除 meta.mode。
   // legacy snapshot 读取/写入仍要校验其它必需字段，但不能再强制把被过滤字段补回文件。
-  meta: zcodeTaskMetaSchema.extend({
-    mode: zcodeTaskModeSchema.optional(),
+  meta: nibiTaskMetaSchema.extend({
+    mode: nibiTaskModeSchema.optional(),
   }),
 });
 

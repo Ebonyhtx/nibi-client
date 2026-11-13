@@ -14,7 +14,7 @@ const h = vi.hoisted(() => ({
 }));
 vi.mock("@/hooks/usePlatform.js", () => ({ usePlatform: () => h.platform }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
+  useNibiIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
 }));
 const origin = "https://site.test";
 

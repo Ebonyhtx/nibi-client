@@ -218,7 +218,7 @@ function assertPackagedCuaHelper(context) {
     HELPER_APP_NAME,
   );
   if (!existsSync(appPath)) {
-    throw new Error(`Packaged ZCode is missing bundled Computer Use Helper: ${appPath}`);
+    throw new Error(`Packaged Nibi is missing bundled Computer Use Helper: ${appPath}`);
   }
 }
 const shouldEnableWindowsVsign =
@@ -523,8 +523,8 @@ function assertSignedWindowsBrowserImportHelper(context) {
     `${context.packager.appInfo.productFilename}.exe`,
   );
   const script = [
-    "$helper=Microsoft.PowerShell.Security\\Get-AuthenticodeSignature -LiteralPath $zcodeArg0;",
-    "$app=Microsoft.PowerShell.Security\\Get-AuthenticodeSignature -LiteralPath $zcodeArg1;",
+    "$helper=Microsoft.PowerShell.Security\\Get-AuthenticodeSignature -LiteralPath $nibiArg0;",
+    "$app=Microsoft.PowerShell.Security\\Get-AuthenticodeSignature -LiteralPath $nibiArg1;",
     "if($helper.Status -ne 'Valid' -or $app.Status -ne 'Valid'){",
     "[Console]::Error.WriteLine(('Authenticode status invalid: helper={0} ({1}); app={2} ({3})' -f $helper.Status,$helper.StatusMessage,$app.Status,$app.StatusMessage));",
     "exit 23};",
@@ -572,7 +572,7 @@ export default {
   // CI 环境下若这些字段缺失会在产物阶段直接失败。这里统一在构建配置补齐，避免依赖外部注入。
   extraMetadata: {
     version: buildMetadata.appVersion,
-    zcodeProductFlavor: desktopProductIdentity.flavor,
+    nibiProductFlavor: desktopProductIdentity.flavor,
     // TODO(NIBI): 这里的 homepage / author.email 是占位值 —— NIBI 域名尚未购买。
     // 用 IANA 保留的 .example.com 而不是编造真实域名：fpm 只校验字段存在与格式，
     // 而占位域名永远不会被解析到，不会误指向别人的站点。域名定下来后替换。
@@ -782,7 +782,7 @@ export default {
       to: "config/default.json",
     },
     {
-      // Provider Registry 的 ZCode Built-in Config 是静态 Provider/Model 事实的唯一内置来源。
+      // Provider Registry 的 Nibi Built-in Config 是静态 Provider/Model 事实的唯一内置来源。
       // 显式随包发布，避免正式 Host 回退到旧 Catalog/Preset hardcode。
       from: builtinProviderConfig.sourcePath,
       to: "config/provider/nibi-builtin.json",

@@ -9,7 +9,7 @@ import { FeedbackBackgroundUploadIndicator } from "@/feedback/FeedbackBackground
 import { ArrowLeftIcon, XIcon } from "lucide-react";
 import type { IFeedbackService } from "@nibi/services";
 import type { IPlatformService } from "@nibi/shared";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { memo } from "react";
 
 export const FeedbackCenter = memo(function FeedbackCenterComponent({
@@ -27,7 +27,7 @@ export const FeedbackCenter = memo(function FeedbackCenterComponent({
   const setTab = useFeedbackStore((state) => state.setTab);
   const close = useFeedbackStore((state) => state.close);
   const openTickets = useFeedbackStore((state) => state.openTickets);
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const titleId =
     tab === "tickets" ? "feedback.center.ticketsTitle" : "feedback.center.submitTitle";
 

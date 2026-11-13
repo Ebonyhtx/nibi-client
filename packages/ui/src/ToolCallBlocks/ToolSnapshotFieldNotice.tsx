@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { Loader2Icon } from "lucide-react";
-import type { ZCodeTaskSnapshotToolFieldRef } from "@nibi/shared";
+import type { NibiTaskSnapshotToolFieldRef } from "@nibi/shared";
 import { Button } from "@/components/ui/button.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 
 export function ToolSnapshotFieldNotice({
   refs,
   onLoadFullToolCallFields,
 }: {
-  refs: readonly ZCodeTaskSnapshotToolFieldRef[];
+  refs: readonly NibiTaskSnapshotToolFieldRef[];
   onLoadFullToolCallFields?: () => Promise<boolean | void> | boolean | void;
 }) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   if (refs.length === 0 || !onLoadFullToolCallFields) {

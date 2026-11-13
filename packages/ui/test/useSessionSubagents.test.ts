@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { ZCodeSessionEndedSubagent } from "@nibi/shared";
+import type { NibiSessionEndedSubagent } from "@nibi/shared";
 import {
   mergeEndedSubagentPages,
   resolveEndedSubagentRefreshTargetCount,
 } from "@/hooks/useSessionSubagents.js";
 
-function ended(childSessionId: string, endedAt: number): ZCodeSessionEndedSubagent {
+function ended(childSessionId: string, endedAt: number): NibiSessionEndedSubagent {
   return {
     childSessionId,
     subagentType: "Explore",

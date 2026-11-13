@@ -1,13 +1,13 @@
 import { useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { IServiceAccessor } from "@nibi/services";
-import type { IPlatformService, ZCodeConfigOption } from "@nibi/shared";
+import type { IPlatformService, NibiConfigOption } from "@nibi/shared";
 import { ThoughtLevelCycleControl } from "@/chat-input-toolbar/ThoughtLevelCycleControl.js";
 import { getNextThoughtLevelValue } from "@/chat-input-toolbar/thoughtLevelOptions.js";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
 import { PlatformProvider } from "@/hooks/usePlatform.js";
 import { ServiceProvider } from "@/hooks/useServices.js";
-import { ZCodeIntlProvider, useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider, useNibiIntl } from "@/i18n/IntlProvider.js";
 import { SubagentReasoningField } from "@/settings/SubagentReasoningField.js";
 import { useToolbarShortcutBindings } from "@/v4/composer/toolbarShortcuts.js";
 import "@/styles.css";
@@ -37,12 +37,12 @@ const options = values.map((value) => ({
 const noop = () => {};
 
 function Fixture() {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [value, setValue] = useState("minimal");
   const [committed, setCommitted] = useState("");
   const selectRef = useRef<HTMLSpanElement>(null);
   const cycleRef = useRef<HTMLSpanElement>(null);
-  const option: ZCodeConfigOption = {
+  const option: NibiConfigOption = {
     id: "thought_level",
     category: "thought_level",
     type: "select",
@@ -110,11 +110,11 @@ function Fixture() {
 createRoot(document.getElementById("root")!).render(
   <ServiceProvider services={services}>
     <PlatformProvider platform={platform}>
-      <ZCodeIntlProvider initialLocale={params.get("locale") === "zh-CN" ? "zh-CN" : "en-US"}>
+      <NibiIntlProvider initialLocale={params.get("locale") === "zh-CN" ? "zh-CN" : "en-US"}>
         <TooltipProvider>
           <Fixture />
         </TooltipProvider>
-      </ZCodeIntlProvider>
+      </NibiIntlProvider>
     </PlatformProvider>
   </ServiceProvider>,
 );

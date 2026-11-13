@@ -58,7 +58,7 @@ impl RetryPolicy {
 
 /// 服务端要求的等待：`retry-after-ms`（毫秒，可带小数），否则 `retry-after`（秒数或 HTTP-date）。
 /// HTTP-date 早于 `now` 时为零。
-// 复制自 apps/zcode-cli-rust/crates/model/src/model_failure.rs（feat/rs 79b6691c55）；
+// 复制自 apps/nibi-cli-rust/crates/model/src/model_failure.rs（feat/rs 79b6691c55）；
 // `x-should-retry` 拆到 [`should_retry`]。
 pub fn retry_after(headers: &ResponseHeaders, now: SystemTime) -> Option<Duration> {
     let header = |name: &str| headers.get(name).map(str::trim);

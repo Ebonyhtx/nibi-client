@@ -1,6 +1,6 @@
-import { buildRuntimeZCodeApiUrl, resolveZaiBusinessBaseUrl } from "@nibi/shared";
+import { buildRuntimeNibiApiUrl, resolveZaiBusinessBaseUrl } from "@nibi/shared";
 
-export const NIBI_CLIENT_SCENES_URL = buildRuntimeZCodeApiUrl(
+export const NIBI_CLIENT_SCENES_URL = buildRuntimeNibiApiUrl(
   process.env,
   "/api/v1/client/scenes",
 );

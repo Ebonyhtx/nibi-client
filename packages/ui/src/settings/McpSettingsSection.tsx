@@ -3,10 +3,10 @@
  * MCP Settings Section
  *
  * Manages MCP server configuration in the settings page.
- * Supports the unified ZCode Agent MCP source backed by settings directories.
+ * Supports the unified Nibi Agent MCP source backed by settings directories.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { convertToZCodeAgentMcpServer } from "@nibi/shared";
+import { convertToNibiAgentMcpServer } from "@nibi/shared";
 import {
   TID_MCP_OPEN_AUTHORIZATION_BUTTON,
   TID_PLUGIN_MCP_SERVER_ROW,
@@ -14,21 +14,21 @@ import {
 } from "@nibi/shared/test-ids";
 import type {
   RemoteTarget,
-  ZCodeAvailablePluginSummary,
-  ZCodeAgentMcpServer,
-  ZCodeMcpListMode,
-  ZCodeMcpServer,
-  ZCodeMcpServerStatusSnapshot,
-  ZCodePluginInfo,
+  NibiAvailablePluginSummary,
+  NibiAgentMcpServer,
+  NibiMcpListMode,
+  NibiMcpServer,
+  NibiMcpServerStatusSnapshot,
+  NibiPluginInfo,
 } from "@nibi/shared";
 import {
-  isZCodeAgentMcpStatusModeUnsupportedError,
+  isNibiAgentMcpStatusModeUnsupportedError,
   type IServiceAccessor,
   type IMcpSyncService,
 } from "@nibi/services";
 import { Button } from "@/components/ui/button.js";
 import { toast } from "@/components/ui/toast.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { logger } from "@/logger.js";
 import { McpServerForm } from "@/settings/McpServerForm.js";
@@ -113,24 +113,24 @@ export async function refreshMcpServerStatusList({
   workspacePath,
   mcpSyncService,
 }: {
-  beginServerStatusListRefresh: (mode?: ZCodeMcpListMode) => number;
+  beginServerStatusListRefresh: (mode?: NibiMcpListMode) => number;
   markServerStatusListRefreshFailed?: (
     error: string,
     requestEpoch: number,
-    mode?: ZCodeMcpListMode,
+    mode?: NibiMcpListMode,
   ) => void;
   mergeServerStatusSnapshots: (
-    statuses: Record<string, ZCodeMcpServerStatusSnapshot>,
+    statuses: Record<string, NibiMcpServerStatusSnapshot>,
     requestEpoch: number,
-    mode?: ZCodeMcpListMode,
+    mode?: NibiMcpListMode,
   ) => void;
   getCurrentWorkspaceKey: () => string;
-  mode?: ZCodeMcpListMode;
-  mcpServers?: ZCodeAgentMcpServer[];
+  mode?: NibiMcpListMode;
+  mcpServers?: NibiAgentMcpServer[];
   requestedWorkspaceKey: string;
   workspaceIdentity?: string;
   workspacePath: string;
-  // mcp/list 收敛到 IMcpSyncService——UI 不直接触达 zcodeAgentService。
+  // mcp/list 收敛到 IMcpSyncService——UI 不直接触达 nibiAgentService。
   mcpSyncService: Pick<IMcpSyncService, "listWorkspaceMcpServerStatuses">;
 }): Promise<McpServerStatusListRefreshOutcome> {
   if (!requestedWorkspaceKey || getCurrentWorkspaceKey() !== requestedWorkspaceKey) {
@@ -154,7 +154,7 @@ export async function refreshMcpServerStatusList({
     if (getCurrentWorkspaceKey() !== requestedWorkspaceKey) {
       return "stale-workspace";
     }
-    if (refreshMode === "status" && isZCodeAgentMcpStatusModeUnsupportedError(error)) {
+    if (refreshMode === "status" && isNibiAgentMcpStatusModeUnsupportedError(error)) {
       return "status-mode-unsupported";
     }
     markServerStatusListRefreshFailed?.(
@@ -167,7 +167,7 @@ export async function refreshMcpServerStatusList({
 }
 
 export interface McpOAuthAuthorizationPendingRefresh {
-  mcpServers: ZCodeAgentMcpServer[];
+  mcpServers: NibiAgentMcpServer[];
   pendingKey: string;
   workspaceKey: string;
 }
@@ -188,7 +188,7 @@ export function transitionMcpAutoStatusListRefreshKey(
 }
 
 export interface McpOAuthAuthorizationFollowupRefresh {
-  mcpServers: ZCodeAgentMcpServer[];
+  mcpServers: NibiAgentMcpServer[];
   refreshKey: string;
   workspaceKey: string;
 }
@@ -203,7 +203,7 @@ export function transitionMcpOAuthAuthorizationPendingRefresh({
 }: {
   activeWorkspaceKey: string;
   existingFollowup?: McpOAuthAuthorizationFollowupRefresh | null;
-  mcpServers: ZCodeAgentMcpServer[];
+  mcpServers: NibiAgentMcpServer[];
   now?: () => number;
   pendingKey: string;
   previous: McpOAuthAuthorizationPendingRefresh | null;
@@ -320,15 +320,15 @@ export function createMcpStatusListRefreshQueue(): McpStatusListRefreshQueue {
 }
 
 export function buildMcpOAuthAuthorizationStatusRefreshServers(
-  servers: ZCodeMcpServer[],
-  statusSnapshots: Record<string, ZCodeMcpServerStatusSnapshot> = {},
-): ZCodeAgentMcpServer[] {
+  servers: NibiMcpServer[],
+  statusSnapshots: Record<string, NibiMcpServerStatusSnapshot> = {},
+): NibiAgentMcpServer[] {
   const pendingSnapshotNames = new Set(
     Object.entries(statusSnapshots)
       .filter(([, snapshot]) => Boolean(snapshot.authorization?.authorizationUrl))
       .map(([serverName]) => serverName),
   );
-  const result: ZCodeAgentMcpServer[] = [];
+  const result: NibiAgentMcpServer[] = [];
   const seenNames = new Set<string>();
 
   for (const server of servers) {
@@ -340,20 +340,20 @@ export function buildMcpOAuthAuthorizationStatusRefreshServers(
     if (!hasPendingAuthorization || seenNames.has(server.name)) {
       continue;
     }
-    const zcodeAgentServer = convertToZCodeAgentMcpServer(server.name, server.config);
-    if (!zcodeAgentServer) {
+    const nibiAgentServer = convertToNibiAgentMcpServer(server.name, server.config);
+    if (!nibiAgentServer) {
       continue;
     }
     seenNames.add(server.name);
-    result.push(zcodeAgentServer);
+    result.push(nibiAgentServer);
   }
 
   return result;
 }
 
-export function buildMcpOAuthAuthorizationStatusRefreshOptions(mcpServers: ZCodeAgentMcpServer[]): {
+export function buildMcpOAuthAuthorizationStatusRefreshOptions(mcpServers: NibiAgentMcpServer[]): {
   mode: "status";
-  mcpServers: ZCodeAgentMcpServer[];
+  mcpServers: NibiAgentMcpServer[];
 } {
   return {
     // OAuth pending/follow-up/focus 刷新只读运行态，不能让 pending 子集进入 connect replace 路径。
@@ -362,7 +362,7 @@ export function buildMcpOAuthAuthorizationStatusRefreshOptions(mcpServers: ZCode
   };
 }
 
-export function buildMcpServerStatusListKey(servers: ZCodeMcpServer[]): string {
+export function buildMcpServerStatusListKey(servers: NibiMcpServer[]): string {
   return servers
     .filter((server) => server.source === "zcodeagentmcp")
     .map((server) => {
@@ -372,7 +372,7 @@ export function buildMcpServerStatusListKey(servers: ZCodeMcpServer[]): string {
     .join("|");
 }
 
-export function buildPluginMcpServerStatusListKey(plugins: ZCodePluginInfo[]): string {
+export function buildPluginMcpServerStatusListKey(plugins: NibiPluginInfo[]): string {
   return plugins
     .map((plugin) => {
       const declaredNames = plugin.declaredMcpServerNames ?? [];
@@ -402,8 +402,8 @@ export function shouldShowPluginMcpServersInMcpSettings(isRemoteContext: boolean
 }
 
 export function buildPendingMcpOAuthAuthorizationRefreshKey(
-  servers: ZCodeMcpServer[],
-  statusSnapshots: Record<string, ZCodeMcpServerStatusSnapshot> = {},
+  servers: NibiMcpServer[],
+  statusSnapshots: Record<string, NibiMcpServerStatusSnapshot> = {},
 ): string {
   const localPendingKeys = servers
     .filter(
@@ -425,10 +425,10 @@ function PluginMcpServerList({
   onOpenAuthorization,
 }: {
   items: PluginMcpServerItem[];
-  pluginListingById: ReadonlyMap<string, ZCodeAvailablePluginSummary["listing"]>;
+  pluginListingById: ReadonlyMap<string, NibiAvailablePluginSummary["listing"]>;
   onOpenAuthorization?: (item: PluginMcpServerItem) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const openAuthorizationLabel = intl.formatMessage({
     id: "settings.mcp.oauth.openAuthorization",
   });
@@ -577,7 +577,7 @@ export function McpSettingsSection({
   unscopedServices,
   cacheAuthorityKey,
 }: McpSettingsSectionProps) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const confirmDialog = useConfirmDialog();
   const services = useWorkspaceServices(
     workspacePath,
@@ -641,7 +641,7 @@ export function McpSettingsSection({
 
   const [showForm, setShowForm] = useState(false);
   const [formScopeKey, setFormScopeKey] = useState(parentScopeKey);
-  const [editingServer, setEditingServer] = useState<ZCodeMcpServer | null>(null);
+  const [editingServer, setEditingServer] = useState<NibiMcpServer | null>(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const query = searchQuery;
   const [editorMode, setEditorMode] = useState<McpEditorMode>("form");
@@ -787,8 +787,8 @@ export function McpSettingsSection({
   const lastAutoStatusListRefreshKeyRef = useRef("");
   const requestMcpServerStatusList = useCallback(
     async (options?: {
-      mcpServers?: ZCodeAgentMcpServer[];
-      mode?: ZCodeMcpListMode;
+      mcpServers?: NibiAgentMcpServer[];
+      mode?: NibiMcpListMode;
       trigger?: McpStatusListRefreshTrigger;
     }) => {
       const trigger = options?.trigger ?? "auto";
@@ -827,7 +827,7 @@ export function McpSettingsSection({
       // skipReason 已经覆盖了这个分支，这里只为类型收窄。
       if (!requestedWorkspacePath) return;
       const requestedMcpServers =
-        options?.mcpServers ?? useMcpStore.getState().getEnabledMcpServersForZCode("zcode");
+        options?.mcpServers ?? useMcpStore.getState().getEnabledMcpServersForNibi("zcode");
       await statusListRefreshQueueRef.current?.request(async () => {
         if (!isRequestCurrent()) {
           return;
@@ -1333,7 +1333,7 @@ export function McpSettingsSection({
     void requestMcpServerStatusList();
   }
 
-  async function handleWorkspaceTrustDecision(server: ZCodeMcpServer, trusted: boolean) {
+  async function handleWorkspaceTrustDecision(server: NibiMcpServer, trusted: boolean) {
     if (workspaceTrustBusyServerName) return;
     setWorkspaceTrustBusyServerName(server.name);
     try {
@@ -1362,7 +1362,7 @@ export function McpSettingsSection({
     }
   }
 
-  async function handleSave(form: FormState, prev?: ZCodeMcpServer) {
+  async function handleSave(form: FormState, prev?: NibiMcpServer) {
     if (!activeWorkspacePath) {
       return;
     }
@@ -1405,7 +1405,7 @@ export function McpSettingsSection({
     onFormScopeKeyChange?.(null);
   }
 
-  async function handleDelete(server: ZCodeMcpServer) {
+  async function handleDelete(server: NibiMcpServer) {
     const confirmed = await confirmDialog({
       confirmVariant: "destructive",
       title: intl.formatMessage({ id: "settings.mcp.deleteConfirmTitle" }, { name: server.name }),
@@ -1426,7 +1426,7 @@ export function McpSettingsSection({
     closeMcpFormView();
   }
 
-  async function handleEdit(server: ZCodeMcpServer) {
+  async function handleEdit(server: NibiMcpServer) {
     // 列表与表单当前是互斥视图，理论上不会在草稿未保存时点另一行；
     // 保留守卫是为了以后列表常驻时切换 server 不会静默吞掉草稿。
     // 无脏改动时不进入 await，打开编辑视图保持同步，避免多一帧空窗。
@@ -1475,7 +1475,7 @@ export function McpSettingsSection({
     }
   }
 
-  function handleOpenAuthorization(server: ZCodeMcpServer) {
+  function handleOpenAuthorization(server: NibiMcpServer) {
     const authorizationUrl = server.authorization?.authorizationUrl;
     if (!authorizationUrl || !canOpenMcpAuthorizationUrl(authorizationUrl)) {
       return;

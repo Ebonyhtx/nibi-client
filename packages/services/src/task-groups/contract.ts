@@ -1,4 +1,4 @@
-import { ServiceChannels, type ZCodeTaskMeta } from "@nibi/shared";
+import { ServiceChannels, type NibiTaskMeta } from "@nibi/shared";
 import { createServiceDescriptor } from "#src/descriptors.js";
 
 export type TaskGroupColor = "gray" | "red" | "orange" | "yellow" | "green" | "blue" | "purple";
@@ -29,7 +29,7 @@ export interface MoveGroupNode {
   anchor?: { node: GroupNode; side: "before" | "after" };
 }
 export type GroupTaskFact = GroupTaskRef &
-  Pick<ZCodeTaskMeta, "cronAutomationId"> & {
+  Pick<NibiTaskMeta, "cronAutomationId"> & {
     createdAt?: number;
     archived?: boolean;
     deleted?: boolean;

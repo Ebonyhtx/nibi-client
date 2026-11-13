@@ -1,5 +1,5 @@
-// 语义复制自 apps/zcode-cli/packages/adapters/src/auth/cli-oauth.ts 与
-// apps/zcode-cli/packages/bootstrap/src/auth-login-polling.ts（33a9541140）。
+// 语义复制自 apps/nibi-cli/packages/adapters/src/auth/cli-oauth.ts 与
+// apps/nibi-cli/packages/bootstrap/src/auth-login-polling.ts（33a9541140）。
 //! CLI OAuth 的服务端轮询（platform.md §5.6）：`/oauth/cli/init` 拿授权地址，`/oauth/cli/poll/{flow}` 轮询。
 //!
 //! 错误文案与 Node `CliOAuthError` 相同；轮询时 408、429、5xx 与网络错误按间隔重试，其他错误立刻失败。

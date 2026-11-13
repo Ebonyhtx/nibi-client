@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CommandsListResult, ZCodeCommand } from "@nibi/shared";
+import type { CommandsListResult, NibiCommand } from "@nibi/shared";
 import { NIBI_AGENT_PROVIDER } from "@nibi/shared";
 import { refreshWorkspacePluginCapabilitiesAfterRemoteSync } from "../src/lib/remotePluginSyncRefresh.js";
 import { useCommandsStore } from "../src/store/commandsStore.js";
 import { useSkillStore } from "../src/store/skillStore.js";
-import { useZCodeSessionStore } from "../src/store/zcodeSessionStore.js";
+import { useNibiSessionStore } from "../src/store/nibiSessionStore.js";
 
 function makePluginCommand(
-  overrides: Partial<Extract<ZCodeCommand, { source: "plugin" }>>,
-): Extract<ZCodeCommand, { source: "plugin" }> {
+  overrides: Partial<Extract<NibiCommand, { source: "plugin" }>>,
+): Extract<NibiCommand, { source: "plugin" }> {
   return {
     id: "plugin:team-market:hello-world:hello:/remote/commands/hello.md",
     name: "hello",
@@ -26,7 +26,7 @@ function makePluginCommand(
 }
 
 beforeEach(() => {
-  useZCodeSessionStore.setState((state) => ({
+  useNibiSessionStore.setState((state) => ({
     ...state,
     workspaces: {},
   }));
@@ -61,7 +61,7 @@ describe("refreshWorkspacePluginCapabilitiesAfterRemoteSync", () => {
   it("refreshes slash commands even when commands settings store was not loaded", async () => {
     const workspacePath = "/Users/dev";
     const workspaceIdentity = "remote:ssh:intranet.example.invalid:22:dev:/Users/dev";
-    useZCodeSessionStore.getState().setSlashCommands(
+    useNibiSessionStore.getState().setSlashCommands(
       workspacePath,
       [
         {
@@ -97,7 +97,7 @@ describe("refreshWorkspacePluginCapabilitiesAfterRemoteSync", () => {
       workspacePath,
       workspaceIdentity,
       reason: "sidebar-remote-plugin-sync",
-      zcodeAgentService: {} as never,
+      nibiAgentService: {} as never,
       skillsService: { list: vi.fn() } as never,
       commandsService: commandsService as never,
       mcpSyncService: {
@@ -110,7 +110,7 @@ describe("refreshWorkspacePluginCapabilitiesAfterRemoteSync", () => {
       workspaceIdentity,
     });
     expect(
-      useZCodeSessionStore.getState().getWorkspaceState(workspacePath, workspaceIdentity)
+      useNibiSessionStore.getState().getWorkspaceState(workspacePath, workspaceIdentity)
         .slashCommands,
     ).toEqual([
       {

@@ -12,7 +12,7 @@ function pathApiForPlatform(platform) {
  * （见 `packages/desktop/src/main/desktopRuntimeEnv.ts` 的 production 应用名），
  * `dev:desktop:remote-prod` 读它才不会重复下载同一批远端资产。
  *
- * 这里原先指向上游的 `ZCode/`：同机装了上游产品时，等于拿**别的产品**的缓存来跑我们的链路，
+ * 这里原先指向上游的 `Nibi/`：同机装了上游产品时，等于拿**别的产品**的缓存来跑我们的链路，
  * 与"除插件外不得与上游有关系"直接冲突。显式 `NIBI_REMOTE_ASSET_CACHE_DIR` 仍可覆盖。
  */
 export function resolveProductionRemoteAssetCacheDir(

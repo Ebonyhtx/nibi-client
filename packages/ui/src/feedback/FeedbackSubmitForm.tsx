@@ -49,9 +49,9 @@ import {
 } from "@/feedback/feedbackSubmitSubmission.js";
 import type { IFeedbackService } from "@nibi/services";
 import type { IPlatformService } from "@nibi/shared";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useTabStore } from "@/store/TabStoreProvider.js";
-import { selectWorkspaceZCodeState, useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { selectWorkspaceNibiState, useNibiSessionStore } from "@/store/nibiSessionStore.js";
 
 export { SubmitProgressView } from "@/feedback/FeedbackSubmitProgressView.js";
 export { readCurrentAgentModelContext } from "@/feedback/feedbackSubmitModelContext.js";
@@ -89,7 +89,7 @@ export function FeedbackSubmitForm({
   onViewTickets: () => void;
   onCancel: () => void;
 }) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const formatMessage = useCallback(
     (id: string, values?: Record<string, string>) => intl.formatMessage({ id }, values),
     [intl],
@@ -397,13 +397,13 @@ function useActiveFeedbackModelContext(): FeedbackAgentModelContext {
   const activeWorkspaceIdentity = useTabStore(
     (state) => state.activeWorkspaceIdentity ?? undefined,
   );
-  const workspaceZCodeState = useZCodeSessionStore((state) =>
+  const workspaceNibiState = useNibiSessionStore((state) =>
     activeWorkspacePath
-      ? selectWorkspaceZCodeState(state, activeWorkspacePath, activeWorkspaceIdentity)
+      ? selectWorkspaceNibiState(state, activeWorkspacePath, activeWorkspaceIdentity)
       : null,
   );
   return useMemo(
-    () => readCurrentAgentModelContext(workspaceZCodeState?.configOptions),
-    [workspaceZCodeState?.configOptions],
+    () => readCurrentAgentModelContext(workspaceNibiState?.configOptions),
+    [workspaceNibiState?.configOptions],
   );
 }

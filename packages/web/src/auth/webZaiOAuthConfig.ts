@@ -1,6 +1,6 @@
 import type { WebZaiOAuthProviderConfig } from "./zaiWebOAuthProvider.js";
 import {
-  buildZCodeEndpointUrls,
+  buildNibiEndpointUrls,
   DEFAULT_NIBI_ENDPOINT_ORIGIN,
   resolveBigModelApiOrigin,
 } from "@nibi/shared";
@@ -44,7 +44,7 @@ function buildBigModelAuthorizeUrl(origin: string | undefined): string {
 
 export function createWebZaiOAuthConfig(env: WebImportMetaEnv = {}): WebZaiOAuthConfig {
   const devOrigin = env.VITE_DEV_ORIGIN?.trim().replace(/\/$/, "");
-  const zcodeEndpointUrls = buildZCodeEndpointUrls(
+  const nibiEndpointUrls = buildNibiEndpointUrls(
     env.VITE_NIBI_BASE_URL?.trim() ||
       env.VITE_NIBI_ENDPOINT_ORIGIN?.trim() ||
       DEFAULT_NIBI_ENDPOINT_ORIGIN,
@@ -59,8 +59,8 @@ export function createWebZaiOAuthConfig(env: WebImportMetaEnv = {}): WebZaiOAuth
     bigmodelAuthorizeUrl: buildBigModelAuthorizeUrl(env.VITE_BIGMODEL_OAUTH_ORIGIN),
     // BigModel 用 appId 而不是 client_id，且默认值就是桌面端在用的 "zcode"。
     bigmodelAppId: env.VITE_BIGMODEL_OAUTH_APP_ID?.trim() || "zcode",
-    redirectUri: zcodeEndpointUrls.webRemoteCallbackUrl,
-    shareRedirectUri: zcodeEndpointUrls.webShareCallbackUrl,
+    redirectUri: nibiEndpointUrls.webRemoteCallbackUrl,
+    shareRedirectUri: nibiEndpointUrls.webShareCallbackUrl,
     ...(devOrigin ? { devOrigin } : {}),
     allowDevReturnToRedirect: env.VITE_WEB_REMOTE_ALLOW_DEV_RETURN_TO === "true",
   };

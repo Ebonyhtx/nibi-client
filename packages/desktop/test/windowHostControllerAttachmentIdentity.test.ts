@@ -1,11 +1,11 @@
 import { expect, it, vi } from "vitest";
-import type { IZCodeTaskService } from "@nibi/services";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { INibiTaskService } from "@nibi/services";
+import type { NibiTaskMeta } from "@nibi/shared";
 import { createWindowHostControllerRuntime } from "../src/host/windowHostControllerService.js";
 
 const workspacePath = "/repo";
 const workspaceIdentity = "remote:server:source:/repo";
-const task: ZCodeTaskMeta = {
+const task: NibiTaskMeta = {
   taskId: "task",
   traceId: "trace",
   title: "Task",
@@ -30,7 +30,7 @@ it("clears unread through the first attachment after a Source-only sidebar query
     listPinnedTasks: async () => [],
     listArchivedTasks: async () => [],
     setTaskUnread: vi.fn(async () => ({ ...task, unreadAt: undefined })),
-  } as unknown as IZCodeTaskService;
+  } as unknown as INibiTaskService;
   const runtime = createWindowHostControllerRuntime({
     createId: () => crypto.randomUUID(),
     resolveSource: () => ({
@@ -85,12 +85,12 @@ it("clears unread through the first attachment after a Source-only sidebar query
 
 it("does not admit an attachment that changed while its first task snapshot was loading", async () => {
   let remoteSessionId = "first-attachment";
-  const loading = Promise.withResolvers<ZCodeTaskMeta[]>();
+  const loading = Promise.withResolvers<NibiTaskMeta[]>();
   const service = {
     listTasks: vi.fn(() => loading.promise),
     listPinnedTasks: async () => [],
     listArchivedTasks: async () => [],
-  } as unknown as IZCodeTaskService;
+  } as unknown as INibiTaskService;
   const runtime = createWindowHostControllerRuntime({
     createId: () => crypto.randomUUID(),
     resolveSource: () => ({

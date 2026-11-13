@@ -10,7 +10,7 @@ import {
   Pin,
   Smartphone,
 } from "lucide-react";
-import { isCronTask, type ZCodeTaskMeta } from "@nibi/shared";
+import { isCronTask, type NibiTaskMeta } from "@nibi/shared";
 import { TID_TASK_ARCHIVE, TID_TASK_ITEM, testId } from "@nibi/shared/test-ids";
 import { Badge } from "@/components/ui/badge.js";
 import { Button } from "@/components/ui/button.js";
@@ -57,7 +57,7 @@ type TaskListItemIntl = {
 interface TaskListItemProps {
   workspacePath: string;
   remoteSessionId?: string;
-  task: ZCodeTaskMeta;
+  task: NibiTaskMeta;
   isPinned: boolean;
   isArchived?: boolean;
   isActive: boolean;
@@ -93,11 +93,11 @@ function areJsonFieldsEqual(left: unknown, right: unknown) {
   return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
 }
 
-function getTaskAutomationIdentity(task: ZCodeTaskMeta): string | undefined {
-  return task.cronAutomationId ?? (task as ZCodeTaskMeta & { automationId?: string }).automationId;
+function getTaskAutomationIdentity(task: NibiTaskMeta): string | undefined {
+  return task.cronAutomationId ?? (task as NibiTaskMeta & { automationId?: string }).automationId;
 }
 
-function areTaskListItemTaskFieldsEqual(left: ZCodeTaskMeta, right: ZCodeTaskMeta) {
+function areTaskListItemTaskFieldsEqual(left: NibiTaskMeta, right: NibiTaskMeta) {
   if (left === right) {
     return true;
   }
@@ -823,7 +823,7 @@ export function TaskListItemContextMenuContent({
   organizationActions?: React.ReactNode;
   workspacePath: string;
   remoteSessionId?: string;
-  task: ZCodeTaskMeta;
+  task: NibiTaskMeta;
   isPinned: boolean;
   isArchived?: boolean;
   intl: TaskListItemIntl;

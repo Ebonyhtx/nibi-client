@@ -1,12 +1,12 @@
 import {
   NIBI_PRODUCT_FLAVOR,
-  type ZCodeProductFlavor,
+  type NibiProductFlavor,
   type UpdateStatePayload,
 } from "@nibi/shared";
 
 // 更新入口跟随产品身份而不是后端环境：Preview 身份（含生产后端的 Preview）禁用更新器。
 export function shouldShowDesktopUpdateEntry(
-  flavor: ZCodeProductFlavor = NIBI_PRODUCT_FLAVOR,
+  flavor: NibiProductFlavor = NIBI_PRODUCT_FLAVOR,
 ): boolean {
   return flavor === "production";
 }

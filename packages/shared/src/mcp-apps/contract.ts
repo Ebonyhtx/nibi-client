@@ -1,7 +1,7 @@
 /**
  * MCP Apps 协议契约：agent、host、renderer 与 main 共用的常量、工具 UI 元数据类型、沙箱句柄与登记载荷。
  * 页面 ↔ 宿主的线协议（`ui/*` 方法、握手、版本协商、JSON-RPC）由官方 `@modelcontextprotocol/ext-apps` 定义，
- * 这里只保留 ZCode 自己的扩展键与限额。只放类型与常量；归一化与 schema 在同目录其他文件，经 index.ts 导出。
+ * 这里只保留 Nibi 自己的扩展键与限额。只放类型与常量；归一化与 schema 在同目录其他文件，经 index.ts 导出。
  */
 
 /** MCP 扩展标识（规范「Extension Identifier」）；与官方 SDK `EXTENSION_ID` 一致。 */
@@ -146,14 +146,14 @@ export {
 } from "./resourceMime.js";
 
 /**
- * `hostCapabilities.experimental` 里 ZCode 扩展的键。官方 SDK 的 zod 会剥掉标准位之外的未知能力键，
+ * `hostCapabilities.experimental` 里 Nibi 扩展的键。官方 SDK 的 zod 会剥掉标准位之外的未知能力键，
  * 扩展一律放 experimental（规范预留位），页面按键 feature detect。
  */
 export const MCP_APPS_WIDGET_STATE_EXPERIMENTAL_KEY = "zcode/widgetState";
 export const MCP_APPS_RESOURCE_SUBSCRIBE_EXPERIMENTAL_KEY = "zcode/resourceSubscribe";
 export const MCP_APPS_SURFACE_EXPERIMENTAL_KEY = "zcode/surface";
 /**
- * ZCode 扩展方法 `ui/set-widget-state { widgetState }`（MCP Apps 无 widgetState）：页面把界面状态交给宿主
+ * Nibi 扩展方法 `ui/set-widget-state { widgetState }`（MCP Apps 无 widgetState）：页面把界面状态交给宿主
  * renderer 内存保存（不持久化，会话内重挂载可恢复）；初值经 hostContext 的 `zcode/widgetState` 键随握手下发。
  */
 export const MCP_APPS_SET_WIDGET_STATE_METHOD = "ui/set-widget-state";

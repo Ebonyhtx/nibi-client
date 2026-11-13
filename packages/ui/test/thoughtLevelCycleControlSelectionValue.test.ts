@@ -9,7 +9,7 @@ import {
   screen,
 } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { ZCodeConfigOption } from "@nibi/shared";
+import type { NibiConfigOption } from "@nibi/shared";
 import { ThoughtLevelCycleControl } from "@/chat-input-toolbar/ThoughtLevelCycleControl.js";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
 
@@ -33,7 +33,7 @@ const intl = {
   },
 };
 
-const option: ZCodeConfigOption = {
+const option: NibiConfigOption = {
   id: "thought_level",
   category: "thought_level",
   type: "select",

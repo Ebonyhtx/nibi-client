@@ -82,7 +82,7 @@ Apache-2.0 复制内容中的 148 个已确认改编文件包含文件内来源�
 - React Best Practices：上游 `vercel-labs/agent-skills` 的固定参考 `063bee94c3f4df8453406c830b0a7df0f2860278` 中，根 README 与技能 frontmatter 声明 MIT，但树中无完整 LICENSE 文件。保留本地 Shu Ding / Vercel 署名；未编造上游版权年份或许可证原文。现已登记到 `copied-components.json`，参与输入哈希和严格门禁。来源：[README](https://github.com/vercel-labs/agent-skills/blob/063bee94c3f4df8453406c830b0a7df0f2860278/README.md)、[技能声明](https://github.com/vercel-labs/agent-skills/blob/063bee94c3f4df8453406c830b0a7df0f2860278/skills/react-best-practices/SKILL.md)。
 - `webfetch-processing.ts` 的清单判词称其提示词来自 Gemini CLI，但本次取得的上游 `cfbcaa8df13ea4610bb379b377b56d62980c0032` 的 `web-fetch.ts` 未找到被指认的句子；无法据此添加 Google 归属并宣称问题解决。
 - Windows 浏览器导入中的解密实现、混合来源技能描述、商标资产和兼容层的授权/来源问题，需要各自的证据，不能通过追加通用 NOTICE 关闭。
-- 原清单提及 `apps/zcode-cli/.agents/skills/` 下的技能，但该目录在当前 checkout 中不存在；锁文件中残留来源信息不代表还分发那些文件。
+- 原清单提及 `apps/nibi-cli/.agents/skills/` 下的技能，但该目录在当前 checkout 中不存在；锁文件中残留来源信息不代表还分发那些文件。
 
 待核验条目以当前 `inventory.json` 的 `reviewRequired` 为准。其余来源疑点尚未证明属于第三方复制，不凭相似性推定权利人；需要另行核对。基础声明新鲜度检查通过不代表这些边界问题已经解决。具体规则与验收见 [SPEC.md](SPEC.md)。
 
@@ -107,6 +107,6 @@ Apache-2.0 复制内容中的 148 个已确认改编文件包含文件内来源�
 
 `@fontsource/noto-sans-sc@5.3.1` 的随包许可为 `OFL-1.1`；原文保存在 [字体许可快照](upstream/noto-sans-sc-5.3.1-LICENSE.txt)，SHA-256 为 `18aabf190848725e2576eefb5c29ba06aac1029d02132252a7f312eac2e50cf3`。官方条件见 [SIL OFL 1.1 原文](https://openfontlicense.org/open-font-license-official-text/)。
 
-该依赖由 `office-runtime` 声明为构建依赖。PDF 插件构建从 `400.css` 选择原有 WOFF2 分片并原样复制，不改字体内部名称；`apps/zcode-cli/packages/office-runtime/scripts/build.mjs` 将随包版权与完整许可写入插件的 `THIRD_PARTY_NOTICES.txt`。字体作为插件资源分发，继续保留 OFL 许可，不单独销售字体。
+该依赖由 `office-runtime` 声明为构建依赖。PDF 插件构建从 `400.css` 选择原有 WOFF2 分片并原样复制，不改字体内部名称；`apps/nibi-cli/packages/office-runtime/scripts/build.mjs` 将随包版权与完整许可写入插件的 `THIRD_PARTY_NOTICES.txt`。字体作为插件资源分发，继续保留 OFL 许可，不单独销售字体。
 
 许可门禁仅登记这一精确包名、版本与许可标识；其他包、版本或许可仍需核验。此记录不替代最终安装包审计，不关闭既有材料缺口。

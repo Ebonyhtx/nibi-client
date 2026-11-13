@@ -15,7 +15,7 @@ const useBootstrapWithRemoteBuild = process.env.NIBI_BOOTSTRAP_WITH_REMOTE === "
 const pnpmRunEnv = {
   ...process.env,
   NIBI_ENV: await resolveBuiltinProviderBuildEnvironment({ root: repoRoot }),
-  // pnpm 11 的 verify-deps-before-run 会在 apps/zcode-cli 子 workspace
+  // pnpm 11 的 verify-deps-before-run 会在 apps/nibi-cli 子 workspace
   // 执行每个 run 前触发 pnpm install；子 workspace 运行时依赖根仓库 @nibi/shared，
   // 自动 install 无法解析根 workspace 包，导致 dev:desktop:test 和 E2E onPrepare 失败。
   PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: "false",
@@ -90,7 +90,7 @@ const defaultBuildFilters = [
 
 async function verifyRequiredDevPluginRuntimeArtifacts() {
   for (const runtime of requiredDevPluginRuntimeBuilds) {
-    const artifactPath = resolve(repoRoot, "apps/zcode-cli/packages", runtime.artifactPath);
+    const artifactPath = resolve(repoRoot, "apps/nibi-cli/packages", runtime.artifactPath);
     try {
       await access(artifactPath);
     } catch (error) {
@@ -106,7 +106,7 @@ async function verifyRequiredDevPluginRuntimeArtifacts() {
  * 把刚构建出的 agent bundle 暂存进 bundled-agents。
  *
  * 必须做：dev 未打包时 agent 二进制由 desktopRuntimeEnv.ts 的
- * resolveBundledZCodeAgentBinaryPath() 解析，候选**只有** bundled-agents/，没有
+ * resolveBundledNibiAgentBinaryPath() 解析，候选**只有** bundled-agents/，没有
  * cli/dist/。只靠打包链暂存会让 dev 一直跑上一次打包留下的那份 —— 实测陈旧
  * 3 天，任何 agent CLI 侧改动在 dev 里静默不生效，把「改动没进去」伪装成「代码没作用」。
  * 实现与打包链共用 stage-agent-bundle.mjs，两边不可能再各自漂移。
@@ -131,20 +131,20 @@ function runBootstrapWithRemoteBuild() {
     // 必须先手动跑生成脚本补齐 gitignored 的 libs.generated.ts，否则 tsc 因缺文件报错。
     if (prepareScript) {
       runCommand(process.execPath, [prepareScript], {
-        cwd: `apps/zcode-cli/packages/${packageDir}`,
+        cwd: `apps/nibi-cli/packages/${packageDir}`,
         env: pnpmRunEnv,
         stdio: "inherit",
       });
     }
     runCommand(process.execPath, ["../../node_modules/typescript/bin/tsc"], {
-      cwd: `apps/zcode-cli/packages/${packageDir}`,
+      cwd: `apps/nibi-cli/packages/${packageDir}`,
       env: pnpmRunEnv,
       stdio: "inherit",
     });
   }
 
   runCommand(process.execPath, ["scripts/build.mjs", "--desktop-agent"], {
-    cwd: "apps/zcode-cli/packages/cli",
+    cwd: "apps/nibi-cli/packages/cli",
     env: pnpmRunEnv,
     stdio: "inherit",
   });
@@ -158,8 +158,8 @@ if (useBootstrapWithRemoteBuild) {
 }
 
 if (!useTurboBuild) {
-  // Linux 容器 demo 里没有仓库级 turbo 根，`turbo --cwd apps/zcode-cli`
-  // 会把 apps/zcode-cli 当根目录，并拒绝 turbo.json 中指向 ../../packages/shared 的 inputs。
+  // Linux 容器 demo 里没有仓库级 turbo 根，`turbo --cwd apps/nibi-cli`
+  // 会把 apps/nibi-cli 当根目录，并拒绝 turbo.json 中指向 ../../packages/shared 的 inputs。
   // 同时 agent 子 workspace 不包含根 packages/shared，但 agent 包依赖 @nibi/shared。
   // 因此默认改用仓库根 workspace 的明确 pnpm 包顺序构建，避免 WDIO 前置构建卡在子 workspace 解析。
   for (const filter of defaultBuildFilters) {
@@ -186,7 +186,7 @@ runCommand(
     "turbo",
     "--skip-infer",
     "--cwd",
-    "apps/zcode-cli",
+    "apps/nibi-cli",
     "run",
     "build:desktop-agent",
     "--filter=@nibi/cli",

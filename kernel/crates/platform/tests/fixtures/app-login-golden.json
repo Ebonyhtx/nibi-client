@@ -156,7 +156,7 @@
         "oauth:bigmodel:access_token": "at-big",
         "oauth:bigmodel:refresh_token": "rt-big",
         "zcodejwttoken": "zcode-jwt",
-        "oauth:bigmodel:user_info": "{\"id\":\"u-1\",\"username\":\"Dev\",\"displayName\":\"Dev\",\"avatarUrl\":\"https://avatar.example.com/a.png\",\"rawProfile\":{\"user_id\":\"u-1\",\"name\":\" Dev \",\"email\":\"dev@example.com\",\"avatar\":\" https://avatar.example.com/a.png \",\"locale\":\"zh-CN\",\"zcodeProfileSchemaVersion\":2}}",
+        "oauth:bigmodel:user_info": "{\"id\":\"u-1\",\"username\":\"Dev\",\"displayName\":\"Dev\",\"avatarUrl\":\"https://avatar.example.com/a.png\",\"rawProfile\":{\"user_id\":\"u-1\",\"name\":\" Dev \",\"email\":\"dev@example.com\",\"avatar\":\" https://avatar.example.com/a.png \",\"locale\":\"zh-CN\",\"nibiProfileSchemaVersion\":2}}",
         "oauth:active_provider": "bigmodel"
       },
       "profileId": "u-1",
@@ -1323,7 +1323,7 @@
       "bigmodel": "u-2"
     },
     "appShapeWithRaw": {
-      "value": "{\"id\":\"u-3\",\"username\":\"dev\",\"displayName\":\"Dev\",\"rawProfile\":{\"user_id\":\"u-3\",\"zcodeProfileSchemaVersion\":2}}",
+      "value": "{\"id\":\"u-3\",\"username\":\"dev\",\"displayName\":\"Dev\",\"rawProfile\":{\"user_id\":\"u-3\",\"nibiProfileSchemaVersion\":2}}",
       "zai": "u-3",
       "bigmodel": "u-3"
     },

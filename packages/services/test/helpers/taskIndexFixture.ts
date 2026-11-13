@@ -1,18 +1,18 @@
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import type { TaskIndexRepo } from "#src/session/taskIndexRepo.js";
 
 /** 测试分别设置 CLI 事实和 Host 组织态，不为夹具保留生产环境的整行写入入口。 */
 export async function seedTaskIndex(
   repo: TaskIndexRepo,
   input: {
-    meta: ZCodeTaskMeta;
+    meta: NibiTaskMeta;
     pinned?: boolean;
     archived?: boolean;
     deleted?: boolean;
     titleOverridden?: boolean;
     searchableText?: string;
   },
-): Promise<ZCodeTaskMeta> {
+): Promise<NibiTaskMeta> {
   const { meta } = input;
   await repo.applyCliFacts({
     meta,

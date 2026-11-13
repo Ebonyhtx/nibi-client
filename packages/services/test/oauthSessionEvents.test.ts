@@ -23,7 +23,7 @@ function fixture(onProviderLogout = vi.fn(async () => {})) {
   const exchangeToken = vi.fn(
     async (): Promise<OAuthTokenSet> => ({
       accessToken: "access",
-      zcodeJwtToken: "jwt",
+      nibiJwtToken: "jwt",
     }),
   );
   const service = new OAuthService(credentialService, {
@@ -105,7 +105,7 @@ it("取消中的登录和非当前 provider 的 unlink 不发布会话变更", a
   const login = f.login();
   await vi.waitFor(() => expect(f.exchangeToken).toHaveBeenCalled());
   await f.client.cancelPending();
-  exchange.resolve({ accessToken: "cancelled", zcodeJwtToken: "cancelled" });
+  exchange.resolve({ accessToken: "cancelled", nibiJwtToken: "cancelled" });
   await login;
   await f.client.logout(BIGMODEL_PROVIDER_ID);
   expect(changed).not.toHaveBeenCalled();

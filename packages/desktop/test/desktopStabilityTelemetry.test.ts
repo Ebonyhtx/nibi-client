@@ -23,7 +23,7 @@ vi.mock("@arms/rum-electron", () => ({
 }));
 
 vi.mock("@nibi/shared", () => ({
-  mapZCodeEnvToArmsRumEnv: vi.fn(() => "local"),
+  mapNibiEnvToArmsRumEnv: vi.fn(() => "local"),
 }));
 
 vi.mock("../src/main/desktopCrashCapture.js", () => ({
@@ -662,7 +662,7 @@ describe("desktopStabilityTelemetry", () => {
           "----- Native stack trace -----",
           "1: 0x00007ff6deadbeef",
           "(node:1234) ExperimentalWarning: SQLite is an experimental feature and might change at any time",
-          "(Use `ZCode --trace-warnings ...` to show where the warning was created)",
+          "(Use `Nibi --trace-warnings ...` to show where the warning was created)",
           "},",
         ],
         expected: {
@@ -1115,7 +1115,7 @@ describe("desktopStabilityTelemetry", () => {
           pid: 12345,
           provider: "glm",
           workspacePath: "/repo/demo",
-          command: "/tmp/zcode-agent",
+          command: "/tmp/nibi-agent",
           args: ["app-server", "--stdio"],
           startedAt: 100,
           runtimeGeneration: 4,

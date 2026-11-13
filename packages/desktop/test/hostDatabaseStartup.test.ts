@@ -6,10 +6,10 @@ import { expect, it, vi } from "vitest";
 const fixtures = vi.hoisted(() => ({ host: vi.fn(), session: vi.fn(), mark: vi.fn() }));
 vi.mock("@nibi/services/storage-startup", () => ({
   getTasksIndexDatabasePath: () => "/isolated/tasks.sqlite",
-  resolveZCodeAgentSpawnCwd: async (...args: unknown[]) =>
+  resolveNibiAgentSpawnCwd: async (...args: unknown[]) =>
     (
-      await import("../../services/src/zcode-agent/zcodeAgentSpawnCwd.js")
-    ).resolveZCodeAgentSpawnCwd(...(args as [never])),
+      await import("../../services/src/nibi-agent/nibiAgentSpawnCwd.js")
+    ).resolveNibiAgentSpawnCwd(...(args as [never])),
   markTasksStoragePrepared: fixtures.mark,
 }));
 vi.mock("../src/host/database-startup/storagePreparationProcesses.js", () => ({

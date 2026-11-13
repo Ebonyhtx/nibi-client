@@ -15,16 +15,16 @@ import {
   NIBI_PRODUCT_FLAVOR,
   NIBI_RUNTIME_ENV_KEY,
   NIBI_VERSION,
-  buildZCodeToolEnvPassthroughEnv,
-  resolveRuntimeZCodeEndpointOrigin,
+  buildNibiToolEnvPassthroughEnv,
+  resolveRuntimeNibiEndpointOrigin,
   resolveZaiBusinessBaseUrl,
   resolveZaiOAuthClientId,
   resolveZaiOAuthOrigin,
   normalizeDynamicWorkflowMode,
-  readZCodeAgentTelemetryEnv,
-  sanitizeZCodeRuntimeEnv,
+  readNibiAgentTelemetryEnv,
+  sanitizeNibiRuntimeEnv,
   type SourceServerArtifactPolicy,
-  type ZCodeRuntimeEnv,
+  type NibiRuntimeEnv,
 } from "@nibi/shared";
 import { resolvePlatformKeyForPackagedApp } from "../../scripts/target-platform.mjs";
 import {
@@ -42,7 +42,7 @@ import { getElectronAppPath, isElectronAppPackaged } from "./desktopElectronApp.
 declare const __NIBI_PACKAGED_AGENT_TELEMETRY_ENV__: Readonly<Record<string, string>> | undefined;
 
 const isLocalDevelopmentRuntime = !isElectronAppPackaged();
-export const desktopRuntimeEnv: ZCodeRuntimeEnv = isLocalDevelopmentRuntime
+export const desktopRuntimeEnv: NibiRuntimeEnv = isLocalDevelopmentRuntime
   ? "development"
   : "production";
 // 身份看编译期 flavor 而不是 NIBI_ENV：NIBI_PREVIEW_IDENTITY=1 的生产后端构建同样是 Preview，
@@ -69,7 +69,7 @@ export const runtimeApplicationName =
   readRuntimeEnvOverride("NIBI_DESKTOP_APPLICATION_NAME") ??
   (isLocalDevelopmentRuntime ? "NIBI Dev" : isPreviewPackagedRuntime ? "NIBI Preview" : "NIBI");
 // Electron 的 app.getPath("home") 不一定跟随测试进程里的 HOME 覆盖。
-// e2e 默认工作区依赖 home 路径，因此提供显式覆盖，避免测试写到开发者真实 ~/ZCodeProject。
+// e2e 默认工作区依赖 home 路径，因此提供显式覆盖，避免测试写到开发者真实 ~/NibiProject。
 export const runtimeHomePath = readRuntimeEnvOverride("NIBI_DESKTOP_HOME_DIR");
 // Chromedriver 管理 Electron 时会注入临时 userData；e2e 默认路径模式下导入期不能提前读取 appData。
 export const shouldUseElectronDefaultUserDataPath = isTruthyRuntimeEnvOverride(
@@ -270,7 +270,7 @@ export function loadHostProcessEnvFromLocalFiles(): Record<string, string> {
     Object.assign(merged, parsed);
   }
 
-  return applySelectedZCodeEnvLinks(merged);
+  return applySelectedNibiEnvLinks(merged);
 }
 
 export function resolvePackagedAgentTelemetryEnv(
@@ -287,7 +287,7 @@ export function resolvePackagedAgentTelemetryEnv(
   // 修复原因：开发版通过启动进程继承 OTLP 配置，正式安装包从 Finder/开始菜单启动时没有
   // 这组运行时环境，Agent 因而静默落入 Noop。构建默认值只允许连接字段进入 Main；
   // UID、Device MID 和 runtime surface 仍由 Host 的可信运行时上下文生成。
-  return readZCodeAgentTelemetryEnv({
+  return readNibiAgentTelemetryEnv({
     OTEL_EXPORTER_OTLP_ENDPOINT: compiledEnv.OTEL_EXPORTER_OTLP_ENDPOINT,
     OTEL_EXPORTER_OTLP_HEADERS: compiledEnv.OTEL_EXPORTER_OTLP_HEADERS,
     OTEL_SERVICE_NAME: compiledEnv.OTEL_SERVICE_NAME,
@@ -337,7 +337,7 @@ function resolveEnvValue(envName: string, localEnv: LocalRuntimeEnv = {}): strin
   return process.env[envName]?.trim() || localEnv[envName]?.trim() || undefined;
 }
 
-export function resolveZCodeEndpointEnvBaseOrigin(
+export function resolveNibiEndpointEnvBaseOrigin(
   localEnv: LocalRuntimeEnv = {},
 ): string | undefined {
   const scopedEnvName =
@@ -364,7 +364,7 @@ function readDefinedProcessEnv(): Record<string, string> {
   return values;
 }
 
-function applySelectedZCodeEnvLinks(env: Record<string, string>): Record<string, string> {
+function applySelectedNibiEnvLinks(env: Record<string, string>): Record<string, string> {
   const endpointEnv = {
     ...env,
     NIBI_ENV,
@@ -372,14 +372,14 @@ function applySelectedZCodeEnvLinks(env: Record<string, string>): Record<string,
 
   return {
     ...env,
-    NIBI_BASE_URL: env.NIBI_BASE_URL ?? resolveRuntimeZCodeEndpointOrigin(endpointEnv),
+    NIBI_BASE_URL: env.NIBI_BASE_URL ?? resolveRuntimeNibiEndpointOrigin(endpointEnv),
     ZAI_OAUTH_ORIGIN: env.ZAI_OAUTH_ORIGIN ?? resolveZaiOAuthOrigin(endpointEnv),
     ZAI_BUSINESS_BASE_URL: env.ZAI_BUSINESS_BASE_URL ?? resolveZaiBusinessBaseUrl(endpointEnv),
     ZAI_OAUTH_CLIENT_ID: env.ZAI_OAUTH_CLIENT_ID ?? resolveZaiOAuthClientId(endpointEnv),
   };
 }
 
-function resolveHostProcessNodeEnv(): ZCodeRuntimeEnv {
+function resolveHostProcessNodeEnv(): NibiRuntimeEnv {
   return desktopRuntimeEnv;
 }
 
@@ -427,7 +427,7 @@ export function resolveRemoteAssetDirs(
   };
 }
 
-function resolveBundledZCodeAgentBinaryPath(): string | undefined {
+function resolveBundledNibiAgentBinaryPath(): string | undefined {
   const runtime = NIBI_AGENT_RUNTIME;
   const entrySegments = runtime.resolveEntrySegments(process.platform);
   const platformKey = resolvePlatformKeyForPackagedApp();
@@ -492,7 +492,7 @@ function resolveBundledLarkCliBinaryPath(): string | undefined {
 }
 
 export function resolveBundledGlmBinaryPath(): string | undefined {
-  return resolveBundledZCodeAgentBinaryPath();
+  return resolveBundledNibiAgentBinaryPath();
 }
 
 function resolveHostProcessBinaryEnv(
@@ -500,7 +500,7 @@ function resolveHostProcessBinaryEnv(
   hostProcessLocalEnv: Record<string, string>,
   bundledPath: string | undefined,
 ): string | undefined {
-  // ZCode Agent 与 app 协议适配强绑定版本，生产包必须优先使用随包携带的固定 runtime。
+  // Nibi Agent 与 app 协议适配强绑定版本，生产包必须优先使用随包携带的固定 runtime。
   // 用户机器或本地 .env 里残留的 GLM_BINARY_PATH 即使存在，也可能版本不兼容。
   // 只有 bundled runtime 缺失时才把显式路径作为兜底，避免用户本机 CLI 覆盖内嵌版本。
   if (bundledPath) {
@@ -599,7 +599,7 @@ export function buildHostProcessEnv(hostProcessLocalEnv: Record<string, string>)
             )
           : undefined;
   const windowsAppInstallDir = resolveWindowsAppInstallDirForDataBaseDirGuard();
-  const agentTelemetryEnv = readZCodeAgentTelemetryEnv(rawInheritedEnv);
+  const agentTelemetryEnv = readNibiAgentTelemetryEnv(rawInheritedEnv);
   // Desktop 身份由 host 从凭据仓库和本机状态读取后可信注入；外部环境只能配置 OTLP 连接，
   // 不能伪造 uid/device/runtime surface 或绕过本地 identity state 的隔离边界。
   for (const key of [
@@ -612,9 +612,9 @@ export function buildHostProcessEnv(hostProcessLocalEnv: Record<string, string>)
   ]) {
     delete agentTelemetryEnv[key];
   }
-  const inheritedEnv = applySelectedZCodeEnvLinks({
-    ...sanitizeZCodeRuntimeEnv(rawInheritedEnv),
-    ...buildZCodeToolEnvPassthroughEnv(rawInheritedEnv),
+  const inheritedEnv = applySelectedNibiEnvLinks({
+    ...sanitizeNibiRuntimeEnv(rawInheritedEnv),
+    ...buildNibiToolEnvPassthroughEnv(rawInheritedEnv),
   });
   // A release app must never inherit the local unsigned-Helper escape hatch.
   // Otherwise a developer shell/launchctl variable can make the signed app
@@ -636,11 +636,11 @@ export function buildHostProcessEnv(hostProcessLocalEnv: Record<string, string>)
     // OTLP 凭据只定向传到 host；host 初始化 services 时会立即捕获并从 process.env 清除，
     // 后续只在启动 Agent 时短暂注入，不会进入 Bash/MCP/tool env。
     ...agentTelemetryEnv,
-    // ZCode 运行时不再使用 NODE_ENV；它会被用户 shell、包管理器和测试框架复用。
+    // Nibi 运行时不再使用 NODE_ENV；它会被用户 shell、包管理器和测试框架复用。
     // 这里显式下发 NIBI_RUNTIME_ENV，并在继承环境里清掉 NODE_ENV，避免 host/agent/Bash 被污染。
     [NIBI_RUNTIME_ENV_KEY]: resolveHostProcessNodeEnv(),
     // 显式注入编译期产品身份，保证主进程与 host 的身份语义一致；地址独立解析。
-    // inheritedEnv 从 .env 通用变量补齐 ZCode/ZAI 链接，未覆盖时统一使用线上默认值。
+    // inheritedEnv 从 .env 通用变量补齐 Nibi/ZAI 链接，未覆盖时统一使用线上默认值。
     NIBI_ENV,
     // Preview 与生产版共享任务、配置和凭据，但不同版本的 Helper 不能互相覆盖或触发降级保护。
     // 只隔离 computer-use 下的运行组件，不改写 NIBI_HOME / NIBI_DATA_BASE_DIR 业务数据根。

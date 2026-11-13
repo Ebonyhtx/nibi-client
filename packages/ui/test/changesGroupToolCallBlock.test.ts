@@ -2,7 +2,7 @@ import { ToolCallBlock } from "@/ToolCallBlocks.js";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import {
   ChangesGroupToolCallBlock,
   resolveFileChipAvailableWidth,
@@ -113,7 +113,7 @@ function renderChangesGroup(options: {
   }
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "en-US" },
       createElement(ChangesGroupToolCallBlock, {
         nestedToolRenderer: ToolCallBlock,

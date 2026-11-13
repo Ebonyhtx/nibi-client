@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatErrorBanner } from "@/ChatErrorBanner.js";
 import { useFeedbackStore } from "@/feedback/feedbackStore.js";
 import { PlatformProvider } from "@/hooks/usePlatform.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import zhCN from "@/i18n/locales/zh-CN.js";
 
 const buttonMock = vi.hoisted(() => ({
@@ -46,7 +46,7 @@ function resetFeedbackStore() {
 function renderErrorBanner() {
   renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(
         PlatformProvider,
@@ -100,7 +100,7 @@ describe("ChatErrorBanner feedback draft", () => {
   it("没有升级处理器时不展示不可用的升级动作", () => {
     renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           PlatformProvider,
@@ -123,7 +123,7 @@ describe("ChatErrorBanner feedback draft", () => {
   it("远程 workspace 缺模型时只切换措辞，动作仍是本机配置", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           PlatformProvider,
@@ -153,7 +153,7 @@ it("远程发送竞态提供重连，反馈归属连接失败而非模型调用"
   const reconnect = vi.fn();
   renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(
         PlatformProvider,

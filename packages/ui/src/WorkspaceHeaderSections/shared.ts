@@ -1,7 +1,7 @@
 import type {
-  ZCodeTaskMeta,
-  ZCodeProvider,
-  ZCodeTaskChangeSummary,
+  NibiTaskMeta,
+  NibiProvider,
+  NibiTaskChangeSummary,
   EditorInfo,
   GitRepositorySummary,
   RemoteTarget,
@@ -9,14 +9,14 @@ import type {
 } from "@nibi/shared";
 
 export interface WorkspaceHeaderState {
-  selectedProvider: ZCodeProvider;
+  selectedProvider: NibiProvider;
 }
 
 export type WorkspaceHeaderVariant = "task" | "draft";
 
 export interface WorkspaceHeaderReloadSessionOptions {
   resumeTaskId?: string | null;
-  provider?: ZCodeProvider | null;
+  provider?: NibiProvider | null;
 }
 
 export interface WorkspaceHeaderTitleSectionProps {
@@ -28,16 +28,16 @@ export interface WorkspaceHeaderTitleSectionProps {
   remoteTarget?: RemoteTarget;
   projectName: string;
   activeTaskTitle: string;
-  activeTaskChangeSummary?: ZCodeTaskChangeSummary | null;
+  activeTaskChangeSummary?: NibiTaskChangeSummary | null;
   activeTaskId: string | null;
   activeTraceId: string | null;
   activeSessionId: string | null;
-  activeTaskProvider: ZCodeProvider | null;
-  resolvedActiveTaskMeta?: ZCodeTaskMeta | null;
+  activeTaskProvider: NibiProvider | null;
+  resolvedActiveTaskMeta?: NibiTaskMeta | null;
   gitSummary: GitRepositorySummary;
   gitDirtyFileCount: number;
   sessionLogPath: string | null;
-  nativeSessionLogProvider: ZCodeProvider | null;
+  nativeSessionLogProvider: NibiProvider | null;
   nativeSessionLogPath: string | null;
   nativeSessionLogExists: boolean;
   nativeSessionLogLoading: boolean;

@@ -76,7 +76,7 @@ await Promise.all([
 ]);
 await writeFile(
   join(output, "host.html"),
-  '<!doctype html><meta charset="utf-8"><title>ZCode Gen UI test</title><body><div id="inline" style="position:absolute;left:20px;top:40px;width:700px;height:620px"></div><div id="expanded" style="position:absolute;left:20px;top:20px;width:1000px;height:740px"></div><script src="host.js"></script>',
+  '<!doctype html><meta charset="utf-8"><title>Nibi Gen UI test</title><body><div id="inline" style="position:absolute;left:20px;top:40px;width:700px;height:620px"></div><div id="expanded" style="position:absolute;left:20px;top:20px;width:1000px;height:740px"></div><script src="host.js"></script>',
 );
 await writeFile(
   join(output, "plugin-sandbox.html"),
@@ -116,7 +116,7 @@ await writeFile(
   '<p>Standalone state</p><i data-lucide="search"></i><button data-tooltip="Offline tooltip">Details</button><viz-calendar date="2026-09-29" start="09:00" end="12:00"></viz-calendar><script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script><script>window.initialCount=window.nibi.widgetState?.privateContent?.count??0;window.calendarWasReady=typeof customElements.get("viz-calendar")==="function";d3.select(document.body).append("svg").append("rect").attr("data-d3-probe","").attr("width",d3.sum([3,4]));</script>',
 );
 await promisify(execFile)("python3", [
-  join(root, "apps/zcode-cli/packages/visualize-plugin/skills/visualize/scripts/render.py"),
+  join(root, "apps/nibi-cli/packages/visualize-plugin/skills/visualize/scripts/render.py"),
   join(output, "standalone-fragment.html"),
   join(output, "standalone.html"),
 ]);

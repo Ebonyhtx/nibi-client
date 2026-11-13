@@ -1,9 +1,9 @@
 import type { IDisposable } from "@nibi/rpc";
-import type { IZCodeAgentService } from "@nibi/services";
+import type { INibiAgentService } from "@nibi/services";
 import { HostResponseTypes, type ProcessResourceRuntimeSurface } from "@nibi/shared";
 
 export function registerHostToolExecResourceTelemetry(options: {
-  agentService: Pick<IZCodeAgentService, "onDynamicToolExecResource">;
+  agentService: Pick<INibiAgentService, "onDynamicToolExecResource">;
   postMessage(message: unknown): void;
   runtimeSurface: ProcessResourceRuntimeSurface;
 }): IDisposable {

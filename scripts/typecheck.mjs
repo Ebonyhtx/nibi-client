@@ -29,7 +29,7 @@ const buildProjects = [
   "packages/services",
   "packages/client",
   "packages/server",
-  "packages/zcode-server-cli",
+  "packages/nibi-server-cli",
   "packages/ui",
   "packages/web",
   "apps/dev-docs",

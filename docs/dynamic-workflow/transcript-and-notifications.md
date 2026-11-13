@@ -3,7 +3,7 @@
 Status: implemented. This document describes what a workflow run leaves behind in the chat
 transcript and in the main agent's notifications; its siblings `presentation.md` (the graph
 and run pane), `authoring.md` (the artifact system), and
-`apps/zcode-cli/packages/dynamic-workflow/docs/execution-engine.md` (terminal states, the
+`apps/nibi-cli/packages/dynamic-workflow/docs/execution-engine.md` (terminal states, the
 journal) own the things these surfaces display.
 
 ## What a run leaves behind

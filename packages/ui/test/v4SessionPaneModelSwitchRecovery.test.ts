@@ -3,7 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ModelSelectionView } from "@nibi/services";
 import { useModelSelectionServiceView } from "@/hooks/useModelSelectionView.js";
-import { NIBI_AGENT_PROVIDER_NOT_READY_CODE, type ZCodeWorkspaceStateSnapshot } from "@nibi/shared";
+import { NIBI_AGENT_PROVIDER_NOT_READY_CODE, type NibiWorkspaceStateSnapshot } from "@nibi/shared";
 import type {
   CommandAck,
   CommandEnvelope,
@@ -12,7 +12,7 @@ import type {
   SessionConfigState,
 } from "@nibi/shared/nibi-protocol-v4";
 import { SessionPane } from "@/v4/SessionPane.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import type { ConversationComposer } from "@/v4/ConversationComposer.js";
 import type { V4InteractionDialogsProps } from "@/v4/V4InteractionDialogs.js";
 import { pendingCommandRegistry } from "@/v4/pendingCommandRegistry.js";
@@ -181,7 +181,7 @@ const mocks = vi.hoisted(() => ({
     onDidChange: vi.fn(() => ({ dispose: vi.fn() })),
     validate: vi.fn(),
   },
-  zcodeSessionService: {
+  nibiSessionService: {
     getWorkspaceRuntimeIdentity: vi.fn(async () => ({
       identity: "runtime-1",
       workspaceKey: "remote:ssh:dev:/workspace",
@@ -196,7 +196,7 @@ const mocks = vi.hoisted(() => ({
       slashCommands: [],
     })),
   },
-  zcodeTaskService: {
+  nibiTaskService: {
     restartWorkspaceProcess: vi.fn(async () => {}),
   },
   toast: vi.fn(),
@@ -233,8 +233,8 @@ vi.mock("@/hooks/useServices.js", () => ({
       })),
     },
     modelSelectionService: mocks.modelSelectionService,
-    zcodeSessionService: mocks.zcodeSessionService,
-    zcodeTaskService: mocks.zcodeTaskService,
+    nibiSessionService: mocks.nibiSessionService,
+    nibiTaskService: mocks.nibiTaskService,
   }),
 }));
 
@@ -276,7 +276,7 @@ vi.mock("@/hooks/useSettingService.js", () => ({
   useSettings: () => ({
     settings: {
       modelProviderFamilySelectedKeys: { bigmodel: "team-plan-key" },
-      zcodeInteractionBehavior: "queue",
+      nibiInteractionBehavior: "queue",
     },
     loading: false,
     error: null,
@@ -307,7 +307,7 @@ vi.mock("@/v4/V4ConversationContext.js", () => ({
 }));
 
 vi.mock("@/store/StoreProvider.js", () => ({
-  useZCodeStoreWithDefault: (_selector: unknown, fallback: unknown) => fallback,
+  useNibiStoreWithDefault: (_selector: unknown, fallback: unknown) => fallback,
 }));
 
 vi.mock("@/v4/composer/useDraftConfigControl.js", async (importOriginal) => {
@@ -576,7 +576,7 @@ function makePlanPendingSnapshot(): ConversationSnapshot {
   };
 }
 
-function makeWorkspaceStateSnapshot(): ZCodeWorkspaceStateSnapshot {
+function makeWorkspaceStateSnapshot(): NibiWorkspaceStateSnapshot {
   return {
     workspace: {
       workspacePath: "/workspace",
@@ -606,7 +606,7 @@ function makeWorkspaceStateSnapshot(): ZCodeWorkspaceStateSnapshot {
 
 function createPaneElement(props: Partial<ComponentProps<typeof SessionPane>> = {}) {
   return createElement(
-    ZCodeIntlProvider,
+    NibiIntlProvider,
     { initialLocale: "zh-CN" },
     createElement(SessionPane, {
       paneId: "workspace-main",
@@ -1371,7 +1371,7 @@ describe("SessionPane remote provider admission", () => {
     mocks.sendCommand.mockImplementation(async (envelope: CommandEnvelope) =>
       ackFor(envelope, { status: "accepted" }),
     );
-    mocks.zcodeSessionService.updateProviderRegistry.mockClear();
+    mocks.nibiSessionService.updateProviderRegistry.mockClear();
     mocks.sendCommand.mockClear();
 
     const root = await renderPane({ workspaceIdentity, remoteSessionId });
@@ -1381,7 +1381,7 @@ describe("SessionPane remote provider admission", () => {
         await flushMicrotasks();
       });
 
-      expect(mocks.zcodeSessionService.updateProviderRegistry).not.toHaveBeenCalled();
+      expect(mocks.nibiSessionService.updateProviderRegistry).not.toHaveBeenCalled();
       expect(mocks.sendCommand).toHaveBeenCalledWith(expect.objectContaining({ type: "sendText" }));
     } finally {
       await act(async () => root.unmount());
@@ -1400,7 +1400,7 @@ describe("SessionPane remote provider admission", () => {
     mocks.sendCommand.mockImplementation(async (envelope: CommandEnvelope) =>
       ackFor(envelope, { status: "accepted" }),
     );
-    mocks.zcodeSessionService.updateProviderRegistry.mockClear();
+    mocks.nibiSessionService.updateProviderRegistry.mockClear();
 
     const root = await renderPane();
     try {
@@ -1409,7 +1409,7 @@ describe("SessionPane remote provider admission", () => {
         await flushMicrotasks();
       });
 
-      expect(mocks.zcodeSessionService.updateProviderRegistry).not.toHaveBeenCalled();
+      expect(mocks.nibiSessionService.updateProviderRegistry).not.toHaveBeenCalled();
       expect(mocks.sendCommand).toHaveBeenCalledWith(expect.objectContaining({ type: "sendText" }));
     } finally {
       await act(async () => root.unmount());
@@ -1428,7 +1428,7 @@ describe("SessionPane remote provider admission", () => {
     mocks.sendCommand.mockImplementation(async (envelope: CommandEnvelope) =>
       ackFor(envelope, { status: "accepted" }),
     );
-    mocks.zcodeSessionService.updateProviderRegistry.mockClear();
+    mocks.nibiSessionService.updateProviderRegistry.mockClear();
 
     const root = await renderPane({
       workspaceIdentity: "remote:ssh:dev:/workspace",
@@ -1441,7 +1441,7 @@ describe("SessionPane remote provider admission", () => {
         await flushMicrotasks();
       });
 
-      expect(mocks.zcodeSessionService.updateProviderRegistry).not.toHaveBeenCalled();
+      expect(mocks.nibiSessionService.updateProviderRegistry).not.toHaveBeenCalled();
       expect(mocks.sendCommand).toHaveBeenCalledWith(expect.objectContaining({ type: "sendText" }));
     } finally {
       await act(async () => root.unmount());
@@ -2024,7 +2024,7 @@ describe("SessionPane model switch recovery", () => {
     });
 
     expect(mocks.sendCommand).not.toHaveBeenCalled();
-    expect(mocks.zcodeSessionService.updateProviderRegistry).not.toHaveBeenCalled();
+    expect(mocks.nibiSessionService.updateProviderRegistry).not.toHaveBeenCalled();
     await act(async () => {
       root.unmount();
     });
@@ -2061,7 +2061,7 @@ describe("SessionPane model switch recovery", () => {
     });
 
     expect(mocks.sendCommand).toHaveBeenCalledTimes(1);
-    expect(mocks.zcodeSessionService.updateProviderRegistry).not.toHaveBeenCalled();
+    expect(mocks.nibiSessionService.updateProviderRegistry).not.toHaveBeenCalled();
     await act(async () => {
       root.unmount();
     });
@@ -2106,7 +2106,7 @@ describe("SessionPane model switch recovery", () => {
     });
 
     expect(mocks.sendCommand).toHaveBeenCalledTimes(1);
-    expect(mocks.zcodeSessionService.updateProviderRegistry).not.toHaveBeenCalled();
+    expect(mocks.nibiSessionService.updateProviderRegistry).not.toHaveBeenCalled();
     await act(async () => {
       root.unmount();
     });
@@ -2145,13 +2145,13 @@ describe("SessionPane model switch recovery", () => {
       "alternate-provider",
       "deepseek-v4-pro",
     );
-    expect(mocks.zcodeTaskService.restartWorkspaceProcess).toHaveBeenCalledWith({
+    expect(mocks.nibiTaskService.restartWorkspaceProcess).toHaveBeenCalledWith({
       workspacePath: "/workspace",
       workspaceIdentity: undefined,
       provider: "glm",
       bumpRuntimeEpoch: true,
     });
-    expect(mocks.zcodeTaskService.restartWorkspaceProcess.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(mocks.nibiTaskService.restartWorkspaceProcess.mock.invocationCallOrder[0]).toBeLessThan(
       draftConfigMock.handleDraftSelectModel.mock.invocationCallOrder[0] ?? 0,
     );
 

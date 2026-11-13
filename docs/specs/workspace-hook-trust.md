@@ -61,7 +61,7 @@ route、CLI/Headless、rollout 与 telemetry 已完成，并由 persistent-only 
 
 ### 2.1 当前安全修复
 
-`apps/zcode-cli/packages/adapters/src/config/project-config.adapter.ts` 当前分两条隔离路径处理项目 Hooks：
+`apps/nibi-cli/packages/adapters/src/config/project-config.adapter.ts` 当前分两条隔离路径处理项目 Hooks：
 
 1. `loadProjectConfigFile()` 在检测到 `result.config.hooks` 时产生诊断，并把声明保存在独立 candidate/snapshot side-channel：
 
@@ -1800,11 +1800,11 @@ soft-gate 下 `activate()` 不等待 review；pending 声明直接跳过，turn 
 
 主要位置：
 
-- `apps/zcode-cli/packages/adapters/src/config/project-config.adapter.ts`
-- `apps/zcode-cli/packages/adapters/src/config/config-factory.ts`
-- `apps/zcode-cli/packages/adapters/src/config/config-merger.ts`
-- `apps/zcode-cli/packages/adapters/src/config/schema.ts`
-- `apps/zcode-cli/packages/adapters/tests/config.test.ts`
+- `apps/nibi-cli/packages/adapters/src/config/project-config.adapter.ts`
+- `apps/nibi-cli/packages/adapters/src/config/config-factory.ts`
+- `apps/nibi-cli/packages/adapters/src/config/config-merger.ts`
+- `apps/nibi-cli/packages/adapters/src/config/schema.ts`
+- `apps/nibi-cli/packages/adapters/tests/config.test.ts`
 
 改动：
 
@@ -1821,8 +1821,8 @@ soft-gate 下 `activate()` 不等待 review；pending 声明直接跳过，turn 
 
 主要位置：
 
-- `apps/zcode-cli/packages/contracts/src/hooks/index.ts`
-- `apps/zcode-cli/packages/core/src/hooks/display-metadata.ts`
+- `apps/nibi-cli/packages/contracts/src/hooks/index.ts`
+- `apps/nibi-cli/packages/core/src/hooks/display-metadata.ts`
 - Hook lifecycle / product projection contracts
 
 改动：
@@ -1838,9 +1838,9 @@ soft-gate 下 `activate()` 不等待 review；pending 声明直接跳过，turn 
 建议模块：
 
 ```text
-apps/zcode-cli/packages/contracts/src/interfaces/workspace-hook-trust.port.ts
-apps/zcode-cli/packages/adapters/src/security/workspace-hook-trust.adapter.ts
-apps/zcode-cli/packages/core/src/hooks/workspace-hook-admission.ts
+apps/nibi-cli/packages/contracts/src/interfaces/workspace-hook-trust.port.ts
+apps/nibi-cli/packages/adapters/src/security/workspace-hook-trust.adapter.ts
+apps/nibi-cli/packages/core/src/hooks/workspace-hook-admission.ts
 ```
 
 改动：
@@ -1856,11 +1856,11 @@ apps/zcode-cli/packages/core/src/hooks/workspace-hook-admission.ts
 
 主要位置：
 
-- `apps/zcode-cli/packages/core/src/runtime/methods/hooks.ts`
-- `apps/zcode-cli/packages/core/src/runtime/methods/turn.ts`
-- `apps/zcode-cli/packages/core/src/runtime/methods/resume.ts`
-- `apps/zcode-cli/packages/core/src/hooks/configured-runner-input.ts`
-- `apps/zcode-cli/packages/core/src/hooks/runner.ts`
+- `apps/nibi-cli/packages/core/src/runtime/methods/hooks.ts`
+- `apps/nibi-cli/packages/core/src/runtime/methods/turn.ts`
+- `apps/nibi-cli/packages/core/src/runtime/methods/resume.ts`
+- `apps/nibi-cli/packages/core/src/hooks/configured-runner-input.ts`
+- `apps/nibi-cli/packages/core/src/hooks/runner.ts`
 - Hook registry/executor/session runtime 构建链路
 
 改动：
@@ -1881,9 +1881,9 @@ apps/zcode-cli/packages/core/src/hooks/workspace-hook-admission.ts
 
 - `packages/shared/src/nibi-protocol-v4/transport.ts`
 - `packages/shared/src/nibi-protocol-v4/snapshot.ts`
-- `apps/zcode-cli/packages/bootstrap/src/nibi-protocol/interaction-broker.ts`
-- `apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/interaction-registry.ts`
-- `apps/zcode-cli/packages/bootstrap/src/nibi-protocol/server-operations.ts`
+- `apps/nibi-cli/packages/bootstrap/src/nibi-protocol/interaction-broker.ts`
+- `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/interaction-registry.ts`
+- `apps/nibi-cli/packages/bootstrap/src/nibi-protocol/server-operations.ts`
 - `packages/shared/src/nibi-protocol-v4/command.ts` 或实际 owner-command schema
 - conversation projection/delta/snapshot contracts
 - 对应 protocol contracts/method registry
@@ -1959,7 +1959,7 @@ apps/zcode-cli/packages/core/src/hooks/workspace-hook-admission.ts
 
 主要位置：
 
-- `apps/zcode-cli/packages/cli/src/*`
+- `apps/nibi-cli/packages/cli/src/*`
 
 改动：
 
@@ -2620,7 +2620,7 @@ Phase 5 安全结论：
 - 类型与构建检查通过：Shared、Contracts、Adapters、Core、Bootstrap、CLI、Services、UI；Bootstrap 在 telemetry helper 拆分后再次完成 build。
 - 变更范围 lint 与 `git diff --check` 通过。验证环境为 Node `v22.22.2`，仓库声明的 Node `24.14.0` 仅产生 engine warning，不影响上述结果。
 - 实际 CLI smoke 已完成：`status → pending_trust`、exact `grant → trusted_persistent`、exact `revoke → pending_trust`；grant 使用 status 返回的当前 declaration digest，未使用 wildcard 或隐式授权。
-- 最终 Desktop 启动审计发现 CLI esbuild 的通用 `@nibi/shared` alias 会错误吞掉新增 Node-only subpath；已为 `@nibi/shared/workspace-hook-discovery` 增加精确 alias，`pnpm --dir apps/zcode-cli/packages/cli build:desktop-agent` 重新通过。
+- 最终 Desktop 启动审计发现 CLI esbuild 的通用 `@nibi/shared` alias 会错误吞掉新增 Node-only subpath；已为 `@nibi/shared/workspace-hook-discovery` 增加精确 alias，`pnpm --dir apps/nibi-cli/packages/cli build:desktop-agent` 重新通过。
 - 新增无害 UAT fixture generator 与逐步人工验收清单；真实 Desktop 中的逐条 Trust、toggle 与 digest-change 操作由产品方手工执行，不以 UI 自动化替代最终验收。
 - 未将既有、与 Workspace Hook Trust 无关的 core 全量基线失败计入本 Phase 退出条件；本 Phase 的退出判断以列出的聚焦回归、类型/构建、lint 和 CLI smoke 为准。
 

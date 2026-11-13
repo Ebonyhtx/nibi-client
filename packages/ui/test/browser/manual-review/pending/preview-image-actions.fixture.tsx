@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ImagePreviewContent, SvgPreviewContent } from "@/previewPaneImageContent.js";
 import { resolvePreviewPaneImageFileReference } from "@/PreviewPane.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import {
   WORKSPACE_FILE_ADD_TO_CHAT_EVENT,
   createWorkspaceFileComposerMention,
@@ -41,7 +41,7 @@ function Fixture() {
     return () => window.removeEventListener(WORKSPACE_FILE_ADD_TO_CHAT_EVENT, onAdd);
   }, []);
   return (
-    <ZCodeIntlProvider initialLocale={locale}>
+    <NibiIntlProvider initialLocale={locale}>
       <div style={{ height: "calc(100% - 52px)" }}>
         {kind === "svg" ? (
           <SvgPreviewContent title={ref.name} svgContent={svg} fileReference={ref} />
@@ -54,7 +54,7 @@ function Fixture() {
         )}
       </div>
       <textarea aria-label="Draft" readOnly value={draft} style={{ width: "100%", height: 52 }} />
-    </ZCodeIntlProvider>
+    </NibiIntlProvider>
   );
 }
 createRoot(document.getElementById("root")!).render(<Fixture />);

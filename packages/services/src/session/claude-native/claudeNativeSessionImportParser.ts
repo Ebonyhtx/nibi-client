@@ -413,7 +413,7 @@ export function selectClaudeNativeVisibleAssistantTurnAfter(
     (turn) => turn.timestamp === undefined || turn.timestamp >= lowerBoundMs,
   );
 
-  // Bugfix: Claude 原生日志 turnIndex 与 ZCode turnIndex 在 session/load、旧错误合成消息、
+  // Bugfix: Claude 原生日志 turnIndex 与 Nibi turnIndex 在 session/load、旧错误合成消息、
   // 跨 provider 续接后可能发生漂移。恢复正文时必须优先用 userTimestamp 判断 assistant
   // 归属的用户轮次，否则 session/load 追加的临近 assistant（如 No response requested）
   // 会凭较新的 assistant timestamp 混入本轮，把旧轮次 API Error 当成当前成功回复覆盖掉。
@@ -546,7 +546,7 @@ export function parseClaudeNativeUnknownCommandWarnings(
       Math.abs(timestamp - latestTimestamp) <= CLAUDE_NATIVE_UNKNOWN_COMMAND_ARGS_MAX_GAP_MS;
     if (isSameWarningGroup) {
       // Bugfix: Claude Code 对未知 slash command 会拆成两条 system warning：
-      // 一条写命令名，一条写参数。这里合并后才能给 ZCode 用户展示可操作的失败原因。
+      // 一条写命令名，一条写参数。这里合并后才能给 Nibi 用户展示可操作的失败原因。
       latest.args = argsMatch[1].trim();
     }
   }

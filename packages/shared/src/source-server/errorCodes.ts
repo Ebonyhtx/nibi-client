@@ -65,12 +65,12 @@ export const PUBLIC_NIBI_ERROR_CODES = [
   SOURCE_SERVER_CONTROL_UNRESPONSIVE_ERROR_CODE,
 ] as const;
 
-export type PublicZCodeErrorCode = (typeof PUBLIC_NIBI_ERROR_CODES)[number];
+export type PublicNibiErrorCode = (typeof PUBLIC_NIBI_ERROR_CODES)[number];
 
-export const publicZCodeErrorCodeSchema = z.enum(PUBLIC_NIBI_ERROR_CODES);
+export const publicNibiErrorCodeSchema = z.enum(PUBLIC_NIBI_ERROR_CODES);
 
-const publicZCodeErrorCodeSet = new Set<string>(PUBLIC_NIBI_ERROR_CODES);
+const publicNibiErrorCodeSet = new Set<string>(PUBLIC_NIBI_ERROR_CODES);
 
-export function isPublicZCodeErrorCode(value: unknown): value is PublicZCodeErrorCode {
-  return typeof value === "string" && publicZCodeErrorCodeSet.has(value);
+export function isPublicNibiErrorCode(value: unknown): value is PublicNibiErrorCode {
+  return typeof value === "string" && publicNibiErrorCodeSet.has(value);
 }

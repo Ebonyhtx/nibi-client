@@ -7,7 +7,7 @@ import {
 } from "@/WebRemoteControlMobileShell.js";
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }) => id,
     },
@@ -23,7 +23,7 @@ vi.mock("@/logger.js", () => ({
 }));
 
 vi.mock("@/store/StoreProvider.js", () => ({
-  useZCodeStore: (
+  useNibiStore: (
     selector: (state: { theme: string; setTheme: (theme: string) => void }) => unknown,
   ) => selector({ theme: "dark", setTheme: vi.fn() }),
 }));
@@ -133,7 +133,7 @@ describe("WebRemoteControlMobileShell", () => {
   it("restores chat from browser history state after refreshing on the chat page", () => {
     vi.stubGlobal("window", {
       history: {
-        state: { zcodeMobilePage: "chat" },
+        state: { nibiMobilePage: "chat" },
         back: vi.fn(),
         pushState: vi.fn(),
       },
@@ -201,8 +201,8 @@ describe("WebRemoteControlMobileShell", () => {
   });
 
   it("recognizes only the mobile chat browser history state", () => {
-    expect(isWebRemoteControlMobileChatHistoryState({ zcodeMobilePage: "chat" })).toBe(true);
-    expect(isWebRemoteControlMobileChatHistoryState({ zcodeMobilePage: "home" })).toBe(false);
+    expect(isWebRemoteControlMobileChatHistoryState({ nibiMobilePage: "chat" })).toBe(true);
+    expect(isWebRemoteControlMobileChatHistoryState({ nibiMobilePage: "home" })).toBe(false);
     expect(isWebRemoteControlMobileChatHistoryState(null)).toBe(false);
   });
 });

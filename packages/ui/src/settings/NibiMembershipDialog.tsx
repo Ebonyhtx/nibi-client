@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button.js";
 import { cn } from "@/components/lib/utils.js";
 import nibiIcon from "@/assets/nibi/nibi-app-icon.png";
 import { useOAuth } from "@/hooks/useOAuth.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useServices } from "@/hooks/useServices.js";
 import { logger } from "@/logger.js";
 import {
@@ -27,7 +27,7 @@ export const NIBI_MEMBERSHIP_URL = "https://nibistudio.cn/membership/?embedded=a
  * 界面只给用户能照着做的两类：会话失效 / 暂时打不开。
  */
 function resolveCheckoutErrorCopy(
-  intl: ReturnType<typeof useZCodeIntl>["intl"],
+  intl: ReturnType<typeof useNibiIntl>["intl"],
   error: unknown,
 ): string {
   const message = error instanceof Error ? error.message : String(error);
@@ -59,7 +59,7 @@ export function NibiMembershipDialog({
 }
 
 function MembershipDialogContent({ onClose }: { onClose: () => void }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const { oauthService } = useServices();
   const { startLogin, status: loginStatus } = useOAuth();
   const webviewRef = useRef<ElectronWebviewTag | null>(null);

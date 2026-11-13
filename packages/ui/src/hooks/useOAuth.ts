@@ -13,9 +13,9 @@ import {
   ZAI_PROVIDER_ID,
 } from "@nibi/shared";
 import { reportAppTelemetryEvent } from "@/lib/appTelemetry.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { LoginEntryPurpose } from "@/store/index.js";
-import { useZCodeStore } from "@/store/StoreProvider.js";
+import { useNibiStore } from "@/store/StoreProvider.js";
 import { logger } from "../logger.js";
 import { usePlatform } from "./usePlatform.js";
 import { useServices } from "./useServices.js";
@@ -48,7 +48,7 @@ function useOAuthLoginFailure(onFailure: (message: string | null) => void): void
 export function useOAuth() {
   const { oauthService } = useServices();
   const platform = usePlatform();
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [status, setStatus] = useState<OAuthStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   // 本次登录的授权地址：浏览器无法自动打开（无默认浏览器、被安全软件拦截）时，
@@ -61,7 +61,7 @@ export function useOAuth() {
   const loginAttemptRef = useRef(0);
   // 广播处理器需要读取"当前是否在等待"，state 在回调闭包里会过期；用 ref 镜像。
   const waitingRef = useRef(false);
-  const setOAuthPollingActive = useZCodeStore((state) => state.setOAuthPollingActive);
+  const setOAuthPollingActive = useNibiStore((state) => state.setOAuthPollingActive);
 
   const refreshProviders = useCallback(async () => {
     try {

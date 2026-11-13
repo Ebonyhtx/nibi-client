@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
-import { parseZCodeBuiltinModelConfigRules } from "@nibi/provider";
+import { parseNibiBuiltinModelConfigRules } from "@nibi/provider";
 import type { IServiceAccessor, ProviderSettingsView } from "@nibi/services";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { ServiceProvider } from "@/hooks/useServices.js";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
 import { ProviderTemplatePicker } from "@/settings/model-provider-section/ProviderTemplatePicker.js";
@@ -30,7 +30,7 @@ import { Checkbox } from "@/components/ui/checkbox.js";
 const params = new URLSearchParams(location.search);
 document.documentElement.className =
   params.get("theme") === "light" ? "light theme-nibi-light" : "dark theme-nibi-dark";
-const rules = parseZCodeBuiltinModelConfigRules(release.config.modelConfigRules);
+const rules = parseNibiBuiltinModelConfigRules(release.config.modelConfigRules);
 const templates = release.config.providerConfigRules
   .templateRules as ProviderSettingsView["providerTemplates"];
 function createProvider(templateId: string): ProviderSettingsFormProvider {
@@ -260,13 +260,13 @@ createRoot(document.getElementById("root")!).render(
     }
   >
     <TooltipProvider>
-      <ZCodeIntlProvider initialLocale={params.get("locale") === "zh-CN" ? "zh-CN" : "en-US"}>
+      <NibiIntlProvider initialLocale={params.get("locale") === "zh-CN" ? "zh-CN" : "en-US"}>
         {params.has("editor") ? (
           <ProviderModelEditorFixture />
         ) : (
           <Fixture />
         )}
-      </ZCodeIntlProvider>
+      </NibiIntlProvider>
     </TooltipProvider>
   </ServiceProvider>,
 );

@@ -13,7 +13,7 @@ import { WorkspaceLastActivity } from "@/WorkspaceHeaderSections/WorkspaceLastAc
 import {
   parseRemoteWorkspaceIdentity,
   remoteHostIdFromWorkspaceIdentity,
-  type ZCodeTaskMeta,
+  type NibiTaskMeta,
 } from "@nibi/shared";
 import {
   TID_WORKSPACE_MORE_BUTTON,
@@ -37,7 +37,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   formatRemoteWorkspaceDisplayLabel,
   formatRemoteWorkspaceHeaderHostLabel,
@@ -53,7 +53,7 @@ import type {
   WorkspaceHeaderTitleSectionProps,
 } from "@/WorkspaceHeaderSections/shared.js";
 import { applyTaskQueryCacheMutation } from "@/store/taskQueryCacheStore.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 import { TaskRenameDialog } from "@/TaskRenameDialog.js";
 import { DataSyncEntryMenuItems } from "@/settings/DataSyncEntry.js";
 import { shouldShowDataSyncEntry } from "@/lib/dataSyncEntry.js";
@@ -102,19 +102,19 @@ export function WorkspaceHeaderTitleSection({
   simplifyForNarrowRemote = false,
   compact = false,
 }: WorkspaceHeaderTitleSectionProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const openFeedbackSubmit = useFeedbackStore((state) => state.openSubmit);
   const confirmDialog = useConfirmDialog();
   const services = useWorkspaceServices(workspaceAbsPath, remoteSessionId, workspaceIdentity);
   const baseServices = useBaseWorkspaceServices();
-  const removeTaskState = useZCodeSessionStore((state) => state.removeTaskState);
-  const upsertOptimisticTaskListItem = useZCodeSessionStore(
+  const removeTaskState = useNibiSessionStore((state) => state.removeTaskState);
+  const upsertOptimisticTaskListItem = useNibiSessionStore(
     (state) => state.upsertOptimisticTaskListItem,
   );
-  const removeOptimisticTaskListItem = useZCodeSessionStore(
+  const removeOptimisticTaskListItem = useNibiSessionStore(
     (state) => state.removeOptimisticTaskListItem,
   );
-  const setTaskUnreadIndicator = useZCodeSessionStore((state) => state.setTaskUnreadIndicator);
+  const setTaskUnreadIndicator = useNibiSessionStore((state) => state.setTaskUnreadIndicator);
   const [taskMenuOpen, setTaskMenuOpen] = useState(false);
   const [workspaceContextOpen, setWorkspaceContextOpen] = useState(false);
   const [renamingTaskId, setRenamingTaskId] = useState<string | null>(null);
@@ -293,9 +293,9 @@ export function WorkspaceHeaderTitleSection({
   };
 
   const buildHeaderTaskSnapshot = (
-    fallbackTask: ZCodeTaskMeta,
-    overrides?: Partial<ZCodeTaskMeta>,
-  ): ZCodeTaskMeta => {
+    fallbackTask: NibiTaskMeta,
+    overrides?: Partial<NibiTaskMeta>,
+  ): NibiTaskMeta => {
     if (activeTaskMeta) {
       return {
         ...activeTaskMeta,
@@ -323,7 +323,7 @@ export function WorkspaceHeaderTitleSection({
     }
 
     try {
-      const renamedTask = await services.zcodeTaskService.renameTask({
+      const renamedTask = await services.nibiTaskService.renameTask({
         taskId: renamingTaskId,
         workspacePath: workspaceAbsPath,
         title: normalizedTitle,
@@ -370,14 +370,14 @@ export function WorkspaceHeaderTitleSection({
     }
 
     handleCancelRenameTask();
-    void services.zcodeTaskService
+    void services.nibiTaskService
       .archiveTask({
         taskId: resolvedTaskActionTaskId,
         workspacePath: workspaceAbsPath,
         ...(workspaceIdentity ? { workspaceIdentity } : {}),
       })
       .then((meta) => {
-        // Header 更多菜单不能只依赖 zcodeTaskMetaMerge：归档后只有旧列表状态被更新。
+        // Header 更多菜单不能只依赖 nibiTaskMetaMerge：归档后只有旧列表状态被更新。
         // 这里改成和 Sidebar 一样同步清理运行态与 sqlite cache，避免 Header 操作后列表不刷新。
         removeTaskState(workspaceAbsPath, resolvedTaskActionTaskId, workspaceIdentity);
         applyTaskQueryCacheMutation({
@@ -591,7 +591,7 @@ export function WorkspaceHeaderTitleSection({
                       nextState: { pinned: !isPinned, archived: false },
                     });
                   }
-                  void services.zcodeTaskService
+                  void services.nibiTaskService
                     .setTaskPinned({
                       taskId: resolvedTaskActionTaskId,
                       workspacePath: workspaceAbsPath,
@@ -631,7 +631,7 @@ export function WorkspaceHeaderTitleSection({
                   if (!resolvedTaskActionTaskId) {
                     return;
                   }
-                  void services.zcodeTaskService
+                  void services.nibiTaskService
                     .setTaskUnread({
                       taskId: resolvedTaskActionTaskId,
                       workspacePath: workspaceAbsPath,

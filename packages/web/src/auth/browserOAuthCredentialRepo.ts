@@ -84,7 +84,7 @@ interface BrowserOAuthCredentialRepoOptions {
 }
 
 interface WebZaiTokenSet {
-  zcodeJwtToken: string;
+  nibiJwtToken: string;
   zaiAccessToken: string;
   expiresAt?: number;
 }
@@ -113,11 +113,11 @@ export class BrowserOAuthCredentialRepo {
   saveTokenSet(tokenSet: WebZaiTokenSet | OAuthTokenSet, provider: WebOAuthProviderId): void {
     const accessToken =
       "zaiAccessToken" in tokenSet ? tokenSet.zaiAccessToken : tokenSet.accessToken;
-    const zcodeJwtToken = tokenSet.zcodeJwtToken;
+    const nibiJwtToken = tokenSet.nibiJwtToken;
 
     this.localStorage.setItem(providerKeys(provider).accessToken, accessToken);
-    if (zcodeJwtToken) {
-      this.localStorage.setItem(NIBI_JWT_TOKEN_KEY, zcodeJwtToken);
+    if (nibiJwtToken) {
+      this.localStorage.setItem(NIBI_JWT_TOKEN_KEY, nibiJwtToken);
     } else {
       this.localStorage.removeItem(NIBI_JWT_TOKEN_KEY);
     }
@@ -180,20 +180,20 @@ export class BrowserOAuthCredentialRepo {
 
   loadCachedSessionState(): OAuthCachedSessionRestoreResult {
     const activeProvider = this.localStorage.getItem(ACTIVE_PROVIDER_KEY);
-    const zcodeJwtToken = this.localStorage.getItem(NIBI_JWT_TOKEN_KEY);
+    const nibiJwtToken = this.localStorage.getItem(NIBI_JWT_TOKEN_KEY);
     // 一次只有一个 activeProvider（切换 provider = 重新登录并覆盖），所以按它选 key 段读。
     const keys = isWebOAuthProviderId(activeProvider) ? providerKeys(activeProvider) : null;
     const accessToken = keys ? this.localStorage.getItem(keys.accessToken) : null;
     const rawUserInfo = keys ? this.localStorage.getItem(keys.userInfo) : null;
 
-    if (!keys || !hasText(zcodeJwtToken) || !hasText(accessToken) || !hasText(rawUserInfo)) {
+    if (!keys || !hasText(nibiJwtToken) || !hasText(accessToken) || !hasText(rawUserInfo)) {
       if (this.hasAnyStoredCredential()) {
         this.clearAll();
       }
       return { status: "signed-out" };
     }
 
-    if (resolveJwtExpiration(zcodeJwtToken, this.now()).kind === "expired") {
+    if (resolveJwtExpiration(nibiJwtToken, this.now()).kind === "expired") {
       // Web localStorage 之前只检查 JWT 是否存在，过期后仍会恢复伪登录态。
       // NIBI 有 refresh_token 时先保留凭据，让 restore/refresh 去续期；续期失败再清。
       if (
@@ -220,7 +220,7 @@ export class BrowserOAuthCredentialRepo {
     return { status: "signed-out" };
   }
 
-  loadZCodeJwtToken(): string | null {
+  loadNibiJwtToken(): string | null {
     const session = this.loadCachedSessionState();
     if (session.status !== "authenticated") return null;
     return this.localStorage.getItem(NIBI_JWT_TOKEN_KEY)?.trim() || null;

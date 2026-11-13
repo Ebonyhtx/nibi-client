@@ -26,7 +26,7 @@ esac
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-GLM_RUNTIME_VERSION="$(node -e "const fs=require('fs');const source=fs.readFileSync('$REPO_ROOT/packages/shared/src/zcode-agent-runtime.ts','utf8');const match=source.match(/version:\\s*['\"]([^'\"]+)['\"]/);if(!match){throw new Error('Unable to parse ZCode Agent runtime version');}process.stdout.write(match[1]);")"
+GLM_RUNTIME_VERSION="$(node -e "const fs=require('fs');const source=fs.readFileSync('$REPO_ROOT/packages/shared/src/nibi-agent-runtime.ts','utf8');const match=source.match(/version:\\s*['\"]([^'\"]+)['\"]/);if(!match){throw new Error('Unable to parse Nibi Agent runtime version');}process.stdout.write(match[1]);")"
 LOCAL_PLATFORM="${NIBI_TARGET_OS:-$(uname -s | tr '[:upper:]' '[:lower:]')}"
 LOCAL_ARCH="${NIBI_TARGET_ARCH:-$(uname -m)}"
 
@@ -55,8 +55,8 @@ if [ "$PLATFORM" = "win32" ]; then
   BINARY_NAME="nibi-agent.exe"
 fi
 
-# Bugfix: GLM 二进制按 zcode-cli 版本发布，默认下载目录必须跟随 shared runtime 里的 glm.version。
-DOWNLOAD_BASE_URL="${GLM_BINARY_DOWNLOAD_BASE_URL:-http://${INTRANET_MACHINE_HOST}:12345/zcode/deps/zcode-cli-${GLM_RUNTIME_VERSION}}"
+# Bugfix: GLM 二进制按 nibi-cli 版本发布，默认下载目录必须跟随 shared runtime 里的 glm.version。
+DOWNLOAD_BASE_URL="${GLM_BINARY_DOWNLOAD_BASE_URL:-http://${INTRANET_MACHINE_HOST}:12345/zcode/deps/nibi-cli-${GLM_RUNTIME_VERSION}}"
 # Bugfix：Windows 制品命名恢复为 zcode-windows-*.exe，避免继续请求错误文件名。
 DOWNLOAD_NAME="zcode-${PLATFORM}-${ARCH}"
 if [ "$PLATFORM" = "win32" ]; then

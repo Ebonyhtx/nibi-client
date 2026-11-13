@@ -76,14 +76,14 @@ async function setup(catalog: readonly unknown[] | "unsupported") {
     onClose: () => ({ dispose() {} }),
   }));
   vi.resetModules();
-  vi.doMock("../src/zcode-agent/zcodeAgentProcessManager.js", () => ({
-    ZCodeAgentProcessManager: class extends MockProcessManagerBase {
+  vi.doMock("../src/nibi-agent/nibiAgentProcessManager.js", () => ({
+    NibiAgentProcessManager: class extends MockProcessManagerBase {
       getClient = getClient;
       disposeAll() {}
     },
   }));
-  const { createZCodeAgentService } = await import("../src/zcode-agent/zcodeAgentService.js");
-  const service = createZCodeAgentService({
+  const { createNibiAgentService } = await import("../src/nibi-agent/nibiAgentService.js");
+  const service = createNibiAgentService({
     modelSelectionReadinessSource: { getView: async () => modelSelectionViewFixture() },
   });
   return { service, request };

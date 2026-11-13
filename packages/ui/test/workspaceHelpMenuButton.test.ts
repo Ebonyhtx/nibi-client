@@ -6,7 +6,7 @@ import { DesktopCommandIds } from "@nibi/shared";
 import { TID_WORKSPACE_HELP_MENU_RESOURCE_MANAGER } from "@nibi/shared/test-ids";
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }) => id,
     },

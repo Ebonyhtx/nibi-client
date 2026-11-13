@@ -52,7 +52,7 @@ const h = vi.hoisted(() => {
     beginServerStatusListRefresh: vi.fn(() => 1),
     markServerStatusListRefreshFailed: vi.fn(),
     mergeServerStatusSnapshots: vi.fn(),
-    getEnabledMcpServersForZCode: () => [],
+    getEnabledMcpServersForNibi: () => [],
   };
   const pluginState = {
     plugins: [],
@@ -88,7 +88,7 @@ const h = vi.hoisted(() => {
 });
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }) => id,
     },

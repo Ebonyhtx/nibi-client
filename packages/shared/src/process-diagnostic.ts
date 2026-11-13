@@ -9,7 +9,7 @@ export const NIBI_PROCESS_DIAGNOSTIC_MAX_LINE_CHARS = 128 * 1024;
 export const NIBI_AGENT_LIFECYCLE_LOG_MARKER = "[nibi-agent-lifecycle-reported]";
 
 const processErrorKindSchema = z.enum(["uncaughtException", "unhandledRejection"]);
-export const zcodeProcessDiagnosticSchema = z
+export const nibiProcessDiagnosticSchema = z
   .object({
     version: z.literal(1),
     errorId: z.uuid(),
@@ -21,9 +21,9 @@ export const zcodeProcessDiagnosticSchema = z
     occurredAt: z.number().int().nonnegative(),
   })
   .strict();
-export type ZCodeProcessDiagnostic = z.infer<typeof zcodeProcessDiagnosticSchema>;
+export type NibiProcessDiagnostic = z.infer<typeof nibiProcessDiagnosticSchema>;
 
-export function parseZCodeProcessDiagnostic(line: string): ZCodeProcessDiagnostic | undefined {
+export function parseNibiProcessDiagnostic(line: string): NibiProcessDiagnostic | undefined {
   if (
     !line.startsWith(NIBI_PROCESS_DIAGNOSTIC_PREFIX) ||
     line.length > NIBI_PROCESS_DIAGNOSTIC_MAX_LINE_CHARS
@@ -31,7 +31,7 @@ export function parseZCodeProcessDiagnostic(line: string): ZCodeProcessDiagnosti
     return undefined;
   }
   try {
-    const result = zcodeProcessDiagnosticSchema.safeParse(
+    const result = nibiProcessDiagnosticSchema.safeParse(
       JSON.parse(line.slice(NIBI_PROCESS_DIAGNOSTIC_PREFIX.length)),
     );
     return result.success ? result.data : undefined;

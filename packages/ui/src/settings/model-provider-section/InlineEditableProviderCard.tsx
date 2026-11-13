@@ -13,7 +13,7 @@ import {
   type SavePersonalModelDraftInput,
 } from "@nibi/provider";
 import { logger } from "@/logger.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { Switch } from "@/components/ui/switch.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { isImeComposingKeyEvent } from "@/lib/imeComposition.js";
@@ -183,7 +183,7 @@ export function InlineEditableProviderCard({
   headerActionsVisible?: boolean;
   settingsRevision?: number;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const { dismissFeedback, showFeedback } = useProviderDetailFeedback();
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(getProviderFormLabel(provider));

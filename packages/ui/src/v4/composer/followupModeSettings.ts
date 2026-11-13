@@ -5,7 +5,7 @@ export function resolveAppFollowupMode(
   settings: AppSettings | null | undefined,
 ): SessionConfigState["followupMode"] | null {
   if (!settings) return null;
-  return settings.zcodeInteractionBehavior === "guide" ? "guide" : "queue";
+  return settings.nibiInteractionBehavior === "guide" ? "guide" : "queue";
 }
 
 export function resolveOppositeFollowupDelivery(

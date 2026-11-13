@@ -1,6 +1,6 @@
 import type { ApiClient } from "@nibi/shared";
 import { describe, expect, it, vi } from "vitest";
-import { fetchZCodeBuiltinRemoteRelease } from "../src/model-provider/nibiBuiltinRemoteConfig.js";
+import { fetchNibiBuiltinRemoteRelease } from "../src/model-provider/nibiBuiltinRemoteConfig.js";
 import { NodeApiClient } from "../src/providers/api/nodeApiClient.js";
 
 const release = {
@@ -18,7 +18,7 @@ const release = {
   },
 };
 
-describe("fetchZCodeBuiltinRemoteRelease", () => {
+describe("fetchNibiBuiltinRemoteRelease", () => {
   it("App 注入现有网络实现，控制面 URL 与 CDN 共用总预算且不携带账号鉴权", async () => {
     const request = vi.fn(
       async (_url: string | URL, _init?: RequestInit) => new Response(JSON.stringify(release)),
@@ -33,10 +33,10 @@ describe("fetchZCodeBuiltinRemoteRelease", () => {
     );
     expect(
       (
-        await fetchZCodeBuiltinRemoteRelease({
+        await fetchNibiBuiltinRemoteRelease({
           apiClient: new NodeApiClient({
             fetchImpl: request as typeof fetch,
-            resolveZCodeEndpointOrigin: () => "https://example.com",
+            resolveNibiEndpointOrigin: () => "https://example.com",
           }),
           endpointOrigin: "https://example.com/base",
           appVersion: "3.0.0",
@@ -64,7 +64,7 @@ describe("fetchZCodeBuiltinRemoteRelease", () => {
         new Response(JSON.stringify({ code: 0, data: { configs: { nibiBuiltin: release } } })),
     );
     await expect(
-      fetchZCodeBuiltinRemoteRelease({
+      fetchNibiBuiltinRemoteRelease({
         apiClient: { request } as ApiClient,
         endpointOrigin: "https://example.com",
         appVersion: "3.0.0",

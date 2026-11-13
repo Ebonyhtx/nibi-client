@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/bash/src/flags.rs（07ab266d4b）；不 panic，失败时按不放行处理。
+// 复制自 apps/nibi-cli-rust/crates/bash/src/flags.rs（07ab266d4b）；不 panic，失败时按不放行处理。
 //! Node `isArgvAllowedByPolicy` (`bash-readonly-policy-argv-flags.ts`).
 use super::{
     callbacks::XARGS_TARGETS,

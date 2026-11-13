@@ -1,8 +1,8 @@
 import { ServiceChannels } from "@nibi/shared";
 import { createServiceDescriptor } from "../descriptors.js";
 import type {
-  ZCodeConfigOption,
-  ZCodeProvider,
+  NibiConfigOption,
+  NibiProvider,
   BotConfig,
   BotContextState,
   BotInboundMessage,
@@ -12,9 +12,9 @@ import type {
   BotServiceStatus,
   BotWorkspaceRef,
   BotsConfigFile,
-  ZCodeAutomationBotDeliveryTarget,
+  NibiAutomationBotDeliveryTarget,
 } from "@nibi/shared";
-import type { ZCodeAgentAppRuntimePreferences } from "../zcode-agent/zcodeAgent.js";
+import type { NibiAgentAppRuntimePreferences } from "../nibi-agent/nibiAgent.js";
 
 export interface BotCreateBindCodeParams {
   botId?: string;
@@ -47,13 +47,13 @@ export interface BotListWorkspaceRefsParams {
 export interface BotUserConfigOptionsParams {
   workspacePath: string;
   workspaceIdentity?: string;
-  provider: ZCodeProvider;
+  provider: NibiProvider;
 }
 
 export interface BotAutomationRunWatchParams {
   /** 与该次 sendPrompt.traceId 一致，避免排队期间污染其他轮次。 */
   runId?: string;
-  target: ZCodeAutomationBotDeliveryTarget;
+  target: NibiAutomationBotDeliveryTarget;
   taskId: string;
   workspacePath: string;
   workspaceIdentity?: string;
@@ -135,15 +135,15 @@ export interface IBotsService {
   ): Promise<void>;
   readTopicResource?(
     params: import("#src/bots/topicResource.js").TopicResourceRequest,
-  ): Promise<import("@nibi/shared").ZCodePromptAttachment>;
+  ): Promise<import("@nibi/shared").NibiPromptAttachment>;
   /**
    * 将 App 全局交互偏好同步给 Bot 已持有的远端 runtime；不得为此建立新的远端连接。
    */
-  syncAppRuntimePreferences(preferences: ZCodeAgentAppRuntimePreferences): Promise<void>;
+  syncAppRuntimePreferences(preferences: NibiAgentAppRuntimePreferences): Promise<void>;
   getStatus(): Promise<BotServiceStatus>;
   getConfig(): Promise<BotsConfigFile>;
   listWorkspaceRefs(params?: BotListWorkspaceRefsParams): Promise<BotWorkspaceRef[]>;
-  getUserConfigOptions(params: BotUserConfigOptionsParams): Promise<ZCodeConfigOption[]>;
+  getUserConfigOptions(params: BotUserConfigOptionsParams): Promise<NibiConfigOption[]>;
   beginFeishuRegistration(
     params?: BotFeishuRegistrationBeginParams,
   ): Promise<BotFeishuRegistrationBeginResult>;

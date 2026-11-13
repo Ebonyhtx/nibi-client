@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { ActiveWorkSummary, PendingInteraction } from "@nibi/shared/nibi-protocol-v4";
 import { ChatLoading } from "@/components/ai-elements/chat-loading.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import {
   hasChatLoadingBlockingActiveWork,
   hasChatLoadingBlockingInteraction,
@@ -12,7 +12,7 @@ import {
 function renderChatLoading() {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(ChatLoading, { loading: true }),
     ),

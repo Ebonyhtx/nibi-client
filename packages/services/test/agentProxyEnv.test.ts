@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { resolveRuntimeZCodeEndpointOrigin } from "@nibi/shared";
+import { resolveRuntimeNibiEndpointOrigin } from "@nibi/shared";
 import {
   buildAgentCaCertEnv,
   buildAgentEndpointOriginEnv,
@@ -145,7 +145,7 @@ describe("buildAgentEndpointOriginEnv", () => {
       ...buildAgentEndpointOriginEnv("https://authoritative.example"),
     };
 
-    expect(resolveRuntimeZCodeEndpointOrigin(agentEnv)).toBe("https://authoritative.example");
+    expect(resolveRuntimeNibiEndpointOrigin(agentEnv)).toBe("https://authoritative.example");
   });
 });
 
@@ -173,11 +173,11 @@ describe("node.ts wires the authoritative origin into resolveSpawnEnv", () => {
   );
 
   it("feeds it the settings-aware resolver, not the env-only one", () => {
-    // 承重项：必须用 resolveCurrentZCodeEndpointOrigin（含 settings 覆盖）。
-    // 接成 resolveRuntimeZCodeEndpointOrigin(process.env) 会让这次修复完全失效，
+    // 承重项：必须用 resolveCurrentNibiEndpointOrigin（含 settings 覆盖）。
+    // 接成 resolveRuntimeNibiEndpointOrigin(process.env) 会让这次修复完全失效，
     // 而两侧仍然"看起来"都在解析 origin。
     expect(spawnEnvBlock).toContain(
-      "buildAgentEndpointOriginEnv(await resolveCurrentZCodeEndpointOrigin())",
+      "buildAgentEndpointOriginEnv(await resolveCurrentNibiEndpointOrigin())",
     );
   });
 });

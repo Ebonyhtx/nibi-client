@@ -6,8 +6,8 @@ import type { ReactNode } from "react";
 import type {
   GitChangeSourceId,
   GitRepositorySummary,
-  ZCodeProvider,
-  ZCodeTaskChangeSummary,
+  NibiProvider,
+  NibiTaskChangeSummary,
 } from "@nibi/shared";
 import type { CodeViewerSource } from "@/lib/codeViewer.js";
 import type { AssistantPreviewCardsAutoOpenRequest } from "@/lib/assistantPreviewCards.js";
@@ -46,7 +46,7 @@ export interface V4ChatPaneProps {
   sessionId: string | null;
   /** 当前 workspace 主 pane 的打开入口，未提供时按 sidebar 统计。 */
   openTrigger?: SessionOpenTrigger;
-  provider?: ZCodeProvider;
+  provider?: NibiProvider;
   onSessionCreated?: (sessionId: string) => void;
   /** deleteSession：删除当前会话后回到 draft。 */
   onSessionDeleted?: () => void;
@@ -56,7 +56,7 @@ export interface V4ChatPaneProps {
   gitDirtyFileCount?: number;
   gitWorktreeReviewSourceId?: GitChangeSourceId | null;
   gitWorktreeChangeSummary?: { added: number; removed: number } | null;
-  activeTaskChangeSummary?: ZCodeTaskChangeSummary | null;
+  activeTaskChangeSummary?: NibiTaskChangeSummary | null;
   summaryPanelVariantOverride?: ChatViewSummaryPanelVariant | null;
   onSummaryPanelVariantOverrideChange?: (variant: ChatViewSummaryPanelVariant | null) => void;
   onRefreshGit?: () => void;

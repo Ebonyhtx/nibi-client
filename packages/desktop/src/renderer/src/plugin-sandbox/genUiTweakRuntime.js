@@ -12,7 +12,7 @@ export function installGenUiTweakRuntime(callTool) {
 
   const send = (message) =>
     Promise.resolve()
-      .then(() => callTool("__zcode_visualization_annotations__", message))
+      .then(() => callTool("__nibi_visualization_annotations__", message))
       .catch(() => null);
   const liveTarget = (panel) => {
     const target = panel.target.deref();

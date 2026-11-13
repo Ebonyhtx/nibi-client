@@ -36,7 +36,7 @@ describe("Linux 自动更新下载集成", () => {
       const origin = `http://127.0.0.1:${address.port}`;
       const updater = new Updater(undefined, {
         version: "3.12.1",
-        name: "ZCode",
+        name: "Nibi",
         isPackaged: true,
         appUpdateConfigPath: join(directory, "app-update.yml"),
         userDataPath: directory,
@@ -59,7 +59,7 @@ describe("Linux 自动更新下载集成", () => {
         version: "3.12.2",
         releaseDate: "2026-09-16",
         files: ["pkg.tar.zst", "rpm", "AppImage", "deb"].map((ext) => ({
-          url: `${origin}/releases/ZCode-3.12.2-linux-x64.${ext}`,
+          url: `${origin}/releases/Nibi-3.12.2-linux-x64.${ext}`,
           sha512: checksum,
         })),
       };
@@ -78,7 +78,7 @@ describe("Linux 自动更新下载集成", () => {
         },
       });
       const files = await updater.downloadUpdate();
-      const expectedName = `ZCode-3.12.2-linux-x64.${extension}`;
+      const expectedName = `Nibi-3.12.2-linux-x64.${extension}`;
       expect(files).toEqual([join(directory, "pending", expectedName)]);
       expect(await readFile(files[0]!)).toEqual(content);
       expect(requests).toEqual([`/releases/${expectedName}`]);

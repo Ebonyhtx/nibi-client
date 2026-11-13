@@ -60,12 +60,12 @@ describe("帮助配置 client/configs", () => {
     external = await browser.electron.mock("shell", "openExternal");
     await external.mockResolvedValue(undefined);
     server = await startHelpConfigFixture(fixture.remote);
-    await seedSettings({ zcodeEndpointOrigin: server.origin });
+    await seedSettings({ nibiEndpointOrigin: server.origin });
   });
   afterEach(async () => {
     await browser.keys("Escape");
     await browser.electron.restoreAllMocks();
-    await seedSettings({ zcodeEndpointOrigin: originalSettings.zcodeEndpointOrigin });
+    await seedSettings({ nibiEndpointOrigin: originalSettings.nibiEndpointOrigin });
     await server?.close();
   });
   after(async () => {
@@ -137,7 +137,7 @@ describe("帮助配置 client/configs", () => {
       feedback_use_external_form: true,
     });
     try {
-      await seedSettings({ zcodeEndpointOrigin: other.origin });
+      await seedSettings({ nibiEndpointOrigin: other.origin });
       await command("openFeedback");
       await expectExternal(fixture.remote.feedback_url!);
       expect(other.requests).toHaveLength(1);

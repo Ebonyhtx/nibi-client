@@ -49,7 +49,7 @@ export interface WebRemoteControlEntryOptions {
   // 浏览器 location/history/storage 经现有边界注入，不另存一份登录事实。
   auth: Pick<
     WebAuthService,
-    "getZCodeJwtToken" | "getActiveAccount" | "startLogin" | "logout"
+    "getNibiJwtToken" | "getActiveAccount" | "startLogin" | "logout"
   > & {
     /** NIBI 令牌续期；旧装配/测试 fake 没有这个方法时按“无需续期”处理。 */
     refreshNibiSessionIfNeeded?: () => Promise<boolean>;

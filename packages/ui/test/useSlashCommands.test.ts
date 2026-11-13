@@ -1,9 +1,9 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { selectWorkspaceZCodeState, useZCodeSessionStore } from "../src/store/zcodeSessionStore.js";
+import { selectWorkspaceNibiState, useNibiSessionStore } from "../src/store/nibiSessionStore.js";
 
 describe("useSlashCommands", () => {
   beforeEach(() => {
-    useZCodeSessionStore.setState((state) => ({
+    useNibiSessionStore.setState((state) => ({
       ...state,
       workspaces: {},
     }));
@@ -12,18 +12,18 @@ describe("useSlashCommands", () => {
   it("remote workspace 会按 workspaceIdentity 读取 slash commands", () => {
     const workspacePath = "/root";
     const workspaceIdentity = "remote:ssh:demo:22:root:/root";
-    useZCodeSessionStore.getState().setSlashCommands(
+    useNibiSessionStore.getState().setSlashCommands(
       workspacePath,
       [{ name: "remote-command", description: "remote command" }],
       workspaceIdentity,
     );
 
-    const identityCommands = selectWorkspaceZCodeState(
-      useZCodeSessionStore.getState(),
+    const identityCommands = selectWorkspaceNibiState(
+      useNibiSessionStore.getState(),
       workspacePath,
       workspaceIdentity,
     ).slashCommands;
-    const pathOnlyCommands = selectWorkspaceZCodeState(useZCodeSessionStore.getState(), workspacePath).slashCommands;
+    const pathOnlyCommands = selectWorkspaceNibiState(useNibiSessionStore.getState(), workspacePath).slashCommands;
 
     expect(identityCommands.map((command) => command.name)).toEqual(["remote-command"]);
     expect(pathOnlyCommands).toEqual([]);

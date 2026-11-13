@@ -430,14 +430,14 @@ describe(`${MARKER}: 远程连接 UI 走查`, () => {
         { timeoutMs: 120_000, intervalMs: 500 },
       );
       if (await installVisible()) {
-        await capture("install-confirm", "首次连接：新设备需要安装 ZCode Server 的确认卡");
+        await capture("install-confirm", "首次连接：新设备需要安装 Nibi Server 的确认卡");
         await clickButton(/^连接日志/u);
         await settle();
         await capture("install-confirm-log-expanded", "安装确认 + 展开连接日志");
         await clickButton("安装并继续");
         await captureFrames(
           "installing",
-          "安装并启动 ZCode Server 的实时进度",
+          "安装并启动 Nibi Server 的实时进度",
           async () => !(await $(dialog).isExisting()),
           { timeoutMs: 240_000, intervalMs: 700 },
         );

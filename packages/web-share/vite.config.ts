@@ -6,10 +6,10 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import {
   resolveBigModelApiOrigin,
-  resolveRuntimeZCodeEndpointOrigin,
+  resolveRuntimeNibiEndpointOrigin,
   resolveZaiOAuthClientId,
   resolveZaiOAuthOrigin,
-} from "../shared/src/zcodeEndpoint.js";
+} from "../shared/src/nibiEndpoint.js";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const REPO_ROOT = resolve(HERE, "../..");
@@ -17,18 +17,18 @@ const { version } = JSON.parse(readFileSync(resolve(REPO_ROOT, "package.json"), 
 
 export default defineConfig(({ command, mode }) => {
   const env = { ...loadEnv(mode, REPO_ROOT, ""), ...process.env };
-  const zcodeEnv = env.NIBI_ENV?.trim().toLowerCase() === "production" ? "production" : "test";
+  const nibiEnv = env.NIBI_ENV?.trim().toLowerCase() === "production" ? "production" : "test";
   // 发布档硬门禁：NIBI_ENV 不是 production 时，下面的 define 会把 VITE_NIBI_BASE_URL 烘焙成
   // 测试档（https://zcode.z.ai），部署后整页请求打到上游、表现为 CORS 失败。
   // 2026-10-26 实际踩过一次，所以在构建入口直接拦下，而不是靠人记。
-  if (command === "build" && zcodeEnv !== "production" && env.NIBI_ALLOW_NON_PRODUCTION_BUILD !== "1") {
+  if (command === "build" && nibiEnv !== "production" && env.NIBI_ALLOW_NON_PRODUCTION_BUILD !== "1") {
     throw new Error(
       "[web-share] build 必须 NIBI_ENV=production：否则 API 源会被烘焙成测试档（zcode.z.ai）。" +
         "确需测试档构建请显式设 NIBI_ALLOW_NON_PRODUCTION_BUILD=1。",
     );
   }
-  const endpointEnv = { ...env, NIBI_ENV: zcodeEnv };
-  const endpointOrigin = resolveRuntimeZCodeEndpointOrigin(endpointEnv);
+  const endpointEnv = { ...env, NIBI_ENV: nibiEnv };
+  const endpointOrigin = resolveRuntimeNibiEndpointOrigin(endpointEnv);
   const oauthOrigin = resolveZaiOAuthOrigin(endpointEnv);
   const oauthClientId = resolveZaiOAuthClientId(endpointEnv);
   // BigModel 授权入口必须跟随 NIBI_ENV，否则测试环境会把测试账号带到生产授权页。
@@ -86,7 +86,7 @@ export default defineConfig(({ command, mode }) => {
     define: {
       __NIBI_VERSION__: JSON.stringify(version),
       __NIBI_COMMIT__: JSON.stringify(env.NIBI_COMMIT || "unknown"),
-      __NIBI_ENV__: JSON.stringify(zcodeEnv),
+      __NIBI_ENV__: JSON.stringify(nibiEnv),
       "import.meta.env.VITE_NIBI_BASE_URL": JSON.stringify(endpointOrigin),
       "import.meta.env.VITE_NIBI_ENDPOINT_ORIGIN": JSON.stringify(endpointOrigin),
       "import.meta.env.VITE_ZAI_OAUTH_CLIENT_ID": JSON.stringify(oauthClientId),

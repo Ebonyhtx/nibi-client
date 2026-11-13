@@ -12,7 +12,7 @@ import {
   ProviderTemplate,
   ProviderTemplateMap,
   parseProviderTemplateMap,
-  parseZCodeBuiltinModelConfigRules,
+  parseNibiBuiltinModelConfigRules,
 } from "../src/index.js";
 
 describe("Provider Template", () => {
@@ -118,7 +118,7 @@ describe("Provider Template", () => {
   });
 
   it("Built-in Rule 固定按 match、template-model、provider-model 排序", () => {
-    const rules = parseZCodeBuiltinModelConfigRules({
+    const rules = parseNibiBuiltinModelConfigRules({
       modelRules: [{ modelMatch: ".*", config: { enabled: false } }],
       modelApiRules: [],
       providerSiteRules: [],
@@ -147,7 +147,7 @@ describe("Provider Template", () => {
   });
 
   it("Built-in 分组按 model、model+api、site、template、provider 顺序叠加", () => {
-    const rules = parseZCodeBuiltinModelConfigRules({
+    const rules = parseNibiBuiltinModelConfigRules({
       modelRules: [
         { modelMatch: ".*", config: { enabled: false } },
         { modelMatch: ".*GLM-5\\.3.*", config: { enabled: true } },

@@ -190,7 +190,7 @@ describe("虚拟项目", () => {
     await row.$('[data-testid="virtual-project-create-task"]').click();
     await waitForWorkspaceApp(paths[0], 30_000);
     expect(await toggle.getAttribute("aria-expanded")).toBe("false");
-    const original = $('[data-project-name="ZCodeProject"]');
+    const original = $('[data-project-name="NibiProject"]');
     await original.moveTo();
     await original.$('[data-testid="virtual-project-create-task"]').click();
     await waitForWorkspaceApp(DEFAULT_WORKSPACE, 30_000);
@@ -293,7 +293,7 @@ describe("虚拟项目", () => {
     } finally {
       db.close();
       await browser.keys("Escape");
-      const original = $('[data-project-name="ZCodeProject"]');
+      const original = $('[data-project-name="NibiProject"]');
       await original.moveTo();
       await original.$('[data-testid="virtual-project-create-task"]').click();
       await waitForWorkspaceApp(DEFAULT_WORKSPACE, 30_000);
@@ -891,7 +891,7 @@ describe("虚拟项目", () => {
         archiveFacts.close();
       }
 
-      await $('[data-project-name="ZCodeProject"]')
+      await $('[data-project-name="NibiProject"]')
         .$('[data-testid="virtual-project-create-task"]')
         .click();
       await waitForWorkspaceApp(DEFAULT_WORKSPACE, 30_000);
@@ -917,7 +917,7 @@ describe("虚拟项目", () => {
       try {
         await browser.saveScreenshot(join(process.env.NIBI_E2E_ARTIFACT_DIR!, "VP17-final.png"));
         // 测试服务退出前回到本地，防止后续用例被已关闭 Source 的活动 tab 阻塞。
-        await $('[data-project-name="ZCodeProject"]')
+        await $('[data-project-name="NibiProject"]')
           .$('[data-testid="virtual-project-create-task"]')
           .click();
         await waitForWorkspaceApp(DEFAULT_WORKSPACE, 30_000);

@@ -52,10 +52,10 @@ import { useProjectDataCleanupSupport } from "@/project-sidebar/useProjectDataCl
 import { HomeOnlyWorkspaceRows } from "@/project-sidebar/HomeOnlyWorkspaceRows.js";
 import { WorkspaceSidebarFooter } from "@/WorkspaceSidebarFooter.js";
 import { SidebarBottomActivity } from "@/sidebar-activity/SidebarBottomActivity.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useTabStoreApi } from "@/store/TabStoreProvider.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
-import { useZCodeStore } from "@/store/StoreProvider.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
+import { useNibiStore } from "@/store/StoreProvider.js";
 export { attachRemoteProjectWorkspace } from "@/project-sidebar/remote-navigation.js";
 export { resolveEntryProject } from "@/project-sidebar/view.js";
 export { readDirectoryTaskProjectId } from "@/project-sidebar/view.js";
@@ -84,9 +84,9 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
   const remoteSync = useProjectRemoteSync(props, directory);
   const diagnostics = useProjectConnectionDiagnostics(directory, props);
   const onSelectTask = useProjectTaskNavigation(props, tree, remoteService);
-  const { intl, localePreference, setLocalePreference } = useZCodeIntl();
+  const { intl, localePreference, setLocalePreference } = useNibiIntl();
   const tabStore = useTabStoreApi();
-  const setTheme = useZCodeStore((state) => state.setTheme);
+  const setTheme = useNibiStore((state) => state.setTheme);
   const { view, setView } = preferences;
   const scrollRef = useRef<HTMLDivElement>(null);
   const [groupedToolbar, setGroupedToolbar] = useState<HTMLDivElement | null>(null);
@@ -101,7 +101,7 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
     useProjectDataCleanupSupport(service);
   const workspaceKey = props.workspaceIdentity?.trim() || props.workspacePath;
   // 清理入口需要把运行中的会话置灰；只读当前 workspace 的运行态（其他 workspace 由任务状态兜底）。
-  const runningTaskIds = useZCodeSessionStore((state) => {
+  const runningTaskIds = useNibiSessionStore((state) => {
     const runtime = state.workspaces[workspaceKey]?.taskRuntimeByTaskId;
     if (!runtime) return "";
     return Object.entries(runtime)
@@ -125,7 +125,7 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
   );
   // 当前任务只影响远端“创建项目”的默认设备；分组继承在点击时读，
   // 避免本地会话/草稿切换让全部项目的菜单与 Tooltip 重渲染。
-  const hasActiveRemoteTask = useZCodeSessionStore((state) =>
+  const hasActiveRemoteTask = useNibiSessionStore((state) =>
     Boolean(
       props.workspaceIdentity &&
       state.workspaces[props.workspaceIdentity.trim() || props.workspacePath]?.activeTaskId,
@@ -161,7 +161,7 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
   );
   const msg = (id: string) => intl.formatMessage({ id: `project.${id}` });
   const start = async (projectId?: string, hostId?: string, taskGroupId?: string | null) => {
-    const activeTaskId = useZCodeSessionStore
+    const activeTaskId = useNibiSessionStore
       .getState()
       .getWorkspaceState(props.workspacePath, props.workspaceIdentity).activeTaskId;
     const inheritedGroup =
@@ -174,7 +174,7 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
             }),
           ) ?? null)
         : view === "grouped" && !projectId
-          ? (useZCodeSessionStore
+          ? (useNibiSessionStore
               .getState()
               .getWorkspaceState(props.workspacePath, props.workspaceIdentity).draftTaskGroupId ??
             null)

@@ -3,7 +3,7 @@ import type { ISourceServerManagementService } from "@nibi/services";
 import type { RemoteTarget, SourceServerManagementSnapshot } from "@nibi/shared";
 import { dismissToast, toast, type ToastOptions } from "@/components/ui/toast.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { findSourceServerUpgradeProfileId } from "@/lib/remoteConnectionWizard.js";
 import {
   getSourceServerForceUpdateDescription,
@@ -280,7 +280,7 @@ export function useSourceServerUpdateNotifications(options: {
     connectionTargetRef.current = target;
     controllerRef.current?.refresh();
   }, []);
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const confirmDialog = useConfirmDialog();
   const openSettingsTab = useTabStore((state) => state.openSettingsTab);
   useEffect(() => {

@@ -1,6 +1,6 @@
-import { NIBI_AGENT_PROVIDER, type ZCodeProvider } from "@nibi/shared";
+import { NIBI_AGENT_PROVIDER, type NibiProvider } from "@nibi/shared";
 import { buildPromptTelemetryExtraDetail } from "@/lib/messageTelemetry.js";
-import { encodeCustomModelValue } from "@/lib/zcodeCustomModelValue.js";
+import { encodeCustomModelValue } from "@/lib/nibiCustomModelValue.js";
 import {
   legacyTelemetryModelValue,
   legacyTelemetryProviderId,
@@ -33,9 +33,9 @@ export function resolveLegacyRuntimeModelValue(params: {
   return `${legacyTelemetryProviderId(configProvider)}/${modelName}`;
 }
 
-/** V4 config.provider 是实际模型 provider id；agentProvider 表示 ZCode 运行时。 */
+/** V4 config.provider 是实际模型 provider id；agentProvider 表示 Nibi 运行时。 */
 export function buildV4ConversationPromptTelemetryExtraDetail(params: {
-  agentProvider?: ZCodeProvider;
+  agentProvider?: NibiProvider;
   configProvider?: string | null;
   modelName?: string | null;
   askMode?: string | null;
@@ -55,7 +55,7 @@ export function buildV4ConversationPromptTelemetryExtraDetail(params: {
     model_provider: legacyTelemetryProviderId(
       params.configProvider?.trim() || base.model_provider || "",
     ),
-    // agent 表示 ZCode 运行时，不能用模型 provider id 替代。
+    // agent 表示 Nibi 运行时，不能用模型 provider id 替代。
     agent: agentProvider,
   };
 }

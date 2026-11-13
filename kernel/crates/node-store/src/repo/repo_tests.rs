@@ -1,6 +1,6 @@
-// 回放方式复制自 apps/zcode-cli-rust/crates/state/src/node/fixture_tests.rs（feat/rs 79b6691c55）。
-//! 仓储逐字节比对：`fixtures/node-db.json`（复制自 `apps/zcode-cli-rust/crates/state/fixtures`，由
-//! `scripts/zcode-cli-rust-node-db-fixtures.mjs` 用 Node 仓储按固定时钟生成）。只回放本 crate 有的
+// 回放方式复制自 apps/nibi-cli-rust/crates/state/src/node/fixture_tests.rs（feat/rs 79b6691c55）。
+//! 仓储逐字节比对：`fixtures/node-db.json`（复制自 `apps/nibi-cli-rust/crates/state/fixtures`，由
+//! `scripts/nibi-cli-rust-node-db-fixtures.mjs` 用 Node 仓储按固定时钟生成）。只回放本 crate 有的
 //! 仓储操作（会话、消息、part、entry、标题、切点）；输入账本、todo、目标等操作写的行与它们推进的
 //! 会话活动时间不参与比较。
 use rusqlite::Connection;

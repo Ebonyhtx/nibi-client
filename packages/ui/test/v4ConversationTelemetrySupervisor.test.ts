@@ -549,7 +549,7 @@ describe("ConversationTelemetrySupervisor", () => {
     });
   });
 
-  it("send seed 缺少显式运行时 provider 时沿用 ZCode Agent 默认值", () => {
+  it("send seed 缺少显式运行时 provider 时沿用 Nibi Agent 默认值", () => {
     expect(
       buildV4ConversationPromptTelemetryExtraDetail({
         configProvider: "glm",
@@ -3793,7 +3793,7 @@ describe("ConversationTelemetrySupervisor", () => {
   });
 });
 
-describe("workflow subagent：动态工作流子代理的 token 埋点（apps/zcode-cli/packages/dynamic-workflow/docs/execution-engine.md「Token telemetry for subagents」）", () => {
+describe("workflow subagent：动态工作流子代理的 token 埋点（apps/nibi-cli/packages/dynamic-workflow/docs/execution-engine.md「Token telemetry for subagents」）", () => {
   const CHILD = "sess_dwf-run-1-worker_1";
 
   function spawnWorkflowActor(

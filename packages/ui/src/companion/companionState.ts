@@ -1,4 +1,4 @@
-import type { ZCodeTaskRuntimeStatus } from "@nibi/shared";
+import type { NibiTaskRuntimeStatus } from "@nibi/shared";
 import calmLoopUrl from "@/assets/nibi/companion/calm-loop.webm";
 import workingLoopUrl from "@/assets/nibi/companion/working-loop.webm";
 import calmToWorkingUrl from "@/assets/nibi/companion/calm-to-working.webm";
@@ -94,7 +94,7 @@ export function companionMotionGroupForState(state: CompanionSemanticState): Com
   return "static";
 }
 
-function isBusyRuntimeStatus(status: ZCodeTaskRuntimeStatus): boolean {
+function isBusyRuntimeStatus(status: NibiTaskRuntimeStatus): boolean {
   return status === "creating" || status === "restoring" || status === "streaming";
 }
 
@@ -104,7 +104,7 @@ function isBusyRuntimeStatus(status: ZCodeTaskRuntimeStatus): boolean {
  */
 export function resolveCompanionSemanticState(
   activeTaskId: string | null | undefined,
-  taskRuntimeByTaskId: Record<string, { status: ZCodeTaskRuntimeStatus }>,
+  taskRuntimeByTaskId: Record<string, { status: NibiTaskRuntimeStatus }>,
 ): CompanionSemanticState {
   const activeStatus = activeTaskId ? taskRuntimeByTaskId[activeTaskId]?.status : undefined;
   if (activeStatus === "failed") return "paused";

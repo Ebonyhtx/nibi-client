@@ -2,7 +2,7 @@ import {
   getProviderFormApiKeyManagementUrl,
   type ProviderSettingsFormProvider,
 } from "@/lib/providerSettingsFormTypes.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { InlineEditableProviderCard } from "./InlineEditableProviderCard.js";
 import type { ModelProviderNavItem } from "./constants.js";
 import { useProviderSettingsView } from "@/hooks/useProviderSettingsView.js";
@@ -44,7 +44,7 @@ export function ModelProviderSectionDetail({
   onOpenApiKeyUrl: (url: string) => void;
   providerSettingsView?: ProviderSettingsView | null;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const rootProviderSettingsRead = useProviderSettingsView();
   const rootProviderSettingsView =
     rootProviderSettingsRead.state.status === "ready" ? rootProviderSettingsRead.state.view : null;

@@ -25,7 +25,7 @@ import type {
   IntegratedTerminalShellSelection,
   Locale,
   UserInfo,
-  ZCodeInteractionBehavior,
+  NibiInteractionBehavior,
 } from "@nibi/shared";
 import {
   TID_SETTINGS_BACK_BUTTON,
@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/tooltip.js";
 import { toast } from "@/components/ui/toast.js";
 import { DesktopWindowFrame } from "@/DesktopWindowFrame.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import { logger } from "@/logger.js";
 import { getPathLeaf } from "@/lib/path.js";
@@ -88,7 +88,7 @@ import {
   SettingsHeaderBreadcrumb,
   type SettingsBreadcrumbItem,
 } from "@/settings/SettingsHeaderBreadcrumb.js";
-import { useZCodeStore } from "@/store/StoreProvider.js";
+import { useNibiStore } from "@/store/StoreProvider.js";
 import { useTabStore } from "@/store/TabStoreProvider.js";
 import { isWorkspaceTab } from "@/store/tabStore.js";
 import type { Theme } from "@/useTheme.js";
@@ -220,7 +220,7 @@ export function SettingsPage({
   onLogout?: () => void;
   user?: UserInfo | null;
 }) {
-  const { intl, localePreference, setLocalePreference } = useZCodeIntl();
+  const { intl, localePreference, setLocalePreference } = useNibiIntl();
   const { settingsSectionGroups, settingsSections } = useMemo(
     () =>
       createSettingsPageConfig({
@@ -317,25 +317,25 @@ export function SettingsPage({
   const [settingsBreadcrumbItems, setSettingsBreadcrumbItems] = useState<
     readonly SettingsBreadcrumbItem[]
   >([]);
-  const interfaceMode = useZCodeStore((state) => state.interfaceMode);
-  const setInterfaceMode = useZCodeStore((state) => state.setInterfaceMode);
-  const theme = useZCodeStore((state) => state.theme);
-  const setTheme = useZCodeStore((state) => state.setTheme);
-  const codePreviewSettings = useZCodeStore((state) => state.codePreviewSettings);
-  const setCodePreviewSettings = useZCodeStore((state) => state.setCodePreviewSettings);
-  const uiFontSizePx = useZCodeStore((state) => state.uiFontSizePx);
+  const interfaceMode = useNibiStore((state) => state.interfaceMode);
+  const setInterfaceMode = useNibiStore((state) => state.setInterfaceMode);
+  const theme = useNibiStore((state) => state.theme);
+  const setTheme = useNibiStore((state) => state.setTheme);
+  const codePreviewSettings = useNibiStore((state) => state.codePreviewSettings);
+  const setCodePreviewSettings = useNibiStore((state) => state.setCodePreviewSettings);
+  const uiFontSizePx = useNibiStore((state) => state.uiFontSizePx);
   // 动效偏好是 localStorage 偏好 + DOM 属性，不进 store（见 lib/motionPreference）。
   const motionEnabled = useMotionPreferenceEnabled();
-  const setUiFontSizePx = useZCodeStore((state) => state.setUiFontSizePx);
-  const notificationEnabled = useZCodeStore((state) => state.notificationEnabled);
-  const setNotificationEnabled = useZCodeStore((state) => state.setNotificationEnabled);
-  const notificationSoundEnabled = useZCodeStore((state) => state.notificationSoundEnabled);
-  const setNotificationSoundEnabled = useZCodeStore((state) => state.setNotificationSoundEnabled);
+  const setUiFontSizePx = useNibiStore((state) => state.setUiFontSizePx);
+  const notificationEnabled = useNibiStore((state) => state.notificationEnabled);
+  const setNotificationEnabled = useNibiStore((state) => state.setNotificationEnabled);
+  const notificationSoundEnabled = useNibiStore((state) => state.notificationSoundEnabled);
+  const setNotificationSoundEnabled = useNibiStore((state) => state.setNotificationSoundEnabled);
   const [initialModelProviderTarget] = useState(() => consumePendingSettingsModelProviderTarget());
   const [pendingModelProviderTarget, setPendingModelProviderTarget] = useState<
     SettingsModelProviderTarget | undefined
   >(() => initialModelProviderTarget);
-  const setNewUserOnboardingOpen = useZCodeStore((state) => state.setNewUserOnboardingOpen);
+  const setNewUserOnboardingOpen = useNibiStore((state) => state.setNewUserOnboardingOpen);
   const requestOnboardingDialog = () => setNewUserOnboardingOpen(true);
   const setActiveSettingsSection = useCallback(
     (section: SettingsSectionId, fallbackSection: SettingsSectionId = activeSection) => {
@@ -483,8 +483,8 @@ export function SettingsPage({
   const [toolGroupingExploreEnabled, setToolGroupingExploreEnabled] = useState(true);
   const [toolGroupingTerminalEnabled, setToolGroupingTerminalEnabled] = useState(true);
   const [toolGroupingChangesEnabled, setToolGroupingChangesEnabled] = useState(false);
-  const [zcodeInteractionBehavior, setZCodeInteractionBehavior] =
-    useState<ZCodeInteractionBehavior>("queue");
+  const [nibiInteractionBehavior, setNibiInteractionBehavior] =
+    useState<NibiInteractionBehavior>("queue");
   const [defaultHomeDir, setDefaultHomeDir] = useState("");
   const [hostPlatform, setHostPlatform] = useState("");
 
@@ -594,7 +594,7 @@ export function SettingsPage({
     setToolGroupingExploreEnabled(sharedSettings.toolGroupingExploreEnabled ?? true);
     setToolGroupingTerminalEnabled(sharedSettings.toolGroupingTerminalEnabled ?? true);
     setToolGroupingChangesEnabled(sharedSettings.toolGroupingChangesEnabled ?? false);
-    setZCodeInteractionBehavior(sharedSettings.zcodeInteractionBehavior ?? "queue");
+    setNibiInteractionBehavior(sharedSettings.nibiInteractionBehavior ?? "queue");
     setReceivePreviewUpdates(sharedSettings.receivePreviewUpdates ?? false);
     setAutoDownloadAndInstallUpdates(sharedSettings.autoDownloadAndInstallUpdates ?? false);
   }, [sharedSettings]);
@@ -1056,16 +1056,16 @@ export function SettingsPage({
     },
     [updateSharedSettings],
   );
-  const handleZCodeInteractionBehaviorChange = useCallback(
-    async (behavior: ZCodeInteractionBehavior) => {
+  const handleNibiInteractionBehaviorChange = useCallback(
+    async (behavior: NibiInteractionBehavior) => {
       await runSettingsActionAsync({
         featureId: "settings.conversation",
         action: "change_interaction_behavior",
         trigger: "select",
-        operation: () => updateSharedSettings({ zcodeInteractionBehavior: behavior }),
+        operation: () => updateSharedSettings({ nibiInteractionBehavior: behavior }),
         completed: { resultSource: "shared_settings", valueAfter: behavior },
       });
-      setZCodeInteractionBehavior(behavior);
+      setNibiInteractionBehavior(behavior);
     },
     [updateSharedSettings],
   );
@@ -1559,7 +1559,7 @@ export function SettingsPage({
                               toolGroupingExploreEnabled={toolGroupingExploreEnabled}
                               toolGroupingTerminalEnabled={toolGroupingTerminalEnabled}
                               toolGroupingChangesEnabled={toolGroupingChangesEnabled}
-                              zcodeInteractionBehavior={zcodeInteractionBehavior}
+                              nibiInteractionBehavior={nibiInteractionBehavior}
                               askUserQuestionAutoResolutionEnabled={
                                 askUserQuestionAutoResolutionEnabled
                               }
@@ -1603,8 +1603,8 @@ export function SettingsPage({
                               onToolGroupingChangesEnabledChange={
                                 handleToolGroupingChangesEnabledChange
                               }
-                              onZCodeInteractionBehaviorChange={
-                                handleZCodeInteractionBehaviorChange
+                              onNibiInteractionBehaviorChange={
+                                handleNibiInteractionBehaviorChange
                               }
                               onAskUserQuestionAutoResolutionEnabledChange={
                                 handleAskUserQuestionAutoResolutionEnabledChange

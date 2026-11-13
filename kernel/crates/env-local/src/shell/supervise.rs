@@ -324,7 +324,7 @@ fn cwd_file_spelling(file: &Path, style: PathStyle) -> String {
 }
 
 /// Git Bash 的 `pwd -P` 换回本机路径（Windows；其他平台原样），照 Node `gitBashPathToWindowsPath`
-/// （`apps/zcode-cli/packages/contracts/src/path/git-bash.ts`）：`//server/x` → `\\server\x`；`/cygdrive/c/x` 与 `/c/x`
+/// （`apps/nibi-cli/packages/contracts/src/path/git-bash.ts`）：`//server/x` → `\\server\x`；`/cygdrive/c/x` 与 `/c/x`
 /// → `C:\x`（盘符后开头多余的 `\` 去掉，只剩盘符时是 `C:\`）；其余把 `/` 换成 `\`。
 ///
 /// 缺陷修复（工作线 F57）：以前只认 `/c/…`，Cygwin 的 `/cygdrive/c/…` 与网络共享的 `//server/…` 原样当路径，

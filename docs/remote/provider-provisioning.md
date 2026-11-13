@@ -273,7 +273,7 @@ Host execution admission
 - 首次连接的旧远端不支持 Provisioning capability 时返回 `unsupported`，不发送 Secret，也不发布 Remote Workspace ready。
 - HTTP `nibi-server` 只有在配置 `ZCODE_SERVER_AUTH_TOKEN` 后才开放受信 Desktop Host 的
   Provisioning target；未配置认证时保持“不支持”，避免把跨 Environment 凭据写入口暴露给匿名连接。
-- R3 Source Server Core（`packages/zcode-server-cli`，`serviceAuthorityMode: "standalone-server"`）
+- R3 Source Server Core（`packages/nibi-server-cli`，`serviceAuthorityMode: "standalone-server"`）
   **始终**注册 Provisioning target：R3 ingress token（`<serverRoot>/run/ingress-token`，0600）常在，
   不存在上一条那种“未配置鉴权则不支持”的分支。隔离在 `clientMode` 层完成：`/ws/host` 的
   `desktop-continuous` 连接（capability ticket + ingress token）拿到真实 `IProviderProvisioningTargetService`；
@@ -286,7 +286,7 @@ Host execution admission
   R3 侧接线见 [r3-source-server-remote-architecture.md §8.3](../architecture/r3-source-server-remote-architecture.md)。
 
   ```text
-  zcode-server-cli Core（standalone-server，target 常驻）
+  nibi-server-cli Core（standalone-server，target 常驻）
     ├─ /ws/host  desktop-continuous ──► IProviderProvisioningTargetService（真实实现）
     └─ /ws       web-remote-replayable ─► { apply: () => throw }（stub；手机 allowlist 亦不含该 channel）
   ```

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ZCodeConfigOption } from "@nibi/shared";
+import type { NibiConfigOption } from "@nibi/shared";
 import {
   getNextThoughtLevelValue,
   getThoughtLevelLabel,
@@ -8,7 +8,7 @@ import {
 import zhCN from "@/i18n/locales/zh-CN.js";
 import enUS from "@/i18n/locales/en-US.js";
 
-const option: ZCodeConfigOption = {
+const option: NibiConfigOption = {
   id: "thought_level",
   category: "thought_level",
   type: "select",

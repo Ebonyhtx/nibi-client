@@ -1,4 +1,4 @@
-// 语义复制自 apps/zcode-cli/packages/bootstrap/src/app/legacy-cli-personal-provider-config-importer.ts 与
+// 语义复制自 apps/nibi-cli/packages/bootstrap/src/app/legacy-cli-personal-provider-config-importer.ts 与
 // legacy-cli-model-config.ts 的判定部分（修复线 F2）。
 //! 旧 CLI 用户文件 `~/.nibi/cli/config.json` 里有没有 Node 要导入的 provider 或默认模型。
 //!

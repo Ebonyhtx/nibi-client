@@ -139,7 +139,7 @@ const PROTECTED_BASENAMES = new Set([
   "credentials.json",
   ".credentials.json",
   ".tokens",
-  "zcode-stdio-tap.json",
+  "nibi-stdio-tap.json",
 ]);
 const PROTECTED_PREFIXES = ["v2/crash/live"];
 

@@ -2,7 +2,7 @@
 
 // 把构建好的 Rust 内核二进制暂存进打包资源位次（`.staging/rust-kernel/nibi-rs[.exe]`），
 // electron-builder 的 extraResources 按 `to: "rust-kernel"` 收进 `<resources>/rust-kernel/`
-// ——桌面进程管理器的打包位次（zcodeAgentProcessManager.findRustAgentBinary 的
+// ——桌面进程管理器的打包位次（nibiAgentProcessManager.findRustAgentBinary 的
 // `resourcesPath/rust-kernel`）按这个路径解析。Cargo 的 `[[bin]]` 名与打包位次同名
 // （`nibi-rs`），进程列表/任务管理器里显示的是 NIBI。
 //

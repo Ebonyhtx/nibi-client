@@ -3,7 +3,7 @@ import type { UpdateStatePayload } from "@nibi/shared";
 import { useCallback, useEffect, useState } from "react";
 import { useFeedbackStore } from "@/feedback/feedbackStore.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { createHelpMenuActionHandlers } from "@/lib/helpMenuActions.js";
 import { useShortcutCommandLabel } from "@/shortcuts/useShortcutBindings.js";
 import { logger } from "@/logger.js";
@@ -55,7 +55,7 @@ export function WindowsCaptionMenuButton({
   useWindowsCaptionSpacing?: boolean;
 }) {
   const platform = usePlatform();
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const newTaskShortcutLabel = useShortcutCommandLabel("newTask");
   const openWorkspaceShortcutLabel = useShortcutCommandLabel("openWorkspace");
   const openFeedbackSubmit = useFeedbackStore((state) => state.openSubmit);
@@ -87,13 +87,13 @@ export function WindowsCaptionMenuButton({
   }, [platform]);
 
   const syncStdioTapDevState = useCallback(async () => {
-    if (!platform.getZCodeStdioTapDevState) {
+    if (!platform.getNibiStdioTapDevState) {
       setStdioTapDevState({ enabled: false, visible: false });
       return;
     }
 
     try {
-      const state = await platform.getZCodeStdioTapDevState();
+      const state = await platform.getNibiStdioTapDevState();
       setStdioTapDevState({ enabled: state.enabled, visible: state.visible });
     } catch (error) {
       logger.warn("[WindowsCaptionMenuButton] 同步 stdio tap 状态失败", { error });
@@ -159,7 +159,7 @@ export function WindowsCaptionMenuButton({
 
   const handleToggleStdioTapDevProxy = () => {
     void (async () => {
-      await platform.executeDesktopCommand(DesktopCommandIds.ToggleZCodeStdioTapDevProxy);
+      await platform.executeDesktopCommand(DesktopCommandIds.ToggleNibiStdioTapDevProxy);
       await syncStdioTapDevState();
     })();
   };

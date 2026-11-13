@@ -4,7 +4,7 @@ import { DesktopCommandIds } from "@nibi/shared";
 
 const appMock = {
   isPackaged: false,
-  getAppPath: vi.fn(() => "/Applications/ZCode.app/Contents/Resources/app.asar"),
+  getAppPath: vi.fn(() => "/Applications/Nibi.app/Contents/Resources/app.asar"),
   getVersion: vi.fn(() => "3.5.0"),
 };
 const browserWindowInstances: Array<{
@@ -256,10 +256,10 @@ describe("desktopCommandHandlers resolveFeedbackUrl", () => {
     expect(
       resolveLocalAppConfigPath({
         isPackaged: true,
-        resourcesPath: "/Applications/ZCode.app/Contents/Resources",
-        appPath: "/Applications/ZCode.app/Contents/Resources/app.asar",
+        resourcesPath: "/Applications/Nibi.app/Contents/Resources",
+        appPath: "/Applications/Nibi.app/Contents/Resources/app.asar",
       }),
-    ).toBe(join("/Applications/ZCode.app/Contents/Resources", "config/default.json"));
+    ).toBe(join("/Applications/Nibi.app/Contents/Resources", "config/default.json"));
     expect(
       resolveLocalAppConfigPath({
         isPackaged: false,
@@ -289,7 +289,7 @@ describe("desktopCommandHandlers resolveFeedbackUrl", () => {
     const { executeDesktopCommand } = await import("../src/main/desktopCommandHandlers.js");
     const { shell } = await import("electron");
     const commandOptions = createCommandOptions({
-      settings: { zcodeEndpointOrigin: "https://zcode.z.ai" },
+      settings: { nibiEndpointOrigin: "https://zcode.z.ai" },
     });
 
     await executeDesktopCommand({
@@ -316,35 +316,35 @@ describe("desktopCommandHandlers resolveFeedbackUrl", () => {
 
   it("非生产 endpoint 菜单命令能保存 test、自定义和 reset", async () => {
     const { executeDesktopCommand } = await import("../src/main/desktopCommandHandlers.js");
-    const onZCodeEndpointChanged = vi.fn();
-    const commandOptions = createCommandOptions({ onZCodeEndpointChanged });
+    const onNibiEndpointChanged = vi.fn();
+    const commandOptions = createCommandOptions({ onNibiEndpointChanged });
 
     await executeDesktopCommand({
       ...commandOptions,
-      command: DesktopCommandIds.SetZCodeEndpointTest,
+      command: DesktopCommandIds.SetNibiEndpointTest,
     });
     expect(commandOptions.settingService.update).toHaveBeenLastCalledWith({
-      zcodeEndpointOrigin: "https://api-test.nibistudio.cn",
+      nibiEndpointOrigin: "https://api-test.nibistudio.cn",
     });
 
     await executeDesktopCommand({
       ...commandOptions,
-      command: DesktopCommandIds.ResetZCodeEndpoint,
+      command: DesktopCommandIds.ResetNibiEndpoint,
     });
     expect(commandOptions.settingService.update).toHaveBeenLastCalledWith({
-      zcodeEndpointOrigin: undefined,
+      nibiEndpointOrigin: undefined,
     });
-    expect(onZCodeEndpointChanged).toHaveBeenCalledTimes(2);
+    expect(onNibiEndpointChanged).toHaveBeenCalledTimes(2);
   });
 
   it("Custom endpoint 菜单打开主进程输入窗并保存提交值", async () => {
     const { executeDesktopCommand } = await import("../src/main/desktopCommandHandlers.js");
-    const onZCodeEndpointChanged = vi.fn();
-    const commandOptions = createCommandOptions({ onZCodeEndpointChanged });
+    const onNibiEndpointChanged = vi.fn();
+    const commandOptions = createCommandOptions({ onNibiEndpointChanged });
 
     const commandPromise = executeDesktopCommand({
       ...commandOptions,
-      command: DesktopCommandIds.SetZCodeEndpointCustom,
+      command: DesktopCommandIds.SetNibiEndpointCustom,
     });
     await vi.waitFor(() => expect(BrowserWindowMock).toHaveBeenCalledTimes(1));
     const promptWindow = browserWindowInstances[0];
@@ -356,9 +356,9 @@ describe("desktopCommandHandlers resolveFeedbackUrl", () => {
     await commandPromise;
 
     expect(commandOptions.settingService.update).toHaveBeenCalledWith({
-      zcodeEndpointOrigin: "http://localhost:3030",
+      nibiEndpointOrigin: "http://localhost:3030",
     });
-    expect(onZCodeEndpointChanged).toHaveBeenCalledTimes(1);
+    expect(onNibiEndpointChanged).toHaveBeenCalledTimes(1);
   });
 
   it("系统缩放命令会限制在缩小 3 档和放大 5 档之间", async () => {
@@ -525,15 +525,15 @@ function createZoomWindow(initialZoomFactor: number) {
 function createCommandOptions(options?: {
   onDesktopZoomChanged?: () => void;
   onRelaunchApp?: () => Promise<void>;
-  onZCodeEndpointChanged?: () => void;
-  settings?: { zcodeEndpointOrigin?: string; desktopZoomLevel?: number };
+  onNibiEndpointChanged?: () => void;
+  settings?: { nibiEndpointOrigin?: string; desktopZoomLevel?: number };
 }) {
   return {
     command: DesktopCommandIds.OpenChangelog,
     logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-    updateZCodeStdioTapDevMenuState: vi.fn(),
+    updateNibiStdioTapDevMenuState: vi.fn(),
     onDesktopZoomChanged: options?.onDesktopZoomChanged ?? vi.fn(),
-    onZCodeEndpointChanged: options?.onZCodeEndpointChanged ?? vi.fn(),
+    onNibiEndpointChanged: options?.onNibiEndpointChanged ?? vi.fn(),
     onRelaunchApp: options?.onRelaunchApp ?? vi.fn(async () => undefined),
     settingService: {
       get: vi.fn(async () => options?.settings ?? {}),

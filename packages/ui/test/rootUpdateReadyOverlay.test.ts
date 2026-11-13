@@ -87,7 +87,7 @@ vi.mock("@/hooks/useWorkspaceServices.js", async (importOriginal) => {
     // 此 hook 的首参是 workspacePath。旧 mock 原样返回首参，只因早期 return 未读取服务才未暴露。
     // 数据库 loading 提前订阅工作区服务后，测试也必须返回真实契约形状。
     useWorkspaceServices: () => ({
-      zcodeAgentService: {
+      nibiAgentService: {
         prepareStorage: vi.fn(async () => {}),
         getStorageStartupState: vi.fn(async () => null),
         onDynamicStorageStartupState: vi.fn(() => () => ({ dispose: vi.fn() })),
@@ -112,7 +112,7 @@ vi.mock("@/hooks/useTokenRefresh.js", () => ({
 }));
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: vi.fn(() => "loading"),
     },
@@ -169,8 +169,8 @@ vi.mock("@/lib/rootStartupGate.js", () => ({
 
 vi.mock("@/store/StoreProvider.js", () => ({
   StoreProvider: ({ children }: { children: unknown }) => children,
-  useZCodeStoreWithDefault: () => true,
-  useZCodeStore: (selector: (state: unknown) => unknown) =>
+  useNibiStoreWithDefault: () => true,
+  useNibiStore: (selector: (state: unknown) => unknown) =>
     selector({
       user: null,
       setUser: mockSetUser,
@@ -178,8 +178,8 @@ vi.mock("@/store/StoreProvider.js", () => ({
     }),
 }));
 
-vi.mock("@/store/zcodeSessionStore.js", () => ({
-  useZCodeSessionStore: Object.assign(
+vi.mock("@/store/nibiSessionStore.js", () => ({
+  useNibiSessionStore: Object.assign(
     (selector: (state: unknown) => unknown) =>
       selector({
         workspaces: {},

@@ -1,7 +1,7 @@
 //! 无会话的一次性模型补全（NIBI `workspace/generateText` / `workspace/cancelGenerateText`）。
 //!
 //! Host 目前只在「生成提交信息」时用它（`GitActionMenu` → `gitService.generateCommitMessage`
-//! → `zcodeAgentService.ts` 的 `workspace/generateText`）。语义对齐 Node
+//! → `nibiAgentService.ts` 的 `workspace/generateText`）。语义对齐 Node
 //! `core/src/runtime/methods/workspace-generate-text.ts`：
 //!
 //! - `querySource == "git_commit_message"` 走**辅助档**：推理档位取模型目录的第一档，输出上限
@@ -42,7 +42,7 @@ pub struct GenerateTextReply {
     pub selection: ModelSelection,
 }
 
-/// 模型发起的一次工具调用（NIBI `zcodeWorkspaceModelToolCallSchema` 的形状）。
+/// 模型发起的一次工具调用（NIBI `nibiWorkspaceModelToolCallSchema` 的形状）。
 #[derive(Debug, Clone, PartialEq)]
 pub struct GeneratedToolCall {
     pub id: String,

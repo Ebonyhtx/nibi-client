@@ -1,4 +1,4 @@
-//! 账号服务地址的解析与 Node 相同（`resolveRuntimeZCodeEndpointOrigin`、`resolveBigModelApiOrigin`）。
+//! 账号服务地址的解析与 Node 相同（`resolveRuntimeNibiEndpointOrigin`、`resolveBigModelApiOrigin`）。
 
 use super::*;
 

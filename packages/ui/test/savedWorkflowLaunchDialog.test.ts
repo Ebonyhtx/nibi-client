@@ -10,11 +10,11 @@ import {
   TID_WORKFLOW_LAUNCH_FIELDS,
   TID_WORKFLOW_LAUNCH_SUBMIT,
   TID_WORKFLOW_LAUNCH_TARGET,
-  type ZCodeSavedWorkflowArgsDeclaration,
-  type ZCodeSavedWorkflowEntry,
+  type NibiSavedWorkflowArgsDeclaration,
+  type NibiSavedWorkflowEntry,
 } from "@nibi/shared";
 import { testId } from "@nibi/shared/test-ids";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import {
   resolveAutomationWorkspaceSelectionKey,
   type AutomationWorkspaceOption,
@@ -22,7 +22,7 @@ import {
 import { SavedWorkflowLaunchDialog } from "@/settings/saved-workflows/SavedWorkflowLaunchDialog.js";
 import type { SavedWorkflowLaunchError } from "@/settings/saved-workflows/useSavedWorkflowLauncher.js";
 
-const ENTRY: ZCodeSavedWorkflowEntry = {
+const ENTRY: NibiSavedWorkflowEntry = {
   name: "release-check",
   description: "发布前检查",
   scope: "project",
@@ -35,7 +35,7 @@ const ENTRY: ZCodeSavedWorkflowEntry = {
   },
 };
 
-const GLOBAL_ENTRY: ZCodeSavedWorkflowEntry = {
+const GLOBAL_ENTRY: NibiSavedWorkflowEntry = {
   name: "deep-research",
   description: "深度调研",
   scope: "global",
@@ -46,7 +46,7 @@ const GLOBAL_ENTRY: ZCodeSavedWorkflowEntry = {
 // 真实窗口里这份表单远高于视口；jsdom 不排版，这里只能断言结构与焦点，高度由桌面 e2e 断言。
 const MANY_ARGS_REQUIRED = "arg12";
 const MANY_ARGS_JSON = "arg30";
-const MANY_ARGS: ZCodeSavedWorkflowArgsDeclaration = {};
+const MANY_ARGS: NibiSavedWorkflowArgsDeclaration = {};
 for (let index = 0; index < 40; index += 1) {
   const name = `arg${String(index).padStart(2, "0")}`;
   MANY_ARGS[name] =
@@ -56,7 +56,7 @@ for (let index = 0; index < 40; index += 1) {
         ? { type: "json" }
         : { type: "string", default: `v${index}` };
 }
-const MANY_ARGS_ENTRY: ZCodeSavedWorkflowEntry = {
+const MANY_ARGS_ENTRY: NibiSavedWorkflowEntry = {
   name: "arg-overflow",
   description: "实参很多",
   scope: "global",
@@ -87,7 +87,7 @@ afterEach(() => {
 });
 
 function mount(
-  entry: ZCodeSavedWorkflowEntry | null,
+  entry: NibiSavedWorkflowEntry | null,
   extra: {
     targets?: readonly AutomationWorkspaceOption[];
     defaultTargetKey?: string | null;
@@ -102,7 +102,7 @@ function mount(
   const { scope, projectLabel, ...rest } = extra;
   render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(SavedWorkflowLaunchDialog, {
         entry,

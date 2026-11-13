@@ -77,7 +77,7 @@ runtime projection 与下游 skill/command/MCP adapter 是否能完整兼容。
 Claude 插件规范里 manifest `skills` 的数组项指向「技能目录本身」（项内直接是
 `SKILL.md`，如 `./skills/engineering/tdd`）；字符串形式则指向「技能集合目录」
 （其下一层子目录各自是技能）。两类形态统一由共享扫描规则
-（`apps/zcode-cli/packages/adapters/src/skills/scan.ts`）处理：
+（`apps/nibi-cli/packages/adapters/src/skills/scan.ts`）处理：
 
 - 技能根自身含 `SKILL.md` 时，根自身就是一个技能（数组项语义，与桌面 services 侧
   `skillDiscoveryWalk` 的 depth-0 产出一致）；

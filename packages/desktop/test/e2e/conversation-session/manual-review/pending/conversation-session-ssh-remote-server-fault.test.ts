@@ -2,7 +2,7 @@ import { reconnectRemoteProject } from "../../../helpers/remote-project-actions.
 import { clearAppData } from "../../../helpers/desktop-app.js";
 import {
   connectSSHWorkspaceAndSendFirstTurn,
-  listRemoteZCodeServerPids,
+  listRemoteNibiServerPids,
   prepareSSHLifecycle,
   readTaskRowInProject,
   sendSSHFollowTurn,
@@ -35,7 +35,7 @@ describe(`${CASE_MARKER}: SSH nibi-server fault and grouped reconnect`, () => {
     const prepared = await prepareSSHLifecycle(CASE_MARKER);
     provider = prepared.provider;
     const [workspaceA, workspaceB] = prepared.config.workspacePaths;
-    const serverPidsBefore = await listRemoteZCodeServerPids(prepared.config);
+    const serverPidsBefore = await listRemoteNibiServerPids(prepared.config);
     const taskA = await connectSSHWorkspaceAndSendFirstTurn({
       caseMarker: CASE_MARKER,
       config: prepared.config,
@@ -51,7 +51,7 @@ describe(`${CASE_MARKER}: SSH nibi-server fault and grouped reconnect`, () => {
       workspacePath: workspaceB,
     });
     const hostBeforeFault = await readHostProcesses();
-    expect(await listRemoteZCodeServerPids(prepared.config)).toEqual(
+    expect(await listRemoteNibiServerPids(prepared.config)).toEqual(
       expect.arrayContaining(serverPidsBefore),
     );
 
@@ -64,7 +64,7 @@ describe(`${CASE_MARKER}: SSH nibi-server fault and grouped reconnect`, () => {
     await stopOwnedSSHServer(prepared.config, serverPidsBefore, CASE_MARKER);
     const faultContext = async () => ({
       sessionsBeforeFault,
-      remoteServerPids: await listRemoteZCodeServerPids(prepared.config).catch(
+      remoteServerPids: await listRemoteNibiServerPids(prepared.config).catch(
         () => "probe-failed",
       ),
       remoteServerStatus:

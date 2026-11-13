@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/state/src/node/migrations.rs 的测试（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-cli-rust/crates/state/src/node/migrations.rs 的测试（feat/rs 79b6691c55）。
 use super::*;
 
 /// Node 记录在账本里的校验和（用户现有库同值，由 Node `SQLITE_MIGRATIONS` 计算核对）。

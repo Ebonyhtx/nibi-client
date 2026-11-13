@@ -406,7 +406,7 @@ export async function reconnectRemoteProjectHost(
   });
 }
 
-export async function listRemoteZCodeServerPids(config: SSHConnectionConfig): Promise<number[]> {
+export async function listRemoteNibiServerPids(config: SSHConnectionConfig): Promise<number[]> {
   const result = await runSSHCommand(config, "ps -eo pid=,args=");
   if (result.code !== 0) {
     throw new Error(`读取远端 nibi-server PID 失败: ${result.stderr}`);
@@ -455,7 +455,7 @@ export async function stopOwnedSSHServer(
   beforePids: readonly number[],
   caseMarker: string,
 ): Promise<number> {
-  const currentPids = await listRemoteZCodeServerPids(config);
+  const currentPids = await listRemoteNibiServerPids(config);
   const owned = currentPids.filter((pid) => !beforePids.includes(pid));
   if (owned.length !== 1) {
     throw new Error(
@@ -478,7 +478,7 @@ export async function stopOwnedSSHServer(
   await browser.waitUntil(
     async () => {
       const [daemons, cores] = await Promise.all([
-        listRemoteZCodeServerPids(config),
+        listRemoteNibiServerPids(config),
         listRemoteServerCorePids(config),
       ]);
       return !daemons.includes(pid) && corePids.every((corePid) => !cores.includes(corePid));

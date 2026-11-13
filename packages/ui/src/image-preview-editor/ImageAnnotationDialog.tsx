@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { ImageAnnotationDialogProps } from "./contract.js";
 import { ImageEditorSurface } from "./ImageEditorSurface.js";
 
@@ -14,7 +14,7 @@ export function ImageAnnotationDialog({
   onOpenChange,
   onAppended,
 }: ImageAnnotationDialogProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent

@@ -1,8 +1,8 @@
-import type { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import type { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { ToolCallBlockRenderContext } from "@/ToolCallBlocks/shared.js";
 import { isSubagentColor } from "@/lib/subagentColors.js";
 
-type AgentIntl = ReturnType<typeof useZCodeIntl>["intl"];
+type AgentIntl = ReturnType<typeof useNibiIntl>["intl"];
 type AgentToolCall = ToolCallBlockRenderContext["toolCallNode"]["toolCall"];
 const DEFAULT_AGENT_TYPE_LABEL = "general-purpose";
 

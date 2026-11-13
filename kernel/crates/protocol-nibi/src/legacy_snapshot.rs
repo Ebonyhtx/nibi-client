@@ -1,6 +1,6 @@
 //! 旧协议（`session/read|create|resume|messages|compact|goal|set*`）共用的快照投影。
 //!
-//! 形状对齐 `zcodeSessionStateSnapshotSchema`（packages/shared/src/nibi-protocol）：Host 会按严格
+//! 形状对齐 `nibiSessionStateSnapshotSchema`（packages/shared/src/nibi-protocol）：Host 会按严格
 //! schema 解析，缺字段不是“少显示一点”，而是整个响应被拒。逐条消息时间由
 //! [`Kernel::session_message_times`](nibi_kernel_api::session_api::Kernel::session_message_times)
 //! 从存储注入（node-store 的 `time_created/time_updated`），取不到时回退到会话创建时间；成本 UI

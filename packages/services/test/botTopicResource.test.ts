@@ -128,7 +128,7 @@ describe("task-scoped topic resource retrieval", () => {
     const service = createBotsService({
       repo: createMemoryRepo(config, state),
       credentialService: createCredentialService({ "feishu-secret": "secret" }),
-      zcodeTaskService: createLegacyTaskService(),
+      nibiTaskService: createLegacyTaskService(),
       runStartupBackgroundTasks: false,
     });
     try {

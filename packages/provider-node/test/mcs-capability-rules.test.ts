@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { parseModelConfig, parseZCodeBuiltinModelConfigRules } from "@nibi/provider";
+import { parseModelConfig, parseNibiBuiltinModelConfigRules } from "@nibi/provider";
 
 describe("MCS published capability boundaries", () => {
   it("supports known Claude models across sites, without granting Sonnet or a different API", async () => {
@@ -10,7 +10,7 @@ describe("MCS published capability boundaries", () => {
         "utf8",
       ),
     );
-    const rules = parseZCodeBuiltinModelConfigRules(release.config.modelConfigRules);
+    const rules = parseNibiBuiltinModelConfigRules(release.config.modelConfigRules);
     for (const baseUrl of ["https://api.anthropic.com/v1", "https://proxy.example/v1"]) {
       for (const modelId of [
         "claude-opus-4-8",

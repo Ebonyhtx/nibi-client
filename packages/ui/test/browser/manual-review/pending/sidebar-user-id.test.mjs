@@ -27,7 +27,7 @@ before(async () => {
           if (id.endsWith("/shortcuts/useShortcutBindings.ts"))
             return 'export const useShortcutCommandLabel=()=>"";';
           if (id.endsWith("/store/StoreProvider.tsx"))
-            return 'export const useZCodeStore=(select)=>select({interfaceMode:"coding",setInterfaceMode:()=>{},isRestoringOAuthSession:false});';
+            return 'export const useNibiStore=(select)=>select({interfaceMode:"coding",setInterfaceMode:()=>{},isRestoringOAuthSession:false});';
           if (id.endsWith("/WorkspaceWebRemoteControlTrigger.tsx"))
             return "export const WorkspaceWebRemoteControlTrigger=()=>null;";
           if (id.endsWith("/WorkspaceSidebarFooterUsageSummary.tsx"))

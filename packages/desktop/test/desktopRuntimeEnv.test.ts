@@ -37,7 +37,7 @@ vi.mock("@nibi/shared", () => ({
     spawnArgs: ["app-server", "--stdio"],
     nativeConfigDir: ".nibi/cli",
     nativeConfigFileName: "config.json",
-    missingBinaryMessage: "[ZCode Agent] missing test binary",
+    missingBinaryMessage: "[Nibi Agent] missing test binary",
     resolveEntrySegments: (platform: string) => [
       platform === "win32" ? "nibi-agent.exe" : "nibi-agent",
     ],
@@ -56,7 +56,7 @@ vi.mock("@nibi/shared", () => ({
   NIBI_VERSION: "0.0.0-test",
   DEFAULT_NIBI_ENDPOINT_ORIGIN: "https://api.nibistudio.cn",
   TEST_NIBI_ENDPOINT_ORIGIN: "https://api.nibistudio.cn",
-  resolveRuntimeZCodeEndpointOrigin: (env: Record<string, string | undefined>) =>
+  resolveRuntimeNibiEndpointOrigin: (env: Record<string, string | undefined>) =>
     env.NIBI_BASE_URL ?? env.NIBI_TEST_BASE_URL ?? "https://api.nibistudio.cn",
   resolveZaiOAuthOrigin: (env: Record<string, string | undefined>) =>
     env.ZAI_OAUTH_ORIGIN ?? env.ZAI_TEST_OAUTH_ORIGIN ?? "https://chat.z.ai",
@@ -64,7 +64,7 @@ vi.mock("@nibi/shared", () => ({
     env.ZAI_BUSINESS_BASE_URL ?? env.ZAI_TEST_BUSINESS_BASE_URL ?? "https://api.z.ai",
   resolveZaiOAuthClientId: (env: Record<string, string | undefined>) =>
     env.ZAI_OAUTH_CLIENT_ID ?? env.ZAI_TEST_OAUTH_CLIENT_ID ?? "client_P8X5CMWmlaRO9gyO-KSqtg",
-  sanitizeZCodeRuntimeEnv: (env: Record<string, string | undefined>) => {
+  sanitizeNibiRuntimeEnv: (env: Record<string, string | undefined>) => {
     const sanitizedKeys = new Set([
       "NODE_ENV",
       "ELECTRON_RUN_AS_NODE",
@@ -98,7 +98,7 @@ vi.mock("@nibi/shared", () => ({
     }
     return sanitized;
   },
-  readZCodeAgentTelemetryEnv: (env: Record<string, string | undefined>) =>
+  readNibiAgentTelemetryEnv: (env: Record<string, string | undefined>) =>
     Object.fromEntries(
       Object.entries(env).filter(([key, value]) => {
         const upperKey = key.toUpperCase();
@@ -110,7 +110,7 @@ vi.mock("@nibi/shared", () => ({
         );
       }),
     ),
-  buildZCodeToolEnvPassthroughEnv: (env: Record<string, string | undefined>) => {
+  buildNibiToolEnvPassthroughEnv: (env: Record<string, string | undefined>) => {
     const captured: Record<string, string> = {};
     for (const [key, value] of Object.entries(env)) {
       const upperKey = key.toUpperCase();
@@ -154,10 +154,10 @@ const originalCdnBaseUrl = process.env["NIBI_REMOTE_ASSET_CDN_BASE_URL"];
 const originalRemoteAssetCacheDir = process.env["NIBI_REMOTE_ASSET_CACHE_DIR"];
 const originalNodeNoWarnings = process.env["NODE_NO_WARNINGS"];
 const originalNodeEnv = process.env["NODE_ENV"];
-const originalZCodeRuntimeEnv = process.env["NIBI_RUNTIME_ENV"];
+const originalNibiRuntimeEnv = process.env["NIBI_RUNTIME_ENV"];
 const originalGlmBinaryPath = process.env["GLM_BINARY_PATH"];
-const originalZCodeBaseUrl = process.env["NIBI_BASE_URL"];
-const originalZCodeEndpointOrigin = process.env["NIBI_ENDPOINT_ORIGIN"];
+const originalNibiBaseUrl = process.env["NIBI_BASE_URL"];
+const originalNibiEndpointOrigin = process.env["NIBI_ENDPOINT_ORIGIN"];
 const originalDynamicWorkflowMode = process.env["NIBI_DYNAMIC_WORKFLOW_MODE"];
 const originalZaiOAuthOrigin = process.env["ZAI_OAUTH_ORIGIN"];
 const originalZaiBusinessBaseUrl = process.env["ZAI_BUSINESS_BASE_URL"];
@@ -443,7 +443,7 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
     restoreEnvValue("NIBI_DYNAMIC_WORKFLOW_MODE", originalDynamicWorkflowMode);
     productFlavorMock.value = "preview";
     restoreEnvValue("NODE_ENV", originalNodeEnv);
-    restoreEnvValue("NIBI_RUNTIME_ENV", originalZCodeRuntimeEnv);
+    restoreEnvValue("NIBI_RUNTIME_ENV", originalNibiRuntimeEnv);
     deleteAmbientHostEnv();
     for (const [key, value] of Object.entries(originalAmbientHostEnv)) {
       process.env[key] = value;
@@ -454,8 +454,8 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
     } else {
       process.env["GLM_BINARY_PATH"] = originalGlmBinaryPath;
     }
-    restoreEnvValue("NIBI_BASE_URL", originalZCodeBaseUrl);
-    restoreEnvValue("NIBI_ENDPOINT_ORIGIN", originalZCodeEndpointOrigin);
+    restoreEnvValue("NIBI_BASE_URL", originalNibiBaseUrl);
+    restoreEnvValue("NIBI_ENDPOINT_ORIGIN", originalNibiEndpointOrigin);
     restoreEnvValue("ZAI_OAUTH_ORIGIN", originalZaiOAuthOrigin);
     restoreEnvValue("ZAI_BUSINESS_BASE_URL", originalZaiBusinessBaseUrl);
     restoreEnvValue("ZAI_OAUTH_CLIENT_ID", originalZaiOAuthClientId);
@@ -521,7 +521,7 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
       resolvePackagedAgentTelemetryEnv({
         OTEL_EXPORTER_OTLP_ENDPOINT: "https://arms.example.com/otlp",
         OTEL_EXPORTER_OTLP_HEADERS: "x-arms-license-key=write-only",
-        OTEL_SERVICE_NAME: "zcode-cli-agent",
+        OTEL_SERVICE_NAME: "nibi-cli-agent",
         NIBI_TELEMETRY_RUNTIME_DISTRIBUTION: "packaged",
         NIBI_TELEMETRY_USER_SUBJECT_ID: "spoofed-user",
         NIBI_TELEMETRY_DEVICE_MID: "spoofed-device",
@@ -529,7 +529,7 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
     ).toEqual({
       OTEL_EXPORTER_OTLP_ENDPOINT: "https://arms.example.com/otlp",
       OTEL_EXPORTER_OTLP_HEADERS: "x-arms-license-key=write-only",
-      OTEL_SERVICE_NAME: "zcode-cli-agent",
+      OTEL_SERVICE_NAME: "nibi-cli-agent",
       NIBI_TELEMETRY_RUNTIME_DISTRIBUTION: "packaged",
     });
   });
@@ -542,9 +542,9 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
       resolveWindowsAppInstallDirForDataBaseDirGuard({
         platform: "win32",
         isPackaged: true,
-        resourcesPath: "C:\\Users\\tester\\AppData\\Local\\Programs\\ZCode\\resources",
+        resourcesPath: "C:\\Users\\tester\\AppData\\Local\\Programs\\Nibi\\resources",
       }),
-    ).toBe("C:\\Users\\tester\\AppData\\Local\\Programs\\ZCode");
+    ).toBe("C:\\Users\\tester\\AppData\\Local\\Programs\\Nibi");
   });
 
   it("非 Windows 或开发态不会注入安装目录保护路径", async () => {
@@ -555,7 +555,7 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
       resolveWindowsAppInstallDirForDataBaseDirGuard({
         platform: "darwin",
         isPackaged: true,
-        resourcesPath: "/Applications/ZCode.app/Contents/Resources",
+        resourcesPath: "/Applications/Nibi.app/Contents/Resources",
       }),
     ).toBeUndefined();
     expect(
@@ -765,10 +765,10 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
 
   it("main 进程 endpoint 临时覆盖优先读取命令行环境变量", async () => {
     process.env["NIBI_ENDPOINT_ORIGIN"] = "http://127.0.0.1:18765";
-    const { resolveZCodeEndpointEnvBaseOrigin } = await import("../src/main/desktopRuntimeEnv.js");
+    const { resolveNibiEndpointEnvBaseOrigin } = await import("../src/main/desktopRuntimeEnv.js");
 
     expect(
-      resolveZCodeEndpointEnvBaseOrigin({
+      resolveNibiEndpointEnvBaseOrigin({
         NIBI_BASE_URL: "https://zcode.z.ai",
       }),
     ).toBe("http://127.0.0.1:18765");
@@ -957,7 +957,7 @@ describe("desktopRuntimeEnv runtime identity", () => {
   });
 
   it("e2e 可通过环境变量隔离应用名和 Electron 数据目录", async () => {
-    process.env["NIBI_DESKTOP_APPLICATION_NAME"] = "ZCode E2E";
+    process.env["NIBI_DESKTOP_APPLICATION_NAME"] = "Nibi E2E";
     process.env["NIBI_DESKTOP_HOME_DIR"] = "/tmp/zcode-e2e/home";
     process.env["NIBI_DESKTOP_USER_DATA_DIR"] = "/tmp/zcode-e2e/user-data";
     process.env["NIBI_DESKTOP_SESSION_DATA_DIR"] = "/tmp/zcode-e2e/session-data";
@@ -965,7 +965,7 @@ describe("desktopRuntimeEnv runtime identity", () => {
     const { runtimeApplicationName, runtimeHomePath, runtimeSessionDataPath, runtimeUserDataPath } =
       await import("../src/main/desktopRuntimeEnv.js");
 
-    expect(runtimeApplicationName).toBe("ZCode E2E");
+    expect(runtimeApplicationName).toBe("Nibi E2E");
     expect(runtimeHomePath).toBe("/tmp/zcode-e2e/home");
     expect(runtimeUserDataPath).toBe("/tmp/zcode-e2e/user-data");
     expect(runtimeSessionDataPath).toBe("/tmp/zcode-e2e/session-data");

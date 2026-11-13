@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import type { IZCodeAgentService } from "@nibi/services";
+import type { INibiAgentService } from "@nibi/services";
 import type { DynamicWorkflowMode } from "@nibi/shared";
 import { logger } from "@/logger.js";
 import {
@@ -39,9 +39,9 @@ export function useDynamicWorkflowAvailabilityLoader(): void {
 export function useDynamicWorkflowUserModeSync(params: {
   settingsLoaded: boolean;
   userMode: DynamicWorkflowMode | undefined;
-  zcodeAgentService: Pick<IZCodeAgentService, "syncDynamicWorkflowUserMode">;
+  nibiAgentService: Pick<INibiAgentService, "syncDynamicWorkflowUserMode">;
 }): void {
-  const { settingsLoaded, userMode, zcodeAgentService } = params;
+  const { settingsLoaded, userMode, nibiAgentService } = params;
   const setUserMode = useDynamicWorkflowAvailabilityStore((state) => state.setUserMode);
   const observedRef = useRef<{ userMode: DynamicWorkflowMode | undefined } | null>(null);
   const chainRef = useRef<Promise<void>>(Promise.resolve());
@@ -57,7 +57,7 @@ export function useDynamicWorkflowUserModeSync(params: {
     if (observed.userMode === userMode) return;
     chainRef.current = chainRef.current.then(async () => {
       try {
-        await zcodeAgentService.syncDynamicWorkflowUserMode(userMode ? { mode: userMode } : {});
+        await nibiAgentService.syncDynamicWorkflowUserMode(userMode ? { mode: userMode } : {});
       } catch (error) {
         logger.warn("[dynamic-workflow] 用户选择同步到 Host 失败", {
           error: error instanceof Error ? error.message : String(error),
@@ -65,5 +65,5 @@ export function useDynamicWorkflowUserModeSync(params: {
       }
       setUserMode(userMode);
     });
-  }, [setUserMode, settingsLoaded, userMode, zcodeAgentService]);
+  }, [setUserMode, settingsLoaded, userMode, nibiAgentService]);
 }

@@ -38,7 +38,7 @@ R2 不交付：
 
 | 决策项               | R2 结论                                                                                                                                                                                                                                                                                                            |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 新代码目录           | 新建 `packages/zcode-server-cli`；R2 不在 `packages/server` 中增加代码                                                                                                                                                                                                                                             |
+| 新代码目录           | 新建 `packages/nibi-server-cli`；R2 不在 `packages/server` 中增加代码                                                                                                                                                                                                                                             |
 | 旧 `packages/server` | 仅作为现有 HTTP/WS、stdio、远程部署和协议行为参考；保持其当前入口兼容                                                                                                                                                                                                                                              |
 | 用户入口             | 独立发行包提供 `zcode`；无参数继续进入既有 TUI                                                                                                                                                                                                                                                                     |
 | Server Core          | 新目录内实现新的 Core 入口和生命周期合同，不继承旧 `entry-http` / `entry-stdio` 的进程语义                                                                                                                                                                                                                         |
@@ -141,7 +141,7 @@ Server Core ── HTTP/WS ──> Desktop Host / Browser / future Transport
 
 ### 4.1 CLI ↔ Supervisor
 
-本地控制协议由 `packages/zcode-server-cli` 自己拥有，使用严格运行时 schema 和 JSONL framing，至少包括：
+本地控制协议由 `packages/nibi-server-cli` 自己拥有，使用严格运行时 schema 和 JSONL framing，至少包括：
 
 - `status`；
 - `stop`；
@@ -237,7 +237,7 @@ R2 默认只监听回环地址和动态端口，并把实际端口写入 `status
 ## 6. 新代码目录与依赖边界
 
 ```text
-packages/zcode-server-cli/
+packages/nibi-server-cli/
 ├── src/
 │   ├── main.ts
 │   ├── supervisor/
@@ -302,10 +302,10 @@ fork Core，通过同目录 `zcode.cjs` 委派既有 CLI，因此三个入口必
 
 ### 7.1 发行包 staging
 
-staging 由 `packages/zcode-server-cli/src/packaging/stage.ts` 实现，
+staging 由 `packages/nibi-server-cli/src/packaging/stage.ts` 实现，
 `pnpm --filter @nibi/server-cli stage --target <os>-<arch>` 触发，只做本地组装，不上传、不发布：
 
-- 入口 bundle 来自本包 `tsup` 产物；`zcode.cjs` 来自 `apps/zcode-cli/packages/cli/dist/zcode.cjs`
+- 入口 bundle 来自本包 `tsup` 产物；`zcode.cjs` 来自 `apps/nibi-cli/packages/cli/dist/zcode.cjs`
   （由 `scripts/build-desktop-agent-cli.mjs` 构建，与远端资产链同源）；
 - `runtime/node_modules` 内容以**产物扫描**为事实源：扫描 bundle 顶层裸模块引用，
   与 workspace `node_modules` 求交集后递归收集生产依赖闭包，从 workspace 复制为扁平布局；
@@ -328,14 +328,14 @@ staging 由 `packages/zcode-server-cli/src/packaging/stage.ts` 实现，
 - Agent bundle 的外置依赖以运行时入口扫描和官方插件定义为事实源；不再只扫描 Server CLI/Core，
   因而 `@nibi/tui`、`playwright-core` 等 bundle 运行时依赖不会被遗漏。
 - `runtime/tools` 由 `scripts/prepare-native-search-tools.mjs` 按目标 release plan 准备到
-  `node_modules/.cache/zcode-server-cli/tools/<target>`（内网依赖源已配置时下载，未配置时解包仓库归档），
+  `node_modules/.cache/nibi-server-cli/tools/<target>`（内网依赖源已配置时下载，未配置时解包仓库归档），
   不复用 mock-cdn 或 bundled-tools 目录（远端 macOS 固定为 rg13）；每个工具目录同时携带
   `THIRD-PARTY-NOTICES.txt` 与 `SOURCES.json`。运行时通过
   `ZCODE_SERVER_RUNTIME_ROOT` 解析；`runtime/packages` 包含当前官方插件定义中需要 seed 的七个
   plugin（browser-use、document-skills、skill-creator、zcode-guide、android-emulator、
   ios-simulator、restore-legacy-sessions）。
 - 内置技能包不变量：`stageRelease` 从独立的 `bundledSkillsDir` 参数发布
-  `runtime/packages/bundled-skills`（生产入口传入 `apps/zcode-cli/packages/bundled-skills`），
+  `runtime/packages/bundled-skills`（生产入口传入 `apps/nibi-cli/packages/bundled-skills`），
   只复制 `README.md` 与 `skills/`，排除其他顶层文件。Agent 在
   `zcode.cjs` 旁按官方插件同款候选目录原地读取它，`/workflow` 依赖的 `dynamic-workflows` 技能
   只在这里。它只属于 `agent-runtime` 组件并参与其内容哈希与归档，不写入 manifest 的 `plugins`。
@@ -566,7 +566,7 @@ Workspace / Repo / User files
 ## 10. 实施顺序
 
 1. 保留本文作为 R2 spec，并补充 [R2 lifecycle test plan](./r2-server-cli-and-daemon-test-plan.md)；涉及 conversation/session 的用例先更新 case catalog 和 coverage matrix。
-2. 在 `packages/zcode-server-cli` 建立 CLI、IPC、runtime layout 和 contract schema，先写测试。
+2. 在 `packages/nibi-server-cli` 建立 CLI、IPC、runtime layout 和 contract schema，先写测试。
 3. 实现单实例锁、状态文件、canonical path 和 allowlist 校验。
 4. 实现 Server Core 新入口，接入 `standalone-server` 服务并提供 HTTP/WS ingress。
 5. 实现 Supervisor、Core 私有 child IPC、崩溃预算和 running-task guard。

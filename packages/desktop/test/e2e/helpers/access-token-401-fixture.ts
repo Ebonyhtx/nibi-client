@@ -213,7 +213,7 @@ export async function prepareAccessToken401Fixture(options: {
   const address = server.address();
   if (!address || typeof address === "string") throw new Error("OAuth fixture 缺少监听端口");
   const baseUrl = `http://127.0.0.1:${address.port}`;
-  // 用独立 origin 模拟业务域与 ZCode API，避免来源头和端点改写影响业务核验回归。
+  // 用独立 origin 模拟业务域与 Nibi API，避免来源头和端点改写影响业务核验回归。
   const controlServer = preserveSession
     ? createServer((_request, response) => {
         response.setHeader("content-type", "application/json");
@@ -259,7 +259,7 @@ export async function prepareAccessToken401Fixture(options: {
               id: "e2e-user",
               username: "Fixture User",
               displayName: "Fixture User",
-              ...(projectRecovery ? { rawProfile: { zcodeProfileSchemaVersion: 2 } } : {}),
+              ...(projectRecovery ? { rawProfile: { nibiProfileSchemaVersion: 2 } } : {}),
             },
       ),
       "nibi-jwttoken": "e2e-distinct-zcode-jwt",

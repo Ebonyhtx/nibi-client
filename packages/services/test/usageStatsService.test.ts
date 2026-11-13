@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AppUsageSnapshot } from "@nibi/shared";
-import type { IZCodeAgentService } from "../src/zcode-agent/zcodeAgent.js";
+import type { INibiAgentService } from "../src/nibi-agent/nibiAgent.js";
 import { createUsageStatsService } from "../src/usage-stats/usageStatsService.js";
 
 function createAppUsageSnapshot(): AppUsageSnapshot {
@@ -38,8 +38,8 @@ function createAppUsageSnapshot(): AppUsageSnapshot {
   };
 }
 
-function createService(getAppUsageStats: IZCodeAgentService["getAppUsageStats"]) {
-  return createUsageStatsService({ zcodeAgentService: { getAppUsageStats } });
+function createService(getAppUsageStats: INibiAgentService["getAppUsageStats"]) {
+  return createUsageStatsService({ nibiAgentService: { getAppUsageStats } });
 }
 
 describe("createUsageStatsService", () => {

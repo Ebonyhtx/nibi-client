@@ -67,7 +67,7 @@ const SKIP_FILES = new Set([
 // trusted by any real client, so shipping this key has no credential value.
 // Keep this list exact: never allow a directory or a filename pattern.
 const ALLOWED_PRIVATE_KEY_FILES = new Set([
-  "apps/zcode-cli/packages/adapters/tests/fixtures/proxy-tls/leaf-key.pem",
+  "apps/nibi-cli/packages/adapters/tests/fixtures/proxy-tls/leaf-key.pem",
 ]);
 
 const BINARY_KEY_EXTENSIONS = new Set([".key", ".p12", ".pfx", ".jks", ".keystore"]);
@@ -320,7 +320,7 @@ function main() {
       for (const rule of RULES) {
         if (
           rule.name === "internal document directory" &&
-          (!file.endsWith(".md") || file.startsWith("apps/zcode-cli/packages/superpowers-plugin/"))
+          (!file.endsWith(".md") || file.startsWith("apps/nibi-cli/packages/superpowers-plugin/"))
         ) {
           continue;
         }

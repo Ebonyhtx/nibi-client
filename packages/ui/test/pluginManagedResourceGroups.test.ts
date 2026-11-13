@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type {
   SkillSummary,
-  ZCodeCommand,
-  ZCodeMcpServer,
-  ZCodePluginComponentGroup,
-  ZCodePluginInfo,
+  NibiCommand,
+  NibiMcpServer,
+  NibiPluginComponentGroup,
+  NibiPluginInfo,
 } from "@nibi/shared";
 import {
   buildInstalledPluginDisplayGroups,
@@ -90,14 +90,14 @@ describe("pluginManagedResourceGroups", () => {
   });
 
   it("groups user and plugin commands separately", () => {
-    const commands: ZCodeCommand[] = [
+    const commands: NibiCommand[] = [
       {
-        agentSource: "zcodeAgent",
+        agentSource: "nibiAgent",
         content: "local",
         description: "local command",
         enabled: true,
         filePath: "/home/.nibi/commands/review.md",
-        id: "zcodeAgent:nibi:global:/review",
+        id: "nibiAgent:nibi:global:/review",
         location: {
           directoryPath: "/home/.nibi/commands",
           scope: "user",
@@ -131,7 +131,7 @@ describe("pluginManagedResourceGroups", () => {
   });
 
   it("builds plugin MCP items from enabled plugin metadata", () => {
-    const servers: ZCodeMcpServer[] = [
+    const servers: NibiMcpServer[] = [
       {
         config: { command: "npx", type: "stdio" },
         enabled: true,
@@ -149,7 +149,7 @@ describe("pluginManagedResourceGroups", () => {
         source: "codexclimcp",
       },
     ];
-    const plugins: ZCodePluginInfo[] = [
+    const plugins: NibiPluginInfo[] = [
       {
         commandRootCount: 0,
         declaredMcpServerNames: ["ios-simulator", "ios-helper"],
@@ -192,7 +192,7 @@ describe("pluginManagedResourceGroups", () => {
   });
 
   it("marks plugin MCP items active when runtime server names are namespaced", () => {
-    const plugins: ZCodePluginInfo[] = [
+    const plugins: NibiPluginInfo[] = [
       {
         commandRootCount: 0,
         declaredMcpServerNames: ["chrome-devtools"],
@@ -222,7 +222,7 @@ describe("pluginManagedResourceGroups", () => {
   });
 
   it("maps Browser host MCP metadata to the unprefixed node_repl runtime", () => {
-    const plugins: ZCodePluginInfo[] = [
+    const plugins: NibiPluginInfo[] = [
       {
         commandRootCount: 0,
         declaredMcpServerNames: [],
@@ -267,7 +267,7 @@ describe("pluginManagedResourceGroups", () => {
   });
 
   it("attaches plugin MCP OAuth authorization from runtime status snapshots", () => {
-    const plugins: ZCodePluginInfo[] = [
+    const plugins: NibiPluginInfo[] = [
       {
         commandRootCount: 0,
         declaredMcpServerNames: ["canva"],
@@ -319,7 +319,7 @@ describe("pluginManagedResourceGroups", () => {
   });
 
   it("ignores stale plugin MCP runtime authorization when plugin is disabled", () => {
-    const plugins: ZCodePluginInfo[] = [
+    const plugins: NibiPluginInfo[] = [
       {
         commandRootCount: 0,
         declaredMcpServerNames: ["canva"],
@@ -363,7 +363,7 @@ describe("pluginManagedResourceGroups", () => {
   });
 
   describe("buildInstalledPluginDisplayGroups", () => {
-    function makeComponents(): ZCodePluginComponentGroup[] {
+    function makeComponents(): NibiPluginComponentGroup[] {
       return [
         {
           kind: "skill",
@@ -373,7 +373,7 @@ describe("pluginManagedResourceGroups", () => {
       ];
     }
 
-    function makePlugin(overrides: Partial<ZCodePluginInfo> = {}): ZCodePluginInfo {
+    function makePlugin(overrides: Partial<NibiPluginInfo> = {}): NibiPluginInfo {
       return {
         commandRootCount: 0,
         enabled: true,

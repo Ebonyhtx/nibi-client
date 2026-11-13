@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/protocol/src/json_schema_tests.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-cli-rust/crates/protocol/src/json_schema_tests.rs（feat/rs 79b6691c55）。
 //! JSON Schema 子集校验器的测试。
 use super::*;
 use serde_json::json;

@@ -1,5 +1,5 @@
 import { PERMISSION_FULL_ACCESS_OPTION_ID } from "@nibi/shared/nibi-protocol-v4";
-import type { ZCodePermissionOption } from "@nibi/shared";
+import type { NibiPermissionOption } from "@nibi/shared";
 
 export {
   getPermissionRequestPreview,
@@ -53,7 +53,7 @@ export function getPermissionOptionDisplayKind(kind: string): PermissionOptionDi
 }
 
 export function shouldPreferPermissionOptionName(
-  option: Pick<ZCodePermissionOption, "kind" | "name">,
+  option: Pick<NibiPermissionOption, "kind" | "name">,
 ): boolean {
   const normalizedName = normalizeInlineText(option.name).toLowerCase();
   if (normalizedName.length === 0) {
@@ -84,8 +84,8 @@ function getPermissionOptionSortPriority(kind: string): number {
 }
 
 export function sortPermissionOptions(
-  options: readonly ZCodePermissionOption[],
-): ZCodePermissionOption[] {
+  options: readonly NibiPermissionOption[],
+): NibiPermissionOption[] {
   return options
     .map((option, index) => ({ option, index }))
     .sort((left, right) => {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { uploadBotGroupAttachments } from "../src/zcode-agent/groupAttachmentUpload.js";
+import { uploadBotGroupAttachments } from "../src/nibi-agent/groupAttachmentUpload.js";
 
 describe("group attachment transaction", () => {
   it("does not release history refs until the target commits the text bytes", async () => {

@@ -28,8 +28,8 @@ const { conversationWorkflowRunArtifactsV4 } = vi.hoisted(() => ({
 
 vi.mock("@/hooks/useServices.js", () => ({
   useServices: () => ({
-    zcodeAgentService: { conversationWorkflowRunArtifactsV4 },
-    zcodeSessionService: { closeSession: vi.fn(async () => {}) },
+    nibiAgentService: { conversationWorkflowRunArtifactsV4 },
+    nibiSessionService: { closeSession: vi.fn(async () => {}) },
   }),
 }));
 

@@ -1,5 +1,5 @@
 import type {
-  ZCodeProvider,
+  NibiProvider,
   AgentSummary,
   AgentsListResult,
   AgentCreateParams,
@@ -19,7 +19,7 @@ export interface ISubagentsService extends IDataSyncCategoryService<SubagentData
   list(params: {
     workspacePath: string;
     workspaceIdentity?: string;
-    provider?: ZCodeProvider;
+    provider?: NibiProvider;
     mode?: SubagentsListMode;
   }): Promise<AgentsListResult>;
 
@@ -37,7 +37,7 @@ export interface ISubagentsService extends IDataSyncCategoryService<SubagentData
   setSelectionFallback(params: { mode: SubagentSelectionFallbackMode }): Promise<{ mode: SubagentSelectionFallbackMode }>;
 
   /** 当前筛选来源对应的用户级 agent 根目录（与内置扫描顺序一致，取 buildUserRoots 的首项）。 */
-  getPrimaryUserAgentsDirectory(params: { provider: ZCodeProvider }): Promise<{ path: string }>;
+  getPrimaryUserAgentsDirectory(params: { provider: NibiProvider }): Promise<{ path: string }>;
 
   /** 创建新的 agent 文件 */
   createAgent(params: AgentCreateParams): Promise<{ agent: AgentSummary }>;

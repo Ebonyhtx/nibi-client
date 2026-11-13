@@ -5,7 +5,7 @@ import { Emitter } from "@nibi/rpc";
 import type { WindowHostTaskUnreadSignal } from "@nibi/shared";
 import { useProjectUnreadSignals } from "@/project-sidebar/useProjectUnreadSignals.js";
 import { createTabStore, type TabStore } from "@/store/tabStore.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 
 const TARGET = {
   taskId: "task",
@@ -19,7 +19,7 @@ const mocks = vi.hoisted(() => ({
       onDynamicTaskUnreadSignal: ReturnType<typeof vi.fn>;
       mutateTask: ReturnType<typeof vi.fn>;
     };
-    zcodeTaskService: Record<string, unknown>;
+    nibiTaskService: Record<string, unknown>;
   },
   tabs: null as TabStore | null,
 }));
@@ -56,14 +56,14 @@ beforeEach(() => {
       onDynamicTaskUnreadSignal: vi.fn(() => signalEmitter.event),
       mutateTask: vi.fn(async () => ({ unreadAt: MARKER })),
     },
-    zcodeTaskService: { setTaskUnread: vi.fn() },
+    nibiTaskService: { setTaskUnread: vi.fn() },
   };
   // 构造 isDesktopViewing 全部命中：workspace tab 激活 + 完整导航地址 + activeTaskId。
   mocks.tabs.getState().addTab("/repo", { workspaceIdentity: TARGET.workspaceIdentity });
-  useZCodeSessionStore
+  useNibiSessionStore
     .getState()
     .setActiveTaskId("/repo", TARGET.taskId, TARGET.workspaceIdentity);
-  useZCodeSessionStore.setState({
+  useNibiSessionStore.setState({
     taskNavHistory: {
       entries: [
         {
@@ -154,7 +154,7 @@ describe("project sidebar foreground completion unread", () => {
     });
     await waitFor(() => expect(mutateTaskCalls()).toHaveLength(1));
     // 直接改 store 不发导航提交事件：模拟用户回到窗口时停在别的任务上
-    useZCodeSessionStore.setState({
+    useNibiSessionStore.setState({
       taskNavHistory: {
         entries: [
           {
@@ -333,7 +333,7 @@ describe("project sidebar foreground completion unread", () => {
   });
 
   it("非查看状态完成仍立即写未读（既有行为回归）", async () => {
-    useZCodeSessionStore.setState({
+    useNibiSessionStore.setState({
       taskNavHistory: {
         entries: [
           {

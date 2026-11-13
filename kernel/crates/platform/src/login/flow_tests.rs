@@ -184,7 +184,7 @@ async fn bigmodel_login_writes_the_app_profile() {
     let credentials = harness.credentials().await;
     // 工作线 F50：照 App 的轮询登录，profile id 是去空白的 `user_id`，rawProfile 是原始用户对象加 App 的版本号；
     // 以前按 Node 独立 CLI 用 `key-` + sha256(JSON [组织, 项目]) 作 id，并写身份与来源。
-    let info = r#"{"id":"u-9","username":"Dev","displayName":"Dev","rawProfile":{"user_id":" u-9 ","name":"Dev","email":"dev@example.com","extra":1,"zcodeProfileSchemaVersion":2}}"#;
+    let info = r#"{"id":"u-9","username":"Dev","displayName":"Dev","rawProfile":{"user_id":" u-9 ","name":"Dev","email":"dev@example.com","extra":1,"nibiProfileSchemaVersion":2}}"#;
     for (key, value) in [
         ("oauth:active_provider", "bigmodel"),
         ("zcodejwttoken", "zcode-jwt"),

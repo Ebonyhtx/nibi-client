@@ -1,6 +1,6 @@
 import { CheckIcon, Loader2Icon } from "lucide-react";
 import { Progress } from "@/components/ui/progress.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { SettingsSyncSelectionStep } from "@/settings-sync/SettingsSyncSelectionStep.js";
 import type { useSettingsSync } from "@/hooks/useSettingsSync.js";
 import {
@@ -63,7 +63,7 @@ export function createInitialFinishExecutionState(): FinishExecutionState {
 export function OnboardingAgentSettingsStep(props: {
   settingsSync: ReturnType<typeof useSettingsSync>;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
 
   const { discovery, loading, error } = props.settingsSync.state;
 
@@ -116,7 +116,7 @@ export function OnboardingMigrationStep(props: {
   overallProgress: number;
   finishExecution: FinishExecutionState;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center">
@@ -160,7 +160,7 @@ export function OnboardingFinishStep(props: {
   settingsSkippedCount: number;
   settingsFailedCount: number;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-8 pt-8">

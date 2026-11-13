@@ -13,7 +13,7 @@ import {
   parseModelConfig,
 } from "@nibi/provider";
 import { describe, expect, it } from "vitest";
-import { NodeZCodeBuiltinProviderConfigSource } from "../src/index.js";
+import { NodeNibiBuiltinProviderConfigSource } from "../src/index.js";
 
 // 发布验证必须指向最终上传的那份文件，而不是默认悄悄检查仓库源文件。
 const nibiBuiltinProviderConfigFilePath =
@@ -27,11 +27,11 @@ function reasoningPatch(map: string, reasoningLevel: string) {
   );
 }
 
-describe("ZCode Built-in Provider Config 完整性", () => {
+describe("Nibi Built-in Provider Config 完整性", () => {
   it.each(["anthropic-messages", "openai-chat-completions", "openai-responses"] as const)(
     "未知模型在 %s 下拥有完整两档兜底并可进入 Registry",
     async (apiType) => {
-      const source = new NodeZCodeBuiltinProviderConfigSource({
+      const source = new NodeNibiBuiltinProviderConfigSource({
         bundledFilePath: nibiBuiltinProviderConfigFilePath,
         watch: false,
       });
@@ -79,7 +79,7 @@ describe("ZCode Built-in Provider Config 完整性", () => {
     },
   );
   it("每个模板的成员都能解析出完整模型事实", async () => {
-    const source = new NodeZCodeBuiltinProviderConfigSource({
+    const source = new NodeNibiBuiltinProviderConfigSource({
       bundledFilePath: nibiBuiltinProviderConfigFilePath,
       watch: false,
     });
@@ -112,7 +112,7 @@ describe("ZCode Built-in Provider Config 完整性", () => {
   });
 
   it("聚合供应商按维护清单提供独立模板，不复用上游 Provider 配置", async () => {
-    const source = new NodeZCodeBuiltinProviderConfigSource({
+    const source = new NodeNibiBuiltinProviderConfigSource({
       bundledFilePath: nibiBuiltinProviderConfigFilePath,
       watch: false,
     });
@@ -137,7 +137,7 @@ describe("ZCode Built-in Provider Config 完整性", () => {
   });
 
   it("聚合供应商同型号命中模型规则和 API Map，保留完整 ID 且每家至少启用一个代表型号", async () => {
-    const source = new NodeZCodeBuiltinProviderConfigSource({
+    const source = new NodeNibiBuiltinProviderConfigSource({
       bundledFilePath: nibiBuiltinProviderConfigFilePath,
       watch: false,
     });
@@ -205,7 +205,7 @@ describe("ZCode Built-in Provider Config 完整性", () => {
   });
 
   it("每个 Built-in 成员都有显式 enabled 声明", async () => {
-    const source = new NodeZCodeBuiltinProviderConfigSource({
+    const source = new NodeNibiBuiltinProviderConfigSource({
       bundledFilePath: nibiBuiltinProviderConfigFilePath,
       watch: false,
     });
@@ -241,7 +241,7 @@ describe("ZCode Built-in Provider Config 完整性", () => {
   });
 
   it("按产品分组声明 Zhipu 系统 Provider 与外部主流 Provider", async () => {
-    const source = new NodeZCodeBuiltinProviderConfigSource({
+    const source = new NodeNibiBuiltinProviderConfigSource({
       bundledFilePath: nibiBuiltinProviderConfigFilePath,
       watch: false,
     });
@@ -317,7 +317,7 @@ describe("ZCode Built-in Provider Config 完整性", () => {
   });
 
   it("不保留语义等价的重复 matcher", async () => {
-    const source = new NodeZCodeBuiltinProviderConfigSource({
+    const source = new NodeNibiBuiltinProviderConfigSource({
       bundledFilePath: nibiBuiltinProviderConfigFilePath,
       watch: false,
     });
@@ -344,7 +344,7 @@ describe("ZCode Built-in Provider Config 完整性", () => {
   });
 
   it("Reasoning 公开档位按语义强度从低到高排列", async () => {
-    const source = new NodeZCodeBuiltinProviderConfigSource({
+    const source = new NodeNibiBuiltinProviderConfigSource({
       bundledFilePath: nibiBuiltinProviderConfigFilePath,
       watch: false,
     });
@@ -383,7 +383,7 @@ describe("ZCode Built-in Provider Config 完整性", () => {
   });
 
   it("解析 OpenAI Responses 与 Anthropic Messages 的模型事实和 reasoning 映射", async () => {
-    const source = new NodeZCodeBuiltinProviderConfigSource({
+    const source = new NodeNibiBuiltinProviderConfigSource({
       bundledFilePath: nibiBuiltinProviderConfigFilePath,
       watch: false,
     });
@@ -552,7 +552,7 @@ describe("ZCode Built-in Provider Config 完整性", () => {
   });
 
   it("每个 Built-in Provider 与模型成员都完整，启用成员在补齐访问材料后进入正式 Registry", async () => {
-    const source = new NodeZCodeBuiltinProviderConfigSource({
+    const source = new NodeNibiBuiltinProviderConfigSource({
       bundledFilePath: nibiBuiltinProviderConfigFilePath,
       watch: false,
     });
@@ -667,7 +667,7 @@ describe("ZCode Built-in Provider Config 完整性", () => {
   });
 
   it("完整兜底让任意未知模型 ID 在各 API type 与模板下完整并进入 Registry（R3A-B-03）", async () => {
-    const source = new NodeZCodeBuiltinProviderConfigSource({
+    const source = new NodeNibiBuiltinProviderConfigSource({
       bundledFilePath: nibiBuiltinProviderConfigFilePath,
       watch: false,
     });

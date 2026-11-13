@@ -6,7 +6,7 @@
 
 ## 1. 范围与落点
 
-- 文件：`apps/zcode-cli/packages/core/src/repl/node-repl-session.ts`（新）。
+- 文件：`apps/nibi-cli/packages/core/src/repl/node-repl-session.ts`（新）。
 - 纯引擎，不含工具定义（工具在 T2）。可被最小单测（`packages/core/tests/node-repl-session.test.ts`）。
 - 每个 zcode session 一个 `NodeReplSession` 实例；由 T2 的 handler 用 `Map<sessionId, NodeReplSession>` 管理（挂 agent runtime 生命周期）。
 

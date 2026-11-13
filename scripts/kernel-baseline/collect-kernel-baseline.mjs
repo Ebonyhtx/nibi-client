@@ -29,7 +29,7 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..", "..");
-const cliEntry = join(repoRoot, "apps/zcode-cli/packages/cli/dist/nibi.cjs");
+const cliEntry = join(repoRoot, "apps/nibi-cli/packages/cli/dist/nibi.cjs");
 const samplerPreload = join(here, "memory-sampler.cjs");
 const treeSamplerScript = join(here, "sample-process-tree.ps1");
 
@@ -584,9 +584,9 @@ function runInventoryMode() {
     },
     sourceAnchors: {
       agentSpawnEnv: "packages/services/src/node.ts:2206",
-      agentProcessManager: "packages/services/src/zcode-agent/zcodeAgentProcessManager.ts:601",
-      mcpStatusLane: "packages/services/src/zcode-agent/zcodeAgentService.ts:380,1089",
-      dwfChildHeap: "apps/zcode-cli/packages/dynamic-workflow-runtime/src/harness.ts:122",
+      agentProcessManager: "packages/services/src/nibi-agent/nibiAgentProcessManager.ts:601",
+      mcpStatusLane: "packages/services/src/nibi-agent/nibiAgentService.ts:380,1089",
+      dwfChildHeap: "apps/nibi-cli/packages/dynamic-workflow-runtime/src/harness.ts:122",
       v4ToolOutputBudget: "packages/shared/src/nibi-protocol-v4/core.ts:77-78",
       workspaceHookBudget: "packages/shared/src/workspace-hook-config.ts:8",
     },

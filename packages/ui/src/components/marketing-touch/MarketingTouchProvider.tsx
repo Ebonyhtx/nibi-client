@@ -12,8 +12,8 @@ import {
 import { NIBI_ENV } from "@nibi/shared";
 import { useServices } from "@/hooks/useServices.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
-import { useZCodeStore } from "@/store/StoreProvider.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiStore } from "@/store/StoreProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useCloudHeroEnvironment } from "@/components/cloud-content-dialog/useCloudHeroEnvironment.js";
 import { MarketingDialogs } from "@/components/marketing-touch/MarketingDialogs.js";
 import { toast } from "@/components/ui/toast.js";
@@ -52,10 +52,10 @@ export function MarketingTouchProvider({
   const platform = usePlatform();
   const openSettingsTab = useTabStore((state) => state.openSettingsTab);
   const tabStore = useTabStoreApi();
-  const user = useZCodeStore((state) => state.user);
-  const restoring = useZCodeStore((state) => state.isRestoringOAuthSession);
-  const requestLogin = useZCodeStore((state) => state.requestLoginEntry);
-  const { intl, locale } = useZCodeIntl();
+  const user = useNibiStore((state) => state.user);
+  const restoring = useNibiStore((state) => state.isRestoringOAuthSession);
+  const requestLogin = useNibiStore((state) => state.requestLoginEntry);
+  const { intl, locale } = useNibiIntl();
   const identity = user?.id ?? "anonymous";
   const createRuntime = useCallback(() => {
     const service = services.marketingTouchService;
@@ -272,7 +272,7 @@ export function MarketingBanner() {
 function ConnectedBanner({ controller }: { controller: MarketingTouchController }) {
   const state = useStore(controller.store);
   const { dark } = useCloudHeroEnvironment();
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const banner = state.banner;
   // 与仲裁层（SidebarBottomActivity）共用同一可见性谓词，避免两处判断漂移。
   if (!isMarketingBannerRenderable(banner)) return null;

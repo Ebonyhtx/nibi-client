@@ -20,7 +20,7 @@ use crate::{HeaderValue, HttpRequest, HttpResponse, NetError, NoProxy, TrustRoot
 const PROXY_SCHEMES: [&str; 6] = ["http", "https", "socks4", "socks4a", "socks5", "socks5h"];
 /// 未配置建连超时时的默认值。
 const DEFAULT_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
-/// 空闲连接保留时间（与 apps/zcode-cli-rust 的模型客户端相同）。
+/// 空闲连接保留时间（与 apps/nibi-cli-rust 的模型客户端相同）。
 const POOL_IDLE_TIMEOUT: Duration = Duration::from_secs(90);
 
 /// 出口策略。热更新时整份替换，请求开始时读一次。

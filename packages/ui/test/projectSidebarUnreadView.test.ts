@@ -16,20 +16,20 @@ const mocks = vi.hoisted(() => ({
   state: { workspaces: {} as Record<string, { activeTaskId?: string }> },
 }));
 vi.mock("@/hooks/useWorkspaceServices.js", () => ({
-  useBaseWorkspaceServices: () => ({ windowControllerService: {}, zcodeTaskService: {} }),
+  useBaseWorkspaceServices: () => ({ windowControllerService: {}, nibiTaskService: {} }),
 }));
 vi.mock("@/hooks/useResolvedRemoteWorkspaceSessionId.js", () => ({
   useResolvedRemoteWorkspaceSessionId: () => null,
 }));
-vi.mock("@/store/zcodeSessionStore.js", () => ({
-  useZCodeSessionStore: (select: (state: typeof mocks.state) => unknown) => select(mocks.state),
+vi.mock("@/store/nibiSessionStore.js", () => ({
+  useNibiSessionStore: (select: (state: typeof mocks.state) => unknown) => select(mocks.state),
 }));
 vi.mock("@/store/TabStoreProvider.js", () => ({
   useTabStore: (select: (state: { openSettingsTab(): void }) => unknown) =>
     select({ openSettingsTab: vi.fn() }),
 }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
+  useNibiIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
 }));
 vi.mock("@/TaskListItem.js", () => ({
   MemoTaskItem: (props: { task: { title: string } }) => {

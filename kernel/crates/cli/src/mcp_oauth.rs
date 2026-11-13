@@ -1,4 +1,4 @@
-//! MCP 服务器的 OAuth 令牌端口（Node `apps/zcode-cli/packages/adapters/src/mcp/oauth*.ts` 的等份实现）。
+//! MCP 服务器的 OAuth 令牌端口（Node `apps/nibi-cli/packages/adapters/src/mcp/oauth*.ts` 的等份实现）。
 //!
 //! - `client_credentials`：内核自己发现授权服务器、用 `client_secret_basic` 换令牌，进程内缓存到期前
 //!   提前刷新（Node `ClientCredentialsProvider`）。

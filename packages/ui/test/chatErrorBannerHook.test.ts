@@ -5,7 +5,7 @@ import { TID_CHAT_ERROR_DETAILS_BUTTON, TID_CHAT_ERROR_HOOK_ICON } from "@nibi/s
 import { describe, expect, it, vi } from "vitest";
 import { ChatErrorBanner } from "@/ChatErrorBanner.js";
 import { PlatformProvider } from "@/hooks/usePlatform.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 vi.mock("@/components/ui/toast.js", () => ({
   toast: vi.fn(),
@@ -19,7 +19,7 @@ describe("ChatErrorBanner Hook errors", () => {
   it("renders the Hook icon and details action for a blocked Hook error", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           PlatformProvider,

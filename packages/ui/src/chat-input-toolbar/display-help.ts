@@ -1,6 +1,6 @@
-import type { ZCodeProvider } from "@nibi/shared";
+import type { NibiProvider } from "@nibi/shared";
 
-export const NIBI_MODE_OPTION_LABEL_IDS: Record<ZCodeProvider, Record<string, string>> = {
+export const NIBI_MODE_OPTION_LABEL_IDS: Record<NibiProvider, Record<string, string>> = {
   glm: {
     default: "mode.label.glm.default",
     build: "mode.label.glm.build",
@@ -11,7 +11,7 @@ export const NIBI_MODE_OPTION_LABEL_IDS: Record<ZCodeProvider, Record<string, st
   },
 };
 
-export const NIBI_MODE_OPTION_DESCRIPTION_IDS: Record<ZCodeProvider, Record<string, string>> = {
+export const NIBI_MODE_OPTION_DESCRIPTION_IDS: Record<NibiProvider, Record<string, string>> = {
   glm: {
     default: "mode.description.glm.default",
     build: "mode.description.glm.build",

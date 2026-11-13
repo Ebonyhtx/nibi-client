@@ -24,8 +24,8 @@ export function resolveUserHomeDir(): string {
   return envHome && envHome.length > 0 ? envHome : homedir();
 }
 
-/** 用户级 ZCode 技能目录（NIBI 使用 `~/.nibi/skills`，与设置页技能服务一致）。 */
-export function getUserZcodeSkillRoot(): string {
+/** 用户级 Nibi 技能目录（NIBI 使用 `~/.nibi/skills`，与设置页技能服务一致）。 */
+export function getUserNibiSkillRoot(): string {
   return join(resolveUserHomeDir(), ".nibi", "skills");
 }
 
@@ -40,26 +40,26 @@ function getUserAgentsSkillRoot(): string {
  */
 export async function collectUserSkillCandidates(): Promise<UserSkillCandidate[]> {
   const seenSkillRealpaths = new Set<string>();
-  const userZcodeSkillRoot = getUserZcodeSkillRoot();
-  const rawZcodeCandidates = await collectUserSkillCandidatesInRoot(userZcodeSkillRoot);
-  const zcodeDirectoryNames = await collectCoveredSkillDirectoryNamesInRoot(userZcodeSkillRoot);
-  const zcodeSkillNameKeys = new Set(
-    rawZcodeCandidates.map((candidate) => normalizeSkillNameKey(candidate.name)),
+  const userNibiSkillRoot = getUserNibiSkillRoot();
+  const rawNibiCandidates = await collectUserSkillCandidatesInRoot(userNibiSkillRoot);
+  const nibiDirectoryNames = await collectCoveredSkillDirectoryNamesInRoot(userNibiSkillRoot);
+  const nibiSkillNameKeys = new Set(
+    rawNibiCandidates.map((candidate) => normalizeSkillNameKey(candidate.name)),
   );
-  const zcodeCandidates = await dedupeCandidatesByCanonicalSkillPath(
-    rawZcodeCandidates,
+  const nibiCandidates = await dedupeCandidatesByCanonicalSkillPath(
+    rawNibiCandidates,
     seenSkillRealpaths,
   );
   const agentsCandidates = await dedupeCandidatesByCanonicalSkillPath(
     (await collectUserSkillCandidatesInRoot(getUserAgentsSkillRoot())).filter(
       (candidate) =>
-        !zcodeDirectoryNames.has(candidate.directoryName) &&
-        !zcodeSkillNameKeys.has(normalizeSkillNameKey(candidate.name)),
+        !nibiDirectoryNames.has(candidate.directoryName) &&
+        !nibiSkillNameKeys.has(normalizeSkillNameKey(candidate.name)),
     ),
     seenSkillRealpaths,
   );
 
-  return [...zcodeCandidates, ...agentsCandidates].sort((left, right) =>
+  return [...nibiCandidates, ...agentsCandidates].sort((left, right) =>
     left.directoryName.localeCompare(right.directoryName),
   );
 }

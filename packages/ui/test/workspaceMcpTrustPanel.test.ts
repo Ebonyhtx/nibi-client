@@ -2,7 +2,7 @@
 import { createElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { ZCodeIntlProvider } from "../src/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "../src/i18n/IntlProvider.js";
 import { WorkspaceMcpTrustPanel } from "../src/settings/workspaceMcpTrust/panel.js";
 import {
   resolveWorkspaceMcpTrustPresentation,
@@ -53,7 +53,7 @@ function renderPanel(
   const onDecide = vi.fn();
   render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: options.locale ?? "zh-CN" },
       createElement(WorkspaceMcpTrustPanel, {
         serverName: "probe",

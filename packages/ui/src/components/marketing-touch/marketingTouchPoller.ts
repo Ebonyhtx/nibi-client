@@ -1,8 +1,8 @@
-import type { ZCodeEnv } from "@nibi/shared";
+import type { NibiEnv } from "@nibi/shared";
 
 export function resolveMarketingTouchPollIntervalMs(
   isProductionBuild: boolean,
-  env: ZCodeEnv,
+  env: NibiEnv,
 ): number {
   return isProductionBuild && env === "production" ? 10 * 60_000 : 30_000;
 }

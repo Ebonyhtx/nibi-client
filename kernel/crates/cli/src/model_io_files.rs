@@ -1,5 +1,5 @@
 //! 模型轨迹文件（docs/specs/rust-cli/model-io.md §3.2、§3.3）：文件名、轮转、容量与消息压缩，逐条照 Node
-//! `apps/zcode-cli/packages/adapters/src/model/runner-debug.ts`（两边共用目录与名额）。文件 IO 只经 `nibi_kernel_fs`；
+//! `apps/nibi-cli/packages/adapters/src/model/runner-debug.ts`（两边共用目录与名额）。文件 IO 只经 `nibi_kernel_fs`；
 //! 文件在不在、多大每次从磁盘读（另一个进程的轮转可能删掉本方的文件），压缩状态只在内存里。
 
 use std::collections::HashMap;

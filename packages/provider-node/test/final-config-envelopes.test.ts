@@ -6,8 +6,8 @@ import {
   encodeProviderConfigFile,
 } from "../src/provider-config-file-codec.js";
 import {
-  decodeZCodeBuiltinRelease,
-  encodeZCodeBuiltinRelease,
+  decodeNibiBuiltinRelease,
+  encodeNibiBuiltinRelease,
 } from "../src/nibi-builtin-release.js";
 
 describe("Todo104 最终文件外壳", () => {
@@ -77,8 +77,8 @@ describe("Todo104 最终文件外壳", () => {
     );
     expect(raw.schemaVersion).toBe(1);
     expect(raw.revision).toBeGreaterThanOrEqual(18);
-    const parsed = decodeZCodeBuiltinRelease(raw);
-    expect(encodeZCodeBuiltinRelease(parsed)).toEqual(raw);
+    const parsed = decodeNibiBuiltinRelease(raw);
+    expect(encodeNibiBuiltinRelease(parsed)).toEqual(raw);
     expect(parsed.config.providerTemplates.keys().length).toBeGreaterThan(0);
     for (const rule of parsed.config.providers.toJSON()) {
       expect(rule.config).not.toHaveProperty("templateId");

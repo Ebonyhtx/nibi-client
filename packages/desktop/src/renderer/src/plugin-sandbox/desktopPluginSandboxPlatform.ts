@@ -8,7 +8,7 @@ import type {
 /**
  * 桌面 renderer 的插件沙箱平台端口：原生操作委托 preload 命名空间，那条 JSON-RPC 端口从 preload 经
  * window.postMessage transfer 到来（MessagePort 不能过 contextBridge，同 remoteWorkspaceServicePortBridge）。
- * 旧 preload 没有 zcodePluginSandbox 时返回 undefined，UI 按"不支持插件 UI"回退。
+ * 旧 preload 没有 nibiPluginSandbox 时返回 undefined，UI 按"不支持插件 UI"回退。
  */
 export function createDesktopPluginSandboxPlatform(): PluginSandboxPlatformPort | undefined {
   const bridge = window.nibiPluginSandbox;

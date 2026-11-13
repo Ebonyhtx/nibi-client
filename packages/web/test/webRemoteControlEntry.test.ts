@@ -14,7 +14,7 @@ function setup(
   account: WebRemoteControlDeviceListAccount | null = null,
 ) {
   const auth = {
-    getZCodeJwtToken: () => jwt,
+    getNibiJwtToken: () => jwt,
     getActiveAccount: vi.fn(() => (jwt ? account : null)),
     startLogin: vi.fn(),
     logout: vi.fn(async () => {
@@ -233,7 +233,7 @@ it("同 MID 全离线只展示一项，完整 MID 不同但前八位相同的设
 
 it("多个在线 SID 保留在同一设备项内，任意连接都可被明确选择且刷新后旧连接失效", async () => {
   const h = setup("jwt", "https://zcode.z.ai/remote/v4?app_version=3.13.0");
-  const other = { ...onlineDevice, device_sid: "other", meta: { name: "ZCode Dev" } };
+  const other = { ...onlineDevice, device_sid: "other", meta: { name: "Nibi Dev" } };
   h.devices.mockResolvedValue([other, onlineDevice]);
   await h.entry.start();
   expect(h.onView.mock.lastCall[0].devices).toEqual([
@@ -256,7 +256,7 @@ it("多个在线 SID 保留在同一设备项内，任意连接都可被明确�
     app_version: "3.13.0",
     sid: "other",
     mid: onlineDevice.device_mid,
-    name: "ZCode Dev",
+    name: "Nibi Dev",
   });
   expect(h.storage.get("nibi-web-remote-last-device-sid")).toBe("other");
   expect(h.storage.get("nibi-web-remote-last-device-mid")).toBe(onlineDevice.device_mid);
@@ -264,7 +264,7 @@ it("多个在线 SID 保留在同一设备项内，任意连接都可被明确�
 
 it("最近 SID 在线时优先连接原 SID，即使同 MID 还有其他在线连接", async () => {
   const h = setup("jwt", "https://zcode.z.ai/remote/v4");
-  const preferred = { ...onlineDevice, device_sid: "preferred", meta: { name: "ZCode Dev" } };
+  const preferred = { ...onlineDevice, device_sid: "preferred", meta: { name: "Nibi Dev" } };
   h.storage.set("nibi-web-remote-last-device-sid", "preferred");
   h.devices.mockResolvedValue([onlineDevice, preferred]);
   await h.entry.start();

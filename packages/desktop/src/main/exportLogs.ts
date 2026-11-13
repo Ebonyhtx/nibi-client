@@ -28,16 +28,16 @@ import {
 import { createAboutSnapshot, formatAboutDetail, readBuildMetadata } from "./about.js";
 import { logger } from "./logger.js";
 
-function getZCodeDataDir() {
+function getNibiDataDir() {
   return getAppConfigDir();
 }
 
-function getZCodeCliDir() {
+function getNibiCliDir() {
   return join(homedir(), ".nibi", "cli");
 }
 
-function getZCodeCliLogDir() {
-  return join(getZCodeCliDir(), "log");
+function getNibiCliLogDir() {
+  return join(getNibiCliDir(), "log");
 }
 
 /**
@@ -76,7 +76,7 @@ interface LogArchiveSkippedFileEntry {
 
 interface ExportLogsDependencies {
   now?: () => Date;
-  getZCodeDataDir?: () => string;
+  getNibiDataDir?: () => string;
   getExportLogStageDir?: () => string;
   getExportLogDir?: () => string;
   createLogArchiveArtifacts?: (
@@ -960,27 +960,27 @@ export async function createLogArchiveArtifacts(
 
   await collectLogArchiveFilesFromDirectory(sourceDir, "", visitedDirs, files);
 
-  const zcodeCliLogDir = getZCodeCliLogDir();
-  // GLM / zcode-cli 的运行日志写在 ~/.nibi/cli/log，不在应用主数据目录 ~/.nibi/v2 下。
+  const nibiCliLogDir = getNibiCliLogDir();
+  // GLM / nibi-cli 的运行日志写在 ~/.nibi/cli/log，不在应用主数据目录 ~/.nibi/v2 下。
   // 如果导出日志只扫描 v2，定位 agent CLI 启动、协议或崩溃问题时会缺少最关键的原生侧日志。
   await collectLogArchiveFilesFromDirectory(
-    zcodeCliLogDir,
+    nibiCliLogDir,
     posix.join(".nibi", "cli", "log"),
     visitedDirs,
     files,
   );
 
-  const zcodeCliDir = getZCodeCliDir();
+  const nibiCliDir = getNibiCliDir();
   // 排查 agent CLI 问题还需要它的运行配置与模型 IO 轨迹。
   // config.json 是当前生效配置；rollout 是 model-io 调用轨迹，
   // 二者都不在 ~/.nibi/cli/log 下，需要额外收集才能完整还原现场。
   await collectLogArchiveFile(
-    join(zcodeCliDir, "config.json"),
+    join(nibiCliDir, "config.json"),
     posix.join(".nibi", "cli", "config.json"),
     files,
   );
   await collectLogArchiveFilesFromDirectory(
-    join(zcodeCliDir, "rollout"),
+    join(nibiCliDir, "rollout"),
     posix.join(".nibi", "cli", "rollout"),
     visitedDirs,
     files,
@@ -1144,16 +1144,16 @@ export async function createFeedbackLogArchiveFromExportLogs(
   return createFeedbackDiagnosticArchive({
     sources: [
       { directory: join(sourceDir, "logs"), archivePrefix: "logs" },
-      { directory: getZCodeCliLogDir(), archivePrefix: ".nibi/cli/log" },
+      { directory: getNibiCliLogDir(), archivePrefix: ".nibi/cli/log" },
       {
-        directory: getZCodeCliDir(),
+        directory: getNibiCliDir(),
         archivePrefix: ".nibi/cli",
         includeFileNames: ["config.json"],
         onlyCurrentDay: false,
         contentPolicy: "cli-config",
       },
       {
-        directory: join(getZCodeCliDir(), "rollout"),
+        directory: join(getNibiCliDir(), "rollout"),
         archivePrefix: ".nibi/cli/rollout",
       },
       {
@@ -1173,7 +1173,7 @@ export async function exportLogs(
 ): Promise<{ success: boolean; path?: string; error?: string }> {
   try {
     const now = dependencies.now ?? (() => new Date());
-    const getSourceDir = dependencies.getZCodeDataDir ?? getZCodeDataDir;
+    const getSourceDir = dependencies.getNibiDataDir ?? getNibiDataDir;
     const buildArtifacts = dependencies.createLogArchiveArtifacts ?? createLogArchiveArtifacts;
     const writeZip = dependencies.writeLogArchiveZip ?? writeLogArchiveZip;
     const writeDirectory = dependencies.writeLogArchiveDirectory ?? writeLogArchiveDirectory;

@@ -209,7 +209,7 @@ describe("atomicWriteText", () => {
       code: "EACCES",
       path: filePath,
       syscall: "rename",
-      zcodeFsFaultId: "D03-provider-settings-eacces",
+      nibiFsFaultId: "D03-provider-settings-eacces",
     });
 
     expect(vi.mocked(rename)).toHaveBeenCalledTimes(0);

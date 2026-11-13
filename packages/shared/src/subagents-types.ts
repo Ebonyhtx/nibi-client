@@ -1,4 +1,4 @@
-import type { ZCodeProvider } from "./zcode-task-types-core.js";
+import type { NibiProvider } from "./nibi-task-types-core.js";
 import { modelSelectionSchema, type ModelSelection } from "./model-selection.js";
 
 export type AgentScope = "built-in" | "workspace" | "user";
@@ -34,7 +34,7 @@ export const SUBAGENT_SELECTION_FALLBACK_MODES = [
 ] as const satisfies readonly SubagentSelectionFallbackMode[];
 
 /**
- * 出厂默认：`capability`（**NIBI 产品口径，与上游 ZCode 的原本行为不同**）。
+ * 出厂默认：`capability`（**NIBI 产品口径，与上游 Nibi 的原本行为不同**）。
  *
  * 上游原本是"解析不出来就报错"。本产品改成自动挑一个能用的，理由是实测出来的：
  * agent 定义里 pin 供应商是常态（官方插件的 `visual-judge` 就钉了一个本机根本没有的
@@ -171,7 +171,7 @@ export interface SubAgentConfig {
 /** Agent 创建参数 */
 export interface AgentCreateParams {
   config: SubAgentConfig;
-  provider: ZCodeProvider;
+  provider: NibiProvider;
   scope?: "user" | "workspace";
   workspacePath?: string;
   workspaceIdentity?: string;
@@ -182,7 +182,7 @@ export interface AgentUpdateParams {
   agentId: string;
   config: SubAgentConfig;
   oldFilePath?: string;
-  provider: ZCodeProvider;
+  provider: NibiProvider;
   scope?: "user" | "workspace";
   workspacePath?: string;
   workspaceIdentity?: string;

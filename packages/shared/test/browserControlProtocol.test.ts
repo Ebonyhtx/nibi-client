@@ -7,10 +7,10 @@ import {
   browserSnapshotSchema,
 } from "../src/browser-use/index.js";
 import {
-  zcodeBrowserExecuteParamsSchema,
-  zcodeBrowserExecuteResultSchema,
-  zcodeBrowserListParamsSchema,
-  zcodeBrowserListResultSchema,
+  nibiBrowserExecuteParamsSchema,
+  nibiBrowserExecuteResultSchema,
+  nibiBrowserListParamsSchema,
+  nibiBrowserListResultSchema,
   nibiProtocolMethods,
   nibiProtocolSessionMethodContracts,
 } from "../src/nibi-protocol/index.js";
@@ -19,7 +19,7 @@ const IAB_DESCRIPTOR = {
   id: "iab-runtime-1",
   generation: 1,
   type: "iab" as const,
-  name: "ZCode In-app Browser",
+  name: "Nibi In-app Browser",
   capabilities: {
     browser: [{ id: "visibility", description: "Browser visibility control" }],
     tab: [{ id: "cdp", description: "Controlled CDP commands" }],
@@ -55,7 +55,7 @@ describe("browser command schema", () => {
       method: "closeSession",
     });
     expect(
-      zcodeBrowserExecuteParamsSchema.parse({
+      nibiBrowserExecuteParamsSchema.parse({
         requestId: "req-close",
         sessionId: "sess_dwf-dwfrun-1-actor_1_1",
         command: { method: "closeSession", closeTabs: true },
@@ -132,7 +132,7 @@ describe("browser command schema", () => {
           actions: [
             { type: "wait", durationMs: 500 },
             { type: "click", selector: "#start" },
-            { type: "type", selector: "#name", text: "ZCode" },
+            { type: "type", selector: "#name", text: "Nibi" },
             { type: "hover", x: 120, y: 80, durationMs: 200 },
             { type: "scroll", deltaX: 0, deltaY: 600, durationMs: 800 },
             { type: "waitFor", selector: ".done", timeoutMs: 3_000 },
@@ -423,12 +423,12 @@ describe("interaction/browserList protocol", () => {
   it("注册严格 method contract", () => {
     expect(nibiProtocolMethods.interactionBrowserList).toBe("interaction/browserList");
     const entry = nibiProtocolSessionMethodContracts[nibiProtocolMethods.interactionBrowserList];
-    expect(entry?.params).toBe(zcodeBrowserListParamsSchema);
-    expect(entry?.result).toBe(zcodeBrowserListResultSchema);
+    expect(entry?.params).toBe(nibiBrowserListParamsSchema);
+    expect(entry?.result).toBe(nibiBrowserListResultSchema);
   });
 
   it("round-trips 完整 discovery context", () => {
-    const parsed = zcodeBrowserListParamsSchema.parse({
+    const parsed = nibiBrowserListParamsSchema.parse({
       requestId: "req-list-1",
       sessionId: "sess-1",
       turnId: "turn-1",
@@ -445,13 +445,13 @@ describe("interaction/browserList protocol", () => {
 
   it("拒绝缺失隔离 context 或多余字段", () => {
     expect(() =>
-      zcodeBrowserListParamsSchema.parse({
+      nibiBrowserListParamsSchema.parse({
         requestId: "req-list-1",
         sessionId: "sess-1",
       }),
     ).toThrow();
     expect(() =>
-      zcodeBrowserListParamsSchema.parse({
+      nibiBrowserListParamsSchema.parse({
         requestId: "req-list-1",
         sessionId: "sess-1",
         workspaceKey: "/repo",
@@ -465,7 +465,7 @@ describe("interaction/browserList protocol", () => {
 
   it("result 使用统一 descriptor list schema", () => {
     expect(
-      zcodeBrowserListResultSchema.parse({ browsers: [IAB_DESCRIPTOR] }).browsers[0]?.type,
+      nibiBrowserListResultSchema.parse({ browsers: [IAB_DESCRIPTOR] }).browsers[0]?.type,
     ).toBe("iab");
   });
 });
@@ -489,13 +489,13 @@ describe("interaction/browserExecute protocol", () => {
       sessionId: "sess-1",
       command: { method: "navigate", url: "https://example.com" } as const,
     };
-    const parsed = zcodeBrowserExecuteParamsSchema.parse(params);
+    const parsed = nibiBrowserExecuteParamsSchema.parse(params);
     expect(parsed.command.method).toBe("navigate");
     expect(parsed.sessionId).toBe("sess-1");
   });
 
   it("params round-trips browserId + workspace/session context", () => {
-    const parsed = zcodeBrowserExecuteParamsSchema.parse({
+    const parsed = nibiBrowserExecuteParamsSchema.parse({
       requestId: "req-2",
       sessionId: "sess-1",
       turnId: "turn-1",
@@ -515,14 +515,14 @@ describe("interaction/browserExecute protocol", () => {
 
   it("兼容旧 execute params，但继续拒绝未知字段", () => {
     expect(
-      zcodeBrowserExecuteParamsSchema.parse({
+      nibiBrowserExecuteParamsSchema.parse({
         requestId: "legacy-req",
         sessionId: "legacy-session",
         command: { method: "getState" },
       }).browserId,
     ).toBeUndefined();
     expect(() =>
-      zcodeBrowserExecuteParamsSchema.parse({
+      nibiBrowserExecuteParamsSchema.parse({
         requestId: "legacy-req",
         sessionId: "legacy-session",
         command: { method: "getState" },
@@ -537,7 +537,7 @@ describe("interaction/browserExecute protocol", () => {
       image: { base64: "iVBOR", mimeType: "image/png" as const },
       elapsedMs: 12,
     };
-    const parsed = zcodeBrowserExecuteResultSchema.parse(result);
+    const parsed = nibiBrowserExecuteResultSchema.parse(result);
     expect(parsed.ok).toBe(true);
     expect(parsed.image?.base64).toBe("iVBOR");
   });
@@ -552,7 +552,7 @@ describe("interaction/browserExecute protocol", () => {
   });
 
   it("result round-trips duplicate request id errors", () => {
-    const parsed = zcodeBrowserExecuteResultSchema.parse({
+    const parsed = nibiBrowserExecuteResultSchema.parse({
       ok: false,
       error: {
         code: "duplicate_request_id",

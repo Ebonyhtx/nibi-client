@@ -745,7 +745,7 @@ async function readMainMemoryFixture(): Promise<string> {
   const content = normalizeTextFixtureLineEndings(
     await readFile(
       new URL(
-        "../../../../../apps/zcode-cli/packages/core/tests/fixtures/memory/main-memory-default-index.md",
+        "../../../../../apps/nibi-cli/packages/core/tests/fixtures/memory/main-memory-default-index.md",
         import.meta.url,
       ),
       "utf8",
@@ -758,7 +758,7 @@ async function readMainMemoryIndexFixture(): Promise<string> {
   const content = normalizeTextFixtureLineEndings(
     await readFile(
       new URL(
-        "../../../../../apps/zcode-cli/packages/core/tests/fixtures/memory/main-memory-index.md",
+        "../../../../../apps/nibi-cli/packages/core/tests/fixtures/memory/main-memory-index.md",
         import.meta.url,
       ),
       "utf8",

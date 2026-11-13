@@ -1,5 +1,5 @@
 //! 标题模型回复的整理（docs/specs/rust-cli/titles.md §3）：Node `normalizeTitleInput` 与
-//! `cleanGeneratedTitle`（`apps/zcode-cli/packages/core/src/runtime/methods/title-generation-sidecar.ts`）。
+//! `cleanGeneratedTitle`（`apps/nibi-cli/packages/core/src/runtime/methods/title-generation-sidecar.ts`）。
 
 // 压空白只定义在 base（F58：以前这里写了一份 `collapse`）。
 use nibi_kernel_base::js::string::{collapse_spaces as collapse, is_space, trim, utf16_prefix};

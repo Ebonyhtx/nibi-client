@@ -6,7 +6,7 @@ import type { ConnectionProfile, SourceServerRecord } from "@nibi/shared";
 import { EditConnectionProfileDialog } from "@/remote-connection/EditConnectionProfileDialog.js";
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: { formatMessage: ({ id }: { id: string }) => id },
   }),
 }));

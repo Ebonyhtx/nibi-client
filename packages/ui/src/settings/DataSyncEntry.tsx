@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useOpenDataSyncSettings } from "@/hooks/useOpenDataSyncSettings.js";
 
 /** 入口只预选数据同步页已支持的三类；其余分类在页面内切换。 */
@@ -38,7 +38,7 @@ export function DataSyncEntryButton({
   labelId: string;
   size?: "icon-md" | "icon-lg";
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const openDataSync = useOpenDataSyncSettings();
   const label = intl.formatMessage({ id: labelId });
   return (
@@ -63,7 +63,7 @@ export function DataSyncEntryMenuItems({
 }: {
   categories?: readonly DataSyncEntryCategory[];
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const openDataSync = useOpenDataSyncSettings();
   const stopMouseDown = (event: MouseEvent) => {
     event.stopPropagation();
@@ -93,7 +93,7 @@ export function DataSyncEntryDropdownButton({
 }: {
   categories?: readonly DataSyncEntryCategory[];
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   if (categories.length === 0) return null;
   return (
     <DropdownMenu>

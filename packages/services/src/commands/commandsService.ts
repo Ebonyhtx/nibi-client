@@ -16,7 +16,7 @@ import {
   type SettingsDirectoryLocation,
   type SettingsDirectorySource,
   type UserCommand,
-  type ZCodeCommand,
+  type NibiCommand,
 } from "@nibi/shared";
 import { DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS } from "@nibi/shared";
 import type { ICommandsService } from "./commands.js";
@@ -55,7 +55,7 @@ const NIBI_PLUGIN_MANIFEST_PATHS = [join(".nibi-plugin", "plugin.json"), join(".
 const CLAUDE_PLUGIN_MANIFEST_PATH = join(".claude-plugin", "plugin.json");
 const CODEX_PLUGIN_MANIFEST_PATH = join(".codex-plugin", "plugin.json");
 const NIBI_COMMAND_DESCRIPTOR: CommandAgentSourceDescriptor = {
-  agentSource: "zcodeAgent",
+  agentSource: "nibiAgent",
   directorySource: "nibi",
   userDirectorySegments: getUserCommandRootSegments("nibi"),
   workspaceDirectorySegments: getUserCommandRootSegments("nibi"),
@@ -66,7 +66,7 @@ const NIBI_COMMAND_DESCRIPTOR: CommandAgentSourceDescriptor = {
 };
 
 const COMMAND_AGENT_SOURCE_DESCRIPTORS: Record<CommandAgentSource, CommandAgentSourceDescriptor> = {
-  zcodeAgent: NIBI_COMMAND_DESCRIPTOR,
+  nibiAgent: NIBI_COMMAND_DESCRIPTOR,
 };
 
 const COMMAND_DIRECTORY_SOURCE_DESCRIPTORS: readonly CommandAgentSourceDescriptor[] = [
@@ -459,7 +459,7 @@ export function createCommandsService(_options?: CommandsServiceOptions): IComma
     const agentSources = getCommandAgentSources(params.agentSource);
     const enabledOverrides = await readCommandEnabledOverridesFromUserConfig();
 
-    // ZCode Agent 需要先合并所有 workspace 目录，再合并所有 user 目录；
+    // Nibi Agent 需要先合并所有 workspace 目录，再合并所有 user 目录；
     // 按每个目录交错读取 project/user 会让 user .nibi 抢在 workspace .agents 前面。
     for (const agentSource of agentSources) {
       const descriptors =
@@ -496,7 +496,7 @@ export function createCommandsService(_options?: CommandsServiceOptions): IComma
         : [];
 
     return {
-      commands: [...dedupedUserCommands, ...pluginCommands] as ZCodeCommand[],
+      commands: [...dedupedUserCommands, ...pluginCommands] as NibiCommand[],
       userCommands: dedupedUserCommands,
       pluginCommands,
       capability: { userScopeAvailable: true },

@@ -11,7 +11,7 @@ import type {
 } from "@nibi/shared/nibi-protocol-v4";
 import { TaskWorkflowRunLines } from "@/components/workflow-run-line/TaskWorkflowRunLines.js";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import {
   createWorkflowRunAckStore,
   setWorkflowRunAckStoreForTesting,
@@ -60,7 +60,7 @@ function run(
 function wrap(node: ReactNode, onOpenRun?: (target: WorkflowRunOpenTarget) => void) {
   const inner = onOpenRun ? createElement(WorkflowRunOpenProvider, { onOpenRun }, node) : node;
   return createElement(
-    ZCodeIntlProvider,
+    NibiIntlProvider,
     { initialLocale: "en-US" },
     createElement(TooltipProvider, null, inner),
   );

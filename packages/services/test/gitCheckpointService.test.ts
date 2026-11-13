@@ -67,7 +67,7 @@ function createRepo() {
 
   runGit(repoPath, ["init"]);
   runGit(repoPath, ["branch", "-M", "main"]);
-  runGit(repoPath, ["config", "user.name", "ZCode Tester"]);
+  runGit(repoPath, ["config", "user.name", "Nibi Tester"]);
   runGit(repoPath, ["config", "user.email", "tester@example.com"]);
   runGit(repoPath, ["config", "commit.gpgsign", "false"]);
   runGit(repoPath, ["config", "core.autocrlf", "false"]);

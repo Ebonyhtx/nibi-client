@@ -11,13 +11,13 @@ import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { useResolvedRemoteWorkspaceSessionId } from "@/hooks/useResolvedRemoteWorkspaceSessionId.js";
 import { useOptionalPlatform } from "@/hooks/usePlatform.js";
 import { useWebRemoteControlStatus } from "@/hooks/useWebRemoteControlStatus.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 import { reportAppTelemetryEvent } from "@/lib/appTelemetry.js";
 import { WebRemoteControlDialog } from "@/web-remote-control/index.js";
 import { useWebRemoteControlFeatureEnabled } from "@/WebRemoteControlFeatureProvider.js";
 
-type FormatMessage = ReturnType<typeof useZCodeIntl>["intl"]["formatMessage"];
+type FormatMessage = ReturnType<typeof useNibiIntl>["intl"]["formatMessage"];
 
 export function getWebRemoteControlTriggerPresentation(
   status: Pick<WebRemoteControlStatus, "status" | "mobileConnected">,
@@ -123,7 +123,7 @@ function WorkspaceWebRemoteControlTriggerContent({
   compact?: boolean;
   className?: string;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const platform = useOptionalPlatform();
   const mappedRemoteSessionId = useResolvedRemoteWorkspaceSessionId(
     workspacePath,

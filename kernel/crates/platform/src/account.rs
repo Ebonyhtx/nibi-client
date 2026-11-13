@@ -1,4 +1,4 @@
-// 语义复制自 apps/zcode-cli/packages/bootstrap/src/app/standalone-account-provider-runtime.ts（e80be55974）的键名与
+// 语义复制自 apps/nibi-cli/packages/bootstrap/src/app/standalone-account-provider-runtime.ts（e80be55974）的键名与
 // 手工 key。Team Plan 取 App 的 TS 账号栈（packages/provider 的 account-provider-resolution.ts，staging 699b62b8d6，
 // 工作线 F47）；OAuth 的身份（profile id）取 packages/services/src/oauth/repo/oauthCredentialRepo.ts 的
 // `loadUserProfile`（工作线 F49 起团队、F50 起个人也用它）。

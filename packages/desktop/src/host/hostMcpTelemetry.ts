@@ -1,10 +1,10 @@
 import type { IDisposable } from "@nibi/rpc";
-import type { IZCodeAgentService } from "@nibi/services";
+import type { INibiAgentService } from "@nibi/services";
 import type { ProcessResourceRuntimeSurface } from "@nibi/shared";
 import { HostResponseTypes } from "@nibi/shared";
 
 interface RegisterHostMcpTelemetryOptions {
-  agentService: Pick<IZCodeAgentService, "onDynamicMcpTelemetry">;
+  agentService: Pick<INibiAgentService, "onDynamicMcpTelemetry">;
   postMessage(message: unknown): void;
   runtimeSurface: ProcessResourceRuntimeSurface;
 }

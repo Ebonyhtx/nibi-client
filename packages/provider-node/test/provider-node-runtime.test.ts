@@ -12,14 +12,14 @@ import {
 } from "@nibi/provider";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  NodeZCodeBuiltinProviderConfigSource,
+  NodeNibiBuiltinProviderConfigSource,
   NodePersonalProviderConfigRepository,
   NodeProviderConfigRuntime,
   NodeProviderRegistryRuntime,
   createNodeProviderRuntimePathEnv,
-  materializeZCodeBuiltinProviderConfig,
+  materializeNibiBuiltinProviderConfig,
   encodeProviderConfigFile,
-  resolveZCodeBuiltinCachePaths,
+  resolveNibiBuiltinCachePaths,
   resolveNodeProviderRuntimePaths,
   NIBI_BUILTIN_PROVIDER_CONFIG_FILE_ENV,
   NIBI_PERSONAL_PROVIDER_CONFIG_FILE_ENV,
@@ -43,7 +43,7 @@ afterEach(async () => {
 
 describe("@nibi/provider-node", () => {
   it("从 Built-in Model Config Rules 解析 ox-alpha 同策略别名和 API-specific reasoning", async () => {
-    const source = new NodeZCodeBuiltinProviderConfigSource({
+    const source = new NodeNibiBuiltinProviderConfigSource({
       bundledFilePath: nibiBuiltinProviderConfigFilePath,
       watch: false,
     });
@@ -109,7 +109,7 @@ describe("@nibi/provider-node", () => {
   });
 
   it("从 Built-in Config 解析模型能力、Access 协议和 Tool Schema 兼容事实", async () => {
-    const source = new NodeZCodeBuiltinProviderConfigSource({
+    const source = new NodeNibiBuiltinProviderConfigSource({
       bundledFilePath: nibiBuiltinProviderConfigFilePath,
       watch: false,
     });
@@ -207,15 +207,15 @@ describe("@nibi/provider-node", () => {
       },
     });
 
-    const firstPath = await materializeZCodeBuiltinProviderConfig({
+    const firstPath = await materializeNibiBuiltinProviderConfig({
       environmentConfigRoot: root,
       content: firstContent,
     });
-    const repeatedPath = await materializeZCodeBuiltinProviderConfig({
+    const repeatedPath = await materializeNibiBuiltinProviderConfig({
       environmentConfigRoot: root,
       content: firstContent,
     });
-    const secondPath = await materializeZCodeBuiltinProviderConfig({
+    const secondPath = await materializeNibiBuiltinProviderConfig({
       environmentConfigRoot: root,
       content: secondContent,
     });
@@ -229,7 +229,7 @@ describe("@nibi/provider-node", () => {
     ]);
   });
 
-  it("只在 ZCode Built-in 与 Personal 路径同时存在时启用进程 Registry", () => {
+  it("只在 Nibi Built-in 与 Personal 路径同时存在时启用进程 Registry", () => {
     expect(resolveNodeProviderRuntimePaths({})).toBeNull();
     expect(() =>
       resolveNodeProviderRuntimePaths({
@@ -256,17 +256,17 @@ describe("@nibi/provider-node", () => {
     });
   });
 
-  it("ZCode Built-in Source 每次读取当前版本化文件，revision 随内容改变", async () => {
+  it("Nibi Built-in Source 每次读取当前版本化文件，revision 随内容改变", async () => {
     const root = await temporaryDirectory();
     const filePath = join(root, "nibiBuiltin.json");
-    await writeZCodeBuiltin(filePath, "model-a");
-    const source = new NodeZCodeBuiltinProviderConfigSource({
+    await writeNibiBuiltin(filePath, "model-a");
+    const source = new NodeNibiBuiltinProviderConfigSource({
       bundledFilePath: filePath,
       watch: false,
     });
 
     const first = await source.read();
-    await writeZCodeBuiltin(filePath, "model-b");
+    await writeNibiBuiltin(filePath, "model-b");
     const second = await source.read();
 
     expect(first.providers.get("nibiBuiltin")?.builtinModelIds).toEqual(["model-a"]);
@@ -275,20 +275,20 @@ describe("@nibi/provider-node", () => {
     source.dispose();
   });
 
-  it("ZCode Built-in Source 只为新的 content revision 发布一次变化", async () => {
+  it("Nibi Built-in Source 只为新的 content revision 发布一次变化", async () => {
     const root = await temporaryDirectory();
     const filePath = join(root, "nibiBuiltin.json");
-    await writeZCodeBuiltin(filePath, "model-a");
-    const source = new NodeZCodeBuiltinProviderConfigSource({ bundledFilePath: filePath });
+    await writeNibiBuiltin(filePath, "model-a");
+    const source = new NodeNibiBuiltinProviderConfigSource({ bundledFilePath: filePath });
     const reasons: string[] = [];
     source.onDidChange((reason) => reasons.push(reason));
     await source.read();
 
-    await writeZCodeBuiltin(filePath, "model-a");
+    await writeNibiBuiltin(filePath, "model-a");
     await settleFileWatcher();
     expect(reasons).toEqual([]);
 
-    await writeZCodeBuiltin(filePath, "model-b");
+    await writeNibiBuiltin(filePath, "model-b");
     await vi.waitFor(() => expect(reasons).toContain("file-changed"), { timeout: 10_000 });
     await settleFileWatcher();
 
@@ -418,7 +418,7 @@ describe("@nibi/provider-node", () => {
     const environmentConfigRoot = join(root, "environment");
     const personalFilePath = join(root, "config.json");
     const endpointOrigin = "https://api.example.com";
-    await writeZCodeBuiltin(nibiBuiltinFilePath, "nibiBuiltin-model");
+    await writeNibiBuiltin(nibiBuiltinFilePath, "nibiBuiltin-model");
     const runtime = new NodeProviderConfigRuntime({
       nibiBuiltinFilePath,
       personalFilePath,
@@ -435,16 +435,16 @@ describe("@nibi/provider-node", () => {
 
     await runtime.start();
 
-    await expect(runtime.resolveZCodeBuiltinActiveFilePath()).resolves.toBe(
-      resolveZCodeBuiltinCachePaths({
+    await expect(runtime.resolveNibiBuiltinActiveFilePath()).resolves.toBe(
+      resolveNibiBuiltinCachePaths({
         environmentConfigRoot,
         platform: "darwin-aarch64",
         appVersion: "3.9.2",
-        zcodeEndpointOrigin: endpointOrigin,
+        nibiEndpointOrigin: endpointOrigin,
       }).activeFilePath,
     );
     // start 不等待后台下载；释放临时目录前等待首轮控制文件 lease 收尾，不能和 rm 竞态。
-    await runtime.refreshZCodeBuiltin();
+    await runtime.refreshNibiBuiltin();
     runtime.dispose();
   });
 
@@ -453,7 +453,7 @@ describe("@nibi/provider-node", () => {
     const root = await temporaryDirectory();
     const nibiBuiltinFilePath = join(root, "nibiBuiltin.json");
     const personalFilePath = join(root, "personal.json");
-    await writeCompleteZCodeBuiltin(nibiBuiltinFilePath);
+    await writeCompleteNibiBuiltin(nibiBuiltinFilePath);
     await writeFile(
       personalFilePath,
       JSON.stringify(
@@ -521,7 +521,7 @@ function storedConfig(update: ProviderConfigLayerUpdate): object {
   return encodeProviderConfigFile(update);
 }
 
-async function writeZCodeBuiltin(filePath: string, modelId: string): Promise<void> {
+async function writeNibiBuiltin(filePath: string, modelId: string): Promise<void> {
   await writeFile(
     filePath,
     JSON.stringify({
@@ -558,7 +558,7 @@ async function writeZCodeBuiltin(filePath: string, modelId: string): Promise<voi
   );
 }
 
-async function writeCompleteZCodeBuiltin(filePath: string): Promise<void> {
+async function writeCompleteNibiBuiltin(filePath: string): Promise<void> {
   await writeFile(
     filePath,
     JSON.stringify({

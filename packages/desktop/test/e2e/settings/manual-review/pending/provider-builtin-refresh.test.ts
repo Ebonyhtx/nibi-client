@@ -132,7 +132,7 @@ describe("Todo127 Built-in 设置刷新整链", () => {
             models: current.models.deleteExactForProvider(providerId),
           }));
           await seedSettings({
-            zcodeEndpointOrigin: "https://builtin-control.e2e.invalid",
+            nibiEndpointOrigin: "https://builtin-control.e2e.invalid",
             httpProxy: network.proxyUrl,
             httpProxyNoProxy: "localhost,127.0.0.1,::1",
             httpProxyCaCertPath: network.caCertPath,

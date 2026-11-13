@@ -59,6 +59,6 @@ snapshot 校准。CLI record 是否仍在内存只影响恢复成本，不改变
 - `packages/ui/src/v4/conversationProjectionStore.ts`
 - `packages/ui/src/v4/agentConversationTransport.ts`
 - `packages/ui/src/v4/composer/V4ComposerToolbar.tsx`
-- `apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/transcript-hydration.ts`
-- `apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/conversation-topic-publisher.ts`
-- `apps/zcode-cli/packages/bootstrap/src/nibi-protocol/workspace-model-catalog.ts`
+- `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/transcript-hydration.ts`
+- `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/conversation-topic-publisher.ts`
+- `apps/nibi-cli/packages/bootstrap/src/nibi-protocol/workspace-model-catalog.ts`

@@ -7,7 +7,7 @@ process.env.GIT_CONFIG_COUNT = "2";
 
 // Bugfix: Git Bash 会把 /usr/bin（GNU tar 1.35）注入 PATH 最前，子进程 spawn "tar"
 // 解析到 GNU tar 后会把归档参数里的 `C:` 当远程主机（"Cannot connect to C"），
-// zcode-server-cli 打包/发布与 native-search 归档类测试因此在 Windows 开发机整批失败。
+// nibi-server-cli 打包/发布与 native-search 归档类测试因此在 Windows 开发机整批失败。
 // 真实 Windows 用户 PATH 中 System32 本就靠前、产品环境一直用 bsdtar；这里恢复同样顺序。
 if (process.platform === "win32") {
   const system32 = join(process.env.SystemRoot ?? "C:\\Windows", "System32");

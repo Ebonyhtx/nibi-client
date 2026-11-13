@@ -1,6 +1,6 @@
 /* eslint-disable max-lines -- context 面板聚合 Context windows 的摘要、分项与缓存命中信息。 */
 import { useMemo, useState, type CSSProperties } from "react";
-import { type ZCodeContextUsageBreakdownItem, type ZCodeProvider } from "@nibi/shared";
+import { type NibiContextUsageBreakdownItem, type NibiProvider } from "@nibi/shared";
 import { TID_CHAT_CONTEXT_USAGE_TRIGGER } from "@nibi/shared/test-ids";
 import {
   Context,
@@ -10,10 +10,10 @@ import {
 } from "@/components/ai-elements/context.js";
 import { cn } from "@/components/lib/utils.js";
 import { Progress } from "@/components/ui/progress.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { formatCompactTokenNumber } from "@/lib/tokenNumberFormat.js";
 
-type ContextUsageBreakdownSource = ZCodeContextUsageBreakdownItem["source"];
+type ContextUsageBreakdownSource = NibiContextUsageBreakdownItem["source"];
 
 interface ContextUsageBreakdownSegment {
   chars: number;
@@ -107,7 +107,7 @@ const BREAKDOWN_SOURCE_ORDER: Record<ContextUsageBreakdownSource, number> = {
 };
 
 export function buildContextUsageBreakdownSegments(
-  breakdown: readonly ZCodeContextUsageBreakdownItem[] | undefined,
+  breakdown: readonly NibiContextUsageBreakdownItem[] | undefined,
 ): ContextUsageBreakdownSegment[] {
   const charsBySource = new Map<ContextUsageBreakdownSource, number>();
   for (const item of breakdown ?? []) {
@@ -166,7 +166,7 @@ export function getRenderableTaskUsage<T extends { used: number; size: number }>
   return taskUsage;
 }
 
-export function getContextCompressionCommand(_provider: ZCodeProvider): string {
+export function getContextCompressionCommand(_provider: NibiProvider): string {
   return "/compact";
 }
 
@@ -189,10 +189,10 @@ export function ChatContextUsage({
     used: number;
     size: number;
     cache?: { hitRate: number | null };
-    breakdown?: ZCodeContextUsageBreakdownItem[];
+    breakdown?: NibiContextUsageBreakdownItem[];
   } | null;
-  selectedProvider: ZCodeProvider;
-  intl: ReturnType<typeof useZCodeIntl>["intl"];
+  selectedProvider: NibiProvider;
+  intl: ReturnType<typeof useNibiIntl>["intl"];
   locale: string;
   onSendCompressionCommand?: (command: string) => void;
   compressionDisabled?: boolean;

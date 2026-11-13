@@ -1,6 +1,6 @@
-//! `skills/referenceCatalog`（Host `zcodeSkillsReferenceCatalogParamsSchema`）：Composer 的 `@` 技能引用面板。
+//! `skills/referenceCatalog`（Host `nibiSkillsReferenceCatalogParamsSchema`）：Composer 的 `@` 技能引用面板。
 //!
-//! 与 Node `apps/zcode-cli/.../nibi-protocol/skill-reference-catalog.ts` 同口径：
+//! 与 Node `apps/nibi-cli/.../nibi-protocol/skill-reference-catalog.ts` 同口径：
 //! - 带 `sessionId` → 该会话创建时冻结的发现结果（`authority: "session"`）；未知会话 fail closed，
 //!   不回落到当前工作区（否则新加的 skill 会漏进旧对话）；
 //! - 不带 → 每次现扫当前工作区（`authority: "workspace"`），手改目录后不用重启；

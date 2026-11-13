@@ -1,6 +1,6 @@
 import type { DataSyncBlockedReason } from "@nibi/shared";
 import { Checkbox } from "@/components/ui/checkbox.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type {
   DataSyncPushOutcome,
   DataSyncRow,
@@ -9,7 +9,7 @@ import type {
 } from "@/data-sync/contract.js";
 
 /** 设置页各分类共用的 intl 类型，避免每个 helper 重复推导。 */
-export type DataSyncIntl = ReturnType<typeof useZCodeIntl>["intl"];
+export type DataSyncIntl = ReturnType<typeof useNibiIntl>["intl"];
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -27,7 +27,7 @@ const STATUS_CLASS: Record<DataSyncRowStatus, string> = {
 };
 
 function StatusBadge({ status }: { status: DataSyncRowStatus }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <span
       className={`inline-flex shrink-0 items-center rounded-md px-2 py-0.5 text-ui-xs font-medium ${STATUS_CLASS[status]}`}
@@ -93,7 +93,7 @@ function resultLabel(intl: DataSyncIntl, outcome: DataSyncPushOutcome) {
 
 /** 行内依赖提示只做展示：不参与行状态与勾选，也不阻断推送。 */
 function DependenciesNote({ row }: { row: DataSyncRow }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const mcpServers = row.dependencies?.mcpServers ?? [];
   const skills = row.dependencies?.skills ?? [];
   if (mcpServers.length === 0 && skills.length === 0) return null;
@@ -136,7 +136,7 @@ export function DataSyncRowItem({
   outcome: DataSyncPushOutcome | undefined;
   onToggle(key: string, selected: boolean): void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const showSummary = Boolean(row.sourceSignature || row.targetSignature);
   const localSummary = row.sourceSignature
     ? intl.formatMessage(

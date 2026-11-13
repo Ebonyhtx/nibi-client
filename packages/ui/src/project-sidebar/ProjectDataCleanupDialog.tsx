@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog.js";
 import { Checkbox } from "@/components/ui/checkbox.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type {
   IProjectService,
   ProjectDataPurgeDetail,
@@ -59,7 +59,7 @@ export function ProjectDataCleanupDialog({
   onChanged(): Promise<void> | void;
   onUnsupported?(): void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const msg = (id: string, values?: Record<string, string | number>) =>
     intl.formatMessage({ id: `project.${id}` }, values);
   const [phase, setPhase] = useState<Phase>("loading");

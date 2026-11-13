@@ -150,9 +150,9 @@ describe("skill sync service", () => {
     const home = makeHome();
     process.env.HOME = home;
     const sourceDir = await writeBareSkill(home, "external-source", ".agents");
-    const zcodeRoot = join(home, ".nibi", "skills");
-    await mkdir(zcodeRoot, { recursive: true });
-    await symlinkSkillDirectory(sourceDir, join(zcodeRoot, "linked-external"));
+    const nibiRoot = join(home, ".nibi", "skills");
+    await mkdir(nibiRoot, { recursive: true });
+    await symlinkSkillDirectory(sourceDir, join(nibiRoot, "linked-external"));
     const service = createSkillSyncService({ maxArchiveBytes: 1024 * 1024 });
 
     const result = await service.listLocalUserSkillCandidates();
@@ -168,10 +168,10 @@ describe("skill sync service", () => {
     const sourceDir = join(home, "external-source");
     await mkdir(sourceDir, { recursive: true });
     await writeFile(join(sourceDir, "SKILL.md"), "Body");
-    const zcodeRoot = join(home, ".nibi", "skills");
-    await mkdir(zcodeRoot, { recursive: true });
-    await symlinkSkillDirectory(sourceDir, join(zcodeRoot, "aaa-link"));
-    await symlinkSkillDirectory(sourceDir, join(zcodeRoot, "agents-only"));
+    const nibiRoot = join(home, ".nibi", "skills");
+    await mkdir(nibiRoot, { recursive: true });
+    await symlinkSkillDirectory(sourceDir, join(nibiRoot, "aaa-link"));
+    await symlinkSkillDirectory(sourceDir, join(nibiRoot, "agents-only"));
     await writeBareSkill(home, "agents-only", ".agents");
     const service = createSkillSyncService({ maxArchiveBytes: 1024 * 1024 });
 
@@ -215,9 +215,9 @@ describe("skill sync service", () => {
     const localHome = makeHome();
     process.env.HOME = localHome;
     const sourceDir = await writeSkill(localHome, "external-source", "external", ".agents");
-    const zcodeRoot = join(localHome, ".nibi", "skills");
-    await mkdir(zcodeRoot, { recursive: true });
-    await symlinkSkillDirectory(sourceDir, join(zcodeRoot, "linked-external"));
+    const nibiRoot = join(localHome, ".nibi", "skills");
+    await mkdir(nibiRoot, { recursive: true });
+    await symlinkSkillDirectory(sourceDir, join(nibiRoot, "linked-external"));
     const localService = createSkillSyncService({ maxArchiveBytes: 1024 * 1024 });
     const candidates = await localService.listLocalUserSkillCandidates();
 
@@ -225,7 +225,7 @@ describe("skill sync service", () => {
       {
         name: "external",
         directoryName: "linked-external",
-        path: join(zcodeRoot, "linked-external", "SKILL.md"),
+        path: join(nibiRoot, "linked-external", "SKILL.md"),
       },
     ]);
 

@@ -26,7 +26,7 @@ use crate::index::Topics;
 use crate::live::{CONVERSATION_PREFIX, Live};
 use crate::projection::state::Followup;
 
-/// 会话不可用（`zcodeProtocolErrorCodes.sessionUnavailable`）。
+/// 会话不可用（`nibiProtocolErrorCodes.sessionUnavailable`）。
 pub const SESSION_UNAVAILABLE: i64 = -32004;
 
 /// 运行实例正在释放时业务命令/订阅被拒的错误文本（上游 `fault.sessionLifecycle.stopping`）。
@@ -36,7 +36,7 @@ pub(crate) const SESSION_LIFECYCLE_GET_STATE: &str = "session/lifecycle/getState
 pub(crate) const SESSION_LIFECYCLE_ENSURE_READY: &str = "session/lifecycle/ensureReady";
 pub(crate) const SESSION_LIFECYCLE_STOP: &str = "session/lifecycle/stop";
 pub(crate) const SESSION_LIFECYCLE_RESTART: &str = "session/lifecycle/restart";
-/// 生命周期快照的通知（NIBI 3.17.2 `zcodeProtocolMethods.sessionLifecycleChanged`）。
+/// 生命周期快照的通知（NIBI 3.17.2 `nibiProtocolMethods.sessionLifecycleChanged`）。
 pub(crate) const SESSION_LIFECYCLE_CHANGED: &str = "session/lifecycle/changed";
 
 /// 新会话的缺省（入口给出）。
@@ -174,7 +174,7 @@ fn lifecycle_session_id(params: &Value) -> Result<SessionId, RpcError> {
         .ok_or_else(|| RpcError::invalid_params("Invalid params: sessionId"))
 }
 
-/// `zcodeWorkspaceRef` 的 `workspacePath`：省略/`null` 时没有归属约束（旧协议调用由持久记录提供上下文）。
+/// `nibiWorkspaceRef` 的 `workspacePath`：省略/`null` 时没有归属约束（旧协议调用由持久记录提供上下文）。
 fn lifecycle_workspace(
     server: &Server,
     params: &Value,
@@ -731,7 +731,7 @@ impl Server {
             }
             // 动态工作流的灰度门由 Host 判定：它在 client 启动、任何 session 工作之前同步
             // workspace 级结论，**关闭时不发这条请求**（CLI 缺省即关闭）。这里落地并回实际值；
-            // Host 只验 schema 不消费回执（zcodeAgentService.ts:3252）。mode 只在开启时有意义，
+            // Host 只验 schema 不消费回执（nibiAgentService.ts:3252）。mode 只在开启时有意义，
             // `onDemand` 是 Node 的作者工具按需激活——内核没有对应工具，记下供对齐。
             "workspace/updateDynamicWorkflowPolicy" => {
                 let enabled = params["enabled"].as_bool().unwrap_or(false);

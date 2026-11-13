@@ -24,7 +24,7 @@ pub enum CronCreator {
     Gone,
 }
 
-/// 自定义重复间隔的单位（Node `ZCodeAutomationScheduleRule.unit`）。
+/// 自定义重复间隔的单位（Node `NibiAutomationScheduleRule.unit`）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CronScheduleUnit {

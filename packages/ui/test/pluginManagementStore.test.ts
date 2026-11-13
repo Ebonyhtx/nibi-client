@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ZCodePluginsOverviewResult, ZCodePluginInfo } from "@nibi/shared";
+import type { NibiPluginsOverviewResult, NibiPluginInfo } from "@nibi/shared";
 import type { IPluginManagementService } from "@nibi/services";
 import {
   createPluginManagementStore,
@@ -7,7 +7,7 @@ import {
 } from "../src/store/pluginManagementStore.js";
 import { buildStoreItems } from "../src/settings/pluginStoreListing.js";
 
-function makePlugin(overrides: Partial<ZCodePluginInfo> = {}): ZCodePluginInfo {
+function makePlugin(overrides: Partial<NibiPluginInfo> = {}): NibiPluginInfo {
   return {
     id: "skill-creator@nibi-official",
     name: "skill-creator",
@@ -57,8 +57,8 @@ function createPluginServiceMock(overrides?: {
 }
 
 function makeOverview(
-  overrides: Partial<ZCodePluginsOverviewResult> = {},
-): ZCodePluginsOverviewResult {
+  overrides: Partial<NibiPluginsOverviewResult> = {},
+): NibiPluginsOverviewResult {
   return {
     marketplaces: [
       {
@@ -190,7 +190,7 @@ describe("pluginManagementStore", () => {
     const pending = new Map<string, () => void>();
     const listPlugins = vi.fn(
       ({ configScope }: { configScope?: "user" | "workspace" }) =>
-        new Promise<{ plugins: ZCodePluginInfo[]; diagnostics: [] }>((resolve) => {
+        new Promise<{ plugins: NibiPluginInfo[]; diagnostics: [] }>((resolve) => {
           pending.set(configScope ?? "effective", () =>
             resolve({
               plugins: [
@@ -344,10 +344,10 @@ describe("pluginManagementStore", () => {
   });
 
   it("ignores a stale toggle response after the selected configuration scope changes", async () => {
-    let resolveWrite: ((value: { plugin: ZCodePluginInfo; enabled: boolean }) => void) | undefined;
+    let resolveWrite: ((value: { plugin: NibiPluginInfo; enabled: boolean }) => void) | undefined;
     const setPluginEnabled = vi.fn(
       () =>
-        new Promise<{ plugin: ZCodePluginInfo; enabled: boolean }>((resolve) => {
+        new Promise<{ plugin: NibiPluginInfo; enabled: boolean }>((resolve) => {
           resolveWrite = resolve;
         }),
     );
@@ -915,10 +915,10 @@ describe("pluginManagementStore", () => {
   });
 
   it("reuses an in-flight load for the same workspace", async () => {
-    let resolveList: ((value: { plugins: ZCodePluginInfo[]; diagnostics: [] }) => void) | undefined;
+    let resolveList: ((value: { plugins: NibiPluginInfo[]; diagnostics: [] }) => void) | undefined;
     const listPlugins = vi.fn(
       () =>
-        new Promise<{ plugins: ZCodePluginInfo[]; diagnostics: [] }>((resolve) => {
+        new Promise<{ plugins: NibiPluginInfo[]; diagnostics: [] }>((resolve) => {
           resolveList = resolve;
         }),
     );
@@ -948,10 +948,10 @@ describe("pluginManagementStore", () => {
   });
 
   it("does not reuse an in-flight load across Sources with the same home", async () => {
-    let resolveA: ((value: { plugins: ZCodePluginInfo[]; diagnostics: [] }) => void) | undefined;
+    let resolveA: ((value: { plugins: NibiPluginInfo[]; diagnostics: [] }) => void) | undefined;
     const listA = vi.fn(
       () =>
-        new Promise<{ plugins: ZCodePluginInfo[]; diagnostics: [] }>((resolve) => {
+        new Promise<{ plugins: NibiPluginInfo[]; diagnostics: [] }>((resolve) => {
           resolveA = resolve;
         }),
     );
@@ -980,10 +980,10 @@ describe("pluginManagementStore", () => {
   });
 
   it("ignores a stale toggle response after the Source authority changes for the same home", async () => {
-    let resolveWrite: ((value: { plugin: ZCodePluginInfo; enabled: boolean }) => void) | undefined;
+    let resolveWrite: ((value: { plugin: NibiPluginInfo; enabled: boolean }) => void) | undefined;
     const setPluginEnabled = vi.fn(
       () =>
-        new Promise<{ plugin: ZCodePluginInfo; enabled: boolean }>((resolve) => {
+        new Promise<{ plugin: NibiPluginInfo; enabled: boolean }>((resolve) => {
           resolveWrite = resolve;
         }),
     );

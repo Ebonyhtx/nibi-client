@@ -1,4 +1,4 @@
-import type { ZCodeElicitationRequest } from "@nibi/shared";
+import type { NibiElicitationRequest } from "@nibi/shared";
 import { act, createElement, forwardRef, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -57,14 +57,14 @@ vi.mock("@/InteractionRequestOriginBadge.js", () => ({
 }));
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }) => id,
     },
   }),
 }));
 
-function createRequest(requestId: string): ZCodeElicitationRequest {
+function createRequest(requestId: string): NibiElicitationRequest {
   return {
     type: "elicitation_request",
     taskId: "task-1",
@@ -93,7 +93,7 @@ function createRequest(requestId: string): ZCodeElicitationRequest {
   };
 }
 
-function createSingleQuestionRequest(requestId: string): ZCodeElicitationRequest {
+function createSingleQuestionRequest(requestId: string): NibiElicitationRequest {
   return {
     type: "elicitation_request",
     taskId: "task-1",
@@ -111,7 +111,7 @@ function createSingleQuestionRequest(requestId: string): ZCodeElicitationRequest
   };
 }
 
-function createPlanApprovalRequest(requestId: string): ZCodeElicitationRequest {
+function createPlanApprovalRequest(requestId: string): NibiElicitationRequest {
   return {
     type: "elicitation_request",
     taskId: "task-1",

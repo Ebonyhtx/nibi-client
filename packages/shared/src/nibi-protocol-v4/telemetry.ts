@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { sanitizeTelemetrySkillName } from "../telemetry.js";
-import { zcodeSyntheticUserMessageSourceSchema } from "../nibi-protocol-legacy-types.js";
+import { nibiSyntheticUserMessageSourceSchema } from "../nibi-protocol-legacy-types.js";
 import { timestampSchema } from "./core.js";
 
 const factBaseFields = {
@@ -65,7 +65,7 @@ const turnStartedFactSchema = z
     ...factBaseFields,
     kind: z.literal("turn.started"),
     executionKind: z.enum(["agent", "controlOnly"]).optional(),
-    inputSource: zcodeSyntheticUserMessageSourceSchema.optional(),
+    inputSource: nibiSyntheticUserMessageSourceSchema.optional(),
     // `workflow`：dynamic-workflow run 的完成 / 提问通知唤起的独立轮。
     backgroundSource: z.enum(["bash", "subagent", "workflow"]).optional(),
     automationId: z.string().min(1).optional(),
@@ -307,7 +307,7 @@ type TurnStartedConversationTelemetryFact = Extract<
   ConversationTelemetryFactBase,
   { kind: "turn.started" }
 > &
-  import("../zcode-task-types-core.js").ZCodeBackgroundTurnAttribution;
+  import("../nibi-task-types-core.js").NibiBackgroundTurnAttribution;
 
 export type ConversationTelemetryFact =
   | Exclude<ConversationTelemetryFactBase, { kind: "turn.started" }>

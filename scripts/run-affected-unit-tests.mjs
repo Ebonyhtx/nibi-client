@@ -64,7 +64,7 @@ const withPathVariants = (files) => {
   return [...variants];
 };
 
-// --package services / --package packages/services / --package apps/zcode-cli
+// --package services / --package packages/services / --package apps/nibi-cli
 const matchesPackage = (path, names) =>
   names.some((name) => {
     const normalized = name.replace(/^\.\//u, "").replace(/\/+$/u, "");

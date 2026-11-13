@@ -44,7 +44,7 @@ export { useAlertDialog } from "./useAlertDialog.js";
 
 // 凭据服务
 export { useCredentials, useAuthToken } from "./useCredentials.js";
-export { useZCodeAgentService } from "./useZCodeAgentService.js";
+export { useNibiAgentService } from "./useNibiAgentService.js";
 
 // Git pane
 export { useGitAutoRefresh } from "./useGitAutoRefresh.js";

@@ -5,7 +5,7 @@ import type {
   CommandSetEnabledParams,
   CommandUpdateParams,
   UserCommand,
-  ZCodeCommand,
+  NibiCommand,
 } from "@nibi/shared";
 import type { ICommandsService } from "@nibi/services";
 
@@ -17,9 +17,9 @@ interface CommandsStoreState {
   loadedWorkspacePath: string | null;
   loadedWorkspaceIdentity: string | null;
   loadedAuthorityKey: string | null;
-  commands: ZCodeCommand[];
+  commands: NibiCommand[];
   userCommands: UserCommand[];
-  pluginCommands: ZCodeCommand[];
+  pluginCommands: NibiCommand[];
   capability: { userScopeAvailable: boolean };
   loading: boolean;
   error: string | null;

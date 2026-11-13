@@ -1,7 +1,7 @@
 import { parseRemoteWorkspaceIdentity } from "@nibi/shared";
 import type {
   ProjectTaskRef,
-  IZCodeTaskService,
+  INibiTaskService,
   IWindowControllerService,
   WindowHostControllerMutation,
   WindowHostTaskAddress,
@@ -11,7 +11,7 @@ export type ProjectTaskMutation = Exclude<
   { kind: "open" | "resume" }
 >;
 interface ProjectTaskPorts {
-  service: IZCodeTaskService;
+  service: INibiTaskService;
   controller?: IWindowControllerService;
 }
 function taskAddress(task: ProjectTaskRef, remoteSessionId?: string | null): WindowHostTaskAddress {

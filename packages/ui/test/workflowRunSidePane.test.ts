@@ -82,7 +82,7 @@ vi.mock("@/hooks/useModelSelectionView.js", () => ({
 }));
 
 // eslint-disable-next-line import/first -- 必须在全部 mock 之后再引入被测组件。
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 // eslint-disable-next-line import/first
 import { WorkflowRunSidePane } from "@/app-shell/WorkflowRunSidePane.js";
 // eslint-disable-next-line import/first
@@ -262,7 +262,7 @@ function renderPane(
 ) {
   return render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: locale },
       createElement(WorkflowRunSidePane, {
         tab,
@@ -286,7 +286,7 @@ type Pane = ReturnType<typeof renderPane>;
 function rerenderPane(view: Pane, locale: "en-US" | "zh-CN" = "en-US"): Pane {
   view.rerender(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: locale },
       createElement(WorkflowRunSidePane, { tab: { ...tab }, onOpenWorkflowActorSession }),
     ),
@@ -1833,7 +1833,7 @@ describe("WorkflowRunSidePane 阶段名册", () => {
   // focusPhaseId 到这里——展开、开门、节头滚到顶、亮一下；同一站换 openedAt 再落一次。
   const landedTree = (overrides: Partial<WorkflowRunSidePaneTab>) =>
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "en-US" },
       createElement(WorkflowRunSidePane, {
         tab: { ...tab, ...overrides },
@@ -2089,7 +2089,7 @@ describe("WorkflowRunSidePane 配置", () => {
     };
     view.rerender(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(WorkflowRunSidePane, { tab: { ...tab }, onOpenWorkflowRun }),
       ),
@@ -2158,7 +2158,7 @@ describe("WorkflowRunSidePane 配置", () => {
     };
     const borrowed = render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(WorkflowRunSidePane, { tab: settingsTab }),
       ),
@@ -2198,7 +2198,7 @@ describe("WorkflowRunSidePane 配置", () => {
     };
     const landed = render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(WorkflowRunSidePane, { tab: settingsTab }),
       ),
@@ -2244,7 +2244,7 @@ describe("WorkflowRunSidePane 配置", () => {
     };
     const view = render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(WorkflowRunSidePane, { tab: retuneTab }),
       ),

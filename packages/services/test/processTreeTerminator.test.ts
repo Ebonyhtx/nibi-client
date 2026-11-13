@@ -209,7 +209,7 @@ setInterval(() => {}, 1000);
     const grandchildPid = await readReportedPid(child, grandchildPidPath);
     expect(isPidAlive(grandchildPid)).toBe(true);
 
-    // Bugfix: 用户反馈退出 ZCode 后仍残留 bun 版本的 Agent 子进程。
+    // Bugfix: 用户反馈退出 Nibi 后仍残留 bun 版本的 Agent 子进程。
     // 这里用 wrapper -> grandchild 的结构复现，要求关闭 wrapper 时整棵进程树都被回收。
     terminateProcessTree(child);
 
@@ -425,7 +425,7 @@ setInterval(() => {}, 1000);
       await readFirstStdoutLine(child);
 
       // Bugfix: app 关闭时 host 不能只安排一个 unref 的 SIGKILL 兜底就退出；
-      // 遇到忽略 SIGTERM 的 zcode-cli/app-server 时，必须等兜底执行完再让 host 结束。
+      // 遇到忽略 SIGTERM 的 nibi-cli/app-server 时，必须等兜底执行完再让 host 结束。
       const result = await terminateProcessTreeAndWait(child, {
         forceAfterMs: 20,
         waitAfterForceMs: 20,

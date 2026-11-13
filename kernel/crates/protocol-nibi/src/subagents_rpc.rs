@@ -2,7 +2,7 @@
 //!
 //! 与快照的 `subagents` 键同一个事实源（`SessionHandle::subagents()`），只是这条旧方法还要
 //! 已结束项的分页明细。Node 的 ended 列表来自会话存储与子会话投影；内核在跑的、已结束的都在
-//! 同一张 `SubagentEntry` 表里，字段足够拼出 Host schema（`zcodeSessionSubagentsResultSchema`）。
+//! 同一张 `SubagentEntry` 表里，字段足够拼出 Host schema（`nibiSessionSubagentsResultSchema`）。
 
 use base64::Engine;
 use nibi_kernel_api::panels::{SubagentEntry, SubagentStatus};
@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 
 use crate::server::{Server, kernel_error};
 
-/// 已结束项的状态词（Host `zcodeSessionEndedSubagentSchema.status`）。
+/// 已结束项的状态词（Host `nibiSessionEndedSubagentSchema.status`）。
 fn ended_status(status: SubagentStatus) -> &'static str {
     match status {
         // 调用方已经滤掉 Running；这里只是穷尽 match。
@@ -22,7 +22,7 @@ fn ended_status(status: SubagentStatus) -> &'static str {
     }
 }
 
-/// 在跑项的状态词（Host `zcodeSessionRunningSubagentSchema.status`）：内核只有「等用户回答」这一种
+/// 在跑项的状态词（Host `nibiSessionRunningSubagentSchema.status`）：内核只有「等用户回答」这一种
 /// 非 running 语义，`blocked`（后台工作被挡住）在 agents 里没有独立事实，不造。
 fn running_status(entry: &SubagentEntry) -> &'static str {
     if entry.waiting { "waiting" } else { "running" }

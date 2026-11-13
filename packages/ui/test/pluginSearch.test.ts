@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { ZCodePluginInfo } from "@nibi/shared";
+import type { NibiPluginInfo } from "@nibi/shared";
 import { storeItemMatches, type StorePluginItem } from "../src/settings/pluginStoreListing.js";
 import { filterPluginsByQuery } from "../src/settings/pluginCapabilityProjection.js";
 
 describe("plugin name pinyin search", () => {
-  const plugin = { id: "lark@official", name: "lark", marketplace: "official" } as ZCodePluginInfo;
+  const plugin = { id: "lark@official", name: "lark", marketplace: "official" } as NibiPluginInfo;
   const item: StorePluginItem = {
     ...plugin,
     installed: true,

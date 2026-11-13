@@ -30,7 +30,7 @@ import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { useFeedbackStore } from "@/feedback/feedbackStore.js";
 import { useDesktopUpdateMenu } from "@/hooks/useDesktopUpdateMenu.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { createHelpMenuActionHandlers } from "@/lib/helpMenuActions.js";
 
 export function WorkspaceHelpMenuButton({
@@ -44,7 +44,7 @@ export function WorkspaceHelpMenuButton({
    */
   isDesktop?: boolean;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const platform = usePlatform();
   const [open, setOpen] = useState(false);
   const updateMenu = useDesktopUpdateMenu(isDesktop);

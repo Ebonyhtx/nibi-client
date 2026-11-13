@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { createElement, type ReactNode } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { type ZCodeAutomation, type ModelSelection } from "@nibi/shared";
+import { type NibiAutomation, type ModelSelection } from "@nibi/shared";
 import {
   TID_AUTOMATION_SCHEDULE_ADD,
   TID_AUTOMATION_SCHEDULE_PREVIEW,
@@ -31,7 +31,7 @@ const stableHookValues = vi.hoisted(() => ({
   effectiveSelection: undefined as ModelSelection | null | undefined,
   selectionInputs: [] as Array<{ selection: ModelSelection | null } | undefined>,
   locale: "zh-CN" as "zh-CN" | "en-US",
-  services: { zcodeAgentService: {} },
+  services: { nibiAgentService: {} },
 }));
 
 vi.mock("@/components/ui/select.js", async () => {
@@ -168,7 +168,7 @@ vi.mock("@/chat-input-toolbar/ThoughtLevelCycleControl.js", () => ({
 vi.mock("@/hooks/useAutomationProjectOptions.js", () => ({
   useAutomationProjectOptions: () => stableHookValues.projectOptions,
 }));
-vi.mock("@/hooks/useZCodeConfig.js", () => ({
+vi.mock("@/hooks/useNibiConfig.js", () => ({
   useToolbarConfigOptions: () => stableHookValues.configResult,
 }));
 vi.mock("@/hooks/useServices.js", () => ({
@@ -222,7 +222,7 @@ vi.mock("@/hooks/useModelSelectionView.js", () => ({
   },
 }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }) => {
         if (id === "automations.edit.titlePlaceholder") {
@@ -260,7 +260,7 @@ const modelSelectionView = {
   ],
 };
 
-const sessionCreatedAutomation: ZCodeAutomation = {
+const sessionCreatedAutomation: NibiAutomation = {
   automationId: "automation-session-created",
   title: "每 10 分钟提醒",
   cronExpr: "*/10 * * * *",
@@ -297,13 +297,13 @@ const sessionCreatedAutomation: ZCodeAutomation = {
   updatedAt: 1,
 };
 
-const uiCreatedAutomation: ZCodeAutomation = {
+const uiCreatedAutomation: NibiAutomation = {
   ...sessionCreatedAutomation,
   automationId: "automation-ui-created",
 };
 delete uiCreatedAutomation.targetTaskId;
 
-const sessionCreatedUiResetAutomation: ZCodeAutomation = {
+const sessionCreatedUiResetAutomation: NibiAutomation = {
   ...sessionCreatedAutomation,
   automationId: "automation-session-created-ui-reset",
   cronExpr: "0 9 * * *",
@@ -476,7 +476,7 @@ describe("AutomationEditView session-created dirty state", () => {
       label: "default",
       workspacePurpose: "conversation",
     });
-    const conversationAutomation: ZCodeAutomation = {
+    const conversationAutomation: NibiAutomation = {
       ...uiCreatedAutomation,
       projectId: null,
       workspaceKey: conversationWorkspacePath,

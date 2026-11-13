@@ -1,4 +1,4 @@
-import { type McpServerStatus, type ZCodeMcpServer } from "@nibi/shared";
+import { type McpServerStatus, type NibiMcpServer } from "@nibi/shared";
 import {
   TID_MCP_OPEN_AUTHORIZATION_BUTTON,
   TID_MCP_SERVER_ROW,
@@ -6,7 +6,7 @@ import {
 } from "@nibi/shared/test-ids";
 import { Button } from "@/components/ui/button.js";
 import { Switch } from "@/components/ui/switch.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { settingsResourceRowInteraction } from "@/settings/settingsResourceRowInteraction.js";
 import { SettingsScopeBadge } from "@/settings/SettingsScopeBadge.js";
@@ -79,19 +79,19 @@ function McpServerItem({
   workspaceTrustBusyServerName,
   onWorkspaceTrustDecision,
 }: {
-  server: ZCodeMcpServer;
-  onEdit: (server: ZCodeMcpServer) => void;
+  server: NibiMcpServer;
+  onEdit: (server: NibiMcpServer) => void;
   onToggle: (id: string, enabled: boolean) => void;
-  onOpenAuthorization?: (server: ZCodeMcpServer) => void;
+  onOpenAuthorization?: (server: NibiMcpServer) => void;
   hideMetadata: boolean;
   workspaceTrust?: Record<string, WorkspaceMcpTrustReviewView>;
   workspaceTrustKnown: boolean;
   workspaceTrustReasonCode?: WorkspaceMcpTrustReasonCode;
   workspaceTrustUnreviewable: readonly string[];
   workspaceTrustBusyServerName?: string | null;
-  onWorkspaceTrustDecision?: (server: ZCodeMcpServer, trusted: boolean) => void;
+  onWorkspaceTrustDecision?: (server: NibiMcpServer, trusted: boolean) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const typeLabel = server.config.command
     ? "stdio"
     : (server.config.type ?? (server.config.url ? "http" : "?"));
@@ -215,11 +215,11 @@ export function McpServerList({
   workspaceTrustBusyServerName,
   onWorkspaceTrustDecision,
 }: {
-  servers: ZCodeMcpServer[];
+  servers: NibiMcpServer[];
   onCreate: () => void;
-  onEdit: (server: ZCodeMcpServer) => void;
+  onEdit: (server: NibiMcpServer) => void;
   onToggle: (id: string, enabled: boolean) => void;
-  onOpenAuthorization?: (server: ZCodeMcpServer) => void;
+  onOpenAuthorization?: (server: NibiMcpServer) => void;
   emptyTitle: string;
   emptyDescription: string;
   hideMetadata?: boolean;
@@ -228,9 +228,9 @@ export function McpServerList({
   workspaceTrustReasonCode?: WorkspaceMcpTrustReasonCode;
   workspaceTrustUnreviewable?: readonly string[];
   workspaceTrustBusyServerName?: string | null;
-  onWorkspaceTrustDecision?: (server: ZCodeMcpServer, trusted: boolean) => void;
+  onWorkspaceTrustDecision?: (server: NibiMcpServer, trusted: boolean) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
 
   if (servers.length === 0) {
     return (

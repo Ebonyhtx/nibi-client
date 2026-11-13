@@ -1,9 +1,9 @@
 import type { ChromeBrowserDataImportResult } from "@nibi/shared";
-import type { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import type { useNibiIntl } from "@/i18n/IntlProvider.js";
 
 export function formatImportSummary(
   result: ChromeBrowserDataImportResult,
-  formatMessage: ReturnType<typeof useZCodeIntl>["intl"]["formatMessage"],
+  formatMessage: ReturnType<typeof useNibiIntl>["intl"]["formatMessage"],
 ): string {
   if (!result.success) {
     const errorMessageId =

@@ -3,7 +3,7 @@
  *
  * 这里只放**公开**内容：验签公钥与签发方标识。私钥只在服务器上，永不入库。
  * 放在 shared 是因为两条独立进程都要用它——services 里的客户端判定层，
- * 以及 agent（apps/zcode-cli）里的收费插件安装门禁。
+ * 以及 agent（apps/nibi-cli）里的收费插件安装门禁。
  */
 
 /** 凭证签发方（compact JWS 的 iss）。 */

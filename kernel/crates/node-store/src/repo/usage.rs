@@ -1,4 +1,4 @@
-//! Node 用量表的原文 SQL（`apps/zcode-cli/packages/adapters/src/storage/session-store/repositories/usage.ts`：
+//! Node 用量表的原文 SQL（`apps/nibi-cli/packages/adapters/src/storage/session-store/repositories/usage.ts`：
 //! `recordModelUsage`、`upsertTurnUsage`、`upsertToolUsage`、`pruneUsage`，docs/specs/rust-cli/usage.md §2）。
 //!
 //! 只有 SQL 与参数绑定；取值规则在 `crate::usage`。所有函数都在存储事务里调用。

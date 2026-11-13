@@ -213,7 +213,7 @@ work 或 continuation inbox，不 rewind 共享 workspace；父 session 原样�
 - `packages/desktop/src/host/windowHostAttachmentRegistry.ts`：可信 clientMode 与 scoped attachment 生命周期。
 - `packages/desktop/src/main/taskRealtimeBus.ts`：owner lease、stale-run 和跨 host 路由。
 - `packages/shared/src/nibi-protocol-v4/`：V4 wire、topic、command 与 runtime schema。
-- `apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/`：gateway、publisher、projection 与 CommandInbox。
+- `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/`：gateway、publisher、projection 与 CommandInbox。
 - `packages/services/src/zcode-agent/`：connection-scoped V4 service facade。
 - `packages/ui/src/v4/`：owned subscription client apply、pending-command 对账与 projection store。
 

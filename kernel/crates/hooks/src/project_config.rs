@@ -25,14 +25,14 @@ pub const DOT_PROJECT_CONFIG: &str = concat!(".nibi", "/config.json");
 /// 项目文件的种类（Node `WorkspaceHookConfigFileKind`）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProjectKind {
-    ZcodeJson,
+    NibiJson,
     DotProjectConfig,
 }
 
 impl ProjectKind {
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::ZcodeJson => NIBI_JSON,
+            Self::NibiJson => NIBI_JSON,
             Self::DotProjectConfig => DOT_PROJECT_CONFIG,
         }
     }
@@ -115,7 +115,7 @@ pub fn project_file(
 ) -> ProjectFile {
     let name = path.rsplit(['/', '\\']).next().unwrap_or(&path);
     let kind = if name == NIBI_JSON {
-        ProjectKind::ZcodeJson
+        ProjectKind::NibiJson
     } else {
         ProjectKind::DotProjectConfig
     };

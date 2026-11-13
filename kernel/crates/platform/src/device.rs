@@ -1,7 +1,7 @@
 //! 设备身份 deviceMid（docs/specs/rust-cli/platform.md §10，工作线 F52，用户决定 2026-10-22：“device_id 计算可以看一下
 //! 之前 nodejs 的逻辑”）。
 //!
-//! 照 Node CLI 的 `ensureCliDeviceMid`（`apps/zcode-cli/packages/adapters/src/device/cli-device-mid.ts`）：与 App、远端
+//! 照 Node CLI 的 `ensureCliDeviceMid`（`apps/nibi-cli/packages/adapters/src/device/cli-device-mid.ts`）：与 App、远端
 //! zcode-server、Node CLI 共用 `<dataBaseDir>/.nibi/v2/telemetry-state.json` 的 `deviceMid`。先不持锁读；没有时在
 //! `telemetry-state.lock` 里再读一次，还没有才生成并原子写（保留文件里的其他字段）。出错不挡请求：用本进程生成的
 //! 那一个 UUID。进程内只解析一次。

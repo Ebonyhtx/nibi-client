@@ -46,7 +46,7 @@
 
 - 模型看到的是 **`mcp__node_repl__js`**（`node-repl-host` 包），不是一组 `Browser*` 原生工具。
   `browser-use` / `computer-use` 两个官方插件只贡献 **skill 与文档**，manifest 里没有 `mcpServers`
-  （`apps/zcode-cli/packages/browser-use-plugin/.nibi-plugin/plugin.json`、
+  （`apps/nibi-cli/packages/browser-use-plugin/.nibi-plugin/plugin.json`、
   `.../zcode-cua-plugin/.nibi-plugin/plugin.json`）。
 - 调用链：JS SDK `agent.browsers.*` → `node-repl-host/src/browser-bridge.ts` → 本地 socket
   （`NIBI_NODE_REPL_BROWSER_BROKER_SOCKET` + token）→ agent 侧
@@ -352,7 +352,7 @@ redirectPath)[0..24]>:authorization_credentials`）；
 
 ## 11. TUI 调色板（已补）
 
-- `apps/zcode-cli/packages/tui/src/theme/defaults.ts`：暗色品牌沙色 `#e8c491`、浅色暖橙 `#e08a3e`
+- `apps/nibi-cli/packages/tui/src/theme/defaults.ts`：暗色品牌沙色 `#e8c491`、浅色暖橙 `#e08a3e`
   （浅色主题的文字类 token 用同色相加深的 `#a45a1e`，浅底对比度约 5:1），中性面换成 NIBI 的
   `#171716` / `#101011` / `#f9f2e4` 一系；语义色（error/warning/success/diff）不变。
 - 验证：`@nibi/tui` 216 条测试、`tsc --noEmit`、`pnpm check:visual-brand`（9358 个文件）。

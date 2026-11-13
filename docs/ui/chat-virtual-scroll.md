@@ -2,7 +2,7 @@
 
 > **V4 当前事实**：滚动视口、虚拟化、底部跟随与 renderer-local 滚动记忆由
 > `packages/ui/src/v4/ConversationTimeline.tsx` 持有；消息事实仍来自
-> `packages/shared/src/nibi-protocol-v4/` 与 `apps/zcode-cli/packages/bootstrap/src/nibi-protocol-v4/`。
+> `packages/shared/src/nibi-protocol-v4/` 与 `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-v4/`。
 
 ## 目标
 

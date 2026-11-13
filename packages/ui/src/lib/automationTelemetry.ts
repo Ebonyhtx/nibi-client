@@ -4,7 +4,7 @@ import {
   sanitizeTelemetryErrorMessage,
   type IPlatformService,
   type ModelSelection,
-  type ZCodeAutomation,
+  type NibiAutomation,
 } from "@nibi/shared";
 import type { ProviderSettingsView } from "@nibi/services";
 import { isApiKeyAccess } from "@nibi/provider";
@@ -135,7 +135,7 @@ export function reportAutomationActionClick(
   params: {
     action: "run_now" | "delete";
     source: "list" | "editor";
-    automation: ZCodeAutomation;
+    automation: NibiAutomation;
     providerSettingsView: ProviderSettingsView | null;
   },
 ): Promise<void> {

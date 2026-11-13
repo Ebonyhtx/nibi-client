@@ -14,8 +14,8 @@ import {
 import { expect, it, vi } from "vitest";
 import {
   NodeProviderRegistryRuntime,
-  NodeZCodeBuiltinProviderConfigSource,
-  decodeZCodeBuiltinRelease,
+  NodeNibiBuiltinProviderConfigSource,
+  decodeNibiBuiltinRelease,
 } from "../src/index.js";
 
 it("更新只改变后续 Registry 消费，Personal 覆盖/历史选择与已取得模型配置不被代写", async () => {
@@ -31,7 +31,7 @@ it("更新只改变后续 Registry 消费，Personal 覆盖/历史选择与已�
     config: { properties: { contextWindow: 500_000 } },
   });
   await writeFile(bundled, JSON.stringify(release));
-  const source = new NodeZCodeBuiltinProviderConfigSource({
+  const source = new NodeNibiBuiltinProviderConfigSource({
     bundledFilePath: bundled,
     activeFilePath: active,
     watch: false,
@@ -88,7 +88,7 @@ it("更新只改变后续 Registry 消费，Personal 覆盖/历史选择与已�
     expect(old.config.properties.contextWindow).toBe(500_000);
     release.revision += 1;
     release.config.modelConfigRules.modelRules.at(-1).config.properties.contextWindow = 700_000;
-    await source.applyRemoteRelease(decodeZCodeBuiltinRelease(release));
+    await source.applyRemoteRelease(decodeNibiBuiltinRelease(release));
     await vi.waitFor(() =>
       expect(
         runtime.registryService.getModel("manual", "test-model-inherit")!.config.properties

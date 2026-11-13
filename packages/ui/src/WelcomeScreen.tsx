@@ -20,11 +20,11 @@ import { Button } from "./components/ui/button.js";
 import { toast } from "./components/ui/toast.js";
 import { NibiAboutLogo } from "@/components/ui/NibiAboutLogo.js";
 import { useOAuth } from "./hooks/useOAuth.js";
-import { useZCodeIntl } from "./i18n/IntlProvider.js";
+import { useNibiIntl } from "./i18n/IntlProvider.js";
 import { LoginApiKeyForm } from "./login/LoginApiKeyForm.js";
 import { renderOAuthProviderIcon } from "./lib/oauthProviderIcon.js";
 import { ThemeHeroVisual } from "./openWorkspacePageThemeHero.js";
-import { useZCodeStore } from "./store/StoreProvider.js";
+import { useNibiStore } from "./store/StoreProvider.js";
 import { DesktopOverlayWindowControls } from "@/DesktopOverlayWindowControls.js";
 
 interface WelcomeScreenProps {
@@ -41,7 +41,7 @@ interface WelcomeScreenProps {
 export type LoginCompleteReason = "oauth" | "apiKey" | "skip";
 
 export function WelcomeScreen({ onComplete, onOpenModelSettings, onDismiss }: WelcomeScreenProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <main className="relative flex h-full min-h-dvh items-center justify-center overflow-hidden bg-background px-4 py-6 text-foreground sm:px-6">
       <ThemeHeroVisual className="absolute inset-0" showFeathers />
@@ -95,7 +95,7 @@ export function shouldCompleteLoginFromExistingUser(params: {
 }
 
 export function LoginPanel({ active, onComplete, onOpenModelSettings }: LoginPanelProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const {
     startLogin,
     cancel,
@@ -108,14 +108,14 @@ export function LoginPanel({ active, onComplete, onOpenModelSettings }: LoginPan
     pendingProvider,
     refreshProviders,
   } = useOAuth();
-  const user = useZCodeStore((s) => s.user);
-  const oauthError = useZCodeStore((s) => s.oauthError);
-  const setOAuthError = useZCodeStore((s) => s.setOAuthError);
-  const oauthSuccessSeq = useZCodeStore((s) => s.oauthSuccessSeq);
-  const lastOAuthSuccessProvider = useZCodeStore((s) => s.lastOAuthSuccessProvider);
-  const loginEntryRequest = useZCodeStore((s) => s.loginEntryRequest);
-  const clearLoginEntryRequest = useZCodeStore((s) => s.clearLoginEntryRequest);
-  const markLoginEntryAttemptStatus = useZCodeStore((s) => s.markLoginEntryAttemptStatus);
+  const user = useNibiStore((s) => s.user);
+  const oauthError = useNibiStore((s) => s.oauthError);
+  const setOAuthError = useNibiStore((s) => s.setOAuthError);
+  const oauthSuccessSeq = useNibiStore((s) => s.oauthSuccessSeq);
+  const lastOAuthSuccessProvider = useNibiStore((s) => s.lastOAuthSuccessProvider);
+  const loginEntryRequest = useNibiStore((s) => s.loginEntryRequest);
+  const clearLoginEntryRequest = useNibiStore((s) => s.clearLoginEntryRequest);
+  const markLoginEntryAttemptStatus = useNibiStore((s) => s.markLoginEntryAttemptStatus);
   const [loginMode, setLoginMode] = useState<"providers" | "apiKey">("providers");
   const wasActiveRef = useRef(active);
   const consumedLoginRequestRef = useRef<number | null>(null);
@@ -573,7 +573,7 @@ function getLoginOAuthRegionTagMessageId(providerId: string): string | null {
 }
 
 function LoginOAuthRegionTag({ providerId }: { providerId: string }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const messageId = getLoginOAuthRegionTagMessageId(providerId);
 
   if (!messageId) {

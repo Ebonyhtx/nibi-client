@@ -1,4 +1,4 @@
-import type { ZCodeConfigOption } from "@nibi/shared";
+import type { NibiConfigOption } from "@nibi/shared";
 import type { ModelSelectionView } from "@nibi/services";
 
 /** 从 Registry 的 ModelConfig Option Specs 读取思考档位。 */
@@ -8,7 +8,7 @@ export function resolveModelThoughtOption(params: {
   modelId: string;
   currentValue?: string;
   formatLevelName?: (level: string) => string;
-}): ZCodeConfigOption | null {
+}): NibiConfigOption | null {
   const provider = params.modelSelectionView.providers.find(
     (candidate) => candidate.providerId === params.providerId,
   );

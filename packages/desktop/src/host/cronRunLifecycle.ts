@@ -1,6 +1,6 @@
 import type {
-  ZCodeAutomationRunOutcome,
-  ZCodeAutomationTrigger,
+  NibiAutomationRunOutcome,
+  NibiAutomationTrigger,
 } from "@nibi/shared";
 
 export interface CronRunLifecycleRepo {
@@ -9,11 +9,11 @@ export interface CronRunLifecycleRepo {
     automationId: string;
     workspaceKey: string;
     scheduledAt: number | null;
-    trigger: ZCodeAutomationTrigger;
+    trigger: NibiAutomationTrigger;
   }): Promise<void>;
   markRunOutcome(
     runId: string,
-    outcome: ZCodeAutomationRunOutcome,
+    outcome: NibiAutomationRunOutcome,
     error?: string,
   ): Promise<void>;
   markRunDispatch(params: {
@@ -30,7 +30,7 @@ export interface CronRunLifecycleIdentity {
   automationId: string;
   workspaceKey: string;
   scheduledAt: number | null;
-  trigger: ZCodeAutomationTrigger;
+  trigger: NibiAutomationTrigger;
 }
 
 type LogWarn = (message: string, error: unknown) => void;
@@ -60,7 +60,7 @@ export function startManualClaimHeartbeat(
 export async function recordCronRunOutcomeBestEffort(
   params: CronRunLifecycleIdentity & {
     repo: CronRunLifecycleRepo;
-    outcome: ZCodeAutomationRunOutcome;
+    outcome: NibiAutomationRunOutcome;
     error?: string;
     logWarn: LogWarn;
   },
@@ -123,7 +123,7 @@ export async function settleManualDispatchFailureBestEffort(
 export async function settleCronRunTerminalOutcome(
   params: CronRunLifecycleIdentity & {
     repo: CronRunLifecycleRepo;
-    outcome: Exclude<ZCodeAutomationRunOutcome, "running">;
+    outcome: Exclude<NibiAutomationRunOutcome, "running">;
     error?: string;
     logWarn: LogWarn;
   },

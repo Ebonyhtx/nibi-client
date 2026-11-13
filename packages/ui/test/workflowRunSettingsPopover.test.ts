@@ -47,7 +47,7 @@ vi.mock("@/hooks/useModelSelectionView.js", () => ({
 }));
 
 // eslint-disable-next-line import/first -- 必须在 mock 之后再引入被测组件。
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 // eslint-disable-next-line import/first
 import {
   WorkflowRunSettingsPopover,
@@ -117,7 +117,7 @@ function renderPopover(
     apply,
     view: render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: options.locale ?? "en-US" },
         createElement(WorkflowRunSettingsPopover, {
           anchorRef,
@@ -355,7 +355,7 @@ describe("run 卡上的 Configure", () => {
   function renderCard(run: WorkflowRunState, withHost: boolean) {
     return render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(WorkflowRunDigest, {
           graph: undefined,
@@ -405,7 +405,7 @@ describe("run 卡上的 Configure", () => {
     const onAmendWorkflowRunSettings = vi.fn(async () => ({ status: "accepted" }) as CommandAck);
     const view = render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(ConversationWorkflowDigests, {
           turnKey: "t",

@@ -1,4 +1,4 @@
-import { NIBI_VERSION, type ZCodeEnv } from "@nibi/shared";
+import { NIBI_VERSION, type NibiEnv } from "@nibi/shared";
 
 declare const __NIBI_REMOTE_CDN_RELEASE_ROOTS__: readonly string[] | undefined;
 
@@ -20,7 +20,7 @@ declare const __NIBI_REMOTE_CDN_RELEASE_ROOTS__: readonly string[] | undefined;
 const TEST_REMOTE_CDN_RELEASE_ROOT = "http://intranet.example.invalid:12345/ssh-remote-assets";
 
 export interface ResolveRemoteCdnOptions {
-  env?: ZCodeEnv;
+  env?: NibiEnv;
   locale?: string;
   timeZone?: string;
   overrideBaseUrl?: string;

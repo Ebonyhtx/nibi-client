@@ -156,12 +156,12 @@ const manifest = {
 await writeFile(join(outDir, "runtime-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 
 // 3b) 让同一个目录**也能当 dev 根**：宿主侧的 dev 通道（NIBI_CUA_DEV_ROOT）读的是
-//     package.json 里的 `zcodeCuaRuntime` 契约（**精确键**：schema/windows{entry,nativeAddon}，
+//     package.json 里的 `nibiCuaRuntime` 契约（**精确键**：schema/windows{entry,nativeAddon}，
 //     路径要规范相对形式——不含反斜杠、无 ./ 前缀、无 .. 段，见 resolveDevelopmentRuntime）。
 //     产品通道只读 runtime-manifest.json，两者互不干扰。
 const stagedPackagePath = join(outDir, "package.json");
 const stagedPackage = JSON.parse(await readFile(stagedPackagePath, "utf8"));
-stagedPackage.zcodeCuaRuntime = {
+stagedPackage.nibiCuaRuntime = {
   schema: 1,
   windows: {
     entry: entryRelative,

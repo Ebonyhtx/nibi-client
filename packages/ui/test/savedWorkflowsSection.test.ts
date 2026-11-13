@@ -17,7 +17,7 @@ import {
   resolveWorkspaceKey,
 } from "@nibi/shared";
 import { testId } from "@nibi/shared/test-ids";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import {
   resetDynamicWorkflowAvailabilityStoreForTests,
   useDynamicWorkflowAvailabilityStore,
@@ -234,7 +234,7 @@ function mount(props: Partial<Parameters<typeof SavedWorkflowsSection>[0]> = {})
   const onOpenWorkflowRun = vi.fn();
   const utils = render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(SavedWorkflowsSection, {
         workspacePath: tabStoreState.activeWorkspacePath,

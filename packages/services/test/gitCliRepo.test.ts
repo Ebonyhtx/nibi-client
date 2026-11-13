@@ -59,7 +59,7 @@ function createMockCommandProvider(): {
           return createCommandResult(options);
         case "config --show-scope --show-origin --get user.name":
           return createCommandResult(options, {
-            stdout: "local\tfile:.git/config\tZCode Tester\n",
+            stdout: "local\tfile:.git/config\tNibi Tester\n",
           });
         case "config --show-scope --show-origin --get user.email":
           return createCommandResult(options, {
@@ -183,7 +183,7 @@ describe("gitCliRepo", () => {
     ]);
 
     expect(status.summary.repoRoot).toBe("/repo");
-    expect(identity.userName).toBe("ZCode Tester");
+    expect(identity.userName).toBe("Nibi Tester");
     expect(
       run.mock.calls.filter(
         ([options]) =>

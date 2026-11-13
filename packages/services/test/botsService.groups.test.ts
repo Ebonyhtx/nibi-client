@@ -1,6 +1,6 @@
 import { TopicHistoryPermissionError } from "../src/bots/topicHistory.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { BotActor, ZCodeStreamEvent } from "@nibi/shared";
+import type { BotActor, NibiStreamEvent } from "@nibi/shared";
 import { botsStateFileSchema } from "@nibi/shared";
 import * as f from "./botsService.fixtures.js";
 
@@ -87,7 +87,7 @@ function setup(
     result: { type: "inputAccepted", inputId: params.commandId, delivery: "queue" },
   }));
   const service = f.createBotsService({
-    zcodeTaskService: taskService,
+    nibiTaskService: taskService,
     repo: repo as never,
     credentialService: f.createCredentialService({}),
     runStartupBackgroundTasks: false,
@@ -96,7 +96,7 @@ function setup(
           remoteWorkspaceService: {
             isConnected: vi.fn(async () => remoteConnection.connected),
             ensureConnected: vi.fn(async () => ({ ok: remoteConnection.connected })),
-            getZCodeTaskService: vi.fn(async () => taskService),
+            getNibiTaskService: vi.fn(async () => taskService),
             getModelSelectionService: vi.fn(async () =>
               f.createModelSelectionService([{ id: "glm", name: "GLM", models: ["default"] }]),
             ),
@@ -178,7 +178,7 @@ describe("Feishu group sessions", () => {
     );
     const restarted = f.createBotsService({
       repo: repo as never,
-      zcodeTaskService: taskService,
+      nibiTaskService: taskService,
       credentialService: f.createCredentialService({}),
       runStartupBackgroundTasks: false,
     });
@@ -332,7 +332,7 @@ describe("Feishu group sessions", () => {
       );
       const restarted = f.createBotsService({
         repo: repo as never,
-        zcodeTaskService: taskService,
+        nibiTaskService: taskService,
         credentialService: f.createCredentialService({}),
         runStartupBackgroundTasks: false,
       });
@@ -453,7 +453,7 @@ describe("Feishu group sessions", () => {
     taskService.submitBotGroupInput.mockClear();
     const payload = {
       botId: "feishu-1",
-      zcodeBotOpenId: "ou_current_bot",
+      nibiBotOpenId: "ou_current_bot",
       event: {
         sender: { sender_type: "bot", sender_id: { open_id: "ou_other_bot" } },
         message: {
@@ -547,7 +547,7 @@ describe("Feishu group sessions", () => {
     "only plan approval mentions the administrator (plan=%s)",
     async (plan) => {
       const { send, taskService } = setup();
-      let listener!: (event: ZCodeStreamEvent) => Promise<void>;
+      let listener!: (event: NibiStreamEvent) => Promise<void>;
       taskService.onDynamicTaskEvent = vi.fn(() => (next: typeof listener) => {
         listener = next;
         return { dispose() {} };
@@ -562,7 +562,7 @@ describe("Feishu group sessions", () => {
         message: "Choose",
         options: [{ value: "approve", label: "Approve" }],
         ...(plan ? { schema: { interaction: "plan_approval", plan: "Build the board" } } : {}),
-      } as ZCodeStreamEvent;
+      } as NibiStreamEvent;
       await listener(event);
       const first = cardCreateMock.mock.calls.at(-1) as unknown as [
         unknown,
@@ -606,7 +606,7 @@ describe("Feishu group sessions", () => {
   it("sends a separate administrator notice for a denied card without modifying the shared card", async () => {
     callbackTransport.enabled = true;
     const { send, service, taskService } = setup();
-    let listener!: (event: ZCodeStreamEvent) => Promise<void>;
+    let listener!: (event: NibiStreamEvent) => Promise<void>;
     taskService.onDynamicTaskEvent = vi.fn(() => (next: typeof listener) => {
       listener = next;
       return { dispose() {} };
@@ -624,7 +624,7 @@ describe("Feishu group sessions", () => {
       options: [
         { optionId: "allow", name: "Allow", kind: "allow_once", response: { decision: "allow" } },
       ],
-    } as ZCodeStreamEvent;
+    } as NibiStreamEvent;
     await listener(permission);
     const state = (await service.getBotStates()).find((entry) => entry.group?.chatId === "oc_a")!;
     const payload = (eventId: string) => ({
@@ -1155,7 +1155,7 @@ describe("Feishu group sessions", () => {
 
   it("retains topic authorization on transient permission cards", async () => {
     const { send, taskService, service } = setup();
-    let listener: ((event: ZCodeStreamEvent) => Promise<void> | void) | undefined;
+    let listener: ((event: NibiStreamEvent) => Promise<void> | void) | undefined;
     taskService.onDynamicTaskEvent = vi.fn(() => (next: typeof listener) => {
       listener = next;
       return { dispose() {} };
@@ -1173,7 +1173,7 @@ describe("Feishu group sessions", () => {
       options: [
         { optionId: "allow", name: "Allow", kind: "allow_once", response: { decision: "allow" } },
       ],
-    } as ZCodeStreamEvent);
+    } as NibiStreamEvent);
     const topic = (await service.getBotStates()).find(
       (state) => state.group?.threadId === "omt_a",
     )!;
@@ -2442,7 +2442,7 @@ describe("Feishu group sessions", () => {
     await vi.waitFor(() => expect(release).toBeTypeOf("function"));
     const response = await service.handleProviderCallbackResponse("feishu", {
       botId: "feishu-1",
-      zcodeBotRemoved: true,
+      nibiBotRemoved: true,
       event: { chat_id: "oc_a" },
     });
     expect(response.ok).toBe(true);
@@ -2461,7 +2461,7 @@ describe("Feishu group sessions", () => {
     await repo.writeConfig(config);
     // 测试凭据服务对未登记的引用返回 null；下面使用实际登记凭据的独立服务。
     const secured = f.createBotsService({
-      zcodeTaskService: f.createLegacyTaskService(),
+      nibiTaskService: f.createLegacyTaskService(),
       repo: repo as never,
       credentialService: f.createCredentialService({ "verification-secret": "expected-token" }),
       runStartupBackgroundTasks: false,
@@ -2469,7 +2469,7 @@ describe("Feishu group sessions", () => {
     services.push(secured);
     const response = await secured.handleProviderCallbackResponse("feishu", {
       botId: "feishu-1",
-      zcodeBotRemoved: true,
+      nibiBotRemoved: true,
       token: "incorrect-token",
       event: { chat_id: "oc_a" },
     });

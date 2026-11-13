@@ -2,7 +2,7 @@ import { BIGMODEL_PROVIDER_ID, buildBigModelApiUrl } from "@nibi/shared";
 import type { OAuthProviderRuntimeConfig } from "../runtimeConfig.js";
 import {
   buildDesktopOAuthRedirectUriFromEnv,
-  buildZCodeApiUrlFromEnv,
+  buildNibiApiUrlFromEnv,
   readBoolean,
   readEnv,
 } from "./configUtils.js";
@@ -18,7 +18,7 @@ export const BIGMODEL_OAUTH_PROVIDER_CONFIG: Omit<OAuthProviderRuntimeConfig, "a
   order: 0,
   authorizeUrl: "https://bigmodel.cn/login",
   // 占位值，**不是**可用端点：`createBigModelProviderRuntimeConfig` 总会用
-  // `buildZCodeApiUrlFromEnv` 覆盖它（默认 `api.nibistudio.cn`）。这里刻意不写上游
+  // `buildNibiApiUrlFromEnv` 覆盖它（默认 `api.nibistudio.cn`）。这里刻意不写上游
   // `zcode.z.ai`——静态常量被直接使用时不能把凭据发到别的产品。
   tokenUrl: "",
   userinfoUrl: buildBigModelApiUrl({ NIBI_ENV: "production" }, BIGMODEL_USERINFO_PATH),
@@ -37,7 +37,7 @@ export function createBigModelProviderRuntimeConfig(
       buildBigModelApiUrl(env, BIGMODEL_AUTHORIZE_PATH),
     tokenUrl:
       readEnv(env, "BIGMODEL_OAUTH_TOKEN_URL") ??
-      buildZCodeApiUrlFromEnv(env, "/api/v1/oauth/token"),
+      buildNibiApiUrlFromEnv(env, "/api/v1/oauth/token"),
     userinfoUrl: resolveBigModelUserinfoUrl(env),
     appId: readEnv(env, "BIGMODEL_OAUTH_APP_ID") ?? BIGMODEL_OAUTH_PROVIDER_CONFIG.appId,
     redirectUri: buildDesktopOAuthRedirectUriFromEnv(env),

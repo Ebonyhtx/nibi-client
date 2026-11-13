@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { ZCodeTaskMeta } from "@nibi/shared";
+import type { NibiTaskMeta } from "@nibi/shared";
 import { setDataBaseDir } from "#src/paths.js";
 import { TaskIndexRepo } from "#src/session/taskIndexRepo.js";
 
@@ -28,7 +28,7 @@ function task(params: {
   taskId: string;
   workspaceIdentity: string;
   title?: string;
-}): ZCodeTaskMeta {
+}): NibiTaskMeta {
   return {
     taskId: params.taskId,
     traceId: `trace-${params.taskId}`,
@@ -59,8 +59,8 @@ function getRepoDatabase(target: TaskIndexRepo): {
   ).getDatabase();
 }
 
-function metaJsonWithoutWorkspaceIdentity(meta: ZCodeTaskMeta): string {
-  const legacyMeta: Partial<ZCodeTaskMeta> = { ...meta };
+function metaJsonWithoutWorkspaceIdentity(meta: NibiTaskMeta): string {
+  const legacyMeta: Partial<NibiTaskMeta> = { ...meta };
   delete legacyMeta.workspaceIdentity;
   return JSON.stringify(legacyMeta);
 }

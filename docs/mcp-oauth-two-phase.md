@@ -4,7 +4,7 @@
 > 日期：2026-08-14。
 > 修订：2026-08-24，补齐运行期 tool caller 预算、共享恢复所有权与异常收敛。
 > 基线：`exa-oauth-analysis` / `bfc91c54a9`。
-> 生产 SDK：`@modelcontextprotocol/client@2.0.0`（`apps/zcode-cli/packages/adapters/package.json:105`）。
+> 生产 SDK：`@modelcontextprotocol/client@2.0.0`（`apps/nibi-cli/packages/adapters/package.json:105`）。
 > 仓库同时存在 `@modelcontextprotocol/sdk@1.29.0`，本规格与实现只使用 `client@2.0.0`。
 > 根因分析：`（实现与测试见源码）`。
 > 前置规格：`docs/mcp-oauth-client-auth.md`（配置、凭据完整性、设置页边界）。

@@ -9,7 +9,7 @@ import { cn } from "@/components/lib/utils.js";
 import { isMotionDisabled } from "@/lib/motionPreference.js";
 import { STATUS_DOT } from "@/components/workflow-graph/run-status-presentation.js";
 import type { StepRunStatus } from "@/components/workflow-graph/types.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { TimelineHole } from "./timeline-holes.js";
 import type { TimelineRail, TimelineStation } from "./timeline-model.js";
 import { LEDGE_PITCH, LEDGE_LAMP, ledgeLamps, railKey, scrollbarThumb } from "./timeline-ledge.js";
@@ -117,7 +117,7 @@ export function WorkflowLedge({
   nameOf: (index: number) => string;
   onSelect: (index: number) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   if (indexes.length === 0) return null;
   const { shown, more } = ledgeLamps(indexes, side);
   const stubRail =
@@ -204,7 +204,7 @@ export function WorkflowTimelineScrollbar({
   viewport: TimelineViewport;
   controlsId: string;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const [dragging, setDragging] = useState(false);
   const drag = useRef<{ pointerId: number; startX: number; startLeft: number } | null>(null);
   const thumb = scrollbarThumb(viewport.scrollLeft, viewport.clientWidth, viewport.scrollWidth);

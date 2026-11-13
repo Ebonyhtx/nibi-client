@@ -34,7 +34,7 @@ vi.mock("@/hooks/useWorkspaceOpenInEditorTarget.js", () => ({
   }),
 }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
+  useNibiIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
 }));
 vi.mock("@/components/ui/toast.js", () => ({ toast: vi.fn() }));
 const file: OpenSplitButtonTarget = {

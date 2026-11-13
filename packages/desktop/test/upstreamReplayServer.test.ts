@@ -144,7 +144,7 @@ describe("Upstream replay server", () => {
     tempDirs.push(tempDir);
     const fixturePath = join(tempDir, "fixture.json");
     const artifactPath = join(tempDir, "artifact.json");
-    const runtimeRoot = "C:/e2e-home/ZCodeProject/.nibi-e2e";
+    const runtimeRoot = "C:/e2e-home/NibiProject/.nibi-e2e";
     await writeFile(
       fixturePath,
       JSON.stringify(

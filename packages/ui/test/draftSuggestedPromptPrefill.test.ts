@@ -1,4 +1,4 @@
-import type { ZCodePluginReferenceCatalogEntry } from "@nibi/shared";
+import type { NibiPluginReferenceCatalogEntry } from "@nibi/shared";
 import { describe, expect, it, vi } from "vitest";
 import { buildDraftSuggestedPromptPrefill } from "@/v4/draftSuggestedPromptPrefill.js";
 
@@ -8,8 +8,8 @@ const DOCUMENT_SKILLS_PLUGIN = {
 };
 
 function catalogEntry(
-  overrides: Partial<ZCodePluginReferenceCatalogEntry> = {},
-): ZCodePluginReferenceCatalogEntry {
+  overrides: Partial<NibiPluginReferenceCatalogEntry> = {},
+): NibiPluginReferenceCatalogEntry {
   return {
     pluginId: DOCUMENT_SKILLS_PLUGIN.stableId,
     name: "document-skills",

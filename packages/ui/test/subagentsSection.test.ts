@@ -11,7 +11,7 @@ import {
 } from "@nibi/shared/test-ids";
 import type { IServiceAccessor } from "@nibi/services";
 import { useRemoteWorkspaceSessionStore } from "@/store/remoteWorkspaceSessionStore.js";
-import { encodeCustomModelValue } from "../src/lib/zcodeCustomModelValue.js";
+import { encodeCustomModelValue } from "../src/lib/nibiCustomModelValue.js";
 
 const capturedButtons: Array<Record<string, unknown>> = [];
 const capturedModelConfigSelects: Array<Record<string, unknown>> = [];
@@ -369,7 +369,7 @@ vi.mock("@/hooks/useModelSelectionView.js", () => {
   };
 });
 
-vi.mock("@/hooks/useZCodeConfig.js", () => ({
+vi.mock("@/hooks/useNibiConfig.js", () => ({
   useToolbarConfigOptions: () => ({
     configOptions: mockToolbarConfigState.configOptions,
     loading: mockToolbarConfigState.status === "loading",
@@ -379,7 +379,7 @@ vi.mock("@/hooks/useZCodeConfig.js", () => ({
 }));
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: {
       formatMessage: ({ id }: { id: string }, values?: Record<string, string | number>) => {
         const messages: Record<string, string> = {

@@ -1,6 +1,6 @@
-import type { ZCodePluginReferenceCatalogEntry } from "@nibi/shared";
+import type { NibiPluginReferenceCatalogEntry } from "@nibi/shared";
 import { buildPluginMentionMarkdown } from "@/mentions/mentionMarkdown.js";
-import type { ComposerMentionPrefill } from "@/store/zcodeSessionStoreTypes.js";
+import type { ComposerMentionPrefill } from "@/store/nibiSessionStoreTypes.js";
 
 export interface DraftSuggestedPromptPluginReference {
   stableId: string;
@@ -39,7 +39,7 @@ export async function buildDraftSuggestedPromptPrefill({
 }: {
   prompt: string;
   plugin?: DraftSuggestedPromptPluginReference;
-  loadPluginCatalog: () => Promise<readonly ZCodePluginReferenceCatalogEntry[]>;
+  loadPluginCatalog: () => Promise<readonly NibiPluginReferenceCatalogEntry[]>;
   onCatalogError?: (error: unknown) => void;
 }): Promise<DraftSuggestedPromptPrefill> {
   const text = prompt.trim();
@@ -47,7 +47,7 @@ export async function buildDraftSuggestedPromptPrefill({
     return { text };
   }
 
-  let catalog: readonly ZCodePluginReferenceCatalogEntry[];
+  let catalog: readonly NibiPluginReferenceCatalogEntry[];
   try {
     catalog = await loadPluginCatalog();
   } catch (error) {

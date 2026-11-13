@@ -1,14 +1,14 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { ExecuteToolCallBlock } from "../src/ToolCallBlocks/renderers/execute.js";
 
 describe("ExecuteToolCallBlock", () => {
   it("renders execution results from structured output instead of raw JSON", () => {
     const html = renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(ExecuteToolCallBlock, {
           toolCallNode: {

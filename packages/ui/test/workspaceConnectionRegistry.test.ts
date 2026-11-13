@@ -489,7 +489,7 @@ describe("workspaceConnectionRegistry", () => {
     const register = (agentService: WorkspaceConnectionAgentService) =>
       registerRemoteWorkspaceSession({
         sessionId: scope.remoteSessionId,
-        services: { zcodeAgentService: agentService } as unknown as IServiceAccessor,
+        services: { nibiAgentService: agentService } as unknown as IServiceAccessor,
       });
     register(firstService);
     register(staleMiddleService);

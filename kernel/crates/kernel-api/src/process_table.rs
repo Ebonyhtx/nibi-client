@@ -1,7 +1,7 @@
 //! 进程表读数与两个资源采样场景（141 审计 §9 F3）：`process/toolExecResource` 与
 //! `process/mcpResourceSamples`。
 //!
-//! Node 侧是 `createProcessProbe`（`apps/zcode-cli/packages/adapters/src/device/process-probe.ts`），
+//! Node 侧是 `createProcessProbe`（`apps/nibi-cli/packages/adapters/src/device/process-probe.ts`），
 //! Bash 慢命令与 MCP 五分钟采样共用同一个探针。这里分两层：
 //!
 //! - [`ProcessSampler`] 是**端口**：按进程组或按根 pid 的树读 RSS 与累计 CPU（平台实现在入口 crate，
@@ -86,7 +86,7 @@ pub enum ToolExitKind {
     Error,
 }
 
-/// 一条 Bash 命令的资源事实（Host `zcodeToolExecResourceSchema` 的逐字段镜像）。
+/// 一条 Bash 命令的资源事实（Host `nibiToolExecResourceSchema` 的逐字段镜像）。
 ///
 /// 隐私红线：只有工具名、时长、退出类别与两个内存读数；命令原文、路径与会话标识都不进来。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -217,7 +217,7 @@ pub struct McpResourceTarget {
     pub started_at_ms: u64,
 }
 
-/// 一条 MCP 资源样本（Host `zcodeMcpResourceSampleSchema` 的逐字段镜像）。
+/// 一条 MCP 资源样本（Host `nibiMcpResourceSampleSchema` 的逐字段镜像）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct McpResourceSample {

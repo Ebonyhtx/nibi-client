@@ -23,7 +23,7 @@ import { DEFAULT_THEME, loadThemePreference } from "@/useTheme.js";
 const UPSTREAM_KEYS = {
   theme: ["zcode", "theme"].join("-"),
   locale: ["zcode", "locale", "preference"].join("-"),
-  dataRoot: ["ZCode", "settings.json"].join("/"),
+  dataRoot: ["Nibi", "settings.json"].join("/"),
 };
 
 beforeEach(() => {

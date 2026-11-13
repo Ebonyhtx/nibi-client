@@ -49,7 +49,7 @@ export type {
   SaveProjectInput,
   IProjectService,
   IWindowControllerService,
-  IZCodeTaskService,
+  INibiTaskService,
   WindowHostControllerMutation,
   WindowHostControllerFrame,
   WindowHostTaskUnreadSignal,

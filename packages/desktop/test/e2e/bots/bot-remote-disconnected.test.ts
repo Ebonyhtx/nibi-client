@@ -78,9 +78,9 @@ describe("Bot remote workspace delivery E2E", () => {
           ensureConnectedCalls += 1;
           return { ok: true };
         },
-        getZCodeTaskService: async () => {
+        getNibiTaskService: async () => {
           remoteTaskServiceCalls += 1;
-          return harness.zcodeTaskService;
+          return harness.nibiTaskService;
         },
       },
     });

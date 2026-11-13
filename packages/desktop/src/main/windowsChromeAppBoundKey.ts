@@ -253,10 +253,10 @@ async function verifyAuthenticodePair(
   // GLOBALROOT\\SystemRoot 由 Windows 内核解析到真实系统目录，再转成 CreateProcess 可执行的 DOS 路径。
   const powershellPath = await realpath(TRUSTED_WINDOWS_POWERSHELL_ALIAS);
   const script = [
-    "$stream=[IO.File]::Open($zcodeArg0,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);",
+    "$stream=[IO.File]::Open($nibiArg0,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);",
     "try{",
-    "$helper=Microsoft.PowerShell.Security\\Get-AuthenticodeSignature -LiteralPath $zcodeArg0;",
-    "$app=Microsoft.PowerShell.Security\\Get-AuthenticodeSignature -LiteralPath $zcodeArg1;",
+    "$helper=Microsoft.PowerShell.Security\\Get-AuthenticodeSignature -LiteralPath $nibiArg0;",
+    "$app=Microsoft.PowerShell.Security\\Get-AuthenticodeSignature -LiteralPath $nibiArg1;",
     "if($helper.Status -ne 'Valid' -or $app.Status -ne 'Valid'){throw 'invalid_signature'};",
     "if($null -eq $helper.SignerCertificate -or $null -eq $app.SignerCertificate){throw 'missing_signer'};",
     "if($helper.SignerCertificate.Thumbprint -ne $app.SignerCertificate.Thumbprint){throw 'signer_mismatch'};",
@@ -292,16 +292,16 @@ async function runLockedPackagedHelper(options: {
       : "return";
   const invocation =
     options.mode === "broker"
-      ? "$request=[Console]::In.ReadToEnd();$response=$request | & $zcodeArg0 --broker --parent-pid $zcodeArg2;"
-      : "$response=& $zcodeArg0 --version;";
+      ? "$request=[Console]::In.ReadToEnd();$response=$request | & $nibiArg0 --broker --parent-pid $nibiArg2;"
+      : "$response=& $nibiArg0 --version;";
   const script = [
-    "$stream=[IO.File]::Open($zcodeArg0,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);",
+    "$stream=[IO.File]::Open($nibiArg0,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);",
     "try{",
     "$sha=[Security.Cryptography.SHA256]::Create();",
     "try{$stream.Position=0;$hash=$sha.ComputeHash($stream);",
     "$digest=([BitConverter]::ToString($hash)).Replace('-','').ToLowerInvariant()}",
     "finally{$sha.Dispose()};",
-    `if($digest -ne $zcodeArg1){${hashMismatchResponse}};`,
+    `if($digest -ne $nibiArg1){${hashMismatchResponse}};`,
     invocation,
     "if($null -ne $response){[Console]::Out.WriteLine(($response -join [Environment]::NewLine))}",
     "}finally{$stream.Dispose()}",

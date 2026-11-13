@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_NIBI_ENDPOINT_ORIGIN } from "@nibi/shared";
 import { setDataBaseDir } from "../src/paths.js";
 import { createNodeApiClient } from "../src/providers/api/nodeApiClient.js";
-import { buildZCodeSourceHeaders, NIBI_SOURCE_HEADERS } from "../src/providers/sourceHeaders.js";
+import { buildNibiSourceHeaders, NIBI_SOURCE_HEADERS } from "../src/providers/sourceHeaders.js";
 
 describe("NodeApiClient endpoint rewriting", () => {
   const tempDirs: string[] = [];
@@ -21,7 +21,7 @@ describe("NodeApiClient endpoint rewriting", () => {
     const fetchImpl = vi.fn(async () => new Response("{}", { status: 200 }));
     const client = createNodeApiClient({
       fetchImpl: fetchImpl as typeof fetch,
-      resolveZCodeEndpointOrigin: async () => "http://localhost:3030",
+      resolveNibiEndpointOrigin: async () => "http://localhost:3030",
     });
 
     await client.request(`${DEFAULT_NIBI_ENDPOINT_ORIGIN}/api/v1/event/report?x=1`);
@@ -41,27 +41,27 @@ describe("NodeApiClient endpoint rewriting", () => {
     const fetchImpl = vi.fn(async () => new Response("{}", { status: 200 }));
     const client = createNodeApiClient({
       fetchImpl: fetchImpl as typeof fetch,
-      resolveZCodeEndpointOrigin: async () => "https://zcode.z.ai",
+      resolveNibiEndpointOrigin: async () => "https://zcode.z.ai",
     });
 
     await client.request(`${DEFAULT_NIBI_ENDPOINT_ORIGIN}/api/v1/client/configs`);
     await client.request("https://api.z.ai/v1/models");
 
-    const zcodeHeaders = new Headers(fetchImpl.mock.calls[0]?.[1]?.headers);
-    expect(zcodeHeaders.get("User-Agent")).toMatch(/^NIBI\//);
-    expect(zcodeHeaders.get("X-Title")).toBe(NIBI_SOURCE_HEADERS["X-Title"]);
-    expect(zcodeHeaders.get("X-OpenRouter-Title")).toBeNull();
-    expect(zcodeHeaders.get("X-OpenRouter-Categories")).toBeNull();
-    expect(zcodeHeaders.get("HTTP-Referer")).toBe("https://zcode.z.ai");
-    expect(zcodeHeaders.get("X-App-Version")).toBeNull();
-    expect(zcodeHeaders.get("X-NIBI-App-Version")).toBeTruthy();
-    expect(zcodeHeaders.get("X-Platform")).toBe(`${process.platform}-${process.arch}`);
-    expect(zcodeHeaders.get("X-Release-Channel")).toBeTruthy();
-    expect(zcodeHeaders.get("X-Client-Language")).toBeTruthy();
-    expect(zcodeHeaders.get("X-Client-Timezone")).toBeTruthy();
-    expect(zcodeHeaders.get("X-Os-Category")).toBeTruthy();
-    expect(zcodeHeaders.get("X-Os-Version")).toBeTruthy();
-    expect(zcodeHeaders.get("x-request-id")).toMatch(
+    const nibiHeaders = new Headers(fetchImpl.mock.calls[0]?.[1]?.headers);
+    expect(nibiHeaders.get("User-Agent")).toMatch(/^NIBI\//);
+    expect(nibiHeaders.get("X-Title")).toBe(NIBI_SOURCE_HEADERS["X-Title"]);
+    expect(nibiHeaders.get("X-OpenRouter-Title")).toBeNull();
+    expect(nibiHeaders.get("X-OpenRouter-Categories")).toBeNull();
+    expect(nibiHeaders.get("HTTP-Referer")).toBe("https://zcode.z.ai");
+    expect(nibiHeaders.get("X-App-Version")).toBeNull();
+    expect(nibiHeaders.get("X-NIBI-App-Version")).toBeTruthy();
+    expect(nibiHeaders.get("X-Platform")).toBe(`${process.platform}-${process.arch}`);
+    expect(nibiHeaders.get("X-Release-Channel")).toBeTruthy();
+    expect(nibiHeaders.get("X-Client-Language")).toBeTruthy();
+    expect(nibiHeaders.get("X-Client-Timezone")).toBeTruthy();
+    expect(nibiHeaders.get("X-Os-Category")).toBeTruthy();
+    expect(nibiHeaders.get("X-Os-Version")).toBeTruthy();
+    expect(nibiHeaders.get("x-request-id")).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );
 
@@ -76,7 +76,7 @@ describe("NodeApiClient endpoint rewriting", () => {
     const fetchImpl = vi.fn(async () => new Response("{}", { status: 200 }));
     const client = createNodeApiClient({
       fetchImpl: fetchImpl as typeof fetch,
-      resolveZCodeEndpointOrigin: async () => "https://zcode.z.ai",
+      resolveNibiEndpointOrigin: async () => "https://zcode.z.ai",
     });
 
     await client.request(`${DEFAULT_NIBI_ENDPOINT_ORIGIN}/api/v1/oauth/token`, {
@@ -113,7 +113,7 @@ describe("NodeApiClient endpoint rewriting", () => {
     const fetchImpl = vi.fn(async () => new Response("{}", { status: 200 }));
     const client = createNodeApiClient({
       fetchImpl: fetchImpl as typeof fetch,
-      resolveZCodeEndpointOrigin: async () => "https://zcode.z.ai",
+      resolveNibiEndpointOrigin: async () => "https://zcode.z.ai",
       resolveClientLanguage: () => uiLocale,
     });
 
@@ -140,14 +140,14 @@ describe("NodeApiClient endpoint rewriting", () => {
     const fetchImpl = vi.fn(async () => new Response("{}", { status: 200 }));
     const client = createNodeApiClient({
       fetchImpl: fetchImpl as typeof fetch,
-      resolveZCodeEndpointOrigin: async () => "https://zcode.z.ai",
+      resolveNibiEndpointOrigin: async () => "https://zcode.z.ai",
       resolveClientLanguage: () => undefined,
     });
 
     await client.request(`${DEFAULT_NIBI_ENDPOINT_ORIGIN}/api/v1/client/configs`);
 
     const headers = new Headers(fetchImpl.mock.calls[0]?.[1]?.headers);
-    expect(headers.get("X-Client-Language")).toBe(buildZCodeSourceHeaders()["X-Client-Language"]);
+    expect(headers.get("X-Client-Language")).toBe(buildNibiSourceHeaders()["X-Client-Language"]);
   });
 
   it("给当前 zcode endpoint 请求补既有 deviceMid header", async () => {
@@ -165,7 +165,7 @@ describe("NodeApiClient endpoint rewriting", () => {
     const fetchImpl = vi.fn(async () => new Response("{}", { status: 200 }));
     const client = createNodeApiClient({
       fetchImpl: fetchImpl as typeof fetch,
-      resolveZCodeEndpointOrigin: async () => "https://zcode.z.ai",
+      resolveNibiEndpointOrigin: async () => "https://zcode.z.ai",
     });
 
     await client.request(`${DEFAULT_NIBI_ENDPOINT_ORIGIN}/api/v1/client/configs`);
@@ -192,7 +192,7 @@ describe("NodeApiClient endpoint rewriting", () => {
     const fetchImpl = vi.fn(async () => new Response("{}", { status: 200 }));
     const client = createNodeApiClient({
       fetchImpl: fetchImpl as typeof fetch,
-      resolveZCodeEndpointOrigin: async () => "https://zcode.z.ai",
+      resolveNibiEndpointOrigin: async () => "https://zcode.z.ai",
     });
 
     await client.request(`${DEFAULT_NIBI_ENDPOINT_ORIGIN}/api/v1/client/configs`);
@@ -204,7 +204,7 @@ describe("NodeApiClient endpoint rewriting", () => {
 
   it("统一来源 headers 支持可控的客户端上下文字段", () => {
     expect(
-      buildZCodeSourceHeaders({
+      buildNibiSourceHeaders({
         appVersion: "2.14.0",
         arch: "arm64",
         clientLanguage: "zh-CN",

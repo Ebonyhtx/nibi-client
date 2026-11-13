@@ -11,7 +11,7 @@ import {
 import type { ReactNode } from "react";
 const render = (node: ReactNode) => renderWithContext(node, { wrapper: TooltipProvider });
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
+  useNibiIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
 }));
 vi.mock("@/project-sidebar/ProjectTaskRows.js", () => ({ ProjectTaskRows: () => null }));
 afterEach(cleanup);

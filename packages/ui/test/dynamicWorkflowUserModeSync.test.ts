@@ -16,18 +16,18 @@ vi.mock("@/logger.js", () => ({
 
 function setup() {
   const events: string[] = [];
-  const zcodeAgentService = {
+  const nibiAgentService = {
     syncDynamicWorkflowUserMode: vi.fn(async (params: { mode?: DynamicWorkflowMode }) => {
       events.push(`sync:${params.mode ?? "follow"}`);
     }),
   };
   const hook = renderHook(
     (props: { settingsLoaded: boolean; userMode: DynamicWorkflowMode | undefined }) => {
-      useDynamicWorkflowUserModeSync({ ...props, zcodeAgentService });
+      useDynamicWorkflowUserModeSync({ ...props, nibiAgentService });
     },
     { initialProps: { settingsLoaded: false, userMode: undefined } },
   );
-  return { events, hook, zcodeAgentService };
+  return { events, hook, nibiAgentService };
 }
 
 describe("useDynamicWorkflowUserModeSync", () => {
@@ -74,8 +74,8 @@ describe("useDynamicWorkflowUserModeSync", () => {
   });
 
   it("Host 同步失败仍应用本地选择", async () => {
-    const { hook, zcodeAgentService } = setup();
-    zcodeAgentService.syncDynamicWorkflowUserMode.mockRejectedValueOnce(new Error("host gone"));
+    const { hook, nibiAgentService } = setup();
+    nibiAgentService.syncDynamicWorkflowUserMode.mockRejectedValueOnce(new Error("host gone"));
     hook.rerender({ settingsLoaded: true, userMode: undefined });
     hook.rerender({ settingsLoaded: true, userMode: "disabled" });
     await waitFor(() =>

@@ -4,8 +4,8 @@ import { createServer, type Socket } from "node:net";
 import { createInterface } from "node:readline";
 import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { NibiProtocolClient } from "../../../services/src/zcode-agent/nibiProtocolClient.js";
-import { ZCodeStdioTransport } from "../../../services/src/zcode-agent/zcodeStdioTransport.js";
+import { NibiProtocolClient } from "../../../services/src/nibi-agent/nibiProtocolClient.js";
+import { NibiStdioTransport } from "../../../services/src/nibi-agent/nibiStdioTransport.js";
 
 // 夹具是测试进程：未捕获异常不能落到 Electron 的默认错误框上。强制结束 agent 或被取消的运行时
 // 会让控制 socket 报 ECONNRESET，以前这会弹一个“A JavaScript error occurred in the main process”
@@ -163,7 +163,7 @@ export async function startAgent(
       process.stderr.write(`[fixture] agent ${name} error: ${error.message}\n`);
     });
   }
-  const transport = new ZCodeStdioTransport(child, {
+  const transport = new NibiStdioTransport(child, {
     onStderrLine: (line) => process.stderr.write(line + "\n"),
   });
   const client = new NibiProtocolClient(transport, {

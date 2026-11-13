@@ -1,6 +1,6 @@
 //! Node CLI 配置文件里的 `mcp.servers`（docs/specs/rust-cli/ext.md §3.1、config.md §2）。
 //!
-//! 外形是 Node 的 `McpServerConfig`（`apps/zcode-cli/packages/adapters/src/config/schema.ts`），解析前先做
+//! 外形是 Node 的 `McpServerConfig`（`apps/nibi-cli/packages/adapters/src/config/schema.ts`），解析前先做
 //! Node 的旧格式规范化（`normalizeMcpServerConfigInput`）。值原样使用，不展开 `${VAR}`（Node 不展开）。
 //! `cwd`、`timeoutMs`、`alwaysLoad` 按 Node 接上。`protocolVersion` 认 `auto`/`legacy`/`2026-07-28`
 //! （见 [`McpProtocolVersion`]：`auto` 先探 `server/discover`，没有现代证据时回退 initialize），

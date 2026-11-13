@@ -553,7 +553,7 @@ PY`,
       });
       facts.sourceReconnectFailure = {
         text: (await mobileText(mobile)).slice(0, 3000),
-        historyPage: await mobile.evaluate(() => window.history.state?.zcodeMobilePage ?? null),
+        historyPage: await mobile.evaluate(() => window.history.state?.nibiMobilePage ?? null),
       };
       throw error;
     });

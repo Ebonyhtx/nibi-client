@@ -4,7 +4,7 @@
 // 外观与键盘见 docs/dynamic-workflow/presentation.md「The confirmation window」）：纯规则逐条穷举，
 // 真实 DOM 上钉两句话、改过的那一行、选项描述、Allow 应答带出去的 content、「不可用」的门与 Shift+Tab。
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { type ZCodePermissionRequest } from "@nibi/shared";
+import { type NibiPermissionRequest } from "@nibi/shared";
 import { TID_CHAT_THOUGHT_LEVEL_SELECT_TRIGGER } from "@nibi/shared/test-ids";
 import type { ConversationSnapshot } from "@nibi/shared/nibi-protocol-v4";
 import { createElement, type ReactNode } from "react";
@@ -75,7 +75,7 @@ vi.mock("@/v4/V4ConversationContext.js", () => ({
 }));
 
 // eslint-disable-next-line import/first -- 必须在 mock 之后再引入被测组件。
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 // eslint-disable-next-line import/first
 import { PermissionDialog } from "@/PermissionDialog.js";
 // eslint-disable-next-line import/first
@@ -90,7 +90,7 @@ import {
   workflowAskSettingsContent,
 } from "@/components/workflow-timeline/workflowAskSettings.js";
 // eslint-disable-next-line import/first
-import { encodeCustomModelValue } from "@/lib/zcodeCustomModelValue.js";
+import { encodeCustomModelValue } from "@/lib/nibiCustomModelValue.js";
 // eslint-disable-next-line import/first
 import { V4InteractionDialogs } from "@/v4/V4InteractionDialogs.js";
 
@@ -123,8 +123,8 @@ afterEach(() => {
 
 function workflowRequest(
   raw: Record<string, unknown>,
-  overrides: Partial<ZCodePermissionRequest> = {},
-): ZCodePermissionRequest {
+  overrides: Partial<NibiPermissionRequest> = {},
+): NibiPermissionRequest {
   return {
     type: "permission_request",
     taskId: "task-1",
@@ -146,13 +146,13 @@ function workflowRequest(
 const ADJUSTABLE = { adjustable_settings: { subagent_model: true, concurrency_ceiling: 13 } };
 
 function renderDialog(
-  request: ZCodePermissionRequest,
+  request: NibiPermissionRequest,
   options: { locale?: "en-US" | "zh-CN"; responding?: boolean } = {},
 ) {
   const onRespond = vi.fn();
-  const element = (next: ZCodePermissionRequest) =>
+  const element = (next: NibiPermissionRequest) =>
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: options.locale ?? "en-US" },
       createElement(PermissionDialog, {
         request: next,
@@ -163,7 +163,7 @@ function renderDialog(
       }),
     );
   const view = render(element(request));
-  return { onRespond, rerender: (next: ZCodePermissionRequest) => view.rerender(element(next)) };
+  return { onRespond, rerender: (next: NibiPermissionRequest) => view.rerender(element(next)) };
 }
 
 function modelLine(): HTMLElement {
@@ -574,7 +574,7 @@ describe("V4 宿主", () => {
     } as unknown as ConversationSnapshot;
     render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(V4InteractionDialogs, {
           sessionId: "sess-1",

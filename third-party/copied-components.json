@@ -68,7 +68,7 @@
   {
     "id": "Fig autocomplete registry",
     "roots": [
-      "apps/zcode-cli/packages/core/src/tool/handlers/generated/bash-command-registry.ts"
+      "apps/nibi-cli/packages/core/src/tool/handlers/generated/bash-command-registry.ts"
     ],
     "license": "MIT",
     "source": "https://raw.githubusercontent.com/withfig/autocomplete/aef52acff84c45edde61ae610cc2c964802b9a38/LICENSE",
@@ -119,7 +119,7 @@
     "provenance": "Original import revision is not recorded. This pinned upstream license/source reference is not asserted to be the original import version.",
     "roots": [
       "packages/ui/src/lib/builtinSkillI18n.ts",
-      "apps/zcode-cli/packages/superpowers-plugin/LICENSE"
+      "apps/nibi-cli/packages/superpowers-plugin/LICENSE"
     ],
     "scope": "Superpowers-derived skill descriptions and their translations only; unrelated descriptions from other projects in this file are not covered. The former bundled plugin implementation has been removed; only its retained license remains.",
     "license": "MIT",

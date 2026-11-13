@@ -275,7 +275,7 @@ describe("useWorkspaceFileTreeData", () => {
     expect(harness.services.gitService.refresh).toHaveBeenCalledTimes(gitReads);
   });
 
-  it("实时刷新展开目录里的新增文件，不需要重启 ZCode", async () => {
+  it("实时刷新展开目录里的新增文件，不需要重启 Nibi", async () => {
     vi.useFakeTimers();
     const harness = createWorkspaceFileTreeHarness({
       [WORKSPACE_PATH]: [directory(SRC_PATH)],

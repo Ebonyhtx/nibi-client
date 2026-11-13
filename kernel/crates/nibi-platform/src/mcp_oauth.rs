@@ -1,4 +1,4 @@
-//! MCP 服务器的 OAuth（对齐 Node `apps/zcode-cli/packages/adapters/src/mcp`）。
+//! MCP 服务器的 OAuth（对齐 Node `apps/nibi-cli/packages/adapters/src/mcp`）。
 //!
 //! 两条路：
 //!

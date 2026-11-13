@@ -76,10 +76,10 @@ fn without_find_and_grep_only_rg_is_defined() {
 /// Git Bash：没有 bfs，不定义 find；回退路径写成 Git Bash 的形式。
 #[test]
 fn git_bash_has_grep_and_rg_but_no_find() {
-    let text = prelude(&search(r"C:\Program Files\ZCode\zcode.exe", true), true);
-    let rg = RG.replace("'/opt/Z Code/zcode'", "'/c/Program Files/ZCode/zcode.exe'");
+    let text = prelude(&search(r"C:\Program Files\Nibi\zcode.exe", true), true);
+    let rg = RG.replace("'/opt/Z Code/zcode'", "'/c/Program Files/Nibi/zcode.exe'");
     let grep_only: String = FIND_GREP
-        .replace("'/opt/Z Code/zcode'", "'/c/Program Files/ZCode/zcode.exe'")
+        .replace("'/opt/Z Code/zcode'", "'/c/Program Files/Nibi/zcode.exe'")
         .replace("unalias find 2>/dev/null || true\n", "");
     let start = grep_only.find("function find {").unwrap();
     let end = grep_only.find("function grep {").unwrap();

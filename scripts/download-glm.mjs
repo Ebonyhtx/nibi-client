@@ -18,21 +18,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const REPO_ROOT = path.resolve(__dirname, "..");
 
-function readZCodeAgentRuntimeVersion() {
-  const runtimeSourcePath = path.join(REPO_ROOT, "packages/shared/src/zcode-agent-runtime.ts");
+function readNibiAgentRuntimeVersion() {
+  const runtimeSourcePath = path.join(REPO_ROOT, "packages/shared/src/nibi-agent-runtime.ts");
   const runtimeSource = fs.readFileSync(runtimeSourcePath, "utf8");
   const match = runtimeSource.match(/version:\s*["']([^"']+)["']/);
   if (!match?.[1]) {
-    throw new Error("Unable to parse ZCode Agent runtime version");
+    throw new Error("Unable to parse Nibi Agent runtime version");
   }
   return match[1];
 }
 
-export const GLM_RUNTIME_VERSION = readZCodeAgentRuntimeVersion();
-// Bugfix: GLM 二进制按 zcode-cli 版本发布，旧的 deps/zcode-cli 会在版本升级后复用旧目录。
+export const GLM_RUNTIME_VERSION = readNibiAgentRuntimeVersion();
+// Bugfix: GLM 二进制按 nibi-cli 版本发布，旧的 deps/nibi-cli 会在版本升级后复用旧目录。
 // 这里读取 shared runtime 里的 glm.version，让下载目录与远程 manifest/cache 版本来源一致。
 function resolveDefaultGlmBinaryDownloadBaseUrl(env = process.env) {
-  return `${resolveIntranetDepsBaseUrl(env)}/zcode-cli-${GLM_RUNTIME_VERSION}`;
+  return `${resolveIntranetDepsBaseUrl(env)}/nibi-cli-${GLM_RUNTIME_VERSION}`;
 }
 
 function normalizePlatform(raw) {

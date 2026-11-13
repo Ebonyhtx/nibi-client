@@ -102,6 +102,6 @@ CLI listProtocolSlashCommands
 
 测试：`chatPromptActionMenuInteraction.test.ts`（顺序、任意会话可见、catalog 缺失/非空草稿/排除名隐藏、
 插入 `/workflow`）；`promptMentionNode.test.ts`（图标节点）；
-`apps/zcode-cli/packages/bootstrap/tests/protocol-slash-commands.test.ts`（catalog 顺序）；
+`apps/nibi-cli/packages/bootstrap/tests/protocol-slash-commands.test.ts`（catalog 顺序）；
 Electron pending 用例 PLUS05。
 

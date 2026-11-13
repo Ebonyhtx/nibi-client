@@ -1,7 +1,7 @@
 import { Box, Server, TerminalSquare } from "lucide-react";
 import type { SourceServerTransportKind } from "@nibi/shared";
 import { cn } from "@/components/lib/utils.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   resolveRemoteConnectionPresentation,
   type RemoteConnectionPresentation,
@@ -62,7 +62,7 @@ export function RemoteConnectionKindTag({
   kind: SourceServerTransportKind;
   className?: string;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const presentation = REMOTE_KIND_PRESENTATION[kind];
   const Icon = presentation.Icon;
   return (
@@ -85,7 +85,7 @@ export function RemoteConnectionStatusTag({
   presentation?: RemoteConnectionPresentation;
   className?: string;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const presentation = supplied ?? resolveRemoteConnectionPresentation({ state: status });
   return (
     <span

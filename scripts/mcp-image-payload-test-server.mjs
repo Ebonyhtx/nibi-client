@@ -30,7 +30,7 @@ server.registerTool(
   {
     title: "Emit image with configurable base64 size",
     description:
-      "Return a valid PNG image block whose base64 payload is near the requested size. Use this to test ZCode MCP image output budgeting.",
+      "Return a valid PNG image block whose base64 payload is near the requested size. Use this to test Nibi MCP image output budgeting.",
     inputSchema: {
       preset: z
         .enum(["tiny", "below_limit", "just_over_limit", "large", "huge"])
@@ -75,7 +75,7 @@ server.registerTool(
         {
           type: "text",
           text: [
-            "ZCode MCP image payload test",
+            "Nibi MCP image payload test",
             `label=${label?.trim() || selectedPreset}`,
             `preset=${selectedPreset}`,
             `targetBase64Bytes=${targetBase64Bytes}`,

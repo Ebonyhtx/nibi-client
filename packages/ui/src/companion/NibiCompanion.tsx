@@ -2,9 +2,9 @@ import { flushSync } from "react-dom";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
-  selectWorkspaceZCodeState,
-  useZCodeSessionStore,
-} from "@/store/zcodeSessionStore.js";
+  selectWorkspaceNibiState,
+  useNibiSessionStore,
+} from "@/store/nibiSessionStore.js";
 import { useMotionDisabled } from "@/lib/motionPreference.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { getWindowControllerTaskListRegistry } from "@/v4/windowControllerTaskListRegistry.js";
@@ -143,9 +143,9 @@ export function NibiCompanion({
   const motionDisabledByPreference = useMotionDisabled();
   const systemReducedMotion = useSystemReducedMotion();
   const documentHidden = useDocumentHidden();
-  const { activeTaskId, taskRuntimeByTaskId } = useZCodeSessionStore(
+  const { activeTaskId, taskRuntimeByTaskId } = useNibiSessionStore(
     useShallow((state) => {
-      const workspaceState = selectWorkspaceZCodeState(
+      const workspaceState = selectWorkspaceNibiState(
         state,
         workspacePath ?? "",
         workspaceIdentity,

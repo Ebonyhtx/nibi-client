@@ -8,7 +8,7 @@ import {
   Root,
   GlobalDatabaseStartupLoading,
   UpdateStatusWindowRoot,
-  ZCodeIntlProvider,
+  NibiIntlProvider,
   registerBaseWorkspaceServices,
   registerRemoteWorkspaceSession,
   createRemoteWorkspaceDisconnectedError,
@@ -152,7 +152,7 @@ const sendStartupControl = (control: DatabaseStartupControl) =>
 function renderDatabaseStartup(): void {
   appRoot?.render(
     <AppErrorBoundary isDesktop isMacDesktop={isMacDesktop} isWindowsDesktop={isWindowsDesktop}>
-      <ZCodeIntlProvider
+      <NibiIntlProvider
         initialLocale={initialLocaleFlag ? initialLocale : undefined}
         resolveSystemLocale={desktopPlatform.getSystemLocale}
       >
@@ -169,7 +169,7 @@ function renderDatabaseStartup(): void {
           onCopy={(details) => navigator.clipboard.writeText(details)}
           onExit={() => sendStartupControl({ action: "exit" })}
         />
-      </ZCodeIntlProvider>
+      </NibiIntlProvider>
     </AppErrorBoundary>,
   );
 }
@@ -322,7 +322,7 @@ function initializeBusinessRoot(port: MessagePort): void {
 
   appRoot?.render(
     <AppErrorBoundary isDesktop isMacDesktop={isMacDesktop} isWindowsDesktop={isWindowsDesktop}>
-      <ZCodeIntlProvider
+      <NibiIntlProvider
         settingService={settingService}
         broadcastService={services.broadcastService}
         resolveSystemLocale={desktopPlatform.getSystemLocale}
@@ -343,7 +343,7 @@ function initializeBusinessRoot(port: MessagePort): void {
           }
           unavailableWorkspacePath={unavailableWorkspacePath}
         />
-      </ZCodeIntlProvider>
+      </NibiIntlProvider>
     </AppErrorBoundary>,
   );
 }

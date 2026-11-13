@@ -1,5 +1,5 @@
 import type { ISubagentsService } from "@nibi/services";
-import type { ZCodeProvider } from "@nibi/shared";
+import type { NibiProvider } from "@nibi/shared";
 import { getServiceAuthorityId } from "@/store/serviceAuthorityKey.js";
 
 const inFlightAgentLoads = new Map<string, ReturnType<ISubagentsService["list"]>>();
@@ -7,7 +7,7 @@ let latestAgentLoadRequestId = 0;
 
 function getAgentLoadKey(
   workspacePath: string,
-  provider: ZCodeProvider,
+  provider: NibiProvider,
   subagentsService: ISubagentsService,
   workspaceIdentity?: string,
 ): string {
@@ -18,7 +18,7 @@ function getAgentLoadKey(
 
 export function loadAgentsOnce(
   workspacePath: string,
-  provider: ZCodeProvider,
+  provider: NibiProvider,
   subagentsService: ISubagentsService,
   workspaceIdentity?: string,
   options: { bypassCache?: boolean } = {},

@@ -170,8 +170,8 @@ describe("commandsService", () => {
     expect(result.userCommands).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          agentSource: "zcodeAgent",
-          id: "zcodeAgent:nibi:global:/global",
+          agentSource: "nibiAgent",
+          id: "nibiAgent:nibi:global:/global",
           name: "/global",
           scope: "global",
           description: "Global command",
@@ -182,8 +182,8 @@ describe("commandsService", () => {
           }),
         }),
         expect.objectContaining({
-          agentSource: "zcodeAgent",
-          id: "zcodeAgent:nibi:project:/ops/deploy",
+          agentSource: "nibiAgent",
+          id: "nibiAgent:nibi:project:/ops/deploy",
           name: "/ops/deploy",
           scope: "project",
           projectPath: workspacePath,
@@ -217,8 +217,8 @@ describe("commandsService", () => {
 
     expect(result.userCommands).toEqual([
       expect.objectContaining({
-        agentSource: "zcodeAgent",
-        id: "zcodeAgent:nibi:project:/project-only",
+        agentSource: "nibiAgent",
+        id: "nibiAgent:nibi:project:/project-only",
         name: "/project-only",
         scope: "project",
         location: expect.objectContaining({
@@ -241,7 +241,7 @@ describe("commandsService", () => {
     mkdirSync(join(workspacePath, ".claude", "commands"), { recursive: true });
     writeFileSync(
       join(home, ".nibi", "commands", "review.md"),
-      "ZCode review",
+      "Nibi review",
       "utf-8",
     );
     writeFileSync(
@@ -271,24 +271,24 @@ describe("commandsService", () => {
     );
     writeFileSync(
       join(workspacePath, ".nibi", "commands", "project.md"),
-      "ZCode project",
+      "Nibi project",
       "utf-8",
     );
 
     const service = await createCommandsServiceInEnv(home);
     const all = await service.list({ workspacePath });
-    const zcodeOnly = await service.list({
-      agentSource: "zcodeAgent",
+    const nibiOnly = await service.list({
+      agentSource: "nibiAgent",
       workspacePath,
     });
 
     expect(all.userCommands.map((command) => command.id)).toEqual([
-      "zcodeAgent:nibi:project:/project",
-      "zcodeAgent:nibi:global:/review",
+      "nibiAgent:nibi:project:/project",
+      "nibiAgent:nibi:global:/review",
     ]);
-    expect(zcodeOnly.userCommands.map((command) => command.id)).toEqual([
-      "zcodeAgent:nibi:project:/project",
-      "zcodeAgent:nibi:global:/review",
+    expect(nibiOnly.userCommands.map((command) => command.id)).toEqual([
+      "nibiAgent:nibi:project:/project",
+      "nibiAgent:nibi:global:/review",
     ]);
   });
 
@@ -297,7 +297,7 @@ describe("commandsService", () => {
     const service = await createCommandsServiceInEnv(home);
 
     const created = await service.writeCommandFile({
-      agentSource: "zcodeAgent",
+      agentSource: "nibiAgent",
       config: {
         name: "ship-it",
         prompt: "Ship it",
@@ -305,14 +305,14 @@ describe("commandsService", () => {
       },
     });
     const directory = await service.getPrimaryUserCommandsDirectory({
-      agentSource: "zcodeAgent",
+      agentSource: "nibiAgent",
     });
 
     expect(directory.path).toBe(join(home, ".nibi", "commands"));
     expect(created.command).toMatchObject({
-      agentSource: "zcodeAgent",
+      agentSource: "nibiAgent",
       filePath: join(home, ".nibi", "commands", "ship-it.md"),
-      id: "zcodeAgent:nibi:global:/ship-it",
+      id: "nibiAgent:nibi:global:/ship-it",
       name: "/ship-it",
       location: expect.objectContaining({
         source: "nibi",
@@ -386,7 +386,7 @@ describe("commandsService", () => {
 
     expect(result.userCommands).toEqual([
       expect.objectContaining({
-        id: "zcodeAgent:agents:project:/agents-only",
+        id: "nibiAgent:agents:project:/agents-only",
         name: "/agents-only",
         description: "agents only",
         location: expect.objectContaining({

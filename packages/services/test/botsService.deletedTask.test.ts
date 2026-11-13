@@ -70,7 +70,7 @@ function setup(locale: "zh-CN" | "en-US" = "zh-CN", remote = true) {
   const service = f.createBotsService({
     ...f.createBotProjectServices([workspace]),
     repo: repo as never,
-    zcodeTaskService: taskService,
+    nibiTaskService: taskService,
     broadcastService,
     modelSelectionService,
     credentialService: f.createCredentialService({ "secret-1": "secret" }),

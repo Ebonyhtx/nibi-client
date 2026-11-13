@@ -16,7 +16,7 @@ export function attachPluginUiToolResults(
 ): () => void {
   if (!platform.pluginSandbox || !services.pluginUiBridgeService) return () => {};
   let disposed = false;
-  const subscription = services.zcodeAgentService.onDynamicPluginUiToolResult()((result) => {
+  const subscription = services.nibiAgentService.onDynamicPluginUiToolResult()((result) => {
     if (disposed || isRemoteWorkspaceIdentity(result.workspaceIdentity ?? "")) return;
     const presentation = { ...result.ui, serverName: result.serverName };
     const scope = {

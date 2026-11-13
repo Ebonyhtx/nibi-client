@@ -35,7 +35,7 @@ it("adds every public header and re-reads authorization on retry and logout", as
     osVersion: "24.0",
     releaseChannel: "test",
     randomUUID: () => "device-1",
-    resolveZCodeEndpointOrigin: () => "https://zcode.z.ai",
+    resolveNibiEndpointOrigin: () => "https://zcode.z.ai",
     sleep: async () => {
       token = "Bearer second";
     },

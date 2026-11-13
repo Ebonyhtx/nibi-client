@@ -11,7 +11,7 @@ import {
 import { toast } from "@/components/ui/toast.js";
 import { useFileContextActions } from "@/hooks/useFileContextActions.js";
 import { useOptionalPlatform } from "@/hooks/usePlatform.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 
 export interface AttachmentFileActionsMenuProps {
@@ -58,7 +58,7 @@ function AttachmentFileActionsMenuInner({
   localPathActionsEnabled = true,
   platform,
 }: AttachmentFileActionsMenuProps & { platform: IPlatformService }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const { canRevealInFileManager, copyAbsolutePath, revealInFileManager } = useFileContextActions({
     canOpenLocalFileManager: platform.canOpenLocalFiles === true,
   });

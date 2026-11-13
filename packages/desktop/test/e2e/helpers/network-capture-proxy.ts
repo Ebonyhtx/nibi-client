@@ -299,7 +299,7 @@ export async function startE2ENetworkCaptureProxy(
   };
 
   function recordForContext(ctx: IContext): MutableCaptureRecord | undefined {
-    const id = stringValue(ctx.tags?.zcodeCaptureId) ?? ctx.uuid;
+    const id = stringValue(ctx.tags?.nibiCaptureId) ?? ctx.uuid;
     return records.get(id);
   }
 
@@ -565,8 +565,8 @@ function isSseResponse(record: Pick<E2ENetworkCaptureRecord, "responseHeaders">)
 function tagContext(ctx: IContext, id: string) {
   // 修复原因：http-mitm-proxy 的同一个请求会跨多个回调阶段流转，e2e 需要用
   // 稳定 id 把 request/response 数据合并到同一条 artifact 记录。
-  const tags = (ctx.tags ?? {}) as IContext["tags"] & { zcodeCaptureId?: string };
-  tags.zcodeCaptureId = id;
+  const tags = (ctx.tags ?? {}) as IContext["tags"] & { nibiCaptureId?: string };
+  tags.nibiCaptureId = id;
   ctx.tags = tags;
 }
 
@@ -700,7 +700,7 @@ function buildProxyEnv(
     REQUESTS_CA_BUNDLE: caBundlePath,
     SSL_CERT_FILE: caBundlePath,
     // Bugfix: agent provider fetch 会过滤标准 HTTP_PROXY/HTTPS_PROXY，只认
-    // ZCode 显式网络出口配置；否则真实模型请求会直连上游，capture artifact 为空。
+    // Nibi 显式网络出口配置；否则真实模型请求会直连上游，capture artifact 为空。
     [NIBI_AGENT_CA_CERT_ENV_KEY]: caCertPath,
     [NIBI_HTTP_PROXY_ENV_KEY]: proxyUrl,
     [NIBI_NO_PROXY_ENV_KEY]: noProxy,

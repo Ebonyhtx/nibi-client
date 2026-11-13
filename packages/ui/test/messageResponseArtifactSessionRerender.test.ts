@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MessageResponse } from "@/components/ai-elements/message.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -26,7 +26,7 @@ describe("MessageResponse artifact session changes", () => {
 
     const renderMessage = (sessionId: string, readAttachment: typeof readSessionA) =>
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(
           MessageResponse,

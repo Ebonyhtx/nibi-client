@@ -9,7 +9,7 @@ import {
   type ToolPresentationCapabilities,
 } from "@/ToolCallBlocks/presentationCapabilities.js";
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
+  useNibiIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
 }));
 afterEach(cleanup);
 function body(capabilities: ToolPresentationCapabilities, path = "/workspace/a.png") {

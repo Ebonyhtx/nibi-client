@@ -5,7 +5,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import {
   TID_V4_WORKSPACE_HOOK_PENDING_BANNER,
   TID_V4_WORKSPACE_HOOK_PENDING_DISMISS,
@@ -104,7 +104,7 @@ function renderBanner(props: {
 }) {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(WorkspaceHookPendingBanner, {
         sessionId: props.sessionId ?? "sess-1",
@@ -121,7 +121,7 @@ function renderBanner(props: {
 function renderInteractiveBanner(admission = sampleAdmission) {
   return render(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(WorkspaceHookPendingBanner, {
         sessionId: "sess-1",
@@ -185,7 +185,7 @@ describe("WorkspaceHookPendingBanner（软门禁 D4）", () => {
 
     view.rerender(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(WorkspaceHookPendingBanner, {
           sessionId: "sess-1",

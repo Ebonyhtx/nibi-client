@@ -1,10 +1,10 @@
 import { Emitter } from "@nibi/rpc";
-import type { ZCodeMcpTelemetryEvent } from "@nibi/shared";
+import type { NibiMcpTelemetryEvent } from "@nibi/shared";
 import { HostResponseTypes } from "@nibi/shared";
 import { describe, expect, it, vi } from "vitest";
 import { registerHostMcpTelemetry } from "../src/host/hostMcpTelemetry.js";
 
-const event: ZCodeMcpTelemetryEvent = {
+const event: NibiMcpTelemetryEvent = {
   arch: "arm64",
   kind: "memory",
   mcpId: "builtin:node_repl",
@@ -22,7 +22,7 @@ const event: ZCodeMcpTelemetryEvent = {
 
 describe("registerHostMcpTelemetry", () => {
   it("forwards only the event and local/remote surface to main", () => {
-    const emitter = new Emitter<ZCodeMcpTelemetryEvent>();
+    const emitter = new Emitter<NibiMcpTelemetryEvent>();
     const postMessage = vi.fn();
     const disposable = registerHostMcpTelemetry({
       agentService: { onDynamicMcpTelemetry: () => emitter.event },
@@ -42,7 +42,7 @@ describe("registerHostMcpTelemetry", () => {
   });
 
   it("drops parentPort failures without throwing into the Agent event source", () => {
-    const emitter = new Emitter<ZCodeMcpTelemetryEvent>();
+    const emitter = new Emitter<NibiMcpTelemetryEvent>();
     const disposable = registerHostMcpTelemetry({
       agentService: { onDynamicMcpTelemetry: () => emitter.event },
       postMessage: () => {

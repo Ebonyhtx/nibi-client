@@ -1,6 +1,6 @@
 //! 解析结果 → 模型目录与端点模板（docs/specs/rust-cli/platform.md §3.3）。
 //!
-//! 规则对齐旧 Rust CLI 的 `apps/zcode-cli-rust/crates/model/src/registry_rules.rs`（对齐 Node）：
+//! 规则对齐旧 Rust CLI 的 `apps/nibi-cli-rust/crates/model/src/registry_rules.rs`（对齐 Node）：
 //! - 可执行的模型都能解析端点；`visibility: hidden` 的 provider 不进目录，但仍能按选择解析；
 //! - 推理档位是 `optionSpecs.reasoningLevel.values`；没指定档位时用最后一个（Node `toModelOption`）；
 //! - 请求补丁 = reasoningLevel map(档位) + maxOutputTokens map(max)；

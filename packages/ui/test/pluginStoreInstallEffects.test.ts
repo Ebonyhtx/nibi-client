@@ -35,12 +35,12 @@ vi.mock("@/plugin-ui/index.js", () => ({
   resolvePluginUiSurfaceTitle: () => "Panel",
 }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
-  useZCodeIntl: () => ({
+  useNibiIntl: () => ({
     intl: { formatMessage: ({ id }: { id: string }) => id },
     locale: "en-US",
   }),
 }));
-vi.mock("@/lib/zcodeDraftSkillInvalidation.js", () => ({
+vi.mock("@/lib/nibiDraftSkillInvalidation.js", () => ({
   invalidateDeferredDraftSessionForSkillChange: effects.invalidate,
 }));
 vi.mock("@/lib/skillStoreRefresh.js", () => ({

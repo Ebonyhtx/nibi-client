@@ -553,7 +553,7 @@ async function requireExpectedPackage(
     if (typeof contents !== "string") throw new Error("package.json is not text");
     const pkg: unknown = JSON.parse(contents);
     if (!isPlainRecord(pkg)) throw new Error("package.json is not an object");
-    const contract = pkg.zcodeCuaRuntime;
+    const contract = pkg.nibiCuaRuntime;
     if (
       pkg.name !== EXPECTED_PACKAGE_NAME ||
       !isNonEmptyTrimmedString(pkg.version) ||
@@ -578,7 +578,7 @@ async function requireExpectedPackage(
   }
   throw new WindowsCuaDevRuntimeResolutionError(
     "invalid-package",
-    `Windows CUA development root package.json must name ${EXPECTED_PACKAGE_NAME} and expose a valid zcodeCuaRuntime contract.`,
+    `Windows CUA development root package.json must name ${EXPECTED_PACKAGE_NAME} and expose a valid nibiCuaRuntime contract.`,
     PACKAGE_JSON,
   );
 }

@@ -737,25 +737,25 @@ catalog。
 
 | Rank           | 区域                                                                              | 预计改动                                             |
 | -------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| invariant-only | `apps/zcode-cli/packages/contracts/src/interfaces/mcp.port.ts`                    | 现有 live port 接口保持不变                          |
-| must-inspect   | `apps/zcode-cli/packages/contracts/src/interfaces/`                               | 新增 catalog port、scope、sanitized descriptor 类型  |
-| must-inspect   | `apps/zcode-cli/packages/adapters/src/mcp-tool-catalog/`                          | 内存 LRU、identity、TTL、generation、sanitization    |
-| must-inspect   | `apps/zcode-cli/packages/bootstrap/src/nibi-protocol-entrypoint.ts`              | process-scoped cache owner                           |
-| must-inspect   | `apps/zcode-cli/packages/bootstrap/src/nibi-protocol/server-types.ts`            | catalog port 进入 protocol process context           |
-| must-inspect   | `apps/zcode-cli/packages/bootstrap/src/nibi-protocol/server-operations.ts`       | 本地 scope 与远程分类；Phase 3 可选贯穿 session id   |
-| must-inspect   | `apps/zcode-cli/packages/bootstrap/src/nibi-protocol/workspace-model-catalog.ts` | 把同一个 port 传给每个 workspace session app         |
-| must-inspect   | `apps/zcode-cli/packages/bootstrap/src/app/create-app.ts`                         | catalog port dependency injection 到 session runtime |
-| must-inspect   | `apps/zcode-cli/packages/bootstrap/src/app/session-facade.ts`                     | 保持实际 MCP close ownership 与 cleanup              |
-| must-inspect   | `apps/zcode-cli/packages/core/src/runtime/agent-runtime.ts`                       | shutdown 同步关闭 coordinator、abort startup         |
-| must-inspect   | `apps/zcode-cli/packages/core/src/runtime/methods/mcp.ts`                         | cached/live startup 状态与 reconcile                 |
-| must-inspect   | `apps/zcode-cli/packages/core/src/runtime/methods/turn-loop.ts`                   | sampling 前 warm/cold 选择                           |
-| must-inspect   | `apps/zcode-cli/packages/core/src/mcp/index.ts`                                   | advertisement entry 与 live entry 构造               |
-| must-inspect   | `apps/zcode-cli/packages/core/src/tool/executor/call-runner.ts`                   | permission 前 live preflight、waiter abort           |
-| should-inspect | `apps/zcode-cli/packages/core/src/tool/registry.ts`                               | reconcile / provider-invisible tombstone             |
-| should-inspect | `apps/zcode-cli/packages/core/src/runtime/methods/subagent.ts`                    | parent startup 与 borrowed snapshot                  |
-| should-inspect | `apps/zcode-cli/packages/core/src/subagent/borrowed-mcp-port.ts`                  | 保持 live-only、scope-filtered                       |
-| conditional    | `apps/zcode-cli/packages/bootstrap/src/nibi-protocol/mcp.ts`                     | control-plane 成功结果 seed cache                    |
-| conditional    | `apps/zcode-cli/packages/bootstrap/src/nibi-protocol/workspace.ts`               | Phase 3 贯穿真实 remoteSessionId                     |
+| invariant-only | `apps/nibi-cli/packages/contracts/src/interfaces/mcp.port.ts`                    | 现有 live port 接口保持不变                          |
+| must-inspect   | `apps/nibi-cli/packages/contracts/src/interfaces/`                               | 新增 catalog port、scope、sanitized descriptor 类型  |
+| must-inspect   | `apps/nibi-cli/packages/adapters/src/mcp-tool-catalog/`                          | 内存 LRU、identity、TTL、generation、sanitization    |
+| must-inspect   | `apps/nibi-cli/packages/bootstrap/src/nibi-protocol-entrypoint.ts`              | process-scoped cache owner                           |
+| must-inspect   | `apps/nibi-cli/packages/bootstrap/src/nibi-protocol/server-types.ts`            | catalog port 进入 protocol process context           |
+| must-inspect   | `apps/nibi-cli/packages/bootstrap/src/nibi-protocol/server-operations.ts`       | 本地 scope 与远程分类；Phase 3 可选贯穿 session id   |
+| must-inspect   | `apps/nibi-cli/packages/bootstrap/src/nibi-protocol/workspace-model-catalog.ts` | 把同一个 port 传给每个 workspace session app         |
+| must-inspect   | `apps/nibi-cli/packages/bootstrap/src/app/create-app.ts`                         | catalog port dependency injection 到 session runtime |
+| must-inspect   | `apps/nibi-cli/packages/bootstrap/src/app/session-facade.ts`                     | 保持实际 MCP close ownership 与 cleanup              |
+| must-inspect   | `apps/nibi-cli/packages/core/src/runtime/agent-runtime.ts`                       | shutdown 同步关闭 coordinator、abort startup         |
+| must-inspect   | `apps/nibi-cli/packages/core/src/runtime/methods/mcp.ts`                         | cached/live startup 状态与 reconcile                 |
+| must-inspect   | `apps/nibi-cli/packages/core/src/runtime/methods/turn-loop.ts`                   | sampling 前 warm/cold 选择                           |
+| must-inspect   | `apps/nibi-cli/packages/core/src/mcp/index.ts`                                   | advertisement entry 与 live entry 构造               |
+| must-inspect   | `apps/nibi-cli/packages/core/src/tool/executor/call-runner.ts`                   | permission 前 live preflight、waiter abort           |
+| should-inspect | `apps/nibi-cli/packages/core/src/tool/registry.ts`                               | reconcile / provider-invisible tombstone             |
+| should-inspect | `apps/nibi-cli/packages/core/src/runtime/methods/subagent.ts`                    | parent startup 与 borrowed snapshot                  |
+| should-inspect | `apps/nibi-cli/packages/core/src/subagent/borrowed-mcp-port.ts`                  | 保持 live-only、scope-filtered                       |
+| conditional    | `apps/nibi-cli/packages/bootstrap/src/nibi-protocol/mcp.ts`                     | control-plane 成功结果 seed cache                    |
+| conditional    | `apps/nibi-cli/packages/bootstrap/src/nibi-protocol/workspace.ts`               | Phase 3 贯穿真实 remoteSessionId                     |
 | conditional    | `packages/shared/src/nibi-protocol/index.ts`                                     | 若跨进程接口需扩展，增加严格 schema                  |
 | invariant-only | `packages/ui/src/settings/McpSettingsSection.tsx`                                 | status UI 不读取 catalog                             |
 | invariant-only | web remote / relay / desktop main                                                 | 不新增 cache authority 或 runtime 状态               |

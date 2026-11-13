@@ -5,10 +5,10 @@ import { Worker } from "node:worker_threads";
 import { createInterface } from "node:readline";
 import {
   type DatabaseMigrationFacts,
-  zcodeStoragePreparationFrameSchema,
+  nibiStoragePreparationFrameSchema,
   type DatabaseStartupState,
 } from "@nibi/shared";
-import { resolveDefaultZCodeAgentCommand } from "@nibi/services/storage-startup";
+import { resolveDefaultNibiAgentCommand } from "@nibi/services/storage-startup";
 
 type Phase = NonNullable<DatabaseStartupState["databasePhase"]>;
 import { workerMessageSchema } from "./contract.js";
@@ -95,7 +95,7 @@ type StoragePrepareOptions = {
  *  Rust 内核没有 JS 入口（原生 binary 进不了 Worker 线程），走 `storagePreparationProcess` 的
  *  子进程分支（同一段握手，见 runStorageHandshakeLines）。 */
 export async function prepareSessionStorage(options: StoragePrepareOptions): Promise<void> {
-  const command = resolveDefaultZCodeAgentCommand({
+  const command = resolveDefaultNibiAgentCommand({
     workspacePath: options.cwd,
     workspaceKey: options.cwd,
     presentationSurface: "desktop",
@@ -128,7 +128,7 @@ export async function prepareSessionStorage(options: StoragePrepareOptions): Pro
 /** Rust 内核的存储准备：`app-server --stdio --prepare-storage` 原生子进程（cwd 由 spawn 给出，
  *  Rust 的入口只认进程 cwd，没有 `--cwd` 参数）。 */
 async function prepareSessionStorageProcess(
-  command: NonNullable<ReturnType<typeof resolveDefaultZCodeAgentCommand>>,
+  command: NonNullable<ReturnType<typeof resolveDefaultNibiAgentCommand>>,
   options: StoragePrepareOptions,
 ): Promise<void> {
   const child = spawn(command.command, [...(command.args ?? []), "--prepare-storage"], {
@@ -194,7 +194,7 @@ function runStorageHandshakeLines({
     lines.on("line", (line) => {
       try {
         if (line.length > 65536) throw statusError("transport_closed");
-        const frame = zcodeStoragePreparationFrameSchema.parse(JSON.parse(line));
+        const frame = nibiStoragePreparationFrameSchema.parse(JSON.parse(line));
         clearTimeout(firstStateTimer);
         if (frame.method === "startup/storagePath") {
           if (pathReceived) throw statusError("transport_closed");

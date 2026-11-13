@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ZCodeConfigOption } from "@nibi/shared";
+import type { NibiConfigOption } from "@nibi/shared";
 import {
   shouldRefreshBotTaskList,
   shouldMirrorBotTaskStreamToStore,
@@ -27,7 +27,7 @@ describe("useBotBroadcastEffects", () => {
     ).toBe(true);
   });
 
-  it("keeps skipping active local bot stream to avoid duplicate normal ZCode Agent subscription writes", () => {
+  it("keeps skipping active local bot stream to avoid duplicate normal Nibi Agent subscription writes", () => {
     expect(
       shouldMirrorBotTaskStreamToStore({
         activeTaskId: "task-1",
@@ -37,7 +37,7 @@ describe("useBotBroadcastEffects", () => {
   });
 
   it("syncs bot config options through the task config bucket", () => {
-    const configOptions: ZCodeConfigOption[] = [
+    const configOptions: NibiConfigOption[] = [
       {
         id: "runtime_mode",
         category: "mode",
@@ -49,19 +49,19 @@ describe("useBotBroadcastEffects", () => {
         ],
       },
     ];
-    const zcodeSessionStore = {
+    const nibiSessionStore = {
       setTaskConfigOptions: vi.fn(),
     };
 
     syncBotTaskConfigOptionsToStore({
-      zcodeSessionStore,
+      nibiSessionStore,
       workspacePath: "/repo",
       workspaceIdentity: "ssh://host/repo",
       taskId: "task-1",
       configOptions,
     });
 
-    expect(zcodeSessionStore.setTaskConfigOptions).toHaveBeenCalledWith(
+    expect(nibiSessionStore.setTaskConfigOptions).toHaveBeenCalledWith(
       "/repo",
       "task-1",
       configOptions,

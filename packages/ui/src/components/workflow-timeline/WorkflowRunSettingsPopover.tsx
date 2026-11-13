@@ -14,7 +14,7 @@ import type { CommandAck, WorkflowRunState } from "@nibi/shared/nibi-protocol-v4
 import { Button } from "@/components/ui/button.js";
 import { Popover, PopoverAnchor, PopoverContent, PopoverTitle } from "@/components/ui/popover.js";
 import { Spinner } from "@/components/ui/spinner.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 import {
   WorkflowRunSettingsBoundField,
@@ -123,7 +123,7 @@ function WorkflowRunSettingsForm({
   onClose: () => void;
   run: WorkflowRunState;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const format = useCallback(
     (id: string, values?: Record<string, string | number>) => intl.formatMessage({ id }, values),
     [intl],

@@ -2,10 +2,10 @@ import { useUiPluginRecommendations } from "@/plugin-ui/index.js";
 import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
 /* eslint-disable max-lines -- 商店列表页把搜索/公开-社区-个人分段/Featured/分类折叠聚合成一个连贯浏览面，拆散反而难以维持 1:1 布局。 */
 import { useMemo, useState } from "react";
-import type { PluginStoreOrder, ZCodePluginMarketplaceSummary } from "@nibi/shared";
+import type { PluginStoreOrder, NibiPluginMarketplaceSummary } from "@nibi/shared";
 import { NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID } from "@nibi/shared";
 import { cn } from "@/components/lib/utils.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { PluginStoreAvatar } from "@/settings/PluginStoreAvatar.js";
 import { PluginStoreCard, type PluginStoreActions } from "@/settings/PluginStoreCard.js";
@@ -53,7 +53,7 @@ export function PluginStoreListView({
 }: {
   items: StorePluginItem[];
   order?: PluginStoreOrder | null;
-  marketplaces: ZCodePluginMarketplaceSummary[];
+  marketplaces: NibiPluginMarketplaceSummary[];
   actions: PluginStoreActions;
   loading: boolean;
   query: string;
@@ -62,7 +62,7 @@ export function PluginStoreListView({
   segment: PluginStoreSegment;
   onSegmentChange: (segment: PluginStoreSegment) => void;
 }) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const isOfficeMode = useIsOfficeMode();
   const modeOrder = isOfficeMode ? order?.work : order?.code;
   const keyword = query.trim().toLowerCase();
@@ -394,7 +394,7 @@ function CollapsibleCardGroup({
   actions: PluginStoreActions;
   locale: string;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const visible = expanded ? items : items.slice(0, CATEGORY_VISIBLE_LIMIT);
   const hidden = expanded ? [] : items.slice(CATEGORY_VISIBLE_LIMIT);
   const hiddenNames = hidden.slice(0, 2).map((item) => resolveItemDisplayName(item, locale));
@@ -473,7 +473,7 @@ function PublicSegment({
   resolveCategoryLabel: (category: string) => string;
   onToggleGroup: (key: string) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const isEmpty =
     paidItems.length === 0 && featuredItems.length === 0 && categoryGroups.length === 0;
   if (isEmpty) {
@@ -547,7 +547,7 @@ function PersonalSegment({
   locale: string;
   onToggleGroup: (key: string) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   if (groups.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-border px-4 py-3 text-ui-base text-foreground-subtle">

@@ -15,7 +15,7 @@ for (const key of ["HOME", "USERPROFILE", "NIBI_DATA_BASE_DIR"])
 const load = (p: string) => import(pathToFileURL(join(repoRoot!, p)).href);
 const { TaskIndexRepo } = await load("packages/services/src/session/taskIndexRepo.ts");
 const { SqliteSessionStore } = await load(
-  "apps/zcode-cli/packages/adapters/src/storage/session-store/sqlite-session-store.ts",
+  "apps/nibi-cli/packages/adapters/src/storage/session-store/sqlite-session-store.ts",
 );
 const cliPath = join(testHome, "cli.sqlite");
 await mkdir(testHome, { recursive: true });

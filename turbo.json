@@ -19,8 +19,8 @@
       ],
       "inputs": [
         "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/apps/zcode-cli/package.json",
-        "$TURBO_ROOT$/apps/zcode-cli/.env",
+        "$TURBO_ROOT$/apps/nibi-cli/package.json",
+        "$TURBO_ROOT$/apps/nibi-cli/.env",
         "$TURBO_ROOT$/packages/shared/package.json",
         "$TURBO_ROOT$/packages/shared/src/**",
         "!dist/**",

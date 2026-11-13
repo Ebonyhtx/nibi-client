@@ -1,15 +1,15 @@
-import type { ZCodeContextCompactionTimelineMeta } from "@nibi/shared";
+import type { NibiContextCompactionTimelineMeta } from "@nibi/shared";
 
 const RUNNING_CONTEXT_COMPACTION_STATUSES = new Set(["started", "retrying"]);
 
 export function isRunningContextCompactionTimeline(
-  timeline: ZCodeContextCompactionTimelineMeta,
+  timeline: NibiContextCompactionTimelineMeta,
 ): boolean {
   return RUNNING_CONTEXT_COMPACTION_STATUSES.has(timeline.status);
 }
 
 export function shouldContextCompactionTimelineCompleteTask(
-  timeline: ZCodeContextCompactionTimelineMeta,
+  timeline: NibiContextCompactionTimelineMeta,
 ): boolean {
   if (isRunningContextCompactionTimeline(timeline)) {
     return false;

@@ -326,7 +326,7 @@ describe("SR87 当前有效选择与原意图", () => {
     await browser.execute(() => {
       const item = Array.from(
         document.querySelectorAll<HTMLElement>('[role="menuitemcheckbox"]'),
-      ).find((node) => node.innerText.trim() === "ZCodeProject");
+      ).find((node) => node.innerText.trim() === "NibiProject");
       if (!item) throw new Error("缺少目标项目");
       item.click();
     });

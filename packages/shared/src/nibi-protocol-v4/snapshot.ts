@@ -6,10 +6,10 @@ import { sharedContextImportStateSchema } from "./shared-context-import.js";
 export { sharedContextImportStateSchema } from "./shared-context-import.js";
 import { conversationInputDispatchSchema, conversationInputIntentSchema } from "./input-intent.js";
 import {
-  zcodeContextUsageBreakdownSchema,
-  zcodeInteractionRequestOriginSchema,
-  zcodePermissionResponseSchema,
-  zcodeSessionContextCacheUsageSchema,
+  nibiContextUsageBreakdownSchema,
+  nibiInteractionRequestOriginSchema,
+  nibiPermissionResponseSchema,
+  nibiSessionContextCacheUsageSchema,
 } from "../nibi-protocol-legacy-types.js";
 import { timestampSchema } from "./core.js";
 import { conversationRowSchema } from "./rows.js";
@@ -193,8 +193,8 @@ export const sessionUsageStateSchema = z.object({
       usedTokens: z.number(),
       maxTokens: z.number(),
       autoCompactThresholdTokens: z.number().nullable(),
-      cache: zcodeSessionContextCacheUsageSchema.optional(),
-      breakdown: zcodeContextUsageBreakdownSchema.optional(),
+      cache: nibiSessionContextCacheUsageSchema.optional(),
+      breakdown: nibiContextUsageBreakdownSchema.optional(),
     })
     .nullable(),
   cumulative: z.object({
@@ -232,7 +232,7 @@ const permissionOptionSchema = z.object({
   optionId: z.string(),
   label: z.string(),
   kind: z.enum(["allowOnce", "allowAlways", "deny", "custom"]),
-  response: zcodePermissionResponseSchema.optional(),
+  response: nibiPermissionResponseSchema.optional(),
 });
 
 export const permissionRequestPayloadSchema = z.object({
@@ -243,7 +243,7 @@ export const permissionRequestPayloadSchema = z.object({
   detail: z.unknown(),
   // additive：旧 snapshot 缺省时 UI 不显示反馈输入；V4 新投影可显式开启。
   freeText: z.boolean().optional(),
-  origin: zcodeInteractionRequestOriginSchema.optional(),
+  origin: nibiInteractionRequestOriginSchema.optional(),
   // 工具自报的确认预览，复用 row 的 display 投影（同一有界形状）。缺省 = 纯文本 ask。
   // 同样不设门：预览解析失败退化成纯文本 ask，不拒整份 snapshot（见 toolDisplay.ts 注释）。
   display: toolCallDisplaySchema.optional().catch(undefined),
@@ -289,7 +289,7 @@ export const userInputRequestPayloadSchema = z.object({
   questions: z.array(userInputQuestionPayloadSchema).optional(),
   currentQuestionIndex: z.number().optional(),
   answerDrafts: z.record(z.string(), z.array(z.string())).optional(),
-  origin: zcodeInteractionRequestOriginSchema.optional(),
+  origin: nibiInteractionRequestOriginSchema.optional(),
 });
 export type UserInputRequestPayload = z.infer<typeof userInputRequestPayloadSchema>;
 

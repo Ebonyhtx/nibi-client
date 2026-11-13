@@ -1,4 +1,4 @@
-//! `v4/storage/sessionData/measure|purge` 的内核执行面（上游 `apps/zcode-cli/packages/bootstrap/src/
+//! `v4/storage/sessionData/measure|purge` 的内核执行面（上游 `apps/nibi-cli/packages/bootstrap/src/
 //! zcode-protocol/session-data/index.ts`）。
 //!
 //! 语义与上游逐条对齐：

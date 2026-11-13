@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, within, waitFor } from "@testing-li
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { PlatformProvider } from "@/hooks/usePlatform.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { RemoteConnectionFields } from "@/RemoteConnectionFields.js";
 import type { IPlatformService } from "@nibi/shared";
 
@@ -56,7 +56,7 @@ function renderRemoteConnectionFields(
       PlatformProvider,
       { platform },
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: locale },
         createElement(RemoteConnectionFields, {
           kind: "ssh",

@@ -1,4 +1,4 @@
-import { type ZCodePluginComponentKind } from "@nibi/shared";
+import { type NibiPluginComponentKind } from "@nibi/shared";
 import { TID_SETTINGS_BACK_BUTTON, TID_V4_COMPOSER_INPUT } from "@nibi/shared/test-ids";
 import {
   clearAppData,
@@ -64,7 +64,7 @@ describe("PLM-LC-003 Personal Source 插件主生命周期 E2E", () => {
       "command",
       "agent",
       "hook",
-    ] satisfies ZCodePluginComponentKind[]) {
+    ] satisfies NibiPluginComponentKind[]) {
       await waitForPluginControl("plugin-store-component-section", { componentKind: kind }, 30000);
     }
     await capturePluginManualReview("PLM-LC-003", "uninstalled-five-components");

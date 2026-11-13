@@ -2186,11 +2186,11 @@ const enUS: Record<string, string> = {
   "titleBar.menu.help.resourceManager": "Resource manager",
   "titleBar.menu.help.toggleNIBIStdioTap": "Capture agent stdio traffic",
   "titleBar.menu.help.clearAllData": "Clear all data",
-  "titleBar.menu.help.zcodeEndpoint": "Service endpoint (test builds only)",
-  "titleBar.menu.help.zcodeEndpoint.production": "Production endpoint",
-  "titleBar.menu.help.zcodeEndpoint.test": "Test endpoint",
-  "titleBar.menu.help.zcodeEndpoint.custom": "Custom endpoint…",
-  "titleBar.menu.help.zcodeEndpoint.reset": "Clear custom endpoint",
+  "titleBar.menu.help.nibiEndpoint": "Service endpoint (test builds only)",
+  "titleBar.menu.help.nibiEndpoint.production": "Production endpoint",
+  "titleBar.menu.help.nibiEndpoint.test": "Test endpoint",
+  "titleBar.menu.help.nibiEndpoint.custom": "Custom endpoint…",
+  "titleBar.menu.help.nibiEndpoint.reset": "Clear custom endpoint",
 
   // Directory browser
   "directoryBrowser.errorUnavailable":
@@ -3593,11 +3593,11 @@ const enUS: Record<string, string> = {
   "settings.toolGroupingChanges": "Group file changes",
   "settings.toolGroupingChangesDescription":
     "Group consecutive Write, Edit, and ApplyPatch calls into a Changes section.",
-  "settings.zcodeInteractionBehavior": "Interaction behavior",
-  "settings.zcodeInteractionBehaviorDescription":
+  "settings.nibiInteractionBehavior": "Interaction behavior",
+  "settings.nibiInteractionBehaviorDescription":
     "While NIBI is running, add follow-up actions to the queue or guide them to run after the next tool call.",
-  "settings.zcodeInteractionBehavior.option.queue": "Queue",
-  "settings.zcodeInteractionBehavior.option.guide": "Guide",
+  "settings.nibiInteractionBehavior.option.queue": "Queue",
+  "settings.nibiInteractionBehavior.option.guide": "Guide",
   "settings.askUserQuestionAutoResolution": "Automatically continue questions",
   "settings.askUserQuestionAutoResolutionDescription":
     "When enabled, Agent questions automatically continue after 5 minutes without an answer. When disabled, current and future questions wait for your response.",
@@ -4418,8 +4418,8 @@ const enUS: Record<string, string> = {
   "sidebar.usage.plan.weekly": "Weekly",
   "sidebar.usage.plan.toolCalls": "Tool calls",
   "sidebar.usage.plan.mcp": "NIBI MCP",
-  "sidebar.usage.plan.zcodeMcp": "NIBI MCP",
-  "sidebar.usage.plan.zcodeMcpDescription": "Daily aggregate quota for NIBI built-in plugin MCPs",
+  "sidebar.usage.plan.nibiMcp": "NIBI MCP",
+  "sidebar.usage.plan.nibiMcpDescription": "Daily aggregate quota for NIBI built-in plugin MCPs",
   "chat.planUsage.title": "Plan usage",
   "chat.planUsage.titleWithPlan": "{plan} Plan usage",
   "chat.planUsage.providerFallback": "Current provider",
@@ -5064,7 +5064,7 @@ const enUS: Record<string, string> = {
   "settings.commands.description":
     "Manage NIBI Agent .md command files. Commands can be invoked with /command-name in chat.",
   "settings.commands.sourceFilterLabel": "Source filter",
-  "settings.commands.source.zcodeAgent": "NIBI Agent",
+  "settings.commands.source.nibiAgent": "NIBI Agent",
   "settings.commands.add": "New",
   "settings.commands.addNew": "New command",
   "settings.commands.addDescription":
@@ -5215,7 +5215,7 @@ const enUS: Record<string, string> = {
   "settings.hooks.customJson": "Custom fields JSON",
   "settings.hooks.customJsonObjectError": "Custom fields must be a JSON object.",
   "settings.hooks.customJsonParseError": "Custom fields JSON parsing failed.",
-  "settings.plugins.zcodeOnly": "NIBI Agent only",
+  "settings.plugins.nibiOnly": "NIBI Agent only",
   "settingsSync.dialog.title": "Import Settings",
   "settingsSync.dialog.description":
     "Only missing items will be imported. Existing settings will be skipped automatically.",

@@ -41,7 +41,7 @@ function setup(supported = true) {
     return { dispose };
   });
   const services = {
-    zcodeAgentService: { onDynamicPluginUiToolResult: subscribe },
+    nibiAgentService: { onDynamicPluginUiToolResult: subscribe },
     pluginUiBridgeService: {},
   } as unknown as IServiceAccessor;
   const platform = (supported ? { pluginSandbox: {} } : {}) as IPlatformService;

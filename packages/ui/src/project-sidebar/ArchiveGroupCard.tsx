@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   archiveTaskKey,
   type ArchiveSort,
@@ -38,7 +38,7 @@ export function ArchiveGroupCard({
     originRect?: DOMRect,
   ) => Promise<void>;
 }) {
-  const { intl, locale } = useZCodeIntl();
+  const { intl, locale } = useNibiIntl();
   const dateFormat = new Intl.DateTimeFormat(locale, {
     year: "numeric",
     month: "short",

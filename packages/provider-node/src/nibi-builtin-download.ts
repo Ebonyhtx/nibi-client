@@ -4,7 +4,7 @@ import {
   verifyNibiContentSignature,
 } from "@nibi/shared/node";
 import { z } from "zod";
-import { decodeZCodeBuiltinRelease, type ZCodeBuiltinRelease } from "./nibi-builtin-release.js";
+import { decodeNibiBuiltinRelease, type NibiBuiltinRelease } from "./nibi-builtin-release.js";
 
 const clientConfigSchema = z
   .object({
@@ -28,7 +28,7 @@ const clientConfigSchema = z
   })
   .passthrough();
 
-export interface ZCodeBuiltinDownloadOptions {
+export interface NibiBuiltinDownloadOptions {
   readonly endpointOrigin: string;
   readonly appVersion: string;
   readonly platform: string;
@@ -37,9 +37,9 @@ export interface ZCodeBuiltinDownloadOptions {
 }
 
 /** App/CLI 共用下载边界。总预算包含两次请求正文，不依赖 ApiClient 的响应头超时。 */
-export async function downloadZCodeBuiltinRelease(
-  options: ZCodeBuiltinDownloadOptions,
-): Promise<ZCodeBuiltinRelease | null> {
+export async function downloadNibiBuiltinRelease(
+  options: NibiBuiltinDownloadOptions,
+): Promise<NibiBuiltinRelease | null> {
   const controller = new AbortController();
   let timedOut = false;
   const timer = setTimeout(() => {
@@ -76,7 +76,7 @@ export async function downloadZCodeBuiltinRelease(
             throw new DownloadBoundaryError("signature verification failed");
           }
         }
-        return decodeZCodeBuiltinRelease(parseJsonBytes(releaseBytes));
+        return decodeNibiBuiltinRelease(parseJsonBytes(releaseBytes));
       } catch (error) {
         lastError = error;
         stage = "cdn";
@@ -94,7 +94,7 @@ export async function downloadZCodeBuiltinRelease(
         : error instanceof z.ZodError
           ? `invalid schema at ${error.issues[0]?.path.join(".") || "root"} (${error.issues[0]?.code})`
           : "invalid response";
-    throw new Error(`ZCode Built-in ${stage}: ${reason}`);
+    throw new Error(`Nibi Built-in ${stage}: ${reason}`);
   } finally {
     clearTimeout(timer);
   }

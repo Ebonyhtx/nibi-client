@@ -14,7 +14,7 @@ import {
   sourceServerManagementSnapshotSchema,
   sourceServerManagementSnapshotRequestSchema,
   SOURCE_SERVER_UPDATE_RUNNING_TASKS_ERROR_CODE,
-  isPublicZCodeErrorCode,
+  isPublicNibiErrorCode,
   sourceServerConnectionStateSnapshotSchema,
   sourceServerOperationLogSchema,
   sourceServerInstallProgressSchema,
@@ -124,9 +124,9 @@ describe("R3 Source Server contracts", () => {
         "remote-bind-canceled",
         "remote-workspace-bind-session-missing",
         "remote-workspace-directory-unavailable",
-      ].every(isPublicZCodeErrorCode),
+      ].every(isPublicNibiErrorCode),
     ).toBe(true);
-    expect(isPublicZCodeErrorCode("internal-stack-trace")).toBe(false);
+    expect(isPublicNibiErrorCode("internal-stack-trace")).toBe(false);
   });
 
   it("rejects unregistered error codes in Source management state", () => {

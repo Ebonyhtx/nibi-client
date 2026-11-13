@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ConversationSnapshot } from "@nibi/shared/nibi-protocol-v4";
 import { ConversationComposer } from "@/v4/ConversationComposer.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { RemoteConversationAvailability } from "@/v4/RemoteConversationAvailability.js";
 
 const captured = vi.hoisted(() => ({
@@ -161,7 +161,7 @@ function renderComposerWithError(
 ): string {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(AnyConversationComposer, {
         snapshot: null,
@@ -193,7 +193,7 @@ function renderComposerWithSnapshot(
 ): string {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(RemoteConversationAvailability, {
         available: remoteAvailable,
@@ -217,7 +217,7 @@ function renderComposerWithSnapshot(
 function renderHighspeedComposer(overrides: Record<string, unknown> = {}): string {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(AnyConversationComposer, {
         snapshot: makeSnapshot(),
@@ -246,7 +246,7 @@ function renderHighspeedComposer(overrides: Record<string, unknown> = {}): strin
 function renderBlockedComposer(): string {
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(AnyConversationComposer, {
         snapshot: makeSnapshot(),
@@ -399,7 +399,7 @@ it("离线输入栏优先显示禁发送原因，不让不可用模型控件挤�
   captured.modelControlsProps = null;
   const html = renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(
         RemoteConversationAvailability,

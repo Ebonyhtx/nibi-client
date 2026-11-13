@@ -162,7 +162,7 @@ export async function listAgentProcessIdentities(
   return snapshot.processes
     .filter(
       (process) =>
-        process.name.startsWith("zcode-agent-") && (!suffix || process.name.endsWith(suffix)),
+        process.name.startsWith("nibi-agent-") && (!suffix || process.name.endsWith(suffix)),
     )
     .map((process) => ({ pid: process.pid, name: process.name }))
     .sort((left, right) =>

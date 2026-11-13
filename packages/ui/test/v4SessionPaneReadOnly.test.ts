@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ConversationSnapshot } from "@nibi/shared/nibi-protocol-v4";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { SessionPane } from "@/v4/SessionPane.js";
 import type { ConversationShareSelectionDraft } from "@/store/conversationShareSelectionStore.js";
 import type { ConversationRowRenderContext } from "@/v4/conversationRowContext.js";
@@ -76,7 +76,7 @@ vi.mock("@/v4/V4ConversationContext.js", () => ({
 }));
 
 vi.mock("@/store/StoreProvider.js", () => ({
-  useZCodeStoreWithDefault: (_selector: unknown, fallback: unknown) => fallback,
+  useNibiStoreWithDefault: (_selector: unknown, fallback: unknown) => fallback,
 }));
 
 vi.mock("@/hooks/useSettingService.js", () => ({
@@ -84,7 +84,7 @@ vi.mock("@/hooks/useSettingService.js", () => ({
     error: null,
     loading: false,
     refresh: vi.fn(async () => {}),
-    settings: { zcodeInteractionBehavior: "queue" },
+    settings: { nibiInteractionBehavior: "queue" },
     update: vi.fn(async () => {}),
   }),
 }));
@@ -93,10 +93,10 @@ vi.mock("@/hooks/useServices.js", () => ({
   useComposerClientNamespace: () => "desktop",
   useOptionalServices: () => null,
   useServices: () => ({
-    zcodeSessionService: {
+    nibiSessionService: {
       updateProviderRegistry: vi.fn(),
     },
-    zcodeTaskService: {
+    nibiTaskService: {
       restartWorkspaceProcess: vi.fn(),
     },
   }),
@@ -267,7 +267,7 @@ function renderReadOnlyPane({
 
   return renderToStaticMarkup(
     createElement(
-      ZCodeIntlProvider,
+      NibiIntlProvider,
       { initialLocale: "zh-CN" },
       createElement(SessionPane, {
         allowWorkspaceFileRewind,
@@ -381,7 +381,7 @@ describe("SessionPane 分享模式接线", () => {
     };
     return renderToStaticMarkup(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "zh-CN" },
         createElement(SessionPane, {
           paneId: "pane-1",

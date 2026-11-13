@@ -1,4 +1,4 @@
-// 复制自 apps/zcode-cli-rust/crates/domain/src/node_history/branch.rs（feat/rs 79b6691c55）。
+// 复制自 apps/nibi-cli-rust/crates/domain/src/node_history/branch.rs（feat/rs 79b6691c55）。
 //! 活动对话分支（Node `selectActiveConversationBranch`、`activeSessionMessages`、
 //! `compact-session.ts`）：先按 `session.revert` 应用只追加的回退，再取最后一个压缩边界
 //! （docs/specs/rust-m11-node-storage.md §6）。纯函数。

@@ -1,6 +1,6 @@
 # Workspace MCP 手动信任（A5/A6）
 
-> 上游语义：`apps/zcode-cli/packages/bootstrap/src/workspace-mcp-trust/`（ZCode 3.17.2）。
+> 上游语义：`apps/nibi-cli/packages/bootstrap/src/workspace-mcp-trust/`（ZCode 3.17.2）。
 > 本规格描述 NIBI 的落地边界：项目级 MCP 声明按内容摘要逐条信任，Host 是唯一写入者，
 > Rust 内核只读取同一份用户域记录。
 

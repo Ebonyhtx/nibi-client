@@ -1,9 +1,9 @@
 import {
-  formatZCodeAgentProcessName,
-  formatZCodeGpuProcessName,
-  formatZCodeHostProcessName,
-  formatZCodeRendererProcessName,
-  formatZCodeUtilityProcessName,
+  formatNibiAgentProcessName,
+  formatNibiGpuProcessName,
+  formatNibiHostProcessName,
+  formatNibiRendererProcessName,
+  formatNibiUtilityProcessName,
   HostMessageTypes,
 } from "@nibi/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -95,7 +95,7 @@ describe("resourceManagerWindow", () => {
       {
         id: 1,
         isDestroyed: () => false,
-        getTitle: () => "ZCode",
+        getTitle: () => "Nibi",
         webContents: { getOSProcessId: () => rendererPid },
       },
     ]);
@@ -127,19 +127,19 @@ describe("resourceManagerWindow", () => {
         sampled: true,
       });
       expect(byPid.get(gpuPid)).toMatchObject({
-        name: formatZCodeGpuProcessName(),
+        name: formatNibiGpuProcessName(),
         groupKey: "gpu",
       });
       expect(byPid.get(rendererPid)).toMatchObject({
-        name: formatZCodeRendererProcessName("ZCode"),
+        name: formatNibiRendererProcessName("Nibi"),
         groupKey: "renderer",
       });
       expect(byPid.get(hostPid)).toMatchObject({
-        name: formatZCodeHostProcessName("local-1"),
+        name: formatNibiHostProcessName("local-1"),
         groupKey: "host",
       });
       expect(byPid.get(utilityPid)).toMatchObject({
-        name: formatZCodeUtilityProcessName("network-service"),
+        name: formatNibiUtilityProcessName("network-service"),
         groupKey: "utility",
       });
       expect(byPid.get(guestPid)).toMatchObject({
@@ -181,7 +181,7 @@ describe("resourceManagerWindow", () => {
             processes: [
               {
                 pid: agentPid,
-                name: "zcode-agent-glm-demo",
+                name: "nibi-agent-glm-demo",
                 category: "base",
                 groupKey: "cli",
                 groupLabel: "cli",
@@ -232,7 +232,7 @@ describe("resourceManagerWindow", () => {
       expect(byPid.get(mcpPid)).toMatchObject({ category: "community-plugin", sampled: true });
       expect(byPid.get(unsampledAgentPid)).toEqual({
         pid: unsampledAgentPid,
-        name: formatZCodeAgentProcessName("glm", "/w/other"),
+        name: formatNibiAgentProcessName("glm", "/w/other"),
         category: "base",
         groupKey: "cli",
         groupLabel: "cli",

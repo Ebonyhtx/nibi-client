@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ZCodeProvider } from "@nibi/shared";
+import type { NibiProvider } from "@nibi/shared";
 import { logger } from "@/logger.js";
 import { shouldEnableWorkspaceRpc } from "@/lib/workspaceRpcAvailability.js";
-import { useZCodeTaskService } from "@/hooks/useZCodeTaskService.js";
+import { useNibiTaskService } from "@/hooks/useNibiTaskService.js";
 import { useRemoteWorkspaceSessionStore } from "@/store/remoteWorkspaceSessionStore.js";
 import { useResolvedRemoteWorkspaceSessionId } from "@/hooks/useResolvedRemoteWorkspaceSessionId.js";
-import type { IZCodeTaskService } from "@nibi/services";
+import type { INibiTaskService } from "@nibi/services";
 
 interface WorkspaceProviderConfigFileState {
   path: string | null;
@@ -38,38 +38,38 @@ const INITIAL_STATE: WorkspaceProviderConfigFileState = {
 
 type WorkspaceProviderConfigServiceScope = "workspace" | "base";
 
-export function resolveWorkspaceProviderConfigZCodeService(params: {
+export function resolveWorkspaceProviderConfigNibiService(params: {
   configuredServiceScope: WorkspaceProviderConfigServiceScope;
-  workspaceZCodeService: IZCodeTaskService;
-  baseZCodeService: IZCodeTaskService | null;
+  workspaceNibiService: INibiTaskService;
+  baseNibiService: INibiTaskService | null;
   remoteSessionId: string | null;
-}): IZCodeTaskService | null {
+}): INibiTaskService | null {
   if (params.configuredServiceScope === "workspace") {
-    return params.workspaceZCodeService;
+    return params.workspaceNibiService;
   }
 
-  if (params.baseZCodeService) {
-    return params.baseZCodeService;
+  if (params.baseNibiService) {
+    return params.baseNibiService;
   }
 
-  // Bugfix: 远程 workspace 下如果误回退到 workspaceZCodeService，
+  // Bugfix: 远程 workspace 下如果误回退到 workspaceNibiService，
   // “前往配置”会读到远端绝对路径（如 /root/...），本机无法正确打开。
-  // 这里在远程会话里严格要求 baseZCodeService，就绪前先等待，不再冒险走错误 fallback。
+  // 这里在远程会话里严格要求 baseNibiService，就绪前先等待，不再冒险走错误 fallback。
   if (params.remoteSessionId) {
     return null;
   }
 
-  return params.workspaceZCodeService;
+  return params.workspaceNibiService;
 }
 
 /**
  * 读取当前 workspace + provider 的主配置文件路径。
  *
- * 统一通过 zcodeTaskService 获取路径规则，避免 UI 层拼接 provider 配置路径。
+ * 统一通过 nibiTaskService 获取路径规则，避免 UI 层拼接 provider 配置路径。
  */
 export function useWorkspaceProviderConfigFile(
   workspacePath: string,
-  provider: ZCodeProvider,
+  provider: NibiProvider,
   preferredRemoteSessionId?: string | null,
   workspaceIdentity?: string,
   options?: {
@@ -77,7 +77,7 @@ export function useWorkspaceProviderConfigFile(
     enabled?: boolean;
   },
 ) {
-  const workspaceZCodeService = useZCodeTaskService(
+  const workspaceNibiService = useNibiTaskService(
     workspacePath,
     preferredRemoteSessionId,
     workspaceIdentity,
@@ -89,23 +89,23 @@ export function useWorkspaceProviderConfigFile(
     preferredRemoteSessionId,
     workspaceIdentity,
   );
-  const baseZCodeService = useRemoteWorkspaceSessionStore(
-    (state) => state.baseServices?.zcodeTaskService ?? null,
+  const baseNibiService = useRemoteWorkspaceSessionStore(
+    (state) => state.baseServices?.nibiTaskService ?? null,
   );
   const workspaceRpcEnabled = shouldEnableWorkspaceRpc({
     workspaceIdentity,
     remoteSessionId,
   });
-  const zcodeTaskService = resolveWorkspaceProviderConfigZCodeService({
+  const nibiTaskService = resolveWorkspaceProviderConfigNibiService({
     configuredServiceScope,
-    workspaceZCodeService,
-    baseZCodeService,
+    workspaceNibiService,
+    baseNibiService,
     remoteSessionId,
   });
-  const zcodeServiceScope =
+  const nibiServiceScope =
     configuredServiceScope === "base"
       ? "base"
-      : remoteSessionId && workspaceZCodeService !== baseZCodeService
+      : remoteSessionId && workspaceNibiService !== baseNibiService
         ? "remote"
         : "base";
   const [state, setState] =
@@ -135,7 +135,7 @@ export function useWorkspaceProviderConfigFile(
       };
     }
 
-    if (!zcodeTaskService) {
+    if (!nibiTaskService) {
       requestVersionRef.current += 1;
       setState({
         path: null,
@@ -161,10 +161,10 @@ export function useWorkspaceProviderConfigFile(
     });
 
     logger.info(
-      `[useWorkspaceProviderConfigFile] 开始读取 provider 配置路径 workspace=${workspacePath} provider=${provider} scope=${zcodeServiceScope} session=${remoteSessionId ?? "none"}`,
+      `[useWorkspaceProviderConfigFile] 开始读取 provider 配置路径 workspace=${workspacePath} provider=${provider} scope=${nibiServiceScope} session=${remoteSessionId ?? "none"}`,
     );
 
-    void zcodeTaskService
+    void nibiTaskService
       .getWorkspaceProviderConfigFile({
         workspacePath,
         ...(workspaceIdentity ? { workspaceIdentity } : {}),
@@ -176,7 +176,7 @@ export function useWorkspaceProviderConfigFile(
         }
 
         logger.info(
-          `[useWorkspaceProviderConfigFile] 读取 provider 配置路径成功 workspace=${workspacePath} provider=${provider} scope=${zcodeServiceScope} session=${remoteSessionId ?? "none"} exists=${result.exists} path=${result.path}`,
+          `[useWorkspaceProviderConfigFile] 读取 provider 配置路径成功 workspace=${workspacePath} provider=${provider} scope=${nibiServiceScope} session=${remoteSessionId ?? "none"} exists=${result.exists} path=${result.path}`,
         );
 
         setState({
@@ -195,7 +195,7 @@ export function useWorkspaceProviderConfigFile(
         logger.warn("[useWorkspaceProviderConfigFile] 读取 provider 配置路径失败", {
           workspacePath,
           provider,
-          scope: zcodeServiceScope,
+          scope: nibiServiceScope,
           remoteSessionId,
           error: message,
         });
@@ -211,8 +211,8 @@ export function useWorkspaceProviderConfigFile(
       disposed = true;
     };
   }, [
-    zcodeTaskService,
-    zcodeServiceScope,
+    nibiTaskService,
+    nibiServiceScope,
     enabled,
     provider,
     refreshVersion,

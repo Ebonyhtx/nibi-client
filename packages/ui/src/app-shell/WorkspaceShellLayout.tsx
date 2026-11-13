@@ -90,7 +90,7 @@ import { Button } from "@/components/ui/button.js";
 import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable.js";
 import { toast } from "@/components/ui/toast.js";
 import { getGitDirtyFileCount } from "@/git-branch-switcher/display.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { getPathLeaf, toFileUrl } from "@/lib/path.js";
 import { shouldOpenAssistantHtmlInBrowser } from "@/lib/assistantPreviewCards.js";
@@ -115,8 +115,8 @@ import {
 import type { WorkspaceShellLayoutProps } from "@/app-shell/types.js";
 import { isWorkspaceTab } from "@/store/tabStore.js";
 import { useTabStore, useTabStoreApi } from "@/store/TabStoreProvider.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
-import type { ComposerMentionPrefill } from "@/store/zcodeSessionStoreTypes.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
+import type { ComposerMentionPrefill } from "@/store/nibiSessionStoreTypes.js";
 
 const WEB_REMOTE_CONTROL_MOBILE_QUERY = "(max-width: 767px)";
 const WEB_REMOTE_CONTROL_COLLAPSE_ONCE_SESSION_KEY =
@@ -318,7 +318,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
   isDesktop,
   isMacDesktop,
   isWindowsDesktop,
-  workspaceShellZCodeState,
+  workspaceShellNibiState,
   theme,
   isMacFullscreen,
   desktopWindowChromeState,
@@ -431,7 +431,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
   setGitSelectedSourceId,
   taskFindDialogProps,
 }: WorkspaceShellLayoutProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const isOfficeMode = useIsOfficeMode();
   const baseServices = useBaseWorkspaceServices();
   const tabStoreApi = useTabStoreApi();
@@ -528,7 +528,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
   usePaneSessionPersistence({
     workspaceKey,
     activeSessionId: activeTaskId,
-    draftFocusVersion: workspaceShellZCodeState.draftFocusVersion,
+    draftFocusVersion: workspaceShellNibiState.draftFocusVersion,
     enabled: !isWebRemoteControlShell,
     restoreOnStartup: Boolean(isDesktop && restorePaneSession),
     selectSession: (sessionId) => handleSelectTask(workspaceAbsPath, sessionId, workspaceIdentity),
@@ -1530,7 +1530,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
   ]);
   const handleSelectComposerPlugin = useCallback(
     (mention: ComposerMentionPrefill) => {
-      useZCodeSessionStore
+      useNibiSessionStore
         .getState()
         .requestComposerTextInsert(
           workspaceAbsPath,
@@ -2059,7 +2059,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                 providerWorkspaceConfigPath={providerConfigFile.path}
                 providerWorkspaceConfigExists={providerConfigFile.exists}
                 providerWorkspaceConfigLoading={providerConfigFile.loading}
-                workspaceHeaderState={workspaceShellZCodeState}
+                workspaceHeaderState={workspaceShellNibiState}
                 gitSummary={gitState.summary}
                 gitDirtyFileCount={gitDirtyFileCount}
                 isMacDesktop={isMacDesktop}
@@ -2463,7 +2463,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                             providerWorkspaceConfigPath={providerConfigFile.path}
                             providerWorkspaceConfigExists={providerConfigFile.exists}
                             providerWorkspaceConfigLoading={providerConfigFile.loading}
-                            workspaceHeaderState={workspaceShellZCodeState}
+                            workspaceHeaderState={workspaceShellNibiState}
                             gitSummary={gitState.summary}
                             gitDirtyFileCount={gitDirtyFileCount}
                             isMacDesktop={isMacDesktop}

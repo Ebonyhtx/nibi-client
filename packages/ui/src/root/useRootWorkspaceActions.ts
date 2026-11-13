@@ -7,7 +7,7 @@ import {
   remoteHostIdFromWorkspaceIdentity,
   type IPlatformService,
   type UserInfo,
-  type ZCodeTaskClientMode,
+  type NibiTaskClientMode,
 } from "@nibi/shared";
 import type { IServiceAccessor } from "@nibi/services";
 import type {
@@ -31,8 +31,8 @@ import {
 } from "@/v4/composer/composerDraftStore.js";
 import { openFolderFromWorkspaceEntry } from "@/root/openWorkspaceFolderEntry.js";
 import { useConversationWorkspaceActions } from "@/root/useConversationWorkspaceActions.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
-import { notifyTaskNavigationCommitted } from "@/store/zcodeSessionStoreNavigation.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
+import { notifyTaskNavigationCommitted } from "@/store/nibiSessionStoreNavigation.js";
 import { type TabStore, type TabStoreState } from "@/store/tabStore.js";
 import type { RootProps } from "@/root/types.js";
 import {
@@ -102,7 +102,7 @@ export function useRootWorkspaceActions({
   openMobileProjectDraft,
   workbenchGroupClientMode = "desktop-continuous",
 }: {
-  intl: ReturnType<typeof import("@/i18n/IntlProvider.js").useZCodeIntl>["intl"];
+  intl: ReturnType<typeof import("@/i18n/IntlProvider.js").useNibiIntl>["intl"];
   platform: IPlatformService;
   services: IServiceAccessor;
   tabStoreApi: TabStore;
@@ -127,7 +127,7 @@ export function useRootWorkspaceActions({
     isCurrent?: () => boolean;
   }) => Promise<void>;
   openMobileProjectDraft?: (request: CreateTaskOptions) => Promise<void>;
-  workbenchGroupClientMode?: ZCodeTaskClientMode;
+  workbenchGroupClientMode?: NibiTaskClientMode;
 }) {
   const navigationSequence = useRef(0);
   const [workspaceActionError, setWorkspaceActionError] = useState<string | null>(null);
@@ -201,7 +201,7 @@ export function useRootWorkspaceActions({
         useWorkbenchGroupStore.getState().deactivateActiveGroup();
         usePaneLayoutStore.getState().resetToPrimaryPane();
       }
-      useZCodeSessionStore
+      useNibiSessionStore
         .getState()
         .startDraft(workspacePath, options?.provider, workspaceIdentity, {
           projectId,
@@ -211,7 +211,7 @@ export function useRootWorkspaceActions({
         stageV4ComposerDraftAttachments(
           workspacePath,
           workspaceIdentity,
-          useZCodeSessionStore.getState().getWorkspaceState(workspacePath, workspaceIdentity)
+          useNibiSessionStore.getState().getWorkspaceState(workspacePath, workspaceIdentity)
             .draftFocusVersion,
           options.initialComposerDraft,
         );
@@ -232,7 +232,7 @@ export function useRootWorkspaceActions({
           },
           scope,
         );
-        useZCodeSessionStore
+        useNibiSessionStore
           .getState()
           .requestComposerTextInsert(workspacePath, initialPrompt, workspaceIdentity, mention);
       }
@@ -246,7 +246,7 @@ export function useRootWorkspaceActions({
       const sequence = ++navigationSequence.current;
       const originTab = tabStoreApi.getState().activeTabId;
       const originWorkspace = activeWorkspacePath
-        ? useZCodeSessionStore
+        ? useNibiSessionStore
             .getState()
             .getWorkspaceState(activeWorkspacePath, activeWorkspaceIdentity ?? undefined)
         : null;
@@ -256,7 +256,7 @@ export function useRootWorkspaceActions({
         tabStoreApi.getState().activeTabId === originTab &&
         (!activeWorkspacePath ||
           (() => {
-            const state = useZCodeSessionStore
+            const state = useNibiSessionStore
               .getState()
               .getWorkspaceState(activeWorkspacePath, activeWorkspaceIdentity ?? undefined);
             return (
@@ -317,7 +317,7 @@ export function useRootWorkspaceActions({
               remoteHostIdFromWorkspaceIdentity(newTaskTarget.workspaceIdentity) ?? undefined;
             if (!hostId) throw new Error("project.host-identity-required");
           }
-          const workspace = useZCodeSessionStore
+          const workspace = useNibiSessionStore
             .getState()
             .getWorkspaceState(
               newTaskTarget.workspacePath,
@@ -683,7 +683,7 @@ export function useRootWorkspaceActions({
         activeWorkspacePath,
         activeWorkspaceIdentity ? { workspaceIdentity: activeWorkspaceIdentity } : undefined,
       );
-    const taskId = useZCodeSessionStore
+    const taskId = useNibiSessionStore
       .getState()
       .getWorkspaceState(activeWorkspacePath, activeWorkspaceIdentity ?? undefined).activeTaskId;
     if (activated && taskId) {

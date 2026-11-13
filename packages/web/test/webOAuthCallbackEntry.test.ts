@@ -21,7 +21,7 @@ vi.mock("react-dom/client", async (importOriginal) => {
 vi.mock("@nibi/ui", () => ({
   AppErrorBoundary: () => null,
   Root: () => null,
-  ZCodeIntlProvider: () => null,
+  NibiIntlProvider: () => null,
   Button: () => null,
   generateMobileDeviceFingerprint: () => "oauth-entry-test",
   installDocumentHiddenMotionPause: vi.fn(),

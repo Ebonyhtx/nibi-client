@@ -173,7 +173,7 @@ The desktop host supplies the Agent with a dedicated output directory for the cu
 
 The Excalidraw screenshots above show a **UI Plugin**. Use **Gen UI** for a page with adjustable parameters generated around the current question. Develop a UI Plugin to distribute a reusable tool with server operations and document management. Both may expose `window.nibi`, but their methods and state structures differ and are not interchangeable. See [Development and Debugging](#development-and-debugging) and the [Page API Reference](#page-api-reference) for UI Plugin details.
 
-Implementation and page examples: [Gen UI contract](packages/ui/src/gen-ui/CONTRACT.md), [page API examples](apps/zcode-cli/packages/visualize-plugin/skills/visualize/references/api.md), and [Tweak guide](apps/zcode-cli/packages/visualize-plugin/skills/visualize/tweak.md). The desktop integration entry is `node packages/desktop/scripts/gen-ui-e2e.mjs`.
+Implementation and page examples: [Gen UI contract](packages/ui/src/gen-ui/CONTRACT.md), [page API examples](apps/nibi-cli/packages/visualize-plugin/skills/visualize/references/api.md), and [Tweak guide](apps/nibi-cli/packages/visualize-plugin/skills/visualize/tweak.md). The desktop integration entry is `node packages/desktop/scripts/gen-ui-e2e.mjs`.
 
 ## Other Example Plugins
 
@@ -218,10 +218,10 @@ pnpm build
 
 # Use the freshly built CLI to install into the same development profile.
 cd "$NIBI_REPO"
-node apps/zcode-cli/packages/cli/dist/nibi.cjs plugins marketplace add "$PLUGINS_REPO/dist/local-marketplace" --scope user
-node apps/zcode-cli/packages/cli/dist/nibi.cjs plugins install excalidraw@zcode-plugins-local --scope user
-node apps/zcode-cli/packages/cli/dist/nibi.cjs plugins enable excalidraw@zcode-plugins-local --scope user
-node apps/zcode-cli/packages/cli/dist/nibi.cjs plugins list --json
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins marketplace add "$PLUGINS_REPO/dist/local-marketplace" --scope user
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins install excalidraw@zcode-plugins-local --scope user
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins enable excalidraw@zcode-plugins-local --scope user
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins list --json
 pnpm dev:desktop
 ```
 
@@ -235,8 +235,8 @@ If you are using an existing desktop client, build the plugin repository and ins
 cd "$PLUGINS_REPO"
 pnpm build
 cd "$NIBI_REPO"
-node apps/zcode-cli/packages/cli/dist/nibi.cjs plugins marketplace update zcode-plugins-local
-node apps/zcode-cli/packages/cli/dist/nibi.cjs plugins install excalidraw@zcode-plugins-local --scope user
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins marketplace update zcode-plugins-local
+node apps/nibi-cli/packages/cli/dist/nibi.cjs plugins install excalidraw@zcode-plugins-local --scope user
 ```
 
 Restart the corresponding desktop instance and verify in a new session. Source watching does not automatically copy plugin repository changes into installed plugins. Refreshing a source updates the catalogue; reinstalling updates the installed code. During development, reinstalling the same version copies the files again. Changes to distributed content still require version bumps in the plugin manifest, marketplace entry, and source package.

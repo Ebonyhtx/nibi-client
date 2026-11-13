@@ -1,6 +1,6 @@
 //! 账号服务的地址（docs/specs/rust-cli/platform.md §5.4、§5.6）：按 Node 的环境变量规则解析。
 //!
-//! - NIBI 服务（CLI OAuth 登录与模型请求的 `http-referer`）：`resolveRuntimeZCodeEndpointOrigin`——`NIBI_ENV=test`
+//! - NIBI 服务（CLI OAuth 登录与模型请求的 `http-referer`）：`resolveRuntimeNibiEndpointOrigin`——`NIBI_ENV=test`
 //!   时是测试环境；`NIBI_BASE_URL`、`NIBI_ENDPOINT_ORIGIN`、分环境的 `NIBI_PRODUCTION_BASE_URL` /
 //!   `NIBI_TEST_BASE_URL` 依次覆盖；API 根是 `<origin>/api/v1`。只认 NIBI 名，不读任何旧品牌变量
 //!   （残留的旧变量会把流量指到别处）。
@@ -13,7 +13,7 @@
 
 use nibi_kernel_platform::AccountOrigins;
 
-/// NIBI 的正式服务（Node `DEFAULT_NIBI_ENDPOINT_ORIGIN`，`packages/shared/src/zcodeEndpoint.ts`）。
+/// NIBI 的正式服务（Node `DEFAULT_NIBI_ENDPOINT_ORIGIN`，`packages/shared/src/nibiEndpoint.ts`）。
 const NIBI_ORIGIN: &str = "https://api.nibistudio.cn";
 /// 测试档的默认端点（Node `TEST_NIBI_ENDPOINT_ORIGIN` 同一保留位：NIBI 自有域名，测试后端
 /// 尚未部署；用 `NIBI_TEST_BASE_URL` 覆盖）。分家前这里是上游技术端点——任何默认回退到
@@ -34,7 +34,7 @@ fn origin(name: &str, value: &str) -> Result<String, String> {
     Ok(url.origin().ascii_serialization())
 }
 
-/// Node `resolveRuntimeZCodeEnv`：`NIBI_ENV`（去掉首尾空白）不分大小写等于 `test` 时是测试环境。`env` 同下。
+/// Node `resolveRuntimeNibiEnv`：`NIBI_ENV`（去掉首尾空白）不分大小写等于 `test` 时是测试环境。`env` 同下。
 pub(crate) fn is_test(env: &impl Fn(&str) -> Option<String>) -> bool {
     env("NIBI_ENV").is_some_and(|value| value.trim().eq_ignore_ascii_case("test"))
 }
@@ -49,7 +49,7 @@ fn first(
         .find_map(|name| env(name).map(|value| (*name, value)))
 }
 
-/// NIBI 服务的 origin（Node `resolveRuntimeZCodeEndpointOrigin`）：CLI 登录的地址与模型请求的 `http-referer`（工作线
+/// NIBI 服务的 origin（Node `resolveRuntimeNibiEndpointOrigin`）：CLI 登录的地址与模型请求的 `http-referer`（工作线
 /// F64，model.md §2.4）共用这一个。`env` 同下。
 pub(crate) fn nibi_origin(env: &impl Fn(&str) -> Option<String>) -> Result<String, String> {
     let test = is_test(env);

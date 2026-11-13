@@ -5,7 +5,7 @@ import { createElement } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
-import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
+import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { HooksList } from "@/settings/HooksList.js";
 
 function untrustedWorkspaceHook(): Hook {
@@ -40,7 +40,7 @@ describe("Workspace Hook 行内 Trust 交互", () => {
     const onTrust = vi.fn(async () => undefined);
     render(
       createElement(
-        ZCodeIntlProvider,
+        NibiIntlProvider,
         { initialLocale: "en-US" },
         createElement(
           TooltipProvider,

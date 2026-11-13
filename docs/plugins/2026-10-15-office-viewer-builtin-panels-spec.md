@@ -11,13 +11,13 @@
 决策：
 
 - 四个插件统一升到 0.2.0，在原有生产技能之外新增一个查看技能（`docx-viewer`、`pdf-viewer`、`pptx-viewer`、`xlsx-viewer`）、一个 stdio MCP server 和一个 `availability: "session"` 的 UI surface。
-- 面板实现放在共享包 `@nibi/office-runtime`（`apps/zcode-cli/packages/office-runtime`）。每个插件在 package.json 的 `office` 字段声明面板标题与格式，`build` 脚本调用 `../office-runtime/scripts/build.mjs`，只打包该格式的解析器与查看器。
+- 面板实现放在共享包 `@nibi/office-runtime`（`apps/nibi-cli/packages/office-runtime`）。每个插件在 package.json 的 `office` 字段声明面板标题与格式，`build` 脚本调用 `../office-runtime/scripts/build.mjs`，只打包该格式的解析器与查看器。
 - 生产技能、视觉评审 Agent 与许可证（Apache-2.0）保持不变；面板与 server 代码随 office-runtime 的 MIT 许可写入 `dist/LICENSE`。
 
 ## 2. 构建与产物
 
 ```text
-apps/zcode-cli/packages/<name>-plugin/package.json  ── office.title / office.kinds
+apps/nibi-cli/packages/<name>-plugin/package.json  ── office.title / office.kinds
                 │ pnpm --filter @nibi/<name>-plugin build
                 ▼
 office-runtime/scripts/build.mjs（插件名取自 .zcode-plugin/plugin.json）
@@ -30,7 +30,7 @@ office-runtime/scripts/build.mjs（插件名取自 .zcode-plugin/plugin.json）
 ```
 
 - 插件名必须取自 manifest：它是 MCP 服务名、surface id 与 `ui://<name>/` 前缀，而内置包目录名带 `-plugin` 后缀。
-- `dist/` 不入 git（`apps/zcode-cli/.gitignore`）。turbo 的插件 `build` 依赖 office-runtime 的 `build`（仅类型检查），office-runtime 源码变化会使四个插件的构建缓存失效。
+- `dist/` 不入 git（`apps/nibi-cli/.gitignore`）。turbo 的插件 `build` 依赖 office-runtime 的 `build`（仅类型检查），office-runtime 源码变化会使四个插件的构建缓存失效。
 - 查看器依赖（pdfjs-dist、docx-preview、pptx-renderer、react-xlsx、exceljs 等）声明为 office-runtime 的 devDependencies：它们只在构建期被打包，不作为运行时 npm 依赖分发；被打包部分的许可随产物写入 `dist/THIRD_PARTY_NOTICES.txt`。exceljs 的流式读写依赖（archiver、unzipper、tmp、fast-csv）在构建时以桩模块替换，不进入产物。
 
 ## 3. 必需资产与版本事实源

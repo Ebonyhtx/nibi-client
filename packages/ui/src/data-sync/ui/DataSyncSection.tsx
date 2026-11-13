@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.js";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useOptionalPlatform } from "@/hooks/usePlatform.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { logger } from "@/logger.js";
@@ -117,7 +117,7 @@ function CategoryTabs({
   activeTab: DataSyncTabId;
   onSelect(id: DataSyncTabId): void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const totalChanged = categories.reduce((total, category) => total + category.changedCount, 0);
   return (
     <div
@@ -189,7 +189,7 @@ function categoryBadge(intl: Intl, controller: DataSyncCategoryController) {
 }
 
 function CategoryPanel({ state, busy }: { state: DataSyncCategoryController; busy: boolean }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   if (state.phase === "loading") {
     return (
       <div role="status" className="text-ui-base text-foreground-subtle">
@@ -421,7 +421,7 @@ export function DataSyncSectionView({
   onClearCategorySelection,
   onPushAll,
 }: DataSyncSectionViewProps) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   const activeCategory =
     activeTab === "overview"
       ? undefined
@@ -713,7 +713,7 @@ export function DataSyncSection({
  * 不再套灰色大底板，避免整页只剩一块深色区域。
  */
 function DataSyncEmptyState({ onConnectDevice }: { onConnectDevice?: () => void }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNibiIntl();
   return (
     <div
       className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border px-6 py-12 text-center"

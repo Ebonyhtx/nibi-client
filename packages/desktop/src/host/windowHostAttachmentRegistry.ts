@@ -1,5 +1,5 @@
 import type { WindowHostAttachmentScope } from "@nibi/shared";
-import type { ZCodeAgentV4ClientMode } from "@nibi/services";
+import type { NibiAgentV4ClientMode } from "@nibi/services";
 
 export interface WindowHostAttachmentPort {
   once(event: "close", listener: () => void): unknown;
@@ -18,7 +18,7 @@ export interface WindowHostResolvedAttachmentScope<TServices, TCapabilities = ne
 export interface WindowHostExposeAttachmentParams<TServices, TPort, TCapabilities = never> {
   requestId: string;
   attachmentId: string;
-  clientMode: ZCodeAgentV4ClientMode;
+  clientMode: NibiAgentV4ClientMode;
   scope: WindowHostAttachmentScope;
   services: TServices;
   generation: number;
@@ -57,7 +57,7 @@ export function createWindowHostAttachmentRegistry<
   function attach(params: {
     requestId: string;
     attachmentId: string;
-    clientMode: ZCodeAgentV4ClientMode;
+    clientMode: NibiAgentV4ClientMode;
     scope: WindowHostAttachmentScope;
     port: TPort;
   }): void {

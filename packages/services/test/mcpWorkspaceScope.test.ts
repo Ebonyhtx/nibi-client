@@ -2,7 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { ZCodeAgentMcpServer } from "@nibi/shared";
+import type { NibiAgentMcpServer } from "@nibi/shared";
 import { appendWorkspaceToFilesystemMcpServers } from "../src/session/mcpWorkspaceScope.js";
 
 const tempDirs: string[] = [];
@@ -20,7 +20,7 @@ afterEach(async () => {
 describe("appendWorkspaceToFilesystemMcpServers", () => {
   it("会给 filesystem MCP 非持久化追加当前 workspace", async () => {
     const workspacePath = await makeWorkspaceDir();
-    const servers: ZCodeAgentMcpServer[] = [
+    const servers: NibiAgentMcpServer[] = [
       {
         name: "filesystem",
         command: "npx",
@@ -54,7 +54,7 @@ describe("appendWorkspaceToFilesystemMcpServers", () => {
 
   it("workspace 已存在于 filesystem MCP 时不会重复追加", async () => {
     const workspacePath = await makeWorkspaceDir();
-    const servers: ZCodeAgentMcpServer[] = [
+    const servers: NibiAgentMcpServer[] = [
       {
         name: "filesystem",
         command: "npx",
@@ -74,7 +74,7 @@ describe("appendWorkspaceToFilesystemMcpServers", () => {
   });
 
   it("远程或不存在的 workspace 不会注入本机 filesystem MCP", () => {
-    const servers: ZCodeAgentMcpServer[] = [
+    const servers: NibiAgentMcpServer[] = [
       {
         name: "filesystem",
         command: "npx",

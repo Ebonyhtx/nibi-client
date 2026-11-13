@@ -344,7 +344,7 @@ Skill tool step 始终携带 `skill_name`（仅取通过遥测校验的已解析
 
 默认 5 秒/100 条 gzip protobuf 批量，队列上限 2,000 条或 4MiB；未配置 OTLP 时 No-op。App RUM、SQLite Usage 和 `/report` 当前继续双写，待灰度对账后再决定长期替代范围。
 
-实现：`apps/zcode-cli/packages/telemetry`、`apps/zcode-cli/packages/adapters/src/model/runner-status.ts`。
+实现：`apps/nibi-cli/packages/telemetry`、`apps/nibi-cli/packages/adapters/src/model/runner-status.ts`。
 
 ## 覆盖度与已知缺口
 

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { ZCodeCommand, ZCodeSlashCommand } from "@nibi/shared";
+import type { NibiCommand, NibiSlashCommand } from "@nibi/shared";
 import { mergeSlashCommandsAfterCommandRefresh } from "../src/settings/pluginSlashCommandRefresh.js";
 
 function makePluginCommand(
-  overrides: Partial<Extract<ZCodeCommand, { source: "plugin" }>>,
-): Extract<ZCodeCommand, { source: "plugin" }> {
+  overrides: Partial<Extract<NibiCommand, { source: "plugin" }>>,
+): Extract<NibiCommand, { source: "plugin" }> {
   return {
     id: "plugin:team-market:hello-world:hello:/remote/commands/hello.md",
     name: "hello",
@@ -23,7 +23,7 @@ function makePluginCommand(
 
 describe("plugin slash command refresh", () => {
   it("keeps builtin slash commands while replacing refreshed custom commands", () => {
-    const current: ZCodeSlashCommand[] = [
+    const current: NibiSlashCommand[] = [
       {
         name: "compact",
         description: "Compact",
