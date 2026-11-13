@@ -25,7 +25,7 @@
 - `@nibi/share-ui` 提供 Share 所需的只读 presentation 入口；Desktop/Remote 继续使用完整
   `@nibi/ui`。
 - Share 与完整 Web 共用协议类型和已确认的只读展示实现，不共用运行态 service。
-- Remote v4 构建从 workspace 内的 `packages/zcode-cua` 构建 CUA，不涉及私有 Git 与凭据。
+- Remote v4 构建从 workspace 内的 `packages/nibi-cua` 构建 CUA，不涉及私有 Git 与凭据。
 
 ## 构建链路
 
@@ -37,7 +37,7 @@ Dockerfile.web-share
 ```
 
 `.npmrc` 为 `node-linker=hoisted`，`--filter` 不裁剪 lockfile 平铺；CUA 并入 monorepo 后 lockfile
-中已无 Git 来源，Share 镜像无需 git、BuildKit secret 或 Jenkins 凭据，也不需要 `packages/zcode-cua`。
+中已无 Git 来源，Share 镜像无需 git、BuildKit secret 或 Jenkins 凭据，也不需要 `packages/nibi-cua`。
 
 ## 验收
 

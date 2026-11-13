@@ -2,7 +2,7 @@ import { CuaHelperError } from "./broker.js";
 import { HELPER_APP_NAME } from "./broker-helper-constants.js";
 
 export const HELPER_ADDON_ENV = "NIBI_CUA_HELPER_ADDON";
-export const WINDOWS_DEV_CONTROL_PROTOCOL = "zcode-cua-windows-dev/v1";
+export const WINDOWS_DEV_CONTROL_PROTOCOL = "nibi-cua-windows-dev/v1";
 
 const UNAVAILABLE = "Computer Use is not available in this build.";
 

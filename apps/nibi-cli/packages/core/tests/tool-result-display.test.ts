@@ -217,7 +217,7 @@ describe("tool result display", () => {
     const output = {
       content: [{ type: "text", text: "pressed" }],
       _meta: {
-        "zcode.cua/target-app-display-v1": {
+        "nibi.cua/target-app-display-v1": {
           schemaVersion: 1,
           displayName: "Calculator",
           iconLocators: [{ kind: "darwin-bundle-id", value: "com.apple.calculator" }],

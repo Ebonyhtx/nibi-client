@@ -42,7 +42,7 @@ const buildProjects = [
 // 与旧 `typecheck` 里的 5 条 `tsc -p ...` 一一对应，顺序也保持原样。
 const standaloneProjects = [
   "packages/desktop/tsconfig.remote-main.json",
-  "packages/zcode-cua",
+  "packages/nibi-cua",
   "packages/desktop/tsconfig.renderer.json",
   "packages/desktop/tsconfig.preload.json",
   "packages/desktop/tsconfig.scripts.json",

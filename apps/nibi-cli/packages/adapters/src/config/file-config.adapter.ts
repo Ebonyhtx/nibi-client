@@ -1,12 +1,6 @@
 // File Config Adapter - Load and patch JSON configuration files
 
-import {
-  existsSync,
-  readFileSync,
-  renameSync,
-  unlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
@@ -16,7 +10,6 @@ import { resolveCliRoot } from "../cli-storage-root.js";
 import {
   CANONICAL_CUA_PLUGIN_ID,
   canonicalizePluginId,
-  LEGACY_CUA_PLUGIN_ID,
   parseConfigFileToRuntimePatchWithDiagnostics,
   pluginIdAliases,
   type ConfigDiagnostic,
@@ -96,11 +89,6 @@ export function loadFileConfig(filePath?: string, options: FileConfigOptions = {
   try {
     const content = readFileSync(resolvedPath, "utf-8");
     const parsed = JSON.parse(content);
-    const migrated = migratePluginConfigInFile(parsed);
-    if (migrated) {
-      // 仅装载态归一化会让旧 key 永久留在磁盘，后续版本无法安全删除迁移逻辑。
-      persistPluginConfigMigration(resolvedPath, migrated);
-    }
     const result = parseConfigFileToRuntimePatchWithDiagnostics(parsed);
 
     return {
@@ -116,72 +104,6 @@ export function loadFileConfig(filePath?: string, options: FileConfigOptions = {
       path: resolvedPath,
       loaded: false,
     };
-  }
-}
-
-function migratePluginConfigInFile(value: unknown): Record<string, unknown> | undefined {
-  if (!isRecord(value) || !isRecord(value.plugins)) return undefined;
-  const plugins = value.plugins;
-  const nextPlugins = { ...plugins };
-  let changed = false;
-
-  if (isRecord(plugins.enabledPlugins)) {
-    const enabledPlugins = { ...plugins.enabledPlugins };
-    for (const [id, enabled] of Object.entries(plugins.enabledPlugins)) {
-      if (id === LEGACY_CUA_PLUGIN_ID) {
-        const canonicalId = CANONICAL_CUA_PLUGIN_ID;
-        if (enabledPlugins[canonicalId] === undefined) enabledPlugins[canonicalId] = enabled;
-        delete enabledPlugins[id];
-        changed = true;
-      }
-    }
-    if (changed) nextPlugins.enabledPlugins = enabledPlugins;
-  }
-
-  if (Array.isArray(plugins.suppressedBuiltins)) {
-    const suppressedBuiltins = plugins.suppressedBuiltins.map((id) =>
-      id === LEGACY_CUA_PLUGIN_ID ? CANONICAL_CUA_PLUGIN_ID : id,
-    );
-    if (JSON.stringify(suppressedBuiltins) !== JSON.stringify(plugins.suppressedBuiltins)) {
-      nextPlugins.suppressedBuiltins = suppressedBuiltins;
-      changed = true;
-    }
-  }
-
-  if (isRecord(plugins.options)) {
-    const options = { ...plugins.options };
-    for (const [id, pluginOptions] of Object.entries(plugins.options)) {
-      if (id === LEGACY_CUA_PLUGIN_ID) {
-        const canonicalId = CANONICAL_CUA_PLUGIN_ID;
-        if (options[canonicalId] === undefined) options[canonicalId] = pluginOptions;
-        delete options[id];
-        changed = true;
-      }
-    }
-    if (changed) nextPlugins.options = options;
-  }
-
-  return changed ? { ...value, plugins: nextPlugins } : undefined;
-}
-
-function persistPluginConfigMigration(
-  filePath: string,
-  value: Record<string, unknown>,
-): void {
-  const tempPath = `${filePath}.migrate.${process.pid}.${Date.now()}.tmp`;
-  try {
-    writeFileSync(tempPath, `${JSON.stringify(value, null, 2)}\n`, {
-      encoding: "utf-8",
-      mode: 0o600,
-    });
-    renameSync(tempPath, filePath);
-  } catch {
-    // 迁移写回是 best-effort 副作用，失败不能改变合法配置的装载语义。
-    try {
-      unlinkSync(tempPath);
-    } catch {
-      // 临时文件清理失败不影响当前配置装载。
-    }
   }
 }
 

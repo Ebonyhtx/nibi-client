@@ -2,7 +2,7 @@
 
 ## 规则
 
-Computer Use 的真实实现来自 workspace 包 `@nibi/cua`（producer）。开源导出用 `packages/zcode-cua`
+Computer Use 的真实实现来自 workspace 包 `@nibi/cua`（producer）。开源导出用 `packages/nibi-cua`
 占位包替换它，占位包在 `package.json` 声明 `nibiCuaPlaceholder: true`，所有能力 fail-closed。
 
 占位包保留公共 `build` 和 `tsconfig.json` 入口，构建只检查随包类型声明。

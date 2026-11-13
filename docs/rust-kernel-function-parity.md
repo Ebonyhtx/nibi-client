@@ -198,9 +198,9 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
   经 `node-repl-host/src/cua-bridge.ts` → node_repl 进程内的 broker socket →
   `@nibi/cua` runtime → 本地 NDJSON → CUA Helper → `@trycua/cua-driver`。
 - Host 不在动作链上：它只负责控制面（稳定 socket/recipe 注入、Helper 生命周期、权限 UI）。
-- 公开仓的 `packages/zcode-cua` 是**占位实现**（`nibiCuaPlaceholder: true`，调用返回
+- 公开仓的 `packages/nibi-cua` 是**占位实现**（`nibiCuaPlaceholder: true`，调用返回
   `Computer Use is not available in this build.`）；真 Helper/runtime/engine 只在 NIBI 私有仓。
-  上游 `zai-org/ZCode` 与 `MBearo/ZCode-rs` 当前树里的 `packages/zcode-cua` 也是同一个占位包，
+  上游 `zai-org/ZCode` 与 `MBearo/ZCode-rs` 当前树里的 `packages/nibi-cua` 也是同一个占位包，
   **CUA 实现至今没有公开**。
 
 ### 5.2 Rust 之前为什么是「没有」
@@ -241,7 +241,7 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
 
 ### 5.5 真实 Helper 验证（2026-11-07）
 
-- 私有 sidecar 的 `packages/zcode-cua` 是完整实现（runtime/helper/engine），公开仓只是占位；
+- 私有 sidecar 的 `packages/nibi-cua` 是完整实现（runtime/helper/engine），公开仓只是占位；
   本机原来私有 `node_modules` 指向已移动的旧路径，且缺 `@trycua/cua-driver-win32-x64-msvc`。
 - 按私有仓的正式流程 overlay 到公开 checkout，`pnpm install --no-frozen-lockfile` 装上原生
   driver，重建 `node-repl-host` bundle；探针在 node_repl 进程里：
@@ -258,7 +258,7 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
   `v4/cua/permission-observation` 不补——当前 node_repl 表面下 Node 的触发器本身不可达，
   真正的权限 UI 是 Host 的 `ICuaPermissionService`。动作链不受影响。
 - 公开构建里 CUA 仍然 fail-closed（占位 `@nibi/cua`），这与内核无关；只有私有 producer
-  替换 `packages/zcode-cua` 后才是真正可用的 Computer Use。Rust 侧不再改变这条路径。
+  替换 `packages/nibi-cua` 后才是真正可用的 Computer Use。Rust 侧不再改变这条路径。
 
 ## 6. 订阅续传与背压（已补）
 

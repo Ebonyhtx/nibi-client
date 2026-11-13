@@ -130,9 +130,9 @@ export function resolveStableBrokerSocketPath(env = process.env) {
         .slice(0, 8)
     : "default";
   if (process.platform === "win32") {
-    return `\\\\.\\pipe\\zcode-cua-helper-${suffix}`;
+    return `\\\\.\\pipe\\nibi-cua-helper-${suffix}`;
   }
-  const base = join(tmpdir(), `zcode-cua-${process.getuid?.() ?? 0}`);
+  const base = join(tmpdir(), `nibi-cua-${process.getuid?.() ?? 0}`);
   mkdirSync(base, { recursive: true, mode: 0o700 });
   try {
     chmodSync(base, 0o700);
@@ -153,10 +153,10 @@ export function resolveBrokerSocketPath(options = {}) {
 /** Ephemeral endpoint for tests and one-shot helper processes. */
 export function mintEphemeralBrokerSocketPath(options = {}) {
   if (process.platform === "win32") {
-    return `\\\\.\\pipe\\zcode-cua-${randomUUID()}`;
+    return `\\\\.\\pipe\\nibi-cua-${randomUUID()}`;
   }
   const base = typeof options.dir === "string" && options.dir.trim() ? options.dir : tmpdir();
-  const directory = join(base, `zcode-cua-${process.getuid?.() ?? 0}`);
+  const directory = join(base, `nibi-cua-${process.getuid?.() ?? 0}`);
   mkdirSync(directory, { recursive: true, mode: 0o700 });
   try {
     chmodSync(directory, 0o700);

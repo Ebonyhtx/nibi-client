@@ -42,8 +42,8 @@ const ALLOWED_KEYS = [
   // 注入给**第三方** gen-ui 面板的上下文，面板按这些键取值。改名要同步所有已发布的
   // gen-ui 产物，属于插件 ABI 兼容层——运营者明确允许的唯一例外。
   { pattern: /^zcode\//, reason: "Gen-UI / MCP Apps 元数据命名空间，第三方面板按此取值" },
-  // CUA 面板元数据键（`zcode.cua/app-associations-v1` 等）：CUA 契约层与面板共用。
-  { pattern: /^zcode\.cua\//, reason: "CUA 面板元数据键，CUA 契约与面板共用" },
+  // CUA 面板元数据键（`nibi.cua/app-associations-v1` 等）：CUA 契约层与面板共用。
+  { pattern: /^nibi\.cua\//, reason: "CUA 面板元数据键，CUA 契约与面板共用" },
   //
   // 不属于本判据、**不要**加进来的：
   // - 模型 provider id（`zai` / `bigmodel`）：第三方服务商标识，改了就调不通；

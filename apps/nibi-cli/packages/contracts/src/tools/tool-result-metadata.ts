@@ -28,7 +28,7 @@ export const TASK_OUTPUT_DISPLAY_MAX_STATUS_CHARS = 64;
 export const TASK_OUTPUT_DISPLAY_MAX_OUTPUT_CHARS = 2_000;
 export const MCP_TOOL_DISPLAY_MAX_NAME_CHARS = 256;
 export const MCP_TOOL_DISPLAY_MAX_DESCRIPTION_CHARS = 4 * 1024;
-export const CUA_TARGET_APP_DISPLAY_META_KEY = "zcode.cua/target-app-display-v1" as const;
+export const CUA_TARGET_APP_DISPLAY_META_KEY = "nibi.cua/target-app-display-v1" as const;
 
 export const applicationIconLocatorSchema = z.discriminatedUnion("kind", [
   z

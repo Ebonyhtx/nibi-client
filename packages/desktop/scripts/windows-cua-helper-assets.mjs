@@ -760,7 +760,7 @@ export async function resolveWindowsCuaHelperSourceRoot({
     throw new Error("[windows-cua-helper-assets] servicesPackageRoot must be absolute");
   }
   // servicesPackageRoot 固定对应当前仓库的 packages/services；CUA producer 是同一 workspace 的
-  // packages/zcode-cua，禁止向上扫描到用户目录或另一个仓库。
+  // packages/nibi-cua，禁止向上扫描到用户目录或另一个仓库。
   const workspaceRoot = resolve(servicesPackageRoot, "..", "..");
   const workspaceMarkerPath = resolve(workspaceRoot, "pnpm-workspace.yaml");
   let markerStats;
@@ -778,7 +778,7 @@ export async function resolveWindowsCuaHelperSourceRoot({
     );
   }
 
-  const packageRoot = resolve(workspaceRoot, "packages", "zcode-cua");
+  const packageRoot = resolve(workspaceRoot, "packages", "nibi-cua");
   try {
     return await realpath(packageRoot);
   } catch (error) {

@@ -179,7 +179,7 @@ export default defineConfig({
           ],
           exclude: [
             "packages/desktop/test/e2e/**",
-            "packages/zcode-cua/**",
+            "packages/nibi-cua/**",
             ...forkIsolatedTests,
             ...windowsOnlyTests,
             ...linuxOnlyExcludes,
@@ -214,7 +214,7 @@ export default defineConfig({
           sequence: { groupOrder: 2 },
         },
       },
-      "packages/zcode-cua/vitest.config.ts",
+      "packages/nibi-cua/vitest.config.ts",
     ],
     coverage: {
       provider: "v8",

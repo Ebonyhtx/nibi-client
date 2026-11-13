@@ -268,7 +268,7 @@ function checkKeyFiles(trackedFiles, violations) {
 }
 
 function checkCuaBoundary(violations) {
-  const manifestPath = "packages/zcode-cua/package.json";
+  const manifestPath = "packages/nibi-cua/package.json";
   if (!existsSync(join(ROOT, manifestPath))) {
     violations.push({
       file: manifestPath,
@@ -288,9 +288,9 @@ function checkCuaBoundary(violations) {
     });
   }
   for (const directory of ["helper", "runtime", "engine", "vendor"]) {
-    if (existsSync(join(ROOT, "packages/zcode-cua", directory))) {
+    if (existsSync(join(ROOT, "packages/nibi-cua", directory))) {
       violations.push({
-        file: `packages/zcode-cua/${directory}`,
+        file: `packages/nibi-cua/${directory}`,
         line: 0,
         rule: "private CUA implementation directory must not be public",
         text: directory,

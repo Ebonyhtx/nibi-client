@@ -147,8 +147,8 @@ Android instrumentation 属于设备验收，不纳入本次单测删减；空�
 | `packages/ui/test/workspaceShellResizeAutoCollapse.test.ts`         | 只断言 timeout/ref 变量及 setTimeout 写法；不执行 resize/折叠。                                |
 | `packages/ui/test/workspaceShellSidebarResizePerformance.test.ts`   | 只检查 useCallback 体中 DOM/状态调用名字；没有性能或 render 验证；还含已下线 skip 用例。       |
 | `packages/web/test/homeOnlyMediaPreviewService.test.ts`             | 只验证服务字段及泛型装配写法，没有执行 unsupported service。                                   |
-| `packages/zcode-cua/test/maas-tool-result-completeness.test.ts`     | 只扫描 smoke 脚本的重试常量、字段名及日志原文，未执行 probe。                                  |
-| `packages/zcode-cua/test/native/pip-window-chrome.test.ts`          | 只锁定 Objective-C++ 圆角数值、layer 属性与曲率常量，没有渲染原生面板。                        |
+| `packages/nibi-cua/test/maas-tool-result-completeness.test.ts`     | 只扫描 smoke 脚本的重试常量、字段名及日志原文，未执行 probe。                                  |
+| `packages/nibi-cua/test/native/pip-window-chrome.test.ts`          | 只锁定 Objective-C++ 圆角数值、layer 属性与曲率常量，没有渲染原生面板。                        |
 
 #### 混合文件精简
 
@@ -289,7 +289,7 @@ CLI Vitest 70/70、Office profile 1/1、TUI 原生 33/33、文档站固定图 1/
 | `packages/ui/test/workspaceSidebarTerminologyI18n.test.ts`                     | 逐字复制同一中英文 locale 字典值；不验证界面按 locale 取值。                                                                                                                                  |
 | `packages/ui/test/zcodeProviders.test.ts`                                      | 源函数忽略 provider 永远返回 true，另一函数仅取反；十条期望只是常量重复，真实 fork task 状态与目标 guard 未触及。                                                                             |
 | `packages/web/test/webRemoteControlFailures.test.ts`                           | 只照抄固定reason加message的DTO构造；实际连接恢复耗尽后使用connection-recovery-timeout的回归仍由 externalRelayFrameGapRecovery 真实恢复调度测试验证。                                          |
-| `packages/zcode-cua/test/broker/host-surface-simplification.test.ts`           | 只扫描已退役type/alias名称与固定装配文本；实际ghost/PiP不可变launch policy已有真实host启动+broker+launcher spec测试，保留该测试及全部签名/权限/生命周期保护。                                 |
+| `packages/nibi-cua/test/broker/host-surface-simplification.test.ts`           | 只扫描已退役type/alias名称与固定装配文本；实际ghost/PiP不可变launch policy已有真实host启动+broker+launcher spec测试，保留该测试及全部签名/权限/生命周期保护。                                 |
 
 | 精简文件                                                                 | 删除范围与保留边界                                                                                                                                                                         |
 | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -350,13 +350,13 @@ CLI Vitest 70/70、Office profile 1/1、TUI 原生 33/33、文档站固定图 1/
 | `packages/ui/test/workspaceHeader.test.ts`                               | 仅移除复述固定 CSS、图标/label 映射或无计算 props 展示的用例；本文件真实交互、边界和状态转换用例保留。                                                                                     |
 | `packages/ui/test/workspacePurposeSection.test.ts`                       | 仅移除复述固定 CSS、图标/label 映射或无计算 props 展示的用例；本文件真实交互、边界和状态转换用例保留。                                                                                     |
 | `packages/ui/test/workspaceSidebarFooterWebRemoteControlTooltip.test.ts` | 仅移除复述固定 CSS、图标/label 映射或无计算 props 展示的用例；本文件真实交互、边界和状态转换用例保留。                                                                                     |
-| `packages/zcode-cua/test/annotations.test.ts`                            | request_access/stop的单独断言重复前面的完整工具集合检查及真实TOOL_REGISTRY sweep；保留applyToolAnnotations实际批量写入行为、完整安全tier与未知工具拒绝路径。                               |
-| `packages/zcode-cua/test/argv-shape.test.ts`                             | 所谓任意顺序case与canonical输入完全一致；round-trip只重建相同socket参数重复调用确定性解析器。保留canonical、等号、terminator、兼容标签、所有fail-closed路径。                              |
-| `packages/zcode-cua/test/manifest.test.ts`                               | 删除精确14项名单已包含的长度、唯一性、join文本、退役项与tier长度重复断言；删除三个在测试内自造Set差集算法的case。保留精确工具名单、真实registry/schema/map、tiers一致性和association契约。 |
-| `packages/zcode-cua/test/server-security.parity.test.ts`                 | 标题声称token-only，但回调实际调用buildServer({})，与首条no credentials case完全相同；保留首条无凭据fail-closed和全部不同socket输入/占位符拒绝/真实tool注册检查。                          |
-| `packages/zcode-cua/test/tier-table.test.ts`                             | 4+1+9的合计case重复同文件前面逐组精确名单与数量；保留全部安全tier、冻结及未知名称保守分类。                                                                                                |
-| `packages/zcode-cua/test/tool-manifest-json-drift.test.ts`               | 第二条14长度检查被manifest精确名单与第一条mirror顺序相等完整覆盖；保留跨src与eval真实产物一致性。                                                                                          |
-| `packages/zcode-cua/test/tool-surface-14.test.ts`                        | 退役项由manifest精确名单和真实MAP成员全量检查覆盖；30-17+1算术case及单独key存在检查不提供新输入或边界。保留MAP精确大小和全部真实click/key折叠schema能力。                                  |
+| `packages/nibi-cua/test/annotations.test.ts`                            | request_access/stop的单独断言重复前面的完整工具集合检查及真实TOOL_REGISTRY sweep；保留applyToolAnnotations实际批量写入行为、完整安全tier与未知工具拒绝路径。                               |
+| `packages/nibi-cua/test/argv-shape.test.ts`                             | 所谓任意顺序case与canonical输入完全一致；round-trip只重建相同socket参数重复调用确定性解析器。保留canonical、等号、terminator、兼容标签、所有fail-closed路径。                              |
+| `packages/nibi-cua/test/manifest.test.ts`                               | 删除精确14项名单已包含的长度、唯一性、join文本、退役项与tier长度重复断言；删除三个在测试内自造Set差集算法的case。保留精确工具名单、真实registry/schema/map、tiers一致性和association契约。 |
+| `packages/nibi-cua/test/server-security.parity.test.ts`                 | 标题声称token-only，但回调实际调用buildServer({})，与首条no credentials case完全相同；保留首条无凭据fail-closed和全部不同socket输入/占位符拒绝/真实tool注册检查。                          |
+| `packages/nibi-cua/test/tier-table.test.ts`                             | 4+1+9的合计case重复同文件前面逐组精确名单与数量；保留全部安全tier、冻结及未知名称保守分类。                                                                                                |
+| `packages/nibi-cua/test/tool-manifest-json-drift.test.ts`               | 第二条14长度检查被manifest精确名单与第一条mirror顺序相等完整覆盖；保留跨src与eval真实产物一致性。                                                                                          |
+| `packages/nibi-cua/test/tool-surface-14.test.ts`                        | 退役项由manifest精确名单和真实MAP成员全量检查覆盖；30-17+1算术case及单独key存在检查不提供新输入或边界。保留MAP精确大小和全部真实click/key折叠schema能力。                                  |
 
 ### 第三轮：全库存语义审读
 

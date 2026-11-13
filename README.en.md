@@ -78,10 +78,10 @@ NIBI_DATA_BASE_DIR="$HOME/.nibi-dev" pnpm dev:desktop
 | `packages/shared`, `packages/rpc`, `packages/client` | Shared protocols, RPC framework, agent client SDK |
 | `packages/provider`, `packages/provider-node` | Provider primitives and Node implementation |
 | `apps/nibi-cli` | Agent CLI, TUI, runtime, and tools |
-| `packages/zcode-cua` | Public Computer Use contract and placeholder |
+| `packages/nibi-cua` | Public Computer Use contract and placeholder |
 | `scripts`, `config`, `third-party` | Build tooling, built-in config, third-party notices |
 
-> `apps/nibi-cli` and `packages/nibi-server-cli` have been renamed to NIBI; upstream pristine files are still verified through the local-to-upstream prefix map in `scripts/architecture/upstream-snapshot.json` (snapshot keys remain upstream paths). `packages/zcode-cua` will be migrated separately with the CUA engine upgrade. Package names, CLI commands, and build outputs are NIBI (`nibi-cli`, `@nibi/server-cli`, `@nibi/cua`, `dist/nibi/`, and the remote executor `nibi-server.cjs` / `nibi-server-<target>.tar.gz`).
+> `apps/nibi-cli` and `packages/nibi-server-cli` have been renamed to NIBI; upstream pristine files are still verified through the local-to-upstream prefix map in `scripts/architecture/upstream-snapshot.json` (snapshot keys remain upstream paths). `packages/nibi-cua` will be migrated separately with the CUA engine upgrade. Package names, CLI commands, and build outputs are NIBI (`nibi-cli`, `@nibi/server-cli`, `@nibi/cua`, `dist/nibi/`, and the remote executor `nibi-server.cjs` / `nibi-server-<target>.tar.gz`).
 
 ## Development and verification
 

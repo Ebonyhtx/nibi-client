@@ -42,15 +42,6 @@ describe("Computer Use producer detection", () => {
     expect(isRealComputerUseProducerInstalled({ desktopPackageRoot: desktopRoot })).toBe(true);
   });
 
-  it("旧 scope 的安装布局（@zcode/zcode-cua）仍能识别", () => {
-    // scope 改名后真实包叫 @nibi/cua；检测器必须同时认旧名，否则历史安装/占位包布局会漏判。
-    const desktopRoot = createWorkspace(
-      { name: "@zcode/zcode-cua", version: "0.6.4" },
-      ["@zcode", "zcode-cua"],
-    );
-    expect(isRealComputerUseProducerInstalled({ desktopPackageRoot: desktopRoot })).toBe(true);
-  });
-
   it("开源占位包：声明 nibiCuaPlaceholder 时不算真实 producer", () => {
     const desktopRoot = createWorkspace({ name: "@nibi/cua", nibiCuaPlaceholder: true });
     expect(readComputerUseProducer({ desktopPackageRoot: desktopRoot })).toMatchObject({

@@ -8,18 +8,13 @@ import { dirname, resolve } from "node:path";
  * `@zcode/zcode-cua` → 真实 producer 永远被判「未安装」→ Windows Helper 的 node_modules
  * 映射被跳过 → 装出来的包有 manifest/entry 却缺原生 addon，`resolveWindowsCuaRuntime` 失败、
  * 不注入配方，CUA 全部 fail-closed（实测 4.0.0 安装包即此状态）。
- * 旧名保留：开源占位包与历史布局仍用它们。
  */
-const PRODUCER_PACKAGE_SEGMENTS = [
-  ["@nibi", "cua"],
-  ["@nibi", "zcode-cua"],
-  ["@zcode", "zcode-cua"],
-];
+const PRODUCER_PACKAGE_SEGMENTS = [["@nibi", "cua"]];
 
 /**
  * 判定当前安装的 `@nibi/cua` 是闭源真实 producer 还是开源占位包。
  *
- * 闭源构建使用 workspace 内 `packages/zcode-cua` 的真实 producer；开源导出把该目录整体换成占位包，
+ * 闭源构建使用 workspace 内 `packages/nibi-cua` 的真实 producer；开源导出把该目录整体换成占位包，
  * 占位包在 package.json 声明 `nibiCuaPlaceholder: true`，所有能力 fail-closed。
  * 开发、构建与打包里只服务于真实 Computer Use 的步骤（构建 Helper、暂存插件原生依赖、
  * Windows Helper 资源、打包后的 Helper 校验）都以本判定为门，检测不到真实 producer 时跳过，

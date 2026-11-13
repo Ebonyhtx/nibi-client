@@ -1,4 +1,4 @@
-export const OFFICIAL_CUA_FRAME_INTEGRITY_META_KEY = "zcode.cua/official-frame-integrity-v1";
+export const OFFICIAL_CUA_FRAME_INTEGRITY_META_KEY = "nibi.cua/official-frame-integrity-v1";
 
 export const OFFICIAL_CUA_FRAME_MODEL_CONTENT_PROTECTION = "official_cua_frame_v1";
 

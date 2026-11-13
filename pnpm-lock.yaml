@@ -49,7 +49,7 @@ importers:
         version: 0.3.31
       '@nibi/cua':
         specifier: workspace:*
-        version: link:packages/zcode-cua
+        version: link:packages/nibi-cua
       '@release-it/conventional-changelog':
         specifier: ^10.0.6
         version: 10.0.6(conventional-commits-filter@5.0.0)(conventional-commits-parser@6.4.0)(release-it@19.2.4(@types/node@25.6.0)(magicast@0.5.2))
@@ -225,7 +225,7 @@ importers:
         version: link:../contracts
       '@nibi/cua':
         specifier: workspace:*
-        version: link:../../../../packages/zcode-cua
+        version: link:../../../../packages/nibi-cua
       '@nibi/dynamic-workflow':
         specifier: workspace:*
         version: link:../dynamic-workflow
@@ -448,7 +448,7 @@ importers:
     dependencies:
       '@nibi/cua':
         specifier: workspace:*
-        version: link:../../../../packages/zcode-cua
+        version: link:../../../../packages/nibi-cua
     devDependencies:
       '@types/node':
         specifier: ^24.0.0
@@ -483,7 +483,7 @@ importers:
         version: link:../contracts
       '@nibi/cua':
         specifier: workspace:*
-        version: link:../../../../packages/zcode-cua
+        version: link:../../../../packages/nibi-cua
       '@nibi/dynamic-workflow':
         specifier: workspace:*
         version: link:../dynamic-workflow
@@ -655,7 +655,7 @@ importers:
         version: link:../core
       '@nibi/cua':
         specifier: workspace:*
-        version: link:../../../../packages/zcode-cua
+        version: link:../../../../packages/nibi-cua
       '@nibi/shared':
         specifier: workspace:*
         version: link:../../../../packages/shared
@@ -925,7 +925,7 @@ importers:
         version: link:../client
       '@nibi/cua':
         specifier: workspace:*
-        version: link:../zcode-cua
+        version: link:../nibi-cua
       '@nibi/e2e-report':
         specifier: workspace:*
         version: link:../e2e-report
@@ -1176,6 +1176,8 @@ importers:
         specifier: ^4.1.1
         version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@25.6.0)(typescript@6.0.2))(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
 
+  packages/nibi-cua: {}
+
   packages/nibi-server-cli:
     dependencies:
       '@hono/node-server':
@@ -1388,7 +1390,7 @@ importers:
         version: 1.64.0
       '@nibi/cua':
         specifier: workspace:*
-        version: link:../zcode-cua
+        version: link:../nibi-cua
       '@nibi/provider':
         specifier: workspace:*
         version: link:../provider
@@ -2029,8 +2031,6 @@ importers:
       vite:
         specifier: ^8.0.2
         version: 8.0.8(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0)
-
-  packages/zcode-cua: {}
 
 packages:
 

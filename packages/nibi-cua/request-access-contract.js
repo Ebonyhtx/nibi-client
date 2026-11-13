@@ -1,4 +1,4 @@
-export const CUA_REQUEST_ACCESS_STATUS_META_KEY = "zcode.cua/request-access-status-v1";
+export const CUA_REQUEST_ACCESS_STATUS_META_KEY = "nibi.cua/request-access-status-v1";
 
 export const cuaRequestAccessStatusSchema = {
   safeParse(_input) {

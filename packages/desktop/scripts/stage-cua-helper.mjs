@@ -26,7 +26,7 @@ import { getTargetPlatform } from "./target-platform.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, "../../..");
-const PACKAGE_ROOT = join(REPO_ROOT, "packages", "zcode-cua");
+const PACKAGE_ROOT = join(REPO_ROOT, "packages", "nibi-cua");
 
 function parseArgs(argv) {
   // 默认跟打包链的目标平台一致（getTargetPlatform 认 NIBI_TARGET_PLATFORM 等环境变量）。
@@ -184,7 +184,7 @@ await writeFile(
 | \`@trycua/cua-driver\` | ${driverPackage.data.version} | MIT | 桌面自动化引擎（https://github.com/trycua/cua） |
 | \`${platformPackageName}\` | ${platformPackage.data.version} | MIT AND MPL-2.0 | 该平台的预编译原生件 |
 | \`@ubjs/core\`、\`@ubjs/node\` | ${(await packageJsonOf("@ubjs/core", PACKAGE_ROOT)).data.version} | MPL-2.0 | UniFFI JS 运行时（uniffi-bindgen-react-native，文件级 copyleft；未修改，源码见上游仓库） |
-| freeall12/computer-use 文档与参考实现 | 快照 | MIT | 规格与测试用；见 packages/zcode-cua/vendor/ 的 PROVENANCE.md |
+| freeall12/computer-use 文档与参考实现 | 快照 | MIT | 规格与测试用；见 packages/nibi-cua/vendor/ 的 PROVENANCE.md |
 
 未分发 cua 的 \`cua-perception\` 扩展（其 OmniParser 依赖是 AGPL-3.0）。
 `,

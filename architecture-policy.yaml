@@ -981,7 +981,7 @@ exceptions:
     reason: 已准入的快捷键命令表只追加一条 toggleSidePaneFullView 命令（Side Pane 完整视图，docs/ui/side-pane-full-view.md）；命令表仍是唯一数据源，签名与模块边界不变，接管整个 shared 包不在本次范围内。
   - id: opensource-cua-test-project-config
     rule: unmanaged-new-file
-    paths: [ packages/zcode-cua/vitest.config.ts ]
+    paths: [ packages/nibi-cua/vitest.config.ts ]
     reason: 该文件只装配测试项目，开源占位版本用于保持根单测入口可运行；不包含 producer 运行逻辑，不为同目录实现文件开放例外。
   - id: opensource-tool-search-comment-cleanup
     rule: unmanaged-new-file
@@ -1149,8 +1149,8 @@ exceptions:
     reason: NIBI 在 CLI 内新增的付费插件门禁、NIBI provider 流程、验收方法、品牌像素鸟与测试装配；apps/nibi-cli 整包上游就是 unmanaged 模块，单文件无法登记 managed 模块。文件随 3.16.2 基座整体搬入，不是本分支新开的包。
   - id: nibi-fork-cua-runtime
     rule: unmanaged-new-file
-    paths: [ packages/zcode-cua/** ]
-    reason: packages/zcode-cua 是 NIBI 自研电脑操控实现（上游只有占位桩），整包尚未登记模块；完成 CUA 架构收口前按包级例外放行，新增文件仍沿用包内 engine/helper/runtime/vendor 既有分层。
+    paths: [ packages/nibi-cua/** ]
+    reason: packages/nibi-cua 是 NIBI 自研电脑操控实现（上游只有占位桩），整包尚未登记模块；完成 CUA 架构收口前按包级例外放行，新增文件仍沿用包内 engine/helper/runtime/vendor 既有分层。
   - id: nibi-fork-project-sync
     rule: unmanaged-new-file
     paths:
