@@ -119,7 +119,7 @@ async fn candidates_follow_the_node_order() {
         .as_path()
         .join("cache")
         .join("nibi-official")
-        .join("zcode-guide")
+        .join("nibi-guide")
         .join("0.3.0");
     let partition = root
         .as_path()
@@ -128,7 +128,7 @@ async fn candidates_follow_the_node_order() {
     std::fs::write(
         &partition,
         json!({"version": 1, "manifest": {"plugins": [
-            {"name": "zcode-guide", "cachePath": guide.to_string_lossy()}
+            {"name": "nibi-guide", "cachePath": guide.to_string_lossy()}
         ]}})
         .to_string(),
     )
@@ -148,7 +148,7 @@ async fn candidates_follow_the_node_order() {
         enabled: true,
         dirs: vec![abs.clone(), "rel/kit".to_owned()],
         enabled_plugins: [("kit@market".to_owned(), true)].into_iter().collect(),
-        suppressed_builtins: vec!["zcode-guide@nibi-official".to_owned()],
+        suppressed_builtins: vec!["nibi-guide@nibi-official".to_owned()],
         options: Default::default(),
     };
     let sources = sources(section.clone(), &repo, &root, None, &[]).await;

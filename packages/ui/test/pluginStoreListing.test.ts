@@ -446,7 +446,7 @@ describe("pluginStoreListing", () => {
     });
     expect(item).toBeDefined();
     expect(resolveItemDisplayName(item!, "en-US")).toBe("Cloudbase Skills");
-    expect(formatCanonicalPluginName("zcode-guide", "en-US")).toBe("NIBI Guide");
+    expect(formatCanonicalPluginName("nibi-guide", "en-US")).toBe("NIBI Guide");
     expect(formatCanonicalPluginName("aws-mcp-server", "en-US")).toBe("AWS MCP Server");
     expect(formatCanonicalPluginName("AWS_mCp_tools", "en-US")).toBe("AWS MCP Tools");
   });

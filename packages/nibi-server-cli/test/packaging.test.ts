@@ -445,7 +445,7 @@ describe("stageRelease", () => {
   it("bundled workflow skills ship in the agent component and affect its hash", async () => {
     const fixture = await makeStageFixture();
     const officialPluginsDir = join(await makeTempDir(), "packages");
-    await writeOfficialPluginFixture(officialPluginsDir, "zcode-guide-plugin");
+    await writeOfficialPluginFixture(officialPluginsDir, "nibi-guide-plugin");
     const options = {
       ...fixture,
       officialPluginsDir,
@@ -546,7 +546,7 @@ describe("stageRelease", () => {
     async (cacheState) => {
       const fixture = await makeStageFixture();
       const officialPluginsDir = join(await makeTempDir(), "packages");
-      await writeOfficialPluginFixture(officialPluginsDir, "zcode-guide-plugin");
+      await writeOfficialPluginFixture(officialPluginsDir, "nibi-guide-plugin");
       if (cacheState !== "absent") {
         const cachedPackDir = join(officialPluginsDir, "bundled-skills");
         await mkdir(join(cachedPackDir, "skills/dynamic-workflows"), { recursive: true });
@@ -585,7 +585,7 @@ describe("stageRelease", () => {
         plugins: string[];
         components: Array<{ id: string; paths: string[]; archivePath: string }>;
       };
-      expect(manifest.plugins).toEqual(["zcode-guide"]);
+      expect(manifest.plugins).toEqual(["nibi-guide"]);
       const agentComponent = manifest.components.find((entry) => entry.id === "agent-runtime")!;
       expect(agentComponent.paths).toContain("runtime/packages/bundled-skills");
       const agentExtractDir = await makeTempDir();
@@ -616,7 +616,7 @@ describe("stageRelease", () => {
         pluginExtractDir,
       ]);
       await expect(
-        stat(join(pluginExtractDir, "runtime/packages/zcode-guide-plugin")),
+        stat(join(pluginExtractDir, "runtime/packages/nibi-guide-plugin")),
       ).resolves.toBeTruthy();
       await expect(
         stat(join(pluginExtractDir, "runtime/packages/bundled-skills")),
@@ -634,7 +634,7 @@ describe("stageRelease", () => {
       "ios-simulator-plugin",
       "restore-legacy-sessions-plugin",
       "skill-creator-plugin",
-      "zcode-guide-plugin",
+      "nibi-guide-plugin",
       "superpowers-plugin",
     ];
     const mcpRuntimePlugins = new Set([
@@ -682,9 +682,9 @@ describe("stageRelease", () => {
       "browser-use",
       "document-skills",
       "ios-simulator",
+      "nibi-guide",
       "restore-legacy-sessions",
       "skill-creator",
-      "zcode-guide",
     ]);
     expect(manifest.components?.some((component) => component.id === "official-plugins")).toBe(
       true,
@@ -704,7 +704,7 @@ describe("stageRelease", () => {
         mcpEntry: "dist/mcp/server.js",
         withMcpEntryFile: false,
       });
-      await writeOfficialPluginFixture(officialPluginsDir, "zcode-guide-plugin");
+      await writeOfficialPluginFixture(officialPluginsDir, "nibi-guide-plugin");
 
       await expect(
         stageRelease({
@@ -744,7 +744,7 @@ describe("stageRelease", () => {
     // 插件，会把这种僵尸目录当插件 stage，随后 fail-closed 校验读不到 plugin.json 而整段失败。
     const fixture = await makeStageFixture();
     const officialPluginsDir = join(await makeTempDir(), "packages");
-    await writeOfficialPluginFixture(officialPluginsDir, "zcode-guide-plugin");
+    await writeOfficialPluginFixture(officialPluginsDir, "nibi-guide-plugin");
     const orphanDir = join(officialPluginsDir, "computer-use-plugin");
     await mkdir(join(orphanDir, "node_modules", "@zcode", "computer-use"), { recursive: true });
     await writeFile(
@@ -767,7 +767,7 @@ describe("stageRelease", () => {
     const manifest = JSON.parse(
       await readFile(join(staged.releaseDir, "manifest.json"), "utf8"),
     ) as { plugins?: string[] };
-    expect(manifest.plugins).toEqual(["zcode-guide"]);
+    expect(manifest.plugins).toEqual(["nibi-guide"]);
   });
 
   it("removes stale component archives before restaging a target", async () => {

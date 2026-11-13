@@ -65,7 +65,7 @@ docker/plugin-eval/bin/build-image.sh --ref feat-cli-plugins-parity \
 3. `runtime` 阶段只带 `node + zcode.cjs + jq/python3/git/ripgrep`，以 uid 10001 的 `zcode` 用户运行；
    `HOME=/data`、`NIBI_DATA_BASE_DIR=/data`、`NIBI_STORAGE_DIR=/data/.zcode`、`NIBI_BASE_URL=https://zcode.z.ai`。
    内置插件不在 `zcode.cjs` 里，CLI 在入口文件同级的 `packages/<name>-plugin` 找根目录，所以 builder 阶段把
-   document-skills、zcode-guide、skill-creator、restore-legacy-sessions 四个纯内容型内置插件 stage 到 `/opt/zcode/packages/`；
+   document-skills、nibi-guide、skill-creator、restore-legacy-sessions 四个纯内容型内置插件 stage 到 `/opt/zcode/packages/`；
    同理 CLI 启动必读的内置 provider 目录 `config/provider/zcode-builtin.json` 放到 `/opt/zcode/provider/`。
 4. 构建期执行 `zcode plugins marketplace update zcode-plugins-official`，再把 `list --available --json` 中
    `installed == false` 的条目逐个 `plugins install`，基线清单落在 `/data/plugins-baseline.json`。

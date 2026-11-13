@@ -28,7 +28,7 @@ describe("公开分类排序", () => {
     const { PluginStoreDetailView } = await import("../src/settings/PluginStoreDetailView.js");
     const html = renderToStaticMarkup(
       createElement(PluginStoreDetailView, {
-        item: item("zcode-guide", "guides"),
+        item: item("nibi-guide", "guides"),
         actions: {
           onOpenDetail() {},
           onInstall() {},
@@ -45,7 +45,7 @@ describe("公开分类排序", () => {
     expect(html).toContain("settings.plugins.store.category.utilities");
   });
   it("旧指南类目并入实用工具且不改变插件身份，legal 无插件时不显示", () => {
-    const entries = [item("zcode-guide", "guides"), item("skill-creator", "utilities")];
+    const entries = [item("nibi-guide", "guides"), item("skill-creator", "utilities")];
     const groups = groupItemsByCategory(entries, "zh-CN", {
       categoryOrder: ["legal", "guides", "utilities"],
     });

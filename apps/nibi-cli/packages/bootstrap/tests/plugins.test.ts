@@ -66,7 +66,6 @@ const IOS_SIMULATOR_MCP_ID = "plugin:ios-simulator:ios-simulator";
 const ANDROID_EMULATOR_MCP_ID = "plugin:android-emulator:android-emulator";
 const BROWSER_USE_PLUGIN_ID = "browser-use@nibi-official";
 const DOCUMENTS_PLUGIN_ID = "documents@nibi-official";
-const RESTORE_LEGACY_SESSIONS_PLUGIN_ID = "restore-legacy-sessions@nibi-official";
 const SKILL_CREATOR_PLUGIN_ID = "skill-creator@nibi-official";
 
 function createNoopStartupTimer(): StartupTimer {
@@ -90,12 +89,6 @@ const OFFICIAL_ANDROID_PLUGIN_CACHE_PATH = join(
   "cache",
   "nibi-official",
   "android-emulator",
-  "0.1.0",
-);
-const OFFICIAL_RESTORE_LEGACY_SESSIONS_PLUGIN_CACHE_PATH = join(
-  "cache",
-  "nibi-official",
-  "restore-legacy-sessions",
   "0.1.0",
 );
 const OFFICIAL_SKILL_CREATOR_PLUGIN_CACHE_PATH = join(
@@ -1667,69 +1660,6 @@ describe("Nibi plugins", () => {
       expect((await stat(join(targetRoot, "hooks", "run-hook.cmd"))).mode & 0o111).not.toBe(0);
     } finally {
       process.argv[1] = originalEntrypoint;
-      await rm(root, { force: true, recursive: true });
-    }
-  });
-
-  it("projects restore legacy sessions skills and commands only when enabled", async () => {
-    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-restore-plugin-enabled-"));
-    const configPath = join(root, "config.json");
-    const pluginStorageRoot = join(root, "plugins");
-
-    try {
-      await writeFile(
-        configPath,
-        JSON.stringify({
-          plugins: {
-            enabledPlugins: {
-              [RESTORE_LEGACY_SESSIONS_PLUGIN_ID]: true,
-            },
-          },
-        }),
-      );
-
-      const outcome = resolveNibiPlugins({
-        env: {},
-        pluginStorageRoot,
-        userConfigPath: configPath,
-        workingDirectory: root,
-      });
-      const plugin = outcome.plugins.find((item) => item.id === RESTORE_LEGACY_SESSIONS_PLUGIN_ID);
-      const expectedRoot = join(
-        pluginStorageRoot,
-        OFFICIAL_RESTORE_LEGACY_SESSIONS_PLUGIN_CACHE_PATH,
-      );
-
-      expect(plugin).toMatchObject({
-        commandRootCount: 1,
-        declaredMcpServerNames: [],
-        enabled: true,
-        mcpServerNames: [],
-        name: "restore-legacy-sessions",
-        rootPath: expectedRoot,
-        skillCount: 1,
-        skillRootCount: 1,
-      });
-      expect(outcome.skillRoots).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            path: join(expectedRoot, "skills"),
-            scope: "system",
-            source: "plugin",
-          }),
-        ]),
-      );
-      expect(outcome.commandRoots).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            path: join(expectedRoot, "commands"),
-            scope: "system",
-            source: "plugin",
-          }),
-        ]),
-      );
-      expect(Object.keys(outcome.mcpServers)).not.toContain("restore-legacy-sessions");
-    } finally {
       await rm(root, { force: true, recursive: true });
     }
   });

@@ -195,6 +195,18 @@ const officialPluginPackages = [
     stagedPath: "packages/visualize-plugin",
   },
   {
+    packageName: "@nibi/design-plugin",
+    relativePath: "apps/nibi-cli/packages/design-plugin",
+    requiresRuntime: false,
+    requiredSeedPaths: [
+      "skills/design/SKILL.md",
+      "skills/design/references/output.md",
+      "hooks/hooks.json",
+      "hooks/run-hook.cmd",
+    ],
+    stagedPath: "packages/design-plugin",
+  },
+  {
     // browser-use 只携带自己的 client script 与 skill/docs；node_repl MCP runtime 归
     // @nibi/node-repl-host（见上方常量注释）。
     packageName: "@nibi/browser-use-plugin",
@@ -213,14 +225,6 @@ const officialPluginPackages = [
     stagedPath: "packages/ios-simulator-plugin",
   },
   {
-    // 修复原因：restore-legacy-sessions 已注册为官方插件，但 Electron 生产包只会拷贝
-    // 这里列出的资源。漏掉它会导致用户生产包首次启动后 plugins list 里看不到该插件。
-    packageName: "@nibi/restore-legacy-sessions-plugin",
-    relativePath: "apps/nibi-cli/packages/restore-legacy-sessions-plugin",
-    requiresRuntime: false,
-    stagedPath: "packages/restore-legacy-sessions-plugin",
-  },
-  {
     packageName: "@nibi/skill-creator-plugin",
     relativePath: "apps/nibi-cli/packages/skill-creator-plugin",
     requiresRuntime: false,
@@ -233,13 +237,13 @@ const officialPluginPackages = [
     stagedPath: "packages/plugin-creator-plugin",
   },
   {
-    // 修复原因：zcode-guide 已注册为官方默认启用内容型插件（见 official-plugin-definitions.ts）。
+    // 修复原因：nibi-guide 已注册为官方默认启用内容型插件（见 official-plugin-definitions.ts）。
     // Electron 生产包不是 SEA 路径，官方插件 seed 依赖这里 stage 的 resources/glm/packages/*-plugin；
     // 漏掉它会导致生产桌面包首启 seed 不到该插件，用户拿不到默认启用的配置指南技能。
     packageName: "@nibi/guide-plugin",
-    relativePath: "apps/nibi-cli/packages/zcode-guide-plugin",
+    relativePath: "apps/nibi-cli/packages/nibi-guide-plugin",
     requiresRuntime: false,
-    stagedPath: "packages/zcode-guide-plugin",
+    stagedPath: "packages/nibi-guide-plugin",
   },
   {
     // node_repl 宿主：Browser Use 与 Computer Use 共用的 MCP runtime，本轮抽成独立包。
@@ -263,7 +267,7 @@ const officialPluginPackages = [
 ];
 // 随 CLI 内置的技能包（不是插件）：bootstrap 的 resolveBundledSkillRoots 沿官方插件同款候选目录
 // 在 nibi.cjs 旁找 packages/bundled-skills 并原地读取。漏 stage 它，桌面包的 /workflow 会展开成
-// 「先加载 dynamic-workflows 技能」而技能不存在——这正是把它从可卸载的 zcode-guide 插件搬出来要修的事故形态。
+// 「先加载 dynamic-workflows 技能」而技能不存在——这正是把它从可卸载的 nibi-guide 插件搬出来要修的事故形态。
 const bundledSkillPack = {
   relativePath: "apps/nibi-cli/packages/bundled-skills",
   requiredPaths: [

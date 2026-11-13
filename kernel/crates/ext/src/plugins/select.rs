@@ -27,7 +27,7 @@ const DEFAULT_ENABLED: [&str; 11] = [
     "node-repl-host",
     "skill-creator",
     "plugin-creator",
-    "zcode-guide",
+    "nibi-guide",
     "visualize",
 ];
 /// 能力来自 Node 宿主注入的 `node_repl` MCP 的官方插件（Node `hostMcpServerNames` 与宿主本身）。

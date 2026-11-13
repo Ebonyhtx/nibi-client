@@ -37,9 +37,9 @@ import {
 } from "../helpers/plugin-management-lifecycle.js";
 
 const PLUGIN_STABLE_ID = "skill-creator@nibi-official";
-const STORE_TRY_PLUGIN_STABLE_ID = "zcode-guide@nibi-official";
+const STORE_TRY_PLUGIN_STABLE_ID = "nibi-guide@nibi-official";
 const STORE_TRY_PLUGIN_ICON =
-  "https://cdn-zcode.z.ai/zcode/official-plugin/assets/zcode-guide/icon.png";
+  "https://cdn-zcode.z.ai/zcode/official-plugin/assets/nibi-guide/icon.png";
 const PROMPT_MARKER = "E2E_PLUGIN_REFERENCE";
 const REPLY_MARKER = "PLUGIN_REFERENCE_REPLY_OK";
 const NOTE_RELATIVE_PATH = "plugin-reference-e2e/note.md";
@@ -98,7 +98,7 @@ describe("PLG plugin 引用：@ 面板 plugins 分组与 plugin_reference remind
   });
 
   it("@ 面板展示 plugins 分组候选，选中后插入 canonical plugin:// markdown", async () => {
-    await setInputValueByTestIdDom(TID_V4_COMPOSER_INPUT, "@zcode-guide", {
+    await setInputValueByTestIdDom(TID_V4_COMPOSER_INPUT, "@nibi-guide", {
       timeout: 15000,
       timeoutMsg: "v4 composer 输入框没有出现或不可输入",
     });
@@ -129,7 +129,7 @@ describe("PLG plugin 引用：@ 面板 plugins 分组与 plugin_reference remind
     expect(await readPluginMentionPresentation(STORE_TRY_PLUGIN_STABLE_ID)).toEqual({
       found: true,
       iconSrc: STORE_TRY_PLUGIN_ICON,
-      label: "zcode-guide",
+      label: "nibi-guide",
     });
     await captureEvidence("02-composer-plugin-chip");
 

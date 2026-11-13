@@ -18,7 +18,7 @@ Zustand、本地偏好及窗口广播机制。分类归属仍来自 marketplace 
 
 ### 分类调整（2026-09-15）
 
-- 取消 `guides` 类目，内置 `zcode-guide` 的目录定义改为 `utilities`。客户端把旧缓存
+- 取消 `guides` 类目，内置 `nibi-guide` 的目录定义改为 `utilities`。客户端把旧缓存
   `guides` 归并到 `utilities`，保留插件、安装状态及行为。
 - 新增 `legal` 已知分类，中文“法律”、英文“Legal”；暂不新增插件。
 - 测试环境 Code / Work 排序移除 `guides`，加入 `legal`。空分类沿用不展示规则；

@@ -527,7 +527,7 @@ body`,
     const workspacePath = join(home, "workspace");
     const browserUsePluginRoot = officialPluginRoot(home, "browser-use");
     const documentPluginRoot = officialPluginRoot(home, "documents");
-    const nibiGuidePluginRoot = officialPluginRoot(home, "zcode-guide");
+    const nibiGuidePluginRoot = officialPluginRoot(home, "nibi-guide");
     const iosPluginRoot = officialPluginRoot(home, "ios-simulator");
     const androidPluginRoot = officialPluginRoot(home, "android-emulator");
     writePluginManifest(browserUsePluginRoot, {
@@ -541,7 +541,7 @@ body`,
       version: "0.1.0",
     });
     writePluginManifest(nibiGuidePluginRoot, {
-      name: "zcode-guide",
+      name: "nibi-guide",
       skills: "skills",
       version: "0.1.0",
     });
@@ -639,7 +639,7 @@ android-body`,
       "documents",
       "documents",
       "ios-simulator",
-      "zcode-guide",
+      "nibi-guide",
     ]);
   });
 
@@ -649,7 +649,7 @@ android-body`,
     const browserUsePluginRoot = officialPluginRoot(home, "browser-use");
     const documentPluginRoot = officialPluginRoot(home, "documents");
     const skillCreatorPluginRoot = officialPluginRoot(home, "skill-creator");
-    const nibiGuidePluginRoot = officialPluginRoot(home, "zcode-guide");
+    const nibiGuidePluginRoot = officialPluginRoot(home, "nibi-guide");
     writePluginManifest(browserUsePluginRoot, {
       name: "browser-use",
       skills: "skills",
@@ -666,7 +666,7 @@ android-body`,
       version: "0.1.0",
     });
     writePluginManifest(nibiGuidePluginRoot, {
-      name: "zcode-guide",
+      name: "nibi-guide",
       skills: "skills",
       version: "0.1.0",
     });
@@ -706,13 +706,13 @@ description: Diagnose plugin discovery and enablement problems
 ---
 diagnosing-body`,
     );
-    // browser、documents 和 zcode-guide 被卸载（suppressed），skill-creator 保持默认启用。
+    // browser、documents 和 nibi-guide 被卸载（suppressed），skill-creator 保持默认启用。
     writeCliConfig(home, {
       plugins: {
         suppressedBuiltins: [
           "browser-use@nibi-official",
           "documents@nibi-official",
-          "zcode-guide@nibi-official",
+          "nibi-guide@nibi-official",
         ],
       },
     });
@@ -723,7 +723,7 @@ diagnosing-body`,
     expect(result.skills.map((skill) => skill.name)).toEqual(["skill-creator"]);
     expect(result.skills.find((skill) => skill.pluginName === "browser")).toBeUndefined();
     expect(result.skills.find((skill) => skill.pluginName === "documents")).toBeUndefined();
-    expect(result.skills.find((skill) => skill.pluginName === "zcode-guide")).toBeUndefined();
+    expect(result.skills.find((skill) => skill.pluginName === "nibi-guide")).toBeUndefined();
   });
 
   it("读取已安装 marketplace plugin 声明的技能目录", async () => {

@@ -561,6 +561,8 @@ importers:
         specifier: ^4.1.5
         version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@24.12.2)(typescript@5.9.3))(vite@7.3.3(@types/node@24.12.2)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0))
 
+  apps/nibi-cli/packages/design-plugin: {}
+
   apps/nibi-cli/packages/documents-plugin:
     devDependencies:
       '@nibi/office-runtime':
@@ -624,6 +626,8 @@ importers:
       vitest:
         specifier: ^4.1.5
         version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@24.12.2)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@24.12.2)(typescript@5.9.3))(vite@8.0.8(@types/node@24.12.2)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
+
+  apps/nibi-cli/packages/nibi-guide-plugin: {}
 
   apps/nibi-cli/packages/node-repl-host:
     dependencies:
@@ -742,8 +746,6 @@ importers:
         specifier: workspace:*
         version: link:../office-runtime
 
-  apps/nibi-cli/packages/restore-legacy-sessions-plugin: {}
-
   apps/nibi-cli/packages/shared-types:
     devDependencies:
       '@types/node':
@@ -757,8 +759,6 @@ importers:
       '@nibi/office-runtime':
         specifier: workspace:*
         version: link:../office-runtime
-
-  apps/nibi-cli/packages/superpowers-plugin: {}
 
   apps/nibi-cli/packages/swift-bridge:
     dependencies:
@@ -857,8 +857,6 @@ importers:
       typescript:
         specifier: ^5.9.0
         version: 5.9.3
-
-  apps/nibi-cli/packages/zcode-guide-plugin: {}
 
   apps/nibi-cli/tools/prompt-trajectory:
     devDependencies:
@@ -1171,6 +1169,58 @@ importers:
 
   packages/model-option-map:
     devDependencies:
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+      vitest:
+        specifier: ^4.1.1
+        version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@25.6.0)(typescript@6.0.2))(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
+
+  packages/nibi-server-cli:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.19.11
+        version: 1.19.14(hono@4.12.12)
+      '@hono/node-ws':
+        specifier: ^1.3.0
+        version: 1.3.0(@hono/node-server@1.19.14(hono@4.12.12))(hono@4.12.12)
+      '@nibi/rpc':
+        specifier: workspace:*
+        version: link:../rpc
+      '@nibi/services':
+        specifier: workspace:*
+        version: link:../services
+      '@nibi/shared':
+        specifier: workspace:*
+        version: link:../shared
+      hono:
+        specifier: ^4.12.9
+        version: 4.12.12
+      ws:
+        specifier: ^8.20.0
+        version: 8.20.0
+      yauzl:
+        specifier: ^3.3.0
+        version: 3.3.0
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.6.0
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
+      '@types/yauzl':
+        specifier: ^2.10.3
+        version: 2.10.3
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.9)(tsx@4.21.0)(typescript@6.0.2)(yaml@2.9.0)
+      tsx:
+        specifier: ^4.19.4
+        version: 4.21.0
       typescript:
         specifier: ^6.0.2
         version: 6.0.2
@@ -1981,58 +2031,6 @@ importers:
         version: 8.0.8(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0)
 
   packages/zcode-cua: {}
-
-  packages/nibi-server-cli:
-    dependencies:
-      '@hono/node-server':
-        specifier: ^1.19.11
-        version: 1.19.14(hono@4.12.12)
-      '@hono/node-ws':
-        specifier: ^1.3.0
-        version: 1.3.0(@hono/node-server@1.19.14(hono@4.12.12))(hono@4.12.12)
-      '@nibi/rpc':
-        specifier: workspace:*
-        version: link:../rpc
-      '@nibi/services':
-        specifier: workspace:*
-        version: link:../services
-      '@nibi/shared':
-        specifier: workspace:*
-        version: link:../shared
-      hono:
-        specifier: ^4.12.9
-        version: 4.12.12
-      ws:
-        specifier: ^8.20.0
-        version: 8.20.0
-      yauzl:
-        specifier: ^3.3.0
-        version: 3.3.0
-      zod:
-        specifier: 4.6.5
-        version: 4.6.5
-    devDependencies:
-      '@types/node':
-        specifier: ^25.5.0
-        version: 25.6.0
-      '@types/ws':
-        specifier: ^8.18.1
-        version: 8.18.1
-      '@types/yauzl':
-        specifier: ^2.10.3
-        version: 2.10.3
-      tsup:
-        specifier: ^8.4.0
-        version: 8.5.1(jiti@2.6.1)(postcss@8.5.9)(tsx@4.21.0)(typescript@6.0.2)(yaml@2.9.0)
-      tsx:
-        specifier: ^4.19.4
-        version: 4.21.0
-      typescript:
-        specifier: ^6.0.2
-        version: 6.0.2
-      vitest:
-        specifier: ^4.1.1
-        version: 4.1.7(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@25.6.0)(typescript@6.0.2))(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
 
 packages:
 

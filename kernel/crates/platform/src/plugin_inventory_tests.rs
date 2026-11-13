@@ -96,7 +96,7 @@ async fn official_roots_come_from_the_bundled_partition() {
     let manifest = serde_json::json!({"version": 1, "manifest": {
         "name": "nibi-official",
         "plugins": [
-            entry("zcode-guide", &cache.join("zcode-guide/0.3.0")),
+            entry("nibi-guide", &cache.join("nibi-guide/0.3.0")),
             // 越出该插件的缓存目录、指向插件目录本身、名字越出缓存目录：都不认。
             entry("evil", &cache.join("evil/../../outside")),
             entry("skill-creator", &cache.join("skill-creator")),
@@ -109,7 +109,7 @@ async fn official_roots_come_from_the_bundled_partition() {
     assert_eq!(
         official_plugin_roots(&root).await,
         [
-            cache.join("zcode-guide/0.3.0"),
+            cache.join("nibi-guide/0.3.0"),
             cache.join("skill-creator/0.1.0")
         ]
     );
@@ -122,12 +122,12 @@ async fn official_roots_scan_the_cache_without_a_partition() {
     assert!(official_plugin_roots(&root).await.is_empty());
     let cache = root.as_path().join("cache/nibi-official");
     write(
-        &cache.join("zcode-guide/0.3.0/.nibi-plugin/plugin.json"),
+        &cache.join("nibi-guide/0.3.0/.nibi-plugin/plugin.json"),
         "{}",
     )
     .await;
     write(
-        &cache.join("zcode-guide/0.2.0/.nibi-plugin/plugin.json"),
+        &cache.join("nibi-guide/0.2.0/.nibi-plugin/plugin.json"),
         "{}",
     )
     .await;
@@ -149,8 +149,8 @@ async fn official_roots_scan_the_cache_without_a_partition() {
         official_plugin_roots(&root).await,
         [
             cache.join("browser-use/0.5.1"),
-            cache.join("zcode-guide/0.2.0"),
-            cache.join("zcode-guide/0.3.0"),
+            cache.join("nibi-guide/0.2.0"),
+            cache.join("nibi-guide/0.3.0"),
         ]
     );
 }

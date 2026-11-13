@@ -22,7 +22,7 @@ const OFFICIAL_BUILTIN_PLUGIN_NAMES = new Set([
   "skill-creator",
   "plugin-creator",
   "superpowers",
-  "zcode-guide",
+  "nibi-guide",
 ]);
 
 const OFFICIAL_PLUGIN_PATH_MARKERS = [
@@ -40,7 +40,7 @@ const OFFICIAL_PLUGIN_PATH_MARKERS = [
   "/skill-creator-plugin/",
   "/plugin-creator-plugin/",
   "/superpowers-plugin/",
-  "/zcode-guide-plugin/",
+  "/nibi-guide-plugin/",
 ];
 
 const BUILTIN_SKILL_DESCRIPTIONS: Record<string, Record<Locale, string>> = {

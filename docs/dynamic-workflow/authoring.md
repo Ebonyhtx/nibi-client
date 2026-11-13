@@ -580,7 +580,7 @@ a snippet runs a command. Neither set is carried into the run: the driver re-che
 ## The `/workflow` command and the skill
 
 Both are built into the CLI. Neither lives in a plugin any more: until 2026-09-21 they
-shipped from the `zcode-guide` official plugin, and a user who uninstalled or disabled that
+shipped from the `nibi-guide` official plugin, and a user who uninstalled or disabled that
 plugin lost the command, the composer's plus-menu entry and the skill while the ten workflow
 tools stayed registered (the 2026-09-19 "no workflow" reports). The tools and their
 teaching material now have the same lifetime.

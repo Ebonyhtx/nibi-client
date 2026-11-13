@@ -61,6 +61,18 @@ const officialPluginPackages = [
     stagedPath: "packages/visualize-plugin",
   },
   {
+    packageName: "@nibi/design-plugin",
+    relativePath: "apps/nibi-cli/packages/design-plugin",
+    requiresRuntime: false,
+    requiredSeedPaths: [
+      "skills/design/SKILL.md",
+      "skills/design/references/output.md",
+      "hooks/hooks.json",
+      "hooks/run-hook.cmd",
+    ],
+    stagedPath: "packages/design-plugin",
+  },
+  {
     // browser-use 只携带自己的 client script 与 skill/docs；node_repl MCP runtime 归
     // @nibi/node-repl-host（见上方常量注释）。
     packageName: "@nibi/browser-use-plugin",
@@ -170,14 +182,6 @@ const officialPluginPackages = [
   },
   {
     // 上游随包内置、我们补齐的插件（内容与商店那份字节一致，见 sync-builtin-plugins.py）。
-    packageName: "@nibi/restore-legacy-sessions-plugin",
-    relativePath: "apps/nibi-cli/packages/restore-legacy-sessions-plugin",
-    requiresRuntime: false,
-    stagedPath: "packages/restore-legacy-sessions-plugin",
-    requiredSeedPaths: [".nibi-plugin/plugin.json", "skills/restore-legacy-sessions/SKILL.md"],
-  },
-  {
-    // 上游随包内置、我们补齐的插件（内容与商店那份字节一致，见 sync-builtin-plugins.py）。
     packageName: "@nibi/plugin-creator-plugin",
     relativePath: "apps/nibi-cli/packages/plugin-creator-plugin",
     requiresRuntime: false,
@@ -195,9 +199,9 @@ const officialPluginPackages = [
   {
     // 上游随包内置、我们补齐的插件（内容与商店那份字节一致，见 sync-builtin-plugins.py）。
     packageName: "@nibi/guide-plugin",
-    relativePath: "apps/nibi-cli/packages/zcode-guide-plugin",
+    relativePath: "apps/nibi-cli/packages/nibi-guide-plugin",
     requiresRuntime: false,
-    stagedPath: "packages/zcode-guide-plugin",
+    stagedPath: "packages/nibi-guide-plugin",
     requiredSeedPaths: [".nibi-plugin/plugin.json", "skills/configuration-guide/SKILL.md"],
   },
   // superpowers 已从内置插件下线，改走 UI 推荐区按需安装；这里不再 stage 它的资源。

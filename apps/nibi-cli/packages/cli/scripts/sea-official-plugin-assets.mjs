@@ -56,6 +56,20 @@ export const officialSeaPlugins = [
     version: "0.1.0",
   },
   {
+    marketplace: "nibi-official",
+    name: "design",
+    packageName: "@nibi/design-plugin",
+    requiresRuntime: false,
+    requiredSeedPaths: [
+      "skills/design/SKILL.md",
+      "skills/design/references/output.md",
+      "hooks/hooks.json",
+      "hooks/run-hook.cmd",
+    ],
+    rootPath: join("packages", "design-plugin"),
+    version: "0.7.2",
+  },
+  {
     // node_repl 宿主：Browser Use 与 Computer Use 共用的运行时产物，自己不是面向用户的插件
     // （无 skill、无市场 listing）。它必须始终随发布物嵌入，否则任一能力启用时都没有宿主可跑。
     marketplace: "nibi-official",
@@ -169,14 +183,6 @@ export const officialSeaPlugins = [
   },
   {
     marketplace: "nibi-official",
-    name: "restore-legacy-sessions",
-    packageName: "@nibi/restore-legacy-sessions-plugin",
-    requiresRuntime: false,
-    rootPath: join("packages", "restore-legacy-sessions-plugin"),
-    version: "0.1.0",
-  },
-  {
-    marketplace: "nibi-official",
     name: "skill-creator",
     packageName: "@nibi/skill-creator-plugin",
     requiresRuntime: false,
@@ -199,7 +205,7 @@ export const officialSeaPlugins = [
     // 0.3.0：`/workflow` 与 dynamic-workflows 技能移出本插件（见 sea-bundled-skill-assets.mjs）。
     // NIBI：技能目录已去品牌（`configuration-guide`），并补齐全部 diagnosing-* 正文。
     marketplace: "nibi-official",
-    name: "zcode-guide",
+    name: "nibi-guide",
     packageName: "@nibi/guide-plugin",
     requiresRuntime: false,
     requiredSeedPaths: [
@@ -211,7 +217,7 @@ export const officialSeaPlugins = [
       "skills/diagnosing-plugins/SKILL.md",
       "skills/diagnosing-skills/SKILL.md",
     ],
-    rootPath: join("packages", "zcode-guide-plugin"),
+    rootPath: join("packages", "nibi-guide-plugin"),
     version: "0.3.1",
   },
   // superpowers 已从内置插件下线，改走 UI 推荐区按需安装；这里不再打入 SEA 资源清单。

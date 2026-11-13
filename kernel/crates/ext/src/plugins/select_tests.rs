@@ -84,7 +84,7 @@ async fn enablement_follows_enabled_plugins_and_the_defaults() {
         manifest("/Users/dev/on-kit", r#"{"name": "on-kit"}"#),
         official_manifest("skill-creator", ""),
         official_manifest("restore-legacy-sessions", ""),
-        official_manifest("zcode-guide", ""),
+        official_manifest("nibi-guide", ""),
     ];
     let sources = PluginSources {
         candidates: vec![
@@ -92,12 +92,12 @@ async fn enablement_follows_enabled_plugins_and_the_defaults() {
             candidate("/Users/dev/off", "inline", PluginOrigin::ConfigDir),
             official("skill-creator"),
             official("restore-legacy-sessions"),
-            official("zcode-guide"),
+            official("nibi-guide"),
             candidate("/Users/dev/market-kit", "market", PluginOrigin::Installed),
             candidate("/Users/dev/on-kit", "market", PluginOrigin::Installed),
         ],
         enabled_plugins: enabled(&[("off@inline", false), ("on-kit@market", true)]),
-        suppressed_builtins: vec![format!("zcode-guide@{OFFICIAL}")],
+        suppressed_builtins: vec![format!("nibi-guide@{OFFICIAL}")],
         paid_installed_ids: Vec::new(),
         paid_license: None,
         ..PluginSources::default()
@@ -118,7 +118,7 @@ async fn enablement_follows_enabled_plugins_and_the_defaults() {
                 &SkipReason::Disabled
             ),
             (
-                Some("zcode-guide@nibi-official"),
+                Some("nibi-guide@nibi-official"),
                 &SkipReason::Suppressed
             ),
             (Some("market-kit@market"), &SkipReason::Disabled),

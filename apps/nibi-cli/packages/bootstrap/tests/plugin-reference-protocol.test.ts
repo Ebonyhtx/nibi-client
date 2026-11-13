@@ -154,7 +154,7 @@ describe("plugins/referenceCatalog protocol", () => {
         expect(entry.pluginId).toBe(`${entry.name}@${entry.marketplace}`);
       }
       const nibiGuide = result.plugins.find(
-        (entry) => entry.pluginId === "zcode-guide@nibi-official",
+        (entry) => entry.pluginId === "nibi-guide@nibi-official",
       );
       expect(nibiGuide?.icon).toBe(
         "https://api.nibistudio.cn/plugins/icons/guide.png",

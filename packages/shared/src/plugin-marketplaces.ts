@@ -18,6 +18,7 @@ export const CLAUDE_OFFICIAL_PLUGIN_MARKETPLACE_ID = "claude-plugins-official";
 /** Settings 三类资源发现共用；Bootstrap 单测与官方 definition 的 defaultEnabled 机械对照。 */
 export const DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS: ReadonlySet<string> = new Set([
   "browser-use@nibi-official",
+  "design@nibi-official",
   "documents@nibi-official",
   "pdf@nibi-official",
   "presentations@nibi-official",
@@ -28,7 +29,7 @@ export const DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS: ReadonlySet<string> = new Set(
   "node-repl-host@nibi-official",
   "skill-creator@nibi-official",
   "plugin-creator@nibi-official",
-  "zcode-guide@nibi-official",
+  "nibi-guide@nibi-official",
   // 上游新增：visualize（交互视图）随 UI 插件合入时 CLI 定义已标 defaultEnabled，但这里漏加，
   // Settings 会把它当成默认关闭，与 CLI 实际启用状态不一致。
   "visualize@nibi-official",

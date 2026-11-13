@@ -91,7 +91,7 @@ export const OFFICIAL_CUA_REQUIRED_SEED_PATHS = [
   "skills/computer-use/SKILL.md",
 ] as const;
 
-// zcode-guide 原本没有 requiredSeedPaths，seed 丢文件时会静默装出一个
+// nibi-guide 原本没有 requiredSeedPaths，seed 丢文件时会静默装出一个
 // 没有 /workflow 命令的插件——症状是命令不存在，没有任何诊断。commands/ 与技能正文都钉住。
 //
 // ── 文档四件套（内置）────────────────────────────────────────────────────
@@ -164,13 +164,6 @@ export const OFFICIAL_IOS_SIMULATOR_REQUIRED_SEED_PATHS = [
   "skills/ios-dev/SKILL.md",
 ] as const;
 
-export const OFFICIAL_RESTORE_LEGACY_SESSIONS_REQUIRED_SEED_PATHS = [
-  ".nibi-plugin/plugin.json",
-  "commands/restore-legacy-sessions.md",
-  "skills/restore-legacy-sessions/SKILL.md",
-  "skills/restore-legacy-sessions/scripts/scan-legacy-sessions.mjs",
-] as const;
-
 export const OFFICIAL_PLUGIN_CREATOR_REQUIRED_SEED_PATHS = [
   ".nibi-plugin/plugin.json",
   "skills/plugin-creator/SKILL.md",
@@ -181,7 +174,7 @@ export const OFFICIAL_SKILL_CREATOR_REQUIRED_SEED_PATHS = [
   "skills/skill-creator/SKILL.md",
 ] as const;
 
-// 修复原因（2026-08-24）：zcode-guide 原本没有 requiredSeedPaths，seed 丢文件时会静默装出一个
+// 修复原因（2026-08-24）：nibi-guide 原本没有 requiredSeedPaths，seed 丢文件时会静默装出一个
 // 残缺插件而没有任何诊断。0.3.0 起 `/workflow` 与 dynamic-workflows 技能不再随本插件发布
 // （命令编进 CLI，技能进 packages/bundled-skills，见 docs/dynamic-workflow/authoring.md）。
 // NIBI：去品牌副本的技能目录名是 `configuration-guide`（上游为 `zcode-configuration-guide`），
@@ -242,6 +235,32 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
       "../../../visualize-plugin",
     ],
     version: "0.1.0",
+  },
+  {
+    defaultEnabled: true,
+    listing: {
+      author: NIBI_AUTHOR,
+      category: "productivity",
+      displayName: "Design",
+      displayName_i18n: { "zh-CN": "设计" },
+      icon: `${NIBI_PLUGIN_ICONS_BASE_URL}/design.png`,
+      description_i18n: { "zh-CN": "UI、网页与 App 原型、HTML 演示稿的设计工作流。" },
+    },
+    name: "design",
+    requiredSeedPaths: [
+      ".nibi-plugin/plugin.json",
+      "skills/design/SKILL.md",
+      "skills/design/references/output.md",
+      "hooks/hooks.json",
+      "hooks/run-hook.cmd",
+    ],
+    rootCandidates: [
+      "packages/design-plugin",
+      "../design-plugin",
+      "../../design-plugin",
+      "../../../design-plugin",
+    ],
+    version: "0.7.2",
   },
   {
     // 无 listing：宿主不进市场、不对用户露出。它必须始终可用，因为 node_repl 的注册门禁
@@ -378,27 +397,6 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
     version: "0.1.0",
   },
   {
-    listing: {
-      author: NIBI_AUTHOR,
-      category: "utilities",
-      displayName: "Restore Legacy Sessions",
-      displayName_i18n: { "zh-CN": "恢复旧版会话" },
-      icon: `${NIBI_PLUGIN_ICONS_BASE_URL}/restore-legacy-sessions.png`,
-      description_i18n: {
-        "zh-CN": "将旧版会话恢复为 NIBI 任务与会话记录。",
-      },
-    },
-    name: "restore-legacy-sessions",
-    rootCandidates: [
-      "packages/restore-legacy-sessions-plugin",
-      "../restore-legacy-sessions-plugin",
-      "../../restore-legacy-sessions-plugin",
-      "../../../restore-legacy-sessions-plugin",
-    ],
-    requiredSeedPaths: OFFICIAL_RESTORE_LEGACY_SESSIONS_REQUIRED_SEED_PATHS,
-    version: "0.1.0",
-  },
-  {
     defaultEnabled: true,
     name: "plugin-creator",
     version: "0.1.1",
@@ -471,13 +469,13 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
         "zh-CN": ["NIBI 里怎么配置 MCP 服务器？", "帮我诊断当前的 NIBI 配置"],
       },
     },
-    name: "zcode-guide",
+    name: "nibi-guide",
     requiredSeedPaths: OFFICIAL_NIBI_GUIDE_REQUIRED_SEED_PATHS,
     rootCandidates: [
-      "packages/zcode-guide-plugin",
-      "../zcode-guide-plugin",
-      "../../zcode-guide-plugin",
-      "../../../zcode-guide-plugin",
+      "packages/nibi-guide-plugin",
+      "../nibi-guide-plugin",
+      "../../nibi-guide-plugin",
+      "../../../nibi-guide-plugin",
     ],
     // NIBI：内置副本 manifest 已升到 0.3.1（含去品牌技能目录），definition 与它保持一致。
     version: "0.3.1",

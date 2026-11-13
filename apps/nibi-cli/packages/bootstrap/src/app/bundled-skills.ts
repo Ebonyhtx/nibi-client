@@ -19,7 +19,7 @@ import { candidateBaseDirs } from "./bundled-plugins.js";
  * 它不是插件：不进官方市场目录、没有启停开关、不能卸载，也不出现在设置页与 `$` 引用面板。
  * 产品功能的工具由 runtime 注册，教模型使用这些工具的技能必须同样不可移除——
  * 2026-09-19 的「/workflow 消失」事故根因就是 dynamic-workflows 技能与命令都住在
- * 用户可卸载的 zcode-guide 插件里（docs/dynamic-workflow/authoring.md「The `/workflow` command and the skill」）。
+ * 用户可卸载的 nibi-guide 插件里（docs/dynamic-workflow/authoring.md「The `/workflow` command and the skill」）。
  *
  * 三种运行形态解析到同一个 skills 目录：
  * - 开发态 / Electron 桌面：沿官方插件同款候选目录在入口旁找到 `packages/bundled-skills`，原地读取，不拷贝。

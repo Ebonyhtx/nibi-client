@@ -678,9 +678,8 @@ test("includes bundled official plugin assets", async () => {
     const androidPlugin = manifest.plugins.find((item) => item.name === "android-emulator");
     const browserUsePlugin = manifest.plugins.find((item) => item.name === "browser-use");
     const documentPlugin = manifest.plugins.find((item) => item.name === "documents");
-    const restorePlugin = manifest.plugins.find((item) => item.name === "restore-legacy-sessions");
     const skillCreatorPlugin = manifest.plugins.find((item) => item.name === "skill-creator");
-    const nibiGuidePlugin = manifest.plugins.find((item) => item.name === "zcode-guide");
+    const nibiGuidePlugin = manifest.plugins.find((item) => item.name === "nibi-guide");
     const iosPaths = new Set(iosPlugin?.files.map((file) => file.path));
     const androidPaths = new Set(androidPlugin?.files.map((file) => file.path));
     const browserUsePaths = new Set(browserUsePlugin?.files.map((file) => file.path));
@@ -691,7 +690,6 @@ test("includes bundled official plugin assets", async () => {
         )
         .flatMap((plugin) => plugin.files.map((file) => file.path)),
     );
-    const restorePaths = new Set(restorePlugin?.files.map((file) => file.path));
     const skillCreatorPaths = new Set(skillCreatorPlugin?.files.map((file) => file.path));
     const nibiGuidePaths = new Set(nibiGuidePlugin?.files.map((file) => file.path));
 
@@ -700,7 +698,6 @@ test("includes bundled official plugin assets", async () => {
     assert.equal(androidPlugin?.marketplace, "nibi-official");
     assert.equal(browserUsePlugin?.marketplace, "nibi-official");
     assert.equal(documentPlugin?.marketplace, "nibi-official");
-    assert.equal(restorePlugin?.marketplace, "nibi-official");
     assert.equal(skillCreatorPlugin?.marketplace, "nibi-official");
     assert.equal(nibiGuidePlugin?.marketplace, "nibi-official");
     // superpowers 已从内置 SEA 清单移除，断言它不再出现在 manifest 里。
@@ -753,18 +750,6 @@ test("includes bundled official plugin assets", async () => {
       ),
       false,
     );
-    assert.equal(restorePaths.has(".nibi-plugin/plugin.json"), true);
-    assert.equal(restorePaths.has("commands/restore-legacy-sessions.md"), true);
-    assert.equal(restorePaths.has("skills/restore-legacy-sessions/SKILL.md"), true);
-    assert.equal(
-      restorePaths.has("skills/restore-legacy-sessions/scripts/scan-legacy-sessions.mjs"),
-      true,
-    );
-    assert.equal(
-      restorePaths.has("skills/restore-legacy-sessions/scripts/restore-conversation.mjs"),
-      true,
-    );
-    assert.equal(restorePaths.has("dist/mcp/server.js"), false);
     assert.equal(skillCreatorPaths.has(".nibi-plugin/plugin.json"), true);
     assert.equal(skillCreatorPaths.has("skills/skill-creator/SKILL.md"), true);
     assert.equal(nibiGuidePaths.has(".nibi-plugin/plugin.json"), true);
@@ -774,7 +759,7 @@ test("includes bundled official plugin assets", async () => {
     assert.equal(nibiGuidePaths.has("skills/diagnosing-commands/SKILL.md"), true);
     assert.equal(nibiGuidePaths.has("skills/diagnosing-hooks/SKILL.md"), true);
     assert.equal(nibiGuidePaths.has("skills/diagnosing-plugins/SKILL.md"), true);
-    // 0.3.0：/workflow 与 dynamic-workflows 不再随 zcode-guide 发布（见 bundled skill pack 用例）。
+    // 0.3.0：/workflow 与 dynamic-workflows 不再随 nibi-guide 发布（见 bundled skill pack 用例）。
     assert.equal(nibiGuidePaths.has("commands/workflow.md"), false);
     assert.equal(nibiGuidePaths.has("skills/dynamic-workflows/SKILL.md"), false);
   } finally {
@@ -839,6 +824,11 @@ test("allows skill-only official plugins when SEA runtime assets are required", 
 
   try {
     await writeVisualizePluginFixture(root);
+    await writeTestFile(root, "packages/design-plugin/.nibi-plugin/plugin.json", "{}");
+    await writeTestFile(root, "packages/design-plugin/skills/design/SKILL.md", "");
+    await writeTestFile(root, "packages/design-plugin/skills/design/references/output.md", "");
+    await writeTestFile(root, "packages/design-plugin/hooks/hooks.json", "{}");
+    await writeTestFile(root, "packages/design-plugin/hooks/run-hook.cmd", "");
     await writeTestFile(root, "packages/android-emulator-plugin/.nibi-plugin/plugin.json", "{}");
     await writeTestFile(root, "packages/android-emulator-plugin/dist/mcp/server.js", "");
     await writeTestFile(root, "packages/node-repl-host/.nibi-plugin/plugin.json", "{}");
@@ -855,16 +845,6 @@ test("allows skill-only official plugins when SEA runtime assets are required", 
     await writeDocumentPluginFixtures(root);
     await writeTestFile(root, "packages/ios-simulator-plugin/.nibi-plugin/plugin.json", "{}");
     await writeTestFile(root, "packages/ios-simulator-plugin/dist/mcp/server.js", "");
-    await writeTestFile(
-      root,
-      "packages/restore-legacy-sessions-plugin/.nibi-plugin/plugin.json",
-      "{}",
-    );
-    await writeTestFile(
-      root,
-      "packages/restore-legacy-sessions-plugin/skills/restore-legacy-sessions/SKILL.md",
-      "",
-    );
     await writeTestFile(root, "packages/skill-creator-plugin/.nibi-plugin/plugin.json", "{}");
     await writeTestFile(root, "packages/skill-creator-plugin/skills/skill-creator/SKILL.md", "");
     // 新增官方内容插件后也要提供 fixture，否则采集会先报 manifest 缺失，无法验证免运行时资源。
@@ -874,10 +854,10 @@ test("allows skill-only official plugins when SEA runtime assets are required", 
     // collector 按 officialSeaPlugins 登记 + 伪造目录采集，真实 skill-creator 是否带 hook 无关紧要。
     await writeTestFile(root, "packages/skill-creator-plugin/hooks/hooks.json", "{}");
     await writeTestFile(root, "packages/skill-creator-plugin/hooks/run-hook.cmd", "");
-    await writeTestFile(root, "packages/zcode-guide-plugin/.nibi-plugin/plugin.json", "{}");
-    for (const seedPath of officialSeaPlugins.find((plugin) => plugin.name === "zcode-guide")
+    await writeTestFile(root, "packages/nibi-guide-plugin/.nibi-plugin/plugin.json", "{}");
+    for (const seedPath of officialSeaPlugins.find((plugin) => plugin.name === "nibi-guide")
       .requiredSeedPaths) {
-      await writeTestFile(root, `packages/zcode-guide-plugin/${seedPath}`, "");
+      await writeTestFile(root, `packages/nibi-guide-plugin/${seedPath}`, "");
     }
 
     const { manifest } = await collectSeaOfficialPluginAssets({
@@ -887,7 +867,6 @@ test("allows skill-only official plugins when SEA runtime assets are required", 
     });
     const documentPlugin = manifest.plugins.find((item) => item.name === "documents");
     const browserUsePlugin = manifest.plugins.find((item) => item.name === "browser-use");
-    const restorePlugin = manifest.plugins.find((item) => item.name === "restore-legacy-sessions");
     const skillCreatorPlugin = manifest.plugins.find((item) => item.name === "skill-creator");
     const pluginCreatorPlugin = manifest.plugins.find((item) => item.name === "plugin-creator");
     const documentPaths = new Set(
@@ -898,7 +877,6 @@ test("allows skill-only official plugins when SEA runtime assets are required", 
         .flatMap((plugin) => plugin.files.map((file) => file.path)),
     );
     const browserUsePaths = new Set(browserUsePlugin?.files.map((file) => file.path));
-    const restorePaths = new Set(restorePlugin?.files.map((file) => file.path));
     const skillCreatorPaths = new Set(skillCreatorPlugin?.files.map((file) => file.path));
     const skillCreatorRunHook = skillCreatorPlugin?.files.find(
       (file) => file.path === "hooks/run-hook.cmd",
@@ -936,8 +914,6 @@ test("allows skill-only official plugins when SEA runtime assets are required", 
     assert.equal(browserUsePaths.has("scripts/computer-use-client.mjs"), false);
     // CUA 的文档同理：唯一那份属于 computer-use 插件。
     assert.equal(browserUsePaths.has("docs/computer-use.md"), false);
-    assert.equal(restorePaths.has("skills/restore-legacy-sessions/SKILL.md"), true);
-    assert.equal(restorePaths.has("dist/mcp/server.js"), false);
     assert.equal(skillCreatorPaths.has("skills/skill-creator/SKILL.md"), true);
     assert.equal(skillCreatorPaths.has("hooks/hooks.json"), true);
     assert.equal(skillCreatorPaths.has("hooks/run-hook.cmd"), true);
@@ -958,6 +934,11 @@ test("requires SEA runtime assets for runtime-backed official plugins", async ()
 
   try {
     await writeVisualizePluginFixture(root);
+    await writeTestFile(root, "packages/design-plugin/.nibi-plugin/plugin.json", "{}");
+    await writeTestFile(root, "packages/design-plugin/skills/design/SKILL.md", "");
+    await writeTestFile(root, "packages/design-plugin/skills/design/references/output.md", "");
+    await writeTestFile(root, "packages/design-plugin/hooks/hooks.json", "{}");
+    await writeTestFile(root, "packages/design-plugin/hooks/run-hook.cmd", "");
     await writeTestFile(root, "packages/android-emulator-plugin/.nibi-plugin/plugin.json", "{}");
     // 宿主要先齐备，这条测试隔离的是 android-emulator 缺 runtime 这一种情况。
     await writeTestFile(root, "packages/node-repl-host/.nibi-plugin/plugin.json", "{}");
@@ -966,13 +947,8 @@ test("requires SEA runtime assets for runtime-backed official plugins", async ()
     await writeTestFile(root, "packages/documents-plugin/.nibi-plugin/plugin.json", "{}");
     await writeTestFile(root, "packages/ios-simulator-plugin/.nibi-plugin/plugin.json", "{}");
     await writeTestFile(root, "packages/ios-simulator-plugin/dist/mcp/server.js", "");
-    await writeTestFile(
-      root,
-      "packages/restore-legacy-sessions-plugin/.nibi-plugin/plugin.json",
-      "{}",
-    );
     await writeTestFile(root, "packages/skill-creator-plugin/.nibi-plugin/plugin.json", "{}");
-    await writeTestFile(root, "packages/zcode-guide-plugin/.nibi-plugin/plugin.json", "{}");
+    await writeTestFile(root, "packages/nibi-guide-plugin/.nibi-plugin/plugin.json", "{}");
 
     await assert.rejects(
       collectSeaOfficialPluginAssets({
@@ -997,14 +973,18 @@ test("requires the Browser Use client alongside the SEA MCP runtime", async () =
 
   try {
     await writeVisualizePluginFixture(root);
+    await writeTestFile(root, "packages/design-plugin/.nibi-plugin/plugin.json", "{}");
+    await writeTestFile(root, "packages/design-plugin/skills/design/SKILL.md", "");
+    await writeTestFile(root, "packages/design-plugin/skills/design/references/output.md", "");
+    await writeTestFile(root, "packages/design-plugin/hooks/hooks.json", "{}");
+    await writeTestFile(root, "packages/design-plugin/hooks/run-hook.cmd", "");
     for (const pluginName of [
       "android-emulator-plugin",
       "browser-use-plugin",
       "documents-plugin",
       "ios-simulator-plugin",
-      "restore-legacy-sessions-plugin",
       "skill-creator-plugin",
-      "zcode-guide-plugin",
+      "nibi-guide-plugin",
     ]) {
       await writeTestFile(root, `packages/${pluginName}/.nibi-plugin/plugin.json`, "{}");
     }

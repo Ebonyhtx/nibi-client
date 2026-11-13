@@ -1,0 +1,8 @@
+{
+  "name": "@nibi/design-plugin",
+  "version": "0.7.2",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "NIBI design workflow for UI, web, app prototypes and HTML decks.",
+  "type": "module"
+}

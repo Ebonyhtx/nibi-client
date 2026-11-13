@@ -332,7 +332,7 @@ staging 由 `packages/nibi-server-cli/src/packaging/stage.ts` 实现，
   不复用 mock-cdn 或 bundled-tools 目录（远端 macOS 固定为 rg13）；每个工具目录同时携带
   `THIRD-PARTY-NOTICES.txt` 与 `SOURCES.json`。运行时通过
   `NIBI_SERVER_RUNTIME_ROOT` 解析；`runtime/packages` 包含当前官方插件定义中需要 seed 的七个
-  plugin（browser-use、document-skills、skill-creator、zcode-guide、android-emulator、
+  plugin（browser-use、document-skills、skill-creator、nibi-guide、android-emulator、
   ios-simulator、restore-legacy-sessions）。
 - 内置技能包不变量：`stageRelease` 从独立的 `bundledSkillsDir` 参数发布
   `runtime/packages/bundled-skills`（生产入口传入 `apps/nibi-cli/packages/bundled-skills`），

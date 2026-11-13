@@ -5,7 +5,7 @@ import { DYNAMIC_WORKFLOW_SKILL_NAME } from "./app/bundled-skills.js";
 /**
  * 内置 `/workflow` 命令（docs/dynamic-workflow/authoring.md「The `/workflow` command and the skill」）。
  *
- * 它曾是 zcode-guide 内置插件的 `commands/workflow.md`：插件一被卸载/停用，命令与加号菜单入口一起消失，
+ * 它曾是 nibi-guide 内置插件的 `commands/workflow.md`：插件一被卸载/停用，命令与加号菜单入口一起消失，
  * 而十个工作流工具仍在（2026-09-19 事故）。现在命令正文随 CLI 编译，与 `/init` 同为代码定义的
  * prompt 型内置命令；名字进入保留字表，用户或插件同名命令不再被展开。
  *

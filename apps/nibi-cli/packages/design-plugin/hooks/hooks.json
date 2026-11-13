@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${NIBI_PLUGIN_ROOT}/hooks/run-hook.cmd\" design-rules || \"${NIBI_PLUGIN_ROOT}/hooks/run-hook.cmd\" design-rules",
+            "timeoutMs": 5000,
+            "onError": "allow"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -15,7 +15,7 @@
 // dwf 自己有了 `phase("名字")` 阶段标注（docs/dynamic-workflow/presentation.md），黑名单
 // 因此变成假阳性，改由「marker 形态」正向断言接管。
 //
-// 2026-09-21 起命令与技能都不再随 zcode-guide 插件发布：命令编进 CLI（builtin-workflow-command.ts），
+// 2026-09-21 起命令与技能都不再随 nibi-guide 插件发布：命令编进 CLI（builtin-workflow-command.ts），
 // 技能进 packages/bundled-skills（bundled-skills.ts）。插件一被卸载/停用，入口就整体消失的事故形态
 // 由此关闭；本文件同时钉住两件资产的新住址。
 
@@ -47,8 +47,8 @@ const PACKAGES_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const PACK_ROOT = join(PACKAGES_ROOT, "bundled-skills");
 const SKILL_NAME = DYNAMIC_WORKFLOW_SKILL_NAME;
 const SKILL_DIR = join(PACK_ROOT, "skills", SKILL_NAME);
-/** zcode-guide 仍是一个普通插件技能根：用来证明灰度门不会连坐技能包之外的技能。 */
-const GUIDE_PLUGIN_SKILLS_ROOT = join(PACKAGES_ROOT, "zcode-guide-plugin", "skills");
+/** nibi-guide 仍是一个普通插件技能根：用来证明灰度门不会连坐技能包之外的技能。 */
+const GUIDE_PLUGIN_SKILLS_ROOT = join(PACKAGES_ROOT, "nibi-guide-plugin", "skills");
 
 /** 技能正文三件套：SKILL.md 常驻，另两份由模型按需 Read。 */
 const SKILL_FILES = ["SKILL.md", "patterns.md", "examples.md"] as const;

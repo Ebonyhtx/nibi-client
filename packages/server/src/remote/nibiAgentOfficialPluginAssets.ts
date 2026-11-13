@@ -15,7 +15,7 @@ export const REMOTE_AGENT_OFFICIAL_PLUGIN_PACKAGE_NAMES = [
   "restore-legacy-sessions-plugin",
   "skill-creator-plugin",
   "plugin-creator-plugin",
-  "zcode-guide-plugin",
+  "nibi-guide-plugin",
   "visualize-plugin",
 ] as const;
 

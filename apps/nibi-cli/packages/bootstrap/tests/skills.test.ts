@@ -60,7 +60,7 @@ describe("inspectNibiSkill", () => {
   });
 
   it("discovers the built-in dynamic-workflows skill as a bundled system skill, outside any plugin", async () => {
-    // 2026-09-19 事故：技能住在可卸载的 zcode-guide 插件里，插件一停用技能就没了。现在它来自
+    // 2026-09-19 事故：技能住在可卸载的 nibi-guide 插件里，插件一停用技能就没了。现在它来自
     // packages/bundled-skills（bootstrap/src/app/bundled-skills.ts），与插件启停无关。
     const dir = await mkdtemp(join(tmpdir(), "zcode-bootstrap-bundled-skill-"));
 
