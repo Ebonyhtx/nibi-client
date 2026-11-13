@@ -115,7 +115,7 @@ const OFFICIAL_CACHE_ROOT = join("cache", "nibi-official");
 const BROWSER_CACHE_SUFFIX = join(OFFICIAL_CACHE_ROOT, "browser-use", "0.5.1");
 // 文档四件套在 plugin.json 里声明 mcpServers（会走运行时清单重写）；android/ios 只在
 // `.mcp.json` 声明。锁重写失败要有一个「确实会写入 plugin.json」的插件才能触发。
-const ANDROID_CACHE_SUFFIX = join(OFFICIAL_CACHE_ROOT, "documents", "0.2.0");
+const ANDROID_CACHE_SUFFIX = join(OFFICIAL_CACHE_ROOT, "documents", "0.2.2");
 const SKILL_CREATOR_CACHE_SUFFIX = join(OFFICIAL_CACHE_ROOT, "skill-creator", "0.1.0");
 const ANDROID_MANIFEST_SUFFIX = join(ANDROID_CACHE_SUFFIX, ".nibi-plugin", "plugin.json");
 const CUA_DEFINITION = OFFICIAL_PLUGIN_DEFINITIONS.find(({ name }) => name === "computer-use");

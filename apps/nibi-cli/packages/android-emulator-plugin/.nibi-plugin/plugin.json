@@ -1,7 +1,11 @@
 {
   "name": "android-emulator",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Provides Android development workflows and emulator automation for NIBI.",
+  "description_i18n": {
+    "en": "Provides Android development workflows and emulator automation for NIBI.",
+    "zh-CN": "为 NIBI 提供 Android 开发工作流与模拟器自动化能力。"
+  },
   "author": {
     "name": "NIBI",
     "url": "https://nibistudio.cn"

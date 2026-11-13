@@ -30,7 +30,7 @@ od:
     sections: [color, typography, layout, components]
   example_prompt: "Sketch a hand-drawn wireframe v0.1 for a portal — four tabbed variants on graph paper, marker headlines, sticky-note annotations, hatched chart placeholders."
 ---
-<!-- Modified by Nibi: added a localization rule. Derived from open-design 0.7.0 (Apache-2.0); see design-resources/NOTICE.md. -->
+<!-- Modified by NIBI: added a localization rule. Derived from open-design 0.7.0 (Apache-2.0); see design-resources/NOTICE.md. -->
 
 # Wireframe Sketch Skill
 

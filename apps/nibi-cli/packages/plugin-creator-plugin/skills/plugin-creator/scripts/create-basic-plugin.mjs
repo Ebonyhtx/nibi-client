@@ -87,7 +87,7 @@ async function main() {
     components: COMPONENTS.filter((component) => values[`with-${component}`]),
   });
   console.log(
-    `Created ${root}. Customize the scaffold, then run zcode plugins validate before installation.`,
+    `Created ${root}. Customize the scaffold, then run nibi plugins validate before installation.`,
   );
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href)

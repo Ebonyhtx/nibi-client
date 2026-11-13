@@ -2,6 +2,10 @@
   "name": "plugin-creator",
   "version": "0.1.1",
   "description": "Develop and validate NIBI plugins through a local dev marketplace, installation, trials and updates.",
+  "description_i18n": {
+    "en": "Develop and validate NIBI plugins through a local dev marketplace, installation, trials and updates.",
+    "zh-CN": "通过本地开发市场完成 NIBI 插件的开发与校验，并走通安装、试用与更新流程。"
+  },
   "author": {
     "name": "NIBI",
     "url": "https://nibistudio.cn"

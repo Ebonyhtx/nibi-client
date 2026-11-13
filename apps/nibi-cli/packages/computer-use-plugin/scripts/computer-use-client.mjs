@@ -396,7 +396,7 @@ function alternateAppRef(target, windowId) {
 /**
  * 只匹配语义核心「target app is not running」，不匹配后半句。
  *
- * 根因（2026-09-15，NibiArena 151 例批次）：原本匹配的是
+ * 根因（2026-09-15，NIBIArena 151 例批次）：原本匹配的是
  * `target app is not running and could not be launched`，而 producer 的文案早已改成
  * `target app is not running, and no installed application matched the ...`
  * （zcode-cua 的 nativeAxSource.ts）。一个逗号加改写就让下面的 alternateAppRef 备用查询
@@ -579,7 +579,7 @@ function advisoryTextOf(result, treeText) {
 
 /**
  * App / Window 共享的交互面 —— `Target` 的 12 个公开成员，签名冻结。
- * 附加成员数为 0（zoom 已在评审中删除）；Nibi 的附加能力只出现在选项袋里。
+ * 附加成员数为 0（zoom 已在评审中删除）；NIBI 的附加能力只出现在选项袋里。
  */
 function createTarget(ctx, binding) {
   const { call, globals } = ctx;
@@ -730,6 +730,11 @@ function createTarget(ctx, binding) {
         to: bindTarget(binding, to, "drag to"),
         app_ref: binding.appRef,
         ...(options?.modifiers ? { modifiers: options.modifiers } : {}),
+        // Bug 原因（2026-10-27）：文档 DragOptions 声明了 strategy，broker 的 drag
+        // handler 也早已按 strategy==="event" 跳过后台中间级走前台 SendInput，但
+        // 此前 SDK 只透传 modifiers —— 调用方显式选 event 被静默吞成 auto，前台
+        // 拖拽从 SDK 层不可达。与 click/pressKey/scroll 同形透传。
+        ...(options?.strategy ? { strategy: options.strategy } : {}),
       });
     },
 
@@ -851,7 +856,7 @@ function resolveTextRange(binding, elementIndex, text, options) {
 
 /**
  * 键位别名规范化：接受 xdotool / X keysym 写法（模型先验多是这种写法），
- * 输出 Nibi 的内部 token 集合。只做输入侧兼容，不改跨平台修饰键规则
+ * 输出 NIBI 的内部 token 集合。只做输入侧兼容，不改跨平台修饰键规则
  * （macOS cmd，Linux / Windows ctrl）。
  */
 const KEY_ALIASES = Object.freeze({
@@ -861,7 +866,10 @@ const KEY_ALIASES = Object.freeze({
   shift_l: "shift", shift_r: "shift", shift: "shift",
   escape: "esc", esc: "esc",
   prior: "pageup", next: "pagedown",
-  period: ".", comma: ",", greater: ">", slash: "/", minus: "-", equal: "=",
+  // 曾有 greater: ">"——输出 ">" 从未通过工具层白名单（S2 前后均如此），是端到端
+  // 死路径，且会让组合契约测试（sdk-key-chord-contract.node-test.mjs）被迫开
+  // 豁免口，故移除。需要输出 ">" 时应先给工具层 canonical 集补该 token。
+  period: ".", comma: ",", slash: "/", minus: "-", equal: "=",
 });
 
 function normalizeKeyChord(chord, platform) {
@@ -885,7 +893,7 @@ export async function setupComputerUseRuntime({ globals }) {
   const bridge = globals[BRIDGE_SYMBOL];
   if (!bridge || typeof bridge !== "object" || typeof bridge.call !== "function") {
     throw new Error(
-      "Computer Use runtime bridge is unavailable. Use Computer Use from a Nibi desktop or shared-host session.",
+      "Computer Use runtime bridge is unavailable. Use Computer Use from a NIBI desktop or shared-host session.",
     );
   }
   bridge.assertAvailable?.();
@@ -1042,7 +1050,7 @@ export async function setupComputerUseRuntime({ globals }) {
     //
     // 根因：「getApp 自动输出结果」只在 kernel **持久**时划算 —— `const app = await
     // cua.getApp(...)` 跨 cell 存活，一个会话只调一次 getApp，那次展示确实省掉一次单独观察。
-    // Nibi 的 node_repl 每个 cell 都是全新 Worker，绑定不跨 cell，于是**每个 cell 都要重新
+    // NIBI 的 node_repl 每个 cell 都是全新 Worker，绑定不跨 cell，于是**每个 cell 都要重新
     // getApp**，那次"顺便展示"就从"一次性省一个往返"变成了"每个 cell 都多一棵注定作废的树"。
     //
     // 代价不只是 token。真机实测（会话 sess_f14c07fd）：8 个 cell 里 5 个吐两棵树，
@@ -1063,19 +1071,19 @@ export async function setupComputerUseRuntime({ globals }) {
     Object.defineProperty(app, "elements", {
       enumerable: false,
       value: async () => {
-        // 与 getScreenshot 同档的静默观察（见 createTarget 的 observe）：结果只回给 JS、
-        // 不 emit 任何东西，所以两条声明都必须给。
+        // 与 getScreenshot 不同档（2026-10-25 修正）：返回值（含 index 的元素表）
+        // 回给了模型所写的 JS——els[3].index 直接进 click 参数，这张表就是模型
+        // 选目标的信息来源，构成「模型可见」。2026-09-16 评审按「不 emit」把它
+        // 与 bindApp/getScreenshot 一刀切标 false，掩盖了本质差异（那两条的
+        // 返回值不含树）；false 的真实后果是位移台账只剩更旧的树，模型用
+        // elements() 的新鲜索引点击时被拿旧树对照新树，element_index_shifted
+        // 假阳性（真位移同时拦不住）。记账后 producer 台账与模型实际所见一致。
         //
-        // Bug 原因（2026-09-16 评审）：这里过去两条都没给。
-        // 1. 漏 tree_shown_to_model=false ⇒ producer 默认按「模型看过」记账
-        //    （observation.ts 的 `treeShownToModel !== false`），索引位移台账被一棵模型
-        //    没看过的树覆盖，校验退化成当前树跟当前树自比，静默点错元素的保护失效。
-        // 2. 这次 capture 还把 Helper 的 diff 基线推到了这棵未展示的树上，而 binding.treeSeen
-        //    仍是 true ⇒ 下一次 getAXState 会拿到相对未展示树的增量，SKILL 承诺的
-        //    「diff 只相对本 cell 展示过的树」就成了假话。清 treeSeen 让它强制整树。
+        // diff 基线问题不受影响：binding.treeSeen 仍清空（treeSeen 管的是 emit
+        // 展示面的整树承诺，与记账正交），下一次 getAXState 照旧强制整树。
         const fresh = appStateOf(
           "get_app_state",
-          await call("get_app_state", { app_ref: appRef, tree_shown_to_model: false }),
+          await call("get_app_state", { app_ref: appRef, tree_shown_to_model: true }),
         );
         binding.stateId = fresh.state_id;
         binding.elements = fresh.elements;
@@ -1164,14 +1172,14 @@ export async function setupComputerUseRuntime({ globals }) {
     },
   };
   // 未文档化成员：窗口绑定。窗口寻址各平台差异很大（有的平台没有窗口寻址，有的整套
-  // 以 Window 对象寻址），Nibi 三平台统一命名，不按平台分裂公开面，
+  // 以 Window 对象寻址），NIBI 三平台统一命名，不按平台分裂公开面，
   // 所以窗口寻址留在逃逸口 + 这个未文档化入口。
   Object.defineProperty(cua, "getWindow", {
     enumerable: false,
     value: async (target, windowId) => await bindApp(target, windowId),
   });
 
-  // 入口是 `agent.computerUse`（Nibi 自己的命名空间约定，与 agent.documentation /
+  // 入口是 `agent.computerUse`（NIBI 自己的命名空间约定，与 agent.documentation /
   // agent.browsers 并列），不注入裸 `cua` 全局。
   // 平铺的 14 个工具在 `agent.computerUse.computer.*` 下（COMPUTER_METHOD_NAMES）。
   const agent = (globals.agent ??= {});
@@ -1199,4 +1207,4 @@ export async function setupComputerUseRuntime({ globals }) {
   return cua;
 }
 
-export { COMPUTER_METHOD_NAMES, PLATFORM_EXCLUDED_METHODS, ComputerUseError, normalizeKeyChord };
+export { COMPUTER_METHOD_NAMES, PLATFORM_EXCLUDED_METHODS, ComputerUseError, normalizeKeyChord, KEY_ALIASES };

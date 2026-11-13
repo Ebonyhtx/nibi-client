@@ -19,10 +19,10 @@ test("includes the document judge agent in official SEA assets", async () => {
       false,
     );
     for (const [name, skill, version] of [
-      ["documents", "docx", "0.2.0"],
-      ["pdf", "pdf", "0.2.1"],
-      ["presentations", "pptx", "0.2.0"],
-      ["spreadsheets", "xlsx", "0.2.0"],
+      ["documents", "docx", "0.2.2"],
+      ["pdf", "pdf", "0.2.3"],
+      ["presentations", "pptx", "0.2.2"],
+      ["spreadsheets", "xlsx", "0.2.2"],
     ]) {
       const plugin = manifest.plugins.find((plugin) => plugin.name === name);
       assert.ok(plugin, `missing ${name} SEA manifest entry`);

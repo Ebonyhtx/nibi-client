@@ -31,7 +31,7 @@
 
 ### 改过的文件
 
-以下文件相对上游有改动，每个文件内都有一行 `Modified by ZCode:` 说明改了什么（Apache-2.0 第 4(b) 条）：
+以下文件相对上游有改动，每个文件内都有一行 `Modified by NIBI:` 说明改了什么（Apache-2.0 第 4(b) 条）：
 
 - `craft/anti-ai-slop.md`
 - `design-skeletons/html-ppt-hermes-cyber-terminal/{SKILL.md,example.html}`

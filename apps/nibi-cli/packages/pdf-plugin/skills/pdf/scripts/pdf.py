@@ -987,7 +987,7 @@ def meta_set(argv: list):
 
 @cmd("meta.brand")
 def meta_brand(argv: list):
-    """Add Z.ai branding metadata to PDF documents."""
+    """Add NIBI branding metadata to PDF documents."""
     output_path = _pop_flag(argv, "-o", "--output")
     custom_title = _pop_flag(argv, "-t", "--title")
     quiet = _pop_flag(argv, "-q", "--quiet", needs_value=False)
@@ -1028,9 +1028,9 @@ def meta_brand(argv: list):
 
         writer.add_metadata({
             '/Title': title,
-            '/Author': 'Z.ai',
-            '/Creator': 'Z.ai',
-            '/Producer': 'http://z.ai',
+            '/Author': 'NIBI',
+            '/Creator': 'NIBI',
+            '/Producer': 'NIBI',
         })
 
         # Write output
@@ -1045,9 +1045,9 @@ def meta_brand(argv: list):
         if not quiet:
             print(f"\u2713 Updated metadata for: {os.path.basename(input_path)}")
             print(f"  Title: {title}")
-            print("  Author: Z.ai")
-            print("  Creator: Z.ai")
-            print("  Producer: http://z.ai")
+            print("  Author: NIBI")
+            print("  Creator: NIBI")
+            print("  Producer: NIBI")
             if out != input_path:
                 print(f"  Output: {out}")
 

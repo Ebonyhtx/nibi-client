@@ -27,7 +27,7 @@ od:
     requires: false
   example_prompt: "Generate today's Open Orbit Notion briefing. Notion is my only connected connector — pull yesterday's document edits, comments, @ mentions, and database row changes and render the digest as a native Notion page."
 ---
-<!-- Modified by Nibi: added a localization rule. Derived from open-design 0.7.0 (Apache-2.0); see design-resources/NOTICE.md. -->
+<!-- Modified by NIBI: added a localization rule. Derived from open-design 0.7.0 (Apache-2.0); see design-resources/NOTICE.md. -->
 
 # Orbit · Notion Briefing
 

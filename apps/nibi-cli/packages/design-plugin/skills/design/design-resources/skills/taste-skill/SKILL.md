@@ -12,7 +12,7 @@ od:
   category: design-systems
   upstream: "https://github.com/Leonxlnx/taste-skill"
 ---
-<!-- Modified by Nibi: renamed from design-taste-frontend and given triggers/od front matter; body unchanged. Derived from Leonxlnx/taste-skill (MIT, Copyright (c) 2026 Leonxlnx); license in LICENSE beside this file. -->
+<!-- Modified by NIBI: renamed from design-taste-frontend and given triggers/od front matter; body unchanged. Derived from Leonxlnx/taste-skill (MIT, Copyright (c) 2026 Leonxlnx); license in LICENSE beside this file. -->
 
 # tasteskill: Anti-Slop Frontend Skill
 

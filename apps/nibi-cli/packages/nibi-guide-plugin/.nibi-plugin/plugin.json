@@ -2,6 +2,10 @@
   "name": "nibi-guide",
   "version": "0.3.1",
   "description": "NIBI usage and self-diagnosis guide: teaches agents and users how to configure MCP servers, commands, skills, hooks, and plugins, and how to locate and fix configuration problems for each.",
+  "description_i18n": {
+    "en": "NIBI usage and self-diagnosis guide: teaches agents and users how to configure MCP servers, commands, skills, hooks, and plugins, and how to locate and fix configuration problems for each.",
+    "zh-CN": "NIBI 使用与自诊断指南：指导 Agent 和用户配置 MCP 服务器、命令、技能、钩子与插件，并定位、修复各类配置问题。"
+  },
   "author": {
     "name": "NIBI",
     "url": "https://nibistudio.cn"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ---
 # name: pdf-setup
-# author: Z.AI
+# author: NIBI
 # version: "1.0"
 # description: Environment setup for the PDF skill. Checks/installs CORE deps (Python + ReportLab/pypdf/PyMuPDF/pikepdf/pdfplumber + CJK font). Playwright/Chromium and Tectonic are OPTIONAL — install on demand.
 # ---

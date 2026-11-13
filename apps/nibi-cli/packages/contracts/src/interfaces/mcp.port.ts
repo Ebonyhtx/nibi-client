@@ -112,6 +112,14 @@ export const NIBI_MCP_BROWSER_SCREENSHOT_CONTENT_INDICES_META_KEY =
  * `NIBI_MCP_BROWSER_SCREENSHOT_CONTENT_INDICES_META_KEY` 的处置）。
  */
 export const NIBI_MCP_NODE_REPL_CUA_APP_META_KEY = "zcode/nodeReplCuaApp";
+/**
+ * 本次 node_repl 会话是否真实使用过 Browser Use / Computer Use。
+ *
+ * 与 `NIBI_MCP_NODE_REPL_CUA_APP_META_KEY` 同款处置：REPL cell 能经可写 meta 通道伪造同名键，
+ * 所以宿主收到结果时先丢弃，只按 call-ledger 里 broker 实际记录的事实写回。
+ */
+export const NIBI_MCP_NODE_REPL_BROWSER_USE_META_KEY = "zcode/nodeReplBrowserUse";
+export const NIBI_MCP_NODE_REPL_COMPUTER_USE_META_KEY = "zcode/nodeReplComputerUse";
 export interface McpToolDescriptor {
   alwaysLoad?: boolean;
   searchHint?: string;

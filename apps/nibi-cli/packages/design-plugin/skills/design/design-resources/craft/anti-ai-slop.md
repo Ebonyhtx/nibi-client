@@ -1,4 +1,4 @@
-<!-- Modified by Nibi: rules adapted for the Nibi design plugin. Derived from open-design 0.7.0 (Apache-2.0); see design-resources/NOTICE.md. -->
+<!-- Modified by NIBI: rules adapted for the Nibi design plugin. Derived from open-design 0.7.0 (Apache-2.0); see design-resources/NOTICE.md. -->
 
 # Anti-AI-slop rules
 

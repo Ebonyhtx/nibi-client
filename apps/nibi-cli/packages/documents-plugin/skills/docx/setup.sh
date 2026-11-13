@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ---
 # name: docx-setup
-# author: Z.AI
+# author: NIBI
 # version: "1.0"
 # description: Environment setup for the DOCX skill. Checks and installs all required dependencies.
 # ---

@@ -68,7 +68,7 @@ example_prompt: |
   presets / 1 daily ritual, a customer quote, a closing CTA, and an end
   card. Reuse the open-design-landing image library.
 ---
-<!-- Modified by Nibi: schema path points at the local self-contained schema. Derived from open-design 0.7.0 (Apache-2.0); see design-resources/NOTICE.md. -->
+<!-- Modified by NIBI: schema path points at the local self-contained schema. Derived from open-design 0.7.0 (Apache-2.0); see design-resources/NOTICE.md. -->
 
 # open-design-landing-deck
 

@@ -1,29 +1,29 @@
 # iOS Simulator Plugin
 
-Nibi plugin for model-driven iOS app development on macOS.
+NIBI plugin for model-driven iOS app development on macOS.
 
 The package root is the plugin root:
 
 ```bash
-zcode --plugin-dir /absolute/path/to/ios-simulator-plugin
+nibi --plugin-dir /absolute/path/to/ios-simulator-plugin
 ```
 
-When enabled, Nibi loads:
+When enabled, NIBI loads:
 
 - `.nibi-plugin/plugin.json` for plugin metadata and skill/command paths.
 - `.mcp.json` for the stdio MCP server.
 - `skills/ios-dev/SKILL.md` for the model workflow.
 - `commands/ios-dev.md` as a convenience slash command.
 
-## Nibi CLI Usage
+## NIBI CLI Usage
 
-Nibi bundles this package as the official `ios-simulator@nibi-official`
+NIBI bundles this package as the official `ios-simulator@nibi-official`
 plugin. Enable the plugin to project its skill, slash command, and MCP server
 into the session.
-At startup Nibi copies the packaged plugin files into
+At startup NIBI copies the packaged plugin files into
 `~/.nibi/cli/plugins/cache/nibi-official/ios-simulator/0.1.0/` and
 runs the MCP server from that cache directory. SEA builds rewrite the official
-plugin's Nibi manifest to launch the cached MCP server through Nibi's internal
+plugin's NIBI manifest to launch the cached MCP server through NIBI's internal
 plugin host, so the server uses the embedded Node.js runtime. Third-party
 plugins are not rewritten automatically and keep their own declared `command`.
 
@@ -45,7 +45,7 @@ Example `~/.nibi/cli/config.json` entry:
 }
 ```
 
-The plugin MCP server name is `ios-simulator`. Nibi normalizes that name for model-visible MCP tools, so the model sees `mcp__ios_simulator__<tool>`, for example `mcp__ios_simulator__ios_preflight`. The MCP server still implements the raw MCP tool names such as `ios_preflight`; Nibi maps between the model-visible name and the server tool name.
+The plugin MCP server name is `ios-simulator`. NIBI normalizes that name for model-visible MCP tools, so the model sees `mcp__ios_simulator__<tool>`, for example `mcp__ios_simulator__ios_preflight`. The MCP server still implements the raw MCP tool names such as `ios_preflight`; NIBI maps between the model-visible name and the server tool name.
 
 Use stdio for the normal local workflow. HTTP is only useful if you later wrap this package as a long-running daemon shared by multiple clients.
 
@@ -99,7 +99,7 @@ pnpm --filter @nibi/ios-simulator-plugin typecheck
 pnpm --filter @nibi/ios-simulator-plugin build
 ```
 
-The Claude-compatible `.mcp.json` and the Nibi manifest both execute
+The `.nibi-plugin/plugin.json` manifest and `.mcp.json` both execute
 `dist/mcp/server.js` with Node.js. Run the package build after changing
 TypeScript sources.
 

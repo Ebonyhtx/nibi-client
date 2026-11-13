@@ -1,4 +1,4 @@
-// Modified by Nibi: shared types inlined so the schema is self-contained. Derived from open-design 0.7.0 (Apache-2.0); see design-resources/NOTICE.md.
+// Modified by NIBI: shared types inlined so the schema is self-contained. Derived from open-design 0.7.0 (Apache-2.0); see design-resources/NOTICE.md.
 /**
  * open-design-landing-deck — input schema.
  *

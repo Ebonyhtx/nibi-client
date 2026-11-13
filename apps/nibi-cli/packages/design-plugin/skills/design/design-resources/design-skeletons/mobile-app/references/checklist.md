@@ -1,4 +1,4 @@
-<!-- Modified by Nibi: checklist updated for the frameless screen. Derived from open-design 0.7.0 (Apache-2.0); see design-resources/NOTICE.md. -->
+<!-- Modified by NIBI: checklist updated for the frameless screen. Derived from open-design 0.7.0 (Apache-2.0); see design-resources/NOTICE.md. -->
 
 # Mobile app checklist
 

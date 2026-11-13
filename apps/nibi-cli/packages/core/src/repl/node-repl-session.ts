@@ -5,7 +5,7 @@ import { IifeContextExecutor, type ReplExecutor } from "./executors.js";
 import {
   PROCESS_MODULE_IDS,
   createReplRequire,
-  createRestrictedProcessFacade,
+  createProtocolSafeProcessFacade,
   normalizeReplError,
   stringifyReplResult,
 } from "./node-repl-runtime-helpers.js";
@@ -71,14 +71,27 @@ export interface NodeReplSessionOptions {
   /** 注入到 sandbox 的额外全局（如 browser execute 桥、agent 对象）。 */
   injectedGlobals?: Record<PropertyKey, unknown> | (() => Record<PropertyKey, unknown>);
   /** MCP stdio runtime 使用受限 process facade，防止 cell 关闭进程或写坏协议 stdout。 */
-  restrictProcess?: boolean;
+  protectProtocolStdio?: boolean;
 }
 
 function browserScreenshotIndexResult(
   images: readonly NodeReplImage[],
   browserScreenshots: readonly NodeReplImage[],
 ): Pick<NodeReplRunResult, "browserScreenshotImageIndices"> {
-  if (images.length === 0 || browserScreenshots.length === 0) return {};
+  const browserScreenshotImageIndices = matchBrowserScreenshotImageIndices(images, browserScreenshots);
+  return browserScreenshotImageIndices.length > 0 ? { browserScreenshotImageIndices } : {};
+}
+
+/**
+ * images 中哪些下标是真实浏览器截图：按 mimeType + 字节逐个匹配，同一张截图只能认领一次。
+ * node-repl-host 主线程用它把账本里记下的截图对应到 cell 输出的图片上
+ * （apps/nibi-cli/docs/design/v2/tool/20-node-repl-call-ledger.md「结果组装」）。
+ */
+export function matchBrowserScreenshotImageIndices(
+  images: readonly NodeReplImage[],
+  browserScreenshots: readonly NodeReplImage[],
+): number[] {
+  if (images.length === 0 || browserScreenshots.length === 0) return [];
 
   const remainingByPayload = new Map<string, number>();
   for (const screenshot of browserScreenshots) {
@@ -94,7 +107,7 @@ function browserScreenshotIndexResult(
     browserScreenshotImageIndices.push(index);
     remainingByPayload.set(key, remaining - 1);
   });
-  return browserScreenshotImageIndices.length > 0 ? { browserScreenshotImageIndices } : {};
+  return browserScreenshotImageIndices;
 }
 
 /**
@@ -121,7 +134,7 @@ function latestCuaAppResult(
 export class NodeReplSession {
   private context: Context;
   private readonly createInjectedGlobals: () => Record<PropertyKey, unknown>;
-  private readonly restrictedProcess: Readonly<Record<string, unknown>> | undefined;
+  private readonly protocolSafeProcess: Readonly<Record<string, unknown>> | undefined;
   private currentSink: NodeReplWriteSink | null = null;
   private nodeReplApi: {
     requestMeta: NodeReplRequestMeta;
@@ -136,7 +149,7 @@ export class NodeReplSession {
     const injectedGlobals = options.injectedGlobals;
     this.createInjectedGlobals =
       typeof injectedGlobals === "function" ? injectedGlobals : () => injectedGlobals ?? {};
-    this.restrictedProcess = options.restrictProcess ? createRestrictedProcessFacade() : undefined;
+    this.protocolSafeProcess = options.protectProtocolStdio ? createProtocolSafeProcessFacade() : undefined;
     this.executor = new IifeContextExecutor();
     this.context = this.buildContext();
   }
@@ -188,7 +201,7 @@ export class NodeReplSession {
       debug: (...args: unknown[]) => this.emit(args),
     };
     // 用当前工作目录作 require 基准。
-    const req = createReplRequire(createRequire(`${process.cwd()}/`), this.restrictedProcess);
+    const req = createReplRequire(createRequire(`${process.cwd()}/`), this.protocolSafeProcess);
     const nodeReplApi = {
       cwd: process.cwd(),
       homeDir: homedir(),
@@ -205,7 +218,7 @@ export class NodeReplSession {
     this.nodeReplApi = nodeReplApi;
     const sandbox: Record<PropertyKey, unknown> = {
       console: teeConsole,
-      process: this.restrictedProcess ?? process,
+      process: this.protocolSafeProcess ?? process,
       Buffer,
       URL,
       URLSearchParams,
@@ -452,8 +465,8 @@ export class NodeReplSession {
   }
 
   private async importModule(specifier: string): Promise<unknown> {
-    if (this.restrictedProcess && PROCESS_MODULE_IDS.has(specifier)) {
-      return { ...this.restrictedProcess, default: this.restrictedProcess };
+    if (this.protocolSafeProcess && PROCESS_MODULE_IDS.has(specifier)) {
+      return { ...this.protocolSafeProcess, default: this.protocolSafeProcess };
     }
     return await import(specifier);
   }

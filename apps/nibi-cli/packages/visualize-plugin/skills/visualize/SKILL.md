@@ -85,6 +85,12 @@ Read this file in full before authoring. Reread truncated ranges in smaller call
 - Keep chart grids and inactive structure thin and neutral. Use 1-2px neutral structural paths; never thicken, dash, or double-stroke the whole structure.
 - Use `.btn-primary` for high-emphasis actions; its neutral fill is supplied by the utility. Use `--primary` and `--primary-foreground` for filled selected, active, or pressed controls. Reserve `--accent` and `--accent-foreground` for subtle interactive surfaces and soft highlights. Buttons with `aria-pressed="true"`, `aria-selected="true"`, or `.is-selected` already use the primary pairing; `.nav-pills .nav-link.active` keeps selection neutral.
 
+### NIBI defaults
+
+- The host injects the active NIBI theme (paper-bird light and ink-night dark) through the tokens above. Never import a separate NIBI palette or hardcode its brand colors; exported standalone HTML must keep working in both themes.
+- Match the conversation language. When the user writes Chinese, write visible headings, labels, legends, tooltips, and empty states in Chinese, and use `Intl.NumberFormat("zh-CN")` for percentages, dates, and large numbers where it improves reading.
+- Keep the host's CJK font stack. Never set a Latin-only `font-family`, and never shrink Chinese text below the documented 12px secondary size.
+
 ### Typography
 
 - Scale type with `--font-size-base`. Use normal text by default and `.text-small` only for secondary annotations; at the default scale these are 14px and 12px. Never make supporting text smaller than 11px.
@@ -273,9 +279,9 @@ Use the host typography scale: body and controls use the body size; h1 is body +
 - Use visibly labeled buttons and inputs for small interactions. Keep all presentation-only interaction local to the fragment and make the first render useful before input changes.
 - Use semantic controls, realistic spacing, and restrained chrome for mockups. Never fake product screenshots when inspectable UI is needed.
 
-## Nibi host compatibility
+## NIBI host compatibility
 
-- Emit inline references only when the Desktop context advertises Gen UI and supplies its session output directory; otherwise return an ordinary HTML artifact. Paths must be absolute on the executor, inside that session directory, with no symlinks or parent traversal. The host renders completed assistant messages only.
+- Emit inline references only when the Desktop context advertises Gen UI and the environment lists its session output directory; otherwise return an ordinary HTML artifact. Paths must be absolute on the executor, inside that session directory, with no symlinks or parent traversal. The host renders completed assistant messages only.
 - The frame starts at 240px, follows content height up to 10,000px, and has a host-compensated 5px paint gutter. These are implementation limits, not a target height or a reason to add padding. Secondary annotations are optional; there is no required footer.
 - `window.nibi` exposes widget state, state saving, follow-up messages, and `openExternal({ href })`. See [API](references/api.md) for external links, acknowledgement, cancellation, and Tweak object bindings. The standalone export supplies state fallback, not Agent access.
 - Older Unicode references and `::visualize{path="..."}` references remain supported for historical replies. Generate the `::visualize` JSON reference described above for new replies.

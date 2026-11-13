@@ -89,7 +89,7 @@ const OFFICIAL_ANDROID_PLUGIN_CACHE_PATH = join(
   "cache",
   "nibi-official",
   "android-emulator",
-  "0.1.0",
+  "0.1.1",
 );
 const OFFICIAL_SKILL_CREATOR_PLUGIN_CACHE_PATH = join(
   "cache",
@@ -1819,7 +1819,7 @@ describe("Nibi plugins", () => {
           "cache",
           "nibi-official",
           "android-emulator",
-          "0.1.0",
+          "0.1.1",
           "dist",
           "mcp",
           "server.js",

@@ -22,7 +22,7 @@ od:
   animations: true
   example_prompt: "用 html-ppt-hermes-cyber-terminal 模板做一份 CLI / agent 测评 PPT。深色终端风 + scanlines + 命令行标题 + benchmark 柱状图。先确认：被测评对象、3-5 个对比维度、benchmark 数据。"
 ---
-<!-- Modified by Nibi: localized description and instructions. Derived from open-design 0.7.0 (Apache-2.0); see design-resources/NOTICE.md. -->
+<!-- Modified by NIBI: localized description and instructions. Derived from open-design 0.7.0 (Apache-2.0); see design-resources/NOTICE.md. -->
 # HTML PPT · 暗终端测评
 
 A focused entry point into the [`html-ppt`](../html-ppt/SKILL.md) master skill that lands the user directly on the **`hermes-cyber-terminal`** full-deck template.

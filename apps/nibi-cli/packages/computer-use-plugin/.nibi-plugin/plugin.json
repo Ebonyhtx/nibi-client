@@ -2,6 +2,10 @@
   "name": "computer-use",
   "version": "0.6.5",
   "description": "Computer Use: automate desktop apps with mouse, keyboard, and UI element control.",
+  "description_i18n": {
+    "en": "Computer Use: automate desktop apps with mouse, keyboard, and UI element control.",
+    "zh-CN": "电脑操控：通过鼠标、键盘与界面元素控制自动化桌面应用。"
+  },
   "author": {
     "name": "NIBI"
   },

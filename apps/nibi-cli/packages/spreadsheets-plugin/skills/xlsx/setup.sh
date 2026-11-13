@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ---
 # name: xlsx-setup
-# author: Z.AI
+# author: NIBI
 # version: "1.0"
 # description: Environment setup for the XLSX skill. Checks and installs all required dependencies.
 # ---

@@ -15,15 +15,29 @@ import {
   type NodeReplRunResult,
 } from "@nibi/core/repl";
 import { createComputerUseRuntime, type ComputerUseRuntime } from "@nibi/cua";
-import { createHelperLauncher } from "@nibi/cua/helper-launcher";
+// 只加载 broker 协议常量；shared 总入口会初始化无关领域的 schema。
+import {
+  NODE_REPL_BROWSER_BROKER_SOCKET_ENV,
+  NODE_REPL_BROWSER_BROKER_TOKEN_ENV,
+} from "@nibi/shared/node-repl-browser-broker";
 import { z } from "zod";
-import { createBrowserBridgeGlobals, type ActiveNodeReplCall } from "./browser-bridge.js";
+import {
+  createBrowserBridgeGlobals,
+  type ActiveNodeReplCall,
+  type NodeReplBrowserBrokerConnection,
+} from "./browser-bridge.js";
+import {
+  createNodeReplBrowserBrokerProxy,
+  createNodeReplCallLedger,
+  type NodeReplBrowserBrokerUpstream,
+} from "./call-ledger/contract.js";
 import {
   createComputerUseBridgeGlobals,
   type ActiveCuaNodeReplCall,
   type NodeReplCuaBrokerConnection,
 } from "./cua-bridge.js";
 import { createNodeReplCuaBroker, type NodeReplCuaBroker } from "./cua-broker.js";
+import { createNoProgressGuard } from "./no-progress-guard.js";
 import {
   isDirectMcpEntrypoint,
   installNodeReplProcessGuards,
@@ -41,19 +55,12 @@ const MAX_SYNC_TIMEOUT_MS = 120_000;
 const UNTRUSTED_SESSION_KEY = "__unscoped__";
 const WORKER_KIND = "nibi-node-repl-call";
 export const NODE_REPL_MCP_PROCESS_TITLE = "nibi-node-repl-mcp";
-// 插件 ABI 兼容层：上游 Nibi 插件注入的仍是旧名（只影响插件运行时，宿主配置不读）。
-const pluginRoot =
-  process.env.NIBI_PLUGIN_ROOT ??
-  process.env.CLAUDE_PLUGIN_ROOT ??
-  process.env.NIBI_PLUGIN_ROOT ??
-  process.cwd();
+const pluginRoot = process.env.NIBI_PLUGIN_ROOT ?? process.env.CLAUDE_PLUGIN_ROOT ?? process.cwd();
 // CUA 与 Browser Use 共用 node_repl host，但文档和 native 依赖必须按领域隔离；
 // 否则 CUA skill 会因为 host root 恰好来自 Browser Use 而再次产生隐式依赖。
 const browserDocumentationRoot = resolve(pluginRoot, "docs");
 const cuaDocumentationRoot = resolve(
-  process.env.NIBI_CUA_PLUGIN_ROOT ??
-    process.env.NIBI_CUA_PLUGIN_ROOT ??
-    pluginRoot,
+  process.env.NIBI_CUA_PLUGIN_ROOT ?? pluginRoot,
   "docs",
 );
 const jsInputSchema = z
@@ -96,6 +103,7 @@ export interface NodeReplExecuteInput {
   signal: AbortSignal;
   syncTimeoutMs: number;
   cuaBroker?: NodeReplCuaBrokerConnection;
+  browserBroker?: NodeReplBrowserBrokerConnection;
 }
 
 export type NodeReplExecutor = (input: NodeReplExecuteInput) => Promise<NodeReplRunResult>;
@@ -111,6 +119,7 @@ interface WorkerCallData {
   requestMeta: NodeReplRequestMeta;
   syncTimeoutMs: number;
   cuaBroker?: NodeReplCuaBrokerConnection;
+  browserBroker?: NodeReplBrowserBrokerConnection;
 }
 
 export function setNodeReplMcpProcessTitle(target: { title: string } = process): void {
@@ -131,6 +140,7 @@ export function createInProcessNodeReplExecutor(): NodeReplExecutor {
       injectedGlobals: () =>
         ({
           ...createBrowserBridgeGlobals({
+            broker: input.browserBroker,
             documentationRoot: browserDocumentationRoot,
             generation,
             getActiveCall: () => activeCall,
@@ -144,7 +154,7 @@ export function createInProcessNodeReplExecutor(): NodeReplExecutor {
             documentationRoot: cuaDocumentationRoot,
           }),
         }),
-      restrictProcess: true,
+      protectProtocolStdio: true,
     });
     activeCall = {
       generation,
@@ -171,13 +181,32 @@ export function createInProcessNodeReplExecutor(): NodeReplExecutor {
 }
 
 export function createNodeReplMcpRuntime(
-  input: { executeJs?: NodeReplExecutor; cuaRuntime?: ComputerUseRuntime } = {},
+  input: {
+    executeJs?: NodeReplExecutor;
+    cuaRuntime?: ComputerUseRuntime;
+    /** NIBI 主进程浏览器 broker 的地址和 token；默认从环境变量读取（测试注入假 broker）。 */
+    browserBrokerUpstream?: NodeReplBrowserBrokerUpstream;
+    writeStderr?: (text: string) => void;
+  } = {},
 ): NodeReplMcpRuntime {
   const executeJs = input.executeJs ?? executeJsInWorker;
+  const writeStderr = input.writeStderr ?? ((text: string) => void process.stderr.write(text));
+  const noProgressGuard = createNoProgressGuard();
   const cuaRuntime =
     input.cuaRuntime ?? captureComputerUseRuntimeFromEnvironment();
+  // 本次调用的可信事实只由主线程的两个 broker 记进账本（20-node-repl-call-ledger.md）。
+  const ledger = createNodeReplCallLedger();
   const cuaBroker = cuaRuntime
-    ? createNodeReplCuaBroker({ runtime: cuaRuntime, platform: process.platform })
+    ? createNodeReplCuaBroker({ runtime: cuaRuntime, ledger, platform: process.platform })
+    : undefined;
+  const browserBrokerUpstream =
+    input.browserBrokerUpstream ?? browserBrokerUpstreamFromEnvironment(process.env);
+  const browserBrokerProxy = browserBrokerUpstream
+    ? createNodeReplBrowserBrokerProxy({
+        ledger,
+        upstream: browserBrokerUpstream,
+        platform: process.platform,
+      })
     : undefined;
   const queues = new Map<string, Promise<void>>();
   const activeCalls = new Set<AbortController>();
@@ -223,6 +252,7 @@ export function createNodeReplMcpRuntime(
         activeCalls.add(callController);
         const timeoutMs = args.timeout_ms ?? NODE_REPL_DEFAULT_TIMEOUT_MS;
         const callMeta = { ...requestMeta, ...(args.title ? { title: args.title } : {}) };
+        const call = ledger.open(callMeta);
         try {
           const signal = AbortSignal.any([
             extra.mcpReq.signal,
@@ -234,10 +264,30 @@ export function createNodeReplMcpRuntime(
             requestMeta: callMeta,
             signal,
             syncTimeoutMs: Math.min(timeoutMs, MAX_SYNC_TIMEOUT_MS),
-            cuaBroker: cuaBroker?.connection,
+            ...(cuaBroker
+              ? { cuaBroker: { socketPath: cuaBroker.connection.socketPath, token: call.token } }
+              : {}),
+            ...(browserBrokerProxy
+              ? {
+                  browserBroker: {
+                    socketPath: browserBrokerProxy.connection.socketPath,
+                    token: call.token,
+                  },
+                }
+              : {}),
           });
-          return toMcpRunResult(run);
+          const result = toMcpRunResult(run, call.facts);
+          const hint = noProgressGuard.observe({ requestMeta, code: args.code, result });
+          if (hint) {
+            result.content.push({ type: "text", text: hint.text });
+            writeStderr(
+              `[node_repl] no-progress hint kind=${hint.kind} count=${hint.count} ` +
+                `session=${String(requestMeta.session_id)} turn=${String(requestMeta.turn_id)}\n`,
+            );
+          }
+          return result;
         } finally {
+          call.close();
           activeCalls.delete(callController);
         }
       });
@@ -253,6 +303,7 @@ export function createNodeReplMcpRuntime(
       activeCalls.clear();
       queues.clear();
       void cuaBroker?.close();
+      void browserBrokerProxy?.close();
       void cuaRuntime?.dispose();
     },
   };
@@ -266,8 +317,9 @@ async function executeJsInWorker(input: NodeReplExecuteInput): Promise<NodeReplR
     requestMeta: input.requestMeta,
     syncTimeoutMs: input.syncTimeoutMs,
     cuaBroker: input.cuaBroker,
+    browserBroker: input.browserBroker,
   };
-  const worker = new Worker(new URL(import.meta.url), { workerData: data });
+  const worker = new Worker(new URL(import.meta.url), { workerData: data, env: workerEnvironment() });
   return await new Promise<NodeReplRunResult>((resolveRun, rejectRun) => {
     let settled = false;
     const cleanup = () => {
@@ -295,6 +347,26 @@ async function executeJsInWorker(input: NodeReplExecuteInput): Promise<NodeReplR
   });
 }
 
+function browserBrokerUpstreamFromEnvironment(
+  env: NodeJS.ProcessEnv,
+): NodeReplBrowserBrokerUpstream | undefined {
+  const socketPath = env[NODE_REPL_BROWSER_BROKER_SOCKET_ENV]?.trim();
+  const token = env[NODE_REPL_BROWSER_BROKER_TOKEN_ENV]?.trim();
+  return socketPath && token ? { socketPath, token } : undefined;
+}
+
+/**
+ * Worker 的环境去掉上游浏览器 broker 的地址和 token：只有主线程代理需要它们，Worker 只拿本次调用的
+ * token。这只是缩小暴露面，不是可信边界——cell 仍可能从进程的初始环境读到它们，那样绕过代理的调用
+ * 只会少记、不会多记（20-node-repl-call-ledger.md「可信边界」）。
+ */
+function workerEnvironment(): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  delete env[NODE_REPL_BROWSER_BROKER_SOCKET_ENV];
+  delete env[NODE_REPL_BROWSER_BROKER_TOKEN_ENV];
+  return env;
+}
+
 function parseToolInput<T>(schema: z.ZodType<T>, input: unknown, toolName: string): T {
   const parsed = schema.safeParse(input ?? {});
   if (parsed.success) return parsed.data;
@@ -307,8 +379,8 @@ function invalidParams(message: string): never {
 }
 
 function buildRequestMeta(meta: Record<string, unknown> | undefined): NodeReplRequestMeta {
-  const parsed = requestContextSchema.safeParse(meta?.["com.nibistudio.nibi/request-context"]);
-  // 安全边界：顶层 MCP _meta 是第三方可扩展字段，不能成为 Nibi session 路由凭据。
+  const parsed = requestContextSchema.safeParse(meta?.["com.nibi/request-context"]);
+  // 安全边界：顶层 MCP _meta 是第三方可扩展字段，不能成为 NIBI session 路由凭据。
   // 只有 host client 写入的命名空间会进入 Browser bridge；旧 client 的普通 JS 仍可执行。
   return parsed.success ? parsed.data : {};
 }
@@ -364,6 +436,7 @@ if (!isMainThread && isWorkerCallData(workerData)) {
     signal: controller.signal,
     syncTimeoutMs: workerData.syncTimeoutMs,
     cuaBroker: workerData.cuaBroker,
+    browserBroker: workerData.browserBroker,
   })
     .then((result) => parentPort?.postMessage(result))
     .catch((error) => {
@@ -382,14 +455,9 @@ export function captureComputerUseRuntimeFromEnvironment(
 ): ComputerUseRuntime | undefined {
   const socketPath = env.NIBI_CUA_PERMISSION_BROKER_SOCKET?.trim();
   if (!socketPath) return undefined;
-  // Helper 懒启动的"首调自拉"：上游 v3.15.1 把这一半留在闭源侧（Host 只把配方注入 spawn env），
-  // 我们在这里把它执行掉——首次 CUA 调用撞上 BrokerError 时 fork Helper 再重试一次。
-  // 没有配方时 launcher 是 no-op（available=false），运行时行为与之前完全一致（fail-closed）。
-  const helperLauncher = createHelperLauncher({ socketPath, env });
   return createComputerUseRuntime({
     brokerSocketPath: socketPath,
     refreshMarkerPath: env.NIBI_CUA_PERMISSION_BROKER_REFRESH_MARKER?.trim(),
-    ...(helperLauncher.available ? { ensureBrokerAvailable: () => helperLauncher.ensure() } : {}),
   });
 }
 

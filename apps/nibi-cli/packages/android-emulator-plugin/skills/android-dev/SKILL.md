@@ -7,11 +7,11 @@ description: Build, run, inspect, and lightly automate Android apps with the and
 
 Use this skill when the user wants you to create, modify, build, run, debug, screenshot, or inspect an Android app in the desktop Android Emulator or on a USB-connected Android device.
 
-## Nibi Tool Names
+## NIBI Tool Names
 
-This skill assumes the MCP server is configured in zcode as `android_emulator`. In zcode, MCP tools are exposed to the model as `mcp__android_emulator__<tool>`.
+This skill assumes the MCP server is configured in NIBI as `android_emulator`. In NIBI, MCP tools are exposed to the model as `mcp__android_emulator__<tool>`.
 
-If the server is configured with a different name, use the corresponding visible `mcp__<server>__...` tool names from the active zcode tool list.
+If the server is configured with a different name, use the corresponding visible `mcp__<server>__...` tool names from the active NIBI tool list.
 
 ## Default Workflow
 

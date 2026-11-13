@@ -234,7 +234,7 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
       "../../visualize-plugin",
       "../../../visualize-plugin",
     ],
-    version: "0.1.0",
+    version: "0.1.2",
   },
   {
     defaultEnabled: true,
@@ -278,7 +278,7 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
       "../../node-repl-host",
       "../../../node-repl-host",
     ],
-    version: "0.6.1",
+    version: "0.7.0",
   },
   {
     listing: {
@@ -299,7 +299,7 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
       "../../../android-emulator-plugin",
     ],
     requiredSeedPaths: OFFICIAL_ANDROID_EMULATOR_REQUIRED_SEED_PATHS,
-    version: "0.1.0",
+    version: "0.1.1",
   },
   {
     // manifest 只声明 browser-use skill；宿主 node_repl MCP 独立注入，package 另外携带其 server/client
@@ -331,10 +331,10 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
   ...(
     [
       // 版本按插件各自升：pdf 0.2.1 起面板带中日韩字体回退，换新缓存目录，不复用 0.2.0 的旧缓存。
-      ["documents", "docx", "Documents", "Word文档", "0.2.0"],
-      ["pdf", "pdf", "PDF", "PDF", "0.2.1"],
-      ["presentations", "pptx", "Presentations", "演示文档", "0.2.0"],
-      ["spreadsheets", "xlsx", "Spreadsheets", "电子表格", "0.2.0"],
+      ["documents", "docx", "Documents", "Word文档", "0.2.2"],
+      ["pdf", "pdf", "PDF", "PDF", "0.2.3"],
+      ["presentations", "pptx", "Presentations", "演示文档", "0.2.2"],
+      ["spreadsheets", "xlsx", "Spreadsheets", "电子表格", "0.2.2"],
     ] as const
   ).map(
     ([name, skill, displayName, chineseName, version]): OfficialPluginDefinition => ({

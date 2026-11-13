@@ -67,12 +67,12 @@ export async function preflightPlugin(path) {
   }
   return errors;
 }
-export async function validatePlugin(path, cli = "zcode") {
+export async function validatePlugin(path, cli = "nibi") {
   const errors = await preflightPlugin(path);
   if (errors.length) throw new Error(errors.join("\n"));
   const nodeEntry = /\.[cm]?js$/u.test(cli);
   if (process.platform === "win32" && /\.cmd$/iu.test(cli))
-    throw new Error("Use --cli with zcode.exe or the CLI JavaScript entrypoint on Windows");
+    throw new Error("Use --cli with nibi.exe or the CLI JavaScript entrypoint on Windows");
   const args = [...(nodeEntry ? [cli] : []), "plugins", "validate", resolve(path)];
   const code = await new Promise((accept, reject) => {
     const child = spawn(nodeEntry ? process.execPath : cli, args, {

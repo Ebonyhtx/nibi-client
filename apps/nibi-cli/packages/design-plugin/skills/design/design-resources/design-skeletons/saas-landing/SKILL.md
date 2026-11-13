@@ -53,7 +53,7 @@ od:
   capabilities_required:
     - file_write
 ---
-<!-- Modified by Nibi: rewritten as a Chinese six-section skeleton. Derived from open-design 0.7.0 (Apache-2.0); see design-resources/NOTICE.md. -->
+<!-- Modified by NIBI: rewritten as a Chinese six-section skeleton. Derived from open-design 0.7.0 (Apache-2.0); see design-resources/NOTICE.md. -->
 
 # SaaS Landing Skill · 单页落地页骨架
 

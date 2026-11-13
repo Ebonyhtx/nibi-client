@@ -1,29 +1,29 @@
 # Android Emulator Plugin
 
-Nibi plugin for model-driven Android app development.
+NIBI plugin for model-driven Android app development.
 
 The package root is the plugin root:
 
 ```bash
-zcode --plugin-dir /absolute/path/to/android-emulator-plugin
+nibi --plugin-dir /absolute/path/to/android-emulator-plugin
 ```
 
-When enabled, Nibi loads:
+When enabled, NIBI loads:
 
 - `.nibi-plugin/plugin.json` for plugin metadata and skill/command paths.
 - `.mcp.json` for the stdio MCP server.
 - `skills/android-dev/SKILL.md` for the model workflow.
 - `commands/android-dev.md` as a convenience slash command.
 
-## Nibi CLI Usage
+## NIBI CLI Usage
 
-Nibi bundles this package as the official
+NIBI bundles this package as the official
 `android-emulator@nibi-official` plugin. Enable the plugin to project
 its skill, slash command, and MCP server into the session.
-At startup Nibi copies the packaged plugin files into
-`~/.nibi/cli/plugins/cache/nibi-official/android-emulator/0.1.0/`
+At startup NIBI copies the packaged plugin files into
+`~/.nibi/cli/plugins/cache/nibi-official/android-emulator/0.1.1/`
 and runs the MCP server from that cache directory. SEA builds rewrite the
-official plugin's Nibi manifest to launch the cached MCP server through Nibi's
+official plugin's NIBI manifest to launch the cached MCP server through NIBI's
 internal plugin host, so the server uses the embedded Node.js runtime.
 Third-party plugins are not rewritten automatically and keep their own declared
 `command`.
@@ -46,10 +46,10 @@ Example `~/.nibi/cli/config.json` entry:
 }
 ```
 
-The plugin MCP server name is `android-emulator`. Nibi normalizes that name for
+The plugin MCP server name is `android-emulator`. NIBI normalizes that name for
 model-visible MCP tools, so the model sees `mcp__android_emulator__<tool>`, for
 example `mcp__android_emulator__android_preflight`. The MCP server still
-implements the raw MCP tool names such as `android_preflight`; Nibi maps
+implements the raw MCP tool names such as `android_preflight`; NIBI maps
 between the model-visible name and the server tool name.
 
 Use stdio for the normal local workflow. HTTP is only useful if you later wrap
@@ -122,7 +122,7 @@ pnpm --filter @nibi/android-emulator-plugin test
 pnpm --filter @nibi/android-emulator-plugin build
 ```
 
-The Claude-compatible `.mcp.json` and the Nibi manifest both execute
+The `.nibi-plugin/plugin.json` manifest and `.mcp.json` both execute
 `dist/mcp/server.js` with Node.js. Run the package build after changing
 TypeScript sources.
 

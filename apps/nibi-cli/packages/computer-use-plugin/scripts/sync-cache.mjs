@@ -1,4 +1,4 @@
-// Sync the built dev plugin into the CLI's plugin cache so the running zcode CLI
+// Sync the built dev plugin into the CLI's plugin cache so the running nibi CLI
 // (which loads plugins from ~/.nibi/cli/plugins/cache/..., NOT from this repo)
 // picks up skill / MCP / manifest changes without a manual copy.
 //
@@ -38,14 +38,14 @@ const ENTRIES = [
 
 /**
  * Resolve the CLI cache dir for zcode-cua. Prefer the cachePath declared in the
- * nibi-official marketplace.json; fall back to the single version dir under
+ * nibi-plugins-official marketplace.json; fall back to the single version dir under
  * the cache root. Throws if neither yields an existing dir (plugin not installed).
  */
 async function resolveCacheDir() {
   if (process.argv[2]) return resolve(process.argv[2]);
   const marketplace = join(
     homedir(),
-    ".nibi/cli/plugins/marketplaces/nibi-official/marketplace.json",
+    ".nibi/cli/plugins/marketplaces/nibi-plugins-official/marketplace.json",
   );
   try {
     const text = await readFile(marketplace, "utf8");
@@ -57,7 +57,7 @@ async function resolveCacheDir() {
   } catch {
     // marketplace.json missing/unreadable — fall through to glob.
   }
-  const cacheRoot = join(homedir(), ".nibi/cli/plugins/cache/nibi-official/computer-use");
+  const cacheRoot = join(homedir(), ".nibi/cli/plugins/cache/nibi-plugins-official/computer-use");
   if (existsSync(cacheRoot)) {
     const dirs = await readdir(cacheRoot);
     if (dirs.length === 1) return join(cacheRoot, dirs[0]);
@@ -73,7 +73,7 @@ async function resolveCacheDir() {
   }
   throw new Error(
     `Could not resolve the zcode-cua CLI cache dir. The plugin does not appear to be ` +
-      `installed — run it once from the zcode UI/TUI to install, then re-run sync:cache. ` +
+      `installed — run it once from the nibi UI/TUI to install, then re-run sync:cache. ` +
       `(looked in marketplace.json and ${cacheRoot})`,
   );
 }

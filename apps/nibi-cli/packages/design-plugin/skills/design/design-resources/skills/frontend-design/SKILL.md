@@ -12,7 +12,7 @@ od:
   category: design-systems
   upstream: "https://github.com/anthropics/skills/tree/main/frontend-design"
 ---
-<!-- Modified by Nibi: front matter, title and introduction adapted for the design plugin. Derived from anthropics/skills skills/frontend-design (Apache-2.0); license in LICENSE.txt beside this file. -->
+<!-- Modified by NIBI: front matter, title and introduction adapted for the design plugin. Derived from anthropics/skills skills/frontend-design (Apache-2.0); license in LICENSE.txt beside this file. -->
 
 # Frontend Design
 

@@ -168,7 +168,11 @@ function rewritePluginMcpConfigFile(
     const args = Array.isArray(server.args)
       ? server.args.map((arg) =>
           typeof arg === "string"
-            ? normalizeSeededPath(arg.replaceAll("${CLAUDE_PLUGIN_ROOT}", rootPath))
+            ? normalizeSeededPath(
+                arg
+                  .replaceAll("${CLAUDE_PLUGIN_ROOT}", rootPath)
+                  .replaceAll("${NIBI_PLUGIN_ROOT}", rootPath),
+              )
             : arg,
         )
       : [];

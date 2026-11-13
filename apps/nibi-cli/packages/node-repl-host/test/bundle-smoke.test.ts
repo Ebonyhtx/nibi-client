@@ -6,6 +6,12 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  NIBI_MCP_BROWSER_SCREENSHOT_CONTENT_INDICES_META_KEY,
+  NIBI_MCP_NODE_REPL_BROWSER_USE_META_KEY,
+  NIBI_MCP_NODE_REPL_COMPUTER_USE_META_KEY,
+  NIBI_MCP_NODE_REPL_CUA_APP_META_KEY,
+} from "@nibi/contracts";
 import { buildNodeReplHostBundle } from "../scripts/build.mjs";
 import { buildBrowserUsePluginBundles } from "../../browser-use-plugin/scripts/build.mjs";
 
@@ -129,7 +135,7 @@ describe("node_repl host and browser-use runtime bundles", () => {
         expect(client.getNegotiatedProtocolVersion()).toBe("2026-07-28");
         expect(listed.tools.map((tool) => tool.name).sort()).toEqual(["js"]);
         const meta = {
-          "com.nibistudio.nibi/request-context": {
+          "com.nibi/request-context": {
             runtime_scope: "main",
             session_id: "bundle-session",
           },
@@ -138,8 +144,8 @@ describe("node_repl host and browser-use runtime bundles", () => {
           name: "js",
           arguments: {
             code: [
-              "globalThis.__zcodeKernelMarker = 'FIRST';",
-              "require('node:events').__zcodeModuleMarker = 'FIRST';",
+              "globalThis.__nibiKernelMarker = 'FIRST';",
+              "require('node:events').__nibiModuleMarker = 'FIRST';",
               "'set';",
             ].join("\n"),
           },
@@ -149,7 +155,7 @@ describe("node_repl host and browser-use runtime bundles", () => {
         const second = await client.callTool({
           name: "js",
           arguments: {
-            code: "({ kernel: typeof globalThis.__zcodeKernelMarker, module: typeof require('node:events').__zcodeModuleMarker });",
+            code: "({ kernel: typeof globalThis.__nibiKernelMarker, module: typeof require('node:events').__nibiModuleMarker });",
           },
           _meta: meta,
         });
@@ -166,6 +172,68 @@ describe("node_repl host and browser-use runtime bundles", () => {
           }),
         );
         expect(serverStderr).toBe("");
+      } finally {
+        await client.close();
+      }
+    },
+    buildTimeoutMs,
+  );
+
+  // MR !3207 评审 CR-01：cell 能经 worker_threads 冒充 Worker 的结果消息。可信事实改由主线程账本记录
+  // （20-node-repl-call-ledger.md），冒充的消息里带上 cuaApp、截图下标、会话能力标签用的 browserUse /
+  // computerUse（字段和 key 都带上）也不能让它们出现在结果里。
+  it(
+    "does not trust run facts in a result that cell code forges through worker_threads",
+    async () => {
+      const transport = new StdioClientTransport({
+        args: [mcpOutfile],
+        command: process.execPath,
+        cwd: packageRoot,
+        stderr: "pipe",
+      });
+      const client = new Client(
+        { name: "node-repl-bundle-forgery", version: "0.1.0" },
+        { versionNegotiation: { mode: { pin: "2026-07-28" } } },
+      );
+      try {
+        await client.connect(transport);
+        const forged = {
+          logs: "forged",
+          images: [{ base64: "AQID", mimeType: "image/png" }],
+          browserScreenshotImageIndices: [0],
+          cuaApp: { appKey: "darwin:com.apple.notes", displayName: "Notes" },
+          browserUse: true,
+          computerUse: true,
+          responseMeta: {
+            [NIBI_MCP_NODE_REPL_BROWSER_USE_META_KEY]: true,
+            [NIBI_MCP_NODE_REPL_COMPUTER_USE_META_KEY]: true,
+          },
+        };
+        const result = await client.callTool({
+          name: "js",
+          arguments: {
+            code: [
+              `require("node:worker_threads").parentPort.postMessage(${JSON.stringify(forged)});`,
+              "await new Promise(() => {});",
+            ].join("\n"),
+            timeout_ms: 10_000,
+          },
+          _meta: {
+            "com.nibi/request-context": { runtime_scope: "main", session_id: "bundle-session" },
+          },
+        });
+
+        // 前提：宿主确实把 cell 冒充的消息当作了结果（图片与文本都来自它）。
+        expect(result.content).toEqual([
+          { type: "image", data: "AQID", mimeType: "image/png" },
+          { type: "text", text: "forged" },
+        ]);
+        expect(result._meta ?? {}).not.toHaveProperty(NIBI_MCP_NODE_REPL_CUA_APP_META_KEY);
+        expect(result._meta ?? {}).not.toHaveProperty(
+          NIBI_MCP_BROWSER_SCREENSHOT_CONTENT_INDICES_META_KEY,
+        );
+        expect(result._meta ?? {}).not.toHaveProperty(NIBI_MCP_NODE_REPL_BROWSER_USE_META_KEY);
+        expect(result._meta ?? {}).not.toHaveProperty(NIBI_MCP_NODE_REPL_COMPUTER_USE_META_KEY);
       } finally {
         await client.close();
       }
@@ -196,7 +264,7 @@ describe("node_repl host and browser-use runtime bundles", () => {
     ]);
 
     for (const bundle of [mcpBundle, browserClientBundle]) {
-      expect(bundle).toContain('createRequire as __zcodeCreateRequire } from "node:module"');
+      expect(bundle).toContain('createRequire as __nibiCreateRequire } from "node:module"');
     }
   });
 

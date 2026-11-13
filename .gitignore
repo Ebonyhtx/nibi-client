@@ -93,3 +93,6 @@ apps/nibi-cli/packages/*/backup/
 
 # 构建期私有默认配置（可能含上报端点/更新源）；只存在于内部发布环境，绝不入库
 /config/private/
+
+# tsc declaration output (regenerated on build)
+dist-types/

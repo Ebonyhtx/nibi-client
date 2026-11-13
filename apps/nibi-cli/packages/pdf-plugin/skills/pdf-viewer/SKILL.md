@@ -5,7 +5,7 @@ description: View and discuss PDF files with the user in the PDF side panel. Use
 
 # PDF viewer
 
-The PDF panel renders a workspace PDF for the user. You read the same file through tools and point the user at places in it. The viewer is read-only: never claim to have edited a file through it. To produce or change PDFs, use the `pdf` skill.
+The PDF panel renders a workspace PDF for the user. You read the same file through tools and point the user at places in it. The viewer is read-only: never claim to have edited a file through it. To produce or change PDFs, or to extract their content for other work, use the `pdf` skill.
 
 ## Anchors
 
@@ -26,6 +26,10 @@ After you produce a PDF with the `pdf` skill, open it with `open_document` so th
 
 `open_document` / `read_document` / `search_document` / `capture_view` are self-contained and work without host binaries. Do **not** start by reading the PDF with the generic file-read tool, `pdftoppm` / `pdfinfo`, or Python libraries (`fitz`, `pdfplumber`, `PyPDF2`): on Windows those are frequently missing, and each attempt leaves a failed-command badge in the user's transcript for no benefit. Only fall back to `pdftotext` (when present) or a Python extractor if the plugin tools cannot answer (for example a file outside the workspace), and say why.
 
+## Use these tools before shelling out
+
+`open_document` / `read_document` / `search_document` / `capture_view` are self-contained and work without host binaries. Do **not** start by reading the PDF with the generic file-read tool, `pdftoppm` / `pdfinfo`, or Python libraries (`fitz`, `pdfplumber`, `PyPDF2`): on Windows those are frequently missing, and each attempt leaves a failed-command badge in the user's transcript for no benefit. Only fall back to `pdftotext` (when present) or a Python extractor if the plugin tools cannot answer (for example a file outside the workspace), and say why.
+
 ## References from the user
 
 When the user selects text or clicks a page and chooses **Add to chat**, the next message carries context like `- paper.pdf#page:4: "Latency fell by 40 percent…"`. Treat those anchors as precise pointers: read them with `read_document` if you need more than the quoted text, and answer about exactly those places. **Ask** sends a question that already includes the anchor and the quoted text.
@@ -36,4 +40,4 @@ When the user selects text or clicks a page and chooses **Add to chat**, the nex
 
 - Paths are relative to the workspace; files outside it cannot be opened. Encrypted PDFs cannot be opened.
 - Do not paste whole documents into the chat; quote briefly and point with `show_in_viewer`.
-- The panel only works in NIBI Desktop local workspaces. Elsewhere, the read and search tools still work; tell the user the visual viewer is unavailable.
+- The panel only works in NIBI Desktop local workspaces. Elsewhere, still open the document with `open_document`: the read and search tools work without the visual panel. Tell the user the visual viewer is unavailable.

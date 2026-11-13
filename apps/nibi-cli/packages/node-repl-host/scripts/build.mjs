@@ -1,4 +1,4 @@
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "esbuild";
@@ -9,8 +9,8 @@ const packageRoot = resolve(import.meta.dirname, "..");
 // __require shim 在 ESM 作用域没有 require 可用，@nibi/core 拖进来的 CJS 依赖（yaml →
 // require("process")）会在**模块求值阶段**抛错，plugin host 的 await import() 直接失败，
 // 表现为注册 0 个工具、模型侧完全看不到 mcp__node_repl__js。注入真实 createRequire。
-const nodeRequireBanner = `import { createRequire as __zcodeCreateRequire } from "node:module";
-const require = __zcodeCreateRequire(import.meta.url);`;
+const nodeRequireBanner = `import { createRequire as __nibiCreateRequire } from "node:module";
+const require = __nibiCreateRequire(import.meta.url);`;
 
 // 正式包上 Computer Use 曾完全
 // 不可用 —— 每个 CUA 调用要么等到 MCP 客户端超时（实测 60/110/120s），要么等满 ~64s 后返回
@@ -24,7 +24,7 @@ const require = __zcodeCreateRequire(import.meta.url);`;
 // 折叠成空串（见 zcode-cua/src/broker/shared/cua-version.ts 的兜底），
 // `resolveExpectedCuaHelperBuildId()` 返回 null，helperInstaller 撞上 fail-closed 守卫：
 //
-//   "Packaged Nibi is missing its embedded Computer Use Helper build identity;
+//   "Packaged NIBI is missing its embedded Computer Use Helper build identity;
 //    refusing an unpinned Helper install"
 //
 // 结果 Helper 既不装也不起、一行日志都不写，而这句 throw 被 MCP 层翻成超时，没有落盘点 ——
@@ -68,6 +68,13 @@ export const buildNodeReplHostBundle = async ({
       );
     }
   }
+  // 修复原因：官方插件 seed 按版本复用缓存，而 server.js 的 build id 每条流水线都变、版本号不变。
+  // 写出构建身份文件，供 bootstrap 的 buildIdentityPath 比较，桌面升级后才会重新 seed。
+  // 写在 outfile 所在 dist 根目录（默认 dist/build-identity.json），测试的临时输出不会改写真实 dist。
+  await writeFile(
+    resolve(dirname(outfile), "..", "build-identity.json"),
+    `${JSON.stringify({ cuaHelperBuildId })}\n`,
+  );
   return { outfile, cuaHelperBuildId };
 };
 

@@ -2,6 +2,10 @@
   "name": "ios-simulator",
   "version": "0.1.0",
   "description": "Provides iOS development workflows and simulator automation for NIBI.",
+  "description_i18n": {
+    "en": "Provides iOS development workflows and simulator automation for NIBI.",
+    "zh-CN": "为 NIBI 提供 iOS 开发工作流与模拟器自动化能力。"
+  },
   "author": {
     "name": "NIBI",
     "url": "https://nibistudio.cn"

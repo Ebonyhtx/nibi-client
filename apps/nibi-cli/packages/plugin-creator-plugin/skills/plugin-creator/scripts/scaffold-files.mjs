@@ -9,7 +9,7 @@ export function scaffoldFiles(name, components) {
   const files = new Map();
   files.set(
     "README.md",
-    `# ${name}\n\nDescribe this plugin's workflow and required configuration here.\n\nValidate before installation: \`zcode plugins validate .\`.\n`,
+    `# ${name}\n\nDescribe this plugin's workflow and required configuration here.\n\nValidate before installation: \`nibi plugins validate .\`.\n`,
   );
   if (components.includes("skills")) {
     manifest.skills = "./skills";
