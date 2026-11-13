@@ -476,7 +476,7 @@ describe("standalone Server Core ingress", () => {
     const input = {
       workspacePath: "/remote",
       sessionId: "session",
-      __zcodeTrustedV4Connection: { connectionId: "desktop", clientMode: "desktop-continuous" },
+      __nibiTrustedV4Connection: { connectionId: "desktop", clientMode: "desktop-continuous" },
     };
     const web = await connectChannelClient(`ws://${server.host}:${server.port}/ws`);
     try {

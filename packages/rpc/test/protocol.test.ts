@@ -250,11 +250,11 @@ describe("MessagePortProtocol connection flow sideband", () => {
       expect(enumerated).toBe(false);
       expect(receive).toHaveBeenCalledOnce();
       expect(receive.mock.calls[0]![0].buffer).toBe(binary);
-      port.emit({ __zcodeRpcControl: "connection-flow-v1", state: "drained", extra: true });
-      port.emit({ __zcodeRpcControl: "connection-flow-v1", state: "invalid" });
+      port.emit({ __nibiRpcControl: "connection-flow-v1", state: "drained", extra: true });
+      port.emit({ __nibiRpcControl: "connection-flow-v1", state: "invalid" });
       expect(flow).not.toHaveBeenCalled();
       expect(receive).toHaveBeenCalledOnce();
-      port.emit({ __zcodeRpcControl: "connection-flow-v1", state: "drained" });
+      port.emit({ __nibiRpcControl: "connection-flow-v1", state: "drained" });
       expect(flow).toHaveBeenCalledWith("drained");
     } finally {
       keys.mockRestore();
@@ -282,12 +282,12 @@ describe("MessagePortProtocol connection flow sideband", () => {
         sendFlowState(state: "saturated" | "drained"): void;
       }
     ).sendFlowState("saturated");
-    rightPort.emit({ __zcodeRpcControl: "connection-flow-v1", state: "forged" });
+    rightPort.emit({ __nibiRpcControl: "connection-flow-v1", state: "forged" });
 
     expect(binary).toEqual(["rpc-binary"]);
     expect(flow).toEqual(["saturated"]);
     expect(leftPort.posted).toContainEqual({
-      __zcodeRpcControl: "connection-flow-v1",
+      __nibiRpcControl: "connection-flow-v1",
       state: "saturated",
     });
     left.disconnect();

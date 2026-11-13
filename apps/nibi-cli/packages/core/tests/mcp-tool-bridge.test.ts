@@ -145,7 +145,7 @@ describe("MCP tool bridge", () => {
             toolName: "open_application",
             // adapter 会先按 namespaced serverName 生成这个内部描述符名；core 再把可信官方
             // CUA 投影成模型约定的 computer-use 主名，调用路由仍保留原 serverName。
-            name: "mcp__plugin_zcode-cua_computer-use__open_application",
+            name: "mcp__plugin_computer-use_computer-use__open_application",
           },
         ],
       }),
@@ -157,7 +157,7 @@ describe("MCP tool bridge", () => {
           servers: {
             [NIBI_CUA_OFFICIAL_MCP_SERVER_NAME]: {
               type: "stdio",
-              command: "zcode-cua",
+              command: "nibi-cua",
               env: {
                 [NIBI_PLUGIN_ID_ENV_KEY]: NIBI_CUA_OFFICIAL_PLUGIN_ID,
                 [NIBI_CUA_PLUGIN_AUTHORITY_ENV_KEY]: TEST_PLUGIN_AUTHORITY,
@@ -185,7 +185,7 @@ describe("MCP tool bridge", () => {
     expect(canonical).toBeDefined();
     expect(alias).toBe(canonical);
     expect(
-      runtime.getToolRegistry().get("mcp__plugin_zcode-cua_computer-use__open_application"),
+      runtime.getToolRegistry().get("mcp__plugin_computer-use_computer-use__open_application"),
     ).toBeUndefined();
 
     await alias?.handler({ app: { name: "notepad.exe" } }, createToolContext());
@@ -209,7 +209,7 @@ describe("MCP tool bridge", () => {
           servers: {
             [NIBI_CUA_OFFICIAL_MCP_SERVER_NAME]: {
               type: "stdio",
-              command: "zcode-cua",
+              command: "nibi-cua",
             },
           },
           trustedOfficialCuaServerNames: [NIBI_CUA_OFFICIAL_MCP_SERVER_NAME],
@@ -224,7 +224,7 @@ describe("MCP tool bridge", () => {
               {
                 serverName: NIBI_CUA_OFFICIAL_MCP_SERVER_NAME,
                 toolName: "open_application",
-                name: "mcp__plugin_zcode-cua_computer-use__open_application",
+                name: "mcp__plugin_computer-use_computer-use__open_application",
               },
             ],
           }),
@@ -242,7 +242,7 @@ describe("MCP tool bridge", () => {
     expect(runtime.getToolRegistry().get("mcp__computer_use__open_application")).toBeUndefined();
     expect(runtime.getToolRegistry().get("mcp__computer-use__open_application")).toBeUndefined();
     expect(
-      runtime.getToolRegistry().get("mcp__plugin_zcode-cua_computer-use__open_application"),
+      runtime.getToolRegistry().get("mcp__plugin_computer-use_computer-use__open_application"),
     ).toBeDefined();
   });
 
@@ -331,7 +331,7 @@ describe("MCP tool bridge", () => {
 
   it("keeps an existing namespaced deny rule effective after official CUA name projection", () => {
     const registry = createToolRegistry();
-    const namespacedName = "mcp__plugin_zcode-cua_computer-use__open_application";
+    const namespacedName = "mcp__plugin_computer-use_computer-use__open_application";
 
     const registered = registerMcpTools(
       registry,
@@ -356,7 +356,7 @@ describe("MCP tool bridge", () => {
 
   it("keeps an existing namespaced allow rule effective after official CUA name projection", () => {
     const registry = createToolRegistry();
-    const namespacedName = "mcp__plugin_zcode-cua_computer-use__open_application";
+    const namespacedName = "mcp__plugin_computer-use_computer-use__open_application";
 
     const registered = registerMcpTools(
       registry,
@@ -523,22 +523,22 @@ describe("MCP tool bridge", () => {
       mcpPort,
       [
         {
-          serverName: "zcode-cua",
+          serverName: "nibi-cua",
           toolName: "get_app_state",
           inputSchema: { type: "object", properties: {} },
         },
         {
-          serverName: "zcode-cua",
+          serverName: "nibi-cua",
           toolName: "left_click",
           inputSchema: { type: "object", properties: {} },
         },
       ],
-      { disallowedTools: ["mcp__zcode-cua__left_click"] },
+      { disallowedTools: ["mcp__nibi-cua__left_click"] },
     );
 
-    expect(registered).toEqual(["mcp__zcode-cua__get_app_state"]);
-    expect(registry.has("mcp__zcode-cua__get_app_state")).toBe(true);
-    expect(registry.has("mcp__zcode-cua__left_click")).toBe(false);
+    expect(registered).toEqual(["mcp__nibi-cua__get_app_state"]);
+    expect(registry.has("mcp__nibi-cua__get_app_state")).toBe(true);
+    expect(registry.has("mcp__nibi-cua__left_click")).toBe(false);
   });
 
   it("requires a user title for CUA app observation and strips it before MCP dispatch", async () => {
@@ -658,7 +658,7 @@ describe("MCP tool bridge", () => {
     expect(schema).not.toHaveProperty("required");
   });
 
-  it.each(["computer-use", "zcode-cua"])(
+  it.each(["computer-use", "nibi-cua"])(
     "recognizes the %s CUA server identity for the title contract",
     (serverName) => {
       const registry = createToolRegistry();

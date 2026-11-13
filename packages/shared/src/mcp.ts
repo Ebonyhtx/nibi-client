@@ -256,12 +256,16 @@ export function getMcpServerRequestHeaders(
   return config.headers ?? config.http_headers;
 }
 
-// zcode-cua MCP server 识别的单一事实源。desktop 产品 broker resolver（@nibi/services 的
+// NIBI CUA 包规格识别的单一事实源。desktop 产品 broker resolver（@nibi/services 的
 // mcpBrokerInjection）与 CLI bootstrap（apps/nibi-cli 的 mcp-config）两条注入入口必须用
 // 完全一致的判定；否则同一 MCP 配置在不同入口行为不同，可能漏注入 product broker，让
 // Python/uvx 自己持有 macOS TCC 权限（违反 fail-closed 边界）。改这里即同时改两条链路。
+const NIBI_CUA_PACKAGE_SPEC = "nibi-cua";
+const NIBI_CUA_NPM_SPEC = "@nibi/cua";
+// 历史上游包名：只用于 fail-closed 识别旧配置，不再作为我们的包名。
+const LEGACY_NIBI_CUA_PACKAGE_SPEC = "zcode-cua";
 function nibiCuaArgLeaf(value: string): string {
-  // 先去掉结尾的路径分隔符再取叶子：`.../zcode-cua/` 直接 split 会得到空串叶子 → 漏判 → fail-open。
+  // 先去掉结尾的路径分隔符再取叶子：`.../nibi-cua/` 直接 split 会得到空串叶子 → 漏判 → fail-open。
   return (
     value
       .replace(/[\\/]+$/, "")
@@ -270,35 +274,44 @@ function nibiCuaArgLeaf(value: string): string {
   );
 }
 
-// 单个候选串是否为 zcode-cua 的包规格。PyPI 视 `_`/`-` 等价，故先把下划线归一成短横（zcode_cua →
-// zcode-cua）；覆盖 uv/npm 的 `@version`、pip 的 `==version`、extras `[...]`、git 的 `.git`/`.git@`，
-// 以及 `python -m zcode_cua.server` 这种点号子模块（`zcode-cua.<submodule>`）。fail-closed 边界宁可
-// 过判也不漏判；仍不会误判 `zcode-cua-proxy`（短横续接，不以 `.`/`@`/`[`/`==` 边界续接）。
+// 单个候选串是否匹配某个包规格。PyPI 视 `_`/`-` 等价，故先把下划线归一成短横（nibi_cua →
+// nibi-cua）；覆盖 uv/npm 的 `@version`、pip 的 `==version`、extras `[...]`、git 的 `.git`/`.git@`，
+// 以及 `python -m nibi_cua.server` 这种点号子模块（`nibi-cua.<submodule>`）。fail-closed 边界宁可
+// 过判也不漏判；仍不会误判 `nibi-cua-proxy`（短横续接，不以 `.`/`@`/`[`/`==` 边界续接）。
+function matchesNibiCuaSpecName(candidate: string, spec: string): boolean {
+  return (
+    candidate === spec ||
+    candidate.startsWith(`${spec}[`) ||
+    candidate.startsWith(`${spec}@`) ||
+    candidate.startsWith(`${spec}==`) ||
+    // `.` 分支同时覆盖 `nibi-cua.git` / `nibi-cua.git@v1` 与 `nibi-cua.server` 等 python 子模块。
+    candidate.startsWith(`${spec}.`)
+  );
+}
+
 function matchesNibiCuaSpec(candidate: string): boolean {
   const c = candidate.replace(/_/g, "-");
   return (
-    c === "zcode-cua" ||
-    c.startsWith("zcode-cua[") ||
-    c.startsWith("zcode-cua@") ||
-    c.startsWith("zcode-cua==") ||
-    // `.` 分支同时覆盖 `zcode-cua.git` / `zcode-cua.git@v1` 与 `zcode-cua.server` 等 python 子模块。
-    c.startsWith("zcode-cua.")
+    matchesNibiCuaSpecName(c, NIBI_CUA_PACKAGE_SPEC) ||
+    matchesNibiCuaSpecName(c, NIBI_CUA_NPM_SPEC) ||
+    matchesNibiCuaSpecName(c, LEGACY_NIBI_CUA_PACKAGE_SPEC)
   );
 }
 
 /**
- * MCP server 的 command 是否指向 zcode-cua。用与 args 相同的包规格判定（并比对路径叶子），
- * 覆盖 `command: "zcode-cua"`、`/opt/bin/zcode-cua`，以及把包规格直接当 command 的写法
- * （`zcode-cua@1.2.3` 等）。对 fail-closed 边界宁可过判也不漏判。
+ * MCP server 的 command 是否指向 NIBI CUA。用与 args 相同的包规格判定（并比对路径叶子），
+ * 覆盖 `command: "nibi-cua"`、`/opt/bin/nibi-cua`，以及把包规格直接当 command 的写法
+ * （`nibi-cua@1.2.3` 等）。对 fail-closed 边界宁可过判也不漏判。
  */
 export function isNibiCuaMcpCommand(command: string): boolean {
   return matchesNibiCuaSpec(command) || matchesNibiCuaSpec(nibiCuaArgLeaf(command));
 }
 
 /**
- * 单个 arg 是否为 zcode-cua 的包规格。覆盖 `zcode-cua`、`zcode-cua[macos]`、`zcode-cua@1.2.3`、
- * `zcode-cua==1.2.3`、`zcode_cua`，以及 git / 本地路径形态（`.../zcode-cua`、`zcode-cua.git`、
- * `git+https://.../zcode-cua.git@v1`）。同时比对原始值与路径叶子，覆盖 `--from <path>`、`--from <git-url>`。
+ * 单个 arg 是否为 NIBI CUA 的包规格。覆盖 `nibi-cua`、`nibi-cua[macos]`、`nibi-cua@1.2.3`、
+ * `nibi-cua==1.2.3`、`nibi_cua`、`@nibi/cua`，以及 git / 本地路径形态（`.../nibi-cua`、
+ * `nibi-cua.git`、`git+https://.../nibi-cua.git@v1`）。同时比对原始值与路径叶子，
+ * 覆盖 `--from <path>`、`--from <git-url>`。
  */
 export function isNibiCuaMcpPackageArg(value: string): boolean {
   return matchesNibiCuaSpec(value) || matchesNibiCuaSpec(nibiCuaArgLeaf(value));

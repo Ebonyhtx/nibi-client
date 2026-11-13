@@ -344,7 +344,7 @@ describe("resolveAppRuntimeConfig", () => {
       configResult,
       options: {
         runtimeConfig: {
-          toolAllowlist: ["mcp__zcode-cua__open_application"],
+          toolAllowlist: ["mcp__computer-use__open_application"],
           toolDisallowlist: ["TodoWrite"],
           workingDirectory,
         },
@@ -354,7 +354,7 @@ describe("resolveAppRuntimeConfig", () => {
       workingDirectory,
     });
 
-    expect(resolved.runtimeConfig.toolAllowlist).toEqual(["mcp__zcode-cua__open_application"]);
+    expect(resolved.runtimeConfig.toolAllowlist).toEqual(["mcp__computer-use__open_application"]);
     expect(resolved.runtimeConfig.toolDisallowlist).toEqual(["TodoWrite"]);
   });
 

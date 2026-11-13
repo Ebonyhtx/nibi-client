@@ -1137,7 +1137,7 @@ function isGlobalCliNibiCuaServer(name: string, config: unknown): boolean {
   if (typeof config.type === "string" && config.type !== "stdio") return false;
   if (name === "computer-use") return true;
   // 与 desktop/services resolver 和 CLI bootstrap 共用 @nibi/shared 的单一事实源，避免第三处
-  // 判定漂移：git/.git/本地路径形态的 zcode-cua 若这里漏判，全局 CLI env 注入不会带 broker
+  // 判定漂移：git/.git/本地路径形态的 nibi-cua（含历史上游包名）若这里漏判，全局 CLI env 注入不会带 broker
   // socket/token，agent 会回退成 Python/uvx 自己持有 macOS TCC（违反 product broker 边界）。
   if (typeof config.command === "string" && isNibiCuaMcpCommand(config.command)) {
     return true;
@@ -2424,7 +2424,7 @@ export function createLocalServices(options: {
         // 把 host 解析出的权威 origin（含 settings 覆盖）下发给 agent，否则 agent 侧只按
         // env 推导，test env + 自定义端点时两侧信任判定的输入分叉、官方 MCP 整体 fail closed。
         ...buildAgentEndpointOriginEnv(await resolveCurrentNibiEndpointOrigin()),
-        // broker 凭据（socket/token）注入 agent spawn env，让内置 zcode-cua plugin 的
+        // broker 凭据（socket/token）注入 agent spawn env，让内置 computer-use plugin 的
         // computer-use MCP server 经 __nibi-plugin-host 恢复 token 后连上 broker。
         ...cuaProductHelperEnv,
         // Rust 内核没有 Node bootstrap：Browser Use / Computer Use 共用的 `node_repl` MCP

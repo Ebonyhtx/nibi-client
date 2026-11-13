@@ -1265,7 +1265,7 @@ describe("createWebRemoteControlManager external relay", () => {
 
     hostPort.emit("message", { data: new Uint8Array(900_000) });
     expect(hostPort.postMessage).toHaveBeenCalledWith({
-      __zcodeRpcControl: "connection-flow-v1",
+      __nibiRpcControl: "connection-flow-v1",
       state: "saturated",
     });
 
@@ -1275,7 +1275,7 @@ describe("createWebRemoteControlManager external relay", () => {
       ackMessageSeq: 1,
     });
     expect(hostPort.postMessage).toHaveBeenCalledWith({
-      __zcodeRpcControl: "connection-flow-v1",
+      __nibiRpcControl: "connection-flow-v1",
       state: "drained",
     });
   });

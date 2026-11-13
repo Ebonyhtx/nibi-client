@@ -112,7 +112,7 @@ function toRegisteredMcpToolName(
     descriptor.serverName === NIBI_CUA_OFFICIAL_MCP_SERVER_NAME
   ) {
     // adapter 会把官方插件 serverName 命名空间化，descriptor.name 因而是
-    // mcp__plugin_zcode-cua_computer-use__*；直接沿用它会让 provider 约定的 computer-use
+    // mcp__plugin_<plugin-id>_<server>__*；直接沿用它会让 provider 约定的 computer-use
     // 工具永远不存在。可信门成立后仅投影模型可见名称，handler 仍用 descriptor 的原路由。
     return `${NIBI_CUA_CANONICAL_MODEL_PREFIX}${toModelVisibleMcpNamePart(descriptor.toolName)}`;
   }
@@ -418,9 +418,8 @@ function isNibiCuaGetAppState(
   const serverName = descriptor.serverName.trim().toLowerCase().replace(/_/g, "-");
   return (
     descriptor.serverName === NIBI_CUA_OFFICIAL_MCP_SERVER_NAME ||
-    serverName === "zcode-cua" ||
-    serverName === "computer-use" ||
-    (serverName.includes("zcode-cua") && serverName.includes("computer-use"))
+    serverName === "nibi-cua" ||
+    serverName === "computer-use"
   );
 }
 

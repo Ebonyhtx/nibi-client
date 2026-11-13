@@ -1721,7 +1721,7 @@ describe("createNibiAgentService", () => {
     try {
       await service.createSession({
         workspacePath,
-        toolAllowlist: ["mcp__zcode-cua__request_access", "mcp__zcode-cua__list_apps"],
+        toolAllowlist: ["mcp__computer-use__request_access", "mcp__computer-use__list_apps"],
         toolDenylist: ["Bash"],
       });
 
@@ -1731,8 +1731,8 @@ describe("createNibiAgentService", () => {
         .map((line) => JSON.parse(line) as { method: string; params: Record<string, unknown> })
         .find((entry) => entry.method === "session/create");
       expect(createRequest?.params.toolAllowlist).toEqual([
-        "mcp__zcode-cua__request_access",
-        "mcp__zcode-cua__list_apps",
+        "mcp__computer-use__request_access",
+        "mcp__computer-use__list_apps",
       ]);
       expect(createRequest?.params.toolDenylist).toEqual(["Bash"]);
     } finally {

@@ -911,13 +911,13 @@ describe("NIBI Protocol", () => {
   it("accepts session create tool lists while staying strict", () => {
     const parsed = nibiSessionCreateParamsSchema.parse({
       workspace,
-      toolAllowlist: ["mcp__zcode-cua__request_access", "mcp__zcode-cua__list_apps"],
+      toolAllowlist: ["mcp__computer-use__request_access", "mcp__computer-use__list_apps"],
       toolDenylist: ["Bash"],
     });
 
     expect(parsed.toolAllowlist).toEqual([
-      "mcp__zcode-cua__request_access",
-      "mcp__zcode-cua__list_apps",
+      "mcp__computer-use__request_access",
+      "mcp__computer-use__list_apps",
     ]);
     expect(parsed.toolDenylist).toEqual(["Bash"]);
     expect(() =>
@@ -933,10 +933,10 @@ describe("NIBI Protocol", () => {
     // 冷恢复必须和 create 同边界地带工具面约束，否则 CUA 会话 resume 后会重新可见 Bash 等被禁工具。
     const parsed = nibiSessionResumeParamsSchema.parse({
       sessionId: "sess_1",
-      toolAllowlist: ["mcp__zcode-cua__request_access"],
+      toolAllowlist: ["mcp__computer-use__request_access"],
       toolDenylist: ["Bash"],
     });
-    expect(parsed.toolAllowlist).toEqual(["mcp__zcode-cua__request_access"]);
+    expect(parsed.toolAllowlist).toEqual(["mcp__computer-use__request_access"]);
     expect(parsed.toolDenylist).toEqual(["Bash"]);
     // 仍 strict：未知字段拒绝。
     expect(() =>

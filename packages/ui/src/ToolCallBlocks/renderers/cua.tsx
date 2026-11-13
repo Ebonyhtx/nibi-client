@@ -55,7 +55,7 @@ function readCuaToolName(value: string | null | undefined): string | null {
   if (!normalized.includes("computer_use")) return null;
   // action = 最后一个 "__" 之后的段。兼容两种命名：
   //   feat:        mcp__computer_use__<action>
-  //   main namesp: mcp__plugin_zcode_cua_computer_use__<action>
+  //   插件命名空间: mcp__plugin_<plugin-id>_computer_use__<action>
   // 都取尾部 <action>（get_app_state / left_click / type ...）。
   const lastSep = normalized.lastIndexOf("__");
   const shortName = lastSep >= 0 ? normalized.slice(lastSep + 2) : normalized;

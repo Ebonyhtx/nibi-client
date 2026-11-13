@@ -584,7 +584,7 @@ function ensurePluginManagementWorkspacePath(): string {
 // createSession log line with mcpServerCount:0 is EXPECTED when zcode-cua is a CLI-config MCP server
 // (e.g. the product Helper broker path injected through the gated bootstrap env): the model still receives those
 // tools — the two numbers describe different channels, not a missing tool set. Verified on-machine:
-// real kimi-k2.6 turns call mcp__zcode-cua__* tools (get_app_state/type/open_application, status
+// real kimi-k2.6 turns call mcp__computer-use__* tools (get_app_state/type/open_application, status
 // completed) in sessions whose createSession logged mcpServerCount:0.
 function getMcpServerCount(params: { mcpServers?: readonly unknown[] }): number {
   return params.mcpServers?.length ?? 0;

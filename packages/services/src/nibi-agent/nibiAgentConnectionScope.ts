@@ -38,8 +38,11 @@ export interface NibiAgentV4ConnectionContext {
   historyFirst?: boolean;
 }
 
-const TRUSTED_CONNECTION_FIELD = "__zcodeTrustedV4Connection";
-const TRUSTED_UNSUBSCRIBE_ROUTE_FIELD = "__zcodeTrustedV4UnsubscribeRoute";
+const TRUSTED_CONNECTION_FIELD = "__nibiTrustedV4Connection";
+const TRUSTED_UNSUBSCRIBE_ROUTE_FIELD = "__nibiTrustedV4UnsubscribeRoute";
+// 历史字段名只用于清理：旧调用方或伪造入参带上的同名键不能被 base 当成可信事实。
+const LEGACY_TRUSTED_CONNECTION_FIELD = "__zcodeTrustedV4Connection";
+const LEGACY_TRUSTED_UNSUBSCRIBE_ROUTE_FIELD = "__zcodeTrustedV4UnsubscribeRoute";
 
 type TrustedConnectionCarrier = {
   [TRUSTED_CONNECTION_FIELD]?: NibiAgentV4ConnectionContext;
@@ -100,6 +103,7 @@ function withTrustedConnection<T extends object>(
   // 共享 service 暴露在多个 RPC port 上时，调用方曾能传 profile，且所有
   // port 共用 workspace fan-out。facade 必须先清掉所有可伪造字段，再写 host 真值。
   delete forwarded[TRUSTED_CONNECTION_FIELD];
+  delete forwarded[LEGACY_TRUSTED_CONNECTION_FIELD];
   delete forwarded["connectionId"];
   delete forwarded["clientMode"];
   delete forwarded["deliveryProfile"];
@@ -119,6 +123,7 @@ function withTrustedUnsubscribeRoute<T extends object>(
     ...(value as unknown as Record<string, unknown>),
   };
   delete forwarded[TRUSTED_UNSUBSCRIBE_ROUTE_FIELD];
+  delete forwarded[LEGACY_TRUSTED_UNSUBSCRIBE_ROUTE_FIELD];
   forwarded[TRUSTED_UNSUBSCRIBE_ROUTE_FIELD] = route;
   return forwarded as T;
 }

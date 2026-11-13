@@ -1,9 +1,6 @@
 import type { CuaAppIdentity } from "@nibi/shared/nibi-protocol-v4";
 
-const OFFICIAL_CUA_PREFIXES = [
-  "mcp__computer-use__",
-  "mcp__plugin_zcode-cua_computer-use__",
-] as const;
+const OFFICIAL_CUA_PREFIXES = ["mcp__computer-use__"] as const;
 
 export function readOfficialCuaAction(toolName: string): string | null {
   const prefix = OFFICIAL_CUA_PREFIXES.find((candidate) => toolName.startsWith(candidate));

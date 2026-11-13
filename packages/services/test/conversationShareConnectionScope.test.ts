@@ -125,9 +125,14 @@ describe("Source Share RPC 的账号与连接边界", () => {
     try {
       const result = await f.desktop.preflight({
         ...input,
-        __zcodeTrustedV4Connection: { connectionId: "forged", clientMode: "web-remote-replayable" },
+        __nibiTrustedV4Connection: { connectionId: "forged", clientMode: "web-remote-replayable" },
+        __zcodeTrustedV4Connection: {
+          connectionId: "forged-legacy",
+          clientMode: "web-remote-replayable",
+        },
         jwt: "local-account-A",
       } as typeof input);
+      expect(f.rpc.preflight.mock.calls[0]?.[0]).not.toHaveProperty("__zcodeTrustedV4Connection");
       expect(result.blockingIssues).toEqual([]);
       expect(f.remoteCredential).toHaveBeenCalledOnce();
       expect(f.request).toHaveBeenCalledWith(
@@ -143,7 +148,7 @@ describe("Source Share RPC 的账号与连接边界", () => {
       );
       await f.scope.service.conversationRowsRangeV4({
         ...input,
-        __zcodeTrustedV4Connection: context,
+        __nibiTrustedV4Connection: context,
       } as never);
       expect(
         readTrustedNibiAgentV4Connection(f.conversationRowsRangeV4.mock.calls[1]?.[0]),
@@ -189,7 +194,7 @@ describe("Source Share RPC 的账号与连接边界", () => {
         "web-remote-replayable",
         f.scope.service,
       );
-      const forged = { ...input, __zcodeTrustedV4Connection: context };
+      const forged = { ...input, __nibiTrustedV4Connection: context };
       await expect(web.preflight(forged)).rejects.toMatchObject({ kind: "feature_disabled" });
       await expect(web.publish(forged as never, "op")).rejects.toMatchObject({
         kind: "feature_disabled",

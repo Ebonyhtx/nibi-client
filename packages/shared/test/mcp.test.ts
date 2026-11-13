@@ -5,68 +5,80 @@ import {
   isNibiCuaMcpPackageArg,
 } from "../src/mcp.js";
 
-describe("zcode-cua MCP matcher (single source of truth for services + CLI bootstrap)", () => {
-  it("matches the zcode-cua command by leaf name", () => {
-    expect(isNibiCuaMcpCommand("zcode-cua")).toBe(true);
-    expect(isNibiCuaMcpCommand("/opt/homebrew/bin/zcode-cua")).toBe(true);
+describe("nibi-cua MCP matcher (single source of truth for services + CLI bootstrap)", () => {
+  it("matches the nibi-cua command by leaf name", () => {
+    expect(isNibiCuaMcpCommand("nibi-cua")).toBe(true);
+    expect(isNibiCuaMcpCommand("/opt/homebrew/bin/nibi-cua")).toBe(true);
     expect(isNibiCuaMcpCommand("uvx")).toBe(false);
-    expect(isNibiCuaMcpCommand("zcode-cua-server")).toBe(false);
+    expect(isNibiCuaMcpCommand("nibi-cua-server")).toBe(false);
   });
 
   it("matches uvx/pip package spec forms", () => {
-    for (const arg of ["zcode-cua", "zcode-cua[macos]", "zcode-cua@v0.1.3", "zcode-cua[macos]@v0.1.3"]) {
+    for (const arg of ["nibi-cua", "nibi-cua[macos]", "nibi-cua@v0.1.3", "nibi-cua[macos]@v0.1.3"]) {
       expect(isNibiCuaMcpPackageArg(arg)).toBe(true);
     }
   });
 
   it("matches git and local-path forms (the drift that broke desktop/services parity)", () => {
-    expect(isNibiCuaMcpPackageArg("zcode-cua.git")).toBe(true);
-    expect(isNibiCuaMcpPackageArg("git+https://github.com/x/zcode-cua.git@v0.1.3")).toBe(true);
-    expect(isNibiCuaMcpPackageArg("/Users/me/src/zcode-cua")).toBe(true);
-    expect(isNibiCuaMcpPackageArg("C:\\src\\zcode-cua")).toBe(true);
+    expect(isNibiCuaMcpPackageArg("nibi-cua.git")).toBe(true);
+    expect(isNibiCuaMcpPackageArg("git+https://github.com/x/nibi-cua.git@v0.1.3")).toBe(true);
+    expect(isNibiCuaMcpPackageArg("/Users/me/src/nibi-cua")).toBe(true);
+    expect(isNibiCuaMcpPackageArg("C:\\src\\nibi-cua")).toBe(true);
+  });
+
+  it("matches the npm workspace spec", () => {
+    expect(isNibiCuaMcpPackageArg("@nibi/cua")).toBe(true);
+    expect(isNibiCuaMcpCommand("@nibi/cua")).toBe(true);
   });
 
   it("does not match unrelated args", () => {
-    for (const arg of ["--from", "run", "zcode-cua-server", "not-zcode-cua", "server.js"]) {
+    for (const arg of ["--from", "run", "nibi-cua-server", "not-nibi-cua", "server.js"]) {
       expect(isNibiCuaMcpPackageArg(arg)).toBe(false);
     }
   });
 
   it("recognizes a package spec placed in COMMAND position (command/arg matchers stay consistent)", () => {
-    // 之前 command matcher 只认精确叶子 zcode-cua，会漏判把包规格直接当 command 的配置 → 漏注入 broker。
-    for (const command of ["zcode-cua@1.2.3", "zcode-cua[macos]", "zcode-cua.git", "/opt/tools/zcode-cua@1.2.3"]) {
+    // 之前 command matcher 只认精确叶子 nibi-cua，会漏判把包规格直接当 command 的配置 → 漏注入 broker。
+    for (const command of ["nibi-cua@1.2.3", "nibi-cua[macos]", "nibi-cua.git", "/opt/tools/nibi-cua@1.2.3"]) {
       expect(isNibiCuaMcpCommand(command), command).toBe(true);
     }
   });
 
-  it("recognizes pip == pins and the zcode_cua underscore distribution name (PyPI treats _ == -)", () => {
-    for (const arg of ["zcode-cua==1.2.3", "zcode_cua", "zcode_cua==1.2.3", "zcode_cua@v0.1.3"]) {
+  it("recognizes pip == pins and the nibi_cua underscore distribution name (PyPI treats _ == -)", () => {
+    for (const arg of ["nibi-cua==1.2.3", "nibi_cua", "nibi_cua==1.2.3", "nibi_cua@v0.1.3"]) {
       expect(isNibiCuaMcpPackageArg(arg), arg).toBe(true);
     }
-    expect(isNibiCuaMcpCommand("zcode_cua")).toBe(true);
+    expect(isNibiCuaMcpCommand("nibi_cua")).toBe(true);
   });
 
-  it("does not false-positive on sibling packages like zcode-cua-proxy", () => {
-    for (const value of ["zcode-cua-proxy", "zcode-cua-proxy@1.0.0", "zcode-cua-helper"]) {
+  it("does not false-positive on sibling packages like nibi-cua-proxy", () => {
+    for (const value of ["nibi-cua-proxy", "nibi-cua-proxy@1.0.0", "nibi-cua-helper"]) {
       expect(isNibiCuaMcpCommand(value), value).toBe(false);
       expect(isNibiCuaMcpPackageArg(value), value).toBe(false);
     }
   });
 
-  it("recognizes `python -m zcode_cua.server` submodule form (M1 fail-open fix)", () => {
-    // `python -m zcode_cua.server` → arg 是 `zcode_cua.server`；旧 matcher 漏判 → 不注入 broker → fail-open。
-    for (const arg of ["zcode_cua.server", "zcode-cua.server", "zcode_cua.main", "zcode-cua.__main__"]) {
+  it("still fails closed for the historical upstream package spec", () => {
+    // 旧配置若仍指向历史上游包，同样必须注入 product broker，不能 fail-open。
+    expect(isNibiCuaMcpCommand("zcode-cua")).toBe(true);
+    expect(isNibiCuaMcpPackageArg("zcode-cua[macos]@v0.1.3")).toBe(true);
+    expect(isNibiCuaMcpPackageArg("zcode_cua")).toBe(true);
+  });
+
+  it("recognizes `python -m nibi_cua.server` submodule form (M1 fail-open fix)", () => {
+    // `python -m nibi_cua.server` → arg 是 `nibi_cua.server`；旧 matcher 漏判 → 不注入 broker → fail-open。
+    for (const arg of ["nibi_cua.server", "nibi-cua.server", "nibi_cua.main", "nibi-cua.__main__"]) {
       expect(isNibiCuaMcpPackageArg(arg), arg).toBe(true);
     }
   });
 
   it("recognizes local paths with a trailing separator (M1 fail-open fix)", () => {
-    // `.../zcode-cua/` 直接取叶子会得到空串 → 漏判 → fail-open。
-    expect(isNibiCuaMcpPackageArg("/Users/me/src/zcode-cua/")).toBe(true);
-    expect(isNibiCuaMcpPackageArg("C:\\src\\zcode-cua\\")).toBe(true);
-    expect(isNibiCuaMcpCommand("/opt/homebrew/bin/zcode-cua/")).toBe(true);
+    // `.../nibi-cua/` 直接取叶子会得到空串 → 漏判 → fail-open。
+    expect(isNibiCuaMcpPackageArg("/Users/me/src/nibi-cua/")).toBe(true);
+    expect(isNibiCuaMcpPackageArg("C:\\src\\nibi-cua\\")).toBe(true);
+    expect(isNibiCuaMcpCommand("/opt/homebrew/bin/nibi-cua/")).toBe(true);
     // 但带尾斜杠的 sibling 仍不误判。
-    expect(isNibiCuaMcpPackageArg("/Users/me/src/zcode-cua-proxy/")).toBe(false);
+    expect(isNibiCuaMcpPackageArg("/Users/me/src/nibi-cua-proxy/")).toBe(false);
   });
 });
 

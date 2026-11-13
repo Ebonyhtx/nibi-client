@@ -286,7 +286,7 @@ const MAX_CUA_INLINE_MEDIA_TOTAL_BYTES = 512 * 1024;
 
 function readCuaToolName(toolName: string): string | undefined {
   // 兼容两种 CUA 工具命名：直接的 `mcp__computer_use__<action>` 与 plugin
-  // 命名空间形式 `mcp__plugin_zcode-cua_computer-use__<action>`。
+  // 命名空间形式 `mcp__plugin_<plugin-id>_computer_use__<action>`。
   // 归一化（小写 + `-`→`_`）后：名字包含 `computer_use`，且 action 是最后一个 `__` 之后的子串。
   const normalized = toolName.trim().toLowerCase().replaceAll("-", "_");
   if (!normalized.includes("computer_use")) return undefined;

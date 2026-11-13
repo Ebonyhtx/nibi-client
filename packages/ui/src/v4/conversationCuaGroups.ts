@@ -21,10 +21,7 @@ export interface ConversationCuaGroupRenderItem {
   assistantResponseIds: string[];
 }
 
-const OFFICIAL_CUA_TOOL_PREFIXES = [
-  "mcp__computer-use__",
-  "mcp__plugin_zcode-cua_computer-use__",
-] as const;
+const OFFICIAL_CUA_TOOL_PREFIXES = ["mcp__computer-use__"] as const;
 
 export const ENABLE_CUA_TOOL_CALL_GROUPING = true;
 

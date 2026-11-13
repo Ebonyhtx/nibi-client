@@ -684,7 +684,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         ...scope,
         sessionId: "channel-reply-source",
         envelope: { requestId: "transport-request" },
-        __zcodeTrustedV4Connection: { connectionId: "test-connection" },
+        __nibiTrustedV4Connection: { connectionId: "test-connection" },
       };
       try {
         await service.subscribeConversationV4(target);
@@ -2141,7 +2141,7 @@ describe("nibiAgentService v4 conversation channel", () => {
       await service.unsubscribeConversationV4({
         workspacePath,
         subscriptionId: config.ack.subscriptionId,
-        __zcodeTrustedV4UnsubscribeRoute: {
+        __nibiTrustedV4UnsubscribeRoute: {
           topic: configSubscribe?.params.topic,
           connectionId: configSubscribe?.params.connectionId,
         },
