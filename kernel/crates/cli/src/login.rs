@@ -26,6 +26,7 @@ const RESPONSE_LIMIT: usize = 64 * 1024;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum Command {
+    Help,
     Login { no_browser: bool, json: bool },
     Logout { json: bool },
 }
@@ -35,6 +36,11 @@ const USAGE: &str = "Usage: nibi login [--no-browser]";
 /// 第一个参数是 `login` / `logout` 时解析成命令；其他命令返回空。
 pub(crate) fn parse(args: &[String]) -> Option<Result<Command, String>> {
     let (first, rest) = args.split_first()?;
+    if matches!(first.as_str(), "login" | "logout")
+        && rest.iter().any(|arg| arg == "-h" || arg == "--help")
+    {
+        return Some(Ok(Command::Help));
+    }
     match first.as_str() {
         "logout" => Some(Ok(Command::Logout {
             json: rest.iter().any(|arg| arg == "--json"),
@@ -67,9 +73,19 @@ pub(crate) struct AccountContext {
     pub now: Arc<dyn Fn() -> u64 + Send + Sync>,
 }
 
+/// `--help`：写用法、退出码 0（不需要读凭据或建网络出口）。
+pub(crate) fn help() -> u8 {
+    let _ = writeln!(std::io::stdout(), "{USAGE}");
+    0
+}
+
 /// 执行命令，返回退出码。成功写标准输出，错误写标准错误（`Error: <message>`）。
 pub(crate) async fn run(command: Command, context: &AccountContext) -> u8 {
+    if command == Command::Help {
+        return help();
+    }
     let result = match command {
+        Command::Help => Ok(()),
         Command::Login { no_browser, json } => login(context, no_browser, json).await,
         Command::Logout { json } => logout(context, json).await,
     };

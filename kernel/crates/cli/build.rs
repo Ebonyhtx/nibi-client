@@ -30,6 +30,8 @@ fn main() -> Result<(), String> {
         // 给 cargo 的指令经 stdout（clippy 的 print_stdout 不检查 build script）。
         println!("cargo:{text}");
     }
+    // `nibi doctor` 的 `cli.target`：编译目标三元组（`TARGET` 只在 build script 里由 cargo 给出）。
+    println!("cargo:rustc-env=NIBI_BUILD_TARGET={}", cargo_env("TARGET")?);
     Ok(())
 }
 

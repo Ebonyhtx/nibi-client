@@ -6,6 +6,7 @@
 pub mod codecs;
 pub mod dwf;
 pub mod entries;
+pub mod inspect;
 pub mod messages;
 pub mod migrations;
 pub mod open;

@@ -10,7 +10,9 @@ mod args;
 mod build_number;
 mod clipboard;
 mod commander;
+mod commands;
 mod config;
+mod doctor;
 mod dwf_engine_client;
 mod dwf_run_notification;
 mod editor;
@@ -44,6 +46,7 @@ mod prepare_storage;
 mod print_format;
 mod request_headers;
 mod signals;
+mod skills;
 mod ssh_executor;
 mod system_proxy;
 
@@ -769,6 +772,17 @@ async fn session(
     }
 }
 
+/// 非交互盘点命令（doctor / skills / commands）：第一个参数是它们的名字时解析成任务。
+fn local_command(args: &[String]) -> Option<Result<Job, String>> {
+    if let Some(parsed) = doctor::parse(args) {
+        return Some(parsed.map(Job::Doctor));
+    }
+    if let Some(parsed) = skills::parse(args) {
+        return Some(parsed.map(Job::Skills));
+    }
+    commands::parse(args).map(|parsed| parsed.map(Job::Commands))
+}
+
 #[expect(
     clippy::disallowed_methods,
     reason = "入口 crate 是唯一读取进程参数的位置（README §4 的环境类入口）"
@@ -812,34 +826,41 @@ fn main() -> ExitCode {
                     eprint_line(&text);
                     return ExitCode::FAILURE;
                 }
-                None => match parse(&args) {
-                    Ok(Invocation {
-                        mode: Mode::Version,
-                        ..
-                    }) => {
-                        print_line(&version_line(VERSION));
-                        return ExitCode::SUCCESS;
-                    }
-                    // 帮助写 stdout、退出码 0（commander `outputHelp`，cli-args.md §3）。
-                    Ok(Invocation {
-                        mode: Mode::Help, ..
-                    }) => {
-                        print_raw(&help::render(help_width()));
-                        return ExitCode::SUCCESS;
-                    }
-                    // 解析时的警告（`--effort` 的值不认识，cli-args.md §1.4）先写 stderr，照常运行。
-                    Ok(invocation) => {
-                        for warning in &invocation.warnings {
-                            eprint_line(warning);
-                        }
-                        Job::Session(Box::new(invocation))
-                    }
-                    // 缺陷修复（F40）：以前是自拟的 `zcode: unsupported arguments: …`、退出码 2；正确的是
-                    // commander 的原文（`error: unknown option '…'` 等）或 `Error: …`，退出码 1（cli-args.md §2.2）。
-                    Err(message) => {
-                        eprint_line(&message);
+                None => match local_command(&args) {
+                    Some(Ok(job)) => job,
+                    Some(Err(text)) => {
+                        eprint_line(&text);
                         return ExitCode::FAILURE;
                     }
+                    None => match parse(&args) {
+                        Ok(Invocation {
+                            mode: Mode::Version,
+                            ..
+                        }) => {
+                            print_line(&version_line(VERSION));
+                            return ExitCode::SUCCESS;
+                        }
+                        // 帮助写 stdout、退出码 0（commander `outputHelp`，cli-args.md §3）。
+                        Ok(Invocation {
+                            mode: Mode::Help, ..
+                        }) => {
+                            print_raw(&help::render(help_width()));
+                            return ExitCode::SUCCESS;
+                        }
+                        // 解析时的警告（`--effort` 的值不认识，cli-args.md §1.4）先写 stderr，照常运行。
+                        Ok(invocation) => {
+                            for warning in &invocation.warnings {
+                                eprint_line(warning);
+                            }
+                            Job::Session(Box::new(invocation))
+                        }
+                        // 缺陷修复（F40）：以前是自拟的 `zcode: unsupported arguments: …`、退出码 2；正确的是
+                        // commander 的原文（`error: unknown option '…'` 等）或 `Error: …`，退出码 1（cli-args.md §2.2）。
+                        Err(message) => {
+                            eprint_line(&message);
+                            return ExitCode::FAILURE;
+                        }
+                    },
                 },
             },
         },
@@ -859,10 +880,16 @@ fn main() -> ExitCode {
         Job::Account(command) => runtime.block_on(setup::account(command)),
         Job::Providers(command) => runtime.block_on(setup::providers(command)),
         Job::Trust(command) => runtime.block_on(setup::trust(command)),
+        Job::Update(update::Command::Check { json }) => {
+            runtime.block_on(setup::update_check(json))
+        }
         Job::Update(command) => {
             let env = EnvSnapshot::from(setup::process_env());
             runtime.block_on(update::command(command, &env, &mut std::io::stdout()))
         }
+        Job::Doctor(command) => runtime.block_on(setup::doctor(command)),
+        Job::Skills(command) => runtime.block_on(setup::skills(command)),
+        Job::Commands(command) => runtime.block_on(setup::commands(command)),
         Job::Session(invocation) => runtime.block_on(run(*invocation)),
     };
     match outcome {
@@ -895,5 +922,11 @@ enum Job {
     Trust(hooks_trust::TrustCommand),
     /// `zcode update`（update.md §9，F48）。
     Update(update::Command),
+    /// `nibi doctor`（非交互健康检查）。
+    Doctor(doctor::Command),
+    /// `nibi skills list|inspect`。
+    Skills(skills::Command),
+    /// `nibi commands list|inspect|builtin`。
+    Commands(commands::Command),
     Session(Box<Invocation>),
 }

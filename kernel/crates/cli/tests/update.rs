@@ -70,7 +70,7 @@ fn text(bytes: &[u8]) -> String {
 
 const NPM: [(&str, &str); 3] = [
     ("NIBI_MANAGED_BY_NPM", "1"),
-    ("NIBI_MANAGED_PACKAGE", "@nibi/cli"),
+    ("NIBI_MANAGED_PACKAGE", "@nibi-studio/cli"),
     (
         "NIBI_MANAGED_PLATFORM_PACKAGE",
         "@nibi-studio/cli-darwin-arm64",
@@ -87,7 +87,7 @@ fn without_a_marker_the_update_command_asks_for_a_manual_update() {
         assert_eq!(output.status.code(), Some(1), "{output:?}");
         assert_eq!(
             text(&output.stderr),
-            "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@nibi/cli\n"
+            "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@nibi-studio/cli\n"
         );
         assert!(output.stdout.is_empty(), "{output:?}");
     }
@@ -105,16 +105,16 @@ fn without_a_marker_the_update_command_asks_for_a_manual_update() {
 #[test]
 fn the_update_command_runs_the_package_manager_of_the_launcher() {
     for (marker, expected) in [
-        ("NIBI_MANAGED_BY_NPM", "npm install -g @nibi/cli"),
-        ("NIBI_MANAGED_BY_PNPM", "pnpm add -g @nibi/cli"),
-        ("NIBI_MANAGED_BY_BUN", "bun install -g @nibi/cli"),
+        ("NIBI_MANAGED_BY_NPM", "npm install -g @nibi-studio/cli"),
+        ("NIBI_MANAGED_BY_PNPM", "pnpm add -g @nibi-studio/cli"),
+        ("NIBI_MANAGED_BY_BUN", "bun install -g @nibi-studio/cli"),
     ] {
         let home = tempfile::tempdir().unwrap();
         fake_managers(&home.path().join("bin"));
         let output = zcode(
             home.path(),
             &["update"],
-            &[(marker, "1"), ("NIBI_MANAGED_PACKAGE", "@nibi/cli")],
+            &[(marker, "1"), ("NIBI_MANAGED_PACKAGE", "@nibi-studio/cli")],
         );
         assert_eq!(output.status.code(), Some(0), "{output:?}");
         assert_eq!(calls(home.path()), format!("{expected}\n"));
@@ -140,11 +140,11 @@ fn a_failed_update_reports_the_status_and_exits_with_one() {
     assert_eq!(output.status.code(), Some(1), "{output:?}");
     assert_eq!(
         text(&output.stderr),
-        "Error: `npm install -g @nibi/cli` failed with status exit status: 7\n"
+        "Error: `npm install -g @nibi-studio/cli` failed with status exit status: 7\n"
     );
     assert_eq!(
         text(&output.stdout),
-        "\nUpdating NIBI via `npm install -g @nibi/cli`...\nfake npm output\n"
+        "\nUpdating NIBI via `npm install -g @nibi-studio/cli`...\nfake npm output\n"
     );
 }
 
@@ -156,7 +156,7 @@ fn the_update_command_has_commander_help_and_errors() {
     assert_eq!(help.status.code(), Some(0), "{help:?}");
     assert_eq!(
         text(&help.stdout),
-        "Usage: nibi update|upgrade [options]\n\nUpdate NIBI to the latest version\n\nOptions:\n  -h, --help  Display help for command\n"
+        "Usage: nibi update|upgrade [options]\n\nUpdate NIBI to the latest version\n\nOptions:\n  --check     Check for a newer version without installing it\n  -h, --help  Display help for command\n"
     );
     for (args, expected) in [
         (vec!["update", "--yes"], "error: unknown option '--yes'\n"),
@@ -209,7 +209,7 @@ fn with_a_handoff_the_update_command_writes_latest_and_runs_nothing() {
     assert_eq!(output.status.code(), Some(1), "{output:?}");
     assert_eq!(
         text(&output.stderr),
-        "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@nibi/cli\n"
+        "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@nibi-studio/cli\n"
     );
     assert!(!handoff.exists());
     // 交接文件的目录不存在：报系统错误、退出码 1，不起包管理器。

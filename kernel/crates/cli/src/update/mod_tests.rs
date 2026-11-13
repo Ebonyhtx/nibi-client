@@ -9,13 +9,13 @@ use super::*;
 const HOUR_MS: u64 = 60 * 60 * 1000;
 /// 2026-10-20T08:00:00.000Z。
 const NOW_MS: u64 = 1_792_483_200_000;
-const ENTRY: &str = "/@nibi%2fcli";
+const ENTRY: &str = "/@nibi-studio%2fcli";
 const PLATFORM: &str = "/@nibi-studio%2fcli-darwin-arm64";
 
 fn marked() -> Vec<(String, String)> {
     [
         ("NIBI_MANAGED_BY_NPM", "1"),
-        ("NIBI_MANAGED_PACKAGE", "@nibi/cli"),
+        ("NIBI_MANAGED_PACKAGE", "@nibi-studio/cli"),
         (
             "NIBI_MANAGED_PLATFORM_PACKAGE",
             "@nibi-studio/cli-darwin-arm64",
@@ -32,7 +32,7 @@ fn registry(latest: &str) -> FakeRegistry {
         (
             ENTRY.to_owned(),
             200,
-            package("@nibi/cli", latest, &[latest]),
+            package("@nibi-studio/cli", latest, &[latest]),
         ),
         (
             PLATFORM.to_owned(),
@@ -79,8 +79,8 @@ fn expected(latest: &str) -> UpdateInfo {
     UpdateInfo {
         current: "0.1.46".to_owned(),
         latest: latest.to_owned(),
-        command: "npm install -g @nibi/cli".to_owned(),
-        notes_url: "https://www.npmjs.com/package/@nibi/cli".to_owned(),
+        command: "npm install -g @nibi-studio/cli".to_owned(),
+        notes_url: "https://www.npmjs.com/package/@nibi-studio/cli".to_owned(),
     }
 }
 
@@ -100,7 +100,7 @@ async fn without_a_marker_nothing_is_read_or_fetched() {
     // 只有包名、没有标记：同样不检查。
     let half = vec![(
         "NIBI_MANAGED_PACKAGE".to_owned(),
-        "@nibi/cli".to_owned(),
+        "@nibi-studio/cli".to_owned(),
     )];
     let mut updates = start(&half, true, &cache, &server.url).await;
     assert!(!updates.refreshed().await);
@@ -195,7 +195,7 @@ async fn a_failed_check_keeps_the_old_cache() {
         (
             ENTRY.to_owned(),
             200,
-            package("@nibi/cli", "0.1.48", &["0.1.48"]),
+            package("@nibi-studio/cli", "0.1.48", &["0.1.48"]),
         ),
         (
             PLATFORM.to_owned(),
@@ -255,6 +255,20 @@ fn args(list: &[&str]) -> Vec<String> {
 fn the_update_command_is_parsed_like_commander() {
     assert_eq!(parse(&args(&["update"])), Some(Ok(Command::Run)));
     assert_eq!(parse(&args(&["upgrade"])), Some(Ok(Command::Run)));
+    assert_eq!(
+        parse(&args(&["update", "--check"])),
+        Some(Ok(Command::Check { json: false }))
+    );
+    assert_eq!(
+        parse(&args(&["update", "--check", "--json"])),
+        Some(Ok(Command::Check { json: true }))
+    );
+    assert_eq!(
+        parse(&args(&["update", "--json"])),
+        Some(Err(
+            "error: option '--json' can only be used with --check".to_owned()
+        ))
+    );
     assert_eq!(parse(&args(&["update", "--help"])), Some(Ok(Command::Help)));
     assert_eq!(
         parse(&args(&["update", "--nope", "-h"])),
@@ -275,20 +289,142 @@ fn the_update_command_is_parsed_like_commander() {
     assert_eq!(parse(&args(&["login"])), None);
 }
 
+/// `--check` 用启动器标记里的入口包与平台包；检查完成即 0（有无更新都一样）。
+#[tokio::test]
+async fn update_check_reports_the_registry_latest_in_json() {
+    let server = registry("0.1.47");
+    let egress = egress().await;
+    let mut out = Vec::new();
+    let code = check(
+        CheckInputs {
+            egress: &egress,
+            registry: &server.url,
+            env: &marked(),
+            version: "0.1.46",
+            json: true,
+        },
+        &mut out,
+    )
+    .await
+    .unwrap();
+    assert_eq!(code, 0);
+    let value: serde_json::Value = serde_json::from_slice(&out).unwrap();
+    assert_eq!(value["schemaVersion"], 1);
+    assert_eq!(value["current"], "0.1.46");
+    assert_eq!(value["latest"], "0.1.47");
+    assert_eq!(value["updateAvailable"], true);
+    assert_eq!(value["channel"], "latest");
+    assert_eq!(value["source"], "npm");
+    let paths: Vec<String> = server.seen().into_iter().map(|seen| seen.path).collect();
+    assert_eq!(paths, [ENTRY, PLATFORM]);
+}
+
+/// 没有启动器标记时查 META 包与本机平台包。
+#[tokio::test]
+async fn update_check_without_markers_uses_the_meta_package() {
+    let platform = platform_package_for_build();
+    let mut routes = vec![(
+        format!("/{}", META_PACKAGE.replace('/', "%2f")),
+        200,
+        package(META_PACKAGE, "0.1.47", &["0.1.47"]),
+    )];
+    if let Some(platform) = &platform {
+        routes.push((
+            format!("/{}", platform.replace('/', "%2f")),
+            200,
+            package(platform, "0.1.47", &["0.1.47"]),
+        ));
+    }
+    let server = FakeRegistry::start(routes);
+    let egress = egress().await;
+    let mut out = Vec::new();
+    let code = check(
+        CheckInputs {
+            egress: &egress,
+            registry: &server.url,
+            env: &[],
+            version: "0.1.46",
+            json: false,
+        },
+        &mut out,
+    )
+    .await
+    .unwrap();
+    assert_eq!(code, 0);
+    let text = String::from_utf8(out).unwrap();
+    assert!(text.contains("current: 0.1.46"));
+    assert!(text.contains("latest: 0.1.47"));
+    assert!(text.contains("update available: yes"));
+}
+
+#[tokio::test]
+async fn update_check_fails_readably_when_the_registry_fails() {
+    let server = FakeRegistry::start(Vec::new());
+    let egress = egress().await;
+    let error = check(
+        CheckInputs {
+            egress: &egress,
+            registry: &server.url,
+            env: &marked(),
+            version: "0.1.46",
+            json: true,
+        },
+        &mut Vec::new(),
+    )
+    .await
+    .unwrap_err();
+    assert!(error.to_string().contains("update check failed"));
+    assert!(error.to_string().contains("HTTP 404"));
+}
+
+#[test]
+fn the_registry_override_comes_from_the_environment() {
+    let env = vec![(
+        "NIBI_NPM_REGISTRY".to_owned(),
+        "https://mirror.example.com/npm".to_owned(),
+    )];
+    assert_eq!(registry_from_env(&env), "https://mirror.example.com/npm");
+    assert_eq!(registry_from_env(&[]), super::registry());
+    let blank = vec![("NIBI_NPM_REGISTRY".to_owned(), "  ".to_owned())];
+    assert_eq!(registry_from_env(&blank), super::registry());
+}
+
+#[test]
+fn only_the_published_platforms_get_a_platform_package() {
+    // `scripts/rust-cli/npm/package.mjs` 的 TARGETS（发布矩阵）只有这四个。
+    assert_eq!(package_id("linux", "x86_64"), Some("linux-x64-gnu"));
+    assert_eq!(package_id("linux", "aarch64"), Some("linux-arm64-gnu"));
+    assert_eq!(package_id("macos", "aarch64"), Some("darwin-arm64"));
+    assert_eq!(package_id("android", "aarch64"), Some("android-arm64"));
+    // 没有发布的平台：只查 META 包，不查不存在的平台包。
+    for (os, arch) in [
+        ("macos", "x86_64"),
+        ("windows", "x86_64"),
+        ("windows", "aarch64"),
+        ("freebsd", "x86_64"),
+    ] {
+        assert_eq!(package_id(os, arch), None, "{os}/{arch}");
+    }
+    if let Some(platform) = platform_package_for_build() {
+        assert!(platform.starts_with("@nibi-studio/cli-"));
+        assert!(platform.len() > "@nibi-studio/cli-".len());
+    }
+}
+
 #[tokio::test]
 async fn the_update_command_without_a_marker_asks_for_a_manual_update() {
     let mut out = Vec::new();
     let error = command(Command::Run, &[], &mut out).await.unwrap_err();
     assert_eq!(
         error.to_string(),
-        "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@nibi/cli"
+        "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@nibi-studio/cli"
     );
     assert!(out.is_empty());
     let mut help = Vec::new();
     assert_eq!(command(Command::Help, &[], &mut help).await.unwrap(), 0);
     assert_eq!(
         String::from_utf8(help).unwrap(),
-        "Usage: nibi update|upgrade [options]\n\nUpdate NIBI to the latest version\n\nOptions:\n  -h, --help  Display help for command\n"
+        "Usage: nibi update|upgrade [options]\n\nUpdate NIBI to the latest version\n\nOptions:\n  --check     Check for a newer version without installing it\n  -h, --help  Display help for command\n"
     );
 }
 

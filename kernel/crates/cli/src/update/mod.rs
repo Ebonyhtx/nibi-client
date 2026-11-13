@@ -34,12 +34,16 @@ const HELP: &str = "Usage: nibi update|upgrade [options]
 Update NIBI to the latest version
 
 Options:
+  --check     Check for a newer version without installing it
   -h, --help  Display help for command
 ";
+/// npm 的 META 包（`@nibi-studio/cli`）：`optionalDependencies` 按平台指向
+/// `@nibi-studio/cli-<platform>`。`nibi update --check` 在没有启动器标记时也查它。
+pub(crate) const META_PACKAGE: &str = "@nibi-studio/cli";
 /// 没有标记时 `nibi update` 的报错（update.md §9）。链接是 npm 入口包的页面
 /// （用户决定 2026-10-23，工作线 F71；以前没有链接）：没有标记时不知道包名，只在这里写死，有标记时的链接由启动器给的包名
-/// 拼（`install.rs`）。`@nibi/cli` 是 NIBI 的 npm 入口包（发布平台包时同批上线）。
-const UNDETECTED: &str = "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@nibi/cli";
+/// 拼（`install.rs`）。`@nibi-studio/cli` 是 NIBI 的 npm 入口包（发布平台包时同批上线）。
+const UNDETECTED: &str = "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@nibi-studio/cli";
 
 /// 启动时的输入（入口给出）。
 pub(crate) struct Inputs<'a> {
@@ -193,6 +197,10 @@ fn spawn_refresh(inputs: &Inputs<'_>, install: Install) -> (TaskScope, Task<()>)
 pub(crate) enum Command {
     Run,
     Help,
+    /// 只查不升（`nibi update --check [--json]`）。
+    Check {
+        json: bool,
+    },
 }
 
 /// 第一个参数是 `update` / `upgrade` 时解析成命令（commander 12 的规则：先看帮助，再报未知选项，再报多余的参数）；
@@ -205,16 +213,33 @@ pub(crate) fn parse(args: &[String]) -> Option<Result<Command, String>> {
     if rest.iter().any(|arg| arg == "-h" || arg == "--help") {
         return Some(Ok(Command::Help));
     }
-    if let Some(option) = rest.iter().find(|arg| arg.starts_with('-') && *arg != "-") {
-        return Some(Err(format!("error: unknown option '{option}'")));
+    let mut check = false;
+    let mut json = false;
+    for arg in rest {
+        match arg.as_str() {
+            "--check" => check = true,
+            "--json" => json = true,
+            option if option.starts_with('-') && option != "-" => {
+                return Some(Err(format!("error: unknown option '{option}'")));
+            }
+            _ => {
+                let count = rest.len();
+                return Some(Err(format!(
+                    "error: too many arguments for 'update'. Expected 0 arguments but got {count}."
+                )));
+            }
+        }
     }
-    if !rest.is_empty() {
-        let count = rest.len();
-        return Some(Err(format!(
-            "error: too many arguments for 'update'. Expected 0 arguments but got {count}."
-        )));
+    if json && !check {
+        return Some(Err(
+            "error: option '--json' can only be used with --check".to_owned()
+        ));
     }
-    Some(Ok(Command::Run))
+    Some(Ok(if check {
+        Command::Check { json }
+    } else {
+        Command::Run
+    }))
 }
 
 /// 执行 `zcode update`：`env` 是入口的进程环境快照。不查版本：Unix 的命令不带版本，交接文件写 `latest`（§8.1）。
@@ -232,6 +257,11 @@ pub(crate) async fn command(
             Some(install) => action::run(&install, handoff::LATEST, env, out).await,
             None => Err(Fatal(UNDETECTED.to_owned()).into()),
         },
+        // `--check` 要网络出口，入口按 `setup::update_check` 分流；走到这里说明调用方漏了分流。
+        Command::Check { .. } => Err(Fatal(
+            "Error: update --check needs the network egress (entry point routing bug)".to_owned(),
+        )
+        .into()),
     }
 }
 
@@ -264,6 +294,78 @@ pub(crate) async fn offer(
 /// 产品里的 registry 根。
 pub(crate) fn registry() -> String {
     registry::REGISTRY.to_owned()
+}
+
+/// registry 根：`NIBI_NPM_REGISTRY`（国内镜像/离线测试）覆盖产品缺省值。
+pub(crate) fn registry_from_env(env: &[(String, String)]) -> String {
+    nibi_kernel_base::secret::env_var(env, "NIBI_NPM_REGISTRY")
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map_or_else(registry, str::to_owned)
+}
+
+/// npm 平台包 id（只认 `scripts/rust-cli/npm/package.mjs` 实际发布的四个 TARGETS）。
+///
+/// Windows 与 Intel macOS 没有平台包：返回 None，`--check` 只查 META 包，不去问一个不存在的包
+/// （否则必然 404，把一次正常的版本检查报成网络失败）。
+fn package_id(os: &str, arch: &str) -> Option<&'static str> {
+    match (os, arch) {
+        ("linux", "x86_64") => Some("linux-x64-gnu"),
+        ("linux", "aarch64") => Some("linux-arm64-gnu"),
+        ("macos", "aarch64") => Some("darwin-arm64"),
+        ("android", "aarch64") => Some("android-arm64"),
+        _ => None,
+    }
+}
+
+/// 本机平台包名 `@nibi-studio/cli-<platform>`（没有平台包时 None）。
+pub(crate) fn platform_package_for_build() -> Option<String> {
+    package_id(std::env::consts::OS, std::env::consts::ARCH)
+        .map(|id| format!("{META_PACKAGE}-{id}"))
+}
+
+/// `nibi update --check` 的输入。
+pub(crate) struct CheckInputs<'a> {
+    pub(crate) egress: &'a Egress,
+    pub(crate) registry: &'a str,
+    pub(crate) env: &'a [(String, String)],
+    pub(crate) version: &'a str,
+    pub(crate) json: bool,
+}
+
+/// `nibi update --check`：只查不升。检查完成即 0（有无更新都一样）；网络/解析失败 1。
+pub(crate) async fn check(inputs: CheckInputs<'_>, out: &mut dyn std::io::Write) -> Result<u8> {
+    // 有启动器标记时用启动器给的入口包与平台包；独立安装查 META 包与本机平台包。
+    let install = Install::detect(inputs.env).unwrap_or_else(|| Install {
+        manager: install::Manager::Npm,
+        package: META_PACKAGE.to_owned(),
+        platform_package: platform_package_for_build(),
+    });
+    let latest = registry::latest(inputs.egress, inputs.registry, &install)
+        .await
+        .map_err(|error| Fatal(format!("Error: update check failed: {error:#}")))?;
+    let update_available = versions::is_newer(&latest, inputs.version).unwrap_or(false);
+    if inputs.json {
+        let body = serde_json::to_string_pretty(&serde_json::json!({
+            "schemaVersion": 1,
+            "current": inputs.version,
+            "latest": latest,
+            "updateAvailable": update_available,
+            "channel": "latest",
+            "source": "npm",
+        }))
+        .unwrap_or_default();
+        let _ = writeln!(out, "{body}");
+    } else {
+        let _ = writeln!(out, "current: {}", inputs.version);
+        let _ = writeln!(out, "latest: {latest}");
+        let _ = writeln!(
+            out,
+            "update available: {}",
+            if update_available { "yes" } else { "no" }
+        );
+    }
+    Ok(0)
 }
 
 #[cfg(test)]

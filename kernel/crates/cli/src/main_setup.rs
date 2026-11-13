@@ -114,8 +114,57 @@ pub(super) async fn updates(
     Some(update::Updates::start(inputs).await)
 }
 
+/// `nibi doctor`：捕获启动事实后交给 doctor（它自己读配置与探测）。
+pub(super) async fn doctor(command: doctor::Command) -> Result<u8> {
+    if command == doctor::Command::Help {
+        return Ok(doctor::help());
+    }
+    let startup = capture()?;
+    Ok(doctor::run(command, &startup).await)
+}
+
+/// `nibi skills …`：捕获启动事实后交给 skills（它自己读配置与插件）。
+pub(super) async fn skills(command: skills::Command) -> Result<u8> {
+    if command == skills::Command::Help {
+        return Ok(skills::help());
+    }
+    let startup = capture()?;
+    Ok(skills::run(command, &startup).await)
+}
+
+/// `nibi commands …`：捕获启动事实后交给 commands。
+pub(super) async fn commands(command: commands::Command) -> Result<u8> {
+    if command == commands::Command::Help {
+        return Ok(commands::help());
+    }
+    let startup = capture()?;
+    Ok(commands::run(command, &startup).await)
+}
+
+/// `nibi update --check`：只查版本，不下载、不替换二进制。网络出口走启动时同一套策略；
+/// registry 可用 `NIBI_NPM_REGISTRY` 覆盖。
+pub(super) async fn update_check(json: bool) -> Result<u8> {
+    let startup = capture()?;
+    let egress = egress(&startup).await?;
+    let registry = update::registry_from_env(&startup.env);
+    update::check(
+        update::CheckInputs {
+            egress: &egress,
+            registry: &registry,
+            env: &startup.env,
+            version: VERSION,
+            json,
+        },
+        &mut std::io::stdout(),
+    )
+    .await
+}
+
 /// `nibi login` / `nibi logout`。
 pub(super) async fn account(command: login::Command) -> Result<u8> {
+    if command == login::Command::Help {
+        return Ok(login::help());
+    }
     let startup = capture()?;
     let egress = egress(&startup).await?;
     let clock = Arc::new(SystemClock::new(startup.zone.clone()));
@@ -208,6 +257,10 @@ pub(super) fn mcp_oauth(
 
 /// `zcode hooks trust …`：工作区文件经本机执行环境读，信任记录经 platform（config.md §4.3）。
 pub(super) async fn trust(command: hooks_trust::TrustCommand) -> Result<u8> {
+    if command == hooks_trust::TrustCommand::Help {
+        crate::output::print_raw(hooks_trust::USAGE);
+        return Ok(0);
+    }
     let startup = capture()?;
     let paths = storage_paths(&startup, &StorageSettings::default());
     let env = LocalEnvironment::new(Some(startup.home.clone()));
@@ -298,6 +351,33 @@ pub(super) async fn extensions(
     // 内核只在装配这个可信服务器时读其中的白名单键。
     extensions.node_repl_env = Some(env.iter().cloned().collect());
     extensions
+}
+
+/// 非交互盘点命令（`nibi skills` / `nibi commands`）用的插件根：与启动时 `extensions` 同一次发现，
+/// 只取出 skill/命令目录。`config` 里的启用、停用与插件候选都已按配置层合并。
+pub(super) struct ExtensionRoots {
+    pub(super) skills: Vec<nibi_kernel_ext::skills::PluginSkillRoot>,
+    pub(super) commands: Vec<nibi_kernel_ext::commands::PluginCommandRoot>,
+    /// 随包内置技能包的根（`NIBI_BUNDLED_SKILLS_DIR`，Node `bundledSkillRoots` 的同一份资产）。
+    pub(super) skill_roots: Vec<String>,
+}
+
+pub(super) async fn extension_roots(
+    files: &dyn Files,
+    workspace: &WorkspaceRef,
+    startup: &Startup,
+    config: &config::ConfigSnapshot,
+) -> ExtensionRoots {
+    let loaded = nibi_kernel_ext::plugins::load_all(files, workspace, &[], &config.plugins).await;
+    ExtensionRoots {
+        skills: loaded.plugins.skill_roots(),
+        commands: loaded.plugins.command_roots(),
+        skill_roots: startup
+            .env
+            .get("NIBI_BUNDLED_SKILLS_DIR")
+            .map(|root| vec![root.to_owned()])
+            .unwrap_or_default(),
+    }
 }
 
 /// 要读文件、看目录的参数（cli-args.md §4、§6、§8）。
