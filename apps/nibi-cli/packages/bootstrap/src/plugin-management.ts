@@ -25,3 +25,4 @@ export {
   type PluginManagementContext,
 } from "./nibi-protocol/plugins.js";
 export { listPluginUiSurfaces } from "./nibi-protocol/plugin-ui-surfaces.js";
+export { seedOfficialPlugins } from "./plugins.js";

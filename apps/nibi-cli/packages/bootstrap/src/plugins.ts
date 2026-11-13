@@ -994,6 +994,25 @@ async function restoreBuiltinPluginCore(options: RestoreBuiltinPluginOptions): P
   });
 }
 
+export function seedOfficialPlugins(
+  options: {
+    env?: NodeJS.ProcessEnv;
+    logger?: Logger;
+    runtimeHostPrefixArgs?: readonly string[];
+  } = {},
+): void {
+  const { pluginStorageRoot } = resolvePluginContext({
+    env: options.env,
+    workingDirectory: process.cwd(),
+  });
+  resolveOfficialPluginRoots({
+    env: options.env,
+    logger: options.logger,
+    runtimeHostPrefixArgs: options.runtimeHostPrefixArgs,
+    storageRoot: pluginStorageRoot,
+  });
+}
+
 export async function restoreBuiltinPlugin(options: RestoreBuiltinPluginOptions): Promise<void> {
   const { pluginStorageRoot } = resolvePluginContext(options);
   await withPluginStorageLock(pluginStorageRoot, () => restoreBuiltinPluginCore(options));

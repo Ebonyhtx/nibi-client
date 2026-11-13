@@ -37,7 +37,7 @@ import {
   MessageChannelMain,
 } from "electron";
 import { randomUUID } from "node:crypto";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { BroadcastHub } from "./broadcastHub.js";
 import { bindDatabaseStartupRelay } from "./databaseStartupRelay.js";
 import { getMainLaunchPartialMarks } from "./desktopLaunchMarks.js";
@@ -243,6 +243,13 @@ export function spawnHostProcess(
       ...buildHostProcessEnv(dependencies.hostProcessLocalEnv),
       ...buildHostE2ECoverageEnv(),
       NIBI_PROCESS_LABEL: label,
+      // Host 的入口不是 resources/glm/nibi.cjs；插件 seed 与缓存清单重写需要随包资源目录和真正的插件宿主 bundle。
+      ...(glmBinaryPath
+        ? {
+            NIBI_BUNDLED_AGENT_BINARY_PATH: glmBinaryPath,
+            NIBI_BUNDLED_AGENT_RESOURCE_DIR: dirname(glmBinaryPath),
+          }
+        : {}),
       // macOS-only: the Computer Use Helper launcher runs inside this forked host utilityProcess, whose
       // code-signing identity is a nested Electron helper (NOT dev.zcode.app). Publish THIS (main
       // Electron) process's pid — which IS dev.zcode.app — so helperLauncher passes it as

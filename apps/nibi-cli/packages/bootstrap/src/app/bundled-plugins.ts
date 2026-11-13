@@ -674,9 +674,16 @@ export function candidateBaseDirs(): string[] {
   // 修复原因：Electron app-server 运行在 resources/glm/nibi.cjs，官方插件资源也随桌面包
   // stage 到同级 packages/*-plugin。候选目录必须优先看入口文件目录，避免生产态退回到
   // monorepo-only 的 __dirname 查找假设。
-  return [entrypointDir(), runtimeDir(), process.cwd()].filter(
-    (dir): dir is string => typeof dir === "string",
-  );
+  // Host 进程的入口是 out/host/index.js，既不在 resources/glm 也不在 monorepo 包里；
+  // main 通过 NIBI_BUNDLED_AGENT_RESOURCE_DIR 把随包资源目录显式传进来，必须排在最前。
+  const bundledResourceDir = process.env.NIBI_BUNDLED_AGENT_RESOURCE_DIR?.trim();
+  return [
+    ...new Set(
+      [bundledResourceDir, entrypointDir(), runtimeDir(), process.cwd()].filter(
+        (dir): dir is string => typeof dir === "string" && dir.length > 0,
+      ),
+    ),
+  ];
 }
 
 function runtimeDir(): string | undefined {

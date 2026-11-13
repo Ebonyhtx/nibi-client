@@ -24,6 +24,7 @@ import {
   removePluginMarketplace,
   resetPluginConfig,
   restoreBuiltinPlugin,
+  seedOfficialPlugins,
   setPluginEnabled,
   uninstallPlugin,
   updatePlugin,
@@ -77,9 +78,29 @@ function hostLogger(): PluginLogger {
   return logger;
 }
 
+let officialPluginSeedAttempted = false;
+
 export function createLocalPluginManagementService(
   options: LocalPluginManagementServiceOptions,
 ): IPluginManagementService {
+  // Rust 内核启动不会经过 Node bootstrap 的 seed；Host 自己就是插件管理面，必须在
+  // 第一次创建 backend 时补一次。只有 main 注入随包资源目录（桌面运行态）时才执行，
+  // 单测/CLI 上下文没有这两个 env，不会写真实用户目录。
+  if (
+    !officialPluginSeedAttempted &&
+    process.env.NIBI_BUNDLED_AGENT_RESOURCE_DIR?.trim()
+  ) {
+    officialPluginSeedAttempted = true;
+    const logger = options.logger ?? hostLogger();
+    try {
+      seedOfficialPlugins({ env: options.env ?? process.env, logger });
+    } catch (error) {
+      logger.warn(
+        "Official plugin seed failed during Host startup",
+        { error },
+      );
+    }
+  }
   const context: PluginManagementContext = {
     deps: { env: options.env ?? process.env },
     logger: options.logger ?? hostLogger(),

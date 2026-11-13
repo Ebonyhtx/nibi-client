@@ -206,6 +206,11 @@ function resolveHostPrefixArgs(injected: readonly string[] | undefined): string[
 export function officialPluginHostPrefixArgs(): string[] | undefined {
   if (isSeaRuntime()) return [NIBI_PLUGIN_HOST_COMMAND];
 
+  // Host 进程自己没有插件宿主命令；main 会把随包的 nibi.cjs 路径注入进来。
+  // 用这份 bundle 当宿主入口，插件缓存里的 MCP server 才能在 Host 管理面下正常拉起。
+  const bundledBinary = process.env.NIBI_BUNDLED_AGENT_BINARY_PATH?.trim();
+  if (bundledBinary) return [bundledBinary, NIBI_PLUGIN_HOST_COMMAND];
+
   const entrypoint = process.argv[1];
   if (!entrypoint) return undefined;
 
