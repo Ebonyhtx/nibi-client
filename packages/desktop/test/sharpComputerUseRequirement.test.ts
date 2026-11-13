@@ -14,7 +14,7 @@ function createWorkspace(cuaManifest: Record<string, unknown> | null, location: 
   mkdirSync(desktopRoot, { recursive: true });
   if (cuaManifest) {
     const base = location === "root" ? root : desktopRoot;
-    const cuaDir = join(base, "node_modules", "@zcode", "zcode-cua");
+    const cuaDir = join(base, "node_modules", "@nibi", "cua");
     mkdirSync(cuaDir, { recursive: true });
     writeFileSync(join(cuaDir, "package.json"), JSON.stringify(cuaManifest));
   }

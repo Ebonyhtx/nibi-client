@@ -166,9 +166,13 @@ function copyRuntimePackage(sourceRoot, targetRoot) {
  */
 export function isSharpRequiredByComputerUse({ desktopPackageRoot }) {
   for (let dir = resolve(desktopPackageRoot); ; dir = dirname(dir)) {
-    const manifestPath = resolve(dir, "node_modules", "@zcode", "zcode-cua", "package.json");
-    if (existsSync(manifestPath)) {
-      const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    // 包名已改为 @nibi/cua；旧私有 producer checkout 仍可能用 @zcode/zcode-cua，保留回退。
+    for (const packagePath of [
+      resolve(dir, "node_modules", "@nibi", "cua", "package.json"),
+      resolve(dir, "node_modules", "@zcode", "zcode-cua", "package.json"),
+    ]) {
+      if (!existsSync(packagePath)) continue;
+      const manifest = JSON.parse(readFileSync(packagePath, "utf8"));
       return ["dependencies", "optionalDependencies", "peerDependencies"].some(
         (field) => typeof manifest[field]?.sharp === "string",
       );
