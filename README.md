@@ -18,7 +18,7 @@ NIBI 是一个开源的 AI 编程工作台，包含桌面应用、浏览器界�
 
 - Electron 桌面客户端与 Web 客户端
 - 本地 Host、服务端、RPC 与共享协议
-- Agent CLI、TUI 与运行时
+- Rust Agent CLI、TUI 与运行时
 - 共享 React UI、插件宿主与内置插件
 - 开发、测试、构建与架构门禁
 
@@ -47,7 +47,7 @@ pnpm dev:desktop
 
 `pnpm bootstrap` 会安装 workspace 依赖、准备桌面本地运行资源，并构建基础包。
 
-Agent CLI 与运行时源码位于 [apps/nibi-cli/](apps/nibi-cli/)，作为普通目录随仓库克隆，不需要 submodule。
+内部 Node agent runtime（`nibi.cjs`，供 DWF、插件宿主与远端 Source Server 使用）源码位于 [apps/nibi-cli/](apps/nibi-cli/)，作为普通目录随仓库克隆，不需要 submodule；面向用户的终端 CLI/TUI 是 `kernel/` 里的 Rust `nibi-rs`。
 
 其他常用入口：
 
@@ -77,7 +77,7 @@ NIBI_DATA_BASE_DIR="$HOME/.nibi-dev" pnpm dev:desktop
 | `packages/services` | 业务服务与持久化 |
 | `packages/shared`、`packages/rpc`、`packages/client` | 共享协议、RPC 框架、Agent 客户端 SDK |
 | `packages/provider`、`packages/provider-node` | Provider 公共能力与 Node 实现 |
-| `apps/nibi-cli` | Agent CLI、TUI、运行时与工具 |
+| `apps/nibi-cli` | 内部 Node agent runtime（`nibi.cjs`：DWF、插件宿主、远端 Source Server） |
 | `packages/nibi-cua` | Computer Use 实现（Helper / runtime / engine 适配） |
 | `kernel` | **Rust 内核**（独立 Cargo workspace，37 个 crate）：协议前端、会话/工具/模型层、CLI 与 TUI |
 | `scripts`、`config`、`third-party` | 构建维护脚本、内置配置与第三方声明 |
@@ -89,7 +89,7 @@ NIBI_DATA_BASE_DIR="$HOME/.nibi-dev" pnpm dev:desktop
 > [`docs/rust-kernel-function-parity.md`](docs/rust-kernel-function-parity.md)，改造台账在
 > [`kernel/CHANGELOG-FORK.md`](kernel/CHANGELOG-FORK.md)。
 
-> `apps/nibi-cli`、`packages/nibi-server-cli` 已完成 NIBI 目录改名；上游原样文件的校验通过 `scripts/architecture/upstream-snapshot.json` 的本地→上游前缀映射继续生效（快照键仍是上游路径）。`packages/nibi-cua` 已随 CUA 引擎升级迁入公开仓。包名、CLI 命令和产物均为 NIBI（`nibi-cli`、`@nibi/server-cli`、`@nibi/cua`、`dist/nibi/`、远端执行器 `nibi-server.cjs` 与 `nibi-server-<target>.tar.gz`）。
+> `apps/nibi-cli`、`packages/nibi-server-cli` 已完成 NIBI 目录改名；上游原样文件的校验通过 `scripts/architecture/upstream-snapshot.json` 的本地→上游前缀映射继续生效（快照键仍是上游路径）。`packages/nibi-cua` 已随 CUA 引擎升级迁入公开仓。包名、CLI 命令和产物均为 NIBI（`nibi-cli`、`@nibi/server-cli`、`@nibi/cua`、`dist/nibi.cjs`、远端执行器 `nibi-server.cjs` 与 `nibi-server-<target>.tar.gz`）。
 
 ## 开发与验证
 
@@ -112,13 +112,17 @@ pnpm bundle:desktop -- --os win --arch x64
 
 公开源码构建产物**未签名**。正式发布所需的签名与公证由发布流水线在私有环境中完成，不属于本仓库。
 
-CLI 发行包：
+终端 CLI 发行包（Rust 内核 + npm META 启动器）：
 
 ```bash
-pnpm build:nibi --base-url https://downloads.example.com/nibi/
+npm install -g @nibi-studio/cli
+nibi --version
+nibi doctor --json
 ```
 
-`--base-url` 只影响安装脚本的下载地址；本地验证可以直接解压 `dist/nibi/` 下的产物运行。
+META 包按当前 os/arch 安装 `@nibi-studio/cli-<platform>` 平台包；Linux 目前只发 glibc
+（gnu）版本，Intel Mac 与 Windows 不在 npm 平台包清单里。Node `@nibi/cli` 与 Node TUI
+已退役，不再发布；`nibi.cjs` 仅作为桌面 DWF、插件宿主和远端 Source Server 的内部运行时。
 
 ## 配置
 
@@ -127,7 +131,6 @@ pnpm build:nibi --base-url https://downloads.example.com/nibi/
 | `NIBI_DATA_BASE_DIR` | 应用数据基目录，数据写入其下的 `.nibi/` |
 | `NIBI_SERVER_WORKSPACE` | Web 后端的工作区路径 |
 | `NIBI_BUILTIN_PROVIDER_CONFIG_FILE` | 本地 Provider 配置文件路径 |
-| `NIBI_DIST_BASE_URL` | CLI 安装脚本使用的下载根地址 |
 
 运行时变量通过启动命令的环境显式设置。随客户端发布的默认配置见 [config/README.md](config/README.md)。
 

@@ -56,9 +56,6 @@ pnpm --filter @nibi/desktop prepare:native-search
 # Prepare a specific target, optionally into a separate staging directory.
 node scripts/prepare-native-search-tools.mjs --platform linux --arch x64 --output-dir /tmp/nibi-native-search
 
-# Package the CLI, including the prepared target tools.
-pnpm build:sea
-
 # Verify archive extraction from this directory and the source selection.
 pnpm exec vitest run packages/desktop/test/prepare-native-search-tools.test.ts
 ```

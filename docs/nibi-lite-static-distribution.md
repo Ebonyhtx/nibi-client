@@ -1,5 +1,9 @@
 # ZCode Lite Static Distribution
 
+> **历史文档（2026-11）**：Node CLI/TUI 的静态发行（含默认 TUI 启动、`build:nibi` 与
+> install.sh 创建的全局 `nibi`）已退役。面向用户的 `nibi` 命令由 npm META 包
+> `@nibi-studio/cli` 提供；本文件仅保留为内网 Web 形态的历史设计参考。
+
 ## 背景
 
 ZCode Lite 是不安装 Desktop App 的本地 Web 形态。内网下载源只托管静态发布资源，用户机器负责运行 Node.js、本地 HTTP server、ZCode services 和 agent runtime。

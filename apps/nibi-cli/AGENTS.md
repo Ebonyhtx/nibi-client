@@ -18,7 +18,7 @@
 ## 工具规范
 
 - 与操作系统交互之前，需要考虑同时支持 windows、mac、linux
-- 保持默认的发布路径为标准 Node.js CLI 打包方式。
+- 公开发行是 Rust 内核（`kernel/` 的 `nibi-rs`，经 npm META 包 `@nibi-studio/cli` 分发）；这里只维护内部 Node agent bundle（`nibi.cjs`）及其 `--desktop-agent` 构建，不要再新增 Node CLI/TUI 发布面。
 - 项目自有的环境变量统一使用 `NIBI_` 前缀命名，但不要随便新增环境变量；新增前必须先在 `docs/design/v2` 的 spec 中定义用途、优先级、错误行为和测试覆盖，能用配置文件、CLI 参数或 session 配置表达的能力，优先不要做成环境变量。
 
 ## 跨平台兼容原则
