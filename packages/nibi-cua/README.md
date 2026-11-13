@@ -1,23 +1,17 @@
 # @nibi/cua
 
-Public Computer Use contract for the NIBI client.
+Computer Use runtime for NIBI Desktop: broker protocol, Helper process, element /
+frame ledgers, controller leases and action replay protection. Native capability
+comes from `@trycua/cua-driver`; the semantics and safety rules live in this
+package (see `IMPLEMENTATION.md` for the layer contract).
 
-This package contains the integration surface that the open-source client
-compiles against:
+The package is **fail-closed by default**: without a broker endpoint every
+surface reports unavailable instead of pretending to work. The real runtime is
+used when the host injects a broker socket (`createComputerUseRuntime({
+brokerSocketPath })`), which is what the desktop app does on Windows and macOS.
 
-- broker method names, request/response envelopes, error codes, and socket naming
-- frame, display, and access-request metadata contracts
-- fail-closed runtime and Helper launcher stubs
-
-The native Helper, the engine adapter, and the runtime safety semantics are
-**not** part of this repository. In the open-source build every Computer Use
-entry point reports `Computer Use is not available in this build.` and never
-starts a Helper process. Official NIBI builds replace this package with the
-full implementation.
-
-The placeholder is detected through `nibiCuaPlaceholder: true` in
-`package.json`; desktop development and packaging steps use that flag to skip
-Helper assets. See
-[`docs/desktop/computer-use-producer-detection.md`](../../docs/desktop/computer-use-producer-detection.md).
+The upstream open-source export replaces this directory with an API-compatible
+placeholder that declares `nibiCuaPlaceholder: true`; packaging steps skip the
+private Helper assets in that case.
 
 License: Apache-2.0.

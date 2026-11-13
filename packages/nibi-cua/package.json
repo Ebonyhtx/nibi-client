@@ -2,10 +2,16 @@
   "name": "@nibi/cua",
   "version": "0.7.0",
   "private": true,
-  "description": "Computer Use public contract and fail-closed placeholder: broker protocol, frame/display/access metadata, and socket naming. The native Helper and runtime are not part of the open-source distribution.",
+  "description": "Computer Use 运行时（NIBI 自研实现）：broker 协议 + Helper + 元素/帧台账 + 控制器租约 + 动作防重放。原生能力由 @trycua/cua-driver 提供，语义与安全在本包内。",
   "license": "Apache-2.0",
   "type": "module",
-  "nibiCuaPlaceholder": true,
+  "nibiCuaRuntime": {
+    "schema": 1,
+    "windows": {
+      "entry": "helper/main.js",
+      "nativeAddon": "node_modules/@trycua/cua-driver-win32-x64-msvc/cua_driver_node_runtime.node"
+    }
+  },
   "exports": {
     ".": {
       "types": "./index.d.ts",
@@ -61,7 +67,19 @@
     }
   },
   "scripts": {
-    "build": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run"
+    "test": "node --test test/brokerProtocol.test.mjs test/helperSemantics.test.mjs test/runtime.test.mjs",
+    "test:engine": "node --test test/brokerProtocol.test.mjs test/helperSemantics.test.mjs test/runtime.test.mjs && NIBI_CUA_ENGINE_SMOKE=1 NIBI_CUA_ENGINE_MODULE=${NIBI_CUA_ENGINE_MODULE:?需要指向 @trycua/cua-driver 的 entry} node --test test/brokerProtocol.test.mjs",
+    "test:acceptance:typed": "node test/run-acceptance.mjs typed",
+    "test:acceptance": "node test/run-acceptance.mjs native",
+    "test:acceptance:p4b": "node test/run-acceptance.mjs p4b",
+    "test:acceptance:all": "node test/run-acceptance.mjs all",
+    "test:acceptance:wiring": "node test/run-acceptance.mjs wiring",
+    "build": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@trycua/cua-driver": "0.47.23"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.4"
   }
 }

@@ -267,33 +267,61 @@ function checkKeyFiles(trackedFiles, violations) {
   }
 }
 
+const FORBIDDEN_CUA_MATERIAL_SUFFIXES = [
+  ".p12",
+  ".pfx",
+  ".cer",
+  ".mobileprovision",
+  ".provisionprofile",
+  ".key",
+];
+
 function checkCuaBoundary(violations) {
+  const packageRoot = join(ROOT, "packages", "nibi-cua");
   const manifestPath = "packages/nibi-cua/package.json";
   if (!existsSync(join(ROOT, manifestPath))) {
     violations.push({
       file: manifestPath,
       line: 0,
-      rule: "CUA placeholder package is missing",
+      rule: "CUA package is missing",
       text: manifestPath,
     });
     return;
   }
   const manifest = JSON.parse(readFileSync(join(ROOT, manifestPath), "utf8"));
-  if (manifest.nibiCuaPlaceholder !== true) {
+  if (manifest.name !== "@nibi/cua") {
     violations.push({
       file: manifestPath,
       line: 0,
-      rule: "CUA package must declare nibiCuaPlaceholder: true",
+      rule: "CUA package name must be @nibi/cua",
+      text: String(manifest.name ?? ""),
+    });
+  }
+  if (manifest.nibiCuaPlaceholder === true) {
+    violations.push({
+      file: manifestPath,
+      line: 0,
+      rule: "CUA package must not be a placeholder",
       text: "nibiCuaPlaceholder",
     });
   }
-  for (const directory of ["helper", "runtime", "engine", "vendor"]) {
-    if (existsSync(join(ROOT, "packages/nibi-cua", directory))) {
+  if (!existsSync(join(packageRoot, "vendor", "freeall12-computer-use", "PROVENANCE.md"))) {
+    violations.push({
+      file: "packages/nibi-cua/vendor/freeall12-computer-use",
+      line: 0,
+      rule: "vendored CUA reference must keep its provenance",
+      text: "PROVENANCE.md",
+    });
+  }
+  for (const file of listTrackedFiles()) {
+    if (!file.startsWith("packages/nibi-cua/")) continue;
+    const lower = file.toLowerCase();
+    if (FORBIDDEN_CUA_MATERIAL_SUFFIXES.some((suffix) => lower.endsWith(suffix))) {
       violations.push({
-        file: `packages/nibi-cua/${directory}`,
+        file,
         line: 0,
-        rule: "private CUA implementation directory must not be public",
-        text: directory,
+        rule: "CUA signing material must not be committed",
+        text: file,
       });
     }
   }

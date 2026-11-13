@@ -24,7 +24,7 @@ NIBI 是一个开源的 AI 编程工作台，包含桌面应用、浏览器界�
 
 以下内容不在本仓库中：
 
-- Computer Use 的原生 Helper、引擎适配与运行时语义。公开仓只保留协议、类型和失败闭合的占位包 `@nibi/cua`；官方 NIBI 构建会替换为完整实现。
+- Computer Use 的 Helper、引擎适配与运行时语义都在公开仓 `packages/nibi-cua`；原生能力来自 MIT 的 `@trycua/cua-driver`，缺失时 fail-closed。
 - 发布签名、真实 provider 冒烟测试、桌面容器 E2E 的内部流水线与凭据。
 - 运营侧服务、内容发布链与内部运维文档。
 
@@ -78,7 +78,7 @@ NIBI_DATA_BASE_DIR="$HOME/.nibi-dev" pnpm dev:desktop
 | `packages/shared`、`packages/rpc`、`packages/client` | 共享协议、RPC 框架、Agent 客户端 SDK |
 | `packages/provider`、`packages/provider-node` | Provider 公共能力与 Node 实现 |
 | `apps/nibi-cli` | Agent CLI、TUI、运行时与工具 |
-| `packages/nibi-cua` | Computer Use 公开契约与占位实现 |
+| `packages/nibi-cua` | Computer Use 实现（Helper / runtime / engine 适配） |
 | `kernel` | **Rust 内核**（独立 Cargo workspace，37 个 crate）：协议前端、会话/工具/模型层、CLI 与 TUI |
 | `scripts`、`config`、`third-party` | 构建维护脚本、内置配置与第三方声明 |
 
@@ -89,7 +89,7 @@ NIBI_DATA_BASE_DIR="$HOME/.nibi-dev" pnpm dev:desktop
 > [`docs/rust-kernel-function-parity.md`](docs/rust-kernel-function-parity.md)，改造台账在
 > [`kernel/CHANGELOG-FORK.md`](kernel/CHANGELOG-FORK.md)。
 
-> `apps/nibi-cli`、`packages/nibi-server-cli` 已完成 NIBI 目录改名；上游原样文件的校验通过 `scripts/architecture/upstream-snapshot.json` 的本地→上游前缀映射继续生效（快照键仍是上游路径）。`packages/nibi-cua` 待随 CUA 引擎升级单独迁移。包名、CLI 命令和产物均为 NIBI（`nibi-cli`、`@nibi/server-cli`、`@nibi/cua`、`dist/nibi/`、远端执行器 `nibi-server.cjs` 与 `nibi-server-<target>.tar.gz`）。
+> `apps/nibi-cli`、`packages/nibi-server-cli` 已完成 NIBI 目录改名；上游原样文件的校验通过 `scripts/architecture/upstream-snapshot.json` 的本地→上游前缀映射继续生效（快照键仍是上游路径）。`packages/nibi-cua` 已随 CUA 引擎升级迁入公开仓。包名、CLI 命令和产物均为 NIBI（`nibi-cli`、`@nibi/server-cli`、`@nibi/cua`、`dist/nibi/`、远端执行器 `nibi-server.cjs` 与 `nibi-server-<target>.tar.gz`）。
 
 ## 开发与验证
 

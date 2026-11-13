@@ -24,7 +24,7 @@ Included:
 
 Not included:
 
-- The native Computer Use Helper, engine adapter, and runtime semantics. The public repository keeps the protocol, types, and a fail-closed placeholder package `@nibi/cua`; official NIBI builds replace it with the full implementation.
+- The Computer Use Helper, engine adapter, and runtime semantics live in `packages/nibi-cua`. Native capability comes from MIT-licensed `@trycua/cua-driver`; missing engines fail closed.
 - Release signing, real-provider smoke tests, and the internal desktop container E2E pipeline and credentials.
 - Operations services, content publishing, and internal runbooks.
 
@@ -78,10 +78,10 @@ NIBI_DATA_BASE_DIR="$HOME/.nibi-dev" pnpm dev:desktop
 | `packages/shared`, `packages/rpc`, `packages/client` | Shared protocols, RPC framework, agent client SDK |
 | `packages/provider`, `packages/provider-node` | Provider primitives and Node implementation |
 | `apps/nibi-cli` | Agent CLI, TUI, runtime, and tools |
-| `packages/nibi-cua` | Public Computer Use contract and placeholder |
+| `packages/nibi-cua` | Computer Use implementation (Helper / runtime / engine adapter) |
 | `scripts`, `config`, `third-party` | Build tooling, built-in config, third-party notices |
 
-> `apps/nibi-cli` and `packages/nibi-server-cli` have been renamed to NIBI; upstream pristine files are still verified through the local-to-upstream prefix map in `scripts/architecture/upstream-snapshot.json` (snapshot keys remain upstream paths). `packages/nibi-cua` will be migrated separately with the CUA engine upgrade. Package names, CLI commands, and build outputs are NIBI (`nibi-cli`, `@nibi/server-cli`, `@nibi/cua`, `dist/nibi/`, and the remote executor `nibi-server.cjs` / `nibi-server-<target>.tar.gz`).
+> `apps/nibi-cli` and `packages/nibi-server-cli` have been renamed to NIBI; upstream pristine files are still verified through the local-to-upstream prefix map in `scripts/architecture/upstream-snapshot.json` (snapshot keys remain upstream paths). `packages/nibi-cua` has been migrated into the public repository with the CUA engine upgrade. Package names, CLI commands, and build outputs are NIBI (`nibi-cli`, `@nibi/server-cli`, `@nibi/cua`, `dist/nibi/`, and the remote executor `nibi-server.cjs` / `nibi-server-<target>.tar.gz`).
 
 ## Development and verification
 
