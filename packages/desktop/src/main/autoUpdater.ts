@@ -489,13 +489,13 @@ async function quitAndInstallUpdate(rejectUnavailable = false) {
   // 表现成点击更新后界面消失但进程没退、安装流程也不再继续。
   // 这里先通知主进程进入“允许真正关窗”的状态，再把控制权交给 updater。
   try {
-    // Windows 更新会替换 resources/glm 等随包资源；
+    // Windows 更新会替换 resources/nibi 等随包资源；
     // 若 quitAndInstall 先于 host/agent 子进程完成退出，安装器可能在文件仍被占用时开始覆盖，
     // 最终留下“应用能启动但 bundled agent 丢失”的半更新状态。
     // 这里显式等待主进程完成退出准备，再进入安装器，尽量把资源替换和子进程回收时序拉直。
     await onBeforeQuitAndInstall?.();
   } catch (error) {
-    // 安装前退出准备是释放 host/agent 与 resources/glm 文件锁的硬前置条件。
+    // 安装前退出准备是释放 host/agent 与 resources/nibi 文件锁的硬前置条件。
     // 如果这里失败后仍启动安装器，Windows 可能在资源仍被占用时覆盖安装目录，形成半更新。
     handleAutoUpdateFailure(error, "prepare quit and install failed");
     recoverFromFailedUpdateInstall();

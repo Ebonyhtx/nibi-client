@@ -40,20 +40,20 @@ describe("windows install resource locks", () => {
     );
 
     expect(resolveWindowsPackagedResourceLockMarkers(resourcesPath)).toEqual([
-      join(resourcesPath, "glm"),
+      join(resourcesPath, "nibi"),
       join(resourcesPath, "tools"),
     ]);
   });
 
   it("matches resource paths regardless of slash direction or case", () => {
-    const markers = ["C:\\Users\\demo\\AppData\\Local\\Programs\\Nibi\\resources\\glm"];
+    const markers = ["C:\\Users\\demo\\AppData\\Local\\Programs\\Nibi\\resources\\nibi"];
 
     expect(
       isWindowsProcessReferencingResourceMarkers(
         {
           pid: 42,
           commandLine:
-            '"C:/Users/demo/AppData/Local/Programs/Nibi/Nibi.exe" "C:/Users/demo/AppData/Local/Programs/Nibi/resources/GLM/nibi-agent.exe"',
+            '"C:/Users/demo/AppData/Local/Programs/Nibi/Nibi.exe" "C:/Users/demo/AppData/Local/Programs/Nibi/resources/NIBI/nibi-agent.exe"',
         },
         markers,
       ),
@@ -61,7 +61,7 @@ describe("windows install resource locks", () => {
   });
 
   it("does not match unrelated processes", () => {
-    const markers = ["C:\\Users\\demo\\AppData\\Local\\Programs\\Nibi\\resources\\glm"];
+    const markers = ["C:\\Users\\demo\\AppData\\Local\\Programs\\Nibi\\resources\\nibi"];
 
     expect(
       isWindowsProcessReferencingResourceMarkers(
@@ -89,7 +89,7 @@ describe("windows install resource locks", () => {
         exists: true,
         entries: ["rg"],
       });
-      expect(snapshot.find((entry) => entry.dir === "glm")).toMatchObject({
+      expect(snapshot.find((entry) => entry.dir === "nibi")).toMatchObject({
         exists: false,
         entries: [],
       });
@@ -101,13 +101,13 @@ describe("windows install resource locks", () => {
   it("probes packaged resource dirs with writable and missing states", () => {
     const root = mkdtempSync(join(tmpdir(), "zcode-resource-probe-"));
     try {
-      const glmDir = join(root, "glm");
-      mkdirSync(glmDir, { recursive: true });
+      const nibiDir = join(root, "nibi");
+      mkdirSync(nibiDir, { recursive: true });
 
       const probes = probeWindowsPackagedResourceWritable(root);
 
-      expect(probes.find((entry) => entry.dir === "glm")).toMatchObject({
-        path: glmDir,
+      expect(probes.find((entry) => entry.dir === "nibi")).toMatchObject({
+        path: nibiDir,
         exists: true,
         writable: true,
       });
@@ -121,7 +121,7 @@ describe("windows install resource locks", () => {
   });
 
   it("terminates only processes still verified against packaged resources", async () => {
-    const marker = "C:\\Nibi\\resources\\glm";
+    const marker = "C:\\Nibi\\resources\\nibi";
     const scan = vi
       .fn()
       .mockResolvedValueOnce([
@@ -159,7 +159,7 @@ describe("windows install resource locks", () => {
   });
 
   it("keeps update cleanup fail-open when scan or taskkill fails", async () => {
-    const marker = "C:\\Nibi\\resources\\glm";
+    const marker = "C:\\Nibi\\resources\\nibi";
     const scan = vi
       .fn()
       .mockResolvedValueOnce([
@@ -190,7 +190,7 @@ describe("windows install resource locks", () => {
     const terminate = vi.fn(async () => []);
 
     const result = await runWindowsUpdateProcessCleanup({
-      resourceLockMarkers: ["C:\\Nibi\\resources\\glm"],
+      resourceLockMarkers: ["C:\\Nibi\\resources\\nibi"],
       lockReleaseGraceMs: 300,
       scan: async () => {
         throw new Error("powershell timeout");

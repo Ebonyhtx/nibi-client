@@ -95,7 +95,7 @@ export const OFFICIAL_CUA_REQUIRED_SEED_PATHS = [
 // 没有 /workflow 命令的插件——症状是命令不存在，没有任何诊断。commands/ 与技能正文都钉住。
 //
 // ── 文档四件套（内置）────────────────────────────────────────────────────
-// 上游这四件套是**随包内置**的（resources/glm/packages/*-plugin），我们也照做：
+// 上游这四件套是**随包内置**的（resources/nibi/packages/*-plugin），我们也照做：
 // 首启就有、离线可用，四个 visual-judge 子智能体跟着一起就位。
 // 副本真源在内置插件源 `plugins/<name>/`，由同步脚本强制逐字一致。
 // requiredSeedPaths 钉住"缺了就残缺"的关键文件：清单、子智能体、技能正文、主工具、共享工具包与锁文件。

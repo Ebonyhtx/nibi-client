@@ -1412,11 +1412,11 @@ function logWindowsBundledRuntimeIntegrityDiagnostic() {
     return;
   }
 
-  // 4.0 不再随包内置 glm 原生二进制，改为 resources/glm/nibi.cjs（JS bundle）。
+  // 4.0 不再随包内置 glm 原生二进制，改为 resources/nibi/nibi.cjs（JS bundle）。
   // 旧诊断仍在找原生 binary，导致每个正式 Windows 包启动都误报 "missing providers: glm"。
   const bundledAgentFiles = [
-    join(process.resourcesPath, "glm", "nibi.cjs"),
-    join(process.resourcesPath, "glm", ".node-bundle-meta.json"),
+    join(process.resourcesPath, "nibi", "nibi.cjs"),
+    join(process.resourcesPath, "nibi", ".node-bundle-meta.json"),
   ];
   const missingFiles = bundledAgentFiles.filter((file) => !existsSync(file));
   if (missingFiles.length === 0) {
@@ -1467,7 +1467,7 @@ async function prepareWindowsProcessesForUpdateInstall() {
   }
 
   // 少量 Windows 用户更新后安装目录里的 bundled agent 文件会缺失。
-  // 根因通常是 NSIS 覆盖 resources/glm 等目录时，旧 agent/helper 进程或杀软触发的残留进程仍持有句柄；
+  // 根因通常是 NSIS 覆盖 resources/nibi 等目录时，旧 agent/helper 进程或杀软触发的残留进程仍持有句柄；
   // 只杀 host 上报过的 agent pid 会漏掉未登记或已经脱离登记的后代。这里在更新前按命令行再扫描一次安装资源路径，
   // 对仍引用随包资源的进程树做强制清理，降低半更新导致环境损坏的概率。
   logger.info(

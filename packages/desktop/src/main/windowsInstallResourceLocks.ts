@@ -11,7 +11,7 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 const WINDOWS_PROCESS_QUERY_TIMEOUT_MS = 3_000;
-const WINDOWS_PACKAGED_RESOURCE_DIRS = ["glm", "tools"];
+const WINDOWS_PACKAGED_RESOURCE_DIRS = ["nibi", "tools"];
 // taskkill 返回不代表 Windows 已完成文件句柄释放；沿用已验证的 750ms
 // 交接窗口。
 export const WINDOWS_UPDATE_LOCK_RELEASE_GRACE_MS = 750;

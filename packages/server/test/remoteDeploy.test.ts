@@ -65,6 +65,7 @@ const TEST_GLM_ARTIFACT_SHA256 = "a".repeat(64);
 type LegacyRemoteTestAgentRuntime = {
   binaryKind: "node-script" | "native-binary";
   bundledResourceDir: string;
+  resourcePackageDir?: string;
   version: string;
   resolveEntrySegments(platform: string): string[];
 };
@@ -109,7 +110,8 @@ const LEGACY_REMOTE_TEST_AGENT_RUNTIME: Record<
   },
   glm: {
     binaryKind: "native-binary",
-    bundledResourceDir: "glm",
+    bundledResourceDir: "nibi",
+    resourcePackageDir: "glm",
     version: NIBI_AGENT_RUNTIME.version,
     resolveEntrySegments: (platform) => [resolveTestPlatformBinaryName("nibi-agent", platform)],
   },
@@ -308,8 +310,8 @@ class FailFirstGlmUploadRemoteBackend extends FakeRemoteBackend {
   override async upload(localPath: string, remotePath: string): Promise<void> {
     if (
       this.shouldFailGlmUpload &&
-      (remotePath === "~/.nibi/server/agents/glm/nibi.cjs.new" ||
-        remotePath.startsWith("~/.nibi/server/agents/glm/nibi.cjs.new-"))
+      (remotePath === "~/.nibi/server/agents/nibi/nibi.cjs.new" ||
+        remotePath.startsWith("~/.nibi/server/agents/nibi/nibi.cjs.new-"))
     ) {
       this.shouldFailGlmUpload = false;
       throw new Error("mock glm upload failed");
@@ -458,7 +460,7 @@ async function stageRemoteRuntimeRelease(
       throw new Error(`Missing binary name for provider: ${provider}`);
     }
 
-    const binaryDir = join(releaseDir, runtime.bundledResourceDir, platformKey);
+    const binaryDir = join(releaseDir, runtime.resourcePackageDir ?? runtime.bundledResourceDir, platformKey);
     await mkdir(binaryDir, { recursive: true });
     await writeFile(join(binaryDir, binaryName), `${provider} binary`, "utf8");
     // Nibi Agent（glm）远端不再发原生二进制，而是发编译产物 nibi.cjs，
@@ -759,8 +761,8 @@ function buildRemoteComponentArtifactSpecs(
       id: provider,
       version: `${runtime.version}-${provider}`,
       artifactPath: `components/${platformKey}/${provider}/${runtime.version}-${provider}.tar.gz`,
-      mount: `${runtime.bundledResourceDir}/${platformKey}`,
-      sourcePath: `${runtime.bundledResourceDir}/${platformKey}`,
+      mount: `${runtime.resourcePackageDir ?? runtime.bundledResourceDir}/${platformKey}`,
+      sourcePath: `${runtime.resourcePackageDir ?? runtime.bundledResourceDir}/${platformKey}`,
     });
   }
 
@@ -1309,7 +1311,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     );
 
     expect(deployed).toBe(false);
-    expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/glm/nibi.cjs.new")).toBe(
+    expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/nibi/nibi.cjs.new")).toBe(
       true,
     );
     expect(
@@ -1394,17 +1396,17 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       { log: () => undefined, logWarn: () => undefined },
     );
 
-    expect(installedFiles).toEqual(["glm:~/.nibi/server/agents/glm/nibi.cjs"]);
+    expect(installedFiles).toEqual(["glm:~/.nibi/server/agents/nibi/nibi.cjs"]);
     expect(installedDirectories).toEqual([
       {
         componentId: "glm",
-        remoteDir: "~/.nibi/server/agents/glm/packages",
+        remoteDir: "~/.nibi/server/agents/nibi/packages",
         sourceRelativePath: "glm/linux-arm64/packages",
       },
     ]);
     expect(
       backend.uploads.some(
-        (upload) => upload.remotePath === "~/.nibi/server/agents/glm/nibi-agent.new",
+        (upload) => upload.remotePath === "~/.nibi/server/agents/nibi/nibi-agent.new",
       ),
     ).toBe(false);
 
@@ -1475,11 +1477,11 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       { log: () => undefined, logWarn: () => undefined },
     );
 
-    const wrapperTempPath = `~/.nibi/server/agents/glm/${REMOTE_AGENT_WRAPPER_FILE_NAME}.new`;
+    const wrapperTempPath = `~/.nibi/server/agents/nibi/${REMOTE_AGENT_WRAPPER_FILE_NAME}.new`;
     expect(backend.uploads.map((upload) => upload.remotePath)).toContain(wrapperTempPath);
-    expect(backend.remoteFiles.get(wrapperTempPath)).toBe(buildRemoteAgentBundleWrapper("glm"));
+    expect(backend.remoteFiles.get(wrapperTempPath)).toBe(buildRemoteAgentBundleWrapper("nibi"));
     expect(backend.remoteFiles.get(wrapperTempPath)).toContain('"$runtime_root/node"');
-    expect(installedDirectories).toEqual(["glm:~/.nibi/server/agents/glm/packages"]);
+    expect(installedDirectories).toEqual(["glm:~/.nibi/server/agents/nibi/packages"]);
     expect(
       backend.commands.some(
         (command) =>
@@ -1490,8 +1492,8 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
 
   it("WSL 已有坏 wrapper 时即使版本匹配也应重写", async () => {
     const remoteFiles = createFullyDeployedRemoteFiles("linux-arm64");
-    remoteFiles[`~/.nibi/server/agents/glm/${REMOTE_AGENT_WRAPPER_FILE_NAME}`] =
-      '#!/bin/sh\nset -eu\nruntime_root="/home/dev/.nibi/server"\nexec "/node" "/home/dev/.nibi/server/agents/glm/nibi.cjs" ""\n';
+    remoteFiles[`~/.nibi/server/agents/nibi/${REMOTE_AGENT_WRAPPER_FILE_NAME}`] =
+      '#!/bin/sh\nset -eu\nruntime_root="/home/dev/.nibi/server"\nexec "/node" "/home/dev/.nibi/server/agents/nibi/nibi.cjs" ""\n';
     const backend = new FakeWslRemoteBackend(remoteFiles);
     const installedFiles: string[] = [];
     const installedDirectories: string[] = [];
@@ -1515,19 +1517,19 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       { log: () => undefined, logWarn: () => undefined },
     );
 
-    expect(installedFiles).toEqual(["glm:~/.nibi/server/agents/glm/nibi.cjs"]);
+    expect(installedFiles).toEqual(["glm:~/.nibi/server/agents/nibi/nibi.cjs"]);
     expect(backend.uploads.map((upload) => upload.remotePath)).toContain(
-      `~/.nibi/server/agents/glm/${REMOTE_AGENT_WRAPPER_FILE_NAME}.new`,
+      `~/.nibi/server/agents/nibi/${REMOTE_AGENT_WRAPPER_FILE_NAME}.new`,
     );
-    expect(installedDirectories).toEqual(["glm:~/.nibi/server/agents/glm/packages"]);
+    expect(installedDirectories).toEqual(["glm:~/.nibi/server/agents/nibi/packages"]);
   });
 
   it("Nibi Agent 版本匹配但远端缺 builtin plugin 资产时应复用 cache 补部署 packages", async () => {
-    const remoteOfficialPluginDir = "~/.nibi/server/agents/glm/packages";
+    const remoteOfficialPluginDir = "~/.nibi/server/agents/nibi/packages";
     const remoteFiles = createFullyDeployedRemoteFiles("linux-arm64");
     remoteFiles[remoteOfficialPluginDir] = "directory marker";
     delete remoteFiles[
-      "~/.nibi/server/agents/glm/packages/skill-creator-plugin/.nibi-plugin/plugin.json"
+      "~/.nibi/server/agents/nibi/packages/skill-creator-plugin/.nibi-plugin/plugin.json"
     ];
     // SSH / Docker backend 的 exists 契约只检查普通文件，目录即使存在也会返回 false。
     const backend = new FakeFileOnlyExistsRemoteBackend(remoteFiles, [remoteOfficialPluginDir]);
@@ -1573,26 +1575,26 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
         componentId: "glm",
         forceRefresh: false,
         kind: "file",
-        remotePath: "~/.nibi/server/agents/glm/nibi.cjs",
+        remotePath: "~/.nibi/server/agents/nibi/nibi.cjs",
       },
       {
         componentId: "glm",
         forceRefresh: false,
         kind: "directory",
-        remoteDir: "~/.nibi/server/agents/glm/packages",
+        remoteDir: "~/.nibi/server/agents/nibi/packages",
       },
     ]);
     const permissionRepairCommand = backend.commands.find((command) =>
       command.includes("command chmod -R u+rwX"),
     );
     expect(permissionRepairCommand).toEqual(expect.stringContaining("if [ -d "));
-    expect(permissionRepairCommand).toContain("/.nibi/server/agents/glm/packages");
+    expect(permissionRepairCommand).toContain("/.nibi/server/agents/nibi/packages");
     expect(permissionRepairCommand).not.toContain("/.nibi/plugins");
   });
 
   it("GLM 制品 hash 和 builtin plugin 资产都匹配时不应修复权限", async () => {
     const remoteFiles = createFullyDeployedRemoteFiles("linux-arm64");
-    remoteFiles["~/.nibi/server/agents/glm/.version"] = "旧版本标签\n";
+    remoteFiles["~/.nibi/server/agents/nibi/.version"] = "旧版本标签\n";
     remoteFiles["~/.nibi/server/.asset-components/glm.json"] = JSON.stringify({
       id: "glm",
       version: "旧版本标签",
@@ -1687,27 +1689,27 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     );
     expect(permissionRepairCommandIndex).toBeGreaterThanOrEqual(0);
     expect(backend.commands[permissionRepairCommandIndex]).toContain(
-      "/.nibi/server/agents/glm/packages",
+      "/.nibi/server/agents/nibi/packages",
     );
     expect(installRequests).toEqual([
       {
         componentId: "glm",
         forceRefresh: false,
         kind: "file",
-        remotePath: "~/.nibi/server/agents/glm/nibi.cjs",
+        remotePath: "~/.nibi/server/agents/nibi/nibi.cjs",
       },
       {
         componentId: "glm",
         forceRefresh: false,
         kind: "directory",
-        remoteDir: "~/.nibi/server/agents/glm/packages",
+        remoteDir: "~/.nibi/server/agents/nibi/packages",
       },
     ]);
   });
 
   it("Nibi Agent 升级时权限修复失败仍应尝试替换 packages", async () => {
     const remoteFiles = createFullyDeployedRemoteFiles("linux-arm64");
-    remoteFiles["~/.nibi/server/agents/glm/.version"] = "3.3.3\n";
+    remoteFiles["~/.nibi/server/agents/nibi/.version"] = "3.3.3\n";
     const backend = new FakeRemoteBackend(remoteFiles, {
       commandPlans: [
         {
@@ -1743,14 +1745,14 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       true,
     );
     expect(installRequests).toEqual([
-      "glm:directory:~/.nibi/server/agents/glm/packages",
-      "glm:file:~/.nibi/server/agents/glm/nibi.cjs",
+      "glm:directory:~/.nibi/server/agents/nibi/packages",
+      "glm:file:~/.nibi/server/agents/nibi/nibi.cjs",
     ]);
   });
 
   it("Nibi Agent 升级时 chmod 失败后 packages 替换失败不应继续更新 bundle", async () => {
     const remoteFiles = createFullyDeployedRemoteFiles("linux-arm64");
-    remoteFiles["~/.nibi/server/agents/glm/.version"] = "3.3.3\n";
+    remoteFiles["~/.nibi/server/agents/nibi/.version"] = "3.3.3\n";
     const backend = new FakeRemoteBackend(remoteFiles, {
       commandPlans: [
         {
@@ -1784,7 +1786,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       ),
     ).rejects.toThrow("packages replace failed");
 
-    expect(installRequests).toEqual(["glm:directory:~/.nibi/server/agents/glm/packages"]);
+    expect(installRequests).toEqual(["glm:directory:~/.nibi/server/agents/nibi/packages"]);
   });
 
   it("开发态官方插件资产必须包含 Browser client、effective docs 与 document judge agent", () => {
@@ -1920,8 +1922,8 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     expect(installedFiles).toEqual([]);
     const devBundleUpload = backend.uploads.find(
       (upload) =>
-        upload.remotePath === "~/.nibi/server/agents/glm/nibi.cjs.new" ||
-        upload.remotePath.startsWith("~/.nibi/server/agents/glm/nibi.cjs.new-"),
+        upload.remotePath === "~/.nibi/server/agents/nibi/nibi.cjs.new" ||
+        upload.remotePath.startsWith("~/.nibi/server/agents/nibi/nibi.cjs.new-"),
     );
     expect(devBundleUpload?.localPath.endsWith(DEV_CLI_BUNDLE_TEST_SUFFIX)).toBe(true);
     expect(
@@ -1931,17 +1933,17 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     ).toBe(true);
     expect(backend.commands.some((command) => command.includes(".dev-version"))).toBe(true);
     const officialPluginUpload = backend.uploads.find((upload) =>
-      upload.remotePath.includes("/agents/glm/packages.tar.gz-"),
+      upload.remotePath.includes("/agents/nibi/packages.tar.gz-"),
     );
     expect(officialPluginUpload?.remotePath).toMatch(
-      /^~\/.nibi\/server\/agents\/glm\/packages\.tar\.gz-[\w-]+$/u,
+      /^~\/.nibi\/server\/agents\/nibi\/packages\.tar\.gz-[\w-]+$/u,
     );
     expect(
       backend.commands.some(
         (command) =>
           command.includes("tar -xzf") &&
           command.includes("packages.tar.gz") &&
-          command.includes("agents/glm/packages.extract-") &&
+          command.includes("agents/nibi/packages.extract-") &&
           command.includes("trap cleanup_staging EXIT"),
       ),
     ).toBe(true);
@@ -1952,7 +1954,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       (command) =>
         command.includes("tar -xzf") &&
         command.includes("packages.tar.gz") &&
-        command.includes("agents/glm/packages"),
+        command.includes("agents/nibi/packages"),
     );
     expect(permissionRepairCommandIndex).toBeGreaterThanOrEqual(0);
     expect(permissionRepairCommandIndex).toBeLessThan(packageExtractCommandIndex);
@@ -1985,15 +1987,15 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       const devVersion = await computeDevelopmentAgentAssetsSha256ForTest(repoDir, cliBundlePath);
       const backend = new FakeRemoteBackend(
         {
-          "~/.nibi/server/agents/glm/.version": `${NIBI_AGENT_RUNTIME.version}\n`,
-          "~/.nibi/server/agents/glm/.dev-version": `${devVersion}\n`,
-          "~/.nibi/server/agents/glm/nibi-agent": "dev wrapper",
-          "~/.nibi/server/agents/glm/nibi.cjs": bundleMatches
+          "~/.nibi/server/agents/nibi/.version": `${NIBI_AGENT_RUNTIME.version}\n`,
+          "~/.nibi/server/agents/nibi/.dev-version": `${devVersion}\n`,
+          "~/.nibi/server/agents/nibi/nibi-agent": "dev wrapper",
+          "~/.nibi/server/agents/nibi/nibi.cjs": bundleMatches
             ? "console.log('same dev zcode agent');\n"
             : "old published bundle without PAT support",
           ...Object.fromEntries(
             OFFICIAL_PLUGIN_REQUIRED_RELATIVE_PATHS.map((relativePath) => [
-              `~/.nibi/server/agents/glm/packages/${relativePath}`,
+              `~/.nibi/server/agents/nibi/packages/${relativePath}`,
               `dev official plugin ${relativePath}`,
             ]),
           ),
@@ -2002,7 +2004,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       );
       if (scenario === "remote-skill-missing")
         backend.remoteFiles.delete(
-          "~/.nibi/server/agents/glm/packages/bundled-skills/skills/dynamic-workflows/examples.md",
+          "~/.nibi/server/agents/nibi/packages/bundled-skills/skills/dynamic-workflows/examples.md",
         );
       if (scenario === "skill-changed")
         await writeFile(
@@ -2247,7 +2249,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       );
 
       expect(deployed).toBe(false);
-      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/glm/nibi.cjs.new")).toBe(
+      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/nibi/nibi.cjs.new")).toBe(
         true,
       );
       expect(
@@ -2311,7 +2313,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
           String(input).endsWith(`/${glmComponent.artifactPath}`),
         ),
       ).toBe(true);
-      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/glm/nibi.cjs.new")).toBe(
+      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/nibi/nibi.cjs.new")).toBe(
         true,
       );
     } finally {
@@ -2439,7 +2441,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
         },
       );
 
-      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/glm/nibi.cjs.new")).toBe(
+      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/nibi/nibi.cjs.new")).toBe(
         true,
       );
       expect(backend.commands.join("\n")).toContain(cdnGlm?.sha256);
@@ -2490,7 +2492,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     const remoteFiles = createFullyDeployedRemoteFiles("linux-arm64");
     addMatchingServerBundleArtifactIdentity(remoteFiles, manifest, "linux-arm64");
     delete remoteFiles[
-      "~/.nibi/server/agents/glm/packages/skill-creator-plugin/.nibi-plugin/plugin.json"
+      "~/.nibi/server/agents/nibi/packages/skill-creator-plugin/.nibi-plugin/plugin.json"
     ];
     const cdnServer = await createStaticFileServer(cdnRoot);
 
@@ -2510,7 +2512,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       expect(deployed).toBe(false);
       expect(
         backend.uploads.some((upload) =>
-          upload.remotePath.startsWith("~/.nibi/server/agents/glm/packages.tar.gz-"),
+          upload.remotePath.startsWith("~/.nibi/server/agents/nibi/packages.tar.gz-"),
         ),
       ).toBe(true);
       expect(
@@ -2941,7 +2943,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
         },
       );
 
-      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/glm/nibi.cjs.new")).toBe(
+      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/nibi/nibi.cjs.new")).toBe(
         true,
       );
       expect(
@@ -3104,8 +3106,8 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       expect(backend.uploads.map((upload) => upload.remotePath)).toEqual(
         expect.arrayContaining([
           expect.stringMatching(/^~\/.nibi\/server\/nibi-server\.cjs\.new-[\w-]+$/u),
-          expect.stringMatching(/^~\/.nibi\/server\/agents\/glm\/nibi\.cjs\.new-[\w-]+$/u),
-          expect.stringMatching(/^~\/.nibi\/server\/agents\/glm\/packages\.tar\.gz-[\w-]+$/u),
+          expect.stringMatching(/^~\/.nibi\/server\/agents\/nibi\/nibi\.cjs\.new-[\w-]+$/u),
+          expect.stringMatching(/^~\/.nibi\/server\/agents\/nibi\/packages\.tar\.gz-[\w-]+$/u),
         ]),
       );
       expect(cdnServer.getRequestCount(`/${NIBI_VERSION}/manifest-linux-arm64.json`)).toBe(1);
@@ -3207,10 +3209,10 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
         cdnServer.getRequestCount(toComponentArtifactRequestPath(serverBundle.artifactPath)),
       ).toBe(2);
       expect(cdnServer.getRequestCount(toComponentArtifactRequestPath(glm.artifactPath))).toBe(2);
-      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/glm/nibi.cjs.new")).toBe(
+      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/nibi/nibi.cjs.new")).toBe(
         true,
       );
-      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/glm/packages.tar.gz")).toBe(
+      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/nibi/packages.tar.gz")).toBe(
         true,
       );
     } finally {
@@ -3317,10 +3319,10 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
 
       expect(deployed).toBe(false);
       expect(cdnServer.getRequestCount(toComponentArtifactRequestPath(glm.artifactPath))).toBe(2);
-      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/glm/nibi.cjs.new")).toBe(
+      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/nibi/nibi.cjs.new")).toBe(
         true,
       );
-      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/glm/packages.tar.gz")).toBe(
+      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/nibi/packages.tar.gz")).toBe(
         true,
       );
       expect(
@@ -3681,7 +3683,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
 
     const remoteFiles = createFullyDeployedRemoteFiles("linux-arm64");
     addMatchingGlmAndServerArtifactIdentities(remoteFiles, manifest, "linux-arm64");
-    delete remoteFiles["~/.nibi/server/agents/glm/nibi-agent"];
+    delete remoteFiles["~/.nibi/server/agents/nibi/nibi-agent"];
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       const backend = new FakeRemoteBackend(remoteFiles);
@@ -3695,7 +3697,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
         },
       );
 
-      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/glm/nibi.cjs.new")).toBe(
+      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/nibi/nibi.cjs.new")).toBe(
         true,
       );
       const warnLines = warnSpy.mock.calls.map((args) => args.map((arg) => String(arg)).join(" "));
@@ -3737,7 +3739,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       },
     );
 
-    expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/glm/nibi.cjs.new")).toBe(
+    expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/nibi/nibi.cjs.new")).toBe(
       false,
     );
     expect(backend.commands.some((command) => command.includes(".asset-components/glm.json"))).toBe(
@@ -3973,7 +3975,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
         },
       );
 
-      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/glm/nibi.cjs.new")).toBe(
+      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/agents/nibi/nibi.cjs.new")).toBe(
         true,
       );
       expect(cdnServer.getRequestCount(`/${NIBI_VERSION}/manifest-linux-arm64.json`)).toBe(2);

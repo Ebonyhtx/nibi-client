@@ -330,8 +330,8 @@ describe("resolveDefaultNibiAgentCommand", () => {
 
     // Bugfix: SSH 远端把 nibi-server.cjs 部署到 ~/.nibi/server/，cwd 不在仓库内、
     // NIBI_AGENT_SERVER_COMMAND 也没设；旧 resolver 只识别 env 和 monorepo 源码树，
-    // 即使 nibi-agent 已部署到 ~/.nibi/server/agents/glm/，resolver 也找不到。
-    // 这里用 GLM_BINARY_PATH（=runtime.binaryEnvVar）模拟该部署场景，
+    // 即使 nibi-agent 已部署到 ~/.nibi/server/agents/nibi/，resolver 也找不到。
+    // 这里用 NIBI_AGENT_BINARY_PATH（=runtime.binaryEnvVar）模拟该部署场景，
     // 验证 resolver 复用 findNibiAgentRuntimeBinary 命中已部署 binary。
     const sandboxRoot = mkdtempSync(join(tmpdir(), "nibi-agent-deployed-binary-"));
     createdDirs.push(sandboxRoot);
@@ -1602,7 +1602,7 @@ describe("NIBI_KERNEL 灰度开关", () => {
     const root = mkdtempSync(join(tmpdir(), "zcode-kernel-switch-"));
     createdDirs.push(root);
     // 打包位的候选根之一：cwd/bundled-resources/<bundledResourceDir>/nibi.cjs
-    const bundle = join(root, "bundled-resources", "glm", "nibi.cjs");
+    const bundle = join(root, "bundled-resources", "nibi", "nibi.cjs");
     mkdirSync(dirname(bundle), { recursive: true });
     writeFileSync(bundle, "");
     process.chdir(root);

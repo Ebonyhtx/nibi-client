@@ -4,7 +4,7 @@ name: desktop-package-gates
 # （bundle.mjs → electron-builder），断言 Rust 内核二进制进了打包资源位次，并对**打包产物里的
 # 内核**跑 --prepare-storage 冒烟。
 #
-# 无内网依赖（2026-11-01 全链实测）：本机打包链自 4.0 起不下载 GLM 原生二进制（resources/glm
+# 无内网依赖（2026-11-01 全链实测）：本机打包链自 4.0 起不下载 GLM 原生二进制（resources/nibi
 # 是 JS bundle）；native-search 与 electron-builder 辅助包在无 NIBI_DEPS_BASE_URL 时走官方/
 # repository 回退（bundle.mjs 的开源构建回退分支）。CI 环境与本机打包同构。
 #

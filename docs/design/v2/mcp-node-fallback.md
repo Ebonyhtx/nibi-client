@@ -146,7 +146,7 @@ agent env (it returns `Path: undefined` so Node's spawn drops the inherited vari
   link `npm`/`npx` into the root `node_modules/.bin` and shadow every developer's own npm.
 - Packaging: `prepare:agent-bundle` downloads the registry tarball, checks its sha512, caches it in
   `node_modules/.cache/nibi-bundled-npm/`, and copies the package into
-  `bundled-agents/<platform>/glm/node-runtime/npm` (resources `glm/node-runtime/npm` in the app).
+  `bundled-agents/<platform>/nibi/node-runtime/npm` (resources `glm/node-runtime/npm` in the app).
   The top-level `docs/` and `man/` directories are left out (`npm help` is not supported). License
   files of npm and of its bundled dependencies stay in the copied tree.
 - Offline fallback: when the registry is unreachable (intranet build machines, TLS failures) the

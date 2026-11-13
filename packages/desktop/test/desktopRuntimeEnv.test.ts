@@ -31,8 +31,9 @@ vi.mock("@nibi/shared", () => ({
   NIBI_TOOL_ENV_PASSTHROUGH_ENV_KEY: "NIBI_TOOL_ENV_PASSTHROUGH_JSON",
   NIBI_AGENT_RUNTIME: {
     binaryKind: "native-binary",
-    binaryEnvVar: "GLM_BINARY_PATH",
-    bundledResourceDir: "glm",
+    binaryEnvVar: "NIBI_AGENT_BINARY_PATH",
+    bundledResourceDir: "nibi",
+    resourcePackageDir: "glm",
     version: "0.0.0-test",
     spawnArgs: ["app-server", "--stdio"],
     nativeConfigDir: ".nibi/cli",
@@ -155,7 +156,7 @@ const originalRemoteAssetCacheDir = process.env["NIBI_REMOTE_ASSET_CACHE_DIR"];
 const originalNodeNoWarnings = process.env["NODE_NO_WARNINGS"];
 const originalNodeEnv = process.env["NODE_ENV"];
 const originalNibiRuntimeEnv = process.env["NIBI_RUNTIME_ENV"];
-const originalGlmBinaryPath = process.env["GLM_BINARY_PATH"];
+const originalGlmBinaryPath = process.env["NIBI_AGENT_BINARY_PATH"];
 const originalNibiBaseUrl = process.env["NIBI_BASE_URL"];
 const originalNibiEndpointOrigin = process.env["NIBI_ENDPOINT_ORIGIN"];
 const originalDynamicWorkflowMode = process.env["NIBI_DYNAMIC_WORKFLOW_MODE"];
@@ -430,7 +431,7 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
     delete process.env["NODE_ENV"];
     delete process.env["NIBI_RUNTIME_ENV"];
     deleteAmbientHostEnv();
-    delete process.env["GLM_BINARY_PATH"];
+    delete process.env["NIBI_AGENT_BINARY_PATH"];
     delete process.env["NIBI_BASE_URL"];
     delete process.env["NIBI_ENDPOINT_ORIGIN"];
     delete process.env["NIBI_DYNAMIC_WORKFLOW_MODE"];
@@ -450,9 +451,9 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
     }
 
     if (originalGlmBinaryPath == null) {
-      delete process.env["GLM_BINARY_PATH"];
+      delete process.env["NIBI_AGENT_BINARY_PATH"];
     } else {
-      process.env["GLM_BINARY_PATH"] = originalGlmBinaryPath;
+      process.env["NIBI_AGENT_BINARY_PATH"] = originalGlmBinaryPath;
     }
     restoreEnvValue("NIBI_BASE_URL", originalNibiBaseUrl);
     restoreEnvValue("NIBI_ENDPOINT_ORIGIN", originalNibiEndpointOrigin);
@@ -729,14 +730,14 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
     });
   });
 
-  it("bundled GLM runtime 优先于本地显式 GLM_BINARY_PATH", async () => {
+  it("bundled GLM runtime 优先于本地显式 NIBI_AGENT_BINARY_PATH", async () => {
     const sandboxRoot = mkdtempSync(join(tmpdir(), "zcode-desktop-runtime-env-"));
     createdDirs.push(sandboxRoot);
     const platformKey = `${process.platform}-${process.arch}`;
     const bundledBinaryName = process.platform === "win32" ? "nibi-agent.exe" : "nibi-agent";
-    const bundledPath = join(sandboxRoot, "bundled-agents", platformKey, "glm", bundledBinaryName);
+    const bundledPath = join(sandboxRoot, "bundled-agents", platformKey, "nibi", bundledBinaryName);
     const localGlmPath = join(sandboxRoot, "local", "nibi-agent");
-    mkdirSync(join(sandboxRoot, "bundled-agents", platformKey, "glm"), {
+    mkdirSync(join(sandboxRoot, "bundled-agents", platformKey, "nibi"), {
       recursive: true,
     });
     mkdirSync(join(sandboxRoot, "local"), { recursive: true });
@@ -746,9 +747,9 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
 
     const { buildHostProcessEnv } = await import("../src/main/desktopRuntimeEnv.js");
 
-    const env = buildHostProcessEnv({ GLM_BINARY_PATH: localGlmPath });
+    const env = buildHostProcessEnv({ NIBI_AGENT_BINARY_PATH: localGlmPath });
 
-    expectRuntimePath(env.GLM_BINARY_PATH, bundledPath);
+    expectRuntimePath(env.NIBI_AGENT_BINARY_PATH, bundledPath);
   });
 
   it("本地 host 进程加载工作区 .env.development 的测试环境 API 与 ZAI 登录入口", async () => {

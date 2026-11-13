@@ -671,10 +671,10 @@ function officialPluginCacheRoot(
 
 /** 内置技能包（bundled-skills.ts）沿同一组候选目录定位，保证两类内置资产在每种运行布局下同进同出。 */
 export function candidateBaseDirs(): string[] {
-  // 修复原因：Electron app-server 运行在 resources/glm/nibi.cjs，官方插件资源也随桌面包
+  // 修复原因：Electron app-server 运行在 resources/nibi/nibi.cjs，官方插件资源也随桌面包
   // stage 到同级 packages/*-plugin。候选目录必须优先看入口文件目录，避免生产态退回到
   // monorepo-only 的 __dirname 查找假设。
-  // Host 进程的入口是 out/host/index.js，既不在 resources/glm 也不在 monorepo 包里；
+  // Host 进程的入口是 out/host/index.js，既不在 resources/nibi 也不在 monorepo 包里；
   // main 通过 NIBI_BUNDLED_AGENT_RESOURCE_DIR 把随包资源目录显式传进来，必须排在最前。
   const bundledResourceDir = process.env.NIBI_BUNDLED_AGENT_RESOURCE_DIR?.trim();
   return [

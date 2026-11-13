@@ -53,7 +53,7 @@ function currentRuntime(): McpNodeFallbackRuntime {
   };
 }
 
-/** agent bundle 所在目录：入口文件目录（打包态 resources/glm）与 bundle 自身目录。 */
+/** agent bundle 所在目录：入口文件目录（打包态 resources/nibi）与 bundle 自身目录。 */
 function bundleBaseDirs(): string[] {
   return [entrypointDir(), runtimeDir()].filter((dir): dir is string => typeof dir === "string");
 }

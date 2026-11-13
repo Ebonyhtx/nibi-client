@@ -53,7 +53,7 @@ const ARTIFACT_ROOTS = [
   {
     // 随桌面构建一起产出，没有自己的标记文件：用 agent bundle 作标记。
     path: "packages/desktop/bundled-agents",
-    stamps: ["win32-x64/glm/nibi.cjs"],
+    stamps: ["win32-x64/nibi/nibi.cjs"],
   },
 ];
 

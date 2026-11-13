@@ -40,7 +40,7 @@ export const BUNDLED_SKILL_PACK_REQUIRED_PATHS = [
   `skills/${DYNAMIC_WORKFLOW_SKILL_NAME}/examples.md`,
 ] as const;
 
-/** 与 official-plugin-definitions 的 rootCandidates 同形，覆盖 monorepo src/dist、cli/dist 与桌面 resources/glm 布局。 */
+/** 与 official-plugin-definitions 的 rootCandidates 同形，覆盖 monorepo src/dist、cli/dist 与桌面 resources/nibi 布局。 */
 const BUNDLED_SKILL_PACK_ROOT_CANDIDATES = [
   `packages/${BUNDLED_SKILL_PACK_DIRECTORY_NAME}`,
   `../${BUNDLED_SKILL_PACK_DIRECTORY_NAME}`,

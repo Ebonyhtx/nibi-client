@@ -1838,7 +1838,7 @@ describe("autoUpdater ready state sync", () => {
     expect(quitHandler).toBeTypeOf("function");
     await expect(quitHandler!()).rejects.toBe(prepareError);
 
-    // Bugfix: 安装前准备负责释放 Windows resources/glm 等随包资源锁。
+    // Bugfix: 安装前准备负责释放 Windows resources/nibi 等随包资源锁。
     // 如果准备失败还继续启动安装器，会再次形成 bundled runtime 半更新。
     expect(onBeforeQuitAndInstall).toHaveBeenCalledTimes(1);
     expect(autoUpdaterMock.quitAndInstall).not.toHaveBeenCalled();

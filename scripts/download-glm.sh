@@ -45,9 +45,9 @@ PLATFORM_KEY="$PLATFORM-$ARCH"
 LOCAL_KEY="$LOCAL_PLATFORM-$LOCAL_ARCH"
 
 if [ "$PLATFORM_KEY" = "$LOCAL_KEY" ]; then
-  OUTPUT_DIR="$REPO_ROOT/packages/desktop/bundled-agents/$PLATFORM_KEY/glm"
+  OUTPUT_DIR="$REPO_ROOT/packages/desktop/bundled-agents/$PLATFORM_KEY/nibi"
 else
-  OUTPUT_DIR="$REPO_ROOT/packages/desktop/mock-cdn/releases/$(node -p "require('$REPO_ROOT/package.json').version")/glm/$PLATFORM_KEY"
+  OUTPUT_DIR="$REPO_ROOT/packages/desktop/mock-cdn/releases/$(node -p "require('$REPO_ROOT/package.json').version")/nibi/$PLATFORM_KEY"
 fi
 
 BINARY_NAME="nibi-agent"

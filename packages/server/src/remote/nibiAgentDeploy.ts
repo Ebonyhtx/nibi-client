@@ -238,7 +238,7 @@ export async function deployNibiAgentRuntime(
   const installBundle = () =>
     options.installer.installFile({
       componentId,
-      sourceRelativePath: `${runtime.bundledResourceDir}/${options.platformArch}/${REMOTE_AGENT_BUNDLE_NAME}`,
+      sourceRelativePath: `${runtime.resourcePackageDir}/${options.platformArch}/${REMOTE_AGENT_BUNDLE_NAME}`,
       remotePath: remoteBundlePath,
       executable: false,
       forceRefresh: forceRefreshRuntimeAsset,
@@ -247,7 +247,7 @@ export async function deployNibiAgentRuntime(
     options.installer.installDirectory({
       componentId,
       sourceRelativePath: buildRemoteAgentOfficialPluginSourceRelativePath({
-        runtimeResourceDir: runtime.bundledResourceDir,
+        runtimeResourceDir: runtime.resourcePackageDir,
         platformArch: options.platformArch,
       }),
       remoteDir: remoteOfficialPluginDir,

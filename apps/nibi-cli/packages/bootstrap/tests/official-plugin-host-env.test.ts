@@ -22,14 +22,14 @@ afterEach(() => {
 
 describe("Host-provided bundled plugin environment", () => {
   it("prepends the bundled resource dir so a Host entry can find packages/*-plugin", () => {
-    process.env[RESOURCE_DIR_ENV] = "/opt/nibi/resources/glm";
-    expect(candidateBaseDirs()[0]).toBe("/opt/nibi/resources/glm");
+    process.env[RESOURCE_DIR_ENV] = "/opt/nibi/resources/nibi";
+    expect(candidateBaseDirs()[0]).toBe("/opt/nibi/resources/nibi");
   });
 
   it("uses the bundled nibi.cjs as the plugin host prefix instead of the Host entrypoint", () => {
-    process.env[BINARY_PATH_ENV] = "/opt/nibi/resources/glm/nibi.cjs";
+    process.env[BINARY_PATH_ENV] = "/opt/nibi/resources/nibi/nibi.cjs";
     expect(officialPluginHostPrefixArgs()).toEqual([
-      "/opt/nibi/resources/glm/nibi.cjs",
+      "/opt/nibi/resources/nibi/nibi.cjs",
       "__nibi-plugin-host",
     ]);
   });

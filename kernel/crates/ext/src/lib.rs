@@ -100,7 +100,7 @@ pub struct ExtConfig {
     /// 插件目录（`--plugin-dir`，执行环境里的路径，ext.md §4）。
     pub plugin_dirs: Vec<EnvPath>,
     /// 随包内置 skill 的根目录（Node `bundledSkillRoots`）：`<root>/<名字>/SKILL.md`。
-    /// 入口从 `NIBI_BUNDLED_SKILLS_DIR` 读（桌面 Host 指向 `resources/glm/packages/bundled-skills/skills`）。
+    /// 入口从 `NIBI_BUNDLED_SKILLS_DIR` 读（桌面 Host 指向 `resources/nibi/packages/bundled-skills/skills`）。
     pub skill_roots: Vec<EnvPath>,
     /// `features.skill` 或 `skills.enabled` 为假时停用 skill（Node `createNodeSkillAdapter`）。
     pub skills_disabled: bool,

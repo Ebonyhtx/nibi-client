@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// 桌面打包态的 agent 运行时资产：把 agent 的 JS bundle（nibi.cjs）放进 bundled-agents/<platform>/glm，
+// 桌面打包态的 agent 运行时资产：把 agent 的 JS bundle（nibi.cjs）放进 bundled-agents/<platform>/nibi，
 // 由 app 内置的 Electron Node runtime（ELECTRON_RUN_AS_NODE）执行，替代以前随包内置的独立 Node 二进制。
 //
 // 为什么这么做：
@@ -78,7 +78,7 @@ const platform = normalizePlatform(process.env.NIBI_TARGET_OS || "") || process.
 const arch = normalizeArch(process.env.NIBI_TARGET_ARCH || "") || process.arch;
 const platformKey = `${platform}-${arch}`;
 
-const glmDir = resolve(desktopRoot, "bundled-agents", platformKey, "glm");
+const glmDir = resolve(desktopRoot, "bundled-agents", platformKey, "nibi");
 // nibi.cjs / .node-bundle-meta.json 的落点由 stage-agent-bundle.mjs 自己解析（同源）。
 // node_repl 宿主抽成独立包
 // @nibi/node-repl-host 之后，browser-use 不再产出 dist/mcp/server.js，CUA 资产
@@ -238,7 +238,7 @@ const officialPluginPackages = [
   },
   {
     // 修复原因：nibi-guide 已注册为官方默认启用内容型插件（见 official-plugin-definitions.ts）。
-    // Electron 生产包不是 SEA 路径，官方插件 seed 依赖这里 stage 的 resources/glm/packages/*-plugin；
+    // Electron 生产包不是 SEA 路径，官方插件 seed 依赖这里 stage 的 resources/nibi/packages/*-plugin；
     // 漏掉它会导致生产桌面包首启 seed 不到该插件，用户拿不到默认启用的配置指南技能。
     packageName: "@nibi/guide-plugin",
     relativePath: "apps/nibi-cli/packages/nibi-guide-plugin",
@@ -511,7 +511,7 @@ async function stageBundledNpmRuntime() {
   );
 }
 
-// 修复原因：Electron 生产包只带 resources/glm/nibi.cjs 时，app-server 进程的
+// 修复原因：Electron 生产包只带 resources/nibi/nibi.cjs 时，app-server 进程的
 // __dirname 附近没有官方插件目录，启动时 seed 找不到 source，用户侧不会自动得到内置插件。
 // 这里把官方插件按 bootstrap 的 rootCandidates 期望放到 glm/packages/*-plugin，
 // 让 Electron Node 运行 nibi.cjs 时复用同一套 filesystem seed 逻辑。

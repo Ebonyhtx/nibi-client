@@ -606,7 +606,7 @@ How the pack reaches each runtime:
 - Development and the Electron desktop resolve `packages/bundled-skills` on disk next to the
   CLI entry, through the same candidate-directory walk official plugins use, and read it in
   place; nothing is copied. `packages/desktop/scripts/prepare-agent-node-bundle.mjs` stages
-  it beside `resources/glm/zcode.cjs`.
+  it beside `resources/nibi/zcode.cjs`.
 - ZCode Server releases (headless Server and SSH / WSL / Docker Source Server) use
   `stageRelease` to stage the pack's `README.md` and `skills/` from `bundledSkillsDir` at
   `runtime/packages/bundled-skills`, beside `runtime/zcode.cjs`. Other top-level files are

@@ -4,7 +4,7 @@
 // (apps/nibi-cli/packages/browser-use-plugin/dist/mcp/server.js) externalizes `sharp` because it loads a native `.node`
 // binary that esbuild cannot inline. In dev the workspace's hoisted
 // `node_modules/sharp` resolves fine. In the installed Nibi.app the server
-// runs from `<Resources>/glm/packages/browser-use-plugin/dist/mcp/server.js` and
+// runs from `<Resources>/nibi/packages/browser-use-plugin/dist/mcp/server.js` and
 // Node walks up looking for `node_modules/sharp`. Nothing in that walk reaches
 // the Electron app.asar tree, so without staging sharp into the glm/ tree the
 // server fails at top-level ESM resolution and product CUA never comes up.
@@ -19,7 +19,7 @@
 //
 // Mirrors node-pty-package-assets.mjs in spirit (per-triplet prebuild staging
 // into the packaged app) but writes into the bundled-agents tree instead of
-// before afterPack because extraResources already ships the whole glm/
+// before afterPack because extraResources already ships the whole nibi/
 // directory; afterPack then verifies the final app tree.
 
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
@@ -102,7 +102,7 @@ function resolvePackageRoot(packageName, fromDir) {
  * Copy a node_modules-style package directory while pruning the same
  * non-runtime files electron-builder would (maps / READMEs / tests). Source
  * tree comes from the dev workspace; target is inside the bundled agent tree
- * which is later copied verbatim into Resources/glm/.
+ * which is later copied verbatim into Resources/nibi/.
  */
 function copyRuntimePackage(sourceRoot, targetRoot) {
   if (!existsSync(sourceRoot)) {
@@ -152,7 +152,7 @@ function copyRuntimePackage(sourceRoot, targetRoot) {
 
 /**
  * Stage Sharp's JS dependencies and target-specific native packages into
- * `<glmDir>/node_modules/...` so the shared node_repl server.js can
+ * `<agentDir>/node_modules/...` so the shared node_repl server.js can
  * resolve the bare specifier `import sharp from "sharp"` from either official
  * plugin root. CUA passes its own root explicitly and does not depend on
  * Browser Use's staged files.
@@ -217,7 +217,7 @@ export function resolvePackagedSharpDir({
   resourcesDir,
   pluginRelativePath = "packages/browser-use-plugin",
 }) {
-  return resolve(resourcesDir, "glm", pluginRelativePath, "node_modules", "sharp");
+  return resolve(resourcesDir, "nibi", pluginRelativePath, "node_modules", "sharp");
 }
 
 /**
@@ -351,7 +351,7 @@ if (entryHref === import.meta.url) {
     ? resolve(import.meta.dirname, "..")
     : process.cwd();
   const glmDir =
-    args["glm-dir"] ?? resolve(desktopPackageRoot, "bundled-agents", targetPlatform.key, "glm");
+    args["glm-dir"] ?? resolve(desktopPackageRoot, "bundled-agents", targetPlatform.key, "nibi");
   stageSharpIntoBundledAgents({ desktopPackageRoot, glmDir, targetPlatform });
   // verifyStagedSharp expects resourcesDir to be the parent of `glm/`, i.e.
   // `<Resources>/` in the packaged app or `dirname(glmDir)` for ad-hoc tests.
@@ -360,7 +360,7 @@ if (entryHref === import.meta.url) {
     targetPlatform,
     // CLI smoke can target any staging root. The desktop product passes the
     // plugin-local relative path by default; this direct smoke stages sharp at
-    // <glmDir>/node_modules, so verify that exact tree.
+    // <agentDir>/node_modules, so verify that exact tree.
     pluginRelativePath: "",
   });
   if (problems.length > 0) {

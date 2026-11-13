@@ -836,12 +836,12 @@ export default {
         ]
       : []),
     {
-      // agent 运行时资产，打包到 resources/glm。
-      // 桌面端内置的是 agent 的 JS bundle（glm/nibi.cjs，由 prepare:agent-bundle 生成），
+      // agent 运行时资产，打包到 resources/nibi。
+      // 桌面端内置的是 agent 的 JS bundle（nibi/nibi.cjs，由 prepare:agent-bundle 生成），
       // Host 进程用 app 自带的 Electron Node runtime（ELECTRON_RUN_AS_NODE）执行 `nibi.cjs app-server --stdio`，
       // 不再随包内置独立 Node 二进制。远端 SSH/WSL 仍走原生二进制（无 Electron）。
-      from: `bundled-agents/${targetPlatform.key}/glm`,
-      to: "glm",
+      from: `bundled-agents/${targetPlatform.key}/nibi`,
+      to: "nibi",
       filter: ["**/*", "!**/*.map"],
     },
     {
@@ -903,7 +903,7 @@ export default {
     // electron-builder 若再次签名嵌套 Helper 会改变 CDHash，使最终用户包中的 staple 失效。
     signIgnore: [
       "[/\\\\]Contents[/\\\\]Resources[/\\\\]cua-helper([/\\\\]|$)",
-      "[/\\\\]Contents[/\\\\]Resources[/\\\\]glm([/\\\\]|$)",
+      "[/\\\\]Contents[/\\\\]Resources[/\\\\]nibi([/\\\\]|$)",
       "[/\\\\]Contents[/\\\\]Resources[/\\\\]tools([/\\\\]|$)",
     ],
   },

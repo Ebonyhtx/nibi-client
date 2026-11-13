@@ -113,7 +113,7 @@ search runtime）。历史 `resourcePackages.selectedPackageIds` 只兼容读取
   macOS/Linux 的工具集为 `bfs`、`ugrep`、`ripgrep`，Windows x64/arm64 为 `ugrep`、`ripgrep`；自检不再
   检查或下载 `glm/nibi-agent`（改名前的旧名是 `zcode-agent`）。开发态 Agent 由 `dev-desktop-env.mjs` 在 `pre-dev` 后调用
   `build-desktop-agent-cli.mjs` 构建，运行时优先使用 workspace 内的 `dist/zcode.cjs`。
-- 桌面安装包携带 `resources/glm/zcode.cjs`、`resources/tools/ugrep` 与 `resources/tools/ripgrep`；
+- 桌面安装包携带 `resources/nibi/zcode.cjs`、`resources/tools/ugrep` 与 `resources/tools/ripgrep`；
   macOS/Linux 另携带 `resources/tools/bfs`。
 
 Agent runtime 版本事实源是 `packages/shared/src/zcode-agent-runtime.ts`。本地开发、desktop build、remote

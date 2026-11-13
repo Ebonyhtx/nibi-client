@@ -41,4 +41,4 @@ dev 的 Node 内核）按需把它作为子进程拉起，经 stdio 行协议驱
   `runtime` 的 `WorkflowEngine` 端口实现——本模块是它们的对端，字段改动必须两侧同批并过
   check-dwf-engine 门禁。
 - 桌面 dev：`NIBI_DWF_ENGINE_CMD` 显式指到这里；打包态由桌面自带 Electron Node 跑
-  `resources/glm/nibi.cjs __nibi-dwf-engine`（分发拍板 B）。
+  `resources/nibi/nibi.cjs __nibi-dwf-engine`（分发拍板 B）。

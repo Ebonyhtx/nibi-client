@@ -45,7 +45,7 @@ import { ingestHostNetworkObservations } from "./desktopNetworkTelemetry.js";
 import {
   buildHostProcessEnv,
   hostModulePath,
-  resolveBundledGlmBinaryPath,
+  resolveBundledNibiAgentBinaryPath,
 } from "./desktopRuntimeEnv.js";
 import { ingestHostNetworkCapture } from "./resourceManagerNetwork.js";
 import { buildHostE2ECoverageEnv } from "./e2eCoverage.js";
@@ -231,7 +231,7 @@ export function spawnHostProcess(
   options?: SpawnHostProcessOptions,
 ): ElectronUtilityProcess {
   const hostId = randomUUID();
-  const glmBinaryPath = resolveBundledGlmBinaryPath();
+  const agentBinaryPath = resolveBundledNibiAgentBinaryPath();
   const execArgv = [
     ...(RUNTIME_NIBI_DEBUG ? [`--inspect-brk=${RUNTIME_NIBI_DEBUG}`] : []),
     "--no-warnings",
@@ -243,11 +243,11 @@ export function spawnHostProcess(
       ...buildHostProcessEnv(dependencies.hostProcessLocalEnv),
       ...buildHostE2ECoverageEnv(),
       NIBI_PROCESS_LABEL: label,
-      // Host 的入口不是 resources/glm/nibi.cjs；插件 seed 与缓存清单重写需要随包资源目录和真正的插件宿主 bundle。
-      ...(glmBinaryPath
+      // Host 的入口不是 resources/nibi/nibi.cjs；插件 seed 与缓存清单重写需要随包资源目录和真正的插件宿主 bundle。
+      ...(agentBinaryPath
         ? {
-            NIBI_BUNDLED_AGENT_BINARY_PATH: glmBinaryPath,
-            NIBI_BUNDLED_AGENT_RESOURCE_DIR: dirname(glmBinaryPath),
+            NIBI_BUNDLED_AGENT_BINARY_PATH: agentBinaryPath,
+            NIBI_BUNDLED_AGENT_RESOURCE_DIR: dirname(agentBinaryPath),
           }
         : {}),
       // macOS-only: the Computer Use Helper launcher runs inside this forked host utilityProcess, whose
@@ -271,7 +271,7 @@ export function spawnHostProcess(
     `[spawnHostProcess] forked host process for (${label}), pid=${child.pid}`,
   );
   dependencies.logger.info(`[spawnHostProcess] host module path: ${hostModulePath}`);
-  dependencies.logger.info(`[spawnHostProcess] glm binary path: ${glmBinaryPath ?? "<not found>"}`);
+  dependencies.logger.info(`[spawnHostProcess] glm binary path: ${agentBinaryPath ?? "<not found>"}`);
   dependencies.logger.info(
     `[spawnHostProcess] BIGMODEL_OAUTH_APP_SECRET source: ${process.env.BIGMODEL_OAUTH_APP_SECRET ? "process" : dependencies.hostProcessLocalEnv.BIGMODEL_OAUTH_APP_SECRET ? "dotenv" : "fallback"}`,
   );

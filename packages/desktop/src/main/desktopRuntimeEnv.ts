@@ -427,7 +427,7 @@ export function resolveRemoteAssetDirs(
   };
 }
 
-function resolveBundledNibiAgentBinaryPath(): string | undefined {
+export function resolveBundledNibiAgentBinaryPath(): string | undefined {
   const runtime = NIBI_AGENT_RUNTIME;
   const entrySegments = runtime.resolveEntrySegments(process.platform);
   const platformKey = resolvePlatformKeyForPackagedApp();
@@ -491,17 +491,13 @@ function resolveBundledLarkCliBinaryPath(): string | undefined {
   return resolveBundledRuntimeToolBinaryPath("lark-cli", "lark-cli");
 }
 
-export function resolveBundledGlmBinaryPath(): string | undefined {
-  return resolveBundledNibiAgentBinaryPath();
-}
-
 function resolveHostProcessBinaryEnv(
   envVar: string,
   hostProcessLocalEnv: Record<string, string>,
   bundledPath: string | undefined,
 ): string | undefined {
   // Nibi Agent 与 app 协议适配强绑定版本，生产包必须优先使用随包携带的固定 runtime。
-  // 用户机器或本地 .env 里残留的 GLM_BINARY_PATH 即使存在，也可能版本不兼容。
+  // 用户机器或本地 .env 里残留的 NIBI_AGENT_BINARY_PATH 即使存在，也可能版本不兼容。
   // 只有 bundled runtime 缺失时才把显式路径作为兜底，避免用户本机 CLI 覆盖内嵌版本。
   if (bundledPath) {
     return bundledPath;
@@ -561,12 +557,12 @@ export function resolveDynamicWorkflowModeHostEnv(options: {
 }
 
 export function buildHostProcessEnv(hostProcessLocalEnv: Record<string, string>) {
-  const glmBinaryPath = resolveBundledGlmBinaryPath();
+  const agentBinaryPath = resolveBundledNibiAgentBinaryPath();
   const larkCliBinaryPath = resolveBundledLarkCliBinaryPath();
   const resolvedGlmBinaryPath = resolveHostProcessBinaryEnv(
-    "GLM_BINARY_PATH",
+    "NIBI_AGENT_BINARY_PATH",
     hostProcessLocalEnv,
-    glmBinaryPath,
+    agentBinaryPath,
   );
   const resolvedLarkCliBinaryPath = resolveHostProcessBinaryEnv(
     "NIBI_LARK_CLI_BINARY",
@@ -658,7 +654,7 @@ export function buildHostProcessEnv(hostProcessLocalEnv: Record<string, string>)
     ...(bundledCuaHelperAppPath
       ? { [NIBI_CUA_BUNDLED_HELPER_APP_PATH_ENV]: bundledCuaHelperAppPath }
       : {}),
-    ...(resolvedGlmBinaryPath ? { GLM_BINARY_PATH: resolvedGlmBinaryPath } : {}),
+    ...(resolvedGlmBinaryPath ? { NIBI_AGENT_BINARY_PATH: resolvedGlmBinaryPath } : {}),
     ...(resolvedLarkCliBinaryPath ? { NIBI_LARK_CLI_BINARY: resolvedLarkCliBinaryPath } : {}),
   };
 }

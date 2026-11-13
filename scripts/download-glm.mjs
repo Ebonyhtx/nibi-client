@@ -185,7 +185,7 @@ export async function main() {
 
   const repoRoot = REPO_ROOT;
 
-  const localOutputDir = path.join(repoRoot, "packages/desktop/bundled-agents", platformKey, "glm");
+  const localOutputDir = path.join(repoRoot, "packages/desktop/bundled-agents", platformKey, "nibi");
   const version = require(path.join(repoRoot, "package.json")).version;
   const remoteOutputDir = path.join(
     repoRoot,

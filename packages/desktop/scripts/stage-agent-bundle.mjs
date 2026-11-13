@@ -1,5 +1,5 @@
 // Agent bundle 的暂存动作：把 apps/nibi-cli/packages/cli/dist/nibi.cjs 放进
-// bundled-agents/<平台>/glm，并写 meta。
+// bundled-agents/<平台>/nibi，并写 meta。
 //
 // dev 与打包**必须**用同一份暂存实现。
 // 只有打包链（prepare-agent-node-bundle.mjs）会暂存是不够的，dev 链
@@ -14,7 +14,7 @@ import { resolve } from "node:path";
 export const AGENT_BUNDLE_SOURCE_RELATIVE = "apps/nibi-cli/packages/cli/dist/nibi.cjs";
 
 export function resolveAgentBundlePaths({ repoRoot, platformKey }) {
-  const glmDir = resolve(repoRoot, "packages", "desktop", "bundled-agents", platformKey, "glm");
+  const glmDir = resolve(repoRoot, "packages", "desktop", "bundled-agents", platformKey, "nibi");
   return {
     cliBundlePath: resolve(repoRoot, AGENT_BUNDLE_SOURCE_RELATIVE),
     glmDir,
@@ -25,7 +25,7 @@ export function resolveAgentBundlePaths({ repoRoot, platformKey }) {
 
 /**
  * 干净重建 glm 目录再拷贝。清空是刻意的：electron-builder 整目录拷贝
- * bundled-agents/<平台>/glm → resources/glm，本地工作树里上一次构建残留的原生二进制
+ * bundled-agents/<平台>/nibi → resources/nibi，本地工作树里上一次构建残留的原生二进制
  * （改名前的 `nibi-agent`、上游的 `zcode-acp` 等）和旧 meta 会被一并打进安装包（CI 干净检出
  * 不会有，本地会）。
  */

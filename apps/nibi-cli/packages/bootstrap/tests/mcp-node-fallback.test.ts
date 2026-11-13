@@ -93,10 +93,10 @@ describe("resolveMcpNodeFallbackProvider", () => {
 describe("bundledNpmRootCandidates", () => {
   it("maps every base dir onto node-runtime/npm and de-duplicates", () => {
     expect(
-      bundledNpmRootCandidates(["/opt/nibi/glm", "/opt/nibi/glm", "/opt/nibi/resources/glm"]),
+      bundledNpmRootCandidates(["/opt/nibi/glm", "/opt/nibi/glm", "/opt/nibi/resources/nibi"]),
     ).toEqual([
       join("/opt/nibi/glm", "node-runtime", "npm"),
-      join("/opt/nibi/resources/glm", "node-runtime", "npm"),
+      join("/opt/nibi/resources/nibi", "node-runtime", "npm"),
     ]);
   });
 
