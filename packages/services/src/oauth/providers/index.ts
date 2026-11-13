@@ -1,11 +1,12 @@
-import { BIGMODEL_PROVIDER_ID, NIBI_PROVIDER_ID, ZAI_PROVIDER_ID, type ApiClient } from "@nibi/shared";
+import {
+  NIBI_PROVIDER_ID,
+  type ApiClient,
+} from "@nibi/shared";
 import type { OAuthRuntimeConfig } from "../runtimeConfig.js";
-import { BigModelProviderAdapter } from "./bigmodelProviderAdapter.js";
 import { NibiProviderAdapter } from "./nibiProviderAdapter.js";
 import type { OAuthProviderAdapter } from "./providerAdapter.js";
-import { ZaiProviderAdapter } from "./zaiProviderAdapter.js";
 
-/** 根据运行时配置创建可用 provider adapter */
+/** 根据运行时配置创建可用 provider adapter。 */
 export function createOAuthProviderAdapters(
   config: OAuthRuntimeConfig,
   options: { apiClient?: ApiClient } = {},
@@ -20,12 +21,6 @@ export function createOAuthProviderAdapters(
 
   for (const providerConfig of config.providers) {
     switch (providerConfig.id) {
-      case BIGMODEL_PROVIDER_ID:
-        adapters.push(new BigModelProviderAdapter(providerConfig, apiClient));
-        break;
-      case ZAI_PROVIDER_ID:
-        adapters.push(new ZaiProviderAdapter(providerConfig, apiClient));
-        break;
       case NIBI_PROVIDER_ID:
         adapters.push(new NibiProviderAdapter(providerConfig, apiClient));
         break;

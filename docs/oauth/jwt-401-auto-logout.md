@@ -1,4 +1,6 @@
-# ZCode 登录凭据失效与重新登录
+# NIBI 登录凭据失效与重新登录
+
+> 2026-11-14：上游 Z.ai/BigModel 账号 OAuth 已删除；本文中两平台 customerInfo / 业务 token 细节仅作历史设计记录，当前只保留 NIBI 身份。
 
 ## 项目定位缓存局部恢复
 
@@ -38,7 +40,7 @@
 
 ## 2026-10-12：业务凭据撤销恢复
 
-BigModel/ZAI 当前 active provider 的业务 access_token 被明确拒绝时，复用 OAuthService 的条件退出、派生凭据清理和 Host 广播；Renderer 清除用户展示，显示现有“登录已过期”提示，确认后直接进入 Welcome 登录入口，不重启 App 或刷新 Web。
+NIBI 当前 active provider 的 access_token 被明确拒绝时，复用 OAuthService 的条件退出和 Host 广播；Renderer 清除用户展示，显示现有“登录已过期”提示，确认后直接进入 Welcome 登录入口，不重启 App 或刷新 Web。上游 Z.ai/BigModel 账号 OAuth 已删除。
 
 启动缓存恢复同时检查共享 JWT 和当前业务 access_token 的 JWT exp；任一明确过期都在原会话队列内复核并返回 reauthentication-required。业务 token 无 exp/不可解析时不据此退出，远端撤销由后续请求确认；不新增启动网络请求或定时到期检查。
 

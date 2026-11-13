@@ -1,9 +1,4 @@
-import {
-  NIBI_PROVIDER_ID,
-  ZAI_PROVIDER_ID,
-  resolveJwtExpiration,
-  type UserInfo,
-} from "@nibi/shared";
+import { NIBI_PROVIDER_ID, resolveJwtExpiration, type UserInfo } from "@nibi/shared";
 import {
   BrowserOAuthCredentialRepo,
   type WebOAuthProviderId,
@@ -11,7 +6,6 @@ import {
 import {
   buildOAuthState,
   buildReturnToCallbackUrl,
-  buildWebRemoteOAuthRedirectUri,
   isTrustedDevReturnTo,
   parseOAuthState,
   parseOptionalUrl,
@@ -24,8 +18,6 @@ import {
   createNibiCodeVerifier,
   type NibiWebOAuthConfig,
 } from "./nibiWebOAuth.js";
-import { WEB_ZAI_OAUTH_CONFIG, type WebZaiOAuthConfig } from "./webZaiOAuthConfig.js";
-import { ZaiWebOAuthProvider } from "./zaiWebOAuthProvider.js";
 
 interface WebAuthServiceRuntime {
   assign(url: string): void;
@@ -37,9 +29,7 @@ interface WebAuthServiceRuntime {
 
 interface WebAuthServiceDependencies {
   now?: () => number;
-  config?: WebZaiOAuthConfig;
   nibiConfig?: NibiWebOAuthConfig;
-  provider?: ZaiWebOAuthProvider;
   nibiProvider?: NibiWebOAuthProvider;
   repo?: BrowserOAuthCredentialRepo;
   runtime?: WebAuthServiceRuntime;
@@ -49,7 +39,7 @@ interface WebAuthLoginOptions {
   devReturnTo?: string;
   appReturnTo?: string;
   redirectUri?: string;
-  /** 缺省 zai，保持 /remote 等既有入口行为不变。 */
+  /** Web 端只有 NIBI 一种 provider；字段保留用于既有调用方。 */
   provider?: WebOAuthProviderId;
   /** NIBI：强制 IdP 重新认证（切换账号时必须，否则 SSO 会登回原账号）。 */
   forceLogin?: boolean;
@@ -91,9 +81,7 @@ function createDefaultRuntime(): WebAuthServiceRuntime {
 const NIBI_REFRESH_MARGIN_MS = 5 * 60_000;
 
 export class WebAuthService {
-  private readonly config: WebZaiOAuthConfig;
   private readonly nibiConfig: NibiWebOAuthConfig;
-  private readonly provider: ZaiWebOAuthProvider;
   private readonly nibiProvider: NibiWebOAuthProvider;
   private readonly repo: BrowserOAuthCredentialRepo;
   private readonly runtime: WebAuthServiceRuntime;
@@ -102,9 +90,7 @@ export class WebAuthService {
   private autoRefreshStarted = false;
 
   constructor(dependencies: WebAuthServiceDependencies = {}) {
-    this.config = dependencies.config ?? WEB_ZAI_OAUTH_CONFIG;
     this.nibiConfig = dependencies.nibiConfig ?? NIBI_WEB_OAUTH_CONFIG;
-    this.provider = dependencies.provider ?? new ZaiWebOAuthProvider(this.config);
     this.nibiProvider = dependencies.nibiProvider ?? new NibiWebOAuthProvider(this.nibiConfig);
     this.repo = dependencies.repo ?? new BrowserOAuthCredentialRepo();
     this.runtime = dependencies.runtime ?? createDefaultRuntime();
@@ -112,39 +98,8 @@ export class WebAuthService {
   }
 
   startLogin(options: WebAuthLoginOptions = {}): void | Promise<void> {
-    if (options.provider === NIBI_PROVIDER_ID) return this.startNibiLogin(options);
-    const nonce = this.runtime.createNonce();
-    const provider = options.provider ?? ZAI_PROVIDER_ID;
-    const appReturnTo = options.appReturnTo ?? this.runtime.getCurrentHref();
-    const returnToOptions = { currentOrigin: this.runtime.getCurrentOrigin() };
-    const redirectUri = buildWebRemoteOAuthRedirectUri(
-      options.redirectUri ?? this.config.redirectUri,
-      appReturnTo,
-      returnToOptions,
-    );
-    this.repo.savePendingLogin({ nonce, provider, redirectUri });
-
-    const state = buildOAuthState({
-      nonce,
-      app_return_to: appReturnTo,
-      ...(options.devReturnTo
-        ? {
-            return_to: buildWebRemoteOAuthRedirectUri(
-              options.devReturnTo,
-              appReturnTo,
-              returnToOptions,
-            ),
-          }
-        : {}),
-    });
-
-    this.runtime.assign(
-      this.provider.buildAuthorizeUrl({
-        state,
-        provider,
-        redirectUri,
-      }),
-    );
+    // NIBI 4.0 只保留自家账号中心；上游 Z.ai / BigModel 账号 OAuth 已删除。
+    return this.startNibiLogin(options);
   }
 
   /**
@@ -176,7 +131,7 @@ export class WebAuthService {
   }
 
   async handleCallback(url: string): Promise<WebAuthCallbackResult | null> {
-    const callback = this.provider.parseCallbackParams(url);
+    const callback = this.nibiProvider.parseCallbackParams(url);
     const statePayload = parseOAuthState(callback.state);
     if (!statePayload) {
       throw new Error("OAuth state is invalid");
@@ -184,7 +139,7 @@ export class WebAuthService {
 
     const returnToUrl = parseOptionalUrl(statePayload.return_to);
     if (returnToUrl && returnToUrl.origin !== this.runtime.getCurrentOrigin()) {
-      if (this.config.allowDevReturnToRedirect && isTrustedDevReturnTo(returnToUrl)) {
+      if (this.nibiConfig.allowDevReturnToRedirect && isTrustedDevReturnTo(returnToUrl)) {
         const redirectUrl = buildReturnToCallbackUrl(returnToUrl.toString(), {
           ...(callback.code ? { code: callback.code } : {}),
           ...(callback.error ? { error: callback.error } : {}),
@@ -211,30 +166,20 @@ export class WebAuthService {
     if (!pendingLogin) {
       throw new Error("OAuth CSRF 检测失败");
     }
-    const { provider, redirectUri, codeVerifier } = pendingLogin;
-    let exchange;
-    if (provider === NIBI_PROVIDER_ID) {
-      if (!codeVerifier) {
-        // 没有 verifier 就无法完成 PKCE；宁可让用户重登，也不能静默降级成无 PKCE 流程。
-        throw new Error("OAuth PKCE verifier missing");
-      }
-      exchange = await this.nibiProvider.exchangeToken({
-        code: callback.code,
-        redirectUri,
-        codeVerifier,
-      });
-    } else {
-      exchange = await this.provider.exchangeToken({
-        code: callback.code,
-        state: callback.state,
-        provider,
-        redirectUri,
-      });
+    const { redirectUri, codeVerifier } = pendingLogin;
+    if (!codeVerifier) {
+      // 没有 verifier 就无法完成 PKCE；宁可让用户重登，也不能静默降级成无 PKCE 流程。
+      throw new Error("OAuth PKCE verifier missing");
     }
+    const exchange = await this.nibiProvider.exchangeToken({
+      code: callback.code,
+      redirectUri,
+      codeVerifier,
+    });
 
-    this.repo.saveTokenSet(exchange.tokenSet, provider);
-    this.repo.saveUserInfo(exchange.rawUserInfo, provider);
-    this.repo.setActiveProvider(provider);
+    this.repo.saveTokenSet(exchange.tokenSet, NIBI_PROVIDER_ID);
+    this.repo.saveUserInfo(exchange.rawUserInfo, NIBI_PROVIDER_ID);
+    this.repo.setActiveProvider(NIBI_PROVIDER_ID);
 
     return {
       userInfo: exchange.userInfo,

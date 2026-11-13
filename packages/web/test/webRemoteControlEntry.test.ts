@@ -83,22 +83,17 @@ describe("V2 手机入口", () => {
     h.entry.startLogin();
     expect(h.auth.startLogin).toHaveBeenCalledWith({ appReturnTo: h.href });
   });
-  it.each(["zai", "bigmodel"] as const)(
-    "扫码登录透传所选平台 %s 并保留返回地址",
-    async (provider) => {
-      const h = setup();
-      await h.entry.start();
-      h.entry.startLogin(provider);
-      expect(h.auth.startLogin).toHaveBeenCalledWith({ provider, appReturnTo: h.href });
-      expect(h.connect).not.toHaveBeenCalled();
-      expect(h.token).not.toHaveBeenCalled();
-    },
-  );
-  it.each([
-    "code=code-1&state=state-1",
-    "authCode=bigmodel-code&state=state-1",
-    "error=access_denied&state=state-1",
-  ])("回调优先于登录门禁：%s", async (query) => {
+  it("扫码登录透传 NIBI 并保留返回地址", async () => {
+    const h = setup();
+    await h.entry.start();
+    h.entry.startLogin("nibi");
+    expect(h.auth.startLogin).toHaveBeenCalledWith({ provider: "nibi", appReturnTo: h.href });
+    expect(h.connect).not.toHaveBeenCalled();
+    expect(h.token).not.toHaveBeenCalled();
+  });
+  it.each(["code=code-1&state=state-1", "error=access_denied&state=state-1"])(
+    "回调优先于登录门禁：%s",
+    async (query) => {
     const h = setup(null, `https://zcode.z.ai/remote/v4/?${query}`);
     await h.entry.start();
     expect(h.onView).toHaveBeenCalledWith({ kind: "callback" });
@@ -313,7 +308,7 @@ it.each([
 });
 
 it("列表视图携带当前账号展示资料，刷新后保持", async () => {
-  const account = { displayName: "Ada", provider: "zai" as const };
+  const account = { displayName: "Ada", provider: "nibi" as const };
   const h = setup("jwt", "https://zcode.z.ai/remote/v4", account);
   h.devices.mockResolvedValue([{ ...onlineDevice, meta: { name: "Mac", platform: "darwin" } }]);
   await h.entry.start();

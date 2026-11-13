@@ -38,10 +38,6 @@ export interface LoginNibiCliResult {
   user: CliOAuthUser;
 }
 
-// BigModel 与 Z.ai 共用服务端轮询登录，只是 providerId 固定为 bigmodel。
-export type LoginBigmodelCodingPlanOptions = Omit<LoginNibiCliOptions, "providerId">;
-export type LoginBigmodelCodingPlanResult = LoginNibiCliResult & { providerId: "bigmodel" };
-
 export interface ConfigureCodingPlanApiKeyOptions {
   apiKey: string;
   credentialStore?: SharedNibiCredentialStore;

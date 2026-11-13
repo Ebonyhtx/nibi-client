@@ -32,9 +32,9 @@ WelcomeScreen 不等待套餐查询完成，仍保持现有进入应用节奏。
 - 多个团队 Coding Plan 不生成多个 side 导航入口，只作为右侧连接方式菜单的多个选项。
 - side 导航选中 family 后，右侧详情根据当前 family 的连接方式选中项渲染对应 Plan Card 或 API Key 表单。
 
-### OAuth 登录入口
+### NIBI 登录入口
 
-当用户通过 WelcomeScreen 选择 Z.ai 或 BigModel OAuth 登录后，Model Provider 设置页先选中对应 family 的 side 导航入口，再在同 family 内等待连接方式状态可判定，按以下优先级选中一次：
+当用户通过 WelcomeScreen 使用 NIBI 账号登录后，Model Provider 设置页按 NIBI 账号对应的 family 选中 side 导航入口，再等待连接方式状态可判定，按以下优先级选中一次：
 
 1. 个人套餐（Coding Plan，个人）：有个人 Coding Plan 权益。
 2. 团队套餐（Coding Plan，团队）：按团队套餐获取结果中的第一个团队项。

@@ -6,7 +6,12 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Loader2Icon, LoaderIcon, TriangleAlertIcon } from "lucide-react";
-import { type OAuthProviderMeta, BIGMODEL_PROVIDER_ID, NIBI_PROVIDER_ID, ZAI_PROVIDER_ID } from "@nibi/shared";
+import {
+  type OAuthProviderMeta,
+  BIGMODEL_PROVIDER_ID,
+  NIBI_PROVIDER_ID,
+  ZAI_PROVIDER_ID,
+} from "@nibi/shared";
 import {
   TID_LOGIN_USE_API_KEY_BUTTON,
   TID_OAUTH_CANCEL,
@@ -367,11 +372,7 @@ export function LoginPanel({ active, onComplete, onOpenModelSettings }: LoginPan
                     variant="default"
                     className="h-10 w-full text-ui-base"
                     size="lg"
-                    data-testid={
-                      provider.id === BIGMODEL_PROVIDER_ID
-                        ? TID_OAUTH_LOGIN_BUTTON
-                        : testId(TID_OAUTH_LOGIN_BUTTON, provider.id)
-                    }
+                    data-testid={testId(TID_OAUTH_LOGIN_BUTTON, provider.id)}
                     onClick={() => void startTrackedLogin(provider.id)}
                   >
                     {renderOAuthProviderIcon(provider.id, "size-4")}
@@ -549,27 +550,11 @@ function LoginPanelLogo() {
 }
 
 function getLoginOAuthButtonMessageId(providerId: string): string {
-  switch (providerId) {
-    case NIBI_PROVIDER_ID:
-      return "login.oauth.button.nibi";
-    case ZAI_PROVIDER_ID:
-      return "login.oauth.button.zai";
-    case BIGMODEL_PROVIDER_ID:
-      return "login.oauth.button.bigmodel";
-    default:
-      return "login.oauth.button";
-  }
+  return providerId === NIBI_PROVIDER_ID ? "login.oauth.button.nibi" : "login.oauth.button";
 }
 
-function getLoginOAuthRegionTagMessageId(providerId: string): string | null {
-  switch (providerId) {
-    case ZAI_PROVIDER_ID:
-      return "login.oauth.regionTag.zai";
-    case BIGMODEL_PROVIDER_ID:
-      return "login.oauth.regionTag.bigmodel";
-    default:
-      return null;
-  }
+function getLoginOAuthRegionTagMessageId(_providerId: string): string | null {
+  return null;
 }
 
 function LoginOAuthRegionTag({ providerId }: { providerId: string }) {
@@ -590,37 +575,11 @@ function LoginOAuthRegionTag({ providerId }: { providerId: string }) {
 /** NIBI 覆盖开关：置 true 可以重新隐藏账号登录入口（只留 API key）。 */
 const NIBI_HIDE_ACCOUNT_LOGIN = false;
 
-function getProviderPriority(provider: OAuthProviderMeta): number {
-  switch (provider.id) {
-    // Windows 登录入口里 z.ai 入口需要固定排在最上面，
-    // 之前把 BigModel 设成更高优先级后，用户首屏会先看到次要入口。
-    // 这里直接调整排序权重，只改展示顺序，不影响 OAuth provider 的真实配置来源。
-    case ZAI_PROVIDER_ID:
-      return 0;
-    case BIGMODEL_PROVIDER_ID:
-      return 1;
-    default:
-      return 10 + provider.order;
-  }
-}
-
-/** 上游的登录入口排序（ZAI → BigModel → 其余按 order）。 */
-function sortLoginProviders(providers: OAuthProviderMeta[]): OAuthProviderMeta[] {
-  // Bugfix: ZAI / BigModel 现在共享 App 登录事实源，未登录时登录入口必须同时展示两个入口。
-  // 旧逻辑曾临时隐藏 BigModel，导致用户无法主动选择 BigModel 作为 active provider。
-  return [...providers].sort((left, right) => {
-    return getProviderPriority(left) - getProviderPriority(right);
-  });
-}
-
 export function resolveVisibleLoginProviders(providers: OAuthProviderMeta[]): OAuthProviderMeta[] {
-  // NIBI 只提供自家账号登录；智谱的 Z.ai / BigModel 账号体系仍然不展示。
-  // 即使环境变量把上游 provider 重新打开，登录弹窗也只列 NIBI。
+  // NIBI 只提供自家账号登录；上游账号 OAuth 已删除，这里再兜底过滤一次。
   if (NIBI_HIDE_ACCOUNT_LOGIN) return [];
-  return sortLoginProviders(
-    providers.filter(
-      (provider) => provider.id !== ZAI_PROVIDER_ID && provider.id !== BIGMODEL_PROVIDER_ID,
-    ),
+  return providers.filter(
+    (provider) => provider.id !== ZAI_PROVIDER_ID && provider.id !== BIGMODEL_PROVIDER_ID,
   );
 }
 

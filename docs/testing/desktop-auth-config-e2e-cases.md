@@ -1,4 +1,4 @@
-> 范围说明：本文包含上游商业套餐（Coding Plan / Team Plan / Start Plan）的历史设计。NIBI 4.0 已移除这些能力，相关段落仅作对照；当前行为以代码为准。
+> 范围说明：本文包含上游商业套餐（Coding Plan / Team Plan / Start Plan）与上游 Z.ai/BigModel 账号 OAuth 的历史设计。NIBI 4.0 已移除这些能力，相关段落仅作对照；当前行为以代码为准。BigModel/Z.ai 的 **API Key 模型接入预设**仍保留。
 
 # Desktop Auth/Config E2E Cases
 

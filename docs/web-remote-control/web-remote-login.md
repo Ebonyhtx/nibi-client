@@ -11,10 +11,10 @@
 
 ## 入口与认证
 
-- `code` / `authCode` + `state`（或 OAuth `error` + `state`）优先渲染现有 `WebCallbackPage`，由 `WebAuthService` 校验 nonce、交换 token、写入同源 localStorage，再 replace 安全 app_return_to。
-- OAuth 回调地址以构建 endpoint origin 的 `/remote/v4` 为基址，保留登录前同源远控 URL 的 `app_version/sid/mid/name` 参数（含空值与编码后的设备名）。不复制未知参数、旧凭据、历史 code/authCode/state/error 或 fragment；分享登录保持独立回调地址。Z.AI 使用 `redirect_uri`，BigModel 使用 `redirect`，授权 origin 随构建环境变化。
+- `code` + `state`（或 OAuth `error` + `state`）优先渲染现有 `WebCallbackPage`，由 `WebAuthService` 校验 nonce、交换 token、写入同源 localStorage，再 replace 安全 app_return_to。
+- OAuth 回调地址以构建 endpoint origin 的 `/remote/v4` 为基址，保留登录前同源远控 URL 的 `app_version/sid/mid/name` 参数（含空值与编码后的设备名）。不复制未知参数、旧凭据、历史 code/state/error 或 fragment；分享登录保持独立回调地址。授权 origin 随构建环境变化。
 - `WebAuthService` 在发起授权时通过 `BrowserOAuthCredentialRepo` 把本次登录记录（nonce、provider、完整回调地址）保存在同源 localStorage，按 nonce 区分。回调只取出 state 中 nonce 对应的那一条，取出即删除，再用该记录的 provider 与地址交换 token；找不到记录时报 CSRF 失败，不请求 token，也不改动其他记录。不得从含授权参数的回调 URL 拼出 token 请求地址。原因与边界见[回调落到同一浏览器的其他标签页](#回调落到同一浏览器的其他标签页)。
-- 无 JWT 时展示与桌面一致的 Z.AI / BigModel 两个 OAuth 入口（Z.AI 在前，使用桌面同款图标、连接文案与全球/中国标签），提示使用与电脑相同的平台和账号。登录卡片页头左侧为桌面端标题栏同款应用 logo 图标（40px，装饰性图片），右侧为“ZCode”品牌文字与标题；不再使用强调色方块里的字母占位。设备列表页与扫码占位页页头使用同一 logo 的 20px 版本加“ZCode”文字，见 [设备列表规格](./relay-v2-pairing.md#列表排布与文本线框)。选择后同时禁用两个按钮，所选 provider 经入口编排传入现有 WebAuthService；回调按 pending provider 交换并保存凭据。不增加 API Key 入口，因为远控需要账号身份；二维码不携带凭据或推断登录平台。
+- 无 JWT 时只展示 **NIBI 账号登录**，提示使用与电脑相同的 NIBI 账号。登录卡片页头左侧为桌面端标题栏同款应用 logo 图标（40px，装饰性图片），右侧为“NIBI”品牌文字与标题。设备列表页与扫码占位页页头使用同一 logo 的 20px 版本加“NIBI”文字，见 [设备列表规格](./relay-v2-pairing.md#列表排布与文本线框)。不增加 API Key 入口，因为远控需要账号身份；二维码不携带凭据或推断登录平台。
 - 无 JWT 时渲染登录页；appReturnTo 为当前完整 URL。安全回跳只保留同源 `/remote/v4`、`/remote/__test__`（均含尾斜杠）和既有分享路径，query 白名单为 app_version/sid/mid/name。
 - 有 JWT、有 SID 直接申请 terminal token 并连接 V2；无 SID 时按当前账号读取设备，最近 SID 在线则直连；最近 SID 不在线但同一台电脑（最近 MID）恰好只有一个在线连接时直连该连接；否则显示设备列表（规则见[落点](./relay-v2-pairing.md#落点状态归属与刷新)）。离线设备不可点击；选中在线设备回写 sid/mid/name/app_version 后连接，支持手动和回前台刷新。设备页标题下显示当前登录账号与平台，“切换”打开下文的切换账号确认弹窗。
 - token 401 清本地会话并回登录门禁，无需确认；用户手动“切换账号”需先确认，再清会话并保留当前 URL。AUTH_FAILED 不当作网络错误无限重试。
@@ -38,7 +38,7 @@
 
 ## 存储与边界
 
-`BrowserOAuthCredentialRepo` 是认证 storage 唯一边界，继续使用 zcodejwttoken、oauth:zai:access_token、oauth:zai:user_info、oauth:active_provider 以及已有 BigModel 独立键；进行中的登录记录使用 `oauth_pending_logins`。残缺或已过期会话清理后视为未登录；清理登录凭据或退出不删除进行中的登录记录。前置编排通过 WebAuthService 读取 JWT，不复制认证缓存；token 不持久化，不进入 QR、日志或业务 payload。
+`BrowserOAuthCredentialRepo` 是认证 storage 唯一边界，使用 `nibi-jwttoken`、`oauth:nibi:access_token`、`oauth:nibi:user_info`、`oauth:active_provider`；进行中的登录记录使用 `oauth_pending_logins`。残缺或已过期会话清理后视为未登录；清理登录凭据或退出不删除进行中的登录记录。前置编排通过 WebAuthService 读取 JWT，不复制认证缓存；token 不持久化，不进入 QR、日志或业务 payload。
 
 ## 开发回调转发
 
@@ -58,7 +58,7 @@
                      → 原凭据 owner 校验 nonce、换 token → 原 __test__ 链接 → V2 配对
 ```
 
-验收复用 ML04：`/remote/v4` 与 `/remote/__test__` × Z.AI/BigModel × 390px/1024px × 首次登录/401 重登，断言实际授权回调保留参数、token 请求使用原 redirect_uri、返回原入口并完成配对。单测同时覆盖测试入口尾斜杠、外域与未知路径拒绝、敏感 query/fragment 剔除，以及回调白名单不扩大。桌面 continuous、手机 replayable 与业务 owner 不变。
+验收复用 ML04：`/remote/v4` 与 `/remote/__test__` × NIBI × 390px/1024px × 首次登录/401 重登，断言实际授权回调保留参数、token 请求使用原 redirect_uri、返回原入口并完成配对。单测同时覆盖测试入口尾斜杠、外域与未知路径拒绝、敏感 query/fragment 剔除，以及回调白名单不扩大。桌面 continuous、手机 replayable 与业务 owner 不变。
 
 测试资源部署仍要求同源 `/remote/v4` 回调页面包含该返回路径规则，并由网关加载对应版本。受控浏览器回归不替代真实 OAuth 白名单、网关及测试镜像联调。
 
@@ -77,10 +77,10 @@
 
 验收复用 `packages/web/test/e2e/manual-review/pending/remote-login-v2.mjs`：
 
-- 390px / 1024px × Zai Light / Zai Dark × 中英文展示两入口，顺序、平台名称和标签与桌面一致。
-- 两平台分别验证点击、授权参数、pending provider、token 请求 provider、独立凭据键、原扫码地址回跳及 terminal 配对；BigModel 使用 authCode 回调。
-- 账号归属失败后切换到 BigModel，以及 401 后重新选择平台，保留原设备 URL。
-- 构建配置测试覆盖 test / production 的 BigModel 授权域名；真实第三方授权与真机扫码另行联调，本地受控响应不代表已完成线上验收。
+- 390px / 1024px × NIBI Light / NIBI Dark × 中英文展示登录入口。
+- 验证点击、授权参数、pending provider、token 请求 redirect_uri、独立凭据键、原扫码地址回跳及 terminal 配对。
+- 401 后重新登录保留原设备 URL。
+- 真实 NIBI 账号授权与真机扫码另行联调，本地受控响应不代表已完成线上验收。
 
 ## 回调保留扫码参数
 

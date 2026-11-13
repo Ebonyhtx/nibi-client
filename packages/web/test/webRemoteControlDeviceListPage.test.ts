@@ -96,9 +96,9 @@ describe("连接前设备列表", () => {
   it("账号行显示显示名与登录平台；读不到账号时只保留切换账号按钮", () => {
     const withAccount = render("zh-CN", {
       devices: [mac],
-      account: { displayName: "jyrong", provider: "bigmodel" },
+      account: { displayName: "jyrong", provider: "nibi" },
     });
-    expect(withAccount).toContain("jyrong · BigModel");
+    expect(withAccount).toContain("jyrong · NIBI");
     expect(withAccount).toMatch(/>J<\/span>/);
     expect(withAccount).toContain(">切换</button>");
     const withoutAccount = render("en-US", { devices: [mac] });

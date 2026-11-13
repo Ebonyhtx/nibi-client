@@ -1,7 +1,5 @@
 import type { OAuthProviderId } from "@nibi/shared";
-import { createBigModelProviderRuntimeConfig } from "./providers/bigmodelProviderConfig.js";
 import { createNibiProviderRuntimeConfig } from "./providers/nibiProviderConfig.js";
-import { createZaiProviderRuntimeConfig } from "./providers/zaiProviderConfig.js";
 
 /** Provider 运行时配置（仅 host process 可见） */
 export interface OAuthProviderRuntimeConfig {
@@ -26,14 +24,11 @@ export interface OAuthRuntimeConfig {
 /**
  * 从运行时环境变量生成 OAuth 配置。
  *
- * 注意：这里只能在 host process 使用，避免把敏感配置暴露给 renderer。
+ * NIBI 只登录自家账号中心；智谱 Z.ai / BigModel 的账号 OAuth 已整体删除。
+ * 模型接入仍保留 API Key / Coding Plan API Key 模板，与账号登录是两条链。
  */
 export function createOAuthRuntimeConfig(env: NodeJS.ProcessEnv = process.env): OAuthRuntimeConfig {
   return {
-    providers: [
-      createNibiProviderRuntimeConfig(env),
-      createBigModelProviderRuntimeConfig(env),
-      createZaiProviderRuntimeConfig(env),
-    ],
+    providers: [createNibiProviderRuntimeConfig(env)],
   };
 }

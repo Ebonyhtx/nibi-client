@@ -250,12 +250,12 @@ describe("V2 manager public API with real relay", () => {
   it("凭据清空后的 provider 清理失败仍撤销配对连接并保留启用记录", async () => {
     const f = await fixture();
     const credentials = new Map([
-      ["oauth:active_provider", "zai"],
+      ["oauth:active_provider", "nibi"],
       [
-        "oauth:zai:user_info",
+        "oauth:nibi:user_info",
         JSON.stringify({ id: "user", username: "User", displayName: "User" }),
       ],
-      ["oauth:zai:access_token", "access"],
+      ["oauth:nibi:access_token", "access"],
       ["nibi-jwttoken", "jwt"],
     ]);
     f.readLogin.mockImplementation(async () =>

@@ -54,8 +54,6 @@ const copyByLocale = {
 type DeviceListCopy = (typeof copyByLocale)["zh-CN"];
 
 const PROVIDER_LABELS: Record<WebRemoteControlDeviceListAccount["provider"], string> = {
-  zai: "Z.ai",
-  bigmodel: "BigModel",
   nibi: "NIBI",
 };
 

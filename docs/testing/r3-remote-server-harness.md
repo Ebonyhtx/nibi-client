@@ -1,3 +1,5 @@
+> 上游 Z.ai/BigModel 账号 OAuth 已于 2026-11-14 删除；本文涉及该 OAuth 的历史结果仅作归档，不再代表当前可执行用例。
+
 # R3 远程 e2e 服务器 harness（同机模拟）
 
 编排代码在 `harness/remote/`；本文是它的事实说明。目标：**全部远程连接 e2e case 都能在一台

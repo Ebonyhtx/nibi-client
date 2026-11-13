@@ -3,21 +3,16 @@ import {
   DEFAULT_BIGMODEL_API_ORIGIN,
   DEFAULT_WEB_REMOTE_CONTROL_RELAY_WS_URL,
   DEFAULT_ZAI_BUSINESS_BASE_URL,
-  DEFAULT_ZAI_OAUTH_CLIENT_ID,
-  DEFAULT_ZAI_OAUTH_ORIGIN,
   DEFAULT_NIBI_ENDPOINT_ORIGIN,
   DEFAULT_NIBI_WEB_ORIGIN,
   TEST_BIGMODEL_API_ORIGIN,
   TEST_ZAI_BUSINESS_BASE_URL,
-  TEST_ZAI_OAUTH_CLIENT_ID,
-  TEST_ZAI_OAUTH_ORIGIN,
   TEST_NIBI_ENDPOINT_ORIGIN,
   isTrustedNibiMembershipWebviewUrl,
   isTrustedNibiWebviewOrigin,
   buildBigModelApiUrl,
   buildRuntimeNibiApiUrl,
   buildRuntimeZaiBusinessUrl,
-  buildRuntimeZaiOAuthUrl,
   buildRuntimeNibiEndpointUrls,
   buildNibiEndpointUrls,
   normalizeNibiEndpointOrigin,
@@ -25,8 +20,6 @@ import {
   resolveRuntimeProductEndpointConfig,
   resolveWebRemoteControlRelayWsUrl,
   resolveZaiBusinessBaseUrl,
-  resolveZaiOAuthClientId,
-  resolveZaiOAuthOrigin,
   resolveNibiEndpointOrigin,
 } from "../src/nibiEndpoint.js";
 import { appSettingsPatchSchema, appSettingsSchema } from "../src/validationAppSettings.js";
@@ -152,9 +145,7 @@ describe("nibiEndpoint", () => {
     expect(resolveRuntimeProductEndpointConfig({ NIBI_ENV: "test" })).toMatchObject({
       nibiEnv: "test",
       nibiEndpointOrigin: TEST_NIBI_ENDPOINT_ORIGIN,
-      zaiOAuthOrigin: TEST_ZAI_OAUTH_ORIGIN,
       zaiBusinessBaseUrl: TEST_ZAI_BUSINESS_BASE_URL,
-      zaiOAuthClientId: TEST_ZAI_OAUTH_CLIENT_ID,
       bigModelApiOrigin: TEST_BIGMODEL_API_ORIGIN,
     });
   });
@@ -163,9 +154,7 @@ describe("nibiEndpoint", () => {
     expect(resolveRuntimeProductEndpointConfig({ NIBI_ENV: "production" })).toMatchObject({
       nibiEnv: "production",
       nibiEndpointOrigin: DEFAULT_NIBI_ENDPOINT_ORIGIN,
-      zaiOAuthOrigin: DEFAULT_ZAI_OAUTH_ORIGIN,
       zaiBusinessBaseUrl: DEFAULT_ZAI_BUSINESS_BASE_URL,
-      zaiOAuthClientId: DEFAULT_ZAI_OAUTH_CLIENT_ID,
       bigModelApiOrigin: DEFAULT_BIGMODEL_API_ORIGIN,
     });
   });
@@ -173,9 +162,6 @@ describe("nibiEndpoint", () => {
   it("builds product endpoint URLs from the selected environment", () => {
     expect(buildRuntimeNibiApiUrl({ NIBI_ENV: "test" }, "/api/v1/oauth/token")).toBe(
       "https://api-test.nibistudio.cn/api/v1/oauth/token",
-    );
-    expect(buildRuntimeZaiOAuthUrl({ NIBI_ENV: "test" }, "/api/oauth/authorize")).toBe(
-      "https://chat.z.ai/api/oauth/authorize",
     );
     expect(buildRuntimeZaiBusinessUrl({ NIBI_ENV: "test" }, "/api/auth/z/login")).toBe(
       "https://api.z.ai/api/auth/z/login",
@@ -187,17 +173,13 @@ describe("nibiEndpoint", () => {
     const env = {
       NIBI_ENV: "test",
       NIBI_TEST_BASE_URL: "https://test-nibi.example.com/path",
-      ZAI_TEST_OAUTH_ORIGIN: "https://test-oauth.example.com/oauth",
       ZAI_TEST_BUSINESS_BASE_URL: "https://test-business.example.com/api",
-      ZAI_TEST_OAUTH_CLIENT_ID: "client_test_override",
       BIGMODEL_TEST_API_BASE_URL: "https://test-bigmodel.example.com/base",
     };
 
     expect(resolveRuntimeProductEndpointConfig(env)).toMatchObject({
       nibiEndpointOrigin: "https://test-nibi.example.com",
-      zaiOAuthOrigin: "https://test-oauth.example.com",
       zaiBusinessBaseUrl: "https://test-business.example.com",
-      zaiOAuthClientId: "client_test_override",
       bigModelApiOrigin: "https://test-bigmodel.example.com",
     });
   });
@@ -205,19 +187,13 @@ describe("nibiEndpoint", () => {
   it("keeps unscoped endpoint overrides above scoped endpoint overrides", () => {
     const env = {
       NIBI_ENV: "test",
-      ZAI_OAUTH_ORIGIN: "https://oauth-global.example.com",
-      ZAI_TEST_OAUTH_ORIGIN: "https://oauth-test.example.com",
       ZAI_BUSINESS_BASE_URL: "https://business-global.example.com",
       ZAI_TEST_BUSINESS_BASE_URL: "https://business-test.example.com",
-      ZAI_OAUTH_CLIENT_ID: "client_global",
-      ZAI_TEST_OAUTH_CLIENT_ID: "client_test",
       BIGMODEL_API_BASE_URL: "https://bigmodel-global.example.com",
       BIGMODEL_TEST_API_BASE_URL: "https://bigmodel-test.example.com",
     };
 
-    expect(resolveZaiOAuthOrigin(env)).toBe("https://oauth-global.example.com");
     expect(resolveZaiBusinessBaseUrl(env)).toBe("https://business-global.example.com");
-    expect(resolveZaiOAuthClientId(env)).toBe("client_global");
     expect(resolveBigModelApiOrigin(env)).toBe("https://bigmodel-global.example.com");
   });
 
@@ -226,21 +202,15 @@ describe("nibiEndpoint", () => {
       NIBI_ENV: "test",
       NIBI_BASE_URL: " ",
       NIBI_TEST_BASE_URL: "\t",
-      ZAI_OAUTH_ORIGIN: "",
-      ZAI_TEST_OAUTH_ORIGIN: " ",
       ZAI_BUSINESS_BASE_URL: " ",
       ZAI_TEST_BUSINESS_BASE_URL: "",
-      ZAI_OAUTH_CLIENT_ID: "",
-      ZAI_TEST_OAUTH_CLIENT_ID: " ",
       BIGMODEL_API_BASE_URL: " ",
       BIGMODEL_TEST_API_BASE_URL: "",
     };
 
     expect(resolveRuntimeProductEndpointConfig(env)).toMatchObject({
       nibiEndpointOrigin: TEST_NIBI_ENDPOINT_ORIGIN,
-      zaiOAuthOrigin: TEST_ZAI_OAUTH_ORIGIN,
       zaiBusinessBaseUrl: TEST_ZAI_BUSINESS_BASE_URL,
-      zaiOAuthClientId: TEST_ZAI_OAUTH_CLIENT_ID,
       bigModelApiOrigin: TEST_BIGMODEL_API_ORIGIN,
     });
   });

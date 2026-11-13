@@ -1,15 +1,15 @@
-# ZCode JWT 过期重新认证
+# NIBI JWT 过期重新认证
 
 ## 状态
 
-- 本文定义桌面端与 Web 端在 `zcodejwttoken` 过期后的认证恢复语义。
-- `zcodejwttoken` 的签名与最终有效性仍由服务端负责；客户端只解析 JWT `exp`，用于避免恢复明显过期的本地会话。
+- 本文定义桌面端与 Web 端在 NIBI access token 过期后的认证恢复语义。
+- token 的签名与最终有效性仍由服务端负责；客户端只解析 JWT `exp`，用于避免恢复明显过期的本地会话。上游 Z.ai/BigModel 账号 OAuth 已删除。
 
 ## 问题
 
 旧实现使用缓存的 `user_info` 恢复登录展示态，只检查 `zcodejwttoken` 是否存在，不检查 JWT `exp`。因此 JWT 过期后，UI 仍显示已登录，但余额、模型和其他业务请求会继续携带过期凭据并失败。
 
-旧的 `useTokenRefresh` 只暴露回调，没有实际监听 401；同时 Z.AI / BigModel 当前没有可用于续期 `zcodejwttoken` 的客户端 refresh 实现，所以已确认过期时必须重新登录。
+旧的 `useTokenRefresh` 只暴露回调，没有实际监听 401；NIBI 现在有 refresh_token 续期，续期失败或没有 refresh_token 时才要求重新登录。
 
 ## 产品语义
 

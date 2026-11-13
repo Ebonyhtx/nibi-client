@@ -1,7 +1,5 @@
 import {
-  BIGMODEL_PROVIDER_ID,
   NIBI_PROVIDER_ID,
-  ZAI_PROVIDER_ID,
   type OAuthProviderId,
   type OAuthTokenSet,
   type OAuthCachedSessionRestoreResult,
@@ -12,10 +10,6 @@ import { toUserInfo } from "./oauthUserInfo.js";
 
 const ACTIVE_PROVIDER_KEY = "oauth:active_provider";
 const NIBI_JWT_TOKEN_KEY = "nibi-jwttoken";
-const ZAI_ACCESS_TOKEN_KEY = "oauth:zai:access_token";
-const ZAI_USER_INFO_KEY = "oauth:zai:user_info";
-const BIGMODEL_ACCESS_TOKEN_KEY = "oauth:bigmodel:access_token";
-const BIGMODEL_USER_INFO_KEY = "oauth:bigmodel:user_info";
 // NIBI 账号中心的 access token 同时就是中继/业务 API 的 JWT（与桌面端同一套账号）。
 const NIBI_ACCESS_TOKEN_KEY = "oauth:nibi:access_token";
 const NIBI_USER_INFO_KEY = "oauth:nibi:user_info";
@@ -26,30 +20,15 @@ const OAUTH_PENDING_LOGINS_KEY = "oauth_pending_logins";
 // 同一浏览器多个标签页可以同时发起登录；只留最近几条，放弃的登录不会无限累积。
 const MAX_PENDING_LOGINS = 5;
 
-/** 本仓支持的登录 provider。private 分享的 owner 身份是 provider 特定的，两边都要能登。 */
-export type WebOAuthProviderId =
-  | typeof ZAI_PROVIDER_ID
-  | typeof BIGMODEL_PROVIDER_ID
-  | typeof NIBI_PROVIDER_ID;
+/** Web 端只支持 NIBI 账号登录。 */
+export type WebOAuthProviderId = typeof NIBI_PROVIDER_ID;
 
 export function isWebOAuthProviderId(value: unknown): value is WebOAuthProviderId {
-  return value === ZAI_PROVIDER_ID || value === BIGMODEL_PROVIDER_ID || value === NIBI_PROVIDER_ID;
+  return value === NIBI_PROVIDER_ID;
 }
 
-/**
- * 每个 provider 用独立的 key 段。
- *
- * 刻意不复用一套「中性」key：zai 的两个 key 已经在线上承载着 /remote 的登录态，换 key 会
- * 让所有已登录用户在发版当天掉线。加一段 bigmodel 前缀是零风险的做法，代价只是多一个映射。
- */
-function providerKeys(provider: WebOAuthProviderId): { accessToken: string; userInfo: string } {
-  if (provider === BIGMODEL_PROVIDER_ID) {
-    return { accessToken: BIGMODEL_ACCESS_TOKEN_KEY, userInfo: BIGMODEL_USER_INFO_KEY };
-  }
-  if (provider === NIBI_PROVIDER_ID) {
-    return { accessToken: NIBI_ACCESS_TOKEN_KEY, userInfo: NIBI_USER_INFO_KEY };
-  }
-  return { accessToken: ZAI_ACCESS_TOKEN_KEY, userInfo: ZAI_USER_INFO_KEY };
+function providerKeys(_provider: WebOAuthProviderId): { accessToken: string; userInfo: string } {
+  return { accessToken: NIBI_ACCESS_TOKEN_KEY, userInfo: NIBI_USER_INFO_KEY };
 }
 
 interface BrowserOAuthCredentialRepoStorage {
@@ -83,12 +62,6 @@ interface BrowserOAuthCredentialRepoOptions {
   now?: () => number;
 }
 
-interface WebZaiTokenSet {
-  nibiJwtToken: string;
-  zaiAccessToken: string;
-  expiresAt?: number;
-}
-
 function getBrowserStorage(): BrowserOAuthCredentialRepoStorage {
   return { localStorage: window.localStorage };
 }
@@ -110,9 +83,8 @@ export class BrowserOAuthCredentialRepo {
     this.now = options.now ?? Date.now;
   }
 
-  saveTokenSet(tokenSet: WebZaiTokenSet | OAuthTokenSet, provider: WebOAuthProviderId): void {
-    const accessToken =
-      "zaiAccessToken" in tokenSet ? tokenSet.zaiAccessToken : tokenSet.accessToken;
+  saveTokenSet(tokenSet: OAuthTokenSet, provider: WebOAuthProviderId): void {
+    const accessToken = tokenSet.accessToken;
     const nibiJwtToken = tokenSet.nibiJwtToken;
 
     this.localStorage.setItem(providerKeys(provider).accessToken, accessToken);
@@ -270,10 +242,6 @@ export class BrowserOAuthCredentialRepo {
     return Boolean(
       this.localStorage.getItem(ACTIVE_PROVIDER_KEY) ||
       this.localStorage.getItem(NIBI_JWT_TOKEN_KEY) ||
-      this.localStorage.getItem(ZAI_ACCESS_TOKEN_KEY) ||
-      this.localStorage.getItem(ZAI_USER_INFO_KEY) ||
-      this.localStorage.getItem(BIGMODEL_ACCESS_TOKEN_KEY) ||
-      this.localStorage.getItem(BIGMODEL_USER_INFO_KEY) ||
       this.localStorage.getItem(NIBI_ACCESS_TOKEN_KEY) ||
       this.localStorage.getItem(NIBI_USER_INFO_KEY) ||
       this.localStorage.getItem(NIBI_REFRESH_TOKEN_KEY),
@@ -283,12 +251,6 @@ export class BrowserOAuthCredentialRepo {
   clearAll(): void {
     this.localStorage.removeItem(ACTIVE_PROVIDER_KEY);
     this.localStorage.removeItem(NIBI_JWT_TOKEN_KEY);
-    // 两个 provider 的 key 段一起清：切换 provider 时不能留下上一个身份的残片，
-    // 否则 loadCachedSessionState 可能读到半套凭据。
-    this.localStorage.removeItem(ZAI_ACCESS_TOKEN_KEY);
-    this.localStorage.removeItem(ZAI_USER_INFO_KEY);
-    this.localStorage.removeItem(BIGMODEL_ACCESS_TOKEN_KEY);
-    this.localStorage.removeItem(BIGMODEL_USER_INFO_KEY);
     this.localStorage.removeItem(NIBI_ACCESS_TOKEN_KEY);
     this.localStorage.removeItem(NIBI_USER_INFO_KEY);
     this.localStorage.removeItem(NIBI_REFRESH_TOKEN_KEY);

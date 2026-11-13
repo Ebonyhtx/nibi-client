@@ -18,8 +18,6 @@ import {
   buildNibiToolEnvPassthroughEnv,
   resolveRuntimeNibiEndpointOrigin,
   resolveZaiBusinessBaseUrl,
-  resolveZaiOAuthClientId,
-  resolveZaiOAuthOrigin,
   normalizeDynamicWorkflowMode,
   readNibiAgentTelemetryEnv,
   sanitizeNibiRuntimeEnv,
@@ -373,9 +371,7 @@ function applySelectedNibiEnvLinks(env: Record<string, string>): Record<string, 
   return {
     ...env,
     NIBI_BASE_URL: env.NIBI_BASE_URL ?? resolveRuntimeNibiEndpointOrigin(endpointEnv),
-    ZAI_OAUTH_ORIGIN: env.ZAI_OAUTH_ORIGIN ?? resolveZaiOAuthOrigin(endpointEnv),
     ZAI_BUSINESS_BASE_URL: env.ZAI_BUSINESS_BASE_URL ?? resolveZaiBusinessBaseUrl(endpointEnv),
-    ZAI_OAUTH_CLIENT_ID: env.ZAI_OAUTH_CLIENT_ID ?? resolveZaiOAuthClientId(endpointEnv),
   };
 }
 

@@ -8,8 +8,6 @@ export type {
   CodingPlanProviderId,
   LoginNibiCliOptions,
   LoginNibiCliResult,
-  LoginBigmodelCodingPlanOptions,
-  LoginBigmodelCodingPlanResult,
   ConfigureCodingPlanApiKeyOptions,
   ConfigureCodingPlanApiKeyResult,
   LogoutNibiCliOptions,
@@ -20,8 +18,6 @@ import {
   type CodingPlanProviderId,
   type LoginNibiCliOptions,
   type LoginNibiCliResult,
-  type LoginBigmodelCodingPlanOptions,
-  type LoginBigmodelCodingPlanResult,
   type ConfigureCodingPlanApiKeyOptions,
   type ConfigureCodingPlanApiKeyResult,
 } from "./auth-login-contract.js";
@@ -161,15 +157,6 @@ export async function loginNibiCli(
   } finally {
     clearTimeout(timer);
   }
-}
-
-export async function loginBigmodelCodingPlan(
-  options: LoginBigmodelCodingPlanOptions = {},
-): Promise<LoginBigmodelCodingPlanResult> {
-  return {
-    ...(await loginNibiCli({ ...options, providerId: "bigmodel" })),
-    providerId: "bigmodel",
-  };
 }
 
 export async function configureCodingPlanApiKey(

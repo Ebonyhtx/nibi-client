@@ -67,7 +67,7 @@ async function bootstrap(path: string, query: string) {
 
 describe("Web OAuth callback entry", () => {
   for (const path of ["/share/callback", "/cn/share/callback", "/remote/v4", "/remote/v4/"]) {
-    it.each(["authCode=bigmodel-code", "code=zai-code", "error=access_denied"])(
+    it.each(["code=nibi-code", "error=access_denied"])(
       `${path} 的 %s 渲染回调页并交给认证服务`,
       async (result) => {
         const handleCallback = await bootstrap(path, `state=entry-state&${result}`);
@@ -78,7 +78,7 @@ describe("Web OAuth callback entry", () => {
   }
 
   for (const path of ["/share/callback", "/cn/share/callback"]) {
-    it.each(["authCode=code", "code=code", "error=access_denied", "state=entry-state"])(
+    it.each(["code=code", "error=access_denied", "state=entry-state"])(
       `${path} 缺少 state 或结果参数时不进入回调页：%s`,
       async (query) => {
         const handleCallback = await bootstrap(path, query);
@@ -89,7 +89,7 @@ describe("Web OAuth callback entry", () => {
   }
 
   it("普通分享路径即使携带 OAuth 参数也保持预览路由", async () => {
-    const handleCallback = await bootstrap("/share/example", "state=entry-state&authCode=code");
+    const handleCallback = await bootstrap("/share/example", "state=entry-state&code=code");
     expect(handleCallback).not.toHaveBeenCalled();
     expect(document.body.textContent).toBe("share-preview");
   });

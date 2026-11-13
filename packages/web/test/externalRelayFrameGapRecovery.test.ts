@@ -279,9 +279,9 @@ function setupExternalRelayGlobals(pathname = "/remote") {
   };
   const credentials = new Map([
     ["nibi-jwttoken", "test-jwt"],
-    ["oauth:active_provider", "zai"],
-    ["oauth:zai:access_token", "access"],
-    ["oauth:zai:user_info", JSON.stringify({ user_id: "user", name: "Test" })],
+    ["oauth:active_provider", "nibi"],
+    ["oauth:nibi:access_token", "test-jwt"],
+    ["oauth:nibi:user_info", JSON.stringify({ id: "user", username: "Test", displayName: "Test" })],
   ]);
   const storage = {
     getItem: (key: string) => credentials.get(key) ?? null,

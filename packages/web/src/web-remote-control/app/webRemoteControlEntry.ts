@@ -18,10 +18,7 @@ export function isWebRemoteControlOAuthCallback(url: URL): boolean {
   return (
     ["/remote/v4", "/remote/v4/"].includes(url.pathname) &&
     url.searchParams.has("state") &&
-    // BigModel 使用 authCode；必须先进入既有回调校验，不能落回未登录门禁。
-    (url.searchParams.has("code") ||
-      url.searchParams.has("authCode") ||
-      url.searchParams.has("error"))
+    (url.searchParams.has("code") || url.searchParams.has("error"))
   );
 }
 

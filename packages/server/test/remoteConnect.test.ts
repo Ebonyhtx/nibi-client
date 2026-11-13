@@ -313,7 +313,7 @@ describe("connectRemote", () => {
       skipDeploy: true,
       remoteRuntimeEnv: {
         NIBI_ENV: "test",
-        NIBI_BASE_URL: "https://zcode.z.ai/api/v1",
+        NIBI_BASE_URL: "https://api.nibistudio.cn/api/v1",
         ZAI_OAUTH_ORIGIN: "https://chat.z.ai",
         ZAI_OAUTH_CLIENT_ID: "client_'test",
         ZAI_OAUTH_APP_SECRET: "must-not-cross-ssh",
@@ -322,9 +322,9 @@ describe("connectRemote", () => {
     connection.dispose();
 
     expect(backend.commands[0]).toContain("NIBI_ENV='test'");
-    expect(backend.commands[0]).toContain("NIBI_BASE_URL='https://zcode.z.ai/api/v1'");
-    expect(backend.commands[0]).toContain("ZAI_OAUTH_ORIGIN='https://chat.z.ai'");
-    expect(backend.commands[0]).toContain(`ZAI_OAUTH_CLIENT_ID='client_'"'"'test'`);
+    expect(backend.commands[0]).toContain("NIBI_BASE_URL='https://api.nibistudio.cn/api/v1'");
+    expect(backend.commands[0]).not.toContain("ZAI_OAUTH_ORIGIN");
+    expect(backend.commands[0]).not.toContain("ZAI_OAUTH_CLIENT_ID");
     expect(backend.commands[0]).not.toContain("ZAI_OAUTH_APP_SECRET");
     expect(backend.commands[0]).not.toContain("must-not-cross-ssh");
   });

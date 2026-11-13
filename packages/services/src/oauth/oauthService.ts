@@ -5,9 +5,7 @@ import {
   ApiError,
   formatLogPrefix,
   type ApiClient,
-  BIGMODEL_PROVIDER_ID,
   NIBI_PROVIDER_ID,
-  ZAI_PROVIDER_ID,
   type OAuthCallbackResult,
   type OAuthCachedSessionRestoreResult,
   type OAuthProviderId,
@@ -24,23 +22,14 @@ import type { ICredentialService } from "../credential/credential.js";
 import { readLicenseDecision } from "../license/nibiLicenseClient.js";
 import { loadNibiAccountIdentity, type NibiLicenseSync } from "../license/nibiLicenseSync.js";
 import { createServiceLogger } from "../logger/serviceLogger.js";
-import { readApiJson } from "../providers/api/apiJson.js";
 import type { IOAuthService, NibiMembershipStatus } from "./oauth.js";
 import { NIBI_API_BASE_URL, NIBI_MEMBERSHIP_SITE_URL } from "./providers/nibiProviderConfig.js";
 import { isTrustedNibiMembershipWebviewUrl } from "@nibi/shared";
 import { isCurrentOAuthCredentialRequest } from "#src/oauth/oauthUnauthorizedRequest.js";
 import { hasOAuthAuthorizationCode, parseOAuthLoginAttribution } from "./callbackAttribution.js";
-import {
-  refreshLegacyBigModelCachedProfile,
-  withProviderProfileSchema,
-} from "./oauthProfileSchema.js";
 import { createOAuthProviderAdapters, type OAuthProviderAdapter } from "./providers/index.js";
 import { OAuthCredentialRepo } from "./repo/oauthCredentialRepo.js";
 import { createOAuthRuntimeConfig } from "./runtimeConfig.js";
-import {
-  buildDesktopOAuthRedirectUriFromEnv,
-  buildNibiApiUrlFromEnv,
-} from "./providers/configUtils.js";
 
 /** OAuth 超时时间（5 分钟） */
 const OAUTH_TIMEOUT_MS = 5 * 60 * 1000;
@@ -75,20 +64,6 @@ interface PendingState {
   timeout: NodeJS.Timeout;
   phase: "awaiting-attribution-or-code" | "awaiting-code-after-attribution";
   completionPromise?: Promise<OAuthCallbackResult | null>;
-  polling?: {
-    expiresAt: number;
-    flowId: string;
-    nextPollAt: number;
-    pollIntervalMs: number;
-    pollToken: string;
-    pollUrl: string;
-  };
-}
-
-interface OAuthFlowEnvelope {
-  code?: unknown;
-  msg?: unknown;
-  data?: unknown;
 }
 
 interface OAuthServiceDependencies {
@@ -99,14 +74,6 @@ interface OAuthServiceDependencies {
   onProviderLogout?: (provider: OAuthProviderId, accountIdentity?: string | null) => Promise<void>;
   /** 购买/续费后 force 一次真实 /licenses/check 用；缺省时 force 退化为读缓存。 */
   nibiLicenseSync?: NibiLicenseSync;
-}
-
-function readTrimmedString(value: unknown): string | null {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function isUnknownRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
 }
 
 function toUserInfo(profile: OAuthUserProfile): UserInfo {
@@ -126,16 +93,6 @@ function isSameOAuthProfile(left: OAuthUserProfile, right: OAuthUserProfile): bo
     left.avatarUrl === right.avatarUrl &&
     JSON.stringify(left.rawProfile ?? null) === JSON.stringify(right.rawProfile ?? null)
   );
-}
-
-function resolveInactiveOAuthProvider(provider: OAuthProviderId): OAuthProviderId | null {
-  if (provider === ZAI_PROVIDER_ID) {
-    return BIGMODEL_PROVIDER_ID;
-  }
-  if (provider === BIGMODEL_PROVIDER_ID) {
-    return ZAI_PROVIDER_ID;
-  }
-  return null;
 }
 
 /**
@@ -159,7 +116,6 @@ export class OAuthService implements IOAuthService {
   private readonly nibiLicenseSync?: NibiLicenseSync;
   private pendingState: PendingState | null = null;
   private oauthFlowStartGeneration = 0;
-  private oauthFlowStartProvider: OAuthProviderId | null = null;
   private oauthSessionGeneration = 0;
   private nibiRefreshTimer?: ReturnType<typeof setTimeout>;
   private nibiRefreshRetryScheduled = false;
@@ -275,7 +231,6 @@ export class OAuthService implements IOAuthService {
     const expired = tokens.find(
       ({ value }) => value && resolveJwtExpiration(value, this.now()).kind === "expired",
     );
-    const nibiJwtToken = tokens.find(({ key }) => key === NIBI_JWT_TOKEN_KEY)?.value ?? "";
     if (expired) {
       // NIBI 的 access token 过期时先走 refresh：refresh token 通常还有效，
       // 旧实现直接清会话会逼用户重新走浏览器登录（关机超过 token 生命期必现）。
@@ -313,45 +268,6 @@ export class OAuthService implements IOAuthService {
       return { status: "reauthentication-required", reason: "jwt-expired" };
     }
 
-    if (activeProvider === BIGMODEL_PROVIDER_ID) {
-      const migrationGeneration = this.oauthSessionGeneration;
-      void refreshLegacyBigModelCachedProfile({
-        adapter,
-        cachedProfile: profile,
-        loadTokenSet: () =>
-          this.loadBigModelCachedProfileMigrationTokenSet(migrationGeneration, profile),
-        now: this.now,
-        runWithAdapterError: (run) => this.runWithAdapterError(adapter, run),
-        saveProfile: (nextProfile) =>
-          this.saveBigModelCachedProfileMigration(migrationGeneration, profile, nextProfile),
-      })
-        .then((migratedProfile) => {
-          if (migratedProfile !== profile) {
-            log(
-              "restoreCachedSession migrated cached profile:",
-              activeProvider,
-              migratedProfile.id,
-            );
-          }
-        })
-        .catch((error: unknown) => {
-          log(
-            "restoreCachedSession background profile migration failed:",
-            activeProvider,
-            error instanceof Error ? error.message : String(error),
-          );
-        });
-    }
-
-    if (activeProvider === ZAI_PROVIDER_ID) {
-      if (!nibiJwtToken) {
-        // sidebar 登录入口之前只看缓存 user_info，会把“缺少 nibi-jwttoken”的状态误判成已登录。
-        // 这里补充 nibi-jwttoken 门槛，确保没有后端 JWT 时统一按未登录处理。
-        log("restoreCachedSession skipped: missing nibi-jwttoken:", activeProvider);
-        return { status: "signed-out" };
-      }
-    }
-
     log("restoreCachedSession restored:", activeProvider, profile.id);
     void this.scheduleNibiTokenRefreshFromCredentials(activeProvider);
     return { status: "authenticated", userInfo: toUserInfo(profile) };
@@ -372,14 +288,6 @@ export class OAuthService implements IOAuthService {
   ): Promise<OAuthCachedSessionRestoreResult> {
     const stillCurrent = () => this.oauthSessionGeneration === restoreGeneration;
     let tokenSet = await this.repo.loadActiveTokenSet();
-    if (!tokenSet && adapter.loadLegacyTokenSet) {
-      // 旧版 BigModel 只保留 legacy token key 的兼容读取（与 restoreSession 同一口径）。
-      tokenSet = await adapter.loadLegacyTokenSet((key) => this.credentialService.load(key));
-      if (tokenSet) {
-        await this.repo.saveActiveTokenSet(tokenSet);
-        await this.repo.saveTokenSet(activeProvider, tokenSet);
-      }
-    }
     if (!tokenSet) {
       log("profile recovery: no token, clearing stale active provider:", activeProvider);
       if (!stillCurrent()) return this.restoreCachedSessionState();
@@ -427,7 +335,7 @@ export class OAuthService implements IOAuthService {
         PROFILE_RECOVERY_TIMEOUT_MS,
       );
       if (!stillCurrent()) return this.restoreCachedSessionState();
-      await this.repo.saveActiveUserProfile(withProviderProfileSchema(activeProvider, profile));
+      await this.repo.saveActiveUserProfile(profile);
       await this.repo.setActiveProvider(activeProvider);
       log("profile recovery: restored from userinfo:", activeProvider, profile.id);
       return { status: "authenticated", userInfo: toUserInfo(profile) };
@@ -515,62 +423,6 @@ export class OAuthService implements IOAuthService {
     return true;
   }
 
-  private async loadBigModelCachedProfileMigrationTokenSet(
-    expectedGeneration: number,
-    expectedCachedProfile: OAuthUserProfile,
-  ): Promise<OAuthTokenSet | null> {
-    return this.runSessionMutation(async () => {
-      if (this.oauthSessionGeneration !== expectedGeneration) {
-        log("restoreCachedSession skipped stale BigModel token migration");
-        return null;
-      }
-
-      const activeProvider = await this.repo.getActiveProvider();
-      const currentProfile = await this.repo.loadUserProfile(BIGMODEL_PROVIDER_ID);
-      if (
-        activeProvider !== BIGMODEL_PROVIDER_ID ||
-        !currentProfile ||
-        !isSameOAuthProfile(currentProfile, expectedCachedProfile)
-      ) {
-        // 迁移请求目标固定是 BigModel，token 也必须固定读取 BigModel 命名空间；
-        // 发请求前先复核持久化快照，避免切换到 ZAI 后把其他 provider token 发给 BigModel。
-        log("restoreCachedSession skipped stale BigModel token migration:", activeProvider);
-        return null;
-      }
-
-      return this.repo.loadTokenSet(BIGMODEL_PROVIDER_ID);
-    });
-  }
-
-  private async saveBigModelCachedProfileMigration(
-    expectedGeneration: number,
-    expectedCachedProfile: OAuthUserProfile,
-    nextProfile: OAuthUserProfile,
-  ): Promise<void> {
-    await this.runSessionMutation(async () => {
-      if (this.oauthSessionGeneration !== expectedGeneration) {
-        log("restoreCachedSession skipped stale BigModel profile migration");
-        return;
-      }
-
-      const activeProvider = await this.repo.getActiveProvider();
-      if (activeProvider !== BIGMODEL_PROVIDER_ID) {
-        log("restoreCachedSession skipped stale BigModel profile migration:", activeProvider);
-        return;
-      }
-
-      const currentProfile = await this.repo.loadUserProfile(BIGMODEL_PROVIDER_ID);
-      if (!currentProfile || !isSameOAuthProfile(currentProfile, expectedCachedProfile)) {
-        // BigModel 旧缓存迁移在后台完成，期间用户可能 logout、切到 ZAI，
-        // 或重新登录 BigModel。只有当前缓存仍是启动时那份旧缓存时，旧迁移结果才允许落盘。
-        log("restoreCachedSession skipped outdated BigModel profile migration");
-        return;
-      }
-
-      await this.repo.saveUserProfile(BIGMODEL_PROVIDER_ID, nextProfile);
-    });
-  }
-
   private runSessionMutation<T>(run: () => Promise<T>): Promise<T> {
     // 后台 profile 迁移、logout、provider 切换都会改 OAuth 凭据；
     // 必须串行化，避免旧迁移在退出或切换清理之后重新写回 user_info。
@@ -585,29 +437,14 @@ export class OAuthService implements IOAuthService {
     profile: OAuthUserProfile,
     isStillCurrent?: () => boolean,
   ): Promise<void> {
-    const inactiveProvider = resolveInactiveOAuthProvider(provider);
     const previousTokenSet = await this.repo.loadTokenSet(provider);
     const previousProfile = await this.repo.loadUserProfile(provider);
-    const previousInactiveTokenSet = inactiveProvider
-      ? await this.repo.loadTokenSet(inactiveProvider)
-      : null;
-    const previousInactiveProfile = inactiveProvider
-      ? await this.repo.loadUserProfile(inactiveProvider)
-      : null;
     const previousActiveProvider = await this.repo.getActiveProvider();
     const rollback = async () => {
       if (previousTokenSet) await this.repo.saveTokenSet(provider, previousTokenSet);
       else await this.repo.clearProvider(provider);
       if (previousProfile) await this.repo.saveUserProfile(provider, previousProfile);
       else await this.repo.clearUserProfile(provider);
-      if (inactiveProvider) {
-        if (previousInactiveTokenSet)
-          await this.repo.saveTokenSet(inactiveProvider, previousInactiveTokenSet);
-        else await this.repo.clearProvider(inactiveProvider);
-        if (previousInactiveProfile)
-          await this.repo.saveUserProfile(inactiveProvider, previousInactiveProfile);
-        else await this.repo.clearUserProfile(inactiveProvider);
-      }
       if (previousActiveProvider) await this.repo.setActiveProvider(previousActiveProvider);
       else await this.repo.setActiveProvider(null);
     };
@@ -618,16 +455,10 @@ export class OAuthService implements IOAuthService {
       }
     };
     this.oauthSessionGeneration += 1;
-    if (inactiveProvider) {
-      await assertCurrent();
-      // ZAI 与 BigModel 是互斥身份域。切换 provider 时必须先清旧 provider，
-      // 再保存当前 token；反序会让 clearProvider 误删共享的 nibi-jwttoken。
-      await this.repo.clearProvider(inactiveProvider);
-    }
     await assertCurrent();
     await this.repo.saveTokenSet(provider, tokenSet);
     await assertCurrent();
-    await this.repo.saveUserProfile(provider, withProviderProfileSchema(provider, profile));
+    await this.repo.saveUserProfile(provider, profile);
     await assertCurrent();
     await this.repo.setActiveProvider(provider);
     if (isStillCurrent && !isStillCurrent()) {
@@ -743,19 +574,7 @@ export class OAuthService implements IOAuthService {
       return null;
     }
 
-    let tokenSet = await this.repo.loadActiveTokenSet();
-    if (!tokenSet && adapter.loadLegacyTokenSet) {
-      log("restoreSession fallback: trying provider legacy token set:", activeProvider);
-      tokenSet = await adapter.loadLegacyTokenSet((key) => this.credentialService.load(key));
-
-      // 多 provider 改造后，旧版 BigModel 仍可能只保留 legacy token key。
-      // 这里在 provider 兼容读取成功后回填命名空间 key，避免每次启动都重复走 legacy 分支。
-      if (tokenSet) {
-        log("restoreSession fallback hit: migrating legacy token set:", activeProvider);
-        await this.repo.saveActiveTokenSet(tokenSet);
-        await this.repo.saveTokenSet(activeProvider, tokenSet);
-      }
-    }
+    const tokenSet = await this.repo.loadActiveTokenSet();
 
     if (!tokenSet || !adapter.fetchUserInfo) {
       log(
@@ -777,7 +596,7 @@ export class OAuthService implements IOAuthService {
         }),
       );
 
-      await this.repo.saveActiveUserProfile(withProviderProfileSchema(activeProvider, profile));
+      await this.repo.saveActiveUserProfile(profile);
       await this.repo.setActiveProvider(activeProvider);
       log("restoreSession validated:", activeProvider, profile.id);
       return toUserInfo(profile);
@@ -803,236 +622,13 @@ export class OAuthService implements IOAuthService {
   }
 
   async startOAuthWithPolling(provider: OAuthProviderId): Promise<OAuthStartResponse> {
-    if (provider !== ZAI_PROVIDER_ID && provider !== BIGMODEL_PROVIDER_ID) {
-      return this.startOAuthInternal(provider);
-    }
-
-    const adapter = this.getEnabledAdapter(provider);
-    if (!this.apiClient) {
-      throw new Error("ApiClient 注入缺失：OAuth polling 必须通过 Providers 传入 apiClient");
-    }
-    // 两个 init 并发时，先发但后返回的旧响应会覆盖较新的 pending flow。
-    // generation 让最后一次用户操作拥有 flow，旧响应只结束自己的调用方。
-    const startGeneration = ++this.oauthFlowStartGeneration;
-    this.oauthFlowStartProvider = provider;
-    this.clearPendingState();
-    const pollToken = randomBytes(32).toString("hex");
-    const initUrl = buildNibiApiUrlFromEnv(this.env, "/api/v1/oauth/cli/init");
-    const envelope = await readApiJson<OAuthFlowEnvelope>(this.apiClient, initUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${pollToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ provider }),
-    });
-    if (this.oauthFlowStartGeneration !== startGeneration) {
-      throw new Error("OAuth flow 已被新的登录请求替换");
-    }
-    this.oauthFlowStartProvider = null;
-    const data = envelope.data;
-    if (
-      envelope.code !== 0 ||
-      !isUnknownRecord(data) ||
-      !readTrimmedString(data.flow_id) ||
-      !readTrimmedString(data.authorize_url) ||
-      !Number.isFinite(data.expires_at) ||
-      !Number.isFinite(data.poll_interval_sec)
-    ) {
-      throw new Error(readTrimmedString(envelope.msg) || "OAuth flow 初始化响应无效");
-    }
-
-    const flowId = readTrimmedString(data.flow_id)!;
-    const authorizeUrlString = readTrimmedString(data.authorize_url)!;
-    const expiresAt = (data.expires_at as number) * 1_000;
-    const pollIntervalMs = (data.poll_interval_sec as number) * 1_000;
-    let authorizeUrl: URL;
-    try {
-      authorizeUrl = new URL(authorizeUrlString);
-    } catch {
-      throw new Error("OAuth flow 初始化响应无效");
-    }
-    if (provider === BIGMODEL_PROVIDER_ID) {
-      // BigModel CLI callback 的失败页会截断原有 Desktop deep link 回调体验。
-      // flow 仍由 Host 轮询，但浏览器回调恢复到官网中转页，再透传到 nibi://oauth/callback。
-      authorizeUrl.searchParams.set("redirect", buildDesktopOAuthRedirectUriFromEnv(this.env));
-    } else if (provider === ZAI_PROVIDER_ID) {
-      // Z.AI 后端 init 仍可能返回 provider-specific callback，导致回跳行为与 BigModel 不一致。
-      // Desktop 统一改写为官网中转页，再由官网透传到 nibi://oauth/callback。
-      authorizeUrl.searchParams.set("redirect_uri", buildDesktopOAuthRedirectUriFromEnv(this.env));
-    }
-    const state = authorizeUrl.searchParams.get("state")?.trim();
-    const remainingLifetimeMs = expiresAt - this.now();
-    if (
-      authorizeUrl.protocol !== "https:" ||
-      !state ||
-      !Number.isFinite(expiresAt) ||
-      !Number.isFinite(pollIntervalMs) ||
-      remainingLifetimeMs <= 0 ||
-      pollIntervalMs < 1_000 ||
-      pollIntervalMs >= remainingLifetimeMs
-    ) {
-      throw new Error("OAuth flow 初始化响应无效");
-    }
-
-    const timeoutMs = Math.min(OAUTH_TIMEOUT_MS, remainingLifetimeMs);
-    const timeout = setTimeout(() => {
-      const pending = this.pendingState;
-      // polling flow 超时必须立即收口，不能等待下一次 UI 轮询；同时校验 flowId，避免旧定时器清掉新 flow。
-      if (pending?.state === state && pending.polling?.flowId === flowId) {
-        this.clearPendingState();
-      }
-    }, timeoutMs);
-    this.pendingState = {
-      state,
-      provider: adapter.providerId,
-      timeout,
-      phase: "awaiting-attribution-or-code",
-      polling: {
-        expiresAt,
-        flowId,
-        nextPollAt: this.now(),
-        pollIntervalMs,
-        pollToken,
-        pollUrl: buildNibiApiUrlFromEnv(
-          this.env,
-          `/api/v1/oauth/cli/poll/${encodeURIComponent(flowId)}`,
-        ),
-      },
-    };
-
-    serviceLog.info("OAuth polling flow started", {
-      expiresInMs: timeoutMs,
-      pollIntervalMs,
-      provider,
-    });
-    return { provider, authorizeUrl: authorizeUrl.toString(), state };
+    // 上游后端 polling flow 已删除；保留接口名给既有 UI 调用方，统一走 NIBI 授权码流程。
+    return this.startOAuthInternal(provider);
   }
 
   async pollPendingOAuth(): Promise<OAuthCallbackResult | null> {
-    const apiClient = this.apiClient;
-    if (!apiClient) {
-      return null;
-    }
-    const pending = this.pendingState;
-    const polling = pending?.polling;
-    if (!pending || !polling) {
-      return null;
-    }
-    if (this.now() >= polling.expiresAt) {
-      this.clearPendingState();
-      throw new Error("OAuth flow 已过期");
-    }
-    if (this.now() < polling.nextPollAt) {
-      return null;
-    }
-    polling.nextPollAt = this.now() + polling.pollIntervalMs;
-
-    let envelope: OAuthFlowEnvelope;
-    try {
-      envelope = await readApiJson<OAuthFlowEnvelope>(apiClient, polling.pollUrl, {
-        headers: { Authorization: `Bearer ${polling.pollToken}` },
-      });
-    } catch (error) {
-      if (this.pendingState !== pending) return null;
-      if (
-        error instanceof ApiError &&
-        error.status &&
-        error.status >= 400 &&
-        error.status < 500 &&
-        error.status !== 408 &&
-        error.status !== 429
-      ) {
-        try {
-          return await this.runPendingSessionCompletion(pending, async () => {
-            throw error;
-          });
-        } catch (terminalError) {
-          if (this.pendingState === pending) this.clearPendingState();
-          throw terminalError;
-        }
-      }
-      // 轮询是 deep link 丢失时的可靠路径，单次断网或 5xx 不能立即取消 flow。
-      // 保留服务端下发的查询间隔，下一轮继续尝试；高频状态只记 debug，避免生产日志膨胀。
-      serviceLog.debug("OAuth polling request will retry", {
-        error: error instanceof Error ? error.message : String(error),
-        provider: pending.provider,
-      });
-      return null;
-    }
-    if (this.pendingState !== pending) {
-      return null;
-    }
-    if (
-      envelope.code === 0 &&
-      isUnknownRecord(envelope.data) &&
-      readTrimmedString(envelope.data.status) === "pending"
-    ) {
-      return null;
-    }
-    try {
-      const result = await this.runPendingSessionCompletion(pending, async () => {
-        const pollData = envelope.data;
-        if (envelope.code !== 0 || !isUnknownRecord(pollData)) {
-          throw new Error(readTrimmedString(envelope.msg) || "OAuth flow 查询响应无效");
-        }
-        const status = readTrimmedString(pollData.status);
-        if (status === "failed") {
-          throw new Error("OAuth flow 授权失败");
-        }
-        if (status !== "ready") {
-          throw new Error("OAuth flow 查询响应无效");
-        }
-
-        const ready = pollData;
-        const user = isUnknownRecord(ready.user) ? ready.user : null;
-        const zai = isUnknownRecord(ready.zai) ? ready.zai : null;
-        const bigmodel = isUnknownRecord(ready.bigmodel) ? ready.bigmodel : null;
-        const providerAccessToken =
-          pending.provider === ZAI_PROVIDER_ID
-            ? readTrimmedString(zai?.access_token)
-            : readTrimmedString(bigmodel?.access_token) || readTrimmedString(bigmodel?.accessToken);
-        const nibiJwtToken = readTrimmedString(ready.token);
-        const userId = readTrimmedString(user?.user_id);
-        if (!nibiJwtToken || !providerAccessToken || !userId) {
-          throw new Error("OAuth flow 查询响应无效");
-        }
-        const username = readTrimmedString(user?.name) || readTrimmedString(user?.email) || userId;
-        const avatarUrl = readTrimmedString(user?.avatar);
-        const profile: OAuthUserProfile = {
-          id: userId,
-          username,
-          displayName: username,
-          ...(avatarUrl ? { avatarUrl } : {}),
-          rawProfile: user,
-        };
-        const adapter = this.getAdapter(pending.provider);
-        const refreshToken =
-          pending.provider === BIGMODEL_PROVIDER_ID
-            ? readTrimmedString(bigmodel?.refresh_token) ||
-              readTrimmedString(bigmodel?.refreshToken)
-            : undefined;
-        const tokenSet = adapter.normalizePolledTokenSet
-          ? await adapter.normalizePolledTokenSet({
-              accessToken: providerAccessToken,
-              nibiJwtToken,
-              ...(refreshToken ? { refreshToken } : {}),
-            })
-          : {
-              accessToken: providerAccessToken,
-              nibiJwtToken,
-              ...(refreshToken ? { refreshToken } : {}),
-            };
-        return { tokenSet, profile };
-      });
-      if (result?.kind === "session") {
-        serviceLog.info("OAuth polling flow completed", { provider: pending.provider });
-      }
-      return result;
-    } catch (error) {
-      if (this.pendingState === pending) this.clearPendingState();
-      throw error;
-    }
+    // NIBI 不使用后端 polling flow。
+    return null;
   }
 
   private async startOAuthInternal(provider: OAuthProviderId): Promise<OAuthStartResponse> {
@@ -1042,7 +638,6 @@ export class OAuthService implements IOAuthService {
     // 两条并发流程会共享同一回调通道，导致后回调抢占前回调并触发 state 错配。
     await this.runSessionMutation(async () => {
       this.oauthFlowStartGeneration += 1;
-      this.oauthFlowStartProvider = null;
       this.clearPendingState();
     });
 
@@ -1107,11 +702,6 @@ export class OAuthService implements IOAuthService {
     if (!state || state !== pending.state) {
       throw new Error("OAuth state 不匹配或已过期");
     }
-    if (pending.polling && this.now() >= pending.polling.expiresAt) {
-      this.clearPendingState();
-      throw new Error("OAuth flow 已过期");
-    }
-
     const attribution = parseOAuthLoginAttribution(parsedUrl.searchParams);
     if (attribution && !hasOAuthAuthorizationCode(parsedUrl.searchParams)) {
       if (pending.phase === "awaiting-code-after-attribution") {
@@ -1534,15 +1124,11 @@ export class OAuthService implements IOAuthService {
 
   async cancelPending(provider?: OAuthProviderId): Promise<void> {
     if (!this.pendingState) {
-      if (provider && this.oauthFlowStartProvider && this.oauthFlowStartProvider !== provider)
-        return;
       this.oauthFlowStartGeneration += 1;
-      this.oauthFlowStartProvider = null;
       return;
     }
     if (provider && this.pendingState.provider !== provider) return;
     this.oauthFlowStartGeneration += 1;
-    this.oauthFlowStartProvider = null;
     this.clearPendingState();
   }
 

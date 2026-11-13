@@ -3769,7 +3769,7 @@ WFS03（accepted）：Snippet 运行→完成/失败；运行摘要计时且代�
 
 ## SHARE. 会话分享与继续工作
 
-SHARE-OAUTH01（accepted）：完整 Web 入口承载分享页时，从 `/share/:code` 或 `/cn/share/:code` 选择 Z.ai / BigModel 登录，`code` / `authCode` 回到对应分享 callback 后必须调用认证服务，交换 token 并返回原分享页。覆盖 390/1024px、深浅主题；缺少 state 或结果参数及普通分享路径不得误入回调。独立 `web-share` 的路径式回调规则保持不变；本用例不代表真实第三方 OAuth 或部署网关验收。
+SHARE-OAUTH01（accepted）：完整 Web 入口承载分享页时，从 `/share/:code` 或 `/cn/share/:code` 使用 NIBI 账号登录，`code` 回到对应分享 callback 后必须调用认证服务，交换 token 并返回原分享页。覆盖 390/1024px、深浅主题；缺少 state 或结果参数及普通分享路径不得误入回调。独立 `web-share` 的路径式回调规则保持不变；本用例不代表真实第三方 OAuth 或部署网关验收。
 
 Todo139 补充 accepted 用例：SHARE30 在 Root／Recent／公共默认三种接收方状态分别首次导入，工具栏及首条 Submission 的 modelSelection/mode 与普通新任务一致，context_refs 保留且 Root 正文不迁移；SHARE31 无模型／View 延迟时内容可打开，空 snapshot 不阻断初始化，用户先编辑后迟到结果不覆盖；SHARE32 同路径不同 identity、远程回退本地及 reused=true，使用结果的实际目标并保留已有会话，导入不更新 Recent。三项均要求 UI 加草稿／提交 payload 证据；不展开与 queue/goal 的无关叉乘，不开放手机导入入口。
 

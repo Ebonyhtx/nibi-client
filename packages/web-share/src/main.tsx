@@ -1,5 +1,4 @@
 import { createRoot } from "react-dom/client";
-import { NIBI_PROVIDER_ID } from "@nibi/shared";
 import "../../share-ui/src/styles.css";
 import { applyTheme, type Theme } from "../../ui/src/useTheme.js";
 import {
@@ -18,9 +17,9 @@ import { readPrefs } from "@nibi/ui/nibi-storage";
 import { resolveWebRemoteControlInitialTheme } from "../../web/src/web-remote-control/adapters/webRemoteControlThemeSeed.js";
 import { createWebAuthService } from "../../web/src/auth/webAuthService.js";
 import {
-  WEB_ZAI_OAUTH_CONFIG,
+  NIBI_WEB_OAUTH_CONFIG,
   resolveWebAuthDevReturnTo,
-} from "../../web/src/auth/webZaiOAuthConfig.js";
+} from "../../web/src/auth/nibiWebOAuth.js";
 import { parseOAuthState, resolveSafeAppReturnTo } from "../../web/src/auth/oauthStateCodec.js";
 import { ShareCallbackPage } from "./ShareAuthPages.js";
 
@@ -102,14 +101,8 @@ async function renderShare(): Promise<void> {
         webAuthService.startLogin({
           provider,
           appReturnTo: window.location.href,
-          // NIBI 走自己的 SPA 回调（/remote/v4）；把 zai 的 share 回调传给它只会被
-          // Zitadel 以 redirect_uri 不匹配拒绝。非 NIBI 仍保留原 share 回调。
-          ...(provider === NIBI_PROVIDER_ID
-            ? {}
-            : {
-                redirectUri: WEB_ZAI_OAUTH_CONFIG.shareRedirectUri,
-                devReturnTo: resolveWebAuthDevReturnTo(WEB_ZAI_OAUTH_CONFIG, "share"),
-              }),
+          redirectUri: NIBI_WEB_OAUTH_CONFIG.shareRedirectUri,
+          devReturnTo: resolveWebAuthDevReturnTo(NIBI_WEB_OAUTH_CONFIG, "share"),
         });
       }}
       onLogout={() => {

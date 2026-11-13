@@ -36,7 +36,7 @@ import {
 import { WebCallbackPage } from "./auth/WebCallbackPage.js";
 import { WebLoginPage } from "./auth/WebLoginPage.js";
 import { createWebAuthService } from "./auth/webAuthService.js";
-import { WEB_ZAI_OAUTH_CONFIG, resolveWebAuthDevReturnTo } from "./auth/webZaiOAuthConfig.js";
+import { NIBI_WEB_OAUTH_CONFIG, resolveWebAuthDevReturnTo } from "./auth/nibiWebOAuth.js";
 import { parseOAuthState, resolveSafeAppReturnTo } from "./auth/oauthStateCodec.js";
 import { resolveWebCommunityUrl, resolveWebHelpConfig } from "./communityUrl.js";
 import {
@@ -299,8 +299,7 @@ function isWebOAuthCallback(params: URLSearchParams): boolean {
     isWebRemoteControlOAuthCallback(new URL(window.location.href)) ||
     (["/cn/share/callback", "/share/callback"].includes(window.location.pathname) &&
       params.has("state") &&
-      // BigModel 的 authCode 要先进入回调页，才能由 provider 归一化为 code。
-      (params.has("code") || params.has("authCode") || params.has("error")))
+      (params.has("code") || params.has("error")))
   );
 }
 
@@ -385,8 +384,8 @@ async function renderConversationSharePage(): Promise<void> {
         webAuthService.startLogin({
           provider,
           appReturnTo: window.location.href,
-          redirectUri: WEB_ZAI_OAUTH_CONFIG.shareRedirectUri,
-          devReturnTo: resolveWebAuthDevReturnTo(WEB_ZAI_OAUTH_CONFIG, "share"),
+          redirectUri: NIBI_WEB_OAUTH_CONFIG.shareRedirectUri,
+          devReturnTo: resolveWebAuthDevReturnTo(NIBI_WEB_OAUTH_CONFIG, "share"),
         });
       }}
       onLogout={onLogout}
@@ -421,7 +420,7 @@ const remoteEntry = new WebRemoteControlEntry({
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
   },
-  loginOptions: { devReturnTo: resolveWebAuthDevReturnTo(WEB_ZAI_OAUTH_CONFIG) },
+  loginOptions: { devReturnTo: resolveWebAuthDevReturnTo(NIBI_WEB_OAUTH_CONFIG) },
   token: createWebRemoteControlV2TokenClient(window.location.origin),
   connect: (connection) => {
     void bootstrapExternalRelayWebRemoteControl(connection);

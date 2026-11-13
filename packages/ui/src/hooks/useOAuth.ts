@@ -6,12 +6,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { OAuthProviderId, OAuthProviderMeta } from "@nibi/shared";
-import {
-  BIGMODEL_PROVIDER_ID,
-  isCredentialDecryptError,
-  resolveSafeTelemetryHostname,
-  ZAI_PROVIDER_ID,
-} from "@nibi/shared";
+import { isCredentialDecryptError, resolveSafeTelemetryHostname } from "@nibi/shared";
 import { reportAppTelemetryEvent } from "@/lib/appTelemetry.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { LoginEntryPurpose } from "@/store/index.js";
@@ -119,9 +114,8 @@ export function useOAuth() {
 
         setAuthorizeUrl(startedAuthorizeUrl);
         platform.registerOAuthState({ state, provider: startedProvider });
-        setOAuthPollingActive(
-          startedProvider === ZAI_PROVIDER_ID || startedProvider === BIGMODEL_PROVIDER_ID,
-        );
+        // NIBI 走授权码 + PKCE 回调，不使用后端 polling flow。
+        setOAuthPollingActive(false);
         platform.openExternal(startedAuthorizeUrl);
         void reportAppTelemetryEvent(
           platform,

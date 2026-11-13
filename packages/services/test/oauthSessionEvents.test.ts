@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { ProxyChannel } from "@nibi/rpc";
-import { BIGMODEL_PROVIDER_ID, ZAI_PROVIDER_ID, type OAuthTokenSet } from "@nibi/shared";
+import { NIBI_PROVIDER_ID, type OAuthTokenSet } from "@nibi/shared";
 import type { IOAuthService } from "#src/oauth/oauth.js";
 import { OAuthService } from "#src/oauth/oauthService.js";
 
@@ -23,16 +23,15 @@ function fixture(onProviderLogout = vi.fn(async () => {})) {
   const exchangeToken = vi.fn(
     async (): Promise<OAuthTokenSet> => ({
       accessToken: "access",
-      nibiJwtToken: "jwt",
     }),
   );
   const service = new OAuthService(credentialService, {
     onProviderLogout,
     adapters: [
       {
-        providerId: ZAI_PROVIDER_ID,
+        providerId: NIBI_PROVIDER_ID,
         apiClient: { request: vi.fn<typeof fetch>() },
-        meta: { id: ZAI_PROVIDER_ID, displayName: "Z.ai", enabled: true, order: 1 },
+        meta: { id: NIBI_PROVIDER_ID, displayName: "NIBI", enabled: true, order: 1 },
         redirectUri: "nibi://oauth/callback",
         buildAuthorizeUrl: ({ state }) => `https://example.com/authorize?state=${state}`,
         parseCallbackParams: (url) => ({
@@ -52,7 +51,7 @@ function fixture(onProviderLogout = vi.fn(async () => {})) {
     listen: (event, args) => server.listen(undefined, event, args),
   });
   async function login() {
-    const { state } = await client.startOAuth(ZAI_PROVIDER_ID);
+    const { state } = await client.startOAuth(NIBI_PROVIDER_ID);
     return client.handleCallback(`nibi://oauth/callback?state=${state}&code=code`);
   }
   return { service, client, credentials, credentialService, exchangeToken, login };
@@ -62,8 +61,8 @@ it("同账号每次凭据落盘均经 RPC 发布完成事件，先于调用结�
   const f = fixture();
   const changes: string[] = [];
   const subscription = f.client.onDidChangeSession((state) => {
-    expect(f.credentials.get("nibi-jwttoken")).toBe("jwt");
-    expect(f.credentials.get("oauth:active_provider")).toBe(ZAI_PROVIDER_ID);
+    expect(f.credentials.get("oauth:nibi:access_token")).toBe("access");
+    expect(f.credentials.get("oauth:active_provider")).toBe(NIBI_PROVIDER_ID);
     changes.push(state);
   });
   await f.login();
@@ -82,14 +81,14 @@ it.each(["active", "provider", "all"] as const)(
     await f.login();
     const changes: string[] = [];
     const subscription = f.client.onDidChangeSession((state) => {
-      expect(f.credentials.has("nibi-jwttoken")).toBe(false);
+      expect(f.credentials.has("oauth:nibi:access_token")).toBe(false);
       expect(onProviderLogout).not.toHaveBeenCalled();
       changes.push(state);
     });
     const logout =
       mode === "all"
         ? f.client.logoutAll()
-        : f.client.logout(mode === "provider" ? ZAI_PROVIDER_ID : undefined);
+        : f.client.logout(mode === "provider" ? NIBI_PROVIDER_ID : undefined);
     await expect(logout).rejects.toThrow("derived settings failed");
     expect(changes).toEqual(["signed-out"]);
     subscription.dispose();
@@ -105,9 +104,9 @@ it("取消中的登录和非当前 provider 的 unlink 不发布会话变更", a
   const login = f.login();
   await vi.waitFor(() => expect(f.exchangeToken).toHaveBeenCalled());
   await f.client.cancelPending();
-  exchange.resolve({ accessToken: "cancelled", nibiJwtToken: "cancelled" });
+  exchange.resolve({ accessToken: "cancelled" });
   await login;
-  await f.client.logout(BIGMODEL_PROVIDER_ID);
+  await f.client.logout(NIBI_PROVIDER_ID);
   expect(changed).not.toHaveBeenCalled();
   subscription.dispose();
 });
@@ -132,7 +131,7 @@ it("active provider 落盘期间取消并回滚的登录不发布 signed-in", as
   await f.client.cancelPending();
   continueSave.resolve();
   await rejected;
-  expect(f.credentials.has("nibi-jwttoken")).toBe(false);
+  expect(f.credentials.has("oauth:nibi:access_token")).toBe(false);
   expect(changed).not.toHaveBeenCalled();
   subscription.dispose();
 });

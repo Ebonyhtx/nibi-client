@@ -25,13 +25,20 @@ export interface NibiWebOAuthConfig {
   scope: string;
   /** 页面与回调同源：`{endpointOrigin}/remote/v4`，不带查询参数。 */
   redirectUri: string;
+  /** 会话分享页的独立回调地址。 */
+  shareRedirectUri: string;
+  /** 本地 Vite 页面联调时的回流 origin。 */
+  devOrigin?: string;
+  allowDevReturnToRedirect: boolean;
 }
 
 interface NibiWebOAuthEnv {
+  VITE_DEV_ORIGIN?: string;
   VITE_NIBI_BASE_URL?: string;
   VITE_NIBI_ENDPOINT_ORIGIN?: string;
   VITE_NIBI_OIDC_CLIENT_ID?: string;
   VITE_NIBI_AUTH_ORIGIN?: string;
+  VITE_WEB_REMOTE_ALLOW_DEV_RETURN_TO?: string;
 }
 
 interface NibiTokenPayload {
@@ -75,6 +82,7 @@ export function createNibiWebOAuthConfig(env: NibiWebOAuthEnv = {}): NibiWebOAut
       DEFAULT_NIBI_ENDPOINT_ORIGIN,
   );
   const authOrigin = (env.VITE_NIBI_AUTH_ORIGIN?.trim() || NIBI_AUTH_ORIGIN).replace(/\/+$/u, "");
+  const devOrigin = env.VITE_DEV_ORIGIN?.trim().replace(/\/$/, "");
 
   return {
     authorizeUrl: `${authOrigin}/oauth/v2/authorize`,
@@ -82,6 +90,9 @@ export function createNibiWebOAuthConfig(env: NibiWebOAuthEnv = {}): NibiWebOAut
     clientId: env.VITE_NIBI_OIDC_CLIENT_ID?.trim() || NIBI_WEB_OIDC_CLIENT_ID,
     scope: NIBI_OIDC_SCOPE,
     redirectUri: endpointUrls.webRemoteCallbackUrl,
+    shareRedirectUri: endpointUrls.webShareCallbackUrl,
+    ...(devOrigin ? { devOrigin } : {}),
+    allowDevReturnToRedirect: env.VITE_WEB_REMOTE_ALLOW_DEV_RETURN_TO === "true",
   };
 }
 
@@ -115,10 +126,19 @@ const env = ((import.meta as ImportMeta & { env?: NibiWebOAuthEnv }).env ??
   {}) as NibiWebOAuthEnv;
 
 /**
- * 构建期配置：生产构建必须带 NIBI_ENV=production（否则 Vite 会把上游测试端点
- * 写进 bundle）。这里与 WEB_ZAI_OAUTH_CONFIG 同源读取，避免两套配置漂移。
+ * 构建期配置：生产构建必须带 NIBI_ENV=production（否则 Vite 会把测试端点
+ * 写进 bundle）。
  */
 export const NIBI_WEB_OAUTH_CONFIG: NibiWebOAuthConfig = createNibiWebOAuthConfig(env);
+
+export function resolveWebAuthDevReturnTo(
+  config: Pick<NibiWebOAuthConfig, "devOrigin">,
+  surface: "remote" | "share" = "remote",
+): string | undefined {
+  return config.devOrigin
+    ? `${config.devOrigin}/${surface === "share" ? "share/callback" : "remote/v4"}`
+    : undefined;
+}
 
 export class NibiWebOAuthProvider {
   constructor(

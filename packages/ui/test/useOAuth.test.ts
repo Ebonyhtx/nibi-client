@@ -247,49 +247,6 @@ describe("useOAuth", () => {
     });
   });
 
-  it("starts login through the backend polling flow", async () => {
-    const root: Root = createRoot(installMinimalDom());
-    let startLogin: ReturnType<typeof useOAuth>["startLogin"] | undefined;
-    function OAuthActionProbe() {
-      startLogin = useOAuth().startLogin;
-      return createElement("span");
-    }
-    mocks.oauthService.getProviders.mockResolvedValue([]);
-    mocks.oauthService.getActiveProvider.mockResolvedValue(null);
-    mocks.oauthService.startOAuthWithPolling.mockResolvedValue({
-      authorizeUrl: "https://chat.z.ai/api/oauth/authorize?state=flow-state",
-      provider: "zai",
-      state: "flow-state",
-    });
-
-    await act(async () => {
-      root.render(createElement(OAuthActionProbe));
-    });
-    await act(async () => {
-      await startLogin?.("zai");
-    });
-
-    expect(mocks.oauthService.startOAuthWithPolling).toHaveBeenCalledWith("zai");
-    expect(mocks.oauthService.startOAuth).not.toHaveBeenCalled();
-    expect(mocks.platform.registerOAuthState).toHaveBeenCalledWith({
-      provider: "zai",
-      state: "flow-state",
-    });
-    expect(mocks.platform.openExternal).toHaveBeenCalledWith(
-      "https://chat.z.ai/api/oauth/authorize?state=flow-state",
-    );
-    expect(mocks.setOAuthPollingActive).toHaveBeenCalledWith(true);
-    expect(mocks.reportAppTelemetryEvent).toHaveBeenCalledWith(
-      mocks.platform,
-      expect.objectContaining({ eventExtraDetail: { login_url: "chat.z.ai" } }),
-      "useOAuth",
-    );
-
-    act(() => {
-      root.unmount();
-    });
-  });
-
   it("exposes the current authorize url and clears it when the waiting flow is cancelled", async () => {
     const root: Root = createRoot(installMinimalDom());
     let oauth: ReturnType<typeof useOAuth> | undefined;

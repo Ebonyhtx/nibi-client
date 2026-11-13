@@ -46,9 +46,6 @@ function loadEnvFiles(): Record<string, string> {
   if (process.env.NIBI_ENV) vars.NIBI_ENV = process.env.NIBI_ENV;
   if (process.env.NIBI_BASE_URL) vars.NIBI_BASE_URL = process.env.NIBI_BASE_URL;
   if (process.env.VITE_NIBI_BASE_URL) vars.VITE_NIBI_BASE_URL = process.env.VITE_NIBI_BASE_URL;
-  // OAuth origin/client_id 由 host runtime 读取；这里保留覆盖入口，方便开发构建时观察统一 env 来源。
-  if (process.env.ZAI_OAUTH_CLIENT_ID) vars.ZAI_OAUTH_CLIENT_ID = process.env.ZAI_OAUTH_CLIENT_ID;
-  if (process.env.ZAI_OAUTH_ORIGIN) vars.ZAI_OAUTH_ORIGIN = process.env.ZAI_OAUTH_ORIGIN;
   if (process.env.ZAI_BUSINESS_BASE_URL) {
     vars.ZAI_BUSINESS_BASE_URL = process.env.ZAI_BUSINESS_BASE_URL;
   }
@@ -57,12 +54,6 @@ function loadEnvFiles(): Record<string, string> {
   }
   if (process.env.CDN_DOMAIN) vars.CDN_DOMAIN = process.env.CDN_DOMAIN;
   if (process.env.OSS_PATH_PREFIX) vars.OSS_PATH_PREFIX = process.env.OSS_PATH_PREFIX;
-  if (process.env.VITE_ZAI_OAUTH_CLIENT_ID) {
-    vars.VITE_ZAI_OAUTH_CLIENT_ID = process.env.VITE_ZAI_OAUTH_CLIENT_ID;
-  }
-  if (process.env.VITE_ZAI_OAUTH_ORIGIN) {
-    vars.VITE_ZAI_OAUTH_ORIGIN = process.env.VITE_ZAI_OAUTH_ORIGIN;
-  }
   return vars;
 }
 

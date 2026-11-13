@@ -23,12 +23,8 @@ export const NIBI_MEMBERSHIP_LOCAL_WEBVIEW_ORIGINS: readonly string[] = [
 ];
 export const DEFAULT_BIGMODEL_API_ORIGIN = "https://bigmodel.cn";
 export const TEST_BIGMODEL_API_ORIGIN = "https://bigmodel.cn";
-export const DEFAULT_ZAI_OAUTH_ORIGIN = "https://chat.z.ai";
-export const TEST_ZAI_OAUTH_ORIGIN = "https://chat.z.ai";
 export const DEFAULT_ZAI_BUSINESS_BASE_URL = "https://api.z.ai";
 export const TEST_ZAI_BUSINESS_BASE_URL = "https://api.z.ai";
-export const DEFAULT_ZAI_OAUTH_CLIENT_ID = "client_P8X5CMWmlaRO9gyO-KSqtg";
-export const TEST_ZAI_OAUTH_CLIENT_ID = "client_P8X5CMWmlaRO9gyO-KSqtg";
 export const DEFAULT_WEB_REMOTE_CONTROL_RELAY_WS_URL = "wss://api.nibistudio.cn/api/v1/remote/ws2";
 export const WEB_REMOTE_CONTROL_V4_MIN_APP_VERSION = "3.4.0";
 
@@ -107,16 +103,9 @@ export interface RuntimeBigModelApiEnv {
 export interface RuntimeZaiEndpointEnv {
   [key: string]: string | undefined;
   NIBI_ENV?: string;
-  ZAI_OAUTH_ORIGIN?: string;
-  ZAI_TEST_OAUTH_ORIGIN?: string;
-  ZAI_PRODUCTION_OAUTH_ORIGIN?: string;
   ZAI_BUSINESS_BASE_URL?: string;
   ZAI_TEST_BUSINESS_BASE_URL?: string;
   ZAI_PRODUCTION_BUSINESS_BASE_URL?: string;
-  ZAI_OAUTH_CLIENT_ID?: string;
-  ZAI_TEST_OAUTH_CLIENT_ID?: string;
-  ZAI_PRODUCTION_OAUTH_CLIENT_ID?: string;
-  ZAI_OAUTH_APP_ID?: string;
 }
 
 export interface RuntimeProductEndpointEnv
@@ -126,9 +115,7 @@ export interface RuntimeProductEndpointConfig {
   nibiEnv: NibiEnv;
   nibiEndpointOrigin: string;
   nibiEndpointUrls: NibiEndpointUrls;
-  zaiOAuthOrigin: string;
   zaiBusinessBaseUrl: string;
-  zaiOAuthClientId: string;
   bigModelApiOrigin: string;
 }
 
@@ -302,22 +289,6 @@ export function buildBigModelApiUrl(env: RuntimeBigModelApiEnv = {}, path: strin
   return `${resolveBigModelApiOrigin(env)}${normalizedPath}`;
 }
 
-export function resolveZaiOAuthOrigin(env: RuntimeZaiEndpointEnv = {}): string {
-  const nibiEnv = resolveRuntimeNibiEnv(env);
-  const scopedOrigin = readRuntimeNibiEnvScopedValue(
-    env,
-    nibiEnv,
-    "ZAI_TEST_OAUTH_ORIGIN",
-    "ZAI_PRODUCTION_OAUTH_ORIGIN",
-  );
-  const fallbackOrigin =
-    nibiEnv === "production" ? DEFAULT_ZAI_OAUTH_ORIGIN : TEST_ZAI_OAUTH_ORIGIN;
-
-  return normalizeNibiEndpointOrigin(
-    readRuntimeEnvValue(env, "ZAI_OAUTH_ORIGIN") ?? scopedOrigin ?? fallbackOrigin,
-  );
-}
-
 export function resolveZaiBusinessBaseUrl(env: RuntimeZaiEndpointEnv = {}): string {
   const nibiEnv = resolveRuntimeNibiEnv(env);
   const scopedOrigin = readRuntimeNibiEnvScopedValue(
@@ -332,34 +303,6 @@ export function resolveZaiBusinessBaseUrl(env: RuntimeZaiEndpointEnv = {}): stri
   return normalizeNibiEndpointOrigin(
     readRuntimeEnvValue(env, "ZAI_BUSINESS_BASE_URL") ?? scopedOrigin ?? fallbackOrigin,
   );
-}
-
-export function resolveZaiOAuthClientId(env: RuntimeZaiEndpointEnv = {}): string {
-  const nibiEnv = resolveRuntimeNibiEnv(env);
-  const scopedClientId = readRuntimeNibiEnvScopedValue(
-    env,
-    nibiEnv,
-    "ZAI_TEST_OAUTH_CLIENT_ID",
-    "ZAI_PRODUCTION_OAUTH_CLIENT_ID",
-  );
-  const fallbackClientId =
-    nibiEnv === "production" ? DEFAULT_ZAI_OAUTH_CLIENT_ID : TEST_ZAI_OAUTH_CLIENT_ID;
-
-  return (
-    readRuntimeEnvValue(env, "ZAI_OAUTH_CLIENT_ID") ??
-    scopedClientId ??
-    readRuntimeEnvValue(env, "ZAI_OAUTH_APP_ID") ??
-    fallbackClientId
-  );
-}
-
-export function buildZaiOAuthUrl(origin: string, path: string): string {
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${normalizeNibiEndpointOrigin(origin)}${normalizedPath}`;
-}
-
-export function buildRuntimeZaiOAuthUrl(env: RuntimeZaiEndpointEnv = {}, path: string): string {
-  return buildZaiOAuthUrl(resolveZaiOAuthOrigin(env), path);
 }
 
 export function buildRuntimeZaiBusinessUrl(env: RuntimeZaiEndpointEnv = {}, path: string): string {
@@ -377,9 +320,7 @@ export function resolveRuntimeProductEndpointConfig(
     nibiEnv,
     nibiEndpointOrigin,
     nibiEndpointUrls: buildNibiEndpointUrls(nibiEndpointOrigin),
-    zaiOAuthOrigin: resolveZaiOAuthOrigin(env),
     zaiBusinessBaseUrl: resolveZaiBusinessBaseUrl(env),
-    zaiOAuthClientId: resolveZaiOAuthClientId(env),
     bigModelApiOrigin: resolveBigModelApiOrigin(env),
   };
 }
