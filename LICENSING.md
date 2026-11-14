@@ -8,12 +8,23 @@ It does not replace the license texts or the third-party notices.
 Code and documentation authored for NIBI are released under the
 [Apache License 2.0](LICENSE), unless a file or directory says otherwise.
 
-## Upstream ZCode
+## Upstream sources
 
-NIBI is derived from [ZCode](https://github.com/zai-org/ZCode) v3.16.2, which is
-also distributed under the Apache License 2.0. Upstream copyright and provenance
-are recorded in [NOTICE.md](NOTICE.md). NIBI is an independent project: it is not
-an official ZCode release and is not endorsed by the upstream project.
+NIBI is an independent project, not an official upstream release and not endorsed
+by any upstream project.
+
+- **TypeScript client lineage**: derived from
+  [ZCode](https://github.com/zai-org/ZCode) v3.16.2, Apache-2.0.
+- **Rust kernel**: vendored from
+  [`MBearo/ZCode-rs`](https://github.com/MBearo/ZCode-rs) 0.1.67 (commit
+  `6d349ed4`), Apache-2.0. The vendored subtree is `kernel/`; its source and
+  upstream-update ledger is [kernel/CHANGELOG-FORK.md](kernel/CHANGELOG-FORK.md).
+- **Copied Codex files**: the Rust TUI includes `paste_burst` code copied from
+  [`openai/codex`](https://github.com/openai/codex) (commit `c3d3b142d`),
+  Apache-2.0. Attribution and license text are kept in
+  `kernel/vendor/copied/openai-codex/` and `kernel/vendor/THIRD-PARTY-NOTICES.txt`.
+
+Upstream copyright and provenance are also recorded in [NOTICE.md](NOTICE.md).
 
 ## Third-party components
 

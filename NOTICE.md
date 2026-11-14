@@ -6,6 +6,7 @@
 
 - 第一方代码以 [Apache License 2.0](LICENSE) 发布；许可范围与第三方组件说明见 [LICENSING.md](LICENSING.md)。
 - NIBI 基于 [ZCode](https://github.com/zai-org/ZCode) v3.16.2（Apache License 2.0）独立演进，不是 ZCode 官方发行版，也不代表上游项目或获得其背书。
+- Rust 内核 vendored 自 [`MBearo/ZCode-rs`](https://github.com/MBearo/ZCode-rs) 0.1.67（Apache-2.0，commit `6d349ed4`）；其中 TUI 的 `paste_burst` 复制件来自 [`openai/codex`](https://github.com/openai/codex)（Apache-2.0），归属在 `kernel/vendor/copied/openai-codex/`。
 - 第三方依赖、复制代码与原生组件的许可见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
 - NIBI 名称、字标和标识的使用规则见 [TRADEMARKS.md](TRADEMARKS.md)；Apache-2.0 不授予商标许可。
 

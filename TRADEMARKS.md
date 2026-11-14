@@ -24,6 +24,11 @@ It is fine to use the NIBI name to refer truthfully to this project, its source 
 or compatibility with it, provided the reference does not suggest sponsorship or
 endorsement.
 
+## Upstream names
+
+ZCode and other upstream project names are used only for attribution and belong to
+their respective owners. NIBI does not claim ownership of those names.
+
 ## Contact
 
 For permission to use NIBI marks beyond these terms, contact
