@@ -71,7 +71,7 @@
         "manifestUrl": "https://api.nibistudio.cn/api/v1/releases/electron/manifest",
         "downloadsUrl": "https://api.nibistudio.cn/api/v1/releases/electron/downloads",
         "channel": "stable",
-        "platforms": ["windows-x86_64", "darwin-aarch64", "linux-x86_64"]
+        "platforms": ["windows-x86_64", "linux-x86_64"]
       }
     },
     {

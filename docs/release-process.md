@@ -49,7 +49,7 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
 | --------------- | --------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `npm`           | 四个 `@nibi-studio/cli-*` + META `@nibi-studio/cli` | 注册表里同版本存在、tarball 有 sha512、META 精确锁定四个平台包                |
 | `source-server` | `nibi-server-<target>.tar.gz` × 4 + descriptor      | descriptor 版本/四 target/档案存在/大小；`--deep` 再校验 sha256               |
-| `desktop`       | Windows/macOS/Linux 安装包与更新库存                | 每个平台的更新 manifest 与 downloads 库存都返回当前版本                       |
+| `desktop`       | Windows/Linux 安装包与更新库存（macOS 暂缓）        | 每个已发布平台的更新 manifest 与 downloads 库存都返回当前版本                 |
 | `web-remote`    | 手机远控 SPA `/remote/v4`                           | 页面 `nibi-release-version`/`nibi-release-surface` meta（release.json 兜底）  |
 | `web-share`     | 会话分享 SPA `/cn/share`                            | 页面 `nibi-release-version`/`nibi-release-surface` meta（release.json 兜底）  |
 | `plugin-market` | 官方插件市场目录                                    | 目录 revision、插件版本、zip 的 sha256 存在；付费 zip 的 401/403 视为门禁正常 |
@@ -61,6 +61,17 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
 页面存在但没有 meta 时如实报“部署未接入标记”，不会拿缓存的 `release.json` 冒充页面版本。
 插件市场不跟产品版本走，台账只记录最近一次 verified/published 的 `revision` 与插件版本；revision
 前进后需要重新 `release:record --artifact plugin-market --stage verified --revision <n>` 登记。
+
+### 未签名阶段的 Windows 分发（2026-11 起）
+
+- **macOS 桌面安装包暂缓**：`desktop` 的 verify 平台只有 `windows-x86_64` / `linux-x86_64`；
+  以后恢复 macOS 发布时再把 `darwin-aarch64` 加回 manifest。Source Server 的 darwin 远端归档
+  是给远端 Mac 工作区用的，不属于桌面安装包，仍按四 target 发布。
+- **Windows 公开只发 NSIS 安装包**。`zip` 只作为内部/测试备用件，不作为公开主下载，也不承诺
+  自动更新或卸载能力；NSIS 是 `oneClick: false` 的 per-user 安装，普通用户不需要管理员权限。
+- **未签名 beta 默认不开自动更新**：构建期 `NIBI_AUTO_UPDATE` 默认关闭；要开启必须显式设
+  `NIBI_AUTO_UPDATE=1`，并且发布库存里同时有 `files[].sha512` 与更新 manifest。未签名
+  Windows 自动更新技术上可跑，但每次安装仍可能触发 SmartScreen，建议等代码签名落地后再开。
 
 ## 发布一个版本
 
