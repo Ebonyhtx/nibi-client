@@ -159,6 +159,9 @@ async function ensureShimFile(binDir: string, shim: NodeFallbackShimFile): Promi
     await rename(temporaryPath, shimPath);
   } catch (error) {
     await rm(temporaryPath, { force: true });
+    // Windows 上并发 rename 同一目标可能报 EPERM/EEXIST；只要最终文件已是同一份内容，
+    // 说明另一个 agent 已先完成，当前调用按成功处理。
+    if (await isShimCurrent(shimPath, shim)) return;
     throw error;
   }
 }
