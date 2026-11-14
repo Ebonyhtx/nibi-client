@@ -16,6 +16,15 @@ NIBI is an AI workspace for real development work. Conversations, terminals, fil
 
 It is built for long-running coding sessions and for developers who move between multiple projects, conversations and machines.
 
+## Download and install
+
+- Official download: <https://nibistudio.cn>
+- Windows: NSIS installer
+- Linux: AppImage
+- CLI: `npm install -g @nibi-studio/cli` (Linux, macOS and Android)
+
+See [CHANGELOG.md](CHANGELOG.md) for changes and [GitHub Releases](https://github.com/Ebonyhtx/nibi-client/releases) for previous versions.
+
 ## Why NIBI
 
 - **Go from conversation to work**: read files, run commands, inspect diffs and preview artifacts without copying results into another tool.

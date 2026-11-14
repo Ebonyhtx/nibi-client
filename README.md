@@ -16,6 +16,15 @@ NIBI 是一个面向真实开发工作的 AI 工作台。对话、终端、文�
 
 它适合长时间运行的编码任务，也适合需要同时处理多个项目、多个会话和多台机器的开发者。
 
+## 下载与安装
+
+- 官方下载：<https://nibistudio.cn>
+- Windows：NSIS 安装包
+- Linux：AppImage
+- 命令行工具：`npm install -g @nibi-studio/cli`（Linux / macOS / Android）
+
+版本变更见 [CHANGELOG.md](CHANGELOG.md)，历史版本见 [GitHub Releases](https://github.com/Ebonyhtx/nibi-client/releases)。
+
 ## 为什么是 NIBI
 
 - **从对话直接进入工作**：读取文件、运行命令、查看 diff、预览产物，不必把结果复制到另一个工具里继续。
