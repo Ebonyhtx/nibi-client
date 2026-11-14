@@ -18,6 +18,7 @@ import {
   getV4PaneSnapshot,
   prepareV4ConversationE2E,
   sendV4Prompt,
+  switchV4Mode,
   waitForV4Pane,
   waitForV4TimelineContaining,
 } from "./helpers/v4-conversation.js";
@@ -36,6 +37,8 @@ describe("任务列表归档二次确认 E2E", () => {
     await useProjectConversationTaskView();
     await browser.refresh();
     await startConversationTaskDraft();
+    // 前置只读工具要真正执行完才能拿到 taskId；默认 Ask 模式会停在权限弹窗。
+    await switchV4Mode("yolo");
 
     const marker = `E2E_FIRST_SEND_TASK_ARCHIVE_CONFIRM_${Date.now()}`;
     await sendV4Prompt(buildReadonlyToolPrompt(marker));
