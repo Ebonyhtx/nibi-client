@@ -21,7 +21,8 @@ NIBI 是一个面向真实开发工作的 AI 工作台。对话、终端、文�
 - 官方下载：<https://nibistudio.cn>
 - Windows：NSIS 安装包
 - Linux：AppImage
-- 命令行工具：`npm install -g @nibi-studio/cli`（Linux / macOS / Android）
+- 命令行工具（Linux / macOS / Android）：`npm install -g @nibi-studio/cli`
+- Windows 暂不提供 npm 命令行包；终端使用请走 WSL，或直接使用安装包内置的 Rust 内核。
 
 版本变更见 [CHANGELOG.md](CHANGELOG.md)，历史版本见 [GitHub Releases](https://github.com/Ebonyhtx/nibi-client/releases)。
 
