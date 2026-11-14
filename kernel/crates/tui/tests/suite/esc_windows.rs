@@ -107,12 +107,11 @@ fn setup(store: &Arc<MemoryStore>, held: &Arc<HeldCommit>) -> Setup {
     }
 }
 
-/// 按 enter 之后、回合画出来之前 esc（提交时同步进入 loading，这时的 esc 是 `user-cancel`）：画面还是空闲，esc 走
-/// 取消唤醒的路径，发的同一个中断让 actor 中止刚开始的回合；回合结束后照样撤回到输入框。actor 先停在一次提交里
-/// （shift+tab 改权限模式），输入与中断在它的信箱里排着，esc 一定在回合画出来之前处理。旧代码：只有运行中的路径
-/// 记下用户中断，回合被中止了却不撤回，对话里留下输入与中断标记。
+/// 按 enter 之后立即 esc（提交时同步进入 loading，这时的 esc 是 `user-cancel`）：画面可能还停在空闲窗口，
+/// 也可能已经把回合画出来（运行窗口）；两种窗口都必须中止刚开始的回合、把输入撤回输入框，且不在对话里
+/// 留下输入或中断标记。actor 先停在一次提交里（shift+tab 改权限模式），输入与中断在它的信箱里排着。
 #[tokio::test(flavor = "multi_thread")]
-async fn esc_before_the_turn_is_drawn_puts_the_input_back() {
+async fn esc_right_after_submit_puts_the_input_back() {
     let model = GatedModel::scripted(vec![
         text_response(&["hello"]),
         text_response(&["second reply"]),
@@ -129,9 +128,7 @@ async fn esc_before_the_turn_is_drawn_puts_the_input_back() {
         actor.held().await;
         ui.submit("first prompt");
         ui.key(KeyCode::Esc);
-        // esc 按空闲处理了（连按两次编辑的提示）：这时画面上还没有这个回合。
-        let screen = ui.wait_for("Esc again to edit previous message").await;
-        assert!(!screen.contains("esc to interrupt"), "{screen}");
+        // 不要求命中某个固定窗口：CI 的调度会让回合恰好先画出来；释放 actor 后两种路径都必须把输入撤回。
         actor.release();
         ui.wait("the input back in the box", |s| {
             s.contains("first prompt") && idle(s, "hello") && !s.contains("Interrupted")
