@@ -140,6 +140,7 @@ jobs:
       # 内核按自身版本向注册表精确取执行器，版本不同源时精确请求恒 404、每次远端部署都要多退 latest。
       - name: Resolve release version
         id: version
+        shell: bash
         run: |
           set -euo pipefail
           VERSION="${{ inputs.version }}"
@@ -357,6 +358,7 @@ jobs:
       # 与平台包同一个版本来源：`inputs.version` 或根 package.json。
       - name: Resolve release version
         id: version
+        shell: bash
         run: |
           set -euo pipefail
           VERSION="${{ inputs.version }}"
