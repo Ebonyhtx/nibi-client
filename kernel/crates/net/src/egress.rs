@@ -232,8 +232,17 @@ fn build_client(policy: &NetworkPolicy, platform: bool) -> Result<reqwest::Clien
     if let Some(proxy) = &policy.proxy {
         builder = builder.proxy(route(proxy, policy.no_proxy.clone())?);
     }
+    // Android 进程内没有 JVM/Context 时平台校验器构造不出来（T8）：退回只用内置根，
+    // 不能让它把整条 egress 变成致命错误（真机上 app-server 会直接退出）。
+    let use_platform = platform && crate::android_trust::platform_trust_available();
+    #[cfg(target_os = "android")]
+    if platform && !use_platform {
+        tracing::warn!(
+            "android: 没有收到 JVM/Context，TLS 只用内置 Mozilla 根证书（用户安装的 CA 不生效）"
+        );
+    }
     builder = match policy.roots.anchors() {
-        Anchors::Merge(ders) if platform => builder.tls_certs_merge(certificates(&ders)?),
+        Anchors::Merge(ders) if use_platform => builder.tls_certs_merge(certificates(&ders)?),
         Anchors::Merge(ders) | Anchors::Only(ders) => builder.tls_certs_only(certificates(&ders)?),
     };
     builder

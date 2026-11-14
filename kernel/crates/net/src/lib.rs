@@ -18,6 +18,7 @@
 //! 审计日志只记方法、脱敏后的 URL、状态码与耗时；header 值不进日志，错误文本按值脱敏
 //! （`nibi_kernel_base::redact`）。
 
+mod android_trust;
 mod egress;
 mod error;
 pub mod header;

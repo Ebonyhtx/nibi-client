@@ -50,6 +50,18 @@ void nibi_app_server_destroy(void *handle);
 
 一个进程只需一个实例；当前 ABI 不提供多实例隔离。
 
+## 网络信任锚（Android）
+
+Android 进程内没有 JVM / Context 时，`rustls-platform-verifier` 的 Android 后端读不到系统信任库，
+reqwest 构造 egress 会失败（`rustls-platform-verifier could not load extra certs`），app-server
+随之退出。当前 Android 版本**退回只用内置的 Mozilla 根证书**（`Anchors::Only`）并打一条 warning：
+
+- 公开 HTTPS 正常；
+- 用户安装的 CA / 企业代理证书暂不生效；
+- 其它平台（桌面 / CLI）行为逐字不变，仍用「平台根 + 内置根」。
+
+宿主把 JVM 与 Android `Context` 交给内核的入口是后续切片（S2，新 C ABI），接入后恢复平台根。
+
 ## 构建
 
 - `nibi-kernel-cli` 同时有 `rlib` 与 `cdylib` 目标，库名 `nibi`。
