@@ -52,6 +52,10 @@ on:
         description: "Version to pack (default: the root package.json version)"
         type: string
         default: ""
+      dist_tag:
+        description: "npm dist-tag（默认 latest；预发布用 android-next，见 D21）"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -295,7 +299,22 @@ jobs:
             echo "::notice::$PKG@$VERSION is already published; nothing to do"
             exit 0
           fi
-          npm publish "$TARBALL" --access public --provenance
+          # D21：预发布版本走专用 dist-tag（android-next），绝不打 latest；
+          # 标签发版（push v*）恒为 latest。
+          DIST_TAG="${{ inputs.dist_tag }}"
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            DIST_TAG=latest
+          fi
+          [ -n "$DIST_TAG" ] || DIST_TAG=latest
+          case "$VERSION" in
+            *-*)
+              if [ "$DIST_TAG" = "latest" ]; then
+                echo "::error::预发布版本 $VERSION 不允许打 latest 标签；请传 dist_tag（如 android-next）"
+                exit 1
+              fi
+              ;;
+          esac
+          npm publish "$TARBALL" --access public --provenance --tag "$DIST_TAG"
 
   # META 入口包：平台包全部成功发布后才跑（`needs: publish` 会等所有 matrix leg）。
   # 它自己有 pack + publish 两步，因为 META 包与平台包不同 runner、没有二进制要构建。
@@ -393,4 +412,18 @@ jobs:
             echo "::notice::$PKG@$VERSION is already published; nothing to do"
             exit 0
           fi
-          npm publish "$TARBALL" --access public --provenance
+          # 与平台包同一套 dist-tag 规则（D21）：预发布走 android-next，不打 latest。
+          DIST_TAG="${{ inputs.dist_tag }}"
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            DIST_TAG=latest
+          fi
+          [ -n "$DIST_TAG" ] || DIST_TAG=latest
+          case "$VERSION" in
+            *-*)
+              if [ "$DIST_TAG" = "latest" ]; then
+                echo "::error::预发布版本 $VERSION 不允许打 latest 标签；请传 dist_tag（如 android-next）"
+                exit 1
+              fi
+              ;;
+          esac
+          npm publish "$TARBALL" --access public --provenance --tag "$DIST_TAG"
