@@ -307,6 +307,7 @@ else process.stdout.write("\\n");
       cwd: REPO_ROOT,
       env: {
         ...process.env,
+        CDN_DOMAIN: "cdn-zcode.z.ai",
         PATH: `${binDir}:${process.env.PATH ?? ""}`,
         CDN_URLS_IN: cdnUrlsIn,
         POLL_INTERVAL: "0",
@@ -392,6 +393,7 @@ else process.stdout.write("\\n");
       cwd: REPO_ROOT,
       env: {
         ...process.env,
+        CDN_DOMAIN: "cdn-zcode.z.ai",
         PATH: `${binDir}:${process.env.PATH ?? ""}`,
         CDN_URLS_IN: cdnUrlsIn,
         POLL_INTERVAL: "0",
@@ -455,6 +457,7 @@ process.stdout.write("\\n");
       cwd: REPO_ROOT,
       env: {
         ...process.env,
+        CDN_DOMAIN: "cdn-zcode.z.ai",
         PATH: `${binDir}:${process.env.PATH ?? ""}`,
         CDN_URLS_IN: cdnUrlsIn,
         POLL_INTERVAL: "0",
@@ -518,6 +521,7 @@ process.stdout.write("\\n");
       cwd: REPO_ROOT,
       env: {
         ...process.env,
+        CDN_DOMAIN: "cdn-zcode.z.ai",
         PATH: `${binDir}:${process.env.PATH ?? ""}`,
         CDN_URLS_IN: cdnUrlsIn,
         CDN_PRELOAD_MAX_ATTEMPTS: "2",
