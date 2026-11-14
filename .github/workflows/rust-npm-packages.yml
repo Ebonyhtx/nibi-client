@@ -158,12 +158,16 @@ jobs:
           API=24
           CLANG="$TOOLCHAIN/aarch64-linux-android${API}-clang"
           test -x "$CLANG"
-          export CC_aarch64-linux-android="$CLANG"
-          export CXX_aarch64-linux-android="${CLANG}++"
-          export AR_aarch64-linux-android="$TOOLCHAIN/llvm-ar"
-          export RANLIB_aarch64-linux-android="$TOOLCHAIN/llvm-ranlib"
-          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$CLANG"
-          cargo build --locked --release -p nibi-kernel-cli --lib --target "$TARGET"
+          # cc/rustc 读的是带连字符的变量名（`CC_<target>`），而 bash 的 `export` 只接受
+          # 合法标识符，写成 `export CC_aarch64-linux-android=...` 会报 not a valid
+          # identifier。`env` 能给单条命令注入任意名字的环境变量，正好够用。
+          env \
+            "CC_aarch64-linux-android=$CLANG" \
+            "CXX_aarch64-linux-android=${CLANG}++" \
+            "AR_aarch64-linux-android=$TOOLCHAIN/llvm-ar" \
+            "RANLIB_aarch64-linux-android=$TOOLCHAIN/llvm-ranlib" \
+            "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$CLANG" \
+            cargo build --locked --release -p nibi-kernel-cli --lib --target "$TARGET"
           cp "target/$TARGET/release/libnibi.so" "$RUNNER_TEMP/libnibi.so"
           "$TOOLCHAIN/llvm-readelf" -h "$RUNNER_TEMP/libnibi.so" | grep -q "Shared object"
           "$TOOLCHAIN/llvm-readelf" -n "$RUNNER_TEMP/libnibi.so" | grep -q "Android"
@@ -199,12 +203,14 @@ jobs:
               EXTRA+=(--shared-lib "$RUNNER_TEMP/libc++_shared.so")
             fi
           fi
+          # macOS runner 自带的是 bash 3.2：`set -u` + 空数组直接展开 `"${EXTRA[@]}"`
+          # 会报 unbound variable（linux runner 的 bash 4.4+ 不会）。用条件展开兼容两者。
           node scripts/rust-cli/npm/package.mjs \
             --binary "$BINARY" \
             --target "$TARGET" \
             --version "$VERSION" \
             --out "$RUNNER_TEMP/npm-pack" \
-            "${EXTRA[@]}" | tee "$RUNNER_TEMP/pack.json"
+            ${EXTRA[@]+"${EXTRA[@]}"} | tee "$RUNNER_TEMP/pack.json"
           echo "tarball=$(node -p "require('$RUNNER_TEMP/pack.json').tarball")" >> "$GITHUB_OUTPUT"
 
       # 打包脚本已经自己校验过 ELF/Mach-O 头与 sha256；这里再跑一次 self-test，
