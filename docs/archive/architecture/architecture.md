@@ -1,8 +1,8 @@
-# ZCode 早期分层架构（历史）
+# NIBI 早期分层架构（历史）
 
 本文记录项目从共享 UI + Channel RPC + service interface 起步时的分层背景。它不再描述当前 Host 数量、
 remote topology、Root props 或 conversation 数据流；当前事实请读
-[Z Code 代码架构总览](./zcode-code-architecture-overview.md)。
+[NIBI 代码架构总览](../../architecture/nibi-code-architecture-overview.md)。
 
 ## 仍然有效的设计原则
 

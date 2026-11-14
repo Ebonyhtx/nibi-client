@@ -15,7 +15,7 @@
 - `plans/`：已交付的阶段计划（cloud content dialog、hook trust MR 范围、工具历史顺序修复提案）。
 - `hooks/`：Hooks 实现分析与 trust 标签诊断（现行契约见 `docs/hooks-runtime-contract.md`）。
 - `web-remote-control/`：手机端稳定性分析与 relay 消息日志（已停用）记录。
-- `architecture/`：早期分层架构与自动更新旧 baseline（现行见 `docs/architecture/zcode-code-architecture-overview.md`、`docs/desktop/auto-update-service-manifest.md`）。
+- `architecture/`：早期分层架构与自动更新旧 baseline（现行见 `docs/architecture/nibi-code-architecture-overview.md`、`docs/desktop/auto-update-service-manifest.md`）。
 - `bugfixes/` 追加：分组任务 workspace bootstrap、rewind 入口下线、界面缩放下线、agent UI 状态清理、后台子代理 join 废弃方案。
 
 同时删除 8 篇自述「历史/已被取代」且全仓无引用的文档（family merge/opencode config/catalog metadata/plugin 方案对比等，git 历史仍可查）。
