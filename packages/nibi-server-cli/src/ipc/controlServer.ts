@@ -1,4 +1,4 @@
-import { createServer, type Server, type Socket } from "node:net";
+import { connect, createServer, type Server, type Socket } from "node:net";
 import { randomUUID } from "node:crypto";
 import { chmod, mkdir, rm } from "node:fs/promises";
 import {
@@ -13,6 +13,25 @@ import { ControlRequestError } from "./controlError.js";
 
 export interface ControlHandler {
   (request: ControlRequest): Promise<unknown>;
+}
+
+async function waitForEndpoint(endpoint: string, attempts = 20): Promise<void> {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const ready = await new Promise<boolean>((resolve) => {
+      const socket = connect(endpoint);
+      socket.once("connect", () => {
+        socket.destroy();
+        resolve(true);
+      });
+      socket.once("error", () => {
+        socket.destroy();
+        resolve(false);
+      });
+    });
+    if (ready) return;
+    await new Promise<void>((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error(`Control endpoint did not become connectable: ${endpoint}`);
 }
 
 export async function createControlServer(
@@ -37,6 +56,15 @@ export async function createControlServer(
     });
   });
   await chmod(endpoint, 0o600).catch(() => undefined);
+  try {
+    // Windows named pipe 的 listen 回调可能早于 pipe 真正可连接；先自探一次，
+    // 避免紧接着的 control 请求收到 ENOENT。
+    await waitForEndpoint(endpoint);
+  } catch (error) {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await rm(endpoint, { force: true }).catch(() => undefined);
+    throw error;
+  }
   // server.close() 只会停止新连接，仍然会等待已有连接自然结束。
   // 控制 socket 属于生命周期收口的一部分，必须主动收集并销毁，避免同 UID 的挂起客户端
   // 永久占住 close 回调，进而让 Supervisor 的 lock 和 lifecycle operation 一直不释放。

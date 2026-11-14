@@ -51,7 +51,20 @@ async function createRoot(prefix: string): Promise<{
   return { root, serverRoot, layout };
 }
 
-async function prepareFakeRelease(layout: ServerLayout): Promise<void> {
+async function findFreePort(): Promise<number> {
+  const server = createServer();
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => resolve());
+  });
+  const address = server.address();
+  const port = typeof address === "object" && address !== null ? address.port : 0;
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+  return port;
+}
+
+async function prepareFakeRelease(layout: ServerLayout): Promise<number> {
+  const corePort = await findFreePort();
   const releases = new ReleaseManager(layout);
   await releases.ensure();
   const releaseDir = join(layout.releasesDir, "release-crash-recovery");
@@ -71,7 +84,7 @@ async function prepareFakeRelease(layout: ServerLayout): Promise<void> {
     join(runtimeRoot, "server-core.js"),
     [
       "const generation = Number(process.argv[2] ?? 0);",
-      "process.send({ type: 'ready', host: '127.0.0.1', port: 43123, version: process.env.NIBI_TEST_CORE_VERSION ?? 'test', generation });",
+      "process.send({ type: 'ready', host: '127.0.0.1', port: Number(process.env.NIBI_TEST_CORE_PORT ?? 43123), version: process.env.NIBI_TEST_CORE_VERSION ?? 'test', generation });",
       "process.on('message', (message) => {",
       "  if (message && message.command === 'shutdown') {",
       "    try { process.send({ type: 'shutdown-ack' }); } catch {}",
@@ -90,9 +103,14 @@ async function prepareFakeRelease(layout: ServerLayout): Promise<void> {
     releaseId: "release-crash-recovery",
   });
   await releases.applyPending();
+  return corePort;
 }
 
-function spawnCli(serverRoot: string, args: readonly string[]) {
+function spawnCli(
+  serverRoot: string,
+  args: readonly string[],
+  extraEnv: Record<string, string> = {},
+) {
   const mainEntry = fileURLToPath(new URL("../src/main.ts", import.meta.url));
   const child = spawn(
     process.execPath,
@@ -103,6 +121,7 @@ function spawnCli(serverRoot: string, args: readonly string[]) {
         NODE_OPTIONS: [process.env.NODE_OPTIONS, "--import", "tsx"].filter(Boolean).join(" "),
         NIBI_SERVER_SKIP_SERVICE_REGISTRATION: "1",
         NIBI_TEST_CORE_VERSION: NIBI_VERSION,
+        ...extraEnv,
       },
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
@@ -308,7 +327,7 @@ describe("Server CLI stop --wait", () => {
 describe("Server CLI restart", () => {
   it("recovers a daemon whose persisted state is crash-loop-stopped", async () => {
     const { root, serverRoot, layout } = await createRoot("nibi-cli-restart-crash-");
-    await prepareFakeRelease(layout);
+    const corePort = await prepareFakeRelease(layout);
     await writeStatus(
       layout,
       status("crash-loop-stopped", {
@@ -323,7 +342,9 @@ describe("Server CLI restart", () => {
     );
 
     // 没有存活的 Supervisor：残留状态和 control socket 都必须被新的 Supervisor 接管。
-    const cli = spawnCli(serverRoot, ["restart", "--json"]);
+    const cli = spawnCli(serverRoot, ["restart", "--json"], {
+      NIBI_TEST_CORE_PORT: String(corePort),
+    });
     const exit = await cli.wait(20_000);
     try {
       expect(exit, cli.diagnostics()).not.toBe("timeout");
@@ -339,8 +360,9 @@ describe("Server CLI restart", () => {
 
   it("restarts the running Supervisor and Core as a new process tree", async () => {
     const { root, serverRoot, layout } = await createRoot("nibi-cli-restart-running-");
-    await prepareFakeRelease(layout);
-    const supervisor = spawnCli(serverRoot, ["serve", "--supervisor", "--json"]);
+    const corePort = await prepareFakeRelease(layout);
+    const coreEnv = { NIBI_TEST_CORE_PORT: String(corePort) };
+    const supervisor = spawnCli(serverRoot, ["serve", "--supervisor", "--json"], coreEnv);
     try {
       await waitForControlState(layout, "ready");
       const before = JSON.parse(await readFile(layout.lockFile, "utf8")) as { pid: number };
@@ -350,7 +372,7 @@ describe("Server CLI restart", () => {
         }
       ).pid;
 
-      const restart = spawnCli(serverRoot, ["restart", "--json"]);
+      const restart = spawnCli(serverRoot, ["restart", "--json"], coreEnv);
       const exit = await restart.wait(20_000);
       expect(exit, restart.diagnostics()).not.toBe("timeout");
       expect(exit, restart.diagnostics()).toBe(0);

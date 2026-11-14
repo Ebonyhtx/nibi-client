@@ -34,6 +34,10 @@ describe("guarded workflow runtime ingress", () => {
         startedAt: new Date(),
         completedAt: new Date(),
       }));
+      // SessionStart/插件 hook 也走 execution port；这里只数被权限拒绝的那条 fixture 命令。
+      const fixtureExecutions = () =>
+        execute.mock.calls.filter(([input]) => JSON.stringify(input).includes("rm -rf fixture-only"))
+          .length;
       let sent = false;
       const app = await createRegistryBackedTestApp({
         env: { NIBI_HOME: root },
@@ -96,7 +100,7 @@ describe("guarded workflow runtime ingress", () => {
           await app.runExpertWorkflow({ task: "Run the fixture command." });
         }
         expect(requests).toHaveLength(0);
-        expect(execute).toHaveBeenCalledTimes(1);
+        expect(fixtureExecutions()).toBe(1);
         expect(modelRequests.some((request) => request.includes("controlled execution"))).toBe(
           true,
         );
@@ -106,7 +110,7 @@ describe("guarded workflow runtime ingress", () => {
         await app.runtime.executeTurn("Run the fixture command in the parent.");
         expect(requests).toHaveLength(1);
         expect(requests[0]?.approvalMode).toBe("user-once");
-        expect(execute).toHaveBeenCalledTimes(1);
+        expect(fixtureExecutions()).toBe(1);
         expect(modelRequests.some((request) => request.includes("guarded fixture denial"))).toBe(
           true,
         );
