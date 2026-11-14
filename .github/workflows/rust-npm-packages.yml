@@ -159,10 +159,11 @@ jobs:
         if: matrix.target == 'aarch64-linux-android'
         working-directory: kernel
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           TARGET="${{ matrix.target }}"
           cp "target/$TARGET/release/nibi-rs" "$RUNNER_TEMP/nibi-rs"
           cargo clean -p nibi-kernel-cli
+          df -h / /home || true
           NDK="${ANDROID_NDK_HOME:?the runner image must provide ANDROID_NDK_HOME}"
           TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
           API=24
@@ -178,6 +179,8 @@ jobs:
             "RANLIB_aarch64-linux-android=$TOOLCHAIN/llvm-ranlib" \
             "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$CLANG" \
             cargo build --locked --release -p nibi-kernel-cli --lib --target "$TARGET"
+          df -h / /home || true
+          du -sh "target/$TARGET" || true
           cp "target/$TARGET/release/libnibi.so" "$RUNNER_TEMP/libnibi.so"
           "$TOOLCHAIN/llvm-readelf" -h "$RUNNER_TEMP/libnibi.so" | grep -q "Shared object"
           "$TOOLCHAIN/llvm-readelf" -n "$RUNNER_TEMP/libnibi.so" | grep -q "Android"
