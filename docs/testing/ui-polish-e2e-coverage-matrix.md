@@ -4,7 +4,7 @@
 
 ## Todo153：思考档位展示与配置顺序
 
-依据 [控件 spec](../ui/chat-thought-level-control.md) 和 [Todo153](../working-memory/provider-refactor/steps/todo-153-thought-level-display-mapping.md)，以下语义已确认，浏览器候选位于 `packages/ui/test/browser/manual-review/pending/thought-level-display.test.mjs`，fixture 使用真实共享控件、SubagentReasoningField 及 toolbar 快捷键 hook，隔离设置服务，不发送模型请求。
+依据 [控件 spec](../ui/chat-thought-level-control.md) 和 Todo153（内部工作记忆，未随公开仓发布），以下语义已确认，浏览器候选位于 `packages/ui/test/browser/manual-review/pending/thought-level-display.test.mjs`，fixture 使用真实共享控件、SubagentReasoningField 及 toolbar 快捷键 hook，隔离设置服务，不发送模型请求。
 
 | 用例  | 前置与动作                                                                                                                           | 断言                                                                                                | 状态                                 |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- | ------------------------------------ |
@@ -80,7 +80,7 @@ feature graph; this test task does not change its state or persistence contract.
 
 ## Accepted Cases
 
-2026-09-08 Todo93 C93-01～12（已实现 / 已验证）：套餐同身份失效只提示一次，点击具体目标才切换；覆盖重复刷新、身份切换、启动基线、unknown/pending、旧按钮竞态及条件写入失败。旧 Todo88 R06 / SPMC-08 的“刷新即自动切换”预期已被替代，历史通过不代表新契约通过；已保留该链路覆盖并补真实点击、点击前不写/点击后读盘断言；Pro desktop-e2e-20260908-101239-586 4/4 通过。完整场景和隔离 E2E 交接见 [Todo93](../working-memory/provider-refactor/steps/todo-93-account-plan-loss-manual-switch.md)。
+2026-09-08 Todo93 C93-01～12（已实现 / 已验证）：套餐同身份失效只提示一次，点击具体目标才切换；覆盖重复刷新、身份切换、启动基线、unknown/pending、旧按钮竞态及条件写入失败。旧 Todo88 R06 / SPMC-08 的“刷新即自动切换”预期已被替代，历史通过不代表新契约通过；已保留该链路覆盖并补真实点击、点击前不写/点击后读盘断言；Pro desktop-e2e-20260908-101239-586 4/4 通过。完整场景和隔离 E2E 交接见 Todo93（内部工作记忆，未随公开仓发布）。
 
 2026-09-08 最终裁决：撤销 Todo92 的 G92 分组恢复用例和 `provider-model-group-reset.test.ts` 实验用例。正式计划改为 Todo92 F92-01～08：个人覆盖边框逐项表达、档位整体而 Mapping 独立、Hover/聚焦同背景、MFJS 无前置复选框、容器标题收敛；与 Todo90 M90-01～08 联合验证“智能配置”开启/关闭、全部必填、不按名称匹配、取消和保存。已按最终契约实现并通过联合验收，旧 Air 预览不计作证据；不显示“自定义 · 恢复推荐”，不加分组或全局恢复按钮。
 

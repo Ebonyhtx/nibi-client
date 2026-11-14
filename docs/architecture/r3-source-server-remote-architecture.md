@@ -3,7 +3,7 @@
 ## 1. 状态与范围
 
 - 状态：已实现（代码基线 `fad93b9e57`，2026-09-13）。正式发布校验与真实 SSH E2E 复跑仍在进行，以 [问题台账](./r3-source-server-remote-open-issues.md) R3-ISSUE-001 / 020 为准。本文是当前事实规格；R3 过程文档已归档到 `docs/archive/remote-r3/`，历史阅读入口见 [docs/remote/README.md（已归档）](../archive/remote/README.md)
-- 修订：2026-09-07 合并 Provider 重构 M2（Provider 重构 M1~M4 + Remote Provider Provisioning）后，§1/§2/§3.1/§6.2/§7.1/§8/§10/§11 中的模型配置语义改为「设置页绑定本地 + Provisioning 自动单向下发」；Provider 侧以 [Remote Provider Provisioning](../remote/provider-provisioning.md) 与 [SSH 远端 Workspace 状态权威边界](../ssh-remote-app-global-state-authority.md) 为事实文档，合并过程与决策见 [r3-provider-refactor-merge.md（已归档）](../archive/remote-r3/r3-provider-refactor-merge.md)
+- 修订：2026-09-07 合并 Provider 重构 M2（Provider 重构 M1~M4 + Remote Provider Provisioning）后，§1/§2/§3.1/§6.2/§7.1/§8/§10/§11 中的模型配置语义改为「设置页绑定本地 + Provisioning 自动单向下发」；Provider 侧以 [Remote Provider Provisioning](../remote/provider-provisioning.md) 与 [SSH 远端 Workspace 状态权威边界](../ssh-remote-app-global-state-authority.md) 为事实文档，合并过程与决策见 r3-provider-refactor-merge.md（已归档）（历史归档，不在本仓）
 - 阶段：统一多端远程架构 R3 / D5—D11
 - 发布方式：SSH、WSL、Docker 在同一 App 版本统一切换新主链；不按连接方式分版本或灰度；R3 App 内不保留可运行的旧远程主链
 - 核心目标：引入 Source Server、`sourceServerId`、Connection Profile、Transport Adapter、Source 权威、身份迁移与版本兼容，让三种连接方式在「窗口级 Local Host（R1）↔ 常驻 ZCode Server daemon（R2）」的新主链上完成产品闭环
@@ -696,7 +696,7 @@ subagentsService commandsService hooksService memoryService outputStyleService s
 promptAttachmentTransferService repoWikiService
 ```
 
-`modelProviderService`、`providerSyncService` 已从合同中移除；`providerProvisioningTargetService` 不在合同内（Host 从 `connectionServices` 上按需读取，不校验、不转发）。合同版本号保持 v1：兼容门默认只承诺同版本连接，旧远端在握手前已被更新，是否升 v2 见 [r3-provider-refactor-merge.md（已归档）](../archive/remote-r3/r3-provider-refactor-merge.md)。
+`modelProviderService`、`providerSyncService` 已从合同中移除；`providerProvisioningTargetService` 不在合同内（Host 从 `connectionServices` 上按需读取，不校验、不转发）。合同版本号保持 v1：兼容门默认只承诺同版本连接，旧远端在握手前已被更新，是否升 v2 见 r3-provider-refactor-merge.md（已归档）（历史归档，不在本仓）。
 
 #### 控制端设置持久化事务
 
@@ -791,7 +791,7 @@ EnvironmentCoordinator               (registered by                             
 
 - 屏障只作用于 `environment-online` 触发的首连；同一 Environment 的第二个 Workspace join 已有 lane，不产生第二次首次同步（E2E `SSH-P0-TASK-01` 断言远端 `~/.nibi/v2/provider-provisioning-state.json` 的 `records[]` 在第二个 Workspace 连接后不增加）。
 - 重连必须重新 register：lane 以 `remoteSessionId` 登记、execute 闭包也绑定旧 sessionId，Source 换代后若不重注册，后续下发会命中 Host 已失效的旧 session，远端再也收不到配置。重新 register 触发一次 `environment-online` 整份重下发，补齐离线期间的本机配置变更；单测 `desktopRemoteSessions.test.ts` 覆盖「重连后以新 sessionId 重新登记并重新下发」与「重连触发的失败只 warn」。
-- Environment key 由 `buildRemoteEnvironmentKey(target)` 按 transport 派生（`ssh:<hostKey>` / `wsl:<distro>` / `docker:<container>` / `server:<serverId|url>`），不是 `sourceServerId`；同一 Source 经不同线路连接会形成不同 lane（各自首连同步，结果幂等）。收敛到 `sourceServerId` 是后续可选项，见 [r3-provider-refactor-merge.md（已归档）](../archive/remote-r3/r3-provider-refactor-merge.md)。
+- Environment key 由 `buildRemoteEnvironmentKey(target)` 按 transport 派生（`ssh:<hostKey>` / `wsl:<distro>` / `docker:<container>` / `server:<serverId|url>`），不是 `sourceServerId`；同一 Source 经不同线路连接会形成不同 lane（各自首连同步，结果幂等）。收敛到 `sourceServerId` 是后续可选项，见 r3-provider-refactor-merge.md（已归档）（历史归档，不在本仓）。
 
 #### 8.3.3 `unsupported` 拒连与兼容门自动更新
 
@@ -887,8 +887,7 @@ Core 启动（server-core/core.ts runServerCore）
 
 结构升级统一进入物理库的正式 migration 账本：Controller/Source 附加表按用途进入
 `tasks_schema_migration`，session identity 表进入 CLI `schema_migration`。
-Repo 不再独立建表/补列。旧 schema、未完成计划与回退兼容规则见
-[`Task SQLite Index：R3 附加表纳入库级账本`](../task/task-sqlite-index.md#r3-附加表纳入库级账本)。
+Repo 不再独立建表/补列。旧 schema、未完成计划与回退兼容规则见历史记录 `Task SQLite Index：R3 附加表纳入库级账本`（原 `docs/task/task-sqlite-index.md`，不在本仓）。
 以下 workspace 级数据合并 ledger 仍负责业务进度，不代替库级 schema 版本。
 
 ### 9.1 控制端迁移（App 升级后首次启动）
@@ -1128,7 +1127,7 @@ R3 内删除或禁用的可运行路径：
 | `desktop-attached-remote` provider 下发主链与本地权威混装服务集合                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | 删除 `createRemoteWorkspaceServiceCollection` 及其只验证旧分支的测试；统一只保留全转发集合                                                                                                                                                                                                                                       |
 | Web/Lite 旧远程连接入口 `POST /api/connect-remote` + `/ws/remote/:id`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | 两条配对 route 一并删除，并以 404 不可达测试锁定；Server 不再能启动临时 stdio 主链                                                                                                                                                                                                                                               |
 | 把 route-derived identity 当作正式 Controller/workspace identity 的调用方                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | 删除零调用方；stable identity 继续由 `sourceServerId + workspacePath` 构造                                                                                                                                                                                                                                                       |
-| R3 早期的 Provider「一键同步」与模型设置页设备选择器：`provider-sync` channel、`IProviderSyncService`、`packages/services/src/provider-sync/*`、`shared/src/source-server/contracts.ts` 的 `encryptedProviderSyncSnapshotSchema` / `providerSync*` schema、`ModelProviderSourceControls.tsx`、`useSourceSettingsAttachment.ts`、`providerSyncSnapshot.ts`、`packages/ui/src/lib/remoteWorkspaceProviderSync.ts`、`packages/ui/src/lib/zcodeModelSelectionResolution.ts`、`AppSettings.lastAgentSettingsSourceServerId\|providerSyncDefaultModel\|providerSyncRuntimeCredentialBindings`、`ServiceChannels.ModelProvider\|ProviderSync`、`oauthService.exportSessionForSync\|replaceSessionForSync`、对话横幅「去同步」动作 | 2026-09-07 合并 Provider 重构 M2 时随路线 A 一并删除（详见 [r3-provider-refactor-merge.md（已归档）](../archive/remote-r3/r3-provider-refactor-merge.md)）；替代物为 Provider Provisioning（§8.3）与绑定本地的模型设置页（§8.2）。`source-settings` scope 与 `sourceSettingsServiceCollection.ts` 保留，只服务非 Provider 配置面 |
+| R3 早期的 Provider「一键同步」与模型设置页设备选择器：`provider-sync` channel、`IProviderSyncService`、`packages/services/src/provider-sync/*`、`shared/src/source-server/contracts.ts` 的 `encryptedProviderSyncSnapshotSchema` / `providerSync*` schema、`ModelProviderSourceControls.tsx`、`useSourceSettingsAttachment.ts`、`providerSyncSnapshot.ts`、`packages/ui/src/lib/remoteWorkspaceProviderSync.ts`、`packages/ui/src/lib/zcodeModelSelectionResolution.ts`、`AppSettings.lastAgentSettingsSourceServerId\|providerSyncDefaultModel\|providerSyncRuntimeCredentialBindings`、`ServiceChannels.ModelProvider\|ProviderSync`、`oauthService.exportSessionForSync\|replaceSessionForSync`、对话横幅「去同步」动作 | 2026-09-07 合并 Provider 重构 M2 时随路线 A 一并删除（详见 r3-provider-refactor-merge.md（已归档）（历史归档，不在本仓））；替代物为 Provider Provisioning（§8.3）与绑定本地的模型设置页（§8.2）。`source-settings` scope 与 `sourceSettingsServiceCollection.ts` 保留，只服务非 Provider 配置面 |
 
 2026-09-29 视觉收尾：平铺项目导航上线后，删除无生产引用的 `WorkspaceSourceGroupHeader` 及设备分组/折叠偏好辅助函数与旧专属测试；`getWorkspaceSourceServerId` 及精确 legacy alias 解析继续保留。此清理不触及下列 R4 兼容链。
 
@@ -1175,7 +1174,7 @@ R3 保留源码但已从生产入口不可达、R4 再物理删除：
 遗留确认（非阻塞）：
 
 - 多线路历史合并的窄边缘（§9.3：从被合并线路回退后该线路视图看不到已合并历史）的灰度文案口径。
-- 以下五项来自 Provider 重构合并（2026-09-13 自 [r3-provider-refactor-merge.md（已归档）](../archive/remote-r3/r3-provider-refactor-merge.md) §7 并入）：
+- 以下五项来自 Provider 重构合并（2026-09-13 自 r3-provider-refactor-merge.md（已归档）（历史归档，不在本仓） §7 并入）：
   - 若产品仍需要「查看 / 手动同步某台远端的模型配置」，在 `IProviderSettingsService` 之上重建只读设备视图 + 显式「立即下发」按钮（复用 `coordinator.requestAll("personal-config")`），不复活 `provider-sync` / journal 体系。
   - Provisioning lane 的 Environment key 由 `buildRemoteEnvironmentKey(target)` 按 transport 派生，未接入 `sourceServerId`；同一 Source 经不同线路连接会形成两条 lane（结果幂等，但重复首连同步）。可评估在 descriptor 携带 `sourceServerId` 时以其为 key。
   - `REMOTE_WORKSPACE_RPC_CONTRACT_VERSION` 仍为 v1，但 channel 集合已变；当前靠「兼容门固定同版本」兜底，若未来引入独立兼容下限，需先决定是否升 v2 并在握手中协商。

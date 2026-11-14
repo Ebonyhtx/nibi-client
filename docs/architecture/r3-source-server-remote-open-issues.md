@@ -1,6 +1,6 @@
 # R3 Source Server 远程主链问题台账
 
-> **2026-09-07 更新**：合并 Provider 重构 M2（路线 A）后，R3 早期的 Provider「一键同步」、模型设置页设备选择器、`provider-sync` channel、`source-settings` scope 中的 `model-provider` 注册以及旧 `modelProviderService` 已全部删除，改为「设置页绑定本地 + Provider Provisioning 自动单向下发」。本文中涉及这些能力的条目随之作废，不逐条改写：R3-ISSUE-010 的修复记录里「模型设置先注册 `source-settings` attachment … `model-provider.*` 调用成功」属于已删除路径的历史证据；R3-ISSUE-012 引用的 `packages/services/src/model-provider/modelProviderService.ts` 与 `apiKeyCredentialKey` 逻辑已不存在，Personal Provider Config 按 Provider 重构 M2 以明文 Personal Config 持久化，该 issue 的「规格与实现冲突」以 [docs/remote/provider-provisioning.md](../remote/provider-provisioning.md) 与 [../archive/remote-r3/r3-provider-refactor-merge.md](../archive/remote-r3/r3-provider-refactor-merge.md) 为新基线重新评估。其余非 Provider 条目不受影响。
+> **2026-09-07 更新**：合并 Provider 重构 M2（路线 A）后，R3 早期的 Provider「一键同步」、模型设置页设备选择器、`provider-sync` channel、`source-settings` scope 中的 `model-provider` 注册以及旧 `modelProviderService` 已全部删除，改为「设置页绑定本地 + Provider Provisioning 自动单向下发」。本文中涉及这些能力的条目随之作废，不逐条改写：R3-ISSUE-010 的修复记录里「模型设置先注册 `source-settings` attachment … `model-provider.*` 调用成功」属于已删除路径的历史证据；R3-ISSUE-012 引用的 `packages/services/src/model-provider/modelProviderService.ts` 与 `apiKeyCredentialKey` 逻辑已不存在，Personal Provider Config 按 Provider 重构 M2 以明文 Personal Config 持久化，该 issue 的「规格与实现冲突」以 [docs/remote/provider-provisioning.md](../remote/provider-provisioning.md) 与 ../archive/remote-r3/r3-provider-refactor-merge.md（历史归档，不在本仓） 为新基线重新评估。其余非 Provider 条目不受影响。
 
 ## 文档状态
 
@@ -79,9 +79,9 @@
 - 现象：新构建链只生成 `source-server-release.json` 和四个 `nibi-server-*.tar.gz`，正式 `release:validate` 仍要求 `manifest-*.json` 与 `components/**`。
 - 影响：干净发布目录会稳定失败；脏目录可能用旧产物通过校验，却没有验证本轮真正发布的 Source Server archive。
 - 证据：
-  - [`.gitlab/ci/30-build.yml`](../../.gitlab/ci/30-build.yml) 的 `build:remote:assets` 只收集 descriptor 和四个 archive；
-  - [`.gitlab/ci/50-release.yml`](../../.gitlab/ci/50-release.yml) 的上传合同只包含新产物；
-  - [`scripts/validate-release-artifacts.mjs`](../../scripts/validate-release-artifacts.mjs) 的 `validateRemoteAssets()` 仍只认识 legacy manifest/components；
+  - `.gitlab/ci/30-build.yml`（历史 CI 路径，不在本仓）的 `build:remote:assets` 只收集 descriptor 和四个 archive；
+  - `.gitlab/ci/50-release.yml`（历史 CI 路径，不在本仓）的上传合同只包含新产物；
+  - `scripts/validate-release-artifacts.mjs`（历史脚本，已不在本仓）的 `validateRemoteAssets()` 仍只认识 legacy manifest/components；
   - `gitlabCiBuildGraph.test.ts` 与 `validateReleaseArtifacts.test.ts` 分别验证两套互斥合同，缺少端到端对接测试。
 - 关闭条件：validator 严格校验 descriptor 的版本、四个 target、文件名、size、SHA-256、URL 和真实 archive；构建输出能够直接通过正式发布校验；旧残留不会影响结果。
 
@@ -257,7 +257,7 @@
 - 影响：发布安全门禁无法与实现同时满足，后续开发者可能按错误规格进行破坏性清理或误报 Secret scan。
 - 证据：
   - [`docs/architecture/r3-source-server-remote-architecture.md`](./r3-source-server-remote-architecture.md)；
-  - [`../archive/remote-r3/r3-source-server-release-test-plan.md`](../archive/remote-r3/r3-source-server-release-test-plan.md)；
+  - `../archive/remote-r3/r3-source-server-release-test-plan.md`（历史归档，不在本仓）；
   - （历史文档 `model-provider-opencode-config.md` 已随 Provider Refactor 删除）；
   - `packages/services/src/model-provider/modelProviderService.ts`（已随 Provider 重构 M2 删除）。
 - 关闭条件：明确兼容期真实策略；统一架构规格、存储文档和 Secret scan；若继续双写，明确普通 Provider 与 Start Plan 的不同安全边界。
@@ -299,7 +299,7 @@
 - 修复：六类 handler 改为强类型必填，在 `useRemoteWorkspaceHistory` 内按 Source/attachment/persistence owner 完整装配单一 controller，并通过 Root provider 供 UI 使用；普通 Profile 连接统一携带 `open-conversation` completion intent。项目选择、设备断开、workspace 重连和 user-close 均先 dispatch，再进入既有 owner helper。
 - 验证：controller 全 intent/错误传播、Root production wiring、Settings disconnect 和 Sidebar 禁止直接 `disconnectSource` 的 focused tests 通过；全量 unit（1500 passed，1 skipped）、`pnpm typecheck` 与 `pnpm lint` 通过。`pnpm bootstrap:with-remote` 构建成功，`VITE_NIBI_E2E_STORE_BRIDGE=1 pnpm dev:desktop` 启动成功并监听 CDP 9229。
 - 真实 SSH/CDP（2026-08-28）：使用 SSH alias `linux-amd64-dev`（`dev@localhost:2222`，密码由测试环境注入）连接真实设备，远端 `~/.nibi/server/current.json` 为 `3.9.1`，设备 `4fedce9b49f0`，Source Server 为 `32a10b89-141c-469b-aa97-850f41ab7deb`。设置页普通连接完成后自动打开 `/home/dev/.nibi/workspace/default` 的 `conversation` tab，`workspaceIdentity=remote:server:<sourceServerId>:/home/dev/.nibi/workspace/default`；断开后卡片由“已连接”变为“未连接”，远程 attachment/session 被释放；再次连接生成新的 `remoteSessionId` 并重新打开 conversation。随后从 conversation 选择 `/home/dev` 打开 project，project 与 conversation 使用不同 `remoteSessionId`；通过真实 tab close 触发 user-close 后 project 被移除且 conversation 保留。
-- 自动化 SSH E2E：`E2E_SSH_REMOTE_PROJECT_CONVERSATION_SCOPE` 1 项通过，报告 [`desktop-e2e-20260828-153721-524`](../../packages/desktop/.e2e-artifacts/desktop-e2e-20260828-153721-524/summary.md)。同轮执行的 pending-cancel 手工复核因代理 socket 在 30 秒断言窗口后约 1.5 秒才关闭而失败（`desktop-e2e-20260828-153846-870`）；该失败路径不涉及本 issue 的 controller 写入口变更，未将其计入 R3-ISSUE-015 关闭条件。
+- 自动化 SSH E2E：`E2E_SSH_REMOTE_PROJECT_CONVERSATION_SCOPE` 1 项通过，报告 `desktop-e2e-20260828-153721-524`（历史 E2E 报告，不在本仓）。同轮执行的 pending-cancel 手工复核因代理 socket 在 30 秒断言窗口后约 1.5 秒才关闭而失败（`desktop-e2e-20260828-153846-870`）；该失败路径不涉及本 issue 的 controller 写入口变更，未将其计入 R3-ISSUE-015 关闭条件。
 
 ### R3-ISSUE-016：RemoteWorkspaceProjection 未完全接线且会误投影本地 tab
 
@@ -364,11 +364,11 @@
 - 影响：无法可靠判断当前事实和发布剩余项，旧 artifact 或旧架构容易被误用。
 - 证据：
   - [`r3-source-server-remote-architecture.md`](./r3-source-server-remote-architecture.md)；
-  - [`../archive/remote-r3/r3-source-server-remote-completion-plan.md`](../archive/remote-r3/r3-source-server-remote-completion-plan.md)；
+  - `../archive/remote-r3/r3-source-server-remote-completion-plan.md`（历史归档，不在本仓）；
   - [`remote-domain-simplification-and-conversation-workspace-spec.md`](./remote-domain-simplification-and-conversation-workspace-spec.md)；
-  - [`../archive/remote-r3/r3-source-server-release-test-plan.md`](../archive/remote-r3/r3-source-server-release-test-plan.md)；
+  - `../archive/remote-r3/r3-source-server-release-test-plan.md`（历史归档，不在本仓）；
   - [`../testing/conversation-session-e2e-coverage-matrix.md`](../testing/conversation-session-e2e-coverage-matrix.md)；
-  - [`../archive/remote-r3/r3-source-server-expanded-live-test-record-2026-08-21.md`](../archive/remote-r3/r3-source-server-expanded-live-test-record-2026-08-21.md)。
+  - `../archive/remote-r3/r3-source-server-expanded-live-test-record-2026-08-21.md`（历史归档，不在本仓）。
 - 关闭条件：建立当前候选统一状态入口，记录规格状态、candidate SHA、自动化结果、实机 artifact、blocked 环境与发布结论；其他文档引用该入口，不再分别维护漂移的当前状态。
 
 #### 修复记录 2026-09-13
@@ -463,7 +463,7 @@
 
 ## 连接体验后续议题（RDUX 范围外）
 
-来源：[体验优化范围外](../issues/remote-connection-ux/01-remote-connection-ux-optimization.md#out-of-scope)。以下均未纳入 RDUX-03 实施，也不修改状态机或手机恢复协议。
+来源：体验优化范围外（历史问题台账 `issues/remote-connection-ux/01-remote-connection-ux-optimization.md`，不在本仓）。以下均未纳入 RDUX-03 实施，也不修改状态机或手机恢复协议。
 
 | ID           | 后续议题                                                        | 状态   |
 | ------------ | --------------------------------------------------------------- | ------ |
