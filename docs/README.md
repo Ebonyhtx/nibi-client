@@ -7,6 +7,8 @@
 - [根 README](../README.md)：环境、启动、构建与仓库结构
 - [贡献指南](../CONTRIBUTING.md)：提交、验证与公开仓规则
 - [发版流程](release-process.md)：发布台账、`release:status` / `release:verify` 与 npm/Source Server 产物
+- [许可与来源](../LICENSING.md)：第一方、上游与第三方组件的许可边界
+- [名称与标识](../TRADEMARKS.md)：NIBI 名称、字标和 logo 的使用规则
 - [架构治理](architecture/architecture-governance.md)：模块边界、依赖方向与门禁
 - [架构总览](architecture/nibi-code-architecture-overview.md)
 - [通信协议分层](architecture/communication-protocol-layers.md)
@@ -89,4 +91,4 @@
 
 `docs/archive/` 保留历史记录：`removed-commercial/` 是已移除的商业套餐（Coding Plan、Team Plan、Start Plan、上游账户用量与上游 OAuth），`upstream-legacy/` 是已失效的上游 endpoint/环境变量约定，`rust-kernel/` 是 Rust 内核的阶段记录（基线、Step 1/2、M5、DWF 设计）。这些文档不在入口索引内，也不代表当前产品行为；当前行为以代码和有效文档为准。
 
-部分未归档的上游设计文档仍保留 ZCode 名称或商业套餐术语，文件顶部会标注范围说明；这些段落只作架构对照，NIBI 4.0 的当前命名与能力以代码为准。
+部分未归档的上游设计文档仍保留 ZCode 名称或商业套餐术语，文件顶部会标注范围说明；这些段落只作架构对照，当前 NIBI 的命名与能力以代码为准。

@@ -2,6 +2,13 @@
 
 本声明适用于本仓库公开的源码及其构建产物。各运行形态的功能、权限、存储位置和网络行为不同，不能将其中一种形态的默认设置理解为整个项目的统一设置。
 
+## 项目来源与许可
+
+- 第一方代码以 [Apache License 2.0](LICENSE) 发布；许可范围与第三方组件说明见 [LICENSING.md](LICENSING.md)。
+- NIBI 基于 [ZCode](https://github.com/zai-org/ZCode) v3.16.2（Apache License 2.0）独立演进，不是 ZCode 官方发行版，也不代表上游项目或获得其背书。
+- 第三方依赖、复制代码与原生组件的许可见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
+- NIBI 名称、字标和标识的使用规则见 [TRADEMARKS.md](TRADEMARKS.md)；Apache-2.0 不授予商标许可。
+
 ## 一、AI 输出、执行权限与自动化风险
 
 AI 生成的代码、命令、解释、文件和建议可能存在错误、遗漏、安全缺陷或第三方权利问题。应结合实际文件、命令退出状态、工具结果和测试核查；模型声称“已完成”“已安全处理”或“已获授权”不构成事实或授权证明。重要操作前应审查执行目标、接收方及影响，并保留可恢复的备份。
@@ -67,4 +74,4 @@ AI 生成的代码、命令、解释、文件和建议可能存在错误、遗�
 
 本仓库第一方代码依照根 [LICENSE](LICENSE) 采用 Apache-2.0；该许可不替其他权利人新增授权，也不覆盖第三方软件、复制代码、原生二进制、字体、图标、网页素材及其他资源的独立条款。具体依赖包详见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。受第三方版权、许可及再分发条件等约束，不承诺提供官方产品的全部功能及活动政策，具体以实际发布的源码和构建产物为准。
 
-NIBI 基于 ZCode v3.16.2（Apache License 2.0）独立演进。上游版权与来源说明保留在本文件与 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) 中。
+NIBI 基于 ZCode v3.16.2（Apache License 2.0）独立演进，不是 ZCode 官方发行版，也不代表上游项目或获得其背书。上游版权与来源说明保留在本文件与 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) 中；许可范围见 [LICENSING.md](LICENSING.md)，名称与标识规则见 [TRADEMARKS.md](TRADEMARKS.md)。

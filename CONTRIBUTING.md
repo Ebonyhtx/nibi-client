@@ -16,8 +16,8 @@ private service or credential.
 
 ## Development setup
 
-Requirements: Node.js 24.14.0, pnpm 10.33.2, and Git. Versions are pinned in
-[mise.toml](mise.toml).
+Requirements: Node.js 24.22.1, pnpm 10.33.2, Rust 1.95.0, and Git. Versions are
+pinned in [mise.toml](mise.toml) and `kernel/rust-toolchain.toml`.
 
 ```bash
 pnpm bootstrap

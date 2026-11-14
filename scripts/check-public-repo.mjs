@@ -230,8 +230,10 @@ function scanWorkflowShape(file, lines) {
 function checkRequiredFiles() {
   const required = [
     "LICENSE",
+    "LICENSING.md",
     "NOTICE.md",
     "THIRD-PARTY-NOTICES.md",
+    "TRADEMARKS.md",
     "README.md",
     "README.en.md",
     "CONTRIBUTING.md",
