@@ -16,6 +16,19 @@ import { run } from "../src/lib/run.js";
 import { androidEnv, checkTool, findTool, javaHome, sdkRoot } from "../src/providers/sdk.js";
 import { preflight } from "../src/providers/preflight.js";
 
+// macOS runner 自带 JDK；测试验证「无有效 JDK」时必须屏蔽系统 java_home 探测，
+// 否则 /usr/libexec/java_home 会绕过隔离的 PATH 返回 hostedtoolcache 里的 JDK。
+vi.mock("../src/lib/run.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/lib/run.js")>();
+  return {
+    ...actual,
+    run: async (cmd: string[], opts?: Parameters<typeof actual.run>[1]) =>
+      cmd[0] === "/usr/libexec/java_home"
+        ? { cmd, code: 1, stdout: "", stderr: "", timed: false }
+        : actual.run(cmd, opts),
+  };
+});
+
 const windows = process.platform === "win32";
 const originalCwd = process.cwd();
 let fixtureRoot: string | undefined;
