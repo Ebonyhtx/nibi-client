@@ -41,7 +41,7 @@ describe("Bash 执行适配器资源生命周期", () => {
     } finally {
       vi.restoreAllMocks();
       await adapter.close();
-      await rm(root, { recursive: true, force: true });
+      await rm(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
     }
   });
 });
@@ -92,7 +92,7 @@ const timer = setInterval(async () => {
     async close() {
       await writeFile(release, "done");
       await adapter.close();
-      await rm(root, { force: true, recursive: true });
+      await rm(root, { force: true, recursive: true, maxRetries: 20, retryDelay: 100 });
     },
   };
 }
