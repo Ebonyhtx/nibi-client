@@ -10,6 +10,7 @@
 FROM rust:1.95.0-bookworm AS kernel-builder
 WORKDIR /workspace
 COPY kernel/ ./kernel/
+WORKDIR /workspace/kernel
 RUN cargo build --locked --release -p nibi-kernel-cli --bin nibi-rs
 
 FROM node:24.22.1-bookworm
