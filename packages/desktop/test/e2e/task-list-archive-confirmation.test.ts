@@ -15,6 +15,7 @@ import {
 import { sel } from "./helpers/selectors.js";
 import {
   V4_MAIN_PANE_ID,
+  getV4ConfigProjection,
   getV4PaneSnapshot,
   prepareV4ConversationE2E,
   sendV4Prompt,
@@ -39,6 +40,7 @@ describe("任务列表归档二次确认 E2E", () => {
     await startConversationTaskDraft();
     // 前置只读工具要真正执行完才能拿到 taskId；默认 Ask 模式会停在权限弹窗。
     await switchV4Mode("yolo");
+    await confirmFullAccessModeIfAsked();
 
     const marker = `E2E_FIRST_SEND_TASK_ARCHIVE_CONFIRM_${Date.now()}`;
     await sendV4Prompt(buildReadonlyToolPrompt(marker));
@@ -81,6 +83,23 @@ describe("任务列表归档二次确认 E2E", () => {
     await waitForConversationTaskRowAbsent(taskId as string);
   });
 });
+
+async function confirmFullAccessModeIfAsked() {
+  await browser.execute(() => {
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    if (!dialog) return;
+    const checkbox = dialog.querySelector<HTMLElement>('[role="checkbox"]');
+    checkbox?.click();
+    const confirm = Array.from(dialog.querySelectorAll<HTMLButtonElement>("button")).find(
+      (button) => /Enable full access|启用完全访问/u.test(button.textContent ?? ""),
+    );
+    confirm?.click();
+  });
+  await browser.waitUntil(async () => (await getV4ConfigProjection()).mode === "yolo", {
+    timeout: 10000,
+    timeoutMsg: "归档 E2E 没有切到 yolo 模式",
+  });
+}
 
 async function useProjectConversationTaskView() {
   await browser.execute(() => {
