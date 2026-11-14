@@ -162,6 +162,11 @@ async function waitForControlState(layout: ServerLayout, expected: string): Prom
   throw new Error(`Timed out waiting for control state ${expected}`);
 }
 
+function cliDiagnostics(output: string[], errors: string[]): string {
+  return `${output.join("")}
+${errors.join("")}`;
+}
+
 function createIo(): {
   output: string[];
   errors: string[];
@@ -195,7 +200,7 @@ describe("Server CLI stop --wait", () => {
       }, 300);
       return { stopping: true };
     });
-    const { output, io } = createIo();
+    const { output, errors, io } = createIo();
     const startedAt = Date.now();
     try {
       const exit = await runServerCli(
@@ -203,7 +208,7 @@ describe("Server CLI stop --wait", () => {
         io,
       );
       const elapsed = Date.now() - startedAt;
-      expect(exit).toBe(0);
+      expect(exit, cliDiagnostics(output, errors)).toBe(0);
       expect(elapsed).toBeGreaterThanOrEqual(250);
       expect(JSON.parse(output.at(-1) ?? "{}")).toMatchObject({ state: "stopped" });
     } finally {
@@ -240,14 +245,14 @@ describe("Server CLI stop --wait", () => {
       );
       return { stopping: true };
     });
-    const { output, io } = createIo();
+    const { output, errors, io } = createIo();
     try {
       const exit = await runServerCli(
         ["stop", "--wait", "--json", "--server-root", serverRoot],
         io,
       );
-      expect(exit).toBe(1);
-      expect(JSON.parse(output.at(-1) ?? "{}")).toMatchObject({
+      expect(exit, cliDiagnostics(output, errors)).toBe(1);
+      expect(JSON.parse(output.at(-1) ?? "{}"), cliDiagnostics(output, errors)).toMatchObject({
         ok: false,
         code: "source-server-stop-failed",
       });
