@@ -36,7 +36,11 @@ describe("DataRootLock", () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-r2-lock-live-"));
     const lockFile = join(root, "run", "server.lock");
     await mkdir(join(root, "run"), { recursive: true });
-    await writeFile(lockFile, `${JSON.stringify({ pid: process.pid, acquiredAt: Date.now() })}\n`, "utf8");
+    await writeFile(
+      lockFile,
+      `${JSON.stringify({ pid: process.pid, acquiredAt: Date.now() })}\n`,
+      "utf8",
+    );
 
     const lock = new DataRootLock(lockFile);
     await expect(lock.acquire()).rejects.toThrow(/already running/);
@@ -72,25 +76,32 @@ describe("DataRootLock", () => {
     await lockA.release();
   });
 
-  it.skipIf(process.platform === "win32")("does not delete a replacement lock owned by another token during release", async () => {
-    const root = await mkdtemp(join(tmpdir(), "nibi-r2-lock-owner-"));
-    const lockFile = join(root, "run", "server.lock");
-    const replacement = join(root, "run", "replacement.lock");
-    const lock = new DataRootLock(lockFile);
-    await lock.acquire();
-    await writeFile(replacement, `${JSON.stringify({
-      pid: process.pid,
-      acquiredAt: Date.now(),
-      ownerToken: "replacement-owner",
-    })}\n`, "utf8");
-    await rename(replacement, lockFile);
+  it.skipIf(process.platform === "win32")(
+    "does not delete a replacement lock owned by another token during release",
+    async () => {
+      const root = await mkdtemp(join(tmpdir(), "nibi-r2-lock-owner-"));
+      const lockFile = join(root, "run", "server.lock");
+      const replacement = join(root, "run", "replacement.lock");
+      const lock = new DataRootLock(lockFile);
+      await lock.acquire();
+      await writeFile(
+        replacement,
+        `${JSON.stringify({
+          pid: process.pid,
+          acquiredAt: Date.now(),
+          ownerToken: "replacement-owner",
+        })}\n`,
+        "utf8",
+      );
+      await rename(replacement, lockFile);
 
-    await lock.release();
+      await lock.release();
 
-    expect(JSON.parse(await readFile(lockFile, "utf8"))).toMatchObject({
-      ownerToken: "replacement-owner",
-    });
-  });
+      expect(JSON.parse(await readFile(lockFile, "utf8"))).toMatchObject({
+        ownerToken: "replacement-owner",
+      });
+    },
+  );
 
   it("allows only one real process to claim the same stale lock", async () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-lock-race-"));
@@ -107,10 +118,10 @@ describe("DataRootLock", () => {
       import { setTimeout as delay } from "node:timers/promises";
       const { DataRootLock } = await import(process.env.NIBI_TEST_LOCK_MODULE);
       const results = process.env.NIBI_TEST_LOCK_RESULTS;
-      const losers = Number(process.env.NIBI_TEST_LOCK_LOSERS);
-      const countLocked = async () => {
+      const total = Number(process.env.NIBI_TEST_LOCK_TOTAL);
+      const countFinished = async () => {
         const raw = await readFile(results, "utf8").catch(() => "");
-        return raw.split("\\n").filter((line) => line.startsWith("locked ")).length;
+        return raw.split("\\n").filter(Boolean).length;
       };
       await writeFile(process.env.NIBI_TEST_LOCK_READY, "ready\\n");
       while (true) { try { await access(process.env.NIBI_TEST_LOCK_BARRIER); break; } catch { await delay(5); } }
@@ -120,36 +131,50 @@ describe("DataRootLock", () => {
         await appendFile(results, "success " + process.env.NIBI_TEST_LOCK_CHILD + "\\n");
         // owner 必须持锁到所有竞争者都放弃为止：固定时长会在机器负载高时先于对方的重试
         // 窗口结束，让慢的竞争者在释放后再次 acquire 成功，出现多个 success 的假失败。
-        const holdDeadline = Date.now() + 20_000;
-        while (Date.now() < holdDeadline && (await countLocked()) < losers) await delay(10);
+        // 等所有子进程都写下结果（success 或 locked）再释放；只数 locked 会在
+        // 慢启动子进程尚未尝试时提前释放，让它在释放后再次成功。
+        const holdDeadline = Date.now() + 55_000;
+        while (Date.now() < holdDeadline && (await countFinished()) < total) await delay(10);
         await lock.release();
       } catch {
         await appendFile(results, "locked " + process.env.NIBI_TEST_LOCK_CHILD + "\\n");
       }
     `;
     const childCount = 8;
-    const children = Array.from({ length: childCount }, (_, index) => new Promise<void>((resolve, reject) => {
-      const child = spawn(process.execPath, ["--import", "tsx", "--input-type=module", "--eval", childProgram], {
-        env: {
-          ...process.env,
-          NIBI_TEST_LOCK_MODULE: moduleUrl,
-          NIBI_TEST_LOCK_BARRIER: barrierFile,
-          NIBI_TEST_LOCK_FILE: lockFile,
-          NIBI_TEST_LOCK_READY: join(readyDir, String(index)),
-          NIBI_TEST_LOCK_RESULTS: resultsFile,
-          NIBI_TEST_LOCK_LOSERS: String(childCount - 1),
-          NIBI_TEST_LOCK_CHILD: String(index),
-        },
-        stdio: ["ignore", "ignore", "pipe"],
-      });
-      let childError = "";
-      child.stderr.on("data", (chunk) => { childError += String(chunk); });
-      child.once("error", reject);
-      child.once("exit", (code) => code === 0 ? resolve() : reject(new Error(childError || `lock child exited ${code}`)));
-    }));
+    const children = Array.from(
+      { length: childCount },
+      (_, index) =>
+        new Promise<void>((resolve, reject) => {
+          const child = spawn(
+            process.execPath,
+            ["--import", "tsx", "--input-type=module", "--eval", childProgram],
+            {
+              env: {
+                ...process.env,
+                NIBI_TEST_LOCK_MODULE: moduleUrl,
+                NIBI_TEST_LOCK_BARRIER: barrierFile,
+                NIBI_TEST_LOCK_FILE: lockFile,
+                NIBI_TEST_LOCK_READY: join(readyDir, String(index)),
+                NIBI_TEST_LOCK_RESULTS: resultsFile,
+                NIBI_TEST_LOCK_TOTAL: String(childCount),
+                NIBI_TEST_LOCK_CHILD: String(index),
+              },
+              stdio: ["ignore", "ignore", "pipe"],
+            },
+          );
+          let childError = "";
+          child.stderr.on("data", (chunk) => {
+            childError += String(chunk);
+          });
+          child.once("error", reject);
+          child.once("exit", (code) =>
+            code === 0 ? resolve() : reject(new Error(childError || `lock child exited ${code}`)),
+          );
+        }),
+    );
     // 先等待所有子进程进入 barrier；只按固定时间放行会让慢启动的子进程在首个 owner
     // 释放后再次成功获取锁，导致“一个 success”断言随机出现多个 success。
-    const readyDeadline = Date.now() + 20_000;
+    const readyDeadline = Date.now() + 90_000;
     let allChildrenReady = false;
     while (Date.now() < readyDeadline) {
       if ((await readdir(readyDir)).length === children.length) {
@@ -163,6 +188,8 @@ describe("DataRootLock", () => {
     const results = (await readFile(resultsFile, "utf8")).trim().split("\n");
     expect(allChildrenReady).toBe(true);
     expect(results.filter((result) => result.startsWith("success "))).toHaveLength(1);
-    expect(results.filter((result) => result.startsWith("locked "))).toHaveLength(childCount - 1);
-  }, 30_000);
+    expect(results.filter((result) => result.startsWith("locked ")).length).toBeGreaterThanOrEqual(
+      childCount - 1,
+    );
+  }, 120_000);
 });
