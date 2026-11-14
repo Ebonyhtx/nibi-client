@@ -85,20 +85,24 @@ describe("任务列表归档二次确认 E2E", () => {
 });
 
 async function confirmFullAccessModeIfAsked() {
-  await browser.execute(() => {
-    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
-    if (!dialog) return;
-    const checkbox = dialog.querySelector<HTMLElement>('[role="checkbox"]');
-    checkbox?.click();
-    const confirm = Array.from(dialog.querySelectorAll<HTMLButtonElement>("button")).find(
-      (button) => /Enable full access|启用完全访问/u.test(button.textContent ?? ""),
-    );
-    confirm?.click();
-  });
-  await browser.waitUntil(async () => (await getV4ConfigProjection()).mode === "yolo", {
-    timeout: 10000,
-    timeoutMsg: "归档 E2E 没有切到 yolo 模式",
-  });
+  // switchV4Mode 只是点了菜单项；完全访问确认框可能下一帧才挂载，必须轮询到按钮可用再确认。
+  await browser.waitUntil(
+    async () => {
+      if ((await getV4ConfigProjection()).mode === "yolo") return true;
+      await browser.execute(() => {
+        const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+        if (!dialog) return;
+        const checkbox = dialog.querySelector<HTMLElement>('[role="checkbox"]');
+        if (checkbox && checkbox.getAttribute("aria-checked") !== "true") checkbox.click();
+        const confirm = Array.from(dialog.querySelectorAll<HTMLButtonElement>("button")).find(
+          (button) => /Enable full access|启用完全访问/u.test(button.textContent ?? ""),
+        );
+        if (confirm && !confirm.disabled) confirm.click();
+      });
+      return (await getV4ConfigProjection()).mode === "yolo";
+    },
+    { timeout: 15000, interval: 200, timeoutMsg: "归档 E2E 没有切到 yolo 模式" },
+  );
 }
 
 async function useProjectConversationTaskView() {
