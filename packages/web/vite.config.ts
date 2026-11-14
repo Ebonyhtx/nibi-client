@@ -6,7 +6,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { pdfJsCMapsPlugin } from "../ui/vite/pdfJsCMapsPlugin.js";
 import { thirdPartyNoticesVitePlugin } from "../../scripts/third-party-notices.mjs";
-import { resolveRemoteFrontendVersion } from "./vite/remoteFrontendVersion.mjs";
+import { releaseJsonPlugin, resolveRemoteFrontendVersion } from "./vite/remoteFrontendVersion.mjs";
 // Bugfix: Vite 配置在 Node 加载期执行，不能导入 @nibi/shared 根入口。
 // 根入口包含 NodeNext 风格的源码 re-export，Node 会按真实文件查找 .js 并在 bootstrap 阶段失败。
 import { resolveRuntimeNibiEndpointOrigin } from "@nibi/shared/nibiEndpoint";
@@ -28,6 +28,10 @@ export default defineConfig(({ mode }) => {
   // 否则 share:test 可能被 mode 的旧配置误解析到错误 endpoint。
   const env = { ...loadEnv(mode, REPO_ROOT, ""), ...process.env };
   const nibiEnv = resolveNibiEnv(env.NIBI_ENV);
+  const remoteFrontendVersion = resolveRemoteFrontendVersion(
+    version,
+    env.WEB_REMOTE_FRONTEND_VERSION,
+  );
   const endpointEnv = {
     ...env,
     NIBI_ENV: nibiEnv,
@@ -35,7 +39,18 @@ export default defineConfig(({ mode }) => {
   const nibiEndpointOrigin = resolveRuntimeNibiEndpointOrigin(endpointEnv);
 
   return {
-    plugins: [pdfJsCMapsPlugin(), react(), tailwindcss(), thirdPartyNoticesVitePlugin()],
+    plugins: [
+      pdfJsCMapsPlugin(),
+      react(),
+      tailwindcss(),
+      thirdPartyNoticesVitePlugin(),
+      releaseJsonPlugin({
+        surface: "web-remote",
+        version: remoteFrontendVersion,
+        environment: nibiEnv,
+        commit: env.NIBI_COMMIT,
+      }),
+    ],
     resolve: {
       alias: {
         // 修复 UI 组件库中的 @ 别名解析失败。
@@ -84,9 +99,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
-      __NIBI_VERSION__: JSON.stringify(
-        resolveRemoteFrontendVersion(version, process.env.WEB_REMOTE_FRONTEND_VERSION),
-      ),
+      __NIBI_VERSION__: JSON.stringify(remoteFrontendVersion),
       __NIBI_MIN_COMPATIBLE_VERSION__: JSON.stringify(minCompatibleVersion),
       __NIBI_COMMIT__: JSON.stringify(env.NIBI_COMMIT || "unknown"),
       __NIBI_ENV__: JSON.stringify(nibiEnv),

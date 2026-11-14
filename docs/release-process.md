@@ -1,32 +1,88 @@
-# 发版流程（分支、标签、npm）
+# 发版流程（分支、标签、产物）
 
 ## 分支职责
 
-| 分支 | 职责 | 谁动它 |
-|---|---|---|
-| `dev` | **集成分支**。所有改动先落这里；CI（rust-gates / desktop-package-gates / desktop-e2e-container）在这里跑。日常提交、修复、功能都在 `dev`。 | 每次提交 |
-| `main` | **发布分支**。只接受从 `dev` 的快进（`git branch -f main dev` 或 `git push origin dev:main`），只在准备发布时前进。GitHub 的默认分支、对外展示、完整门禁（`client-gates` 四组）跑在这里。 | 发版时 |
+| 分支   | 职责                                                                                                                                                                                      | 谁动它   |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `dev`  | **集成分支**。所有改动先落这里；CI（rust-gates / desktop-package-gates / desktop-e2e-container）在这里跑。日常提交、修复、功能都在 `dev`。                                                | 每次提交 |
+| `main` | **发布分支**。只接受从 `dev` 的快进（`git branch -f main dev` 或 `git push origin dev:main`），只在准备发布时前进。GitHub 的默认分支、对外展示、完整门禁（`client-gates` 四组）跑在这里。 | 发版时   |
 
 规则：**`dev` 可以随便绿着前进，`main` 必须是"已发布/可发布"的状态。** 两者允许暂时不一致；发版时把 `main` 快进到 `dev` 的某个 commit，在那上面打标签。
 
 > 首次公开发布之前，`main` 与 `dev` 保持同一 commit 也行（现状就是这样），但**发布动作一律从 `main` 出发**。
 
+## 发布台账与发布闸门
+
+发布不是“记得发哪个就发哪个”。仓内有两份机器可读文件：
+
+- `release-manifest.json`：**改动面 → 产物**。每个产物声明自己的路径 glob、远端检查方式
+  （npm 注册表、Source Server descriptor、桌面更新库存、Web `release.json`、插件市场目录）。
+- `release/ledger.json`：**每个版本 × 每个产物**的 `built` / `published` / `verified` 记录。
+  只记真实发生过的阶段，不靠聊天记录和记忆。
+
+对应三条命令：
+
+```bash
+pnpm release:status                 # 只读：当前版本 / 上一标签 / 改动面 / 每个产物的线上状态
+pnpm release:verify                 # 发布闸门：需要发布的产物必须在远端完整可见
+pnpm release:verify --record        # 全部通过后把 published/verified 写进台账
+pnpm release:record --artifact <id> --stage built --note "CI run ..."
+```
+
+`release:status` 的三种状态：
+
+| 状态      | 含义                                                                           |
+| --------- | ------------------------------------------------------------------------------ |
+| `pending` | 自上一发布标签有改动（或台账已记 `built`），当前版本还没发布                   |
+| `ready`   | 当前版本已完整可见；或这个产物自上一标签无改动，不需要更新                     |
+| `missing` | 已声明发布（当前版本标签存在 / 台账已记发布 / 远端只出现了一部分），但线上缺件 |
+
+`release:verify` 只对**需要发布的产物**和 `verifyAlways` 的插件市场目录判失败；它不会自动发布
+任何东西。产物没变、不需要更新时保持 `ready`，不会因为产品版本号前进就逼你重发所有产物。
+“有更新但暂时不发”就让它停在 `pending`。`.github/workflows/release-status.yml` 每周一
+09:00（Asia/Shanghai）在 `dev` 上跑一次 `release:status --markdown`，更新同一个
+`release-status` issue；它只读，不会发布任何东西。
+
+### 产物 id 与检查口径
+
+| id              | 产物                                                | verify 检查                                                                   |
+| --------------- | --------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `npm`           | 四个 `@nibi-studio/cli-*` + META `@nibi-studio/cli` | 注册表里同版本存在、tarball 有 sha512、META 精确锁定四个平台包                |
+| `source-server` | `nibi-server-<target>.tar.gz` × 4 + descriptor      | descriptor 版本/四 target/档案存在/大小；`--deep` 再校验 sha256               |
+| `desktop`       | Windows/macOS/Linux 安装包与更新库存                | 每个平台的更新 manifest 与 downloads 库存都返回当前版本                       |
+| `web-remote`    | 手机远控 SPA `/remote/v4`                           | 页面 `nibi-release-version`/`nibi-release-surface` meta（release.json 兜底）  |
+| `web-share`     | 会话分享 SPA `/cn/share`                            | 页面 `nibi-release-version`/`nibi-release-surface` meta（release.json 兜底）  |
+| `plugin-market` | 官方插件市场目录                                    | 目录 revision、插件版本、zip 的 sha256 存在；付费 zip 的 401/403 视为门禁正常 |
+
+两个 Web SPA 在 `vite build` 时给 `index.html` 注入 `nibi-release-*` meta，并写出
+`release.json`：Web 远控用 `packages/web/vite/remoteFrontendVersion.mjs` 的
+`releaseJsonPlugin`；Share 为保持独立构建上下文，在自身 `vite.config.ts` 保留同形状实现。
+校验优先读页面 meta（`index.html` 是 no-cache），避免 `release.json` 被静态缓存一天导致误判；
+页面存在但没有 meta 时如实报“部署未接入标记”，不会拿缓存的 `release.json` 冒充页面版本。
+插件市场不跟产品版本走，台账只记录最近一次 verified/published 的 `revision` 与插件版本；revision
+前进后需要重新 `release:record --artifact plugin-market --stage verified --revision <n>` 登记。
+
 ## 发布一个版本
 
-1. 把根 `package.json` 的版本改成新版本（比如 `4.0.2`），同步 `package-lock.json` 的根 `version` 与
+1. 先看状态：`pnpm release:status`。只有 `pending`/`missing` 的产物需要处理；`ready` 的不重发。
+2. 把根 `package.json` 的版本改成新版本（比如 `5.0.0`），同步 `package-lock.json` 的根 `version` 与
    `packages[""].version`（`desktopProductIdentity` 门禁要求三者一致），提交到 `dev`，等 `dev` 的门禁绿。
-2. 快进 `main`：`git branch -f main dev && git push origin main`。
-3. 在 `main` 的该 commit 上打标签并推送：
+3. 快进 `main`：`git branch -f main dev && git push origin main`。
+4. 在 `main` 的该 commit 上打标签并推送：
    ```bash
-   git tag v4.0.2 <main 的 commit>
-   git push origin v4.0.2
+   git tag v5.0.0 <main 的 commit>
+   git push origin v5.0.0
    ```
-4. 标签推送会触发 `rust-npm-packages`：先发布四个平台包（`@nibi-studio/cli-*`），全部成功后
+5. 标签推送会触发 `rust-npm-packages`：先发布四个平台包（`@nibi-studio/cli-*`），全部成功后
    `meta` job 再打包并发布入口包 `@nibi-studio/cli`。两层包都自动带 provenance，并共用根
-   `package.json` 的版本；标签必须等于该版本，否则 job 直接失败（防止 `v4.0.2` 的标签发出
-   `4.0.1` 的包）。META 的 `optionalDependencies` 精确锁定同版本平台包，平台包缺一个就不会发
+   `package.json` 的版本；标签必须等于该版本，否则 job 直接失败（防止 `v5.0.0` 的标签发出
+   `4.0.2` 的包）。META 的 `optionalDependencies` 精确锁定同版本平台包，平台包缺一个就不会发
    META。
-5. 桌面安装包/服务端发布沿用各自流程，同样以这次 `main` 的 commit 为准。
+6. 桌面安装包、Source Server、两个 Web SPA、插件市场沿用各自流程，同样以这次 `main` 的 commit
+   为准。候选包出来但还没上传时，可以先用 `release:record --artifact <id> --stage built` 记一笔。
+7. 全部上传后运行 `pnpm release:verify`；有缺件就补，直到通过。通过后执行
+   `pnpm release:verify --record` 把 `published`/`verified` 写进 `release/ledger.json` 并提交。
+8. 如果发布后又有代码改动，先 bump 版本再发下一版；`release:status` 会提示“标签已存在但之后又有改动”。
 
 ## npm 包
 

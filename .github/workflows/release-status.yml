@@ -1,0 +1,59 @@
+name: release-status
+
+# 每周把「当前版本 / 上一发布标签 / 哪些产物还没发」更新到同一个 issue。
+# 只读：不会发布 npm、上传 CDN、打标签或写台账。发布仍由人工按 docs/release-process.md 执行。
+#
+# 这里刻意只跑 `node scripts/release/status.mjs`，不安装依赖：状态脚本只用 Node 内置模块。
+# `dev` 是集成分支，发布前的最新改动都在这里；用 fetch-depth: 0 才能读到发布标签。
+
+on:
+  schedule:
+    - cron: "0 1 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: release-status
+  cancel-in-progress: true
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.22.1"
+
+      - name: Render release status
+        run: node scripts/release/status.mjs --markdown > "$RUNNER_TEMP/release-status.md"
+
+      - name: Create or update the weekly release issue
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh label create release-status --color FBCA04 --description "NIBI 自动发布状态" >/dev/null 2>&1 || true
+          ISSUE="$(gh issue list --label release-status --state open --limit 1 --json number --jq '.[0].number // empty')"
+          if [ -n "$ISSUE" ]; then
+            gh issue edit "$ISSUE" --title "NIBI 发布状态" --body-file "$RUNNER_TEMP/release-status.md"
+          else
+            gh issue create --title "NIBI 发布状态" --label release-status --body-file "$RUNNER_TEMP/release-status.md"
+          fi
+
+      - name: Keep the rendered status as an artifact
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4
+        with:
+          name: release-status
+          path: ${{ runner.temp }}/release-status.md
+          if-no-files-found: error
+          retention-days: 14

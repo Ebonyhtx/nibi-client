@@ -69,6 +69,8 @@ jobs:
         run: pnpm exec tsx scripts/kernel-baseline/generate-nibi-command-schema.ts --check
       - name: Architecture governance self-test
         run: pnpm run test:architecture
+      - name: Release tooling self-test
+        run: pnpm run test:release-tooling
       - name: Typecheck
         run: pnpm run typecheck
 

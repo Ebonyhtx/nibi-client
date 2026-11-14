@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "product": "NIBI",
+  "versionSource": "package.json",
+  "tagPrefix": "v",
+  "artifacts": [
+    {
+      "id": "npm",
+      "label": "npm 平台包 + META 入口",
+      "paths": ["kernel/**", "scripts/rust-cli/npm/**", "LICENSE", "pnpm-lock.yaml"],
+      "check": {
+        "kind": "npm",
+        "packages": [
+          "@nibi-studio/cli-linux-x64-gnu",
+          "@nibi-studio/cli-linux-arm64-gnu",
+          "@nibi-studio/cli-darwin-arm64",
+          "@nibi-studio/cli-android-arm64"
+        ],
+        "meta": "@nibi-studio/cli"
+      }
+    },
+    {
+      "id": "source-server",
+      "label": "远端 Source Server 四平台包",
+      "paths": [
+        "apps/nibi-cli/**",
+        "packages/nibi-server-cli/**",
+        "packages/server/**",
+        "packages/client/**",
+        "packages/shared/**",
+        "packages/services/**",
+        "packages/rpc/**",
+        "packages/provider/**",
+        "packages/provider-node/**",
+        "packages/model-option-map/**",
+        "packages/formal-proof/**",
+        "LICENSE",
+        "pnpm-lock.yaml"
+      ],
+      "check": {
+        "kind": "source-server",
+        "descriptorUrl": "https://dl.nibistudio.cn/releases/electron/{version}/source-server-release.json",
+        "targets": ["linux-x64", "linux-arm64", "darwin-x64", "darwin-arm64"]
+      }
+    },
+    {
+      "id": "desktop",
+      "label": "桌面安装包与更新库存",
+      "paths": [
+        "kernel/**",
+        "apps/nibi-cli/**",
+        "packages/desktop/**",
+        "packages/ui/**",
+        "packages/client/**",
+        "packages/shared/**",
+        "packages/services/**",
+        "packages/rpc/**",
+        "packages/provider/**",
+        "packages/provider-node/**",
+        "packages/nibi-cua/**",
+        "packages/model-option-map/**",
+        "packages/formal-proof/**",
+        "scripts/desktop-package/**",
+        "scripts/native-search-tools-config.mjs",
+        "scripts/third-party-notices.mjs",
+        "LICENSE",
+        "pnpm-lock.yaml"
+      ],
+      "check": {
+        "kind": "desktop",
+        "manifestUrl": "https://api.nibistudio.cn/api/v1/releases/electron/manifest",
+        "downloadsUrl": "https://api.nibistudio.cn/api/v1/releases/electron/downloads",
+        "channel": "stable",
+        "platforms": ["windows-x86_64", "darwin-aarch64", "linux-x86_64"]
+      }
+    },
+    {
+      "id": "web-remote",
+      "label": "手机远控 SPA",
+      "paths": [
+        "packages/web/**",
+        "packages/ui/**",
+        "packages/client/**",
+        "packages/services/**",
+        "packages/shared/**",
+        "packages/rpc/**",
+        "packages/provider/**",
+        "packages/provider-node/**",
+        "packages/model-option-map/**",
+        "scripts/third-party-notices.mjs",
+        "pnpm-lock.yaml"
+      ],
+      "check": {
+        "kind": "web-release",
+        "surface": "web-remote",
+        "pageUrl": "https://api.nibistudio.cn/remote/v4/",
+        "releaseUrl": "https://api.nibistudio.cn/remote/v4/release.json"
+      }
+    },
+    {
+      "id": "web-share",
+      "label": "会话分享 SPA",
+      "paths": [
+        "packages/web-share/**",
+        "packages/share-ui/**",
+        "packages/ui/**",
+        "packages/shared/**",
+        "packages/model-option-map/**",
+        "pnpm-lock.yaml"
+      ],
+      "check": {
+        "kind": "web-release",
+        "surface": "web-share",
+        "pageUrl": "https://api.nibistudio.cn/cn/share/",
+        "releaseUrl": "https://api.nibistudio.cn/cn/share/release.json"
+      }
+    },
+    {
+      "id": "plugin-market",
+      "label": "插件市场目录",
+      "paths": [],
+      "verifyAlways": true,
+      "check": {
+        "kind": "plugin-market",
+        "catalogUrl": "https://api.nibistudio.cn/plugins/marketplace.json",
+        "plugin": "math-modeling"
+      }
+    }
+  ]
+}

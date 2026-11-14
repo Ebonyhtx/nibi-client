@@ -51,3 +51,55 @@ export function compareRemoteFrontendVersions(leftVersion, rightVersion) {
   }
   return compare(left.prerelease.length, right.prerelease.length);
 }
+
+/**
+ * 给部署后的 SPA 一个可机器读取的版本标记：页面 `<meta name="nibi-release-*">`
+ * 与 `/remote/v4/release.json`、`/cn/share/release.json`。发布台账优先读页面
+ * meta，因为两个 SPA 的 index.html 都是 no-cache；release.json 是辅助机器可读副本。
+ *
+ * 只写构建产物，不参与运行时；`build` 命令之外（dev server）不会生成。
+ */
+export function releaseJsonPlugin({ surface, version, environment, commit }) {
+  if (!surface || !version) throw new Error("releaseJsonPlugin requires surface and version");
+  const resolvedCommit = commit || "unknown";
+  return {
+    name: "nibi-release-json",
+    apply: "build",
+    transformIndexHtml() {
+      return [
+        {
+          tag: "meta",
+          attrs: { name: "nibi-release-version", content: version },
+          injectTo: "head",
+        },
+        {
+          tag: "meta",
+          attrs: { name: "nibi-release-surface", content: surface },
+          injectTo: "head",
+        },
+        {
+          tag: "meta",
+          attrs: { name: "nibi-release-commit", content: resolvedCommit },
+          injectTo: "head",
+        },
+      ];
+    },
+    generateBundle() {
+      this.emitFile({
+        type: "asset",
+        fileName: "release.json",
+        source: `${JSON.stringify(
+          {
+            schemaVersion: 1,
+            surface,
+            version,
+            environment,
+            commit: resolvedCommit,
+          },
+          null,
+          2,
+        )}\n`,
+      });
+    },
+  };
+}
