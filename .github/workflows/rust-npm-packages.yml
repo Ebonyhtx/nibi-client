@@ -336,15 +336,29 @@ jobs:
 
       # META 的 optionalDependencies 是精确版本；四个平台包缺一个都不能发 META，
       # 否则该平台的 `npm install -g @nibi-studio/cli` 会装出没有 `nibi-rs` 的空壳。
+      #
+      # npm publish 返回 202 后版本要过恶意扫描才在注册表可见（大二进制包常见几十秒到几分钟），
+      # 紧接着 `npm view` 会 404。这里等到可见为止，避免平台包其实已经发布却把 META 判失败。
       - name: Verify every pinned platform package is published
         run: |
           set -euo pipefail
+          wait_for_package() {
+            local spec="$1"
+            for attempt in $(seq 1 36); do
+              if npm view "$spec" version >/dev/null 2>&1; then
+                echo "found $spec"
+                return 0
+              fi
+              echo "waiting for $spec (attempt ${attempt}/36)"
+              sleep 10
+            done
+            return 1
+          }
           while IFS= read -r spec; do
-            if ! npm view "$spec" version >/dev/null 2>&1; then
-              echo "::error::$spec is missing; publish the platform packages before the META package"
+            if ! wait_for_package "$spec"; then
+              echo "::error::$spec is still missing after 6 minutes; publish the platform packages before the META package"
               exit 1
             fi
-            echo "found $spec"
           done < <(
             node -e 'const m = require(process.argv[1]); for (const [name, version] of Object.entries(m.platformPackages)) console.log(`${name}@${version}`)' \
               "$RUNNER_TEMP/meta-pack.json"
