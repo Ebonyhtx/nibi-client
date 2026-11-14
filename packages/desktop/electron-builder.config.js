@@ -970,9 +970,8 @@ export default {
     // 安装盘图标统一使用安装专用素材，避免复用应用图标导致安装识别度不足。
     icon: "build/icon_installer.icns",
     contents: [
-      // 实验性调整：为隐藏资源文件显式指定图标坐标，尽量把它们移到角落区域。
-      { x: 640, y: 56, type: "file", path: ".background.tiff" },
-      { x: 640, y: 56, type: "file", path: ".VolumeIcon.icns" },
+      // 背景图与卷图标由 electron-builder 自己写入；不要再把 .background.tiff /
+      // .VolumeIcon.icns 当普通 file 条目手工定位，否则 dmgbuild 会在挂载盘里找不到源文件。
       { x: 130, y: 220 },
       { x: 410, y: 220, type: "link", path: "/Applications" },
     ],
