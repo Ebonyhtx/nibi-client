@@ -1,4 +1,4 @@
-// E2E 信封 v1 的桌面侧测试（规格：D:\NIBI-GO\docs\design\e2e-envelope-v1.md）。
+// E2E 信封 v1 的桌面侧测试（规格：https://github.com/Ebonyhtx/nibi-go/blob/main/docs/design/e2e-envelope-v1.md）。
 // 覆盖：§7 已知密文向量、KDF 跨实现对拍（Node/OpenSSL）、握手确定性、
 // 非法材料降级、enc 收发环路、旧对端明文不变、重连换钥后旧密文解不开。
 import {

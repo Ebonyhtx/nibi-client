@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+
+# 提交信息首行门禁：约定式类型、摘要长度与内部流程词。
+# 脚本只用 Node 内置模块，不依赖 node_modules。
+node scripts/check-commit-message.mjs "$1"

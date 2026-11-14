@@ -97,6 +97,22 @@ patterns above and fails with file/line details.
 - Do not introduce circular dependencies or cross-domain implementation imports.
 - Match the surrounding code's naming and comment density.
 
+## Commit messages
+
+Write the subject in English imperative mood as `type(scope): summary` (scope is
+optional), using `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`,
+`ci`, `perf`, `style`, or `revert`. Keep it at most 72 characters and describe
+the user-visible change. Put internal bookkeeping, step numbers, and phase notes
+in the body.
+
+```text
+Good: feat(desktop): add workspace switcher
+Bad:  fix: 第 3 步 收口插件商店
+```
+
+The `commit-msg` hook checks the first line; the rules live in
+`scripts/check-commit-message.mjs`.
+
 ## Tests
 
 - Unit tests live next to the package they cover.

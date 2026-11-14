@@ -84,6 +84,7 @@
     "db:schema:check": "node --test scripts/test/sqlite-schema-contract.test.mjs && pnpm --dir apps/nibi-cli exec tsx ../../scripts/check-sqlite-schema.ts",
     "db:schema:update": "pnpm --dir apps/nibi-cli exec tsx ../../scripts/check-sqlite-schema.ts --update",
     "check:i18n-keys": "python scripts/check-i18n-keys.py",
+    "check:commit-message": "node scripts/check-commit-message.mjs",
     "check:public-repo": "node scripts/check-public-repo.mjs",
     "check:storage-keys": "node scripts/check-storage-keys.mjs",
     "check:session-agent": "node scripts/check-session-agent-identity.mjs",

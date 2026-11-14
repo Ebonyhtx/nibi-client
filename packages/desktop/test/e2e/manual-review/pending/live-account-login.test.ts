@@ -20,10 +20,11 @@ import { skipOccupationOnboardingIfPresent } from "../../helpers/occupation-onbo
  * - `NIBI_E2E_LIVE_SWITCH=1`：同一 App 会话里 A → 登出 → B → 登出 → A，验证账号切换。
  *
  * 登录不点浏览器：在主进程里把 `shell.openExternal` 换成记录器拿 authorize URL，交给服务端
- * `/opt/nibi-site/e2e-client-login.py` 无头完成密码登录，再把 `nibi://oauth/callback` 投回 App。
- * 密码只在服务器 0600 文件里，本地不打印。
+ * 无头登录脚本（`NIBI_E2E_REMOTE_LOGIN_SCRIPT`，默认从远端 PATH 查找 `e2e-client-login.py`）
+ * 完成密码登录，再把 `nibi://oauth/callback` 投回 App。密码只在服务器 0600 文件里，本地不打印。
  */
 const NIBI_LOGIN_BUTTON = `${TID_OAUTH_LOGIN_BUTTON}-nibi`;
+const REMOTE_LOGIN_SCRIPT = process.env.NIBI_E2E_REMOTE_LOGIN_SCRIPT ?? "e2e-client-login.py";
 const USER_INFO_KEY = "oauth:nibi:user_info";
 const LICENSE_TOKEN_KEY = "nibi:license:token";
 const LICENSE_STATE_KEY = "nibi:license:state";
@@ -203,7 +204,7 @@ async function loginAs(account: LiveAccount): Promise<void> {
       "-o",
       "ConnectTimeout=10",
       sshTarget,
-      `python3 /opt/nibi-site/e2e-client-login.py ${quoted} ${account}`,
+      `python3 ${REMOTE_LOGIN_SCRIPT} ${quoted} ${account}`,
     ],
     { encoding: "utf8", timeout: 180_000 },
   );

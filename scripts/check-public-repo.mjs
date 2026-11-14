@@ -105,8 +105,8 @@ const RULES = [
   },
   {
     name: "workspace absolute path",
-    // 也覆盖文档/测试里常见的双反斜杠写法（D:\\NIBI\\...）。
-    re: /(?:[A-Za-z]:[\\/]{1,2}NIBI[\\/]{1,2}|\/d\/NIBI\/)/,
+    // 也覆盖文档/测试里常见的双反斜杠写法（D:\\NIBI\\...）与同级的 NIBI-GO / NIBI-Client 仓库。
+    re: /(?:[A-Za-z]:[\\/]{1,2}NIBI(?:-GO|-Client)?[\\/]{1,2}|\/d\/NIBI(?:-GO|-Client)?\/)/,
   },
   {
     name: "internal container registry",
@@ -114,7 +114,7 @@ const RULES = [
   },
   {
     name: "private deployment path",
-    re: /\/(?:srv\/nibi-site|opt\/nibi-content)(?:\/|$)/,
+    re: /\/(?:srv\/nibi-site|opt\/nibi-(?:site|private|content))(?:\/|$)/,
   },
   {
     name: "private key material",

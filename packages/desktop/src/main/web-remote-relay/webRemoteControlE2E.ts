@@ -1,4 +1,4 @@
-// E2E 信封与握手 v1 的桌面侧镜像（规格：D:\NIBI-GO\docs\design\e2e-envelope-v1.md）。
+// E2E 信封与握手 v1 的桌面侧镜像（规格：https://github.com/Ebonyhtx/nibi-go/blob/main/docs/design/e2e-envelope-v1.md）。
 //
 // 载体是 relay data payload（服务端 `data.payload` 是 z.json() 不透明透传，零改动），
 // 因此握手帧和密文帧都走 terminal 侧同一个 data 口；keyneg-* 必须保持明文，
