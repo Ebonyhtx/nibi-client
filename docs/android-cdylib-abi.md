@@ -50,6 +50,18 @@ void nibi_app_server_destroy(void *handle);
 
 一个进程只需一个实例；当前 ABI 不提供多实例隔离。
 
+## 网络信任锚（Android）
+
+Android 进程内没有 JVM / Context 时，`rustls-platform-verifier` 的 Android 后端读不到系统信任库，
+reqwest 构造 egress 会失败（`rustls-platform-verifier could not load extra certs`），app-server
+随之退出。当前 Android 版本**退回只用内置的 Mozilla 根证书**（`Anchors::Only`）并打一条 warning：
+
+- 公开 HTTPS 正常；
+- 用户安装的 CA / 企业代理证书暂不生效；
+- 其它平台（桌面 / CLI）行为逐字不变，仍用「平台根 + 内置根」。
+
+宿主把 JVM 与 Android `Context` 交给内核的入口是后续切片（S2，新 C ABI），接入后恢复平台根。
+
 ## 构建
 
 - `nibi-kernel-cli` 同时有 `rlib` 与 `cdylib` 目标，库名 `nibi`。
@@ -57,3 +69,7 @@ void nibi_app_server_destroy(void *handle);
   后用 API 24 的 NDK clang 重链 `--lib`，输出 `libnibi.so`。
 - 发布 workflow 校验 `.so` 是 shared object、带 Android note、导出
   `nibi_app_server_start`，并在打包器测试里校验 tar 内容与 `build.json.artifacts`。
+- **16 KB page size**：`kernel/.cargo/config.toml` 给 `aarch64-linux-android` 加了
+  `-Wl,-z,max-page-size=16384` / `common-page-size=16384`（NDK r27 默认 4 KB）。Play 对
+  targetSdk 35+ 的包要求 ELF `LOAD` 段 2**14 对齐，workflow 里用
+  `llvm-readelf -l` 的最后一列断言 `0x4000`。宿主打包自己的 JNI 薄层也要带同样的链接参数。

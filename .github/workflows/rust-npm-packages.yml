@@ -193,6 +193,22 @@ jobs:
             echo "libnibi.so 缺少 nibi_app_server_start 导出" >&2
             exit 1
           }
+          # 16 KB page size（Play 对 targetSdk 35+ 的要求）：所有 LOAD 段必须 2**14 对齐。
+          # 对齐值在 `llvm-readelf -l` 的最后一列；NDK r27 默认 4 KB，靠 .cargo/config.toml
+          # 的链接参数抬到 16 KB。同样先落文件，不用管道。
+          "$TOOLCHAIN/llvm-readelf" -l "$RUNNER_TEMP/libnibi.so" \
+            > "$RUNNER_TEMP/libnibi-program-headers.txt"
+          LOAD_ALIGNS="$(awk '$1 == "LOAD" { print $NF }' "$RUNNER_TEMP/libnibi-program-headers.txt")"
+          if [ -z "$LOAD_ALIGNS" ]; then
+            echo "libnibi.so 没有 LOAD 段，无法确认 16 KB 对齐" >&2
+            exit 1
+          fi
+          for ALIGN in $LOAD_ALIGNS; do
+            if [ "$ALIGN" != "0x4000" ]; then
+              echo "libnibi.so 的 LOAD 段对齐是 $ALIGN，不是 16 KB（0x4000，见 kernel/.cargo/config.toml）" >&2
+              exit 1
+            fi
+          done
           SHARED="$(find "$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android" -name 'libc++_shared.so' -print -quit)"
           if [ -n "$SHARED" ]; then
             cp "$SHARED" "$RUNNER_TEMP/libc++_shared.so"

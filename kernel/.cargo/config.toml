@@ -5,6 +5,17 @@
 [target.'cfg(all(windows, target_env = "msvc"))']
 rustflags = ["-C", "target-feature=+crt-static"]
 
+# Android 16 KB page size：Google Play 对 targetSdk 35+ 的包要求 ELF 的 LOAD 段按 2**14 对齐，
+# 否则 16 KB 页设备（Android 15 起）上装不上/起不来。NDK r27 的 lld 默认仍是 4 KB，必须显式给
+# 两个页大小参数；对 bin 与 cdylib 都无副作用。校验：llvm-readelf -l 里 LOAD 的最后一列 = 0x4000。
+[target.aarch64-linux-android]
+rustflags = [
+  "-C",
+  "link-arg=-Wl,-z,max-page-size=16384",
+  "-C",
+  "link-arg=-Wl,-z,common-page-size=16384",
+]
+
 # pcre2-sys（内嵌的 rg 与 ugrep 的 PCRE2，docs/specs/rust-cli/embedded-search.md §5）总用自带的源码静态链接：否则它在
 # 找得到系统库时动态链接（例如 Homebrew 的 libpcre2-8.dylib），发布的二进制在别的机器上起不来。
 [env]
