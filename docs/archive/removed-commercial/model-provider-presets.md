@@ -1,4 +1,4 @@
-> 范围说明：本文包含上游商业套餐（Coding Plan / Team Plan / Start Plan）的历史设计。NIBI 4.0 已移除这些能力，相关段落仅作对照；当前行为以代码为准。
+> 已归档（2026-11-15）：本文描述已移除的上游商业套餐（Coding Plan / Team Plan / Start Plan）与旧预置供应商设计；NIBI 4.0 不提供这些能力，当前 API Key 预置行为以代码为准。
 
 # Model Provider Presets
 

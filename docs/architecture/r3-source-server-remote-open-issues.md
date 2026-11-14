@@ -10,7 +10,7 @@
 - 原审阅范围：2026-08-28 当时的 `staging...HEAD`，不是当前分支的最新 diff
 - 用途：记录当前分支全面审阅中发现的问题，供后续按稳定 ID 逐项修复、验证和关闭
 - 当前说明：状态按单项维护；关闭项保留修复与验证摘要，未关闭项保留完整待办。文档整理不改变验证结论。
-- 2026-09-13 文档整理：R3 过程文档归档到 `docs/archive/remote-r3/`，本文引用已同步；R3-ISSUE-012 因前提失效改为不修复，R3-ISSUE-019 进入修复中；当前阅读入口见 [docs/remote/README.md](../remote/README.md)
+- 2026-09-13 文档整理：R3 过程文档归档到 `docs/archive/remote-r3/`，本文引用已同步；R3-ISSUE-012 因前提失效改为不修复，R3-ISSUE-019 进入修复中；历史阅读入口见 [docs/remote/README.md（已归档）](../archive/remote/README.md)
 - 2026-09-13 补登：R3-ISSUE-023（恢复态手动连接成功不发 reconnect）来自同日分支审查 RV-P1-2，随修复一并关闭
 - 2026-09-14 补登：R3-ISSUE-024（wsl.exe 默认 shell 提前展开命令变量，WSL 安装误报缺少 tar）来自同日 Windows 实机复现，随修复登记为待验证
 

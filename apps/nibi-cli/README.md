@@ -22,9 +22,9 @@ the plugin host and the remote Source Server. The old Node CLI/TUI distribution 
 `build:nibi`, standalone release-it flow and the public `nibi` bin) is retired; do not add new
 user-facing commands or packaging here. Use the Rust CLI for anything terminal users run.
 
-The [CLI usage guide (中文)](docs/usage/README.md) and [design specifications](docs/design/v2/)
-describe the legacy Node runtime behavior. They remain useful for the internal app-server,
-plugin host and DWF paths, but are no longer the contract for the public `nibi` command.
+The [CLI usage guide (中文)](docs/usage/README.md) describes the legacy Node runtime behavior.
+It remains useful for the internal app-server, plugin host and DWF paths, but is no longer the
+contract for the public `nibi` command.
 
 Useful entry points:
 

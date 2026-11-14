@@ -16,7 +16,7 @@ Workspace header action 区在终端按钮左侧提供轻量帮助菜单，作�
 
 第一组从上到下：
 
-1. 产品文档：打开 `https://zcode.z.ai/docs`。
+1. 产品文档：打开 `https://nibistudio.cn/docs`。
 2. 用户社群：走 `IPlatformService.openCommunity()`。
 3. 问题上报：打开内置反馈表单，保持 `type=bug`、`module=其它`、`includeLogs=true` 和截图行为。
 4. 给产品提需求：打开独立需求弹窗，保持 `type=feature`、`includeLogs=false`。

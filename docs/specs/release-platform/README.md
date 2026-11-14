@@ -1,5 +1,7 @@
 # Release Platform Contract
 
+> 历史契约：本文描述平台 v1 迁移期合同；`release:approve` 已从仓库移除，当前发版流程以 [docs/release-process.md](../../release-process.md) 为准。
+
 这是 z-code 与独立打包平台之间的 v1 契约入口。
 
 | 文件 | 用途 |

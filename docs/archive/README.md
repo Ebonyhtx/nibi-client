@@ -7,6 +7,7 @@
 - `bugfixes/`：已修复缺陷的根因分析与修复记录（MCP 刷新、WSL 任务状态、背景子代理唤醒）。
 - `rust-kernel/`：2026-10-29 ～ 11-01 的 Rust 内核阶段记录（vendoring 基线、Step 1/2、M5 读路径、DWF 路线 C 设计与 Step 4 基线）。当前状态看
   [`docs/rust-kernel-function-parity.md`](../rust-kernel-function-parity.md) 与 [`kernel/CHANGELOG-FORK.md`](../../kernel/CHANGELOG-FORK.md)。
+- `remote/`：早期远程主链阅读入口（SSH / WSL / Docker Source Server 历史合同与证据）；部分相对链接只存在于历史归档库，当前远程文档见 [`docs/web-remote-control/`](../web-remote-control/web-remote-control-architecture.md)。
 
 归档规则：功能已交付或方案已被替代、且正文只描述当时的过程/缺口时归档；仍在生效的行为规格、架构契约与决策记录留在原位。归档不删除历史（git 与这里的文件都保留），只是不再占用入口索引与阅读路径。
 2026-11-12 清理新增：

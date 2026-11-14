@@ -46,7 +46,6 @@
 
 ## 远程与分享
 
-- [远程工作区](remote/README.md)
 - [会话分享协议](conversation-share-v1.md)
 - [Web 分享](web-share/)
 - [手机远控](web-remote-control/)
@@ -89,6 +88,6 @@
 
 公开文档不包含内部部署、运营、客户数据、真实凭据或私有服务拓扑。新增文档前请阅读 [CONTRIBUTING.md](../CONTRIBUTING.md) 的公开仓规则。
 
-`docs/archive/` 保留历史记录：`removed-commercial/` 是已移除的商业套餐（Coding Plan、Team Plan、Start Plan、上游账户用量与上游 OAuth），`upstream-legacy/` 是已失效的上游 endpoint/环境变量约定，`rust-kernel/` 是 Rust 内核的阶段记录（基线、Step 1/2、M5、DWF 设计）。这些文档不在入口索引内，也不代表当前产品行为；当前行为以代码和有效文档为准。
+`docs/archive/` 保留历史记录：`removed-commercial/` 是已移除的商业套餐（Coding Plan、Team Plan、Start Plan、上游账户用量与上游 OAuth），`upstream-legacy/` 是已失效的上游 endpoint/环境变量约定，`rust-kernel/` 是 Rust 内核的阶段记录（基线、Step 1/2、M5、DWF 设计），[`remote/`](archive/remote/README.md) 是早期远程主链阅读入口（当前远程文档见 `docs/web-remote-control/`）。这些文档不在入口索引内，也不代表当前产品行为；当前行为以代码和有效文档为准。
 
 部分未归档的上游设计文档仍保留 ZCode 名称或商业套餐术语，文件顶部会标注范围说明；这些段落只作架构对照，当前 NIBI 的命名与能力以代码为准。

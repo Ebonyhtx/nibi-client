@@ -302,6 +302,8 @@ fork Core，通过同目录 `nibi.cjs` 委派既有 CLI，因此三个入口必�
 
 ### 7.1 发行包 staging
 
+> 当前发布范围（2026-11）：Source Server 只随版本发布 `linux-x64` / `linux-arm64` archive；macOS 与 darwin archive 已暂缓，见 [发版流程](../release-process.md)。本节以下六个 target 的清单保留为历史实现记录。
+
 staging 由 `packages/nibi-server-cli/src/packaging/stage.ts` 实现，
 `pnpm --filter @nibi/server-cli stage --target <os>-<arch>` 触发，只做本地组装，不上传、不发布：
 

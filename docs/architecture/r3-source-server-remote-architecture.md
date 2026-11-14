@@ -2,7 +2,7 @@
 
 ## 1. 状态与范围
 
-- 状态：已实现（代码基线 `fad93b9e57`，2026-09-13）。正式发布校验与真实 SSH E2E 复跑仍在进行，以 [问题台账](./r3-source-server-remote-open-issues.md) R3-ISSUE-001 / 020 为准。本文是当前事实规格；R3 过程文档已归档到 `docs/archive/remote-r3/`，阅读入口见 [docs/remote/README.md](../remote/README.md)
+- 状态：已实现（代码基线 `fad93b9e57`，2026-09-13）。正式发布校验与真实 SSH E2E 复跑仍在进行，以 [问题台账](./r3-source-server-remote-open-issues.md) R3-ISSUE-001 / 020 为准。本文是当前事实规格；R3 过程文档已归档到 `docs/archive/remote-r3/`，历史阅读入口见 [docs/remote/README.md（已归档）](../archive/remote/README.md)
 - 修订：2026-09-07 合并 Provider 重构 M2（Provider 重构 M1~M4 + Remote Provider Provisioning）后，§1/§2/§3.1/§6.2/§7.1/§8/§10/§11 中的模型配置语义改为「设置页绑定本地 + Provisioning 自动单向下发」；Provider 侧以 [Remote Provider Provisioning](../remote/provider-provisioning.md) 与 [SSH 远端 Workspace 状态权威边界](../ssh-remote-app-global-state-authority.md) 为事实文档，合并过程与决策见 [r3-provider-refactor-merge.md（已归档）](../archive/remote-r3/r3-provider-refactor-merge.md)
 - 阶段：统一多端远程架构 R3 / D5—D11
 - 发布方式：SSH、WSL、Docker 在同一 App 版本统一切换新主链；不按连接方式分版本或灰度；R3 App 内不保留可运行的旧远程主链
@@ -266,6 +266,8 @@ Window Host（R3）
 窗口关闭/App 退出只断开 attachment 与传输通道，绝不停止远端 daemon（REMOTE-03）。同一 Server 被多窗口/多台 Desktop 连接时，Core 天然支持多 attachment，互不影响。
 
 ## 5. Transport Adapter 合同（D6）
+
+> 当前发布范围（2026-11）：Source Server 只随版本发布 `linux-x64` / `linux-arm64` archive；macOS 与 darwin archive 已暂缓，见 [发版流程](../release-process.md)。本节及 §5.3 的 darwin/win32 目标描述保留为历史合同。
 
 ### 5.1 接口
 
@@ -654,6 +656,8 @@ Source transport 断开
 | 模型 Provider 配置、模型可用性                       | Source Server（执行镜像）；本机是编辑权威 | **主链切换**：删除 desktop-attached 下发；远端 `standalone-server` 自权威读取自己的 Built-in Release + Personal Layer 并构建 Registry。Personal Layer、Configured Default 由本机 Provider Provisioning 自动单向覆盖，远端不提供编辑入口；对话区 / Subagents / Automation 的模型目录从目标 Host 的 `model-selection` Facade 读取（§8.2） |
 | OAuth / `zcodejwttoken` 登录态                       | 各端自持；本机为源                        | Provisioning allowlist 凭据（`oauth:active_provider`、`oauth:zai\|bigmodel:*`、`zcodejwttoken`、`account-provider:*:api-key`）随每次下发 replace 到目标 Source，Source 端解密、目标端用自身 Credential Store 重新加密；本机登出 / 换号在下一次触发时收敛。远端不能自行发起浏览器 OAuth                                                  |
 | Connection Profile、窗口、Theme、Locale              | 控制端                                    | Theme/Locale 由窗口 base attachment 的本地服务提供，不随 Source 切换                                                                                                                                                                                                                                                                    |
+
+> 更正（2026-11-14）：上游 Z.ai / BigModel OAuth 已移除，当前仅保留 NIBI 身份；上表 `oauth:zai|bigmodel:*` 仅为历史 Provisioning 白名单记录。
 
 服务集合落点：三种 transport 统一改用 `createServerRemoteWorkspaceServiceCollection({ connectionServices, sourceServices })` 的全转发模式（`packages/desktop/src/host/remoteWorkspaceServiceCollection.ts`），删除 SSH/WSL/Docker 专用的「本地权威混装」分支；`onDynamicSessionRuntimePreferencesRequest` 反向桥随 desktop-attached 模式一并退役。全转发集合同时把 Host 私有的 `RemoteProviderProvisioningExecutor`（本机 `ProviderProvisioningSource` + 远端 `IProviderProvisioningTargetService`）登记在 WeakMap 上供 Main 调度，不进入 Renderer RPC（§8.3）。
 

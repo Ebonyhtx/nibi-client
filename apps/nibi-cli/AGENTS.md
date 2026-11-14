@@ -4,8 +4,8 @@
 
 ## 工作规范（最重要）
 
-- CLI spec 位于 `apps/nibi-cli/docs/design/v2/`；新功能、行为变化先更新，bugfix 和纯重构按根规则判断。下文未带 `apps/nibi-cli/` 的代码与文档路径相对于本目录。
-- 改动任何 tool（新增、删除、schema、权限、执行、prompt、adapter、事件、UI/V4 投影等）之前，必须先阅读并更新 `docs/design/v2/tool/00-tool-change-chain.md`，按端到端链路检查。
+- CLI spec 位于仓库根的 `docs/design/v2/`（相对本目录是 `../../docs/design/v2/`）；新功能、行为变化先更新，bugfix 和纯重构按根规则判断。下文未带 `apps/nibi-cli/` 的代码与文档路径相对于本目录。
+- 改动任何 tool（新增、删除、schema、权限、执行、prompt、adapter、事件、UI/V4 投影等）之前，必须先阅读并更新 `../../docs/design/v2/tool/00-tool-change-chain.md`，按端到端链路检查。
 - 其次是测试 case 很关键，能证明结果是否符合预期
 - 功能文档更新到最终行为，复用已有 spec；bugfix 用回归证据留痕，非显然根因和防回归约束在修复点留中文注释。
 - agent 友好的项目，留好日志或者接口，让 agent 能完全接手操作
@@ -19,7 +19,7 @@
 
 - 与操作系统交互之前，需要考虑同时支持 windows、mac、linux
 - 公开发行是 Rust 内核（`kernel/` 的 `nibi-rs`，经 npm META 包 `@nibi-studio/cli` 分发）；这里只维护内部 Node agent bundle（`nibi.cjs`）及其 `--desktop-agent` 构建，不要再新增 Node CLI/TUI 发布面。
-- 项目自有的环境变量统一使用 `NIBI_` 前缀命名，但不要随便新增环境变量；新增前必须先在 `docs/design/v2` 的 spec 中定义用途、优先级、错误行为和测试覆盖，能用配置文件、CLI 参数或 session 配置表达的能力，优先不要做成环境变量。
+- 项目自有的环境变量统一使用 `NIBI_` 前缀命名，但不要随便新增环境变量；新增前必须先在 `../../docs/design/v2` 的 spec 中定义用途、优先级、错误行为和测试覆盖，能用配置文件、CLI 参数或 session 配置表达的能力，优先不要做成环境变量。
 
 ## 跨平台兼容原则
 
