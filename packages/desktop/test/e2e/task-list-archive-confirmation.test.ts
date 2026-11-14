@@ -141,6 +141,9 @@ async function hoverConversationTaskRow(taskId: string) {
     timeout: 15000,
     timeoutMsg: `项目视图的“任务”分区没有显示目标 conversation task: ${taskId}`,
   });
+  // 任务多时目标行可能在滚动容器外；先滚到视口中间，再移指针，否则 headless 的 moveTo
+  // 会落在容器边缘，mouseenter 不触发，归档按钮永远不会挂载。
+  await row.scrollIntoView({ block: "center", inline: "nearest" });
   await row.moveTo();
 }
 
