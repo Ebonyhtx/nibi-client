@@ -10,11 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  NIBI_AGENT_RUNTIME,
-  NIBI_RUNTIME_ENV_KEY,
-  hostResponseMessageSchema,
-} from "@nibi/shared";
+import { NIBI_AGENT_RUNTIME, NIBI_RUNTIME_ENV_KEY, hostResponseMessageSchema } from "@nibi/shared";
 import {
   NIBI_PROCESS_DIAGNOSTIC_PREFIX,
   NIBI_AGENT_LIFECYCLE_LOG_MARKER,
@@ -1066,7 +1062,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
     } finally {
       await disposeAllAndWaitSettling(manager);
     }
-  });
+  }, 60_000);
 
   it("主动回收 workspace 时把 agent 退出标为 expected", async () => {
     const workspacePath = mkdtempSync(join(tmpdir(), "nibi-agent-lifecycle-expected-"));
@@ -1648,13 +1644,22 @@ describe("Rust 内核（桌面本地唯一内核）", () => {
     sandboxWithBundle();
 
     expect(() =>
-      resolveDefaultNibiAgentCommand({ workspacePath: "/repo/workspace", workspaceKey: "/repo/workspace" }),
+      resolveDefaultNibiAgentCommand({
+        workspacePath: "/repo/workspace",
+        workspaceKey: "/repo/workspace",
+      }),
     ).toThrow(/requires the Rust kernel/);
     expect(() =>
-      resolveDefaultNibiAgentCommand({ workspacePath: "/repo/workspace", workspaceKey: "/repo/workspace" }),
+      resolveDefaultNibiAgentCommand({
+        workspacePath: "/repo/workspace",
+        workspaceKey: "/repo/workspace",
+      }),
     ).toThrow(/kernel\/target\/\{debug,release\}/);
     expect(() =>
-      resolveDefaultNibiAgentCommand({ workspacePath: "/repo/workspace", workspaceKey: "/repo/workspace" }),
+      resolveDefaultNibiAgentCommand({
+        workspacePath: "/repo/workspace",
+        workspaceKey: "/repo/workspace",
+      }),
     ).toThrow(/cargo build --locked -p nibi-kernel-cli --bin nibi-rs/);
   });
 

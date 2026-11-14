@@ -17,6 +17,8 @@ const forkIsolatedTests = [
   "packages/provider-node/test/personal-config-read-lock.test.ts",
   // 真实 Supervisor/Core 两棵进程树 + control socket；CI 并发下启动会在 15s 内排不到资源，串行保留真实链路。
   "packages/nibi-server-cli/test/lifecycleCommands.test.ts",
+  // 并发 stale lock 用例会拉起 8 个 Node 子进程；Windows 上与 unit 并发会触发 worker OOM。
+  "packages/nibi-server-cli/test/lock.test.ts",
   // 原生 fs.watch 集成在批量并发时曾等不到通知；串行验证真实接线，去重逻辑由受控事件单测覆盖。
   "packages/services/src/gen-ui/adapters/stateStorage.test.ts",
   // electron-builder 下载 NSIS 时把进程 stdio 传给子进程，不能使用 threads 的虚拟 stdio。
