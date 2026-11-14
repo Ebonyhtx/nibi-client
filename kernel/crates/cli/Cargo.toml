@@ -10,6 +10,14 @@ publish.workspace = true
 [lints]
 workspace = true
 
+# Android 进程内内核（NIBI-GO D19）：同一套入口代码编成 cdylib，产物名 `libnibi.so`。
+# `rlib` 给 `nibi-rs` 可执行文件复用；`cdylib` 只在 android leg 显式 `--lib` 打包。
+[lib]
+name = "nibi"
+path = "src/lib.rs"
+crate-type = ["rlib", "cdylib"]
+doctest = false
+
 # 可执行文件名 `nibi-rs`（macOS / Linux 的进程列表里显示它），用户敲的命令是 `nibi`（npm 包的 bin 名）：
 # docs/specs/rust-cli/cli-args.md §13，工作线 F59。脚本经 scripts/rust-cli/binary.mjs 取这个名字。Windows 的平台包里
 # 打包时复制成 `nibi.exe`（工作线 F71；cargo 不能按平台起不同的名字）。
@@ -79,7 +87,7 @@ nibi-kernel-vendor-rg = { path = "../../vendor/rg" }
 # 内嵌的 ugrep：zcode 以 `ugrep` 的名字启动时直接跑它（embedded-search.md §3、§7，F53）。
 nibi-kernel-vendor-ugrep = { path = "../../vendor/ugrep" }
 serde_json.workspace = true
-tokio = { workspace = true, features = ["io-std", "signal", "sync"] }
+tokio = { workspace = true, features = ["io-std", "io-util", "signal", "sync"] }
 # 退出信号交给前端的取消令牌（session-lifecycle.md §3.5）。
 tokio-util.workspace = true
 uuid.workspace = true

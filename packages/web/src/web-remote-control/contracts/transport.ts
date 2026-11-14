@@ -1,3 +1,4 @@
+import type { WebRemoteControlPayloadSendResult } from "@nibi/client";
 import type { WebRemoteControlAppPayload, WebRemoteControlFailure } from "@nibi/shared";
 
 export type WebRemoteControlTerminalTransportState =
@@ -99,3 +100,26 @@ export interface WebRemoteControlTerminalTransportOptions {
   onSendReady?(event: { kind: "same-socket" | "reconnected-socket" }): void;
   reloadPage(): void;
 }
+
+/**
+ * 编排层只依赖这组行为，不关心 transport 是 web 自建 relay 还是宿主原生隧道。
+ * 方法集合与 `WebRemoteControlTerminalTransport` 的公开面保持一致，宿主实现必须逐项满足。
+ */
+export interface WebRemoteControlTransportPort {
+  start(): void;
+  suspend(): void;
+  dispose(): void;
+  sendPayload(payload: WebRemoteControlAppPayload): boolean;
+  measurePayloadBytes(payload: WebRemoteControlAppPayload): number;
+  sendPayloadResult(payload: WebRemoteControlAppPayload): WebRemoteControlPayloadSendResult;
+  recoverConnection(timeoutMs?: number): Promise<void>;
+  recoverInBackground(): void;
+}
+
+/**
+ * 宿主注入的 transport 工厂。NIBI-GO 的 WebView 在加载页面前把它挂到
+ * `globalThis.__nibiWebRemoteControlTransportFactory`；浏览器 PWA 永远不设置，走默认实现。
+ */
+export type WebRemoteControlExternalTransportFactory = (
+  options: WebRemoteControlTerminalTransportOptions,
+) => WebRemoteControlTransportPort;

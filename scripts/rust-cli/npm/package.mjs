@@ -18,6 +18,9 @@
 //     --version 4.0.0 \
 //     --out <dir>
 //
+// Android 平台包另需 `--lib <path/to/libnibi.so>`（可再给 `--shared-lib <libc++_shared.so>`），
+// build.json 会带 `artifacts` 列表供 NIBI-GO 校验 cdylib 完整性。
+//
 // 输出一行 JSON：包名、版本、target、tarball 路径、sha256、npm integrity。
 
 import { createHash } from "node:crypto";
@@ -73,11 +76,12 @@ export function isValidVersion(version) {
  */
 export const REPOSITORY_URL = "git+https://github.com/Ebonyhtx/nibi-client.git";
 
-export function buildPackageManifest({ target, version }) {
+export function buildPackageManifest({ target, version, sharedLibrary = false }) {
   const platform = packageIdForTarget(target);
   if (!isValidVersion(version)) {
     throw new Error(`invalid version ${JSON.stringify(version)}`);
   }
+  const android = target === "aarch64-linux-android";
   return {
     name: `@nibi-studio/cli-${platform.id}`,
     version,
@@ -87,13 +91,36 @@ export function buildPackageManifest({ target, version }) {
     os: [platform.os],
     cpu: [platform.cpu],
     bin: { "nibi-rs": "bin/nibi-rs" },
-    files: ["bin/nibi-rs", "build.json"],
+    files: [
+      "bin/nibi-rs",
+      "build.json",
+      ...(android ? ["lib/libnibi.so"] : []),
+      ...(android && sharedLibrary ? ["lib/libc++_shared.so"] : []),
+    ],
     publishConfig: { access: "public" },
   };
 }
 
-export function buildBuildJson({ target, version, sha256 }) {
-  return { version, target, sha256 };
+/**
+ * `sha256` 仍是 `bin/nibi-rs` 的旧字段（Rust 执行器只读它）。Android 另给 `artifacts`
+ * 数组，消费端按 `kind: "cdylib"` 取 `lib/libnibi.so`，校验不过就 fail-closed。
+ */
+export function buildBuildJson({ target, version, sha256, cdylibSha256, sharedLibrarySha256 }) {
+  const artifacts = [
+    { kind: "bin", path: "bin/nibi-rs", sha256 },
+    ...(cdylibSha256
+      ? [{ kind: "cdylib", path: "lib/libnibi.so", sha256: cdylibSha256 }]
+      : []),
+    ...(sharedLibrarySha256
+      ? [{ kind: "shared-library", path: "lib/libc++_shared.so", sha256: sharedLibrarySha256 }]
+      : []),
+  ];
+  return {
+    version,
+    target,
+    sha256,
+    ...(artifacts.length > 1 ? { artifacts } : {}),
+  };
 }
 
 export function assertBinaryMatchesTarget(bytes, target) {
@@ -113,12 +140,37 @@ export function assertBinaryMatchesTarget(bytes, target) {
  * 在临时目录里搭 `package/`，跑 `npm pack`，把 tarball 放到 outDir。
  * 返回 `{ tarball, sha256, integrity, size }`。
  */
-export async function packPlatformPackage({ binaryPath, target, version, outDir }) {
+export async function packPlatformPackage({
+  binaryPath,
+  target,
+  version,
+  outDir,
+  libraryPath,
+  sharedLibraryPath,
+}) {
   const platform = packageIdForTarget(target);
-  const manifest = buildPackageManifest({ target, version });
+  const android = target === "aarch64-linux-android";
+  if (android && !libraryPath) {
+    throw new Error("android platform package requires --lib (lib/libnibi.so)");
+  }
+  if (!android && (libraryPath || sharedLibraryPath)) {
+    throw new Error("only the android platform package carries shared libraries");
+  }
+  const sharedLibrary = Boolean(sharedLibraryPath);
+  const manifest = buildPackageManifest({ target, version, sharedLibrary });
   const bytes = await readFile(binaryPath);
   assertBinaryMatchesTarget(bytes, target);
   const sha256 = createHash("sha256").update(bytes).digest("hex");
+  const cdylibBytes = libraryPath ? await readFile(libraryPath) : undefined;
+  if (cdylibBytes) assertBinaryMatchesTarget(cdylibBytes, target);
+  const cdylibSha256 = cdylibBytes
+    ? createHash("sha256").update(cdylibBytes).digest("hex")
+    : undefined;
+  const sharedLibraryBytes = sharedLibraryPath ? await readFile(sharedLibraryPath) : undefined;
+  if (sharedLibraryBytes) assertBinaryMatchesTarget(sharedLibraryBytes, target);
+  const sharedLibrarySha256 = sharedLibraryBytes
+    ? createHash("sha256").update(sharedLibraryBytes).digest("hex")
+    : undefined;
 
   await mkdir(outDir, { recursive: true });
   const stageRoot = await mkdtemp(join(tmpdir(), `nibi-cli-npm-${platform.id}-`));
@@ -127,7 +179,18 @@ export async function packPlatformPackage({ binaryPath, target, version, outDir 
     await mkdir(join(packageDir, "bin"), { recursive: true });
     await copyFile(binaryPath, join(packageDir, "bin", "nibi-rs"));
     await chmod(join(packageDir, "bin", "nibi-rs"), 0o755);
-    await writeFile(join(packageDir, "build.json"), `${JSON.stringify(buildBuildJson({ target, version, sha256 }), null, 2)}\n`);
+    if (cdylibBytes) {
+      await mkdir(join(packageDir, "lib"), { recursive: true });
+      await writeFile(join(packageDir, "lib", "libnibi.so"), cdylibBytes);
+    }
+    if (sharedLibraryBytes) {
+      await mkdir(join(packageDir, "lib"), { recursive: true });
+      await writeFile(join(packageDir, "lib", "libc++_shared.so"), sharedLibraryBytes);
+    }
+    await writeFile(
+      join(packageDir, "build.json"),
+      `${JSON.stringify(buildBuildJson({ target, version, sha256, cdylibSha256, sharedLibrarySha256 }), null, 2)}\n`,
+    );
     await writeFile(join(packageDir, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
     const packed = JSON.parse(
@@ -150,6 +213,8 @@ export async function packPlatformPackage({ binaryPath, target, version, outDir 
       target,
       tarball,
       sha256,
+      ...(cdylibSha256 ? { cdylibSha256 } : {}),
+      ...(sharedLibrarySha256 ? { sharedLibrarySha256 } : {}),
       integrity: entry.integrity,
       size: entry.size,
     };
@@ -181,6 +246,8 @@ async function main() {
     target: args.target,
     version: args.version,
     outDir: resolve(args.out),
+    ...(args.lib ? { libraryPath: resolve(args.lib) } : {}),
+    ...(args["shared-lib"] ? { sharedLibraryPath: resolve(args["shared-lib"]) } : {}),
   });
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }

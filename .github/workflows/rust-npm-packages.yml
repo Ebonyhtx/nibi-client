@@ -85,7 +85,8 @@ jobs:
             target: aarch64-apple-darwin
             package-id: darwin-arm64
           # Android：NDK 的 clang 交叉编译；runner 镜像自带 NDK（`ANDROID_NDK_HOME`）。
-          # 产物动态链 NDK 的 `libc++_shared.so`（cc 默认），Phase C 打包时一并放进 jniLibs。
+          # `bin/nibi-rs` 按 API 26 编（只做开发机对照）；进程内 `lib/libnibi.so` 单独按
+          # API 24 重链（NIBI-GO minSdk=24），并把 NDK 的 `libc++_shared.so` 一并放进包里。
           - os: ubuntu-24.04
             target: aarch64-linux-android
             package-id: android-arm64
@@ -108,7 +109,7 @@ jobs:
           rustup target add aarch64-linux-android
           NDK="${ANDROID_NDK_HOME:?the runner image must provide ANDROID_NDK_HOME}"
           TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          # NIBI-GO Phase C 的最低 API；改这里要同步 app 的 minSdk。
+          # `bin/nibi-rs` 的 API（开发机对照）；cdylib 在后面的独立 step 用 API 24 重链。
           API=26
           CC="$TOOLCHAIN/aarch64-linux-android${API}-clang"
           test -x "$CC"
@@ -142,6 +143,36 @@ jobs:
         working-directory: kernel
         run: cargo build --locked --release -p nibi-kernel-cli --bin nibi-rs --target ${{ matrix.target }}
 
+      # Android cdylib：先保存 bin（下面 cargo clean 会删掉本包产物），再用 API 24 的
+      # NDK clang 重链 `libnibi.so`。这样 bin 保持 API 26，进程内库满足 GO minSdk=24。
+      - name: Build Android cdylib
+        if: matrix.target == 'aarch64-linux-android'
+        working-directory: kernel
+        run: |
+          set -euo pipefail
+          TARGET="${{ matrix.target }}"
+          cp "target/$TARGET/release/nibi-rs" "$RUNNER_TEMP/nibi-rs"
+          cargo clean -p nibi-kernel-cli
+          NDK="${ANDROID_NDK_HOME:?the runner image must provide ANDROID_NDK_HOME}"
+          TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          API=24
+          CLANG="$TOOLCHAIN/aarch64-linux-android${API}-clang"
+          test -x "$CLANG"
+          export CC_aarch64-linux-android="$CLANG"
+          export CXX_aarch64-linux-android="${CLANG}++"
+          export AR_aarch64-linux-android="$TOOLCHAIN/llvm-ar"
+          export RANLIB_aarch64-linux-android="$TOOLCHAIN/llvm-ranlib"
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$CLANG"
+          cargo build --locked --release -p nibi-kernel-cli --lib --target "$TARGET"
+          cp "target/$TARGET/release/libnibi.so" "$RUNNER_TEMP/libnibi.so"
+          "$TOOLCHAIN/llvm-readelf" -h "$RUNNER_TEMP/libnibi.so" | grep -q "Shared object"
+          "$TOOLCHAIN/llvm-readelf" -n "$RUNNER_TEMP/libnibi.so" | grep -q "Android"
+          "$TOOLCHAIN/llvm-nm" -D --defined-only "$RUNNER_TEMP/libnibi.so" | grep -q "nibi_app_server_start"
+          SHARED="$(find "$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android" -name 'libc++_shared.so' -print -quit)"
+          if [ -n "$SHARED" ]; then
+            cp "$SHARED" "$RUNNER_TEMP/libc++_shared.so"
+          fi
+
       - name: Assert the binary reports the release version
         if: matrix.target != 'aarch64-linux-android'
         run: |
@@ -155,13 +186,25 @@ jobs:
       - name: Pack npm platform package
         id: pack
         run: |
+          set -euo pipefail
           VERSION="${{ steps.version.outputs.version }}"
           echo "packing version $VERSION"
+          TARGET="${{ matrix.target }}"
+          BINARY="kernel/target/$TARGET/release/nibi-rs"
+          EXTRA=()
+          if [ "$TARGET" = "aarch64-linux-android" ]; then
+            BINARY="$RUNNER_TEMP/nibi-rs"
+            EXTRA+=(--lib "$RUNNER_TEMP/libnibi.so")
+            if [ -f "$RUNNER_TEMP/libc++_shared.so" ]; then
+              EXTRA+=(--shared-lib "$RUNNER_TEMP/libc++_shared.so")
+            fi
+          fi
           node scripts/rust-cli/npm/package.mjs \
-            --binary "kernel/target/${{ matrix.target }}/release/nibi-rs" \
-            --target "${{ matrix.target }}" \
+            --binary "$BINARY" \
+            --target "$TARGET" \
             --version "$VERSION" \
-            --out "$RUNNER_TEMP/npm-pack" | tee "$RUNNER_TEMP/pack.json"
+            --out "$RUNNER_TEMP/npm-pack" \
+            "${EXTRA[@]}" | tee "$RUNNER_TEMP/pack.json"
           echo "tarball=$(node -p "require('$RUNNER_TEMP/pack.json').tarball")" >> "$GITHUB_OUTPUT"
 
       # 打包脚本已经自己校验过 ELF/Mach-O 头与 sha256；这里再跑一次 self-test，

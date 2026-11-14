@@ -76,6 +76,16 @@ impl Stop {
         }
     }
 
+    /// 进程内内核（Android cdylib）没有进程信号：宿主取消传入的令牌即停止。
+    pub(crate) fn manual(token: CancellationToken) -> Self {
+        Self {
+            token,
+            cancel: CancellationToken::new(),
+            received: Arc::new(OnceLock::new()),
+            _scope: TaskScope::root("signals.manual", |_| {}),
+        }
+    }
+
     /// 收到过信号时它的退出码。
     pub(crate) fn code(&self) -> Option<u8> {
         self.received.get().map(|signal| signal.code)

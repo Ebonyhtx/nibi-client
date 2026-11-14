@@ -173,6 +173,23 @@ fn database_id(path: &std::path::Path) -> String {
 }
 
 async fn run(parsed: Parsed) -> Result<u8> {
+    let stop = crate::signals::Stop::listen();
+    let input = tokio::io::BufReader::new(tokio::io::stdin());
+    run_with_io(parsed, input, tokio::io::stdout(), &stop).await
+}
+
+/// 进程内内核（Android cdylib）与 stdio app-server 共用这条装配/服务路径；
+/// `input`/`output` 由调用方提供，`stop` 的令牌由宿主取消。
+pub(crate) async fn run_with_io<R, W>(
+    parsed: Parsed,
+    input: R,
+    output: W,
+    stop: &crate::signals::Stop,
+) -> Result<u8>
+where
+    R: tokio::io::AsyncBufRead + Unpin,
+    W: tokio::io::AsyncWrite + Unpin + Send + 'static,
+{
     let startup = crate::capture()?;
     // 用户配置/插件清单/会话库都要先按入口环境定位：Node 的 `NIBI_STORAGE_DIR`
     // 在 spawn 边界映射成 `NIBI_STORAGE_DIR`，这里若用默认值会读真实用户根，
@@ -200,9 +217,8 @@ async fn run(parsed: Parsed) -> Result<u8> {
         tracing::error!(event = "task.panic", scope = %panic.scope, task = panic.task, message = %panic.message, "a task panicked");
     });
     let options = Options::default();
-    let (peer, writer) = connection::start(tokio::io::stdout(), &scope.spawner(), options);
+    let (peer, writer) = connection::start(output, &scope.spawner(), options);
     let context = Arc::new(Context::new(peer, clock.clone()));
-    let stop = crate::signals::Stop::listen();
     let model_io = model_io::ModelIo::default();
     let result = serve(
         startup,
@@ -211,7 +227,8 @@ async fn run(parsed: Parsed) -> Result<u8> {
         context,
         scope.spawner(),
         &model_io,
-        &stop,
+        input,
+        stop,
     )
     .await;
     model_io.flush().await;
@@ -227,15 +244,19 @@ async fn run(parsed: Parsed) -> Result<u8> {
     result.map(|()| code)
 }
 
-async fn serve(
+async fn serve<R>(
     startup: crate::Startup,
     paths: nibi_kernel_paths::StoragePaths,
     clock: Arc<SystemClock>,
     context: Arc<Context>,
     spawner: nibi_kernel_base::Spawner,
     model_io: &model_io::ModelIo,
+    input: R,
     stop: &crate::signals::Stop,
-) -> Result<()> {
+) -> Result<()>
+where
+    R: tokio::io::AsyncBufRead + Unpin,
+{
     let state = Startup::new(context.clone(), database_id(paths.database().as_path()));
     state.checking().await;
     // Browser Use 的模型面是 `node_repl` 的 `js` 工具；它经本地 socket 把命令交回这里，再变成
@@ -534,7 +555,6 @@ async fn serve(
         mode,
         environment: EnvironmentId::new(LOCAL_ENVIRONMENT),
     };
-    let input = tokio::io::BufReader::new(tokio::io::stdin());
     // 进程资源遥测（`process/resourceSample`，141 审计 §9 F3）：桌面资源面板的 `cli_chat` 泳道读它。
     // 只量本进程——切到 Rust 内核后那个进程就是内核，Host 采不到。
     let telemetry = nibi_kernel_protocol_nibi::telemetry::ResourceTelemetry::start(

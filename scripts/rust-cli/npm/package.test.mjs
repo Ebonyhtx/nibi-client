@@ -58,6 +58,15 @@ test("builds the manifest and build.json the kernel expects", () => {
   assert.equal(android.name, "@nibi-studio/cli-android-arm64");
   assert.deepEqual(android.os, ["android"]);
   assert.deepEqual(android.cpu, ["arm64"]);
+  assert.deepEqual(android.files, ["bin/nibi-rs", "build.json", "lib/libnibi.so"]);
+  assert.deepEqual(
+    buildPackageManifest({
+      target: "aarch64-linux-android",
+      version: "4.0.0",
+      sharedLibrary: true,
+    }).files,
+    ["bin/nibi-rs", "build.json", "lib/libnibi.so", "lib/libc++_shared.so"],
+  );
   assert.deepEqual(buildBuildJson({ target: "aarch64-apple-darwin", version: "4.0.0", sha256: "a".repeat(64) }), {
     version: "4.0.0",
     target: "aarch64-apple-darwin",
@@ -112,15 +121,84 @@ test("refuses a binary whose header does not match the target", async () => {
   );
 });
 
-test("packs the android platform package under its own tarball name", async () => {
+test("packs the android platform package with both the bin and the cdylib", async () => {
   const binaryPath = join(root, "nibi-rs-android");
+  const libraryPath = join(root, "libnibi.so");
+  const cdylib = Buffer.concat([fakeElf(), Buffer.from("cdylib")]);
   await writeFile(binaryPath, fakeElf());
+  await writeFile(libraryPath, cdylib);
   const result = await packPlatformPackage({
     binaryPath,
     target: "aarch64-linux-android",
     version: "4.0.0",
     outDir: join(root, "out-android"),
+    libraryPath,
   });
   assert.equal(result.name, "@nibi-studio/cli-android-arm64");
   assert.match(result.tarball, /nibi-studio-cli-android-arm64-4\.0\.0\.tgz$/u);
+  assert.equal(result.cdylibSha256, createHash("sha256").update(cdylib).digest("hex"));
+
+  const extractDir = join(root, "extract-android");
+  await mkdir(extractDir, { recursive: true });
+  execFileSync(systemTar(), ["-xzf", result.tarball], { cwd: extractDir, stdio: "inherit" });
+  assert.deepEqual(await readFile(join(extractDir, "package", "lib", "libnibi.so")), cdylib);
+  const build = JSON.parse(await readFile(join(extractDir, "package", "build.json"), "utf8"));
+  assert.deepEqual(build.artifacts, [
+    { kind: "bin", path: "bin/nibi-rs", sha256: result.sha256 },
+    { kind: "cdylib", path: "lib/libnibi.so", sha256: result.cdylibSha256 },
+  ]);
+  assert.equal(build.sha256, result.sha256);
+});
+
+test("android can carry the NDK shared C++ runtime", async () => {
+  const binaryPath = join(root, "nibi-rs-android-shared");
+  const libraryPath = join(root, "libnibi-shared.so");
+  const sharedPath = join(root, "libc++_shared.so");
+  await writeFile(binaryPath, fakeElf());
+  await writeFile(libraryPath, Buffer.concat([fakeElf(), Buffer.from("cdylib")]));
+  await writeFile(sharedPath, Buffer.concat([fakeElf(), Buffer.from("shared")]));
+  const result = await packPlatformPackage({
+    binaryPath,
+    target: "aarch64-linux-android",
+    version: "4.0.0",
+    outDir: join(root, "out-android-shared"),
+    libraryPath,
+    sharedLibraryPath: sharedPath,
+  });
+  const extractDir = join(root, "extract-android-shared");
+  await mkdir(extractDir, { recursive: true });
+  execFileSync(systemTar(), ["-xzf", result.tarball], { cwd: extractDir, stdio: "inherit" });
+  assert.deepEqual(
+    await readFile(join(extractDir, "package", "lib", "libc++_shared.so")),
+    Buffer.concat([fakeElf(), Buffer.from("shared")]),
+  );
+  const build = JSON.parse(await readFile(join(extractDir, "package", "build.json"), "utf8"));
+  assert.deepEqual(
+    build.artifacts.map((artifact) => artifact.path),
+    ["bin/nibi-rs", "lib/libnibi.so", "lib/libc++_shared.so"],
+  );
+});
+
+test("android packaging requires the cdylib and other targets reject it", async () => {
+  const binaryPath = join(root, "nibi-rs-required");
+  await writeFile(binaryPath, fakeElf());
+  await assert.rejects(
+    packPlatformPackage({
+      binaryPath,
+      target: "aarch64-linux-android",
+      version: "4.0.0",
+      outDir: join(root, "out-required"),
+    }),
+    /requires --lib/u,
+  );
+  await assert.rejects(
+    packPlatformPackage({
+      binaryPath,
+      target: "x86_64-unknown-linux-gnu",
+      version: "4.0.0",
+      outDir: join(root, "out-non-android-lib"),
+      libraryPath: binaryPath,
+    }),
+    /only the android platform package/u,
+  );
 });

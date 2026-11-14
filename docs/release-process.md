@@ -36,10 +36,13 @@ npm 上只有两层包，版本始终等于根 `package.json` 的产品版本：
 
 - **平台包**：`@nibi-studio/cli-<platform>`，平台见 `scripts/rust-cli/npm/package.mjs` 的
   `TARGETS`（`linux-x64-gnu`、`linux-arm64-gnu`、`darwin-arm64`、`android-arm64`；Intel Mac 与
-  Windows 不发布）。内容：`bin/nibi-rs` + `build.json` + `package.json`。内核按
+  Windows 不发布）。内容：`bin/nibi-rs` + `build.json` + `package.json`；Android 平台包另有
+  `lib/libnibi.so`（进程内 cdylib，API 24）与可选的 `lib/libc++_shared.so`，`build.json.artifacts`
+  逐项给出路径与 sha256。内核按
   `@nibi-studio/cli-<Platform::package_id()>@<自身版本>` 取包，404 退 `latest`，再用
   `exec-wire::handshake::PROTOCOL` 核对协议。这条是 SSH 远端部署的路径；`android-arm64` 只供
-  NIBI-GO 直接消费 tarball，不经过内核的 SSH 远端 `Platform`。
+  NIBI-GO 直接消费 tarball，不经过内核的 SSH 远端 `Platform`，cdylib 入口见
+  `docs/android-cdylib-abi.md`。
 - **META 入口包**：`@nibi-studio/cli`，只含 `bin/nibi` 启动器、README/LICENSE 与精确锁版本的
   `optionalDependencies`。它是**唯一**暴露全局 `nibi` bin 的 npm 包（用户安装
   `npm install -g @nibi-studio/cli`）：启动器按 `process.platform`/`process.arch` 解析同版本

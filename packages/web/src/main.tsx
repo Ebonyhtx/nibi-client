@@ -82,7 +82,7 @@ import {
   createWebRemoteControlDeviceClient,
   createWebRemoteControlBridgeRecoveryRunner,
   getWebRemoteControlBridgeRecoveryRetryDelay,
-  WebRemoteControlTerminalTransport,
+  createWebRemoteControlTransport,
   type WebRemoteControlTerminalTransportDiagnostic,
   type WebRemoteControlTerminalTransportState,
   createWebRemoteControlAppPayloadRequester,
@@ -1342,7 +1342,7 @@ async function bootstrapExternalRelayWebRemoteControl(
   const taskViewPublisher = createWebRemoteControlTaskViewPublisher(
     (payload) => !terminated && !versionGuard.isBlocked() && transport.sendPayload(payload),
   );
-  const transport = new WebRemoteControlTerminalTransport({
+  const transport = createWebRemoteControlTransport({
     relayWsUrl: resolveExternalRelayWsUrl(),
     deviceSid: relayParams.deviceSid,
     deviceMid: relayParams.deviceMid,

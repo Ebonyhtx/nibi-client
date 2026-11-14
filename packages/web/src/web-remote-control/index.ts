@@ -1,4 +1,5 @@
 export type * from "#src/web-remote-control/contract.js";
+export * from "#src/web-remote-control/adapters/createWebRemoteControlTransport.js";
 export * from "#src/web-remote-control/adapters/payloadRequester.js";
 export * from "#src/web-remote-control/adapters/webRemoteControlDeviceClient.js";
 export * from "#src/web-remote-control/adapters/webRemoteControlDeviceInfo.js";
