@@ -71,10 +71,12 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
   不是签名的 `.app`），暂缓只是因为当前没有 Mac 用户。
 - **Windows 公开只发 NSIS 安装包**。`zip` 只作为内部/测试备用件，不作为公开主下载，也不承诺
   自动更新或卸载能力；NSIS 是 `oneClick: false` 的 per-user 安装，普通用户不需要管理员权限。
-- **Windows 4.1 NSIS 开启自动更新**：发布构建显式设 `NIBI_AUTO_UPDATE=1`；发布库存必须带
-  `files[].sha512` 与更新 manifest，客户端按 electron-updater 的 sha512 校验更新包。未签名
-  首装仍可能触发 SmartScreen，但安装一次后后续更新走清单校验，不需要重新访问官网；ZIP 版
-  没有更新器，不要把它当自动更新载体。
+- **Windows 4.1 NSIS 开启更新检查与通知**：发布构建显式设 `NIBI_AUTO_UPDATE=1`；这是
+  “检查到新版本 → 左上角绿色更新按钮 / 查看 release notes → 用户点击下载安装”，不是静默
+  覆盖。`autoDownloadAndInstallUpdates` 仍是用户设置，默认 `false`；只有用户自己打开才会
+  自动下载。发布库存必须带 `files[].sha512` 与更新 manifest，客户端按 electron-updater 的
+  sha512 校验更新包。未签名首装仍可能触发 SmartScreen，但安装一次后后续更新走清单校验，
+  不需要重新访问官网；ZIP 版没有更新器，不要把它当更新载体。
 
 ## 发布一个版本
 
@@ -93,8 +95,8 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
    `4.0.2` 的包）。META 的 `optionalDependencies` 精确锁定同版本平台包，平台包缺一个就不会发
    META。
 6. 桌面安装包、Source Server、两个 Web SPA、插件市场沿用各自流程，同样以这次 `main` 的 commit
-   为准。Windows 4.1 桌面构建必须显式带 `NIBI_AUTO_UPDATE=1`（否则客户端不会检查更新）；公开只上传
-   NSIS，不上传 ZIP。候选包出来但还没上传时，可以先用 `release:record --artifact <id> --stage built` 记一笔。
+   为准。Windows 4.1 桌面构建必须显式带 `NIBI_AUTO_UPDATE=1`（否则客户端不会检查更新；开启的是
+   通知/点击更新，默认不会静默下载安装）；公开只上传 NSIS，不上传 ZIP。候选包出来但还没上传时，可以先用 `release:record --artifact <id> --stage built` 记一笔。
 7. 全部上传后运行 `pnpm release:verify`；有缺件就补，直到通过。通过后执行
    `pnpm release:verify --record` 把 `published`/`verified` 写进 `release/ledger.json` 并提交。
 8. 如果发布后又有代码改动，先 bump 版本再发下一版；`release:status` 会提示“标签已存在但之后又有改动”。
