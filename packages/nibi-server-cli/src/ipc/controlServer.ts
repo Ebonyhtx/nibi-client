@@ -19,14 +19,13 @@ async function waitForEndpoint(endpoint: string, attempts = 20): Promise<void> {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const ready = await new Promise<boolean>((resolve) => {
       const socket = connect(endpoint);
-      socket.once("connect", () => {
+      const finish = (ready: boolean) => {
         socket.destroy();
-        resolve(true);
-      });
-      socket.once("error", () => {
-        socket.destroy();
-        resolve(false);
-      });
+        resolve(ready);
+      };
+      socket.setTimeout(250, () => finish(false));
+      socket.once("connect", () => finish(true));
+      socket.once("error", () => finish(false));
     });
     if (ready) return;
     await new Promise<void>((resolve) => setTimeout(resolve, 25));
