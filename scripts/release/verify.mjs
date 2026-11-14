@@ -24,7 +24,7 @@ import { checkArtifact } from "./checks.mjs";
 const USAGE = `用法：node scripts/release/verify.mjs [--record] [--deep] [--json] [--root <repo>]
 
   --record  全部通过后把 published/verified 写进 release/ledger.json
-  --deep    Source Server 额外下载四个 archive 并校验 sha256（慢、耗流量）
+  --deep    Source Server 额外下载全部 archive 并校验 sha256（慢、耗流量）
   --json    输出机器可读结果
   --root    仓库根目录（默认当前仓库）
 

@@ -35,11 +35,15 @@ const TARGETS = {
   "x86_64-unknown-linux-gnu": { id: "linux-x64-gnu", os: "linux", cpu: "x64", format: "elf" },
   "aarch64-unknown-linux-gnu": { id: "linux-arm64-gnu", os: "linux", cpu: "arm64", format: "elf" },
   "aarch64-apple-darwin": { id: "darwin-arm64", os: "darwin", cpu: "arm64", format: "macho" },
+  // Windows 平台包只服务本机命令行；远端执行器的 `Platform` 表仍只有 linux/darwin。
+  "x86_64-pc-windows-msvc": { id: "win32-x64-msvc", os: "win32", cpu: "x64", format: "pe" },
   // NIBI-GO 的本机内核（Phase C）：Android 只消费 npm 包，不经过内核的 ssh-connect `Platform`。
   "aarch64-linux-android": { id: "android-arm64", os: "android", cpu: "arm64", format: "elf" },
 };
 
 const ELF_MAGIC = Buffer.from([0x7f, 0x45, 0x4c, 0x46]);
+const PE_DOS_MAGIC = Buffer.from([0x4d, 0x5a]);
+const PE_SIGNATURE = Buffer.from([0x50, 0x45, 0x00, 0x00]);
 // Mach-O：32/64 位、小端/大端，以及 universal（fat）头。
 const MACHO_MAGICS = [
   Buffer.from([0xce, 0xfa, 0xed, 0xfe]),
@@ -57,6 +61,15 @@ export function packageIdForTarget(target) {
     );
   }
   return platform;
+}
+
+/** Windows 的可执行文件必须带 `.exe`；其它平台沿用 `nibi-rs`（命令名仍是 `nibi`）。 */
+export function binaryFileNameForTarget(target) {
+  return packageIdForTarget(target).format === "pe" ? "nibi.exe" : "nibi-rs";
+}
+
+export function binaryPathForTarget(target) {
+  return `bin/${binaryFileNameForTarget(target)}`;
 }
 
 // 与 Rust `plain_version` 同口径：注册表的 latest 会进本机缓存与远端路径。
@@ -82,6 +95,7 @@ export function buildPackageManifest({ target, version, sharedLibrary = false })
     throw new Error(`invalid version ${JSON.stringify(version)}`);
   }
   const android = target === "aarch64-linux-android";
+  const binaryPath = binaryPathForTarget(target);
   return {
     name: `@nibi-studio/cli-${platform.id}`,
     version,
@@ -90,9 +104,9 @@ export function buildPackageManifest({ target, version, sharedLibrary = false })
     repository: { type: "git", url: REPOSITORY_URL },
     os: [platform.os],
     cpu: [platform.cpu],
-    bin: { "nibi-rs": "bin/nibi-rs" },
+    bin: { "nibi-rs": binaryPath },
     files: [
-      "bin/nibi-rs",
+      binaryPath,
       "build.json",
       ...(android ? ["lib/libnibi.so"] : []),
       ...(android && sharedLibrary ? ["lib/libc++_shared.so"] : []),
@@ -107,7 +121,7 @@ export function buildPackageManifest({ target, version, sharedLibrary = false })
  */
 export function buildBuildJson({ target, version, sha256, cdylibSha256, sharedLibrarySha256 }) {
   const artifacts = [
-    { kind: "bin", path: "bin/nibi-rs", sha256 },
+    { kind: "bin", path: binaryPathForTarget(target), sha256 },
     ...(cdylibSha256
       ? [{ kind: "cdylib", path: "lib/libnibi.so", sha256: cdylibSha256 }]
       : []),
@@ -123,15 +137,32 @@ export function buildBuildJson({ target, version, sha256, cdylibSha256, sharedLi
   };
 }
 
+function isPeExecutable(bytes) {
+  if (bytes.length < 0x40 || !bytes.subarray(0, 2).equals(PE_DOS_MAGIC)) return false;
+  const peOffset = bytes.readUInt32LE(0x3c);
+  return (
+    peOffset + PE_SIGNATURE.length <= bytes.length &&
+    bytes.subarray(peOffset, peOffset + PE_SIGNATURE.length).equals(PE_SIGNATURE)
+  );
+}
+
 export function assertBinaryMatchesTarget(bytes, target) {
   const platform = packageIdForTarget(target);
   const matches =
     platform.format === "elf"
       ? bytes.subarray(0, 4).equals(ELF_MAGIC)
-      : MACHO_MAGICS.some((magic) => bytes.subarray(0, 4).equals(magic));
+      : platform.format === "pe"
+        ? isPeExecutable(bytes)
+        : MACHO_MAGICS.some((magic) => bytes.subarray(0, 4).equals(magic));
   if (!matches) {
+    const expected =
+      platform.format === "elf"
+        ? "Linux ELF"
+        : platform.format === "pe"
+          ? "Windows PE"
+          : "Mach-O";
     throw new Error(
-      `binary does not look like a ${platform.format === "elf" ? "Linux ELF" : "Mach-O"} executable; refusing to package it for ${target}`,
+      `binary does not look like a ${expected} executable; refusing to package it for ${target}`,
     );
   }
 }
@@ -176,9 +207,10 @@ export async function packPlatformPackage({
   const stageRoot = await mkdtemp(join(tmpdir(), `nibi-cli-npm-${platform.id}-`));
   const packageDir = join(stageRoot, "package");
   try {
+    const binaryFileName = binaryFileNameForTarget(target);
     await mkdir(join(packageDir, "bin"), { recursive: true });
-    await copyFile(binaryPath, join(packageDir, "bin", "nibi-rs"));
-    await chmod(join(packageDir, "bin", "nibi-rs"), 0o755);
+    await copyFile(binaryPath, join(packageDir, "bin", binaryFileName));
+    await chmod(join(packageDir, "bin", binaryFileName), 0o755);
     if (cdylibBytes) {
       await mkdir(join(packageDir, "lib"), { recursive: true });
       await writeFile(join(packageDir, "lib", "libnibi.so"), cdylibBytes);

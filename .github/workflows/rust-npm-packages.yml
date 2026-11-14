@@ -52,6 +52,10 @@ on:
         description: "Version to pack (default: the root package.json version)"
         type: string
         default: ""
+      dist_tag:
+        description: "npm dist-tag（默认 latest；预发布用 android-next，见 D21）"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -84,6 +88,11 @@ jobs:
           - os: macos-latest
             target: aarch64-apple-darwin
             package-id: darwin-arm64
+          # Windows 平台包只服务本机命令行（远端执行器的 `Platform` 仍只有 linux/darwin）。
+          # runner 直接编 x86_64-pc-windows-msvc，二进制在包内必须叫 `bin/nibi.exe`。
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            package-id: win32-x64-msvc
           # Android：NDK 的 clang 交叉编译；runner 镜像自带 NDK（`ANDROID_NDK_HOME`）。
           # `bin/nibi-rs` 按 API 26 编（只做开发机对照）；进程内 `lib/libnibi.so` 单独按
           # API 24 重链（NIBI-GO minSdk=24），并把 NDK 的 `libc++_shared.so` 一并放进包里。
@@ -172,6 +181,13 @@ jobs:
           "$TOOLCHAIN/llvm-readelf" -h "$RUNNER_TEMP/libnibi.so" | grep -q "Shared object"
           "$TOOLCHAIN/llvm-readelf" -n "$RUNNER_TEMP/libnibi.so" | grep -q "Android"
           "$TOOLCHAIN/llvm-nm" -D --defined-only "$RUNNER_TEMP/libnibi.so" | grep -q "nibi_app_server_start"
+          # 16 KB page size（Play 对 targetSdk 35+ 的要求）：所有 LOAD 段必须 2**14 对齐。
+          # 对齐值在 `llvm-readelf -l` 的最后一列；NDK r27 默认 4 KB，靠 .cargo/config.toml 的链接参数抬到 16 KB。
+          if ! "$TOOLCHAIN/llvm-readelf" -l "$RUNNER_TEMP/libnibi.so" \
+            | awk '$1 == "LOAD" { print $NF }' | grep -qx "0x4000"; then
+            echo "libnibi.so 的 LOAD 段没有 16 KB 对齐（见 kernel/.cargo/config.toml）" >&2
+            exit 1
+          fi
           SHARED="$(find "$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android" -name 'libc++_shared.so' -print -quit)"
           if [ -n "$SHARED" ]; then
             cp "$SHARED" "$RUNNER_TEMP/libc++_shared.so"
@@ -179,9 +195,14 @@ jobs:
 
       - name: Assert the binary reports the release version
         if: matrix.target != 'aarch64-linux-android'
+        shell: bash
         run: |
           set -euo pipefail
-          REPORTED="$(kernel/target/${{ matrix.target }}/release/nibi-rs --version | awk '{print $2}')"
+          BIN="kernel/target/${{ matrix.target }}/release/nibi-rs"
+          if [ "${{ matrix.target }}" = "x86_64-pc-windows-msvc" ]; then
+            BIN="$BIN.exe"
+          fi
+          REPORTED="$("$BIN" --version | awk '{print $2}')"
           if [ "$REPORTED" != "${{ steps.version.outputs.version }}" ]; then
             echo "::error::the kernel reports $REPORTED but the package is ${{ steps.version.outputs.version }}"
             exit 1
@@ -189,12 +210,16 @@ jobs:
 
       - name: Pack npm platform package
         id: pack
+        shell: bash
         run: |
           set -euo pipefail
           VERSION="${{ steps.version.outputs.version }}"
           echo "packing version $VERSION"
           TARGET="${{ matrix.target }}"
           BINARY="kernel/target/$TARGET/release/nibi-rs"
+          if [ "$TARGET" = "x86_64-pc-windows-msvc" ]; then
+            BINARY="$BINARY.exe"
+          fi
           EXTRA=()
           if [ "$TARGET" = "aarch64-linux-android" ]; then
             BINARY="$RUNNER_TEMP/nibi-rs"
@@ -252,6 +277,8 @@ jobs:
             package-id: linux-arm64-gnu
           - os: macos-latest
             package-id: darwin-arm64
+          - os: windows-latest
+            package-id: win32-x64-msvc
           - os: ubuntu-24.04
             package-id: android-arm64
     steps:
@@ -267,6 +294,7 @@ jobs:
           path: pack
 
       - name: Publish with OIDC
+        shell: bash
         run: |
           set -euo pipefail
           # trusted publishing 要求 npm CLI ≥ 11.5.1（Node 24 自带的一般满足，升级一次最稳）。
@@ -288,7 +316,22 @@ jobs:
             echo "::notice::$PKG@$VERSION is already published; nothing to do"
             exit 0
           fi
-          npm publish "$TARBALL" --access public --provenance
+          # D21：预发布版本走专用 dist-tag（android-next），绝不打 latest；
+          # 标签发版（push v*）恒为 latest。
+          DIST_TAG="${{ inputs.dist_tag }}"
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            DIST_TAG=latest
+          fi
+          [ -n "$DIST_TAG" ] || DIST_TAG=latest
+          case "$VERSION" in
+            *-*)
+              if [ "$DIST_TAG" = "latest" ]; then
+                echo "::error::预发布版本 $VERSION 不允许打 latest 标签；请传 dist_tag（如 android-next）"
+                exit 1
+              fi
+              ;;
+          esac
+          npm publish "$TARBALL" --access public --provenance --tag "$DIST_TAG"
 
   # META 入口包：平台包全部成功发布后才跑（`needs: publish` 会等所有 matrix leg）。
   # 它自己有 pack + publish 两步，因为 META 包与平台包不同 runner、没有二进制要构建。
@@ -386,4 +429,18 @@ jobs:
             echo "::notice::$PKG@$VERSION is already published; nothing to do"
             exit 0
           fi
-          npm publish "$TARBALL" --access public --provenance
+          # 与平台包同一套 dist-tag 规则（D21）：预发布走 android-next，不打 latest。
+          DIST_TAG="${{ inputs.dist_tag }}"
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            DIST_TAG=latest
+          fi
+          [ -n "$DIST_TAG" ] || DIST_TAG=latest
+          case "$VERSION" in
+            *-*)
+              if [ "$DIST_TAG" = "latest" ]; then
+                echo "::error::预发布版本 $VERSION 不允许打 latest 标签；请传 dist_tag（如 android-next）"
+                exit 1
+              fi
+              ;;
+          esac
+          npm publish "$TARBALL" --access public --provenance --tag "$DIST_TAG"

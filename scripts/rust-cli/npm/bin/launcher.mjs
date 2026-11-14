@@ -20,6 +20,7 @@ export const PLATFORM_PACKAGES = Object.freeze({
   "linux-x64": "@nibi-studio/cli-linux-x64-gnu",
   "linux-arm64": "@nibi-studio/cli-linux-arm64-gnu",
   "darwin-arm64": "@nibi-studio/cli-darwin-arm64",
+  "win32-x64": "@nibi-studio/cli-win32-x64-msvc",
   "android-arm64": "@nibi-studio/cli-android-arm64",
 });
 
@@ -30,7 +31,7 @@ const MANAGER_MARKERS = Object.freeze([
   ["NIBI_MANAGED_BY_BUN", "bun"],
 ]);
 
-/** 转发给子进程的信号。SIGBREAK 只在 Windows 有意义，而 Windows 没有平台包。 */
+/** 转发给子进程的信号；Windows 用 SIGINT/SIGTERM 即可，SIGBREAK 不转发。 */
 export const FORWARDED_SIGNALS = Object.freeze(["SIGINT", "SIGTERM", "SIGHUP", "SIGQUIT"]);
 
 /**
@@ -63,10 +64,11 @@ export function resolvePlatformBinary({
 } = {}) {
   const packageName = platformPackageName({ platform, arch });
   const require = createRequire(requireFrom);
+  const binaryFileName = platform === "win32" ? "nibi.exe" : "nibi-rs";
   try {
     return {
       packageName,
-      binaryPath: require.resolve(`${packageName}/bin/nibi-rs`),
+      binaryPath: require.resolve(`${packageName}/bin/${binaryFileName}`),
     };
   } catch (cause) {
     throw new Error(

@@ -54,6 +54,7 @@ const NPM_ARTIFACT = {
       "@nibi-studio/cli-linux-x64-gnu",
       "@nibi-studio/cli-linux-arm64-gnu",
       "@nibi-studio/cli-darwin-arm64",
+      "@nibi-studio/cli-win32-x64-msvc",
       "@nibi-studio/cli-android-arm64",
     ],
     meta: "@nibi-studio/cli",
@@ -409,7 +410,7 @@ test("checkNpm accepts all five packages and rejects a META version mismatch", a
   const good = await checkNpm(NPM_ARTIFACT, { version, fetchImpl, retries: 0 });
   assert.equal(good.valid, true);
   assert.equal(good.current, true);
-  assert.equal(good.present, 5);
+  assert.equal(good.present, 6);
 
   const mismatch = npmCatalog(version, { metaVersion: "4.0.2" });
   const bad = await checkNpm(NPM_ARTIFACT, {
@@ -438,8 +439,8 @@ test("checkNpm reports a missing META package without treating the whole registr
   });
   assert.equal(result.valid, true);
   assert.equal(result.current, false);
-  assert.equal(result.present, 4);
-  assert.match(result.detail, /4\/5/u);
+  assert.equal(result.present, 5);
+  assert.match(result.detail, /5\/6/u);
 });
 
 function sourceDescriptor(version) {

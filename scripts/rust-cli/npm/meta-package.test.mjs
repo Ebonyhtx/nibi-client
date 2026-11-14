@@ -37,14 +37,19 @@ function systemTar() {
   return join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe");
 }
 
-async function writeFakePlatformPackage({ appDirectory, packageName, executable }) {
+async function writeFakePlatformPackage({
+  appDirectory,
+  packageName,
+  executable,
+  binaryName = "nibi-rs",
+}) {
   const packageDirectory = join(appDirectory, "node_modules", ...packageName.split("/"));
   await mkdir(join(packageDirectory, "bin"), { recursive: true });
   await writeFile(
     join(packageDirectory, "package.json"),
     `${JSON.stringify({ name: packageName, version: "0.0.0" }, null, 2)}\n`,
   );
-  const binaryPath = join(packageDirectory, "bin", "nibi-rs");
+  const binaryPath = join(packageDirectory, "bin", binaryName);
   await writeFile(binaryPath, executable);
   if (process.platform !== "win32") await chmod(binaryPath, 0o755);
   return binaryPath;
@@ -97,17 +102,24 @@ before(async () => {
     packageName: "@nibi-studio/cli-linux-x64-gnu",
     executable: Buffer.from("fake-binary"),
   });
+  await writeFakePlatformPackage({
+    appDirectory: resolveFixture,
+    packageName: "@nibi-studio/cli-win32-x64-msvc",
+    executable: Buffer.from("fake-windows-binary"),
+    binaryName: "nibi.exe",
+  });
 });
 
 after(async () => {
   await rm(root, { force: true, recursive: true });
 });
 
-test("the launcher maps exactly the four published platform packages", () => {
+test("the launcher maps exactly the five published platform packages", () => {
   assert.deepEqual(Object.keys(PLATFORM_PACKAGES), [
     "linux-x64",
     "linux-arm64",
     "darwin-arm64",
+    "win32-x64",
     "android-arm64",
   ]);
   // 平台包清单与 package.mjs 的 TARGETS 是同一份发布矩阵；新增 target 时两边一起改。
@@ -120,18 +132,19 @@ test("the launcher maps exactly the four published platform packages", () => {
   assert.equal(platformPackageName({ platform: "linux", arch: "x64" }), "@nibi-studio/cli-linux-x64-gnu");
   assert.equal(platformPackageName({ platform: "linux", arch: "arm64" }), "@nibi-studio/cli-linux-arm64-gnu");
   assert.equal(platformPackageName({ platform: "darwin", arch: "arm64" }), "@nibi-studio/cli-darwin-arm64");
+  assert.equal(platformPackageName({ platform: "win32", arch: "x64" }), "@nibi-studio/cli-win32-x64-msvc");
   assert.equal(platformPackageName({ platform: "android", arch: "arm64" }), "@nibi-studio/cli-android-arm64");
 });
 
 test("unsupported platforms fail closed with the supported list", () => {
   for (const platform of [
-    { platform: "win32", arch: "x64" },
+    { platform: "win32", arch: "arm64" },
     { platform: "darwin", arch: "x64" },
     { platform: "linux", arch: "s390x" },
   ]) {
     assert.throws(
       () => platformPackageName(platform),
-      /unsupported platform .*; supported platforms: linux-x64, linux-arm64, darwin-arm64, android-arm64/u,
+      /unsupported platform .*; supported platforms: linux-x64, linux-arm64, darwin-arm64, win32-x64, android-arm64/u,
     );
   }
 });
@@ -147,6 +160,7 @@ test("the META manifest pins exact platform versions and exposes only the nibi b
     "@nibi-studio/cli-linux-x64-gnu": "4.2.0",
     "@nibi-studio/cli-linux-arm64-gnu": "4.2.0",
     "@nibi-studio/cli-darwin-arm64": "4.2.0",
+    "@nibi-studio/cli-win32-x64-msvc": "4.2.0",
     "@nibi-studio/cli-android-arm64": "4.2.0",
   });
   for (const version of Object.values(manifest.optionalDependencies)) {
@@ -210,6 +224,19 @@ test("resolves bin/nibi-rs from the installed platform package", () => {
   assert.equal(
     resolved.binaryPath,
     join(resolveFixture, "node_modules", "@nibi-studio", "cli-linux-x64-gnu", "bin", "nibi-rs"),
+  );
+});
+
+test("resolves bin/nibi.exe from the windows platform package", () => {
+  const resolved = resolvePlatformBinary({
+    platform: "win32",
+    arch: "x64",
+    requireFrom: resolveRequireFrom,
+  });
+  assert.equal(resolved.packageName, "@nibi-studio/cli-win32-x64-msvc");
+  assert.equal(
+    resolved.binaryPath,
+    join(resolveFixture, "node_modules", "@nibi-studio", "cli-win32-x64-msvc", "bin", "nibi.exe"),
   );
 });
 
@@ -348,7 +375,7 @@ test("unsupported platforms and missing packages exit 1 with a readable message"
     const unsupported = fakeStdio();
     runLauncher({
       platform: "win32",
-      arch: "x64",
+      arch: "arm64",
       requireFrom: resolveRequireFrom,
       spawnImpl: () => {
         throw new Error("must not spawn");
@@ -356,7 +383,7 @@ test("unsupported platforms and missing packages exit 1 with a readable message"
       stderr: unsupported,
     });
     assert.equal(process.exitCode, 1);
-    assert.match(unsupported.text, /unsupported platform win32-x64/u);
+    assert.match(unsupported.text, /unsupported platform win32-arm64/u);
 
     const missing = fakeStdio();
     runLauncher({

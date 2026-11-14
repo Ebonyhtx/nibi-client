@@ -25,7 +25,7 @@ export function npmRegistryUrl(packageName) {
 }
 
 /**
- * npm 平台包 + META。META 必须精确锁定同版本四个平台包，否则即使用户装到
+ * npm 平台包 + META。META 必须精确锁定同版本的全部平台包，否则即使用户装到
  * 入口包，也可能在某个平台装不出可用内核。
  */
 export async function checkNpm(artifact, { version, fetchImpl, retries, timeoutMs } = {}) {

@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 import {
+  binaryFileNameForTarget,
   buildBuildJson,
   buildPackageManifest,
   isValidVersion,
@@ -37,11 +38,23 @@ function fakeElf() {
   return Buffer.concat([Buffer.from([0x7f, 0x45, 0x4c, 0x46, 0x02, 0x01, 0x01]), Buffer.from("nibi")]);
 }
 
+function fakePe() {
+  // DOS 头（MZ + e_lfanew）+ PE 签名；只验证打包器的格式门。
+  const bytes = Buffer.alloc(0x48);
+  bytes.write("MZ", 0, "ascii");
+  bytes.writeUInt32LE(0x40, 0x3c);
+  bytes.write("PE\0\0", 0x40, "binary");
+  return bytes;
+}
+
 test("maps the published targets and refuses Intel Mac", () => {
   assert.equal(packageIdForTarget("x86_64-unknown-linux-gnu").id, "linux-x64-gnu");
   assert.equal(packageIdForTarget("aarch64-unknown-linux-gnu").id, "linux-arm64-gnu");
   assert.equal(packageIdForTarget("aarch64-apple-darwin").id, "darwin-arm64");
+  assert.equal(packageIdForTarget("x86_64-pc-windows-msvc").id, "win32-x64-msvc");
   assert.equal(packageIdForTarget("aarch64-linux-android").id, "android-arm64");
+  assert.equal(binaryFileNameForTarget("x86_64-pc-windows-msvc"), "nibi.exe");
+  assert.equal(binaryFileNameForTarget("x86_64-unknown-linux-gnu"), "nibi-rs");
   assert.throws(() => packageIdForTarget("x86_64-apple-darwin"), /unsupported target/u);
 });
 
@@ -53,6 +66,12 @@ test("builds the manifest and build.json the kernel expects", () => {
   assert.equal(manifest.repository.url, "git+https://github.com/Ebonyhtx/nibi-client.git");
   assert.deepEqual(manifest.cpu, ["x64"]);
   assert.deepEqual(manifest.files, ["bin/nibi-rs", "build.json"]);
+  const windows = buildPackageManifest({ target: "x86_64-pc-windows-msvc", version: "4.0.0" });
+  assert.equal(windows.name, "@nibi-studio/cli-win32-x64-msvc");
+  assert.deepEqual(windows.os, ["win32"]);
+  assert.deepEqual(windows.cpu, ["x64"]);
+  assert.deepEqual(windows.bin, { "nibi-rs": "bin/nibi.exe" });
+  assert.deepEqual(windows.files, ["bin/nibi.exe", "build.json"]);
   // Android 的包名/平台字段：NIBI-GO 按 registry 的包名直接取，`os` 必须写 android。
   const android = buildPackageManifest({ target: "aarch64-linux-android", version: "4.0.0" });
   assert.equal(android.name, "@nibi-studio/cli-android-arm64");
@@ -119,6 +138,27 @@ test("refuses a binary whose header does not match the target", async () => {
     }),
     /does not look like a Linux ELF/u,
   );
+});
+
+test("packs the windows platform package with bin/nibi.exe", async () => {
+  const binaryPath = join(root, "nibi.exe");
+  await writeFile(binaryPath, fakePe());
+  const result = await packPlatformPackage({
+    binaryPath,
+    target: "x86_64-pc-windows-msvc",
+    version: "4.0.0",
+    outDir: join(root, "out-win"),
+  });
+  assert.equal(result.name, "@nibi-studio/cli-win32-x64-msvc");
+  assert.equal(result.sha256, createHash("sha256").update(fakePe()).digest("hex"));
+
+  const extractDir = join(root, "extract-win");
+  await mkdir(extractDir, { recursive: true });
+  execFileSync(systemTar(), ["-xzf", result.tarball], { cwd: extractDir, stdio: "inherit" });
+  const manifest = JSON.parse(await readFile(join(extractDir, "package", "package.json"), "utf8"));
+  assert.equal(manifest.name, "@nibi-studio/cli-win32-x64-msvc");
+  assert.deepEqual(manifest.bin, { "nibi-rs": "bin/nibi.exe" });
+  assert.deepEqual(await readFile(join(extractDir, "package", "bin", "nibi.exe")), fakePe());
 });
 
 test("packs the android platform package with both the bin and the cdylib", async () => {

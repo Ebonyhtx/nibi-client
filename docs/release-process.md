@@ -47,7 +47,7 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
 
 | id              | 产物                                                | verify 检查                                                                   |
 | --------------- | --------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `npm`           | 四个 `@nibi-studio/cli-*` + META `@nibi-studio/cli` | 注册表里同版本存在、tarball 有 sha512、META 精确锁定四个平台包                |
+| `npm`           | 五个 `@nibi-studio/cli-*` + META `@nibi-studio/cli` | 注册表里同版本存在、tarball 有 sha512、META 精确锁定五个平台包                |
 | `source-server` | `nibi-server-<target>.tar.gz` × 2 + descriptor      | descriptor 版本/两 Linux target/档案存在/大小；`--deep` 再校验 sha256         |
 | `desktop`       | Windows/Linux 安装包与更新库存（macOS 暂缓）        | 每个已发布平台的更新 manifest 与 downloads 库存都返回当前版本                 |
 | `web-remote`    | 手机远控 SPA `/remote/v4`                           | 页面 `nibi-release-version`/`nibi-release-surface` meta（release.json 兜底）  |
@@ -90,7 +90,7 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
    git tag v4.1.0 <main 的 commit>
    git push origin v4.1.0
    ```
-5. 标签推送会触发 `rust-npm-packages`：先发布四个平台包（`@nibi-studio/cli-*`），全部成功后
+5. 标签推送会触发 `rust-npm-packages`：先发布五个平台包（`@nibi-studio/cli-*`），全部成功后
    `meta` job 再打包并发布入口包 `@nibi-studio/cli`。两层包都自动带 provenance，并共用根
    `package.json` 的版本；标签必须等于该版本，否则 job 直接失败（防止 `v4.1.0` 的标签发出
    `4.0.2` 的包）。META 的 `optionalDependencies` 精确锁定同版本平台包，平台包缺一个就不会发
@@ -109,18 +109,22 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
 npm 上只有两层包，版本始终等于根 `package.json` 的产品版本：
 
 - **平台包**：`@nibi-studio/cli-<platform>`，平台见 `scripts/rust-cli/npm/package.mjs` 的
-  `TARGETS`（`linux-x64-gnu`、`linux-arm64-gnu`、`darwin-arm64`、`android-arm64`；Intel Mac 与
-  Windows 不发布）。内容：`bin/nibi-rs` + `build.json` + `package.json`；Android 平台包另有
-  `lib/libnibi.so`（进程内 cdylib，API 24）与可选的 `lib/libc++_shared.so`，`build.json.artifacts`
+  `TARGETS`（`linux-x64-gnu`、`linux-arm64-gnu`、`darwin-arm64`、`win32-x64-msvc`、
+  `android-arm64`；Intel Mac 不发布）。内容：`bin/nibi-rs` + `build.json` + `package.json`；
+  Windows 平台包的二进制名为 `bin/nibi.exe`，只供本机命令行使用，不进入 SSH 远端部署表。
+  Android 平台包另有 `lib/libnibi.so`（进程内 cdylib，API 24）与可选的
+  `lib/libc++_shared.so`，`build.json.artifacts`
   逐项给出路径与 sha256。内核按
   `@nibi-studio/cli-<Platform::package_id()>@<自身版本>` 取包，404 退 `latest`，再用
   `exec-wire::handshake::PROTOCOL` 核对协议。这条是 SSH 远端部署的路径；`android-arm64` 只供
   NIBI-GO 直接消费 tarball，不经过内核的 SSH 远端 `Platform`，cdylib 入口见
-  `docs/android-cdylib-abi.md`。
+  `docs/android-cdylib-abi.md`。`win32-x64-msvc` 从 4.1.0 之后的下一个版本开始发布
+  （4.1.0 及以前没有 Windows npm 平台包）；发布包含它的版本时，记得把该包名加进
+  `release-manifest.json` 的 npm `packages`，否则 `release:verify` 不会核对它。
 - **META 入口包**：`@nibi-studio/cli`，只含 `bin/nibi` 启动器、README/LICENSE 与精确锁版本的
   `optionalDependencies`。它是**唯一**暴露全局 `nibi` bin 的 npm 包（用户安装
   `npm install -g @nibi-studio/cli`）：启动器按 `process.platform`/`process.arch` 解析同版本
-  平台包里的 `bin/nibi-rs`，原样转发 argv/stdio/信号，并把 `NIBI_MANAGED_*`、
+  平台包里的 `bin/nibi-rs`（Windows 为 `bin/nibi.exe`），原样转发 argv/stdio/信号，并把 `NIBI_MANAGED_*`、
   `NIBI_MANAGED_PACKAGE=@nibi-studio/cli`、`NIBI_MANAGED_PLATFORM_PACKAGE=<平台包>` 写进
   子进程环境，供 Rust 的 `nibi update` 使用。不支持的平台 fail-closed（退出码 1，错误里
   列出支持的平台），不回退到别的架构或 Node CLI。打包入口是
@@ -137,7 +141,7 @@ Node `@nibi/cli` 已退役为内部私有 workspace 包：没有 `bin`、不发�
   `rust-npm-packages` pack job 把同一份版本写进 `NIBI_RELEASE_VERSION`（编译期）与打包参数，
   并在非 Android target 上跑 `nibi-rs --version` 断言；META pack 也读同一个版本。
 - **发布顺序**：平台包 → META。`meta` job 的 `needs: publish` 保证所有平台包先发完；发布前还会
-  `npm view` 逐个核对四个平台包在该版本存在，缺一个就失败。手动补发时也保持这个顺序。
+  `npm view` 逐个核对五个平台包在该版本存在，缺一个就失败。手动补发时也保持这个顺序。
 - 本地 `cargo build --release`（不设 `NIBI_RELEASE_VERSION`）报告的仍是 `0.1.<build-number>`，
   专供本地开发、让执行器缓存与产品版本互不覆盖；**打进安装包的内核必须是产品版本**——
   `prepare-rust-kernel` 在 `NIBI_ENV=production` 下发现不一致会直接 fail 打包。
@@ -196,7 +200,8 @@ descriptor 的 `version` 必须等于产品版本（根 `package.json`）：客�
    `TARGETS`/`name`、META 启动器的 `PLATFORM_PACKAGES`、平台包与 META 的测试夹具、
    本文档。
 9. **Intel Mac 不发**：`scripts/rust-cli/npm/package.mjs` 的 `TARGETS` 是 npm 平台包的唯一清单；
-   `Platform::published()` 只管 SSH 远端（linux/darwin），android 只出现在 TARGETS 与 CI matrix 里。
+   `Platform::published()` 只管 SSH 远端（linux/darwin），android/win32 只出现在 TARGETS 与
+   CI matrix 里；Windows ARM64 也暂不发布。
 10. **META 始终最后发**：平台包先于 `@nibi-studio/cli`；不要为了"先让用户能装"把 META job 提前，
     也不要在平台包缺失时用 `--ignore-optional` 绕过。
 11. **全局 `nibi` 只属于 META 包**：Node `@nibi/cli` 不再有 `bin`；SEA、`build:nibi`、
