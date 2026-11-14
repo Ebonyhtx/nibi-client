@@ -159,11 +159,10 @@ jobs:
         if: matrix.target == 'aarch64-linux-android'
         working-directory: kernel
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           TARGET="${{ matrix.target }}"
           cp "target/$TARGET/release/nibi-rs" "$RUNNER_TEMP/nibi-rs"
           cargo clean -p nibi-kernel-cli
-          df -h / /home || true
           NDK="${ANDROID_NDK_HOME:?the runner image must provide ANDROID_NDK_HOME}"
           TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
           API=24
@@ -179,12 +178,21 @@ jobs:
             "RANLIB_aarch64-linux-android=$TOOLCHAIN/llvm-ranlib" \
             "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$CLANG" \
             cargo build --locked --release -p nibi-kernel-cli --lib --target "$TARGET"
-          df -h / /home || true
-          du -sh "target/$TARGET" || true
           cp "target/$TARGET/release/libnibi.so" "$RUNNER_TEMP/libnibi.so"
-          "$TOOLCHAIN/llvm-readelf" -h "$RUNNER_TEMP/libnibi.so" | grep -q "Shared object"
-          "$TOOLCHAIN/llvm-readelf" -n "$RUNNER_TEMP/libnibi.so" | grep -q "Android"
-          "$TOOLCHAIN/llvm-nm" -D --defined-only "$RUNNER_TEMP/libnibi.so" | grep -q "nibi_app_server_start"
+          # 不用 `readelf | grep` 管道：runner 上曾出现管道在 grep 提前退出后把整步判成 74。
+          # 先落文件再做纯文本断言，成功/失败都有稳定的退出码。
+          file -b "$RUNNER_TEMP/libnibi.so" > "$RUNNER_TEMP/libnibi-file.txt"
+          grep -q "ELF 64-bit LSB shared object" "$RUNNER_TEMP/libnibi-file.txt" || {
+            echo "libnibi.so 不是 64 位 ELF 共享对象：" >&2
+            cat "$RUNNER_TEMP/libnibi-file.txt" >&2
+            exit 1
+          }
+          "$TOOLCHAIN/llvm-nm" -D --defined-only "$RUNNER_TEMP/libnibi.so" \
+            > "$RUNNER_TEMP/libnibi-symbols.txt"
+          grep -q "nibi_app_server_start" "$RUNNER_TEMP/libnibi-symbols.txt" || {
+            echo "libnibi.so 缺少 nibi_app_server_start 导出" >&2
+            exit 1
+          }
           SHARED="$(find "$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android" -name 'libc++_shared.so' -print -quit)"
           if [ -n "$SHARED" ]; then
             cp "$SHARED" "$RUNNER_TEMP/libc++_shared.so"
