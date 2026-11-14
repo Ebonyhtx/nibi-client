@@ -12,10 +12,7 @@
             "revision": 5,
             "pluginVersion": "0.13.2",
             "note": "2026-11-14 校验：revision 5 / math-modeling 0.13.2，zip 端点 401 付费门禁",
-            "checks": [
-              "plugin-market",
-              "remote"
-            ]
+            "checks": ["plugin-market", "remote"]
           }
         },
         "web-remote": {
@@ -23,9 +20,7 @@
             "at": "2026-11-14T08:48:37.788Z",
             "version": "4.1.0",
             "note": "2026-11-14 版本收回 4.1.0 后重建：NIBI_ENV=production，index.html nibi-release-version=4.1.0 + release.json",
-            "checks": [
-              "local"
-            ]
+            "checks": ["local"]
           }
         },
         "web-share": {
@@ -33,9 +28,7 @@
             "at": "2026-11-14T08:48:37.859Z",
             "version": "4.1.0",
             "note": "2026-11-14 版本收回 4.1.0 后重建：NIBI_ENV=production，index.html nibi-release-version=4.1.0 + release.json",
-            "checks": [
-              "local"
-            ]
+            "checks": ["local"]
           }
         }
       }
