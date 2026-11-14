@@ -169,7 +169,7 @@ export function resolveStableBrokerSocketPath(env = process.env) {
   if (typeof explicit === "string" && explicit.trim()) return explicit.trim();
   const storageRootRaw =
     env.NIBI_STORAGE_DIR?.trim() || env.NIBI_DATA_BASE_DIR?.trim() || env.NIBI_HOME?.trim() || "";
-  // 指纹前先归一化：启动器拼出的根可能带 `NIBI-Plugins\..` 这类未折叠段（实测：
+  // 指纹前先归一化：启动器拼出的根可能带 `plugins\..` 这类未折叠段（实测：
   // run-desktop-dev.cmd 用 %CONTAINER%\.. 派生路径），归一化前后必须哈希出同一个名字，
   // 否则"宿主铸造的名字"和"agent 侧回落解析的名字"会分叉。
   const storageRoot = storageRootRaw ? normalize(storageRootRaw).replace(/[\\/]+$/, "") : "";

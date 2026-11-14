@@ -72,7 +72,7 @@ function parseCsvEnv(value: string | undefined): string[] {
 
 export function resolveBuildRemoteCdnReleaseRoots(runtimeEnv: Record<string, string | undefined>) {
   const domains = parseCsvEnv(runtimeEnv.CDN_DOMAIN);
-  // 与 NIBI-Site 的发布布局对齐：`tools/content-publish.py` 只认
+  // 与内容发布布局对齐：发布工具只认
   // `https://dl.nibistudio.cn/releases/electron/<version>/`，OSS 桶 `nibi-dist-hz` 的前缀是
   // `releases/`。这里曾经留着上游的 `nibi/electron/releases` 默认值——品牌残留，而且会让
   // 客户端去一个从未发布过的路径（source-server-release.json 必然 404）。

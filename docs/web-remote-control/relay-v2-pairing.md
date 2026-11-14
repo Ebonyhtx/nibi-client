@@ -647,7 +647,7 @@ Docker 镜像构建不在本轮验证范围。分享镜像验证本地 COPY 源�
 | 定向远控回归                         | 15 文件、250 项通过，涵盖共享契约/QR/心跳、假 relay、双端 transport、manager、入口和 rpc-frame gap 恢复                               |
 | OSS / 构建工具 / 序列化器回归        | 7 文件、131 项通过；补齐测试镜像输入后追加 2 文件、25 项通过                                                                          |
 | `pnpm build:web-remote-control:test` | 通过；存在既有 bundle 大小与动态导入告警                                                                                              |
-| 测试镜像 smoke                       | 未通过：初次缺 patches 已修复；重试进入私有 CUA Git 依赖下载，因容器无仓库凭据报无法读取 Username，尚未执行 nginx 路由/二进制响应断言 |
+| 测试镜像 smoke                       | 未通过：初次缺 patches 已修复；重试进入当时的 CUA Git 依赖下载，因容器无仓库凭据报无法读取 Username，尚未执行 nginx 路由/二进制响应断言 |
 | nginx 与本地产物                     | 独立容器验证通过：入口、重定向、静态资源、非法前缀 404 和 CMap 二进制响应；使用宿主 Vite 产物，不替代完整 Dockerfile 构建             |
 | 测试发布脚本                         | Bash 语法及隔离 Docker stub smoke 通过：只 build/push 测试镜像，空 tag 在调用 Docker 前失败；未真实推送镜像                           |
 | `pnpm verify:pre-push`               | 命令通过；其 affected 脚本比较已提交 HEAD，当前无对应已提交代码差异而跳过单测，因此不作为当前工作区单测通过的证据                     |
@@ -656,7 +656,7 @@ Docker 镜像构建不在本轮验证范围。分享镜像验证本地 COPY 源�
 
 `pnpm test:unit` 全量结果：1,923 文件通过、1 文件失败、2 文件跳过；17,988 项通过、1 项失败、12 项跳过，用时 418.96 秒。唯一失败是 `packages/desktop/test/e2eRuntimePaths.test.ts` 检出已有 `feedback/manual-review/pending/feedback-upload-privacy.test.ts` 使用裸系统临时路径；该违规文件本票未修改，定向重跑仍失败，与 06 既有记录一致。
 
-代码收口与可执行本地验证已完成，完整 Docker 镜像仍受私有 CUA 依赖认证阻塞，七项测试环境真机矩阵均未执行。必要验证未完成且全量存在既有失败，按根 AGENTS.md 保留工作区改动、不自动提交，07 保持 `in-progress`。
+代码收口与可执行本地验证已完成，完整 Docker 镜像仍受当时的 CUA 依赖认证阻塞，七项测试环境真机矩阵均未执行。必要验证未完成且全量存在既有失败，按根 AGENTS.md 保留工作区改动、不自动提交，07 保持 `in-progress`。
 
 ## NIBI 4.0 落地差异（本仓）
 

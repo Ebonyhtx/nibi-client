@@ -20,6 +20,7 @@
 - [自动更新](desktop/auto-update-service-manifest.md)
 - [Windows 安装器](desktop/windows-installer-overhaul-spec.md)
 - [Computer Use producer 检测](desktop/computer-use-producer-detection.md)
+- [Computer Use 实现](../packages/nibi-cua/IMPLEMENTATION.md)
 
 ## CLI 与 Agent
 
@@ -58,7 +59,7 @@
 
 ## 上游对齐
 
-- [ZCode 3.16.2 → 3.17.2 差异与吸收方案](upstream/nibi-3.16.2-to-3.17.2-absorption-plan.md)：逐项变化、Node/Rust 各自方案、性能专题与路线图
+- [ZCode 3.16.2 → 3.17.2 差异与吸收方案](upstream/zcode-3.16.2-to-3.17.2-absorption-plan.md)：逐项变化、Node/Rust 各自方案、性能专题与路线图（历史方案，已完成）
 
 ## Rust 内核
 

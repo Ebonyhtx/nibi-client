@@ -10,8 +10,9 @@ surface reports unavailable instead of pretending to work. The real runtime is
 used when the host injects a broker socket (`createComputerUseRuntime({
 brokerSocketPath })`), which is what the desktop app does on Windows and macOS.
 
-The upstream open-source export replaces this directory with an API-compatible
-placeholder that declares `nibiCuaPlaceholder: true`; packaging steps skip the
-private Helper assets in that case.
+This is the public implementation. There is no placeholder overlay: the package
+ships the Helper, runtime and engine adapter directly, and all packaging steps
+consume these sources. Old external builds that declare `nibiCuaPlaceholder: true`
+remain fail-closed by the producer detector, but this package does not.
 
 License: Apache-2.0.

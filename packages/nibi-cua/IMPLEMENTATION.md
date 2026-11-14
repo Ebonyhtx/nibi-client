@@ -1,6 +1,6 @@
 # Computer Use 实施台账（`@nibi/cua` 真实现）
 
-> 背景与决策见 NIBI-Plugins `docs/plugins/plugin-deep-adaptation-plan.md` §14.33–§14.35。
+> 背景与决策见本包 `README.md` 与 `packages/nibi-cua/vendor/freeall12-computer-use/PROVENANCE.md`。
 > 一句话：**上游把电脑操控拆成五层；我们缺的那层是"原生引擎"。本包就是把这一层补上，
 > 原生能力由 Cua Driver（MIT，六平台预编译）提供，语义与安全留在我们自己手里。**
 
@@ -34,7 +34,7 @@ Cua Driver（@trycua/cua-driver：listApps / listWindows / getWindowState / clic
 | 端点铸造 | win32 命名管道；Unix `<tmp>/nibi-cua-<uid>/znrc-<uuid>.sock`（0700） | `broker.js#mintBrokerSocketPath` |
 | 序列化 | **必须容忍 BigInt**（uniffi 的 u64 字段；`JSON.stringify` 遇 BigInt 直接抛，实测踩过） | `broker.js#jsonSafeReplacer` |
 | 错误信封 | `{code, message, details?}`——**details 必须贯通**（`CONTROLLER_BUSY` 的 `owner`、`STALE_STATE` 的 state_id 都靠它说清） | `broker.js#errorResponse*` |
-| 结果信封（给 SDK） | MCP 形状：成功 = `{content:[{type:"text",text:<树>}], structuredContent:<收据>}`；错误 = `{isError:true, content:[{text:<{code,message}>}]}`；冷启动 = 非错误信封带 `kind:"CUA_NOT_READY"`；`possibly_sent` = 成功信封里 `dispatch_status`（由 SDK 转成 actionSent 错误） | 插件客户端解析逻辑（`plugin-harvest/.../computer-use-client.mjs#receiptOf/assertOk`） |
+| 结果信封（给 SDK） | MCP 形状：成功 = `{content:[{type:"text",text:<树>}], structuredContent:<收据>}`；错误 = `{isError:true, content:[{text:<{code,message}>}]}`；冷启动 = 非错误信封带 `kind:"CUA_NOT_READY"`；`possibly_sent` = 成功信封里 `dispatch_status`（由 SDK 转成 actionSent 错误） | 插件客户端解析逻辑（`computer-use-client.mjs#receiptOf/assertOk`） |
 
 ## 三、工具 → 引擎映射
 
@@ -170,7 +170,7 @@ Cua Driver（@trycua/cua-driver：listApps / listWindows / getWindowState / clic
   仍先 transport 后 `{type:"error"}`（宿主拿到诊断而非 malformed-message）。
   回归测试钉死该顺序：`test/helperDeferredEngine.test.mjs`（transport 先于引擎、
   health 立即可答、工具调用等引擎、失败先 transport 后 error）。
-* **同批加固**：稳定端点指纹先 `path.normalize` 再哈希——启动器拼出的根带 `NIBI-Plugins\..`
+* **同批加固**：稳定端点指纹先 `path.normalize` 再哈希——启动器拼出的根带 `plugins\..`
   未折叠段（`%CONTAINER%\..` 派生），归一化前后必须同一个名字，宿主铸造与 agent 回落才不会分叉。
 * **教训**：fail-closed 的"1s 准入线"没问题，问题是我把"transport"实现成了"引擎就绪"。
   两阶段握手的设计本来就写明了 transport 只代表"管道已绑"——实现违反了自己的契约。

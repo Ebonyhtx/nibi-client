@@ -2,15 +2,12 @@
 
 ## 规则
 
-Computer Use 的真实实现来自 workspace 包 `@nibi/cua`（producer）。开源导出用 `packages/nibi-cua`
-占位包替换它，占位包在 `package.json` 声明 `nibiCuaPlaceholder: true`，所有能力 fail-closed。
-
-占位包保留公共 `build` 和 `tsconfig.json` 入口，构建只检查随包类型声明。
-日志回调的 traceId 与参数类型和真实 producer 一致，使公共调用方无需按发行版本分支。
-根单测引用的 `vitest.config.ts` 也必须存在，运行占位执行入口和 broker 的不可用契约测试。
+Computer Use 的真实实现来自公开 workspace 包 `@nibi/cua`（producer）。当前公开仓
+`packages/nibi-cua` 就是完整实现；检测逻辑保留为**历史兼容/异常安装保护**：如果某个旧导出或
+第三方安装仍声明 `nibiCuaPlaceholder: true`，所有能力 fail-closed，打包步骤跳过真实 Helper 资产。
 
 开发、构建与打包中只服务于真实 Computer Use 的步骤，必须先检测到真实 producer 才执行；
-检测不到时跳过，不能让开源树的入口因为缺少私有产物而失败：
+检测不到时跳过，避免异常安装把构建链拖死：
 
 | 步骤                                                                   | 位置                                                  |
 | ---------------------------------------------------------------------- | ----------------------------------------------------- |

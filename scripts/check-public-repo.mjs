@@ -105,7 +105,16 @@ const RULES = [
   },
   {
     name: "workspace absolute path",
-    re: /(?:[A-Za-z]:[\\/]NIBI[\\/]|\/d\/NIBI\/)/,
+    // 也覆盖文档/测试里常见的双反斜杠写法（D:\\NIBI\\...）。
+    re: /(?:[A-Za-z]:[\\/]{1,2}NIBI[\\/]{1,2}|\/d\/NIBI\/)/,
+  },
+  {
+    name: "internal container registry",
+    re: /\b[A-Za-z0-9.-]+\.(?:cr\.aliyuncs\.com|tencentcloudcr\.com)\b/,
+  },
+  {
+    name: "private deployment path",
+    re: /\/(?:srv\/nibi-site|opt\/nibi-content)(?:\/|$)/,
   },
   {
     name: "private key material",

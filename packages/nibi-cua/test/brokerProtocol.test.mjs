@@ -71,11 +71,11 @@ test("协议：端点是**稳定**的，且按数据根隔离", () => {
   assert.notEqual(ephemeral, first, "临时端点不能等于稳定端点（测试并发靠它）");
 });
 
-test("协议：端点指纹对未折叠路径归一化（启动器拼出 NIBI-Plugins\\.. 段也能对上）", () => {
+test("协议：端点指纹对未折叠路径归一化（启动器拼出 plugins\\.. 段也能对上）", () => {
   const dotted = resolveBrokerSocketPath({
-    env: { NIBI_STORAGE_DIR: "D:\\NIBI\\NIBI-Plugins\\..\\.nibi-desktop-dev" },
+    env: { NIBI_STORAGE_DIR: "C:\\workspace\\plugins\\..\\.nibi-desktop-dev" },
   });
-  const folded = resolveBrokerSocketPath({ env: { NIBI_STORAGE_DIR: "D:\\NIBI\\.nibi-desktop-dev" } });
+  const folded = resolveBrokerSocketPath({ env: { NIBI_STORAGE_DIR: "C:\\workspace\\.nibi-desktop-dev" } });
   assert.equal(dotted, folded, "归一化前后必须哈希出同一个名字，否则懒启动回落链会分叉");
 });
 

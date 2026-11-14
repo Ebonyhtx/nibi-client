@@ -20,7 +20,8 @@ node_modules
 
 # Rust 构建树（kernel/ 是独立 Cargo workspace，产物动辄上百 GB）。
 # 不排除的话 `COPY . .` 会把它整棵送进构建上下文：本机实测 209GB，镜像构建根本走不完；
-# 而且里面是本机产物，路径与调试符号都不该进镜像。容器里的 e2e 只用 Node 内核。
+# 而且里面是本机产物，路径与调试符号都不该进镜像。容器里的 Rust 内核由
+# `Dockerfile.desktop-e2e` 的 kernel-builder stage 重新构建并单独拷入。
 kernel/target
 **/target/debug
 **/target/release

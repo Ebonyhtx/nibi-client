@@ -68,9 +68,11 @@ These rules are enforced by CI and review:
    product endpoints are fine; private deployment details are not.
 3. **No private paths.** Do not commit absolute paths such as `D:\...`,
    `/Users/<name>/...`, or machine-specific cache locations.
-4. **No native Computer Use implementation.** The public repository keeps the
-   `@nibi/cua` contract and fail-closed placeholder only. Native Helper, engine,
-   and runtime semantics belong to the private release overlay.
+4. **Computer Use is part of the public product.** `packages/nibi-cua` is the
+   Apache-2.0 implementation (Helper, runtime, engine adapter, tests); it uses
+   the MIT `@trycua/cua-driver` and keeps vendor provenance. The private repo
+   only holds release signing, internal runbooks, and publishing operations —
+   it is not where the CUA code lives.
 5. **No self-hosted runners in public workflows.** Public CI runs on
    GitHub-hosted runners only. Do not add `runs-on: [self-hosted, ...]`.
 6. **Use `pull_request`, never `pull_request_target`.** Fork pull requests must

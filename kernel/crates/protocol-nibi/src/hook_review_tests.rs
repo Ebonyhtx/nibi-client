@@ -169,6 +169,6 @@ fn flow_matching_separates_superseded_from_snapshot_mismatch() {
 fn the_workspace_label_is_the_last_path_segment() {
     assert_eq!(workspace_label("/Users/dev/repo"), "repo");
     assert_eq!(workspace_label("/Users/dev/repo/"), "repo");
-    assert_eq!(workspace_label("D:\\NIBI\\NIBI-Client"), "NIBI-Client");
+    assert_eq!(workspace_label("D:\\workspace\\NIBI-Client"), "NIBI-Client");
     assert_eq!(workspace_label("/"), "/");
 }

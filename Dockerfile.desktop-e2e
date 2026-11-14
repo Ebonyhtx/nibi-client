@@ -5,6 +5,13 @@
 # Build and run with:
 #   bash scripts/test-desktop-e2e-container.sh
 
+# 桌面本地 Agent 只认 Rust 内核（没有 Node 回退）。在同一个 Debian bookworm
+# 基座上编 release 二进制，避免宿主与容器的 glibc 不一致；最终镜像只拷二进制。
+FROM rust:1.95.0-bookworm AS kernel-builder
+WORKDIR /workspace
+COPY kernel/ ./kernel/
+RUN cargo build --locked --release -p nibi-kernel-cli --bin nibi-rs
+
 FROM node:24.22.1-bookworm
 
 ARG PNPM_VERSION=10.33.2
@@ -127,5 +134,9 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p "${WDIO_BROWSER_DRIVER_CACHE_DIR}"
+
+# E2E 的 wdio 预检会找 kernel/target/{debug,release}/nibi-rs；只带 release 即可。
+COPY --from=kernel-builder /workspace/kernel/target/release/nibi-rs /workspace/kernel/target/release/nibi-rs
+RUN test -x /workspace/kernel/target/release/nibi-rs
 
 CMD ["bash", "-lc", "dbus-run-session -- pnpm --filter @nibi/desktop test:e2e ${EXTRA_WDIO_ARGS:-}"]

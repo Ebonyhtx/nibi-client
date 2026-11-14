@@ -199,10 +199,9 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
   经 `node-repl-host/src/cua-bridge.ts` → node_repl 进程内的 broker socket →
   `@nibi/cua` runtime → 本地 NDJSON → CUA Helper → `@trycua/cua-driver`。
 - Host 不在动作链上：它只负责控制面（稳定 socket/recipe 注入、Helper 生命周期、权限 UI）。
-- 公开仓的 `packages/nibi-cua` 是**占位实现**（`nibiCuaPlaceholder: true`，调用返回
-  `Computer Use is not available in this build.`）；真 Helper/runtime/engine 只在 NIBI 私有仓。
-  上游 `zai-org/ZCode` 与 `MBearo/ZCode-rs` 当前树里的 `packages/nibi-cua` 也是同一个占位包，
-  **CUA 实现至今没有公开**。
+- 公开仓的 `packages/nibi-cua` 是**完整实现**（Helper / runtime / engine adapter，Apache-2.0），
+  原生能力来自 MIT 的 `@trycua/cua-driver`；不再有私有 overlay 或占位包。缺少 broker/引擎时
+  运行时 fail-closed，这是运行态检查，不是包本身缺失。
 
 ### 5.2 Rust 之前为什么是「没有」
 
@@ -240,26 +239,23 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
   也没有对应测试。真正的权限 UI 是 Host 的 `ICuaPermissionService`（`permission_status` 的
   accessibility/screenRecording/grantOwner + onboarding），与内核无关。
 
-### 5.5 真实 Helper 验证（2026-11-07）
+### 5.5 真实 Helper 验证（2026-11-07，历史）
 
-- 私有 sidecar 的 `packages/nibi-cua` 是完整实现（runtime/helper/engine），公开仓只是占位；
-  本机原来私有 `node_modules` 指向已移动的旧路径，且缺 `@trycua/cua-driver-win32-x64-msvc`。
-- 按私有仓的正式流程 overlay 到公开 checkout，`pnpm install --no-frozen-lockfile` 装上原生
-  driver，重建 `node-repl-host` bundle；探针在 node_repl 进程里：
-  - `list_apps` 返回真实桌面应用列表（ZCode / chrome / Notepad 等）；
-  - `list_windows` 返回 ZCode 窗口（windowId/pid/bounds/isOnScreen）。
-- 测完恢复公开占位包、`git checkout pnpm-lock.yaml`、`pnpm install --frozen-lockfile` 并重建
-  bundle（hash 回到 `92301e78…`），公开仓不夹带私有代码。
-- 结论：Rust 内核只负责启动同一个 `node_repl` 进程；Helper/engine 路径与 Node 完全相同，
-  私有 producer 在就能用，公开构建照旧 fail-closed。
+> 2026-11-14 起 CUA 实包已迁入公开仓 `packages/nibi-cua`，不再需要私有 overlay；本节只保留当时的验证结论。
+
+- 当时在私有 sidecar 里用真实 runtime/helper/engine 验证了 `list_apps` 返回真实桌面应用列表、
+  `list_windows` 返回窗口（windowId/pid/bounds/isOnScreen）；公开仓当时只是占位包。
+- 结论不变：Rust 内核只负责启动同一个 `node_repl` 进程，Helper/engine 路径与 Node 完全相同。
+  现在公开包直接包含这套实现，缺 broker/引擎时运行时 fail-closed。
 
 ### 5.6 已知差异
 
 - `computer-use/operation-event` 已由 Rust 的 `Live` 按同一映射发出（§5.4）；
   `v4/cua/permission-observation` 不补——当前 node_repl 表面下 Node 的触发器本身不可达，
   真正的权限 UI 是 Host 的 `ICuaPermissionService`。动作链不受影响。
-- 公开构建里 CUA 仍然 fail-closed（占位 `@nibi/cua`），这与内核无关；只有私有 producer
-  替换 `packages/nibi-cua` 后才是真正可用的 Computer Use。Rust 侧不再改变这条路径。
+- CUA 实包现已在公开仓 `packages/nibi-cua`（Apache-2.0，使用 MIT 的 `@trycua/cua-driver`），
+  公开构建直接消费它，不再有占位包或私有 overlay。Rust 侧只负责启动同一个 `node_repl` 进程，
+  不再改变这条路径。
 
 ## 6. 订阅续传与背压（已补）
 
@@ -434,7 +430,7 @@ redirectPath)[0..24]>:authorization_credentials`）；
 - **顶栏**（终端 ≥ 28 行、没有全屏浮层时）：9 行——`NIBI` 块字标 5 行（主色）、身份行 3 行
   （版本 / 模型·路径 / 权限模式）、最后一行整宽淡色 `─` 与正文分界。身份行不再进 transcript 布局
   （否则重复），并按「宽度 − 小鸟那 16 列」排版，路径过长时省略。低于 28 行时回到正文里的两行身份栏。
-- **小鸟**：素材仓 `nibi-pixel-pet` 的 64×64 `idle` 帧（10 帧 2.4 秒），按 **2× 最近邻**编码成 Sixel
+- **小鸟**：内部品牌素材仓的 64×64 `idle` 帧（10 帧 2.4 秒），按 **2× 最近邻**编码成 Sixel
   （128×128 像素 ≈ 8 行）贴在栏的右端；透明像素显式填终端背景色（否则终端自己填的底色会和背景差一块）。
 - **只有 Windows Terminal（`WT_SESSION`，1.22 起支持 Sixel）或 `NIBI_TUI_SIXEL=1` 才贴图**；其它终端
   （conhost、VS Code、SSH）栏照常在、只是没有鸟，`NIBI_TUI_SIXEL=0` 可强制对照。

@@ -95,13 +95,12 @@ Node `@nibi/cli` 已退役为内部私有 workspace 包：没有 `bin`、不发�
    - 不要在 Windows 本机跑：staging 里 `spawn("pnpm")` 在 Windows 会 ENOENT，Windows 的 tar
      也保不住 POSIX 执行位（远端解压后直接跑 `bin/nibi`）。
    - 不要用 `prepare:remote-assets:linux` 发正式版：descriptor 只会登记两个 Linux target。
-2. 下载 artifact，把 5 个文件放到服务器 `/srv/nibi-site/content/releases/electron/<版本>/`。
-3. 服务器上 `python3 tools/publish-content.py --only releases --dry-run`，确认只新增这 5 个对象后
-   去掉 `--dry-run`；**不要加 `--prune`**。发布后的公网地址是
-   `https://dl.nibistudio.cn/releases/electron/<版本>/…`。
+2. 下载 artifact，由运营者按私有发布流程把 5 个文件上传到内容 CDN 的版本目录；公开仓不记录
+   服务器路径、发布脚本或对象存储账号细节。
+3. 发布后的公网地址是 `https://dl.nibistudio.cn/releases/electron/<版本>/…`。
 
 descriptor 的 `version` 必须等于产品版本（根 `package.json`）：客户端
-`sourceServerReleaseResolver` 不匹配会直接拒绝，`content-publish.py verify` 的 URL 前缀也按同一版本。
+`sourceServerReleaseResolver` 不匹配会直接拒绝，发布侧的 URL 前缀也按同一版本校验。
 
 ## npm 铁律（踩过的坑，别再踩）
 

@@ -146,7 +146,7 @@
 | C6 | ZCode Sites 官方插件（7 个 `site-*` 命令 + deploy skill + 本地 API） | [源码] `apps/zcode-cli/packages/zcode-site-plugin/` | 已实施 | **不直接吸收**（依赖 ZCode 云）；若做自建部署另立项 |
 | C7 | 官方插件命令安全端点：本机 socket + 每会话 token，凭据不进 env | [源码] `official-command-endpoint.md`、`coding-plan/zcode-official-plugin-command-auth-spec.md` | 已实施 | 暂不吸收（只有 Sites 用）；如做官方插件云工具再复用 |
 | C8 | 工作流配额暂停后自动续跑 | [源码] `bootstrap/src/app/dynamic-workflow-quota-resume.ts` | 已实施 | Node + Rust（DWF 调度）；**P2** |
-| C9 | CUA 多会话光标、Windows input delivery | [源码] `docs/cua/...`（私有 producer） | 已实施 | 归私有 CUA 轨；**P2** |
+| C9 | CUA 多会话光标、Windows input delivery | [源码] `docs/cua/...` | 已实施 | 归公开 `packages/nibi-cua` 轨；**P2** |
 | C10 | 手机远控输入预测（ghost hint） | [源码] `docs/web-remote-control/mobile-input-prediction.md`、`v4/conversation/inputPrediction` | 已实施 | 暂不吸收（NIBI 手机是 Web/远控，无 KMP 端）；**P3** |
 | C11 | 文档查看器按会话隔离、多个文档插件共用进程 | [日志]，3.16.3 也提 | 已实施 | 需按源码定位 Host 文档运行时；**P2** |
 | C12 | 预览卡片整卡点击打开 | [日志] | 已实施 | 小 UI；**P2（小）** |
@@ -391,7 +391,7 @@
 | Coding Plan / Team Plan / Off-Peak | NIBI 已移除商业套餐 | 不吸收（G6 不涉及） |
 | App 单测全量退役 | 我们没有上游 QA/E2E 覆盖兜底；全删会丢掉安全/并发/持久化保护 | 学方法，不照搬；分阶段清理（F1） |
 | 手机输入预测 | 需要 KMP 手机端；NIBI 手机是 Web/远控 | 暂不做（D2/C10） |
-| CUA 多会话光标 / Windows input | 私有 CUA producer，公开仓占位 | 归 CUA 私有轨（C9） |
+| CUA 多会话光标 / Windows input | 公开 `packages/nibi-cua` 实现 | 归 CUA 公开轨（C9） |
 | Electron 44 | 我们已是 44.10.1，更新 | 不重复 |
 | macOS 12 支持 | Electron 44 已要求 macOS 13 | 检查安装包元数据即可 |
 | `x-zcode-session-features` 原名 | ZCode 品牌/统计口径 | 若做，改 `x-nibi-session-features` |
@@ -709,7 +709,7 @@ D5 请求安全 edition、G6 错峰续费、F1–F6 测试策略重构。
 | 设置 · 插件 | 图标：存量 `.top` 迁移 + 相对路径解析 + 稳定哈希首字母兜底；「立即试用」锁定态降级为描边 + 锁图标 |
 | 新建任务 · 推荐卡 | 一排四个、36px 高、图标 + 单行文案；办公模式主动推荐保持原样 |
 | 会话 · 图片预览 | 右侧标注工具栏 + 「保存到对话」（编辑产生 PNG File 进 composer 待发送队列），补整链集成测试 |
-| 内容 | `client/scenes` 的 draft-suggestion 收成四条四字（NIBI-Site `3726a91`，**未发版**） |
+| 内容 | `client/scenes` 的 draft-suggestion 收成四条四字（私有站点仓对应版本，**未发版**） |
 
 ### 15.3 仍未做
 

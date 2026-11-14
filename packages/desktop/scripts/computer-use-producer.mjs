@@ -12,13 +12,13 @@ import { dirname, resolve } from "node:path";
 const PRODUCER_PACKAGE_SEGMENTS = [["@nibi", "cua"]];
 
 /**
- * 判定当前安装的 `@nibi/cua` 是闭源真实 producer 还是开源占位包。
+ * 判定当前安装的 `@nibi/cua` 是否真实 producer。
  *
- * 闭源构建使用 workspace 内 `packages/nibi-cua` 的真实 producer；开源导出把该目录整体换成占位包，
- * 占位包在 package.json 声明 `nibiCuaPlaceholder: true`，所有能力 fail-closed。
+ * 当前公开 `packages/nibi-cua` 就是真实 producer。判定保留历史兼容：旧导出或异常安装可能在
+ * package.json 声明 `nibiCuaPlaceholder: true`，这类包所有能力 fail-closed。
  * 开发、构建与打包里只服务于真实 Computer Use 的步骤（构建 Helper、暂存插件原生依赖、
- * Windows Helper 资源、打包后的 Helper 校验）都以本判定为门，检测不到真实 producer 时跳过，
- * 不能因为缺少私有产物让开源树的入口失败。规范见 docs/desktop/computer-use-producer-detection.md。
+ * Windows Helper 资源、打包后的 Helper 校验）都以本判定为门，检测不到真实 producer 时跳过。
+ * 规范见 docs/desktop/computer-use-producer-detection.md。
  *
  * 构建配置（electron-builder、tsup）同步求值，这里只做一次小文件同步读取。
  */

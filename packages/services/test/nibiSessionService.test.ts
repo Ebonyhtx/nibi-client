@@ -45,7 +45,7 @@ describe("createNibiSessionService", () => {
       createSession: vi.fn(async () => snapshot),
     } as unknown as INibiAgentService;
     // services 只负责建会话前把 MCP 配置交给 producer 的 resolver；改写细节由 producer 自己的测试覆盖。
-    // 这里用测试自己的 resolver，不依赖私有 producer 的注入实现（开源占位包不改写配置）。
+    // 这里用测试自己的 resolver，不依赖真实 producer 的注入实现。
     const resolver = {
       resolveMcpServers: vi.fn(async (servers: NibiAgentMcpServer[] | undefined) =>
         servers?.map((server) =>

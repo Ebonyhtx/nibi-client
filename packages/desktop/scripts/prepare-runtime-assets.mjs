@@ -26,9 +26,9 @@ const shouldPrepareMacosWindowBounds = target.os === "darwin";
 // Computer Use Helper：把引擎（@trycua/cua-driver）与我们的 helper 打成产品态目录
 // `<resources>/tools/cua-helper`（含 runtime-manifest.json，宿主会校验 entry/addon 的 sha256）。
 // 目前宿主侧的解析器只有 Windows 分支（macOS 是另一条 installer 路径），所以先只在 win32 上出包。
-// 与规范同一道门（computer-use-producer-detection.md）：开源占位包（nibiCuaPlaceholder）没有
-// 私有引擎，这里必须跳过——否则开源树的打包入口在 win32 上必然失败（builder 配置侧早已按同一
-// 判定跳过，prepare 链此前漏接）。
+// 与规范同一道门（computer-use-producer-detection.md）：如果安装的是声明 nibiCuaPlaceholder 的
+// 旧导出/异常包，它没有 Helper 资产，这里必须跳过；当前公开 `packages/nibi-cua` 是真实 producer，
+// 会走准备分支。builder 配置侧按同一判定跳过，prepare 链此前漏接。
 const shouldPrepareCuaHelper =
   (target.os === "win32" || process.env.NIBI_ENABLE_CUA_HELPER === "1") &&
   isRealComputerUseProducerInstalled({ desktopPackageRoot: desktopRoot });

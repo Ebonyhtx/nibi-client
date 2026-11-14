@@ -7,9 +7,9 @@ name: source-server-release
 # 为什么只能跑在 Linux/macOS：staging 里 `spawn("pnpm")`，Windows 没有 `pnpm.exe`（ENOENT）；
 # 且 Windows 的 tar 写不出 POSIX 执行位，远端解压后直接执行 `bin/nibi` 会 Permission denied。
 #
-# 产物不在这里发 CDN：发布要走服务器上的 `tools/publish-content.py`（OSS 凭据只在服务器上）。
-# 流程：Run workflow → 下载 artifact → scp 到 `/srv/nibi-site/content/releases/electron/<版本>/`
-# → `publish-content.py --only releases`。见 docs/release-process.md。
+# 产物不在这里发 CDN：由运营者按私有发布流程上传到内容 CDN；公开仓不记录服务器路径、
+# 发布工具或对象存储凭据。流程：Run workflow → 下载 artifact → 私有发布工具先 dry-run 再发布。
+# 见 docs/release-process.md。
 #
 # 所有 action 必须钉到完整 commit SHA（public-repo-policy 要求）。
 

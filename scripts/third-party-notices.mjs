@@ -59,22 +59,43 @@ export async function stageNodeNotices(directory, version, root = repositoryRoot
   return resolve(directory, "LICENSE.node.txt");
 }
 
+async function readElectronNotice(extractedRoot, resources, fileName) {
+  // Electron 44 的 macOS 解包产物把 LICENSE 放在 .app/Contents/Resources 下，
+  // 部分版本又把裸 LICENSE.electron.txt 放在归档根。先找目标平台解包树，再退回
+  // 当前安装的 electron npm 包（同一版本），避免构建因发行包布局变化直接失败。
+  const aliases = fileName === "LICENSE" ? ["LICENSE", "LICENSE.electron.txt"] : [fileName];
+  const roots = [
+    { root: extractedRoot, source: "target-distribution" },
+    { root: resources, source: "target-distribution" },
+    { root: resolve(extractedRoot, "Electron.app", "Contents", "Resources"), source: "target-distribution" },
+    { root: resolve(repositoryRoot, "node_modules", "electron"), source: "electron-npm-fallback" },
+  ];
+  const tried = [];
+  for (const { root, source } of roots) {
+    for (const alias of aliases) {
+      const candidate = resolve(root, alias);
+      tried.push(candidate);
+      try {
+        return { bytes: await readFile(candidate), source };
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+      }
+    }
+  }
+  throw new Error(`Electron notice ${fileName} is missing; looked for:\n${tried.join("\n")}`);
+}
+
 export async function stageElectronNotices(extractedRoot, resources, version) {
   const directory = resolve(resources, "licenses/electron");
   const records = [];
   for (const name of ["LICENSE", "LICENSES.chromium.html"]) {
-    let bytes;
-    try {
-      bytes = await readFile(resolve(extractedRoot, name));
-    } catch (error) {
-      if (name !== "LICENSE" || error.code !== "ENOENT") throw error;
-      bytes = await readFile(resolve(extractedRoot, "LICENSE.electron.txt"));
-    }
+    const { bytes, source } = await readElectronNotice(extractedRoot, resources, name);
     await mkdir(directory, { recursive: true });
     await writeFile(resolve(directory, name), bytes);
-    records.push({ file: name, sha256: hash(bytes) });
+    // 只记录逻辑来源，不把构建机的绝对路径写进随包分发物。
+    records.push({ file: name, sha256: hash(bytes), source });
   }
-  // 修复：取实际目标平台的解包材料，避免交叉编译误用宿主 Electron 的许可证集合。
+  // 修复：优先取实际目标平台的解包材料；布局缺失时才用同版本 npm 包补齐。
   await writeFile(
     resolve(directory, "SOURCES.json"),
     `${JSON.stringify({ version, origin: "electron-builder target distribution", records }, null, 2)}\n`,

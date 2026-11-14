@@ -6,9 +6,9 @@
 | 提交 | `eb75db0783ccabb96d3bfae61cfa7aaf0fbf3a3c`（main，快照时间 2026-10-10） |
 | 许可 | MIT（全文见同目录 LICENSE，© 2026 freeall12） |
 | 取用方式 | 逐文件从 raw.githubusercontent.com 按上述提交抓取，**未做任何修改** |
-| 为什么取 | 它是对**我们上游（ZCode）**电脑操控链路的第三方逆向成果（path:line 级证据），并附 cleanroom 参考实现 + 行为准确的 mock broker + 测试。我们要自研这一层（NIBI-Plugins 文档 §14.33–14.35），这批文件是**规格与测试脚手架**。 |
+| 为什么取 | 它是对**我们上游（ZCode）**电脑操控链路的第三方逆向成果（path:line 级证据），并附 cleanroom 参考实现 + 行为准确的 mock broker + 测试。我们要自研这一层（见 `packages/nibi-cua/IMPLEMENTATION.md`），这批文件是**规格与测试脚手架**。 |
 | 纪律 | 它的红线（不含任何专有源码/二进制/凭据）与我们的纪律一致：只放文档与 cleanroom 代码；不把本目录内容当上游代码。 |
-| 升级 | 换提交时重跑同一抓取脚本、更新本表并重算 sha256；行为规格有变要同步 NIBI-Plugins 文档。 |
+| 升级 | 换提交时重跑同一抓取脚本、更新本表并重算 sha256；行为规格有变要同步 `packages/nibi-cua/IMPLEMENTATION.md`。 |
 
 ## 文件清单（sha256）
 
