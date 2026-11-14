@@ -102,7 +102,7 @@ process.stdout.write("\\n");
       cwd: REPO_ROOT,
       env: {
         ...process.env,
-        CDN_DOMAIN: "",
+        CDN_DOMAIN: "cdn-zcode.z.ai",
         PATH: `${binDir}:${process.env.PATH ?? ""}`,
         CDN_URLS_IN: cdnUrlsIn,
         POLL_INTERVAL: "0",
