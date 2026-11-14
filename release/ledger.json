@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-14T08:29:47.651Z",
+  "updatedAt": "2026-11-14T08:48:37.859Z",
   "releases": {
     "4.1.0": {
       "createdAt": "2026-11-14T08:15:37.944Z",
@@ -12,23 +12,30 @@
             "revision": 5,
             "pluginVersion": "0.13.2",
             "note": "2026-11-14 校验：revision 5 / math-modeling 0.13.2，zip 端点 401 付费门禁",
-            "checks": ["plugin-market", "remote"]
+            "checks": [
+              "plugin-market",
+              "remote"
+            ]
           }
         },
         "web-remote": {
           "built": {
-            "at": "2026-11-14T08:29:47.561Z",
+            "at": "2026-11-14T08:48:37.788Z",
             "version": "4.1.0",
-            "note": "2026-11-14 最终构建：NIBI_ENV=production，index.html nibi-release meta + release.json 均生成",
-            "checks": ["local"]
+            "note": "2026-11-14 版本收回 4.1.0 后重建：NIBI_ENV=production，index.html nibi-release-version=4.1.0 + release.json",
+            "checks": [
+              "local"
+            ]
           }
         },
         "web-share": {
           "built": {
-            "at": "2026-11-14T08:29:47.651Z",
+            "at": "2026-11-14T08:48:37.859Z",
             "version": "4.1.0",
-            "note": "2026-11-14 最终构建：NIBI_ENV=production，index.html nibi-release meta + release.json 均生成",
-            "checks": ["local"]
+            "note": "2026-11-14 版本收回 4.1.0 后重建：NIBI_ENV=production，index.html nibi-release-version=4.1.0 + release.json",
+            "checks": [
+              "local"
+            ]
           }
         }
       }
