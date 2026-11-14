@@ -25,6 +25,14 @@ It is built for long-running coding sessions and for developers who move between
 - **Extend your own way**: plugins, MCP, skills, hooks and workflows connect to the way you already work.
 - **Rust-native core**: the desktop agent runs on a Rust core for more predictable responsiveness and resource use in long sessions.
 
+### A Rust kernel inside the ZCode desktop
+
+NIBI starts from the open-source ZCode desktop and moves the agent execution layer onto an upstream open-source Rust kernel. The interface, workflow and extension model stay continuous; sessions, tool calls and terminal orchestration run on the Rust core.
+
+This is not novelty for its own sake. Long sessions are where runtime overhead compounds: Rust gives us more predictable startup, memory use and process boundaries, so tool-heavy and terminal-heavy work is less likely to be slowed down by the agent runtime. The kernel can also be upgraded, tested and diagnosed independently of the desktop shell.
+
+The result is steadier long-running work, more predictable responsiveness and a continuous desktop experience. NIBI is an independent product, not an official ZCode release.
+
 ## What you can do
 
 | Scenario                 | What NIBI provides                                                   |
