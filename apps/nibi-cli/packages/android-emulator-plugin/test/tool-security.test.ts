@@ -49,7 +49,7 @@ async function fixture() {
   }
   vi.stubEnv("ANDROID_PLUGIN_SDK_PATH", sdk);
   vi.stubEnv("ANDROID_PLUGIN_JDK_MAJOR", "99999");
-  vi.stubEnv("PATH", windows ? process.env.SystemRoot + "\\System32" : "/usr/bin:/bin");
+  vi.stubEnv("PATH", windows ? process.env.SystemRoot + "\\System32" : bin);
   vi.stubEnv("ANDROID_TEST_MARKER", marker);
   if (windows) {
     const payload = path.join(root, "marker.cjs");
