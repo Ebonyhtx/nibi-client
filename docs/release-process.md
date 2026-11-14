@@ -65,17 +65,17 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
 ## 发布一个版本
 
 1. 先看状态：`pnpm release:status`。只有 `pending`/`missing` 的产物需要处理；`ready` 的不重发。
-2. 把根 `package.json` 的版本改成新版本（比如 `5.0.0`），同步 `package-lock.json` 的根 `version` 与
+2. 把根 `package.json` 的版本改成新版本（比如 `4.1.0`），同步 `package-lock.json` 的根 `version` 与
    `packages[""].version`（`desktopProductIdentity` 门禁要求三者一致），提交到 `dev`，等 `dev` 的门禁绿。
 3. 快进 `main`：`git branch -f main dev && git push origin main`。
 4. 在 `main` 的该 commit 上打标签并推送：
    ```bash
-   git tag v5.0.0 <main 的 commit>
-   git push origin v5.0.0
+   git tag v4.1.0 <main 的 commit>
+   git push origin v4.1.0
    ```
 5. 标签推送会触发 `rust-npm-packages`：先发布四个平台包（`@nibi-studio/cli-*`），全部成功后
    `meta` job 再打包并发布入口包 `@nibi-studio/cli`。两层包都自动带 provenance，并共用根
-   `package.json` 的版本；标签必须等于该版本，否则 job 直接失败（防止 `v5.0.0` 的标签发出
+   `package.json` 的版本；标签必须等于该版本，否则 job 直接失败（防止 `v4.1.0` 的标签发出
    `4.0.2` 的包）。META 的 `optionalDependencies` 精确锁定同版本平台包，平台包缺一个就不会发
    META。
 6. 桌面安装包、Source Server、两个 Web SPA、插件市场沿用各自流程，同样以这次 `main` 的 commit

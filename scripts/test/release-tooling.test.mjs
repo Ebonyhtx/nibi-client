@@ -233,21 +233,21 @@ test("ledger records stages and keeps the newest marketplace baseline", async ()
       at: "2026-01-01T00:00:00.000Z",
     });
     recordStage(ledger, {
-      version: "5.0.0",
+      version: "4.1.0",
       artifactId: "npm",
       stage: "built",
       at: "2026-01-02T00:00:00.000Z",
     });
     await writeLedger(root, ledger);
     const loaded = await readLedger(root);
-    assert.equal(loaded.releases["5.0.0"].artifacts.npm.built.at, "2026-01-02T00:00:00.000Z");
+    assert.equal(loaded.releases["4.1.0"].artifacts.npm.built.at, "2026-01-02T00:00:00.000Z");
     assert.deepEqual(latestMarketplaceBaseline(loaded), {
       revision: 4,
       version: "0.12.0",
       appVersion: "4.0.2",
       stage: "verified",
     });
-    assert.equal(compareVersions("5.0.0", "4.0.2"), 1);
+    assert.equal(compareVersions("4.1.0", "4.0.2"), 1);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -344,7 +344,7 @@ test("buildReleaseStatus marks only required artifacts as blocking", () => {
   };
   const status = buildReleaseStatus({
     manifest,
-    version: "5.0.0",
+    version: "4.1.0",
     lastTag: "v4.0.2",
     tagged: false,
     changedFiles: ["kernel/src/lib.rs"],
@@ -378,8 +378,8 @@ test("tagged releases use the previous tag as the release scope and warn about p
       tagPrefix: "v",
       artifacts: [{ id: "npm", label: "npm", paths: ["kernel/**"], check: { kind: "npm" } }],
     },
-    version: "5.0.0",
-    lastTag: "v5.0.0",
+    version: "4.1.0",
+    lastTag: "v4.1.0",
     releaseBaselineTag: "v4.0.2",
     tagged: true,
     changedFiles: ["kernel/src/lib.rs"],
@@ -396,7 +396,7 @@ test("tagged releases use the previous tag as the release scope and warn about p
 });
 
 test("checkNpm accepts all five packages and rejects a META version mismatch", async () => {
-  const version = "5.0.0";
+  const version = "4.1.0";
   const catalog = npmCatalog(version);
   const fetchImpl = async (url) => {
     const name = Object.keys(catalog).find((key) => url.includes(key.replace("/", "%2F")));
@@ -421,7 +421,7 @@ test("checkNpm accepts all five packages and rejects a META version mismatch", a
 });
 
 test("checkNpm reports a missing META package without treating the whole registry as broken", async () => {
-  const version = "5.0.0";
+  const version = "4.1.0";
   const catalog = npmCatalog(version);
   delete catalog["@nibi-studio/cli"];
   const result = await checkNpm(NPM_ARTIFACT, {
@@ -454,7 +454,7 @@ function sourceDescriptor(version) {
 }
 
 test("checkSourceServer requires descriptor and all four archives", async () => {
-  const version = "5.0.0";
+  const version = "4.1.0";
   const descriptor = sourceDescriptor(version);
   let descriptorServed = true;
   const fetchImpl = async (url, options = {}) => {
@@ -489,7 +489,7 @@ test("checkSourceServer requires descriptor and all four archives", async () => 
 });
 
 test("checkDesktop requires both update manifest and download inventory per platform", async () => {
-  const version = "5.0.0";
+  const version = "4.1.0";
   const fetchImpl = async (url) => {
     const parsed = new URL(url);
     if (parsed.hostname === "dl.example.test") {
@@ -524,7 +524,7 @@ test("checkDesktop requires both update manifest and download inventory per plat
 });
 
 test("checkWebRelease reads no-cache page meta before the cached release.json", async () => {
-  const version = "5.0.0";
+  const version = "4.1.0";
   const page = (metaVersion, surface = "web-remote") =>
     new Response(
       `<!doctype html><html><head>
@@ -541,7 +541,7 @@ test("checkWebRelease reads no-cache page meta before the cached release.json", 
   });
   assert.equal(current.valid, true);
   assert.equal(current.current, true);
-  assert.equal(current.detail, "页面 5.0.0");
+  assert.equal(current.detail, "页面 4.1.0");
 
   const old = await checkWebRelease(WEB_ARTIFACT, {
     version,
@@ -567,7 +567,7 @@ test("checkWebRelease reads no-cache page meta before the cached release.json", 
 });
 
 test("checkWebRelease falls back to release.json only when the page is absent", async () => {
-  const version = "5.0.0";
+  const version = "4.1.0";
   const fetchImpl = async (url) => {
     if (url.endsWith("release.json")) {
       return jsonResponse({
@@ -582,11 +582,11 @@ test("checkWebRelease falls back to release.json only when the page is absent", 
   const result = await checkWebRelease(WEB_ARTIFACT, { version, fetchImpl, retries: 0 });
   assert.equal(result.valid, true);
   assert.equal(result.current, true);
-  assert.equal(result.detail, "release.json 5.0.0");
+  assert.equal(result.detail, "release.json 4.1.0");
 });
 
 test("checkPluginMarket validates catalog, zip hash and ledger revision", async () => {
-  const version = "5.0.0";
+  const version = "4.1.0";
   const catalog = {
     name: "nibi-official",
     revision: 5,
@@ -631,7 +631,7 @@ test("checkPluginMarket validates catalog, zip hash and ledger revision", async 
 test("releaseJsonPlugin emits a stable release marker asset and page meta", () => {
   const plugin = releaseJsonPlugin({
     surface: "web-share",
-    version: "5.0.0",
+    version: "4.1.0",
     environment: "production",
     commit: "abc123",
   });
@@ -639,7 +639,7 @@ test("releaseJsonPlugin emits a stable release marker asset and page meta", () =
   assert.deepEqual(
     tags.map((tag) => [tag.attrs.name, tag.attrs.content]),
     [
-      ["nibi-release-version", "5.0.0"],
+      ["nibi-release-version", "4.1.0"],
       ["nibi-release-surface", "web-share"],
       ["nibi-release-commit", "abc123"],
     ],
@@ -650,7 +650,7 @@ test("releaseJsonPlugin emits a stable release marker asset and page meta", () =
   assert.deepEqual(JSON.parse(emitted.source), {
     schemaVersion: 1,
     surface: "web-share",
-    version: "5.0.0",
+    version: "4.1.0",
     environment: "production",
     commit: "abc123",
   });

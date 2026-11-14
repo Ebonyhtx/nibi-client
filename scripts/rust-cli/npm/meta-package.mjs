@@ -11,7 +11,7 @@
 //
 // 用法：
 //   node scripts/rust-cli/npm/meta-package.mjs \
-//     --version 5.0.0 \
+//     --version 4.1.0 \
 //     --out <dir>
 //
 // 输出一行 JSON：包名、版本、tarball 路径、sha256/integrity、锁定的平台包。
