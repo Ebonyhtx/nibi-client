@@ -36,7 +36,10 @@ afterEach(async () => {
   await Promise.all(
     temporaryDirectories
       .splice(0)
-      .map((directory) => rm(directory, { force: true, recursive: true })),
+      // macOS 上 Registry 退出后仍可能有异步写入落盘，rm 会短暂报 ENOTEMPTY；交给 rm 自己重试。
+      .map((directory) =>
+        rm(directory, { force: true, recursive: true, maxRetries: 10, retryDelay: 100 }),
+      ),
   );
 });
 
