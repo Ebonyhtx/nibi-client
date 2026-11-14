@@ -172,6 +172,13 @@ jobs:
           "$TOOLCHAIN/llvm-readelf" -h "$RUNNER_TEMP/libnibi.so" | grep -q "Shared object"
           "$TOOLCHAIN/llvm-readelf" -n "$RUNNER_TEMP/libnibi.so" | grep -q "Android"
           "$TOOLCHAIN/llvm-nm" -D --defined-only "$RUNNER_TEMP/libnibi.so" | grep -q "nibi_app_server_start"
+          # 16 KB page size（Play 对 targetSdk 35+ 的要求）：所有 LOAD 段必须 2**14 对齐。
+          # 对齐值在 `llvm-readelf -l` 的最后一列；NDK r27 默认 4 KB，靠 .cargo/config.toml 的链接参数抬到 16 KB。
+          if ! "$TOOLCHAIN/llvm-readelf" -l "$RUNNER_TEMP/libnibi.so" \
+            | awk '$1 == "LOAD" { print $NF }' | grep -qx "0x4000"; then
+            echo "libnibi.so 的 LOAD 段没有 16 KB 对齐（见 kernel/.cargo/config.toml）" >&2
+            exit 1
+          fi
           SHARED="$(find "$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android" -name 'libc++_shared.so' -print -quit)"
           if [ -n "$SHARED" ]; then
             cp "$SHARED" "$RUNNER_TEMP/libc++_shared.so"

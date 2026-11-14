@@ -69,3 +69,7 @@ reqwest 构造 egress 会失败（`rustls-platform-verifier could not load extra
   后用 API 24 的 NDK clang 重链 `--lib`，输出 `libnibi.so`。
 - 发布 workflow 校验 `.so` 是 shared object、带 Android note、导出
   `nibi_app_server_start`，并在打包器测试里校验 tar 内容与 `build.json.artifacts`。
+- **16 KB page size**：`kernel/.cargo/config.toml` 给 `aarch64-linux-android` 加了
+  `-Wl,-z,max-page-size=16384` / `common-page-size=16384`（NDK r27 默认 4 KB）。Play 对
+  targetSdk 35+ 的包要求 ELF `LOAD` 段 2**14 对齐，workflow 里用
+  `llvm-readelf -l` 的最后一列断言 `0x4000`。宿主打包自己的 JNI 薄层也要带同样的链接参数。
