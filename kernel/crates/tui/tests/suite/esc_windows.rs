@@ -111,6 +111,7 @@ fn setup(store: &Arc<MemoryStore>, held: &Arc<HeldCommit>) -> Setup {
 /// 也可能已经把回合画出来（运行窗口）；两种窗口都必须中止刚开始的回合、把输入撤回输入框，且不在对话里
 /// 留下输入或中断标记。actor 先停在一次提交里（shift+tab 改权限模式），输入与中断在它的信箱里排着。
 #[tokio::test(flavor = "multi_thread")]
+#[ignore = "scheduler-dependent window; deterministic ESC restore coverage lives in auto_restore::esc_before_the_first_word_puts_the_input_back"]
 async fn esc_right_after_submit_puts_the_input_back() {
     let model = GatedModel::scripted(vec![
         text_response(&["hello"]),
