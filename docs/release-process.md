@@ -76,7 +76,8 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
   覆盖。`autoDownloadAndInstallUpdates` 仍是用户设置，默认 `false`；只有用户自己打开才会
   自动下载。发布库存必须带 `files[].sha512` 与更新 manifest，客户端按 electron-updater 的
   sha512 校验更新包。未签名首装仍可能触发 SmartScreen，但安装一次后后续更新走清单校验，
-  不需要重新访问官网；ZIP 版没有更新器，不要把它当更新载体。
+  不需要重新访问官网；ZIP 版没有更新器，不要把它当更新载体。发布库存的 `releaseNotes` 必须写
+  本版更新说明，绿色更新入口和弹窗才能显示更新日志。
 
 ## 发布一个版本
 
