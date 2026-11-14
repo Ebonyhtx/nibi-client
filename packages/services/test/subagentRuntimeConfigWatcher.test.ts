@@ -117,8 +117,12 @@ describe("native subagent Host watchers", () => {
     }
     const expected = { kind: "ready", profiles: [{ systemPrompt: `write-${writes}` }] };
     await f.both(expected);
-    for (const workspace of others)
-      expect(await f.a.readRuntimeConfig(workspace)).toMatchObject(expected);
+    // Windows 上目录监听与补扫是异步的：主 workspace 已收敛不代表其它 workspace 的缓存已刷新，
+    // 这里等到每个 workspace 都追上同一个共享 AGENTS 目录，避免把监听延迟当成丢失。
+    await until(async () => {
+      for (const workspace of others)
+        expect(await f.a.readRuntimeConfig(workspace)).toMatchObject(expected);
+    });
     expect(before).toMatchObject({ profiles: [] });
   }, 20000);
 
