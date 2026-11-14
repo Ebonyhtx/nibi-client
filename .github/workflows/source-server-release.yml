@@ -1,7 +1,8 @@
 name: source-server-release
 
-# 远端 Source Server 的发布产物：四个平台包（`nibi-server-<target>.tar.gz`）与
-# `source-server-release.json`。产物由 `pnpm prepare:remote-assets` 在**一台 POSIX 主机**上
+# 远端 Source Server 的发布产物：当前只发两个 Linux 平台包（`nibi-server-<target>.tar.gz`）与
+# `source-server-release.json`。macOS 桌面/远端发行暂缓，恢复时把 darwin target 加回并切回
+# `pnpm prepare:remote-assets`。产物由 `pnpm prepare:remote-assets:linux` 在**一台 POSIX 主机**上
 # 顺序组装（下载目标平台的 Node、node-pty/koffi/native-search、Agent bundle），不是 Rust 交叉编译。
 #
 # 为什么只能跑在 Linux/macOS：staging 里 `spawn("pnpm")`，Windows 没有 `pnpm.exe`（ENOENT）；
@@ -41,12 +42,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Stage the four POSIX source-server archives
+      - name: Stage the two Linux source-server archives
         env:
           NIBI_ENV: production
-        run: pnpm prepare:remote-assets
+        run: pnpm prepare:remote-assets:linux
 
-      # descriptor 是唯一的发布合同：版本必须等于产品版本，四个 target 齐全，sha256 / size 与
+      # descriptor 是唯一的发布合同：版本必须等于产品版本，当前两个 Linux target 齐全，sha256 / size 与
       # 磁盘一致；执行位是远端能直接 `bin/nibi` 的前提（Windows 构建就是在这里坏的）。
       - name: Verify the descriptor and the archives
         run: |
@@ -57,11 +58,11 @@ jobs:
           jq -e --arg version "$VERSION" '
             .schemaVersion == 1
             and .version == $version
-            and ([.archives[].target] | sort) == ["darwin-arm64","darwin-x64","linux-arm64","linux-x64"]
+            and ([.archives[].target] | sort) == ["linux-arm64","linux-x64"]
             and all(.archives[]; .version == $version)
           ' "$DIR/source-server-release.json" > /dev/null
           ( cd "$DIR" && jq -r '.archives[] | "\(.sha256)  \(.fileName)"' source-server-release.json | sha256sum -c - )
-          for target in darwin-arm64 darwin-x64 linux-arm64 linux-x64; do
+          for target in linux-arm64 linux-x64; do
             file="$DIR/nibi-server-$target.tar.gz"
             expected="$(jq -r --arg target "$target" '.archives[] | select(.target == $target) | .sizeBytes' "$DIR/source-server-release.json")"
             test "$(stat -c%s "$file")" = "$expected"

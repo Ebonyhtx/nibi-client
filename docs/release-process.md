@@ -48,7 +48,7 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
 | id              | 产物                                                | verify 检查                                                                   |
 | --------------- | --------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `npm`           | 四个 `@nibi-studio/cli-*` + META `@nibi-studio/cli` | 注册表里同版本存在、tarball 有 sha512、META 精确锁定四个平台包                |
-| `source-server` | `nibi-server-<target>.tar.gz` × 4 + descriptor      | descriptor 版本/四 target/档案存在/大小；`--deep` 再校验 sha256               |
+| `source-server` | `nibi-server-<target>.tar.gz` × 2 + descriptor      | descriptor 版本/两 Linux target/档案存在/大小；`--deep` 再校验 sha256         |
 | `desktop`       | Windows/Linux 安装包与更新库存（macOS 暂缓）        | 每个已发布平台的更新 manifest 与 downloads 库存都返回当前版本                 |
 | `web-remote`    | 手机远控 SPA `/remote/v4`                           | 页面 `nibi-release-version`/`nibi-release-surface` meta（release.json 兜底）  |
 | `web-share`     | 会话分享 SPA `/cn/share`                            | 页面 `nibi-release-version`/`nibi-release-surface` meta（release.json 兜底）  |
@@ -64,14 +64,17 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
 
 ### 未签名阶段的 Windows 分发（2026-11 起）
 
-- **macOS 桌面安装包暂缓**：`desktop` 的 verify 平台只有 `windows-x86_64` / `linux-x86_64`；
-  以后恢复 macOS 发布时再把 `darwin-aarch64` 加回 manifest。Source Server 的 darwin 远端归档
-  是给远端 Mac 工作区用的，不属于桌面安装包，仍按四 target 发布。
+- **macOS 桌面包与 Source Server darwin 归档暂缓**：当前没有 Mac 用户，`desktop` 的 verify
+  平台只有 `windows-x86_64` / `linux-x86_64`，`source-server` 只发 `linux-x64` / `linux-arm64`。
+  以后恢复 macOS 时，把 `darwin-aarch64` 与两个 darwin target 一起加回 manifest、workflow
+  和 staging 入口。Source Server 归档本身不需要 Apple Developer ID（它是 Node 运行时 tar 包，
+  不是签名的 `.app`），暂缓只是因为当前没有 Mac 用户。
 - **Windows 公开只发 NSIS 安装包**。`zip` 只作为内部/测试备用件，不作为公开主下载，也不承诺
   自动更新或卸载能力；NSIS 是 `oneClick: false` 的 per-user 安装，普通用户不需要管理员权限。
-- **未签名 beta 默认不开自动更新**：构建期 `NIBI_AUTO_UPDATE` 默认关闭；要开启必须显式设
-  `NIBI_AUTO_UPDATE=1`，并且发布库存里同时有 `files[].sha512` 与更新 manifest。未签名
-  Windows 自动更新技术上可跑，但每次安装仍可能触发 SmartScreen，建议等代码签名落地后再开。
+- **Windows 4.1 NSIS 开启自动更新**：发布构建显式设 `NIBI_AUTO_UPDATE=1`；发布库存必须带
+  `files[].sha512` 与更新 manifest，客户端按 electron-updater 的 sha512 校验更新包。未签名
+  首装仍可能触发 SmartScreen，但安装一次后后续更新走清单校验，不需要重新访问官网；ZIP 版
+  没有更新器，不要把它当自动更新载体。
 
 ## 发布一个版本
 
@@ -90,7 +93,8 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
    `4.0.2` 的包）。META 的 `optionalDependencies` 精确锁定同版本平台包，平台包缺一个就不会发
    META。
 6. 桌面安装包、Source Server、两个 Web SPA、插件市场沿用各自流程，同样以这次 `main` 的 commit
-   为准。候选包出来但还没上传时，可以先用 `release:record --artifact <id> --stage built` 记一笔。
+   为准。Windows 4.1 桌面构建必须显式带 `NIBI_AUTO_UPDATE=1`（否则客户端不会检查更新）；公开只上传
+   NSIS，不上传 ZIP。候选包出来但还没上传时，可以先用 `release:record --artifact <id> --stage built` 记一笔。
 7. 全部上传后运行 `pnpm release:verify`；有缺件就补，直到通过。通过后执行
    `pnpm release:verify --record` 把 `published`/`verified` 写进 `release/ledger.json` 并提交。
 8. 如果发布后又有代码改动，先 bump 版本再发下一版；`release:status` 会提示“标签已存在但之后又有改动”。
@@ -153,16 +157,18 @@ Node `@nibi/cli` 已退役为内部私有 workspace 包：没有 `bin`、不发�
 
 ## Source Server 远端产物
 
-远端工作区的 `nibi-server-<target>.tar.gz`（`linux-x64` / `linux-arm64` / `darwin-x64` /
-`darwin-arm64`）与 `source-server-release.json` 由同一条 staging 链产出，**不是 Rust 构建**：
+当前远端工作区只发 `linux-x64` / `linux-arm64` 两个 `nibi-server-<target>.tar.gz` 与
+`source-server-release.json`；`darwin-x64` / `darwin-arm64` 随 macOS 一起暂缓。产物由同一条
+staging 链产出，**不是 Rust 构建**：
 
 1. 触发 `source-server-release` workflow（`workflow_dispatch`，ubuntu-latest）。它跑
-   `NIBI_ENV=production pnpm prepare:remote-assets`，把四个包与 descriptor 放进
+   `NIBI_ENV=production pnpm prepare:remote-assets:linux`，把两个 Linux 包与 descriptor 放进
    `packages/desktop/mock-cdn/releases/<版本>/`，校验版本、sha256、size 与执行位后上传 artifact。
    - 不要在 Windows 本机跑：staging 里 `spawn("pnpm")` 在 Windows 会 ENOENT，Windows 的 tar
      也保不住 POSIX 执行位（远端解压后直接跑 `bin/nibi`）。
-   - 不要用 `prepare:remote-assets:linux` 发正式版：descriptor 只会登记两个 Linux target。
-2. 下载 artifact，由运营者按私有发布流程把 5 个文件上传到内容 CDN 的版本目录；公开仓不记录
+   - 以后恢复 macOS 时，workflow 改回 `pnpm prepare:remote-assets`，并把 descriptor 校验和
+     manifest 的 target 列表一起加回两个 darwin target。
+2. 下载 artifact，由运营者按私有发布流程把 3 个文件上传到内容 CDN 的版本目录；公开仓不记录
    服务器路径、发布脚本或对象存储账号细节。
 3. 发布后的公网地址是 `https://dl.nibistudio.cn/releases/electron/<版本>/…`。
 

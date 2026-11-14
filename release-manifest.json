@@ -21,7 +21,7 @@
     },
     {
       "id": "source-server",
-      "label": "远端 Source Server 四平台包",
+      "label": "远端 Source Server Linux 双平台包",
       "paths": [
         "apps/nibi-cli/**",
         "packages/nibi-server-cli/**",
@@ -40,7 +40,7 @@
       "check": {
         "kind": "source-server",
         "descriptorUrl": "https://dl.nibistudio.cn/releases/electron/{version}/source-server-release.json",
-        "targets": ["linux-x64", "linux-arm64", "darwin-x64", "darwin-arm64"]
+        "targets": ["linux-x64", "linux-arm64"]
       }
     },
     {

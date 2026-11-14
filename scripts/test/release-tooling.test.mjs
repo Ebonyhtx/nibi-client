@@ -67,7 +67,7 @@ const SOURCE_ARTIFACT = {
   check: {
     kind: "source-server",
     descriptorUrl: "https://dl.example.test/{version}/source-server-release.json",
-    targets: ["linux-x64", "linux-arm64", "darwin-x64", "darwin-arm64"],
+    targets: ["linux-x64", "linux-arm64"],
   },
 };
 
@@ -143,6 +143,10 @@ test("release manifest is valid and maps the six release artifacts", async () =>
     manifest.artifacts.map((artifact) => artifact.id),
     ["npm", "source-server", "desktop", "web-remote", "web-share", "plugin-market"],
   );
+  const source = manifest.artifacts.find((artifact) => artifact.id === "source-server");
+  assert.deepEqual(source.check.targets, ["linux-x64", "linux-arm64"]);
+  const desktop = manifest.artifacts.find((artifact) => artifact.id === "desktop");
+  assert.deepEqual(desktop.check.platforms, ["windows-x86_64", "linux-x86_64"]);
 });
 
 test("manifest validation rejects unsafe globs and unknown checks", () => {
@@ -453,7 +457,7 @@ function sourceDescriptor(version) {
   };
 }
 
-test("checkSourceServer requires descriptor and all four archives", async () => {
+test("checkSourceServer requires descriptor and all configured archives", async () => {
   const version = "4.1.0";
   const descriptor = sourceDescriptor(version);
   let descriptorServed = true;
@@ -462,7 +466,7 @@ test("checkSourceServer requires descriptor and all four archives", async () => 
       return descriptorServed ? jsonResponse(descriptor) : jsonResponse({}, 404);
     }
     const target = descriptor.archives.find((archive) => url.endsWith(archive.fileName))?.target;
-    if (!target || target === "darwin-arm64") return jsonResponse({}, 404);
+    if (!target || target === "linux-arm64") return jsonResponse({}, 404);
     if (options.method === "HEAD")
       return headResponse(200, descriptor.archives.find((a) => a.target === target).sizeBytes);
     return jsonResponse({}, 500);
@@ -474,7 +478,7 @@ test("checkSourceServer requires descriptor and all four archives", async () => 
   });
   assert.equal(partial.valid, true);
   assert.equal(partial.current, false);
-  assert.equal(partial.present, 3);
+  assert.equal(partial.present, 1);
   assert.equal(partial.partial, true);
 
   descriptorServed = false;
