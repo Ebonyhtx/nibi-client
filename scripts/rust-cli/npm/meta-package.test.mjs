@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile, execFileSync } from "node:child_process";
 import { EventEmitter } from "node:events";
-import { chmod, copyFile, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { chmod, copyFile, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
@@ -85,8 +85,11 @@ function fakeStdio() {
 before(async () => {
   root = await mkdtemp(join(tmpdir(), "nibi-meta-package-test-"));
 
-  resolveFixture = join(root, "resolve");
-  await mkdir(resolveFixture, { recursive: true });
+  // macOS 的 tmpdir 在 `/var/folders/...`，而 `require.resolve` 返回 realpath 后的
+  // `/private/var/folders/...`；夹具路径也先做一次 realpath，断言才对得上同一份路径。
+  const resolveFixturePath = join(root, "resolve");
+  await mkdir(resolveFixturePath, { recursive: true });
+  resolveFixture = await realpath(resolveFixturePath);
   await writeFile(join(resolveFixture, "package.json"), "{}\n");
   resolveRequireFrom = pathToFileURL(join(resolveFixture, "package.json")).href;
   await writeFakePlatformPackage({
