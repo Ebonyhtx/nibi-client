@@ -369,6 +369,7 @@ int xstrtoull(const char *str, char **end, int base, unsigned long long *value) 
 	return xstrtoux_epilogue(str, end, endp);
 }
 
+#if !defined(__ANDROID__)
 /** Compile and execute a regular expression for xrpmatch(). */
 static int xrpregex(nl_item item, const char *response) {
 	const char *pattern = nl_langinfo(item);
@@ -385,9 +386,13 @@ static int xrpregex(nl_item item, const char *response) {
 	bfs_regfree(regex);
 	return ret;
 }
+#endif
 
 /** Check if a response is affirmative or negative. */
 static int xrpmatch(const char *response) {
+#if !defined(__ANDROID__)
+	// NIBI: Bionic only declares nl_langinfo() from API 26; the Android platform
+	// package keeps minSdk 24, so skip the locale regexes and use the y/n failsafe.
 	int ret = xrpregex(NOEXPR, response);
 	if (ret > 0) {
 		return 0;
@@ -401,6 +406,7 @@ static int xrpmatch(const char *response) {
 	} else if (ret < 0) {
 		return -1;
 	}
+#endif
 
 	// Failsafe: always handle y/n
 	char c = response[0];

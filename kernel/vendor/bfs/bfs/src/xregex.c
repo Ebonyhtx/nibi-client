@@ -52,7 +52,13 @@ static void bfs_onig_once(void) {
 
 	// Oniguruma has no locale support, so try to guess the right encoding
 	// from the current locale.
+#if defined(__ANDROID__)
+	// NIBI: Bionic only declares nl_langinfo() from API 26, while the Android
+	// platform package keeps minSdk 24. Android locales are always UTF-8.
+	const char *charmap = "UTF-8";
+#else
 	const char *charmap = nl_langinfo(CODESET);
+#endif
 	if (charmap) {
 #define BFS_MAP_ENCODING(name, value) \
 		do { \

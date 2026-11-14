@@ -1349,3 +1349,12 @@ Node 的宿主目录端口（`packages/bootstrap/src/app/model-catalog-port.ts:8
   必须把它一并放进 jniLibs；`libz.so` / `libdl.so` / `libm.so` 是设备自带。
 - **CI 旁注**：同分支的 `rust-gates` 红在 RUSTSEC-2026-0459（`libsqlite3-sys 0.35.0` 的 bundled
   SQLite < 3.54.0），与本次 android 改动无关；`Cargo.lock` 未动，修法是 `rusqlite 0.41`。
+- **2026-11-15 补：cdylib 按 API 24 重链时 bfs 的 locale 缺口**。bionic 只在 API ≥ 26 声明
+  `nl_langinfo()`，而 Android 平台包的 `lib/libnibi.so` 按 minSdk 24 编译，于是 vendored
+  bfs（4.1.4）的 `bfstd.c` / `xregex.c` 两处直接调用编不过（`use of undeclared identifier`）。
+  - 修法是两处 `__ANDROID__` 分支，不改其它平台：`xregex.c` 的字符集固定按 `UTF-8` 猜
+    （Android 的 locale 就是 UTF-8）；`bfstd.c` 的 `xrpmatch()` 跳过基于 locale 的
+    `YESEXPR`/`NOEXPR` 正则，直接走已有的 y/n 兜底。`bin/nibi-rs` 仍按 API 26 编，不受影响。
+  - 验证：在 WSL Ubuntu 24.04 用 NDK r27c（API 24 clang）+ `aarch64-linux-android` target
+    重跑 workflow 同一条 `cargo build --lib`，`llvm-readelf -h` 认作 Shared object、
+    `llvm-nm -D` 能找到 `nibi_app_server_start`。
