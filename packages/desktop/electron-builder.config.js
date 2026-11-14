@@ -62,8 +62,16 @@ const shouldEnableMacSigning =
   process.env.NIBI_ENABLE_MAC_SIGN === "1" && Boolean(macSigningIdentity);
 const workspaceRoot = resolve(import.meta.dirname, "../..");
 const desktopPackageRoot = import.meta.dirname;
-// Computer Use Helper（macOS .app、Windows runtime）只随真实 producer 打包；开源占位包下跳过随包资源与校验。
-const shouldPackageComputerUseHelper = isRealComputerUseProducerInstalled({ desktopPackageRoot });
+// Computer Use Helper（macOS .app、Windows runtime）只随真实 producer 打包。
+// macOS 的 .app 是外部签名产物；CI/开源包里没有它时跳过随包资源与校验，让无 Helper 的包
+// 仍然可构建（运行时 CUA 会 fail-closed），不要为了一个可选资源把整个打包门禁卡死。
+const hasBundledMacCuaHelper =
+  targetPlatform.os !== "darwin" ||
+  existsSync(
+    resolve(desktopPackageRoot, "bundled-cua-helper", targetPlatform.arch, HELPER_APP_NAME),
+  );
+const shouldPackageComputerUseHelper =
+  isRealComputerUseProducerInstalled({ desktopPackageRoot }) && hasBundledMacCuaHelper;
 // Rust 内核二进制：prepare:rust-kernel 暂存进 .staging/rust-kernel 后随包发布
 // （<resources>/rust-kernel/<executable>，进程管理器的打包位次）。桌面本地 agent 只跑 Rust，
 // 没暂存时正式包会在启动 agent 时 fail-closed；发布构建不得跳过这一步。
