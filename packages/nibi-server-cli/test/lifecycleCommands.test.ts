@@ -11,7 +11,7 @@ import { serverStatusSchema, type ServerStatus } from "../src/contracts.js";
 import { isControlEndpointUnavailable, requestControl } from "../src/ipc/controlClient.js";
 import { createControlServer } from "../src/ipc/controlServer.js";
 import { DataRootLock } from "../src/runtime/lock.js";
-import { resolveServerLayout, type ServerLayout } from "../src/runtime/paths.js";
+import { resolveCanonicalServerLayout, type ServerLayout } from "../src/runtime/paths.js";
 import { ReleaseManager } from "../src/runtime/releaseManager.js";
 import { stopSupervisorAndWait, waitForServerStopped } from "../src/runtime/shutdownWait.js";
 
@@ -44,11 +44,15 @@ async function createRoot(prefix: string): Promise<{
   serverRoot: string;
   layout: ServerLayout;
 }> {
-  const root = await mkdtemp(join(tmpdir(), prefix));
+  // macOS 的 Unix domain socket 路径上限约 104 字节；完整用例名会把临时根撑爆，
+  // 这里只保留 8 字符前缀，避免 control.sock 在 CI 上 EINVAL。
+  const root = await mkdtemp(join(tmpdir(), prefix.slice(0, 8)));
   const serverRoot = join(root, "server");
-  const layout = resolveServerLayout(serverRoot);
+  // CLI 会在 IO 前把 server root 收敛到 realpath；测试必须用同一个 canonical layout，
+  // 否则 macOS 的 /var -> /private/var、Windows 的短名/大小写会派生出不同 control endpoint。
+  const layout = await resolveCanonicalServerLayout(serverRoot);
   await mkdir(layout.runDir, { recursive: true });
-  return { root, serverRoot, layout };
+  return { root, serverRoot: layout.serverRoot, layout };
 }
 
 async function findFreePort(): Promise<number> {
