@@ -1,11 +1,8 @@
-import { readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import { TID_V4_COMPOSER_INPUT, TID_V4_COMPOSER_SEND } from "@nibi/shared/test-ids";
 import {
   clearAppData,
   setInputValueByTestIdDom,
   getE2EAppDataPaths,
-  readSettings,
 } from "../helpers/desktop-app.js";
 import { restartIntoWorkspacePreservingProfile } from "../helpers/model-provider-restart-runtime.js";
 import {
@@ -104,38 +101,6 @@ describe("模型 Provider 重启恢复 E2E", () => {
     await waitForSelectedModel(E2E_BIGMODEL_PLAN_PROVIDER_ID, E2E_PLAN_NON_DEFAULT_MODEL);
     await restartIntoWorkspacePreservingProfile(getE2EAppDataPaths().workspace);
     await waitForSelectedModel(E2E_BIGMODEL_PLAN_PROVIDER_ID, E2E_PLAN_NON_DEFAULT_MODEL);
-    // Todo88：仅在退出后注入同一 Team 的旧连接字段；不能用新字段 seed 冒充升级迁移。
-    const settingsPath = join(getE2EAppDataPaths().appDataDir, "setting.json");
-    for (const key of [
-      "team-plan:builtin:bigmodel-coding-plan:product-team-a:org-team-a:proj-team-a",
-      "team-plan:builtin:bigmodel-coding-plan:product-team-a:proj-team-a",
-    ]) {
-      const legacyKeys = { bigmodel: key };
-      await restartIntoWorkspacePreservingProfile(getE2EAppDataPaths().workspace, {
-        afterElectronProcessExit: async () => {
-          const settings = JSON.parse(await readFile(settingsPath, "utf8"));
-          delete settings.providerFamilyConnectionSelections;
-          await writeFile(
-            settingsPath,
-            JSON.stringify({
-              ...settings,
-              modelProviderFamilyModes: { bigmodel: "oauth" },
-              modelProviderFamilySelectedKeys: legacyKeys,
-            }),
-          );
-        },
-      });
-      await waitForSelectedModel(E2E_BIGMODEL_PLAN_PROVIDER_ID, E2E_PLAN_NON_DEFAULT_MODEL);
-      expect((await readSettings()).providerFamilyConnectionSelections?.bigmodel).toEqual({
-        kind: "team-coding-plan",
-        productId: "product-team-a",
-        organizationId: "org-team-a",
-        projectId: "proj-team-a",
-      });
-      expect(
-        JSON.parse(await readFile(settingsPath, "utf8")).modelProviderFamilySelectedKeys,
-      ).toEqual(legacyKeys);
-    }
     await assertPlanRequest("E2E_MODEL_PROVIDER_RESTART_R02");
   });
 

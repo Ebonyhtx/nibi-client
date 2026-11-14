@@ -229,7 +229,6 @@ describe("Window Host 的 Source 重连与数据库启动整合", () => {
         createE2ERepoWikiGenerationFixtureFromEnv: () => undefined,
         createSettingServiceWithMigrations: () => ({
           service: {},
-          prepareLegacyAccountConnections() {},
         }),
         createHostApiNetworkTransport: () => ({ fetch() {} }),
         initializeHostApiNetworkTransportOwner: async (params: { establishOwner(): unknown }) =>

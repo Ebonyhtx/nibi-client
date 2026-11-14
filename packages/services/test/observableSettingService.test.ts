@@ -19,9 +19,9 @@ describe("Observable Setting Service", () => {
 
     await service.update({
       providerFamilyDomain: "zai",
-      modelProviderFamilyModes: { zai: "oauth" },
+      providerFamilyConnectionSelections: { zai: { kind: "individual-coding-plan" } },
     });
-    expect(events).toEqual([["providerFamilyDomain", "modelProviderFamilyModes"]]);
+    expect(events).toEqual([["providerFamilyDomain", "providerFamilyConnectionSelections"]]);
 
     update.mockRejectedValueOnce(new Error("write failed"));
     await expect(service.update({ providerFamilyDomain: "bigmodel" })).rejects.toThrow(

@@ -101,11 +101,7 @@ import { createE2EReplayFixtureVariables } from "./test/e2e/helpers/e2e-runtime-
 import { stageE2EAppOutput } from "./test/e2e/helpers/e2e-app-output-stage.js";
 import { withE2EDesktopBuildLock } from "./scripts/ensure-e2e-desktop-build.mjs";
 import { ensureSshRemoteReleaseAssets } from "./test/e2e/helpers/e2e-ssh-remote-release-assets.js";
-import {
-  ASK_USER_QUESTION_E2E_CLOCK_SCALE_ENV,
-  BIGMODEL_PROVIDER_ID,
-  ZAI_PROVIDER_ID,
-} from "@nibi/shared";
+import { ASK_USER_QUESTION_E2E_CLOCK_SCALE_ENV, NIBI_PROVIDER_ID } from "@nibi/shared";
 import {
   seedPersonalProviderConfig,
   seedPersonalDefaultModelSelection,
@@ -367,7 +363,7 @@ const CODING_PLAN_MODEL_SSE_BODY =
   'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n' +
   'event: message_delta\ndata: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":12}}\n\n' +
   'event: message_stop\ndata: {"type":"message_stop"}\n\n';
-const E2E_AUTH_PROVIDER_ID = "zai";
+const E2E_AUTH_PROVIDER_ID = NIBI_PROVIDER_ID;
 const E2E_AUTH_TOKEN = "e2e-oauth-token";
 const E2E_USER_PROFILE = {
   displayName: "NIBI E2E",
@@ -3322,7 +3318,8 @@ function seedE2EStartupState(specs: string[] = []) {
   const builtInSubagentModelOverridesSpec = isBuiltInSubagentModelSelectionOverridesSpec(specs);
   const providerReadinessColdStartFixture = usesProviderReadinessColdStartFixture(specs);
   const shouldUseBigmodelAuth = codingPlanTeamSpec || codingPlanUpgradeE2E;
-  const authProviderId = shouldUseBigmodelAuth ? BIGMODEL_PROVIDER_ID : E2E_AUTH_PROVIDER_ID;
+  // OAuth 只剩 NIBI 账号；套餐/账号 mock 只切 provider family，不再切换登录渠道。
+  const authProviderId = E2E_AUTH_PROVIDER_ID;
   writeFileSync(
     E2E_APP_SETTINGS_FILE,
     JSON.stringify(
@@ -3414,10 +3411,7 @@ function seedE2EStartupState(specs: string[] = []) {
                     legacyAuthToken: E2E_AUTH_TOKEN,
                     restoredOAuthCredentials: {
                       "oauth:active_provider": authProviderId,
-                      // 账号 mock 只覆盖选定族；夹带另一个假账号会访问未接管的真实控制面。
-                      [`oauth:${authProviderId}:access_token`]: shouldUseBigmodelAuth
-                        ? "e2e-bigmodel-oauth-token"
-                        : E2E_AUTH_TOKEN,
+                      [`oauth:${authProviderId}:access_token`]: E2E_AUTH_TOKEN,
                       [`oauth:${authProviderId}:user_info`]: JSON.stringify(E2E_USER_PROFILE),
                       "nibi-jwttoken": E2E_AUTH_TOKEN,
                     },
@@ -3485,22 +3479,6 @@ async function runGitReviewEntryCommand(cwd: string, args: string[]) {
 
 function createCorruptOAuthCredentialSeed(authProviderId: string): Record<string, string> {
   const corruptEncryptedValue = "enc:v1:bad.bad.bad";
-  const corruptTokenProvider = process.env.NIBI_E2E_CORRUPT_OAUTH_TOKEN_PROVIDER;
-  if (corruptTokenProvider === BIGMODEL_PROVIDER_ID || corruptTokenProvider === ZAI_PROVIDER_ID) {
-    // 业务 token 损坏曾绕过启动恢复的解密清理；共享 JWT 与资料正常才能隔离此路径。
-    return {
-      "oauth:active_provider": corruptTokenProvider,
-      [`oauth:${corruptTokenProvider}:access_token`]: corruptEncryptedValue,
-      [`oauth:${corruptTokenProvider}:refresh_token`]: "stale-refresh-token",
-      [`oauth:${corruptTokenProvider}:user_info`]: JSON.stringify(
-        corruptTokenProvider === ZAI_PROVIDER_ID
-          ? { user_id: "e2e-user", name: "Fixture User" }
-          : { id: "e2e-user", username: "Fixture User", displayName: "Fixture User" },
-      ),
-      "nibi-jwttoken": "e2e-valid-opaque-jwt",
-      "bot:e2e:credential": "e2e-independent-bot-token",
-    };
-  }
   return {
     // Bugfix: 这个 spec 需要冷启动复现线上“密文存在但当前机器无法解密”的状态；
     // 只损坏 active provider 就足以触发 OAuth 会话清理，并验证用户仍能看到登录入口。
@@ -3508,9 +3486,6 @@ function createCorruptOAuthCredentialSeed(authProviderId: string): Record<string
     [`oauth:${authProviderId}:access_token`]: "stale-access-token",
     [`oauth:${authProviderId}:refresh_token`]: "stale-refresh-token",
     [`oauth:${authProviderId}:user_info`]: JSON.stringify(E2E_USER_PROFILE),
-    [`oauth:${BIGMODEL_PROVIDER_ID}:access_token`]: "stale-bigmodel-access-token",
-    [`oauth:${BIGMODEL_PROVIDER_ID}:refresh_token`]: "stale-bigmodel-refresh-token",
-    [`oauth:${BIGMODEL_PROVIDER_ID}:user_info`]: JSON.stringify(E2E_USER_PROFILE),
     "nibi-jwttoken": "stale-nibi-jwt-token",
     "bot:e2e:credential": "e2e-independent-bot-token",
   };

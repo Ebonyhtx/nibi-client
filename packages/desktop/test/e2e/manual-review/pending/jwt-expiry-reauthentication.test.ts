@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { ZAI_PROVIDER_ID } from "@nibi/shared";
+import { NIBI_PROVIDER_ID } from "@nibi/shared";
 import { TID_OAUTH_LOGIN_BUTTON, testId } from "@nibi/shared/test-ids";
 import {
   clearAppData,
@@ -9,9 +9,9 @@ import {
 
 const EXPIRED_SESSION_CREDENTIAL_KEYS = [
   "oauth:active_provider",
-  `oauth:${ZAI_PROVIDER_ID}:access_token`,
-  `oauth:${ZAI_PROVIDER_ID}:refresh_token`,
-  `oauth:${ZAI_PROVIDER_ID}:user_info`,
+  `oauth:${NIBI_PROVIDER_ID}:access_token`,
+  `oauth:${NIBI_PROVIDER_ID}:refresh_token`,
+  `oauth:${NIBI_PROVIDER_ID}:user_info`,
   "nibi-jwttoken",
 ] as const;
 
@@ -31,15 +31,11 @@ describe("Nibi JWT 过期后重新认证", () => {
     await waitForExpiredSessionCredentialsCleanup();
 
     await clickExpiredLoginAlertAction();
-    await waitForTestIdByDom(testId(TID_OAUTH_LOGIN_BUTTON, ZAI_PROVIDER_ID), {
+    await waitForTestIdByDom(testId(TID_OAUTH_LOGIN_BUTTON, NIBI_PROVIDER_ID), {
       timeout: 20000,
-      timeoutMsg: "确认登录过期提示后没有展示 Z.ai 登录入口",
+      timeoutMsg: "确认登录过期提示后没有展示 NIBI 登录入口",
     });
-    await waitForTestIdByDom(TID_OAUTH_LOGIN_BUTTON, {
-      timeout: 20000,
-      timeoutMsg: "确认登录过期提示后没有展示 BigModel 登录入口",
-    });
-    await expectBigModelLoginButton();
+    await expectNibiLoginButton();
     await expectExpiredAlertClosed();
   });
 });
@@ -109,14 +105,14 @@ async function waitForExpiredSessionCredentialsCleanup() {
   }
 }
 
-async function expectBigModelLoginButton() {
+async function expectNibiLoginButton() {
   const text = (await browser.execute((buttonId) => {
     return (
       document.querySelector<HTMLElement>(`[data-testid="${buttonId}"]`)?.textContent?.trim() ??
       ""
     );
-  }, TID_OAUTH_LOGIN_BUTTON)) as string;
-  expect(text).toContain("BigModel");
+  }, testId(TID_OAUTH_LOGIN_BUTTON, NIBI_PROVIDER_ID))) as string;
+  expect(text).toContain("NIBI");
 }
 
 async function expectExpiredAlertClosed() {

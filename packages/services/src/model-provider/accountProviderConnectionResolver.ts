@@ -15,8 +15,6 @@ import type {
 export interface AccountProviderConnectionSettings {
   readonly providerFamilyDomain: ProviderFamilyDomain | null;
   readonly selections: ProviderFamilyConnectionSelectionSettings;
-  /** Host 旧连接导入尚不能确定身份；仅运行时事实，不写入配置或协议。 */
-  readonly unresolvedFamilies?: readonly ProviderFamilyDomain[];
 }
 
 export interface AccountProviderConnectionResolverOptions {

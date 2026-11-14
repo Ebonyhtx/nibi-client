@@ -64,23 +64,9 @@ function resolveV2ModelConfig(): ResolvedLiveModel | undefined {
   };
 }
 
-/** 活跃 provider：优先 setting.json 的 family 选择，否则取 enabled 且带 apiKey 的第一个。 */
+/** 活跃 provider：取 enabled 且带 apiKey 的第一个。 */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function pickActiveProviderId(providers: Record<string, any>): string | undefined {
-  const settingPath = join(homedir(), ".nibi", "v2", "setting.json");
-  if (existsSync(settingPath)) {
-    try {
-      const s = JSON.parse(readFileSync(settingPath, "utf8"));
-      const key: unknown = s.modelProviderFamilySelectedKeys?.[s.providerFamilyDomain];
-      // key 形如 "preset:builtin:bigmodel" / "coding-plan:builtin:zai-coding-plan"：取首个冒号后的 provider id。
-      if (typeof key === "string") {
-        const id = key.slice(key.indexOf(":") + 1);
-        if (providers[id]?.options?.apiKey) return id;
-      }
-    } catch {
-      /* 落到下面的 enabled+key 兜底 */
-    }
-  }
   for (const [id, p] of Object.entries(providers)) {
     if (p?.enabled !== false && typeof p?.options?.apiKey === "string" && p.options.apiKey.length > 0) return id;
   }

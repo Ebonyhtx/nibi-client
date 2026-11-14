@@ -39,14 +39,15 @@ Electron 用例不声称覆盖这些微观竞态。AUTH-06 保持 pending，Pro 
 worker 的具体 spec -> 现有账号 mock 选择 -> 冷启动 seed -> Electron / Host
                            |
                            +-- 未选择账号 mock：空凭据
-                           +-- Coding Plan 专项：仅对应账号族的合成 OAuth
+                           +-- Coding Plan 专项：NIBI 合成 OAuth + 对应账号族设置
                            +-- JWT 专项：保留该专项声明的合成 JWT
 ```
 
 账号 mock 是否启用由现有 WDIO fixture 选择结果传入凭据生成器，不再维护一份
-普通用例排除名单。BigModel 专项只播种 BigModel OAuth，不夹带 Z.AI 假身份。
-JWT 仍按现有明确专项保留，不因为存在账号 mock 就默认注入。远程回放始终无账号启动，
-真实账号导入、损坏密文和过期 JWT 专项继续使用各自的显式 setup。
+普通用例排除名单。OAuth 登录渠道只剩 NIBI，Coding Plan 专项只切换 provider family，
+不再播种 Z.ai/BigModel 登录身份。JWT 仍按现有明确专项保留，不因为存在账号 mock
+就默认注入。远程回放始终无账号启动，真实账号导入、损坏密文和过期 JWT 专项继续使用
+各自的显式 setup。
 
 回归要求：单测覆盖默认空凭据、Windows / POSIX 路径、显式账号 fixture、JWT 专项、
 远程优先级及输入不变性；Browser E2E 检查普通启动没有账号键，Coding Plan E2E 检查
@@ -69,7 +70,7 @@ JWT 仍按现有明确专项保留，不因为存在账号 mock 就默认注入�
 
 这条 case 只验证“损坏 OAuth 凭据 -> 冷启动恢复 -> 登录渠道可见 -> 损坏登录态清理”。它不覆盖真实网页登录、OAuth callback、token refresh、购买链路、remote workspace 或模型发送。
 
-业务 token 损坏回归（2026-10-12）：通过 `NIBI_E2E_CORRUPT_OAUTH_TOKEN_PROVIDER=bigmodel` 或 `zai` 运行同一 AUTH-01，seed 保持 active provider、用户资料和共享 JWT 正常，仅业务 access token 为无法解密的密文。验证登录渠道可见、全部 OAuth 凭据清理、独立 Bot 凭据保留。默认运行仍覆盖 active provider 损坏；恢复与新登录交错、普通 IO 异常及请求取消由服务层受控测试覆盖。
+业务 token 损坏回归（2026-10-12）：seed 保持 active provider、用户资料和共享 JWT 正常，仅 NIBI 业务 access token 为无法解密的密文。验证 NIBI 登录渠道可见、全部 OAuth 凭据清理、独立 Bot 凭据保留。active provider 损坏、恢复与新登录交错、普通 IO 异常及请求取消由服务层受控测试覆盖。
 
 限制：AUTH-01 当前只覆盖 desktop local host；remote workspace 与手机 `/remote` 的 OAuth 损坏恢复已由 service 级回归测试保护，正式 remote E2E case 待后续补充。
 
@@ -79,7 +80,7 @@ JWT 仍按现有明确专项保留，不因为存在账号 mock 就默认注入�
 2. `wdio.conf.ts` 识别 `oauth-credential-recovery.test.ts` 后，在 `~/.nibi/v2/credentials.json` 写入损坏 OAuth seed。
 3. 启动桌面端本地默认窗口。
 4. 等待登录入口渲染。
-5. 检查 Z.ai 与 BigModel 登录渠道均可见。
+5. 检查 NIBI 登录渠道可见。
 6. 检查没有展示 OAuth 错误提示。
 7. 读取隔离 HOME 下 `credentials.json`，确认损坏 OAuth 登录态已清理。
 
@@ -87,8 +88,8 @@ JWT 仍按现有明确专项保留，不因为存在账号 mock 就默认注入�
 
 | 编号      | 验证项                    | 有效性说明                                                      | 当前断言位置                                                |
 | --------- | ------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------- |
-| AUTH-01-A | Z.ai 登录入口可见         | 证明 `oauthService.getProviders()` 没有因损坏凭据导致入口不可用 | `waitForTestIdByDom(testId(TID_OAUTH_LOGIN_BUTTON, "zai"))` |
-| AUTH-01-B | BigModel 登录入口可见     | 证明多 provider 登录渠道仍能完整展示                            | `waitForTestIdByDom(TID_OAUTH_LOGIN_BUTTON)`                |
+| AUTH-01-A | NIBI 登录入口可见         | 证明 `oauthService.getProviders()` 没有因损坏凭据导致入口不可用 | `waitForTestIdByDom(testId(TID_OAUTH_LOGIN_BUTTON, "nibi"))` |
+| AUTH-01-B | 登录按钮文案为 NIBI       | 证明唯一账号渠道仍能完整展示                                    | `expectNibiLoginButton()`                                   |
 | AUTH-01-C | 登录页没有 OAuth 错误提示 | 证明损坏凭据被当作可恢复登录态处理，不向用户暴露底层解密错误    | `expectNoOAuthErrorAlert()`                                 |
 | AUTH-01-D | OAuth 相关损坏凭据被清理  | 证明下次启动不会继续卡在同一份无效登录态                        | `waitForCorruptOAuthCredentialsCleanup()`                   |
 
@@ -96,7 +97,7 @@ JWT 仍按现有明确专项保留，不因为存在账号 mock 就默认注入�
 
 - 本 case 不触发 provider 请求，manifest 使用 `providerRequestPolicy: "none"` 和空 `requests`。
 - 本 case 的输入 fixture 是 WDIO 冷启动 seed：`~/.nibi/v2/credentials.json`。
-- 需要清理的 key 包含 `oauth:active_provider`、Z.ai/BigModel access token、refresh token、user info，以及旧 `zcodejwttoken`。
+- 需要清理的 key 包含 `oauth:active_provider`、NIBI access token、refresh token、user info，以及 `nibi-jwttoken`。
 
 ### 转正说明
 
@@ -109,7 +110,7 @@ JWT 仍按现有明确专项保留，不因为存在账号 mock 就默认注入�
 - `pnpm --filter @nibi/desktop test:e2e -- --spec ./test/e2e/oauth-credential-recovery.test.ts`
   - 结果：通过，1 个 spec / 1 个 case passed。
   - Artifact：`packages/desktop/.e2e-artifacts/desktop-e2e-20260709-042306-597/summary.md`。
-  - 结论：冷启动遇到无法解密的 OAuth 凭据时，Z.ai 与 BigModel 登录渠道均可见，页面没有 OAuth 错误提示，损坏登录态被清理。
+  - 结论：冷启动遇到无法解密的 OAuth 凭据时，NIBI 登录渠道可见，页面没有 OAuth 错误提示，损坏登录态被清理。
 
 Docker 准入暂不执行：该 case 不依赖 provider replay，也不属于 conversation Docker preset。
 
@@ -189,7 +190,7 @@ Docker 准入不执行：该 auth/config case 不依赖 provider replay，也不
 
 ### 测试场景
 
-desktop local 使用隔离 HOME 冷启动；`credentials.json` 预置一份完整 Z.ai OAuth 缓存会话，以及一枚 `exp` 明确早于当前时间的 `zcodejwttoken`。Local Host 恢复缓存会话时必须先清理失效认证事实，再通知 renderer 显示“登录已过期”提示；用户点击“重新登录”后直接进入现有 Welcome 登录页，不经过主动退出确认或 App relaunch。
+desktop local 使用隔离 HOME 冷启动；`credentials.json` 预置一份完整 NIBI OAuth 缓存会话，以及一枚 `exp` 明确早于当前时间的 `nibi-jwttoken`。Local Host 恢复缓存会话时必须先清理失效认证事实，再通知 renderer 显示“登录已过期”提示；用户点击“重新登录”后直接进入现有 Welcome 登录页，不经过主动退出确认或 App relaunch。
 
 本 case 只验证 desktop local 的冷启动恢复和 UI 交互，不触发真实 OAuth callback、token refresh、provider/model 请求，也不修改 remote workspace、手机 `/remote` 或 task/session realtime 状态。
 
@@ -213,7 +214,7 @@ renderer 显示“登录已过期” AlertDialog
 用户点击“重新登录”
              |
              v
-Welcome 展示 Z.ai + BigModel 登录入口
+Welcome 展示 NIBI 登录入口
 ```
 
 ### 验证条目
@@ -223,7 +224,7 @@ Welcome 展示 Z.ai + BigModel 登录入口
 | AUTH-03-A | 过期提示标题和说明可见        | 证明结构化 `reauthentication-required` 已传到 renderer，而非恢复伪登录态 |
 | AUTH-03-B | 提示确认前认证凭据已清理      | 证明 AlertDialog 不是清理认证事实的阻塞点                                |
 | AUTH-03-C | 点击“重新登录”进入 Welcome    | 证明用户能从过期态回到现有登录流程，不会停留在无法退出/无法重登的死态    |
-| AUTH-03-D | Z.ai 与 BigModel 登录入口可见 | 证明重新认证页具备完整 provider 选择能力                                 |
+| AUTH-03-D | NIBI 登录入口可见             | 证明重新认证页仍具备账号登录能力                                         |
 | AUTH-03-E | 不展示主动退出确认            | 证明过期恢复没有误走“确认断开连接”或运行中会话二次确认流程               |
 
 ### Fixture 合同
@@ -231,7 +232,7 @@ Welcome 展示 Z.ai + BigModel 登录入口
 - manifest 使用 `providerRequestPolicy: "none"`、`noProviderRequests: true` 和空 `requests`。
 - 输入 fixture 是 WDIO 在 App 启动前写入隔离 HOME 的 `~/.nibi/v2/credentials.json`。
 - JWT 只包含测试用 header/payload/signature；payload 的 `exp` 固定在过去，不依赖签名有效性。
-- 需要清理的 key 包含 `oauth:active_provider`、Z.ai access token、refresh token、user info 和 `zcodejwttoken`。
+- 需要清理的 key 包含 `oauth:active_provider`、NIBI access token、refresh token、user info 和 `nibi-jwttoken`。
 - 当前位于 `manual-review/pending`；人工确认可视交互后才能移动到正式路径并更新本节状态。
 
 ### 自动运行结论

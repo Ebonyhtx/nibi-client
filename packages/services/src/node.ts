@@ -443,7 +443,6 @@ import {
   createSettingServiceWithMigrations,
 } from "./setting/settingService.js";
 import { createOnboardingRecordService } from "./onboarding/onboardingRecordService.js";
-import { createLegacyTeamOrganizationResolver } from "./model-provider/legacyTeamOrganizationResolver.js";
 import { createObservableSettingService } from "./setting/observableSettingService.js";
 import { createCredentialService } from "./credential/credentialService.js";
 import { createNibiLicenseSync } from "./license/nibiLicenseSync.js";
@@ -1187,10 +1186,6 @@ export function createLocalServices(options: {
   setWorkspaceProjection?: ReturnType<
     typeof createSettingServiceWithMigrations
   >["setWorkspaceProjection"];
-  /** 与注入的本地 Setting 共用写队列；外部远端 Setting 不传，由其权威 Host 完成迁移。 */
-  prepareLegacyAccountConnections?: ReturnType<
-    typeof createSettingServiceWithMigrations
-  >["prepareLegacyAccountConnections"];
   /** 注入后由 ServiceCollection 接管释放，并供 Host 其它 app-managed 下载复用。 */
   hostApiNetworkTransport?: HostApiNetworkTransport;
   /** Desktop Host 注入 Main 推送的实时界面语言，供 Nibi endpoint 的 X-Client-Language；远端 server 不注入。 */
@@ -1490,22 +1485,11 @@ export function createLocalServices(options: {
     }),
   });
   const oauthCredentialRepo = new OAuthCredentialRepo(credentialService);
-  const resolveLegacyTeamOrganization = createLegacyTeamOrganizationResolver({
-    apiClient,
-    loadOAuthTokenSet: (family) =>
-      oauthCredentialRepo.loadTokenSet(family === "zai" ? ZAI_PROVIDER_ID : BIGMODEL_PROVIDER_ID),
-  });
   const readAccountProviderSettings = async () => {
-    // 迁移只在账号事实入口协调。ApiClient 的代理/端点仍读普通 Setting，不递归等待迁移。
-    // 外部注入的 Setting（远端 attachment）由其所属 Host 管理，不读取本机旧文件。
-    const prepare =
-      options?.prepareLegacyAccountConnections ?? localSettings?.prepareLegacyAccountConnections;
-    const unresolvedFamilies = (await prepare?.(resolveLegacyTeamOrganization)) ?? [];
     const settings = await settingService.get();
     return {
       providerFamilyDomain: settings.providerFamilyDomain ?? null,
       selections: settings.providerFamilyConnectionSelections ?? {},
-      unresolvedFamilies,
     };
   };
   const loadAccountIdentity = async (family: ProviderFamilyDomain) => {

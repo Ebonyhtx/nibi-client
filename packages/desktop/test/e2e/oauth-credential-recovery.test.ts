@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { BIGMODEL_PROVIDER_ID, ZAI_PROVIDER_ID } from "@nibi/shared";
+import { NIBI_PROVIDER_ID } from "@nibi/shared";
 import {
   TID_LOGIN_TRIGGER,
   TID_OAUTH_ERROR,
@@ -13,14 +13,12 @@ import {
   waitForTestIdByDom,
 } from "./helpers/desktop-app.js";
 
+const NIBI_LOGIN_BUTTON_ID = testId(TID_OAUTH_LOGIN_BUTTON, NIBI_PROVIDER_ID);
 const OAUTH_CREDENTIAL_KEYS = [
   "oauth:active_provider",
-  `oauth:${ZAI_PROVIDER_ID}:access_token`,
-  `oauth:${ZAI_PROVIDER_ID}:refresh_token`,
-  `oauth:${ZAI_PROVIDER_ID}:user_info`,
-  `oauth:${BIGMODEL_PROVIDER_ID}:access_token`,
-  `oauth:${BIGMODEL_PROVIDER_ID}:refresh_token`,
-  `oauth:${BIGMODEL_PROVIDER_ID}:user_info`,
+  `oauth:${NIBI_PROVIDER_ID}:access_token`,
+  `oauth:${NIBI_PROVIDER_ID}:refresh_token`,
+  `oauth:${NIBI_PROVIDER_ID}:user_info`,
   "nibi-jwttoken",
 ] as const;
 
@@ -32,35 +30,33 @@ describe("OAuth 凭据损坏恢复", () => {
 
   it("冷启动遇到无法解密的 OAuth 凭据时仍展示登录渠道并清理损坏登录态", async () => {
     await ensureOAuthLoginPanelOpen();
-    await waitForTestIdByDom(testId(TID_OAUTH_LOGIN_BUTTON, ZAI_PROVIDER_ID), {
+    await waitForTestIdByDom(NIBI_LOGIN_BUTTON_ID, {
       timeout: 20000,
-      timeoutMsg: "损坏 OAuth 凭据恢复后没有展示 Z.ai 登录入口",
+      timeoutMsg: "损坏 OAuth 凭据恢复后没有展示 NIBI 登录入口",
     });
-    await waitForTestIdByDom(TID_OAUTH_LOGIN_BUTTON, {
-      timeout: 20000,
-      timeoutMsg: "损坏 OAuth 凭据恢复后没有展示 BigModel 登录入口",
-    });
-    await expectBigModelLoginButton();
+    await expectNibiLoginButton();
     await expectNoOAuthErrorAlert();
     await waitForCorruptOAuthCredentialsCleanup();
     expect((await readCredentials())["bot:e2e:credential"]).toBe("e2e-independent-bot-token");
   });
 });
 
-async function expectBigModelLoginButton() {
-  const buttonText = (await browser.execute((testId) => {
+async function expectNibiLoginButton() {
+  const buttonText = (await browser.execute((selectorId) => {
     return (
-      document.querySelector<HTMLElement>(`[data-testid="${testId}"]`)?.textContent?.trim() ?? ""
+      document.querySelector<HTMLElement>(`[data-testid="${selectorId}"]`)?.textContent?.trim() ??
+      ""
     );
-  }, TID_OAUTH_LOGIN_BUTTON)) as string;
+  }, NIBI_LOGIN_BUTTON_ID)) as string;
 
-  expect(buttonText).toContain("BigModel");
+  expect(buttonText).toContain("NIBI");
 }
 
 async function expectNoOAuthErrorAlert() {
-  const errorText = (await browser.execute((testId) => {
+  const errorText = (await browser.execute((selectorId) => {
     return (
-      document.querySelector<HTMLElement>(`[data-testid="${testId}"]`)?.textContent?.trim() ?? null
+      document.querySelector<HTMLElement>(`[data-testid="${selectorId}"]`)?.textContent?.trim() ??
+      null
     );
   }, TID_OAUTH_ERROR)) as string | null;
 
@@ -89,13 +85,11 @@ async function waitForCorruptOAuthCredentialsCleanup() {
 }
 
 async function ensureOAuthLoginPanelOpen() {
-  const zaiLoginButtonId = testId(TID_OAUTH_LOGIN_BUTTON, ZAI_PROVIDER_ID);
-
   try {
     await browser.waitUntil(
       async () => {
-        const state = await readLoginEntryState(zaiLoginButtonId);
-        return state.hasZaiLoginButton || state.hasLoginTrigger;
+        const state = await readLoginEntryState();
+        return state.hasNibiLoginButton || state.hasLoginTrigger;
       },
       {
         timeout: 60000,
@@ -111,8 +105,8 @@ async function ensureOAuthLoginPanelOpen() {
     );
   }
 
-  const state = await readLoginEntryState(zaiLoginButtonId);
-  if (state.hasZaiLoginButton) {
+  const state = await readLoginEntryState();
+  if (state.hasNibiLoginButton) {
     return;
   }
 
@@ -125,24 +119,24 @@ async function ensureOAuthLoginPanelOpen() {
   });
 }
 
-async function readLoginEntryState(zaiLoginButtonId: string): Promise<{
+async function readLoginEntryState(): Promise<{
   hasLoginTrigger: boolean;
-  hasZaiLoginButton: boolean;
+  hasNibiLoginButton: boolean;
 }> {
   return (await browser.execute(
-    (loginTriggerId, currentZaiLoginButtonId) => {
+    (loginTriggerId, nibiLoginButtonId) => {
       return {
         hasLoginTrigger: Boolean(document.querySelector(`[data-testid="${loginTriggerId}"]`)),
-        hasZaiLoginButton: Boolean(
-          document.querySelector(`[data-testid="${currentZaiLoginButtonId}"]`),
+        hasNibiLoginButton: Boolean(
+          document.querySelector(`[data-testid="${nibiLoginButtonId}"]`),
         ),
       };
     },
     TID_LOGIN_TRIGGER,
-    zaiLoginButtonId,
+    NIBI_LOGIN_BUTTON_ID,
   )) as {
     hasLoginTrigger: boolean;
-    hasZaiLoginButton: boolean;
+    hasNibiLoginButton: boolean;
   };
 }
 

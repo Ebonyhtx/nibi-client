@@ -12,7 +12,7 @@ import {
   NodePersonalProviderConfigRepository,
   PERSONAL_PROVIDER_CONFIG_FILE_NAME,
 } from "@nibi/provider-node";
-import { ZAI_PROVIDER_ID } from "@nibi/shared";
+import { NIBI_PROVIDER_ID } from "@nibi/shared";
 import {
   TID_COMPOSER_WORKSPACE_TRIGGER,
   TID_V4_SESSION_PANE,
@@ -885,9 +885,9 @@ export async function seedCredentials(authToken = "mock-token") {
     JSON.stringify(
       {
         auth_token: authToken,
-        "oauth:active_provider": ZAI_PROVIDER_ID,
-        [`oauth:${ZAI_PROVIDER_ID}:access_token`]: authToken,
-        [`oauth:${ZAI_PROVIDER_ID}:user_info`]: JSON.stringify(E2E_USER_PROFILE),
+        "oauth:active_provider": NIBI_PROVIDER_ID,
+        [`oauth:${NIBI_PROVIDER_ID}:access_token`]: authToken,
+        [`oauth:${NIBI_PROVIDER_ID}:user_info`]: JSON.stringify(E2E_USER_PROFILE),
         "nibi-jwttoken": authToken,
       },
       null,

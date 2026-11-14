@@ -275,7 +275,6 @@ vi.mock("@/v4/composer/useDraftSessionPrewarm.js", async (importOriginal) => {
 vi.mock("@/hooks/useSettingService.js", () => ({
   useSettings: () => ({
     settings: {
-      modelProviderFamilySelectedKeys: { bigmodel: "team-plan-key" },
       nibiInteractionBehavior: "queue",
     },
     loading: false,

@@ -3305,13 +3305,8 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
       initializeServices: async () => {
         logger.info("initializing local services");
         activeSessionRealtimePort = createTaskRealtimeBridgeForHostInit(msg, parentPort);
-        // 旧 Team 补组织必须与网络代理读取共用同一个 Setting 实例及写队列。
-        // 只注入 service 会跳过默认装配分支，导致缺组织的升级用户永远无法恢复连接。
-        const {
-          service: settingService,
-          prepareLegacyAccountConnections,
-          setWorkspaceProjection,
-        } = createSettingServiceWithMigrations();
+        const { service: settingService, setWorkspaceProjection } =
+          createSettingServiceWithMigrations();
         const hostApiNetworkTransport = createHostApiNetworkTransport(async () => {
           const settings = await settingService.get();
           return {
@@ -3526,7 +3521,6 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
               },
               parentPort,
               settingService,
-              prepareLegacyAccountConnections,
               hostApiNetworkTransport,
               resolveClientLanguage: () => applicationLocale,
               authorizeLocalMediaPreviewPath,
