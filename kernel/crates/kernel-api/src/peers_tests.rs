@@ -6,13 +6,13 @@ const SOCKET: &str = "/tmp/nibi-peers/26151.sock";
 
 #[test]
 fn the_reference_is_the_sha256_prefix_of_the_socket() {
-    // …/26151.sock 的 ref 是 `[46190a]`，…/26221.sock 是 `[b0bba7]`（期望值按 sha256 另行算出）。
+    // ref 是 sha256("session:" + socket) 的前 12 位。
     let address = PeerAddress::from_socket(SOCKET);
     assert_eq!(address.as_str(), format!("uds:{SOCKET}"));
     assert_eq!(address.socket(), SOCKET);
-    assert_eq!(address.reference(), "46190a3bd0fd");
+    assert_eq!(address.reference(), "589ef744452d");
     let other = SOCKET.replace("26151", "26221");
-    assert_eq!(reference_of(&other), "b0bba7eb2dd7");
+    assert_eq!(reference_of(&other), "04e285110f07");
 }
 
 #[test]
