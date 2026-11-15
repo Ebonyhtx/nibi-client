@@ -168,7 +168,7 @@ Write-Host ""
 
 # ── Step 2d: Font Installation (from CDN) ──
 Write-Host "--- [4/5] Font Installation ---"
-$FontCdnBase = "https://z-cdn.chatglm.cn/office-skill/fonts"
+$FontCdnBase = "https://api.nibistudio.cn/plugins/fonts"
 $FontList = Join-Path $ScriptDir "font_list.txt"
 
 $UserFontDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"

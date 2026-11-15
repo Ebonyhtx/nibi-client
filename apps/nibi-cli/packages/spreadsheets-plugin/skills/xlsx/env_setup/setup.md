@@ -131,7 +131,7 @@ Fonts are pre-installed in the system font directory `/usr/share/fonts/`.
 | `chinese/` | 14 | Noto Sans SC, Sarasa Mono SC, Liberation fallbacks |
 | `dejavu/` | 8 | DejaVu Sans/Serif/Mono — Latin/symbol fallback |
 | `emoji/` | 1 | Noto Color Emoji |
-| `english/` | 12 | Tinos, Carlito, Calibri |
+| `english/` | 8 | Carlito（Calibri 度量兼容） |
 | `freefont/` | 12 | FreeSans/FreeSerif/FreeMono — open-source fallback |
 | `liberation/` | 12 | Liberation Sans/Serif/Mono — MS-metric-compatible |
 | `libreoffice/` | 1 | OpenSymbol |

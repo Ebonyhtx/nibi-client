@@ -59,10 +59,6 @@
 /usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf
 /usr/share/fonts/truetype/liberation/LiberationMono-Italic.ttf
 /usr/share/fonts/truetype/liberation/LiberationMono-BoldItalic.ttf
-/usr/share/fonts/truetype/english/Tinos-Regular.ttf
-/usr/share/fonts/truetype/english/Tinos-Bold.ttf
-/usr/share/fonts/truetype/english/Tinos-Italic.ttf
-/usr/share/fonts/truetype/english/Tinos-BoldItalic.ttf
 /usr/share/fonts/truetype/english/Carlito-Regular.ttf
 /usr/share/fonts/truetype/english/Carlito-Bold.ttf
 /usr/share/fonts/truetype/english/Carlito-Italic.ttf

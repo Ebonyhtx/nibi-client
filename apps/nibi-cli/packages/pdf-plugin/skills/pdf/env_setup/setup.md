@@ -136,7 +136,7 @@ Alternative Windows package managers:
 
 Fonts are downloaded individually from CDN on first setup.
 
-- **CDN base**: `https://z-cdn.chatglm.cn/office-skill/fonts/`
+- **CDN base**: `https://api.nibistudio.cn/plugins/fonts/`
 - **Font list**: `env_setup/font_list.txt` (78 fonts, one relative path per line)
 - **Marker file**: `.office-skill-fonts-installed` in the user font directory prevents re-download
 - Special characters in filenames (e.g., `[`, `]`) are URL-encoded automatically by the setup script
@@ -152,7 +152,7 @@ The setup scripts read `font_list.txt`, check which fonts are already installed,
 | `chinese/` | 14 | Noto Sans SC, Sarasa Mono SC, Liberation fallbacks |
 | `dejavu/` | 8 | DejaVu Sans/Serif/Mono — Latin/symbol fallback |
 | `emoji/` | 1 | Noto Color Emoji |
-| `english/` | 12 | Tinos, Carlito, Calibri |
+| `english/` | 8 | Carlito（Calibri 度量兼容） |
 | `freefont/` | 12 | FreeSans/FreeSerif/FreeMono — open-source fallback |
 | `liberation/` | 12 | Liberation Sans/Serif/Mono — MS-metric-compatible |
 | `libreoffice/` | 1 | OpenSymbol |
@@ -174,7 +174,7 @@ If CDN is unreachable, download fonts manually. Example:
 
 ```bash
 # Download a single font (use static-weight files, NOT variable fonts)
-curl -fSLO "https://z-cdn.chatglm.cn/office-skill/fonts/chinese/NotoSansSC-Regular.ttf"
+curl -fSLO "https://api.nibistudio.cn/plugins/fonts/chinese/NotoSansSC-Regular.ttf"
 # Copy to user font dir
 cp "NotoSansSC-Regular.ttf" ~/Library/Fonts/   # macOS
 ```
@@ -184,7 +184,7 @@ Or download all fonts listed in `font_list.txt`:
 ```bash
 while read f; do
     encoded=$(echo "$f" | sed 's/\[/%5B/g; s/\]/%5D/g')
-    curl -fSLO "https://z-cdn.chatglm.cn/office-skill/fonts/$encoded"
+    curl -fSLO "https://api.nibistudio.cn/plugins/fonts/$encoded"
 done < env_setup/font_list.txt
 ```
 
