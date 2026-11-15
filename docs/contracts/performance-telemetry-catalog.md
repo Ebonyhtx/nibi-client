@@ -3,9 +3,9 @@
 > Public contract excerpt used by automated checks. Internal monitoring runbooks and sibling documents are not included in this repository.
 
 > 跨通道速查清单，回答"性能相关埋点有哪些、各自上报什么"。
-> 详细口径与边界见 [performance-monitoring.md](./performance-monitoring.md)；本表只做索引与字段速查。
+> 详细口径与边界见 performance-monitoring.md；本表只做索引与字段速查。
 > CLI Agent 模型 API OTel 统一观测见
-> [CLI Agent Telemetry 开发指南](../trace/cli-agent-telemetry.md)；部署侧配置 ARMS OTLP 后生效。
+> CLI Agent Telemetry 开发指南；部署侧配置 ARMS OTLP 后生效。
 >
 > 数据分四条通道：
 >
@@ -15,7 +15,7 @@
 > - **`/report`（agent_trace）**：`reportAppTelemetryEvent`，消息链路质量与耗时，**非 ARMS**。
 >
 > **V4 接线规范**：聊天 `/report` 和 renderer ARMS 的恢复口径见
-> [conversation-telemetry-v4.md](./conversation-telemetry-v4.md)。实现必须通过 live-only fact feed 接线，
+> conversation-telemetry-v4.md。实现必须通过 live-only fact feed 接线，
 > 不能从 initial/recovery 投影补报。
 
 ## `/report` 本地日志边界
@@ -23,7 +23,7 @@
 - `TelemetryCore` 不在本地日志中打印请求、完整 payload、响应、响应体或原始错误。
 - 全部 attempt 最终失败后只记录一条脱敏 warn；字段限定为事件名、event ID、attempt 数、状态分类和
   耗时。逐次重试只使用开发态 debug。完整投递合同见
-  [event-report-delivery-reliability.md](./event-report-delivery-reliability.md)。
+  event-report-delivery-reliability.md。
 - 上报失败继续按原 Promise 拒绝路径交给调用方处理；有界重试不得改变 `device_mid` 持久化或
   daily-active 去重语义。
 - `message_completion` / `agent_step` 属于随消息和步骤增长的高频事件，禁止为每次上报增加本地
@@ -85,7 +85,7 @@ SDK 原生 crash 不走 `sendCustom(group=stability)`，使用独立事件契约
 `scheduler`、`cli_chat`、`cli_aux`、`mcp`。main 的 `getAppMetrics()` 每 10 秒提供 Chromium CPU / RSS，
 Node 与主 renderer 的 heap 每 60 秒自采；CLI 每 60 秒自采，MCP 每 5 分钟使用通用进程探针。
 main 零外部进程；线程数、GPU 显存、磁盘 IO 与 10% 角色抽样均已删除。
-本地 `[memory]` 日志继续与遥测复用读数，见[进程内存本地诊断日志](./memory-diagnostics-log.md)。
+本地 `[memory]` 日志继续与遥测复用读数，见进程内存本地诊断日志。
 
 ### `perf_process_window`
 
@@ -157,8 +157,8 @@ Chromium 使用同 tick 精确合计，CLI / MCP 使用最近样本（120 / 600 
 ### 独立资源事件
 
 `perf_resource_nibi_data_size` 保持本地 ZCode 数据根逻辑字节数口径，每台设备最多 24 小时一次，
-见[ZCode 数据目录占用 ARMS 上报](./nibi-data-size-arms-telemetry.md)。更早的 `perf_resource_cpu`
-等仅用于历史查询。MCP 的三个稳定性生命周期事件见[MCP 进程 ARMS 可观测性](./mcp-process-arms-telemetry.md)。
+见ZCode 数据目录占用 ARMS 上报。更早的 `perf_resource_cpu`
+等仅用于历史查询。MCP 的三个稳定性生命周期事件见MCP 进程 ARMS 可观测性。
 
 ---
 
@@ -218,7 +218,7 @@ renderer 侧埋点，全采（100%）。
 双发，避免一条长消息按 step 数放大 IPC 和自定义事件量。RUM 侧通过
 `perf_ui_turn_breakdown.agent_step_cnt`、首 token、端到端、流式停顿和工具终态事件做低频归因。
 CLI 直接上报的 `zcode.agent.step` OTel Span 属于
-[CLI Agent Telemetry 开发指南](../trace/cli-agent-telemetry.md)，不经过这条 IPC/RUM 链路，
+CLI Agent Telemetry 开发指南，不经过这条 IPC/RUM 链路，
 也不等价于 `/report agent_step`。
 `perf_ui_tool_call_detail` 只镜像带 `raw.result.perf` 的工具终态。subagent mirror 子工具会带父子关联字段，数仓拿到父 `Agent` 的 `tool_call_id` 后，可在 ARMS 中按 `parent_tool_call_id` 下钻子工具；非 subagent 工具这些字段为空。
 
@@ -234,7 +234,7 @@ CLI 直接上报的 `zcode.agent.step` OTel Span 属于
 模型，统一写为 `custom`；缺失时留空。实现由 `@nibi/shared` 的
 `sanitizeTelemetryModelValue` 收口，`uiPerfArmsTelemetry.emit` 在发送前统一改写 `model`
 属性，调用方无需各自处理。白名单来源与内置 provider 双命名空间（运行时 `account:*` 与旧报表身份
-`builtin:*`）的判定规则见 [plan-usage-arms-telemetry](./plan-usage-arms-telemetry.md)。
+`builtin:*`）的判定规则见 plan-usage-arms-telemetry。
 实现：`packages/ui/src/lib/uiPerfArmsTelemetry.ts`；V4 入口由 workspace telemetry supervisor 驱动。
 
 ### 4.4 ARMS SDK longTask 自动事件
@@ -291,7 +291,7 @@ React 错误边界拦截子树渲染异常并阻止其冒泡到 `window.onerror`
 
 隐私边界：`error_message`、`error_stack`、`component_stack` 在上报前必须经 `@nibi/shared` 的
 `redactTelemetryText`，与 ARMS 自动采集 exception 事件
-（[脱敏边界](./arms-browser-monitoring.md#自动采集事件的脱敏边界)）同一套规则：绝对路径归一为
+（脱敏边界）同一套规则：绝对路径归一为
 `{path}`、邮箱归一为 `{email}`、URL 只留 `protocol//host` 与归一化路由、凭据归一为
 `{redacted}` / `{secret}`。`error_stack` 与 `component_stack` 另有 4000 字符上限，保证最近的抛错
 组件一定上得去。脱敏只作用于上报副本，本地日志与 fallback 恢复继续使用原值。
@@ -327,7 +327,7 @@ Skill tool step 始终携带 `skill_name`（仅取通过遥测校验的已解析
 计数。旧协议不携带 `inputId` 时保留兼容路径；queued prompt 发送时即使重绑定实际 inputId，
 也以 runtime `activeInputId` 为 ownership 事实源，不能拿排队阶段的 pending inputId 误拒当前事件。
 格式实现：`packages/ui/src/lib/messageTelemetry.ts`；生命周期和多端边界见
-[conversation-telemetry-v4.md](./conversation-telemetry-v4.md)。
+conversation-telemetry-v4.md。
 
 ---
 

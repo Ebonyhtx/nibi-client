@@ -71,7 +71,7 @@ Composer
 
 - `@` 与 `/` 继续复用 `MentionPanel` 的虚拟列表、键盘导航、禁选态和滚动 mask。
 - 两个主面板共享布局，不共享候选 authority：Plugin、文件、对话、命令、Skill、Subagent 仍由各自 provider/hook 负责。
-- 文件候选由 workspace 所属 Host 的 `listWorkspaceFiles` 统一建立索引，并遵循 [Workspace 文件搜索默认过滤器](../superpowers/specs/2026-08-07-workspace-file-search-default-filter-design.md)；UI 不维护第二份黑名单。普通隐藏目录只隐藏目录候选并继续扫描后代，未来自定义规则通过替换 service 过滤器接入，本期不提供配置来源。左侧 Workspace File Tree 搜索态复用同一文件索引和匹配排序，但不继承 `@` 面板分组、空 query preview limit、键盘候选提交或 canonical Markdown mention 插入；文件树搜索结果继续按文件树语义打开预览或定位目录。
+- 文件候选由 workspace 所属 Host 的 `listWorkspaceFiles` 统一建立索引，并遵循 Workspace 文件搜索默认过滤器；UI 不维护第二份黑名单。普通隐藏目录只隐藏目录候选并继续扫描后代，未来自定义规则通过替换 service 过滤器接入，本期不提供配置来源。左侧 Workspace File Tree 搜索态复用同一文件索引和匹配排序，但不继承 `@` 面板分组、空 query preview limit、键盘候选提交或 canonical Markdown mention 插入；文件树搜索结果继续按文件树语义打开预览或定位目录。
 - `@` 的跨分组搜索按固定分组顺序展示，不做全局相关度重排；分组内部沿用现有过滤和排序。
 - `/` 保持命令 → Skills → Subagent 的固定顺序；键盘默认选中仍可使用跨分组最佳匹配，不改变视觉分组顺序。
 - `/` 与 `$`/`¥`/`￥` 的 Skill 候选共用同一目录 authority：新建草稿在 prewarm ready 前读取
@@ -133,7 +133,7 @@ Composer
 - sessions provider 只在 `#` 触发器下从当前窗口 workspace tabs 构造同 authority scope 集合；`@` 继续
   构造单一当前 workspace scope。两者复用 sessions-index registry；
   详细 authority、跨 Host 剪枝与覆盖见
-  [跨 Workspace 对话 Mention](../superpowers/specs/2026-08-04-cross-workspace-session-mention-design.md)。
+  跨 Workspace 对话 Mention。
 - focused tests 覆盖主入口顺序、兼容入口路由、`+` 菜单动作集合、Yen 归一与既有 canonical 构造。
 - 正式 Desktop E2E `conversation-session-v4-mention.test.ts` 覆盖 `@` / `#` 共用 sessions-index、`$` / `¥` / `￥` 技能选择、`+` 菜单展示 `@` / `/` / `$` 底部提示，关闭后手动输入 `$` 打开技能候选，并在 S08 中验证旧 Session 冻结 Skill 目录、新建任务重新发现真实 `SKILL.md`。
 - 完整 plugin/file/session/whiteboard 与 command/skill/subagent 键盘交互组合仍保留在 manual-review pending 语料中；覆盖矩阵不会用上述代表性门禁冒充全组合已转正。

@@ -20,7 +20,7 @@
 | 插件安装文件、配置文件、Markdown         | 文件系统及现有配置写入口                      | 仍是权威源；缓存不是新持久化源                |
 | Provider Registry、账号、凭据、Hook 信任 | 各自现有 owner                                | 获取执行事实时继续读取，不从能力缓存恢复      |
 
-相关事实文档：[Skill 目录生命周期](ui/conversation-skill-catalog-lifecycle.md)、[Subagent 按父上下文刷新](subagent-runtime-refresh.md)、[Workspace 插件](plugins/workspace-level-plugin-architecture.md)、[冷恢复](v4-refactor/17-cold-resume-runtime-activation.md)。
+相关事实文档：[Skill 目录生命周期](ui/conversation-skill-catalog-lifecycle.md)、[Subagent 按父上下文刷新](subagent-runtime-refresh.md)、[Workspace 插件](plugins/workspace-level-plugin-architecture.md)、冷恢复。
 
 ## 2. 推荐边界
 

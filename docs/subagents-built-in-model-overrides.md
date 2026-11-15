@@ -125,7 +125,7 @@ Builtin subagent 在现有 state 文件中保存完整的结构化 Model Selecti
 - 只换 frontmatter 的旧 Provider 值，保留型号、档位、注释、正文、未知字段、换行和文件权限；不调用整份 serializer 做自动迁移。
 - 正式 Markdown 只读写字符串 `model` 与 `thoughtLevel`，不兼容未发布的 `modelSelection` 中间字段。包含分隔符的 ID 沿用已有 custom 编码保证往返。
 - 普通 reader 不再将范围外旧 Provider 临时映射到新账号；保留显式身份，沿用执行校验。没有新增账号自动切换协议或父模型兜底。
-- 详见 [全域 Selection 审计](working-memory/provider-refactor/research/todo97-selection-storage-audit.md)，Wiki 的读时写入冲突仍待裁决，不将其算作已完成。
+- 详见 全域 Selection 审计，Wiki 的读时写入冲突仍待裁决，不将其算作已完成。
 
 ## Runtime 语义
 

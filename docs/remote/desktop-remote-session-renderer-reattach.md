@@ -2,7 +2,7 @@
 
 当前规格。适用于同一 BrowserWindow 的 renderer reload / ErrorBoundary 恢复，以及 Source online 后的项目 attachment 挂回。
 SSH/WSL/Docker 统一由窗口 Local Host 管理，不再使用独立/池化 Remote Host 进程模型。
-项目入口与缓存的所有权以 [虚拟项目设计](../superpowers/specs/2026-09-09-virtual-project-design.md) 为准。
+项目入口与缓存的所有权以 虚拟项目设计 为准。
 
 ## 权威与投递顺序
 
@@ -30,7 +30,7 @@ Source 换代 → Registry 更换 session/generation → Main 换 route → 重�
 
 ## 冷启动选择与存量 Renderer 挂回
 
-[虚拟项目 F5](../superpowers/specs/2026-09-09-virtual-project-design.md) 是新版持久化权威：
+虚拟项目 F5 是新版持久化权威：
 冷启动只从 `lastActiveWorkspace` 恢复活动执行目录，其他项目入口从 Host SQLite 读取，用户打开时
 再创建 attachment。`lastWorkspaceSession` 是降级兼容投影，不是新版 open set；不得因其中有 A/B
 就要求冷启动生成 A/B 全部 tab。没有新字段的旧设置仍沿用一次性导入与 active-first 补齐。

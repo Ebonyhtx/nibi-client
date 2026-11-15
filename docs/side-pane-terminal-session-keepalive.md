@@ -1,6 +1,6 @@
 # Side Pane Terminal 跨 Workspace 会话保活
 
-> 本 spec 是对 [`docs/ui/side-pane-terminal-tabs.md`](../ui/side-pane-terminal-tabs.md) 的增量。
+> 本 spec 是对 [`docs/ui/side-pane-terminal-tabs.md`](./ui/side-pane-terminal-tabs.md) 的增量。
 > 原设计只规定了"side pane 内切 tab / 收起 side pane 时保持挂载"（第 19 行），
 > **未覆盖"跨 workspace 切换"**。本 spec 补这块契约，并给出实现方案。
 

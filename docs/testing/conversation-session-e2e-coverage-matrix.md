@@ -180,7 +180,7 @@ GRP06/CR-01 增加 placement RPC 挂起 → 导航取消 → 新项目可见 →
 
 > **2026-10-12 review 回归：** OP10 额外检查默认标题请求与父轮使用同一闲时票据和模型；默认与换票回执丢失变体已在 Linux Electron/真实 Host/CLI 通过（`desktop-e2e-20261012-105708-319`、`desktop-e2e-20261012-105924-792`）；标题 3102、主轮先结束、读库早退和流关闭失败/不结束由 Core 定向测试覆盖。仍为 manual-review/pending，不扩展手机 replayable 或重启恢复。
 
-> **闲时后台修订：** 设计、Core/协议证据及 OP10 三种桌面变体结果见 [实施计划](../off-peak-task/background-lifecycle-plan.md#最终验证记录2026-10-08)。用例仍为 manual-review/pending；手机整机交互未验证，不改变本矩阵原有准入与交付范围。
+> **闲时后台修订：** 设计、Core/协议证据及 OP10 三种桌面变体结果见 实施计划。用例仍为 manual-review/pending；手机整机交互未验证，不改变本矩阵原有准入与交付范围。
 
 > **2026-10-09 review 回归：** OP10 增加 `NIBI_E2E_OFFPEAK_HANDOFF_FAULT=1` 变体，在真实 Host/CLI stdio 边界让已安装新票的首个确认失败，延后完成通知直到相同交接收到确认；断言自动重试同一 execution/renewal/ticket、卡片最终完成且原始 prompt/Bash 只执行一次。连续确认失败、旧回执与新续票交错、接管/完成后未安装候选票释放由 service focused tests 覆盖；旧执行迟到 cancel 不影响新用户轮由 Core 运行时测试覆盖。只覆盖 desktop continuous，不新增手机 replayable 或重启恢复语义；本变体在容器 Electron/真实 Host/CLI 下 1/1 通过（`desktop-e2e-20261009-082511-005`），仍为 manual-review/pending。
 > 2026-09-15 / TSL08 默认本地项目失效：新增 pending
@@ -216,7 +216,7 @@ RDUX-BASELINE（accepted / pending）：侧栏项目行与聊天框项目列表�
 
 ## 设置防护、连接编辑与机器标注（RDUX-05，accepted）
 
-验收沿用 [Issue 05](../issues/remote-connection-ux/05-settings-safeguards-edit-and-scope.md)：真实 SSH 设置页验证独立名称保存、确认默认取消与回车、受影响项目、断开提示、侧栏定位、最近在线与插件/MCP/技能/钩子/子智能体作用域。共享组件测试补充 pending/失败回滚、Docker 与手机展示参数；不更改任务 continuous/replayable 链。 本地设置用例覆盖七个分区、深浅主题和宽窄窗口的提示移除；真实 SSH 场景保留作用域菜单与写入隔离断言。 2026-10-12 本地提示移除用例在初始化阶段因 Host 退出、`transport_closed` 阻塞，尚未获得页面视觉证据；SSH 回归缺少连接环境配置。
+验收沿用 Issue 05：真实 SSH 设置页验证独立名称保存、确认默认取消与回车、受影响项目、断开提示、侧栏定位、最近在线与插件/MCP/技能/钩子/子智能体作用域。共享组件测试补充 pending/失败回滚、Docker 与手机展示参数；不更改任务 continuous/replayable 链。 本地设置用例覆盖七个分区、深浅主题和宽窄窗口的提示移除；真实 SSH 场景保留作用域菜单与写入隔离断言。 2026-10-12 本地提示移除用例在初始化阶段因 Host 退出、`transport_closed` 阻塞，尚未获得页面视觉证据；SSH 回归缺少连接环境配置。
 
 | Case    | 状态                         | 自动化                                                                                               | 范围                                                                                                                                                                                                                                           |
 | ------- | ---------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -557,8 +557,8 @@ compact/fork/rewind 与可替换 definitions 的组合通过 Core focused tests 
 
 **数据库启动门禁（2026-09-14，新全局方案待 GUI 验收）**
 
-旧 DBSTART 方案与记录保留在 Todo 144；当前以 [全局启动 spec](../desktop/database-migration-startup-gate-plan.md) 和 Todo 145 为准，Host 初始化已纳入本次。
-[实施复审](../desktop/database-startup-implementation-review.md) 记录新测试与限制。真实旧库/锁/刷新、Host 锁和 CANTOPEN 手动重试用例已进入 `manual-review/pending`；Electron 在用例前崩溃，不计入正式 covered 数量。
+旧 DBSTART 方案与记录保留在 Todo 144；当前以 全局启动 spec 和 Todo 145 为准，Host 初始化已纳入本次。
+实施复审 记录新测试与限制。真实旧库/锁/刷新、Host 锁和 CANTOPEN 手动重试用例已进入 `manual-review/pending`；Electron 在用例前崩溃，不计入正式 covered 数量。
 
 2026-09-10 Todo104 / I13：pending spec 增加首发前后工具栏完整 title 的 Provider 名称断言，覆盖真实配置 → Registry → Selection View → Composer；继续保留原 currentValue、模型请求、回复与 idle 断言。Pro 新 Desktop/Agent `desktop-e2e-20260910-062834-748`：1/1通过，显式 max 参数及 common+case-local replay。只增强既有用例，不新增请求或自动晋级；不表示手机/SSH 实机已验证。
 
@@ -584,7 +584,7 @@ R95C-01（accepted，pending 未晋级）：`conversation-session-model-provider
 
 | 范围                                   | 状态                    | 需求合同                                                                                                                     | 本轮运行证据                                                                                                                                                      |
 | -------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 整条R3远程主线、Provider合并、后续修复 | partial / pending       | [R3A专项矩阵](r3-remote-automation-case-matrix.md)，每行独立setup/action/assertion；[执行方案](r3-remote-automation-plan.md) | [首批实跑记录](../archive/remote-r3/r3-remote-automation-live-run-2026-09-08.md)：首连Provisioning + 无项目对话首发代表已通过；项目流/恢复/升级等其余组合仍待执行 |
+| 整条R3远程主线、Provider合并、后续修复 | partial / pending       | [R3A专项矩阵](r3-remote-automation-case-matrix.md)，每行独立setup/action/assertion；执行方案 | 首批实跑记录：首连Provisioning + 无项目对话首发代表已通过；项目流/恢复/升级等其余组合仍待执行 |
 | R3A-PRV-01 / ID-04 / TASK-01 代表      | pending，部分动作已实跑 | `manual-review/pending/conversation-session-ssh-remote-provisioning-ready.test.ts`                                           | `r3-ready-20260907-155200-a4`；完整fixture首连下发、稳定identity、实际SSH模型回放请求与回复；不替代三行的其他断言                                                 |
 
 R3A 的材料存在、静态检查、旧 formal/pending spec 或历史artifact均不单独升级状态；只有本轮实际断言及artifact才计入对应动作的证据。缺Windows/账号/依赖分别标BLOCKED，不计为覆盖通过。
@@ -2044,7 +2044,7 @@ controlled-stream，其余字段组合由 golden/fake-clock tests 承担。
 
 `TDP01-TDP19` 是 `TEL01-TEL09` 的原子化执行 case，完整 setup/action/assert、剪枝、provider 等价类、
 最终捕获点和 diff 规则见
-[`conversation-telemetry-differential-regression-plan.md`](conversation-telemetry-differential-regression-plan.md)。
+`conversation-telemetry-differential-regression-plan.md`。
 2026-07-18 的 `20260718-tdp-all-final` 已为 TDP01-TDP19 每条生成旧版/current 双 Electron 最终
 payload capture 与独立 diff。`verified-dual` 表示 `/event/report` 与 main ARMS 已完成双版本认证，
 不表示 pending spec 已晋升 formal。
@@ -2115,7 +2115,7 @@ sourceCommandId 守恒；这部分统一由 `PV4-03/PV4-07` 按 missing 追踪�
 以真实 Read、用户 Stop 和下一轮 provider call/result 配对验证工具收尾；另有不 Stop 的纯文本 Bash + SQLite 写锁对照。
 修复前图片 Stop / 有锁 Bash 复现 MissingToolResults；修复后正式 macOS Electron 四组 4/4 通过，
 包括真实图片 wire、原始 Bash 输出及执行一次断言。结果与限制见
-[复现记录](stop-tool-results-reproduction.md)。此候选不计作媒体分支已覆盖，也不自动晋级；下表 SE 仍仅代表既有基本 Stop 覆盖。
+复现记录。此候选不计作媒体分支已覆盖，也不自动晋级；下表 SE 仍仅代表既有基本 Stop 覆盖。
 
 `SH/VQ/QO` 的旧证据只覆盖成功路径和基本文本项；`B08` 的
 reserve → stop barrier → start/promote → remove 失败回滚仍由 `PV4-03` 按 missing 追踪。
@@ -2417,7 +2417,7 @@ Todo96 新增前置（待复跑）：SR87-06 / SM96-02、05 在当前 Team 下�
 | SR87-08/09       | invariant review / unit | 已固定 run/Submission 不重解析；没有增加发送同步。显式 Subagent 自动对应由用户明确排除，继承型路径不改                                                            |
 | SR87-13/14       | covered / mixed         | OffPeak 服务单测证明切域只读不清库/不换票及切回恢复；Air `off-peak-create-manage.test.ts` 2/2 是管理与普通会话模型隔离，不冒充跨域续票证明                        |
 
-完整前置、动作、剪枝及断言见 [Todo87](../working-memory/provider-refactor/steps/todo-87-selection-view-unified-resolution.md)；新交互用例先走 pending，不自动转正式。
+完整前置、动作、剪枝及断言见 Todo87；新交互用例先走 pending，不自动转正式。
 
 ## I. 模型、思考深度和草稿协作模式
 
@@ -2669,9 +2669,9 @@ transport fixture 无稳定注入点，保留为确定性单元/集成证据，�
 
 ## R3R. Source Server 统一远程主链覆盖
 
-当前执行方案与用例矩阵见 [r3-remote-automation-plan.md](./r3-remote-automation-plan.md) 与
+当前执行方案与用例矩阵见 r3-remote-automation-plan.md 与
 [r3-remote-automation-case-matrix.md](./r3-remote-automation-case-matrix.md)；原发布测试方案已归档：
-[R3 Source Server 发布测试方案（历史）](../archive/remote-r3/r3-source-server-release-test-plan.md)。
+R3 Source Server 发布测试方案（历史）。
 
 状态剪枝：R3-REMOTE-09 只验证正常 forward-only、默认 fail-closed、显式整目录放弃；自动回滚、task
 粒度跳过、恢复时重选 canonical 均不进入矩阵。SQLite repo integration 负责逐 phase crash 与全对象对账；
@@ -3090,7 +3090,7 @@ delivery/workspace 边界由 focused tests 覆盖，不展开 provider、主题�
 
 ## Todo 99：单连接过渡态验证计划
 
-对应 [Case Catalog 的 Todo99 专节](../conversation-session-case-catalog.md) 和 [Todo99 实施计划](../working-memory/provider-refactor/steps/todo-99-worker-account-selection-repair.md)。2026-09-09 已新增 `conversation-session/manual-review/pending/conversation-session-worker-effective-selection.test.ts`，在 Pro 执行通过；未人工晋级。完整 run/artifact 及单测与实机边界见 [复审账本](../working-memory/provider-refactor/research/todo99-implementation-review.md)。
+对应 [Case Catalog 的 Todo99 专节](../conversation-session-case-catalog.md) 和 Todo99 实施计划。2026-09-09 已新增 `conversation-session/manual-review/pending/conversation-session-worker-effective-selection.test.ts`，在 Pro 执行通过；未人工晋级。完整 run/artifact 及单测与实机边界见 复审账本。
 
 | Case    | 覆盖状态                          | 计划证据 / 路径                                                                                | 关键缺口                                                    |
 | ------- | --------------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
@@ -3601,7 +3601,7 @@ provider fixture 使用同名 canonical formal target。配置网关不能启用
 
 ## GLOBALDB：主界面前数据库准备（2026-09-14，已实现，GUI 待验收）
 
-[Todo 145](../working-memory/provider-refactor/steps/todo-145-global-database-startup-loading.md) 的 GLOBALDB-01～26 是新全局启动方案的场景入口，实现及单测证据见实施复审；GUI 场景仍未通过，不继承旧 DBSTART 的完成状态。
+Todo 145 的 GLOBALDB-01～26 是新全局启动方案的场景入口，实现及单测证据见实施复审；GUI 场景仍未通过，不继承旧 DBSTART 的完成状态。
 
 | 场景            | 覆盖目标                                                          | 状态    |
 | --------------- | ----------------------------------------------------------------- | ------- |
@@ -3623,7 +3623,7 @@ SILENTDB-01～08 场景已按用户确认语义接纳，定义见 `（实现与�
 
 ## TTFT01 — 本地发送阶段遥测
 
-依据 [Ticket 01](../issues/ttft-stage-telemetry/01-local-send-stage-observability.md) 已确认的验收场景：真实 Composer 正文、思考、工具先到，空 start、晚到正文、输出早于 ACK、受控阶段延迟；最终 OTLP Trace/Metric 为断言出口。状态 accepted，自动化候选 `conversation-session/manual-review/pending/conversation-session-ttft-stages.test.ts`；平台 ARMS 验收独立待验证。
+依据 Ticket 01 已确认的验收场景：真实 Composer 正文、思考、工具先到，空 start、晚到正文、输出早于 ACK、受控阶段延迟；最终 OTLP Trace/Metric 为断言出口。状态 accepted，自动化候选 `conversation-session/manual-review/pending/conversation-session-ttft-stages.test.ts`；平台 ARMS 验收独立待验证。
 
 ## TTFT02 — 复杂发送归因
 
@@ -3652,7 +3652,7 @@ Memory MEM08 埋点补充（2026-09-17）：现有 Desktop Memory 用例同时�
 
 ## Todo156 Start 后续修复
 
-验收边界使用 [Todo156 SF-01～SF-19](../working-memory/provider-refactor/steps/todo-156-start-plan-followup-final-decisions.md) 的最终决策。`conversation-session-start-plan-independent` 待人工复核用例补充 SF-01/02/08/10/13：付费连接下 Start 圆环、团队下拉选中、套餐名称、带参数副屏首条的关闭／确认／不了，断言实际模型请求和主输入框草稿不变。其余缓存状态组合由 `startPlanRecommendationFreshness`、`providerFamilyConnectionVisibility` 与状态卡测试覆盖；桌面／手机视口与深浅主题另走浏览器视觉用例。此记录不是 CI 转正或全部 SF 的 E2E 覆盖声明。
+验收边界使用 Todo156 SF-01～SF-19 的最终决策。`conversation-session-start-plan-independent` 待人工复核用例补充 SF-01/02/08/10/13：付费连接下 Start 圆环、团队下拉选中、套餐名称、带参数副屏首条的关闭／确认／不了，断言实际模型请求和主输入框草稿不变。其余缓存状态组合由 `startPlanRecommendationFreshness`、`providerFamilyConnectionVisibility` 与状态卡测试覆盖；桌面／手机视口与深浅主题另走浏览器视觉用例。此记录不是 CI 转正或全部 SF 的 E2E 覆盖声明。
 
 ## MFH01：Host 文件搜索（manual-review）
 
@@ -3888,18 +3888,18 @@ provider 的缓存命中或 bench 成功率。Native/Off 的既有合同保持�
 `SSH-GUIDE-DIR denied` 修复回归（2026-10-10）：macOS Electron → Linux SSH 独立目标，
 `desktop-e2e-20261010-directory-fix-denied-serial` 1/1 通过；覆盖实际收回权限、A 失败保留、B/C 恢复、
 可见目录错误、权限恢复后原地重试与原历史续聊。首轮首装超时及验证边界保留在
-[问题 05](../issues/remote-e2e-stability/05-directory-permission-reattach.md)，候选状态与 CI 准入不变。
+问题 05，候选状态与 CI 准入不变。
 
 `SSH-GUIDE-MANAGE edit` 修复回归（2026-10-10）：macOS Electron → Linux SSH 独立目标，
 `desktop-e2e-20261010-route-fix` 1/1 通过；覆盖在线编辑保持当前连接、原项目重连实际使用新端口、
 留空保留密码、两个项目恢复与不新增旧线路 Profile。源码构建证据及验证边界见
-[问题 06](../issues/remote-e2e-stability/06-edited-route-ignored-by-project-reconnect.md)，候选状态与 CI 准入不变。
+问题 06，候选状态与 CI 准入不变。
 
 `SSH-GUIDE-VERSION` 修复回归（2026-10-10）：macOS Electron → 独立 Linux arm64 SSH 目标，
 `desktop-e2e-20261010-version-fix-{manual-required,automatic-required,optional,controller-required}-r2`
 四个变体各 1/1 通过；手动原项目自动更新后 A/B 保留身份、目录且取得新 session，后台等待、
 可选更新与“稍后”、本机过旧均保持原合同。源码/产物摘要与验证边界见
-[问题 07](../issues/remote-e2e-stability/07-existing-project-upgrade-intent.md)，候选状态与 CI 准入不变。
+问题 07，候选状态与 CI 准入不变。
 
 `SSH-GUIDE-VERSION snapshot-failure-required`：同一 pending spec 增补快照读取故障 → 显式重试 →
 受保护更新 → 恢复原项目的回归，RPC 短暂读取故障为合成输入，其余使用真实 SSH。
@@ -3910,7 +3910,7 @@ macOS Electron → 独立 Linux arm64 SSH 容器，`r3-server-snapshot-fix-20261
 `preserve-data` 验证正式卸载保留身份与原任务续聊；`replace-environment` 使用独立数据环境
 验证确认/取消/归档与历史隔离。macOS Desktop → Linux arm64 SSH 的两个独立变体均 1/1 PASS，
 保留数据变体含原任务实际续聊；run 与首轮测试操作补齐说明见
-[问题 08](../issues/remote-e2e-stability/08-reinstall-history-visible-in-new-device.md)。
+问题 08。
 
 ## VPR：上游整合与远程单目录（2026-10-10）
 
@@ -4009,7 +4009,7 @@ Linux 服务器实跑（2026-10-15，业务基线 `66d34dc233ca`，叠加测试/
 
 补充回归：`conversation-session-background-connection.test.ts` 在通知继续的 Source 查询期间检查禁发；`conversation-session-chat-remote-folder.test.ts` 通过既有 RPC 接缝回放旧端等价路径的多项目选择。真实适配器与 UI 合同测试验证 POSIX／Windows 匹配及原 ID／cwd 保留；旧端投影回放不计作旧 Server 二进制实跑。本轮运行结果见 #21。
 
-2026-10-14：[当前规格](../issues/remote-connection-ux/21-chat-settings-round-trip.md)及 #23–#26 已完成实施。RDUX21-01–24 的完整 setup、action、assertion 由规格维护；本表登记实际测试接缝与环境，不把合同测试或手机仿真记作未执行平台的实机 PASS。
+2026-10-14：当前规格及 #23–#26 已完成实施。RDUX21-01–24 的完整 setup、action、assertion 由规格维护；本表登记实际测试接缝与环境，不把合同测试或手机仿真记作未执行平台的实机 PASS。
 
 | 验收 ID      | 接受范围                                                                               | 测试落点与当前状态                                                  |
 | ------------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |

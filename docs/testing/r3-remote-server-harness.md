@@ -5,11 +5,11 @@
 编排代码在 `harness/remote/`；本文是它的事实说明。目标：**全部远程连接 e2e case 都能在一台
 Linux 服务器上跑**，远端用同机 Docker 容器模拟，不追求跨机验证。
 
-当前命令、构建环境、源码验真、调度和清理规则统一见 [harness README](../../harness/remote/README.md)。
+当前命令、构建环境、源码验真、调度和清理规则统一见 harness README。
 本文保留拓扑、真实/模拟边界、case 档位和历史归因；不同日期的结果不能拼成当前全量 PASS。
 10 月 SSH 范围结果见[指南回归](desktop-ssh-guide-regression.md)。
 
-完整验收的 50 次/2 小时目标见[测试方案](r3-remote-automation-plan.md)；本 harness 的 10 轮/10 分钟只证明相应较短档位。
+完整验收的 50 次/2 小时目标见测试方案；本 harness 的 10 轮/10 分钟只证明相应较短档位。
 
 ## 2026-10-11 全量复验结果
 
@@ -38,10 +38,10 @@ Status: done
 冲突，已撤回该业务定性。新版只恢复 `lastActiveWorkspace`，其他项目入口保留并按需打开。
 `project-order` 原失败实际发生在手动连接后等待未激活 tab，不是冷启动 B 恢复失败。
 复核批次 `r3-server-20261012012923737-60d156` 的五项冷启动验收全部通过；25 当时保留业务 FAIL，随后已修复。
-本轮定向结果以[问题 11](../issues/remote-e2e-stability/11-ssh-credential-missing-after-restart.md)、
-[问题 15](../issues/remote-e2e-stability/15-cold-start-open-workspace-siblings.md)的新证据为准，
+本轮定向结果以问题 11、
+问题 15的新证据为准，
 下表保留原批次任务映射，不再表示当前有 29 个已确认业务缺陷。
-问题 25 在启动 owner 补齐 app-owned cwd 后，批次 `r3-server-20261012013853643-f32109` 的原设置变更场景与远程冷启动均 PASS；Worker 重启前后 exit=0 且正常发出存储完成帧，详见[问题 25](../issues/remote-e2e-stability/25-data-directory-restart-startup-failure.md)。
+问题 25 在启动 owner 补齐 app-owned cwd 后，批次 `r3-server-20261012013853643-f32109` 的原设置变更场景与远程冷启动均 PASS；Worker 重启前后 exit=0 且正常发出存储完成帧，详见问题 25。
 
 问题 07 已修复项目菜单/未加载 tab 的向导交接、凭据错误码缺失及新恢复周期误读旧终态错误。
 基线 `07c35ed00085b9bb105d07633488951ff02032c2` 加最终补丁，源码清单 SHA-256 为
@@ -49,31 +49,31 @@ Status: done
 批次 `r3-server-20261012042036306-3218d0` 与 `r3-server-20261012042909750-5eed5a`
 使用同一源码及构建，问题 07 的七项和相邻恢复/冷启动两项全部 PASS。
 后台更新的旧双 tab 断言按 F5 改为活动项目自动恢复、其他项目按需打开；手动升级仍验证 A/B 恢复。
-详情与验证限制见[问题 07](../issues/remote-e2e-stability/07-existing-project-upgrade-intent.md)。
+详情与验证限制见问题 07。
 这九项定向结果不代表重跑了 109 项全量，也不是用例转正或 CI 准入。
 
 ### 原批次失败映射
 
 | 任务                                                                                                                                                                 | 本地问题记录                                                                                                                      |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `serverupdate`, `serverupdate-force`, `uninstall`, `version-manual-required`, `version-snapshot-failure-required`, `version-automatic-required`, `projectnavigation` | [原项目连接中的认证、升级与重装交接缺失](../issues/remote-e2e-stability/07-existing-project-upgrade-intent.md)                    |
-| `boundary`, `recov`, `project-order`                                                                                                                                 | [SSH 已保存连接在冷重启后缺少凭据](../issues/remote-e2e-stability/11-ssh-credential-missing-after-restart.md)                     |
-| `sourcelines`                                                                                                                                                        | [远程项目从符号链接创建任务后未收敛到 realpath identity](../issues/remote-e2e-stability/12-project-symlink-workspace-identity.md) |
-| `renderer`                                                                                                                                                           | [Renderer 重载后已就绪的远程任务无法切换](../issues/remote-e2e-stability/14-renderer-reload-task-navigation.md)                   |
-| `mixed`, `coldreconnect`, `rdux14`                                                                                                                                   | [冷启动未补齐已打开的另一远程工作区](../issues/remote-e2e-stability/15-cold-start-open-workspace-siblings.md)                     |
-| `settings-safeguards`                                                                                                                                                | [设置页“在侧边栏中显示”未定位项目焦点](../issues/remote-e2e-stability/16-settings-show-project-focus.md)                          |
-| `directory-missing`, `directory-file`, `directory-denied`                                                                                                            | [远程主目录失效后原任务历史无法打开](../issues/remote-e2e-stability/17-unavailable-root-history-navigation.md)                    |
-| `history-conflict`, `history-conflict-sources`                                                                                                                       | [单个工作区历史冲突阻塞整个远程项目选择页](../issues/remote-e2e-stability/19-history-conflict-blocks-project-picker.md)           |
-| `retry-budget`                                                                                                                                                       | [自动重连执行三次，但项目页不显示重试进度](../issues/remote-e2e-stability/20-retry-progress-not-visible.md)                       |
-| `version-optional`                                                                                                                                                   | [兼容版本连接成功后，设备卡缺少可延后的更新提示](../issues/remote-e2e-stability/21-optional-update-notice-missing.md)             |
-| `uipairwise`                                                                                                                                                         | [从项目菜单打开编辑器后焦点仍在页面 body](../issues/remote-e2e-stability/22-project-editor-focus-missing.md)                      |
-| `version-controller-required`                                                                                                                                        | [版本门禁详情没有说明应升级桌面端](../issues/remote-e2e-stability/23-desktop-upgrade-guidance-missing.md)                         |
-| `p0-main`                                                                                                                                                            | [远程会话正在生成，侧栏任务行没有运行标志](../issues/remote-e2e-stability/24-remote-task-running-indicator-missing.md)            |
-| `desktopauthority`                                                                                                                                                   | [桌面设置和数据目录变更后冷启动失败](../issues/remote-e2e-stability/25-data-directory-restart-startup-failure.md)                 |
-| `uiwalkthrough`, `three-screen`                                                                                                                                      | [收起连接向导后主界面没有进度卡](../issues/remote-e2e-stability/26-minimized-connection-progress-missing.md)                      |
+| `serverupdate`, `serverupdate-force`, `uninstall`, `version-manual-required`, `version-snapshot-failure-required`, `version-automatic-required`, `projectnavigation` | 原项目连接中的认证、升级与重装交接缺失                    |
+| `boundary`, `recov`, `project-order`                                                                                                                                 | SSH 已保存连接在冷重启后缺少凭据                     |
+| `sourcelines`                                                                                                                                                        | 远程项目从符号链接创建任务后未收敛到 realpath identity |
+| `renderer`                                                                                                                                                           | Renderer 重载后已就绪的远程任务无法切换                   |
+| `mixed`, `coldreconnect`, `rdux14`                                                                                                                                   | 冷启动未补齐已打开的另一远程工作区                     |
+| `settings-safeguards`                                                                                                                                                | 设置页“在侧边栏中显示”未定位项目焦点                          |
+| `directory-missing`, `directory-file`, `directory-denied`                                                                                                            | 远程主目录失效后原任务历史无法打开                    |
+| `history-conflict`, `history-conflict-sources`                                                                                                                       | 单个工作区历史冲突阻塞整个远程项目选择页           |
+| `retry-budget`                                                                                                                                                       | 自动重连执行三次，但项目页不显示重试进度                       |
+| `version-optional`                                                                                                                                                   | 兼容版本连接成功后，设备卡缺少可延后的更新提示             |
+| `uipairwise`                                                                                                                                                         | 从项目菜单打开编辑器后焦点仍在页面 body                      |
+| `version-controller-required`                                                                                                                                        | 版本门禁详情没有说明应升级桌面端                         |
+| `p0-main`                                                                                                                                                            | 远程会话正在生成，侧栏任务行没有运行标志            |
+| `desktopauthority`                                                                                                                                                   | 桌面设置和数据目录变更后冷启动失败                 |
+| `uiwalkthrough`, `three-screen`                                                                                                                                      | 收起连接向导后主界面没有进度卡                      |
 
-另有不单独决定任务终态的[启动重连说明仍写 7 天](../issues/remote-e2e-stability/13-startup-reconnect-description.md)。
-[旧历史打不开疑点](../issues/remote-e2e-stability/18-upgraded-project-history-open.md) 已按真实点击和完整回退证据排除，归为测试修复。
+另有不单独决定任务终态的启动重连说明仍写 7 天。
+旧历史打不开疑点 已按真实点击和完整回退证据排除，归为测试修复。
 各问题记录写明已到达步骤、运行证据及被阻塞的后续断言；失败没有被删除或改成跳过。
 
 ### 耗时与测试可靠性
@@ -109,7 +109,7 @@ Status: done
 但现有 helper 在选好远程模型后又全局新建任务；运行时确认 recov、renderer 的 active identity
 为空、cwd 为本地未分类目录，soakrecon 错用本地模型后发生 replay 协议重试。该批涉及此准备链
 的结果均须在删除多余全局新建、补发送前 identity/path 断言后重跑，不能沿用原 PASS 证明远程覆盖；
-边界说明的当前入口差异见[问题 10](../issues/remote-e2e-stability/10-connection-wizard-test-entry.md)。
+边界说明的当前入口差异见问题 10。
 
 后续有效远程归属复验：
 
@@ -124,7 +124,7 @@ Status: done
 失败中的 provisioning-failure 已到达真实同步失败，需展开折叠详情核对技术代码；sidebar-menus
 完成在线/离线、中英/主题矩阵及重连，末尾把正常 hover 提示误当残留弹层；history-single
 生成了同目录“(2)”新项目，旧任务仍属于原项目，改为按迁移后的 projectId 重新加入原项目。
-Renderer 任务切换继续分诊，见[问题 14](../issues/remote-e2e-stability/14-renderer-reload-task-navigation.md)。
+Renderer 任务切换继续分诊，见问题 14。
 
 补丁 07 的定向队列覆盖首轮 FAIL/ERROR 中尚未通过的 67 项，已全部结束：29 PASS、38 FAIL。
 已通过结果保留各自的源码清单与批次；原始累计 71 个 PASS 中，走查项随后撤回，有效数为 70。
@@ -164,7 +164,7 @@ Host / Agent 最大数量各为 1。RSS 首尾采样 1220 / 1211 MB；这只是�
   Renderer reload 以每个原 attachment 的有效 Main ready ACK 为恢复证据，导航缓存不代替 attachment owner。
   无障碍和桌面设置场景的刷新/冷重启只等待可操作主界面，不额外要求恢复与该断言无关的默认项目草稿。
   retry-budget 保留三次可见进度要求；该展示断言放在场景末尾，使进度缺失不会阻止后续静默恢复和手动接管取证。
-- [当前项目规格](../superpowers/specs/2026-10-10-session-manage-upstream-integration.md) 下，设备详情/编辑在设置页，
+- 当前项目规格 下，设备详情/编辑在设置页，
   侧栏验证项目菜单、设备名称、键盘、主题和视口。移除本机入口后重新加入原远端项目，
   不把同目录新建项目当成原项目恢复，也不要求 membership 移除关闭整个 Source attachment。
 - 目录失效验证采用[主目录可用性合同](../project-primary-root-availability.md)：
@@ -237,7 +237,7 @@ Host / Agent 最大数量各为 1。RSS 首尾采样 1220 / 1211 MB；这只是�
 
 三槽默认值依据 2026-09-24 的同源码六项对照（全部通过，墙钟 493.35 秒 → 422.54 秒）及修复手机独占后的完整 70 项执行：批次 `r3-server-20260924160231661-54c15b` 用时 4029.12 秒，平均 CPU 71.21%，最低可用内存 3617.2 MiB。该完整轮为 64 PASS、4 已记录业务 FAIL、2 VPN BLOCKED_ENV；三项手机页面均无资源加载错误，且执行区间无重叠。全量源码与早期两槽轮不同，不能把墙钟差额全归因于并发；同源码对照仅支持所测六项约 14.4% 的墙钟改善。
 
-2026-09-24 后续候选记录：其后补强的 Provisioning PRV-12 写入失败恢复场景已独立验证三次；PRV-13 的真实未返回 RPC 场景则三次暴露了[设备管理页被远端统计阻塞](../issues/remote-e2e-stability/04-management-blocked-by-remote-counts.md)。该项整体仍为 FAIL，不能沿用完整轮旧版本的 PASS。该历史候选保留 70 项分母：63 项已有至少三次有效通过证据，5 项存在业务失败或后续断言未到达，2 项 VPN 阻塞；原生编辑器正向分支也尚未在 macOS/Windows 验证。
+2026-09-24 后续候选记录：其后补强的 Provisioning PRV-12 写入失败恢复场景已独立验证三次；PRV-13 的真实未返回 RPC 场景则三次暴露了设备管理页被远端统计阻塞。该项整体仍为 FAIL，不能沿用完整轮旧版本的 PASS。该历史候选保留 70 项分母：63 项已有至少三次有效通过证据，5 项存在业务失败或后续断言未到达，2 项 VPN 阻塞；原生编辑器正向分支也尚未在 macOS/Windows 验证。
 
 ```
 ┌──────────────── e2e 服务器（Ubuntu 24.04 / x86_64）────────────────┐
@@ -584,7 +584,7 @@ sequenceDiagram
 消息取证、执行事件解析和实际 HTTP fixture 使用聚焦回归检查验证。
 当前基线的手机用例已通过：补丁 08 批次 `r3-server-20261011143037600-31012b` 的 `mobile`
 两个场景均成功，覆盖真实 relay、独立 replay、桌面 continuous、FIFO、原地重连及无模型草稿。
-[较早的手机首页引导问题](../issues/remote-e2e-stability/01-mobile-home-onboarding.md) 保留旧基线记录，
+较早的手机首页引导问题 保留旧基线记录，
 不再作为当前这轮的阻塞项。此处手机证据为 Chromium 触屏 viewport，不能扩展为实体手机验证。
 
 ## 原生编辑器与远端媒体导出

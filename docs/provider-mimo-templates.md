@@ -39,4 +39,4 @@ Personal 实例 → Effective Provider → Registry → 新建模型请求
 | MIMO-02 | 原实例及海外地址覆盖 | 名称、禁用状态、密钥、地址、个人模型配置保留；解析不修改 Personal |
 | MIMO-03 | 手机宽度中文浅色 / 桌面宽度英文深色 | 两张模板及 tooltip、图标显示正确；分别点击只交付对应 templateId；详情使用各自 Base URL，无额外写入或横向溢出 |
 
-配置/Resolver 单测覆盖 MIMO-01/02。浏览器 pending 用例覆盖 MIMO-03 的共享组件，详见[用例矩阵](testing/provider-settings-batch-20260910.md)。浏览器夹具隔离服务写入，不等同于完整 Electron、手机 shared-host 或真实官方付费请求验证。
+配置/Resolver 单测覆盖 MIMO-01/02。浏览器 pending 用例覆盖 MIMO-03 的共享组件，详见用例矩阵。浏览器夹具隔离服务写入，不等同于完整 Electron、手机 shared-host 或真实官方付费请求验证。

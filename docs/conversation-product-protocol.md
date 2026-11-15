@@ -20,7 +20,7 @@ reducer 只存在于历史文档或兼容层，不得覆盖本文语义。
 | [conversation-product-state-space.md](./conversation-product-state-space.md) | 状态空间与 guard 剪枝方法；具体字段以 V4 schema 为准 |
 | [conversation-session-case-catalog.md](./conversation-session-case-catalog.md) | 已有自然语言 case catalog，包含当前 accepted、undefined 和扩展 case |
 | [testing/conversation-session-e2e-coverage-matrix.md](./testing/conversation-session-e2e-coverage-matrix.md) | 自动化覆盖矩阵，只说明证据状态，不作为产品语义第一来源 |
-| [testing/conversation-session-compact-decision-worksheet.md](./testing/conversation-session-compact-decision-worksheet.md) | compact 故障和 pendingAction 的决策工作单 |
+| testing/conversation-session-compact-decision-worksheet.md | compact 故障和 pendingAction 的决策工作单 |
 | [testing/conversation-session-fork-cross-product-matrix.md](./testing/conversation-session-fork-cross-product-matrix.md) | fork 专项矩阵，收敛能否 fork、历史边界和未来状态继承 |
 | `packages/shared/src/validationAppSettings.ts` | app setting `zcodeInteractionBehavior = queue | guide` 的校验与默认值 |
 | `packages/shared/src/nibi-protocol-v4/` | command、snapshot、delta、topic 和 ACK 的当前 schema |
@@ -801,7 +801,7 @@ fork 目标只定义在 assistant message/turn 上。edit 目标只定义在 use
 
 ## Pending Product Boundaries
 
-四个边界已于 2026-07-05 全部裁决（v4 重构 M0 决策清收），本节保留裁决记录；详细子问题结论见 [decision-answers](./testing/conversation-session-decision-answers.md) 与 compact decision worksheet。
+四个边界已于 2026-07-05 全部裁决（v4 重构 M0 决策清收），本节保留裁决记录；详细子问题结论见 decision-answers 与 compact decision worksheet。
 
 | Boundary ID | 裁决结论 | 来源 |
 | --- | --- | --- |

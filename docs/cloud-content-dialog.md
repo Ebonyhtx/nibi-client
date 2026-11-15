@@ -1,6 +1,6 @@
 # 公共内容弹窗与 Hero 资源
 
-更新日期：2026-09-10。范围：客户端公共组件与 Hero 资源；正式投放接入与 Banner 语义见 [marketing-touch-client.md](marketing-touch-client.md)，不包含运营后台。
+更新日期：2026-09-10。范围：客户端公共组件与 Hero 资源；正式投放接入与 Banner 语义见 marketing-touch-client.md，不包含运营后台。
 
 ## 当前实现
 

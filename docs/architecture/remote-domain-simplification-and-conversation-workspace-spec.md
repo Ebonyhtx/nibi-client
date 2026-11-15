@@ -31,7 +31,7 @@ Source Directory + Host Manager/Registry + TabStore
 - 显式关闭只释放该窗口 attachment，不删除设备、Profile、项目成员、backing directory 或远端 task，不隐式断开整个设备。
 - 历史快照中的 credential 引用不转移所有权。历史更新、容量裁剪和移除只能产生 `remote-workspace:` 自有凭据的清理意图；`connection-profile:` 凭据由 Source Directory 管理，即使重投影移除了引用也不得删除。
 - legacy 回退凭据在 rekey/恢复时保留；显式关闭只允许清理独占且未被其他 owner 引用的旧凭据。
-- 当前持久化事实源是[虚拟项目 F5](../superpowers/specs/2026-09-09-virtual-project-design.md)，设备与窗口恢复见 [Renderer 重挂](../remote/desktop-remote-session-renderer-reattach.md)。
+- 当前持久化事实源是虚拟项目 F5，设备与窗口恢复见 [Renderer 重挂](../remote/desktop-remote-session-renderer-reattach.md)。
 
 ## 5. 持久化设计
 

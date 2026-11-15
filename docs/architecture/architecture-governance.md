@@ -92,7 +92,7 @@ Git diff / 未跟踪文件枚举
 
 ## Agent 工作流
 
-[architecture-governance skill](../../.agents/skills/architecture-governance/SKILL.md) 对代码变更适用，纯文档任务跳过。代码修改前识别预期模块并检查当前基线，修改后重新检查；跨模块、状态归属变化或契约不明确时生成 `architecture:context` 阅读包，局部且契约明确的改动只读相关契约、spec 与测试。Spec、验证范围及完成条件统一遵循[根 AGENTS.md](../../AGENTS.md)，不在本文件重复定义。
+architecture-governance skill 对代码变更适用，纯文档任务跳过。代码修改前识别预期模块并检查当前基线，修改后重新检查；跨模块、状态归属变化或契约不明确时生成 `architecture:context` 阅读包，局部且契约明确的改动只读相关契约、spec 与测试。Spec、验证范围及完成条件统一遵循[根 AGENTS.md](../../AGENTS.md)，不在本文件重复定义。
 
 阅读包由代码和策略生成，包含目标模块的 `module.ts`、`contract.ts`、示例、契约测试、短 CONTRACT.md、直接依赖契约、owner、允许边和受影响测试，不复制完整实现。
 

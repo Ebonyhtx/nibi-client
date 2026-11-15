@@ -521,7 +521,7 @@ turn/event 翻倍时耗时约翻倍，未再呈现原先的平方增长趋势。
 中位数下降 468.0 ms（14.8%），且首帧字节完全一致。该结果只证明去掉重复 legacy projection 的
 本机收益；剩余约 2.7s 仍包含 Agent runtime activation、持久 transcript 读取/合成、V4 projection
 rehydration 与 wire 编码，不应归因成单一阶段。具体职责边界与功能不变量见
-[`17-cold-resume-runtime-activation.md`](../v4-refactor/17-cold-resume-runtime-activation.md)。
+`17-cold-resume-runtime-activation.md`。
 
 ## E2E Handoff Notes
 

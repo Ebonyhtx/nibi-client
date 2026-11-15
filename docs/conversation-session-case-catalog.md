@@ -72,10 +72,10 @@ GRP06/CR-01（accepted）：首发 accepted 后挂起组织登记，取消原 pa
 
 > **2026-10-12 review 回归：** OP10 额外检查默认标题请求与父轮使用同一闲时票据和模型；默认与换票回执丢失变体已在 Linux Electron/真实 Host/CLI 通过（`desktop-e2e-20261012-105708-319`、`desktop-e2e-20261012-105924-792`）；标题 3102、主轮先结束、读库早退和流关闭失败/不结束由 Core 定向测试覆盖。仍为 manual-review/pending，不扩展手机 replayable 或重启恢复。
 
-> **闲时后台修订：** 设计、Core/协议证据及 OP10 三种桌面变体结果见 [实施计划](./off-peak-task/background-lifecycle-plan.md#最终验证记录2026-10-08)。用例仍为 manual-review/pending；手机整机交互未验证，不改变本矩阵原有准入与交付范围。
+> **闲时后台修订：** 设计、Core/协议证据及 OP10 三种桌面变体结果见 实施计划。用例仍为 manual-review/pending；手机整机交互未验证，不改变本矩阵原有准入与交付范围。
 
 > **2026-10-09 review 回归：** OP10 增加 `NIBI_E2E_OFFPEAK_HANDOFF_FAULT=1` 变体，在真实 Host/CLI stdio 边界让已安装新票的首个确认失败，延后完成通知直到相同交接收到确认；断言自动重试同一 execution/renewal/ticket、卡片最终完成且原始 prompt/Bash 只执行一次。连续确认失败、旧回执与新续票交错、接管/完成后未安装候选票释放由 service focused tests 覆盖；旧执行迟到 cancel 不影响新用户轮由 Core 运行时测试覆盖。只覆盖 desktop continuous，不新增手机 replayable 或重启恢复语义；本变体在容器 Electron/真实 Host/CLI 下 1/1 通过（`desktop-e2e-20261009-082511-005`），仍为 manual-review/pending。
-> 2026-10-11 远程验收采用 [当前项目整合合同](superpowers/specs/2026-10-10-session-manage-upstream-integration.md)。
+> 2026-10-11 远程验收采用 当前项目整合合同。
 > 业务基线 `d31e735905cf744e75a0a93548a80acabe871ae5` 的完整队列与逐项复验见
 > [远程测试服务器结果](testing/r3-remote-server-harness.md)。下方早期 PASS 仅对应各自历史批次；本轮不自动转正。
 
@@ -101,11 +101,11 @@ RDUX-BASELINE（accepted / pending）：侧栏项目行与聊天框项目列表�
 
 ## 设置防护、连接编辑与机器标注（RDUX-05，accepted）
 
-验收沿用 [Issue 05](issues/remote-connection-ux/05-settings-safeguards-edit-and-scope.md)：真实 SSH 设置页验证独立名称保存、确认默认取消与回车、受影响项目、断开提示、侧栏定位、最近在线与插件/MCP/技能/钩子/子智能体作用域。共享组件测试补充 pending/失败回滚、Docker 与手机展示参数；不更改任务 continuous/replayable 链。 本地设置用例覆盖七个分区、深浅主题和宽窄窗口的提示移除；真实 SSH 场景保留作用域菜单与写入隔离断言。 2026-10-12 本地提示移除用例在初始化阶段因 Host 退出、`transport_closed` 阻塞，尚未获得页面视觉证据；SSH 回归缺少连接环境配置。
+验收沿用 Issue 05：真实 SSH 设置页验证独立名称保存、确认默认取消与回车、受影响项目、断开提示、侧栏定位、最近在线与插件/MCP/技能/钩子/子智能体作用域。共享组件测试补充 pending/失败回滚、Docker 与手机展示参数；不更改任务 continuous/replayable 链。 本地设置用例覆盖七个分区、深浅主题和宽窄窗口的提示移除；真实 SSH 场景保留作用域菜单与写入隔离断言。 2026-10-12 本地提示移除用例在初始化阶段因 Host 退出、`transport_closed` 阻塞，尚未获得页面视觉证据；SSH 回归缺少连接环境配置。
 
 | Case    | 状态                                                                                             | 自动化                                                                                               | 范围                                                                                                                                                                                                                                           |
 | ------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| RDUX-05 | pending；当前定位失败见 [问题 16](issues/remote-e2e-stability/16-settings-show-project-focus.md) | `conversation-session/manual-review/pending/conversation-session-remote-settings-safeguards.test.ts` | 设置防护、编辑、设备定位、作用域菜单设备名（分区与表单不显示“正在编辑”提示）；`rdux05-settings-final` 新用例通过，`rdux05-scopes-final` 既有作用域用例通过；中英文/深浅主题/1400px 与 480px 桌面截图，手机模式与 Docker 为组件回归；无模型请求 |
+| RDUX-05 | pending；当前定位失败见 问题 16 | `conversation-session/manual-review/pending/conversation-session-remote-settings-safeguards.test.ts` | 设置防护、编辑、设备定位、作用域菜单设备名（分区与表单不显示“正在编辑”提示）；`rdux05-settings-final` 新用例通过，`rdux05-scopes-final` 既有作用域用例通过；中英文/深浅主题/1400px 与 480px 桌面截图，手机模式与 Docker 为组件回归；无模型请求 |
 
 ## 统一连接展示（RDUX-STATE，accepted）
 
@@ -307,8 +307,8 @@ compact/fork/rewind 与可替换 definitions 的组合通过 Core focused tests 
 
 **数据库启动门禁（2026-09-14，新全局方案待 GUI 验收）**
 
-旧 DBSTART 方案与记录保留在 Todo 144；当前以 [全局启动 spec](./desktop/database-migration-startup-gate-plan.md) 和 Todo 145 为准，Host 初始化已纳入本次。
-[实施复审](./desktop/database-startup-implementation-review.md) 记录新测试与限制。真实旧库/锁/刷新、Host 锁和 CANTOPEN 手动重试用例已进入 `manual-review/pending`；Electron 在用例前崩溃，不计入正式 covered 数量。
+旧 DBSTART 方案与记录保留在 Todo 144；当前以 全局启动 spec 和 Todo 145 为准，Host 初始化已纳入本次。
+实施复审 记录新测试与限制。真实旧库/锁/刷新、Host 锁和 CANTOPEN 手动重试用例已进入 `manual-review/pending`；Electron 在用例前崩溃，不计入正式 covered 数量。
 
 2026-09-10 Todo104 补查：I13 增强已接受的自定义 Provider 名称展示合同。使用真实配置启动后，alternate 模型触发器的完整 title 在首发前后都应为 `providerName/modelId`，currentValue 与实际请求仍使用原 Provider/Model 身份；名称不能在 Registry 快照投影时丢失，不依赖 Settings 旁路补值。不扩展新的账号/远端行为。
 
@@ -343,7 +343,7 @@ MVP 验证矩阵：[conversation-session-validation-matrix.md](./conversation-se
 
 ## R3A. 合并后远程实际测试专项
 
-2026-09-07 三轮 grilling 确认的整条 R3/Provider/后续修复测试范围见 [专项方案](testing/r3-remote-automation-plan.md)，独立 setup/action/assertion、accepted/pruned/undefined 与旧 case 映射见 [R3A 用例矩阵](testing/r3-remote-automation-case-matrix.md)。R3A 是稳定的需求 case ID，不等于已存在同名 E2E spec；初始登记为 NOT_RUN，2026-09-08 [首批实跑](./archive/remote-r3/r3-remote-automation-live-run-2026-09-08.md)补入首连/首发代表，完整组合仍以专项矩阵为准。保留既有 SSH/R3R/RCONV 等 ID，通过专项矩阵关联而不重复命名同一旧 case。
+2026-09-07 三轮 grilling 确认的整条 R3/Provider/后续修复测试范围见 专项方案，独立 setup/action/assertion、accepted/pruned/undefined 与旧 case 映射见 [R3A 用例矩阵](testing/r3-remote-automation-case-matrix.md)。R3A 是稳定的需求 case ID，不等于已存在同名 E2E spec；初始登记为 NOT_RUN，2026-09-08 首批实跑补入首连/首发代表，完整组合仍以专项矩阵为准。保留既有 SSH/R3R/RCONV 等 ID，通过专项矩阵关联而不重复命名同一旧 case。
 
 ## 枚举边界
 
@@ -492,7 +492,7 @@ result（首个成功、其余取消），且正常回复。Hook 仅固定执行
 证明该用户读取了图片。同一 pending spec 另有纯文本 Bash + SQLite 写锁独立对照，不点击 Stop，
 验证存储失败后续聊的结果完整性；这是其他原因的实验，不作为 B12 已覆盖或该反馈已归因的证明。
 修复后 macOS Electron 四组 4/4 通过，仍保留 manual-review/pending，未晋级。
-细节与执行证据见 [工具结果复现](testing/stop-tool-results-reproduction.md)。
+细节与执行证据见 工具结果复现。
 
 | ID   | 前置状态                                                                   | 用户/系统事件              | 规则命中                                            | 期望结果                                                                                                                                                                                                               | Review   |
 | ---- | -------------------------------------------------------------------------- | -------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
@@ -986,7 +986,7 @@ Todo95C 追加 R95C-01：隔离套餐 mock 下，将 GLM-5.2 草稿存成旧 `no
 
 Todo96 追加 accepted 验收 SM96-02/05：SR87-06 在退出桌面后将本 case 任务设为真正旧列（旧 Coding Plan + high、新列 SQL NULL），保持当前 Team，重新启动且不打开编辑保存；长期选择应离线迁为同域 Individual，直接 Run now 的冻结选择应为 Team/high。原旧列不变，实际请求沿用原型号与档位。当前仅新增待跑，不能沿用 SR87 的旧通过记录。
 
-以 [Todo 87 第 7 节](working-memory/provider-refactor/steps/todo-87-selection-view-unified-resolution.md) 的 SR87-01～14 为本组完整 setup/action/assertion。
+以 Todo 87 第 7 节 的 SR87-01～14 为本组完整 setup/action/assertion。
 Composer 代表覆盖普通账号同模型/同档位对应、失效只改变有效结果、编辑文本不清原意图、恢复配置后重新有效；
 后台定时任务代表覆盖未打开编辑页也在固定 run 前解析。Off-Peak 只检查原身份，不跨账号换模型或 Ticket。
 已固定 Submission/队列/运行历史不重新解析；不新增发送前同步。请求与持久原选择的证据均必需，不能只看菜单。
@@ -1974,7 +1974,7 @@ hook/protocol tests 证明；canonical mention、provider/model、主题、local
 
 `@` 文件候选由 workspace 所属 Host 的 `listWorkspaceFiles` 统一建立索引，过滤规则集中在 service 层
 `WorkspaceFileSearchFilter`（`packages/services/src/file/workspaceFileMentionFilter.ts`），UI 不维护第二份黑名单。
-完整设计见 [workspace-file-search-default-filter-design.md](./superpowers/specs/2026-08-07-workspace-file-search-default-filter-design.md)。
+完整设计见 workspace-file-search-default-filter-design.md。
 本期只封装默认规则与可替换接口，不实现 ignore 文件、设置页等自定义规则来源；未来自定义规则通过替换
 默认 filter 整体生效，可以放开 `node_modules` / `.env` 等默认排除项。该组 case 只验证默认 filter 在真实
 Electron Desktop 上的可见性矩阵，不触发 provider 请求，也不与连续/重放链路做叉乘。
@@ -2266,7 +2266,7 @@ Composer、历史与编辑态的媒体卡片、起始位置、循环导航、失
 
 | ID  | 前置状态                                                                                                                | 用户/系统事件                                                                                                 | 规则命中                                          | 期望结果                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Review   |
 | --- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| V01 | 桌面本地工作区，新任务首发；用户消息以 `[$e2e-case-lifecycle](.../SKILL.md)` 开头；title sidecar 响应慢于 15s 小于 60s  | 主回复先完成，随后 title sidecar 返回 JSON 标题                                                               | sessionTitleSkillPrefixTimeout60s                 | task meta、任务列表和 WorkspaceHeader 在 60s 内回写生成标题；不得因 skill link 前缀或 15s 超时永久停留在用户首条 query 标题                                                                                                                                                                                                                                                                                                                                                                                                                         | accepted |
+| V01 | 桌面本地工作区，新任务首发；用户消息以 `$e2e-case-lifecycle` 开头；title sidecar 响应慢于 15s 小于 60s  | 主回复先完成，随后 title sidecar 返回 JSON 标题                                                               | sessionTitleSkillPrefixTimeout60s                 | task meta、任务列表和 WorkspaceHeader 在 60s 内回写生成标题；不得因 skill link 前缀或 15s 超时永久停留在用户首条 query 标题                                                                                                                                                                                                                                                                                                                                                                                                                         | accepted |
 | V02 | 桌面本地工作区，UI 手动创建且未绑定已有会话的 automation；编辑页存在尚未保存的 prompt 修改                              | 用户点击立即运行，页面先保存当前表单，再由当前 host 直接新建执行会话并完成回复                                | automationExecutionKeepsFirstInputTitle           | `Run now` 使用与 Save 相同的当前表单 payload，保存成功后才派发；`runAutomationNow` 不等待 scheduler tick，12 秒内任务进入侧栏；执行会话以修改后的 prompt 为 first input，不发起 `session_title` sidecar，task meta、任务列表和 WorkspaceHeader 始终使用该 first-input 标题                                                                                                                                                                                                                                                                          | accepted |
 | V03 | 桌面本地工作区，用户在已有会话内调用 CronCreate，工具生成的 cron 无法由 UI 调度控件可靠回显                             | 工具创建 automation，整轮完成后在回复末尾渲染成功卡片；用户点击跳转，在详情中删除“自定义”调度并用 UI 重新设置 | conversationCronCreateCardNavigatesToAutomation   | 发给 provider 的 CronCreate 工具 contract 要求 `prompt` 直接描述最终工作，并禁止再次创建、配置 automation 或调用 CronCreate；CronCreate 使用当前 session 的 model/mode/thought 并绑定 targetTaskId。工具行仍按普通工具调用展示，成功卡片等待本轮结束后跟随最终 assistant 回复展示任务标题；点击后携带 `automationId` 直接打开同一任务详情。原会话 cron 以无图标、无下次运行时间的“自定义”只读行回显；删除后进入标准 UI 添加调度流程，重新选择并保存的新 cron / scheduleRule 替换旧会话调度                                                          | accepted |
 | V04 | 桌面本地工作区，automation 派发创建或恢复带 `automationId` 的执行 task；目标 session 可为 idle 或 active/routing busy   | 执行会话内模型尝试调用 CronCreate/CronUpdate/CronDelete 管理 automation                                       | automationRunBlocksMutationTools                  | 新建/冷恢复执行 task 通过 `toolDenylist: ["CronCreate", "CronUpdate", "CronDelete"]` 隐藏写工具；active 绑定会话与 busy deferred queue 必须在 queue item、replay/reorder 和 drain 全程保留相同 `toolDisallowlist`，最终 provider tools 只保留 CronList；即使可见性过滤被绕过，三个 mutation handler 也按本轮 automation 事实拒绝且不调用 `AutomationPort`；普通会话内管理 automation 不受影响，UI 立即执行仍可派发                                                                                                                                  | accepted |
@@ -2364,7 +2364,7 @@ Chat status panel 是 V4 conversation renderer 的 UI 投影状态，不改变 s
 | SP16 | 超过 6 条 Todo 且聚焦窗口前后均有项目，位置桶可能含混合 status                                                            | hover / focus / touch-click 前方或后方入口    | statusPanelTodoHiddenGroupsUseHoverPreview     | 对应位置桶在 Status Panel 左侧 4px 的 HoverCard 中按 snapshot 原序展示，卡片内部可滚动；前桶仅在全 completed 时称“已完成”，后桶仅在全 pending 时称“待处理”，混合时使用“前面/后面”中性文案；明细不插入面板文档流，不改变三条聚焦窗口和面板高度；打开任一入口必须关闭另一预览 | accepted |
 | SP17 | 任一 Todo 隐藏分组预览已打开                                                                                              | 收到内容、状态或 id 变化后的新 snapshot       | statusPanelTodoPreviewResetsOnSnapshotChange   | 旧预览关闭并基于新 snapshot 重算入口与聚焦窗口；仅父级重渲染但 snapshot 签名未变时不重置                                                                                                                                                                                    | accepted |
 
-附加 Git 资源回归复用 SP13 的隔离工作区和只读历史 task：新增 8 × 32 MiB 二进制文件及超过 1 MiB 的文本，再将小文件改为四行；真实文件 watcher 自动刷新后 Changes 显示 `+4 -0`，Host working set 峰值增量小于 96 MiB。大文件条目保留和零行回退由 repo/service 单测验证，读取预算见 [未跟踪文件统计 spec](./git/untracked-file-stat-budget.md)。该回归不依赖 Git pane 导航，不产生 provider 请求。
+附加 Git 资源回归复用 SP13 的隔离工作区和只读历史 task：新增 8 × 32 MiB 二进制文件及超过 1 MiB 的文本，再将小文件改为四行；真实文件 watcher 自动刷新后 Changes 显示 `+4 -0`，Host working set 峰值增量小于 96 MiB。大文件条目保留和零行回退由 repo/service 单测验证，读取预算见 未跟踪文件统计 spec。该回归不依赖 Git pane 导航，不产生 provider 请求。
 
 ## APC. Assistant Preview Cards / 助手预览卡片
 
@@ -2893,7 +2893,7 @@ accepted/queued 推断 `plan_request`、stop-without-terminal 合成 completion�
 固定零值修正和 paint/resource attribution 扩展。
 
 `TEL01-TEL09` 的原子化运行时差分与回归 case 使用 `TDP01-TDP19` 稳定编号，详见
-[`conversation-telemetry-differential-regression-plan.md`](testing/conversation-telemetry-differential-regression-plan.md)。
+`conversation-telemetry-differential-regression-plan.md`。
 2026-07-18 已完成 `20260718-tdp-all-final`：TDP01-TDP19 每条都由旧版/current 两个真实 Electron
 实例构造同一受控状态，比较最终 `/event/report` HTTP body 与 main ARMS payload；19 份独立 diff 均为
 0。预期零上报的 TDP16/TDP17/TDP19 另外执行 quota/安全校验/Web production 状态正断言，避免空对空假
@@ -2968,7 +2968,7 @@ workspace 复用同一菜单状态机；侧栏/全局入口不经过该父菜单
 本组只覆盖侧栏 row 的字段权威和同步闭环。activity 来自 sessions-index，membership 来自
 tasks-index，renderer optimistic 只 patch 自己提交的字段；Zustand 继续保留导航和本地 UI，
 但旧 runtime/ui/unread/taskListCache 不再作为侧栏业务事实。完整设计见
-[2026-07-13-v4-sidebar-task-state-authority-design.md](./superpowers/specs/2026-07-13-v4-sidebar-task-state-authority-design.md)。
+2026-07-13-v4-sidebar-task-state-authority-design.md。
 
 ```text
 sessions-index(activity) ─┐
@@ -3110,8 +3110,8 @@ old generation resolves late ─────────────────
 
 SSH-P0-LIFE-01 最终复验：2026-10-12 批次 `r3-server-20261012012923737-60d156` 的
 `coldreconnect` 已通过，覆盖活动 B 自动恢复、A 按需打开及双方原任务续聊。证据见
-[问题 11 最终验证](issues/remote-e2e-stability/11-ssh-credential-missing-after-restart.md)与
-[问题 15 最终复验](issues/remote-e2e-stability/15-cold-start-open-workspace-siblings.md)。
+问题 11 最终验证与
+问题 15 最终复验。
 用例仍为 pending，待人工复核；本次文档同步不改变转正或 CI 准入状态。
 
 ## R3R. Source Server 统一远程主链
@@ -3697,7 +3697,7 @@ Todo109 扩展同一待验用例：首个冷启动在旧进程退出后播种本
 
 ## Todo 99：单连接过渡态的账号事实与模型选择（accepted，待实现）
 
-详见 [Todo99](./working-memory/provider-refactor/steps/todo-99-worker-account-selection-repair.md)。只补当前单连接行为，不实施 Todo101 多 Provider 产品变化。W99-01～19 是完整分层验证合同；下表是需要产品链路证据的代表用例，不要求每个故障注入都展开成一条 GUI E2E。
+详见 Todo99。只补当前单连接行为，不实施 Todo101 多 Provider 产品变化。W99-01～19 是完整分层验证合同；下表是需要产品链路证据的代表用例，不要求每个故障注入都展开成一条 GUI E2E。
 
 | Case    | Setup                                                                               | Action                                                       | Assertion（含非 UI 证据）                                                                                                                                               | 状态     |
 | ------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
@@ -4006,7 +4006,7 @@ provider fixture 使用同名 canonical formal target。配置网关不能启用
 
 ## GLOBALDB：主界面前数据库准备（2026-09-14，已实现，GUI 待验收）
 
-[Todo 145](./working-memory/provider-refactor/steps/todo-145-global-database-startup-loading.md) 的 GLOBALDB-01～26 是新全局启动方案的场景入口，实现及单测证据见实施复审；GUI 场景仍未通过，不继承旧 DBSTART 的完成状态。
+Todo 145 的 GLOBALDB-01～26 是新全局启动方案的场景入口，实现及单测证据见实施复审；GUI 场景仍未通过，不继承旧 DBSTART 的完成状态。
 
 | 场景            | 覆盖目标                                                          | 状态    |
 | --------------- | ----------------------------------------------------------------- | ------- |
@@ -4166,7 +4166,7 @@ RPN-16 回归（2026-09-16）：`remoteWorkspacePreparation.test.ts` 覆盖真�
 
 ## TTFT01 — 本地发送阶段遥测
 
-依据 [Ticket 01](issues/ttft-stage-telemetry/01-local-send-stage-observability.md) 已确认的验收场景：真实 Composer 正文、思考、工具先到，空 start、晚到正文、输出早于 ACK、受控阶段延迟；最终 OTLP Trace/Metric 为断言出口。状态 accepted，自动化候选 `conversation-session/manual-review/pending/conversation-session-ttft-stages.test.ts`；平台 ARMS 验收独立待验证。
+依据 Ticket 01 已确认的验收场景：真实 Composer 正文、思考、工具先到，空 start、晚到正文、输出早于 ACK、受控阶段延迟；最终 OTLP Trace/Metric 为断言出口。状态 accepted，自动化候选 `conversation-session/manual-review/pending/conversation-session-ttft-stages.test.ts`；平台 ARMS 验收独立待验证。
 
 ## TTFT02 — 复杂发送遥测
 
@@ -4191,14 +4191,14 @@ Memory MEM08 埋点补充（2026-09-17）：现有 Desktop Memory 用例同时�
 
 ## Todo156 Start 后续修复
 
-验收边界使用 [Todo156 SF-01～SF-19](working-memory/provider-refactor/steps/todo-156-start-plan-followup-final-decisions.md) 的最终决策。`conversation-session-start-plan-independent` 待人工复核用例补充 SF-01/02/08/10/13：付费连接下 Start 圆环、团队下拉选中、套餐名称、带参数副屏首条的关闭／确认／不了，断言实际模型请求和主输入框草稿不变。其余缓存状态组合由 `startPlanRecommendationFreshness`、`providerFamilyConnectionVisibility` 与状态卡测试覆盖；桌面／手机视口与深浅主题另走浏览器视觉用例。此记录不是 CI 转正或全部 SF 的 E2E 覆盖声明。
+验收边界使用 Todo156 SF-01～SF-19 的最终决策。`conversation-session-start-plan-independent` 待人工复核用例补充 SF-01/02/08/10/13：付费连接下 Start 圆环、团队下拉选中、套餐名称、带参数副屏首条的关闭／确认／不了，断言实际模型请求和主输入框草稿不变。其余缓存状态组合由 `startPlanRecommendationFreshness`、`providerFamilyConnectionVisibility` 与状态卡测试覆盖；桌面／手机视口与深浅主题另走浏览器视觉用例。此记录不是 CI 转正或全部 SF 的 E2E 覆盖声明。
 
 ## MFH：Composer Host 文件搜索（2026-09-16）
 
 | ID          | Setup / Action                                                         | Assertions                                                                                   | Status   |
 | ----------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------- |
 | MFH01       | 桌面输入 @ 搜索工作区文件并选择；浏览器桌面/手机宽度调用真实 Host 查询 | 有界候选、canonical mention 插入、可持续输入；不下载完整列表                                 | accepted |
-| MFH02-MFH07 | 排序、刷新、过期结果、错误终态、身份/服务隔离、旧列表接口              | 见 [Host 搜索 spec](superpowers/specs/2026-08-26-local-file-mention-stability.md) 的单测矩阵 | accepted |
+| MFH02-MFH07 | 排序、刷新、过期结果、错误终态、身份/服务隔离、旧列表接口              | 见 Host 搜索 spec 的单测矩阵 | accepted |
 
 ## DBG：开发者工具请求诊断
 
@@ -4298,7 +4298,7 @@ R3A-UI-04 / RDUX-11-04 回归（2026-10-12 macOS 真实 SSH 1/1 PASS，仍 pendi
 
 ## PA158. 审批框完全访问
 
-明确裁决与失败时序见 [Todo158](working-memory/provider-refactor/steps/todo-158-permission-dialog-full-access-and-queued-mode.md)。仅审批框触发；普通菜单保持草稿语义，Runtime/Composer/每项 Plan 分别保留。旧 UI 忽略独立 fullAccessOption 字段；child/独立确认不投放完整动作。
+明确裁决与失败时序见 Todo158。仅审批框触发；普通菜单保持草稿语义，Runtime/Composer/每项 Plan 分别保留。旧 UI 忽略独立 fullAccessOption 字段；child/独立确认不投放完整动作。
 
 | Case     | 前置/动作                            | 预期结果                                                     | 状态     |
 | -------- | ------------------------------------ | ------------------------------------------------------------ | -------- |
@@ -4509,7 +4509,7 @@ WSL、手机实机验证按用户决定留 TODO；本票不以 macOS SSH 运行�
 
 补充回归：后台通知继续时扣住真实 Source 查询，检查原草稿按钮、Enter、form 均不能提交到旧目标；旧端路径投影通过既有 RPC 接缝回放，等价目录的两个历史项目仍须显式选择。实际旧端适配器另覆盖 POSIX／Windows 路径、原 ID／cwd 保留及禁止创建；投影回放不计作旧 Server 二进制实跑。
 
-2026-10-14：[当前规格](issues/remote-connection-ux/21-chat-settings-round-trip.md)及 #23–#26 已完成实施。RDUX21-01–24 的完整 setup、action、assertion 由规格维护；本表登记实际测试接缝与环境，不把合同测试或手机仿真记作未执行平台的实机 PASS。
+2026-10-14：当前规格及 #23–#26 已完成实施。RDUX21-01–24 的完整 setup、action、assertion 由规格维护；本表登记实际测试接缝与环境，不把合同测试或手机仿真记作未执行平台的实机 PASS。
 
 | 验收 ID      | 接受范围                                                                               | 测试落点与当前状态                                                  |
 | ------------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
@@ -4726,7 +4726,7 @@ TD01–TD08 均 accepted，详见 [规则与用例](ui/composer-text-draft-persi
 
 ## SessionPane 历史闭包释放（SPR，accepted/pending）
 
-规格见 [V4 UI 的回调与投影释放](v4-refactor/06-ui.md#sessionpane-回调与投影释放2026-10-16)。
+规格见 V4 UI 的回调与投影释放。
 
 | ID    | Setup / Action                                                                                                   | Assertion                                                                                                                                             |
 | ----- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |

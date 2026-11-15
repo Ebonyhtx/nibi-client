@@ -19,7 +19,7 @@
   - `Ctrl+M` 只唤起模型菜单，不按顺序循环切换模型；模型切换必须由用户在菜单中明确选择。
   - trigger 文案切换时复用 toolbar rolling label 动效，和 mode / thought level 控件保持一致；系统开启 reduced motion 时直接静态替换。
   - 自定义 provider 的显示身份按 `providerName.trim() || providerId` 解析，与菜单保持一致；名称缺失、空串或纯空白时，trigger 仍生成 `providerId/` 前缀及完整 title。前缀可见性继续由七档压缩决定。内置账号套餐维持只显示模型名的规则。
-  - composer trigger 按实际剩余空间执行七档累积压缩：Computer Use 正方形 → mode 正方形 → Plan 正方形 → think 图标＋小绿条 → 隐藏 provider-text → think 正方形（小绿条隐藏）→ model 正方形。每档够用即停，放宽时逆序恢复。模型名称显示时保持完整单行与下拉箭头，最后一档直接改为 28px 的 Lucide `Package` 图标按钮并隐藏箭头，不再额外按宽度阈值省略模型文字。具体规则见 [CUA composer 布局契约](../superpowers/specs/2026-08-18-cua-composer-entry-design.md)。provider 前缀与模型名必须保持结构化节点，不从最终文案按 `/` 切割；按钮 title 与 rolling 动画 key 继续使用完整身份文案。普通与 reduced motion 共用相同的单行容器结构，避免供应商与模型被截断样式分成两行。桌面分屏、普通 Web 和手机 Web 共用此规则。
+  - composer trigger 按实际剩余空间执行七档累积压缩：Computer Use 正方形 → mode 正方形 → Plan 正方形 → think 图标＋小绿条 → 隐藏 provider-text → think 正方形（小绿条隐藏）→ model 正方形。每档够用即停，放宽时逆序恢复。模型名称显示时保持完整单行与下拉箭头，最后一档直接改为 28px 的 Lucide `Package` 图标按钮并隐藏箭头，不再额外按宽度阈值省略模型文字。具体规则见 CUA composer 布局契约。provider 前缀与模型名必须保持结构化节点，不从最终文案按 `/` 切割；按钮 title 与 rolling 动画 key 继续使用完整身份文案。普通与 reduced motion 共用相同的单行容器结构，避免供应商与模型被截断样式分成两行。桌面分屏、普通 Web 和手机 Web 共用此规则。
   - 模型项同样把模型 ID 当作不透明字符串；`openrouter/ox-alpha` 或更多层级的 `/` 不参与能力判定或名称拆分，选择值继续使用完整 ID。
   - 模型切换 pending 时，loading spinner 放在文案后面，避免模型名左侧宽度变化造成视觉跳动。
   - “管理模型”入口继续由调用方控制，只改变承载组件，不改变 settings 导航链路。

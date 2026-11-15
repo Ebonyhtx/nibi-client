@@ -14,7 +14,7 @@
 | 实施范围      | 创建流程的目录访问确认，涵盖本地与远程，以及复用该流程的桌面、Web/手机入口                 |
 | 暂不扩展      | Hook 自动授权、持久目录信任注册表、已有项目迁移、编辑项目新增目录、deep link、任务权限模式 |
 
-当前项目约束见[虚拟项目规格](../superpowers/specs/2026-09-09-virtual-project-design.md)、[项目规则整合](../superpowers/specs/2026-10-10-session-manage-upstream-integration.md)、[本地目录选择](../ui/project-local-directory-picker.md)。安全边界见[工作区 Hook 信任](workspace-hook-trust-persistent-only.md)和[项目配置信任边界](../security/deep-link-project-trust-boundary.md)。
+当前项目约束见虚拟项目规格、项目规则整合、[本地目录选择](../ui/project-local-directory-picker.md)。安全边界见[工作区 Hook 信任](workspace-hook-trust-persistent-only.md)和[项目配置信任边界](../security/deep-link-project-trust-boundary.md)。
 
 ## 2. Clarification Log / Boundary Decisions
 

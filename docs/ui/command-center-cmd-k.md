@@ -47,7 +47,7 @@
 - `Files`
   - 空搜索时只展示当前 active task 修改过的文件，即 `Recent changes`，不能沿用 `All` 首页的 3 条预览限制。
   - 输入搜索词后只搜索 workspace files，并直接展示文件结果列表，不沿用 `All` 的 3 条预览限制。
-  - workspace files 与 Composer `@` 文件候选复用同一个 Host 侧 `listWorkspaceFiles` 索引和[默认过滤器](../superpowers/specs/2026-08-07-workspace-file-search-default-filter-design.md)；UI 不维护独立黑名单，本期不提供自定义规则配置入口。
+  - workspace files 与 Composer `@` 文件候选复用同一个 Host 侧 `listWorkspaceFiles` 索引和默认过滤器；UI 不维护独立黑名单，本期不提供自定义规则配置入口。
 
 视觉上搜索框和范围 tabs 属于同一个 header block，header block 使用紧凑的 8px 横向 padding，中间不放分割线；只在 tabs 下方进入结果列表前使用弱分隔。搜索框本体使用带边框的胶囊输入壳，遵循 input 背景、边框、hover 与 focus token。tabs 使用小尺寸胶囊按钮，保持紧凑、可横向滚动，避免移动端长文案挤压搜索框。
 

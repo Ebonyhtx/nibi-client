@@ -5,7 +5,7 @@
 - 状态：P0/P1 已实现；本次 hardening 已补齐 Core 父进程断连、更新指针清理和稳定 Server identity；Linux x64 已完成 SSH 实机验证
 - 阶段：统一多端远程架构 R2 / D4
 - 本阶段目标：交付可独立安装、可后台运行、与 UI 生命周期解耦的 ZCode Server CLI
-- 本文定位：R2 的实现规格和边界；可执行测试补充见 [R2 lifecycle test plan](./r2-server-cli-and-daemon-test-plan.md)
+- 本文定位：R2 的实现规格和边界；可执行测试补充见 R2 lifecycle test plan
 - R2 不切换 Desktop 的生产远程连接主链
 
 本文基于：
@@ -13,7 +13,7 @@
 - [ZCode 统一多端远程连接架构与产品方案（评审稿）](https://internal-docs.example.invalid/redacted)
 - [R1 窗口级单 Host 进程重构规格](./r1-single-window-host-refactor.md)
 - [Agent Electron/Node runtime 事实](../runtime-tools/agent-electron-node-runtime.md)
-- [ZCode Lite / Server 统一多端架构实施计划](./unified-nibi-lite-server-multi-server-plan.md)
+- ZCode Lite / Server 统一多端架构实施计划
 
 R2 交付：
 
@@ -567,7 +567,7 @@ Workspace / Repo / User files
 
 ## 10. 实施顺序
 
-1. 保留本文作为 R2 spec，并补充 [R2 lifecycle test plan](./r2-server-cli-and-daemon-test-plan.md)；涉及 conversation/session 的用例先更新 case catalog 和 coverage matrix。
+1. 保留本文作为 R2 spec，并补充 R2 lifecycle test plan；涉及 conversation/session 的用例先更新 case catalog 和 coverage matrix。
 2. 在 `packages/nibi-server-cli` 建立 CLI、IPC、runtime layout 和 contract schema，先写测试。
 3. 实现单实例锁、状态文件、canonical path 和 allowlist 校验。
 4. 实现 Server Core 新入口，接入 `standalone-server` 服务并提供 HTTP/WS ingress。

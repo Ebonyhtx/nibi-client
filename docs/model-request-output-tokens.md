@@ -35,7 +35,7 @@ Adapter 在 AI SDK 完成基础序列化和协议兼容之后、请求安全校�
 AI SDK 传递通用 `maxOutputTokens`，也不再保留 32K fallback、Provider ID 分支、fixed-thinking
 加减或原始字段清洗。具体映射只属于命中当前 `providerId/modelId/api.type/baseURL` 的 Model Config
 Rule，完整契约见
-[Model Option Map 与原始请求体](./working-memory/provider-refactor/design/model/model-option-map.md)。
+Model Option Map 与原始请求体。
 
 ## 固定预算策略（3.12.2）
 

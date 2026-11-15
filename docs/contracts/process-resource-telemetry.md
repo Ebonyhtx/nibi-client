@@ -4,14 +4,14 @@
 
 状态：**已实现**（v3.12.1）。2026-09-14 设计定稿，2026-09-15 完成契约收口。
 验收执行状态见「验收 Case」与「收口验证记录」；平台限定和真实远端验证单独列出，不等同于全部验收通过。
-本文是 CPU / 内存资源遥测的当前规范；[性能监控](./performance-monitoring.md)、
-[CLI 资源上报](./nibi-cli-resource-telemetry.md)与[MCP 生命周期](./mcp-process-arms-telemetry.md)
+本文是 CPU / 内存资源遥测的当前规范；性能监控、
+CLI 资源上报与MCP 生命周期
 中的旧资源内容均已替换为本文入口。旧事件的停发版本见[事件字典](./performance-telemetry-catalog.md)。
 
 ### 复审修复契约（2026-09-15）
 
 本节固定 R1–R7、N1/N2 的修复语义，执行结果另记；影响面见
-[复审修复影响与验证](./process-resource-telemetry-fixes.md)。
+复审修复影响与验证。
 
 - **R1 / N2**：Server 在 `/api/server-info` 的 `capabilities.processResourceTelemetry` 可选字段
   声明支持这组资源旁路事件。Host 仅向声明支持的 Server 订阅；旧 Server 缺字段时继续正常连接，
@@ -832,9 +832,9 @@ SSH/WSL/Docker 保留原订阅路径。旧 Server 的通用 RPC 未知事件行�
   p95 过滤噪声而 peak 保留"是否出现过 100%"的诊断价值；内存的危害来自高水位，碰到一次 1.5 GB 就有
   OOM 风险，peak 是关键统计量，5 分钟内 p95 与 peak 几乎相等。
 - Bash 15 秒门槛是采样策略而非异常判定：短命令没有采样机会也没有信息量。
-- 与 [memory-diagnostics-log.md](./memory-diagnostics-log.md) 的关系：本地日志继续存在，但 host 与
+- 与 memory-diagnostics-log.md 的关系：本地日志继续存在，但 host 与
   renderer 的采样源与本 spec 共用，CLI 已是共用形态，main 的 heap 读取并入同一 tick。
-- 与 [nibi-data-size-arms-telemetry.md](./nibi-data-size-arms-telemetry.md) 的关系：数据目录体积事件
+- 与 nibi-data-size-arms-telemetry.md 的关系：数据目录体积事件
   沿用 `resolveResourceUsageScene` 判断后台，本 spec 保留该函数语义。
 
 ## 架构治理决策记录

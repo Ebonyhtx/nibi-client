@@ -1,6 +1,6 @@
 # Relay V2 共享契约与配对
 
-本页定义 [Relay V2](../issues/web-remote-control-relay-v2/01-relay-v2-login-pairing.md) 的最终共享契约、连接行为与验收边界。桌面 device、手机 terminal 与 shared 均只使用 V2。
+本页定义 Relay V2 的最终共享契约、连接行为与验收边界。桌面 device、手机 terminal 与 shared 均只使用 V2。
 
 契约依据：nibi-server `origin/staging` 提交 `5a947caea3a022b12b5d051ef25c807952feefa7` 的 `docs/remote-relay.md`、`internal/domain/relay_v2/proto.go`、`service.go` 和 `internal/interfaces/web/{dto,controller}/remote_v2.go`。HTTP 请求及 WebSocket 消息采用严格字段校验，禁止把 V1 字段意外发到 V2；HTTP 响应采用下述兼容性校验。服务端 Go JSON 解码本身可能忽略多余字段。
 
@@ -327,7 +327,7 @@ helper 只拥有一次 HTTP 请求的取消资源；导航由 Entry 持有，soc
 
 ## 手机设备列表与最近设备（06）
 
-本节对应 [06 issue](../issues/web-remote-control-relay-v2/06-mobile-device-list-and-last-device.md)，2026-09-19 用户已确认线框、文案与行为方案。本节取代 05 的无 SID 扫码占位和隐藏的“选择其他设备”动作；05 的有 SID 直连、OAuth 回跳与业务恢复契约继续适用。
+本节对应 06 issue，2026-09-19 用户已确认线框、文案与行为方案。本节取代 05 的无 SID 扫码占位和隐藏的“选择其他设备”动作；05 的有 SID 直连、OAuth 回跳与业务恢复契约继续适用。
 
 ### 落点、状态归属与刷新
 
@@ -513,7 +513,7 @@ GET 设备记录成功 → 账号校验通过 → 读取本地设备名/平台�
 
 验证限制：宽屏 home-only 仍被既有 `onDynamicWorkspaceEvent` / `onDynamicLocalTtftFacts` 订阅缺口阻断，未列入通过矩阵；手机 home-only 保留并记录已有 `onDynamicSessionsIndexFrame` 异常。`createHomeOnlyWebRemoteControlServices` 与修复前 HEAD 完全一致，本次未扩展其服务契约。宽屏 home-only 未完成验收；真实手机、OAuth 和线上部署仍未验证。
 
-2026-10-11 更新：home-only 空服务改按 RPC 事件命名契约返回空 Event，home-only `Root` 挂载后标记 ready（配对状态抖动不再重挂首页）。`remote-device-switch.mjs` 去掉已知异常豁免，扩为16组配置（手机/宽屏 × bridge/home-only × 深浅主题 × 中英文）全部通过，页面无异常。同日 home-only 首页改由项目侧栏展示 `listWorkspaces` 工作区列表与重连入口（见[虚拟项目 §6.0.3](../superpowers/specs/2026-09-09-virtual-project-design.md#603-手机项目新目录的-shared-host-admission)），pending 用例 `remote-home-only-workspaces.mjs` 8组配置（手机/宽屏 × 深浅主题 × 中英文）通过，覆盖重连失败提示、重连成功后行变为可打开、点击后建 bridge。真实手机、OAuth 和线上部署仍未验证。
+2026-10-11 更新：home-only 空服务改按 RPC 事件命名契约返回空 Event，home-only `Root` 挂载后标记 ready（配对状态抖动不再重挂首页）。`remote-device-switch.mjs` 去掉已知异常豁免，扩为16组配置（手机/宽屏 × bridge/home-only × 深浅主题 × 中英文）全部通过，页面无异常。同日 home-only 首页改由项目侧栏展示 `listWorkspaces` 工作区列表与重连入口（见虚拟项目 §6.0.3），pending 用例 `remote-home-only-workspaces.mjs` 8组配置（手机/宽屏 × 深浅主题 × 中英文）通过，覆盖重连失败提示、重连成功后行变为可打开、点击后建 bridge。真实手机、OAuth 和线上部署仍未验证。
 
 ### 验收计划与记录
 

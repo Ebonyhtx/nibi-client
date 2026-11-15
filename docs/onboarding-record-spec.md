@@ -295,7 +295,7 @@ memoryEnabled`，推荐区内容随之切换。约定：
 
 ## 7. 上传预留（待服务端接口确定后实现）
 
-引导曝光及结束的公共行为埋点另见 [用户引导埋点 Spec](monitoring/onboarding-telemetry.md)。
+引导曝光及结束的公共行为埋点另见 用户引导埋点 Spec。
 该事件上传结束时的选择快照（包括第三页跳过时的勾选状态），不等同于本地记录上传，
 也不改变本记录的跳过字段置 null 规则或 uploadState。埋点模式使用 work/code，
 本地 interfaceMode 继续使用 office/coding；身份字段复用公共 telemetry 的 user_id/device_mid。

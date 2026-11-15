@@ -13,9 +13,9 @@
 - [ZCode 统一多端远程连接架构与产品方案（评审稿）](https://internal-docs.example.invalid/redacted)（D5—D11 定义）
 - [R1 窗口级单 Host 进程重构规格](./r1-single-window-host-refactor.md)（已实施，当前架构事实）
 - [R2 独立 Server CLI 与 daemon 规格](./r2-server-cli-and-daemon.md)（已实施；`verify-remote-ssh.mjs` 为 R3 SSH Transport 的最小形态预演）
-- [R3 Source Server 发布测试方案（历史，已归档）](../archive/remote-r3/r3-source-server-release-test-plan.md)：REMOTE-01—15 稳定编号现由 [conversation-session-case-catalog.md](../conversation-session-case-catalog.md) 承载，当前执行方案见 [r3-remote-automation-plan.md](../testing/r3-remote-automation-plan.md)
+- R3 Source Server 发布测试方案（历史，已归档）：REMOTE-01—15 稳定编号现由 [conversation-session-case-catalog.md](../conversation-session-case-catalog.md) 承载，当前执行方案见 r3-remote-automation-plan.md
 - [远程工作区投影与持久化兼容](./remote-domain-simplification-and-conversation-workspace-spec.md)（统一 projection、open set、strict schema 与 R4 剩余事项）
-- [ZCode Lite / Server 统一多端架构实施计划](./unified-nibi-lite-server-multi-server-plan.md)（目标架构背景）
+- ZCode Lite / Server 统一多端架构实施计划（目标架构背景）
 - [Remote Target 抽象](./remote-target-abstraction.md)（现有旧主链的 target/backend 事实）
 
 R3 交付：

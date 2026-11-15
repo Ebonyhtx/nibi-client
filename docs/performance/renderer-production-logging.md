@@ -19,7 +19,7 @@ Renderer 层运行在桌面窗口和 Web 远控页面内，日志调用会和 Re
 
 - `packages/ui/src/logger.ts` 是 UI 层唯一日志入口；生产构建中 `debug` / `info` / `warn` / `error` / `trace` 都直接返回，不写 console、不转发桌面 bridge。
 - `packages/client` 中面向 renderer 的连接日志必须遵循同一生产构建边界，避免绕过 UI logger。
-- 唯一例外是 `logger.logMemoryDiagnostics`：它是 [进程内存本地诊断日志](../monitoring/memory-diagnostics-log.md) 的正式监控出口，最多每 60 秒一行、有变化才写，生产构建仍经桌面桥落盘；Web 端无桥时 no-op。其他模块不得借用它输出业务日志。
+- 唯一例外是 `logger.logMemoryDiagnostics`：它是 进程内存本地诊断日志 的正式监控出口，最多每 60 秒一行、有变化才写，生产构建仍经桌面桥落盘；Web 端无桥时 no-op。其他模块不得借用它输出业务日志。
 - 桌面和 Web renderer 入口里的 console 调试输出只允许在非生产构建执行。
 - Web 远控 relay trace 继续保持开发态限定；高频消息日志不得进入生产 renderer。
 

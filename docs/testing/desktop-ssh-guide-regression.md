@@ -27,15 +27,15 @@ flowchart LR
 100 个调度场景均已执行：95 PASS；3 个业务失败、1 个规格/入口行为差异、1 个账号模型前置阻塞。
 原始 runner 对后五项均记录 FAIL；没有修改原结果、跳过失败或放宽业务断言。
 
-后续修复（2026-10-10）：目录权限问题 [05](../issues/remote-e2e-stability/05-directory-permission-reattach.md)
+后续修复（2026-10-10）：目录权限问题 05
 已修复，完整 `directory-denied` E2E 单独复跑通过，包含权限恢复后重试及原历史续聊。
-地址编辑后项目重连问题 [06](../issues/remote-e2e-stability/06-edited-route-ignored-by-project-reconnect.md)
+地址编辑后项目重连问题 06
 也已修复，`connection-management` 编辑变体单独复跑通过：新端口实际收到连接、留空密码可认证、
 两个原项目恢复，且不新增旧线路 Profile。
-原项目必须更新问题 [07](../issues/remote-e2e-stability/07-existing-project-upgrade-intent.md)
+原项目必须更新问题 07
 已修复；四个版本策略变体独立复跑均通过，手动连接自动更新并恢复 A/B，后台等待、可选更新与
 “稍后”、本机过旧的行为保持。完整证据与本机首轮夹具准备超时的说明见问题记录。
-问题 [08](../issues/remote-e2e-stability/08-reinstall-history-visible-in-new-device.md) 的语义于
+问题 08 的语义于
 2026-10-10 经用户确认：正式卸载保留数据时，重装必须沿用原设备、连接和项目，原历史可见且
 可续聊；只有独立数据环境替换才确认新身份。原 case 的“新设备不显示旧历史”不能用于保留数据
 重装。两变体独立复跑均已通过：原设备历史实际续聊，独立环境的确认/取消/归档与隔离保持。
@@ -63,18 +63,18 @@ flowchart LR
 | 1/3、2/3、3/3、耗尽失败、静默恢复与手动接管            | retry-budget、transportloss                                                                                   | PASS                                                                                                                                 |
 | 主动断开、启动开关、7 天守卫、远端重启                 | recov、coldreconnect、daemondet、serverfault                                                                  | PASS                                                                                                                                 |
 | 草稿禁发送/保留、只读内容、原会话及已删会话            | disconnectux、coldreconnect、rdux13、rdux14、mixed                                                            | PASS                                                                                                                                 |
-| 设备/连接名、地址/凭据下次生效、空值保留               | settings-safeguards、connection-management                                                                    | 名称与空凭据合同已测；侧栏地址重连失败，记录 [06](../issues/remote-e2e-stability/06-edited-route-ignored-by-project-reconnect.md)    |
+| 设备/连接名、地址/凭据下次生效、空值保留               | settings-safeguards、connection-management                                                                    | 名称与空凭据合同已测；侧栏地址重连失败，记录 06    |
 | 同设备多连接、当前/默认、设默认、移除线路              | sourcelines、connection-lifecycle                                                                             | PASS                                                                                                                                 |
 | 在线/离线定位、移除设备确认/默认取消、远端数据保留     | settings-safeguards、connection-lifecycle                                                                     | PASS                                                                                                                                 |
 | 未完成记录折叠/删除/清理不影响已连通设备               | devicecards、offlineicons                                                                                     | PASS                                                                                                                                 |
-| 必须/可选更新、后台等待、本机太旧与稍后                | version-manual-required、version-automatic-required、version-optional、version-controller-required            | 后台/本机过旧/可选提示与稍后 PASS；原项目自动更新差异记录 [07](../issues/remote-e2e-stability/07-existing-project-upgrade-intent.md) |
+| 必须/可选更新、后台等待、本机太旧与稍后                | version-manual-required、version-automatic-required、version-optional、version-controller-required            | 后台/本机过旧/可选提示与稍后 PASS；原项目自动更新差异记录 07 |
 | 运行中任务清单、取消/重试、强制确认、版本/项目恢复     | serverupdate、serverupdate-force、install-progress、installfaults                                             | PASS                                                                                                                                 |
-| 重装确认、取消、归档旧连接、旧历史不混入新设备         | uninstall（真实旧任务 + 可见新设备任务列表）                                                                  | 确认/取消/归档/数据保留 PASS；历史混入失败，记录 [08](../issues/remote-e2e-stability/08-reinstall-history-visible-in-new-device.md)  |
+| 重装确认、取消、归档旧连接、旧历史不混入新设备         | uninstall（真实旧任务 + 可见新设备任务列表）                                                                  | 确认/取消/归档/数据保留 PASS；历史混入失败，记录 08  |
 | 同地址不同账号与同路径历史隔离                         | account-isolation                                                                                             | PASS                                                                                                                                 |
 | 平铺、五态、同名同路径、详情与各处设备标识             | projectnavigation、presentation、sidebar-menus、entryattr、pluginidentity、uipairwise                         | PASS                                                                                                                                 |
 | 拖动顺序持久化且上下线不重排                           | project-order                                                                                                 | PASS                                                                                                                                 |
 | 远端分享账号、不顶替、未登录拒绝、产物可打开           | share-authority（合成账号真实 SSH）+ share（真实云端）                                                        | PASS；手机入口不在桌面范围                                                                                                           |
-| 目录删除/变文件/无权限、其他项目恢复与修复重试         | directory-missing、directory-file、directory-denied                                                           | 删除/文件 PASS；权限收回失败，记录 [05](../issues/remote-e2e-stability/05-directory-permission-reattach.md)                          |
+| 目录删除/变文件/无权限、其他项目恢复与修复重试         | directory-missing、directory-file、directory-denied                                                           | 删除/文件 PASS；权限收回失败，记录 05                          |
 | 单线路旧版升级、历史续聊、实际回退继续使用             | history-single                                                                                                | PASS                                                                                                                                 |
 | 多线路合并、backup、冲突、重试/放弃与旧版回退限制      | history-merge、history-conflict（实际旧程序、SQLite、GUI）                                                    | PASS；两条旧线路实际读取后原任务数据仍保留，不承诺所有旧视图完整                                                                     |
 | 文件浏览/编辑、终端、Git、首发/续聊、搜索/时间线       | p0-dev、p0-main、terminal、filelocal、taskactions                                                             | PASS                                                                                                                                 |
@@ -82,7 +82,7 @@ flowchart LR
 | 发送立即断线唯一执行、正文清理与后续草稿保留           | ackloss（ACK 扣留期间实际编辑新草稿）                                                                         | PASS                                                                                                                                 |
 | 排队、停止/恢复、权限、子智能体、压缩                  | queuesel、taskcontrol、subagent、compactgoal、taskfaults                                                      | PASS                                                                                                                                 |
 | 附件拖入/粘贴/发送、预览/下载、取消/断线后恢复         | attachments、mediapreview、attachment-cancel、attachment-disconnect                                           | PASS                                                                                                                                 |
-| 模型/默认自动同步、离线补齐、无模型引导                | provisioning、modelcand、modelswitch、provready、connectivity、live-zapi、live-team                           | 回放与真实 API Key PASS；真实 Team 请求前置阻塞，记录 [09](../issues/remote-e2e-stability/09-live-team-model-precondition.md)        |
+| 模型/默认自动同步、离线补齐、无模型引导                | provisioning、modelcand、modelswitch、provready、connectivity、live-zapi、live-team                           | 回放与真实 API Key PASS；真实 Team 请求前置阻塞，记录 09        |
 | Skills/MCP/插件/Hook/命令/子智能体的管理/实际保存/范围 | resource-skill/mcp/command/hook、settingsscopes、settings-safeguards、pluginidentity、pluginsync、remotehooks | PASS；每类有真实目标保存或执行/删除断言                                                                                              |
 | 本机设置与项目所在机器设置边界                         | desktopauthority、settingslocalboundary、settingsscopes                                                       | PASS                                                                                                                                 |
 | 机器人身份路由、离线拒绝、不误用本机/其他项目          | botidentity、botremote、botruntime                                                                            | PASS（合成渠道与真实 Host/MessagePort 链）；真实渠道与 SSH 端到端另列环境记录                                                        |

@@ -1,8 +1,8 @@
 # R3 合并后远程自动化用例矩阵
 
-关联：[执行方案](r3-remote-automation-plan.md)、[准备度与实际记录](../archive/remote-r3/r3-remote-automation-readiness-2026-09-07.md)。
+关联：执行方案、准备度与实际记录。
 
-本表登记已接受语义下的候选实现合同，初始状态为 NOT_RUN / planned。**2026-09-08首批实际结果见[运行台账](../archive/remote-r3/r3-remote-automation-live-run-2026-09-08.md)**，其中部分首连/首发代表已实跑，不能据此将整行的全部动作或交叉组合标为通过。引用旧formal/pending case仅表示可复用材料；后续逐行关联实际spec、manifest、artifact与结果。
+本表登记已接受语义下的候选实现合同，初始状态为 NOT_RUN / planned。**2026-09-08首批实际结果见运行台账**，其中部分首连/首发代表已实跑，不能据此将整行的全部动作或交叉组合标为通过。引用旧formal/pending case仅表示可复用材料；后续逐行关联实际spec、manifest、artifact与结果。
 
 证据缩写：U=实际 UI/关键截图；P=进程/连接；R=协议/权威 runtime；N=请求/网络；F=正式 store/文件/数据库；L=相关时间窗日志。E 表示须经真实 Electron/浏览器操作；I 表示真实 store/协议/产物集成；E+I 表示两层各有独立证明。所有 GUI case 至少 U 加另一证据层。
 
@@ -13,9 +13,9 @@
 本表保留 R3A 稳定编号；历史 planned/NOT_RUN 和旧批次链接不是当前运行状态。
 连接 UI 统一按[三屏向导](../architecture/remote-device-connection-ux-spec.md)与[项目导航](../remote/project-first-remote-navigation-spec.md)验收；
 旧 connect-and-chat 操作不再执行。保留数据卸载重装沿用原身份与历史，独立环境替换才确认新身份，见
-[Issue 08](../issues/remote-e2e-stability/08-reinstall-history-visible-in-new-device.md)。
+Issue 08。
 各场景的实现/运行映射见[覆盖矩阵](conversation-session-e2e-coverage-matrix.md)与[SSH 指南回归](desktop-ssh-guide-regression.md)，
-完整 soak 目标与较短 harness 档位的缺口见[测试方案](r3-remote-automation-plan.md)。
+完整 soak 目标与较短 harness 档位的缺口见测试方案。
 
 ## A. 构建、安装与认证
 
@@ -138,7 +138,7 @@ DEV-10 证据拆分（2026-09-24）：`file-local-actions` 验证远端读取、
 
 R3A-REC-04 按[当前冷启动合同](../remote/desktop-remote-session-renderer-reattach.md)验收：
 `lastActiveWorkspace` → 活动目录自动恢复；用户打开其他项目 → 创建对应工作区 attachment。
-[2026-10-12 最终复验](../issues/remote-e2e-stability/15-cold-start-open-workspace-siblings.md)中
+2026-10-12 最终复验中
 `coldreconnect` 已通过；对应 E2E 仍为 pending，待人工复核，不改变转正或 CI 准入状态。
 
 R3A-REC-08 的证据分两层：桌面 E2E 扣留真实 SSH 回包，让 Source 完成受控回合，确认旧桌面尚未收到最终回复；自动换代后恢复最终回复和 idle，再释放代理，并分别核对实际写入与旧 socket 退役丢弃的字节数。退役丢弃不能算作迟到回调已送达。应用层乱序由 `packages/desktop/test/sourceServerConnectionManager.test.ts` 调用真实连接管理器验证：新 owner 发布后，旧 close 及旧恢复成功回调不能删除或替换新 owner，旧结果必须释放。代理自身另以真实 TCP 测试验证转发、退役丢弃和延迟 EOF。
@@ -197,7 +197,7 @@ R3A-REC-08 的证据分两层：桌面 E2E 扣留真实 SSH 回包，让 Source 
 
 ## J. 旧用例映射与实现优先级
 
-R3-REMOTE-01～15（含子 case）的稳定编号与 setup/action/assertion 由 [conversation-session-case-catalog.md](../conversation-session-case-catalog.md) 承载；原《R3 Source Server 发布测试方案》已归档到 [docs/archive/remote-r3/](../archive/remote-r3/r3-source-server-release-test-plan.md)，其中的「当前自动化状态」列不再维护，当前状态以本表与 [全量重跑记录](r3-remote-full-rerun-2026-09-10.md) 为准。
+R3-REMOTE-01～15（含子 case）的稳定编号与 setup/action/assertion 由 [conversation-session-case-catalog.md](../conversation-session-case-catalog.md) 承载；原《R3 Source Server 发布测试方案》已归档到 docs/archive/remote-r3/，其中的「当前自动化状态」列不再维护，当前状态以本表与 全量重跑记录 为准。
 
 | 新合同      | 可复用材料                                                               | 必须补齐                                                                       |
 | ----------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |

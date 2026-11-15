@@ -150,7 +150,7 @@ session 在大小写不同目录更新、项目目录首次创建/重建后都�
 校验通过；lint 为 42 warnings / 0 errors。本轮代码/fixture/spec 格式通过，全仓库格式检查
 仍受未改动的 Electron 文档 HTML 语法错误及存量格式差异阻断。Windows Desktop UI 未运行。
 生产修改限定于 scope 与内部加载入口，没有新增测试入口或依赖；仍为 pending、未提交。
-[完整修复验证记录](../packages/desktop/.e2e-artifacts/desktop-e2e-20260918124539197-p63724-d4568330d04f0b5d/directory-watch-validation/README.md)
+完整修复验证记录
 保留 PID、实际 provider 请求、父子轨迹、文件摘要及红绿灯日志；回放缓存标记不代表线上命中率。
 下面红灯记录保留，不代表修复后状态。
 
@@ -174,7 +174,7 @@ SHR22 复现结果：macOS 为 8 failed / 24 passed / 1 skipped，SSH Windows �
 SHR16/SHR18-SHR21 通过，新增 SHR22 在两个独立 Host 的新 prompt 断言上失败，磁盘
 已是新内容。两端父子轨迹、历史前缀及缓存标记断言通过，不代表线上缓存命中率。
 生产代码保持不变，未提交。Windows Desktop 未运行。详细命令、PID、请求和校验日志见
-[路径复现记录](../packages/desktop/.e2e-artifacts/desktop-e2e-20260918095507282-p34362-d7288e0c52e18805/path-repro-validation/README.md)。
+路径复现记录。
 
 保留六组 manual-review/pending E2E 和以下业务断言，不做 CI 准入：
 
@@ -210,7 +210,7 @@ model-io/trajectory/日志；回放前缀检查不代表线上缓存命中率。
 为 0 errors、42 既有 warnings。全仓格式检查被四个未修改的 Electron 示例 HTML 语法错误
 阻断。真实远程 workspace/手机 E2E 未运行。
 完整日志、PID、provider 请求与轨迹见
-[本次验证记录](../packages/desktop/.e2e-artifacts/desktop-e2e-20260917171528453-p97510-a3502ef3eb2643c7/verification/README.md)。
+本次验证记录。
 
 同日补充 Windows x64 / Node 24.14.0 验证：原生监听 10 条、增量缓存 9 条、服务层 30 条、
 共享字段/迁移 33 条及 Core profile parser 21 条通过；两个旧迁移测试的 POSIX mode 精确断言
@@ -218,12 +218,12 @@ model-io/trajectory/日志；回放前缀检查不代表线上缓存命中率。
 两份独立 service 共享真实目录的事件消费已验证；Windows Desktop 多 Host/CLI E2E 未运行，
 完整依赖安装因包下载超时中断。使用隔离测试依赖执行当前源码，不将该结果视为完整 Desktop
 依赖/构建验证；未修改生产逻辑或放宽断言。见
-[Windows 验证记录](../packages/desktop/.e2e-artifacts/desktop-e2e-20260917171528453-p97510-a3502ef3eb2643c7/verification/windows/README.md)。
+Windows 验证记录。
 
 同日测试侧修复后复测：Windows 共 123 条相关单测通过、2 条原有 POSIX chmod 故障用例
 跳过，另有 1 条盘符根目录首次创建集成验证通过。两处日志路径转义及迁移权限断言已修正，
 生产代码未改动；本轮未运行完整 Desktop E2E。见
-[测试修复验证记录](../packages/desktop/.e2e-artifacts/subagent-log-path-fix-20260918/README.md)。
+测试修复验证记录。
 
 ### 动态目录及前缀验收补充
 

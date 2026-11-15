@@ -26,7 +26,7 @@
 
 V4 conversation 的 `userInput.text` 保留发送给 Agent 的原始 mention markdown，展示层负责按旧版 `UserMessage` 的语义还原为结构化标签，不能把内部路径或 session id 直接暴露在用户气泡中：
 
-- `[$skill](.../SKILL.md)` 与旧格式 `$skill`：魔杖图标 + 可读 skill 名称，隐藏 `SKILL.md` 路径。
+- `$skill` 与旧格式 `$skill`：魔杖图标 + 可读 skill 名称，隐藏 `SKILL.md` 路径。
 - `[#标题](#sess_xxx)` 与裸 `#sess_xxx`：对话图标 + 标题或 session id；markdown 目标中的 session id 不重复展示。
 - `[文件名](path)` 与目录链接：按文件/目录类型显示 Material icon + label，隐藏 markdown destination。
 - `@subagent`：Bot 图标 + subagent 名称。
