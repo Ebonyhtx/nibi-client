@@ -3,11 +3,11 @@
 手机远控主题分两段处理：
 
 1. 二维码链接不再追加 `theme` query 参数，避免桌面端主题继续耦合手机端首次进入链路。
-2. 手机端 `/remote` 首次打开时，若本机浏览器没有 `localStorage["nibi-theme"]`，会使用默认 `zai-dark` 作为初始主题；后续只使用手机端本地偏好。
+2. 手机端 `/remote` 首次打开时，若无本地偏好，使用默认 `nibi-light`（偏好键 `nibi:prefs`）；后续只使用手机端本地偏好。
 
 这样可以保证之后两端互不影响：手机端切主题只改手机浏览器本地存储，桌面端切主题只改桌面 renderer 的本地存储。
 
-手机端任务首页与桌面共用项目侧栏，主题入口在侧栏底部设置菜单的主题子菜单中；聊天页顶栏右侧渲染 `WebRemoteControlThemeMenu`。两者使用同一组选项：只暴露 `system`、`zai-dark`、`zai-light`，其中 `zai-dark` / `zai-light` 分别显示为 Dark Theme / Light Theme。
+手机端任务首页与桌面共用项目侧栏，主题入口在侧栏底部设置菜单的主题子菜单中；聊天页顶栏右侧渲染 `WebRemoteControlThemeMenu`。两者使用同一组选项：只暴露 `system`、`nibi-dark`、`nibi-light`，其中 `nibi-dark` / `nibi-light` 分别显示为 Dark Theme / Light Theme。
 
 ## 浏览器表面同步
 

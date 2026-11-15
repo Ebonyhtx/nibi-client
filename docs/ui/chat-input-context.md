@@ -19,7 +19,7 @@
   - footer badge 与输入框 context 的 Coding Plan entitlement 使用同一套 provider/apiKey 指纹缓存，并对齐 paid plan 查询参数，避免同源额度拆成两份缓存
   - 使用 `ContextTrigger` 作为上下文入口
   - 使用 `ContextContentBody` 展示上下文窗口占用、breakdown、cache hit rate，以及 Coding Plan `Usage Remaining`
-  - cache hit rate 只有在主轮累计命中率大于等于 78% 时展示；低于 78% 的值不在紧凑 context 面板中显示
+  - cache hit rate 始终展示（0% 也展示）；78% 阈值已移除
   - 输入框 context 内的 Coding Plan 用量独立渲染，不复用 sidebar 菜单面板 UI
 - `packages/ui/src/components/ai-elements/context.tsx`
   - 增加了 0 上限保护，避免进度百分比出现无效值

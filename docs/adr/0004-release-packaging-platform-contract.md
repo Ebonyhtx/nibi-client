@@ -1,12 +1,12 @@
 # Release Candidate 由打包平台托管
 
-- 状态：Proposed
+- 状态：Superseded（2026-11-15：发布已走 GitHub Actions + `release-manifest.json` + `release:verify`；本文的 GitLab runner 前提已不适用）
 - 日期：2026-08-18
 - 关联规格：`docs/specs/release-platform/release-platform-api-v1.md`
 
 ## Context
 
-当前 z-code 的构建和发布已经拆开，但候选 manifest、审批文件和产物仍依赖 GitLab runner 共享目录。这个边界无法被独立打包平台稳定消费，也无法提供统一的重试、审计、幂等和跨平台状态。
+当前 NIBI 的构建和发布已经拆开。原文的 GitLab runner 共享目录前提已随 CI 迁到 GitHub Actions 失效；现状以 `docs/release-process.md` 为准。这个边界无法被独立打包平台稳定消费，也无法提供统一的重试、审计、幂等和跨平台状态。
 
 ## Decision
 

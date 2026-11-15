@@ -1,4 +1,6 @@
-# Z Code 代码架构总览（当前事实）
+# NIBI 代码架构总览（当前事实）
+
+> 2026-11-15 校正：桌面本地 Agent 是 `nibi-rs`（缺二进制 fail-closed）；文中 `nibi-cli` 指远端 Source Server、DWF sidecar 与插件宿主里的 Node bundle，不再是桌面本地 Agent。
 
 > 本文是进程与分层架构的当前入口。历史方案和迁移计划不能覆盖本文口径。
 
@@ -13,8 +15,8 @@ Electron App
    ├─ Renderer
    └─ Window Host（唯一 PID）
       ├─ LocalSource
-      │  ├─ workspaceKey A ── stdio ── nibi-cli A
-      │  └─ workspaceKey B ── stdio ── nibi-cli B
+      │  ├─ workspaceKey A ── stdio ── nibi-rs A
+      │  └─ workspaceKey B ── stdio ── nibi-rs B
       ├─ RemoteConnectionRegistry
       │  ├─ SSH / WSL pooled connection
       │  ├─ Docker / Server dedicated connection

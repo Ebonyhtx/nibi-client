@@ -6,7 +6,7 @@
 
 ## 目标与边界
 
-本期只支持 ZCode 已存在的 7 个事件：
+Node/Host 工作区 hook 面只支持 7 个事件（Rust 内核另有 33 个，含 PreCompact/PostCompact，见 `kernel/crates/kernel-api/src/hooks.rs`）：
 
 - `SessionStart`
 - `UserPromptSubmit`
@@ -208,7 +208,7 @@ stdout 规则：
 Hooks 设置页必须在 desktop 和 Web UI 使用同一组件，并满足：
 
 - `.zcode` hooks 支持新增、编辑、删除、启停和 user/workspace scope。
-- 表单支持 7 个事件、`process` / `command` 类型、matcher、argv、timeout、`statusMessage`
+- 表单支持 Node/Host 的 7 个事件、`process` / `command` 类型、matcher、argv、timeout、`statusMessage`；Rust 内核另有 33 个事件
   和 command async。
 - `.agents` / `.claude` hooks 标记为兼容来源、不可直接编辑或启停，并提供显式导入 `.zcode`。
 - 插件 hooks 单独分组；列表只读展示 event 与 command，并以分组标题和插件图标表达来源。

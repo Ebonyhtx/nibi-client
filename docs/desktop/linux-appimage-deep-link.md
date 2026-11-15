@@ -25,10 +25,10 @@ Linux `.deb` / `.rpm` 安装包会通过系统级 desktop entry 注册 `nibi://`
 
 ## 与系统安装（rpm/deb）共存
 
-用户级 desktop entry 在 XDG 解析中永远优先于系统级同 ID 条目（`~/.local/share/applications` 先于 `/usr/share/applications`）。历史上旧 AppImage 写入的用户级 `zcode.desktop` 会在用户迁移到 rpm/deb 后持续遮蔽 `/usr/share/applications/zcode.desktop`，导致快捷方式和 `nibi://` 回调仍指向旧 AppImage（文件还在时）或直接失效（文件被删后）。为此注册逻辑按以下优先级工作：
+用户级 desktop entry 在 XDG 解析中永远优先于系统级同 ID 条目（`~/.local/share/applications` 先于 `/usr/share/applications`）。历史上旧 AppImage 写入的用户级 `nibi.desktop` 会在用户迁移到 rpm/deb 后持续遮蔽 `/usr/share/applications/zcode.desktop`，导致快捷方式和 `nibi://` 回调仍指向旧 AppImage（文件还在时）或直接失效（文件被删后）。为此注册逻辑按以下优先级工作：
 
 1. 启动时按 `XDG_DATA_DIRS`（默认 `/usr/local/share:/usr/share`）探测系统级 `zcode.desktop`，**必须是普通文件**才视为有效系统条目。
-2. **存在系统级条目时**：AppImage 运行不再写入用户级同名条目和用户级图标，避免再度遮蔽系统安装；rpm/deb 等系统安装形态运行时会清理本应用写入的遗留用户级条目。归属识别依赖 `Comment=ZCode Desktop App` 标记行——只有带该标记的条目会被删除，用户手写的自定义 `zcode.desktop`（无标记、读取失败或无法确认归属）一律保留不清理。
+2. **存在系统级条目时**：AppImage 运行不再写入用户级同名条目和用户级图标，避免再度遮蔽系统安装；rpm/deb 等系统安装形态运行时会清理本应用写入的遗留用户级条目。归属识别依赖 `Comment=NIBI Desktop App` 标记行——只有带该标记的条目会被删除，用户手写的自定义 `zcode.desktop`（无标记、读取失败或无法确认归属）一律保留不清理。
 3. **不存在系统级条目时**：保持原有 AppImage 用户级注册行为不变。
 
 清理与读取失败只记录 `warn` 降级，不阻断 `update-desktop-database` / `xdg-mime` 协议注册。

@@ -9,11 +9,11 @@
 
 - `packages/desktop/bundled-agents/<platform>/`
   - 当前目标平台的最小运行时目录
-  - 当前产品路径只要求 `glm/`
+  - 当前产品路径是 `bundled-agents/<platform>/nibi/`
   - 同目录下会生成 `*-<platform>.tgz` 归档，便于审计和后续远程分发复用
 - `packages/desktop/mock-cdn/`
   - 开发态 remote 资源入口
-  - 统一按 `releases/<version>/...` 保存 `source-server-release.json` 与四个平台 Source Server archive
+  - 统一按 `releases/<version>/...` 保存 `source-server-release.json` 与两个 Linux Source Server archive（linux-x64/arm64）
 
 ## 生产态
 
@@ -38,7 +38,7 @@
 - 开启后，remote deploy 不再读取 `mock-cdn`，会直接进入 descriptor/CDN + 本地 archive cache 链路
 - 未设置 `NIBI_REMOTE_ASSET_CDN_BASE_URL` 时，仍按上面的地区分流规则生成“主 CDN + 备选 CDN”候选列表
 - 可配合 `NIBI_REMOTE_ASSET_CDN_BASE_URL` 指向自定义 CDN 基址
-- 可设置 `NIBI_REMOTE_ASSET_CACHE_DIR` 覆盖 remote cache 目录；例如 dev 启动时指向正式版 `~/Library/Application Support/ZCode/remote-assets-cache`，只复用 remote 资源缓存，不切换 Electron `userData`
+- 可设置 `NIBI_REMOTE_ASSET_CACHE_DIR` 覆盖 remote cache 目录；例如 dev 启动时指向正式版 `~/Library/Application Support/NIBI/remote-assets-cache`，只复用 remote 资源缓存，不切换 Electron `userData`
 - 上述 remote asset 环境变量可从 shell 传入，也可写在仓库根目录或 `packages/desktop` 下的 `.env.local`；shell 环境变量优先级更高
 - 若要一键启动“desktop dev + 生产态 remote SSH 下载/cache 链路”，使用 `pnpm dev:desktop:remote-prod`
 

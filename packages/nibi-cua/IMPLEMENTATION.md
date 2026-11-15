@@ -1,3 +1,4 @@
+> **2026-11-15 校正**：driver 已升到 `0.47.23`；输入默认 `delivery_mode="background"`；`perform_action`、`request_access`、`stop_computer_control` 已接线（`select_text` 仍诚实拒绝）；自有 56x56 光标浮层已实现（`b48ee03f`）。下文旧状态只作历史台账。
 # Computer Use 实施台账（`@nibi/cua` 真实现）
 
 > 背景与决策见本包 `README.md` 与 `packages/nibi-cua/vendor/freeall12-computer-use/PROVENANCE.md`。

@@ -119,7 +119,7 @@
 
 ```json
 {
-  "name": "nibi-plugins-official",
+  "name": "nibi-official",
   "description": "Official ZCode plugins marketplace",
   "plugins": [
     {

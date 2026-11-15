@@ -1,4 +1,6 @@
 # Zai Themes
+> **已过时（2026-11-15）**：主题名现为 `nibi-light`/`nibi-dark`，默认 `nibi-light`，偏好键 `nibi:prefs`。本文的 `zai-*` 命名只作历史对照。
+
 
 ## 目标
 

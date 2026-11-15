@@ -13,11 +13,10 @@ Computer Use 的真实实现来自公开 workspace 包 `@nibi/cua`（producer）
 | ---------------------------------------------------------------------- | ----------------------------------------------------- |
 | 开发启动构建 macOS Helper、注入 Helper 环境变量                        | `scripts/dev-desktop-env.mjs`                         |
 | 开发态暂存 Computer Use 插件的原生依赖（Sharp）                        | `scripts/stage-dev-cua-plugin-runtime.mjs`            |
-| Windows 运行时资源准备 `prepare:windows-cua-helper`                    | `packages/desktop/scripts/prepare-runtime-assets.mjs` |
+| Windows 运行时资源准备 `prepare:cua-helper`（`prepare:windows-cua-helper` 已不再调用） | `packages/desktop/scripts/prepare-runtime-assets.mjs` |
 | 打包附带 macOS Helper、Windows Helper 资源，打包后的 Helper 校验与定稿 | `packages/desktop/electron-builder.config.js`         |
 
-Sharp 的暂存与校验仍以“producer 是否声明 Sharp 依赖”为准（`isSharpRequiredByComputerUse`），
-与本检测一致：真实 producer 声明 Sharp，占位包不声明。
+Sharp 的暂存与校验仍以“producer 是否声明 Sharp 依赖”为准（`isSharpRequiredByComputerUse`）。当前公开 `@nibi/cua` 不声明 Sharp，因此缺 Sharp 时跳过暂存。
 
 ## 所有者与接口
 
@@ -28,7 +27,7 @@ Sharp 的暂存与校验仍以“producer 是否声明 Sharp 依赖”为准（`
 
 ## 验收
 
-1. 闭源（真实 producer）：上述步骤行为不变。
+1. 真实 producer（当前公开 `packages/nibi-cua`）：上述步骤行为不变。
 2. 占位包：`pnpm dev:desktop` 的准备脚本可加载，开发态插件运行时暂存返回空，Windows 不准备 Helper，
    打包不附带也不校验 Helper。
 3. 单测：`packages/desktop/test/placeholderProducerDetection.test.ts` 覆盖真实、占位、未安装三种情况与暂存跳过。

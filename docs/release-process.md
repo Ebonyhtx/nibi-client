@@ -9,7 +9,7 @@
 
 规则：**`dev` 可以随便绿着前进，`main` 必须是"已发布/可发布"的状态。** 两者允许暂时不一致；发版时把 `main` 快进到 `dev` 的某个 commit，在那上面打标签。
 
-> 首次公开发布之前，`main` 与 `dev` 保持同一 commit 也行（现状就是这样），但**发布动作一律从 `main` 出发**。
+> 4.1.0 已发布（2026-11-15）。当前 `dev` 领先 `origin/main`，本地 `main` 仍停在 v4.0.2；发版前先把本地 `main` 快进到发布提交，**发布动作一律从 `main` 出发**。
 
 ## 发布台账与发布闸门
 
@@ -47,7 +47,7 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
 
 | id              | 产物                                                | verify 检查                                                                   |
 | --------------- | --------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `npm`           | 五个 `@nibi-studio/cli-*` + META `@nibi-studio/cli` | 注册表里同版本存在、tarball 有 sha512、META 精确锁定五个平台包                |
+| `npm`           | 4.1.0 实发四个 `@nibi-studio/cli-*` + META；代码/CI 已含第五个 `win32-x64-msvc`，随下一版首发 | 注册表里同版本存在、tarball 有 sha512、META 精确锁定当版平台包 |
 | `source-server` | `nibi-server-<target>.tar.gz` × 2 + descriptor      | descriptor 版本/两 Linux target/档案存在/大小；`--deep` 再校验 sha256         |
 | `desktop`       | Windows/Linux 安装包与更新库存（macOS 暂缓）        | 每个已发布平台的更新 manifest 与 downloads 库存都返回当前版本                 |
 | `web-remote`    | 手机远控 SPA `/remote/v4`                           | 页面 `nibi-release-version`/`nibi-release-surface` meta（release.json 兜底）  |
@@ -154,8 +154,7 @@ Node `@nibi/cli` 已退役为内部私有 workspace 包：没有 `bin`、不发�
   仓库 `nibi-client`、workflow `rust-npm-packages.yml`、权限只勾 `npm publish`。平台包与 META 包
   `@nibi-studio/cli` 各要一份；新包首次发布前必须先登记（若 npm 要求包已存在才能配置，由运营者
   在交互终端用 OTP 手工首发一次，**不要**把 token 写进 CI 或仓库）。
-- 手动补发：Actions → `rust-npm-packages` → Run workflow → 勾 `publish`（`version` 可覆盖版本，仅用于
-  验证配置这类场景）。同一个版本已存在时 job 会跳过而不是失败；META 仍会在平台包核对通过后才跑。
+- 手动补发：Actions → `rust-npm-packages` → Run workflow → 勾 `publish`（`version` 可覆盖版本）。这是正式兜底发布路径（4.1.0 即用 dispatch 发布、标签后对齐）；同一个版本已存在时 job 会跳过而不是失败；META 仍会在平台包核对通过后才跑。
 - 已发布版本不可覆盖：要修就发新版本，旧版本只能 `npm deprecate`。
 - **`4.0.1` 不可用**：`linux-x64-gnu` / `linux-arm64-gnu` / `darwin-arm64` 是 2026-11 手工验证
   时发的，包内二进制仍报告 `0.1.x`（当时还没有 `NIBI_RELEASE_VERSION` 注入），与包版本不一致；

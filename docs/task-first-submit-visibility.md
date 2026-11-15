@@ -17,12 +17,12 @@ CommandInbox 接受输入 → 现有 deferred 提升 → publishCurrentSummaryTo
                                                 ↓
                同一 UI 提交：更新目录 + handleDraftSessionCreated
                                                 ↓
-                       首发 Promise 完成，composer 结束 pending
+          accepted 后同步 commit/导航；目录确认改为 fire-and-forget
 ```
 
 - CLI persistence 决定是否为未提交草稿，runtime phase 只表达执行状态。未提交预热不发布到 sessions-index；已提交但未 TurnStarted 的摘要允许落入 Host 索引。
 - task-facts 仍是 CLI 事实摄入入口，project Host 仍拥有 projectId/pin/archive。首次摘要落库后直接发布 task_created，不为了补行读取完整会话或等待模型/Hook。
-- 共享目录仍只接受 Host readTree 的真实行。首发回调等待完整 workspaceKey + taskId 匹配，目录与原导航在同次 React 提交中更新；不构造 optimistic 项目行。
+- 共享目录仍只接受 Host readTree 的真实行。首发 accepted 后即更新目录与原导航（同次 React 提交），不再等待完整 workspaceKey + taskId 匹配；目录确认改为 fire-and-forget，不阻塞首发与 composer；不构造 optimistic 项目行。
 - 目录刷新合并重叠请求，在途期间收到失效通知只追加一次读取。当前读取可提交，不因持续活动饿死；切换 service/attachment 或卸载后旧结果失效。
 - accepted 回调仅是 UI 在途完成工作，不是第二份输入队列。读取失败向调用方报告，离开原 pane 取消导航；都不得自动重发已接受输入。重复通知不会重复导航或生成任务。
 - 桌面 continuous 与手机 replayable 共用该 UI/事实链；保留原 owner/lease、CommandInbox 去重及 replay gap/snapshot 恢复，不改 main/relay 或 runtime 创建路径。远端匹配使用 workspaceIdentity，携带原 remoteSessionId。

@@ -1,7 +1,7 @@
 # 手机远控：走浏览器，不做原生壳（2026-11-07 决定）
 
 手机远控的完整界面就是 Web 远控页：桌面端二维码里是 `<origin>/remote/v4?...`
-（`packages/shared/src/zcodeEndpoint.ts`）。手机相机或浏览器扫码后直接用浏览器打开即可，
+（`packages/shared/src/nibiEndpoint.ts`）。手机相机或浏览器扫码后直接用浏览器打开即可，
 **不需要安装任何 App**。
 
 ## 已删除：`packages/android`

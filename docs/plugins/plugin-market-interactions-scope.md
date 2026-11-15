@@ -24,7 +24,7 @@
 
 ### 分类语义
 
-- 官方市场是分发渠道，继续使用 `nibi-plugins-official`，其中同时收录官方插件和社区插件。
+- 官方市场是分发渠道，继续使用 `nibi-official`，其中同时收录官方插件和社区插件。
 - 官方 / 社区表示插件的维护归属。外部团队、合作方和社区维护的插件归入社区；使用第三方服务的官方维护插件仍属于官方，不能根据服务品牌或作者字符串自动判定。
 - `category` 继续表示用途分类，例如开发工具、生产力；UI 能力是另一独立维度，不占用用途分类或维护归属字段。
 - 个人分段继续表示用户自行添加的市场和本地来源。个人来源声明自己属于官方或社区，不会使其进入 ZCode 的公开 / 社区分段。
@@ -161,7 +161,7 @@ CLI 两个上游存量大文件原本即超过 800 行；此次仅增加目录�
 ```yaml
 - key: uiPluginRecommendations
   value:
-    - pluginId: example@nibi-plugins-official
+    - pluginId: example@nibi-official
       surfaceId: panel
 ```
 

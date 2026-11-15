@@ -3,7 +3,7 @@
 > 目的：切默认内核的判据是「**功能不减**」，不是「协议 89/118」。这份表逐项记「Node 里由谁做、
 > Rust 里由谁做、还差什么」，每行都带可查的代码位置。改动任何一项时同步更新本表。
 >
-> 最后复核：2026-11-11（`cf175de2`：`ReadSessionContext` 的 **lite 模型抽取**、`ListWorkflowRuns` /
+> 最后复核：2026-11-12（`cf175de2`：`ReadSessionContext` 的 **lite 模型抽取**、`ListWorkflowRuns` /
 > `GetWorkflowRun` 的 **活 run 判据**、`ListModels.disabledReason` 核对为「Node 宿主恒不产出」）。
 > **清单本身已无「未做」项**；剩下的都是刻意的实现差异，逐条列在文末「已知差异」。
 >
@@ -374,7 +374,7 @@ redirectPath)[0..24]>:authorization_credentials`）；
    冷开时没带（Node 侧同样只给 `createSession`，见 §4 表格）。
 6. 订阅续传已知差异：保留窗按「事件数」计（同 Node），`flush` 不合并同类增量（Node 会 coalesce）；
    工作区主题的断档快照用首帧记住的存储行。
-7. **插件引用目录已补齐**（Host 只直答 17 条管理面方法，见
+7. **插件引用目录已补齐**（Host 直答 15 条管理面方法 + listUiSurfaces，见
    `packages/desktop/src/host/localPluginManagementService.ts` 的注释）：`plugins/referenceCatalog` 与
    `plugins/referenceCatalogWithCategory`、`plugins/resolveSuggestedReference` 都在 Rust 内核实现
    （`protocol-nibi/src/plugin_catalog.rs`；身份目录由 `ext::Plugins::reference_catalog` 产出，商店展示字段由
@@ -390,7 +390,7 @@ redirectPath)[0..24]>:authorization_credentials`）；
      目录里有但本机没装回 `missing` + listing（UI 据此走安装确认），都没有回
      `plugin_suggested_reference_not_listed`。
    - **已知差异（刻意）**：Node 在目录缺条目时会**联网刷新**官方目录（10 s 超时 + `plugins/operationProgress`
-     的 `refreshing` 通知）。Rust 内核只读 Host 落盘的快照——插件市场与安装归 Host 的 17 条管理面，
+     的 `refreshing` 通知）。Rust 内核只读 Host 落盘的快照——插件市场与安装归 Host 的 15 条管理面，
      内核不写 Host 管的存储，也不伪造进度通知。代价：缓存过旧且插件刚发布时，推荐项会先回 `not_listed`
      （商店本身由 Host 刷新，不受影响）。`plugins/onDynamicPluginOperationProgress` 是客户端订阅通知的 API，
      不是内核方法；内核不发通知时不涉及。

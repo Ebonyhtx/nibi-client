@@ -95,7 +95,7 @@ AskUserQuestion tool ───────────> CLI interaction coordina
 - 设置关闭与 deadline 竞态也按 CLI 实际处理顺序先到先得：关闭先应用则保留 pending 并持久化
   `snoozed`；deadline 已先收口时，迟到设置同步不得产生第二份 tool result。
 - 正常回答、stop、turn 终止和交互移除必须清理 timer。
-- CLI/UI 重连或进程恢复后使用持久化的绝对时间恢复；最新阶段以 `runtime/user_input_auto_resolution` session entry 按 interactionId 覆写保存，若恢复时 deadline 已过，立即以空答案收口。
+- Node：CLI/UI 重连或进程恢复后使用持久化的绝对时间恢复；最新阶段以 `runtime/user_input_auto_resolution` session entry 按 interactionId 覆写保存，若恢复时 deadline 已过，立即以空答案收口。Rust：`SessionView.pending` 只来自活着的 actor，冷打开没有绝对时间，从当下重置 60 s/300 s；该条只对 Node 成立。
 - 若恢复时全局设置为关闭，任何持久化 active deadline 必须先转为 `snoozed`，不能在恢复窗口内短暂自动收口。
 - `snoozeInteractionAutoResolution { interactionId }` 幂等：重复暂停、已收口或不支持计时的交互均返回 noop。
 - `workspace/updateInteractionPreferences` 是 host 到对应 workspace CLI 的严格控制面方法。参数携带完整 workspace ref；CLI 在持久化所有受影响 interaction 后才 ACK。

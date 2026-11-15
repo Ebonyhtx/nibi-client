@@ -7,7 +7,7 @@
 ## 范围
 
 - 触发点在 macOS Finder 的文件夹右键菜单服务，不在 ZCode App 内新增 UI。
-- Finder 服务展示名跟随 ZCode 应用语言：`zh-CN` 显示为「在ZCode中打开」，`en-US` 显示为 `Open in ZCode`。
+- Finder 服务展示名跟随 ZCode 应用语言：`zh-CN` 显示为「在 NIBI 中打开」，`en-US` 显示为 `Open in NIBI`。
 - 只支持单个文件夹。多选时系统服务脚本应只传第一个目录。
 - 只支持本地绝对目录路径，不支持远程 workspace、手机 `/remote`、文件管理器空白处当前目录。
 - macOS 侧接受 `nibi://workspace/open?path=<encoded-absolute-directory>`。
@@ -27,7 +27,7 @@
 ## Windows 数据流
 
 1. ZCode Desktop 在 Windows 启动时安装或更新当前用户的 Explorer 右键菜单注册表项。
-2. 注册表写入 `HKCU\Software\Classes\Directory\shell\ZCode.OpenInZCode`，菜单文案为 `Open in ZCode`，图标指向当前 ZCode 可执行文件。
+2. 注册表写入 `HKCU\Software\Classes\Directory\shell\NIBI.OpenInNIBI`，菜单文案为 `Open in ZCode`，图标指向当前 ZCode 可执行文件。
 3. 注册表写入 `HKCU\Software\Classes\Directory\shell\ZCode.OpenInZCode\command`，命令为 `"<ZCode.exe>" --open-workspace "%1"`。
 4. 同步写入 `HKCU\Software\Classes\Drive\shell\ZCode.OpenInZCode`，支持右键打开盘符根目录。
 5. Explorer 触发后启动第二个 ZCode 进程；Electron single-instance 通过 `additionalData` 或 argv 解析出 `openWorkspacePath`。

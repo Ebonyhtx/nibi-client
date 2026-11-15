@@ -2,7 +2,7 @@
 
 ## 目标
 
-设置页「插件管理」支持从外部 Agent 的本地 plugins 目录一键导入到 ZCode。交互与「技能」「命令」导入保持一致，但业务目录、扫描规则、目标写入和去重逻辑独立维护。
+设置页「插件管理」支持从外部 Agent 的本地 plugins 目录一键导入到 NIBI。交互与「技能」「命令」导入保持一致，但业务目录、扫描规则、目标写入和去重逻辑独立维护。
 
 ## 来源范围
 
@@ -60,7 +60,7 @@
 - `settings-sync` 新增 `plugins` 分类，插件来源表独立维护，不从 `skills` 或 `commands` 来源表派生；资源扫描、去重和导入也独立。
 - 远程 workspace 只使用当前 host process 可访问的文件系统路径；身份隔离语义仍传递 `workspaceIdentity`，路径执行仍使用 `workspacePath`。
 - 直接复制模式不引用外部目录；软链模式会持续指向外部插件目录，适合希望跟随外部 Agent 插件变更的用户。
-- ZCode 运行态通过 `plugins.dirs` 读取导入后的 inline 插件；导入功能不写入 official marketplace cache。
+- NIBI 运行态通过 `plugins.dirs` 读取导入后的 inline 插件；导入功能不写入 official marketplace cache。
 
 ## 验证
 

@@ -14,7 +14,7 @@
 
 普通 suite 名称为 `conversation-session-verified`，只覆盖已经在当前代码与 fixture 上取得 Docker `replay-isolated` 绿色证据的 V4 direct-root formal spec。
 
-截至 2026-08-10，`conversation-session-verified` 当前为空，调用时脚本会明确失败并提示先进行单 spec admission，而不是静默运行空集合或错误的旧路径。Assistant Preview Cards 已完成人工 review、formal promotion 和本地 replay，但其单 spec Docker 尝试在解析 `docker/dockerfile:1.7` 镜像配置时因 Docker Hub token 请求 `EOF` 失败，尚未进入 WDIO `replay-isolated` 执行，因此不能登记为 verified。
+截至 2026-11-06，`conversation-session-verified` 已有 3 条 spec（7 条用例）取得 Docker `replay-isolated` 绿色证据；CI preset 共 7 条。下文 2026-08-10 的失败记录是历史。Assistant Preview Cards 已完成人工 review、formal promotion 和本地 replay，但其单 spec Docker 尝试在解析 `docker/dockerfile:1.7` 镜像配置时因 Docker Hub token 请求 `EOF` 失败，尚未进入 WDIO `replay-isolated` 执行，因此不能登记为 verified。
 
 CDD01 已迁入 formal 路径，但单 spec Docker `replay-isolated` 运行
 `packages/desktop/.e2e-artifacts/desktop-e2e-20260810-122428-44907/summary.md` 为 `0/1 failed`：

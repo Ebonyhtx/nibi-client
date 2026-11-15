@@ -67,7 +67,7 @@ docker/plugin-eval/bin/build-image.sh --ref feat-cli-plugins-parity \
    内置插件不在 `nibi.cjs` 里，CLI 在入口文件同级的 `packages/<name>-plugin` 找根目录，所以 builder 阶段把
    document-skills、nibi-guide、skill-creator、restore-legacy-sessions 四个纯内容型内置插件 stage 到 `/opt/zcode/packages/`；
    同理 CLI 启动必读的内置 provider 目录 `config/provider/nibi-builtin.json` 放到 `/opt/zcode/provider/`。
-4. 构建期执行 `zcode plugins marketplace update nibi-plugins-official`，再把 `list --available --json` 中
+4. 构建期执行 `zcode plugins marketplace update nibi-official`，再把 `list --available --json` 中
    `installed == false` 的条目逐个 `plugins install`，基线清单落在 `/data/plugins-baseline.json`。
 
 构建结束脚本会打印被测源码 ref@sha 和烘进镜像的插件数（当前 CDN 市场 19 个 + 内置 4 个 = 23）。

@@ -57,29 +57,29 @@
 
 ## Windows 安装目录保护
 
-Windows 上禁止把数据根目录设置到 ZCode 的安装目录或其子目录。原因是安装目录会被安装器和自动更新流程管理，若把 `<dataBaseDir>/.nibi/v2/` 放进去，后续更新可能覆盖或清理用户数据。
+Windows 上禁止把数据根目录设置到 NIBI 的安装目录或其子目录。原因是安装目录会被安装器和自动更新流程管理，若把 `<dataBaseDir>/.nibi/v2/` 放进去，后续更新可能覆盖或清理用户数据。
 
 拦截规则：
 
 | 来源 | 示例 |
 |------|------|
-| 当前桌面应用安装目录 | `process.resourcesPath` 的上级目录，例如 `C:\Users\{UserName}\AppData\Local\Programs\ZCode` |
-| Program Files 安装目录 | `%ProgramFiles%\ZCode`、`%ProgramFiles(x86)%\ZCode`、`%ProgramW6432%\ZCode` |
-| 用户 LocalAppData 安装目录 | `%LOCALAPPDATA%\Programs\ZCode` |
+| 当前桌面应用安装目录 | `process.resourcesPath` 的上级目录，例如 `C:\Users\{UserName}\AppData\Local\Programs\NIBI` |
+| Program Files 安装目录 | `%ProgramFiles%\NIBI`、`%ProgramFiles(x86)%\NIBI`、`%ProgramW6432%\NIBI` |
+| 用户 LocalAppData 安装目录 | `%LOCALAPPDATA%\Programs\NIBI` |
 
 `packages/desktop/src/main/desktopRuntimeEnv.ts` 会在 Windows 打包态把当前安装目录通过 `NIBI_WINDOWS_APP_INSTALL_DIR` 传给 host process。`packages/services/src/paths.ts` 在服务层按 Windows 路径规则做大小写不敏感的“等于或位于其下”判断，`packages/services/src/setting/settingService.ts` 在复制数据前执行该校验。UI 只展示错误提示，不作为唯一安全边界。
 
 ### 安装器阻断保护
 
-Windows 安装包不会禁止用户选择任意安装目录。为覆盖历史版本已把数据放进安装目录的用户，NSIS assisted installer 会在用户选完安装目录、真正写入文件前检查最终安装目录及其子目录是否存在 `.zcode`：
+Windows 安装包不会禁止用户选择任意安装目录。为覆盖历史版本已把数据放进安装目录的用户，NSIS assisted installer 会在用户选完安装目录、真正写入文件前检查最终安装目录及其子目录是否存在 `.nibi`：
 
 1. 按 electron-builder assisted installer 的目录补齐规则计算最终安装目录
-2. 若用户选择的是父目录，electron-builder 会安装到 `$INSTDIR\ZCode`，因此检查 `$INSTDIR\ZCode` 及其子目录
-3. 命中后展示阻断页，提示安装目录或其子目录包含 `.zcode` 数据，继续安装或更新会让安装器清理历史会话和配置
+2. 若用户选择的是父目录，electron-builder 会安装到 `$INSTDIR\NIBI`，因此检查 `$INSTDIR\NIBI` 及其子目录
+3. 命中后展示阻断页，提示安装目录或其子目录包含 `.nibi` 数据，继续安装或更新会让安装器清理历史会话和配置
 4. 阻断页禁用“下一步”，并把“上一步”按钮加宽、文案改为“重选目录”
 5. 用户点击“重选目录”后回到目录选择页，必须选择其他安装目录才能继续安装
 6. 用户仍可取消安装器退出；不提供“忽略并继续”入口
-7. 静默安装命中 `.zcode` 时直接退出失败，避免自动化安装绕过数据保护
+7. 静默安装命中 `.nibi` 时直接退出失败，避免自动化安装绕过数据保护
 
 该阻断保护只面向安装包流程，不替代设置页的数据迁移校验。
 
@@ -91,7 +91,7 @@ Windows 安装包不会禁止用户选择任意安装目录。为覆盖历史版
 4. 按钮显示加载动画，选择按钮禁用，提示"正在复制数据，请勿关闭应用…"
 5. 复制完成 → 提示"数据已保存，重启应用后生效。"
 6. 复制失败 → 提示"数据复制失败，路径未更改。"（红色），可重新选择后重试
-7. Windows 上若选择了 ZCode 安装目录或其子目录 → 提示"不能选择 ZCode 安装目录作为数据存储路径"，路径不写入配置
+7. Windows 上若选择了 NIBI 安装目录或其子目录 → 提示"不能选择 NIBI 安装目录作为数据存储路径"，路径不写入配置
 8. 用户重启应用后新路径生效
 
 ## 已确认的迁移边界
@@ -101,7 +101,7 @@ Windows 安装包不会禁止用户选择任意安装目录。为覆盖历史版
 1. App `.nibi/v2` 与非项目对话 `.nibi/workspace` 一并迁移。
 2. 只允许在当前 conversation 已空闲时发起迁移。
 3. 保存成功后进入待重启状态；目标产品态应阻止继续向旧 App 数据目录写入。
-4. 目标目录已有 ZCode 数据时拒绝迁移，不做逐文件或 SQLite 合并。
+4. 目标目录已有 NIBI 数据时拒绝迁移，不做逐文件或 SQLite 合并。
 5. 完整冷重启后，迁移前任务历史仍可见，并且可以在同一任务中继续对话。
 6. `dataBaseDir` 只改变 App 数据目录；CLI 用户资源仍使用 `<HOME>/.nibi/cli`，项目内
    `.nibi/*` 也保持原路径。
@@ -141,7 +141,7 @@ new App root
 | `packages/services/src/setting/setting.ts` | `ISettingService` 接口定义 |
 | `packages/shared/src/protocol.ts` | `AppSettings.dataBaseDir` 类型 |
 | `packages/shared/src/validation.ts` | zod schema |
-| `packages/desktop/build/installer.nsh` | Windows 安装器在写入文件前阻断安装目录内已有 `.zcode` 的安装 |
+| `packages/desktop/build/installer.nsh` | Windows 安装器在写入文件前阻断安装目录内已有 `.nibi` 的安装 |
 | `packages/desktop/src/main/index.ts` | 主进程 bootstrap 读取 |
 | `packages/desktop/src/main/desktopRuntimeEnv.ts` | `buildHostProcessEnv` 传递环境变量 |
 | `packages/ui/src/settingsPageHelpers.tsx` | UI 输入框 + 保存状态管理 |

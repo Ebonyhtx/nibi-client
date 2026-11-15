@@ -1,3 +1,4 @@
+> **2026-11-15 校正**：测试端点现为 `https://api-test.nibistudio.cn`，函数为 `buildRuntimeNibiApiUrl`；`off-peak-task` 已退役，服务端只发 `draft-suggestion` 与 `scheduled-task`。下文旧端点/off-peak 段落只作历史。
 # ZCode Client Scenes 接口
 
 ## 目标

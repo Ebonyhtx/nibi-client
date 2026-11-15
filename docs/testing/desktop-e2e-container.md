@@ -52,7 +52,7 @@ E2E_SPEC=./test/e2e/smoke.test.ts pnpm run test:e2e:container
 
 ## Conversation session suite
 
-conversation session 使用独立的 Docker verified preset。当前 38 个 V4 formal case 尚未在本轮取得 Docker `replay-isolated` 证据，因此 verified 集合为空；下列命令会在访问 Docker daemon 之前以 exit 2 明确提示先做单 case admission：
+conversation session 使用独立的 Docker verified preset。2026-11-06 起已有 3 条 verified spec（7 条用例）；CI preset 共 7 条。下列命令可直接运行：
 
 ```bash
 pnpm run test:e2e:container:conversation
@@ -65,7 +65,7 @@ E2E_SPEC_PRESET=conversation-session-verified pnpm run test:e2e:container
 ```
 
 verified preset 只允许引用 `packages/desktop/test/e2e/conversation-session/` 下当前代码与 fixture 已通过 Docker admission 的 spec，不引用 `manual-review/pending`，也不继承 legacy suite 的历史结果。准入规则见
-[conversation-session-docker-automation-plan.md](./conversation-session-docker-automation-plan.md)。
+[conversation-session-docker-automation.md](./conversation-session-docker-automation.md)。
 新增正式 spec 先用单 spec Docker replay 证明：
 
 ```bash
