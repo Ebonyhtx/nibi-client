@@ -126,7 +126,22 @@ async function readTailLines(filePath: string, limit: number) {
 }
 
 async function buildFeatureBoundaryGraphModule() {
-  const source = await readFile(FEATURE_BOUNDARY_GRAPH_SOURCE_PATH, "utf-8");
+  let source: string;
+  try {
+    source = await readFile(FEATURE_BOUNDARY_GRAPH_SOURCE_PATH, "utf-8");
+  } catch (error) {
+    // `.agents/skills/...` 是本地技能产物，不在客户端仓库里；没有它时 dev-docs
+    // 应按空图构建，而不是让整个 `pnpm -r build` 失败。
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      console.warn(
+        `[dev-docs] 未找到 ${FEATURE_BOUNDARY_GRAPH_SOURCE_PATH}，功能边界图谱按空图构建`,
+      );
+      return `export default ${JSON.stringify(
+        normalizeFeatureBoundaryGraph({ nodes: [], edges: [] }),
+      )};`;
+    }
+    throw error;
+  }
   const graph = normalizeFeatureBoundaryGraph(parseYaml(source));
   return `export default ${JSON.stringify(graph)};`;
 }
@@ -136,7 +151,9 @@ function featureBoundaryGraphPlugin(): Plugin {
   return {
     name: "nibi-dev-docs-feature-boundary-graph",
     configureServer(server) {
-      server.watcher.add(FEATURE_BOUNDARY_GRAPH_SOURCE_PATH);
+      void fileExists(FEATURE_BOUNDARY_GRAPH_SOURCE_PATH).then((exists) => {
+        if (exists) server.watcher.add(FEATURE_BOUNDARY_GRAPH_SOURCE_PATH);
+      });
     },
     async buildStart() {
       moduleSource = await buildFeatureBoundaryGraphModule();
