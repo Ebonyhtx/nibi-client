@@ -213,7 +213,7 @@ export function FeedbackSubmitForm({
 
   useEffect(() => {
     if (!draftRestored || submissionJob || submissionJobId) return;
-    const timer = window.setTimeout(() => {
+    const timer = globalThis.setTimeout(() => {
       saveFeedbackSubmitDraft({
         title,
         description,
@@ -225,7 +225,7 @@ export function FeedbackSubmitForm({
         screenshots,
       });
     }, 400);
-    return () => window.clearTimeout(timer);
+    return () => globalThis.clearTimeout(timer);
   }, [
     contact,
     draftRestored,
@@ -345,7 +345,7 @@ export function FeedbackSubmitForm({
           clearFeedbackSubmitDraft();
           toast(formatMessage("feedback.submission.submittedToast"), { durationMs: 3000 });
           if (!mountedRef.current) return;
-          window.setTimeout(() => {
+          globalThis.setTimeout(() => {
             if (mountedRef.current && activeSubmissionJobRef.current?.id === job.id) {
               onSubmitted(ticketId);
             }
