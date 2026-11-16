@@ -1,0 +1,65 @@
+name: desktop-linux-release
+
+# 发布用 Linux AppImage 构建（workflow_dispatch）。桌面 Windows 在发布机本地构建；
+# Linux 交叉构建在 Windows 上会缺 koffi linux_x64 runtime，所以放到 ubuntu runner。
+# 产物只上传 AppImage（公开分发），deb/rpm/pacman 仍由常规 gate 验证。
+#
+# 所有 action 必须钉到完整 commit SHA（public-repo-policy 要求）。
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-linux-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.22.1"
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 10.33.2
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: "1.95.0"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Resolve release version
+        shell: bash
+        run: echo "NIBI_RELEASE_VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
+      - name: cargo build (release, kernel binary)
+        working-directory: kernel
+        run: cargo build --locked --release -p nibi-kernel-cli --bin nibi-rs
+      - name: Install bsdtar (pacman target needs it)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libarchive-tools
+      - name: Package the Linux desktop app
+        working-directory: packages/desktop
+        env:
+          NIBI_ENV: production
+          NIBI_AUTO_UPDATE: "1"
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: node scripts/bundle.mjs --os linux --arch x64
+      - name: Assert the packaged kernel binary and notices
+        shell: bash
+        run: |
+          DIR="packages/desktop/dist/linux-unpacked/resources"
+          test -f "$DIR/rust-kernel/nibi-rs"
+          test -s "$DIR/rust-kernel/LICENSE"
+          test -s "$DIR/rust-kernel/THIRD-PARTY-NOTICES.txt"
+          echo "packaged kernel present"
+      - name: Upload AppImage
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4
+        with:
+          name: desktop-linux-appimage
+          path: packages/desktop/dist/*.AppImage
+          if-no-files-found: error
+          retention-days: 14
