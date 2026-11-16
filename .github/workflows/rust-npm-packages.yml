@@ -254,7 +254,8 @@ jobs:
             ${EXTRA[@]+"${EXTRA[@]}"} | tee "$RUNNER_TEMP/pack.json"
           # Windows runner 的 pack.json 里是 `D:\a\_temp\...`（反斜杠）。upload-artifact
           # 按 glob 处理 path，反斜杠会被当转义，结果 tarball 被静默跳过、只上传 pack.json。
-          TARBALL_PATH="$(node -p "require('$RUNNER_TEMP/pack.json').tarball")"
+          # 路径通过 argv 传给 node：直接拼进 JS 字符串时 `\a` 会被当成未知转义吃掉。
+          TARBALL_PATH="$(node -e 'console.log(require(process.argv[1]).tarball)' "$RUNNER_TEMP/pack.json")"
           TARBALL_PATH="${TARBALL_PATH//\\//}"
           echo "tarball=$TARBALL_PATH" >> "$GITHUB_OUTPUT"
 
