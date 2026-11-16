@@ -252,7 +252,11 @@ jobs:
             --version "$VERSION" \
             --out "$RUNNER_TEMP/npm-pack" \
             ${EXTRA[@]+"${EXTRA[@]}"} | tee "$RUNNER_TEMP/pack.json"
-          echo "tarball=$(node -p "require('$RUNNER_TEMP/pack.json').tarball")" >> "$GITHUB_OUTPUT"
+          # Windows runner 的 pack.json 里是 `D:\a\_temp\...`（反斜杠）。upload-artifact
+          # 按 glob 处理 path，反斜杠会被当转义，结果 tarball 被静默跳过、只上传 pack.json。
+          TARBALL_PATH="$(node -p "require('$RUNNER_TEMP/pack.json').tarball")"
+          TARBALL_PATH="${TARBALL_PATH//\\//}"
+          echo "tarball=$TARBALL_PATH" >> "$GITHUB_OUTPUT"
 
       # 打包脚本已经自己校验过 ELF/Mach-O 头与 sha256；这里再跑一次 self-test，
       # 保证平台包与 META 包的打包器本身没坏（PR 也跑，不必等发布）。
