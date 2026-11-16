@@ -28,6 +28,8 @@ export interface IFeedbackService {
     options?: FeedbackCreateOptions,
   ): Promise<FeedbackTicketDetail>;
   cancelCreate(operationId: string): Promise<void>;
+  /** 反馈 v2 只允许登录 NIBI 账号；UI 在打开表单/列表前用它决定是否先引导登录。 */
+  isLoggedIn(): Promise<boolean>;
   list(query?: FeedbackListQuery): Promise<FeedbackListResult>;
   get(id: string): Promise<FeedbackTicketDetail>;
   comment(id: string, body: string): Promise<FeedbackComment>;

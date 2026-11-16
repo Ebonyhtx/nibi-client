@@ -53,6 +53,8 @@ interface FeedbackUploadFileOptions {
 interface FeedbackCreateRequestOptions {
   signal?: AbortSignal;
   timeoutMs?: number;
+  /** 同一次提交的重试复用同一个键，服务端唯一索引保证不产生重复工单。 */
+  idempotencyKey?: string;
 }
 
 interface FeedbackApiEnvelope<T> {
@@ -124,9 +126,12 @@ interface FeedbackUploadCredentialResponse {
 }
 
 const defaultLogger = createServiceLogger("feedback-http");
-const FEEDBACK_MAX_ATTACHMENT_BYTES = 100 * 1024 * 1024;
-const FEEDBACK_MAX_LOG_ATTACHMENT_BYTES = 1024 * 1024 * 1024;
+// 与改造计划/服务端 PostPolicy 对齐：图片压缩后 ≤5MiB；日志包与其它附件 ≤32MiB。
+const FEEDBACK_MAX_IMAGE_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const FEEDBACK_MAX_LOG_ATTACHMENT_BYTES = 32 * 1024 * 1024;
+const FEEDBACK_MAX_OTHER_ATTACHMENT_BYTES = 32 * 1024 * 1024;
 const FEEDBACK_CREATE_TIMEOUT_MS = 30_000;
+const FEEDBACK_UPLOAD_TIMEOUT_MS = 120_000;
 
 export class FeedbackUploadCanceledError extends Error {
   constructor() {
@@ -187,7 +192,9 @@ function getErrorMessage(error: unknown): string {
 }
 
 function getFeedbackMaxAttachmentBytes(kind: FeedbackAttachmentKind): number {
-  return kind === "log" ? FEEDBACK_MAX_LOG_ATTACHMENT_BYTES : FEEDBACK_MAX_ATTACHMENT_BYTES;
+  if (kind === "log") return FEEDBACK_MAX_LOG_ATTACHMENT_BYTES;
+  if (kind === "image") return FEEDBACK_MAX_IMAGE_ATTACHMENT_BYTES;
+  return FEEDBACK_MAX_OTHER_ATTACHMENT_BYTES;
 }
 
 function readEnvelopeCode(value: unknown): number | undefined {
@@ -431,6 +438,7 @@ export class FeedbackHttpClient {
         headers: {
           "Content-Type": "application/json",
           ...(locale ? { "Accept-Language": locale } : {}),
+          ...(options.idempotencyKey ? { "Idempotency-Key": options.idempotencyKey } : {}),
         },
         // 创建工单是用户可见的第一阶段，不能无限等待网络或后端悬挂。
         // 超时和取消都收敛到统一 ApiClient，避免 UI 停在“正在连接反馈服务”。
@@ -517,6 +525,7 @@ export class FeedbackHttpClient {
           ...(options?.messageId ? { message_id: options.messageId } : {}),
           file_name: filename,
           size: fileStats.size,
+          content_type: contentType,
         }),
       },
     );
@@ -528,6 +537,11 @@ export class FeedbackHttpClient {
       onUploadProgress: options?.onUploadProgress,
       signal: options?.signal,
     });
+    // 回调可能先到、也可能丢失；complete 是服务端 HEAD 校验的兜底（不是字节回退）。
+    await this.request<{ attachment_id: string }>(
+      `/feedback/attachment/${encodeURIComponent(credential.attachment_id)}/complete`,
+      { method: "POST" },
+    );
     return {
       id: toStableNumericId(credential.attachment_id, 1),
       kind,
@@ -772,10 +786,16 @@ function inferAttachmentKind(
 
 function mapFeedbackStatus(status: unknown): FeedbackTicketStatus {
   switch (readString(status)) {
+    case "in_progress":
+      return "开发中";
+    case "resolved":
+      return "已解决";
     case "closed":
+      return "答复关闭";
     case "已归档":
       return "已归档";
     case "submitted":
+    case "open":
     // 兼容后端或历史缓存里仍返回旧中文状态的工单。
     case "待评估":
     case "已提交":
@@ -1008,6 +1028,7 @@ async function uploadOssForm(
       body: body as unknown as RequestInit["body"],
       // undici 对流式请求体要求显式 duplex（Node 的 fetch 实现里这是必需开关）。
       duplex: "half",
+      timeoutMs: FEEDBACK_UPLOAD_TIMEOUT_MS,
       ...(options.signal ? { signal: options.signal } : {}),
     } as ApiRequestInit & { duplex: "half" });
   } catch (error) {

@@ -9,7 +9,8 @@ import { getErrorMessage } from "@/lib/errorMessage.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 
 export const MAX_SUPPLEMENT_ATTACHMENTS = 6;
-export const MAX_SUPPLEMENT_ATTACHMENT_BYTES = 100 * 1024 * 1024;
+export const MAX_SUPPLEMENT_ATTACHMENT_BYTES = 32 * 1024 * 1024;
+export const MAX_SUPPLEMENT_IMAGE_BYTES = 5 * 1024 * 1024;
 
 export interface SupplementAttachmentDraft {
   id: string;
@@ -94,7 +95,13 @@ export function FeedbackSupplementComposer({
         return;
       }
       const accepted = files.slice(0, remaining);
-      const tooLarge = accepted.find((file) => file.size > MAX_SUPPLEMENT_ATTACHMENT_BYTES);
+      const tooLarge = accepted.find(
+        (file) =>
+          file.size >
+          (file.type.startsWith("image/")
+            ? MAX_SUPPLEMENT_IMAGE_BYTES
+            : MAX_SUPPLEMENT_ATTACHMENT_BYTES),
+      );
       if (tooLarge) {
         setError(
           formatMessage(

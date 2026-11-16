@@ -17,6 +17,8 @@ import { readFeedbackContactPreference } from "@/feedback/feedbackContactPrefere
 import {
   FeedbackScreenshotPicker,
   readScreenshotDraft,
+  SCREENSHOT_OUTPUT_TOO_LARGE,
+  SCREENSHOT_SOURCE_TOO_LARGE,
   type ScreenshotAttachmentDraft,
 } from "@/feedback/FeedbackScreenshotPicker.js";
 import {
@@ -33,7 +35,12 @@ import {
 } from "@/feedback/feedbackSubmitModelContext.js";
 import { getErrorMessage } from "@/lib/errorMessage.js";
 import { logger } from "@/logger.js";
-import type { FeedbackSubmitDraft } from "@/feedback/feedbackStore.js";
+import {
+  clearFeedbackSubmitDraft,
+  loadFeedbackSubmitDraft,
+  saveFeedbackSubmitDraft,
+  type FeedbackSubmitDraft,
+} from "@/feedback/feedbackStore.js";
 import {
   cancelFeedbackCreateSubmissionJob,
   getFeedbackSubmissionJob,
@@ -98,6 +105,7 @@ export function FeedbackSubmitForm({
   const mountedRef = useRef(true);
   const activeSubmissionJobRef = useRef<FeedbackSubmissionJob | null>(null);
   const modelContext = useActiveFeedbackModelContext();
+  const [title, setTitle] = useState<string | undefined>(initialDraft?.title);
   const [description, setDescription] = useState("");
   const [contact, setContact] = useState(() => readFeedbackContactPreference());
   const [screenshots, setScreenshots] = useState<ScreenshotAttachmentDraft[]>([]);
@@ -115,6 +123,7 @@ export function FeedbackSubmitForm({
 
   const applySubmitDraft = useCallback((draft: FeedbackSubmitDraft) => {
     appliedDraftRef.current = draft;
+    setTitle(draft.title);
     setDescription(draft.description ?? draft.title ?? "");
     if (draft.contact !== undefined) {
       setContact(draft.contact);
@@ -183,6 +192,54 @@ export function FeedbackSubmitForm({
     applySubmitDraft(initialDraft);
   }, [applySubmitDraft, initialDraft]);
 
+  // 草稿恢复：显式 initialDraft / 后台 job 优先；否则读 localStorage+IndexedDB。
+  // 恢复期间不写盘，避免把空表单覆盖到已有草稿上。
+  const [draftRestored, setDraftRestored] = useState(false);
+  useEffect(() => {
+    if (initialDraft || submissionJobId) {
+      setDraftRestored(true);
+      return;
+    }
+    let alive = true;
+    void loadFeedbackSubmitDraft().then((draft) => {
+      if (!alive) return;
+      if (draft && !appliedDraftRef.current) applySubmitDraft(draft);
+      setDraftRestored(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [applySubmitDraft, initialDraft, submissionJobId]);
+
+  useEffect(() => {
+    if (!draftRestored || submissionJob || submissionJobId) return;
+    const timer = window.setTimeout(() => {
+      saveFeedbackSubmitDraft({
+        title,
+        description,
+        contact,
+        type: ticketType,
+        module: ticketModule,
+        severity: ticketSeverity,
+        includeLogs,
+        screenshots,
+      });
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [
+    contact,
+    draftRestored,
+    description,
+    includeLogs,
+    screenshots,
+    submissionJob,
+    submissionJobId,
+    ticketModule,
+    ticketSeverity,
+    ticketType,
+    title,
+  ]);
+
   const appendScreenshotFiles = useCallback(
     async (files: File[]) => {
       const imageFiles = files.filter((file) => file.type.startsWith("image/"));
@@ -205,7 +262,14 @@ export function FeedbackSubmitForm({
           );
         }
       } catch (readError) {
-        setError(getErrorMessage(readError));
+        const message = getErrorMessage(readError);
+        setError(
+          message === SCREENSHOT_SOURCE_TOO_LARGE
+            ? formatMessage("feedback.submit.screenshotSourceTooLarge")
+            : message === SCREENSHOT_OUTPUT_TOO_LARGE
+              ? formatMessage("feedback.submit.screenshotTooLarge")
+              : message,
+        );
       }
     },
     [formatMessage, screenshots.length],
@@ -257,6 +321,7 @@ export function FeedbackSubmitForm({
       });
       const job = await startSimplifiedFeedbackSubmission({
         feedbackService,
+        title,
         // 后端正文使用 trim 后的内容，但后台卡片恢复时必须保留用户输入原文。
         description,
         contact,
@@ -277,6 +342,7 @@ export function FeedbackSubmitForm({
             }
           : undefined,
         onCompleted: (ticketId) => {
+          clearFeedbackSubmitDraft();
           toast(formatMessage("feedback.submission.submittedToast"), { durationMs: 3000 });
           if (!mountedRef.current) return;
           window.setTimeout(() => {

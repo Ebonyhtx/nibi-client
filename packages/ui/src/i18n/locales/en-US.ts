@@ -7064,6 +7064,7 @@ const enUS: Record<string, string> = {
   "feedback.submit.notReported": "Not reported",
   "feedback.tickets.newFeedback": "New feedback",
   "feedback.tickets.backToList": "Back to list",
+  "feedback.tickets.open": "View details",
   "feedback.tickets.empty.title": "No feedback yet",
   "feedback.tickets.empty.description":
     "Send a note whenever you run into an issue. We will sync progress here.",
@@ -7292,6 +7293,10 @@ const enUS: Record<string, string> = {
   "feedback.submit.submitting": "Submitting",
   "feedback.submit.submit": "Submit feedback",
   "feedback.submit.screenshotLimit": "You can add up to {count} screenshots",
+  "feedback.submit.screenshotSourceTooLarge":
+    "The original image is larger than 20 MB. Crop or compress it before uploading.",
+  "feedback.submit.screenshotTooLarge":
+    "The compressed screenshot is still larger than 5 MB. Crop it before uploading.",
   "feedback.featureRequest.title": "Request a feature",
   "feedback.featureRequest.descriptionLabel": "Request description",
   "feedback.featureRequest.descriptionPlaceholder":
@@ -7317,6 +7322,12 @@ const enUS: Record<string, string> = {
   "feedback.submission.submittedLabel": "Feedback submitted",
   "feedback.submission.submittedDetail": "We will review it soon.",
   "feedback.submission.submittedToast": "Feedback submitted. We will review it soon.",
+  "feedback.login.checking": "Checking sign-in status…",
+  "feedback.login.requiredTitle": "Sign in to your NIBI account",
+  "feedback.login.requiredHint":
+    "Signing in to NIBI is required to submit feedback, track progress, and add materials.",
+  "feedback.login.button": "Sign in with NIBI",
+  "feedback.login.failed": "Sign-in did not complete. Please try again.",
   "feedback.submission.failedLabel": "Feedback submission failed",
   "feedback.submission.networkErrorDetail":
     "Could not connect to the feedback service. Check your network, VPN, or proxy settings, then try again.",

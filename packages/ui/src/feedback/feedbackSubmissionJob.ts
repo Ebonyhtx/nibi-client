@@ -296,6 +296,30 @@ export function startFeedbackSubmissionJob(
         });
       }
 
+      if (failedScreenshots.length > 0) {
+        // 截图失败不能被当成 success：v1 只写一条 comment 然后报成功，
+        // 用户以为材料齐了，运营侧却少图。这里保留 ticketId 供“打开已有反馈补充”。
+        const message = copy.postCreateNetworkErrorDetail;
+        setState({
+          status: "error",
+          ticketId: ticket.id,
+          error: message,
+          progress: {
+            kind: "working",
+            label: copy.failedLabel,
+            detail: message,
+            indeterminate: false,
+          },
+        });
+        options.onError?.(message);
+        logger.warn("[FeedbackSubmissionJob] 工单已创建但部分截图上传失败", {
+          jobId,
+          ticketId: ticket.id,
+          failedScreenshots,
+        });
+        return { ticketId: ticket.id };
+      }
+
       setState({
         status: "success",
         ticketId: ticket.id,

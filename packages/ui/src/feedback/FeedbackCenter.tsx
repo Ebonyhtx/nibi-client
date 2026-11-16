@@ -6,6 +6,7 @@ import { FeedbackSubmitForm } from "@/feedback/FeedbackSubmitForm.js";
 import { FeatureRequestDialog } from "@/feedback/FeatureRequestDialog.js";
 import { TicketsView } from "@/feedback/TicketsView.js";
 import { FeedbackBackgroundUploadIndicator } from "@/feedback/FeedbackBackgroundUploadIndicator.js";
+import { FeedbackLoginGate } from "@/feedback/feedbackBadges.js";
 import { ArrowLeftIcon, XIcon } from "lucide-react";
 import type { IFeedbackService } from "@nibi/services";
 import type { IPlatformService } from "@nibi/shared";
@@ -77,31 +78,33 @@ export const FeedbackCenter = memo(function FeedbackCenterComponent({
               <XIcon className="size-4" />
             </Button>
           </DialogHeader>
-          <Tabs
-            value={tab}
-            onValueChange={(value) => setTab(value as typeof tab)}
-            className="flex min-h-0 flex-1 flex-col gap-0"
-          >
-            <TabsContent value="submit" className="min-h-0 flex-1 overflow-hidden outline-none">
-              <FeedbackSubmitForm
-                key={submissionJobId ?? "new-feedback"}
-                feedbackService={feedbackService}
-                platform={platform}
-                initialDraft={submitDraft}
-                submissionJobId={submissionJobId}
-                onSubmitted={(ticketId) => openTickets(ticketId)}
-                onViewTickets={() => setTab("tickets")}
-                onCancel={close}
-              />
-            </TabsContent>
-
-            <TabsContent
-              value="tickets"
-              className="flex min-h-0 flex-1 flex-col overflow-hidden outline-none"
+          <FeedbackLoginGate feedbackService={feedbackService}>
+            <Tabs
+              value={tab}
+              onValueChange={(value) => setTab(value as typeof tab)}
+              className="flex min-h-0 flex-1 flex-col gap-0"
             >
-              <TicketsView feedbackService={feedbackService} onCreateNew={() => setTab("submit")} />
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="submit" className="min-h-0 flex-1 overflow-hidden outline-none">
+                <FeedbackSubmitForm
+                  key={submissionJobId ?? "new-feedback"}
+                  feedbackService={feedbackService}
+                  platform={platform}
+                  initialDraft={submitDraft}
+                  submissionJobId={submissionJobId}
+                  onSubmitted={(ticketId) => openTickets(ticketId)}
+                  onViewTickets={() => setTab("tickets")}
+                  onCancel={close}
+                />
+              </TabsContent>
+
+              <TabsContent
+                value="tickets"
+                className="flex min-h-0 flex-1 flex-col overflow-hidden outline-none"
+              >
+                <TicketsView feedbackService={feedbackService} onCreateNew={() => setTab("submit")} />
+              </TabsContent>
+            </Tabs>
+          </FeedbackLoginGate>
         </DialogContent>
       </Dialog>
     </>

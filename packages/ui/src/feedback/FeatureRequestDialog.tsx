@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog.js";
 import { Input } from "@/components/ui/input.js";
 import { Textarea } from "@/components/ui/textarea.js";
-import { FeedbackErrorTip, RequiredMarker } from "@/feedback/feedbackBadges.js";
+import { FeedbackErrorTip, FeedbackLoginGate, RequiredMarker } from "@/feedback/feedbackBadges.js";
 import {
   readFeedbackContactPreference,
   rememberFeedbackContactInput,
@@ -207,6 +207,7 @@ export const FeatureRequestDialog = memo(function FeatureRequestDialogComponent(
           </Button>
         </DialogHeader>
 
+        <FeedbackLoginGate feedbackService={feedbackService}>
         <ScrollFadeViewport className="px-6 pb-4 pt-3">
           <div className="mx-auto flex max-w-[720px] flex-col gap-3">
             <FeatureRequestTextarea
@@ -293,6 +294,7 @@ export const FeatureRequestDialog = memo(function FeatureRequestDialogComponent(
             </div>
           </div>
         </div>
+      </FeedbackLoginGate>
       </DialogContent>
     </Dialog>
   );

@@ -17,9 +17,18 @@ import type { FeedbackUploadProgress, IFeedbackService } from "./feedback.js";
 import { FeedbackHttpClient, FeedbackUploadCanceledError } from "./feedbackHttpClient.js";
 import { cleanupLogArchive, prepareCompactLogArchive } from "./compactLogArchive.js";
 import { getFeedbackAttachmentDir } from "../paths.js";
-import { FeedbackLocalTicketStore } from "#src/feedback/feedbackLocalTicketStore.js";
 
-const NIBI_JWT_TOKEN_KEY = "nibi-jwttoken";
+/** 反馈 v2 只认 NIBI 登录令牌（服务端拒绝匿名）；不再读上游遗留 nibi-jwttoken。 */
+const NIBI_ACCESS_TOKEN_KEY = "oauth:nibi:access_token";
+
+export const FEEDBACK_LOGIN_REQUIRED_MESSAGE = "请先登录 NIBI 账号后再提交或查看反馈";
+
+export class FeedbackLoginRequiredError extends Error {
+  constructor() {
+    super(FEEDBACK_LOGIN_REQUIRED_MESSAGE);
+    this.name = "FeedbackLoginRequiredError";
+  }
+}
 
 export interface CreateFeedbackServiceOptions {
   credentialService: ICredentialService;
@@ -65,20 +74,8 @@ export function createFeedbackService(options: CreateFeedbackServiceOptions): IF
     return options.getDeviceMid?.()?.trim() || undefined;
   }
 
-  function requireHostDeviceMid(): string {
-    const deviceMid = getHostDeviceMid();
-    if (!deviceMid) {
-      throw new Error("Missing feedback device_mid");
-    }
-    return deviceMid;
-  }
-
-  async function getNibiJwtToken(): Promise<string | undefined> {
-    return (await options.credentialService.load(NIBI_JWT_TOKEN_KEY))?.trim() || undefined;
-  }
-
-  async function hasNibiJwtToken(): Promise<boolean> {
-    return Boolean(await getNibiJwtToken());
+  async function getNibiAccessToken(): Promise<string | undefined> {
+    return (await options.credentialService.load(NIBI_ACCESS_TOKEN_KEY))?.trim() || undefined;
   }
 
   const httpClient = new FeedbackHttpClient({
@@ -92,14 +89,13 @@ export function createFeedbackService(options: CreateFeedbackServiceOptions): IF
       if (deviceMid) {
         headers["X-Device-Mid"] = deviceMid;
       }
-      const jwtToken = await getNibiJwtToken();
-      if (jwtToken) {
-        headers.Authorization = `Bearer ${jwtToken}`;
-      }
+      const accessToken = await getNibiAccessToken();
+      if (!accessToken) throw new FeedbackLoginRequiredError();
+      headers.Authorization = `Bearer ${accessToken}`;
+      headers["X-Nibi-Client-Version"] = NIBI_VERSION;
       return headers;
     },
   });
-  const localTicketStore = new FeedbackLocalTicketStore();
   const uploadProgressEmitters = new Map<string, Emitter<FeedbackUploadProgress>>();
   const activeUploadControllers = new Map<string, AbortController>();
   const activeCreateControllers = new Map<string, AbortController>();
@@ -118,6 +114,7 @@ export function createFeedbackService(options: CreateFeedbackServiceOptions): IF
   }
 
   return {
+    isLoggedIn: async () => Boolean(await getNibiAccessToken()),
     create: async (input, createOptions) => {
       const device = input.device ?? buildDeviceSnapshot();
       const operationId = createOptions?.operationId?.trim();
@@ -136,11 +133,9 @@ export function createFeedbackService(options: CreateFeedbackServiceOptions): IF
           },
           {
             signal: controller.signal,
+            ...(operationId ? { idempotencyKey: operationId } : {}),
           },
         );
-        if (!(await hasNibiJwtToken())) {
-          await localTicketStore.upsert(requireHostDeviceMid(), ticket);
-        }
         return ticket;
       } finally {
         if (operationId && activeCreateControllers.get(operationId) === controller) {
@@ -154,11 +149,8 @@ export function createFeedbackService(options: CreateFeedbackServiceOptions): IF
       activeCreateControllers.get(key)?.abort();
     },
     list: async (query) => {
-      if (await hasNibiJwtToken()) {
-        return httpClient.list(query);
-      }
-      const items = await localTicketStore.list(requireHostDeviceMid(), query);
-      return { items, total: items.length };
+      // v2：列表只看服务端（登录账号维度）；本地 tickets.json 仅保留为历史缓存，不再作为数据源。
+      return httpClient.list(query);
     },
     get: (id) => httpClient.get(id),
     comment: (id, body) => httpClient.comment(id, body),

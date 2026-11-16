@@ -20,7 +20,6 @@ import type { ServiceLogger } from "../src/logger/serviceLogger.js";
 import { createNodeApiClient } from "#src/providers/api/nodeApiClient.js";
 
 const REQUEST_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ONE_GIB_BYTES = 1024 * 1024 * 1024;
 
 async function startTestServer(
   handler: Parameters<typeof createServer>[0],
@@ -298,7 +297,7 @@ describe("FeedbackHttpClient", () => {
           id: "fbk_2",
           title: "closed ticket",
           type: "bug",
-          status: "已归档",
+          status: "答复关闭",
           created_at: new Date(createdAt * 1000).toISOString(),
           updated_at: new Date(updatedAt * 1000).toISOString(),
         },
@@ -704,6 +703,11 @@ describe("FeedbackHttpClient", () => {
         });
         return;
       }
+      if (request.method === "POST" && request.url === "/feedback/attachment/att_oss/complete") {
+        response.setHeader("Content-Type", "application/json");
+        response.end(JSON.stringify({ code: 0, msg: "ok", data: { attachment_id: "att_oss" } }));
+        return;
+      }
       response.statusCode = 500;
       response.end(`unexpected request: ${request.method ?? "GET"} ${request.url ?? "/"}`);
     });
@@ -728,6 +732,7 @@ describe("FeedbackHttpClient", () => {
           message_id: "msg_5",
           file_name: "shot.png",
           size: payload.byteLength,
+          content_type: "image/png",
         },
       ]);
       expect(logger.info).toHaveBeenCalledWith(
@@ -736,7 +741,7 @@ describe("FeedbackHttpClient", () => {
         expect.objectContaining({
           url: `http://127.0.0.1:${server.port}/feedback/attachment/upload-credential`,
           body: expect.objectContaining({
-            fields: ["file_name", "message_id", "size", "ticket_id"],
+            fields: ["content_type", "file_name", "message_id", "size", "ticket_id"],
             hasTicketId: true,
             hasMessageId: true,
             fileName: { present: true, length: "shot.png".length, extension: ".png" },
@@ -778,11 +783,11 @@ describe("FeedbackHttpClient", () => {
     }
   });
 
-  it("requests upload credentials for log attachments at the 1GB client limit", async () => {
+  it("requests upload credentials for log attachments at the 32MiB client limit", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "feedback-http-client-"));
-    const filePath = join(tempDir, "one-gib.zip");
+    const filePath = join(tempDir, "at-limit.zip");
     await writeFile(filePath, "");
-    await truncate(filePath, ONE_GIB_BYTES);
+    await truncate(filePath, 32 * 1024 * 1024);
     const apiClient: ApiClient = {
       request: vi.fn(async () => {
         return new Response(
@@ -790,8 +795,8 @@ describe("FeedbackHttpClient", () => {
             code: 0,
             msg: "ok",
             data: {
-              attachment_id: "att_one_gib",
-              max_size: ONE_GIB_BYTES - 1,
+              attachment_id: "att_at_limit",
+              max_size: 32 * 1024 * 1024 - 1,
             },
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
@@ -809,16 +814,17 @@ describe("FeedbackHttpClient", () => {
 
     try {
       await expect(
-        client.uploadFile("fbk_large", "log", filePath, "one-gib.zip", "application/zip"),
-      ).rejects.toThrow(`Feedback attachment exceeds max size ${ONE_GIB_BYTES - 1}`);
+        client.uploadFile("fbk_large", "log", filePath, "at-limit.zip", "application/zip"),
+      ).rejects.toThrow(`Feedback attachment exceeds max size ${32 * 1024 * 1024 - 1}`);
       expect(apiClient.request).toHaveBeenCalledTimes(1);
       expect(apiClient.request).toHaveBeenCalledWith(
         "https://zcode.z.ai/api/v1/feedback/attachment/upload-credential",
         expect.objectContaining({
           body: JSON.stringify({
             ticket_id: "fbk_large",
-            file_name: "one-gib.zip",
-            size: ONE_GIB_BYTES,
+            file_name: "at-limit.zip",
+            size: 32 * 1024 * 1024,
+            content_type: "application/zip",
           }),
         }),
       );
@@ -827,11 +833,11 @@ describe("FeedbackHttpClient", () => {
     }
   });
 
-  it("rejects log attachments over 1GB before requesting upload credentials", async () => {
+  it("rejects log attachments over 32MiB before requesting upload credentials", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "feedback-http-client-"));
     const filePath = join(tempDir, "too-large.zip");
     await writeFile(filePath, "");
-    await truncate(filePath, ONE_GIB_BYTES + 1);
+    await truncate(filePath, 32 * 1024 * 1024 + 1);
     const apiClient: ApiClient = {
       request: vi.fn(async () => {
         throw new Error("upload credential should not be requested");
@@ -849,18 +855,18 @@ describe("FeedbackHttpClient", () => {
     try {
       await expect(
         client.uploadFile("fbk_large", "log", filePath, "too-large.zip", "application/zip"),
-      ).rejects.toThrow(`Feedback attachment exceeds max size ${ONE_GIB_BYTES}`);
+      ).rejects.toThrow(`Feedback attachment exceeds max size ${32 * 1024 * 1024}`);
       expect(apiClient.request).not.toHaveBeenCalled();
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
   });
 
-  it("keeps non-log feedback attachments capped at 100MB before requesting upload credentials", async () => {
+  it("keeps image feedback attachments capped at 5MiB before requesting upload credentials", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "feedback-http-client-"));
     const filePath = join(tempDir, "too-large.png");
     await writeFile(filePath, "");
-    await truncate(filePath, 100 * 1024 * 1024 + 1);
+    await truncate(filePath, 5 * 1024 * 1024 + 1);
     const apiClient: ApiClient = {
       request: vi.fn(async () => {
         throw new Error("upload credential should not be requested");
@@ -878,7 +884,7 @@ describe("FeedbackHttpClient", () => {
     try {
       await expect(
         client.uploadFile("fbk_large", "image", filePath, "too-large.png", "image/png"),
-      ).rejects.toThrow("Feedback attachment exceeds max size 104857600");
+      ).rejects.toThrow(`Feedback attachment exceeds max size ${5 * 1024 * 1024}`);
       expect(apiClient.request).not.toHaveBeenCalled();
     } finally {
       await rm(tempDir, { recursive: true, force: true });
@@ -913,7 +919,7 @@ describe("createFeedbackService", () => {
     const service = createFeedbackService({
       apiClient: makeFetchApiClient(),
       credentialService: makeCredentialService((key) => {
-        if (key === "nibi-jwttoken") return "shared-backend-jwt";
+        if (key === "oauth:nibi:access_token") return "shared-backend-jwt";
         return null;
       }),
       oauthService: makeOAuthService(),
@@ -940,7 +946,7 @@ describe("createFeedbackService", () => {
     const service = createFeedbackService({
       apiClient: makeFetchApiClient(),
       credentialService: makeCredentialService((key) => {
-        if (key === "nibi-jwttoken") return "shared-backend-jwt";
+        if (key === "oauth:nibi:access_token") return "shared-backend-jwt";
         return null;
       }),
       oauthService: makeOAuthService(),
@@ -965,7 +971,7 @@ describe("createFeedbackService", () => {
     const service = createFeedbackService({
       apiClient: makeFetchApiClient(),
       credentialService: makeCredentialService((key) => {
-        if (key === "nibi-jwttoken") return "shared-backend-jwt";
+        if (key === "oauth:nibi:access_token") return "shared-backend-jwt";
         return null;
       }),
       oauthService: makeOAuthService(),
@@ -975,67 +981,29 @@ describe("createFeedbackService", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("uses the host device_mid for anonymous tickets and local ticket storage", async () => {
+  it("requires NIBI login instead of using anonymous local tickets", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "feedback-service-"));
     setDataBaseDir(tempDir);
-    const createdAt = epochSeconds(2026, 6, 25, 12);
-    const hostDeviceMid = "desktop-device-mid-001";
-    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
-      const headers = init?.headers as Record<string, string>;
-      const body = JSON.parse(String(init?.body ?? "{}")) as {
-        device_mid?: string;
-        environment?: Record<string, unknown>;
-      };
-      expect(headers.Authorization).toBeUndefined();
-      expect(headers["X-Device-Mid"]).toBe(hostDeviceMid);
-      expect(headers["X-Feedback-Client-Id"]).toBeUndefined();
-      expect(body.device_mid).toBe(hostDeviceMid);
-      expect(body.environment?.app_version).toEqual(expect.any(String));
-      expect(body.environment?.os_version).toBe(release());
-      expect(String(body.environment?.os_version ?? "").length).toBeLessThanOrEqual(64);
-      return new Response(
-        JSON.stringify({
-          code: 0,
-          msg: "ok",
-          data: {
-            ticket_id: "fbk_anon",
-            device_mid: body.device_mid,
-            status: "submitted",
-            created_at: createdAt,
-          },
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
-    });
+    const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-    const credentialService = makeCredentialService((key) =>
-      key === "zcodefeedbackclientid" ? "device_legacy_path_hash" : null,
-    );
 
     try {
       const service = createFeedbackService({
         apiClient: makeFetchApiClient(),
         apiBaseUrl: "https://zcode.z.ai/api/v1",
-        getDeviceMid: () => hostDeviceMid,
-        credentialService,
+        getDeviceMid: () => "desktop-device-mid-001",
+        credentialService: makeCredentialService(() => null),
         oauthService: makeOAuthService(),
       });
 
-      await service.create({ title: "匿名反馈", description: "desc", type: "bug" });
-      const list = await service.list({ mine: true });
-
-      const headers = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>;
-      expect(headers["X-Device-Mid"]).toBe(hostDeviceMid);
-      expect(credentialService.save).not.toHaveBeenCalled();
-      expect(list.items).toEqual([
-        expect.objectContaining({
-          id: "fbk_anon",
-          title: "匿名反馈",
-          type: "bug",
-          status: "已提交",
-        }),
-      ]);
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      await expect(
+        service.create({ title: "匿名反馈", description: "desc", type: "bug" }),
+      ).rejects.toThrow("请先登录 NIBI 账号后再提交或查看反馈");
+      await expect(service.list({ mine: true })).rejects.toThrow(
+        "请先登录 NIBI 账号后再提交或查看反馈",
+      );
+      await expect(service.isLoggedIn()).resolves.toBe(false);
+      expect(fetchMock).not.toHaveBeenCalled();
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
@@ -1079,7 +1047,7 @@ describe("createFeedbackService", () => {
         apiBaseUrl: "https://zcode.z.ai/api/v1",
         getDeviceMid: () => "desktop-device-mid-222",
         credentialService: makeCredentialService((key) => {
-          if (key === "nibi-jwttoken") return "shared-backend-jwt";
+          if (key === "oauth:nibi:access_token") return "shared-backend-jwt";
           return null;
         }),
         oauthService: makeOAuthService(),
@@ -1091,7 +1059,7 @@ describe("createFeedbackService", () => {
           expect.objectContaining({
             id: "fbk_login",
             title: "登录反馈",
-            status: "已归档",
+            status: "答复关闭",
           }),
         ],
       });
@@ -1123,7 +1091,9 @@ describe("createFeedbackService", () => {
       apiClient,
       apiBaseUrl: "https://zcode.z.ai/api/v1",
       getDeviceMid: () => "desktop-device-mid-cancel",
-      credentialService: makeCredentialService(),
+      credentialService: makeCredentialService((key) =>
+        key === "oauth:nibi:access_token" ? "cancel-jwt" : null,
+      ),
       oauthService: makeOAuthService(),
     });
 

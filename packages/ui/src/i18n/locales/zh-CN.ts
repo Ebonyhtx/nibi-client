@@ -6734,6 +6734,7 @@ const zhCN: Record<string, string> = {
   "feedback.submit.notReported": "未上报",
   "feedback.tickets.newFeedback": "新建反馈",
   "feedback.tickets.backToList": "返回列表",
+  "feedback.tickets.open": "查看详情",
   "feedback.tickets.empty.title": "还没有反馈记录",
   "feedback.tickets.empty.description": "遇到问题时随手提一条，我们会同步处理进度。",
   "feedback.tickets.empty.action": "提交反馈",
@@ -6949,6 +6950,8 @@ const zhCN: Record<string, string> = {
   "feedback.submit.submitting": "提交中",
   "feedback.submit.submit": "提交反馈",
   "feedback.submit.screenshotLimit": "最多添加 {count} 张截图",
+  "feedback.submit.screenshotSourceTooLarge": "原图超过 20MB，请先裁剪或压缩后再上传。",
+  "feedback.submit.screenshotTooLarge": "截图压缩后仍超过 5MB，请裁剪后再上传。",
   "feedback.featureRequest.title": "给产品提需求",
   "feedback.featureRequest.descriptionLabel": "需求描述",
   "feedback.featureRequest.descriptionPlaceholder":
@@ -6972,6 +6975,11 @@ const zhCN: Record<string, string> = {
   "feedback.submission.submittedLabel": "反馈已提交",
   "feedback.submission.submittedDetail": "我们会尽快处理。",
   "feedback.submission.submittedToast": "反馈已提交，我们会尽快处理。",
+  "feedback.login.checking": "正在检查登录状态…",
+  "feedback.login.requiredTitle": "请先登录 NIBI 账号",
+  "feedback.login.requiredHint": "提交反馈、查看处理进度和补充材料都需要登录 NIBI 账号。",
+  "feedback.login.button": "登录 NIBI 账号",
+  "feedback.login.failed": "登录未完成，请重试。",
   "feedback.submission.failedLabel": "反馈提交失败",
   "feedback.submission.networkErrorDetail": "无法连接反馈服务，请检查网络、VPN 或代理设置后重试。",
   "feedback.submission.postCreateNetworkErrorDetail":

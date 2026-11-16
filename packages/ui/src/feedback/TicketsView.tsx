@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, CopyIcon, Loader2, PlusCircle, RefreshCcw } from "lucide-react";
-import type { FeedbackTicketSummary } from "@nibi/shared";
+import { ArrowLeft, Check, ChevronRight, CopyIcon, Loader2, PlusCircle, RefreshCcw } from "lucide-react";
+import type { FeedbackTicketDetail, FeedbackTicketSummary } from "@nibi/shared";
 import type { IFeedbackService } from "@nibi/services";
 import { Button } from "@/components/ui/button.js";
 import { NibiEmptyStateArt } from "@/components/NibiEmptyStateArt.js";
@@ -8,6 +8,8 @@ import { cn } from "@/components/lib/utils.js";
 import { FeedbackErrorTip, StatusIndicator } from "@/feedback/feedbackBadges.js";
 import { ScrollFadeViewport } from "@/components/ui/scroll-fade-viewport.js";
 import { useFeedbackStore } from "@/feedback/feedbackStore.js";
+import { TicketDetailView } from "@/feedback/TicketDetail.js";
+import { FeedbackProcessView } from "@/feedback/FeedbackProcessView.js";
 import { formatRelativeTime } from "@/feedback/feedbackUserView.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { getErrorMessage } from "@/lib/errorMessage.js";
@@ -21,6 +23,7 @@ export function TicketsView({
   onCreateNew: () => void;
 }) {
   const selectedTicketId = useFeedbackStore((state) => state.selectedTicketId);
+  const setSelectedTicketId = useFeedbackStore((state) => state.setSelectedTicketId);
   const { intl } = useNibiIntl();
   const formatMessage = intl.formatMessage;
   const copiedResetTimerRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null);
@@ -28,6 +31,35 @@ export function TicketsView({
   const [loadingList, setLoadingList] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copiedTicketId, setCopiedTicketId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<FeedbackTicketDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [ticketView, setTicketView] = useState<"detail" | "process">("detail");
+
+  const loadDetail = useCallback(
+    async (ticketId: string) => {
+      setLoadingDetail(true);
+      setDetailError(null);
+      try {
+        setDetail(await feedbackService.get(ticketId));
+      } catch (loadError) {
+        setDetailError(getErrorMessage(loadError));
+      } finally {
+        setLoadingDetail(false);
+      }
+    },
+    [feedbackService],
+  );
+
+  useEffect(() => {
+    if (!selectedTicketId) {
+      setDetail(null);
+      setDetailError(null);
+      setTicketView("detail");
+      return;
+    }
+    void loadDetail(selectedTicketId);
+  }, [loadDetail, selectedTicketId]);
 
   const loadList = useCallback(async () => {
     setLoadingList(true);
@@ -86,6 +118,47 @@ export function TicketsView({
     [formatMessage],
   );
 
+  if (selectedTicketId) {
+    if (loadingDetail && !detail) return <TicketsInitialLoadingState />;
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-popover">
+        <div className="flex shrink-0 items-center gap-2 px-6 pb-1 pt-3">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-8 rounded-lg text-foreground-subtle hover:bg-hover hover:text-foreground"
+            onClick={() => setSelectedTicketId(null)}
+          >
+            <ArrowLeft />
+            {formatMessage({ id: "feedback.tickets.backToList" })}
+          </Button>
+        </div>
+        <ScrollFadeViewport className="px-6 pb-6 pt-1">
+          {detailError ? (
+            <FeedbackErrorTip message={detailError} />
+          ) : detail ? (
+            ticketView === "process" ? (
+              <FeedbackProcessView
+                ticket={detail}
+                feedbackService={feedbackService}
+                onBack={() => setTicketView("detail")}
+                onRefresh={() => loadDetail(selectedTicketId)}
+              />
+            ) : (
+              <TicketDetailView
+                ticket={detail}
+                feedbackService={feedbackService}
+                onRefresh={() => loadDetail(selectedTicketId)}
+                onOpenProcess={() => setTicketView("process")}
+              />
+            )
+          ) : null}
+        </ScrollFadeViewport>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-popover">
       {loadingList && items.length === 0 ? (
@@ -105,6 +178,7 @@ export function TicketsView({
             selectedTicketId={selectedTicketId}
             copiedTicketId={copiedTicketId}
             onCopyTicketId={handleCopyTicketId}
+            onOpenTicket={setSelectedTicketId}
           />
           {loadingList && items.length > 0 ? (
             <div className="flex items-center justify-center py-2 text-ui-xs text-foreground-subtle">
@@ -154,11 +228,13 @@ export function FeedbackTicketList({
   selectedTicketId,
   copiedTicketId,
   onCopyTicketId,
+  onOpenTicket,
 }: {
   items: FeedbackTicketSummary[];
   selectedTicketId: string | null;
   copiedTicketId: string | null;
   onCopyTicketId: (ticketId: string) => void;
+  onOpenTicket: (ticketId: string) => void;
 }) {
   const { intl } = useNibiIntl();
   const formatMessage = intl.formatMessage;
@@ -221,6 +297,17 @@ export function FeedbackTicketList({
                   ) : (
                     <CopyIcon className="size-3" />
                   )}
+                </Button>
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label={formatMessage({ id: "feedback.tickets.open" })}
+                  title={formatMessage({ id: "feedback.tickets.open" })}
+                  onClick={() => onOpenTicket(item.id)}
+                  className="shrink-0 text-foreground-subtle hover:text-foreground"
+                >
+                  <ChevronRight className="size-3.5" />
                 </Button>
               </div>
             </li>

@@ -190,27 +190,101 @@ function ScreenshotThumb({
   );
 }
 
-export function readScreenshotDraft(file: File): Promise<ScreenshotAttachmentDraft> {
+export const MAX_SCREENSHOT_SOURCE_BYTES = 20 * 1024 * 1024;
+export const MAX_SCREENSHOT_OUTPUT_BYTES = 5 * 1024 * 1024;
+export const SCREENSHOT_SOURCE_TOO_LARGE = "SCREENSHOT_SOURCE_TOO_LARGE";
+export const SCREENSHOT_OUTPUT_TOO_LARGE = "SCREENSHOT_OUTPUT_TOO_LARGE";
+const MAX_SCREENSHOT_DIMENSION = 2048;
+
+function readFileDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error("截图读取失败"));
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-      const commaIndex = result.indexOf(",");
-      if (commaIndex < 0) {
-        reject(new Error("截图数据格式不正确"));
-        return;
-      }
-      resolve({
-        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        filename: file.name || `screenshot-${Date.now()}.png`,
-        contentType: file.type || "image/png",
-        dataBase64: result.slice(commaIndex + 1),
-        size: file.size,
-      });
-    };
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
     reader.readAsDataURL(file);
   });
+}
+
+function dataUrlPayload(dataUrl: string): { base64: string; bytes: number } {
+  const commaIndex = dataUrl.indexOf(",");
+  if (commaIndex < 0) return { base64: "", bytes: 0 };
+  const base64 = dataUrl.slice(commaIndex + 1);
+  return { base64, bytes: Math.floor((base64.length * 3) / 4) };
+}
+
+function jpegFileName(name: string): string {
+  const base = (name || `screenshot-${Date.now()}`).replace(/\.[^.]+$/, "");
+  return `${base || "screenshot"}.jpg`;
+}
+
+/**
+ * 截图入草稿前先在本地压缩：最长边 2048，JPEG 质量 0.9→0.5，仍超 5MiB 就继续缩小。
+ * 原图 >20MiB 直接拒绝（避免解码大图把渲染进程内存打爆）；不把原图发给服务端。
+ */
+export async function readScreenshotDraft(file: File): Promise<ScreenshotAttachmentDraft> {
+  if (file.size > MAX_SCREENSHOT_SOURCE_BYTES) throw new Error(SCREENSHOT_SOURCE_TOO_LARGE);
+
+  if (typeof createImageBitmap !== "function" || typeof document === "undefined") {
+    const dataUrl = await readFileDataUrl(file);
+    const { base64, bytes } = dataUrlPayload(dataUrl);
+    if (!base64 || bytes > MAX_SCREENSHOT_OUTPUT_BYTES) throw new Error(SCREENSHOT_OUTPUT_TOO_LARGE);
+    return {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      filename: file.name || `screenshot-${Date.now()}.png`,
+      contentType: file.type || "image/png",
+      dataBase64: base64,
+      size: bytes,
+    };
+  }
+
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    const dataUrl = await readFileDataUrl(file);
+    const { base64, bytes } = dataUrlPayload(dataUrl);
+    if (!base64 || bytes > MAX_SCREENSHOT_OUTPUT_BYTES) throw new Error(SCREENSHOT_OUTPUT_TOO_LARGE);
+    return {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      filename: file.name || `screenshot-${Date.now()}.png`,
+      contentType: file.type || "image/png",
+      dataBase64: base64,
+      size: bytes,
+    };
+  }
+
+  try {
+    const scale = Math.min(1, MAX_SCREENSHOT_DIMENSION / Math.max(bitmap.width, bitmap.height));
+    let width = Math.max(1, Math.round(bitmap.width * scale));
+    let height = Math.max(1, Math.round(bitmap.height * scale));
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      if (!context) break;
+      context.drawImage(bitmap, 0, 0, width, height);
+      for (const quality of [0.9, 0.8, 0.7, 0.6, 0.5]) {
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        const { base64, bytes } = dataUrlPayload(dataUrl);
+        if (!base64) continue;
+        if (bytes <= MAX_SCREENSHOT_OUTPUT_BYTES) {
+          return {
+            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            filename: jpegFileName(file.name),
+            contentType: "image/jpeg",
+            dataBase64: base64,
+            size: bytes,
+          };
+        }
+      }
+      width = Math.max(1, Math.round(width * 0.8));
+      height = Math.max(1, Math.round(height * 0.8));
+    }
+  } finally {
+    bitmap.close();
+  }
+  throw new Error(SCREENSHOT_OUTPUT_TOO_LARGE);
 }
 
 function getScreenshotDataUrl(item: ScreenshotAttachmentDraft) {
