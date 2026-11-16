@@ -92,6 +92,33 @@ export function resolveBuildRemoteCdnReleaseRoots(runtimeEnv: Record<string, str
   });
 }
 
+/**
+ * 生产打包必须带远端资源下载源，否则 `__NIBI_REMOTE_CDN_RELEASE_ROOTS__` 会编译成空数组：
+ * 安装包能构建、能启动，只有用户点“连接设备”时才在 probe 阶段报“远端资源下载源未配置”，
+ * 重试也不会好。4.1.0 就是这样带着空下载源发出去的，所以在构建期直接失败。
+ *
+ * 只在生产打包路径生效（NODE_ENV=production + NIBI_ENV=production）。开发态远端资源走
+ * mock-cdn 或运行期 NIBI_REMOTE_ASSET_CDN_BASE_URL，不应被这条拦住。
+ */
+export function assertProductionRemoteCdnConfigured(
+  releaseRoots: readonly string[],
+  options: { nodeEnv?: string; nibiEnv: "test" | "production" },
+): void {
+  if (options.nodeEnv !== "production" || options.nibiEnv !== "production") return;
+  if (releaseRoots.length > 0) return;
+  throw new Error(
+    "生产构建没有配置远端资源下载源，远端 SSH 工作区会不可用。" +
+      "请设置 CDN_DOMAIN（当前应为 dl.nibistudio.cn，OSS_PATH_PREFIX 默认 releases/electron），" +
+      "或把它们写进仓库根 .env.production。",
+  );
+}
+
+const remoteCdnReleaseRoots = resolveBuildRemoteCdnReleaseRoots(env);
+assertProductionRemoteCdnConfigured(remoteCdnReleaseRoots, {
+  nodeEnv: process.env.NODE_ENV,
+  nibiEnv,
+});
+
 export function resolveBuildPackagedAgentTelemetryEnv(
   runtimeEnv: Record<string, string | undefined>,
 ): Record<string, string> {
@@ -200,8 +227,9 @@ function createSharedDefines() {
       process.env.NIBI_CUA_HELPER_BUILD_ID?.trim() ?? "",
     ),
     // Bugfix: remote runtime CDN 根之前硬编码在 main bundle 里，OSS/CDN 切换必须改代码。
-    // 这里改成构建期从 CI 的 CDN_DOMAIN/OSS_PATH_PREFIX 注入；没有配置时保留旧默认。
-    __NIBI_REMOTE_CDN_RELEASE_ROOTS__: JSON.stringify(resolveBuildRemoteCdnReleaseRoots(env)),
+    // 这里改成构建期从 CI 的 CDN_DOMAIN/OSS_PATH_PREFIX 注入（本地/CI 缺省值见仓库根
+    // .env.production；生产打包缺配置时在上面直接失败，不再产出空下载源的安装包）。
+    __NIBI_REMOTE_CDN_RELEASE_ROOTS__: JSON.stringify(remoteCdnReleaseRoots),
   };
 }
 
