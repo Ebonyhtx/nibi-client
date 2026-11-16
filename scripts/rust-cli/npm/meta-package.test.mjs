@@ -114,18 +114,19 @@ after(async () => {
   await rm(root, { force: true, recursive: true });
 });
 
-test("the launcher maps exactly the five published platform packages", () => {
+test("the launcher maps exactly the four published platform packages", () => {
   assert.deepEqual(Object.keys(PLATFORM_PACKAGES), [
     "linux-x64",
     "linux-arm64",
     "darwin-arm64",
     "win32-x64",
-    "android-arm64",
   ]);
-  // 平台包清单与 package.mjs 的 TARGETS 是同一份发布矩阵；新增 target 时两边一起改。
+  // Android 仍在 package.mjs 的 TARGETS 里（手动打包能力），但不在发布矩阵；
+  // 平台包清单只覆盖实际发布/由 META 安装的那四个。
   assert.deepEqual(
     Object.values(PLATFORM_PACKAGES).sort(),
     Object.values(TARGETS)
+      .filter((platform) => platform.id !== "android-arm64")
       .map((platform) => `@nibi-studio/cli-${platform.id}`)
       .sort(),
   );
@@ -133,7 +134,7 @@ test("the launcher maps exactly the five published platform packages", () => {
   assert.equal(platformPackageName({ platform: "linux", arch: "arm64" }), "@nibi-studio/cli-linux-arm64-gnu");
   assert.equal(platformPackageName({ platform: "darwin", arch: "arm64" }), "@nibi-studio/cli-darwin-arm64");
   assert.equal(platformPackageName({ platform: "win32", arch: "x64" }), "@nibi-studio/cli-win32-x64-msvc");
-  assert.equal(platformPackageName({ platform: "android", arch: "arm64" }), "@nibi-studio/cli-android-arm64");
+  assert.throws(() => platformPackageName({ platform: "android", arch: "arm64" }), /unsupported platform/u);
 });
 
 test("unsupported platforms fail closed with the supported list", () => {
@@ -144,7 +145,7 @@ test("unsupported platforms fail closed with the supported list", () => {
   ]) {
     assert.throws(
       () => platformPackageName(platform),
-      /unsupported platform .*; supported platforms: linux-x64, linux-arm64, darwin-arm64, win32-x64, android-arm64/u,
+      /unsupported platform .*; supported platforms: linux-x64, linux-arm64, darwin-arm64, win32-x64/u,
     );
   }
 });
@@ -161,7 +162,6 @@ test("the META manifest pins exact platform versions and exposes only the nibi b
     "@nibi-studio/cli-linux-arm64-gnu": "4.2.0",
     "@nibi-studio/cli-darwin-arm64": "4.2.0",
     "@nibi-studio/cli-win32-x64-msvc": "4.2.0",
-    "@nibi-studio/cli-android-arm64": "4.2.0",
   });
   for (const version of Object.values(manifest.optionalDependencies)) {
     assert.doesNotMatch(version, /[\^~*x]/u);

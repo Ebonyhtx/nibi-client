@@ -15,13 +15,17 @@ import { fileURLToPath } from "node:url";
 
 export const META_PACKAGE_NAME = "@nibi-studio/cli";
 
-/** 已发布的平台包：键是 Node 的 `${process.platform}-${process.arch}`。 */
+/** 已发布的平台包：键是 Node 的 `${process.platform}-${process.arch}`。
+ *
+ * Android 自 2026-11-17 起不再经 npm 分发：NIBI-GO 已把内核 fork 进自己的仓库，
+ * 由 `NIBI-GO/kernel` 自建 `libnibi.so`/`nibi-rs`，不消费 `@nibi-studio/cli-android-arm64`。
+ * `package.mjs` 仍保留 Android 的打包能力供历史/手动验证，但不在发布矩阵里。
+ */
 export const PLATFORM_PACKAGES = Object.freeze({
   "linux-x64": "@nibi-studio/cli-linux-x64-gnu",
   "linux-arm64": "@nibi-studio/cli-linux-arm64-gnu",
   "darwin-arm64": "@nibi-studio/cli-darwin-arm64",
   "win32-x64": "@nibi-studio/cli-win32-x64-msvc",
-  "android-arm64": "@nibi-studio/cli-android-arm64",
 });
 
 /** 与 Rust 端 `update::install::MARKERS` 的顺序一致（pnpm 先于 npm，npm 先于 bun）。 */

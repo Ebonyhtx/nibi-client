@@ -52,9 +52,8 @@ ${Object.entries(PLATFORM_PACKAGES)
   .join("\n")}
 
 Unsupported platforms fail closed with an actionable error; they do not fall
-back to another architecture. Linux packages target glibc (gnu). The
-\`android-arm64\` package is distributed for NIBI-GO and does not use the Node
-launcher.
+back to another architecture. Linux packages target glibc (gnu). Android is no
+longer distributed through npm; NIBI-GO builds its kernel in its own repository.
 
 The launcher sets \`NIBI_MANAGED_PACKAGE\`, \`NIBI_MANAGED_PLATFORM_PACKAGE\`
 and the matching \`NIBI_MANAGED_BY_*\` marker in the child environment so

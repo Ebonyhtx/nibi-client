@@ -16,7 +16,7 @@ name: rust-npm-packages
 # 「Trusted Publisher」设置里登记过的 仓库 + workflow 文件名（本文件：rust-npm-packages.yml）。
 # 前置（一次性，运营者在 npmjs.com 上给每个已发布的包各配一次，包括 META 包
 # `@nibi-studio/cli`）：组织/用户 `Ebonyhtx`、仓库 `nibi-client`、workflow
-# `rust-npm-packages.yml`、允许 `npm publish`。新包（如 `@nibi-studio/cli-android-arm64`
+# `rust-npm-packages.yml`、允许 `npm publish`。新包（如 `@nibi-studio/cli-win32-x64-msvc`
 # 或 `@nibi-studio/cli`）首次发布前要先确认 trusted publisher 已登记。
 #
 # 自动发布只在手动触发 `publish: true` 时跑（版本号一经 publish 就永久占用），
@@ -73,9 +73,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # 与 scripts/rust-cli/npm/package.mjs 的 TARGETS 一一对应（Intel Mac 不发布）。
-          # android 只走 npm 分发（NIBI-GO 直接消费），不进内核 ssh-connect 的 `Platform`：
-          # 那张表是 SSH 远端部署用的，Android 上的 uname 仍然是 Linux/aarch64。
+          # 发布矩阵：linux-x64/arm64、darwin-arm64、win32-x64（Intel Mac 不发布）。
+          # Android 自 2026-11-17 起不再经 npm 发布：NIBI-GO 已把内核 fork 到本仓，
+          # 由 NIBI-GO/kernel 自建；package.mjs 仍保留 Android 打包能力供手动验证，
+          # 下方 NDK 步骤因 matrix 无 android 不会运行。
           - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             package-id: linux-x64-gnu
@@ -93,12 +94,6 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             package-id: win32-x64-msvc
-          # Android：NDK 的 clang 交叉编译；runner 镜像自带 NDK（`ANDROID_NDK_HOME`）。
-          # `bin/nibi-rs` 按 API 26 编（只做开发机对照）；进程内 `lib/libnibi.so` 单独按
-          # API 24 重链（NIBI-GO minSdk=24），并把 NDK 的 `libc++_shared.so` 一并放进包里。
-          - os: ubuntu-24.04
-            target: aarch64-linux-android
-            package-id: android-arm64
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -300,8 +295,6 @@ jobs:
             package-id: darwin-arm64
           - os: windows-latest
             package-id: win32-x64-msvc
-          - os: ubuntu-24.04
-            package-id: android-arm64
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 

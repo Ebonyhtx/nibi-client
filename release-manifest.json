@@ -14,7 +14,7 @@
           "@nibi-studio/cli-linux-x64-gnu",
           "@nibi-studio/cli-linux-arm64-gnu",
           "@nibi-studio/cli-darwin-arm64",
-          "@nibi-studio/cli-android-arm64"
+          "@nibi-studio/cli-win32-x64-msvc"
         ],
         "meta": "@nibi-studio/cli"
       }
