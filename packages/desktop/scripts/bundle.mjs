@@ -800,6 +800,17 @@ async function main() {
       artifactPath,
     ]),
   );
+
+  // electron-updater 的 NSIS 差分下载依赖同名 .blockmap；缺了会静默回退整包。
+  // 发布前在这里直接失败，不把“忘记上传/忘记生成 blockmap”留到用户更新时才发现。
+  runTimedSync("bundle:assert-blockmap", () => {
+    if (!artifactPath.toLowerCase().endsWith(".exe")) return;
+    const blockmapPath = `${artifactPath}.blockmap`;
+    if (!existsSync(blockmapPath) || statSync(blockmapPath).size === 0) {
+      throw new Error(`Windows installer is missing its .blockmap (delta updates would fall back to full download): ${blockmapPath}`);
+    }
+    console.log(`[bundle] blockmap present: ${blockmapPath} (${statSync(blockmapPath).size} bytes)`);
+  });
 }
 
 const entryHref = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
