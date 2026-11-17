@@ -31,6 +31,14 @@ impl Dialect {
             PathStyle::Windows => Self::GitBash,
         }
     }
+
+    /// 这个方言对应的路径风格（`of` 的逆）。
+    pub fn path_style(self) -> PathStyle {
+        match self {
+            Self::Posix => PathStyle::Posix,
+            Self::GitBash => PathStyle::Windows,
+        }
+    }
 }
 
 /// 一条 Bash 命令的识别结果（Node `DangerousCommandResult`，去掉位置）。

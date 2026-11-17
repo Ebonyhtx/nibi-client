@@ -198,8 +198,9 @@ pub(crate) struct SessionShell {
 pub(crate) struct State {
     pub commands: HashMap<OperationId, Arc<Running>>,
     pub sessions: HashMap<SessionId, SessionShell>,
-    /// 停止操作的结果，按 operationId 重放（README §6 规则 3）。
-    pub stops: HashMap<OperationId, (BackgroundTask, BackgroundStop)>,
+    /// 停止操作的结果，按 operationId 与期望的执行身份重放（README §6 规则 3）。
+    /// 第三个值是停止时带的 `expectedExecutionId`：同一个 operationId 换了身份也算参数不同（拒绝而不是复用结果）。
+    pub stops: HashMap<OperationId, (BackgroundTask, Option<String>, BackgroundStop)>,
     /// 正在跑的 Linux sandbox 与 bwrap 在宿主上建的挂载点（命令结束后清理）。
     pub mounts: mounts::Mounts,
 }

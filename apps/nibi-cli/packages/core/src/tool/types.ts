@@ -18,6 +18,7 @@ import type {
   HttpClientPort,
   ImageProcessorPort,
   JsonSchema,
+  Logger,
   Model,
   ModelCatalogPort,
   ModelContentProtection,
@@ -137,6 +138,8 @@ export interface BackgroundTaskControlPort {
 export interface ToolExecutionContext {
   toolSearch?: ToolSearchExecutionContext;
   toolCallId: string;
+  /** 工具执行器的结构化 logger；与 tool.call.started/completed 同源。 */
+  logger?: Logger;
   /**
    * 当前 Tool 的实时观测写入器。Handler 只能通过窄接口写事实，不能接触原始 OTel Span。
    */

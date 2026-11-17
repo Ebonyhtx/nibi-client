@@ -283,7 +283,8 @@ export async function setPluginEnabled(
   return {
     plugin: {
       ...toPluginInfo(result.plugin),
-      enabledSource: params.scope ?? "user",
+      // 实际落盘作用域：workspace 作用域的“启用”会提升到 user（项目层只能禁用插件）。
+      enabledSource: result.scope,
     },
     enabled: result.enabled,
   };

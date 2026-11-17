@@ -15,6 +15,18 @@
 
 运行配置一般按内置默认、用户、项目、环境变量及入口参数叠加。同名 MCP server 的用户配置具有更高优先级；项目 Hook 还必须通过独立的工作区信任。不能用一条“后写覆盖前写”规则概括所有字段。
 
+### 项目级只认这些键
+
+`<project>/nibi.json` 和 `<project>/.nibi/config.json` 来自工作区，按不可信输入处理。项目层只读取以下声明：
+
+- `hooks`：只进工作区 Hook 的待信任候选，未信任不会执行。
+- `mcp`：项目 MCP 服务器，另受工作区 MCP 信任约束。
+- `plugins.dirs`：项目内插件目录。相对路径按项目配置所在目录解析，解析后必须仍在工作区（git/worktree 根）之内；越界项丢弃并记 `plugins.dirs[i]` 诊断。
+- `plugins.enabledPlugins`：只认 `false`（禁用）；写 `true` 会被丢弃，仓库不能借此给已安装插件放权。
+- `plugins.options`：按插件 manifest 的 `userConfig` schema 消费。
+
+其余键全部忽略，并逐条输出 `config_project_key_ignored`（内核侧为 `config.project_keys.ignored`）诊断：`permission.*`、`storage.*`、`network.*`、`modelStream.*`、`features.*`、`memory.*`、`skills.*`、`skillOverrides`、`commandOverrides`、`logging.*`、`toolConcurrency.*`、`modelAnomalyGuard.*`、`ui.*`、`plugins.extraKnownMarketplaces`、`plugins.suppressedBuiltins` 等。把权限、存储位置或功能开关写进项目文件不会生效；这些配置应放在用户级 `~/.nibi/cli/config.json`。
+
 ## 个人模型配置示例
 
 以下是当前文件格式。它用于自定义 OpenAI Chat Completions 兼容服务，地址、模型名和 Key 必须替换。`api.baseUrl` 的拼写与旧格式的 `options.baseURL` 不同。

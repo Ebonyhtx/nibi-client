@@ -38,6 +38,16 @@ jobs:
           node-version: "24.22.1"
       - name: Public tree policy
         run: node scripts/check-public-repo.mjs
+      # 品牌/内核源码门禁：只读 git 跟踪文件，不需要 pnpm install，放在 policy job 里
+      # 与静态检查并行，不额外增加 runner 数量。
+      - name: Brand and kernel source gates
+        run: |
+          node scripts/check-storage-keys.mjs
+          node scripts/check-session-agent-identity.mjs
+          node scripts/check-visual-brand.mjs
+          node scripts/check-instance-root-paths.mjs
+          node scripts/check-brand-model-names.mjs
+          node scripts/check-kernel-upstream-gates.mjs
 
   linux-static:
     name: linux-static
@@ -59,6 +69,9 @@ jobs:
         run: bash scripts/pnpm-install-ci.sh
       - name: Build contracts, CLI and e2e-report packages
         run: pnpm exec turbo run build --filter="./apps/nibi-cli/packages/*" --concurrency=4 && pnpm --filter @nibi/e2e-report build:node
+      # 产物判据必须在构建之后跑；policy job 里没有产物，所以单独放这里。
+      - name: Brand artifact gate
+        run: node scripts/check-identity-residue.mjs
       - name: Lint
         run: pnpm run lint
       - name: Accessibility gate

@@ -2238,6 +2238,11 @@ export type NibiSessionGoalResult = z.infer<typeof nibiSessionGoalResultSchema>;
 export const nibiSessionStopParamsSchema = z
   .object({
     sessionId: nonEmptyString,
+    /**
+     * 客户端点击 Stop 时看到的执行身份。Runtime 只取消 id 匹配的当前前台执行；
+     * 旧执行的迟到 Stop 必须 no-op，不能误杀后来启动的新执行。旧客户端可省略。
+     */
+    expectedExecutionId: nonEmptyString.optional(),
   })
   .strict();
 const nibiBackgroundTaskInfoStatusSchema = z.enum([

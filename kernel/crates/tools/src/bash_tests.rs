@@ -8,7 +8,7 @@ use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, FileContent, OperationContext, Origin, OutputStream,
     ReadFile, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use nibi_kernel_api::env_shell::ShellState;
+use nibi_kernel_api::env_shell::{ShellKind, ShellState};
 use nibi_kernel_api::ids::{
     AgentId, EnvironmentId, Generation, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
 };
@@ -245,6 +245,9 @@ async fn foreground_commands_use_clamped_timeouts_and_the_session_cwd() {
     );
     assert!(start.background.is_none() && start.sandbox.is_none());
     assert_eq!(start.task, output::task_id(&OperationId::new("op_1")));
+    // 只读证明与启动用的是同一个 shell（`SHELL` 是唯一来源）。
+    assert_eq!(start.shell, ShellKind::Bash);
+    assert_eq!(start.shell, SHELL);
     call(env.clone(), json!({"command": "ls"}), None)
         .await
         .unwrap();
@@ -378,6 +381,29 @@ fn definition_and_flags_come_from_the_prompts_and_the_read_only_check() {
         tool.interrupt_behavior(),
         nibi_kernel_api::tool::InterruptBehavior::Block
     );
+}
+
+/// 只读证明的有效前提：BashTool 只起 [`ShellKind::Bash`]。换成别的 shell 时
+/// `SHELL` 断言失败，并且 `is_read_only_for_shell` 对非 Bash 方言一律回 false。
+#[test]
+fn the_bash_tool_only_starts_the_shell_its_read_only_proof_covers() {
+    assert_eq!(SHELL, ShellKind::Bash);
+    let tool = BashTool::new();
+    for command in ["echo hello", "ls -la", "git status"] {
+        assert!(tool.is_read_only(&json!({"command": command})), "{command}");
+    }
+    assert!(!tool.is_read_only(&json!({"command": "rm -rf x"})));
+    // 非 Bash 方言没有只读表；将来把 SHELL 换成 PowerShell 时这里与上面的断言一起失败。
+    for command in ["echo hello", "ls -la", "git status"] {
+        assert!(
+            !nibi_kernel_policy::readonly::is_read_only_for_shell(
+                command,
+                false,
+                ShellKind::PowerShell
+            ),
+            "{command}"
+        );
+    }
 }
 
 /// 启动参数点名了 Glob / Grep 时它们可见，Bash 提示点名 `find`、`grep`；

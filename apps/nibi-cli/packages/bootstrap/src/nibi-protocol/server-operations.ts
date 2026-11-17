@@ -2741,12 +2741,38 @@ export async function stopSession(context: NibiProtocolAgentServerContext, rawPa
   const params = parseParams(nibiSessionStopParamsSchema, rawParams);
   const record = requireSession(context, params.sessionId);
   const hadActivePrompt = Boolean(record.activeAbortController);
+  // 旧协议 Stop 的执行身份只用于保护晚到的请求：renderer → host → runtime 之间存在
+  // 异步窗口，用户点击时看到的执行可能已经结束并切到新执行。v4 stop 用同一语义
+  // （expectedForegroundExecutionId）；旧协议字段名固定为 expectedExecutionId。
+  const runtimeStop =
+    params.expectedExecutionId === undefined
+      ? undefined
+      : record.app.runtime?.stopActiveForegroundExecution?.({
+          expectedForegroundExecutionId: params.expectedExecutionId,
+          reason: "NIBI Protocol session stopped",
+        });
+  const activeForegroundExecutionId =
+    runtimeStop?.kind === "mismatch"
+      ? runtimeStop.activeForegroundExecutionId
+      : runtimeStop?.kind === "stopped"
+        ? runtimeStop.foregroundExecutionId
+        : undefined;
   let pausedTarget: ProtocolGoalTarget | null = null;
   context.logger?.info("NIBI Protocol session/stop received", {
+    activeForegroundExecutionId,
+    expectedExecutionId: params.expectedExecutionId,
     hadActivePrompt,
+    runtimeStopKind: runtimeStop?.kind,
     sessionId: params.sessionId,
     workspacePath: record.workspace.workspacePath,
   });
+  if (
+    params.expectedExecutionId !== undefined &&
+    (runtimeStop?.kind === "idle" || runtimeStop?.kind === "mismatch")
+  ) {
+    // 身份已切换或目标执行已结束：不 abort、不 pause goal，迟到 Stop 只能 no-op。
+    return {};
+  }
   if (hadActivePrompt) {
     pausedTarget = await pauseActiveGoalForSessionStop(context, record, {
       sessionId: params.sessionId,

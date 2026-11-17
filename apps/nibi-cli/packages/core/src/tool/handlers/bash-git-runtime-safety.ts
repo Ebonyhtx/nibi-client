@@ -8,8 +8,16 @@ import {
   statSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
+import type { ExecutionShellSelection } from "@nibi/contracts";
 
 export interface BashReadonlyRuntimeContext {
+  /**
+   * 执行该命令的 shell 文法。Bash AST 只证明 POSIX/git-bash 语法；缺失按 POSIX 处理
+   * （与工具默认 shell 一致），显式 cmd/legacy-shell 必须让所有只读证明返回 false。
+   */
+  dialect?: ExecutionShellSelection["dialect"];
+  /** 权限上下文原样传入时的 shell selection；与 dialect 同时在场时以 dialect 为准。 */
+  bashShellSelection?: ExecutionShellSelection;
   workingDirectory?: string;
   workspaceRoot?: string;
 }

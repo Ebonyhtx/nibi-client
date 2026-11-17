@@ -12,10 +12,11 @@
  * `scripts/build.mjs` 用的是同一份）。
  */
 
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createInterface } from "node:readline";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { build } from "esbuild";
@@ -85,6 +86,61 @@ async function runChild(
     .map((line) => JSON.parse(line) as unknown);
 }
 
+/**
+ * 与 {@link runChild} 相同的入口文件，但异步地跟子进程对话：每收到一条 request 就回一条
+ * response。传输篡改用例必须让一个 request 真的走完 response 投递，才能证明外层用的是引导期
+ * 取走的那份入口函数，而不是脚本刚替换掉的全局。
+ */
+async function runChildWithResponses(
+  render: typeof renderChildEntryType,
+  payload: { lowered: string; args?: Record<string, unknown> },
+): Promise<unknown[]> {
+  const root = await tempRoot("dwf-child-entry-");
+  const entryPath = join(root, "run.mjs");
+  await writeFile(entryPath, render({ ...payload, maxOldSpaceSizeMb: 256 }, { runId: "run" }), "utf8");
+
+  const child = spawn(process.execPath, ["--max-old-space-size=256", entryPath], {
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  const lines: unknown[] = [];
+  let stderr = "";
+  child.stderr!.on("data", (chunk: Buffer) => {
+    stderr += chunk.toString("utf8");
+  });
+  const closed = new Promise<void>((resolve, reject) => {
+    child.on("error", reject);
+    child.on("close", () => resolve());
+  });
+  const reader = createInterface({ input: child.stdout! });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      timer = setTimeout(() => reject(new Error("the sandbox child timed out")), 30_000);
+      reader.on("line", (line) => {
+        if (line.trim().length === 0) return;
+        const message = JSON.parse(line) as { kind: string; id?: string };
+        lines.push(message);
+        if (message.kind === "request") {
+          child.stdin!.write(
+            `${JSON.stringify({ kind: "response", id: message.id, ok: true, value: "pong" })}\n`,
+          );
+        }
+        if (message.kind === "complete") resolve();
+      });
+      child.on("error", reject);
+    });
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+    reader.close();
+    // 收尾由父进程 kill（与生产 harness 同规）；这里只等句柄释放，不依赖子进程自然退出。
+    if (child.exitCode === null && child.signalCode === null) child.kill();
+    await closed;
+  }
+  // 子进程的 stderr 是这条测试唯一的归因材料——ReferenceError / 未捕获异常都会在这里现形。
+  expect(stderr).toBe("");
+  return lines;
+}
+
 describe.each([
   { label: "bundled", minify: false },
   { label: "bundled + minified", minify: true },
@@ -138,6 +194,110 @@ describe.each([
             "report",
             "worldRead",
           ],
+        },
+      },
+    ]);
+  });
+
+  it("keeps the realm boundary and removes the host transport from the global", async () => {
+    const render = await bundledRenderChildEntry(minify);
+
+    const lines = await runChild(render, {
+      lowered: [
+        'const probe = (fn) => { try { return "value:" + typeof fn(); } catch (e) { return "threw:" + (e && e.name); } };',
+        "return {",
+        '  globalCtor: probe(() => globalThis.constructor.constructor("return process")()),',
+        '  protoCtor: probe(() => globalThis.__proto__.constructor.constructor("return process")()),',
+        '  thisCtor: probe(() => this.constructor.constructor("return process")()),',
+        '  escapedEnv: probe(() => globalThis.constructor.constructor("return process.env.PATH")()),',
+        `  escapedFs: probe(() => globalThis.constructor.constructor("return require('node:fs').readFileSync")()),`,
+        `  escapedFetch: probe(() => globalThis.constructor.constructor("return fetch('http://127.0.0.1')")()),`,
+        "  send: typeof globalThis.__send,",
+        "  finish: typeof globalThis.__finish,",
+        '  hostWritable: (() => { const d = Object.getOwnPropertyDescriptor(globalThis, "__host"); return d ? d.writable : "missing"; })(),',
+        '  hasRun: Object.prototype.hasOwnProperty.call(__host, "run"),',
+        "};",
+      ].join("\n"),
+    });
+
+    expect(lines).toEqual([
+      {
+        kind: "complete",
+        ok: true,
+        value: {
+          // 修复前前三条是 "value:object"（宿主 process 已到手）；打包/压缩形态同样必须拒绝。
+          globalCtor: "threw:ReferenceError",
+          protoCtor: "threw:ReferenceError",
+          thisCtor: "threw:ReferenceError",
+          escapedEnv: "threw:ReferenceError",
+          escapedFs: "threw:ReferenceError",
+          escapedFetch: "threw:ReferenceError",
+          send: "undefined",
+          finish: "undefined",
+          hostWritable: false,
+          hasRun: false,
+        },
+      },
+    ]);
+  });
+
+  it("captures the transport entries before the script can replace them", async () => {
+    const render = await bundledRenderChildEntry(minify);
+
+    const lines = await runChildWithResponses(render, {
+      lowered: [
+        "const originalDeliver = globalThis.__deliver;",
+        "const originalExecute = globalThis.__execute;",
+        "const originalCheckStalled = globalThis.__checkStalled;",
+        "const transport = {",
+        "  sendAtStart: typeof globalThis.__send,",
+        "  finishAtStart: typeof globalThis.__finish,",
+        "  deliverAtStart: typeof originalDeliver,",
+        "  executeAtStart: typeof originalExecute,",
+        "  checkStalledAtStart: typeof originalCheckStalled,",
+        "};",
+        // 全部换成会炸的实现：外层若还在用沙箱对象上的现取引用，deliver / checkStalled 会立刻
+        // 把子进程打崩（修复前实测就是 stopped/interrupted + "hijacked checkStalled" 栈）。
+        'globalThis.__deliver = function () { throw new Error("hijacked deliver"); };',
+        'globalThis.__execute = function () { throw new Error("hijacked execute"); };',
+        'globalThis.__checkStalled = function () { throw new Error("hijacked checkStalled"); };',
+        'globalThis.__send = function () { throw new Error("hijacked send"); };',
+        'globalThis.__finish = function () { throw new Error("hijacked finish"); };',
+        "transport.deliverReplaced = globalThis.__deliver !== originalDeliver;",
+        "transport.executeReplaced = globalThis.__execute !== originalExecute;",
+        "transport.checkStalledReplaced = globalThis.__checkStalled !== originalCheckStalled;",
+        'const actor = __host.createActor("actor#1", "w");',
+        'const answer = await __host.ask("ask#1", actor, "hi");',
+        "return { answer, transport };",
+      ].join("\n"),
+    });
+
+    expect(lines).toEqual([
+      { kind: "create-actor", localId: "local#1", siteId: "actor#1", name: "w" },
+      {
+        kind: "request",
+        id: "r1",
+        type: "ask",
+        siteId: "ask#1",
+        actor: "local#1",
+        instructions: "hi",
+      },
+      {
+        kind: "complete",
+        ok: true,
+        value: {
+          // response 由外层用引导期取走的 deliver 投递进来——脚本替换过的那个从未被调用。
+          answer: "pong",
+          transport: {
+            sendAtStart: "undefined",
+            finishAtStart: "undefined",
+            deliverAtStart: "function",
+            executeAtStart: "function",
+            checkStalledAtStart: "function",
+            deliverReplaced: true,
+            executeReplaced: true,
+            checkStalledReplaced: true,
+          },
         },
       },
     ]);

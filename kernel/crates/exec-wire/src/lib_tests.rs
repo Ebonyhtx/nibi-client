@@ -33,6 +33,49 @@ fn every_method_has_one_request_whose_json_op_is_its_name() {
 }
 
 #[test]
+fn the_stop_request_names_the_expected_execution_and_stays_compatible() {
+    use crate::dto::shell::BackgroundTask;
+
+    let stop = |expected_execution_id| Request::StopBackgroundCommand {
+        context: crate::test_support::context("op_stop"),
+        task: BackgroundTask {
+            session: "sess_1".to_owned(),
+            task: "b1".to_owned(),
+        },
+        expected_execution_id,
+    };
+    let request = stop(Some("op_start".to_owned()));
+    let value = serde_json::to_value(&request).unwrap();
+    assert_eq!(value["op"], "background.stop_background_command");
+    assert_eq!(value["args"]["expectedExecutionId"], "op_start");
+    assert_eq!(serde_json::from_value::<Request>(value).unwrap(), request);
+
+    // 老客户端不带这个字段：解出来是 None（照旧按任务 ID 停）；None 也不再写出。
+    let older: Request = serde_json::from_value(json!({
+        "op": "background.stop_background_command",
+        "args": {
+            "context": serde_json::to_value(crate::test_support::context("op_stop")).unwrap(),
+            "task": {"session": "sess_1", "task": "b1"}
+        }
+    }))
+    .unwrap();
+    let Request::StopBackgroundCommand {
+        expected_execution_id,
+        ..
+    } = older
+    else {
+        panic!("not a stop request");
+    };
+    assert_eq!(expected_execution_id, None);
+    let without = stop(None);
+    assert!(
+        serde_json::to_value(&without).unwrap()["args"]
+            .get("expectedExecutionId")
+            .is_none()
+    );
+}
+
+#[test]
 fn every_unary_method_has_one_reply_with_the_same_name() {
     let replies = replies();
     let ops: BTreeSet<&str> = replies.iter().map(|reply| reply.op().as_str()).collect();

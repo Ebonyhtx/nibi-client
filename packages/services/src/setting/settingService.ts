@@ -10,7 +10,8 @@ import {
 } from "@nibi/shared";
 import type { ISettingService, WorkspaceSettingsProjection } from "./setting.js";
 import { normalizeSettingsPatch } from "#src/setting/normalizeSettingsPatch.js";
-import { copyDataDirectory, getDataBaseDir, validateDataBaseDirTarget } from "../paths.js";
+import { getDataBaseDir, validateDataBaseDirTarget } from "../paths.js";
+import { cleanupStaleRelocationStaging, relocateDataRoot } from "../data-root/relocate.js";
 import { isEffectiveDevelopmentNodeEnv } from "../runtime-tools/nodeEnv.js";
 import { maybeThrowInjectedFsFault } from "../fs/fsFaultInjection.js";
 import { atomicWriteText, withAtomicFileLock } from "../fs/atomicFileUtils.js";
@@ -230,6 +231,11 @@ export function createSettingServiceWithMigrations(): {
   const settingsFile = resolveSettingsFilePath();
   const getSettingsFile = () => settingsFile;
   const getSettingsDir = () => dirname(settingsFile);
+  // 上次进程若在切数据根时崩溃，当前数据根下会留下 .nibi/.migrating-* 暂存副本。
+  // 服务实例创建时清一次；失败只记录日志，不阻断设置读取。
+  void cleanupStaleRelocationStaging(getDataBaseDir()).catch((error: unknown) => {
+    log("stale data-root relocation staging cleanup failed:", error);
+  });
   const readSettingsWithMeta = () => readSettingsWithMetaAt(settingsFile);
   const readSettings = async () => (await readSettingsWithMeta()).settings;
   const writeSettings = (
@@ -374,9 +380,21 @@ export function createSettingServiceWithMigrations(): {
       }
 
       if (currentBaseDir !== targetBaseDir) {
-        log("copying data directory from", currentBaseDir, "to", targetBaseDir);
-        await copyDataDirectory(currentBaseDir, targetBaseDir);
-        log("data directory copy done");
+        log("relocating data root from", currentBaseDir, "to", targetBaseDir);
+        // 只有暂存复制 + 凭据解密验证 + 正式目录发布全部成功才写 setting；
+        // 任何一步失败都会抛错，setting.json 保持旧指针，UI 沿用现有失败提示。
+        const result = await relocateDataRoot(currentBaseDir, targetBaseDir);
+        log(
+          "data root relocation done",
+          JSON.stringify({
+            copiedData: result.copiedData,
+            copiedMachine: result.copiedMachine,
+            targetKeyState: result.targetKeyState,
+            v1Values: result.verification.v1ValueCount,
+            v2Values: result.verification.v2ValueCount,
+            verificationSkipped: result.verification.skipReason,
+          }),
+        );
       }
 
       await this.update({ dataBaseDir: newDir });

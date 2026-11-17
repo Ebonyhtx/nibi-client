@@ -1428,3 +1428,21 @@ exceptions:
     reason: >-
       CLI 的 help 子命令入口，随终端命令面收口新增；apps/nibi-cli 仍是 managed:false 的
       遗留大区，按路径准入。
+
+  - id: shared-kernel-contract
+    rule: unmanaged-new-file
+    paths:
+      - packages/shared/src/kernel-contract/**
+    reason: >-
+      项目配置白名单是 Rust/Node 双端唯一清单来源（P0-0/R01），目录只放允许键清单、
+      丢弃前缀与共享类型；packages/shared 仍是 managed:false 的遗留大区，先按目录前缀
+      准入，整包接管不在本次范围。
+
+  - id: services-data-root-relocation
+    rule: unmanaged-new-file
+    paths:
+      - packages/services/src/data-root/**
+    reason: >-
+      数据根迁移（清单/暂存/凭据解密验证/发布）是 P0-2 的安全修复单元，只被
+      settingService 调用；packages/services 仍是 managed:false 的遗留大区，按目录前缀
+      准入，不把整个 services 包纳入本次范围。

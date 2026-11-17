@@ -1942,7 +1942,10 @@ describe("Nibi plugins", () => {
       });
 
       const userConfig = JSON.parse(await readFile(userConfigPath, "utf8")) as {
-        plugins?: { options?: Record<string, Record<string, unknown>> };
+        plugins?: {
+          enabledPlugins?: Record<string, boolean>;
+          options?: Record<string, Record<string, unknown>>;
+        };
       };
       const workspaceConfig = JSON.parse(await readFile(workspaceConfigPath, "utf8")) as {
         plugins?: {
@@ -1952,7 +1955,9 @@ describe("Nibi plugins", () => {
       };
       expect(userConfig.plugins?.options?.[pluginId]?.region).toBe("us-east-1");
       expect(userConfig.plugins?.options?.[pluginId]?.token).toBeUndefined();
-      expect(workspaceConfig.plugins?.enabledPlugins?.[pluginId]).toBe(true);
+      // workspace 的“启用”提升到 user；工作区不留下会被读取投影丢弃的 true。
+      expect(userConfig.plugins?.enabledPlugins?.[pluginId]).toBe(true);
+      expect(workspaceConfig.plugins?.enabledPlugins?.[pluginId]).toBeUndefined();
       expect(workspaceConfig.plugins?.options?.[pluginId]?.token).toBeUndefined();
       expect(workspaceConfig.plugins?.options?.[pluginId]?.region).toBe("eu-west-1");
     } finally {
@@ -1960,7 +1965,7 @@ describe("Nibi plugins", () => {
     }
   });
 
-  it("writes Workspace enablement without mutating User config", async () => {
+  it("promotes Workspace enablement to User config (project config can only disable)", async () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-plugin-scope-"));
     const userConfigPath = join(root, "user-config.json");
     const workspaceConfigPath = join(root, ".nibi", "config.json");
@@ -1993,16 +1998,58 @@ describe("Nibi plugins", () => {
       });
 
       expect(result.enabled).toBe(true);
+      // PROJECT-CONFIG：项目层只能禁用插件，workspace 的“启用”必须落到用户配置，
+      // 否则读取投影会把它丢掉，界面成功但重载后插件仍未启用。
+      expect(result.scope).toBe("user");
       expect(JSON.parse(await readFile(userConfigPath, "utf8"))).toEqual({
-        plugins: { dirs: [pluginRoot] },
+        plugins: { dirs: [pluginRoot], enabledPlugins: { [pluginId]: true } },
       });
-      expect(JSON.parse(await readFile(workspaceConfigPath, "utf8"))).toEqual({
-        plugins: { enabledPlugins: { [pluginId]: true } },
-      });
+      await expect(readFile(workspaceConfigPath, "utf8")).rejects.toMatchObject({ code: "ENOENT" });
       expect(JSON.parse(await readFile(join(root, "nibi.json"), "utf8"))).toEqual({
         mcp: {
           servers: { keep: { type: "http", url: "https://example.test" } },
         },
+      });
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("keeps Workspace disablement in the Workspace config", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-plugin-disable-scope-"));
+    const userConfigPath = join(root, "user-config.json");
+    const workspaceConfigPath = join(root, ".nibi", "config.json");
+    const pluginStorageRoot = join(root, "plugins");
+    const pluginRoot = join(root, "workspace-plugin");
+    const pluginId = "workspace-plugin@inline";
+
+    try {
+      await writeTestFile(
+        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        JSON.stringify({ name: "workspace-plugin", userConfig: {} }),
+      );
+      await writeTestFile(
+        userConfigPath,
+        JSON.stringify({ plugins: { dirs: [pluginRoot], enabledPlugins: { [pluginId]: true } } }),
+      );
+
+      const result = await setNibiPluginEnabled({
+        enabled: false,
+        plugin: pluginId,
+        pluginStorageRoot,
+        scope: "workspace",
+        userConfigPath,
+        workingDirectory: root,
+      });
+
+      expect(result.enabled).toBe(false);
+      expect(result.scope).toBe("workspace");
+      expect(JSON.parse(await readFile(workspaceConfigPath, "utf8"))).toEqual({
+        plugins: { enabledPlugins: { [pluginId]: false } },
+      });
+      // 用户配置的启用值不被工作区禁用覆盖掉，撤销工作区覆盖后恢复继承。
+      expect(JSON.parse(await readFile(userConfigPath, "utf8"))).toEqual({
+        plugins: { dirs: [pluginRoot], enabledPlugins: { [pluginId]: true } },
       });
     } finally {
       await rm(root, { force: true, recursive: true });
@@ -2049,10 +2096,14 @@ describe("Nibi plugins", () => {
       expect(JSON.parse(await readFile(repositoryConfigPath, "utf8"))).toEqual({
         plugins: { enabledPlugins: { [pluginId]: false } },
       });
+      // workspace 的启用被提升到 user；工作区配置只保留自己的 options。
       expect(JSON.parse(await readFile(workspaceConfigPath, "utf8"))).toEqual({
+        plugins: { options: { [pluginId]: { region: "nested" } } },
+      });
+      expect(JSON.parse(await readFile(userConfigPath, "utf8"))).toEqual({
         plugins: {
+          dirs: [pluginRoot],
           enabledPlugins: { [pluginId]: true },
-          options: { [pluginId]: { region: "nested" } },
         },
       });
       const reloaded = createConfig({
@@ -2060,8 +2111,17 @@ describe("Nibi plugins", () => {
         userConfigPath,
         workingDirectory: workspaceRoot,
       });
-      expect(reloaded.config.plugins.enabledPlugins[pluginId]).toBe(true);
+      // 仓库提交的 false 是允许的“工作区禁用”，仍覆盖用户级启用；
+      // 项目层没有 true，因此也不会产生 ignored 诊断。
+      expect(reloaded.config.plugins.enabledPlugins[pluginId]).toBe(false);
       expect(reloaded.sources.plugins.enabled[pluginId]).toBe("workspace");
+      expect(
+        reloaded.sources.project.diagnostics.some(
+          (diagnostic) =>
+            diagnostic.code === "config_project_key_ignored" &&
+            diagnostic.path === `plugins.enabledPlugins.${pluginId}`,
+        ),
+      ).toBe(false);
     } finally {
       await rm(root, { force: true, recursive: true });
     }

@@ -11,7 +11,7 @@ use nibi_kernel_api::env::{EnvError, EnvPath, Outcome, StartCommand};
 use nibi_kernel_api::env_files::PathStyle;
 use nibi_kernel_api::env_path::git_bash_spelling;
 use nibi_kernel_api::env_shell::{BackgroundKind, CwdScope, ShellNotice};
-use nibi_kernel_api::ids::{OperationId, SessionId};
+use nibi_kernel_api::ids::{OperationId, SessionId, ShellTaskId, ToolUseId};
 use nibi_kernel_api::session_prefs::ShellDialect;
 use nibi_kernel_proc::ledger::{Containment, Isolation, Ledger, Purpose, Tracked};
 use nibi_kernel_proc::shell::single_quote;
@@ -59,6 +59,113 @@ pub(crate) struct Job {
     pub mounted: bool,
     /// 输出文件的上限（shell-permissions.md §2.2“输出上限”）。
     pub limit: OutputLimit,
+}
+
+/// 这条命令的工具调用 ID（Node `toolCallId`）：后台命令直接带着；前台命令在 `on_timeout` 的
+/// [`BackgroundCommand`] 里（Bash 工具为可能的转后台填的同一个 toolUse）；hook 与 `!` 命令没有。
+fn tool_use_of(request: &StartCommand) -> Option<&ToolUseId> {
+    request
+        .background
+        .as_ref()
+        .and_then(|background| background.tool_use.as_ref())
+        .or_else(|| {
+            request
+                .on_timeout
+                .as_ref()
+                .and_then(|moved| moved.command.tool_use.as_ref())
+        })
+}
+
+/// 一条命令进度的结构化日志身份。字段名与 Node 相同：`pid` 原样，`tool_use` 由入口的日志订阅者
+/// 写成 `toolCallId`（`kernel/crates/cli/src/log.rs`）。
+#[derive(Clone, Copy)]
+struct ProcessLog<'a> {
+    pid: u32,
+    session: &'a SessionId,
+    operation: &'a OperationId,
+    task: &'a ShellTaskId,
+    tool_use: Option<&'a ToolUseId>,
+    /// 启动时就是后台命令（`StartCommand::background` 有值）：结束事件与 Node 一样是
+    /// `bash.process.exited`；前台命令是 `bash.process.completed`。
+    background: bool,
+}
+
+impl ProcessLog<'_> {
+    fn started(self) {
+        match self.tool_use {
+            Some(tool_use) => tracing::info!(
+                pid = self.pid,
+                session = %self.session,
+                operation = %self.operation,
+                task = %self.task,
+                tool_use = %tool_use,
+                status = "started",
+                event = "bash.process.started",
+                "bash process started"
+            ),
+            None => tracing::info!(
+                pid = self.pid,
+                session = %self.session,
+                operation = %self.operation,
+                task = %self.task,
+                status = "started",
+                event = "bash.process.started",
+                "bash process started"
+            ),
+        }
+    }
+
+    /// `finish` 的终态、退出码、字节数与耗时；`status` 是 Node 的 `started` / `completed` / `failed` / `cancelled`。
+    fn finished(self, finish: &Finish, duration_ms: u64) {
+        let status = match &finish.outcome {
+            Outcome::Completed => "completed",
+            Outcome::Cancelled | Outcome::Interrupted => "cancelled",
+            Outcome::Failed { .. } | Outcome::Rejected { .. } | Outcome::Unknown => "failed",
+            Outcome::Running => "running",
+        };
+        // 没有退出码（等进程失败、信号结束）时写 -1，字段本身不省略：Node 的 `exitCode` 也是可选数字。
+        let exit_code = finish.exit_code.map_or(-1, i64::from);
+        // Node 的事件名：后台命令结束是 `bash.process.exited`，前台是 `bash.process.completed`。
+        let event = if self.background {
+            "bash.process.exited"
+        } else {
+            "bash.process.completed"
+        };
+        match self.tool_use {
+            Some(tool_use) => tracing::info!(
+                pid = self.pid,
+                session = %self.session,
+                operation = %self.operation,
+                task = %self.task,
+                tool_use = %tool_use,
+                status,
+                duration_ms,
+                exitCode = exit_code,
+                outputBytes = finish.output_bytes,
+                timedOut = finish.timed_out,
+                event = event,
+                "bash process finished"
+            ),
+            None => tracing::info!(
+                pid = self.pid,
+                session = %self.session,
+                operation = %self.operation,
+                task = %self.task,
+                status,
+                duration_ms,
+                exitCode = exit_code,
+                outputBytes = finish.output_bytes,
+                timedOut = finish.timed_out,
+                event = event,
+                "bash process finished"
+            ),
+        }
+    }
+}
+
+/// hook 与 ws monitor 不是 Bash 工具起的命令：不写这条日志（也不会有 pid）。
+fn log_process(request: &StartCommand) -> bool {
+    request.hook.is_none() && request.socket.is_none()
 }
 
 /// 关掉扩展 glob 的一段：按 shell 路径里的
@@ -571,6 +678,17 @@ async fn supervise(
     job: &Job,
     piped: tokio::sync::oneshot::Receiver<()>,
 ) {
+    let process = log_process(&job.request).then(|| ProcessLog {
+        pid: tracked.pid(),
+        session: &job.session,
+        operation: &job.operation,
+        task: &job.request.task,
+        tool_use: tool_use_of(&job.request),
+        background: job.request.background.is_some(),
+    });
+    if let Some(process) = process {
+        process.started();
+    }
     let mut timeout = job.request.timeout_ms.map(Duration::from_millis);
     let stdin = tracked.child().stdin.take();
     let input = job.request.hook.as_ref().map(|hook| hook.stdin.as_str());
@@ -687,6 +805,12 @@ async fn supervise(
         output_bytes,
         output_limit,
     };
+    if let Some(process) = process {
+        process.finished(
+            &finish,
+            u64::try_from(job.running.started.elapsed().as_millis()).unwrap_or(u64::MAX),
+        );
+    }
     if let Some(background) = background {
         let mut state = shared.state();
         let shell = state.sessions.entry(job.session.clone()).or_default();

@@ -434,6 +434,7 @@ function resolveConfigDiagnosticLogMessage(
   if (code === "config_project_hooks_pending_trust") {
     return "Project hooks pending workspace trust";
   }
+  if (code === "config_project_key_ignored") return "Project config key ignored";
   return "Config file failed to load";
 }
 
@@ -444,6 +445,7 @@ function resolveConfigDiagnosticLogEvent(
   if (code === "config_project_hooks_pending_trust") {
     return "config.project_hooks.pending_trust";
   }
+  if (code === "config_project_key_ignored") return "config.project_keys.ignored";
   return "config.file.invalid";
 }
 

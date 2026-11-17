@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PermissionRuleset } from "@nibi/contracts";
+import type { ExecutionShellSelection, PermissionRuleset } from "@nibi/contracts";
 import { PermissionService } from "../src/permission/service.js";
 import { createBashPermissionRulePolicy } from "../src/tool/handlers/bash-command-permission-policy.js";
 import { bashToolEntry } from "../src/tool/handlers/bash.js";
@@ -25,6 +25,48 @@ describe("Bash command permission rule policy", () => {
     "FOO=$BAR pnpm run lint",
   ])("falls back to an exact rule for %s", (command) => {
     expect(ruleContents(command)).toEqual([command]);
+  });
+
+  // CMD 里 `#` 不是注释、`&` 仍会串接命令：Bash AST 会把 `del x` 当成注释吞掉，
+  // 因此非 Bash 方言不能推导安全前缀，只能给整条 exact 规则。
+  it.each(["cmd", "legacy-shell"] as const)(
+    "keeps only the exact rule under %s dialect",
+    (dialect) => {
+      const command = "echo a # & del x";
+      expect(ruleContents(command, dialect)).toEqual([command]);
+      expect(ruleContents("pnpm run lint --fix", dialect)).toEqual(["pnpm run lint --fix"]);
+    },
+  );
+
+  it("lets an explicit exact CMD rule match but never a Bash prefix rule", () => {
+    const command = "echo a # & del x";
+    expect(
+      check(
+        command,
+        {
+          allow: [{ ruleContent: command, toolName: "Bash" }],
+          version: 1,
+        },
+        "cmd",
+      ).decision,
+    ).toBe("allow");
+    expect(
+      check(
+        command,
+        {
+          allow: [{ ruleContent: "echo:*", toolName: "Bash" }],
+          version: 1,
+        },
+        "cmd",
+      ).decision,
+    ).toBe("ask");
+  });
+
+  it("keeps POSIX and git-bash prefix behavior unchanged", () => {
+    for (const dialect of ["posix", "git-bash"] as const) {
+      expect(ruleContents("pnpm run lint --fix", dialect)).toEqual(["pnpm run lint:*"]);
+      expect(ruleContents("echo a # & del x", dialect)).toEqual(["echo a # & del x"]);
+    }
   });
 
   it("suggests independent compound rules and omits readonly invocations", () => {
@@ -142,14 +184,21 @@ describe("Bash command permission rule policy", () => {
   });
 });
 
-function ruleContents(command: string): Array<string | undefined> {
-  const policy = createBashPermissionRulePolicy(command);
+function ruleContents(
+  command: string,
+  dialect?: ExecutionShellSelection["dialect"],
+): Array<string | undefined> {
+  const policy = createBashPermissionRulePolicy(command, permissionContext(dialect));
   return policy.suggestedPermissionUpdates.flatMap((update) =>
     update.rules.map((rule) => rule.ruleContent),
   );
 }
 
-function check(command: string, ruleset: PermissionRuleset) {
+function check(
+  command: string,
+  ruleset: PermissionRuleset,
+  dialect?: ExecutionShellSelection["dialect"],
+) {
   const service = new PermissionService();
   return service.checkPermission(
     {
@@ -163,6 +212,17 @@ function check(command: string, ruleset: PermissionRuleset) {
       permission: bashToolEntry.permission,
     },
     ruleset,
-    createBashPermissionRulePolicy(command),
+    createBashPermissionRulePolicy(command, permissionContext(dialect)),
   );
+}
+
+function permissionContext(dialect: ExecutionShellSelection["dialect"] | undefined) {
+  if (!dialect) return undefined;
+  return {
+    bashShellSelection: {
+      dialect,
+      source: "user-config" as const,
+      display: { name: dialect },
+    },
+  };
 }

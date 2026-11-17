@@ -2,7 +2,13 @@ import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { CoreErrorType, SessionEventType, createImageProcessorError } from "@nibi/contracts";
+import {
+  CoreErrorType,
+  SessionEventType,
+  createImageProcessorError,
+  type Logger,
+  type LogContext,
+} from "@nibi/contracts";
 import { isErrorForToolResult } from "../src/runtime/helpers/tool-result.js";
 import { decideBashCwdPolicy } from "../src/tool/handlers/bash-cwd-policy.js";
 import { bashHandler, bashToolEntry, createBashToolEntry } from "../src/tool/handlers/bash.js";
@@ -337,6 +343,55 @@ describe("bashHandler", () => {
       dangerouslyDisableSandbox: true,
     });
     expect(capturedRequest?.sandbox).not.toHaveProperty("protectedResources");
+  });
+
+  it("logs Bash process start and completion with pid and toolCallId", async () => {
+    const logs: Array<{ context?: LogContext; message: string }> = [];
+    const logger: Logger = {
+      child: () => logger,
+      debug: () => undefined,
+      error: () => undefined,
+      info: (message, context) => {
+        logs.push({ context, message });
+      },
+      warn: () => undefined,
+    };
+    const executionPort: ExecutionPort = {
+      async run(_request, options) {
+        await options?.onEvent?.({
+          pid: 4242,
+          timestamp: new Date(0),
+          type: "started",
+        });
+        return executionResult({ exitCode: 0, pid: 4242, status: "completed" });
+      },
+    };
+
+    await bashHandler({ command: "echo hi" } satisfies BashInput, {
+      ...contextWith(executionPort),
+      logger,
+    });
+
+    expect(logs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          context: expect.objectContaining({
+            event: "bash.process.started",
+            pid: 4242,
+            toolCallId: "tool_test",
+          }),
+          message: "Bash process started",
+        }),
+        expect.objectContaining({
+          context: expect.objectContaining({
+            event: "bash.process.completed",
+            pid: 4242,
+            toolCallId: "tool_test",
+          }),
+          message: "Bash process completed",
+        }),
+      ]),
+    );
   });
 
   it("keeps the filesystem output-loss diagnostic in provider-visible stdout", async () => {
@@ -2703,6 +2758,7 @@ function executionResult(options: {
   stderrArtifactBytes?: number;
   stderrTruncated?: boolean;
   error?: ExecutionResult["error"];
+  pid?: number;
   resolvedCwd?: string;
   startedAt?: Date;
   completedAt?: Date;
@@ -2714,6 +2770,7 @@ function executionResult(options: {
   return {
     status: options.status,
     exitCode: options.exitCode,
+    pid: options.pid,
     stdout: {
       text: options.stdout ?? "",
       bytes: options.stdoutBytes ?? Buffer.byteLength(options.stdout ?? ""),

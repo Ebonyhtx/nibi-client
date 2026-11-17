@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import type { ExecutionShellSelection } from "@nibi/contracts";
 import { PermissionService, type PermissionToolCapability } from "../src/permission/service.js";
 import {
   bashToolEntry,
@@ -9,6 +10,7 @@ import {
   isBashInputReadOnly,
   prepareBashPermissionMatcher,
 } from "../src/tool/handlers/bash.js";
+import { isRuntimeReadOnlyBashCommand } from "../src/tool/handlers/bash-semantics.js";
 
 describe("bash runtime permission capability", () => {
   it("keeps display classification separate from read-only and concurrency helpers", () => {
@@ -21,6 +23,26 @@ describe("bash runtime permission capability", () => {
     expect(isBashInputReadOnly({ command: "ls $(touch out.txt)" })).toBe(false);
     expect(isBashInputConcurrencySafe({ command: "ls $(touch out.txt)" })).toBe(false);
     expect(isBashInputReadOnly({ command: "ls `touch out.txt`" })).toBe(false);
+  });
+
+  it("treats CMD comments as command separators, not Bash comments", () => {
+    const command = "echo a # & del x";
+    // POSIX 下 `#` 之后是注释；CMD 下 `del x` 仍会执行，Bash AST 不能证明只读。
+    expect(isRuntimeReadOnlyBashCommand(command, { dialect: "posix" })).toBe(true);
+    expect(isRuntimeReadOnlyBashCommand(command, { dialect: "git-bash" })).toBe(true);
+    expect(isRuntimeReadOnlyBashCommand(command, { dialect: "cmd" })).toBe(false);
+    expect(isRuntimeReadOnlyBashCommand(command, { dialect: "legacy-shell" })).toBe(false);
+    // 权限上下文原样传入时也要读到 bashShellSelection.dialect。
+    expect(
+      isRuntimeReadOnlyBashCommand(command, { bashShellSelection: shellSelection("cmd") }),
+    ).toBe(false);
+    expect(isRuntimeReadOnlyBashCommand(command)).toBe(true);
+
+    const cmdContext = { bashShellSelection: shellSelection("cmd") };
+    expect(isBashInputReadOnly({ command }, cmdContext)).toBe(false);
+    expect(isBashInputConcurrencySafe({ command }, cmdContext)).toBe(false);
+    // 缺失 selection 仍按 POSIX（既有语义），只有显式 cmd/legacy-shell 才降级。
+    expect(isBashInputReadOnly({ command })).toBe(true);
   });
 
   it("uses command safe flags for tree read-only permission", () => {
@@ -494,6 +516,12 @@ describe("bash runtime permission capability", () => {
     expect(emptyMatcher?.("anything")).toBe(false);
   });
 });
+
+function shellSelection(
+  dialect: ExecutionShellSelection["dialect"],
+): ExecutionShellSelection {
+  return { dialect, source: "user-config", display: { name: dialect } };
+}
 
 function withRuntimeCapability(input: unknown, cwd = process.cwd()): PermissionToolCapability {
   const runtimeCapability = bashToolEntry.resolvePermissionCapability?.(input, {

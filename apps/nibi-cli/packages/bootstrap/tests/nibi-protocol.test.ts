@@ -72,7 +72,10 @@ import {
 } from "@nibi/provider";
 import { NibiProtocolAgentServer } from "../src/nibi-protocol/server.js";
 import { NibiProtocolNdjsonConnection } from "../src/nibi-protocol/transport.js";
-import { shouldCloseSessionForExpectedPersistence } from "../src/nibi-protocol/server-operations.js";
+import {
+  shouldCloseSessionForExpectedPersistence,
+  stopSession,
+} from "../src/nibi-protocol/server-operations.js";
 import type {
   NibiProtocolAgentServerContext,
   NibiProtocolSessionRecord,
@@ -181,6 +184,116 @@ describe("conditional session close", () => {
     expect(shouldCloseSessionForExpectedPersistence("deferred", "deferred")).toBe(true);
     expect(shouldCloseSessionForExpectedPersistence("immediate", "deferred")).toBe(false);
     expect(shouldCloseSessionForExpectedPersistence("immediate")).toBe(true);
+  });
+});
+
+describe("legacy session/stop expectedExecutionId fencing", () => {
+  function stopContext(
+    record: NibiProtocolSessionRecord,
+    info: ReturnType<typeof vi.fn> = vi.fn(),
+  ): NibiProtocolAgentServerContext {
+    return {
+      logger: { info } as unknown as Logger,
+      sessions: new Map([["sess_stop", record]]),
+    } as unknown as NibiProtocolAgentServerContext;
+  }
+
+  function stopRecord(
+    app: NibiApp,
+    controller = new AbortController(),
+  ): NibiProtocolSessionRecord {
+    return {
+      activeAbortController: controller,
+      app,
+      workspace: { workspacePath: "/workspace/app" },
+    } as unknown as NibiProtocolSessionRecord;
+  }
+
+  it("does not abort or pause the goal when the expected execution is stale", async () => {
+    const controller = new AbortController();
+    const stopActiveForegroundExecution = vi.fn(() => ({
+      activeForegroundExecutionId: "exec-new",
+      kind: "mismatch" as const,
+    }));
+    const updateTargetStatus = vi.fn(async () => null);
+    const app = createFakeApp(undefined, {
+      readTarget: async () => ({ status: "active", targetID: "goal-1" }) as never,
+      updateTargetStatus: updateTargetStatus as never,
+    });
+    app.runtime.stopActiveForegroundExecution = stopActiveForegroundExecution;
+    const info = vi.fn();
+    const record = stopRecord(app, controller);
+
+    await expect(
+      stopSession(stopContext(record, info), {
+        expectedExecutionId: "exec-old",
+        sessionId: "sess_stop",
+      }),
+    ).resolves.toEqual({});
+
+    expect(stopActiveForegroundExecution).toHaveBeenCalledWith({
+      expectedForegroundExecutionId: "exec-old",
+      reason: "NIBI Protocol session stopped",
+    });
+    expect(controller.signal.aborted).toBe(false);
+    expect(updateTargetStatus).not.toHaveBeenCalled();
+    expect(info).toHaveBeenCalledWith(
+      "NIBI Protocol session/stop received",
+      expect.objectContaining({
+        activeForegroundExecutionId: "exec-new",
+        expectedExecutionId: "exec-old",
+        runtimeStopKind: "mismatch",
+      }),
+    );
+  });
+
+  it("stops the matching execution and keeps pausing the goal", async () => {
+    const controller = new AbortController();
+    const stopActiveForegroundExecution = vi.fn(() => ({
+      foregroundExecutionId: "exec-current",
+      kind: "stopped" as const,
+    }));
+    const updateTargetStatus = vi.fn(async () => null);
+    const app = createFakeApp(undefined, {
+      readTarget: async () => ({ status: "active", targetID: "goal-1" }) as never,
+      updateTargetStatus: updateTargetStatus as never,
+    });
+    app.runtime.stopActiveForegroundExecution = stopActiveForegroundExecution;
+    const record = stopRecord(app, controller);
+
+    await expect(
+      stopSession(stopContext(record), {
+        expectedExecutionId: "exec-current",
+        sessionId: "sess_stop",
+      }),
+    ).resolves.toEqual({});
+
+    expect(stopActiveForegroundExecution).toHaveBeenCalledWith({
+      expectedForegroundExecutionId: "exec-current",
+      reason: "NIBI Protocol session stopped",
+    });
+    expect(controller.signal.aborted).toBe(true);
+    expect(updateTargetStatus).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the legacy behavior when no expectedExecutionId is sent", async () => {
+    const controller = new AbortController();
+    const stopActiveForegroundExecution = vi.fn(() => ({ kind: "idle" as const }));
+    const updateTargetStatus = vi.fn(async () => null);
+    const app = createFakeApp(undefined, {
+      readTarget: async () => ({ status: "active", targetID: "goal-1" }) as never,
+      updateTargetStatus: updateTargetStatus as never,
+    });
+    app.runtime.stopActiveForegroundExecution = stopActiveForegroundExecution;
+    const record = stopRecord(app, controller);
+
+    await expect(
+      stopSession(stopContext(record), { sessionId: "sess_stop" }),
+    ).resolves.toEqual({});
+
+    expect(stopActiveForegroundExecution).not.toHaveBeenCalled();
+    expect(controller.signal.aborted).toBe(true);
+    expect(updateTargetStatus).toHaveBeenCalledOnce();
   });
 });
 
@@ -1615,7 +1728,8 @@ describe("NibiProtocolAgentServer", () => {
   it("refreshes MCP list statuses through the protocol process MCP port", async () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-protocol-mcp-list-"));
     const workspacePath = join(root, "workspace");
-    const pluginRoot = join(root, "plugin");
+    // PROJECT-CONFIG：项目 plugins.dirs 必须是工作区内路径。
+    const pluginRoot = join(workspacePath, "plugins", "status-plugin");
     const connectedConfigs: Record<string, McpServerConfig>[] = [];
     const mcpPort = createProtocolListMcpPort(connectedConfigs);
     const server = new NibiProtocolAgentServer({

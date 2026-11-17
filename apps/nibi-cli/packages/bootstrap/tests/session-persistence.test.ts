@@ -53,7 +53,7 @@ import {
   closeTrackedTestApps,
   createRegistryBackedTestApp as createNibiApp,
   createTestProviderRegistry,
-  writeSuppressedBuiltinPluginsProjectConfig,
+  writeSuppressedBuiltinPluginsUserConfig,
 } from "./helpers/registry-backed-test-app.js";
 
 // Windows 的 shell 方言由平台决定（git-bash / PowerShell），不读 SHELL 与 PATH 里的
@@ -435,13 +435,13 @@ describe("session persistence", () => {
             };
           },
         } as never,
-        projectConfigPath: configPath,
+        // PROJECT-CONFIG：skills/skillOverrides 不再从项目层生效，测试隔离配置放用户层。
+        userConfigPath: configPath,
         runtimeConfig: {
           workingDirectory: tempRoot,
         },
         sessionId: createSessionId("bootstrap-skill-disable"),
         sessionStore: store,
-        skipUserConfig: true,
       });
 
       await app.submitPrompt("hello");
@@ -1858,11 +1858,11 @@ describe("session persistence", () => {
     try {
       // 测试基座隔离：design 插件默认启用并注册 SessionStart hook，hook_run_* 事件会
       // 混入本用例对 submitPrompt live event 的精确断言。插件解析只读 configResult，
-      // 因此用项目配置抑制，而不是 runtimeConfig.plugins。
-      await writeSuppressedBuiltinPluginsProjectConfig(tempRoot);
+      // 因此用用户配置抑制，而不是 runtimeConfig.plugins。
+      const userConfigPath = await writeSuppressedBuiltinPluginsUserConfig(tempRoot);
       const app = await createNibiApp({
         // 持久化测试不读取操作者配置，避免真实插件和 MCP 混入会话生命周期。
-        skipUserConfig: true,
+        userConfigPath,
         env: {},
         eventStore: createInMemorySessionEventStore(),
         loggerFactory: createNodeLoggerFactory({ logDir, minLevel: LogLevel.Debug }),
@@ -2325,13 +2325,12 @@ describe("session persistence", () => {
 
     try {
       // 测试基座隔离：design 插件默认启用并注册 SessionStart hook，它注入的 user 消息
-      // 会让 resume 的 provider-visible 消息序列多一项。项目配置按 workingDirectory
-      // 发现，第二个 app 换了 cwd，所以两处都要写。
-      await writeSuppressedBuiltinPluginsProjectConfig(tempRoot);
-      await writeSuppressedBuiltinPluginsProjectConfig(join(tempRoot, "different-cwd"));
+      // 会让 resume 的 provider-visible 消息序列多一项。项目层不能用 suppressedBuiltins
+      // （PROJECT-CONFIG），用户配置对两个 cwd 都生效。
+      const userConfigPath = await writeSuppressedBuiltinPluginsUserConfig(tempRoot);
       const firstApp = await createNibiApp({
         // 持久化测试不读取操作者配置，避免真实插件和 MCP 混入会话生命周期。
-        skipUserConfig: true,
+        userConfigPath,
         env: {},
         modelExecutor: {
           async generateText() {
@@ -2357,7 +2356,7 @@ describe("session persistence", () => {
 
       const secondApp = await createNibiApp({
         // 持久化测试不读取操作者配置，避免真实插件和 MCP 混入会话生命周期。
-        skipUserConfig: true,
+        userConfigPath,
         env: {},
         modelExecutor: {
           async generateText(request: { messages: Array<{ role: string; content: string }> }) {
@@ -2432,12 +2431,11 @@ describe("session persistence", () => {
 
     try {
       // 测试基座隔离：design 插件的 SessionStart hook 会注入 user 消息，并在 hydrate 时
-      // 产生额外的 hook_run_* live 事件；两处 workingDirectory 各写一份抑制配置。
-      await writeSuppressedBuiltinPluginsProjectConfig(tempRoot);
-      await writeSuppressedBuiltinPluginsProjectConfig(join(tempRoot, "different-cwd"));
+      // 产生额外的 hook_run_* live 事件；用户配置对两个 cwd 都生效。
+      const userConfigPath = await writeSuppressedBuiltinPluginsUserConfig(tempRoot);
       const firstApp = await createNibiApp({
         // 持久化测试不读取操作者配置，避免真实插件和 MCP 混入会话生命周期。
-        skipUserConfig: true,
+        userConfigPath,
         env: {},
         modelExecutor: {
           async generateText() {
@@ -2463,7 +2461,7 @@ describe("session persistence", () => {
 
       const secondApp = await createNibiApp({
         // 持久化测试不读取操作者配置，避免真实插件和 MCP 混入会话生命周期。
-        skipUserConfig: true,
+        userConfigPath,
         env: {},
         modelExecutor: {
           async generateText(request: { messages: Array<{ role: string; content: string }> }) {

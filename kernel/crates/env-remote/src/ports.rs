@@ -392,9 +392,20 @@ impl Background for RemoteEnvironment {
         context: OperationContext,
         task: BackgroundTask,
     ) -> Result<BackgroundStop, EnvError> {
+        self.stop_background_command_expecting(context, task, None)
+            .await
+    }
+
+    async fn stop_background_command_expecting(
+        &self,
+        context: OperationContext,
+        task: BackgroundTask,
+        expected_execution_id: Option<String>,
+    ) -> Result<BackgroundStop, EnvError> {
         let request = Request::StopBackgroundCommand {
             context: to::context(context),
             task: to::background_task(task),
+            expected_execution_id,
         };
         let (reply, _) = self.call(request, empty()).await?;
         Ok(from::background_stop(

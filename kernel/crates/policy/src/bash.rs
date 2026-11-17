@@ -15,7 +15,7 @@ use crate::bash_suggest;
 use crate::check::{AskKind, Check, Inputs};
 use crate::parse::{Analysis, Invocation, analyze};
 use crate::paths::PathContext;
-use crate::readonly::is_read_only_on;
+use crate::readonly::{BASH_TOOL_SHELL, is_read_only_for_shell_on};
 use crate::rules::Found;
 use crate::shell_rules::{self, Mode, Subject};
 use crate::texts::{self, Reason};
@@ -142,7 +142,9 @@ fn check_subcommand(
     let stripped = shell_rules::strip_safe_wrappers(text);
     let name = stripped.split_whitespace().next().unwrap_or_default();
     if (inputs.mode == PermissionMode::AcceptEdits && ACCEPT_EDITS.contains(&name))
-        || is_read_only_on(text, false, inputs.paths.style)
+        // 只读放行只在 Bash 方言上成立；shell 与 Bash 工具共用一个前提（`BASH_TOOL_SHELL`），
+        // 路径风格仍按命令所在机器（远端执行 §20.8）。
+        || is_read_only_for_shell_on(text, false, BASH_TOOL_SHELL, inputs.paths.style)
         || invocation.is_some_and(bash_compound::test_is_read_only)
     {
         return Check::Allow.into();

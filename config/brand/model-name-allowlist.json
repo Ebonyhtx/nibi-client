@@ -1,0 +1,329 @@
+{
+  "version": 1,
+  "modelIdPattern": "^(?:GLM|glm)-(?:[0-9][0-9A-Za-z]*(?:[.-][0-9A-Za-z]+)*|x-[a-z0-9-]+)$",
+  "explicitIds": [
+    "GLM-5.3",
+    "GLM-5.3-Flash",
+    "GLM-5V-Turbo",
+    "GLM-5.2",
+    "GLM-5.1",
+    "GLM-5.1-Highspeed",
+    "GLM-5",
+    "GLM-5-Turbo",
+    "GLM-4.7",
+    "GLM-4.7-FlashX",
+    "GLM-4.7-Flash",
+    "GLM-4.6",
+    "GLM-4.5",
+    "GLM-4.5-Air",
+    "GLM-4.6V",
+    "GLM-4.6V-Flash",
+    "GLM-4.6V-FlashX",
+    "GLM-4.1V-Thinking-Flash",
+    "GLM-4.1V-Thinking-FlashX",
+    "GLM-4-Flash-250414",
+    "GLM-4-FlashX-250414",
+    "GLM-4V-Flash",
+    "glm-5.3-flashx",
+    "glm-0531",
+    "glm-x-preview-f",
+    "charglm-4"
+  ],
+  "allowedFiles": [
+    {
+      "path": "packages/shared/src/official-glm-model-id.ts",
+      "reason": "官方 GLM 模型 ID 名单；模型名就是本文件的业务数据。"
+    },
+    {
+      "path": "config/provider/nibi-builtin.json",
+      "reason": "provider 目录中的模型 ID/modelMatch 数据，属于模型清单而不是产品身份。"
+    },
+    {
+      "path": "config/provider/nibi-builtin.test.json",
+      "reason": "provider 模型目录的测试副本，内容与 nibi-builtin.json 同源。"
+    },
+    {
+      "path": "kernel/crates/platform/assets/nibi-builtin.json",
+      "reason": "内核随包资源中的 provider 模型目录副本。"
+    },
+    {
+      "path": "packages/ui/src/components/ui/GlmMonochromeIcon.tsx",
+      "reason": "GLM 仅作为模型供应商图标使用（B05 允许的唯一用途）。"
+    },
+    {
+      "path": "packages/ui/src/lib/providerCliIcon.tsx",
+      "reason": "provider CLI 图标映射，只渲染模型供应商图标，不承担产品图标。"
+    },
+    {
+      "path": "packages/ui/src/settings/model-provider-section/quotaModelDisplayName.ts",
+      "reason": "把 GLM-* 模型 ID 格式化为展示名，属于模型名展示而不是产品身份。"
+    },
+    {
+      "path": "packages/ui/src/lib/conversationTelemetryParityScenarioDefinitions.ts",
+      "reason": "telemetry parity 的受控场景输入；glm 是 fixture 的 provider/model 名。"
+    }
+  ],
+  "allowedLinePatterns": [
+    {
+      "pattern": "^\\s*\"(?:modelId|modelMatch|builtinModelIds)\"\\s*:",
+      "reason": "provider 目录中的模型 ID/匹配规则行。"
+    },
+    {
+      "pattern": "\\bmodelId\\s*[:=]\\s*[\"']",
+      "reason": "代码中的模型 ID 赋值。"
+    },
+    {
+      "pattern": "^\\s*(?:simplifiedModelMatch|modelMatch)\\s*:",
+      "reason": "旧推理档位映射里的模型匹配规则。"
+    },
+    {
+      "pattern": "^\\s*official\\([^\\n]*\"[^\"]*glm",
+      "reason": "Rust provider 的模型匹配规则。"
+    },
+    {
+      "pattern": "OFFICIAL_GLM_MODEL_IDS",
+      "reason": "遥测白名单直接引用官方模型名单。"
+    },
+    {
+      "pattern": "official-glm-model-id",
+      "reason": "官方模型名单模块的 import/export。"
+    }
+  ],
+  "legacyAllowedLines": [
+    {
+      "file": "packages/desktop/package.json",
+      "pattern": "\"prepare:glm\"",
+      "reason": "B03：下载远端 GLM 运行时的构建脚本名，随 CDN/启动器迁移一起改。"
+    },
+    {
+      "file": "packages/server/src/remote/deploy.ts",
+      "pattern": "case \"glm\":",
+      "reason": "B03：远端组件 id 仍是 glm，等 CDN 双发/迁移完成后再删。"
+    },
+    {
+      "file": "packages/server/src/remote/remoteAssetCache.ts",
+      "pattern": "glm: \"glm-content\"",
+      "reason": "B03：远端资源缓存仍用 glm 组件 id。"
+    },
+    {
+      "file": "packages/server/src/remote/remoteAssetCache.ts",
+      "pattern": "^\\s*glm: \\{",
+      "reason": "B03：远端资源缓存仍用 glm 组件 id。"
+    },
+    {
+      "file": "packages/server/src/remote/remoteAssetCache.ts",
+      "pattern": "glm/\\$\\{platformArch\\}",
+      "reason": "B03：远端 mount 仍是 glm/<arch>；B03 切换后删除。"
+    },
+    {
+      "file": "packages/server/src/remote/remoteAssetCache.ts",
+      "pattern": "componentId !== \"glm\"",
+      "reason": "B03：迁移期仍识别旧 glm 组件 id。"
+    },
+    {
+      "file": "packages/services/src/project-storage/project-repository.ts",
+      "pattern": "provider='glm'",
+      "reason": "B02：项目库只读兼容旧的 glm provider 行。"
+    },
+    {
+      "file": "packages/services/src/session/taskIndexRepo.ts",
+      "pattern": "provider = 'glm'",
+      "reason": "B02：任务索引只读兼容旧的 glm provider 行。"
+    },
+    {
+      "file": "packages/services/src/session/tasksDatabase/provider-selection-v2.ts",
+      "pattern": "\\[\"glm\", \"zcode\", \"nibi-agent\"\\]",
+      "reason": "B02：旧 provider 选择值仍要能读。"
+    },
+    {
+      "file": "packages/shared/src/bots.ts",
+      "pattern": "\"glm\", \"nibi-agent\"",
+      "reason": "B02：bot schema 保留旧 glm provider 值以读取存量数据。"
+    },
+    {
+      "file": "packages/shared/src/nibi-agent-policy.ts",
+      "pattern": "LEGACY_NIBI_AGENT_PROVIDER = \"glm\"",
+      "reason": "B02：显式命名的 legacy provider 常量。"
+    },
+    {
+      "file": "packages/shared/src/nibi-agent-policy.ts",
+      "pattern": "NIBI_NATIVE_MODEL_PROVIDER_ID = \"glm\"",
+      "reason": "B02：内置模型 provider id 仍需与旧数据/服务端对齐。"
+    },
+    {
+      "file": "packages/shared/src/nibi-agent-policy.ts",
+      "pattern": "\"codex\", \"glm\", \"nibi-agent\"",
+      "reason": "B02：provider 枚举保留旧 glm 值。"
+    },
+    {
+      "file": "packages/shared/src/nibi-agent-runtime.ts",
+      "pattern": "resourcePackageDir: \"glm\"",
+      "reason": "B03：运行时资源包目录仍是 glm，等 CDN 组件迁移。"
+    },
+    {
+      "file": "packages/shared/src/remoteResourcePackages.ts",
+      "pattern": "NIBI_AGENT_REMOTE_COMPONENT_ID = \"glm\"",
+      "reason": "B03：远端组件 id 仍是 glm，迁移期必须双读。"
+    },
+    {
+      "file": "packages/shared/src/remoteResourcePackages.ts",
+      "pattern": "^\\s*\"glm\",",
+      "reason": "B03：远端组件 id 列表仍保留 glm。"
+    },
+    {
+      "file": "packages/shared/src/validationAppSettings.ts",
+      "pattern": "\"codex\", \"glm\", \"nibi-agent\"",
+      "reason": "B02：设置校验保留旧 glm provider 值。"
+    },
+    {
+      "file": "packages/ui/src/i18n/locales/en-US.ts",
+      "pattern": "settings\\.modelProvider\\.namePlaceholder",
+      "reason": "模型供应商名称示例，GLM 在这里是模型名。"
+    },
+    {
+      "file": "packages/ui/src/i18n/locales/en-US.ts",
+      "pattern": "settings\\.skills\\.agent\\.glm",
+      "reason": "B06：旧技能 provider id 的 i18n 键，仍要能读。"
+    },
+    {
+      "file": "packages/ui/src/i18n/locales/zh-CN.ts",
+      "pattern": "settings\\.modelProvider\\.namePlaceholder",
+      "reason": "模型供应商名称示例，GLM 在这里是模型名。"
+    },
+    {
+      "file": "packages/ui/src/i18n/locales/zh-CN.ts",
+      "pattern": "settings\\.skills\\.agent\\.glm",
+      "reason": "B06：旧技能 provider id 的 i18n 键，仍要能读。"
+    },
+    {
+      "file": "packages/ui/src/root/PostUpdateReleaseNotesDialog.tsx",
+      "pattern": "GlmMonochromeIcon",
+      "reason": "B01 未完成：发布说明弹窗仍把 GLM 模型图标当产品图标；修 B01 时删除本豁免。"
+    },
+    {
+      "file": "packages/ui/src/lib/skillSourceFilter.ts",
+      "pattern": "\\(\\?:glm\\|nibi-agent\\):",
+      "reason": "B06：技能来源过滤仍识别旧 glm provider 前缀。"
+    },
+    {
+      "file": "apps/nibi-cli/packages/computer-use-plugin/scripts/sync-cache.mjs",
+      "pattern": "glmDir",
+      "reason": "B01：构建脚本参数名仍是 glmDir，随 agent 目录改名一起处理。"
+    },
+    {
+      "file": "packages/desktop/scripts/bundled-npm-assets.mjs",
+      "pattern": "glmDir",
+      "reason": "B01：构建脚本参数名仍是 glmDir，随 agent 目录改名一起处理。"
+    },
+    {
+      "file": "packages/desktop/scripts/koffi-package-assets.mjs",
+      "pattern": "glmDir",
+      "reason": "B01：构建脚本参数名仍是 glmDir，随 agent 目录改名一起处理。"
+    },
+    {
+      "file": "packages/desktop/scripts/prepare-agent-node-bundle.mjs",
+      "pattern": "glmDir",
+      "reason": "B01：构建脚本参数名仍是 glmDir，随 agent 目录改名一起处理。"
+    },
+    {
+      "file": "packages/desktop/scripts/sharp-package-assets.mjs",
+      "pattern": "glmDir",
+      "reason": "B01：构建脚本参数名仍是 glmDir，随 agent 目录改名一起处理。"
+    },
+    {
+      "file": "packages/desktop/scripts/sharp-package-assets.mjs",
+      "pattern": "^\\s*\"glm\",$",
+      "reason": "B01：sharp 资源平台列表仍写 glm 目录名。"
+    },
+    {
+      "file": "packages/desktop/scripts/sharp-package-assets.mjs",
+      "pattern": "args\\[\"glm-dir\"\\]",
+      "reason": "B01：构建脚本 CLI 参数仍是 --glm-dir。"
+    },
+    {
+      "file": "packages/desktop/scripts/stage-agent-bundle.mjs",
+      "pattern": "glmDir",
+      "reason": "B01：构建脚本参数名仍是 glmDir，随 agent 目录改名一起处理。"
+    },
+    {
+      "file": "scripts/download-glm.mjs",
+      "pattern": "[Gg][Ll][Mm]",
+      "reason": "B03：GLM 运行时下载脚本；文件名/环境变量/日志都围绕旧运行时，随 CDN 迁移一起改。"
+    },
+    {
+      "file": "scripts/download-glm.sh",
+      "pattern": "[Gg][Ll][Mm]",
+      "reason": "B03：GLM 运行时下载脚本；文件名/环境变量/日志都围绕旧运行时，随 CDN 迁移一起改。"
+    },
+    {
+      "file": "scripts/audit-nibi-agent-remnants.mjs",
+      "pattern": "download-glm",
+      "reason": "审计脚本把 download-glm 列入豁免路径，属于旧运行时审计规则。"
+    },
+    {
+      "file": "scripts/sqlite-schema-contract.mjs",
+      "pattern": "zcode_database_identity",
+      "reason": "SQLite schema 契约里的旧表名→新表名迁移映射，是历史数据事实。"
+    },
+    {
+      "file": "scripts/stage-dev-cua-plugin-runtime.mjs",
+      "pattern": "glmDir",
+      "reason": "B01：开发态 CUA 插件脚本仍用 glmDir 参数名。"
+    },
+    {
+      "file": "apps/nibi-cli/packages/adapters/src/storage/session-store/migrations.ts",
+      "pattern": "OFFICIAL_GLM_SELECTION",
+      "reason": "历史迁移 0021 的常量名，迁移 ID 不能重命名。"
+    },
+    {
+      "file": "apps/nibi-cli/packages/adapters/src/storage/session-store/migrations.ts",
+      "pattern": "zcode_database_identity",
+      "reason": "历史迁移的 touchedTables 必须记录旧表名。"
+    },
+    {
+      "file": "apps/nibi-cli/packages/adapters/src/storage/session-store/migrations/0021-official-glm-selection.ts",
+      "pattern": "OFFICIAL_GLM_SELECTION",
+      "reason": "历史迁移 0021 的常量名，迁移 ID 不能重命名。"
+    },
+    {
+      "file": "kernel/crates/node-store/src/repo/migrations.rs",
+      "pattern": "0021_official_glm_selection",
+      "reason": "Rust 侧历史迁移 0021 的版本记录，迁移 ID 不能重命名。"
+    },
+    {
+      "file": "kernel/crates/node-store/src/repo/migrations/0024_session_database_identity.sql",
+      "pattern": "zcode_database_identity",
+      "reason": "历史迁移必须引用旧表名；0025 负责重命名。"
+    },
+    {
+      "file": "kernel/crates/node-store/src/repo/migrations/0025_session_database_identity_rename.sql",
+      "pattern": "zcode_database_identity",
+      "reason": "历史迁移必须引用旧表名；本迁移负责重命名。"
+    },
+    {
+      "file": "packages/services/src/session/tasksDatabase/migrations.ts",
+      "pattern": "OFFICIAL_GLM_SELECTION",
+      "reason": "历史迁移 0003 的常量名，迁移 ID/checksum 不能重命名。"
+    },
+    {
+      "file": "packages/services/src/session/tasksDatabase/migrations.ts",
+      "pattern": "provider='glm'",
+      "reason": "B02：迁移把旧 glm provider 行改成 nibi-agent，必须引用旧值。"
+    },
+    {
+      "file": "packages/services/src/session/tasksDatabase/migrations.ts",
+      "pattern": "provider !== \"glm\"",
+      "reason": "B02：迁移只处理旧 glm provider 行。"
+    },
+    {
+      "file": "packages/services/src/session/tasksDatabase/official-glm-selection-v3.ts",
+      "pattern": "OFFICIAL_GLM_SELECTION",
+      "reason": "历史迁移 0003 的 SQL 常量名，迁移 ID/checksum 不能重命名。"
+    },
+    {
+      "file": "packages/shared/src/sqlite-migrations/legacy.ts",
+      "pattern": "zcode_database_identity",
+      "reason": "历史迁移必须引用旧表名；后续迁移负责重命名。"
+    }
+  ]
+}

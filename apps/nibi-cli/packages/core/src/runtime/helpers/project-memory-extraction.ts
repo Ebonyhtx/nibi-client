@@ -154,6 +154,7 @@ async function executeProjectMemoryExtraction(
         rootDir: input.snapshot.memoryRoot,
         workingDirectory: input.snapshot.workingDirectory,
         workspaceRoot: input.snapshot.workspaceRoot,
+        bashShellSelection: runtime.config.bashShellSelection,
       });
       telemetry.finishCompleted();
       return "success" as const;

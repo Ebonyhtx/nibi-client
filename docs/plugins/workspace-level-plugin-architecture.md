@@ -86,9 +86,9 @@ Workspace 配置只覆盖自己声明的字段，其余字段继续继承 User �
 
 支持的 Plugin 配置包括：
 
-- `plugins.enabledPlugins`：项目启用/禁用哪些 Plugin；
+- `plugins.enabledPlugins`：项目只能**禁用** Plugin（写 `false`）。写 `true` 等于让仓库给已安装插件放权，读入时丢弃并记 `config_project_key_ignored`；启用是用户级决定，设置页的 workspace 启用会提升到用户配置落盘（PROJECT-CONFIG）；
 - `plugins.options`：项目共享的普通 option、credential、secret；
-- `plugins.dirs`：项目内 Plugin root 或项目相对 Plugin 路径，受路径和 manifest schema 校验。
+- `plugins.dirs`：项目内 Plugin root 或项目相对 Plugin 路径；解析后必须位于工作区（配置发现根）之内，越界项丢弃并记 `plugins.dirs[i]`，manifest/路径仍按原有 schema 校验。
 
 Workspace 配置不保存 package bytes、安装完成态、Marketplace cache、Plugin data 或 Host 用户级安装记录。
 敏感 option 的空输入表示保留当前值；用户显式清除时只删除当前 scope 的指定 option key，

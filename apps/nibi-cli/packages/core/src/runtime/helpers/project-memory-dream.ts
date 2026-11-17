@@ -163,6 +163,7 @@ async function executeProjectMemoryDream(
         rootDir: context.memoryRoot,
         workingDirectory: context.workingDirectory,
         workspaceRoot: context.workspaceRoot,
+        bashShellSelection: runtime.config.bashShellSelection,
       });
 
       const paths = [...touchedPaths];

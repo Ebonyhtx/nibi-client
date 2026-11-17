@@ -25,6 +25,14 @@ use crate::common::{Definition, definition, env_failure, text};
 
 pub const NAME: &str = "Bash";
 
+/// Bash 工具实际起的 shell（`StartCommand::shell`），取自判决链的同一前提
+/// （[`nibi_kernel_policy::readonly::BASH_TOOL_SHELL`]）：Windows 上执行环境起 Git Bash
+/// （[`nibi_kernel_api::env_shell::ShellKind::Bash`]），Unix 上是 POSIX shell。
+/// 换掉这个常量会让 [`BashTool::is_read_only`] 与判决链的只读放行一起失去只读证明
+/// （非 Bash shell 一律不算只读），并有测试锁定它必须是 [`ShellKind::Bash`]：新增 CMD/PowerShell 时
+/// 必须重新评估只读表，不能悄悄复用。
+pub(crate) const SHELL: ShellKind = nibi_kernel_policy::readonly::BASH_TOOL_SHELL;
+
 // 缺陷修复：Bash 提示原来总用缺省的文字。启动参数点名了
 // Glob / Grep（它们在工具清单里）时提示另点名 `find`、`grep`；缺省不点名。工具清单就是唯一来源：
 // 这两个工具可见就用点名的写法。
@@ -344,7 +352,12 @@ impl Tool for BashTool {
         input
             .get("command")
             .and_then(Value::as_str)
-            .is_some_and(|command| nibi_kernel_policy::readonly::is_read_only(command, false))
+            .is_some_and(|command| {
+                // 只读证明的有效前提（policy::readonly）：命令确实由 Bash 方言执行（Unix 的 POSIX shell /
+                // Windows 的 Git Bash），且 `git_unsafe = false`（工作区的 git 配置被视为可信）。
+                // 非 Bash shell 由 `is_read_only_for_shell` 直接回 false。
+                nibi_kernel_policy::readonly::is_read_only_for_shell(command, false, SHELL)
+            })
     }
 
     fn is_concurrency_safe(&self, input: &Value) -> bool {
@@ -478,7 +491,9 @@ impl BashTool {
             cwd: cwd.clone(),
             timeout_ms: start_timeout,
             task: task.clone(),
-            shell: ShellKind::Bash,
+            // 只读证明（`is_read_only`）与这里必须用同一个 shell：SHELL 是两者唯一的来源。
+            // 换了 shell 就不能沿用 Bash 的只读表（见 [`SHELL`]）。
+            shell: SHELL,
             cwd_scope,
             background: background.then(|| BackgroundCommand {
                 description,

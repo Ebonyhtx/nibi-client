@@ -291,7 +291,8 @@ pub struct BackgroundInfo {
 pub enum BackgroundStop {
     /// 已发出停止；这条命令不会再有终态通知，也不再算后台工作。
     Stopped { command: String },
-    /// 已经结束、通知还没 ack。
+    /// 已经结束、通知还没 ack；或停止请求带的期望执行身份不是任务当前的那次执行
+/// （此时 `status` 是任务此刻的状态，可能是 `Running`：任务在跑，但跑的不是期望的那次）。
     NotRunning { status: BackgroundStatus },
     /// 不认识、已被停止或通知已 ack。
     NotFound,

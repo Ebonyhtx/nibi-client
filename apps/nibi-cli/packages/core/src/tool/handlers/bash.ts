@@ -11,6 +11,7 @@ import {
   CoreErrorType,
   SessionEventType,
   createCoreError,
+  traceContextToLogContext,
   type BashInput,
   type BashOutput,
   type BackgroundExecutionStartResult,
@@ -68,6 +69,7 @@ import {
   isRuntimeReadOnlyBashCommand,
   type BashPermissionMatcher,
 } from "./bash-semantics.js";
+import type { BashReadonlyRuntimeContext } from "./bash-git-runtime-safety.js";
 import { isBashAutoBackgroundEligible } from "./bash-background-policy.js";
 import { supportsBashBackgroundLifecycle } from "./bash-background-lifecycle.js";
 import { resolveBashPermissionRulePolicy } from "./bash-command-permission-policy.js";
@@ -93,22 +95,51 @@ export function getBashPrompt(
   });
 }
 
-export function isBashInputReadOnly(input: unknown): boolean {
+export function isBashInputReadOnly(
+  input: unknown,
+  context?: ToolRuntimePermissionCapabilityContext,
+): boolean {
   const command = readStringProperty(input, "command");
-  return command ? isBashReadOnlyCommand(command) : false;
+  return command ? isBashReadOnlyCommand(command, bashReadonlyRuntimeContext(context)) : false;
 }
 
-export function isBashInputConcurrencySafe(input: unknown): boolean {
-  return isBashInputReadOnly(input);
+export function isBashInputConcurrencySafe(
+  input: unknown,
+  context?: ToolRuntimePermissionCapabilityContext,
+): boolean {
+  return isBashInputReadOnly(input, context);
 }
 
-export function checkBashInputPermissions(input: unknown): { behavior: "allow" } | undefined {
-  return resolveBashPermissionCapability(input) ? { behavior: "allow" } : undefined;
+export function checkBashInputPermissions(
+  input: unknown,
+  context?: ToolRuntimePermissionCapabilityContext,
+): { behavior: "allow" } | undefined {
+  return resolveBashPermissionCapability(input, context) ? { behavior: "allow" } : undefined;
 }
 
-export function prepareBashPermissionMatcher(input: unknown): BashPermissionMatcher | undefined {
+export function prepareBashPermissionMatcher(
+  input: unknown,
+  context?: ToolRuntimePermissionCapabilityContext,
+): BashPermissionMatcher | undefined {
   const command = readStringProperty(input, "command");
-  return command === undefined ? undefined : prepareBashPermissionMatcherForCommand(command);
+  return command === undefined
+    ? undefined
+    : prepareBashPermissionMatcherForCommand(command, bashReadonlyRuntimeContext(context));
+}
+
+/**
+ * 只读/前缀判定与执行必须使用同一 shell 文法。selection 缺失仍按 POSIX 处理（基础设施
+ * 尚未初始化不等于 CMD）；只有显式 cmd/legacy-shell 才让 Bash AST 让位给 exact 规则。
+ */
+function bashReadonlyRuntimeContext(
+  context?: ToolRuntimePermissionCapabilityContext,
+): BashReadonlyRuntimeContext | undefined {
+  if (!context) return undefined;
+  return {
+    dialect: context.bashShellSelection?.dialect ?? GUARDED_DEFAULT_DIALECT,
+    workingDirectory: context.workingDirectory,
+    workspaceRoot: context.workspaceRoot,
+  };
 }
 
 export function resolveBashPermissionCapability(
@@ -125,7 +156,8 @@ export function resolveBashPermissionCapability(
     );
     if (match.status === "matched") return { userApprovalRule: match.ruleId };
   }
-  if (!command || !isRuntimeReadOnlyBashCommand(command, context)) return undefined;
+  if (!command || !isRuntimeReadOnlyBashCommand(command, bashReadonlyRuntimeContext(context)))
+    return undefined;
   return {
     destructive: false,
     needsApproval: false,
@@ -178,7 +210,10 @@ async function executeBashHandler(
   const request = createExecutionRequest(parsed, context, timeoutPolicy);
   const progressTiming: BashProgressTiming = {};
   const commandTelemetry = startBashCommandTelemetry(parsed, context);
-  const runOptions = createExecutionRunOptions(context, progressTiming, commandTelemetry);
+  let startedPid: number | undefined;
+  const runOptions = createExecutionRunOptions(context, progressTiming, commandTelemetry, (pid) => {
+    startedPid = pid;
+  });
   // 闲时后台归属由 Runtime 生命周期保留，Bash 复用普通显式/超时后台路径。
   const eligibleForAutoBackground = isBashAutoBackgroundEligible(parsed);
   const backgroundLifecyclePort = supportsBashBackgroundLifecycle(executionPort)
@@ -227,6 +262,8 @@ async function executeBashHandler(
         return observed;
       })
     : await runCommand();
+
+  logBashProcessEnded(context, runResult, startedPid);
 
   if (runResult.kind === "backgrounded") {
     return toBackgroundedBashOutput(runResult.task, parsed);
@@ -298,10 +335,23 @@ function createExecutionRunOptions(
   context: ToolExecutionContext,
   progressTiming?: BashProgressTiming,
   telemetry?: CommandExecutionSpanWriter,
+  onStarted?: (pid: number | undefined) => void,
 ): ExecutionRunOptions {
   return {
     signal: context.abortSignal,
     onEvent: async (event) => {
+      if (event.type === "started") {
+        onStarted?.(event.pid);
+        // 与 Rust 侧同名：pid + toolCallId。Bash 的进度事件已带这两个字段，进程日志沿用
+        // 同一身份，便于把 spawn/exit 与 tool call 关联起来。
+        context.logger?.info("Bash process started", {
+          ...bashProcessLogContext(context),
+          event: "bash.process.started",
+          pid: event.pid,
+          startedAt: event.timestamp.toISOString(),
+        });
+        return;
+      }
       if (event.type !== "progress") return;
       if (
         progressTiming &&
@@ -313,6 +363,59 @@ function createExecutionRunOptions(
       }
       await emitProgressEvent(event, context);
     },
+  };
+}
+
+function logBashProcessEnded(
+  context: ToolExecutionContext,
+  runResult:
+    | { kind: "foreground"; result: ExecutionResult }
+    | { kind: "backgrounded"; task: BackgroundExecutionStartResult },
+  startedPid: number | undefined,
+): void {
+  if (runResult.kind === "backgrounded") {
+    context.logger?.info("Bash process backgrounded", {
+      ...bashProcessLogContext(context),
+      event: "bash.process.backgrounded",
+      pid: runResult.task.pid ?? startedPid,
+      taskId: runResult.task.taskId,
+    });
+    return;
+  }
+  const result = runResult.result;
+  context.logger?.info("Bash process completed", {
+    ...bashProcessLogContext(context),
+    cancelled: result.cancelled,
+    durationMs: result.durationMs,
+    event: "bash.process.completed",
+    exitCode: result.exitCode,
+    pid: result.pid ?? startedPid,
+    signal: result.signal,
+    status: bashProcessLogStatus(result.status),
+    timedOut: result.timedOut,
+  });
+}
+
+/** LogContext.status 的封闭枚举比 ExecutionStatus 窄；timed_out/spawn_error 归入 failed。 */
+function bashProcessLogStatus(
+  status: ExecutionResult["status"],
+): "cancelled" | "completed" | "failed" {
+  if (status === "completed") return "completed";
+  if (status === "cancelled") return "cancelled";
+  return "failed";
+}
+
+function bashProcessLogContext(context: ToolExecutionContext): Record<string, unknown> {
+  const trace = context.traceContext
+    ? traceContextToLogContext(context.traceContext)
+    : { sessionId: context.sessionId, traceId: context.traceId };
+  return {
+    ...trace,
+    module: "core.tool.handlers.bash",
+    sessionId: context.sessionId,
+    toolCallId: context.toolCallId,
+    toolName: "Bash",
+    turnId: context.turnId,
   };
 }
 

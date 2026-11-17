@@ -8,6 +8,7 @@ import type {
   ModelRequest,
   ModelToolCall,
   ModelToolContract,
+  ExecutionShellSelection,
 } from "@nibi/contracts";
 
 import { modelContentForToolResult, isErrorForToolResult } from "../runtime/helpers/tool-result.js";
@@ -34,6 +35,8 @@ export interface MemoryAgentToolPolicyInput {
   tools: readonly ModelToolContract[];
   workingDirectory: string;
   workspaceRoot: string;
+  /** 与前台 Bash 相同的 shell selection；缺失按 POSIX 处理。 */
+  bashShellSelection?: ExecutionShellSelection;
 }
 
 export type MemoryAgentToolPolicyDecision = { allowed: true } | { allowed: false; reason: string };
@@ -56,6 +59,7 @@ export async function runMemoryAgentLoop(input: {
   rootDir: string;
   workingDirectory: string;
   workspaceRoot: string;
+  bashShellSelection?: ExecutionShellSelection;
 }): Promise<MemoryAgentLoopResult> {
   const messages = input.request.messages.map(cloneModelMessage);
   let turns = 0;
@@ -94,6 +98,7 @@ export async function runMemoryAgentLoop(input: {
           tools: input.request.tools,
           workingDirectory: input.workingDirectory,
           workspaceRoot: input.workspaceRoot,
+          bashShellSelection: input.bashShellSelection,
         });
         if (!decision.allowed) {
           return {
@@ -151,6 +156,7 @@ export function evaluateMemoryAgentToolPolicy(
     if (
       command &&
       (isRuntimeReadOnlyBashCommand(command, {
+        dialect: input.bashShellSelection?.dialect ?? "posix",
         workingDirectory: input.workingDirectory,
         workspaceRoot: input.workspaceRoot,
       }) ||

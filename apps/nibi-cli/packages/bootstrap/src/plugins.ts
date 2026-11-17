@@ -96,6 +96,12 @@ export interface SetNibiPluginEnabledResult {
   enabled: boolean;
   path: string;
   plugin: PluginMetadata;
+  /**
+   * 实际写入的作用域。`scope: "workspace"` + `enabled: true` 会被提升到 `"user"`：
+   * 项目配置只能禁用插件（PROJECT-CONFIG 读取投影会丢弃 `enabledPlugins[id]=true`），
+   * 继续写工作区只会得到一个界面成功、重载后失效的静默空操作。
+   */
+  scope: "user" | "workspace";
 }
 
 export interface NibiMarketplaceSummaryData {
@@ -520,6 +526,11 @@ export async function setNibiPluginEnabled(
     workingDirectory,
   });
   const plugin = resolvePluginSelector(options.plugin, outcome.plugins);
+  // PROJECT-CONFIG：项目层只能禁用插件，`enabledPlugins[id]=true` 在读入时被丢弃。
+  // 启用是用户级决定（代码插件不能由仓库放权），因此 workspace 作用域的“启用”提升到
+  // user 配置落盘；workspace 作用域的“禁用”仍写工作区覆盖。
+  const effectiveScope: "user" | "workspace" =
+    options.scope === "workspace" && options.enabled ? "user" : (options.scope ?? "user");
   if (options.enabled) {
     // 启用与安装同样要过会员门禁：插件缓存/配置可以被复制，只在安装时拦等于没拦。
     const { pluginStorageRoot } = resolvePluginContext(options);
@@ -539,7 +550,11 @@ export async function setNibiPluginEnabled(
     }
   }
   const patch = await updatePluginEnabledInFileConfig(
-    resolvePluginConfigPath(options, configResult, workingDirectory),
+    resolvePluginConfigPath(
+      { ...options, scope: effectiveScope },
+      configResult,
+      workingDirectory,
+    ),
     plugin.id,
     options.enabled,
   );
@@ -551,6 +566,7 @@ export async function setNibiPluginEnabled(
       ...plugin,
       enabled: patch.enabled,
     },
+    scope: effectiveScope,
   };
 }
 

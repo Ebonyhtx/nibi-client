@@ -272,10 +272,16 @@ impl Tool for MonitorTool {
                 session: context.session.clone(),
                 task,
             };
+            // 这条命令就是用这个 operationId 起的：带上执行身份，任务 ID 被新执行复用时不误杀。
+            let expected_execution_id = context.operation.operation.as_str().to_owned();
             let _ = context
                 .machine
                 .background()
-                .stop_background_command(context.operation.clone(), request)
+                .stop_background_command_expecting(
+                    context.operation.clone(),
+                    request,
+                    Some(expected_execution_id),
+                )
                 .await;
             return Err(ToolError::Failed {
                 message: error.to_string(),

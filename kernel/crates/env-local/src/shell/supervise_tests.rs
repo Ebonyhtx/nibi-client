@@ -174,3 +174,147 @@ fn the_default_shell_falls_back_to_comspec_on_windows() {
         assert!(default_shell(&ShellConfig::default()).is_err());
     }
 }
+
+/// Bash 启动/结束日志的字段：`pid` 与 `tool_use`（入口的日志订阅者写成 `toolCallId`）在两条事件里都有，
+/// 结束事件另有 `status` / `duration_ms` / `exitCode` / `outputBytes`。字段名与 Node 相同。
+/// 不启动进程，直接经 `ProcessLog` 发事件，用测试订阅者收字段（与 `cli/src/log_tests.rs` 同一种做法）。
+#[test]
+fn bash_process_logs_carry_pid_and_the_tool_call_id() {
+    #[derive(Default)]
+    struct Fields(Vec<(String, String)>);
+
+    impl tracing::field::Visit for Fields {
+        fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
+            self.0.push((field.name().to_owned(), value.to_owned()));
+        }
+
+        fn record_u64(&mut self, field: &tracing::field::Field, value: u64) {
+            self.0.push((field.name().to_owned(), value.to_string()));
+        }
+
+        fn record_i64(&mut self, field: &tracing::field::Field, value: i64) {
+            self.0.push((field.name().to_owned(), value.to_string()));
+        }
+
+        fn record_bool(&mut self, field: &tracing::field::Field, value: bool) {
+            self.0.push((field.name().to_owned(), value.to_string()));
+        }
+
+        fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+            self.0.push((field.name().to_owned(), format!("{value:?}")));
+        }
+    }
+
+    type Events = std::sync::Arc<std::sync::Mutex<Vec<Vec<(String, String)>>>>;
+
+    struct Capture(Events);
+
+    impl tracing::Subscriber for Capture {
+        fn enabled(&self, _metadata: &tracing::Metadata<'_>) -> bool {
+            true
+        }
+
+        fn new_span(&self, _span: &tracing::span::Attributes<'_>) -> tracing::span::Id {
+            tracing::span::Id::from_u64(1)
+        }
+
+        fn record(&self, _span: &tracing::span::Id, _values: &tracing::span::Record<'_>) {}
+
+        fn record_follows_from(&self, _span: &tracing::span::Id, _follows: &tracing::span::Id) {}
+
+        fn event(&self, event: &tracing::Event<'_>) {
+            let mut fields = Fields::default();
+            event.record(&mut fields);
+            self.0
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .push(fields.0);
+        }
+
+        fn enter(&self, _span: &tracing::span::Id) {}
+
+        fn exit(&self, _span: &tracing::span::Id) {}
+    }
+
+    let events = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    tracing::subscriber::with_default(Capture(events.clone()), || {
+        let session = SessionId::new("sess_1");
+        let operation = OperationId::new("op_1");
+        let task = ShellTaskId::new("b1");
+        let tool_use = ToolUseId::new("toolu_1");
+        let log = ProcessLog {
+            pid: 4242,
+            session: &session,
+            operation: &operation,
+            task: &task,
+            tool_use: Some(&tool_use),
+            background: false,
+        };
+        log.started();
+        log.finished(
+            &Finish {
+                outcome: Outcome::Completed,
+                exit_code: Some(0),
+                timed_out: false,
+                cwd_reset: None,
+                output_bytes: 12,
+                output_limit: None,
+            },
+            34,
+        );
+        // 后台命令的结束事件是 Node 的 `bash.process.exited`（前台是 `bash.process.completed`）。
+        let background = ProcessLog {
+            background: true,
+            ..log
+        };
+        background.started();
+        background.finished(
+            &Finish {
+                outcome: Outcome::Completed,
+                exit_code: Some(0),
+                timed_out: false,
+                cwd_reset: None,
+                output_bytes: 12,
+                output_limit: None,
+            },
+            34,
+        );
+    });
+    let events = events
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    assert_eq!(events.len(), 4);
+    fn field<'a>(event: &'a [(String, String)], name: &str) -> Option<&'a str> {
+        event
+            .iter()
+            .find(|(key, _)| key == name)
+            .map(|(_, value)| value.as_str())
+    }
+    assert_eq!(field(&events[0], "pid"), Some("4242"));
+    assert_eq!(field(&events[0], "tool_use"), Some("toolu_1"));
+    assert_eq!(field(&events[0], "status"), Some("started"));
+    assert_eq!(
+        field(&events[0], "event"),
+        Some("bash.process.started")
+    );
+    assert_eq!(field(&events[1], "pid"), Some("4242"));
+    assert_eq!(field(&events[1], "tool_use"), Some("toolu_1"));
+    assert_eq!(field(&events[1], "status"), Some("completed"));
+    assert_eq!(
+        field(&events[1], "event"),
+        Some("bash.process.completed")
+    );
+    assert_eq!(field(&events[1], "duration_ms"), Some("34"));
+    assert_eq!(field(&events[1], "exitCode"), Some("0"));
+    assert_eq!(field(&events[1], "outputBytes"), Some("12"));
+    // 后台命令：开始事件不变，结束是 `bash.process.exited`。
+    assert_eq!(
+        field(&events[2], "event"),
+        Some("bash.process.started")
+    );
+    assert_eq!(
+        field(&events[3], "event"),
+        Some("bash.process.exited")
+    );
+    assert_eq!(field(&events[3], "status"), Some("completed"));
+}

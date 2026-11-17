@@ -1,0 +1,25 @@
+{
+  "allowedTopLevelKeys": ["hooks", "mcp", "plugins"],
+  "ignoredTopLevelKeys": [
+    "$schema",
+    "askUserQuestionTimeout",
+    "checkForUpdateOnStartup",
+    "command",
+    "commandOverrides",
+    "features",
+    "logging",
+    "memory",
+    "modelAnomalyGuard",
+    "modelStream",
+    "network",
+    "permission",
+    "skill",
+    "skillOverrides",
+    "skills",
+    "storage",
+    "toolConcurrency",
+    "ui"
+  ],
+  "allowedPluginKeys": ["dirs", "enabledPlugins", "options"],
+  "ignoredPluginKeys": ["enabled", "extraKnownMarketplaces", "suppressedBuiltins"]
+}

@@ -238,15 +238,21 @@ async fn run(
                 .await
                 .map_err(err)?,
         ),
-        Request::StopBackgroundCommand { context, task } => {
-            Reply::StopBackgroundCommand(output::background_stop(
-                machine
-                    .background()
-                    .stop_background_command(input::context(context), input::background_task(task))
-                    .await
-                    .map_err(err)?,
-            ))
-        }
+        Request::StopBackgroundCommand {
+            context,
+            task,
+            expected_execution_id,
+        } => Reply::StopBackgroundCommand(output::background_stop(
+            machine
+                .background()
+                .stop_background_command_expecting(
+                    input::context(context),
+                    input::background_task(task),
+                    expected_execution_id,
+                )
+                .await
+                .map_err(err)?,
+        )),
         Request::RewindPrepare {
             workspace,
             context,

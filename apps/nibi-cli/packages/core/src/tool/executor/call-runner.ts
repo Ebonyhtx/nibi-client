@@ -489,6 +489,7 @@ async function executeToolCallImpl(
       });
       const context: ToolExecutionContext = {
         toolCallId: canonicalToolCall.id,
+        logger: deps.logger,
         toolSearch: options?.toolSearch,
         telemetry,
         automationTurn: options?.automationTurn,

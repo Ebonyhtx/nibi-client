@@ -131,10 +131,21 @@ export {
   getFeedbackLogArchiveDir,
   getGitCheckpointIndexRootDir,
   getWorkspaceHash,
-  copyDataDirectory,
   validateDataBaseDirTarget,
   NIBI_WINDOWS_APP_INSTALL_DIR_ENV,
 } from "./paths.js";
+// 数据根切换：暂存复制 + 凭据解密验证 + 原子发布；machine 密钥永远在 v2 之外。
+export {
+  cleanupStaleRelocationStaging,
+  DATA_ROOT_RELOCATION_ERROR_CODES,
+  DataRootRelocationError,
+  relocateDataRoot,
+} from "./data-root/relocate.js";
+export { DATA_ROOT_MANIFEST } from "./data-root/manifest.js";
+export type {
+  DataRootCredentialVerification,
+  RelocateDataRootResult,
+} from "./data-root/relocate.js";
 export { createGitService } from "./git/gitService.js";
 export { GitCommitMessageGenerator } from "./git/gitCommitMessageGenerator.js";
 export { createGitCheckpointService } from "./git/gitCheckpointService.js";

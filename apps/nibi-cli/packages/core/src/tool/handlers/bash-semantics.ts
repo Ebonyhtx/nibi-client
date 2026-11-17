@@ -1,4 +1,4 @@
-import type { ExecutionResult } from "@nibi/contracts";
+import type { ExecutionResult, ExecutionShellSelection } from "@nibi/contracts";
 import { analyzeBashCommand, isBashCommandPermissionSafe } from "./bash-command-parser.js";
 import {
   analysisContainsGitAndDirectoryChange,
@@ -117,11 +117,36 @@ export function isSearchOrReadBashCommand(command: string): BashCommandClassific
   return { isList: hasList, isRead: hasRead, isSearch: hasSearch };
 }
 
-export function isBashReadOnlyCommand(command: string): boolean {
-  return isRuntimeReadOnlyBashCommand(command);
+/**
+ * Bash AST 只能证明 POSIX/git-bash 文法下的只读性。CMD 把 `#` 当普通字符、`&` 仍会
+ * 串接命令（`echo a # & del x`），legacy-shell 连文法都不确定；这两种方言若继续用
+ * Bash AST 推导，会把后续命令当成注释吞掉。缺失 dialect 维持既有 POSIX 假设。
+ */
+export function isBashAstProvableDialect(
+  dialect: ExecutionShellSelection["dialect"] | undefined,
+): boolean {
+  return dialect === undefined || dialect === "posix" || dialect === "git-bash";
 }
 
-export function isSimpleReadOnlyBashCommand(command: string): boolean {
+/** 权限上下文可能直接把 bashShellSelection 传进来；两者都缺失时按 POSIX。 */
+export function resolveBashReadonlyDialect(
+  context: BashReadonlyRuntimeContext | undefined,
+): ExecutionShellSelection["dialect"] {
+  return context?.dialect ?? context?.bashShellSelection?.dialect ?? "posix";
+}
+
+export function isBashReadOnlyCommand(
+  command: string,
+  context?: BashReadonlyRuntimeContext,
+): boolean {
+  return isRuntimeReadOnlyBashCommand(command, context);
+}
+
+export function isSimpleReadOnlyBashCommand(
+  command: string,
+  context?: BashReadonlyRuntimeContext,
+): boolean {
+  if (!isBashAstProvableDialect(resolveBashReadonlyDialect(context))) return false;
   const analysis = analyzeBashCommand(command);
   if (!isBashCommandPermissionSafe(analysis)) return false;
   if (analysis.commands.length !== 1) return false;
@@ -133,6 +158,7 @@ export function isRuntimeReadOnlyBashCommand(
   command: string,
   context?: BashReadonlyRuntimeContext,
 ): boolean {
+  if (!isBashAstProvableDialect(resolveBashReadonlyDialect(context))) return false;
   const analysis = analyzeBashCommand(command);
   if (!isBashCommandPermissionSafe(analysis)) return false;
   if (analysis.commands.length === 0) return false;
@@ -160,9 +186,12 @@ export function isRuntimeReadOnlyBashCommand(
 
 export function prepareBashPermissionMatcherForCommand(
   command: string,
+  context?: BashReadonlyRuntimeContext,
 ): BashPermissionMatcher | undefined {
   const trimmed = command.trim();
   if (trimmed.length === 0) return () => false;
+  // 与 unsafe/compound 分支同义：Bash AST 在非 POSIX 方言下不可信，不能据此断言命中。
+  if (!isBashAstProvableDialect(resolveBashReadonlyDialect(context))) return () => true;
 
   const analysis = analyzeBashCommand(command);
   if (!isBashCommandPermissionSafe(analysis) || analysis.commands.length !== 1) {

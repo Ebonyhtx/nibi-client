@@ -216,8 +216,8 @@ describe("protocol slash command surface", () => {
 
       const prompt = await resolveNibiCustomCommandPrompt("/ralph-loop build demo", {
         env: { NIBI_ENV: "test" },
-        projectConfigPath: configPath,
-        skipUserConfig: true,
+        // PROJECT-CONFIG：plugins.dirs/storage.dir 不再从项目层生效，测试用的插件配置放用户层。
+        userConfigPath: configPath,
         workingDirectory: workspace,
       });
 

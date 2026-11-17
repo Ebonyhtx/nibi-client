@@ -274,6 +274,20 @@ export class BackgroundTaskTracker {
           return;
         }
 
+        if (toolCall.name === "Bash") {
+          // 前台 Bash 的进程日志在 handler 收口；后台 Bash 的真实退出发生在这里，
+          // 沿用同一组 pid/toolCallId 字段与 `bash.process.*` 事件名。
+          this.deps.logger?.info?.("Bash process exited", {
+            ...traceContextToLogContext(traceContext),
+            event: "bash.process.exited",
+            module: "core.tool.handlers.bash",
+            pid: "pid" in snapshot ? snapshot.pid : undefined,
+            status: snapshot.status === "completed" ? "completed" : "failed",
+            taskId,
+            toolCallId: toolCall.id,
+            toolName: "Bash",
+          });
+        }
         this.deps.logger?.info?.("Background task terminal snapshot observed", {
           ...traceContextToLogContext(traceContext),
           event: "background_task.tracking.terminal",

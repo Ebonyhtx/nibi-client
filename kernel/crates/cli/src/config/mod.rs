@@ -9,6 +9,7 @@ mod files;
 pub(crate) mod mcp_trust;
 pub(crate) mod merge;
 mod plugins;
+mod project_scope;
 mod storage;
 pub(crate) mod trust;
 
@@ -195,6 +196,60 @@ pub(crate) async fn read_files(inputs: &ConfigInputs<'_>) -> Files {
     }
 }
 
+/// 项目文件的白名单投影（PROJECT-CONFIG）：`assemble` 与 `plugin_snapshot` 共用；以后新增项目层
+/// 构造点必须经 [`ProjectScopes::layers`]，不能把 `ProjectFile` 的原始对象直接推成 Layer。
+struct ProjectScopes {
+    /// 与 `Files::projects` 一一对应；读坏的文件为 `None`（已有 `object` 的警告）。
+    objects: Vec<Option<Map<String, Value>>>,
+}
+
+impl ProjectScopes {
+    fn new(
+        projects: &[ProjectFile],
+        workspace_root: &str,
+        warnings: &mut Vec<String>,
+    ) -> Self {
+        let objects = projects
+            .iter()
+            .map(|project| {
+                let object = object(&project.path, &project.file, warnings)?;
+                let base_dir = project_scope::project_base_dir(workspace_root, &project.path);
+                // `plugins.dirs` 只允许落在工作区根之内（与 Node `loadProjectConfigs` 同口径）。
+                let (scoped, ignored) =
+                    project_scope::project_scope(object, &base_dir, workspace_root);
+                for key in ignored {
+                    warnings.push(format!(
+                        "{}: config.project_keys.ignored: {key}",
+                        project.path
+                    ));
+                }
+                Some(scoped)
+            })
+            .collect();
+        Self { objects }
+    }
+
+    /// 项目级配置层，优先级按发现顺序（离工作区根近的在后）。
+    fn layers<'a>(&'a self, projects: &'a [ProjectFile]) -> Vec<Layer<'a>> {
+        projects
+            .iter()
+            .zip(&self.objects)
+            .filter_map(|(project, object)| {
+                object.as_ref().map(|object| Layer {
+                    source: RuleSource::ProjectSettings,
+                    object,
+                    path: &project.path,
+                })
+            })
+            .collect()
+    }
+
+    /// 投影后的项目对象（与 `projects` 同下标）：项目授权的读取也必须用它，不能回读原始文件。
+    fn object(&self, index: usize) -> Option<&Map<String, Value>> {
+        self.objects.get(index).and_then(Option::as_ref)
+    }
+}
+
 /// `--prepare-storage` 的库位置（prepare_storage.rs）：只来自用户级配置与环境变量，没有项目层——
 /// Node 的协议入口 `createConfig({env})` 同一范围（`storage.sessionDbPath` / `storage.dir`）。
 pub(crate) struct UserStorage {
@@ -250,20 +305,13 @@ pub(crate) async fn plugin_snapshot(
     let mut warnings = Vec::new();
     let empty = Map::new();
     let user_object = object(&user_path, &user, &mut warnings);
+    let scopes = ProjectScopes::new(&projects, inputs.workspace.root.as_str(), &mut warnings);
     let mut layers = vec![Layer {
         source: RuleSource::UserSettings,
         object: user_object.unwrap_or(&empty),
         path: &user_path,
     }];
-    for project in &projects {
-        if let Some(object) = object(&project.path, &project.file, &mut warnings) {
-            layers.push(Layer {
-                source: RuleSource::ProjectSettings,
-                object,
-                path: &project.path,
-            });
-        }
-    }
+    layers.extend(scopes.layers(&projects));
     let section = plugins::merge(&layers, &mut warnings);
     let storage = StorageLayers::from_layers(&layers, inputs.process_env);
     let root = inputs.workspace.root.as_str();
@@ -294,20 +342,13 @@ pub(crate) async fn assemble(inputs: &ConfigInputs<'_>) -> ConfigSnapshot {
     } = read_files(inputs).await;
     let empty = Map::new();
     let user_object = object(&user_path, &user, &mut warnings);
+    let scopes = ProjectScopes::new(&projects, inputs.workspace.root.as_str(), &mut warnings);
     let mut layers = vec![Layer {
         source: RuleSource::UserSettings,
         object: user_object.unwrap_or(&empty),
         path: &user_path,
     }];
-    for project in &projects {
-        if let Some(object) = object(&project.path, &project.file, &mut warnings) {
-            layers.push(Layer {
-                source: RuleSource::ProjectSettings,
-                object,
-                path: &project.path,
-            });
-        }
-    }
+    layers.extend(scopes.layers(&projects));
     // `--settings`（flagSettings，排在 user / project / local 之后）：规则的来源记为命令行（cli-args.md §8、D7）。
     if let Some(object) = inputs.flag {
         layers.push(Layer {
@@ -428,17 +469,23 @@ pub(crate) async fn assemble(inputs: &ConfigInputs<'_>) -> ConfigSnapshot {
         theme,
         check_for_update,
         question_timeout,
-        project_allow: project_allow(&projects, inputs.workspace.root.as_str()),
+        project_allow: project_allow(&projects, &scopes, inputs.workspace.root.as_str()),
         storage,
     }
 }
 
 /// 与 `merge::permission` 的按键覆盖同一层：最后一份写了合法 `permission.allowedTools` 的项目文件。
-fn project_allow(projects: &[ProjectFile], root: &str) -> Option<(String, Vec<String>)> {
-    projects.iter().rev().find_map(|project| {
-        let rules = project
-            .file
-            .object()?
+///
+/// PROJECT-CONFIG 之后项目文件的 `permission.*` 已被剥离，这里恒为 None；仍按投影后的对象读取，
+/// 避免以后调整白名单时又回读原始文件。
+fn project_allow(
+    projects: &[ProjectFile],
+    scopes: &ProjectScopes,
+    root: &str,
+) -> Option<(String, Vec<String>)> {
+    projects.iter().enumerate().rev().find_map(|(index, project)| {
+        let rules = scopes
+            .object(index)?
             .get("permission")?
             .get("allowedTools")?
             .as_array()?

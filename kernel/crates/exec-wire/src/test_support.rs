@@ -215,6 +215,7 @@ pub(crate) fn requests() -> Vec<Request> {
         Request::StopBackgroundCommand {
             context: context("op_4"),
             task: task(),
+            expected_execution_id: Some("op_3".to_owned()),
         },
         Request::RewindPrepare {
             workspace: ws(),

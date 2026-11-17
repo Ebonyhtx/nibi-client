@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   createModel as createExecutableModel,
@@ -40,18 +40,17 @@ export function testSuppressedBuiltinPluginsConfig(): {
 }
 
 /**
- * 在指定目录写入一份只声明插件抑制的项目配置（`.nibi/config.json`）。
- * 适用于 workingDirectory 是临时目录、且测试没有现成配置文件的场景。
+ * 在指定目录写入一份只声明插件抑制的用户配置（`user-config.json`），返回路径。
+ *
+ * PROJECT-CONFIG 之后项目层只允许 `plugins.enabledPlugins=false` / `plugins.options`，
+ * `plugins.suppressedBuiltins` 不再从项目配置生效；测试要把返回值传给 `userConfigPath`。
  */
-export async function writeSuppressedBuiltinPluginsProjectConfig(
+export async function writeSuppressedBuiltinPluginsUserConfig(
   directory: string,
-): Promise<void> {
-  const configDir = join(directory, ".nibi");
-  await mkdir(configDir, { recursive: true });
-  await writeFile(
-    join(configDir, "config.json"),
-    JSON.stringify(testSuppressedBuiltinPluginsConfig()),
-  );
+): Promise<string> {
+  const path = join(directory, "user-config.json");
+  await writeFile(path, JSON.stringify(testSuppressedBuiltinPluginsConfig()));
+  return path;
 }
 
 export interface RegistryBackedTestModelExecution {

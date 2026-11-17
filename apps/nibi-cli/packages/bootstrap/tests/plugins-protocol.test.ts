@@ -267,7 +267,7 @@ describe("plugins protocol contracts", () => {
     ).toBe(normalizePluginRootForComparison("c:/repo/plugin", "win32"));
   });
 
-  it("projects an inline plugin declared by the current Workspace into Workspace scope", async () => {
+  it("projects an inline plugin declared inside the Workspace into Workspace scope", async () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-workspace-plugin-root-source-"));
     const pluginRoot = join(root, "plugins", "workspace-demo");
     try {
@@ -291,6 +291,7 @@ describe("plugins protocol contracts", () => {
         rootPath: pluginRoot,
         rootSource: "workspace",
         enabled: false,
+        enabledSource: "workspace",
         uiSurfaces: [{ pluginId: "workspace-demo@inline", pluginName: "workspace-demo", id: "panel", title: "Panel", server: "plugin:workspace-demo:panel", resourceUri: "ui://demo/panel", availability: "session" }],
       });
       expect(() => nibiPluginsListResultSchema.parse(result)).not.toThrow();
@@ -390,14 +391,15 @@ describe("plugins protocol contracts", () => {
     }
   });
 
-  it("keeps a Workspace declaration visible when its package is missing", async () => {
+  it("keeps a Workspace disable declaration visible when its package is missing", async () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-plugin-missing-package-view-"));
     const pluginId = "missing-fixture@personal-market";
     try {
+      // PROJECT-CONFIG：项目层只允许 enabledPlugins=false；缺包声明仍要能展示。
       await writeTestFile(
         join(root, ".nibi", "config.json"),
         JSON.stringify({
-          plugins: { enabledPlugins: { [pluginId]: true } },
+          plugins: { enabledPlugins: { [pluginId]: false } },
         }),
       );
 
@@ -412,7 +414,7 @@ describe("plugins protocol contracts", () => {
       expect(
         result.plugins.find((plugin) => plugin.id === pluginId),
       ).toMatchObject({
-        enabled: true,
+        enabled: false,
         enabledSource: "workspace",
         marketplace: "personal-market",
         name: "missing-fixture",

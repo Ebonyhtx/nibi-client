@@ -31,13 +31,13 @@ afterEach(() => {
 });
 
 describe("paths", () => {
-  it("copyDataDirectory 会复制普通文件并跳过 workspace 里的共享目录软链", async () => {
+  it("relocateDataRoot 会复制普通文件并跳过 workspace 里的共享目录软链", async () => {
     const oldBase = makeTempHome();
     const newBase = makeTempHome();
     process.env.HOME = oldBase;
     vi.resetModules();
 
-    const { copyDataDirectory } = await import("../src/paths.js");
+    const { relocateDataRoot } = await import("../src/data-root/relocate.js");
     const oldV2Dir = join(oldBase, ".nibi", "v2");
     const oldSharedSkillRoot = join(oldV2Dir, "agent-config", "claude", "skills");
     const oldSharedPluginRoot = join(oldV2Dir, "agent-config", "claude", "plugins");
@@ -52,7 +52,7 @@ describe("paths", () => {
     symlinkSync(oldSharedSkillRoot, join(oldWorkspaceRoot, "skills"), linkType);
     symlinkSync(oldSharedPluginRoot, join(oldWorkspaceRoot, "plugins"), linkType);
 
-    await copyDataDirectory(oldBase, newBase);
+    await relocateDataRoot(oldBase, newBase);
 
     const newV2Dir = join(newBase, ".nibi", "v2");
     const newWorkspaceRoot = join(newV2Dir, "agent-config", "claude", "workspace-hash-1");
@@ -64,7 +64,7 @@ describe("paths", () => {
     expect(existsSync(newPluginLink)).toBe(false);
   });
 
-  it("copyDataDirectory 会跳过 setting.json 及其原子写入瞬时文件", async () => {
+  it("relocateDataRoot 会跳过 setting.json 及其原子写入瞬时文件", async () => {
     const oldBase = makeTempHome();
     const newBase = makeTempHome();
     const oldV2Dir = join(oldBase, ".nibi", "v2");
@@ -76,8 +76,8 @@ describe("paths", () => {
     writeFileSync(join(oldV2Dir, "app-canary.txt"), "app-data", "utf-8");
 
     vi.resetModules();
-    const { copyDataDirectory } = await import("../src/paths.js");
-    await copyDataDirectory(oldBase, newBase);
+    const { relocateDataRoot } = await import("../src/data-root/relocate.js");
+    await relocateDataRoot(oldBase, newBase);
 
     expect(readFileSync(join(newV2Dir, "app-canary.txt"), "utf-8")).toBe("app-data");
     expect(existsSync(join(newV2Dir, "setting.json"))).toBe(false);

@@ -14,7 +14,7 @@ import {
   BASH_COMMAND_REGISTRY,
   type BashCommandRegistryNode,
 } from "./generated/bash-command-registry.js";
-import { isRuntimeReadOnlyBashCommand } from "./bash-semantics.js";
+import { isBashAstProvableDialect, isRuntimeReadOnlyBashCommand } from "./bash-semantics.js";
 
 const MAX_SUGGESTED_RULES = 5;
 const ARG_IS_COMMAND = 1;
@@ -100,14 +100,23 @@ export function createBashPermissionRulePolicy(
 ): ToolPermissionRulePolicy {
   const rawCommand = command.trim();
   const exactCommands = command === rawCommand ? [rawCommand] : [command, rawCommand];
-  const analysis = analyzeBashCommand(command);
-  const safe = isAnalysisSafeForPrefix(analysis);
-  const allSubjectGroups = safe ? analysis.commands.map(buildInvocationRuleSubjects) : [];
-  const requiredCommands = safe
-    ? analysis.commands.filter(
-        (invocation) => !isRuntimeReadOnlyBashCommand(invocation.commandText, context),
-      )
-    : [];
+  const dialect = context?.bashShellSelection?.dialect ?? "posix";
+  // CMD/legacy-shell 的 `#` 与 `&` 文法与 Bash 不同（`echo a # & del x` 的后半段仍会执行），
+  // Bash AST 在这里不能证明只读，也不能推导安全前缀；只保留整条命令的 exact 规则。
+  const analysis = isBashAstProvableDialect(dialect) ? analyzeBashCommand(command) : undefined;
+  const safe = analysis ? isAnalysisSafeForPrefix(analysis) : false;
+  const allSubjectGroups = safe && analysis ? analysis.commands.map(buildInvocationRuleSubjects) : [];
+  const readonlyContext = {
+    dialect,
+    workingDirectory: context?.workingDirectory,
+    workspaceRoot: context?.workspaceRoot,
+  };
+  const requiredCommands =
+    safe && analysis
+      ? analysis.commands.filter(
+          (invocation) => !isRuntimeReadOnlyBashCommand(invocation.commandText, readonlyContext),
+        )
+      : [];
   const requiredSubjectGroups = requiredCommands.map(buildInvocationRuleSubjects);
   const suggestedPermissionUpdates = buildSuggestedUpdates(
     rawCommand,

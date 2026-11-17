@@ -379,7 +379,18 @@ impl Background for LocalEnvironment {
         context: OperationContext,
         request: BackgroundTask,
     ) -> Result<BackgroundStop, EnvError> {
-        self.shells()?.stop(&context, &request)
+        self.stop_background_command_expecting(context, request, None)
+            .await
+    }
+
+    async fn stop_background_command_expecting(
+        &self,
+        context: OperationContext,
+        request: BackgroundTask,
+        expected_execution_id: Option<String>,
+    ) -> Result<BackgroundStop, EnvError> {
+        self.shells()?
+            .stop(&context, &request, expected_execution_id.as_deref())
     }
 
     async fn background_foreground(

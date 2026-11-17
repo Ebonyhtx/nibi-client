@@ -99,6 +99,14 @@ pub enum Request {
     StopBackgroundCommand {
         context: OperationContext,
         task: BackgroundTask,
+        /// 调用方认为的这次执行身份（启动命令的 operationId）。对不上时不停，返回与“没有在跑”相同的
+        /// 拒绝；迟到的停止不会杀掉复用同一任务 ID 的新执行。老客户端不带（缺省 None）时照旧按任务 ID 停。
+        #[serde(
+            default,
+            rename = "expectedExecutionId",
+            skip_serializing_if = "Option::is_none"
+        )]
+        expected_execution_id: Option<String>,
     },
     #[serde(rename = "checkpoints.rewind_prepare")]
     RewindPrepare {

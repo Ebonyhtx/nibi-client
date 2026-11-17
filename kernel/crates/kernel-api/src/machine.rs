@@ -268,6 +268,22 @@ pub trait Background: Send + Sync {
         Err(not_provided("stop_background_command"))
     }
 
+    /// 同 [`Background::stop_background_command`]，另带调用方认为的这次执行身份
+    /// （`expected_execution_id`，启动这条命令的 operationId）。身份对不上时不停：任务存在时回
+    /// [`BackgroundStop::NotRunning`]（与已终态同一个错误码；`status` 可能是 `Running`，表示任务在跑但跑的
+    /// 不是期望的那次），任务不认识时回 [`BackgroundStop::NotFound`]。迟到的停止不会杀掉复用同一任务 ID 的新执行。
+    /// `None` 是旧客户端的兼容写法，照旧按任务 ID 停。
+    ///
+    /// 缺省实现忽略身份（没有执行身份账本的实现与测试假端口）；本机与远端执行环境覆盖它。
+    async fn stop_background_command_expecting(
+        &self,
+        context: OperationContext,
+        request: BackgroundTask,
+        _expected_execution_id: Option<String>,
+    ) -> Result<BackgroundStop, EnvError> {
+        self.stop_background_command(context, request).await
+    }
+
     /// 把这个会话在跑的前台命令转到后台（mutate，修复线 L-A，docs/specs/rust-cli/tui-input.md §11）：看输出的一方收到
     /// [`crate::env_command::CommandEvent::BackgroundedBy`]，之后照后台命令处理。返回转了的命令；缺省什么都不转。
     async fn background_foreground(

@@ -21,6 +21,7 @@ import {
   nibiSessionSubagentsParamsSchema,
   nibiSessionSubagentsResultSchema,
   nibiSessionSendParamsSchema,
+  nibiSessionStopParamsSchema,
   nibiSessionSetModelParamsSchema,
   nibiSessionSetThoughtLevelParamsSchema,
   nibiSessionRuntimePreferencesResultSchema,
@@ -103,6 +104,33 @@ describe("NIBI Protocol", () => {
           supportsPdf: true,
         },
         outputFormat: { supportsText: true },
+      }),
+    ).toThrow();
+  });
+
+  it("session/stop 接受可选 expectedExecutionId，并拒绝空串", () => {
+    expect(nibiSessionStopParamsSchema.parse({ sessionId: "session-1" })).toEqual({
+      sessionId: "session-1",
+    });
+    expect(
+      nibiSessionStopParamsSchema.parse({
+        sessionId: "session-1",
+        expectedExecutionId: "exec-1",
+      }),
+    ).toEqual({
+      sessionId: "session-1",
+      expectedExecutionId: "exec-1",
+    });
+    expect(() =>
+      nibiSessionStopParamsSchema.parse({
+        sessionId: "session-1",
+        expectedExecutionId: "",
+      }),
+    ).toThrow();
+    expect(() =>
+      nibiSessionStopParamsSchema.parse({
+        sessionId: "session-1",
+        expectedExecutionId: 1,
       }),
     ).toThrow();
   });
