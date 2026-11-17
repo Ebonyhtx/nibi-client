@@ -343,6 +343,10 @@ export async function checkDesktop(artifact, { version, fetchImpl, retries, time
             ...new Set([
               ...files.map((file) => file.url),
               ...downloads.map((download) => download.url),
+              // Windows NSIS 的差分更新靠同名 .blockmap；只探测 .exe，Linux AppImage 用内嵌 blockmap。
+              ...files
+                .filter((file) => /\.exe$/iu.test(file.url))
+                .map((file) => `${file.url}.blockmap`),
             ]),
           ];
           const probes = await Promise.all(

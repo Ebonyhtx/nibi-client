@@ -117,6 +117,10 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
 6. 桌面安装包、Source Server、两个 Web SPA、插件市场沿用各自流程，同样以这次 `main` 的 commit
    为准。Windows 4.1 桌面构建必须显式带 `NIBI_AUTO_UPDATE=1`（否则客户端不会检查更新；开启的是
    通知/点击更新，默认不会静默下载安装）；公开只上传 NSIS，不上传 ZIP。候选包出来但还没上传时，可以先用 `release:record --artifact <id> --stage built` 记一笔。
+   **上传 NSIS 时必须同时上传同名 `.blockmap`**（`NIBI-<版本>-win-x64.exe.blockmap`）：electron-updater
+   的差分更新靠它计算新旧包的差异块；`release:verify` 会探测当前版本安装包的 blockmap，缺了直接失败。
+   首次从官网安装的用户没有旧安装包缓存，第一次更新仍会整包下载；之后经更新器下载过的版本会留下缓存，
+   下一次才能只拉差异块。
    两个 Web SPA 用 `pnpm build:web-remote` / `pnpm build:web-share` 构建；**不要把
    `--base=/remote/v4/` 交给 Git Bash**（会被改写成 `C:/Program Files/Git/remote/v4/`，页面能开但
    资源全 404，4.1.1 踩过）。`build:web-remote` 通过环境变量设置 base、关闭 sourcemap，并在构建后

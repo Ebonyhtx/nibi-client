@@ -533,6 +533,60 @@ test("checkDesktop requires both update manifest and download inventory per plat
   assert.match(result.detail, /2\/3/u);
 });
 
+test("checkDesktop requires a reachable Windows blockmap for differential updates", async () => {
+  const version = "4.1.0";
+  const artifact = {
+    ...DESKTOP_ARTIFACT,
+    check: { ...DESKTOP_ARTIFACT.check, platforms: ["windows-x86_64"] },
+  };
+  const makeFetch = (blockmapOk) => async (url) => {
+    const parsed = new URL(url);
+    if (parsed.hostname === "dl.example.test") {
+      if (url.endsWith(".blockmap")) return headResponse(blockmapOk ? 200 : 404, 1);
+      return headResponse(200, 1);
+    }
+    const isDownloads = parsed.pathname.endsWith("/downloads");
+    return jsonResponse(
+      isDownloads
+        ? {
+            version,
+            downloads: [
+              {
+                kind: "installer",
+                name: "NIBI",
+                url: "https://dl.example.test/NIBI-4.1.0-win-x64.exe",
+              },
+            ],
+          }
+        : {
+            version,
+            files: [
+              {
+                url: "https://dl.example.test/NIBI-4.1.0-win-x64.exe",
+                sha512: "abc",
+                size: 1,
+              },
+            ],
+          },
+    );
+  };
+
+  const ok = await checkDesktop(artifact, {
+    version,
+    fetchImpl: makeFetch(true),
+    retries: 0,
+  });
+  assert.equal(ok.current, true);
+
+  const missing = await checkDesktop(artifact, {
+    version,
+    fetchImpl: makeFetch(false),
+    retries: 0,
+  });
+  assert.equal(missing.current, false);
+  assert.match(JSON.stringify(missing.evidence), /blockmap/u);
+});
+
 test("checkWebRelease reads no-cache page meta before the cached release.json", async () => {
   const version = "4.1.0";
   const page = (metaVersion, surface = "web-remote") =>
