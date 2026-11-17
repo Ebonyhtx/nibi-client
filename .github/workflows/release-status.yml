@@ -36,18 +36,29 @@ jobs:
           node-version: "24.22.1"
 
       - name: Render release status
-        run: node scripts/release/status.mjs --markdown > "$RUNNER_TEMP/release-status.md"
+        run: |
+          node scripts/release/status.mjs --markdown > "$RUNNER_TEMP/release-status.md"
+          node scripts/release/status.mjs --json > "$RUNNER_TEMP/release-status.json"
 
-      - name: Create or update the weekly release issue
+      - name: Create, update, or close the weekly release issue
         shell: bash
         run: |
           set -euo pipefail
           gh label create release-status --color FBCA04 --description "NIBI 自动发布状态" >/dev/null 2>&1 || true
-          ISSUE="$(gh issue list --label release-status --state open --limit 1 --json number --jq '.[0].number // empty')"
-          if [ -n "$ISSUE" ]; then
-            gh issue edit "$ISSUE" --title "NIBI 发布状态" --body-file "$RUNNER_TEMP/release-status.md"
-          else
-            gh issue create --title "NIBI 发布状态" --label release-status --body-file "$RUNNER_TEMP/release-status.md"
+          ISSUE="$(gh issue list --label release-status --state all --limit 1 --json number,state --jq '.[0].number // empty')"
+          NEEDS_ATTENTION="$(node -e 'const s=require(process.argv[1]);process.stdout.write(s.ok?"0":"1")' "$RUNNER_TEMP/release-status.json")"
+          if [ "$NEEDS_ATTENTION" = "1" ]; then
+            if [ -n "$ISSUE" ]; then
+              gh issue reopen "$ISSUE" >/dev/null 2>&1 || true
+              gh issue edit "$ISSUE" --title "NIBI 发布状态" --body-file "$RUNNER_TEMP/release-status.md"
+            else
+              gh issue create --title "NIBI 发布状态" --label release-status --body-file "$RUNNER_TEMP/release-status.md"
+            fi
+          elif [ -n "$ISSUE" ]; then
+            STATE="$(gh issue view "$ISSUE" --json state --jq .state)"
+            if [ "$STATE" = "OPEN" ]; then
+              gh issue close "$ISSUE" --comment "本轮发布状态全部 ready，自动关闭。下一次出现 pending/missing 时会自动重新打开或新建。"
+            fi
           fi
 
       - name: Keep the rendered status as an artifact
