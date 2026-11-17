@@ -117,6 +117,10 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
 6. 桌面安装包、Source Server、两个 Web SPA、插件市场沿用各自流程，同样以这次 `main` 的 commit
    为准。Windows 4.1 桌面构建必须显式带 `NIBI_AUTO_UPDATE=1`（否则客户端不会检查更新；开启的是
    通知/点击更新，默认不会静默下载安装）；公开只上传 NSIS，不上传 ZIP。候选包出来但还没上传时，可以先用 `release:record --artifact <id> --stage built` 记一笔。
+   两个 Web SPA 用 `pnpm build:web-remote` / `pnpm build:web-share` 构建；**不要把
+   `--base=/remote/v4/` 交给 Git Bash**（会被改写成 `C:/Program Files/Git/remote/v4/`，页面能开但
+   资源全 404，4.1.1 踩过）。`build:web-remote` 通过环境变量设置 base、关闭 sourcemap，并在构建后
+   自检资源前缀与文件存在性；`release:verify` 还会拉线上页面校验入口脚本真的返回 200。
 7. 发布 GitHub Release 说明：`pnpm release:notes:publish`（创建或覆盖 `v<版本>` 的 Release 页）。
    正文必须与 `CHANGELOG.md` 同源；`release:verify` 会把它当作必须项，缺失或不一致会直接判失败。
 8. 全部上传后运行 `pnpm release:verify`；有缺件就补，直到通过。通过后执行

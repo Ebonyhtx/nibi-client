@@ -37,8 +37,13 @@ export default defineConfig(({ mode }) => {
     NIBI_ENV: nibiEnv,
   };
   const nibiEndpointOrigin = resolveRuntimeNibiEndpointOrigin(endpointEnv);
+  // 手机远控的部署前缀必须走环境变量：Git Bash 会把 `--base=/remote/v4/` 这类 POSIX 参数
+  // 改写成 `C:/Program Files/Git/remote/v4/`，产物里的资源路径会全部 404（4.1.1 踩过）。
+  // 环境变量不经过 MSYS 路径转换，`pnpm build:web-remote` 会设置它。
+  const webBase = env.NIBI_WEB_BASE?.trim();
 
   return {
+    ...(webBase ? { base: webBase } : {}),
     plugins: [
       pdfJsCMapsPlugin(),
       react(),
@@ -109,7 +114,9 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       // 生产不在浏览器产物暴露 sourceMappingURL，避免客户端侧还原业务源码。
-      sourcemap: mode === "production" ? "hidden" : true,
+      // 远控页发布构建额外设 NIBI_WEB_SOURCEMAP=off：连隐藏的 .map 也不生成，部署目录不留源码。
+      sourcemap:
+        env.NIBI_WEB_SOURCEMAP === "off" ? false : mode === "production" ? "hidden" : true,
     },
   };
 });

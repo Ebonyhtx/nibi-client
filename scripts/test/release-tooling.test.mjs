@@ -595,6 +595,54 @@ test("checkWebRelease falls back to release.json only when the page is absent", 
   assert.equal(result.detail, "release.json 4.1.0");
 });
 
+test("checkWebRelease rejects a page whose asset base was rewritten to a local path", async () => {
+  const page = `<!doctype html><html><head>
+      <meta name="nibi-release-version" content="4.1.1">
+      <meta name="nibi-release-surface" content="web-remote">
+    </head><body>
+      <script type="module" src="/Program Files/Git/remote/v4/assets/index-x.js"></script>
+    </body></html>`;
+  const result = await checkWebRelease(WEB_ARTIFACT, {
+    version: "4.1.1",
+    fetchImpl: async () =>
+      new Response(page, { status: 200, headers: { "content-type": "text/html" } }),
+    retries: 0,
+  });
+  assert.equal(result.valid, false);
+  assert.match(result.detail, /本机路径/u);
+});
+
+test("checkWebRelease verifies the entry script is actually served", async () => {
+  const page = `<!doctype html><html><head>
+      <meta name="nibi-release-version" content="4.1.1">
+      <meta name="nibi-release-surface" content="web-remote">
+    </head><body>
+      <script type="module" src="/remote/v4/assets/index-x.js"></script>
+    </body></html>`;
+  const fetchImpl = async (url) => {
+    if (url.endsWith("index-x.js")) return new Response("export {};", { status: 200 });
+    return new Response(page, { status: 200, headers: { "content-type": "text/html" } });
+  };
+  const ok = await checkWebRelease(WEB_ARTIFACT, {
+    version: "4.1.1",
+    fetchImpl,
+    retries: 0,
+  });
+  assert.equal(ok.valid, true);
+  assert.equal(ok.current, true);
+
+  const missing = await checkWebRelease(WEB_ARTIFACT, {
+    version: "4.1.1",
+    fetchImpl: async (url) =>
+      url.endsWith("index-x.js")
+        ? new Response("missing", { status: 404 })
+        : new Response(page, { status: 200, headers: { "content-type": "text/html" } }),
+    retries: 0,
+  });
+  assert.equal(missing.valid, false);
+  assert.match(missing.detail, /入口脚本 HTTP 404/u);
+});
+
 test("checkPluginMarket validates catalog, zip hash and ledger revision", async () => {
   const version = "4.1.0";
   const catalog = {

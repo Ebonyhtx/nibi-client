@@ -31,6 +31,25 @@ function readHtmlMeta(html, name) {
   return null;
 }
 
+/** 页面里出现本机路径（Git Bash 改写 base、盘符或 file://）时，资源必然 404。 */
+function hasMachineLocalPath(html) {
+  return (
+    /\/Program Files\/Git\//iu.test(html) ||
+    /\b[A-Za-z]:[\\/]/u.test(html) ||
+    /file:\/\//iu.test(html)
+  );
+}
+
+/** 取入口 module script 的 src，用来验证它真的能在线上取到。 */
+function readMainModuleAsset(html) {
+  for (const tag of html.match(/<script\b[^>]*>/giu) ?? []) {
+    if (!/\btype\s*=\s*["']module["']/iu.test(tag)) continue;
+    const src = tag.match(/\bsrc\s*=\s*["']([^"']+)["']/iu)?.[1];
+    if (src) return src;
+  }
+  return null;
+}
+
 async function checkWebReleaseJson({
   releaseUrl,
   surface,
@@ -158,6 +177,16 @@ export async function checkWebRelease(artifact, { version, fetchImpl, retries, t
   const contentType = response.headers.get("content-type") ?? "";
   if (response.ok && contentType.includes("text/html")) {
     const html = await response.text();
+    // 构建时把 --base=/remote/v4/ 交给 Git Bash 会被改写成 C:/Program Files/Git/...，
+    // 页面能打开但所有资源 404。这里把“页面含本机路径”当成部署缺件，而不是只看 meta。
+    if (hasMachineLocalPath(html)) {
+      return webResult({
+        valid: false,
+        current: false,
+        detail: "页面资源路径含本机路径（构建 base 被环境改写）",
+        evidence: { source: "page", pageUrl, releaseUrl, surface },
+      });
+    }
     const pageVersion = readHtmlMeta(html, "nibi-release-version");
     const pageSurface = readHtmlMeta(html, "nibi-release-surface");
     const pageCommit = readHtmlMeta(html, "nibi-release-commit");
@@ -168,6 +197,46 @@ export async function checkWebRelease(artifact, { version, fetchImpl, retries, t
         detail: "页面缺少 nibi-release meta（部署未接入标记）",
         evidence: { source: "page", pageUrl, releaseUrl, surface },
       });
+    }
+    const mainAsset = readMainModuleAsset(html);
+    if (mainAsset) {
+      let assetUrl;
+      try {
+        assetUrl = new URL(mainAsset, pageUrl).toString();
+      } catch {
+        assetUrl = null;
+      }
+      if (!assetUrl) {
+        return webResult({
+          valid: false,
+          current: false,
+          detail: `入口脚本地址不合法：${mainAsset}`,
+          evidence: { source: "page", pageUrl, releaseUrl, surface, asset: mainAsset },
+        });
+      }
+      try {
+        const assetResponse = await requestWithRetry(assetUrl, {
+          fetchImpl,
+          retries,
+          timeoutMs,
+          headers: { accept: "application/javascript,text/javascript,*/*;q=0.8" },
+        });
+        if (!assetResponse.ok) {
+          return webResult({
+            valid: false,
+            current: false,
+            detail: `入口脚本 HTTP ${assetResponse.status}：${mainAsset}`,
+            evidence: { source: "page", pageUrl, releaseUrl, surface, asset: assetUrl },
+          });
+        }
+      } catch (error) {
+        return webResult({
+          valid: false,
+          current: false,
+          detail: `入口脚本不可达：${errorMessage(error)}`,
+          evidence: { source: "page", pageUrl, releaseUrl, surface, asset: assetUrl },
+        });
+      }
     }
     const surfaceMatches = pageSurface === surface;
     return webResult({
