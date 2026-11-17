@@ -73,6 +73,8 @@ jobs:
         run: pnpm run test:release-tooling
       - name: Release notes gate
         run: pnpm run check:release-notes
+      - name: Web remote build gate
+        run: pnpm run build:web-remote
       - name: Typecheck
         run: pnpm run typecheck
 
