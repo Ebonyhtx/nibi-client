@@ -40,7 +40,7 @@ jobs:
           version: 10.33.2
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bash scripts/pnpm-install-ci.sh
 
       - name: Stage the two Linux source-server archives
         env:

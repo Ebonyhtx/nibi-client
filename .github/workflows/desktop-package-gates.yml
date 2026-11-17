@@ -76,7 +76,7 @@ jobs:
         with:
           toolchain: "1.95.0"
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bash scripts/pnpm-install-ci.sh
       # 打包进去的内核要报告产品版本：执行器按内核自身版本向 npm 精确取平台包。
       - name: Resolve release version
         shell: bash

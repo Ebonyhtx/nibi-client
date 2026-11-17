@@ -56,7 +56,7 @@ jobs:
           node-version: "24.22.1"
           cache: pnpm
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bash scripts/pnpm-install-ci.sh
       - name: Build contracts, CLI and e2e-report packages
         run: pnpm exec turbo run build --filter="./apps/nibi-cli/packages/*" --concurrency=4 && pnpm --filter @nibi/e2e-report build:node
       - name: Lint
@@ -97,7 +97,7 @@ jobs:
           node-version: "24.22.1"
           cache: pnpm
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bash scripts/pnpm-install-ci.sh
       - name: Build contracts, CLI and e2e-report packages
         run: pnpm exec turbo run build --filter="./apps/nibi-cli/packages/*" --concurrency=4 && pnpm --filter @nibi/e2e-report build:node
       - name: Unit tests (shard ${{ matrix.shard }}/3)
@@ -142,7 +142,7 @@ jobs:
           node-version: "24.22.1"
           cache: pnpm
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bash scripts/pnpm-install-ci.sh
       - name: Build contracts, CLI and e2e-report packages
         run: pnpm exec turbo run build --filter="./apps/nibi-cli/packages/*" --concurrency=4 && pnpm --filter @nibi/e2e-report build:node
       - name: Lint
@@ -179,7 +179,7 @@ jobs:
           node-version: "24.22.1"
           cache: pnpm
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bash scripts/pnpm-install-ci.sh
       - name: Build contracts, CLI and e2e-report packages
         run: pnpm exec turbo run build --filter="./apps/nibi-cli/packages/*" --concurrency=4 && pnpm --filter @nibi/e2e-report build:node
       - name: Windows-only tests
@@ -212,7 +212,7 @@ jobs:
           node-version: "24.22.1"
           cache: pnpm
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bash scripts/pnpm-install-ci.sh
       - name: Build contracts, CLI and e2e-report packages
         run: pnpm exec turbo run build --filter="./apps/nibi-cli/packages/*" --concurrency=4 && pnpm --filter @nibi/e2e-report build:node
       # threads worker 在 shard 1 累计堆超限（4 分片 ~475 文件、6 分片 ~316 文件都复现）。
@@ -261,7 +261,7 @@ jobs:
           node-version: "24.22.1"
           cache: pnpm
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bash scripts/pnpm-install-ci.sh
       - name: Build contracts, CLI and e2e-report packages
         run: pnpm exec turbo run build --filter="./apps/nibi-cli/packages/*" --concurrency=4 && pnpm --filter @nibi/e2e-report build:node
       - name: Lint
@@ -298,7 +298,7 @@ jobs:
           node-version: "24.22.1"
           cache: pnpm
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bash scripts/pnpm-install-ci.sh
       - name: Build contracts, CLI and e2e-report packages
         run: pnpm exec turbo run build --filter="./apps/nibi-cli/packages/*" --concurrency=4 && pnpm --filter @nibi/e2e-report build:node
       - name: Unit tests (shard ${{ matrix.shard }}/3)
