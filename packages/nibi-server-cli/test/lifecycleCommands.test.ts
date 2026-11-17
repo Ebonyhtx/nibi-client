@@ -13,6 +13,7 @@ import { createControlServer } from "../src/ipc/controlServer.js";
 import { DataRootLock } from "../src/runtime/lock.js";
 import { resolveCanonicalServerLayout, type ServerLayout } from "../src/runtime/paths.js";
 import { ReleaseManager } from "../src/runtime/releaseManager.js";
+import { replaceFileWithRetry } from "../src/runtime/statusSnapshot.js";
 import { stopSupervisorAndWait, waitForServerStopped } from "../src/runtime/shutdownWait.js";
 
 function status(state: ServerStatus["state"], overrides: Partial<ServerStatus> = {}): ServerStatus {
@@ -36,7 +37,11 @@ function status(state: ServerStatus["state"], overrides: Partial<ServerStatus> =
 
 async function writeStatus(layout: ServerLayout, value: ServerStatus): Promise<void> {
   await mkdir(layout.runDir, { recursive: true });
-  await writeFile(layout.statusFile, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  // 与生产 Supervisor 一样原子替换：waitForServerStopped 会并发轮询读 status.json，
+  // 直接 writeFile 会让读者偶发读到半截 JSON，在 macOS runner 上误报 Cannot verify。
+  const temporary = `${layout.statusFile}.${process.pid}.${Date.now()}.tmp`;
+  await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  await replaceFileWithRetry(temporary, layout.statusFile);
 }
 
 async function createRoot(prefix: string): Promise<{
