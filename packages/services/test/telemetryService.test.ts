@@ -595,10 +595,11 @@ describe("telemetryCore", () => {
     };
 
     const firstPromise = firstService.reportAppDailyActive(context);
-    await Promise.resolve();
+    // 等第一个实例真正进入 fetch：此时它已拿到锁并把 dailyActiveInFlight 写进状态文件。
+    // 只让出一个微任务在慢机器上会让第二个实例抢在写盘前读到旧状态，两个请求都发出去。
+    await waitForCalls(fetchMock, 1);
     const secondPromise = secondService.reportAppDailyActive(context);
 
-    await waitForCalls(fetchMock, 1);
     releaseFetch?.();
 
     await Promise.all([firstPromise, secondPromise]);
