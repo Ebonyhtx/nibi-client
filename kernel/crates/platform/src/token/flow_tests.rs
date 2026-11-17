@@ -345,7 +345,7 @@ async fn switching_accounts_mid_exchange_invalidates_the_token() {
             let reply = account.reply(request);
             if request.path == ISSUE {
                 arrived.notify_one();
-                reply.after(300)
+                reply.after(3_000)
             } else {
                 reply
             }

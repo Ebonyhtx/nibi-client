@@ -371,7 +371,7 @@ async fn two_team_projects_request_concurrently() {
     let harness = Arc::new(harness);
     login(&harness, "at-big").await;
     assert_eq!(rows(&harness).await.len(), 3);
-    service.delay("/api/biz/v1/organization/org-t/projects/p-t/api_keys", 300);
+    service.delay("/api/biz/v1/organization/org-t/projects/p-t/api_keys", 3_000);
     let (first, second) = (model(TEAM, Some("p-t")), model(TEAM, Some("p-u")));
     let (a, b) = tokio::join!(
         harness.platform.endpoint(&first, None),
@@ -498,7 +498,10 @@ async fn an_account_change_during_the_query_discards_the_round() {
             let reply = service.reply(request);
             if request.path == DETAIL && request.header("authorization") == Some("at-1") {
                 arrived.notify_one();
-                reply.after(300)
+                // 必须等到 login("at-2") 真的完成再放行这一轮：共享 runner 上登录链路的
+                // PROFILE/PRICING 往返可能远超 300ms，放行太早会让本轮在账号切换前发布
+                // revision 1，测试就变成看调度运气（2026-11-17 rust-gates 实测）。
+                reply.after(3_000)
             } else {
                 reply
             }
@@ -539,7 +542,7 @@ async fn a_login_change_during_the_exchange_invalidates_the_token() {
             let reply = service.reply(request);
             if request.path.ends_with("/access_tokens") && delay.load(Ordering::SeqCst) {
                 arrived.notify_one();
-                reply.after(300)
+                reply.after(3_000)
             } else {
                 reply
             }

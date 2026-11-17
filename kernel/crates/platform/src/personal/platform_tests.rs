@@ -400,7 +400,7 @@ async fn an_account_change_during_the_query_discards_the_round() {
     let (server, harness) = start(app.clone(), None).await;
     let harness = Arc::new(harness);
     let arrived = Arc::new(tokio::sync::Notify::new());
-    *app.hold.lock().unwrap() = Some((arrived.clone(), 300));
+    *app.hold.lock().unwrap() = Some((arrived.clone(), 3_000));
     zai_login(&harness, "u-1", "jwt-1").await;
     let pending = tokio::spawn({
         let harness = harness.clone();
