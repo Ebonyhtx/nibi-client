@@ -233,7 +233,6 @@ function normalizeAgentDiagnosticSummary(value: string): string {
 
 function isAgentDiagnosticNoise(line: string): boolean {
   return (
-    /^(?:\[Object\]\s*,?\s*)+$/i.test(line) ||
     /\[Object\]/i.test(line) ||
     /^node:(?:events|internal)\b/i.test(line) ||
     /^at\s+/i.test(line) ||

@@ -91,7 +91,7 @@ interface PositionedCard {
 }
 
 function normalizeTrailingUrlText(url: string): string {
-  return url.trim().replace(/(?:[*_`]+|[.,;:!?，。！？；：、]+)+$/g, "");
+  return url.trim().replace(/[*_`.,;:!?，。！？；：、]+$/g, "");
 }
 
 export function isValidAssistantPreviewWebsiteUrl(url: string): boolean {

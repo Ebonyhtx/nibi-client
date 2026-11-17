@@ -71,6 +71,8 @@ jobs:
         run: pnpm run test:architecture
       - name: Release tooling self-test
         run: pnpm run test:release-tooling
+      - name: Release notes gate
+        run: pnpm run check:release-notes
       - name: Typecheck
         run: pnpm run typecheck
 

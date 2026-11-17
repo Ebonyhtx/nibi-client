@@ -42,6 +42,9 @@ describe("fault matrix harness — B1 healthy @ W2", () => {
           server,
           shape: "W2",
           apiFormat: "anthropic-messages",
+          // healthy 格只钉逻辑请求数：慢 runner 上 SSE 帧间隔偶发超过缺省 300ms，
+          // 会把正常请求判成 stream_idle_timeout 重试，多记一条请求。
+          streamIdleTimeoutMs: 5_000,
         });
         await pause(200);
         assertCommonInvariants(cell, { status: "completed", server });
@@ -63,7 +66,11 @@ describe("fault matrix harness — B1 healthy @ W2", () => {
     "run service 级：同一格走真 submit / waitForTask，观察面同形",
     async () => {
       const server = await startFakeProviderServer({ program: healthy() });
-      const harness = createFaultServiceHarness({ server, apiFormat: "anthropic-messages" });
+      const harness = createFaultServiceHarness({
+        server,
+        apiFormat: "anthropic-messages",
+        streamIdleTimeoutMs: 5_000,
+      });
       try {
         const runId = await harness.submit("W2");
         const snapshot = await harness.settle(runId);

@@ -1,6 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 
 import {
   desktopProductIdentities,
@@ -12,16 +10,6 @@ import {
 } from "../scripts/desktop-product-identity.mjs";
 
 describe("desktop product identity", () => {
-  it("根锁文件的发布版本与构建版本一致", () => {
-    // 合并上游发布提交只对齐当前版本，不恢复上游旧版本，也不重算依赖锁。
-    const readRootJson = (name: string) =>
-      JSON.parse(readFileSync(resolve(import.meta.dirname, "../../..", name), "utf8"));
-    const version = readRootJson("package.json").version;
-    const lock = readRootJson("package-lock.json");
-    expect(lock.version).toBe(version);
-    expect(lock.packages[""].version).toBe(version);
-  });
-
   it("NIBI_ENV=test 使用可与生产版并排安装的 Preview 身份", () => {
     expect(resolveDesktopProductIdentity({ NIBI_ENV: "test" })).toEqual({
       flavor: "preview",

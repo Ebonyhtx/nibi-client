@@ -99,21 +99,66 @@ export const CONVERSATION_PREVIEW_CARD_VISIBLE_LIMIT = 10;
 
 const FILE_URL_RE = /\bfile:\/\/[^\s<>()\]`"'*，。！？；：、]+/giu;
 const FILE_CITATION_RE = /:{1,2}nibi-file-citation\{([^}]*)\}/giu;
-const MARKDOWN_LINK_RE = /\[([^\]\n]*)\]\(([^)\n]+)\)/g;
 const DELIMITED_FILE_PATH_RE =
   /([`"'])([^`"'\r\n]+?\.(?:md|html?|docx|xlsx|pptx|pdf|mp4|mov|webm|m4v|mp3|wav|m4a|ogg|opus|flac|weba)(?::\d+(?::\d+)?)?)\1/giu;
+// 有界量词：长消息里成串的 `(`/`/ ` 曾让 lazy 量词退化到二次方（CodeQL js/polynomial-redos）。
+// 路径段上限 256、段数上限 32，正常文件路径远小于此。
 const FILE_PATH_RE =
-  /(?:^|[\s("'`,.;:!?，。！？；：、])((?:(?:\.{1,2}[\\/]|[a-zA-Z]:[\\/]|\/|[\p{L}\p{N}\p{M}\p{S}_.@()-]+[\\/])[\p{L}\p{N}\p{M}\p{S}_.@() -]+?(?:[\\/][\p{L}\p{N}\p{M}\p{S}_.@() -]+?)*|[\p{L}\p{N}\p{M}\p{S}_.@()-]+)\.(?:md|html?|docx|xlsx|pptx|pdf|mp4|mov|webm|m4v|mp3|wav|m4a|ogg|opus|flac|weba)(?::\d+(?::\d+)?)?)(?=$|[\s)"'`,.;:!?，。！？；：、])/giu;
+  /(?:^|[\s("'`,.;:!?，。！？；：、])((?:(?:\.{1,2}[\\/]|[a-zA-Z]:[\\/]|\/|[\p{L}\p{N}\p{M}\p{S}_.@()-]+[\\/])[\p{L}\p{N}\p{M}\p{S}_.@() -]{1,256}?(?:[\\/][\p{L}\p{N}\p{M}\p{S}_.@() -]{1,256}?){0,32}|[\p{L}\p{N}\p{M}\p{S}_.@()-]+)\.(?:md|html?|docx|xlsx|pptx|pdf|mp4|mov|webm|m4v|mp3|wav|m4a|ogg|opus|flac|weba)(?::\d+(?::\d+)?)?)(?=$|[\s)"'`,.;:!?，。！？；：、])/giu;
+
+const TRAILING_PROSE_PUNCTUATION = new Set([".", ",", ";", "!", "?", "，", "。", "！", "？", "；", "：", "、"]);
+
+/** 去掉结尾的标点。用反向扫描而不是 `+$` 正则：后者在长标点串上是二次方。 */
+function stripTrailingProsePunctuation(value: string): string {
+  let end = value.length;
+  while (end > 0 && TRAILING_PROSE_PUNCTUATION.has(value[end - 1]!)) end -= 1;
+  return value.slice(0, end);
+}
+
+/**
+ * 扫描 Markdown 链接。等价于原 `\[([^\]\n]*)\]\(([^)\n]+)\)`，但用 indexOf 前进，
+ * 避免 `[](` 重复串触发的二次方回溯。
+ */
+function* matchMarkdownLinks(
+  content: string,
+): Generator<{ start: number; end: number; label: string; href: string }> {
+  let cursor = 0;
+  while (cursor < content.length) {
+    const open = content.indexOf("](", cursor);
+    if (open === -1) return;
+    const lineStart = content.lastIndexOf("\n", open) + 1;
+    const bracket = content.lastIndexOf("[", open);
+    if (bracket < lineStart) {
+      cursor = open + 2;
+      continue;
+    }
+    const label = content.slice(bracket + 1, open);
+    if (label.includes("]")) {
+      cursor = open + 2;
+      continue;
+    }
+    const close = content.indexOf(")", open + 2);
+    const newline = content.indexOf("\n", open + 2);
+    if (close === -1 || (newline !== -1 && newline < close)) {
+      cursor = open + 2;
+      continue;
+    }
+    const href = content.slice(open + 2, close);
+    if (href.length === 0) {
+      cursor = close + 1;
+      continue;
+    }
+    yield { start: bracket, end: close + 1, label, href };
+    cursor = close + 1;
+  }
+}
 
 function normalizeSlashes(path: string): string {
   return path.replace(/\\/gu, "/");
 }
 
 function cleanPath(path: string): string {
-  return path
-    .trim()
-    .replace(/[.,;!?，。！？；：、]+$/gu, "")
-    .replace(/:\d+(?::\d+)?$/u, "");
+  return stripTrailingProsePunctuation(path.trim()).replace(/:\d+(?::\d+)?$/u, "");
 }
 
 function decodePath(path: string): string {
@@ -265,10 +310,10 @@ export function extractConversationPreviewFileReferences(
     }
   }
 
-  for (const match of content.matchAll(MARKDOWN_LINK_RE)) {
-    const href = (match[2] ?? "").trim().replace(/^<|>$/gu, "");
-    const start = match.index ?? 0;
-    const end = start + (match[0]?.length ?? 0);
+  for (const match of matchMarkdownLinks(content)) {
+    const href = match.href.trim().replace(/^<|>$/gu, "");
+    const start = match.start;
+    const end = match.end;
     if (rangesOverlap(start, end, protectedRanges)) continue;
     protectedRanges.push([start, end]);
     addReference(href, start, end);

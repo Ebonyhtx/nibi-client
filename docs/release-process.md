@@ -79,11 +79,30 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
   不需要重新访问官网；ZIP 版没有更新器，不要把它当更新载体。发布库存的 `releaseNotes` 必须写
   本版更新说明，绿色更新入口和弹窗才能显示更新日志。
 
+## 发布说明与更新日志（强制门禁）
+
+官网更新日志、GitHub Release 页、桌面更新弹窗里的本版说明是**同一份用户口径文案**。
+
+- 唯一来源：根目录 `CHANGELOG.md`。每个版本一段：一句话概述 + `### 新功能` / `### 问题修复` /
+  `### 变更`（顺序固定，缺段可省略）。
+- 只写用户能感知的行为与收益。**不写**实现细节、内部组件名、依赖升级、源码路径/命令标识、
+  提交/分支信息；**不写**漏洞、攻击面、鉴权、加密等安全细节。安全修复只写“提升稳定性”这类
+  用户可感知的结果。
+- 发版前先写好新版本的 CHANGELOG 段，再改 `package.json` 版本；`release-it` 的 `after:bump`
+  会跑 `pnpm check:release-notes`，不通过就中止发布。`pnpm release` 不再从 commit 自动生成
+  CHANGELOG（旧行为会把工程术语写进公开页面）。
+- Release 页不要手写：标签推送后运行 `pnpm release:notes:publish`，它用 CHANGELOG 的同一段
+  生成/覆盖 GitHub Release 正文。`pnpm release:notes:check-github` 只读核对两者是否同源。
+- 官网更新日志在 `NIBI-Site/src/data/changelog.js`，文字必须与这里逐字一致；站点有自己的
+  `tools/check-changelog.mjs`（pre-commit + `site-gates`）。
+- 门禁本身有自测：`node scripts/test/release-tooling.test.mjs` 覆盖发布说明的解析与拒绝规则。
+
 ## 发布一个版本
 
 1. 先看状态：`pnpm release:status`。只有 `pending`/`missing` 的产物需要处理；`ready` 的不重发。
-2. 把根 `package.json` 的版本改成新版本（比如 `4.1.0`），同步 `package-lock.json` 的根 `version` 与
-   `packages[""].version`（`desktopProductIdentity` 门禁要求三者一致），提交到 `dev`，等 `dev` 的门禁绿。
+2. 先在 `CHANGELOG.md` 写好新版本条目（概述 + 三段），再改根 `package.json` 的版本（比如 `4.1.0`），
+   提交到 `dev`，等 `dev` 的门禁绿。仓库不再维护 `package-lock.json`（npm 锁已删除，依赖只认
+   `pnpm-lock.yaml`），不需要再同步第二份锁文件。
 3. 快进 `main`：`git branch -f main dev && git push origin main`。
 4. 在 `main` 的该 commit 上打标签并推送：
    ```bash
@@ -98,9 +117,11 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
 6. 桌面安装包、Source Server、两个 Web SPA、插件市场沿用各自流程，同样以这次 `main` 的 commit
    为准。Windows 4.1 桌面构建必须显式带 `NIBI_AUTO_UPDATE=1`（否则客户端不会检查更新；开启的是
    通知/点击更新，默认不会静默下载安装）；公开只上传 NSIS，不上传 ZIP。候选包出来但还没上传时，可以先用 `release:record --artifact <id> --stage built` 记一笔。
-7. 全部上传后运行 `pnpm release:verify`；有缺件就补，直到通过。通过后执行
+7. 发布 GitHub Release 说明：`pnpm release:notes:publish`（创建或覆盖 `v<版本>` 的 Release 页）。
+   正文必须与 `CHANGELOG.md` 同源；`release:verify` 会把它当作必须项，缺失或不一致会直接判失败。
+8. 全部上传后运行 `pnpm release:verify`；有缺件就补，直到通过。通过后执行
    `pnpm release:verify --record` 把 `published`/`verified` 写进 `release/ledger.json` 并提交。
-8. 如果发布后又有代码改动，先 bump 版本再发下一版；`release:status` 会提示“标签已存在但之后又有改动”。
+9. 如果发布后又有代码改动，先 bump 版本再发下一版；`release:status` 会提示“标签已存在但之后又有改动”。
 
 ## npm 包
 

@@ -39,12 +39,12 @@
   },
   "dependencies": {
     "@nibi/model-option-map": "workspace:*",
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@modelcontextprotocol/ext-apps": "2.0.0",
     "@types/ws": "8.18.1",
     "typescript": "^6.0.2",
-    "ws": "8.20.0"
+    "ws": "8.23.0"
   }
 }

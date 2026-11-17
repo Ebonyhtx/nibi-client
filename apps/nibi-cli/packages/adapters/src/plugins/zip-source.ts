@@ -462,7 +462,10 @@ function normalizeZipRelativePath(path: string): string {
   if (path.includes("\0")) {
     throw new Error(`Unsafe plugin zip path: ${path}`);
   }
-  const withoutTrailingSlash = path.replace(/\/+$/u, "");
+  // 反向扫描去掉结尾斜杠：/ \/+$/ 在长斜杠串上是二次方（CodeQL js/polynomial-redos）。
+  let end = path.length;
+  while (end > 0 && path.charCodeAt(end - 1) === 47) end -= 1;
+  const withoutTrailingSlash = path.slice(0, end);
   if (
     !withoutTrailingSlash ||
     path.includes("\\") ||

@@ -133,7 +133,7 @@ function targetsOf(value) {
 }
 
 function substitute(target, wildcard) {
-  return wildcard === null ? target : target.replace("*", wildcard);
+  return wildcard === null ? target : target.replaceAll("*", () => wildcard);
 }
 
 function stripExtension(base) {

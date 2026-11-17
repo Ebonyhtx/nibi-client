@@ -501,7 +501,10 @@ function collapseModelBlocks(blocks: ModelMessageContentBlock[]): ModelMessageCo
 function estimateBase64Bytes(value: string): number | undefined {
   const data = base64PayloadFromMcpImageData(value);
   if (data.length === 0) return undefined;
-  return Math.floor((data.replace(/=+$/, "").length * 3) / 4);
+  // base64 padding 用反向扫描去掉：/ =+$/ 在长 "=" 串上是二次方（CodeQL js/polynomial-redos）。
+  let end = data.length;
+  while (end > 0 && data.charCodeAt(end - 1) === 61) end -= 1;
+  return Math.floor((data.slice(0, end).length * 3) / 4);
 }
 
 function isMcpToolCallResult(value: unknown): value is McpToolCallResult {

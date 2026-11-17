@@ -198,7 +198,7 @@ export function extractAssistantFileReferences(
   }
 
   for (const match of content.matchAll(FILE_URL_RE)) {
-    const raw = (match[0] ?? "").replace(/(?:[*_`]+|[.,;:!?，。！？；：、]+)+$/g, "");
+    const raw = (match[0] ?? "").replace(/[*_`.,;:!?，。！？；：、]+$/g, "");
     const path = parseAssistantFileUrlPath(raw);
     const definition = path ? getAssistantPreviewFileTypeDefinition(path) : null;
     const start = match.index ?? 0;

@@ -208,7 +208,7 @@ function replaceEditorText(editor: LexicalEditor, text: string) {
 }
 
 const INLINE_PLUGIN_MENTION_PATTERN =
-  /\[@((?:\\.|[^\]])+)\]\(plugin:\/\/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+)\)/g;
+  /\[@((?:\\.|[^\\\]])+)\]\(plugin:\/\/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+)\)/g;
 
 function replaceEditorTextWithPluginMentions(editor: LexicalEditor, text: string) {
   editor.update(

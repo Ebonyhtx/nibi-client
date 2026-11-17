@@ -7,8 +7,9 @@ import {
 } from "../../../scripts/release-it/changelog-writer.mjs";
 
 describe("release changelog writer", () => {
-  it("只启用 release-it 的 conventional changelog 插件", () => {
-    expect(Object.keys(releaseConfig.plugins)).toEqual(["@release-it/conventional-changelog"]);
+  it("release-it 只负责版本与标签，发布说明由 CHANGELOG 门禁把关", () => {
+    expect("plugins" in releaseConfig).toBe(false);
+    expect(releaseConfig.hooks?.["after:bump"]).toBe("pnpm run check:release-notes");
   });
 
   it("extracts markdown bullet items from commit body", () => {

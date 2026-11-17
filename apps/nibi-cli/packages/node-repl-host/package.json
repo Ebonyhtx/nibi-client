@@ -16,22 +16,22 @@
   "scripts": {
     "build": "tsc && node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run test",
+    "test": "node ../../scripts/vitest.mjs run test",
     "lint": "oxlint src --no-ignore"
   },
   "dependencies": {
-    "@modelcontextprotocol/server": "2.0.0",
+    "@modelcontextprotocol/server": "2.3.0",
     "@nibi/contracts": "workspace:*",
     "@nibi/core": "workspace:*",
-    "@nibi/shared": "workspace:*",
     "@nibi/cua": "workspace:*",
-    "zod": "^4.4.3"
+    "@nibi/shared": "workspace:*",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "2.0.0",
+    "@modelcontextprotocol/client": "2.3.0",
     "@types/node": "^24.0.0",
     "esbuild": "^0.25.0",
     "typescript": "^5.9.0",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.12"
   }
 }

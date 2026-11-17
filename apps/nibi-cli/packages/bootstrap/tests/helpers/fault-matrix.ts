@@ -92,6 +92,12 @@ interface FaultCellOptions {
   timeoutMs?: number;
   /** 每子代理空转轮数 K（信息性：只影响 `logicalRequests`），缺省 {@link FAULT_CELL_TURNS}。 */
   turns?: number;
+  /**
+   * 模型流的 idle 超时。缺省 300ms 是故障格用来把 hang 判决变成重试的杠杆；healthy 格不该
+   * 受它影响——4 核 runner 上 SSE 帧之间偶发超过 300ms，会把一次正常请求判成
+   * stream_idle_timeout 重试，请求数多 1 条。healthy 格显式放大到秒级。
+   */
+  streamIdleTimeoutMs?: number;
 }
 
 export interface FaultCellObservation {
@@ -180,6 +186,9 @@ function wireCell(options: Omit<FaultCellOptions, "shape">): CellWiring {
       apiFormat: options.apiFormat,
       baseURL: options.server.baseURL,
       statusSink,
+      ...(options.streamIdleTimeoutMs === undefined
+        ? {}
+        : { streamIdleTimeoutMs: options.streamIdleTimeoutMs }),
     }),
     fileSystemPort: fakeFileSystemPort({}),
     scale,

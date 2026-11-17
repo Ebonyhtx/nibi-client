@@ -26,6 +26,11 @@ import {
 } from "../release/core.mjs";
 import { checkDesktop, checkNpm, checkSourceServer } from "../release/checks.mjs";
 import { checkPluginMarket, checkWebRelease } from "../release/checks-web.mjs";
+import {
+  buildGithubReleaseBody,
+  normalizeReleaseBody,
+  validateChangelog,
+} from "../release/release-notes-core.mjs";
 import { releaseJsonPlugin } from "../../packages/web/vite/remoteFrontendVersion.mjs";
 
 const execFileAsync = promisify(execFile);
@@ -659,4 +664,73 @@ test("releaseJsonPlugin emits a stable release marker asset and page meta", () =
     environment: "production",
     commit: "abc123",
   });
+});
+
+// ————————————————————————————————————————————————————————————————
+// 发布说明口径（scripts/release/release-notes-core.mjs）
+// ————————————————————————————————————————————————————————————————
+
+const GOOD_NOTES = `# 更新日志
+
+## [4.1.1] - 2026-11-17
+
+反馈中心与远端连接的一次集中修复。
+
+### 新功能
+
+- 反馈中心全新改版：附件上传更快，图片会自动压缩。
+- 反馈草稿自动保存，关闭窗口或切换页面后不会丢失。
+
+### 问题修复
+
+- 修复部分环境连接远端设备时提示“远端资源下载源未配置”的问题。
+
+### 变更
+
+- 没有可用模型时直接提示配置模型。
+`;
+
+test("release notes: user-facing entry passes and round-trips to the GitHub body", () => {
+  const { entries, violations } = validateChangelog(GOOD_NOTES, { currentVersion: "4.1.1" });
+  assert.deepEqual(violations, []);
+  const body = buildGithubReleaseBody(entries[0]);
+  assert.match(body, /^反馈中心与远端连接的一次集中修复。/u);
+  assert.match(body, /### 新功能\n\n- 反馈中心全新改版/u);
+  assert.match(body, /## 下载[\s\S]*https:\/\/nibistudio\.cn/u);
+  assert.equal(normalizeReleaseBody(body), normalizeReleaseBody(`${body}\n\n`));
+});
+
+test("release notes: engineering and security details are rejected", () => {
+  const text = GOOD_NOTES.replace(
+    "- 反馈草稿自动保存，关闭窗口或切换页面后不会丢失。",
+    "- 草稿改由 Rust 内核落盘，修复 localStorage 写入失败。",
+  ).replace(
+    "- 没有可用模型时直接提示配置模型。",
+    "- 修复一个越权访问漏洞（CVE-2026-0001）。",
+  );
+  const { violations } = validateChangelog(text, { currentVersion: "4.1.1" });
+  assert.ok(violations.some((item) => item.includes("rust")));
+  assert.ok(violations.some((item) => item.includes("内核")));
+  assert.ok(violations.some((item) => item.includes("漏洞")));
+  assert.ok(violations.some((item) => item.includes("CVE-2026-0001") || item.includes("cve")));
+});
+
+test("release notes: fixed section order and current version at top", () => {
+  const reordered = GOOD_NOTES.replace("### 新功能", "### 变更").replace(
+    "### 问题修复",
+    "### 新功能",
+  );
+  const orderViolations = validateChangelog(reordered, { currentVersion: "4.1.1" }).violations;
+  assert.ok(orderViolations.some((item) => item.includes("顺序")));
+
+  const stale = validateChangelog(GOOD_NOTES, { currentVersion: "4.2.0" }).violations;
+  assert.ok(stale.some((item) => item.includes("顶部条目是 4.1.1")));
+});
+
+test("release notes: allowed product commands do not trip the term list", () => {
+  const text = GOOD_NOTES.replace(
+    "- 没有可用模型时直接提示配置模型。",
+    "- 新增 `npm install -g @nibi-studio/cli` 安装方式。",
+  );
+  assert.deepEqual(validateChangelog(text, { currentVersion: "4.1.1" }).violations, []);
 });

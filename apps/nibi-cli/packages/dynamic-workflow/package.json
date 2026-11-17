@@ -24,7 +24,7 @@
     "charts": "node scripts/generate-libs.mjs && tsc && node scripts/generate-mermaid.mjs",
     "clean": "node ../../scripts/clean-dist.mjs",
     "typecheck": "node scripts/generate-libs.mjs && tsc --noEmit",
-    "test": "node scripts/generate-libs.mjs && vitest run tests --reporter=verbose",
+    "test": "node scripts/generate-libs.mjs && node ../../scripts/vitest.mjs run tests --reporter=verbose",
     "coverage": "node scripts/generate-libs.mjs && vitest run tests --coverage",
     "lint": "oxlint src tests",
     "lint:fix": "oxlint --write src tests"
@@ -34,6 +34,6 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.12"
   }
 }

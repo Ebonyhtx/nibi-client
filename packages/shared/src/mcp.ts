@@ -265,13 +265,10 @@ const NIBI_CUA_NPM_SPEC = "@nibi/cua";
 // 历史上游包名：只用于 fail-closed 识别旧配置，不再作为我们的包名。
 const LEGACY_NIBI_CUA_PACKAGE_SPEC = "zcode-cua";
 function nibiCuaArgLeaf(value: string): string {
-  // 先去掉结尾的路径分隔符再取叶子：`.../nibi-cua/` 直接 split 会得到空串叶子 → 漏判 → fail-open。
-  return (
-    value
-      .replace(/[\\/]+$/, "")
-      .split(/[\\/]/)
-      .pop() ?? value
-  );
+  // 去掉空段后取最后一段：等价于“去掉结尾分隔符再 split/pop”，但不用 `+$` 正则
+  //（长分隔符串上会退化成二次方，CodeQL js/polynomial-redos）。
+  const parts = value.split(/[\\/]/).filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1]! : "";
 }
 
 // 单个候选串是否匹配某个包规格。PyPI 视 `_`/`-` 等价，故先把下划线归一成短横（nibi_cua →

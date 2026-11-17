@@ -719,7 +719,16 @@ function isWebRemoteControlRoute(): boolean {
 }
 
 function createWebRemoteControlRequestId(prefix: string): string {
-  return `${prefix}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`;
+  const cryptoApi = globalThis.crypto;
+  if (typeof cryptoApi?.randomUUID === "function") {
+    return `${prefix}-${cryptoApi.randomUUID()}`;
+  }
+  // randomUUID 只在安全上下文（HTTPS/localhost）可用；HTTP 起源退回 CSPRNG。
+  // getRandomValues 不受安全上下文限制，避免退回 Math.random 这类可预测值。
+  const bytes = new Uint8Array(16);
+  cryptoApi.getRandomValues(bytes);
+  const nonce = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${prefix}-${Date.now()}-${nonce}`;
 }
 
 function seedStableWebRemoteControlClientId(deviceSid: string): void {

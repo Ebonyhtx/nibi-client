@@ -206,7 +206,7 @@ function unquoteHookDisplayToken(token: string): string {
 }
 
 function hookCommandLabel(commandDisplay: string): string | undefined {
-  const tokens = commandDisplay.match(/"(?:\\.|[^"])*"|'[^']*'|\S+/gu) ?? [];
+  const tokens = commandDisplay.match(/"(?:\\.|[^"\\])*"|'[^']*'|\S+/gu) ?? [];
   const executableToken = tokens[0];
   if (!executableToken) return undefined;
   const executable = unquoteHookDisplayToken(executableToken).split(/[\\/]/u).at(-1);

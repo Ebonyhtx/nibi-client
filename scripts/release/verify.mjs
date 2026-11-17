@@ -4,6 +4,8 @@
 // 发布闸门：当前版本需要的产物必须全部在远端完整可见；插件市场目录必须健康。
 // 只读；加 --record 才在全部通过后把 published/verified 写进 release/ledger.json。
 
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import {
   buildReleaseStatus,
   collectChangedFiles,
@@ -20,6 +22,14 @@ import {
   writeLedger,
 } from "./core.mjs";
 import { checkArtifact } from "./checks.mjs";
+import {
+  buildGithubReleaseBody,
+  fetchGithubRelease,
+  normalizeReleaseBody,
+  releaseTag,
+  releaseTitle,
+  validateChangelog,
+} from "./release-notes-core.mjs";
 
 const USAGE = `用法：node scripts/release/verify.mjs [--record] [--deep] [--json] [--root <repo>]
 
@@ -56,6 +66,55 @@ function printText(status, recordedPath) {
   } else {
     console.log("失败：仍有产物未完成。没有发布任何东西。");
   }
+}
+
+async function checkReleaseNotes(root, version) {
+  const changelog = await readFile(join(root, "CHANGELOG.md"), "utf8");
+  const { entries, violations } = validateChangelog(changelog, { currentVersion: version });
+  if (violations.length > 0) {
+    return { valid: false, detail: `CHANGELOG 不符合用户口径：${violations[0]}` };
+  }
+  let release;
+  try {
+    release = await fetchGithubRelease(version);
+  } catch (error) {
+    return { valid: false, detail: error instanceof Error ? error.message : String(error) };
+  }
+  if (!release) {
+    return { valid: false, detail: `GitHub 上还没有 ${releaseTag(version)} 的 Release 页` };
+  }
+  if (release.name !== releaseTitle(version)) {
+    return { valid: false, detail: `Release 标题应为 “${releaseTitle(version)}”` };
+  }
+  const expected = normalizeReleaseBody(buildGithubReleaseBody(entries[0]));
+  if (normalizeReleaseBody(String(release.body ?? "")) !== expected) {
+    return {
+      valid: false,
+      detail: "Release 正文与 CHANGELOG 不同源；运行 pnpm release:notes:publish 覆盖",
+    };
+  }
+  return { valid: true, detail: `GitHub Release ${releaseTag(version)} 与 CHANGELOG 同源` };
+}
+
+function releaseNotesArtifact(notes) {
+  return {
+    id: "release-notes",
+    label: "GitHub Release 说明",
+    required: true,
+    changedFiles: 1,
+    status: notes.valid ? "ready" : "missing",
+    detail: notes.detail,
+    stage: { built: true, published: notes.valid, verified: notes.valid },
+    remote: {
+      kind: "release-notes",
+      valid: notes.valid,
+      current: notes.valid,
+      present: notes.valid ? 1 : 0,
+      total: 1,
+    },
+    evidence: null,
+    blocksVerify: !notes.valid,
+  };
 }
 
 async function main() {
@@ -101,6 +160,16 @@ async function main() {
     ledger,
     checks,
   });
+
+  const notes = await checkReleaseNotes(args.root, version);
+  status.artifacts.unshift(releaseNotesArtifact(notes));
+  status.summary.required += 1;
+  if (notes.valid) status.summary.ready += 1;
+  else {
+    status.summary.missing += 1;
+    status.summary.blocking += 1;
+  }
+  status.ok = status.summary.blocking === 0;
 
   let recordedPath = null;
   if (args.record && status.ok) {

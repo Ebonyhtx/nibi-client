@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "node ../../scripts/clean-dist.mjs",
-    "test": "vitest tests",
+    "test": "node ../../scripts/vitest.mjs tests",
     "coverage": "vitest run tests --coverage",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint src",
@@ -24,6 +24,6 @@
     "@nibi/contracts": "workspace:*"
   },
   "devDependencies": {
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.12"
   }
 }

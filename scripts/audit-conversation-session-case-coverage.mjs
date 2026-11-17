@@ -356,6 +356,7 @@ function parseRowsById(markdown, idPattern) {
 function formatMarkdownPatchCell(value) {
   return String(value ?? "")
     .replace(/\r?\n/g, "<br>")
+    .replace(/\\/g, "\\\\")
     .replace(/\|/g, "\\|")
     .trim();
 }
@@ -1289,6 +1290,7 @@ function buildDecisionReviewQueue(
 function escapeMarkdownTableCell(value) {
   return String(value ?? "")
     .replace(/\r?\n/g, "<br>")
+    .replace(/\\/g, "\\\\")
     .replace(/\|/g, "\\|")
     .trim();
 }

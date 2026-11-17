@@ -25,6 +25,22 @@ import {
 import { setDataBaseDir } from "../src/paths.js";
 import { TaskIndexRepo } from "../src/session/taskIndexRepo.js";
 
+// Windows 上 taskkill/CIM 在 4 核 runner 偶发把「已退出但 ChildProcess exit 事件还没投递」
+// 报成残留（cleanup incomplete）；transport 的第二次 cleanup 会跳过 graceful 等待，本身就是
+// 为这类残留准备的重试路径。与 nibiAgentProcessManager.test.ts 的口径一致，最多重试 3 次。
+async function disposeAllAndWaitWithRetry(service: {
+  disposeAllAndWait: () => Promise<void>;
+}): Promise<void> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await service.disposeAllAndWait();
+      return;
+    } catch (error) {
+      if (attempt >= 3 || !/cleanup incomplete/.test(String(error))) throw error;
+    }
+  }
+}
+
 // 最小 v4 fake agent：
 // - v4/conversation/subscribe → 一次 stdout.write 连续写 ACK-only response + initial notification；
 // - v4/conversation/unsubscribe → 返回 {}；
@@ -550,7 +566,7 @@ describe("nibiAgentService v4 conversation channel", () => {
               additionalDirectories: [],
             });
           } finally {
-            await env.service.disposeAllAndWait();
+            await disposeAllAndWaitWithRetry(env.service);
           }
         },
       );
@@ -617,7 +633,7 @@ describe("nibiAgentService v4 conversation channel", () => {
             );
           else expect(resolveDirectories).not.toHaveBeenCalled();
         } finally {
-          await env.service.disposeAllAndWait();
+          await disposeAllAndWaitWithRetry(env.service);
         }
       },
     );
@@ -662,7 +678,7 @@ describe("nibiAgentService v4 conversation channel", () => {
             .flatMap((entry) => entry.params?.sessionIds ?? []),
         ).not.toContain("different-project");
       } finally {
-        await env.service.disposeAllAndWait();
+        await disposeAllAndWaitWithRetry(env.service);
       }
     },
   );
@@ -702,7 +718,7 @@ describe("nibiAgentService v4 conversation channel", () => {
           parts: [{ type: "mention", refId: "m1" }],
         });
       } finally {
-        await service.disposeAllAndWait();
+        await disposeAllAndWaitWithRetry(service);
       }
     },
   );
@@ -735,7 +751,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         ),
       );
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -780,7 +796,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         ).toBe(false);
       } finally {
         scope.dispose();
-        await service.disposeAllAndWait();
+        await disposeAllAndWaitWithRetry(service);
       }
     },
   );
@@ -816,7 +832,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         expect(commands[0]?.params.type).toBe("createSession");
         expect(commands[0]?.params.payload).toEqual(payload);
       } finally {
-        await service.disposeAllAndWait();
+        await disposeAllAndWaitWithRetry(service);
       }
     },
   );
@@ -858,7 +874,7 @@ describe("nibiAgentService v4 conversation channel", () => {
       ).toEqual([`sessions-index/${workspacePath}`, "conversation/persisted-session"]);
       expect(requests.some((entry) => entry.method === "session/create")).toBe(false);
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -884,7 +900,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         },
       });
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -933,7 +949,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         ).toEqual({ kind: "unsupported", workId: "unsupported" });
       } finally {
         scope.dispose();
-        await service.disposeAllAndWait();
+        await disposeAllAndWaitWithRetry(service);
       }
     },
   );
@@ -976,7 +992,7 @@ describe("nibiAgentService v4 conversation channel", () => {
       ]);
     } finally {
       disposable?.dispose();
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1017,7 +1033,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         }
       } finally {
         scope.dispose();
-        await service.disposeAllAndWait();
+        await disposeAllAndWaitWithRetry(service);
       }
     },
   );
@@ -1056,7 +1072,7 @@ describe("nibiAgentService v4 conversation channel", () => {
       });
     } finally {
       repo.close();
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1119,7 +1135,7 @@ describe("nibiAgentService v4 conversation channel", () => {
 
       disposable.dispose();
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1142,7 +1158,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         expect.objectContaining({ projectId: null, sessionId: expect.any(String) }),
       );
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1177,7 +1193,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         }),
       );
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1204,7 +1220,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         }),
       );
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1252,7 +1268,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         2,
       );
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1287,7 +1303,7 @@ describe("nibiAgentService v4 conversation channel", () => {
       ).toMatchObject({ payload: { text: "hello", inputOrigin: "mobile" } });
     } finally {
       await scope.dispose();
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1341,7 +1357,7 @@ describe("nibiAgentService v4 conversation channel", () => {
       expect(subscribe?.params).not.toHaveProperty("memoryEnabled");
       expect(subscribe?.params).not.toHaveProperty("integratedTerminalShell");
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1389,7 +1405,7 @@ describe("nibiAgentService v4 conversation channel", () => {
       });
     } finally {
       repo.close();
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1430,7 +1446,7 @@ describe("nibiAgentService v4 conversation channel", () => {
       ).rejects.toThrow("fault.connection.flowControlForbidden");
     } finally {
       await scope.dispose();
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1489,7 +1505,7 @@ describe("nibiAgentService v4 conversation channel", () => {
       }
     } finally {
       await scope.dispose();
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1556,7 +1572,7 @@ describe("nibiAgentService v4 conversation channel", () => {
     } finally {
       await desktop.dispose();
       await mobile.dispose();
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1589,7 +1605,7 @@ describe("nibiAgentService v4 conversation channel", () => {
       ).rejects.toThrow("preview path authorization failed");
     } finally {
       await desktop.dispose();
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1635,7 +1651,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         disposable.dispose();
       } finally {
         await scope.dispose();
-        await service.disposeAllAndWait();
+        await disposeAllAndWaitWithRetry(service);
       }
     },
   );
@@ -1691,7 +1707,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         connectionId: subscribeRequest?.params.connectionId,
       });
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1737,7 +1753,7 @@ describe("nibiAgentService v4 conversation channel", () => {
       expect(commandRequest?.params.payload).not.toHaveProperty("toolDisallowlist");
     } finally {
       repo.close();
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1768,7 +1784,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         toolDisallowlist: ["ExistingDeniedTool", "CronCreate", "CronUpdate", "CronDelete"],
       });
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1802,7 +1818,7 @@ describe("nibiAgentService v4 conversation channel", () => {
       expect(getTaskMeta).not.toHaveBeenCalled();
     } finally {
       getTaskMeta.mockRestore();
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1876,7 +1892,7 @@ describe("nibiAgentService v4 conversation channel", () => {
       expect(commandResolver).toHaveBeenCalledTimes(1);
     } finally {
       await scope.dispose();
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1921,7 +1937,7 @@ describe("nibiAgentService v4 conversation channel", () => {
       expect(requests[0]?.params).toEqual({ commands });
     } finally {
       await scope.dispose();
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1958,7 +1974,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         forceSnapshot: true,
       });
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -1994,7 +2010,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         }),
       ).resolves.toMatchObject({ ack: { subscriptionId: replacement.ack.subscriptionId } });
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -2023,7 +2039,7 @@ describe("nibiAgentService v4 conversation channel", () => {
       expect(replacement.ack.subscriptionId).toBe(first.ack.subscriptionId);
       await expect(staleResync).rejects.toThrow("fault.subscription.notOwned");
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -2070,7 +2086,7 @@ describe("nibiAgentService v4 conversation channel", () => {
       expect(configFrames.every((frame) => frame.topic.startsWith("workspace-config/"))).toBe(true);
       for (const disposable of disposables) disposable.dispose();
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -2121,7 +2137,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         })),
       );
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 
@@ -2151,7 +2167,7 @@ describe("nibiAgentService v4 conversation channel", () => {
         readRequests(logPath).filter((entry) => entry.method === "v4/conversation/unsubscribe"),
       ).toHaveLength(0);
     } finally {
-      await service.disposeAllAndWait();
+      await disposeAllAndWaitWithRetry(service);
     }
   });
 });

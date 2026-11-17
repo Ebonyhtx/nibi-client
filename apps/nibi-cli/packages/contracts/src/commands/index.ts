@@ -125,7 +125,7 @@ const POSITIONAL_ARGUMENT_PATTERN = /\$(\d+)/g;
 const ALL_ARGUMENTS_TOKEN = "$ARGUMENTS";
 // fenced 在前：同一位置两种写法都能匹配时按 fenced 处理。行内写法要求 `!` 在行首或空白之后，
 // 避免把 `Warning!` 这类正文和后一个代码段误判成命令。
-const SHELL_BLOCK_PATTERN = /```!\s*([\s\S]*?)```|(?<=^|\s)!`([^`]*)`/gmu;
+const SHELL_BLOCK_PATTERN = /```!([\s\S]*?)```|(?<=^|\s)!`([^`]*)`/gmu;
 // 会话 ID 与工作区目录由 Bash 工具作为环境变量注入，块里保持原文。
 // 这里只处理 Bash 拿不到的变量：插件变量换成插件的真实值，skill 目录变量命令没有。变量名逐个写全。
 // NIBI_* 是产品名；CLAUDE_* 保留为兼容别名，与 hooks/MCP 的变量命名保持一致。

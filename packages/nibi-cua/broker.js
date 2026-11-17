@@ -289,7 +289,11 @@ export function serializeRequest(request) {
  */
 export async function dispatchRequest(backend, request) {
   const method = request?.method ?? "";
-  const handler = backend && typeof backend === "object" ? backend[method] : undefined;
+  // 只认 backend 自己声明的属性：`constructor` / `toString` 等原型方法也必须 fail-closed。
+  const handler =
+    backend && typeof backend === "object" && Object.hasOwn(backend, method)
+      ? backend[method]
+      : undefined;
   if (typeof handler !== "function") {
     throw new CuaHelperError(`未知的 broker 方法：${method || "(空)"}`, { code: "unrecognized_method" });
   }
