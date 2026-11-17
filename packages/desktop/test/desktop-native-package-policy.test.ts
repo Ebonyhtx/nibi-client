@@ -17,6 +17,10 @@ describe("desktop native package policy", () => {
     expect(patterns).toContain("!node_modules/node-pty/prebuilds/darwin-x64/**");
     expect(patterns).toContain("!node_modules/node-pty/prebuilds/win32-arm64/**");
     expect(patterns).not.toContain("!node_modules/node-pty/prebuilds/darwin-arm64/**");
+    expect(patterns).toContain("!node_modules/@trycua/cua-driver-darwin-x64/**");
+    expect(patterns).not.toContain("!node_modules/@trycua/cua-driver-darwin-arm64/**");
+    expect(patterns).toContain("!node_modules/koffi/build/koffi/win32_x64/**");
+    expect(patterns).not.toContain("!node_modules/koffi/build/koffi/darwin_arm64/**");
   });
 
   it("应接受仅包含目标平台且正确 unpack 的 native 资源", () => {
@@ -24,6 +28,8 @@ describe("desktop native package policy", () => {
       [
         "unpack : /node_modules/node-pty/prebuilds/darwin-arm64/pty.node",
         "unpack : /node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper",
+        "unpack : /node_modules/@trycua/cua-driver-darwin-arm64/cua_driver_sdk.dylib",
+        "unpack : /node_modules/koffi/build/koffi/darwin_arm64/koffi.node",
         "pack   : /node_modules/node-pty/package.json",
       ].join("\n"),
     );
@@ -38,6 +44,8 @@ describe("desktop native package policy", () => {
         "unpack : /node_modules/@lydell/node-pty-linux-x64/prebuilds/linux-x64/pty.node",
         "unpack : /node_modules/node-pty/build/Release/pty.node",
         "unpack : /node_modules/node-pty/prebuilds/win32-x64/pty.node",
+        "unpack : /node_modules/@trycua/cua-driver-linux-x64-gnu/cua_driver_sdk.so",
+        "unpack : /node_modules/koffi/build/koffi/win32_x64/koffi.node",
         "pack   : /node_modules/node-pty/prebuilds/darwin-arm64/pty.node",
       ].join("\n"),
     );
@@ -47,6 +55,8 @@ describe("desktop native package policy", () => {
       expect.stringContaining("平台源包"),
       expect.stringContaining("安装机生成"),
       expect.stringContaining("非目标平台"),
+      expect.stringContaining("CUA 引擎包含非目标平台包"),
+      expect.stringContaining("koffi 包含非目标平台 native"),
       expect.stringContaining("packed payload"),
     ]);
   });
