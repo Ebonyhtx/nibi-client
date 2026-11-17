@@ -1,6 +1,6 @@
 # ZCode Computer Use（桌面控制）· accessibility first，事件只兜底
 
-> 逆向对象：ZCode 桌面 Agent 的 computer use。基线：插件 0.6.3 · node-repl-host 0.6.0 · Helper 3.14.4（buildId pipeline-298526-10bbcea5）。证据见 [evidence/inventory.md](evidence/inventory.md)。
+> 逆向对象：ZCode 桌面 Agent 的 computer use。基线：插件 0.6.3 · node-repl-host 0.6.0 · Helper 3.14.4（buildId pipeline-298526-10bbcea5）。证据见 evidence/inventory.md。
 
 > 一句话结论：**模型只见 skill + `agent.computerUse.*` SDK；14 个 app 级工具经 Worker→宿主 broker→Helper→AX 四跳执行；一切校验 fail-closed，「可能已下发」优先于重试。**
 
@@ -136,7 +136,7 @@ fail-closed 校验清单（失败一律报错，不静默、不猜测）：
 | 有意分歧 | 命名空间 `cua`→`agent.computerUse`；Worker 短命（Codex kernel 持久）；动作带 `actionSent`（Codex 是 Promise<void>）；窗口寻址三平台统一；不融合 Browser；附加能力只进选项袋（R2） |
 | 安全语义（R3） | state_id 强校验、帧精确栅格、possibly_sent 防重放、controller lease、kill switch——全部保留，改为内部字段或类型化错误 |
 
-原始面对照见 [codex 分册 computer-use.md](../codex/computer-use.md)。
+原始面对照见 codex 分册 computer-use.md。
 
 > ax_native 另含 PiP 画中画与 Ghost 合成光标两个可视化子系统：按 session/turn 复位，让用户看清 agent 在点哪里；触发策略未见源码（符号表 evidence §2.14）。
 

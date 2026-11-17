@@ -25,16 +25,16 @@ od:
 ---
 # HTML PPT · Course Module
 
-A focused entry point into the [`html-ppt`](../html-ppt/SKILL.md) master skill that lands the user directly on the **`course-module`** full-deck template.
+A focused entry point into the `html-ppt` master skill (not bundled) that lands the user directly on the **`course-module`** full-deck template.
 
 ## When this card is picked
 
-The Examples gallery wires "Use this prompt" to the example_prompt above. When you accept that prompt, this card is the right pick if the user wants exactly the visual identity of `course-module` (see the upstream [full-decks catalog](../html-ppt/references/full-decks.md) for screenshots and rationale).
+The Examples gallery wires "Use this prompt" to the example_prompt above. When you accept that prompt, this card is the right pick if the user wants exactly the visual identity of `course-module` (see the upstream full-decks catalog for screenshots and rationale).
 
 ## How to author the deck
 
 1. **Read the master skill first.** All authoring rules live in
-   [`skills/html-ppt/SKILL.md`](../html-ppt/SKILL.md) — content/audience checklist,
+   `skills/html-ppt/SKILL.md` — content/audience checklist,
    token rules, layout reuse, presenter mode, the keyboard runtime, and the
    "never put presenter-only text on the slide" rule.
 2. **Start from the matching template folder:**

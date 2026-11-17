@@ -11,7 +11,7 @@
 | 安全模型 | TCC 只挂 Helper · 租约 + 防重放 · kill switch · 子代理禁用 · fail-closed |
 | 本机可用 | ✅ CU/BU 均有运行实证（2026-10 基线） |
 
-方法：只读静态分析（插件源码、app.asar 解包、原生二进制 nm/otool/strings）+ 本机运行日志实证。证据见 [evidence/inventory.md](evidence/inventory.md)。
+方法：只读静态分析（插件源码、app.asar 解包、原生二进制 nm/otool/strings）+ 本机运行日志实证。证据见 evidence/inventory.md。
 
 ## 架构一图
 
@@ -30,9 +30,9 @@
 
 | 文件 | 内容 |
 |---|---|
-| [computer-use.md](computer-use.md) | 桌面控制：14 工具面、观察双基线、动作双路径、五道安全闸、与 Codex 对齐 |
-| [browser-use.md](browser-use.md) | 浏览器控制：对象模型、三交互路径、录屏、安全边界 |
-| [evidence/inventory.md](evidence/inventory.md) | 载体清单、关键摘录、符号表、日志实证、置信度标注 |
+| computer-use.md | 桌面控制：14 工具面、观察双基线、动作双路径、五道安全闸、与 Codex 对齐 |
+| browser-use.md | 浏览器控制：对象模型、三交互路径、录屏、安全边界 |
+| evidence/inventory.md | 载体清单、关键摘录、符号表、日志实证、置信度标注 |
 
 ## 能力矩阵：CU vs BU
 
@@ -48,7 +48,7 @@
 | 权限 | TCC Accessibility + Screen Recording | 无（自家 WebView） |
 | 录制 | —（PiP 是 UX 展示，非数据交付） | `tab.recording` → WebM（90s 上限） |
 | 子代理 / kill switch | 禁用 / `stop_computer_control` | 禁用 / —（tab.close / 进程退出） |
-| 对齐来源 | Codex `@oai/cua@0.2.4`（[codex 分册](../codex/computer-use.md)） | Codex 浏览器对象模型（[codex 分册](../codex/browser-use.md)） |
+| 对齐来源 | Codex `@oai/cua@0.2.4`（codex 分册） | Codex 浏览器对象模型（codex 分册） |
 
 ## 安全模型：双轨同构
 
