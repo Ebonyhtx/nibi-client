@@ -417,10 +417,9 @@ export function buildGithubReleaseBody(entry) {
   lines.push(
     "## 下载",
     "",
-    "- 官网：https://nibistudio.cn",
-    "- Windows：NSIS 安装包（官网下载）",
-    "- Linux：AppImage（官网下载）",
+    "- 官网下载页：https://nibistudio.cn/download/",
     "- 命令行工具：npm install -g @nibi-studio/cli",
+    "- 可用平台与版本以官网下载页为准。",
     "",
     "完整变更见仓库 CHANGELOG.md。",
     "",
