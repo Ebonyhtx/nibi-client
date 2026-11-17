@@ -338,13 +338,19 @@ export function extractConversationPreviewFileReferences(
       fullStart + (match[0]?.indexOf(raw) ?? 0) + raw.length,
     );
   }
-  for (const match of content.matchAll(FILE_PATH_RE)) {
-    const raw = match[1] ?? "";
-    const fullMatch = match[0] ?? raw;
-    const start = (match.index ?? 0) + fullMatch.lastIndexOf(raw);
-    const end = start + raw.length;
-    if (!raw || rangesOverlap(start, end, protectedRanges)) continue;
-    addReference(raw, start, end);
+  // 有界量词把最坏回溯压到可控，但 4K 级重复串仍可能上百毫秒。裸路径抽取只扫小段
+  // 文本，且跳过含 32+ 连续重复字符的恶意串；长消息仍由 markdown 链接、引号路径与
+  // file:// 三条规则覆盖（它们不受这个上限影响）。
+  const hasLongRepeatedRun = /(.)\1{31}/u.test(content);
+  if (content.length <= 4096 && !hasLongRepeatedRun) {
+    for (const match of content.matchAll(FILE_PATH_RE)) {
+      const raw = match[1] ?? "";
+      const fullMatch = match[0] ?? raw;
+      const start = (match.index ?? 0) + fullMatch.lastIndexOf(raw);
+      const end = start + raw.length;
+      if (!raw || rangesOverlap(start, end, protectedRanges)) continue;
+      addReference(raw, start, end);
+    }
   }
 
   const seen = new Set<string>();
