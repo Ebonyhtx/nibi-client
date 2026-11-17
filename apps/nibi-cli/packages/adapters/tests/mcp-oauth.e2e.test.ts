@@ -1242,7 +1242,12 @@ describe("MCP OAuth client credentials e2e", () => {
           refresh_token: tokensA.refresh_token,
         }),
       ]);
-      await expect(reader.provider.clientInformation()).resolves.toEqual(clientA);
+      // 新版 MCP SDK 在发现授权服务器后会把 issuer 一并留在 client information 里；
+      // 这是 issuer 绑定所需字段，不是额外的客户端配置。
+      await expect(reader.provider.clientInformation()).resolves.toEqual({
+        ...clientA,
+        issuer: `${authBaseUrl}/`,
+      });
       await expect(reader.provider.tokens()).resolves.toMatchObject({
         access_token: `${clientA.client_id}-refreshed-access-token`,
         refresh_token: tokensA.refresh_token,
