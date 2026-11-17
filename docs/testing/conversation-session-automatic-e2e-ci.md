@@ -1,5 +1,7 @@
 # Desktop Formal Manual E2E CI
 
+> 历史文档（GitLab 时代）：当前 CI 是 GitHub Actions，仓库没有 `.gitlab/` 与该脚本；桌面 E2E 入口见 `.github/workflows/`。
+
 ## 背景
 
 需要一个 CI 入口试跑已经完成 V4 formal admission 的桌面端 E2E，用于定位 MR/web pipeline 上的桌面端回归问题。该入口从 conversation-session 的 direct-root glob 收集正式 case，并显式列入已人工验证的跨域正式 spec；`manual-review/pending` 不会被非递归 glob 收入。

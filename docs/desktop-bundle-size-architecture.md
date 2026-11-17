@@ -25,8 +25,7 @@
 - 显式配置单域名或多域名列表时，按列表顺序解析 bucket、路径和预热账号；不按语言/时区重排，
   也不回落到任何上游 CDN。
 - `NIBI_ENV=test` 时默认使用内网测试资源根：
-  `http://intranet.example.invalid:12345/ssh-remote-assets/<version>`。该目录由 CI 的
-  `build:remote:assets` job 同步 descriptor 与四个 archive。
+  `http://intranet.example.invalid:12345/ssh-remote-assets/<version>`。该目录由 `source-server-release` workflow 同步 descriptor 与两个 Linux archive（linux-x64/linux-arm64）。
 - `remoteCdnBaseUrl` 仍可通过环境变量覆盖；一旦显式设置，就只使用该自定义基址，不再套用
   `NIBI_ENV` 默认值或 production 地区分流
 - SSH 远端服务器下载模式会在远端临时目录下载并校验完整 archive；最终安装到 `~/.nibi/server/releases/`，并通过 `current.json` 原子切换。

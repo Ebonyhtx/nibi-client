@@ -1,5 +1,7 @@
 # ZCode 发版通知卡片
 
+> 历史文档（已停用）：`release:notify:feishu`、Zara 与 `macos-arm64/latest.yml` 流程已移除；当前发布说明走 CHANGELOG + `release:notes:publish`。
+
 ## 目标
 
 正式版本发布后，`release:notify:feishu` 使用 Zara 向配置的飞书群发送 Card 2.0 更新说明。卡片内容来自 infra 编辑后的共享目录 `macos-arm64/latest.yml.releaseNotes`，同时在移动端和桌面端保持清晰、克制的信息层级。

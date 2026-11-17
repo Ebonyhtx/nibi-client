@@ -1,5 +1,7 @@
 # Web App Docker Image Spec
 
+> 历史文档：`Dockerfile.web-app` 与 `docker:*` 脚本已移除；仓库只保留 `Dockerfile.desktop-e2e`。
+
 ## 目标
 
 提供一个本地可运行的完整 Web App Docker 镜像，包含 Web 静态资源、`@nibi/server` HTTP/WS 服务和 ZCode agent app-server。镜像用于本地 Docker 验证，不替代桌面端远控 shared-host 架构。

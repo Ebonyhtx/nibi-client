@@ -1,6 +1,6 @@
 # Post-Update Release Notes
 
-发布日志由 infra 通过 API 直接编辑 runner 共享目录中的 `latest.yml`，并保留 electron-updater 兼容的 `releaseName` / `releaseNotes`。z-code CI 不再生成单版本 `changelogs/vX.Y.Z*.md`、不读取根目录 `CHANGELOG.md` 注入日志，也不生成独立的 `latest-en.yml`；approve 放行后先校验共享目录中的清单，校验通过后才上传。
+发布日志以根目录 `CHANGELOG.md` 为唯一来源：`pnpm release:notes:publish` 生成/覆盖 GitHub Release 正文，`release:verify` 校验正文与 CHANGELOG 同源；桌面更新库存的 `releaseNotes` 也取同一段用户口径文案。发布前 `check:release-notes` 会拦住不符合“新功能 / 问题修复 / 变更”格式的条目。
 
 自动更新下载完成后，main 进程会把当前版本说明持久化到 `pendingPostUpdateReleaseNotes`，并把同一份 payload 随 `update-downloaded` 状态广播给 renderer。左上角更新按钮 hover 时按当前 UI 语言选择 `releaseNotesByLocale` 中的 Markdown 展示；若旧 feed 没有多语言字段，则回退到默认 `releaseNotes`。如果用户尚未安装就重启应用，且 pending 版本仍高于当前应用版本，main 会用这份 payload 恢复待安装状态，但不会提前把它作为安装后的说明发给 renderer 确认。
 

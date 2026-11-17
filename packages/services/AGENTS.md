@@ -1,6 +1,6 @@
 # 服务开发规则
 
-本文件补充[根规则](../../AGENTS.md)。修改 Agent/session/runtime 或进程职责时，先读 [runtime 边界](../../docs/agents/runtime-boundaries.md)，同时考虑桌面本地和手机远控。
+本文件补充[根规则](../../AGENTS.md)。修改 Agent/session/runtime 或进程职责时，先读 runtime 边界（原 docs/agents/runtime-boundaries.md 已移除，以架构策略与源码为准），同时考虑桌面本地和手机远控。
 
 ## 日志
 

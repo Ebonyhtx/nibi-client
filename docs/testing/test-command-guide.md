@@ -14,7 +14,7 @@ Node 24.22.2、Vitest 4.1.4。数值会随机器负载波动，看量级即可�
 | 先看会跑哪些文件          | `pnpm test:unit:changed --dry-run`                                  | 不执行测试，列出精确文件清单                                                     |
 | 针对显式文件              | `pnpm test:unit:changed --files <path...> --dry-run`                | 官方 related 选择；lint-staged 也走这条路径                                      |
 | 提交前（pre-push 自动跑） | `pnpm verify:pre-push`                                              | 静态检查 + `test:unit:affected --scope push`（推送范围全部受影响测试）           |
-| 发版前 / 大改后           | `pnpm test:unit`                                                    | 全量单测（1,985 个文件，排除 desktop E2E）                                       |
+| 发版前 / 大改后           | `pnpm test:unit`                                                    | 全量单测（排除 desktop E2E；文件/用例数会随代码变化，以实际输出为准）                                       |
 | 类型检查                  | `pnpm typecheck`                                                    | `tsc -b` 16 个工程 + 5 个独立 `tsc -p --noEmit` 工程                             |
 | 低内存 / 排查类型检查问题 | `pnpm typecheck:serial` 或 `TYPECHECK_CONCURRENCY=1 pnpm typecheck` | 与 `pnpm typecheck` 完全相同的工程，只是串行执行                                 |
 

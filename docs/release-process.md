@@ -9,7 +9,7 @@
 
 规则：**`dev` 可以随便绿着前进，`main` 必须是"已发布/可发布"的状态。** 两者允许暂时不一致；发版时把 `main` 快进到 `dev` 的某个 commit，在那上面打标签。
 
-> 4.1.0 已发布（2026-11-15）。当前 `dev` 领先 `origin/main`，本地 `main` 仍停在 v4.0.2；发版前先把本地 `main` 快进到发布提交，**发布动作一律从 `main` 出发**。
+> 4.1.1 已发布并 verified（2026-11-17）。`dev`/`main`/`origin/main` 已对齐（2026-11-18），`v4.1.1` 标签存在；发布动作一律从 `main` 出发。
 
 ## 发布台账与发布闸门
 
@@ -40,8 +40,8 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
 `release:verify` 只对**需要发布的产物**和 `verifyAlways` 的插件市场目录判失败；它不会自动发布
 任何东西。产物没变、不需要更新时保持 `ready`，不会因为产品版本号前进就逼你重发所有产物。
 “有更新但暂时不发”就让它停在 `pending`。`.github/workflows/release-status.yml` 每周一
-09:00（Asia/Shanghai）在 `dev` 上跑一次 `release:status --markdown`，更新同一个
-`release-status` issue；它只读，不会发布任何东西。
+09:00（Asia/Shanghai）在 `dev` 上跑一次 `release:status`：有 `pending`/`missing` 时创建或
+重新打开 `release-status` issue，全部 `ready` 时自动关闭；它只读，不会发布任何东西。
 
 ### 产物 id 与检查口径
 

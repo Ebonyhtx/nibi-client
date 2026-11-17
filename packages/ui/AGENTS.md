@@ -13,7 +13,7 @@
 - 组件通过 [hooks](src/hooks/) 访问服务，由 hook 使用 `useServices()`；组件不直接取服务或访问 Repo。复用已有 hook，具体导出以源码为准。
 - 使用 [Zustand store](src/store/) 与 StoreProvider；订阅通过 selector，例如 `useNibiStore(selector)`。保持现有 Provider 依赖顺序，不在组件内构造第二份服务或业务状态。
 - theme、locale 等跨窗口字段通过 broadcastService 的 `state:` 频道同步；应用广播时保留 `applyingBroadcast` 防回环语义。
-- task/session、已提交输入等业务状态归属见 [runtime 边界](../../docs/agents/runtime-boundaries.md)。UI 保留草稿和展示投影，不能承接第二份 accepted queue。
+- task/session、已提交输入等业务状态归属见 runtime 边界（原 docs/agents/runtime-boundaries.md 已移除，以架构策略与源码为准）。UI 保留草稿和展示投影，不能承接第二份 accepted queue。
 - 含 JSX 的 hooks/Provider 文件使用 `.tsx`。
 
 ## 调试与验证

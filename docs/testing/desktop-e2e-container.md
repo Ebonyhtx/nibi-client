@@ -130,7 +130,7 @@ pnpm run test:e2e:container
 
 ## 技术边界
 
-- 镜像基于 `node:24.14.0-bookworm`，预装 Electron/Chromium 在 Linux 下需要的 GTK、X11、字体、DBus 和 `xvfb` 依赖。
+- 镜像基于 `node:24.22.1-bookworm`，预装 Electron/Chromium 在 Linux 下需要的 GTK、X11、字体、DBus 和 `xvfb` 依赖。
 - 启动脚本默认使用 `linux/amd64`，让 Electron、Chrome-for-Testing Chromedriver 和系统动态链接器保持同一架构；在 Apple Silicon 上由 Docker Desktop 负责整容器模拟。
 - `packages/desktop/wdio.conf.ts` 只在 `NIBI_E2E_CONTAINER=1` 时启用容器参数，包括 WDIO Xvfb 重试和 Chromium 测试参数。
 - 容器模式固定 WDIO Chromedriver cache 到 `/workspace/.cache/wdio-browser-drivers`，启动脚本通过 Docker volume 复用缓存，避免每轮测试都依赖即时网络下载。

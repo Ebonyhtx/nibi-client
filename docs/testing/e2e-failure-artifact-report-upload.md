@@ -1,5 +1,7 @@
 # E2E 失败用例产物与报告平台上传
 
+> 历史文档（GitLab 时代）：`scripts/ci/*` 与 Bitable loop 已不存在；当前 E2E 产物走 GitHub Actions artifact/report。
+
 ## 目标
 
 桌面 E2E 运行结束后，将整次运行的 `summary.json` 与 `summary.md` 上传到 ZCode E2E 报告平台；失败 case 的窗口视频在报告创建成功后按用例标题逐个补传。GitLab CI 继续保存二进制 artifact，报告平台保存结构化汇总和可按需下载的视频。

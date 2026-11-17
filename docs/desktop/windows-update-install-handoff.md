@@ -3,8 +3,8 @@
 ## 目标
 
 Windows 桌面端继续使用 `electron-updater` 下载和校验更新，并通过
-`quitAndInstall()` 交给 `electron-builder 26.8.1` 生成的 NSIS 安装器完成覆盖安装。
-本方案不自定义下载器、增量更新算法或安装引擎，只补齐 ZCode 多进程退出和 NSIS
+`quitAndInstall()` 交给 `electron-builder 26.18.1` 生成的 NSIS 安装器完成覆盖安装。
+本方案不自定义下载器、增量更新算法或安装引擎，只补齐 NIBI 多进程退出和 NSIS
 快捷方式保留策略之间的边界。
 
 ## 交接时序
@@ -20,7 +20,7 @@ update-downloaded
   -> electron-updater.quitAndInstall()
   -> NSIS CHECK_APP_RUNNING 做最终安装目录进程检查
   -> NSIS 覆盖安装并保留已有快捷方式身份
-  -> 完成页直接启动新安装目录下的 ZCode.exe
+  -> 完成页直接启动新安装目录下的 NIBI.exe
 ```
 
 Main 进程不能在调用 `quitAndInstall()` 前按整个安装目录杀进程，因为 renderer、GPU
@@ -55,7 +55,7 @@ Main 进程不能在调用 `quitAndInstall()` 前按整个安装目录杀进程�
 - 不绕过 NSIS 的最终运行中应用检查；该检查不承诺覆盖所有独立 runtime。产品接受极少数
   runtime 持续占用时安装资源可能不完整的残余风险，并通过新版本启动完整性诊断保留证据。
 - 覆盖更新保留用户“是否创建快捷方式”的选择：用户已删除的快捷方式不重新创建。
-- 手动运行安装包覆盖已有版本（包括版本降级）时没有 `--updated` 参数。electron-builder 26.8.1
+- 手动运行安装包覆盖已有版本（包括版本降级）时没有 `--updated` 参数。electron-builder 26.18.1
   在允许修改安装目录的 assisted installer 中会因此跳过 `KeepShortcuts`，旧卸载器继而调用
   `UninstShortcut` 注销 Windows 固定项；新安装器事后重建同名 `.lnk` 也不会恢复固定关系。
   安装目录页面生成后必须撤掉只用于该页面的预处理开关，使后续旧版本卸载交接在手动覆盖
@@ -70,7 +70,7 @@ Main 进程不能在调用 `quitAndInstall()` 前按整个安装目录杀进程�
     -> 若继承的目标失效，则原位修复 .lnk
   ```
 - 覆盖更新时，开始菜单和桌面快捷方式先由 electron-builder 的 `KeepShortcuts` 机制保留。
-  ZCode 的 `customInstall` 必须读取已有 `.lnk` 的目标：目标已经等于本次 `$appExe` 时原样保留，
+  NIBI 的 `customInstall` 必须读取已有 `.lnk` 的目标：目标已经等于本次 `$appExe` 时原样保留，
   不得再次调用 `CreateShortCut`；目标不同、为空或无法读取时才原位修复为 `$appExe`。修复原因
   是无条件覆盖 `.lnk` 会改变 Shell 观察到的快捷方式对象，在部分 Windows 11 版本或缓存状态
   下丢失“所有应用”索引或用户固定关系，而完全不修复又会让历史错误目标在升级后继续失效。
@@ -79,7 +79,7 @@ Main 进程不能在调用 `quitAndInstall()` 前按整个安装目录杀进程�
 - 快捷方式名称或菜单目录确需迁移时，继续由 electron-builder 内建流程执行重命名、AUMID
   写入与 `SHChangeNotify`；不得在其通知 Shell 之后再静默修改 `.lnk`。
 - assisted installer 完成页不得依赖可能由旧版本保留下来的 `.lnk`，必须直接启动
-  `$INSTDIR\ZCode.exe`。
+  `$INSTDIR\NIBI.exe`。
 - `config.json.lock` 属于服务层跨进程原子写锁，不属于 Electron 更新器。等待者自身的等待
   时长只能决定何时返回超时，不能作为当前锁 stale 的证据；PID 仍存活的 owner 不允许被
   运行期等待者强制接管，正常并发写入必须保持串行。
@@ -113,12 +113,12 @@ Main 进程不能在调用 `quitAndInstall()` 前按整个安装目录杀进程�
 
 ## 验证范围
 
-- Windows `installer.nsh` 必须使用 electron-builder 26.8.1 对应的真实 NSIS compiler、include
+- Windows `installer.nsh` 必须使用 electron-builder 26.18.1 对应的真实 NSIS compiler、include
   与 plugin 目录做独立编译测试，禁止只靠源码字符串断言判断宏可用。
 - NSIS 隔离夹具在临时安装目录执行覆盖更新宏：目标已经正确的桌面/开始菜单快捷方式必须
   保留目标、参数和 Shell 身份；目标失效的快捷方式必须修复为 `$appExe`；用户已删除的快捷
   方式不得重新创建，且 `$launchLink` 必须直接等于 `$appExe`。
-  夹具不得写入真实桌面、开始菜单、ZCode 安装目录或产品注册表。
+  夹具不得写入真实桌面、开始菜单、NIBI 安装目录或产品注册表。
 - 完整安装包 smoke test 继续覆盖 electron-builder 生成脚本中的宏插入位置和真实 NSIS 覆盖安装；
   独立夹具负责在不重打完整应用包时快速发现变量作用域、label、插件和快捷方式语义回归。
 

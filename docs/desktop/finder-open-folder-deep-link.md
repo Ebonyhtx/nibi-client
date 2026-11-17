@@ -2,11 +2,11 @@
 
 ## 背景
 
-系统文件管理器的文件夹右键菜单需要提供一个入口，把用户当前选中的本地文件夹交给 ZCode。该入口语义等同于主界面输入框上方空态菜单里的 `Open folder`：跳过目录选择弹窗，直接把指定目录作为 workspace 打开。
+系统文件管理器的文件夹右键菜单需要提供一个入口，把用户当前选中的本地文件夹交给 NIBI。该入口语义等同于主界面输入框上方空态菜单里的 `Open folder`：跳过目录选择弹窗，直接把指定目录作为 workspace 打开。
 
 ## 范围
 
-- 触发点在 macOS Finder 的文件夹右键菜单服务，不在 ZCode App 内新增 UI。
+- 触发点在 macOS Finder 的文件夹右键菜单服务，不在 NIBI App 内新增 UI。
 - Finder 服务展示名跟随 ZCode 应用语言：`zh-CN` 显示为「在 NIBI 中打开」，`en-US` 显示为 `Open in NIBI`。
 - 只支持单个文件夹。多选时系统服务脚本应只传第一个目录。
 - 只支持本地绝对目录路径，不支持远程 workspace、手机 `/remote`、文件管理器空白处当前目录。
@@ -26,11 +26,11 @@
 
 ## Windows 数据流
 
-1. ZCode Desktop 在 Windows 启动时安装或更新当前用户的 Explorer 右键菜单注册表项。
-2. 注册表写入 `HKCU\Software\Classes\Directory\shell\NIBI.OpenInNIBI`，菜单文案为 `Open in ZCode`，图标指向当前 ZCode 可执行文件。
-3. 注册表写入 `HKCU\Software\Classes\Directory\shell\ZCode.OpenInZCode\command`，命令为 `"<ZCode.exe>" --open-workspace "%1"`。
-4. 同步写入 `HKCU\Software\Classes\Drive\shell\ZCode.OpenInZCode`，支持右键打开盘符根目录。
-5. Explorer 触发后启动第二个 ZCode 进程；Electron single-instance 通过 `additionalData` 或 argv 解析出 `openWorkspacePath`。
+1. NIBI Desktop 在 Windows 启动时安装或更新当前用户的 Explorer 右键菜单注册表项。
+2. 注册表写入 `HKCU\Software\Classes\Directory\shell\NIBI.OpenInNIBI`，菜单文案为 `Open in NIBI`，图标指向当前 NIBI 可执行文件。
+3. 注册表写入 `HKCU\Software\Classes\Directory\shell\NIBI.OpenInNIBI\command`，命令为 `"<NIBI.exe>" --open-workspace "%1"`。
+4. 同步写入 `HKCU\Software\Classes\Drive\shell\NIBI.OpenInNIBI`，支持右键打开盘符根目录。
+5. Explorer 触发后启动第二个 NIBI 进程；Electron single-instance 通过 `additionalData` 或 argv 解析出 `openWorkspacePath`。
 6. main 进程复用本地目录校验与 `OpenWorkspacePath` IPC；冷启动时先缓存，等 renderer ready 后投递。
 7. renderer 复用 `handleSelectProject(path)`，保持已有 tab 去重、跨窗口激活、recentProjects 更新逻辑。
 

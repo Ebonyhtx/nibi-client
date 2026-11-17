@@ -6,7 +6,7 @@
 
 ## 背景
 
-ZCode Desktop 支持 `nibi://workspace/open?path=...` 打开本地工作区，也会在项目发现范围内读取
+NIBI Desktop 支持 `nibi://workspace/open?path=...` 打开本地工作区，也会在项目发现范围内读取
 `nibi.json`、`.nibi/config.json` 的 Hook 声明，以及 `.nibi/agents/*.md` 的 subagent profile。
 外部 deep link、repository 文件和远端 workspace 都不属于用户级可信配置：确认“打开目录”不等于确认
 “执行目录中的代码”。
@@ -14,7 +14,7 @@ ZCode Desktop 支持 `nibi://workspace/open?path=...` 打开本地工作区，�
 ## 安全边界
 
 - Windows `nibi://` 协议命令必须将外部 URL 放在 `--` 之后：生产态为
-  `"<ZCode.exe>" "--" "%1"`，开发态为 `"<electron.exe>" "<entry>" "--" "%1"`。
+  `"<NIBI.exe>" "--" "%1"`，开发态为 `"<electron.exe>" "<entry>" "--" "%1"`。
   `registerDeepLinkProtocol` 是注册 owner；每次正常启动都覆盖旧注册，避免保留不安全模板。
 - Windows 打包产物在签名前关闭 `enableNodeCliInspectArguments`，使旧注册尚未更新时的
   `--inspect` / `--inspect-brk` 也不能启动主进程调试器。该设置不修改未打包的开发 Electron，
@@ -28,7 +28,7 @@ ZCode Desktop 支持 `nibi://workspace/open?path=...` 打开本地工作区，�
 - 项目级 `nibi.json` 与 `.nibi/config.json` Hook 声明视为未信任代码，默认不能进入可执行路径。
 - discovery 只生成 immutable `WorkspaceHookBundleSnapshot`；Runtime admission 必须在 Hook lifecycle 和进程启动前完成。
 - 持久 Trust 只按 `workspaceIdentity + hookDeclarationDigest` 命中；bundle digest 用于保证审核和执行快照一致。
-- Trust 只能由受信任 Host 的 `设置 → 钩子 → 工作区` 审核，或显式 `zcode hooks trust` 命令建立；repository、环境变量和普通 permission answer 都不能授权。
+- Trust 只能由受信任 Host 的 `设置 → 钩子 → 工作区` 审核，或显式 `nibi hooks trust` 命令建立；repository、环境变量和普通 permission answer 都不能授权。
 - managed `deny` 高于 persistent Trust，并在下一次 dispatch gate 生效。
 - 用户级 Hook 与已启用插件 Hook 继续按各自既有可信来源规则运行。
 - 项目级 `.nibi/agents/*.md` 不得通过 frontmatter 改写 child runtime 权限模式；`permissionMode` 只对用户级或受信插件 profile 生效。

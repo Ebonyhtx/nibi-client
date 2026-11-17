@@ -1,5 +1,7 @@
 # Windows 单元测试兼容规范（spec）
 
+> 历史规范（2026-08）：分支 `fix/windows-unit-test-compat` 与 `origin/staging` 已不存在；现行 Windows 单测门禁见 `.github/workflows/client-gates.yml` 与 `docs/testing/pre-push-hook.md`。
+
 ## 背景
 
 Windows 开发机上 `pnpm test` 曾大面积失败（56 文件 / 161 用例）并间歇性以

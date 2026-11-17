@@ -21,8 +21,8 @@ It is built for long-running coding sessions and for developers who move between
 - Official download: <https://nibistudio.cn>
 - Windows: NSIS installer
 - Linux: AppImage
-- CLI (Linux, macOS and Android): `npm install -g @nibi-studio/cli`
-- Windows has no npm CLI package yet; use WSL for the terminal, or the Rust kernel bundled with the desktop installer.
+- CLI (Linux, macOS and Windows): `npm install -g @nibi-studio/cli`
+- The Android npm platform package is no longer published as of 4.1.1 (NIBI-GO builds its own kernel).
 
 See [CHANGELOG.md](CHANGELOG.md) for changes and [GitHub Releases](https://github.com/Ebonyhtx/nibi-client/releases) for previous versions.
 

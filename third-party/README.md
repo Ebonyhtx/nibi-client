@@ -63,7 +63,7 @@ ugrep 的 BSD-3-Clause 版权、条件和免责声明完整保留。ripgrep 保�
 
 `copied-components.json` 是复制内容的登记入口，`inventory.json` 保存对应文件、固定上游参考和 SHA-256，根 `THIRD-PARTY-NOTICES.md` 由生成器输出原始版权及许可文本。最初引入的 commit 未记录时保留 `importRevision: null`，不把本次核验的版本当成最初版本。
 
-Knip 文档镜像现已登记：原始导入的 169 个文件与上游 Knip 6.0.6 的固定参考提交逐一匹配，补齐 ISC 原文；随镜像复制的 Source Sans Pro 与 Hack 字体按字体内版本单独登记原始许可。来源、版本与本地改动说明见 [镜像 README](../docs/knip/docs/README.md)。
+Knip 文档镜像现已登记：原始导入的 169 个文件与上游 Knip 6.0.6 的固定参考提交逐一匹配，补齐 ISC 原文；随镜像复制的 Source Sans Pro 与 Hack 字体按字体内版本单独登记原始许可。来源、版本与本地改动说明镜像 README 未随仓库保留。
 
 Apache-2.0 复制内容中的 148 个已确认改编文件包含文件内来源和 `Modified by ZCode:` 声明，并登记到 `modifiedFiles`；生成时校验该声明仍存在。Markdown frontmatter、脚本 shebang 和 JavaScript directive 保持有效。未确认源自上游的自有文件不追加上游归属。
 

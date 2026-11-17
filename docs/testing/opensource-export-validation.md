@@ -1,5 +1,7 @@
 # 开源导出完整性
 
+> 历史文档（Computer Use 占位包时代）：公开 `packages/nibi-cua` 已是完整实现，不再有 placeholder/overlay。
+
 ## 范围
 
 从最新 staging 建立修复分支，修复导出工具、占位类型、文档和测试元数据。

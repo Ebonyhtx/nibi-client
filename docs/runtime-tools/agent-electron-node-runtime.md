@@ -6,7 +6,7 @@ ZCode Agent 以前每个平台都内置一份独立的原生二进制（改名�
 
 但无论桌面还是远端，运行 agent 的环境里**本来就已经有一份 Node**：
 
-- **桌面**：Host 跑在 Electron `utilityProcess`，`process.execPath` 指向 Electron Helper，内置 Node 24.x（Electron 41）。
+- **桌面**：Host 跑在 Electron `utilityProcess`，`process.execPath` 指向 Electron Helper，内置 Node 24.x（Electron 44.10.1）。
 - **远端 SSH/WSL/Docker**：Source Server archive 自带目标 Node，并用它运行 Server CLI/Core 与 `nibi.cjs`。
 
 所以 agent 没必要再带一份 Node，直接用这份已有的 Node 执行编译产物 `nibi.cjs` 即可。

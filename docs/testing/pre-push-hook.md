@@ -6,7 +6,7 @@
 - `pre-push` 会执行 `pnpm run verify:pre-push`。
 - 根 `pnpm test` 现在只跑单测，不再误把桌面端 `packages/desktop/test/e2e` 当成 Vitest 用例。
 - Bugfix：单测脚本里的 E2E exclude glob 必须加引号；否则 shell 会先把 `packages/desktop/test/e2e/**/*.test.ts` 展开成真实文件列表，导致 Vitest 把多余文件当成 filters，同时又被 exclude 排除，最终报 `No test files found` 并阻止 push。
-- `verify:pre-push` 依次执行 lint、a11y、DB schema、架构检查（含 `--changed`）、identity-residue、storage keys、session agent、kernel licenses、visual brand、i18n keys，最后是 push 范围的受影响单测；任一项失败都会阻止 push。identity-residue 扫的是**构建产物**，源码（含测试文件）比产物新时会判「判据空转」，需先重建产物（见文末）。
+- `verify:pre-push` 依次执行 lint、a11y、DB schema、架构检查（含 `--changed`）、identity-residue、storage keys、session agent、kernel licenses、visual brand、i18n keys、发布工具自测与发布说明门禁，最后是 push 范围的受影响单测；任一项失败都会阻止 push。identity-residue 扫的是**构建产物**，源码（含测试文件）比产物新时会判「判据空转」，需先重建产物（见文末）。
 
 这样可以在代码推到远端前，先用更快的静态检查拦住明显问题，再把单测问题拦在本地，同时保留 `pnpm test:e2e` 作为桌面端 E2E 的独立入口。
 
