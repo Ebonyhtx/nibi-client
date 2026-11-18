@@ -46,16 +46,16 @@ Windows：
 
 provider 只注入上面列出的通用变量和 ZCode 自己命名的变量，不引入其他产品命名的环境变量。
 
-## Session snapshot
+## Session shell selection
 
 shell 是 session-start 配置，而不是每个 Bash call 重新读取的全局设置：
 
 - 首次真实用户执行前初始化 `bashShellSelection`；deferred draft 可在首发前刷新 Environment context；
-- selection 保存为 session entry `runtime:bash_shell_selection`；
-- cold resume 优先恢复持久 selection；路径失效时记录 stale，并回落到当前可用选择；
-- shell 设置变化只影响新 session；已有 session 保持创建时选择；
-- 旧 Windows session 无可用 snapshot 且恢复时发生 shell 变化，会插入 provider-visible
-  `shell_environment_change`，避免模型继续按旧 shell 语法工作。
+- shell selection 不再持久化为 session entry（3.18 对齐）：每次新 session 与 cold resume 都读当前设置，
+  升级后旧版本残留的 `runtime:bash_shell_selection` entry 允许保留但不生效，首次遇到只记一条忽略日志；
+- shell 设置变化只影响新 session；已有 session 保持创建时的运行时选择；
+- 恢复时若持久化的 Environment shell 与当前选择不一致，会插入 provider-visible
+  `shell_environment_change`，避免模型继续按旧 shell 语法工作（一致时不插）。
 
 workspace path/identity 不参与 shell identity；实际 executable 可用性由 Agent 运行环境判断。远程 session
 因此使用远程机器的 shell，而不是 desktop 本机 `$SHELL`。

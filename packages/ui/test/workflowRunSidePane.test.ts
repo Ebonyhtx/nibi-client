@@ -624,7 +624,7 @@ describe("WorkflowRunSidePane 摘要行", () => {
     });
     const view = renderPane();
     const usage = view.getByTestId("workflow-run-usage").textContent ?? "";
-    expect(usage).toContain("1 agent working");
+    expect(usage).toContain("1 subagent working");
     expect(usage).toContain("0/1 steps");
     expect(usage).toContain("12,345 tokens");
     expect(usage).not.toContain("%");
@@ -1791,7 +1791,7 @@ describe("WorkflowRunSidePane 阶段名册", () => {
         .map((h) => h.textContent),
     ).toEqual(["3done"]);
     expect(within(roll).getByTestId("workflow-roll-unlisted").textContent).toBe(
-      "300 more agents not listed",
+      "300 more subagents not listed",
     );
     // 折起：节头是迷你量条（名册的判定同样算上表外的）。
     fireEvent.click(within(section).getByTestId("workflow-run-phase-toggle"));

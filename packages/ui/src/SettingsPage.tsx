@@ -14,6 +14,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ButtonHTMLAttributes,
   type ReactNode,
@@ -75,6 +76,9 @@ import { HooksSection } from "@/settings/HooksSection.js";
 import { WorkspaceFileSearchSection } from "@/settings/WorkspaceFileSearchSection.js";
 import { PersonalizationSection } from "@/settings/PersonalizationSection.js";
 import { ProjectsSection } from "@/settings/ProjectsSection.js";
+import { SettingsSearch } from "@/settings-search/SettingsSearch.js";
+import { highlightSettingsSearchTarget } from "@/settings-search/settingsSearchHighlight.js";
+import type { SettingsSearchIndexEntry } from "@/settings-search/settingsSearchIndex.js";
 import { MemorySettingsSection } from "@/settings/MemorySettingsSection.js";
 import { BrowserSettingsSection } from "@/settings/BrowserSettingsSection.js";
 import { ComputerUseSection } from "@/settings/ComputerUseSection.js";
@@ -326,6 +330,8 @@ export function SettingsPage({
   const uiFontSizePx = useNibiStore((state) => state.uiFontSizePx);
   // 动效偏好是 localStorage 偏好 + DOM 属性，不进 store（见 lib/motionPreference）。
   const motionEnabled = useMotionPreferenceEnabled();
+  const macFontSmoothingEnabled = useNibiStore((state) => state.macFontSmoothingEnabled);
+  const setMacFontSmoothingEnabled = useNibiStore((state) => state.setMacFontSmoothingEnabled);
   const setUiFontSizePx = useNibiStore((state) => state.setUiFontSizePx);
   const notificationEnabled = useNibiStore((state) => state.notificationEnabled);
   const setNotificationEnabled = useNibiStore((state) => state.setNotificationEnabled);
@@ -345,6 +351,59 @@ export function SettingsPage({
     },
     [activeSection],
   );
+  const settingsPageRef = useRef<HTMLDivElement>(null);
+  const settingsSearchRequestSeq = useRef(0);
+  const [settingsSearchNavigation, setSettingsSearchNavigation] = useState<{
+    sectionId: SettingsSectionId;
+    targetId: string;
+    requestId: number;
+  } | null>(null);
+  const handleSettingsSearchNavigate = useCallback(
+    (entry: SettingsSearchIndexEntry) => {
+      // 与侧栏分区点击走同一条导航清理；否则从搜索进入插件/远程设备时会沿用旧意图。
+      setPluginNavigationOrigin(undefined);
+      setTargetSourceServerId(undefined);
+      setDataSyncCategoryTarget(undefined);
+      setSettingsSectionNavigationVersion((version) => version + 1);
+      setActiveSettingsSection(entry.sectionId);
+      setSettingsSearchNavigation({
+        sectionId: entry.sectionId,
+        targetId: entry.targetId,
+        requestId: ++settingsSearchRequestSeq.current,
+      });
+    },
+    [setActiveSettingsSection],
+  );
+  const appliedSettingsSearchRequestRef = useRef<number | null>(null);
+  useEffect(() => {
+    const navigation = settingsSearchNavigation;
+    if (!navigation || appliedSettingsSearchRequestRef.current === navigation.requestId) {
+      return;
+    }
+
+    let cancelled = false;
+    let cleanupHighlight = () => {};
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        if (cancelled) return;
+        appliedSettingsSearchRequestRef.current = navigation.requestId;
+        cleanupHighlight = highlightSettingsSearchTarget(
+          settingsPageRef.current,
+          navigation.targetId,
+          {
+            // 设置项锚点可能尚未挂载（例如懒加载分区）：至少落在分区标题上。
+            fallbackTargetId: `section:${activeSection}`,
+          },
+        );
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+      cleanupHighlight();
+    };
+  }, [activeSection, settingsSearchNavigation]);
   useEffect(() => {
     if (!isDesktop && (activeSection === "remoteDevices" || activeSection === "dataSync")) {
       setActiveSettingsSection("general");
@@ -480,6 +539,7 @@ export function SettingsPage({
   const [autoDownloadAndInstallUpdates, setAutoDownloadAndInstallUpdates] = useState(false);
   const [messageStreamShowReasoning, setMessageStreamShowReasoning] = useState(true);
   const [messageStreamShowTodos, setMessageStreamShowTodos] = useState(false);
+  const [fileTreeHtmlClickOpensBrowser, setFileTreeHtmlClickOpensBrowser] = useState(false);
   const [toolGroupingExploreEnabled, setToolGroupingExploreEnabled] = useState(true);
   const [toolGroupingTerminalEnabled, setToolGroupingTerminalEnabled] = useState(true);
   const [toolGroupingChangesEnabled, setToolGroupingChangesEnabled] = useState(false);
@@ -591,6 +651,7 @@ export function SettingsPage({
     }
     setMessageStreamShowReasoning(sharedSettings.messageStreamShowReasoning ?? true);
     setMessageStreamShowTodos(sharedSettings.messageStreamShowTodos ?? false);
+    setFileTreeHtmlClickOpensBrowser(sharedSettings.fileTreeHtmlClickOpensBrowser ?? false);
     setToolGroupingExploreEnabled(sharedSettings.toolGroupingExploreEnabled ?? true);
     setToolGroupingTerminalEnabled(sharedSettings.toolGroupingTerminalEnabled ?? true);
     setToolGroupingChangesEnabled(sharedSettings.toolGroupingChangesEnabled ?? false);
@@ -1008,6 +1069,22 @@ export function SettingsPage({
     },
     [updateSharedSettings],
   );
+  const handleFileTreeHtmlClickOpensBrowserChange = useCallback(
+    async (enabled: boolean) => {
+      await runSettingsActionAsync({
+        featureId: "settings.conversation",
+        action: "toggle_file_tree_html_click_browser",
+        trigger: "switch",
+        operation: () => updateSharedSettings({ fileTreeHtmlClickOpensBrowser: enabled }),
+        completed: {
+          resultSource: "shared_settings",
+          stateAfter: enabled ? "enabled" : "disabled",
+        },
+      });
+      setFileTreeHtmlClickOpensBrowser(enabled);
+    },
+    [updateSharedSettings],
+  );
   const handleToolGroupingExploreEnabledChange = useCallback(
     async (enabled: boolean) => {
       await runSettingsActionAsync({
@@ -1173,6 +1250,7 @@ export function SettingsPage({
         isWindowsDesktop={isWindowsDesktop}
       >
         <div
+          ref={settingsPageRef}
           data-testid={TID_SETTINGS_PAGE}
           data-active-section={activeSection}
           // 隐式 auto 行会按 Memory viewer 的内容高度撑出窗口，随后被 DesktopWindowFrame 裁切且没有滚动条。
@@ -1244,6 +1322,15 @@ export function SettingsPage({
                     </Button>
                   </ControlHintTooltip>
                 ) : null}
+              </div>
+
+              <div className="px-2 pb-2">
+                <SettingsSearch
+                  settingsSections={settingsSections}
+                  isDesktop={Boolean(isDesktop)}
+                  isMacDesktop={Boolean(isMacDesktop)}
+                  onNavigate={handleSettingsSearchNavigate}
+                />
               </div>
 
               <nav
@@ -1425,7 +1512,7 @@ export function SettingsPage({
                         )}
                       >
                         {/* 归档设置迁入后也需要公共页头，不能再因列表自带标题而隐藏页面标题。 */}
-                        <div>
+                        <div data-settings-search-target={`section:${activeSection}`}>
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <div className="flex min-w-0 flex-wrap items-center gap-3">
                               {showActiveSectionTitle ? (
@@ -1556,6 +1643,10 @@ export function SettingsPage({
                               }
                               messageStreamShowReasoning={messageStreamShowReasoning}
                               messageStreamShowTodos={messageStreamShowTodos}
+                              fileTreeHtmlClickOpensBrowser={fileTreeHtmlClickOpensBrowser}
+                              onFileTreeHtmlClickOpensBrowserChange={
+                                handleFileTreeHtmlClickOpensBrowserChange
+                              }
                               toolGroupingExploreEnabled={toolGroupingExploreEnabled}
                               toolGroupingTerminalEnabled={toolGroupingTerminalEnabled}
                               toolGroupingChangesEnabled={toolGroupingChangesEnabled}
@@ -1768,6 +1859,9 @@ export function SettingsPage({
                                   failureStage: "local_commit",
                                 })
                               }
+                              isMacDesktop={Boolean(isMacDesktop)}
+                              macFontSmoothingEnabled={macFontSmoothingEnabled}
+                              setMacFontSmoothingEnabled={setMacFontSmoothingEnabled}
                               uiFontSizePx={uiFontSizePx}
                               setUiFontSizePx={(fontSizePx) =>
                                 runUserAction({

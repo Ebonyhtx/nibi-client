@@ -60,12 +60,44 @@ export function querySourceForTask(taskType: AgentRuntimeInternal["config"]["tas
 
 export function findLatestCommittedAssistantUsage(
   sourceEntries: readonly (RuntimeMessageEntry | undefined)[],
+  minIndex = 0,
 ): { messageIndex: number; baseline: PersistedTokenUsageBaseline } | undefined {
-  for (let messageIndex = sourceEntries.length - 1; messageIndex >= 0; messageIndex--) {
+  for (let messageIndex = sourceEntries.length - 1; messageIndex >= minIndex; messageIndex--) {
     const entry = sourceEntries[messageIndex];
     if (!entry || entry.kind === "attachment" || entry.message.role !== "assistant") continue;
     const baseline = persistedTokenUsageBaseline(entry.tokens);
     if (baseline) return { messageIndex, baseline };
+  }
+  return undefined;
+}
+
+export interface CompactBoundaryRolloverAnchor {
+  /** 最近一条 compact 边界（summary user entry）在 sourceEntries 里的下标。 */
+  index: number;
+  /**
+   * 压缩 rollover 锚（K2）：压缩完成时“context prefix + summary”的占用估算。
+   * 旧会话/旧投影的边界没有该值，占用投影退回全量估算。
+   */
+  rolloverContextTokens?: number;
+}
+
+/**
+ * 从尾部找最近一条 compact 边界。边界之前的 provider usage 属于被压缩替换的旧前缀，
+ * 占用投影不得越过它取锚点，否则压缩前那部分会被重复计入。
+ */
+export function findLatestCompactBoundaryAnchor(
+  sourceEntries: readonly (RuntimeMessageEntry | undefined)[],
+): CompactBoundaryRolloverAnchor | undefined {
+  for (let index = sourceEntries.length - 1; index >= 0; index--) {
+    const entry = sourceEntries[index];
+    if (!entry || entry.kind === "attachment" || !entry.metadata?.compactBoundary) continue;
+    const rollover = entry.metadata.compactBoundary.rolloverContextTokens;
+    return {
+      index,
+      ...(typeof rollover === "number" && Number.isFinite(rollover) && rollover > 0
+        ? { rolloverContextTokens: Math.floor(rollover) }
+        : {}),
+    };
   }
   return undefined;
 }

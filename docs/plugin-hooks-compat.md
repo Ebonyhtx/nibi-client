@@ -8,13 +8,14 @@ ZCode 已经支持官方插件、inline 插件、skills、commands、MCP server 
 
 ## Manifest 发现顺序
 
-插件根目录按以下顺序查找 manifest：
+插件根目录只认 NIBI 自有清单：
 
 1. `.nibi-plugin/plugin.json`
-2. `.claude-plugin/plugin.json`
-3. `.codex-plugin/plugin.json`
 
-`.nibi-plugin` 始终优先；当外部插件同时包含 Claude 与 Codex manifest 时，Claude manifest 优先于 Codex manifest。这个顺序用于读取插件元数据、skills / commands / MCP / hooks 声明和插件 id。
+`.claude-plugin/plugin.json` 与 `.codex-plugin/plugin.json` 不再参与发现；App 管理的旧缓存
+（official seed / marketplace 安装）会在发现前一次性迁到 `.nibi-plugin`。用户自选的
+`plugins.dirs` 不会被改写，旧格式目录按“manifest 缺失”处理。这个规则用于读取插件元数据、
+skills / commands / MCP / hooks 声明和插件 id。
 
 ## Hooks 发现
 
@@ -141,7 +142,7 @@ Superpowers 的 plugin skills 同时支持裸名和 fully qualified alias。模�
 
 实现完成后必须覆盖：
 
-- `.nibi-plugin`、`.claude-plugin`、`.codex-plugin` manifest 优先级。
+- `.nibi-plugin` manifest 发现；旧格式目录不再被发现。
 - `hooks/hooks.json` 自动加载。
 - manifest `hooks` 文件和 inline hooks 合并。
 - `command` hook 通过 shell 执行，并收到 ZCode / Claude 兼容环境变量。

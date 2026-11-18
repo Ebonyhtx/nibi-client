@@ -68,7 +68,8 @@ export function resolveAnimatedSidePanePanelLayout({ mobileOverlay }: { mobileOv
   return {
     collapsedSize: "0px",
     defaultSize: "0px",
-    maxSize: "65%",
+    // 上限交给对话列 360px 下限兜住；侧面板自身允许扩到 100%，给浏览器/预览让位。
+    maxSize: "100%",
     minSize: "240px",
     useResizablePanel: true,
   };

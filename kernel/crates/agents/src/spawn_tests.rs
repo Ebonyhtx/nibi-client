@@ -105,3 +105,108 @@ fn a_child_carries_the_parent_base_mode_and_plan() {
         ExecutionState::from(PermissionMode::Guarded)
     );
 }
+
+// ── K4：子代理失败回传部分报告 + agentId + usage ─────────────────────────────
+
+use std::sync::Arc;
+
+use futures_util::StreamExt;
+use nibi_kernel_api::agents::{AgentSignal, DISPLAY_KEY};
+use nibi_kernel_api::ids::SessionId;
+use serde_json::json;
+use tokio::sync::Notify;
+
+use crate::test_support::{failing_harness, text};
+
+/// 取下一条通知，跳过子代理的生命周期信号（与 lib_tests 的同名 helper 同语义）。
+async fn next_notice(
+    stream: &mut futures_util::stream::BoxStream<'static, AgentSignal>,
+) -> nibi_kernel_api::agents::AgentNotice {
+    while let Some(signal) = stream.next().await {
+        if let AgentSignal::Notice(notice) = signal {
+            return notice;
+        }
+    }
+    panic!("expected a notice");
+}
+
+/// 前台失败：结果带 `<subagent_failure>` JSON（ok:false + error/agentId/usage/partialReport，
+/// 字段名与 Node 的 `AgentFailedOutput` 一致）、SendMessage 续接提示，`is_error` 且 display 为 failed。
+#[tokio::test]
+async fn a_failed_foreground_agent_reports_partial_result_usage_and_agent_id() {
+    let harness = failing_harness(None);
+    let output = harness
+        .call(
+            "sess_parent",
+            "Agent",
+            json!({"description": "Find", "prompt": "List.", "subagent_type": "Explore", "run_in_background": false}),
+        )
+        .await;
+    assert!(output.is_error, "{output:?}");
+    let text = text(&output);
+    assert!(text.contains("<subagent_failure>"), "{text}");
+    assert!(text.contains("\"ok\":false"), "{text}");
+    assert!(text.contains("\"status\":\"failed\""), "{text}");
+    assert!(text.contains("\"error\":\"simulated model failure\""), "{text}");
+    assert!(text.contains("\"agentId\":\"agent_1\""), "{text}");
+    // 用量是最后一次响应的明细（test_support::report_message 的 usage）。
+    assert!(text.contains("\"inputTokens\":10"), "{text}");
+    assert!(text.contains("\"outputTokens\":3"), "{text}");
+    assert!(text.contains("\"totalTokens\":13"), "{text}");
+    assert!(
+        text.contains("\"partialReport\":\"Hello from the subagent.\""),
+        "{text}"
+    );
+    assert!(
+        text.contains("agentId: agent_1 (use SendMessage with to: 'agent_1'"),
+        "{text}"
+    );
+    assert_eq!(output.display[DISPLAY_KEY]["status"], json!("failed"));
+}
+
+/// 后台失败：通知带 `<result>`（部分文本）与 `<usage>`，不能只有 error/agentId/duration。
+#[tokio::test]
+async fn a_failed_background_agent_notifies_with_partial_result_and_usage() {
+    let gate = Arc::new(Notify::new());
+    let harness = failing_harness(Some(gate.clone()));
+    let parent = SessionId::new("sess_parent");
+    let signals = harness.agents.signals();
+    let mut stream = signals.signals(&parent);
+    let output = harness
+        .call(
+            "sess_parent",
+            "Agent",
+            json!({"description": "Find files", "prompt": "List the files.", "subagent_type": "Explore"}),
+        )
+        .await;
+    assert!(text(&output).starts_with("Async agent launched successfully."));
+    gate.notify_one();
+    let notice = next_notice(&mut stream).await;
+    assert_eq!(notice.status, "failed");
+    assert!(
+        notice.text.contains("<status>failed</status>"),
+        "{}",
+        notice.text
+    );
+    assert!(
+        notice
+            .text
+            .contains("<result>Hello from the subagent.</result>"),
+        "{}",
+        notice.text
+    );
+    assert!(
+        notice
+            .text
+            .contains("<subagent_tokens>13</subagent_tokens>"),
+        "{}",
+        notice.text
+    );
+    assert!(
+        notice
+            .text
+            .contains("failed: simulated model failure"),
+        "{}",
+        notice.text
+    );
+}

@@ -23,7 +23,6 @@ import { titleFromInput, slugify, projectIdFromDirectory } from "../helpers/inde
 import type { AgentRuntimeInternal } from "../internal.js";
 import { buildPersistedConversationInputIntent } from "./input-intent-persistence.js";
 import { recordToolUsageFromEvent } from "./usage-observability.js";
-import { persistSessionShellEnvironmentSnapshot } from "./session-shell-environment.js";
 import { persistRuntimeModelSelection } from "./turn-model.js";
 import { writeDynamicWorkflowActivationEntryIfActivated } from "./dynamic-workflow-activation.js";
 import {
@@ -641,8 +640,7 @@ async function persistSession(
     phase = "session_model_selection";
     const initialSelection = this.getSessionModelSelection();
     if (initialSelection) await persistRuntimeModelSelection(this, initialSelection);
-    phase = "session_shell_snapshot";
-    await persistSessionShellEnvironmentSnapshot(this, traceContext);
+    // shell selection 不再持久化：每会话只读当前设置，变化由 resume 后的环境公告告诉模型。
     phase = "session_execution_state";
     await this.sessionStore.saveSessionEntry?.(
       buildExecutionStateEntry(this.sessionId, readRuntimeExecutionState(this)),

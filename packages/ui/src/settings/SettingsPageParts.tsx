@@ -112,15 +112,21 @@ export function SettingsRow({
   control,
   detail,
   controlLayout = "default",
+  searchTarget,
 }: {
   label: ReactNode;
   description?: ReactNode;
   control: ReactNode;
   detail?: ReactNode;
   controlLayout?: "default" | "wide";
+  /** 设置搜索命中的 DOM 锚点；只有被索引的高价值设置项需要传。 */
+  searchTarget?: string;
 }) {
   return (
-    <div className="border-t border-border px-4 py-3 first:border-t-0">
+    <div
+      className="border-t border-border px-4 py-3 first:border-t-0"
+      data-settings-search-target={searchTarget}
+    >
       <div
         className={cn(
           "grid items-center gap-4",

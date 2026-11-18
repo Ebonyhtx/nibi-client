@@ -131,7 +131,7 @@ describe("WorkflowRoll", () => {
 
     const view = renderRoll(list, "en-US", 300);
     const line = view.getByTestId("workflow-roll-unlisted");
-    expect(line.textContent).toBe("300 more agents not listed");
+    expect(line.textContent).toBe("300 more subagents not listed");
     expect(line.className).toContain("text-foreground-subtlest");
     // 组头照旧只数它下面的行；名单里也没有多出来的行。
     expect(view.getByTestId("workflow-roll-heading").textContent).toBe("4done");
@@ -139,7 +139,7 @@ describe("WorkflowRoll", () => {
     cleanup();
 
     expect(renderRoll(list, "en-US", 1).getByTestId("workflow-roll-unlisted").textContent).toBe(
-      "1 more agent not listed",
+      "1 more subagent not listed",
     );
     cleanup();
     expect(renderRoll(list, "zh-CN", 300).getByTestId("workflow-roll-unlisted").textContent).toBe(

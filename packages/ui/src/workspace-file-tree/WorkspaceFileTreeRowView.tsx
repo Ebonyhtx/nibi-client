@@ -48,6 +48,7 @@ import type {
 import {
   createWorkspaceFileTreeHtmlBrowserUrl,
   isWorkspaceFileTreeHtmlFile,
+  resolveWorkspaceFileTreeHtmlClickBrowserUrl,
 } from "@/workspace-file-tree/helpers.js";
 import { getWorkspaceFileTreeHierarchyGuideStyle } from "@/workspace-file-tree/hierarchyGuides.js";
 import { useWorkspaceFileTreeRowDragState } from "@/workspace-file-tree/useWorkspaceFileTreeRowDragState.js";
@@ -67,6 +68,7 @@ export function WorkspaceFileTreeRowView({
   remoteTarget,
   workspacePath,
   workspaceIdentity,
+  htmlClickOpensBrowser = false,
   style,
   onSelect,
   onToggleDirectory,
@@ -87,6 +89,8 @@ export function WorkspaceFileTreeRowView({
   remoteTarget?: OpenInEditorRemoteTarget;
   workspacePath: string;
   workspaceIdentity?: string;
+  /** 设置开关：单击本地 HTML 时用内置浏览器打开；右键入口与键盘主操作保持源码预览。 */
+  htmlClickOpensBrowser?: boolean;
   style: CSSProperties;
   onSelect: (path: string) => void;
   onToggleDirectory: (row: WorkspaceFileTreeRow) => void;
@@ -145,6 +149,17 @@ export function WorkspaceFileTreeRowView({
     if (isDeletedFile) {
       // 修复：Git deleted 行是从状态里补出来的虚拟文件，真实文件已不存在。
       // 点击时只保留选中能力，避免继续打开预览导致文件读取失败。
+      return;
+    }
+    const htmlBrowserUrl = resolveWorkspaceFileTreeHtmlClickBrowserUrl({
+      enabled: htmlClickOpensBrowser,
+      hasBrowserOpenHandler: Boolean(onOpenBrowserUrl),
+      isRemoteWorkspace: isRemoteWorkspaceFileTree,
+      row,
+    });
+    if (htmlBrowserUrl) {
+      // 设置打开时，单击 HTML 直接进内置浏览器；右键「在浏览器打开」仍独立可用。
+      onOpenBrowserUrl?.(htmlBrowserUrl);
       return;
     }
     // 文件树单击文件之前只更新选中态，必须双击才打开预览。

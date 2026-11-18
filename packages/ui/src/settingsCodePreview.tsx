@@ -88,6 +88,9 @@ export function AppearanceSectionContent({
   setUiFontSizePx,
   motionEnabled,
   setMotionEnabled,
+  isMacDesktop = false,
+  macFontSmoothingEnabled = true,
+  setMacFontSmoothingEnabled = () => {},
 }: {
   codePreviewSettings: CodePreviewSettings;
   setCodePreviewSettings: (settings: Partial<CodePreviewSettings>) => void;
@@ -97,6 +100,9 @@ export function AppearanceSectionContent({
   setUiFontSizePx: (fontSizePx: number) => void;
   motionEnabled: boolean;
   setMotionEnabled: (enabled: boolean) => void;
+  isMacDesktop?: boolean;
+  macFontSmoothingEnabled?: boolean;
+  setMacFontSmoothingEnabled?: (enabled: boolean) => void;
 }) {
   const { intl } = useNibiIntl();
   const activePreviewMode = resolveTheme(theme);
@@ -117,6 +123,7 @@ export function AppearanceSectionContent({
         <Card className="border border-border bg-card py-0 shadow-none">
           <CardContent className="space-y-0 px-0">
             <SettingsRow
+              searchTarget="appearance.theme"
               label={intl.formatMessage({ id: "settings.themeMode" })}
               description={intl.formatMessage({
                 id: "settings.themeModeDescription",
@@ -142,6 +149,7 @@ export function AppearanceSectionContent({
               }
             />
             <SettingsRow
+              searchTarget="appearance.uiFontSize"
               label={intl.formatMessage({ id: "settings.uiFontSize" })}
               description={intl.formatMessage({
                 id: "settings.uiFontSizeDescription",
@@ -157,7 +165,25 @@ export function AppearanceSectionContent({
                 />
               }
             />
+            {isMacDesktop ? (
+              <SettingsRow
+                searchTarget="appearance.fontSmoothing"
+                label={intl.formatMessage({ id: "settings.macFontSmoothing" })}
+                description={intl.formatMessage({
+                  id: "settings.macFontSmoothingDescription",
+                })}
+                control={
+                  <Switch
+                    checked={macFontSmoothingEnabled}
+                    aria-label={intl.formatMessage({ id: "settings.macFontSmoothing" })}
+                    data-testid="settings-macos-font-smoothing"
+                    onCheckedChange={setMacFontSmoothingEnabled}
+                  />
+                }
+              />
+            ) : null}
             <SettingsRow
+              searchTarget="appearance.motion"
               label={intl.formatMessage({ id: "settings.motionEnabled" })}
               description={intl.formatMessage({
                 id: "settings.motionEnabledDescription",

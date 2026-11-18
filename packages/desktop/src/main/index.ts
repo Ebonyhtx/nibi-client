@@ -1183,7 +1183,7 @@ async function prepareAppQuit(reason: string, kind: AppShutdownKind = "normal"):
   activeAppShutdownKind = selection.kind;
   activeAppShutdownPolicy = selection.policy;
   if (selection.upgraded && (hasPreparedAppQuit || appQuitPreparationInFlight)) {
-    // 更新请求可能晚于普通退出屏障。已创建的 4s timer 无法靠修改全局策略延长；
+    // 更新请求可能晚于普通退出屏障。已创建的退出 timer 无法靠修改全局策略延长；
     // 明确保留既有预算，并允许更新继续进入 fail-open 资源扫描和安装器。
     logger.warn(
       `[app-quit] update install joined an existing normal shutdown barrier (${reason}); existing timers keep their original budget`,
@@ -1235,7 +1235,7 @@ async function prepareAppQuit(reason: string, kind: AppShutdownKind = "normal"):
       logger.warn(`[app-quit] renderer action trace shutdown failed (${reason}):`, error);
     }),
     // 旧流程先等待 Cron 的 1.5s deadline，再启动 Host timer，导致声明的
-    // 4.5s/9s 退出总预算被串行放大。两类 owner 无关闭依赖，统一并行进入同一屏障。
+    // 9s 退出总预算被串行放大。两类 owner 无关闭依赖，统一并行进入同一屏障。
     (async () => {
       try {
         await cronSchedulerToDispose?.dispose();

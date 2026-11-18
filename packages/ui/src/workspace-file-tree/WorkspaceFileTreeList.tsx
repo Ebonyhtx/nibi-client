@@ -67,6 +67,7 @@ export function WorkspaceFileTreeList({
   gitStatusLabelByStatus,
   contextMenuLabels,
   editorState,
+  htmlClickOpensBrowser,
   onSelect,
   onToggleDirectory,
   onOpenPreview,
@@ -90,6 +91,7 @@ export function WorkspaceFileTreeList({
   gitStatusLabelByStatus: WorkspaceFileGitStatusLabels;
   contextMenuLabels: WorkspaceFileTreeContextMenuLabels;
   editorState: WorkspaceFileTreeEditorState;
+  htmlClickOpensBrowser?: boolean;
   onSelect: (path: string) => void;
   onToggleDirectory: (row: WorkspaceFileTreeRow) => void;
   onOpenPreview: (row: WorkspaceFileTreeRow) => void;
@@ -150,6 +152,7 @@ export function WorkspaceFileTreeList({
       remoteTarget={editorState.remoteTarget}
       workspacePath={workspacePath}
       workspaceIdentity={workspaceIdentity}
+      htmlClickOpensBrowser={htmlClickOpensBrowser}
       style={style}
       onSelect={onSelect}
       onToggleDirectory={onToggleDirectory}

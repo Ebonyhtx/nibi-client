@@ -69,7 +69,11 @@ import {
   useBrowserScreenshotSurfaceRequest,
 } from "@/browser-use/useBrowserScreenshotSurfaceRequest.js";
 import { AnimatedTerminalPanel } from "@/app-shell/AnimatedTerminalPanel.js";
-import { SIDE_PANE_DEFAULT_EXPANDED_SIZE } from "@/app-shell/sidePaneLayout.js";
+import {
+  SIDE_PANE_DEFAULT_EXPANDED_SIZE,
+  WORKSPACE_CONVERSATION_COLUMN_MIN_SIZE,
+  WORKSPACE_CONVERSATION_COLUMN_REMOTE_MIN_SIZE,
+} from "@/app-shell/sidePaneLayout.js";
 import { useAnimatedResizablePanel } from "@/app-shell/useAnimatedResizablePanel.js";
 import { ensureTaskNavigationWorkspace } from "@/app-shell/taskNavigationWorkspace.js";
 
@@ -2377,7 +2381,13 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
           >
             <ResizablePanel
               id="conversation-column"
-              minSize={isWebRemoteControlShell ? "0px" : "35%"}
+              // 对话列固定 360px 下限：窗口再宽也不再被 35% 比例卡住，侧面板可扩到接近全宽。
+              // 手机远控仍保留 0px 分支，避免窄屏被固定像素下限撑破。
+              minSize={
+                isWebRemoteControlShell
+                  ? WORKSPACE_CONVERSATION_COLUMN_REMOTE_MIN_SIZE
+                  : WORKSPACE_CONVERSATION_COLUMN_MIN_SIZE
+              }
               defaultSize={isSidePaneVisible ? "52%" : undefined}
               className={
                 isWebRemoteControlShell

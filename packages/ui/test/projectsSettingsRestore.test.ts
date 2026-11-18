@@ -45,6 +45,10 @@ vi.mock("@/project-sidebar/useProjectDataCleanupSupport.js", () => ({
 vi.mock("@/project-sidebar/ProjectDataCleanupDialog.js", () => ({
   ProjectDataCleanupDialog: () => null,
 }));
+vi.mock("@/project-sidebar/ProjectEditor.js", () => ({
+  ProjectEditor: ({ project }: { project: { name: string } }) =>
+    createElement("div", { "data-testid": "project-editor-stub" }, project.name),
+}));
 vi.mock("@/hooks/useConfirmDialog.js", () => ({ useConfirmDialog: () => h.confirm }));
 vi.mock("@/store/nibiSessionStore.js", () => ({
   useNibiSessionStore: (selector: (state: unknown) => unknown) => selector({ workspaces: {} }),
@@ -145,21 +149,32 @@ describe("ProjectsSection selection and row actions", () => {
 
     const bar = screen.getByTestId("settings-projects-selection-bar");
     expect(bar.textContent).toContain("settings.projects.selectionSummary:selected=1,total=1");
+    expect(bar.className).toContain("flex-wrap");
     expect(screen.queryByTestId("settings-projects-remove")).toBeNull();
 
     fireEvent.click(screen.getByTestId("settings-projects-selection-clear"));
     expect(screen.queryByTestId("settings-projects-selection-bar")).toBeNull();
   });
 
-  it("行菜单只提供移除项，确认后移除该项目", async () => {
+  it("行菜单提供编辑与移除项，确认后移除该项目", async () => {
     render(createElement(ProjectsSection));
 
     fireEvent.keyDown(screen.getByTestId("settings-projects-row-menu"), { key: "ArrowDown" });
     const removeItem = await screen.findByTestId("settings-projects-remove-row");
+    expect(screen.getByTestId("settings-projects-edit-row")).toBeTruthy();
     fireEvent.click(removeItem);
 
     await waitFor(() => expect(h.service.deleteProject).toHaveBeenCalledWith("project-1", "local"));
     expect(h.confirm).toHaveBeenCalledOnce();
     expect(h.directory.refresh).toHaveBeenCalled();
+  });
+
+  it("行菜单编辑复用 ProjectEditor 打开当前项目", async () => {
+    render(createElement(ProjectsSection));
+
+    fireEvent.keyDown(screen.getByTestId("settings-projects-row-menu"), { key: "ArrowDown" });
+    fireEvent.click(await screen.findByTestId("settings-projects-edit-row"));
+
+    expect(screen.getByTestId("project-editor-stub").textContent).toBe("Alpha");
   });
 });

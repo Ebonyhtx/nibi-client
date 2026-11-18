@@ -183,6 +183,15 @@ const entries = () =>
   screen.getAllByRole("menuitemcheckbox").filter((e) => e.hasAttribute("data-project-id"));
 
 describe("输入框的虚拟项目目录", () => {
+  it("项目搜索菜单排除标题栏拖拽命中，输入框仍可聚焦", () => {
+    render(createElement(ProjectComposerMenu, props()));
+    open();
+    const menu = screen.getByTestId("composer-project-menu");
+    expect(menu.className).toContain("[app-region:no-drag]");
+    const input = screen.getByPlaceholderText("chat.empty.workspaceSearchPlaceholder");
+    input.focus();
+    expect(document.activeElement).toBe(input);
+  });
   it("TD07 无文字草稿切项目时沿用内存分组，不依赖持久草稿", () => {
     fixture.taskGroupId = "group-a";
     const p = props();

@@ -15,8 +15,6 @@ import { promisify } from "node:util";
 import type { PluginDiagnostic, PluginManifest, PluginStoreListing } from "@nibi/contracts";
 import { isOfficialMarketplaceId, NIBI_OFFICIAL_PLUGIN_MARKETPLACE } from "@nibi/contracts";
 import {
-  CLAUDE_PLUGIN_MANIFEST_DIR,
-  CODEX_PLUGIN_MANIFEST_DIR,
   DEFAULT_PLUGIN_MARKETPLACES,
   hiddenDefaultPluginMarketplaces,
   isNibiPrimaryContentUrl,
@@ -32,6 +30,7 @@ import {
   directoryExists,
   fileExists,
   isRecord,
+  migrateLegacyPluginManifest,
   resolveInside,
   sanitizePluginId,
 } from "./helpers.js";
@@ -82,10 +81,10 @@ const MARKETPLACE_JSON_MAX_BYTES = 10 * 1024 * 1024;
 const MARKETPLACE_JSON_MAX_REDIRECTS = 5;
 const MARKETPLACE_JSON_TIMEOUT_MS = 180_000;
 const claudeIconMigrationAttempts = new Set<string>();
-const CLAUDE_MARKETPLACE_FILE = join(".claude-plugin", "marketplace.json");
+// 市场描述文件不是插件包清单：NIBI 原生布局是根 `marketplace.json`，旧市场根仍可读，
+// 用于兼容插件创建器生成的本地市场与已存在的 claude-plugins-official 记录。
+const LEGACY_MARKETPLACE_FILE = join(".claude-plugin", "marketplace.json");
 const NIBI_MANIFEST_PATH = join(NIBI_PLUGIN_MANIFEST_DIR, "plugin.json");
-const CLAUDE_MANIFEST_PATH = join(CLAUDE_PLUGIN_MANIFEST_DIR, "plugin.json");
-const CODEX_MANIFEST_PATH = join(CODEX_PLUGIN_MANIFEST_DIR, "plugin.json");
 const DEFAULT_VERSION = "0.0.0";
 const GIT_CLONE_MAX_ATTEMPTS = 3;
 const GIT_COMMAND_TIMEOUT_MS = 90_000;
@@ -885,7 +884,11 @@ export function resolveInstalledPluginRoot(
   const root =
     record.installPath ||
     getPluginCacheDir(storageRoot, record.marketplace, record.name, record.version);
-  return recoverAtomicTargetSync(root);
+  const recovered = recoverAtomicTargetSync(root);
+  // 老版本安装缓存可能只有 .claude-plugin/.codex-plugin 清单（strict:false 合成或早期
+  // 第三方包）。发现与商店详情都从这里取根目录，先一次性迁到 NIBI 自有格式。
+  migrateLegacyPluginManifest(recovered);
+  return recovered;
 }
 
 export async function installMarketplacePlugin(input: {
@@ -1814,7 +1817,8 @@ async function ensureMarketplaceEntryManifest(input: {
 }): Promise<void> {
   if (findPluginManifestPath(input.target)) return;
   if (input.entry.strict !== false) return;
-  const manifestDir = join(input.target, ".claude-plugin");
+  // 合成清单也写 NIBI 自有格式；不能再生成 .claude-plugin，否则新安装的插件仍是旧格式。
+  const manifestDir = join(input.target, NIBI_PLUGIN_MANIFEST_DIR);
   await mkdir(manifestDir, { recursive: true });
   await writeJsonFile(
     join(manifestDir, "plugin.json"),
@@ -2572,10 +2576,11 @@ function normalizeDependencyRef(value: unknown): string | null {
 }
 
 function findMarketplaceManifestPath(rootPath: string, explicitPath?: string): string | null {
+  // NIBI 原生市场根清单优先；`.claude-plugin/marketplace.json` 只作为旧市场布局兼容读取。
   const candidates = [
     ...(explicitPath ? [explicitPath] : []),
-    CLAUDE_MARKETPLACE_FILE,
     MARKETPLACE_FILE,
+    LEGACY_MARKETPLACE_FILE,
   ];
   for (const candidate of candidates) {
     const path = resolveInside(rootPath, candidate);
@@ -2585,15 +2590,8 @@ function findMarketplaceManifestPath(rootPath: string, explicitPath?: string): s
 }
 
 function findPluginManifestPath(rootPath: string): string | null {
-  for (const candidate of [
-    NIBI_MANIFEST_PATH,
-    CLAUDE_MANIFEST_PATH,
-    CODEX_MANIFEST_PATH,
-  ]) {
-    const path = join(rootPath, candidate);
-    if (fileExists(path)) return path;
-  }
-  return null;
+  const path = join(rootPath, NIBI_MANIFEST_PATH);
+  return fileExists(path) ? path : null;
 }
 
 // 缓存路径段与安装记录的版本来源。优先取插件落盘 plugin.json 里的真实

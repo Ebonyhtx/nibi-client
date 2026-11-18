@@ -60,6 +60,7 @@ impl FileTools {
 }
 
 /// 工具名、描述与 schema（来自 `nibi-kernel-prompts`；数据文件缺失时为空，由单测兜住）。
+#[derive(Clone)]
 pub(crate) struct Definition {
     pub description: String,
     pub schema: Value,

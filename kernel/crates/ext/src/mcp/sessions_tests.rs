@@ -9,6 +9,7 @@ use nibi_kernel_api::mcp_session::{McpIsolation, SessionMcpServer};
 use serde_json::json;
 
 use super::*;
+use crate::mcp::ProjectMcpTrust;
 use crate::test_support::{FakeMcp, server, workspace};
 
 fn stdio(name: &str) -> SessionMcpServer {
@@ -292,4 +293,90 @@ async fn a_session_mixes_its_own_and_shared_servers() {
         ["cloud", "files"]
     );
     pools.stop(&session);
+}
+
+/// 带工作区身份的会话级 MCP（身份从 [`McpSettings::project_trust`] 的同一份快照取）。
+fn pools_with_identity(fake: Arc<FakeMcp>, scope: &TaskScope, identity: &str) -> SessionMcp {
+    SessionMcp::new(
+        fake,
+        scope.spawner(),
+        McpSettings {
+            project_trust: ProjectMcpTrust::from_records(identity, &[], Vec::new(), false),
+            ..McpSettings::default()
+        },
+        crate::clock_tests::TokioClock::new(),
+        None,
+        None,
+        None,
+    )
+}
+
+/// K3：工作区共享连接的 scope 用 Host 注入的工作区身份（Node `workspaceKey`）：同一身份、
+/// 不同根目录（worktree / 别名）的会话共享同一条连接（以前按根路径建键，会话各漂一套）。
+#[tokio::test]
+async fn sessions_with_the_same_identity_share_across_roots() {
+    let fake = Arc::new(FakeMcp::default().with("cloud", echo_server()));
+    let scope = TaskScope::root("test", |_| {});
+    let pools = pools_with_identity(fake, &scope, "remote:ssh:host:/repo");
+    let (first_session, second_session) = (SessionId::new("sess_a"), SessionId::new("sess_b"));
+    let first = pools.start(
+        &first_session,
+        &workspace_at("/w/main"),
+        vec![workspace_stdio("cloud")],
+    );
+    let second = pools.start(
+        &second_session,
+        &workspace_at("/w/worktree-of-main"),
+        vec![workspace_stdio("cloud")],
+    );
+    first.wait_ready().await;
+    assert_eq!(first.shared_identities(), second.shared_identities());
+    assert!(!first.shared_identities().is_empty());
+    pools.stop(&first_session);
+    pools.stop(&second_session);
+}
+
+/// K3：同一根目录、不同身份不共享（以前这两者错误地共享同一条连接）。
+#[tokio::test]
+async fn sessions_with_different_identities_do_not_share_the_same_root() {
+    let fake = Arc::new(FakeMcp::default().with("cloud", echo_server()));
+    let scope = TaskScope::root("test", |_| {});
+    let pools = pools(fake, &scope);
+    let (first_session, second_session) = (SessionId::new("sess_a"), SessionId::new("sess_b"));
+    let first = pools.start_with_identity(
+        &first_session,
+        &workspace_at("/w/same"),
+        Some("remote:ssh:host:/repo"),
+        vec![workspace_stdio("cloud")],
+    );
+    let second = pools.start_with_identity(
+        &second_session,
+        &workspace_at("/w/same"),
+        Some("local:/w/same"),
+        vec![workspace_stdio("cloud")],
+    );
+    first.wait_ready().await;
+    assert_ne!(first.shared_identities(), second.shared_identities());
+    assert!(!first.shared_identities().is_empty());
+    assert!(!second.shared_identities().is_empty());
+    pools.stop(&first_session);
+    pools.stop(&second_session);
+}
+
+/// K3：缺失身份回退根路径——`workspace_identity()` 为 None 时键取工作区根，与既有行为一致
+/// （同根共享，见上面缺省设置的行为测试）。
+#[test]
+fn a_missing_identity_falls_back_to_the_root() {
+    let settings = McpSettings::default();
+    assert_eq!(settings.workspace_identity(), None);
+    let injected = McpSettings {
+        project_trust: ProjectMcpTrust::from_records(
+            "remote:ssh:host:/repo",
+            &[],
+            Vec::new(),
+            false,
+        ),
+        ..McpSettings::default()
+    };
+    assert_eq!(injected.workspace_identity(), Some("remote:ssh:host:/repo"));
 }

@@ -1,5 +1,4 @@
 import type { ExecutionShellSelection } from "../deps.js";
-import type { BashShellSnapshotRestore } from "./bash-shell-snapshot.js";
 
 export type ShellEnvironmentResumeNoticeKind =
   | "display_change"
@@ -7,10 +6,9 @@ export type ShellEnvironmentResumeNoticeKind =
 
 export function getShellEnvironmentResumeNoticeKind(options: {
   persistedShell: string | undefined;
-  restoreStatus: BashShellSnapshotRestore["status"];
   selection: ExecutionShellSelection | undefined;
 }): ShellEnvironmentResumeNoticeKind | undefined {
-  if (!options.selection || options.restoreStatus === "restored") {
+  if (!options.selection) {
     return undefined;
   }
 

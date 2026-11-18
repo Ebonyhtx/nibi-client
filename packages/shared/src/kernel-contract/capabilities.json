@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "description": "Rust / Node 双内核的能力单侧例外登记表。单一来源：本 JSON；UI/文档读它显示“当前内核不支持”，不靠猜。",
+  "singleSideExceptions": [
+    {
+      "capability": "persona.budget.webSearch",
+      "side": "node",
+      "reason": "DWF 侧车在 Node 扣预算；Rust 只消费 workflow 结果。"
+    },
+    {
+      "capability": "cli.memoryDiagnostics",
+      "side": "node",
+      "reason": "V8 inspector 专用；Rust 没有 V8，改用进程指标。"
+    },
+    {
+      "capability": "extensionHost",
+      "side": "host",
+      "reason": "扩展宿主与能力网关在 Host，不在任一内核。"
+    },
+    {
+      "capability": "remote.agent",
+      "side": "node",
+      "reason": "远端部署的是 nibi.cjs，没有 Rust 内核包。"
+    }
+  ],
+  "dualImplementation": [
+    {
+      "capability": "promptSnapshot",
+      "reason": "双内核都做（用户可见的缓存/恢复行为），实现不同，必须各自有回归。"
+    }
+  ]
+}

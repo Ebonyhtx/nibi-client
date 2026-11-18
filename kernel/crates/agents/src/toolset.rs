@@ -165,6 +165,17 @@ impl FilteredTools {
         resolved.extend(restored);
         resolved
     }
+
+    /// 查找结果的工具套上这次运行的工具集（[`Tool::scoped`]）：ToolSearch 用它把查找范围限定到
+    /// agent 定义给它的工具（tools-more.md §3.5，修复线 SUBAGENT-SEARCH），其余工具没有作用域
+    /// 概念、原样返回。
+    fn scoped(&self, tool: Arc<dyn Tool>) -> Arc<dyn Tool> {
+        let scope: Arc<dyn ToolRegistry> = Arc::new(Self {
+            inner: self.inner.clone(),
+            rule: self.rule.clone(),
+        });
+        tool.scoped(scope).unwrap_or(tool)
+    }
 }
 
 impl ToolRegistry for FilteredTools {
@@ -204,7 +215,7 @@ impl ToolRegistry for FilteredTools {
             .find(name)
             .filter(|tool| self.rule.allows(tool.name()))
         {
-            return Some(tool);
+            return Some(self.scoped(tool));
         }
         if !SEARCH_TOOLS.contains(&name) {
             return None;
@@ -218,7 +229,7 @@ impl ToolRegistry for FilteredTools {
             .find_for(session, name)
             .filter(|tool| self.rule.allows(tool.name()))
         {
-            return Some(tool);
+            return Some(self.scoped(tool));
         }
         if !SEARCH_TOOLS.contains(&name) {
             return None;

@@ -77,6 +77,19 @@ const AGENT_TOOL_OUTPUT_SCHEMA = {
       required: ["status", "agentId", "description", "prompt", "outputFile"],
       additionalProperties: false,
     },
+    {
+      type: "object",
+      properties: {
+        ok: { const: false, type: "boolean" },
+        status: { const: "failed", type: "string" },
+        error: { type: "string" },
+        agentId: { type: "string" },
+        usage: { type: "object", additionalProperties: true },
+        partialReport: { type: "string" },
+      },
+      required: ["ok", "status", "error", "agentId", "usage"],
+      additionalProperties: false,
+    },
   ],
 };
 
@@ -127,6 +140,14 @@ function formatAgentOutputForModel(output: unknown): string {
   }
 
   const data = parsed.data as AgentOutput;
+  // K4：失败结果（ok:false）带 error/agentId/usage/partialReport，父模型可凭 agentId
+  // SendMessage 续接。JSON 信封与 Rust 内核的前台失败结果同形状。
+  if (data.status === "failed") {
+    return [
+      `<subagent_failure>${JSON.stringify(data)}</subagent_failure>`,
+      `agentId: ${data.agentId} (use SendMessage with to: '${data.agentId}' to continue this agent)`,
+    ].join("\n");
+  }
   if (data.status !== "async_launched") {
     const childText = data.content.map((block) => block.text).join("\n");
     const childContent =

@@ -15,14 +15,13 @@ The browser registry is driven from the Node REPL MCP `js` tool. In this environ
 
 ## Bootstrap every JavaScript call
 
-The `browser-client` module is the browser entry point and is available at `scripts/browser-client.mjs` under this plugin's root. Resolve that root only from `process.env.NIBI_PLUGIN_ROOT` (with `CLAUDE_PLUGIN_ROOT` as a compatibility fallback), then convert the joined path with `pathToFileURL`. Never derive the plugin root from this skill's base directory or leave a synthetic root placeholder for the model to resolve. If the host root is unavailable or the resolved module cannot be imported, stop and report the exact setup error.
+The `browser-client` module is the browser entry point and is available at `scripts/browser-client.mjs` under this plugin's root. Resolve that root only from `process.env.NIBI_PLUGIN_ROOT`, then convert the joined path with `pathToFileURL`. Never derive the plugin root from this skill's base directory or leave a synthetic root placeholder for the model to resolve. If the host root is unavailable or the resolved module cannot be imported, stop and report the exact setup error.
 
 Initialize at the start of every `mcp__node_repl__js` call that uses the browser. The bootstrap deliberately does not select a backend; apply the user's existing backend choice or the selection rules below after setup.
 
 ```js
 // 修复原因：Skill base directory 指向 skills/control-browser，不能据此拼接插件运行时资产。
-const browserPluginRoot =
-  process.env.NIBI_PLUGIN_ROOT ?? process.env.CLAUDE_PLUGIN_ROOT;
+const browserPluginRoot = process.env.NIBI_PLUGIN_ROOT;
 if (!browserPluginRoot) {
   throw new Error("Browser plugin root is unavailable in the node_repl host");
 }

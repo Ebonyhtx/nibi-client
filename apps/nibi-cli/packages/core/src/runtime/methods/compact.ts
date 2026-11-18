@@ -40,7 +40,10 @@ import type {
   ReactiveCompactLoopContext,
 } from "./turn-loop-state.js";
 import { recordTurnUsageFact } from "./usage-observability.js";
-import { findLatestCommittedAssistantUsage } from "./turn-model-step-usage.js";
+import {
+  findLatestCommittedAssistantUsage,
+  findLatestCompactBoundaryAnchor,
+} from "./turn-model-step-usage.js";
 
 export async function executeManualCompact(
   this: AgentRuntimeInternal,
@@ -318,29 +321,49 @@ function buildProviderUsageTokenOverride(
   messages: RunModelTextRequestOptions["messages"],
   sourceEntries: readonly (RuntimeMessageEntry | undefined)[],
 ): AutoCompactTokenOverride | undefined {
-  const latestUsage = findLatestCommittedAssistantUsage(sourceEntries);
-  if (!latestUsage || latestUsage.messageIndex >= messages.length) {
-    return undefined;
+  // 压缩 rollover（K2）：最近一条 compact 边界之后的占用才是当前窗口。
+  // baseline 只允许在边界之后取，压缩前的 provider usage 不再进入累计；
+  // 边界自身携带 rollover 锚（prefix+summary 估算一次），保留段与其后的新消息按增量计。
+  const boundary = findLatestCompactBoundaryAnchor(sourceEntries);
+  const searchFloor = boundary ? boundary.index + 1 : 0;
+  const latestUsage = findLatestCommittedAssistantUsage(sourceEntries, searchFloor);
+  if (latestUsage && latestUsage.messageIndex < messages.length) {
+    const { baseline, messageIndex } = latestUsage;
+    const incrementalStartIndex =
+      baseline.contextUsageTokens === undefined ? messageIndex : messageIndex + 1;
+    const incrementalTokenCount = estimateMessageTokens(messages.slice(incrementalStartIndex));
+    // usage 归属于已提交 assistant，反向扫描可随 history replacement 自然移动，
+    // 不再依赖可能失效的绝对 message cursor。若 output 是否存在已被历史归一化抹平，
+    // 则 provider input 只覆盖 assistant 之前的请求，assistant 本身仍进入本地增量。
+    const providerBaseTokenCount = baseline.contextUsageTokens ?? baseline.inputTokens;
+    return {
+      baseTokenCount: providerBaseTokenCount,
+      cacheReadTokens: baseline.cacheReadTokens,
+      cacheWriteTokens: baseline.cacheWriteTokens,
+      contextUsageTokenCount: baseline.contextUsageTokens,
+      incrementalTokenCount,
+      outputTokens: baseline.outputTokens,
+      source: "provider_usage",
+      tokenCount: providerBaseTokenCount + incrementalTokenCount,
+    };
   }
 
-  const { baseline, messageIndex } = latestUsage;
-  const incrementalStartIndex =
-    baseline.contextUsageTokens === undefined ? messageIndex : messageIndex + 1;
-  const incrementalTokenCount = estimateMessageTokens(messages.slice(incrementalStartIndex));
-  // usage 归属于已提交 assistant，反向扫描可随 history replacement 自然移动，
-  // 不再依赖可能失效的绝对 message cursor。若 output 是否存在已被历史归一化抹平，
-  // 则 provider input 只覆盖 assistant 之前的请求，assistant 本身仍进入本地增量。
-  const providerBaseTokenCount = baseline.contextUsageTokens ?? baseline.inputTokens;
-  return {
-    baseTokenCount: providerBaseTokenCount,
-    cacheReadTokens: baseline.cacheReadTokens,
-    cacheWriteTokens: baseline.cacheWriteTokens,
-    contextUsageTokenCount: baseline.contextUsageTokens,
-    incrementalTokenCount,
-    outputTokens: baseline.outputTokens,
-    source: "provider_usage",
-    tokenCount: providerBaseTokenCount + incrementalTokenCount,
-  };
+  if (boundary?.rolloverContextTokens !== undefined) {
+    const incrementalStartIndex = boundary.index + 1;
+    const incrementalTokenCount = estimateMessageTokens(messages.slice(incrementalStartIndex));
+    // 压缩刚完成、还没有新的 committed assistant 时，以边界锚替换压缩前的 usage
+    // 份额：prefix+summary 只算一次（rollover），保留段与新增消息算一次（增量）。
+    // 连续多次压缩时只有最近一条边界生效，更早的边界连同其前的 usage 一起被截断。
+    return {
+      baseTokenCount: boundary.rolloverContextTokens,
+      incrementalTokenCount,
+      source: "estimate",
+      tokenCount: boundary.rolloverContextTokens + incrementalTokenCount,
+    };
+  }
+
+  // 没有 rollover 锚（旧会话边界或无压缩）：维持原全量本地估算，行为不回退。
+  return undefined;
 }
 
 export function estimateCurrentModelInputTokens(

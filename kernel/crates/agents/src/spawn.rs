@@ -5,7 +5,7 @@ use std::sync::Arc;
 use nibi_kernel_api::abort::{Abort, AbortReason};
 use nibi_kernel_api::env_shell;
 use nibi_kernel_api::ids::{AgentId, OwnerEpoch, SessionId, ToolUseId, TraceId};
-use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::message::{ContentBlock, Message, Usage, UserMessage, UserOrigin};
 use nibi_kernel_api::metering::CallStatus;
 use nibi_kernel_api::model::{ModelSelection, QuerySource};
 use nibi_kernel_api::orchestration::{QueryError, QueryRequest, QueryStop, ToolRegistry};
@@ -286,6 +286,8 @@ fn with_prefix(agent: &LiveAgent, own: Vec<Message>) -> Vec<Message> {
 pub(crate) struct Finished {
     pub(crate) ending: Ending,
     pub(crate) report: Report,
+    /// 最后一次模型响应的用量明细（K4：失败结果也要带 usage，失败时往往只有部分响应）。
+    pub(crate) usage: Option<Usage>,
     /// 子循环本身出错（不是模型的 API 错误）。
     pub(crate) error: Option<QueryError>,
 }
@@ -360,9 +362,11 @@ pub(crate) async fn drive(
     let mut text = report::final_text(last.as_ref());
     let (ending, error) = ending_of(result, &mut text);
     let duration_ms = core.ports.clock.now_ms().saturating_sub(started);
+    // 最后一次响应的用量明细与总数同源（`report::tokens`），失败时它就是部分产出的 usage。
+    let usage = last.as_ref().and_then(|last| last.usage);
     let report = Report {
         text,
-        tokens: report::tokens(last.and_then(|last| last.usage)),
+        tokens: report::tokens(usage),
         tool_uses,
         duration_ms,
     };
@@ -402,6 +406,7 @@ pub(crate) async fn drive(
     Finished {
         ending,
         report,
+        usage,
         error,
     }
 }

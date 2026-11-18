@@ -74,6 +74,14 @@ impl McpSettings {
     pub fn tool_timeout_for(&self, options: McpServerOptions) -> u64 {
         options.timeout_ms.unwrap_or(self.tool_timeout_ms)
     }
+
+    /// 工作区共享连接的 scope（Node `workspaceKey = workspaceIdentity?.trim() || workspacePath`）：
+    /// 入口注入的工作区身份（`NIBI_WORKSPACE_IDENTITY`，远程 / 别名工作区的稳定 key，与 MCP 信任
+    /// 快照同一份来源）；缺失时 None，调用方回退工作区根。
+    pub fn workspace_identity(&self) -> Option<&str> {
+        let identity = self.project_trust.workspace_identity().trim();
+        (!identity.is_empty()).then_some(identity)
+    }
 }
 
 impl Default for McpSettings {

@@ -151,6 +151,9 @@ const EXCLUDED_ARCHIVE_DIRECTORY_NAMES = new Set(["debug"]);
 const DEFAULT_LOG_EXPORT_LOOKBACK_DAYS = 3;
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 const REDACTED_PLACEHOLDER = "***REDACTED***";
+// 结构化脱敏的递归深度上限。日志里的 JSON/JSONL 正常不会超过这个层级；
+// 一旦超限就整行占位，避免恶意或异常深的载荷把递归栈打穿、也避免逐层扫描耗尽 CPU。
+const MAX_STRUCTURED_REDACTION_DEPTH = 32;
 // 敏感键名“族”：只要键名里包含这些子串就视为敏感（兜底通配），
 // 从而覆盖自定义命名（如 db_password、my_secret、x-conn-string 等）而不必逐个精确列举。
 // 注意：`token` / `auth` 等是宽松子串，配合下方白名单排除误伤项（如 input_tokens、author）。
@@ -194,9 +197,11 @@ const ASSIGNMENT_STYLE_SENSITIVE_VALUE_REGEX =
   /((?:^|\n)[ \t]*)([A-Za-z0-9_.-]+)([ \t]*=[ \t]*)([^\r\n#]+)/g;
 const HEADER_STYLE_SENSITIVE_VALUE_REGEX =
   /((?:^|\n)[ \t]*)([A-Za-z0-9-]+)([ \t]*:[ \t]*)([^\r\n]+)/g;
-const BEARER_TOKEN_REGEX = /(Bearer\s+)([^\s"']+)/g;
-const QUERY_TOKEN_REGEX =
-  /([?&](?:key|api(?:_|-)?key|access(?:_|-)?token|refresh(?:_|-)?token|token|password|passwd|pwd|secret|client(?:_|-)?secret|auth(?:_|-)?token|session(?:_|-)?token)=)([^&#\s]+)/gi;
+const BEARER_TOKEN_REGEX = /(Bearer\s+)([^\s"']+)/gi;
+// 以“参数名”而不是固定名单识别 URL query 里的敏感值，复用 isSensitiveKeyName 的
+// 敏感键族与白名单规则；`key` 是历史上最常见的裸参数名，单独补充。
+const QUERY_PARAMETER_REGEX = /([?&])([^=&#\s]+)=([^&#\s]*)/g;
+const QUERY_EXPLICIT_SECRET_PARAMETER_REGEX = /^key$/i;
 // 按“值形态”脱敏：连接串 scheme://user:pass@host 里的凭据部分，
 // 不依赖键名即可覆盖 postgres/mysql/mongodb/redis/amqp 等数据库连接信息。保留 scheme 与 host 便于排障。
 // 用户名段允许为空以覆盖 redis://:password@host；口令段贪婪匹配到最后一个 @（host 段不含 @），
@@ -249,36 +254,235 @@ function redactConnectionStringCredentials(rawContent: string): string {
   );
 }
 
-function sanitizeSensitiveLogContent(rawContent: string): string {
-  // 导出日志不能按文件原样拷贝：会把用户配置和协议日志里的 token/apiKey 一并带出。
-  // 线上排障需要“保留文件结构和上下文”，但不应该泄露密钥本体；
-  // 这里在导出阶段统一对常见敏感值做脱敏，字段和日志行仍完整保留，支持继续定位问题。
+function sanitizeSensitiveTextContent(rawContent: string): string {
   // 键名不再是硬编码黑名单，而是“敏感键名族 + 子串通配 + 白名单例外”（isSensitiveKeyName），
-  // 并叠加按值形态的连接串脱敏，以覆盖数据库连接串等自定义命名的敏感信息。
-  return redactConnectionStringCredentials(rawContent)
-    .replace(
-      JSON_STYLE_SENSITIVE_VALUE_REGEX,
-      (match, quote: string, keyName: string, separator: string, rawValue: string) =>
-        isSensitiveKeyName(keyName)
-          ? `${quote}${keyName}${quote}${separator}${redactValue(rawValue)}`
-          : match,
-    )
-    .replace(
-      ASSIGNMENT_STYLE_SENSITIVE_VALUE_REGEX,
-      (match, prefix: string, keyName: string, separator: string, rawValue: string) =>
-        isSensitiveKeyName(keyName)
-          ? `${prefix}${keyName}${separator}${redactValue(rawValue)}`
-          : match,
-    )
-    .replace(
-      HEADER_STYLE_SENSITIVE_VALUE_REGEX,
-      (match, prefix: string, headerName: string, separator: string, rawValue: string) =>
-        isSensitiveKeyName(headerName)
-          ? `${prefix}${headerName}${separator}${redactHeaderValue(rawValue)}`
-          : match,
-    )
-    .replace(BEARER_TOKEN_REGEX, `$1${REDACTED_PLACEHOLDER}`)
-    .replace(QUERY_TOKEN_REGEX, `$1${REDACTED_PLACEHOLDER}`);
+  // 并叠加按值形态的连接串、Bearer 与 URL query 脱敏，覆盖无键名或自定义命名的敏感信息。
+  return redactSensitiveQueryParameters(
+    redactConnectionStringCredentials(rawContent)
+      .replace(
+        JSON_STYLE_SENSITIVE_VALUE_REGEX,
+        (match, quote: string, keyName: string, separator: string, rawValue: string) =>
+          isSensitiveKeyName(keyName)
+            ? `${quote}${keyName}${quote}${separator}${redactValue(rawValue)}`
+            : match,
+      )
+      .replace(
+        ASSIGNMENT_STYLE_SENSITIVE_VALUE_REGEX,
+        (match, prefix: string, keyName: string, separator: string, rawValue: string) =>
+          isSensitiveKeyName(keyName)
+            ? `${prefix}${keyName}${separator}${redactValue(rawValue)}`
+            : match,
+      )
+      .replace(
+        HEADER_STYLE_SENSITIVE_VALUE_REGEX,
+        (match, prefix: string, headerName: string, separator: string, rawValue: string) =>
+          isSensitiveKeyName(headerName)
+            ? `${prefix}${headerName}${separator}${redactHeaderValue(rawValue)}`
+            : match,
+      )
+      .replace(BEARER_TOKEN_REGEX, `$1${REDACTED_PLACEHOLDER}`),
+  );
+}
+
+function decodeQueryParameterName(rawName: string): string {
+  try {
+    return decodeURIComponent(rawName.replace(/\+/g, " "));
+  } catch {
+    return rawName;
+  }
+}
+
+function redactSensitiveQueryParameters(rawContent: string): string {
+  // URL query 不依赖固定参数名单：复用敏感键族和白名单，避免 `auth=...`、
+  // `credential=...` 等自定义参数漏脱敏，同时保留 `?page=2` 这类排障上下文。
+  return rawContent.replace(
+    QUERY_PARAMETER_REGEX,
+    (match, prefix: string, rawName: string, _rawValue: string) => {
+      const parameterName = decodeQueryParameterName(rawName);
+      return isSensitiveKeyName(parameterName) ||
+        QUERY_EXPLICIT_SECRET_PARAMETER_REGEX.test(parameterName)
+        ? `${prefix}${rawName}=${REDACTED_PLACEHOLDER}`
+        : match;
+    },
+  );
+}
+
+class StructuredRedactionDepthLimitError extends Error {
+  constructor() {
+    super("structured redaction depth limit exceeded");
+    this.name = "StructuredRedactionDepthLimitError";
+  }
+}
+
+interface StructuredRedactionResult {
+  value: unknown;
+  changed: boolean;
+}
+
+function getJsonContainerNestingDepth(text: string): number {
+  let currentDepth = 0;
+  let maximumDepth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (const character of text) {
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (character === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (character === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (character === '"') {
+      inString = true;
+      continue;
+    }
+    if (character === "{" || character === "[") {
+      currentDepth += 1;
+      maximumDepth = Math.max(maximumDepth, currentDepth);
+      continue;
+    }
+    if (character === "}" || character === "]") {
+      currentDepth = Math.max(currentDepth - 1, 0);
+    }
+  }
+
+  return maximumDepth;
+}
+
+function isJsonContainerText(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length < 2) {
+    return false;
+  }
+  const firstCharacter = trimmed[0];
+  const lastCharacter = trimmed.at(-1);
+  return (
+    (firstCharacter === "{" && lastCharacter === "}") ||
+    (firstCharacter === "[" && lastCharacter === "]")
+  );
+}
+
+function assertStructuredRedactionDepthWithinLimit(text: string): void {
+  // JSON.parse/stringify 自身也会随嵌套深度递归；先扫描括号层级，
+  // 在进入解析前拒绝超深载荷，保证任何平台都不会因栈溢出跳过脱敏。
+  if (getJsonContainerNestingDepth(text) > MAX_STRUCTURED_REDACTION_DEPTH) {
+    throw new StructuredRedactionDepthLimitError();
+  }
+}
+
+function sanitizeStructuredStringValue(value: string, depth: number): string {
+  const sanitizedText = sanitizeSensitiveTextContent(value);
+  const trimmed = sanitizedText.trim();
+  if (!isJsonContainerText(trimmed)) {
+    return sanitizedText;
+  }
+
+  try {
+    assertStructuredRedactionDepthWithinLimit(trimmed);
+    const parsedNestedValue = JSON.parse(trimmed) as unknown;
+    const nestedResult = redactStructuredValue(parsedNestedValue, depth + 1);
+    if (!nestedResult.changed) {
+      return sanitizedText;
+    }
+    const serializedNestedValue = JSON.stringify(nestedResult.value);
+    const nestedStartIndex = sanitizedText.indexOf(trimmed);
+    return `${sanitizedText.slice(0, nestedStartIndex)}${serializedNestedValue}${sanitizedText.slice(
+      nestedStartIndex + trimmed.length,
+    )}`;
+  } catch (error) {
+    if (error instanceof StructuredRedactionDepthLimitError) {
+      throw error;
+    }
+    return sanitizedText;
+  }
+}
+
+function redactStructuredValue(value: unknown, depth: number): StructuredRedactionResult {
+  if (depth > MAX_STRUCTURED_REDACTION_DEPTH) {
+    throw new StructuredRedactionDepthLimitError();
+  }
+
+  if (typeof value === "string") {
+    const sanitizedValue = sanitizeStructuredStringValue(value, depth);
+    return { value: sanitizedValue, changed: sanitizedValue !== value };
+  }
+
+  if (Array.isArray(value)) {
+    let changed = false;
+    const sanitizedItems = value.map((item) => {
+      const itemResult = redactStructuredValue(item, depth + 1);
+      changed ||= itemResult.changed;
+      return itemResult.value;
+    });
+    return { value: changed ? sanitizedItems : value, changed };
+  }
+
+  if (value !== null && typeof value === "object") {
+    let changed = false;
+    const sanitizedEntries = Object.entries(value).map(([keyName, childValue]) => {
+      if (isSensitiveKeyName(keyName)) {
+        changed = true;
+        return [keyName, REDACTED_PLACEHOLDER] as const;
+      }
+      const childResult = redactStructuredValue(childValue, depth + 1);
+      changed ||= childResult.changed;
+      return [keyName, childResult.value] as const;
+    });
+    return {
+      value: changed ? Object.fromEntries(sanitizedEntries) : value,
+      changed,
+    };
+  }
+
+  return { value, changed: false };
+}
+
+function sanitizeLogLineContent(lineContent: string): string {
+  const trimmed = lineContent.trim();
+  if (!isJsonContainerText(trimmed)) {
+    return sanitizeSensitiveTextContent(lineContent);
+  }
+
+  try {
+    assertStructuredRedactionDepthWithinLimit(trimmed);
+    const parsedValue = JSON.parse(trimmed) as unknown;
+    const structuredResult = redactStructuredValue(parsedValue, 0);
+    if (!structuredResult.changed) {
+      return lineContent;
+    }
+    const serializedValue = JSON.stringify(structuredResult.value);
+    const trimmedStartIndex = lineContent.indexOf(trimmed);
+    return `${lineContent.slice(0, trimmedStartIndex)}${serializedValue}${lineContent.slice(
+      trimmedStartIndex + trimmed.length,
+    )}`;
+  } catch (error) {
+    if (error instanceof StructuredRedactionDepthLimitError) {
+      return REDACTED_PLACEHOLDER;
+    }
+    return sanitizeSensitiveTextContent(lineContent);
+  }
+}
+
+function sanitizeSensitiveLogContent(rawContent: string): string {
+  // JSON/JSONL 先按行解析再递归脱敏，能覆盖数组、深层字段和字符串里的转义载荷；
+  // 单行不是合法 JSON 时回退到原有正则脱敏，保持纯文本日志的既有行为。
+  // 按行处理也让 JSONL 的每条记录独立、互不影响，并且不会把格式化 JSON 的换行吞掉。
+  const lineParts = rawContent.split(/(\r\n|\n|\r)/);
+  let sanitizedContent = "";
+  for (let index = 0; index < lineParts.length; index += 2) {
+    sanitizedContent += sanitizeLogLineContent(lineParts[index] ?? "");
+    sanitizedContent += lineParts[index + 1] ?? "";
+  }
+  return sanitizedContent;
 }
 
 function detectUtf16EncodingByNullPattern(sample: Buffer): SupportedTextEncoding | null {

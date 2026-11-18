@@ -7,6 +7,7 @@ import { WorkspaceFileTree } from "@/workspace-file-tree/WorkspaceFileTree.js";
 import { Button } from "@/components/ui/button.js";
 import { cn } from "@/components/lib/utils.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
+import { useSettings } from "@/hooks/useSettingService.js";
 import { useNibiStore } from "@/store/StoreProvider.js";
 import type { CodeViewerSource } from "@/lib/codeViewer.js";
 import type { FileManagerTarget } from "@/lib/workspaceSidePane.js";
@@ -38,6 +39,8 @@ export function FileManagerPane({
   ...previewProps
 }: FileManagerPaneProps) {
   const { intl } = useNibiIntl();
+  // 文件树单击 HTML 的打开方式跟随全局设置；设置页由并行流维护，这里只消费值。
+  const { settings } = useSettings();
   const [headerContainer, setHeaderContainer] = useState<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isNarrow, setIsNarrow] = useState(mobileOverlay);
@@ -179,6 +182,7 @@ export function FileManagerPane({
             <WorkspaceFileTree
               {...target}
               canOpenLocalFileManager={canOpenLocalFileManager}
+              htmlClickOpensBrowser={settings?.fileTreeHtmlClickOpensBrowser === true}
               activePreviewPath={source?.path}
               onOpenPreview={navigate}
               onOpenBrowserUrl={previewProps.onOpenBrowserUrl}

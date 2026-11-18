@@ -67,7 +67,24 @@ export interface AgentBackgroundedOutput {
   canReadOutputFile: boolean;
 }
 
-export type AgentOutput = AgentCompletedOutput | AgentBackgroundedOutput;
+/**
+ * 子代理失败结果（K4，两内核字段一致）:`ok:false` 时必须带 `error`、`agentId`、`usage`，
+ * 子代理已经产出过文本时带 `partialReport`（缺省省略）。父模型凭 `agentId` 可用
+ * SendMessage 续接（失败子代理与完成子代理走同一条续跑路径）。
+ */
+export interface AgentFailedOutput {
+  ok: false;
+  status: "failed";
+  error: string;
+  agentId: string;
+  usage: ModelUsage;
+  partialReport?: string;
+}
+
+export type AgentOutput =
+  | AgentCompletedOutput
+  | AgentBackgroundedOutput
+  | AgentFailedOutput;
 
 export const AgentTextContentBlockSchema = z
   .object({
@@ -106,9 +123,21 @@ export const AgentBackgroundedOutputSchema = z
   })
   .strict();
 
+export const AgentFailedOutputSchema = z
+  .object({
+    ok: z.literal(false),
+    status: z.literal("failed"),
+    error: z.string(),
+    agentId: z.string(),
+    usage: z.record(z.unknown()),
+    partialReport: z.string().optional(),
+  })
+  .strict();
+
 export const AgentOutputSchema = z.union([
   AgentCompletedOutputSchema,
   AgentBackgroundedOutputSchema,
+  AgentFailedOutputSchema,
 ]);
 
 export const AgentOutputJsonSchema = toToolJsonSchema(AgentOutputSchema);

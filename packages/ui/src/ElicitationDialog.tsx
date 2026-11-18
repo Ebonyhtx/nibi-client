@@ -981,7 +981,6 @@ function ElicitationDialogContent({
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1 text-ui-base font-medium leading-5">
-                <InteractionRequestOriginBadge origin={request.origin} className="mr-2" />
                 {titleHeader ? (
                   <Badge
                     variant="outline"
@@ -1002,6 +1001,8 @@ function ElicitationDialogContent({
                 >
                   {titleQuestion}
                 </span>
+                {/* 来源说明移到标题/问句下方整行，长名字可折行，不再和标题抢同一行。 */}
+                <InteractionRequestOriginBadge origin={request.origin} className="mt-2" />
                 {shouldOfferQuestionCollapse ? (
                   <Button
                     type="button"

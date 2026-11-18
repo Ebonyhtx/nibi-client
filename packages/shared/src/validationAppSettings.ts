@@ -518,6 +518,8 @@ const appSettingsObjectSchema = z.object({
   embeddedBrowserViewportPreference: embeddedBrowserViewportPreferenceSchema.default(
     DEFAULT_EMBEDDED_BROWSER_VIEWPORT_PREFERENCE,
   ),
+  // 默认关闭：不改变老用户“单击 HTML 打开源码预览”的既有行为。
+  fileTreeHtmlClickOpensBrowser: z.boolean().default(false),
   // 输入框电脑操作入口改为默认不展示，设置项保留、默认关闭。
   // default 只对缺省字段生效，显式存过 false 的用户仍保持展示。
   computerUseComposerEntryHidden: z.boolean().default(true),
@@ -621,6 +623,7 @@ export const appSettingsPatchSchema = z.object({
   httpProxyCaCertPath: nonEmptyStringSchema.optional(),
   embeddedBrowserAllowInsecureCertificates: z.boolean().optional(),
   embeddedBrowserViewportPreference: embeddedBrowserViewportPreferenceSchema.optional(),
+  fileTreeHtmlClickOpensBrowser: z.boolean().optional(),
   computerUseComposerEntryHidden: z.boolean().optional(),
   computerUseFullAccessHintDismissed: z.boolean().optional(),
   taskAutoArchiveEnabled: z.boolean().optional(),

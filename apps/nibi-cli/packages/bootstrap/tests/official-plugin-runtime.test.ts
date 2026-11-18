@@ -115,12 +115,12 @@ describe("official plugin runtime manifest", () => {
     await writeJson(mcpPath, {
       mcpServers: {
         "ios-simulator": {
-          args: ["${CLAUDE_PLUGIN_ROOT}/dist/mcp/server.js"],
+          args: ["${NIBI_PLUGIN_ROOT}/dist/mcp/server.js"],
           command: "node",
           cwd: "${CLAUDE_PROJECT_DIR}",
           env: {
             IOS_SIM_DEFAULT_DEVICE: "${user_config.default_device}",
-            IOS_SIM_PACKAGE_ROOT: "${CLAUDE_PLUGIN_ROOT}",
+            IOS_SIM_PACKAGE_ROOT: "${NIBI_PLUGIN_ROOT}",
           },
         },
         remote: { type: "http", url: "https://example.com/mcp" },
@@ -142,7 +142,7 @@ describe("official plugin runtime manifest", () => {
       env: {
         ELECTRON_RUN_AS_NODE: "1",
         IOS_SIM_DEFAULT_DEVICE: "${user_config.default_device}",
-        IOS_SIM_PACKAGE_ROOT: "${CLAUDE_PLUGIN_ROOT}",
+        IOS_SIM_PACKAGE_ROOT: "${NIBI_PLUGIN_ROOT}",
       },
     });
     expect(parsed.mcpServers.remote).toEqual({ type: "http", url: "https://example.com/mcp" });

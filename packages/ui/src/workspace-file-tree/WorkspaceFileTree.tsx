@@ -93,6 +93,7 @@ export function WorkspaceFileTree({
   revealPath,
   temporaryExternalDirectory = false,
   canOpenLocalFileManager = false,
+  htmlClickOpensBrowser = false,
   activePreviewPath,
   onClose,
   onOpenBrowserUrl,
@@ -757,6 +758,7 @@ export function WorkspaceFileTree({
             editorState={editorState}
             workspacePath={workspacePath}
             workspaceIdentity={workspaceIdentity}
+            htmlClickOpensBrowser={htmlClickOpensBrowser}
             onSelect={setSelectedPath}
             onToggleDirectory={handleToggleDirectory}
             onRevealRow={handleRevealStickyFolderRow}
@@ -792,6 +794,7 @@ export function WorkspaceFileTree({
             onToggleDirectory={handleDirectoryAction}
             onOpenPreview={handleOpenPreview}
             onOpenBrowserUrl={onOpenBrowserUrl}
+            htmlClickOpensBrowser={htmlClickOpensBrowser}
             onKeyDown={handleRowKeyDown}
           />
         </div>

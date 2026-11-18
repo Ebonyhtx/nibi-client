@@ -21,8 +21,12 @@ import {
   type AgentBackgroundedOutput,
   type BackgroundResultOriginMeta,
   type AgentCompletedOutput,
+  type AgentFailedOutput,
   type AgentOutput,
+  type AssistantMessageInfo,
   type Logger,
+  type MessagePart,
+  type MessageWithParts,
   type ModelUsage,
   type SessionEvent,
   type SessionId,
@@ -42,6 +46,8 @@ import {
   type SubagentStopOptions,
   type SubagentTaskSnapshot,
   type SubagentWaitOptions,
+  type TextPart,
+  type TokenUsageInfo,
   type TraceContext,
 } from "@nibi/contracts";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -455,6 +461,10 @@ export function createExploreSubagentPort(options: ExploreSubagentPortOptions): 
         borrowedForegroundAgentIds.delete(lifecycle.agentId);
         const totalDurationMs = Date.now() - lifecycle.startedAt;
         const errorMessage = error instanceof Error ? error.message : String(error);
+        // K4：失败结果要带部分产出与用量。子会话已持久化后才读（选择/会话创建失败没有可回传的现场）。
+        const partial: FailedAgentPartialResult = childSessionPersisted
+          ? await readFailedAgentPartialResult(options, lifecycle)
+          : EMPTY_FAILED_AGENT_PARTIAL_RESULT;
         if (childSessionPersisted && !isSubagentAlreadyTerminal(registry, lifecycle.agentId)) {
           // 前台取消（父回合中止 / 用户 Stop）写 killed：重启后不复活用户主动停掉的子代理。
           await persistSubagentResultEntry(options, {
@@ -475,6 +485,11 @@ export function createExploreSubagentPort(options: ExploreSubagentPortOptions): 
           error: errorMessage,
           usage: {
             durationMs: totalDurationMs,
+            ...(partial.usage === undefined ? {} : { modelUsage: partial.usage }),
+            ...(partial.totalTokens === undefined ? {} : { totalTokens: partial.totalTokens }),
+            ...(partial.totalToolUseCount > 0
+              ? { toolUseCount: partial.totalToolUseCount }
+              : {}),
           },
         }));
         await emitSubagentEvent(
@@ -492,6 +507,15 @@ export function createExploreSubagentPort(options: ExploreSubagentPortOptions): 
             error: errorMessage,
           },
         );
+
+        // K4：子会话已持久化、且不是取消/活动超时的失败，把完整形状（error/agentId/usage/
+        // partialReport）作为失败结果返回给父模型；取消与超时保持既有 throw 语义。
+        if (
+          childSessionPersisted &&
+          shouldReturnAgentFailureOutput(error, taskAbort.signal)
+        ) {
+          return createAgentFailedOutput(lifecycle, errorMessage, partial);
+        }
 
         if (isCoreError(error)) {
           throw error;
@@ -1718,6 +1742,9 @@ async function finalizeBackgroundFailure(
   const errorMessage = error instanceof Error ? selectExecutionErrorMessage(error) : String(error);
   const completedAt = new Date();
   const totalDurationMs = Date.now() - lifecycle.startedAt;
+  // K4：后台失败通知与前台失败结果同形状——失败通知也要带部分产出与用量，不能只有
+  // error/agentId/duration。
+  const partial = await readFailedAgentPartialResult(options, lifecycle);
   await persistSubagentResultEntry(options, {
     agentId: lifecycle.agentId,
     childSessionId: lifecycle.childSessionId,
@@ -1735,8 +1762,12 @@ async function finalizeBackgroundFailure(
     error: errorMessage,
     outputFile: lifecycle.outputFile,
     parentToolCallId: String(request.parentToolCallId),
+    ...(partial.partialReport === undefined ? {} : { result: partial.partialReport }),
     status: "failed",
     totalDurationMs,
+    ...(partial.usage === undefined ? {} : { usage: partial.usage }),
+    ...(partial.totalTokens === undefined ? {} : { totalTokens: partial.totalTokens }),
+    ...(partial.totalToolUseCount > 0 ? { totalToolUseCount: partial.totalToolUseCount } : {}),
   });
   const task = registry.update(lifecycle.agentId, (current) => ({
     ...withoutRuntimeMessageState(current),
@@ -1745,6 +1776,11 @@ async function finalizeBackgroundFailure(
     error: errorMessage,
     usage: {
       durationMs: totalDurationMs,
+      ...(partial.usage === undefined ? {} : { modelUsage: partial.usage }),
+      ...(partial.totalTokens === undefined ? {} : { totalTokens: partial.totalTokens }),
+      ...(partial.totalToolUseCount > 0
+        ? { toolUseCount: partial.totalToolUseCount }
+        : {}),
     },
   }));
   enqueueBackgroundNotification(
@@ -2181,6 +2217,146 @@ async function writeAgentMetadataFile(
       2,
     )}\n`,
   );
+}
+
+/**
+ * K4：子代理失败时已经产出的部分结果。`partialReport` 是子会话里最后一条带正文的
+ * assistant 消息（与 Rust 内核的 last-report 口径一致）；`usage` 是已落库 assistant
+ * 消息的累计用量（与成功路径的 aggregate 口径同字段），没有用量事实时缺省。
+ */
+interface FailedAgentPartialResult {
+  usage?: ModelUsage;
+  partialReport?: string;
+  totalTokens?: number;
+  totalToolUseCount: number;
+}
+
+const EMPTY_FAILED_AGENT_PARTIAL_RESULT: FailedAgentPartialResult = { totalToolUseCount: 0 };
+
+async function readFailedAgentPartialResult(
+  options: ExploreSubagentPortOptions,
+  lifecycle: SubagentLifecycle,
+): Promise<FailedAgentPartialResult> {
+  const store = options.sessionStore;
+  if (!store?.messages || !lifecycle.childSessionId) {
+    return EMPTY_FAILED_AGENT_PARTIAL_RESULT;
+  }
+  let messages: MessageWithParts[];
+  try {
+    messages = await store.messages({ sessionID: lifecycle.childSessionId });
+  } catch (error) {
+    options.logger?.warn("Subagent failure partial result could not be read", {
+      agentId: lifecycle.agentId,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      event: "subagent.failure_partial.read_failed",
+      module: "core.subagent",
+    });
+    return EMPTY_FAILED_AGENT_PARTIAL_RESULT;
+  }
+  const assistantMessages = messages.filter(
+    (message): message is MessageWithParts & { info: AssistantMessageInfo } =>
+      message.info.role === "assistant",
+  );
+  let usage: ModelUsage | undefined;
+  for (const message of assistantMessages) {
+    const tokens = message.info.tokens;
+    if (!tokens || !hasRecordedTokenUsage(tokens)) continue;
+    usage ??= {};
+    addUsage(usage, tokenUsageToModelUsage(tokens));
+  }
+  const totalToolUseCount = countToolUseParts(messages);
+  const usageWithTotal =
+    usage === undefined
+      ? {}
+      : {
+          usage,
+          ...(usage.totalTokens === undefined ? {} : { totalTokens: usage.totalTokens }),
+        };
+  // 部分报告取最后一条带正文的 assistant 消息；合成/被忽略的文本不算模型产出。
+  for (const message of [...assistantMessages].reverse()) {
+    const text = message.parts
+      .filter((part): part is TextPart => isPartialReportTextPart(part))
+      .map((part) => part.text)
+      .join("\n\n");
+    if (text.trim().length > 0) {
+      return { partialReport: text, totalToolUseCount, ...usageWithTotal };
+    }
+  }
+  return { totalToolUseCount, ...usageWithTotal };
+}
+
+function hasRecordedTokenUsage(tokens: TokenUsageInfo): boolean {
+  return (
+    tokens.input > 0 ||
+    tokens.output > 0 ||
+    tokens.reasoning > 0 ||
+    tokens.cache.read > 0 ||
+    tokens.cache.write > 0
+  );
+}
+
+/** 部分报告可用的正文块：真实模型产出的非空 text（合成提醒与被忽略的历史不算）。 */
+function isPartialReportTextPart(part: MessagePart): part is TextPart {
+  return (
+    part.type === "text" &&
+    part.text.trim().length > 0 &&
+    part.synthetic !== true &&
+    part.ignored !== true
+  );
+}
+
+/** 子会话落库的每条 assistant 用量（TokenUsageInfo）折算成 ModelUsage 同名字段。 */
+function tokenUsageToModelUsage(tokens: TokenUsageInfo): ModelUsage {
+  return {
+    inputTokens: tokens.input,
+    outputTokens: tokens.output,
+    totalTokens:
+      tokens.total ??
+      tokens.input +
+        tokens.output +
+        tokens.reasoning +
+        tokens.cache.read +
+        tokens.cache.write,
+    cacheReadTokens: tokens.cache.read,
+    cacheWriteTokens: tokens.cache.write,
+    ...(tokens.reasoning > 0 ? { reasoningTokens: tokens.reasoning } : {}),
+  };
+}
+
+function countToolUseParts(messages: MessageWithParts[]): number {
+  let count = 0;
+  for (const message of messages) {
+    for (const part of message.parts) {
+      if (part.type === "tool") count += 1;
+    }
+  }
+  return count;
+}
+
+/** K4 共享失败形状（ok:false）：error/agentId/usage 必带，已有产出文本时带 partialReport。 */
+function createAgentFailedOutput(
+  lifecycle: SubagentLifecycle,
+  errorMessage: string,
+  partial: FailedAgentPartialResult,
+): AgentFailedOutput {
+  return {
+    ok: false,
+    status: "failed",
+    error: errorMessage,
+    agentId: lifecycle.agentId,
+    usage: partial.usage ?? {},
+    ...(partial.partialReport === undefined ? {} : { partialReport: partial.partialReport }),
+  };
+}
+
+/**
+ * 只有「子代理确实跑起来之后」的失败才回传失败结果：取消（父回合中止 / 用户 Stop）与
+ * 活动超时保持既有 throw 语义；子会话都没持久化的启动失败也照旧抛错。
+ */
+function shouldReturnAgentFailureOutput(error: unknown, signal: AbortSignal): boolean {
+  if (isSubagentCancellation(error, signal)) return false;
+  if (isCoreError(error) && error.type === CoreErrorType.ToolTimeout) return false;
+  return true;
 }
 
 function aggregateModelUsage(events: SessionEvent[]): ModelUsage | undefined {

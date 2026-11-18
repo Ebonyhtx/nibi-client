@@ -268,7 +268,7 @@ struct Entry {
 }
 
 /// 工作区共享连接的键：Node `connectionKey()` 的 `[serverName, scope, stableStringify(config)]`
-/// （scope 是 workspace key）。
+/// （scope 是 workspace key：工作区身份优先，缺失时回退根路径，K3）。
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct SharedKey {
     workspace: String,
@@ -395,7 +395,13 @@ impl SessionMcp {
         workspace: &WorkspaceRef,
         servers: Vec<SessionMcpServer>,
     ) -> Arc<SessionConnections> {
-        self.install(session, workspace, servers, true)
+        self.install(
+            session,
+            workspace,
+            self.settings.workspace_identity(),
+            servers,
+            true,
+        )
     }
 
     /// 换掉这个会话的整套服务器（Node `connectConfiguredServers` 的“这次给的是完整集合”）。
@@ -406,13 +412,32 @@ impl SessionMcp {
         workspace: &WorkspaceRef,
         servers: Vec<SessionMcpServer>,
     ) -> Arc<SessionConnections> {
-        self.install(session, workspace, servers, false)
+        self.install(
+            session,
+            workspace,
+            self.settings.workspace_identity(),
+            servers,
+            false,
+        )
+    }
+
+    /// 测试入口：显式给工作区身份（生产路径从 [`McpSettings::workspace_identity`] 取）。
+    #[cfg(test)]
+    pub(crate) fn start_with_identity(
+        &self,
+        session: &SessionId,
+        workspace: &WorkspaceRef,
+        identity: Option<&str>,
+        servers: Vec<SessionMcpServer>,
+    ) -> Arc<SessionConnections> {
+        self.install(session, workspace, identity, servers, true)
     }
 
     fn install(
         &self,
         session: &SessionId,
         workspace: &WorkspaceRef,
+        identity: Option<&str>,
         servers: Vec<SessionMcpServer>,
         merge: bool,
     ) -> Arc<SessionConnections> {
@@ -442,8 +467,13 @@ impl SessionMcp {
         let mut borrowed = Vec::new();
         let mut shared = Vec::new();
         for server in workspace_servers {
+            // 工作区共享的 scope：优先 Host 注入的工作区身份（远程 / 别名工作区的稳定 key），缺失时
+            // 回退根路径（Node `workspaceKey = workspaceIdentity?.trim() || workspacePath`，K3）：
+            // worktree / 别名会话因此共享同一条连接，同一根路径、不同身份不串。
             let key = SharedKey {
-                workspace: workspace.root.as_str().to_owned(),
+                workspace: identity
+                    .unwrap_or_else(|| workspace.root.as_str())
+                    .to_owned(),
                 name: server.name.clone(),
                 config: config_fingerprint(&server),
             };

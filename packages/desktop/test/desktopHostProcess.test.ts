@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HostMessageTypes, HostResponseTypes } from "@nibi/shared";
+import { resolveAppShutdownPolicy } from "../src/main/appShutdownPolicy.js";
 import {
   disposeHostProcess,
   disposeHostProcessAndWait,
@@ -304,6 +305,49 @@ describe("desktopHostProcess disposeHostProcessAndWait", () => {
     await promise;
     expect(resolved).toBe(true);
     expect(child.kill).not.toHaveBeenCalled();
+  });
+
+  it("严格退出预算先强杀 Host，再在总屏障上限放行", async () => {
+    vi.useFakeTimers();
+    try {
+      const policy = resolveAppShutdownPolicy("normal", "win32");
+      const child = new MockUtilityProcess();
+      const timers = new WeakMap();
+      const logger = { info: vi.fn(), warn: vi.fn() };
+      let resolved = false;
+
+      const promise = disposeHostProcessAndWait(
+        child as never,
+        "app-before-quit-strict",
+        timers,
+        logger,
+        {
+          forceKillDelayMs: policy.forceKillDelayMs,
+          waitTimeoutMs: policy.waitTimeoutMs,
+        },
+      ).then(() => {
+        resolved = true;
+      });
+
+      expect(child.postMessage).toHaveBeenCalledWith({ type: HostMessageTypes.Dispose });
+
+      await vi.advanceTimersByTimeAsync(policy.forceKillDelayMs - 1);
+      expect(child.kill).not.toHaveBeenCalled();
+      expect(resolved).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(1);
+      expect(child.kill).toHaveBeenCalledOnce();
+      expect(resolved).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(policy.waitTimeoutMs - policy.forceKillDelayMs);
+      await promise;
+      expect(resolved).toBe(true);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("host process exit wait timed out"),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("已观察到退出的 Electron UtilityProcess 不再重复发送 Dispose", async () => {

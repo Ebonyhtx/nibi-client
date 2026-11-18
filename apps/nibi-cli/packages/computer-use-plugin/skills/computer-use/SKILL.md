@@ -26,8 +26,7 @@ Put the bootstrap and the actions in the **same** cell, bootstrap first:
 ```js
 const root =
   process.env.NIBI_CUA_PLUGIN_ROOT ??
-  process.env.NIBI_PLUGIN_ROOT ??
-  process.env.CLAUDE_PLUGIN_ROOT;
+  process.env.NIBI_PLUGIN_ROOT;
 const { join } = await import("node:path");
 const { pathToFileURL } = await import("node:url");
 const { setupComputerUseRuntime } = await import(

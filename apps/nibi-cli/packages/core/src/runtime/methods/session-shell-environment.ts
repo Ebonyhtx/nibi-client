@@ -1,13 +1,11 @@
-import { countContextPrefixMessages } from "../deps.js";
+import {
+  SESSION_ENTRY_BASH_SHELL_SELECTION,
+  countContextPrefixMessages,
+  traceContextToLogContext,
+} from "../deps.js";
 import type { EnvInfo, ExecutionShellSelection, TraceContext } from "../deps.js";
 import type { AgentRuntimeInternal } from "../internal.js";
 import type { AgentRuntimeConfig } from "../types.js";
-import {
-  persistBashShellSelectionSnapshot,
-  readPersistedBashShellSelectionSnapshot,
-  resolveBashShellSnapshotForResume,
-  type BashShellSnapshotRestore,
-} from "./bash-shell-snapshot.js";
 import { rebuildContextPrefix } from "./context-refresh.js";
 import {
   buildShellEnvironmentResumeNotice,
@@ -112,58 +110,54 @@ export function applySessionShellToEnvInfo<T extends { shell?: string }>(
   };
 }
 
-export async function persistSessionShellEnvironmentSnapshot(
+/**
+ * 旧版本会把 Bash shell 选择持久化成 `runtime:bash_shell_selection` entry。升级后 shell
+ * 每会话只读当前设置，这些 entry 允许残留在历史里但不再生效；首次遇到时记一次日志，
+ * 说明旧快照已被忽略，便于排查“升级后 Bash 用的 shell 变了”的反馈。
+ */
+export async function logIgnoredLegacyBashShellSelectionSnapshot(
   runtime: AgentRuntimeInternal,
   traceContext: TraceContext,
 ): Promise<void> {
-  await persistBashShellSelectionSnapshot({
-    logger: runtime.logger,
-    selection: getSessionShellSelection(runtime),
-    sessionId: runtime.sessionId,
-    sessionStore: runtime.sessionStore,
-    traceContext,
-  });
-}
-
-export async function restoreSessionShellEnvironmentSelectionForResume(
-  runtime: AgentRuntimeInternal,
-  options: {
-    currentSelection: ExecutionShellSelection | undefined;
-    traceContext: TraceContext;
-  },
-): Promise<BashShellSnapshotRestore> {
-  const restore = resolveBashShellSnapshotForResume({
-    currentSelection: options.currentSelection,
-    logger: runtime.logger,
-    restore: await readPersistedBashShellSelectionSnapshot({
-      logger: runtime.logger,
-      sessionId: runtime.sessionId,
-      sessionStore: runtime.sessionStore,
-      traceContext: options.traceContext,
-    }),
-    traceContext: options.traceContext,
-  });
-
-  if (restore.status === "restored" || restore.status === "fallback") {
-    applySessionShellEnvironment(runtime, restore.selection, {
-      refreshPreConversationContext: false,
+  const sessionStore = runtime.sessionStore;
+  if (!sessionStore?.sessionEntries) {
+    return;
+  }
+  try {
+    const entries = await sessionStore.sessionEntries({
+      sessionID: runtime.sessionId,
+      type: SESSION_ENTRY_BASH_SHELL_SELECTION,
+    });
+    if (entries.length === 0) {
+      return;
+    }
+    runtime.logger?.info("Ignored legacy persisted Bash shell selection snapshot", {
+      ...traceContextToLogContext(traceContext),
+      event: "session_entry.bash_shell_selection.ignored",
+      legacySnapshotCount: entries.length,
+      module: "core.runtime",
+    });
+  } catch (error) {
+    // 读取失败只影响诊断日志，不阻塞 resume；保留真实存储错误便于排查。
+    runtime.logger?.warn("Failed to read legacy Bash shell selection snapshots", {
+      ...traceContextToLogContext(traceContext),
+      errorMessage: error instanceof Error ? error.message : String(error),
+      event: "session_entry.bash_shell_selection.ignored_read_failed",
+      module: "core.runtime",
+      status: "failed",
     });
   }
-
-  return restore;
 }
 
 export function announceSessionShellEnvironmentNoticeAfterResume(
   runtime: AgentRuntimeInternal,
   options: {
     persistedEnvInfo: EnvInfo | undefined;
-    restore: BashShellSnapshotRestore;
   },
 ): void {
   const selection = getSessionShellSelection(runtime);
   const noticeKind = getShellEnvironmentResumeNoticeKind({
     persistedShell: options.persistedEnvInfo?.shell,
-    restoreStatus: options.restore.status,
     selection,
   });
   if (!selection || !noticeKind) {
@@ -175,10 +169,10 @@ export function announceSessionShellEnvironmentNoticeAfterResume(
     return;
   }
 
-  // 旧 Windows 会话没有可用 shell snapshot 时，升级后可能由 auto Git Bash
-  // 接管 Bash 执行。历史上下文仍可能让模型继续沿用旧 shell 习惯，因此必须在
-  // resume 后补一个 provider-visible shell 提醒；可用 snapshot 恢复时不插，避免
-  // 破坏“shell 设置变更只对新 session 生效”的契约。
+  // shell 不再从会话恢复：resume 后实际执行 shell 就是当前设置的选择，而历史
+  // 上下文仍可能让模型沿用会话落盘时的旧 shell 习惯（旧 Windows 会话还可能由
+  // auto Git Bash 接管）。因此 resume 后按持久化 Environment 与当前选择的差异，
+  // 补一个 provider-visible shell 提醒；已有同文提醒不重复插入。
   runtime.messageHistory.addAttachment("shell_environment_change", notice);
 }
 

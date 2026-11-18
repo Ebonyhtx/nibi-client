@@ -1,12 +1,39 @@
 import { describe, expect, it } from "vitest";
 import {
   MIN_PREVIEW_PANE_HEAVY_CONTENT_VISIBLE_INLINE_SIZE_PX,
+  resolveAnimatedSidePanePanelLayout,
   resolveOpenTabLauncherItemIds,
   shouldOfferSelectionSideConversation,
   shouldRenderPreviewPaneHeavyContent,
 } from "@/app-shell/animatedSidePanePanelModel.js";
+import {
+  WORKSPACE_CONVERSATION_COLUMN_MIN_SIZE,
+  WORKSPACE_CONVERSATION_COLUMN_REMOTE_MIN_SIZE,
+} from "@/app-shell/sidePaneLayout.js";
 
 describe("AnimatedSidePanePanel layout", () => {
+  it("lets the desktop side pane expand to the full width while keeping the mobile 0px branch", () => {
+    expect(resolveAnimatedSidePanePanelLayout({ mobileOverlay: false })).toEqual({
+      collapsedSize: "0px",
+      defaultSize: "0px",
+      maxSize: "100%",
+      minSize: "240px",
+      useResizablePanel: true,
+    });
+    expect(resolveAnimatedSidePanePanelLayout({ mobileOverlay: true })).toEqual({
+      collapsedSize: "0px",
+      defaultSize: "100%",
+      maxSize: "100%",
+      minSize: "0px",
+      useResizablePanel: false,
+    });
+  });
+
+  it("uses a fixed 360px conversation-column floor, while remote control keeps the 0px branch", () => {
+    expect(WORKSPACE_CONVERSATION_COLUMN_MIN_SIZE).toBe("360px");
+    expect(WORKSPACE_CONVERSATION_COLUMN_REMOTE_MIN_SIZE).toBe("0px");
+  });
+
   it("defers heavy PreviewPane content while the active code tab is only a narrow viewport sliver", () => {
     expect(
       shouldRenderPreviewPaneHeavyContent({

@@ -200,8 +200,8 @@ export function createSessionFacade(deps: CreateSessionFacadeDeps): SessionFacad
     const visibleGoalQuery =
       action === "set" ? input.displayText?.trim() || visibleObjective : undefined;
     // /goal 不走普通 prompt 提交流程，但它会先把 session 持久化。
-    // 必须在首次持久化前走统一用户执行边界，否则 runtime/bash_shell_selection
-    // 会因为当时 selection 为空而缺失，冷恢复时退回 legacy shell fallback。
+    // 必须在首次持久化前走统一用户执行边界，让 session 记录拿到当前的环境与模型选择；
+    // shell selection 自 3.18 对齐后不再写入 session entry，冷恢复只读当前设置。
     await deps.prepareUserExecutionBoundary({
       traceContext: deps.traceContext,
     });

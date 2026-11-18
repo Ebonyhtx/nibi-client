@@ -131,6 +131,9 @@ impl ListingSource for ToolCatalog {
 pub struct ToolSearchTool {
     definition: Definition,
     catalog: Arc<ToolCatalog>,
+    /// 这次运行的工具集（子代理的过滤注册表，见 [`Tool::scoped`]）：有它时查找范围是这一份，
+    /// 没有时（主线程、fork 子代理）用主注册表的会话视图。
+    scope: Option<Arc<dyn ToolRegistry>>,
 }
 
 impl ToolSearchTool {
@@ -138,6 +141,30 @@ impl ToolSearchTool {
         Self {
             definition: definition(TOOL_SEARCH),
             catalog,
+            scope: None,
+        }
+    }
+
+    /// 这次运行的工具：有作用域时取它的会话快照（与发给模型的同一份规则），否则取主注册表。
+    fn tools(&self, session: &SessionId) -> Result<Vec<Arc<dyn Tool>>, String> {
+        let Some(scope) = &self.scope else {
+            return self.catalog.tools_for(session);
+        };
+        let mut tools: Vec<_> = scope
+            .snapshot(session)
+            .tools
+            .into_iter()
+            .filter(|tool| tool.is_enabled())
+            .collect();
+        tools.sort_by(|left, right| compare_names(left.name(), right.name()));
+        Ok(tools)
+    }
+
+    /// 工具连接的来源与查找范围一致：子代理的过滤注册表把 MCP 状态转给主注册表。
+    fn mcp(&self) -> Option<Arc<dyn McpConnections>> {
+        match &self.scope {
+            Some(scope) => scope.mcp(),
+            None => self.catalog.mcp(),
         }
     }
 
@@ -261,6 +288,16 @@ impl Tool for ToolSearchTool {
         true
     }
 
+    /// 子代理的注册表在查找时套上这次运行的工具集：ToolSearch 只搜 agent 定义给它的工具
+    /// （修复线 SUBAGENT-SEARCH：以前搜主线程注册表的视图，前台 Explore 能选到 NotebookEdit）。
+    fn scoped(&self, tools: Arc<dyn ToolRegistry>) -> Option<Arc<dyn Tool>> {
+        Some(Arc::new(Self {
+            definition: self.definition.clone(),
+            catalog: self.catalog.clone(),
+            scope: Some(tools),
+        }))
+    }
+
     fn max_result_size_chars(&self) -> Option<usize> {
         Some(100_000)
     }
@@ -292,8 +329,7 @@ impl Tool for ToolSearchTool {
             .filter(|max| max.is_finite() && *max >= 0.0)
             .map_or(5, |max| max as usize);
         let all = self
-            .catalog
-            .tools_for(&context.session)
+            .tools(&context.session)
             .map_err(|message| ToolError::Failed { message })?;
         let select = select_query(query);
         // 先照常搜；`select:` 时记下找不到的名字。
@@ -309,7 +345,7 @@ impl Tool for ToolSearchTool {
             None => (Self::search(query, None, max_results, &all), Vec::new()),
         };
         // 搜不到时看连接中的 MCP 服务器：等它们、再搜一次（tools-more.md §3.5.1，修复线 F36）。
-        let mcp = self.catalog.mcp();
+        let mcp = self.mcp();
         let retry = if select.is_some() {
             !missing.is_empty()
         } else {
@@ -322,7 +358,7 @@ impl Tool for ToolSearchTool {
                 Some(_) => (missing.join(" "), Some(missing_list.as_str())),
                 None => (query.to_owned(), None),
             };
-            let tools = || self.catalog.tools_for(&context.session);
+            let tools = || self.tools(&context.session);
             let search = |tools: &[Arc<dyn Tool>]| Self::search(query, list, max_results, tools);
             let found =
                 tool_search_mcp::retry(mcp.as_ref(), &all, &text_for, tools, search, &context)

@@ -286,7 +286,7 @@ describe("WorkflowRunDigest 子代理模型", () => {
     const view = renderDigest({ summary: joined({ subagentModel: TEAM_PLAN_MODEL }) });
 
     const detail = view.getByTestId("workflow-card-detail");
-    expect(detail.textContent).toBe("2 phases · 1 agent working · GLM-5.3-Flash");
+    expect(detail.textContent).toBe("2 phases · 1 subagent working · GLM-5.3-Flash");
     expect(document.body.textContent).not.toContain("4fc7f541");
     expect(detail.getAttribute("title")).toContain(TEAM_PLAN_MODEL);
     expect(detail.getAttribute("title")).toContain("thinking High");
@@ -299,7 +299,7 @@ describe("WorkflowRunDigest 子代理模型", () => {
     });
 
     expect(view.getByTestId("workflow-card-detail").textContent).toBe(
-      "2 phases · 1 agent working · MyProxy/glm-4.7",
+      "2 phases · 1 subagent working · MyProxy/glm-4.7",
     );
   });
 
@@ -307,7 +307,7 @@ describe("WorkflowRunDigest 子代理模型", () => {
     const view = renderDigest({ summary: joined() });
 
     const detail = view.getByTestId("workflow-card-detail");
-    expect(detail.textContent).toBe("2 phases · 1 agent working");
+    expect(detail.textContent).toBe("2 phases · 1 subagent working");
     expect(detail.getAttribute("title")).toBeNull();
   });
 });
@@ -350,7 +350,7 @@ describe("WorkflowRunDigest 收起态（默认）", () => {
     expect(view.getByTestId("workflow-card-name").textContent).toBe("implement-verify");
     expect(view.queryByTestId("workflow-digest-status")).toBeNull();
     const detail = view.getByTestId("workflow-card-detail").textContent!;
-    expect(detail).toBe("2 phases · 1 agent working");
+    expect(detail).toBe("2 phases · 1 subagent working");
     // 运行中的种类词扫光，wf-swap 包在渐变外面（round 7 的教训）。
     expect(root.querySelector(".wf-swap .animated-gradient-text")).toBeTruthy();
 

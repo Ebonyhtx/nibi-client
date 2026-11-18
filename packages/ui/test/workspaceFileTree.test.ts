@@ -28,6 +28,7 @@ import {
 import {
   createWorkspaceFileTreeHtmlBrowserUrl,
   isWorkspaceFileTreeHtmlFile,
+  resolveWorkspaceFileTreeHtmlClickBrowserUrl,
 } from "@/workspace-file-tree/helpers.js";
 import {
   getWorkspaceFileTreeBlockingRootError,
@@ -219,6 +220,50 @@ describe("workspace file tree helpers", () => {
       createWorkspaceFileTreeHtmlBrowserUrl(
         row("/workspace/index.ts", "file", 0),
       ),
+    ).toBe(null);
+  });
+
+  it("routes single-click HTML to the built-in browser only when enabled for local files", () => {
+    const htmlRow = row("/workspace/index.html", "file", 0);
+    expect(
+      resolveWorkspaceFileTreeHtmlClickBrowserUrl({
+        enabled: true,
+        hasBrowserOpenHandler: true,
+        isRemoteWorkspace: false,
+        row: htmlRow,
+      }),
+    ).toBe("file:///workspace/index.html");
+    expect(
+      resolveWorkspaceFileTreeHtmlClickBrowserUrl({
+        enabled: false,
+        hasBrowserOpenHandler: true,
+        isRemoteWorkspace: false,
+        row: htmlRow,
+      }),
+    ).toBe(null);
+    expect(
+      resolveWorkspaceFileTreeHtmlClickBrowserUrl({
+        enabled: true,
+        hasBrowserOpenHandler: true,
+        isRemoteWorkspace: true,
+        row: htmlRow,
+      }),
+    ).toBe(null);
+    expect(
+      resolveWorkspaceFileTreeHtmlClickBrowserUrl({
+        enabled: true,
+        hasBrowserOpenHandler: false,
+        isRemoteWorkspace: false,
+        row: htmlRow,
+      }),
+    ).toBe(null);
+    expect(
+      resolveWorkspaceFileTreeHtmlClickBrowserUrl({
+        enabled: true,
+        hasBrowserOpenHandler: true,
+        isRemoteWorkspace: false,
+        row: row("/workspace/readme.md", "file", 0),
+      }),
     ).toBe(null);
   });
 

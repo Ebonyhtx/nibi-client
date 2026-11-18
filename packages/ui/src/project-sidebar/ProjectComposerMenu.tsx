@@ -363,7 +363,9 @@ export function ProjectComposerMenu({
         data-testid="composer-project-menu"
         align="start"
         side="top"
-        className="flex w-72 max-w-[calc(100vw-2rem)] flex-col p-0"
+        // 菜单向上展开时会和 Windows/Linux 标题栏拖拽区重叠；整块排除原生拖拽命中，
+        // 否则搜索输入框和候选项会被窗口拖动吞掉点击。
+        className="flex w-72 max-w-[calc(100vw-2rem)] flex-col p-0 [app-region:no-drag]"
       >
         <div
           data-slot="command-input-wrapper"

@@ -11,6 +11,8 @@ export interface WorkspaceFileTreeProps {
   revealPath?: string;
   temporaryExternalDirectory?: boolean;
   canOpenLocalFileManager?: boolean;
+  /** 设置开关：单击本地 HTML 时用内置浏览器打开；缺省保持源码预览。 */
+  htmlClickOpensBrowser?: boolean;
   activePreviewPath?: string | null;
   onClose?: () => void;
   onOpenBrowserUrl?: (url: string) => void;

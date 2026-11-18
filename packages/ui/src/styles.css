@@ -78,6 +78,26 @@ body,
   --color-remote-continuity-panel-subtle: #a7a7ad;
 }
 
+/*
+ * macOS 字体平滑：仅当 macOS 桌面 renderer 且设置开启时覆盖字形渲染。
+ * 关闭时 class 被移除，回到 macOS 系统默认；Windows/Linux/Web 即使误带 class，
+ * 也会被 platform-mac-desktop 限定拦住。
+ */
+:root.platform-mac-desktop.font-smoothing-enabled {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 设置搜索命中项：滚动到位后高亮 2 秒；用 inset ring 避免被卡片 overflow 裁掉。 */
+[data-settings-search-highlighted="true"] {
+  border-radius: 0.75rem;
+  background-color: color-mix(in oklab, var(--color-accent) 72%, transparent);
+  box-shadow: inset 0 0 0 1px var(--color-ring);
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
 body {
   margin: 0;
   overflow: hidden;

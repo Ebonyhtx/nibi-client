@@ -20,7 +20,7 @@ use crate::local_services::LocalServices;
 use crate::machine::MachineEnv;
 use crate::mcp::McpToolInfo;
 use crate::message::{Message, ToolResultContent};
-use crate::orchestration::Interactions;
+use crate::orchestration::{Interactions, ToolRegistry};
 use crate::permission::{ExecutionState, PermissionDecision, PermissionMode};
 use crate::store::ArtifactStore;
 
@@ -252,6 +252,13 @@ pub trait Tool: Send + Sync {
 
     /// MCP 工具的来源；内置工具为 None。
     fn mcp_info(&self) -> Option<McpToolInfo> {
+        None
+    }
+
+    /// 这个工具在某个工具集作用域里的实例（ToolSearch 用它把查找范围限定到这次运行的工具，
+    /// docs/specs/rust-cli/tools-more.md §3.5）：子代理的注册表在 `find` / `find_for` 里套上按 agent 定义过滤的
+    /// 工具集，主线程与 fork 子代理不套。缺省没有作用域概念，返回 None（用原实例）。
+    fn scoped(&self, _tools: Arc<dyn ToolRegistry>) -> Option<Arc<dyn Tool>> {
         None
     }
 }

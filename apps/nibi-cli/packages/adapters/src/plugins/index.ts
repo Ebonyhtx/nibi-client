@@ -1,9 +1,5 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import {
-  CLAUDE_PLUGIN_MANIFEST_DIR,
-  CODEX_PLUGIN_MANIFEST_DIR,
-  NIBI_PLUGIN_MANIFEST_DIR,
-} from "@nibi/shared";
+import { NIBI_PLUGIN_MANIFEST_DIR } from "@nibi/shared";
 import { basename, dirname, join, resolve } from "node:path";
 import type {
   CustomCommandRoot,
@@ -39,6 +35,7 @@ import {
   isMissingPath,
   isNotFoundError,
   isRecord,
+  migrateLegacyPluginManifest,
   parsePathList,
   resolveInside,
   sanitizePluginId,
@@ -129,10 +126,9 @@ export {
   type PluginUpdateStatus,
 } from "./version-compare.js";
 
-// 清单目录由 @nibi/shared 单点定义：NIBI 自有格式优先，其余为已发布生态的兼容读取。
+// NIBI 插件只认自有清单目录；旧格式（.claude-plugin/.codex-plugin）不再参与发现，
+// App 管理的缓存由 migrateLegacyPluginManifest 一次性迁移。
 const NIBI_MANIFEST_PATH = join(NIBI_PLUGIN_MANIFEST_DIR, "plugin.json");
-const CLAUDE_MANIFEST_PATH = join(CLAUDE_PLUGIN_MANIFEST_DIR, "plugin.json");
-const CODEX_MANIFEST_PATH = join(CODEX_PLUGIN_MANIFEST_DIR, "plugin.json");
 const DEFAULT_VERSION = "0.0.0";
 const FIRST_PLUGIN_PRIORITY = 1_000;
 const PRIORITY_STEP = 10;
@@ -190,6 +186,12 @@ export class NodePluginAdapter implements PluginPort {
 
     for (const candidate of candidates) {
       throwIfAborted(options);
+      // 官方 seed 与市场安装目录由 App 管理：发现前把旧格式清单一对一迁到 .nibi-plugin，
+      // 保证升级前已安装的插件（如 math-modeling）不会因删除旧格式扫描而消失。
+      // 用户自选的 plugins.dirs（inline）保持只读，不在这里改写。
+      if (candidate.source !== "inline") {
+        migrateLegacyPluginManifest(candidate.rootPath);
+      }
       const loaded = loadPlugin(candidate, diagnostics);
       if (!loaded) continue;
       // 内置（官方）插件被「卸载」后只在 user config 写 suppressedBuiltins 标记。这里在发现层
@@ -1175,16 +1177,7 @@ function resolvePluginAcceptance(
 
 function findManifest(rootPath: string): string | null {
   const nibiPath = join(rootPath, NIBI_MANIFEST_PATH);
-  if (fileExists(nibiPath)) {
-    return nibiPath;
-  }
-
-  const claudePath = join(rootPath, CLAUDE_MANIFEST_PATH);
-  if (fileExists(claudePath)) {
-    return claudePath;
-  }
-  const codexPath = join(rootPath, CODEX_MANIFEST_PATH);
-  return fileExists(codexPath) ? codexPath : null;
+  return fileExists(nibiPath) ? nibiPath : null;
 }
 
 function readManifest(path: string, diagnostics: PluginDiagnostic[]): PluginManifest | null {

@@ -64,4 +64,26 @@ export function createWorkspaceFileTreeHtmlBrowserUrl(
   return toFileUrl(row.path);
 }
 
+/**
+ * 文件树单击 HTML 的分流：只有开关打开、本地路径、且有内置浏览器入口时才返回浏览器 URL；
+ * 其余情况返回 null，继续走源码预览。右键「在浏览器打开」不经过这里。
+ */
+export function resolveWorkspaceFileTreeHtmlClickBrowserUrl({
+  enabled,
+  hasBrowserOpenHandler,
+  isRemoteWorkspace,
+  row,
+}: {
+  enabled: boolean;
+  hasBrowserOpenHandler: boolean;
+  isRemoteWorkspace: boolean;
+  row: Pick<WorkspaceFileTreeRow, "path" | "type">;
+}): string | null {
+  if (!enabled || isRemoteWorkspace || !hasBrowserOpenHandler) {
+    return null;
+  }
+
+  return createWorkspaceFileTreeHtmlBrowserUrl(row);
+}
+
 export const sortInstalledEditorsForFileTree = sortInstalledEditorsForOpenWith;

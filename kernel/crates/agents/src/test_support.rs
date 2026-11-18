@@ -72,6 +72,8 @@ pub(crate) struct FakeQueries {
     pub(crate) gate: Option<Gate>,
     /// 放行后、结束前在“工具边界”取走的通知：(子会话, 通知全文)。
     pub(crate) absorbed: Arc<Mutex<Vec<(SessionId, String)>>>,
+    /// K4：先产出一段报告再以模型错误结束（部分输出后失败的替身）。
+    pub(crate) partial_failure: bool,
 }
 
 struct FakeRunner {
@@ -80,6 +82,7 @@ struct FakeRunner {
     seen: Arc<Mutex<Vec<Seen>>>,
     gate: Option<Gate>,
     absorbed: Arc<Mutex<Vec<(SessionId, String)>>>,
+    partial_failure: bool,
 }
 
 impl SubagentQueries for FakeQueries {
@@ -94,6 +97,7 @@ impl SubagentQueries for FakeQueries {
             seen: self.seen.clone(),
             gate: self.gate.clone(),
             absorbed: self.absorbed.clone(),
+            partial_failure: self.partial_failure,
         })
     }
 }
@@ -179,6 +183,12 @@ impl QueryRunner for FakeRunner {
         }
         sink.commit_message(report_message("Hello from the subagent."))
             .await?;
+        // K4：报告已提交后以模型错误结束——失败结果的 `<result>` 里就该有这段部分文本。
+        if self.partial_failure {
+            return Err(QueryError::Api {
+                message: "simulated model failure".to_owned(),
+            });
+        }
         Ok(QueryStop::Completed)
     }
 }
@@ -383,6 +393,7 @@ pub(crate) fn hiding(hidden: &'static [&'static str]) -> Harness {
         no_peers(),
         hidden,
         Arc::new(FixedClock(1_000)),
+        false,
     )
 }
 
@@ -423,6 +434,7 @@ fn built(
         peers,
         &[],
         Arc::new(FixedClock(1_000)),
+        false,
     )
 }
 
@@ -440,6 +452,7 @@ pub(crate) fn held_with_clock<E: AllPorts + 'static>(
         no_peers(),
         &[],
         clock,
+        false,
     )
 }
 
@@ -456,6 +469,7 @@ pub(crate) fn with_machines(
         &[],
         Arc::new(FixedClock(1_000)),
         Some(machines),
+        false,
     )
 }
 
@@ -466,8 +480,31 @@ fn built_with(
     peers: Arc<dyn nibi_kernel_api::peers::PeerMessaging>,
     hidden: &'static [&'static str],
     clock: Arc<dyn nibi_kernel_api::clock::Clock>,
+    partial_failure: bool,
 ) -> Harness {
-    built_full(gate, keep_alive, machine_env, peers, hidden, clock, None)
+    built_full(
+        gate,
+        keep_alive,
+        machine_env,
+        peers,
+        hidden,
+        clock,
+        None,
+        partial_failure,
+    )
+}
+
+/// 同 [`harness`]，但子循环先产出一段报告再失败（K4：失败回传部分结果）。
+pub(crate) fn failing_harness(gate: Option<Arc<Notify>>) -> Harness {
+    built_with(
+        gate.map(Gate::Shared),
+        true,
+        machine(Arc::new(UnusedEnvironment)),
+        no_peers(),
+        &[],
+        Arc::new(FixedClock(1_000)),
+        true,
+    )
 }
 
 fn built_full(
@@ -478,12 +515,14 @@ fn built_full(
     hidden: &'static [&'static str],
     clock: Arc<dyn nibi_kernel_api::clock::Clock>,
     machines: Option<Arc<dyn nibi_kernel_api::env_registry::EnvironmentRegistry>>,
+    partial_failure: bool,
 ) -> Harness {
     let scope = TaskScope::root("agents-test", |_| {});
     let store = Arc::new(MemoryStore::default());
     let tasks = Arc::new(MemoryTaskLists::default());
     let queries = FakeQueries {
         gate,
+        partial_failure,
         ..FakeQueries::default()
     };
     let seen = queries.seen.clone();

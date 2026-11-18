@@ -24,6 +24,7 @@ export function WorkspaceFileTreeStickyFolders({
   editorState,
   workspacePath,
   workspaceIdentity,
+  htmlClickOpensBrowser,
   onSelect,
   onToggleDirectory,
   onRevealRow,
@@ -40,6 +41,7 @@ export function WorkspaceFileTreeStickyFolders({
   editorState: WorkspaceFileTreeEditorState;
   workspacePath: string;
   workspaceIdentity?: string;
+  htmlClickOpensBrowser?: boolean;
   onSelect: (path: string) => void;
   onToggleDirectory: (row: WorkspaceFileTreeRow) => void;
   onRevealRow: (item: WorkspaceFileTreeStickyFolderItem) => void;
@@ -81,6 +83,7 @@ export function WorkspaceFileTreeStickyFolders({
               remoteTarget={editorState.remoteTarget}
               workspacePath={workspacePath}
               workspaceIdentity={workspaceIdentity}
+              htmlClickOpensBrowser={htmlClickOpensBrowser}
               style={{}}
               onSelect={onSelect}
               onToggleDirectory={handleToggle}

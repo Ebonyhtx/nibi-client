@@ -4,6 +4,7 @@
 //! 只是条数。描述与 schema 在 `prompts/tools/`。
 
 use async_trait::async_trait;
+use nibi_kernel_api::permission::PermissionDecision;
 use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
@@ -71,6 +72,18 @@ impl Tool for ReportFindingsTool {
         Some(256)
     }
 
+    /// 没有专属的权限检查，放行（tools-more.md §12）。修复：以前用缺省的 Passthrough，dontAsk 下被拒，
+    /// 模型报不出发现。
+    async fn check_permissions(
+        &self,
+        _input: &Value,
+        _context: &ToolUseContext,
+    ) -> PermissionDecision {
+        PermissionDecision::Allow {
+            updated_input: None,
+        }
+    }
+
     async fn call(
         &self,
         input: Value,
@@ -130,5 +143,19 @@ mod tests {
             assert_eq!(output_text(&output), expected);
             assert_eq!(output.display["level"], json!("high"));
         }
+    }
+
+    /// dontAsk 下也放行（以前是 Passthrough，被判决链拒，模型报不出发现）。
+    #[tokio::test]
+    async fn reporting_is_allowed_in_dont_ask_mode() {
+        let mut context = Ctx::new(Arc::new(ScriptedInteractions::default()));
+        context.mode = PermissionMode::DontAsk;
+        let decision = ReportFindingsTool::new()
+            .check_permissions(&json!({"findings": []}), &context.build())
+            .await;
+        assert!(
+            matches!(decision, PermissionDecision::Allow { .. }),
+            "{decision:?}"
+        );
     }
 }

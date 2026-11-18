@@ -1,4 +1,4 @@
-import type { FormEvent, ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import {
   Bug,
   ChevronLeft,
@@ -10,6 +10,7 @@ import {
   MonitorSmartphone,
   MousePointerClick,
   RefreshCw,
+  Settings,
   TriangleAlertIcon,
 } from "lucide-react";
 import {
@@ -40,11 +41,16 @@ import {
   type BrowserState,
 } from "@/embeddedBrowserHelpers.js";
 import { runUserAction } from "@/lib/userActionTelemetry.js";
+import {
+  isBrowserAddressBarCompact,
+  readBrowserAddressBarRootFontSizePx,
+} from "@/browser-use/browserAddressBarModel.js";
 
 export function BrowserToolbar({
   addressValue,
   browserState,
   permissionControl,
+  permissionSettings,
   formatMessage,
   onAddressChange,
   onGoBack,
@@ -62,6 +68,11 @@ export function BrowserToolbar({
   browserState: BrowserState;
   /** 地址栏左侧的站点设置入口；聚焦编辑 URL 时隐藏但不卸载。 */
   permissionControl?: ReactNode;
+  /** 窄地址栏时站点设置改挂到 More 菜单；没有 origin 的空白页不提供。 */
+  permissionSettings?: {
+    origin: string;
+    onOpenSettings?: (origin: string) => void;
+  };
   formatMessage: (descriptor: { id: string }) => string;
   onAddressChange: (value: string) => void;
   onGoBack: () => void;
@@ -75,6 +86,27 @@ export function BrowserToolbar({
   isElementPickerActive: boolean;
   isResponsiveMode: boolean;
 }) {
+  const addressBarElementRef = useRef<HTMLDivElement | null>(null);
+  const [isAddressBarCompact, setIsAddressBarCompact] = useState(false);
+  useEffect(() => {
+    const element = addressBarElementRef.current;
+    if (!element || typeof ResizeObserver === "undefined") {
+      return;
+    }
+    const rootFontSizePx = readBrowserAddressBarRootFontSizePx();
+    // 用 ResizeObserver 跟随面板宽度；窗口 resize 时面板占位变化不会触发 media query。
+    const measure = () => {
+      setIsAddressBarCompact(
+        isBrowserAddressBarCompact(element.getBoundingClientRect().width, rootFontSizePx),
+      );
+    };
+    // 首帧先测一次，避免窄面板等 ResizeObserver 回调时短暂露出完整地址栏。
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <form
       onSubmit={(event) =>
@@ -109,7 +141,8 @@ export function BrowserToolbar({
         onClick={onReload}
       />
       <div
-        className="group/browser-address relative min-w-0 flex-1"
+        ref={addressBarElementRef}
+        className="group/browser-address @container/browser-address relative min-w-0 flex-1"
         data-testid="browser-address-bar"
       >
         <Input
@@ -117,13 +150,14 @@ export function BrowserToolbar({
           value={addressValue}
           data-testid={TID_BROWSER_ADDRESS_INPUT}
           size="sm"
-          className="h-8 rounded-full px-14 text-center focus:px-3 focus:text-left"
+          // 窄地址栏（<9rem）左侧不再给站点设置圆钮留 3.5rem；宽时按原样居中。
+          className="h-8 min-w-0 rounded-full px-2 text-left @min-[9rem]/browser-address:px-3 @min-[9rem]/browser-address:not-focus:px-14 @min-[9rem]/browser-address:not-focus:text-center"
           onChange={(event) => onAddressChange(event.target.value)}
           placeholder={formatMessage({ id: "browser.addressPlaceholder" })}
           spellCheck={false}
         />
         {/* 编辑 URL 时隐藏入口但不卸载，避免将隐藏图标误当成关闭权限申请。 */}
-        <div className="absolute top-1/2 left-0.5 -translate-y-1/2 group-has-[input:focus]/browser-address:hidden">
+        <div className="absolute top-1/2 left-0.5 -translate-y-1/2 group-has-[input:focus]/browser-address:hidden @max-[9rem]/browser-address:hidden">
           {permissionControl}
         </div>
       </div>
@@ -158,6 +192,7 @@ export function BrowserToolbar({
         formatMessage={formatMessage}
         onOpenExternal={onOpenExternal}
         onOpenDevTools={onOpenDevTools}
+        siteSettings={isAddressBarCompact ? permissionSettings : undefined}
       />
     </form>
   );
@@ -169,12 +204,17 @@ function BrowserToolbarMoreMenu({
   formatMessage,
   onOpenDevTools,
   onOpenExternal,
+  siteSettings,
 }: {
   canOpenDevTools: boolean;
   canOpenExternal: boolean;
   formatMessage: (descriptor: { id: string }) => string;
   onOpenDevTools: () => void;
   onOpenExternal: () => void;
+  siteSettings?: {
+    origin: string;
+    onOpenSettings?: (origin: string) => void;
+  };
 }) {
   const moreLabel = formatMessage({ id: "browser.more" });
   return (
@@ -193,6 +233,16 @@ function BrowserToolbarMoreMenu({
         </DropdownMenuTrigger>
       </ControlHintTooltip>
       <DropdownMenuContent align="end" className="w-52">
+        {siteSettings ? (
+          <DropdownMenuItem
+            data-testid="browser-more-site-settings"
+            disabled={!siteSettings.onOpenSettings}
+            onSelect={() => siteSettings.onOpenSettings?.(siteSettings.origin)}
+          >
+            <Settings className="size-4" />
+            <span>{formatMessage({ id: "browser.permission.settings" })}</span>
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem
           data-testid={TID_BROWSER_OPEN_EXTERNAL_ITEM}
           disabled={!canOpenExternal}

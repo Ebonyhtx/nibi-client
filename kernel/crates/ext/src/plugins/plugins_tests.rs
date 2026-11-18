@@ -10,7 +10,7 @@ use crate::test_support::{facts, workspace};
 async fn manifest_components_and_mcp_servers() {
     let root = "/Users/dev/plugins/kit";
     let env = MemoryEnvironment::new(facts())
-        .with_file(&format!("{root}/.claude-plugin/plugin.json"), r#"{"name": "toolkit", "skills": "./extra", "agents": ["./agents/reviewer.md", "./more.md"], "hooks": {"Stop": []}, "mcpServers": {"db": {"command": "${CLAUDE_PLUGIN_ROOT}/bin/db", "args": ["--root", "${NIBI_PLUGIN_ROOT}", "${NIBI_PLUGIN_ROOT}"]}}}"#)
+        .with_file(&format!("{root}/.nibi-plugin/plugin.json"), r#"{"name": "toolkit", "skills": "./extra", "agents": ["./agents/reviewer.md", "./more.md"], "hooks": {"Stop": []}, "mcpServers": {"db": {"command": "${NIBI_PLUGIN_ROOT}/bin/db", "args": ["--root", "${NIBI_PLUGIN_ROOT}"]}}}"#)
         .with_file(&format!("{root}/skills/deploy/SKILL.md"), "---\ndescription: Deploy\n---\n")
         .with_file(&format!("{root}/extra/lint/SKILL.md"), "---\ndescription: Lint\n---\n")
         .with_file(&format!("{root}/agents/reviewer.md"), "---\nname: reviewer\n---\n")
@@ -71,11 +71,7 @@ async fn manifest_components_and_mcp_servers() {
     assert_eq!(command, &format!("{root}/bin/db"));
     assert_eq!(
         args,
-        &[
-            "--root".to_owned(),
-            root.to_owned(),
-            root.to_owned()
-        ]
+        &["--root".to_owned(), root.to_owned()]
     );
     assert_eq!(plugins.0[1].name, "bare");
     plugin_stdio_servers_get_the_node_variables(kit, root).await;
@@ -94,22 +90,28 @@ async fn manifest_components_and_mcp_servers() {
     );
 }
 
-/// 插件的 stdio MCP 服务器的环境（修复线 F42，config.md §2.5.1）：按 Node（`adapters/src/plugins/mcp.ts`）给插件目录与
-/// 项目目录，NIBI/CLAUDE/上游 ZCODE 三套名字；HTTP 服务器没有环境。
+/// 插件的 stdio MCP 服务器的环境（修复线 F42，config.md §2.5.1）：按 Node（`adapters/src/plugins/mcp.ts`）
+/// 只注入 NIBI_*（插件根 / 数据目录 / 项目目录）；HTTP 服务器没有环境。
 async fn plugin_stdio_servers_get_the_node_variables(kit: &Plugin, root: &str) {
     let McpTransportConfig::Stdio { env, .. } = &kit.mcp_servers[1].transport else {
         panic!("db is stdio");
     };
     let project = workspace().root.as_str().to_owned();
     for (name, value) in [
-        ("CLAUDE_PLUGIN_ROOT", root),
-        ("NIBI_PLUGIN_ROOT", root),
         ("NIBI_PLUGIN_ROOT", root),
         ("CLAUDE_PROJECT_DIR", project.as_str()),
         ("NIBI_PROJECT_DIR", project.as_str()),
-        ("NIBI_PROJECT_DIR", project.as_str()),
     ] {
         assert_eq!(env.get(name).map(String::as_str), Some(value), "{name}");
+    }
+    // G1：旧格式的插件变量兼容别名不再注入插件 MCP 子进程。
+    for name in [
+        "CLAUDE_PLUGIN_ROOT",
+        "CLAUDE_PLUGIN_DATA",
+        "CLAUDE_CODE_SESSION_ID",
+        "CLAUDE_SESSION_ID",
+    ] {
+        assert!(!env.contains_key(name), "{name}");
     }
     // 插件身份由 resolver 权威写入（Node 同规则）：`<name>@<marketplace>`。
     assert_eq!(env.get("NIBI_PLUGIN_ID").map(String::as_str), Some("toolkit@inline"));
@@ -151,9 +153,8 @@ async fn plugin_templates_expand_data_user_config_and_project() {
     assert_eq!(env["NIBI_MATH_ENV_DIR"], format!("{data_root}/math-agent@inline/env"));
     assert_eq!(env["NIBI_MATH_PYTHON_MIRROR"], "https://pypi.example/simple");
     assert_eq!(env["NIBI_WORKSPACE_ROOT"], project);
-    for name in ["CLAUDE_PLUGIN_DATA", "NIBI_PLUGIN_DATA", "NIBI_PLUGIN_DATA"] {
-        assert_eq!(env[name], format!("{data_root}/math-agent@inline"), "{name}");
-    }
+    assert_eq!(env["NIBI_PLUGIN_DATA"], format!("{data_root}/math-agent@inline"));
+    assert!(!env.contains_key("CLAUDE_PLUGIN_DATA"));
     assert_eq!(env["NIBI_PLUGIN_ID"], "math-agent@inline");
 }
 
@@ -228,7 +229,7 @@ async fn a_sensitive_user_config_value_is_rejected_outside_sensitive_fields() {
 async fn configured_env_wins_over_the_provided_variables() {
     let root = "/Users/dev/plugins/own";
     let env = MemoryEnvironment::new(facts()).with_file(
-        &format!("{root}/.claude-plugin/plugin.json"),
+        &format!("{root}/.nibi-plugin/plugin.json"),
         r#"{"name": "own", "mcpServers": {"db": {"command": "db", "env": {"CLAUDE_PROJECT_DIR": "/elsewhere", "TOKEN": "x"}}}}"#,
     );
     let plugins = load_all(
@@ -245,8 +246,36 @@ async fn configured_env_wins_over_the_provided_variables() {
     assert_eq!(env["CLAUDE_PROJECT_DIR"], "/elsewhere");
     assert_eq!(env["TOKEN"], "x");
     assert_eq!(env["NIBI_PLUGIN_ROOT"], root);
-    // 插件 ABI 兼容层：上游插件读的旧名也在，且同样可被 manifest env 覆盖。
-    assert_eq!(env["NIBI_PLUGIN_ROOT"], root);
+    // 旧插件根变量不再注入：内置件与市场安装件统一用 NIBI_PLUGIN_ROOT。
+    assert!(!env.contains_key("CLAUDE_PLUGIN_ROOT"));
+}
+
+/// G1：插件模板只展开 NIBI 变量；`${CLAUDE_PLUGIN_ROOT}` 不再被当作兼容别名。
+#[tokio::test]
+async fn legacy_plugin_variables_are_not_expanded() {
+    let root = "/Users/dev/plugins/legacy-vars";
+    let env = MemoryEnvironment::new(facts()).with_file(
+        &format!("{root}/.nibi-plugin/plugin.json"),
+        r#"{"name": "legacy-vars", "mcpServers": {"db": {"command": "db", "args": ["${CLAUDE_PLUGIN_ROOT}/old", "${NIBI_PLUGIN_ROOT}/new"]}}}"#,
+    );
+    let plugins = load_all(
+        &env,
+        &workspace(),
+        &[EnvPath::new(root)],
+        &PluginSources::default(),
+    )
+    .await
+    .plugins;
+    let McpTransportConfig::Stdio { args, .. } = &plugins.0[0].mcp_servers[0].transport else {
+        panic!("db is stdio");
+    };
+    assert_eq!(
+        args,
+        &[
+            "${CLAUDE_PLUGIN_ROOT}/old".to_owned(),
+            format!("{root}/new")
+        ]
+    );
 }
 
 /// 插件 `commands/` 与 manifest `commands` 路径都成为自定义命令根，身份随根走。

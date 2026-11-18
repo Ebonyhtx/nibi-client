@@ -331,7 +331,7 @@ impl Agents {
 
     /// 任务提醒读的任务清单（agents.md §7.4）：子会话读顶层会话的清单。
     pub fn task_reader(&self) -> Arc<dyn nibi_kernel_api::agents::TaskReader> {
-        Arc::new(TaskLists(self.core.clone()))
+        Arc::new(TaskLists(Arc::downgrade(&self.core)))
     }
 
     /// 往会话投递一条后台通知（DWF 升级问答）：与后台子代理的终态通知同一条路——meta user
@@ -374,13 +374,20 @@ impl nibi_kernel_api::workflow::WorkflowNotices for Agents {
     }
 }
 
-struct TaskLists(Arc<Core>);
+/// 任务提醒的读者。缺陷修复（丢掉的内核不释放）：读者由上下文组装器持有（`PromptAssembler::bind_tasks`），
+/// 而内部状态的 `AgentsPorts.context` 就是这个组装器；以前这里强持有 `Core`，成环，丢掉 `LocalKernel`
+/// 后整张图留在内存里。现在只存弱引用：内部状态由注册表里的工具与内核持有，内核活着时总能升级。
+struct TaskLists(Weak<Core>);
 
 #[async_trait]
 impl nibi_kernel_api::agents::TaskReader for TaskLists {
     async fn tasks(&self, session: &SessionId) -> Vec<nibi_kernel_api::agents::TaskRecord> {
-        let list = self.0.live.root_of(session);
-        let mut tasks = match self.0.board.read(&list).await {
+        let Some(core) = self.0.upgrade() else {
+            tracing::error!("the task list was read after its kernel was released");
+            return Vec::new();
+        };
+        let list = core.live.root_of(session);
+        let mut tasks = match core.board.read(&list).await {
             Ok(list) => list.tasks,
             Err(error) => {
                 tracing::warn!(%error, "the task list could not be read for the reminder");

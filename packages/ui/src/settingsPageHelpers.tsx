@@ -75,6 +75,7 @@ export function TaskAutoArchiveSettings({
     <SettingsGroupCard>
       <SettingsRow
         controlLayout="wide"
+        searchTarget="archives.taskAutoArchive"
         label={intl.formatMessage({ id: "settings.taskAutoArchive" })}
         description={intl.formatMessage({
           id: "settings.taskAutoArchiveDescription",
@@ -161,6 +162,8 @@ export function GeneralSectionContent({
   setNotificationSoundEnabled,
   messageStreamShowReasoning,
   messageStreamShowTodos,
+  fileTreeHtmlClickOpensBrowser = false,
+  onFileTreeHtmlClickOpensBrowserChange,
   toolGroupingExploreEnabled,
   toolGroupingTerminalEnabled,
   toolGroupingChangesEnabled,
@@ -235,6 +238,9 @@ export function GeneralSectionContent({
   setNotificationSoundEnabled: (enabled: boolean) => void;
   messageStreamShowReasoning: boolean;
   messageStreamShowTodos: boolean;
+  /** 文件树单击 HTML 时用内置浏览器打开（默认关闭，右键仍可预览源码）。 */
+  fileTreeHtmlClickOpensBrowser?: boolean;
+  onFileTreeHtmlClickOpensBrowserChange?: (enabled: boolean) => void;
   toolGroupingExploreEnabled: boolean;
   toolGroupingTerminalEnabled: boolean;
   toolGroupingChangesEnabled: boolean;
@@ -379,6 +385,7 @@ export function GeneralSectionContent({
     <div className="space-y-4">
       <SettingsGroupCard>
         <SettingsRow
+          searchTarget="general.locale"
           label={intl.formatMessage({ id: "settings.locale" })}
           description={intl.formatMessage({ id: "settings.localeDescription" })}
           control={
@@ -451,6 +458,7 @@ export function GeneralSectionContent({
 
       <SettingsGroupCard>
         <SettingsRow
+          searchTarget="general.terminal"
           label={intl.formatMessage({ id: "settings.terminalProfile" })}
           description={intl.formatMessage({ id: "settings.terminalProfileDescription" })}
           control={
@@ -602,6 +610,7 @@ export function GeneralSectionContent({
         {/* 手动模式才需要地址；跟随系统时隐藏，避免用户误以为这里填了才生效。 */}
         {followSystemProxy ? null : (
           <SettingsRow
+            searchTarget="general.httpProxy"
             label={intl.formatMessage({ id: "settings.httpProxy" })}
             description={intl.formatMessage({ id: "settings.httpProxyDescription" })}
             control={
@@ -729,6 +738,7 @@ export function GeneralSectionContent({
               }
             />
             <SettingsRow
+              searchTarget="general.updates"
               label={intl.formatMessage({ id: "settings.receivePreviewUpdates" })}
               description={intl.formatMessage({
                 id: "settings.receivePreviewUpdatesDescription",
@@ -765,6 +775,7 @@ export function GeneralSectionContent({
           </>
         ) : null}
         <SettingsRow
+          searchTarget="general.notification"
           label={intl.formatMessage({ id: "settings.notification" })}
           description={intl.formatMessage({
             id: "settings.notificationDescription",
@@ -834,6 +845,7 @@ export function GeneralSectionContent({
 
       <SettingsGroupCard>
         <SettingsRow
+          searchTarget="general.interaction"
           label={intl.formatMessage({ id: "settings.nibiInteractionBehavior" })}
           description={intl.formatMessage({
             id: "settings.nibiInteractionBehaviorDescription",
@@ -898,6 +910,7 @@ export function GeneralSectionContent({
           }
         />
         <SettingsRow
+          searchTarget="general.reasoning"
           label={intl.formatMessage({ id: "settings.messageStreamShowReasoning" })}
           description={intl.formatMessage({
             id: "settings.messageStreamShowReasoningDescription",
@@ -913,6 +926,7 @@ export function GeneralSectionContent({
           }
         />
         <SettingsRow
+          searchTarget="general.todos"
           label={intl.formatMessage({ id: "settings.messageStreamShowTodos" })}
           description={intl.formatMessage({
             id: "settings.messageStreamShowTodosDescription",
@@ -923,6 +937,22 @@ export function GeneralSectionContent({
               checked={messageStreamShowTodos}
               onCheckedChange={(checked) => {
                 void onMessageStreamShowTodosChange(checked);
+              }}
+            />
+          }
+        />
+        <SettingsRow
+          searchTarget="general.fileTreeHtmlClick"
+          label={intl.formatMessage({ id: "settings.fileTreeHtmlClickOpensBrowser" })}
+          description={intl.formatMessage({
+            id: "settings.fileTreeHtmlClickOpensBrowserDescription",
+          })}
+          control={
+            <Switch
+              aria-label={intl.formatMessage({ id: "settings.fileTreeHtmlClickOpensBrowser" })}
+              checked={fileTreeHtmlClickOpensBrowser}
+              onCheckedChange={(checked) => {
+                void onFileTreeHtmlClickOpensBrowserChange?.(checked);
               }}
             />
           }
@@ -976,6 +1006,7 @@ export function GeneralSectionContent({
 
       <SettingsGroupCard>
         <SettingsRow
+          searchTarget="general.dataBaseDir"
           label={intl.formatMessage({ id: "settings.dataBaseDir" })}
           description={intl.formatMessage({
             id: "settings.dataBaseDirDescription",
@@ -993,6 +1024,7 @@ export function GeneralSectionContent({
 
       <SettingsGroupCard>
         <SettingsRow
+          searchTarget="general.onboarding"
           label={intl.formatMessage({ id: "settings.onboarding" })}
           description={intl.formatMessage({
             id: "settings.onboardingDescription",

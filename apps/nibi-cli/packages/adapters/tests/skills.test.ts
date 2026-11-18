@@ -268,7 +268,7 @@ describe("NodeSkillAdapter", () => {
   it("loads plugin skills by fully qualified plugin alias", async () => {
     const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-skills-"));
     const pluginRoot = join(dir, "superpowers");
-    const manifestDir = join(pluginRoot, ".claude-plugin");
+    const manifestDir = join(pluginRoot, ".nibi-plugin");
     const skillRoot = join(pluginRoot, "skills");
     const skillDir = join(skillRoot, "test-driven-development");
     const roots = [
@@ -321,6 +321,40 @@ describe("NodeSkillAdapter", () => {
           name: "test-driven-development",
         },
       });
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("does not use legacy manifest directories for the plugin skill alias", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-legacy-plugin-skills-"));
+    const pluginRoot = join(dir, "legacy-plugin");
+    const skillRoot = join(pluginRoot, "skills");
+    const skillDir = join(skillRoot, "legacy-skill");
+    const roots = [
+      {
+        path: skillRoot,
+        scope: "system" as const,
+        source: "plugin" as const,
+        priority: 0,
+      },
+    ];
+
+    try {
+      await mkdir(join(pluginRoot, ".claude-plugin"), { recursive: true });
+      await mkdir(skillDir, { recursive: true });
+      await writeFile(
+        join(pluginRoot, ".claude-plugin", "plugin.json"),
+        JSON.stringify({ name: "legacy-plugin" }),
+      );
+      await writeSkill(skillDir, "legacy-skill", "Legacy plugin skill");
+
+      const adapter = createNodeSkillAdapter({ homeDirectory: join(dir, "home") });
+      const outcome = await adapter.discoverSkills({ roots, workingDirectory: dir });
+
+      expect(outcome.skills[0]).toMatchObject({ name: "legacy-skill" });
+      expect(outcome.skills[0]?.pluginName).toBeUndefined();
+      expect(outcome.skills[0]?.qualifiedName).toBeUndefined();
     } finally {
       await rm(dir, { force: true, recursive: true });
     }

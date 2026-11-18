@@ -19,6 +19,11 @@ import {
 } from "@/lib/uiFontSize.js";
 import { applyMotionPreference, loadMotionEnabled } from "@/lib/motionPreference.js";
 import {
+  applyMacFontSmoothingEnabled,
+  persistMacFontSmoothingEnabled,
+  readMacFontSmoothingEnabled,
+} from "@/settings/macosFontSmoothing.js";
+import {
   isTaskNotificationEnabled,
   isTaskNotificationSoundPreferenceEnabled,
   persistTaskNotificationEnabled,
@@ -137,6 +142,10 @@ export interface NibiState {
   uiFontSizePx: number;
   setUiFontSizePx: (fontSizePx: number) => void;
 
+  /** macOS 字体平滑；默认开启，关闭后移除根节点覆盖，回到系统默认。 */
+  macFontSmoothingEnabled: boolean;
+  setMacFontSmoothingEnabled: (enabled: boolean) => void;
+
   /** 是否启用性能模式 */
   performanceMode: boolean;
   setPerformanceMode: (enabled: boolean) => void;
@@ -201,6 +210,7 @@ const BROADCAST_FIELDS = new Set([
   "theme",
   "locale",
   "uiFontSizePx",
+  "macFontSmoothingEnabled",
   "interfaceMode",
   "notificationEnabled",
 ]);
@@ -209,6 +219,7 @@ type BroadcastField =
   | "theme"
   | "locale"
   | "uiFontSizePx"
+  | "macFontSmoothingEnabled"
   | "interfaceMode"
   // 任务通知开关跨窗口同步：角标是应用级表面，A 窗口关通知而 B 窗口仍上报未读时，
   // 主进程 max 聚合会让任务栏/托盘继续亮，设置与提醒状态错位。
@@ -308,6 +319,12 @@ export function createNibiStore(
       writeSafeLocalStorage(UI_FONT_SIZE_STORAGE_KEY, String(normalizedFontSizePx));
       applyUiFontSizePx(normalizedFontSizePx);
       set({ uiFontSizePx: normalizedFontSizePx });
+    },
+
+    macFontSmoothingEnabled: readMacFontSmoothingEnabled(),
+    setMacFontSmoothingEnabled: (enabled: boolean) => {
+      const normalized = persistMacFontSmoothingEnabled(enabled);
+      set({ macFontSmoothingEnabled: normalized });
     },
 
     performanceMode: loadPerformanceMode(),
@@ -482,6 +499,8 @@ export function createNibiStore(
         state.setInterfaceMode(normalizeInterfaceMode(msg.payload));
       } else if (field === "uiFontSizePx" && typeof msg.payload === "number") {
         state.setUiFontSizePx(msg.payload);
+      } else if (field === "macFontSmoothingEnabled" && typeof msg.payload === "boolean") {
+        state.setMacFontSmoothingEnabled(msg.payload);
       } else if (field === "notificationEnabled" && typeof msg.payload === "boolean") {
         state.setNotificationEnabled(msg.payload);
       }
@@ -496,6 +515,8 @@ export function createNibiStore(
   // 动效偏好不进 store：外观开关直接走 lib/motionPreference，store 只负责启动时落地一次
   // html[data-nibi-motion]（资源管理器窗口在 resource-manager.tsx 里自己应用）。
   applyMotionPreference(loadMotionEnabled());
+  // macOS 字体平滑默认开启：store 初始化时先落一次 class；关闭后不再覆盖系统字形。
+  applyMacFontSmoothingEnabled(useStore.getState().macFontSmoothingEnabled);
   document.documentElement.classList.toggle(
     "dark",
     resolveTheme(useStore.getState().theme) === "dark",

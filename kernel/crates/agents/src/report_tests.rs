@@ -27,8 +27,8 @@ fn the_launch_result_keeps_the_dashed_agent_id() {
     assert!(ours.contains("\nagentId: agent_3f2b9c1e-8a4d-4c2e-9f1a-2b3c4d5e6f70 (internal ID"));
 }
 
-/// 失败：摘要带错误（没有时 `Unknown error`），已有的文本作 `<result>`，没有 `<usage>`；`<summary>`
-/// 与 `<result>` 转义 `&`、`<`、`>`。
+/// 失败：摘要带错误（没有时 `Unknown error`），已有的文本作 `<result>`，`<usage>` 也带（K4：
+/// 失败通知不能只有 error/agentId/duration）；`<summary>` 与 `<result>` 转义 `&`、`<`、`>`。
 #[test]
 fn failed_notifications_carry_the_error_and_escape_markup() {
     let text = notification(
@@ -43,8 +43,13 @@ fn failed_notifications_carry_the_error_and_escape_markup() {
         text.contains("<summary>Agent \"Fix &lt;b&gt; &amp; c\" failed: disk full</summary>"),
         "{text}"
     );
-    assert!(text.contains("</note>\n<result>partial &lt;x&gt;</result>\n</task-notification>"));
-    assert!(!text.contains("<usage>"));
+    assert!(text.contains("</note>\n<result>partial &lt;x&gt;</result>"));
+    assert!(
+        text.contains(
+            "<usage><subagent_tokens>3</subagent_tokens><tool_uses>0</tool_uses><duration_ms>4</duration_ms></usage>"
+        ),
+        "{text}"
+    );
     let unknown = notification("a1", None, "d", Ending::Failed, &report("", 0, 0), None);
     assert!(unknown.contains("failed: Unknown error</summary>"));
     // 没有工具调用（SendMessage 留下的消息续跑之后，A8）：没有 `<tool-use-id>` 这一行。
@@ -53,4 +58,6 @@ fn failed_notifications_carry_the_error_and_escape_markup() {
             && unknown.contains("<task-id>a1</task-id>\n<status>failed</status>")
     );
     assert!(!unknown.contains("<result>"));
+    // 失败也带 `<usage>`（K4）。
+    assert!(unknown.contains("<usage><subagent_tokens>0</subagent_tokens>"), "{unknown}");
 }

@@ -1,12 +1,13 @@
+import childProcess from "node:child_process";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 const POWERSHELL_COMMON_ARGS = ["-NoLogo", "-NoProfile", "-NonInteractive"];
 
-// Windows PowerShell 5.1 的 [Console]::OutputEncoding 默认跟随控制台代码页（中文 936、
-// 日文 932…），调用方一律按 UTF-8 解码 stdout，于是路径里的中文会变成 "????"。
-// 在脚本最前面把输出编码钉成 UTF-8，宿主不依赖用户机器的代码页。
-const POWERSHELL_UTF8_OUTPUT_BOOTSTRAP =
-  "try{[Console]::OutputEncoding=[Text.Encoding]::UTF8}catch{};";
-
 const WINDOWS_POWERSHELL_SECURITY_BOOTSTRAP = [
+  // 首次模块导入会向 stderr 写进度 CLIXML；只静默进度，实际错误仍须拒绝更新。
+  "$ProgressPreference='SilentlyContinue';",
   "$ErrorActionPreference='Stop';",
   "try{",
   "$nibiSecurityModule=[IO.Path]::Combine($PSHOME,'Modules','Microsoft.PowerShell.Security','Microsoft.PowerShell.Security.psd1');",
@@ -25,22 +26,82 @@ export function createEncodedPowerShellArgs(script, values = []) {
   // Windows PowerShell 5.1 会把普通 `-Command` 后续 argv 拼回命令文本，
   // 不会把它们注入 `$args`。动态值先单独编码，再放进 `-EncodedCommand`，同时避免
   // Program Files 空格、引号或分号被 PowerShell 二次解析成脚本内容。
+  // 注意：受限语言模式禁止 [Text.Encoding]/[Convert] 调用，签名查询这类需要
+  // ConstrainedLanguage 的脚本必须用 escapePowerShellLiteral 写入字面量，不能走这里。
   const valueBindings = values
     .map(
       (value, index) =>
         `$nibiArg${index}=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encodeUtf8Value(value)}'));`,
     )
     .join("");
-  const encodedCommand = Buffer.from(
-    `${POWERSHELL_UTF8_OUTPUT_BOOTSTRAP}${valueBindings}${script}`,
-    "utf16le",
-  ).toString("base64");
+  const encodedCommand = Buffer.from(`${valueBindings}${script}`, "utf16le").toString("base64");
   return [...POWERSHELL_COMMON_ARGS, "-EncodedCommand", encodedCommand];
+}
+
+export function escapePowerShellLiteral(value) {
+  // PowerShell 将排版单引号也视为定界符，必须与 ASCII 单引号一样双写，防止路径变成代码。
+  if (/[\0\r\n]/u.test(value)) {
+    throw new Error("PowerShell path literal cannot contain NUL or newline characters");
+  }
+  return `'${value.replace(/['\u2018\u2019\u201A\u201B]/g, "$&$&")}'`;
 }
 
 export function createWindowsPowerShellSecurityArgs(script, values = []) {
   // 由 pwsh 启动的 Node 会继承 PowerShell 7 的 PSModulePath，随后再启动
   // Windows PowerShell 5.1 时可能错误发现不兼容的 Security 模块。直接从当前
-  // powershell.exe 的 PSHOME 加载系统模块，避免把外部环境变量当作模块信任根。
+  // powershell.exe 的 PSHOME 显式加载系统模块，避免把外部环境变量当作模块信任根。
   return createEncodedPowerShellArgs(`${WINDOWS_POWERSHELL_SECURITY_BOOTSTRAP}${script}`, values);
+}
+
+export async function readWindowsAuthenticodeSignature(filePath) {
+  const pathLiteral = escapePowerShellLiteral(filePath);
+  const outputDir = await mkdtemp(join(tmpdir(), "nibi-signature-"));
+  try {
+    const outputPath = join(outputDir, "signature.json");
+    // 受限语言模式会禁止路径解码和 Console 编码的 .NET 调用；专用查询只用 cmdlet，
+    // 结果写入独立 UTF-8 BOM 文件，既保留中文签名者，也不改变其他 PowerShell 消费者。
+    const script = [
+      `$nibiSignaturePath=${pathLiteral};`,
+      `$nibiSignatureOutput=${escapePowerShellLiteral(outputPath)};`,
+      "$ProgressPreference='SilentlyContinue';",
+      "$ErrorActionPreference='Stop';",
+      "try{",
+      "$securityModule=Join-Path $PSHOME 'Modules/Microsoft.PowerShell.Security/Microsoft.PowerShell.Security.psd1';",
+      "Import-Module -Name $securityModule -Force -ErrorAction Stop;",
+      "$signature=Microsoft.PowerShell.Security\\Get-AuthenticodeSignature -LiteralPath $nibiSignaturePath;",
+      "@{status=[int]$signature.Status;subject=$signature.SignerCertificate.Subject}|ConvertTo-Json -Compress|Out-File -LiteralPath $nibiSignatureOutput -Encoding utf8 -NoNewline;",
+      "}catch{Write-Error ('Windows Authenticode query failed: ' + $_.Exception.Message) -ErrorAction Continue;exit 27};",
+    ].join("");
+
+    await new Promise((resolve, reject) => {
+      childProcess.execFile(
+        "powershell.exe",
+        createEncodedPowerShellArgs(script),
+        { encoding: "utf8", timeout: 30_000, windowsHide: true },
+        (error, _stdout, stderr) => {
+          if (error) reject(error);
+          else if (stderr) reject(new Error(stderr));
+          else resolve();
+        },
+      );
+    });
+    const output = await readFile(outputPath, "utf8");
+    return JSON.parse(output.replace(/^\uFEFF/u, "").trim());
+  } finally {
+    await rm(outputDir, { recursive: true, force: true });
+  }
+}
+
+export async function verifyWindowsAuthenticodeSignature(filePath) {
+  const signature = await readWindowsAuthenticodeSignature(filePath);
+  // 官方 HTTPS 清单与文件哈希决定发布授权；这里只检查 Windows 签名有效性。
+  // 不固定证书 DN，避免换证后长期未升级的客户端只能依赖过渡版本。
+  if (
+    signature.status !== 0 ||
+    typeof signature.subject !== "string" ||
+    !signature.subject.trim()
+  ) {
+    return "Windows update requires a valid Authenticode signature";
+  }
+  return null;
 }

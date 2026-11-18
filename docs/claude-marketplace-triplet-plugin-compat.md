@@ -1,5 +1,9 @@
 # Claude Marketplace 三件套插件兼容验证规格
 
+> 状态（2026-11-18，G1）：插件包 manifest 已收口为 `.nibi-plugin/plugin.json`；
+> 本文的 `.claude-plugin/plugin.json` 插件包读取路径不再适用。市场目录仍兼容
+> `.claude-plugin/marketplace.json`，但仅作为旧市场布局读取。
+
 ## 背景
 
 在 `docs/archive/hooks/hooks-implementation-analysis.md` 之后，需要继续验证 Claude Code marketplace

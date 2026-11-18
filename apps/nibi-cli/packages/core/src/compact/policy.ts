@@ -34,7 +34,10 @@ export interface AutoCompactTokenOverride {
   contextUsageTokenCount?: number;
   incrementalTokenCount?: number;
   outputTokens?: number;
-  source: Extract<AutoCompactTokenSource, "provider_usage">;
+  // 压缩 rollover（K2）也以 override 表达，但数值来自本地估算而不是 provider usage，
+  // 因此 source 放开到 AutoCompactTokenSource 全集；telemetry 契约仍只收
+  // "estimate" | "provider_usage"，rollover 以 "estimate" 上报。
+  source: AutoCompactTokenSource;
   tokenCount: number;
 }
 

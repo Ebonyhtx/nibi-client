@@ -221,6 +221,7 @@ vi.mock("@/lib/settingsNavigation.js", () => ({
   consumePendingSettingsSourceServerId: () => undefined,
   consumePendingSettingsSourceServerDetails: () => false,
   resolveSettingsSection: (section: string) => section,
+  isSettingsSectionEnabled: () => true,
   shouldFallbackSettingsUsageTabToApp: () => false,
   writeLastSettingsSectionPreference: vi.fn(),
 }));

@@ -27,13 +27,8 @@ const SAFE_FRONTMATTER_KEYS = new Set([
 ]);
 const DEFAULT_MAX_SKILL_BYTES = 100_000;
 const MAX_PLUGIN_MANIFEST_SEARCH_DEPTH = 5;
-const PLUGIN_MANIFEST_RELATIVE_PATHS = [
-  ".nibi-plugin/plugin.json",
-  ".nibi-plugin/plugin.json",
-  ".claude-plugin/plugin.json",
-  ".codex-plugin/plugin.json",
-  ".cursor-plugin/plugin.json",
-] as const;
+// 技能根的插件归属只认 NIBI 自有清单；旧格式目录不再参与发现。
+const PLUGIN_MANIFEST_RELATIVE_PATHS = [".nibi-plugin/plugin.json"] as const;
 
 export interface NodeSkillAdapterOptions extends SkillRootResolutionOptions {
   // 被禁用的 SKILL.md 绝对路径集合（来自 config.json 的 skill.<path>.enable=false）。

@@ -15,7 +15,7 @@ Host-managed market → user installs → installed copy
                                    new-task trial
 ```
 
-Give the actual absolute market root directory to paste, usually `<workspace>/plugins/`. It contains `marketplace.json`; it is not the individual plugin subdirectory. For `.claude-plugin/marketplace.json`, the market root is the parent of `.claude-plugin`.
+Give the actual absolute market root directory to paste, usually `<workspace>/plugins/`. It contains `marketplace.json`; it is not the individual plugin subdirectory. For the legacy `.claude-plugin/marketplace.json` layout, the market root is the parent of `.claude-plugin`.
 
 The source, marketplace copy and installed copy are different locations. Registration/installation belongs to the target Host's user inventory. A local dev market is not public publishing or project-exclusive installation.
 

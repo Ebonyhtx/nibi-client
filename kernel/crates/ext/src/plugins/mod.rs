@@ -2,8 +2,8 @@
 //! 候选目录由入口层给出（`--plugin-dir`、Node 配置的 `plugins.dirs`、内置缓存与已安装插件），文件经执行
 //! 环境端口读；来源与启用判定见 [`select`]。市场与安装未覆盖。
 //!
-//! manifest 按 Node `findManifest` 依次找本工程的 `.nibi-plugin` 与另外两种插件格式的目录下的 `plugin.json`
-//! （同时兼容几种插件格式）；`--plugin-dir` 没有 manifest 时插件名取目录名。
+//! manifest 只认 NIBI 自有清单目录 `.nibi-plugin/plugin.json`；旧格式（`.claude-plugin`、
+//! `.codex-plugin`）不再参与发现。`--plugin-dir` 没有 manifest 时插件名取目录名。
 
 mod reference;
 mod select;
@@ -26,13 +26,8 @@ pub use self::select::{
     Skipped, load_all,
 };
 
-/// manifest 的位置，按 Node `PLUGIN_MANIFEST_DIRS` 的顺序（NIBI 自有清单目录第一位）。
-const MANIFESTS: [&str; 4] = [
-    ".nibi-plugin/plugin.json",
-    ".nibi-plugin/plugin.json",
-    ".claude-plugin/plugin.json",
-    ".codex-plugin/plugin.json",
-];
+/// manifest 的位置：NIBI 自有格式唯一。
+const MANIFESTS: [&str; 1] = [".nibi-plugin/plugin.json"];
 
 /// 读 manifest 的结果。
 enum Manifest {
@@ -318,13 +313,13 @@ impl Reader<'_> {
 
     /// 插件声明的 MCP 服务器：先按 Node `resolveMcpServerConfig` 展开清单模板，再交给通用的服务器解析。
     ///
-    /// 模板上下文（`adapters/src/plugins/mcp.ts`）：`${*_PLUGIN_ROOT}`、`${*_PLUGIN_DATA}`
-    /// （`<插件存储根>/data/<sanitize(id)>`）、`${*_PROJECT_DIR}`（工作区根）、`${user_config.<key>}`
+    /// 模板上下文（`adapters/src/plugins/mcp.ts`）：`${NIBI_PLUGIN_ROOT}`、`${NIBI_PLUGIN_DATA}`
+    /// （`<插件存储根>/data/<sanitize(id)>`）、`${NIBI_PROJECT_DIR}`（工作区根）、`${user_config.<key>}`
     /// （配置值优先，缺失时取 manifest 默认值）。`env`/`headers` 是敏感 sink：可以写 `${TOKEN}` 这类
     /// 环境变量；其它字段里出现敏感 user_config 会按 Node 同一规则整条跳过。缺变量同样 fail-closed
     /// （不把字面量留给子进程）。
     ///
-    /// stdio 服务器的环境按 Node 给两套名字（插件根 / 数据目录 / 项目目录），清单 `env` 优先，
+    /// stdio 服务器的环境只注入 NIBI_*（插件根 / 数据目录 / 项目目录），清单 `env` 优先，
     /// 插件身份 `NIBI_PLUGIN_ID` 最后权威写入（manifest 不可覆盖）。
     fn mcp_servers(
         plugin: &str,
@@ -359,27 +354,16 @@ impl Reader<'_> {
             }
             servers.extend(found.into_iter().map(|mut server| {
                 if let McpTransportConfig::Stdio { env, .. } = &mut server.transport {
-                    for (name, value) in [
-                        (vars::CLAUDE_PLUGIN_ROOT, variables.root),
-                        (vars::NIBI_PLUGIN_ROOT, variables.root),
-                        (vars::NIBI_PLUGIN_ROOT, variables.root),
-                    ] {
-                        env.entry(name.to_owned())
-                            .or_insert_with(|| value.to_owned());
-                    }
+                    // 插件变量只认 NIBI_*；CLAUDE_PLUGIN_* 的兼容读取留在 hooks/commands/agents
+                    // 的旧配置兼容层，不再注入插件 MCP 子进程。
+                    env.entry(vars::NIBI_PLUGIN_ROOT.to_owned())
+                        .or_insert_with(|| variables.root.to_owned());
                     if let Some(data) = variables.data {
-                        for name in [
-                            vars::CLAUDE_PLUGIN_DATA,
-                            vars::NIBI_PLUGIN_DATA,
-                            vars::NIBI_PLUGIN_DATA,
-                        ] {
-                            env.entry(name.to_owned())
-                                .or_insert_with(|| data.to_owned());
-                        }
+                        env.entry(vars::NIBI_PLUGIN_DATA.to_owned())
+                            .or_insert_with(|| data.to_owned());
                     }
                     for (name, value) in [
                         (vars::CLAUDE_PROJECT_DIR, variables.project),
-                        (vars::NIBI_PROJECT_DIR, variables.project),
                         (vars::NIBI_PROJECT_DIR, variables.project),
                     ] {
                         env.entry(name.to_owned())
@@ -794,10 +778,10 @@ fn resolve_variable(
     allow_sensitive: bool,
 ) -> Result<Option<String>, String> {
     match name {
-        vars::CLAUDE_PLUGIN_ROOT | vars::NIBI_PLUGIN_ROOT => {
+        vars::NIBI_PLUGIN_ROOT => {
             return Ok(Some(variables.root.to_owned()));
         }
-        vars::CLAUDE_PLUGIN_DATA | vars::NIBI_PLUGIN_DATA => {
+        vars::NIBI_PLUGIN_DATA => {
             let data = variables
                 .data
                 .ok_or_else(|| format!("Missing plugin variable: {name}"))?;

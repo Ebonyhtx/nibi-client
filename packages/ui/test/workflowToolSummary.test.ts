@@ -24,7 +24,7 @@ describe("WorkflowToolSummary", () => {
         createElement(WorkflowToolSummary, { toolCallId: "tool-1", summary, onOpen }),
       ),
     );
-    expect(view.container.textContent).toContain(locale === "en-US" ? "3 agents" : "3 个子代理");
+    expect(view.container.textContent).toContain(locale === "en-US" ? "3 subagents" : "3 个子代理");
     expect(view.container.textContent).not.toContain("step");
     const trigger = view.getByRole("button");
     fireEvent.click(trigger);
@@ -46,7 +46,7 @@ describe("WorkflowToolSummary", () => {
       ),
     );
     expect(view.container.textContent).toContain(word);
-    expect(view.container.textContent).toContain(locale === "en-US" ? "3 agents" : "3 个子代理");
+    expect(view.container.textContent).toContain(locale === "en-US" ? "3 subagents" : "3 个子代理");
   });
   it("宿主缺少打开能力时只展示文字", () => {
     const view = render(
@@ -57,7 +57,7 @@ describe("WorkflowToolSummary", () => {
       ),
     );
     expect(view.queryByRole("button")).toBeNull();
-    expect(view.container.textContent).toContain("3 agents");
+    expect(view.container.textContent).toContain("3 subagents");
   });
   it("摘要没带子代理数：不写计数，也不写步数", () => {
     const { agents: _dropped, ...bare } = summary;

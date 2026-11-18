@@ -62,7 +62,16 @@ export type RuntimeMessageSource =
   | "legacy_synthetic";
 
 export interface RuntimeMessageMetadata {
-  compactBoundary?: { boundaryId: string; preCompactDiscoveredTools?: readonly string[] };
+  compactBoundary?: {
+    boundaryId: string;
+    preCompactDiscoveredTools?: readonly string[];
+    /**
+     * 压缩 rollover（K2）：压缩完成时“context prefix + summary”的占用估算。
+     * 只存在于 runtime 内存条目上，不进入持久化 schema；旧会话/旧投影没有该值，
+     * 占用投影退回原全量估算，行为不回退。
+     */
+    rolloverContextTokens?: number;
+  };
   toolSearchAnnouncement?: {
     addedNames: readonly string[];
     removedNames: readonly string[];

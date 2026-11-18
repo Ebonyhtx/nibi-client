@@ -426,3 +426,88 @@ async fn tools_hidden_by_the_base_registry_leave_the_main_list() {
     let snapshot = registry.snapshot(&SessionId::new("s"));
     assert!(snapshot.tools.iter().all(|tool| tool.name() != "Agent"));
 }
+
+/// 捕获日志事件的最小订阅者：只记消息正文（测试断言“内核释放后读清单”的 error 日志）。
+#[derive(Clone, Default)]
+struct CaptureLogs(Arc<std::sync::Mutex<Vec<String>>>);
+
+impl CaptureLogs {
+    fn messages(&self) -> Vec<String> {
+        self.0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+}
+
+struct MessageVisitor<'a>(&'a mut String);
+
+impl tracing::field::Visit for MessageVisitor<'_> {
+    fn record_debug(
+        &mut self,
+        field: &tracing::field::Field,
+        value: &dyn std::fmt::Debug,
+    ) {
+        if field.name() == "message" {
+            self.0.push_str(&format!("{value:?}"));
+        }
+    }
+
+    fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
+        if field.name() == "message" {
+            self.0.push_str(value);
+        }
+    }
+}
+
+impl tracing::Subscriber for CaptureLogs {
+    fn enabled(&self, _metadata: &tracing::Metadata<'_>) -> bool {
+        true
+    }
+
+    fn new_span(&self, _span: &tracing::span::Attributes<'_>) -> tracing::span::Id {
+        tracing::span::Id::from_u64(1)
+    }
+
+    fn record(&self, _span: &tracing::span::Id, _values: &tracing::span::Record<'_>) {}
+
+    fn record_follows_from(&self, _span: &tracing::span::Id, _follows: &tracing::span::Id) {}
+
+    fn event(&self, event: &tracing::Event<'_>) {
+        let mut message = String::new();
+        event.record(&mut MessageVisitor(&mut message));
+        self.0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .push(message);
+    }
+
+    fn enter(&self, _span: &tracing::span::Id) {}
+
+    fn exit(&self, _span: &tracing::span::Id) {}
+}
+
+/// R02（丢掉的内核不释放）：读者只存 `Core` 的弱引用，不再把内核留在内存里；内核释放后再读返回空并记 error。
+#[tokio::test]
+async fn the_task_reader_does_not_keep_the_kernel_alive_and_logs_after_release() {
+    let harness = harness(None);
+    let reader = harness.agents.task_reader();
+    let core = Arc::downgrade(&harness.agents.core);
+    drop(harness);
+    assert!(
+        core.upgrade().is_none(),
+        "TaskLists must not keep the kernel alive"
+    );
+
+    let logs = CaptureLogs::default();
+    let _guard = tracing::subscriber::set_default(logs.clone());
+    let tasks = reader.tasks(&SessionId::new("sess_parent")).await;
+    assert!(tasks.is_empty());
+    assert!(
+        logs.messages()
+            .iter()
+            .any(|message| message.contains("the task list was read after its kernel was released")),
+        "{:?}",
+        logs.messages()
+    );
+}

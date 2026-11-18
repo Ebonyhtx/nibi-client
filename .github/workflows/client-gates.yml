@@ -48,6 +48,7 @@ jobs:
           node scripts/check-instance-root-paths.mjs
           node scripts/check-brand-model-names.mjs
           node scripts/check-kernel-upstream-gates.mjs
+          node scripts/check-kernel-capabilities.mjs
 
   linux-static:
     name: linux-static

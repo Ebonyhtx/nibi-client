@@ -3754,7 +3754,14 @@ describe("Explore subagent", () => {
         parentToolCallId: "first",
         prompt: "ORIGINAL_CHILD_INPUT",
       }),
-    ).rejects.toThrow("Turn execution failed");
+    // K4：子会话持久化后的运行失败回传失败结果（ok:false + error/agentId/usage），不再向上抛。
+    ).resolves.toMatchObject({
+      ok: false,
+      status: "failed",
+      agentId: expect.any(String),
+      error: expect.any(String),
+      usage: expect.any(Object),
+    });
     const first = Object.values(internal.runtimeTaskRegistry.all())[0] as {
       status: string;
       agentId: string;

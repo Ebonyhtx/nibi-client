@@ -1,5 +1,9 @@
 # Claude Code Marketplace 插件兼容实现规格
 
+> 状态（2026-11-18，G1）：插件包 manifest 只认 `.nibi-plugin/plugin.json`；
+> 本文的 `.claude-plugin/plugin.json` 插件包读取路径不再适用。市场目录的
+> `.claude-plugin/marketplace.json` 仍作为旧市场布局兼容读取。
+
 ## 目标
 
 ZCode 需要最大努力兼容 Claude Code Marketplace 插件，但不能把 Claude 的

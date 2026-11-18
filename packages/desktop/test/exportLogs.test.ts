@@ -875,6 +875,116 @@ describe("export logs archive", () => {
     });
   });
 
+  it("目录导出应递归脱敏 JSON/JSONL 深层字段、数组与转义载荷", async () => {
+    const { writeLogArchiveDirectory } = await import("@desktop/main/exportLogs.js");
+
+    await withTempDir(async (tempDir) => {
+      const sourceDir = join(tempDir, "source");
+      const sourceFile = join(sourceDir, "logs", "deep.jsonl");
+      await mkdir(join(sourceDir, "logs"), { recursive: true });
+      const escapedPayload = JSON.stringify({
+        nested: { apiKey: "escaped-secret" },
+        list: ["Bearer escaped-bearer"],
+      });
+      const lines = [
+        JSON.stringify({
+          level1: { level2: { level3: { authorization: "Bearer deep-bearer" } } },
+        }),
+        JSON.stringify({
+          items: [{ token: "array-token" }, { nested: { client_secret: "array-secret" } }],
+        }),
+        JSON.stringify({ payload: escapedPayload }),
+        JSON.stringify({
+          url: "https://example.com/callback?access_token=query-secret&page=2",
+          database: "postgres://user:pass@db.internal:5432/app",
+        }),
+        JSON.stringify({
+          tokenCount: 42,
+          prompt_tokens: 12,
+          author: "alice",
+          keyword: "token",
+        }),
+        "Authorization: Bearer plain-bearer",
+        "password=plain-pass",
+      ];
+      await writeFile(sourceFile, lines.join("\n"), "utf-8");
+
+      const outputDir = join(tempDir, "logs-dir");
+      await writeLogArchiveDirectory(outputDir, {
+        files: [{ absolutePath: sourceFile, archivePath: "logs/deep.jsonl" }],
+        aboutContent: "about-directory",
+      });
+
+      const exported = await readFile(join(outputDir, "logs", "deep.jsonl"), "utf-8");
+      const exportedLines = exported.split("\n");
+      expect(JSON.parse(exportedLines[0]!)).toEqual({
+        level1: { level2: { level3: { authorization: "***REDACTED***" } } },
+      });
+      expect(JSON.parse(exportedLines[1]!)).toEqual({
+        items: [{ token: "***REDACTED***" }, { nested: { client_secret: "***REDACTED***" } }],
+      });
+      const escapedOuter = JSON.parse(exportedLines[2]!) as { payload: string };
+      expect(JSON.parse(escapedOuter.payload)).toEqual({
+        nested: { apiKey: "***REDACTED***" },
+        list: ["Bearer ***REDACTED***"],
+      });
+      const urlLine = JSON.parse(exportedLines[3]!) as { url: string; database: string };
+      expect(urlLine.url).toBe(
+        "https://example.com/callback?access_token=***REDACTED***&page=2",
+      );
+      expect(urlLine.database).toBe(
+        "postgres://***REDACTED***:***REDACTED***@db.internal:5432/app",
+      );
+      // 计数/预算与 author/keyword 不是凭据，必须原样保留。
+      expect(JSON.parse(exportedLines[4]!)).toEqual({
+        tokenCount: 42,
+        prompt_tokens: 12,
+        author: "alice",
+        keyword: "token",
+      });
+      expect(exportedLines[5]).toBe("Authorization: Bearer ***REDACTED***");
+      expect(exportedLines[6]).toBe("password=***REDACTED***");
+      for (const secret of [
+        "deep-bearer",
+        "array-token",
+        "array-secret",
+        "escaped-secret",
+        "escaped-bearer",
+        "query-secret",
+        "postgres://user:pass",
+        "plain-bearer",
+        "plain-pass",
+      ]) {
+        expect(exported).not.toContain(secret);
+      }
+    });
+  });
+
+  it("目录导出遇到超深 JSON 时整行占位，避免栈溢出或漏脱敏", async () => {
+    const { writeLogArchiveDirectory } = await import("@desktop/main/exportLogs.js");
+
+    await withTempDir(async (tempDir) => {
+      const sourceDir = join(tempDir, "source");
+      const sourceFile = join(sourceDir, "logs", "too-deep.log");
+      await mkdir(join(sourceDir, "logs"), { recursive: true });
+      let deepValue: Record<string, unknown> = { token: "deep-secret" };
+      for (let depth = 0; depth < 80; depth += 1) {
+        deepValue = { nested: deepValue };
+      }
+      await writeFile(sourceFile, JSON.stringify(deepValue), "utf-8");
+
+      const outputDir = join(tempDir, "logs-dir");
+      await writeLogArchiveDirectory(outputDir, {
+        files: [{ absolutePath: sourceFile, archivePath: "logs/too-deep.log" }],
+        aboutContent: "about-directory",
+      });
+
+      const exported = await readFile(join(outputDir, "logs", "too-deep.log"), "utf-8");
+      expect(exported.trim()).toBe("***REDACTED***");
+      expect(exported).not.toContain("deep-secret");
+    });
+  });
+
   it("目录导出应识别 UTF-16 文本并脱敏敏感字段", async () => {
     const { writeLogArchiveDirectory } = await import("@desktop/main/exportLogs.js");
 

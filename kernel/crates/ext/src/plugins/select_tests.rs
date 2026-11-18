@@ -126,6 +126,104 @@ async fn enablement_follows_enabled_plugins_and_the_defaults() {
     );
 }
 
+/// G2：Rust 的缺省启用集必须与 `official-plugin-definitions.ts` 标了 `defaultEnabled`
+/// 的 11 个内置插件一致，不能多出已下线的 `image-search`，也不能漏掉 `design`。
+#[tokio::test]
+async fn official_defaults_match_the_node_seed_list() {
+    const ALL: [&str; 14] = [
+        "node-repl-host",
+        "visualize",
+        "android-emulator",
+        "browser-use",
+        "ios-simulator",
+        "plugin-creator",
+        "skill-creator",
+        "nibi-guide",
+        "design",
+        "computer-use",
+        "documents",
+        "pdf",
+        "presentations",
+        "spreadsheets",
+    ];
+    const EXPECTED: [&str; 11] = [
+        "browser-use",
+        "design",
+        "documents",
+        "pdf",
+        "presentations",
+        "spreadsheets",
+        "node-repl-host",
+        "skill-creator",
+        "plugin-creator",
+        "nibi-guide",
+        "visualize",
+    ];
+    let files: Vec<(String, String)> = ALL.iter().map(|name| official_manifest(name, "")).collect();
+    let sources = PluginSources {
+        candidates: ALL.iter().map(|name| official(name)).collect(),
+        host_node_repl: true,
+        host_browser_broker: true,
+        ..PluginSources::default()
+    };
+    let loaded = load_all(&env(&files), &workspace(), &[], &sources).await;
+    let mut loaded_names = names(&loaded);
+    loaded_names.sort_unstable();
+    let mut expected = EXPECTED;
+    expected.sort_unstable();
+    assert_eq!(loaded_names, expected);
+    // 其余 3 个只是默认关闭，不是缺 manifest 或 Node 依赖。
+    let mut skipped = reasons(&loaded);
+    skipped.sort_by_key(|(id, _)| id.unwrap_or_default().to_owned());
+    assert_eq!(
+        skipped,
+        [
+            (
+                Some("android-emulator@nibi-official"),
+                &SkipReason::Disabled
+            ),
+            (Some("computer-use@nibi-official"), &SkipReason::Disabled),
+            (Some("ios-simulator@nibi-official"), &SkipReason::Disabled),
+        ]
+    );
+}
+
+/// G2：禁用一个内置（design）只影响它自己，其他缺省启用项照常加载。
+#[tokio::test]
+async fn disabling_one_official_default_does_not_affect_the_others() {
+    const DEFAULTS: [&str; 11] = [
+        "browser-use",
+        "design",
+        "documents",
+        "pdf",
+        "presentations",
+        "spreadsheets",
+        "node-repl-host",
+        "skill-creator",
+        "plugin-creator",
+        "nibi-guide",
+        "visualize",
+    ];
+    let files: Vec<(String, String)> = DEFAULTS
+        .iter()
+        .map(|name| official_manifest(name, ""))
+        .collect();
+    let sources = PluginSources {
+        candidates: DEFAULTS.iter().map(|name| official(name)).collect(),
+        enabled_plugins: enabled(&[("design@nibi-official", false)]),
+        host_node_repl: true,
+        host_browser_broker: true,
+        ..PluginSources::default()
+    };
+    let loaded = load_all(&env(&files), &workspace(), &[], &sources).await;
+    assert!(!names(&loaded).contains(&"design"));
+    assert_eq!(names(&loaded).len(), DEFAULTS.len() - 1);
+    assert_eq!(
+        reasons(&loaded),
+        [(Some("design@nibi-official"), &SkipReason::Disabled)]
+    );
+}
+
 #[tokio::test]
 async fn paid_plugins_are_pruned_without_a_license() {
     let files = [
@@ -191,6 +289,10 @@ async fn sources_other_than_the_command_line_need_a_valid_manifest() {
             r#"{"name": "codex-kit"}"#.to_owned(),
         ),
         (
+            "/Users/dev/claude/.claude-plugin/plugin.json".to_owned(),
+            r#"{"name": "claude-kit"}"#.to_owned(),
+        ),
+        (
             "/Users/dev/session/skills/y/SKILL.md".to_owned(),
             "S\n".to_owned(),
         ),
@@ -200,20 +302,24 @@ async fn sources_other_than_the_command_line_need_a_valid_manifest() {
             candidate("/Users/dev/bare", "inline", PluginOrigin::ConfigDir),
             candidate("/Users/dev/bad", "inline", PluginOrigin::ConfigDir),
             candidate("/Users/dev/codex", "inline", PluginOrigin::ConfigDir),
+            candidate("/Users/dev/claude", "inline", PluginOrigin::ConfigDir),
             candidate("/Users/dev/missing", "inline", PluginOrigin::ConfigDir),
         ],
         ..PluginSources::default()
     };
     let session = [EnvPath::new("/Users/dev/session")];
     let loaded = load_all(&env(&files), &workspace(), &session, &sources).await;
-    // `--plugin-dir` 没有 manifest 时取目录名；其余来源按 Node 必须有合法的 manifest。
-    assert_eq!(names(&loaded), ["session", "codex-kit"]);
+    // `--plugin-dir` 没有 manifest 时取目录名；其余来源必须有 NIBI 自有 manifest，
+    // 只有 .claude-plugin/.codex-plugin 的目录不再被发现。
+    assert_eq!(names(&loaded), ["session"]);
     let reasons: Vec<&SkipReason> = loaded.skipped.iter().map(|s| &s.reason).collect();
     assert!(matches!(
         reasons.as_slice(),
         [
             SkipReason::ManifestMissing,
             SkipReason::ManifestInvalid(_),
+            SkipReason::ManifestMissing,
+            SkipReason::ManifestMissing,
             SkipReason::RootMissing
         ]
     ));
@@ -259,10 +365,10 @@ async fn bundled_plugins_that_need_the_node_runtime_are_skipped() {
         official_manifest("browser-use", r#", "skills": "skills""#),
         official_manifest("computer-use", ""),
         official_manifest("documents", host_mcp),
-        official_manifest("image-search", ""),
+        official_manifest("auth-kit", ""),
         (
-            format!("{CACHE}/{OFFICIAL}/image-search/1.0.0/.mcp.json"),
-            r#"{"mcpServers": {"image_search": {"type": "http", "url": "${NIBI_BASE_URL}/mcp", "auth": {"type": "zcode_official", "provider": "jwt_token"}}}}"#.to_owned(),
+            format!("{CACHE}/{OFFICIAL}/auth-kit/1.0.0/.mcp.json"),
+            r#"{"mcpServers": {"auth_kit": {"type": "http", "url": "${NIBI_BASE_URL}/mcp", "auth": {"type": "nibi_official", "provider": "jwt_token"}}}}"#.to_owned(),
         ),
         official_manifest("visualize", ""),
         official_manifest("android-emulator", host_mcp),
@@ -277,7 +383,7 @@ async fn bundled_plugins_that_need_the_node_runtime_are_skipped() {
             official("browser-use"),
             official("computer-use"),
             official("documents"),
-            official("image-search"),
+            official("auth-kit"),
             official("visualize"),
             official("android-emulator"),
             official("skill-creator"),
@@ -285,13 +391,14 @@ async fn bundled_plugins_that_need_the_node_runtime_are_skipped() {
         ],
         enabled_plugins: enabled(&[
             ("computer-use@nibi-official", true),
+            ("auth-kit@nibi-official", true),
             ("third@market", true),
         ]),
         ..PluginSources::default()
     };
     let loaded = load_all(&env(&files), &workspace(), &[], &sources).await;
-    // 只判定官方市场的插件：第三方插件里同样的参数照常加载。
-    assert_eq!(names(&loaded), ["skill-creator", "third"]);
+    // 只判定官方市场的插件：第三方插件里同样的参数照常加载；visualize 是内容插件，不再被 VIEW_HOST 误杀。
+    assert_eq!(names(&loaded), ["visualize", "skill-creator", "third"]);
     assert_eq!(
         reasons(&loaded),
         [
@@ -308,12 +415,8 @@ async fn bundled_plugins_that_need_the_node_runtime_are_skipped() {
                 &SkipReason::NodeRuntime(NodeDependency::PluginHost)
             ),
             (
-                Some("image-search@nibi-official"),
+                Some("auth-kit@nibi-official"),
                 &SkipReason::NodeRuntime(NodeDependency::OfficialAuth)
-            ),
-            (
-                Some("visualize@nibi-official"),
-                &SkipReason::NodeRuntime(NodeDependency::ViewHost)
             ),
             // 未启用的插件只记“未启用”，不判定 Node 依赖。
             (

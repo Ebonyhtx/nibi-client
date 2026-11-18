@@ -286,7 +286,7 @@ describe("CreateWorkflowToolCallBlock 静态形态（编过、未联接 run）",
     expect(view.getByTestId("workflow-card-kind").textContent).toBe("Workflow");
     expect(view.getByTestId("workflow-card-name").textContent).toBe("Research pipeline");
     expect(view.getByTestId("workflow-card-static-status").textContent).toBe("compiled");
-    expect(view.getByTestId("workflow-card-detail").textContent).toBe("2 phases · 2 agents");
+    expect(view.getByTestId("workflow-card-detail").textContent).toBe("2 phases · 2 subagents");
 
     const stations = view.getAllByTestId("workflow-timeline-station");
     expect(stations.map((station) => station.textContent)).toEqual([
@@ -327,7 +327,7 @@ describe("CreateWorkflowToolCallBlock 静态形态（编过、未联接 run）",
     });
     expect(view.getByTestId("workflow-timeline-station").textContent).toContain("Workflow");
     expect(view.getByTestId("workflow-agent-pill").textContent).toContain("a");
-    expect(view.getByTestId("workflow-card-detail").textContent).toBe("1 phase · 1 agent");
+    expect(view.getByTestId("workflow-card-detail").textContent).toBe("1 phase · 1 subagent");
   });
 
   it("没有图（或零 step 的图）时不画时间线，脚本折叠仍在", () => {
@@ -768,7 +768,7 @@ describe("CreateWorkflowToolCallBlock 运行态", () => {
     expect(card.getAttribute("data-workflow-run-id")).toBe("dwfrun-42");
     expect(view.getByTestId("workflow-card-kind").textContent).toBe("Workflow running");
     expect(view.getByTestId("workflow-card-status").textContent).toBe("Running");
-    expect(view.getByTestId("workflow-card-detail").textContent).toBe("2 phases · 1 agent working");
+    expect(view.getByTestId("workflow-card-detail").textContent).toBe("2 phases · 1 subagent working");
     expect(view.queryByTestId("workflow-run-card")).toBeNull();
     expect(view.queryByTestId("workflow-card-static-status")).toBeNull();
   });
@@ -803,7 +803,7 @@ describe("CreateWorkflowToolCallBlock 运行态", () => {
     const view = renderBlockDom(LOOP_TOOL_CALL, { workflowRun: joined() });
     expect(view.queryByTestId("workflow-card-footer")).toBeNull();
     const card = view.getByTestId("workflow-card").textContent ?? "";
-    expect(view.getByTestId("workflow-card-detail").textContent).toBe("2 phases · 1 agent working");
+    expect(view.getByTestId("workflow-card-detail").textContent).toBe("2 phases · 1 subagent working");
     expect(card).not.toContain("steps");
     expect(card).not.toContain("tokens");
     expect(view.container.querySelector("progress")).toBeNull();
@@ -847,7 +847,7 @@ describe("CreateWorkflowToolCallBlock 运行态", () => {
     expect(view.getByTestId("workflow-timeline-rail").getAttribute("data-rail-ink")).toBe("strong");
     const rounds = view.getAllByTestId("workflow-timeline-rounds");
     expect(rounds[0]!.textContent).toContain("2");
-    expect(view.getByTestId("workflow-card-detail").textContent).toBe("2 phases · 1 agent working");
+    expect(view.getByTestId("workflow-card-detail").textContent).toBe("2 phases · 1 subagent working");
     expect(view.queryByTestId("workflow-card-footer")).toBeNull();
   });
 
@@ -879,7 +879,7 @@ describe("CreateWorkflowToolCallBlock 运行态", () => {
     expect(view.getByTestId("workflow-timeline-arc").getAttribute("data-arc-ink")).toBe("faint");
     expect(view.getByTestId("workflow-card-header").querySelector(".animate-pulse")).toBeNull();
     expect(view.queryByTestId("workflow-card-footer")).toBeNull();
-    expect(view.getByTestId("workflow-card-detail").textContent).toBe("2 phases · 2 agents");
+    expect(view.getByTestId("workflow-card-detail").textContent).toBe("2 phases · 2 subagents");
     const card = view.getByTestId("workflow-card").textContent ?? "";
     expect(card).not.toContain("steps");
     expect(card).not.toContain("tokens");
@@ -954,7 +954,7 @@ describe("CreateWorkflowToolCallBlock 运行态", () => {
     expect(view.queryByTestId("workflow-card-body")).toBeNull();
     expect(view.queryByTestId("workflow-card-footer")).toBeNull();
     expect(view.getByTestId("workflow-card-status").textContent).toBe("Running");
-    expect(view.getByTestId("workflow-card-detail").textContent).toBe("2 phases · 1 agent working");
+    expect(view.getByTestId("workflow-card-detail").textContent).toBe("2 phases · 1 subagent working");
     fireEvent.click(view.getByTestId("workflow-card-toggle"));
     expect(view.getByTestId("workflow-card-body")).toBeTruthy();
   });
@@ -1519,7 +1519,7 @@ describe("CreateWorkflowToolCallBlock 名册站", () => {
     ]);
     expect(within(row).queryByTestId("workflow-more-failed")).toBeNull();
     // 表头照旧。
-    expect(view.getByTestId("workflow-card-detail").textContent).toContain("1 agent working");
+    expect(view.getByTestId("workflow-card-detail").textContent).toContain("1 subagent working");
   });
 
   // 表外的那些（docs/dynamic-workflow/presentation.md「Past six participants」）：被归约淘汰的

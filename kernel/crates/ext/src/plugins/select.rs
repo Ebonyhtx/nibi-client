@@ -15,11 +15,11 @@ use super::{DeclaredComponents, Manifest, Plugin, PluginCatalog, Plugins, Reader
 
 /// Node `NIBI_OFFICIAL_PLUGIN_MARKETPLACE`（定义在 base，F55）。
 const OFFICIAL: &str = nibi_kernel_base::names::OFFICIAL_MARKETPLACE;
-/// Node `DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS`（`official-plugin-definitions.ts` 里标了 `defaultEnabled`
-/// 的插件，与 `packages/shared/src/plugin-marketplaces.ts` 一致），都在官方市场。
+/// `official-plugin-definitions.ts` 标了 `defaultEnabled: true` 的 11 个内置插件
+/// （Node `DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS`）；`image-search` 不在 14 内置清单里，已移除。
 const DEFAULT_ENABLED: [&str; 11] = [
     "browser-use",
-    "image-search",
+    "design",
     "documents",
     "pdf",
     "presentations",
@@ -34,8 +34,6 @@ const DEFAULT_ENABLED: [&str; 11] = [
 const NODE_REPL: [&str; 3] = ["node-repl-host", "browser-use", "computer-use"];
 /// Node `NIBI_PLUGIN_HOST_COMMAND`：播种缓存时改写进 MCP 的启动参数。
 const PLUGIN_HOST_ARG: &str = "__nibi-plugin-host";
-/// 需要 App 内联视图宿主的官方插件（Node `filterVisualizeSkillRoots`）。
-const VIEW_HOST: &str = "visualize";
 
 /// 候选目录的来源（Node `PluginSource`）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -133,8 +131,6 @@ pub enum NodeDependency {
     PluginHost,
     /// MCP 要 Node 注入的官方鉴权。
     OfficialAuth,
-    /// 要 App 的内联视图宿主（终端没有）。
-    ViewHost,
 }
 
 impl NodeDependency {
@@ -145,7 +141,6 @@ impl NodeDependency {
             Self::OfficialAuth => {
                 "its MCP server needs the official auth injected by the Node host"
             }
-            Self::ViewHost => "the terminal has no inline view host",
         }
     }
 }
@@ -271,7 +266,9 @@ fn node_dependency(
             return Some(NodeDependency::OfficialAuth);
         }
     }
-    (name == VIEW_HOST).then_some(NodeDependency::ViewHost)
+    // visualize 是纯内容插件：Node 只在没有内联视图宿主的终端里过滤它的 skill root，
+    // 不把整个插件判成 Node 依赖。这里同样不能因它没有 Node 宿主就跳过。
+    None
 }
 
 /// 判定过程中的状态：会话插件的名字、已出现的 id。

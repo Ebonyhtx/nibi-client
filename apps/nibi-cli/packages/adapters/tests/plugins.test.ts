@@ -724,7 +724,7 @@ describe("NodePluginAdapter", () => {
           },
         ],
       });
-      await writePluginManifest(pluginRoot, { name: "hello", skills: "skills" }, ".claude-plugin");
+      await writePluginManifest(pluginRoot, { name: "hello", skills: "skills" }, ".nibi-plugin");
       await mkdir(join(pluginRoot, "skills", "hello"), { recursive: true });
       await writeFile(join(pluginRoot, "skills", "hello", "SKILL.md"), "# hello");
 
@@ -797,7 +797,7 @@ describe("NodePluginAdapter", () => {
           mcpServers: {
             "ios-simulator": {
               command: "bun",
-              args: ["${CLAUDE_PLUGIN_ROOT}/src/mcp/server.ts"],
+              args: ["${NIBI_PLUGIN_ROOT}/src/mcp/server.ts"],
               cwd: "${NIBI_PROJECT_DIR}",
               env: {
                 IOS_SIM_DEFAULT_DEVICE: "${user_config.default_device}",
@@ -1146,7 +1146,7 @@ describe("NodePluginAdapter", () => {
           name: "airtable",
           skills: "skills",
         },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
       await mkdir(join(pluginRoot, "skills", "airtable-overview"), { recursive: true });
       await mkdir(join(pluginRoot, "hooks"), { recursive: true });
@@ -1254,7 +1254,7 @@ describe("NodePluginAdapter", () => {
       await writePluginManifest(
         pluginRoot,
         { name: "broken-mcp", skills: "skills" },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
       await mkdir(join(pluginRoot, "skills", "still-visible"), { recursive: true });
       await writeFile(join(pluginRoot, "skills", "still-visible", "SKILL.md"), "# skill");
@@ -1310,17 +1310,17 @@ describe("NodePluginAdapter", () => {
           mcpServers: {
             local: {
               command: "node",
-              args: ["${CLAUDE_PLUGIN_ROOT}/server.js"],
+              args: ["${NIBI_PLUGIN_ROOT}/server.js"],
             },
           },
           name: "hello",
           skills: "skills",
         },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
       await mkdir(join(pluginRoot, "skills", "hello"), { recursive: true });
       await writeFile(join(pluginRoot, "skills", "hello", "SKILL.md"), "# hello");
-      await writePluginManifest(depRoot, { name: "dep" }, ".claude-plugin");
+      await writePluginManifest(depRoot, { name: "dep" }, ".nibi-plugin");
 
       const marketplace = await addMarketplace({
         source: { source: "directory", path: marketplaceRoot },
@@ -1389,7 +1389,7 @@ describe("NodePluginAdapter", () => {
           commands: "commands",
           name: "wrong-name",
         },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
       await execFileAsync("git", ["add", "."], { cwd: repoRoot });
       await execFileAsync(
@@ -1411,7 +1411,7 @@ describe("NodePluginAdapter", () => {
           commands: "commands",
           name: "atomic-agents",
         },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
       await mkdir(join(pluginRoot, "commands"), { recursive: true });
       await writeFile(join(pluginRoot, "commands", "agent.md"), "# agent");
@@ -1438,7 +1438,7 @@ describe("NodePluginAdapter", () => {
           commands: "commands",
           name: "wrong-name-after-pin",
         },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
       await execFileAsync("git", ["add", "."], { cwd: repoRoot });
       await execFileAsync(
@@ -1505,7 +1505,7 @@ describe("NodePluginAdapter", () => {
           "official-like-url-path",
           "atomic-agents",
           "0.0.0",
-          ".claude-plugin",
+          ".nibi-plugin",
           "plugin.json",
         ),
         "utf8",
@@ -1532,7 +1532,7 @@ describe("NodePluginAdapter", () => {
       await writePluginManifest(
         repoRoot,
         { name: "superpowers", version: "6.0.3" },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
       await execFileAsync("git", ["add", "."], { cwd: repoRoot });
       await execFileAsync(
@@ -1587,7 +1587,7 @@ describe("NodePluginAdapter", () => {
           "claude-plugins-official",
           "superpowers",
           "6.0.3",
-          ".claude-plugin",
+          ".nibi-plugin",
           "plugin.json",
         ),
         "utf8",
@@ -1829,7 +1829,7 @@ describe("NodePluginAdapter", () => {
   it("downloads a zip from a loopback source directly (回环不走代理)", async () => {
     const zipBuffer = createStoredZip([
       {
-        path: ".claude-plugin/plugin.json",
+        path: ".nibi-plugin/plugin.json",
         content: JSON.stringify({ name: "loopback-zip", version: "1.0.0" }),
       },
     ]);
@@ -1850,7 +1850,7 @@ describe("NodePluginAdapter", () => {
         sha256: sha256Buffer(zipBuffer),
         url: `${baseUrl}/captured-proxy.zip`,
       });
-      expect(existsSync(join(resolved.path, ".claude-plugin", "plugin.json"))).toBe(true);
+      expect(existsSync(join(resolved.path, ".nibi-plugin", "plugin.json"))).toBe(true);
     } finally {
       await resolved?.cleanup();
       await closeServer(upstream);
@@ -1859,7 +1859,7 @@ describe("NodePluginAdapter", () => {
   it("drops custom zip headers on cross-origin redirects", async () => {
     const zipBuffer = createStoredZip([
       {
-        path: ".claude-plugin/plugin.json",
+        path: ".nibi-plugin/plugin.json",
         content: JSON.stringify({ name: "redirected-zip", version: "1.0.0" }),
       },
     ]);
@@ -1942,7 +1942,7 @@ describe("NodePluginAdapter", () => {
           content: "First top-level directory.",
         },
         {
-          path: "bundle-b/.claude-plugin/plugin.json",
+          path: "bundle-b/.nibi-plugin/plugin.json",
           content: JSON.stringify({ name: "invalid-root", version: "1.0.0" }),
         },
       ]);
@@ -1992,7 +1992,7 @@ describe("NodePluginAdapter", () => {
     try {
       const zipBuffer = createStoredZip([
         {
-          path: ".claude-plugin/plugin.json",
+          path: ".nibi-plugin/plugin.json",
           content: JSON.stringify({ name: "bad-zip", version: "1.0.0" }),
         },
       ]);
@@ -2043,7 +2043,7 @@ describe("NodePluginAdapter", () => {
           content: "escape",
         },
         {
-          path: ".claude-plugin/plugin.json",
+          path: ".nibi-plugin/plugin.json",
           content: JSON.stringify({ name: "zip-slip", version: "1.0.0" }),
         },
       ]);
@@ -2105,7 +2105,7 @@ describe("NodePluginAdapter", () => {
     ]);
     const pluginArchive = createStoredZip([
       {
-        path: "archive-plugin-abc123/packages/archive-plugin/.claude-plugin/plugin.json",
+        path: "archive-plugin-abc123/packages/archive-plugin/.nibi-plugin/plugin.json",
         content: JSON.stringify({ name: "archive-plugin", version: "1.2.3" }),
       },
       {
@@ -2205,7 +2205,7 @@ describe("NodePluginAdapter", () => {
         content: "*.bin filter=lfs diff=lfs merge=lfs -text\n",
       },
       {
-        path: "lfs-plugin-main/packages/plugin/.claude-plugin/plugin.json",
+        path: "lfs-plugin-main/packages/plugin/.nibi-plugin/plugin.json",
         content: JSON.stringify({ name: "lfs-plugin", version: "1.0.0" }),
       },
       {
@@ -2297,7 +2297,7 @@ describe("NodePluginAdapter", () => {
       const marketplaceRoot = join(dir, "marketplace");
       const archive = createStoredZip([
         {
-          path: "source-variants-pin/packages/source-variant/.claude-plugin/plugin.json",
+          path: "source-variants-pin/packages/source-variant/.nibi-plugin/plugin.json",
           content: JSON.stringify({ name: "source-variant", version: "2.0.0" }),
         },
       ]);
@@ -3270,9 +3270,9 @@ describe("NodePluginAdapter", () => {
     const badSource = join(dir, "bad-source");
 
     try {
-      await writePluginManifest(rootSource, { name: "root", version: "1.0.0" }, ".claude-plugin");
-      await writePluginManifest(goodSource, { name: "good", version: "1.0.0" }, ".claude-plugin");
-      await writePluginManifest(badSource, { name: "bad", version: "1.0.0" }, ".claude-plugin");
+      await writePluginManifest(rootSource, { name: "root", version: "1.0.0" }, ".nibi-plugin");
+      await writePluginManifest(goodSource, { name: "good", version: "1.0.0" }, ".nibi-plugin");
+      await writePluginManifest(badSource, { name: "bad", version: "1.0.0" }, ".nibi-plugin");
       await writeFile(join(goodSource, "marker.txt"), "v1");
       await writeMarketplaceManifest(marketplaceRoot, {
         name: "transaction-market",
@@ -3332,7 +3332,7 @@ describe("NodePluginAdapter", () => {
       await writePluginManifest(
         pluginRoot,
         { name: "offline-plugin", skills: "skills", version: "1.0.0" },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
       await mkdir(join(pluginRoot, "skills", "offline"), { recursive: true });
       await writeFile(join(pluginRoot, "skills", "offline", "SKILL.md"), "# offline");
@@ -3468,7 +3468,7 @@ describe("NodePluginAdapter", () => {
             },
           },
         },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
 
       const diagnostics = await validateMarketplaceSource({
@@ -3519,7 +3519,7 @@ describe("NodePluginAdapter", () => {
           hooks: "hooks/hooks.json",
           name: "local-risky",
         },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
 
       const diagnostics = await validateMarketplaceSource({
@@ -3573,7 +3573,7 @@ describe("NodePluginAdapter", () => {
           hooks: "hooks/hooks.json",
           name: "hooked",
         },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
       await mkdir(join(pluginRoot, "hooks"), { recursive: true });
       await writeFile(
@@ -3641,7 +3641,7 @@ describe("NodePluginAdapter", () => {
           },
         ],
       });
-      await writePluginManifest(pluginRoot, { name: "hookify" }, ".claude-plugin");
+      await writePluginManifest(pluginRoot, { name: "hookify" }, ".nibi-plugin");
       await mkdir(join(pluginRoot, "hooks"), { recursive: true });
       await writeFile(
         join(pluginRoot, "hooks", "hooks.json"),
@@ -3909,14 +3909,14 @@ describe("NodePluginAdapter", () => {
     }
   });
 
-  it("loads plugins that only provide a Claude manifest", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "nibi-claude-plugin-"));
-    const pluginRoot = join(dir, "claude-only");
+  it("loads plugins from the NIBI manifest directory", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-native-plugin-"));
+    const pluginRoot = join(dir, "native-only");
 
     try {
-      await writePluginManifest(pluginRoot, { name: "claude-only" }, ".claude-plugin");
-      await mkdir(join(pluginRoot, "skills", "claude-only"), { recursive: true });
-      await writeFile(join(pluginRoot, "skills", "claude-only", "SKILL.md"), "# skill");
+      await writePluginManifest(pluginRoot, { name: "native-only" }, ".nibi-plugin");
+      await mkdir(join(pluginRoot, "skills", "native-only"), { recursive: true });
+      await writeFile(join(pluginRoot, "skills", "native-only", "SKILL.md"), "# skill");
 
       const outcome = await createNodePluginAdapter({
         storageRoot: join(dir, "plugins"),
@@ -3932,9 +3932,9 @@ describe("NodePluginAdapter", () => {
         workingDirectory: dir,
       });
 
-      expect(outcome.plugins[0]?.id).toBe("claude-only@inline");
+      expect(outcome.plugins[0]?.id).toBe("native-only@inline");
       expect(outcome.plugins[0]?.manifestPath).toBe(
-        join(pluginRoot, ".claude-plugin", "plugin.json"),
+        join(pluginRoot, ".nibi-plugin", "plugin.json"),
       );
       expect(outcome.skillRoots[0]?.path).toBe(join(pluginRoot, "skills"));
     } finally {
@@ -3942,9 +3942,9 @@ describe("NodePluginAdapter", () => {
     }
   });
 
-  it("prefers Claude manifest over Codex manifest when no Nibi manifest exists", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "nibi-codex-plugin-"));
-    const pluginRoot = join(dir, "multi-manifest");
+  it("ignores legacy Claude and Codex manifests when no NIBI manifest exists", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-legacy-plugin-"));
+    const pluginRoot = join(dir, "legacy-only");
 
     try {
       await writePluginManifest(pluginRoot, { name: "codex-name" }, ".codex-plugin");
@@ -3964,10 +3964,189 @@ describe("NodePluginAdapter", () => {
         workingDirectory: dir,
       });
 
-      expect(outcome.plugins[0]?.id).toBe("claude-name@inline");
-      expect(outcome.plugins[0]?.manifestPath).toBe(
-        join(pluginRoot, ".claude-plugin", "plugin.json"),
+      expect(outcome.plugins).toEqual([]);
+      expect(outcome.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "plugin_manifest_not_found",
+            path: pluginRoot,
+          }),
+        ]),
       );
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("migrates a legacy manifest in an installed cache to .nibi-plugin", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-legacy-install-"));
+    const storageRoot = join(dir, "plugins");
+    const installPath = join(
+      storageRoot,
+      "cache",
+      "nibi-official",
+      "math-modeling",
+      "0.13.2",
+    );
+
+    try {
+      await mkdir(join(installPath, ".claude-plugin"), { recursive: true });
+      await writeFile(
+        join(installPath, ".claude-plugin", "plugin.json"),
+        JSON.stringify({ name: "math-modeling", skills: "skills", version: "0.13.2" }),
+      );
+      await mkdir(join(installPath, "skills", "math-modeling"), { recursive: true });
+      await writeFile(
+        join(installPath, "skills", "math-modeling", "SKILL.md"),
+        "---\ndescription: Math\n---\n# math",
+      );
+      await mkdir(storageRoot, { recursive: true });
+      await writeFile(
+        join(storageRoot, "installed_plugins.json"),
+        JSON.stringify({
+          version: 1,
+          plugins: [
+            {
+              id: "math-modeling@nibi-official",
+              name: "math-modeling",
+              marketplace: "nibi-official",
+              version: "0.13.2",
+              installPath,
+              installedAt: "2026-01-01T00:00:00.000Z",
+              updatedAt: "2026-01-01T00:00:00.000Z",
+              scope: "user",
+            },
+          ],
+        }),
+      );
+
+      const outcome = await createNodePluginAdapter({ storageRoot }).discoverPlugins({
+        config: {
+          dirs: [],
+          enabled: true,
+          enabledPlugins: { "math-modeling@nibi-official": true },
+          options: {},
+          suppressedBuiltins: [],
+        },
+        env: {},
+        storageRoot,
+        workingDirectory: dir,
+      });
+
+      expect(outcome.plugins.find((plugin) => plugin.id === "math-modeling@nibi-official")).toMatchObject({
+        enabled: true,
+        name: "math-modeling",
+      });
+      expect(existsSync(join(installPath, ".nibi-plugin", "plugin.json"))).toBe(true);
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("synthesizes a NIBI manifest for manifest-less marketplace entries", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-synthetic-manifest-"));
+    const storageRoot = join(dir, "storage");
+    const marketplaceRoot = join(dir, "marketplace");
+    const pluginRoot = join(marketplaceRoot, "plugins", "hello");
+
+    try {
+      await writeKnownMarketplaces(storageRoot, [
+        {
+          id: "lazy-market",
+          source: { source: "directory", path: marketplaceRoot },
+          name: "lazy-market",
+          addedAt: "2026-01-01T00:00:00.000Z",
+          pluginCount: 0,
+        },
+      ]);
+      await writeMarketplaceManifest(marketplaceRoot, {
+        name: "lazy-market",
+        plugins: [
+          {
+            name: "hello",
+            source: "./plugins/hello",
+            strict: false,
+            mcpServers: {
+              hello: { command: "node", args: ["server.mjs"] },
+            },
+            ui: {
+              surfaces: [
+                {
+                  availability: "session",
+                  id: "hello",
+                  resourceUri: "ui://hello/panel",
+                  server: "hello",
+                  title: "Hello",
+                },
+              ],
+            },
+          },
+        ],
+      });
+      await mkdir(join(pluginRoot, "skills", "hello"), { recursive: true });
+      await writeFile(join(pluginRoot, "skills", "hello", "SKILL.md"), "# hello");
+
+      const install = await installMarketplacePlugin({
+        marketplace: "lazy-market",
+        name: "hello",
+        storageRoot,
+      });
+      const installPath = install.installed[0]?.installPath ?? "";
+      expect(existsSync(join(installPath, ".nibi-plugin", "plugin.json"))).toBe(true);
+      expect(existsSync(join(installPath, ".claude-plugin", "plugin.json"))).toBe(false);
+
+      const outcome = await createNodePluginAdapter({ storageRoot }).discoverPlugins({
+        config: {
+          dirs: [],
+          enabled: true,
+          enabledPlugins: { "hello@lazy-market": true },
+          options: {},
+        },
+        env: {},
+        storageRoot,
+        workingDirectory: dir,
+      });
+      const plugin = outcome.plugins.find((item) => item.id === "hello@lazy-market");
+      expect(plugin).toMatchObject({ enabled: true, name: "hello" });
+      expect(plugin?.uiSurfaces?.[0]?.id).toBe("hello");
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("does not expand legacy CLAUDE_PLUGIN_ROOT in plugin MCP config", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-legacy-vars-"));
+    const pluginRoot = join(dir, "legacy-vars");
+
+    try {
+      await writePluginManifest(pluginRoot, {
+        mcpServers: {
+          db: {
+            command: "db",
+            args: ["${CLAUDE_PLUGIN_ROOT}/old", "${NIBI_PLUGIN_ROOT}/new"],
+          },
+        },
+        name: "legacy-vars",
+      });
+
+      const outcome = await createNodePluginAdapter({
+        storageRoot: join(dir, "plugins"),
+      }).discoverPlugins({
+        config: {
+          dirs: [pluginRoot],
+          enabled: true,
+          enabledPlugins: {},
+          options: {},
+        },
+        env: {},
+        storageRoot: join(dir, "plugins"),
+        workingDirectory: dir,
+      });
+
+      expect(outcome.mcpServers["plugin:legacy-vars:db"]?.args).toEqual([
+        "${CLAUDE_PLUGIN_ROOT}/old",
+        `${pluginRoot}/new`,
+      ]);
     } finally {
       await rm(dir, { force: true, recursive: true });
     }
@@ -3993,7 +4172,7 @@ describe("NodePluginAdapter", () => {
         name: "uninstall-market",
         plugins: [{ name: "hello", source: "./plugins/hello" }],
       });
-      await writePluginManifest(pluginRoot, { name: "hello", skills: "skills" }, ".claude-plugin");
+      await writePluginManifest(pluginRoot, { name: "hello", skills: "skills" }, ".nibi-plugin");
       await mkdir(join(pluginRoot, "skills", "hello"), { recursive: true });
       await writeFile(join(pluginRoot, "skills", "hello", "SKILL.md"), "# hello");
 
@@ -4055,7 +4234,7 @@ describe("NodePluginAdapter", () => {
       await writePluginManifest(
         pluginRoot,
         { name: "mattpocock-skills", skills: skillEntries },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
       for (const [index, entry] of skillEntries.entries()) {
         const skillName = entry.split("/").pop() ?? "";
@@ -4127,7 +4306,7 @@ describe("NodePluginAdapter", () => {
       await writePluginManifest(
         pluginRoot,
         { name: "same-leaf", skills: entries.map((item) => item.entry) },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
       for (const { entry, name } of entries) {
         const skillDir = join(pluginRoot, entry);
@@ -4183,7 +4362,7 @@ describe("NodePluginAdapter", () => {
       await writePluginManifest(
         pluginRoot,
         { name: "overlap", skills: ["./skills/foo"] },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
       await mkdir(join(pluginRoot, "skills", "foo"), { recursive: true });
       await writeFile(
@@ -4237,7 +4416,7 @@ describe("NodePluginAdapter", () => {
           name: "path-escape",
           skills: ["../../outside-skill", absoluteOutside, "./skills/legit"],
         },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
       await mkdir(outsideSkill, { recursive: true });
       await mkdir(absoluteOutside, { recursive: true });
@@ -4313,7 +4492,7 @@ describe("NodePluginAdapter", () => {
           name: "file-symlink-escape",
           skills: ["./skills", "./bundle-root"],
         },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
       await writeFile(outsideFile, "---\nname: leaked-secret\ndescription: x\n---\nleaked");
       // 形态 1：子目录是真实目录，其 SKILL.md 是指向外部的文件链接。
@@ -4386,7 +4565,7 @@ describe("NodePluginAdapter", () => {
           name: "symlink-escape",
           skills: ["./skills/linked-root", "./skills"],
         },
-        ".claude-plugin",
+        ".nibi-plugin",
       );
       await mkdir(outsideSkill, { recursive: true });
       await writeFile(
@@ -4449,7 +4628,7 @@ describe("NodePluginAdapter", () => {
     const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-empty-skills-"));
 
     async function discover(pluginRoot: string, manifest: Record<string, unknown>) {
-      await writePluginManifest(pluginRoot, manifest, ".claude-plugin");
+      await writePluginManifest(pluginRoot, manifest, ".nibi-plugin");
       return await createNodePluginAdapter({ storageRoot: join(dir, "plugins") }).discoverPlugins({
         config: {
           dirs: [pluginRoot],
@@ -4675,11 +4854,10 @@ async function writeMarketplaceManifest(
   marketplaceRoot: string,
   manifest: Record<string, unknown>,
 ): Promise<void> {
-  await mkdir(join(marketplaceRoot, ".claude-plugin"), { recursive: true });
-  await writeFile(
-    join(marketplaceRoot, ".claude-plugin", "marketplace.json"),
-    JSON.stringify(manifest),
-  );
+  // NIBI 原生市场布局：根目录 marketplace.json。旧 `.claude-plugin/marketplace.json`
+  // 仍有兼容读取，但测试默认走原生布局。
+  await mkdir(marketplaceRoot, { recursive: true });
+  await writeFile(join(marketplaceRoot, "marketplace.json"), JSON.stringify(manifest));
 }
 
 async function writeKnownMarketplaces(
@@ -4765,7 +4943,7 @@ async function writeTripletPluginFixture(
       name: fixture.name,
       version: "1.0.0",
     },
-    ".claude-plugin",
+    ".nibi-plugin",
   );
 
   for (let index = 1; index <= fixture.skillCount; index += 1) {
@@ -4809,10 +4987,10 @@ async function writeTripletPluginFixture(
     JSON.stringify({
       mcpServers: {
         [fixture.mcpServerName]: {
-          args: ["${CLAUDE_PLUGIN_ROOT}/mcp/server.js"],
+          args: ["${NIBI_PLUGIN_ROOT}/mcp/server.js"],
           command: "node",
           env: {
-            PLUGIN_DATA: "${CLAUDE_PLUGIN_DATA}",
+            PLUGIN_DATA: "${NIBI_PLUGIN_DATA}",
             PROJECT_DIR: "${NIBI_PROJECT_DIR}",
           },
         },

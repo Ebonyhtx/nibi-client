@@ -2,9 +2,7 @@ import { joinPathLikeRoot } from "../src/memory/directory.js";
 import { describe, expect, it, vi } from "vitest";
 import { createTestModelSelection } from "./test-model-selection.js";
 import { createTestModelFormatProperties } from "./test-runtime-model.js";
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import {
   CoreErrorType,
   READ_IMAGE_MAX_BASE64_BYTES,
@@ -114,13 +112,6 @@ function createAutoGitBashSelection(): ExecutionShellSelection {
     path: "C:\\Program Files\\Git\\bin\\bash.exe",
     source: "auto-detected",
   };
-}
-
-function createExecutableShell(root: string, name: string): string {
-  const shellPath = join(root, name);
-  writeFileSync(shellPath, "#!/bin/sh\nexit 0\n");
-  chmodSync(shellPath, 0o755);
-  return shellPath;
 }
 
 function registerShellSnapshotProbe(
@@ -1850,7 +1841,7 @@ describe("AgentRuntime session persistence", () => {
     expect(fileSystemPort.files.get(file)).toBe("after\nexternal change\n");
   });
 
-  it("persists the Bash shell selection captured when the session is first created", async () => {
+  it("does not persist a Bash shell selection entry when the session is created", async () => {
     const sessionId = createSessionId("runtime-persistence-shell-snapshot");
     const store = createRecordingSessionStore();
     const workingDirectory = "/tmp/nibi-runtime-shell-snapshot";
@@ -1885,23 +1876,12 @@ describe("AgentRuntime session persistence", () => {
 
     await runtime.executeTurn("persisted prompt");
 
-    expect(store.savedSessionEntries).toContainEqual({
-      id: `${sessionId}:runtime:bash_shell_selection`,
-      sessionID: sessionId,
-      type: SESSION_ENTRY_BASH_SHELL_SELECTION,
-      time: {
-        created: expect.any(Number),
-        updated: expect.any(Number),
-      },
-      data: {
-        dialect: "git-bash",
-        display: { name: "Git Bash" },
-        id: "git-bash:/usr/bin/bash",
-        label: "Git Bash",
-        path: "/usr/bin/bash",
-        source: "user-config",
-      },
-    });
+    // shell selection 每会话只读当前设置，不再写入 runtime:bash_shell_selection entry。
+    expect(
+      store.savedSessionEntries.filter(
+        (entry) => entry.type === SESSION_ENTRY_BASH_SHELL_SELECTION,
+      ),
+    ).toEqual([]);
   });
 
   it("announces legacy cold-resume Bash shell drift when no shell snapshot exists", async () => {
@@ -2121,219 +2101,252 @@ describe("AgentRuntime session persistence", () => {
     expect(secondProviderText.match(new RegExp(escapeRegExp(reminder), "g")) ?? []).toHaveLength(1);
   });
 
-  it("restores the persisted Bash shell selection before resumed tool execution", async () => {
+  it("uses the current Bash shell selection for resumed tool execution", async () => {
     const sessionId = createSessionId("runtime-persistence-shell-tool-snapshot");
     const store = createRecordingSessionStore();
-    const workingDirectory = mkdtempSync(join(tmpdir(), "nibi-shell-tool-snapshot-"));
-    const shellPath = createExecutableShell(workingDirectory, "git-bash");
+    const workingDirectory = "/tmp/nibi-runtime-shell-tool-snapshot";
 
-    try {
-      const firstRuntime = createTestAgentRuntime(
-        sessionId,
-        {
-          bashShellSelection: {
-            dialect: "git-bash",
-            display: { name: "Git Bash" },
-            id: `git-bash:${shellPath}`,
-            label: "Git Bash",
-            path: shellPath,
-            source: "user-config",
+    const firstRuntime = createTestAgentRuntime(
+      sessionId,
+      {
+        bashShellSelection: {
+          dialect: "git-bash",
+          display: { name: "Git Bash" },
+          id: "git-bash:/usr/bin/bash",
+          label: "Git Bash",
+          path: "/usr/bin/bash",
+          source: "user-config",
+        },
+        currentDate: "2026-06-20",
+        workingDirectory,
+      },
+      {
+        eventStore: createTestSessionEventStore(),
+        modelFactory: createTestModelFactory({
+          async generateText() {
+            return {
+              text: "first answer",
+              finishReason: "stop",
+              usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+            };
           },
-          currentDate: "2026-06-20",
-          workingDirectory,
-        },
-        {
-          eventStore: createTestSessionEventStore(),
-          modelFactory: createTestModelFactory({
-            async generateText() {
-              return {
-                text: "first answer",
-                finishReason: "stop",
-                usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
-              };
-            },
-          } as never),
-          sessionStore: store,
-        },
-      );
-      await firstRuntime.executeTurn("persisted prompt");
+        } as never),
+        sessionStore: store,
+      },
+    );
+    await firstRuntime.executeTurn("persisted prompt");
 
-      const toolRegistry = createToolRegistry();
-      const getCapturedContext = registerShellSnapshotProbe(toolRegistry);
+    const toolRegistry = createToolRegistry();
+    const getCapturedContext = registerShellSnapshotProbe(toolRegistry);
 
-      const responses = [
-        {
-          text: "probe shell",
-          finishReason: "tool-calls",
-          usage: { inputTokens: 10, outputTokens: 4, totalTokens: 14 },
-          toolCalls: [
-            {
-              id: "shell-snapshot-probe",
-              name: "ShellSnapshotProbe",
-              input: {},
-            },
-          ],
-        },
-        {
-          text: "done",
-          finishReason: "stop",
-          usage: { inputTokens: 12, outputTokens: 5, totalTokens: 17 },
-        },
-      ];
-      const resumedRuntime = createTestAgentRuntime(
-        sessionId,
-        {
-          bashShellSelection: {
-            dialect: "cmd",
-            display: { name: "CMD" },
-            id: "cmd",
-            label: "CMD",
-            path: "cmd.exe",
-            source: "user-config",
+    const responses = [
+      {
+        text: "probe shell",
+        finishReason: "tool-calls",
+        usage: { inputTokens: 10, outputTokens: 4, totalTokens: 14 },
+        toolCalls: [
+          {
+            id: "shell-snapshot-probe",
+            name: "ShellSnapshotProbe",
+            input: {},
           },
-          currentDate: "2026-06-20",
-          workingDirectory,
+        ],
+      },
+      {
+        text: "done",
+        finishReason: "stop",
+        usage: { inputTokens: 12, outputTokens: 5, totalTokens: 17 },
+      },
+    ];
+    const resumedRuntime = createTestAgentRuntime(
+      sessionId,
+      {
+        bashShellSelection: {
+          dialect: "cmd",
+          display: { name: "CMD" },
+          id: "cmd",
+          label: "CMD",
+          path: "cmd.exe",
+          source: "user-config",
         },
-        {
-          eventStore: createTestSessionEventStore(),
-          modelFactory: createTestModelFactory({
-            async generateText() {
-              const response = responses.shift();
-              if (!response) throw new Error("unexpected model request");
-              return response;
-            },
-          } as never),
-          sessionStore: store,
-          toolRegistry,
-        },
-      );
+        currentDate: "2026-06-20",
+        workingDirectory,
+      },
+      {
+        eventStore: createTestSessionEventStore(),
+        modelFactory: createTestModelFactory({
+          async generateText() {
+            const response = responses.shift();
+            if (!response) throw new Error("unexpected model request");
+            return response;
+          },
+        } as never),
+        sessionStore: store,
+        toolRegistry,
+      },
+    );
 
-      await resumedRuntime.resumeFromStore();
-      await resumedRuntime.executeTurn("resumed prompt");
+    await resumedRuntime.resumeFromStore();
+    await resumedRuntime.executeTurn("resumed prompt");
 
-      expect(getCapturedContext()?.bashShellSelection).toMatchObject({
-        display: { name: "Git Bash" },
-        dialect: "git-bash",
-        path: shellPath,
-        source: "user-config",
-      });
-    } finally {
-      rmSync(workingDirectory, { force: true, recursive: true });
-    }
+    // shell 不从会话恢复：resume 后工具执行使用当前设置的选择，而不是会话创建时的旧值。
+    expect(getCapturedContext()?.bashShellSelection).toMatchObject({
+      display: { name: "CMD" },
+      dialect: "cmd",
+      path: "cmd.exe",
+      source: "user-config",
+    });
   });
 
-  it("falls back to the current Bash shell selection when the persisted snapshot is stale", async () => {
-    const sessionId = createSessionId("runtime-persistence-stale-shell-snapshot");
+  it("ignores a legacy persisted Bash shell selection snapshot on resume", async () => {
+    const sessionId = createSessionId("runtime-persistence-legacy-shell-snapshot");
     const store = createRecordingSessionStore();
-    const tempRoot = mkdtempSync(join(tmpdir(), "nibi-stale-shell-snapshot-"));
-    const oldShellPath = createExecutableShell(tempRoot, "old-bash");
-    const newShellPath = createExecutableShell(tempRoot, "new-zsh");
+    const workingDirectory = "/tmp/nibi-runtime-legacy-shell-snapshot";
+    const loggerCalls: Array<{ message: string; context: Record<string, unknown> }> = [];
+    const recordingLogger = {
+      child: () => recordingLogger,
+      debug: () => {},
+      error: () => {},
+      info: (message: string, context?: Record<string, unknown>) => {
+        loggerCalls.push({ context: context ?? {}, message });
+      },
+      warn: (message: string, context?: Record<string, unknown>) => {
+        loggerCalls.push({ context: context ?? {}, message });
+      },
+    };
 
-    try {
-      const firstRuntime = createTestAgentRuntime(
-        sessionId,
-        {
-          bashShellSelection: {
-            dialect: "posix",
-            display: { name: "bash" },
-            id: `auto:${oldShellPath}`,
-            label: "bash",
-            path: oldShellPath,
-            source: "auto-detected",
+    const firstRuntime = createTestAgentRuntime(
+      sessionId,
+      {
+        bashShellSelection: {
+          dialect: "posix",
+          display: { name: "bash" },
+          id: "auto:/usr/bin/old-bash",
+          label: "bash",
+          path: "/usr/bin/old-bash",
+          source: "auto-detected",
+        },
+        currentDate: "2026-06-20",
+        envInfo: {
+          cwd: workingDirectory,
+          platform: "linux",
+          shell: "bash",
+          osVersion: "Linux 6.6.0",
+          nodeVersion: "v24.22.1",
+        },
+        workingDirectory,
+      },
+      {
+        eventStore: createTestSessionEventStore(),
+        modelFactory: createTestModelFactory({
+          async generateText() {
+            return {
+              text: "first answer",
+              finishReason: "stop",
+              usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+            };
           },
-          currentDate: "2026-06-20",
-          envInfo: {
-            cwd: tempRoot,
-            platform: "linux",
-            shell: "bash",
-            osVersion: "Linux 6.6.0",
-            nodeVersion: "v24.22.1",
-          },
-          workingDirectory: tempRoot,
-        },
-        {
-          eventStore: createTestSessionEventStore(),
-          modelFactory: createTestModelFactory({
-            async generateText() {
-              return {
-                text: "first answer",
-                finishReason: "stop",
-                usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
-              };
-            },
-          } as never),
-          sessionStore: store,
-        },
-      );
-      await firstRuntime.executeTurn("persisted prompt");
-      rmSync(oldShellPath);
+        } as never),
+        sessionStore: store,
+      },
+    );
+    await firstRuntime.executeTurn("persisted prompt");
 
-      let resumedMessages: ModelInputMessage[] = [];
-      const toolRegistry = createToolRegistry();
-      const getCapturedContext = registerShellSnapshotProbe(toolRegistry);
-      const responses = [
-        {
-          text: "probe shell",
-          finishReason: "tool-calls",
-          usage: { inputTokens: 10, outputTokens: 4, totalTokens: 14 },
-          toolCalls: [
-            {
-              id: "shell-snapshot-probe",
-              name: "ShellSnapshotProbe",
-              input: {},
-            },
-          ],
-        },
-        {
-          text: "done",
-          finishReason: "stop",
-          usage: { inputTokens: 12, outputTokens: 5, totalTokens: 17 },
-        },
-      ];
-      const resumedRuntime = createTestAgentRuntime(
-        sessionId,
-        {
-          bashShellSelection: {
-            dialect: "posix",
-            display: { name: "zsh" },
-            id: `auto:${newShellPath}`,
-            label: "zsh",
-            path: newShellPath,
-            source: "auto-detected",
-          },
-          currentDate: "2026-06-20",
-          workingDirectory: tempRoot,
-        },
-        {
-          eventStore: createTestSessionEventStore(),
-          modelFactory: createTestModelFactory({
-            async generateText(request) {
-              resumedMessages = request.messages;
-              const response = responses.shift();
-              if (!response) throw new Error("unexpected model request");
-              return response;
-            },
-          } as never),
-          sessionStore: store,
-          toolRegistry,
-        },
-      );
-
-      await resumedRuntime.resumeFromStore();
-      await resumedRuntime.executeTurn("resumed prompt");
-
-      expect(getCapturedContext()?.bashShellSelection).toMatchObject({
-        display: { name: "zsh" },
+    // 旧版本 runtime 会把选择落成 runtime:bash_shell_selection entry；
+    // 新会话不再写它，这里手工补一条历史残留，验证 resume 忽略而不是恢复。
+    const timestamp = Date.now();
+    await store.saveSessionEntry({
+      id: `${sessionId}:runtime:bash_shell_selection`,
+      sessionID: sessionId,
+      type: SESSION_ENTRY_BASH_SHELL_SELECTION,
+      time: {
+        created: timestamp,
+        updated: timestamp,
+      },
+      data: {
         dialect: "posix",
-        path: newShellPath,
+        display: { name: "bash" },
+        id: "auto:/usr/bin/old-bash",
+        label: "bash",
+        path: "/usr/bin/old-bash",
         source: "auto-detected",
-      });
-      const providerText = providerMessagesToText(resumedMessages);
-      expect(providerText).toContain("- Shell: bash");
-      expect(providerText).toContain("The Bash tool shell is zsh.");
-    } finally {
-      rmSync(tempRoot, { force: true, recursive: true });
-    }
+      },
+    });
+
+    let resumedMessages: ModelInputMessage[] = [];
+    const toolRegistry = createToolRegistry();
+    const getCapturedContext = registerShellSnapshotProbe(toolRegistry);
+    const responses = [
+      {
+        text: "probe shell",
+        finishReason: "tool-calls",
+        usage: { inputTokens: 10, outputTokens: 4, totalTokens: 14 },
+        toolCalls: [
+          {
+            id: "shell-snapshot-probe",
+            name: "ShellSnapshotProbe",
+            input: {},
+          },
+        ],
+      },
+      {
+        text: "done",
+        finishReason: "stop",
+        usage: { inputTokens: 12, outputTokens: 5, totalTokens: 17 },
+      },
+    ];
+    const resumedRuntime = createTestAgentRuntime(
+      sessionId,
+      {
+        bashShellSelection: {
+          dialect: "posix",
+          display: { name: "zsh" },
+          id: "auto:/usr/bin/new-zsh",
+          label: "zsh",
+          path: "/usr/bin/new-zsh",
+          source: "auto-detected",
+        },
+        currentDate: "2026-06-20",
+        workingDirectory,
+      },
+      {
+        eventStore: createTestSessionEventStore(),
+        // 测试 Runtime 直接透传 logger 记录，不经过 child 归一化。
+        logger: recordingLogger as never,
+        modelFactory: createTestModelFactory({
+          async generateText(request) {
+            resumedMessages = request.messages;
+            const response = responses.shift();
+            if (!response) throw new Error("unexpected model request");
+            return response;
+          },
+        } as never),
+        sessionStore: store,
+        toolRegistry,
+      },
+    );
+
+    await resumedRuntime.resumeFromStore();
+    await resumedRuntime.executeTurn("resumed prompt");
+
+    // 残留 entry 不生效：resume 后使用当前设置的选择，并记一次忽略日志。
+    expect(getCapturedContext()?.bashShellSelection).toMatchObject({
+      display: { name: "zsh" },
+      dialect: "posix",
+      path: "/usr/bin/new-zsh",
+      source: "auto-detected",
+    });
+    expect(
+      loggerCalls.filter(
+        (call) =>
+          call.context.event === "session_entry.bash_shell_selection.ignored" &&
+          call.context.legacySnapshotCount === 1,
+      ),
+    ).toHaveLength(1);
+    // 历史里的旧 shell 通过持久化 Environment 展示，当前选择由环境公告告诉模型。
+    const providerText = providerMessagesToText(resumedMessages);
+    expect(providerText).toContain("- Shell: bash");
+    expect(providerText).toContain("The Bash tool shell is zsh.");
   });
 
   it("reads local image attachments into model messages and persisted file parts", async () => {

@@ -57,6 +57,9 @@
 
 ## 兼容与边界
 
+- 运行时插件发现只认 NIBI 自有 manifest `.nibi-plugin/plugin.json`。设置同步的导入扫描仍会识别
+  旧 `.claude-plugin`/`.codex-plugin` 清单用于展示与迁移，但导入到 `plugins.dirs` 的旧格式插件
+  不会被 runtime 加载；需要先重打包为 `.nibi-plugin`，或由导入流程完成一次性迁移。
 - `settings-sync` 新增 `plugins` 分类，插件来源表独立维护，不从 `skills` 或 `commands` 来源表派生；资源扫描、去重和导入也独立。
 - 远程 workspace 只使用当前 host process 可访问的文件系统路径；身份隔离语义仍传递 `workspaceIdentity`，路径执行仍使用 `workspacePath`。
 - 直接复制模式不引用外部目录；软链模式会持续指向外部插件目录，适合希望跟随外部 Agent 插件变更的用户。

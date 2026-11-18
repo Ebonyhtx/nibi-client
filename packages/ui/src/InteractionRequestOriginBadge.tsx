@@ -1,6 +1,5 @@
 import type { NibiInteractionRequestOrigin } from "@nibi/shared";
 import { cn } from "@/components/lib/utils.js";
-import { Badge } from "@/components/ui/badge.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 
 export function InteractionRequestOriginBadge({
@@ -34,13 +33,17 @@ export function InteractionRequestOriginBadge({
         );
 
   return (
-    <Badge
-      variant="outline"
+    // 来源说明从标题旁的小胶囊改为整行次级描述：长名字（含 siteId/ordinal）可折行，
+    // 不再被 max-w-40 + truncate 截断。basis-full 让它在 flex 标题行里另起一行。
+    <span
       title={title}
       data-interaction-origin-badge="subagent"
-      className={cn("max-w-40 align-baseline text-ui-base truncate", className)}
+      className={cn(
+        "block w-full min-w-0 basis-full whitespace-normal text-ui-base font-normal text-foreground-subtle [overflow-wrap:anywhere]",
+        className,
+      )}
     >
       {label}
-    </Badge>
+    </span>
   );
 }

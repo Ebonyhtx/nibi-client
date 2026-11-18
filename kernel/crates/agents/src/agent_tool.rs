@@ -4,7 +4,8 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::message::{ToolResultContent, Usage};
+use nibi_kernel_api::orchestration::QueryError;
 use nibi_kernel_api::permission::PermissionDecision;
 use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
@@ -60,6 +61,48 @@ fn launched_output(entry: &LiveAgent) -> ToolOutput {
         text_output(report::launched(entry.agent.as_str()), false),
         entry,
         serde_json::json!({ "status": "async_launched" }),
+    )
+}
+
+/// K4：失败结果的用量明细（字段名与 Node 的 `ModelUsage` 一致；总数与 handback 同口径）。
+fn usage_json(usage: Option<Usage>) -> serde_json::Value {
+    let Some(usage) = usage else {
+        return serde_json::json!({});
+    };
+    serde_json::json!({
+        "inputTokens": usage.input_tokens,
+        "outputTokens": usage.output_tokens,
+        "cacheReadTokens": usage.cache_read_input_tokens,
+        "cacheWriteTokens": usage.cache_creation_input_tokens,
+        "totalTokens": usage.input_tokens
+            + usage.output_tokens
+            + usage.cache_read_input_tokens
+            + usage.cache_creation_input_tokens,
+    })
+}
+
+/// 前台失败结果（K4）：`<subagent_failure>` 包住与 Node `AgentFailedOutput` 同形状的 JSON，
+/// 已有的报告文本作 `partialReport`（没有就省略），另给 SendMessage 续接提示。
+fn failure_output(
+    entry: &LiveAgent,
+    report: &report::Report,
+    usage: Option<Usage>,
+    error: &QueryError,
+) -> String {
+    let mut value = serde_json::json!({
+        "ok": false,
+        "status": "failed",
+        "error": error.to_string(),
+        "agentId": entry.agent.as_str(),
+        "usage": usage_json(usage),
+    });
+    if !report.text.trim().is_empty() {
+        value["partialReport"] = report.text.clone().into();
+    }
+    format!(
+        "<subagent_failure>{value}</subagent_failure>\nagentId: {} (use SendMessage with to: '{}' to continue this agent)",
+        entry.agent.as_str(),
+        entry.agent.as_str(),
     )
 }
 
@@ -306,9 +349,22 @@ impl Tool for AgentTool {
         }
         match (finished.ending, finished.error) {
             (Ending::Killed, _) => Err(ToolError::Cancelled),
-            (_, Some(error)) => Err(ToolError::Failed {
-                message: error.to_string(),
-            }),
+            // K4：失败也回结构化结果（error/agentId/usage/partialReport，JSON 信封与 Node 同形状），
+            // `is_error` 让父回合按失败呈现；父模型凭 agentId 可用 SendMessage 续接。
+            (_, Some(error)) => {
+                let text = failure_output(&entry, &finished.report, finished.usage, &error);
+                Ok(with_display(
+                    text_output(text, true),
+                    &entry,
+                    serde_json::json!({
+                        "status": "failed",
+                        "error": error.to_string(),
+                        "toolUses": finished.report.tool_uses,
+                        "tokens": finished.report.tokens,
+                        "durationMs": finished.report.duration_ms,
+                    }),
+                ))
+            }
             (_, None) => {
                 let trailer = !entry.definition.one_shot();
                 let text = report::handback(entry.agent.as_str(), &finished.report, trailer);

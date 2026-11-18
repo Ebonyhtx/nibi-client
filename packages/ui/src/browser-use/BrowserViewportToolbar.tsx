@@ -11,6 +11,10 @@ import {
   BROWSER_VIEWPORT_ZOOM_OPTIONS,
   type BrowserViewportZoom,
 } from "@/browser-use/browserViewportZoom.js";
+import {
+  BROWSER_VIEWPORT_DEVICE_PRESETS,
+  resolveBrowserViewportDevicePresetId,
+} from "@/browser-use/browserViewportPresets.js";
 import { Input } from "@/components/ui/input.js";
 import {
   Select,
@@ -134,11 +138,48 @@ export function BrowserViewportToolbar({
     }
   };
 
+  const presetSelection = resolveBrowserViewportDevicePresetId(viewportSize);
+  const handlePresetChange = (value: string) => {
+    if (value === "custom") {
+      return;
+    }
+    const preset = BROWSER_VIEWPORT_DEVICE_PRESETS.find((item) => item.id === value);
+    if (!preset) {
+      return;
+    }
+    onViewportSizeChange({ width: preset.width, height: preset.height });
+  };
+
   return (
     <div
       className="flex h-8 shrink-0 items-center justify-center gap-1 overflow-x-auto border-y border-border bg-background px-2"
       data-testid={TID_BROWSER_RESPONSIVE_TOOLBAR}
     >
+      <Select value={presetSelection} onValueChange={handlePresetChange}>
+        <SelectTrigger
+          aria-label={intl.formatMessage({ id: "browser.responsive.preset" })}
+          className="w-24 shrink-0 font-medium"
+          data-testid="browser-responsive-preset-select"
+          size="default"
+          variant="ghost"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent align="start">
+          {BROWSER_VIEWPORT_DEVICE_PRESETS.map((preset) => (
+            <SelectItem
+              data-testid={`browser-responsive-preset-option-${preset.id}`}
+              key={preset.id}
+              value={preset.id}
+            >
+              {`${intl.formatMessage({ id: `browser.responsive.preset.${preset.id}` })} · ${preset.width} × ${preset.height}`}
+            </SelectItem>
+          ))}
+          <SelectItem disabled value="custom">
+            {intl.formatMessage({ id: "browser.responsive.preset.custom" })}
+          </SelectItem>
+        </SelectContent>
+      </Select>
       {/* TooltipContent 通过 Portal 挂到 body；不可见 tab 的触发器处于 display:none，
           仍保持 open 会让浮层拿到 0×0 锚点并泄漏到窗口左上角。只在当前视图可见时展示。 */}
       <Tooltip open={isVisible && invalidDrafts.width}>

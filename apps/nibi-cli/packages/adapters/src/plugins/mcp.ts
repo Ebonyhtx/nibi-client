@@ -191,8 +191,6 @@ function resolveMcpServerConfig(server: unknown, context: VariableContext): McpS
         NIBI_PLUGIN_DATA: context.dataPath,
         NIBI_PLUGIN_ROOT: context.loaded.rootPath,
         NIBI_PROJECT_DIR: context.workingDirectory,
-        CLAUDE_PLUGIN_DATA: context.dataPath,
-        CLAUDE_PLUGIN_ROOT: context.loaded.rootPath,
         ...(isRecord(server.env) ? server.env : {}),
       },
       context,
@@ -325,10 +323,8 @@ function resolveTemplate(
 ): string {
   return value.replace(TEMPLATE_PATTERN, (match, name: string) => {
     switch (name) {
-      case "CLAUDE_PLUGIN_ROOT":
       case "NIBI_PLUGIN_ROOT":
         return context.loaded.rootPath;
-      case "CLAUDE_PLUGIN_DATA":
       case "NIBI_PLUGIN_DATA":
         return context.dataPath;
       case "CLAUDE_PROJECT_DIR":

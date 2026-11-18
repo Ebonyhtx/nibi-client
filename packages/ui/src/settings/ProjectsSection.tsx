@@ -1,9 +1,11 @@
+/* oxlint-disable eslint(max-lines) -- 列表、批量移除、恢复、清理与行内编辑共享同一数据投影，拆文件会扩散服务依赖。 */
 import { useCallback, useMemo, useState } from "react";
 import {
   ChevronRight,
   Database,
   Ellipsis,
   Folder,
+  Pencil,
   RotateCcw,
   RotateCw,
   Trash2,
@@ -31,6 +33,7 @@ import { logger } from "@/logger.js";
 import { projectDataCleanupAvailable } from "@/project-sidebar/project-data-cleanup.js";
 import { useProjectDataCleanupSupport } from "@/project-sidebar/useProjectDataCleanupSupport.js";
 import { ProjectDataCleanupDialog } from "@/project-sidebar/ProjectDataCleanupDialog.js";
+import { ProjectEditor } from "@/project-sidebar/ProjectEditor.js";
 import {
   ProjectDirectoryProvider,
   useProjectDirectory,
@@ -264,6 +267,8 @@ function ProjectsSectionContent() {
   const [restoringKey, setRestoringKey] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [cleanupTarget, setCleanupTarget] = useState<VirtualProject | null>(null);
+  // 行内编辑复用侧栏同一个 ProjectEditor；设置页只负责命令入口与刷新。
+  const [editingProject, setEditingProject] = useState<VirtualProject | null>(null);
 
   const runningTaskIds = useNibiSessionStore((state) => {
     const ids: string[] = [];
@@ -485,7 +490,7 @@ function ProjectsSectionContent() {
           {intl.formatMessage({ id: "settings.projects.description" })}
         </p>
         {/* 搜索、设备筛选与排序同一行：上游把三者视作列表的工具栏，不做三段式分组。 */}
-        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center" data-settings-search-target="projects.search">
           <SettingsSearchInput
             containerClassName="min-w-0 flex-1"
             value={query}
@@ -604,7 +609,7 @@ function ProjectsSectionContent() {
                   {intl.formatMessage({ id: "settings.projects.noResults" })}
                 </p>
               ) : (
-                <ul className="divide-y divide-border">
+                <ul className="divide-y divide-border" data-settings-search-target="projects.list">
                   {visibleRows.map((row) => {
                     const primaryPath =
                       row.project.roots.find((root) => root.isPrimary)?.rootPath ??
@@ -672,6 +677,14 @@ function ProjectsSectionContent() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
+                                disabled={!service}
+                                onSelect={() => setEditingProject(row.project)}
+                                data-testid="settings-projects-edit-row"
+                              >
+                                <Pencil className="size-4" aria-hidden="true" />
+                                {intl.formatMessage({ id: "project.edit" })}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
                                 variant="destructive"
                                 onSelect={() => void confirmAndRemoveRows([row], "single")}
                                 data-testid="settings-projects-remove-row"
@@ -703,6 +716,7 @@ function ProjectsSectionContent() {
           <div
             className="overflow-hidden rounded-xl border border-border bg-card"
             data-testid="settings-projects-removed"
+            data-settings-search-target="projects.removed"
           >
             <button
               type="button"
@@ -816,6 +830,23 @@ function ProjectsSectionContent() {
             )}
           </Button>
         </div>
+      ) : null}
+      {editingProject && service ? (
+        <ProjectEditor
+          key={`${editingProject.id}:${editingProject.hostId}:settings-edit`}
+          project={editingProject}
+          projects={tree.projects}
+          service={service}
+          onClose={() => setEditingProject(null)}
+          onSaved={async () => {
+            setEditingProject(null);
+            await refresh();
+          }}
+          onDeleted={async () => {
+            setEditingProject(null);
+            await refresh();
+          }}
+        />
       ) : null}
       {cleanupTarget && service ? (
         <ProjectDataCleanupDialog

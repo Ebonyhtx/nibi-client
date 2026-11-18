@@ -32,7 +32,7 @@ Override order across scopes for a same-named server: **CLI → environment → 
 - Standard field names are `env` for stdio environment variables and `headers` for HTTP/SSE request headers. `command` is a string and `args` is an array of strings; do not paste OpenCode-style `command: ["npx", "-y", "..."]` into Nibi's JSON editor.
 - When `type` is omitted it is inferred: a `command` implies `stdio`, a `url` implies `http`. Legacy forms are migrated automatically when the CLI reads config directly (`type: "remote"` → `http`, `environment` → `env`, `enable` → `enabled`, `http_headers` → `headers`). Desktop app-managed session creation may bypass part of that CLI file parser, so prefer canonical fields (`env`, `headers`, `enabled`, `type: "http"`) in files that the desktop Settings → MCP page reads.
 - The configuration-file server schema is **strict**: an **unknown key causes the server to be dropped**.
-- **Template variables `${...}` are expanded only for plugin-provided MCP servers** (for example `${NIBI_PLUGIN_ROOT}` / `${CLAUDE_PLUGIN_ROOT}`, `${NIBI_PROJECT_DIR}` / `${CLAUDE_PROJECT_DIR}`, `${user_config.KEY}`). Configuration-file MCP servers do **not** expand templates — use absolute paths there.
+- **Template variables `${...}` are expanded only for plugin-provided MCP servers** (for example `${NIBI_PLUGIN_ROOT}`, `${NIBI_PLUGIN_DATA}`, `${NIBI_PROJECT_DIR}`, `${user_config.KEY}`). Legacy `${CLAUDE_PLUGIN_ROOT}`/`${CLAUDE_PLUGIN_DATA}` are no longer expanded in plugin MCP configuration. Configuration-file MCP servers do **not** expand templates — use absolute paths there.
 - The default timeout is 30000 ms.
 
 Canonical examples:

@@ -31,8 +31,7 @@ import type { ResumeSessionOptions, ResumeSessionResult } from "../types.js";
 import type { AgentRuntimeInternal } from "../internal.js";
 import {
   announceSessionShellEnvironmentNoticeAfterResume,
-  getSessionShellSelection,
-  restoreSessionShellEnvironmentSelectionForResume,
+  logIgnoredLegacyBashShellSelectionSnapshot,
 } from "./session-shell-environment.js";
 import { resetProjectMemoryRecall } from "../helpers/project-memory-recall.js";
 import { restoreDynamicWorkflowActivationOnResume } from "./dynamic-workflow-activation.js";
@@ -119,10 +118,9 @@ export async function resumeFromStore(
   if (persistedEnvInfo) {
     this.config.envInfo = persistedEnvInfo;
   }
-  const shellRestore = await restoreSessionShellEnvironmentSelectionForResume(this, {
-    currentSelection: getSessionShellSelection(this),
-    traceContext,
-  });
+  // shell 不从会话恢复：resume 入口已按当前设置初始化 selection，变化由环境公告告诉模型。
+  // 旧版本写入的 runtime:bash_shell_selection entry 允许残留，首次遇到时只记一次忽略日志。
+  await logIgnoredLegacyBashShellSelectionSnapshot(this, traceContext);
 
   this.workingDirectory = session.directory;
   this.config.taskType = session.taskType;
@@ -166,7 +164,6 @@ export async function resumeFromStore(
   });
   announceSessionShellEnvironmentNoticeAfterResume(this, {
     persistedEnvInfo,
-    restore: shellRestore,
   });
   const activeMessages = activeSessionMessages(messages, {
     branchCutAfterMessageId,

@@ -10,6 +10,7 @@ import {
   CompactTimelineStatus,
   MAX_OUTPUT_TOKENS_FOR_SUMMARY,
   SessionEventType,
+  countContextPrefixMessages,
   createChildTraceContext,
   isCoreError,
   createMessageId,
@@ -589,9 +590,25 @@ async function compactActiveConversationImpl(
             summaryMessageId,
           })
         : { keptMessageCount: countCompactPreservedRuntimeMessages(recordablePreservedEntries) };
+      // 压缩 rollover（K2）：压缩前的 provider usage 属于被替换的旧前缀，压缩后不能
+      // 再进入累计占用。把“context prefix + summary”的占用估算一次并锚在边界上；
+      // 保留段与其后的新消息按增量估算，占用投影在边界处截断旧 usage 锚点。
+      // 该值只活在 runtime entry metadata，不进入持久化 schema。
+      const compactRolloverContextTokens = estimateRuntimeEntryTokens(
+        [
+          ...activeEntries.slice(0, countContextPrefixMessages(activeEntries)),
+          {
+            message: { role: "user" as const, content: summaryMessageContent },
+          },
+        ],
+        { useMidConversationSystem },
+      );
       const summaryEntry = {
         message: { role: "user" as const, content: summaryMessageContent },
-        metadata: { ...legacySyntheticRuntimeMetadata(), compactBoundary: discovery },
+        metadata: {
+          ...legacySyntheticRuntimeMetadata(),
+          compactBoundary: { ...discovery, rolloverContextTokens: compactRolloverContextTokens },
+        },
       };
       const postCompactEntries = buildPostCompactRuntimeEntries(activeEntries, summaryEntry, {
         postCompactReminderEntries,

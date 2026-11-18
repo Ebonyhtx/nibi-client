@@ -3,6 +3,20 @@ import { z } from "zod";
 import { appSettingsPatchSchema, appSettingsSchema } from "#src/validationAppSettings.js";
 
 describe("app settings", () => {
+  it("文件树单击 HTML 默认走源码预览，显式开启后持久化", () => {
+    expect(appSettingsSchema.parse({}).fileTreeHtmlClickOpensBrowser).toBe(false);
+    expect(
+      appSettingsSchema.parse({ fileTreeHtmlClickOpensBrowser: true })
+        .fileTreeHtmlClickOpensBrowser,
+    ).toBe(true);
+    expect(appSettingsPatchSchema.parse({ fileTreeHtmlClickOpensBrowser: true })).toEqual({
+      fileTreeHtmlClickOpensBrowser: true,
+    });
+    expect(appSettingsPatchSchema.safeParse({ fileTreeHtmlClickOpensBrowser: "yes" }).success).toBe(
+      false,
+    );
+  });
+
   it("自动归档默认关闭并保留 30 天，已有天数不覆盖", () => {
     expect(appSettingsSchema.parse({})).toMatchObject({
       taskAutoArchiveEnabled: false,

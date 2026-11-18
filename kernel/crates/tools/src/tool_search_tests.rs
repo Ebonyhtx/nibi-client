@@ -238,3 +238,43 @@ async fn an_unbound_catalog_fails_instead_of_finding_nothing() {
         Err(nibi_kernel_api::tool::ToolError::Failed { .. })
     ));
 }
+
+/// R04（修复线 SUBAGENT-SEARCH，tools-more.md §3.5）：ToolSearch 搜调用上下文里这次运行的工具。
+/// 子代理的注册表在查找时套上作用域（agents 的 `FilteredTools` 经 [`Tool::scoped`]）：受限工具集里
+/// 没有的延迟工具搜不到，也不会给出引用；主线程的全量视图照旧。
+#[tokio::test]
+async fn a_scoped_search_only_finds_tools_of_its_run() {
+    let catalog = Arc::new(ToolCatalog::default());
+    let main: Arc<dyn ToolRegistry> = Arc::new(ListTools(vec![
+        Arc::new(ToolSearchTool::new(catalog.clone())),
+        Arc::new(Named {
+            name: "NotebookEdit",
+            mcp: false,
+        }),
+    ]));
+    catalog.bind(&main);
+    // 主线程：全量视图找得到。
+    assert_eq!(
+        run(&catalog, "select:NotebookEdit").await,
+        "<ref:NotebookEdit>"
+    );
+
+    // 子代理的运行工具集（受限）：同样的查询找不到。
+    let restricted: Arc<dyn ToolRegistry> = Arc::new(ListTools(vec![
+        Arc::new(ToolSearchTool::new(catalog.clone())),
+        Arc::new(Named {
+            name: "Read",
+            mcp: false,
+        }),
+    ]));
+    let scoped = ToolSearchTool::new(catalog.clone())
+        .scoped(restricted)
+        .expect("ToolSearch scopes to the run's tools");
+    let (progress, _rx) = mpsc::channel(1);
+    let context = Ctx::new(Arc::new(ScriptedInteractions::default())).build();
+    let output = scoped
+        .call(json!({"query": "select:NotebookEdit"}), context, progress)
+        .await
+        .unwrap();
+    assert_eq!(output_text(&output), texts::NO_DEFERRED_MATCH);
+}

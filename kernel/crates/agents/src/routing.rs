@@ -285,6 +285,7 @@ pub(crate) async fn wake(core: &Arc<Core>, wakes: Vec<Wake>) {
                 let finished = Finished {
                     ending: Ending::Failed,
                     report: Report::default(),
+                    usage: None,
                     error: Some(QueryError::Store(error)),
                 };
                 let settled = settle(core, &agent.agent, &finished);

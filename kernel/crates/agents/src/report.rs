@@ -155,7 +155,7 @@ fn escape(text: &str) -> String {
 }
 
 /// 完成通知的 `<task-notification>` 信封（不带说明与包装）。`<result>` 只在有最后的文本时出现，
-/// `<usage>` 只在完成（与停放时被停止）时出现（A2、A5；agents.md §5、§5.1）。`error` 是失败的原因。
+/// `<usage>` 在完成、停放时被停止与失败时出现（A2、A5；agents.md §5、§5.1，K4）。`error` 是失败的原因。
 pub(crate) fn envelope(
     agent: &str,
     tool_use: Option<&str>,
@@ -176,8 +176,12 @@ pub(crate) fn envelope(
             &[("result", &escape(&report.text))],
         ));
     }
-    // 用量：完成时有；停放时被停止也有，运行中失败或被停止时没有。
-    if matches!(ending, Ending::Completed | Ending::KilledParked) {
+    // 用量：完成时有；停放时被停止也有；失败也有（K4：失败通知要带 usage，不能只有
+    // error/agentId/duration）。只有运行中被 TaskStop 停止（没有收尾用量）不写。
+    if matches!(
+        ending,
+        Ending::Completed | Ending::KilledParked | Ending::Failed
+    ) {
         let tokens = report.tokens.to_string();
         let tool_uses = report.tool_uses.to_string();
         let duration = report.duration_ms.to_string();

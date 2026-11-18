@@ -1,7 +1,13 @@
-import { statSync } from "node:fs";
-import { isAbsolute, relative, resolve, sep } from "node:path";
+import { copyFileSync, mkdirSync, renameSync, rmSync, statSync } from "node:fs";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 const PLUGIN_SOURCE_CLEANUP_RETRY_DELAYS_MS = [0, 25, 100] as const;
+const NATIVE_PLUGIN_MANIFEST = [".nibi-plugin", "plugin.json"] as const;
+// 旧格式只用于一次性迁移 App 管理的缓存，不再参与发现。
+const LEGACY_PLUGIN_MANIFESTS = [
+  [".claude-plugin", "plugin.json"],
+  [".codex-plugin", "plugin.json"],
+] as const;
 
 export function resolveInside(rootPath: string, rawPath: string): string | null {
   if (isAbsolute(rawPath)) return null;
@@ -66,6 +72,44 @@ export function isNotFoundError(error: unknown): boolean {
     "code" in error &&
     (error as { code?: unknown }).code === "ENOENT"
   );
+}
+
+/**
+ * App 管理的插件缓存（official seed / marketplace 安装）一次性迁移到 NIBI 自有清单目录。
+ *
+ * - 已有 `.nibi-plugin/plugin.json` 时不动；
+ * - 只有 `.claude-plugin`/`.codex-plugin` 清单时复制到 `.nibi-plugin/plugin.json`，
+ *   并保留旧文件，避免并发读取进程在迁移瞬间看不到清单；
+ * - 用户自选 `plugins.dirs` 不调用本函数，不能改写用户目录。
+ *
+ * 返回 `true` 表示调用后存在 NIBI 清单。迁移失败仍返回 `false`，由调用方按「清单缺失」
+ * 处理——不能回退成旧格式双读。
+ */
+export function migrateLegacyPluginManifest(rootPath: string): boolean {
+  const nativePath = join(rootPath, ...NATIVE_PLUGIN_MANIFEST);
+  if (fileExists(nativePath)) return true;
+  for (const relativePath of LEGACY_PLUGIN_MANIFESTS) {
+    const legacyPath = join(rootPath, ...relativePath);
+    if (!fileExists(legacyPath)) continue;
+    // 先写临时文件再 rename：多个实例同时启动时，读取方不会看到半截 JSON。
+    const temporaryPath = `${nativePath}.${process.pid}.${Date.now()}.tmp`;
+    try {
+      mkdirSync(dirname(nativePath), { recursive: true });
+      copyFileSync(legacyPath, temporaryPath);
+      try {
+        renameSync(temporaryPath, nativePath);
+      } catch (error) {
+        // 并发迁移的赢家已经写好 NIBI 清单：复用它的结果。
+        if (fileExists(nativePath)) return true;
+        throw error;
+      }
+      return true;
+    } catch {
+      rmSync(temporaryPath, { force: true });
+      return false;
+    }
+  }
+  return false;
 }
 
 export async function cleanupPluginSourceBestEffort(

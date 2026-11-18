@@ -1106,6 +1106,11 @@ export function UnifiedBrowserView({
             />
           ) : null
         }
+        permissionSettings={
+          permissionOrigin
+            ? { origin: permissionOrigin, onOpenSettings: onOpenPermissionSettings }
+            : undefined
+        }
         formatMessage={intl.formatMessage}
         onAddressChange={setAddressValue}
         onGoBack={handleGoBack}

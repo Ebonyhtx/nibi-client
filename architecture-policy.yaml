@@ -1446,3 +1446,16 @@ exceptions:
       数据根迁移（清单/暂存/凭据解密验证/发布）是 P0-2 的安全修复单元，只被
       settingService 调用；packages/services 仍是 managed:false 的遗留大区，按目录前缀
       准入，不把整个 services 包纳入本次范围。
+
+  - id: ui-318-quick-wins
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/ToolCallBlocks/renderers/fallbackModel.ts
+      - packages/ui/src/browser-use/browserAddressBarModel.ts
+      - packages/ui/src/browser-use/browserViewportPresets.ts
+      - packages/ui/src/settings-search/**
+      - packages/ui/src/settings/macosFontSmoothing.ts
+    reason: >-
+      3.18 跟进第二阶段的 UI 快赢：未知工具卡的数据归一、浏览器设备预设/窄地址栏、
+      设置搜索与 macOS 字体平滑。它们都是纯展示/纯逻辑模块，不含新的跨层依赖；
+      packages/ui 仍是 managed:false 的遗留大区，按路径准入，整包接管不在本次范围。

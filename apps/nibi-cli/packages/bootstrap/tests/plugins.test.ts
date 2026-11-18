@@ -408,7 +408,7 @@ describe("Nibi plugins", () => {
         }),
       );
       await writeTestFile(
-        join(pluginRoot, ".claude-plugin", "plugin.json"),
+        join(pluginRoot, ".nibi-plugin", "plugin.json"),
         JSON.stringify({ name: "demo", skills: "skills", version: "1.0.0" }),
       );
       await writeTestFile(join(pluginRoot, "skills", "demo", "SKILL.md"), "# demo");
@@ -721,7 +721,7 @@ describe("Nibi plugins", () => {
         }),
       );
       await writeTestFile(
-        join(pluginRoot, ".claude-plugin", "plugin.json"),
+        join(pluginRoot, ".nibi-plugin", "plugin.json"),
         JSON.stringify({
           name: "hello",
           skills: "skills",
@@ -796,7 +796,7 @@ describe("Nibi plugins", () => {
     try {
       const zipBuffer = createStoredZip([
         {
-          path: "hello-zip/.claude-plugin/plugin.json",
+          path: "hello-zip/.nibi-plugin/plugin.json",
           content: JSON.stringify({
             name: "hello-zip",
             skills: "skills",
@@ -909,7 +909,7 @@ describe("Nibi plugins", () => {
         }),
       );
       await writeTestFile(
-        join(pluginRoot, ".claude-plugin", "plugin.json"),
+        join(pluginRoot, ".nibi-plugin", "plugin.json"),
         JSON.stringify({ name: "hello", skills: "skills" }),
       );
       await writeTestFile(join(pluginRoot, "skills", "hello", "SKILL.md"), "# hello");
@@ -968,7 +968,7 @@ describe("Nibi plugins", () => {
         }),
       );
       await writeTestFile(
-        join(pluginRoot, ".claude-plugin", "plugin.json"),
+        join(pluginRoot, ".nibi-plugin", "plugin.json"),
         JSON.stringify({ name: "hello", skills: "skills" }),
       );
       await writeTestFile(join(pluginRoot, "skills", "hello", "SKILL.md"), "# hello");
@@ -2202,7 +2202,7 @@ describe("Nibi plugins", () => {
         }),
       );
       await writeTestFile(
-        join(pluginRoot, ".claude-plugin", "plugin.json"),
+        join(pluginRoot, ".nibi-plugin", "plugin.json"),
         JSON.stringify({
           name: pluginName,
           skills: "skills",
@@ -2652,6 +2652,57 @@ describe("Nibi plugins", () => {
         skillRootCount: 1,
       });
       expect(outcome.skillRoots.length).toBeGreaterThan(0);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  // G1/G2：clean storage（等价 clean HOME）必须 seed 全部 14 个内置插件，且双端默认启用集一致。
+  // 内置缓存只落 .nibi-plugin，不再生成旧格式目录。
+  it("seeds all 14 built-ins into .nibi-plugin and enables the shared default set", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-clean-seed-"));
+    const pluginStorageRoot = join(root, "plugins");
+
+    try {
+      const configResult = createConfig({
+        env: {},
+        skipUserConfig: true,
+        workingDirectory: root,
+      });
+      const outcome = resolveStartupPlugins({
+        cliStorageRoot: join(root, "cli"),
+        configResult,
+        env: {},
+        options: { pluginStorageRoot } as NibiAppOptions,
+        startupTimer: createNoopStartupTimer(),
+        workingDirectory: root,
+      });
+
+      expect(outcome.plugins.map((plugin) => plugin.name).sort()).toEqual(
+        OFFICIAL_PLUGIN_DEFINITIONS.map((definition) => definition.name).sort(),
+      );
+      expect(
+        outcome.plugins
+          .filter((plugin) => plugin.enabled)
+          .map((plugin) => plugin.id)
+          .sort(),
+      ).toEqual([...DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS].sort());
+
+      for (const definition of OFFICIAL_PLUGIN_DEFINITIONS) {
+        const cacheRoot = join(
+          pluginStorageRoot,
+          "cache",
+          "nibi-official",
+          definition.name,
+          definition.version,
+        );
+        expect(
+          existsSync(join(cacheRoot, ".nibi-plugin", "plugin.json")),
+          definition.name,
+        ).toBe(true);
+        expect(existsSync(join(cacheRoot, ".claude-plugin"))).toBe(false);
+        expect(existsSync(join(cacheRoot, ".codex-plugin"))).toBe(false);
+      }
     } finally {
       await rm(root, { force: true, recursive: true });
     }

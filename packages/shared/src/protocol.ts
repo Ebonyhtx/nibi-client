@@ -290,6 +290,11 @@ export interface AppSettings {
   /** 人类用户主动打开 Browser tab 时的一次性显示偏好；Agent Browser Use 不读写。 */
   embeddedBrowserViewportPreference?: EmbeddedBrowserViewportPreference;
   /**
+   * 文件树单击本地 HTML 时是否用内置浏览器打开；关闭时仍打开源码预览。
+   * 右键「在浏览器打开」不受该开关影响。默认关闭。
+   */
+  fileTreeHtmlClickOpensBrowser?: boolean;
+  /**
    * 用户已在设置页关闭输入框的「电脑操作」按钮（内部 hidden 态）。
    * 取 hidden 语义而非 visible：undefined 即默认显示，老用户无需数据迁移。
    * 关闭后按钮不再渲染，且不因重启或版本更新自愈，仅能在设置页重新开启。
