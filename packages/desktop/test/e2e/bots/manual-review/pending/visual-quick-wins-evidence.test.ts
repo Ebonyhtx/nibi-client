@@ -19,7 +19,10 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   TID_BROWSER_ADDRESS_INPUT,
+  TID_BROWSER_EXPORT_PDF_ITEM,
+  TID_BROWSER_EXPORT_PNG_ITEM,
   TID_BROWSER_MORE_BUTTON,
+  TID_BROWSER_RECENT_VISITS,
   TID_BROWSER_RESPONSIVE_BUTTON,
   TID_BROWSER_RESPONSIVE_HEIGHT_INPUT,
   TID_BROWSER_RESPONSIVE_TOOLBAR,
@@ -30,10 +33,12 @@ import {
   TID_SETTINGS_SECTION_NAV,
   TID_SIDE_PANE_TOGGLE,
   TID_TASK_SETTINGS_BUTTON,
+  TID_VIRTUAL_PROJECT_MENU,
   TID_WORKSPACE_FILE_TREE_PANEL,
   TID_WORKSPACE_FILE_TREE_REFRESH_BUTTON,
   TID_WORKSPACE_FILE_TREE_ROW,
   testId,
+  virtualProjectActionTestId,
 } from "@nibi/shared/test-ids";
 import {
   DEFAULT_WORKSPACE,
@@ -48,8 +53,13 @@ import {
   clickCloseButton,
   openFirstBrowserTab,
   readBrowserTabIds,
+  requestAdditionalBrowserTab,
 } from "../../../helpers/browser-side-pane.js";
-import { openProjectFileTree } from "../../../helpers/project-sidebar.js";
+import {
+  hoverProjectRow,
+  openProjectFileTree,
+  projectSectionSelector,
+} from "../../../helpers/project-sidebar.js";
 import { sel } from "../../../helpers/selectors.js";
 import { prepareV4ConversationE2E } from "../../../helpers/v4-conversation.js";
 
@@ -1157,5 +1167,120 @@ describe("UI 快赢视觉证据（真实 Desktop）", () => {
     });
     expect(persisted.fileTreeHtmlClickOpensBrowser).toBe(true);
     expect((browserState as { addressValue: string }).addressValue).toContain("index.html");
+  });
+
+  it("T2-01 项目行「新建 worktree 任务」入口", async function () {
+    this.timeout(180_000);
+    await setWindowSize(1440, 900);
+    // 前面的 BROWSER/FILE 用例会把侧面板压到 76/24；先恢复常规布局再验证项目行菜单。
+    await seedBodyLayout(52, 48);
+    await browser.refresh();
+    await waitForWorkspaceAfterReload();
+    await hoverProjectRow(DEFAULT_WORKSPACE);
+    await browser.waitUntil(
+      () =>
+        browser.execute(
+          (sectionSelector, menuTestId) => {
+            const trigger = document
+              .querySelector(sectionSelector)
+              ?.querySelector<HTMLButtonElement>(`[data-testid="${menuTestId}"]`);
+            if (!trigger || trigger.disabled) return false;
+            trigger.dispatchEvent(
+              new PointerEvent("pointerdown", {
+                bubbles: true,
+                cancelable: true,
+                button: 0,
+                pointerId: 1,
+                pointerType: "mouse",
+              }),
+            );
+            trigger.dispatchEvent(
+              new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 }),
+            );
+            trigger.click();
+            return true;
+          },
+          projectSectionSelector(DEFAULT_WORKSPACE),
+          TID_VIRTUAL_PROJECT_MENU,
+        ),
+      { timeout: 20_000, interval: 200, timeoutMsg: "项目行没有显示更多菜单入口" },
+    );
+    await browser.waitUntil(
+      () => browser.execute(() => Boolean(document.querySelector('[role="menu"]'))),
+      { timeout: 15_000, interval: 100, timeoutMsg: "项目菜单没有打开" },
+    );
+    await browser.pause(400);
+    await shot("08a-project-worktree-menu");
+    const worktreeMenu = (await browser.execute((actionTestId) => {
+      const items = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]')).map(
+        (item) => (item.textContent ?? "").replace(/\s+/gu, " ").trim(),
+      );
+      const action = document.querySelector<HTMLElement>(`[data-testid="${actionTestId}"]`);
+      return {
+        items,
+        hasWorktreeAction: Boolean(action),
+        worktreeLabel: (action?.textContent ?? "").replace(/\s+/gu, " ").trim(),
+      };
+    }, virtualProjectActionTestId("create-worktree-task"))) as {
+      items: string[];
+      hasWorktreeAction: boolean;
+      worktreeLabel: string;
+    };
+    await record("worktreeMenu", worktreeMenu);
+    expect(worktreeMenu.hasWorktreeAction).toBe(true);
+    expect(worktreeMenu.worktreeLabel).toContain("worktree");
+    await browser.execute(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+  });
+
+  it("T2-02 浏览器导出 PNG/PDF 与最近访问", async function () {
+    this.timeout(300_000);
+    await setWindowSize(1440, 900);
+    await ensureSidePaneOpen();
+    await ensureBrowserTabActive();
+    await navigateBrowserToTestOrigin();
+    await browser.pause(1200);
+
+    await clickTestIdByWebDriver(TID_BROWSER_MORE_BUTTON, {
+      timeout: 15_000,
+      timeoutMsg: "没有找到浏览器 More 按钮",
+    });
+    await waitForTestIdByDom(TID_BROWSER_EXPORT_PNG_ITEM, { timeout: 10_000 });
+    await browser.pause(400);
+    await shot("08b-browser-more-export");
+    const exportMenu = (await browser.execute((pngId, pdfId) => {
+      const read = (testIdValue: string) => {
+        const item = document.querySelector<HTMLElement>(`[data-testid="${testIdValue}"]`);
+        return item ? (item.textContent ?? "").replace(/\s+/gu, " ").trim() : null;
+      };
+      return { png: read(pngId), pdf: read(pdfId) };
+    }, TID_BROWSER_EXPORT_PNG_ITEM, TID_BROWSER_EXPORT_PDF_ITEM)) as {
+      png: string | null;
+      pdf: string | null;
+    };
+    await record("browserExportMenu", exportMenu);
+    expect(exportMenu.png).toContain("PNG");
+    expect(exportMenu.pdf).toContain("PDF");
+    await browser.execute(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+    await browser.pause(300);
+
+    await requestAdditionalBrowserTab();
+    await browser.pause(500);
+    await waitForTestIdByDom(TID_BROWSER_RECENT_VISITS, { timeout: 20_000 });
+    await browser.pause(500);
+    await shot("08c-browser-recent-visits");
+    const recentVisits = (await browser.execute((testIdValue) => {
+      const root = document.querySelector<HTMLElement>(`[data-testid="${testIdValue}"]`);
+      return {
+        visible: Boolean(root),
+        text: (root?.textContent ?? "").replace(/\s+/gu, " ").trim(),
+      };
+    }, TID_BROWSER_RECENT_VISITS)) as { visible: boolean; text: string };
+    await record("browserRecentVisits", recentVisits);
+    expect(recentVisits.visible).toBe(true);
+    expect(recentVisits.text).toContain("127.0.0.1");
   });
 });
