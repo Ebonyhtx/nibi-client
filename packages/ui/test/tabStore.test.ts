@@ -126,6 +126,33 @@ describe("tabStore", () => {
     });
   });
 
+  it("closeTab 为本地 workspace tab 单独发布 lastClosedWorkspaceTabEvent", () => {
+    // worktree 草稿清理需要本地路径级关闭事件，但不能让本地路径进入远端清理链路。
+    const store = createTabStore();
+    const localTabId = store.getState().addTab("/tmp/local-worktree-draft");
+
+    store.getState().closeTab(localTabId);
+
+    expect(store.getState().lastClosedWorkspaceEvent).toBeNull();
+    expect(store.getState().lastClosedWorkspaceTabEvent).toEqual({
+      sequence: 1,
+      workspacePath: "/tmp/local-worktree-draft",
+      origin: "user-close",
+    });
+  });
+
+  it("records restore origin so draft cleanup can ignore it", () => {
+    const store = createTabStore();
+    const localTabId = store.getState().addTab("/tmp/local-worktree-draft");
+
+    store.getState().closeTab(localTabId, "restore");
+
+    expect(store.getState().lastClosedWorkspaceTabEvent).toMatchObject({
+      workspacePath: "/tmp/local-worktree-draft",
+      origin: "restore",
+    });
+  });
+
   it("restores only workspace tabs from persisted session", () => {
     const store = createTabStore();
 

@@ -1280,6 +1280,25 @@ export const hostWorkspaceRunningTaskCountChangedResponseSchema = z.object({
   runningTaskCount: z.number().int().nonnegative(),
 });
 
+/**
+ * Host 上报的退出阻塞项。上游 3.18.2 只有「正在创建受管 worktree」一种：
+ * 创建流程尚未落盘就退出应用会丢掉对应任务，因此任何环境都要先确认。
+ */
+export const hostQuitBlockerSchema = z.object({
+  kind: z.enum(["worktree-creating"]),
+  count: z.number().int().positive(),
+});
+export type HostQuitBlocker = z.infer<typeof hostQuitBlockerSchema>;
+
+export const hostQuitBlockersChangedResponseSchema = z.object({
+  type: z.literal("quit-blockers-changed"),
+  /** 完整集合；空数组表示该 Host 已无退出阻塞。 */
+  blockers: z.array(hostQuitBlockerSchema),
+});
+export type HostQuitBlockersChangedResponse = z.infer<
+  typeof hostQuitBlockersChangedResponseSchema
+>;
+
 export const hostCuaOperationStateResponseSchema = z
   .object({
     type: z.literal("cua-operation-state"),
@@ -1576,6 +1595,7 @@ export const hostResponseMessageSchema = z.discriminatedUnion("type", [
   hostPluginTelemetryResponseSchema,
   hostAgentRunningTaskCountChangedResponseSchema,
   hostWorkspaceRunningTaskCountChangedResponseSchema,
+  hostQuitBlockersChangedResponseSchema,
   hostCuaOperationStateResponseSchema,
   hostCuaActivityResponseSchema,
   hostBroadcastEnvelopeSchema,

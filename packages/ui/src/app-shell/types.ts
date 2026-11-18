@@ -83,6 +83,15 @@ export interface CreateTaskOptions {
   initialComposerDraft?: ComposerDraftHandoff;
   /** 与 initialPrompt canonical 前缀对应的结构化 mention；仅用于编辑器展示。 */
   initialPromptMention?: ComposerMentionPrefill;
+  /**
+   * 先由 Git 服务创建受管 worktree，再在 worktree 内新建草稿任务。
+   * projectId 必须指向源项目；远端项目不支持。
+   */
+  managedWorktree?: {
+    sourceWorkspacePath: string;
+    /** 缺省由 Host 用时间戳+随机后缀生成。 */
+    name?: string;
+  };
   /** 新任务落在哪个 workspace；缺省取活动 workspace。 */
   targetWorkspace?: {
     projectId?: string | null;

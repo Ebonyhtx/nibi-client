@@ -131,6 +131,17 @@ export interface TabStoreState {
     workspaceKey: string;
     origin: "user-close" | "restore" | "rekey";
   } | null;
+  /**
+   * 所有 workspace tab 的关闭事件（含本地目录）。
+   * `lastClosedWorkspaceEvent` 只服务远端清理；本地 worktree 草稿需要路径级事件，
+   * 但改动旧字段会让本地路径进入远端关闭链路，因此单列一个事件。
+   */
+  lastClosedWorkspaceTabEvent: {
+    sequence: number;
+    workspacePath: string;
+    workspaceIdentity?: string;
+    origin: "user-close" | "restore" | "rekey";
+  } | null;
   /** 激活指定标签页 */
   activateTab: (tabId: TabId) => void;
   /** 拖拽排序：将 fromIndex 位置的 tab 移动到 toIndex */
@@ -428,6 +439,7 @@ export function createTabStore(storage: StorageLike | null | undefined = undefin
     },
 
     lastClosedWorkspaceEvent: null,
+    lastClosedWorkspaceTabEvent: null,
 
     closeTab: (tabId: TabId, origin = "user-close") => {
       const stateBefore = get();
@@ -525,6 +537,18 @@ export function createTabStore(storage: StorageLike | null | undefined = undefin
           lastClosedWorkspaceEvent: {
             sequence: (state.lastClosedWorkspaceEvent?.sequence ?? 0) + 1,
             workspaceKey: closedWorkspaceKey,
+            origin,
+          },
+        }));
+      }
+      if (closingTab && isWorkspaceTab(closingTab)) {
+        set((state) => ({
+          lastClosedWorkspaceTabEvent: {
+            sequence: (state.lastClosedWorkspaceTabEvent?.sequence ?? 0) + 1,
+            workspacePath: closingTab.workspacePath,
+            ...(closingTab.workspaceIdentity
+              ? { workspaceIdentity: closingTab.workspaceIdentity }
+              : {}),
             origin,
           },
         }));

@@ -1,4 +1,5 @@
 /* eslint-disable max-lines -- 跨端 platform contract 集中声明 renderer 能力；OAuth 与 browser lifecycle 必须保持 desktop/web 类型合同，本 MR 不拆分平台边界。 */
+import type { BrowserViewExportPageRequest, BrowserViewExportPageResult } from "./channels.js";
 import type {
   DockerConnectOptions,
   RemoteTarget,
@@ -727,6 +728,14 @@ export interface IPlatformService {
    * 页面尺寸由 renderer 注入的 @page CSS 决定（preferCSSPageSize）；仅 Desktop 实现。
    */
   printPageToPdf?(): Promise<PrintPageToPdfResult>;
+
+  /**
+   * 把一个受控内置浏览器 guest 导出为当前 viewport PNG 或整页 PDF。
+   * 只有 Desktop main 能定位 `<webview>` guest；旧 preload 保持 undefined，UI 按能力检测。
+   */
+  browserViewExportPage?(
+    payload: BrowserViewExportPageRequest,
+  ): Promise<BrowserViewExportPageResult>;
 
   /**
    * 从浏览器 File 对象解析宿主本地路径；只有 Desktop preload 能安全实现。

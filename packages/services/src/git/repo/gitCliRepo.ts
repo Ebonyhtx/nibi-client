@@ -32,6 +32,7 @@ import {
   createGitCommandProvider,
   type GitCommandProvider,
 } from "../providers/gitCommandProvider.js";
+import { createManagedWorktreeManager, type ManagedWorktreeManager } from "../managedWorktree.js";
 import {
   buildUntrackedTextDiffResult,
   buildUntrackedStats,
@@ -536,8 +537,13 @@ function parseGitIndexEntries(stdout: string): GitIndexEntry[] {
     });
 }
 
-export function createGitCliRepo(options?: { commandProvider?: GitCommandProvider }): GitCliRepo {
+export function createGitCliRepo(options?: {
+  commandProvider?: GitCommandProvider;
+  managedWorktrees?: ManagedWorktreeManager;
+}): GitCliRepo {
   const commandProvider = options?.commandProvider ?? createGitCommandProvider();
+  const managedWorktrees =
+    options?.managedWorktrees ?? createManagedWorktreeManager({ commandProvider });
   const repositoryResolutionRequests = new Map<string, Promise<GitResolvedRepository>>();
   const workspaceRepositoryInfoRequests = new Map<string, Promise<GitWorkspaceRepositoryInfo>>();
   const statusRequests = new Map<string, Promise<GitStatusSnapshot>>();
@@ -1706,6 +1712,18 @@ export function createGitCliRepo(options?: { commandProvider?: GitCommandProvide
         emailSource: email.source,
         scopeLabel: name.scope ?? email.scope ?? null,
       };
+    },
+
+    async createManagedWorktree(params) {
+      return await managedWorktrees.create(params);
+    },
+
+    async listManagedWorktrees(params) {
+      return await managedWorktrees.list(params);
+    },
+
+    async removeManagedWorktree(params) {
+      return await managedWorktrees.remove(params);
     },
   };
 }

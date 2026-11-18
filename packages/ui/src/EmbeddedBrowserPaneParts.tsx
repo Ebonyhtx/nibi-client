@@ -5,27 +5,36 @@ import {
   ChevronRight,
   Ellipsis,
   ExternalLink,
+  FileText,
   Globe,
+  ImageDown,
   LoaderIcon,
   MonitorSmartphone,
   MousePointerClick,
   RefreshCw,
   Settings,
   TriangleAlertIcon,
+  X,
 } from "lucide-react";
 import {
   TID_BROWSER_ADDRESS_INPUT,
   TID_BROWSER_BACK_BUTTON,
   TID_BROWSER_DEVTOOLS_BUTTON,
   TID_BROWSER_ELEMENT_PICKER_BUTTON,
+  TID_BROWSER_EXPORT_PDF_ITEM,
+  TID_BROWSER_EXPORT_PNG_ITEM,
   TID_BROWSER_FORWARD_BUTTON,
   TID_BROWSER_LOAD_ERROR,
   TID_BROWSER_LOAD_ERROR_CERT_HINT,
   TID_BROWSER_MORE_BUTTON,
   TID_BROWSER_OPEN_EXTERNAL_ITEM,
+  TID_BROWSER_RECENT_VISIT_ITEM,
+  TID_BROWSER_RECENT_VISIT_REMOVE,
+  TID_BROWSER_RECENT_VISITS,
   TID_BROWSER_REFRESH_BUTTON,
   TID_BROWSER_RESPONSIVE_BUTTON,
 } from "@nibi/shared/test-ids";
+import { BrowserTabFavicon } from "@/app-shell/BrowserTabFavicon.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { Button } from "@/components/ui/button.js";
 import {
@@ -40,6 +49,12 @@ import {
   type BrowserGuestFailure,
   type BrowserState,
 } from "@/embeddedBrowserHelpers.js";
+import {
+  clearBrowserRecentVisits,
+  removeBrowserRecentVisit,
+  useBrowserRecentVisits,
+} from "@/lib/browserRecentVisits.js";
+import { formatTaskRelativeTime } from "@/lib/taskListItemPresentation.js";
 import { runUserAction } from "@/lib/userActionTelemetry.js";
 import {
   isBrowserAddressBarCompact,
@@ -57,12 +72,15 @@ export function BrowserToolbar({
   onGoForward,
   onOpenExternal,
   onOpenDevTools,
+  onExportPng,
+  onExportPdf,
   onPickElement,
   onReload,
   onToggleResponsiveMode,
   onSubmit,
   isElementPickerActive,
   isResponsiveMode,
+  canExport,
 }: {
   addressValue: string;
   browserState: BrowserState;
@@ -79,12 +97,15 @@ export function BrowserToolbar({
   onGoForward: () => void;
   onOpenExternal: () => void;
   onOpenDevTools: () => void;
+  onExportPng: () => void;
+  onExportPdf: () => void;
   onPickElement: () => void;
   onReload: () => void;
   onToggleResponsiveMode: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   isElementPickerActive: boolean;
   isResponsiveMode: boolean;
+  canExport: boolean;
 }) {
   const addressBarElementRef = useRef<HTMLDivElement | null>(null);
   const [isAddressBarCompact, setIsAddressBarCompact] = useState(false);
@@ -189,7 +210,10 @@ export function BrowserToolbar({
           browserState.isReady && isDefaultBrowserOpenableUrl(browserState.currentUrl)
         }
         canOpenDevTools={browserState.isReady}
+        canExport={canExport}
         formatMessage={formatMessage}
+        onExportPng={onExportPng}
+        onExportPdf={onExportPdf}
         onOpenExternal={onOpenExternal}
         onOpenDevTools={onOpenDevTools}
         siteSettings={isAddressBarCompact ? permissionSettings : undefined}
@@ -201,14 +225,20 @@ export function BrowserToolbar({
 function BrowserToolbarMoreMenu({
   canOpenDevTools,
   canOpenExternal,
+  canExport,
   formatMessage,
+  onExportPng,
+  onExportPdf,
   onOpenDevTools,
   onOpenExternal,
   siteSettings,
 }: {
   canOpenDevTools: boolean;
   canOpenExternal: boolean;
+  canExport: boolean;
   formatMessage: (descriptor: { id: string }) => string;
+  onExportPng: () => void;
+  onExportPdf: () => void;
   onOpenDevTools: () => void;
   onOpenExternal: () => void;
   siteSettings?: {
@@ -244,6 +274,22 @@ function BrowserToolbarMoreMenu({
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuItem
+          data-testid={TID_BROWSER_EXPORT_PNG_ITEM}
+          disabled={!canExport}
+          onSelect={onExportPng}
+        >
+          <ImageDown className="size-4" />
+          <span>{formatMessage({ id: "browser.export.png" })}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          data-testid={TID_BROWSER_EXPORT_PDF_ITEM}
+          disabled={!canExport}
+          onSelect={onExportPdf}
+        >
+          <FileText className="size-4" />
+          <span>{formatMessage({ id: "browser.export.pdf" })}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
           data-testid={TID_BROWSER_OPEN_EXTERNAL_ITEM}
           disabled={!canOpenExternal}
           onSelect={onOpenExternal}
@@ -264,18 +310,35 @@ function BrowserToolbarMoreMenu({
   );
 }
 
+function resolveRecentVisitLabel(visit: { url: string; title?: string }): string {
+  const title = visit.title?.trim();
+  if (title) return title;
+  try {
+    return new URL(visit.url).hostname || visit.url;
+  } catch {
+    return visit.url;
+  }
+}
+
 export function BrowserEmptyState({
   browserState,
   formatMessage,
   isGuestStarting = !browserState.isReady,
+  enableRecentVisits = false,
+  onOpenRecentVisit,
 }: {
   browserState: BrowserState;
   formatMessage: (descriptor: { id: string }) => string;
   isGuestStarting?: boolean;
+  /** 只对 human tab 开启；agent Browser Use 不展示用户浏览历史。 */
+  enableRecentVisits?: boolean;
+  onOpenRecentVisit?: (url: string) => void;
 }) {
+  const recentVisits = useBrowserRecentVisits();
+  const showRecentVisits = enableRecentVisits && recentVisits.length > 0;
   return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background px-6">
-      <div className="flex max-w-sm flex-col pb-10 items-center text-center">
+    <div className="absolute inset-0 z-10 flex justify-center overflow-y-auto bg-background px-6">
+      <div className="my-auto flex max-w-sm flex-col pb-10 items-center text-center">
         {isGuestStarting ? (
           <LoaderIcon className="mb-6 size-16 animate-spin text-foreground opacity-30" />
         ) : (
@@ -287,6 +350,62 @@ export function BrowserEmptyState({
         <p className="mt-2 text-ui-base text-foreground-subtle">
           {formatMessage({ id: "browser.empty" })}
         </p>
+        {showRecentVisits ? (
+          <div className="mt-8 w-full min-w-0 text-left" data-testid={TID_BROWSER_RECENT_VISITS}>
+            <div className="mb-1.5 flex items-center justify-between gap-3 px-1">
+              <span className="text-ui-sm font-medium text-foreground-subtle">
+                {formatMessage({ id: "browser.recentVisits.title" })}
+              </span>
+              <button
+                type="button"
+                className="rounded-md px-1.5 py-0.5 text-ui-sm text-foreground-subtle transition-colors hover:bg-hover/50 hover:text-foreground"
+                onClick={() => clearBrowserRecentVisits()}
+              >
+                {formatMessage({ id: "browser.recentVisits.clear" })}
+              </button>
+            </div>
+            <ul className="max-h-64 space-y-0.5 overflow-y-auto">
+              {recentVisits.map((visit) => (
+                <li
+                  key={visit.url}
+                  className="group flex items-center gap-1 rounded-lg hover:bg-hover/50"
+                >
+                  <button
+                    type="button"
+                    data-testid={TID_BROWSER_RECENT_VISIT_ITEM}
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left"
+                    onClick={() => onOpenRecentVisit?.(visit.url)}
+                  >
+                    <span className="flex size-4 shrink-0 items-center justify-center">
+                      <BrowserTabFavicon faviconUrl={visit.faviconUrl} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-ui-base text-foreground">
+                        {resolveRecentVisitLabel(visit)}
+                      </span>
+                      <span className="block truncate text-ui-sm text-foreground-subtle">
+                        {visit.url}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-ui-sm text-foreground-subtle">
+                      {formatTaskRelativeTime(visit.visitedAt, { formatMessage })}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    data-testid={TID_BROWSER_RECENT_VISIT_REMOVE}
+                    aria-label={formatMessage({ id: "browser.recentVisits.remove" })}
+                    title={formatMessage({ id: "browser.recentVisits.remove" })}
+                    className="flex size-7 shrink-0 items-center justify-center rounded-md text-foreground-subtle opacity-0 transition-colors hover:bg-hover hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                    onClick={() => removeBrowserRecentVisit(visit.url)}
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
     </div>
   );

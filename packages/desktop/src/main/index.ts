@@ -93,6 +93,7 @@ import {
   shouldEnableE2ETestBridge,
   type UpdateStatePayload,
   type TelemetryEventPayload,
+  type HostQuitBlocker,
   HostMessageTypes,
   InternalChannels,
 } from "@nibi/shared";
@@ -122,8 +123,11 @@ import { createRendererActionTraceExporter } from "./rendererActionTraceExporter
 import { registerRendererActionTraceIpc } from "./rendererActionTraceIpc.js";
 import { createRendererActionTraceRollout } from "./rendererActionTraceRollout.js";
 import {
+  confirmAppQuitWithDialog,
+  getCreatingWorktreeCount as countCreatingWorktreesForHosts,
   resolveAppShutdownPolicy,
   selectAppShutdownPolicy,
+  shouldConfirmAppQuitForCounts,
   type AppShutdownKind,
 } from "./appShutdownPolicy.js";
 import { createPrimaryWindowCoordinator } from "./primaryWindowCoordinator.js";
@@ -686,6 +690,9 @@ const cuaPipFocusRouter = createCuaPipFocusRouter({
   },
 });
 const hostRunningTaskCountMap = new Map<ElectronUtilityProcess, number>();
+// Host 上报的完整退出阻塞集合（上游 3.18.2 只有 worktree-creating）。
+// 空集合 / Host exit 都会删除条目；缺数据按 0 处理，避免永久卡退出。
+const hostQuitBlockersMap = new Map<ElectronUtilityProcess, HostQuitBlocker[]>();
 const windowsCuaOperationIndicator = createWindowsCuaOperationIndicator({
   platform: process.platform,
   getLocale: () => currentApplicationLocale,
@@ -1307,6 +1314,13 @@ function getRunningAgentSessionCount() {
   return [...hostRunningTaskCountMap.values()].reduce((total, count) => total + count, 0);
 }
 
+/** 默认统计全部 Host；窗口关闭路径传入该窗口的 Host，避免别的窗口的 worktree 阻塞本窗口。 */
+function getCreatingWorktreeCount(
+  hosts: Iterable<ElectronUtilityProcess | undefined> = hostQuitBlockersMap.keys(),
+): number {
+  return countCreatingWorktreesForHosts(hostQuitBlockersMap, hosts);
+}
+
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
     const timer = setTimeout(resolve, Math.max(ms, 0));
@@ -1487,47 +1501,55 @@ async function prepareWindowsProcessesForUpdateInstall() {
   logWindowsPackagedResourceWritableProbe("after-taskkill");
 }
 
-function shouldConfirmAppQuit() {
-  // 开发环境里的普通会话经常需要重启 Electron，只在 production 下拦截，避免打断调试。
-  return NIBI_ENV === "production" && getRunningAgentSessionCount() > 0;
+function shouldConfirmAppQuit(
+  quitBlockerHosts: Iterable<ElectronUtilityProcess | undefined> = hostQuitBlockersMap.keys(),
+) {
+  // 开发环境里的普通会话经常需要重启 Electron，只在 production 下拦截，避免打断调试；
+  // 正在创建 worktree 在任何环境都要确认，因为退出会丢掉创建中的任务。
+  return shouldConfirmAppQuitForCounts({
+    isProduction: NIBI_ENV === "production",
+    runningAgentSessionCount: getRunningAgentSessionCount(),
+    creatingWorktreeCount: getCreatingWorktreeCount(quitBlockerHosts),
+  });
 }
 
-function confirmAppQuit(originWindow?: BrowserWindow | null) {
-  if (!shouldConfirmAppQuit()) {
+function confirmAppQuit(
+  originWindow?: BrowserWindow | null,
+  quitBlockerHosts: Iterable<ElectronUtilityProcess | undefined> = hostQuitBlockersMap.keys(),
+) {
+  const runningAgentSessionCount = getRunningAgentSessionCount();
+  const creatingWorktreeCount = getCreatingWorktreeCount(quitBlockerHosts);
+  if (
+    !shouldConfirmAppQuitForCounts({
+      isProduction: NIBI_ENV === "production",
+      runningAgentSessionCount,
+      creatingWorktreeCount,
+    })
+  ) {
     logger.info(`[app-quit] quit confirmation skipped in ${NIBI_ENV}`);
     return true;
   }
 
   const isZh = currentApplicationLocale === "zh-CN";
-  const runningAgentSessionCount = getRunningAgentSessionCount();
-  const detailLines = [
-    runningAgentSessionCount > 0
-      ? isZh
-        ? `正在进行的会话：${runningAgentSessionCount} 个，退出后会被中断。`
-        : `In-progress sessions: ${runningAgentSessionCount}. They will be interrupted after quitting.`
-      : null,
-  ].filter((line): line is string => line !== null);
   const targetWindow =
     originWindow && !originWindow.isDestroyed()
       ? originWindow
       : (BrowserWindow.getFocusedWindow() ??
         getApplicationWindowsExcludingCuaIndicator()[0] ??
         null);
-  const dialogOptions = {
-    type: "question" as const,
-    buttons: isZh ? ["退出", "取消"] : ["Quit", "Cancel"],
-    defaultId: 1,
-    cancelId: 1,
-    title: isZh ? "退出确认" : "Confirm Quit",
-    message: isZh ? "确认退出 NIBI?" : "Quit NIBI?",
-    detail: detailLines.join("\n"),
-    icon: nativeImage.createFromPath(iconPath),
-  };
+  const icon = nativeImage.createFromPath(iconPath);
 
-  const result = targetWindow
-    ? dialog.showMessageBoxSync(targetWindow, dialogOptions)
-    : dialog.showMessageBoxSync(dialogOptions);
-  return result === 0;
+  return confirmAppQuitWithDialog({
+    isZh,
+    runningAgentSessionCount,
+    creatingWorktreeCount,
+    showMessageBoxSync: (dialogOptions) => {
+      const options = { ...dialogOptions, icon };
+      return targetWindow
+        ? dialog.showMessageBoxSync(targetWindow, options)
+        : dialog.showMessageBoxSync(options);
+    },
+  });
 }
 
 function confirmUpdateInstallWithRunningTasks(runningAgentSessionCount: number): boolean {
@@ -1898,8 +1920,11 @@ function createWindowInstance(startupBootstrap: StartupWindowBootstrap = {}) {
     preloadPath,
     logger,
     forceQuitRef,
-    handleBeforeClose: (win, label) =>
-      handleDesktopWindowCloseRequest({
+    handleBeforeClose: (win, label) => {
+      // 窗口关闭只受本窗口 Host 的 creating worktree 影响；运行中会话仍按全局计数。
+      // 注意：windowHostProcessMap 的键是 webContents id，不是 BrowserWindow.id。
+      const quitBlockerHosts = [windowHostProcessMap.get(win.webContents.id)];
+      return handleDesktopWindowCloseRequest({
         platform: process.platform,
         forceQuit: forceQuitRef.current,
         explicitQuitRequested: explicitQuitRef.current,
@@ -1914,14 +1939,15 @@ function createWindowInstance(startupBootstrap: StartupWindowBootstrap = {}) {
         isLastWindow: getMainApplicationWindows().length === 1,
         label,
         logger,
-        shouldConfirmQuit: shouldConfirmAppQuit(),
-        confirmQuit: () => confirmAppQuit(win),
+        shouldConfirmQuit: shouldConfirmAppQuit(quitBlockerHosts),
+        confirmQuit: () => confirmAppQuit(win, quitBlockerHosts),
         requestQuit: () => {
           markForceQuit(`last-window-close:${label}`);
           app.quit();
         },
         hideWindow: () => win.hide(),
-      }),
+      });
+    },
     windowHostProcessMap,
     onHostProcessReady: (windowKey) => cuaPipFocusRouter.refreshWindow(windowKey),
     awaitFirstHostSpawnDecision,
@@ -1941,6 +1967,7 @@ function createWindowInstance(startupBootstrap: StartupWindowBootstrap = {}) {
           taskRealtimeBus,
           windowHostProcessMap,
           hostRunningTaskCountMap,
+          hostQuitBlockersMap,
           onCuaOperationStateChanged: (source, event) =>
             windowsCuaOperationIndicator.handleState(source, event),
           onCuaActivityChanged: (source, event) =>
@@ -2370,6 +2397,7 @@ app.whenReady().then(async () => {
         browserGuestManager.ensureResidentFromRenderer(payload),
       restoreBrowserTabs: (payload) => browserGuestManager.restoreTabs(payload),
     },
+    exportBrowserViewPage: (payload) => browserGuestManager.exportPage(payload),
     applyApplicationLocale: async (locale) => {
       currentApplicationLocale = locale;
       // Host 的 Nibi endpoint 请求以此为实时语言；setting.json 写入可能滞后或失败，不能作为来源。

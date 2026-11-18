@@ -50,6 +50,7 @@ import {
   isProviderProvisioningAccountCredentialKey,
   type CuaActivityEvent,
   type DynamicWorkflowMode,
+  type HostQuitBlocker,
   type ProviderProvisioningTrigger,
 } from "@nibi/shared";
 
@@ -446,6 +447,8 @@ import { createMediaPreviewService } from "./media-preview/mediaPreview.js";
 import type { WorkspaceFileSearchFilter } from "./file/workspaceFileMentionFilter.js";
 import { createGitService } from "./git/gitService.js";
 import { GitCommitMessageGenerator } from "./git/gitCommitMessageGenerator.js";
+import { createManagedWorktreeManager } from "./git/managedWorktree.js";
+import { createManagedWorktreeCleanup } from "./git/managedWorktreeCleanup.js";
 import { createGitCheckpointService } from "./git/gitCheckpointService.js";
 import { createSystemService } from "./system/systemService.js";
 import { createTerminalService } from "./terminal/terminalService.js";
@@ -712,6 +715,9 @@ const accountRequestAuthServices = new WeakMap<ServiceCollection, IAccountReques
 // 云端项目 broker：只在 Local Host 里起一个 127.0.0.1 随机端口，agent spawn 时按工作区发能力令牌。
 // 与应用同生命周期，dispose 时统一关闭，不能靠进程退出兜底（否则单测/重启会残留监听）。
 const cloudProjectBrokers = new WeakMap<ServiceCollection, { dispose(): Promise<void> }>();
+// 受管 worktree 的「正在创建」订阅不是 IPC 服务，随 services 释放时解除订阅并补报空集合，
+// 避免 Host 已释放却仍留着一个退出阻塞项。
+const quitBlockerReporterDisposers = new WeakMap<ServiceCollection, () => void>();
 
 
 /** Local Host 进程内能力；不会随 ServiceCollection 暴露到通用 RPC Channel。 */
@@ -1218,6 +1224,11 @@ export function createLocalServices(options: {
   ) => void | Promise<void>;
   processLifecycleReporter?: RuntimeProcessLifecycleReporter;
   taskRuntimeReporter?: RuntimeTaskReporter;
+  /**
+   * Host 退出阻塞事实上报口。Desktop Host 用它把「正在创建受管 worktree」
+   * 转成 Main 的退出确认依据；其他宿主不注入即不产生任何副作用。
+   */
+  quitBlockerReporter?: { onQuitBlockersChanged(blockers: HostQuitBlocker[]): void };
   /** workspace 文件搜索默认使用内置过滤器；后续规则来源只需在 Host 装配时注入最终实现。 */
   workspaceFileSearchFilter?: WorkspaceFileSearchFilter;
   forwardSessionMessageSendRequested?: (
@@ -2235,6 +2246,25 @@ export function createLocalServices(options: {
     hostId: options?.projectStorageHostId ?? "local",
     workspaceIdentity: undefined,
   });
+  // Git service、删除清理与草稿回收共享同一受管 worktree 视图。
+  const managedWorktrees = createManagedWorktreeManager();
+  // 上游 3.18.2 唯一的退出阻塞：正在新 worktree 中启动的任务。计数变化即上报完整集合，
+  // 归零上报空数组，Main 只按这个事实决定是否确认退出。
+  const unsubscribeQuitBlockerReporter = options?.quitBlockerReporter
+    ? managedWorktrees.onCreatingCountChanged((count) => {
+        options.quitBlockerReporter?.onQuitBlockersChanged(
+          count > 0 ? [{ kind: "worktree-creating", count }] : [],
+        );
+      })
+    : undefined;
+  let nibiAgentServiceRef: ReturnType<typeof createNibiAgentService> | undefined;
+  const managedWorktreeCleanup = createManagedWorktreeCleanup({
+    manager: managedWorktrees,
+    disposeWorkspace: async (target) => {
+      // 删除任务前先释放该 workspace runtime（Windows 文件锁）；草稿回收时通常已无进程。
+      await nibiAgentServiceRef?.disposeWorkspace(target);
+    },
+  });
   const nibiAgentService = createNibiAgentService({
     prepareProjectExecution,
     prepareSessionCreation: async (target) => {
@@ -2247,22 +2277,35 @@ export function createLocalServices(options: {
         options?.projectStorageHostId !== undefined &&
         options.projectStorageHostId !== "local";
       if (!remoteOwner && !shouldReserveCreatedTask(target)) return [];
-      return (
-        await taskIndexRepo.getProjectRepository()
-      ).reserveCreatedTask({
+      const inspection =
+        !remoteOwner && !target.workspaceIdentity?.trim()
+          ? await managedWorktrees.inspect({ workspacePath: target.workspacePath })
+          : null;
+      const managedWorktree =
+        inspection?.isManaged && inspection.worktreeRoot && inspection.repoRoot
+          ? { repoRoot: inspection.repoRoot, worktreeRoot: inspection.worktreeRoot }
+          : undefined;
+      return (await taskIndexRepo.getProjectRepository()).reserveCreatedTask({
         task: { ...target, taskId: target.sessionId },
         projectId: target.projectId,
-        additionalDirectories: target.additionalDirectories,
+        additionalDirectories: managedWorktree ? [] : target.additionalDirectories,
+        ...(managedWorktree ? { managedWorktree } : {}),
       }).additionalDirectories;
     },
     // createSession 被拒 / draft session 被 deleteSession 回收后，占位行没有任何
     // CLI 会话可对应；只有真正落过 CLI facts 的行会被 removeUnmaterializedTask 拒绝删除。
-    discardPreparedSession: async (target) =>
-      taskIndexRepo.removeUnmaterializedTask({
+    discardPreparedSession: async (target) => {
+      const removed = await taskIndexRepo.removeUnmaterializedTask({
         workspacePath: target.workspacePath,
         workspaceIdentity: target.workspaceIdentity,
         taskId: target.taskId,
-      }),
+      });
+      if (removed) {
+        // 草稿阶段没有用户工作可丢；dirty/新提交仍会保留并写 error 日志，不做 force。
+        await managedWorktreeCleanup.discardDraft(target);
+      }
+      return removed;
+    },
     resolveSessionDirectories: async (target) =>
       (await projectService.resolveSessionDirectories({ ...target, taskId: target.sessionId }))
         .additionalDirectories,
@@ -2557,8 +2600,10 @@ export function createLocalServices(options: {
     },
     logger: createServiceLogger("git-commit-message"),
   });
+  nibiAgentServiceRef = nibiAgentService;
   const gitService = createGitService({
     commitMessageGenerator: gitCommitMessageGenerator,
+    managedWorktrees,
   });
   // task wrapper 由 Nibi task service adapter 提供；核心 session 状态由 Nibi agent server 维护。
   const nibiTaskService = createNibiTaskServiceAdapter({
@@ -2568,6 +2613,7 @@ export function createLocalServices(options: {
     settingService,
     cuaProductMcpServerResolver,
     cloudProjectMcpServerResolver,
+    managedWorktreeCleanup,
   });
   const botsRepo = new BotsRepo();
   const botLog = createServiceLogger("bots");
@@ -2871,6 +2917,12 @@ export function createLocalServices(options: {
   sqliteReposToClose.push(taskIndexRepo);
   sharedSqliteRepos.set(services, sqliteReposToClose);
   cloudProjectBrokers.set(services, cloudProjectBroker);
+  if (unsubscribeQuitBlockerReporter) {
+    quitBlockerReporterDisposers.set(services, () => {
+      unsubscribeQuitBlockerReporter();
+      options?.quitBlockerReporter?.onQuitBlockersChanged([]);
+    });
+  }
   return services;
 }
 
@@ -2957,6 +3009,18 @@ function readTelemetryOAuthUserId(rawUserInfo: string | null): string {
   }
 }
 
+/** Host 释放时先撤销 worktree 计数订阅并补报空集合；上报失败不能阻断其它资源回收。 */
+function disposeQuitBlockerReporter(services: ServiceCollection): void {
+  const dispose = quitBlockerReporterDisposers.get(services);
+  if (!dispose) return;
+  quitBlockerReporterDisposers.delete(services);
+  try {
+    dispose();
+  } catch {
+    // Host 即将退出，parentPort 可能已经关闭；这里保持 best-effort。
+  }
+}
+
 export function disposeServiceResources(services: ServiceCollection): void {
   const content = services.getOptional(ICloudContentService);
   if (content && hasDisposeAllAndWait(content)) void content.disposeAllAndWait().catch(() => {});
@@ -3000,6 +3064,7 @@ export function disposeServiceResources(services: ServiceCollection): void {
   const cloudProjectBroker = cloudProjectBrokers.get(services);
   if (cloudProjectBroker) void cloudProjectBroker.dispose().catch(() => {});
   cloudProjectBrokers.delete(services);
+  disposeQuitBlockerReporter(services);
 }
 
 export async function disposeServiceResourcesAndWait(services: ServiceCollection): Promise<void> {
@@ -3049,6 +3114,7 @@ export async function disposeServiceResourcesAndWait(services: ServiceCollection
   const cloudProjectBroker = cloudProjectBrokers.get(services);
   if (cloudProjectBroker) await cloudProjectBroker.dispose().catch(() => {});
   cloudProjectBrokers.delete(services);
+  disposeQuitBlockerReporter(services);
 }
 
 /** 所有应用入口在开放 RPC / 调度器前等待；失败不启动业务写者。 */

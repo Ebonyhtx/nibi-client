@@ -1459,3 +1459,22 @@ exceptions:
       3.18 跟进第二阶段的 UI 快赢：未知工具卡的数据归一、浏览器设备预设/窄地址栏、
       设置搜索与 macOS 字体平滑。它们都是纯展示/纯逻辑模块，不含新的跨层依赖；
       packages/ui 仍是 managed:false 的遗留大区，按路径准入，整包接管不在本次范围。
+
+  - id: tier2-managed-worktree-phase1
+    rule: unmanaged-new-file
+    paths:
+      - packages/services/src/git/managedWorktree.ts
+      - packages/services/src/git/managedWorktreeCleanup.ts
+      - packages/ui/src/root/managedWorktreeTask.ts
+    reason: >-
+      Tier 2 受管 worktree 第一期新增的服务适配器、删除清理器与 UI 草稿编排；services/git
+      与 ui/root 仍是历史未受管目录，本次不接管整目录，仅准入这三个新文件。
+
+  - id: tier2-browser-export-and-recent-visits
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/browser-use/browserPageExport.ts
+      - packages/ui/src/lib/browserRecentVisits.ts
+    reason: >-
+      Tier 2 浏览器导出 PNG/PDF 与最近访问的纯逻辑/存储模块；browser-use 与 lib 仍是
+      managed:false 的遗留大区，按路径准入这两个新文件，不接管整目录。

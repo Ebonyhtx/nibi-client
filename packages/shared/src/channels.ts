@@ -81,6 +81,34 @@ import type {
   PrepareCuaHelperPermissionDragResult,
 } from "./cuaAccessibilitySettings.js";
 
+/** 内置浏览器 tab 的用户导出格式；只允许当前 viewport PNG 或整页 PDF。 */
+export type BrowserViewExportPageFormat = "png" | "pdf";
+
+/**
+ * Renderer → Main：导出受控 `<webview>` guest。
+ *
+ * `key` 是 Browser tab id（与 `browserViewAttachGuest` 的 key 一致），
+ * main 必须用 sender window + guest ownership 双重校验，不能只信 webContentsId。
+ */
+export interface BrowserViewExportPageRequest {
+  key: string;
+  webContentsId: number;
+  format: BrowserViewExportPageFormat;
+}
+
+export interface BrowserViewExportPageResult {
+  success: boolean;
+  /** 导出字节；success 时存在（PNG 或 PDF）。 */
+  data?: ArrayBuffer;
+  /**
+   * 稳定错误码：window_mismatch / invalid_format / tab_not_found / not_owner /
+   * not_webview / guest_unavailable / sender_mismatch / tab_suspended / tab_loading /
+   * export_in_progress / export_timeout / export_failed / empty_export /
+   * export_too_large / unsupported。
+   */
+  error?: string;
+}
+
 // ============================================================================
 // RPC 服务频道 —— 通过 ChannelServer/ChannelClient 传输
 // ============================================================================
@@ -304,6 +332,8 @@ export const PlatformChannels = {
   BrowserViewSuspend: "nibi:browser-view-suspend",
   /** Main → Renderer：为 suspended shell 重新挂载 guest。 */
   BrowserViewRestore: "nibi:browser-view-restore",
+  /** Renderer → Main：把受控 guest 导出为当前 viewport PNG 或整页 PDF。 */
+  BrowserViewExportPage: "nibi:browser-view-export-page",
   /** Main → Renderer：菜单触发新建任务 */
   NewTask: "nibi:new-task",
   /** Main → Renderer：菜单触发打开工作区 */
@@ -690,6 +720,8 @@ export const HostResponseTypes = {
   AgentRunningTaskCountChanged: "agent-running-task-count-changed",
   /** host 内指定 workspace 当前仍未 terminal 的 task 数量变化 */
   WorkspaceRunningTaskCountChanged: "workspace-running-task-count-changed",
+  /** host 内正在新 worktree 中启动的任务数量变化；main 据此决定退出是否需要确认 */
+  QuitBlockersChanged: "quit-blockers-changed",
   /** host → main：Windows desktop-local CUA turn 的操作提示状态 */
   CuaOperationState: "cua-operation-state",
   /** host → main：Windows CUA Helper 的真实输入活动（横幅 / 光标浮层，纯展示） */
@@ -1008,6 +1040,10 @@ export interface PlatformChannelMap {
   [PlatformChannels.BrowserViewRestore]: {
     request: BrowserViewResidencyTransitionPayload;
     response: void;
+  };
+  [PlatformChannels.BrowserViewExportPage]: {
+    request: BrowserViewExportPageRequest;
+    response: BrowserViewExportPageResult;
   };
   [PlatformChannels.CanOpenCommunity]: {
     request: Locale;

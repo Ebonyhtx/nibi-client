@@ -12,6 +12,7 @@ import {
   type HostMcpTelemetryResponse,
   type HostSessionCreateTelemetryResponse,
   type HostPluginTelemetryResponse,
+  type HostQuitBlocker,
   type RemoteTarget,
   type TaskRealtimeHostDeliveryKind,
   type WorkspacePurpose,
@@ -175,6 +176,8 @@ export function spawnHostProcess(
     taskRealtimeBus?: TaskRealtimeBus;
     windowHostProcessMap: Map<number, ElectronUtilityProcess>;
     hostRunningTaskCountMap: Map<ElectronUtilityProcess, number>;
+    /** Host 上报的退出阻塞集合；空集合不保留条目，Host exit 时也删除。 */
+    hostQuitBlockersMap: Map<ElectronUtilityProcess, HostQuitBlocker[]>;
     onWorkspaceRunningTaskCountChanged?: (
       child: ElectronUtilityProcess,
       event: {
@@ -581,6 +584,25 @@ export function spawnHostProcess(
       return;
     }
 
+    if (result.data.type === HostResponseTypes.QuitBlockersChanged) {
+      // blockers 是完整集合：空数组表示该 Host 已无阻塞，必须清掉旧条目，
+      // 否则“创建结束/失败”后退出确认会永久卡住。
+      if (result.data.blockers.length > 0) {
+        dependencies.hostQuitBlockersMap.set(child, result.data.blockers);
+      } else {
+        dependencies.hostQuitBlockersMap.delete(child);
+      }
+      const creatingWorktreeCount = result.data.blockers.reduce(
+        (total, blocker) =>
+          blocker.kind === "worktree-creating" ? total + blocker.count : total,
+        0,
+      );
+      dependencies.logger.info(
+        `[app-quit] host quit blockers updated (${label}) worktree-creating=${creatingWorktreeCount}`,
+      );
+      return;
+    }
+
     if (result.data.type === HostResponseTypes.WorkspaceRunningTaskCountChanged) {
       dependencies.onWorkspaceRunningTaskCountChanged?.(child, {
         workspacePath: result.data.workspacePath,
@@ -646,6 +668,7 @@ export function spawnHostProcess(
     hostLogRelay.flushRawLogs();
     dependencies.logger.info(`[spawnHostProcess] host process (${label}) exited with code ${code}`);
     dependencies.hostRunningTaskCountMap.delete(child);
+    dependencies.hostQuitBlockersMap.delete(child);
     if (shouldRegisterBroadcast) {
       dependencies.broadcastHub.unregister(windowId);
     }

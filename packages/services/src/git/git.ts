@@ -4,6 +4,7 @@ import type {
   GitCommitGraphRequest,
   GitCommitGraphResult,
   GitCreateBranchRequest,
+  GitCreateManagedWorktreeRequest,
   GitChangesRequest,
   GitCommitRequest,
   GitCommitResult,
@@ -14,12 +15,16 @@ import type {
   GitGenerateCommitMessageResult,
   GitIdentity,
   GitIgnoredPathsRequest,
+  GitListManagedWorktreesRequest,
   GitLocalBranchListResult,
+  GitManagedWorktree,
+  GitManagedWorktreeRemovalResult,
   GitPathMutationRequest,
   GitPushRequest,
   GitPushResult,
   GitRefreshRequest,
   GitRefreshResult,
+  GitRemoveManagedWorktreeRequest,
   GitRepositoryRequest,
   GitRepositorySummary,
   GitWorkspaceRepositoryInfo,
@@ -50,6 +55,11 @@ export interface IGitService {
   push(params: GitPushRequest): Promise<GitPushResult>;
   getIdentity(params: GitRepositoryRequest): Promise<GitIdentity>;
   refresh(params: GitRefreshRequest): Promise<GitRefreshResult>;
+  createManagedWorktree(params: GitCreateManagedWorktreeRequest): Promise<GitManagedWorktree>;
+  listManagedWorktrees(params: GitListManagedWorktreesRequest): Promise<GitManagedWorktree[]>;
+  removeManagedWorktree(
+    params: GitRemoveManagedWorktreeRequest,
+  ): Promise<GitManagedWorktreeRemovalResult>;
 }
 
 export const IGitService = createServiceDescriptor<IGitService>(ServiceChannels.Git);

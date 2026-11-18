@@ -856,6 +856,21 @@ const runtimeTaskReporter = {
   },
 } satisfies NonNullable<Parameters<typeof createLocalServices>[0]>["taskRuntimeReporter"];
 
+// 上游 3.18.2 的 HostQuitBlocker：只上报「正在创建受管 worktree」的完整集合。
+// Main 用该事实决定退出确认；空数组表示该 Host 已无阻塞，Host 退出时 Main 也会清掉条目。
+const quitBlockerReporter = {
+  onQuitBlockersChanged(blockers) {
+    if (!parentPort) {
+      return;
+    }
+
+    parentPort.postMessage({
+      type: HostResponseTypes.QuitBlockersChanged,
+      blockers,
+    });
+  },
+} satisfies NonNullable<Parameters<typeof createLocalServices>[0]>["quitBlockerReporter"];
+
 const cuaOperationStateReporter = {
   onStateChanged(event) {
     if (!parentPort) {
@@ -3548,6 +3563,7 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
               nibiBuiltinProviderConfigFilePath: msg.nibiBuiltinProviderConfigFilePath,
               processLifecycleReporter: runtimeProcessLifecycleReporter,
               taskRuntimeReporter: runtimeTaskReporter,
+              quitBlockerReporter,
               feedback: {
                 getDeviceMid: () => msg.deviceMid,
                 apiBaseUrl: msg.feedbackApiBase,

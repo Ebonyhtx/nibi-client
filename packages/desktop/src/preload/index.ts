@@ -50,6 +50,8 @@ import type {
   BrowserViewResidencyTransitionPayload,
   BrowserViewRestoredTabShell,
   BrowserViewRestoreTabsRequest,
+  BrowserViewExportPageRequest,
+  BrowserViewExportPageResult,
   BrowserViewportSize,
   BrowserLocalPreviewResolveResult,
   DesktopZoomState,
@@ -355,6 +357,11 @@ contextBridge.exposeInMainWorld("nibi", {
   /** 将当前页面的 print 媒体版面导出为 PDF（Chromium 打印引擎，矢量文本） */
   printPageToPdf: (): Promise<PrintPageToPdfResult> =>
     ipcRenderer.invoke(PlatformChannels.PrintToPdf),
+  /** 把内置浏览器的受控 guest 导出为当前 viewport PNG 或整页 PDF */
+  browserViewExportPage: (
+    payload: BrowserViewExportPageRequest,
+  ): Promise<BrowserViewExportPageResult> =>
+    ipcRenderer.invoke(PlatformChannels.BrowserViewExportPage, payload),
   /** 从系统拖拽/文件输入得到的 Web File 解析真实本地路径 */
   getPathForFile: (file: File): string | null => {
     // Electron 32 起移除了非标准 File.path，renderer 不能再直接从拖拽 File 上取路径。

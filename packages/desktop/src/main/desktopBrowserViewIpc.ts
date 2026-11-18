@@ -8,6 +8,9 @@ import {
   type BrowserViewResidencyReportPayload,
   type BrowserViewRestoredTabShell,
   type BrowserViewRestoreTabsRequest,
+  type BrowserViewExportPageFormat,
+  type BrowserViewExportPageRequest,
+  type BrowserViewExportPageResult,
   type BrowserViewportSize,
   type BrowserViewScreenshotSurfaceReadyPayload,
 } from "@nibi/shared";
@@ -37,6 +40,14 @@ export type ReportBrowserScreenshotSurfaceReady = (
   senderWebContentsId: number,
   payload: BrowserViewScreenshotSurfaceReadyPayload,
 ) => void;
+
+export type ExportBrowserViewPage = (payload: {
+  tabId: string;
+  webContentsId: number;
+  format: BrowserViewExportPageFormat;
+  windowId: number;
+  senderWebContentsId: number;
+}) => Promise<BrowserViewExportPageResult>;
 
 export interface BrowserViewResidencyIpcHandlers {
   detachBrowserGuest?(
@@ -68,6 +79,7 @@ export function registerBrowserViewIpcHandlers(
   updateBrowserGuestViewport?: UpdateBrowserGuestViewport,
   reportBrowserScreenshotSurfaceReady?: ReportBrowserScreenshotSurfaceReady,
   residencyHandlers: BrowserViewResidencyIpcHandlers = {},
+  exportBrowserViewPage?: ExportBrowserViewPage,
 ) {
   // renderer 只能拿到 guest webContentsId，必须由 main 绑定发送方窗口后再 attach，
   // 否则相同 key 在多个窗口之间可能错误复用 BrowserGuestManager 状态。
@@ -246,6 +258,33 @@ export function registerBrowserViewIpcHandlers(
       );
     },
   );
+
+  ipcMain.handle(
+    PlatformChannels.BrowserViewExportPage,
+    async (event, payload: BrowserViewExportPageRequest): Promise<BrowserViewExportPageResult> => {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (!win || win.isDestroyed()) {
+        return { success: false, error: "window_mismatch" };
+      }
+      const tabId = nonEmptyStringSchema.parse(payload?.key);
+      if (!Number.isSafeInteger(payload.webContentsId) || payload.webContentsId <= 0) {
+        throw new TypeError("webContentsId must be a positive safe integer");
+      }
+      if (payload.format !== "png" && payload.format !== "pdf") {
+        throw new TypeError("format must be 'png' or 'pdf'");
+      }
+      if (!exportBrowserViewPage) {
+        return { success: false, error: "unsupported" };
+      }
+      return exportBrowserViewPage({
+        tabId,
+        webContentsId: payload.webContentsId,
+        format: payload.format,
+        windowId: win.id,
+        senderWebContentsId: event.sender.id,
+      });
+    },
+  );
 }
 
 export function registerDesktopBrowserIpcHandlers(
@@ -257,12 +296,14 @@ export function registerDesktopBrowserIpcHandlers(
   },
   reportBrowserScreenshotSurfaceReady?: ReportBrowserScreenshotSurfaceReady,
   residencyHandlers?: BrowserViewResidencyIpcHandlers,
+  exportBrowserViewPage?: ExportBrowserViewPage,
 ) {
   registerBrowserViewIpcHandlers(
     attachBrowserGuest,
     updateBrowserGuestViewport,
     reportBrowserScreenshotSurfaceReady,
     residencyHandlers,
+    exportBrowserViewPage,
   );
   registerBrowserDataIpcHandlers(logger);
 }

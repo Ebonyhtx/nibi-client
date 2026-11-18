@@ -30,6 +30,14 @@ import {
   readComposerWorkspaceScope,
 } from "@/v4/composer/composerDraftStore.js";
 import { openFolderFromWorkspaceEntry } from "@/root/openWorkspaceFolderEntry.js";
+import {
+  forgetMaterializedManagedWorktreeDrafts,
+  observeManagedWorktreeDraftAbandonment,
+  openManagedWorktreeDraft,
+  syncManagedWorktreeDraftPromotionState,
+} from "@/root/managedWorktreeTask.js";
+import { pendingCommandRegistry } from "@/v4/pendingCommandRegistry.js";
+import { toast } from "@/components/ui/toast.js";
 import { useConversationWorkspaceActions } from "@/root/useConversationWorkspaceActions.js";
 import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 import { notifyTaskNavigationCommitted } from "@/store/nibiSessionStoreNavigation.js";
@@ -163,6 +171,42 @@ export function useRootWorkspaceActions({
       }
     }
   }, [workbenchGroupClientMode]);
+
+  // 草稿一旦物化成真实任务，worktree 改由任务删除链负责；必须立刻注销草稿登记，
+  // 否则用户在同一个 worktree tab 里再起草稿并关闭时，会误删仍被任务引用的目录。
+  useEffect(() => {
+    return useNibiSessionStore.subscribe((state) => {
+      forgetMaterializedManagedWorktreeDrafts((draft) => {
+        const workspaceKey = draft.workspaceIdentity?.trim() || draft.workspacePath;
+        return Boolean(state.workspaces[workspaceKey]?.activeTaskId);
+      });
+    });
+  }, []);
+
+  // pendingCommandRegistry 在 send 上行前先落账；订阅它即可在 send 开始时把草稿
+  // 标记为 promotionPending，不必等 activeTaskId 落地，也不会误删任务正在用的 worktree。
+  useEffect(() => {
+    syncManagedWorktreeDraftPromotionState();
+    return pendingCommandRegistry.subscribe(() => syncManagedWorktreeDraftPromotionState());
+  }, []);
+
+  // draft prewarm 可能在从未建过占位会话时就结束；worktree 草稿的清理不能只依赖
+  // deleteSession ACK。关闭 tab 时按 renderer 登记表直接走 Git 安全检查，失败保留并报错。
+  useEffect(() => {
+    const gitService = services.gitService;
+    if (!gitService || typeof tabStoreApi.subscribe !== "function") return;
+    return observeManagedWorktreeDraftAbandonment({
+      tabStoreApi,
+      gitService,
+      getActiveTaskId: (workspacePath, workspaceIdentity) =>
+        useNibiSessionStore.getState().getWorkspaceState(workspacePath, workspaceIdentity)
+          .activeTaskId,
+      onError: (error) => {
+        logger.warn("[Root] worktree 草稿清理失败", { error });
+        toast(String(error));
+      },
+    });
+  }, [services.gitService, tabStoreApi]);
 
   const composerClientNamespace = useComposerClientNamespace();
   const startDraftInWorkspace = useCallback(
@@ -337,6 +381,66 @@ export function useRootWorkspaceActions({
             : (workspace.draftProjectId ?? undefined);
           if (hostId && !projectId) throw new Error("project.remote-project-required");
         }
+        const managedWorktreeRequest = requestOptions.managedWorktree;
+        if (managedWorktreeRequest) {
+          if (workbenchGroupClientMode === "web-remote-replayable") {
+            throw new Error("project.remote-worktree-unsupported");
+          }
+          if (hostId && hostId !== "local") {
+            throw new Error("project.remote-worktree-unsupported");
+          }
+          if (!projectId) throw new Error("project.managed-worktree-project-required");
+          if (!services.gitService) throw new Error("git.service-unavailable");
+          if (!isCurrent()) return;
+          let navigationCommitted = false;
+          try {
+            const created = await openManagedWorktreeDraft({
+              gitService: services.gitService,
+              sourceWorkspacePath: managedWorktreeRequest.sourceWorkspacePath,
+              projectId,
+              ...(managedWorktreeRequest.name !== undefined
+                ? { name: managedWorktreeRequest.name }
+                : {}),
+              openDraft: (worktree) => {
+                if (!isCurrent()) throw new Error("project.navigation-superseded");
+                const tabId = addTab(worktree.workspacePath, { workspacePurpose: "project" });
+                navigationCommitted = true;
+                try {
+                  const { managedWorktree: _managedWorktree, ...draftOptions } = requestOptions;
+                  startDraftInWorkspace(worktree.workspacePath, undefined, {
+                    ...draftOptions,
+                    projectId,
+                  });
+                } catch (error) {
+                  // 回滚会删除刚创建的 worktree；不能把 tab 留在已不存在的目录上。
+                  tabStoreApi.getState().closeTab(tabId);
+                  throw error;
+                }
+              },
+              onRollbackError: (error) => {
+                logger.error("[Root] worktree 回滚失败", { error });
+              },
+            });
+            requestOptions.onComplete?.();
+            setWorkspaceActionError(null);
+            logger.info(`[Root] ${source}`, {
+              workspacePath: created.workspacePath,
+              projectId,
+              managedWorktree: true,
+            });
+          } catch (error) {
+            // addTab 之后 activeTab 已经变化，isCurrent() 必然为 false；失败上报不能交给
+            // 外层 guard（否则 toast 被静默吞掉）。创建期间用户主动切走则视为取消。
+            if (!navigationCommitted && !isCurrent()) {
+              logger.warn("[Root] worktree 创建已取消（导航已切换）", { error });
+            } else {
+              logger.error("[Root] 准备 worktree 任务失败", error);
+              requestOptions.onError?.(error);
+              setWorkspaceActionError(error instanceof Error ? error.message : String(error));
+            }
+          }
+          return;
+        }
         if (!isCurrent()) return;
         if (workbenchGroupClientMode === "web-remote-replayable") {
           if (!openMobileProjectDraft) throw new Error("project.remote-navigation-unavailable");
@@ -419,6 +523,7 @@ export function useRootWorkspaceActions({
     },
     [
       services.projectService,
+      services.gitService,
       composerClientNamespace,
       activeWorkspacePath,
       activeWorkspaceIdentity,

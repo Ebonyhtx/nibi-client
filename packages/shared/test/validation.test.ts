@@ -309,6 +309,37 @@ describe("hostResponseMessageSchema", () => {
     ).toBe(true);
   });
 
+  it("accepts the worktree-creating quit blocker set and an empty set", () => {
+    expect(
+      hostResponseMessageSchema.safeParse({
+        type: HostResponseTypes.QuitBlockersChanged,
+        blockers: [{ kind: "worktree-creating", count: 3 }],
+      }).success,
+    ).toBe(true);
+    expect(
+      hostResponseMessageSchema.safeParse({
+        type: HostResponseTypes.QuitBlockersChanged,
+        blockers: [],
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects unknown quit blocker kinds and non-positive counts", () => {
+    for (const blockers of [
+      [{ kind: "task-running", count: 1 }],
+      [{ kind: "worktree-creating", count: 0 }],
+      [{ kind: "worktree-creating", count: -2 }],
+      [{ kind: "worktree-creating", count: 1.5 }],
+    ]) {
+      expect(
+        hostResponseMessageSchema.safeParse({
+          type: HostResponseTypes.QuitBlockersChanged,
+          blockers,
+        }).success,
+      ).toBe(false);
+    }
+  });
+
   it("accepts local host init payload", () => {
     const parsed = hostIncomingMessageSchema.safeParse({
       type: "init-local",

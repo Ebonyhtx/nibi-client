@@ -18,6 +18,7 @@ import { toast } from "@/components/ui/toast.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import { useServices } from "@/hooks/useServices.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
+import { clearBrowserRecentVisitsAfterDataClear } from "@/lib/browserRecentVisits.js";
 import { invalidateDeferredDraftSessionForSkillChange } from "@/lib/nibiDraftSkillInvalidation.js";
 import { logger } from "@/logger.js";
 import { startUserAction } from "@/lib/userActionTelemetry.js";
@@ -206,6 +207,9 @@ export function BrowserSettingsSection({
       try {
         const result = await platform.clearEmbeddedBrowserData(mode);
         trace.complete({ resultSource: "platform_result" });
+        // 最近访问属于 NIBI 自己的渲染层数据，只随“全部站点数据”一起清除；
+        // 清缓存不影响浏览历史。
+        clearBrowserRecentVisitsAfterDataClear(mode, result.success);
         toast(
           intl.formatMessage({
             id: result.success

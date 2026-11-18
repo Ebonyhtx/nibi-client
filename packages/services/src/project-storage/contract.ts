@@ -114,5 +114,10 @@ export interface ProjectRepositoryContract {
     projectId: string | null;
     /** Host 已固化的执行目录；首次预留持久化，重试不改。undefined 为普通新建。 */
     additionalDirectories?: string[];
+    /**
+     * 显式标记任务 cwd 是 `<repoRoot>/.nibi/worktrees/...` 内的受管 worktree。
+     * 只有本地项目允许；命中后跳过 project roots 成员校验，但仍校验仓库归属。
+     */
+    managedWorktree?: { repoRoot: string; worktreeRoot: string };
   }): ProjectDirectories;
 }

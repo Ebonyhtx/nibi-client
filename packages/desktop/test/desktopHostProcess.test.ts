@@ -86,6 +86,7 @@ describe("desktopHostProcess CUA operation state routing", () => {
         broadcastHub: { register: vi.fn(), unregister: vi.fn() } as never,
         windowHostProcessMap: new Map(),
         hostRunningTaskCountMap: new Map(),
+        hostQuitBlockersMap: new Map(),
         onAgentProcessException,
       },
     );
@@ -137,6 +138,7 @@ describe("desktopHostProcess CUA operation state routing", () => {
         broadcastHub: { register: vi.fn(), unregister: vi.fn() } as never,
         windowHostProcessMap: new Map(),
         hostRunningTaskCountMap: new Map(),
+        hostQuitBlockersMap: new Map(),
         onCuaOperationStateChanged,
         onCuaOperationStateSourceExited,
       },
@@ -189,6 +191,7 @@ describe("desktopHostProcess local media preview authorization", () => {
         broadcastHub: { register: vi.fn(), unregister: vi.fn() } as never,
         windowHostProcessMap: new Map(),
         hostRunningTaskCountMap: new Map(),
+        hostQuitBlockersMap: new Map(),
         authorizeLocalMediaPreviewPath,
       },
     );
@@ -230,6 +233,7 @@ describe("desktopHostProcess host 自采资源样本", () => {
         broadcastHub: { register: vi.fn(), unregister: vi.fn() } as never,
         windowHostProcessMap: new Map(),
         hostRunningTaskCountMap: new Map(),
+        hostQuitBlockersMap: new Map(),
       },
     );
 
@@ -388,6 +392,7 @@ describe("desktopHostProcess MCP 资源样本", () => {
         broadcastHub: { register: vi.fn(), unregister: vi.fn() } as never,
         windowHostProcessMap: new Map(),
         hostRunningTaskCountMap: new Map(),
+        hostQuitBlockersMap: new Map(),
       },
     );
     const sample = {
@@ -460,6 +465,7 @@ it("PRT-010: main 的真实 Host 消息分发即时报告 Bash 完成事实，�
       broadcastHub: { register: vi.fn(), unregister: vi.fn() } as never,
       windowHostProcessMap: new Map(),
       hostRunningTaskCountMap: new Map(),
+      hostQuitBlockersMap: new Map(),
     },
   );
   const sample = {
@@ -494,4 +500,76 @@ it("PRT-010: main 的真实 Host 消息分发即时报告 Bash 完成事实，�
     child.emit("exit", 0);
     sendCustom.mockRestore();
   }
+});
+
+describe("desktopHostProcess quit blockers", () => {
+  it("writes the full blocker set, clears it on empty payload, and drops it on Host exit", () => {
+    const child = new MockUtilityProcess();
+    electronMock.fork.mockReturnValue(child);
+    const hostQuitBlockersMap = new Map();
+    spawnHostProcess(
+      { id: 7, webContents: { id: 11, postMessage: vi.fn() } } as never,
+      "local-window",
+      { type: HostMessageTypes.InitLocal, workspacePath: "/repo" },
+      {
+        hostProcessLocalEnv: {},
+        logger: { info: vi.fn(), warn: vi.fn() },
+        broadcastHub: { register: vi.fn(), unregister: vi.fn() } as never,
+        windowHostProcessMap: new Map(),
+        hostRunningTaskCountMap: new Map(),
+        hostQuitBlockersMap,
+      },
+    );
+
+    child.emit("message", {
+      type: HostResponseTypes.QuitBlockersChanged,
+      blockers: [{ kind: "worktree-creating", count: 2 }],
+    });
+    expect(hostQuitBlockersMap.get(child)).toEqual([{ kind: "worktree-creating", count: 2 }]);
+
+    // 空数组是“无阻塞”的完整集合：必须删除条目而不是留空数组。
+    child.emit("message", {
+      type: HostResponseTypes.QuitBlockersChanged,
+      blockers: [],
+    });
+    expect(hostQuitBlockersMap.has(child)).toBe(false);
+
+    child.emit("message", {
+      type: HostResponseTypes.QuitBlockersChanged,
+      blockers: [{ kind: "worktree-creating", count: 1 }],
+    });
+    expect(hostQuitBlockersMap.has(child)).toBe(true);
+
+    child.emit("exit", 0);
+    expect(hostQuitBlockersMap.has(child)).toBe(false);
+  });
+
+  it("rejects unknown blocker kinds and non-positive counts at the protocol boundary", () => {
+    const child = new MockUtilityProcess();
+    electronMock.fork.mockReturnValue(child);
+    const hostQuitBlockersMap = new Map();
+    spawnHostProcess(
+      { id: 7, webContents: { id: 11, postMessage: vi.fn() } } as never,
+      "local-window",
+      { type: HostMessageTypes.InitLocal, workspacePath: "/repo" },
+      {
+        hostProcessLocalEnv: {},
+        logger: { info: vi.fn(), warn: vi.fn() },
+        broadcastHub: { register: vi.fn(), unregister: vi.fn() } as never,
+        windowHostProcessMap: new Map(),
+        hostRunningTaskCountMap: new Map(),
+        hostQuitBlockersMap,
+      },
+    );
+
+    for (const blockers of [
+      [{ kind: "task-running", count: 1 }],
+      [{ kind: "worktree-creating", count: 0 }],
+      [{ kind: "worktree-creating", count: -1 }],
+    ]) {
+      child.emit("message", { type: HostResponseTypes.QuitBlockersChanged, blockers });
+    }
+    expect(hostQuitBlockersMap.has(child)).toBe(false);
+    child.emit("exit", 0);
+  });
 });

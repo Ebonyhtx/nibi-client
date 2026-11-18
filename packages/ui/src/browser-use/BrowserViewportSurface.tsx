@@ -29,6 +29,8 @@ export function BrowserViewportSurface({
   isComposed,
   isResponsiveMode,
   isViewportEmulated = isResponsiveMode,
+  enableRecentVisits = false,
+  onOpenRecentVisit,
   onRetryGuest,
   onRetryLoad,
   onViewportResize,
@@ -49,6 +51,9 @@ export function BrowserViewportSurface({
   isComposed: boolean;
   isResponsiveMode: boolean;
   isViewportEmulated?: boolean;
+  /** 仅 human tab 展示最近访问；agent Browser Use 不共享用户浏览历史。 */
+  enableRecentVisits?: boolean;
+  onOpenRecentVisit?: (url: string) => void;
   onRetryGuest: () => void;
   onRetryLoad: () => void;
   onViewportResize: () => void;
@@ -127,6 +132,8 @@ export function BrowserViewportSurface({
             browserState={browserState}
             formatMessage={formatMessage}
             isGuestStarting={shouldMountWebview && !browserState.isReady}
+            enableRecentVisits={enableRecentVisits}
+            onOpenRecentVisit={onOpenRecentVisit}
           />
         ) : null}
         {/* 自由尺寸开关只改变稳定 frame 的 CSS 宽高，不能条件替换 webview 的父层级；

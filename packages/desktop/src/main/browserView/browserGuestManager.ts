@@ -22,6 +22,8 @@ import {
   type BrowserViewResidencyReportPayload,
   type BrowserViewResidencyTransitionPayload,
   type BrowserViewRestoredTabShell,
+  type BrowserViewExportPageFormat,
+  type BrowserViewExportPageResult,
   type BrowserViewportSize,
 } from "@nibi/shared";
 import { executeBrowserCommandOnView, type ControlledView } from "./browserCommandExecutor.js";
@@ -49,9 +51,20 @@ import type {
   BrowserTabShellRecord,
 } from "./browserTabRecoveryStore.js";
 
+const DEFAULT_PAGE_EXPORT_TIMEOUT_MS = 15_000;
+// 与 desktopSaveFile.ts 的 MAX_SAVE_FILE_BYTES 对齐；导出字节随后直接交给 saveFile。
+const MAX_BROWSER_PAGE_EXPORT_BYTES = 50 * 1024 * 1024;
+
+class BrowserPageExportTimeoutError extends Error {
+  constructor() {
+    super("browser page export timed out");
+    this.name = "BrowserPageExportTimeoutError";
+  }
+}
+
 interface GuestWebContents {
   readonly id: number;
-  readonly hostWebContents?: { getZoomFactor(): number } | null;
+  readonly hostWebContents?: { id: number; getZoomFactor(): number } | null;
   readonly mainFrame: WebFrameMain;
   getType(): string;
   getZoomFactor(): number;
@@ -63,6 +76,7 @@ interface GuestWebContents {
   reload(): void;
   stop(): void;
   capturePage(): Promise<{ toPNG(): Buffer }>;
+  printToPDF(options: { printBackground: boolean; preferCSSPageSize: boolean }): Promise<Buffer>;
   executeJavaScript(script: string, userGesture?: boolean): Promise<unknown>;
   navigationHistory: {
     canGoBack(): boolean;
@@ -283,6 +297,9 @@ export interface BrowserGuestManagerResidencyOptions {
     createRecorder?: BrowserWebmRecorderFactory;
     now?: () => number;
   };
+  /** 用户导出 guest 的单次上限；生产沿用 saveFile 的 50MB，测试可注入更小值。 */
+  pageExportTimeoutMs?: number;
+  pageExportMaxBytes?: number;
 }
 // Desktop zoom 的布局补偿只在 renderer 完成；metrics 是 per-session 状态，命令空闲 detach
 // 后会被清掉，若在这里带 scale，空闲时页面会退回另一套布局，操作期间变大、空闲变回。
@@ -456,6 +473,8 @@ export class BrowserGuestManager {
    * 120s+），已被废弃。堆积风险由 abandonedScreenshotCaptures 的硬上限兜底。
    */
   private readonly inFlightScreenshots = new Map<string, InFlightScreenshot>();
+  /** 用户导出按 guest 单飞：并发点击不能同时驱动 capturePage/printToPDF。 */
+  private readonly pageExportsInFlight = new Set<number>();
   /** 见 MAX_ABANDONED_SCREENSHOT_CAPTURES；key 为 tabId。 */
   private readonly abandonedScreenshotCaptures = new Map<string, number>();
   private readonly recordings = new Map<string, BrowserRecordingEntry>();
@@ -809,6 +828,113 @@ export class BrowserGuestManager {
       }
     }
     return null;
+  }
+
+  /**
+   * 用户导出：只允许导出当前 sender renderer 自己窗口托管的 guest。
+   *
+   * renderer 只能提供 tab key/webContentsId/format；sender window、guest 类型、
+   * hostWebContents 归属和 tab owner 全部以 main 侧登记为准，绝不接受 raw CDP。
+   */
+  async exportPage(payload: {
+    tabId: string;
+    webContentsId: number;
+    format: BrowserViewExportPageFormat;
+    windowId: number;
+    senderWebContentsId: number;
+  }): Promise<BrowserViewExportPageResult> {
+    if (payload.format !== "png" && payload.format !== "pdf") {
+      return { success: false, error: "invalid_format" };
+    }
+
+    const tab = this.tabs.get(payload.tabId);
+    if (!tab || tab.lifecycle === "closed") {
+      return { success: false, error: "tab_not_found" };
+    }
+    if (tab.owner.windowId !== payload.windowId) {
+      return { success: false, error: "not_owner" };
+    }
+
+    // fromId 接受进程内任意 WebContents id；IAB 只允许真实 <webview> guest fail closed。
+    const target = webContents.fromId(payload.webContentsId) as GuestWebContents | undefined;
+    if (!target || target.isDestroyed()) {
+      return { success: false, error: "guest_unavailable" };
+    }
+    if (target.getType() !== "webview") {
+      return { success: false, error: "not_webview" };
+    }
+
+    const owner = this.getTabOwnerByWebContentsId(payload.webContentsId);
+    if (!owner || owner.tabId !== payload.tabId || owner.windowId !== payload.windowId) {
+      return { success: false, error: "not_owner" };
+    }
+    const guest = tab.guest;
+    if (!guest || guest.id !== payload.webContentsId || guest.isDestroyed()) {
+      return { success: false, error: "guest_unavailable" };
+    }
+    if (guest.hostWebContents?.id !== payload.senderWebContentsId) {
+      return { success: false, error: "sender_mismatch" };
+    }
+
+    const residency = this.residencyCoordinator.get(tab.tabId);
+    if (
+      residency?.residency === "suspended" ||
+      residency?.residency === "suspend-pending" ||
+      residency?.residency === "restoring"
+    ) {
+      return { success: false, error: "tab_suspended" };
+    }
+    if (tab.loading || residency?.loading === true) {
+      return { success: false, error: "tab_loading" };
+    }
+    if (this.pageExportsInFlight.has(payload.webContentsId)) {
+      return { success: false, error: "export_in_progress" };
+    }
+
+    this.pageExportsInFlight.add(payload.webContentsId);
+    try {
+      const timeoutMs = this.residencyOptions.pageExportTimeoutMs ?? DEFAULT_PAGE_EXPORT_TIMEOUT_MS;
+      const operation =
+        payload.format === "png"
+          ? this.captureGuestPng(guest)
+          : guest.printToPDF({ printBackground: true, preferCSSPageSize: true });
+      const buffer = await this.withPageExportTimeout(operation, timeoutMs);
+      if (!buffer || typeof buffer.byteLength !== "number" || buffer.byteLength === 0) {
+        return { success: false, error: "empty_export" };
+      }
+      const maxBytes = this.residencyOptions.pageExportMaxBytes ?? MAX_BROWSER_PAGE_EXPORT_BYTES;
+      if (buffer.byteLength > maxBytes) {
+        return { success: false, error: "export_too_large" };
+      }
+      // Buffer 可能是池化视图，切出独立 ArrayBuffer 再走 structured clone。
+      return { success: true, data: Uint8Array.from(buffer).buffer };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof BrowserPageExportTimeoutError ? "export_timeout" : "export_failed",
+      };
+    } finally {
+      this.pageExportsInFlight.delete(payload.webContentsId);
+    }
+  }
+
+  private async captureGuestPng(guest: GuestWebContents): Promise<Buffer> {
+    const image = await guest.capturePage();
+    return image.toPNG();
+  }
+
+  private async withPageExportTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => reject(new BrowserPageExportTimeoutError()), timeoutMs);
+    });
+    // Electron 的 capturePage/printToPDF 无法取消；超时后消费底层迟到 rejection。
+    void operation.catch(() => undefined);
+    try {
+      return await Promise.race([operation, timeout]);
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+    }
   }
 
   async reportResidency(

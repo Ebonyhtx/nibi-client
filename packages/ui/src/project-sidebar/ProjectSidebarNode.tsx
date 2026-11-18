@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { shallow } from "zustand/shallow";
-import { Plug } from "lucide-react";
+import { GitBranch, Plug } from "lucide-react";
 import type {
   IProjectService,
   IRemoteProjectService,
@@ -87,6 +87,28 @@ export const ProjectSidebarNode = memo(
     const cleanupAvailable =
       projectDataCleanupAvailable({ project, supported: dataCleanupSupported }) &&
       availability?.online !== false;
+    // worktree 只在本地项目主目录创建；远端/手机远控一律不显示入口。
+    const worktreeSourcePath =
+      localProject && !remoteHost && !isWebRemoteControl ? project.roots[0]?.rootPath : undefined;
+    const worktreeActions: ProjectRowAction[] =
+      worktreeSourcePath && availability?.online !== false
+        ? [
+            {
+              id: "create-worktree-task",
+              label: intl.formatMessage({ id: "project.newTaskInWorktree" }),
+              icon: GitBranch,
+              run: () =>
+                runProjectAction(async () => {
+                  onCreateTask({
+                    projectId: project.id,
+                    taskGroupId: null,
+                    managedWorktree: { sourceWorkspacePath: worktreeSourcePath },
+                    onError: (error) => toast(String(error)),
+                  });
+                }),
+            },
+          ]
+        : [];
     return (
       <ProjectNode
         {...display}
@@ -101,6 +123,7 @@ export const ProjectSidebarNode = memo(
             : undefined
         }
         additionalActions={[
+          ...worktreeActions,
           ...remoteActions(project),
           ...(remoteHost && remoteHost.connectionStatus !== "online"
             ? [

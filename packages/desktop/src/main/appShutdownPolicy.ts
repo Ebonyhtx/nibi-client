@@ -1,3 +1,5 @@
+import type { HostQuitBlocker } from "@nibi/shared";
+
 export type AppShutdownKind = "normal" | "update-install";
 
 export interface AppShutdownPolicy {
@@ -43,4 +45,105 @@ export function selectAppShutdownPolicy(
     policy: resolveAppShutdownPolicy(kind, platform),
     upgraded: activeKind === "normal" && kind === "update-install",
   };
+}
+
+/**
+ * 上游 3.18.2 的 HostQuitBlocker 只有 `worktree-creating` 一种；缺数据按 0 处理，
+ * 避免某条畸形/未知阻塞项把退出永久卡住。
+ */
+export function countCreatingWorktreeBlockers(
+  blockers: readonly HostQuitBlocker[] | undefined,
+): number {
+  let total = 0;
+  for (const blocker of blockers ?? []) {
+    if (blocker.kind === "worktree-creating") total += blocker.count;
+  }
+  return total;
+}
+
+/**
+ * 按 Host 过滤统计正在创建受管 worktree 的数量。
+ * 窗口关闭路径只传本窗口的 Host，避免其它窗口的 worktree 阻塞本窗口；
+ * 应用退出路径不传 hosts，默认统计全部 Host。
+ */
+export function getCreatingWorktreeCount<K>(
+  hostQuitBlockersMap: ReadonlyMap<K, readonly HostQuitBlocker[]>,
+  hosts: Iterable<K | undefined> = hostQuitBlockersMap.keys(),
+): number {
+  let total = 0;
+  for (const host of hosts) {
+    if (host === undefined || host === null) continue;
+    total += countCreatingWorktreeBlockers(hostQuitBlockersMap.get(host));
+  }
+  return total;
+}
+
+/**
+ * 退出确认判定：production 下的运行中会话沿用旧行为；
+ * “正在创建 worktree”在任何环境都要确认，因为退出会丢掉尚未完成创建的任务。
+ */
+export function shouldConfirmAppQuitForCounts(options: {
+  isProduction: boolean;
+  runningAgentSessionCount: number;
+  creatingWorktreeCount: number;
+}): boolean {
+  return (
+    (options.isProduction && options.runningAgentSessionCount > 0) ||
+    options.creatingWorktreeCount > 0
+  );
+}
+
+/** 主进程退出确认的 detail 文案；没有对应阻塞项时不加行。 */
+export function buildAppQuitConfirmationDetail(options: {
+  isZh: boolean;
+  runningAgentSessionCount: number;
+  creatingWorktreeCount: number;
+}): string {
+  const lines: string[] = [];
+  if (options.runningAgentSessionCount > 0) {
+    lines.push(
+      options.isZh
+        ? `正在进行的会话：${options.runningAgentSessionCount} 个，退出后会被中断。`
+        : `In-progress sessions: ${options.runningAgentSessionCount}. They will be interrupted after quitting.`,
+    );
+  }
+  if (options.creatingWorktreeCount > 0) {
+    lines.push(
+      options.isZh
+        ? `正在新 worktree 中启动的任务：${options.creatingWorktreeCount} 个，关闭后会丢失。`
+        : `Tasks starting in new worktrees: ${options.creatingWorktreeCount}. They will be lost after quitting.`,
+    );
+  }
+  return lines.join("\n");
+}
+
+export interface AppQuitDialogOptions {
+  type: "question";
+  buttons: string[];
+  defaultId: number;
+  cancelId: number;
+  title: string;
+  message: string;
+  detail: string;
+}
+
+/** 只负责文案与按钮；窗口和图标由 main 注入的 showMessageBoxSync 处理。 */
+export function confirmAppQuitWithDialog(options: {
+  isZh: boolean;
+  runningAgentSessionCount: number;
+  creatingWorktreeCount: number;
+  showMessageBoxSync: (dialogOptions: AppQuitDialogOptions) => number;
+}): boolean {
+  const { isZh } = options;
+  return (
+    options.showMessageBoxSync({
+      type: "question",
+      buttons: isZh ? ["退出", "取消"] : ["Quit", "Cancel"],
+      defaultId: 1,
+      cancelId: 1,
+      title: isZh ? "退出确认" : "Confirm Quit",
+      message: isZh ? "确认退出 NIBI?" : "Quit NIBI?",
+      detail: buildAppQuitConfirmationDetail(options),
+    }) === 0
+  );
 }

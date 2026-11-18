@@ -5,11 +5,17 @@ import type {
   EmbeddedBrowserViewportPreference,
 } from "@nibi/shared";
 import { cn } from "@/components/lib/utils.js";
+import { toast } from "@/components/ui/toast.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import { useWebElementPicker } from "@/hooks/useWebElementPicker.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 import { BrowserSiteSettingsEntry } from "@/browser-use/BrowserSiteSettingsEntry.js";
+import {
+  canExportBrowserPage,
+  exportBrowserPageToFile,
+  type BrowserPageExportOutcome,
+} from "@/browser-use/browserPageExport.js";
 import { BrowserToolbar } from "@/EmbeddedBrowserPaneParts.js";
 import { EmbeddedBrowserPermissionPrompts } from "@/browser-use/EmbeddedBrowserPermissionPrompts.js";
 import { BrowserViewportSurface } from "@/browser-use/BrowserViewportSurface.js";
@@ -56,6 +62,8 @@ export function UnifiedBrowserView({
   browserKey,
   onOpenPermissionSettings,
   isResidencyRestore = false,
+  isResidencySuspended = false,
+  enableRecentVisits = false,
   isVisible,
   isSelected = isVisible,
   isCurrentTask = isSelected,
@@ -84,6 +92,10 @@ export function UnifiedBrowserView({
   onOpenPermissionSettings?: (origin: string) => void;
   /** 预算恢复时 guest 创建后立即撤销 bootstrap src，首次有效导航由 main 独占。 */
   isResidencyRestore?: boolean;
+  /** 挂起壳不得触发导出；正常挂起时组件本身已被 shell 替换，这里保留防御性门禁。 */
+  isResidencySuspended?: boolean;
+  /** 只对 human tab 展示最近访问；agent Browser Use 不共享用户浏览历史。 */
+  enableRecentVisits?: boolean;
   /** pane 是否可见（激活 + 展开）。隐藏时仅从布局里移除，不卸载 webview，保住网页与历史。 */
   isVisible: boolean;
   /** tab strip 选中态与 panel 展示态正交；折叠时仍保留 selected。 */
@@ -137,6 +149,7 @@ export function UnifiedBrowserView({
   const [hasNavigated, setHasNavigated] = useState(hasInitialNavigation);
   const [webviewGeneration, setWebviewGeneration] = useState(0);
   const [webview, setWebview] = useState<ElectronWebviewTag | null>(null);
+  const [isExportingPage, setIsExportingPage] = useState(false);
   // 权限气泡的 tab 归属过滤：attach/dom-ready 后读取 guest webContents id；
   // 读不到时保持 undefined（组件按「请求缺归属 id 则兜底渲染」处理）。
   const [permissionGuestWebContentsId, setPermissionGuestWebContentsId] = useState<
@@ -987,6 +1000,50 @@ export function UnifiedBrowserView({
     });
   }, [browserState.isReady, platform, runWebviewAction, webview]);
 
+  const handleExportPage = useCallback(
+    (format: "png" | "pdf") => {
+      if (!webview || isExportingPage) return;
+      const webContentsId = safeWebviewCall(() => webview.getWebContentsId(), 0);
+      if (webContentsId <= 0) {
+        toast(intl.formatMessage({ id: "browser.export.failed" }));
+        return;
+      }
+      setIsExportingPage(true);
+      void exportBrowserPageToFile({
+        key: browserKey,
+        webContentsId,
+        format,
+        title: browserState.title,
+        url: browserState.currentUrl,
+        platform,
+        formatMessage: intl.formatMessage,
+        notify: toast,
+      })
+        .then((outcome: BrowserPageExportOutcome) => {
+          if (outcome === "failed") {
+            logger.warn("[browser-use] 导出页面失败", { format, webContentsId });
+          }
+        })
+        .finally(() => setIsExportingPage(false));
+    },
+    [
+      browserKey,
+      browserState.currentUrl,
+      browserState.title,
+      intl,
+      isExportingPage,
+      platform,
+      webview,
+    ],
+  );
+
+  const handleOpenRecentVisit = useCallback(
+    (url: string) => {
+      void openUrl(url, "toolbar");
+    },
+    [openUrl],
+  );
+
   const handleTogglePicker = useCallback(() => {
     if (!webview || !browserState.isReady) return;
     void toggleWebElementPicking().catch((error: unknown) => {
@@ -1081,6 +1138,13 @@ export function UnifiedBrowserView({
   } catch {
     /* 空白页没有站点权限。 */
   }
+  const canExportPage = canExportBrowserPage({
+    platform,
+    browserState,
+    isResidencyRestore,
+    isResidencySuspended,
+    isExporting: isExportingPage,
+  });
 
   // inactive 的 display:none 会让 Electron 保留旧 compositor surface，后台截图会按旧表面平铺。
   // prepare 期间的 flex 只用于合成；外层 inert、pointer-events-none 和 aria-hidden 隔离交互与 a11y。
@@ -1117,12 +1181,15 @@ export function UnifiedBrowserView({
         onGoForward={handleGoForward}
         onOpenExternal={handleOpenExternal}
         onOpenDevTools={handleOpenDevTools}
+        onExportPng={() => handleExportPage("png")}
+        onExportPdf={() => handleExportPage("pdf")}
         onPickElement={handleTogglePicker}
         onReload={handleReload}
         onToggleResponsiveMode={handleToggleResponsiveMode}
         onSubmit={handleSubmit}
         isElementPickerActive={isWebElementPicking}
         isResponsiveMode={isResponsiveMode}
+        canExport={canExportPage}
       />
       {/* 权限弹窗层：只在可见 tab 挂载（多 tab 共享 store，避免重复渲染与
           后台请求误显示）；permission 请求再按 guest 归属过滤到发起 tab。 */}
@@ -1150,6 +1217,8 @@ export function UnifiedBrowserView({
         isViewportEmulated={
           effectiveIsResponsiveMode && screenshotSurfaceRequest?.viewportMode !== "natural"
         }
+        enableRecentVisits={enableRecentVisits}
+        onOpenRecentVisit={handleOpenRecentVisit}
         onRetryGuest={handleRetryGuest}
         onRetryLoad={handleRetryLoad}
         onViewportResize={notifyBrowserViewportResize}

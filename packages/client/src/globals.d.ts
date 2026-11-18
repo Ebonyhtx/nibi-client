@@ -145,6 +145,10 @@ declare global {
       ): Promise<import("@nibi/shared").SaveFileResult>;
       /** 将当前页面的 print 媒体版面导出为 PDF（Chromium 打印引擎，矢量文本） */
       printPageToPdf?(): Promise<import("@nibi/shared").PrintPageToPdfResult>;
+      /** 把内置浏览器的受控 guest 导出为 PNG/PDF */
+      browserViewExportPage?(
+        payload: import("@nibi/shared").BrowserViewExportPageRequest,
+      ): Promise<import("@nibi/shared").BrowserViewExportPageResult>;
       /** 从系统拖拽/文件输入得到的 Web File 解析真实本地路径 */
       getPathForFile?(file: File): string | null;
       /** dwf 产物「作为文件打开」：把某一版的字节落成本机副本，返回其路径 */

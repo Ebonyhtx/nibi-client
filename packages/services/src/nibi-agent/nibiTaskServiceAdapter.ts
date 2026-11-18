@@ -176,6 +176,7 @@ import {
 } from "./nibiConfigOptions.js";
 import type { CuaProductMcpServerResolver } from "#src/cua-permission-broker/index.js";
 import type { CloudProjectMcpServerResolver } from "#src/cloud-project/cloudProjectMcpServerResolver.js";
+import type { ManagedWorktreeCleanup } from "#src/git/managedWorktreeCleanup.js";
 import { registerMemoryDiagnosticsProvider } from "#src/memoryDiagnostics.js";
 
 interface CreateNibiTaskServiceAdapterOptions {
@@ -187,6 +188,8 @@ interface CreateNibiTaskServiceAdapterOptions {
   settingService?: Pick<ISettingService, "get">;
   cuaProductMcpServerResolver?: CuaProductMcpServerResolver;
   cloudProjectMcpServerResolver?: CloudProjectMcpServerResolver;
+  /** 任务删除与草稿回收共用；缺省时旧装配不触碰 worktree。 */
+  managedWorktreeCleanup?: ManagedWorktreeCleanup;
 }
 
 interface TaskTarget {
@@ -1082,6 +1085,32 @@ export function createNibiTaskServiceAdapter(
     reason: NibiWorkspaceTaskListChanged["reason"],
   ) {
     taskIndexSyncer.emitWorkspaceTaskListChanged(params, taskMeta, reason);
+  }
+
+  /**
+   * 删除链共用的受管 worktree 前置检查：只有已登记且干净、无新提交时返回 true，
+   * 并在返回前停止 workspace runtime（Windows 文件锁）。dirty/新提交直接抛错，
+   * 调用方必须中止任务删除。
+   */
+  async function prepareManagedWorktreeDeletion(target: {
+    workspacePath: string;
+    workspaceIdentity?: string;
+  }): Promise<boolean> {
+    const cleanup = options.managedWorktreeCleanup;
+    if (!cleanup) return false;
+    const inspection = await cleanup.assertNoUncommittedWork(target);
+    if (!inspection) return false;
+    await cleanup.stopRuntime(target);
+    return true;
+  }
+
+  async function removeManagedWorktreeAfterTaskDeletion(target: {
+    workspacePath: string;
+    workspaceIdentity?: string;
+  }): Promise<void> {
+    const cleanup = options.managedWorktreeCleanup;
+    if (!cleanup) return;
+    await cleanup.remove(target);
   }
 
   function emitWorkspaceConfig(
@@ -2974,19 +3003,24 @@ export function createNibiTaskServiceAdapter(
     },
 
     async deleteTask(params): Promise<void> {
+      // 先校验干净并停 runtime，再删索引；工作区有未提交内容时任务删除必须失败并提示。
+      const hasManagedWorktree = await prepareManagedWorktreeDeletion(params);
       await taskIndexSyncer.mutateSessionFacts(
         { ...params, sessionId: params.taskId },
         { type: "delete" },
       );
+      if (hasManagedWorktree) await removeManagedWorktreeAfterTaskDeletion(params);
     },
 
     async deleteArchivedTask(params): Promise<boolean> {
+      const hasManagedWorktree = await prepareManagedWorktreeDeletion(params);
       const meta = await taskIndexRepo.deleteArchivedTask(params);
       if (!meta) return false;
       await taskIndexSyncer.mutateSessionFacts(
         { ...params, sessionId: params.taskId },
         { type: "delete" },
       );
+      if (hasManagedWorktree) await removeManagedWorktreeAfterTaskDeletion(params);
       emitWorkspaceTaskListChanged(params, meta, "task_deleted");
       return true;
     },
@@ -3008,6 +3042,8 @@ export function createNibiTaskServiceAdapter(
         };
         try {
           // 保留逐项事务与归档 guard：一项失败不能回滚其它成功项，也不能提前隐藏失败项。
+          // worktree 校验/停 runtime 必须早于 tombstone；dirty 项直接进入 failed。
+          const hasManagedWorktree = await prepareManagedWorktreeDeletion(target);
           const meta = await taskIndexRepo.deleteArchivedTask(target);
           if (!meta) {
             result.skippedTaskIds.push(taskId);
@@ -3017,6 +3053,7 @@ export function createNibiTaskServiceAdapter(
             { ...target, sessionId: taskId },
             { type: "delete" },
           );
+          if (hasManagedWorktree) await removeManagedWorktreeAfterTaskDeletion(target);
           result.deletedTaskIds.push(taskId);
         } catch (error) {
           result.failedTaskIds.push(taskId);

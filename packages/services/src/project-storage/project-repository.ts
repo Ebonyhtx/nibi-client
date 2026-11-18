@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import { basename } from "node:path";
+import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import {
   generateTraceId,
@@ -26,6 +26,48 @@ import {
 } from "#src/project-storage/remote-policy.js";
 
 const executionDirectoriesSchema = z.array(z.string().min(1)).max(256);
+
+function isPathWithin(parent: string, child: string): boolean {
+  const relativePath = relative(resolve(parent), resolve(child));
+  return relativePath === "" || (!relativePath.startsWith("..") && !isAbsolute(relativePath));
+}
+
+function assertManagedWorktreeReservation(
+  input: {
+    task: ProjectTaskRef;
+    projectId: string | null;
+    additionalDirectories?: string[];
+    managedWorktree?: { repoRoot: string; worktreeRoot: string };
+  },
+  project: VirtualProject,
+  host: string,
+  ownerHostId: string | undefined,
+): void {
+  const managed = input.managedWorktree;
+  if (!managed) return;
+  if (!input.projectId) throw new Error("project.managed-worktree-project-required");
+  if (host !== "local" || (ownerHostId ?? "local") !== "local" || project.hostId !== "local") {
+    throw new Error("project.managed-worktree-local-only");
+  }
+  if (project.deleted) throw new Error("project.deleted");
+  if (input.additionalDirectories !== undefined && input.additionalDirectories.length > 0) {
+    throw new Error("project.managed-worktree-directories-unsupported");
+  }
+
+  const managedRoot = join(managed.repoRoot, ".nibi", "worktrees");
+  if (
+    resolve(managed.worktreeRoot) === resolve(managedRoot) ||
+    !isPathWithin(managedRoot, managed.worktreeRoot)
+  ) {
+    throw new Error("project.managed-worktree-invalid");
+  }
+  if (!isPathWithin(managed.worktreeRoot, input.task.workspacePath)) {
+    throw new Error("project.managed-worktree-workspace-outside");
+  }
+  if (!project.roots.some((root) => isPathWithin(managed.repoRoot, root.rootPath))) {
+    throw new Error("project.managed-worktree-project-mismatch");
+  }
+}
 
 function transaction<T>(db: DatabaseSync, body: () => T, write = true): T {
   db.exec(write ? "BEGIN IMMEDIATE" : "BEGIN");
@@ -478,24 +520,32 @@ export class ProjectRepository implements ProjectRepositoryContract, ProjectData
     task: ProjectTaskRef;
     projectId: string | null;
     additionalDirectories?: string[];
+    managedWorktree?: { repoRoot: string; worktreeRoot: string };
   }): ProjectDirectories {
     return transaction(this.db, () => {
       const key = resolveWorkspaceKey(input.task);
       const host = ensureHost(this.db, key, this.ownerHostId);
       if (host !== (this.ownerHostId ?? "local")) throw new Error("project.cross-host-move");
       if (!readTask(this.db, input.task)) {
-        assertRemoteTaskDirectories(
-          this.ownerHostId,
-          input.projectId ? requireProject(this.db, input.projectId) : null,
-          input.task.workspacePath,
-          input.additionalDirectories,
-        );
-        if (input.projectId) {
-          const project = requireProject(this.db, input.projectId);
+        const project = input.projectId ? requireProject(this.db, input.projectId) : null;
+        if (project) {
           if (project.deleted && input.additionalDirectories === undefined)
             throw new Error("project.deleted");
           if (project.hostId !== host) throw new Error("project.cross-host-move");
+          // 受管 worktree 只能属于本地项目；先于远端目录约束给出明确原因。
+          assertManagedWorktreeReservation(input, project, host, this.ownerHostId);
+        } else if (input.managedWorktree) {
+          throw new Error("project.managed-worktree-project-required");
+        }
+        assertRemoteTaskDirectories(
+          this.ownerHostId,
+          project,
+          input.task.workspacePath,
+          input.additionalDirectories,
+        );
+        if (project) {
           if (
+            !input.managedWorktree &&
             input.additionalDirectories === undefined &&
             !project.roots.some((root) => root.rootPath === input.task.workspacePath)
           )
@@ -514,9 +564,13 @@ export class ProjectRepository implements ProjectRepositoryContract, ProjectData
             input.task.workspacePath,
             input.projectId,
             OWNERSHIP_DECIDED,
-            input.additionalDirectories === undefined
+            input.additionalDirectories === undefined && !input.managedWorktree
               ? null
-              : JSON.stringify(executionDirectoriesSchema.parse(input.additionalDirectories)),
+              : JSON.stringify(
+                  executionDirectoriesSchema.parse(
+                    input.managedWorktree ? [] : (input.additionalDirectories ?? []),
+                  ),
+                ),
           );
       }
       return resolveDirectories(this.db, input.task, this.ownerHostId);

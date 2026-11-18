@@ -1438,6 +1438,7 @@ export function AnimatedSidePanePanel({
                             agentOpened={tab.agentOpened}
                             deferEmptyGuest
                             isResidencyRestore={tab.residency === "restoring"}
+                            isResidencySuspended={tab.residency === "suspended"}
                             isVisible={isVisible && isBrowserOpen && tab.id === contentActiveTabId}
                             isSelected={tab.id === contentActiveTabId}
                             isCurrentTask={tab.ownerTaskId === sidePaneOwnerId}

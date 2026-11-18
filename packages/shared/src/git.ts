@@ -239,6 +239,56 @@ export interface GitGenerateCommitMessageResult {
 
 export interface GitPushRequest extends GitRepositoryRequest {}
 
+/**
+ * 受管 worktree：由 Nibi 在 `<repoRoot>/.nibi/worktrees/<name>` 创建，
+ * `workspacePath` 已按源 workspace 在仓库中的子目录映射，可直接作为任务 cwd。
+ */
+export interface GitManagedWorktree {
+  name: string;
+  /** worktree 根目录（`<repoRoot>/.nibi/worktrees/<name>`）。 */
+  path: string;
+  /** 源 workspace 在 worktree 内对应的实际 cwd；monorepo 子目录不会丢层级。 */
+  workspacePath: string;
+  branchName: string | null;
+  sourceWorkspacePath: string;
+  baseRef: string | null;
+  /**
+   * 创建时的真实 base commit（已持久化到受管分支配置）。
+   * 删除检查只认这个 commit；缺失时必须拒绝删除，不能回退到重新解析默认分支。
+   */
+  baseCommit: string | null;
+}
+
+export interface GitCreateManagedWorktreeRequest extends GitRepositoryRequest {
+  /** 总长 ≤64；允许 `/` 分段，每段仅字母数字与 `._-`。缺省由时间戳+随机后缀生成。 */
+  name?: string;
+}
+
+export interface GitListManagedWorktreesRequest extends GitRepositoryRequest {}
+
+export interface GitRemoveManagedWorktreeRequest {
+  /** worktree 根目录或其内部 cwd；未登记的普通目录会被拒绝。 */
+  worktreePath: string;
+}
+
+export type GitManagedWorktreeRemovalReason =
+  | "not-managed"
+  | "dirty"
+  | "uncommitted-commits"
+  | "base-commit-missing"
+  | "remove-failed"
+  | "branch-delete-failed";
+
+export interface GitManagedWorktreeRemovalResult {
+  ok: boolean;
+  reason: GitManagedWorktreeRemovalReason | null;
+  message: string | null;
+  worktreePath: string | null;
+  branchName: string | null;
+  dirtyEntryCount: number;
+  commitCount: number;
+}
+
 export interface GitPushResult {
   branchName: string | null;
   trackingBranchName: string | null;

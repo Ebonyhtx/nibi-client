@@ -79,6 +79,7 @@ export function BrowserUseSidePaneContent({
         browserKey={tab.tabId}
         onOpenPermissionSettings={onOpenPermissionSettings}
         isResidencyRestore={tab.residency === "restoring"}
+        isResidencySuspended={tab.residency === "suspended"}
         isVisible={isPanelVisible && isSelected}
         isSelected={isSelected}
         isCurrentTask={isCurrentTask}

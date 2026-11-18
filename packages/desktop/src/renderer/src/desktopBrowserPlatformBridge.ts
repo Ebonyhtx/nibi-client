@@ -22,6 +22,7 @@ type DesktopBrowserPlatformBridge = Pick<
   | "getPathForFile"
   | "saveFile"
   | "printPageToPdf"
+  | "browserViewExportPage"
 >;
 
 // Rebase 集成：browser bridge 若继续内联在 renderer 入口，会让入口越过 max-lines 门禁。
@@ -32,6 +33,9 @@ export const desktopBrowserPlatformBridge = {
     window.nibi.saveFile?.(payload) ?? Promise.resolve({ success: false, error: "not_supported" }),
   // 条件定义而非兜底返回失败：UI 靠方法是否存在做能力检测，旧 preload 下必须保持 undefined
   printPageToPdf: window.nibi.printPageToPdf ? () => window.nibi.printPageToPdf!() : undefined,
+  browserViewExportPage: window.nibi.browserViewExportPage
+    ? (payload) => window.nibi.browserViewExportPage!(payload)
+    : undefined,
   onBrowserViewReady: (handler) => window.nibi.onBrowserViewReady?.(handler) ?? (() => {}),
   onBrowserViewOperation: (handler) => window.nibi.onBrowserViewOperation?.(handler) ?? (() => {}),
   onBrowserViewViewportChanged: (handler) =>

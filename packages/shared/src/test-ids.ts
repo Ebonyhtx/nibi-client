@@ -140,6 +140,16 @@ export const TID_BROWSER_ELEMENT_PICKER_BUTTON = "browser-element-picker-button"
 export const TID_BROWSER_MORE_BUTTON = "browser-more-button";
 /** 浏览器在默认浏览器中打开菜单项 */
 export const TID_BROWSER_OPEN_EXTERNAL_ITEM = "browser-open-external-item";
+/** 浏览器更多菜单里的「导出 PNG」项 */
+export const TID_BROWSER_EXPORT_PNG_ITEM = "browser-export-png-item";
+/** 浏览器更多菜单里的「导出 PDF」项 */
+export const TID_BROWSER_EXPORT_PDF_ITEM = "browser-export-pdf-item";
+/** 浏览器空置态的最近访问列表 */
+export const TID_BROWSER_RECENT_VISITS = "browser-recent-visits";
+/** 最近访问列表中的单条记录 */
+export const TID_BROWSER_RECENT_VISIT_ITEM = "browser-recent-visit-item";
+/** 最近访问列表中单条记录的删除按钮 */
+export const TID_BROWSER_RECENT_VISIT_REMOVE = "browser-recent-visit-remove";
 /** 浏览器打开调试工具按钮 */
 export const TID_BROWSER_DEVTOOLS_BUTTON = "browser-devtools-button";
 /** 浏览器网页视图 */

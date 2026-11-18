@@ -6,6 +6,8 @@ import type {
   GitDiffResult,
   GitIdentity,
   GitLocalBranchListResult,
+  GitManagedWorktree,
+  GitManagedWorktreeRemovalResult,
   GitPushResult,
   GitRepositorySummary,
   GitWorkspaceRepositoryInfo,
@@ -99,6 +101,12 @@ export interface GitCliRepo {
   ): Promise<{ commitHash: string }>;
   push(workspacePath: string): Promise<GitPushResult>;
   getIdentity(workspacePath: string): Promise<GitIdentity>;
+  createManagedWorktree(params: {
+    workspacePath: string;
+    name?: string;
+  }): Promise<GitManagedWorktree>;
+  listManagedWorktrees(params: { workspacePath: string }): Promise<GitManagedWorktree[]>;
+  removeManagedWorktree(params: { worktreePath: string }): Promise<GitManagedWorktreeRemovalResult>;
 }
 
 export function createEmptySummary(resolution: GitResolvedRepository): GitRepositorySummary {

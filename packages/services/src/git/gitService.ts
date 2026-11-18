@@ -4,6 +4,7 @@ import { isPathInWorkspaceScope, normalizeGitPath, toWorkspaceRelativeGitPath } 
 import { filterCommitMessageFilesByCurrentSession } from "./commitMessageFileScope.js";
 import type { IGitService } from "./git.js";
 import type { GitCommitMessageGenerator } from "./gitCommitMessageGenerator.js";
+import type { ManagedWorktreeManager } from "./managedWorktree.js";
 import {
   createGitCliRepo,
   type GitBranchComparisonChange,
@@ -170,8 +171,13 @@ function getCommitMessageDiffQueries(
 export function createGitService(options?: {
   repo?: GitCliRepo;
   commitMessageGenerator?: GitCommitMessageGenerator;
+  managedWorktrees?: ManagedWorktreeManager;
 }): IGitService {
-  const repo = options?.repo ?? createGitCliRepo();
+  const repo =
+    options?.repo ??
+    createGitCliRepo(
+      options?.managedWorktrees ? { managedWorktrees: options.managedWorktrees } : undefined,
+    );
 
   return {
     async getRepositorySummary(params) {
@@ -316,6 +322,21 @@ export function createGitService(options?: {
 
     async getIdentity(params) {
       return await repo.getIdentity(params.workspacePath);
+    },
+
+    async createManagedWorktree(params) {
+      return await repo.createManagedWorktree({
+        workspacePath: params.workspacePath,
+        ...(params.name !== undefined ? { name: params.name } : {}),
+      });
+    },
+
+    async listManagedWorktrees(params) {
+      return await repo.listManagedWorktrees({ workspacePath: params.workspacePath });
+    },
+
+    async removeManagedWorktree(params) {
+      return await repo.removeManagedWorktree({ worktreePath: params.worktreePath });
     },
 
     async refresh(params) {
