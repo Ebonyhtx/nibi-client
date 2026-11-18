@@ -7,6 +7,7 @@ import { useNibiStore } from "@/store/StoreProvider.js";
 import { getVisibleTaskMetas, useNibiSessionStore } from "@/store/nibiSessionStore.js";
 import { useTaskQueryCacheStore } from "@/store/taskQueryCacheStore.js";
 import { useAppPanels } from "@/hooks/useAppPanels.js";
+import { useAppControlNavigation } from "@/project-sidebar/useAppControlNavigation.js";
 import { useGitAutoRefresh } from "@/hooks/useGitAutoRefresh.js";
 import { useGitRepository } from "@/hooks/useGitRepository.js";
 import { useAppKeyboard } from "@/hooks/useAppKeyboard.js";
@@ -899,6 +900,8 @@ export function App({
     onNavigateToAutomations: handleNavigateToAutomationsMain,
     onNavigateToPluginStore: handleNavigateToPluginStoreMain,
   });
+  // App 控制工具的 OpenSession：Host 投事件，这里复用侧栏任务导航定位后回执。
+  useAppControlNavigation({ services, onSelectTask: handleSelectTask });
   // 完成卡「已保存」芯片的落点（docs/dynamic-workflow/transcript-and-notifications.md「Saving the
   // run, and running it again」）：走「自动化」入口的同一条导航（进历史、切主视图），落在「工作流」
   // 标签，再由深链把中枢定位到那一页。项目档按 workspaceKey 找组，全局档只要名字。

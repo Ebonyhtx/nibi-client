@@ -4,6 +4,7 @@ import { useStore } from "zustand";
 import { marketingNavigation, finishMarketingNavigation } from "@/lib/marketingNavigation.js";
 import type { ProviderSettingsFormProvider } from "@/lib/providerSettingsFormTypes.js";
 import type { ModelConnectivityResult } from "@nibi/shared";
+import { toZhOrEnLocale } from "@nibi/shared";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { Button } from "@/components/ui/button.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
@@ -231,7 +232,11 @@ export function ModelProviderSection({
     async (input: { templateId?: string; providerName?: string }) => {
       setCreatingProvider(true);
       try {
-        const created = await createPersonalProvider({ ...input, locale });
+        const created = await createPersonalProvider({
+          ...input,
+          // provider 模板只有中英两套；ja/ko/ru 走英文模板。
+          locale: toZhOrEnLocale(locale),
+        });
         setPendingCreatedProviderId(created.providerId);
         setSelectedNodeKey(createCustomProviderNodeKey(created.providerId));
         setTemplatePickerOpen(false);

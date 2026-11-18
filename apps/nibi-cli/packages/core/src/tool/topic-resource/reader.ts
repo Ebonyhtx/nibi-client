@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { PROTOCOL_V4_LIMITS } from "@nibi/shared/nibi-protocol-v4";
-import type {
-  MessageWithParts,
-  ReadSessionContextInput,
-  ReadSessionContextOutput,
-} from "@nibi/contracts";
-import type { ToolExecutionContext } from "../tool/types.js";
+import type { MessageWithParts } from "@nibi/contracts";
+import type { ToolExecutionContext } from "../types.js";
+import {
+  READ_TOPIC_RESOURCE_TOOL_NAME,
+  type ReadTopicResourceInput,
+  type ReadTopicResourceOutput,
+} from "./contract.js";
 
 const identitySchema = z.object({
   sourceCommandId: z.string().min(1),
@@ -33,14 +34,13 @@ const identitySchema = z.object({
 const dataUrlPattern = /^data:([^;,]+);base64,([A-Za-z0-9+/]*={0,2})$/;
 const extensionPattern = /\.([a-zA-Z0-9]{1,12})$/;
 
+/** 只读当前会话：授权来自最近一条带 botGroupSource 的可信用户输入，不接受模型自报的会话。 */
 export async function readTopicResourceFromSession(
   messages: MessageWithParts[],
-  input: ReadSessionContextInput,
+  input: ReadTopicResourceInput,
   context: ToolExecutionContext,
-): Promise<ReadSessionContextOutput> {
+): Promise<ReadTopicResourceOutput> {
   context.abortSignal.throwIfAborted();
-  if (input.sessionId !== context.sessionId || !input.attachment)
-    throw new Error("Topic attachments require the current session");
   // canonical 来源存在时不得回退 legacy 字段，否则旧授权可覆盖新的可信输入事实。
   const candidates = messages.filter(({ info }) => info.role === "user" && !info.synthetic);
   let identity: z.infer<typeof identitySchema> | undefined;
@@ -53,8 +53,7 @@ export async function readTopicResourceFromSession(
     if (intent === undefined) continue;
     const parsed = identitySchema.safeParse(intent);
     if (parsed.success) {
-      if (input.attachment.inputId && parsed.data.sourceCommandId !== input.attachment.inputId)
-        continue;
+      if (input.inputId && parsed.data.sourceCommandId !== input.inputId) continue;
       identity = parsed.data;
       break;
     }
@@ -63,17 +62,16 @@ export async function readTopicResourceFromSession(
       break;
   }
   if (!identity) throw new Error("No admitted topic authorization is available for this input");
-  if (input.attachment.inputId) {
+  const index = input.index ?? 0;
+  if (input.inputId) {
     // A1 只属于所选快照，不允许把另一轮的消息或资源序号拼到当前文件索引上。
     const source = identity.botGroupSource;
-    const resourceIndex = input.attachment.index ?? 0;
     const indexed = source.topicHistory
       ? source.topicHistory.resourceMessages.some(
-          (record) =>
-            record.messageId === input.attachment!.messageId && resourceIndex < record.count,
+          (record) => record.messageId === input.messageId && index < record.count,
         )
-      : !!source.topicContext?.messages.find((record) => record.id === input.attachment!.messageId)
-          ?.attachments?.[resourceIndex];
+      : !!source.topicContext?.messages.find((record) => record.id === input.messageId)
+          ?.attachments?.[index];
     if (!indexed) throw new Error("Resource is not indexed in the selected history snapshot");
   }
   const port = context.topicResourcePort;
@@ -81,13 +79,12 @@ export async function readTopicResourceFromSession(
   if (!port || !store?.writeToolResultBinaryArtifact)
     throw new Error("Topic attachment retrieval is unavailable on this runtime");
   const options = { signal: context.abortSignal, trace: context.traceContext };
-  const index = input.attachment.index ?? 0;
   const attachment = await port.read(
     {
       taskId: context.sessionId,
       inputId: identity.sourceCommandId,
       authorizationId: identity.botGroupSource.authorizationId,
-      messageId: input.attachment.messageId,
+      messageId: input.messageId,
       resourceIndex: index,
     },
     options,
@@ -118,7 +115,7 @@ export async function readTopicResourceFromSession(
     {
       sessionId: context.sessionId,
       toolCallId: context.toolCallId,
-      toolName: "ReadSessionContext",
+      toolName: READ_TOPIC_RESOURCE_TOOL_NAME,
       content: bytes,
       contentType: attachment.mime,
       retention: "session",
@@ -131,20 +128,11 @@ export async function readTopicResourceFromSession(
   if (!result.path) throw new Error("Topic attachment could not be materialized");
   return {
     status: "success",
-    sessionId: input.sessionId,
-    strategy: "topic",
-    query: input.query,
-    source: "local",
     path: result.path,
-    content: JSON.stringify({
-      fileName: attachment.fileName,
-      mime: attachment.mime,
-      bytes: attachment.bytes,
-      path: result.path,
-    }),
-    messageCount: 1,
-    selectedMessageCount: 1,
-    truncated: false,
-    references: [{ messageId: input.attachment.messageId, index }],
+    fileName: attachment.fileName,
+    mime: attachment.mime,
+    bytes: attachment.bytes,
+    messageId: input.messageId,
+    index,
   };
 }

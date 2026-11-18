@@ -121,6 +121,7 @@ async fn plugin_agents_reach_the_agent_listing() {
             mcp_ui: None,
             mcp_oauth: None,
             node_repl_env: None,
+            app_control: Arc::new(std::sync::OnceLock::new()),
             topic: None,
             automation: None,
             memory_enabled: true,

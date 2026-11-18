@@ -105,7 +105,7 @@ pub(crate) enum Request {
     CancelAsk {
         tool_use: ToolUseId,
     },
-    /// 回合外的旁路辅助补全（后台子代理的 `ReadSessionContext` lite 抽取）：与回合内的
+    /// 回合外的旁路辅助补全（后台子代理的辅助模型调用）：与回合内的
     /// `SinkRequest::Auxiliary` 走同一个 actor 方法，只是不依赖正在跑的回合。
     Auxiliary {
         request: nibi_kernel_api::auxiliary::AuxiliaryTextRequest,
@@ -245,7 +245,7 @@ pub(crate) struct Actor {
     /// `/loop` 哨兵展开的状态（loop_tick.rs）：不持久化，主线程压缩后清空。
     pub(crate) loop_ticks: crate::loop_tick::LoopTicks,
     pub(crate) naming: Option<crate::rename::NameJob>,
-    /// 在跑的旁路辅助模型调用（`ReadSessionContext` 的 lite 抽取，auxiliary.rs）：可以同时有多个
+    /// 在跑的旁路辅助模型调用（auxiliary.rs）：可以同时有多个
     /// （只读工具并发安全）。
     pub(crate) aux_jobs: Vec<crate::auxiliary::AuxJob>,
     /// `/goal` 的目标（goal.rs）：提交 `goal_status` 后才改，冷加载从活动历史恢复。

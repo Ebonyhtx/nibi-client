@@ -4,6 +4,7 @@ import {
   buildHelpAppConfigUrl,
   createHelpAppConfigReader,
   resolveHelpAppConfig,
+  toZhOrEnLocale,
   type Locale,
 } from "@nibi/shared";
 import localDefaultAppConfig from "../../../config/default.json" with { type: "json" };
@@ -44,5 +45,6 @@ export async function resolveWebCommunityUrl(
   locale: Locale,
   options: ResolveWebCommunityUrlOptions = {},
 ): Promise<string | undefined> {
-  return (await resolveWebHelpConfig(options)).community_urls?.[locale];
+  // 社群入口只有中英两套；ja/ko/ru 使用英文渠道。
+  return (await resolveWebHelpConfig(options)).community_urls?.[toZhOrEnLocale(locale)];
 }

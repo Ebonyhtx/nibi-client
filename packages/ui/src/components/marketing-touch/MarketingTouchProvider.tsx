@@ -9,7 +9,7 @@ import {
   marketingSettingsSections,
   waitForMarketingCapability,
 } from "@/lib/marketingNavigation.js";
-import { NIBI_ENV } from "@nibi/shared";
+import { NIBI_ENV, toZhOrEnLocale } from "@nibi/shared";
 import { useServices } from "@/hooks/useServices.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import { useNibiStore } from "@/store/StoreProvider.js";
@@ -61,10 +61,12 @@ export function MarketingTouchProvider({
     const service = services.marketingTouchService;
     if (!service || restoring) return null;
     let poller: ReturnType<typeof createMarketingTouchPoller>;
+    // 营销触达素材只有中英两套；ja/ko/ru 使用英文内容，避免中文弹窗。
+    const contentLocale = toZhOrEnLocale(locale);
     const controller = createMarketingTouchController({
-      query: () => service.query({ locale }),
+      query: () => service.query({ locale: contentLocale }),
       report: (input) => service.report(input),
-      locale,
+      locale: contentLocale,
       canOpen: canOpenMarketingPopup,
       refresh: () => poller.refresh(),
       prepare: async (delivery) => {
@@ -73,10 +75,10 @@ export function MarketingTouchProvider({
           delivery.resource_position === "banner"
             ? delivery.banner.success_popup?.hero
             : delivery.popup.hero;
-        const success = prepareMarketingHero(visual, assets, locale, desktop);
+        const success = prepareMarketingHero(visual, assets, contentLocale, desktop);
         const background =
           delivery.resource_position === "banner"
-            ? prepareMarketingHero(delivery.banner.background, assets, locale, desktop)
+            ? prepareMarketingHero(delivery.banner.background, assets, contentLocale, desktop)
             : undefined;
         let released = false;
         const release = async () => {

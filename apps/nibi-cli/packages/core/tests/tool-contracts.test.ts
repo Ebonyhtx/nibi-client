@@ -52,7 +52,7 @@ const DIRECT_BRANCH_EXPECTED_PROVIDER_TOOL_ORDER = [
   "ToolSearch",
   "DeferredToolCall",
   "SendMessage",
-  "ReadSessionContext",
+  "ReadTopicResource",
   "ReplyToChannel",
   "CreateWorkflow",
   // 修订入口紧随 CreateWorkflow 注册（docs/dynamic-workflow/launch.md「The `AmendWorkflow` tool」）。
@@ -133,6 +133,7 @@ describe("tool contract declarations", () => {
       includeAgent: true,
       includeSendMessage: true,
       includeSkill: true,
+      includeTopicResource: true,
     });
     expect(directRegistry.list().slice(0, 4)).toEqual([
       "ToolSearch",
@@ -150,6 +151,7 @@ describe("tool contract declarations", () => {
       includeAgent: true,
       includeSendMessage: true,
       includeSkill: true,
+      includeTopicResource: true,
     });
     expect(
       orderProviderVisibleToolContracts(embeddedRegistry.toContracts()).map((tool) => tool.name),
@@ -164,9 +166,9 @@ describe("tool contract declarations", () => {
         { name: "TodoRead" },
         { name: "Task" },
         { name: "Read" },
-        { name: "ReadSessionContext" },
+        { name: "ReadTopicResource" },
       ]).map((tool) => tool.name),
-    ).toEqual(["Bash", "Read", "TodoRead", "TodoWrite", "Task", "ReadSessionContext"]);
+    ).toEqual(["Bash", "Read", "TodoRead", "TodoWrite", "Task", "ReadTopicResource"]);
   });
 
   it("orders optional Workflow with the shared provider tool partition when it is present", () => {
@@ -174,10 +176,10 @@ describe("tool contract declarations", () => {
       orderProviderVisibleToolContracts([
         { name: "Write" },
         { name: "Workflow" },
-        { name: "ReadSessionContext" },
+        { name: "ReadTopicResource" },
         { name: "WebSearch" },
       ]).map((tool) => tool.name),
-    ).toEqual(["WebSearch", "Workflow", "Write", "ReadSessionContext"]);
+    ).toEqual(["WebSearch", "Workflow", "Write", "ReadTopicResource"]);
   });
 
   it("matches source-derived provider-visible schema facts for supported tools", () => {

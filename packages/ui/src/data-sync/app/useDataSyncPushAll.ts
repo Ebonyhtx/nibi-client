@@ -16,7 +16,11 @@ import {
 export interface DataSyncPushAllController {
   running: boolean;
   summary?: DataSyncPushAllSummary;
-  run(): Promise<void>;
+  /**
+   * 返回本次汇总；没有可推送分类或运行期间设备换代时返回 `undefined`。
+   * 调用方据此只在真正发生推送后递增一次结果版本。
+   */
+  run(): Promise<DataSyncPushAllSummary | undefined>;
   /** 设备 / 连接换代时丢弃旧汇总；正在跑的推送本身无法取消，但结果不再展示。 */
   reset(): void;
 }
@@ -121,7 +125,9 @@ export function useDataSyncPushAll(
         },
       });
       if (runVersionRef.current !== version) return;
-      setSummary(summarizePushAllResults([...gateFailures, ...results]));
+      const nextSummary = summarizePushAllResults([...gateFailures, ...results]);
+      setSummary(nextSummary);
+      return nextSummary;
     } finally {
       runningRef.current = false;
       setRunning(false);

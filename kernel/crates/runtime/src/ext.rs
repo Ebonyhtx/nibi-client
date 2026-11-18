@@ -54,13 +54,17 @@ pub struct Extensions {
     /// `NIBI_NODE_EXEC_PATH` / `NIBI_CUA_*`。runtime 不直接读 `std::env`（spec §4：只有入口
     /// crate 读进程环境）；None 时不装配内置服务器（CLI/TUI、测试）。
     pub node_repl_env: Option<std::collections::BTreeMap<String, String>>,
-    /// Host 的话题能力（`ReadSessionContext` 的话题附件与 `ReplyToChannel`）：入口在服务 Host
+    /// Host 的话题能力（`ReadTopicResource` 的话题附件与 `ReplyToChannel`）：入口在服务 Host
     /// 协议时装上；None 时两个工具按 Node 同一条错误失败。
     pub topic: Option<std::sync::Arc<dyn nibi_kernel_api::topic::TopicPort>>,
     /// Host 的 Automations 端口（`CronCreate` / `CronUpdate` / `CronList` / `CronDelete`）：
     /// App 入口装上后，模型创建的定时任务归 Host 的 `AutomationService`（记录、卡片、历史）；
     /// None 时用本机 `CronBoard`（CLI/TUI）。
     pub automation: Option<std::sync::Arc<dyn nibi_kernel_api::automation::AutomationPort>>,
+    /// App-exclusive 会话控制端口（`ListProjects` / `OpenSession` / `SetSessionArchived` /
+    /// `SetSessionPinned`）：只有 `app-server` 入口在服务 Host 协议时装上；槽为空时 4 个工具
+    /// 不注册（CLI/TUI），误调用也按 `unavailable` 失败。
+    pub app_control: nibi_kernel_api::app_control::AppSessionControlHostSlot,
     /// `features.memory`（缺省 true）：false 时不调度项目记忆抽取，会话记忆开关缺省关闭。
     pub memory_enabled: bool,
     /// `memory.use`（缺省 true）：false 时记忆召回不参与上下文。
@@ -85,6 +89,7 @@ impl Extensions {
             node_repl_env: None,
             topic: None,
             automation: None,
+            app_control: std::sync::Arc::new(std::sync::OnceLock::new()),
             memory_enabled: true,
             memory_use: true,
             subagents_enabled: true,

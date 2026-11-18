@@ -398,6 +398,17 @@ impl LocalKernel {
         // 会话控制端口槽：入口拿到 `Arc<LocalKernel>` 之后才注入（8 个会话工具在调用时读）。
         let session_control_slot: nibi_kernel_api::session_control::SessionControlHostSlot =
             Arc::new(std::sync::OnceLock::new());
+        // App-exclusive 会话控制端口槽：只有 `app-server` 入口装上（4 个工具只在槽在场时注册）。
+        let app_control_slot = extensions.app_control.clone();
+        let app_control_tools = if nibi_kernel_api::app_control::app_session_control_host(
+            &app_control_slot,
+        )
+        .is_some()
+        {
+            nibi_kernel_tools::app_control_tools(app_control_slot.clone())
+        } else {
+            Vec::new()
+        };
         let base: Arc<dyn nibi_kernel_api::orchestration::ToolRegistry> = Arc::new(
             builtin
                 .with_search_opt_in(defaults.search_tools)
@@ -456,6 +467,8 @@ impl LocalKernel {
                 .with_tools(nibi_kernel_tools::session_control_tools(
                     session_control_slot.clone(),
                 ))
+                // App-exclusive 的 4 个工具：只有入口装了 Host 端口时注册（CLI/TUI 不暴露）。
+                .with_tools(app_control_tools)
                 // DWF 作者面（Node 的 11 个工具里剩下的 8 个）：6 个经 sidecar 的 Node
                 // 工具实现，2 个是本机读面（ListModels / ListWorkflowRuns）。灰度门与
                 // 引擎在场与否在 `PolicyFiltered` 里收口。
@@ -485,9 +498,9 @@ impl LocalKernel {
                     workflow_engine_slot.clone(),
                 ))])
                 .with_tools(nibi_kernel_tools::worktree_tools(&worktrees))
-                // 话题（bot 群）的两个工具：`ReadSessionContext` 读历史/话题附件，
-                // `ReplyToChannel` 经 Host 发带原生 @ 的回复。冷读走会话存储，
-                // Host 能力由入口装在 `extensions.topic`。
+                // 话题（bot 群）的工具：`ReadTopicResource` 只读当前会话已接纳的话题资源
+                // （Host 端口在场才注册），`ReplyToChannel` 经 Host 发带原生 @ 的回复。
+                // 冷读走会话存储，Host 能力由入口装在 `extensions.topic`。
                 .with_tools(nibi_kernel_tools::topic_tools(
                     Arc::new(topic_reads::StoreReads::new(ports.store.clone())),
                     extensions.topic.clone(),
@@ -822,8 +835,22 @@ impl LocalKernel {
     /// 端口只持有 `Weak<LocalKernel>`：工具注册表（在内核里）持有槽，槽持有端口，端口不能反过来
     /// 强持有内核，否则永远释放不掉。
     pub fn install_session_control_host(self: &Arc<Self>) {
+        self.install_session_control_host_with_notifier(None);
+    }
+
+    /// 同 [`LocalKernel::install_session_control_host`]，另给“内核直接建会话”后的 Host 通知器。
+    /// app-server 用它把 `CreateSession`/`ForkSession` 建的会话补进 Host 的 tasks-index。
+    pub fn install_session_control_host_with_notifier(
+        self: &Arc<Self>,
+        created_notifier: Option<
+            Arc<dyn nibi_kernel_api::session_control::SessionControlCreatedNotifier>,
+        >,
+    ) {
         let host: Arc<dyn nibi_kernel_api::session_control::SessionControlHost> = Arc::new(
-            session_control::KernelSessionControlHost::new(Arc::downgrade(self)),
+            session_control::KernelSessionControlHost::new(
+                Arc::downgrade(self),
+                created_notifier,
+            ),
         );
         let _ = self.session_control_host.set(host);
     }

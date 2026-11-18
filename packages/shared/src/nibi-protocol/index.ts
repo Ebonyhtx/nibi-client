@@ -3873,6 +3873,41 @@ export const nibiAutomationCreateResultSchema = z
   .strict();
 export type NibiAutomationCreateProtocolResult = z.infer<typeof nibiAutomationCreateResultSchema>;
 
+// App 控制反向请求：可信事实与 Host 已解析的输入分开；结果用 `{ok}` 信封，
+// 让 4 个动作的成功/失败在同一个 schema 下传输（内核对两种分支都做严格检查）。
+export const nibiAppControlParamsSchema = z
+  .object({
+    callerSessionId: nonEmptyString,
+    callId: nonEmptyString,
+    turnId: nonEmptyString.optional(),
+    workspacePath: nonEmptyString,
+    workspaceIdentity: nonEmptyString.optional(),
+    input: z.unknown(),
+  })
+  .strict();
+export type NibiAppControlParams = z.infer<typeof nibiAppControlParamsSchema>;
+
+export const nibiAppControlErrorCodeSchema = z.enum([
+  "invalid_input",
+  "invalid_output",
+  "forbidden",
+  "unavailable",
+  "conflict",
+  "cancelled",
+]);
+export type NibiAppControlErrorCode = z.infer<typeof nibiAppControlErrorCodeSchema>;
+
+export const nibiAppControlReplySchema = z.union([
+  z.object({ ok: z.literal(true), result: z.unknown() }).strict(),
+  z
+    .object({
+      ok: z.literal(false),
+      error: z.object({ code: nibiAppControlErrorCodeSchema, message: nonEmptyString }).strict(),
+    })
+    .strict(),
+]);
+export type NibiAppControlReply = z.infer<typeof nibiAppControlReplySchema>;
+
 export const nibiAutomationUpdateParamsSchema = z
   .object({
     automationId: nonEmptyString,
@@ -4101,6 +4136,12 @@ export const nibiProtocolMethods = {
   pluginsValidate: "plugins/validate",
   pluginsDescribe: "plugins/describe",
   automationCreate: "automation/create",
+  // App-exclusive 会话控制：agent（Node/Rust 内核）→ Host 的反向请求。
+  appControlListProjects: "appControl/listProjects",
+  appControlOpenSession: "appControl/openSession",
+  appControlSetSessionArchived: "appControl/setSessionArchived",
+  appControlSetSessionPinned: "appControl/setSessionPinned",
+  appControlCancel: "appControl/cancel",
   topicResourceRead: "topic/resource/read",
   channelReply: "bot/channel/reply",
   topicResourceCancel: "topic/resource/cancel",

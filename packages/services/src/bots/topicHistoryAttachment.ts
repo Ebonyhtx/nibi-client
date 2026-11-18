@@ -49,7 +49,7 @@ export function createTopicHistoryAttachment(
           "",
           "Resource index (scoped to this snapshot):",
           ...resources,
-          "Read an indexed resource using ReadSessionContext with strategy=topic and the attachment object above; the built-in service validates access. No lark-cli login is needed.",
+          "Read an indexed resource by calling ReadTopicResource with the object above as its input; the built-in service validates access. No lark-cli login is needed.",
         ]
       : []),
   ].join("\n\n");

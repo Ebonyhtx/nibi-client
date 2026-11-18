@@ -1,11 +1,11 @@
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
-import type { Locale } from "@nibi/shared";
+import { toZhOrEnLocale, type Locale } from "@nibi/shared";
 
 const MENU_KEY_NAME = "NIBI.OpenInNIBI";
 const DIRECTORY_MENU_KEY = `HKCU\\Software\\Classes\\Directory\\shell\\${MENU_KEY_NAME}`;
 const DRIVE_MENU_KEY = `HKCU\\Software\\Classes\\Drive\\shell\\${MENU_KEY_NAME}`;
-const MENU_LABELS: Record<Locale, string> = {
+const MENU_LABELS: Record<"zh-CN" | "en-US", string> = {
   // 2026-10-13 修：上一轮去品牌只改了 en-US（品牌检查器的正则把 CJK 当词字符，
   // 抓不到「在Nibi中打开」这种中日韩文紧邻写法），中文用户看到的仍是上游品牌。
   "zh-CN": "在 NIBI 中打开",
@@ -22,7 +22,8 @@ export interface WindowsOpenFolderRegistryOperation {
 }
 
 export function getWindowsOpenFolderMenuName(locale: Locale): string {
-  return MENU_LABELS[locale] ?? MENU_LABELS["en-US"];
+  // Windows 资源管理器右键菜单只有中英两套；其它界面语言回退英文。
+  return MENU_LABELS[toZhOrEnLocale(locale)];
 }
 
 function quoteWindowsCommandArg(value: string): string {

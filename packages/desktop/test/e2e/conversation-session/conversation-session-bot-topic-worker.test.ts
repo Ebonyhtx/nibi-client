@@ -302,7 +302,7 @@ describe("BOT-E2E-TP-04/05 real topic worker", () => {
     }
   });
 
-  it("downloads admitted historical resources through the actual ReadSessionContext tool", async function () {
+  it("downloads admitted historical resources through the actual ReadTopicResource tool", async function () {
     this.timeout(180000);
     const replay = await startConversationModelProviderReplayServer(
       "conversation-session-bot-topic-worker",
@@ -346,12 +346,9 @@ describe("BOT-E2E-TP-04/05 real topic worker", () => {
           .all(taskId) as Array<{ data: string }>;
         const tool = records
           .map((row) => JSON.parse(row.data))
-          .find((part) => part.type === "tool" && part.tool === "ReadSessionContext");
+          .find((part) => part.type === "tool" && part.tool === "ReadTopicResource");
         expect(tool?.state.status).toBe("completed");
-        expect(tool.state.output).toContain(
-          `ReadSessionContext returned local context for ${taskId}.`,
-        );
-        resource = JSON.parse(tool.state.output.split("\n").slice(1).join("\n"));
+        resource = JSON.parse(tool.state.output);
       } finally {
         database.close();
       }

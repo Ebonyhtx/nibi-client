@@ -9,6 +9,7 @@ mod commands;
 mod conversation_intent;
 mod conversation_telemetry;
 pub mod context;
+mod app_control;
 mod generate_text;
 mod model_connectivity;
 pub mod headers;
@@ -56,6 +57,7 @@ use tokio::io::AsyncBufRead;
 
 pub use context::Context;
 pub use headers::HostHeaders;
+pub use app_control::HostAppControl;
 pub use automation::HostAutomation;
 pub use topic::HostTopic;
 pub use server::Defaults;

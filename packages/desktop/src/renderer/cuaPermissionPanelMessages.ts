@@ -1,4 +1,4 @@
-import type { CuaPermissionKind, Locale } from "@nibi/shared";
+import { toZhOrEnLocale, type CuaPermissionKind, type Locale } from "@nibi/shared";
 
 export interface CuaPermissionPanelMessages {
   documentTitle: string;
@@ -10,7 +10,7 @@ export interface CuaPermissionPanelMessages {
 }
 
 const MESSAGES: Record<
-  Locale,
+  "zh-CN" | "en-US",
   Omit<CuaPermissionPanelMessages, "permissionLabel"> & Record<CuaPermissionKind, string>
 > = {
   "zh-CN": {
@@ -37,7 +37,7 @@ export function resolveCuaPermissionPanelMessages(
   locale: Locale,
   permission: CuaPermissionKind,
 ): CuaPermissionPanelMessages {
-  const messages = MESSAGES[locale];
+  const messages = MESSAGES[toZhOrEnLocale(locale)];
   return {
     documentTitle: messages.documentTitle,
     dragTitle: messages.dragTitle,

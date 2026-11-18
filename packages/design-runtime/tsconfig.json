@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // 运行时脚本在 guest 页面里执行，需要 DOM 类型；宿主侧只用到纯函数与类型。
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "lib": ["es2025", "dom", "dom.iterable"]
+  },
+  "include": ["src"],
+  // 契约测试由根 vitest 直接收集；不进入可发布产物，也不要求 vitest 类型进入包构建。
+  "exclude": ["src/**/*.test.ts"]
+}

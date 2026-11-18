@@ -8,6 +8,7 @@ import {
 import type { RemoteProjectHost } from "@nibi/services";
 import { useRemoteWorkspaceSessionStore } from "@/store/remoteWorkspaceSessionStore.js";
 import { RemoteConnectionProgressProvider } from "@/remote-connection-flow/ui/RemoteConnectionProgress.js";
+import { DataSyncDialogProvider } from "@/data-sync/index.js";
 /* eslint-disable max-lines -- Root 当前集中编排启动、workspace shell wiring 和 Web 远控同步，先保持入口收口避免跨层状态拆散。 */
 import { RemoteProjectPresentationProvider } from "@/hooks/RemoteProjectPresentationContext.js";
 import {
@@ -194,7 +195,9 @@ export function Root(props: RootProps) {
                         <RequestSecurityHost />
                         <MarketingTouchProvider desktop={props.isDesktop === true}>
                           <RemoteConnectionProgressProvider>
-                            <RootInner {...props} />
+                            <DataSyncDialogProvider>
+                              <RootInner {...props} />
+                            </DataSyncDialogProvider>
                           </RemoteConnectionProgressProvider>
                         </MarketingTouchProvider>
                         {/* NIBI：上游 RewardsProvider 会打开别家站点，已随「邀请好友」一起移除。 */}

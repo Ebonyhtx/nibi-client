@@ -13,6 +13,8 @@ import {
 
 export interface ConversationShareSuccessDockProps {
   url?: string;
+  /** 链接到期时间（Unix 毫秒）；缺失时不展示，不猜一个时间。 */
+  expiresAt?: number | null;
   title: string;
   warnings?: ConversationShareDisplayWarnings | null;
   onOpen: () => void;
@@ -32,6 +34,7 @@ function formatValue(value: number | undefined, code: string): string {
 
 export function ConversationShareSuccessDock({
   url,
+  expiresAt = null,
   title,
   warnings = null,
   onOpen,
@@ -91,6 +94,22 @@ export function ConversationShareSuccessDock({
         >
           {title}
         </p>
+        {expiresAt !== null ? (
+          <p
+            data-testid="conversation-share-expires-at"
+            className="text-ui-sm text-foreground-subtle"
+          >
+            {intl.formatMessage(
+              { id: "conversationShare.result.expiresAt" },
+              {
+                date: new Intl.DateTimeFormat(locale, {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                }).format(new Date(expiresAt)),
+              },
+            )}
+          </p>
+        ) : null}
       </div>
 
       {url ? (

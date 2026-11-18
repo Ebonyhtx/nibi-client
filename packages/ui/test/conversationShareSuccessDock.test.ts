@@ -7,6 +7,7 @@ import { ConversationShareSuccessDock } from "@/v4/ConversationShareSuccessDock.
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
   useNibiIntl: () => ({
+    locale: "zh-CN",
     intl: {
       formatMessage: ({ id }: { id: string }, values?: Record<string, string | number>) =>
         values ? `${id}:${JSON.stringify(values)}` : id,
@@ -55,6 +56,32 @@ describe("ConversationShareSuccessDock", () => {
 
     fireEvent.click(screen.getByTestId("conversation-share-success-dismiss"));
     expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it("展示服务端返回的链接到期时间", () => {
+    render(
+      createElement(ConversationShareSuccessDock, {
+        title: "每日 AI 新闻汇总",
+        expiresAt: Date.UTC(2026, 10, 20, 12, 30),
+        onOpen: vi.fn(),
+        onCopy: vi.fn(),
+        onDismiss: vi.fn(),
+      }),
+    );
+    const expires = screen.getByTestId("conversation-share-expires-at");
+    expect(expires.textContent).toContain("conversationShare.result.expiresAt");
+  });
+
+  it("没有到期时间时不猜一个时间", () => {
+    render(
+      createElement(ConversationShareSuccessDock, {
+        title: "每日 AI 新闻汇总",
+        onOpen: vi.fn(),
+        onCopy: vi.fn(),
+        onDismiss: vi.fn(),
+      }),
+    );
+    expect(screen.queryByTestId("conversation-share-expires-at")).toBeNull();
   });
 
   it("部分成功时保留成功状态并展示被跳过文件提示", () => {

@@ -9,10 +9,12 @@ import {
   DEFAULT_NIBI_ENDPOINT_ORIGIN,
   PlatformChannels,
   NIBI_VERSION,
+  SUPPORTED_LOCALES,
   desktopMenuMessageIds,
   formatDesktopMenuMessage,
   getDesktopMenuMessage,
   resolveRuntimeNibiEndpointOrigin,
+  toZhOrEnLocale,
   type ElectronReleaseChannel,
   type Locale,
   type PostUpdateReleaseNotesPayload,
@@ -59,7 +61,9 @@ const cancelledDownloadTokens = new WeakSet<CancellationToken>();
 let pendingCancelledDownloadErrorCount = 0;
 let autoUpdaterSettingService: SettingServiceLike | undefined;
 let getRunningTaskCountForInstall: (() => number) | undefined;
-let confirmInstallWithRunningTasks: ((runningTaskCount: number) => boolean | Promise<boolean>) | undefined;
+let confirmInstallWithRunningTasks:
+  | ((runningTaskCount: number) => boolean | Promise<boolean>)
+  | undefined;
 // initAutoUpdater({ enabled: false }) 只清轮询并 return，electron-updater 实例保持未配置
 // （占位 feed、autoDownload 默认值）。任何漏改成按身份判断的入口若仍调用手动检查，
 // 都会对占位 feed 发真实请求。这里记住“本 flavor 已禁用”，让手动检查在模块内部 fail-closed。
@@ -761,7 +765,7 @@ function normalizeLocalizedReleaseNotes(
     return undefined;
   }
 
-  for (const locale of ["zh-CN", "en-US"] as const) {
+  for (const locale of SUPPORTED_LOCALES) {
     const entry = releaseNotesByLocale[locale];
     if (!entry) {
       continue;
@@ -907,12 +911,9 @@ function applyManifestUpdateProvider(options: InitAutoUpdaterOptions): void {
 function pickFallbackReleaseNotesMarkdown(
   localized: PostUpdateReleaseNotesPayload["releaseNotesByLocale"] | undefined,
 ): string | null {
-  return (
-    localized?.[menuLocale]?.markdown ??
-    localized?.["zh-CN"]?.markdown ??
-    localized?.["en-US"]?.markdown ??
-    null
-  );
+  // 发布说明只有中英两套；非中文界面语言不能回落到中文。
+  const preferredLocale = toZhOrEnLocale(menuLocale);
+  return localized?.[preferredLocale]?.markdown ?? localized?.["en-US"]?.markdown ?? null;
 }
 
 function normalizeReleaseDate(
@@ -1341,9 +1342,7 @@ function publishDownloadedUpdate(info: UpdateDownloadedInfoLike): void {
   readyUpdateReleaseNotes = toPostUpdateReleaseNotesPayload(info) ?? downloadingUpdateReleaseNotes;
   clearAvailableUpdateState();
   clearDownloadingUpdateState();
-  logger.info(
-    `[auto-update] downloaded: ${info.version}, waiting for explicit user install`,
-  );
+  logger.info(`[auto-update] downloaded: ${info.version}, waiting for explicit user install`);
   setAutoUpdaterMenuState(buildUpdateDownloadedState(info.version));
   notifyForceAutoUpdate({ kind: "ready", version: info.version });
   if (!activeForceAutoUpdateListener) {

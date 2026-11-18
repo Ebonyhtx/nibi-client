@@ -52,6 +52,7 @@ export interface ConversationShareDockState {
   completedArtifacts: number;
   totalArtifacts: number;
   publishedShareUrl: string | null;
+  publishedShareExpiresAt: number | null;
   error: ConversationShareDisplayError | null;
   warnings: ConversationShareDisplayWarnings | null;
   attempt: ConversationShareAttempt | null;
@@ -92,6 +93,7 @@ export const DEFAULT_CONVERSATION_SHARE_DOCK_STATE: ConversationShareDockState =
   completedArtifacts: 0,
   totalArtifacts: 0,
   publishedShareUrl: null,
+  publishedShareExpiresAt: null,
   error: null,
   warnings: null,
   attempt: null,

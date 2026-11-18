@@ -18,11 +18,12 @@ export function getLocalizedUpdateReleaseNotes(
     markdown: payload.markdown,
   };
 
+  // 发布说明只有中英两套：中文界面可回退中文正文，其它语言必须先走英文，不能落到中文。
   return (
     payload.releaseNotesByLocale?.[locale] ??
     (locale === "zh-CN"
       ? defaultReleaseNotes
-      : (payload.releaseNotesByLocale?.["zh-CN"] ?? defaultReleaseNotes))
+      : (payload.releaseNotesByLocale?.["en-US"] ?? defaultReleaseNotes))
   );
 }
 

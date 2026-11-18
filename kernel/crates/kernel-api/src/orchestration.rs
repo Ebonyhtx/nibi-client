@@ -684,7 +684,7 @@ pub trait Interactions: Send + Sync {
         None
     }
 
-    /// 一次旁路辅助模型补全（Node `model.generateText`；`ReadSessionContext` 的 lite 抽取）。
+    /// 一次旁路辅助模型补全（Node `model.generateText`；当前无内置工具调用）。
     /// 模型选择、辅助档与请求计时都在会话 actor。`Ok(None)` 表示没有辅助模型（测试替身、没有会话的
     /// sink），调用方用本地结果；`Err` 是这次请求失败（调用方按 Node 记 `fallback` 并附错误）。
     /// 这一笔不写会话用量（Node 的 `generateText` 同样不记）。

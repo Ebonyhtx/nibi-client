@@ -16,6 +16,9 @@ export {
 /** 设置页数据同步支持的用户级分类；顺序即标签栏与概览的展示顺序。 */
 export type DataSyncCategoryId = "skills" | "mcp" | "commands" | "hooks" | "subagents" | "plugins";
 
+/** 弹窗内的标签页：概览或某个分类。 */
+export type DataSyncTabId = DataSyncCategoryId | "overview";
+
 export const DATA_SYNC_CATEGORIES: readonly DataSyncCategoryId[] = [
   "skills",
   "mcp",
@@ -36,6 +39,16 @@ export interface DataSyncCategoryCounts {
 export interface DataSyncDevice {
   sourceServerId: string;
   name: string;
+}
+
+/**
+ * 窗口内同步入口的打开意图；已有弹窗时只恢复该实例，不替换它的设备与在途推送。
+ * 入口不知道设备时省略 `sourceServerId`，由 provider 选择当前第一台在线设备。
+ */
+export interface DataSyncDialogRequest {
+  sourceServerId?: string;
+  /** 打开时定位的分类；不传停在概览。 */
+  category?: DataSyncCategoryId;
 }
 
 /** 行状态：推送 / 更新 / 差异 / 已同步 / 远端独有 / 不可同步。远端独有项不进入推送，也不删除。 */

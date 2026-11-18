@@ -49,7 +49,7 @@ import type {
   RuntimeTurnFileChangeMap,
 } from "./types.js";
 import type { RuntimeCommandQueue } from "./command-queue.js";
-import type { SessionControlBinding } from "@nibi/contracts";
+import type { AppSessionControlBinding, SessionControlBinding } from "@nibi/contracts";
 import type { RuntimeTaskRegistry } from "../runtime-task/registry.js";
 import type { WorkflowBlockedReminderClock } from "../runtime-task/workflow-blocked-reminder.js";
 import type { DynamicWorkflowActivationSource } from "./methods/dynamic-workflow-activation.js";
@@ -143,6 +143,7 @@ export interface AgentRuntimeInternal
   workspaceRoot: string;
   sessionStore?: SessionStorePort;
   sessionControl?: SessionControlBinding;
+  appSessionControl?: AppSessionControlBinding;
   sessionMailboxPort?: SessionMailboxPort;
   sessionPersisted: boolean;
   needsPlanModeExitReminder: boolean;

@@ -1,11 +1,16 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { PlatformChannels } from "@nibi/shared";
+import { installEmbeddedBrowserDesignBridge } from "./embeddedBrowserDesignBridge.js";
 import { installEmbeddedBrowserWheelForwarding } from "./embeddedBrowserWheel.js";
 
 const BRIDGE_KEY = "__nibiEmbeddedBrowserJavaScriptDialog__";
 
 if (typeof window !== "undefined") {
   installEmbeddedBrowserWheelForwarding(window, (channel, payload) => {
+    ipcRenderer.sendToHost(channel, payload);
+  });
+  // 设计模式只在本地 HTML 预览页启用；桥本身仍做来源/协议/大小校验，不信任页面脚本。
+  installEmbeddedBrowserDesignBridge(window, (channel, payload) => {
     ipcRenderer.sendToHost(channel, payload);
   });
 }
@@ -125,12 +130,12 @@ contextBridge.executeInMainWorld({
         this: typeof Notification,
         deprecatedCallback?: NotificationPermissionCallback | undefined,
       ): Promise<NotificationPermission> {
-        const settled = Promise.resolve(
-          nativeRequestPermission.call(Notification),
-        ).then((status: NotificationPermission) => {
-          permissionState = status;
-          return status;
-        });
+        const settled = Promise.resolve(nativeRequestPermission.call(Notification)).then(
+          (status: NotificationPermission) => {
+            permissionState = status;
+            return status;
+          },
+        );
         if (typeof deprecatedCallback === "function") {
           void settled.then(
             (status) => deprecatedCallback(status),

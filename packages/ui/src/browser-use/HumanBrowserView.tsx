@@ -182,6 +182,7 @@ export function HumanBrowserView(props: HumanBrowserViewProps): React.JSX.Elemen
   return (
     <UnifiedBrowserView
       {...unifiedProps}
+      enableDesignMode={!agentOpened}
       enableRecentVisits={!agentOpened}
       initialHumanViewportPreference={initialPreference}
       onHumanViewportPreferenceChange={agentOpened ? undefined : handlePreferenceChange}

@@ -1,5 +1,5 @@
 import type { Locale } from "@nibi/shared";
-import { PlatformChannels } from "@nibi/shared";
+import { PlatformChannels, resolveLocaleFromLanguageTag } from "@nibi/shared";
 import type { PluginSandboxHandle, PluginSandboxRegisterInput } from "@nibi/shared/mcp-apps";
 import {
   BrowserWindow,
@@ -155,8 +155,7 @@ export function installPluginSandboxHost(input: {
     });
 
   // 页面浏览器权限闸门：确认框由 main 原生弹出，父窗口是登记该沙箱的宿主窗口，页面无法伪造。
-  const resolveLocale = (): Locale =>
-    app.getLocale().toLowerCase().startsWith("zh") ? "zh-CN" : "en-US";
+  const resolveLocale = (): Locale => resolveLocaleFromLanguageTag(app.getLocale());
   const permissions = createPluginSandboxPermissionGate({
     registry,
     async prompt({ record, permissions: pending }) {
@@ -347,10 +346,9 @@ export function installPluginSandboxHost(input: {
         "image/png": new Blob(
           [
             new Uint8Array(
-              (
-                process.platform === "win32"
-                  ? nativeImage.createFromBitmap(cropped.toBitmap(), cropped.getSize())
-                  : cropped
+              (process.platform === "win32"
+                ? nativeImage.createFromBitmap(cropped.toBitmap(), cropped.getSize())
+                : cropped
               ).toPNG(),
             ),
           ],

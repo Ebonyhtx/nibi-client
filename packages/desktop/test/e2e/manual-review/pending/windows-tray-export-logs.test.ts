@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import type { Menu } from "electron";
+import type { Locale } from "@nibi/shared";
 import { readSettings, waitForDefaultWorkspaceReady } from "../../helpers/desktop-app.js";
 import { skipOccupationOnboardingIfPresent } from "../../helpers/occupation-onboarding.js";
 
@@ -9,7 +10,7 @@ type TrayCapture = {
 };
 type TrayTestGlobal = typeof globalThis & { __trayExportCapture?: TrayCapture };
 type DesktopBridge = {
-  nibi: { setApplicationLocale: (locale: "en-US" | "zh-CN") => Promise<void> };
+  nibi: { setApplicationLocale: (locale: Locale) => Promise<void> };
 };
 
 describe("Windows 托盘导出日志", () => {

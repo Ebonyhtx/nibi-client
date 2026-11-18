@@ -1,5 +1,5 @@
 import type { ToolSearchExecutionContext, ToolSearchMode } from "@nibi/contracts";
-import type { SessionControlBinding } from "@nibi/contracts";
+import type { AppSessionControlBinding, SessionControlBinding } from "@nibi/contracts";
 import type { RequestVerificationReason } from "@nibi/shared";
 import type { GetAgentDefinitions, LoadAgentDefinitions } from "../subagent/definitions.js";
 import type { RuntimeInputPresentation } from "@nibi/contracts";
@@ -342,6 +342,8 @@ export interface AgentRuntimeDeps {
   sessionStore?: SessionStorePort;
   /** 会话控制可信绑定；由 bootstrap 注入，runtime 只在 taskType/根会话匹配时启用。 */
   sessionControl?: SessionControlBinding;
+  /** App-exclusive 会话控制可信绑定；只有 App 入口注入。 */
+  appSessionControl?: AppSessionControlBinding;
   sessionMailboxPort?: SessionMailboxPort;
   modelFactory: RuntimeModelFactory;
   /** 可选宿主能力：解析未来执行的显式意图；不用于修改已冻结 Model。 */

@@ -24,7 +24,6 @@ import type {
   DesktopCloseToTrayCapability,
   IntegratedTerminalShellOption,
   IntegratedTerminalShellSelection,
-  Locale,
   UserInfo,
   NibiInteractionBehavior,
 } from "@nibi/shared";
@@ -86,7 +85,7 @@ import { ShortcutSettingsSection } from "@/settings/ShortcutSettingsSection.js";
 import { MigrationSection } from "@/settings/MigrationSection.js";
 import { MigrationWizardDialog } from "@/settings/migration-wizard/MigrationWizardDialog.js";
 import { SETTINGS_FRAME_CONTENT_CLASSNAME } from "@/settings/SettingsPageParts.js";
-import { DataSyncSection, useDataSyncDevices } from "@/data-sync/index.js";
+import { DataSyncSettingsEntry, useDataSyncDevices } from "@/data-sync/index.js";
 import {
   SettingsBreadcrumbProvider,
   SettingsHeaderBreadcrumb,
@@ -106,6 +105,7 @@ import { cn } from "@/components/lib/utils.js";
 import { useSelectDirectory } from "@/hooks/usePlatform.js";
 import { ServiceProvider, useServices } from "@/hooks/useServices.js";
 import type { AppToolSearchMode } from "@nibi/shared";
+import { isLocale } from "@nibi/shared";
 import { useSettings } from "@/hooks/useSettingService.js";
 import type { CreateTaskRequest, RemoteConnectionOpenPreference } from "@/app-shell/types.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
@@ -1157,10 +1157,10 @@ export function SettingsPage({
         });
         return;
       }
-      if (value === "zh-CN" || value === "en-US") {
+      if (isLocale(value)) {
         runUserAction({
           input: { featureId: "settings.locale", action: "change_locale", trigger: "select" },
-          operation: () => setLocalePreference(value as Locale),
+          operation: () => setLocalePreference(value),
           completed: { resultSource: "local_commit", valueAfter: value },
           failureStage: "local_commit",
         });
@@ -1694,9 +1694,7 @@ export function SettingsPage({
                               onToolGroupingChangesEnabledChange={
                                 handleToolGroupingChangesEnabledChange
                               }
-                              onNibiInteractionBehaviorChange={
-                                handleNibiInteractionBehaviorChange
-                              }
+                              onNibiInteractionBehaviorChange={handleNibiInteractionBehaviorChange}
                               onAskUserQuestionAutoResolutionEnabledChange={
                                 handleAskUserQuestionAutoResolutionEnabledChange
                               }
@@ -1830,7 +1828,7 @@ export function SettingsPage({
                             )
                           ) : activeSection === "dataSync" ? (
                             isDesktop ? (
-                              <DataSyncSection
+                              <DataSyncSettingsEntry
                                 key={`dataSync:${settingsSectionNavigationVersion}`}
                                 devices={dataSyncDevices.devices}
                                 initialCategory={dataSyncCategoryTarget}

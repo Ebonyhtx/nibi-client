@@ -1,3 +1,12 @@
+import { createAppControlService } from "./app-control/index.js";
+import { createAppControlNavigationService } from "./app-control/navigation.js";
+import { createAppControlReverseRpc } from "./app-control/reverseRpc.js";
+import type {
+  AppControlHostReply,
+  IAppControlReverseRpc,
+} from "./app-control/contract.js";
+import { IAppControlNavigationService } from "./app-control/contract.js";
+import type { IWindowControllerService } from "./window-controller/windowController.js";
 import {
   createRemoteProjectService,
   IRemoteProjectService,
@@ -160,6 +169,10 @@ export {
 export { createCredentialService } from "./credential/credentialService.js";
 export { createBroadcastService } from "./broadcast/broadcastService.js";
 export { createNibiAgentService } from "./nibi-agent/nibiAgentService.js";
+export { createAppControlService } from "./app-control/index.js";
+export { createAppControlDiscoveryDirectory } from "./app-control/discovery-directory.js";
+export { createAppControlNavigationService } from "./app-control/navigation.js";
+export { createAppControlReverseRpc } from "./app-control/reverseRpc.js";
 export { createNibiTaskServiceAdapter } from "./nibi-agent/nibiTaskServiceAdapter.js";
 export { createNibiSessionService } from "./nibi-session/nibiSessionService.js";
 import { buildMcpNodeFallbackHostEnv } from "./nibi-agent/mcpNodeFallback/index.js";
@@ -1271,6 +1284,17 @@ export function createLocalServices(options: {
   serviceAuthorityMode?: ServiceAuthorityMode;
   /** 可信 Server Core 注入，区分物理持库 Host 与历史 workspace canonical route。 */
   projectStorageHostId?: string;
+  /**
+   * App-exclusive 会话控制的 Host 装配。desktop Host 注入窗口 Controller 的惰性 getter；
+   * 其它宿主不注入时 App 工具仍可做发现与归档/置顶（走 INibiTaskService），打开会话按
+   * unavailable 失败（没有 UI 事件通道就绝不回退到别的窗口）。
+   */
+  appControl?: {
+    resolveWindowControllerService?: () =>
+      | Pick<IWindowControllerService, "getTaskMeta" | "mutateTask">
+      | undefined;
+    navigationTimeoutMs?: number;
+  };
   sourceServerWorkspaceService?: ISourceServerWorkspaceService;
   resolveProjectHostService?: (hostId: string) => Promise<IProjectService>;
   /** Bot 复用窗口已有 Source 连接；不经 main 创建 workspace attachment。 */
@@ -2265,7 +2289,22 @@ export function createLocalServices(options: {
       await nibiAgentServiceRef?.disposeWorkspace(target);
     },
   });
+  // App 控制的反向 RPC 要等 task service / window controller 就绪后才装配；agent service
+  // 构造更早，所以先交一个稳定句柄，真实实现稍后填入。缺席时按 unavailable 失败。
+  let appControlRpc: IAppControlReverseRpc | undefined;
+  const appControlExecutor: IAppControlReverseRpc = {
+    handle(method, params): Promise<AppControlHostReply> {
+      if (!appControlRpc) {
+        return Promise.resolve({
+          ok: false,
+          error: { code: "unavailable", message: "App control is not available in this host" },
+        });
+      }
+      return appControlRpc.handle(method, params);
+    },
+  };
   const nibiAgentService = createNibiAgentService({
+    appControlExecutor,
     prepareProjectExecution,
     prepareSessionCreation: async (target) => {
       // 无项目、无显式额外目录的 createSession 是草稿预热/全局新任务。CLI facts 首次
@@ -2615,6 +2654,27 @@ export function createLocalServices(options: {
     cloudProjectMcpServerResolver,
     managedWorktreeCleanup,
   });
+  // App-exclusive 会话控制：发现走 project/remote-project 目录，组织走 tasks-index，
+  // 打开只投事件给 UI（没有订阅者就 unavailable，不回退到别的窗口）。
+  const appControlNavigation = createAppControlNavigationService({
+    ...(options?.appControl?.navigationTimeoutMs !== undefined
+      ? { timeoutMs: options.appControl.navigationTimeoutMs }
+      : {}),
+  });
+  appControlRpc = createAppControlReverseRpc({
+    service: createAppControlService({
+      projectService,
+      remoteProjectService,
+      ...(options?.appControl?.resolveWindowControllerService
+        ? { resolveWindowControllerService: options.appControl.resolveWindowControllerService }
+        : {}),
+      taskService: nibiTaskService,
+      navigation: appControlNavigation,
+      onSessionCreated: (target) => nibiTaskIndexSyncer.noteCreatedSession(target),
+      logWarn: (message, error) => createServiceLogger("app-control").warn(message, error),
+    }),
+    logWarn: (message, error) => createServiceLogger("app-control").warn(message, error),
+  });
   const botsRepo = new BotsRepo();
   const botLog = createServiceLogger("bots");
   const botRemoteWorkspaceService = options.resolveBotProjectConnection
@@ -2751,6 +2811,7 @@ export function createLocalServices(options: {
     .register(ICredentialService, credentialService)
     .register(IBroadcastService, broadcastService)
     .register(INibiTaskService, nibiTaskService)
+    .register(IAppControlNavigationService, appControlNavigation.service)
     .register(INibiAgentService, nibiAgentService)
     .register(INibiSessionService, nibiSessionService)
     .register(IProjectService, projectService)

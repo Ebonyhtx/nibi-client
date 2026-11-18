@@ -1,7 +1,32 @@
-import type { AppSettings } from "@nibi/shared";
+import { isLocale, isLocalePreference, type AppSettings } from "@nibi/shared";
 
-export function normalizeSettingsPatch(patch: Partial<AppSettings>): Partial<AppSettings> {
-  const normalizedPatch = { ...patch };
+/** setting.json 投影字段：允许 IPC 直接传真实界面语言，由这里折叠回内存字段。 */
+interface PersistedLocalePatchFields {
+  uiLocale?: unknown;
+  uiLocalePreference?: unknown;
+}
+
+export function normalizeSettingsPatch(
+  patch: Partial<AppSettings> & PersistedLocalePatchFields,
+): Partial<AppSettings> {
+  const normalizedPatch: Partial<AppSettings> & PersistedLocalePatchFields = { ...patch };
+
+  // uiLocale/uiLocalePreference 是 setting.json 的持久化投影；调用方直接传新字段时，
+  // 在进入 schema 前折叠回 locale/localePreference，避免两套字段同时参与合并。
+  if ("uiLocale" in normalizedPatch) {
+    const uiLocale = normalizedPatch.uiLocale;
+    if (isLocale(uiLocale)) {
+      normalizedPatch.locale = uiLocale;
+    }
+    delete normalizedPatch.uiLocale;
+  }
+  if ("uiLocalePreference" in normalizedPatch) {
+    const uiLocalePreference = normalizedPatch.uiLocalePreference;
+    if (isLocalePreference(uiLocalePreference)) {
+      normalizedPatch.localePreference = uiLocalePreference;
+    }
+    delete normalizedPatch.uiLocalePreference;
+  }
 
   if (
     "locale" in normalizedPatch &&

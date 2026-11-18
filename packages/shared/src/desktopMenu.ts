@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE, type Locale } from "./protocol.js";
+import type { Locale } from "./protocol.js";
 
 export const desktopMenuMessageIds = {
   file: "titleBar.menu.file",
@@ -58,7 +58,12 @@ export type DesktopMenuMessageId =
 
 type DesktopMenuLocaleMessages = Record<DesktopMenuMessageId, string>;
 
-export const desktopMenuMessages: Record<Locale, DesktopMenuLocaleMessages> = {
+/**
+ * 原生菜单只内置中英两套；ja-JP/ru-RU/ko-KR 已知限制是显示英文菜单。
+ * 缺失时回退英文而不是 DEFAULT_LOCALE（中文），避免日/俄/韩用户看到中文菜单。
+ */
+export const desktopMenuMessages: Record<"zh-CN" | "en-US", DesktopMenuLocaleMessages> &
+  Partial<Record<Locale, DesktopMenuLocaleMessages>> = {
   "zh-CN": {
     "titleBar.menu.file": "文件",
     "titleBar.menu.edit": "编辑",
@@ -166,7 +171,8 @@ export const desktopMenuMessages: Record<Locale, DesktopMenuLocaleMessages> = {
 };
 
 export function getDesktopMenuMessage(locale: Locale, id: DesktopMenuMessageId): string {
-  const messages = desktopMenuMessages[locale] ?? desktopMenuMessages[DEFAULT_LOCALE];
+  // 原生菜单只内置中英两套；ja-JP/ru-RU/ko-KR 回退英文，不能回退 DEFAULT_LOCALE（中文）。
+  const messages = desktopMenuMessages[locale] ?? desktopMenuMessages["en-US"];
   return messages[id];
 }
 

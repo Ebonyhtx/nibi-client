@@ -1,5 +1,10 @@
 import { recordArmsCustomEventForE2E } from "@nibi/ui";
-import { DesktopCommandIds, buildLocalMediaPreviewUrl, type IPlatformService } from "@nibi/shared";
+import {
+  DesktopCommandIds,
+  buildLocalMediaPreviewUrl,
+  resolveLocaleFromLanguageTag,
+  type IPlatformService,
+} from "@nibi/shared";
 
 import type {
   WorkspaceMcpTrustDecisionRequest,
@@ -175,8 +180,7 @@ export function createDesktopPlatform(options: {
       window.nibi.onDesktopZoomLevelChanged?.(handler) ?? (() => {}),
     onTaskNotificationClick: (handler) => window.nibi.onTaskNotificationClick(handler),
     exportLogs: () => window.nibi.exportLogs(),
-    captureWindowScreenshot: () =>
-      window.nibi.captureWindowScreenshot?.() ?? Promise.resolve(null),
+    captureWindowScreenshot: () => window.nibi.captureWindowScreenshot?.() ?? Promise.resolve(null),
     onUpdateReady: (callback) => window.nibi.onUpdateReady(callback),
     onUpdateCheckResult: (callback) => window.nibi.onUpdateCheckResult(callback),
     onUpdateStateChanged: (callback) => window.nibi.onUpdateStateChanged?.(callback) ?? (() => {}),
@@ -191,8 +195,7 @@ export function createDesktopPlatform(options: {
     setAutoDownloadAndInstallUpdates: (enabled) =>
       window.nibi.setAutoDownloadAndInstallUpdates?.(enabled) ?? Promise.resolve(),
     getDesktopSessionActivity: () =>
-      window.nibi.getDesktopSessionActivity?.() ??
-      Promise.resolve({ runningAgentSessionCount: 0 }),
+      window.nibi.getDesktopSessionActivity?.() ?? Promise.resolve({ runningAgentSessionCount: 0 }),
     getNibiStdioTapDevState: () =>
       window.nibi.getNibiStdioTapDevState?.() ??
       Promise.resolve({ enabled: false, visible: false, logDir: "", statePath: "" }),
@@ -213,7 +216,7 @@ export function createDesktopPlatform(options: {
     setApplicationLocale: (locale) => window.nibi.setApplicationLocale(locale),
     getSystemLocale: () =>
       window.nibi.getSystemLocale?.() ??
-      Promise.resolve(navigator.language.toLowerCase().startsWith("zh") ? "zh-CN" : "en-US"),
+      Promise.resolve(resolveLocaleFromLanguageTag(navigator.language)),
     setTitleBarTheme: (theme) => window.nibi.setTitleBarTheme(theme),
     getDeviceId: () =>
       (window as Window & { __NIBI_DEVICE_ID__?: string }).__NIBI_DEVICE_ID__ ?? "",

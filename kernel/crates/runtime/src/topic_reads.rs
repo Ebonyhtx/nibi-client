@@ -1,6 +1,6 @@
 //! 话题工具的读面：`SessionReads` 的存储实现（冷读，不启动会话 actor）。
 //!
-//! `ReadSessionContext` 与 `ReplyToChannel` 都要看「持久化消息 + 每条输入的规范意图」。工具拿不到
+//! `ReadTopicResource` 与 `ReplyToChannel` 都要看「持久化消息 + 每条输入的规范意图」。工具拿不到
 //! 会话 actor，走这里直接从会话存储读同一份事实（Node 的 `sessionStore.messages` 同一姿态）。
 
 use std::sync::Arc;

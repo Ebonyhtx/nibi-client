@@ -40,4 +40,4 @@ futures-util.workspace = true
 nibi-kernel-api = { workspace = true, features = ["testing"] }
 # broker 的 Unix socket 落在测试自己的临时目录里。
 tempfile.workspace = true
-tokio = { workspace = true, features = ["io-util", "macros", "rt", "time"] }
+tokio = { workspace = true, features = ["io-util", "macros", "rt", "time", "test-util"] }

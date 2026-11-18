@@ -117,6 +117,7 @@ import {
 } from "./server-types.js";
 import { createWorkspaceNibiApp, ensureSessionModelAvailable } from "./workspace-model-runtime.js";
 import { sessionControlRuntimeForWorkspace } from "./session-control-runtime.js";
+import { createAppSessionControlBinding } from "../app-session-control/index.js";
 import { buildAppUsageSnapshot, resolveTzOffsetMs } from "./usage-stats-builder.js";
 import { createProtocolInteractionBroker } from "./interaction-broker.js";
 import { createProtocolAutomationPort } from "./automation-port.js";
@@ -3504,6 +3505,19 @@ async function createRecord(
     taskType === "interactive" || taskType === "fork" || taskType === "workflow_parent"
       ? sessionControlRuntimeForWorkspace(context, workspace, projectActiveSessionMessages)
       : undefined;
+  // App-exclusive 4 个工具（ListProjects/OpenSession/归档/置顶）：同一组根级 taskType。
+  // 绑定只携带会话与 workspace；项目发现、授权范围和窗口都由 Host 从自己的数据派生。
+  const appSessionControl =
+    taskType === "interactive" || taskType === "fork" || taskType === "workflow_parent"
+      ? createAppSessionControlBinding({
+          context,
+          sessionId: String(sessionId),
+          workspacePath: workspace.workspacePath,
+          ...(workspace.workspaceIdentity
+            ? { workspaceIdentity: workspace.workspaceIdentity }
+            : {}),
+        })
+      : undefined;
   context.logger?.info("NIBI Protocol createRecord MCP config", {
     event: "nibi_protocol.create_record.mcp_config",
     rootTraceId: traceContext.traceId,
@@ -3523,6 +3537,7 @@ async function createRecord(
     eventStore,
     resume,
     ...(sessionControl ? { sessionControlHost: sessionControl.control } : {}),
+    ...(appSessionControl ? { appSessionControl } : {}),
     additionalDirectories: params.additionalDirectories ?? startupPreferences.additionalDirectories,
     runtimeConfig: {
       mode: "mode" in params ? params.mode : undefined,

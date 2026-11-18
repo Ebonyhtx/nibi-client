@@ -117,7 +117,7 @@ pub(crate) enum SinkRequest {
         verdict: nibi_kernel_api::hooks::StopVerdict,
         reply: oneshot::Sender<Result<Vec<Message>, StoreError>>,
     },
-    /// 工具请求一次旁路辅助模型补全（`ReadSessionContext` 的 lite 抽取）：选择与辅助档的 owner 是 actor。
+    /// 工具请求一次旁路辅助模型补全：选择与辅助档的 owner 是 actor。
     Auxiliary {
         request: nibi_kernel_api::auxiliary::AuxiliaryTextRequest,
         reply: oneshot::Sender<Result<Option<String>, OrchestrationError>>,

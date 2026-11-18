@@ -1,4 +1,5 @@
 import type { ProviderSettingsView } from "@nibi/services";
+import { toZhOrEnLocale } from "@nibi/shared";
 import { ArrowLeftIcon, ChevronRightIcon, PlusIcon } from "lucide-react";
 import { resolveProviderTemplateName } from "@nibi/provider";
 import type { ReactNode } from "react";
@@ -28,9 +29,7 @@ const HIDDEN_PROVIDER_TEMPLATE_ACCESS_TYPES = new Set(["zhipu-account"]);
 
 export function isProviderTemplateVisible(template: ProviderTemplate): boolean {
   const accessType = (template.config as { access?: { type?: unknown } } | undefined)?.access?.type;
-  return !(
-    typeof accessType === "string" && HIDDEN_PROVIDER_TEMPLATE_ACCESS_TYPES.has(accessType)
-  );
+  return !(typeof accessType === "string" && HIDDEN_PROVIDER_TEMPLATE_ACCESS_TYPES.has(accessType));
 }
 
 export function filterVisibleProviderTemplates(
@@ -124,7 +123,12 @@ export function ProviderTemplatePicker({
                 />
               ) : null}
               {group.templates.map((template) => {
-                const label = resolveProviderTemplateName(template.templateId, template, locale);
+                const label = resolveProviderTemplateName(
+                  template.templateId,
+                  template,
+                  // 模板名只有中英两套；ja/ko/ru 使用英文模板名。
+                  toZhOrEnLocale(locale),
+                );
                 return (
                   <ProviderTemplateCard
                     key={template.templateId}

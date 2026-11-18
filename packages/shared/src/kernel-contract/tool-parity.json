@@ -43,10 +43,10 @@
     ]
   },
   "counts": {
-    "tools": 49,
-    "nodeTools": 43,
-    "rustTools": 45,
-    "permissions": 44,
+    "tools": 53,
+    "nodeTools": 47,
+    "rustTools": 49,
+    "permissions": 48,
     "errorCodes": 29
   },
   "tools": [
@@ -257,10 +257,10 @@
       "rustAsks": false
     },
     {
-      "name": "ReadSessionContext",
+      "name": "ReadTopicResource",
       "side": "both",
-      "permission": "session.context.read",
-      "readOnly": true,
+      "permission": "session.topic_resource.read",
+      "readOnly": false,
       "needsApproval": false,
       "rustAsks": false
     },
@@ -432,6 +432,38 @@
       "side": "rust",
       "readOnly": false,
       "rustAsks": false
+    },
+    {
+      "name": "ListProjects",
+      "side": "both",
+      "permission": "session_control.listProjects",
+      "readOnly": true,
+      "needsApproval": false,
+      "rustAsks": false
+    },
+    {
+      "name": "OpenSession",
+      "side": "both",
+      "permission": "session_control.openSession",
+      "readOnly": false,
+      "needsApproval": true,
+      "rustAsks": true
+    },
+    {
+      "name": "SetSessionArchived",
+      "side": "both",
+      "permission": "session_control.setSessionArchived",
+      "readOnly": false,
+      "needsApproval": true,
+      "rustAsks": true
+    },
+    {
+      "name": "SetSessionPinned",
+      "side": "both",
+      "permission": "session_control.setSessionPinned",
+      "readOnly": false,
+      "needsApproval": true,
+      "rustAsks": true
     }
   ],
   "permissions": {
@@ -461,14 +493,18 @@
       "resolveWorkflowQuestion",
       "resumeWorkflowRun",
       "saveWorkflow",
-      "session.context.read",
+      "session.topic_resource.read",
       "session_control.createSession",
       "session_control.forkSession",
       "session_control.interruptSession",
+      "session_control.listProjects",
       "session_control.listSessions",
+      "session_control.openSession",
       "session_control.readSession",
       "session_control.renameSession",
       "session_control.sendToSession",
+      "session_control.setSessionArchived",
+      "session_control.setSessionPinned",
       "session_control.waitSessions",
       "skill",
       "subagent",

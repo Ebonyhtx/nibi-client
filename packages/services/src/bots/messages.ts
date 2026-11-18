@@ -1,4 +1,4 @@
-import type { Locale } from "@nibi/shared";
+import { toZhOrEnLocale, type Locale } from "@nibi/shared";
 
 export type BotMessageLocale = Extract<Locale, "zh-CN" | "en-US">;
 
@@ -18,8 +18,7 @@ const messages = {
     bindPrivateOnly: "Bots 只允许在私聊中绑定。",
     userNotBound: "当前 bot 未绑定。请先在 NIBI 生成绑定码，然后发送 **/bind <code>**。",
     commandNotAllowed: "当前 bot 未启用这个命令。",
-    noWorkspaceAllowed:
-      "没有可用的项目。请先在 NIBI 中添加或打开一个项目，再回到 Bots 设置。",
+    noWorkspaceAllowed: "没有可用的项目。请先在 NIBI 中添加或打开一个项目，再回到 Bots 设置。",
     workspaceOutOfScope: "当前聊天上下文的 workspace 已不在授权范围内，请重新选择 **/项目**。",
     bindCodeInvalid: "绑定码无效或已过期，请在 NIBI 重新生成。",
     bindBotMissing: "绑定失败：bot 不存在。",
@@ -274,7 +273,8 @@ const messages = {
 export type BotMessageId = keyof (typeof messages)[BotMessageLocale];
 
 export function normalizeBotMessageLocale(locale: Locale | undefined): BotMessageLocale {
-  return locale === "en-US" ? "en-US" : DEFAULT_BOT_MESSAGE_LOCALE;
+  // 未知语言保持中文默认；ja-JP 等其它已知界面语言用英文（机器人消息只有中英两套）。
+  return locale === undefined ? DEFAULT_BOT_MESSAGE_LOCALE : toZhOrEnLocale(locale);
 }
 
 export function formatBotMessage(

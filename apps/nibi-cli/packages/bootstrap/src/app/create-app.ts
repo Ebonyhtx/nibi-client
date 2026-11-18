@@ -899,6 +899,7 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
       eventStore: options.eventStore ?? createInMemorySessionEventStore(),
       sessionStore,
       sessionControl,
+      appSessionControl: options.appSessionControl,
       sessionMailboxPort,
       logger,
       executionPort,

@@ -1,8 +1,19 @@
 /* eslint-disable max-lines */
 import type { Dirent } from "node:fs";
-import { mkdir, open, readFile, readdir, realpath, stat } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
+import {
+  mkdir,
+  open,
+  readFile,
+  readdir,
+  realpath,
+  rename,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { homedir } from "node:os";
-import { extname, join, relative, sep } from "node:path";
+import { extname, isAbsolute, join, relative, sep } from "node:path";
 import type {
   FileBinaryPreview,
   FileEntry,
@@ -114,6 +125,97 @@ function validateScratchWorkspaceName(name: string): string {
 }
 function normalizeRelativePath(rootPath: string, targetPath: string): string {
   return relative(rootPath, targetPath).split(sep).join("/");
+}
+
+// 内置浏览器设计工具写回本地 HTML 的边界：只接受 workspace 内的 .html/.htm，
+// 整份读取有大小上限，写入必须带 expected-content 校验并走同目录临时文件 + rename。
+const DESIGN_SOURCE_EXTENSIONS = new Set([".html", ".htm"]);
+const DESIGN_SOURCE_MAX_BYTES = 4 * 1024 * 1024;
+
+/** realpath 之后 target 必须严格位于 root 内；符号链接与 `..` 逃逸都会在这里被拒绝。 */
+async function resolveDesignSourcePath(workspacePath: string, targetPath: string): Promise<string> {
+  if (typeof workspacePath !== "string" || !workspacePath.trim()) {
+    throw new Error("Design source workspace is required");
+  }
+  if (typeof targetPath !== "string" || !targetPath.trim()) {
+    throw new Error("Design source path is required");
+  }
+  const root = await realpath(workspacePath);
+  const target = await realpath(targetPath);
+  const child = relative(root, target);
+  if (!child || isAbsolute(child) || child === ".." || child.startsWith(`..${sep}`)) {
+    throw new Error(`Design source is outside the workspace: ${targetPath}`);
+  }
+  if (!DESIGN_SOURCE_EXTENSIONS.has(extname(target).toLowerCase())) {
+    throw new Error(`Design source must be an HTML file: ${targetPath}`);
+  }
+  return target;
+}
+
+async function readDesignSource(path: string): Promise<string> {
+  const fileStat = await stat(path);
+  if (!fileStat.isFile() || fileStat.size > DESIGN_SOURCE_MAX_BYTES) {
+    throw new Error(`Design source is not a readable HTML file: ${path}`);
+  }
+  const bytes = await readFile(path);
+  if (bytes.byteLength > DESIGN_SOURCE_MAX_BYTES) {
+    throw new Error(`Design source is too large: ${path}`);
+  }
+  try {
+    // 严格解码：不能无损往返的文件直接报错，避免把非法字节替换成 U+FFFD 后写回。
+    return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
+  } catch {
+    throw new Error(`Design source is not valid UTF-8: ${path}`);
+  }
+}
+
+async function writeDesignSourceAtomic(path: string, content: string): Promise<void> {
+  if (typeof content !== "string") {
+    throw new Error("Design source content must be a string");
+  }
+  if (Buffer.byteLength(content, "utf8") > DESIGN_SOURCE_MAX_BYTES) {
+    throw new Error(`Design source content is too large: ${path}`);
+  }
+  const fileStat = await stat(path);
+  if (!fileStat.isFile()) {
+    throw new Error(`Design source is not a file: ${path}`);
+  }
+  const tempPath = `${path}.${randomBytes(8).toString("hex")}.nibi-tmp`;
+  try {
+    // 同目录临时文件保证 rename 在同一文件系统内原子替换；权限沿用原文件。
+    await writeFile(tempPath, content, { encoding: "utf-8", mode: fileStat.mode });
+    await rename(tempPath, path);
+  } catch (error) {
+    await rm(tempPath, { force: true }).catch(() => undefined);
+    throw error;
+  }
+}
+
+/**
+ * 同一 Host 进程内按文件串行：两个 tab 同时提交时，后进来的必须在前一个写完后才做
+ * expected-content 比较，否则两边都能通过比较、后写的覆盖先写的。
+ * 先按路径、再按文件身份各取一把锁（顺序固定），硬链接与「临时文件 + rename」保存都能串行。
+ */
+const designSourceLocks = new Map<string, Promise<unknown>>();
+
+function withDesignSourceKeyLock<T>(key: string, task: () => Promise<T>): Promise<T> {
+  const previous = designSourceLocks.get(key) ?? Promise.resolve();
+  const next = previous.then(task, task);
+  const settled = next.catch(() => undefined);
+  designSourceLocks.set(key, settled);
+  void settled.then(() => {
+    if (designSourceLocks.get(key) === settled) designSourceLocks.delete(key);
+  });
+  return next;
+}
+
+async function withDesignSourceLock<T>(path: string, task: () => Promise<T>): Promise<T> {
+  const pathKey = `path:${path.replace(/\\/gu, "/").toLowerCase()}`;
+  return withDesignSourceKeyLock(pathKey, async () => {
+    const identity = await stat(path, { bigint: true }).catch(() => null);
+    if (!identity || identity.ino <= 0n) return task();
+    return withDesignSourceKeyLock(`inode:${identity.dev}:${identity.ino}`, task);
+  });
 }
 export function isSkippableWorkspaceFileListError(error: unknown): boolean {
   const code = (error as { code?: unknown } | null)?.code;
@@ -637,6 +739,36 @@ export function createFileService(options: CreateFileServiceOptions = {}): IFile
       content: string;
     }): Promise<void> {
       await writeWorkspaceFileSearchIgnore(params.rootPath, params.content);
+    },
+    async readDesignSourceFile(params: {
+      workspacePath: string;
+      path: string;
+    }): Promise<{ content: string }> {
+      const path = await resolveDesignSourcePath(params.workspacePath, params.path);
+      return { content: await readDesignSource(path) };
+    },
+    async writeDesignSourceFile(params: {
+      workspacePath: string;
+      path: string;
+      expectedContent: string;
+      content: string;
+    }): Promise<{ written: boolean }> {
+      if (typeof params.expectedContent !== "string" || typeof params.content !== "string") {
+        throw new Error("Design source write requires expectedContent and content strings");
+      }
+      if (Buffer.byteLength(params.expectedContent, "utf8") > DESIGN_SOURCE_MAX_BYTES) {
+        throw new Error("Design source expectedContent is too large");
+      }
+      // 先解析一次拿锁键；拿到锁后再解析一次，避免等待期间路径被换成 workspace 外。
+      const lockKey = await resolveDesignSourcePath(params.workspacePath, params.path);
+      return withDesignSourceLock(lockKey, async () => {
+        const path = await resolveDesignSourcePath(params.workspacePath, params.path);
+        if ((await readDesignSource(path)) !== params.expectedContent) {
+          return { written: false };
+        }
+        await writeDesignSourceAtomic(path, params.content);
+        return { written: true };
+      });
     },
   };
 }

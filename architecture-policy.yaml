@@ -36,6 +36,7 @@ modules:
       - packages/services/src/session/contract.ts
       - packages/services/src/session/taskIndexRepo.ts
       - packages/services/src/session/automationRepo.ts
+      - packages/services/src/session/nibiTaskService.ts
       - packages/services/src/session/tasksDatabase/migrations.ts
       - packages/services/src/session/tasksDatabase/prepared.ts
     owner: conversation
@@ -78,7 +79,7 @@ modules:
     roots: [ apps/nibi-cli ]
     managed: false
   # session-control：按上游 3.18.2 packages/session-control 移植的纯契约包。
-  # Phase 1 只接 8 个 CLI 可见工具；App 专属 4 工具未注册。
+  # 8 个 CLI 可见工具 + 4 个 App 专属工具（App 端口由 Host 承接）。
   - id: session-control
     roots: [ packages/session-control/src ]
     managed: true
@@ -94,6 +95,29 @@ modules:
       app: application
     layerOrder: [ contract, domain, app ]
     owner: conversation
+  # app-control：App 专属 4 工具（ListProjects / OpenSession / 归档 / 置顶）的 Host 承接。
+  - id: app-control
+    roots: [ packages/services/src/app-control ]
+    managed: true
+    requires: [ project, remote-projects, rpc, session, services, shared ]
+    publicEntrypoints:
+      - packages/services/src/app-control/index.ts
+      - packages/services/src/app-control/contract.ts
+    layers:
+      contract: contract.ts
+      app: .
+    owner: conversation
+  # design-runtime：按上游 3.18.2 移植的内置浏览器设计运行时（页面注入 + parse5 源码改写）。
+  - id: design-runtime
+    roots: [ packages/design-runtime/src ]
+    managed: true
+    requires: []
+    publicEntrypoints:
+      - packages/design-runtime/src/index.ts
+      - packages/design-runtime/src/contract.ts
+    layers:
+      adapters: .
+    owner: desktop
   # sqlite-migrations：由 architecture:adopt 登记
   - id: sqlite-migrations
     roots:
@@ -1524,10 +1548,13 @@ exceptions:
     rule: unmanaged-new-file
     paths:
       - apps/nibi-cli/packages/bootstrap/src/cli-session-control/**
+      - apps/nibi-cli/packages/bootstrap/src/app-session-control/**
       - apps/nibi-cli/packages/bootstrap/src/nibi-protocol/session-control-runtime.ts
       - apps/nibi-cli/packages/contracts/src/interfaces/session-control.port.ts
       - apps/nibi-cli/packages/contracts/src/tools/session-control.ts
+      - apps/nibi-cli/packages/contracts/src/tools/app-session-control.ts
       - apps/nibi-cli/packages/core/src/tool/handlers/session-control.ts
+      - apps/nibi-cli/packages/core/src/tool/handlers/app-session-control.ts
       - apps/nibi-cli/packages/core/src/tool/session-control/**
       - packages/session-control/vitest.config.ts
     reason: >-
@@ -1535,3 +1562,40 @@ exceptions:
       8 工具、CLI owner 与测试装配。apps/nibi-cli 仍是 managed:false 的遗留应用，
       契约/处理器按既有包布局落位；纯契约包本身已登记为 managed 模块 session-control，
       这里只准入其包根测试配置。接管 apps/nibi-cli 不在本次范围。
+
+  - id: tier2-design-mode
+    rule: unmanaged-new-file
+    paths:
+      - packages/desktop/src/preload/embeddedBrowserDesignBridge.ts
+      - packages/ui/src/browser-use/BrowserDesignInspector.tsx
+      - packages/ui/src/browser-use/browserDesign.ts
+      - packages/ui/src/browser-use/useBrowserDesignMode.ts
+      - packages/ui/src/browser-use/useBrowserDesignRuntime.ts
+      - packages/ui/src/browser-use/useBrowserDesignSourceWriter.ts
+    reason: >-
+      Tier 2 design-runtime 核心切片：内置浏览器设计模式的 guest 桥与 Renderer 侧
+      选择/编辑/回写编排。desktop/preload 与 ui/browser-use 仍是 managed:false 的遗留区，
+      运行时本体已登记为 managed 模块 design-runtime，这里只按路径准入接线文件。
+
+  - id: tier2-topic-resource-node
+    rule: unmanaged-new-file
+    paths:
+      - apps/nibi-cli/packages/contracts/src/tools/read-topic-resource.ts
+      - apps/nibi-cli/packages/core/src/tool/handlers/read-topic-resource.ts
+      - apps/nibi-cli/packages/core/src/tool/topic-resource/**
+    reason: >-
+      Tier 2 ReadTopicResource 迁移：按上游 3.18.2 契约新增的 Node 工具契约、handler
+      与 reader。apps/nibi-cli 仍是 managed:false 的遗留应用，按既有包布局落位；
+      Rust 侧改动都在现有 crate 内，不需要新例外。
+
+  - id: tier2-five-locales
+    rule: unmanaged-new-file
+    paths:
+      - packages/shared/src/locale.ts
+      - packages/ui/src/i18n/localeMessages.ts
+      - packages/ui/src/i18n/locales/ja-JP.ts
+      - packages/ui/src/i18n/locales/ko-KR.ts
+      - packages/ui/src/i18n/locales/ru-RU.ts
+    reason: >-
+      Tier 2 五语言：shared 的 locale 解析/持久化助手、五语言合并表与三份上游人工翻译。
+      shared 与 ui 仍是 managed:false 的遗留大区；按路径准入这五个新文件，不接管整包。

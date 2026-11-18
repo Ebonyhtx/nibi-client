@@ -18,7 +18,9 @@ use nibi_kernel_api::testing::{
     FixedClock, MemoryStore, ScriptedInteractions, ScriptedModel, selection,
 };
 use nibi_kernel_api::tool::{Tool, ToolError, ToolUseContext};
-use nibi_kernel_api::topic::{SessionReads, SessionSnapshot};
+use nibi_kernel_api::topic::{
+    SessionReads, SessionSnapshot, TopicPort, TopicResource, TopicResourceRead,
+};
 use nibi_kernel_api::workflow::{
     WorkflowQuestionResolved, WorkflowQuestions, WorkflowRunDetail, WorkflowRunIntrospection,
 };
@@ -30,7 +32,7 @@ use crate::test_more::Ctx;
 use crate::{
     BashTool, BuiltinTools, CronBoard, FileTools, FillWorkflowHoleTool, GetWorkflowRunTool,
     MonitorTool, ReadFileState, ReportFindingsTool, ResolveWorkflowQuestionTool,
-    ScheduleWakeupTool, ToolCatalog, authoring_tools, cron_tools_with, file_tools,
+    ScheduleWakeupTool, ToolCatalog, app_control_tools, authoring_tools, cron_tools_with, file_tools,
     interaction_tools, session_control_tools, topic_tools, web_tools, worktree_tools,
 };
 
@@ -168,6 +170,22 @@ impl SessionReads for EmptyReads {
     }
 }
 
+/// 静态对拍用的话题端口：`ReadTopicResource` 的注册门要求端口在场，但这里不执行真实读取。
+struct StubTopic;
+
+#[async_trait]
+impl TopicPort for StubTopic {
+    async fn read(&self, _request: &TopicResourceRead) -> Result<TopicResource, String> {
+        Err("unavailable".to_owned())
+    }
+
+    async fn cancel(&self, _request_id: &str, _task_id: &str) {}
+
+    async fn reply(&self, _request: Value) -> Result<Value, String> {
+        Err("unavailable".to_owned())
+    }
+}
+
 /// 按 runtime 的组装顺序枚举 `nibi-kernel-tools` 的内置工具注册表。
 fn registry() -> Vec<Arc<dyn Tool>> {
     let state = Arc::new(ReadFileState::default());
@@ -210,7 +228,13 @@ fn registry() -> Vec<Arc<dyn Tool>> {
         .with_tools(worktree_tools(&Arc::new(crate::WorktreeBoard::default())))
         // 会话控制 8 个工具：端口槽在入口拿到 Arc<LocalKernel> 之后注入；对拍只看名字、只读标记与 Ask。
         .with_tools(session_control_tools(Arc::new(std::sync::OnceLock::new())))
-        .with_tools(topic_tools(Arc::new(EmptyReads), None));
+        // App-exclusive 的 4 个工具：只在 App 入口装端口后由 runtime 注册；对拍同样只看
+        // 名字、只读标记与 Ask 行为。
+        .with_tools(app_control_tools(Arc::new(std::sync::OnceLock::new())))
+        .with_tools(topic_tools(
+            Arc::new(EmptyReads),
+            Some(Arc::new(StubTopic)),
+        ));
     let mut tools = builtin.tools();
     // TodoRead / TodoWrite 是 agents 层的工具（与 Node 同名、同语义）；X02 的 Rust 覆盖面包含它们。
     tools.extend(nibi_kernel_agents::todo_tools(Arc::new(

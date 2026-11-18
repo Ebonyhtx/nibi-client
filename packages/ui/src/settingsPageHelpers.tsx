@@ -6,7 +6,7 @@ import type {
   LocalePreference,
   NibiInteractionBehavior,
 } from "@nibi/shared";
-import { appToolSearchModeSchema } from "@nibi/shared";
+import { appToolSearchModeSchema, LOCALE_NATIVE_NAMES, SUPPORTED_LOCALES } from "@nibi/shared";
 import {
   TID_SETTINGS_ASK_USER_QUESTION_AUTO_RESOLUTION_SWITCH,
   TID_SETTINGS_NATIVE_SEARCH_SWITCH,
@@ -407,18 +407,17 @@ export function GeneralSectionContent({
                 >
                   {intl.formatMessage({ id: "settings.locale.system" })}
                 </SelectItem>
-                <SelectItem
-                  value="zh-CN"
-                  data-testid={testId(TID_SETTINGS_LOCALE_SELECT_ITEM, "zh-CN")}
-                >
-                  {intl.formatMessage({ id: "settings.locale.zh-CN" })}
-                </SelectItem>
-                <SelectItem
-                  value="en-US"
-                  data-testid={testId(TID_SETTINGS_LOCALE_SELECT_ITEM, "en-US")}
-                >
-                  {intl.formatMessage({ id: "settings.locale.en-US" })}
-                </SelectItem>
+                {/* 语言选项显示各语言本名（LOCALE_NATIVE_NAMES），不随界面语言翻译。 */}
+                {SUPPORTED_LOCALES.map((locale) => (
+                  <SelectItem
+                    key={locale}
+                    value={locale}
+                    lang={locale}
+                    data-testid={testId(TID_SETTINGS_LOCALE_SELECT_ITEM, locale)}
+                  >
+                    {LOCALE_NATIVE_NAMES[locale]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           }
@@ -1042,12 +1041,16 @@ export function GeneralSectionContent({
 
 export function GeneralSectionHeader({ localePreference }: { localePreference: LocalePreference }) {
   const { intl } = useNibiIntl();
+  // 具体语言显示本名（五语言都有），system 才走 i18n；不能再拼 `settings.locale.ja-JP`，
+  // 否则新语言的 badge 会直接露出原始 key。
+  const label =
+    localePreference === "system"
+      ? intl.formatMessage({ id: "settings.locale.system" })
+      : LOCALE_NATIVE_NAMES[localePreference];
 
   return (
     <div className="mt-4 flex flex-wrap gap-2">
-      <SettingsBadge>
-        {intl.formatMessage({ id: `settings.locale.${localePreference}` })}
-      </SettingsBadge>
+      <SettingsBadge>{label}</SettingsBadge>
     </div>
   );
 }

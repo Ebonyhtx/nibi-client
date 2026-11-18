@@ -52,6 +52,7 @@ import type {
   SessionMailboxPort,
   SessionStorePort,
   SessionControlHost,
+  AppSessionControlBinding,
   SkillLoadOutcome,
   SkillPort,
   SupportedLocale,
@@ -150,6 +151,11 @@ export interface NibiAppOptions {
    * InterruptSession/RenameSession 工具；缺席即不注册。
    */
   sessionControlHost?: SessionControlHost;
+  /**
+   * App-exclusive 会话控制绑定（ListProjects / OpenSession / SetSessionArchived /
+   * SetSessionPinned）。只在 App 协议入口注入；CLI/TUI 缺席即不注册 4 个工具。
+   */
+  appSessionControl?: AppSessionControlBinding;
   /**
    * stdio 协议模式的 agent 进程由 Electron host 拉起，模型服务需要看到 electron 来源。
    * 普通 CLI 不传，继续使用 cli 默认值。

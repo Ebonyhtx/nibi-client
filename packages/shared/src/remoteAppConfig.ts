@@ -1,3 +1,4 @@
+import { toZhOrEnLocale } from "./locale.js";
 import type { Locale } from "./protocol.js";
 
 interface RemoteAppConfigLike {
@@ -61,7 +62,8 @@ export function getCommunityUrlsFromConfig(config: unknown): LocaleUrlMap {
 
 export function getCommunityUrlFromConfig(config: unknown, locale: Locale): string | undefined {
   const communityUrls = getCommunityUrlsFromConfig(config);
-  return communityUrls[locale];
+  // 社群只配置中英两套；非中文界面语言走英文渠道，避免日/韩/俄用户拿到 undefined。
+  return communityUrls[toZhOrEnLocale(locale)];
 }
 
 export function getCommunityUrlFromConfigs(
@@ -74,7 +76,8 @@ export function getCommunityUrlFromConfigs(
 
   // 社群渠道具有语言边界。只允许远端覆盖同语言的内置入口，
   // 对应语言缺失时保持隐藏，避免中文和英文用户被导向错误渠道。
-  return remoteUrls[locale] ?? localUrls[locale];
+  const targetLocale = toZhOrEnLocale(locale);
+  return remoteUrls[targetLocale] ?? localUrls[targetLocale];
 }
 
 export function getForceUpdateMinimalVersionFromConfig(config: unknown): string | undefined {

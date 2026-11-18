@@ -22,7 +22,7 @@ import {
 import { startHelpConfigFixture } from "../helpers/help-client-config-fixture.js";
 import { openFaultInjectedHostWindow } from "../helpers/subagent-host-window.js";
 
-type Locale = "zh-CN" | "en-US";
+type Locale = "zh-CN" | "en-US" | "ja-JP" | "ru-RU" | "ko-KR";
 type HelpServer = Awaited<ReturnType<typeof startHelpConfigFixture>>;
 type Request = HelpServer["requests"][number];
 
@@ -197,5 +197,39 @@ describe("Nibi endpoint X-Client-Language 跟随界面语言", () => {
       );
       await browser.switchToWindow(firstHandle);
     }
+  });
+
+  it("CLH-03: uiLocale=ja-JP 重启后 X-Client-Language 仍发送 ja-JP", async function () {
+    this.timeout(120000);
+    await waitForDefaultWorkspaceReady(30000);
+    const server = await startServer();
+    await quitElectronAppGracefully();
+    // 模拟新格式 setting.json：旧字段只存中英，真实语言在 uiLocale。
+    await seedSettings({
+      locale: "en-US",
+      localePreference: "en-US",
+      uiLocale: "ja-JP",
+      uiLocalePreference: "ja-JP",
+      nibiEndpointOrigin: server.origin,
+      lastWorkspaceSession: [
+        { kind: "local", workspacePath: DEFAULT_WORKSPACE, workspacePurpose: "project" },
+      ],
+      lastActiveTabIndex: 0,
+    } as Parameters<typeof seedSettings>[0]);
+    await browser.reloadSession();
+    await waitForDefaultWorkspaceReady(30000);
+    await waitForWorkspaceApp(DEFAULT_WORKSPACE, 30000);
+    await mockExternal();
+
+    await browser.waitUntil(async () => server.requests.some((request) => !isHost(request)), {
+      timeout: 15000,
+      timeoutMsg: "启动后 Main 没有发出 client/configs 灰度预热",
+    });
+    // 界面语言是 ja-JP，不能因为旧字段是 en-US 而发 en-US，更不能回落到中文。
+    expectLanguage(
+      server.requests.filter((request) => !isHost(request)),
+      "ja-JP",
+    );
+    expectLanguage(await openHelpMenuForHostRequests(server), "ja-JP");
   });
 });

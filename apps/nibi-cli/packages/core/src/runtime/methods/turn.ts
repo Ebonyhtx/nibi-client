@@ -49,7 +49,7 @@ import type { AgentRuntimeInternal } from "../internal.js";
 import { createRuntimeCommandId } from "../command-queue.js";
 import type { PromptRuntimeCommand } from "../command-queue.js";
 import { enqueueCancellableRuntimeCommand } from "./runtime-command-submit.js";
-import { buildReferencedSessionContextReminderBody } from "../../session-context/read-session-context.js";
+import { buildReferencedSessionContextReminderBody } from "../../session-context/references.js";
 import { runRegularTurnLoop } from "./turn-loop.js";
 import {
   maybeStartDeferredSessionTitleGeneration,
@@ -983,6 +983,8 @@ function injectReferencedSessionContextReminderIntoMessageHistory(
   options?: ExecuteTurnOptions,
 ): void {
   if (options?.inputVisibility === "model-only") return;
+  // ReadSession 只在可信绑定了会话工具的根会话注册；子代理等运行时没有它，不提示不存在的工具。
+  if (!this.sessionControl) return;
   const reminderBody = buildReferencedSessionContextReminderBody(input);
   if (!reminderBody) return;
   this.messageHistory.addAttachment("referenced_session_context", reminderBody);

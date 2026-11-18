@@ -3,6 +3,7 @@ export type {
   DataSyncCategoryId,
   DataSyncCategoryPushResult,
   DataSyncDevice,
+  DataSyncDialogRequest,
   DataSyncPagePhase,
   DataSyncPushAllSummary,
   DataSyncPushFailure,
@@ -14,6 +15,7 @@ export type {
   DataSyncRowStatus,
   DataSyncServices,
   DataSyncSkillRow,
+  DataSyncTabId,
 } from "@/data-sync/contract.js";
 export { DATA_SYNC_CATEGORIES } from "@/data-sync/contract.js";
 export {
@@ -46,6 +48,12 @@ export {
   type DataSyncPushAllController,
 } from "@/data-sync/app/useDataSyncPushAll.js";
 export {
+  useDataSyncSession,
+  type DataSyncPushProgress,
+  type DataSyncSessionController,
+  type DataSyncSessionOptions,
+} from "@/data-sync/app/useDataSyncSession.js";
+export {
   useDataSyncSkills,
   type DataSyncSkillsController,
   type DataSyncSkillsState,
@@ -56,4 +64,25 @@ export {
   runDataSyncCategoryPushQueue,
   summarizePushAllResults,
 } from "@/data-sync/domain/pushQueue.js";
-export { DataSyncSection, DataSyncSectionView } from "@/data-sync/ui/DataSyncSection.js";
+export { DataSyncSection } from "@/data-sync/ui/DataSyncSection.js";
+export {
+  DataSyncEmptyState,
+  DataSyncSectionView,
+  type DataSyncSectionViewProps,
+} from "@/data-sync/ui/DataSyncSectionView.js";
+export {
+  DataSyncDialogProvider,
+  useDataSyncResultVersion,
+  useOpenDataSyncDialog,
+} from "@/data-sync/ui/DataSyncDialogProvider.js";
+export {
+  useDataSyncResultRefresh,
+  type OpenDataSyncDialog,
+} from "@/data-sync/ui/DataSyncDialogContext.js";
+export { DataSyncDialog } from "@/data-sync/ui/DataSyncDialog.js";
+export {
+  DataSyncMinimizedProgress,
+  DataSyncMinimizeButton,
+  type DataSyncMinimizedProgressProps,
+} from "@/data-sync/ui/DataSyncMinimizedProgress.js";
+export { DataSyncSettingsEntry } from "@/data-sync/ui/DataSyncSettingsEntry.js";

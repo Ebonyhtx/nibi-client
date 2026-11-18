@@ -101,6 +101,25 @@ export const TID_BROWSER_FORWARD_BUTTON = "browser-forward-button";
 export const TID_BROWSER_REFRESH_BUTTON = "browser-refresh-button";
 /** 浏览器自由尺寸模式按钮 */
 export const TID_BROWSER_RESPONSIVE_BUTTON = "browser-responsive-button";
+/** 浏览器设计模式开关（只对本地 HTML 预览页可用） */
+export const TID_BROWSER_DESIGN_BUTTON = "browser-design-button";
+/** 浏览器设计模式检查器 */
+export const TID_BROWSER_DESIGN_INSPECTOR = "browser-design-inspector";
+export const TID_BROWSER_DESIGN_INSPECTOR_CLOSE = "browser-design-inspector-close";
+/** 检查器里的元素标识行 */
+export const TID_BROWSER_DESIGN_ELEMENT = "browser-design-element";
+/** 元素文字编辑框 */
+export const TID_BROWSER_DESIGN_TEXT_INPUT = "browser-design-text-input";
+/** 单个 CSS 属性编辑器 */
+export const TID_BROWSER_DESIGN_STYLE_PROPERTY = "browser-design-style-property";
+export const TID_BROWSER_DESIGN_STYLE_VALUE = "browser-design-style-value";
+/** :root 变量编辑器 */
+export const TID_BROWSER_DESIGN_VARIABLE_SELECT = "browser-design-variable-select";
+export const TID_BROWSER_DESIGN_VARIABLE_VALUE = "browser-design-variable-value";
+/** 保存状态 / 失败原因（data-state = saving | saved | error） */
+export const TID_BROWSER_DESIGN_SAVE_STATUS = "browser-design-save-status";
+/** 为什么不能写回（不在 workspace / 元素对不上 / 源文件读不了） */
+export const TID_BROWSER_DESIGN_SOURCE_STATUS = "browser-design-source-status";
 /** 浏览器自由尺寸视口 */
 export const TID_BROWSER_RESPONSIVE_VIEWPORT = "browser-responsive-viewport";
 /** 浏览器自由尺寸顶部控制条 */

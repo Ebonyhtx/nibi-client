@@ -1,7 +1,8 @@
 /* oxlint-disable eslint(max-lines) -- AppSettings schema 聚合历史迁移、默认值和 patch 校验，拆分会削弱设置迁移的单一入口。 */
 import { z } from "zod";
 import { appToolSearchModeSchema } from "./app-runtime-preferences.js";
-import type { AppSettings } from "./protocol.js";
+import { SUPPORTED_LOCALES, type AppSettings } from "./protocol.js";
+import { resolvePersistedUiLocale, resolvePersistedUiLocalePreference } from "./locale.js";
 import { REMOTE_ASSET_INSTALL_MODES } from "./remoteAssetInstallMode.js";
 import { isKnownRemoteResourcePackageId } from "./remoteResourcePackages.js";
 import { wslUserSchema } from "./wslUserValidation.js";
@@ -40,8 +41,8 @@ export const appSettingsOccupationEnum = appSettingsOccupationSchema;
 
 const nonEmptyStringSchema = z.string().trim().min(1);
 
-export const localeSchema = z.enum(["zh-CN", "en-US"]);
-export const localePreferenceSchema = z.enum(["system", "zh-CN", "en-US"]);
+export const localeSchema = z.enum(SUPPORTED_LOCALES);
+export const localePreferenceSchema = z.enum(["system", ...SUPPORTED_LOCALES]);
 const nibiInteractionBehaviorSchema = z.enum(["queue", "guide"]);
 // launch.md「The user's choice」：读文件时未知取值（降级后读到新版本写的值）按「跟随」处理，
 // 不能让一个偏好字段把整份设置读坏。
@@ -288,6 +289,27 @@ function migrateMessageStreamShowReasoningDefault(value: unknown): unknown {
     messageStreamShowReasoning: true,
     messageStreamShowReasoningMigrationInitialized: true,
   };
+}
+
+/**
+ * setting.json 的 uiLocale / uiLocalePreference（真实界面语言）合并回内存字段 locale / localePreference。
+ * 旧版本只会写 locale/localePreference（中英），新版本用新字段保存 ja-JP 等真实选择；
+ * 这里在 schema 解析前投影，保证内存里的 AppSettings.locale 始终是真实语言。
+ */
+function applyPersistedUiLocaleFields(value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+  const raw = value as Record<string, unknown>;
+  if (!("uiLocale" in raw) && !("uiLocalePreference" in raw)) {
+    return value;
+  }
+  const merged: Record<string, unknown> = { ...raw };
+  const locale = resolvePersistedUiLocale(raw);
+  const localePreference = resolvePersistedUiLocalePreference(raw);
+  if (locale !== undefined) merged.locale = locale;
+  if (localePreference !== undefined) merged.localePreference = localePreference;
+  return merged;
 }
 
 function migrateLegacyLocalePreference(value: unknown): unknown {
@@ -594,10 +616,12 @@ export const appSettingsSchema = z.preprocess(
         migrateMessageStreamShowReasoningDefault(
           migrateCloseToTrayOnWindowsDefault(
             migrateLegacyLocalePreference(
-              sanitizeNibiEndpointOrigin(
-                migrateLegacyWorkspaceSession(
-                  migrateLegacyBuiltinAgentCliProviders(
-                    migrateRemoteBoundaryIntroAcknowledgement(migrateTaskAutoArchiveReset(value)),
+              applyPersistedUiLocaleFields(
+                sanitizeNibiEndpointOrigin(
+                  migrateLegacyWorkspaceSession(
+                    migrateLegacyBuiltinAgentCliProviders(
+                      migrateRemoteBoundaryIntroAcknowledgement(migrateTaskAutoArchiveReset(value)),
+                    ),
                   ),
                 ),
               ),
@@ -614,6 +638,9 @@ export const appSettingsPatchSchema = z.object({
   locale: localeSchema.optional(),
   shortcutBindings: z.record(z.string(), z.array(z.string())).optional(),
   localePreference: localePreferenceSchema.optional(),
+  // 新字段：IPC 调用方可以只给真实界面语言；settingService 落盘时仍降级旧字段。
+  uiLocale: localeSchema.optional(),
+  uiLocalePreference: localePreferenceSchema.optional(),
   terminalInheritSystemProfile: z.boolean().optional(),
   terminalFontFamily: nonEmptyStringSchema.optional(),
   integratedTerminalShell: integratedTerminalShellSelectionSchema.optional(),

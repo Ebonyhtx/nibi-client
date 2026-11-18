@@ -1,13 +1,9 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { XIcon } from "lucide-react";
+import { toZhOrEnLocale } from "@nibi/shared";
 import type { IFeedbackService } from "@nibi/services";
 import { Button } from "@/components/ui/button.js";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog.js";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.js";
 import { Input } from "@/components/ui/input.js";
 import { Textarea } from "@/components/ui/textarea.js";
 import { FeedbackErrorTip, FeedbackLoginGate, RequiredMarker } from "@/feedback/feedbackBadges.js";
@@ -50,8 +46,9 @@ export const FeatureRequestDialog = memo(function FeatureRequestDialogComponent(
   const [solution, setSolution] = useState("");
   const [contact, setContact] = useState(() => readFeedbackContactPreference());
   const [submitting, setSubmitting] = useState(false);
-  const [submitProgress, setSubmitProgress] =
-    useState<FeedbackSubmissionProgressState | null>(null);
+  const [submitProgress, setSubmitProgress] = useState<FeedbackSubmissionProgressState | null>(
+    null,
+  );
   const [submissionJob, setSubmissionJob] = useState<FeedbackSubmissionJob | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
@@ -139,7 +136,8 @@ export const FeatureRequestDialog = memo(function FeatureRequestDialogComponent(
         ticketSeverity: "P3-低",
         ticketModule: "其它",
         modelContext: {},
-        locale,
+        // 反馈服务只有中英文案字段；ja/ko/ru 提交英文。
+        locale: toZhOrEnLocale(locale),
         copy,
         formatMessage: intl.formatMessage,
         onCompleted: (ticketId) => {
@@ -169,16 +167,7 @@ export const FeatureRequestDialog = memo(function FeatureRequestDialogComponent(
       setError(getErrorMessage(submitError));
       setSubmitting(false);
     }
-  }, [
-    contact,
-    copy,
-    description,
-    feedbackService,
-    formatMessage,
-    locale,
-    openTickets,
-    solution,
-  ]);
+  }, [contact, copy, description, feedbackService, formatMessage, locale, openTickets, solution]);
 
   return (
     <Dialog
@@ -208,93 +197,93 @@ export const FeatureRequestDialog = memo(function FeatureRequestDialogComponent(
         </DialogHeader>
 
         <FeedbackLoginGate feedbackService={feedbackService}>
-        <ScrollFadeViewport className="px-6 pb-4 pt-3">
-          <div className="mx-auto flex max-w-[720px] flex-col gap-3">
-            <FeatureRequestTextarea
-              autoFocus
-              required
-              title={formatMessage("feedback.featureRequest.descriptionLabel")}
-              value={description}
-              max={FEATURE_TEXT_MAX}
-              placeholder={formatMessage("feedback.featureRequest.descriptionPlaceholder")}
-              onChange={setDescription}
-            />
-            <FeatureRequestTextarea
-              required
-              title={formatMessage("feedback.featureRequest.solutionLabel")}
-              value={solution}
-              max={FEATURE_TEXT_MAX}
-              placeholder={formatMessage("feedback.featureRequest.solutionPlaceholder")}
-              onChange={setSolution}
-            />
-            <section className="space-y-2">
-              <h3 className="text-ui-base font-semibold text-foreground">
-                {formatMessage("feedback.featureRequest.contactLabel")}
-              </h3>
-              <Input
-                type="text"
-                inputMode="email"
-                autoComplete="email"
-                value={contact}
-                onChange={(event) => {
-                  setContact(rememberFeedbackContactInput(event.target.value));
-                }}
-                maxLength={CONTACT_MAX}
-                placeholder={formatMessage("feedback.submit.contact.placeholder")}
-                className="h-10 rounded-xl border-input-border bg-input px-3 text-ui-base text-foreground placeholder:text-foreground-subtlest hover:border-input-border-hover focus-visible:border-input-border-focused focus-visible:bg-input-focused"
+          <ScrollFadeViewport className="px-6 pb-4 pt-3">
+            <div className="mx-auto flex max-w-[720px] flex-col gap-3">
+              <FeatureRequestTextarea
+                autoFocus
+                required
+                title={formatMessage("feedback.featureRequest.descriptionLabel")}
+                value={description}
+                max={FEATURE_TEXT_MAX}
+                placeholder={formatMessage("feedback.featureRequest.descriptionPlaceholder")}
+                onChange={setDescription}
               />
-            </section>
-            {error ? <FeedbackErrorTip message={error} /> : null}
-          </div>
-        </ScrollFadeViewport>
+              <FeatureRequestTextarea
+                required
+                title={formatMessage("feedback.featureRequest.solutionLabel")}
+                value={solution}
+                max={FEATURE_TEXT_MAX}
+                placeholder={formatMessage("feedback.featureRequest.solutionPlaceholder")}
+                onChange={setSolution}
+              />
+              <section className="space-y-2">
+                <h3 className="text-ui-base font-semibold text-foreground">
+                  {formatMessage("feedback.featureRequest.contactLabel")}
+                </h3>
+                <Input
+                  type="text"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={contact}
+                  onChange={(event) => {
+                    setContact(rememberFeedbackContactInput(event.target.value));
+                  }}
+                  maxLength={CONTACT_MAX}
+                  placeholder={formatMessage("feedback.submit.contact.placeholder")}
+                  className="h-10 rounded-xl border-input-border bg-input px-3 text-ui-base text-foreground placeholder:text-foreground-subtlest hover:border-input-border-hover focus-visible:border-input-border-focused focus-visible:bg-input-focused"
+                />
+              </section>
+              {error ? <FeedbackErrorTip message={error} /> : null}
+            </div>
+          </ScrollFadeViewport>
 
-        <div className="shrink-0 px-6 pb-6 pt-2">
-          {submitting && submitProgress ? (
-            <SubmitProgressView
-              progress={submitProgress}
-              processingLabel={formatMessage("feedback.submit.processing")}
-            />
-          ) : null}
-          <div
-            className={
-              submitting && submitProgress
-                ? "mt-2.5 flex items-center justify-between gap-3"
-                : "flex items-center justify-between gap-3"
-            }
-          >
-            <Button
-              type="button"
-              variant="link"
-              size="lg"
-              disabled={submitting}
-              className="px-0 text-primary"
-              onClick={handleReset}
+          <div className="shrink-0 px-6 pb-6 pt-2">
+            {submitting && submitProgress ? (
+              <SubmitProgressView
+                progress={submitProgress}
+                processingLabel={formatMessage("feedback.submit.processing")}
+              />
+            ) : null}
+            <div
+              className={
+                submitting && submitProgress
+                  ? "mt-2.5 flex items-center justify-between gap-3"
+                  : "flex items-center justify-between gap-3"
+              }
             >
-              {formatMessage("feedback.featureRequest.reset")}
-            </Button>
-            <div className="flex shrink-0 justify-end gap-2">
-              <Button variant="outline" size="lg" onClick={handleClose}>
-                {formatMessage("common.cancel")}
-              </Button>
               <Button
+                type="button"
+                variant="link"
                 size="lg"
-                onClick={() => void handleSubmit()}
-                disabled={submitDisabled}
-                className="rounded-lg"
+                disabled={submitting}
+                className="px-0 text-primary"
+                onClick={handleReset}
               >
-                {submitting ? (
-                  <>
-                    <span className="size-3.5 animate-spin rounded-full border border-current border-t-transparent" />
-                    {formatMessage("feedback.submit.submitting")}
-                  </>
-                ) : (
-                  formatMessage("feedback.featureRequest.submit")
-                )}
+                {formatMessage("feedback.featureRequest.reset")}
               </Button>
+              <div className="flex shrink-0 justify-end gap-2">
+                <Button variant="outline" size="lg" onClick={handleClose}>
+                  {formatMessage("common.cancel")}
+                </Button>
+                <Button
+                  size="lg"
+                  onClick={() => void handleSubmit()}
+                  disabled={submitDisabled}
+                  className="rounded-lg"
+                >
+                  {submitting ? (
+                    <>
+                      <span className="size-3.5 animate-spin rounded-full border border-current border-t-transparent" />
+                      {formatMessage("feedback.submit.submitting")}
+                    </>
+                  ) : (
+                    formatMessage("feedback.featureRequest.submit")
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </FeedbackLoginGate>
+        </FeedbackLoginGate>
       </DialogContent>
     </Dialog>
   );

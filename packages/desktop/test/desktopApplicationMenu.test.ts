@@ -30,6 +30,15 @@ vi.mock("electron", () => ({
 // Bugfix: 这个用例只验证菜单模板，不能通过 importActual 拉完整 shared/services/main 依赖。
 // 全量 pre-push 并发时真实依赖加载会撞 5s 超时，并让 NIBI_ENV 的模块缓存污染后续断言。
 vi.mock("@nibi/shared", () => ({
+  // 菜单测试只关心系统语言前缀映射；与 shared/src/locale.ts 的同名实现保持一致。
+  resolveLocaleFromLanguageTag: (tag: string | null | undefined) => {
+    const primary = (tag ?? "").trim().toLowerCase().replaceAll("_", "-").split("-")[0];
+    if (primary === "zh") return "zh-CN";
+    if (primary === "ja") return "ja-JP";
+    if (primary === "ru") return "ru-RU";
+    if (primary === "ko") return "ko-KR";
+    return "en-US";
+  },
   DesktopCommandIds: {
     NewTask: "newTask",
     OpenWorkspace: "openWorkspace",
@@ -183,6 +192,21 @@ describe("desktopApplicationMenu endpoint submenu", () => {
       await import("../src/main/desktopApplicationMenu.js");
 
     expect(resolveSystemApplicationLocale()).toBe("zh-CN");
+  });
+
+  it("system default 识别 ja/ko/ru，未支持语言回退 en-US", async () => {
+    envMock.locale = "en-US";
+    const { resolveSystemApplicationLocale } =
+      await import("../src/main/desktopApplicationMenu.js");
+
+    envMock.preferredSystemLanguages = ["ja-JP", "en-US"];
+    expect(resolveSystemApplicationLocale()).toBe("ja-JP");
+    envMock.preferredSystemLanguages = ["ko_KR"];
+    expect(resolveSystemApplicationLocale()).toBe("ko-KR");
+    envMock.preferredSystemLanguages = ["ru-RU"];
+    expect(resolveSystemApplicationLocale()).toBe("ru-RU");
+    envMock.preferredSystemLanguages = ["fr-FR"];
+    expect(resolveSystemApplicationLocale()).toBe("en-US");
   });
 
   it("test 环境显示 endpoint 子菜单并标记当前 test 选项", async () => {

@@ -24,6 +24,7 @@ import {
   type ConversationPreviewArtifactCandidate,
   localizeConversationShareUrl,
   resolveRuntimeNibiEndpointOrigin,
+  toZhOrEnLocale,
 } from "@nibi/shared";
 import type { ConversationRow } from "@nibi/shared/nibi-protocol-v4";
 import {
@@ -243,13 +244,15 @@ function previewPreflightKey(
  * 导入会话的标题前缀。services 层没有 intl，这里只维护一份最小映射；
  * 前缀在导入时定型并持久化为 session.title（titleSource: "custom"），之后切界面语言不再改写。
  */
-const IMPORTED_SHARE_TITLE_PREFIX: Readonly<Record<Locale, string>> = {
+const IMPORTED_SHARE_TITLE_PREFIX: Readonly<Record<"zh-CN" | "en-US", string>> = {
   "zh-CN": "来自分享：",
   "en-US": "From Share: ",
 };
 
 function formatImportedShareSessionTitle(shareTitle: string, locale: Locale | undefined): string {
-  return `${IMPORTED_SHARE_TITLE_PREFIX[locale ?? "zh-CN"]}${shareTitle.trim()}`;
+  // 标题前缀只有中英两套；非中文界面语言用英文，README 的导入来源不应变成中文。
+  const prefix = IMPORTED_SHARE_TITLE_PREFIX[toZhOrEnLocale(locale ?? "zh-CN")];
+  return `${prefix}${shareTitle.trim()}`;
 }
 
 function localizePublishedShare(
@@ -677,10 +680,7 @@ export class ConversationShareService implements IConversationShareService {
     string,
     Emitter<ConversationShareImportProgress>
   >();
-  private readonly nibiSessionService?: Pick<
-    INibiSessionService,
-    "createSession" | "listSessions"
-  >;
+  private readonly nibiSessionService?: Pick<INibiSessionService, "createSession" | "listSessions">;
   private readonly download: (url: string, init?: { signal?: AbortSignal }) => Promise<Response>;
   private readonly downloadTimeoutMs: number;
   private readonly conversationWorkspaceRoot: string;

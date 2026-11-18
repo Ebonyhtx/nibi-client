@@ -30,11 +30,9 @@ export function shouldShowDataSyncEntry(params: {
 }
 
 /**
- * 打开统一数据同步页。
- *
- * 根因：旧同步弹窗与数据同步页曾各自维护写入路径，插件市场重装也只能走弹窗。
- * 所有入口必须先发设置分区意图（只负责预选分类），由设置页统一挂载 DataSyncSection；
- * 入口本身不再接触同步服务，避免出现第二条写入路径。
+ * 窗口级 provider 不可用时的回退：发设置分区意图，落到设置页的数据同步入口。
+ * 桌面窗口由 `useOpenDataSyncSettings` 直接打开 DataSyncDialogProvider 的弹窗；
+ * 这里仍只负责导航意图，不接触同步服务，避免出现第二条写入路径。
  */
 export function openDataSyncSettings(category?: SettingsDataSyncCategoryTarget): void {
   setPendingSettingsSectionIntent(

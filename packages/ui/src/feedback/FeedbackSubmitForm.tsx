@@ -56,6 +56,7 @@ import {
 } from "@/feedback/feedbackSubmitSubmission.js";
 import type { IFeedbackService } from "@nibi/services";
 import type { IPlatformService } from "@nibi/shared";
+import { toZhOrEnLocale } from "@nibi/shared";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useTabStore } from "@/store/TabStoreProvider.js";
 import { selectWorkspaceNibiState, useNibiSessionStore } from "@/store/nibiSessionStore.js";
@@ -331,7 +332,8 @@ export function FeedbackSubmitForm({
         ticketSeverity,
         ticketModule,
         modelContext,
-        locale,
+        // 反馈服务只有中英文案字段；ja/ko/ru 提交英文。
+        locale: toZhOrEnLocale(locale),
         copy: submissionCopy,
         formatMessage: intl.formatMessage,
         onTicketCreated: shouldCloseOnTicketCreated

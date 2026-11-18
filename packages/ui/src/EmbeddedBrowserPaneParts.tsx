@@ -11,6 +11,7 @@ import {
   LoaderIcon,
   MonitorSmartphone,
   MousePointerClick,
+  Paintbrush,
   RefreshCw,
   Settings,
   TriangleAlertIcon,
@@ -20,6 +21,7 @@ import {
   TID_BROWSER_ADDRESS_INPUT,
   TID_BROWSER_BACK_BUTTON,
   TID_BROWSER_DEVTOOLS_BUTTON,
+  TID_BROWSER_DESIGN_BUTTON,
   TID_BROWSER_ELEMENT_PICKER_BUTTON,
   TID_BROWSER_EXPORT_PDF_ITEM,
   TID_BROWSER_EXPORT_PNG_ITEM,
@@ -76,9 +78,12 @@ export function BrowserToolbar({
   onExportPdf,
   onPickElement,
   onReload,
+  onToggleDesignMode,
   onToggleResponsiveMode,
   onSubmit,
   isElementPickerActive,
+  isDesignMode,
+  isDesignAvailable,
   isResponsiveMode,
   canExport,
 }: {
@@ -101,9 +106,13 @@ export function BrowserToolbar({
   onExportPdf: () => void;
   onPickElement: () => void;
   onReload: () => void;
+  onToggleDesignMode: () => void;
   onToggleResponsiveMode: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   isElementPickerActive: boolean;
+  isDesignMode: boolean;
+  /** 只有本地 file:// / nibi-html 预览页且文件服务可用时为 true */
+  isDesignAvailable: boolean;
   isResponsiveMode: boolean;
   canExport: boolean;
 }) {
@@ -192,6 +201,17 @@ export function BrowserToolbar({
         onClick={onToggleResponsiveMode}
         active={isResponsiveMode}
         pressed={isResponsiveMode}
+      />
+      <BrowserIconButton
+        icon={<Paintbrush className="h-4 w-4" />}
+        title={formatMessage({
+          id: isDesignMode ? "browser.design.stop" : "browser.design.start",
+        })}
+        disabled={!browserState.isReady || (!isDesignAvailable && !isDesignMode)}
+        dataTestId={TID_BROWSER_DESIGN_BUTTON}
+        onClick={onToggleDesignMode}
+        active={isDesignMode}
+        pressed={isDesignMode}
       />
       <BrowserIconButton
         icon={<MousePointerClick className="h-4 w-4" />}

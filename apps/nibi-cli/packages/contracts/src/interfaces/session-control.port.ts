@@ -1,6 +1,8 @@
 // Session control host port：Node 内核把 8 个会话控制动作收敛到这一条边界。
 // Handler 只能经 ToolExecutionContext.sessionControl 访问它，不直接拿 SessionStore 或 runtime 单例。
 import type {
+  AppSessionControl,
+  AppTrustedContext,
   CliSessionControl,
   CliTrustedContext,
   Deadline,
@@ -34,3 +36,21 @@ export interface SessionControlBinding {
   control: SessionControlHost;
   context(): CliTrustedContext;
 }
+
+/**
+ * App 入口的可信绑定：control 只把请求转给 Host（反向 RPC），不持有 App 数据。
+ * `context()` 由 bootstrap 用当前会话与 workspace 构造；`uiTarget` 永远留空，
+ * Host 从它绑定的窗口派生，模型不能提供。
+ */
+export type AppSessionControlPort = Pick<
+  AppSessionControl,
+  "listProjects" | "openSession" | "setSessionArchived" | "setSessionPinned"
+>;
+
+export interface AppSessionControlBinding {
+  kind: "app";
+  control: AppSessionControlPort;
+  context(): AppTrustedContext;
+}
+
+export type SessionControlBindingKind = SessionControlBinding | AppSessionControlBinding;

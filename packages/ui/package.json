@@ -38,6 +38,7 @@
     "@modelcontextprotocol/client": "2.3.0",
     "@modelcontextprotocol/core": "2.0.0",
     "@modelcontextprotocol/ext-apps": "2.0.0",
+    "@nibi/design-runtime": "workspace:*",
     "@nibi/provider": "workspace:*",
     "@nibi/rpc": "workspace:*",
     "@nibi/services": "workspace:*",

@@ -38,6 +38,7 @@ import type {
   SessionModePort,
   SessionStorePort,
   SessionControlBinding,
+  AppSessionControlBinding,
   SkillPort,
   SkillTelemetryMetadata,
   SubagentPort,
@@ -179,6 +180,8 @@ export interface ToolExecutionContext {
   sessionStore?: SessionStorePort;
   /** 会话控制可信绑定；只在运行时门通过后注入。 */
   sessionControl?: SessionControlBinding;
+  /** App-exclusive 会话控制可信绑定；只在 App runtime 门通过后注入。 */
+  appSessionControl?: AppSessionControlBinding;
   sessionModePort?: SessionModePort;
   workflowPort?: WorkflowPort;
   /** workflow run 提交端口；缺席则 CreateWorkflow 回占位诊断而不启动。 */

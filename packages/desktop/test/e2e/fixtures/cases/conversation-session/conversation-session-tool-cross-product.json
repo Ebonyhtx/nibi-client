@@ -106,11 +106,11 @@
       "syntheticReason": "固定触发 AskUserQuestion 工具，覆盖用户问询阻塞与自动选择路径。"
     },
     {
-      "id": "upstream-tool-cross-product-read-session-context-call",
+      "id": "upstream-tool-cross-product-read-topic-resource-call",
       "kind": "main",
       "source": "synthetic",
       "timingPolicy": "tool-use",
-      "syntheticReason": "固定触发 ReadSessionContext 的可预期失败路径，覆盖会话读取工具历史。"
+      "syntheticReason": "固定触发 ReadTopicResource 的可预期失败路径，覆盖话题资源读取工具历史。"
     },
     {
       "id": "upstream-tool-cross-product-send-message-call",

@@ -9,10 +9,10 @@ import { remoteHostIdFromWorkspaceIdentity } from "@/project-sidebar/contract.js
 import type {
   ProjectSidebarProps,
   VirtualProject,
-  Locale,
   Theme,
   RemoteProjectHost,
 } from "@/project-sidebar/contract.js";
+import { isLocale } from "@nibi/shared";
 import { useProjectPinIntent } from "@/project-sidebar/useProjectPinIntent.js";
 import { ProjectTaskListContext } from "@/project-sidebar/ProjectTaskListContext.js";
 import { useWebRemoteControlStatus } from "@/hooks/useWebRemoteControlStatus.js";
@@ -236,7 +236,11 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
     tabStore.getState().openSettingsTab();
   }, [tabStore]);
   const changeLocale = useCallback(
-    (value: string) => setLocalePreference(value as Locale | "system"),
+    (value: string) => {
+      if (value === "system" || isLocale(value)) {
+        setLocalePreference(value);
+      }
+    },
     [setLocalePreference],
   );
   const changeTheme = useCallback((value: string) => setTheme(value as Theme), [setTheme]);

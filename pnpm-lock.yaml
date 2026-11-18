@@ -931,6 +931,19 @@ importers:
         specifier: ^6.0.2
         version: 6.0.2
 
+  packages/design-runtime:
+    dependencies:
+      parse5:
+        specifier: 7.3.0
+        version: 7.3.0
+    devDependencies:
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+      vitest:
+        specifier: ^4.1.12
+        version: 4.1.12(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.12)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@25.6.0)(typescript@6.0.2))(vite@8.3.8(@types/node@25.6.0)(esbuild@0.28.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
+
   packages/desktop:
     dependencies:
       '@arms/rum-electron':
@@ -1810,6 +1823,9 @@ importers:
       '@modelcontextprotocol/ext-apps':
         specifier: 2.0.0
         version: 2.0.0(@modelcontextprotocol/client@2.3.0)(@modelcontextprotocol/core@2.0.0)(@modelcontextprotocol/server@2.3.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.6)
+      '@nibi/design-runtime':
+        specifier: workspace:*
+        version: link:../design-runtime
       '@nibi/provider':
         specifier: workspace:*
         version: link:../provider

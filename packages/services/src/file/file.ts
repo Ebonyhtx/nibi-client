@@ -77,6 +77,22 @@ export interface IFileService {
     transform: "sync-gitignore" | "reset-defaults";
   }): Promise<{ content: string }>;
   writeWorkspaceFileSearchIgnore(params: { rootPath: string; content: string }): Promise<void>;
+  /**
+   * 内置浏览器设计工具读写本地 HTML 源文件：
+   * - path 必须位于 workspacePath 之内（realpath 后校验，符号链接不能逃逸），且只允许 .html / .htm；
+   * - 整份读取严格按 UTF-8 解码，文件上限 4 MB；解码失败直接报错，不能把非法字节替换成 U+FFFD 后写回；
+   * - 写入必须带 expectedContent，文件内容仍是读到的那份才写，否则返回 written: false；写入走同目录临时文件 + rename。
+   */
+  readDesignSourceFile(params: {
+    workspacePath: string;
+    path: string;
+  }): Promise<{ content: string }>;
+  writeDesignSourceFile(params: {
+    workspacePath: string;
+    path: string;
+    expectedContent: string;
+    content: string;
+  }): Promise<{ written: boolean }>;
 }
 
 export const IFileService = createServiceDescriptor<IFileService>(ServiceChannels.File);

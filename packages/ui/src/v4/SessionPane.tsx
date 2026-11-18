@@ -681,6 +681,7 @@ export function SessionPane({
   const shareCompletedArtifacts = shareDock.completedArtifacts;
   const shareTotalArtifacts = shareDock.totalArtifacts;
   const publishedShareUrl = shareDock.publishedShareUrl;
+  const publishedShareExpiresAt = shareDock.publishedShareExpiresAt;
   const shareError = shareDock.error;
   const shareWarnings = shareDock.warnings;
   const shareActive = shareDraft?.open === true;
@@ -4344,6 +4345,7 @@ export function SessionPane({
       completedArtifacts: 0,
       totalArtifacts: 0,
       publishedShareUrl: null,
+      publishedShareExpiresAt: null,
       error: null,
       warnings: null,
     });
@@ -4366,6 +4368,7 @@ export function SessionPane({
       const warnings = collectedWarnings as ConversationShareDisplayWarnings | null;
       updateShareDockState(sessionId, {
         publishedShareUrl: share.share_url,
+        publishedShareExpiresAt: share.expires_at,
         warnings,
       });
       // collectedWarnings 只在 progress 回调里赋值，TS 的控制流分析看不到跨闭包写入，
@@ -4743,6 +4746,7 @@ export function SessionPane({
     readOnly || !sessionId ? null : publishedShareUrl ? (
       <ConversationShareSuccessDock
         url={publishedShareUrl}
+        expiresAt={publishedShareExpiresAt}
         title={shareTitle}
         warnings={shareWarnings}
         onOpen={handleOpenPublishedShare}

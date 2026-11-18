@@ -145,7 +145,12 @@ import {
   pollWeixinRegistration as pollWeixinQrRegistration,
 } from "./providers/weixinRegistration.js";
 import { createFeishuBotProvider, splitFeishuText } from "./providers/feishuProvider.js";
-import { formatBotMessage, type BotMessageId } from "./messages.js";
+import {
+  formatBotMessage,
+  normalizeBotMessageLocale,
+  type BotMessageId,
+  type BotMessageLocale,
+} from "./messages.js";
 import {
   extractBotAssistantResponseMessages,
   formatBotAssistantReplyBlocks,
@@ -216,7 +221,9 @@ function parseBotModelOptionValue(value: string): ModelSelection | undefined {
       modelId: value.slice(separatorIndex + 1),
     };
   }
-  return value.trim() ? { providerId: NIBI_NATIVE_MODEL_PROVIDER_ID, modelId: value.trim() } : undefined;
+  return value.trim()
+    ? { providerId: NIBI_NATIVE_MODEL_PROVIDER_ID, modelId: value.trim() }
+    : undefined;
 }
 
 const BOT_REPLY_GRANULARITY_OPTIONS = [
@@ -822,7 +829,7 @@ export function createBotsService(
   const recentInboundDeliveryAtByKey = new Map<string, number>();
   const inboundProcessingQueuesByContext = new Map<string, Promise<void>>();
   let botStorageMigrationPromise: Promise<void> | null = null;
-  let cachedLocale: Locale | undefined;
+  let cachedLocale: BotMessageLocale | undefined;
   const providers: Record<BotProvider, BotProviderAdapter | null> = {
     telegram: createTelegramBotProvider({
       loadCredential: (key) => deps.credentialService.load(key),
@@ -1828,9 +1835,11 @@ export function createBotsService(
     );
   }
 
-  async function readMessageLocale(): Promise<Locale | undefined> {
+  async function readMessageLocale(): Promise<BotMessageLocale | undefined> {
     const settings = await deps.settingService?.get().catch(() => null);
-    cachedLocale = settings?.locale ?? cachedLocale;
+    // 机器人回复只有中英文案：ja-JP/ko-KR/ru-RU 统一按英文输出，不能让下游
+    // `locale === "en-US"` 分支把非中文语言误判成中文。
+    cachedLocale = settings?.locale ? normalizeBotMessageLocale(settings.locale) : cachedLocale;
     return cachedLocale;
   }
 
@@ -3582,9 +3591,7 @@ export function createBotsService(
     };
   }
 
-  async function readContextActiveTaskMeta(
-    context: BotContextState,
-  ): Promise<NibiTaskMeta | null> {
+  async function readContextActiveTaskMeta(context: BotContextState): Promise<NibiTaskMeta | null> {
     if (!context.activeTaskId) {
       return null;
     }
@@ -3750,10 +3757,7 @@ export function createBotsService(
             nibiCallbackPrepareError: error instanceof Error ? error.message : String(error),
           }))) ?? payload)
       : payload;
-    if (
-      isRecord(preparedPayload) &&
-      typeof preparedPayload.nibiCallbackPrepareError === "string"
-    ) {
+    if (isRecord(preparedPayload) && typeof preparedPayload.nibiCallbackPrepareError === "string") {
       return {
         ok: false,
         replies: [],
@@ -7878,9 +7882,7 @@ export function createBotsService(
       prompt: {
         content: preparedMessage.content,
         attachments:
-          preparedMessage.nibiAttachments.length > 0
-            ? preparedMessage.nibiAttachments
-            : undefined,
+          preparedMessage.nibiAttachments.length > 0 ? preparedMessage.nibiAttachments : undefined,
         messageId: `bot-${traceId}`,
         sentAt: Date.now(),
       },

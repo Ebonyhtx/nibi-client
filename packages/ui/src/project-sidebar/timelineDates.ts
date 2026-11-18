@@ -20,7 +20,10 @@ export function timelineDateHeadings(
 ): Array<TimelineDateHeading | null> {
   const today = calendarDay(now);
   const date = new Date(now);
-  const weekStart = today - ((date.getDay() + (locale === "en-US" ? 0 : 6)) % 7);
+  // 周起始日只有一套显式映射：中/俄从周一开始，英/日/韩从周日开始。
+  // 不用 Intl weekInfo：WebView/Node 的 ICU 版本不一致会让日期分组的边界跳动。
+  const weekStartsOnSunday = locale === "en-US" || locale === "ja-JP" || locale === "ko-KR";
+  const weekStart = today - ((date.getDay() + (weekStartsOnSunday ? 0 : 6)) % 7);
   const monthStart = calendarDay(new Date(date.getFullYear(), date.getMonth(), 1).getTime());
   const lastMonthStart = calendarDay(
     new Date(date.getFullYear(), date.getMonth() - 1, 1).getTime(),

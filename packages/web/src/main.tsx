@@ -1,4 +1,8 @@
-import { mobilePluginDiscoveryTelemetrySchema } from "@nibi/shared";
+import {
+  mobilePluginDiscoveryTelemetrySchema,
+  resolveLocaleFromLanguageTag,
+  toZhOrEnLocale,
+} from "@nibi/shared";
 import {
   sessionCreateTelemetrySchema,
   type RendererTelemetryEventPayload,
@@ -335,7 +339,7 @@ async function renderConversationSharePage(): Promise<void> {
     root.render(
       <ConversationShareLandingStatus
         state={{ kind: "error", error: "invalid_contract" }}
-        locale={routeLocale}
+        locale={toZhOrEnLocale(routeLocale)}
       />,
     );
     return;
@@ -389,7 +393,7 @@ async function renderConversationSharePage(): Promise<void> {
         });
       }}
       onLogout={onLogout}
-      locale={routeLocale}
+      locale={toZhOrEnLocale(routeLocale)}
       theme={resolveWebThemePreference("nibi-light")}
     />,
   );
@@ -550,7 +554,8 @@ function createWebPlatform(options?: {
       window.open(feedbackUrl, "_blank", "noopener,noreferrer");
     },
     openCommunity: async () => {
-      const locale = document.documentElement.lang === "en-US" ? "en-US" : "zh-CN";
+      // html lang 现在可能是 ja-JP/ko-KR/ru-RU；先解析成 Locale，社群入口再按中西/其它回退英文。
+      const locale = resolveLocaleFromLanguageTag(document.documentElement.lang);
       const communityUrl = await resolveWebCommunityUrl(locale);
       if (!communityUrl) {
         return;
@@ -862,6 +867,8 @@ export function createHomeOnlyWebRemoteControlServices(): RootServices {
         "fileService.applyWorkspaceFileSearchIgnoreTransform",
       ),
       writeWorkspaceFileSearchIgnore: unsupported("fileService.writeWorkspaceFileSearchIgnore"),
+      readDesignSourceFile: unsupported("fileService.readDesignSourceFile"),
+      writeDesignSourceFile: unsupported("fileService.writeDesignSourceFile"),
     },
     mediaPreviewService:
       createUnsupportedHomeOnlyService<NonNullable<RootServices["mediaPreviewService"]>>(

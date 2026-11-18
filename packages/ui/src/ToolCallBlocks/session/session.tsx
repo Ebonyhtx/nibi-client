@@ -17,6 +17,8 @@ import {
   readCreationStatusKey,
   readDeliveryStatusKey,
   readMutationStatusKey,
+  readOpenStatusKey,
+  readProjectRef,
   readResult,
   readRows,
   readSendStatusKey,
@@ -161,7 +163,15 @@ export function SessionToolCallBlock(context: ToolCallBlockRenderContext) {
   if (aborted) {
     statusKey = failed ? "failed" : toolCall.status === "denied" ? "rejected" : "stopped";
   } else if (running) {
-    statusKey = toolCall.status === "pending" ? "pending" : `${name}.running`;
+    statusKey =
+      name === "ListProjects" ||
+      name === "OpenSession" ||
+      name === "SetSessionArchived" ||
+      name === "SetSessionPinned"
+        ? "running"
+        : toolCall.status === "pending"
+          ? "pending"
+          : `${name}.running`;
   } else if (context.isPermissionPreview) {
     // 审批预览尚未执行：没有回执可判定，不能先写一个「结果未知」。
     statusKey = undefined;
@@ -177,6 +187,10 @@ export function SessionToolCallBlock(context: ToolCallBlockRenderContext) {
   } else if (name === "WaitSessions") {
     statusKey = WAIT_STATUS_KEYS[readText(output.status) ?? ""] ?? "unknown";
   } else if (name === "InterruptSession" || name === "RenameSession") {
+    statusKey = readMutationStatusKey(output.status);
+  } else if (name === "OpenSession") {
+    statusKey = readOpenStatusKey(output.status);
+  } else if (name === "SetSessionArchived" || name === "SetSessionPinned") {
     statusKey = readMutationStatusKey(output.status);
   }
   const statusText = statusKey === undefined ? undefined : label(statusKey);
@@ -221,6 +235,13 @@ export function SessionToolCallBlock(context: ToolCallBlockRenderContext) {
   if (name === "RenameSession") {
     primary = readText(input.title) ?? target;
   }
+  if (name === "ListProjects") {
+    const projects = readRows(output.projects);
+    primary =
+      readText(input.query) ??
+      readText(projects[0]?.title) ??
+      readText(toRecord(projects[0]?.project).projectId);
+  }
 
   const sections: DetailSection[] = [];
   const add = (key: string, sectionLabel: string, content: ReactNode, copy?: string) => {
@@ -230,7 +251,7 @@ export function SessionToolCallBlock(context: ToolCallBlockRenderContext) {
     <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{value}</p>
   );
 
-  if (name !== "ListSessions" && name !== "WaitSessions" && target) {
+  if (name !== "ListSessions" && name !== "WaitSessions" && name !== "ListProjects" && target) {
     add(
       "target",
       label("target"),
@@ -336,6 +357,70 @@ export function SessionToolCallBlock(context: ToolCallBlockRenderContext) {
     ) {
       add("scope", label("scope"), paragraph(label("partial")));
     }
+  } else if (name === "ListProjects" && Array.isArray(output.projects)) {
+    const visible = readRows(output.projects).map((row) => {
+      const ref = readProjectRef(row.project);
+      return {
+        title: readText(row.title) ?? (ref.id ? shortId(ref.id) : label("unknownSession")),
+        id: ref.id,
+        source: ref.source,
+      };
+    });
+    add(
+      "projects",
+      label("projects"),
+      visible.length > 0 ? (
+        <ul className="space-y-2" data-testid="session-tool-projects">
+          {visible.map((row, index) => (
+            <li key={index} className="flex min-w-0 gap-3">
+              <span title={row.id} className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+                {row.title}
+              </span>
+              {row.source !== undefined ? (
+                <span className="shrink-0 text-foreground-subtlest" title={row.source}>
+                  {shortId(row.source)}
+                </span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        paragraph(label("empty"))
+      ),
+      visible.map((row) => [row.title, row.source].filter(Boolean).join(" — ")).join("\n") ||
+        undefined,
+    );
+    const scope = toRecord(output.searchScope);
+    const unavailable = readRows(scope.unavailableSources);
+    if (unavailable.length > 0 || (Array.isArray(scope.scopes) && scope.scopes.length === 0)) {
+      const reasons = unavailable
+        .map((row) => `${readText(row.sourceServerId) ?? "?"}: ${readText(row.reason) ?? ""}`)
+        .join("\n");
+      add(
+        "scope",
+        label("scope"),
+        <>{paragraph(label("partial"))}{reasons ? paragraph(reasons) : null}</>,
+        reasons || undefined,
+      );
+    }
+  } else if (name === "OpenSession" && !running) {
+    const openStatus = label(readOpenStatusKey(output.status));
+    const uiTarget = readText(output.uiTarget);
+    const reason = readText(output.reason);
+    const rows = [
+      { label: label("status"), value: openStatus },
+      ...(uiTarget === undefined ? [] : [{ label: label("target"), value: uiTarget }]),
+    ];
+    add(
+      "result",
+      label("result"),
+      <>
+        <SessionDetailRows rows={rows} />
+        {reason !== undefined ? paragraph(reason) : null}
+      </>,
+      rows.map((row) => `${row.label}: ${row.value}`).join("\n") +
+        (reason === undefined ? "" : `\n${reason}`),
+    );
   } else if (name === "ReadSession" && output.view === "summary") {
     const summaryStatus = stateText(summary.status);
     const updatedAt = formatUpdatedAt(locale, summary.updatedAt);
@@ -511,13 +596,31 @@ export function SessionToolCallBlock(context: ToolCallBlockRenderContext) {
       label("result"),
       paragraph(running ? label("waitingResult") : (statusText ?? label("unknown"))),
     );
-  } else if (name === "InterruptSession" || name === "RenameSession") {
+  } else if (
+    (name === "InterruptSession" || name === "RenameSession") &&
+    !running
+  ) {
+    const mutationStatus = label(readMutationStatusKey(output.status));
+    const reason = readText(output.reason);
+    const copy = [mutationStatus, reason].filter(Boolean).join("\n");
+    add(
+      "result",
+      label("result"),
+      <>
+        {paragraph(mutationStatus)}
+        {reason !== undefined ? paragraph(reason) : null}
+      </>,
+      copy,
+    );
+  } else if (name === "SetSessionArchived" || name === "SetSessionPinned") {
     if (running) {
       add("empty", label("result"), paragraph(label("waitingResult")));
     } else {
       const mutationStatus = label(readMutationStatusKey(output.status));
       const reason = readText(output.reason);
-      const copy = [mutationStatus, reason].filter(Boolean).join("\n");
+      const requested =
+        name === "SetSessionArchived" ? String(input.archived) : String(input.pinned);
+      const copy = [requested, mutationStatus, reason].filter(Boolean).join("\n");
       add(
         "result",
         label("result"),
@@ -528,7 +631,7 @@ export function SessionToolCallBlock(context: ToolCallBlockRenderContext) {
         copy,
       );
     }
-  } else {
+  } else if (name === "InterruptSession" || name === "RenameSession") {
     add("empty", label("result"), paragraph(running ? label("waitingResult") : label("noResult")));
   }
 

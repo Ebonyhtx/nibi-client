@@ -53,6 +53,7 @@ import {
   IWindowProjectService,
   IWindowRemoteProjectService,
   IWindowProjectChangesService,
+  IAppControlNavigationService,
   type WindowProjectDirectoryServices,
   type IServiceAccessor,
 } from "@nibi/services";
@@ -76,6 +77,8 @@ export class RemoteServiceAccess implements IServiceAccessor {
   readonly broadcastService: IBroadcastService;
   readonly nibiTaskService: INibiTaskService;
   readonly windowControllerService: IWindowControllerService;
+  /** App 控制工具的打开事件；桌面完整服务面提供，手机 allowlist 不暴露。 */
+  readonly appControlNavigationService?: IAppControlNavigationService;
   readonly nibiAgentService: INibiAgentService;
   readonly nibiSessionService: INibiSessionService;
   readonly taskGroupService: ITaskGroupService;
@@ -174,6 +177,11 @@ export class RemoteServiceAccess implements IServiceAccessor {
     );
     this.windowControllerService = ProxyChannel.toService<IWindowControllerService>(
       channelClient.getChannel(IWindowControllerService.channelName),
+    );
+    // Host 未注册（手机 allowlist / 旧 host）时 getChannel 仍返回代理，调用按 undefined 处理；
+    // 这里保持可选字段语义，由消费方按能力探测。
+    this.appControlNavigationService = ProxyChannel.toService<IAppControlNavigationService>(
+      channelClient.getChannel(IAppControlNavigationService.channelName),
     );
     this.nibiAgentService = ProxyChannel.toService<INibiAgentService>(
       channelClient.getChannel(INibiAgentService.channelName),

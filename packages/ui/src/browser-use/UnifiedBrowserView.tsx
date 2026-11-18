@@ -7,9 +7,12 @@ import type {
 import { cn } from "@/components/lib/utils.js";
 import { toast } from "@/components/ui/toast.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
+import { useOptionalServices } from "@/hooks/useServices.js";
 import { useWebElementPicker } from "@/hooks/useWebElementPicker.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
+import { BrowserDesignInspector } from "@/browser-use/BrowserDesignInspector.js";
+import { useBrowserDesignMode } from "@/browser-use/useBrowserDesignMode.js";
 import { BrowserSiteSettingsEntry } from "@/browser-use/BrowserSiteSettingsEntry.js";
 import {
   canExportBrowserPage,
@@ -83,6 +86,7 @@ export function UnifiedBrowserView({
   browserResizeBaselineVersion,
   screenshotSurfaceRequest,
   deferEmptyGuest = false,
+  enableDesignMode = false,
   initialHumanViewportPreference,
   onHumanViewportPreferenceChange,
 }: {
@@ -131,6 +135,8 @@ export function UnifiedBrowserView({
   screenshotSurfaceRequest?: BrowserViewScreenshotSurfacePreparePayload | null;
   /** human 空白 tab 延迟创建 guest；agent/browser-use 必须保持创建期 attach。 */
   deferEmptyGuest?: boolean;
+  /** 只在 human Browser surface 打开设计模式；agent Browser Use 不允许写回源文件。 */
+  enableDesignMode?: boolean;
   /** 仅 human Browser surface 传入；Agent Browser Use 必须保持 undefined。 */
   initialHumanViewportPreference?: EmbeddedBrowserViewportPreference;
   /** 只接收 human UI 主动变更；Agent viewport event 不得调用。 */
@@ -436,6 +442,20 @@ export function UnifiedBrowserView({
       webview ? webview.executeJavaScript(script, true) : Promise.resolve({ status: "cancelled" }),
     workspacePath: workspacePath ?? "",
     workspaceIdentity: workspaceKey ?? workspaceIdentity,
+  });
+
+  // 设计模式：只对本地 file:// / nibi-html 预览页可用；文件服务缺席时不可用（不伪造检查器）。
+  const optionalServices = useOptionalServices();
+  const design = useBrowserDesignMode({
+    currentUrl: browserState.currentUrl,
+    enabled: enableDesignMode,
+    fileService: optionalServices?.fileService,
+    onBeforeActivate: () => {
+      void cancelWebElementPicking();
+    },
+    webview,
+    webviewGeneration,
+    workspacePath,
   });
 
   // ---- 从 webview 同步 chrome 状态（url/前进后退/标题）----
@@ -1046,6 +1066,8 @@ export function UnifiedBrowserView({
 
   const handleTogglePicker = useCallback(() => {
     if (!webview || !browserState.isReady) return;
+    // 设计模式和元素选择都拦截页面点击；进入选择前先退出设计模式。
+    if (design.active) design.deactivate();
     void toggleWebElementPicking().catch((error: unknown) => {
       setBrowserState((prev) => ({
         ...prev,
@@ -1055,7 +1077,14 @@ export function UnifiedBrowserView({
         ),
       }));
     });
-  }, [browserState.isReady, intl, toggleWebElementPicking, webview]);
+  }, [
+    browserState.isReady,
+    design.active,
+    design.deactivate,
+    intl,
+    toggleWebElementPicking,
+    webview,
+  ]);
 
   const handleToggleResponsiveMode = useCallback(() => {
     toggleResponsiveMode();
@@ -1185,9 +1214,12 @@ export function UnifiedBrowserView({
         onExportPdf={() => handleExportPage("pdf")}
         onPickElement={handleTogglePicker}
         onReload={handleReload}
+        onToggleDesignMode={design.toggle}
         onToggleResponsiveMode={handleToggleResponsiveMode}
         onSubmit={handleSubmit}
         isElementPickerActive={isWebElementPicking}
+        isDesignMode={design.active}
+        isDesignAvailable={design.available}
         isResponsiveMode={isResponsiveMode}
         canExport={canExportPage}
       />
@@ -1230,6 +1262,7 @@ export function UnifiedBrowserView({
         viewportSize={effectiveViewportSize}
         viewportZoom={effectiveViewportZoom}
       />
+      {design.active && isVisible ? <BrowserDesignInspector design={design} /> : null}
     </div>
   );
 }

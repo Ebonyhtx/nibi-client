@@ -367,7 +367,12 @@ export function isFileContentWriteToolCall(
   return /^(?:write|create|save)(?:_|$)/i.test(legacyKind);
 }
 
-/** 会话控制族判定：renderer 只按 family 选卡，具体工具语义仍由卡片按名分派。 */
+/**
+ * 会话控制族判定：renderer 只按 family 选卡，具体工具语义仍由卡片按名分派。
+ * 8 个 CLI 会话工具与 App-exclusive 的 ListProjects / OpenSession / SetSessionArchived /
+ * SetSessionPinned 都来自 shared 的 `NIBI_SESSION_TOOL_NAMES` 与同一张 family 表，
+ * 这里不维护第二份名字清单（避免两处漂移）。
+ */
 export function isSessionToolCall(
   toolCall: ToolIdentityLike,
   identity = resolveToolCallIdentity(toolCall),

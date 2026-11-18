@@ -162,6 +162,10 @@ import type {
   IAccountRequestAuthService,
 } from "#src/model-provider/accountRequestAuthService.js";
 import { mergeAutomationMutationToolDenylist } from "#src/nibi-agent/automationToolPolicy.js";
+import {
+  APP_CONTROL_METHOD_NAMES,
+  type IAppControlReverseRpc,
+} from "#src/app-control/contract.js";
 import { NIBI_AGENT_RUNTIME_UNAVAILABLE_CODE } from "./nibiAgent.js";
 import type {
   NibiProtocolRequestId,
@@ -1081,6 +1085,8 @@ interface CreateNibiAgentServiceOptions extends Omit<
     workspace: CuaOperationWorkspaceTarget,
     event: Exclude<PipSessionEvent, { kind: "focus-changed" }>,
   ) => void;
+  /** App-exclusive 会话控制的反向请求处理器（Host 装配注入；缺席按 unavailable 回包）。 */
+  appControlExecutor?: IAppControlReverseRpc;
 }
 
 function toProtocolAutomation(automation: NibiAutomation) {
@@ -2262,6 +2268,32 @@ export function createNibiAgentService(
         }
       }),
       client.onRequest((request) => {
+        // App-exclusive 会话控制（ListProjects / OpenSession / 归档 / 置顶）：白名单方法转发给
+        // Host 的 app-control 服务；错误也走 `{ok:false,error}` 信封，内核只认一种形状。
+        if (APP_CONTROL_METHOD_NAMES.has(request.method)) {
+          const executor = options?.appControlExecutor;
+          const response = executor
+            ? executor.handle(request.method, request.params)
+            : Promise.resolve({
+                ok: false as const,
+                error: {
+                  code: "unavailable" as const,
+                  message: "App control is not available in this host",
+                },
+              });
+          void response
+            .then((result) => client.respond(request.id, result))
+            .catch((error: unknown) => {
+              void client.respond(request.id, {
+                ok: false,
+                error: {
+                  code: "unavailable",
+                  message: error instanceof Error ? error.message : String(error),
+                },
+              });
+            });
+          return;
+        }
         if (request.method === nibiProtocolMethods.subagentsReadRuntimeConfig) {
           void (async () => {
             const parsed = nibiSubagentsReadRuntimeConfigParamsSchema.safeParse(request.params);

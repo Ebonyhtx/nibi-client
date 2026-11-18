@@ -16,6 +16,7 @@ import {
   RESUME_WORKFLOW_RUN_TOOL_NAME,
   SAVE_WORKFLOW_TOOL_NAME,
   SESSION_CONTROL_TOOL_NAMES,
+  APP_SESSION_CONTROL_TOOL_NAMES,
   SUBMIT_RESULT_TOOL_NAME,
   type JsonSchema,
 } from "@nibi/contracts";
@@ -61,8 +62,9 @@ import { resolveWorkflowQuestionToolEntry } from "./resolve-workflow-question.js
 import { fillWorkflowHoleToolEntry } from "./fill-workflow-hole.js";
 import { taskOutputToolEntry } from "./task-output.js";
 import { taskStopToolEntry } from "./task-stop.js";
-import { readSessionContextToolEntry } from "./read-session-context.js";
+import { readTopicResourceToolEntry } from "./read-topic-resource.js";
 import { sessionControlToolEntries } from "./session-control.js";
+import { appSessionControlToolEntries } from "./app-session-control.js";
 import { amendWorkflowToolEntry } from "./amend-workflow.js";
 import { createWorkflowToolEntry } from "./create-workflow.js";
 import { saveWorkflowToolEntry } from "./save-workflow.js";
@@ -82,6 +84,8 @@ export const builtInTools: ToolEntry[] = [
   // 会话控制 8 个工具：静态清单列出全部，运行时是否注册由 registerBuiltInTools 的
   // includeSessionControl 门决定（可信绑定在场且 taskType 允许）。
   ...sessionControlToolEntries,
+  // App-exclusive 的 4 个工具：静态清单列出全部；运行时由 includeAppSessionControl 门决定。
+  ...appSessionControlToolEntries,
   toolSearchToolEntry,
   deferredToolCallEntry,
   readToolEntry,
@@ -112,7 +116,7 @@ export const builtInTools: ToolEntry[] = [
   escalateToolEntry,
   taskOutputToolEntry,
   taskStopToolEntry,
-  readSessionContextToolEntry,
+  readTopicResourceToolEntry,
   replyToChannelToolEntry,
   agentToolEntry,
   taskToolEntry,
@@ -208,6 +212,13 @@ interface RegisterBuiltInToolsOptions {
    * 缺席即 8 个工具全部不注册；不能从模型输入或工具名另行开启。
    */
   includeSessionControl?: boolean;
+  /**
+   * App-exclusive 会话控制工具的注册门：只有 App 绑定在场、taskType 允许且根会话匹配时
+   * runtime 才传 true。CLI/TUI 缺席即 4 个工具全部不注册。
+   */
+  includeAppSessionControl?: boolean;
+  /** 注入了 topicResourcePort（App 托管会话）才注册 ReadTopicResource；机器人授权在调用时校验。 */
+  includeTopicResource?: boolean;
   embeddedSearchEnabled?: boolean;
   allowedTools?: readonly string[];
   disallowedTools?: readonly string[];
@@ -226,6 +237,16 @@ export function registerBuiltInTools(
   for (const entry of builtInTools) {
     // 会话控制同名工具只在可信绑定门开启时注册；Phase 1 没有 App 变体。
     if (SESSION_CONTROL_TOOL_NAMES.has(entry.metadata.name) && options.includeSessionControl !== true)
+      continue;
+    if (
+      APP_SESSION_CONTROL_TOOL_NAMES.has(entry.metadata.name) &&
+      options.includeAppSessionControl !== true
+    )
+      continue;
+    if (
+      entry.metadata.name === readTopicResourceToolEntry.metadata.name &&
+      options.includeTopicResource !== true
+    )
       continue;
     if (
       options.embeddedSearchEnabled === true &&

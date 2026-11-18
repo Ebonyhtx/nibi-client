@@ -1,18 +1,24 @@
-import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import type { ReactNode } from "react";
 import type { Locale, LocalePreference } from "@nibi/shared";
-import { DEFAULT_LOCALE } from "@nibi/shared";
+import {
+  DEFAULT_LOCALE,
+  isLocale,
+  isLocalePreference,
+  resolveLocaleFromLanguageTag,
+} from "@nibi/shared";
 import type { BroadcastMessage, IBroadcastService, ISettingService } from "@nibi/services";
 import { readNavigatorLanguage } from "@/lib/browserEnvironment.js";
 import { readPrefs, updatePrefs } from "@/lib/nibiStorage.js";
-import zhCN from "./locales/zh-CN.js";
-import enUS from "./locales/en-US.js";
-
-/** 语言 → 翻译消息映射 */
-const MESSAGES: Record<Locale, Record<string, string>> = {
-  "zh-CN": zhCN,
-  "en-US": enUS,
-};
+import { LOCALE_MESSAGES } from "./localeMessages.js";
 
 /** 简易 intl 工具：根据 id 查找翻译，支持 {key} 占位符替换 */
 export interface IntlInstance {
@@ -24,14 +30,6 @@ const STATE_LOCALE_CHANNEL = "state:locale";
 interface LocaleBroadcastPayload {
   preference: LocalePreference;
   resolvedLocale: Locale;
-}
-
-function isLocale(value: unknown): value is Locale {
-  return value === "zh-CN" || value === "en-US";
-}
-
-function isLocalePreference(value: unknown): value is LocalePreference {
-  return value === "system" || isLocale(value);
 }
 
 function resolveLocaleBroadcastPayload(payload: unknown): LocaleBroadcastPayload | null {
@@ -47,10 +45,7 @@ function resolveLocaleBroadcastPayload(payload: unknown): LocaleBroadcastPayload
   }
 
   const candidate = payload as Partial<LocaleBroadcastPayload>;
-  if (
-    isLocalePreference(candidate.preference) &&
-    isLocale(candidate.resolvedLocale)
-  ) {
+  if (isLocalePreference(candidate.preference) && isLocale(candidate.resolvedLocale)) {
     return {
       preference: candidate.preference,
       resolvedLocale: candidate.resolvedLocale,
@@ -103,10 +98,11 @@ export function shouldApplyLocaleBroadcastMessage(
 
 function createIntl(locale: Locale): IntlInstance {
   // noUncheckedIndexedAccess：用 ?? 回退到默认语言的翻译
-  const messages = MESSAGES[locale] ?? MESSAGES[DEFAULT_LOCALE]!;
+  const messages = LOCALE_MESSAGES[locale] ?? LOCALE_MESSAGES[DEFAULT_LOCALE]!;
   return {
     formatMessage({ id }, values) {
-      let msg = messages[id] ?? id;
+      // 合并表已按 en-US 回退；最后再保底回退英文，缺失 key 不会露出原始 id 或中文。
+      let msg = messages[id] ?? LOCALE_MESSAGES["en-US"]![id] ?? id;
       if (values) {
         for (const [key, val] of Object.entries(values)) {
           msg = msg.replaceAll(`{${key}}`, String(val));
@@ -155,9 +151,8 @@ export function NibiIntlProvider({
       return DEFAULT_LOCALE;
     }
 
-    return language.toLowerCase().startsWith("zh")
-      ? "zh-CN"
-      : "en-US";
+    // 「跟随系统」统一按语言标签前缀映射：zh/ja/ru/ko 到对应界面语言，其它走 en-US。
+    return resolveLocaleFromLanguageTag(language);
   }, []);
   const resolveSystemLocale = useCallback(async (): Promise<Locale> => {
     const resolvedLocale = await resolveHostSystemLocale?.();
@@ -192,12 +187,14 @@ export function NibiIntlProvider({
       // Provider 层不能把持久化 RPC 串成无界等待链。
       // 一次 settingService.update 永久 pending 时，后续语言选择仍要继续尝试落盘；
       // 底层 settingService 负责文件写入顺序，这里只做最新操作校验和错误收口。
-      void settingService?.update({
-        locale: resolvedLocale,
-        localePreference: preference,
-      }).catch(() => {
-        // 持久化失败不阻断 UI 状态和跨窗口广播，下一次语言操作会再次尝试写入。
-      });
+      void settingService
+        ?.update({
+          locale: resolvedLocale,
+          localePreference: preference,
+        })
+        .catch(() => {
+          // 持久化失败不阻断 UI 状态和跨窗口广播，下一次语言操作会再次尝试写入。
+        });
     },
     [settingService],
   );
@@ -229,10 +226,7 @@ export function NibiIntlProvider({
         }
         if (nextPreference === "system") {
           const resolvedLocale = await resolveSystemLocale();
-          if (
-            disposed ||
-            localePreferenceOperationSeqRef.current !== initialOperationSeq
-          ) {
+          if (disposed || localePreferenceOperationSeqRef.current !== initialOperationSeq) {
             return;
           }
           setSystemLocale(resolvedLocale);
@@ -294,17 +288,21 @@ export function NibiIntlProvider({
           // 跨窗口语言同步不能等待 settingService 持久化 RPC。
           // 持久化可能超时或拒绝，但本地 UI 与其他窗口应先按用户最后一次选择同步。
           ignoredLocalLocaleBroadcastPayloadRef.current = broadcastPayload;
-          void broadcastService.send({
-            channel: STATE_LOCALE_CHANNEL,
-            payload: broadcastPayload,
-          }).finally(() => {
-            if (
-              ignoredLocalLocaleBroadcastPayloadRef.current?.preference === broadcastPayload.preference &&
-              ignoredLocalLocaleBroadcastPayloadRef.current.resolvedLocale === broadcastPayload.resolvedLocale
-            ) {
-              ignoredLocalLocaleBroadcastPayloadRef.current = null;
-            }
-          });
+          void broadcastService
+            .send({
+              channel: STATE_LOCALE_CHANNEL,
+              payload: broadcastPayload,
+            })
+            .finally(() => {
+              if (
+                ignoredLocalLocaleBroadcastPayloadRef.current?.preference ===
+                  broadcastPayload.preference &&
+                ignoredLocalLocaleBroadcastPayloadRef.current.resolvedLocale ===
+                  broadcastPayload.resolvedLocale
+              ) {
+                ignoredLocalLocaleBroadcastPayloadRef.current = null;
+              }
+            });
         }
         enqueueLocalePreferenceUpdate(operationSeq, resolvedLocale, newPreference);
       })();

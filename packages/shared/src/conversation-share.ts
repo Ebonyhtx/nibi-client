@@ -4,6 +4,7 @@ import {
   SHARE_CONTENT_LIMITS,
 } from "./conversation-share-content.js";
 
+import { toZhOrEnLocale } from "./locale.js";
 import type { Locale } from "./protocol.js";
 import {
   conversationArtifactTypeSchema,
@@ -15,7 +16,7 @@ import {
  * 分享站按语言分路径：中文站带 /cn 前缀，英文站是裸 /share。
  * web 路由、发布回链改写、导入回链共用这一份定义，避免三处各写一遍前缀。
  */
-const CONVERSATION_SHARE_LOCALE_PATH_PREFIX: Readonly<Record<Locale, string>> = {
+const CONVERSATION_SHARE_LOCALE_PATH_PREFIX: Readonly<Record<"zh-CN" | "en-US", string>> = {
   "zh-CN": "/cn",
   "en-US": "",
 };
@@ -50,7 +51,8 @@ export function localizeConversationShareUrl(shareUrl: string, locale: Locale): 
   }
   const parsed = parseConversationSharePathname(url.pathname);
   if (!parsed) return shareUrl;
-  url.pathname = `${CONVERSATION_SHARE_LOCALE_PATH_PREFIX[locale]}/share/${parsed.rawCode}`;
+  // 分享站只有中英两套路径；非中文界面语言走英文站。
+  url.pathname = `${CONVERSATION_SHARE_LOCALE_PATH_PREFIX[toZhOrEnLocale(locale)]}/share/${parsed.rawCode}`;
   return url.toString();
 }
 

@@ -102,6 +102,12 @@ export interface NibiTaskIndexSyncer {
   ): Promise<NibiTaskMeta | null>;
 
   /**
+   * 内核直接建出的会话（`CreateSession`/`ForkSession`）：回源 CLI 事实补 task 行，
+   * 并广播 `task_created`，让侧栏不重启就出现新行。找不到会话时返回 null。
+   */
+  noteCreatedSession(target: NibiAgentSessionTarget): Promise<NibiTaskMeta | null>;
+
+  /**
    * 幂等地为指定 workspace 建立 v4 后台摄入订阅（sessions-index + workspace-config），
    * 把 CLI 权威投影的会话终态/标题/配置目录落到 task index sqlite 与 workspace 广播。
    * 同一 workspace 多次调用只会建立一次。
@@ -1776,6 +1782,22 @@ export function createNibiTaskIndexSyncer(
     },
 
     mutateSessionFacts,
+    /** 内核直接建出的会话：回源 CLI 事实补行，并发一次 task_created 让侧栏立刻出现。 */
+    async noteCreatedSession(target: NibiAgentSessionTarget): Promise<NibiTaskMeta | null> {
+      const meta = await refreshSessionFacts(target);
+      if (meta) {
+        emitWorkspaceTaskListChanged(
+          {
+            workspacePath: target.workspacePath,
+            ...(target.workspaceIdentity ? { workspaceIdentity: target.workspaceIdentity } : {}),
+            taskId: target.sessionId,
+          },
+          meta,
+          "task_created",
+        );
+      }
+      return meta;
+    },
     syncSnapshotAndBroadcast,
 
     syncTaskModel,

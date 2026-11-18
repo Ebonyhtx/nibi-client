@@ -1,6 +1,10 @@
-import type { SessionControlBinding, SessionTaskType } from "@nibi/contracts";
+import type {
+  AppSessionControlBinding,
+  SessionControlBinding,
+  SessionTaskType,
+} from "@nibi/contracts";
 
-export type { SessionControlBinding } from "@nibi/contracts";
+export type { AppSessionControlBinding, SessionControlBinding } from "@nibi/contracts";
 
 /**
  * 注册与执行共用的可信门：只有根会话匹配的 interactive / fork / workflow_parent runtime 才拿到
@@ -22,5 +26,29 @@ export function sessionControlForRuntime(
   )
     return undefined;
   if (binding?.context().rootSession.sessionId !== sessionId) return undefined;
+  return binding;
+}
+
+/**
+ * App 工具的同一条可信门：绑定必须是 App、根会话匹配，taskType 与子代理规则与 CLI 相同。
+ * App 绑定只有在 Host 装配时才存在；CLI/TUI 的 runtime 永远拿不到。
+ */
+export function appSessionControlForRuntime(
+  binding: AppSessionControlBinding | undefined,
+  taskType: SessionTaskType | undefined,
+  sessionId: string,
+  runtimeScope?: "main" | "subagent",
+): AppSessionControlBinding | undefined {
+  if (runtimeScope === "subagent") return undefined;
+  if (
+    taskType !== undefined &&
+    taskType !== "interactive" &&
+    taskType !== "fork" &&
+    taskType !== "workflow_parent"
+  )
+    return undefined;
+  if (binding?.kind !== "app") return undefined;
+  const root = binding.context().rootSession;
+  if (!root || root.sessionId !== sessionId) return undefined;
   return binding;
 }

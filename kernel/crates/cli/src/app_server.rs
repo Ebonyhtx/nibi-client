@@ -445,7 +445,7 @@ where
         files: local_machine.files().clone(),
     }));
     extensions.monitor = monitor;
-    // 话题能力（`ReadSessionContext` 的话题附件与 `ReplyToChannel`）：Host 是数据所有者，
+    // 话题能力（`ReadTopicResource` 的话题附件与 `ReplyToChannel`）：Host 是数据所有者，
     // 内核经反向请求 `topic/resource/read` 与 `bot/channel/reply` 找它。
     extensions.topic = Some(Arc::new(nibi_kernel_protocol_nibi::HostTopic::new(
         context.clone(),
@@ -455,6 +455,15 @@ where
     extensions.automation = Some(Arc::new(nibi_kernel_protocol_nibi::HostAutomation::new(
         context.clone(),
     )));
+    // App-exclusive 会话控制（ListProjects / OpenSession / SetSessionArchived / SetSessionPinned）：
+    // 只有这个入口服务桌面 Host，槽装上后 runtime 才注册这 4 个工具；CLI/TUI 不装即不暴露。
+    let app_control_host = Arc::new(nibi_kernel_protocol_nibi::HostAppControl::new(
+        context.clone(),
+    ));
+    let app_control: nibi_kernel_api::app_control::AppSessionControlHostSlot =
+        Arc::new(std::sync::OnceLock::new());
+    let _ = app_control.set(app_control_host.clone());
+    extensions.app_control = app_control;
     // `mcpId` 的盐：桌面注入的设备标识；没有时 ext 退回进程级随机串（跨进程不可关联）。
     extensions.mcp_telemetry = Some(nibi_kernel_ext::McpTelemetrySetup {
         sink: mcp_telemetry,
@@ -547,7 +556,8 @@ where
     );
     let kernel = Arc::new(kernel);
     // 会话控制（8 个模型工具）的拥有者端口：桌面 app-server 入口接同一条实现。
-    kernel.install_session_control_host();
+    // 另带“内核直接建会话”的 Host 通知器：CreateSession/ForkSession 建完立刻补 tasks-index。
+    kernel.install_session_control_host_with_notifier(Some(app_control_host));
     kernel.set_paid_plugin_gate(crate::paid_plugin_gate(&startup.home, &startup.env));
     kernel.start_extensions().await;
     // 常驻会话池：目标 8 / 高水位 16 / 空闲 10 分钟；请求租约释放触发收敛，60 s sampler 兜底。

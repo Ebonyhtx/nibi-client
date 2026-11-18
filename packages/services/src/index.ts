@@ -133,6 +133,28 @@ export type { NibiTaskListItem } from "./session/nibiTaskListTypes.js";
 
 export { IWindowControllerService } from "./window-controller/windowController.js";
 export {
+  AppControlError,
+  IAppControlNavigationService,
+  APP_CONTROL_METHODS,
+  APP_CONTROL_METHOD_NAMES,
+} from "./app-control/contract.js";
+export type {
+  AppControlErrorCode,
+  AppControlHostReply,
+  AppControlListProjectsResult,
+  AppControlMutationResult,
+  AppControlOpenSessionEvent,
+  AppControlOpenSessionResult,
+  AppControlOpenSessionSettlement,
+  AppControlProjectEntry,
+  AppControlProjectRef,
+  AppControlRequestEnvelope,
+  AppControlScope,
+  AppControlSearchScope,
+  AppControlUnavailableSource,
+  IAppControlReverseRpc,
+} from "./app-control/contract.js";
+export {
   IWindowProjectService,
   IWindowRemoteProjectService,
   IWindowProjectChangesService,

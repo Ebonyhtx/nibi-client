@@ -61,6 +61,43 @@ describe("设置语言 System default E2E", () => {
       },
     );
   });
+
+  it("SL-02: 选择 ja-JP 后重启仍为日语，旧字段降级为中英", async function () {
+    this.timeout(150000);
+    await prepareEnglishPreference();
+    await skipOccupationOnboardingIfPresent();
+    await waitForDefaultWorkspaceReady(30000);
+    await waitForWorkspaceApp(DEFAULT_WORKSPACE, 30000);
+    await openGeneralSettings();
+    await selectLocalePreference("ja-JP");
+
+    await assertBodyTextIncludes(["言語", "アプリケーション UI の表示言語を選択します。"]);
+    await browser.waitUntil(
+      async () => {
+        const settings = await readSettings();
+        return (
+          settings.uiLocale === "ja-JP" &&
+          settings.uiLocalePreference === "ja-JP" &&
+          settings.locale === "en-US" &&
+          settings.localePreference === "en-US"
+        );
+      },
+      {
+        timeout: 15000,
+        timeoutMsg:
+          "ja-JP 没有按新格式落盘：旧字段应降级为 en-US，真实语言应写入 uiLocale/uiLocalePreference",
+      },
+    );
+    expect(await browser.execute(() => document.documentElement.lang)).toBe("ja-JP");
+
+    // 重启读取新字段：不能被旧字段 en-US 盖回，也不能回落到中文。
+    await quitElectronAppGracefully();
+    await browser.reloadSession();
+    await waitForDefaultWorkspaceReady(30000);
+    await waitForWorkspaceApp(DEFAULT_WORKSPACE, 30000);
+    await openGeneralSettings();
+    await assertBodyTextIncludes(["言語", "アプリケーション UI の表示言語を選択します。"]);
+  });
 });
 
 async function prepareEnglishPreference() {
@@ -88,7 +125,9 @@ async function openGeneralSettings() {
   });
 }
 
-async function selectLocalePreference(preference: "system" | "zh-CN" | "en-US") {
+async function selectLocalePreference(
+  preference: "system" | "zh-CN" | "en-US" | "ja-JP" | "ru-RU" | "ko-KR",
+) {
   await clickTestIdByWebDriver(TID_SETTINGS_LOCALE_SELECT_TRIGGER, {
     timeout: 15000,
     timeoutMsg: "界面语言下拉触发器没有出现",

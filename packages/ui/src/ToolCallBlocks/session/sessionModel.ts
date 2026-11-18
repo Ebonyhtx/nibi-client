@@ -27,6 +27,8 @@ export type SessionStatusKey =
   | "inputRejected"
   | "started"
   | "deliveryNone"
+  | "opened"
+  | "unavailable"
   | "textResult";
 
 export const SESSION_STATE_KEYS: Record<string, SessionStatusKey> = {
@@ -162,12 +164,34 @@ export function isSessionToolCallRenderable(toolCall: SessionToolCall): boolean 
     case "InterruptSession":
     case "RenameSession":
       return typeof result.status === "string";
+    case "ListProjects":
+      return Array.isArray(result.projects);
+    case "OpenSession":
+      return result.status === "opened" || result.status === "unavailable";
+    case "SetSessionArchived":
+    case "SetSessionPinned":
+      return typeof result.status === "string";
   }
 }
 
 export function readMutationStatusKey(value: unknown): SessionStatusKey {
   const status = readText(value);
   return status === "created" || status === "applied" || status === "rejected" ? status : "unknown";
+}
+
+/** OpenSession 的 status 是 opened/unavailable；其它值不猜。 */
+export function readOpenStatusKey(value: unknown): SessionStatusKey {
+  const status = readText(value);
+  return status === "opened" || status === "unavailable" ? status : "unknown";
+}
+
+/** App 项目引用的展示 id：projectId 优先，source 只在有值时参与短 id。 */
+export function readProjectRef(value: unknown): { id?: string; source?: string } {
+  const record = toRecord(value);
+  return {
+    id: readText(record.projectId),
+    source: readText(record.sourceServerId),
+  };
 }
 
 export function readAdmissionStatusKey(value: unknown): SessionStatusKey {

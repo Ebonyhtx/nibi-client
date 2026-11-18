@@ -91,6 +91,21 @@
   ],
   "legacyAllowedLines": [
     {
+      "file": "packages/ui/src/i18n/locales/ja-JP.ts",
+      "pattern": "^\\s{2}\"settings\\.(?:modelProvider\\.namePlaceholder|skills\\.agent\\.glm)\":",
+      "reason": "上游 3.18.2 人工翻译；GLM 只出现在模型示例（Z.ai GLM）与 provider id 键名，不是产品身份；ZCode 品牌由 check-i18n-keys 单独扫描。"
+    },
+    {
+      "file": "packages/ui/src/i18n/locales/ru-RU.ts",
+      "pattern": "^\\s{2}\"settings\\.(?:modelProvider\\.namePlaceholder|skills\\.agent\\.glm)\":",
+      "reason": "上游 3.18.2 人工翻译；GLM 只出现在模型示例（Z.ai GLM）与 provider id 键名，不是产品身份；ZCode 品牌由 check-i18n-keys 单独扫描。"
+    },
+    {
+      "file": "packages/ui/src/i18n/locales/ko-KR.ts",
+      "pattern": "^\\s{2}\"settings\\.(?:modelProvider\\.namePlaceholder|skills\\.agent\\.glm)\":",
+      "reason": "上游 3.18.2 人工翻译；GLM 只出现在模型示例（Z.ai GLM）与 provider id 键名，不是产品身份；ZCode 品牌由 check-i18n-keys 单独扫描。"
+    },
+    {
       "file": "packages/desktop/package.json",
       "pattern": "\"prepare:glm\"",
       "reason": "B03：下载远端 GLM 运行时的构建脚本名，随 CDN/启动器迁移一起改。"

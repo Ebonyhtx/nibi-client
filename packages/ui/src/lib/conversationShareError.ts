@@ -1,5 +1,10 @@
 import type { ConversationShareFailureIssue } from "@nibi/services";
-import { conversationShareRejectionSchema, type ConversationShareRejection } from "@nibi/shared";
+import {
+  conversationShareRejectionSchema,
+  toZhOrEnLocale,
+  type ConversationShareRejection,
+  type Locale,
+} from "@nibi/shared";
 
 export interface ConversationShareErrorDetails {
   name: string;
@@ -340,33 +345,34 @@ const ARTIFACT_TYPE_LABELS: Readonly<Record<string, { zh: string; en: string }>>
   audio: { zh: "音频", en: "audio" },
 };
 
-function artifactLabel(value: string, locale: string): string {
+function artifactLabel(value: string, locale: "zh-CN" | "en-US"): string {
   const key = value.replace(/^\./u, "").toLowerCase();
   return ARTIFACT_TYPE_LABELS[key]?.[locale === "en-US" ? "en" : "zh"] ?? value.toUpperCase();
 }
 
 export function formatConversationShareArtifactType(
   issue: ConversationShareFailureIssue,
-  locale: string,
+  locale: Locale,
 ): string {
   const value = issue.artifactType || issue.extension || issue.mimeType || "文件";
-  return artifactLabel(value, locale);
+  return artifactLabel(value, toZhOrEnLocale(locale));
 }
 
 export function formatConversationShareAllowedArtifacts(
   issue: ConversationShareFailureIssue,
-  locale: string,
+  locale: Locale,
 ): string {
+  const labelLocale = toZhOrEnLocale(locale);
   if (issue.allowedArtifacts && issue.allowedArtifacts.length > 0) {
     const labels = issue.allowedArtifacts.map((artifact) =>
-      artifactLabel(artifact.displayName || artifact.type, locale),
+      artifactLabel(artifact.displayName || artifact.type, labelLocale),
     );
-    return [...new Set(labels)].join(locale === "en-US" ? ", " : "、");
+    return [...new Set(labels)].join(labelLocale === "en-US" ? ", " : "、");
   }
   if (issue.allowedFormats && issue.allowedFormats.length > 0) {
-    return issue.allowedFormats.join(locale === "en-US" ? ", " : "、");
+    return issue.allowedFormats.join(labelLocale === "en-US" ? ", " : "、");
   }
-  return locale === "en-US" ? "temporarily unavailable" : "暂时无法获取";
+  return labelLocale === "en-US" ? "temporarily unavailable" : "暂时无法获取";
 }
 
 export function resolveConversationShareWarningMessageId(

@@ -147,6 +147,8 @@ export const ServiceChannels = {
   WindowProject: "window-project",
   WindowRemoteProjects: "window-remote-projects",
   WindowProjectChanges: "window-project-changes",
+  /** App 控制工具显式打开会话的 UI 事件通道（Host → Renderer，不自动聚焦）。 */
+  AppControlNavigation: "app-control-navigation",
   /** 会话分享发布、预览与 continuation API 编排 */
   ConversationShare: "conversation-share",
   /** 云端项目协作（项目/版本/对象同步） */
@@ -547,6 +549,20 @@ export type PlatformChannelName = (typeof PlatformChannels)[keyof typeof Platfor
 export const EmbeddedBrowserWebviewChannels = {
   /** Guest 无法继续消费某方向的滚动时，把二维 delta 转交自由尺寸画布。 */
   WheelBoundary: "nibi:embedded-browser-wheel-boundary",
+  /**
+   * 设计运行时的页面事件：页面主世界 `window.postMessage` 带命名空间的信封，
+   * 内置浏览器固定 guest preload 校验来源、结构与大小后把 `events` 数组转给宿主。
+   */
+  DesignEvents: "nibi:embedded-browser-design-events",
+} as const;
+
+/**
+ * 设计运行时 postMessage 信封：`{ [messageKey]: 1, events: unknown[] }`。
+ * events 序列化后超过上限（UTF-8 字节）或来源不是本地预览页的消息，preload 直接丢弃。
+ */
+export const EMBEDDED_BROWSER_DESIGN_BRIDGE = {
+  messageKey: "__nibiDesign",
+  maxMessageBytes: 256 * 1024,
 } as const;
 
 export interface EmbeddedBrowserWheelBoundaryPayload {

@@ -1,13 +1,10 @@
-import type {
-  AboutPanelOptionsOptions,
-  BrowserWindow,
-  MessageBoxReturnValue,
-} from "electron";
+import type { AboutPanelOptionsOptions, BrowserWindow, MessageBoxReturnValue } from "electron";
 import { existsSync, readFileSync } from "node:fs";
 import { arch, hostname, platform, release, type, version as osVersion } from "node:os";
 import { join } from "node:path";
 import {
   DEFAULT_LOCALE,
+  toZhOrEnLocale,
   type Locale,
   NIBI_BUILD_TIME,
   NIBI_COMMIT,
@@ -62,7 +59,7 @@ const ABOUT_APPLICATION_NAME = "NIBI";
 const ABOUT_WINDOW_WIDTH = 256;
 const ABOUT_WINDOW_HEIGHT = 312;
 const ABOUT_MESSAGES: Record<
-  Locale,
+  "zh-CN" | "en-US",
   {
     aboutTitle: string;
     versionLabel: string;
@@ -101,8 +98,9 @@ function normalizePackageVersion(version: string | undefined): string {
   return normalized === "unknown" ? normalized : normalized.replace(/^[^\d]*/, "") || normalized;
 }
 
-function getAboutMessages(locale: Locale): (typeof ABOUT_MESSAGES)[Locale] {
-  return ABOUT_MESSAGES[locale] ?? ABOUT_MESSAGES[DEFAULT_LOCALE];
+function getAboutMessages(locale: Locale): (typeof ABOUT_MESSAGES)["en-US"] {
+  // 原生 About 面板只有中英两套；ja/ko/ru 回退英文，避免中文 About 出现在其它语言界面。
+  return ABOUT_MESSAGES[toZhOrEnLocale(locale)];
 }
 
 function readJsonFile<T>(filePath: string): T | null {

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useStore } from "zustand";
+import { toZhOrEnLocale } from "@nibi/shared";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { toast } from "@/components/ui/toast.js";
 import { CloudContentDialog } from "@/components/cloud-content-dialog/CloudContentDialog.js";
@@ -32,7 +33,7 @@ export function MarketingDialogs({ controller }: { controller: MarketingTouchCon
     dialog && content
       ? adaptMarketingPopup(
           dialog.delivery.campaign_id,
-          locale,
+          toZhOrEnLocale(locale),
           content,
           dialog.hero,
         )

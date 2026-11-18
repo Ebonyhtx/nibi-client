@@ -17,11 +17,11 @@
         "pathIncludes": "/messages",
         "lastUserMessageIncludes": ["E2E_TOOL_CROSS_PRODUCT_READ"],
         "lastUserMessageExcludes": [
-          "E2E_TOOL_CROSS_PRODUCT_READ_SESSION_CONTEXT"
+          "E2E_TOOL_CROSS_PRODUCT_READ_TOPIC_RESOURCE"
         ],
         "bodyIncludes": ["E2E_TOOL_CROSS_PRODUCT_READ"],
         "bodyExcludes": [
-          "E2E_TOOL_CROSS_PRODUCT_READ_SESSION_CONTEXT",
+          "E2E_TOOL_CROSS_PRODUCT_READ_TOPIC_RESOURCE",
           "Generate a concise title",
           "CRITICAL: Respond with TEXT ONLY"
         ]
@@ -421,21 +421,21 @@
       }
     },
     {
-      "id": "upstream-tool-cross-product-read-session-context-call",
+      "id": "upstream-tool-cross-product-read-topic-resource-call",
       "metadata": {
         "kind": "main",
         "source": "synthetic",
         "timingPolicy": "tool-use",
-        "syntheticReason": "固定触发 ReadSessionContext 的可预期失败路径，覆盖会话读取工具历史。"
+        "syntheticReason": "固定触发 ReadTopicResource 的可预期失败路径，覆盖话题资源读取工具历史。"
       },
-      "description": "Conversation tool cross product: ReadSessionContext tool_use.",
+      "description": "Conversation tool cross product: ReadTopicResource tool_use.",
       "match": {
         "method": "POST",
         "pathIncludes": "/messages",
         "lastUserMessageIncludes": [
-          "E2E_TOOL_CROSS_PRODUCT_READ_SESSION_CONTEXT"
+          "E2E_TOOL_CROSS_PRODUCT_READ_TOPIC_RESOURCE"
         ],
-        "bodyIncludes": ["E2E_TOOL_CROSS_PRODUCT_READ_SESSION_CONTEXT"],
+        "bodyIncludes": ["E2E_TOOL_CROSS_PRODUCT_READ_TOPIC_RESOURCE"],
         "bodyExcludes": [
           "Generate a concise title",
           "CRITICAL: Respond with TEXT ONLY"
@@ -444,12 +444,10 @@
       "response": {
         "statusCode": 200,
         "toolUse": {
-          "id": "toolu_e2e_tool_cross_product_read_session_context",
-          "name": "ReadSessionContext",
+          "id": "toolu_e2e_tool_cross_product_read_topic_resource",
+          "name": "ReadTopicResource",
           "input": {
-            "sessionId": "sess_e2e_missing_tool_cross_product",
-            "query": "E2E_TOOL_RESULT_READ_SESSION_CONTEXT",
-            "strategy": "relevant"
+            "messageId": "m_e2e_missing_tool_cross_product"
           }
         }
       }

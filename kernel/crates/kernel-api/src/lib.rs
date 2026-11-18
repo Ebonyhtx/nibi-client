@@ -58,12 +58,14 @@
 //! | [`clock`] | 时间与 ID 的注入端口 |
 //! | [`user_command`] | 用户输入的斜杠命令（skill 的用户调用） |
 //! | [`automation`] | 桌面 Automations 的 Host 端口与每轮事实 |
-//! | [`auxiliary`] | 旁路辅助模型补全的请求（`ReadSessionContext` 的 lite 抽取） |
+//! | [`app_control`] | App-exclusive 会话控制工具（ListProjects / OpenSession / 归档 / 置顶）的 Host 端口 |
+//! | [`auxiliary`] | 旁路辅助模型补全的请求（当前无内置工具调用） |
 //! | [`workspace_trust`] | 工作区信任记录的键 |
 //! | [`residency`] | 常驻会话池与运行实例生命周期（`session/lifecycle/*`）的类型、租约与协议侧事实 |
 
 pub mod abort;
 pub mod agents;
+pub mod app_control;
 pub mod attachment;
 pub mod automation;
 pub mod auxiliary;

@@ -1,4 +1,4 @@
-//! 旁路辅助模型调用（kernel-api `auxiliary`；`ReadSessionContext` 的 lite 抽取）。
+//! 旁路辅助模型调用（kernel-api `auxiliary`；当前无内置工具调用）。
 //!
 //! 与标题生成（title_model.rs）同一套辅助档：推理档位取模型目录的第一档，输出上限按目录卡片的
 //! `max_output_tokens` 收窄。差别是它不写用量行——Node 的 `generateText` 也不记（见

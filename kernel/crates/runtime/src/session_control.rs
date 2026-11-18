@@ -5,7 +5,7 @@
 //! 入口（嵌入、测试替身）保持槽为空，工具按 `unavailable` fail closed。这里持有 `Weak<LocalKernel>`
 //! 而不是 `Arc`，避免「内核 → 槽 → 端口 → 内核」的引用环。
 
-use std::sync::Weak;
+use std::sync::{Arc, Weak};
 
 use async_trait::async_trait;
 use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
@@ -40,11 +40,28 @@ const MAX_PARENT_DEPTH: usize = 64;
 
 pub(crate) struct KernelSessionControlHost {
     kernel: Weak<LocalKernel>,
+    /// 创建/分叉出真实会话后通知 Host 补列表行；CLI/TUI 没有 Host 时为 None。
+    created_notifier:
+        Option<Arc<dyn nibi_kernel_api::session_control::SessionControlCreatedNotifier>>,
 }
 
 impl KernelSessionControlHost {
-    pub(crate) fn new(kernel: Weak<LocalKernel>) -> Self {
-        Self { kernel }
+    pub(crate) fn new(
+        kernel: Weak<LocalKernel>,
+        created_notifier: Option<
+            Arc<dyn nibi_kernel_api::session_control::SessionControlCreatedNotifier>,
+        >,
+    ) -> Self {
+        Self {
+            kernel,
+            created_notifier,
+        }
+    }
+
+    fn notify_created(&self, caller: &str, session: &str, workspace: &str) {
+        if let Some(notifier) = self.created_notifier.as_ref() {
+            notifier.session_created(caller, session, workspace);
+        }
     }
 
     fn kernel(&self) -> Result<std::sync::Arc<LocalKernel>, SessionControlError> {
@@ -516,6 +533,12 @@ impl SessionControlHost for KernelSessionControlHost {
             ))
             .await;
         let (admission, delivery, reason) = ack_admission(ack);
+        // 首条输入已提交后再通知 Host：回源摘要能看到真实会话，不会制造空占位行。
+        self.notify_created(
+            &ctx.root_session.session_id,
+            id.as_str(),
+            workspace.root.as_str(),
+        );
         let operation = (admission == Admission::Accepted).then(|| OperationRef {
             session: session.clone(),
             session_id: session.session_id.clone(),
@@ -557,6 +580,11 @@ impl SessionControlHost for KernelSessionControlHost {
                         "Fork did not return a session id",
                     ));
                 };
+                self.notify_created(
+                    &input.session.session_id,
+                    id,
+                    &input.session.workspace_path,
+                );
                 Ok(ForkSessionResult {
                     status: ForkStatus::Created,
                     session: Some(SessionRef {

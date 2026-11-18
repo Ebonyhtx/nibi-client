@@ -1,5 +1,5 @@
 /**
- * 会话控制（session-control）的 8 个现役工具名。
+ * 会话控制（session-control）的 8 个现役工具名，以及 App-exclusive 的 4 个控制工具。
  *
  * 名字必须用 PascalCase：小写形式会命中 UI 的 legacy kind 前缀启发式，把
  * ReadSession 渲染成读文件卡、把 CreateSession 渲染成写文件卡。这里集中登记一次，
@@ -14,6 +14,10 @@ export const NIBI_SESSION_TOOL_NAMES = [
   "WaitSessions",
   "InterruptSession",
   "RenameSession",
+  "ListProjects",
+  "OpenSession",
+  "SetSessionArchived",
+  "SetSessionPinned",
 ] as const;
 
 export type NibiSessionToolName = (typeof NIBI_SESSION_TOOL_NAMES)[number];
@@ -105,6 +109,10 @@ const TOOL_FAMILY_BY_NAME: Record<NibiKnownToolName, NibiToolFamily> = {
   WaitSessions: "session",
   InterruptSession: "session",
   RenameSession: "session",
+  ListProjects: "session",
+  OpenSession: "session",
+  SetSessionArchived: "session",
+  SetSessionPinned: "session",
   AskUserQuestion: "ask-user-question",
   SendMessage: "message",
   RespondToCoordinator: "message",

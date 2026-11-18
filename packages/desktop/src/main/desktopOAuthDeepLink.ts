@@ -136,8 +136,7 @@ export function isNetworkWorkspacePath(path: string): boolean {
 export function resolveExternalWorkspaceOpenDialogCopy(
   locale: Locale,
 ): ExternalWorkspaceOpenDialogCopy {
-  // TODO(i18n): 新增 Locale 时把这里收敛成完整 Record<Locale, ...>，
-  // 避免未覆盖语言静默回退英文。
+  // 原生确认框只有中英两套：ja/ko/ru 与 en-US 共用英文文案（已知限制，不是遗漏）。
   if (locale === "zh-CN") {
     return {
       buttons: ["打开文件夹", "取消"],
@@ -287,8 +286,7 @@ export function handleDeepLink(
     //
     // 运行中有业务窗口时用 main 直接持有的品牌化确认窗（页面内容无法伪造授权）；
     // 窗口创建/加载失败或冷启动尚无窗口时回退原生同步弹窗，安全边界不变。
-    const copy =
-      options.confirmationCopy ?? resolveExternalWorkspaceOpenDialogCopy("en-US");
+    const copy = options.confirmationCopy ?? resolveExternalWorkspaceOpenDialogCopy("en-US");
     if (targetWindow && !targetWindow.isDestroyed()) {
       void confirmWorkspaceOpenInWindow({
         copy,

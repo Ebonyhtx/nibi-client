@@ -7,6 +7,8 @@ import {
   appSettingsSchema,
   formatLogPrefix,
   formatZodError,
+  hasLegacyIncompatiblePersistedLocale,
+  toPersistedSettingsLocaleFields,
 } from "@nibi/shared";
 import type { ISettingService, WorkspaceSettingsProjection } from "./setting.js";
 import { normalizeSettingsPatch } from "#src/setting/normalizeSettingsPatch.js";
@@ -111,6 +113,9 @@ function shouldPersistSettingsMigrations(rawValue: unknown): boolean {
   return (
     // 原因：只在内存迁移仍会把磁盘上的 3 留给回滚客户端；必须走现有写锁落盘。
     raw.remoteBoundaryOnboardingVersion === 3 ||
+    // 原因：本特性开发期间内部版本把 ja-JP 等写进了旧字段 locale/localePreference；
+    // 旧版本读到会重置整份设置，所以读到就立即按新格式（旧字段降级 + uiLocale 新字段）落盘。
+    hasLegacyIncompatiblePersistedLocale(raw) ||
     raw.closeToTrayOnWindowsMigrationInitialized !== true ||
     raw.messageStreamShowReasoningMigrationInitialized !== true ||
     raw.taskAutoArchiveResetVersion !== 1
@@ -202,7 +207,10 @@ async function writeSettingsAt(
   await mkdir(settingsDir, { recursive: true });
   if (!shouldCommit()) return;
   maybeThrowInjectedFsFault({ operation: "writeFile", path: settingsFile });
-  await atomicWriteText(settingsFile, JSON.stringify(settings, null, 2), {
+  // 界面语言统一经 toPersistedSettingsLocaleFields 落盘：旧字段 locale/localePreference 只写中英，
+  // 真实选择写 uiLocale/uiLocalePreference，避免旧版本读到 ja-JP 等新值时重置整份设置。
+  const persisted = { ...settings, ...toPersistedSettingsLocaleFields(settings) };
+  await atomicWriteText(settingsFile, JSON.stringify(persisted, null, 2), {
     useFileLock: false,
     beforeRename: () => {
       if (!shouldCommit()) {

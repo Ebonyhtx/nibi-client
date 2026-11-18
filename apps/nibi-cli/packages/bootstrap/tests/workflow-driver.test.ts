@@ -276,13 +276,13 @@ describe("workflow driver — actor tool surface", () => {
     for (const expected of ["Bash", "Edit", "Write", "AskUserQuestion", SUBMIT_RESULT_TOOL_NAME]) {
       expect(names).toContain(expected);
     }
-    // plan 审批不属于子代理，CreateWorkflow 会递归提交工作流，ReadSessionContext 越界读父会话——
+    // plan 审批不属于子代理，CreateWorkflow 会递归提交工作流，ReadTopicResource 越界读父会话——
     // 全部减掉。
     for (const forbidden of [
       "EnterPlanMode",
       "ExitPlanMode",
       "CreateWorkflow",
-      "ReadSessionContext",
+      "ReadTopicResource",
     ]) {
       expect(names).not.toContain(forbidden);
     }

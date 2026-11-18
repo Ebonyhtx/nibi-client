@@ -2,14 +2,14 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
-import type { Locale } from "@nibi/shared";
+import { toZhOrEnLocale, type Locale } from "@nibi/shared";
 
 // NIBI 从未发布过，磁盘上没有"既有产物"要兼容；沿用上游的 `Open in Nibi.workflow`
 // 反而会和用户机器上真正的 Nibi 安装抢同一个文件（两边的 workflow 指向不同 scheme）。
 const WORKFLOW_NAME = "Open in NIBI.workflow";
 const WORKFLOW_BUNDLE_ID = "dev.nibi.app.finder-open-workflow";
 const WORKFLOW_VERSION = "5";
-const SERVICES_MENU_LABELS: Record<Locale, string> = {
+const SERVICES_MENU_LABELS: Record<"zh-CN" | "en-US", string> = {
   // 2026-10-13 修：与 Windows 右键菜单同一处漏改——中文展示名此前仍是上游品牌。
   // 目录名 WORKFLOW_NAME 仍按旧值保留：那是磁盘上的既有产物路径，改名会让已安装的
   // 旧 workflow 变成孤儿（Services 菜单出现重复项），需要迁移才动。
@@ -41,7 +41,8 @@ function escapeXml(value: string): string {
 }
 
 function getServicesMenuLabel(locale: Locale): string {
-  return SERVICES_MENU_LABELS[locale] ?? SERVICES_MENU_LABELS["en-US"];
+  // 系统 Services 菜单只有中英两套；其它界面语言回退英文。
+  return SERVICES_MENU_LABELS[toZhOrEnLocale(locale)];
 }
 
 function buildInfoPlist(locale: Locale): string {

@@ -3342,6 +3342,11 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
               `Plugin management backend: ${useHostPluginManagement ? "host-local" : "agent (NIBI_PLUGIN_ROUTING=agent)"}`,
             );
             const initializedServices = createLocalServices({
+              // App 控制：发现本机/远端项目，组织写 tasks-index；打开只投 UI 事件。
+              // window controller 在本函数返回后才注册，按需解析。
+              appControl: {
+                resolveWindowControllerService: () => windowHostControllerRuntime.service,
+              },
               // 插件管理下沉 Host：17 条工作区级方法直答，不再依赖 agent 内核；
               // 2 条会话权威 catalog 与 suggested 进度仍转发给持有 session 的内核。
               ...(useHostPluginManagement

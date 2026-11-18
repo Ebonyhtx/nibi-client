@@ -597,6 +597,12 @@ pub trait SessionControlHost: Send + Sync {
 /// `unavailable` 失败（fail closed），不提供占位实现。
 pub type SessionControlHostSlot = Arc<OnceLock<Arc<dyn SessionControlHost>>>;
 
+/// 内核创建/分叉出真实会话后通知 Host 的回调。Host 用它把内核直接建的会话补进
+/// sessions-index/tasks-index；没有 Host 的入口（CLI/TUI）不装。
+pub trait SessionControlCreatedNotifier: Send + Sync {
+    fn session_created(&self, caller_session_id: &str, session_id: &str, workspace_path: &str);
+}
+
 /// 从槽里取当前端口；还没接上时 None。
 pub fn session_control_host(slot: &SessionControlHostSlot) -> Option<Arc<dyn SessionControlHost>> {
     slot.get().cloned()

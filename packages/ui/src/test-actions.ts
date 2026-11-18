@@ -1,6 +1,7 @@
 import type { TaskChatMessage as ChatMessage } from "@/lib/taskChatMessageTypes.js";
 import { shouldExposeE2EStoreBridge } from "@/lib/e2eStoreBridge.js";
 import type { IBotsService, INibiAgentService, INibiTaskService } from "@nibi/services";
+import type { Locale } from "@nibi/shared";
 import type { TaskListE2EActions } from "@/lib/taskListE2EActions.js";
 import { useEffect } from "react";
 
@@ -25,9 +26,9 @@ export interface TestActions extends TaskListE2EActions {
   /** 设置主题 */
   setTheme: (theme: "light" | "dark" | "nibi-light" | "nibi-dark" | "system") => void;
   /** 获取当前语言，仅供跨语言展示 E2E */
-  getLocale: () => "zh-CN" | "en-US";
+  getLocale: () => Locale;
   /** 设置当前语言，仅供跨语言展示 E2E */
-  setLocale: (locale: "zh-CN" | "en-US") => void;
+  setLocale: (locale: Locale) => void;
   /** 注入聊天展示用的 mock 消息 */
   setChatMessages: (messages: ChatMessage[]) => void;
   /** 获取当前 mock 消息数量 */

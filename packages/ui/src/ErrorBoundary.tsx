@@ -1,10 +1,9 @@
 import { Component } from "react";
 import type { ErrorInfo, ReactNode } from "react";
 import type { Locale } from "@nibi/shared";
-import { DEFAULT_LOCALE } from "@nibi/shared";
+import { DEFAULT_LOCALE, isLocale, resolveLocaleFromLanguageTag } from "@nibi/shared";
 import { DesktopWindowFrame } from "@/DesktopWindowFrame.js";
-import zhCN from "@/i18n/locales/zh-CN.js";
-import enUS from "@/i18n/locales/en-US.js";
+import { LOCALE_MESSAGES } from "@/i18n/localeMessages.js";
 import { logger } from "@/logger.js";
 import { readPrefs } from "@/lib/nibiStorage.js";
 import { reportReactErrorToArms } from "@/lib/reactErrorArmsTelemetry.js";
@@ -41,7 +40,6 @@ interface ScopedErrorBoundaryProps {
   onCaughtReactError?: (error: Error, errorInfo: ErrorInfo, scope: string) => void;
 }
 
-
 function normalizeError(error: unknown): Error {
   if (error instanceof Error) {
     return error;
@@ -66,7 +64,7 @@ function resolveBoundaryLocale(): Locale {
   if (typeof localStorage !== "undefined" && typeof localStorage.getItem === "function") {
     try {
       const storedPreference = readPrefs().locale;
-      if (storedPreference === "zh-CN" || storedPreference === "en-US") {
+      if (isLocale(storedPreference)) {
         return storedPreference;
       }
     } catch {
@@ -77,7 +75,7 @@ function resolveBoundaryLocale(): Locale {
   }
 
   if (typeof navigator !== "undefined") {
-    return navigator.language.toLowerCase().startsWith("zh") ? "zh-CN" : "en-US";
+    return resolveLocaleFromLanguageTag(navigator.language);
   }
 
   return DEFAULT_LOCALE;
@@ -85,8 +83,7 @@ function resolveBoundaryLocale(): Locale {
 
 function formatBoundaryMessage(id: string): string {
   const locale = resolveBoundaryLocale();
-  const messages = locale === "en-US" ? enUS : zhCN;
-  return messages[id] ?? id;
+  return LOCALE_MESSAGES[locale][id] ?? LOCALE_MESSAGES["en-US"][id] ?? id;
 }
 
 function haveResetKeysChanged(

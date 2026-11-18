@@ -1,7 +1,7 @@
 //! 话题（bot 群）资源与跨会话读面的端口（Node `topic-resource.port.ts` 与 `sessionStore` 的镜像）。
 //!
-//! Node 的 `ReadSessionContext` / `ReplyToChannel` 两个工具都读一份「会话的持久化消息 + 每条输入的规范
-//! 意图」：前者取上下文与话题里被引用的附件，后者把回复绑定到发起这次工具调用的那条输入。
+//! Node 的 `ReadTopicResource` / `ReplyToChannel` 两个工具都读一份「会话的持久化消息 + 每条输入的规范
+//! 意图」：前者取话题里被引用的附件，后者把回复绑定到发起这次工具调用的那条输入。
 //! Rust 里这两件事都由端口提供：
 //!
 //! - [`SessionReads`]：读某个会话的消息与意图（实现是会话存储，冷读，不启动 actor）；
