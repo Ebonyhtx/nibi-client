@@ -340,6 +340,8 @@ pub(super) async fn extensions(
         disabled_command_paths: config.disabled_command_paths.clone(),
         plugins: config.plugins.clone(),
         workspace: Some(workspace.clone()),
+        // TUI / `-p` 没有内联视图宿主：不注入内置 visualize 的 skill 根（Node 只在协议入口保留）。
+        host_inline_view: false,
     };
     // `features.memory` / `memory.use` / `features.subagent`（Node `runtimeConfig` 的同名来源）。
     extensions.memory_enabled = config.memory_enabled;
@@ -370,7 +372,8 @@ pub(super) async fn extension_roots(
 ) -> ExtensionRoots {
     let loaded = nibi_kernel_ext::plugins::load_all(files, workspace, &[], &config.plugins).await;
     ExtensionRoots {
-        skills: loaded.plugins.skill_roots(),
+        // 非交互 `skills list/inspect` 与 TUI 一样没有内联视图宿主：过滤内置 visualize 的 skill 根。
+        skills: loaded.plugins.skill_roots(false),
         commands: loaded.plugins.command_roots(),
         skill_roots: startup
             .env

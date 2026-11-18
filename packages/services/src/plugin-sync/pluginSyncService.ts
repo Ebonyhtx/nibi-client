@@ -71,12 +71,8 @@ const INLINE_PLUGIN_MARKETPLACE = "inline";
 const DEFAULT_MAX_ARCHIVE_BYTES = PLUGIN_DATA_SYNC_MAX_ITEM_BYTES;
 const MARKETPLACE_SOURCE_ROOT_DIRECTORY = "marketplace-sources";
 const MIRRORED_MARKETPLACE_PLUGIN_ROOT = "plugins";
-const PLUGIN_MANIFEST_RELATIVE_PATHS = [
-  [".nibi-plugin", "plugin.json"],
-  [".nibi-plugin", "plugin.json"],
-  [".claude-plugin", "plugin.json"],
-  [".codex-plugin", "plugin.json"],
-] as const;
+// 插件包发现只认 NIBI 自有清单；旧 .claude-plugin/.codex-plugin 不再参与发现。
+const PLUGIN_MANIFEST_RELATIVE_PATH = [".nibi-plugin", "plugin.json"] as const;
 
 export function createPluginSyncService(options?: {
   maxArchiveBytes?: number;
@@ -947,41 +943,38 @@ async function addPluginDirToUserConfig(
 export async function readPluginManifestInfo(
   pluginRoot: string,
 ): Promise<PluginManifestInfo | null> {
-  for (const segments of PLUGIN_MANIFEST_RELATIVE_PATHS) {
-    const manifestPath = join(pluginRoot, ...segments);
-    let raw: string;
-    try {
-      raw = await readFile(manifestPath, "utf-8");
-    } catch {
-      continue;
-    }
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw) as unknown;
-    } catch {
-      return null;
-    }
-    if (!isRecord(parsed)) {
-      return null;
-    }
-    const name = typeof parsed.name === "string" ? parsed.name.trim() : "";
-    if (!name) {
-      return null;
-    }
-    return {
-      name,
-      pluginId: `${name}@${INLINE_PLUGIN_MARKETPLACE}`,
-      ...(typeof parsed.description === "string" && parsed.description.trim()
-        ? { description: parsed.description.trim() }
-        : {}),
-      ...(typeof parsed.version === "string" && parsed.version.trim()
-        ? { version: parsed.version.trim() }
-        : {}),
-      componentTypes: await resolvePluginComponentTypes(pluginRoot, parsed),
-      userConfig: isRecord(parsed.userConfig) ? parsed.userConfig : {},
-    };
+  const manifestPath = join(pluginRoot, ...PLUGIN_MANIFEST_RELATIVE_PATH);
+  let raw: string;
+  try {
+    raw = await readFile(manifestPath, "utf-8");
+  } catch {
+    return null;
   }
-  return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw) as unknown;
+  } catch {
+    return null;
+  }
+  if (!isRecord(parsed)) {
+    return null;
+  }
+  const name = typeof parsed.name === "string" ? parsed.name.trim() : "";
+  if (!name) {
+    return null;
+  }
+  return {
+    name,
+    pluginId: `${name}@${INLINE_PLUGIN_MARKETPLACE}`,
+    ...(typeof parsed.description === "string" && parsed.description.trim()
+      ? { description: parsed.description.trim() }
+      : {}),
+    ...(typeof parsed.version === "string" && parsed.version.trim()
+      ? { version: parsed.version.trim() }
+      : {}),
+    componentTypes: await resolvePluginComponentTypes(pluginRoot, parsed),
+    userConfig: isRecord(parsed.userConfig) ? parsed.userConfig : {},
+  };
 }
 
 async function resolvePluginComponentTypes(

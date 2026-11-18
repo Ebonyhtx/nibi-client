@@ -30,7 +30,7 @@ use serde_json::Value;
 use tokio::sync::{Notify, mpsc};
 use tokio_util::sync::CancellationToken;
 
-use crate::{Agents, AgentsConfig, AgentsPorts, MemoryTaskLists};
+use crate::{Agents, AgentsConfig, AgentsPorts, MemoryTaskLists, MemoryTodos};
 
 /// 子循环看到的东西。
 #[derive(Clone)]
@@ -551,6 +551,7 @@ fn built_full(
             Arc::new(UnusedEnvironment),
         )),
         tasks: tasks.clone() as Arc<dyn TaskListStore>,
+        todos: Arc::new(MemoryTodos::default()),
         queries: Arc::new(queries),
         context: Arc::new(FixedContext(Vec::new())),
         spawner: scope.spawner(),
@@ -574,6 +575,7 @@ fn built_full(
         }),
         AgentsConfig {
             task_tools: true,
+            todo_tools: true,
             keep_alive,
             // 交互模式（停放）时后台子代理也能询问（agents.md §4.1.1）；测试的交互替身不给会话级入口。
             background_prompts: keep_alive,
@@ -622,6 +624,7 @@ impl Harness {
                 Arc::new(UnusedEnvironment),
             )),
             tasks: self.tasks.clone() as Arc<dyn TaskListStore>,
+            todos: Arc::new(MemoryTodos::default()),
             queries: Arc::new(queries),
             context: Arc::new(FixedContext(Vec::new())),
             spawner: self._scope.spawner(),
@@ -642,6 +645,7 @@ impl Harness {
             Arc::new(ListTools(base)),
             AgentsConfig {
                 task_tools: true,
+                todo_tools: true,
                 keep_alive: false,
                 background_prompts: false,
                 fork: false,

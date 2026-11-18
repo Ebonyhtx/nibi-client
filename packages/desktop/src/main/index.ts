@@ -1530,6 +1530,34 @@ function confirmAppQuit(originWindow?: BrowserWindow | null) {
   return result === 0;
 }
 
+function confirmUpdateInstallWithRunningTasks(runningAgentSessionCount: number): boolean {
+  // 与普通退出确认保持一致：开发环境经常需要重启 Electron，不额外打断调试。
+  if (NIBI_ENV !== "production" || runningAgentSessionCount <= 0) {
+    return true;
+  }
+
+  const isZh = currentApplicationLocale === "zh-CN";
+  const targetWindow =
+    BrowserWindow.getFocusedWindow() ?? getApplicationWindowsExcludingCuaIndicator()[0] ?? null;
+  const dialogOptions = {
+    type: "question" as const,
+    buttons: isZh ? ["仍要重启并安装", "取消"] : ["Restart and install anyway", "Cancel"],
+    defaultId: 1,
+    cancelId: 1,
+    title: isZh ? "任务仍在运行" : "Tasks are still running",
+    message: isZh ? "确认立即重启并安装更新？" : "Restart and install the update now?",
+    detail: isZh
+      ? `正在进行的会话：${runningAgentSessionCount} 个，重启安装会中断它们。建议完成任务后再安装。`
+      : `In-progress sessions: ${runningAgentSessionCount}. Restarting to install will interrupt them. Finish your tasks first if possible.`,
+    icon: nativeImage.createFromPath(iconPath),
+  };
+
+  const result = targetWindow
+    ? dialog.showMessageBoxSync(targetWindow, dialogOptions)
+    : dialog.showMessageBoxSync(dialogOptions);
+  return result === 0;
+}
+
 async function executeDesktopCommandForApp(
   command: Parameters<typeof executeDesktopCommand>[0]["command"],
   senderWindow?: BrowserWindow | null,
@@ -2240,6 +2268,10 @@ app.whenReady().then(async () => {
     locale: currentApplicationLocale,
     deviceMid,
     resolveEndpointOrigin: resolveCurrentNibiEndpointOrigin,
+    // 菜单/旧 IPC 入口没有 renderer 更新弹窗的任务确认，main 在这里补一次；
+    // renderer 的“重启并安装”按钮已经确认过，不会重复弹窗。
+    getRunningTaskCount: getRunningAgentSessionCount,
+    confirmInstallWithRunningTasks: confirmUpdateInstallWithRunningTasks,
     updateFeedSource: resolveUpdateFeedSourceFromStartupConfig({
       argv: process.argv,
       env: process.env,
@@ -2547,6 +2579,8 @@ app.whenReady().then(async () => {
           locale: currentApplicationLocale,
           logger,
           endpointOrigin: await resolveCurrentNibiEndpointOrigin(),
+          // 强更提示不替用户自动重启；有运行中任务时由提示窗口显示“完成任务后再安装”。
+          getRunningTaskCount: getRunningAgentSessionCount,
           // 与两个灰度 rollout 共用同一个 fetcher：同一份 /client/configs 响应里有
           // 多个字段（minimal_version、desktop_context_prompt、renderer_action_trace），
           // 各自再发一次请求既浪费又让"同一时刻的配置"出现多个版本。

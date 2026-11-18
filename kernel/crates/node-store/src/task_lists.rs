@@ -7,6 +7,9 @@
 //! 续写 Node 会话（修复线 F2）：还没有清单文件时，从 Node 的 `todo` 表导入（Node `readTodos` 的顺序），第一次
 //! 保存时写成文件；Node 的 `priority` 不是占位值时记在任务的 `metadata.priority`，投影时写回。以前只认文件，
 //! 看不到 Node 的 todo，第一次改清单还把它们删掉。
+//!
+//! 与 TodoWrite（`todos.rs`）的互斥：投影成功后把 `todo` 表的归属记为 `task`；只要清单文件存在，TodoWrite 就
+//! 拒绝整体替换，下一次投影不会静默覆盖模型刚写的 todo。
 
 use async_trait::async_trait;
 use rusqlite::{Connection, params};
@@ -119,6 +122,8 @@ pub(crate) fn project(
         params![now, session],
     )
     .storage()?;
+    // 投影属于 Task v2：TodoWrite 之后必须拒绝覆盖这张表。
+    crate::todos::mark_task_owned(&tx, session, now)?;
     tx.commit().storage()
 }
 

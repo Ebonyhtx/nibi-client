@@ -6,6 +6,7 @@ import {
   readdirSync,
   rmSync,
   statSync,
+  symlinkSync,
   utimesSync,
   writeFileSync,
 } from "node:fs";
@@ -270,6 +271,54 @@ describe("relocateDataRoot", () => {
     );
   });
 
+  it("workspace 复制失败时 setting 与目标正式目录不变，重试幂等", async () => {
+    const source = makeTempDir("nibi-relocate-wsfail-src-");
+    const target = makeTempDir("nibi-relocate-wsfail-dst-");
+    const settingsDir = makeTempDir("nibi-relocate-wsfail-settings-");
+    const values = await seedSourceCredentials(source);
+    const sourceWorkspaceDir = join(source, ".nibi", "workspace", "default");
+    mkdirSync(sourceWorkspaceDir, { recursive: true });
+    writeFileSync(join(sourceWorkspaceDir, "canary.txt"), "workspace-data", "utf-8");
+    const settingsContentBefore = writeSettingPointer(settingsDir, source);
+    setDataBaseDir(source);
+    const service = createSettingsServiceWithDir(settingsDir);
+
+    setFsFaultInjectorForTests(
+      createFsFaultInjector([
+        {
+          id: "workspace-copy-failure",
+          code: "EIO",
+          operations: ["writeFile"],
+          pathEndsWith: "workspace",
+          maxMatches: 1,
+          message: "injected workspace copy failure",
+        },
+      ]),
+    );
+
+    await expect(service.updateDataBaseDir(target)).rejects.toThrow(
+      /injected workspace copy failure/,
+    );
+
+    expect(readFileSync(join(settingsDir, "setting.json"), "utf-8")).toBe(settingsContentBefore);
+    expect(existsSync(join(target, ".nibi", "v2"))).toBe(false);
+    expect(existsSync(join(target, ".nibi", "workspace"))).toBe(false);
+    expect(existsSync(join(target, ".nibi", "machine"))).toBe(false);
+    expect(listRelocationStagingDirs(target)).toEqual([]);
+
+    resetProcessFsFaultInjectorForTests();
+    await service.updateDataBaseDir(target);
+    expect(JSON.parse(readFileSync(join(settingsDir, "setting.json"), "utf-8")).dataBaseDir).toBe(
+      target,
+    );
+    expect(readFileSync(join(target, ".nibi", "workspace", "default", "canary.txt"), "utf-8")).toBe(
+      "workspace-data",
+    );
+    setDataBaseDir(target);
+    const restarted = createCredentialService();
+    await expect(restarted.load("nibi-jwttoken")).resolves.toBe(values["nibi-jwttoken"]);
+  });
+
   it("同一安装密钥时允许还原回非空旧根：已有文件不覆盖、源新增文件补入", async () => {
     const oldRoot = makeTempDir("nibi-relocate-restore-old-");
     const newRoot = makeTempDir("nibi-relocate-restore-new-");
@@ -292,6 +341,141 @@ describe("relocateDataRoot", () => {
     setDataBaseDir(oldRoot);
     const restarted = createCredentialService();
     await expect(restarted.load("nibi:license:token")).resolves.toBe(values["nibi:license:token"]);
+  });
+
+  it("切根时一并复制 workspace（含嵌套目录与普通 setting.json）", async () => {
+    const source = makeTempDir("nibi-relocate-workspace-src-");
+    const target = makeTempDir("nibi-relocate-workspace-dst-");
+    await seedSourceCredentials(source);
+    const sourceWorkspaceDir = join(source, ".nibi", "workspace", "default");
+    mkdirSync(join(sourceWorkspaceDir, "notes", "deep"), { recursive: true });
+    writeFileSync(join(sourceWorkspaceDir, "notes", "index.txt"), "index", "utf-8");
+    writeFileSync(join(sourceWorkspaceDir, "notes", "deep", "todo.md"), "# todo", "utf-8");
+    // workspace 里的 setting.json 是用户自己的文件，不是 bootstrap 指针，必须原样迁移。
+    writeFileSync(join(sourceWorkspaceDir, "setting.json"), '{"user":"data"}', "utf-8");
+
+    const result = await relocateDataRoot(source, target);
+
+    expect(result.copiedData).toBe(true);
+    expect(result.copiedWorkspace).toBe(true);
+    const targetWorkspaceDir = join(target, ".nibi", "workspace", "default");
+    expect(readFileSync(join(targetWorkspaceDir, "notes", "index.txt"), "utf-8")).toBe("index");
+    expect(readFileSync(join(targetWorkspaceDir, "notes", "deep", "todo.md"), "utf-8")).toBe(
+      "# todo",
+    );
+    expect(readFileSync(join(targetWorkspaceDir, "setting.json"), "utf-8")).toBe(
+      '{"user":"data"}',
+    );
+    // workspace 与 v2 一样是复制，不是移动。
+    expect(readFileSync(join(sourceWorkspaceDir, "notes", "index.txt"), "utf-8")).toBe("index");
+  });
+
+  it("源没有 workspace 目录时不报错，也不创建目标 workspace", async () => {
+    const source = makeTempDir("nibi-relocate-noworkspace-src-");
+    const target = makeTempDir("nibi-relocate-noworkspace-dst-");
+    await seedSourceCredentials(source);
+    expect(existsSync(join(source, ".nibi", "workspace"))).toBe(false);
+
+    const result = await relocateDataRoot(source, target);
+
+    expect(result.copiedData).toBe(true);
+    expect(result.copiedWorkspace).toBe(false);
+    expect(existsSync(join(target, ".nibi", "workspace"))).toBe(false);
+    expect(existsSync(join(target, ".nibi", "v2", "credentials.json"))).toBe(true);
+  });
+
+  it("workspace 内的符号链接不参与迁移，普通文件照常复制", async () => {
+    const source = makeTempDir("nibi-relocate-workspace-link-src-");
+    const target = makeTempDir("nibi-relocate-workspace-link-dst-");
+    await seedSourceCredentials(source);
+    const sourceWorkspaceDir = join(source, ".nibi", "workspace", "default");
+    const sharedDir = join(source, "external-shared");
+    mkdirSync(sharedDir, { recursive: true });
+    writeFileSync(join(sharedDir, "shared.txt"), "shared", "utf-8");
+    mkdirSync(sourceWorkspaceDir, { recursive: true });
+    writeFileSync(join(sourceWorkspaceDir, "keep.txt"), "keep", "utf-8");
+    const linkType: "dir" | "junction" = process.platform === "win32" ? "junction" : "dir";
+    symlinkSync(sharedDir, join(sourceWorkspaceDir, "shared-link"), linkType);
+
+    const result = await relocateDataRoot(source, target);
+
+    expect(result.copiedWorkspace).toBe(true);
+    const targetWorkspaceDir = join(target, ".nibi", "workspace", "default");
+    expect(readFileSync(join(targetWorkspaceDir, "keep.txt"), "utf-8")).toBe("keep");
+    expect(existsSync(join(targetWorkspaceDir, "shared-link"))).toBe(false);
+  });
+
+  it("同一安装旧根合并时 workspace 已有文件不被覆盖、新文件补入", async () => {
+    const oldRoot = makeTempDir("nibi-relocate-workspace-restore-old-");
+    const newRoot = makeTempDir("nibi-relocate-workspace-restore-new-");
+    await seedSourceCredentials(oldRoot);
+    const oldWorkspaceDir = join(oldRoot, ".nibi", "workspace", "default");
+    mkdirSync(join(oldWorkspaceDir, "nested"), { recursive: true });
+    writeFileSync(join(oldWorkspaceDir, "nested", "keep.txt"), "old-version", "utf-8");
+
+    await relocateDataRoot(oldRoot, newRoot);
+
+    // 新根使用一段时间：改写 workspace 同名文件，并新增只存在于新根的文件。
+    const newWorkspaceDir = join(newRoot, ".nibi", "workspace", "default");
+    writeFileSync(join(newWorkspaceDir, "nested", "keep.txt"), "new-version", "utf-8");
+    writeFileSync(join(newWorkspaceDir, "nested", "added.txt"), "new-only", "utf-8");
+
+    const result = await relocateDataRoot(newRoot, oldRoot);
+
+    expect(result.targetKeyState).toBe("same");
+    expect(readFileSync(join(oldWorkspaceDir, "nested", "keep.txt"), "utf-8")).toBe("old-version");
+    expect(readFileSync(join(oldWorkspaceDir, "nested", "added.txt"), "utf-8")).toBe("new-only");
+    // v2 的非覆盖合并语义不受 workspace 加入影响。
+    expect(existsSync(join(oldRoot, ".nibi", "v2", "credentials.json"))).toBe(true);
+  });
+
+  it("目标 workspace 非空但安装密钥不同：拒绝且源与目标 workspace 都不变", async () => {
+    const source = makeTempDir("nibi-relocate-workspace-diffkey-src-");
+    const target = makeTempDir("nibi-relocate-workspace-diffkey-dst-");
+    await seedSourceCredentials(source);
+    const sourceWorkspaceDir = join(source, ".nibi", "workspace", "default");
+    mkdirSync(sourceWorkspaceDir, { recursive: true });
+    writeFileSync(join(sourceWorkspaceDir, "source.txt"), "source-workspace", "utf-8");
+
+    const targetWorkspaceDir = join(target, ".nibi", "workspace", "default");
+    mkdirSync(targetWorkspaceDir, { recursive: true });
+    writeFileSync(join(targetWorkspaceDir, "target.txt"), "target-workspace", "utf-8");
+    const targetMachineDir = join(target, ".nibi", "machine");
+    mkdirSync(targetMachineDir, { recursive: true });
+    const targetKeyPath = join(targetMachineDir, "credential-v2.key");
+    writeFileSync(
+      targetKeyPath,
+      `${Buffer.alloc(32, 11).toString("base64url")}\n`,
+      "utf-8",
+    );
+
+    await expect(relocateDataRoot(source, target)).rejects.toMatchObject({
+      code: DATA_ROOT_RELOCATION_ERROR_CODES.keyConflict,
+    });
+
+    expect(readFileSync(join(targetWorkspaceDir, "target.txt"), "utf-8")).toBe(
+      "target-workspace",
+    );
+    expect(existsSync(join(targetWorkspaceDir, "source.txt"))).toBe(false);
+    expect(existsSync(join(target, ".nibi", "v2"))).toBe(false);
+    expect(readFileSync(join(sourceWorkspaceDir, "source.txt"), "utf-8")).toBe("source-workspace");
+  });
+
+  it("目标只有非空 workspace 且缺少安装密钥：拒绝，不创建 v2 或 machine", async () => {
+    const source = makeTempDir("nibi-relocate-workspaceonly-src-");
+    const target = makeTempDir("nibi-relocate-workspaceonly-dst-");
+    await seedSourceCredentials(source);
+    const targetWorkspaceDir = join(target, ".nibi", "workspace", "default");
+    mkdirSync(targetWorkspaceDir, { recursive: true });
+    writeFileSync(join(targetWorkspaceDir, "target.txt"), "target-keep", "utf-8");
+
+    await expect(relocateDataRoot(source, target)).rejects.toMatchObject({
+      code: DATA_ROOT_RELOCATION_ERROR_CODES.targetNotEmpty,
+    });
+
+    expect(readFileSync(join(targetWorkspaceDir, "target.txt"), "utf-8")).toBe("target-keep");
+    expect(existsSync(join(target, ".nibi", "v2"))).toBe(false);
+    expect(existsSync(join(target, ".nibi", "machine"))).toBe(false);
   });
 
   it("目标非空但安装密钥不同：拒绝且源与目标都不变", async () => {

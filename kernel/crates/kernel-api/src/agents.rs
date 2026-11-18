@@ -6,6 +6,8 @@
 //!   是输入与通知的唯一 owner（docs/specs/rust-cli/query.md §5）：通知提交为消息之后才 ack。
 //! - [`TaskListStore`]：任务清单（Task v2）的存储。文件是唯一事实源；本地实现另把清单投影到 Node 的
 //!   `todo` 表，只供显示。
+//! - [`TodoStore`]：会话 todo（TodoRead / TodoWrite）。Node 的 `todo` 表是唯一事实源；本地实现与 Task v2
+//!   投影共用这张表，由归属状态避免静默覆盖。
 
 use std::sync::Arc;
 
@@ -244,6 +246,67 @@ pub trait TaskListStore: Send + Sync {
 
     /// 整体替换清单（原子）；成功后才返回。
     async fn save(&self, session: &SessionId, list: &TaskList) -> Result<(), StoreError>;
+}
+
+/// 会话 todo 的状态（Node `TodoItemSchema`）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TodoStatus {
+    Pending,
+    InProgress,
+    Completed,
+}
+
+impl TodoStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Pending => "pending",
+            Self::InProgress => "in_progress",
+            Self::Completed => "completed",
+        }
+    }
+}
+
+/// 会话 todo 的优先级（Node `TodoItemSchema`）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TodoPriority {
+    High,
+    Medium,
+    Low,
+}
+
+impl TodoPriority {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::High => "high",
+            Self::Medium => "medium",
+            Self::Low => "low",
+        }
+    }
+}
+
+/// 会话 todo 的一条（字段名与 Node `TodoItem` 一致）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TodoItem {
+    pub content: String,
+    pub status: TodoStatus,
+    pub priority: TodoPriority,
+}
+
+/// 会话 todo 的存储（TodoRead / TodoWrite）。
+///
+/// 与 [`TaskListStore`] 的关系：本地实现里 Task v2 的清单文件是事实源，写成功后把清单投影到
+/// Node 的 `todo` 表；TodoWrite 也写同一张表。一旦本会话有 Task v2 清单文件（或归属已记为任务清单），
+/// [`TodoStore::replace`] 必须拒绝写入，避免把 Task v2 的投影静默覆盖；Task v2 反过来可以从 `todo` 表
+/// 导入（第一次保存时变成文件）。没有 Task v2 清单时，todo 表与 Node 的 TodoWrite 语义完全一致。
+#[async_trait]
+pub trait TodoStore: Send + Sync {
+    /// 按 `position` 升序读会话的 todo；没有时返回空列表。
+    async fn read(&self, session: &SessionId) -> Result<Vec<TodoItem>, StoreError>;
+
+    /// 整体替换会话的 todo（原子）；成功后才返回。会话由 Task v2 清单拥有时返回错误。
+    async fn replace(&self, session: &SessionId, todos: &[TodoItem]) -> Result<(), StoreError>;
 }
 
 /// 当步 attachment 的任务提醒读的任务清单（docs/specs/rust-cli/agents.md §7.4）：子会话读顶层会话的清单。由

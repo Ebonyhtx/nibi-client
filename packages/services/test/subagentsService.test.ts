@@ -876,7 +876,7 @@ describe("createSubagentsService", () => {
       "0.0.0",
     );
     await mkdir(join(home, ".nibi", "cli", "plugins"), { recursive: true });
-    await mkdir(join(pluginRoot, ".claude-plugin"), { recursive: true });
+    await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
     await mkdir(join(pluginRoot, "agents"), { recursive: true });
     await writeFile(
       join(home, ".nibi", "cli", "config.json"),
@@ -908,7 +908,7 @@ describe("createSubagentsService", () => {
       "utf8",
     );
     await writeFile(
-      join(pluginRoot, ".claude-plugin", "plugin.json"),
+      join(pluginRoot, ".nibi-plugin", "plugin.json"),
       JSON.stringify({ name: "feature-dev", description: "Feature workflow" }),
       "utf8",
     );
@@ -939,6 +939,75 @@ tools:
     );
     expect(result.pluginAgents.every((agent) => agent.source === "plugin")).toBe(true);
     expect(result.pluginAgents.every((agent) => agent.readOnly)).toBe(true);
+  });
+
+  it("ignores plugin agents declared only by a legacy .claude-plugin manifest", async () => {
+    const home = await makeTempHome();
+    const workspacePath = join(home, "workspace");
+    const pluginRoot = join(
+      home,
+      ".nibi",
+      "cli",
+      "plugins",
+      "cache",
+      "claude-plugins-official",
+      "legacy-agents",
+      "0.0.0",
+    );
+    await mkdir(join(home, ".nibi", "cli", "plugins"), { recursive: true });
+    await mkdir(join(pluginRoot, ".claude-plugin"), { recursive: true });
+    await mkdir(join(pluginRoot, "legacy-agents"), { recursive: true });
+    await writeFile(
+      join(home, ".nibi", "cli", "config.json"),
+      JSON.stringify({
+        plugins: {
+          enabledPlugins: {
+            "legacy-agents@claude-plugins-official": true,
+          },
+        },
+      }),
+      "utf8",
+    );
+    await writeFile(
+      join(home, ".nibi", "cli", "plugins", "installed_plugins.json"),
+      JSON.stringify({
+        version: 1,
+        plugins: [
+          {
+            id: "legacy-agents@claude-plugins-official",
+            name: "legacy-agents",
+            marketplace: "claude-plugins-official",
+            version: "0.0.0",
+            installPath: pluginRoot,
+            installedAt: "2026-06-27T00:00:00.000Z",
+            scope: "user",
+          },
+        ],
+      }),
+      "utf8",
+    );
+    await writeFile(
+      join(pluginRoot, ".claude-plugin", "plugin.json"),
+      JSON.stringify({ agents: "legacy-agents", name: "legacy-agents" }),
+      "utf8",
+    );
+    await writeFile(
+      join(pluginRoot, "legacy-agents", "legacy-reviewer.md"),
+      `---
+name: legacy-reviewer
+description: legacy agent
+---
+legacy prompt`,
+      "utf8",
+    );
+    const service = createSubagentsService({
+      homeDir: home,
+      isDesktopRuntime: true,
+    });
+
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
+
+    expect(result.pluginAgents).toEqual([]);
   });
 
   it("persists plugin agent model overrides by agent id and echoes them in list", async () => {

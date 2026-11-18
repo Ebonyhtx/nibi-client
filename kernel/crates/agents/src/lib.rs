@@ -32,6 +32,7 @@ mod signals;
 mod spawn;
 mod task_stop;
 mod tasks;
+mod todo;
 mod toolset;
 mod views;
 
@@ -40,7 +41,9 @@ use std::sync::{Arc, Weak};
 use async_trait::async_trait;
 use futures_util::stream::BoxStream;
 use nibi_kernel_base::Spawner;
-use nibi_kernel_api::agents::{AgentSignal, AgentSignals, SubagentQueries, TaskListStore};
+use nibi_kernel_api::agents::{
+    AgentSignal, AgentSignals, SubagentQueries, TaskListStore, TodoStore,
+};
 use nibi_kernel_api::clock::{Clock, Ids};
 use nibi_kernel_api::env_shell::ShellNotice;
 use nibi_kernel_api::ids::{AgentId, SessionId};
@@ -57,6 +60,7 @@ pub use definitions::{AgentDefinition, AgentSource, builtins};
 pub use monitors::MonitorTexts;
 pub use plugin::PluginAgentFile;
 pub use tasks::{MemoryTaskLists, task_tools_enabled};
+pub use todo::{MemoryTodos, tools as todo_tools};
 
 use crate::live::Live;
 use crate::runs::{RunBook, Tracked};
@@ -74,6 +78,8 @@ pub struct AgentsPorts {
     /// 执行环境的注册表（R3，remote-exec.md §20.6、§20.7.2）：远端机器上的后台通知、monitor 与 TaskStop 经它找到那台机器。
     pub machines: Arc<dyn nibi_kernel_api::env_registry::EnvironmentRegistry>,
     pub tasks: Arc<dyn TaskListStore>,
+    /// 会话 todo（TodoRead / TodoWrite）；与 Task v2 共用 `todo` 表，互斥规则由存储实现。
+    pub todos: Arc<dyn TodoStore>,
     pub queries: Arc<dyn SubagentQueries>,
     /// 主线程的上下文组装；子代理的 attachment 也由它按 `QuerySource::Subagent` 产生。
     pub context: Arc<dyn ContextBuilder>,
@@ -103,10 +109,12 @@ pub trait SubagentPluginInheritance: Send + Sync {
 }
 
 /// 开关。
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy)]
 pub struct AgentsConfig {
     /// 注册 Task v2 四个工具（[`task_tools_enabled`]）。
     pub task_tools: bool,
+    /// 注册 TodoRead / TodoWrite（默认打开，与 Node `builtInTools` 一致）。
+    pub todo_tools: bool,
     /// 子代理跑完时若还有在跑的后台子代理就停放、等它们的通知后续跑（只在交互模式这样做；
     /// `-p` 不停放，agents.md §5.1）。
     pub keep_alive: bool,
@@ -117,6 +125,19 @@ pub struct AgentsConfig {
     /// `features.subagent`（Node `runtimeConfig.subagents.enabled`）：false 时不注册 Agent 与
     /// 协作工具（Node 让 subagentPort 缺席，`includeAgent` 随之 false）。
     pub subagents_enabled: bool,
+}
+
+impl Default for AgentsConfig {
+    fn default() -> Self {
+        Self {
+            task_tools: false,
+            todo_tools: true,
+            keep_alive: false,
+            background_prompts: false,
+            fork: false,
+            subagents_enabled: false,
+        }
+    }
 }
 
 impl AgentsPorts {
@@ -302,6 +323,9 @@ impl Agents {
             }
             if config.task_tools {
                 own.extend(tasks::tools(&core));
+            }
+            if config.todo_tools {
+                own.extend(todo::tools(core.ports.todos.clone()));
             }
             AgentRegistry { base, own, core }
         });

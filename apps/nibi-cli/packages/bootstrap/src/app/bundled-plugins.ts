@@ -38,9 +38,7 @@ const SEED_LOCK_TOTAL_BUDGET_MS = 15_000;
 
 const includedTopLevelPaths = new Set([
   ".mcp.json",
-  // 两种清单目录都放行：内置件已迁到 .nibi-plugin，而第三方/旧副本可能仍是 .nibi-plugin。
-  // 漏掉任一个都会让 seed 静默裁掉清单目录，装完插件没有 plugin.json。
-  ".nibi-plugin",
+  // 插件包发现只认 .nibi-plugin；漏掉它会让 seed 静默裁掉清单目录，装完插件没有 plugin.json。
   ".nibi-plugin",
   "README.md",
   // 官方内容插件新增 agents 后，filesystem seed 的顶层白名单未同步，目录被静默裁掉。
@@ -757,21 +755,18 @@ function hashText(text: string): string {
 }
 
 /**
- * 清单路径判定：NIBI 自有格式优先，其次上游格式。
- *
- * 内置件的包目录由内置插件源 `plugins/*` 同步而来，两种布局都可能出现：
- * 迁移期旧副本还是 `.nibi-plugin`、新副本是 `.nibi-plugin`。这里按同一顺序识别，
- * 与 `@nibi/shared` 的 PLUGIN_MANIFEST_DIRS 保持一致。
+ * 清单路径判定：插件包只认 NIBI 自有清单 `.nibi-plugin/plugin.json`。
+ * 旧 `.claude-plugin`/`.codex-plugin` 不再参与 seed（App 管理的旧缓存由适配器迁移）。
  */
-const PLUGIN_MANIFEST_RELATIVE_PATHS = [".nibi-plugin/plugin.json", ".nibi-plugin/plugin.json"] as const;
+const PLUGIN_MANIFEST_RELATIVE_PATH = ".nibi-plugin/plugin.json";
 
 function isPluginManifestPath(path: string): boolean {
-  return (PLUGIN_MANIFEST_RELATIVE_PATHS as readonly string[]).includes(path);
+  return path === PLUGIN_MANIFEST_RELATIVE_PATH;
 }
 
 /** 该目录下是否已经有一个可识别的插件清单。 */
 function isPluginRoot(rootPath: string): boolean {
-  return PLUGIN_MANIFEST_RELATIVE_PATHS.some((relative) => existsSync(join(rootPath, relative)));
+  return existsSync(join(rootPath, PLUGIN_MANIFEST_RELATIVE_PATH));
 }
 
 /**

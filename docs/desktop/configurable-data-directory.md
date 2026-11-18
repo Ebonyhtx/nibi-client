@@ -2,12 +2,12 @@
 
 ## 概述
 
-应用数据默认存储在 `~/.nibi/v2/`（`~` 即 `os.homedir()`）。用户可在「设置 → 通用 → 数据存储路径」中更改 `~` 对应的根目录，`.nibi/v2` 后缀不可更改。
+应用数据默认存储在 `~/.nibi/v2/`，非项目对话工作区在 `~/.nibi/workspace/`（`~` 即 `os.homedir()`）。用户可在「设置 → 通用 → 数据存储路径」中更改 `~` 对应的根目录，`.nibi/v2` 与 `.nibi/workspace` 后缀不可更改。
 
 ## 目录结构
 
 ```
-<dataBaseDir>/.nibi/v2/          ← 可配置的数据目录
+<dataBaseDir>/.nibi/v2/          ← 可配置的 App 数据目录
   ├── logs/
   ├── perf/
   ├── sessions/
@@ -15,10 +15,11 @@
   ├── telemetry-state.json
   └── ...
 
+<dataBaseDir>/.nibi/workspace/   ← 非项目对话工作区（随数据根一并迁移）
+  └── default/                   ← 共享的真实工作目录
+
 <dataBaseDir>/.nibi/machine/     ← per-install 凭据密钥目录（必须在 v2 之外）
   └── credential-v2.key
-
-<dataBaseDir>/.nibi/workspace/default/  ← 非项目对话共享的真实工作目录
 
 ~/.nibi/v2/setting.json          ← Bootstrap 指针（永远在默认 homedir 下）
 ```
@@ -42,25 +43,28 @@
 
 | 规则 | 说明 |
 |------|------|
-| **setting.json 及其瞬时文件不复制** | `setting.json` 是 bootstrap 指针，`setting.json.lock` 与 `setting.json.*.tmp` 是原子写入中间态，均只存在于默认 homedir 下；复制它们会导致迁移竞态或新旧目录冲突 |
-| **迁移包含 `.nibi/machine`** | `.nibi/v2` 与 `.nibi/machine`（per-install 凭据密钥）分开整体搬运；钥匙始终留在 v2 之外，只拷走 `v2/credentials.json` 无法解密 |
-| **已有文件不覆盖** | `force: false` — 如果目标目录已存在同名文件，保留目标版本。防止还原回旧目录时，新产生的数据被旧副本覆盖 |
-| **新文件正常复制** | 源目录有、目标没有的文件会被复制过去 |
-| **同一安装密钥的非空目标可合并** | 目标已有数据、但 `machine/credential-v2.key` 与源一致（同一安装的旧根）时允许非覆盖合并：目标已有文件保留，源新增文件补入。用于还原旧根，以及“复制成功但 setting 写失败”的幂等重试 |
-| **不同安装的非空目标拒绝** | 目标已有数据但安装密钥与源不同或缺失时拒绝迁移，避免把两套 NIBI 数据混在一起 |
-| **conversation workspace 暂未迁移** | 当前 `relocateDataRoot()` 只迁移 `.nibi/v2` 与 `.nibi/machine`；`.nibi/workspace` 的非覆盖复制属于目标语义，待 CDD02/后续实现后再纳入数据目录迁移 |
+| **v2 的 setting.json 及其瞬时文件不复制** | `v2/setting.json` 是 bootstrap 指针，`v2/setting.json.lock` 与 `v2/setting.json.*.tmp` 是原子写入中间态，均只存在于默认 homedir 下；复制它们会导致迁移竞态或新旧目录冲突。该规则只作用于 `.nibi/v2`，不套用到 workspace |
+| **迁移包含 `.nibi/workspace`** | `.nibi/workspace`（非项目对话工作区）与 `.nibi/v2` 一并整体复制；源没有 workspace 目录时按 no-op 处理，不报错 |
+| **workspace 只跳过符号链接** | workspace 内的软链（例如指向共享目录的链接）不复制，避免把外部目录内容或循环链接带进新根。workspace 里名为 `setting.json` 的普通文件属于用户数据，会原样复制 |
+| **迁移包含 `.nibi/machine`** | `.nibi/v2`、`.nibi/workspace` 与 `.nibi/machine`（per-install 凭据密钥）分开整体搬运；钥匙始终留在 v2 之外，只拷走 `v2/credentials.json` 无法解密 |
+| **凭据验证只针对 v2** | 暂存区复制完成后只用 `v2/credentials.json` + `machine/` 密钥做解密验证；workspace 不含 NIBI 凭据，不参与验证 |
+| **已有文件不覆盖** | `force: false` — 如果目标目录已存在同名文件，保留目标版本。防止还原回旧目录时，新产生的数据被旧副本覆盖；v2 与 workspace 均适用 |
+| **新文件正常复制** | 源目录有、目标没有的文件会被复制过去；v2 与 workspace 的嵌套目录均适用 |
+| **同一安装密钥的非空目标可合并** | 目标已有数据（v2 或 workspace 非空）、但 `machine/credential-v2.key` 与源一致（同一安装的旧根）时允许非覆盖合并：目标已有文件保留，源新增文件补入。用于还原旧根，以及“复制成功但 setting 写失败”的幂等重试 |
+| **不同安装的非空目标拒绝** | 目标已有数据（v2 或 workspace 非空）但安装密钥与源不同或缺失时拒绝迁移，避免把两套 NIBI 数据混在一起 |
 
 ### 场景示例
 
 **正向迁移**（`/Users/a` → `/Users/a/test`）：
-- `/Users/a/.nibi/v2/` 下的所有文件（除 setting.json）复制到 `/Users/a/test/.nibi/v2/`
+- `/Users/a/.nibi/v2/` 下的所有文件（除 setting.json 及其瞬时文件）复制到 `/Users/a/test/.nibi/v2/`
+- `/Users/a/.nibi/workspace/` 整体复制到 `/Users/a/test/.nibi/workspace/`（软链除外；workspace 缺失则跳过）
 - `/Users/a/.nibi/machine/` 整体复制到 `/Users/a/test/.nibi/machine/`（钥匙仍在 v2 之外）
 - 目标目录如果不存在会自动创建
 
 **还原**（`/Users/a/test` → `/Users/a`）：
 - 仅当 `/Users/a/.nibi/machine/credential-v2.key` 与源一致（同一安装）时允许
-- `/Users/a/test/.nibi/v2/` 下的文件非覆盖合并到 `/Users/a/.nibi/v2/`
-- `/Users/a/.nibi/v2/` 里这段时间新产生的文件不会被覆盖，源里新增的文件会补进来
+- `/Users/a/test/.nibi/v2/` 与 `/Users/a/test/.nibi/workspace/` 下的文件非覆盖合并到对应目录
+- `/Users/a/.nibi/v2/`、`/Users/a/.nibi/workspace/` 里这段时间新产生的文件不会被覆盖，源里新增的文件会补进来
 - `setting.json` 始终不受影响
 
 ## Windows 安装目录保护
@@ -137,17 +141,17 @@ new App root
 ```
 
 `CDD01` 的 idle 与立即重启是测试前置/时序约束，不代表当前产品已经机械阻止 busy 迁移或保存后的
-继续写入；同安装密钥非空目标的非覆盖合并也不由该 case 证明。当前 `relocateDataRoot()` 只迁移
-`.nibi/v2` 与 `.nibi/machine`，尚未实现本 spec 要求的 `.nibi/workspace` 迁移，因此 workspace
-断言单独记录为 bug candidate，不能把 `CDD01` 的通过解释为完整满足第 1 条。
+继续写入；同安装密钥非空目标的非覆盖合并也不由该 case 证明。`relocateDataRoot()` 已按清单迁移
+`.nibi/v2`、`.nibi/workspace` 与 `.nibi/machine`；workspace 的嵌套目录复制、缺失 no-op、软链跳过
+和非覆盖合并由服务层单测覆盖，但 `CDD01` 的空目标代表路径仍不能解释为完整证明第 1 条的全部场景。
 
 ## 相关代码
 
 | 文件 | 职责 |
 |------|------|
 | `packages/services/src/paths.ts` | `setDataBaseDir` / `getDataBaseDir` / `getAppConfigDir` / Windows 安装目录校验 |
-| `packages/services/src/data-root/manifest.ts` | 迁移清单：`.nibi/v2`（数据）与 `.nibi/machine`（per-install 密钥）分开搬运 |
-| `packages/services/src/data-root/relocate.ts` | `relocateDataRoot()` — 暂存复制 + 凭据解密验证 + 同一安装非覆盖合并 + 原子发布 |
+| `packages/services/src/data-root/manifest.ts` | 迁移清单：`.nibi/v2`、`.nibi/workspace`（数据）与 `.nibi/machine`（per-install 密钥）分开搬运 |
+| `packages/services/src/data-root/relocate.ts` | `relocateDataRoot()` — 按清单暂存复制（v2/workspace 各自过滤）+ v2 凭据解密验证 + 同一安装非覆盖合并 + 发布（machine 先于 data） |
 | `packages/services/src/setting/settingService.ts` | `updateDataBaseDir()` — 校验 + 数据根迁移 + 持久化（成功后才写 setting） |
 | `packages/services/src/setting/setting.ts` | `ISettingService` 接口定义 |
 | `packages/shared/src/protocol.ts` | `AppSettings.dataBaseDir` 类型 |

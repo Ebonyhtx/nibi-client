@@ -10,13 +10,23 @@ const FORCE_UPDATE_PROMPT_HEIGHT = 256;
 const FORCE_UPDATE_PROMPT_COMPACT_HEIGHT = 232;
 
 type ForceUpdatePromptAction = "auto" | "manual" | "quit";
-type ForceUpdatePromptState = ForceAutoUpdateState | { kind: "idle" } | { kind: "confirm-close" };
+type ForceUpdatePromptState =
+  | ForceAutoUpdateState
+  | { kind: "idle" }
+  | { kind: "confirm-close" }
+  | { kind: "confirm-install"; runningTaskCount: number };
 type StartForceAutoUpdate = (
   onStateChange: (state: ForceAutoUpdateState) => void,
 ) => (() => void) | void;
 
 interface ShowForceUpdatePromptOptions {
   startAutoUpdate?: StartForceAutoUpdate;
+  /**
+   * 用户点击“立即重启安装”后才调用；不得在 ready 状态下自动触发。
+   */
+  installUpdate?: () => void | Promise<void>;
+  /** 安装前查询运行中的任务数，用于提示“完成任务后再安装”。 */
+  getRunningTaskCount?: () => number | Promise<number>;
 }
 
 function escapeHtml(value: string): string {
@@ -45,20 +55,30 @@ function buildForceUpdatePromptMessages(locale: Locale) {
       checkingMessage: "请保持此窗口打开，NIBI 正在查找可用更新。",
       downloadingTitle: "正在下载更新",
       downloadingVersionTitle: "正在下载更新 v{version}",
-      downloadingMessage: "下载完成后会自动安装，请勿关闭应用。",
+      downloadingMessage: "下载完成后会提示你确认安装，请勿关闭应用。",
       readyTitle: "更新已下载",
-      readyMessage: "NIBI 正在准备重启并安装更新。",
+      readyMessage: "更新需要你点击“立即重启安装”后才会执行。",
+      readyRunningTaskMessage:
+        "检测到 {count} 个正在运行的任务。请完成任务后再安装，或点击“立即重启安装”确认中断任务。",
+      installConfirmTitle: "仍有任务正在运行",
+      installConfirmMessage:
+        "立即安装将中断 {count} 个正在运行的任务。建议完成任务后再安装。",
       installingTitle: "正在安装更新",
       installingMessage: "NIBI 即将重启完成安装。",
-      errorTitle: "自动升级失败",
-      errorMessage: "你可以重试自动升级，或改用手动升级。",
+      errorTitle: "更新失败",
+      errorMessage: "你可以重试更新，或改用手动升级。",
+      installFailedMessage: "无法启动安装，请重试或使用手动升级。",
       devSkippedTitle: "调试环境无法自动升级",
       devSkippedMessage: "自动升级仅在打包后的应用中可用，请使用手动升级或打包应用验证。",
-      confirmCloseTitle: "自动升级正在进行",
-      confirmCloseMessage: "关闭窗口会中断当前自动升级流程，旧版本仍然无法进入主界面。你可以继续等待，或确认关闭并退出。",
+      confirmCloseTitle: "更新流程正在进行",
+      confirmCloseMessage:
+        "关闭窗口会中断当前更新流程，旧版本仍然无法进入主界面。你可以继续等待，或确认关闭并退出。",
       confirmCloseButton: "确认关闭",
       continueUpdateButton: "继续更新",
-      retryButton: "重试自动升级",
+      retryButton: "重试更新",
+      installButton: "立即重启安装",
+      installAnywayButton: "仍要立即安装",
+      deferInstallButton: "稍后安装",
       checkingButton: "检查中...",
       downloadingButton: "下载中...",
       installingButton: "安装中...",
@@ -70,20 +90,29 @@ function buildForceUpdatePromptMessages(locale: Locale) {
     checkingMessage: "Keep this window open while NIBI checks for updates.",
     downloadingTitle: "Downloading update",
     downloadingVersionTitle: "Downloading update v{version}",
-    downloadingMessage: "NIBI will install the update automatically after download.",
+    downloadingMessage: "You will be asked to confirm the install after the download finishes. Keep this window open.",
     readyTitle: "Update downloaded",
-    readyMessage: "NIBI is preparing to restart and install the update.",
+    readyMessage: "The update will only be installed after you click “Restart and install now”.",
+    readyRunningTaskMessage:
+      "{count} task(s) are still running. Finish them before installing, or click “Restart and install now” to interrupt them.",
+    installConfirmTitle: "Tasks are still running",
+    installConfirmMessage:
+      "Installing now will interrupt {count} running task(s). Finish them before installing.",
     installingTitle: "Installing update",
     installingMessage: "NIBI will restart to finish installing the update.",
-    errorTitle: "Auto update failed",
-    errorMessage: "You can retry auto update or use manual update.",
+    errorTitle: "Update failed",
+    errorMessage: "You can retry the update or use manual update.",
+    installFailedMessage: "Could not start the install. Retry or use manual update.",
     devSkippedTitle: "Auto update unavailable in development",
     devSkippedMessage: "Auto update is only available in packaged apps. Use manual update or test a packaged build.",
-    confirmCloseTitle: "Auto update in progress",
-    confirmCloseMessage: "Closing this window will stop the current auto update flow, and this old version still cannot open the main app. You can keep waiting or close and quit.",
+    confirmCloseTitle: "Update in progress",
+    confirmCloseMessage: "Closing this window will stop the current update flow, and this old version still cannot open the main app. You can keep waiting or close and quit.",
     confirmCloseButton: "Close anyway",
     continueUpdateButton: "Continue update",
-    retryButton: "Retry auto update",
+    retryButton: "Retry update",
+    installButton: "Restart and install now",
+    installAnywayButton: "Install anyway",
+    deferInstallButton: "Install later",
     checkingButton: "Checking...",
     downloadingButton: "Downloading...",
     installingButton: "Installing...",
@@ -340,6 +369,7 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
     const initialState = ${initialState};
     let currentState = { kind: 'idle' };
     let previousAutoState = null;
+    let lastReadyState = null;
     const elements = {
       title: document.querySelector('[data-role="status-title"]'),
       message: document.querySelector('[data-role="status-message"]'),
@@ -371,14 +401,17 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
       elements.progressBar.style.width = typeof percent === 'number' ? Math.max(0, Math.min(100, percent)) + '%' : '0%';
       elements.progressText.textContent = text || '';
     }
-    function setButtons(autoText, autoDisabled) {
+    function setButtons(autoText, autoDisabled, autoAction) {
       elements.autoButton.textContent = autoText;
       elements.autoButton.disabled = Boolean(autoDisabled);
+      elements.autoButton.dataset.action = autoAction || 'auto';
+      elements.manualButton.dataset.action = 'manual';
       elements.manualButton.disabled = false;
+      elements.quitButton.dataset.action = 'quit';
       elements.quitButton.disabled = false;
     }
     function isActiveAutoState(kind) {
-      return kind === 'checking' || kind === 'downloading' || kind === 'ready' || kind === 'installing';
+      return kind === 'checking' || kind === 'downloading' || kind === 'ready' || kind === 'installing' || kind === 'confirm-install';
     }
     function showCloseConfirmation() {
       // Bugfix: 自动升级会禁用主按钮，但关闭窗口仍应给用户二次确认，避免误关中断下载。
@@ -392,14 +425,41 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
       elements.quitButton.textContent = messages.continueUpdateButton;
       elements.manualButton.textContent = initialState.manualButton;
       elements.autoButton.textContent = messages.confirmCloseButton;
+      elements.quitButton.dataset.action = 'quit';
+      elements.manualButton.dataset.action = 'manual';
+      elements.autoButton.dataset.action = 'auto';
+      elements.quitButton.disabled = false;
+      elements.manualButton.disabled = false;
+      elements.autoButton.disabled = false;
+    }
+    function showInstallConfirmation(runningTaskCount) {
+      // 有运行中任务时不替用户决定：先明确提示，第二次点击“仍要立即安装”才进入退出屏障。
+      resizePromptHeight(${FORCE_UPDATE_PROMPT_HEIGHT});
+      currentState = { kind: 'confirm-install', runningTaskCount };
+      elements.title.textContent = messages.installConfirmTitle;
+      elements.message.textContent = formatMessage(messages.installConfirmMessage, {
+        count: String(runningTaskCount),
+      });
+      setDetailVisible(true);
+      setProgress(100, '100%');
+      elements.quitButton.textContent = initialState.quitButton;
+      elements.manualButton.textContent = messages.deferInstallButton;
+      elements.autoButton.textContent = messages.installAnywayButton;
+      elements.quitButton.dataset.action = 'quit';
+      elements.manualButton.dataset.action = 'defer-install';
+      elements.autoButton.dataset.action = 'install';
       elements.quitButton.disabled = false;
       elements.manualButton.disabled = false;
       elements.autoButton.disabled = false;
     }
     window.__setForceUpdateState = function (state) {
       const kind = state && state.kind;
-      if (kind !== 'confirm-close') {
+      if (kind !== 'confirm-close' && kind !== 'confirm-install') {
         currentState = state || { kind: 'idle' };
+      }
+      if (kind === 'confirm-install') {
+        showInstallConfirmation(Number(state.runningTaskCount) || 0);
+        return;
       }
       if (kind === 'checking') {
         resizePromptHeight(${FORCE_UPDATE_PROMPT_HEIGHT});
@@ -422,10 +482,29 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
         setButtons(hasProgress ? messages.downloadingButton + ' ' + progress.toFixed(0) + '%' : messages.downloadingButton, true);
         return;
       }
-      if (kind === 'ready' || kind === 'installing') {
+      if (kind === 'ready') {
+        const parsedCount = Number(state.runningTaskCount);
+        const runningTaskCount = Number.isFinite(parsedCount) && parsedCount > 0 ? parsedCount : 0;
+        lastReadyState = {
+          kind: 'ready',
+          version: state.version,
+          runningTaskCount,
+        };
+        currentState = lastReadyState;
+        resizePromptHeight(runningTaskCount > 0 ? ${FORCE_UPDATE_PROMPT_HEIGHT} : ${FORCE_UPDATE_PROMPT_COMPACT_HEIGHT});
+        elements.title.textContent = messages.readyTitle;
+        elements.message.textContent = runningTaskCount > 0
+          ? formatMessage(messages.readyRunningTaskMessage, { count: String(runningTaskCount) })
+          : messages.readyMessage;
+        setDetailVisible(runningTaskCount > 0);
+        setProgress(100, '100%');
+        setButtons(messages.installButton, false, 'install');
+        return;
+      }
+      if (kind === 'installing') {
         resizePromptHeight(${FORCE_UPDATE_PROMPT_COMPACT_HEIGHT});
-        elements.title.textContent = kind === 'ready' ? messages.readyTitle : messages.installingTitle;
-        elements.message.textContent = kind === 'ready' ? messages.readyMessage : messages.installingMessage;
+        elements.title.textContent = messages.installingTitle;
+        elements.message.textContent = messages.installingMessage;
         setDetailVisible(false);
         setProgress(100, '100%');
         setButtons(messages.installingButton, true);
@@ -456,6 +535,26 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
       button.addEventListener('click', () => {
         if (button.disabled) return;
         let action = button.dataset.action;
+        if (action === 'defer-install') {
+          // “稍后安装”回到 ready，不自动重启；用户完成工作后仍可再次点击安装。
+          if (lastReadyState) {
+            window.__setForceUpdateState(lastReadyState);
+          }
+          return;
+        }
+        if (action === 'install') {
+          if (currentState.kind === 'ready' && Number(currentState.runningTaskCount) > 0) {
+            showInstallConfirmation(Number(currentState.runningTaskCount));
+            return;
+          }
+          document.title = 'force-update:install';
+          setTimeout(() => {
+            if (document.title === 'force-update:install') {
+              document.title = initialState.title;
+            }
+          }, 0);
+          return;
+        }
         if ((action === 'quit' || action === 'manual') && isActiveAutoState(currentState.kind)) {
           showCloseConfirmation();
           return;
@@ -493,6 +592,7 @@ export async function showForceUpdatePrompt(
   return new Promise<ForceUpdatePromptAction>((resolvePrompt) => {
     let resolved = false;
     let shown = false;
+    let installing = false;
     let autoUpdateDispose: (() => void) | undefined;
     let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
     const win = new BrowserWindow({
@@ -560,13 +660,61 @@ export async function showForceUpdatePrompt(
       }
     };
 
+    const promptMessages = buildForceUpdatePromptMessages(locale);
+
+    const emitForceState = (state: ForceAutoUpdateState) => {
+      if (state.kind !== "ready" || !options.getRunningTaskCount) {
+        updatePromptState(state);
+        return;
+      }
+
+      // ready 状态必须带运行中任务数，提示窗口才能明确显示“完成任务后再安装”，
+      // 并在用户点击安装时先做二次确认。
+      void Promise.resolve()
+        .then(() => options.getRunningTaskCount?.() ?? 0)
+        .then((count) => {
+          const normalizedCount = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
+          updatePromptState({ ...state, runningTaskCount: normalizedCount });
+        })
+        .catch((error) => {
+          logger.warn("[force-update] 读取运行中任务数失败", { error });
+          updatePromptState({ ...state, runningTaskCount: 0 });
+        });
+    };
+
     const startAutoUpdate = () => {
       if (autoUpdateDispose) {
         autoUpdateDispose();
       }
-      logger.info("[force-update] 用户选择自动升级");
+      logger.info("[force-update] 用户选择更新");
       updatePromptState({ kind: "checking" });
-      autoUpdateDispose = options.startAutoUpdate?.((state) => updatePromptState(state)) ?? undefined;
+      autoUpdateDispose = options.startAutoUpdate?.((state) => emitForceState(state)) ?? undefined;
+    };
+
+    const startInstall = () => {
+      if (installing) {
+        return;
+      }
+      if (!options.installUpdate) {
+        updatePromptState({ kind: "error", message: promptMessages.installFailedMessage });
+        return;
+      }
+
+      // 只有用户在提示窗口里点击“立即重启安装”才会走到这里；
+      // 真正的退出屏障和任务回收仍由 quitAndInstallUpdate/onBeforeQuitAndInstall 负责。
+      installing = true;
+      logger.info("[force-update] 用户确认重启安装");
+      updatePromptState({ kind: "installing" });
+      void Promise.resolve()
+        .then(() => options.installUpdate?.())
+        .then(() => {
+          installing = false;
+        })
+        .catch((error) => {
+          installing = false;
+          logger.warn("[force-update] 启动安装失败", { error });
+          updatePromptState({ kind: "error", message: promptMessages.installFailedMessage });
+        });
     };
 
     const showPromptWindow = (source: string) => {
@@ -608,6 +756,10 @@ export async function showForceUpdatePrompt(
       const action = title.slice("force-update:".length);
       if (action === "auto") {
         startAutoUpdate();
+        return;
+      }
+      if (action === "install") {
+        startInstall();
         return;
       }
       autoUpdateDispose?.();

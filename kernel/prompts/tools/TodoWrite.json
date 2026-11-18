@@ -1,0 +1,52 @@
+{
+  "name": "TodoWrite",
+  "description": "Create and update a task list for the current session. The list is rendered to the user as your working plan.\n\n- Each todo has `content`, `status` (\"pending\" | \"in_progress\" | \"completed\"), and `priority` (\"high\" | \"medium\" | \"low\").\n- Send the full list each call; it replaces the previous one.\n- Keep one item `in_progress` at a time and mark it `completed` when done.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "todos": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Brief description of the task"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "in_progress",
+                "completed"
+              ],
+              "description": "Current status of the task"
+            },
+            "priority": {
+              "type": "string",
+              "enum": [
+                "high",
+                "medium",
+                "low"
+              ],
+              "description": "Priority level of the task"
+            }
+          },
+          "required": [
+            "content",
+            "status",
+            "priority"
+          ],
+          "additionalProperties": false
+        },
+        "description": "The complete updated todo list. At most one item may be in_progress at a time."
+      }
+    },
+    "required": [
+      "todos"
+    ],
+    "additionalProperties": false,
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  }
+}

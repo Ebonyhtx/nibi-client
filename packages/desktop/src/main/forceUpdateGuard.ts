@@ -7,7 +7,11 @@ import {
   type ForceUpdateRequirement,
   type Locale,
 } from "@nibi/shared";
-import { requestForceAutoUpdate, type ForceAutoUpdateState } from "./autoUpdater.js";
+import {
+  installReadyUpdate,
+  requestForceAutoUpdate,
+  type ForceAutoUpdateState,
+} from "./autoUpdater.js";
 import { showForceUpdatePrompt } from "./forceUpdatePrompt.js";
 
 const NIBI_CLIENT_CONFIG_API_PATH = "/api/v1/client/configs";
@@ -39,6 +43,10 @@ export interface ForceUpdateGuardOptions {
   endpointOrigin?: string;
   fetchRemoteConfig?: () => Promise<unknown>;
   requestAutoUpdate?: (onStateChange?: (state: ForceAutoUpdateState) => void) => (() => void) | void;
+  /** 只有用户在强更提示窗口点击“立即重启安装”后才调用。 */
+  installUpdate?: () => void | Promise<void>;
+  /** 安装前查询运行中任务数，用于提示“完成任务后再安装”。 */
+  getRunningTaskCount?: () => number | Promise<number>;
   onBlocked?: (requirement: ForceUpdateRequirement) => void;
 }
 
@@ -198,7 +206,7 @@ export function formatForceUpdateDialogText(
       title: "需要升级 NIBI",
       message: "当前版本无法继续使用",
       detail: `当前版本：v${requirement.currentVersion}\n最低可用版本：v${requirement.minimalVersion}`,
-      autoUpdateButton: "自动升级",
+      autoUpdateButton: "立即更新",
       manualUpdateButton: "手动升级",
       quitButton: "退出",
     };
@@ -208,7 +216,7 @@ export function formatForceUpdateDialogText(
     title: "Update NIBI",
     message: "The current version can no longer be used",
     detail: `Current version: v${requirement.currentVersion}\nMinimum supported version: v${requirement.minimalVersion}`,
-    autoUpdateButton: "Auto update",
+    autoUpdateButton: "Update now",
     manualUpdateButton: "Manual update",
     quitButton: "Quit",
   };
@@ -236,6 +244,9 @@ export async function maybeBlockStartupForForceUpdate(
       startAutoUpdate: (onStateChange) =>
         options.requestAutoUpdate?.(onStateChange) ??
         requestForceAutoUpdate(onStateChange, "force-update", requirement.minimalVersion),
+      // 强更提示同样只负责把用户送到 ready；“安装”必须由窗口里的显式点击触发。
+      installUpdate: options.installUpdate ?? (() => installReadyUpdate()),
+      getRunningTaskCount: options.getRunningTaskCount,
     },
   );
   if (action === "auto") {

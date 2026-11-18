@@ -1,0 +1,565 @@
+{
+  "version": 1,
+  "description": "Rust / Node 双内核核心内置工具、Node 权限分类与工具错误码的 canonical 清单。单一来源：本 JSON；两侧测试按 side 断言，漂移即失败。",
+  "scope": {
+    "node": "apps/nibi-cli/packages/core/src/tool/handlers/index.ts 的 builtInTools（静态内建工具清单；运行时条件注册不改变这份清单）",
+    "rust": "kernel/crates/tools 的 nibi-kernel-tools 内置工具注册表（file_tools / Bash / interaction_tools / web_tools / cron_tools_with / authoring_tools / worktree_tools / topic_tools 等工厂），加上 nibi-kernel-agents 注册的 TodoRead / TodoWrite；对拍测试把这两层一起枚举",
+    "excluded": [
+      {
+        "name": "Agent",
+        "side": "node",
+        "reason": "Rust 侧由 nibi-kernel-agents 注册（Agent 工具带 Task 别名）；本门禁只并入 agents 的 TodoRead / TodoWrite，其余 agents 工具仍不在枚举范围。"
+      },
+      {
+        "name": "SendMessage",
+        "side": "node",
+        "reason": "Rust 侧由 nibi-kernel-agents 的 messaging 工具注册；跨层组装，不在本门禁范围。"
+      },
+      {
+        "name": "Skill",
+        "side": "node",
+        "reason": "Rust 侧由 nibi-kernel-ext 注册；跨层组装，不在本门禁范围。"
+      },
+      {
+        "name": "Task",
+        "side": "node",
+        "reason": "Node 的子代理派发工具；Rust 的 Agent 工具以别名 Task 提供，由 nibi-kernel-agents 注册，不在本门禁范围。"
+      },
+      {
+        "name": "TaskStop",
+        "side": "node",
+        "reason": "Rust 侧由 nibi-kernel-agents 注册；跨层组装，不在本门禁范围。"
+      },
+      {
+        "name": "escalate",
+        "side": "node",
+        "reason": "Rust 侧由 nibi-kernel-agents 的 workflow actor 注册（端口在场时）；不在 tools crate。"
+      },
+      {
+        "name": "submit_result",
+        "side": "node",
+        "reason": "Rust 侧由 nibi-kernel-agents 的 workflow actor 注册（端口在场时）；不在 tools crate。"
+      }
+    ]
+  },
+  "counts": {
+    "tools": 41,
+    "nodeTools": 35,
+    "rustTools": 37,
+    "permissions": 36,
+    "errorCodes": 29
+  },
+  "tools": [
+    {
+      "name": "AmendWorkflow",
+      "side": "both",
+      "permission": "createWorkflow",
+      "readOnly": false,
+      "needsApproval": true,
+      "alwaysAsk": true,
+      "rustAsks": true
+    },
+    {
+      "name": "AskUserQuestion",
+      "side": "both",
+      "permission": "userInteraction.askQuestion",
+      "readOnly": true,
+      "needsApproval": true,
+      "rustAsks": false
+    },
+    {
+      "name": "Bash",
+      "side": "both",
+      "permission": "bash",
+      "readOnly": false,
+      "needsApproval": true,
+      "rustAsks": false
+    },
+    {
+      "name": "CreateWorkflow",
+      "side": "both",
+      "permission": "createWorkflow",
+      "readOnly": false,
+      "needsApproval": true,
+      "alwaysAsk": true,
+      "rustAsks": true
+    },
+    {
+      "name": "CronCreate",
+      "side": "both",
+      "permission": "automation.create",
+      "readOnly": false,
+      "needsApproval": true,
+      "rustAsks": false
+    },
+    {
+      "name": "CronDelete",
+      "side": "both",
+      "permission": "automation.delete",
+      "readOnly": false,
+      "needsApproval": true,
+      "rustAsks": false
+    },
+    {
+      "name": "CronList",
+      "side": "both",
+      "permission": "automation.read",
+      "readOnly": true,
+      "needsApproval": false,
+      "rustAsks": false
+    },
+    {
+      "name": "CronUpdate",
+      "side": "both",
+      "permission": "automation.update",
+      "readOnly": false,
+      "needsApproval": true,
+      "rustAsks": false
+    },
+    {
+      "name": "Edit",
+      "side": "both",
+      "permission": "edit",
+      "readOnly": false,
+      "needsApproval": true,
+      "rustAsks": false
+    },
+    {
+      "name": "EnterPlanMode",
+      "side": "both",
+      "permission": "plan.enter",
+      "nodeReadOnly": false,
+      "rustReadOnly": true,
+      "needsApproval": false,
+      "rustAsks": false,
+      "note": "已知语义差异：Node 把进入计划模式记为非只读（状态转换），Rust 的 is_read_only 只看工作区副作用并返回 true。两侧各自锁定，改动任一侧会失败。"
+    },
+    {
+      "name": "EvalWorkflowSnippet",
+      "side": "both",
+      "permission": "evalWorkflowSnippet",
+      "readOnly": false,
+      "needsApproval": true,
+      "rustAsks": true
+    },
+    {
+      "name": "ExitPlanMode",
+      "side": "both",
+      "permission": "plan.exit",
+      "readOnly": false,
+      "needsApproval": true,
+      "rustAsks": false
+    },
+    {
+      "name": "FillWorkflowHole",
+      "side": "both",
+      "permission": "createWorkflow",
+      "readOnly": false,
+      "needsApproval": true,
+      "alwaysAsk": true,
+      "rustAsks": false,
+      "note": "已知审批差异：Node 声明 alwaysAsk，Rust 的 FillWorkflowHole 不在 policy crate 的 ALWAYS_ASK_TOOLS（check_permissions 返回 Allow）。两侧各自锁定，补 Rust 门禁时需同步本清单与 capabilities 说明。"
+    },
+    {
+      "name": "GetWorkflowRun",
+      "side": "both",
+      "permission": "getWorkflowRun",
+      "readOnly": true,
+      "needsApproval": false,
+      "rustAsks": false
+    },
+    {
+      "name": "Glob",
+      "side": "both",
+      "permission": "read",
+      "readOnly": true,
+      "needsApproval": false,
+      "rustAsks": false
+    },
+    {
+      "name": "Grep",
+      "side": "both",
+      "permission": "read",
+      "readOnly": true,
+      "needsApproval": false,
+      "rustAsks": false
+    },
+    {
+      "name": "ListModels",
+      "side": "both",
+      "permission": "listModels",
+      "readOnly": true,
+      "needsApproval": false,
+      "rustAsks": false
+    },
+    {
+      "name": "ListSavedWorkflows",
+      "side": "both",
+      "permission": "listSavedWorkflows",
+      "readOnly": true,
+      "needsApproval": false,
+      "rustAsks": false
+    },
+    {
+      "name": "ListWorkflowRuns",
+      "side": "both",
+      "permission": "listWorkflowRuns",
+      "readOnly": true,
+      "needsApproval": false,
+      "rustAsks": false
+    },
+    {
+      "name": "Read",
+      "side": "both",
+      "permission": "read",
+      "readOnly": true,
+      "needsApproval": false,
+      "rustAsks": false
+    },
+    {
+      "name": "ReadSessionContext",
+      "side": "both",
+      "permission": "session.context.read",
+      "readOnly": true,
+      "needsApproval": false,
+      "rustAsks": false
+    },
+    {
+      "name": "ReplyToChannel",
+      "side": "both",
+      "permission": "channel.reply",
+      "readOnly": false,
+      "needsApproval": false,
+      "rustAsks": false
+    },
+    {
+      "name": "ResolveWorkflowQuestion",
+      "side": "both",
+      "permission": "resolveWorkflowQuestion",
+      "readOnly": false,
+      "needsApproval": false,
+      "rustAsks": false
+    },
+    {
+      "name": "ResumeWorkflowRun",
+      "side": "both",
+      "permission": "resumeWorkflowRun",
+      "readOnly": false,
+      "needsApproval": false,
+      "rustAsks": false
+    },
+    {
+      "name": "SaveWorkflow",
+      "side": "both",
+      "permission": "saveWorkflow",
+      "readOnly": false,
+      "needsApproval": true,
+      "alwaysAsk": true,
+      "rustAsks": true
+    },
+    {
+      "name": "ToolSearch",
+      "side": "both",
+      "permission": "tool.search",
+      "readOnly": true,
+      "needsApproval": false,
+      "rustAsks": false
+    },
+    {
+      "name": "WebFetch",
+      "side": "both",
+      "permission": "webfetch",
+      "readOnly": true,
+      "needsApproval": true,
+      "rustAsks": false
+    },
+    {
+      "name": "WebSearch",
+      "side": "both",
+      "permission": "websearch",
+      "readOnly": true,
+      "needsApproval": false,
+      "rustAsks": true
+    },
+    {
+      "name": "Write",
+      "side": "both",
+      "permission": "edit",
+      "readOnly": false,
+      "needsApproval": true,
+      "rustAsks": false
+    },
+    {
+      "name": "DeferredToolCall",
+      "side": "node",
+      "permission": "tool.deferred_call",
+      "readOnly": false,
+      "needsApproval": true
+    },
+    {
+      "name": "RespondToCoordinator",
+      "side": "node",
+      "permission": "agent.message.respond",
+      "readOnly": false,
+      "needsApproval": false
+    },
+    {
+      "name": "TaskOutput",
+      "side": "node",
+      "permission": "taskOutput",
+      "readOnly": true,
+      "needsApproval": false
+    },
+    {
+      "name": "TodoRead",
+      "side": "both",
+      "permission": "todo.read",
+      "readOnly": true,
+      "needsApproval": false,
+      "rustAsks": false
+    },
+    {
+      "name": "TodoWrite",
+      "side": "both",
+      "permission": "todo.write",
+      "readOnly": true,
+      "needsApproval": false,
+      "rustAsks": false
+    },
+    {
+      "name": "js",
+      "side": "node",
+      "permission": "node_repl",
+      "readOnly": false,
+      "needsApproval": true
+    },
+    {
+      "name": "EnterWorktree",
+      "side": "rust",
+      "readOnly": false,
+      "rustAsks": false
+    },
+    {
+      "name": "ExitWorktree",
+      "side": "rust",
+      "readOnly": false,
+      "rustAsks": false
+    },
+    {
+      "name": "Monitor",
+      "side": "rust",
+      "readOnly": false,
+      "rustAsks": false
+    },
+    {
+      "name": "NotebookEdit",
+      "side": "rust",
+      "readOnly": false,
+      "rustAsks": false
+    },
+    {
+      "name": "ReportFindings",
+      "side": "rust",
+      "readOnly": true,
+      "rustAsks": false
+    },
+    {
+      "name": "ScheduleWakeup",
+      "side": "rust",
+      "readOnly": false,
+      "rustAsks": false
+    }
+  ],
+  "permissions": {
+    "side": "node",
+    "source": "Node builtInTools 的 ToolEntry.permission.permission（ToolPermissionSpec.permission）；Rust 的权限规则以工具名为主体，没有分类字段",
+    "names": [
+      "agent.message.respond",
+      "agent.message.send",
+      "automation.create",
+      "automation.delete",
+      "automation.read",
+      "automation.update",
+      "backgroundTask.stop",
+      "bash",
+      "channel.reply",
+      "createWorkflow",
+      "edit",
+      "evalWorkflowSnippet",
+      "getWorkflowRun",
+      "listModels",
+      "listSavedWorkflows",
+      "listWorkflowRuns",
+      "node_repl",
+      "plan.enter",
+      "plan.exit",
+      "read",
+      "resolveWorkflowQuestion",
+      "resumeWorkflowRun",
+      "saveWorkflow",
+      "session.context.read",
+      "skill",
+      "subagent",
+      "taskOutput",
+      "todo.read",
+      "todo.write",
+      "tool.deferred_call",
+      "tool.search",
+      "userInteraction.askQuestion",
+      "webfetch",
+      "websearch",
+      "workflow.escalate",
+      "workflow.submitResult"
+    ]
+  },
+  "errorCodes": [
+    {
+      "name": "invalid_input",
+      "side": "both",
+      "node": "invalid_input",
+      "rust": "invalid_input"
+    },
+    {
+      "name": "tool_cancelled",
+      "side": "both",
+      "node": "tool_cancelled",
+      "rust": "cancelled"
+    },
+    {
+      "name": "tool_execution_failed",
+      "side": "both",
+      "node": "tool_execution_failed",
+      "rust": "failed"
+    },
+    {
+      "name": "environment",
+      "side": "rust",
+      "rust": "environment"
+    },
+    {
+      "name": "unsupported",
+      "side": "rust",
+      "rust": "unsupported"
+    },
+    {
+      "name": "cancelled",
+      "side": "node",
+      "node": "cancelled"
+    },
+    {
+      "name": "configuration_error",
+      "side": "node",
+      "node": "configuration_error"
+    },
+    {
+      "name": "event_out_of_order",
+      "side": "node",
+      "node": "event_out_of_order"
+    },
+    {
+      "name": "invalid_state_transition",
+      "side": "node",
+      "node": "invalid_state_transition"
+    },
+    {
+      "name": "invalid_turn_phase",
+      "side": "node",
+      "node": "invalid_turn_phase"
+    },
+    {
+      "name": "model_context_exceeded",
+      "side": "node",
+      "node": "model_context_exceeded"
+    },
+    {
+      "name": "model_error",
+      "side": "node",
+      "node": "model_error"
+    },
+    {
+      "name": "model_rate_limited",
+      "side": "node",
+      "node": "model_rate_limited"
+    },
+    {
+      "name": "model_timeout",
+      "side": "node",
+      "node": "model_timeout"
+    },
+    {
+      "name": "permission_denied",
+      "side": "node",
+      "node": "permission_denied"
+    },
+    {
+      "name": "permission_escalation",
+      "side": "node",
+      "node": "permission_escalation"
+    },
+    {
+      "name": "permission_timeout",
+      "side": "node",
+      "node": "permission_timeout"
+    },
+    {
+      "name": "projection_corrupted",
+      "side": "node",
+      "node": "projection_corrupted"
+    },
+    {
+      "name": "session_already_exists",
+      "side": "node",
+      "node": "session_already_exists"
+    },
+    {
+      "name": "session_corrupted",
+      "side": "node",
+      "node": "session_corrupted"
+    },
+    {
+      "name": "session_not_found",
+      "side": "node",
+      "node": "session_not_found"
+    },
+    {
+      "name": "storage_error",
+      "side": "node",
+      "node": "storage_error"
+    },
+    {
+      "name": "tool_max_calls",
+      "side": "node",
+      "node": "tool_max_calls"
+    },
+    {
+      "name": "tool_not_found",
+      "side": "node",
+      "node": "tool_not_found"
+    },
+    {
+      "name": "tool_timeout",
+      "side": "node",
+      "node": "tool_timeout"
+    },
+    {
+      "name": "turn_cancelled",
+      "side": "node",
+      "node": "turn_cancelled"
+    },
+    {
+      "name": "turn_in_progress",
+      "side": "node",
+      "node": "turn_in_progress"
+    },
+    {
+      "name": "turn_not_found",
+      "side": "node",
+      "node": "turn_not_found"
+    },
+    {
+      "name": "unknown_error",
+      "side": "node",
+      "node": "unknown_error"
+    }
+  ]
+}

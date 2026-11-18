@@ -509,7 +509,7 @@ describe("commandsService", () => {
       "commit-commands",
     );
     mkdirSync(join(pluginRoot, "commands", "git"), { recursive: true });
-    writeClaudePluginManifest(pluginRoot, {
+    writePluginManifest(pluginRoot, {
       commands: "commands",
       name: "commit-commands",
       version: "1.0.0",
@@ -547,6 +547,40 @@ describe("commandsService", () => {
         source: "plugin",
       }),
     ]);
+  });
+
+  it("ignores commands from plugins that only carry a legacy .claude-plugin manifest", async () => {
+    const home = makeTempRoot();
+    const workspacePath = join(makeTempRoot(), "workspace");
+    const pluginRoot = marketplacePluginRoot(home, "claude-plugins-official", "legacy-commands");
+    mkdirSync(join(pluginRoot, "commands", "git"), { recursive: true });
+    writeClaudePluginManifest(pluginRoot, {
+      commands: "commands",
+      name: "legacy-commands",
+      version: "1.0.0",
+    });
+    writeFileSync(
+      join(pluginRoot, "commands", "git", "commit.md"),
+      "---\ndescription: Legacy commit\n---\n\nLegacy command",
+      "utf-8",
+    );
+    writeInstalledPluginRecord(home, {
+      installPath: pluginRoot,
+      marketplace: "claude-plugins-official",
+      name: "legacy-commands",
+    });
+    writeCliConfig(home, {
+      plugins: {
+        enabledPlugins: {
+          "legacy-commands@claude-plugins-official": true,
+        },
+      },
+    });
+
+    const service = await createCommandsServiceInEnv(home);
+    const result = await service.list({ workspacePath });
+
+    expect(result.pluginCommands).toEqual([]);
   });
 
   it("stores command disabled overrides in the user zcode config", async () => {

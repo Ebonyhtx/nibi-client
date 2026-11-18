@@ -2221,8 +2221,8 @@ const enUS: Record<string, string> = {
   "updateAvailable.tooltip": "New version v{version} is available. Click to review.",
   "updateReady.confirm.title": "Update to v{version}?",
   "updateReady.confirm.description":
-    "The app will quit and restart to update. In-progress tasks will be interrupted.",
-  "updateReady.confirm.ok": "Restart & update now",
+    "The app will quit and restart to update. In-progress tasks will be interrupted. Finish your tasks first if possible, or restart now.",
+  "updateReady.confirm.ok": "Restart and install now",
   "updateReady.confirm.cancel": "Later",
   "updateDialog.availableTitle": "New version v{version}",
   "updateDialog.downloadingTitle": "Downloading v{version}",
@@ -2232,10 +2232,10 @@ const enUS: Record<string, string> = {
   "updateDialog.releaseNotesCollapse": "Hide",
   "updateDialog.downloadAndUpdate": "Download update",
   "updateDialog.cancelDownload": "Cancel download",
-  "updateDialog.autoDownloadAndInstall": "Automatically download and install updates next time",
+  "updateDialog.autoDownloadAndInstall": "Automatically download updates next time",
   "updateDialog.downloadingAction": "Downloading",
   "updateDialog.downloadProgress": "Download progress",
-  "updateDialog.restartToUpdate": "Restart to update",
+  "updateDialog.restartToUpdate": "Restart and install",
   "updateDialog.skipVersion": "Skip this version",
   "updateDialog.later": "Later",
   "update.toast.upToDate": "You're on the latest version (v{version})",
@@ -2257,8 +2257,8 @@ const enUS: Record<string, string> = {
   "desktopMenu.help.updateAvailableVersion": "Update available {version}",
   "desktopMenu.help.downloadingUpdateVersion": "Downloading update {version}...",
   "desktopMenu.help.downloadingUpdateProgress": "Downloading update... {progress}",
-  "desktopMenu.help.restartUpdateAction": "Restart to update",
-  "desktopMenu.help.restartToUpdate": "Restart to update ({version})",
+  "desktopMenu.help.restartUpdateAction": "Restart and install",
+  "desktopMenu.help.restartToUpdate": "Restart and install ({version})",
   "postUpdateReleaseNotes.title": "Release notes",
   "postUpdateReleaseNotes.acknowledge": "I know",
 
@@ -3563,9 +3563,9 @@ const enUS: Record<string, string> = {
   "settings.receivePreviewUpdates": "Receive preview updates early",
   "settings.receivePreviewUpdatesDescription":
     "When enabled, you will get the earliest access to new features and improvements. When disabled, you will receive update pushes according to the regular release schedule.",
-  "settings.autoDownloadAndInstallUpdates": "Automatically download and install updates",
+  "settings.autoDownloadAndInstallUpdates": "Automatically download updates",
   "settings.autoDownloadAndInstallUpdatesDescription":
-    "When enabled, updates start downloading as soon as they are found. Restart still requires confirmation when tasks are running.",
+    "When enabled, updates start downloading as soon as they are found. Restarting to install always requires an explicit click.",
   "settings.notification": "Task notifications",
   "settings.notificationDescription":
     "Send desktop notifications when a task completes, fails, or needs approval.",

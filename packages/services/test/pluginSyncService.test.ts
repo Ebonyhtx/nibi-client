@@ -3,7 +3,10 @@ import { chmod, mkdir, readFile, realpath, stat, writeFile } from "node:fs/promi
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createPluginSyncService } from "../src/plugin-sync/pluginSyncService.js";
+import {
+  createPluginSyncService,
+  readPluginManifestInfo,
+} from "../src/plugin-sync/pluginSyncService.js";
 
 function makeHome() {
   return mkdtempSync(join(tmpdir(), "nibi-plugin-sync-home-"));
@@ -59,6 +62,19 @@ describe("plugin sync service", () => {
 
   afterEach(() => {
     process.env.HOME = originalHome;
+  });
+
+  it("ignores a plugin directory that only has a legacy .claude-plugin manifest", async () => {
+    const root = makeHome();
+    const pluginRoot = join(root, "legacy-only");
+    await mkdir(join(pluginRoot, ".claude-plugin"), { recursive: true });
+    await writeFile(
+      join(pluginRoot, ".claude-plugin", "plugin.json"),
+      `${JSON.stringify({ name: "legacy-only" }, null, 2)}\n`,
+      "utf-8",
+    );
+
+    await expect(readPluginManifestInfo(pluginRoot)).resolves.toBeNull();
   });
 
   it("lists user inline plugins from zcode plugins.dirs as local candidates", async () => {

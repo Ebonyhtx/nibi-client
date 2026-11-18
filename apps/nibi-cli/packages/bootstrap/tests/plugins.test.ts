@@ -298,6 +298,36 @@ describe("Nibi plugins", () => {
     }
   });
 
+  it("does not rewrite user plugins.dirs when a configured plugin only has legacy manifests", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-legacy-user-plugin-"));
+    const pluginRoot = join(root, "legacy-user-plugin");
+    const userConfigPath = join(root, "config.json");
+    const userConfigContents = JSON.stringify({ plugins: { dirs: [pluginRoot] } });
+
+    try {
+      await mkdir(join(pluginRoot, ".claude-plugin"), { recursive: true });
+      await writeFile(
+        join(pluginRoot, ".claude-plugin", "plugin.json"),
+        JSON.stringify({ name: "legacy-user-plugin" }),
+      );
+      await writeFile(userConfigPath, userConfigContents);
+
+      const outcome = resolveNibiPlugins({
+        env: {},
+        pluginStorageRoot: join(root, "plugins"),
+        userConfigPath,
+        workingDirectory: root,
+      });
+
+      expect(outcome.plugins.find((plugin) => plugin.name === "legacy-user-plugin")).toBeUndefined();
+      // 用户自选目录按“清单缺失”处理，既不发现也不迁移/改写。
+      expect(await readFile(userConfigPath, "utf8")).toBe(userConfigContents);
+      expect(existsSync(join(pluginRoot, ".nibi-plugin"))).toBe(false);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("keeps same-name marketplace listings isolated by stable plugin id", async () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-plugin-listing-id-"));
     const pluginStorageRoot = join(root, "plugins");

@@ -2156,7 +2156,7 @@ describe("autoUpdater ready state sync", () => {
     },
   );
 
-  it("强更缓存同步 ready 仍等待下载 Promise 收口后才清理服务", async () => {
+  it("强更缓存同步 ready 不自动安装，用户点击后才进入退出屏障", async () => {
     let finishDownload!: () => void;
     const download = new Promise<string[]>((resolve) => {
       finishDownload = () => resolve([]);
@@ -2166,16 +2166,29 @@ describe("autoUpdater ready state sync", () => {
       return download;
     });
     const onBeforeQuitAndInstall = vi.fn();
+    const onStateChange = vi.fn();
     const module = await importAutoUpdaterWithLocale();
     await module.initAutoUpdater({ onBeforeQuitAndInstall });
     autoUpdaterMock.emit("update-available", { version: "0.1.25" });
     await vi.waitFor(() => expect(module.getAutoUpdaterState().kind).toBe("update-available"));
-    module.requestForceAutoUpdate(vi.fn());
+    module.requestForceAutoUpdate(onStateChange);
     await Promise.resolve();
     expect(onBeforeQuitAndInstall).not.toHaveBeenCalled();
+    expect(autoUpdaterMock.quitAndInstall).not.toHaveBeenCalled();
+
     finishDownload();
-    await vi.waitFor(() => expect(autoUpdaterMock.quitAndInstall).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(module.getAutoUpdaterState().kind).toBe("update-downloaded"));
+    expect(onStateChange).toHaveBeenCalledWith({ kind: "ready", version: "0.1.25" });
+    // S2：下载完成只进入 ready，不得替用户自动 quitAndInstall。
+    expect(onBeforeQuitAndInstall).not.toHaveBeenCalled();
+    expect(autoUpdaterMock.quitAndInstall).not.toHaveBeenCalled();
+
+    const install = ipcMainHandle.mock.calls.find(
+      ([channel]) => channel === PlatformChannels.QuitAndInstallUpdate,
+    )![1] as () => Promise<void>;
+    await install();
     expect(onBeforeQuitAndInstall).toHaveBeenCalledOnce();
+    expect(autoUpdaterMock.quitAndInstall).toHaveBeenCalledOnce();
   });
 
   it("准备期间原生 staging 失败，清理完成后重启恢复服务而不留下失效窗口", async () => {
@@ -2279,6 +2292,82 @@ describe("autoUpdater ready state sync", () => {
       version: "0.1.25",
     });
   });
+  it("菜单安装遇到运行中任务时先确认，取消则不安装", async () => {
+    mockProcessPlatform("darwin");
+    const onBeforeQuitAndInstall = vi.fn();
+    const confirmInstallWithRunningTasks = vi.fn(() => false);
+    const win = {
+      isDestroyed: () => false,
+      webContents: { id: 22, send: vi.fn() },
+    };
+    browserWindows.push(win);
+    const { checkForUpdateMenuClick, getAutoUpdaterState, initAutoUpdater } =
+      await import("../src/main/autoUpdater.js");
+
+    initAutoUpdater({
+      onBeforeQuitAndInstall,
+      getRunningTaskCount: () => 2,
+      confirmInstallWithRunningTasks,
+    });
+    autoUpdaterMock.emit("update-downloaded", { version: "0.1.25" });
+    await Promise.resolve();
+
+    checkForUpdateMenuClick(win as never);
+    await vi.waitFor(() => expect(confirmInstallWithRunningTasks).toHaveBeenCalledWith(2));
+
+    // 用户取消任务确认时不能静默丢现场；ready 目标保持可重试。
+    expect(onBeforeQuitAndInstall).not.toHaveBeenCalled();
+    expect(autoUpdaterMock.quitAndInstall).not.toHaveBeenCalled();
+    expect(getAutoUpdaterState()).toMatchObject({
+      kind: "update-downloaded",
+      version: "0.1.25",
+    });
+  });
+
+  it("菜单安装遇到运行中任务时确认后按既有退出流程安装", async () => {
+    mockProcessPlatform("darwin");
+    const onBeforeQuitAndInstall = vi.fn();
+    const confirmInstallWithRunningTasks = vi.fn(() => true);
+    const win = {
+      isDestroyed: () => false,
+      webContents: { id: 23, send: vi.fn() },
+    };
+    browserWindows.push(win);
+    const { checkForUpdateMenuClick, initAutoUpdater } = await import("../src/main/autoUpdater.js");
+
+    initAutoUpdater({
+      onBeforeQuitAndInstall,
+      getRunningTaskCount: () => 1,
+      confirmInstallWithRunningTasks,
+    });
+    autoUpdaterMock.emit("update-downloaded", { version: "0.1.25" });
+    await Promise.resolve();
+
+    checkForUpdateMenuClick(win as never);
+    await vi.waitFor(() => expect(confirmInstallWithRunningTasks).toHaveBeenCalledWith(1));
+    await vi.waitFor(() => expect(onBeforeQuitAndInstall).toHaveBeenCalledOnce());
+    expect(autoUpdaterMock.quitAndInstall).toHaveBeenCalledOnce();
+  });
+
+  it("无窗口更新入口不会自动安装已 ready 的更新", async () => {
+    mockProcessPlatform("darwin");
+    const onBeforeQuitAndInstall = vi.fn();
+    const module = await import("../src/main/autoUpdater.js");
+
+    module.initAutoUpdater({ onBeforeQuitAndInstall });
+    autoUpdaterMock.emit("update-downloaded", { version: "0.1.25" });
+    await Promise.resolve();
+
+    module.requestAutoUpdateCheckWithoutWindow();
+    await Promise.resolve();
+
+    expect(onBeforeQuitAndInstall).not.toHaveBeenCalled();
+    expect(autoUpdaterMock.quitAndInstall).not.toHaveBeenCalled();
+    expect(loggerInfoMock).toHaveBeenCalledWith(
+      "[auto-update] skip force-update: update already ready, explicit user install required",
+    );
+  });
+
   it("Windows 初始化时会关闭 quit 自动安装，避免关应用后立即关机打断更新", async () => {
     mockProcessPlatform("win32");
     const { initAutoUpdater } = await import("../src/main/autoUpdater.js");
@@ -2289,17 +2378,68 @@ describe("autoUpdater ready state sync", () => {
     expect(autoUpdaterMock.autoInstallOnAppQuit).toBe(false);
   });
 
-  it("非 Windows 初始化时保持 quit 自动安装，避免影响既有升级行为", async () => {
+  it("所有平台初始化时都关闭 electron-updater 的退出自动安装", async () => {
     mockProcessPlatform("darwin");
     const { initAutoUpdater } = await import("../src/main/autoUpdater.js");
 
     initAutoUpdater();
 
-    // 非 Windows 也不再让 electron-updater 在退出时直接装 staged 包。
-    // ready 包仍等于当前目标时，由 before-quit 主动安装；目标已经更高则跳过。
+    // S2：安装只能由用户点击“重启并安装”触发，退出时不能自动装包。
     expect(autoUpdaterMock.autoDownload).toBe(false);
     expect(autoUpdaterMock.autoInstallOnAppQuit).toBe(false);
   });
+
+  it.each(["darwin", "linux", "win32"] as const)(
+    "%s 下载完成后不会自动安装，普通更新必须由用户点击",
+    async (platform) => {
+      mockProcessPlatform(platform);
+      settingServiceMock.get.mockResolvedValue({
+        recentProjects: [],
+        locale: "en-US",
+        autoDownloadAndInstallUpdates: true,
+      });
+      const onBeforeQuitAndInstall = vi.fn();
+      const { initAutoUpdater } = await import("../src/main/autoUpdater.js");
+
+      initAutoUpdater({ onBeforeQuitAndInstall, settingService: settingServiceMock });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      autoUpdaterMock.emit("update-available", { version: "0.1.25" });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(autoUpdaterMock.downloadUpdate).toHaveBeenCalledTimes(1);
+
+      autoUpdaterMock.emit("update-downloaded", { version: "0.1.25" });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // 即使开启了“自动下载”偏好，install 仍必须等用户点击。
+      expect(onBeforeQuitAndInstall).not.toHaveBeenCalled();
+      expect(autoUpdaterMock.quitAndInstall).not.toHaveBeenCalled();
+
+      const install = ipcMainHandle.mock.calls.find(
+        ([channel]) => channel === PlatformChannels.QuitAndInstallUpdate,
+      )![1] as () => Promise<void>;
+      await install();
+      expect(onBeforeQuitAndInstall).toHaveBeenCalledOnce();
+      expect(autoUpdaterMock.quitAndInstall).toHaveBeenCalledOnce();
+    },
+  );
+
+  it.each(["darwin", "linux", "win32"] as const)(
+    "%s 退出应用时不会自动安装已 ready 的更新",
+    async (platform) => {
+      mockProcessPlatform(platform);
+      const onBeforeQuitAndInstall = vi.fn();
+      const { initAutoUpdater } = await import("../src/main/autoUpdater.js");
+
+      initAutoUpdater({ onBeforeQuitAndInstall });
+      autoUpdaterMock.emit("update-downloaded", { version: "0.1.25" });
+      await Promise.resolve();
+
+      // before-quit 自动安装监听器必须已删除；普通退出只走应用自己的退出屏障。
+      expect(appListeners.get("before-quit") ?? []).toHaveLength(0);
+      expect(onBeforeQuitAndInstall).not.toHaveBeenCalled();
+      expect(autoUpdaterMock.quitAndInstall).not.toHaveBeenCalled();
+    },
+  );
 
   it("Windows 启动时不阻塞主界面，后台检查更新", async () => {
     mockProcessPlatform("win32");
@@ -2568,7 +2708,7 @@ describe("autoUpdater ready state sync", () => {
     });
   });
 
-  it("强制升级自动更新会直接安装已下载版本，不再用最低版本二次拦截", async () => {
+  it("强制升级已有已下载版本时只通知 ready，不替用户自动安装", async () => {
     mockProcessPlatform("darwin");
     const { initAutoUpdater, requestForceAutoUpdate } = await import("../src/main/autoUpdater.js");
     const onStateChange = vi.fn();
@@ -2584,8 +2724,9 @@ describe("autoUpdater ready state sync", () => {
     await Promise.resolve();
 
     expect(onStateChange).toHaveBeenCalledWith({ kind: "checking" });
-    expect(onStateChange).toHaveBeenCalledWith({ kind: "installing" });
-    await vi.waitFor(() => expect(autoUpdaterMock.quitAndInstall).toHaveBeenCalledOnce());
+    expect(onStateChange).toHaveBeenCalledWith({ kind: "ready", version: "0.1.25" });
+    expect(onStateChange).not.toHaveBeenCalledWith({ kind: "installing" });
+    expect(autoUpdaterMock.quitAndInstall).not.toHaveBeenCalled();
     expect(autoUpdaterMock.checkForUpdates).not.toHaveBeenCalled();
   });
 

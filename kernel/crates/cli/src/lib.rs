@@ -625,8 +625,17 @@ async fn session(
         &workspace.root,
         clock.clone(),
     )));
-    // 任务清单（Task v2）放在本地存储：文件是事实源，写后投影到 Node 的 todo 表（agents.md §7）。
-    let kernel = LocalKernel::with_extensions(ports, defaults, context, compact, store, extensions);
+    // 任务清单（Task v2）与会话 todo（TodoRead / TodoWrite）放在同一个本地存储：Task v2 文件是事实源，
+    // 写后投影到 Node 的 todo 表；TodoWrite 直接写 todo 表，两者由存储层互斥（agents.md §7）。
+    let kernel = LocalKernel::with_stores(
+        ports,
+        defaults,
+        context,
+        compact,
+        store.clone(),
+        store,
+        extensions,
+    );
     // 会话标题只在 TUI 生成（titles.md §2），模型经小模型槽位从会话当前的主模型得出。
     let titles = TitleModel {
         model: kernel.ports().model.clone(),

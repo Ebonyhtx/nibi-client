@@ -282,8 +282,7 @@ const bundledSkillPack = {
 };
 const includedOfficialPluginTopLevelPaths = new Set([
   ".mcp.json",
-  // 两种清单目录都放行：内置件已迁 .nibi-plugin，第三方/旧副本仍可能是 .nibi-plugin。
-  ".nibi-plugin",
+  // 插件包发现只认 NIBI 自有清单；漏掉它会让打包后的内置插件没有 plugin.json。
   ".nibi-plugin",
   "README.md",
   // Electron 生产资源复制有独立白名单，遗漏 agents 会让首启 filesystem seed 永久缺少子代理。
@@ -387,19 +386,15 @@ function stageBundle() {
   stageAgentBundle({ repoRoot, platformKey });
 }
 
-/** 插件根下是否有可识别的清单（NIBI 格式优先，兼容上游格式）。 */
+/** 插件根下是否有可识别的清单（只认 NIBI 自有格式）。 */
 function hasPluginManifest(root) {
-  return ["nibi-plugin", "nibi-plugin"].some((dir) =>
-    existsSync(resolve(root, `.${dir}`, "plugin.json")),
-  );
+  return existsSync(resolve(root, ".nibi-plugin", "plugin.json"));
 }
 
 function stageOfficialPlugins() {
   for (const plugin of officialPluginPackages) {
     const sourceRoot = resolve(repoRoot, plugin.relativePath);
-    const manifestPath = ["nibi-plugin", "nibi-plugin"]
-      .map((dir) => resolve(sourceRoot, `.${dir}`, "plugin.json"))
-      .find((candidate) => existsSync(candidate));
+    const manifestPath = resolve(sourceRoot, ".nibi-plugin", "plugin.json");
     if (!existsSync(manifestPath)) {
       throw new Error(`[prepare:agent-bundle] missing official plugin manifest: ${manifestPath}`);
     }

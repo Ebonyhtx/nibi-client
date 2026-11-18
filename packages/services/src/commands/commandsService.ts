@@ -50,10 +50,9 @@ const COMMAND_AGENT_SOURCE_ORDER: readonly CommandAgentSource[] = NIBI_COMMAND_A
 const HOME_PREFIX = "~/";
 const NIBI_OFFICIAL_PLUGIN_MARKETPLACE = "nibi-official";
 const NIBI_INLINE_PLUGIN_MARKETPLACE = "inline";
-// 清单目录双格式：NIBI 自有优先，已发布第三方包仍是上游格式。
-const NIBI_PLUGIN_MANIFEST_PATHS = [join(".nibi-plugin", "plugin.json"), join(".nibi-plugin", "plugin.json")];
-const CLAUDE_PLUGIN_MANIFEST_PATH = join(".claude-plugin", "plugin.json");
-const CODEX_PLUGIN_MANIFEST_PATH = join(".codex-plugin", "plugin.json");
+// 插件包发现只认 NIBI 自有清单；旧 .claude-plugin/.codex-plugin 由 App 管理的
+// 一次性迁移处理，用户 plugins.dirs 不改写，也不在这里回退读取。
+const NIBI_PLUGIN_MANIFEST_PATH = join(".nibi-plugin", "plugin.json");
 const NIBI_COMMAND_DESCRIPTOR: CommandAgentSourceDescriptor = {
   agentSource: "nibiAgent",
   directorySource: "nibi",
@@ -251,16 +250,8 @@ async function readPluginManifest(rootPath: string): Promise<PluginManifestSumma
 }
 
 async function findPluginManifestPath(rootPath: string): Promise<string | null> {
-  for (const manifestPath of [
-    ...NIBI_PLUGIN_MANIFEST_PATHS.map((relative) => join(rootPath, relative)),
-    join(rootPath, CLAUDE_PLUGIN_MANIFEST_PATH),
-    join(rootPath, CODEX_PLUGIN_MANIFEST_PATH),
-  ]) {
-    if (existsSync(manifestPath)) {
-      return manifestPath;
-    }
-  }
-  return null;
+  const manifestPath = join(rootPath, NIBI_PLUGIN_MANIFEST_PATH);
+  return existsSync(manifestPath) ? manifestPath : null;
 }
 
 function resolvePluginCommandRoots(params: {

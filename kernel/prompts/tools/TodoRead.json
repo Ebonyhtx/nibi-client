@@ -1,0 +1,10 @@
+{
+  "name": "TodoRead",
+  "description": "Read the current session todo list",
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false,
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  }
+}

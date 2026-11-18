@@ -42,13 +42,15 @@ use std::sync::Arc;
 use std::sync::{Mutex, PoisonError};
 
 use async_trait::async_trait;
-use nibi_kernel_agents::{AgentCatalog, Agents, AgentsConfig, AgentsPorts, MemoryTaskLists};
+use nibi_kernel_agents::{
+    AgentCatalog, Agents, AgentsConfig, AgentsPorts, MemoryTaskLists, MemoryTodos,
+};
 use nibi_kernel_base::TaskScope;
 use nibi_kernel_compact::{CompactPorts, Compaction, DenyTools, Disabled};
 use nibi_kernel_context::{ContextPorts, PromptAssembler};
 use nibi_kernel_ext::{Ext, ExtPorts};
 use nibi_kernel_hooks::{HookEngine, HookPorts};
-use nibi_kernel_api::agents::{AgentSignals, TaskListStore};
+use nibi_kernel_api::agents::{AgentSignals, TaskListStore, TodoStore};
 use nibi_kernel_api::clock::{Clock, Ids};
 use nibi_kernel_api::env::{OperationContext, Origin, WorkspaceRef};
 use nibi_kernel_api::env_registry::EnvironmentRegistry;
@@ -241,7 +243,7 @@ impl LocalKernel {
         Self::with_context(ports, defaults, ContextConfig::new(Surface::Interactive))
     }
 
-    /// 任务清单放在内存里（测试、嵌入）；入口 crate 用 [`LocalKernel::with_task_lists`] 接本地存储。
+    /// 任务清单放在内存里（测试、嵌入）；入口 crate 用 [`LocalKernel::with_stores`] 接本地存储。
     pub fn with_context(ports: Ports, defaults: Defaults, context: ContextConfig) -> Self {
         Self::with_options(
             ports,
@@ -283,12 +285,37 @@ impl LocalKernel {
 
     /// 另给 MCP 传输与扩展配置（docs/specs/rust-cli/ext.md §1）。内核建好后由入口调用
     /// [`LocalKernel::start_extensions`] 开始连接 MCP 服务器。
+    ///
+    /// 会话 todo 放在内存里（测试、嵌入）；入口 crate 用 [`LocalKernel::with_stores`] 同时接任务清单与
+    /// todo 的本地存储。
     pub fn with_extensions(
         ports: Ports,
         defaults: Defaults,
         context: ContextConfig,
         compact: CompactConfig,
         tasks: Arc<dyn TaskListStore>,
+        extensions: Extensions,
+    ) -> Self {
+        Self::with_stores(
+            ports,
+            defaults,
+            context,
+            compact,
+            tasks,
+            Arc::new(MemoryTodos::default()),
+            extensions,
+        )
+    }
+
+    /// 同 [`LocalKernel::with_extensions`]，另给会话 todo（TodoRead / TodoWrite）的存储。
+    /// 本地入口把同一个 `NodeStore` 作为 `tasks` 与 `todos` 注入（两者共用 Node 的 `todo` 表）。
+    pub fn with_stores(
+        ports: Ports,
+        defaults: Defaults,
+        context: ContextConfig,
+        compact: CompactConfig,
+        tasks: Arc<dyn TaskListStore>,
+        todos: Arc<dyn TodoStore>,
         extensions: Extensions,
     ) -> Self {
         let scope = TaskScope::root("nibi-kernel-cli", |panic| {
@@ -578,6 +605,7 @@ impl LocalKernel {
                 machine: machine.clone(),
                 machines: ports.environments.clone(),
                 tasks,
+                todos,
                 queries: Arc::new(agents::LoopFactory {
                     parts: parts.clone(),
                 }),
@@ -604,6 +632,8 @@ impl LocalKernel {
                 task_tools: defaults.task_tools.unwrap_or_else(|| {
                     nibi_kernel_agents::task_tools_enabled(&defaults.selection.model, false)
                 }),
+                // Node 的 builtInTools 始终带 TodoRead / TodoWrite；Rust 缺省也打开。
+                todo_tools: true,
                 // 只有交互模式停放还有后台子代理的子代理（agents.md §5.1）。
                 keep_alive: !non_interactive,
                 // 修复线 F67：交互界面里后台子代理也能询问（agents.md §4.1.1）。

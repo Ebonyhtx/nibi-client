@@ -52,9 +52,9 @@ const GIT_MARKER = ".git";
 const HOME_PREFIX = "~/";
 const NIBI_OFFICIAL_PLUGIN_MARKETPLACE = "nibi-official";
 const NIBI_INLINE_PLUGIN_MARKETPLACE = "inline";
-const NIBI_PLUGIN_MANIFEST_PATHS = [join(".nibi-plugin", "plugin.json"), join(".nibi-plugin", "plugin.json")];
-const CLAUDE_PLUGIN_MANIFEST_PATH = join(".claude-plugin", "plugin.json");
-const CODEX_PLUGIN_MANIFEST_PATH = join(".codex-plugin", "plugin.json");
+// 插件包发现只认 NIBI 自有清单；旧 .claude-plugin/.codex-plugin 由 App 管理的
+// 一次性迁移处理，用户 plugins.dirs 不改写，也不在这里回退读取。
+const NIBI_PLUGIN_MANIFEST_PATH = join(".nibi-plugin", "plugin.json");
 
 /** 对齐 apps/nibi-cli/packages/adapters/src/skills/index.ts:19 */
 const MAX_DESCRIPTION_LENGTH = 1024;
@@ -784,16 +784,8 @@ async function readPluginManifest(rootPath: string): Promise<PluginManifestSumma
 }
 
 async function findPluginManifestPath(rootPath: string): Promise<string | null> {
-  for (const manifestPath of [
-    ...NIBI_PLUGIN_MANIFEST_PATHS.map((relative) => join(rootPath, relative)),
-    join(rootPath, CLAUDE_PLUGIN_MANIFEST_PATH),
-    join(rootPath, CODEX_PLUGIN_MANIFEST_PATH),
-  ]) {
-    if (await exists(manifestPath)) {
-      return manifestPath;
-    }
-  }
-  return null;
+  const manifestPath = join(rootPath, NIBI_PLUGIN_MANIFEST_PATH);
+  return (await exists(manifestPath)) ? manifestPath : null;
 }
 
 function resolvePluginSkillRoots(params: {

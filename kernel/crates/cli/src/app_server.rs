@@ -435,6 +435,9 @@ where
     // 插件按会话解析：启动只加载元数据（skill/命令/agent/hooks 与工作区目录），MCP 连接由会话快照
     // 各建一套——避免启动快照 + 会话快照两套连接，同时保留 `workspace/readPresentation` 的插件命令。
     extensions.config.plugin_mcp_per_session = true;
+    // Desktop 协议前端有内联视图宿主：保留内置 `visualize@nibi-official` 的 skill 根
+    // （Node `--stdio` 协议入口传 `includeVisualize: true`；TUI / `-p` 仍按无宿主过滤）。
+    extensions.config.host_inline_view = true;
     extensions.plugin_loader = Some(Arc::new(SessionPluginLoader {
         home: startup.home.clone(),
         env: startup.env.clone(),
@@ -478,11 +481,12 @@ where
         &workspace.root,
         clock.clone(),
     )));
-    let kernel = LocalKernel::with_extensions(
+    let kernel = LocalKernel::with_stores(
         ports,
         kernel_defaults,
         context_config,
         compact,
+        store.clone(),
         store.clone(),
         extensions,
     );

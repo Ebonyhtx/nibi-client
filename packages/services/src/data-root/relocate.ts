@@ -1,12 +1,13 @@
 /**
- * 数据根迁移：先复制到 `<目标>/.nibi/.migrating-<stamp>/` 暂存区，验证凭据可解密，
- * 再原子发布为正式的 `.nibi/v2` 与 `.nibi/machine`。
+ * 数据根迁移：按清单先复制到 `<目标>/.nibi/.migrating-<stamp>/` 暂存区，验证 v2 凭据可解密，
+ * 再发布为正式的 `.nibi/machine`、`.nibi/v2` 与 `.nibi/workspace`。
  *
  * 不变量：
  * - `machine`（per-install 凭据密钥）永远不进入 `v2`；只拷走 v2 必须解不开凭据。
  * - 目标已有不同的安装密钥时拒绝迁移，源目录与 setting.json 都不变。
- * - 目标已有非空 v2 时拒绝覆盖；只接受"不存在"或"空目录"。
- * - 失败时清理暂存区；下次启动/迁移会再清一次崩溃残留。
+ * - 目标已有非空数据（v2/workspace）时只允许同一安装密钥的非覆盖合并。
+ * - v2 的过滤规则（setting.json 及瞬时文件）不套用到 workspace；workspace 只跳过符号链接。
+ * - 成功时 workspace 缺失是 no-op；失败时清理暂存区，下次重试幂等。
  */
 import { constants as fsConstants, lstatSync } from "node:fs";
 import { cp, copyFile, lstat, mkdir, readFile, readdir, rename, rm, rmdir } from "node:fs/promises";
@@ -16,10 +17,14 @@ import { resolveInstallKeyPathForCredentialsFile } from "@nibi/shared/node";
 import { createCredentialCipherProvider } from "../credential/providers/credentialCipherProvider.js";
 import { maybeThrowInjectedFsFault } from "../fs/fsFaultInjection.js";
 import {
+  DATA_ROOT_APP_DATA_DIR_NAME,
+  DATA_ROOT_MACHINE_DIR_NAME,
   DATA_ROOT_MANIFEST,
   DATA_ROOT_STAGING_PREFIX,
+  DATA_ROOT_WORKSPACE_DIR_NAME,
   getAppDataDirForBase,
   getMachineDirForBase,
+  getManifestEntryDirForBase,
   getNibiRootDirForBase,
   getRelocationStagingDir,
 } from "./manifest.js";
@@ -78,7 +83,10 @@ export interface RelocateDataRootResult {
   fromBaseDir: string;
   toBaseDir: string;
   stagingDir: string;
+  /** 是否复制了 `.nibi/v2`。 */
   copiedData: boolean;
+  /** 是否复制了 `.nibi/workspace`；源没有该目录时为 false（no-op）。 */
+  copiedWorkspace: boolean;
   copiedMachine: boolean;
   targetKeyState: TargetInstallKeyState;
   verification: DataRootCredentialVerification;
@@ -88,10 +96,17 @@ export interface VerifyStagedCredentialsOptions {
   env?: NodeJS.ProcessEnv;
 }
 
+/** 复制单个清单条目（第三参数是清单条目名，用于选择目录专属过滤规则）。 */
+export type DataRootCopyTree = (
+  sourcePath: string,
+  destinationPath: string,
+  entry: string,
+) => Promise<void>;
+
 export interface RelocateDataRootOptions {
   env?: NodeJS.ProcessEnv;
-  /** 测试注入：替换目录树复制实现（默认 fs.cp + setting/软链过滤）。 */
-  copyTree?: (sourcePath: string, destinationPath: string) => Promise<void>;
+  /** 测试注入：替换目录树复制实现（默认 fs.cp + 按条目过滤 setting/软链）。 */
+  copyTree?: DataRootCopyTree;
   /** 测试注入：替换暂存区凭据验证实现（默认 verifyStagedCredentials）。 */
   verifyCredentials?: (stagingDir: string) => Promise<DataRootCredentialVerification>;
   /** 测试注入：固定暂存目录名后缀。 */
@@ -189,7 +204,8 @@ export async function verifyStagedCredentials(
   options: VerifyStagedCredentialsOptions = {},
 ): Promise<DataRootCredentialVerification> {
   const env = options.env ?? process.env;
-  const credentialsPath = join(stagingDir, DATA_ROOT_MANIFEST.data[0], "credentials.json");
+  // 凭据验证只针对 v2；workspace 是用户工作区，不包含 NIBI 凭据，也不参与验证。
+  const credentialsPath = join(stagingDir, DATA_ROOT_APP_DATA_DIR_NAME, "credentials.json");
   const envSecretConfigured = Boolean(env.NIBI_CREDENTIAL_SECRET?.trim());
 
   let raw: string;
@@ -272,27 +288,53 @@ export async function verifyStagedCredentials(
   };
 }
 
-/** 复制 v2 时跳过 bootstrap 指针及其原子写入瞬时文件，以及 Windows 下不可复制的软链。 */
-function shouldCopyDataTreeEntry(sourcePath: string): boolean {
+function isSymbolicLinkPath(path: string): boolean {
+  try {
+    return lstatSync(path).isSymbolicLink();
+  } catch {
+    // 扫描期间文件可能已消失（例如 setting.json.lock）；放行交给 cp 处理。
+    return false;
+  }
+}
+
+/**
+ * v2 专属过滤：setting.json 是 bootstrap 指针，`setting.json.*` 是原子写入瞬时文件，
+ * 都不随数据迁移；软链（例如 agent-config 里的共享技能目录）也不能复制。
+ */
+function shouldCopyV2TreeEntry(sourcePath: string): boolean {
   const sourceName = basename(sourcePath);
   if (sourceName === "setting.json" || sourceName.startsWith("setting.json.")) {
     return false;
   }
-  try {
-    if (lstatSync(sourcePath).isSymbolicLink()) return false;
-  } catch {
-    // 扫描期间文件可能已消失（例如 setting.json.lock）；放行交给 cp 处理。
-  }
-  return true;
+  return !isSymbolicLinkPath(sourcePath);
 }
 
-async function defaultCopyTree(sourcePath: string, destinationPath: string): Promise<void> {
+/**
+ * workspace 专属过滤：只跳过符号链接。用户工作区里名为 setting.json 的普通文件
+ * 属于用户数据，必须原样复制，不能套用 v2 的 bootstrap 指针规则。
+ */
+function shouldCopyWorkspaceTreeEntry(sourcePath: string): boolean {
+  return !isSymbolicLinkPath(sourcePath);
+}
+
+/** 按清单条目选择过滤规则；machine 沿用 v2 的软链过滤（其中不会有 setting.json）。 */
+function createManifestEntryCopyFilter(entry: string): (sourcePath: string) => boolean {
+  return entry === DATA_ROOT_WORKSPACE_DIR_NAME
+    ? shouldCopyWorkspaceTreeEntry
+    : shouldCopyV2TreeEntry;
+}
+
+async function defaultCopyTree(
+  sourcePath: string,
+  destinationPath: string,
+  entry: string,
+): Promise<void> {
   // 故障注入点：这里失败时暂存区还没有发布，setting 不会被改写。
   maybeThrowInjectedFsFault({ operation: "writeFile", path: destinationPath });
   await cp(sourcePath, destinationPath, {
     recursive: true,
     force: false,
-    filter: shouldCopyDataTreeEntry,
+    filter: createManifestEntryCopyFilter(entry),
   });
 }
 
@@ -321,9 +363,12 @@ function isSameOrInsidePath(candidate: string, parent: string): boolean {
   return relativePath !== "" && !relativePath.startsWith("..") && !isAbsolute(relativePath);
 }
 
-/** 目标不能落在源 v2/machine 内部，否则暂存目录会被复制进源数据、递归膨胀。 */
+/** 目标不能落在源 v2/workspace/machine 内部，否则暂存目录会被复制进源数据、递归膨胀。 */
 function assertTargetOutsideSourceData(fromBaseDir: string, toBaseDir: string): void {
-  for (const sourceDir of [getAppDataDirForBase(fromBaseDir), getMachineDirForBase(fromBaseDir)]) {
+  const sourceDirs = [...DATA_ROOT_MANIFEST.data, ...DATA_ROOT_MANIFEST.machine].map((entry) =>
+    getManifestEntryDirForBase(fromBaseDir, entry),
+  );
+  for (const sourceDir of sourceDirs) {
     if (isSameOrInsidePath(toBaseDir, sourceDir)) {
       throw createDataRootError(
         DATA_ROOT_RELOCATION_ERROR_CODES.invalidTarget,
@@ -335,19 +380,31 @@ function assertTargetOutsideSourceData(fromBaseDir: string, toBaseDir: string): 
 
 type TargetDataDirState = "absent" | "empty" | "occupied";
 
+/**
+ * 按清单检查目标所有 data 条目（v2/workspace）。
+ * 任一条目非空都算 occupied：非空目标不一定拒绝，同一安装密钥的旧根允许非覆盖合并
+ * （setting 写失败重试、还原），异钥/无钥则在下面统一拒绝。
+ */
 async function inspectTargetDataDir(toBaseDir: string): Promise<TargetDataDirState> {
-  const targetDataDir = getAppDataDirForBase(toBaseDir);
-  const targetKind = await getPathKind(targetDataDir);
-  if (targetKind === "missing") return "absent";
-  if (targetKind !== "directory") {
-    throw createDataRootError(
-      DATA_ROOT_RELOCATION_ERROR_CODES.targetNotEmpty,
-      `目标数据目录不是目录：${targetDataDir}`,
-    );
+  let sawDirectory = false;
+  let sawOccupied = false;
+  for (const entry of DATA_ROOT_MANIFEST.data) {
+    const targetDataDir = getManifestEntryDirForBase(toBaseDir, entry);
+    const targetKind = await getPathKind(targetDataDir);
+    if (targetKind === "missing") continue;
+    if (targetKind !== "directory") {
+      throw createDataRootError(
+        DATA_ROOT_RELOCATION_ERROR_CODES.targetNotEmpty,
+        `目标数据条目不是目录：${targetDataDir}`,
+      );
+    }
+    sawDirectory = true;
+    if ((await readdir(targetDataDir)).length > 0) {
+      sawOccupied = true;
+    }
   }
-  const entries = await readdir(targetDataDir);
-  // 非空目标不一定拒绝：同一安装密钥的旧根允许非覆盖合并（setting 写失败重试、还原）。
-  return entries.length === 0 ? "empty" : "occupied";
+  if (sawOccupied) return "occupied";
+  return sawDirectory ? "empty" : "absent";
 }
 
 /**
@@ -363,7 +420,7 @@ function assertTargetDataDirStateAllowed(
   if (targetKeyState === "same") return;
   throw createDataRootError(
     DATA_ROOT_RELOCATION_ERROR_CODES.targetNotEmpty,
-    `目标已有数据且无法证明为同一安装（安装密钥：${targetKeyState}），拒绝迁移：${getAppDataDirForBase(toBaseDir)}`,
+    `目标已有数据且无法证明为同一安装（安装密钥：${targetKeyState}），拒绝迁移：${getNibiRootDirForBase(toBaseDir)}`,
   );
 }
 
@@ -411,16 +468,23 @@ async function copyManifestEntry(
   sourceBaseDir: string,
   stagingDir: string,
   entry: string,
-  copyTree: (sourcePath: string, destinationPath: string) => Promise<void>,
+  copyTree: DataRootCopyTree,
 ): Promise<boolean> {
-  const sourcePath = join(getNibiRootDirForBase(sourceBaseDir), entry);
+  const sourcePath = getManifestEntryDirForBase(sourceBaseDir, entry);
   const sourceKind = await getPathKind(sourcePath);
-  if (sourceKind === "missing") return false;
+  if (sourceKind === "missing") {
+    // workspace 缺失是正常状态：新安装可能还没有非项目对话。
+    return false;
+  }
   if (sourceKind !== "directory") {
+    if (entry === DATA_ROOT_WORKSPACE_DIR_NAME && isSymbolicLinkPath(sourcePath)) {
+      // workspace 只跳过符号链接；顶层 workspace 本身是软链时同样 no-op。
+      return false;
+    }
     // 顶层 v2/machine 是软链或普通文件时不能静默跳过：那会把 setting 指到一个没有数据的根。
     throw new Error(`数据根迁移源条目不是目录：${sourcePath}`);
   }
-  await copyTree(sourcePath, join(stagingDir, entry));
+  await copyTree(sourcePath, join(stagingDir, entry), entry);
   return true;
 }
 
@@ -471,34 +535,7 @@ async function publishMachineDir(stagingDir: string, toBaseDir: string): Promise
   await mergeDirectoryWithoutOverwrite(stagedMachineDir, targetMachineDir);
 }
 
-async function publishDataDir(
-  stagingDir: string,
-  toBaseDir: string,
-  targetDataDirState: TargetDataDirState,
-): Promise<void> {
-  const stagedDataDir = join(stagingDir, DATA_ROOT_MANIFEST.data[0]);
-  if ((await getPathKind(stagedDataDir)) !== "directory") return;
-
-  const targetDataDir = getAppDataDirForBase(toBaseDir);
-  if (targetDataDirState === "occupied") {
-    // 同一安装密钥的旧根：逐文件非覆盖合并。
-    // force:false 会跳过目标已有文件（老语义"还原不覆盖"），只把源里新增的文件补进去；
-    // setting.json 与软链沿用 shouldCopyDataTreeEntry 的过滤。
-    maybeThrowInjectedFsFault({ operation: "writeFile", path: targetDataDir });
-    await cp(stagedDataDir, targetDataDir, {
-      recursive: true,
-      force: false,
-      filter: shouldCopyDataTreeEntry,
-    });
-    return;
-  }
-
-  if (targetDataDirState === "empty") {
-    // Windows 不能 rename 到已存在目录；空目录先删掉。
-    maybeThrowInjectedFsFault({ operation: "rm", path: targetDataDir });
-    await rmdir(targetDataDir);
-  }
-
+async function renameStagedDataDir(stagedDataDir: string, targetDataDir: string): Promise<void> {
   maybeThrowInjectedFsFault({ operation: "rename", path: targetDataDir });
   try {
     await rename(stagedDataDir, targetDataDir);
@@ -516,6 +553,59 @@ async function publishDataDir(
     }
     throw error;
   }
+}
+
+/**
+ * 逐项发布 data 清单（v2、workspace）。每个条目独立判断目标状态：
+ * - 缺失：直接 rename 发布；
+ * - 空目录：先删空目录再 rename（Windows 不能 rename 到已存在目录）；
+ * - 非空：同一安装密钥的旧根，逐文件非覆盖合并（force:false 只补源里新增的文件）。
+ */
+async function publishDataDirs(stagingDir: string, toBaseDir: string): Promise<void> {
+  for (const entry of DATA_ROOT_MANIFEST.data) {
+    await publishDataDirEntry(stagingDir, toBaseDir, entry);
+  }
+}
+
+async function publishDataDirEntry(
+  stagingDir: string,
+  toBaseDir: string,
+  entry: string,
+): Promise<void> {
+  const stagedDataDir = join(stagingDir, entry);
+  if ((await getPathKind(stagedDataDir)) !== "directory") return;
+
+  const targetDataDir = getManifestEntryDirForBase(toBaseDir, entry);
+  const targetKind = await getPathKind(targetDataDir);
+  if (targetKind === "missing") {
+    await renameStagedDataDir(stagedDataDir, targetDataDir);
+    return;
+  }
+  if (targetKind !== "directory") {
+    throw createDataRootError(
+      DATA_ROOT_RELOCATION_ERROR_CODES.targetNotEmpty,
+      `目标数据条目不是目录：${targetDataDir}`,
+    );
+  }
+
+  const targetEntries = await readdir(targetDataDir);
+  if (targetEntries.length === 0) {
+    // Windows 不能 rename 到已存在目录；空目录先删掉。
+    maybeThrowInjectedFsFault({ operation: "rm", path: targetDataDir });
+    await rmdir(targetDataDir);
+    await renameStagedDataDir(stagedDataDir, targetDataDir);
+    return;
+  }
+
+  // 同一安装密钥的旧根：逐文件非覆盖合并。
+  // force:false 会跳过目标已有文件（老语义"还原不覆盖"），只把源里新增的文件补进去；
+  // 每个条目使用自己的过滤规则（v2 排除 setting.json/瞬时文件，workspace 只跳过软链）。
+  maybeThrowInjectedFsFault({ operation: "writeFile", path: targetDataDir });
+  await cp(stagedDataDir, targetDataDir, {
+    recursive: true,
+    force: false,
+    filter: createManifestEntryCopyFilter(entry),
+  });
 }
 
 /**
@@ -549,7 +639,8 @@ export async function cleanupStaleRelocationStaging(baseDir: string): Promise<nu
  * 把数据根从 `fromBaseDir` 迁到 `toBaseDir`。
  *
  * 成功返回时正式目录已就位，但 setting.json 的写入由调用方负责；
- * 失败抛错且不会留下正式 v2/machine 半套目录（暂存区 best-effort 清理）。
+ * 失败抛错；发布前失败不会留下正式 v2/workspace/machine 目录（暂存区 best-effort 清理），
+ * 同一安装密钥下的重试按非覆盖合并保持幂等。
  */
 export async function relocateDataRoot(
   fromBaseDir: string,
@@ -566,6 +657,7 @@ export async function relocateDataRoot(
       toBaseDir: to,
       stagingDir: "",
       copiedData: false,
+      copiedWorkspace: false,
       copiedMachine: false,
       targetKeyState: "same",
       verification: createEmptyVerification(),
@@ -588,32 +680,37 @@ export async function relocateDataRoot(
       await mkdir(stagingDir, { recursive: false });
 
       const copyTree = options.copyTree ?? defaultCopyTree;
-      const copiedData = await copyManifestEntry(
-        from,
-        stagingDir,
-        DATA_ROOT_MANIFEST.data[0],
-        copyTree,
-      );
       const copiedMachine = await copyManifestEntry(
         from,
         stagingDir,
-        DATA_ROOT_MANIFEST.machine[0],
+        DATA_ROOT_MACHINE_DIR_NAME,
         copyTree,
       );
+      // 按清单逐项复制 data：v2（App 数据）与 workspace（非项目对话工作区）。
+      const copiedDataEntries = new Set<string>();
+      for (const entry of DATA_ROOT_MANIFEST.data) {
+        if (await copyManifestEntry(from, stagingDir, entry, copyTree)) {
+          copiedDataEntries.add(entry);
+        }
+      }
+      const copiedData = copiedDataEntries.has(DATA_ROOT_APP_DATA_DIR_NAME);
+      const copiedWorkspace = copiedDataEntries.has(DATA_ROOT_WORKSPACE_DIR_NAME);
 
+      // 凭据解密验证只读取暂存区 v2；workspace 不参与。
       const verification = options.verifyCredentials
         ? await options.verifyCredentials(stagingDir)
         : await verifyStagedCredentials(stagingDir, { env: options.env });
 
-      // machine 先发布：不会出现"v2 已就位但钥匙没搬过去"的中间态。
+      // machine 先发布：不会出现"有 v2/workspace 无钥匙"的中间态。
       await publishMachineDir(stagingDir, to);
-      await publishDataDir(stagingDir, to, targetDataDirState);
+      await publishDataDirs(stagingDir, to);
 
       return {
         fromBaseDir: from,
         toBaseDir: to,
         stagingDir,
         copiedData,
+        copiedWorkspace,
         copiedMachine,
         targetKeyState,
         verification,

@@ -408,12 +408,8 @@ const SUPPORTED_MCP_AGENT_SOURCES: ExternalAgentMcpPathSource[] = [
   },
 ];
 
-const NIBI_PLUGIN_MANIFEST_PATHS = [
-  [".nibi-plugin", "plugin.json"],
-  [".nibi-plugin", "plugin.json"],
-] as const;
-const CLAUDE_PLUGIN_MANIFEST_PATH = [".claude-plugin", "plugin.json"] as const;
-const CODEX_PLUGIN_MANIFEST_PATH = [".codex-plugin", "plugin.json"] as const;
+// 插件包发现只认 NIBI 自有清单；旧 .claude-plugin/.codex-plugin 不再参与导入候选。
+const NIBI_PLUGIN_MANIFEST_PATH = [".nibi-plugin", "plugin.json"] as const;
 const INLINE_PLUGIN_MARKETPLACE = "inline";
 
 function resolveUserHomeDir(): string {
@@ -773,21 +769,8 @@ async function collectCommandMarkdownPaths(rootPath: string): Promise<string[]> 
 }
 
 async function findPluginManifestPath(pluginPath: string): Promise<string | null> {
-  for (const relative of NIBI_PLUGIN_MANIFEST_PATHS) {
-    const manifestPath = join(pluginPath, ...relative);
-    if (await pathExists(manifestPath)) {
-      return manifestPath;
-    }
-  }
-  const claudeManifestPath = join(pluginPath, ...CLAUDE_PLUGIN_MANIFEST_PATH);
-  if (await pathExists(claudeManifestPath)) {
-    return claudeManifestPath;
-  }
-  const codexManifestPath = join(pluginPath, ...CODEX_PLUGIN_MANIFEST_PATH);
-  if (await pathExists(codexManifestPath)) {
-    return codexManifestPath;
-  }
-  return null;
+  const manifestPath = join(pluginPath, ...NIBI_PLUGIN_MANIFEST_PATH);
+  return (await pathExists(manifestPath)) ? manifestPath : null;
 }
 
 async function collectPluginPaths(rootPath: string): Promise<string[]> {

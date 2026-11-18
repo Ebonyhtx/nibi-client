@@ -58,6 +58,8 @@ const acknowledgedPostUpdateReleaseNotesVersions = new Set<string>();
 const cancelledDownloadTokens = new WeakSet<CancellationToken>();
 let pendingCancelledDownloadErrorCount = 0;
 let autoUpdaterSettingService: SettingServiceLike | undefined;
+let getRunningTaskCountForInstall: (() => number) | undefined;
+let confirmInstallWithRunningTasks: ((runningTaskCount: number) => boolean | Promise<boolean>) | undefined;
 // initAutoUpdater({ enabled: false }) 只清轮询并 return，electron-updater 实例保持未配置
 // （占位 feed、autoDownload 默认值）。任何漏改成按身份判断的入口若仍调用手动检查，
 // 都会对占位 feed 发真实请求。这里记住“本 flavor 已禁用”，让手动检查在模块内部 fail-closed。
@@ -101,7 +103,7 @@ let menuState: AutoUpdaterMenuState = { kind: "idle", enabled: true };
 export type ForceAutoUpdateState =
   | { kind: "checking" }
   | { kind: "downloading"; version?: string; progress?: string }
-  | { kind: "ready"; version?: string }
+  | { kind: "ready"; version?: string; runningTaskCount?: number }
   | { kind: "installing" }
   | { kind: "error"; message: string }
   | { kind: "dev-skipped"; message?: string };
@@ -118,6 +120,10 @@ interface InitAutoUpdaterOptions {
   updateFeedSource?: RuntimeUpdateFeedSource;
   deviceMid?: string;
   resolveEndpointOrigin?: () => string | Promise<string>;
+  /** 用户从菜单等非更新弹窗入口触发安装时，用于判断是否有运行中任务。 */
+  getRunningTaskCount?: () => number;
+  /** 有运行中任务时，主进程侧要求用户再次确认安装（不会自动通过）。 */
+  confirmInstallWithRunningTasks?: (runningTaskCount: number) => boolean | Promise<boolean>;
 }
 
 let quitAndInstallState: "idle" | "preparing" | "installing" | "recovering" = "idle";
@@ -438,7 +444,7 @@ function buildDownloadProgressState(
   };
 }
 
-async function quitAndInstallUpdate(rejectUnavailable = false) {
+async function quitAndInstallUpdate(rejectUnavailable = false, requireTaskConfirmation = false) {
   if (quitAndInstallState !== "idle") {
     logger.info("[auto-update] quitAndInstall already in flight");
     return;
@@ -459,7 +465,12 @@ async function quitAndInstallUpdate(rejectUnavailable = false) {
     setAutoUpdaterMenuState(
       buildUpdateAvailableState(restoredVersion, restoredReleaseNotes, restoredChannel),
     );
-    if (await shouldAutoDownloadAndInstallUpdates(autoUpdaterSettingService)) {
+    // 强制更新没有“稍后下载”的入口，重建安装上下文后必须继续拉包，
+    // 再回到“更新已下载，等待用户点击安装”的状态。
+    if (
+      activeForceAutoUpdateListener ||
+      (await shouldAutoDownloadAndInstallUpdates(autoUpdaterSettingService))
+    ) {
       downloadAvailableUpdate("restored-pending-install");
     }
     return;
@@ -483,6 +494,56 @@ async function quitAndInstallUpdate(rejectUnavailable = false) {
   // 安装只读取已下载包，不依赖 manifest 请求。立即锁定 ready，迟到检查不能替换它，
   // 也不能让一次挂起的后台网络请求扣押用户已经选择的安装。
   quitAndInstallState = "preparing";
+
+  // 从菜单等非更新弹窗入口安装时，主进程仍要给出任务确认。
+  // renderer 的更新弹窗已经在点击“重启并安装”前完成任务确认，走 IPC 时跳过这一层。
+  if (requireTaskConfirmation) {
+    let runningTaskCount = 0;
+    try {
+      runningTaskCount = getRunningTaskCountForInstall?.() ?? 0;
+    } catch (error) {
+      // 读不到任务数时 fail-closed：不能静默丢现场。
+      quitAndInstallState = "idle";
+      logger.error("[auto-update] read running task count failed:", error);
+      if (rejectUnavailable) {
+        throw error;
+      }
+      return;
+    }
+
+    if (runningTaskCount > 0) {
+      if (!confirmInstallWithRunningTasks) {
+        quitAndInstallState = "idle";
+        logger.warn(
+          `[auto-update] install blocked with ${runningTaskCount} running task(s): no confirmation handler`,
+        );
+        if (rejectUnavailable) {
+          throw new Error("Update install requires user confirmation with running tasks");
+        }
+        return;
+      }
+
+      let confirmed = false;
+      try {
+        confirmed = await confirmInstallWithRunningTasks(runningTaskCount);
+      } catch (error) {
+        quitAndInstallState = "idle";
+        logger.error("[auto-update] confirm install with running tasks failed:", error);
+        if (rejectUnavailable) {
+          throw error;
+        }
+        return;
+      }
+      if (!confirmed) {
+        quitAndInstallState = "idle";
+        logger.info(
+          `[auto-update] install cancelled by user with ${runningTaskCount} running task(s)`,
+        );
+        return;
+      }
+    }
+  }
+
   logger.info("[auto-update] user requested quit and install");
   // macOS 上 quitAndInstall() 在关窗前不会先走 app.before-quit。
   // 如果仍然只靠 before-quit 去放行窗口 close，现有的“红绿灯关闭=隐藏窗口”逻辑会把退出拦住，
@@ -536,6 +597,14 @@ async function quitAndInstallUpdate(rejectUnavailable = false) {
       throw error;
     }
   }
+}
+
+/**
+ * 强制更新提示窗口的显式安装入口：用户点击“立即重启安装”后才调用。
+ * 提示窗口已经完成运行中任务确认；真正的退出屏障仍在 quitAndInstallUpdate 内执行。
+ */
+export async function installReadyUpdate(): Promise<void> {
+  await quitAndInstallUpdate(true);
 }
 
 function updateMenuItemLabel(label: string, enabled: boolean) {
@@ -1273,17 +1342,12 @@ function publishDownloadedUpdate(info: UpdateDownloadedInfoLike): void {
   clearAvailableUpdateState();
   clearDownloadingUpdateState();
   logger.info(
-    `[auto-update] downloaded: ${info.version}, ${process.platform === "win32" ? "waiting for explicit install" : "ready to install on quit or explicit install"}`,
+    `[auto-update] downloaded: ${info.version}, waiting for explicit user install`,
   );
   setAutoUpdaterMenuState(buildUpdateDownloadedState(info.version));
   notifyForceAutoUpdate({ kind: "ready", version: info.version });
   if (!activeForceAutoUpdateListener) {
     recheckAfterDownload?.("download-finished");
-  }
-
-  if (activeForceAutoUpdateListener) {
-    notifyForceAutoUpdate({ kind: "installing" });
-    void quitAndInstallUpdate();
   }
 
   if (autoUpdaterSettingService) {
@@ -1619,6 +1683,8 @@ export async function initAutoUpdater(options: InitAutoUpdaterOptions = {}): Pro
   if (!canUseAutoUpdaterInCurrentRuntime()) return;
 
   onBeforeQuitAndInstall = options.onBeforeQuitAndInstall;
+  getRunningTaskCountForInstall = options.getRunningTaskCount;
+  confirmInstallWithRunningTasks = options.confirmInstallWithRunningTasks;
   if (options.locale) {
     menuLocale = options.locale;
   }
@@ -1645,9 +1711,9 @@ export async function initAutoUpdater(options: InitAutoUpdaterOptions = {}): Pro
   // 再决定是否下载。若继续让 electron-updater 自动下载，它只会按当前 app 版本判断，
   // 导致 `3.1.2` 已 ready `3.1.3` 时每次轮询都可能重复下载 `3.1.3`。
   autoUpdater.autoDownload = false;
-  // Bugfix: Windows/NSIS 在窗口关闭后会异步启动安装；如果用户紧接着关机，安装器可能被系统中断，
-  // 留下半更新状态并导致下次启动失败。macOS/Linux 也先关掉退出即装，只在 ready 包仍等于当前目标时
-  // 由 before-quit 主动安装，避免目标已经升高后退出装上旧包。
+  // S2：安装必须由用户显式点击“重启并安装”，退出/启动时都不能自动 quitAndInstall。
+  // autoInstallOnAppQuit=false 关闭 electron-updater 自己的退出即装兜底；
+  // 本模块也不再注册 before-quit 自动安装。
   autoUpdater.autoInstallOnAppQuit = false;
   autoUpdater.logger = logger;
   applyManifestUpdateProvider(options);
@@ -1889,7 +1955,8 @@ export async function initAutoUpdater(options: InitAutoUpdaterOptions = {}): Pro
     quitAndInstallUpdate(true),
   );
   ipcMain.on(PlatformChannels.QuitAndInstallUpdate, () => {
-    void quitAndInstallUpdate();
+    // 旧 renderer 的 fire-and-forget 入口没有经过更新弹窗确认，主进程补一次任务确认。
+    void quitAndInstallUpdate(false, true);
   });
   ipcMain.handle(PlatformChannels.DownloadUpdate, () => {
     downloadAvailableUpdate("renderer");
@@ -1908,17 +1975,6 @@ export async function initAutoUpdater(options: InitAutoUpdaterOptions = {}): Pro
 
   triggerCheckForUpdates("startup");
   ensureAutoUpdatePollInterval();
-  app.on("before-quit", (event) => {
-    if (
-      process.platform === "win32" ||
-      quitAndInstallState !== "idle" ||
-      !isReadyUpdateCurrentTarget()
-    ) {
-      return;
-    }
-    event.preventDefault();
-    void quitAndInstallUpdate();
-  });
 }
 
 function ensureAutoUpdatePollInterval() {
@@ -1972,8 +2028,11 @@ export function requestForceAutoUpdate(
   }
 
   if (menuState.kind === "update-downloaded") {
-    onStateChange({ kind: "installing" });
-    void quitAndInstallUpdate();
+    // 强制更新同样不替用户点安装：只进入 ready，由提示窗口提供“立即重启安装”。
+    onStateChange({
+      kind: "ready",
+      ...(menuState.version ? { version: menuState.version } : {}),
+    });
     return dispose;
   }
 
@@ -2032,7 +2091,9 @@ export function requestAutoUpdateCheckWithoutWindow(reason = "force-update") {
   }
 
   if (menuState.kind === "update-downloaded") {
-    void quitAndInstallUpdate();
+    logger.info(
+      `[auto-update] skip ${reason}: update already ready, explicit user install required`,
+    );
     return;
   }
   if (menuState.kind === "update-available") {
@@ -2102,7 +2163,8 @@ export function checkForUpdateMenuClick(originWindow?: BrowserWindow | null) {
   if (menuState.kind === "update-downloaded" && isReadyUpdateCurrentTarget()) {
     // 菜单文案已经是“重启以更新”。只有 ready 包仍等于当前目标时才安装；
     // 目标已经更高时落到下面的重新检查，避免装上旧包。
-    void quitAndInstallUpdate();
+    // 菜单入口没有 renderer 的任务确认，由主进程在运行中任务存在时补确认。
+    void quitAndInstallUpdate(false, true);
     return;
   }
   if (menuState.kind === "download-progress") {

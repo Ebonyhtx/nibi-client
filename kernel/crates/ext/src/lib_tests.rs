@@ -7,13 +7,36 @@ use nibi_kernel_api::ids::SessionId;
 use nibi_kernel_api::mcp::McpTransportConfig;
 use nibi_kernel_api::model::{ModelSelection, QuerySource};
 use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::env::EnvPath;
 use nibi_kernel_api::testing::{ListTools, MemoryEnvironment, SequentialIds};
 use serde_json::json;
 
 use super::*;
+use crate::plugins::{PluginCandidate, PluginOrigin};
 use crate::test_support::{CWD, EchoBash, FakeMcp, facts, server, workspace};
 
 fn ext(env: MemoryEnvironment, fake: Arc<FakeMcp>, scope: &TaskScope, servers: McpServers) -> Ext {
+    ext_with_config(
+        env,
+        fake,
+        scope,
+        ExtConfig {
+            mcp: McpSettings {
+                servers,
+                ..McpSettings::default()
+            },
+            workspace: Some(workspace()),
+            ..ExtConfig::default()
+        },
+    )
+}
+
+fn ext_with_config(
+    env: MemoryEnvironment,
+    fake: Arc<FakeMcp>,
+    scope: &TaskScope,
+    config: ExtConfig,
+) -> Ext {
     let base: Arc<dyn ToolRegistry> = Arc::new(ListTools(vec![Arc::new(EchoBash::default())]));
     let env = Arc::new(env);
     let ports = ExtPorts {
@@ -29,14 +52,6 @@ fn ext(env: MemoryEnvironment, fake: Arc<FakeMcp>, scope: &TaskScope, servers: M
         mcp_ui_events: None,
         sampling: None,
         mcp_oauth: None,
-    };
-    let config = ExtConfig {
-        mcp: McpSettings {
-            servers,
-            ..McpSettings::default()
-        },
-        workspace: Some(workspace()),
-        ..ExtConfig::default()
     };
     Ext::new(ports, base, config)
 }
@@ -195,5 +210,118 @@ async fn the_wait_tool_follows_pending_servers_and_the_declared_session() {
     assert_eq!(
         listings.mcp_instructions(&request()).await.unwrap()[0].line,
         "## slow\nSlow."
+    );
+}
+
+/// Node `filterVisualizeSkillRoots`：TUI / `-p` 没有内联视图宿主，进程级与会话级的 skill 目录都不出现
+/// `visualize:visualize`；Desktop app-server 置 `host_inline_view` 时两处都保留，其他插件不受影响。
+#[tokio::test]
+async fn visualize_skills_follow_the_inline_view_host() {
+    let visualize = "/Users/dev/cache/nibi-official/visualize/0.1.0";
+    let pdf = "/Users/dev/cache/nibi-official/pdf/0.1.0";
+    let env = || {
+        MemoryEnvironment::new(facts())
+            .with_file(
+                &format!("{visualize}/.nibi-plugin/plugin.json"),
+                r#"{"name": "visualize"}"#,
+            )
+            .with_file(
+                &format!("{visualize}/skills/visualize/SKILL.md"),
+                "---\ndescription: Inline views\n---\n",
+            )
+            .with_file(
+                &format!("{pdf}/.nibi-plugin/plugin.json"),
+                r#"{"name": "pdf"}"#,
+            )
+            .with_file(
+                &format!("{pdf}/skills/pdf/SKILL.md"),
+                "---\ndescription: PDF\n---\n",
+            )
+    };
+    let sources = || PluginSources {
+        candidates: [visualize, pdf]
+            .into_iter()
+            .map(|dir| PluginCandidate {
+                dir: EnvPath::new(dir),
+                marketplace: nibi_kernel_base::names::OFFICIAL_MARKETPLACE.to_owned(),
+                origin: PluginOrigin::Official,
+                paid: false,
+            })
+            .collect(),
+        ..PluginSources::default()
+    };
+    let plugin_names = |skills: Vec<Arc<Skill>>| -> Vec<String> {
+        skills
+            .into_iter()
+            .map(|skill| skill.name.clone())
+            .filter(|name| name.contains(':'))
+            .collect()
+    };
+    let scope = TaskScope::root("test", |_| {});
+    let ext_for = |host_inline_view: bool| {
+        ext_with_config(
+            env(),
+            Arc::new(FakeMcp::default()),
+            &scope,
+            ExtConfig {
+                plugins: sources(),
+                workspace: Some(workspace()),
+                host_inline_view,
+                ..ExtConfig::default()
+            },
+        )
+    };
+
+    // TUI / `-p`：没有视图宿主，visualize 的 skill 根不投影。
+    let without_host = ext_for(false);
+    let loaded = without_host.start().await;
+    let process = plugin_names(without_host.skills().skills(&workspace()).await);
+    assert!(process.contains(&"pdf:pdf".to_owned()), "{process:?}");
+    assert!(!process.contains(&"visualize:visualize".to_owned()), "{process:?}");
+    let session = SessionId::new("sess_no_view_host");
+    without_host.set_session_skill_roots(session.clone(), &loaded);
+    let session_skills = plugin_names(
+        without_host
+            .skills()
+            .skills_for(Some(&session), &workspace())
+            .await,
+    );
+    assert!(session_skills.contains(&"pdf:pdf".to_owned()), "{session_skills:?}");
+    assert!(
+        !session_skills.contains(&"visualize:visualize".to_owned()),
+        "{session_skills:?}"
+    );
+
+    // Desktop app-server：有内联视图宿主，进程级与会话级都保留 visualize。
+    let with_host = ext_for(true);
+    let loaded = with_host.start().await;
+    let process = plugin_names(with_host.skills().skills(&workspace()).await);
+    assert!(process.contains(&"visualize:visualize".to_owned()), "{process:?}");
+    assert!(process.contains(&"pdf:pdf".to_owned()), "{process:?}");
+    let session = SessionId::new("sess_view_host");
+    with_host.set_session_skill_roots(session.clone(), &loaded);
+    let session_skills = plugin_names(
+        with_host
+            .skills()
+            .skills_for(Some(&session), &workspace())
+            .await,
+    );
+    assert!(
+        session_skills.contains(&"visualize:visualize".to_owned()),
+        "{session_skills:?}"
+    );
+    assert!(session_skills.contains(&"pdf:pdf".to_owned()), "{session_skills:?}");
+
+    // 空插件快照：不报错，也不产生插件 skill。
+    let empty = SessionId::new("sess_empty_view_host");
+    with_host.set_session_skill_roots(empty.clone(), &Plugins::default());
+    assert!(
+        plugin_names(
+            with_host
+                .skills()
+                .skills_for(Some(&empty), &workspace())
+                .await
+        )
+        .is_empty()
     );
 }

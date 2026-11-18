@@ -16,7 +16,19 @@ use nibi_kernel_api::testing::{
 use super::*;
 
 fn kernel(store: Arc<MemoryStore>, model: Arc<ScriptedModel>) -> LocalKernel {
-    LocalKernel::new(
+    kernel_with_context(
+        store,
+        model,
+        ContextConfig::new(Surface::Interactive),
+    )
+}
+
+fn kernel_with_context(
+    store: Arc<MemoryStore>,
+    model: Arc<ScriptedModel>,
+    context: ContextConfig,
+) -> LocalKernel {
+    LocalKernel::with_context(
         Ports {
             model,
             environments: environments(Arc::new(UnusedEnvironment)),
@@ -33,7 +45,30 @@ fn kernel(store: Arc<MemoryStore>, model: Arc<ScriptedModel>) -> LocalKernel {
             task_tools: None,
             limits: Default::default(),
         },
+        context,
     )
+}
+
+/// TUI（`Surface::Interactive`）与 `-p`（`Surface::Print`）走同一个 runtime 组装，两个工具都要在注册表里。
+/// Desktop 的 app-server 用 `LocalKernel::with_stores`，与本测试相同的 agents 注册路径。
+#[tokio::test]
+async fn todo_tools_are_registered_for_tui_and_print() {
+    for surface in [Surface::Interactive, Surface::Print] {
+        let kernel = kernel_with_context(
+            Arc::new(MemoryStore::default()),
+            Arc::new(ScriptedModel::new(Vec::new())),
+            ContextConfig::new(surface),
+        );
+        let names: Vec<String> = kernel
+            .actors
+            .registry()
+            .tools()
+            .iter()
+            .map(|tool| tool.name().to_owned())
+            .collect();
+        assert!(names.iter().any(|name| name == "TodoRead"), "{surface:?}: {names:?}");
+        assert!(names.iter().any(|name| name == "TodoWrite"), "{surface:?}: {names:?}");
+    }
 }
 
 fn workspace() -> WorkspaceRef {

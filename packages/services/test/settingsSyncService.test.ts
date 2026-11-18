@@ -602,7 +602,7 @@ describe("settingsSyncService plugins import", () => {
     expect(config.plugins?.dirs).toEqual([importedPath]);
   });
 
-  it("imports Claude-manifest plugins into the requested project target as copies", async () => {
+  it("imports NIBI-manifest plugins into the requested project target as copies", async () => {
     const home = makeTempHome();
     const workspacePath = join(home, "workspace");
     process.env.HOME = home;
@@ -610,7 +610,6 @@ describe("settingsSyncService plugins import", () => {
       join(home, ".codex", "plugins"),
       "writer-plugin",
       { name: "writer-plugin" },
-      ".claude-plugin",
     );
     const { createSettingsSyncService } =
       await import("../src/settings-sync/settingsSyncService.js");
@@ -636,9 +635,41 @@ describe("settingsSyncService plugins import", () => {
     ) as { plugins?: { dirs?: string[] } };
     expect(result.successCount).toBe(1);
     expect(lstatSync(importedPath).isSymbolicLink()).toBe(false);
-    expect(existsSync(join(importedPath, ".claude-plugin", "plugin.json"))).toBe(true);
+    expect(existsSync(join(importedPath, ".nibi-plugin", "plugin.json"))).toBe(true);
     expect(config.plugins?.dirs).toEqual([importedPath]);
     expect(existsSync(join(home, ".nibi", "plugins", "writer-plugin"))).toBe(false);
+  });
+
+  it("does not import plugins that only carry a legacy manifest", async () => {
+    const home = makeTempHome();
+    const workspacePath = join(home, "workspace");
+    process.env.HOME = home;
+    const pluginPath = writePlugin(
+      join(home, ".claude", "plugins"),
+      "legacy-writer",
+      { name: "legacy-writer" },
+      ".claude-plugin",
+    );
+    const { createSettingsSyncService } =
+      await import("../src/settings-sync/settingsSyncService.js");
+    const service = createSettingsSyncService({ settingService: createSettingService() });
+
+    const result = await service.importSelected({
+      workspacePath,
+      selections: [
+        {
+          agent: "claudeCode",
+          category: "plugins",
+          sourceScope: "global",
+          targetScope: "project",
+          importMode: "copy",
+          pluginPaths: [pluginPath],
+        },
+      ],
+    });
+
+    expect(result.successCount).toBe(0);
+    expect(existsSync(join(workspacePath, ".nibi", "plugins", "legacy-writer"))).toBe(false);
   });
 
   it("skips plugin imports when target directory or same plugin id exists", async () => {

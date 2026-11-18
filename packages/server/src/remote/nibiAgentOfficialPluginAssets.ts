@@ -22,7 +22,6 @@ export const REMOTE_AGENT_OFFICIAL_PLUGIN_PACKAGE_NAMES = [
 export const REMOTE_AGENT_OFFICIAL_PLUGIN_INCLUDED_TOP_LEVEL_PATHS = [
   ".mcp.json",
   ".nibi-plugin",
-  ".nibi-plugin",
   "README.md",
   // 开发态远程插件复制使用独立白名单，遗漏 agents 会只在远端丢失子代理。
   "agents",

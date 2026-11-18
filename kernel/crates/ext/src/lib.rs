@@ -114,6 +114,10 @@ pub struct ExtConfig {
     /// 插件声明里的 MCP 服务器只在会话快照里连接（桌面 app-server：每个会话一套，避免启动时多一套）。
     /// 插件元数据（skill/命令/agent/hooks）仍然在 `start()` 加载，供工作区级命令目录与引用面板使用。
     pub plugin_mcp_per_session: bool,
+    /// Host 有内联视图宿主（Desktop app-server 的协议前端）。为 true 时注入内置
+    /// `visualize@nibi-official` 的 skill 根；TUI / `-p` / `skills list` 没有视图宿主，缺省 false
+    /// （Node 只在协议入口传 `includeVisualize: true`，见 `visualize-skill-gate.ts`）。
+    pub host_inline_view: bool,
     /// 配置里停用的 MCP 服务器（`enabled: false`）：登记为 disabled、不连接，`/mcp enable` 时才连
     /// （docs/specs/rust-cli/tui-manage.md §6.1）。
     pub mcp_disabled: Vec<McpServer>,
@@ -836,7 +840,8 @@ impl Ext {
         };
         let loaded = loaded.plugins;
         self.register_plugins(&loaded);
-        self.skills.set_plugin_roots(loaded.skill_roots());
+        self.skills
+            .set_plugin_roots(loaded.skill_roots(self.config.host_inline_view));
         self.commands.set_plugin_roots(loaded.command_roots());
         // 桌面 app-server：插件的 MCP 连接按会话建立（会话快照），启动这里只留元数据。
         let plugin_servers = if self.config.plugin_mcp_per_session {
@@ -947,8 +952,10 @@ impl Ext {
         session: SessionId,
         plugins: &Plugins,
     ) {
-        self.skills
-            .set_session_plugin_roots(session.clone(), plugins.skill_roots());
+        self.skills.set_session_plugin_roots(
+            session.clone(),
+            plugins.skill_roots(self.config.host_inline_view),
+        );
         self.commands
             .set_session_plugin_roots(session, plugins.command_roots());
     }

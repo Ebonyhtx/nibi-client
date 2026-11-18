@@ -49,6 +49,7 @@ jobs:
           node scripts/check-brand-model-names.mjs
           node scripts/check-kernel-upstream-gates.mjs
           node scripts/check-kernel-capabilities.mjs
+          node scripts/check-dual-kernel-parity.mjs
 
   linux-static:
     name: linux-static

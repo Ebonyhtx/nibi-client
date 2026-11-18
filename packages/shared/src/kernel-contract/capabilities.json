@@ -21,6 +21,71 @@
       "capability": "remote.agent",
       "side": "node",
       "reason": "远端部署的是 nibi.cjs，没有 Rust 内核包。"
+    },
+    {
+      "capability": "tool.DeferredToolCall",
+      "side": "node",
+      "reason": "Node 的延迟工具调用占位工具；Rust 由 ToolSearch 与延迟清单原生处理，没有同名工具。"
+    },
+    {
+      "capability": "tool.RespondToCoordinator",
+      "side": "node",
+      "reason": "Node 协调者应答通道；Rust 会话没有同名工具（协作在 Host/agents 层）。"
+    },
+    {
+      "capability": "tool.TaskOutput",
+      "side": "node",
+      "reason": "Node 读取后台任务输出；Rust 的对应能力在 agents 层的 TaskGet/后台通知，没有同名工具。"
+    },
+    {
+      "capability": "tool.js",
+      "side": "node",
+      "reason": "node_repl 由 Node 宿主/插件提供；Rust 没有 V8。"
+    },
+    {
+      "capability": "tool.EnterWorktree",
+      "side": "rust",
+      "reason": "Rust 的 worktree 进入工具；Node builtInTools 当前没有同名处理器。"
+    },
+    {
+      "capability": "tool.ExitWorktree",
+      "side": "rust",
+      "reason": "Rust 的 worktree 退出工具；Node builtInTools 当前没有同名处理器。"
+    },
+    {
+      "capability": "tool.Monitor",
+      "side": "rust",
+      "reason": "Rust 的 Monitor 工具；Node builtInTools 当前没有同名处理器。"
+    },
+    {
+      "capability": "tool.NotebookEdit",
+      "side": "rust",
+      "reason": "Rust 已实现 NotebookEdit；Node builtInTools 当前没有该处理器。"
+    },
+    {
+      "capability": "tool.ReportFindings",
+      "side": "rust",
+      "reason": "Rust 的代码评审 findings 工具；Node builtInTools 当前没有同名处理器。"
+    },
+    {
+      "capability": "tool.ScheduleWakeup",
+      "side": "rust",
+      "reason": "Rust 的 /loop 自定节奏工具；Node builtInTools 当前没有同名处理器。"
+    },
+    {
+      "capability": "permission.nodeCategories",
+      "side": "node",
+      "reason": "Node ToolPermissionSpec 的权限分类名（read/edit/bash/...）；Rust 的权限规则以工具名为主体，没有分类字段。"
+    },
+    {
+      "capability": "errorCode.nodeOnly.*",
+      "side": "node",
+      "reason": "Node CoreErrorType 的会话/模型/状态类错误码不在 Rust ToolError 分类中；三个工具执行语义由 errorCodes 的 both 项覆盖。"
+    },
+    {
+      "capability": "errorCode.rustOnly.*",
+      "side": "rust",
+      "reason": "Rust ToolError 的 environment / unsupported 在 Node 工具错误分类中没有同义码。"
     }
   ],
   "dualImplementation": [

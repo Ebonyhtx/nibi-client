@@ -75,6 +75,9 @@ const TOOL_FILES: &[&str] = &[
     include_lf!("../../../prompts/tools/TaskGet.json"),
     include_lf!("../../../prompts/tools/TaskList.json"),
     include_lf!("../../../prompts/tools/TaskUpdate.json"),
+    // 会话 todo（Node builtInTools 的 TodoRead / TodoWrite）。
+    include_lf!("../../../prompts/tools/TodoRead.json"),
+    include_lf!("../../../prompts/tools/TodoWrite.json"),
     // 交互、计划模式、延迟工具与 Web 工具（docs/specs/rust-cli/tools-more.md）。
     include_lf!("../../../prompts/tools/AskUserQuestion.json"),
     include_lf!("../../../prompts/tools/EnterPlanMode.json"),

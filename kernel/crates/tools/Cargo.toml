@@ -32,5 +32,7 @@ url.workspace = true
 
 [dev-dependencies]
 nibi-kernel-api = { workspace = true, features = ["testing"] }
+# X02 对拍：TodoRead / TodoWrite 由 agents 层注册，测试把它们的工具实例并入注册表枚举。
+nibi-kernel-agents.workspace = true
 tokio = { workspace = true, features = ["macros", "rt", "test-util"] }
 tokio-util.workspace = true

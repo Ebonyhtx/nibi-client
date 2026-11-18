@@ -120,6 +120,46 @@ fn skills_list_and_inspect_read_the_same_files_and_unknown_names_fail() {
     assert!(output.stdout.is_empty());
 }
 
+/// Node `filterVisualizeSkillRoots`：非协议入口（`skills list/inspect`、TUI）没有内联视图宿主，
+/// 官方 `visualize@nibi-official` 的 skill 不出现；其他官方插件与用户/项目技能照常。
+#[test]
+fn skills_list_hides_the_official_visualize_skill_without_a_view_host() {
+    let home = tempfile::tempdir().unwrap();
+    let cache = home.path().join(".nibi/cli/plugins/cache/nibi-official");
+    for name in ["visualize", "pdf"] {
+        let plugin = cache.join(name).join("0.1.0");
+        let manifest = plugin.join(".nibi-plugin/plugin.json");
+        std::fs::create_dir_all(manifest.parent().unwrap()).unwrap();
+        std::fs::write(&manifest, format!(r#"{{"name": "{name}"}}"#)).unwrap();
+        let skill = plugin.join("skills").join(name);
+        std::fs::create_dir_all(&skill).unwrap();
+        std::fs::write(
+            skill.join("SKILL.md"),
+            format!("---\ndescription: {name}\n---\nBody\n"),
+        )
+        .unwrap();
+    }
+
+    let output = nibi(home.path(), &["skills", "list", "--json"]);
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    let value: Value = serde_json::from_slice(&output.stdout).unwrap();
+    let names: Vec<&str> = value["skills"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|skill| skill["name"].as_str())
+        .collect();
+    assert!(names.contains(&"pdf:pdf"), "{names:?}");
+    assert!(!names.contains(&"visualize:visualize"), "{names:?}");
+
+    let output = nibi(home.path(), &["skills", "inspect", "visualize:visualize"]);
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    assert_eq!(
+        text(&output.stderr),
+        "unknown skill: visualize:visualize\n"
+    );
+}
+
 #[test]
 fn commands_builtin_has_33_entries_and_custom_commands_come_from_the_project() {
     let home = tempfile::tempdir().unwrap();

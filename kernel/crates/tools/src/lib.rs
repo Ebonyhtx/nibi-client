@@ -62,6 +62,9 @@ mod schedule_wakeup;
 mod session_slug;
 #[cfg(test)]
 mod test_more;
+#[cfg(test)]
+#[path = "parity_tests.rs"]
+mod parity_tests;
 mod texts;
 mod texts_more;
 mod tool_search;

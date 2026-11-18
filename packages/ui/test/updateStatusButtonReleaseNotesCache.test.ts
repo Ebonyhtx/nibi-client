@@ -522,7 +522,7 @@ describe("UpdateStatusButton release notes cache", () => {
     });
 
     expect(useConfirmDialogStore.getState().pendingRequest?.description).toBe(
-      "应用将退出并重启以完成更新，进行中的任务会中断。",
+      "应用将退出并重启以完成更新，进行中的任务会中断。建议先完成任务再安装；也可以立即重启更新。",
     );
     expect(platform.quitAndInstallUpdate).not.toHaveBeenCalled();
 

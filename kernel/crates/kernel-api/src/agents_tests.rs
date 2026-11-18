@@ -5,6 +5,7 @@ use serde_json::json;
 
 use super::{
     AgentNotice, AgentSignal, AgentSignals, NoAgentSignals, TaskList, TaskRecord, TaskStatus,
+    TodoItem, TodoPriority, TodoStatus,
 };
 use crate::ids::{AgentId, SessionId};
 
@@ -49,6 +50,29 @@ fn task_list_uses_the_task_json_field_names() {
     // 旧文件或手写文件缺字段时按空值读。
     let empty: TaskList = serde_json::from_value(json!({})).unwrap();
     assert_eq!(empty, TaskList::default());
+}
+
+#[test]
+fn todo_items_use_the_node_field_names() {
+    let item = TodoItem {
+        content: "Inspect".to_owned(),
+        status: TodoStatus::InProgress,
+        priority: TodoPriority::High,
+    };
+    let value = serde_json::to_value(&item).unwrap();
+    assert_eq!(
+        value,
+        json!({"content": "Inspect", "status": "in_progress", "priority": "high"})
+    );
+    let back: TodoItem = serde_json::from_value(value).unwrap();
+    assert_eq!(back, item);
+    // 未知状态/优先级按 Node zod 的行为拒绝。
+    assert!(serde_json::from_value::<TodoItem>(json!({
+        "content": "x",
+        "status": "blocked",
+        "priority": "high"
+    }))
+    .is_err());
 }
 
 #[test]

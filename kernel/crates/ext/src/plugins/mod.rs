@@ -29,6 +29,10 @@ pub use self::select::{
 /// manifest 的位置：NIBI 自有格式唯一。
 const MANIFESTS: [&str; 1] = [".nibi-plugin/plugin.json"];
 
+/// 内置 `visualize@nibi-official` 的稳定 id（Node `visualize-skill-gate.ts` 的 `VISUALIZE_PLUGIN_ID`）。
+/// 它提供对话内视图，只有带内联视图宿主的协议前端才注入它的 skill 根。
+const VISUALIZE_PLUGIN_ID: &str = "visualize@nibi-official";
+
 /// 读 manifest 的结果。
 enum Manifest {
     Missing,
@@ -79,9 +83,16 @@ pub struct Plugin {
 pub struct Plugins(pub Vec<Plugin>);
 
 impl Plugins {
-    pub fn skill_roots(&self) -> Vec<PluginSkillRoot> {
+    /// 插件提供的 skill 根。
+    ///
+    /// `include_visualize` 对应 Node `filterVisualizeSkillRoots` 的 `includeVisualize`：内置
+    /// `visualize@nibi-official` 提供对话内视图，只有协议前端（Desktop app-server / `--stdio`）有
+    /// 内联视图宿主。TUI、`-p` 与 `skills list` 缺省过滤它的 skill 根（Node 只在协议入口显式保留）。
+    /// 只按官方插件 identity 过滤：其他插件与用户/项目自定义的同名技能都不受影响。
+    pub fn skill_roots(&self, include_visualize: bool) -> Vec<PluginSkillRoot> {
         self.0
             .iter()
+            .filter(|plugin| include_visualize || plugin.id != VISUALIZE_PLUGIN_ID)
             .flat_map(|plugin| {
                 plugin.skill_dirs.iter().map(|dir| PluginSkillRoot {
                     plugin: plugin.name.clone(),

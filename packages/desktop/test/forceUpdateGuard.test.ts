@@ -441,7 +441,7 @@ describe("forceUpdateGuard", () => {
     );
     expect(electronMocks.browserWindowInstance.close).not.toHaveBeenCalled();
     const promptHtml = getLoadedPromptHtml();
-    expect(promptHtml).toContain("自动升级正在进行");
+    expect(promptHtml).toContain("更新流程正在进行");
     expect(promptHtml).toContain("确认关闭");
     expect(promptHtml).toContain("继续更新");
     expect(promptHtml).toContain("action === 'quit' || action === 'manual'");
@@ -491,6 +491,96 @@ describe("forceUpdateGuard", () => {
     expect(electronMocks.appQuitMock).toHaveBeenCalled();
   });
 
+  it("强更 ready 后只有用户点击立即重启安装才调用安装入口", async () => {
+    electronMocks.setPromptAction("auto");
+    let onStateChange: ((state: { kind: string; version?: string }) => void) | undefined;
+    const installUpdate = vi.fn(async () => {});
+    const requestAutoUpdate = vi.fn(
+      (listener?: (state: { kind: string; version?: string }) => void) => {
+        onStateChange = listener;
+        return vi.fn();
+      },
+    );
+    const { maybeBlockStartupForForceUpdate } = await import("../src/main/forceUpdateGuard.js");
+
+    const resultPromise = maybeBlockStartupForForceUpdate({
+      locale: "zh-CN",
+      logger: createLogger(),
+      fetchRemoteConfig: async () => ({
+        forceUpdate: { minimalVersion: "999.0.0" },
+      }),
+      requestAutoUpdate,
+      installUpdate,
+    });
+    await vi.waitFor(() => expect(electronMocks.browserWindowConstructorMock).toHaveBeenCalled());
+
+    onStateChange?.({ kind: "ready", version: "0.1.25" });
+    await vi.waitFor(() =>
+      expect(electronMocks.browserWindowInstance.executeJavaScriptMock).toHaveBeenCalledWith(
+        expect.stringContaining('"kind":"ready"'),
+      ),
+    );
+
+    // S2：ready 只是“可安装”，不得自动调用安装入口。
+    expect(installUpdate).not.toHaveBeenCalled();
+    const promptHtml = getLoadedPromptHtml();
+    expect(promptHtml).toContain("立即重启安装");
+    expect(promptHtml).toContain("force-update:install");
+    expect(promptHtml).toContain("action === 'install'");
+
+    electronMocks.browserWindowInstance.emitPageTitle("force-update:install");
+    await vi.waitFor(() => expect(installUpdate).toHaveBeenCalledOnce());
+    expect(electronMocks.browserWindowInstance.close).not.toHaveBeenCalled();
+
+    electronMocks.browserWindowInstance.emitPageTitle("force-update:quit");
+    const result = await resultPromise;
+    expect(result.blocked).toBe(true);
+  });
+
+  it("强更 ready 有运行中任务时提示完成任务后再安装，且不自动安装", async () => {
+    electronMocks.setPromptAction("auto");
+    let onStateChange: ((state: { kind: string; version?: string }) => void) | undefined;
+    const installUpdate = vi.fn(async () => {});
+    const getRunningTaskCount = vi.fn(async () => 3);
+    const requestAutoUpdate = vi.fn(
+      (listener?: (state: { kind: string; version?: string }) => void) => {
+        onStateChange = listener;
+        return vi.fn();
+      },
+    );
+    const { maybeBlockStartupForForceUpdate } = await import("../src/main/forceUpdateGuard.js");
+
+    const resultPromise = maybeBlockStartupForForceUpdate({
+      locale: "zh-CN",
+      logger: createLogger(),
+      fetchRemoteConfig: async () => ({
+        forceUpdate: { minimalVersion: "999.0.0" },
+      }),
+      requestAutoUpdate,
+      installUpdate,
+      getRunningTaskCount,
+    });
+    await vi.waitFor(() => expect(electronMocks.browserWindowConstructorMock).toHaveBeenCalled());
+
+    onStateChange?.({ kind: "ready", version: "0.1.25" });
+    await vi.waitFor(() =>
+      expect(electronMocks.browserWindowInstance.executeJavaScriptMock).toHaveBeenCalledWith(
+        expect.stringContaining('"runningTaskCount":3'),
+      ),
+    );
+
+    expect(getRunningTaskCount).toHaveBeenCalled();
+    expect(installUpdate).not.toHaveBeenCalled();
+    const promptHtml = getLoadedPromptHtml();
+    expect(promptHtml).toContain("请完成任务后再安装");
+    expect(promptHtml).toContain("仍要立即安装");
+    expect(promptHtml).toContain("稍后安装");
+    expect(promptHtml).toContain("showInstallConfirmation");
+
+    electronMocks.browserWindowInstance.emitPageTitle("force-update:quit");
+    await resultPromise;
+  });
+
   it("弹窗文案只包含当前版本和最低可用版本", async () => {
     const { formatForceUpdateDialogText } = await import("../src/main/forceUpdateGuard.js");
 
@@ -500,7 +590,7 @@ describe("forceUpdateGuard", () => {
     );
 
     expect(text.detail).toBe("当前版本：v3.1.7\n最低可用版本：v4.0.0");
-    expect(text.autoUpdateButton).toBe("自动升级");
+    expect(text.autoUpdateButton).toBe("立即更新");
     expect(text.manualUpdateButton).toBe("手动升级");
   });
 });

@@ -734,7 +734,7 @@ diagnosing-body`,
       "claude-plugins-official",
       "amazon-location-service",
     );
-    writeClaudePluginManifest(pluginRoot, {
+    writePluginManifest(pluginRoot, {
       name: "amazon-location-service",
       skills: "skills",
       version: "1.0.0",
@@ -774,6 +774,43 @@ amazon-body`,
     ]);
   });
 
+  it("忽略只有旧 .claude-plugin 清单的插件目录", async () => {
+    const home = makeTempHome();
+    const workspacePath = join(home, "workspace");
+    const pluginRoot = marketplacePluginRoot(home, "claude-plugins-official", "legacy-only");
+    writeClaudePluginManifest(pluginRoot, {
+      name: "legacy-only",
+      skills: "skills",
+      version: "1.0.0",
+    });
+    writeSkill(
+      join(pluginRoot, "skills"),
+      "legacy-only",
+      `---
+name: legacy-only
+description: legacy skill
+---
+legacy-body`,
+    );
+    writeInstalledPluginRecord(home, {
+      installPath: pluginRoot,
+      marketplace: "claude-plugins-official",
+      name: "legacy-only",
+    });
+    writeCliConfig(home, {
+      plugins: {
+        enabledPlugins: {
+          "legacy-only@claude-plugins-official": true,
+        },
+      },
+    });
+
+    const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
+    const result = await service.list({ workspacePath, provider: "nibi-agent" });
+
+    expect(result.skills).toEqual([]);
+  });
+
   // Bugfix 回归（差一层目录）：Claude 插件规范里 manifest skills 数组项指向「技能目录本身」
   // （项内直接是 SKILL.md），agent 端扫描已支持（adapters/src/skills/scan.ts）；这里验证
   // 桌面 services 端技能列表对同一形态的消费，两端语义保持一致。
@@ -781,7 +818,7 @@ amazon-body`,
     const home = makeTempHome();
     const workspacePath = join(home, "workspace");
     const pluginRoot = marketplacePluginRoot(home, "claude-plugins-official", "mattpocock-skills");
-    writeClaudePluginManifest(pluginRoot, {
+    writePluginManifest(pluginRoot, {
       name: "mattpocock-skills",
       skills: ["./skills/engineering/tdd", "./skills/productivity/tdd", "./skills/bundle-root"],
       version: "1.0.0",
@@ -1368,7 +1405,7 @@ body`,
       "claude-plugins-official",
       "amazon-location-service",
     );
-    writeClaudePluginManifest(pluginRoot, {
+    writePluginManifest(pluginRoot, {
       name: "amazon-location-service",
       skills: "skills",
       version: "1.0.0",

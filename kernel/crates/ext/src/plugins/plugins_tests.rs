@@ -76,7 +76,7 @@ async fn manifest_components_and_mcp_servers() {
     assert_eq!(plugins.0[1].name, "bare");
     plugin_stdio_servers_get_the_node_variables(kit, root).await;
     let roots: Vec<String> = plugins
-        .skill_roots()
+        .skill_roots(false)
         .iter()
         .map(|root| format!("{}:{}", root.plugin, root.dir))
         .collect();
@@ -306,4 +306,90 @@ async fn command_roots_follow_the_plugin_manifest() {
     assert_eq!(roots[0].dir, format!("{root}/commands"));
     assert_eq!(roots[0].root, root);
     assert!(!roots[0].official);
+}
+
+/// Node `filterVisualizeSkillRoots`（`visualize-skill-gate.ts`）：没有内联视图宿主时只过滤
+/// 官方 `visualize@nibi-official` 的 skill 根，其他插件照常；协议宿主显式保留。
+#[tokio::test]
+async fn visualize_skill_roots_require_an_inline_view_host() {
+    let visualize = "/Users/dev/cache/nibi-official/visualize/0.1.0";
+    let pdf = "/Users/dev/cache/nibi-official/pdf/0.1.0";
+    let env = MemoryEnvironment::new(facts())
+        .with_file(
+            &format!("{visualize}/.nibi-plugin/plugin.json"),
+            r#"{"name": "visualize"}"#,
+        )
+        .with_file(
+            &format!("{visualize}/skills/visualize/SKILL.md"),
+            "---\ndescription: Inline views\n---\n",
+        )
+        .with_file(
+            &format!("{pdf}/.nibi-plugin/plugin.json"),
+            r#"{"name": "pdf"}"#,
+        )
+        .with_file(
+            &format!("{pdf}/skills/pdf/SKILL.md"),
+            "---\ndescription: PDF\n---\n",
+        );
+    let sources = PluginSources {
+        candidates: [visualize, pdf]
+            .into_iter()
+            .map(|dir| PluginCandidate {
+                dir: EnvPath::new(dir),
+                marketplace: nibi_kernel_base::names::OFFICIAL_MARKETPLACE.to_owned(),
+                origin: PluginOrigin::Official,
+                paid: false,
+            })
+            .collect(),
+        ..PluginSources::default()
+    };
+    let plugins = load_all(&env, &workspace(), &[], &sources).await.plugins;
+    let roots = |include_visualize: bool| -> Vec<String> {
+        plugins
+            .skill_roots(include_visualize)
+            .into_iter()
+            .map(|root| format!("{}:{}", root.plugin, root.dir))
+            .collect()
+    };
+    // TUI / `-p` / `skills list`：visualize 的根被过滤，其他官方插件照常。
+    assert_eq!(roots(false), [format!("pdf:{pdf}/skills")]);
+    // Desktop app-server / 协议宿主：两份根都在。
+    assert_eq!(
+        roots(true),
+        [
+            format!("visualize:{visualize}/skills"),
+            format!("pdf:{pdf}/skills"),
+        ]
+    );
+    // 空快照不报错，也没有根。
+    assert!(Plugins::default().skill_roots(false).is_empty());
+    assert!(Plugins::default().skill_roots(true).is_empty());
+}
+
+/// 只按官方 identity 过滤：第三方（`--plugin-dir` / `inline` 市场）的同名 visualize 插件保留。
+#[tokio::test]
+async fn a_third_party_visualize_plugin_is_not_filtered() {
+    let root = "/Users/dev/plugins/visualize";
+    let env = MemoryEnvironment::new(facts())
+        .with_file(
+            &format!("{root}/.nibi-plugin/plugin.json"),
+            r#"{"name": "visualize"}"#,
+        )
+        .with_file(
+            &format!("{root}/skills/visualize/SKILL.md"),
+            "---\ndescription: Project view\n---\n",
+        );
+    let plugins = load_all(
+        &env,
+        &workspace(),
+        &[EnvPath::new(root)],
+        &PluginSources::default(),
+    )
+    .await
+    .plugins;
+    assert_eq!(plugins.0[0].id, "visualize@inline");
+    assert_eq!(
+        plugins.skill_roots(false)[0].dir,
+        format!("{root}/skills")
+    );
 }

@@ -5,10 +5,8 @@ import { stageSharpIntoBundledAgents } from "../packages/desktop/scripts/sharp-p
 
 const repositoryRoot = resolve(import.meta.dirname, "..");
 
-// 清单目录按宿主同一优先级探测：NIBI 自有格式在前，旧 Nibi 格式仍在用（互操作层）。
-// 2026-10-26 修：身份隔离把插件清单迁到 `.nibi-plugin/`，这里只找 `.nibi-plugin/` 会误报
-// 「CUA plugin manifest is missing」并让整个 agent bundle 构建失败。
-const PLUGIN_MANIFEST_DIRS = [".nibi-plugin", ".nibi-plugin", ".claude-plugin", ".codex-plugin"];
+// 插件包发现只认 NIBI 自有清单；旧 .claude-plugin/.codex-plugin 不再兜底。
+const PLUGIN_MANIFEST_PATH = ".nibi-plugin/plugin.json";
 
 export function stageDevCuaPluginRuntime({
   env = process.env,
@@ -21,13 +19,11 @@ export function stageDevCuaPluginRuntime({
   // 开源占位包不提供 Computer Use 原生能力，也不随附 Sharp：没有真实 producer 时不暂存。
   if (!isRealComputerUseProducerInstalled({ desktopPackageRoot })) return [];
 
-  const manifestPath = PLUGIN_MANIFEST_DIRS.map((dir) =>
-    resolve(pluginRoot, dir, "plugin.json"),
-  ).find((candidate) => existsSync(candidate));
-  if (!manifestPath) {
+  const manifestPath = resolve(pluginRoot, PLUGIN_MANIFEST_PATH);
+  if (!existsSync(manifestPath)) {
     throw new Error(
       `[stage-dev-cua-plugin-runtime] CUA plugin manifest is missing under ${pluginRoot} ` +
-        `(tried ${PLUGIN_MANIFEST_DIRS.join(", ")})`,
+        `(expected ${PLUGIN_MANIFEST_PATH})`,
     );
   }
 

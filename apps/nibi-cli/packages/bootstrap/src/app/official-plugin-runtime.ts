@@ -5,7 +5,7 @@ import {
   NIBI_PLUGIN_HOST_COMMAND,
   type McpServerConfig,
 } from "@nibi/contracts";
-import { NIBI_PLUGIN_ID_ENV_KEY, PLUGIN_MANIFEST_DIRS } from "@nibi/shared";
+import { NIBI_PLUGIN_ID_ENV_KEY, NIBI_PLUGIN_MANIFEST_DIR } from "@nibi/shared";
 import {
   createOfficialPluginCacheRetryBudget,
   type OfficialPluginCacheRetryBudget,
@@ -64,13 +64,10 @@ interface OfficialRuntimeManifestInput {
 }
 
 export function writeOfficialPluginRuntimeManifest(input: OfficialRuntimeManifestInput): void {
-  // 内置件已迁到 .nibi-plugin；写死 .nibi-plugin 会让新格式的插件整段跳过重写，
-  // MCP server 于是以 `command: "node"`（且没有 ELECTRON_RUN_AS_NODE）进入缓存，
-  // 桌面应用里会被当成 Electron main 启动。按发现优先级取第一个存在的清单目录。
-  const manifestDir =
-    PLUGIN_MANIFEST_DIRS.find((dir) => existsSync(join(input.rootPath, dir, "plugin.json"))) ??
-    PLUGIN_MANIFEST_DIRS[0];
-  const manifestPath = join(input.rootPath, manifestDir, "plugin.json");
+  // 插件包发现只认 .nibi-plugin；内置件与官方缓存都已迁到这里。
+  // 若仍写旧格式，MCP server 会以 `command: "node"`（且没有 ELECTRON_RUN_AS_NODE）
+  // 进入缓存，桌面应用里会被当成 Electron main 启动。
+  const manifestPath = join(input.rootPath, NIBI_PLUGIN_MANIFEST_DIR, "plugin.json");
   const currentContents = readFileSync(manifestPath, "utf8");
   // 缓存里的入口可能已被旧客户端覆盖，必须从内置原始 manifest 重新生成。
   const manifest = JSON.parse(input.sourceManifestContents ?? currentContents) as Record<
@@ -168,11 +165,7 @@ function rewritePluginMcpConfigFile(
     const args = Array.isArray(server.args)
       ? server.args.map((arg) =>
           typeof arg === "string"
-            ? normalizeSeededPath(
-                arg
-                  .replaceAll("${CLAUDE_PLUGIN_ROOT}", rootPath)
-                  .replaceAll("${NIBI_PLUGIN_ROOT}", rootPath),
-              )
+            ? normalizeSeededPath(arg.replaceAll("${NIBI_PLUGIN_ROOT}", rootPath))
             : arg,
         )
       : [];

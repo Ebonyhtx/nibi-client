@@ -99,20 +99,24 @@ export function isPublicStoreMarketplaceId(id: string): boolean {
 
 // ── 插件清单目录（包格式） ─────────────────────────────────────────────────
 //
-// 插件包 = 一个目录，里面必须有一个 `<清单目录>/plugin.json`。宿主按下面的顺序探测，
-// 命中第一个存在的即用；这是**互操作层**，不是品牌标识：
-//   .nibi-plugin    ← NIBI 自有格式（我们的内置件与市场上架件都迁到这里）
-//   .claude-plugin  ← Claude 插件生态
-//   .codex-plugin   ← Codex 插件生态
-//
-// 顺序有意义：同名目录并存时优先读 NIBI 的，避免重打包前后的两个清单互相打架。
+// 插件包 = 一个目录，里面必须有 `.nibi-plugin/plugin.json`。旧格式
+// `.claude-plugin`/`.codex-plugin` 已不再参与发现：App 管理的旧缓存由适配器一次性
+// 迁到 NIBI 布局，用户自选 `plugins.dirs` 不改写，旧格式目录按“清单缺失”处理。
 export const NIBI_PLUGIN_MANIFEST_DIR = ".nibi-plugin";
+
+/**
+ * @deprecated 旧 Claude 插件清单目录。NIBI 发现逻辑只认 {@link NIBI_PLUGIN_MANIFEST_DIR}；
+ * 保留导出仅为不破坏外部消费者签名，仓库内不得再引用。
+ */
 export const CLAUDE_PLUGIN_MANIFEST_DIR = ".claude-plugin";
+
+/**
+ * @deprecated 旧 Codex 插件清单目录。语义同 {@link CLAUDE_PLUGIN_MANIFEST_DIR}。
+ */
 export const CODEX_PLUGIN_MANIFEST_DIR = ".codex-plugin";
 
-/** 按发现优先级排列的清单目录；第一个是 NIBI 自己的写入格式。 */
-export const PLUGIN_MANIFEST_DIRS = [
-  NIBI_PLUGIN_MANIFEST_DIR,
-  CLAUDE_PLUGIN_MANIFEST_DIR,
-  CODEX_PLUGIN_MANIFEST_DIR,
-] as const;
+/**
+ * @deprecated 发现逻辑只认 NIBI 自有清单；保留导出仅为不破坏外部消费者签名。
+ * 仓库内应直接使用 {@link NIBI_PLUGIN_MANIFEST_DIR}。
+ */
+export const PLUGIN_MANIFEST_DIRS = [NIBI_PLUGIN_MANIFEST_DIR] as const;

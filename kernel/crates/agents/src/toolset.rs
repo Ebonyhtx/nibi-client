@@ -27,6 +27,7 @@ const ALL_AGENT_DISALLOWED: &[&str] = &[
 const ASYNC_ALLOWED: &[&str] = &[
     "Read",
     "WebSearch",
+    "TodoRead",
     "TodoWrite",
     "Grep",
     "WebFetch",
