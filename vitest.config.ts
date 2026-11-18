@@ -49,6 +49,13 @@ const forkIsolatedTests = [
   // Bugfix: checkpoint 集成测试同样会连续创建真实 Git 仓库；related 全量并发时会因
   // 子进程与磁盘调度饥饿超过 30 秒，隔离串行后保持聚焦运行时的真实耗时口径。
   "packages/services/test/gitCheckpointService.test.ts",
+  // 受管 worktree 用例连续启动真实 git 子进程（add/commit/worktree list/remove）。
+  // 全量并发时曾把 `git worktree list` 打到瞬时失败并被判成 not-managed；串行组保留
+  // 真实仓库链路和原有 30s 口径，避免把进程/磁盘排队误判成产品行为。
+  "packages/services/test/managedWorktree.test.ts",
+  "packages/services/test/managedWorktreeCleanup.test.ts",
+  "packages/services/test/managedWorktreeReservation.test.ts",
+  "packages/services/test/managedWorktreeTaskDeletion.test.ts",
   "packages/services/test/mcpSyncService.test.ts",
   "packages/services/test/providerRuntimeResolver.test.ts",
   "packages/services/test/runtimeToolResolver.test.ts",
