@@ -698,6 +698,12 @@ pub trait SessionHandle: Send + Sync {
 
     async fn view(&self) -> Result<SessionView, KernelError>;
 
+    /// 此刻在跑的执行身份（会话控制工具的 `executionId`）：有回合在跑时是那个回合的 ID，
+    /// 空闲时 None。跨会话控制的中断要求模型原样回传它，避免停错执行。缺省 None（实现未知）。
+    async fn current_execution(&self) -> Result<Option<String>, KernelError> {
+        Ok(None)
+    }
+
     /// 前端离开会话时调用：运行 SessionEnd hook，返回只给用户看的提示（失败的 hook）。
     async fn close(&self, _reason: EndReason) -> Vec<String> {
         Vec::new()

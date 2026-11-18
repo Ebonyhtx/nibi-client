@@ -527,6 +527,7 @@ async function executeToolCallImpl(
         automationPort: deps.automationPort,
         topicResourcePort: deps.topicResourcePort,
         sessionStore: deps.sessionStore,
+        sessionControl: deps.sessionControl,
         sessionModePort: deps.sessionModePort,
         workflowPort: deps.workflowPort,
         dynamicWorkflowRunPort: deps.dynamicWorkflowRunPort,

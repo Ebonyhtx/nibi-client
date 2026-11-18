@@ -45,6 +45,10 @@ pub(crate) enum Request {
     View {
         reply: oneshot::Sender<SessionView>,
     },
+    /// 此刻在跑的回合 ID（会话控制的 `executionId`）：空闲时 None。与 `View` 分开，读它不复制历史。
+    Execution {
+        reply: oneshot::Sender<Option<String>>,
+    },
     Meta {
         reply: oneshot::Sender<SessionMeta>,
     },
@@ -522,6 +526,13 @@ impl Actor {
         match request {
             Request::View { reply } => {
                 let _ = reply.send(self.view().await);
+            }
+            Request::Execution { reply } => {
+                let _ = reply.send(
+                    self.running
+                        .as_ref()
+                        .map(|running| running.turn.to_string()),
+                );
             }
             Request::Meta { reply } => {
                 let _ = reply.send(self.meta.clone());

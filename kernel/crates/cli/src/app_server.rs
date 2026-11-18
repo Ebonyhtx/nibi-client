@@ -546,6 +546,8 @@ where
         config.permission_rules(local, crate::args::cli_rules(&[], &[], Vec::new())),
     );
     let kernel = Arc::new(kernel);
+    // 会话控制（8 个模型工具）的拥有者端口：桌面 app-server 入口接同一条实现。
+    kernel.install_session_control_host();
     kernel.set_paid_plugin_gate(crate::paid_plugin_gate(&startup.home, &startup.env));
     kernel.start_extensions().await;
     // 常驻会话池：目标 8 / 高水位 16 / 空闲 10 分钟；请求租约释放触发收敛，60 s sampler 兜底。

@@ -24,6 +24,8 @@ nibi-kernel-prompts.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 tokio = { workspace = true, features = ["sync", "time"] }
+# WaitSessions 的取消令牌与工具取消共用 `ToolUseContext::cancel`。
+tokio-util.workspace = true
 tracing.workspace = true
 # CronList 按显示宽度截断 prompt。
 unicode-width.workspace = true

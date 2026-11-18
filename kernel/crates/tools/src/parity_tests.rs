@@ -31,7 +31,7 @@ use crate::{
     BashTool, BuiltinTools, CronBoard, FileTools, FillWorkflowHoleTool, GetWorkflowRunTool,
     MonitorTool, ReadFileState, ReportFindingsTool, ResolveWorkflowQuestionTool,
     ScheduleWakeupTool, ToolCatalog, authoring_tools, cron_tools_with, file_tools,
-    interaction_tools, topic_tools, web_tools, worktree_tools,
+    interaction_tools, session_control_tools, topic_tools, web_tools, worktree_tools,
 };
 
 /// canonical 清单；路径从 crate 根推仓库根（kernel/crates/tools → ../../../packages/...）。
@@ -208,6 +208,8 @@ fn registry() -> Vec<Arc<dyn Tool>> {
         ))])
         .with_tools(vec![Arc::new(FillWorkflowHoleTool::new(engine_slot))])
         .with_tools(worktree_tools(&Arc::new(crate::WorktreeBoard::default())))
+        // 会话控制 8 个工具：端口槽在入口拿到 Arc<LocalKernel> 之后注入；对拍只看名字、只读标记与 Ask。
+        .with_tools(session_control_tools(Arc::new(std::sync::OnceLock::new())))
         .with_tools(topic_tools(Arc::new(EmptyReads), None));
     let mut tools = builtin.tools();
     // TodoRead / TodoWrite 是 agents 层的工具（与 Node 同名、同语义）；X02 的 Rust 覆盖面包含它们。

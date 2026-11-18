@@ -77,6 +77,23 @@ modules:
   - id: nibi-cli
     roots: [ apps/nibi-cli ]
     managed: false
+  # session-control：按上游 3.18.2 packages/session-control 移植的纯契约包。
+  # Phase 1 只接 8 个 CLI 可见工具；App 专属 4 工具未注册。
+  - id: session-control
+    roots: [ packages/session-control/src ]
+    managed: true
+    requires: []
+    publicEntrypoints:
+      - packages/session-control/src/contract.ts
+      - packages/session-control/src/application/cli/index.ts
+      - packages/session-control/src/application/app/index.ts
+      - packages/session-control/src/testing/index.ts
+    layers:
+      contract: contract
+      domain: domain
+      app: application
+    layerOrder: [ contract, domain, app ]
+    owner: conversation
   # sqlite-migrations：由 architecture:adopt 登记
   - id: sqlite-migrations
     roots:
@@ -144,6 +161,7 @@ modules:
       - conversation-workspace-target
       - web-remote-control-ui
       - remote-connection-flow
+      - task-row-hover
     publicEntrypoints:
       - packages/ui/src/project-sidebar/index.tsx
       - packages/ui/src/project-sidebar/contract.ts
@@ -156,6 +174,29 @@ modules:
       - packages/ui/src/project-sidebar/RemoteConversationDisconnected.tsx
     layers:
       contract: contract.ts
+      ui: .
+    owner: conversation
+  # task-row-hover：会话行悬停卡片（上游 3.18.2 U26）。
+  - id: task-row-hover
+    roots:
+      - packages/ui/src/task-row-hover
+    managed: true
+    requires: [ shared, ui ]
+    publicEntrypoints:
+      - packages/ui/src/task-row-hover/index.ts
+      - packages/ui/src/task-row-hover/contract.ts
+    layers:
+      ui: .
+    owner: conversation
+  # session-tool-presentation：8 个会话控制工具的只读展示卡。
+  - id: session-tool-presentation
+    roots:
+      - packages/ui/src/ToolCallBlocks/session
+    managed: true
+    requires: [ shared, ui ]
+    publicEntrypoints:
+      - packages/ui/src/ToolCallBlocks/session/contract.ts
+    layers:
       ui: .
     owner: conversation
   # remote-projects：由 architecture:adopt 登记
@@ -1478,3 +1519,19 @@ exceptions:
     reason: >-
       Tier 2 浏览器导出 PNG/PDF 与最近访问的纯逻辑/存储模块；browser-use 与 lib 仍是
       managed:false 的遗留大区，按路径准入这两个新文件，不接管整目录。
+
+  - id: tier2-session-control-node
+    rule: unmanaged-new-file
+    paths:
+      - apps/nibi-cli/packages/bootstrap/src/cli-session-control/**
+      - apps/nibi-cli/packages/bootstrap/src/nibi-protocol/session-control-runtime.ts
+      - apps/nibi-cli/packages/contracts/src/interfaces/session-control.port.ts
+      - apps/nibi-cli/packages/contracts/src/tools/session-control.ts
+      - apps/nibi-cli/packages/core/src/tool/handlers/session-control.ts
+      - apps/nibi-cli/packages/core/src/tool/session-control/**
+      - packages/session-control/vitest.config.ts
+    reason: >-
+      Tier 2 会话控制 Phase 1：按上游 3.18.2 packages/session-control 移植的 Node 内核
+      8 工具、CLI owner 与测试装配。apps/nibi-cli 仍是 managed:false 的遗留应用，
+      契约/处理器按既有包布局落位；纯契约包本身已登记为 managed 模块 session-control，
+      这里只准入其包根测试配置。接管 apps/nibi-cli 不在本次范围。

@@ -11,6 +11,7 @@ export const projectSidebarModule = {
     "conversation-workspace-target",
     "web-remote-control-ui",
     "remote-connection-flow",
+    "task-row-hover",
   ],
   provides: ["project-sidebar"],
   publicEntrypoints: [

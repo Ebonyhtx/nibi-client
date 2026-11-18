@@ -28,10 +28,10 @@ test("canonical registry passes", () => {
 
 test("counts match the arrays", () => {
   const counts = toolParityCounts(canonical(), capabilities());
-  assert.equal(counts.tools, 41);
-  assert.equal(counts.nodeTools, 35);
-  assert.equal(counts.rustTools, 37);
-  assert.equal(counts.permissions, 36);
+  assert.equal(counts.tools, 49);
+  assert.equal(counts.nodeTools, 43);
+  assert.equal(counts.rustTools, 45);
+  assert.equal(counts.permissions, 44);
   assert.equal(counts.errorCodes, 29);
   assert.equal(counts.excluded, 7);
 });
@@ -40,7 +40,7 @@ test("mutation: deleting a tool without updating counts is red", () => {
   const document = canonical();
   document.tools = document.tools.filter((tool) => tool.name !== "Read");
   const errors = validateToolParity(document, capabilities());
-  assert.match(errors.join("\n"), /counts\.tools 41 != 实际 40/);
+  assert.match(errors.join("\n"), /counts\.tools 49 != 实际 48/);
 });
 
 test("mutation: deleting a single-side tool leaves its stale capability exception red", () => {
@@ -137,5 +137,5 @@ test("CLI --json exits 0 on the real canonical", () => {
   const payload = JSON.parse(result.stdout);
   assert.equal(payload.ok, true);
   assert.deepEqual(payload.errors, []);
-  assert.equal(payload.counts.tools, 41);
+  assert.equal(payload.counts.tools, 49);
 });

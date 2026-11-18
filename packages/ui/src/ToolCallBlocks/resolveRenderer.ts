@@ -45,6 +45,10 @@ import { RespondToCoordinatorToolCallBlock } from "@/ToolCallBlocks/renderers/re
 import { WebFetchToolCallBlock } from "@/ToolCallBlocks/renderers/web-fetch.js";
 import { SearchToolCallBlock, ToolSearchToolCallBlock } from "@/ToolCallBlocks/renderers/search.js";
 import { SendMessageToolCallBlock } from "@/ToolCallBlocks/renderers/send-message.js";
+import {
+  SessionToolCallBlock,
+  isSessionToolCallRenderable,
+} from "@/ToolCallBlocks/session/session.js";
 import { SkillToolCallBlock } from "@/ToolCallBlocks/renderers/skill.js";
 import { SubmitResultToolCallBlock } from "@/ToolCallBlocks/renderers/submit-result.js";
 import { SwitchModeToolCallBlock } from "@/ToolCallBlocks/renderers/switch-mode.js";
@@ -52,7 +56,7 @@ import { TaskOutputToolCallBlock } from "@/ToolCallBlocks/renderers/task-output.
 import { TaskStopToolCallBlock } from "@/ToolCallBlocks/renderers/task-stop.js";
 import { TodoToolCallBlock } from "@/ToolCallBlocks/renderers/todo.js";
 import { AskQuestionToolCallBlock } from "@/ToolCallBlocks/renderers/ask-question.js";
-import { resolveToolCallIdentity } from "@/lib/toolIdentity.js";
+import { isSessionToolCall, resolveToolCallIdentity } from "@/lib/toolIdentity.js";
 import type { ToolCallBlockRenderContext } from "@/ToolCallBlocks/shared.js";
 
 export function resolveToolCallRenderer(context: ToolCallBlockRenderContext) {
@@ -160,6 +164,13 @@ export function resolveToolCallRenderer(context: ToolCallBlockRenderContext) {
         : CreateWorkflowToolCallBlock;
     case "session-context":
       return ReadSessionContextToolCallBlock;
+    case "session":
+      // 名字已登记但回执形状读不懂时交回通用卡：会话卡片只渲染它认识的字段，
+      // 不把别的 JSON 硬套成会话语义。
+      return isSessionToolCall(context.toolCallNode.toolCall, identity) &&
+        isSessionToolCallRenderable(context.toolCallNode.toolCall)
+        ? SessionToolCallBlock
+        : FallbackToolCallBlock;
     case "file-read":
       return ReadToolCallBlock;
     case "file-write":

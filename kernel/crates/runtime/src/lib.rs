@@ -29,6 +29,8 @@ mod projects;
 mod resident;
 mod residency;
 mod sampling;
+mod session_control;
+mod session_control_feed;
 mod session_data;
 mod shared_context;
 mod table;
@@ -216,6 +218,9 @@ pub struct LocalKernel {
     workflow_engine_slot: nibi_kernel_tools::WorkflowEngineSlot,
     /// 模型目录槽：`with_titles` 在建内核之后注入，`ListModels` 在调用时读它。
     model_directory_slot: nibi_kernel_api::provider::ModelDirectorySlot,
+    /// 会话控制端口槽：入口拿到 `Arc<LocalKernel>` 之后经
+    /// [`LocalKernel::install_session_control_host`] 注入；没接的入口工具按 `unavailable` 失败。
+    session_control_host: nibi_kernel_api::session_control::SessionControlHostSlot,
     /// DWF 升级问答的停驻表（actor 的 `escalate` 与主会话的 `ResolveWorkflowQuestion` 共用）。
     escalations: Arc<escalations::WorkflowEscalations>,
     /// 本进程在服务 Host 协议（`app-server` 入口置位）：Host 关闭灰度时**什么都不发**，所以「没有
@@ -390,6 +395,9 @@ impl LocalKernel {
         // 模型目录槽：入口的 `with_titles` 在建内核之后才注入（`ListModels` 调用时读）。
         let model_directory_slot: nibi_kernel_api::provider::ModelDirectorySlot =
             Arc::new(std::sync::Mutex::new(None));
+        // 会话控制端口槽：入口拿到 `Arc<LocalKernel>` 之后才注入（8 个会话工具在调用时读）。
+        let session_control_slot: nibi_kernel_api::session_control::SessionControlHostSlot =
+            Arc::new(std::sync::OnceLock::new());
         let base: Arc<dyn nibi_kernel_api::orchestration::ToolRegistry> = Arc::new(
             builtin
                 .with_search_opt_in(defaults.search_tools)
@@ -443,6 +451,11 @@ impl LocalKernel {
                     Vec::new()
                 })
                 .with_tools(vec![Arc::new(nibi_kernel_tools::ReportFindingsTool::new())])
+                // 会话控制（上游 session-control 的 CLI 8 个方法）：端口由入口在拿到
+                // `Arc<LocalKernel>` 之后注入，槽为空时工具按 `unavailable` 失败。
+                .with_tools(nibi_kernel_tools::session_control_tools(
+                    session_control_slot.clone(),
+                ))
                 // DWF 作者面（Node 的 11 个工具里剩下的 8 个）：6 个经 sidecar 的 Node
                 // 工具实现，2 个是本机读面（ListModels / ListWorkflowRuns）。灰度门与
                 // 引擎在场与否在 `PolicyFiltered` 里收口。
@@ -764,6 +777,7 @@ impl LocalKernel {
             workflow_engine: None,
             workflow_engine_slot,
             model_directory_slot,
+            session_control_host: session_control_slot,
             escalations,
             host_serving: false,
             dynamic_workflow: Mutex::default(),
@@ -800,6 +814,18 @@ impl LocalKernel {
         self.user_hooks = Arc::new(user_hooks);
         self.hook_trust = Some(trust);
         self
+    }
+
+    /// 接上会话控制的拥有者端口（8 个会话工具）。入口在 `Arc::new(kernel)` 之后调用；TUI / `-p` /
+    /// app-server 共用同一实现。没接的入口槽保持为空，工具按 `unavailable` fail closed。
+    ///
+    /// 端口只持有 `Weak<LocalKernel>`：工具注册表（在内核里）持有槽，槽持有端口，端口不能反过来
+    /// 强持有内核，否则永远释放不掉。
+    pub fn install_session_control_host(self: &Arc<Self>) {
+        let host: Arc<dyn nibi_kernel_api::session_control::SessionControlHost> = Arc::new(
+            session_control::KernelSessionControlHost::new(Arc::downgrade(self)),
+        );
+        let _ = self.session_control_host.set(host);
     }
 
     /// 本进程在服务 Host 协议（`app-server` 入口）：动态工作流的灰度缺省按 Host 语义——

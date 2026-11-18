@@ -51,6 +51,7 @@ import type {
   SessionId,
   SessionMailboxPort,
   SessionStorePort,
+  SessionControlHost,
   SkillLoadOutcome,
   SkillPort,
   SupportedLocale,
@@ -143,6 +144,12 @@ export interface NibiAppOptions {
   version?: string;
   traceContext?: TraceContext;
   runtimeConfig?: NibiAppRuntimeConfigInput;
+  /**
+   * 会话控制宿主端口。注入后该 App 的 runtime 在 taskType/根会话匹配时注册 8 个
+   * ListSessions/ReadSession/CreateSession/ForkSession/SendToSession/WaitSessions/
+   * InterruptSession/RenameSession 工具；缺席即不注册。
+   */
+  sessionControlHost?: SessionControlHost;
   /**
    * stdio 协议模式的 agent 进程由 Electron host 拉起，模型服务需要看到 electron 来源。
    * 普通 CLI 不传，继续使用 cli 默认值。

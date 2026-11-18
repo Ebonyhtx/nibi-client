@@ -29,6 +29,7 @@ export function refreshBranchAwareBuiltInTools(runtime: AgentRuntimeInternal): v
     bashTimeoutPolicy: runtime.config.bashTimeoutPolicy,
     includeSkill: Boolean(runtime.skillPort),
     includeAgent: Boolean(runtime.subagentPort),
+    includeSessionControl: runtime.sessionControl !== undefined,
     embeddedSearchEnabled,
     // 本函数是**第二个**
     // 注册入口，且刻意只传一个精简选项集。对「只有 true 才注册」的门（Cron / Workflow…）

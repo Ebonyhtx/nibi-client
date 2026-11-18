@@ -129,6 +129,7 @@ pub mod provider;
 pub mod reminder_fold;
 pub mod residency;
 pub mod session_api;
+pub mod session_control;
 pub mod session_data;
 pub mod shared_context;
 pub mod session_paths;

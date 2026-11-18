@@ -36,6 +36,7 @@
     "@nibi/contracts": "workspace:*",
     "@nibi/cua": "workspace:*",
     "@nibi/dynamic-workflow": "workspace:*",
+    "@nibi/session-control": "workspace:*",
     "@nibi/shared": "workspace:*",
     "@nibi/shared-types": "workspace:*",
     "cheerio": "^1.0.0",

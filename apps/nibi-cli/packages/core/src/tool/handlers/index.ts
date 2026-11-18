@@ -15,6 +15,7 @@ import {
   RESOLVE_WORKFLOW_QUESTION_TOOL_NAME,
   RESUME_WORKFLOW_RUN_TOOL_NAME,
   SAVE_WORKFLOW_TOOL_NAME,
+  SESSION_CONTROL_TOOL_NAMES,
   SUBMIT_RESULT_TOOL_NAME,
   type JsonSchema,
 } from "@nibi/contracts";
@@ -61,6 +62,7 @@ import { fillWorkflowHoleToolEntry } from "./fill-workflow-hole.js";
 import { taskOutputToolEntry } from "./task-output.js";
 import { taskStopToolEntry } from "./task-stop.js";
 import { readSessionContextToolEntry } from "./read-session-context.js";
+import { sessionControlToolEntries } from "./session-control.js";
 import { amendWorkflowToolEntry } from "./amend-workflow.js";
 import { createWorkflowToolEntry } from "./create-workflow.js";
 import { saveWorkflowToolEntry } from "./save-workflow.js";
@@ -77,6 +79,9 @@ import { createToolRuleNameSet } from "../tool-visibility.js";
 // 统一隐藏 Glob/Grep，并通过 Bash find/grep 接管搜索。
 
 export const builtInTools: ToolEntry[] = [
+  // 会话控制 8 个工具：静态清单列出全部，运行时是否注册由 registerBuiltInTools 的
+  // includeSessionControl 门决定（可信绑定在场且 taskType 允许）。
+  ...sessionControlToolEntries,
   toolSearchToolEntry,
   deferredToolCallEntry,
   readToolEntry,
@@ -198,6 +203,11 @@ interface RegisterBuiltInToolsOptions {
   includeNodeRepl?: boolean;
   /** browser-use 说明和 agent.browsers 注入由官方 browser-use 插件 + 宿主 browser bridge 共同启用。 */
   includeBrowserUse?: boolean;
+  /**
+   * 会话控制工具的注册门：只有可信绑定在场、taskType 允许且根会话匹配时 runtime 才传 true。
+   * 缺席即 8 个工具全部不注册；不能从模型输入或工具名另行开启。
+   */
+  includeSessionControl?: boolean;
   embeddedSearchEnabled?: boolean;
   allowedTools?: readonly string[];
   disallowedTools?: readonly string[];
@@ -214,6 +224,9 @@ export function registerBuiltInTools(
   const disallowedTools = createToolRuleNameSet(options.disallowedTools);
 
   for (const entry of builtInTools) {
+    // 会话控制同名工具只在可信绑定门开启时注册；Phase 1 没有 App 变体。
+    if (SESSION_CONTROL_TOOL_NAMES.has(entry.metadata.name) && options.includeSessionControl !== true)
+      continue;
     if (
       options.embeddedSearchEnabled === true &&
       (entry.metadata.name === "Glob" || entry.metadata.name === "Grep")

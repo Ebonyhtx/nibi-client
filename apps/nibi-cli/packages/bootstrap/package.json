@@ -38,6 +38,7 @@
     "@nibi/i18n": "workspace:*",
     "@nibi/provider": "workspace:*",
     "@nibi/provider-node": "workspace:*",
+    "@nibi/session-control": "workspace:*",
     "@nibi/shared": "workspace:*",
     "@nibi/telemetry": "workspace:*",
     "diff": "^9.0.0",

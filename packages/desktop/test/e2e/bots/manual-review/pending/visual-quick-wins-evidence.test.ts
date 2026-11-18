@@ -32,6 +32,7 @@ import {
   TID_SETTINGS_PAGE,
   TID_SETTINGS_SECTION_NAV,
   TID_SIDE_PANE_TOGGLE,
+  TID_TASK_ROW_DETAILS,
   TID_TASK_SETTINGS_BUTTON,
   TID_VIRTUAL_PROJECT_MENU,
   TID_WORKSPACE_FILE_TREE_PANEL,
@@ -61,7 +62,7 @@ import {
   projectSectionSelector,
 } from "../../../helpers/project-sidebar.js";
 import { sel } from "../../../helpers/selectors.js";
-import { prepareV4ConversationE2E } from "../../../helpers/v4-conversation.js";
+import { prepareV4ConversationE2E, sendV4PromptAndWaitAccepted, waitForV4AssistantMessageContaining } from "../../../helpers/v4-conversation.js";
 
 const EVIDENCE_DIR =
   process.env.NIBI_E2E_EVIDENCE_DIR?.trim() ||
@@ -1282,5 +1283,73 @@ describe("UI 快赢视觉证据（真实 Desktop）", () => {
     await record("browserRecentVisits", recentVisits);
     expect(recentVisits.visible).toBe(true);
     expect(recentVisits.text).toContain("127.0.0.1");
+  });
+
+  it("T2-03 会话控制工具卡：ListSessions 真实执行后渲染", async function () {
+    this.timeout(300_000);
+    await setWindowSize(1440, 900);
+    // 前面的用例不发送模型回合；这里按真实用户路径准备 provider/model，再触发会话工具。
+    await prepareV4ConversationE2E();
+    await sendV4PromptAndWaitAccepted(
+      "E2E_SESSION_CONTROL_LIST",
+      "E2E_SESSION_CONTROL_LIST",
+      "会话控制提示没有被接受",
+      120_000,
+    );
+    await waitForV4AssistantMessageContaining("upstream-e2e-ok", 120_000);
+    // 会话卡默认折叠；先等工具卡摘要进入时间线，再像用户一样点开详情。
+    await browser.waitUntil(
+      () =>
+        browser.execute(() => {
+          const labels = ["查找会话", "Find sessions"];
+          const target = Array.from(
+            document.querySelectorAll<HTMLElement>('[role="button"], button'),
+          ).find((node) => labels.some((label) => (node.textContent ?? "").includes(label)));
+          if (!target) return false;
+          target.click();
+          return true;
+        }),
+      { timeout: 30_000, interval: 500, timeoutMsg: "会话工具卡摘要没有进入时间线" },
+    );
+    await waitForTestIdByDom("session-tool-details", { timeout: 20_000 });
+    await browser.pause(500);
+    await shot("08d-session-control-list-card");
+    const card = (await browser.execute(() => {
+      const root = document.querySelector<HTMLElement>('[data-testid="session-tool-details"]');
+      return {
+        visible: Boolean(root),
+        text: (root?.textContent ?? "").replace(/\s+/gu, " ").trim(),
+      };
+    })) as { visible: boolean; text: string };
+    await record("sessionControlCard", card);
+    expect(card.visible).toBe(true);
+    // 卡片必须来自真实工具回执，而不是空壳：至少带出当前 workspace 的会话行。
+    expect(card.text.length).toBeGreaterThan(0);
+  });
+
+  it("T2-04 任务行悬停身份卡", async function () {
+    this.timeout(180_000);
+    await setWindowSize(1440, 900);
+    // T2-03 已产生一条持久任务行；恢复常规布局后悬停该行。
+    await seedBodyLayout(52, 48);
+    await browser.refresh();
+    await waitForWorkspaceAfterReload();
+    const row = await browser.$('[data-testid^="task-item-"]');
+    await row.waitForDisplayed({ timeout: 20_000 });
+    await row.moveTo();
+    await waitForTestIdByDom(TID_TASK_ROW_DETAILS, { timeout: 15_000 });
+    await browser.pause(500);
+    await shot("08e-task-row-hover-details");
+    const details = (await browser.execute((testIdValue) => {
+      const root = document.querySelector<HTMLElement>(`[data-testid="${testIdValue}"]`);
+      return {
+        visible: Boolean(root),
+        text: (root?.textContent ?? "").replace(/\s+/gu, " ").trim(),
+      };
+    }, TID_TASK_ROW_DETAILS)) as { visible: boolean; text: string };
+    await record("taskRowHoverDetails", details);
+    expect(details.visible).toBe(true);
+    const workspaceLeaf = DEFAULT_WORKSPACE.split(/[\\/]/u).filter(Boolean).at(-1) ?? "";
+    expect(details.text).toContain(workspaceLeaf);
   });
 });

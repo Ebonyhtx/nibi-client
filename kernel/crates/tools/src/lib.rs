@@ -59,6 +59,8 @@ mod read_support;
 mod registry;
 mod report_findings;
 mod schedule_wakeup;
+mod session_control;
+mod session_control_wait;
 mod session_slug;
 #[cfg(test)]
 mod test_more;
@@ -114,6 +116,7 @@ pub use read::ReadTool;
 pub use registry::BuiltinTools;
 pub use report_findings::ReportFindingsTool;
 pub use schedule_wakeup::ScheduleWakeupTool;
+pub use session_control::session_control_tools;
 pub use tool_search::{ToolCatalog, ToolSearchTool};
 pub use topic_tools::topic_tools;
 pub use user_input::UserInputTools;

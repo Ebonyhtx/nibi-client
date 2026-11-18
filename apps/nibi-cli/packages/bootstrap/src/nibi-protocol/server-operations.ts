@@ -116,6 +116,7 @@ import {
   type NibiProtocolToolInputTransmissionState,
 } from "./server-types.js";
 import { createWorkspaceNibiApp, ensureSessionModelAvailable } from "./workspace-model-runtime.js";
+import { sessionControlRuntimeForWorkspace } from "./session-control-runtime.js";
 import { buildAppUsageSnapshot, resolveTzOffsetMs } from "./usage-stats-builder.js";
 import { createProtocolInteractionBroker } from "./interaction-broker.js";
 import { createProtocolAutomationPort } from "./automation-port.js";
@@ -3498,6 +3499,11 @@ async function createRecord(
       : undefined;
   const taskType = params.taskType ?? "interactive";
   const runtimeMcp = protocolMcpServersToRuntimeMcpConfig(params.mcpServers);
+  // 只有根级会话参与会话控制；子代理/工作流 child 不注入绑定（runtime 门也会再拒一次）。
+  const sessionControl =
+    taskType === "interactive" || taskType === "fork" || taskType === "workflow_parent"
+      ? sessionControlRuntimeForWorkspace(context, workspace, projectActiveSessionMessages)
+      : undefined;
   context.logger?.info("NIBI Protocol createRecord MCP config", {
     event: "nibi_protocol.create_record.mcp_config",
     rootTraceId: traceContext.traceId,
@@ -3516,6 +3522,7 @@ async function createRecord(
     env: context.deps.env,
     eventStore,
     resume,
+    ...(sessionControl ? { sessionControlHost: sessionControl.control } : {}),
     additionalDirectories: params.additionalDirectories ?? startupPreferences.additionalDirectories,
     runtimeConfig: {
       mode: "mode" in params ? params.mode : undefined,
@@ -3608,6 +3615,7 @@ async function createRecord(
     version: context.deps.version,
     modelIoFullRetentionEnabled: context.appRuntimePreferences.modelIoFullRetentionEnabled,
   });
+  if (sessionControl) sessionControl.attachRoot(app, "new-independent-root");
   const now = Date.now();
   const record: NibiProtocolSessionRecord = {
     app,
@@ -4010,7 +4018,7 @@ async function readSessionRewindEvents(
   return events.filter((event) => event.type === SessionEventType.RewindTriggered);
 }
 
-function projectActiveSessionMessages(
+export function projectActiveSessionMessages(
   messages: MessageWithParts[],
   session: SessionInfo | null | undefined,
   rewindEvents: readonly SessionEvent[],

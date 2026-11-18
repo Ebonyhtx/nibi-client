@@ -37,6 +37,7 @@ import type {
   SessionId,
   SessionModePort,
   SessionStorePort,
+  SessionControlBinding,
   SkillPort,
   SkillTelemetryMetadata,
   SubagentPort,
@@ -176,6 +177,8 @@ export interface ToolExecutionContext {
   automationPort?: AutomationPort;
   topicResourcePort?: TopicResourcePort;
   sessionStore?: SessionStorePort;
+  /** 会话控制可信绑定；只在运行时门通过后注入。 */
+  sessionControl?: SessionControlBinding;
   sessionModePort?: SessionModePort;
   workflowPort?: WorkflowPort;
   /** workflow run 提交端口；缺席则 CreateWorkflow 回占位诊断而不启动。 */

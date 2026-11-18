@@ -375,6 +375,8 @@ export const TID_TASK_LIST = "task-list";
 export const TID_TASK_NEW_BUTTON = "task-new-button";
 /** 任务列表条目（动态后缀为 taskId） */
 export const TID_TASK_ITEM = "task-item";
+/** 会话行悬停卡片（打开时才挂载，全局唯一） */
+export const TID_TASK_ROW_DETAILS = "task-row-details";
 /** 任务列表空状态 */
 export const TID_TASK_EMPTY = "task-empty";
 /** 任务归档按钮（动态后缀为 taskId） */

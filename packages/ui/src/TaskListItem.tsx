@@ -1,15 +1,7 @@
 import { RemoteTaskDeviceLabel } from "@/remote-connection/RemoteTaskDeviceLabel.js";
 /* eslint-disable max-lines -- task item 同时承载默认列表和 timeline 两行布局的共享交互，先保持动作链路集中避免归档/置顶回归。 */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Archive,
-  Clock,
-  CloudUpload,
-  LoaderIcon,
-  ListTree,
-  Pin,
-  Smartphone,
-} from "lucide-react";
+import { Archive, Clock, CloudUpload, LoaderIcon, ListTree, Pin, Smartphone } from "lucide-react";
 import { isCronTask, type NibiTaskMeta } from "@nibi/shared";
 import { TID_TASK_ARCHIVE, TID_TASK_ITEM, testId } from "@nibi/shared/test-ids";
 import { Badge } from "@/components/ui/badge.js";
@@ -49,6 +41,7 @@ import { logger } from "@/logger.js";
 import { runUserAction, runUserActionAsync } from "@/lib/userActionTelemetry.js";
 import { TaskRowActionButton } from "@/workspace-grouped-tasks/task-row-action-button.js";
 import { TaskWorkflowRunLines } from "@/components/workflow-run-line/TaskWorkflowRunLines.js";
+import { TaskRowIdentityHoverCard } from "@/task-row-hover/index.js";
 
 type TaskListItemIntl = {
   formatMessage: (desc: { id: string }, values?: Record<string, string>) => string;
@@ -532,7 +525,7 @@ export const MemoTaskItem = memo(function TaskListItem({
   // 触屏端的错误、未读和 loading 状态会被 Pin 永久替换。
   const shouldRenderPinAction =
     showPinAction && (showPinnedState || shouldSuppressWorkspaceTaskMetadata);
-  return (
+  const taskRow = (
     <li
       ref={itemRef}
       data-testid={testId(TID_TASK_ITEM, task.taskId)}
@@ -800,6 +793,18 @@ export const MemoTaskItem = memo(function TaskListItem({
         </div>
       )}
     </li>
+  );
+  // hover 卡片只在桌面 hover 语义下挂载；手机远控/Web remote 保持单击直接打开会话。
+  return hoverEnabled ? (
+    <TaskRowIdentityHoverCard
+      task={task}
+      workspaceLabel={workspaceLabel}
+      remoteSessionId={remoteSessionId}
+    >
+      {taskRow}
+    </TaskRowIdentityHoverCard>
+  ) : (
+    taskRow
   );
 }, areTaskListItemPropsEqual);
 

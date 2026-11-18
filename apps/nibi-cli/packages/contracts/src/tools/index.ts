@@ -26,6 +26,7 @@ export * from "./respond-to-coordinator.js";
 export * from "./task-output.js";
 export * from "./task-stop.js";
 export * from "./read-session-context.js";
+export * from "./session-control.js";
 export * from "./submit-result.js";
 export * from "./websearch.js";
 export * from "./workflow.js";

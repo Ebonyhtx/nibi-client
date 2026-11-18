@@ -367,6 +367,14 @@ export function isFileContentWriteToolCall(
   return /^(?:write|create|save)(?:_|$)/i.test(legacyKind);
 }
 
+/** 会话控制族判定：renderer 只按 family 选卡，具体工具语义仍由卡片按名分派。 */
+export function isSessionToolCall(
+  toolCall: ToolIdentityLike,
+  identity = resolveToolCallIdentity(toolCall),
+): boolean {
+  return identity.family === "session";
+}
+
 export function isFileDiffToolCall(
   toolCall: ToolIdentityLike,
   identity = resolveToolCallIdentity(toolCall),

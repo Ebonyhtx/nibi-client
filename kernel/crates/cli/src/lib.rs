@@ -645,6 +645,8 @@ async fn session(
         Mode::Tui => kernel.with_titles(titles),
         Mode::Print | Mode::Version | Mode::Help => kernel,
     });
+    // 会话控制（8 个模型工具）的拥有者端口：注册表在内核里建好，这里拿到 `Arc` 之后接上。
+    kernel.install_session_control_host();
     // 付费插件执行期门禁：工具表在会话创建时冻结，调用时按当前 license 复核。
     kernel.set_paid_plugin_gate(crate::paid_plugin_gate(&startup.home, &startup.env));
     kernel.replace_hooks(config.hooks.clone());

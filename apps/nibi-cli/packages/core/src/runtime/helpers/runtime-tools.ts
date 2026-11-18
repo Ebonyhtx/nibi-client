@@ -22,6 +22,7 @@ import {
 import { isStaleBranchRuntimeTaskEvent } from "../methods/runtime-command-generation.js";
 import { resolveEnabledProjectMemoryRoot } from "./project-memory.js";
 import { sessionHasLoadedSkill } from "../../agent/loaded-skills.js";
+import { sessionControlForRuntime } from "../../tool/session-control/contract.js";
 
 const DEFAULT_SUBAGENT_BACKGROUND_BASH_MAX_MS = 3_600_000;
 const EMPTY_RUNTIME_HOOK_CONFIG = {
@@ -47,6 +48,14 @@ export function initializeRuntimeTooling(
 function registerRuntimeBuiltInTools(runtime: AgentRuntimeInternal, deps: AgentRuntimeDeps): void {
   const nodeReplEnabled = runtime.config.runtimeFeatures?.nodeRepl === true;
   const browserUseEnabled = resolveRuntimeBrowserUseEnabled(runtime, deps);
+  // 注册与执行共用同一份可信门：taskType 只允许 interactive/fork/workflow_parent，
+  // 根会话必须匹配；子代理 runtimeScope 一律不注入。
+  runtime.sessionControl = sessionControlForRuntime(
+    deps.sessionControl,
+    runtime.config.taskType,
+    runtime.sessionId,
+    runtime.config.taskType === "subagent_child" ? "subagent" : "main",
+  );
   registerBuiltInTools(runtime.registry, {
     bashTimeoutPolicy: runtime.config.bashTimeoutPolicy,
     includeSkill: Boolean(runtime.skillPort),
@@ -54,6 +63,8 @@ function registerRuntimeBuiltInTools(runtime: AgentRuntimeInternal, deps: AgentR
     includeSendMessage: runtime.subagentPort?.sendMessage !== undefined,
     includeRespondToCoordinator:
       runtime.config.taskType === "subagent_child" && Boolean(deps.coordinatorResponsePort),
+    // 会话控制工具：可信绑定在场且 taskType/根会话匹配才注册。
+    includeSessionControl: runtime.sessionControl !== undefined,
     // submit_result 只在注入了 workflowSubmitPort 的 workflow actor 会话注册。以端口存在为门，
     // 与 taskType 无关：workflow actor 是 workflow_child，其 runtimeScope 目前是 "main"。
     includeSubmitResult: Boolean(deps.workflowSubmitPort),
@@ -187,6 +198,7 @@ function createRuntimeToolExecutor(
     automationPort: deps.automationPort,
     topicResourcePort: deps.topicResourcePort,
     sessionStore: deps.sessionStore,
+    sessionControl: runtime.sessionControl,
     sessionModePort: createRuntimeSessionModePort(runtime),
     workflowPort: deps.workflowPort,
     dynamicWorkflowRunPort: deps.dynamicWorkflowRunPort,

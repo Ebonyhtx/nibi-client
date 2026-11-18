@@ -1,31 +1,30 @@
 import { TID_TASK_ITEM, testId } from "@nibi/shared/test-ids";
 import type { ProjectTask as NibiTaskMeta } from "@/project-sidebar/contract.js";
-import { memo, useState } from "react";
+import { memo, useContext, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import type { UniqueIdentifier } from "@dnd-kit/core";
 import { isCronTask } from "@nibi/shared";
-import { ArrowUpToLine, Clock, Cloud, Folder, ListTree, LoaderIcon, X } from "lucide-react";
+import { ArrowUpToLine, Clock, ListTree, LoaderIcon, X } from "lucide-react";
 import { cn } from "@/components/lib/utils.js";
 import { Badge } from "@/components/ui/badge.js";
 import { toast } from "@/components/ui/toast.js";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu.js";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import {
   deriveTaskLeadingIndicator,
   formatTaskRelativeTime,
 } from "@/lib/taskListItemPresentation.js";
-import { getTaskChangeSummary } from "@/lib/taskChangeSummary.js";
 import { buildTaskWorkspaceKey } from "@/lib/taskQueryCache.js";
 import { buildTaskFeedbackDescription } from "@/lib/taskFeedbackDraft.js";
 import { useTaskListItemContextActions } from "@/useTaskListItemContextActions.js";
 import { useFeedbackStore } from "@/feedback/feedbackStore.js";
 import { getTaskListAttention, getTaskListRowActivity } from "@/v4/taskListRowActivity.js";
 import { GroupedTaskContextMenuContent } from "@/project-sidebar/grouped/task-context-menu-content.js";
+import { ProjectTaskListContext } from "@/project-sidebar/ProjectTaskListContext.js";
 import { TaskRowActionButton } from "@/workspace-grouped-tasks/task-row-action-button.js";
 import { TaskInteractionBadge } from "@/TaskInteractionBadge.js";
-import { formatGroupedTaskHoverChangeParts } from "@/project-sidebar/grouped/task-row-tooltip.js";
+import { TaskRowIdentityHoverCard } from "@/task-row-hover/index.js";
 import {
   TASK_GROUP_ROW_CLASS,
   TASK_GROUP_ROW_LINE_CLASS,
@@ -80,6 +79,7 @@ function GroupedTaskRowComponent({
   tooltipsDisabled?: boolean;
 }) {
   const { intl } = useNibiIntl();
+  const presentation = useContext(ProjectTaskListContext);
   const workspaceActionsDisabled = useOptionalTabStore((state) =>
     isWorkspaceReadOnly(state, task.workspacePath, task.workspaceIdentity),
   );
@@ -120,7 +120,6 @@ function GroupedTaskRowComponent({
     intl.formatMessage({
       id: task.forkedFromTaskId ? "taskList.forkedUntitled" : "taskList.untitled",
     });
-  const taskChangeParts = formatGroupedTaskHoverChangeParts(getTaskChangeSummary(task));
   const taskTimeLabel = formatTaskRelativeTime(task.updatedAt, intl);
   const isTaskCron = isCronTask(task);
   const isActive = active === true;
@@ -448,37 +447,17 @@ function GroupedTaskRowComponent({
   return (
     <ContextMenu onOpenChange={setContextMenuOpen}>
       {tooltipsDisabled ? (
-        // overlay 拖拽时指针下方的真实 row 仍可能被 Radix 识别为 hover，跳过 TooltipTrigger 避免底层 row 或 action 弹出悬浮提示。
+        // overlay 拖拽时指针下方的真实 row 仍可能被 Radix 识别为 hover，跳过触发器避免底层 row 或 action 弹出悬浮卡片。
         <ContextMenuTrigger asChild>{interactiveTaskRow}</ContextMenuTrigger>
       ) : (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <ContextMenuTrigger asChild>{interactiveTaskRow}</ContextMenuTrigger>
-          </TooltipTrigger>
-          <TooltipContent side="right" align="center" sideOffset={6}>
-            {remoteSessionId ? (
-              <Cloud aria-hidden="true" className="size-3.5 shrink-0" />
-            ) : (
-              <Folder aria-hidden="true" className="size-3.5 shrink-0" />
-            )}
-            <span className="min-w-0 max-w-48 truncate">{workspaceLabel}</span>
-            {taskChangeParts.length > 0 ? (
-              <>
-                <span className="text-tooltip-foreground/60">·</span>
-                <span className="inline-flex shrink-0 items-center gap-1">
-                  {taskChangeParts.map((part) => (
-                    <span
-                      key={part}
-                      className={part.startsWith("+") ? "text-diff-added" : "text-diff-removed"}
-                    >
-                      {part}
-                    </span>
-                  ))}
-                </span>
-              </>
-            ) : null}
-          </TooltipContent>
-        </Tooltip>
+        <TaskRowIdentityHoverCard
+          task={task}
+          workspaceLabel={workspaceLabel}
+          remoteSessionId={remoteSessionId}
+          disabled={presentation.isWebRemoteControl}
+        >
+          <ContextMenuTrigger asChild>{interactiveTaskRow}</ContextMenuTrigger>
+        </TaskRowIdentityHoverCard>
       )}
       {contextMenuOpen ? (
         // 右键菜单内容带 Radix Presence/Portal，拖拽重排时常驻挂载会触发嵌套更新循环；仅在菜单打开时挂载内容，配合路径懒加载避免拖拽过程刷 task path RPC。

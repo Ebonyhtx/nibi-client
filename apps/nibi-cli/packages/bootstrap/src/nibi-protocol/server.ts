@@ -304,6 +304,7 @@ export class NibiProtocolAgentServer {
       requestClient: (method, params, resultSchema, options) =>
         this.requestClient(method, params, resultSchema, options),
       sessions: new Map<string, NibiProtocolSessionRecord>(),
+      sessionControlRuntimes: new Map(),
       // 交互应答登记表（broker 反向请求 × v4 resolveInteraction 命令的汇合点）。
       v4Interactions: new V4InteractionRegistry(
         resolveV4InteractionRegistryOptionsFromEnv(deps.env ?? process.env),
@@ -434,6 +435,9 @@ export class NibiProtocolAgentServer {
     this.shutdownPromise = shutdown.promise;
     const closingResources = this.runtimeResources.close();
     const closingSessions: Promise<void>[] = [];
+    const closingSessionControl = [...(this.context.sessionControlRuntimes?.values() ?? [])].map(
+      (runtime) => runtime.close(),
+    );
     const error = new Error("NIBI Protocol runtime stopping");
     this.disconnectClient(error);
     this.messageSink = undefined;
@@ -455,7 +459,7 @@ export class NibiProtocolAgentServer {
         });
       }
     }
-    void Promise.allSettled([closingResources, ...closingSessions]).then((results) => {
+    void Promise.allSettled([closingResources, ...closingSessions, ...closingSessionControl]).then((results) => {
       const errors = results.flatMap((result) =>
         result.status === "rejected" ? [result.reason] : [],
       );

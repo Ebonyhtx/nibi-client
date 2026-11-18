@@ -39,6 +39,7 @@ import {
   createSessionEvent,
   type ExecutionShellSelection,
   type MessageId,
+  type SessionControlBinding,
 } from "@nibi/contracts";
 import { isRemoteWorkspaceIdentity, resolveNibiRuntimeEnv } from "@nibi/shared";
 import {
@@ -832,6 +833,30 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
       registry: options.providerRegistry,
       currentSelection: () => getRuntime().getSessionModelSelection(),
     });
+    // 会话控制：Phase 1 只映射调用方自己的 workspace。readAnyLocalSession 固定 false，
+    // 因此 list/read 也收窄到绑定 workspace，不扩成本机会话库全读。
+    const sessionControl: SessionControlBinding | undefined = options.sessionControlHost
+      ? {
+          kind: "cli",
+          control: options.sessionControlHost,
+          context: () => {
+            const workspacePath = runtimeConfig.workspacePath ?? workingDirectory;
+            const workspaceIdentity = runtimeConfig.memory?.workspaceIdentity;
+            const scope = {
+              kind: "cli" as const,
+              workspacePath,
+              ...(workspaceIdentity
+                ? { workspaceIdentity: String(workspaceIdentity) }
+                : {}),
+            };
+            return {
+              callerId: `cli:${String(sessionId)}`,
+              rootSession: { ...scope, sessionId: String(sessionId) },
+              allowedScopes: [scope],
+            };
+          },
+        }
+      : undefined;
     runtime = new AgentRuntime(sessionId, runtimeConfig, {
       ...(options.readSubagentRuntimeConfig
         ? {
@@ -873,6 +898,7 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
       modelRequestAdmission: workflowConcurrencyGovernor.observer(),
       eventStore: options.eventStore ?? createInMemorySessionEventStore(),
       sessionStore,
+      sessionControl,
       sessionMailboxPort,
       logger,
       executionPort,

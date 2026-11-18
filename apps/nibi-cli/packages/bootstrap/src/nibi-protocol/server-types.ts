@@ -31,6 +31,7 @@ import {
   type NibiWorkspaceRef,
 } from "@nibi/shared";
 import type { NibiApp, NibiAppOptions } from "../app/types.js";
+import type { NibiSessionControlRuntime } from "../cli-session-control/index.js";
 import type { V4InteractionRegistry } from "../nibi-protocol-v4/interaction-registry.js";
 import type { ConversationV4Gateway } from "../nibi-protocol-v4/v4-gateway.js";
 import type { SessionResidentPool, SessionResidentPoolOptions } from "./session-resident-pool.js";
@@ -159,6 +160,11 @@ export interface NibiProtocolAgentServerContext {
   // 单个 session 运行实例的生命周期 owner；与 resident pool 分离，pool 只决定何时回收。
   sessionLifecycle?: import("../session-lifecycle/index.js").SessionLifecycleController;
   sessions: Map<string, NibiProtocolSessionRecord>;
+  /**
+   * 每个 workspace 一个 CLI session-control owner。由 createRecord 惰性创建；
+   * 工具只在可信绑定、taskType 与根会话都匹配时注册，这里只负责生命周期与工作区路由。
+   */
+  sessionControlRuntimes?: Map<string, NibiSessionControlRuntime>;
   /** 仅覆盖异步创建窗口，结束即释放；输入命令仍由 CommandInbox 排队。 */
   sessionCreationIds?: Set<string>;
   notify(notification: NibiProtocolNotification): void;

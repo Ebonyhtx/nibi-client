@@ -25,6 +25,7 @@ import type {
   SessionId,
   SessionModePort,
   SessionStorePort,
+  SessionControlBinding,
   SkillPort,
   SubagentPort,
   SubagentRunOptions,
@@ -108,6 +109,8 @@ export interface ToolExecutorOptions {
   automationPort?: AutomationPort;
   topicResourcePort?: TopicResourcePort;
   sessionStore?: SessionStorePort;
+  /** 会话控制可信绑定；由 runtime 在注册门通过后透传到 handler context。 */
+  sessionControl?: SessionControlBinding;
   sessionModePort?: SessionModePort;
   workflowPort?: WorkflowPort;
   /** workflow run 端口；按工具名查表时 CreateWorkflow 的后台生命周期提供者。 */
@@ -221,6 +224,8 @@ export interface ToolExecutorDeps {
   automationPort?: AutomationPort;
   topicResourcePort?: TopicResourcePort;
   sessionStore?: SessionStorePort;
+  /** 会话控制可信绑定；由 runtime 在注册门通过后透传到 handler context。 */
+  sessionControl?: SessionControlBinding;
   sessionModePort?: SessionModePort;
   workflowPort?: WorkflowPort;
   /** workflow run 端口；按工具名查表时 CreateWorkflow 的后台生命周期提供者。 */

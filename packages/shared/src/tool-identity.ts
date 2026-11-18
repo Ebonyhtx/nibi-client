@@ -1,3 +1,23 @@
+/**
+ * 会话控制（session-control）的 8 个现役工具名。
+ *
+ * 名字必须用 PascalCase：小写形式会命中 UI 的 legacy kind 前缀启发式，把
+ * ReadSession 渲染成读文件卡、把 CreateSession 渲染成写文件卡。这里集中登记一次，
+ * 供 shared identity、UI renderer 与测试共用，避免三处各抄一份后漂移。
+ */
+export const NIBI_SESSION_TOOL_NAMES = [
+  "ListSessions",
+  "ReadSession",
+  "CreateSession",
+  "ForkSession",
+  "SendToSession",
+  "WaitSessions",
+  "InterruptSession",
+  "RenameSession",
+] as const;
+
+export type NibiSessionToolName = (typeof NIBI_SESSION_TOOL_NAMES)[number];
+
 export const NIBI_KNOWN_TOOL_NAMES = [
   "Read",
   "Write",
@@ -13,6 +33,7 @@ export const NIBI_KNOWN_TOOL_NAMES = [
   "TodoWrite",
   "GoalRead",
   "ReadSessionContext",
+  ...NIBI_SESSION_TOOL_NAMES,
   "AskUserQuestion",
   "SendMessage",
   "RespondToCoordinator",
@@ -53,6 +74,7 @@ export type NibiToolFamily =
   | "skill"
   | "goal"
   | "session-context"
+  | "session"
   | "message"
   | "task-control"
   | "node-repl"
@@ -73,6 +95,16 @@ const TOOL_FAMILY_BY_NAME: Record<NibiKnownToolName, NibiToolFamily> = {
   TodoWrite: "todo",
   GoalRead: "goal",
   ReadSessionContext: "session-context",
+  // 会话控制工具是只读发现/观察与受控写入的混合族：family 只负责选择会话卡片，
+  // 读/写语义由每张卡按工具名和回执状态分别表达。
+  ListSessions: "session",
+  ReadSession: "session",
+  CreateSession: "session",
+  ForkSession: "session",
+  SendToSession: "session",
+  WaitSessions: "session",
+  InterruptSession: "session",
+  RenameSession: "session",
   AskUserQuestion: "ask-user-question",
   SendMessage: "message",
   RespondToCoordinator: "message",
@@ -123,6 +155,13 @@ export function isNibiToolFamily(
   family: NibiToolFamily,
 ): boolean {
   return getNibiToolFamilyForName(value) === family;
+}
+
+/** UI 与测试的会话控制判定入口；大小写归一与 shared identity 完全同源。 */
+export function isNibiSessionToolName(
+  value: string | null | undefined,
+): value is NibiSessionToolName {
+  return getNibiToolFamilyForName(value) === "session";
 }
 
 export function isNibiFileContentWriteToolName(value: string | null | undefined): boolean {
