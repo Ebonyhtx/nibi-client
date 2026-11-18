@@ -238,6 +238,7 @@ describe("Window Host 的 Source 重连与数据库启动整合", () => {
         authorizeLocalMediaPreviewPath() {},
         runtimeProcessLifecycleReporter: {},
         runtimeTaskReporter: {},
+        quitBlockerReporter: {},
         repoWikiTaskReporter: {},
         createFullFeedbackLogArchiveViaMain() {},
         dispatchManualAutomationRun() {},

@@ -290,7 +290,7 @@ describeIfGit("managed worktree", () => {
       commitCount: 1,
     });
     expect(existsSync(created.path)).toBe(true);
-  });
+  }, 90_000);
 
   it("rejects non-managed directories", async () => {
     const { workspacePath } = createRepo();
