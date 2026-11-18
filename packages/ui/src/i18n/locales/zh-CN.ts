@@ -3433,6 +3433,11 @@ const zhCN: Record<string, string> = {
   "settings.dataBaseDirBrowse": "选择文件夹",
   "settings.dataBaseDirSave": "保存",
   "settings.dataBaseDirCopying": "正在复制数据，请勿关闭应用…",
+  "settings.dataBaseDirConfirmTitle": "切换数据根并复制数据？",
+  "settings.dataBaseDirConfirmDescription":
+    "会复制 .nibi/v2 与 .nibi/workspace 到新位置。workspace 里的 node_modules、.venv、target 等依赖/构建缓存会跳过，切换后需要重新安装依赖；复制期间请勿关闭应用，并确保没有任务在运行。",
+  "settings.dataBaseDirConfirmAction": "开始复制",
+  "settings.dataBaseDirConfirmCancel": "取消",
   "settings.dataBaseDirCopyFailed": "数据复制失败，路径未更改。",
   "settings.dataBaseDirForbiddenInstallDir":
     "不能选择 NIBI 安装目录作为数据存储路径。请选择安装目录之外的文件夹。",

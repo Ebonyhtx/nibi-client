@@ -9,6 +9,7 @@ import {
 } from "@nibi/shared/test-ids";
 import { Button } from "@/components/ui/button.js";
 import { Input } from "@/components/ui/input.js";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 
 export function DataBaseDirControl({
@@ -23,6 +24,7 @@ export function DataBaseDirControl({
   onSelectDataBaseDir: () => Promise<string | null>;
 }) {
   const { intl } = useNibiIntl();
+  const confirmDialog = useConfirmDialog();
   const effectiveDir = dataBaseDir || defaultHomeDir;
   const [localDataBaseDir, setLocalDataBaseDir] = useState(effectiveDir);
   const [isPickingDataBaseDir, setIsPickingDataBaseDir] = useState(false);
@@ -61,6 +63,17 @@ export function DataBaseDirControl({
   const handleSave = useCallback(async () => {
     const trimmed = localDataBaseDir.trim();
     const newValue = trimmed === defaultHomeDir ? "" : trimmed;
+    // 切根会把 v2 与 workspace 一并复制；workspace 可能很大，先明确告知缓存目录会跳过、
+    // 期间不能关闭应用，并让用户确认没有任务在跑。取消时保持输入与保存状态不变。
+    const confirmed = await confirmDialog({
+      title: intl.formatMessage({ id: "settings.dataBaseDirConfirmTitle" }),
+      description: intl.formatMessage({ id: "settings.dataBaseDirConfirmDescription" }),
+      confirmLabel: intl.formatMessage({ id: "settings.dataBaseDirConfirmAction" }),
+      cancelLabel: intl.formatMessage({ id: "settings.dataBaseDirConfirmCancel" }),
+    });
+    if (!confirmed) {
+      return;
+    }
     setSaveState("saving");
     try {
       await onDataBaseDirChange(newValue);
@@ -73,7 +86,7 @@ export function DataBaseDirControl({
       );
       setSaveState("error");
     }
-  }, [defaultHomeDir, localDataBaseDir, onDataBaseDirChange]);
+  }, [confirmDialog, defaultHomeDir, intl, localDataBaseDir, onDataBaseDirChange]);
 
   return (
     <div className="flex w-[320px] min-w-0 flex-col gap-2">

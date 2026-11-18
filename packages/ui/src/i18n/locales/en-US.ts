@@ -3654,6 +3654,11 @@ const enUS: Record<string, string> = {
   "settings.dataBaseDirBrowse": "Choose folder",
   "settings.dataBaseDirSave": "Save",
   "settings.dataBaseDirCopying": "Copying data, please do not close the app...",
+  "settings.dataBaseDirConfirmTitle": "Switch the data directory and copy data?",
+  "settings.dataBaseDirConfirmDescription":
+    "Copies .nibi/v2 and .nibi/workspace to the new location. Dependency/build caches in workspace (node_modules, .venv, target, ...) are skipped and must be reinstalled after switching. Keep the app open during the copy and make sure no tasks are running.",
+  "settings.dataBaseDirConfirmAction": "Start copying",
+  "settings.dataBaseDirConfirmCancel": "Cancel",
   "settings.dataBaseDirCopyFailed": "Data copy failed. Path was not changed.",
   "settings.dataBaseDirForbiddenInstallDir":
     "The data directory cannot be the NIBI installation folder on Windows. Choose a folder outside the app install location.",

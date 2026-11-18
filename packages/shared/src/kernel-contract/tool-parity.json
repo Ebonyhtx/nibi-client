@@ -158,7 +158,7 @@
       "needsApproval": true,
       "alwaysAsk": true,
       "rustAsks": false,
-      "note": "已知审批差异：Node 声明 alwaysAsk，Rust 的 FillWorkflowHole 不在 policy crate 的 ALWAYS_ASK_TOOLS（check_permissions 返回 Allow）。两侧各自锁定，补 Rust 门禁时需同步本清单与 capabilities 说明。"
+      "note": "Node alwaysAsk=true，但权限服务的 owner 规则对本会话自己的 run 自动放行，跨会话 run 需用户批准。Rust check_permissions 返回 Allow，但 node-store 的 run 读面要求 parent_session_id 是本会话（六条读面共用授权链），只支持本会话补全；跨会话补全在 Rust 没有批准面。两者对本会话等价，不是无条件放行；补跨会话能力需先有 Rust 审批 UI。"
     },
     {
       "name": "GetWorkflowRun",

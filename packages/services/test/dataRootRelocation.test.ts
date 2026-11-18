@@ -405,6 +405,33 @@ describe("relocateDataRoot", () => {
     expect(existsSync(join(targetWorkspaceDir, "shared-link"))).toBe(false);
   });
 
+  it("workspace 内的依赖/构建缓存目录不迁移，普通文件照常复制", async () => {
+    const source = makeTempDir("nibi-relocate-workspace-cache-src-");
+    const target = makeTempDir("nibi-relocate-workspace-cache-dst-");
+    await seedSourceCredentials(source);
+    const sourceWorkspaceDir = join(source, ".nibi", "workspace", "default");
+    for (const cacheDir of [
+      join("node_modules", "pkg"),
+      join(".venv", "bin"),
+      join("target", "debug"),
+    ]) {
+      mkdirSync(join(sourceWorkspaceDir, cacheDir), { recursive: true });
+      writeFileSync(join(sourceWorkspaceDir, cacheDir, "cache.bin"), "cache", "utf-8");
+    }
+    mkdirSync(join(sourceWorkspaceDir, "src"), { recursive: true });
+    writeFileSync(join(sourceWorkspaceDir, "src", "app.ts"), "export {}", "utf-8");
+
+    await relocateDataRoot(source, target);
+
+    const targetWorkspaceDir = join(target, ".nibi", "workspace", "default");
+    expect(readFileSync(join(targetWorkspaceDir, "src", "app.ts"), "utf-8")).toBe("export {}");
+    expect(existsSync(join(targetWorkspaceDir, "node_modules"))).toBe(false);
+    expect(existsSync(join(targetWorkspaceDir, ".venv"))).toBe(false);
+    expect(existsSync(join(targetWorkspaceDir, "target"))).toBe(false);
+    // 源仍保留，便于切回旧根或在旧根继续使用。
+    expect(existsSync(join(sourceWorkspaceDir, "node_modules", "pkg", "cache.bin"))).toBe(true);
+  });
+
   it("同一安装旧根合并时 workspace 已有文件不被覆盖、新文件补入", async () => {
     const oldRoot = makeTempDir("nibi-relocate-workspace-restore-old-");
     const newRoot = makeTempDir("nibi-relocate-workspace-restore-new-");

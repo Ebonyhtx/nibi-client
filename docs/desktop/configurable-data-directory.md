@@ -45,7 +45,8 @@
 |------|------|
 | **v2 的 setting.json 及其瞬时文件不复制** | `v2/setting.json` 是 bootstrap 指针，`v2/setting.json.lock` 与 `v2/setting.json.*.tmp` 是原子写入中间态，均只存在于默认 homedir 下；复制它们会导致迁移竞态或新旧目录冲突。该规则只作用于 `.nibi/v2`，不套用到 workspace |
 | **迁移包含 `.nibi/workspace`** | `.nibi/workspace`（非项目对话工作区）与 `.nibi/v2` 一并整体复制；源没有 workspace 目录时按 no-op 处理，不报错 |
-| **workspace 只跳过符号链接** | workspace 内的软链（例如指向共享目录的链接）不复制，避免把外部目录内容或循环链接带进新根。workspace 里名为 `setting.json` 的普通文件属于用户数据，会原样复制 |
+| **workspace 跳过符号链接与依赖/构建缓存** | workspace 内的软链（例如指向共享目录的链接）不复制，避免把外部目录内容或循环链接带进新根。另外跳过 `node_modules`、`.venv`、`venv`、`__pycache__`、`.pytest_cache`、`.mypy_cache`、`.ruff_cache`、`.cache`、`.next`、`.nuxt`、`target` 等可再生的依赖/构建缓存；切换后这些依赖需要重新安装。workspace 里名为 `setting.json` 的普通文件属于用户数据，会原样复制 |
+| **切换前确认** | 保存前弹确认框：说明会复制 `.nibi/v2` 与 `.nibi/workspace`、依赖/构建缓存会跳过、复制期间不能关闭应用，并提醒先确保没有任务在运行 |
 | **迁移包含 `.nibi/machine`** | `.nibi/v2`、`.nibi/workspace` 与 `.nibi/machine`（per-install 凭据密钥）分开整体搬运；钥匙始终留在 v2 之外，只拷走 `v2/credentials.json` 无法解密 |
 | **凭据验证只针对 v2** | 暂存区复制完成后只用 `v2/credentials.json` + `machine/` 密钥做解密验证；workspace 不含 NIBI 凭据，不参与验证 |
 | **已有文件不覆盖** | `force: false` — 如果目标目录已存在同名文件，保留目标版本。防止还原回旧目录时，新产生的数据被旧副本覆盖；v2 与 workspace 均适用 |

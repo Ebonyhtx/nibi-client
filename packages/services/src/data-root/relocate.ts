@@ -310,11 +310,33 @@ function shouldCopyV2TreeEntry(sourcePath: string): boolean {
 }
 
 /**
- * workspace 专属过滤：只跳过符号链接。用户工作区里名为 setting.json 的普通文件
- * 属于用户数据，必须原样复制，不能套用 v2 的 bootstrap 指针规则。
+ * workspace 里可再生的依赖/构建缓存目录：迁移时跳过，避免把 node_modules/venv 这类
+ * 动辄数 GB、且切根后可以重装的内容整体复制。其它文件（包括用户自己的 setting.json）
+ * 仍原样复制。
+ */
+const WORKSPACE_SKIPPED_DIR_NAMES = new Set([
+  "node_modules",
+  ".venv",
+  "venv",
+  "__pycache__",
+  ".pytest_cache",
+  ".mypy_cache",
+  ".ruff_cache",
+  ".cache",
+  ".next",
+  ".nuxt",
+  "target",
+]);
+
+/**
+ * workspace 专属过滤：跳过符号链接与依赖/构建缓存目录。用户工作区里名为 setting.json
+ * 的普通文件属于用户数据，必须原样复制，不能套用 v2 的 bootstrap 指针规则。
  */
 function shouldCopyWorkspaceTreeEntry(sourcePath: string): boolean {
-  return !isSymbolicLinkPath(sourcePath);
+  if (isSymbolicLinkPath(sourcePath)) {
+    return false;
+  }
+  return !WORKSPACE_SKIPPED_DIR_NAMES.has(basename(sourcePath));
 }
 
 /** 按清单条目选择过滤规则；machine 沿用 v2 的软链过滤（其中不会有 setting.json）。 */
