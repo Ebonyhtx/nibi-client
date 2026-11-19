@@ -316,6 +316,11 @@
       "reason": "历史迁移必须引用旧表名；本迁移负责重命名。"
     },
     {
+      "file": "kernel/crates/node-store/src/repo/migrations.rs",
+      "pattern": "^\\s*\\[\"zcode_database_identity",
+      "reason": "迁移 0024/0025 的 touched_tables 必须引用旧表名；SQLite 表名不能重命名，0025 负责改名。"
+    },
+    {
       "file": "packages/services/src/session/tasksDatabase/migrations.ts",
       "pattern": "OFFICIAL_GLM_SELECTION",
       "reason": "历史迁移 0003 的常量名，迁移 ID/checksum 不能重命名。"
