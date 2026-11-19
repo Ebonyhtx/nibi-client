@@ -3,8 +3,9 @@
  *
  * 只服务 `tier2-sixth-batch-evidence.test.ts`：
  * - 在隔离 HOME 里把 NibiProject 变成带一次 commit 的 Git 仓库（U06）。
- * - 以固定 sessionId 预置“来源会话/目标会话”两条真实 CLI 历史与 tasks-index 行（U30），
- *   让 replay 里的 SendToSession 能指向稳定目标，而不是伪造 UI 行。
+ * - 以固定 sessionId 预置“来源会话/目标会话”两条真实 CLI 历史与 tasks-index 行（U30）；
+ *   目标会话额外落 `metadata.conversationInputIntent.source`，由 Rust 冷加载投影成
+ *   userInput row 的 source，而不是伪造 UI 行。
  * - 生成一张小 PNG 供 Markdown 图片预览使用（U27）。
  * - 找到并结束 Electron 主进程树里的 Rust agent runtime 子进程（U22）。
  */

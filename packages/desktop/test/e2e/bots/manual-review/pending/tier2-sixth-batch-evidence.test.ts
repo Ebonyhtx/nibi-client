@@ -6,12 +6,14 @@
  *    桌面 renderer 带 platform-windows-desktop，compact-web 按 spec 不生效，因此额外在
  *    同一 renderer 里临时移除平台类模拟手机 Web（明确标注模拟），再截两行导航。
  * 2. U27 图片预览操作条：真实 Markdown 图片 → 预览 → 操作条；点击“复制”并记录 toast。
- * 3. U30 跨会话来源：固定 sessionId 的 Seed 会话通过真实 SendToSession 投递到目标会话，
- *    截图“From session …”；再移除来源目录项，验证不可达时不可点。
+ * 3. U30 跨会话来源：隔离 HOME 的 CLI transcript 预置两条
+ *    `metadata.conversationInputIntent.source`，冷加载投影成 userInput row 的 source；
+ *    截图“From session …”，并覆盖来源可达/不可达（按钮 vs 不可点 span）两种状态。
  * 4. U06 受管 worktree：隔离 workspace 做 git init + commit，新任务页截图 Worktree 开关/
  *    分支选择；项目菜单打开 Worktrees 对话框。能力不满足时如实跳过。
- * 5. U08 设计工具栏：本地 HTML + 设计模式，截图工具栏（面板/方案/翻页）与检查器
- *    undo/redo/截图入口；guest 点选不可驱动时记录限制。
+ * 5. U08 设计工具栏：先用隔离 HOME 的 CLI 显式 seed 官方插件，再打开本地 HTML + 设计模式，
+ *    截图工具栏（面板/方案/翻页）与检查器 undo/redo/截图入口；插件不可用时记录确认框/
+ *    插件列表/seed 事实，不伪造工具栏。
  * 6. U22 Runtime 退出横幅（尽力而为）：结束 app 进程树里的 Rust app-server，等待横幅；
  *    无法复现时记录限制并跑对应单测作为补充证据。
  *
