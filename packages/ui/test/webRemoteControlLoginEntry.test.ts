@@ -96,7 +96,7 @@ it.each(["zai", "bigmodel", null] as const)(
     view.unmount();
     const onComplete = vi.fn();
     render(createElement(LoginPanel, { active: true, onComplete }));
-    expect(oauth.startLogin).toHaveBeenCalledWith("nibi", { purpose: "app-login" });
+    expect(oauth.startLogin).toHaveBeenCalledWith("nibi", { purpose: "app-login", mode: "webview" });
     expect(onComplete).not.toHaveBeenCalled();
   },
 );
@@ -134,6 +134,6 @@ it("尚未登录且无active provider时同样进入 NIBI 登录，而不是空�
   view.unmount();
   const onComplete = vi.fn();
   render(createElement(LoginPanel, { active: true, onComplete }));
-  expect(oauth.startLogin).toHaveBeenCalledWith("nibi", { purpose: "app-login" });
+  expect(oauth.startLogin).toHaveBeenCalledWith("nibi", { purpose: "app-login", mode: "webview" });
   expect(onComplete).not.toHaveBeenCalled();
 });
