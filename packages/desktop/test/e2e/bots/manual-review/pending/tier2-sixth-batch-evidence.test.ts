@@ -1307,8 +1307,12 @@ describe("Tier 2 第六批视觉证据（真实 Desktop）", () => {
       };
     });
     const composerRect = await readUnionRect(
-      ['[data-testid="worktree-toggle"]', '[data-testid="worktree-branch-picker"]'],
-      16,
+      [
+        '[data-testid="worktree-toggle"]',
+        '[data-testid="worktree-branch-picker"]',
+        'label:has([data-testid="worktree-toggle"])',
+      ],
+      14,
     );
     const toggleShot = composerRect
       ? await shotClip("02-u06-worktree-toggle-branch", composerRect, { maxHeight: 140 })
@@ -1407,6 +1411,13 @@ describe("Tier 2 第六批视觉证据（真实 Desktop）", () => {
         row.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
         row.dispatchEvent(new PointerEvent("pointerleave", { bubbles: true }));
       });
+      document
+        .querySelectorAll<HTMLElement>('[data-testid^="v4-turn-navigator-item-"]')
+        .forEach((item) => {
+          item.dispatchEvent(new PointerEvent("pointerleave", { bubbles: true }));
+          item.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
+          item.blur();
+        });
     });
     await browser
       .action("pointer")
