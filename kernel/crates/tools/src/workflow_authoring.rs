@@ -7,8 +7,9 @@
 //! （名字/描述/schema）、权限门（确认前先解析，确认门由解析结果给出）、技能门（按当前
 //! **可见历史**判定，压缩后重新关门，与 Node 的同一条语义）。
 //!
-//! `ListModels` 与 `ListWorkflowRuns` 不走 sidecar：前者读本机模型目录，后者读 journal——
-//! 两条都是纯读面，CLI/TUI 没有 DWF 引擎时也必须能答。
+//! `ListModels` 与 `ListWorkflowRuns` 不走 sidecar：前者读本机模型目录（给 `CreateSession.model`
+//! 与工作流的 `subagent_model` 供 id），后者读 journal——两条都是纯读面，CLI/TUI 没有 DWF
+//! 引擎时也必须能答。
 
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, PoisonError};
@@ -41,13 +42,14 @@ pub const RESUME_WORKFLOW_RUN_TOOL: &str = "ResumeWorkflowRun";
 pub const LIST_WORKFLOW_RUNS_TOOL: &str = "ListWorkflowRuns";
 pub const LIST_MODELS_TOOL: &str = "ListModels";
 
-/// 灰度门关闭时下架的十一个工具（Node `DYNAMIC_WORKFLOW_TOOL_NAMES` 逐字）。
-pub const DYNAMIC_WORKFLOW_TOOL_NAMES: [&str; 11] = [
+/// 灰度门关闭时下架的十个工具（Node `DYNAMIC_WORKFLOW_TOOL_NAMES` 逐字）。
+/// `ListModels` **不在**这份名单里：它还给 `CreateSession.model` 供目录，注册规则是
+/// 「有消费者才注册」（见 `policy_filter::PolicyFiltered::workflow_allows`）。
+pub const DYNAMIC_WORKFLOW_TOOL_NAMES: [&str; 10] = [
     CREATE_WORKFLOW_TOOL,
     AMEND_WORKFLOW_TOOL,
     SAVE_WORKFLOW_TOOL,
     LIST_SAVED_WORKFLOWS_TOOL,
-    LIST_MODELS_TOOL,
     EVAL_WORKFLOW_SNIPPET_TOOL,
     LIST_WORKFLOW_RUNS_TOOL,
     crate::workflow_run_detail::GET_WORKFLOW_RUN_TOOL,
@@ -476,7 +478,8 @@ fn skill_name(input: &Value) -> Option<&str> {
         .or_else(|| input.get("name").and_then(Value::as_str))
 }
 
-/// 全部十一个 DWF 工具里的六个作者面 + 两个原生读面。
+/// DWF 工具面的六个作者面 + 两个原生读面（`ListWorkflowRuns` / `ListModels`；后者也给
+/// `CreateSession.model` 供目录，所以不随灰度门下架）。
 pub fn authoring_tools(
     engine: WorkflowEngineSlot,
     models: ModelDirectorySlot,
@@ -789,7 +792,7 @@ impl Tool for ListModelsTool {
     }
 
     fn search_hint(&self) -> Option<&str> {
-        Some("list the models this host has configured for workflow subagents")
+        Some("list the models this host has configured for choosing a session or subagent model")
     }
 
     fn is_read_only(&self, _input: &Value) -> bool {
@@ -820,6 +823,10 @@ impl Tool for ListModelsTool {
         context: ToolUseContext,
         _progress: mpsc::Sender<ToolProgress>,
     ) -> Result<ToolOutput, ToolError> {
+        // 输出形状：上游的 JSON 契约（`ListModelsOutputSchema`）只给 executor/display 用，模型
+        // 实际读到的是 Node `formatModelContent` 生成的同一份 `<models>` 文本；Rust 的
+        // `ToolResultContent` 也只有 Text/Image 等线格式，没有结构化 JSON 变体。所以这里直接
+        // 产出那段文本，与 Node 逐行同形，不做 JSON 包装。
         // Node 每次现读注册表视图：会话中途换模型后 `[current]` 必须跟着变。
         let current = context
             .interactions
@@ -982,11 +989,11 @@ fn list_runs_description() -> String {
 
 fn list_models_description() -> String {
     [
-        "Lists the models this host has configured, so a dynamic workflow's subagents can be pointed at one.",
+        "Lists the models this host has configured, so another tool can be pointed at one.",
         "",
-        "- Each row's `id` (`providerId/modelId`) pastes verbatim into the `subagent_model` field of CreateWorkflow or AmendWorkflow. Append `$<level>` to pick a reasoning level from that row's `reasoningLevels`.",
-        "- This tool does NOT change the model you are running on. The session model is the user's choice and only the user changes it; `subagent_model` only moves the workflow's subagents.",
-        "- The model the session is on right now is marked `[current]` — setting the subagents to that one is the same as omitting the field.",
+        "- Each row's `id` (`providerId/modelId`) pastes verbatim into the `model` field of CreateSession, or the `subagent_model` field of CreateWorkflow or AmendWorkflow. Append `$<level>` to pick a reasoning level from that row's `reasoningLevels`.",
+        "- This tool does NOT change the model you are running on, and no tool changes an existing session's model. It only picks the model for a session or a workflow subagent you are about to create.",
+        "- The model the session is on right now is marked `[current]`. Omitting the field uses the configured default, which is not necessarily that one.",
         "- A row marked `disabled` cannot be used (no API key, disabled by policy). Resolve that with the user rather than picking around it silently.",
     ]
     .join("\n")

@@ -641,6 +641,7 @@ describe("SQLite session store", () => {
       "0023_session_soft_delete_outcome",
       "0024_session_database_identity",
       "0025_session_database_identity_rename",
+      "0026_session_permanent_deletion",
     ];
 
     try {
@@ -680,6 +681,7 @@ describe("SQLite session store", () => {
         "0.16.9",
         "0.16.9",
         "4.0.3",
+        "0.17.0",
       ]);
 
       db.close();
@@ -717,7 +719,7 @@ describe("SQLite session store", () => {
         ]),
       );
       expect(attempts.flat().filter((result) => !result.ok)).toEqual([]);
-      expect(attempts.flat().every((result) => result.migrationIds?.length === 25)).toBe(true);
+      expect(attempts.flat().every((result) => result.migrationIds?.length === SQLITE_MIGRATIONS.length)).toBe(true);
     },
     CONCURRENT_STARTUP_TEST_TIMEOUT_MS,
   );
@@ -945,6 +947,7 @@ describe("SQLite session store", () => {
         "0023_session_soft_delete_outcome",
         "0024_session_database_identity",
         "0025_session_database_identity_rename",
+        "0026_session_permanent_deletion",
       ]);
       store.close();
     } finally {

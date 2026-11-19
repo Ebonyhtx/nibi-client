@@ -117,9 +117,23 @@ impl Actor {
             turn: None,
         };
         match self.deps.store.commit(&id, batch).await {
-            Ok(_) => Ack::Accepted {
-                result: Value::String(id.as_str().to_owned()),
-            },
+            Ok(_) => {
+                // K6：fork 的子会话沿用父会话的 system 快照（对齐上游 `buildForkedPromptSnapshotEntry`），
+                // 子会话第一次请求就能命中同一段缓存前缀；父会话没有快照时不写。
+                if let Some(state) = self.prompt_snapshot.clone()
+                    && let Err(error) = nibi_kernel_api::prompt_snapshot::save_prompt_snapshot(
+                        self.deps.store.as_ref(),
+                        &id,
+                        &state,
+                    )
+                    .await
+                {
+                    tracing::warn!(%error, session = %id, "prompt snapshot fork copy failed");
+                }
+                Ack::Accepted {
+                    result: Value::String(id.as_str().to_owned()),
+                }
+            }
             Err(error) => rejected(error.to_string()),
         }
     }

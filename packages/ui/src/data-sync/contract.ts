@@ -5,6 +5,7 @@ import type {
   DataSyncImportStatus,
   DataSyncItemDependencies,
   DataSyncItemSignature,
+  DataSyncModelOverrideSummary,
 } from "@nibi/shared";
 
 // UI 层不能直接依赖 Service 实现；门禁错误码经本模块 contract 转发，页面只认这里。
@@ -98,6 +99,11 @@ export interface DataSyncRow {
   parentKey?: string;
   /** 子智能体分类：引用的 MCP / 技能名称，只做行内提示，不影响行状态与勾选。 */
   dependencies?: DataSyncItemDependencies;
+  /** 子智能体分类：内置智能体的模型覆盖行。target 只在「差异」行给出，用于显示远端当前的模型。 */
+  builtInModelOverride?: {
+    source: DataSyncModelOverrideSummary;
+    target?: DataSyncModelOverrideSummary;
+  };
 }
 
 /** 兼容旧导出与既有测试：技能行就是带 `category: "skills"` 的通用行。 */

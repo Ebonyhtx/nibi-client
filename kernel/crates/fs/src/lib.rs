@@ -390,6 +390,57 @@ pub async fn path_bytes(path: &Path) -> io::Result<u64> {
     Ok(total)
 }
 
+/// 一棵目录树里的文件（[`tree_files`] 的一项）。
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TreeFile {
+    pub path: PathBuf,
+    /// 符号链接按 0（不跟随，与 [`path_bytes`] 同口径）。
+    pub bytes: u64,
+}
+
+/// 一棵目录树里的全部文件，按路径排序；路径不存在时为空。符号链接算 0 字节的文件，不跟随
+/// （永久删除的清单与 Node `session-data-files` 的 `readdir` + `lstat` 同口径）。
+pub async fn tree_files(path: &Path) -> io::Result<Vec<TreeFile>> {
+    let mut found = Vec::new();
+    let mut pending = vec![path.to_path_buf()];
+    while let Some(current) = pending.pop() {
+        let metadata = match tokio::fs::symlink_metadata(&current).await {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == ErrorKind::NotFound => continue,
+            Err(error) => return Err(error),
+        };
+        if metadata.file_type().is_symlink() {
+            found.push(TreeFile {
+                path: current,
+                bytes: 0,
+            });
+            continue;
+        }
+        if metadata.is_dir() {
+            let mut entries = tokio::fs::read_dir(&current).await?;
+            while let Some(entry) = entries.next_entry().await? {
+                pending.push(entry.path());
+            }
+        } else {
+            found.push(TreeFile {
+                path: current,
+                bytes: metadata.len(),
+            });
+        }
+    }
+    found.sort_by(|left, right| left.path.cmp(&right.path));
+    Ok(found)
+}
+
+/// 这个路径是不是符号链接（含悬空链接）；不存在不算错。
+pub async fn is_symlink(path: &Path) -> io::Result<bool> {
+    match tokio::fs::symlink_metadata(path).await {
+        Ok(metadata) => Ok(metadata.file_type().is_symlink()),
+        Err(error) if error.kind() == ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error),
+    }
+}
+
 /// 删掉一个文件或整棵目录；路径不存在不算错。符号链接只删链接本身，不跟随（`rm` 的语义）。
 /// 调用方负责在删除前用 [`path_bytes`] 统计字节数（删除后文件不再可测）。
 pub async fn remove_path(path: &Path) -> io::Result<()> {

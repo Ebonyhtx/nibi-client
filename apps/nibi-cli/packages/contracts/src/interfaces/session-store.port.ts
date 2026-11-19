@@ -835,6 +835,8 @@ export const SESSION_ENTRY_WORKSPACE_FILE_REWIND = "runtime/workspace_file_rewin
 /** 动态工作流工具面已在本会话激活（docs/dynamic-workflow/launch.md「On demand: activation」）。 */
 export const SESSION_ENTRY_DYNAMIC_WORKFLOW_ACTIVATION =
   "runtime/dynamic_workflow_activation" as const;
+/** 主会话 system prompt 快照（每个会话一行，覆盖写；compaction 后写 cleared 墓碑）。 */
+export const SESSION_ENTRY_PROMPT_SNAPSHOT = "runtime/prompt_snapshot" as const;
 
 export const SESSION_ENTRY_TYPES = [
   SESSION_ENTRY_TARGET_COMPLETION_VERIFICATION,
@@ -845,6 +847,7 @@ export const SESSION_ENTRY_TYPES = [
   SESSION_ENTRY_WORKSPACE_CHECKPOINT,
   SESSION_ENTRY_WORKSPACE_FILE_REWIND,
   SESSION_ENTRY_DYNAMIC_WORKFLOW_ACTIVATION,
+  SESSION_ENTRY_PROMPT_SNAPSHOT,
 ] as const;
 
 export type SessionEntryType = (typeof SESSION_ENTRY_TYPES)[number];
@@ -1114,6 +1117,77 @@ export interface LocalSettingStorePort {
   }): CollaborationMode | Promise<CollaborationMode>;
 }
 
+// ── 归档会话的永久删除（v4/storage/sessionData/deletionPreview|deletionExecute）──
+// 删除凭据在 session_purge（迁移 0026）：每个被删会话一行，root_id 指向用户选中的根。
+// 凭据插下后触发器挡住写进这些会话；删完把行改成 deleted 但保留凭据，同 id 不能再建。
+
+export type SessionDeletionErrorCode =
+  | "session-data.identity-mismatch"
+  | "session-data.unavailable"
+  | "session-data.running"
+  | "session-data.changed"
+  | "session-data.deleting";
+
+export class SessionDeletionError extends Error {
+  constructor(
+    readonly code: SessionDeletionErrorCode,
+    message: string = code,
+  ) {
+    super(message);
+    this.name = "SessionDeletionError";
+  }
+}
+
+/** 一个会话与它的标题（fork 与引用方，界面列出来）。 */
+export interface SessionDeletionTitledSession {
+  sessionID: SessionId;
+  title: string;
+}
+
+/** 树里一个会话的附件被树外没删除的会话引用。 */
+export interface SessionArtifactReference {
+  sessionID: SessionId;
+  artifactID: string;
+  /** 按会话 id 排序。 */
+  referrers: SessionDeletionTitledSession[];
+}
+
+/** 一个会话行的版本事实：改了（新消息、改名）或删了，revision 就变。 */
+export interface SessionDeletionStamp {
+  sessionID: SessionId;
+  updatedAt: number;
+  deletedAt: number | null;
+}
+
+export type SessionDeletionReceipt = "deleting" | "deleted";
+
+/** 库里的删除范围；一次读事务得到，预检与执行共用。 */
+export interface SessionDeletionScope {
+  /** 根与它的自有后代，根在最前；有凭据时是凭据里的会话；根不存在且无凭据时为空。 */
+  sessionIDs: SessionId[];
+  workspace: { workspacePath: string; workspaceIdentity: string | null } | null;
+  /** 没删除的、父会话在树里、自己不在树里的会话，按 id 排序。 */
+  forks: SessionDeletionTitledSession[];
+  /** 按（会话，artifact）排序。 */
+  references: SessionArtifactReference[];
+  /** 与 sessionIDs 同序；行已删的会话没有 stamp。 */
+  stamps: SessionDeletionStamp[];
+  /** 库里有待处理工作（session_input admitted、session_target active）；有凭据时不看。 */
+  pendingWork: boolean;
+  receipt: SessionDeletionReceipt | null;
+}
+
+export interface SessionDeletionBeginInput {
+  /** 协议执行命令的 operationId，写进凭据。 */
+  operationID: string;
+  /** 确认时的版本事实；事务里读到的不同就不插凭据。 */
+  stamps: readonly SessionDeletionStamp[];
+  /** 要留下的附件：（会话，artifact id）。 */
+  retained: ReadonlyArray<{ sessionID: SessionId; artifactID: string }>;
+}
+
+export type SessionDeletionBeginOutcome = "admitted" | "changed" | "running";
+
 export interface SessionStorePort {
   createSession(input: CreateSessionInput): Promise<SessionInfo>;
   /** legacy 兼容原语；V4 stable/compact-edit fork 禁止调用，统一走 commitForkBundle。 */
@@ -1132,6 +1206,36 @@ export interface SessionStorePort {
   softDeleteSession?(sessionID: SessionId, timeDeleted?: number): Promise<void>;
   getSession(sessionID: SessionId): Promise<SessionInfo | null>;
   listSessions(input?: ListSessionsInput): Promise<SessionInfo[]>;
+  // ── 归档会话的永久删除（可选方法，旧宿主可不实现）──
+  /** 根 → 根自身与它的自有后代（subagent / workflow / selection side chat）；fork 不展开。 */
+  listOwnedSessionTrees?(rootIDs: readonly SessionId[]): Promise<Map<SessionId, SessionId[]>>;
+  /** 每个目标会话 → 树外仍引用它附件的未删除会话，按 id 排序。 */
+  listArtifactReferrers?(targetIDs: readonly SessionId[]): Promise<Map<SessionId, SessionId[]>>;
+  /** 一次读事务得到删除范围（凭据、自有树、fork、引用、版本事实、待处理工作）。 */
+  inspectSessionDeletion?(rootID: SessionId): Promise<SessionDeletionScope>;
+  /** 一个事务里再核对版本事实并给范围里每个会话插 `deleting` 凭据。 */
+  beginSessionDeletion?(
+    rootID: SessionId,
+    input: SessionDeletionBeginInput,
+  ): Promise<SessionDeletionBeginOutcome>;
+  /** 一个事务删凭据里这些会话的行，再把凭据改成 deleted；幂等。 */
+  completeSessionDeletion?(rootID: SessionId): Promise<void>;
+  /** 删这些会话的数据库行（外键级联）；调用方负责先删文件。 */
+  purgeSessions?(sessionIDs: readonly SessionId[]): Promise<void>;
+  /** 登记运行时正在使用会话；凭据已存在时被触发器拒绝（session-data.deleting）。 */
+  registerSessionRuntimePresence?(
+    sessionID: SessionId,
+    ownerID?: string,
+    processID?: number,
+  ): Promise<void>;
+  /** 注销运行时占用；同一 owner 重入幂等。 */
+  unregisterSessionRuntimePresence?(sessionID: SessionId, ownerID?: string): Promise<void>;
+  /** 树里是否有运行时占用（预检的 running 依据）。 */
+  hasSessionRuntimePresence?(sessionIDs: readonly SessionId[]): Promise<boolean>;
+  /** 写前早失败：会话已有删除凭据时抛 session-data.deleting。 */
+  assertSessionNotDeleting?(sessionID: SessionId): Promise<void>;
+  /** 本地存储根（`<storage>/cli`）：永久删除按它列/删会话文件。 */
+  getCliStorageRoot?(): string;
   /**
    * 用 host task-index allowlist 为旧远端 session 补写 workspace identity。
    * 实现必须同时校验 id、directory 与 workspace_id is null，禁止覆盖已有 identity。

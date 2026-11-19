@@ -107,6 +107,12 @@ pub struct MemoryStore {
     pinned: Mutex<HashSet<SessionId>>,
     /// 被非会话事实（workflow_activity）引用的会话。
     external_references: Mutex<HashSet<SessionId>>,
+    /// 永久删除的文件清单（`deletion_files` / `remove_deletion_files` 的替身）。
+    deletion_files: Mutex<HashMap<SessionId, Vec<crate::deletion::SessionFile>>>,
+    /// 删除凭据（`session_id → (root_id, 状态)`，`begin_deletion` / `complete_deletion` 的替身）。
+    purge_receipts: Mutex<HashMap<SessionId, (SessionId, crate::deletion::Receipt)>>,
+    /// 有待处理工作（Node `session_input` admitted / `session_target` active）的会话。
+    pending_work: Mutex<HashSet<SessionId>>,
 }
 
 impl MemoryStore {
@@ -198,6 +204,62 @@ impl MemoryStore {
         lock(&self.sessions).contains_key(session)
     }
 
+    /// 给会话挂一个文件（永久删除的预检与删除用）。
+    pub fn add_file(&self, session: &SessionId, file: crate::deletion::SessionFile) {
+        lock(&self.deletion_files)
+            .entry(session.clone())
+            .or_default()
+            .push(file);
+    }
+
+    /// 会话的文件清单（永久删除之后为空）。
+    pub fn files_of(&self, session: &SessionId) -> Vec<crate::deletion::SessionFile> {
+        lock(&self.deletion_files)
+            .get(session)
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    /// 根的删除凭据状态（没有凭据时 None）。
+    pub fn receipt(&self, root: &SessionId) -> Option<crate::deletion::Receipt> {
+        let receipts = lock(&self.purge_receipts);
+        let states: Vec<crate::deletion::Receipt> = receipts
+            .values()
+            .filter(|(receipt_root, _)| receipt_root == root)
+            .map(|(_, state)| *state)
+            .collect();
+        if states.contains(&crate::deletion::Receipt::Deleting) {
+            Some(crate::deletion::Receipt::Deleting)
+        } else if states.contains(&crate::deletion::Receipt::Deleted) {
+            Some(crate::deletion::Receipt::Deleted)
+        } else {
+            None
+        }
+    }
+
+    /// 让会话看起来有 Node 写下的待处理工作（预检阻止删除）。
+    pub fn set_pending_work(&self, session: &SessionId) {
+        lock(&self.pending_work).insert(session.clone());
+    }
+
+    /// 有删除凭据（删除中或删完）的会话：列表与查询都不列（同 node-store 的 `NOT_PURGED`）。
+    fn purged(&self) -> HashSet<SessionId> {
+        lock(&self.purge_receipts).keys().cloned().collect()
+    }
+
+    /// 根的范围里的会话，根在最前，其余按 id 排序。
+    fn ordered_tree(&self, root: &SessionId) -> Vec<SessionId> {
+        let mut ids = self.tree(root);
+        ids.sort_by(|left, right| left.as_str().cmp(right.as_str()));
+        ids.retain(|id| id != root);
+        let mut ordered = Vec::with_capacity(ids.len() + 1);
+        if lock(&self.sessions).contains_key(root) {
+            ordered.push(root.clone());
+        }
+        ordered.extend(ids);
+        ordered
+    }
+
     /// 会话根 → 根与它的附属后代（node-store 的子树读面的替身）：按 `parent` 展开
     /// `Subagent` / `SelectionSideChat`，`Fork` 不展开。
     fn tree(&self, root: &SessionId) -> Vec<SessionId> {
@@ -228,6 +290,12 @@ impl MemoryStore {
 #[async_trait]
 impl SessionStore for MemoryStore {
     async fn create(&self, meta: SessionMeta) -> Result<(), StoreError> {
+        // 删完的会话 id 不能再建（node-store 里是 0026 的触发器 `session-data.deleting`）。
+        if self.receipt(&meta.id) == Some(crate::deletion::Receipt::Deleted) {
+            return Err(StoreError::Storage {
+                message: "session-data.deleting".to_owned(),
+            });
+        }
         lock(&self.sessions).insert(meta.id.clone(), (meta, Vec::new()));
         Ok(())
     }
@@ -554,11 +622,13 @@ impl SessionStore for MemoryStore {
     /// node-store 的同一口径（node-store.md §5.1）：按根目录筛、删除的不列、按时间从新到旧（同一时刻 id 大的在前）。
     async fn query_sessions(&self, query: SessionQuery) -> Result<SessionPage, StoreError> {
         let deleted = lock(&self.deleted).clone();
+        let purged = self.purged();
         let updated = lock(&self.updated).clone();
         let mut records: Vec<SessionRecord> = lock(&self.sessions)
             .values()
             .filter(|(meta, _)| {
                 !deleted.contains(&meta.id)
+                    && !purged.contains(&meta.id)
                     && !matches!(
                         meta.kind,
                         SessionKind::Subagent | SessionKind::SelectionSideChat
@@ -727,11 +797,218 @@ impl SessionStore for MemoryStore {
             .unwrap_or(0))
     }
 
+    async fn deletion_scope(
+        &self,
+        root: &SessionId,
+    ) -> Result<crate::deletion::DeletionScope, StoreError> {
+        use crate::deletion::{ArtifactReference, DeletionScope, Receipt, SessionStamp, TitledSession};
+        let receipt_rows: Vec<(SessionId, Receipt)> = {
+            let receipts = lock(&self.purge_receipts);
+            let mut rows: Vec<(SessionId, Receipt)> = receipts
+                .iter()
+                .filter(|(_, (receipt_root, _))| receipt_root == root)
+                .map(|(session, (_, state))| (session.clone(), *state))
+                .collect();
+            rows.sort_by(|left, right| left.0.as_str().cmp(right.0.as_str()));
+            rows
+        };
+        let (sessions, receipt) = if receipt_rows.is_empty() {
+            (self.ordered_tree(root), None)
+        } else {
+            let state = if receipt_rows
+                .iter()
+                .any(|(_, state)| *state == Receipt::Deleting)
+            {
+                Receipt::Deleting
+            } else {
+                Receipt::Deleted
+            };
+            (
+                receipt_rows.iter().map(|(id, _)| id.clone()).collect(),
+                Some(state),
+            )
+        };
+        if sessions.is_empty() {
+            return Ok(DeletionScope::default());
+        }
+        let inside: HashSet<SessionId> = sessions.iter().cloned().collect();
+        // 先把会话行里要用的东西抄出来，再放掉 sessions 的锁（别的写路径先拿 deleted 再拿
+        // sessions，这里不反着拿，避免测试里的锁顺序死锁）。
+        let (workspace, forks, created, titles) = {
+            let sessions_map = lock(&self.sessions);
+            let workspace = sessions_map.get(root).map(|(meta, _)| meta.workspace.clone());
+            let mut forks: Vec<TitledSession> = sessions_map
+                .values()
+                .filter(|(meta, _)| {
+                    meta.parent
+                        .as_ref()
+                        .is_some_and(|parent| inside.contains(parent) && !inside.contains(&meta.id))
+                })
+                .map(|(meta, _)| TitledSession {
+                    session: meta.id.clone(),
+                    title: meta.title.clone(),
+                })
+                .collect();
+            forks.sort_by(|left, right| left.session.as_str().cmp(right.session.as_str()));
+            let created: HashMap<SessionId, u64> = sessions_map
+                .iter()
+                .map(|(id, (meta, _))| (id.clone(), meta.created_at_ms))
+                .collect();
+            let titles: HashMap<SessionId, String> = sessions_map
+                .iter()
+                .map(|(id, (meta, _))| (id.clone(), meta.title.clone()))
+                .collect();
+            (workspace, forks, created, titles)
+        };
+        let updated = lock(&self.updated);
+        let deleted = lock(&self.deleted);
+        let stamps: Vec<SessionStamp> = sessions
+            .iter()
+            .map(|id| {
+                let at = updated
+                    .get(id)
+                    .copied()
+                    .or_else(|| created.get(id).copied())
+                    .unwrap_or_default();
+                SessionStamp {
+                    session: id.clone(),
+                    updated_ms: at,
+                    deleted_ms: deleted.contains(id).then_some(at),
+                }
+            })
+            .collect();
+        drop(deleted);
+        drop(updated);
+        let mut references = Vec::new();
+        {
+            let refs = lock(&self.referrers);
+            for target in &sessions {
+                let mut referrers: Vec<TitledSession> = refs
+                    .get(target)
+                    .map(|referrers| {
+                        referrers
+                            .iter()
+                            .filter(|referrer| !inside.contains(*referrer))
+                            .map(|referrer| TitledSession {
+                                session: referrer.clone(),
+                                title: titles.get(referrer).cloned().unwrap_or_default(),
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                referrers.sort_by(|left, right| left.session.as_str().cmp(right.session.as_str()));
+                if referrers.is_empty() {
+                    continue;
+                }
+                references.push(ArtifactReference {
+                    session: target.clone(),
+                    artifact: "shared".to_owned(),
+                    referrers,
+                });
+            }
+        }
+        let pending_work = receipt.is_none()
+            && sessions
+                .iter()
+                .any(|session| lock(&self.pending_work).contains(session));
+        Ok(DeletionScope {
+            sessions,
+            workspace,
+            forks,
+            references,
+            stamps,
+            pending_work,
+            receipt,
+        })
+    }
+
+    async fn deletion_files(
+        &self,
+        session: &SessionId,
+    ) -> Result<Vec<crate::deletion::SessionFile>, StoreError> {
+        Ok(self.files_of(session))
+    }
+
+    async fn begin_deletion(
+        &self,
+        root: &SessionId,
+        begin: &crate::deletion::DeletionBegin,
+    ) -> Result<crate::deletion::BeginOutcome, StoreError> {
+        use crate::deletion::BeginOutcome;
+        let now = self.deletion_scope(root).await?;
+        if now.receipt.is_some() {
+            return Ok(BeginOutcome::Admitted);
+        }
+        if now.pending_work {
+            return Ok(BeginOutcome::Running);
+        }
+        if now.sessions.is_empty() || now.stamps != begin.stamps {
+            return Ok(BeginOutcome::Changed);
+        }
+        let mut receipts = lock(&self.purge_receipts);
+        for session in &now.sessions {
+            receipts.insert(
+                session.clone(),
+                (root.clone(), crate::deletion::Receipt::Deleting),
+            );
+        }
+        Ok(BeginOutcome::Admitted)
+    }
+
+    async fn remove_deletion_files(
+        &self,
+        session: &SessionId,
+        keep: &[String],
+    ) -> Result<(), StoreError> {
+        let mut files = lock(&self.deletion_files);
+        if keep.is_empty() {
+            files.remove(session);
+        } else if let Some(list) = files.get_mut(session) {
+            list.retain(|file| file.artifact && keep.iter().any(|id| file.name.contains(id)));
+            if list.is_empty() {
+                files.remove(session);
+            }
+        }
+        lock(&self.files).remove(session);
+        Ok(())
+    }
+
+    async fn complete_deletion(&self, root: &SessionId) -> Result<(), StoreError> {
+        let sessions: Vec<SessionId> = {
+            let receipts = lock(&self.purge_receipts);
+            receipts
+                .iter()
+                .filter(|(_, (receipt_root, _))| receipt_root == root)
+                .map(|(session, _)| session.clone())
+                .collect()
+        };
+        for id in &sessions {
+            lock(&self.sessions).remove(id);
+            lock(&self.deleted).insert(id.clone());
+            lock(&self.records).remove(id);
+            lock(&self.permissions).remove(id);
+            lock(&self.updated).remove(id);
+            lock(&self.turns).remove(id);
+            lock(&self.files).remove(id);
+            for refs in lock(&self.referrers).values_mut() {
+                refs.retain(|referrer| referrer != id);
+            }
+        }
+        let mut receipts = lock(&self.purge_receipts);
+        for id in &sessions {
+            if let Some(entry) = receipts.get_mut(id) {
+                entry.1 = crate::deletion::Receipt::Deleted;
+            }
+        }
+        Ok(())
+    }
+
     async fn list(&self, _filter: SessionFilter) -> Result<Vec<SessionSummary>, StoreError> {
         let deleted = lock(&self.deleted).clone();
+        let purged = self.purged();
         Ok(lock(&self.sessions)
             .values()
-            .filter(|(meta, _)| !deleted.contains(&meta.id))
+            .filter(|(meta, _)| !deleted.contains(&meta.id) && !purged.contains(&meta.id))
             .map(|(meta, _)| SessionSummary {
                 id: meta.id.clone(),
                 title: meta.title.clone(),

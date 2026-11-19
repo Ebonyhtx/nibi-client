@@ -565,7 +565,7 @@ fn checkpoint() -> crate::store::WorkspaceCheckpoint {
 #[path = "lib_tests_more.rs"]
 mod more;
 
-/// 冷恢复的 `onDemand` 判据：`/workflow` 文本或十一个工具任一次调用。
+/// 冷恢复的 `onDemand` 判据：`/workflow` 文本或十个工具任一次调用。
 #[test]
 fn dynamic_workflow_history_is_recognized() {
     use crate::workflow::history_shows_dynamic_workflow;
@@ -581,6 +581,19 @@ fn dynamic_workflow_history_is_recognized() {
         usage: None,
     });
     assert!(history_shows_dynamic_workflow(&[workflow_call]));
+    // ListModels 不是激活信号：它也给 CreateSession.model 供目录，单独调过一次不说明用过工作流。
+    let list_models_call = Message::Assistant(AssistantMessage {
+        id: MessageId::new("m2"),
+        content: vec![ContentBlock::ToolUse {
+            id: ToolUseId::new("t2"),
+            name: "ListModels".to_owned(),
+            input: json!({}),
+        }],
+        model: "test".to_owned(),
+        stop_reason: None,
+        usage: None,
+    });
+    assert!(!history_shows_dynamic_workflow(&[list_models_call]));
     let command = Message::User(crate::message::UserMessage {
         id: MessageId::new("u1"),
         content: vec![ContentBlock::Text {

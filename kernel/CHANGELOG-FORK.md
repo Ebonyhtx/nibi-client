@@ -115,6 +115,39 @@
   且那些 URL 是上游域名，所以不跟随。
 - 其余：release chore（0.1.81/82/86）、他们的 CI（darwin-arm64 on macos-26）、文档。
 
+### 5.2 2026-11-19：0.1.88（`a7a980de`）只做补丁式回填，不重 pin
+
+| 项 | 值 |
+|---|---|
+| 上游版本 | 0.1.88，release commit `a7a980de32da5da539d361e937702610b801e03d`（`chore(rust-cli): release @mbearo/zcode 0.1.88`），export of source `718d53f43c` |
+| 规模 | 约 1951 文件、build 88、新增 7 个 crate、迁移账本到 25 |
+| NIBI pin | 仍 `6d349ed4c4cf31e05079056c08e6bea495544116`（0.1.67，build 67） |
+| 处置 | **不整体重 pin**；只回填与 NIBI 内核相关的安全/正确性补丁 |
+
+回填项（均已提交）：
+
+- **R1 项目配置白名单**（`82ae3d56`）：仓库内 `nibi.json` 只保留 `hooks`、`mcp`、`plugins.enabledPlugins`、
+  `plugins.options`，其余键在读入阶段剔除，避免恶意仓库用 `permission.mode`/`allowedTools` 自行放权或用
+  `storage.*` 搬走会话库。
+- **R2 `TaskLists` 弱引用、R3 `report_findings` 直接放行、R4 `tool_search` 按当前运行工具**（`2213bb2e`）。
+- **R6 entry 前缀、R7 安全依赖锁、R12 上游门禁**（`82ae3d56`）：`scripts/check-kernel-upstream-gates.mjs`
+  校验 `nibi-kernel/` 前缀与 CVE 下限，已进 CI 与 `verify:pre-push`。
+
+明确不做：
+
+- **整体 merge 0.1.88 树**：会把 NIBI 的 CVE 修复（rusqlite 0.41.1 / rustls-webpki 0.103.16 /
+  webpki-root-certs 1.0.11 / rustix 1.1.6 / libz-sys 1.1.31）、`protocol-nibi`、v2 凭据与
+  `nibi-kernel/` entry 前缀一起打散。
+- **迁移 25 / 上游 0025**：NIBI 的 `0025` 是 `session_database_identity_rename`，上游 `0025` 是
+  `session_permanent_deletion`，不是同一迁移。只有采用 v5 永久删除时才新开 `0026`，并同批补
+  `touched_tables` / `needs_backup`（半套回填会让有数据的旧库 `backup_required`）。
+- **keyring / pg-store / protocol-v5 / plugin-store / relay-connect**：NIBI 使用文件凭据、SQLite、
+  `protocol-nibi`、Host 插件与 SSH/loopback，不引入上游这些新 crate。
+- **上游 v2 凭据格式**（`enc:v2:<os|env>:<fp>:...`）：与 NIBI 的 `enc:v2:<iv>.<tag>.<ct>` + 每安装 key
+  互不兼容，不能写进共享 `credentials.json`。
+
+兼容性契约与验证方式见 `kernel/UPSTREAM-COMPAT.md`。
+
 ## 6. Step 2 第一切片（2026-10-30）
 
 - NIBI 34 个 `CommandType` 契约进入协议前端：`schema/nibi-commands.json`（由 NIBI zod 生成，

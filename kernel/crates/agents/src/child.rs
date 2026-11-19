@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 use async_trait::async_trait;
 use nibi_kernel_api::checkpoint::PendingCheckpoints;
 use nibi_kernel_api::clock::Ids;
-use nibi_kernel_api::ids::{AgentId, MessageId, OperationId, OwnerEpoch, SessionId};
+use nibi_kernel_api::ids::{AgentId, MessageId, OperationId, OwnerEpoch, SessionId, ToolUseId};
 use nibi_kernel_api::message::{AssistantMessage, ContentBlock, Message};
 use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError, PermissionAnswer,
@@ -173,21 +173,33 @@ impl ChildSink {
     }
 }
 
-/// 经父会话询问的这段时间：开始时记一次等待，结束（含被取消、future 被丢弃）时复原。
+/// 经父会话询问的这段时间：开始时记一次等待，结束（含被取消、future 被丢弃）时复原。等权限审批的
+/// 那一次另记在活动里（后台无进展提醒在此期间不提醒，审批结束从那一刻重新计时）。
 struct Waiting<'a> {
     live: &'a Live,
     agent: &'a AgentId,
+    permission: Option<ToolUseId>,
 }
 
 impl<'a> Waiting<'a> {
-    fn start(live: &'a Live, agent: &'a AgentId) -> Self {
+    fn start(live: &'a Live, agent: &'a AgentId, permission: Option<ToolUseId>) -> Self {
         live.waiting(agent, true);
-        Self { live, agent }
+        if let Some(tool_use) = &permission {
+            live.permission_started(agent, tool_use);
+        }
+        Self {
+            live,
+            agent,
+            permission,
+        }
     }
 }
 
 impl Drop for Waiting<'_> {
     fn drop(&mut self) {
+        if let Some(tool_use) = &self.permission {
+            self.live.permission_ended(self.agent, tool_use);
+        }
         self.live.waiting(self.agent, false);
     }
 }
@@ -240,8 +252,13 @@ impl Interactions for ChildSink {
             },
             other => other,
         };
-        // 等用户回答期间列表显示 ` · waiting`（tui-panels.md §1.1）；被取消时 guard 复原。
-        let _waiting = Waiting::start(&self.live, &self.agent);
+        // 等用户回答期间列表显示 ` · waiting`（tui-panels.md §1.1）；被取消时 guard 复原。等权限审批的那
+        // 一次另记在活动里：审批期间无进展钟不提醒，审批结束从那一刻重新计时。
+        let permission = match &request {
+            InteractionRequest::Permission { tool_use, .. } => Some(tool_use.clone()),
+            _ => None,
+        };
+        let _waiting = Waiting::start(&self.live, &self.agent, permission);
         asker.ask(session, request).await
     }
 
@@ -438,6 +455,8 @@ impl RunSink for ChildSink {
         if let Some(doing) = Doing::after(&event) {
             self.live.doing(&self.agent, doing);
         }
+        // 后台无进展提醒的进展与在途工具（stall.rs）：同一条事件路径折进条目，不另起总线。
+        self.live.note_event(&self.agent, &event);
         // 进度只给 UI：通道满了就丢，不拖慢子循环。
         if let Some(parent) = &self.parent {
             let data = json!({ "agentId": self.agent, "event": event });

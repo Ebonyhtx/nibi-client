@@ -7,8 +7,9 @@
 //! - 启动进度（`Progress`）只为 `--prepare-storage` 握手报告（app-server 的存储准备入口，Node
 //!   `runSqliteSessionMigrationsAsync` 的 `onProgress`）；常规打开传空报告，帧的顺序与 Node 相同。
 //! - 账本按 Node `previousIds` 接管旧 id（只补记账本，不重跑 SQL），不再写死 0023 的特例预检。
-//! - 迁移前备份没有复制：已有业务数据的库若还缺已知迁移，拒绝打开（`backup_required`），
-//!   由 Node CLI / App 先升级。全新库没有要保护的表，照常补齐（docs/specs/rust-cli/node-store.md §2）。
+//! - 迁移前备份没有复制：待补的迁移要碰的表（`touched_tables`）已有一张存在时拒绝打开（`backup_required`），
+//!   由 Node CLI / App 先升级；全新库、或只建新表的迁移（例：停在 0025 的库补 0026）照常补齐
+//!   （docs/specs/rust-cli/node-store.md §2）。
 use super::migrations::{MIGRATIONS, Migration, checksum};
 use super::open_error::Attempt;
 pub use super::open_error::StartupError;
@@ -305,7 +306,7 @@ impl Runner<'_> {
         // 缺陷修复（修复线 F12，双进程迁移竞争）：原来按预检的 `kind == "upgrade"` 拒绝。预检在等写锁之前读库，等锁
         // 期间旧版 Node 可能已建表、补了它知道的迁移并提交，预检的结论过期，结果在已有业务表的库上直接补迁移。Node
         // 在 `migrateExclusive` 的事务里按当时的表决定备份（`createMigrationBackup`）；这里同样在事务里重新判定。
-        if !pending.is_empty() && self.has_data().map_err(|a| a.error)? {
+        if self.needs_backup(&pending).map_err(|a| a.error)? {
             let ids: Vec<&str> = pending.iter().map(|m| m.id).collect();
             return Err(StartupError::new(
                 "backup_required",
@@ -454,6 +455,32 @@ impl Runner<'_> {
         })
     }
 
+    /// Node `createMigrationBackup` 的判据：要补的迁移动到的表（`touchedTables`）有一张已经存在，Node 就先备份再补；
+    /// 一张都不存在时不备份（全新库，或只建新表的迁移，例：停在 0025 的库补 0026）。本工程没有实现备份，前一种拒绝
+    /// （`backup_required`），后一种与 Node 一样直接补（docs/specs/rust-cli/node-store.md §2）。
+    ///
+    /// 修改（STG-V5-SESSION）：以前按「库里有没有业务表」判，rust 自己建的、停在 0025 的库（TUI 与 `-p` 的用户）一升级
+    /// 到带 0026 的版本就打不开，而 Node 对同一个库不备份（0026 只建 `session_purge` / `session_runtime_presence`）。
+    fn needs_backup(&self, pending: &[&Migration]) -> Result<bool, Attempt> {
+        for table in pending
+            .iter()
+            .flat_map(|migration| migration.touched_tables)
+        {
+            let exists: bool = self.sql(
+                self.conn.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?)",
+                    [table],
+                    |r| r.get(0),
+                ),
+                "SQLite migration preflight failed",
+            )?;
+            if exists {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
     /// 库里有账本以外的表（Node `inspectMigrationKind` 的 `hasDataTables`）。
     fn has_data(&self) -> Result<bool, Attempt> {
         self.sql(
@@ -467,6 +494,8 @@ impl Runner<'_> {
     }
 
     /// 0023 用 Node 的 `apply`：列已存在时不重复 ADD COLUMN（旧版本曾以 0020 提前发布）。
+    /// 0026 的表、索引与触发器全写成 `create … if not exists`（Node 的迁移文本同样如此），所以哪怕库里已经有同名
+    /// 对象（另一个写者建了表却没记上账本），补迁移也不会撞名字：这就是 0026 的守卫。
     fn apply(&self, migration: &Migration) -> rusqlite::Result<()> {
         if migration.id != "0023_session_soft_delete_outcome" {
             return self.conn.execute_batch(migration.sql);

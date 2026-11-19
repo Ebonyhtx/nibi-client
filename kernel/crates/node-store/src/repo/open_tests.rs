@@ -25,8 +25,8 @@ fn a_new_database_gets_every_node_migration_once() {
         facts,
         Facts {
             kind: "initialize",
-            executed: 25,
-            committed: 25,
+            executed: 26,
+            committed: 26,
             last_applied: None,
             baseline_read: true,
         }
@@ -62,7 +62,7 @@ fn a_new_database_gets_every_node_migration_once() {
             kind: "none",
             executed: 0,
             committed: 0,
-            last_applied: Some("0025_session_database_identity_rename".to_owned()),
+            last_applied: Some("0026_session_permanent_deletion".to_owned()),
             baseline_read: true,
         }
     );
@@ -129,7 +129,80 @@ fn a_gap_in_a_database_with_data_waits_for_node() {
     let count: i64 = conn
         .query_row("select count(*) from schema_migration", [], |r| r.get(0))
         .unwrap();
-    assert_eq!(count, 24);
+    assert_eq!(count, 25);
+}
+
+/// 已有业务数据、只缺只建新表的 0026：不要求备份，照常补（Node 对同一个库也不备份）。
+#[test]
+fn a_database_with_data_only_missing_a_new_table_migration_opens() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("db.sqlite");
+    {
+        let conn = Connection::open(&path).unwrap();
+        let mode: String = conn
+            .query_row("pragma journal_mode = wal", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(mode, "wal");
+        conn.execute_batch("begin immediate").unwrap();
+        conn.execute_batch(LEDGER_DDL).unwrap();
+        for migration in &MIGRATIONS[..25] {
+            conn.execute_batch(migration.sql).unwrap();
+            conn.execute(
+                "insert into schema_migration values (?, ?, ?, 1)",
+                params![migration.id, checksum(migration.sql), migration.app_version],
+            )
+            .unwrap();
+        }
+        conn.execute(
+            "insert into session(id, project_id, slug, directory, title, version, time_created, time_updated) \
+             values ('sess_old', 'p', 's', '/w', 'old', '1', 1, 1)",
+            [],
+        )
+        .unwrap();
+        conn.execute_batch("commit").unwrap();
+    }
+    let (conn, facts) = open_at(&path, MIGRATION_LOCK_WAIT).unwrap();
+    assert_eq!(
+        (facts.kind, facts.executed, facts.committed),
+        ("upgrade", 1, 1)
+    );
+    let tables: i64 = conn
+        .query_row(
+            "select count(*) from sqlite_master where type='table' \
+             and name in ('session_purge', 'session_runtime_presence')",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(tables, 2);
+    let rows: i64 = conn
+        .query_row("select count(*) from session where id = 'sess_old'", [], |r| {
+            r.get(0)
+        })
+        .unwrap();
+    assert_eq!(rows, 1);
+    assert_eq!(ledger(&conn).len(), 26);
+}
+
+/// 已有业务数据的库缺一条碰旧表的迁移：拒绝打开（Node 会先备份）。
+#[test]
+fn a_database_with_data_missing_an_old_touched_table_waits_for_node() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("db.sqlite");
+    open_at(&path, MIGRATION_LOCK_WAIT).unwrap();
+    let conn = Connection::open(&path).unwrap();
+    conn.execute(
+        "delete from schema_migration where id = '0006_input_history_attachments'",
+        [],
+    )
+    .unwrap();
+    let error = open_at(&path, MIGRATION_LOCK_WAIT).unwrap_err();
+    assert_eq!(error.code, "backup_required");
+    // 库没被改：账本仍是 25 条，表都还在。
+    let count: i64 = conn
+        .query_row("select count(*) from schema_migration", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(count, 25);
 }
 
 #[test]
@@ -303,7 +376,7 @@ fn progress_reports_the_node_sequence() {
             "none".to_owned(),
             0,
             0,
-            Some("0025_session_database_identity_rename".to_owned())
+            Some("0026_session_permanent_deletion".to_owned())
         )
     );
 

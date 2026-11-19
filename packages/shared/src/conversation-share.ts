@@ -9,7 +9,7 @@ import type { Locale } from "./protocol.js";
 import {
   conversationArtifactTypeSchema,
   conversationRowSchema,
-  type ConversationRow,
+  type WireConversationRow,
 } from "./nibi-protocol-v4/rows.js";
 
 /**
@@ -96,11 +96,11 @@ export function isConversationShareSchemaVersionSupported(version: number): bool
  * 计数交给调用方转成「部分内容需要更新 Nibi 查看」的软提示，不能静默。
  */
 export function decodeConversationShareRows(rows: readonly unknown[]): {
-  rows: ConversationRow[];
+  rows: WireConversationRow[];
   unsupportedCount: number;
   unsupportedKinds: string[];
 } {
-  const decoded: ConversationRow[] = [];
+  const decoded: WireConversationRow[] = [];
   const unsupportedKinds: string[] = [];
   let unsupportedCount = 0;
   for (const row of rows) {
@@ -373,7 +373,7 @@ export const conversationSharePreviewDataSchema = z.object({
 });
 export type ConversationSharePreviewWire = z.infer<typeof conversationSharePreviewDataSchema>;
 export type ConversationSharePreview = Omit<ConversationSharePreviewWire, "rows"> & {
-  rows: ConversationRow[];
+  rows: WireConversationRow[];
   /** 本端认不出、已跳过的行数；>0 时 UI 必须给「部分内容需要更新 Nibi 查看」软提示。 */
   unsupportedRowCount: number;
 };
@@ -410,7 +410,7 @@ export type ConversationShareContinuationWire = z.infer<
   typeof conversationShareContinuationDataSchema
 >;
 export type ConversationShareContinuation = Omit<ConversationShareContinuationWire, "rows"> & {
-  rows: ConversationRow[];
+  rows: WireConversationRow[];
   /** 未解析的原始 rows：落盘只读副本时按原样保存，避免未知字段被本端永久抹掉。 */
   rawRows: readonly unknown[];
   /** 本端认不出、已跳过的行数；>0 时 UI 必须给「部分内容需要更新 Nibi 查看」软提示。 */

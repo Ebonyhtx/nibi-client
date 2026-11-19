@@ -75,6 +75,30 @@ async function readAgentsState(home: string): Promise<{ disabledAgentIds?: strin
   };
 }
 
+const EXPLORE_KEY = createAgentStateId({ name: "Explore", scope: "built-in", source: "built-in" });
+const GENERAL_KEY = createAgentStateId({
+  name: "general-purpose",
+  scope: "built-in",
+  source: "built-in",
+});
+
+async function writeBuiltInState(home: string, state: Record<string, unknown>): Promise<void> {
+  const directory = join(home, ".nibi", "v2");
+  await mkdir(directory, { recursive: true });
+  await writeFile(
+    join(directory, "agents-state.json"),
+    `${JSON.stringify(state, null, 2)}\n`,
+    "utf-8",
+  );
+}
+
+async function readBuiltInState(home: string): Promise<Record<string, unknown>> {
+  return JSON.parse(await readFile(join(home, ".nibi", "v2", "agents-state.json"), "utf-8")) as Record<
+    string,
+    unknown
+  >;
+}
+
 async function withHome<T>(home: string, task: () => Promise<T>): Promise<T> {
   const previous = process.env.HOME;
   process.env.HOME = home;
@@ -370,10 +394,13 @@ describe("subagent data sync service", () => {
     expect(await readFile(join(stateDirectory, "agents-state.json"), "utf-8")).toBe("{broken");
   });
 
-  it("checks write access on the user agents root", async () => {
+  it("checks write access on the user agents root and the state directory", async () => {
     const home = makeHome();
     const result = await withHome(home, () => service().checkSyncWriteAccess());
-    expect(result).toMatchObject({ ok: true, path: join(home, ".nibi", "agents") });
+    expect(result).toMatchObject({
+      ok: true,
+      path: [join(home, ".nibi", "agents"), join(home, ".nibi", "v2")].join(", "),
+    });
   });
 
   it("is attached to the subagents service and honors its storage options", async () => {
@@ -384,5 +411,172 @@ describe("subagent data sync service", () => {
     const result = await subagents.listSyncItems();
 
     expect(result.items.map((item) => item.key)).toEqual(["attached"]);
+  });
+
+  it("lists only built-in agents that carry a model override, with a model summary", async () => {
+    const home = makeHome();
+    await writeBuiltInState(home, {
+      disabledAgentIds: [],
+      builtInModelSelectionOverrides: {
+        Explore: { providerId: "p", modelId: "fast", options: { reasoningLevel: "low" } },
+      },
+      pluginAgentModelSelectionOverrides: {},
+    });
+
+    const result = await withHome(home, () => service().listSyncItems());
+
+    const explore = result.items.find((item) => item.key === EXPLORE_KEY);
+    expect(explore).toMatchObject({
+      name: "Explore",
+      builtInModelOverride: { modelId: "fast", reasoningLevel: "low" },
+    });
+    expect(explore?.contentHash).toMatch(/^[0-9a-f]{64}$/u);
+    expect(result.items.some((item) => item.key === GENERAL_KEY)).toBe(false);
+  });
+
+  it("exports built-in overrides in the top-level payload field, not in items", async () => {
+    const home = makeHome();
+    await writeBuiltInState(home, {
+      disabledAgentIds: [],
+      builtInModelSelectionOverrides: {
+        Explore: { providerId: "p", modelId: "fast" },
+      },
+      pluginAgentModelSelectionOverrides: {},
+    });
+
+    const payload = await withHome(home, () =>
+      service().exportSyncItems({ keys: [EXPLORE_KEY] }),
+    );
+
+    expect(payload.items).toEqual([]);
+    expect(payload.builtInModelOverrides).toEqual([
+      {
+        key: EXPLORE_KEY,
+        name: "Explore",
+        modelSelection: { providerId: "p", modelId: "fast" },
+      },
+    ]);
+  });
+
+  it("imports a built-in override and preserves unrelated state fields", async () => {
+    const source = makeHome();
+    await writeBuiltInState(source, {
+      disabledAgentIds: [],
+      builtInModelSelectionOverrides: {
+        Explore: { providerId: "p", modelId: "fast" },
+      },
+      pluginAgentModelSelectionOverrides: {},
+    });
+    const payload = await withHome(source, () =>
+      service().exportSyncItems({ keys: [EXPLORE_KEY] }),
+    );
+
+    const target = makeHome();
+    await writeBuiltInState(target, {
+      disabledAgentIds: ["user:user:keep-me"],
+      builtInModelSelectionOverrides: {},
+      pluginAgentModelSelectionOverrides: {
+        "plugin:acme:helper": { providerId: "p", modelId: "m" },
+      },
+      futureField: { keep: true },
+    });
+
+    const result = await withHome(target, () =>
+      service().importSyncItems({
+        payload,
+        items: [{ key: EXPLORE_KEY, mode: "createOnly" }],
+      }),
+    );
+
+    expect(result.results).toEqual([{ key: EXPLORE_KEY, status: "created" }]);
+    const state = await readBuiltInState(target);
+    expect(state.builtInModelSelectionOverrides).toMatchObject({
+      Explore: { providerId: "p", modelId: "fast" },
+    });
+    expect(state.disabledAgentIds).toEqual(["user:user:keep-me"]);
+    expect(state.pluginAgentModelSelectionOverrides).toEqual({
+      "plugin:acme:helper": { providerId: "p", modelId: "m" },
+    });
+    expect(state.futureField).toEqual({ keep: true });
+  });
+
+  it("refuses createOnly when the target already has an override", async () => {
+    const source = makeHome();
+    await writeBuiltInState(source, {
+      disabledAgentIds: [],
+      builtInModelSelectionOverrides: {
+        Explore: { providerId: "p", modelId: "fast" },
+      },
+      pluginAgentModelSelectionOverrides: {},
+    });
+    const payload = await withHome(source, () =>
+      service().exportSyncItems({ keys: [EXPLORE_KEY] }),
+    );
+
+    const target = makeHome();
+    await writeBuiltInState(target, {
+      disabledAgentIds: [],
+      builtInModelSelectionOverrides: {
+        Explore: { providerId: "p", modelId: "slow" },
+      },
+      pluginAgentModelSelectionOverrides: {},
+    });
+    const before = await readFile(join(target, ".nibi", "v2", "agents-state.json"), "utf-8");
+
+    const result = await withHome(target, () =>
+      service().importSyncItems({
+        payload,
+        items: [{ key: EXPLORE_KEY, mode: "createOnly" }],
+      }),
+    );
+
+    expect(result.results).toEqual([{ key: EXPLORE_KEY, status: "conflict" }]);
+    expect(await readFile(join(target, ".nibi", "v2", "agents-state.json"), "utf-8")).toBe(before);
+  });
+
+  it("overwrite requires the expected target hash and then updates in place", async () => {
+    const source = makeHome();
+    await writeBuiltInState(source, {
+      disabledAgentIds: [],
+      builtInModelSelectionOverrides: {
+        Explore: { providerId: "p", modelId: "fast" },
+      },
+      pluginAgentModelSelectionOverrides: {},
+    });
+    const payload = await withHome(source, () =>
+      service().exportSyncItems({ keys: [EXPLORE_KEY] }),
+    );
+
+    const target = makeHome();
+    await writeBuiltInState(target, {
+      disabledAgentIds: [],
+      builtInModelSelectionOverrides: {
+        Explore: { providerId: "p", modelId: "slow" },
+      },
+      pluginAgentModelSelectionOverrides: {},
+    });
+    const { hashes } = await withHome(target, () =>
+      service().getSyncContentHashes({ keys: [EXPLORE_KEY] }),
+    );
+
+    const stale = await withHome(target, () =>
+      service().importSyncItems({
+        payload,
+        items: [{ key: EXPLORE_KEY, mode: "overwrite", expectedTargetHash: "0".repeat(64) }],
+      }),
+    );
+    expect(stale.results).toEqual([{ key: EXPLORE_KEY, status: "conflict" }]);
+
+    const updated = await withHome(target, () =>
+      service().importSyncItems({
+        payload,
+        items: [{ key: EXPLORE_KEY, mode: "overwrite", expectedTargetHash: hashes[EXPLORE_KEY] }],
+      }),
+    );
+    expect(updated.results).toEqual([{ key: EXPLORE_KEY, status: "updated" }]);
+    const state = await readBuiltInState(target);
+    expect(state.builtInModelSelectionOverrides).toMatchObject({
+      Explore: { providerId: "p", modelId: "fast" },
+    });
   });
 });

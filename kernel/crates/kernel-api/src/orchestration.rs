@@ -235,6 +235,21 @@ pub trait RunSink: Interactions {
     ) -> Result<Vec<Message>, StoreError> {
         Ok(Vec::new())
     }
+
+    /// 主会话当前的 prompt 快照（K6，[`crate::prompt_snapshot`]）：有快照时给出；`{cleared: true}` 与没有快照都是
+    /// None。子代理、压缩与没有会话 owner 的输出端不持有快照，用缺省值。
+    async fn prompt_snapshot(&self) -> Option<crate::prompt_snapshot::PromptSnapshot> {
+        None
+    }
+
+    /// 主循环请求组装之后、模型调用之前记录 system 快照（K6）：只有主会话的输出端做（请求模型是会话模型选择、
+    /// 且当前没有适用的快照时写）；写入失败只记 warning，不阻断回合。其他输出端忽略。
+    async fn record_prompt_snapshot(
+        &self,
+        _selection: &ModelSelection,
+        _system: &[SystemBlock],
+    ) {
+    }
 }
 
 #[async_trait]

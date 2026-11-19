@@ -195,3 +195,13 @@ fn possibly_interrupted_follows_the_live_run_registry() {
     let value = super::run_row(&row, "s_other", Some(&empty));
     assert!(value.get("possiblyInterrupted").is_none(), "{value}");
 }
+
+/// 描述必须同时写出两个消费方：CreateSession 的 `model` 与工作流的 `subagent_model`。
+#[test]
+fn list_models_description_names_both_consumers() {
+    let description = super::list_models_description();
+    assert!(description.contains("CreateSession"));
+    assert!(description.contains("subagent_model"));
+    assert!(description.contains("does NOT change the model you are running on"));
+    assert!(description.contains("[current]"));
+}

@@ -12,6 +12,7 @@ pub mod blocked;
 mod blocked_board;
 mod catalog;
 mod config;
+mod deletion;
 mod directory;
 mod escalations;
 mod export;
@@ -132,6 +133,11 @@ pub struct Limits {
     /// `NIBI_FORK_SUBAGENT`（对照实现有同义的开关，修复线 L-A，agents.md §8.1.1）：Some(true) 打开 fork
     /// 子代理（`-p` 也开），Some(false) 关掉，None 按形态（交互会话开，`-p` 关）。
     pub fork_subagent: Option<bool>,
+    /// `NIBI_SUBAGENT_STALL_NOTIFY_MS`（Node `ZCODE_SUBAGENT_STALL_NOTIFY_MS`）：后台子代理无进展提醒的首个
+    /// 阈值，入口已按 10 秒下限处理；None 用缺省 15 分钟。
+    pub subagent_stall_notify_ms: Option<u64>,
+    /// `NIBI_SUBAGENT_STALL_MAX_INTERVAL_MS`：提醒间隔上限；None 用缺省 4 小时。
+    pub subagent_stall_max_interval_ms: Option<u64>,
 }
 
 /// 子代理会话继承父会话的插件快照（skills/hooks/agents 根）。
@@ -469,9 +475,9 @@ impl LocalKernel {
                 ))
                 // App-exclusive 的 4 个工具：只有入口装了 Host 端口时注册（CLI/TUI 不暴露）。
                 .with_tools(app_control_tools)
-                // DWF 作者面（Node 的 11 个工具里剩下的 8 个）：6 个经 sidecar 的 Node
-                // 工具实现，2 个是本机读面（ListModels / ListWorkflowRuns）。灰度门与
-                // 引擎在场与否在 `PolicyFiltered` 里收口。
+                // DWF 工具面（6 个经 sidecar 的 Node 作者工具 + 2 个本机读面
+                // ListModels / ListWorkflowRuns）。ListModels 也给 CreateSession.model 供目录，
+                // 所以不随灰度门下架；灰度门与引擎在场与否在 `PolicyFiltered` 里收口。
                 .with_tools(nibi_kernel_tools::authoring_tools(
                     workflow_engine_slot.clone(),
                     model_directory_slot.clone(),
@@ -672,6 +678,13 @@ impl LocalKernel {
         ));
         let tools = agents.registry();
         catalog.bind(&tools);
+        // 后台子代理的无进展钟（对齐 Node 3.18.2 `createSubagentStallReminder`）：跟随根作用域，关闭即停；
+        // 提醒走 `Agents` 的后台通知中心，与终态通知同一条路（信封是 `<background-agent-stall>`）。
+        let stall = agents.stall_watcher(nibi_kernel_agents::StallConfig::new(
+            defaults.limits.subagent_stall_notify_ms,
+            defaults.limits.subagent_stall_max_interval_ms,
+        ));
+        let _stall = scope.spawner().spawn_resident("subagent-stall", stall.run());
         // 升级提示经 `Agents` 的通知中心送进父会话（与后台子代理的通知同一条 `task-notification` 路）。
         escalations.attach_notifier(agents.clone());
         // 「run 还欠着决定、主代理闲着」的提醒钟（blocked_board）：每个会话一尊钟，忙闲沿由

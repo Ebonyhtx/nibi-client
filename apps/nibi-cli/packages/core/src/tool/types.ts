@@ -58,6 +58,7 @@ import type {
   WorkflowEscalatePort,
   WorkflowPort,
   WorkflowSubmitPort,
+  WorkflowWebSearchBudgetPort,
 } from "@nibi/contracts";
 import type { RuntimeTaskRegistry } from "../runtime-task/registry.js";
 import type {
@@ -174,6 +175,8 @@ export interface ToolExecutionContext {
   workflowSubmitPort?: WorkflowSubmitPort;
   /** 工作流 actor 升级阻塞问题并等待主代理作答的端口；仅在 workflow actor 会话注入。 */
   workflowEscalatePort?: WorkflowEscalatePort;
+  /** 工作流 actor 每个 ask 的 WebSearch 预算；仅在 workflow actor 会话注入，缺席即无上限。 */
+  webSearchBudget?: WorkflowWebSearchBudgetPort;
   artifactStore?: ToolArtifactStorePort;
   automationPort?: AutomationPort;
   topicResourcePort?: TopicResourcePort;

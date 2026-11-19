@@ -43,6 +43,7 @@ export {
   MODEL_UNRESOLVED_CODE,
   type ModelReference,
 } from "./analysis/actor-models.js";
+export { BUDGET_VALUE_CODE, collectActorBudgetDiagnostics } from "./analysis/actor-budgets.js";
 export { collectSites, type SiteTable } from "./analysis/sites.js";
 export {
   collectWorldRunCommands,
@@ -242,6 +243,9 @@ export {
   type WorldReadInput,
   WORLD_READ_INPUT_MAX_BYTES,
   type PersonaSpec,
+  type PersonaBudget,
+  DEFAULT_WEB_SEARCH_BUDGET_PER_ASK,
+  MAX_WEB_SEARCH_BUDGET_PER_ASK,
   type RunEvent,
   type RunRecord,
   type RunSettlement,

@@ -57,6 +57,7 @@ async fn forward(core: &Arc<Core>, agent: &AgentId, root: &SessionId, notice: Sh
         from: AgentId::new(notice.task.as_str()),
         status,
         envelope,
+        stall: None,
     };
     let wake = core
         .live

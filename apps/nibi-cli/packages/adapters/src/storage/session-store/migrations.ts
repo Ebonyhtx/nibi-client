@@ -8,6 +8,10 @@ import {
 
 import { OFFICIAL_GLM_SELECTION_MIGRATION_SQL } from "./migrations/0021-official-glm-selection.js";
 import { BACKFILLED_SESSION_REASONING_MIGRATION_SQL } from "./migrations/0022-backfilled-session-reasoning.js";
+import { SESSION_PERMANENT_DELETION_MIGRATION_SQL } from "./migrations/0026-session-permanent-deletion.js";
+
+/** 0026 的触发器总数；apply 用它判断结构是否完整，缺失时整段幂等补齐。 */
+const SESSION_PERMANENT_DELETION_TRIGGER_COUNT = 74;
 
 export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = [
   {
@@ -990,5 +994,31 @@ export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = [
   {
     ...SESSION_DATABASE_IDENTITY_RENAME_MIGRATION,
     touchedTables: ["zcode_database_identity", "nibi_database_identity"],
+  },
+  {
+    appVersion: "0.17.0",
+    id: "0026_session_permanent_deletion",
+    touchedTables: ["session_purge", "session_runtime_presence"],
+    // 预置 SQL 的每个对象都是 `create ... if not exists`；apply 仍先探一次完整结构，
+    // 让基线库或半途升级的库只补缺失对象，不因已存在的表/触发器整体失败。
+    apply: (db) => {
+      const tables = db
+        .prepare(
+          "select count(*) as count from sqlite_schema where type = 'table' and name in ('session_purge', 'session_runtime_presence')",
+        )
+        .get() as { count?: number } | undefined;
+      const triggers = db
+        .prepare(
+          "select count(*) as count from sqlite_schema where type = 'trigger' and name like 'session_purge_%'",
+        )
+        .get() as { count?: number } | undefined;
+      if (
+        (tables?.count ?? 0) === 2 &&
+        (triggers?.count ?? 0) === SESSION_PERMANENT_DELETION_TRIGGER_COUNT
+      )
+        return;
+      db.exec(SESSION_PERMANENT_DELETION_MIGRATION_SQL);
+    },
+    sql: SESSION_PERMANENT_DELETION_MIGRATION_SQL,
   },
 ];

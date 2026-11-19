@@ -100,6 +100,8 @@ export type SubagentTaskStatus =
 
 export interface SubagentTaskSnapshot {
   taskId: string;
+  /** 本次执行的身份；SendMessage 恢复会换新，用于迟到的活动事件围栏。 */
+  executionId?: string;
   agentId: string;
   agentType: string;
   description: string;

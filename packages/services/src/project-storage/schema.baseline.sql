@@ -154,6 +154,17 @@ CREATE TABLE task_groups (
         updated_at INTEGER NOT NULL
       );
 
+CREATE TABLE task_purge (
+  workspace_key TEXT NOT NULL,
+  task_id TEXT NOT NULL,
+  operation_id TEXT NOT NULL,
+  revision TEXT NOT NULL,
+  state TEXT NOT NULL CHECK (state IN ('reserved', 'purged')),
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (workspace_key, task_id)
+);
+
 CREATE TABLE tasks (
         workspace_key TEXT NOT NULL,
         workspace_path TEXT NOT NULL,
@@ -210,6 +221,9 @@ CREATE INDEX idx_task_group_members_group_order
 CREATE INDEX idx_task_group_view_node_orders_order
       ON task_group_view_node_orders (sort_order, created_at);
 
+CREATE INDEX idx_task_purge_state
+ON task_purge (state);
+
 CREATE INDEX idx_tasks_cron_automation ON tasks(cron_automation_id, updated_at DESC)
     WHERE cron_automation_id IS NOT NULL AND deleted=0;
 
@@ -227,3 +241,24 @@ CREATE INDEX idx_tasks_workspace_archived_updated
 CREATE INDEX idx_tasks_workspace_pinned_updated
       ON tasks (workspace_key, pinned, updated_at DESC)
       WHERE deleted = 0;
+
+CREATE TRIGGER task_purge_insert_guard
+BEFORE INSERT ON tasks
+WHEN EXISTS (
+  SELECT 1 FROM task_purge
+  WHERE workspace_key = NEW.workspace_key AND task_id = NEW.task_id AND state = 'purged'
+)
+BEGIN
+  SELECT RAISE(ABORT, 'task-data.purged');
+END;
+
+CREATE TRIGGER task_purge_update_guard
+BEFORE UPDATE ON tasks
+WHEN EXISTS (
+  SELECT 1 FROM task_purge
+  WHERE workspace_key = NEW.workspace_key AND task_id = NEW.task_id AND state = 'purged'
+)
+AND (OLD.task_id <> NEW.task_id OR OLD.workspace_key <> NEW.workspace_key OR NEW.deleted = 0)
+BEGIN
+  SELECT RAISE(ABORT, 'task-data.purged');
+END;

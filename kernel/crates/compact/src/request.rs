@@ -44,13 +44,24 @@ impl ToolExecutor for DenyTools {
     }
 }
 
-/// 只收集、不落库的输出端；没有人能回答交互。
+/// 只收集、不落库的输出端；没有人能回答交互。主会话的 prompt 快照（K6）随压缩请求带进来，摘要请求读同一份
+/// system 字节。
 #[derive(Default)]
 pub(crate) struct CollectSink {
     messages: Mutex<Vec<Message>>,
+    snapshot: Option<nibi_kernel_api::prompt_snapshot::PromptSnapshot>,
 }
 
 impl CollectSink {
+    pub(crate) fn with_snapshot(
+        snapshot: Option<nibi_kernel_api::prompt_snapshot::PromptSnapshot>,
+    ) -> Self {
+        Self {
+            messages: Mutex::default(),
+            snapshot,
+        }
+    }
+
     fn take(&self) -> Vec<Message> {
         std::mem::take(&mut self.messages.lock().unwrap_or_else(PoisonError::into_inner))
     }
@@ -89,6 +100,10 @@ impl RunSink for CollectSink {
 
     async fn emit(&self, _event: QueryEvent) -> bool {
         true
+    }
+
+    async fn prompt_snapshot(&self) -> Option<nibi_kernel_api::prompt_snapshot::PromptSnapshot> {
+        self.snapshot.clone()
     }
 }
 
@@ -146,11 +161,12 @@ fn summary_of(messages: &[Message]) -> Option<(String, Option<Usage>)> {
 pub(crate) async fn run(
     runner: &dyn nibi_kernel_api::orchestration::QueryRunner,
     mut request: QueryRequest,
+    prompt_snapshot: Option<nibi_kernel_api::prompt_snapshot::PromptSnapshot>,
     cancel: &CancellationToken,
 ) -> Attempt {
     request.source = QuerySource::Compact;
     request.max_turns = Some(1);
-    let sink = Arc::new(CollectSink::default());
+    let sink = Arc::new(CollectSink::with_snapshot(prompt_snapshot));
     let abort = Abort::new();
     let run = runner.run(request, sink.clone(), abort.clone());
     tokio::pin!(run);

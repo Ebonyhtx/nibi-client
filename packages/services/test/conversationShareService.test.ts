@@ -1638,6 +1638,28 @@ describe("ConversationShareService", () => {
     expect(client.createPreparation).not.toHaveBeenCalled();
   });
 
+  it("SHARE11：rows/range 出现 unreadable 占位行时拒绝分享，不静默省略", async () => {
+    const rows: ConversationRow[] = [
+      ...completedRows(),
+      {
+        kind: "unreadable",
+        rowId: 99,
+        turnId: "turn-future",
+        createdAt: 1,
+        createdAtSeq: 99,
+        sourceKind: "holographicPreview",
+      },
+    ];
+    const { service, client, conversationFileChangesV4 } = createDependencies(rows);
+
+    await expect(service.publish(publishInput(), "publish-op-unreadable")).rejects.toMatchObject({
+      kind: "invalid_conversation",
+      message: "Conversation contains rows this version cannot read; update NIBI and try again",
+    });
+    expect(conversationFileChangesV4).not.toHaveBeenCalled();
+    expect(client.createPreparation).not.toHaveBeenCalled();
+  });
+
   it("SHARE11：reverted fileChanges 不生成临时 artifact", async () => {
     const rows = completedRowsWithFileChanges();
     rows[1] = { ...rows[1]!, text: "已生成 index.html" };

@@ -60,6 +60,8 @@ export interface NibiProtocolAgentDependencies {
   /** 兼容旧测试/嵌入调用；新代码应通过 sessionResidentPoolOptions 设置 low-water。 */
   sessionResidentTargetCount?: number;
   sessionStore?: SessionStorePort;
+  /** 本地存储根（`<storage>/cli`）；永久删除按它列/删会话文件。缺省从 sessionStore 推导。 */
+  cliStorageRoot?: string;
   version?: string;
   /** 受信 Host 管理的 Hook policy；workspace/project 配置不得覆盖。 */
   workspaceHookPolicyProvider?: WorkspaceHookPolicyProvider;

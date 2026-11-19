@@ -1,7 +1,11 @@
 /* eslint-disable max-lines -- 投影状态、V4 帧与离线替换属于同一个一致性边界。 */
 import { isDeepStrictEqual } from "node:util";
 import type { NibiTaskMeta } from "@nibi/shared";
-import type { NibiArchivedTaskDeletionResult } from "@nibi/services";
+import type {
+  NibiArchivedTaskDeletionOutcome,
+  NibiArchivedTaskDeletionPreview,
+  NibiArchivedTaskDeletionResult,
+} from "@nibi/services";
 import {
   CONTROLLER_TASKS_INDEX_TOPIC,
   CONTROLLER_WORKSPACES_TOPIC,
@@ -58,6 +62,8 @@ export type WindowHostControllerMutation =
   | { kind: "delete" }
   | { kind: "delete-archived" }
   | { kind: "delete-archived-batch"; taskIds: string[] }
+  | { kind: "preview-permanent-delete" }
+  | { kind: "permanent-delete"; revision: string; operationId: string }
   | { kind: "mark-read"; expectedUnreadAt?: number }
   | { kind: "mark-unread" }
   | { kind: "open" }
@@ -67,6 +73,8 @@ export type WindowHostControllerMutationResult =
   | void
   | boolean
   | NibiArchivedTaskDeletionResult
+  | NibiArchivedTaskDeletionPreview
+  | NibiArchivedTaskDeletionOutcome
   | NibiTaskMeta;
 
 interface ControllerSource {
@@ -533,6 +541,8 @@ export function createWindowHostControllerProjection(options: { createId: () => 
         !source ||
         (mutation.kind !== "delete-archived" &&
           mutation.kind !== "delete-archived-batch" &&
+          mutation.kind !== "preview-permanent-delete" &&
+          mutation.kind !== "permanent-delete" &&
           !source.rows.has(taskKey(address)))
       ) {
         throw new Error("没有与任务地址匹配的 source");
@@ -543,7 +553,26 @@ export function createWindowHostControllerProjection(options: { createId: () => 
         }
         throw new Error("本地 source 当前不可用");
       }
-      return source.mutate(address, mutation);
+      const result = await source.mutate(address, mutation);
+      // 只有 CLI 明确 deleted 才摘行；blocked/incomplete 必须保留行供用户续删或看到原因。
+      if (
+        mutation.kind === "permanent-delete" &&
+        typeof result === "object" &&
+        result !== null &&
+        "status" in result &&
+        result.status === "deleted"
+      ) {
+        const key = taskKey(address);
+        const removed = source.rows.get(key);
+        source.memberships.delete(key);
+        source.overlays.delete(address.taskId);
+        if (source.rows.delete(key)) {
+          publishTaskDeltas([
+            { op: "task.removed", address: removed?.address ?? address },
+          ]);
+        }
+      }
+      return result;
     },
 
     subscribe(params: {

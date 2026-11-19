@@ -34,6 +34,7 @@ import {
   type WorkflowAgentCallInput,
   type WorkflowEscalatePort,
   type WorkflowSubmitPort,
+  type WorkflowWebSearchBudgetPort,
 } from "@nibi/contracts";
 import { collectDisabledPaths } from "../skill-command-overrides.js";
 import { inheritedShellSelection } from "./inherited-shell-selection.js";
@@ -95,6 +96,11 @@ export function createScriptWorkflowAgentRuntime(input: {
    * （core 的注册门同样以端口存在为准），这是 actor 遇到真阻塞时唯一的求助通道。
    */
   workflowEscalatePort?: WorkflowEscalatePort;
+  /**
+   * 每个 ask 的 WebSearch 预算。dwf actor 由 driver 给出（startAsk 归零、nudge / repair 共用），
+   * legacy `Workflow` 工具的子代理不传——主会话 / 普通子代理没有 per-ask 上限。
+   */
+  webSearchBudget?: WorkflowWebSearchBudgetPort;
   /**
    * 模型请求准入端口。dwf actor 由 driver
    * 给出（每次模型请求尝试先过进程级闸门）；legacy `Workflow` 工具的子代理不传——不受闸门约束、
@@ -191,6 +197,7 @@ export function createScriptWorkflowAgentRuntime(input: {
         ? { workflowSubmitSchema: input.workflowSubmitSchema }
         : {}),
       ...(input.workflowEscalatePort ? { workflowEscalatePort: input.workflowEscalatePort } : {}),
+      ...(input.webSearchBudget ? { webSearchBudget: input.webSearchBudget } : {}),
       ...(input.modelRequestAdmission
         ? { modelRequestAdmission: input.modelRequestAdmission }
         : {}),

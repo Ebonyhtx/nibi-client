@@ -8,7 +8,7 @@ import type {
   Locale,
 } from "@nibi/shared";
 import { ServiceChannels } from "@nibi/shared";
-import type { ConversationRow } from "@nibi/shared/nibi-protocol-v4";
+import type { WireConversationRow } from "@nibi/shared/nibi-protocol-v4";
 import { Event as RpcEvent, type Event } from "@nibi/rpc";
 
 import { createServiceDescriptor } from "../descriptors.js";
@@ -408,7 +408,7 @@ export interface ImportedConversationShare {
   shareId: string;
   contextId: string;
   title: string;
-  rows: ConversationRow[];
+  rows: WireConversationRow[];
   /**
    * 本端渲染不了、已跳过的行数（副本里有新 row kind，或 formatVersion 比本端新）。
    * >0 时只读块顶部必须出软提示，否则用户会以为内容丢了。

@@ -25,6 +25,7 @@ mod notices;
 mod operations;
 mod project_mode;
 mod project_rules;
+mod purge;
 mod query;
 mod records;
 mod repo;
@@ -367,6 +368,50 @@ impl SessionStore for NodeStore {
             repo::session_data::purge_sessions(conn, &roots).map_err(storage)
         })
         .await
+    }
+
+    /// 永久删除的范围（凭据、自有后代、fork、附件引用、版本事实与待处理工作），一次读事务。
+    async fn deletion_scope(
+        &self,
+        root: &SessionId,
+    ) -> Result<nibi_kernel_api::deletion::DeletionScope, StoreError> {
+        let root = root.clone();
+        self.with_db(move |conn, _| purge::scope(conn, &root)).await
+    }
+
+    /// 永久删除的文件清单（按相对存储根的路径排序）。
+    async fn deletion_files(
+        &self,
+        session: &SessionId,
+    ) -> Result<Vec<nibi_kernel_api::deletion::SessionFile>, StoreError> {
+        purge::files(&self.paths, session).await
+    }
+
+    /// 开删：插 `deleting` 的删除凭据（0026 的触发器从这时起挡住写进这些会话）。
+    async fn begin_deletion(
+        &self,
+        root: &SessionId,
+        begin: &nibi_kernel_api::deletion::DeletionBegin,
+    ) -> Result<nibi_kernel_api::deletion::BeginOutcome, StoreError> {
+        let root = root.clone();
+        let begin = begin.clone();
+        self.with_db(move |conn, _| purge::begin(conn, &root, &begin))
+            .await
+    }
+
+    /// 删这个会话的文件；附件目录里文件名含 `keep` 中某个 artifact id 的留下。
+    async fn remove_deletion_files(
+        &self,
+        session: &SessionId,
+        keep: &[String],
+    ) -> Result<(), StoreError> {
+        purge::remove_files(&self.paths, session, keep).await
+    }
+
+    /// 删完：一个事务删凭据里的会话行，凭据改成 `deleted`。
+    async fn complete_deletion(&self, root: &SessionId) -> Result<(), StoreError> {
+        let root = root.clone();
+        self.with_db(move |conn, _| purge::complete(conn, &root)).await
     }
 
     /// 目录的项目记忆字节数。

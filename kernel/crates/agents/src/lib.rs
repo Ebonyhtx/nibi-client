@@ -30,6 +30,7 @@ mod runs;
 mod shell_notices;
 mod signals;
 mod spawn;
+mod stall;
 mod task_stop;
 mod tasks;
 mod todo;
@@ -59,6 +60,7 @@ pub use context::AgentCatalog;
 pub use definitions::{AgentDefinition, AgentSource, builtins};
 pub use monitors::MonitorTexts;
 pub use plugin::PluginAgentFile;
+pub use stall::{StallConfig, StallWatcher};
 pub use tasks::{MemoryTaskLists, task_tools_enabled};
 pub use todo::{MemoryTodos, tools as todo_tools};
 
@@ -351,6 +353,12 @@ impl Agents {
     /// 交给会话 actor 的信号来源。
     pub fn signals(&self) -> Arc<dyn AgentSignals> {
         Arc::new(Signals(self.core.clone()))
+    }
+
+    /// 后台子代理的无进展钟（agents.md；Node 3.18.2 `createSubagentStallReminder`）。runtime 在根作用域里
+    /// 以常驻任务运行它：作用域关闭即停止，提醒随进程结束一起消失。
+    pub fn stall_watcher(&self, config: StallConfig) -> StallWatcher {
+        StallWatcher::new(self.core.clone(), config)
     }
 
     /// 任务提醒读的任务清单（agents.md §7.4）：子会话读顶层会话的清单。

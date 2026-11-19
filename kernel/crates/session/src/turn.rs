@@ -374,6 +374,12 @@ impl Actor {
             } => {
                 let _ = reply.send(self.goal_checked(condition, verdict).await);
             }
+            SinkRequest::PromptSnapshot { reply } => {
+                let _ = reply.send(self.prompt_snapshot_present());
+            }
+            SinkRequest::RecordPromptSnapshot { selection, system } => {
+                self.record_prompt_snapshot(&selection, &system).await;
+            }
         }
     }
 

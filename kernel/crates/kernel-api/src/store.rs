@@ -1013,6 +1013,60 @@ pub trait SessionStore: Send + Sync {
     ) -> Result<u64, crate::session_data::SessionDataError> {
         Err(crate::session_data::SessionDataError::unsupported())
     }
+
+    // ── 归档会话的永久删除（`v4/storage/sessionData/deletionPreview|deletionExecute`）──
+    //
+    // 与 `measure_session_files` / `remove_session_files` 的「项目彻底删除」是两条不同的路径：这里按 Node 的删除凭据
+    // （`session_purge`，迁移 0026）走，先预检再开删、删文件、删行。缺省 `Unsupported`，调用方回标准错误。
+
+    /// 根的范围（自有后代、fork、附件引用、版本事实、待处理工作与删除凭据），一次读事务。
+    async fn deletion_scope(
+        &self,
+        _root: &SessionId,
+    ) -> Result<crate::deletion::DeletionScope, StoreError> {
+        Err(StoreError::Unsupported {
+            what: "session deletion scope".to_owned(),
+        })
+    }
+
+    /// 这个会话在存储里的文件，按相对路径排序（附件目录里的 `artifact` 为 true）。
+    async fn deletion_files(
+        &self,
+        _session: &SessionId,
+    ) -> Result<Vec<crate::deletion::SessionFile>, StoreError> {
+        Err(StoreError::Unsupported {
+            what: "session deletion files".to_owned(),
+        })
+    }
+
+    /// 开删：一个事务里再核对版本事实、给范围里每个会话插一行 `deleting` 的凭据；已有凭据时什么都不插（接着删）。
+    async fn begin_deletion(
+        &self,
+        _root: &SessionId,
+        _begin: &crate::deletion::DeletionBegin,
+    ) -> Result<crate::deletion::BeginOutcome, StoreError> {
+        Err(StoreError::Unsupported {
+            what: "beginning session deletion".to_owned(),
+        })
+    }
+
+    /// 删这个会话的文件；附件目录里文件名含 `keep` 中某个 artifact id 的留下。
+    async fn remove_deletion_files(
+        &self,
+        _session: &SessionId,
+        _keep: &[String],
+    ) -> Result<(), StoreError> {
+        Err(StoreError::Unsupported {
+            what: "removing session deletion files".to_owned(),
+        })
+    }
+
+    /// 删完：一个事务删凭据里这些会话的行（级联消息、part、用量；没有外键的表显式删），凭据改成 `deleted`。
+    async fn complete_deletion(&self, _root: &SessionId) -> Result<(), StoreError> {
+        Err(StoreError::Unsupported {
+            what: "completing session deletion".to_owned(),
+        })
+    }
 }
 
 /// Artifact 的用途：决定是否进入文件选择器、保留策略（cloud 规则 7）。

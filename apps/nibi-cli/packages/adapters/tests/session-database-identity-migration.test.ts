@@ -1,5 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { expect, it } from "vitest";
+import { SQLITE_MIGRATIONS } from "../src/storage/session-store/migrations.js";
 import {
   runSqliteSessionMigrations,
   runSqliteSessionMigrationsAsync,
@@ -25,7 +26,9 @@ it.each(["source-first", "agent-first"])(
           .get(),
       ).toEqual(initial);
       expect(db.prepare("SELECT * FROM nibi_database_identity").all()).toEqual([]);
-      expect(db.prepare("SELECT COUNT(*) AS n FROM schema_migration").get()?.n).toBe(25);
+      expect(db.prepare("SELECT COUNT(*) AS n FROM schema_migration").get()?.n).toBe(
+        SQLITE_MIGRATIONS.length,
+      );
     } finally {
       db.close();
     }

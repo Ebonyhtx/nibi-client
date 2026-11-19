@@ -20,12 +20,20 @@ export interface ConfirmDialogRequest {
   showKeyboardHints?: boolean;
   compact?: boolean;
   checkbox?: { label: string; onCheckedChange: (checked: boolean) => void };
+  /**
+   * 打开弹窗后先执行的异步准备（如永久删除预检）。返回的字段合并进当前弹窗；
+   * 准备完成前确认按钮禁用，取消始终可用。
+   */
+  prepare?: () => Promise<Partial<ConfirmDialogRequest> | void>;
+  /** 调用方静态禁用的确认动作（例如没有可删除目标）。 */
+  confirmDisabled?: boolean;
 }
 
 export type ConfirmDialogChoice = "confirm" | "cancel" | "dismiss";
 
 interface PendingConfirmDialogRequest extends ConfirmDialogRequest {
   resolve: (choice: ConfirmDialogChoice) => void;
+  preparePending?: boolean;
 }
 
 interface ConfirmDialogState {
@@ -50,8 +58,33 @@ export const useConfirmDialogStore = create<ConfirmDialogState>((set, get) => ({
         pendingRequest: {
           ...payload,
           resolve,
+          ...(payload.prepare ? { preparePending: true } : {}),
         },
       });
+      if (!payload.prepare) return;
+      // 准备只针对这一次 pending request；弹窗已被取消/替换时丢弃结果，不能改写新弹窗。
+      void payload
+        .prepare()
+        .then((patch) => {
+          const current = get().pendingRequest;
+          if (!current || current.resolve !== resolve) return;
+          set({
+            pendingRequest: {
+              ...current,
+              ...patch,
+              prepare: undefined,
+              preparePending: false,
+            },
+          });
+        })
+        .catch((error) => {
+          logger.warn("[ConfirmDialogStore] confirmation prepare failed", error);
+          const current = get().pendingRequest;
+          if (!current || current.resolve !== resolve) return;
+          set({
+            pendingRequest: { ...current, prepare: undefined, preparePending: false },
+          });
+        });
     });
   },
   settleConfirmation: (confirmed) => get().settleChoice(confirmed ? "confirm" : "cancel"),

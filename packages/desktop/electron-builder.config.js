@@ -861,6 +861,16 @@ export default {
       to: "tools/ripgrep",
       filter: ["**/*"],
     },
+    // Windows Job helper 只在 Windows 目标打包；其他平台不产出也不引用该目录。
+    ...(targetPlatform.key.startsWith("win32-")
+      ? [
+          {
+            from: `bundled-tools/${targetPlatform.key}/runtime-host`,
+            to: "tools/runtime-host",
+            filter: ["**/*"],
+          },
+        ]
+      : []),
     ...nativeSearchReleasePlan.extraResourceToolIds.map((toolId) => ({
       from: `bundled-tools/${targetPlatform.key}/${toolId}`,
       to: `tools/${toolId}`,

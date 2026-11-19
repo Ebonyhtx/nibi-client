@@ -66,6 +66,7 @@ fn request() -> CompactRequest {
         mode: None,
         agent: None,
         initial_token_gap: None,
+        prompt_snapshot: None,
     }
 }
 

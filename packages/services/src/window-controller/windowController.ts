@@ -13,7 +13,11 @@ import type {
   WindowHostTaskAddress,
 } from "@nibi/shared/nibi-protocol-v4";
 import { createServiceDescriptor } from "../descriptors.js";
-import type { NibiArchivedTaskDeletionResult } from "#src/session/nibiTaskService.js";
+import type {
+  NibiArchivedTaskDeletionOutcome,
+  NibiArchivedTaskDeletionPreview,
+  NibiArchivedTaskDeletionResult,
+} from "#src/session/nibiTaskService.js";
 import type {
   NibiTaskListItem,
   NibiTaskListQuery,
@@ -72,6 +76,16 @@ export interface IWindowControllerService {
     address: WindowHostTaskAddress;
     mutation: WindowHostControllerMutation;
   }): Promise<NibiTaskMeta | null>;
+  /** 永久删除预检；只读，远程 source 由 Controller 路由到它自己的 Host。 */
+  previewArchivedTaskDeletion(params: {
+    address: WindowHostTaskAddress;
+  }): Promise<NibiArchivedTaskDeletionPreview>;
+  /** 永久删除：deleted 后投影摘行，blocked/incomplete 保留行供续删。 */
+  permanentlyDeleteArchivedTask(params: {
+    address: WindowHostTaskAddress;
+    revision: string;
+    operationId: string;
+  }): Promise<NibiArchivedTaskDeletionOutcome>;
   subscribeControllerV4(params: ControllerSubscribeParams): Promise<ControllerSubscribeResult>;
   resyncControllerV4(params: ControllerResyncParams): Promise<ControllerResyncResult>;
   unsubscribeControllerV4(params: ControllerUnsubscribeParams): Promise<void>;

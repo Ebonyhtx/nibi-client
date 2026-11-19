@@ -122,6 +122,15 @@ pub(crate) enum SinkRequest {
         request: nibi_kernel_api::auxiliary::AuxiliaryTextRequest,
         reply: oneshot::Sender<Result<Option<String>, OrchestrationError>>,
     },
+    /// 主循环读当前可套用的 prompt 快照（K6；墓碑与没有快照都是 None）。
+    PromptSnapshot {
+        reply: oneshot::Sender<Option<nibi_kernel_api::prompt_snapshot::PromptSnapshot>>,
+    },
+    /// 主循环请求组装之后记录 system 快照（K6）：写入由 actor 完成，失败不阻断回合。
+    RecordPromptSnapshot {
+        selection: ModelSelection,
+        system: Vec<nibi_kernel_api::model::SystemBlock>,
+    },
 }
 
 pub(crate) struct ActorSink {
@@ -505,6 +514,31 @@ impl RunSink for ActorSink {
             reply,
         })
         .await
+    }
+
+    /// K6：主会话当前可套用的 system 快照；墓碑与没有快照都是 None。
+    async fn prompt_snapshot(&self) -> Option<nibi_kernel_api::prompt_snapshot::PromptSnapshot> {
+        let (reply, answer) = oneshot::channel();
+        self.sender
+            .send(SinkRequest::PromptSnapshot { reply })
+            .await
+            .ok()?;
+        answer.await.ok().flatten()
+    }
+
+    /// K6：请求组装之后记录 system 快照；是否写、写哪份由 actor 判断，失败不阻断回合。
+    async fn record_prompt_snapshot(
+        &self,
+        selection: &ModelSelection,
+        system: &[nibi_kernel_api::model::SystemBlock],
+    ) {
+        let _ = self
+            .sender
+            .send(SinkRequest::RecordPromptSnapshot {
+                selection: selection.clone(),
+                system: system.to_vec(),
+            })
+            .await;
     }
 }
 

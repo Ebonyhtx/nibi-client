@@ -50,6 +50,9 @@ export function ConfirmDialogHost() {
   const destructive = displayedRequest?.confirmVariant === "destructive";
   const cancelRef = useRef<HTMLButtonElement>(null);
   const requiredAcknowledgement = displayedRequest?.requiredAcknowledgement === true;
+  // 异步准备（例如永久删除预检）完成前，以及调用方明确禁用的动作，都不能确认。
+  const confirmBlocked =
+    displayedRequest?.preparePending === true || displayedRequest?.confirmDisabled === true;
 
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {
@@ -63,11 +66,12 @@ export function ConfirmDialogHost() {
   );
 
   const handleConfirm = useCallback(() => {
+    if (confirmBlocked) return;
     settleConfirmation(true);
-  }, [settleConfirmation]);
+  }, [confirmBlocked, settleConfirmation]);
 
   useEffect(() => {
-    if (!open || destructive) {
+    if (!open || destructive || confirmBlocked) {
       return;
     }
 
@@ -94,7 +98,7 @@ export function ConfirmDialogHost() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown, true);
     };
-  }, [open, destructive, settleConfirmation, displayedRequest]);
+  }, [open, destructive, confirmBlocked, settleConfirmation, displayedRequest]);
 
   if (isSourceServerBoundary) {
     return (
@@ -209,6 +213,7 @@ export function ConfirmDialogHost() {
               size={"lg"}
               data-testid={TID_CONFIRM_DIALOG_CONFIRM}
               onClick={handleConfirm}
+              disabled={confirmBlocked}
               className={cn(
                 "h-11 gap-3 px-4 sm:h-9",
                 // 破坏性确认不显示 Enter 提示（回车被守卫拦下），按钮也不能继续保留

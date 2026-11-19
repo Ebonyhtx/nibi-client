@@ -939,6 +939,14 @@ impl Server {
             "v4/storage/sessionData/purge" => {
                 crate::session_data::purge(self, &params).await
             }
+            // 归档会话的永久删除（R05）：预检只读；执行按 Node 的删除凭据开删、删文件、删行，成功后发
+            // `session.removed`。与上面的 purge 是两条路径，不要混用。
+            "v4/storage/sessionData/deletionPreview" => {
+                crate::deletion::preview(self, &params).await
+            }
+            "v4/storage/sessionData/deletionExecute" => {
+                crate::deletion::execute(self, &params).await
+            }
             // 附件事务与回读（141 审计 §9 第 4 项）：上行四条走进程内暂存表，回读四条按已授权行。
             "v4/attachment/begin" => crate::attachment_rpc::begin(self, &params).await.map(Reply::new),
             "v4/attachment/chunk" => crate::attachment_rpc::chunk(self, &params).await.map(Reply::new),

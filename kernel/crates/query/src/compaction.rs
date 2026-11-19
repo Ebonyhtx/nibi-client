@@ -34,6 +34,7 @@ fn request(
     history: &[Message],
     selection: &ModelSelection,
     trigger: CompactTrigger,
+    prompt_snapshot: Option<nibi_kernel_api::prompt_snapshot::PromptSnapshot>,
 ) -> CompactRequest {
     CompactRequest {
         session: scope.session.clone(),
@@ -45,6 +46,7 @@ fn request(
         mode: Some(scope.mode),
         agent: scope.agent.clone(),
         initial_token_gap: None,
+        prompt_snapshot,
     }
 }
 
@@ -90,7 +92,13 @@ impl Compaction {
         if eligible(source) && compactor.should_auto_compact(history, selection) {
             let outcome = compactor
                 .auto_compact(
-                    request(scope, history, selection, CompactTrigger::Auto),
+                    request(
+                        scope,
+                        history,
+                        selection,
+                        CompactTrigger::Auto,
+                        scope.sink.prompt_snapshot().await,
+                    ),
                     &mut self.tracking,
                     scope.abort.token().clone(),
                 )
@@ -140,7 +148,13 @@ impl Compaction {
         scope.sink.compact_started(CompactTrigger::Reactive).await;
         // 缺陷修复（L25）：原来不带触发它的错误给出的 token 差，压缩核心第一次就转全部摘要时
         // 把整段对话发出去；应从错误取差，作为压缩的初始差，据此裁掉开头。
-        let mut compact = request(scope, history, selection, CompactTrigger::Reactive);
+        let mut compact = request(
+            scope,
+            history,
+            selection,
+            CompactTrigger::Reactive,
+            scope.sink.prompt_snapshot().await,
+        );
         compact.initial_token_gap = prompt_too_long_gap(error);
         let compacted = scope
             .parts

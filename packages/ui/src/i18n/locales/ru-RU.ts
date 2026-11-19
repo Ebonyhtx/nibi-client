@@ -47,12 +47,28 @@ const ruRU: Record<string, string> = {
   "archives.delete": "Удалить",
   "archives.deleteAll": "Удалить все",
   "archives.deleteDescription":
-    "Будут удалены только сеансы из подтверждённого выбора. Восстановить их в приложении будет нельзя.",
+    "Будут безвозвратно удалены только сеансы из подтверждённого выбора вместе с файлами. Это действие нельзя отменить.",
+  "archives.deletePermanently": "Удалить безвозвратно",
   "archives.deleteTask": "Удалить «{title}»",
-  "archives.deleteTitle": "Удалить архивные сеансы ({count})?",
+  "archives.deleteTitle": "Безвозвратно удалить архивные сеансы ({count})?",
   "archives.empty": "Архивных сеансов нет",
   "archives.groupActions": "Действия с архивом для {name}",
   "archives.loadFailed": "Не удалось загрузить архивные сеансы",
+  "archives.previewBlocked.changed": "изменено после предпросмотра",
+  "archives.previewBlocked.not_found": "уже удалено",
+  "archives.previewBlocked.running": "используется",
+  "archives.previewBlocked.unavailable": "данные недоступны",
+  "archives.previewCannotDelete": "Нельзя удалить сеансов: {count}. Причины: {reasons}.",
+  "archives.previewIncomplete":
+    "Предыдущее удаление не завершено; продолжение удалит оставшиеся данные.",
+  "archives.previewCompleted":
+    "Сеансов уже удалено с диска: {count}. Подтверждение завершит локальную очистку.",
+  "archives.previewWillDelete":
+    "Будет безвозвратно удалено сеансов: {tasks}, разговоров: {sessions}.",
+  "archives.previewWillKeep":
+    "Сохранится: ответвлённых сеансов — {forks}, используемых артефактов — {artifacts}.",
+  "archives.preparing": "Проверяем, что будет удалено…",
+  "archives.resumeDeletion": "Продолжить удаление",
   "archives.loading": "Загрузка архивных сеансов…",
   "archives.nav": "Управление архивом",
   "archives.noResults": "Подходящих архивных сеансов нет",
@@ -60,7 +76,7 @@ const ruRU: Record<string, string> = {
   "archives.removed": "Удалён",
   "archives.removedProject": "Удалённый проект",
   "archives.result":
-    "Успешно: {succeeded}; с ошибкой: {failed}; пропущено из-за изменений: {skipped}",
+    "Успешно: {succeeded}; с ошибкой: {failed}; пропущено из-за изменений: {skipped}; не завершено: {incomplete}",
   "archives.retry": "Повторить",
   "archives.search": "Поиск архивных сеансов",
   "archives.showMore": "Показать ещё",
@@ -2722,6 +2738,7 @@ const ruRU: Record<string, string> = {
   "conversationShare.phase.uploadingActive": "Загрузка {completed} / {total}",
   "conversationShare.phase.uploadingComplete": "Артефакты загружены",
   "conversationShare.phase.uploadingPending": "Ожидание подготовки",
+  "conversation.row.unreadable": "Для просмотра этого сообщения нужна более новая версия NIBI",
   "conversationShare.popover.title": "Поделиться диалогом",
   "conversationShare.preflight.reviewDeferred": "Часть файлов нужно проверить · Подробнее",
   "conversationShare.preflight.reviewIssues": "Проблемы публикации",

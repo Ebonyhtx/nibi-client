@@ -1023,6 +1023,20 @@ modules:
       ui: .
     owner: ui
 
+  # windows-runtime-host：Windows Agent CLI 的原生 Job 归属边界（helper 契约 + Host 启动/清理）。
+  # 原生 helper 让 CLI 以 suspended 创建并直接归组；helper/Host 崩溃时 KILL_ON_JOB_CLOSE 结束整棵树。
+  - id: windows-runtime-host
+    roots:
+      - packages/services/src/windows-runtime-host
+    managed: true
+    requires: []
+    publicEntrypoints:
+      - packages/services/src/windows-runtime-host/index.ts
+      - packages/services/src/windows-runtime-host/contract.ts
+    layers:
+      adapters: .
+    owner: desktop
+
 global:
   # 临时时间戳（2026-09-10）：unmanaged-new-file 只约束此日期之后首次入库的文件。
   # 基于领先 staging 很多的分支开工时，merge-base 之前的"新增"文件不应被追溯。
@@ -1599,3 +1613,41 @@ exceptions:
     reason: >-
       Tier 2 五语言：shared 的 locale 解析/持久化助手、五语言合并表与三份上游人工翻译。
       shared 与 ui 仍是 managed:false 的遗留大区；按路径准入这五个新文件，不接管整包。
+
+  - id: tier2-k5-k6-n06-unmanaged-files
+    rule: unmanaged-new-file
+    paths:
+      - apps/nibi-cli/packages/core/src/subagent/background-stall.ts
+      - apps/nibi-cli/packages/core/src/runtime/methods/subagent-stall-reminder.ts
+      - apps/nibi-cli/packages/core/src/runtime/helpers/prompt-snapshot.ts
+      - apps/nibi-cli/packages/contracts/src/interfaces/workflow-web-search-budget.port.ts
+      - apps/nibi-cli/packages/bootstrap/src/app/workflow-driver-web-search-budget.ts
+      - apps/nibi-cli/packages/dynamic-workflow/src/analysis/actor-budgets.ts
+    reason: >-
+      Tier 2 内核正确性：后台子代理停滞提醒（K5）、prompt 快照（K6）与 workflow WebSearch
+      预算（N06）在 Node 侧的新文件，按上游 3.18.2 对应文件移植。apps/nibi-cli 仍是
+      managed:false 的遗留应用，文件落在既有 core/subagent、core/runtime、contracts/interfaces、
+      bootstrap/app 与 dynamic-workflow/analysis 布局里；接管整包不在本次范围。
+
+  - id: tier2-r05-l11-node-unmanaged-files
+    rule: unmanaged-new-file
+    paths:
+      - apps/nibi-cli/packages/adapters/src/storage/session-data-files/index.ts
+      - apps/nibi-cli/packages/adapters/src/storage/session-store/migrations/0026-session-permanent-deletion.ts
+      - apps/nibi-cli/packages/bootstrap/src/nibi-protocol/memory-diagnostics/**
+      - apps/nibi-cli/packages/bootstrap/src/nibi-protocol/session-data/permanent-deletion.ts
+      - packages/services/src/session/tasksDatabase/permanent-deletion-v8.ts
+    reason: >-
+      Tier 2 平台项：归档会话永久删除（R05，迁移 0026 的 SQL 常量、session-data-files、
+      V4 preview/execute 编排）与 CLI 内存诊断（L11，bootstrap/nibi-protocol/memory-diagnostics）。
+      apps/nibi-cli 仍是 managed:false 的遗留应用，文件落在既有 adapters/storage 与
+      bootstrap/nibi-protocol 布局里；接管整包不在本次范围。
+
+  - id: windows-runtime-host-build-script
+    rule: unmanaged-new-file
+    paths:
+      - packages/desktop/scripts/build-windows-runtime-host.mjs
+    reason: >-
+      Windows-only 原生 helper 的构建入口；packages/desktop/scripts 位于 desktop 源码模块
+      之外，是构建工具而不是产品代码。helper 的运行时契约由 managed 模块
+      windows-runtime-host 承载，这里只准入构建脚本本身。

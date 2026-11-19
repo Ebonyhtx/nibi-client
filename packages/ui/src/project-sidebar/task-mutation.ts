@@ -1,5 +1,7 @@
 import { parseRemoteWorkspaceIdentity } from "@nibi/shared";
 import type {
+  NibiArchivedTaskDeletionOutcome,
+  NibiArchivedTaskDeletionPreview,
   ProjectTaskRef,
   INibiTaskService,
   IWindowControllerService,
@@ -72,4 +74,45 @@ export async function mutateProjectTask(
     case "mark-unread":
       return ports.service.setTaskUnread({ ...target, unread: true });
   }
+}
+
+/** 预检只读；远程 source 由 Controller 路由到它自己的 Host，本机才直连 task service。 */
+export async function previewProjectTaskDeletion(
+  ports: ProjectTaskPorts,
+  task: ProjectTaskRef,
+  remoteSessionId?: string | null,
+): Promise<NibiArchivedTaskDeletionPreview> {
+  if (ports.controller) {
+    return ports.controller.previewArchivedTaskDeletion({
+      address: taskAddress(task, remoteSessionId),
+    });
+  }
+  return ports.service.previewArchivedTaskDeletion({
+    taskId: task.taskId,
+    workspacePath: task.workspacePath,
+    workspaceIdentity: task.workspaceIdentity,
+  });
+}
+
+export async function permanentlyDeleteProjectTask(
+  ports: ProjectTaskPorts,
+  task: ProjectTaskRef,
+  revision: string,
+  operationId: string,
+  remoteSessionId?: string | null,
+): Promise<NibiArchivedTaskDeletionOutcome> {
+  if (ports.controller) {
+    return ports.controller.permanentlyDeleteArchivedTask({
+      address: taskAddress(task, remoteSessionId),
+      revision,
+      operationId,
+    });
+  }
+  return ports.service.permanentlyDeleteArchivedTask({
+    taskId: task.taskId,
+    workspacePath: task.workspacePath,
+    workspaceIdentity: task.workspaceIdentity,
+    revision,
+    operationId,
+  });
 }

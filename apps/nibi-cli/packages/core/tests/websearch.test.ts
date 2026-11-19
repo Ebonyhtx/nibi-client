@@ -5,10 +5,12 @@ import { createTestModelSelection } from "./test-model-selection.js";
 
 import {
   SessionEventType,
+  WEB_SEARCH_BUDGET_EXHAUSTED_ERROR_CODE,
   WebSearchInputJsonSchema,
   WebSearchInputSchema,
   createSessionId,
   type ModelSelection,
+  type WebSearchBudgetCharge,
 } from "@nibi/contracts";
 import { describe, expect, it, vi } from "vitest";
 import { createTestAgentRuntime } from "./test-agent-runtime.js";
@@ -553,3 +555,52 @@ function createRuntime(
     },
   );
 }
+
+// 动态工作流子代理的 per-ask 预算（execution-engine.md「Search budget」）：端口回 exhausted 时
+// handler 不发内部模型请求，回带固定错误码的失败；回 charged 时照常发请求。
+describe("WebSearch per-ask budget port", () => {
+  function budgetContext(charge: () => WebSearchBudgetCharge) {
+    const streamText = vi.fn(() => {
+      throw new Error("internal request sent");
+    });
+    const webSearchBudget = { charge: vi.fn(charge) };
+    const context = {
+      toolCallId: "call_budget",
+      model: {
+        properties: { supportsNativeWebSearch: true },
+        optionSpecs: { reasoningLevel: { values: ["none"] }, maxOutputTokens: { max: 4096 } },
+        streamText,
+      },
+      webSearchBudget,
+    };
+    return { context, streamText, webSearchBudget };
+  }
+
+  it("refuses without sending a request once the budget is used up", async () => {
+    const { context, streamText, webSearchBudget } = budgetContext(() => ({
+      kind: "exhausted",
+      limit: 2,
+      message: "Search budget exhausted",
+    }));
+
+    const result = await webSearchToolEntry.handler({ query: "void" }, context as never);
+
+    expect(result).toEqual({
+      result: false,
+      errorCode: WEB_SEARCH_BUDGET_EXHAUSTED_ERROR_CODE,
+      message: "Search budget exhausted",
+    });
+    expect(WEB_SEARCH_BUDGET_EXHAUSTED_ERROR_CODE).toBe(2);
+    expect(webSearchBudget.charge).toHaveBeenCalledTimes(1);
+    expect(streamText).not.toHaveBeenCalled();
+  });
+
+  it("sends the request when the call is charged", async () => {
+    const { context, streamText } = budgetContext(() => ({ kind: "charged" }));
+
+    await expect(webSearchToolEntry.handler({ query: "q" }, context as never)).rejects.toThrow(
+      "internal request sent",
+    );
+    expect(streamText).toHaveBeenCalledTimes(1);
+  });
+});

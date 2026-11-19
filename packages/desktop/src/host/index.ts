@@ -2166,6 +2166,32 @@ function createControllerRoutedTaskService(
             }),
           });
       }
+      if (property === "previewArchivedTaskDeletion") {
+        return async (
+          params: Parameters<INibiTaskService["previewArchivedTaskDeletion"]>[0],
+        ) =>
+          windowHostControllerRuntime.service.previewArchivedTaskDeletion({
+            address: await windowHostControllerRuntime.resolveTaskAddress({
+              ...params,
+              attachmentScope,
+              allowMissingTask: true,
+            }),
+          });
+      }
+      if (property === "permanentlyDeleteArchivedTask") {
+        return async (
+          params: Parameters<INibiTaskService["permanentlyDeleteArchivedTask"]>[0],
+        ) =>
+          windowHostControllerRuntime.service.permanentlyDeleteArchivedTask({
+            address: await windowHostControllerRuntime.resolveTaskAddress({
+              ...params,
+              attachmentScope,
+              allowMissingTask: true,
+            }),
+            revision: params.revision,
+            operationId: params.operationId,
+          });
+      }
       if (property === "setTaskUnread") {
         return async (params: Parameters<INibiTaskService["setTaskUnread"]>[0]) => {
           const meta = await route(

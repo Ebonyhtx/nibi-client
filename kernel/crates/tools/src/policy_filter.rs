@@ -21,9 +21,9 @@ use crate::{glob, grep};
 /// 被 Bash 藏起来、Bash 不在清单里时补回的搜索工具（按这个顺序）。
 const SEARCH: [&str; 2] = [glob::NAME, grep::NAME];
 
-/// 动态工作流灰度门关闭时下架的十一个工具（Node `DYNAMIC_WORKFLOW_TOOL_NAMES` 逐字；
+/// 动态工作流灰度门关闭时下架的十个工具（Node `DYNAMIC_WORKFLOW_TOOL_NAMES` 逐字；
 /// 决定权在 Host，逐会话存在判决链的门上）。
-const DYNAMIC_WORKFLOW: [&str; 11] = crate::DYNAMIC_WORKFLOW_TOOL_NAMES;
+const DYNAMIC_WORKFLOW: [&str; 10] = crate::DYNAMIC_WORKFLOW_TOOL_NAMES;
 
 /// 需要 DWF 引擎（sidecar）才能工作的作者工具：没有引擎时不进工具表。
 const ENGINE_TOOLS: [&str; 6] = crate::ENGINE_TOOLS;
@@ -69,11 +69,21 @@ impl PolicyFiltered {
             .is_none_or(|policy| policy.allows(name))
     }
 
-    /// 会话的动态工作流灰度门允许这个名字（关闭时三件套不出现在清单与查找里）。没给会话时
-    /// （进程级清单、CLI/TUI）不限制。
+    /// 会话的动态工作流灰度门允许这个名字。`ListModels` 另有一条「有消费者才注册」的规则：
+    /// 灰度门开（CreateWorkflow 在场）或会话控制工具在场（CreateSession 在场）时保留；两者都不在
+    /// 时留着它只会叫模型去填不存在的工具。没给会话时（进程级清单、CLI/TUI）不限制。
     fn workflow_allows(&self, session: Option<&SessionId>, name: &str) -> bool {
         if ENGINE_TOOLS.contains(&name) && !self.gate.workflow_authoring() {
             return false;
+        }
+        if name == crate::workflow_authoring::LIST_MODELS_TOOL {
+            // `ListModels` 的第二个消费者：会话控制在场时它也给 `CreateSession.model` 供目录。
+            // 8 个会话控制工具由 runtime 一起注册，检查 `CreateSession` 一个即可判定消费者在场。
+            return session.is_none_or(|session| self.gate.dynamic_workflow_visible(session))
+                || self
+                    .inner
+                    .find(crate::session_control::CREATE_SESSION)
+                    .is_some();
         }
         !DYNAMIC_WORKFLOW.contains(&name)
             || session.is_none_or(|session| self.gate.dynamic_workflow_visible(session))

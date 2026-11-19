@@ -36,6 +36,10 @@ pub struct CompactRequest {
     /// （docs/specs/rust-cli/compact.md §3.1）。其他触发为 None。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub initial_token_gap: Option<u64>,
+    /// 主会话的 prompt 快照（K6，[`crate::prompt_snapshot`]）：摘要请求与主循环读同一份 system 字节时带上，
+    /// 模型相同才生效。子代理的压缩为 None。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prompt_snapshot: Option<crate::prompt_snapshot::PromptSnapshot>,
 }
 
 /// 上下文超限错误文本里的 token 差，认两种句式（docs/specs/rust-cli/compact.md §3.1）：

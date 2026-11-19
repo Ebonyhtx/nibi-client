@@ -148,12 +148,24 @@ function ArchiveManagementContent() {
         </p>
       ) : null}
       {state.result ? (
-        <p
-          role={state.result.failed ? "alert" : "status"}
-          className="text-ui-sm text-foreground-subtle"
-        >
-          {intl.formatMessage({ id: "archives.result" }, state.result)}
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p
+            role={state.result.failed ? "alert" : "status"}
+            className="text-ui-sm text-foreground-subtle"
+          >
+            {intl.formatMessage({ id: "archives.result" }, { ...state.result })}
+          </p>
+          {state.resumable.length > 0 ? (
+            <Button
+              data-testid="archive-resume-deletion"
+              variant="outline"
+              disabled={state.busy}
+              onClick={() => state.resume()}
+            >
+              {msg("resumeDeletion")}
+            </Button>
+          ) : null}
+        </div>
       ) : null}
       {state.loading ? (
         <p role="status" className="py-8 text-ui-base text-foreground-subtle">

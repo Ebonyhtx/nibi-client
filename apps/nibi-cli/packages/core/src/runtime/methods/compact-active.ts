@@ -74,6 +74,8 @@ import {
   filterOutputTokenContinuationEntries,
   preserveCanonicalContextPrefix,
 } from "./turn-output-token-continuation.js";
+import { clearPromptSnapshot } from "../helpers/prompt-snapshot.js";
+import { rebuildContextPrefix } from "./context-refresh.js";
 
 const AUTO_COMPACT_MAX_ATTEMPTS = 3;
 const COMPACT_TOOL_KEEP_MAX_COUNT = 100;
@@ -697,10 +699,18 @@ async function compactActiveConversationImpl(
       );
       this.readFileState.clear();
       resetProjectMemoryRecall(this);
+      // compaction 之后的窗口按当前代码重新组装 system：清掉 prompt 快照，并重建历史和
+      // 本轮请求的前缀，下一次主循环请求重新记录。不重建时旧 system 会被当成新快照记下来。
+      const entries = (await clearPromptSnapshot(this, turnTraceContext))
+        ? rebuildContextPrefix(this, {
+            model: compactModel,
+            turnRequestEntries: postCompactEntries,
+          })
+        : postCompactEntries;
 
       return {
         displayText: "Compacted",
-        entries: postCompactEntries,
+        entries,
         outcome: "compacted",
         tokenCount: providerPostCompactTokenCount,
       };

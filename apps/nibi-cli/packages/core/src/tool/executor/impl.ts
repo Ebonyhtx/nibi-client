@@ -57,6 +57,7 @@ export class ToolExecutorImpl implements ToolExecutor {
       coordinatorResponsePort: options.coordinatorResponsePort,
       workflowSubmitPort: options.workflowSubmitPort,
       workflowEscalatePort: options.workflowEscalatePort,
+      webSearchBudget: options.webSearchBudget,
       artifactStore: options.artifactStore,
       automationPort: options.automationPort,
       topicResourcePort: options.topicResourcePort,

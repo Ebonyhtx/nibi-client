@@ -114,7 +114,12 @@ export type {
 // Nibi task wrapper service — task 列表/置顶/归档等 app 侧包装状态入口。
 export { INibiTaskService } from "./session/nibiTaskService.js";
 export type {
+  NibiArchivedTaskDeletionOutcome,
+  NibiArchivedTaskDeletionPreview,
   NibiArchivedTaskDeletionResult,
+  NibiRetainedArtifactRef,
+  NibiTaskDeletionBlockReason,
+  NibiTitledSessionRef,
   NibiModelTrajectory,
   NibiModelTrajectoryCallSource,
   NibiModelTrajectoryCallSourceKind,

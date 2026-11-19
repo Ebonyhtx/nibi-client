@@ -91,6 +91,7 @@ import type {
   WorkflowPort,
   WorkflowEscalatePort,
   WorkflowSubmitPort,
+  WorkflowWebSearchBudgetPort,
   TraceContext,
   TraceId,
   TurnId,
@@ -154,6 +155,10 @@ export interface AgentRuntimeConfig {
     inactivityTimeoutMs?: number;
     autoBackgroundMs?: number;
     backgroundBashMaxMs?: number;
+    /** 后台 Agent 无进展多久后第一次提醒父会话；之后每次间隔加倍。默认 15 分钟。 */
+    backgroundStallNotifyMs?: number;
+    /** 无进展提醒的最大间隔。默认 4 小时。 */
+    backgroundStallMaxIntervalMs?: number;
     maxTurns?: number;
     outputRootDir?: string;
     profiles?: readonly AgentProfile[];
@@ -382,6 +387,8 @@ export interface AgentRuntimeDeps {
    * 工作流 actor 升级阻塞问题的端口；存在即作为 escalate 工具的注册门。与 workflowSubmitPort 同一注入方式与同一条门。
    */
   workflowEscalatePort?: WorkflowEscalatePort;
+  /** 工作流 actor 每个 ask 的 WebSearch 预算；仅在 workflow actor 会话注入，缺席即无上限。 */
+  webSearchBudget?: WorkflowWebSearchBudgetPort;
   /**
    * 模型请求的进程级准入端口：在场时
    * 每次模型请求尝试先经它拿票据；沿调用上下文到 adapter。dwf actor runtime 拿 driver 的 per-actor

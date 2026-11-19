@@ -67,6 +67,8 @@ impl Actor {
             mode: Some(self.mode()),
             agent: None,
             initial_token_gap: None,
+            // K6：摘要请求与主循环读同一份 system 字节（模型相同才生效）。
+            prompt_snapshot: self.prompt_snapshot_present(),
         };
         let abort = Abort::new();
         let (sender, requests) = mpsc::channel(SINK_REQUESTS);
@@ -149,6 +151,9 @@ impl Actor {
             self.log.append(KernelEvent::MessageDone { message });
         }
         if let Some(boundary) = boundary {
+            // K6：压缩成功后 system 前缀必须按当前代码重建，写墓碑并清掉内存快照（对齐上游
+            // `compact-active.ts` 的 `clearPromptSnapshot`）；下一次主循环请求重新记录。
+            self.clear_prompt_snapshot().await;
             // 压缩后自主说明已不在上下文里：下一次 `/loop` 触发重新发全文（压缩后的清理）。
             self.reset_loop_ticks();
             self.log.append(KernelEvent::CompactDone { boundary });

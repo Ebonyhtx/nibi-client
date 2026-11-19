@@ -226,6 +226,7 @@ export type {
   WorkflowPort,
   WorkflowEscalatePort,
   WorkflowSubmitPort,
+  WorkflowWebSearchBudgetPort,
   TodoItem,
   SessionGoal,
   SessionModeChangedPayload,

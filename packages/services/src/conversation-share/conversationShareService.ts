@@ -26,10 +26,11 @@ import {
   resolveRuntimeNibiEndpointOrigin,
   toZhOrEnLocale,
 } from "@nibi/shared";
-import type { ConversationRow } from "@nibi/shared/nibi-protocol-v4";
+import type { ConversationRow, WireConversationRow } from "@nibi/shared/nibi-protocol-v4";
 import {
   PROTOCOL_V4_LIMITS,
   NIBI_ATTACHMENT_FAULT_CODES,
+  isWireConversationRow,
   readNibiAttachmentFaultCode,
 } from "@nibi/shared/nibi-protocol-v4";
 import { Emitter } from "@nibi/rpc";
@@ -293,12 +294,12 @@ const importedConversationShareFileSchema = z
   .strip();
 
 interface ConversationRowsRead {
-  rows: ConversationRow[];
+  rows: WireConversationRow[];
   revision: number;
   logEpoch: string;
 }
 
-function turnOrdinalByProductTurn(rows: readonly ConversationRow[]): Map<string, number> {
+function turnOrdinalByProductTurn(rows: readonly WireConversationRow[]): Map<string, number> {
   const result = new Map<string, number>();
   for (const row of rows) {
     if (row.kind !== "turnHeader" || !row.productTurnId || result.has(row.productTurnId)) continue;
@@ -307,7 +308,7 @@ function turnOrdinalByProductTurn(rows: readonly ConversationRow[]): Map<string,
   return result;
 }
 
-function rowTurnOrdinal(row: ConversationRow, ordinals: Map<string, number>): number | undefined {
+function rowTurnOrdinal(row: WireConversationRow, ordinals: Map<string, number>): number | undefined {
   return row.productTurnId ? ordinals.get(row.productTurnId) : undefined;
 }
 
@@ -336,8 +337,8 @@ function hasUnsupportedArtifactReference(value: unknown): boolean {
  * 只降级「已定稿但无法承载」的内容；运行中的轮次/行/工具/子代理仍由
  * collectShareStructureIssues 阻断 —— 那些内容尚未定稿，跳过等于分享半成品。
  */
-function sanitizeUnsupportedShareStructures(rows: readonly ConversationRow[]): ConversationRow[] {
-  const sanitized: ConversationRow[] = [];
+function sanitizeUnsupportedShareStructures(rows: readonly WireConversationRow[]): WireConversationRow[] {
+  const sanitized: WireConversationRow[] = [];
   for (const row of rows) {
     if (row.kind === "timelineMarker") {
       // 运行中的 marker 留着，让 collectShareStructureIssues 照旧阻断——内容尚未定稿。
@@ -377,10 +378,10 @@ function sanitizeUnsupportedShareStructures(rows: readonly ConversationRow[]): C
 }
 
 function sanitizeUnsupportedShareArtifacts(
-  rows: readonly ConversationRow[],
+  rows: readonly WireConversationRow[],
   capabilities: ConversationShareCapabilities,
-  ordinalRows: readonly ConversationRow[],
-): { rows: ConversationRow[]; warnings: ConversationShareFailureIssue[] } {
+  ordinalRows: readonly WireConversationRow[],
+): { rows: WireConversationRow[]; warnings: ConversationShareFailureIssue[] } {
   const ordinals = turnOrdinalByProductTurn(ordinalRows);
   const warnings: ConversationShareFailureIssue[] = [];
   const retained = rows.filter((row) => {
@@ -417,12 +418,12 @@ function sanitizeUnsupportedShareArtifacts(
 }
 
 function collectShareStructureIssues(
-  rows: readonly ConversationRow[],
-  ordinalRows: readonly ConversationRow[] = rows,
+  rows: readonly WireConversationRow[],
+  ordinalRows: readonly WireConversationRow[] = rows,
 ): ConversationShareFailureIssue[] {
   const issues: ConversationShareFailureIssue[] = [];
   const ordinals = turnOrdinalByProductTurn(ordinalRows);
-  const add = (row: ConversationRow, code: ConversationShareFailureIssue["code"]) => {
+  const add = (row: WireConversationRow, code: ConversationShareFailureIssue["code"]) => {
     issues.push({
       code,
       scope: code === "missing_product_turn" ? "conversation" : "turn",
@@ -582,7 +583,7 @@ function buildTurnPreflightResults(
   });
 }
 
-function removeIndependentArtifactRows(rows: readonly ConversationRow[]): ConversationRow[] {
+function removeIndependentArtifactRows(rows: readonly WireConversationRow[]): WireConversationRow[] {
   // 文件候选来自用户输入附件和最终可见的 Assistant 预览卡片；内嵌图片随后独立转换。历史 artifact row
   // 若没有对应预览卡片，不再作为第三条独立发现来源进入公开 projection。
   return rows.filter((row) => row.kind !== "artifact");
@@ -596,9 +597,9 @@ function throwServiceError(
 }
 
 function selectRows(
-  rows: ConversationRow[],
+  rows: WireConversationRow[],
   selection: PublishTextConversationInput["selection"],
-): { rows: ConversationRow[]; productTurnIds: string[] } {
+): { rows: WireConversationRow[]; productTurnIds: string[] } {
   let selectedProductTurnIds: Set<string>;
   if (selection.kind === "all") {
     selectedProductTurnIds = new Set(
@@ -791,7 +792,7 @@ export class ConversationShareService implements IConversationShareService {
     const skippableWarnings: ConversationShareFailureIssue[] = [];
     const deferredIssues: ConversationShareFailureIssue[] = [];
 
-    let selected: { rows: ConversationRow[]; productTurnIds: string[] };
+    let selected: { rows: WireConversationRow[]; productTurnIds: string[] };
     try {
       selected = selectRows(conversation.rows, input.selection);
     } catch (error) {
@@ -887,12 +888,12 @@ export class ConversationShareService implements IConversationShareService {
     // 先把需要 stat 的附件收集齐，再有界并发跑，最后按原顺序分类。
     // 拆成两轮是为了在拿到远程并发收益的同时，让 issue 的产生顺序与串行实现一致。
     const attachmentChecks: {
-      row: Extract<ConversationRow, { kind: "userInput" }> & {
+      row: Extract<WireConversationRow, { kind: "userInput" }> & {
         entityId: string;
       };
       attachmentIndex: number;
       attachment: NonNullable<
-        Extract<ConversationRow, { kind: "userInput" }>["attachments"]
+        Extract<WireConversationRow, { kind: "userInput" }>["attachments"]
       >[number];
       allowed: ReturnType<typeof allowedArtifactFor>;
       baseIssue: Omit<ConversationShareFailureIssue, "code">;
@@ -1095,7 +1096,7 @@ export class ConversationShareService implements IConversationShareService {
 
     const headersByProductTurnId = new Map<
       string,
-      Extract<ConversationRow, { kind: "turnHeader" }>
+      Extract<WireConversationRow, { kind: "turnHeader" }>
     >();
     const assistantTextByProductTurnId = new Map<string, string[]>();
     for (const row of selectedRows) {
@@ -2574,7 +2575,16 @@ export class ConversationShareService implements IConversationShareService {
       beforeRowId = firstRowId;
     }
 
-    const rows = pages.flat();
+    // rows/range 逐行降级，所以这里可能收到 unreadable 占位行。分享必须**拒绝**，不能静默
+    // 省略：少掉几行的分享会让读到链接的人看到一份失真的对话，那比发不出去更坏。本端读不懂
+    // 说明发送端比本端新，提示用户升级后重试。
+    const rows = pages.flat().filter(isWireConversationRow);
+    if (rows.length !== pages.reduce((total, page) => total + page.length, 0)) {
+      throwServiceError(
+        "invalid_conversation",
+        "Conversation contains rows this version cannot read; update NIBI and try again",
+      );
+    }
     for (let index = 1; index < rows.length; index += 1) {
       const previous = rows[index - 1]!;
       const current = rows[index]!;

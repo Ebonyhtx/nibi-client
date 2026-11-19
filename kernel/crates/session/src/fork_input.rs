@@ -59,6 +59,17 @@ impl Actor {
             Ok(receipt) => receipt,
             Err(error) => return rejected(error.to_string()),
         };
+        // K6：fork 的子会话沿用父会话的 system 快照（与 `fork()` 同一口径）；父会话没有快照时不写。
+        if let Some(state) = self.prompt_snapshot.clone()
+            && let Err(error) = nibi_kernel_api::prompt_snapshot::save_prompt_snapshot(
+                self.deps.store.as_ref(),
+                &child,
+                &state,
+            )
+            .await
+        {
+            tracing::warn!(%error, session = %child, "prompt snapshot fork copy failed");
+        }
         // 回执的文字是 Node 分叉对话的原文；`message` 给界面拼中文提示（工作线 F78）。
         let response = format!(
             "Forked session {child} from message {through}: copied {} messages.",

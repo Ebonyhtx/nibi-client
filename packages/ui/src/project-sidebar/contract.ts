@@ -36,6 +36,11 @@ export type {
   WindowHostControllerTaskActivity,
 } from "@nibi/shared/nibi-protocol-v4";
 export type {
+  NibiArchivedTaskDeletionOutcome,
+  NibiArchivedTaskDeletionPreview,
+  NibiRetainedArtifactRef,
+  NibiTaskDeletionBlockReason,
+  NibiTitledSessionRef,
   TaskGroup,
   TaskGroupColor,
   TaskGroupStructure,

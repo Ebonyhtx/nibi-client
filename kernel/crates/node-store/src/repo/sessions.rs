@@ -204,6 +204,10 @@ pub fn update(conn: &Connection, input: &Update, now: i64) -> rusqlite::Result<u
     .execute(rusqlite::params_from_iter(values))
 }
 
+/// 有删除凭据（永久删除中或删完）的会话不列（Node `listSessions` 的同一条件）。凭据在
+/// `session_purge`（迁移 0026），行在删完之前还在，所以列表要自己排除。
+const NOT_PURGED: &str = "not exists(select 1 from session_purge where session_id = session.id)";
+
 /// `/resume` 与 `-c` 的会话列表：本目录的顶层会话加 fork 出的会话（`task_type = 'fork'`），排序同
 /// Node `listSessions`（`order by time_updated desc, id desc`）。
 ///
@@ -216,7 +220,7 @@ pub fn list(
     directory: &str,
     limit: Option<i64>,
 ) -> rusqlite::Result<Vec<SessionRow>> {
-    let mut clauses: Vec<&str> = vec!["time_deleted is null"];
+    let mut clauses: Vec<&str> = vec!["time_deleted is null", NOT_PURGED];
     let mut values: Vec<Sql> = vec![];
     if !directory.is_empty() {
         clauses.push("directory = ?");
@@ -248,6 +252,7 @@ pub fn query(
 ) -> rusqlite::Result<Vec<SessionRow>> {
     let mut clauses: Vec<&str> = vec![
         "time_deleted is null",
+        NOT_PURGED,
         "workspace_id is null",
         "task_type in ('interactive', 'fork', 'workflow_parent')",
     ];
@@ -284,6 +289,7 @@ pub fn task_list(
 ) -> rusqlite::Result<Vec<SessionRow>> {
     let mut clauses: Vec<&str> = vec![
         "time_deleted is null",
+        NOT_PURGED,
         "task_type in ('interactive', 'fork', 'workflow_parent')",
     ];
     let mut values: Vec<Sql> = vec![];

@@ -274,6 +274,14 @@ export function createWindowHostControllerRuntime(options: {
           workspaceIdentity: base.workspaceIdentity,
           taskIds: mutation.taskIds,
         });
+      case "preview-permanent-delete":
+        return service.previewArchivedTaskDeletion(base);
+      case "permanent-delete":
+        return service.permanentlyDeleteArchivedTask({
+          ...base,
+          revision: mutation.revision,
+          operationId: mutation.operationId,
+        });
       case "mark-read":
         return normalizeTaskMeta(
           await service.setTaskUnread({
@@ -787,6 +795,33 @@ export function createWindowHostControllerRuntime(options: {
         }
         return deleted === true;
       },
+      async previewArchivedTaskDeletion({ address }) {
+        // 预检只读：投影路由负责 source 身份校验，真正的文件/会话检查在 owner Host。
+        const result = await projection.mutate(address, { kind: "preview-permanent-delete" });
+        if (!result || typeof result !== "object" || !("revision" in result))
+          throw new Error("永久删除预检未返回 revision");
+        return result;
+      },
+      async permanentlyDeleteArchivedTask({ address, revision, operationId }) {
+        const result = await projection.mutate(address, {
+          kind: "permanent-delete",
+          revision,
+          operationId,
+        });
+        if (!result || typeof result !== "object" || !("status" in result) || !("sessionIds" in result))
+          throw new Error("永久删除未返回状态");
+        const resolved = options.resolveSource({
+          workspacePath: address.workspacePath,
+          workspaceIdentity: address.workspaceIdentity,
+        });
+        if (resolved) {
+          // deleted 已由投影摘行；重查失败不能改报删除失败，后续事件仍会收敛。
+          await refreshSource(resolved, true).catch((error) =>
+            options.onSourceError?.(resolved.scope, "refresh", error),
+          );
+        }
+        return result;
+      },
       async mutateTask({ address, mutation }) {
         const resolved = options.resolveSource({
           workspacePath: address.workspacePath,
@@ -838,7 +873,7 @@ export function createWindowHostControllerRuntime(options: {
           mutation as WindowHostControllerMutation,
         );
         // 未读 CAS 必须使用本次写入分配的 marker；重查投影可能已包含后一次完成，不能替换回包。
-        if (mutationResult && typeof mutationResult !== "boolean" && "taskId" in mutationResult) {
+        if (mutationResult && typeof mutationResult !== "boolean" && "traceId" in mutationResult) {
           assertCurrentUnreadSource();
           // 写入已提交；读取失败只影响投影刷新，不把成功的写操作伪装成可重试失败。
           await refreshSource(resolved, true).catch((error) =>

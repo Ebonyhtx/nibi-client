@@ -6,6 +6,7 @@ import { runtimeInputMetadata } from "../../agent/runtime-input-presentation.js"
 import type { AgentRuntimeInternal } from "../internal.js";
 import type { SealBackgroundTaskNotificationsInput } from "../types.js";
 import { shouldSuppressSealedSubagentBashNotification } from "../../runtime-task/notification-policy.js";
+import { isBackgroundSubagentStallReminderCurrent } from "../../subagent/background-stall.js";
 
 export function enqueueBackgroundTaskNotification(
   this: AgentRuntimeInternal,
@@ -118,8 +119,11 @@ const MAX_BACKGROUND_RESULT_TITLES = 3;
 function resolveBackgroundTaskNotificationSource(
   commands: readonly [TaskNotificationRuntimeCommand, ...TaskNotificationRuntimeCommand[]],
 ): BackgroundResultOriginMeta["backgroundSource"] | undefined {
-  const source = commands[0].originMeta?.backgroundSource;
-  if (!source || commands.some((command) => command.originMeta?.backgroundSource !== source)) {
+  // 无进展提醒不是后台结果：不让它把这一轮记成「由 subagent completion 唤起」
+  // （message_source=background_subagent）。整批只有提醒时不带来源（!3563 评审 SG-01）。
+  const results = commands.filter((command) => command.originMeta?.subagentStall === undefined);
+  const source = results[0]?.originMeta?.backgroundSource;
+  if (!source || results.some((command) => command.originMeta?.backgroundSource !== source)) {
     // 展示 metadata 只保留代表任务，不能把首项来源当作整批因果来源；
     // 混合或缺失来源留空，避免 notification 到达顺序改变 message_source。
     return undefined;
@@ -217,11 +221,65 @@ export async function persistBackgroundTaskNotificationBatch(
   };
 }
 
+/**
+ * 出队丢弃的通知要在账本里结算为 discarded：内存命令已移除，留下的 admitted 会被会话常驻池
+ * 当作未处理输入，挡住空闲时的插件自动重载，直到下次 resume 才收口。结算算作常驻阻塞工作，
+ * 完成前不会误判空闲。
+ */
+function settleDroppedBackgroundNotification(
+  runtime: AgentRuntimeInternal,
+  command: TaskNotificationRuntimeCommand,
+  reason: string,
+): void {
+  const settle = runtime.sessionStore?.settleSessionInput;
+  if (!settle) return;
+  const commandId = String(command.id);
+  const work = (async () => {
+    // 出队可能就发生在入队的同一同步片里（空闲时入队即开轮），那时 enqueue 还没调用
+    // saveSessionInput：让出一个微任务，等入队同步片走完、入账登记好再结算。
+    await Promise.resolve();
+    await settle.call(runtime.sessionStore, {
+      id: commandId,
+      sessionID: runtime.sessionId,
+      status: "discarded",
+      reason,
+    });
+  })();
+  const tracked = runtime.trackResidencyBlockingWork?.(work) ?? work;
+  void tracked.catch((error: unknown) => {
+    runtime.logger?.warn("Failed to settle dropped background notification", {
+      ...traceContextToLogContext(command.traceContext),
+      commandId,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      event: "session_input.settle_failed",
+      module: "core.runtime",
+      reason,
+      status: "failed",
+    });
+  });
+}
+
 export function shouldSuppressTaskNotificationRuntimeCommand(
   this: AgentRuntimeInternal,
   command: TaskNotificationRuntimeCommand,
 ): boolean {
   const registryTask = command.taskId ? this.runtimeTaskRegistry.get(command.taskId) : undefined;
+  // 排队期间 Agent 可能已结束、有了新进展、进入审批，或被 SendMessage 恢复成新执行：
+  // 「无进展」不再属实，送达会误导主代理（甚至 TaskStop 一个在等人的 Agent）。
+  const stall = command.originMeta?.subagentStall;
+  if (stall && !isBackgroundSubagentStallReminderCurrent(registryTask, stall)) {
+    this.logger?.info?.("Dropped stale background subagent stall reminder", {
+      ...traceContextToLogContext(command.traceContext),
+      commandId: command.id,
+      event: "subagent.background.stall_reminder_dropped",
+      module: "core.runtime",
+      reason: "stale_at_dequeue",
+      taskId: command.taskId,
+      taskStatus: registryTask?.status,
+    });
+    settleDroppedBackgroundNotification(this, command, "subagent_stall_reminder_stale");
+    return true;
+  }
   if (
     !shouldSuppressSealedSubagentBashNotification({
       isSubagentChildRuntime: this.config.taskType === "subagent_child",

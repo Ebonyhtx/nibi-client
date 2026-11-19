@@ -2434,7 +2434,9 @@ from the counts it has always had.
 
 `subagent_model` names a model this host has configured. `ListModels` is how the model reads
 that list instead of guessing at it: no input, no approval, allowed in plan and build modes,
-still available to workflow children, like the other read-only listings.
+still available to workflow children, like the other read-only listings. It serves the same
+role for `CreateSession.model`, which is why it is registered even when the workflow gate is
+off and session control is present.
 
 ```ts
 interface ListModelsOutput {
@@ -2564,10 +2566,11 @@ too: the `Agent` tool description drops its "CreateWorkflow is mandatory for wor
 requests" line, so the model is not told to reach for a tool it cannot see.
 
 The ten tools: `CreateWorkflow`, `AmendWorkflow`, `SaveWorkflow`, `ListSavedWorkflows`,
-`ListModels`, `EvalWorkflowSnippet`, `ListWorkflowRuns`, `GetWorkflowRun`, `ResumeWorkflowRun`,
-`ResolveWorkflowQuestion`. `ListModels` is in the set because its only purpose is naming a run's
-`subagent_model` (see "The model catalog"); with nothing to create, it would only point the model
-at a tool it cannot see. The legacy `Workflow` tool and `/expert` are a different feature
+`EvalWorkflowSnippet`, `ListWorkflowRuns`, `GetWorkflowRun`, `ResumeWorkflowRun`,
+`ResolveWorkflowQuestion`, `FillWorkflowHole`. `ListModels` is not in the set: it also serves
+`CreateSession.model`, so it is registered whenever either the workflow gate is on or session
+control is present, and a call to it alone never activates a session. The legacy `Workflow`
+tool and `/expert` are a different feature
 and are untouched. Workflow actor sessions (`workflow_child`) inherit the parent's flag, which
 is necessarily on, since a child only exists under a run.
 

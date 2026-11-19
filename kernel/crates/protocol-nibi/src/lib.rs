@@ -10,6 +10,7 @@ mod conversation_intent;
 mod conversation_telemetry;
 pub mod context;
 mod app_control;
+mod deletion;
 mod generate_text;
 mod model_connectivity;
 pub mod headers;

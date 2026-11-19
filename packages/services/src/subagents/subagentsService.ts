@@ -555,7 +555,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function normalizeBuiltInSelectionOverrides(
+/** 读取内置智能体模型覆盖的唯一归一化入口；设置页、运行时与数据同步共用。 */
+export function normalizeBuiltInSelectionOverrides(
   structured: unknown,
 ): BuiltInSubagentModelSelectionOverrides {
   const result: BuiltInSubagentModelSelectionOverrides = {};

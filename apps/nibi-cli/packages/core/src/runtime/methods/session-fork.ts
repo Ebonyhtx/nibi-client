@@ -57,6 +57,10 @@ import type {
 } from "../types.js";
 import { cloneModelSelection } from "../model-selection.js";
 import type { ModelSelection } from "@nibi/contracts";
+import {
+  buildForkedPromptSnapshotEntry,
+  copyPromptSnapshotToFork,
+} from "../helpers/prompt-snapshot.js";
 
 function stableForkError(message: string, context: Record<string, unknown> = {}): Error {
   return createCoreError(CoreErrorType.InvalidStateTransition, message, {
@@ -699,6 +703,7 @@ async function commitAtomicConversationFork(
   });
   const clonedEntries = entries.map((entry) => cloneVerifierEntryForAtomicFork(entry, identities));
   const modelSelectionEntry = buildModelSelectionEntry(childSessionId, modelSelection);
+  const forkedPromptSnapshotEntry = buildForkedPromptSnapshotEntry(runtime, childSessionId);
   if (kind === "selection_side_chat") {
     copiedMessages.push(buildSelectionSideChatBoundary(runtime, childSessionId, modelSelection));
   } else {
@@ -757,6 +762,11 @@ async function commitAtomicConversationFork(
       ...clonedEntries.map((item) => item.entry),
       modelSelectionEntry,
       buildExecutionStateEntry(childSessionId, executionState),
+      // child 沿用父会话当前的 system 快照。fork 点在父会话最近一次压缩之后时，child 的前缀与父会话
+      // 一致，首个请求能复用父会话的前缀缓存；fork 点早于那次压缩时，快照属于压缩之后的窗口，
+      // child 的历史属于压缩之前，只有两个窗口的 system 相同才能复用。
+      // system 不含按会话变化的值；child 的 Gen UI 目录在 fork 时写入环境更新。
+      ...(forkedPromptSnapshotEntry ? [forkedPromptSnapshotEntry] : []),
     ],
     ...(goal ? { goal } : {}),
     ...(options.initialInput ? { initialInput: options.initialInput } : {}),
@@ -859,6 +869,7 @@ export async function createForkedSession(
     parentSession: SessionInfo;
     forkedSessionId?: SessionId;
     stableForkMetadata?: StableConversationForkChildMetadata;
+    traceContext?: TraceContext;
   },
 ): Promise<SessionId> {
   if (!runtime.sessionStore) {
@@ -892,6 +903,14 @@ export async function createForkedSession(
 
   await runtime.sessionStore.saveSessionEntry?.(
     buildExecutionStateEntry(forkedSessionId, readRuntimeExecutionState(runtime)),
+  );
+  // 修复原因：legacy fork（session/fork、/fork、/rewind fork）原来只建 child、不复制 prompt 快照，
+  // child 第一个请求按当前代码重新渲染并记录 system；父会话的快照来自旧版本时，child 用不上父会话的
+  // 前缀缓存。与原子 fork 一样复制父会话当前的快照（三条 legacy 路径都经过这里建 child）。
+  await copyPromptSnapshotToFork(
+    runtime,
+    forkedSessionId,
+    options.traceContext ?? runtime.rootTraceContext,
   );
   return forkedSessionId;
 }
@@ -959,6 +978,7 @@ export async function forkConversationFromMessage(
   const forkedSessionId = await createForkedSession(this, {
     forkedSessionId: options.forkedSessionId,
     parentSession,
+    traceContext: options.traceContext,
   });
   const { copiedMessageCount, messageIdMap } = await this.copySessionMessagesForFork({
     forkedSessionId,

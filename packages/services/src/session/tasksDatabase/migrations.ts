@@ -16,6 +16,10 @@ import {
   adoptSourceServerWorkspaceSchema,
   SOURCE_SERVER_SCHEMA_CHECKSUM_INPUT,
 } from "#src/session/tasksDatabase/source-server-schema-v5.js";
+import {
+  TASK_PERMANENT_DELETION_CHECKSUM_INPUT,
+  TASK_PERMANENT_DELETION_SQL,
+} from "#src/session/tasksDatabase/permanent-deletion-v8.js";
 
 // 冻结历史列声明，不能以实时 Repo/schema 代替，否则新版构建会改变已应用 checksum。
 const columns = [
@@ -152,6 +156,12 @@ const definitions = [
         }
       }
     },
+  },
+  {
+    id: "0008_task_permanent_deletion",
+    touchedTables: ["task_purge"],
+    checksumInput: TASK_PERMANENT_DELETION_CHECKSUM_INPUT,
+    apply: (db: DatabaseSync) => db.exec(TASK_PERMANENT_DELETION_SQL),
   },
 ] as const;
 

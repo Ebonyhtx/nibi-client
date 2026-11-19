@@ -299,6 +299,9 @@ pub(crate) struct Actor {
     pub(crate) monitors: crate::monitors::Monitors,
     /// 最近一个完成的主回合请求的输出速度（footer 的 TPS，修复线 F105）：只在内存，冷打开时为空。
     pub(crate) output_speed: Option<nibi_kernel_api::metering::OutputSpeed>,
+    /// 主会话的 prompt 快照（K6）：`None` 还没有快照，`Some(Cleared)` 是 compaction 写的墓碑。冷恢复在
+    /// [`Self::run`] 开头从库里读；主循环请求组装后记录，fork 时复制给 child。
+    pub(crate) prompt_snapshot: Option<nibi_kernel_api::prompt_snapshot::PromptSnapshotState>,
     /// 自己的请求通道（弱引用）：交给回合的输出端，给出会话级的询问入口；不让 actor 因此不退出。
     asks: mpsc::WeakSender<Request>,
 }
@@ -402,6 +405,7 @@ impl Actor {
             peers: crate::peers::PeerState::default(),
             monitors: crate::monitors::Monitors::default(),
             output_speed: None,
+            prompt_snapshot: None,
             asks,
         };
         actor.start_session(start);
@@ -423,7 +427,84 @@ impl Actor {
         self.running.is_some() || self.job.is_some()
     }
 
+    /// K6：冷恢复读快照（最后一行；墓碑与读取失败都按没有快照处理，不阻断恢复）。
+    pub(crate) async fn load_prompt_snapshot(&mut self) {
+        match nibi_kernel_api::prompt_snapshot::load_prompt_snapshot(
+            self.deps.store.as_ref(),
+            &self.meta.id,
+        )
+        .await
+        {
+            Ok(state) => self.prompt_snapshot = state,
+            Err(error) => {
+                tracing::warn!(%error, session = %self.meta.id, "prompt snapshot read failed");
+            }
+        }
+    }
+
+    /// K6：当前可套用的 system 快照；墓碑与没有快照都是 None。
+    pub(crate) fn prompt_snapshot_present(
+        &self,
+    ) -> Option<nibi_kernel_api::prompt_snapshot::PromptSnapshot> {
+        self.prompt_snapshot
+            .as_ref()
+            .and_then(nibi_kernel_api::prompt_snapshot::PromptSnapshotState::present)
+            .cloned()
+    }
+
+    /// K6：主循环请求组装之后记录 system 快照。请求模型不是会话模型选择、或已有可套用的快照时不写；
+    /// 写入失败只记 warning，不阻断回合（对齐上游 `recordPromptSnapshot`）。
+    pub(crate) async fn record_prompt_snapshot(
+        &mut self,
+        selection: &ModelSelection,
+        system: &[nibi_kernel_api::model::SystemBlock],
+    ) {
+        use nibi_kernel_api::prompt_snapshot::{PromptSnapshot, PromptSnapshotState};
+        if selection.provider != self.selection.provider || selection.model != self.selection.model {
+            return;
+        }
+        if self
+            .prompt_snapshot
+            .as_ref()
+            .and_then(PromptSnapshotState::present)
+            .is_some_and(|snapshot| snapshot.matches(selection))
+        {
+            return;
+        }
+        let snapshot = PromptSnapshot::of(selection, system);
+        match nibi_kernel_api::prompt_snapshot::save_prompt_snapshot(
+            self.deps.store.as_ref(),
+            &self.meta.id,
+            &PromptSnapshotState::Present(snapshot.clone()),
+        )
+        .await
+        {
+            Ok(()) => self.prompt_snapshot = Some(PromptSnapshotState::Present(snapshot)),
+            Err(error) => {
+                tracing::warn!(%error, session = %self.meta.id, "prompt snapshot write failed");
+            }
+        }
+    }
+
+    /// K6：压缩成功后写墓碑并清掉内存快照（下一次主循环请求重新记录）。
+    pub(crate) async fn clear_prompt_snapshot(&mut self) {
+        use nibi_kernel_api::prompt_snapshot::PromptSnapshotState;
+        match nibi_kernel_api::prompt_snapshot::clear_prompt_snapshot(
+            self.deps.store.as_ref(),
+            &self.meta.id,
+        )
+        .await
+        {
+            Ok(()) => self.prompt_snapshot = Some(PromptSnapshotState::Cleared),
+            Err(error) => {
+                tracing::warn!(%error, session = %self.meta.id, "prompt snapshot clear failed");
+            }
+        }
+    }
+
     pub(crate) async fn run(mut self, mut requests: mpsc::Receiver<Request>) {
+        // K6：冷恢复先读 prompt 快照，第一条上下文组装之前就位；读取失败按没有快照处理，不阻断恢复。
+        self.load_prompt_snapshot().await;
         // 跨会话：绑定为主会话并从库里恢复（cross-session.md §2.2）；在处理第一条命令之前。
         self.peers_open().await;
         // 提醒钟的忙闲沿（上一次的 busy 值；None = 循环还没算过）：变化时才调（transcript-and-

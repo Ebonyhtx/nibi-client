@@ -164,7 +164,13 @@ impl Engine<'_> {
             max_turns: Some(1),
             prompt_hook_messages: Vec::new(),
         };
-        request::run(self.ports.runner.as_ref(), query, cancel).await
+        request::run(
+            self.ports.runner.as_ref(),
+            query,
+            request.prompt_snapshot.clone(),
+            cancel,
+        )
+        .await
     }
 
     /// 保留尾段的阶梯（spec §3.1）：返回摘要原文与这次的切分。

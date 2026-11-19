@@ -41,7 +41,8 @@ const WAIT_OPERATIONS_MAX: usize = 100;
 
 const LIST_SESSIONS: &str = "ListSessions";
 const READ_SESSION: &str = "ReadSession";
-const CREATE_SESSION: &str = "CreateSession";
+/// 也给 `policy_filter` 判 `ListModels` 的第二个消费者（`CreateSession.model`）是否在场。
+pub(crate) const CREATE_SESSION: &str = "CreateSession";
 const FORK_SESSION: &str = "ForkSession";
 const SEND_TO_SESSION: &str = "SendToSession";
 const WAIT_SESSIONS: &str = "WaitSessions";

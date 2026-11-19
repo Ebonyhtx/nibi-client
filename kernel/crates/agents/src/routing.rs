@@ -18,6 +18,7 @@ use crate::live::{AgentState, Agents, LiveAgent, Mail, Notice};
 use crate::report::{self, Ending, Report};
 use crate::signals::Hub;
 use crate::spawn::{self, Finished};
+use crate::stall::StallReminder;
 
 /// 续跑时的第一条消息。
 enum Resume {
@@ -98,7 +99,35 @@ fn notice_of(agent: &LiveAgent, ending: Ending, report: &Report, error: Option<&
             report,
             error,
         ),
+        stall: None,
     }
+}
+
+/// 后台无进展提醒（stall.rs）：与终态通知同一条路由，但信封是 `<background-agent-stall>`、状态不是终态。
+/// 送出前在 `Live` 的同一把锁里核对提醒是否仍然成立（子代理已结束、换了执行、有了新进展或进入审批时
+/// 丢弃），所以排队期间失去时效的提醒不会送达。
+pub(crate) fn deliver_stall(core: &Core, reminder: &StallReminder) -> Option<Wake> {
+    core.live.with(|agents| {
+        let (owner, root, current) = match agents.get(&reminder.agent) {
+            Some(entry) => (
+                entry.owner.clone(),
+                entry.root.clone(),
+                reminder.matches(entry),
+            ),
+            None => return None,
+        };
+        if !current {
+            return None;
+        }
+        let notice = Notice {
+            from: reminder.agent.clone(),
+            // 非终态：主代理看到的是状态报告，不是子代理结束（`BackgroundWork` 也不改完成状态）。
+            status: "running",
+            envelope: crate::stall::format(reminder),
+            stall: Some(reminder.stamp()),
+        };
+        deliver(agents, &core.hub, owner.as_ref(), &root, notice)
+    })
 }
 
 /// 一次运行结束（§5.1 第 3、4 条）：停放、带着遗留通知续跑，或结束并送出自己的通知。

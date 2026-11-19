@@ -24,6 +24,7 @@ export * from "./interfaces/coordinator-response.port.js";
 export * from "./interfaces/workflow.port.js";
 export * from "./interfaces/workflow-submit.port.js";
 export * from "./interfaces/workflow-escalate.port.js";
+export * from "./interfaces/workflow-web-search-budget.port.js";
 export * from "./interfaces/dynamic-workflow-run.port.js";
 export * from "./interfaces/dynamic-workflow-snippet.port.js";
 export * from "./interfaces/model-catalog.port.js";

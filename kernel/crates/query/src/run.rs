@@ -348,12 +348,21 @@ pub(crate) async fn run(
         let tool_names = step.names();
         let request = context_request(&scope, &step, (&selection, capabilities), &source).await;
         let mode = request.mode;
-        let context = scope
+        let mut context = scope
             .parts
             .context
             .build(request, &history)
             .await
             .map_err(orchestration)?;
+        // K6：主会话的 prompt 快照适用于这次请求的模型时，system 用快照记录的字节。总是先按当前代码组装，
+        // 再替换 system（上下文宣布等消费者仍用当前结果）；快照不适用时就是当前代码的渲染。
+        let snapshot = scope.sink.prompt_snapshot().await;
+        if let Some(snapshot) = snapshot
+            .as_ref()
+            .filter(|snapshot| snapshot.matches(&selection))
+        {
+            context.system = snapshot.system_blocks();
+        }
         for attachment in context.attachments {
             let message = Message::Attachment(attachment);
             scope.sink.commit_message(message.clone()).await?;
@@ -447,6 +456,14 @@ pub(crate) async fn run(
                 ..shape.options
             },
         };
+        // K6：主会话请求组装之后、模型调用之前记录 system 快照（请求模型是会话模型选择时才写；写入失败不阻断
+        // 回合）。压缩、旁路与子代理的请求不记录。
+        if source == QuerySource::MainThread {
+            scope
+                .sink
+                .record_prompt_snapshot(&model_request.selection, &model_request.system)
+                .await;
+        }
         let responded = match respond(&scope, &mut history, model_request, responses).await {
             // 上下文超限的反应式压缩排在其他恢复分支之前（query.md §1）；压缩成功就重发，不计轮数。
             Err(QueryError::Model(ModelError::PromptTooLong { message })) => {

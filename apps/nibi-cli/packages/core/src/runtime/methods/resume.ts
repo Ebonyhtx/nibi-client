@@ -41,6 +41,7 @@ import {
   restoreWorkspaceFileRewindEntries,
 } from "./workspace-checkpoint-persistence.js";
 import { mainTurnCacheHitAggregateFromMessages } from "./turn-model-step-usage.js";
+import { loadPromptSnapshot } from "../helpers/prompt-snapshot.js";
 
 export function toScheduleState(
   this: AgentRuntimeInternal,
@@ -148,6 +149,8 @@ export async function resumeFromStore(
     workspaceRoot: this.workspaceRoot,
   });
   await this.ensureContextInitialized(traceContext);
+  // 第一个轮次重建前缀前装好 prompt 快照，恢复后的请求发送会话记录的 system。
+  await loadPromptSnapshot(this, traceContext);
   const recoveredCompactTimelineCount = await this.recoverInterruptedCompactTimelines(
     messages,
     traceContext,

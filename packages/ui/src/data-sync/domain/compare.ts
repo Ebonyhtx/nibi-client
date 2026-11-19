@@ -251,6 +251,26 @@ function remoteOnlyRow(target: DataSyncListItem, category: DataSyncCategoryId): 
 }
 
 /**
+ * 内置智能体模型覆盖的说明信息：来源项带 summary 时附在行上；
+ * 「差异」行再带上远端当前的模型（docs/remote/data-sync.md「子智能体」）。
+ */
+function withBuiltInOverride(
+  row: DataSyncRow,
+  source: DataSyncListItem,
+  target: DataSyncListItem | undefined,
+): DataSyncRow {
+  if (!source.builtInModelOverride) return row;
+  const targetOverride = row.status === "difference" ? target?.builtInModelOverride : undefined;
+  return {
+    ...row,
+    builtInModelOverride: {
+      source: source.builtInModelOverride,
+      ...(targetOverride ? { target: targetOverride } : {}),
+    },
+  };
+}
+
+/**
  * 生成本机条目的行，并附带远端独有行（不可勾选、永不删除）。
  * `category` 决定行归属与技能专属的父子信息；不传时保持旧技能调用方的默认值。
  * 排序：推送 → 更新 → 差异 → 已同步 → 远端独有 → 不能同步；同状态按名称。
@@ -269,13 +289,17 @@ export function compareSkillRows(params: {
   const sourceKeys = new Set(params.sourceItems.map((item) => item.key));
   return [
     ...params.sourceItems.map((source) =>
-      compareRow(
+      withBuiltInOverride(
+        compareRow(
+          source,
+          targetByKey.get(source.key),
+          params.sourceHashes,
+          params.targetHashes,
+          params.targetBlockedReason,
+          category,
+        ),
         source,
         targetByKey.get(source.key),
-        params.sourceHashes,
-        params.targetHashes,
-        params.targetBlockedReason,
-        category,
       ),
     ),
     ...params.targetItems

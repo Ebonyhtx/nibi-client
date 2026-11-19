@@ -61,10 +61,50 @@ async fn a_fork_of_an_untitled_session_is_named_like_node() {
     assert_eq!(loaded.meta.title, "Fork of Untitled session");
 }
 
+/// K6：主回合记录 system 快照（模型身份 + system 段），fork 的子会话沿用同一份字节。
+#[tokio::test]
+async fn a_main_turn_records_the_prompt_snapshot_and_a_fork_copies_it() {
+    use nibi_kernel_api::prompt_snapshot::{
+        PROMPT_SNAPSHOT_KIND, load_prompt_snapshot, parse_prompt_snapshot,
+    };
+    let model = Arc::new(ScriptedModel::new(vec![text_response(&["hi"])]));
+    let built = Setup::new(model).build().await;
+    let mut events = built.session.subscribe(Some(0));
+    built.session.send(submit("c1", "hello")).await;
+    until(&mut events, finished).await;
+    let session = crate::test_support::meta().id;
+    let records = built
+        .store
+        .records(&session, PROMPT_SNAPSHOT_KIND)
+        .await
+        .unwrap();
+    assert_eq!(records.len(), 1, "one snapshot row per session");
+    let state = parse_prompt_snapshot(&records[0].data).expect("a recorded snapshot");
+    let snapshot = state.present().expect("not a tombstone");
+    assert!(!snapshot.system.is_empty(), "system blocks are recorded");
+    assert!(!snapshot.model.model_id.is_empty());
+
+    let ack = built
+        .session
+        .send(envelope("f1", Command::Fork { at: None }))
+        .await;
+    let Ack::Accepted { result } = ack else {
+        panic!("{ack:?}")
+    };
+    let child = SessionId::new(result.as_str().unwrap());
+    let copied = load_prompt_snapshot(built.store.as_ref(), &child)
+        .await
+        .unwrap();
+    assert_eq!(
+        copied,
+        Some(state),
+        "the fork keeps the parent system bytes"
+    );
+}
+
 /// 续写时补的 assistant（session-lifecycle.md §6.3.1）：复制到新会话时不带它（新会话打开时再补）。
 #[test]
-fn the_resume_reply_is_not_copied() {
-    use nibi_kernel_api::ids::MessageId;
+fn the_resume_reply_is_not_copied() {    use nibi_kernel_api::ids::MessageId;
     use nibi_kernel_api::message::{ContentBlock, UserMessage};
     use nibi_kernel_api::testing::SequentialIds;
     let input = |id: &str| {

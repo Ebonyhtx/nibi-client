@@ -243,7 +243,7 @@ impl LocalKernel {
         // 已有会话的工具面不回收，只有新建与恢复读策略）。Host 显式给的值由协议层在打开后覆盖。
         let gate = self.dynamic_workflow_gate(&state.meta.workspace);
         self.gate.set_dynamic_workflow(&id, gate);
-        // `onDemand` 的冷恢复：记录里已有工作流用法（`/workflow` 或十一个工具任一次调用）
+        // `onDemand` 的冷恢复：记录里已有工作流用法（`/workflow` 或十个工具任一次调用）
         // 即视为已激活——Node `restoreDynamicWorkflowActivationOnResume` 的同一条判据。
         if nibi_kernel_api::workflow::history_shows_dynamic_workflow(&state.messages) {
             self.gate.activate_dynamic_workflow(&id);

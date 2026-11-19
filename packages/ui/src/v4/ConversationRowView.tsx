@@ -23,6 +23,7 @@ import {
   FileIcon,
   GitBranchIcon,
   GoalIcon,
+  InfoIcon,
   PencilIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
@@ -57,6 +58,7 @@ import type {
   TimelineMarkerRow,
   ToolCallRow,
   TurnHeaderRow,
+  UnreadableConversationRow,
   UserInputRow,
   V4ConversationFileRewindPreviewResult,
 } from "@nibi/shared/nibi-protocol-v4";
@@ -165,6 +167,36 @@ function RowShell({
     </div>
   );
 }
+
+/**
+ * 「这一行读不懂」的占位行（逐行降级）：本端 schema 认不出发送端那一行。
+ *
+ * 为什么必须画出来而不是返回 null：静默跳过会让用户以为消息丢了，那比显示一条说明更失真。
+ * rowId 与 turnId 都保留，所以它就停在原来那条消息的位置上，前后文不会错位。
+ *
+ * 用中性信息语义而不是 warning 色：会话本身没出错，只是这个 build 认不出其中一行——与
+ * 分享只读时间线的「部分内容需要更新 NIBI 查看」是同一视觉语言。
+ */
+const UnreadableRowView = memo(function UnreadableRowView({
+  row,
+}: {
+  row: UnreadableConversationRow;
+}) {
+  const { intl } = useNibiIntl();
+  return (
+    <RowShell rowId={row.rowId} className="px-4 py-1">
+      <div
+        data-conversation-unreadable-row={row.sourceKind}
+        className="flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2 text-ui-sm text-foreground-subtle"
+      >
+        <InfoIcon aria-hidden="true" className="size-3.5 shrink-0" />
+        <span className="min-w-0 break-words">
+          {intl.formatMessage({ id: "conversation.row.unreadable" })}
+        </span>
+      </div>
+    </RowShell>
+  );
+});
 
 const ArtifactRowView = memo(function ArtifactRowView({ row }: { row: ArtifactRow }) {
   return (
@@ -2480,6 +2512,8 @@ function ConversationRowViewImpl({
       return <SubagentRowView row={row} />;
     case "artifact":
       return <ArtifactRowView row={row} />;
+    case "unreadable":
+      return <UnreadableRowView row={row} />;
     default:
       return null;
   }

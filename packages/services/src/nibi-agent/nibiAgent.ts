@@ -3,6 +3,8 @@ import type {
   V4SessionDataMeasureResult,
   V4SessionDataParams,
   V4SessionDataPurgeResult,
+  V4SessionDeletionExecuteResult,
+  V4SessionDeletionPreviewResult,
 } from "@nibi/shared/nibi-protocol-v4";
 import type {
   BackgroundBashOutputResult,
@@ -270,6 +272,18 @@ export interface NibiAgentSessionDataParams extends V4SessionDataParams {}
 /** purge 的 workspace 决定由哪个 Agent 进程执行：该 cwd 已有进程时交给它，否则交给管理面进程。 */
 export interface NibiAgentSessionDataPurgeParams extends V4SessionDataParams {
   workspace: NibiAgentWorkspaceTarget;
+}
+
+/** 归档会话永久删除的预检目标；workspace 决定在哪个本机 Agent 进程执行。 */
+export interface NibiAgentSessionDeletionParams {
+  sessionId: string;
+  workspace: NibiAgentWorkspaceTarget;
+}
+
+/** execute 额外携带预检 revision 与幂等 operationId。 */
+export interface NibiAgentSessionDeletionExecuteParams extends NibiAgentSessionDeletionParams {
+  revision: string;
+  operationId: string;
 }
 
 export interface NibiAgentTaskTokenUsageParams extends NibiAgentSessionTarget {}
@@ -684,6 +698,20 @@ export interface INibiAgentService {
    * undefined 表示当前没有可询问的本地运行时（不为此启动空闲 Agent）。
    */
   supportsSessionData(): Promise<boolean | undefined>;
+  /**
+   * 归档会话永久删除的只读预检（v4/storage/sessionData/deletionPreview）。
+   * 旧内核返回 -32601 时抛 `NibiAgentSessionDataUnsupportedError`。
+   */
+  previewSessionDeletion(
+    params: NibiAgentSessionDeletionParams,
+  ): Promise<V4SessionDeletionPreviewResult>;
+  /**
+   * 执行永久删除（v4/storage/sessionData/deletionExecute）。deleted/blocked/incomplete
+   * 都是成功响应的三种终态，由调用方决定收敛或续删。
+   */
+  executeSessionDeletion(
+    params: NibiAgentSessionDeletionExecuteParams,
+  ): Promise<V4SessionDeletionExecuteResult>;
   readSession(params: NibiAgentReadSessionParams): Promise<NibiSessionStateSnapshot>;
   readSessionMessages(
     params: NibiAgentReadSessionMessagesParams,

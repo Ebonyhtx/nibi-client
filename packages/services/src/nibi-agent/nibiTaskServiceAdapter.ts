@@ -127,6 +127,8 @@ import type {
   NibiTaskListResult,
   NibiWorkspaceEventSubscriptionParams,
   INibiTaskService,
+  NibiArchivedTaskDeletionOutcome,
+  NibiArchivedTaskDeletionPreview,
   NibiArchivedTaskDeletionResult,
   NibiTaskReadyOutcome,
   NibiTaskTerminalOutcome,
@@ -3074,6 +3076,105 @@ export function createNibiTaskServiceAdapter(
         durationMs: Date.now() - startedAt,
       });
       return result;
+    },
+
+    async previewArchivedTaskDeletion(params): Promise<NibiArchivedTaskDeletionPreview> {
+      // 只信本 Host 的索引：远程 workspace 的删除请求会由 Controller 路由到拥有它的 Host，
+      // 因此这里存在归档行就说明本机（或本 Host）是唯一 owner。
+      const state = await taskIndexRepo.getTaskMembershipState(params);
+      if (!state || state.deleted || !state.archived) throw new Error("task.not-archived");
+      const preview = await options.nibiAgentService.previewSessionDeletion({
+        sessionId: params.taskId,
+        workspace: {
+          workspacePath: params.workspacePath,
+          ...(params.workspaceIdentity
+            ? { workspaceIdentity: params.workspaceIdentity }
+            : {}),
+        },
+      });
+      return {
+        taskId: params.taskId,
+        revision: preview.revision,
+        sessionIds: preview.sessionIds,
+        forks: preview.forks,
+        retainedArtifacts: preview.retainedArtifacts,
+        deletedFiles: preview.deletedFiles,
+        ...(preview.blockedReason ? { blockedReason: preview.blockedReason } : {}),
+        incomplete: preview.incomplete,
+        completed: preview.completed,
+      };
+    },
+
+    async permanentlyDeleteArchivedTask(params): Promise<NibiArchivedTaskDeletionOutcome> {
+      const state = await taskIndexRepo.getTaskMembershipState(params);
+      // 确认框停留期间被恢复/删除：不进入预留，直接按归档前置条件拒绝。
+      if (!state || state.deleted || !state.archived) throw new Error("task.not-archived");
+      // worktree 校验/停 runtime 必须先于凭据与 CLI 执行；dirty 直接失败。
+      const hasManagedWorktree = await prepareManagedWorktreeDeletion(params);
+      const reserved = await taskIndexRepo.reservePermanentDeletion({
+        workspacePath: params.workspacePath,
+        workspaceIdentity: params.workspaceIdentity,
+        taskId: params.taskId,
+        revision: params.revision,
+        operationId: params.operationId,
+      });
+      if (!reserved) throw new Error("task.not-archived");
+      try {
+        const result = await options.nibiAgentService.executeSessionDeletion({
+          sessionId: params.taskId,
+          workspace: {
+            workspacePath: params.workspacePath,
+            ...(params.workspaceIdentity
+              ? { workspaceIdentity: params.workspaceIdentity }
+              : {}),
+          },
+          revision: params.revision,
+          operationId: params.operationId,
+        });
+        if (result.status === "deleted") {
+          await taskIndexRepo.completePermanentDeletion({
+            workspacePath: params.workspacePath,
+            workspaceIdentity: params.workspaceIdentity,
+            taskId: params.taskId,
+            operationId: params.operationId,
+          });
+          if (hasManagedWorktree) await removeManagedWorktreeAfterTaskDeletion(params);
+          emitWorkspaceTaskListChanged(params, undefined, "task_deleted");
+        } else if (result.status === "blocked") {
+          // 没删任何东西：释放预留，让下一次预检可以带新 revision 重试。
+          await taskIndexRepo.releasePermanentDeletion({
+            workspacePath: params.workspacePath,
+            workspaceIdentity: params.workspaceIdentity,
+            taskId: params.taskId,
+            operationId: params.operationId,
+          });
+        }
+        // incomplete：保留 reserved 凭据；再次 preview 会返回 incomplete，execute 续删。
+        return {
+          taskId: params.taskId,
+          status: result.status,
+          sessionIds: result.sessionIds,
+          retainedArtifacts: result.retainedArtifacts,
+          ...(result.reason ? { reason: result.reason } : {}),
+        };
+      } catch (error) {
+        // 协议/网络异常也释放 Host 预留；CLI 侧的删除凭据（deleting）仍在，下一次
+        // preview 会返回 incomplete，续删不依赖这条本地 intent。
+        await taskIndexRepo
+          .releasePermanentDeletion({
+            workspacePath: params.workspacePath,
+            workspaceIdentity: params.workspaceIdentity,
+            taskId: params.taskId,
+            operationId: params.operationId,
+          })
+          .catch((releaseError) =>
+            logger.warn(undefined, "[PermanentTaskDeletion] 释放预留失败", {
+              taskId: params.taskId,
+              error: releaseError,
+            }),
+          );
+        throw error;
+      }
     },
 
     async renameTask(params): Promise<NibiTaskMeta> {

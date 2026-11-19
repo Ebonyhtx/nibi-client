@@ -146,19 +146,21 @@ export const builtInTools: ToolEntry[] = [
   fillWorkflowHoleToolEntry,
   // 定义清单（与上面两个 run 工具是两件事：那是历史，这是可跑的东西）。同为只读、无 gate。
   listSavedWorkflowsToolEntry,
-  // 模型目录：同为只读、无 gate 的发现面，服务于 CreateWorkflow / AmendWorkflow 的
-  // `subagent_model`。不进 WORKFLOW_CHILD_DISALLOWED_TOOLS
+  // 模型目录：同为只读的发现面，服务于 CreateSession 的 `model` 与 CreateWorkflow /
+  // AmendWorkflow 的 `subagent_model`。不进 WORKFLOW_CHILD_DISALLOWED_TOOLS
   // ——那条禁令的理由是 alwaysAsk 在 child 里无窗可弹，只读查询不适用。
   listModelsToolEntry,
   // workflowToolEntry,
 ];
 
 /**
- * 动态工作流灰度门关闭时不注册的十一个工具
+ * 动态工作流灰度门关闭时不注册的十个工具
  * （2026-09-28 起含 FillWorkflowHole：关闭态下没有 run 会到达留白）。
  * 灰度关的语义是「没有任何办法开始一条工作流」，所以创建、修订、保存、快照实验与四个
  * run 面工具一起下架；只读的 run 内省工具也在列，因为关闭态下它们只会指向用户无法再操作的历史。
- * `ListModels` 也在列：它唯一的用途是给一次 run 挑 `subagent_model`，没有 CreateWorkflow 可填时留着它只会把模型引向不存在的工具。
+ * `ListModels` **不在**这份名单里：这份名单同时是冷恢复激活判据（isDynamicWorkflowToolName），而只为
+ * 给 `CreateSession.model` 挑模型调过一次 ListModels，不说明会话用过工作流。它的注册另有条件，见
+ * registerBuiltInTools 里「有消费者才注册」那一段。
  * 旧的 `Workflow` 工具（`/expert` 脚本通道）是另一个功能，**不在**这份名单里。
  */
 const DYNAMIC_WORKFLOW_TOOL_NAMES: ReadonlySet<string> = new Set([
@@ -166,7 +168,6 @@ const DYNAMIC_WORKFLOW_TOOL_NAMES: ReadonlySet<string> = new Set([
   AMEND_WORKFLOW_TOOL_NAME,
   SAVE_WORKFLOW_TOOL_NAME,
   LIST_SAVED_WORKFLOWS_TOOL_NAME,
-  LIST_MODELS_TOOL_NAME,
   EVAL_WORKFLOW_SNIPPET_TOOL_NAME,
   LIST_WORKFLOW_RUNS_TOOL_NAME,
   GET_WORKFLOW_RUN_TOOL_NAME,
@@ -296,6 +297,19 @@ export function registerBuiltInTools(
     if (
       options.includeDynamicWorkflow === false &&
       DYNAMIC_WORKFLOW_TOOL_NAMES.has(entry.metadata.name)
+    ) {
+      continue;
+    }
+    // ListModels 有消费者才注册。它的两个消费者是 CreateWorkflow（灰度开启）与
+    // CreateSession（会话控制在场：CLI 或 App）；两者都不在时（例如灰度关闭的子代理）留着它，
+    // 只会叫模型去填不存在的工具。它不在 DYNAMIC_WORKFLOW_TOOL_NAMES 里，因为那份名单同时是
+    // 冷恢复激活判据，而只为挑模型调过一次 ListModels 不说明会话用过工作流——两个用途对它的
+    // 答案不同，所以分开判。
+    if (
+      entry.metadata.name === LIST_MODELS_TOOL_NAME &&
+      options.includeDynamicWorkflow === false &&
+      options.includeSessionControl !== true &&
+      options.includeAppSessionControl !== true
     ) {
       continue;
     }

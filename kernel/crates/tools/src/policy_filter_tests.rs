@@ -195,3 +195,64 @@ fn a_closed_dynamic_workflow_gate_hides_the_three_tools_for_that_session() {
     assert!(names(&tools.snapshot(&host).tools).contains(&"FillWorkflowHole"));
     assert!(tools.find_for(&host, "FillWorkflowHole").is_some());
 }
+
+/// `ListModels` 的注册规则（Node 规格 0.15）：有消费者才注册。消费者一是 `CreateWorkflow`
+/// （灰度门开），二是 `CreateSession`（会话控制工具在场）。矩阵覆盖两条门；两者都不在时才随
+/// 灰度门下架。
+#[test]
+fn list_models_stays_when_the_workflow_gate_or_session_control_is_present() {
+    use nibi_kernel_api::session_api::DynamicWorkflowGate;
+
+    fn registry_with_session_control(session_control: bool) -> (PolicyFiltered, Arc<PolicyGate>) {
+        let mut tools: Vec<Arc<dyn Tool>> = vec![
+            Arc::new(FakeTool::new("Bash", true, "ok")),
+            Arc::new(FakeTool::new("ListModels", true, "ok")),
+        ];
+        if session_control {
+            tools.push(Arc::new(FakeTool::new("CreateSession", true, "ok")));
+        }
+        let gate = Arc::new(PolicyGate::new(rules(&[])));
+        let inner: Arc<dyn ToolRegistry> = Arc::new(BuiltinTools::new(tools));
+        (PolicyFiltered::new(inner, gate.clone()), gate)
+    }
+
+    let session = SessionId::new("host");
+    for (gate_enabled, session_control, visible) in [
+        (true, false, true),
+        (true, true, true),
+        (false, false, false),
+        (false, true, true),
+    ] {
+        let (tools, gate) = registry_with_session_control(session_control);
+        gate.set_dynamic_workflow(&session, DynamicWorkflowGate::new(gate_enabled, false));
+        let snapshot = tools.snapshot(&session);
+        assert_eq!(
+            names(&snapshot.tools).contains(&"ListModels"),
+            visible,
+            "gate_enabled={gate_enabled}, session_control={session_control}"
+        );
+        assert_eq!(
+            tools.find_for(&session, "ListModels").is_some(),
+            visible,
+            "find_for: gate_enabled={gate_enabled}, session_control={session_control}"
+        );
+        assert_eq!(
+            tools.hides_for(&session, "ListModels"),
+            !visible,
+            "hides_for: gate_enabled={gate_enabled}, session_control={session_control}"
+        );
+    }
+
+    // onDemand 未激活时灰度门也算关着：会话控制在场仍然保留，不在场才下架。
+    let (with_control, gate) = registry_with_session_control(true);
+    gate.set_dynamic_workflow(&session, DynamicWorkflowGate::new(true, true));
+    assert!(names(&with_control.snapshot(&session).tools).contains(&"ListModels"));
+    let (without_control, gate) = registry_with_session_control(false);
+    gate.set_dynamic_workflow(&session, DynamicWorkflowGate::new(true, true));
+    assert!(!names(&without_control.snapshot(&session).tools).contains(&"ListModels"));
+
+    // 进程级清单与没登记门的会话（CLI/TUI）不受灰度门限制。
+    let (tools, _) = registry_with_session_control(false);
+    assert!(names(&tools.tools()).contains(&"ListModels"));
+    assert!(names(&tools.snapshot(&SessionId::new("cli")).tools).contains(&"ListModels"));
+}

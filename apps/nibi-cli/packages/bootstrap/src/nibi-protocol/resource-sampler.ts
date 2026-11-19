@@ -10,6 +10,7 @@ import {
   createNibiProcessResourceSampler,
   type NibiProcessResourceSampler,
 } from "../process-resource-sampler.js";
+import { startCliMemoryDiagnostics } from "./memory-diagnostics/index.js";
 import type { NibiProtocolAgentServer } from "./server.js";
 
 export function startProtocolResourceSampler(
@@ -59,7 +60,21 @@ export function startProtocolResourceSampler(
       },
     });
     sampler.start();
-    return sampler;
+    // 分配诊断默认关闭：只有显式 NIBI_MEMORY_DIAGNOSTICS=1（或运行时开关）才连接
+    // inspector 并写有界文件；初始化失败不能影响协议握手与既有资源采样。
+    let diagnostics: ReturnType<typeof startCliMemoryDiagnostics> | undefined;
+    try {
+      diagnostics = startCliMemoryDiagnostics(() => server.collectMemoryDiagnostics());
+    } catch {
+      diagnostics = undefined;
+    }
+    return {
+      start: () => sampler.start(),
+      stop: () => {
+        diagnostics?.stop();
+        sampler.stop();
+      },
+    };
   } catch {
     // 资源遥测是 best effort，初始化失败不能改变 Agent 启动结果。
     return undefined;

@@ -182,8 +182,22 @@ pub(crate) fn limits(env: &[(String, String)], max_output_tokens: Option<u32>) -
         },
         bash: bash(env),
         fork_subagent: fork_subagent(env),
+        subagent_stall_notify_ms: subagent_stall_notify_ms(env),
+        // 上限没有环境变量（Node 的对应值只来自 runtimeConfig）：程序化配置经 `Limits` 给出，缺省 4 小时。
+        subagent_stall_max_interval_ms: None,
     }
 }
+
+/// `NIBI_SUBAGENT_STALL_NOTIFY_MS`（Node `ZCODE_SUBAGENT_STALL_NOTIFY_MS`）：后台子代理无进展提醒的首个阈值。
+/// 不是正整数时用缺省（15 分钟）；低于 10 秒按 10 秒算——每次提醒都会在父会话空闲时开一轮模型调用，误设会
+/// 在短时间内烧掉大量 token。
+pub(crate) fn subagent_stall_notify_ms(env: &[(String, String)]) -> Option<u64> {
+    positive(raw(env, "NIBI_SUBAGENT_STALL_NOTIFY_MS").and_then(js_int))
+        .map(|value| value.max(SUBAGENT_STALL_NOTIFY_MIN_MS))
+}
+
+/// 无进展提醒首个阈值的下限（Node `SUBAGENT_STALL_NOTIFY_MIN_MS`）。
+pub(crate) const SUBAGENT_STALL_NOTIFY_MIN_MS: u64 = 10_000;
 
 /// `NIBI_FORK_SUBAGENT`（修复线 L-A，agents.md §8.1.1；真假值的写法同对照实现）：真值打开，假值关掉，
 /// 别的值与没设都按形态。

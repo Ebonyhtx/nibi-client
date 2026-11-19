@@ -276,7 +276,7 @@ impl LocalKernel {
     /// 本进程已加载的会话是否在忙：在途回合、排队输入、待回答交互或后台工作（含后台子代理）。
     /// 未加载返回 false；正在加载/关闭的会话按忙处理（不在这里等它的冷加载）。读不出视图时也按忙
     /// 处理（宁可少删）。
-    async fn session_data_busy(&self, session: &SessionId) -> bool {
+    pub(crate) async fn session_data_busy(&self, session: &SessionId) -> bool {
         let open = {
             let sessions = self.sessions();
             match sessions.get(session) {
@@ -292,18 +292,19 @@ impl LocalKernel {
             return false;
         };
         match open.view().await {
-            Ok(view) => {
-                view.running
-                    || !view.queue.is_empty()
-                    || !view.pending.is_empty()
-                    || !view.background.is_empty()
-            }
+            Ok(view) => view_in_use(&view),
             Err(error) => {
                 tracing::warn!(session = %session, %error, "could not read a session view while measuring running state");
                 true
             }
         }
     }
+}
+
+/// 会话视图里的「在用」：在途回合、排队输入、待回答交互或后台工作。永久删除的预检与
+/// `session_data_busy` 共用这一条判据（两边不能分叉）。
+pub(crate) fn view_in_use(view: &nibi_kernel_api::session_api::SessionView) -> bool {
+    view.running || !view.queue.is_empty() || !view.pending.is_empty() || !view.background.is_empty()
 }
 
 #[cfg(test)]

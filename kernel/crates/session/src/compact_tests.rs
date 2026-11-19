@@ -414,3 +414,42 @@ async fn changing_the_model_recomputes_the_context() {
         ]
     );
 }
+
+/// K6：压缩成功后写墓碑（同一 key 覆盖），主循环下一次请求重新记录快照。
+#[tokio::test]
+async fn a_successful_compaction_writes_the_prompt_snapshot_tombstone() {
+    use nibi_kernel_api::prompt_snapshot::{
+        PROMPT_SNAPSHOT_KIND, PromptSnapshot, PromptSnapshotMessage, PromptSnapshotModel,
+        PromptSnapshotState, parse_prompt_snapshot, save_prompt_snapshot,
+    };
+    let (_scope, store, session) = session(None).await;
+    let snapshot = PromptSnapshot {
+        model: PromptSnapshotModel {
+            provider_id: selection().provider,
+            model_id: selection().model,
+        },
+        system: vec![PromptSnapshotMessage {
+            role: "system".to_owned(),
+            content: "frozen".to_owned(),
+            cache_control: None,
+        }],
+    };
+    save_prompt_snapshot(
+        store.as_ref(),
+        &meta().id,
+        &PromptSnapshotState::Present(snapshot),
+    )
+    .await
+    .unwrap();
+    assert!(matches!(session.send(compact()).await, Ack::Accepted { .. }));
+    let _ = events_until_finished(&session).await;
+    let records = store
+        .records(&meta().id, PROMPT_SNAPSHOT_KIND)
+        .await
+        .unwrap();
+    assert_eq!(records.len(), 1, "the tombstone overwrites the snapshot key");
+    assert_eq!(
+        parse_prompt_snapshot(&records[0].data),
+        Some(PromptSnapshotState::Cleared)
+    );
+}

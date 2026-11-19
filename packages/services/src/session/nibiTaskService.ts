@@ -63,6 +63,50 @@ export interface NibiArchivedTaskDeletionResult {
   failedTaskIds: string[];
 }
 
+export type NibiTaskDeletionBlockReason =
+  | "running"
+  | "changed"
+  | "unavailable"
+  | "not_found";
+
+export interface NibiTitledSessionRef {
+  sessionId: string;
+  title: string;
+}
+
+export interface NibiRetainedArtifactRef {
+  sessionId: string;
+  artifactId: string;
+  fileName: string;
+  referrers: NibiTitledSessionRef[];
+}
+
+/**
+ * 永久删除预检：willDelete = sessionIds，willKeep = forks + retainedArtifacts。
+ * blockedReason 非空时 UI 只能展示 cannotDelete，不能发起 execute。
+ */
+export interface NibiArchivedTaskDeletionPreview {
+  taskId: string;
+  revision: string;
+  sessionIds: string[];
+  forks: NibiTitledSessionRef[];
+  retainedArtifacts: NibiRetainedArtifactRef[];
+  deletedFiles: number;
+  blockedReason?: NibiTaskDeletionBlockReason;
+  /** CLI 已有未完成的删除凭据；再次执行会续删。 */
+  incomplete: boolean;
+  /** CLI 已确认删除完成；Host 只需收敛本地行。 */
+  completed: boolean;
+}
+
+export interface NibiArchivedTaskDeletionOutcome {
+  taskId: string;
+  status: "deleted" | "blocked" | "incomplete";
+  sessionIds: string[];
+  retainedArtifacts: number;
+  reason?: string;
+}
+
 /** 一次模型请求里出现的消息内容片段（文本 / 工具调用 / 工具结果 / 其他原始结构）。 */
 export type NibiModelTrajectoryContentPart =
   | { kind: "text"; text: string }
@@ -687,6 +731,28 @@ export interface INibiTaskService {
     workspaceIdentity?: string;
     taskIds: string[];
   }): Promise<NibiArchivedTaskDeletionResult>;
+
+  /**
+   * 永久删除前的只读预检：确认仍归档，并向 CLI 查询将删除/保留的会话与文件。
+   * 不写 Host 索引、不预留凭据；取消预检无需回滚。
+   */
+  previewArchivedTaskDeletion(params: {
+    taskId: string;
+    workspacePath: string;
+    workspaceIdentity?: string;
+  }): Promise<NibiArchivedTaskDeletionPreview>;
+
+  /**
+   * 永久删除：归档检查 → Host 预留 → CLI execute（revision 防止确认期间变化）→
+   * deleted 收敛索引 / blocked 释放预留 / incomplete 保留预留供续删。
+   */
+  permanentlyDeleteArchivedTask(params: {
+    taskId: string;
+    workspacePath: string;
+    workspaceIdentity?: string;
+    revision: string;
+    operationId: string;
+  }): Promise<NibiArchivedTaskDeletionOutcome>;
 
   /** 重命名已持久化的 task */
   renameTask(params: {

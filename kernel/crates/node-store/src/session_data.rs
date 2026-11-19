@@ -32,17 +32,29 @@ fn safe_session_id(session: &SessionId) -> Result<&str, SessionDataError> {
     }
 }
 
-fn session_paths(cli_root: &Path, session: &SessionId) -> Result<Vec<PathBuf>, SessionDataError> {
+/// 会话的类别目录（第一个是附件目录）与模型轨迹文件（永久删除按这两个列表列文件、删文件）。
+pub(crate) fn session_locations(
+    cli_root: &Path,
+    session: &SessionId,
+) -> Result<(Vec<PathBuf>, Vec<PathBuf>), SessionDataError> {
     let id = safe_session_id(session)?;
-    let mut paths: Vec<PathBuf> = SESSION_DIRECTORY_ROOTS
+    let directories = SESSION_DIRECTORY_ROOTS
         .iter()
         .map(|name| cli_root.join(name).join(id))
         .collect();
-    paths.extend(
-        MODEL_IO_DIRECTORIES
-            .iter()
-            .map(|name| cli_root.join(name).join(format!("model-io-{id}.jsonl"))),
-    );
+    let files = MODEL_IO_DIRECTORIES
+        .iter()
+        .map(|name| cli_root.join(name).join(format!("model-io-{id}.jsonl")))
+        .collect();
+    Ok((directories, files))
+}
+
+pub(crate) fn session_paths(
+    cli_root: &Path,
+    session: &SessionId,
+) -> Result<Vec<PathBuf>, SessionDataError> {
+    let (mut paths, files) = session_locations(cli_root, session)?;
+    paths.extend(files);
     Ok(paths)
 }
 

@@ -1278,6 +1278,162 @@ export class TaskIndexRepo {
     });
   }
 
+  /**
+   * 永久删除前的归档事实：Host 必须与 CLI 的删除凭据共用同一前置条件。
+   * 不存在、已删除或未归档都不能进入永久删除。
+   */
+  async getTaskMembershipState(params: {
+    workspacePath: string;
+    workspaceIdentity?: string;
+    taskId: string;
+  }): Promise<{ archived: boolean; deleted: boolean } | null> {
+    await this.ensureReady();
+    const row = this.getTaskRow(params);
+    return row ? { archived: row.archived === 1, deleted: row.deleted === 1 } : null;
+  }
+
+  /**
+   * 预留永久删除：只有仍归档且未删除的行能拿到凭据。reserved 允许用新 operationId
+   * 覆盖旧预留（预检后重试/续删），purged 一旦写入就不再回退。
+   */
+  async reservePermanentDeletion(params: {
+    workspacePath: string;
+    workspaceIdentity?: string;
+    taskId: string;
+    revision: string;
+    operationId: string;
+  }): Promise<boolean> {
+    await this.ensureReady();
+    return this.enqueueWrite(params, () => {
+      const database = this.getDatabase();
+      database.exec("BEGIN IMMEDIATE");
+      try {
+        const row = this.getTaskRow(params);
+        if (!row || row.deleted === 1 || row.archived !== 1) {
+          database.exec("COMMIT");
+          return false;
+        }
+        const now = Date.now();
+        const result = database
+          .prepare(
+            `INSERT INTO task_purge (
+              workspace_key, task_id, operation_id, revision, state, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, 'reserved', ?, ?)
+            ON CONFLICT(workspace_key, task_id) DO UPDATE SET
+              operation_id = excluded.operation_id,
+              revision = excluded.revision,
+              updated_at = excluded.updated_at
+            WHERE task_purge.state = 'reserved'`,
+          )
+          .run(
+            row.workspace_key,
+            row.task_id,
+            params.operationId,
+            params.revision,
+            now,
+            now,
+          );
+        database.exec("COMMIT");
+        return Number(result.changes) > 0;
+      } catch (error) {
+        if (database.isTransaction) database.exec("ROLLBACK");
+        throw error;
+      }
+    });
+  }
+
+  /** blocked/异常时撤销预留；已 purged 的凭据永不删除。 */
+  async releasePermanentDeletion(params: {
+    workspacePath: string;
+    workspaceIdentity?: string;
+    taskId: string;
+    operationId: string;
+  }): Promise<boolean> {
+    await this.ensureReady();
+    return this.enqueueWrite(params, () => {
+      const database = this.getDatabase();
+      database.exec("BEGIN IMMEDIATE");
+      try {
+        const result = database
+          .prepare(
+            `DELETE FROM task_purge
+            WHERE workspace_key=? AND task_id=? AND state='reserved' AND operation_id=?`,
+          )
+          .run(workspaceKey(params), params.taskId, params.operationId);
+        database.exec("COMMIT");
+        return Number(result.changes) > 0;
+      } catch (error) {
+        if (database.isTransaction) database.exec("ROLLBACK");
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * CLI 确认删除后落 purged 凭据并硬删除索引行。purged 凭据先于 DELETE 写入，触发器
+   * 保证任何重放/对账都不能把同一 task 重新插入或恢复成可见行。
+   */
+  async completePermanentDeletion(params: {
+    workspacePath: string;
+    workspaceIdentity?: string;
+    taskId: string;
+    operationId: string;
+  }): Promise<NibiTaskMeta | null> {
+    await this.ensureReady();
+    return this.enqueueWrite(params, () => {
+      const database = this.getDatabase();
+      database.exec("BEGIN IMMEDIATE");
+      try {
+        const row = this.getTaskRow(params);
+        const now = Date.now();
+        const updated = database
+          .prepare(
+            `UPDATE task_purge SET state='purged', updated_at=?
+            WHERE workspace_key=? AND task_id=? AND operation_id=?`,
+          )
+          .run(now, workspaceKey(params), params.taskId, params.operationId);
+        if (Number(updated.changes) === 0) {
+          // 续删或 Host 在 reserve 之前崩溃：仍要留下 purged 证据，不能只删行。
+          database
+            .prepare(
+              `INSERT INTO task_purge (
+                workspace_key, task_id, operation_id, revision, state, created_at, updated_at
+              ) VALUES (?, ?, ?, '', 'purged', ?, ?)
+              ON CONFLICT(workspace_key, task_id) DO UPDATE SET
+                state='purged', updated_at=excluded.updated_at`,
+            )
+            .run(workspaceKey(params), params.taskId, params.operationId, now, now);
+        }
+        // 组织态先按 deleted 收口，避免硬删除后分组仍保留成员引用。
+        if (row) this.admitTaskGroup(rowToMeta(row), row.archived === 1, true);
+        database
+          .prepare("DELETE FROM tasks WHERE workspace_key=? AND task_id=?")
+          .run(workspaceKey(params), params.taskId);
+        database.exec("COMMIT");
+        return row ? rowToMeta(row) : null;
+      } catch (error) {
+        if (database.isTransaction) database.exec("ROLLBACK");
+        throw error;
+      }
+    });
+  }
+
+  /** 永久删除的 task id 账本；列表/对账必须按它过滤掉可能从 CLI 重新出现的行。 */
+  async listPermanentlyDeletedTaskIds(params: {
+    workspacePath: string;
+    workspaceIdentity?: string;
+  }): Promise<string[]> {
+    await this.ensureReady();
+    const rows = this.getDatabase()
+      .prepare(
+        `SELECT task_id FROM task_purge
+        WHERE workspace_key=? AND state='purged'
+        ORDER BY task_id`,
+      )
+      .all(workspaceKey(params)) as Array<{ task_id: string }>;
+    return rows.map((row) => row.task_id);
+  }
+
   async updateTaskState(params: {
     workspacePath: string;
     workspaceIdentity?: string;

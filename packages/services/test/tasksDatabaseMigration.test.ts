@@ -41,13 +41,44 @@ describe("DB109 App 库统一迁移", () => {
       "task_group_view_node_orders",
       "task_group_workspace_bootstraps",
       "task_groups",
+      "task_purge",
       "tasks",
       "tasks_schema_migration",
     ]);
     const ledger = db.prepare("SELECT * FROM tasks_schema_migration").all();
-    expect(ledger).toHaveLength(6);
+    expect(ledger).toHaveLength(7);
     await migrate(db);
     expect(db.prepare("SELECT * FROM tasks_schema_migration").all()).toEqual(ledger);
+  });
+
+  it("0008：task_purge 阻止永久删除的 task 被重建或恢复", async () => {
+    const db = open();
+    await migrate(db);
+    const insert = db.prepare(
+      `INSERT INTO tasks (workspace_key, workspace_path, task_id, created_at, updated_at, deleted, archived)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    );
+    insert.run("/repo", "/repo", "gone", 1, 2, 1, 1);
+    db.prepare(
+      `INSERT INTO task_purge (workspace_key, task_id, operation_id, revision, state, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'purged', ?, ?)`,
+    ).run("/repo", "gone", "operation-1", "revision-1", 3, 3);
+
+    // 重建（CLI 对账/远端同步）必须被触发器拒绝。
+    expect(() => insert.run("/repo", "/repo", "gone", 1, 2, 0, 1)).toThrow(/task-data\.purged/);
+    // tombstone 不能被恢复成可见行。
+    expect(() =>
+      db.prepare("UPDATE tasks SET deleted=0 WHERE workspace_key=? AND task_id=?").run("/repo", "gone"),
+    ).toThrow(/task-data\.purged/);
+    // 保持 deleted=1 的写入仍可完成，删除流程本身不被自己的守卫挡住。
+    expect(() =>
+      db.prepare("UPDATE tasks SET deleted=1 WHERE workspace_key=? AND task_id=?").run("/repo", "gone"),
+    ).not.toThrow();
+    // 其它 task 不受影响。
+    expect(() => insert.run("/repo", "/repo", "alive", 1, 2, 0, 1)).not.toThrow();
+    expect(db.prepare("SELECT state FROM task_purge WHERE task_id='gone'").get()).toMatchObject({
+      state: "purged",
+    });
   });
 
   it("DB109-09：旧 lane provider 与 meta_json 一次性迁移为 nibi-agent", async () => {
@@ -295,7 +326,7 @@ describe("DB109 App 库统一迁移", () => {
       Atomics.store(new Int32Array(gate), 0, 1);
       Atomics.notify(new Int32Array(gate), 0);
       expect(await Promise.all(exits)).toEqual([[0], [0]]);
-      expect(db.prepare("SELECT * FROM tasks_schema_migration").all()).toHaveLength(6);
+      expect(db.prepare("SELECT * FROM tasks_schema_migration").all()).toHaveLength(7);
       expect(db.prepare("SELECT * FROM migration_probe").all()).toHaveLength(1);
       expect(db.prepare("PRAGMA integrity_check").get()?.integrity_check).toBe("ok");
     } finally {

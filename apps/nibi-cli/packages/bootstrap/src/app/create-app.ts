@@ -687,6 +687,7 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
               submitPort,
               submitProfile,
               escalatePort,
+              webSearchBudgetPort,
               modelRequestAdmission,
             }) =>
               createScriptWorkflowAgentRuntime({
@@ -767,6 +768,8 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
                 // 就是 core 侧的注册门。恒传（端口在 run service 里恒被构造），不做 opt-in——
                 // 最可能撞上未预见之墙的 actor 恰是作者没标记的那一个。
                 workflowEscalatePort: escalatePort,
+                // 每个 ask 的 WebSearch 预算（execution-engine.md「Search budget」）：同为 actor 会话的控制面，恒传。
+                webSearchBudget: webSearchBudgetPort,
                 // 请求级准入端口：driver 在治理器在场时给出，runner 每次尝试先过闸门。
                 ...(modelRequestAdmission === undefined ? {} : { modelRequestAdmission }),
               }),

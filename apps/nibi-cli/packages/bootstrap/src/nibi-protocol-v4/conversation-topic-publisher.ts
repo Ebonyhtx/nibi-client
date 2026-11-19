@@ -34,6 +34,7 @@ import {
   coalesceConversationDeltas,
   filterConversationDeltasForProfile,
   filterConversationRowsForProfile,
+  isWireConversationRow,
   utf8JsonByteLength,
 } from "@nibi/shared/nibi-protocol-v4";
 import { Buffer } from "node:buffer";
@@ -705,6 +706,9 @@ export class ConversationTopicPublisher {
         { op: "state.updated", patch: statePatchSchema.parse(current) },
       ];
       current.rows.window.forEach((row, index) => {
+        // rows.window 的**消费端**类型含 unreadable 占位行（逐行降级）。发送端自产的快照
+        // 不可能有它，这里只是把类型窄回 wire 行；真出现了也不能往 wire 上发。
+        if (!isWireConversationRow(row)) return;
         if (JSON.stringify(row) !== JSON.stringify(previous.rows.window[index]))
           deltas.push({ op: "row.upserted", row });
       });

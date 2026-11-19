@@ -17,8 +17,11 @@ import {
 } from "#src/process/processTreeTerminator.js";
 import type { ProcessTreeSnapshot } from "#src/process/processTreeTerminator.js";
 import { AgentStderrCollector, EXIT_STDERR_DRAIN_MS } from "./agentStderrCollector.js";
+import type { WindowsRuntimeHost } from "#src/windows-runtime-host/contract.js";
 
 interface NibiStdioTransportOptions {
+  /** Windows Job helper；存在时 stdio 属于 CLI，child 是 helper 进程。 */
+  windowsRuntime?: WindowsRuntimeHost;
   onStderrLine?: (line: string) => void;
   ownedProcessGroupId?: number;
   ownedProcessStartedAtMs?: number;
@@ -90,12 +93,14 @@ export class NibiStdioTransport implements NibiProtocolTransport {
     child.stdout.once("close", this.handleStdoutEnd);
     child.stdin.on("error", (error) => this.handleStreamError("stdin", error));
     child.stdout.on("error", (error) => this.handleStreamError("stdout", error));
-    child.once("exit", (code, signal) => {
+    const onRootExit = (code: number | null, signal: NodeJS.Signals | null) => {
       this.childExitedAtMs = Date.now();
       this.fireClose({ code, signal });
       this.disposeReaders();
       void this.waitForStderrDrain();
-    });
+    };
+    if (options?.windowsRuntime) options.windowsRuntime.onRootExit(onRootExit);
+    else child.once("exit", onRootExit);
     child.once("error", (error) => {
       this.fireClose({ reason: error.message });
       this.disposeReaders();
@@ -120,6 +125,16 @@ export class NibiStdioTransport implements NibiProtocolTransport {
   }
 
   dispose(): void {
+    if (this.options?.windowsRuntime) {
+      // helper 独占 Job；只能走 close，不能按 helper PID 发 taskkill。
+      void this.disposeAndWait().catch((error) =>
+        processTreeLogger.warn("Windows runtime Job cleanup incomplete", {
+          error: String(error),
+          fallback: "process-tree-terminator",
+        }),
+      );
+      return;
+    }
     if (this.disposed) {
       return;
     }
@@ -134,9 +149,9 @@ export class NibiStdioTransport implements NibiProtocolTransport {
     }
   }
 
-  disposeAndWait(): Promise<void> {
+  disposeAndWait(deadlineAtMs?: number): Promise<void> {
     if (!this.disposeAndWaitPromise) {
-      const inFlight = this.disposeAndWaitOnce().finally(() => {
+      const inFlight = this.disposeAndWaitOnce(deadlineAtMs).finally(() => {
         if (this.disposeAndWaitPromise === inFlight) {
           this.disposeAndWaitPromise = undefined;
         }
@@ -150,14 +165,37 @@ export class NibiStdioTransport implements NibiProtocolTransport {
     return this.stderrCollector.waitForDrain();
   }
 
-  private async disposeAndWaitOnce(): Promise<void> {
+  private async disposeAndWaitOnce(deadlineAtMs?: number): Promise<void> {
     if (!this.disposed) {
       this.disposed = true;
       this.disposeLocalResources();
     }
+    if (this.options?.windowsRuntime) {
+      const deadline = deadlineAtMs ?? Date.now() + DISPOSE_STDERR_DRAIN_MS;
+      try {
+        await this.options.windowsRuntime.close(deadline);
+      } catch (error) {
+        // helper 或控制通道异常时，Job 归属可能已丢失；显式退回 taskkill 兜底，
+        // 并把 fallback 写进日志，避免“关掉了但没人知道走了哪条路”。
+        processTreeLogger.warn(
+          "Windows runtime Job close failed; falling back to process-tree terminator",
+          { error: String(error), fallback: "process-tree-terminator" },
+        );
+        const fallback = await terminateProcessTreeAndWait(this.child, {
+          log: processTreeLogger,
+          forceAfterMs: 0,
+          windowsTaskkillTimeoutMs: PROCESS_TREE_WINDOWS_TASKKILL_TIMEOUT_MS,
+        });
+        if (fallback.remainingPids.length > 0) throw error;
+      }
+      await this.stderrCollector.waitForDrain(
+        Math.max(0, Math.min(EXIT_STDERR_DRAIN_MS, deadline - Date.now())),
+      );
+      return;
+    }
+    this.cleanupAttemptCount += 1;
     // stdin EOF 可能让 CLI 根进程先退出，而 detached MCP 仍继续运行。
     // 必须在发 EOF 前保存树成员，否则根退出、后代被系统接管后无法再按 PPID 找回。
-    this.cleanupAttemptCount += 1;
     const cleanupStartedAtMs = Date.now();
     const budgetScale = resolveProcessTreeCleanupBudgetScale();
     // 预算必须保持整数毫秒：execFile 的 timeout 只接受无符号整数（小数会 RangeError）。

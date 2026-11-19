@@ -1770,6 +1770,25 @@ impl Kernel for LocalKernel {
         self.delete(session).await
     }
 
+    async fn deletion_preview(
+        &self,
+        session: &SessionId,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
+    ) -> Result<nibi_kernel_api::deletion::DeletionPreview, KernelError> {
+        self.deletion_preview(session, workspace).await
+    }
+
+    async fn delete_permanently(
+        &self,
+        session: &SessionId,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
+        revision: &str,
+        operation: &str,
+    ) -> Result<nibi_kernel_api::deletion::DeletionResult, KernelError> {
+        self.delete_permanently(session, workspace, revision, operation)
+            .await
+    }
+
     async fn measure_session_data(
         &self,
         params: nibi_kernel_api::session_data::SessionDataParams,

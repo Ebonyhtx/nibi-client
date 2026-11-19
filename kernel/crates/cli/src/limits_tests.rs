@@ -137,3 +137,21 @@ fn enable_tool_search_maps_to_the_setting() {
     let limits = limits(&env(&[("ENABLE_TOOL_SEARCH", "false")]), None);
     assert_eq!(limits.request.tool_search, Off);
 }
+
+/// `NIBI_SUBAGENT_STALL_NOTIFY_MS`：正整数才算；低于 10 秒按 10 秒算（误设会在短时间内烧掉大量 token）。
+#[test]
+fn subagent_stall_threshold_reads_the_nibi_name_and_is_floored() {
+    let read = |value: &str| subagent_stall_notify_ms(&env(&[("NIBI_SUBAGENT_STALL_NOTIFY_MS", value)]));
+    assert_eq!(subagent_stall_notify_ms(&env(&[])), None);
+    assert_eq!(read(""), None);
+    assert_eq!(read("0"), None);
+    assert_eq!(read("-1"), None);
+    assert_eq!(read("lots"), None);
+    assert_eq!(read("1"), Some(10_000));
+    assert_eq!(read("9999"), Some(10_000));
+    assert_eq!(read("10000"), Some(10_000));
+    assert_eq!(read(" 900000 "), Some(900_000));
+    let limits = limits(&env(&[("NIBI_SUBAGENT_STALL_NOTIFY_MS", "30000")]), None);
+    assert_eq!(limits.subagent_stall_notify_ms, Some(30_000));
+    assert_eq!(limits.subagent_stall_max_interval_ms, None);
+}

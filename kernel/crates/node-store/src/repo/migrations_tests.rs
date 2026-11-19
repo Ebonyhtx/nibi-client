@@ -2,7 +2,7 @@
 use super::*;
 
 /// Node 记录在账本里的校验和（用户现有库同值，由 Node `SQLITE_MIGRATIONS` 计算核对）。
-const EXPECTED: [(&str, &str); 25] = [
+const EXPECTED: [(&str, &str); 26] = [
     (
         "0001_base_session_store",
         "60e2d6a38ab36f31417c4f92c02690c96c7dcaaa0b6abe1741117d62a55c6462",
@@ -103,10 +103,16 @@ const EXPECTED: [(&str, &str); 25] = [
         "0025_session_database_identity_rename",
         "bc8d3d5299c797b61e80e133860c09ee52b3f900a07232e41395b1c0b8f1ea37",
     ),
+    (
+        "0026_session_permanent_deletion",
+        "bc44f9f485ff4fb6362bd1ae5b51d2597c95b823ecf75899988f32cc181ad2bd",
+    ),
 ];
 
 #[test]
 fn embedded_sql_matches_the_node_ledger() {
+    // 账本逐条对上；两个数组的长度也必须一致（漏一条会在这里先炸，而不是 zip 悄悄截断）。
+    assert_eq!(MIGRATIONS.len(), EXPECTED.len());
     for (migration, (id, expected)) in MIGRATIONS.iter().zip(EXPECTED) {
         assert_eq!(migration.id, id);
         assert_eq!(checksum(migration.sql), expected, "{id}");
@@ -114,3 +120,34 @@ fn embedded_sql_matches_the_node_ledger() {
     // JS trim 去掉 BOM 与行分隔符。
     assert_eq!(checksum("\u{feff} a \u{2028}"), checksum("a"));
 }
+
+/// 每条迁移都登记了 Node 的 `touchedTables`（备份判定只看它；空列表意味着永远不备份）。
+#[test]
+fn every_migration_declares_its_touched_tables() {
+    for migration in &MIGRATIONS {
+        assert!(
+            !migration.touched_tables.is_empty(),
+            "{} has no touched tables",
+            migration.id
+        );
+    }
+    let purge = MIGRATIONS
+        .iter()
+        .find(|migration| migration.id == "0026_session_permanent_deletion")
+        .unwrap();
+    assert_eq!(
+        purge.touched_tables,
+        ["session_purge", "session_runtime_presence"]
+    );
+    assert_eq!(purge.app_version, "0.17.1");
+    // 0025 的改名与 Node 的 `SQLITE_MIGRATIONS` 同口径：改名前后的两个表名都算被碰到（Node 这时会先备份）。
+    let rename = MIGRATIONS
+        .iter()
+        .find(|migration| migration.id == "0025_session_database_identity_rename")
+        .unwrap();
+    assert_eq!(
+        rename.touched_tables,
+        ["zcode_database_identity", "nibi_database_identity"]
+    );
+}
+

@@ -4,6 +4,10 @@ import {
   v4SessionDataMeasureResultSchema,
   v4SessionDataParamsSchema,
   v4SessionDataPurgeResultSchema,
+  v4SessionDeletionExecuteParamsSchema,
+  v4SessionDeletionExecuteResultSchema,
+  v4SessionDeletionPreviewParamsSchema,
+  v4SessionDeletionPreviewResultSchema,
 } from "../src/nibi-protocol-v4/index.js";
 
 describe("v4 storage/sessionData 合同", () => {
@@ -125,5 +129,121 @@ describe("v4 storage/sessionData 合同", () => {
       failed: [{ code: "io" }],
       memory: [],
     });
+  });
+});
+
+describe("v4 storage/sessionData 永久删除合同", () => {
+  it("方法名与上游冻结值一致", () => {
+    expect(V4_METHODS.sessionDeletionPreview).toBe("v4/storage/sessionData/deletionPreview");
+    expect(V4_METHODS.sessionDeletionExecute).toBe("v4/storage/sessionData/deletionExecute");
+  });
+
+  it("preview/execute 入参严格，execute 另带 revision 与 operationId", () => {
+    expect(
+      v4SessionDeletionPreviewParamsSchema.parse({
+        sessionId: "s1",
+        workspace: { workspacePath: "/work/a", workspaceIdentity: "remote:ssh:a" },
+      }),
+    ).toEqual({
+      sessionId: "s1",
+      workspace: { workspacePath: "/work/a", workspaceIdentity: "remote:ssh:a" },
+    });
+    expect(
+      v4SessionDeletionPreviewParamsSchema.safeParse({
+        sessionId: "s1",
+        workspace: { workspacePath: "/work/a" },
+        extra: true,
+      }).success,
+    ).toBe(false);
+    expect(
+      v4SessionDeletionPreviewParamsSchema.safeParse({
+        sessionId: "",
+        workspace: { workspacePath: "/work/a" },
+      }).success,
+    ).toBe(false);
+    expect(
+      v4SessionDeletionPreviewParamsSchema.safeParse({
+        sessionId: "s1",
+        workspace: { workspacePath: "/work/a", workspaceIdentity: null },
+      }).success,
+    ).toBe(false);
+    expect(
+      v4SessionDeletionExecuteParamsSchema.safeParse({
+        sessionId: "s1",
+        workspace: { workspacePath: "/work/a" },
+        revision: "rev",
+        operationId: "",
+      }).success,
+    ).toBe(false);
+    expect(
+      v4SessionDeletionExecuteParamsSchema.parse({
+        sessionId: "s1",
+        workspace: { workspacePath: "/work/a" },
+        revision: "rev",
+        operationId: "op",
+      }),
+    ).toEqual({
+      sessionId: "s1",
+      workspace: { workspacePath: "/work/a" },
+      revision: "rev",
+      operationId: "op",
+    });
+  });
+
+  it("preview 结果带 blockedReason 与 incomplete/completed", () => {
+    const result = {
+      sessionId: "s1",
+      revision: "r",
+      sessionIds: ["s1", "child"],
+      forks: [{ sessionId: "fork", title: "Fork" }],
+      retainedArtifacts: [
+        {
+          sessionId: "s1",
+          artifactId: "shared",
+          fileName: "shared.png",
+          referrers: [{ sessionId: "fork", title: "Fork" }],
+        },
+      ],
+      deletedFiles: 2,
+      blockedReason: "running" as const,
+      incomplete: true,
+      completed: false,
+    };
+    expect(v4SessionDeletionPreviewResultSchema.parse(result)).toEqual(result);
+    expect(
+      v4SessionDeletionPreviewResultSchema.safeParse({ ...result, blockedReason: "idle" }).success,
+    ).toBe(false);
+    expect(
+      v4SessionDeletionPreviewResultSchema.safeParse({ ...result, deletedFiles: -1 }).success,
+    ).toBe(false);
+    expect(v4SessionDeletionPreviewResultSchema.safeParse({ ...result, extra: true }).success).toBe(
+      false,
+    );
+  });
+
+  it("execute 结果只允许 deleted/blocked/incomplete", () => {
+    expect(
+      v4SessionDeletionExecuteResultSchema.parse({
+        sessionId: "s1",
+        status: "blocked",
+        sessionIds: ["s1"],
+        retainedArtifacts: 1,
+        reason: "changed",
+      }),
+    ).toEqual({
+      sessionId: "s1",
+      status: "blocked",
+      sessionIds: ["s1"],
+      retainedArtifacts: 1,
+      reason: "changed",
+    });
+    expect(
+      v4SessionDeletionExecuteResultSchema.safeParse({
+        sessionId: "s1",
+        status: "failed",
+        sessionIds: [],
+        retainedArtifacts: 0,
+      }).success,
+    ).toBe(false);
   });
 });

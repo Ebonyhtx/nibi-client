@@ -216,7 +216,7 @@ it("SILENTDB-02/04: reports real migration kind and counts only committed SQL as
   expect(failed.find((s) => s.phase === "migrating")?.migration?.kind).toBe("upgrade");
   expect(failed.every((s) => !s.migration?.committedCount)).toBe(true);
   expect(failed.at(-1)?.migration?.lastAppliedMigrationId).toBe(
-    "0025_session_database_identity_rename",
+    "0026_session_permanent_deletion",
   );
   expect(db.prepare("SELECT 1 FROM schema_migration WHERE id >= '0020' AND id < '0025'").get()).toBeUndefined();
 });

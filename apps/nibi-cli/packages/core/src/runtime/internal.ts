@@ -52,6 +52,7 @@ import type { RuntimeCommandQueue } from "./command-queue.js";
 import type { AppSessionControlBinding, SessionControlBinding } from "@nibi/contracts";
 import type { RuntimeTaskRegistry } from "../runtime-task/registry.js";
 import type { WorkflowBlockedReminderClock } from "../runtime-task/workflow-blocked-reminder.js";
+import type { BackgroundSubagentStallClock } from "../subagent/background-stall.js";
 import type { DynamicWorkflowActivationSource } from "./methods/dynamic-workflow-activation.js";
 import type { AgentRuntimeCoreMethods } from "./internal-methods.js";
 import type { AgentRuntimeTurnMethods } from "./internal-turn-methods.js";
@@ -62,6 +63,7 @@ import type { ProjectMemoryExtractionScheduler } from "./helpers/project-memory-
 import type { ProjectMemoryUpdate } from "./helpers/project-memory-dream.js";
 import type { RuntimeTelemetryFacade } from "../telemetry/runtime-telemetry.js";
 import type { WorkspaceHookRuntimeAdmissionPort } from "../hooks/workspace-hook-runtime-admission.js";
+import type { PromptSnapshot } from "./helpers/prompt-snapshot.js";
 
 export interface AgentRuntimeInternal
   extends AgentRuntimeCoreMethods, AgentRuntimeTurnMethods, AgentRuntimeHookMethods {
@@ -99,6 +101,8 @@ export interface AgentRuntimeInternal
   contextInitialized: boolean;
   contextSourceSnapshot?: ContextSourceSnapshot;
   latestContextBuildResult?: ContextBuildResult;
+  /** 主会话 system 快照；undefined 表示还没有，null 表示 compaction 已清掉。 */
+  promptSnapshot?: PromptSnapshot | null;
   memoryRoot?: string;
   memoryIndexContent?: string;
   memoryRecallState: MemoryRecallState;
@@ -132,6 +136,11 @@ export interface AgentRuntimeInternal
    * 恒在场；可选只为让手写的局部 runtime 桩不必带它。
    */
   workflowBlockedReminder?: WorkflowBlockedReminderClock;
+  /**
+   * 后台 subagent 无进展提醒钟（methods/subagent-stall-reminder.ts）。真实 runtime 上恒在场；
+   * 可选只为让手写的局部 runtime 桩不必带它。
+   */
+  subagentStallReminder?: BackgroundSubagentStallClock;
   branchGeneration: number;
   artifactStore?: ToolArtifactStorePort;
   executionPort?: ExecutionPort;

@@ -469,6 +469,33 @@ describe("DataSyncSection categories", () => {
     ).toBeTruthy();
   });
 
+  it("shows the built-in subagent model override and keeps the row selectable", async () => {
+    const key = "built-in:built-in:explore";
+    const subagentsSource = createService({
+      list: async () =>
+        listResult([
+          item({
+            key,
+            name: "Explore",
+            contentHash: "h1",
+            builtInModelOverride: { modelId: "fast", reasoningLevel: "low" },
+          }),
+        ]),
+    });
+    mountSection(
+      createAccessor({ subagentsService: subagentsSource }),
+      createAccessor(),
+    );
+
+    fireEvent.click(screen.getByTestId("settings-data-sync-category-tab-subagents"));
+    const note = await screen.findByTestId(`settings-data-sync-model-override-${key}`);
+    expect(note.textContent).toContain(
+      "settings.dataSync.category.modelOverride.source(model=fast (low))",
+    );
+    const checkbox = screen.getByRole("checkbox", { name: "Explore" });
+    expect(checkbox.hasAttribute("disabled")).toBe(false);
+  });
+
   it("maps the plugins category to pluginSyncService and shows its counts", async () => {
     const pluginsSource = createService({
       list: async () =>

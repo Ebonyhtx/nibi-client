@@ -36,6 +36,10 @@ import { NibiStdioTransport } from "./nibiStdioTransport.js";
 import { readNibiStdioTapDevState } from "./nibiStdioTapDevConfig.js";
 import type { NibiAgentPresentationSurface } from "./nibiAgentPresentationSurface.js";
 import { shouldSpawnInDetachedProcessGroup } from "../process/processTreeTerminator.js";
+import {
+  trySpawnWindowsRuntimeHost,
+  type WindowsRuntimeHost,
+} from "../windows-runtime-host/index.js";
 import type { RuntimeProcessLifecycleReporter } from "../process/runtimeProcessLifecycle.js";
 import { buildAgentWorkspaceIdentityEnv } from "../runtime-tools/agentProxyEnv.js";
 
@@ -115,6 +119,9 @@ export interface NibiAgentProcessManagerOptions {
 interface ManagedNibiAgentProcess {
   client: NibiProtocolClient;
   child: ChildProcessWithoutNullStreams;
+  /** Windows Job helper 启动时，CLI 根 PID；helper PID 不是 runtime 身份。 */
+  runtimePid?: number;
+  windowsRuntime?: WindowsRuntimeHost;
   cleanupPromise?: Promise<void>;
   exitDiagnosticsCompleted: Promise<void>;
   exited: boolean;
@@ -751,7 +758,7 @@ export class NibiAgentProcessManager {
       }
       log("NIBI agent process idle timeout; reclaiming", {
         workspaceKey,
-        pid: managed.child.pid,
+        pid: (managed.runtimePid ?? managed.child.pid),
         runtimeIdentity: managed.runtimeIdentity.identity,
         idleTimeoutMs: this.idleTimeoutMs,
       });
@@ -816,14 +823,14 @@ export class NibiAgentProcessManager {
       managed.exited ||
       managed.readyReported ||
       managed.readyAt == null ||
-      typeof managed.child.pid !== "number"
+      typeof (managed.runtimePid ?? managed.child.pid) !== "number"
     ) {
       return;
     }
     managed.readyReported = true;
     this.reportProcessLifecycle((reporter) =>
       reporter.onReady?.({
-        pid: managed.child.pid!,
+        pid: (managed.runtimePid ?? managed.child.pid)!,
         provider: NIBI_AGENT_PROVIDER,
         ...(this.lane ? { lane: this.lane } : {}),
         workspacePath: managed.workspace.workspacePath,
@@ -859,7 +866,7 @@ export class NibiAgentProcessManager {
         cleanupCompleted = true;
         log("NIBI agent process cleanup completed", {
           workspaceKey: managed.runtimeIdentity.workspaceKey,
-          pid: managed.child.pid,
+          pid: (managed.runtimePid ?? managed.child.pid),
           runtimeIdentity: managed.runtimeIdentity.identity,
           reason,
         });
@@ -883,7 +890,7 @@ export class NibiAgentProcessManager {
       }
       errorLog("NIBI agent process cleanup failed", {
         workspaceKey: managed.runtimeIdentity.workspaceKey,
-        pid: managed.child.pid,
+        pid: (managed.runtimePid ?? managed.child.pid),
         runtimeIdentity: managed.runtimeIdentity.identity,
         reason,
         error,
@@ -918,7 +925,7 @@ export class NibiAgentProcessManager {
       const cleanupError = firstError as NodeJS.ErrnoException;
       warnLog(`NIBI agent process cleanup retrying during ${retryScope}`, {
         workspaceKey: managed.runtimeIdentity.workspaceKey,
-        pid: managed.child.pid,
+        pid: (managed.runtimePid ?? managed.child.pid),
         runtimeIdentity: managed.runtimeIdentity.identity,
         cleanupStage: reason,
         errorName: firstError instanceof Error ? firstError.name || "Error" : "UnknownError",
@@ -930,7 +937,7 @@ export class NibiAgentProcessManager {
       } catch (finalError) {
         errorLog("NIBI agent process cleanup failed", {
           workspaceKey: managed.runtimeIdentity.workspaceKey,
-          pid: managed.child.pid,
+          pid: (managed.runtimePid ?? managed.child.pid),
           runtimeIdentity: managed.runtimeIdentity.identity,
           reason: retryReason,
           retryScope,
@@ -1025,9 +1032,9 @@ export class NibiAgentProcessManager {
       client: NibiProtocolClient;
     }> = [];
     for (const managed of this.processesByWorkspaceKey.values()) {
-      if (managed.exited || managed.child.killed || typeof managed.child.pid !== "number") continue;
+      if (managed.exited || managed.child.killed || typeof (managed.runtimePid ?? managed.child.pid) !== "number") continue;
       result.push({
-        pid: managed.child.pid,
+        pid: (managed.runtimePid ?? managed.child.pid)!,
         workspacePath: managed.workspace.workspacePath,
         ...(managed.workspace.workspaceIdentity
           ? { workspaceIdentity: managed.workspace.workspaceIdentity }
@@ -1128,35 +1135,59 @@ export class NibiAgentProcessManager {
       spawnPreflight,
     });
     const spawnRequestedAt = Date.now();
-    const child = spawn(effectiveCommand.command, spawnPreflight.args, {
-      cwd: spawnPreflight.cwd,
-      // agent 可能再派生实际 runtime/MCP 子进程。POSIX 下让 wrapper 进入独立进程组，
-      // 关闭时才能按进程树整体回收；Windows 保持非 detached，交给 taskkill /T 处理。
-      detached: shouldSpawnInDetachedProcessGroup(),
-      env: {
-        ...sanitizeNibiRuntimeEnv(process.env),
-        [NIBI_RUNTIME_ENV_KEY]: runtimeEnv,
-        ...spawnEnv,
-        ...effectiveCommand.env,
-        // 生成文件根目录由执行端 Host 唯一决定，保证 Agent 写入与 Host 读取授权一致。
-        [GEN_UI_OUTPUT_ROOT_ENV]: join(getAppConfigDir(), GEN_UI_OUTPUT_DIRECTORY),
-        // 身份/隔离语义使用 workspaceIdentity；cwd 继续使用 workspacePath。
-        ...buildAgentWorkspaceIdentityEnv(params.workspaceIdentity),
-        ...buildE2EAgentCoverageEnv(),
-      },
-      stdio: ["pipe", "pipe", "pipe"],
+    const childEnv = {
+      ...sanitizeNibiRuntimeEnv(process.env),
+      [NIBI_RUNTIME_ENV_KEY]: runtimeEnv,
+      ...spawnEnv,
+      ...effectiveCommand.env,
+      // 生成文件根目录由执行端 Host 唯一决定，保证 Agent 写入与 Host 读取授权一致。
+      [GEN_UI_OUTPUT_ROOT_ENV]: join(getAppConfigDir(), GEN_UI_OUTPUT_DIRECTORY),
+      // 身份/隔离语义使用 workspaceIdentity；cwd 继续使用 workspacePath。
+      ...buildAgentWorkspaceIdentityEnv(params.workspaceIdentity),
+      ...buildE2EAgentCoverageEnv(),
+    };
+    // Windows 优先用原生 Job helper：CLI 以 suspended 创建并直接归组，Host 崩溃时
+    // KILL_ON_JOB_CLOSE 结束整棵树。helper 缺失或启动失败时显式记录并退回 taskkill。
+    const windowsRuntime =
+      (await trySpawnWindowsRuntimeHost({
+        command: effectiveCommand.command,
+        args: spawnPreflight.args,
+        cwd: spawnPreflight.cwd,
+        env: childEnv,
+        signal: admissionSignal,
+        log: {
+          info: (message, detail) => log(message, detail),
+          warn: (message, detail) => warnLog(message, detail),
+        },
+      })) ?? undefined;
+    const child =
+      windowsRuntime?.child ??
+      spawn(effectiveCommand.command, spawnPreflight.args, {
+        cwd: spawnPreflight.cwd,
+        // agent 可能再派生实际 runtime/MCP 子进程。POSIX 下让 wrapper 进入独立进程组，
+        // 关闭时才能按进程树整体回收；Windows 无 helper 时保持非 detached，交给 taskkill /T。
+        detached: shouldSpawnInDetachedProcessGroup(),
+        env: childEnv,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+    let runtimePid = windowsRuntime ? undefined : child.pid;
+    log("NIBI agent process launch path", {
+      workspaceKey,
+      path: windowsRuntime ? "windows-job-helper" : "process-tree-terminator",
+      runtimeHostPid: windowsRuntime?.child.pid,
     });
     const startedAt = Date.now();
     const stderrTail = createAgentStderrTail();
     const transport = new NibiStdioTransport(child, {
+      windowsRuntime,
       onStderrLine: (line) => {
         const diagnostic = parseNibiProcessDiagnostic(line);
-        if (diagnostic && typeof child.pid === "number") {
+        if (diagnostic && typeof runtimePid === "number") {
           // 根因：只保存 exit tail 会漏掉存活 runtime 的异常；此旁路不依赖 debug 开关。
           // 身份绑定创建时的 child，不能查当前 workspace，避免重启后的迟到事件串进程。
           this.reportProcessLifecycle((reporter) =>
             reporter.onException?.({
-              pid: child.pid!,
+              pid: runtimePid!,
               provider: NIBI_AGENT_PROVIDER,
               ...(this.lane ? { lane: this.lane } : {}),
               workspacePath: params.workspacePath,
@@ -1192,16 +1223,18 @@ export class NibiAgentProcessManager {
       ownedProcessStartedAtMs: spawnRequestedAt,
       // POSIX 下 child 由本 manager 以 detached=true 启动，pid 同时就是 Host
       // 拥有的独立 PGID；异常 root exit 后 cleanup 仍可按组回收同组后代。
-      ...(process.platform !== "win32" && child.pid ? { ownedProcessGroupId: child.pid } : {}),
+      ...(process.platform !== "win32" && runtimePid ? { ownedProcessGroupId: runtimePid } : {}),
     });
     const client = new NibiProtocolClient(transport, {
       requireStorageStartup: effectiveCommand.supportsStorageStartup,
       requestTimeoutMs: this.requestTimeoutMs,
     });
-    if (child.pid) {
-      const unregisterNetworkCapture = localRuntimeNetworkCapture.register(client, child.pid);
+    const registerNetworkCapture = () => {
+      if (typeof runtimePid !== "number") return;
+      const unregisterNetworkCapture = localRuntimeNetworkCapture.register(client, runtimePid);
       child.once("close", unregisterNetworkCapture);
-    }
+    };
+    if (!windowsRuntime) registerNetworkCapture();
     // Agent 进程重启后，Host 仍需要 runtime identity 区分新旧订阅和运行命令。
     // Provider Registry 由新 Worker 从所属 Environment 的 Config 重建，不再由 UI 重新下发。
     const runtimeGeneration = (this.runtimeGenerationByWorkspaceKey.get(workspaceKey) ?? 0) + 1;
@@ -1211,15 +1244,16 @@ export class NibiAgentProcessManager {
     const runtimeIdentity: NibiAgentRuntimeIdentity = {
       generation: runtimeGeneration,
       identity: this.lane
-        ? `${workspaceKey}:${runtimeGeneration}:${child.pid ?? "unknown"}:${this.lane}`
-        : `${workspaceKey}:${runtimeGeneration}:${child.pid ?? "unknown"}`,
-      ...(typeof child.pid === "number" ? { processId: child.pid } : {}),
+        ? `${workspaceKey}:${runtimeGeneration}:${runtimePid ?? "unknown"}:${this.lane}`
+        : `${workspaceKey}:${runtimeGeneration}:${runtimePid ?? "unknown"}`,
+      ...(typeof runtimePid === "number" ? { processId: runtimePid } : {}),
       ...(this.lane ? { lane: this.lane } : {}),
       workspaceKey,
     };
     const exitDiagnostics = Promise.withResolvers<void>();
     const managed: ManagedNibiAgentProcess = {
       child,
+      ...(windowsRuntime ? { windowsRuntime } : {}),
       client,
       exited: false,
       exitDiagnosticsCompleted: exitDiagnostics.promise,
@@ -1254,7 +1288,7 @@ export class NibiAgentProcessManager {
     if (this.idleTimeoutMs) {
       client.onPendingRequestsDrained(() => this.scheduleIdleReclaim(workspaceKey, managed));
     }
-    child.once("spawn", () => {
+    const onSpawn = () => {
       managed.spawned = true;
       // Node spawn() 会先返回 ChildProcess，再异步报告 cwd/command ENOENT。
       // 旧代码在确认 spawn 成功前就发布 runtimeRestarted，订阅方随即重连并再次触发
@@ -1273,10 +1307,10 @@ export class NibiAgentProcessManager {
           state: "available",
         });
       }
-      if (typeof child.pid === "number") {
+      if (typeof runtimePid === "number") {
         this.reportProcessLifecycle((reporter) =>
           reporter.onSpawn({
-            pid: child.pid!,
+            pid: runtimePid!,
             provider: NIBI_AGENT_PROVIDER,
             ...(this.lane ? { lane: this.lane } : {}),
             workspacePath: params.workspacePath,
@@ -1293,16 +1327,19 @@ export class NibiAgentProcessManager {
         workspaceKey,
         command: effectiveCommand.command,
         cwd: spawnPreflight.cwd,
-        pid: child.pid,
+        pid: runtimePid,
+        runtimeHostPid: windowsRuntime?.child.pid,
         durationMs: Date.now() - startStartedAt,
       });
-    });
+    };
+    if (!windowsRuntime) child.once("spawn", onSpawn);
     child.once("error", (error) => {
       errorLog(
         `NIBI agent process error${this.processLifecycleReporter?.onError ? ` ${NIBI_AGENT_LIFECYCLE_LOG_MARKER}` : ""}`,
         {
           workspaceKey,
-          pid: child.pid,
+          pid: runtimePid,
+          runtimeHostPid: windowsRuntime?.child.pid,
           runtimeIdentity: runtimeIdentity.identity,
           errorName: error.name,
           errorMessage: error.message,
@@ -1313,7 +1350,7 @@ export class NibiAgentProcessManager {
       const errno = error as NodeJS.ErrnoException;
       this.reportProcessLifecycle((reporter) =>
         reporter.onError?.({
-          pid: typeof child.pid === "number" ? child.pid : null,
+          pid: typeof runtimePid === "number" ? runtimePid : null,
           provider: NIBI_AGENT_PROVIDER,
           ...(this.lane ? { lane: this.lane } : {}),
           workspacePath: params.workspacePath,
@@ -1328,12 +1365,12 @@ export class NibiAgentProcessManager {
           occurredAt: Date.now(),
         }),
       );
-      if (child.pid == null) {
+      if (runtimePid == null) {
         exitDiagnostics.resolve();
         this.ownedProcesses.delete(managed);
       }
     });
-    child.once("exit", async (code, signal) => {
+    const onExit = async (code: number | null, signal: NodeJS.Signals | null) => {
       try {
         managed.exited = true;
         this.clearIdleTimer(managed);
@@ -1348,7 +1385,8 @@ export class NibiAgentProcessManager {
         const stderr = stderrTail.snapshot();
         const exitContext = {
           workspaceKey,
-          pid: child.pid,
+          pid: runtimePid,
+          runtimeHostPid: windowsRuntime?.child.pid,
           runtimeIdentity: runtimeIdentity.identity,
           code,
           signal,
@@ -1371,10 +1409,10 @@ export class NibiAgentProcessManager {
             },
           );
         }
-        if (typeof child.pid === "number") {
+        if (typeof runtimePid === "number") {
           this.reportProcessLifecycle((reporter) =>
             reporter.onExit({
-              pid: child.pid!,
+              pid: runtimePid!,
               provider: NIBI_AGENT_PROVIDER,
               ...(this.lane ? { lane: this.lane } : {}),
               workspacePath: params.workspacePath,
@@ -1397,7 +1435,9 @@ export class NibiAgentProcessManager {
       } finally {
         exitDiagnostics.resolve();
       }
-    });
+    };
+    if (windowsRuntime) windowsRuntime.onRootExit(onExit);
+    else child.once("exit", onExit);
     client.onRequestTimeout((event) => {
       if (this.processesByWorkspaceKey.get(workspaceKey) !== managed) {
         return;
@@ -1410,7 +1450,7 @@ export class NibiAgentProcessManager {
             method: event.method,
             requestId: event.requestId,
             timeoutMs: event.timeoutMs,
-            pid: child.pid,
+            pid: runtimePid,
           },
         );
         return;
@@ -1420,7 +1460,7 @@ export class NibiAgentProcessManager {
         method: event.method,
         requestId: event.requestId,
         timeoutMs: event.timeoutMs,
-        pid: child.pid,
+        pid: runtimePid,
       });
       this.processesByWorkspaceKey.delete(workspaceKey);
       this.reportRuntimeUnavailable(managed);
@@ -1438,7 +1478,7 @@ export class NibiAgentProcessManager {
       const wasActiveClient = this.processesByWorkspaceKey.get(workspaceKey) === managed;
       log("NIBI agent protocol client closed", {
         workspaceKey,
-        pid: child.pid,
+        pid: runtimePid,
         runtimeIdentity: runtimeIdentity.identity,
         wasActiveClient,
       });
@@ -1457,6 +1497,41 @@ export class NibiAgentProcessManager {
         ).catch(() => undefined);
       }
     });
+    if (windowsRuntime) {
+      const assertAdmission = () => {
+        admissionSignal.throwIfAborted();
+        if (
+          this.disposed ||
+          (this.restartGenerationByWorkspaceKey.get(workspaceKey) ?? 0) !== startGeneration
+        ) {
+          throw new Error("NIBI agent process start was cancelled.");
+        }
+      };
+      try {
+        // ready 是异步边界，恢复 CLI 前重新核对原 admission，旧启动不能跨代复活。
+        assertAdmission();
+        runtimePid = await windowsRuntime.ready();
+        managed.runtimePid = runtimePid;
+        runtimeIdentity.processId = runtimePid;
+        runtimeIdentity.identity = this.lane
+          ? `${workspaceKey}:${runtimeGeneration}:${runtimePid}:${this.lane}`
+          : `${workspaceKey}:${runtimeGeneration}:${runtimePid}`;
+        assertAdmission();
+        registerNetworkCapture();
+        await windowsRuntime.start();
+        onSpawn();
+      } catch (error) {
+        if (this.processesByWorkspaceKey.get(workspaceKey) === managed)
+          this.processesByWorkspaceKey.delete(workspaceKey);
+        await this.cleanupManagedProcessWithRetry(
+          managed,
+          "protocol-close",
+          "protocol-close",
+          "start cancellation",
+        ).catch(() => undefined);
+        throw error;
+      }
+    }
     return client;
   }
 

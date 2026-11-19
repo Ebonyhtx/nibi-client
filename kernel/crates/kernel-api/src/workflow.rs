@@ -572,18 +572,19 @@ pub trait WorkflowActivation: Send + Sync {
     fn activate(&self, session: &crate::ids::SessionId);
 }
 
-/// 持久化历史里有没有过工作流用法（`/workflow` 文本或十一个工具的任一次调用）——
+/// 持久化历史里有没有过工作流用法（`/workflow` 文本或十个工具的任一次调用）——
 /// Node `persistedMessagesShowDynamicWorkflow` 的同一判据，冷恢复按它决定 `onDemand` 会话是否激活。
+/// `ListModels` **不在**这份名单里：它也给 `CreateSession.model` 供目录，只为挑模型调过一次
+/// 不说明会话用过工作流（Node `DYNAMIC_WORKFLOW_TOOL_NAMES` 的同一条注释）。
 pub fn history_shows_dynamic_workflow(
     messages: &[crate::message::Message],
 ) -> bool {
     use crate::message::{ContentBlock, Message};
-    const TOOLS: [&str; 11] = [
+    const TOOLS: [&str; 10] = [
         "CreateWorkflow",
         "AmendWorkflow",
         "SaveWorkflow",
         "ListSavedWorkflows",
-        "ListModels",
         "EvalWorkflowSnippet",
         "ListWorkflowRuns",
         "GetWorkflowRun",

@@ -717,6 +717,20 @@ A subagent that is blocked by something outside its reach asks the main agent in
 
 The engine core is unaware of escalation: it happens inside the driver's execution of one ask, writes no node row, and leaves the ask's `inputHash` untouched. After a resume, an ask that was waiting on a question re-executes and the subagent asks again under a new `qid`. The notification the main agent receives, and the GUI's question row, are described in `transcript-and-notifications.md`.
 
+## Search budget
+
+Each ask may make a bounded number of `WebSearch` calls. Like escalation, the budget lives inside the driver's execution of one ask: the engine core never sees it, it writes no node row and no run event, and it leaves the ask's `inputHash` untouched.
+
+| Element | Behaviour |
+| --- | --- |
+| Limit | `persona.budget.webSearch` when present, else `DEFAULT_WEB_SEARCH_BUDGET_PER_ASK = 128`; the persona value must be an integer from 0 to `MAX_WEB_SEARCH_BUDGET_PER_ASK = 1024` (compile-time rule 9013, `docs/analysis.md`), read once when the driver creates the subagent session |
+| Count | `webSearchesUsed` on the driver's session state; set to 0 by `startAsk`, not by a nudge or a repair turn |
+| Charge | `WorkflowWebSearchBudgetPort.charge()` is called by the `WebSearch` handler after its model/supportsNativeWebSearch checks and before it sends its request; it is synchronous, so parallel calls in one batch are counted exactly. A call outside an ask is not charged and runs, the same as in a session without the port |
+| Over budget | `charge()` returns `{kind: "exhausted", limit, message}`; the handler returns a tool error with `WEB_SEARCH_BUDGET_EXHAUSTED_ERROR_CODE = 2` and that message, and sends no request |
+| Injection | the driver builds the port per subagent session and passes it through the runtime factory with the submit and escalate ports; a runtime without the port has no budget (the main session and ordinary subagents) |
+
+The refusal is an error result rather than a normal one because the `WebSearch` output schema has no field for it, and because the tool error is what usage records count (`tool_usage.status = 'error'`), which makes budget hits visible without a new event. The message asks the subagent to say in its result that its search was cut short; that is how a hit reaches the main agent.
+
 ## Holes
 
 A hole is a request from the script to the main agent for code (`docs/dynamic-workflow/authoring.md`, "Holes"). Unlike an escalation, which lives inside the driver's execution of one ask and which the engine core never sees, a hole is a Boundary A call: the script itself waits on it, so the engine owns it the way it owns an ask, minus the driver.

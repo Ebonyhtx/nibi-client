@@ -49,6 +49,9 @@ const localRuntimeScripts = [
   // 产品态目录（含 node_modules 与 runtime-manifest.json），打包直接取 `.staging`。
   // `shouldPrepareWindowsCuaHelper` 仍用于决定是否断言打包结果（见 electron-builder afterPack）。
   ...(nativeSearchReleasePlan.enabled ? ["prepare:native-search"] : []),
+  // Windows Job helper：CLI 以 suspended 创建并归入 KILL_ON_JOB_CLOSE Job，Host 崩溃时
+  // 整棵树不残留。脚本自身在非 Windows 宿主上跳过，target 判定保证不进其他平台包。
+  ...(target.os === "win32" ? ["prepare:windows-runtime-host"] : []),
   ...(shouldPrepareWindowsBrowserImportHelper ? ["prepare:browser-import-helper"] : []),
   ...(shouldPrepareMacosWindowBounds ? ["prepare:macos-window-bounds"] : []),
 ];

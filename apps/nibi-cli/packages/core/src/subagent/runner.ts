@@ -99,6 +99,8 @@ import {
 
 export interface ExploreSubagentRuntimeRequest {
   agentId: string;
+  /** 本次执行的身份；旧执行的迟到事件不能改写新执行的快照。 */
+  executionId?: string;
   agentType: string;
   allowedTools: readonly string[];
   /** 每次读取都返回 runtime task registry 的当前 foreground/background 状态。 */
@@ -714,6 +716,8 @@ export function createExploreSubagentPort(options: ExploreSubagentPortOptions): 
 
 interface SubagentLifecycle {
   agentId: string;
+  /** 本次执行的身份；SendMessage 恢复会换新，用于迟到的活动事件围栏。 */
+  executionId: string;
   childSessionId: SessionId;
   metadataFile: string;
   outputFile: string;
@@ -964,6 +968,7 @@ function createSubagentLifecycle(
 
   return {
     agentId,
+    executionId: crypto.randomUUID(),
     childSessionId,
     metadataFile,
     outputFile,
@@ -1015,6 +1020,7 @@ function createSubagentLifecycleFromTask(
 
   return {
     agentId,
+    executionId: crypto.randomUUID(),
     childSessionId,
     metadataFile,
     outputFile,
@@ -1275,6 +1281,7 @@ async function runAgentToCompletion(
   const childResult = await options.runExploreAgent(
     {
       agentId: lifecycle.agentId,
+      executionId: lifecycle.executionId,
       agentType: request.agentType,
       allowedTools: resolveAllowedTools(lifecycle.profile, options),
       // 显式 background Agent 的 child tool 会被镜像到父会话；
@@ -1594,6 +1601,7 @@ function createRuntimeTaskSnapshot(input: {
 }): RuntimeTaskSnapshot {
   return {
     taskId: input.lifecycle.agentId,
+    executionId: input.lifecycle.executionId,
     agentId: input.lifecycle.agentId,
     agentType: input.request.agentType,
     childSessionId: input.lifecycle.childSessionId,
@@ -3142,6 +3150,7 @@ function createSubagentLifecycleFromSpawn(
   });
   return {
     agentId,
+    executionId: crypto.randomUUID(),
     childSessionId,
     metadataFile,
     outputFile,

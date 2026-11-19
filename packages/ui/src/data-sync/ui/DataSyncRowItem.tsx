@@ -122,6 +122,36 @@ function DependenciesNote({ row }: { row: DataSyncRow }) {
   );
 }
 
+/** 内置智能体的模型覆盖：只做展示，不参与行状态与勾选；差异行同时给出远端当前的模型。 */
+function ModelOverrideNote({ row }: { row: DataSyncRow }) {
+  const { intl } = useNibiIntl();
+  const override = row.builtInModelOverride;
+  if (!override) return null;
+  const label = (modelId: string, reasoningLevel: string | undefined) =>
+    reasoningLevel ? `${modelId} (${reasoningLevel})` : modelId;
+  return (
+    <div
+      className="space-y-0.5 text-ui-sm text-foreground-subtle"
+      data-testid={`settings-data-sync-model-override-${row.key}`}
+    >
+      <div>
+        {intl.formatMessage(
+          { id: "settings.dataSync.category.modelOverride.source" },
+          { model: label(override.source.modelId, override.source.reasoningLevel) },
+        )}
+      </div>
+      {override.target ? (
+        <div>
+          {intl.formatMessage(
+            { id: "settings.dataSync.category.modelOverride.target" },
+            { model: label(override.target.modelId, override.target.reasoningLevel) },
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /** 分类页的单行：勾选、状态、路径 / 文件摘要、依赖提示、差异原因与逐项推送结果。 */
 export function DataSyncRowItem({
   row,
@@ -198,6 +228,7 @@ export function DataSyncRowItem({
           </div>
         ) : null}
         <DependenciesNote row={row} />
+        <ModelOverrideNote row={row} />
         <div className="text-ui-sm text-foreground-subtle">{noteLabel(intl, row.note)}</div>
         {outcome?.error ? (
           <div className="text-ui-sm text-destructive" role="alert">

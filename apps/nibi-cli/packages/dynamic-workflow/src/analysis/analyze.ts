@@ -8,6 +8,7 @@ import { collectPhaseMarkerDiagnostics } from "./phases.js";
 import { collectHoleDiagnostics } from "./hole-sites.js";
 import { collectDuplicateActorNames, FANOUT_ACTOR_NAME_CODE } from "./actor-names.js";
 import { collectActorModels, type ModelReference } from "./actor-models.js";
+import { collectActorBudgetDiagnostics } from "./actor-budgets.js";
 import { interpret } from "./interpret.js";
 import { projectSiteGraph } from "./graph.js";
 import { projectCausalityGraph, type CausalityGraph } from "./causality-graph.js";
@@ -103,6 +104,9 @@ export function analyzeWorkflowScript(scriptText: string): AnalyzeResult {
     ...worldRun.diagnostics,
     ...artifacts.diagnostics,
     ...models.diagnostics,
+    // 子代理 WebSearch 预算的编译期规则（9013）同席：预算是确认窗里要展示的数，
+    // 一个运行期才成形的上限没有可展示的对象（docs/dynamic-workflow/execution-engine.md「Search budget」）。
+    ...collectActorBudgetDiagnostics(workflow, table),
     ...collectPhaseMarkerDiagnostics(workflow, table),
     // 留白的编译期规则（9012）同席（docs/dynamic-workflow/authoring.md「Holes」）。
     ...collectHoleDiagnostics(workflow, table),

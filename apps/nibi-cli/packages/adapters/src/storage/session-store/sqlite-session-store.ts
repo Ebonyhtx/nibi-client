@@ -1,6 +1,7 @@
 import type { MigrationResult } from "@nibi/shared/sqlite-migrations";
 import { mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
+import { randomUUID } from "node:crypto";
+import { basename, dirname } from "node:path";
 import * as permissionFullAccessRepository from "./repositories/permission-full-access.js";
 import { DatabaseSync } from "node:sqlite";
 import type {
@@ -47,6 +48,9 @@ import type {
   SessionInputDelivery,
   SessionInputRecord,
   SessionInputStatus,
+  SessionDeletionBeginInput,
+  SessionDeletionBeginOutcome,
+  SessionDeletionScope,
   SessionTaskLinkRecord,
   SessionRevert,
   SessionStorePort,
@@ -240,6 +244,9 @@ export class SqliteSessionStore
   private readonly db: DatabaseSync;
   private readonly dbPath: string;
   private readonly forkCommitFaultAt?: ForkCommitFaultStage;
+  /** 本 store 实例的运行时占用 owner；close 时只清自己登记的行。 */
+  private readonly runtimeOwnerID = `${process.pid}:${randomUUID()}`;
+  private runtimePresenceRegistered = false;
   private dwfJournalStore?: JournalStorePort;
 
   private constructor(
@@ -304,7 +311,25 @@ export class SqliteSessionStore
   }
 
   close(): void {
-    this.db.close();
+    try {
+      // 进程/实例退出后不能留下「仍在用」的假事实，否则预检会一直报 running。
+      // 没登记过就不碰库：关闭路径不应为常见情况引入写事务。
+      if (this.runtimePresenceRegistered) {
+        sessionRepository.clearSessionRuntimePresenceForOwner(this.db, this.runtimeOwnerID);
+      }
+    } catch {
+      /* 库已关闭或只读：不能覆盖关闭结果。 */
+    } finally {
+      this.db.close();
+    }
+  }
+
+  /** 本地存储根（`<storage>/cli`）：永久删除按它列/删 artifacts、exec、agents、sessions 与模型轨迹。 */
+  getCliStorageRoot(): string {
+    const directory = dirname(this.dbPath);
+    return basename(directory) === "db" && basename(dirname(directory)) === "cli"
+      ? dirname(dirname(directory))
+      : directory;
   }
 
   private throwBeforeWrite(): void {
@@ -625,7 +650,11 @@ export class SqliteSessionStore
 
   async softDeleteSession(sessionID: SessionId, timeDeleted = Date.now()): Promise<void> {
     this.throwBeforeWrite();
-    sessionRepository.softDeleteSession(this.db, sessionID, timeDeleted);
+    try {
+      sessionRepository.softDeleteSession(this.db, sessionID, timeDeleted);
+    } catch (error) {
+      throw sessionRepository.mapSessionDeletionError(error);
+    }
   }
 
   async getSession(sessionID: SessionId): Promise<SessionInfo | null> {
@@ -634,6 +663,64 @@ export class SqliteSessionStore
 
   async listSessions(input: ListSessionsInput = {}): Promise<SessionInfo[]> {
     return sessionRepository.listSessions(this.db, input);
+  }
+
+  // ── 归档会话的永久删除（session_purge，迁移 0026）──
+  async listOwnedSessionTrees(rootIDs: readonly SessionId[]): Promise<Map<SessionId, SessionId[]>> {
+    return sessionRepository.listOwnedSessionTrees(this.db, rootIDs);
+  }
+
+  async listArtifactReferrers(
+    targetIDs: readonly SessionId[],
+  ): Promise<Map<SessionId, SessionId[]>> {
+    return sessionRepository.listArtifactReferrers(this.db, targetIDs);
+  }
+
+  async inspectSessionDeletion(rootID: SessionId): Promise<SessionDeletionScope> {
+    return sessionRepository.inspectSessionDeletion(this.db, rootID);
+  }
+
+  async beginSessionDeletion(
+    rootID: SessionId,
+    input: SessionDeletionBeginInput,
+  ): Promise<SessionDeletionBeginOutcome> {
+    this.throwBeforeWrite();
+    return sessionRepository.beginSessionDeletion(this.db, rootID, input);
+  }
+
+  async completeSessionDeletion(rootID: SessionId): Promise<void> {
+    this.throwBeforeWrite();
+    sessionRepository.completeSessionDeletion(this.db, rootID);
+  }
+
+  async purgeSessions(sessionIDs: readonly SessionId[]): Promise<void> {
+    this.throwBeforeWrite();
+    sessionRepository.purgeSessions(this.db, sessionIDs);
+  }
+
+  async registerSessionRuntimePresence(
+    sessionID: SessionId,
+    ownerID = this.runtimeOwnerID,
+    processID = process.pid,
+  ): Promise<void> {
+    this.throwBeforeWrite();
+    sessionRepository.registerSessionRuntimePresence(this.db, sessionID, ownerID, processID);
+    if (ownerID === this.runtimeOwnerID) this.runtimePresenceRegistered = true;
+  }
+
+  async unregisterSessionRuntimePresence(
+    sessionID: SessionId,
+    ownerID = this.runtimeOwnerID,
+  ): Promise<void> {
+    sessionRepository.unregisterSessionRuntimePresence(this.db, sessionID, ownerID);
+  }
+
+  async hasSessionRuntimePresence(sessionIDs: readonly SessionId[]): Promise<boolean> {
+    return sessionRepository.hasSessionRuntimePresence(this.db, sessionIDs);
+  }
+
+  async assertSessionNotDeleting(sessionID: SessionId): Promise<void> {
+    sessionRepository.assertSessionNotDeleting(this.db, sessionID);
   }
 
   async claimLegacySessionWorkspace(input: ClaimLegacySessionWorkspaceInput): Promise<number> {
@@ -658,7 +745,11 @@ export class SqliteSessionStore
     copyFrom?: Parameters<SessionStorePort["saveMessage"]>[1],
   ): Promise<void> {
     this.throwBeforeWrite();
-    return messageRepository.saveMessage(this.db, input, copyFrom);
+    try {
+      messageRepository.saveMessage(this.db, input, copyFrom);
+    } catch (error) {
+      throw sessionRepository.mapSessionDeletionError(error);
+    }
   }
 
   async removeMessage(input: { sessionID: SessionId; messageID: MessageId }): Promise<void> {
@@ -671,7 +762,11 @@ export class SqliteSessionStore
     copyFrom?: Parameters<SessionStorePort["savePart"]>[1],
   ): Promise<void> {
     this.throwBeforeWrite();
-    return messageRepository.savePart(this.db, input, copyFrom);
+    try {
+      messageRepository.savePart(this.db, input, copyFrom);
+    } catch (error) {
+      throw sessionRepository.mapSessionDeletionError(error);
+    }
   }
 
   async removePart(input: {
@@ -696,7 +791,11 @@ export class SqliteSessionStore
 
   async saveSessionEntry(input: SessionEntryInfo): Promise<void> {
     this.throwBeforeWrite();
-    return sessionEntryRepository.saveSessionEntry(this.db, input);
+    try {
+      sessionEntryRepository.saveSessionEntry(this.db, input);
+    } catch (error) {
+      throw sessionRepository.mapSessionDeletionError(error);
+    }
   }
 
   async sessionEntries(input: {
@@ -716,7 +815,11 @@ export class SqliteSessionStore
     payload: { text: string; [key: string]: unknown };
   }): Promise<void> {
     this.throwBeforeWrite();
-    return sessionInputRepository.saveSessionInput(this.db, input);
+    try {
+      sessionInputRepository.saveSessionInput(this.db, input);
+    } catch (error) {
+      throw sessionRepository.mapSessionDeletionError(error);
+    }
   }
 
   async commitPermissionFullAccess(

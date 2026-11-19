@@ -21,7 +21,7 @@ import {
   resolveBuiltInToolAllowlist,
   resolveRuntimeDisallowedTools,
 } from "../src/runtime/helpers/tool-allowlist.js";
-import { registerBuiltInTools } from "../src/tool/handlers/index.js";
+import { isDynamicWorkflowToolName, registerBuiltInTools } from "../src/tool/handlers/index.js";
 import { createToolRegistry } from "../src/tool/registry.js";
 import type { AgentRuntimeConfig } from "../src/runtime/types.js";
 
@@ -195,12 +195,12 @@ describe("resolveRuntimeDisallowedTools", () => {
 });
 
 // docs/dynamic-workflow/launch.md「Gray release」DWG-03 / DWG-04。
+// ListModels 不在灰度门里：它的注册另有一条「有消费者才注册」的规则（见下面的矩阵）。
 const GATED_DYNAMIC_WORKFLOW_TOOL_NAMES = [
   CREATE_WORKFLOW_TOOL_NAME,
   AMEND_WORKFLOW_TOOL_NAME,
   SAVE_WORKFLOW_TOOL_NAME,
   LIST_SAVED_WORKFLOWS_TOOL_NAME,
-  LIST_MODELS_TOOL_NAME,
   EVAL_WORKFLOW_SNIPPET_TOOL_NAME,
   LIST_WORKFLOW_RUNS_TOOL_NAME,
   GET_WORKFLOW_RUN_TOOL_NAME,
@@ -223,12 +223,23 @@ describe("registerBuiltInTools：动态工作流灰度门", () => {
 
   // 灰度关闭只针对动态工作流：开门与关门之间的差集必须**恰好**是这十个。
   // 反向地也守住了旧 `Workflow`（/expert 脚本通道）——它的门始终只有 includeWorkflow，
-  // 不因灰度多一道或少一道。
+  // 不因灰度多一道或少一道。会话控制在场时 ListModels 另有消费者，两种取值下都保留。
   it("关门与开门的差集恰好是十个，不多剃一件工具", () => {
     const enabled = createToolRegistry();
-    registerBuiltInTools(enabled, { includeDynamicWorkflow: true, includeWorkflow: true });
+    registerBuiltInTools(enabled, {
+      includeDynamicWorkflow: true,
+      includeWorkflow: true,
+      includeSessionControl: true,
+    });
     const disabled = createToolRegistry();
-    registerBuiltInTools(disabled, { includeDynamicWorkflow: false, includeWorkflow: true });
+    registerBuiltInTools(disabled, {
+      includeDynamicWorkflow: false,
+      includeWorkflow: true,
+      includeSessionControl: true,
+    });
+
+    expect(enabled.has(LIST_MODELS_TOOL_NAME)).toBe(true);
+    expect(disabled.has(LIST_MODELS_TOOL_NAME)).toBe(true);
 
     const registeredWhenDisabled = new Set(disabled.list());
     expect(
@@ -250,6 +261,40 @@ describe("registerBuiltInTools：动态工作流灰度门", () => {
       }
     },
   );
+});
+
+// ListModels 有消费者才注册（规格 0.15）：消费者一是 CreateWorkflow（灰度开启或未指定），
+// 消费者二是 CreateSession（会话控制在场：CLI 或 App）。两条门分开判，所以这里跑完整矩阵。
+describe("registerBuiltInTools：ListModels 注册矩阵", () => {
+  it.each([
+    // 灰度开启 / 未指定：CreateWorkflow 在场，与有没有会话控制无关。
+    { gate: undefined, cli: undefined, app: undefined, registered: true },
+    { gate: undefined, cli: true, app: undefined, registered: true },
+    { gate: undefined, cli: undefined, app: true, registered: true },
+    { gate: true, cli: undefined, app: undefined, registered: true },
+    { gate: true, cli: true, app: undefined, registered: true },
+    { gate: true, cli: undefined, app: true, registered: true },
+    // 灰度关闭：只有 CreateSession 在场时才留。
+    { gate: false, cli: undefined, app: undefined, registered: false },
+    { gate: false, cli: true, app: undefined, registered: true },
+    { gate: false, cli: undefined, app: true, registered: true },
+  ])(
+    "gate=$gate, cli=$cli, app=$app → registered=$registered",
+    ({ gate, cli, app, registered }) => {
+      const registry = createToolRegistry();
+      registerBuiltInTools(registry, {
+        ...(gate === undefined ? {} : { includeDynamicWorkflow: gate }),
+        ...(cli === undefined ? {} : { includeSessionControl: cli }),
+        ...(app === undefined ? {} : { includeAppSessionControl: app }),
+      });
+      expect(registry.has(LIST_MODELS_TOOL_NAME)).toBe(registered);
+    },
+  );
+
+  // 冷恢复按历史判激活：只为 CreateSession.model 调过一次 ListModels 不说明会话用过工作流。
+  it("ListModels 不是动态工作流的激活信号", () => {
+    expect(isDynamicWorkflowToolName(LIST_MODELS_TOOL_NAME)).toBe(false);
+  });
 });
 
 // 灰度门从 runtimeConfig 走到注册表的这一跳（runtime-tools.ts）：与 off-peak 不同，

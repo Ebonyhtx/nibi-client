@@ -22,6 +22,7 @@ import type {
 import { maybeThrowStorageFsFault } from "./fs-fault-injection.js";
 
 export * from "./session-store.js";
+export * from "./session-data-files/index.js";
 
 // 内存 event store 实现已下沉到 @nibi/contracts，
 // 这里保持 `@nibi/adapters/storage` 的导出路径不变，避免调用方改 import。

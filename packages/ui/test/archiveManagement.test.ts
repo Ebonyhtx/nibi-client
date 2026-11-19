@@ -9,6 +9,8 @@ import { useArchiveManagement } from "@/project-sidebar/useArchiveManagement.js"
 const mocks = vi.hoisted(() => ({
   directory: {} as any,
   mutateTask: vi.fn(),
+  preview: vi.fn(),
+  permanentDelete: vi.fn(),
   confirm: vi.fn(),
   removeTaskState: vi.fn(),
   findArchiveRow: vi.fn(),
@@ -20,6 +22,14 @@ vi.mock("@/project-sidebar/ProjectDirectoryProvider.js", () => ({
 vi.mock("@/hooks/useWorkspaceServices.js", () => ({
   useBaseWorkspaceServices: () => ({ windowControllerService: mocks, nibiTaskService: {} }),
 }));
+vi.mock("@/project-sidebar/task-mutation.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/project-sidebar/task-mutation.js")>();
+  return {
+    ...actual,
+    previewProjectTaskDeletion: mocks.preview,
+    permanentlyDeleteProjectTask: mocks.permanentDelete,
+  };
+});
 vi.mock("@/hooks/useConfirmDialog.js", () => ({ useConfirmDialog: () => mocks.confirm }));
 vi.mock("@/lib/nibiFeatherFall.js", () => ({
   findArchiveTaskRowRect: mocks.findArchiveRow,
@@ -76,6 +86,21 @@ const tree = (): ProjectTree => ({
     task("active", { archived: false }),
   ],
 });
+
+function preview(extra: Record<string, unknown> = {}) {
+  return {
+    taskId: "alpha",
+    revision: "rev-1",
+    sessionIds: ["alpha"],
+    forks: [],
+    retainedArtifacts: [],
+    deletedFiles: 1,
+    incomplete: false,
+    completed: false,
+    ...extra,
+  };
+}
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -149,74 +174,146 @@ function setup() {
     error: null,
     loading: false,
   };
-  mocks.confirm.mockResolvedValue(true);
-  mocks.mutateTask.mockResolvedValue(null);
+  // 真实确认框会在打开后执行 prepare；测试里显式调用，覆盖“预检完成前取消”的路径。
+  mocks.confirm.mockImplementation(async (request: any) => {
+    await request.prepare?.();
+    return true;
+  });
+  mocks.preview.mockResolvedValue(preview());
+  mocks.permanentDelete.mockResolvedValue({
+    taskId: "alpha",
+    status: "deleted",
+    sessionIds: ["alpha"],
+    retainedArtifacts: 0,
+  });
   return renderHook(() => useArchiveManagement());
 }
-it("cancelled deletion does not mutate; one in-flight batch rejects duplicate clicks and preserves failures", async () => {
+
+it("取消预检不执行永久删除", async () => {
   const { result } = setup();
-  mocks.confirm.mockResolvedValueOnce(false);
+  mocks.confirm.mockImplementation(async (request: any) => {
+    await request.prepare?.();
+    return false;
+  });
   await act(async () => {
     await result.current.run([tree().tasks[0]!], "delete");
   });
-  expect(mocks.mutateTask).not.toHaveBeenCalled();
-  let release!: () => void;
-  mocks.mutateTask
-    .mockImplementationOnce(
-      () =>
-        new Promise<void>((r) => {
-          release = r;
-        }),
-    )
-    .mockRejectedValueOnce(new Error("offline"));
-  let pending!: Promise<void>;
-  act(() => {
-    pending = result.current.run(tree().tasks.slice(0, 2), "unarchive");
-  });
-  await act(async () => {
-    await result.current.run([tree().tasks[0]!], "unarchive");
-  });
-  expect(mocks.mutateTask).toHaveBeenCalledTimes(1);
-  await act(async () => {
-    release();
-    await pending;
-  });
-  expect(mocks.mutateTask).toHaveBeenCalledTimes(2);
-  expect(result.current.result).toEqual({ succeeded: 1, failed: 1, skipped: 0 });
-  expect(mocks.directory.refresh).toHaveBeenCalledOnce();
-  expect(result.current.busy).toBe(false);
+  expect(mocks.preview).toHaveBeenCalledTimes(1);
+  expect(mocks.permanentDelete).not.toHaveBeenCalled();
+  expect(result.current.result).toBeNull();
 });
-it("plays the feather from the visible archived row after a successful delete", async () => {
+it("deleted：确认后调用永久删除并移除本地状态", async () => {
   const { result } = setup();
   const rowRect = { right: 100, top: 40, height: 32 } as DOMRect;
   mocks.findArchiveRow.mockReturnValue(rowRect);
   await act(async () => {
     await result.current.run([tree().tasks[0]!], "delete");
   });
+  expect(mocks.permanentDelete).toHaveBeenCalledWith(
+    { service: {}, controller: mocks },
+    expect.objectContaining({ taskId: "alpha" }),
+    "rev-1",
+    expect.any(String),
+    null,
+  );
+  expect(mocks.removeTaskState).toHaveBeenCalledWith("/same", "alpha", undefined);
   expect(mocks.playFeather).toHaveBeenCalledWith(rowRect);
+  expect(result.current.result).toEqual({ succeeded: 1, failed: 0, skipped: 0, incomplete: 0 });
+  expect(mocks.directory.refresh).toHaveBeenCalledOnce();
 });
-it("does not expand the confirmed batch and skips rows unarchived while the dialog is open", async () => {
+it("blocked：不执行删除、不计成功，并展示无法删除的原因", async () => {
+  const { result } = setup();
+  mocks.preview.mockResolvedValue(preview({ blockedReason: "running" }));
+  await act(async () => {
+    await result.current.run([tree().tasks[0]!], "delete");
+  });
+  expect(mocks.permanentDelete).not.toHaveBeenCalled();
+  expect(mocks.removeTaskState).not.toHaveBeenCalled();
+  expect(result.current.result).toEqual({ succeeded: 0, failed: 1, skipped: 0, incomplete: 0 });
+  const request = mocks.confirm.mock.calls[0]![0];
+  const patch = await request.prepare();
+  expect(patch.confirmDisabled).toBe(true);
+  expect(patch.description).toContain("archives.previewCannotDelete");
+  expect(patch.description).toContain("archives.previewBlocked.running");
+});
+it("incomplete：保留行并暴露继续删除，续删成功后收敛", async () => {
+  const { result } = setup();
+  mocks.preview.mockResolvedValue(preview({ incomplete: true }));
+  mocks.permanentDelete.mockResolvedValueOnce({
+    taskId: "alpha",
+    status: "incomplete",
+    sessionIds: ["alpha"],
+    retainedArtifacts: 1,
+    reason: "session-data.file-busy",
+  });
+  await act(async () => {
+    await result.current.run([tree().tasks[0]!], "delete");
+  });
+  expect(mocks.removeTaskState).not.toHaveBeenCalled();
+  expect(result.current.result).toEqual({ succeeded: 0, failed: 0, skipped: 0, incomplete: 1 });
+  expect(result.current.resumable.map((t) => t.taskId)).toEqual(["alpha"]);
+
+  mocks.permanentDelete.mockResolvedValueOnce({
+    taskId: "alpha",
+    status: "deleted",
+    sessionIds: ["alpha"],
+    retainedArtifacts: 0,
+  });
+  await act(async () => {
+    await result.current.run(result.current.resumable, "delete");
+  });
+  expect(mocks.removeTaskState).toHaveBeenCalledWith("/same", "alpha", undefined);
+});
+it("一次在途批次拒绝重复点击，并跳过确认期间已恢复的归档行", async () => {
   const { result, rerender } = setup();
-  let confirm!: (value: boolean) => void;
-  mocks.confirm.mockImplementationOnce(
+  let release!: () => void;
+  mocks.permanentDelete.mockImplementationOnce(
     () =>
-      new Promise<boolean>((r) => {
-        confirm = r;
+      new Promise((resolve) => {
+        release = () =>
+          resolve({
+            taskId: "alpha",
+            status: "deleted",
+            sessionIds: ["alpha"],
+            retainedArtifacts: 0,
+          });
       }),
   );
   let pending!: Promise<void>;
   act(() => {
     pending = result.current.run([tree().tasks[0]!], "delete");
   });
+  await act(async () => {
+    await result.current.run([tree().tasks[0]!], "delete");
+  });
+  expect(mocks.permanentDelete).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    release();
+    await pending;
+  });
+  expect(mocks.permanentDelete).toHaveBeenCalledTimes(1);
+
   mocks.directory = {
     ...mocks.directory,
-    tree: { ...tree(), tasks: [task("alpha", { archived: false }), task("new")] },
+    tree: { ...tree(), tasks: [task("alpha", { archived: false })] },
   };
   rerender();
   await act(async () => {
-    confirm(true);
-    await pending;
+    await result.current.run([tree().tasks[0]!], "delete");
   });
-  expect(mocks.mutateTask).not.toHaveBeenCalled();
+  expect(mocks.permanentDelete).toHaveBeenCalledTimes(1);
   expect(result.current.result?.skipped).toBe(1);
+});
+it("unarchive 仍走原有归档写入且不需要永久删除确认", async () => {
+  const { result } = setup();
+  mocks.mutateTask.mockResolvedValue(null);
+  await act(async () => {
+    await result.current.run([tree().tasks[0]!], "unarchive");
+  });
+  expect(mocks.confirm).not.toHaveBeenCalled();
+  expect(mocks.mutateTask).toHaveBeenCalledWith({
+    address: expect.objectContaining({ taskId: "alpha", workspacePath: "/same" }),
+    mutation: { kind: "archive", archived: false },
+  });
+  expect(result.current.result).toEqual({ succeeded: 1, failed: 0, skipped: 0, incomplete: 0 });
 });

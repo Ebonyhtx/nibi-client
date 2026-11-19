@@ -12,19 +12,23 @@ use nibi_kernel_api::clock::Clock;
 use nibi_kernel_api::env::WorkspaceRef;
 use nibi_kernel_api::ids::{AgentId, SessionId, ToolUseId};
 use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::orchestration::QueryEvent;
 use nibi_kernel_api::permission::{ExecutionState, PermissionMode};
 
 use crate::definitions::AgentDefinition;
 use crate::doing::Doing;
 use crate::report::{Ending, Report};
+use crate::stall::{Activity, StallAgent, StallStamp};
 
-/// 发给某个子代理的一条通知：它派生的后台子代理结束了。
+/// 发给某个子代理的一条通知：它派生的后台子代理结束了，或它自己长时间没有进展（`stall`）。
 #[derive(Debug, Clone)]
 pub(crate) struct Notice {
     pub(crate) from: AgentId,
     pub(crate) status: &'static str,
-    /// `<task-notification>` 信封（不带说明与包装）。
+    /// `<task-notification>` 或 `<background-agent-stall>` 信封（不带说明与包装）。
     pub(crate) envelope: String,
+    /// 无进展提醒的时效条件：并入前再核对一次，不成立就丢弃（stall.rs）。
+    pub(crate) stall: Option<StallStamp>,
 }
 
 /// 邮箱里的一项：SendMessage 的消息在工具边界作为插话并入，通知作为 `task-notification` 并入。
@@ -92,6 +96,10 @@ pub(crate) struct Shown {
     pub(crate) version: u64,
     /// 当前活动与记下它的时刻（L35，stall-visibility.md §4.3）；离开运行时清掉。
     pub(crate) doing: Option<(Doing, u64)>,
+    /// 进展时刻与在途工具（后台无进展提醒，stall.rs）：由子循环事件折进来，离开运行时清掉。
+    pub(crate) activity: Option<Activity>,
+    /// 这次运行的代号（SendMessage 续跑换新）：提醒并入前据此判断是否过时。
+    pub(crate) run_epoch: u64,
     /// 最近一个完成的子代理请求的输出速度（修复线 F112，tui-panels.md §1.7：查看它时 footer 的 TPS）：只在内存里，
     /// 与主会话的速度同一个口径（tui-display.md §2.6）。续跑与结束都不清掉。
     pub(crate) speed: Option<nibi_kernel_api::metering::OutputSpeed>,
@@ -115,6 +123,23 @@ impl LiveAgent {
     /// 还在跑或停放。
     pub(crate) fn is_live(&self) -> bool {
         !matches!(self.state, AgentState::Finished(_))
+    }
+
+    /// 无进展提醒的基准：最近一次进展的时刻；这次运行还没有进展时是运行的开始时刻。
+    pub(crate) fn progress_ms(&self) -> u64 {
+        self.shown
+            .activity
+            .as_ref()
+            .and_then(|activity| activity.last_progress_ms)
+            .unwrap_or(self.shown.started_ms)
+    }
+
+    /// 在等权限审批（后台无进展提醒在此期间完全不提醒）。
+    pub(crate) fn waiting_permission(&self) -> bool {
+        self.shown
+            .activity
+            .as_ref()
+            .is_some_and(Activity::waiting_permission)
     }
 }
 
@@ -200,6 +225,7 @@ impl Live {
     pub(crate) fn insert(&self, mut agent: LiveAgent) {
         agent.shown.order = self.order.fetch_add(1, Ordering::Relaxed);
         agent.shown.started_ms = self.clock.now_ms();
+        agent.shown.run_epoch = 1;
         self.change(|agents| agents.insert(agent.agent.clone(), agent));
     }
 
@@ -256,6 +282,84 @@ impl Live {
 
     pub(crate) fn get(&self, agent: &AgentId) -> Option<LiveAgent> {
         self.agents().get(agent).cloned()
+    }
+
+    /// 注入的时钟（无进展钟的到期计算与 `Live` 的时刻同源）。
+    pub(crate) fn now_ms(&self) -> u64 {
+        self.clock.now_ms()
+    }
+
+    /// 子循环事件折进条目的活动（stall.rs）。不是进展、也不改变在途工具的事件在这里挡掉。
+    pub(crate) fn note_event(&self, agent: &AgentId, event: &QueryEvent) {
+        if !Activity::relevant(event) {
+            return;
+        }
+        self.change(|agents| {
+            if let Some(entry) = agents.get_mut(agent)
+                && matches!(entry.state, AgentState::Running { .. })
+            {
+                let now = self.clock.now_ms();
+                entry
+                    .shown
+                    .activity
+                    .get_or_insert_with(Activity::default)
+                    .apply(event, now);
+            }
+        });
+    }
+
+    /// 开始等权限审批：只记挂起，不算进展。
+    pub(crate) fn permission_started(&self, agent: &AgentId, tool_use: &ToolUseId) {
+        self.change(|agents| {
+            if let Some(entry) = agents.get_mut(agent)
+                && matches!(entry.state, AgentState::Running { .. })
+            {
+                entry
+                    .shown
+                    .activity
+                    .get_or_insert_with(Activity::default)
+                    .permission_started(tool_use);
+            }
+        });
+    }
+
+    /// 审批结束（允许或拒绝）：从这一刻重新计时，等人的时间不算无进展。
+    pub(crate) fn permission_ended(&self, agent: &AgentId, tool_use: &ToolUseId) {
+        self.change(|agents| {
+            if let Some(entry) = agents.get_mut(agent)
+                && matches!(entry.state, AgentState::Running { .. })
+            {
+                let now = self.clock.now_ms();
+                entry
+                    .shown
+                    .activity
+                    .get_or_insert_with(Activity::default)
+                    .permission_ended(tool_use, now);
+            }
+        });
+    }
+
+    /// 无进展钟看到的在跑后台子代理（stall.rs）：只复制它要用的字段。
+    pub(crate) fn stall_agents(&self) -> Vec<StallAgent> {
+        self.agents()
+            .values()
+            .filter(|agent| agent.background && matches!(agent.state, AgentState::Running { .. }))
+            .map(|agent| StallAgent {
+                agent: agent.agent.clone(),
+                parent: agent.parent.clone(),
+                description: agent.description.clone(),
+                started_ms: agent.shown.started_ms,
+                progress_ms: agent.progress_ms(),
+                epoch: agent.shown.run_epoch,
+                running: agent
+                    .shown
+                    .activity
+                    .as_ref()
+                    .map(|activity| activity.running.clone())
+                    .unwrap_or_default(),
+                waiting_permission: agent.waiting_permission(),
+            })
+            .collect()
     }
 
     /// 顶层会话：`session` 是某个子代理的子会话时取它的顶层会话，否则就是它自己。
@@ -346,13 +450,24 @@ impl Live {
             .collect()
     }
 
-    /// 发给它的通知（信封）。
+    /// 发给它的通知（信封）。无进展提醒在并入前再核对一次时效条件：子代理已结束、换了执行、有了新进展
+    /// 或进入审批时丢弃，免得主代理先读到「无进展」再读到终态通知（stall.rs）。
     pub(crate) fn take_notices(&self, agent: &AgentId) -> Vec<Notice> {
-        self.take(agent, true)
+        let taken = self.take(agent, true);
+        let agents = self.agents();
+        taken
             .into_iter()
             .filter_map(|mail| match mail {
-                Mail::Notice(notice) => Some(notice),
-                Mail::Message(_) => None,
+                Mail::Notice(notice)
+                    if notice.stall.as_ref().is_none_or(|stamp| {
+                        agents
+                            .get(&notice.from)
+                            .is_some_and(|entry| stamp.matches(entry))
+                    }) =>
+                {
+                    Some(notice)
+                }
+                _ => None,
             })
             .collect()
     }
@@ -378,6 +493,9 @@ fn settle_times(agents: &mut Agents, now: u64) {
             (true, Some(_)) => {
                 agent.shown.started_ms = now;
                 agent.shown.ended_ms = None;
+                // 续跑是新的执行：进展基准与提醒计数从头开始（stall.rs）。
+                agent.shown.activity = None;
+                agent.shown.run_epoch = agent.shown.run_epoch.wrapping_add(1);
             }
             (false, None) => {
                 agent.shown.ended_ms = Some(now);

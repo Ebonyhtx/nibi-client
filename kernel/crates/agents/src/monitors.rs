@@ -117,6 +117,7 @@ async fn deliver(
         from: AgentId::new(task.as_str()),
         status,
         envelope,
+        stall: None,
     };
     let wake = core
         .live

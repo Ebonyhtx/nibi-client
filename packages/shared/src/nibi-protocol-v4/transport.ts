@@ -12,7 +12,7 @@ import {
   timestampSchema,
 } from "./core.js";
 import { conversationDeltaSchema } from "./delta.js";
-import { conversationRowSchema, toolCallRowSchema } from "./rows.js";
+import { displayConversationRowSchema, toolCallRowSchema } from "./rows.js";
 import { sessionsIndexDeltaSchema, sessionsIndexSnapshotSchema } from "./sessions-index.js";
 import { WORKFLOW_RUN_STOP_REASONS } from "./workflow-observation-display.js";
 import { conversationSnapshotSchema } from "./snapshot.js";
@@ -375,6 +375,11 @@ export const V4_METHODS = {
   // 新方法偏斜安全：旧 CLI 返回 method-not-found，Host 据此不显示「清理数据」入口。
   sessionDataMeasure: "v4/storage/sessionData/measure",
   sessionDataPurge: "v4/storage/sessionData/purge",
+  // 归档会话的永久删除（schema 在 session-data.ts）。与上面的项目数据清理是两条路径：
+  // preview 只读库并列出文件；execute 用 preview 的 revision 再核对一次，开删凭据后删文件、删行。
+  // 新方法偏斜安全：旧 CLI 返回 method-not-found，Host 据此不显示永久删除入口。
+  sessionDeletionPreview: "v4/storage/sessionData/deletionPreview",
+  sessionDeletionExecute: "v4/storage/sessionData/deletionExecute",
   // 附件事务：禁止 full-data RPC。每个 chunk 的 decoded bytes <=512KiB，
   // renderer->host Channel 与 host->CLI NDJSON 都必须逐 request 证明 <=1MiB。
   attachmentBegin: "v4/attachment/begin",
@@ -532,8 +537,8 @@ export const v4ConversationRowsRangeParamsSchema = z.object({
 export type V4ConversationRowsRangeParams = z.infer<typeof v4ConversationRowsRangeParamsSchema>;
 
 export const v4ConversationRowsRangeResultSchema = z.object({
-  // rowId 升序。
-  rows: z.array(conversationRowSchema),
+  // rowId 升序。与 rows.window 同一档逐行降级：读不懂的行退化成 unreadable 占位行。
+  rows: z.array(displayConversationRowSchema),
   // 服务端取值时的水位/纪元；与 fileChanges 等只读查询共用，避免跨 revision 拼接发布数据。
   atSeq: z.number(),
   atRevision: z.number().int().nonnegative(),

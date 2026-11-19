@@ -3,6 +3,7 @@ import type { Model } from "../deps.js";
 import type { RuntimeMessageEntry } from "../../agent/message-history.js";
 import type { AgentRuntimeInternal } from "../internal.js";
 import { buildContextHistoryEntries } from "./context-history-entries.js";
+import { promptSnapshotFor } from "../helpers/prompt-snapshot.js";
 
 export function rebuildContextPrefix(
   runtime: AgentRuntimeInternal,
@@ -35,7 +36,20 @@ export function rebuildContextPrefix(
     { memoryIndexContent: runtime.memoryIndexContent, model: options.model },
   );
   const effectiveContextResult = runtime.contextBuilder.build();
-  const contextEntries = buildContextHistoryEntries(effectiveContextResult);
+  const freshContextEntries = buildContextHistoryEntries(effectiveContextResult);
+  // 主会话的 prompt 快照适用于这个模型时，system 用快照记录的字节，不用当前代码的渲染结果。
+  // 修复原因：system 原来每次按当前代码重建，升级或冷恢复后已发送的前缀字节改变，prompt cache 失效。
+  // NIBI 的 context prefix 还包含 meta user attachments（skills listing / request user context）；
+  // 快照与上游一致只记录 system，所以这些附件仍用本次构建结果，紧跟在快照 system 之后。
+  const snapshot = promptSnapshotFor(runtime, options.model);
+  const contextEntries: RuntimeMessageEntry[] = snapshot
+    ? [
+        ...snapshot.system.map(
+          (message): RuntimeMessageEntry => ({ message: structuredClone(message) }),
+        ),
+        ...freshContextEntries.filter((entry) => entry.kind === "attachment"),
+      ]
+    : freshContextEntries;
   const canonicalEntries = runtime.messageHistory.borrowReadOnlyRuntimeEntries();
   const canonicalConversationEntries = canonicalEntries.slice(
     countContextPrefixMessages(canonicalEntries),

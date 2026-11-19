@@ -194,12 +194,16 @@ describe("ListModels", () => {
 
   /**
    * 描述是模型唯一的读者，而这个工具最容易被误读成「切换我自己的模型」的入口——那会换来一次
-   * 向用户报告的、根本没发生过的模型切换。
+   * 向用户报告的、根本没发生过的模型切换。两个消费方都必须写在描述里：CreateSession 的 `model`
+   * 与工作流的 `subagent_model`。
    */
-  it("tells the model the id pastes into subagent_model and that the session model does not move", () => {
+  it("tells the model the id pastes into CreateSession.model or subagent_model, and that no session model moves", () => {
     const description = listModelsToolEntry.metadata.description ?? "";
+    expect(description).toContain("CreateSession");
+    expect(description).toContain("`model`");
     expect(description).toContain("subagent_model");
     expect(description).toContain("does NOT change the model you are running on");
+    expect(description).toContain("no tool changes an existing session's model");
     expect(description).toContain("[current]");
     expect(description).toContain("$<level>");
   });

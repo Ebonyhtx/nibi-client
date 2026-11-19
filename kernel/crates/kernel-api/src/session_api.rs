@@ -1830,6 +1830,32 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// 归档会话的永久删除预检（`v4/storage/sessionData/deletionPreview`）：只读库、列文件、问打开着的会话在不在用。
+    /// 缺省 `Unsupported`，协议层回标准错误。
+    async fn deletion_preview(
+        &self,
+        _session: &SessionId,
+        _workspace: &WorkspaceRef,
+    ) -> Result<crate::deletion::DeletionPreview, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session deletion preview".to_owned(),
+        })
+    }
+
+    /// 执行归档会话的永久删除（`v4/storage/sessionData/deletionExecute`）：占住会话、再预检、写删除凭据、删文件、删行。
+    /// `operation` 写进凭据的 `operation_id`。缺省 `Unsupported`，协议层回标准错误。
+    async fn delete_permanently(
+        &self,
+        _session: &SessionId,
+        _workspace: &WorkspaceRef,
+        _revision: &str,
+        _operation: &str,
+    ) -> Result<crate::deletion::DeletionResult, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "permanent session deletion".to_owned(),
+        })
+    }
+
     /// 会话的只读快照（F29，`/resume` 页的预览与全屏对话）：打开着的问它的 actor，否则从存储冷加载；不打开会话、
     /// 不启动 actor、不跑 SessionStart。
     async fn session_snapshot(&self, _session: &SessionId) -> Result<SessionView, KernelError> {

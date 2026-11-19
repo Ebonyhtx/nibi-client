@@ -60,6 +60,10 @@ import {
   subscribeSession,
 } from "./server-operations.js";
 import { listChildProcesses } from "./process-child-processes.js";
+import {
+  executeSessionDeletion,
+  previewSessionDeletion,
+} from "./session-data/permanent-deletion.js";
 import { ProtocolRuntimeResources } from "./runtime-resources.js";
 import {
   readWorkspacePresentation,
@@ -666,6 +670,12 @@ export class NibiProtocolAgentServer {
         return await getUsageStats(this.context, request.params);
       case V4_METHODS.conversationUsage:
         return await getTaskTokenUsage(this.context, request.params);
+      // 归档会话的永久删除：preview 只读；execute 用 preview 的 revision 再核对一次。
+      // 与旧 sessionData/measure|purge（项目数据清理）是两条路径。
+      case V4_METHODS.sessionDeletionPreview:
+        return await previewSessionDeletion(this.context, request.params);
+      case V4_METHODS.sessionDeletionExecute:
+        return await executeSessionDeletion(this.context, request.params);
       case V4_METHODS.command:
         return this.requireV4Gateway().handleCommand(request.params);
       case V4_METHODS.commandsQuery:

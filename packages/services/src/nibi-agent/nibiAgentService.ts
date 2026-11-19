@@ -282,6 +282,8 @@ import type {
   NibiAgentSessionsIndexSubscribeParams,
   NibiAgentSessionDataParams,
   NibiAgentSessionDataPurgeParams,
+  NibiAgentSessionDeletionExecuteParams,
+  NibiAgentSessionDeletionParams,
   NibiAgentWorkspaceConfigSubscribeParams,
 } from "./nibiAgent.js";
 import {
@@ -362,6 +364,8 @@ import {
 import {
   requestSessionDataMeasure,
   requestSessionDataPurge,
+  requestSessionDeletionExecute,
+  requestSessionDeletionPreview,
 } from "#src/nibi-agent/sessionDataRequest.js";
 import { NibiAgentProcessManager } from "./nibiAgentProcessManager.js";
 import type { NibiAgentProcessManagerOptions } from "./nibiAgentProcessManager.js";
@@ -3836,6 +3840,49 @@ export function createNibiAgentService(
         }
       }
       return undefined;
+    },
+
+    async previewSessionDeletion({ sessionId, workspace }: NibiAgentSessionDeletionParams) {
+      // 预检只读：已加载该 cwd 的进程能报告运行时占用；没有进程时交给管理面进程读库。
+      // 绝不为了预检拉起项目 Agent（文件夹可能已经不存在）。
+      // 远程 workspace 由 Controller 路由到拥有它的 Host；在拥有者上 identity 可能就是远程
+      // 形态，所以这里不能按 identity 形态拒绝。
+      const client = await getReadOnlyClient(workspace, "existing-only").catch(() =>
+        getPluginManagementClient(),
+      );
+      return requestSessionDeletionPreview(client, {
+        sessionId,
+        workspace: {
+          workspacePath: workspace.workspacePath,
+          ...(workspace.workspaceIdentity
+            ? { workspaceIdentity: workspace.workspaceIdentity }
+            : {}),
+        },
+      });
+    },
+
+    async executeSessionDeletion({
+      sessionId,
+      workspace,
+      revision,
+      operationId,
+    }: NibiAgentSessionDeletionExecuteParams) {
+      // 与 purge 同一载体选择：会话可能已加载在该 cwd 的 Agent 进程里，必须由那个进程
+      // 删除才能判断运行中并释放会话；没有进程时交给管理面进程完成文件与行删除。
+      const client = await getReadOnlyClient(workspace, "existing-only").catch(() =>
+        getPluginManagementClient(),
+      );
+      return requestSessionDeletionExecute(client, {
+        sessionId,
+        workspace: {
+          workspacePath: workspace.workspacePath,
+          ...(workspace.workspaceIdentity
+            ? { workspaceIdentity: workspace.workspaceIdentity }
+            : {}),
+        },
+        revision,
+        operationId,
+      });
     },
 
     async readSession(params: NibiAgentReadSessionParams) {
