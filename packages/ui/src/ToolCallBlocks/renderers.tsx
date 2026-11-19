@@ -91,6 +91,10 @@ export function renderFileChip({
           event.preventDefault();
           event.stopPropagation();
         }}
+        onKeyDown={(event) => {
+          // 文件 chip 在摘要/分组 trigger 内：按键事件不要冒泡成展开/收起。
+          event.stopPropagation();
+        }}
         onClick={(event) => {
           event.stopPropagation();
           onClick?.();
@@ -238,7 +242,6 @@ export function CollapsedChangeSummary({
               chipRefs.current[index] = element;
             }}
             aria-hidden={index >= visible ? true : undefined}
-            onKeyDown={onOpenFile ? (event) => event.stopPropagation() : undefined}
             className={
               index < visible
                 ? "inline-flex shrink-0"

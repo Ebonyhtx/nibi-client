@@ -298,17 +298,13 @@ export function ConsecutiveSummaryGroup({
     >
       {/* 使用块级 flex，避免 inline-flex 的基线空隙抬高统计组头。 */}
       <CollapsibleTrigger asChild>
-        <div
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
           aria-expanded={open}
           aria-controls={contentId}
           data-summary-group-trigger
           aria-label={statistics}
-          onKeyDown={(event) =>
-            handleToolSummaryActionKeyDown(event, () => setOpen((value) => !value))
-          }
-          className="summary-hover-text group/tool-summary flex w-fit max-w-full min-w-0 cursor-pointer items-center gap-2 text-ui-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
+          className="summary-hover-text group/tool-summary flex w-fit max-w-full min-w-0 cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left text-ui-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
         >
           {/* 无活动项只是工具间隙；收起时保留末尾摘要，结构闭合后才切换统计。 */}
           {open || !groupRunning ? (
@@ -361,7 +357,7 @@ export function ConsecutiveSummaryGroup({
               open && "rotate-90",
             )}
           />
-        </div>
+        </button>
       </CollapsibleTrigger>
       {/* 条件卸载会跳过收起动画，交由共享 Collapsible 的 Presence 管理生命周期。 */}
       <CollapsibleContent id={contentId}>
