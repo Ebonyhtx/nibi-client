@@ -148,10 +148,9 @@ describe("登录失败态的取消交互", () => {
 
     expect(storeState.setOAuthError).toHaveBeenCalledWith(null);
     // retry 未记录 lastAttempt 时回退到渠道列表首位
-    expect(oauthActions.startLogin).toHaveBeenCalledWith(
-      "nibi",
-      undefined,
-    );
+    expect(oauthActions.startLogin).toHaveBeenCalledWith("nibi", {
+      mode: "webview",
+    });
   });
 
   it("等待态取消按钮与失败态取消并存不冲突:等待态只有取消,无错误提示", async () => {

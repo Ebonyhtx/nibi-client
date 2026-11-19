@@ -27,6 +27,7 @@ import { NibiAboutLogo } from "@/components/ui/NibiAboutLogo.js";
 import { useOAuth } from "./hooks/useOAuth.js";
 import { useNibiIntl } from "./i18n/IntlProvider.js";
 import { LoginApiKeyForm } from "./login/LoginApiKeyForm.js";
+import { NibiAuthWebviewDialog } from "./login/NibiAuthWebviewDialog.js";
 import { renderOAuthProviderIcon } from "./lib/oauthProviderIcon.js";
 import { ThemeHeroVisual } from "./openWorkspacePageThemeHero.js";
 import { useNibiStore } from "./store/StoreProvider.js";
@@ -108,6 +109,7 @@ export function LoginPanel({ active, onComplete, onOpenModelSettings }: LoginPan
     status,
     error,
     authorizeUrl,
+    webviewMode,
     providers,
     loadingProviders,
     pendingProvider,
@@ -201,6 +203,7 @@ export function LoginPanel({ active, onComplete, onOpenModelSettings }: LoginPan
       loginEntryRequest.providerId,
       {
         purpose: loginEntryRequest.purpose,
+        mode: "webview",
       },
       loginEntryRequest.id,
     );
@@ -373,7 +376,7 @@ export function LoginPanel({ active, onComplete, onOpenModelSettings }: LoginPan
                     className="h-10 w-full text-ui-base"
                     size="lg"
                     data-testid={testId(TID_OAUTH_LOGIN_BUTTON, provider.id)}
-                    onClick={() => void startTrackedLogin(provider.id)}
+                    onClick={() => void startTrackedLogin(provider.id, { mode: "webview" })}
                   >
                     {renderOAuthProviderIcon(provider.id, "size-4")}
                     <span className="min-w-0 truncate">
@@ -429,8 +432,8 @@ export function LoginPanel({ active, onComplete, onOpenModelSettings }: LoginPan
                 { provider: pendingProviderName ?? "OAuth" },
               )}
             </div>
-            {/* 只在本次登录已经拿到授权链接后展示；未拿到 URL 或取消/成功清理后按钮随之消失。 */}
-            {authorizeUrl ? (
+            {/* WebView 模式不需要复制链接；外部浏览器模式保留兜底。 */}
+            {authorizeUrl && !webviewMode ? (
               <Button
                 variant="outline"
                 className="h-10 w-full text-ui-base"
@@ -487,7 +490,7 @@ export function LoginPanel({ active, onComplete, onOpenModelSettings }: LoginPan
                 // OAuth 回调失败会触发 reset()，它会清空 pendingProvider。
                 // 重新登录必须沿用刚才失败的渠道，不能因为 providers[0] 的原始顺序退回 BigModel。
                 // store 残留错误由 startTrackedLogin 发起前统一清理。
-                void startTrackedLogin(retryProvider);
+                void startTrackedLogin(retryProvider, { mode: "webview" });
               }}
             >
               {intl.formatMessage({ id: "login.oauth.retry" })}
@@ -511,6 +514,16 @@ export function LoginPanel({ active, onComplete, onOpenModelSettings }: LoginPan
           </div>
         )}
       </div>
+
+      {status === "waiting" && authorizeUrl && webviewMode ? (
+        <NibiAuthWebviewDialog
+          authorizeUrl={authorizeUrl}
+          onCancel={() => {
+            finishActiveLoginEntryAttempt("cancelled");
+            void cancel(pendingProvider ?? undefined);
+          }}
+        />
+      ) : null}
     </>
   );
 }

@@ -4,6 +4,7 @@ import type { FeedbackTicketStatus } from "@nibi/shared";
 import type { IFeedbackService } from "@nibi/services";
 import { Button } from "@/components/ui/button.js";
 import { useOAuth } from "@/hooks/useOAuth.js";
+import { NibiAuthWebviewDialog } from "@/login/NibiAuthWebviewDialog.js";
 import { formatFeedbackStatusLabel, STATUS_META } from "@/feedback/feedbackMeta.js";
 import { cn } from "@/components/lib/utils.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
@@ -71,7 +72,7 @@ export function FeedbackLoginGate({
 }) {
   const { intl } = useNibiIntl();
   const formatMessage = intl.formatMessage;
-  const { startLogin, status: loginStatus } = useOAuth();
+  const { startLogin, cancel, status: loginStatus, authorizeUrl, webviewMode } = useOAuth();
   const [state, setState] = useState<FeedbackLoginState>("checking");
 
   useEffect(() => {
@@ -123,7 +124,7 @@ export function FeedbackLoginGate({
         type="button"
         size="sm"
         disabled={loginStatus === "waiting"}
-        onClick={() => void startLogin("nibi")}
+        onClick={() => void startLogin("nibi", { mode: "webview" })}
       >
         {loginStatus === "waiting" ? (
           <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
@@ -136,6 +137,13 @@ export function FeedbackLoginGate({
         <p className="text-ui-sm text-destructive">
           {formatMessage({ id: "feedback.login.failed" })}
         </p>
+      ) : null}
+
+      {webviewMode && authorizeUrl ? (
+        <NibiAuthWebviewDialog
+          authorizeUrl={authorizeUrl}
+          onCancel={() => void cancel("nibi")}
+        />
       ) : null}
     </div>
   );

@@ -94,6 +94,8 @@ export function createDesktopPlatform(options: {
     notifyWebRemoteControlAuthStateChanged: (change) =>
       window.nibi.notifyWebRemoteControlAuthStateChanged(change),
     registerOAuthState: (payload) => window.nibi.registerOAuthState(payload),
+    completeOAuthFromWebview: (url) => window.nibi.completeOAuthFromWebview?.(url),
+    setAuthWebviewTicket: (ticket) => window.nibi.setAuthWebviewTicket?.(ticket),
     onOAuthCallback: (callback) => window.nibi.onOAuthCallback(callback),
     onPaymentCallback: (callback) => window.nibi.onPaymentCallback(callback),
     onShareImport: (callback) => window.nibi.onShareImport?.(callback) ?? (() => {}),

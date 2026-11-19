@@ -7,6 +7,7 @@ import nibiIcon from "@/assets/nibi/nibi-app-icon.png";
 import { useOAuth } from "@/hooks/useOAuth.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useServices } from "@/hooks/useServices.js";
+import { NibiAuthWebviewDialog } from "@/login/NibiAuthWebviewDialog.js";
 import { logger } from "@/logger.js";
 import {
   nibiMembershipAllowsPaidPlugins,
@@ -61,7 +62,7 @@ export function NibiMembershipDialog({
 function MembershipDialogContent({ onClose }: { onClose: () => void }) {
   const { intl } = useNibiIntl();
   const { oauthService } = useServices();
-  const { startLogin, status: loginStatus } = useOAuth();
+  const { startLogin, cancel, status: loginStatus, authorizeUrl, webviewMode } = useOAuth();
   const webviewRef = useRef<ElectronWebviewTag | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
   // 回调保持稳定：webview 的 ref 回调不能每次 render 换新，否则会 detach/re-attach。
@@ -321,7 +322,7 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
                 type="button"
                 size="sm"
                 disabled={loginStatus === "waiting"}
-                onClick={() => void startLogin("nibi")}
+                onClick={() => void startLogin("nibi", { mode: "webview" })}
               >
                 {loginStatus === "waiting" ? (
                   <Loader2Icon className="size-3.5 animate-spin" aria-hidden="true" />
@@ -453,6 +454,13 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
           ) : null}
         </div>
       </section>
+
+      {phase === "login" && webviewMode && authorizeUrl ? (
+        <NibiAuthWebviewDialog
+          authorizeUrl={authorizeUrl}
+          onCancel={() => void cancel("nibi")}
+        />
+      ) : null}
     </div>
   );
 }

@@ -1026,6 +1026,40 @@ export class OAuthService implements IOAuthService {
   }
 
   /**
+   * 取客户端 WebView 登录页的 10 分钟 ticket。
+   * 由 main/node 侧请求，避开 renderer 的 CORS；login-ui 验签后换 2 小时 Cookie。
+   */
+  async createNibiWebviewTicket(): Promise<{ ticket: string; expiresAt: string }> {
+    const apiClient = this.apiClient;
+    if (!apiClient) {
+      throw new Error("客户端服务未就绪，请稍后重试");
+    }
+    const apiBase = (this.env.NIBI_API_BASE_URL?.trim() || NIBI_API_BASE_URL).replace(/\/+$/, "");
+    const response = await apiClient.request(`${apiBase}/api/v1/auth/webview-ticket`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-NIBI-Client": "1",
+      },
+      // NIBI 自家端点：不能被通用 endpoint 改写到上游。
+      skipEndpointRewrite: true,
+      body: "{}",
+      timeoutMs: 15_000,
+    });
+    if (!response.ok) {
+      throw new Error(`WebView 登录 ticket 获取失败（HTTP ${response.status}）`);
+    }
+    const body = (await response.json()) as { ticket?: unknown; expiresAt?: unknown };
+    if (typeof body.ticket !== "string" || !body.ticket.trim()) {
+      throw new Error("WebView 登录 ticket 响应无效");
+    }
+    return {
+      ticket: body.ticket,
+      expiresAt: typeof body.expiresAt === "string" ? body.expiresAt : "",
+    };
+  }
+
+  /**
    * 客户端已登录 → 换一个带一次性 handoff 码的会员页 URL。
    * 网页用这个码换 2 小时站点会话；客户端未登录时必须回客户端登录，不走网页登录。
    */

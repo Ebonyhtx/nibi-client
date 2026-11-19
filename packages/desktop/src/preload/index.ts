@@ -731,6 +731,12 @@ contextBridge.exposeInMainWorld("nibi", {
   /** 上报 OAuth state 用于 deep link 路由 */
   registerOAuthState: (payload: OAuthStateRegistration) =>
     ipcRenderer.send(PlatformChannels.OAuthRegisterState, payload),
+  /** 内嵌 WebView 拦到 nibi://oauth/callback 后交回 Main 路由 */
+  completeOAuthFromWebview: (url: string) =>
+    ipcRenderer.send(PlatformChannels.OAuthCompleteUrl, url),
+  /** 设置 auth WebView 请求要带的客户端登录 ticket */
+  setAuthWebviewTicket: (ticket: string) =>
+    ipcRenderer.send(PlatformChannels.SetAuthWebviewTicket, ticket),
   /** 注册 OAuth deep link 回调，返回 disposer */
   onOAuthCallback: (cb: (url: string) => void): (() => void) => {
     const handler = createOAuthCallbackHandler(cb, () => {

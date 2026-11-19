@@ -88,6 +88,12 @@ export interface IOAuthService {
    * 网页凭这个码换 2 小时站点会话，不再要求用户在网页里重复登录。
    */
   createNibiCheckoutUrl(): Promise<{ url: string; expiresAt: string }>;
+
+  /**
+   * 取客户端 WebView 登录页的 10 分钟 ticket。
+   * 由 main/node 侧请求，避开 renderer 的 CORS；login-ui 验签后换 2 小时 Cookie。
+   */
+  createNibiWebviewTicket(): Promise<{ ticket: string; expiresAt: string }>;
 }
 
 export interface NibiMembershipStatus {

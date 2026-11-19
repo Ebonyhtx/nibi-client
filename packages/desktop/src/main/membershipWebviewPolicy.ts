@@ -17,6 +17,14 @@ const MEMBERSHIP_SILENT_ALLOW_PERMISSIONS: ReadonlySet<string> = new Set([
   "mediaKeySystem",
 ]);
 
+/** 当前 auth WebView 的登录 ticket（由 renderer 通过 IPC 设置，10 分钟有效）。 */
+let authWebviewTicket = "";
+
+/** 设置/清空 auth WebView 请求要带的客户端登录 ticket。 */
+export function setAuthWebviewTicket(ticket: string): void {
+  authWebviewTicket = typeof ticket === "string" ? ticket.trim() : "";
+}
+
 export function applyMembershipWebviewSessionPolicy(): void {
   const membershipSession = electronSession.fromPartition(NIBI_MEMBERSHIP_WEBVIEW_PARTITION);
   membershipSession.setPermissionRequestHandler((_webContents, permission, callback) => {
@@ -29,6 +37,20 @@ export function applyMembershipWebviewSessionPolicy(): void {
   });
   membershipSession.setPermissionCheckHandler(
     (_webContents, permission) => MEMBERSHIP_SILENT_ALLOW_PERMISSIONS.has(permission),
+  );
+
+  // 客户端内嵌登录/注册 WebView 的门禁：auth 域请求带 10 分钟 ticket。
+  // 服务端 Caddy 只对带 ticket（或 VPN 网段）的请求放行 /ui/v2/login/*；
+  // login-ui 验签后换 2 小时 Cookie，填表/等验证码不受 ticket 过期影响。
+  membershipSession.webRequest.onBeforeSendHeaders(
+    { urls: ["https://auth.nibistudio.cn/*"] },
+    (details, callback) => {
+      details.requestHeaders["X-NIBI-Client"] = "1";
+      if (authWebviewTicket) {
+        details.requestHeaders["X-NIBI-Client-Ticket"] = authWebviewTicket;
+      }
+      callback({ requestHeaders: details.requestHeaders });
+    },
   );
 }
 

@@ -53,6 +53,8 @@ export function useOAuth() {
   const [activeProvider, setActiveProvider] = useState<OAuthProviderId | null>(null);
   const [loadingProviders, setLoadingProviders] = useState(true);
   const [pendingProvider, setPendingProvider] = useState<OAuthProviderId | null>(null);
+  // 本次登录是否在客户端内嵌 WebView 打开（桌面主登录页使用；会员/反馈入口仍走系统浏览器）。
+  const [webviewMode, setWebviewMode] = useState(false);
   const loginAttemptRef = useRef(0);
   // 广播处理器需要读取"当前是否在等待"，state 在回调闭包里会过期；用 ref 镜像。
   const waitingRef = useRef(false);
@@ -92,12 +94,19 @@ export function useOAuth() {
   }, [refreshProviders]);
 
   const startLogin = useCallback(
-    async (provider: OAuthProviderId, options: { purpose?: LoginEntryPurpose } = {}) => {
+    async (
+      provider: OAuthProviderId,
+      options: { purpose?: LoginEntryPurpose; mode?: "browser" | "webview" } = {},
+    ) => {
       const loginAttempt = ++loginAttemptRef.current;
+      // Web 端没有内嵌 WebView 能力；即使调用方请求 webview 也回退系统浏览器。
+      const useWebview =
+        options.mode === "webview" && Boolean(platform.completeOAuthFromWebview);
       try {
         waitingRef.current = true;
         setStatus("waiting");
         setError(null);
+        setWebviewMode(useWebview);
         // 重试/切换渠道时先清掉旧链接，避免等待态短暂展示上一次登录的 authorize URL。
         setAuthorizeUrl(null);
         setPendingProvider(provider);
@@ -112,11 +121,23 @@ export function useOAuth() {
           return;
         }
 
+        // 先拿 10 分钟 ticket 再开 WebView；login-ui 会换 2 小时 Cookie。
+        if (useWebview && platform.setAuthWebviewTicket) {
+          const { ticket } = await oauthService.createNibiWebviewTicket();
+          if (loginAttemptRef.current !== loginAttempt) {
+            return;
+          }
+          platform.setAuthWebviewTicket(ticket);
+        }
+
         setAuthorizeUrl(startedAuthorizeUrl);
         platform.registerOAuthState({ state, provider: startedProvider });
         // NIBI 走授权码 + PKCE 回调，不使用后端 polling flow。
         setOAuthPollingActive(false);
-        platform.openExternal(startedAuthorizeUrl);
+        // 桌面主登录页用内嵌 WebView 打开授权页；其他入口保持系统浏览器。
+        if (!useWebview) {
+          platform.openExternal(startedAuthorizeUrl);
+        }
         void reportAppTelemetryEvent(
           platform,
           {
@@ -144,6 +165,7 @@ export function useOAuth() {
         waitingRef.current = false;
         setOAuthPollingActive(false);
         setAuthorizeUrl(null);
+        setWebviewMode(false);
         setStatus("error");
         // OAuth 启动失败也属于登录失败，不把服务端或平台错误原文展示给用户。
         // 原文通过 i18n 渲染，避免登录页出现 provider/token 等具体失败原因。
@@ -161,6 +183,7 @@ export function useOAuth() {
       await oauthService.cancelPending(provider);
       setOAuthPollingActive(false);
       setAuthorizeUrl(null);
+      setWebviewMode(false);
       setStatus("idle");
       setError(null);
       setPendingProvider(null);
@@ -171,6 +194,7 @@ export function useOAuth() {
   const reset = useCallback(() => {
     waitingRef.current = false;
     setAuthorizeUrl(null);
+    setWebviewMode(false);
     setStatus("idle");
     setError(null);
     setPendingProvider(null);
@@ -180,6 +204,7 @@ export function useOAuth() {
   const setOAuthError = useCallback((message: string) => {
     waitingRef.current = false;
     setAuthorizeUrl(null);
+    setWebviewMode(false);
     setStatus("error");
     setError(message);
     setPendingProvider(null);
@@ -194,6 +219,7 @@ export function useOAuth() {
         if (!waitingRef.current) return;
         waitingRef.current = false;
         setAuthorizeUrl(null);
+        setWebviewMode(false);
         setStatus("error");
         setError(message ?? intl.formatMessage({ id: "login.oauth.loginFailure" }));
         setPendingProvider(null);
@@ -204,6 +230,7 @@ export function useOAuth() {
 
   const setOAuthSuccess = useCallback(async () => {
     setAuthorizeUrl(null);
+    setWebviewMode(false);
     setStatus("idle");
     setError(null);
     setPendingProvider(null);
@@ -217,6 +244,7 @@ export function useOAuth() {
     status,
     error,
     authorizeUrl,
+    webviewMode,
     providers,
     activeProvider,
     loadingProviders,

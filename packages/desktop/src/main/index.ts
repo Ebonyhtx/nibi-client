@@ -2497,6 +2497,11 @@ app.whenReady().then(async () => {
     onOAuthCallbackHandledSideEffect: () => {
       void armsUserIdentitySync.refresh();
     },
+    handleOAuthCallbackUrl: (url) => {
+      handleDeepLink(url, logger, {
+        resolveApplicationWindow: () => getApplicationWindowsExcludingCuaIndicator()[0] ?? null,
+      });
+    },
     appTelemetryCore,
     reportRemoteUsageEvent: reportRemoteUsageEventForRenderer,
     armsCustomContext: {

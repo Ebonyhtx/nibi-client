@@ -15,6 +15,7 @@ type ElectronWebviewNavigationEventName =
   | "did-navigate"
   | "did-navigate-in-page"
   | "will-navigate"
+  | "will-redirect"
   | "will-frame-navigate";
 type ElectronWebviewRenderProcessGoneReason =
   | "clean-exit"

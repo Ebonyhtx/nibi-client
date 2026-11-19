@@ -416,6 +416,10 @@ export const PlatformChannels = {
   ShareImport: "nibi:share-import",
   /** Renderer → Main：OAuth 回调已处理完成，可继续后置启动流程 */
   OAuthCallbackHandled: "nibi:oauth-callback-handled",
+  /** Renderer → Main：内嵌 WebView 拦到 nibi://oauth/callback 后交回 Main 路由 */
+  OAuthCompleteUrl: "nibi:oauth-complete-url",
+  /** Renderer → Main：设置当前 auth WebView 请求要带的客户端登录 ticket */
+  SetAuthWebviewTicket: "nibi:set-auth-webview-ticket",
   /** Renderer → Main：renderer 已就绪，可接收缓存的 deep link */
   RendererReady: "nibi:renderer-ready",
   /** Renderer → Main：同步当前 renderer 的 telemetry 上下文 */
@@ -1112,6 +1116,14 @@ export interface PlatformChannelMap {
   };
   [PlatformChannels.OAuthCallbackHandled]: {
     request: void;
+    response: void;
+  };
+  [PlatformChannels.OAuthCompleteUrl]: {
+    request: string;
+    response: void;
+  };
+  [PlatformChannels.SetAuthWebviewTicket]: {
+    request: string;
     response: void;
   };
   [PlatformChannels.RendererReady]: {

@@ -901,6 +901,18 @@ export interface IPlatformService {
   registerOAuthState(payload: OAuthStateRegistration): void;
 
   /**
+   * 内嵌 WebView 拦到 `nibi://oauth/callback` 后交回 Main，走与系统 deep link 相同的路由。
+   * 仅桌面端实现；Web 端保持外部浏览器跳转。
+   */
+  completeOAuthFromWebview?(url: string): void;
+
+  /**
+   * 设置 auth WebView 请求要带的客户端登录 ticket（10 分钟，api 签发）。
+   * 仅桌面端实现；Web 端保持外部浏览器跳转。
+   */
+  setAuthWebviewTicket?(ticket: string): void;
+
+  /**
    * 注册 OAuth deep link 回调监听
    * @returns disposer 函数，调用后只移除当前回调
    */

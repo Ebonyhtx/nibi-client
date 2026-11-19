@@ -28,6 +28,8 @@ import {
   parseOAuthStateRegistration,
   registerOAuthState,
 } from "./desktopOAuthDeepLink.js";
+import { isOAuthCallbackUrl } from "./desktopDeepLinkUrl.js";
+import { setAuthWebviewTicket } from "./membershipWebviewPolicy.js";
 import {
   dispatchFinalArmsCustomEvent,
   enableSharedFinalArmsCustomEventE2EController,
@@ -112,6 +114,8 @@ export function registerRemoteIpcHandlers(options: {
   };
   /** OAuth 回调处理完成后的额外副作用（如刷新 ARMS user.id）；不影响既有 runtime 流程 */
   onOAuthCallbackHandledSideEffect?: () => void;
+  /** Renderer 内嵌 WebView 拦到 nibi://oauth/callback 后交给 Main 走同一套 deep link 路由。 */
+  handleOAuthCallbackUrl?: (url: string) => void;
   appTelemetryCore: {
     reportEvent(payload: unknown): Promise<void>;
   };
@@ -249,6 +253,31 @@ export function registerRemoteIpcHandlers(options: {
     }
 
     registerOAuthState(event.sender.id, registration);
+  });
+
+  ipcMain.on(PlatformChannels.OAuthCompleteUrl, (_event, payload: unknown) => {
+    if (typeof payload !== "string" || payload.length > 8192) {
+      options.logger.warn("[oauth-webview] ignored invalid callback payload");
+      return;
+    }
+    try {
+      if (!isOAuthCallbackUrl(new URL(payload))) {
+        options.logger.warn("[oauth-webview] ignored non-oauth callback url");
+        return;
+      }
+    } catch {
+      options.logger.warn("[oauth-webview] ignored unparsable callback url");
+      return;
+    }
+    options.handleOAuthCallbackUrl?.(payload);
+  });
+
+  ipcMain.on(PlatformChannels.SetAuthWebviewTicket, (_event, payload: unknown) => {
+    if (typeof payload !== "string" || payload.length > 2048) {
+      options.logger.warn("[oauth-webview] ignored invalid ticket payload");
+      return;
+    }
+    setAuthWebviewTicket(payload);
   });
 
   ipcMain.on(PlatformChannels.OpenExternal, (event, payload: unknown) => {
