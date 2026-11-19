@@ -149,6 +149,10 @@ declare global {
       browserViewExportPage?(
         payload: import("@nibi/shared").BrowserViewExportPageRequest,
       ): Promise<import("@nibi/shared").BrowserViewExportPageResult>;
+      /** 按 CSS rect 截取内置浏览器受控 guest 的一块 PNG（设计模式元素截图） */
+      captureBrowserGuestPage?(
+        payload: import("@nibi/shared").CaptureBrowserGuestPageRequest,
+      ): Promise<import("@nibi/shared").CaptureBrowserGuestPageResult>;
       /** 从系统拖拽/文件输入得到的 Web File 解析真实本地路径 */
       getPathForFile?(file: File): string | null;
       /** dwf 产物「作为文件打开」：把某一版的字节落成本机副本，返回其路径 */

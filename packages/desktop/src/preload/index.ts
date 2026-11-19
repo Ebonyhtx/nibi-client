@@ -52,6 +52,8 @@ import type {
   BrowserViewRestoreTabsRequest,
   BrowserViewExportPageRequest,
   BrowserViewExportPageResult,
+  CaptureBrowserGuestPageRequest,
+  CaptureBrowserGuestPageResult,
   BrowserViewportSize,
   BrowserLocalPreviewResolveResult,
   DesktopZoomState,
@@ -362,6 +364,11 @@ contextBridge.exposeInMainWorld("nibi", {
     payload: BrowserViewExportPageRequest,
   ): Promise<BrowserViewExportPageResult> =>
     ipcRenderer.invoke(PlatformChannels.BrowserViewExportPage, payload),
+  /** 按 CSS rect 截取受控 guest 的一块 PNG（设计模式元素截图） */
+  captureBrowserGuestPage: (
+    payload: CaptureBrowserGuestPageRequest,
+  ): Promise<CaptureBrowserGuestPageResult> =>
+    ipcRenderer.invoke(PlatformChannels.CaptureBrowserGuestPage, payload),
   /** 从系统拖拽/文件输入得到的 Web File 解析真实本地路径 */
   getPathForFile: (file: File): string | null => {
     // Electron 32 起移除了非标准 File.path，renderer 不能再直接从拖拽 File 上取路径。

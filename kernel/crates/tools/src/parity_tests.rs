@@ -486,6 +486,43 @@ async fn rust_registry_matches_canonical() {
     assert!(errors.is_empty(), "\n{}", errors.join("\n"));
 }
 
+/// X02 schema/结果预算对拍的确定性导出入口。
+///
+/// 只在显式设置 `NIBI_DUAL_KERNEL_CONTRACT_OUT` 时写文件；正常 `cargo test` 下直接返回，
+/// 不产生额外产物。由 `scripts/check-dual-kernel-parity.mjs --check/--update` 以
+/// `cargo test -p nibi-kernel-tools --lib dump_tool_contract_for_dual_kernel_parity -- --exact`
+/// 调用，所以导出的是测试同款注册表，不另建一套组装。
+#[test]
+fn dump_tool_contract_for_dual_kernel_parity() {
+    let Some(output) = std::env::var_os("NIBI_DUAL_KERNEL_CONTRACT_OUT") else {
+        return;
+    };
+    let tools = registry();
+    let mut entries: Vec<Value> = tools
+        .iter()
+        .map(|tool| {
+            json!({
+                "name": tool.name(),
+                "inputSchema": tool.input_schema(),
+                "maxResultSizeChars": tool.max_result_size_chars(),
+            })
+        })
+        .collect();
+    entries.sort_by(|left, right| {
+        left["name"]
+            .as_str()
+            .unwrap_or_default()
+            .cmp(right["name"].as_str().unwrap_or_default())
+    });
+    let document = json!({
+        "version": 1,
+        "side": "rust",
+        "tools": entries,
+    });
+    let bytes = serde_json::to_vec_pretty(&document).expect("tool contract 必须可序列化");
+    std::fs::write(&output, bytes).expect("写不出 NIBI_DUAL_KERNEL_CONTRACT_OUT");
+}
+
 #[tokio::test]
 async fn registry_has_no_duplicate_names() {
     let tools = registry();

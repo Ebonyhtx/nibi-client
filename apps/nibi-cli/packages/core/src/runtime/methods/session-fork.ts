@@ -53,6 +53,7 @@ import type {
   ConversationBeforeInputForkOptions,
   SelectionSideChatCreateOptions,
   StableConversationForkTarget,
+  StableConversationForkTargetCwd,
   WorkspaceForkResult,
 } from "../types.js";
 import { cloneModelSelection } from "../model-selection.js";
@@ -153,28 +154,56 @@ export interface ForkIdentityMap {
   };
 }
 
+/**
+ * fork 到同一 workspace 下的受管 worktree：会话级 allow 规则与父 cwd 绑定，不能带入新目录；
+ * 其他授权（deny/ask/mode）沿用父会话。
+ */
+function migrateForkPermissionToWorkspace(
+  permission: SessionInfo["permission"],
+): SessionInfo["permission"] {
+  if (!permission || !("allow" in permission)) return permission;
+  const { allow: _pathBoundAllowRules, ...rest } = permission;
+  return rest;
+}
+
 function buildForkedSessionInput(
   runtime: AgentRuntimeInternal,
   parentSession: SessionInfo,
   forkedSessionId: SessionId,
   kind: "fork" | "selection_side_chat" = "fork",
+  targetCwd?: StableConversationForkTargetCwd,
 ): CreateSessionInput {
   const now = Date.now();
+  // fork 到受管 worktree：只换 cwd，workspaceID 沿用父会话（本地为空），会话仍按
+  // workspace key 归属项目。普通 fork 保持父会话目录。
+  const placement = targetCwd
+    ? {
+        projectID: targetCwd.projectID,
+        directory: targetCwd.directory,
+        path: targetCwd.directory,
+        permission: migrateForkPermissionToWorkspace(parentSession.permission),
+      }
+    : {
+        projectID: parentSession.projectID,
+        directory: parentSession.directory,
+        path: parentSession.path,
+        permission: parentSession.permission,
+      };
   return {
     id: forkedSessionId,
-    projectID: parentSession.projectID,
+    projectID: placement.projectID,
     workspaceID: parentSession.workspaceID,
     parentID: runtime.sessionId,
     traceID: runtime.rootTraceContext.traceId,
     taskType: kind,
     slug: `${slugify(parentSession.slug)}-${kind}-${now.toString(36)}`.slice(0, 120),
-    directory: parentSession.directory,
-    path: parentSession.path,
+    directory: placement.directory,
+    path: placement.path,
     title:
       kind === "selection_side_chat" ? "Selection side chat" : `Fork of ${parentSession.title}`,
     titleSource: "generated",
     version: parentSession.version,
-    permission: parentSession.permission,
+    permission: placement.permission,
     time: {
       created: now,
       updated: now,
@@ -391,6 +420,8 @@ export function buildAtomicForkNotice(
     executionState?: ExecutionState;
     sourceCommandId: string;
     targetMessageId: MessageId;
+    /** fork 到受管 worktree：分隔标记所在消息里追加 worktree_creation part。 */
+    targetCwd?: StableConversationForkTargetCwd;
   },
 ): MessageWithParts[] {
   const created = Date.now();
@@ -500,6 +531,23 @@ export function buildAtomicForkNotice(
           restoredFileCount: 0,
           time: { start: created, end: created },
         },
+        ...(options.targetCwd?.worktreeCreation
+          ? [
+              {
+                id: createPartId(`${String(noticePartId)}_worktree`),
+                sessionID: options.identities.childSessionId,
+                messageID: noticeId,
+                type: "timeline" as const,
+                timelineType: "worktree_creation" as const,
+                display: "worklog" as const,
+                status: "completed" as const,
+                anchorMessageId,
+                anchorTurnId: noticeTurnId,
+                worktreeCreation: { ...options.targetCwd.worktreeCreation },
+                time: { start: created, end: created },
+              },
+            ]
+          : []),
       ],
     },
   ];
@@ -594,6 +642,7 @@ async function commitAtomicConversationFork(
     sourceCommandId: string;
     targetMessageId: MessageId;
     target?: StableConversationForkTarget;
+    targetCwd?: StableConversationForkTargetCwd;
     traceContext: TraceContext;
     kind?: "fork" | "selection_side_chat";
   },
@@ -714,6 +763,7 @@ async function commitAtomicConversationFork(
         executionState,
         sourceCommandId: options.sourceCommandId,
         targetMessageId: options.targetMessageId,
+        ...(options.targetCwd ? { targetCwd: options.targetCwd } : {}),
       }),
     );
   }
@@ -745,7 +795,13 @@ async function commitAtomicConversationFork(
         }
       : undefined;
   const committedChild = await store.commitForkBundle({
-    child: buildForkedSessionInput(runtime, options.parentSession, childSessionId, kind),
+    child: buildForkedSessionInput(
+      runtime,
+      options.parentSession,
+      childSessionId,
+      kind,
+      options.targetCwd,
+    ),
     messages: copiedMessages,
     copySources: {
       messages: Object.fromEntries(
@@ -1097,6 +1153,7 @@ export async function forkStableConversationAtMessage(
     sourceCommandId: options.sourceCommandId,
     target: options.target,
     targetMessageId: options.target.boundaryMessageId as MessageId,
+    ...(options.targetCwd ? { targetCwd: options.targetCwd } : {}),
     traceContext: options.traceContext ?? this.rootTraceContext,
   });
 }

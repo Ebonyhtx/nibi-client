@@ -1,5 +1,10 @@
 import type { MessageWithParts, SessionEvent, SessionInfo } from "@nibi/contracts";
-import type { NibiWorkspaceRef } from "@nibi/shared";
+import {
+  nibiAppControlReplySchema,
+  nibiProtocolMethods,
+  type NibiWorkspaceRef,
+} from "@nibi/shared";
+import { SessionControlError } from "@nibi/session-control/contracts";
 import {
   createNibiSessionControlRuntime,
   type NibiSessionControlRuntime,
@@ -35,6 +40,39 @@ export function sessionControlRuntimeForWorkspace(
     },
     sessionStore,
     projectActiveMessages,
+    // 归档事实归 App Host 任务索引；独立 CLI/旧 Host 没有该方法时保持缺席，
+    // 不把「查不到」伪造为「未归档」。fork 在拿到 true 时先于 owner 拒绝。
+    isSessionArchived: async (session) => {
+      try {
+        const reply = await context.requestClient(
+          nibiProtocolMethods.appControlSessionArchived,
+          {
+            callerSessionId: session.sessionId,
+            callId: `session-archived-${session.sessionId}-${Date.now()}`,
+            workspacePath: session.workspacePath,
+            ...(session.workspaceIdentity
+              ? { workspaceIdentity: session.workspaceIdentity }
+              : {}),
+            input: { sessionId: session.sessionId },
+          },
+          nibiAppControlReplySchema,
+          { timeoutMs: 5_000 },
+        );
+        if (!reply.ok) {
+          // Host 能确认这是产品会话但归档事实不可用时 fail closed；forbidden 等
+          // 表示目标不是本 Host 的产品会话（独立 CLI 历史），维持原 owner 语义。
+          if (reply.error.code === "unavailable")
+            throw new SessionControlError("unavailable", reply.error.message);
+          return undefined;
+        }
+        const archived = (reply.result as { archived?: unknown } | null)?.archived;
+        return archived === true ? true : archived === false ? false : undefined;
+      } catch (error) {
+        if (error instanceof SessionControlError) throw error;
+        // 没有 App Host、旧 Host 不支持或连接断开：CLI fork 维持原 owner 语义。
+        return undefined;
+      }
+    },
     createRootApp: (request) =>
       createWorkspaceNibiApp(context, workspace, {
         env: context.deps.env,

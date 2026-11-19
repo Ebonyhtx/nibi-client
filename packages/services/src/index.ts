@@ -74,6 +74,12 @@ export type { MediaPreviewPreparation } from "./media-preview/mediaPreview.js";
 // Git service — IGitService is both a type (interface) and value (descriptor)
 export { IGitService } from "./git/git.js";
 export { IGitCheckpointService } from "./git/gitCheckpoint.js";
+export {
+  IManagedWorktreeService,
+  type ManagedWorktreeGroup,
+  type ManagedWorktreeWorkspace,
+  type StartManagedWorktreeCreationResult,
+} from "./managed-worktree-tasks/contract.js";
 
 // System service — ISystemService is both a type (interface) and value (descriptor)
 export { ISystemService } from "./system/system.js";
@@ -205,6 +211,7 @@ export type {
   NibiAgentCuaPermissionObservation,
   NibiAgentInitializeResult,
   NibiAgentStorageStartupSnapshot,
+  NibiAgentRuntimeExitedEvent,
   NibiAgentRuntimeLifecycleEvent,
   NibiAgentRuntimePolicy,
   NibiAgentReadSessionParams,

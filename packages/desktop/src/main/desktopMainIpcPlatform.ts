@@ -46,6 +46,7 @@ import { registerCuaPermissionIpcHandlers } from "./desktopCuaPermissionIpc.js";
 import {
   registerDesktopBrowserIpcHandlers,
   type AttachBrowserGuest,
+  type CaptureBrowserGuestPage,
   type ExportBrowserViewPage,
   type ReportBrowserScreenshotSurfaceReady,
   type UpdateBrowserGuestViewport,
@@ -117,6 +118,8 @@ export function registerPlatformIpcHandlers(options: {
   browserViewResidencyHandlers?: BrowserViewResidencyIpcHandlers;
   /** 用户把受控浏览器 guest 导出为 PNG/PDF（sender window + ownership 已由 main 校验）。 */
   exportBrowserViewPage?: ExportBrowserViewPage;
+  /** 设计模式元素截图：按 CSS rect 截取受控 guest。 */
+  captureBrowserGuestPage?: CaptureBrowserGuestPage;
 }) {
   ipcMain.handle(PlatformChannels.SelectDirectory, async () => {
     const result = await dialog.showOpenDialog({
@@ -179,6 +182,7 @@ export function registerPlatformIpcHandlers(options: {
     options.reportBrowserScreenshotSurfaceReady,
     options.browserViewResidencyHandlers,
     options.exportBrowserViewPage,
+    options.captureBrowserGuestPage,
   );
 
   ipcMain.handle(PlatformChannels.ActivateOrSetWorkspace, (event, path: string) => {

@@ -39,9 +39,16 @@ import {
 // 规格 0.14：删除 workspace 过滤器——模型要先 ListSessions 才能拿到 workspace 引用，
 // 而它正是用来过滤 ListSessions 的，发现链循环。独立 CLI 本来也只绑定一个 workspace。
 export const cliListSessionsInputSchema = z.strictObject({ ...queryShape });
+/**
+ * ReadSession 的 limit 默认 50：运行侧（bootstrap `DEFAULT_PAGE_SIZE`）一直按 50 分页，
+ * Rust 内核把同一默认写进了 schema（`READ_LIMIT_DEFAULT`）。这里补上 default 只是让模型
+ * 看到真实默认，不改变运行时行为；cursor/limit 仍不进入 required。
+ */
+export const CLI_READ_SESSION_DEFAULT_LIMIT = 50;
 export const cliReadSessionInputSchema = withSessionTarget(cliSessionRefSchema, {
   view: z.enum(["summary", "messages"]),
-  ...paginationShape,
+  cursor: paginationShape.cursor,
+  limit: paginationShape.limit.default(CLI_READ_SESSION_DEFAULT_LIMIT),
 });
 // 规格 0.14：删除 cwd——唯一合法值是绑定的 workspace（实现侧按 realpath 校验，不等即 forbidden），
 // 工具自己已经知道它，让模型复述只会因软链接或尾斜杠而失败。
@@ -93,6 +100,14 @@ export type CliRenameSessionInput = ResolvedTarget<
 export interface CliSessionQueryPort {
   /** 按会话 ID 在本机 CLI 会话库解析完整引用；找不到返回 undefined。不检查 owner。 */
   resolveSession(ctx: CliTrustedContext, sessionId: string): Promise<CliSessionRef | undefined>;
+  /**
+   * 目标是否已归档。归档状态属于 App 任务索引；独立 CLI owner 不提供该事实时缺席，
+   * 一旦提供则 fork 必须在创建子会话之前显式失败。
+   */
+  isSessionArchived?(
+    ctx: CliTrustedContext,
+    session: CliSessionRef,
+  ): Promise<boolean | undefined>;
   /** workspace 缺席表示读本机会话库的全部根会话（仅 readAnyLocalSession 时出现）。 */
   listSessions(
     ctx: CliTrustedContext,

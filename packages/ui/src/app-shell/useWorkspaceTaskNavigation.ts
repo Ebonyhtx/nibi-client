@@ -1,6 +1,7 @@
 /* eslint-disable max-lines -- workspace 的 task、自动化与插件市场共享浏览器式历史，集中处理才能保证前进/后退目标一致。 */
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
+import { onTaskNavigationRequested } from "@/lib/taskNavigationRequest.js";
 import {
   canGoBack as navCanGoBack,
   canGoForward as navCanGoForward,
@@ -196,6 +197,14 @@ export function useWorkspaceTaskNavigation({
     },
     [activateTabByPath, intl, onNavigateToTask, baseServices, tabStoreApi, setActiveTaskId],
   );
+
+  // 跨会话来源等深层组件只发跳转意图；导航 owner 仍只有 handleSelectTask 一处。
+  useEffect(() => {
+    const subscription = onTaskNavigationRequested((target) => {
+      handleSelectTask(target.workspacePath, target.taskId, target.workspaceIdentity);
+    });
+    return () => subscription.dispose();
+  }, [handleSelectTask]);
 
   const handleOpenAutomations = useCallback(
     (automationId?: string, automationTab?: AutomationsNavigationTab) => {

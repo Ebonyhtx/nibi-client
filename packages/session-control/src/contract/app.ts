@@ -138,6 +138,14 @@ export type ListProjectsResult = z.infer<typeof listProjectsResultSchema>;
 export interface AppSessionQueryPort {
   /** 只在调用者绑定的 Host 中按会话 ID 解析产品会话；不跨来源搜索，找不到返回 undefined。 */
   resolveSession(ctx: AppTrustedContext, sessionId: string): Promise<AppSessionRef | undefined>;
+  /**
+   * 目标是否已归档。Host 的任务索引是唯一权威；缺席表示 owner 不提供该事实（按未归档处理）。
+   * 归档只拒绝显式打开与 fork，不阻止读取、发送、等待或再归档/取消归档。
+   */
+  isSessionArchived?(
+    ctx: AppTrustedContext,
+    session: AppSessionRef,
+  ): Promise<boolean | undefined>;
   listSessions(
     ctx: AppTrustedContext,
     input: AppResolvedListSessionsInput,

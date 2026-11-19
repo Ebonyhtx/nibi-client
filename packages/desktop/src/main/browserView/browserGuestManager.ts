@@ -2,7 +2,7 @@
 import { randomUUID } from "node:crypto";
 import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { webContents, type WebFrameMain } from "electron";
+import { nativeImage, webContents, type WebFrameMain } from "electron";
 import {
   BROWSER_VIEWPORT_LIMITS,
   DEFAULT_AGENT_BROWSER_VIEWPORT,
@@ -24,6 +24,7 @@ import {
   type BrowserViewRestoredTabShell,
   type BrowserViewExportPageFormat,
   type BrowserViewExportPageResult,
+  type CaptureBrowserGuestPageResult,
   type BrowserViewportSize,
 } from "@nibi/shared";
 import { executeBrowserCommandOnView, type ControlledView } from "./browserCommandExecutor.js";
@@ -54,6 +55,8 @@ import type {
 const DEFAULT_PAGE_EXPORT_TIMEOUT_MS = 15_000;
 // 与 desktopSaveFile.ts 的 MAX_SAVE_FILE_BYTES 对齐；导出字节随后直接交给 saveFile。
 const MAX_BROWSER_PAGE_EXPORT_BYTES = 50 * 1024 * 1024;
+/** 元素截图只用于引用 / 产物，20 MB 足够且避免一次请求把 IPC 和内存打满。 */
+const MAX_BROWSER_ELEMENT_CAPTURE_BYTES = 20 * 1024 * 1024;
 
 class BrowserPageExportTimeoutError extends Error {
   constructor() {
@@ -475,6 +478,8 @@ export class BrowserGuestManager {
   private readonly inFlightScreenshots = new Map<string, InFlightScreenshot>();
   /** 用户导出按 guest 单飞：并发点击不能同时驱动 capturePage/printToPDF。 */
   private readonly pageExportsInFlight = new Set<number>();
+  /** 元素截图同样按 guest 单飞：迟到未结算的取帧不能叠第二次 capturePage。 */
+  private readonly elementCapturesInFlight = new Set<number>();
   /** 见 MAX_ABANDONED_SCREENSHOT_CAPTURES；key 为 tabId。 */
   private readonly abandonedScreenshotCaptures = new Map<string, number>();
   private readonly recordings = new Map<string, BrowserRecordingEntry>();
@@ -921,6 +926,119 @@ export class BrowserGuestManager {
   private async captureGuestPng(guest: GuestWebContents): Promise<Buffer> {
     const image = await guest.capturePage();
     return image.toPNG();
+  }
+
+  /**
+   * 设计模式元素截图：按 CSS 视口 rect 截取受控 guest 的一块 PNG。
+   * 与 exportPage 使用同一套 sender / window / tab owner / webview 归属校验；clip 只接受有限正数，
+   * 实际图像按「帧尺寸 / CSS 视口」比例换算并裁到图像边界内，输出字节有上限。
+   */
+  async capturePage(payload: {
+    tabId: string;
+    webContentsId: number;
+    clip?: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      viewportWidth: number;
+      viewportHeight: number;
+    };
+    windowId: number;
+    senderWebContentsId: number;
+  }): Promise<CaptureBrowserGuestPageResult> {
+    const tab = this.tabs.get(payload.tabId);
+    if (!tab || tab.lifecycle === "closed") return { success: false, error: "tab_not_found" };
+    if (tab.owner.windowId !== payload.windowId) return { success: false, error: "not_owner" };
+
+    const target = webContents.fromId(payload.webContentsId) as GuestWebContents | undefined;
+    if (!target || target.isDestroyed()) return { success: false, error: "guest_unavailable" };
+    if (target.getType() !== "webview") return { success: false, error: "not_webview" };
+
+    const owner = this.getTabOwnerByWebContentsId(payload.webContentsId);
+    if (!owner || owner.tabId !== payload.tabId || owner.windowId !== payload.windowId) {
+      return { success: false, error: "not_owner" };
+    }
+    const guest = tab.guest;
+    if (!guest || guest.id !== payload.webContentsId || guest.isDestroyed()) {
+      return { success: false, error: "guest_unavailable" };
+    }
+    if (guest.hostWebContents?.id !== payload.senderWebContentsId) {
+      return { success: false, error: "sender_mismatch" };
+    }
+    const residency = this.residencyCoordinator.get(tab.tabId);
+    if (
+      residency?.residency === "suspended" ||
+      residency?.residency === "suspend-pending" ||
+      residency?.residency === "restoring"
+    ) {
+      return { success: false, error: "tab_suspended" };
+    }
+    if (tab.loading || residency?.loading === true) {
+      return { success: false, error: "tab_loading" };
+    }
+    if (this.elementCapturesInFlight.has(payload.webContentsId)) {
+      return { success: false, error: "capture_in_progress" };
+    }
+
+    this.elementCapturesInFlight.add(payload.webContentsId);
+    const timeoutMs = this.residencyOptions.pageExportTimeoutMs ?? DEFAULT_PAGE_EXPORT_TIMEOUT_MS;
+    // Bugfix（对齐上游 BU-E2E-027）：capturePage 无法取消，超时只结束这次等待。
+    // 底层取帧结束前继续占住这个 guest（否则第二次 capturePage 会叠加）；永不结束时从发起算起
+    // 2× deadline 强制释放，避免该 guard 永久泄漏。
+    let released = false;
+    let timedOut = false;
+    let forceTimer: ReturnType<typeof setTimeout> | undefined;
+    const release = (): void => {
+      if (released) return;
+      released = true;
+      if (forceTimer !== undefined) clearTimeout(forceTimer);
+      this.elementCapturesInFlight.delete(payload.webContentsId);
+    };
+    forceTimer = setTimeout(release, timeoutMs * 2);
+    forceTimer.unref?.();
+    const capture = guest.capturePage();
+    void capture.then(release, release);
+    try {
+      const image = await this.withPageExportTimeout(capture, timeoutMs);
+      const full = nativeImage.createFromBuffer(image.toPNG());
+      let output = full;
+      if (payload.clip) {
+        const size = full.getSize();
+        const scaleX = size.width / payload.clip.viewportWidth;
+        const scaleY = size.height / payload.clip.viewportHeight;
+        if (!(scaleX > 0) || !(scaleY > 0)) {
+          return { success: false, error: "empty_capture" };
+        }
+        const clamp = (value: number, min: number, max: number) =>
+          Math.max(min, Math.min(max, Math.round(value)));
+        const left = clamp(payload.clip.x * scaleX, 0, Math.max(0, size.width - 1));
+        const top = clamp(payload.clip.y * scaleY, 0, Math.max(0, size.height - 1));
+        const right = clamp(
+          (payload.clip.x + payload.clip.width) * scaleX,
+          left + 1,
+          size.width,
+        );
+        const bottom = clamp(
+          (payload.clip.y + payload.clip.height) * scaleY,
+          top + 1,
+          size.height,
+        );
+        output = full.crop({ x: left, y: top, width: right - left, height: bottom - top });
+      }
+      const bytes = output.toPNG();
+      if (!bytes || bytes.byteLength === 0) return { success: false, error: "empty_capture" };
+      if (bytes.byteLength > MAX_BROWSER_ELEMENT_CAPTURE_BYTES) {
+        return { success: false, error: "capture_too_large" };
+      }
+      return { success: true, data: Uint8Array.from(bytes).buffer };
+    } catch (error) {
+      timedOut = error instanceof BrowserPageExportTimeoutError;
+      return { success: false, error: timedOut ? "capture_timeout" : "capture_failed" };
+    } finally {
+      // 超时后底层取帧可能还在跑：由 release（结算 / 强制上限）释放，不能在这里提前放开。
+      if (!timedOut) release();
+    }
   }
 
   private async withPageExportTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {

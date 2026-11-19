@@ -31,7 +31,7 @@ import type {
   V4ConversationWorkflowRunEventsResult,
   V4ConversationWorkflowRunsResult,
 } from "@nibi/shared/nibi-protocol-v4";
-import type { IServiceAccessor } from "@nibi/services";
+import type { IServiceAccessor, NibiAgentRuntimeExitedEvent } from "@nibi/services";
 import { ServiceProvider } from "@/hooks/useServices.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import {
@@ -103,6 +103,11 @@ export interface V4ConversationContextValue {
    * unavailable 在 workspace-dispose 当场到达，是草稿预热重建唯一可依赖的换代信号。
    */
   onRuntimeLifecycle?(listener: (state: "available" | "unavailable") => void): () => void;
+  /**
+   * 承载 transport 暴露意外退出事件时才存在（见 ConversationTransport.onRuntimeExited）。
+   * 只用于展示原因，不参与 projection/订阅重建。
+   */
+  onRuntimeExited?(listener: (event: NibiAgentRuntimeExitedEvent) => void): () => void;
 }
 
 // 导出 context 本体：静态回放视图用静态 transport 自己
@@ -201,6 +206,12 @@ function ReadyV4ConversationProvider({
         ? {
             onRuntimeLifecycle: (listener: (state: "available" | "unavailable") => void) =>
               transport.onRuntimeLifecycle?.(listener) ?? (() => {}),
+          }
+        : {}),
+      ...(transport.onRuntimeExited
+        ? {
+            onRuntimeExited: (listener: (event: NibiAgentRuntimeExitedEvent) => void) =>
+              transport.onRuntimeExited?.(listener) ?? (() => {}),
           }
         : {}),
     } satisfies V4ConversationContextValue;
@@ -395,6 +406,12 @@ function ReadyV4PaneConversationProvider({
           ? {
               onRuntimeLifecycle: (listener: (state: "available" | "unavailable") => void) =>
                 lease.transport.onRuntimeLifecycle?.(listener) ?? (() => {}),
+            }
+          : {}),
+        ...(lease.transport.onRuntimeExited
+          ? {
+              onRuntimeExited: (listener: (event: NibiAgentRuntimeExitedEvent) => void) =>
+                lease.transport.onRuntimeExited?.(listener) ?? (() => {}),
             }
           : {}),
       } satisfies V4ConversationContextValue,

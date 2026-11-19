@@ -227,6 +227,7 @@ describe("TaskIndexRepo migration startup barrier", () => {
       { id: "0005_projects" },
       { id: "0006_default_workspace_tasks" },
       { id: "0007_initial_workspace_order" },
+      { id: "0008_task_worktree_root" },
     ];
     expect(db.prepare("select id from schema_migration order by id").all()).toEqual(
       expectedMigrations,

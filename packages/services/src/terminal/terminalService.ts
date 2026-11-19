@@ -1,7 +1,7 @@
 import { accessSync, chmodSync, constants, existsSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { homedir, release } from "node:os";
-import { delimiter, dirname, join, resolve } from "node:path";
+import { delimiter, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { Emitter, type Event } from "@nibi/rpc";
 import type { IPty } from "node-pty";
 import type { ISettingService } from "../setting/setting.js";
@@ -19,6 +19,8 @@ type PtySpawnOptions = Parameters<NodePtyModule["spawn"]>[2];
 
 interface TerminalInstance {
   pty: IPty;
+  /** 启动时 cwd；只记录启动位置，不跟随 shell 内 `cd`。 */
+  cwd: string;
   dataEmitter: Emitter<string>;
   exitEmitter: Emitter<number>;
 }
@@ -379,6 +381,8 @@ function createBufferedTerminalOutputEmitter(): {
 
 export function createTerminalService(dependencies: {
   settingService: ISettingService;
+  /** cwd 位于删除中的受管 worktree 时返回 true。 */
+  isCwdBlocked?: (cwd: string) => boolean;
 }): ITerminalService {
   const terminals = new Map<string, TerminalInstance>();
   let nextId = 0;
@@ -440,6 +444,8 @@ export function createTerminalService(dependencies: {
       const dataEmitter = terminalOutput.emitter;
       const exitEmitter = new Emitter<number>();
 
+      // 检查、启动与登记在同一段同步代码中：删除方取得租约后列出的终端一定包含已启动的终端。
+      if (dependencies.isCwdBlocked?.(cwd)) throw new Error("worktree.removing");
       let p: IPty;
       try {
         p = spawnTerminalProcess({
@@ -462,7 +468,7 @@ export function createTerminalService(dependencies: {
         terminals.delete(id);
       });
 
-      terminals.set(id, { pty: p, dataEmitter, exitEmitter });
+      terminals.set(id, { pty: p, cwd, dataEmitter, exitEmitter });
       return {
         id,
         shell,
@@ -484,6 +490,16 @@ export function createTerminalService(dependencies: {
 
     async dispose(params: { id: string }): Promise<void> {
       cleanupTerminal(params.id);
+    },
+
+    async listTerminalIdsUnderPath(params: { path: string }): Promise<string[]> {
+      const root = resolve(params.path);
+      return [...terminals.entries()]
+        .filter(([, terminal]) => {
+          const rel = relative(root, resolve(terminal.cwd));
+          return rel === "" || (!rel.startsWith(`..${sep}`) && rel !== ".." && !isAbsolute(rel));
+        })
+        .map(([id]) => id);
     },
 
     onDynamicData(id: string): Event<string> {

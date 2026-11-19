@@ -3,6 +3,7 @@
 use nibi_kernel_api::ids::{MessageId, SessionId, ToolUseId};
 use nibi_kernel_api::message::Message;
 use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::WorktreeCreation;
 use nibi_kernel_api::store::{Fact, RevertCursor, SessionFork, SessionStore};
 use serde_json::{Value, json};
 
@@ -390,4 +391,97 @@ async fn a_selection_side_chat_is_a_hidden_copy_not_a_listable_fork() {
         text.contains("inherited from the parent task for reference only"),
         "boundary={boundary_id} parts={parts:?}"
     );
+}
+
+fn worktree() -> WorktreeCreation {
+    WorktreeCreation {
+        path: "/worktrees/3f2a/project".into(),
+        sha: "abc123".into(),
+        reference: None,
+        output: "git checkout abc123".into(),
+    }
+}
+
+#[tokio::test]
+async fn a_worktree_creation_fact_writes_a_worklog_part_and_loads_back() {
+    let t = TestStore::new();
+    started(&t, "sess_1").await;
+    // 同一批：Node 的落库顺序是 timeline-only assistant 消息在前，首轮 user 消息在后。
+    t.store
+        .commit(
+            &sid("sess_1"),
+            batch(
+                None,
+                vec![
+                    Fact::WorktreeCreation {
+                        creation: worktree(),
+                    },
+                    user("msg_1_u1", "first"),
+                ],
+            ),
+        )
+        .await
+        .unwrap();
+
+    let messages = data(&t, "message", "sess_1");
+    assert_eq!(messages.len(), 2);
+    assert_eq!(messages[0]["role"], json!("assistant"));
+    assert_eq!(messages[0]["semantics"]["kind"], json!("timeline_event"));
+    assert_eq!(messages[0]["semantics"]["providerVisibility"], json!("hidden"));
+    assert_eq!(messages[1]["role"], json!("user"));
+
+    let parts = data(&t, "part", "sess_1");
+    let part = parts
+        .iter()
+        .find(|part| part["timelineType"] == json!("worktree_creation"))
+        .expect("worktree_creation part");
+    assert_eq!(part["display"], json!("worklog"));
+    assert_eq!(part["status"], json!("completed"));
+    assert_eq!(
+        part["worktreeCreation"],
+        json!({"path": "/worktrees/3f2a/project", "sha": "abc123", "ref": null,
+            "output": "git checkout abc123"})
+    );
+
+    // 冷读取：Node 与 NIBI 内核写的历史都从 part 合成同一事实。
+    let loaded = t.store.load(&sid("sess_1")).await.unwrap();
+    assert_eq!(loaded.worktree_creations.len(), 1);
+    assert_eq!(loaded.worktree_creations[0].creation, worktree());
+}
+
+#[tokio::test]
+async fn a_fork_copies_the_parents_worktree_creation_part() {
+    let t = TestStore::new();
+    started(&t, "sess_1").await;
+    t.store
+        .commit(
+            &sid("sess_1"),
+            batch(
+                None,
+                vec![
+                    Fact::WorktreeCreation {
+                        creation: worktree(),
+                    },
+                    user("msg_1_u1", "first"),
+                ],
+            ),
+        )
+        .await
+        .unwrap();
+    t.store
+        .commit(
+            &sid("sess_1"),
+            batch(
+                None,
+                vec![assistant("msg_2_a1", vec![text("one")], None)],
+            ),
+        )
+        .await
+        .unwrap();
+
+    let receipt = t.store.fork(request("msg_2_a1")).await.unwrap();
+    assert_eq!(receipt.copied, 3);
+    let loaded = t.store.load(&sid("sess_2")).await.unwrap();
+    assert_eq!(loaded.worktree_creations.len(), 1);
+    assert_eq!(loaded.worktree_creations[0].creation, worktree());
 }

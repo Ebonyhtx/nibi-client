@@ -251,6 +251,8 @@ export function createWorkspaceSlice(set: SetFn) {
               taskUnreadByTaskId: restTaskUnreadByTaskId,
               optimisticTaskListByTaskId: nextOptimisticTaskListByTaskId,
               activeTaskId: id,
+              // 打开真实任务后不再把主区盖在创建记录上；草稿态记录只属于 activeTaskId=null。
+              ...(id ? { draftWorktreeCreationId: null } : {}),
               composerInitialization:
                 id && composerConfig
                   ? { taskId: id, config: composerConfig }
@@ -428,6 +430,40 @@ export function createWorkspaceSlice(set: SetFn) {
       );
     },
 
+    setDraftWorktree: (
+      workspacePath: string,
+      worktree: { ref: string | null } | null,
+      workspaceIdentity?: string,
+    ) => {
+      set((state) =>
+        updateWorkspaceState(
+          state,
+          workspacePath,
+          (current) => ({ ...current, draftWorktree: worktree }),
+          workspaceIdentity,
+        ),
+      );
+    },
+
+    viewWorktreeCreation: (
+      workspacePath: string,
+      creationId: string | null,
+      workspaceIdentity?: string,
+    ) => {
+      set((state) =>
+        updateWorkspaceState(
+          state,
+          workspacePath,
+          (current) => ({
+            ...current,
+            ...(creationId ? { activeTaskId: null, draftWorktree: null } : {}),
+            draftWorktreeCreationId: creationId,
+          }),
+          workspaceIdentity,
+        ),
+      );
+    },
+
     startDraft: (
       workspacePath: string,
       provider?: NibiProvider,
@@ -487,6 +523,9 @@ export function createWorkspaceSlice(set: SetFn) {
               composerInitialization: undefined,
               draftProjectId: options?.projectId,
               draftTaskGroupId: options?.taskGroupId,
+              // 新草稿默认在主目录运行，也不继续展示上一条 worktree 创建记录。
+              draftWorktree: null,
+              draftWorktreeCreationId: null,
               // 同 cwd 可属于多个项目；换项目不能复用前一个项目的预热 runtime 目录范围。
               draftRuntimeInvalidationVersion:
                 current.draftRuntimeInvalidationVersion +

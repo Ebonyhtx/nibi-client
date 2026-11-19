@@ -75,6 +75,8 @@ struct Seen {
     node_results: Mutex<Vec<(String, u64, u64)>>,
     /// workspace 级的动态工作流策略（`workspace/updateDynamicWorkflowPolicy` 落库值）。
     dynamic_workflow: Mutex<Vec<(String, DynamicWorkflowGate)>>,
+    /// `session/releaseUnderDirectory` 的入参。
+    releases: Mutex<Vec<String>>,
 }
 
 /// 替身 Kernel：所有 v4 读面都回一份固定数据（或按 `fail` 报错）。
@@ -87,6 +89,10 @@ struct FakeKernel {
     artifact_bytes: Option<Vec<u8>>,
     /// 节点正文（`None` = 无此节点）。
     node_result: Option<WorkflowRunNodeResult>,
+    /// `session/releaseUnderDirectory` 的返回值；`None` = 空结果。
+    release_reported: Mutex<Option<(Vec<SessionId>, Vec<SessionId>)>>,
+    /// 让 `session/releaseUnderDirectory` 报错（错误必须上行，不能伪装成空结果）。
+    release_error: bool,
 }
 
 #[async_trait]
@@ -119,6 +125,28 @@ impl Kernel for FakeKernel {
         _filter: SessionFilter,
     ) -> Result<Vec<SessionSummary>, KernelError> {
         Ok(Vec::new())
+    }
+
+    async fn release_sessions_under_directory(
+        &self,
+        directory: &str,
+    ) -> Result<nibi_kernel_api::session_api::ReleaseUnderDirectoryReport, KernelError> {
+        self.seen.releases.lock().unwrap().push(directory.to_owned());
+        if self.release_error {
+            return Err(KernelError::Failed {
+                message: "release failed".to_owned(),
+            });
+        }
+        let (released, busy) = self
+            .release_reported
+            .lock()
+            .unwrap()
+            .clone()
+            .unwrap_or_default();
+        Ok(nibi_kernel_api::session_api::ReleaseUnderDirectoryReport {
+            released,
+            busy,
+        })
     }
 
     async fn open_session(
@@ -469,9 +497,51 @@ async fn capabilities_report_the_real_kernel_surface() {
     assert_eq!(reply.result["historyFirst"], true);
     // 选区批注：conversationQuotes 的 comment/agent 会原样进入模型文本。
     assert_eq!(reply.result["conversationQuoteComment"], true);
+    // 会话 cwd 与 workspace 分离（受管 worktree）：createSession.cwd / forkAssistant.targetCwd
+    // 与 session/releaseUnderDirectory 都已实现；Host 只在这条为 true 时发送对应字段。
+    assert_eq!(reply.result["worktreeCwd"], true);
     // 内核没有这两个能力面（Host 侧也没有消费方）：如实回 false。
     assert_eq!(reply.result["sessionDirectorySource"], false);
     assert_eq!(reply.result["genUiContext"], false);
+}
+
+/// `session/releaseUnderDirectory`：回包按内核报告，released/busy 都是会话 ID 数组；
+/// 内核失败必须上行 JSON-RPC 错误，不能回空结果假装成功。
+#[tokio::test]
+async fn release_under_directory_reports_the_kernel_result() {
+    let mut kernel = FakeKernel::default();
+    kernel.release_reported = Mutex::new(Some((
+        vec![SessionId::new("sess_a")],
+        vec![SessionId::new("sess_b")],
+    )));
+    let (server, seen) = fake_with(kernel);
+    let reply = Handler(server)
+        .request(
+            "session/releaseUnderDirectory",
+            json!({"directory": "/w/app/worktree"}),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        reply.result,
+        json!({"released": ["sess_a"], "busy": ["sess_b"]})
+    );
+    assert_eq!(
+        seen.releases.lock().unwrap().as_slice(),
+        ["/w/app/worktree"]
+    );
+}
+
+#[tokio::test]
+async fn release_under_directory_surfaces_kernel_failure() {
+    let mut kernel = FakeKernel::default();
+    kernel.release_error = true;
+    let (server, _seen) = fake_with(kernel);
+    let error = request_error(server, "session/releaseUnderDirectory", json!({"directory": "/w"})).await;
+    assert!(
+        error.message.contains("release failed"),
+        "unexpected error: {error:?}"
+    );
 }
 
 /// `workspace/updateDynamicWorkflowPolicy` 落 workspace 级策略并回实际值。

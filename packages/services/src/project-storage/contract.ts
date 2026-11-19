@@ -2,8 +2,12 @@ import type { DatabaseSync } from "node:sqlite";
 import type { AppSettings } from "@nibi/shared";
 import type { MigrationResult } from "@nibi/shared/sqlite-migrations";
 import type { ProjectDataRepositoryContract } from "./data-contract.js";
+import type { ProjectTaskRef } from "./project-refs.js";
+import type { ProjectWorktreeRepositoryContract } from "./worktree-contract.js";
 
 export type { ProjectDataRepositoryContract } from "./data-contract.js";
+export type { ProjectTaskRef } from "./project-refs.js";
+export type { ProjectWorktreeRepositoryContract } from "./worktree-contract.js";
 
 export interface ProjectMigrationContext {
   /** 可信持库 Server 身份；不受客户端请求或旧 canonical route 影响。 */
@@ -24,7 +28,7 @@ export interface ProjectStorageContract {
   repository(
     db: DatabaseSync,
     hostId?: string,
-  ): ProjectRepositoryContract & ProjectDataRepositoryContract;
+  ): ProjectRepositoryContract & ProjectWorktreeRepositoryContract & ProjectDataRepositoryContract;
   admitTaskIdentity(db: DatabaseSync, task: ProjectTaskRef, hostId?: string): void;
 }
 
@@ -50,11 +54,6 @@ export interface VirtualProject {
   deleted: boolean;
   createdAt: number;
   updatedAt: number;
-}
-export interface ProjectTaskRef {
-  workspacePath: string;
-  workspaceIdentity?: string;
-  taskId: string;
 }
 export type ProjectTask = import("@nibi/shared").NibiTaskMeta & {
   projectId: string | null;
@@ -115,9 +114,18 @@ export interface ProjectRepositoryContract {
     /** Host 已固化的执行目录；首次预留持久化，重试不改。undefined 为普通新建。 */
     additionalDirectories?: string[];
     /**
-     * 显式标记任务 cwd 是 `<repoRoot>/.nibi/worktrees/...` 内的受管 worktree。
+     * 显式标记任务 cwd 是 `<repoRoot>/.nibi/worktrees/...` 内的受管 worktree（Option A 切片）。
      * 只有本地项目允许；命中后跳过 project roots 成员校验，但仍校验仓库归属。
      */
     managedWorktree?: { repoRoot: string; worktreeRoot: string };
+    /** 受管 worktree 任务的 cwd（root_path）与 worktree 根目录；必须同时出现。 */
+    cwd?: string;
+    worktreeRoot?: string;
+    /** 同目录 fork 的父任务 ID；父任务在受管 worktree 中时继承 cwd 与 worktree 根。 */
+    forkedFromTaskId?: string;
   }): ProjectDirectories;
 }
+
+/** 受管 worktree 服务使用的完整 Task 行端口。 */
+export type ProjectTaskRepositoryContract = ProjectRepositoryContract &
+  ProjectWorktreeRepositoryContract;

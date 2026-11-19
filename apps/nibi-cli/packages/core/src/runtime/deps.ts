@@ -189,6 +189,7 @@ export type {
   TargetCompletionVerificationPayload,
   TimelinePart,
   TimelinePartDraft,
+  WorktreeCreationFact,
   GoalCompletionVerificationOutput,
   GoalCompletionVerificationAcceptancePrompt,
   GoalCompletionVerificationCheck,

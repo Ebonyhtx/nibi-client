@@ -51,6 +51,7 @@ import {
   readEvents,
   readMessages,
   readSession,
+  releaseSessionsUnderDirectory,
   resumeSession,
   sendPrompt,
   setMode,
@@ -741,6 +742,8 @@ export class NibiProtocolAgentServer {
         return await setMode(this.context, request.params);
       case nibiProtocolMethods.sessionClose:
         return await closeSession(this.context, request.params);
+      case nibiProtocolMethods.sessionReleaseUnderDirectory:
+        return await releaseSessionsUnderDirectory(this.context, request.params);
       case nibiProtocolMethods.workspaceReadPresentation:
         return await readWorkspacePresentation(this.context, request.params);
       case nibiProtocolMethods.workspaceHookTrustGrant: {
@@ -861,6 +864,9 @@ export class NibiProtocolAgentServer {
           historyFirst: true,
           // 选区批注：sendText/editUserQuery 的 conversationQuotes 会原样进入模型文本。
           conversationQuoteComment: true,
+          // 会话 cwd 可与 workspace 不同（受管 worktree）：createSession.cwd/worktreeCreation
+          // 与 forkAssistant.targetCwd 都已落地，Host 只在声明为 true 时才发送这些字段。
+          worktreeCwd: true,
         };
       case nibiProtocolMethods.pluginsMarketplaceAdd:
         return await this.withPluginOperationSignal(request, (signal) =>

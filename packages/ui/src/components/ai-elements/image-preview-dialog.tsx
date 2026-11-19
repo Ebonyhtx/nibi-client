@@ -1,16 +1,7 @@
 "use client";
 
-import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  DownloadIcon,
-  MinusIcon,
-  PencilIcon,
-  PlusIcon,
-  XIcon,
-} from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, MinusIcon, PlusIcon, XIcon } from "lucide-react";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import type { IPlatformService } from "@nibi/shared";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/components/lib/utils.js";
 import { Button } from "@/components/ui/button.js";
@@ -23,11 +14,16 @@ import {
   decodeImageDataUrl,
   detectImageEditorCanvas,
   ImageEditorSurface,
+  ImagePreviewActions,
   isAnnotatableImageSource,
+  readBoundedImageBlob,
+  sanitizeImageSourceForLog,
   type ImageEditorComposerScope,
   type ImageEditorInput,
 } from "@/image-preview-editor/index.js";
 import { logger } from "@/logger.js";
+
+export { downloadImagePreview, sanitizeImageSourceForLog } from "@/image-preview-editor/index.js";
 
 /** 预览条目可直接携带的位图原始字节；没有时由 src 或 loadEditSource 惰性读取。 */
 export interface ImagePreviewEditSource {
@@ -57,36 +53,6 @@ interface PreviewSize {
 }
 
 const defaultPreviewOffset: PreviewOffset = { x: 0, y: 0 };
-const MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024;
-
-const imageExtensionByMediaType: Record<string, string> = {
-  "image/apng": "apng",
-  "image/avif": "avif",
-  "image/bmp": "bmp",
-  "image/x-ms-bmp": "bmp",
-  "image/gif": "gif",
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/svg+xml": "svg",
-  "image/webp": "webp",
-  "image/x-icon": "ico",
-  "image/vnd.microsoft.icon": "ico",
-};
-
-function imageDownloadFilename(item: ImagePreviewDialogItem, mediaType = item.mediaType ?? "") {
-  const knownExtension = imageExtensionByMediaType[mediaType.toLowerCase().split(";")[0] ?? ""];
-  let sourcePath: string | undefined;
-  if (item.src && isHttpSource(item.src)) sourcePath = new URL(item.src).pathname;
-  const supportedExtensions = new Set([...Object.values(imageExtensionByMediaType), "jpeg"]);
-  const sourceExtension = [item.filename, sourcePath, item.alt]
-    .map((name) => /\.([a-z0-9]+)$/iu.exec(name?.trim() ?? "")?.[1]?.toLowerCase())
-    .find((extension) => extension !== undefined && supportedExtensions.has(extension));
-  // 原字节不能统一命名成 PNG；未知 MIME 保留可信图片后缀，已知 MIME 拒绝不相容的后缀。
-  const compatible =
-    !knownExtension || (sourceExtension === "jpeg" ? "jpg" : sourceExtension) === knownExtension;
-  const extension = (compatible ? sourceExtension : undefined) ?? knownExtension ?? "bin";
-  return `${safeDownloadBaseName(item)}.${extension}`;
-}
 
 export function clampImagePreviewOffset(
   offset: PreviewOffset,
@@ -100,91 +66,6 @@ export function clampImagePreviewOffset(
     x: maxX === 0 ? 0 : Math.min(maxX, Math.max(-maxX, offset.x)),
     y: maxY === 0 ? 0 : Math.min(maxY, Math.max(-maxY, offset.y)),
   };
-}
-
-function safeDownloadBaseName(item: ImagePreviewDialogItem) {
-  return (
-    (item.filename || item.alt)
-      .trim()
-      .replace(/\.[a-z0-9]+$/iu, "")
-      .replace(/[<>:"/\\|?*\u0000-\u001f]/gu, "-")
-      .slice(0, 80) || "image"
-  );
-}
-
-class ImageDownloadError extends Error {
-  constructor(readonly code: "download_failed" | "file_too_large") {
-    super(code);
-  }
-}
-
-function isHttpSource(value: string) {
-  return value.startsWith("http://") || value.startsWith("https://");
-}
-
-export function sanitizeImageSourceForLog(source: string) {
-  if (source.startsWith("data:")) return "data-url";
-  try {
-    const url = new URL(source);
-    url.username = "";
-    url.password = "";
-    url.search = "";
-    url.hash = "";
-    return url.toString();
-  } catch {
-    return "invalid-url";
-  }
-}
-
-async function readBoundedImageBlob(source: string) {
-  const controller = new AbortController();
-  let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
-  try {
-    const response = await fetch(source, { signal: controller.signal });
-    if (!response.ok || !response.body) throw new ImageDownloadError("download_failed");
-    const contentLength = Number(response.headers.get("content-length"));
-    if (Number.isFinite(contentLength) && contentLength > MAX_DOWNLOAD_BYTES) {
-      throw new ImageDownloadError("file_too_large");
-    }
-
-    reader = response.body.getReader();
-    const chunks: Uint8Array[] = [];
-    let receivedBytes = 0;
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      receivedBytes += value.byteLength;
-      if (receivedBytes > MAX_DOWNLOAD_BYTES) {
-        // Web 下载也必须在读取过程中截断，不能等 response.blob() 完整占用 renderer 内存。
-        controller.abort();
-        throw new ImageDownloadError("file_too_large");
-      }
-      chunks.push(value);
-    }
-    if (receivedBytes === 0) throw new ImageDownloadError("download_failed");
-    const bytes = new Uint8Array(receivedBytes);
-    let offset = 0;
-    for (const chunk of chunks) {
-      bytes.set(chunk, offset);
-      offset += chunk.byteLength;
-    }
-    return new Blob([bytes.buffer], {
-      type: response.headers.get("content-type") ?? "application/octet-stream",
-    });
-  } finally {
-    controller.abort();
-    await reader?.cancel().catch(() => undefined);
-  }
-}
-
-function startBrowserNativeDownload(source: string) {
-  const link = document.createElement("a");
-  link.href = source;
-  link.rel = "noopener noreferrer";
-  link.target = "_blank";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
 }
 
 /**
@@ -208,52 +89,6 @@ async function readPreviewImageEditSource(
       ? declaredType
       : "image/png";
   return { bytes: new Uint8Array(await blob.arrayBuffer()), mediaType };
-}
-
-export async function downloadImagePreview(
-  item: ImagePreviewDialogItem,
-  saveFile?: IPlatformService["saveFile"],
-): Promise<{ kind: "saved"; path: string } | { kind: "started" } | { kind: "canceled" }> {
-  if (!item.src) throw new ImageDownloadError("download_failed");
-  if (saveFile && isHttpSource(item.src)) {
-    const result = await saveFile({
-      sourceUrl: item.src,
-      suggestedName: imageDownloadFilename(item),
-    });
-    if (result.canceled) return { kind: "canceled" };
-    if (!result.success || !result.path) throw new Error(result.error || "save_failed");
-    return { kind: "saved", path: result.path };
-  }
-  let blob: Blob;
-  try {
-    blob = await readBoundedImageBlob(item.src);
-  } catch (error) {
-    if (
-      !saveFile &&
-      isHttpSource(item.src) &&
-      !(error instanceof ImageDownloadError && error.code === "file_too_large")
-    ) {
-      startBrowserNativeDownload(item.src);
-      return { kind: "started" };
-    }
-    throw error;
-  }
-  const filename = imageDownloadFilename(item, blob.type);
-  if (saveFile) {
-    const result = await saveFile({ data: await blob.arrayBuffer(), suggestedName: filename });
-    if (result.canceled) return { kind: "canceled" };
-    if (!result.success || !result.path) throw new Error(result.error || "save_failed");
-    return { kind: "saved", path: result.path };
-  }
-  const objectUrl = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = objectUrl;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(objectUrl);
-  return { kind: "started" };
 }
 
 export function ImagePreviewDialog({
@@ -280,7 +115,7 @@ export function ImagePreviewDialog({
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [previewScale, setPreviewScale] = useState(1);
   const [previewOffset, setPreviewOffset] = useState(defaultPreviewOffset);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [previewImageReady, setPreviewImageReady] = useState(false);
   const [videoState, setVideoState] = useState<"loading" | "ready" | "unsupported">("loading");
   const [editorInput, setEditorInput] = useState<ImageEditorInput | null>(null);
   const [preparingEdit, setPreparingEdit] = useState(false);
@@ -353,6 +188,7 @@ export function ImagePreviewDialog({
     editRequestRef.current += 1;
     setEditorInput(null);
     setPreparingEdit(false);
+    setPreviewImageReady(false);
   }, [activeIndex, open]);
 
   useEffect(() => {
@@ -467,28 +303,6 @@ export function ImagePreviewDialog({
       : null;
   };
 
-  const downloadActiveImage = async () => {
-    if (!activeItem?.src || activeItemIsVideo || isDownloading) return;
-    setIsDownloading(true);
-    try {
-      const result = await downloadImagePreview(activeItem, platform?.saveFile);
-      if (result.kind === "saved") {
-        toast(intl.formatMessage({ id: "markdownImage.downloadSucceeded" }));
-      } else if (result.kind === "started") {
-        toast(intl.formatMessage({ id: "markdownImage.downloadStarted" }));
-      }
-    } catch (error) {
-      logger.warn("[ImagePreviewDialog] 图片下载失败", {
-        // 签名 URL 的 userinfo/query/fragment 不参与排障，禁止写入持久化日志。
-        src: sanitizeImageSourceForLog(activeItem.src),
-        error: error instanceof Error ? error.message : String(error),
-      });
-      toast(intl.formatMessage({ id: "markdownImage.downloadFailed" }));
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
   const startEditing = async () => {
     const item = activeItem;
     const image = previewImageRef.current;
@@ -547,46 +361,43 @@ export function ImagePreviewDialog({
         <DialogTitle className="sr-only">
           {activeItem?.alt || intl.formatMessage({ id: "chat.attachments.preview.title" })}
         </DialogTitle>
-        <div className="pointer-events-auto absolute right-4 top-4 z-20 flex items-center gap-2 [app-region:no-drag] platform-mac-desktop:top-12 platform-linux-desktop:right-6 platform-linux-desktop:top-4 platform-windows-desktop:right-6 platform-windows-desktop:top-[calc(env(titlebar-area-height,48px)_+_0.5rem)]">
-          {!activeItemIsVideo && !editing ? (
-            <Button
-              type="button"
-              aria-label={intl.formatMessage({ id: "markdownImage.download" })}
-              className="rounded-full border border-border bg-background text-foreground shadow-md hover:bg-background/80"
-              disabled={!activeItem?.src || isDownloading}
-              onClick={downloadActiveImage}
-              size="icon-md"
-              variant="ghost"
-            >
-              <DownloadIcon />
-            </Button>
-          ) : null}
-          {!editing && canEditActiveImage ? (
-            <Button
-              type="button"
-              aria-label={intl.formatMessage({ id: "imagePreview.edit" })}
-              title={intl.formatMessage({ id: "imagePreview.edit" })}
-              className="rounded-full border border-border bg-background text-foreground shadow-md hover:bg-background/80"
-              disabled={preparingEdit}
-              onClick={() => void startEditing()}
-              size="icon-md"
-              variant="ghost"
-            >
-              <PencilIcon />
-            </Button>
-          ) : null}
-          <DialogClose asChild>
-            <Button
-              type="button"
-              aria-label={intl.formatMessage({ id: "common.close" })}
-              className="rounded-full border border-border bg-background text-foreground shadow-md hover:bg-background/80"
-              size="icon-md"
-              variant="ghost"
-            >
-              <XIcon />
-            </Button>
-          </DialogClose>
-        </div>
+        {activeItem && !activeItemIsVideo && !editing ? (
+          <ImagePreviewActions
+            item={activeItem}
+            imageRef={previewImageRef}
+            ready={previewImageReady}
+            canDraw={canEditActiveImage}
+            composerScope={composerScope}
+            onDraw={() => void startEditing()}
+            onAdded={() => onOpenChange(false)}
+          >
+            <DialogClose asChild>
+              <Button
+                type="button"
+                aria-label={intl.formatMessage({ id: "common.close" })}
+                className="rounded-full border border-border bg-background text-foreground shadow-md hover:bg-background/80"
+                size="icon-md"
+                variant="ghost"
+              >
+                <XIcon />
+              </Button>
+            </DialogClose>
+          </ImagePreviewActions>
+        ) : (
+          <div className="pointer-events-auto absolute right-4 top-4 z-20 flex items-center gap-2 [app-region:no-drag] platform-mac-desktop:top-12 platform-linux-desktop:right-6 platform-linux-desktop:top-4 platform-windows-desktop:right-6 platform-windows-desktop:top-[calc(env(titlebar-area-height,48px)_+_0.5rem)]">
+            <DialogClose asChild>
+              <Button
+                type="button"
+                aria-label={intl.formatMessage({ id: "common.close" })}
+                className="rounded-full border border-border bg-background text-foreground shadow-md hover:bg-background/80"
+                size="icon-md"
+                variant="ghost"
+              >
+                <XIcon />
+              </Button>
+            </DialogClose>
+          </div>
+        )}
         {hasMultiple && !editing ? (
           <>
             <Button
@@ -689,7 +500,10 @@ export function ImagePreviewDialog({
                 className="max-h-full max-w-full select-none rounded-xl border border-border bg-background object-contain shadow-2xl"
                 data-testid={imageTestId}
                 draggable={false}
-                onLoad={resetPreviewTransform}
+                onLoad={() => {
+                  setPreviewImageReady(true);
+                  resetPreviewTransform();
+                }}
                 ref={previewImageRef}
                 src={activeItem.src}
                 style={{

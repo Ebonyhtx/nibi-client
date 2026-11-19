@@ -1,5 +1,10 @@
 /* eslint-disable max-lines -- 跨端 platform contract 集中声明 renderer 能力；OAuth 与 browser lifecycle 必须保持 desktop/web 类型合同，本 MR 不拆分平台边界。 */
-import type { BrowserViewExportPageRequest, BrowserViewExportPageResult } from "./channels.js";
+import type {
+  BrowserViewExportPageRequest,
+  BrowserViewExportPageResult,
+  CaptureBrowserGuestPageRequest,
+  CaptureBrowserGuestPageResult,
+} from "./channels.js";
 import type {
   DockerConnectOptions,
   RemoteTarget,
@@ -736,6 +741,14 @@ export interface IPlatformService {
   browserViewExportPage?(
     payload: BrowserViewExportPageRequest,
   ): Promise<BrowserViewExportPageResult>;
+
+  /**
+   * 按 CSS 视口 rect 截取受控内置浏览器 guest 的一块 PNG（设计模式元素截图）。
+   * 与 browserViewExportPage 共用 sender / tab owner / webview 归属校验；旧 preload 保持 undefined。
+   */
+  captureBrowserGuestPage?(
+    payload: CaptureBrowserGuestPageRequest,
+  ): Promise<CaptureBrowserGuestPageResult>;
 
   /**
    * 从浏览器 File 对象解析宿主本地路径；只有 Desktop preload 能安全实现。

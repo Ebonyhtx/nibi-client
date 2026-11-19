@@ -297,6 +297,8 @@ function initializeBusinessRoot(port: MessagePort): void {
   appInitialized = true;
   const services = connectViaMessagePort(port, {
     sourceServerManagementService: true,
+    // 受管 worktree 只属于本机桌面 Host；remote scoped port 不传此能力。
+    managedWorktreeService: true,
   });
   baseServicesForRemoteSessions = services;
   registerBaseWorkspaceServices(services);

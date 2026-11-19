@@ -8,6 +8,7 @@ import type {
   AppControlListProjectsResult,
   AppControlMutationResult,
   AppControlOpenSessionResult,
+  AppControlSessionStateResult,
 } from "./contract.js";
 import { AppControlError } from "./contract.js";
 import type { AppControlTrustedContext } from "./context.js";
@@ -22,7 +23,7 @@ export interface AppControlHostDependencies {
   remoteProjectService?: Pick<IRemoteProjectService, "readDirectory">;
   /** 惰性解析：desktop Host 的 window controller 晚于本服务注册。 */
   resolveWindowControllerService?: () =>
-    | Pick<IWindowControllerService, "getTaskMeta" | "mutateTask">
+    | Pick<IWindowControllerService, "getTaskMeta" | "mutateTask" | "listTaskList">
     | undefined;
   taskService?: Pick<INibiTaskService, "archiveTask" | "unarchiveTask" | "setTaskPinned">;
   navigation: AppControlNavigationRuntime;
@@ -70,6 +71,15 @@ export interface AppControlService {
     input: AppControlSetPinnedInput,
     signal?: AbortSignal,
   ): Promise<AppControlMutationResult>;
+  /**
+   * 读目标的归档事实，供 CLI fork 在 owner 创建子会话之前拒绝归档目标。
+   * 目标不在本 Host 可信范围或来源不匹配时按 forbidden 失败，不泄露存在性。
+   */
+  getSessionArchived(
+    ctx: AppControlTrustedContext,
+    input: { sessionId: string },
+    signal?: AbortSignal,
+  ): Promise<AppControlSessionStateResult>;
   /** 内核直接建出会话后的单向通知：只补 Host 行，不中断/不改目标会话执行。 */
   noteSessionCreated(input: {
     sessionId: string;
@@ -101,6 +111,7 @@ export function createAppControlService(deps: AppControlHostDependencies): AppCo
     ...(deps.resolveWindowControllerService
       ? { resolveWindowControllerService: deps.resolveWindowControllerService }
       : {}),
+    ...(deps.sourceServerId ? { sourceServerId: deps.sourceServerId } : {}),
     ...(deps.logWarn ? { logWarn: deps.logWarn } : {}),
   });
 
@@ -114,6 +125,45 @@ export function createAppControlService(deps: AppControlHostDependencies): AppCo
     return resolved;
   }
 
+  /**
+   * 来源归属判定（上游 `taskFromSnapshot` 的来源部分）：Source Host 只能操作自己来源的会话。
+   * 桌面聚合 Host 没有 sourceServerId，跨来源操作必须路由到 owning host，不能落到本机任务索引。
+   * 未知/不匹配一律 forbidden，与目标不存在同一错误，不泄露它在别处是否存在。
+   */
+  function assertTargetSource(target: Awaited<ReturnType<typeof requireSession>>): void {
+    if (!deps.sourceServerId) return;
+    if (target.sourceServerId !== deps.sourceServerId)
+      throw new AppControlError("forbidden", "Session source does not match this Host");
+  }
+
+  /** 归档事实：本机任务树直接给出；远端只信窗口投影的 archived 列表。 */
+  async function isArchived(
+    target: Awaited<ReturnType<typeof requireSession>>,
+  ): Promise<boolean | undefined> {
+    if (target.archived !== undefined) return target.archived;
+    const controller = windowController();
+    if (!controller) return undefined;
+    try {
+      const archived = await controller.listTaskList({
+        kind: "archived",
+        workspaceScopes: [
+          {
+            workspacePath: target.workspacePath,
+            ...(target.workspaceIdentity
+              ? { workspaceIdentity: target.workspaceIdentity }
+              : {}),
+          },
+        ],
+        sortBy: "updated",
+        limit: 200,
+      });
+      return archived.items.some((item) => item.taskId === target.sessionId);
+    } catch (error) {
+      deps.logWarn?.("app-control: reading archived task projection failed", error);
+      return undefined;
+    }
+  }
+
   async function mutate(
     ctx: AppControlTrustedContext,
     target: Awaited<ReturnType<typeof requireSession>>,
@@ -123,21 +173,30 @@ export function createAppControlService(deps: AppControlHostDependencies): AppCo
     requestId: string,
   ): Promise<AppControlMutationResult> {
     const controller = windowController();
-    if (target.sourceServerId && !controller) {
-      return mutation(
-        "rejected",
-        requestId,
-        "Cross-source mutation requires the window controller",
-      );
-    }
+    // 归属判定已由 assertTargetSource 完成；这里只区分「本 Host 自己的行」与「其他 source 的行」。
+    // 目标属于其他 source 时只允许经 owning host 路由，绝不在本地任务索引写一份再报错。
+    const ownedByThisHost = !target.sourceServerId || target.sourceServerId === deps.sourceServerId;
     const address = {
       taskId: target.sessionId,
       workspacePath: target.workspacePath,
       ...(target.workspaceIdentity ? { workspaceIdentity: target.workspaceIdentity } : {}),
       ...(target.sourceServerId ? { sourceServerId: target.sourceServerId } : {}),
     };
+    if (!ownedByThisHost) {
+      if (!controller?.mutateTask)
+        throw new AppControlError("unavailable", "The owning host is unavailable");
+      try {
+        const meta = await controller.mutateTask({ address, mutation: mutationInput });
+        if (!meta) return mutation("unknown", requestId, "Task index returned no task");
+        return mutation("applied", requestId);
+      } catch (error) {
+        deps.logWarn?.("app-control: cross-source task mutation failed", error);
+        // 已交给 owning host，结果不确定；不能回退到本地任务索引。
+        return mutation("unknown", requestId, reasonOf(error));
+      }
+    }
     try {
-      if (controller) {
+      if (controller?.mutateTask) {
         const meta = await controller.mutateTask({
           address,
           mutation: mutationInput,
@@ -165,8 +224,9 @@ export function createAppControlService(deps: AppControlHostDependencies): AppCo
         });
         return mutation(meta ? "applied" : "unknown", requestId);
       }
-      return mutation("rejected", requestId, "The task index is unavailable in this host");
+      throw new AppControlError("unavailable", "The task index is unavailable in this host");
     } catch (error) {
+      if (error instanceof AppControlError) throw error;
       deps.logWarn?.("app-control: task mutation failed", error);
       return mutation("unknown", requestId, reasonOf(error));
     }
@@ -183,6 +243,16 @@ export function createAppControlService(deps: AppControlHostDependencies): AppCo
 
     async openSession(ctx, input, signal) {
       const target = await requireSession(input.sessionId);
+      assertTargetSource(target);
+      if (signal?.aborted) {
+        throw new AppControlError("cancelled", "Open request was cancelled");
+      }
+      // 上游只打开当前目录投影里的任务：归档目标按 task-not-found 拒绝，不自动取消归档。
+      // 远端归档事实不可确认时也 fail closed，不能把未知状态当成「未归档」静默打开。
+      const archived = await isArchived(target);
+      if (archived === true || (archived === undefined && target.sourceServerId)) {
+        return { status: "unavailable", reason: "project.task-not-found" };
+      }
       if (signal?.aborted) {
         throw new AppControlError("cancelled", "Open request was cancelled");
       }
@@ -207,6 +277,7 @@ export function createAppControlService(deps: AppControlHostDependencies): AppCo
         throw new AppControlError("cancelled", "Mutation was cancelled before it started");
       }
       const target = await requireSession(input.sessionId);
+      assertTargetSource(target);
       return mutate(
         _ctx,
         target,
@@ -220,7 +291,21 @@ export function createAppControlService(deps: AppControlHostDependencies): AppCo
         throw new AppControlError("cancelled", "Mutation was cancelled before it started");
       }
       const target = await requireSession(input.sessionId);
+      assertTargetSource(target);
       return mutate(_ctx, target, { kind: "pin", pinned: input.pinned }, input.requestId);
+    },
+
+    async getSessionArchived(_ctx, input, signal) {
+      if (signal?.aborted) {
+        throw new AppControlError("cancelled", "Session state request was cancelled");
+      }
+      const target = await requireSession(input.sessionId);
+      assertTargetSource(target);
+      const archived = await isArchived(target);
+      // 产品会话的归档事实不可确认时 fail closed：CLI fork 不能拿一个未知状态去创建子会话。
+      if (archived === undefined)
+        throw new AppControlError("unavailable", "Session archive state is unavailable");
+      return { archived };
     },
 
     async noteSessionCreated(input) {

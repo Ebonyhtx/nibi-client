@@ -65,6 +65,19 @@ CLI/App 用例不相互导入。
 - read/send/create/fork 不导航；archive 不停止执行。navigation 缺席只使 open 返回 unavailable。模型、
   Provider、组织归属和真实 UI 执行仍由生产 owner 管理。
 
+## 来源归属与归档目标（NIBI Phase 3）
+
+- 来源由 `SessionRef.kind` + `sourceServerId` + `workspaceKey` 组成；`assertScope` 在调用 owner 之前
+  拒绝其他 source 的目标，错误码与文案和「目标不存在」相同（`forbidden: Target is outside the
+  trusted scope`），不泄露目标在别处是否存在。归档、置顶、打开、fork、send、wait 都走同一判定。
+- `OpenSession` 只打开当前导航投影中的会话。归档目标返回 `unavailable` +
+  `project.task-not-found`（上游同一 reason），不自动取消归档、不改只读状态、不打开其他会话。
+- `ForkSession` 在 owner 创建子会话之前检查归档事实：owner 提供 `isSessionArchived` 且为 true 时
+  返回 `unavailable: Target session is archived`，绝不产生半个子会话。读取、发送、等待、归档/取消归档
+  与置顶不受归档影响。
+- `isSessionArchived` 是可选端口：owner 不提供归档事实时保持缺席，不伪造「未归档」结论；Node 与
+  Rust 内核使用同一 reason/错误码（`project.task-not-found` / `unavailable`）。
+
 `test` 使用包内 Node 配置与空 setupFiles，`typecheck` 独立执行。测试使用手动 deadline、deferred 和
 可控 feed，无真实进程、文件、网络或定时器。核心单测不证明跨进程 owner、RPC 原子授权或桌面/手机导航；
 这些由生产适配器集成与 E2E 验证。

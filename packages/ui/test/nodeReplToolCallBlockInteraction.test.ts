@@ -169,7 +169,7 @@ describe("node repl tool interaction", () => {
     expect(previewImage.getAttribute("src")).toBe("data:image/png;base64,AAAA");
     expect(previewImage.getAttribute("draggable")).toBe("false");
     expect(screen.getByText("100%")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "下载图片" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "另存为" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "上一张图片" })).toBeNull();
 
     fireEvent.click(previewImage);
@@ -257,7 +257,7 @@ describe("node repl tool interaction", () => {
       ),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "下载图片" }));
+    fireEvent.click(screen.getByRole("button", { name: "另存为" }));
     await waitFor(() => expect(anchorClick).toHaveBeenCalledTimes(1));
     expect(
       document.querySelector('a[href="https://images.example.test/no-cors-cat.png"]'),
@@ -286,7 +286,7 @@ describe("node repl tool interaction", () => {
     );
 
     expect(screen.getByRole("img", { name: "shot.png" })).not.toBeNull();
-    expect(screen.getByRole("button", { name: "下载图片" })).not.toBeNull();
+    expect(screen.getByRole("button", { name: "另存为" })).not.toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "下一张图片" }));
 
@@ -295,7 +295,7 @@ describe("node repl tool interaction", () => {
     expect(video?.getAttribute("src")).toBe("blob:video");
     expect(video?.hasAttribute("controls")).toBe(true);
     expect(video?.hasAttribute("playsinline")).toBe(true);
-    expect(screen.queryByRole("button", { name: "下载图片" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "另存为" })).toBeNull();
     expect(screen.queryByRole("button", { name: "放大" })).toBeNull();
 
     fireEvent.keyDown(window, { key: "ArrowLeft" });
@@ -343,9 +343,9 @@ describe("node repl tool interaction", () => {
       ),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "下载图片" }));
+    fireEvent.click(screen.getByRole("button", { name: "另存为" }));
     await waitFor(() =>
-      expect((screen.getByRole("button", { name: "下载图片" }) as HTMLButtonElement).disabled).toBe(
+      expect((screen.getByRole("button", { name: "另存为" }) as HTMLButtonElement).disabled).toBe(
         false,
       ),
     );

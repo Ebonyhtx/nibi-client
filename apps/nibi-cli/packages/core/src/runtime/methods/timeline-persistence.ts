@@ -1,4 +1,4 @@
-import { createModelId, createModelProviderId } from "@nibi/contracts";
+import { createModelId, createModelProviderId, SessionEventType } from "@nibi/contracts";
 import { createMessageId, createPartId } from "../deps.js";
 import type {
   MessageId,
@@ -8,6 +8,7 @@ import type {
   TimelinePart,
   TimelinePartDraft,
   TraceContext,
+  WorktreeCreationFact,
 } from "../deps.js";
 import { emptyTokenUsageInfo } from "../helpers/index.js";
 import type { AgentRuntimeInternal } from "../internal.js";
@@ -81,6 +82,51 @@ export async function persistPendingModelChangeTimeline(
     },
     traceContext,
   });
+}
+
+/**
+ * 只在新建会话首轮之前记录一次；重复调用（例如命令重试）保持第一次的事实。
+ * 事实由 Host 可信命令（createSession.worktreeCreation）给出，runtime 只是把它推迟到
+ * 首轮持久化后、TurnStarted 前落盘（见 persistPendingWorktreeCreationTimeline）。
+ */
+export function recordPendingWorktreeCreation(
+  this: AgentRuntimeInternal,
+  fact: WorktreeCreationFact,
+): void {
+  this.pendingWorktreeCreation ??= { ...fact };
+}
+
+/**
+ * 首轮 ensureSessionPersisted 之后、TurnStarted 之前写入 "已创建 worktree"：
+ * 落盘为 timeline part 以便冷恢复，同时发 WorktreeCreated 让 live 投影在首轮轮顶显示。
+ * 与 model_change 一样不进入模型上下文（providerVisibility = hidden）。
+ */
+export async function persistPendingWorktreeCreationTimeline(
+  this: AgentRuntimeInternal,
+  traceContext: TraceContext,
+): Promise<void> {
+  const fact = this.pendingWorktreeCreation;
+  if (!fact) return;
+  this.pendingWorktreeCreation = undefined;
+  const created = Date.now();
+  await this.persistAssistantTimelinePartForSession({
+    sessionId: this.sessionId,
+    created,
+    completed: created,
+    finish: "completed",
+    timeline: {
+      timelineType: "worktree_creation",
+      display: "worklog",
+      status: "completed",
+      worktreeCreation: { ...fact },
+      time: { start: created, end: created },
+    },
+    traceContext,
+  });
+  await this.appendEvent(
+    this.createEvent(SessionEventType.WorktreeCreated, { ...fact }, traceContext),
+    traceContext,
+  );
 }
 
 export async function persistAssistantTimelinePartForSession(

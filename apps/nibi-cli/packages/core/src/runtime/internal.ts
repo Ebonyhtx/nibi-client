@@ -49,7 +49,11 @@ import type {
   RuntimeTurnFileChangeMap,
 } from "./types.js";
 import type { RuntimeCommandQueue } from "./command-queue.js";
-import type { AppSessionControlBinding, SessionControlBinding } from "@nibi/contracts";
+import type {
+  AppSessionControlBinding,
+  SessionControlBinding,
+  WorktreeCreationFact,
+} from "@nibi/contracts";
 import type { RuntimeTaskRegistry } from "../runtime-task/registry.js";
 import type { WorkflowBlockedReminderClock } from "../runtime-task/workflow-blocked-reminder.js";
 import type { BackgroundSubagentStallClock } from "../subagent/background-stall.js";
@@ -181,6 +185,8 @@ export interface AgentRuntimeInternal
   backgroundTaskNotificationsSealed: boolean;
   backgroundTaskNotificationSealReason?: BackgroundTaskNotificationSealReason;
   pendingModelChangeTimeline?: PendingModelChangeTimeline;
+  /** 首轮持久化前记下的受管 worktree 创建事实（只落盘一次）。 */
+  pendingWorktreeCreation?: WorktreeCreationFact;
   sessionStartHookRan: boolean;
   sessionTitleGenerationAttempted: boolean;
   agentTelemetry: RuntimeTelemetryFacade;

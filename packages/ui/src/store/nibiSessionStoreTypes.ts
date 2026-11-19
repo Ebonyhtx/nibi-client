@@ -164,6 +164,10 @@ export interface WorkspaceNibiUIState {
   draftProjectId?: string | null;
   /** 未提交任务的分组意图；无文字时仅保留在当前 Renderer 内存。 */
   draftTaskGroupId?: string | null;
+  /** 草稿开启了"在新 worktree 中运行"；ref 为 null 表示当前 HEAD。每次 startDraft 重置为关闭。 */
+  draftWorktree?: { ref: string | null } | null;
+  /** 当前 workspace 主区展示的 worktree 创建记录；记录本身只在 Host。 */
+  draftWorktreeCreationId?: string | null;
   /**
    * 草稿运行时能力失效版本；插件、Skill 等能力变化时递增。
    * V4 pane 独占预热会话，配置界面只发布失效版本。
@@ -254,6 +258,18 @@ export interface NibiSessionStoreState {
     workspaceIdentity?: string,
   ) => void;
   clearDraftTaskGroup: (workspacePath: string, workspaceIdentity?: string) => void;
+  /** 设置草稿的 worktree 开关与起点；null 关闭。 */
+  setDraftWorktree: (
+    workspacePath: string,
+    worktree: { ref: string | null } | null,
+    workspaceIdentity?: string,
+  ) => void;
+  /** 主区展示一条 Host 创建记录；null 收起。 */
+  viewWorktreeCreation: (
+    workspacePath: string,
+    creationId: string | null,
+    workspaceIdentity?: string,
+  ) => void;
   startDraft: (
     workspacePath: string,
     provider?: NibiProvider,

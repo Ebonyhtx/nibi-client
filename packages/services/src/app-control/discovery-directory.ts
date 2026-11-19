@@ -13,13 +13,15 @@ import type {
 } from "./contract.js";
 import { hostScope } from "./context.js";
 
-/** 一个能在 tasks-index 里定位的会话；sourceServerId 只在远端来源时存在。 */
+/** 一个能在 tasks-index 里定位的会话；sourceServerId 标识归属来源（本机 Source 也带自己的 id）。 */
 export interface ResolvedAppSession {
   sessionId: string;
   workspacePath: string;
   workspaceIdentity?: string;
   projectId?: string;
   sourceServerId?: string;
+  /** tasks-index 的归档事实；远端来源经窗口投影读取，未知时不填。 */
+  archived?: boolean;
 }
 
 export interface AppControlDiscoveryDirectory {
@@ -34,6 +36,11 @@ export interface AppControlDiscoveryDependencies {
   resolveWindowControllerService?: () =>
     | Pick<IWindowControllerService, "getTaskMeta">
     | undefined;
+  /**
+   * 本 Host 自己是某个 Source 时的稳定 id。桌面聚合 Host 不传，允许发现已连接远端；
+   * Source Host 只声明自己的来源，绝不跨来源搜索或伪装成桌面聚合器。
+   */
+  sourceServerId?: string;
   logWarn?: (message: string, error?: unknown) => void;
 }
 
@@ -99,17 +106,23 @@ export function createAppControlDiscoveryDirectory(
       const projects = tree.projects.filter((project) => !project.deleted);
       for (const project of projects) {
         snapshot.projects.push({
-          project: { kind: "app", projectId: project.id },
+          project: {
+            kind: "app",
+            projectId: project.id,
+            ...(deps.sourceServerId ? { sourceServerId: deps.sourceServerId } : {}),
+          },
           title: project.name,
         });
       }
-      snapshot.scopes.push(hostScope());
+      snapshot.scopes.push(hostScope(deps.sourceServerId));
       for (const task of tree.tasks) {
         snapshot.localTasks.set(task.taskId, {
           sessionId: task.taskId,
           workspacePath: task.workspacePath,
           ...(task.workspaceIdentity ? { workspaceIdentity: task.workspaceIdentity } : {}),
           ...(task.projectId ? { projectId: task.projectId } : {}),
+          ...(deps.sourceServerId ? { sourceServerId: deps.sourceServerId } : {}),
+          archived: task.archived === true,
         });
       }
     } catch (error) {
@@ -122,6 +135,9 @@ export function createAppControlDiscoveryDirectory(
   }
 
   async function readRemote(snapshot: SourceSnapshot): Promise<void> {
+    // 远端 Agent 的反向 RPC 在所属 Server Host 执行：该环境只声明自己的发现范围，
+    // 不假称能枚举桌面连接的其他来源（上游 §3.1）。桌面聚合 Host 没有 sourceServerId。
+    if (deps.sourceServerId) return;
     const service = deps.remoteProjectService;
     if (!service) return;
     let directory;

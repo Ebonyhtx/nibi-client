@@ -1,14 +1,18 @@
 import { useRef, useState, type KeyboardEvent } from "react";
-import { X } from "lucide-react";
+import { ArrowUpToLine, Camera, Redo2, Undo2, X } from "lucide-react";
 import {
+  TID_BROWSER_DESIGN_CAPTURE_ELEMENT,
   TID_BROWSER_DESIGN_ELEMENT,
   TID_BROWSER_DESIGN_INSPECTOR,
   TID_BROWSER_DESIGN_INSPECTOR_CLOSE,
+  TID_BROWSER_DESIGN_REDO,
   TID_BROWSER_DESIGN_SAVE_STATUS,
+  TID_BROWSER_DESIGN_SELECT_PARENT,
   TID_BROWSER_DESIGN_SOURCE_STATUS,
   TID_BROWSER_DESIGN_STYLE_PROPERTY,
   TID_BROWSER_DESIGN_STYLE_VALUE,
   TID_BROWSER_DESIGN_TEXT_INPUT,
+  TID_BROWSER_DESIGN_UNDO,
   TID_BROWSER_DESIGN_VARIABLE_SELECT,
   TID_BROWSER_DESIGN_VARIABLE_VALUE,
 } from "@nibi/shared/test-ids";
@@ -71,6 +75,7 @@ function DraftInput({
     <input
       aria-label={label}
       className={FIELD_CLASS}
+      data-design-draft={draft !== initialValue}
       data-testid={testId}
       disabled={disabled}
       spellCheck={false}
@@ -108,8 +113,11 @@ function sourceStatusText(
 
 export function BrowserDesignInspector({
   design,
+  onCaptureElement,
 }: {
   design: BrowserDesignModeController;
+  /** 捕获当前元素并保存为文件；平台不支持时为空，按钮隐藏 */
+  onCaptureElement?: () => void;
 }): React.JSX.Element {
   const { intl } = useNibiIntl();
   const t = (id: string) => intl.formatMessage({ id });
@@ -127,6 +135,15 @@ export function BrowserDesignInspector({
   const disabled = design.writable !== true;
   const saveText = saveStateText(design.saveState, t);
   const sourceText = primary ? sourceStatusText(design, t) : null;
+  // 字段里还有没提交的输入时，Cmd/Ctrl + Z 是撤销打字，交给浏览器；回车提交后焦点还在字段上，这时撤销的是写回。
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (!(event.metaKey || event.ctrlKey) || event.altKey || event.key.toLowerCase() !== "z")
+      return;
+    const target = event.target as HTMLElement;
+    if (target.dataset.designDraft === "true") return;
+    event.preventDefault();
+    void (event.shiftKey ? design.redo() : design.undo());
+  };
 
   return (
     <aside
@@ -134,11 +151,63 @@ export function BrowserDesignInspector({
       className="absolute right-3 bottom-3 z-20 flex max-h-[calc(100%-4rem)] w-72 flex-col overflow-hidden rounded-xl border border-popover-border bg-popover text-ui-sm text-popover-foreground shadow-lg"
       data-testid={TID_BROWSER_DESIGN_INSPECTOR}
       data-selected-count={design.selections.length}
+      tabIndex={-1}
+      onKeyDown={onKeyDown}
     >
-      <div className="flex h-9 shrink-0 items-center gap-1 border-b border-border pr-1 pl-3">
+      <div className="flex h-9 shrink-0 items-center gap-0.5 border-b border-border pr-1 pl-3">
         <span className="min-w-0 flex-1 truncate font-semibold">
           {primary ? describeDesignElement(primary) : t("browser.design.inspector.title")}
         </span>
+        {primary ? (
+          <>
+            <Button
+              type="button"
+              size="icon-xs"
+              variant="ghost"
+              aria-label={t("browser.design.edit.parent")}
+              data-testid={TID_BROWSER_DESIGN_SELECT_PARENT}
+              title={t("browser.design.edit.parent")}
+              onClick={design.selectParent}
+            >
+              <ArrowUpToLine className="size-3.5" />
+            </Button>
+            {onCaptureElement && design.captureAvailable ? (
+              <Button
+                type="button"
+                size="icon-xs"
+                variant="ghost"
+                aria-label={t("browser.design.captureElement")}
+                data-testid={TID_BROWSER_DESIGN_CAPTURE_ELEMENT}
+                title={t("browser.design.captureElement")}
+                onClick={onCaptureElement}
+              >
+                <Camera className="size-3.5" />
+              </Button>
+            ) : null}
+          </>
+        ) : null}
+        <Button
+          type="button"
+          size="icon-xs"
+          variant="ghost"
+          aria-label={t("browser.design.undo")}
+          data-testid={TID_BROWSER_DESIGN_UNDO}
+          title={t("browser.design.undo")}
+          onClick={() => void design.undo()}
+        >
+          <Undo2 className="size-3.5" />
+        </Button>
+        <Button
+          type="button"
+          size="icon-xs"
+          variant="ghost"
+          aria-label={t("browser.design.redo")}
+          data-testid={TID_BROWSER_DESIGN_REDO}
+          title={t("browser.design.redo")}
+          onClick={() => void design.redo()}
+        >
+          <Redo2 className="size-3.5" />
+        </Button>
         <Button
           type="button"
           size="icon-xs"

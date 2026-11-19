@@ -143,7 +143,7 @@ const definitions: Definition[] = [
     method: "forkSession",
     hint: "fork a session at a stable message",
     description:
-      "Fork at an explicit stable message boundary. Does not copy running tools, permission approvals, pending inputs, or change workspace files. Does not send a prompt.",
+      "Fork at an explicit stable message boundary. Does not copy running tools, permission approvals, pending inputs, or change workspace files. Does not send a prompt. An archived target is rejected before any child session is created.",
     input: ForkSessionInputSchema,
     inputJsonSchema: ForkSessionInputJsonSchema,
     output: ForkSessionOutputSchema,

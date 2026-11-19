@@ -141,6 +141,10 @@ import { ConversationHeader, type PaneWorkspaceBadge } from "@/v4/ConversationHe
 import { ConversationQueuePanel } from "@/v4/ConversationQueuePanel.js";
 import { projectPendingGuideQueue } from "@/v4/pendingGuideProjection.js";
 import { PendingCommandRecoveryBanner } from "@/v4/PendingCommandRecoveryBanner.js";
+import {
+  AgentRuntimeExitBanner,
+  useAgentRuntimeExitNotice,
+} from "@/v4/AgentRuntimeExitBanner.js";
 import { WorkspaceHookPendingBanner } from "@/v4/WorkspaceHookPendingBanner.js";
 import { WorkspaceMcpTrustPendingBanner } from "@/settings/workspaceMcpTrust/pendingBanner.js";
 import { ConversationStatusPanel } from "@/v4/ConversationStatusPanel.js";
@@ -218,6 +222,12 @@ import {
 } from "@/v4/pluginReferenceIconProjection.js";
 import { shouldResyncForStaleAuthority } from "@/v4/staleAuthorityRecovery.js";
 import { createCommandEnvelope } from "@/v4/commandFactory.js";
+import {
+  ForkDestinationContext,
+  formatManagedWorktreeError,
+  useTaskWorktreePlacement,
+  useWorktreeSupport,
+} from "@/managed-worktrees/index.js";
 import { getV4EditorId } from "@/v4/editorIdentity.js";
 import { ComposerEditBar } from "@/composer-edit-mode/ComposerEditBar.js";
 import {
@@ -570,7 +580,7 @@ export function SessionPane({
   sessionId,
   openTrigger,
   rootSessionId,
-  readOnly = false,
+  readOnly: workspaceReadOnly = false,
   allowWorkspaceFileRewind = false,
   selectionSideChat = false,
   activeSelectionSideChatSessionId = null,
@@ -631,6 +641,7 @@ export function SessionPane({
     attachmentReadRange,
     onRuntimeRestart,
     onRuntimeLifecycle,
+    onRuntimeExited,
     fileChanges,
     fileRewindPreview,
   } = useV4Conversation();
@@ -638,12 +649,25 @@ export function SessionPane({
   const { conversationShareService, modelSelectionService, nibiSessionService, nibiTaskService } =
     useServices();
   const { intl, locale } = useNibiIntl();
+  const runtimeExitNotice = useAgentRuntimeExitNotice({ onRuntimeExited, onRuntimeRestart });
   const slashCommands = useSlashCommands(workspacePath, workspaceIdentity);
   const baseWorkspaceServices = useBaseWorkspaceServices();
   const composerClientNamespace = useComposerClientNamespace();
   const composerProjectId = useNibiSessionStore(
     (store) => store.getWorkspaceState(workspacePath, workspaceIdentity).draftProjectId,
   );
+  const draftWorktreeEnabled = useNibiSessionStore((store) =>
+    Boolean(store.getWorkspaceState(workspacePath, workspaceIdentity).draftWorktree),
+  );
+  const viewWorktreeCreation = useNibiSessionStore((store) => store.viewWorktreeCreation);
+  // worktree 被删除后任务按"工作区目录失效"规则只读；判断依据是任务的 worktree，不是 workspace。
+  const { worktreeRoot: sessionWorktreeRoot, worktreeAvailable } = useTaskWorktreePlacement({
+    workspacePath,
+    workspaceIdentity,
+    remoteSessionId,
+    sessionId,
+  });
+  const readOnly = workspaceReadOnly || !worktreeAvailable;
   const newTaskComposerScope = useMemo(
     () => resolveComposerScope(composerProjectId, workspaceIdentity, composerClientNamespace),
     [composerProjectId, workspaceIdentity, composerClientNamespace],
@@ -2688,7 +2712,9 @@ export function SessionPane({
   // pane 未绑定会话时后台建 phase=draft 会话作预热载体：配置写 CAS 直达、首发复用。
   // 对外绑定语义不变（shell activeTaskId 仍 null），预热会话只是 pane 内部 effective 订阅目标。
   const { binding: prewarmBinding, waitForSession: waitForDraftSession } = useDraftSessionPrewarm({
-    enabled: sessionId === null && draftAgentStartupAllowed && !recoveringDraft,
+    // worktree 草稿不预热：会话要等 worktree 建好后由 Host 创建，cwd 一次确定。
+    enabled:
+      sessionId === null && draftAgentStartupAllowed && !recoveringDraft && !draftWorktreeEnabled,
     workspaceKey,
     paneId,
     invalidationVersion: draftRuntimeInvalidationVersion,
@@ -3064,6 +3090,54 @@ export function SessionPane({
         // resumeGoal 等控制命令也不应被发送消息确认框截获。
         return "confirmationRequired" as const;
       }
+      // worktree 草稿的首发由 Host 编排：先建 worktree，再在项目 workspace 下创建会话并发送
+      // 首条消息。这里只交出命令，进度与结果都来自 Host 的创建记录。
+      const draftWorktree =
+        sessionId === null
+          ? useNibiSessionStore.getState().getWorkspaceState(workspacePath, workspaceIdentity)
+              .draftWorktree
+          : null;
+      if (draftWorktree) {
+        const service = baseWorkspaceServices.managedWorktreeService;
+        if (!service || !composerProjectId) return "blocked" as const;
+        if (slashCommand !== null) {
+          toast(intl.formatMessage({ id: "git.managedWorktree.error.slash-unsupported" }));
+          return "blocked" as const;
+        }
+        try {
+          const envelope = createCommandEnvelope({
+            type: "createSession",
+            sessionId: null,
+            payload: {
+              workspaceId: workspaceKey,
+              firstInput: {
+                text,
+                ...(readyAttachments.length > 0 ? { attachments: readyAttachments } : {}),
+                modelSelection: submission.modelSelection,
+                mode: submission.mode,
+                planEnabled: submission.planEnabled,
+              },
+            },
+          });
+          const started = await service.startNewTask({
+            workspacePath,
+            projectId: composerProjectId,
+            ref: draftWorktree.ref,
+            envelope,
+          });
+          if (!started.ok) {
+            toast(formatManagedWorktreeError(intl, started.error.code));
+            return "blocked" as const;
+          }
+          captureAcceptedModelSelection(submission.modelSelection)();
+          viewWorktreeCreation(workspacePath, started.creationId, workspaceIdentity);
+          return "sent" as const;
+        } catch (error) {
+          logger.warn("[v4-pane] 启动 worktree 任务失败", { error });
+          toast(formatManagedWorktreeError(intl, error));
+          return "blocked" as const;
+        }
+      }
       // slash 命令优先：已有 session 直接消费；draft 首发 /goal 复用同一个预热会话。
       const prewarmTargetBeforeSend =
         sessionId === null ? prewarmBindingRef.current?.sessionId : null;
@@ -3214,8 +3288,13 @@ export function SessionPane({
       intl,
       resolveInitialDraftConfig,
       createSubmissionFromComposer,
+      composerProjectId,
       sessionId,
       settleCurrentQueueInputs,
+      viewWorktreeCreation,
+      workspaceIdentity,
+      workspaceKey,
+      workspacePath,
       waitForDraftSession,
     ],
   );
@@ -3427,6 +3506,43 @@ export function SessionPane({
       });
     },
     [dispatchCommand, onSessionCreated, sessionId],
+  );
+  const handleForkToWorktree = useCallback(
+    (target: ConversationRowTarget) => {
+      const current = snapshotRef.current;
+      const service = baseWorkspaceServices.managedWorktreeService;
+      if (!sessionId || current === null || !service) return;
+      // 与原地分叉同一 CAS 语义；Host 建 worktree、预留子任务并注入 targetCwd 后转发给项目 CLI。
+      const envelope = createCommandEnvelope({
+        type: "forkAssistant",
+        sessionId,
+        payload: { target },
+        baseRevision: current.revision,
+        ...(current.logEpoch ? { baseLogEpoch: current.logEpoch } : {}),
+      });
+      void service.forkToWorktree({ workspacePath, envelope }).then(
+        (result) => {
+          if (!result.ok) {
+            toast(formatManagedWorktreeError(intl, result.error.code));
+            return;
+          }
+          // 主区切到创建记录；子任务启动后由壳层的 settlement 处理打开。
+          viewWorktreeCreation(workspacePath, result.creationId, workspaceIdentity);
+        },
+        (error: unknown) => {
+          logger.warn("[v4-pane] fork 到 worktree 失败", { error });
+          toast(formatManagedWorktreeError(intl, error));
+        },
+      );
+    },
+    [
+      baseWorkspaceServices.managedWorktreeService,
+      intl,
+      sessionId,
+      viewWorktreeCreation,
+      workspaceIdentity,
+      workspacePath,
+    ],
   );
 
   const handleEdit = useCallback(
@@ -4703,6 +4819,25 @@ export function SessionPane({
   const retryActionsEnabled = runtimeReady && !readOnly && !selectionSideChat && Boolean(sessionId);
   // fork 可用性完全由 row.actions.canFork（CLI stable resolver 投影）裁决；pane 只提供命令回调。
   const forkActionsEnabled = runtimeReady && !readOnly && !selectionSideChat && Boolean(sessionId);
+  const forkToWorktreeSupport = useWorktreeSupport(
+    workspacePath,
+    workspaceIdentity,
+    forkActionsEnabled && !compactForRemoteControl,
+  );
+  // value 保持稳定引用，避免每次渲染让所有行组件的 memo 失效。
+  const forkDestinationValue = useMemo(
+    () => ({
+      forkToWorktree: forkToWorktreeSupport.visible ? handleForkToWorktree : null,
+      available: forkToWorktreeSupport.available,
+      inWorktree: Boolean(sessionWorktreeRoot),
+    }),
+    [
+      forkToWorktreeSupport.available,
+      forkToWorktreeSupport.visible,
+      handleForkToWorktree,
+      sessionWorktreeRoot,
+    ],
+  );
   // editUserQuery 已由 command 层防御 latest real user query，并在 running
   // 提交时先 stop barrier 再 rewind/rerun；UI 不应再用 completed gate 把入口整轮隐藏。
   const editActionsEnabled = runtimeReady && !readOnly && !selectionSideChat && Boolean(sessionId);
@@ -5556,6 +5691,13 @@ export function SessionPane({
     );
   const conversationBottomDockContent = readOnly ? null : (
     <>
+      {runtimeExitNotice.exit ? (
+        <AgentRuntimeExitBanner
+          exit={runtimeExitNotice.exit}
+          recovery={runtimeExitNotice.recovery}
+          onDismiss={runtimeExitNotice.dismiss}
+        />
+      ) : null}
       {recoverableCommand ? (
         <PendingCommandRecoveryBanner
           entry={recoverableCommand}
@@ -5850,7 +5992,8 @@ export function SessionPane({
                 workspacePath={workspacePath}
                 workspaceIdentity={workspaceIdentity}
               >
-                <ConversationTimeline
+                <ForkDestinationContext.Provider value={forkDestinationValue}>
+                  <ConversationTimeline
                   compactForRemoteControl={compactForRemoteControl}
                   scrollToBottomActionRef={timelineScrollToBottomRef}
                   scrollToQueryActionRef={timelineScrollToQueryRef}
@@ -5968,7 +6111,8 @@ export function SessionPane({
                         }
                       : undefined
                   }
-                />
+                  />
+                </ForkDestinationContext.Provider>
               </BotGroupDeliveryProvider>
             </SessionPluginReferenceIconBoundary>
           )}

@@ -630,6 +630,22 @@ function isForkTimelineMessage(message: MessageWithParts): boolean {
   );
 }
 
+/**
+ * 受管 worktree 的创建结果：权威事实是 transcript 中的 worktree_creation timeline part。
+ * 新建会话首轮之前或 fork 分隔标记所在消息里；冷恢复据此合成 WorktreeCreated。
+ */
+function worktreeCreationOfMessage(
+  message: MessageWithParts,
+): Extract<MessagePart, { type: "timeline"; timelineType: "worktree_creation" }>["worktreeCreation"] | undefined {
+  if (getConversationMessageProjectionPolicy(message) !== "timelineOnly") return undefined;
+  for (const part of message.parts) {
+    if (part.type === "timeline" && part.timelineType === "worktree_creation") {
+      return part.worktreeCreation;
+    }
+  }
+  return undefined;
+}
+
 function synthesizeTextPart(
   part: Extract<MessagePart, { type: "text" }>,
   assistantMessageId: string,
@@ -1443,6 +1459,16 @@ function collectTurnOutput(options: {
           turnId,
         );
       }
+      const worktreeCreation = worktreeCreationOfMessage(message);
+      if (worktreeCreation) {
+        push(SessionEventType.WorktreeCreated, { ...worktreeCreation }, turnId);
+      }
+      index += 1;
+      continue;
+    }
+    const innerWorktreeCreation = worktreeCreationOfMessage(message);
+    if (innerWorktreeCreation) {
+      push(SessionEventType.WorktreeCreated, { ...innerWorktreeCreation }, turnId);
       index += 1;
       continue;
     }
@@ -1760,6 +1786,15 @@ export function synthesizeEventsFromMessages(
           targetMessageId: forkContext.targetMessageId,
         });
       }
+      const worktreeCreation = worktreeCreationOfMessage(message);
+      if (worktreeCreation) push(SessionEventType.WorktreeCreated, { ...worktreeCreation });
+      index += 1;
+      continue;
+    }
+    const worktreeCreation = worktreeCreationOfMessage(message);
+    if (worktreeCreation) {
+      // 新建 worktree 会话：首轮之前的宿主消息；投影暂存到首个 TurnStarted 落在轮顶。
+      push(SessionEventType.WorktreeCreated, { ...worktreeCreation });
       index += 1;
       continue;
     }

@@ -81,6 +81,9 @@ export function registerImageComposerTarget(
     }
     request.target = {
       appendImage: (output) => active && target.appendImage(output),
+      ...(target.appendFile
+        ? { appendFile: (file: File) => active && target.appendFile!(file) }
+        : {}),
     };
   };
   events.addEventListener(REQUEST_IMAGE_COMPOSER_TARGET, receive);

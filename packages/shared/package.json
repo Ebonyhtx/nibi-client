@@ -20,6 +20,7 @@
     "./config-schema": "./src/config-schema.ts",
     "./node": "./src/node.ts",
     "./sqlite-migrations": "./src/sqlite-migrations/index.ts",
+    "./managed-worktree": "./src/managed-worktree/index.ts",
     "./nibiEndpoint": "./src/nibiEndpoint.ts",
     "./workspaceFileSearch": "./src/workspaceFileSearch.ts",
     "./workspaceFileEntriesCodec": "./src/workspaceFileEntriesCodec.ts",

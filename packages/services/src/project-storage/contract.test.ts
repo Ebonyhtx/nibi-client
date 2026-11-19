@@ -106,6 +106,7 @@ describe("project-storage migration contract", () => {
       { id: "0005_projects" },
       { id: "0006_default_workspace_tasks" },
       { id: "0007_initial_workspace_order" },
+      { id: "0008_task_worktree_root" },
     ]);
   });
 
@@ -128,6 +129,7 @@ describe("project-storage migration contract", () => {
       "0005_projects",
       "0006_default_workspace_tasks",
       "0007_initial_workspace_order",
+      "0008_task_worktree_root",
     ]);
     expect(
       db.prepare("SELECT id,checksum FROM schema_migration WHERE id='0005_projects'").all(),

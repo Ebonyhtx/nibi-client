@@ -309,6 +309,7 @@ impl LocalKernel {
             messages: [loaded.earlier, loaded.messages].concat(),
             launches: loaded.launches,
             model_turns: loaded.model_turns,
+            worktree_creations: loaded.worktree_creations,
             input_intents: loaded.input_intents,
             selection: loaded
                 .model

@@ -246,6 +246,7 @@ fn spawn(
             launches: Vec::new(),
             model_turns: Vec::new(),
             input_intents: Vec::new(),
+            worktree_creations: Vec::new(),
             draft: false,
         },
         Opened::Created,

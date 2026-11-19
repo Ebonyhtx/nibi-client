@@ -237,6 +237,9 @@ export interface V4CommandCoreHost {
     sessionId?: string;
     additionalDirectories?: string[];
     workspaceId: string;
+    /** 受管 worktree 会话的 cwd；仅 Host 可信命令携带，binder 校验目录与 worktreeCreation。 */
+    cwd?: string;
+    worktreeCreation?: CommandPayloadMap["createSession"]["worktreeCreation"];
     permissionScope?: "session";
     mcpServers?: CommandPayloadMap["createSession"]["mcpServers"];
     /**
@@ -266,6 +269,8 @@ export interface V4CommandCoreHost {
       goalBoundary: StableForkGoalBoundaryMetadata;
       sourceCommandId: string;
       revisionAtDecision: number;
+      /** child 的执行目录（受管 worktree）；缺省沿用父会话 cwd。 */
+      targetCwd?: CommandPayloadMap["forkAssistant"]["targetCwd"];
     },
   ): Promise<{ forkedSessionId: string }>;
   /** @deprecated 仅旧宿主结构兼容；新 editUserQuery 永不调用，显式 forkAssistant 不受影响。 */

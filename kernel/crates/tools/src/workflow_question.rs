@@ -78,6 +78,12 @@ impl Tool for ResolveWorkflowQuestionTool {
         Some("answer a blocking question escalated by a workflow subagent")
     }
 
+    /// 与 Node 同工具的模型可见上限一致（`RESOLVE_WORKFLOW_QUESTION_MODEL_BYTES` = 24000）：
+    /// 这里只回一段确认文本，但缺上限意味着内核约定与 Node 契约分叉（X02 bounded 差异）。
+    fn max_result_size_chars(&self) -> Option<usize> {
+        Some(24_000)
+    }
+
     async fn check_permissions(
         &self,
         _input: &Value,

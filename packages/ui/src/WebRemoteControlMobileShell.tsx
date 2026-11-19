@@ -4,6 +4,7 @@ import { type WebRemoteControlMobileNavigationIntent } from "@nibi/shared";
 import { Button } from "@/components/ui/button.js";
 import { WebRemoteControlThemeMenu } from "@/WebRemoteControlThemeMenu.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
+import { subscribeWebRemoteControlMobileChatNavigation } from "@/lib/webRemoteControlMobileNavigation.js";
 import { WebRemoteControlTaskViewReporter } from "@/web-remote-control/index.js";
 import type { WebRemoteControlTerminalTransportState } from "@/root/types.js";
 import type { WebRemoteControlWorkspaceSwitcherApi } from "@/root/types.js";
@@ -125,6 +126,16 @@ export function WebRemoteControlMobileShell({
     // 初始意图只随导航变化消费；断点恢复不能重放旧 chat 意图，覆盖用户已经返回的 Home。
     if (initialNavigationIntent === "chat") setCurrentPage("chat");
   }, [initialNavigationIntent]);
+
+  useEffect(() => {
+    if (!isMobileViewport) return;
+    // Host 的 OpenSession 先在 App 层定位任务；移动壳收到请求后切到聊天页并压一条历史，
+    // 保证手机返回键仍回到任务列表。桌面宽度的远控页没有这个订阅，不受影响。
+    return subscribeWebRemoteControlMobileChatNavigation(() => {
+      setCurrentPage("chat");
+      pushWebRemoteControlMobileChatHistory();
+    });
+  }, [isMobileViewport]);
 
   useEffect(() => {
     if (isMobileViewport && currentPage === "chat") pushWebRemoteControlMobileChatHistory();

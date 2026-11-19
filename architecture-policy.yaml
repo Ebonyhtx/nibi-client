@@ -1066,6 +1066,49 @@ modules:
       adapters: .
     owner: desktop
 
+  # managed-worktree-shared：受管 worktree 的目录布局与 Hook Trust identity 共享规则。
+  - id: managed-worktree-shared
+    roots:
+      - packages/shared/src/managed-worktree
+    managed: true
+    requires:
+      - shared
+    publicEntrypoints:
+      - packages/shared/src/managed-worktree/index.ts
+      - packages/shared/src/managed-worktree/contract.ts
+    owner: conversation
+
+  # managed-worktree-repo：受管 worktree 的 Git adapter（list/create/remove/prune/start refs）。
+  - id: managed-worktree-repo
+    roots:
+      - packages/services/src/git/managed-worktree
+    managed: true
+    requires:
+      - shared
+      - services
+      - managed-worktree-shared
+    publicEntrypoints:
+      - packages/services/src/git/managed-worktree/index.ts
+      - packages/services/src/git/managed-worktree/contract.ts
+    owner: conversation
+
+  # managed-worktree-tasks：受管 worktree 创建/fork/删除租约/启动期孤儿回收编排。
+  - id: managed-worktree-tasks
+    roots:
+      - packages/services/src/managed-worktree-tasks
+    managed: true
+    requires:
+      - shared
+      - services
+      - project-storage
+      - managed-worktree-shared
+      - managed-worktree-repo
+      - rpc
+    publicEntrypoints:
+      - packages/services/src/managed-worktree-tasks/index.ts
+      - packages/services/src/managed-worktree-tasks/contract.ts
+    owner: conversation
+
 global:
   # 临时时间戳（2026-09-10）：unmanaged-new-file 只约束此日期之后首次入库的文件。
   # 基于领先 staging 很多的分支开工时，merge-base 之前的"新增"文件不应被追溯。
@@ -1610,6 +1653,10 @@ exceptions:
     rule: unmanaged-new-file
     paths:
       - packages/desktop/src/preload/embeddedBrowserDesignBridge.ts
+      - packages/ui/src/browser-use/BrowserDesignToolbar.tsx
+      - packages/ui/src/browser-use/browserElementScreenshot.ts
+      - packages/ui/src/browser-use/useBrowserDesignPluginGate.ts
+      - packages/ui/src/browser-use/useBrowserFileLiveReload.ts
       - packages/ui/src/browser-use/BrowserDesignInspector.tsx
       - packages/ui/src/browser-use/browserDesign.ts
       - packages/ui/src/browser-use/useBrowserDesignMode.ts
@@ -1700,3 +1747,19 @@ exceptions:
       U02/U11 统一摘要分组按上游 fec97590 移植的纯模型与连续分组身份 Hook，必须与
       现有 v4 时间线投影同目录；ui 包整体仍是 managed:false 的遗留渲染层，接管整包
       不在本次范围。
+
+  - id: tier2-u22-u30-u06-ui-unmanaged-files
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/lib/conversationSessionSource.ts
+      - packages/ui/src/lib/taskNavigationRequest.ts
+      - packages/ui/src/lib/webRemoteControlMobileNavigation.ts
+      - packages/ui/src/managed-worktrees/**
+      - packages/ui/src/v4/AgentRuntimeExitBanner.tsx
+      - packages/ui/src/v4/ConversationSessionSourceHint.tsx
+      - packages/ui/src/v4/agentRuntimeExitNotice.ts
+    reason: >-
+      U22 Runtime 意外退出横幅、U30 跨会话来源、手机端 OpenSession 导航桥与 U06 受管
+      worktree 的 UI 投影/菜单/Hook。它们按上游 fec97590 对应文件移植，分别落在既有
+      lib、v4 与新增 managed-worktrees 目录；ui 仍是 managed:false 的遗留渲染层，
+      按路径准入这些新文件，接管整包不在本次范围。

@@ -655,3 +655,113 @@ fn send_text_turn_facts_only_include_this_turn() {
     assert!(super::turn_facts(&json!({"automationId": " ", "botDeliveryTarget": "x"})).is_none());
     assert!(super::turn_facts(&json!({"text": "hi"})).is_none());
 }
+
+// ── 受管 worktree 的会话 cwd 校验（createSession.cwd / forkAssistant.targetCwd）──
+
+fn worktree_fixture() -> (tempfile::TempDir, std::path::PathBuf, std::path::PathBuf) {
+    let root = tempfile::tempdir().unwrap();
+    let worktree = root.path().join("worktrees").join("3f2a").join("repo");
+    let cwd = worktree.join("packages").join("ui");
+    std::fs::create_dir_all(&cwd).unwrap();
+    (root, worktree, cwd)
+}
+
+#[test]
+fn trusted_cwd_accepts_a_directory_inside_the_worktree_root() {
+    let (_root, worktree, cwd) = worktree_fixture();
+    let creation = json!({"path": worktree.to_string_lossy(), "sha": "abc", "ref": null, "output": ""});
+    let resolved = super::trusted_session_cwd(
+        "/workspace/project",
+        Some(cwd.to_string_lossy().as_ref()),
+        Some(&creation),
+    )
+    .unwrap()
+    .expect("cwd override");
+    assert_eq!(resolved.as_str(), cwd.to_string_lossy());
+}
+
+#[test]
+fn trusted_cwd_equal_to_the_workspace_is_not_an_override() {
+    let (_root, worktree, _cwd) = worktree_fixture();
+    let workspace = worktree.to_string_lossy().to_string();
+    assert!(
+        super::trusted_session_cwd(&workspace, Some(&workspace), None)
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[test]
+fn trusted_cwd_rejects_missing_relative_and_outside_directories() {
+    let (root, worktree, _cwd) = worktree_fixture();
+    let creation = json!({"path": worktree.to_string_lossy(), "sha": "abc", "ref": null, "output": ""});
+    let missing = worktree.join("missing");
+    let (code, _) = super::trusted_session_cwd(
+        "/workspace/project",
+        Some(missing.to_string_lossy().as_ref()),
+        Some(&creation),
+    )
+    .unwrap_err();
+    assert_eq!(code, super::WORKTREE_CWD_UNAVAILABLE);
+
+    let (code, _) =
+        super::trusted_session_cwd("/workspace/project", Some("relative/path"), Some(&creation))
+            .unwrap_err();
+    assert_eq!(code, super::WORKTREE_CWD_UNAVAILABLE);
+
+    let outside = root.path().join("outside");
+    std::fs::create_dir_all(&outside).unwrap();
+    let (code, _) = super::trusted_session_cwd(
+        "/workspace/project",
+        Some(outside.to_string_lossy().as_ref()),
+        Some(&creation),
+    )
+    .unwrap_err();
+    assert_eq!(code, super::WORKTREE_CWD_MISMATCH);
+}
+
+#[test]
+fn trusted_cwd_without_worktree_creation_is_rejected() {
+    let (_root, _worktree, cwd) = worktree_fixture();
+    let (code, _) = super::trusted_session_cwd(
+        "/workspace/project",
+        Some(cwd.to_string_lossy().as_ref()),
+        None,
+    )
+    .unwrap_err();
+    assert_eq!(code, super::WORKTREE_CWD_UNTRUSTED);
+}
+
+#[test]
+fn worktree_creation_fact_is_parsed_strictly() {
+    let parsed = super::worktree_creation_of(&json!({
+        "path": "/worktrees/3f2a/repo",
+        "sha": "abc",
+        "ref": "main",
+        "output": "git checkout abc",
+    }))
+    .expect("strict fact");
+    assert_eq!(parsed.path, "/worktrees/3f2a/repo");
+    assert_eq!(parsed.sha, "abc");
+    assert_eq!(parsed.reference.as_deref(), Some("main"));
+    assert_eq!(parsed.output, "git checkout abc");
+    // Node 的 `ref: null` 与缺省都读成 None。
+    for value in [
+        json!({"path": "/w", "sha": "abc", "ref": null, "output": ""}),
+        json!({"path": "/w", "sha": "abc", "output": ""}),
+    ] {
+        assert_eq!(
+            super::worktree_creation_of(&value).unwrap().reference,
+            None
+        );
+    }
+    // 空 path、非字符串 sha/ref、缺 output：创建前拒绝。
+    for value in [
+        json!({"path": "", "sha": "abc", "ref": null, "output": ""}),
+        json!({"path": "/w", "sha": 1, "ref": null, "output": ""}),
+        json!({"path": "/w", "sha": "abc", "ref": 2, "output": ""}),
+        json!({"path": "/w", "sha": "abc", "ref": null}),
+    ] {
+        assert!(super::worktree_creation_of(&value).is_none(), "{value}");
+    }
+}

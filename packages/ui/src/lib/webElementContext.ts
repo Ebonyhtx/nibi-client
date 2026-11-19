@@ -339,9 +339,11 @@ export function parsePromptWebElementContexts(
   };
 }
 
-export function dispatchWebElementContextAddToChat(payload: WebElementContextPayload) {
-  window.dispatchEvent(
+/** 返回是否有输入框收下（收下的 composer 会 preventDefault）。 */
+export function dispatchWebElementContextAddToChat(payload: WebElementContextPayload): boolean {
+  return !window.dispatchEvent(
     new CustomEvent(WEB_ELEMENT_CONTEXT_ADD_TO_CHAT_EVENT, {
+      cancelable: true,
       detail: payload,
     }),
   );

@@ -3,6 +3,20 @@ export { ImageEditorSurface } from "./ImageEditorSurface.js";
 export { ImageEditorToolbar } from "./ImageEditorToolbar.js";
 export { AnnotationLayer, AnnotationShape, exportAnnotatedImage } from "./annotations.js";
 export { canUseImageEditor, detectImageEditorCanvas } from "./capabilities.js";
+export { copyPreviewImage, encodePreviewImagePng } from "./copyImage.js";
+export {
+  ImagePreviewActions,
+  getImagePreviewActionAvailability,
+  type ImagePreviewActionAvailability,
+  type ImagePreviewActionAvailabilityInput,
+} from "./ImagePreviewActions.js";
+export {
+  downloadImagePreview,
+  readBoundedImageBlob,
+  sanitizeImageSourceForLog,
+  type ImagePreviewDownloadItem,
+  type ImagePreviewSaveFile,
+} from "./imagePreviewDownload.js";
 export {
   captureImageComposerTarget,
   createImageEditorAttachmentFile,

@@ -264,6 +264,12 @@ pub(crate) struct Actor {
     /// 每条真人输入的规范意图（冷加载的 `LoadedSession.input_intents` + 本进程落的）：`view()` 带给
     /// 冷投影恢复行上原文、机器人来源与引用。
     pub(crate) input_intents: Vec<(nibi_kernel_api::ids::MessageId, serde_json::Value)>,
+    /// 已落库的受管 worktree 创建结果（冷加载的 `LoadedSession.worktree_creations` + 本进程落的）：
+    /// `view()` 带给冷投影在首轮轮顶落 `worktreeCreated` 标记。
+    pub(crate) worktree_creations: Vec<nibi_kernel_api::store::WorktreeCreationTurn>,
+    /// 协议层刚交来、还没随首轮输入落库的 worktree 创建事实（[`Command::SetWorktreeCreation`]）：
+    /// 首个真人输入提交时取走，写成 part 并发 `WorktreeCreated`。重复发送保持第一次的事实。
+    pub(crate) pending_worktree_creation: Option<nibi_kernel_api::session_api::WorktreeCreation>,
     /// 已经收到、还没落进消息的意图（[`Command::RecordInputIntent`]，键是输入的命令 id）。
     /// 协议层在 `Submit` 之前发；消息落库时按开启本回合的命令取走。
     pub(crate) pending_intents: HashMap<CommandId, serde_json::Value>,
@@ -389,6 +395,8 @@ impl Actor {
             launches: state.launches,
             model_turns: std::sync::Mutex::new(state.model_turns),
             input_intents: state.input_intents,
+            worktree_creations: state.worktree_creations,
+            pending_worktree_creation: None,
             pending_intents: HashMap::new(),
             pending_turn_facts: HashMap::new(),
             seen: HashSet::new(),
@@ -844,6 +852,11 @@ impl Actor {
                 self.pending_turn_facts.insert(command, facts);
                 accepted()
             }
+            Command::SetWorktreeCreation { creation } => {
+                // 只在首轮之前记一次；重复命令（同会话的重试）保持第一次的事实。
+                self.pending_worktree_creation.get_or_insert(creation);
+                accepted()
+            }
             Command::Interrupt => self.interrupt().await,
             Command::Shutdown => self.shutdown().await,
             Command::RestoreCancelled => self.restore_cancelled(id).await,
@@ -876,7 +889,11 @@ impl Actor {
                 Ok(()) => accepted(),
                 Err(reason) => rejected(reason),
             },
-            Command::Fork { at } => self.fork(id, at).await,
+            Command::Fork { at, child, cwd } => {
+                // forkAssistant.targetCwd：Host 的 worktree 事实在 Fork 之前交来，随 child 历史同批落库。
+                let worktree_creation = self.pending_worktree_creation.take();
+                self.fork(id, at, child, cwd, worktree_creation).await
+            }
             Command::ForkFromInput { input } => self.fork_from_input(input).await,
             Command::Rename { title } => self.rename(id, title).await,
             Command::StopTask { task } => self.stop_task(task).await,
@@ -1204,6 +1221,7 @@ impl Actor {
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
                 .clone(),
             input_intents: self.input_intents.clone(),
+            worktree_creations: self.worktree_creations.clone(),
         }
     }
 }

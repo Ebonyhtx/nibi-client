@@ -5,7 +5,7 @@ import { calibrateLocalTtftClock, localTtftNow } from "@nibi/shared";
 // ConversationTransport 的 desktop/host 实现：桥到 INibiAgentService 的 v4 转发面
 // （依赖注入原则——数据层不感知 host 细节，
 // web 直连 ws relay 时换一个实现即可）。
-import type { INibiAgentService } from "@nibi/services";
+import type { INibiAgentService, NibiAgentRuntimeExitedEvent } from "@nibi/services";
 import {
   conversationTopicFrameSchema,
   PROTOCOL_V4_LIMITS,
@@ -81,7 +81,7 @@ type ConversationV4AgentService = Pick<
   | "onDynamicLocalTtftFacts"
   | "onAgentRuntimeRestarted"
 > &
-  Partial<Pick<INibiAgentService, "onAgentRuntimeLifecycle">>;
+  Partial<Pick<INibiAgentService, "onAgentRuntimeLifecycle" | "onAgentRuntimeExited">>;
 
 /**
  * 一条 host 连接（= 一个 workspace）上的 v4 conversation 传输面。
@@ -140,6 +140,7 @@ export function createAgentConversationTransport(
     Parameters<ConversationTransport["onRuntimeRestart"]>[0]
   >();
   const runtimeLifecycleListeners = new Set<(state: "available" | "unavailable") => void>();
+  const runtimeExitListeners = new Set<(event: NibiAgentRuntimeExitedEvent) => void>();
   const decoder = createTopicWireDecoder(
     new TopicWireFrameAssembler(conversationTopicFrameSchema),
     (frame: ConversationTopicFrame, deliveryKind) => {
@@ -167,6 +168,7 @@ export function createAgentConversationTransport(
   let upstream: { dispose(): void } | null = null;
   let runtimeRestartUpstream: { dispose(): void } | null = null;
   let runtimeLifecycleUpstream: { dispose(): void } | null = null;
+  let runtimeExitUpstream: { dispose(): void } | null = null;
   let runtimeGeneration = 0;
   const targetWorkspaceKey = target.workspaceIdentity?.trim() || target.workspacePath;
   const lifecycleContext = {
@@ -631,5 +633,22 @@ export function createAgentConversationTransport(
           },
         }
       : {}),
+    onRuntimeExited(listener) {
+      runtimeExitListeners.add(listener);
+      runtimeExitUpstream ??=
+        agentService.onAgentRuntimeExited?.((event) => {
+          if (event.workspaceKey !== targetWorkspaceKey) return;
+          // 只转发同一 workspace 的退出事实；分类由 Host 侧的共享纯函数给出，
+          // transport 不再二次推断（避免 renderer 与 Host 归因分叉）。
+          for (const exitListener of runtimeExitListeners) exitListener(event);
+        }) ?? null;
+      return () => {
+        runtimeExitListeners.delete(listener);
+        if (runtimeExitListeners.size === 0) {
+          runtimeExitUpstream?.dispose();
+          runtimeExitUpstream = null;
+        }
+      };
+    },
   };
 }

@@ -56,6 +56,8 @@ const forkIsolatedTests = [
   "packages/services/test/managedWorktreeCleanup.test.ts",
   "packages/services/test/managedWorktreeReservation.test.ts",
   "packages/services/test/managedWorktreeTaskDeletion.test.ts",
+  // 上游完整栈的 Git 集成测试同样连续启动真实 git 子进程（add/apply/worktree list/remove）。
+  "packages/services/test/managedWorktreeRepo.test.ts",
   "packages/services/test/mcpSyncService.test.ts",
   "packages/services/test/providerRuntimeResolver.test.ts",
   "packages/services/test/runtimeToolResolver.test.ts",

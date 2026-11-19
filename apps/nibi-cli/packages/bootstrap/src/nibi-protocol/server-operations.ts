@@ -3,6 +3,7 @@ import {
   isReadonlyAgentSessionKind,
 } from "@nibi/shared";
 import { isAbsolute, resolve } from "node:path";
+import { isPathInside } from "@nibi/shared/managed-worktree";
 /* eslint-disable max-lines -- NIBI Protocol 的 session/workspace 方法共享同一个 server context 与 snapshot helpers，迁移期先集中维护。 */
 import { observeSessionDebug } from "./session-debug.js";
 import {
@@ -61,6 +62,7 @@ import {
   nibiSessionListParamsSchema,
   nibiSessionMessagesParamsSchema,
   nibiSessionReadParamsSchema,
+  nibiSessionReleaseUnderDirectoryParamsSchema,
   elideSessionSnapshotForIndex,
   nibiSessionRuntimePreferencesResultSchema,
   nibiSessionResumeParamsSchema,
@@ -134,10 +136,13 @@ import {
 import { runSessionModelConfigMutation } from "../nibi-protocol-v4/model-config-mutation.js";
 import {
   runWithSessionResidencyFinalization,
+  deactivateSessionRecord,
   getSessionLifecycle,
+  readSessionBusyState,
   closeSessionRuntime,
   discardSessionRuntime,
 } from "./session-residency.js";
+import { isLocalSessionDirectoryInWorkspace, resolveResumeWorkspaceRef } from "./workspace.js";
 import { resolveDynamicWorkflowRuntimeGate } from "./dynamic-workflow-policy.js";
 
 const PLAN_MODE_GOAL_CONTINUATION_SKIPPED_MESSAGE = "Plan mode 下已记录 goal，但不会自动继续。";
@@ -1471,12 +1476,19 @@ export async function activateSessionForResume(
   options: { reusePersistedMessages?: boolean; persistedMessages?: MessageWithParts[] } = {},
 ): Promise<ActivatedSessionForResume> {
   let activated: ActivatedSessionForResume | undefined;
+  // 激活校验必须使用会话真实的执行目录：受管 worktree 会话的 Host workspace 是项目主目录，
+  // 直接拿请求路径校验会被 project.session-lineage-invalid 误拒。
+  const persisted = await getPersistedSession(context, params.sessionId);
+  const workspace =
+    persisted && persisted.time.deleted === undefined
+      ? resolveResumeWorkspaceRef(params.workspace, persisted)
+      : params.workspace;
   await getSessionLifecycle(context).initialize(
     params.sessionId,
     async () => {
       activated = await activateSessionRuntime(context, params, options);
     },
-    params.workspace,
+    workspace,
   );
   const record = activated?.record ?? context.sessions.get(params.sessionId);
   if (!record) throw new Error("Session runtime unavailable after initialization");
@@ -1521,15 +1533,12 @@ export async function activateSessionRuntime(
     );
   }
   session = await repairLegacyRemoteSessionWorkspaceForResume(context, session);
-  const workspace =
-    params.workspace ??
-    buildWorkspaceRef({
-      // V4 历史会话冷订阅只传 sessionId；远端会话若在这里仅用目录
-      // 重建 workspace，identity 会退化成 path key，无法命中按 workspaceID 隔离的
-      // provider registry，最终把可用模型误判为不可用并永久触发 restoreWarning。
-      workspaceIdentity: session.workspaceID,
-      workspacePath: session.path ?? session.directory,
-    });
+  // V4 历史会话冷订阅只传 sessionId；远端会话若在这里仅用目录重建 workspace，
+  // identity 会退化成 path key，无法命中按 workspaceID 隔离的 provider registry，最终把
+  // 可用模型误判为不可用并永久触发 restoreWarning。
+  // 受管 worktree 的 Host workspace 是项目主目录、持久化 cwd 是 worktree：请求路径与存储
+  // 不一致时执行路径取存储目录，否则会话会在主目录里恢复执行。
+  const workspace = resolveResumeWorkspaceRef(params.workspace, session);
   let persistedMessages =
     options.persistedMessages ?? (await readPersistedSessionMessages(context, params.sessionId));
   const mode = derivePersistedSessionMode(persistedMessages);
@@ -1716,9 +1725,22 @@ async function resolvePersistedDirectorySession(
       (isAbsolute(path) &&
         isAbsolute(workspace.workspacePath) &&
         resolve(path) === resolve(workspace.workspacePath));
+    // 受管 worktree 的 cwd 与项目 workspace 不同：只有共享 resolver 能证明它属于源仓库。
+    // 远程 workspace 不参与本地目录映射（identity 是唯一归属证明）。
+    const worktree =
+      !samePath &&
+      !workspace.workspaceIdentity?.trim() &&
+      (await isLocalSessionDirectoryInWorkspace({
+        directory: path,
+        workspacePath: workspace.workspacePath,
+        env: context.deps.env,
+      }));
     const sameIdentity =
-      key === expectedKey || (!identity && !workspace.workspaceIdentity?.trim() && samePath);
-    if (samePath && sameIdentity) return current;
+      key === expectedKey ||
+      (!identity &&
+        !workspace.workspaceIdentity?.trim() &&
+        (samePath || worktree));
+    if ((samePath || worktree) && sameIdentity) return current;
     // 历史 child 的执行 cwd 不能否定完整父链；显式身份、缺父、删除、环仍不能跨归属。
     if (!auxiliary || !current.parentID || (identity && (!sameIdentity || !samePath))) return null;
     current = (await context.deps.sessionStore?.getSession(current.parentID)) ?? null;
@@ -2404,13 +2426,21 @@ export async function registerForkedSession(
   ...args: Parameters<typeof registerForkedSessionRuntime>
 ) {
   const [context, record, fork] = args;
+  // fork 到受管 worktree 时 child cwd 与父 workspace 不同；激活校验必须用 child
+  // 持久化的目录，否则合法的 targetCwd fork 会被 project.session-lineage-invalid 拒绝。
+  const forkedSession = await getPersistedSession(context, fork.forkedSessionId);
+  if (!forkedSession) throw new Error(`Persisted child session not found: ${fork.forkedSessionId}`);
+  const workspace = resolveResumeWorkspaceRef(record.workspace, {
+    ...(forkedSession.path ? { path: forkedSession.path } : {}),
+    directory: forkedSession.directory,
+  });
   let result: Awaited<ReturnType<typeof registerForkedSessionRuntime>> | undefined;
   await getSessionLifecycle(context).initialize(
     fork.forkedSessionId,
     async () => {
       result = await registerForkedSessionRuntime(...args);
     },
-    record.workspace,
+    workspace,
   );
   if (!result) {
     // 同一 fork id 的重复登记不重建实例；返回已归属的 record，保持登记幂等。
@@ -2459,7 +2489,12 @@ async function registerForkedSessionRuntime(
       model: optionalModelSelectionFromString(parentModel),
       ...(fork.parentSessionId ? { parentSessionId: fork.parentSessionId } : {}),
       taskType: forkedSession.taskType,
-      workspace: record.workspace,
+      // 子会话属于父会话的 workspace；执行路径取子会话持久化的 cwd。fork 到受管 worktree
+      // 时两者不同，普通 fork 下与父路径相同。
+      workspace: resolveResumeWorkspaceRef(record.workspace, {
+        ...(forkedSession.path ? { path: forkedSession.path } : {}),
+        directory: forkedSession.directory,
+      }),
     },
     fork.forkedSessionId as SessionId,
     true,
@@ -2906,6 +2941,29 @@ export function shouldCloseSessionForExpectedPersistence(
   expectedPersistence?: NibiSessionPersistence,
 ): boolean {
   return expectedPersistence === undefined || currentPersistence === expectedPersistence;
+}
+
+/**
+ * 卸载 cwd 位于 directory 内的全部驻留会话（Host 删除受管 worktree 前使用）。
+ * 会话选择与忙闲都以本进程驻留表为准（包括 Host 镜像尚未同步的同目录 fork 子会话）；
+ * 任一会话忙时全部不卸载。判断与开始卸载之间没有 await；之后的新命令由 Host 删除租约拦截。
+ * 只做驻留去激活，不删除持久会话，也不发 session.removed。
+ * 关闭失败必须抛出（请求失败），不能返回空结果假装成功。
+ */
+export async function releaseSessionsUnderDirectory(
+  context: NibiProtocolAgentServerContext,
+  rawParams: unknown,
+) {
+  const params = parseParams(nibiSessionReleaseUnderDirectoryParamsSchema, rawParams);
+  const sessionIds = [...context.sessions]
+    .filter(([, record]) => isPathInside(params.directory, record.workspace.workspacePath))
+    .map(([sessionId]) => sessionId);
+  const busy = sessionIds.filter(
+    (sessionId) => readSessionBusyState(context, sessionId) === "busy",
+  );
+  if (busy.length > 0) return { released: [], busy };
+  for (const sessionId of sessionIds) await deactivateSessionRecord(context, sessionId);
+  return { released: sessionIds, busy: [] };
 }
 
 export async function generateWorkspaceText(

@@ -118,6 +118,17 @@ describe("v4 input admission canonical intent", () => {
     });
   });
 
+  it("sendText 保留跨会话来源，admission 不丢 source", () => {
+    const source = { kind: "session" as const, sessionId: "sess_source" };
+    expect(
+      resolveInputCommandForAdmission(
+        envelope("sendText", { text: "hello", source }),
+        "s-parent",
+        vi.fn(),
+      ),
+    ).toMatchObject({ kind: "sendText", text: "hello", source });
+  });
+
   it("compact-covered edit 只在原 session admission", () => {
     const resolve = vi.fn().mockReturnValue({
       ok: true,

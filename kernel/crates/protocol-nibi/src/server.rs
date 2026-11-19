@@ -653,6 +653,54 @@ impl Server {
         json!({"closed": true})
     }
 
+    /// `session/releaseUnderDirectory`：Host 删除受管 worktree 前卸载 cwd 位于 directory 内的
+    /// 驻留会话（含冷订阅打开的 Live 与运行实例）。选择与忙闲由内核判定；任一会话忙时全部不卸载。
+    /// 释放只去激活运行实例，不删除持久会话；失败返回 JSON-RPC 错误，不返回空结果假装成功。
+    async fn release_sessions_under_directory(&self, params: &Value) -> Result<Value, RpcError> {
+        let directory = params["directory"]
+            .as_str()
+            .filter(|directory| !directory.is_empty())
+            .ok_or_else(|| RpcError::invalid_params("Invalid params: directory"))?;
+        let report = self
+            .kernel
+            .release_sessions_under_directory(directory)
+            .await
+            .map_err(|error| kernel_error(&error))?;
+        // 已停止的会话也要摘除协议桥与按会话的表，否则后续 subscribe 会拿到已关闭的旧 Live。
+        for session in &report.released {
+            if let Some(broker) = self.context.browser_broker() {
+                broker.close_session(session.as_str()).await;
+            }
+            self.context
+                .notify(
+                    "computer-use/operation-event",
+                    &json!({
+                        "eventId": self.context.fresh("cua"),
+                        "sequenceNumber": 0,
+                        "sessionId": session.as_str(),
+                        "timestamp": self.context.now(),
+                        "kind": "session-closed",
+                    }),
+                )
+                .await;
+            self.bridge.close(session);
+            self.hook_admissions
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .remove(session);
+            self.hook_reviews
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .remove(session);
+            self.uploads
+                .with(|table| table.clear_session(session.as_str()));
+        }
+        Ok(json!({
+            "released": report.released.iter().map(|session| session.as_str()).collect::<Vec<_>>(),
+            "busy": report.busy.iter().map(|session| session.as_str()).collect::<Vec<_>>(),
+        }))
+    }
+
     async fn dispatch(&self, method: &str, params: Value) -> Result<Reply, RpcError> {
         let reply = |value: Value| Ok(Reply::new(value));
         match method {
@@ -674,6 +722,9 @@ impl Server {
                 "historyFirst": true,
                 // 选区批注：sendText/editUserQuery 的 conversationQuotes 原样进入模型文本。
                 "conversationQuoteComment": true,
+                // 会话 cwd 可与 workspace 不同（受管 worktree）：createSession.cwd/worktreeCreation、
+                // forkAssistant.targetCwd 与 session/releaseUnderDirectory 都已实现。
+                "worktreeCwd": true,
                 "sessionDirectorySource": false,
                 "genUiContext": false,
                 // 生命周期方法已实现；workspace 归属参数只做宽松校验，Host 侧不需要按工作区路由
@@ -811,6 +862,11 @@ impl Server {
                 .map(Reply::new),
             "session/read" => crate::legacy::read(self, &params).await.map(Reply::new),
             "session/close" => reply(self.close_session(&params).await),
+            // Host 删除受管 worktree 前卸载目录内的驻留会话；忙闲与释放由内核判定。
+            "session/releaseUnderDirectory" => self
+                .release_sessions_under_directory(&params)
+                .await
+                .map(Reply::new),
             // ── 运行实例的生命周期（NIBI 3.17.2 `session/lifecycle/*`；旧 Host 不调用时行为不变）──
             //
             // 只管理本进程里的运行实例：`stop` 关闭 actor 但不发 `session.removed`、不删持久事实；

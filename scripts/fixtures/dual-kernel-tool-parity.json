@@ -1,0 +1,3756 @@
+{
+  "allowlist": [
+    {
+      "field": "resultBudget.unit",
+      "reason": "Node 的模型可见上限按 bytes 计量（resultBudget.maxModelBytes；maxModelChars 时才按 chars），与上游 fec97590 Node 一致；Rust 按 chars 计量（max_result_size_chars），与上游 a7a980de 的 DEFAULT_MAX_RESULT_CHARS 口径一致。两侧计量单位不同，具体上限数值仍逐工具并列在 fixture。",
+      "reviewAfter": "2027-02-28",
+      "tool": "*"
+    },
+    {
+      "field": "resultBudget.strategy",
+      "reason": "Node 用 resultBudget.strategy=truncate（超限截断预览），与上游 fec97590 Node 的 resultBudget 一致；Rust 用 artifact（超限落盘、只给预览），是 a7a980de 内核的既有约定。两侧结果预算策略不同，具体上限数值仍逐工具并列在 fixture。",
+      "reviewAfter": "2027-02-28",
+      "tool": "*"
+    },
+    {
+      "field": "resultBudget.limit",
+      "reason": "Node 24000 与上游 fec97590 amend-workflow.ts 的 AMEND_WORKFLOW_MODEL_BYTES 相同；Rust 100000 与 a7a980de 通用 DEFAULT_MAX_RESULT_CHARS 相同。两侧各自与上游一致，单位/策略差异见全局条目。",
+      "reviewAfter": "2027-02-28",
+      "tool": "AmendWorkflow"
+    },
+    {
+      "field": "resultBudget.limit",
+      "reason": "Node 24000 与上游 fec97590 create-workflow.ts 的 CREATE_WORKFLOW_MODEL_BYTES 相同；Rust 100000 与 a7a980de 通用 DEFAULT_MAX_RESULT_CHARS 相同。两侧各自与上游一致，单位/策略差异见全局条目。",
+      "reviewAfter": "2027-02-28",
+      "tool": "CreateWorkflow"
+    },
+    {
+      "field": "resultBudget.limit",
+      "reason": "Node 32000 与上游 fec97590 cron.ts 的 CRON_MODEL_BYTES 相同；Rust 100000 与 a7a980de 通用 DEFAULT_MAX_RESULT_CHARS 相同。两侧各自与上游一致，单位/策略差异见全局条目。",
+      "reviewAfter": "2027-02-28",
+      "tool": "CronCreate"
+    },
+    {
+      "field": "resultBudget.limit",
+      "reason": "Node 32000 与上游 fec97590 cron.ts 的 CRON_MODEL_BYTES 相同；Rust 100000 与 a7a980de 通用 DEFAULT_MAX_RESULT_CHARS 相同。两侧各自与上游一致，单位/策略差异见全局条目。",
+      "reviewAfter": "2027-02-28",
+      "tool": "CronDelete"
+    },
+    {
+      "field": "resultBudget.limit",
+      "reason": "Node 32000 与上游 fec97590 cron.ts 的 CRON_MODEL_BYTES 相同；Rust 100000 与 a7a980de 通用 DEFAULT_MAX_RESULT_CHARS 相同。两侧各自与上游一致，单位/策略差异见全局条目。",
+      "reviewAfter": "2027-02-28",
+      "tool": "CronList"
+    },
+    {
+      "field": "resultBudget.limit",
+      "reason": "Node 32000 与上游 fec97590 cron.ts 的 CRON_MODEL_BYTES 相同；Rust 100000 与 a7a980de 通用 DEFAULT_MAX_RESULT_CHARS 相同。两侧各自与上游一致，单位/策略差异见全局条目。",
+      "reviewAfter": "2027-02-28",
+      "tool": "CronUpdate"
+    },
+    {
+      "field": "resultBudget.limit",
+      "reason": "Node 24000 与上游 fec97590 eval-workflow-snippet.ts 的 EVAL_WORKFLOW_SNIPPET_MODEL_BYTES 相同；Rust 100000 与 内核回填作者工具的 100000 通用上限（同上游 DEFAULT_MAX_RESULT_CHARS） 相同。两侧各自与上游一致，单位/策略差异见全局条目。",
+      "reviewAfter": "2027-02-28",
+      "tool": "EvalWorkflowSnippet"
+    },
+    {
+      "field": "resultBudget.limit",
+      "reason": "Node 24000 与上游 fec97590 list-models.ts 的 LIST_MODELS_MODEL_BYTES 相同；Rust 100000 与 内核回填作者工具的 100000 通用上限（同上游 DEFAULT_MAX_RESULT_CHARS） 相同。两侧各自与上游一致，单位/策略差异见全局条目。",
+      "reviewAfter": "2027-02-28",
+      "tool": "ListModels"
+    },
+    {
+      "field": "resultBudget.limit",
+      "reason": "Node 24000 与上游 fec97590 list-saved-workflows.ts 的 LIST_SAVED_WORKFLOWS_MODEL_BYTES 相同；Rust 100000 与 内核回填作者工具的 100000 通用上限（同上游 DEFAULT_MAX_RESULT_CHARS） 相同。两侧各自与上游一致，单位/策略差异见全局条目。",
+      "reviewAfter": "2027-02-28",
+      "tool": "ListSavedWorkflows"
+    },
+    {
+      "field": "resultBudget.limit",
+      "reason": "Node 24000 与上游 fec97590 list-workflow-runs.ts 的 LIST_WORKFLOW_RUNS_MODEL_BYTES 相同；Rust 100000 与 内核回填作者工具的 100000 通用上限（同上游 DEFAULT_MAX_RESULT_CHARS） 相同。两侧各自与上游一致，单位/策略差异见全局条目。",
+      "reviewAfter": "2027-02-28",
+      "tool": "ListWorkflowRuns"
+    },
+    {
+      "field": "resultBudget.limit",
+      "reason": "Node 24000 与上游 fec97590 resume-workflow-run.ts 的 RESUME_WORKFLOW_RUN_MODEL_BYTES 相同；Rust 100000 与 内核回填作者工具的 100000 通用上限（同上游 DEFAULT_MAX_RESULT_CHARS） 相同。两侧各自与上游一致，单位/策略差异见全局条目。",
+      "reviewAfter": "2027-02-28",
+      "tool": "ResumeWorkflowRun"
+    },
+    {
+      "field": "resultBudget.limit",
+      "reason": "Node 24000 与上游 fec97590 save-workflow.ts 的 SAVE_WORKFLOW_MODEL_BYTES 相同；Rust 100000 与 内核回填作者工具的 100000 通用上限（同上游 DEFAULT_MAX_RESULT_CHARS） 相同。两侧各自与上游一致，单位/策略差异见全局条目。",
+      "reviewAfter": "2027-02-28",
+      "tool": "SaveWorkflow"
+    },
+    {
+      "field": "resultBudget.limit",
+      "reason": "Node 100000 与上游 fec97590 webfetch.ts 的 MAX_WEBFETCH_MODEL_BYTES 相同；Rust 50000 与 a7a980de web_fetch.rs 的 MAX_RESULT_CHARS（F122） 相同。两侧各自与上游一致，单位/策略差异见全局条目。",
+      "reviewAfter": "2027-02-28",
+      "tool": "WebFetch"
+    },
+    {
+      "field": "resultBudget.limit",
+      "reason": "Node 20000 与上游 fec97590 websearch.ts 的 maxOutputBytes 相同；Rust 100000 与 a7a980de web_search.rs 的 DEFAULT_MAX_RESULT_CHARS 相同。两侧各自与上游一致，单位/策略差异见全局条目。",
+      "reviewAfter": "2027-02-28",
+      "tool": "WebSearch"
+    },
+    {
+      "field": "resultBudget.bounded",
+      "reason": "Node Read 有模型可见上限（上游 fec97590 read.ts 的 resultBudget.maxModelBytes=READ_MAX_FILE_SIZE_BYTES，preview head）；上游 a7a980de read.rs 不声明 max_result_size_chars。两侧都与各自上游一致：Node 对结果做预算，Rust 由文件读取自身的行/token 上限收口，不对结果落盘。",
+      "reviewAfter": "2027-02-28",
+      "tool": "Read"
+    },
+    {
+      "field": "resultBudget.direction",
+      "reason": "Node Bash 的 preview.direction=tail 与上游 fec97590 bash.ts 相同（最近输出在尾部）；Rust 的 artifact 预览恒从 head 给，是上游 Rust 没有 direction 概念时的既有约定。",
+      "reviewAfter": "2027-02-28",
+      "tool": "Bash"
+    },
+    {
+      "field": "inputSchema",
+      "pointer": "/properties/durable",
+      "reason": "Node CronCreate 面向桌面 Automations：Host 持有并总是落盘，durable 是终端专有开关，上游 fec97590 automation.ts 的 Node schema 同样没有 durable；Rust 保留上游 a7a980de CronCreate 的 durable，仅在 automation host 模式下移除。两侧都与各自上游一致。",
+      "reviewAfter": "2027-02-28",
+      "tool": "CronCreate"
+    },
+    {
+      "field": "inputSchema",
+      "pointer": "/properties/plan",
+      "reason": "Node ExitPlanMode 要求内联 plan（上游 fec97590 plan-mode.ts：minLength 1 / maxLength 20000）；上游 a7a980de ExitPlanMode 明确从 plan 文件读取、不接收 plan。两侧与各自上游一致，改任一侧都会破坏其审批流或既有 CLI 调用。",
+      "reviewAfter": "2027-02-28",
+      "tool": "ExitPlanMode"
+    },
+    {
+      "field": "inputSchema",
+      "pointer": "/required",
+      "reason": "同 /properties/plan：Node 必填 plan，Rust 无该必填项；这是两侧上游审批模型不同（内联 vs plan 文件），不是漏字段。",
+      "reviewAfter": "2027-02-28",
+      "tool": "ExitPlanMode"
+    }
+  ],
+  "description": "X02 双内核工具 input schema 与结果预算快照。由 node scripts/check-dual-kernel-parity.mjs --update 生成；描述文本与 metadata.maxOutputBytes 不参与跨内核比较。",
+  "generatedBy": "node scripts/check-dual-kernel-parity.mjs --update",
+  "tools": {
+    "AmendWorkflow": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "max_concurrency": {
+              "minimum": 1,
+              "nullable": true,
+              "type": "integer"
+            },
+            "name": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "path": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "run_id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "script": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "subagent_model": {
+              "minLength": 1,
+              "nullable": true,
+              "type": "string"
+            }
+          },
+          "required": [
+            "run_id"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 24000,
+          "maxModelBytes": 24000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 24000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "max_concurrency": {
+              "minimum": 1,
+              "nullable": true,
+              "type": "integer"
+            },
+            "name": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "path": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "run_id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "script": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "subagent_model": {
+              "minLength": 1,
+              "nullable": true,
+              "type": "string"
+            }
+          },
+          "required": [
+            "run_id"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "AskUserQuestion": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "annotations": {
+              "additionalProperties": {
+                "additionalProperties": false,
+                "properties": {
+                  "notes": {
+                    "type": "string"
+                  },
+                  "preview": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "type": "object"
+            },
+            "answers": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "metadata": {
+              "additionalProperties": false,
+              "properties": {
+                "source": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "questions": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "header": {
+                    "type": "string"
+                  },
+                  "multiSelect": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "options": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "description": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "preview": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "description",
+                        "label"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 4,
+                    "minItems": 2,
+                    "type": "array"
+                  },
+                  "question": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "header",
+                  "multiSelect",
+                  "options",
+                  "question"
+                ],
+                "type": "object"
+              },
+              "maxItems": 4,
+              "minItems": 1,
+              "type": "array"
+            }
+          },
+          "required": [
+            "questions"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 100000,
+          "maxModelBytes": 100000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 100000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "annotations": {
+              "additionalProperties": {
+                "additionalProperties": false,
+                "properties": {
+                  "notes": {
+                    "type": "string"
+                  },
+                  "preview": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "type": "object"
+            },
+            "answers": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "metadata": {
+              "additionalProperties": false,
+              "properties": {
+                "source": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "questions": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "header": {
+                    "type": "string"
+                  },
+                  "multiSelect": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "options": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "description": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "preview": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "description",
+                        "label"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 4,
+                    "minItems": 2,
+                    "type": "array"
+                  },
+                  "question": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "header",
+                  "multiSelect",
+                  "options",
+                  "question"
+                ],
+                "type": "object"
+              },
+              "maxItems": 4,
+              "minItems": 1,
+              "type": "array"
+            }
+          },
+          "required": [
+            "questions"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "Bash": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "command": {
+              "type": "string"
+            },
+            "dangerouslyDisableSandbox": {
+              "type": "boolean"
+            },
+            "description": {
+              "type": "string"
+            },
+            "run_in_background": {
+              "type": "boolean"
+            },
+            "timeout": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "command"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 30000,
+          "maxModelBytes": 30000,
+          "preview": {
+            "direction": "tail",
+            "maxBytes": 30000
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "command": {
+              "type": "string"
+            },
+            "dangerouslyDisableSandbox": {
+              "type": "boolean"
+            },
+            "description": {
+              "type": "string"
+            },
+            "run_in_background": {
+              "type": "boolean"
+            },
+            "timeout": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "command"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 30000
+      },
+      "side": "both"
+    },
+    "CreateSession": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "model": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "prompt": {
+              "maxLength": 1000000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "retryOf": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "prompt"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 32768,
+          "maxModelBytes": 32768,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 32768
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "model": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "prompt": {
+              "maxLength": 1000000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "retryOf": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "prompt"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 32768
+      },
+      "side": "both"
+    },
+    "CreateWorkflow": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "args": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "max_concurrency": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "name": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "path": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "saved": {
+              "additionalProperties": false,
+              "properties": {
+                "args": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "name": {
+                  "maxLength": 64,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "path": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "scope": {
+                  "enum": [
+                    "global",
+                    "project"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "type": "object"
+            },
+            "script": {
+              "type": "string"
+            },
+            "subagent_model": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 24000,
+          "maxModelBytes": 24000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 24000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "args": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "max_concurrency": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "name": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "path": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "saved": {
+              "additionalProperties": false,
+              "properties": {
+                "args": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "name": {
+                  "maxLength": 64,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "path": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "scope": {
+                  "enum": [
+                    "global",
+                    "project"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "type": "object"
+            },
+            "script": {
+              "type": "string"
+            },
+            "subagent_model": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "CronCreate": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "cron": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "delayMinutes": {
+              "maximum": 525600,
+              "minimum": 1,
+              "nullable": true,
+              "type": "integer"
+            },
+            "interval": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "intervalUnit": {
+              "enum": [
+                "daily",
+                "hourly",
+                "minute",
+                "monthly",
+                "weekly",
+                "yearly"
+              ],
+              "type": "string"
+            },
+            "maxRuns": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "prompt": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "recurring": {
+              "type": "boolean"
+            },
+            "title": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "prompt",
+            "title"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 32000,
+          "maxModelBytes": 32000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 32000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "cron": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "delayMinutes": {
+              "maximum": 525600,
+              "minimum": 1,
+              "nullable": true,
+              "type": "integer"
+            },
+            "durable": {
+              "type": "boolean"
+            },
+            "interval": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "intervalUnit": {
+              "enum": [
+                "daily",
+                "hourly",
+                "minute",
+                "monthly",
+                "weekly",
+                "yearly"
+              ],
+              "type": "string"
+            },
+            "maxRuns": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "prompt": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "recurring": {
+              "type": "boolean"
+            },
+            "title": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "prompt",
+            "title"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "CronDelete": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 32000,
+          "maxModelBytes": 32000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 32000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "CronList": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 32000,
+          "maxModelBytes": 32000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 32000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "CronUpdate": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "cron": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "interval": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "intervalUnit": {
+              "enum": [
+                "daily",
+                "hourly",
+                "minute",
+                "monthly",
+                "weekly",
+                "yearly"
+              ],
+              "type": "string"
+            },
+            "maxRuns": {
+              "minimum": 1,
+              "nullable": true,
+              "type": "integer"
+            },
+            "prompt": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "recurring": {
+              "type": "boolean"
+            },
+            "title": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "title"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 32000,
+          "maxModelBytes": 32000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 32000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "cron": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "interval": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "intervalUnit": {
+              "enum": [
+                "daily",
+                "hourly",
+                "minute",
+                "monthly",
+                "weekly",
+                "yearly"
+              ],
+              "type": "string"
+            },
+            "maxRuns": {
+              "minimum": 1,
+              "nullable": true,
+              "type": "integer"
+            },
+            "prompt": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "recurring": {
+              "type": "boolean"
+            },
+            "title": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "title"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "DeferredToolCall": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "input": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "name": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "input",
+            "name"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 100000,
+          "maxModelBytes": 100000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 100000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "side": "node"
+    },
+    "Edit": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "file_path": {
+              "type": "string"
+            },
+            "new_string": {
+              "type": "string"
+            },
+            "old_string": {
+              "type": "string"
+            },
+            "replace_all": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "file_path",
+            "new_string",
+            "old_string"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 1000000,
+          "maxModelBytes": 100000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 100000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "file_path": {
+              "type": "string"
+            },
+            "new_string": {
+              "type": "string"
+            },
+            "old_string": {
+              "type": "string"
+            },
+            "replace_all": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "file_path",
+            "new_string",
+            "old_string"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "EnterPlanMode": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 100000,
+          "maxModelBytes": 100000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 100000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "EnterWorktree": {
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "rust"
+    },
+    "EvalWorkflowSnippet": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "path": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "timeoutMs": {
+              "maximum": 600000,
+              "minimum": 1000,
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 24000,
+          "maxModelBytes": 24000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 24000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "path": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "timeoutMs": {
+              "maximum": 600000,
+              "minimum": 1000,
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "ExitPlanMode": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": true,
+          "properties": {
+            "allowedPrompts": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "tool": {
+                    "enum": [
+                      "Bash"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "prompt",
+                  "tool"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "plan": {
+              "maxLength": 20000,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "plan"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 100000,
+          "maxModelBytes": 100000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 100000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": true,
+          "properties": {
+            "allowedPrompts": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "tool": {
+                    "enum": [
+                      "Bash"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "prompt",
+                  "tool"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "ExitWorktree": {
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "enum": [
+                "keep",
+                "remove"
+              ],
+              "type": "string"
+            },
+            "discard_changes": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "rust"
+    },
+    "FillWorkflowHole": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "hole_id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "path": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "run_id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "script": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "hole_id",
+            "run_id"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 24000,
+          "maxModelBytes": 24000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 24000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "hole_id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "path": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "run_id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "script": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "hole_id",
+            "run_id"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 24000
+      },
+      "side": "both"
+    },
+    "ForkSession": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "atMessage": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "retryOf": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "sessionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "atMessage",
+            "sessionId"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 32768,
+          "maxModelBytes": 32768,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 32768
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "atMessage": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "retryOf": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "sessionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "atMessage",
+            "sessionId"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 32768
+      },
+      "side": "both"
+    },
+    "GetWorkflowRun": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "run_id": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "run_id"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": 100000,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 400000,
+          "maxModelBytes": 400000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 400000
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "run_id": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "run_id"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "Glob": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 100000,
+          "maxModelBytes": 100000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 100000
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "Grep": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "-A": {
+              "type": "number"
+            },
+            "-B": {
+              "type": "number"
+            },
+            "-C": {
+              "type": "number"
+            },
+            "-i": {
+              "type": "boolean"
+            },
+            "-n": {
+              "type": "boolean"
+            },
+            "-o": {
+              "type": "boolean"
+            },
+            "context": {
+              "type": "number"
+            },
+            "glob": {
+              "type": "string"
+            },
+            "head_limit": {
+              "type": "number"
+            },
+            "multiline": {
+              "type": "boolean"
+            },
+            "offset": {
+              "type": "number"
+            },
+            "output_mode": {
+              "enum": [
+                "content",
+                "count",
+                "files_with_matches"
+              ],
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 20000,
+          "maxModelBytes": 20000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 20000
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "-A": {
+              "type": "number"
+            },
+            "-B": {
+              "type": "number"
+            },
+            "-C": {
+              "type": "number"
+            },
+            "-i": {
+              "type": "boolean"
+            },
+            "-n": {
+              "type": "boolean"
+            },
+            "-o": {
+              "type": "boolean"
+            },
+            "context": {
+              "type": "number"
+            },
+            "glob": {
+              "type": "string"
+            },
+            "head_limit": {
+              "type": "number"
+            },
+            "multiline": {
+              "type": "boolean"
+            },
+            "offset": {
+              "type": "number"
+            },
+            "output_mode": {
+              "enum": [
+                "content",
+                "count",
+                "files_with_matches"
+              ],
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "pattern"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 20000
+      },
+      "side": "both"
+    },
+    "InterruptSession": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "expectedExecutionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "retryOf": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "sessionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "expectedExecutionId",
+            "sessionId"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 32768,
+          "maxModelBytes": 32768,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 32768
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "expectedExecutionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "retryOf": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "sessionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "expectedExecutionId",
+            "sessionId"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 32768
+      },
+      "side": "both"
+    },
+    "ListModels": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 24000,
+          "maxModelBytes": 24000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 24000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "ListProjects": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 32768,
+          "maxModelBytes": 32768,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 32768
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "maxResultSizeChars": 32768
+      },
+      "side": "both"
+    },
+    "ListSavedWorkflows": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 24000,
+          "maxModelBytes": 24000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 24000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "ListSessions": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "cursor": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "limit": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "query": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 32768,
+          "maxModelBytes": 32768,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 32768
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "cursor": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "limit": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "query": {
+              "maxLength": 4096,
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "maxResultSizeChars": 32768
+      },
+      "side": "both"
+    },
+    "ListWorkflowRuns": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "limit": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "statuses": {
+              "items": {
+                "enum": [
+                  "completed",
+                  "errored",
+                  "pending",
+                  "running",
+                  "stopped"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 24000,
+          "maxModelBytes": 24000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 24000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "limit": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "statuses": {
+              "items": {
+                "enum": [
+                  "completed",
+                  "errored",
+                  "pending",
+                  "running",
+                  "stopped"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "Monitor": {
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "command": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "timeout_ms": {
+              "default": 300000,
+              "maximum": 3600000,
+              "minimum": 1000,
+              "type": "number"
+            },
+            "ws": {
+              "additionalProperties": false,
+              "properties": {
+                "protocols": {
+                  "items": {
+                    "pattern": "^[!#$%&'*+.^_`|~0-9A-Za-z-]+$",
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "description",
+            "timeout_ms"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 10000
+      },
+      "side": "rust"
+    },
+    "NotebookEdit": {
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "cell_id": {
+              "type": "string"
+            },
+            "cell_type": {
+              "enum": [
+                "code",
+                "markdown"
+              ],
+              "type": "string"
+            },
+            "edit_mode": {
+              "enum": [
+                "delete",
+                "insert",
+                "replace"
+              ],
+              "type": "string"
+            },
+            "new_source": {
+              "type": "string"
+            },
+            "notebook_path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "new_source",
+            "notebook_path"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "rust"
+    },
+    "OpenSession": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "sessionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "sessionId"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 32768,
+          "maxModelBytes": 32768,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 32768
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "sessionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "sessionId"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 32768
+      },
+      "side": "both"
+    },
+    "Read": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "file_path": {
+              "type": "string"
+            },
+            "limit": {
+              "maximum": 9007199254740991,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "offset": {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "pages": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "file_path"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 262144,
+          "maxModelBytes": 262144,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 262144
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "file_path": {
+              "type": "string"
+            },
+            "limit": {
+              "maximum": 9007199254740991,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "offset": {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "pages": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "file_path"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": null
+      },
+      "side": "both"
+    },
+    "ReadSession": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "cursor": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "limit": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "sessionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+              "type": "string"
+            },
+            "view": {
+              "enum": [
+                "messages",
+                "summary"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "sessionId",
+            "view"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 32768,
+          "maxModelBytes": 32768,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 32768
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "cursor": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "limit": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "sessionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+              "type": "string"
+            },
+            "view": {
+              "enum": [
+                "messages",
+                "summary"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "sessionId",
+            "view"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 32768
+      },
+      "side": "both"
+    },
+    "ReadTopicResource": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "index": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "inputId": {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            "messageId": {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "messageId"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 4096,
+          "maxModelBytes": 4096,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 4096
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "index": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "inputId": {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            "messageId": {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "messageId"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 4096
+      },
+      "side": "both"
+    },
+    "RenameSession": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "retryOf": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "sessionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 1024,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "sessionId",
+            "title"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 32768,
+          "maxModelBytes": 32768,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 32768
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "retryOf": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "sessionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 1024,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "sessionId",
+            "title"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 32768
+      },
+      "side": "both"
+    },
+    "ReplyToChannel": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "parts": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "candidateRef": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "refId": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "text": {
+                    "maxLength": 2000,
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "mention",
+                      "mentionName",
+                      "text"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "type": "object"
+              },
+              "maxItems": 50,
+              "minItems": 1,
+              "type": "array"
+            }
+          },
+          "required": [
+            "parts"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 2097152,
+          "maxModelBytes": 2097152,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 2097152
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "parts": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "candidateRef": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "refId": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "text": {
+                    "maxLength": 2000,
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "mention",
+                      "mentionName",
+                      "text"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "type": "object"
+              },
+              "maxItems": 50,
+              "minItems": 1,
+              "type": "array"
+            }
+          },
+          "required": [
+            "parts"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 2097152
+      },
+      "side": "both"
+    },
+    "ReportFindings": {
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "findings": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 40,
+                    "type": "string"
+                  },
+                  "failure_scenario": {
+                    "type": "string"
+                  },
+                  "file": {
+                    "type": "string"
+                  },
+                  "line": {
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "outcome": {
+                    "enum": [
+                      "fixed",
+                      "no_change_needed",
+                      "skipped"
+                    ],
+                    "type": "string"
+                  },
+                  "short_summary": {
+                    "maxLength": 60,
+                    "type": "string"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "verdict": {
+                    "enum": [
+                      "CONFIRMED",
+                      "PLAUSIBLE"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "failure_scenario",
+                  "file",
+                  "summary"
+                ],
+                "type": "object"
+              },
+              "maxItems": 32,
+              "type": "array"
+            },
+            "level": {
+              "enum": [
+                "high",
+                "low",
+                "max",
+                "medium",
+                "xhigh"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "findings"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 256
+      },
+      "side": "rust"
+    },
+    "ResolveWorkflowQuestion": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "answer": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "question_id": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "answer",
+            "question_id"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 24000,
+          "maxModelBytes": 24000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 24000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "answer": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "question_id": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "answer",
+            "question_id"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 24000
+      },
+      "side": "both"
+    },
+    "RespondToCoordinator": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "message": {
+              "maxLength": 20000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "summary": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "message",
+            "summary"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 4096,
+          "maxModelBytes": 4096,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 4096
+          },
+          "strategy": "truncate"
+        }
+      },
+      "side": "node"
+    },
+    "ResumeWorkflowRun": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "run_id": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "run_id"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 24000,
+          "maxModelBytes": 24000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 24000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "run_id": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "run_id"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "SaveWorkflow": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "args": {
+              "additionalProperties": {
+                "additionalProperties": false,
+                "properties": {
+                  "default": {},
+                  "description": {
+                    "type": "string"
+                  },
+                  "required": {
+                    "type": "boolean"
+                  },
+                  "type": {
+                    "enum": [
+                      "boolean",
+                      "json",
+                      "number",
+                      "string"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "type": "object"
+              },
+              "type": "object"
+            },
+            "description": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "name": {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            "overwrite": {
+              "type": "boolean"
+            },
+            "path": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "run_id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "scope": {
+              "enum": [
+                "global",
+                "project"
+              ],
+              "type": "string"
+            },
+            "script": {
+              "type": "string"
+            },
+            "script_path": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "shadowing": {
+              "enum": [
+                "hidden_by_project",
+                "hides_global"
+              ],
+              "type": "string"
+            },
+            "whenToUse": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "name",
+            "scope"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 24000,
+          "maxModelBytes": 24000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 24000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "args": {
+              "additionalProperties": {
+                "additionalProperties": false,
+                "properties": {
+                  "default": {},
+                  "description": {
+                    "type": "string"
+                  },
+                  "required": {
+                    "type": "boolean"
+                  },
+                  "type": {
+                    "enum": [
+                      "boolean",
+                      "json",
+                      "number",
+                      "string"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "type": "object"
+              },
+              "type": "object"
+            },
+            "description": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "name": {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            "overwrite": {
+              "type": "boolean"
+            },
+            "path": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "run_id": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "scope": {
+              "enum": [
+                "global",
+                "project"
+              ],
+              "type": "string"
+            },
+            "script": {
+              "type": "string"
+            },
+            "script_path": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "shadowing": {
+              "enum": [
+                "hidden_by_project",
+                "hides_global"
+              ],
+              "type": "string"
+            },
+            "whenToUse": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "name",
+            "scope"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "ScheduleWakeup": {
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "delaySeconds": {
+              "type": "number"
+            },
+            "noop": {
+              "type": "boolean"
+            },
+            "prompt": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "stop": {
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
+        "maxResultSizeChars": 1000
+      },
+      "side": "rust"
+    },
+    "SendToSession": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "prompt": {
+              "maxLength": 1000000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "retryOf": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "sessionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "prompt",
+            "sessionId"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 32768,
+          "maxModelBytes": 32768,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 32768
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "prompt": {
+              "maxLength": 1000000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "retryOf": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "sessionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "prompt",
+            "sessionId"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 32768
+      },
+      "side": "both"
+    },
+    "SetSessionArchived": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "archived": {
+              "type": "boolean"
+            },
+            "retryOf": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "sessionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "archived",
+            "sessionId"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 32768,
+          "maxModelBytes": 32768,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 32768
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "archived": {
+              "type": "boolean"
+            },
+            "retryOf": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "sessionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "archived",
+            "sessionId"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 32768
+      },
+      "side": "both"
+    },
+    "SetSessionPinned": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "pinned": {
+              "type": "boolean"
+            },
+            "retryOf": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "sessionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pinned",
+            "sessionId"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 32768,
+          "maxModelBytes": 32768,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 32768
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "pinned": {
+              "type": "boolean"
+            },
+            "retryOf": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            "sessionId": {
+              "maxLength": 4096,
+              "minLength": 1,
+              "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pinned",
+            "sessionId"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 32768
+      },
+      "side": "both"
+    },
+    "TaskOutput": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "block": {
+              "default": true,
+              "type": "boolean"
+            },
+            "task_id": {
+              "type": "string"
+            },
+            "timeout": {
+              "default": 30000,
+              "maximum": 600000,
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "required": [
+            "block",
+            "task_id",
+            "timeout"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": 100000,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 400000,
+          "maxModelBytes": 400000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 400000
+          },
+          "strategy": "artifact"
+        }
+      },
+      "side": "node"
+    },
+    "TodoRead": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 100000,
+          "maxModelBytes": 100000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 100000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "TodoWrite": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "todos": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "enum": [
+                      "high",
+                      "low",
+                      "medium"
+                    ],
+                    "type": "string"
+                  },
+                  "status": {
+                    "enum": [
+                      "completed",
+                      "in_progress",
+                      "pending"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "priority",
+                  "status"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "todos"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 100000,
+          "maxModelBytes": 100000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 100000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "todos": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "enum": [
+                      "high",
+                      "low",
+                      "medium"
+                    ],
+                    "type": "string"
+                  },
+                  "status": {
+                    "enum": [
+                      "completed",
+                      "in_progress",
+                      "pending"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "priority",
+                  "status"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "todos"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "ToolSearch": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "max_results": {
+              "default": 5,
+              "type": "number"
+            },
+            "query": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "max_results",
+            "query"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 100000,
+          "maxModelBytes": 100000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 100000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "max_results": {
+              "default": 5,
+              "type": "number"
+            },
+            "query": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "max_results",
+            "query"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "WaitSessions": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "enum": [
+                "all",
+                "any"
+              ],
+              "type": "string"
+            },
+            "operations": {
+              "items": {
+                "properties": {
+                  "commandId": {
+                    "maxLength": 4096,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "sessionId": {
+                    "maxLength": 4096,
+                    "minLength": 1,
+                    "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "commandId",
+                  "sessionId"
+                ],
+                "type": "object"
+              },
+              "maxItems": 100,
+              "minItems": 1,
+              "type": "array"
+            },
+            "timeoutMs": {
+              "default": 30000,
+              "maximum": 300000,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "mode",
+            "operations"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 32768,
+          "maxModelBytes": 32768,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 32768
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "enum": [
+                "all",
+                "any"
+              ],
+              "type": "string"
+            },
+            "operations": {
+              "items": {
+                "properties": {
+                  "commandId": {
+                    "maxLength": 4096,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "sessionId": {
+                    "maxLength": 4096,
+                    "minLength": 1,
+                    "pattern": "^(?:sess|session)_[A-Za-z0-9._-]+$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "commandId",
+                  "sessionId"
+                ],
+                "type": "object"
+              },
+              "maxItems": 100,
+              "minItems": 1,
+              "type": "array"
+            },
+            "timeoutMs": {
+              "default": 30000,
+              "maximum": 300000,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "mode",
+            "operations"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 32768
+      },
+      "side": "both"
+    },
+    "WebFetch": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "offset": {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "prompt": {
+              "type": "string"
+            },
+            "url": {
+              "format": "uri",
+              "type": "string"
+            }
+          },
+          "required": [
+            "prompt",
+            "url"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 100000,
+          "maxModelBytes": 100000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 100000
+          },
+          "strategy": "artifact"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "offset": {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "prompt": {
+              "type": "string"
+            },
+            "url": {
+              "format": "uri",
+              "type": "string"
+            }
+          },
+          "required": [
+            "prompt",
+            "url"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 50000
+      },
+      "side": "both"
+    },
+    "WebSearch": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "allowed_domains": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "blocked_domains": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "query": {
+              "minLength": 2,
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 10000,
+          "maxModelBytes": 20000,
+          "preview": {
+            "direction": "head",
+            "maxLines": 30
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "allowed_domains": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "blocked_domains": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "query": {
+              "minLength": 2,
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "Write": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "content": {
+              "type": "string"
+            },
+            "file_path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "content",
+            "file_path"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "maxInlineBytes": 1000000,
+          "maxModelBytes": 100000,
+          "preview": {
+            "direction": "head",
+            "maxBytes": 100000
+          },
+          "strategy": "truncate"
+        }
+      },
+      "rust": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "content": {
+              "type": "string"
+            },
+            "file_path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "content",
+            "file_path"
+          ],
+          "type": "object"
+        },
+        "maxResultSizeChars": 100000
+      },
+      "side": "both"
+    },
+    "js": {
+      "node": {
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "timeout_ms": {
+              "maximum": 120000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "title": {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "title"
+          ],
+          "type": "object"
+        },
+        "maxModelChars": null,
+        "resultBudget": {
+          "artifact": {
+            "enabled": true,
+            "retention": "session"
+          },
+          "maxInlineBytes": 1000000,
+          "maxModelBytes": 65536,
+          "preview": {
+            "direction": "tail",
+            "maxBytes": 65536
+          },
+          "strategy": "artifact"
+        }
+      },
+      "side": "node"
+    }
+  },
+  "version": 1
+}

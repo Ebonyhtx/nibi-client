@@ -15,6 +15,8 @@ import {
   PROJECT_MIGRATION_TABLES,
   PROJECT_SCHEMA_SQL,
   TASK_PROJECT_COLUMNS,
+  TASK_WORKTREE_ROOT_SQL,
+  tableExists,
 } from "#src/project-storage/schema.js";
 
 export type {
@@ -53,6 +55,18 @@ export const projectStorage: ProjectStorageContract = {
           apply: (database) => {
             database.exec(INITIAL_WORKSPACE_ORDER_SQL);
             if (firstProjectMigration) migrateInitialWorkspaceOrder(database, context);
+          },
+        },
+        {
+          // 受管 worktree 任务的 worktree 根目录；旧行全部为 NULL，不需要回填。
+          id: "0008_task_worktree_root",
+          appVersion: "4.1.1",
+          touchedTables: ["tasks"],
+          sql: TASK_WORKTREE_ROOT_SQL,
+          // 兼容只建了项目/设置表的测试库与远端设置库：没有 tasks 表时无需加列。
+          // 生产 tasks_index 恒有该表；账本仍按同一 SQL 记录，不改变已应用迁移的 checksum。
+          apply: (database) => {
+            if (tableExists(database, "tasks")) database.exec(TASK_WORKTREE_ROOT_SQL);
           },
         },
       ],

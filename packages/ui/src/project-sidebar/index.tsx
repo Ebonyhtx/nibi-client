@@ -49,6 +49,8 @@ import { ProjectSidebarListHeader } from "@/project-sidebar/ProjectSidebarListHe
 import { ProjectSidebarNavigation } from "@/project-sidebar/ProjectSidebarNavigation.js";
 import { ProjectDataCleanupDialog } from "@/project-sidebar/ProjectDataCleanupDialog.js";
 import { useProjectDataCleanupSupport } from "@/project-sidebar/useProjectDataCleanupSupport.js";
+import { ManagedWorktreesDialog } from "@/managed-worktrees/index.js";
+import { useOptionalBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { HomeOnlyWorkspaceRows } from "@/project-sidebar/HomeOnlyWorkspaceRows.js";
 import { WorkspaceSidebarFooter } from "@/WorkspaceSidebarFooter.js";
 import { SidebarBottomActivity } from "@/sidebar-activity/SidebarBottomActivity.js";
@@ -97,6 +99,9 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
     project: VirtualProject;
     mode: "delete" | "cleanup";
   } | null>(null);
+  const [worktreeProject, setWorktreeProject] = useState<VirtualProject | null>(null);
+  // 受管 worktree 只存在于本机 Host；base accessor 没有该能力时菜单入口不显示。
+  const managedWorktreeService = useOptionalBaseWorkspaceServices()?.managedWorktreeService;
   const { supported: dataCleanupSupported, markUnsupported: markDataCleanupUnsupported } =
     useProjectDataCleanupSupport(service);
   const workspaceKey = props.workspaceIdentity?.trim() || props.workspacePath;
@@ -123,6 +128,7 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
     (project: VirtualProject, mode: "delete" | "cleanup") => setProjectDialog({ project, mode }),
     [],
   );
+  const openWorktrees = useCallback((project: VirtualProject) => setWorktreeProject(project), []);
   // 当前任务只影响远端“创建项目”的默认设备；分组继承在点击时读，
   // 避免本地会话/草稿切换让全部项目的菜单与 Tooltip 重渲染。
   const hasActiveRemoteTask = useNibiSessionStore((state) =>
@@ -230,6 +236,7 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
       remoteActions={remoteSync.actions}
       onOpenProjectData={openProjectData}
       dataCleanupSupported={dataCleanupSupported}
+      {...(managedWorktreeService ? { onOpenWorktrees: openWorktrees } : {})}
     />
   );
   const openSettings = useCallback(() => {
@@ -421,6 +428,21 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
               onClose={() => setEditor(null)}
               onSaved={refresh}
               onDeleted={refresh}
+            />
+          ) : null}
+          {worktreeProject && managedWorktreeService ? (
+            <ManagedWorktreesDialog
+              projectId={worktreeProject.id}
+              projectName={worktreeProject.name}
+              onClose={() => setWorktreeProject(null)}
+              onOpenTask={(task) => {
+                setWorktreeProject(null);
+                onSelectTask(
+                  task.workspacePath,
+                  task.taskId,
+                  task.workspaceIdentity,
+                );
+              }}
             />
           ) : null}
           {projectDialog && service ? (

@@ -114,6 +114,7 @@ fn loaded_sessions_round_trip_with_open_work() {
         messages: vec![assistant()],
         launches: Vec::new(),
         model_turns: Vec::new(),
+        worktree_creations: Vec::new(),
         input_intents: Vec::new(),
         model: None,
         mode: None,

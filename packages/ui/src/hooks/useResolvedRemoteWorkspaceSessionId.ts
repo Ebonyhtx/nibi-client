@@ -1,4 +1,4 @@
-import { useTabStore } from "@/store/TabStoreProvider.js";
+import { useOptionalTabStore } from "@/store/TabStoreProvider.js";
 import { isWorkspaceTab, type WorkspaceTabState } from "@/store/tabStore.js";
 import { useRemoteWorkspaceSessionStore } from "@/store/remoteWorkspaceSessionStore.js";
 import {
@@ -56,7 +56,8 @@ export function useResolvedRemoteWorkspaceSessionId(
   workspaceIdentity?: string | null,
   remoteTarget?: unknown,
 ): string | null {
-  const activeWorkspaceTab = useTabStore((state) => {
+  // 独立渲染的浏览器/预览组件没有 Root provider；用可选 store 回退到空 tab 状态。
+  const activeWorkspaceTab = useOptionalTabStore((state) => {
     if (!workspacePath || !state.activeTabId) {
       return null;
     }

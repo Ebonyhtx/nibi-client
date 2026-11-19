@@ -39,6 +39,11 @@ export interface ImageEditorOutput {
  */
 export interface ImageEditorComposerTarget {
   appendImage: (output: ImageEditorOutput) => boolean;
+  /**
+   * 直接接收未修改的原始图片文件；预览操作条的「加入对话」用它保留原格式，
+   * 避免把远端 JPEG/WebP 统一转成 PNG。旧接收方可以缺席，调用方回退到 appendImage。
+   */
+  appendFile?: (file: File) => boolean;
 }
 
 /**

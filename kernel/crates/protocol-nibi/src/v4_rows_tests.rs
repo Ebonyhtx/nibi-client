@@ -105,6 +105,7 @@ fn view(id: &str) -> SessionView {
         output_speed: None,
         launches: Vec::new(),
         model_turns: Vec::new(),
+        worktree_creations: Vec::new(),
         input_intents: Vec::new(),
     }
 }

@@ -101,11 +101,23 @@ export const TID_BROWSER_FORWARD_BUTTON = "browser-forward-button";
 export const TID_BROWSER_REFRESH_BUTTON = "browser-refresh-button";
 /** 浏览器自由尺寸模式按钮 */
 export const TID_BROWSER_RESPONSIVE_BUTTON = "browser-responsive-button";
-/** 浏览器设计模式开关（只对本地 HTML 预览页可用） */
+/** 浏览器设计模式开关（人类 Browser tab，插件启用时可用） */
 export const TID_BROWSER_DESIGN_BUTTON = "browser-design-button";
+/** 设计工具行：方案、翻页、调整面板开关 */
+export const TID_BROWSER_DESIGN_TOOLBAR = "browser-design-toolbar";
+export const TID_BROWSER_DESIGN_PANEL_BUTTON = "browser-design-panel-button";
+export const TID_BROWSER_DESIGN_VARIANT_SELECT = "browser-design-variant-select";
+export const TID_BROWSER_DESIGN_VARIANT_OPTION = "browser-design-variant-option";
+export const TID_BROWSER_DESIGN_SLIDE_PREV = "browser-design-slide-prev";
+export const TID_BROWSER_DESIGN_SLIDE_NEXT = "browser-design-slide-next";
+export const TID_BROWSER_DESIGN_SLIDE_COUNTER = "browser-design-slide-counter";
 /** 浏览器设计模式检查器 */
 export const TID_BROWSER_DESIGN_INSPECTOR = "browser-design-inspector";
 export const TID_BROWSER_DESIGN_INSPECTOR_CLOSE = "browser-design-inspector-close";
+export const TID_BROWSER_DESIGN_SELECT_PARENT = "browser-design-select-parent";
+export const TID_BROWSER_DESIGN_UNDO = "browser-design-undo";
+export const TID_BROWSER_DESIGN_REDO = "browser-design-redo";
+export const TID_BROWSER_DESIGN_CAPTURE_ELEMENT = "browser-design-capture-element";
 /** 检查器里的元素标识行 */
 export const TID_BROWSER_DESIGN_ELEMENT = "browser-design-element";
 /** 元素文字编辑框 */
@@ -606,6 +618,12 @@ export const TID_V4_SESSION_PANE = "v4-session-pane";
 export const TID_V4_TIMELINE = "v4-timeline";
 /** v4 投影行（动态后缀为 rowId） */
 export const TID_V4_ROW = "v4-row";
+/** v4 runtime 意外退出提示条容器 */
+export const TID_V4_AGENT_RUNTIME_EXIT_BANNER = "v4-agent-runtime-exit-banner";
+/** v4 runtime 意外退出提示条「忽略」按钮 */
+export const TID_V4_AGENT_RUNTIME_EXIT_DISMISS = "v4-agent-runtime-exit-dismiss";
+/** v4 跨会话来源提示（来自会话 X） */
+export const TID_V4_SESSION_SOURCE_HINT = "v4-session-source-hint";
 /** v4 工作区 Hook 待审核提示条容器 */
 export const TID_V4_WORKSPACE_HOOK_PENDING_BANNER = "v4-workspace-hook-pending-banner";
 /** v4 工作区 Hook 待审核提示条「去审核」按钮 */

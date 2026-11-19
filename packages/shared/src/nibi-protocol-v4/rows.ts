@@ -398,6 +398,15 @@ export const timelineMarkerPayloadSchema = z.union([
     type: z.literal("checkpointRestored"),
     checkpointId: z.string(),
   }),
+  // 受管 worktree 创建结果：权威事实是 transcript 的 worktree_creation timeline part。
+  // 新建 worktree 会话落在首轮轮顶（lightBoundary）；fork 会话随 fork 分隔标记之后出现。
+  z.object({
+    type: z.literal("worktreeCreated"),
+    path: z.string(),
+    sha: z.string(),
+    ref: z.string().nullable(),
+    output: z.string(),
+  }),
 ]);
 export type TimelineMarkerPayload = z.infer<typeof timelineMarkerPayloadSchema>;
 

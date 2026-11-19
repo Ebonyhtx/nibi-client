@@ -787,6 +787,16 @@ describe("AgentRuntime lifecycle hooks", () => {
     expect(mailboxRequestText).toContain("胸有成竹，请你接 竹 字开头的成语。");
     expect(eventTypes).toContain(SessionEventType.TurnSteerQueued);
     expect(eventTypes).toContain(SessionEventType.TurnSteerDrained);
+    // mailbox 来源必须随 steer intent 落库，UI 才能显示“来自会话 X”而不是泄露内部 id。
+    const queuedSteers = events.filter(
+      (event) => event.type === SessionEventType.TurnSteerQueued,
+    );
+    expect(queuedSteers).toHaveLength(2);
+    for (const event of queuedSteers) {
+      expect(event.payload).toMatchObject({
+        intent: { source: { kind: "session", sessionId: targetSessionId } },
+      });
+    }
   });
 });
 

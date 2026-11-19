@@ -43,7 +43,73 @@ export async function maybePersistRawContent(
   return { path: artifact.path, uri: artifact.uri };
 }
 
-export function truncateContentForModel(content: string): { content: string; truncated: boolean } {
+/**
+ * `offset` 的正文窗口：从第 `offset` 个字符起的剩余正文，以及整页字符数。
+ * `offset` 按 Unicode 标量计数，与 Rust 内核 `WebFetch` 的 `chars()` 口径一致；
+ * 这样模型在两侧内核之间复用续读值时落点相同。
+ */
+export interface WebFetchContentWindow {
+  content: string;
+  offset: number;
+  total: number;
+  pastEnd: boolean;
+}
+
+export function sliceContentFromOffset(content: string, offset: number): WebFetchContentWindow {
+  const start = Number.isFinite(offset) && offset > 0 ? Math.trunc(offset) : 0;
+  if (start === 0) return { content, offset: 0, total: 0, pastEnd: false };
+  const chars = Array.from(content);
+  const clamped = Math.min(start, chars.length);
+  return {
+    content: chars.slice(clamped).join(""),
+    // 报错/续读提示用调用方给的 offset（Rust `past_end` 同口径），裁剪才用 clamp 后的位置。
+    offset: start,
+    total: chars.length,
+    pastEnd: clamped >= chars.length,
+  };
+}
+
+/** `offset` 超过正文末尾时给模型的结果（与 Rust `texts::past_end` 同义）。 */
+export function pastEndMessage(offset: number, total: number): string {
+  return `Nothing left to read from offset ${offset}: this page's text is ${total} characters long.`;
+}
+
+/** 从 `offset` 起读时，告诉模型这段正文在整页中的位置。 */
+export function offsetLead(offset: number, total: number): string {
+  return `The content below is one part of a longer page: it starts ${offset} characters into the page's ${total}.`;
+}
+
+/** 取前 `max` 个 Unicode 标量；返回值里的 `count` 是实际取到的字符数。 */
+function takeCharacters(text: string, max: number): { text: string; count: number } {
+  let index = 0;
+  let count = 0;
+  while (index < text.length && count < max) {
+    const code = text.codePointAt(index) ?? 0;
+    index += code > 0xffff ? 2 : 1;
+    count += 1;
+  }
+  return { text: text.slice(0, index), count };
+}
+
+/**
+ * 把交给处理模型的正文裁到 `MAX_MODEL_INPUT_CHARS`。带 `window`（从 offset 起读）时，
+ * 说明里给出整页长度与下一次续读的 offset，模型可以一次调用读不完就接着读。
+ */
+export function truncateContentForModel(
+  content: string,
+  window?: Pick<WebFetchContentWindow, "offset" | "total">,
+): { content: string; truncated: boolean } {
+  if (window) {
+    if (window.total - window.offset <= MAX_MODEL_INPUT_CHARS) {
+      return { content, truncated: false };
+    }
+    const note = (end: number) =>
+      `\n\n[WebFetch note: this page's text is ${window.total} characters long and the answer above covers only characters ${window.offset} to ${end}; the final ${window.total - end} were not read — to read on, call WebFetch again with the same url and offset: ${end}.]`;
+    // 先用一个同量级的结尾算预算，再按真实结尾重建说明（数字位数差异最多几个字符）。
+    const budget = Math.max(0, MAX_MODEL_INPUT_CHARS - note(window.offset + MAX_MODEL_INPUT_CHARS).length);
+    const taken = takeCharacters(content, budget);
+    return { content: `${taken.text}${note(window.offset + taken.count)}`, truncated: true };
+  }
   if (content.length <= MAX_MODEL_INPUT_CHARS) {
     return { content, truncated: false };
   }

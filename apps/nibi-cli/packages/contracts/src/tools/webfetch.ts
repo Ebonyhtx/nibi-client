@@ -13,6 +13,19 @@ import { toToolJsonSchema } from "./json-schema.js";
 export const WebFetchInputSchema = z.object({
   url: z.string().url().describe("The URL to fetch content from"),
   prompt: z.string().describe("The prompt to run on the fetched content"),
+  /**
+   * 与 Rust 内核 `WebFetch` 的 `offset` 同义：页面正文的字符位置，用于在一次调用读不完时
+   * 接着读。默认 0；结果里的续读提示会给出下一次该传的值。
+   */
+  offset: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(Number.MAX_SAFE_INTEGER)
+    .optional()
+    .describe(
+      "Character position in the page text to start reading from. Use it to read on through a page too long for one call, with the value the previous result gave.",
+    ),
 });
 
 export type WebFetchInput = z.infer<typeof WebFetchInputSchema>;

@@ -175,6 +175,7 @@ function SettingsSidebarButton({
         className={cn(
           "flex h-8 w-full items-center gap-2 rounded-xl px-2.5 text-left transition-colors",
           "max-lg:mx-auto max-lg:size-10 max-lg:justify-center max-lg:px-0",
+          "compact-web:mx-0 compact-web:h-8 compact-web:w-auto compact-web:shrink-0 compact-web:px-2.5",
           active
             ? "bg-surface-hover text-foreground"
             : "text-remote-foreground-muted hover:bg-surface-hover hover:text-foreground",
@@ -184,13 +185,25 @@ function SettingsSidebarButton({
         <span className="flex size-4 shrink-0 items-center justify-center text-current">
           <Icon className="size-4 text-foreground" />
         </span>
-        <span className="min-w-0 flex-1 max-lg:sr-only">
+        <span className="min-w-0 flex-1 max-lg:sr-only compact-web:not-sr-only">
           {children ?? <span className="truncate text-ui-base text-foreground">{label}</span>}
         </span>
       </button>
     </ControlHintTooltip>
   );
 }
+
+/** 设置页外层两列/两行布局；compact-web 下改为“顶部导航 + 内容”两行。 */
+export const SETTINGS_PAGE_LAYOUT_CLASSNAME =
+  "relative grid h-screen min-h-full w-full grid-cols-[68px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] lg:grid-cols-[268px_minmax(0,1fr)] compact-web:grid-cols-1 compact-web:grid-rows-[auto_minmax(0,1fr)]";
+
+/** 设置导航滚动容器；compact-web 下横向滚动，桌面保持纵向滚动。 */
+export const SETTINGS_NAV_CLASSNAME =
+  "flex-1 overflow-y-auto px-2 pb-3 compact-web:min-w-0 compact-web:overflow-x-auto compact-web:overflow-y-hidden compact-web:py-1.5";
+
+/** 设置导航分组列表；compact-web 下改为单行横向排列。 */
+export const SETTINGS_NAV_LIST_CLASSNAME =
+  "space-y-4 compact-web:flex compact-web:items-center compact-web:gap-2 compact-web:space-y-0";
 
 export function SettingsPage({
   isDesktop,
@@ -352,6 +365,18 @@ export function SettingsPage({
     [activeSection],
   );
   const settingsPageRef = useRef<HTMLDivElement>(null);
+  const settingsNavRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = settingsNavRef.current;
+    // compact-web 使用顶部横向导航；从搜索或其他入口直达分区时把当前项滚进可见区域。
+    // 桌面竖向导航没有横向溢出，不进入该分支。
+    if (!nav || nav.scrollWidth <= nav.clientWidth) {
+      return;
+    }
+    nav
+      .querySelector<HTMLElement>('[aria-current="page"]')
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeSection]);
   const settingsSearchRequestSeq = useRef(0);
   const [settingsSearchNavigation, setSettingsSearchNavigation] = useState<{
     sectionId: SettingsSectionId;
@@ -1255,7 +1280,7 @@ export function SettingsPage({
           data-active-section={activeSection}
           // 隐式 auto 行会按 Memory viewer 的内容高度撑出窗口，随后被 DesktopWindowFrame 裁切且没有滚动条。
           // 固定为单个 minmax(0, 1fr) 行，让普通设置页和内部滚动 viewer 都以窗口剩余高度为边界。
-          className="relative grid h-screen min-h-full w-full grid-cols-[68px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] lg:grid-cols-[268px_minmax(0,1fr)]"
+          className={SETTINGS_PAGE_LAYOUT_CLASSNAME}
         >
           {isWindowsDesktop ? <WindowsTopLeftLogo /> : null}
 
@@ -1274,10 +1299,12 @@ export function SettingsPage({
               <DesktopWindowControls />
             </div>
           ) : null}
+          {/* 手机窄屏 Web 下 68px 图标栏会挤占内容宽度，compact-web 下改成顶部横向滚动导航条。
+              spec：docs/settings-narrow-layout.md */}
           <aside className="min-w-0">
-            <div className="flex h-full flex-col">
-              <div className="h-12 [app-region:drag]"></div>
-              <div className="px-2 pb-3 pt-3">
+            <div className="flex h-full flex-col compact-web:flex-row compact-web:items-center">
+              <div className="h-12 [app-region:drag] compact-web:hidden"></div>
+              <div className="px-2 pb-3 pt-3 compact-web:shrink-0 compact-web:py-1.5 compact-web:pr-0">
                 {onBack ? (
                   <ControlHintTooltip
                     title={intl.formatMessage({
@@ -1324,7 +1351,7 @@ export function SettingsPage({
                 ) : null}
               </div>
 
-              <div className="px-2 pb-2">
+              <div className="px-2 pb-2 compact-web:shrink-0 compact-web:px-1 compact-web:pb-0">
                 <SettingsSearch
                   settingsSections={settingsSections}
                   isDesktop={Boolean(isDesktop)}
@@ -1334,10 +1361,11 @@ export function SettingsPage({
               </div>
 
               <nav
+                ref={settingsNavRef}
                 aria-label={intl.formatMessage({ id: "settings.navLabel" })}
-                className="flex-1 overflow-y-auto px-2 pb-3"
+                className={SETTINGS_NAV_CLASSNAME}
               >
-                <div className="space-y-4">
+                <div className={SETTINGS_NAV_LIST_CLASSNAME}>
                   {settingsSectionGroups.map((group, groupIndex) => {
                     const groupLabel = intl.formatMessage({
                       id: group.titleId,
@@ -1350,8 +1378,9 @@ export function SettingsPage({
                         role="group"
                         aria-labelledby={groupLabelId}
                         className={cn(
-                          "space-y-1",
-                          groupIndex > 0 && "max-lg:border-t max-lg:border-border max-lg:pt-3",
+                          "space-y-1 compact-web:flex compact-web:shrink-0 compact-web:items-center compact-web:gap-1 compact-web:space-y-0",
+                          groupIndex > 0 &&
+                            "max-lg:border-t max-lg:border-border max-lg:pt-3 compact-web:border-t-0 compact-web:border-l compact-web:pt-0 compact-web:pl-2",
                         )}
                       >
                         <div

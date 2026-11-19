@@ -71,6 +71,7 @@ import type {
   ExecutionShellSelection,
   HookRunner,
   TurnId,
+  WorktreeCreationFact,
 } from "./deps.js";
 import { installAgentRuntimeMethods } from "./methods/index.js";
 import type { StartSavedWorkflowRunResult } from "./methods/dynamic-workflow-run-start.js";
@@ -564,6 +565,11 @@ export interface AgentRuntime {
   subscribeEvents(sink: SessionEventSink): () => void;
   /** Bootstrap-owned lifecycle producers append only validated session events through this durable path. */
   appendEvent(event: SessionEvent, traceContext: TraceContext): Promise<void>;
+  /**
+   * 新建受管 worktree 会话：记下 Host 可信的创建事实（只记一次）；首轮持久化后、
+   * TurnStarted 前由 runtime 写成 timeline part 并发 WorktreeCreated。
+   */
+  recordPendingWorktreeCreation(fact: WorktreeCreationFact): void;
   /**
    * 外部子 runtime 的接缝（一）：交出本 runtime 的会话事件 store，供 class 外构造的子
    * runtime 共享（照 `subagent.ts` 的 `eventStore: this.eventStore`）。理由见

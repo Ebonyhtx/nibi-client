@@ -321,6 +321,7 @@ export function createNibiSessionControlRuntime(
     prompt: string,
     requestId: string,
     grant: AccessGrant<CliScope>,
+    options?: { sourceSessionId?: string },
   ): Promise<SendToSessionResult<CliSessionRef>> {
     const session = ref(root.app.sessionId);
     // 回执带裸 sessionId，模型才能把整个 operation 原样放回 WaitSessions（规格 0.14）。
@@ -334,6 +335,26 @@ export function createNibiSessionControlRuntime(
       inputId: operation.commandId,
       abortSignal: root.signal.signal,
       traceContext: trace(ctx, root.app.sessionId),
+      // 跨会话发送：来源会话随 canonical intent 落库，目标会话显示「来自会话 X」。
+      ...(options?.sourceSessionId
+        ? {
+            intent: {
+              sourceCommandId: operation.commandId,
+              queueItemId: operation.commandId,
+              clientId: "cli",
+              kind: "sendText" as const,
+              text: prompt,
+              admissionSeq: 0,
+              admittedAt: Date.now(),
+              requestedDelivery: "queue" as const,
+              admittedDelivery: "queue" as const,
+              source: {
+                kind: "session" as const,
+                sessionId: options.sourceSessionId,
+              },
+            },
+          }
+        : {}),
     };
     const watch = (
       completion: Promise<{ events: readonly import("@nibi/contracts").SessionEvent[] }>,
@@ -457,6 +478,14 @@ export function createNibiSessionControlRuntime(
         const stored = await readStored(sessionId);
         return stored ? storedRef(stored) : undefined;
       },
+      // 归档事实只由 App Host 任务索引提供；独立 CLI 没有该端口时保持缺席。
+      ...(options.isSessionArchived
+        ? {
+            async isSessionArchived(_ctx: CliTrustedContext, session: CliSessionRef) {
+              return options.isSessionArchived!(session);
+            },
+          }
+        : {}),
       async listSessions(ctx, input, grant) {
         validateRead(ctx, grant);
         // workspace 过滤器已从工具面删除；只读全库授权在场时读整个本机会话库。
@@ -574,7 +603,9 @@ export function createNibiSessionControlRuntime(
         validate(ctx, grant);
         return remember(ctx, "sendToSession", input, async () => {
           validate(ctx, grant);
-          return submit(ctx, writable(input.session), input.prompt, input.requestId, grant);
+          return submit(ctx, writable(input.session), input.prompt, input.requestId, grant, {
+            sourceSessionId: ctx.rootSession.sessionId,
+          });
         });
       },
       async interruptSession(ctx, input, grant) {

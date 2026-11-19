@@ -124,6 +124,7 @@ impl LocalKernel {
                 launches: Vec::new(),
                 model_turns: Vec::new(),
                 input_intents: Vec::new(),
+                worktree_creations: Vec::new(),
                 draft,
             },
             Opened::Created,
@@ -499,6 +500,67 @@ impl Kernel for LocalKernel {
             .map_err(crate::lifecycle::LifecycleError::into_kernel)
     }
 
+    /// Host 删除受管 worktree 前卸载 cwd 位于目录内的驻留会话（Node
+    /// `releaseSessionsUnderDirectory` 的同一语义）：
+    /// - 候选 = 本进程会话表里 Open 的会话，`meta.workspace.root` 在 directory 内；
+    /// - 任一会话有回合/排队/待答交互（或忙闲读不到）→ 全部不卸载，返回 busy；
+    /// - 否则逐个 `stop_session_runtime`（只释放运行实例，持久会话与历史保留）。
+    /// 任一步失败返回明确错误，不把部分释放报成成功。
+    async fn release_sessions_under_directory(
+        &self,
+        directory: &str,
+    ) -> Result<nibi_kernel_api::session_api::ReleaseUnderDirectoryReport, KernelError> {
+        use nibi_kernel_api::env_files::PathStyle;
+        let style = PathStyle::infer(directory);
+        let open: Vec<(SessionId, Arc<nibi_kernel_session::Session>)> = {
+            let sessions = self.sessions();
+            sessions
+                .iter()
+                .filter_map(|(id, slot)| slot.open().map(|session| (id.clone(), session.clone())))
+                .collect()
+        };
+        let mut matching = Vec::new();
+        let mut busy = Vec::new();
+        for (id, session) in open {
+            let view = match session.view().await {
+                Ok(view) => view,
+                // 关闭中/加载中的条目读不到视图，不属于可卸载的驻留实例。
+                Err(_) => continue,
+            };
+            if !style.is_within(view.meta.workspace.root.as_str(), directory) {
+                continue;
+            }
+            matching.push(id.clone());
+            match session.residency_facts().await {
+                Ok(facts)
+                    if facts.running
+                        || facts.queued_commands > 0
+                        || facts.pending_interactions > 0 =>
+                {
+                    busy.push(id)
+                }
+                Ok(_) => {}
+                // 读不到忙闲时不能保证安全卸载：按忙处理，避免杀掉正在用的会话。
+                Err(_) => busy.push(id),
+            }
+        }
+        if !busy.is_empty() {
+            return Ok(nibi_kernel_api::session_api::ReleaseUnderDirectoryReport {
+                released: Vec::new(),
+                busy,
+            });
+        }
+        for id in &matching {
+            self.stop_session_runtime(id).await.map_err(|error| KernelError::Failed {
+                message: format!("failed to release session {id}: {error}"),
+            })?;
+        }
+        Ok(nibi_kernel_api::session_api::ReleaseUnderDirectoryReport {
+            released: matching,
+            busy: Vec::new(),
+        })
+    }
+
     fn is_session_stopping(&self, session: &SessionId) -> bool {
         self.lifecycle.is_stopping(self, session)
     }
@@ -648,6 +710,7 @@ impl Kernel for LocalKernel {
                 launches: Vec::new(),
                 model_turns: Vec::new(),
                 input_intents: Vec::new(),
+                worktree_creations: Vec::new(),
                 draft: false,
             },
             Opened::Created,
@@ -712,6 +775,7 @@ impl Kernel for LocalKernel {
             last_turn_failed: loaded.last_turn_failed,
             launches: loaded.launches,
             model_turns: loaded.model_turns,
+            worktree_creations: loaded.worktree_creations,
             input_intents: loaded.input_intents,
             // 冷加载的会话一定已经落库（草稿没有行可加载）。
             draft: false,

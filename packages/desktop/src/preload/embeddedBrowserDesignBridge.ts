@@ -61,15 +61,62 @@ export function readEmbeddedBrowserDesignMessage(
   return bytes <= EMBEDDED_BROWSER_DESIGN_BRIDGE.maxMessageBytes ? envelope.events : null;
 }
 
+/**
+ * 按键当下的真实目标是不是可编辑元素。composedPath 穿过 Shadow DOM 拿到最里层的输入框；
+ * 同源 iframe 里的按键不会冒到顶层文档，本来就收不到。
+ */
+function isEditableKeyTarget(event: KeyboardEvent): boolean {
+  for (const node of event.composedPath()) {
+    if (!(node instanceof Element)) continue;
+    if (node instanceof HTMLElement && node.isContentEditable) return true;
+    if (node.tagName === "INPUT" || node.tagName === "TEXTAREA" || node.tagName === "SELECT") {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * 页面上的 Cmd/Ctrl + Z（Shift 为重做）。只认浏览器派发的真实按键（isTrusted，页面 dispatchEvent 造不出来），
+ * 在 capture 阶段、页面自己的处理器之前判断按键目标；焦点在页面输入框里时归页面撤销输入，不通知宿主。
+ * 目标页面由 install 时已校验的本地预览地址决定，这里不额外信任按键内容。
+ */
+export function readEmbeddedBrowserDesignUndoKey(
+  event: KeyboardEvent,
+): { redo: boolean } | null {
+  if (!event.isTrusted || event.repeat || event.altKey) return null;
+  if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "z") return null;
+  return isEditableKeyTarget(event) ? null : { redo: event.shiftKey };
+}
+
 /** 在固定 guest preload 里安装；返回解绑函数。 */
 export function installEmbeddedBrowserDesignBridge(
   targetWindow: Window,
   sendToHost: SendToHost,
 ): () => void {
   const handleMessage = (event: MessageEvent): void => {
+    // 只有本地预览页会装这个桥；页面来源校验与事件解析共用同一条路径。
+    if (!isEmbeddedBrowserDesignSourceUrl(readTargetHref(targetWindow))) return;
     const events = readEmbeddedBrowserDesignMessage(event, targetWindow);
     if (events) sendToHost(EmbeddedBrowserWebviewChannels.DesignEvents, events);
   };
+  const handleKeyDown = (event: KeyboardEvent): void => {
+    if (!isEmbeddedBrowserDesignSourceUrl(readTargetHref(targetWindow))) return;
+    const undo = readEmbeddedBrowserDesignUndoKey(event);
+    if (undo) sendToHost(EmbeddedBrowserWebviewChannels.DesignUndoShortcut, undo);
+  };
   targetWindow.addEventListener("message", handleMessage);
-  return () => targetWindow.removeEventListener("message", handleMessage);
+  targetWindow.addEventListener("keydown", handleKeyDown, true);
+  return () => {
+    targetWindow.removeEventListener("message", handleMessage);
+    targetWindow.removeEventListener("keydown", handleKeyDown, true);
+  };
+}
+
+function readTargetHref(targetWindow: Window): string | undefined {
+  try {
+    return targetWindow.location?.href;
+  } catch {
+    return undefined;
+  }
 }

@@ -11,6 +11,10 @@ export interface GitCommandExecutionOptions {
   timeoutMs?: number;
   maxOutputBytes?: number;
   env?: NodeJS.ProcessEnv;
+  /** git 输出与进度行，按到达顺序回调（受管 worktree 创建记录使用）。 */
+  onOutput?: (chunk: { text: string }) => void;
+  /** 需要 `--stdin` 的命令（如 check-ignore -z）以 UTF-8 文本写入标准输入。 */
+  stdin?: string;
 }
 
 export interface GitCommandExecutionResult {
@@ -113,9 +117,10 @@ export function createGitCommandProvider(options?: {
         const child = spawn(binaryPath, command.args, {
           cwd: command.cwd,
           env,
-          stdio: ["ignore", "pipe", "pipe"],
+          stdio: [command.stdin === undefined ? "ignore" : "pipe", "pipe", "pipe"],
           windowsHide: true,
         });
+        if (command.stdin !== undefined) child.stdin?.end(command.stdin);
 
         function buildResult(
           exitCode: number | null,
@@ -207,6 +212,7 @@ export function createGitCommandProvider(options?: {
           }
 
           const text = chunk.toString("utf-8");
+          command.onOutput?.({ text });
           if (target === "stdout") {
             stdout += text;
             stdoutBytes += byteLength;

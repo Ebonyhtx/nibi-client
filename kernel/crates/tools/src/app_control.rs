@@ -569,7 +569,7 @@ fn description(action: AppControlActionName) -> &'static str {
             "List the projects visible in the NIBI app and the sources that were actually searched. Use the returned project references with the other App tools; never rebuild them."
         }
         AppControlActionName::OpenSession => {
-            "Open an App session in the window that is bound to this conversation. This asks the user for approval and does not focus or raise any OS window. If the session cannot be opened the result is unavailable with a reason."
+            "Open an App session in the window that is bound to this conversation. This asks the user for approval and does not focus or raise any OS window. If the session cannot be opened the result is unavailable with a reason. Archived sessions are not in the navigation projection and return unavailable (project.task-not-found)."
         }
         AppControlActionName::SetSessionArchived => {
             "Archive or restore an App session. The app's task index is authoritative; this never touches the kernel session store or interrupts execution. To retry an inconclusive call, pass the requestId from its result as retryOf."

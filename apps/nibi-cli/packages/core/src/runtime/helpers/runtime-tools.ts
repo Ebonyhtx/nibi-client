@@ -137,12 +137,29 @@ function createRuntimeHookRunner(
     logger: runtime.logger,
   });
   for (const hook of createSessionMailboxHookRegistrations({
-    enqueuePendingInput: async (input, traceContext) => {
+    enqueuePendingInput: async (input, traceContext, source) => {
       const result = await runtime.steerTurn({
         delivery: "guide",
         expectedTurnId: traceContext.turnId,
         input,
         traceContext,
+        ...(source
+          ? {
+              intent: {
+                // mailbox 输入不是命令：用消息 id 生成稳定展示身份，避免借用队列/编辑器 id。
+                sourceCommandId: `mailbox:${source.messageId}`,
+                queueItemId: `mailbox:${source.messageId}`,
+                clientId: "session-mailbox",
+                kind: "sendText" as const,
+                text: source.content,
+                admissionSeq: 0,
+                admittedAt: Date.now(),
+                requestedDelivery: "guide" as const,
+                admittedDelivery: "guide" as const,
+                source: { kind: "session" as const, sessionId: source.fromSessionId },
+              },
+            }
+          : {}),
       });
       if (result.kind === "rejected") {
         runtime.logger?.warn("Session mailbox input was not queued", {

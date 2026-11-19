@@ -784,6 +784,8 @@ function ConversationComposerImpl({
         draftScopeKey: rootDraftScopeKey,
       },
       target: {
+        // 预览操作条「加入对话」直接投递原始图片文件，保留 JPEG/WebP 等原格式。
+        appendFile: (file) => attachmentsApi.addAttachmentFiles([file]).length > 0,
         appendImage: (output) =>
           attachmentsApi.addAttachmentFiles([createImageEditorAttachmentFile(output)]).length > 0,
       },

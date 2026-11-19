@@ -654,11 +654,29 @@ export interface ModelChangeTimelinePart extends TimelinePartBase {
   toModel?: TimelineModelSelection & { label: string };
 }
 
+/** 受管 worktree 创建结果（Host 可信事实，与 shared 的 ManagedWorktreeCreationRef 同形）。 */
+export interface WorktreeCreationFact {
+  path: string;
+  sha: string;
+  ref: string | null;
+  output: string;
+}
+
+/**
+ * "已创建 worktree"：新建会话首轮之前（或 fork 分隔标记所在消息）的持久事实。
+ * providerVisibility = hidden，不进入模型上下文；冷恢复从这条 part 合成 WorktreeCreated。
+ */
+export interface WorktreeCreationTimelinePart extends TimelinePartBase {
+  timelineType: "worktree_creation";
+  worktreeCreation: WorktreeCreationFact;
+}
+
 export type TimelinePart =
   | ContextCompactionTimelinePart
   | GoalVerificationTimelinePart
   | SessionForkTimelinePart
-  | ModelChangeTimelinePart;
+  | ModelChangeTimelinePart
+  | WorktreeCreationTimelinePart;
 
 export type TimelinePartDraft = TimelinePart extends infer Part
   ? Part extends TimelinePart

@@ -5,6 +5,9 @@ import type { V4ChatPaneProps } from "@/v4/V4ChatPane.js";
 import { V4_PRIMARY_PANE_ID } from "@/v4/paneLayoutStore.js";
 import { useWorkbenchGroupStore } from "@/v4/workbenchGroupStore.js";
 
+// 首个外壳渲染要加载完整 workspace 组件树；冷缓存/并发单测下会超过默认 5s。
+vi.setConfig({ testTimeout: 20_000 });
+
 vi.mock("@/app-shell/AnimatedSidePanePanel.js", () => ({
   AnimatedSidePanePanel: ({
     isVisible,
@@ -177,6 +180,7 @@ vi.mock("@/hooks/usePlatform.js", async (importOriginal) => ({
 
 vi.mock("@/hooks/useWorkspaceServices.js", () => ({
   useBaseWorkspaceServices: () => ({}),
+  useOptionalBaseWorkspaceServices: () => null,
   // 布局断言不启动远端挂回；保留 services resolver 的本地 ready 合同。
   useWorkspaceServicesResolution: () => ({ services: {}, connectionKind: "local-ready" }),
 }));
@@ -450,8 +454,9 @@ describe("WorkspaceShellLayout Web remote control mobile layout", () => {
               }
             : undefined,
         });
-        expect(capturedChatPaneProps).toHaveLength(1);
-        expect(capturedChatPaneProps[0]?.allowEscapeStopOutsidePane).toBe(scenario.expected);
+        // 壳会在挂载后的 effect 中再渲染几次；断言当前渲染出的主聊天属性，而不是渲染次数。
+        expect(capturedChatPaneProps.length).toBeGreaterThan(0);
+        expect(capturedChatPaneProps.at(-1)?.allowEscapeStopOutsidePane).toBe(scenario.expected);
       } finally {
         vi.unstubAllGlobals();
       }

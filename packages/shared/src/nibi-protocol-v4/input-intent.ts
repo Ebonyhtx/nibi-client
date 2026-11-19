@@ -20,8 +20,20 @@ const pluginUiInputSourceSchema = z
     toolCallId: z.string().min(1),
   })
   .strict();
+/**
+ * 跨会话发送：来源是另一个会话。`title` 只读，仅服务 Old snapshot 里已持久化的标题快照；
+ * 新数据只写 sessionId，标题由 UI 按项目目录解析，避免持久化会过期的派生字段。
+ */
+const sessionInputSourceSchema = z
+  .object({
+    kind: z.literal("session"),
+    sessionId: z.string().min(1),
+    title: z.string().optional(),
+  })
+  .strict();
 export const conversationInputSourceSchema = z.discriminatedUnion("kind", [
   pluginUiInputSourceSchema,
+  sessionInputSourceSchema,
   z
     .object({
       kind: z.literal("genUi"),

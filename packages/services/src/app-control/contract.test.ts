@@ -12,6 +12,7 @@ it("反向方法名是封闭集合，模型输入不能扩展", () => {
     "appControl/openSession",
     "appControl/setSessionArchived",
     "appControl/setSessionPinned",
+    "appControl/sessionArchived",
     "appControl/cancel",
     "appControl/sessionCreated",
   ]);

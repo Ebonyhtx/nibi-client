@@ -199,6 +199,9 @@ pub struct SessionState {
     /// 每条真人输入的规范意图（冷加载的 `LoadedSession.input_intents`）：actor 在消息落库时追加，
     /// `view()` 带给冷投影（行上原文、机器人来源与引用）。
     pub input_intents: Vec<(nibi_kernel_api::ids::MessageId, serde_json::Value)>,
+    /// 已落库的受管 worktree 创建结果（冷加载的 `LoadedSession.worktree_creations`）：首轮输入提交时
+    /// actor 追加并写 part，`view()` 带给冷投影在轮顶落 `worktreeCreated` 标记。
+    pub worktree_creations: Vec<nibi_kernel_api::store::WorktreeCreationTurn>,
     /// 草稿（NIBI legacy `session/create` 的 `persistence: "deferred"`）：还没有会话行，状态与消息只在
     /// 内存里；第一条用户输入提交时 actor 才写会话行与初始事实（`actor.rs` 的 `promote`）。
     pub draft: bool,

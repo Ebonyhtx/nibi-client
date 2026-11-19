@@ -520,6 +520,59 @@
       "workflow.submitResult"
     ]
   },
+  "sessionControl": {
+    "description": "X02 会话控制意图：Node `packages/session-control` 与 Rust `nibi-kernel-api`/`nibi-kernel-tools` 必须使用同一来源归属、归档目标与结果码。",
+    "permissions": [
+      "session_control.createSession",
+      "session_control.forkSession",
+      "session_control.interruptSession",
+      "session_control.listProjects",
+      "session_control.listSessions",
+      "session_control.openSession",
+      "session_control.readSession",
+      "session_control.renameSession",
+      "session_control.sendToSession",
+      "session_control.setSessionArchived",
+      "session_control.setSessionPinned",
+      "session_control.waitSessions"
+    ],
+    "errorCodes": {
+      "both": [
+        "invalid_input",
+        "invalid_output",
+        "forbidden",
+        "unavailable",
+        "conflict",
+        "cancelled"
+      ],
+      "cliOnly": ["self_wait", "observation_invalid"],
+      "appOnly": []
+    },
+    "sourcePolicy": {
+      "identity": "kind + sourceServerId + (workspaceIdentity.trim() || workspacePath)",
+      "unknownOrOutsideTrustedScope": "forbidden: Target is outside the trusted scope",
+      "sourceHostMismatch": "forbidden: Session source does not match this Host",
+      "owningHostUnavailable": "unavailable: The owning host is unavailable",
+      "aggregator": "archive/pin route to the owning host; never write the local task index first",
+      "noExistenceLeak": "cross-source rejection uses the same code/message as a missing target"
+    },
+    "archivedTarget": {
+      "open": {
+        "status": "unavailable",
+        "reason": "project.task-not-found",
+        "autoUnarchive": false,
+        "readOnlyFallback": false,
+        "unknownArchiveState": "unavailable: fail closed"
+      },
+      "fork": {
+        "error": "unavailable",
+        "message": "Target session is archived",
+        "childCreated": false,
+        "unknownArchiveState": "unavailable: fail closed"
+      },
+      "readSendWaitArchivePin": "allowed"
+    }
+  },
   "errorCodes": [
     {
       "name": "invalid_input",

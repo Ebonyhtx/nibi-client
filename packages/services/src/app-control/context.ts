@@ -58,6 +58,9 @@ export const setSessionPinnedInputSchema = z
   })
   .strict();
 
+/** 内部只读查询：返回目标的归档事实，不做组织写入。 */
+export const sessionArchivedInputSchema = z.object({ sessionId: identifier }).strict();
+
 export const cancelInputSchema = z.object({}).strict();
 
 /** 一条已鉴权的 App 控制调用；范围由 Host 派生，永不由模型输入补齐。 */

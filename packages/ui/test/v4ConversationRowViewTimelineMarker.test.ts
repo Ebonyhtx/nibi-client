@@ -9,6 +9,8 @@ import type { ModelSelectionView } from "@nibi/services";
 import type { TimelineMarkerRow } from "@nibi/shared/nibi-protocol-v4";
 import { DEFAULT_CODE_PREVIEW_SETTINGS } from "@/lib/codePreviewSettings.js";
 import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
+import { readWorktreeCreatedMarker } from "@/managed-worktrees/WorktreeCreatedMarker.js";
+import { TID_WORKTREE_CREATED_MARKER } from "@/managed-worktrees/testIds.js";
 import { ConversationRowView } from "@/v4/ConversationRowView.js";
 import type { ConversationRowRenderContext } from "@/v4/conversationRowContext.js";
 
@@ -193,5 +195,48 @@ describe("ConversationRowView timeline marker contract", () => {
       "模型已切换 Primary Coding Plan/glm-5.2 → Alternate API/glm-5.2",
     );
     view.unmount();
+  });
+
+  it("worktreeCreated typed 投影渲染历史标记，展开后显示 git 输出", () => {
+    const row: TimelineMarkerRow = {
+      rowId: 21,
+      turnId: "turn-worktree",
+      createdAt: 1_700_000_009_000,
+      createdAtSeq: 9,
+      kind: "timelineMarker",
+      lane: "lightBoundary",
+      marker: {
+        type: "worktreeCreated",
+        path: "/worktrees/3f2a/project",
+        sha: "abc123",
+        ref: null,
+        output: "git checkout abc123",
+      },
+    };
+    const view = render(
+      createElement(
+        NibiIntlProvider,
+        { initialLocale: "zh-CN" },
+        createElement(ConversationRowView, { context: currentContext(), row }),
+      ),
+    );
+    expect(view.container.querySelector(`[data-testid="${TID_WORKTREE_CREATED_MARKER}"]`)).not.toBeNull();
+    expect(view.container.textContent).toContain("已创建 worktree");
+    expect(view.container.textContent).not.toContain("git checkout abc123");
+
+    act(() => {
+      (view.container.querySelector("button") as HTMLButtonElement).click();
+    });
+    expect(view.container.textContent).toContain("git checkout abc123");
+    view.unmount();
+  });
+
+  it("旧结构 worktreeCreated 仍按结构读取（兜底一版）", () => {
+    // 旧服务端/旧快照只保证 type 与 output；缺 path/sha/ref 时不渲染空历史项。
+    expect(readWorktreeCreatedMarker({ type: "worktreeCreated", output: "legacy git" })).toEqual({
+      output: "legacy git",
+    });
+    expect(readWorktreeCreatedMarker({ type: "worktreeCreated" })).toEqual({ output: "" });
+    expect(readWorktreeCreatedMarker({ type: "forkNotice" })).toBeNull();
   });
 });

@@ -85,6 +85,8 @@ export const SessionEventType = {
   SessionCreated: "session_created",
   SessionResumed: "session_resumed",
   SessionForked: "session_forked",
+  // 受管 worktree 创建结果：投影为 worktreeCreated 时间线标记，冷恢复从 timeline part 合成。
+  WorktreeCreated: "worktree_created",
   SessionCompacted: "session_compacted",
   SessionTitleUpdated: "session_title_updated",
   SessionModeChanged: "session_mode_changed",
@@ -214,6 +216,14 @@ export interface SessionForkedPayload {
   targetMessageId?: MessageId;
   /** @deprecated Use targetMessageId for message-level forks. */
   forkPoint: number;
+}
+
+/** 与 WorktreeCreationFact 同形；事件层不依赖 session-store 端口类型。 */
+export interface WorktreeCreatedPayload {
+  path: string;
+  sha: string;
+  ref: string | null;
+  output: string;
 }
 
 export interface SessionCompactedPayload {
@@ -1290,6 +1300,7 @@ export type SessionEventPayload =
   | SessionCreatedPayload
   | SessionResumedPayload
   | SessionForkedPayload
+  | WorktreeCreatedPayload
   | SessionCompactedPayload
   | SessionTitleUpdatedPayload
   | SessionModeChangedPayload

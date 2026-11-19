@@ -56,11 +56,13 @@ describe("系统 default 项目纠偏", () => {
         db
           .prepare("SELECT * FROM tasks ORDER BY task_id")
           .all()
-          .map(({ project_id: _project, ...task }) => task);
+          .map(({ project_id: _project, worktree_root: _worktreeRoot, ...task }) => task);
       const taskFacts = facts();
       expect((await port.migrate(db, context)).applied).toEqual([
         "0006_default_workspace_tasks",
         "0007_initial_workspace_order",
+        // 0008 只给 tasks 加受管 worktree 列，不改变任务事实与其它表。
+        "0008_task_worktree_root",
       ]);
       expect(
         db.prepare("SELECT project_id FROM tasks WHERE task_id IN ('normal','archived')").all(),

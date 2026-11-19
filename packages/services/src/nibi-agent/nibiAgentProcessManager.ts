@@ -1,6 +1,9 @@
 import { localRuntimeNetworkCapture } from "#src/nibi-agent/localRuntimeNetworkCapture.js";
 import { resolveNibiAgentSpawnCwd } from "#src/nibi-agent/nibiAgentSpawnCwd.js";
-import type { NibiAgentStorageStartupSnapshot } from "#src/nibi-agent/nibiAgent.js";
+import type {
+  NibiAgentRuntimeExitedEvent,
+  NibiAgentStorageStartupSnapshot,
+} from "#src/nibi-agent/nibiAgent.js";
 /* eslint-disable max-lines -- nibiAgentProcessManager 集中维护 agent 子进程启动、复用、超时回收和 runtime identity，拆分会扩大进程生命周期状态同步面 */
 import { spawn } from "node:child_process";
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
@@ -21,6 +24,8 @@ import {
   classifyExit,
   parseStderrDiagnostics,
   sanitizeDiagnosticText,
+  type CrashCategory,
+  type DiagnosticClass,
 } from "@nibi/shared/crash-diagnostics";
 import {
   NIBI_AGENT_RUNTIME,
@@ -687,6 +692,7 @@ export class NibiAgentProcessManager {
   private readonly idleTimeoutMs: number | undefined;
   private readonly runtimeRestartedEmitter = new Emitter<NibiAgentRuntimeRestartedEvent>();
   private readonly runtimeLifecycleEmitter = new Emitter<NibiAgentRuntimeLifecycleEvent>();
+  private readonly runtimeExitedEmitter = new Emitter<NibiAgentRuntimeExitedEvent>();
   private disposeAllInFlight: Promise<void> | undefined;
   private disposed = false;
 
@@ -694,6 +700,8 @@ export class NibiAgentProcessManager {
   readonly onRuntimeRestarted = this.runtimeRestartedEmitter.event;
   /** 进程真实 spawn 后 available，当前 protocol client 关闭后 unavailable。 */
   readonly onRuntimeLifecycle = this.runtimeLifecycleEmitter.event;
+  /** 主泳道 runtime 意外退出；只在 terminationKind=unexpected 时发布。 */
+  readonly onRuntimeExited = this.runtimeExitedEmitter.event;
 
   constructor(options?: NibiAgentProcessManagerOptions) {
     this.commandResolver = options?.commandResolver ?? resolveDefaultNibiAgentCommand;
@@ -814,6 +822,39 @@ export class NibiAgentProcessManager {
       workspaceKey,
       runtimeIdentity: managed.runtimeIdentity,
       state: "unavailable",
+    });
+  }
+
+  /**
+   * 意外退出事件只带分类与脱敏后的主诊断摘要；原始 stderr 留在 Host 日志，
+   * renderer 只负责展示原因，不反向推断会话状态。
+   */
+  private reportRuntimeExited(
+    managed: ManagedNibiAgentProcess,
+    exit: {
+      code: number | null;
+      signal: NodeJS.Signals | null;
+      endedAt: number;
+      category: CrashCategory;
+      diagnosticClass?: DiagnosticClass;
+      errorCode?: string;
+      diagnosticSummary?: string;
+    },
+  ): void {
+    this.runtimeExitedEmitter.fire({
+      workspacePath: managed.workspace.workspacePath,
+      ...(managed.workspace.workspaceIdentity
+        ? { workspaceIdentity: managed.workspace.workspaceIdentity }
+        : {}),
+      workspaceKey: managed.runtimeIdentity.workspaceKey,
+      runtimeIdentity: managed.runtimeIdentity,
+      exitCode: exit.code,
+      signal: exit.signal,
+      category: exit.category,
+      ...(exit.diagnosticClass ? { diagnosticClass: exit.diagnosticClass } : {}),
+      ...(exit.errorCode ? { errorCode: exit.errorCode } : {}),
+      ...(exit.diagnosticSummary ? { diagnosticSummary: exit.diagnosticSummary } : {}),
+      exitedAt: exit.endedAt,
     });
   }
 
@@ -1396,22 +1437,26 @@ export class NibiAgentProcessManager {
         // 之前日志只有新的 "process started"，缺少旧 pid 的退出轨迹。
         // agent native crash 后 UI 只会看到 protocol close/Session is not active，无法判断是崩溃还是主动重启。
         log("NIBI agent process exited", exitContext);
-        if (terminationKind === "unexpected") {
+        const stderrDiagnostics =
+          terminationKind === "unexpected" ? parseStderrDiagnostics(stderr.tail) : undefined;
+        const exitCategory =
+          terminationKind === "unexpected"
+            ? classifyExit({
+                exitCode: code,
+                signal,
+                reason: terminationReason,
+                expected: false,
+                runtimeReady: managed.readyAt != null,
+                diagnosticText: stderr.tail.join("\n"),
+              })
+            : undefined;
+        if (terminationKind === "unexpected" && stderrDiagnostics && exitCategory) {
           // Agent 顶层异常只写 stderr 并以非零 code 退出；stderr 过去仅走开发态
           // debug，生产日志只剩 code=1，无法还原异常。不能只按非零 code 判断：signal crash
           // 和长期运行的 Agent 自行 exit 0 同样是非预期退出。
           // 已有独立生命周期事件，显式标记包装日志，避免 Electron 将其再计为 JS 异常。
           // 原始 tail 之外再给出 shared 解析后的类型化诊断，生产日志可直接看到
           // oom/sqlite/errno、错误码与去重次数，不再依赖 Desktop 二次解析。
-          const stderrDiagnostics = parseStderrDiagnostics(stderr.tail);
-          const exitCategory = classifyExit({
-            exitCode: code,
-            signal,
-            reason: terminationReason,
-            expected: false,
-            runtimeReady: managed.readyAt != null,
-            diagnosticText: stderr.tail.join("\n"),
-          });
           errorLog(
             `Nibi agent process exited unexpectedly${this.processLifecycleReporter ? ` ${NIBI_AGENT_LIFECYCLE_LOG_MARKER}` : ""}`,
             {
@@ -1426,6 +1471,26 @@ export class NibiAgentProcessManager {
               },
             },
           );
+        }
+        if (terminationKind === "unexpected" && stderrDiagnostics && exitCategory) {
+          const primary = stderrDiagnostics.primary;
+          const diagnosticSummary = primary
+            ? sanitizeDiagnosticText(primary.message, {
+                workspacePath: params.workspacePath,
+                maxLength: 500,
+              })
+            : undefined;
+          this.reportRuntimeExited(managed, {
+            code,
+            signal,
+            endedAt,
+            category: exitCategory,
+            ...(stderrDiagnostics.diagnosticClass
+              ? { diagnosticClass: stderrDiagnostics.diagnosticClass }
+              : {}),
+            ...(primary?.code ? { errorCode: primary.code } : {}),
+            ...(diagnosticSummary ? { diagnosticSummary } : {}),
+          });
         }
         if (typeof runtimePid === "number") {
           this.reportProcessLifecycle((reporter) =>

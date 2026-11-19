@@ -47,6 +47,14 @@ function requireModelSelectionForExecution(
   }
 }
 
+// 受管 worktree 的来源事实只由 Host 内部服务填写；Renderer 经 RPC 无法携带。
+const managedWorktreeCreationRefSchema = z.object({
+  path: z.string().min(1),
+  sha: z.string(),
+  ref: z.string().nullable(),
+  output: z.string(),
+});
+
 // ── §6.4 命令 payload 全集 ──
 export const commandPayloadSchemas = {
   // firstInput 缺省 → phase=draft 空会话；携带 → 直接 turnHeader+userInput rows。
@@ -54,6 +62,9 @@ export const commandPayloadSchemas = {
     // Host 预留归属使用稳定 ID；CLI 仍负责拒绝覆盖既有会话。
     sessionId: z.string().min(1).optional(),
     additionalDirectories: z.array(z.string().min(1)).max(256).optional(),
+    /** 受管 worktree 任务的 cwd；仅 Host 可信路径可设置。 */
+    cwd: z.string().min(1).optional(),
+    worktreeCreation: managedWorktreeCreationRefSchema.optional(),
     workspaceId: z.string(),
     permissionScope: z.literal("session").optional(),
     firstInput: z
@@ -142,7 +153,17 @@ export const commandPayloadSchemas = {
   // 因为 admission 与当前 revision 无关，不走 CAS；sourceCommandId 提供幂等边界。
   compact: z.object({}),
   // running 时对稳定 assistant row 可用。
-  forkAssistant: z.object({ target: conversationRowTargetSchema }),
+  forkAssistant: z.object({
+    target: conversationRowTargetSchema,
+    /** fork 到另一个 cwd（受管 worktree）时的子会话目录；仅 Host 可信路径可设置。 */
+    targetCwd: z
+      .object({
+        cwd: z.string().min(1),
+        childSessionId: z.string().min(1),
+        worktreeCreation: managedWorktreeCreationRefSchema,
+      })
+      .optional(),
+  }),
   applyFileRewind: z.object({ target: conversationRowTargetSchema }),
   editUserQuery: z
     .object({

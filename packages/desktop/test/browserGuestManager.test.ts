@@ -353,6 +353,9 @@ function restoredPageState(tabId: string): BrowserTabPageStateRecord {
 }
 
 vi.mock("electron", () => ({
+  nativeImage: {
+    createFromBuffer: vi.fn(),
+  },
   webContents: {
     fromId: (id: number) => guestRegistry.get(id),
   },

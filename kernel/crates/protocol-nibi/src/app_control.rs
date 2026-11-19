@@ -11,6 +11,9 @@ use nibi_kernel_api::app_control::{
     ListProjectsInput, ListProjectsResult, MutationResult, OpenSessionInput, OpenSessionResult,
     SetSessionArchivedInput, SetSessionPinnedInput,
 };
+use nibi_kernel_api::session_control::{
+    SessionArchiveReader, SessionControlError, SessionRef,
+};
 use nibi_kernel_protocol_core::rpc::codes;
 use serde_json::{Map, Value, json};
 
@@ -20,6 +23,8 @@ pub const LIST_PROJECTS: &str = "appControl/listProjects";
 pub const OPEN_SESSION: &str = "appControl/openSession";
 pub const SET_SESSION_ARCHIVED: &str = "appControl/setSessionArchived";
 pub const SET_SESSION_PINNED: &str = "appControl/setSessionPinned";
+/// 内部只读查询：CLI fork 在 owner 创建子会话前确认目标是否已归档。
+pub const SESSION_ARCHIVED: &str = "appControl/sessionArchived";
 pub const CANCEL: &str = "appControl/cancel";
 /// 内核直接创建/分叉出会话后的 Host 通知（不是模型工具）；Host 据此补 sessions-index 行。
 pub const SESSION_CREATED: &str = "appControl/sessionCreated";
@@ -36,6 +41,64 @@ pub struct HostAppControl {
 impl nibi_kernel_api::session_control::SessionControlCreatedNotifier for HostAppControl {
     fn session_created(&self, caller_session_id: &str, session_id: &str, workspace_path: &str) {
         self.notify_session_created(caller_session_id, session_id, workspace_path);
+    }
+}
+
+#[async_trait]
+impl SessionArchiveReader for HostAppControl {
+    /// 归档事实只在 App Host 任务索引里；独立 CLI/TUI 或旧 Host 不支持时返回 None。
+    async fn is_session_archived(
+        &self,
+        session: &SessionRef,
+    ) -> Result<Option<bool>, SessionControlError> {
+        let mut params = Map::new();
+        params.insert(
+            "callerSessionId".to_owned(),
+            json!(session.session_id),
+        );
+        params.insert(
+            "callId".to_owned(),
+            json!(format!("session-archived-{}", session.session_id)),
+        );
+        params.insert(
+            "workspacePath".to_owned(),
+            json!(session.workspace_path),
+        );
+        if let Some(identity) = session.workspace_identity.as_ref() {
+            params.insert("workspaceIdentity".to_owned(), json!(identity));
+        }
+        params.insert("input".to_owned(), json!({ "sessionId": session.session_id }));
+        let answer = match tokio::time::timeout(
+            std::time::Duration::from_secs(CANCEL_SECONDS),
+            self.context.peer.request(SESSION_ARCHIVED, &Value::Object(params)),
+        )
+        .await
+        {
+            Err(_) | Ok(Err(_)) => return Ok(None),
+            Ok(Ok(answer)) => answer,
+        };
+        let ok = answer.get("ok").and_then(Value::as_bool).unwrap_or(false);
+        if !ok {
+            let error = answer.get("error");
+            let code = error
+                .and_then(|error| error.get("code"))
+                .and_then(Value::as_str)
+                .unwrap_or("unavailable");
+            let message = error
+                .and_then(|error| error.get("message"))
+                .and_then(Value::as_str)
+                .unwrap_or("Session archive state is unavailable");
+            // 产品会话的归档事实不可确认：fork 必须 fail closed；forbidden 表示目标
+            // 不是本 Host 的产品会话，保持独立 CLI 的既有 fork 语义。
+            if code == "unavailable" {
+                return Err(SessionControlError::unavailable(message.to_owned()));
+            }
+            return Ok(None);
+        }
+        Ok(answer
+            .get("result")
+            .and_then(|result| result.get("archived"))
+            .and_then(Value::as_bool))
     }
 }
 

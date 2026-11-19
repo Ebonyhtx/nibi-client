@@ -1,20 +1,27 @@
 /* oxlint-disable eslint(max-lines) -- UnifiedBrowserView 集中维护稳定 webview 的导航、事件和 guest 生命周期；横向滚动链已下沉独立 hook。 */
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import type {
   BrowserViewScreenshotSurfacePreparePayload,
   EmbeddedBrowserViewportPreference,
 } from "@nibi/shared";
+import { EmbeddedBrowserWebviewChannels } from "@nibi/shared";
 import { cn } from "@/components/lib/utils.js";
 import { toast } from "@/components/ui/toast.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import { useOptionalServices } from "@/hooks/useServices.js";
+import { useOptionalBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { useWebElementPicker } from "@/hooks/useWebElementPicker.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 import { BrowserDesignInspector } from "@/browser-use/BrowserDesignInspector.js";
+import { BrowserDesignToolbar } from "@/browser-use/BrowserDesignToolbar.js";
+import { captureBrowserElementScreenshot } from "@/browser-use/browserElementScreenshot.js";
 import { useBrowserDesignMode } from "@/browser-use/useBrowserDesignMode.js";
+import { useBrowserDesignPluginGate } from "@/browser-use/useBrowserDesignPluginGate.js";
+import { useBrowserFileLiveReload } from "@/browser-use/useBrowserFileLiveReload.js";
 import { BrowserSiteSettingsEntry } from "@/browser-use/BrowserSiteSettingsEntry.js";
 import {
+  buildBrowserExportFileName,
   canExportBrowserPage,
   exportBrowserPageToFile,
   type BrowserPageExportOutcome,
@@ -444,17 +451,76 @@ export function UnifiedBrowserView({
     workspaceIdentity: workspaceKey ?? workspaceIdentity,
   });
 
-  // 设计模式：只对本地 file:// / nibi-html 预览页可用；文件服务缺席时不可用（不伪造检查器）。
-  const optionalServices = useOptionalServices();
+  // 设计模式：人类 tab 的任何页面都可以点选（普通网页只读）；本机 HTML 才能写回源文件。
+  // Design 内置插件未启用时，进入点选前先走确认门，确认只导航到插件页，不自动启用。
+  // 内置浏览器 side pane 可能挂在 workspace ServiceProvider 之外；优先 scoped 服务，
+  // 没有时回退到 renderer 启动时注册的 base host，设计写回/插件门禁才能工作。
+  const optionalServices = useOptionalServices() ?? useOptionalBaseWorkspaceServices();
+  const captureGuestPage = platform.captureBrowserGuestPage;
+  const captureElement = useMemo(
+    () =>
+      captureGuestPage
+        ? (rect: Parameters<typeof captureBrowserElementScreenshot>[0]["rect"]) =>
+            webview
+              ? captureBrowserElementScreenshot({ captureGuestPage, key: browserKey, rect, webview })
+              : Promise.resolve(null)
+        : undefined,
+    [browserKey, captureGuestPage, webview],
+  );
+  const designPlugin = useBrowserDesignPluginGate({
+    enabled: enableDesignMode,
+    remoteSessionId,
+    workspaceIdentity: workspaceKey ?? workspaceIdentity,
+    workspacePath,
+  });
+  const designChipTarget = useMemo(
+    () =>
+      enableDesignMode && workspacePath
+        ? {
+            workspacePath,
+            ...((workspaceKey ?? workspaceIdentity)
+              ? { workspaceIdentity: workspaceKey ?? workspaceIdentity }
+              : {}),
+          }
+        : null,
+    [enableDesignMode, workspaceIdentity, workspaceKey, workspacePath],
+  );
+  // 稳定回调：useBrowserDesignMode 的切页重置 effect 依赖 detachChips，内联函数会导致
+  // 每次渲染都清空选择状态并再次触发渲染。
+  const handleDesignNoChipTarget = useCallback(() => {
+    toast(intl.formatMessage({ id: "browser.design.contextUnavailable" }), {
+      variant: "warning",
+      position: "bottom-center",
+      dedupeKey: "browser-design-context-unavailable",
+    });
+  }, [intl]);
   const design = useBrowserDesignMode({
+    captureElement,
+    chipTarget: designChipTarget,
     currentUrl: browserState.currentUrl,
     enabled: enableDesignMode,
     fileService: optionalServices?.fileService,
+    isVisible,
     onBeforeActivate: () => {
       void cancelWebElementPicking();
     },
+    onNoChipTarget: handleDesignNoChipTarget,
+    pluginEnabled: designPlugin.pluginEnabled,
+    requestPluginEnable: designPlugin.ensureEnabled,
     webview,
     webviewGeneration,
+    workspacePath,
+  });
+
+  // 源文件变更后受控刷新：只跟页面实际加载过的本地资源；设计写回自己的改动不刷新。
+  useBrowserFileLiveReload({
+    currentUrl: browserState.currentUrl,
+    enabled: enableDesignMode,
+    fileService: optionalServices?.fileService,
+    fileWatcherService: optionalServices?.fileWatcherService,
+    isOwnWrite: design.isOwnSourceWrite,
+    isVisible,
+    webview: webview as ElectronWebviewTag | null,
     workspacePath,
   });
 
@@ -1064,8 +1130,61 @@ export function UnifiedBrowserView({
     [openUrl],
   );
 
+  // 页面里真实的 Cmd/Ctrl + Z（guest preload 只转发 isTrusted、目标不在输入框的按键）撤销 / 重做写回。
+  useEffect(() => {
+    if (!webview || design.mode === "off") return;
+    const target = webview;
+    const handleIpcMessage = (event: ElectronWebviewIpcMessageEvent) => {
+      if (event.channel !== EmbeddedBrowserWebviewChannels.DesignUndoShortcut) return;
+      const payload: unknown = event.args[0];
+      const redo =
+        typeof payload === "object" && payload !== null && "redo" in payload && payload.redo === true;
+      void (redo ? design.redo() : design.undo());
+    };
+    target.addEventListener("ipc-message", handleIpcMessage);
+    return () => target.removeEventListener("ipc-message", handleIpcMessage);
+  }, [design.mode, design.redo, design.undo, webview]);
+
+  const handleCaptureDesignElement = useCallback(async () => {
+    const data = await design.captureSelection();
+    const saveFile = platform.saveFile;
+    if (!data || !saveFile) {
+      toast(intl.formatMessage({ id: "browser.design.captureFailed" }), { variant: "warning" });
+      return;
+    }
+    try {
+      const saved = await saveFile({
+        data,
+        suggestedName: buildBrowserExportFileName({
+          title: browserState.title,
+          url: browserState.currentUrl,
+          format: "png",
+        }).replace(/\.png$/u, "-element.png"),
+      });
+      if (saved.canceled) return;
+      if (!saved.success) {
+        toast(intl.formatMessage({ id: "browser.design.captureFailed" }), { variant: "warning" });
+        return;
+      }
+      toast(intl.formatMessage({ id: "browser.design.captureSaved" }));
+    } catch {
+      toast(intl.formatMessage({ id: "browser.design.captureFailed" }), { variant: "warning" });
+    }
+  }, [
+    browserState.currentUrl,
+    browserState.title,
+    design.captureSelection,
+    intl,
+    platform.saveFile,
+  ]);
+
   const handleTogglePicker = useCallback(() => {
     if (!webview || !browserState.isReady) return;
+    // 本机 HTML 的「选择元素」走设计点选（插件门禁在 requestSelectMode 内）；其他页面仍是元素 chip 选择器。
+    if (enableDesignMode && design.available) {
+      void design.requestSelectMode();
+      return;
+    }
     // 设计模式和元素选择都拦截页面点击；进入选择前先退出设计模式。
     if (design.active) design.deactivate();
     void toggleWebElementPicking().catch((error: unknown) => {
@@ -1081,6 +1200,8 @@ export function UnifiedBrowserView({
     browserState.isReady,
     design.active,
     design.deactivate,
+    design.requestSelectMode,
+    enableDesignMode,
     intl,
     toggleWebElementPicking,
     webview,
@@ -1217,12 +1338,13 @@ export function UnifiedBrowserView({
         onToggleDesignMode={design.toggle}
         onToggleResponsiveMode={handleToggleResponsiveMode}
         onSubmit={handleSubmit}
-        isElementPickerActive={isWebElementPicking}
+        isElementPickerActive={design.mode === "select" || isWebElementPicking}
         isDesignMode={design.active}
         isDesignAvailable={design.available}
         isResponsiveMode={isResponsiveMode}
         canExport={canExportPage}
       />
+      {design.toolsVisible ? <BrowserDesignToolbar design={design} /> : null}
       {/* 权限弹窗层：只在可见 tab 挂载（多 tab 共享 store，避免重复渲染与
           后台请求误显示）；permission 请求再按 guest 归属过滤到发起 tab。 */}
       {isVisible ? (
@@ -1262,7 +1384,14 @@ export function UnifiedBrowserView({
         viewportSize={effectiveViewportSize}
         viewportZoom={effectiveViewportZoom}
       />
-      {design.active && isVisible ? <BrowserDesignInspector design={design} /> : null}
+      {design.active && design.panelOpen && isVisible ? (
+        <BrowserDesignInspector
+          design={design}
+          {...(design.captureAvailable
+            ? { onCaptureElement: () => void handleCaptureDesignElement() }
+            : {})}
+        />
+      ) : null}
     </div>
   );
 }

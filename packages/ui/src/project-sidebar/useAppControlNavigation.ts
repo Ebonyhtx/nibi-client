@@ -31,16 +31,21 @@ export interface AppControlNavigationOptions {
     taskId: string,
     workspaceIdentity?: string,
   ) => void;
+  /** 任务定位成功后的补充导航（手机远控切到聊天页）；失败不回执成功。 */
+  onOpened?: () => void;
   enabled?: boolean;
 }
 
 export function useAppControlNavigation({
   services,
   onSelectTask,
+  onOpened,
   enabled = true,
 }: AppControlNavigationOptions): void {
   const onSelectTaskRef = useRef(onSelectTask);
   onSelectTaskRef.current = onSelectTask;
+  const onOpenedRef = useRef(onOpened);
+  onOpenedRef.current = onOpened;
   const navigation = services.appControlNavigationService;
 
   useEffect(() => {
@@ -64,6 +69,7 @@ export function useAppControlNavigation({
             return;
           }
           onSelectTaskRef.current(event.workspacePath, event.sessionId, event.workspaceIdentity);
+          onOpenedRef.current?.();
           settle({ requestId: event.requestId, uiTarget: "window:main" });
         } catch (error) {
           settle({

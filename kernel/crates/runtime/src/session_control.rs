@@ -28,6 +28,7 @@ use nibi_kernel_api::session_control::{
 use nibi_kernel_api::store::{
     SessionDirectoryEntry, SessionDirectoryQuery, SessionFilter, SessionSummary as StoreSummary,
 };
+use serde_json::json;
 
 use crate::LocalKernel;
 use crate::table::{OpenSessions, Slot};
@@ -43,6 +44,8 @@ pub(crate) struct KernelSessionControlHost {
     /// 创建/分叉出真实会话后通知 Host 补列表行；CLI/TUI 没有 Host 时为 None。
     created_notifier:
         Option<Arc<dyn nibi_kernel_api::session_control::SessionControlCreatedNotifier>>,
+    /// App Host 任务索引的归档事实；独立 CLI/TUI 为 None。
+    archive_reader: Option<Arc<dyn nibi_kernel_api::session_control::SessionArchiveReader>>,
 }
 
 impl KernelSessionControlHost {
@@ -51,10 +54,14 @@ impl KernelSessionControlHost {
         created_notifier: Option<
             Arc<dyn nibi_kernel_api::session_control::SessionControlCreatedNotifier>,
         >,
+        archive_reader: Option<
+            Arc<dyn nibi_kernel_api::session_control::SessionArchiveReader>,
+        >,
     ) -> Self {
         Self {
             kernel,
             created_notifier,
+            archive_reader,
         }
     }
 
@@ -350,6 +357,21 @@ fn envelope(request_id: &str, command: Command) -> CommandEnvelope {
     }
 }
 
+/// 跨会话发送的 canonical intent：目标会话的行上显示来源会话（Node 的
+/// `metadata.conversationInputIntent.source` 同一键）。标题故意不落库——它是会过期的
+/// 派生展示字段，UI 按项目目录用 sessionId 解析。
+fn session_source_intent(
+    prompt: &str,
+    request_id: &str,
+    caller_session_id: &str,
+) -> serde_json::Value {
+    json!({
+        "text": prompt,
+        "sourceCommandId": request_id,
+        "source": { "kind": "session", "sessionId": caller_session_id },
+    })
+}
+
 /// 中断的精确执行校验：模型必须回传当前执行身份，否则拒绝（不猜、不停错执行）。
 fn execution_mismatch(current: Option<&str>, expected: &str) -> Option<String> {
     match current {
@@ -369,6 +391,18 @@ impl SessionControlHost for KernelSessionControlHost {
     ) -> Result<Option<SessionRef>, SessionControlError> {
         let kernel = self.kernel()?;
         resolve(&kernel, session_id).await
+    }
+
+    async fn is_session_archived(
+        &self,
+        session: &SessionRef,
+    ) -> Result<bool, SessionControlError> {
+        // 本机 CLI 存储没有归档字段；只有 App Host 注入 reader 时才有权威事实。
+        // reader 返回 None 表示来源不可确认，保持既有 fork 语义而不是猜测。
+        match self.archive_reader.as_ref() {
+            Some(reader) => Ok(reader.is_session_archived(session).await?.unwrap_or(false)),
+            None => Ok(false),
+        }
     }
 
     async fn root_session(
@@ -570,6 +604,8 @@ impl SessionControlHost for KernelSessionControlHost {
                 &input.request_id,
                 Command::Fork {
                     at: Some(MessageId::new(input.at_message)),
+                    child: None,
+                    cwd: None,
                 },
             ))
             .await;
@@ -614,7 +650,7 @@ impl SessionControlHost for KernelSessionControlHost {
 
     async fn send_to_session(
         &self,
-        _ctx: &TrustedContext,
+        ctx: &TrustedContext,
         input: SendToSessionInput,
     ) -> Result<SendToSessionResult, SessionControlError> {
         let kernel = self.kernel()?;
@@ -627,6 +663,21 @@ impl SessionControlHost for KernelSessionControlHost {
             .await
             .map(|view| view.running || !view.queue.is_empty())
             .unwrap_or(true);
+        // 先记意图再提交（与协议层 `RecordInputIntent` 同一顺序）；消息落库时按开启
+        // 本回合的 commandId 取走，投影据此在目标会话显示“来自会话 X”。
+        let _ = handle
+            .send(envelope(
+                &format!("{}:intent", input.request_id),
+                Command::RecordInputIntent {
+                    command: CommandId::new(input.request_id.as_str()),
+                    intent: session_source_intent(
+                        &input.prompt,
+                        &input.request_id,
+                        &ctx.root_session.session_id,
+                    ),
+                },
+            ))
+            .await;
         let ack = handle
             .send(envelope(
                 &input.request_id,
@@ -723,8 +774,19 @@ mod tests {
         selection, text_response,
     };
 
-    use super::execution_mismatch;
+    use super::{execution_mismatch, session_source_intent};
     use crate::{ContextConfig, Defaults, LocalKernel, Ports, Surface};
+
+    #[test]
+    fn send_to_session_records_the_callers_session_as_source() {
+        let intent = session_source_intent("again", "req-2", "sess_root");
+        assert_eq!(intent["text"], "again");
+        assert_eq!(intent["sourceCommandId"], "req-2");
+        assert_eq!(intent["source"]["kind"], "session");
+        assert_eq!(intent["source"]["sessionId"], "sess_root");
+        // 新数据不写标题快照：标题由 UI 按 sessionId 从项目目录解析。
+        assert!(intent["source"].get("title").is_none());
+    }
 
     #[test]
     fn interrupt_requires_the_exact_current_execution() {

@@ -153,6 +153,7 @@ impl Harness {
             output_speed: None,
             launches: Vec::new(),
             model_turns: Vec::new(),
+            worktree_creations: Vec::new(),
             input_intents: Vec::new(),
         };
         let handle = Arc::new(FakeHandle::new());

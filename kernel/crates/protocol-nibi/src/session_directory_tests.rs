@@ -154,6 +154,7 @@ impl Kernel for FakeKernel {
                 output_speed: None,
                 launches: Vec::new(),
                 model_turns: Vec::new(),
+                worktree_creations: Vec::new(),
                 input_intents: Vec::new(),
             },
         }))
@@ -429,6 +430,7 @@ async fn session_list_degrades_to_an_empty_list_when_the_store_cannot_answer() {
                     output_speed: None,
                     launches: Vec::new(),
                     model_turns: Vec::new(),
+                    worktree_creations: Vec::new(),
                     input_intents: Vec::new(),
                 },
             }))

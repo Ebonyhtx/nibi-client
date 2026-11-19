@@ -35,6 +35,14 @@ export const TASK_PROJECT_COLUMNS: Readonly<Record<string, string>> = {
   cli_deleted: "INTEGER",
 };
 
+/**
+ * 受管 worktree 任务的 worktree 根目录。只由 Host 在 reserveCreatedTask 时与 root_path
+ * 一起写入一次；NULL 表示不是 worktree 任务。部分索引供"哪些任务在用这个 worktree"精确匹配。
+ */
+export const TASK_WORKTREE_ROOT_SQL = `
+ALTER TABLE tasks ADD COLUMN worktree_root TEXT;
+CREATE INDEX IF NOT EXISTS idx_tasks_host_worktree ON tasks(host_id, worktree_root) WHERE worktree_root IS NOT NULL;`;
+
 export const PROJECT_MIGRATION_TABLES = [
   "tasks",
   "task_groups",

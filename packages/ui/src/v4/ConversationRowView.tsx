@@ -1,5 +1,11 @@
 import { GenUiMessageResponse } from "@/gen-ui/index.js";
 import { ConversationUserInputBubble } from "@/v4/ConversationUserInputBubble.js";
+import {
+  ForkDestinationMenu,
+  readWorktreeCreatedMarker,
+  useForkDestination,
+  WorktreeCreatedMarker,
+} from "@/managed-worktrees/index.js";
 import { expandTopicInputMessages } from "@/v4/topicInputMessages.js";
 import { ConnectedBotGroupDeliveryAction } from "@/v4/BotGroupDeliveryAction.js";
 /* oxlint-disable eslint(max-lines) -- v4 逐行 row 渲染分发集中收口（每种 row 一个 memo 叶子 + timelineMarker 分隔线），拆分会打散行类型对照。 */
@@ -105,6 +111,7 @@ import {
 import { ToolCallBlock } from "@/ToolCallBlocks.js";
 import { resolveWorkflowRunOpenToolCallId } from "@/v4/workflowRunCardJoin.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
+import { ConversationRowSessionSource } from "@/v4/ConversationSessionSourceHint.js";
 import { useOptionalPlatform } from "@/hooks/usePlatform.js";
 import { reportAppTelemetryEvent } from "@/lib/appTelemetry.js";
 import { runUserAction, runUserActionAsync } from "@/lib/userActionTelemetry.js";
@@ -1542,6 +1549,7 @@ const SingleUserInputRowView = memo(function SingleUserInputRowView({
           )}
         </div>
       ) : null}
+      <ConversationRowSessionSource row={row} />
       {status ? (
         <div
           data-v4-user-input-status="true"
@@ -1730,6 +1738,21 @@ export const ConversationAssistantTextActions = memo(function ConversationAssist
       });
     }
   }, [entityId, onFork, rowId]);
+  const forkDestination = useForkDestination();
+  const forkToWorktree = forkDestination.forkToWorktree;
+  const handleForkToWorktree = useCallback(() => {
+    if (!entityId || !forkToWorktree) return;
+    runUserAction({
+      input: {
+        featureId: "conversation.history.branch",
+        action: "fork",
+        trigger: "button",
+      },
+      operation: () => forkToWorktree({ rowId, entityId }),
+      completed: { resultSource: "optimistic_projection" },
+      failureStage: "fork",
+    });
+  }, [entityId, forkToWorktree, rowId]);
   return (
     <MessageActions className={cn(className, "has-[[data-bot-group-delivery]]:opacity-100")}>
       <CopyRowAction
@@ -1779,15 +1802,27 @@ export const ConversationAssistantTextActions = memo(function ConversationAssist
         </>
       ) : null}
       {onFork && entityId ? (
-        <MessageAction
-          aria-label={forkLabel}
-          label={forkLabel}
-          tooltip={resolveTooltip(forkLabel)}
-          data-testid={testId(TID_V4_FORK, String(rowId))}
-          onClick={handleFork}
-        >
-          <TrendingUpDownIcon className="size-3.5" />
-        </MessageAction>
+        forkToWorktree ? (
+          <ForkDestinationMenu
+            rowId={rowId}
+            label={forkLabel}
+            tooltip={resolveTooltip(forkLabel)}
+            worktreeAvailable={forkDestination.available}
+            inWorktree={forkDestination.inWorktree}
+            onForkHere={handleFork}
+            onForkToWorktree={handleForkToWorktree}
+          />
+        ) : (
+          <MessageAction
+            aria-label={forkLabel}
+            label={forkLabel}
+            tooltip={resolveTooltip(forkLabel)}
+            data-testid={testId(TID_V4_FORK, String(rowId))}
+            onClick={handleFork}
+          >
+            <TrendingUpDownIcon className="size-3.5" />
+          </MessageAction>
+        )
       ) : null}
       {turnId && hookInvocations ? (
         <ConversationHookDetailsAction rows={hookInvocations} turnId={turnId} />
@@ -2092,6 +2127,10 @@ const TimelineMarkerRowView = memo(function TimelineMarkerRowView({
   const { intl } = useNibiIntl();
   const isOfficeMode = useIsOfficeMode();
   const marker = row.marker;
+  // typed 投影（共享 schema 收录的 worktreeCreated）直接读字段；旧服务端/旧快照仍按
+  // 结构兜底一版，缺字段不渲染，避免出现空白历史项。
+  const worktreeMarker =
+    marker.type === "worktreeCreated" ? { output: marker.output } : readWorktreeCreatedMarker(marker);
   const modelSelectionView = context.modelSelectionView ?? null;
   const view = useMemo((): {
     icon: React.ReactNode;
@@ -2201,6 +2240,9 @@ const TimelineMarkerRowView = memo(function TimelineMarkerRowView({
     return () => onNavigate(marker.parentSessionId, marker.parentRowId);
   }, [marker, onNavigate]);
 
+  if (worktreeMarker) {
+    return <WorktreeCreatedMarker rowId={row.rowId} output={worktreeMarker.output} />;
+  }
   if (!view) {
     return null;
   }

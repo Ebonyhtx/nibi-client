@@ -319,6 +319,8 @@ export type TurnSteerDeliveryMode = "guide" | "queue";
 /** 协议无关的输入 intent metadata；bootstrap v4 在事件边界组装为 ConversationInputIntent。 */
 export type TurnInputSourceMetadata =
   | { kind: "pluginUi"; pluginId: string; toolCallId: string }
+  // 跨会话发送：title 只兼容 Old snapshot，新数据只写 sessionId。
+  | { kind: "session"; sessionId: string; title?: string }
   | { kind: "genUi"; path: string; title?: string };
 
 export interface TurnInputIntentMetadata {

@@ -6,6 +6,7 @@
 // 旧协议死亡（nibi-protocol/index.ts 删除）后，这是该协议面的唯一幸存面。
 
 import { z } from "zod";
+import { MANAGED_WORKTREE_OUTPUT_LIMIT } from "./git.js";
 import { modelSelectionSchema } from "./model-selection.js";
 
 const nonEmptyString = z.string().trim().min(1);
@@ -354,6 +355,7 @@ export const nibiTimelinePartSchema = partBaseSchema
       "goal_verification",
       "session_fork",
       "model_change",
+      "worktree_creation",
     ]),
     display: z.enum(["separator", "worklog"]),
     status: z.string().optional(),
@@ -392,6 +394,18 @@ export const nibiTimelinePartSchema = partBaseSchema
       .extend({
         label: nonEmptyString,
       })
+      .optional(),
+    // timelineType = worktree_creation：受管 worktree 的创建结果（Host 可信事实）。
+    // 与 git.ts 的 ManagedWorktreeCreationRef 同形，但落盘边界按 schema 限长：
+    // output 是裁剪后的 git/拷贝输出（MANAGED_WORKTREE_OUTPUT_LIMIT），路径与 ref 不能无限长。
+    worktreeCreation: z
+      .object({
+        path: nonEmptyString.max(4096),
+        sha: z.string().max(256),
+        ref: z.string().max(1024).nullable(),
+        output: z.string().max(MANAGED_WORKTREE_OUTPUT_LIMIT),
+      })
+      .strict()
       .optional(),
   })
   .strict();

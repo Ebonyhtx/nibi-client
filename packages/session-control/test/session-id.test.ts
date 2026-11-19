@@ -106,7 +106,11 @@ describe("sessionId target", () => {
   it("keeps full references working unchanged and never calls the resolver for them", async () => {
     const { control, ctx, ports } = app();
     await control.openSession(ctx, { session: { ...appRoot, sessionId: "sess_target" } });
-    expect(ports.calls.map((call) => call.method)).toEqual(["authorize", "openSession"]);
+    expect(ports.calls.map((call) => call.method)).toEqual([
+      "authorize",
+      "isSessionArchived",
+      "openSession",
+    ]);
   });
 
   it("accepts sessionId on each wait operation and still rejects self-wait", async () => {

@@ -26,6 +26,15 @@ function setupAgent() {
   const conversationFrames = new Emitter<ConversationTopicWireFrame>();
   const sessionsIndexFrames = new Emitter<SessionsIndexTopicWireFrame>();
   const runtimeRestarts = new Emitter<{ workspaceKey: string }>();
+  const runtimeExits = new Emitter<{
+    workspaceKey: string;
+    category: "crash" | "oom";
+    exitCode: number | null;
+    signal: string | null;
+    exitedAt: number;
+    workspacePath: string;
+    runtimeIdentity: { generation: number; identity: string; workspaceKey: string };
+  }>();
   return {
     helloConversationV4: vi.fn(async () => ({
       kind: "hello" as const,
@@ -102,9 +111,13 @@ function setupAgent() {
     onAgentRuntimeRestarted: vi.fn((listener: (event: { workspaceKey: string }) => void) =>
       runtimeRestarts.event(listener),
     ),
+    onAgentRuntimeExited: vi.fn((listener: (event: { workspaceKey: string }) => void) =>
+      runtimeExits.event(listener),
+    ),
     conversationFrames,
     sessionsIndexFrames,
     runtimeRestarts,
+    runtimeExits,
   };
 }
 
@@ -1153,6 +1166,31 @@ describe("agent V4 connection transports", () => {
       sessionId: "session-1",
     });
   });
+});
+
+it("runtime 意外退出只转发同一 workspace，解除订阅后停止", () => {
+  const agent = setupAgent();
+  const transport = createAgentConversationTransport(agent as never, { workspacePath: "/repo" });
+  const seen: string[] = [];
+  const off = transport.onRuntimeExited!((event) => seen.push(event.workspaceKey));
+  try {
+    const base = {
+      category: "crash" as const,
+      exitCode: 1,
+      signal: null,
+      exitedAt: 1,
+      runtimeIdentity: { generation: 1, identity: "runtime-1", workspaceKey: "/repo" },
+    };
+    agent.runtimeExits.fire({ ...base, workspaceKey: "/other", workspacePath: "/other" });
+    agent.runtimeExits.fire({ ...base, workspaceKey: "/repo", workspacePath: "/repo" });
+    expect(seen).toEqual(["/repo"]);
+
+    off();
+    agent.runtimeExits.fire({ ...base, workspaceKey: "/repo", workspacePath: "/repo" });
+    expect(seen).toEqual(["/repo"]);
+  } finally {
+    off();
+  }
 });
 
 it("runtime unavailable 结束对应 workspace 的 TTFT，保留其他 workspace", () => {

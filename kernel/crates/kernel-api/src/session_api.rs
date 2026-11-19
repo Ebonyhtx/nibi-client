@@ -12,7 +12,7 @@ use futures_util::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::env::WorkspaceRef;
+use crate::env::{EnvPath, WorkspaceRef};
 use crate::ids::{
     AgentId, CommandId, InteractionId, MessageId, SessionId, ShellTaskId, ToolUseId, TurnId,
 };
@@ -89,6 +89,12 @@ pub enum Command {
         command: CommandId,
         facts: crate::automation::TurnFacts,
     },
+    /// 受管 worktree 的创建结果（NIBI `createSession.worktreeCreation`）：协议层在建会话之后、首条
+    /// 输入之前发；会话 actor 只在首轮持久化时取走，写成 timeline part 并发 [`KernelEvent::WorktreeCreated`]。
+    /// 重复发送保持第一次的事实。
+    SetWorktreeCreation {
+        creation: WorktreeCreation,
+    },
     Interrupt,
     /// 进程要退出（修复线 F38，docs/specs/rust-cli/session-lifecycle.md §3.5）：以 [`crate::abort::AbortReason::Shutdown`]
     /// 中止在跑的回合（之后这个回合不再记录），此后不再开回合。没有回合在跑时也 `Accepted`。
@@ -130,9 +136,15 @@ pub enum Command {
         turn: Option<TurnId>,
     },
     /// 从 `at` 处分叉出新会话；Ack 的 `result` 是新会话 ID。
+    /// `child` 是 Host 预分配的 child ID（`forkAssistant.targetCwd`）；`cwd` 是 child 的执行目录
+    /// （受管 worktree）。两者缺席时沿用原行为：内核生成 ID、child 用父会话 workspace。
     Fork {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         at: Option<MessageId>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        child: Option<SessionId>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cwd: Option<EnvPath>,
     },
     /// 用户改名（`/rename`，Node `setCustomSessionTitle`）：标题来源记为 `custom`，之后不再自动生成
     /// （docs/specs/rust-cli/titles.md §4）。
@@ -358,6 +370,11 @@ pub enum KernelEvent {
     /// plan 开关变了（修复线 F20）。
     PlanChanged {
         enabled: bool,
+    },
+    /// 受管 worktree 已创建（NIBI `createSession.worktreeCreation`）：首轮输入落库后、模型开跑前发出；
+    /// 投影在轮顶落 `worktreeCreated` 标记（与 Node 的 lightBoundary 同义）。
+    WorktreeCreated {
+        creation: WorktreeCreation,
     },
     #[serde(rename_all = "camelCase")]
     TurnStarted {
@@ -589,6 +606,30 @@ pub struct CreateSession {
     pub plan: bool,
 }
 
+/// 受管 worktree 的创建结果（Host 可信事实，Node `createSession.worktreeCreation` 同形）：
+/// 首轮持久化后写成 `worktree_creation` timeline part，并投影为 `worktreeCreated` 标记。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorktreeCreation {
+    pub path: String,
+    pub sha: String,
+    /// 创建时的起点；detached / 无分支时为空（Node 的 `null`）。
+    #[serde(rename = "ref", default, skip_serializing_if = "Option::is_none")]
+    pub reference: Option<String>,
+    #[serde(default)]
+    pub output: String,
+}
+
+/// `session/releaseUnderDirectory` 的结论：cwd 位于目录内的驻留会话。
+///
+/// 任一会话忙时 `released` 为空、`busy` 列全部忙的会话（全部不卸载）；否则 `released`
+/// 是已卸载的会话、`busy` 为空。只去激活运行实例，不删除持久会话事实。
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReleaseUnderDirectoryReport {
+    pub released: Vec<SessionId>,
+    pub busy: Vec<SessionId>,
+}
+
 /// 动态工作流的灰度结论（Node `resolveDynamicWorkflowRuntimeGate` 的镜像）。
 ///
 /// Host 才发 `workspace/updateDynamicWorkflowPolicy`（关闭时它什么都不发），而 CLI/TUI 根本不参加
@@ -677,6 +718,10 @@ pub struct SessionView {
     /// `modelChange` 分隔线。serde 缺省为空。
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub model_turns: Vec<crate::store::SessionModelTurn>,
+    /// 受管 worktree 的创建结果（Node transcript 的 `worktree_creation` timeline part）：冷投影
+    /// 在首轮轮顶落 `worktreeCreated` 标记（新建会话）或随 fork 分隔标记之后出现。serde 缺省为空。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub worktree_creations: Vec<crate::store::WorktreeCreationTurn>,
     /// 每条真人输入的规范意图（Node `metadata.conversationInputIntent`），键是那条 user 消息：
     /// 冷投影用它恢复行上原文、机器人来源与引用（`botGroupSource` 等）。serde 缺省为空。
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -949,6 +994,18 @@ pub trait Kernel: Send + Sync {
     ) -> Result<(), KernelError> {
         Err(KernelError::Unsupported {
             what: "session lifecycle restart".to_owned(),
+        })
+    }
+
+    /// `session/releaseUnderDirectory`：Host 删除受管 worktree 前卸载 cwd 位于 `directory`
+    /// 内的全部驻留会话。忙闲以本进程常驻事实为准，任一会话忙时全部不卸载。
+    /// 缺省 `Unsupported`；实现不能把部分失败报成空结果。
+    async fn release_sessions_under_directory(
+        &self,
+        _directory: &str,
+    ) -> Result<ReleaseUnderDirectoryReport, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session release under directory".to_owned(),
         })
     }
 

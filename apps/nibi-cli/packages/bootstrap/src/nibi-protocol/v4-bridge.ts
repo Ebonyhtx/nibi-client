@@ -1,4 +1,7 @@
+import { realpath, stat } from "node:fs/promises";
+import { isAbsolute, resolve } from "node:path";
 import { isReadonlyAgentSessionKind } from "@nibi/shared";
+import { isPathInside } from "@nibi/shared/managed-worktree";
 import { readBackgroundBashOutputFromOwner } from "./background-work-owner.js";
 // v4 网关 binder。
 // 定位：ConversationV4Gateway 是域无关的通道运行时，本文件把它绑到协议服务器上下文：
@@ -88,7 +91,9 @@ import type {
 } from "@nibi/contracts";
 import { HYDRATION_TRACE_ID } from "../nibi-protocol-v4/projection-state.js";
 import { cloneModelSelection, derivedSessionModelSelection } from "./fork-model-selection.js";
-import { resolveWorkspaceRefFromId } from "./mapper.js";
+import { resolveWorkspaceRefFromId, workspaceRefWithCwd } from "./mapper.js";
+import { projectIdFromDirectory } from "../app/paths.js";
+import { isLocalSessionDirectoryInWorkspace } from "./workspace.js";
 import { buildLiveWorkspaceConfigStateV4 } from "./v4-workspace-config.js";
 import {
   hasSessionModelProvider,
@@ -244,6 +249,8 @@ interface InputCommandForAdmission {
   inputOrigin?: "desktop" | "mobile";
   conversationQuotes?: import("@nibi/contracts").TurnInputIntentMetadata["conversationQuotes"];
   botGroupSource?: ConversationInputIntent["botGroupSource"];
+  /** 跨会话/插件等结构化来源；必须在 admission 时随 canonical intent 落库。 */
+  source?: ConversationInputIntent["source"];
   kind: ConversationInputIntent["kind"];
   text: string;
   attachments: readonly AttachmentRef[];
@@ -325,6 +332,7 @@ export function resolveInputCommandForAdmission(
       inputOrigin?: "desktop" | "mobile";
       conversationQuotes?: import("@nibi/contracts").TurnInputIntentMetadata["conversationQuotes"];
       botGroupSource?: ConversationInputIntent["botGroupSource"];
+      source?: ConversationInputIntent["source"];
     };
     return {
       kind: envelope.type,
@@ -334,6 +342,7 @@ export function resolveInputCommandForAdmission(
       ...(payload.inputOrigin ? { inputOrigin: payload.inputOrigin } : {}),
       ...(payload.conversationQuotes ? { conversationQuotes: payload.conversationQuotes } : {}),
       ...(payload.botGroupSource ? { botGroupSource: payload.botGroupSource } : {}),
+      ...(payload.source ? { source: payload.source } : {}),
     };
   }
   if (envelope.type === "compact") {
@@ -361,6 +370,7 @@ export function resolveInputCommandForAdmission(
       ? { conversationQuotes: payload.conversationQuotes ?? canonical.intent.conversationQuotes }
       : {}),
     ...(canonical.intent.botGroupSource ? { botGroupSource: canonical.intent.botGroupSource } : {}),
+    ...(canonical.intent.source ? { source: canonical.intent.source } : {}),
     text:
       envelope.type === "editUserQuery"
         ? (payload.newText ?? canonical.intent.text)
@@ -419,6 +429,7 @@ function buildForkInitialInput(
     ...(input.inputOrigin ? { inputOrigin: input.inputOrigin } : {}),
     ...(input.conversationQuotes ? { conversationQuotes: input.conversationQuotes } : {}),
     ...(input.botGroupSource ? { botGroupSource: input.botGroupSource } : {}),
+    ...(input.source ? { source: input.source } : {}),
     text: input.text,
     attachments: input.attachments,
     delivery: {
@@ -562,6 +573,53 @@ export async function registerCommittedForkBestEffort(
       // logger 自身异常过去会越过 PONR 冒泡，让 gateway 错误 settle 为 failed。
     }
   }
+}
+
+const WORKTREE_CWD_UNAVAILABLE = "guard.worktreeCwdUnavailable";
+const WORKTREE_CWD_UNTRUSTED = "guard.worktreeCwdUntrusted";
+const WORKTREE_CWD_MISMATCH = "guard.worktreeCwdMismatch";
+
+async function assertExistingDirectory(path: string, label: string): Promise<string> {
+  if (!isAbsolute(path)) {
+    throw new Error(`${WORKTREE_CWD_UNAVAILABLE}: ${label} must be an absolute path: ${path}`);
+  }
+  const canonical = await realpath(path).catch(() => null);
+  if (!canonical) {
+    throw new Error(`${WORKTREE_CWD_UNAVAILABLE}: ${label} does not exist: ${path}`);
+  }
+  if (!(await stat(canonical)).isDirectory()) {
+    throw new Error(`${WORKTREE_CWD_UNAVAILABLE}: ${label} is not a directory: ${path}`);
+  }
+  return canonical;
+}
+
+/**
+ * 解析 Host 可信的会话 cwd（受管 worktree）：
+ * - 必须绝对、存在且是目录（失败显式拒绝，不建半个会话）；
+ * - 与 workspace 执行路径相同 = 无覆盖；不同时必须带 worktreeCreation 且 cwd 在其根内；
+ * - 远程 workspace 由 workspaceRefWithCwd 结构化拒绝。
+ * Renderer/模型不能伪造：这两个字段只由 Host 的 worktree 服务在可信命令里携带。
+ */
+export async function resolveTrustedSessionWorkspace(
+  workspace: NibiWorkspaceRef,
+  cwd: string | undefined,
+  worktreeCreation: { path: string } | undefined,
+): Promise<NibiWorkspaceRef> {
+  if (!cwd) return workspace;
+  const canonicalCwd = await assertExistingDirectory(cwd, "session cwd");
+  if (resolve(cwd) === resolve(workspace.workspacePath)) return workspace;
+  if (!worktreeCreation) {
+    throw new Error(
+      `${WORKTREE_CWD_UNTRUSTED}: session cwd requires a Host worktree creation: ${cwd}`,
+    );
+  }
+  const canonicalRoot = await assertExistingDirectory(worktreeCreation.path, "worktree root");
+  if (!isPathInside(canonicalRoot, canonicalCwd)) {
+    throw new Error(
+      `${WORKTREE_CWD_MISMATCH}: session cwd ${cwd} is outside worktree ${worktreeCreation.path}`,
+    );
+  }
+  return workspaceRefWithCwd(workspace, cwd);
 }
 
 export function createConversationV4Gateway(
@@ -759,6 +817,7 @@ export function createConversationV4Gateway(
         ...(input.inputOrigin ? { inputOrigin: input.inputOrigin } : {}),
         ...(input.conversationQuotes ? { conversationQuotes: input.conversationQuotes } : {}),
         ...(input.botGroupSource ? { botGroupSource: input.botGroupSource } : {}),
+        ...(input.source ? { source: input.source } : {}),
         sourceCommandId: envelope.commandId,
         queueItemId: admission.queueItemId,
         clientId: envelope.clientId || "cli",
@@ -801,6 +860,9 @@ export function createConversationV4Gateway(
             attachmentRefs,
             ...(conversationInputIntent.sharedContextRefs
               ? { sharedContextRefs: conversationInputIntent.sharedContextRefs }
+              : {}),
+            ...(conversationInputIntent.source
+              ? { source: conversationInputIntent.source }
               : {}),
           },
           conversationInputIntent,
@@ -1109,6 +1171,8 @@ export function createConversationV4Gateway(
       sessionId,
       additionalDirectories,
       workspaceId,
+      cwd,
+      worktreeCreation,
       mcpServers,
       dynamicWorkflowEnabled,
       dynamicWorkflowMode,
@@ -1125,10 +1189,17 @@ export function createConversationV4Gateway(
       //   （workspaceKey = identity，sessions-index topic / 隔离语义不变）。
       // shared parser 统一兼容 WSL legacy 与显式 user identity；非远程格式继续按
       // 本地 workspacePath 处理。
+      // cwd：受管 worktree 任务属于项目 workspace（key 不变），执行路径是 worktree。
+      // 目录存在性与 worktree 根一致性必须在落库前校验；失败让整条 createSession 失败。
+      const workspace = await resolveTrustedSessionWorkspace(
+        resolveWorkspaceRefFromId(workspaceId),
+        cwd,
+        worktreeCreation,
+      );
       const created = await createSessionRecordForV4(context, {
         sessionId,
         additionalDirectories,
-        workspace: resolveWorkspaceRefFromId(workspaceId),
+        workspace,
         // 群任务已经由首条真实需求触发，先落盘隔离授权，再开放任务与配置。
         // 普通 Desktop draft 仍保持 deferred。
         persistence: "deferred",
@@ -1192,6 +1263,33 @@ export function createConversationV4Gateway(
       if (!record) throw new Error("proto.sessionNotFound");
       const store = context.deps.sessionStore;
       if (!store) throw new Error("fault.command.stableForkStoreUnavailable");
+      // 目标 cwd 只改变 child 的执行目录；远程 workspace / 不存在目录 / 越出 worktree 根
+      // 都在读取历史和 core copy 之前拒绝，避免留下半个 child。
+      const targetWorkspace = options.targetCwd
+        ? await resolveTrustedSessionWorkspace(
+            record.workspace,
+            options.targetCwd.cwd,
+            options.targetCwd.worktreeCreation,
+          )
+        : undefined;
+      const targetCwd =
+        targetWorkspace && options.targetCwd
+          ? {
+              directory: targetWorkspace.workspacePath,
+              projectID: projectIdFromDirectory(targetWorkspace.workspacePath),
+              worktreeCreation: options.targetCwd.worktreeCreation,
+            }
+          : undefined;
+      if (targetCwd && options.targetCwd) {
+        // Host 预分配的 child ID 不能被已有会话覆盖；INSERT 冲突会让失败晚于 copy。
+        const childSessionId = options.targetCwd.childSessionId;
+        if (
+          context.sessions.has(childSessionId) ||
+          (await store.getSession(childSessionId as SessionId))
+        ) {
+          throw new Error(`proto.invalidPayload: child session ${childSessionId} already exists`);
+        }
+      }
       const messages = await store.messages({ sessionID: sessionId as SessionId });
       const boundary = messages.find(
         (message) => String(message.info.id) === target.boundaryMessageId,
@@ -1219,6 +1317,11 @@ export function createConversationV4Gateway(
         sourceCommandId,
         revisionAtDecision,
         traceContext: record.traceContext,
+        // Host 预分配的 childSessionId 作为 child ID；child 留在同一 workspace，
+        // 执行目录取 targetCwd（普通 fork 不传，行为不变）。
+        ...(targetCwd && options.targetCwd
+          ? { forkedSessionId: options.targetCwd.childSessionId as SessionId, targetCwd }
+          : {}),
       });
       await registerCommittedForkBestEffort(context, record, fork, {
         commandId: sourceCommandId,
@@ -1470,9 +1573,21 @@ export function createConversationV4Gateway(
       const sessions = await Promise.all(
         [...new Set(sessionIds)].map(async (sessionId) => {
           const session = await store.getSession(sessionId as SessionId);
+          // 受管 worktree 会话的 directory 是 worktree cwd，不是项目目录；本地 workspace
+          // 必须经共享 resolver 证明归属，否则重连 reconcile 会把活会话报成不存在。
+          const sameDirectory =
+            session?.directory === directory ||
+            (session &&
+              !remote &&
+              !session.workspaceID &&
+              (await isLocalSessionDirectoryInWorkspace({
+                directory: session.directory,
+                workspacePath: directory,
+                env: context.deps.env,
+              })));
           const sameWorkspace =
             session &&
-            session.directory === directory &&
+            sameDirectory &&
             (remote
               ? session.workspaceID === workspaceId
               : !session.workspaceID || session.workspaceID === workspaceId);

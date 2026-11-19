@@ -859,10 +859,25 @@ impl LocalKernel {
             Arc<dyn nibi_kernel_api::session_control::SessionControlCreatedNotifier>,
         >,
     ) {
+        self.install_session_control_host_with_services(created_notifier, None);
+    }
+
+    /// 同 [`LocalKernel::install_session_control_host_with_notifier`]，另给 App Host 的归档事实 reader。
+    /// fork 在创建子会话前用它拒绝归档目标；独立 CLI/TUI 不注入时保持缺席。
+    pub fn install_session_control_host_with_services(
+        self: &Arc<Self>,
+        created_notifier: Option<
+            Arc<dyn nibi_kernel_api::session_control::SessionControlCreatedNotifier>,
+        >,
+        archive_reader: Option<
+            Arc<dyn nibi_kernel_api::session_control::SessionArchiveReader>,
+        >,
+    ) {
         let host: Arc<dyn nibi_kernel_api::session_control::SessionControlHost> = Arc::new(
             session_control::KernelSessionControlHost::new(
                 Arc::downgrade(self),
                 created_notifier,
+                archive_reader,
             ),
         );
         let _ = self.session_control_host.set(host);

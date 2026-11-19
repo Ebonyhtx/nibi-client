@@ -200,7 +200,11 @@ describe("CLI owner boundary", () => {
       atMessage: "message-5",
       requestId: "fork",
     });
-    expect(ports.calls.map((call) => call.method)).toEqual(["authorize", "forkSession"]);
+    expect(ports.calls.map((call) => call.method)).toEqual([
+      "authorize",
+      "isSessionArchived",
+      "forkSession",
+    ]);
     expect(ports.calls.at(-1)?.input).toMatchObject({ atMessage: "message-5" });
   });
 });

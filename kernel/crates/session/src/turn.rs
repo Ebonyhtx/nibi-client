@@ -418,10 +418,15 @@ impl Actor {
         let (checkpoints, extra) = self.settle_checkpoints(&message);
         let command = self.command_of(message.id());
         // 本回合开头的人类输入：之前没有 user 消息时是首个回合（会话标题，title.rs）。
+        // 受管 worktree 的创建事实只在这一刻取走：首轮输入落库时写成 timeline part
+        // （Node：ensureSessionPersisted 之后、TurnStarted 之前），之后的回合不会重复写。
         let prompt = self
             .running
             .as_ref()
             .is_some_and(|running| running.prompt.as_ref() == Some(message.id()));
+        let worktree_creation = prompt
+            .then(|| self.pending_worktree_creation.take())
+            .flatten();
         // 这条输入带了规范意图：与消息同一批落库（Node 消息的 `metadata.conversationInputIntent`）。
         let intent = prompt
             .then(|| {
@@ -432,6 +437,12 @@ impl Actor {
             .flatten()
             .and_then(|command| self.pending_intents.remove(&command));
         let mut facts = vec![fact];
+        if let Some(creation) = &worktree_creation {
+            // 与 Node 同一存储顺序：timeline-only assistant 消息排在首轮 user 消息之前。
+            facts.insert(0, Fact::WorktreeCreation {
+                creation: creation.clone(),
+            });
+        }
         if let Some(intent) = &intent {
             facts.insert(
                 0,
@@ -469,6 +480,15 @@ impl Actor {
         // ContextNotice：以前只发 `(token, 有效窗口)`，TUI 只能显示 `N% context used` 一种）。F27 起同一处另发
         // `(token, 有效窗口)`，给 footer 的 ctx。
         let usage = matches!(&message, Message::Assistant(assistant) if assistant.usage.is_some());
+        // 首轮输入与 worktree_creation part 已同批落库：现在发事件，投影在用户输入行之前落轮顶标记。
+        if let Some(creation) = worktree_creation {
+            self.worktree_creations
+                .push(nibi_kernel_api::store::WorktreeCreationTurn {
+                    message: message.id().clone(),
+                    creation: creation.clone(),
+                });
+            self.log.append(KernelEvent::WorktreeCreated { creation });
+        }
         self.log.append(KernelEvent::MessageDone { message });
         if usage {
             self.context_changed();

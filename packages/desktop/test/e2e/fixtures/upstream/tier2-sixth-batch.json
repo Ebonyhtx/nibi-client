@@ -1,0 +1,261 @@
+{
+  "version": 1,
+  "fixtures": [
+    {
+      "id": "tier2-sixth-batch-image-title",
+      "description": "Tier 2 sixth batch: stable title request for the image-preview turn.",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "标题与 U27 图片预览无关；固定标题避免副作用。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": ["E2E_TIER2_SIXTH_IMAGE", "Generate a concise title"],
+        "bodyExcludes": ["CRITICAL: Respond with TEXT ONLY"]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "msg_tier2_sixth_image_title",
+          "text": "{\"title\":\"Sixth Image Turn\"}",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "tier2-sixth-batch-image-title-cli",
+      "description": "Tier 2 sixth batch: CLI title-language variant for the image turn.",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "同一标题的兼容匹配；不改变图片预览链路。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": ["E2E_TIER2_SIXTH_IMAGE", "Write the title in the predominant language"],
+        "bodyExcludes": ["CRITICAL: Respond with TEXT ONLY"]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "msg_tier2_sixth_image_title_cli",
+          "text": "{\"title\":\"Sixth Image Turn\"}",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "tier2-sixth-batch-image",
+      "description": "U27: assistant 返回一条本机 PNG 的 Markdown 图片，真实打开预览操作条。",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "图片由本地 fixture 文件真实读取；模型只负责产生 Markdown 引用。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "lastUserMessageIncludes": ["E2E_TIER2_SIXTH_IMAGE"],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY",
+          "Write the title in the predominant language"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "msg_tier2_sixth_image",
+          "inputTokens": 96,
+          "outputTokens": 24,
+          "text": "![Sixth batch image](./sixth-batch-image.png)"
+        }
+      }
+    },
+    {
+      "id": "tier2-sixth-batch-send-title",
+      "description": "Tier 2 sixth batch: stable title request for the cross-session send turn.",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "标题与 U30 来源提示无关；固定标题避免副作用。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": ["E2E_TIER2_SIXTH_SEND", "Generate a concise title"],
+        "bodyExcludes": ["CRITICAL: Respond with TEXT ONLY"]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "msg_tier2_sixth_send_title",
+          "text": "{\"title\":\"Sixth Send Turn\"}",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "tier2-sixth-batch-send-title-cli",
+      "description": "Tier 2 sixth batch: CLI title-language variant for the cross-session send turn.",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "同一标题的兼容匹配；不改变 SendToSession 链路。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": ["E2E_TIER2_SIXTH_SEND", "Write the title in the predominant language"],
+        "bodyExcludes": ["CRITICAL: Respond with TEXT ONLY"]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "msg_tier2_sixth_send_title_cli",
+          "text": "{\"title\":\"Sixth Send Turn\"}",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "tier2-sixth-batch-send-to-session",
+      "description": "U30: 来源会话真实调用 SendToSession，把一条 prompt 投递给固定 id 的目标会话。",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "工具本身由 Rust/CLI 真实执行；fixture 只固定目标 sessionId。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "lastUserMessageIncludes": ["E2E_TIER2_SIXTH_SEND"],
+        "bodyExcludes": [
+          "toolu_e2e_sixth_send",
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY",
+          "Write the title in the predominant language"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "toolUses": [
+          {
+            "id": "toolu_e2e_sixth_send",
+            "name": "SendToSession",
+            "input": {
+              "sessionId": "sess_e2e_sixth_target",
+              "prompt": "E2E_TIER2_SIXTH_TARGET: reply with SIXTH_BATCH_TARGET_OK."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tier2-sixth-batch-send-final-text",
+      "description": "U30: SendToSession 工具结果回收后的来源会话最终文本。",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "终结来源回合；目标会话的输入已经真实投递。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": ["toolu_e2e_sixth_send"],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY",
+          "Write the title in the predominant language"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": "upstream-e2e-ok"
+      }
+    },
+    {
+      "id": "tier2-sixth-batch-target-title",
+      "description": "Tier 2 sixth batch: title request for the target session after cross-session delivery.",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "目标会话已有 custom title；该 fixture 只防未匹配 500。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": ["E2E_TIER2_SIXTH_TARGET", "Generate a concise title"],
+        "bodyExcludes": ["toolu_e2e_sixth_send", "CRITICAL: Respond with TEXT ONLY"]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "msg_tier2_sixth_target_title",
+          "text": "{\"title\":\"Sixth Batch Target\"}",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "tier2-sixth-batch-target-title-cli",
+      "description": "Tier 2 sixth batch: CLI title-language variant for the target session.",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "目标会话已有 custom title；该 fixture 只防未匹配 500。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": ["E2E_TIER2_SIXTH_TARGET", "Write the title in the predominant language"],
+        "bodyExcludes": ["toolu_e2e_sixth_send", "CRITICAL: Respond with TEXT ONLY"]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "msg_tier2_sixth_target_title_cli",
+          "text": "{\"title\":\"Sixth Batch Target\"}",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "tier2-sixth-batch-target-text",
+      "description": "U30: 目标会话收到跨会话输入后的最终文本。",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "目标回合只需一个终态文本，来源 row 由真实投递产生。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "lastUserMessageIncludes": ["E2E_TIER2_SIXTH_TARGET"],
+        "bodyExcludes": [
+          "toolu_e2e_sixth_send",
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY",
+          "Write the title in the predominant language"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": "SIXTH_BATCH_TARGET_OK"
+      }
+    }
+  ]
+}

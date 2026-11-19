@@ -9,6 +9,11 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CoreErrorType } from "@nibi/contracts";
 import { builtInTools } from "../src/tool/handlers/index.js";
+import {
+  projectNodeContractTool,
+  stableStringify,
+} from "../../../../../scripts/check-dual-kernel-parity.mjs";
+import { exportNodeToolEntries } from "../../../../../scripts/lib/export-node-tool-contract.mjs";
 
 interface CanonicalTool {
   name: string;
@@ -65,6 +70,73 @@ const CANONICAL_URL = new URL(
   import.meta.url,
 );
 const canonical = JSON.parse(readFileSync(CANONICAL_URL, "utf8")) as CanonicalDocument;
+
+/** X02 schema/结果预算快照；Node 半区必须与活动 builtInTools 的投影逐项一致。 */
+interface ContractFixtureTool {
+  side: "both" | "node" | "rust";
+  node?: {
+    inputSchema: unknown;
+    resultBudget: unknown;
+    maxModelChars: number | null;
+  };
+  rust?: Record<string, unknown>;
+}
+
+interface ContractFixture {
+  version: number;
+  tools: Record<string, ContractFixtureTool>;
+  allowlist: Array<Record<string, unknown>>;
+}
+
+const CONTRACT_FIXTURE_URL = new URL(
+  "../../../../../scripts/fixtures/dual-kernel-tool-parity.json",
+  import.meta.url,
+);
+const contractFixture = JSON.parse(
+  readFileSync(CONTRACT_FIXTURE_URL, "utf8"),
+) as ContractFixture;
+
+/**
+ * 纯比较函数：fixture 的 node 半区 vs 活动 builtInTools 经同一条导出投影后的结果。
+ * 返回错误消息；空数组表示 fixture 新鲜。
+ */
+export function compareNodeContractFixture(
+  fixture: ContractFixture,
+  entries: readonly ReturnType<typeof exportNodeToolEntries>[number][],
+): string[] {
+  const errors: string[] = [];
+  const live = new Map(
+    entries.map((entry) => [entry.name, projectNodeContractTool(entry)]),
+  );
+  const fixtureNodeTools = Object.entries(fixture.tools)
+    .filter(([, record]) => record.node !== undefined)
+    .map(([name]) => name);
+
+  // fixture 只收录 canonical 工具；builtInTools 里还有 scope.excluded 的跨层工具
+  // （Agent/Skill/MCP 等），它们由 canonical 测试单独核对，这里只要求 fixture 覆盖到的
+  // 每个工具在活动注册表里存在且逐项一致。
+  for (const name of fixtureNodeTools) {
+    const expected = fixture.tools[name]?.node;
+    const actual = live.get(name);
+    if (!actual) {
+      errors.push(`missing:${name}（fixture 有，活动 builtInTools 没有）`);
+      continue;
+    }
+    if (!expected) continue;
+    if (stableStringify(actual.inputSchema) !== stableStringify(expected.inputSchema)) {
+      errors.push(`${name}: inputSchema 与 fixture 不一致（先 --update 固化，再确认差异是否该走 allowlist）`);
+    }
+    if (stableStringify(actual.resultBudget) !== stableStringify(expected.resultBudget)) {
+      errors.push(`${name}: resultBudget 与 fixture 不一致`);
+    }
+    if (actual.maxModelChars !== expected.maxModelChars) {
+      errors.push(
+        `${name}: maxModelChars 与 fixture 不一致（fixture ${expected.maxModelChars}，活动 ${actual.maxModelChars}）`,
+      );
+    }
+  }
+  return errors;
+}
 
 function cloneDocument(): CanonicalDocument {
   return structuredClone(canonical);
@@ -259,6 +331,38 @@ describe("dual-kernel tool parity (Node side)", () => {
     } satisfies NodeToolEntry;
     expect(compareNodeRegistry(canonical, [...builtInTools, extra]).join("\n")).toContain(
       "Monitor: canonical 标记为 Rust 单侧，但 Node builtInTools 注册了它",
+    );
+  });
+});
+
+describe("dual-kernel tool contract freshness (Node side)", () => {
+  it("fixture 的 Node 半区与活动 builtInTools 完全一致", () => {
+    expect(compareNodeContractFixture(contractFixture, exportNodeToolEntries())).toEqual([]);
+  });
+
+  it("mutation: 活动 schema 多一个属性时 fixture 判红", () => {
+    const entries = structuredClone(exportNodeToolEntries());
+    const read = entries.find((entry) => entry.name === "Read");
+    expect(read).toBeDefined();
+    read!.inputSchema = {
+      ...(read!.inputSchema as Record<string, unknown>),
+      properties: {
+        ...((read!.inputSchema as { properties?: Record<string, unknown> }).properties ?? {}),
+        __x02_freshness_mutation: { type: "string" },
+      },
+    };
+    expect(compareNodeContractFixture(contractFixture, entries).join("\n")).toContain(
+      "Read: inputSchema 与 fixture 不一致",
+    );
+  });
+
+  it("mutation: 活动 maxModelChars 改动时 fixture 判红", () => {
+    const entries = structuredClone(exportNodeToolEntries());
+    const read = entries.find((entry) => entry.name === "Read");
+    expect(read).toBeDefined();
+    read!.maxModelChars = 1;
+    expect(compareNodeContractFixture(contractFixture, entries).join("\n")).toContain(
+      "Read: maxModelChars 与 fixture 不一致",
     );
   });
 });

@@ -307,6 +307,7 @@ impl Setup {
                 launches: self.launches,
                 model_turns: Vec::new(),
                 input_intents: Vec::new(),
+                worktree_creations: Vec::new(),
                 draft: self.draft,
             },
             self.opened,

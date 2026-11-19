@@ -72,6 +72,11 @@ export interface AppControlMutationResult {
   reason?: string;
 }
 
+/** 读归档事实的内部端口（不是模型工具）：未知时不带 archived，不伪造「未归档」。 */
+export interface AppControlSessionStateResult {
+  archived?: boolean;
+}
+
 /** 反向请求的参数（内核 → Host）。 */
 export interface AppControlRequestEnvelope {
   callerSessionId: string;
@@ -91,6 +96,7 @@ export const APP_CONTROL_METHODS = {
   openSession: "appControl/openSession",
   setSessionArchived: "appControl/setSessionArchived",
   setSessionPinned: "appControl/setSessionPinned",
+  sessionArchived: "appControl/sessionArchived",
   cancel: "appControl/cancel",
   /** 内核直接建出会话后的单向通知；不是模型工具，也不返回业务结果。 */
   sessionCreated: "appControl/sessionCreated",

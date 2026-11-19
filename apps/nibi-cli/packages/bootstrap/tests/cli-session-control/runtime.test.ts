@@ -36,6 +36,7 @@ const messages: MessageWithParts[] = [
 
 function fakeApp() {
   const titles: string[] = [];
+  const submitted: Array<{ input: string; options?: Record<string, unknown> }> = [];
   const app = {
     sessionId: root.id,
     traceId: "trace",
@@ -48,13 +49,21 @@ function fakeApp() {
       stopActiveForegroundExecution: () => ({ kind: "idle" }),
       cancelRunningRuntimeBackgroundTasks: async () => undefined,
     },
+    sendInput: async (input: string, options?: Record<string, unknown>) => {
+      submitted.push({ input, options });
+      return {
+        kind: "started_turn",
+        turnId: "turn-send-to-session",
+        completion: Promise.resolve({ events: [] }),
+      };
+    },
     clearQueueItems: async () => 0,
     setCustomSessionTitle: async ({ title }: { title: string }) => {
       titles.push(title);
     },
     close: async () => undefined,
   } as unknown as NibiApp;
-  return { app, titles };
+  return { app, titles, submitted };
 }
 
 function fakeStore(): SessionStorePort {
@@ -79,7 +88,7 @@ function context(): Parameters<SessionControlHost["listSessions"]>[0] {
 }
 
 function fixture() {
-  const { app, titles } = fakeApp();
+  const { app, titles, submitted } = fakeApp();
   const runtime = createNibiSessionControlRuntime({
     workspace: { kind: "cli", workspacePath: workspace },
     sessionStore: fakeStore(),
@@ -88,7 +97,7 @@ function fixture() {
     },
   });
   runtime.attachRoot(app, "new-independent-root");
-  return { runtime, control: runtime.control, titles };
+  return { runtime, control: runtime.control, titles, submitted };
 }
 
 describe("NibiSessionControlRuntime production adapter", () => {
@@ -132,6 +141,24 @@ describe("NibiSessionControlRuntime production adapter", () => {
         requestId: "request-1",
       }),
     ).rejects.toMatchObject({ code: "conflict" });
+  });
+
+  it("sendToSession records the caller session as the input source", async () => {
+    const { control, submitted } = fixture();
+    await expect(
+      control.sendToSession(context(), {
+        sessionId: "sess_root",
+        prompt: "hello from caller",
+        requestId: "send-1",
+      }),
+    ).resolves.toMatchObject({ admission: "accepted" });
+    expect(submitted).toHaveLength(1);
+    expect(submitted[0]?.options).toMatchObject({
+      intent: {
+        text: "hello from caller",
+        source: { kind: "session", sessionId: "sess_root" },
+      },
+    });
   });
 
   it("denies a target outside the manager workspace", async () => {

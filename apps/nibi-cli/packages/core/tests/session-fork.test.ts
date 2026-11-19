@@ -762,6 +762,107 @@ describe("session fork history", () => {
     }
   });
 
+  it("forkAssistant.targetCwd：child 建在目标 cwd，workspaceID 沿用父会话，路径 allow 规则不带入", async () => {
+    const user = userMessage("msg_tc_user" as MessageId, "fork to worktree", 1);
+    const assistant = assistantMessage(
+      "msg_tc_assistant" as MessageId,
+      user.info.id,
+      "done",
+      2,
+    );
+    const parentSession = {
+      directory: "/repo",
+      id: SESSION_ID,
+      path: "/repo",
+      projectID: "project-parent",
+      slug: "parent-worktree",
+      taskType: "interactive",
+      time: { created: 1, updated: 1 },
+      title: "parent",
+      version: "test",
+      workspaceID: "ws-parent",
+      permission: {
+        allow: [{ permission: "bash", pattern: "/repo/**" }],
+        deny: [{ permission: "webfetch", pattern: "*" }],
+        mode: "build",
+      },
+    } as unknown as SessionInfo;
+    let committedBundle: Parameters<NonNullable<SessionStorePort["commitForkBundle"]>>[0] | null =
+      null;
+    const runtime = {
+      appendEvent: async () => undefined,
+      config: { agentName: "nibi-agent", mode: "build" },
+      createEvent: (_type: unknown, payload: Record<string, unknown>) => ({ payload }),
+      getSessionModelSelection: () => ({ modelId: "glm-4-air", providerId: "glm" }),
+      rootTraceContext: { traceId: "trace_target_cwd" },
+      sessionId: SESSION_ID,
+      sessionStore: {
+        async commitForkBundle(bundle) {
+          committedBundle = bundle;
+          return bundle.child as SessionInfo;
+        },
+        async getSession() {
+          return parentSession;
+        },
+        async messages() {
+          return [user, assistant];
+        },
+      } satisfies Partial<SessionStorePort>,
+      workingDirectory: "/repo",
+      workspaceRoot: "/repo",
+    };
+
+    await forkStableConversationAtMessage.call(runtime as never, {
+      forkedSessionId: "sess_worktree_child" as SessionId,
+      goalBoundary: { kind: "none" },
+      sourceCommandId: "cmd-target-cwd",
+      target: {
+        productTurnId: "product-tc",
+        transcriptTurnId: "turn-tc",
+        orderedMessageIds: [String(user.info.id), String(assistant.info.id)],
+        boundaryMessageId: String(assistant.info.id),
+      },
+      targetCwd: {
+        directory: "/worktrees/3f2a/repo/packages/ui",
+        projectID: "project-worktree",
+        worktreeCreation: { path: "/worktrees/3f2a/repo", sha: "abc", ref: null, output: "" },
+      },
+    });
+
+    expect(committedBundle!.child).toMatchObject({
+      id: "sess_worktree_child",
+      projectID: "project-worktree",
+      workspaceID: "ws-parent",
+      directory: "/worktrees/3f2a/repo/packages/ui",
+      path: "/worktrees/3f2a/repo/packages/ui",
+      parentID: SESSION_ID,
+    });
+    expect(committedBundle!.child.permission).toEqual({
+      deny: [{ permission: "webfetch", pattern: "*" }],
+      mode: "build",
+    });
+    // fork 分隔标记所在的宿主消息里追加 worktree_creation part（docs/git/worktree.md §6.6.4）。
+    const notice = committedBundle!.messages.find((message) =>
+      message.parts.some(
+        (part) => part.type === "timeline" && part.timelineType === "session_fork",
+      ),
+    );
+    expect(notice?.parts).toContainEqual(
+      expect.objectContaining({
+        type: "timeline",
+        timelineType: "worktree_creation",
+        display: "worklog",
+        status: "completed",
+        worktreeCreation: {
+          path: "/worktrees/3f2a/repo",
+          sha: "abc",
+          ref: null,
+          output: "",
+        },
+      }),
+    );
+  });
+
   it("fork-of-fork 只从 child-local anchor 构造 canonical target，不泄漏 parent id", () => {
     const user = userMessage("msg_parent_user" as MessageId, "fork twice", 1);
     const assistant = assistantMessage(

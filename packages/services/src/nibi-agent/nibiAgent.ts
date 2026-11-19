@@ -227,6 +227,27 @@ export interface NibiAgentRuntimeLifecycleEvent extends NibiAgentWorkspaceTarget
   state: "available" | "unavailable";
 }
 
+/**
+ * 主泳道 agent runtime 意外退出（用户主动 dispose/重启不发布）。
+ *
+ * 只带退出事实与已脱敏的主诊断摘要；原始 stderr 不进入 renderer。UI 用 category
+ * 区分内存不足与其它崩溃，并据此显示非阻断横幅。
+ */
+export interface NibiAgentRuntimeExitedEvent extends NibiAgentWorkspaceTarget {
+  workspaceKey: string;
+  runtimeIdentity: NibiAgentWorkspaceRuntimeIdentity;
+  exitCode: number | null;
+  signal: string | null;
+  /** `classifyExit` 的分类；意外退出不会是 normal。 */
+  category: import("@nibi/shared/crash-diagnostics").CrashCategory;
+  /** 主诊断分类（oom / sqlite / errno / generic / none）。 */
+  diagnosticClass?: import("@nibi/shared/crash-diagnostics").DiagnosticClass;
+  errorCode?: string;
+  /** 已按 workspace 脱敏、有界的主诊断摘要。 */
+  diagnosticSummary?: string;
+  exitedAt: number;
+}
+
 export type NibiAgentCuaPermissionObservation = CuaPermissionObservation & NibiAgentWorkspaceTarget;
 
 export interface NibiAgentCreateSessionParams extends NibiAgentWorkspaceTarget {
@@ -529,12 +550,20 @@ export interface NibiAgentConversationFileRewindPreviewParams extends NibiAgentS
   baseLogEpoch: string;
 }
 
+/**
+ * createSession.cwd / worktreeCreation 与 forkAssistant.targetCwd 只允许 Host 的受管 worktree
+ * 服务设置；Symbol 键无法经 RPC 序列化伪造。
+ */
+export const HOST_WORKTREE_COMMAND: unique symbol = Symbol("nibi.hostWorktreeCommand");
+
 export interface NibiAgentConversationCommandParams extends NibiAgentWorkspaceTarget {
   /** 仅 Host 消费；显式 NULL 表示全局任务，不向 CLI 发送项目概念。 */
   projectId?: string | null;
   envelope: CommandEnvelope;
   /** 仅 host 内部用于 Browser Use runtime 边界，不进入 v4 wire envelope。 */
   clientMode?: NibiTaskClientMode;
+  /** 只有 Host 进程内的受管 worktree 服务设置（见 HOST_WORKTREE_COMMAND）。 */
+  [HOST_WORKTREE_COMMAND]?: true;
 }
 
 export interface NibiAgentCommandsQueryParams extends NibiAgentWorkspaceTarget {
@@ -716,6 +745,19 @@ export interface INibiAgentService {
   executeSessionDeletion(
     params: NibiAgentSessionDeletionExecuteParams,
   ): Promise<V4SessionDeletionExecuteResult>;
+  /**
+ * 请求项目 CLI 卸载 cwd 位于 directory 内的全部驻留会话（session/releaseUnderDirectory）。
+ * 只使用已存在的 CLI 进程；没有进程时返回空结果。
+ */
+releaseSessionsUnderDirectory?(
+    params: NibiAgentWorkspaceTarget & { directory: string },
+  ): Promise<{ released: string[]; busy: string[] }>;
+  /** 按 commandId 查询 CLI 对命令的裁决；CLI 没有记录时为 "unknown"。 */
+  queryCommandResult?(
+    params: NibiAgentWorkspaceTarget & { key: CommandKey },
+  ): Promise<CommandAck | "unknown">;
+  /** 该 workspace 的 CLI 是否支持会话 cwd 与 workspace 不同（受管 worktree 任务）。 */
+  supportsWorktreeCwd?(target: NibiAgentWorkspaceTarget): Promise<boolean>;
   readSession(params: NibiAgentReadSessionParams): Promise<NibiSessionStateSnapshot>;
   readSessionMessages(params: NibiAgentReadSessionMessagesParams): Promise<NibiMessageWithParts[]>;
   readSessionDebug(params: NibiAgentSessionTarget): Promise<SessionDebugSnapshot>;
@@ -1072,6 +1114,13 @@ export interface INibiAgentService {
    */
   onAgentRuntimeLifecycle?: (
     listener: (event: NibiAgentRuntimeLifecycleEvent) => void,
+  ) => IDisposable;
+  /**
+   * Runtime 意外退出的原因事实（退出码/信号/分类 + 脱敏摘要）。用户主动 dispose、
+   * 空闲回收与 watchdog 重启都不发布；UI 据此显示非阻断横幅。
+   */
+  onAgentRuntimeExited?: (
+    listener: (event: NibiAgentRuntimeExitedEvent) => void,
   ) => IDisposable;
   /** 当前 desktop-local CUA turn 是否仍在执行，用于 Helper recovery 避免中途回收 Agent。 */
   hasActiveCuaOperationTurn(): boolean;

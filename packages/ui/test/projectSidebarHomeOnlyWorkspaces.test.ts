@@ -37,7 +37,7 @@ vi.mock("@/hooks/useWorkspaceServices.js", () => {
     nibiTaskService: { onDynamicWorkspaceEvent: () => () => ({ dispose() {} }) },
     broadcastService: { onMessage: () => ({ dispose() {} }) },
   };
-  return { useBaseWorkspaceServices: () => base };
+  return { useBaseWorkspaceServices: () => base, useOptionalBaseWorkspaceServices: () => base };
 });
 vi.mock("@/store/TabStoreProvider.js", () => ({
   useTabStore: (selector: (state: typeof fixture.state) => unknown) => selector(fixture.state),

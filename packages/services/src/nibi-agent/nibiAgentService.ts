@@ -117,6 +117,7 @@ import {
   nibiToolExecResourceSchema,
   nibiProcessResourceSampleSchema,
   nibiSessionCloseResultSchema,
+  nibiSessionReleaseUnderDirectoryResultSchema,
   nibiSessionCompactResultSchema,
   nibiSessionEventsResultSchema,
   nibiSessionGoalResultSchema,
@@ -164,7 +165,7 @@ import type {
 } from "#src/model-provider/accountRequestAuthService.js";
 import { mergeAutomationMutationToolDenylist } from "#src/nibi-agent/automationToolPolicy.js";
 import { APP_CONTROL_METHOD_NAMES, type IAppControlReverseRpc } from "#src/app-control/contract.js";
-import { NIBI_AGENT_RUNTIME_UNAVAILABLE_CODE } from "./nibiAgent.js";
+import { HOST_WORKTREE_COMMAND, NIBI_AGENT_RUNTIME_UNAVAILABLE_CODE } from "./nibiAgent.js";
 import type {
   NibiProtocolRequestId,
   ModelSelection,
@@ -345,6 +346,7 @@ import {
   type SessionsIndexTopicWireCandidate,
   type WorkspaceConfigTopicWireCandidate,
   type CommandEnvelope,
+  type CommandKey,
 } from "@nibi/shared/nibi-protocol-v4";
 import {
   readTrustedNibiAgentV4Connection,
@@ -1034,6 +1036,14 @@ interface CreateNibiAgentServiceOptions extends Omit<
     taskId: string;
   }) => Promise<boolean>;
   resolveSessionDirectories?: (target: NibiAgentSessionTarget) => Promise<string[]>;
+  /**
+   * 受管 worktree 删除租约闸门：包裹会话命令与冷订阅。删除期间拒绝 cwd 位于 worktree 内的
+   * 会话操作，并让删除方等待已通过闸门的操作结束。
+   */
+  runSessionOperation?: <T>(
+    target: NibiAgentWorkspaceTarget & { sessionId: string },
+    operation: () => Promise<T>,
+  ) => Promise<T>;
   resolveSessionRuntimePreferences?: (
     scope: NibiSessionRuntimePreferencesScope,
   ) => Promise<NibiSessionRuntimePreferencesResult>;
@@ -1247,6 +1257,8 @@ export function createNibiAgentService(
   const interactionPreferenceSyncByWorkspaceKey = new Map<string, Promise<void>>();
   /** runtime/capabilities 探测按物理连接缓存：同一连接的换代重连会拿到新 client 重新探测。 */
   const conversationQuoteCommentChecks = new WeakMap<NibiProtocolClient, Promise<boolean>>();
+  /** 受管 worktree 的 cwd 能力同样按物理连接缓存。 */
+  const worktreeCwdChecks = new WeakMap<NibiProtocolClient, Promise<boolean>>();
   let latestAppRuntimePreferences: NibiAgentAppRuntimePreferences | undefined;
   /** 服务端「提供」的进程内单次读取；见 resolveDynamicWorkflowGate 的注释。 */
   let dynamicWorkflowOffer: Promise<DynamicWorkflowClientConfig | undefined> | undefined;
@@ -3359,10 +3371,26 @@ export function createNibiAgentService(
       : { dynamicWorkflowEnabled: false };
   }
 
+  function isHostWorktreeCommand(params: NibiAgentConversationCommandParams): boolean {
+    return (params as { [HOST_WORKTREE_COMMAND]?: unknown })[HOST_WORKTREE_COMMAND] === true;
+  }
+
+  function assertNoHostOnlyWorktreeFields(envelope: CommandEnvelope): void {
+    const payload = (envelope.payload ?? {}) as Record<string, unknown>;
+    const forbidden =
+      envelope.type === "createSession"
+        ? payload.cwd !== undefined || payload.worktreeCreation !== undefined
+        : envelope.type === "forkAssistant" && payload.targetCwd !== undefined;
+    if (forbidden) throw new Error("worktree.host-only-field");
+  }
+
   async function buildConversationCommandEnvelope(
     params: NibiAgentConversationCommandParams,
   ): Promise<CommandEnvelope> {
     const envelope = params.envelope;
+    // cwd / worktreeCreation / targetCwd 只允许 Host 的 worktree 服务设置：渲染进程与手机经
+    // RPC 传来的 JSON 无法携带 Symbol 键，因此不能伪造。
+    if (!isHostWorktreeCommand(params)) assertNoHostOnlyWorktreeFields(envelope);
     if (envelope.type === "createSession") {
       const { dynamicWorkflowEnabled, dynamicWorkflowMode } =
         await resolveDynamicWorkflowSessionFlags();
@@ -3421,7 +3449,7 @@ export function createNibiAgentService(
     return envelope;
   }
 
-  return {
+  const service: INibiAgentService & { disposeAllAndWait(): Promise<void> } = {
     async prepareStorage(params) {
       const client = await processManager.getClient(params);
       wireClient(client, params, "chat");
@@ -3534,6 +3562,19 @@ export function createNibiAgentService(
         .then((result) => result.conversationQuoteComment === true)
         .catch(() => false);
       conversationQuoteCommentChecks.set(client, check);
+      return check;
+    },
+
+    async supportsWorktreeCwd(target: NibiAgentWorkspaceTarget) {
+      // 旧 CLI 会静默丢弃 cwd / targetCwd，把会话建在 workspace 目录；Host 必须在发送前确认。
+      const client = await getReadOnlyClient(target);
+      const existing = worktreeCwdChecks.get(client);
+      if (existing) return existing;
+      const check = client
+        .request(nibiProtocolMethods.runtimeCapabilities, {}, nibiRuntimeCapabilitiesSchema)
+        .then((result) => result.worktreeCwd === true)
+        .catch(() => false);
+      worktreeCwdChecks.set(client, check);
       return check;
     },
 
@@ -5181,6 +5222,19 @@ export function createNibiAgentService(
       return result.closed ?? true;
     },
 
+    async releaseSessionsUnderDirectory(
+      params: NibiAgentWorkspaceTarget & { directory: string },
+    ): Promise<{ released: string[]; busy: string[] }> {
+      // 绝不为卸载拉起 CLI：没有进程时没有驻留会话。
+      const client = processManager.getExistingClient(params);
+      if (!client || client.isDisposed) return { released: [], busy: [] };
+      return await client.request(
+        nibiProtocolMethods.sessionReleaseUnderDirectory,
+        { directory: params.directory },
+        nibiSessionReleaseUnderDirectoryResultSchema,
+      );
+    },
+
     async setModel(params: NibiAgentSetModelParams) {
       const startedAt = Date.now();
       const client = await getClient(params);
@@ -5949,6 +6003,18 @@ export function createNibiAgentService(
       return client.request(V4_METHODS.commandsQuery, query, commandsQueryResultSchema);
     },
 
+    async queryCommandResult(params: NibiAgentWorkspaceTarget & { key: CommandKey }) {
+      // 命令结果是 CLI 的事实；Host 内部查询不经 RPC 可信 carrier，直接使用只读连接。
+      // 进程已退出时以只读方式拉起，读取持久化的命令记录。
+      const client = await getReadOnlyClient(params);
+      const result = await client.request(
+        V4_METHODS.commandsQuery,
+        commandsQueryParamsSchema.parse({ commands: [params.key] }),
+        commandsQueryResultSchema,
+      );
+      return result.results[0]?.result ?? "unknown";
+    },
+
     async attachmentBeginV4(params: NibiAgentAttachmentBeginParams) {
       const trusted = readTrustedNibiAgentV4Connection(params);
       if (!trusted) throw new Error("fault.attachment.connectionUntrusted");
@@ -6461,6 +6527,10 @@ export function createNibiAgentService(
       return processManager.onRuntimeLifecycle(listener);
     },
 
+    onAgentRuntimeExited(listener) {
+      return processManager.onRuntimeExited(listener);
+    },
+
     async disposeWorkspace(params): Promise<void> {
       const workspaceKey = resolveWorkspaceKey(params);
       // 释放不仅要终止当前进程，还要让已排队的 provider-ready continuation 失效；
@@ -6502,4 +6572,20 @@ export function createNibiAgentService(
       disposeLocalState();
     },
   };
+
+  // 删除 worktree 期间拒绝其中会话的新命令与冷订阅，避免在正被删除的目录里启动 turn 或恢复会话。
+  const runSessionOperation = options?.runSessionOperation;
+  if (runSessionOperation) {
+    const send = service.sendConversationCommandV4.bind(service);
+    service.sendConversationCommandV4 = (params) => {
+      const sessionId = params.envelope.sessionId;
+      return sessionId
+        ? runSessionOperation({ ...params, sessionId }, () => send(params))
+        : send(params);
+    };
+    const subscribe = service.subscribeConversationV4.bind(service);
+    service.subscribeConversationV4 = (params) =>
+      runSessionOperation({ ...params, sessionId: params.sessionId }, () => subscribe(params));
+  }
+  return service;
 }

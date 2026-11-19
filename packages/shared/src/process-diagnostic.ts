@@ -69,6 +69,14 @@ export type DiagnosticClass = "oom" | "sqlite" | "errno" | "generic" | "none";
 /** Windows 受控终止退出码（服务控制/CTRL_C_EVENT 的包装）。 */
 const WINDOWS_CONTROLLED_TERMINATION_EXIT_CODE = 0x40010004;
 
+/**
+ * Chromium/PartitionAlloc 在 Windows 上内存分配失败时终止进程的异常码（kOomExceptionCode）。
+ * Agent runtime 以 ELECTRON_RUN_AS_NODE 运行在同一个 Electron 可执行文件里，系统可提交内存
+ * 耗尽时以它退出，且通常不写 stderr。Node 报无符号值，个别通道可能给出有符号 int32，统一按
+ * 32 位无符号比较。其它平台没有同等确定的签名，不按信号推断 OOM。
+ */
+const WINDOWS_NATIVE_OUT_OF_MEMORY_EXIT_CODE = 0xe0000008;
+
 const OOM_DIAGNOSTIC_PATTERN = /\b(?:JavaScript heap out of memory|Reached heap limit)\b/i;
 const SQLITE_DIAGNOSTIC_PATTERN =
   /\bSQLiteError\b|\bSQLite\s+(?:migration|database|initialization|lock)\b|\bdatabase (?:is locked|disk image is malformed)\b/i;
@@ -163,6 +171,8 @@ export function classifyExit(info: ExitInfo): CrashCategory {
     reason === "oom" ||
     reason === "memory-eviction" ||
     reason === "out-of-memory" ||
+    (typeof info.exitCode === "number" &&
+      info.exitCode >>> 0 === WINDOWS_NATIVE_OUT_OF_MEMORY_EXIT_CODE) ||
     info.diagnostics?.some((diagnostic) => diagnostic.class === "oom") === true ||
     OOM_DIAGNOSTIC_PATTERN.test(diagnosticText) ||
     diagnosticCodes.includes("ERR_OUT_OF_MEMORY") ||

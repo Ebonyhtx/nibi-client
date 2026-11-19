@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useRef } from "react";
 import { EMBEDDED_BROWSER_DESIGN_BRIDGE, EmbeddedBrowserWebviewChannels } from "@nibi/shared";
 import {
+  buildDesignPageSignalsScript,
   buildDesignRuntimeCommandScript,
   buildDesignRuntimeInstallScript,
   parseDesignPageInfo,
+  parseDesignPageSignals,
   parseDesignRuntimeEvents,
   parseDesignRuntimeReply,
   type DesignPageInfo,
+  type DesignPageSignals,
   type DesignRuntimeCommand,
   type DesignRuntimeEvent,
 } from "@nibi/design-runtime";
@@ -14,16 +17,17 @@ import { logger } from "@/logger.js";
 
 // 设计工具的宿主 ↔ 页面通信：
 //
-//   进入设计模式 / dom-ready / 重新加载 ──install script──▶ onInstalled(info)
+//   每次 dom-ready / did-stop-loading ──signals script──▶ onSignals（决定设计工具是否自动出现）
+//   active 且 dom-ready / 刚变 active ──install script──▶ onInstalled(info)（宿主把选中、方案重新推给页面）
 //   页面 postMessage ──固定 guest preload──sendToHost──▶ ipc-message(DesignEvents) ──▶ onEvent
 //   宿主 → 页面：run(command) 走 executeJavaScript
 //
-// 注入代号每次安装递增，迟到的旧页面注入结果丢弃。页面可伪造事件，这里只调用
-// design-runtime 的宿主解析器（有长度/数量上限），写回仍由 FileService 二次校验。
+// 注入代号每次 dom-ready 递增，迟到的旧页面注入结果丢弃。页面可伪造事件，这里只调用
+// design-runtime 的宿主解析器（有长度/数量上限）；写回仍由 FileService 二次校验。
 
 export type DesignRuntimeWebview = Pick<
   ElectronWebviewTag,
-  "executeJavaScript" | "addEventListener" | "removeEventListener"
+  "executeJavaScript" | "addEventListener" | "removeEventListener" | "getURL"
 >;
 
 /** dom-ready 之前（或 guest 已卸下）executeJavaScript 会同步抛错；不兜住会冒到 React 渲染树。 */
@@ -35,25 +39,38 @@ function evaluate(webview: DesignRuntimeWebview, code: string): Promise<unknown>
   }
 }
 
+function readUrl(webview: DesignRuntimeWebview): string | null {
+  try {
+    return typeof webview.getURL === "function" ? webview.getURL() : null;
+  } catch {
+    return null;
+  }
+}
+
 export function useBrowserDesignRuntime({
   active,
   onEvent,
   onInstalled,
+  onSignals,
+  probeEnabled,
   webview,
   webviewGeneration,
 }: {
-  /** 运行时是否要装在页面里（设计模式打开时） */
+  /** 运行时是否要装在页面里（设计工具显示中，或当前页正在点选） */
   active: boolean;
   onEvent: (event: DesignRuntimeEvent) => void;
-  /** 每次（重新）注入成功后调用；宿主据此恢复选中、清空过期状态 */
+  /** 每次（重新）注入成功后调用；宿主据此恢复选中、方案和变量预览 */
   onInstalled: (info: DesignPageInfo) => void;
+  onSignals: (signals: DesignPageSignals, pageUrl: string) => void;
+  /** 只有人类用户的浏览器 tab 读设计稿信号 */
+  probeEnabled: boolean;
   webview: DesignRuntimeWebview | null;
   webviewGeneration: number;
 }) {
   const webviewRef = useRef(webview);
   webviewRef.current = webview;
-  const callbacks = useRef({ onEvent, onInstalled });
-  callbacks.current = { onEvent, onInstalled };
+  const callbacks = useRef({ onEvent, onInstalled, onSignals });
+  callbacks.current = { onEvent, onInstalled, onSignals };
 
   const run = useCallback(async (command: DesignRuntimeCommand): Promise<unknown> => {
     const target = webviewRef.current;
@@ -71,6 +88,32 @@ export function useBrowserDesignRuntime({
       return null;
     }
   }, []);
+
+  // 设计稿信号：不装运行时，只读 data-nibi-design / :root CSS 变量 / data-variant / section.slide。
+  useEffect(() => {
+    if (!probeEnabled || !webview) return;
+    let disposed = false;
+    const probe = () => {
+      const target = webviewRef.current;
+      if (!target) return;
+      void evaluate(target, buildDesignPageSignalsScript())
+        .then((value) => {
+          const signals = parseDesignPageSignals(value);
+          const url = readUrl(target);
+          if (!disposed && signals && url !== null) callbacks.current.onSignals(signals, url);
+        })
+        // dom-ready 之前 guest 还不能执行脚本；等下一次事件。
+        .catch(() => undefined);
+    };
+    webview.addEventListener("dom-ready", probe);
+    webview.addEventListener("did-stop-loading", probe);
+    probe();
+    return () => {
+      disposed = true;
+      webview.removeEventListener("dom-ready", probe);
+      webview.removeEventListener("did-stop-loading", probe);
+    };
+  }, [probeEnabled, webview, webviewGeneration]);
 
   useEffect(() => {
     if (!active || !webview) return;
@@ -108,21 +151,12 @@ export function useBrowserDesignRuntime({
       disposed = true;
       webview.removeEventListener("dom-ready", install);
       webview.removeEventListener("ipc-message", handleIpcMessage);
-      // 退出设计模式不 dispose：写进源码的页面预览（CSS 变量 / 元素样式）要留在页面上；
-      // 离开页面或卸载 webview 时才还原页面。
-    };
-  }, [active, webview, webviewGeneration]);
-
-  useEffect(() => {
-    if (!webview) return;
-    const target = webview;
-    return () => {
-      // 组件卸载 / guest 被替换：还原浮层、预览样式与 CSS 变量。
-      void evaluate(target, buildDesignRuntimeCommandScript({ type: "dispose" })).catch(
+      // 运行时卸下时还原页面（浮层、预览样式、CSS 变量、方案）；webview 已销毁时忽略。
+      void evaluate(webview, buildDesignRuntimeCommandScript({ type: "dispose" })).catch(
         () => undefined,
       );
     };
-  }, [webview, webviewGeneration]);
+  }, [active, webview, webviewGeneration]);
 
   return { run };
 }

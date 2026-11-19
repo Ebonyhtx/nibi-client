@@ -23,7 +23,7 @@ function project(id: string, name: string) {
   };
 }
 
-function task(taskId: string, projectId: string | null) {
+function task(taskId: string, projectId: string | null, archived = false) {
   return {
     taskId,
     traceId: `trace_${taskId}`,
@@ -32,11 +32,55 @@ function task(taskId: string, projectId: string | null) {
     projectId,
     hostId: "local",
     pinned: false,
-    archived: false,
+    archived,
     createdAt: 0,
     updatedAt: 0,
     mode: "build",
   };
+}
+
+function remoteDirectory() {
+  return {
+    hosts: [
+      {
+        id: "remote-1",
+        membershipId: "m1",
+        kind: "ssh",
+        target: null,
+        position: 1,
+        connectionStatus: "online",
+      },
+    ],
+    entries: [
+      {
+        id: "e1",
+        hostId: "remote-1",
+        projectId: "p9",
+        name: "Remote",
+        roots: [{ rootPath: "/remote/p9", position: 0, isPrimary: true }],
+        legacyWorkspace: null,
+        lastSyncedAt: 0,
+      },
+    ],
+  };
+}
+
+function remoteController(options?: {
+  mutateTask?: ReturnType<typeof vi.fn>;
+  archivedTaskIds?: string[];
+}) {
+  const mutateTask = options?.mutateTask ?? vi.fn(async () => ({ taskId: "sess_remote" }));
+  const getTaskMeta = vi.fn(async (params: { address: { taskId: string } }) =>
+    params.address.taskId === "sess_remote"
+      ? { taskId: "sess_remote", workspacePath: "/remote/p9", sourceServerId: "remote-1" }
+      : null,
+  );
+  const listTaskList = vi.fn(async () => ({
+    items: (options?.archivedTaskIds ?? []).map((taskId) => ({ taskId })),
+    total: (options?.archivedTaskIds ?? []).length,
+    hasMore: false,
+  }));
+  return { mutateTask, getTaskMeta, listTaskList };
 }
 
 function projectService(tree: {
@@ -250,6 +294,102 @@ describe("App control mutations", () => {
     ).resolves.toEqual({ status: "unknown", requestId: "r1", reason: "Task index returned no task" });
   });
 
+  it("routes a remote session mutation to its owning source without touching the local index", async () => {
+    const archiveTask = vi.fn();
+    const controller = remoteController();
+    const service = createAppControlService({
+      remoteProjectService: remoteService(remoteDirectory()),
+      resolveWindowControllerService: () => controller as never,
+      taskService: { archiveTask, unarchiveTask: vi.fn(), setTaskPinned: vi.fn() },
+      navigation: navigation(),
+    });
+    const ctx = createTrustedContext(
+      { callerSessionId: "sess_root", callId: "call-1", workspacePath: WORKSPACE, input: {} },
+      [],
+    );
+    await expect(
+      service.setSessionArchived(ctx, {
+        sessionId: "sess_remote",
+        archived: true,
+        requestId: "r1",
+      }),
+    ).resolves.toEqual({ status: "applied", requestId: "r1" });
+    expect(controller.mutateTask).toHaveBeenCalledWith({
+      address: {
+        taskId: "sess_remote",
+        workspacePath: "/remote/p9",
+        sourceServerId: "remote-1",
+      },
+      mutation: { kind: "archive", archived: true },
+    });
+    expect(archiveTask).not.toHaveBeenCalled();
+  });
+
+  it("does not let a source host discover or mutate another source", async () => {
+    const archiveTask = vi.fn(async () => ({ taskId: "sess_local" }));
+    const service = createAppControlService({
+      sourceServerId: "source-a",
+      projectService: projectService({
+        projects: [project("p1", "Alpha")],
+        tasks: [task("sess_local", "p1")],
+      }),
+      remoteProjectService: remoteService(remoteDirectory()),
+      taskService: { archiveTask, unarchiveTask: vi.fn(), setTaskPinned: vi.fn() },
+      navigation: navigation(),
+    });
+    const ctx = createTrustedContext(
+      { callerSessionId: "sess_root", callId: "call-1", workspacePath: WORKSPACE, input: {} },
+      [],
+    );
+    const listed = await service.listProjects(ctx, {});
+    expect(listed.projects.map((entry) => entry.project)).toEqual([
+      { kind: "app", projectId: "p1", sourceServerId: "source-a" },
+    ]);
+    expect(listed.searchScope.scopes).toEqual([hostScope("source-a")]);
+    await expect(
+      service.setSessionArchived(ctx, {
+        sessionId: "sess_remote",
+        archived: true,
+        requestId: "r1",
+      }),
+    ).rejects.toMatchObject({ code: "forbidden" });
+    expect(archiveTask).not.toHaveBeenCalled();
+    await expect(
+      service.setSessionArchived(ctx, {
+        sessionId: "sess_local",
+        archived: true,
+        requestId: "r2",
+      }),
+    ).resolves.toEqual({ status: "applied", requestId: "r2" });
+    expect(archiveTask).toHaveBeenCalledWith({
+      taskId: "sess_local",
+      workspacePath: "/workspace/p1",
+    });
+  });
+
+  it("does not fall back to the local task index when the owning host rejects a remote mutation", async () => {
+    const setTaskPinned = vi.fn();
+    const controller = remoteController({
+      mutateTask: vi.fn(async () => {
+        throw new Error("owning host offline");
+      }),
+    });
+    const service = createAppControlService({
+      remoteProjectService: remoteService(remoteDirectory()),
+      resolveWindowControllerService: () => controller as never,
+      taskService: { archiveTask: vi.fn(), unarchiveTask: vi.fn(), setTaskPinned },
+      navigation: navigation(),
+    });
+    const ctx = createTrustedContext(
+      { callerSessionId: "sess_root", callId: "call-1", workspacePath: WORKSPACE, input: {} },
+      [],
+    );
+    await expect(
+      service.setSessionPinned(ctx, { sessionId: "sess_remote", pinned: true, requestId: "r1" }),
+    ).resolves.toEqual({ status: "unknown", requestId: "r1", reason: "owning host offline" });
+    expect(setTaskPinned).not.toHaveBeenCalled();
+  });
+
   it("rejects cross-source mutation when the window controller is absent", async () => {
     const service = createAppControlService({
       remoteProjectService: remoteService({
@@ -278,6 +418,86 @@ describe("App control mutations", () => {
     await expect(
       service.setSessionArchived(ctx, { sessionId: "sess_remote", archived: true, requestId: "r1" }),
     ).rejects.toMatchObject({ code: "forbidden" });
+  });
+});
+
+describe("App control archived targets", () => {
+  const ctx = createTrustedContext(
+    { callerSessionId: "sess_root", callId: "call-1", workspacePath: WORKSPACE, input: {} },
+    [],
+  );
+
+  it("rejects opening an archived local task without firing navigation", async () => {
+    const openSession = vi.fn(async () => ({ status: "opened" as const, uiTarget: "window:1" }));
+    const service = createAppControlService({
+      projectService: projectService({ tasks: [task("sess_archived", "p1", true)] }),
+      navigation: navigation(openSession as never),
+    });
+    await expect(service.openSession(ctx, { sessionId: "sess_archived" })).resolves.toEqual({
+      status: "unavailable",
+      reason: "project.task-not-found",
+    });
+    expect(openSession).not.toHaveBeenCalled();
+  });
+
+  it("rejects opening an archived remote task using the owning host projection", async () => {
+    const openSession = vi.fn(async () => ({ status: "opened" as const, uiTarget: "window:1" }));
+    const controller = remoteController({ archivedTaskIds: ["sess_remote"] });
+    const service = createAppControlService({
+      remoteProjectService: remoteService(remoteDirectory()),
+      resolveWindowControllerService: () => controller as never,
+      navigation: navigation(openSession as never),
+    });
+    await expect(service.openSession(ctx, { sessionId: "sess_remote" })).resolves.toEqual({
+      status: "unavailable",
+      reason: "project.task-not-found",
+    });
+    expect(controller.listTaskList).toHaveBeenCalledWith({
+      kind: "archived",
+      workspaceScopes: [{ workspacePath: "/remote/p9" }],
+      sortBy: "updated",
+      limit: 200,
+    });
+    expect(openSession).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when a remote archive projection is unavailable", async () => {
+    const openSession = vi.fn(async () => ({ status: "opened" as const, uiTarget: "window:1" }));
+    const controller = remoteController();
+    controller.listTaskList.mockRejectedValueOnce(new Error("projection unavailable"));
+    const service = createAppControlService({
+      remoteProjectService: remoteService(remoteDirectory()),
+      resolveWindowControllerService: () => controller as never,
+      navigation: navigation(openSession as never),
+    });
+    await expect(service.openSession(ctx, { sessionId: "sess_remote" })).resolves.toEqual({
+      status: "unavailable",
+      reason: "project.task-not-found",
+    });
+    expect(openSession).not.toHaveBeenCalled();
+  });
+
+  it("routes a non-archived remote open to the bound UI with its source", async () => {
+    const openSession = vi.fn(async () => ({ status: "opened" as const, uiTarget: "window:1" }));
+    const controller = remoteController();
+    const service = createAppControlService({
+      remoteProjectService: remoteService(remoteDirectory()),
+      resolveWindowControllerService: () => controller as never,
+      navigation: navigation(openSession as never),
+    });
+    await expect(service.openSession(ctx, { sessionId: "sess_remote" })).resolves.toEqual({
+      status: "opened",
+      uiTarget: "window:1",
+    });
+    expect(openSession).toHaveBeenCalledWith(
+      {
+        sessionId: "sess_remote",
+        workspacePath: "/remote/p9",
+        sourceServerId: "remote-1",
+        projectId: "p9",
+      },
+      undefined,
+    );
   });
 });
 
@@ -358,6 +578,56 @@ describe("App control reverse RPC", () => {
         input: { sessionId: "sess_unknown" },
       }),
     ).resolves.toMatchObject({ ok: false, error: { code: "forbidden" } });
+  });
+
+  it("exposes archived state for fork gating without leaking unknown targets", async () => {
+    const rpc = createAppControlReverseRpc({
+      service: createAppControlService({
+        projectService: projectService({
+          tasks: [task("sess_archived", "p1", true), task("sess_active", "p1")],
+        }),
+        navigation: navigation(),
+      }),
+    });
+    await expect(
+      rpc.handle("appControl/sessionArchived", {
+        ...params,
+        input: { sessionId: "sess_archived" },
+      }),
+    ).resolves.toEqual({ ok: true, result: { archived: true } });
+    await expect(
+      rpc.handle("appControl/sessionArchived", {
+        ...params,
+        input: { sessionId: "sess_active" },
+      }),
+    ).resolves.toEqual({ ok: true, result: { archived: false } });
+    await expect(
+      rpc.handle("appControl/sessionArchived", {
+        ...params,
+        input: { sessionId: "sess_unknown" },
+      }),
+    ).resolves.toMatchObject({ ok: false, error: { code: "forbidden" } });
+  });
+
+  it("fails closed when a remote archive projection is unavailable", async () => {
+    const controller = remoteController();
+    controller.listTaskList.mockRejectedValueOnce(new Error("projection unavailable"));
+    const rpc = createAppControlReverseRpc({
+      service: createAppControlService({
+        remoteProjectService: remoteService(remoteDirectory()),
+        resolveWindowControllerService: () => controller as never,
+        navigation: navigation(),
+      }),
+    });
+    await expect(
+      rpc.handle("appControl/sessionArchived", {
+        ...params,
+        input: { sessionId: "sess_remote" },
+      }),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { code: "unavailable", message: "Session archive state is unavailable" },
+    });
   });
 
   it("deduplicates a requestId with the same payload and conflicts on a different one", async () => {

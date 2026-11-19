@@ -118,6 +118,21 @@ export async function deactivateSessionRecord(
   );
 }
 
+/**
+ * 会话是否忙：驻留阻塞工作、待处理交互或排队命令；未加载返回 null。
+ * `session/releaseUnderDirectory` 与删除会话共用同一判定（CLI 是忙闲的唯一判定者）。
+ */
+export function readSessionBusyState(
+  context: NibiProtocolAgentServerContext,
+  sessionId: string,
+): "busy" | "idle" | null {
+  const facts = createSessionResidentPoolHost(context).readResidencyFacts(sessionId);
+  if (!facts) return null;
+  return facts.hasResidencyBlockingWork || facts.hasPendingInteractions || facts.hasQueuedCommands
+    ? "busy"
+    : "idle";
+}
+
 async function releaseSessionRecord(
   context: NibiProtocolAgentServerContext,
   sessionId: string,

@@ -109,6 +109,13 @@ impl Tool for GetWorkflowRunTool {
         Some("inspect one dynamic-workflow run's progress, result or failure")
     }
 
+    /// 与 Node 同工具的模型可见上限一致（`GET_WORKFLOW_RUN_PERSIST_THRESHOLD_CHARS` = 100000）：
+    /// 超过的部分落盘为 artifact，只把预览交给模型。之前这里没有声明，Rust 会把整份 log 尾巴
+    /// 直接塞进模型上下文（X02 bounded 差异）。
+    fn max_result_size_chars(&self) -> Option<usize> {
+        Some(100_000)
+    }
+
     async fn check_permissions(
         &self,
         _input: &Value,

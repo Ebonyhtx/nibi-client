@@ -367,6 +367,7 @@ async fn a_grant_refreshes_the_banner_of_the_other_open_sessions_in_the_workspac
             output_speed: None,
             launches: Vec::new(),
             model_turns: Vec::new(),
+            worktree_creations: Vec::new(),
             input_intents: Vec::new(),
         }
     }

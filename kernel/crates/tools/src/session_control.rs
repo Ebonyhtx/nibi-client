@@ -39,6 +39,11 @@ const PROMPT_MAX: usize = 1_000_000;
 const TITLE_MAX: usize = 1_024;
 const WAIT_OPERATIONS_MAX: usize = 100;
 
+/// 与 Node `sessionIdSchema`（`packages/session-control/src/contract/common.ts`）逐字相同。
+/// `session_identifier()` 已经是运行时同一条判定；这里把它投影到 JSON Schema，让模型在
+/// 提交 `"dummy"` 这类占位值之前就看到格式约束（X02 对拍：Node 侧 schema 有 pattern）。
+const SESSION_ID_PATTERN: &str = "^(?:sess|session)_[A-Za-z0-9._-]+$";
+
 const LIST_SESSIONS: &str = "ListSessions";
 const READ_SESSION: &str = "ReadSession";
 /// 也给 `policy_filter` 判 `ListModels` 的第二个消费者（`CreateSession.model`）是否在场。
@@ -955,6 +960,12 @@ impl SessionControlTool {
             }
             ParsedInput::Fork(input) => {
                 let session = resolve_target(host.as_ref(), ctx, &input.session_id).await?;
+                // 归档目标必须在 owner 创建子会话之前拒绝：不能产生一个没有产品归属的半 fork。
+                if host.is_session_archived(&session).await? {
+                    return Err(SessionControlError::unavailable(
+                        "Target session is archived",
+                    ));
+                }
                 let request = request.ok_or_else(|| {
                     SessionControlError::invalid_input("request identity is missing")
                 })?;
@@ -1138,7 +1149,7 @@ fn description(action: SessionControlActionName) -> &'static str {
             "Create a new NIBI session in this workspace and send it a first message. The current conversation keeps the user's focus; the new session runs in the background. To retry an inconclusive call, pass the requestId from its result as retryOf."
         }
         SessionControlActionName::ForkSession => {
-            "Fork a new root session from an existing NIBI session at a stable message boundary (atMessage is a message id from ReadSession with view=\"messages\"). No prompt is sent to the fork. To retry an inconclusive call, pass the requestId from its result as retryOf."
+            "Fork a new root session from an existing NIBI session at a stable message boundary (atMessage is a message id from ReadSession with view=\"messages\"). No prompt is sent to the fork. An archived target is rejected before any child session is created. To retry an inconclusive call, pass the requestId from its result as retryOf."
         }
         SessionControlActionName::SendToSession => {
             "Send a message to another NIBI session. If that session is busy the message is queued; the target keeps its own model and permission settings. To retry an inconclusive call, pass the requestId from its result as retryOf."
@@ -1178,6 +1189,7 @@ fn session_id_schema() -> Value {
         "type": "string",
         "minLength": 1,
         "maxLength": IDENTIFIER_MAX,
+        "pattern": SESSION_ID_PATTERN,
         "description": "The target session id, for example sess_1a2b3c4d-… . Older sessions use session_… . Take it from a tool result or the user, never invent one.",
     })
 }
@@ -1290,6 +1302,7 @@ fn schema(action: SessionControlActionName) -> Value {
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": IDENTIFIER_MAX,
+                                "pattern": SESSION_ID_PATTERN,
                                 "description": "The id of the session that returned this operation, as given in its result.",
                             },
                             "commandId": {

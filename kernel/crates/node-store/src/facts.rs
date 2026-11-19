@@ -264,6 +264,7 @@ pub(crate) fn apply(ctx: &Commit<'_>, fact: &Fact) -> Result<(), StoreError> {
         Fact::WorkflowLaunchMessage { id, text, launch } => {
             crate::append::append_launch(ctx, id.as_str(), text, launch)
         }
+        Fact::WorktreeCreation { creation } => crate::append::worktree_creation(ctx, creation),
     }
 }
 

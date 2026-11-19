@@ -188,6 +188,8 @@ import { persistPart } from "./message-persistence.js";
 import { rebuildProjection } from "./message-persistence.js";
 import { recordPendingModelChange } from "./timeline-persistence.js";
 import { persistPendingModelChangeTimeline } from "./timeline-persistence.js";
+import { recordPendingWorktreeCreation } from "./timeline-persistence.js";
+import { persistPendingWorktreeCreationTimeline } from "./timeline-persistence.js";
 import { persistAssistantTimelinePartForSession } from "./timeline-persistence.js";
 import { generateWorkspaceText, testModelConnectivity } from "./workspace-generate-text.js";
 import { maybeStartGoalSummaryTitleGeneration } from "./goal-summary-title.js";
@@ -385,6 +387,8 @@ export function installAgentRuntimeMethods(ctor: AgentRuntimeConstructor): void 
   proto.persistUserPrompt = persistUserPrompt;
   proto.recordPendingModelChange = recordPendingModelChange;
   proto.persistPendingModelChangeTimeline = persistPendingModelChangeTimeline;
+  proto.recordPendingWorktreeCreation = recordPendingWorktreeCreation;
+  proto.persistPendingWorktreeCreationTimeline = persistPendingWorktreeCreationTimeline;
   proto.persistSyntheticUserNotice = persistSyntheticUserNotice;
   proto.persistSyntheticUserNoticeForSession = persistSyntheticUserNoticeForSession;
   proto.persistAssistantTimelinePartForSession = persistAssistantTimelinePartForSession;

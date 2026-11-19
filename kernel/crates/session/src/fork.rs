@@ -6,7 +6,8 @@
 use std::collections::HashMap;
 
 use nibi_kernel_api::clock::Ids;
-use nibi_kernel_api::ids::{CommandId, MessageId, OwnerEpoch};
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::ids::{CommandId, MessageId, OwnerEpoch, SessionId};
 use nibi_kernel_api::message::{Message, SystemMessage, UserOrigin};
 use nibi_kernel_api::session_api::Ack;
 use nibi_kernel_api::store::{Fact, FactBatch, SessionKind, SessionMeta};
@@ -66,9 +67,22 @@ pub(crate) fn copy(messages: &[Message], ids: &dyn Ids) -> Vec<Message> {
 }
 
 impl Actor {
-    pub(crate) async fn fork(&mut self, command: CommandId, at: Option<MessageId>) -> Ack {
+    pub(crate) async fn fork(
+        &mut self,
+        command: CommandId,
+        at: Option<MessageId>,
+        child: Option<SessionId>,
+        cwd: Option<EnvPath>,
+        worktree_creation: Option<nibi_kernel_api::session_api::WorktreeCreation>,
+    ) -> Ack {
         if self.busy() {
             return rejected("a turn is running; fork after it finishes");
+        }
+        // Host 预分配的 child ID 不能被已有会话覆盖；先查存在性，失败早于复制与落库。
+        if let Some(child) = &child
+            && self.deps.store.load(child).await.is_ok()
+        {
+            return rejected(format!("child session {child} already exists"));
         }
         let end = match &at {
             Some(at) => match self.messages.iter().position(|m| m.id() == at) {
@@ -84,12 +98,20 @@ impl Actor {
             Err(error) => return rejected(error.to_string()),
         };
         let copied = copy(&self.messages[..end], self.deps.ids.as_ref());
-        let id = self.deps.ids.session();
+        let id = child.unwrap_or_else(|| self.deps.ids.session());
+        // fork 到受管 worktree：child 留在同一 environment，执行根换成 cwd；普通 fork 沿用父 workspace。
+        let workspace = match cwd {
+            Some(root) => nibi_kernel_api::env::WorkspaceRef {
+                environment: self.meta.workspace.environment.clone(),
+                root,
+            },
+            None => self.meta.workspace.clone(),
+        };
         let meta = SessionMeta {
             id: id.clone(),
             kind: SessionKind::Fork,
             parent: Some(self.meta.id.clone()),
-            workspace: self.meta.workspace.clone(),
+            workspace,
             title: fork_title(&parent_title),
             trace: self.meta.trace.clone(),
             created_at_ms: self.deps.clock.now_ms(),
@@ -110,6 +132,11 @@ impl Actor {
                 .into_iter()
                 .map(|message| Fact::MessageAppended { message }),
         );
+        // 受管 worktree 的 child：创建结果随 fork 同批写成 timeline part（冷恢复与 Node
+        // transcript hydration 都在 child 首轮轮顶显示 worktreeCreated）。
+        if let Some(creation) = worktree_creation {
+            facts.push(Fact::WorktreeCreation { creation });
+        }
         let batch = FactBatch {
             owner_epoch: OwnerEpoch::LOCAL,
             command: Some(command),

@@ -556,8 +556,14 @@ where
     );
     let kernel = Arc::new(kernel);
     // 会话控制（8 个模型工具）的拥有者端口：桌面 app-server 入口接同一条实现。
-    // 另带“内核直接建会话”的 Host 通知器：CreateSession/ForkSession 建完立刻补 tasks-index。
-    kernel.install_session_control_host_with_notifier(Some(app_control_host));
+    // 另带“内核直接建会话”的 Host 通知器：CreateSession/ForkSession 建完立刻补 tasks-index；
+    // 归档 reader 让 ForkSession 在创建子会话前拒绝 App 任务索引里已归档的目标。
+    let archive_reader: Arc<dyn nibi_kernel_api::session_control::SessionArchiveReader> =
+        app_control_host.clone();
+    kernel.install_session_control_host_with_services(
+        Some(app_control_host),
+        Some(archive_reader),
+    );
     kernel.set_paid_plugin_gate(crate::paid_plugin_gate(&startup.home, &startup.env));
     kernel.start_extensions().await;
     // 常驻会话池：目标 8 / 高水位 16 / 空闲 10 分钟；请求租约释放触发收敛，60 s sampler 兜底。

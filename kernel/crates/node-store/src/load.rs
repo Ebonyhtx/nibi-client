@@ -93,6 +93,11 @@ pub fn load(
             .collect(),
         // 每轮输入的模型选择（Node 消息记录上的 `modelSelection`）：冷投影补 modelChange 分隔线。
         model_turns: turns,
+        // 受管 worktree 的创建结果（Node 的 `worktree_creation` timeline part）：冷投影落轮顶标记。
+        worktree_creations: worktree_creations(&earlier)
+            .into_iter()
+            .chain(worktree_creations(&active))
+            .collect(),
         // 输入的规范意图（Node 消息的 `metadata.conversationInputIntent`）：冷投影恢复行上原文、
         // 机器人来源与引用；earlier 与活动段都算。
         input_intents: input_intents(&earlier)
@@ -269,6 +274,32 @@ fn model_turns(records: &[Cow<'_, WithParts>]) -> Vec<SessionModelTurn> {
                 started_at_ms: None,
                 ended_at_ms: None,
                 active_ms: None,
+            })
+        })
+        .collect()
+}
+
+/// 受管 worktree 的创建结果：Node（与 NIBI 内核）把它写成 timeline part
+/// （`timelineType = "worktree_creation"`）。坏数据跳过（冷投影只拿它落标记）。
+fn worktree_creations(
+    records: &[Cow<'_, WithParts>],
+) -> Vec<nibi_kernel_api::store::WorktreeCreationTurn> {
+    records
+        .iter()
+        .filter_map(|record| {
+            let part = record.parts.iter().find(|part| {
+                part["type"] == "timeline" && part["timelineType"] == "worktree_creation"
+            })?;
+            let creation = &part["worktreeCreation"];
+            let path = creation["path"].as_str().filter(|path| !path.is_empty())?;
+            Some(nibi_kernel_api::store::WorktreeCreationTurn {
+                message: MessageId::new(record.id()),
+                creation: nibi_kernel_api::session_api::WorktreeCreation {
+                    path: path.to_owned(),
+                    sha: creation["sha"].as_str()?.to_owned(),
+                    reference: creation["ref"].as_str().map(str::to_owned),
+                    output: creation["output"].as_str().unwrap_or_default().to_owned(),
+                },
             })
         })
         .collect()

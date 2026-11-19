@@ -39,6 +39,7 @@ import type {
   V4ConversationSubscribeResult,
 } from "@nibi/shared/nibi-protocol-v4";
 import type { AttachmentUploadOptions } from "@/v4/attachmentUploadTransaction.js";
+import type { NibiAgentRuntimeExitedEvent } from "@nibi/services";
 
 /**
  * 一条 host 连接上的 v4 conversation 传输面。
@@ -153,6 +154,11 @@ export interface ConversationTransport {
    * 避免同一次换代被两条通道各处理一次。承载方未暴露 runtime lifecycle 时本方法不存在。
    */
   onRuntimeLifecycle?(listener: (state: "available" | "unavailable") => void): () => void;
+  /**
+   * CLI runtime 意外退出（用户主动 dispose/正常重启不发布）。事件只携带退出码、信号、
+   * 共享分类与脱敏摘要；承载方未暴露时本方法不存在，消费方按无横幅处理。
+   */
+  onRuntimeExited?(listener: (event: NibiAgentRuntimeExitedEvent) => void): () => void;
 }
 
 export interface ConversationAttachmentReadParams {

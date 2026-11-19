@@ -6,11 +6,12 @@ use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, ImageSource, Message, StopReason, SystemMessage, UserMessage,
     UserOrigin,
 };
+use nibi_kernel_api::session_api::WorktreeCreation;
 use nibi_kernel_api::store::{Fact, StoreError};
 use serde_json::{Value, json};
 
 use crate::facts::{Commit, unsupported};
-use crate::ids::{created_at, part_id, turn_id};
+use crate::ids::{created_at, message_id, part_id, turn_id};
 use crate::records::{self, Assistant, UserPrompt};
 use crate::repo::{messages, sessions};
 use crate::state;
@@ -101,6 +102,59 @@ pub fn append_launch(
     });
     messages::save_part(ctx.conn, &part, ctx.now as i64).storage()?;
     Ok(())
+}
+
+/// 受管 worktree 的创建结果（Node `persistAssistantTimelinePartForSession` 的 worktree_creation 分支）：
+/// timeline-only assistant 消息 + `worklog` part，不进入模型上下文（`providerVisibility: hidden`）。
+/// 首轮输入同一批提交时 part 排在 user 消息之前（与 Node 的落库顺序一致）。
+pub(crate) fn worktree_creation(
+    ctx: &Commit<'_>,
+    creation: &WorktreeCreation,
+) -> Result<(), StoreError> {
+    let row = sessions::get(ctx.conn, ctx.session)
+        .storage()?
+        .ok_or_else(|| storage(format!("session {} disappeared", ctx.session)))?;
+    let execution = state::execution(ctx.conn, &row)
+        .storage()?
+        .unwrap_or_default();
+    let selection = state::selection(ctx.conn, ctx.session).storage()?;
+    let id = message_id(ctx.now, &(ctx.uuid)());
+    // Node 的 parentID = 当前最后一条对话消息；首轮还没有时指向自己。
+    let parent = ctx
+        .current_user()?
+        .map(|(message, _)| message)
+        .unwrap_or_else(|| id.clone());
+    let mut info = json!({
+        "id": id, "sessionID": ctx.session, "role": "assistant",
+        "time": {"created": ctx.now, "completed": ctx.now},
+        "parentID": parent,
+        "mode": execution.mode, "planEnabled": execution.plan, "agent": records::AGENT,
+        "path": {"cwd": row.directory, "root": row.directory}, "cost": 0,
+        "tokens": records::tokens(None), "finish": "completed",
+        "semantics": {"origin": "system", "kind": "timeline_event", "uiVisibility": "visible",
+            "providerVisibility": "hidden", "transcriptVisibility": "visible"},
+    });
+    if let Some(selection) = selection {
+        info["modelId"] = selection["modelId"].clone();
+        info["providerId"] = selection["providerId"].clone();
+    }
+    messages::save_message(ctx.conn, &info, ctx.now as i64).storage()?;
+    let part = json!({
+        "id": part_id(ctx.now, &(ctx.uuid)()),
+        "sessionID": ctx.session, "messageID": id,
+        "type": "timeline",
+        "timelineType": "worktree_creation",
+        "display": "worklog",
+        "status": "completed",
+        "worktreeCreation": {
+            "path": &creation.path,
+            "sha": &creation.sha,
+            "ref": &creation.reference,
+            "output": &creation.output,
+        },
+        "time": {"start": ctx.now, "end": ctx.now},
+    });
+    messages::save_part(ctx.conn, &part, ctx.now as i64).storage()
 }
 
 pub(crate) fn block_kind(block: &ContentBlock) -> &'static str {

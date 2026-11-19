@@ -7,11 +7,13 @@ import {
   type RemoteWorkspaceSession,
 } from "@/store/remoteWorkspaceSessionStore.js";
 import { useResolvedRemoteWorkspaceSessionId } from "@/hooks/useResolvedRemoteWorkspaceSessionId.js";
-import { useTabStore } from "@/store/TabStoreProvider.js";
+import { useOptionalTabStore } from "@/store/TabStoreProvider.js";
 import { isWorkspaceTab } from "@/store/tabStore.js";
 import { REMOTE_WORKSPACE_DISCONNECTED_ERROR_CODE } from "@/lib/remoteWorkspaceServiceError.js";
 
 let disconnectedRemoteServices: IServiceAccessor | null = null;
+/** 无 provider 的独立渲染路径使用同一个空 accessor，避免每次渲染产生新 identity。 */
+const EMPTY_SERVICES_ACCESSOR = {} as IServiceAccessor;
 
 interface WorkspaceServiceTargetTab {
   workspacePath: string;
@@ -162,14 +164,52 @@ export function useWorkspaceServicesResolution(
   remoteTarget?: unknown,
   options?: { unscopedServices?: IServiceAccessor; forceUnscoped?: boolean },
 ): WorkspaceServicesResolution {
-  const currentContextServices = useServices();
+  return useWorkspaceServicesResolutionFrom(
+    useServices(),
+    workspacePath,
+    preferredRemoteSessionId,
+    workspaceIdentity,
+    remoteTarget,
+    options,
+  );
+}
+
+/**
+ * 可独立渲染组件（无 ServiceProvider）的版本：没有 provider 时返回空 accessor 且
+ * `rpcReady=false`，调用方应暂停 RPC；有 provider 时行为与上面完全一致。
+ */
+export function useOptionalWorkspaceServicesResolution(
+  workspacePath: string | null | undefined,
+  preferredRemoteSessionId?: string | null,
+  workspaceIdentity?: string | null,
+  remoteTarget?: unknown,
+  options?: { unscopedServices?: IServiceAccessor; forceUnscoped?: boolean },
+): WorkspaceServicesResolution {
+  return useWorkspaceServicesResolutionFrom(
+    useOptionalServices(),
+    workspacePath,
+    preferredRemoteSessionId,
+    workspaceIdentity,
+    remoteTarget,
+    options,
+  );
+}
+
+function useWorkspaceServicesResolutionFrom(
+  currentContextServices: IServiceAccessor | null,
+  workspacePath: string | null | undefined,
+  preferredRemoteSessionId?: string | null,
+  workspaceIdentity?: string | null,
+  remoteTarget?: unknown,
+  options?: { unscopedServices?: IServiceAccessor; forceUnscoped?: boolean },
+): WorkspaceServicesResolution {
   const resolvedRemoteSessionId = useResolvedRemoteWorkspaceSessionId(
     workspacePath,
     preferredRemoteSessionId,
     workspaceIdentity,
     remoteTarget,
   );
-  const inferredRemoteTarget = useTabStore((state) =>
+  const inferredRemoteTarget = useOptionalTabStore((state) =>
     resolveWorkspaceServiceIsRemoteTarget({
       workspacePath,
       workspaceIdentity,
@@ -189,7 +229,7 @@ export function useWorkspaceServicesResolution(
   const effectiveRemoteSessionId = options?.forceUnscoped ? null : resolvedRemoteSessionId;
   const resolvedServices = useRemoteWorkspaceSessionStore((state) =>
     resolveWorkspaceServicesForTarget({
-      currentContextServices,
+      currentContextServices: currentContextServices ?? EMPTY_SERVICES_ACCESSOR,
       resolvedRemoteSessionId: effectiveRemoteSessionId,
       baseServices: state.baseServices,
       sessionsById: state.sessionsById,
@@ -214,9 +254,9 @@ export function useWorkspaceServicesResolution(
       remoteSessionId: effectiveRemoteSessionId,
       isRemoteTarget,
       connectionKind,
-      rpcReady: connectionKind !== "remote-waiting",
+      rpcReady: Boolean(currentContextServices) && connectionKind !== "remote-waiting",
     }),
-    [connectionKind, effectiveRemoteSessionId, isRemoteTarget, resolvedServices],
+    [connectionKind, effectiveRemoteSessionId, isRemoteTarget, resolvedServices, currentContextServices],
   );
 }
 

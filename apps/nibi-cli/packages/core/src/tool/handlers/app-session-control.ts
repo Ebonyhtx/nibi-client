@@ -85,7 +85,7 @@ const definitions: Definition[] = [
     method: "openSession",
     hint: "open an App session in the bound window",
     description:
-      "Ask the App window bound to this conversation to open a session. Requires user approval. It never raises or focuses an OS window; when no window accepts, the result is unavailable.",
+      "Ask the App window bound to this conversation to open a session. Requires user approval. It never raises or focuses an OS window; when no window accepts, the result is unavailable. Archived sessions are not in the navigation projection and return unavailable (project.task-not-found).",
     input: OpenSessionInputSchema,
     inputJsonSchema: OpenSessionInputJsonSchema,
     output: OpenSessionOutputSchema,

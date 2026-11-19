@@ -42,6 +42,7 @@ import type {
   TurnState,
   ToolSchedule,
   ToolExecutionResult,
+  WorktreeCreationFact,
 } from "./deps.js";
 import type {
   ActiveTurnStartReservation,
@@ -391,6 +392,10 @@ export interface AgentRuntimeTurnMethods {
     toModelLabel: string;
   }): void;
   persistPendingModelChangeTimeline(traceContext: TraceContext): Promise<void>;
+  /** 记下受管 worktree 创建事实；重复调用保持第一次的事实。 */
+  recordPendingWorktreeCreation(fact: WorktreeCreationFact): void;
+  /** 首轮持久化后、TurnStarted 前写 timeline part 并发 WorktreeCreated。 */
+  persistPendingWorktreeCreationTimeline(traceContext: TraceContext): Promise<void>;
   persistSyntheticUserNotice(
     messageID: MessageId,
     text: string,

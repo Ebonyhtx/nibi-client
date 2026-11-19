@@ -31,7 +31,7 @@ import { isNibiAgentSessionDataUnsupportedError } from "#src/nibi-agent/nibiAgen
 export { createLegacySingleRootProjectService } from "#src/project/index.js";
 export { createRemoteProjectService } from "#src/remote-projects/index.js";
 import { getNibiDataRootDir as projectDataRoot } from "#src/paths.js";
-import { getAppConfigDir, getWorkspaceHash } from "./paths.js";
+import { getAppConfigDir, getDataBaseDir, getWorkspaceHash } from "./paths.js";
 import { createTaskGroupService, ITaskGroupService, groupTaskKey } from "#src/task-groups/index.js";
 import { IGenUiService } from "./gen-ui/contract.js";
 import { createGenUiService } from "./gen-ui/node.js";
@@ -420,7 +420,7 @@ import { IOnboardingRecordService } from "./onboarding/onboardingRecord.js";
 import { ICredentialService } from "./credential/credential.js";
 import { IBroadcastService } from "./broadcast/broadcast.js";
 import { INibiTaskService } from "./session/nibiTaskService.js";
-import { INibiAgentService } from "./nibi-agent/nibiAgent.js";
+import { HOST_WORKTREE_COMMAND, INibiAgentService } from "./nibi-agent/nibiAgent.js";
 import type { CuaOperationStateReporter } from "./nibi-agent/cuaOperationTurnTracker.js";
 import { INibiSessionService } from "./nibi-session/nibiSession.js";
 import {
@@ -462,6 +462,14 @@ import { createGitService } from "./git/gitService.js";
 import { GitCommitMessageGenerator } from "./git/gitCommitMessageGenerator.js";
 import { createManagedWorktreeManager } from "./git/managedWorktree.js";
 import { createManagedWorktreeCleanup } from "./git/managedWorktreeCleanup.js";
+import { createGitWorktreeRepo } from "./git/managed-worktree/index.js";
+import { createGitCommandProvider } from "./git/providers/gitCommandProvider.js";
+import {
+  IManagedWorktreeService,
+  createManagedWorktreeService,
+  createWorktreeRemovalGate,
+  reapOrphanedWorktrees,
+} from "./managed-worktree-tasks/index.js";
 import { createGitCheckpointService } from "./git/gitCheckpointService.js";
 import { createSystemService } from "./system/systemService.js";
 import { createTerminalService } from "./terminal/terminalService.js";
@@ -1291,9 +1299,11 @@ export function createLocalServices(options: {
    */
   appControl?: {
     resolveWindowControllerService?: () =>
-      | Pick<IWindowControllerService, "getTaskMeta" | "mutateTask">
+      | Pick<IWindowControllerService, "getTaskMeta" | "mutateTask" | "listTaskList">
       | undefined;
     navigationTimeoutMs?: number;
+    /** 本 Host 自己是某个 Source 时的稳定 id；桌面聚合 Host 不传。 */
+    sourceServerId?: string;
   };
   sourceServerWorkspaceService?: ISourceServerWorkspaceService;
   resolveProjectHostService?: (hostId: string) => Promise<IProjectService>;
@@ -2270,17 +2280,35 @@ export function createLocalServices(options: {
     hostId: options?.projectStorageHostId ?? "local",
     workspaceIdentity: undefined,
   });
-  // Git service、删除清理与草稿回收共享同一受管 worktree 视图。
+  // Git service、删除清理与草稿回收共享同一受管 worktree 视图（Option A 切片）。
   const managedWorktrees = createManagedWorktreeManager();
-  // 上游 3.18.2 唯一的退出阻塞：正在新 worktree 中启动的任务。计数变化即上报完整集合，
-  // 归零上报空数组，Main 只按这个事实决定是否确认退出。
+  // 上游 3.18.2 唯一的退出阻塞：正在新 worktree 中启动的任务。两个 worktree 栈都可能产生
+  // 创建记录，Main 只接受"完整集合"，所以这里合并计数后统一上报，避免后一次上报覆盖前一次。
+  let legacyCreatingCount = 0;
+  let managedCreatingCount = 0;
+  const reportQuitBlockers = () => {
+    const count = legacyCreatingCount + managedCreatingCount;
+    options?.quitBlockerReporter?.onQuitBlockersChanged(
+      count > 0 ? [{ kind: "worktree-creating", count }] : [],
+    );
+  };
   const unsubscribeQuitBlockerReporter = options?.quitBlockerReporter
     ? managedWorktrees.onCreatingCountChanged((count) => {
-        options.quitBlockerReporter?.onQuitBlockersChanged(
-          count > 0 ? [{ kind: "worktree-creating", count }] : [],
-        );
+        legacyCreatingCount = count;
+        reportQuitBlockers();
       })
     : undefined;
+  // 受管 worktree 的删除租约：worktree 服务取得，Agent 服务与终端服务据此拒绝新操作。
+  const worktreeRemovalGate = createWorktreeRemovalGate();
+  // 终端实例同时供 renderer 与 worktree 删除前的占用检查使用，必须是同一个实例。
+  const terminalService = createTerminalService({
+    settingService,
+    isCwdBlocked: (cwd) => worktreeRemovalGate.isRemoving(cwd),
+  });
+  const gitWorktreeRepo = createGitWorktreeRepo({
+    commandProvider: createGitCommandProvider(),
+    dataBaseDir: getDataBaseDir,
+  });
   let nibiAgentServiceRef: ReturnType<typeof createNibiAgentService> | undefined;
   const managedWorktreeCleanup = createManagedWorktreeCleanup({
     manager: managedWorktrees,
@@ -2288,6 +2316,49 @@ export function createLocalServices(options: {
       // 删除任务前先释放该 workspace runtime（Windows 文件锁）；草稿回收时通常已无进程。
       await nibiAgentServiceRef?.disposeWorkspace(target);
     },
+  });
+  const isLocalProjectHost =
+    !options?.projectStorageHostId || options.projectStorageHostId === "local";
+  // 受管 worktree 的唯一管理者（上游 3.18.2 完整栈）。Agent 服务的命令与终端创建共用
+  // worktreeRemovalGate；创建记录进入/离开时合并上报退出阻塞计数。
+  const managedWorktreeService = createManagedWorktreeService({
+    isLocalHost: isLocalProjectHost,
+    repository: () => taskIndexRepo.getProjectRepository(),
+    git: gitWorktreeRepo,
+    removalGate: worktreeRemovalGate,
+    runtime: {
+      hasTerminalsUnder: async (path) =>
+        (await terminalService.listTerminalIdsUnderPath({ path })).length > 0,
+      releaseSessionsUnder: async (target) => {
+        const agent = nibiAgentServiceRef;
+        if (!agent?.releaseSessionsUnderDirectory)
+          throw new Error("worktree.release-unsupported");
+        return await agent.releaseSessionsUnderDirectory(target);
+      },
+    },
+    agent: {
+      supportsWorktreeCwd: async (target) =>
+        (await nibiAgentServiceRef?.supportsWorktreeCwd?.(target)) ?? false,
+      sendCommand: (command) => {
+        const agent = nibiAgentServiceRef;
+        if (!agent) throw new Error("worktree.agent-unavailable");
+        // HOST_WORKTREE_COMMAND 只有本服务能设置，渲染进程经 RPC 无法携带。
+        return agent.sendConversationCommandV4({
+          ...command,
+          [HOST_WORKTREE_COMMAND]: true,
+        });
+      },
+      queryCommandResult: async (target) => {
+        const agent = nibiAgentServiceRef;
+        if (!agent?.queryCommandResult) throw new Error("worktree.query-unsupported");
+        return await agent.queryCommandResult(target);
+      },
+    },
+    reportCreatingCount: (count) => {
+      managedCreatingCount = count;
+      reportQuitBlockers();
+    },
+    afterChange: publishProjectChange,
   });
   // App 控制的反向 RPC 要等 task service / window controller 就绪后才装配；agent service
   // 构造更早，所以先交一个稳定句柄，真实实现稍后填入。缺席时按 unavailable 失败。
@@ -2306,6 +2377,19 @@ export function createLocalServices(options: {
   const nibiAgentService = createNibiAgentService({
     appControlExecutor,
     prepareProjectExecution,
+    // 删除受管 worktree 期间拒绝其中会话的新命令与冷订阅；cwd 未知时按拒绝处理。
+    runSessionOperation: (target, operation) =>
+      worktreeRemovalGate.runSessionOperation(
+        target.sessionId,
+        async () => {
+          if (target.workspaceIdentity?.trim()) return target.workspacePath;
+          return (await taskIndexRepo.getProjectRepository()).readTaskCwd({
+            workspacePath: target.workspacePath,
+            taskId: target.sessionId,
+          });
+        },
+        operation,
+      ),
     prepareSessionCreation: async (target) => {
       // 无项目、无显式额外目录的 createSession 是草稿预热/全局新任务。CLI facts 首次
       // 落库时 admitTaskIdentity 会补 host/project；提前写索引行只会留下
@@ -2670,6 +2754,9 @@ export function createLocalServices(options: {
         : {}),
       taskService: nibiTaskService,
       navigation: appControlNavigation,
+      ...(options?.appControl?.sourceServerId
+        ? { sourceServerId: options.appControl.sourceServerId }
+        : {}),
       onSessionCreated: (target) => nibiTaskIndexSyncer.noteCreatedSession(target),
       logWarn: (message, error) => createServiceLogger("app-control").warn(message, error),
     }),
@@ -2803,9 +2890,10 @@ export function createLocalServices(options: {
       }),
     )
     .register(IGitService, gitService)
+    .register(IManagedWorktreeService, managedWorktreeService)
     .register(IGitCheckpointService, gitCheckpointService)
     .register(ISystemService, systemService)
-    .register(ITerminalService, createTerminalService({ settingService }))
+    .register(ITerminalService, terminalService)
     .register(ISettingService, settingService)
     .register(IOnboardingRecordService, onboardingRecordService)
     .register(ICredentialService, credentialService)
@@ -2981,9 +3069,37 @@ export function createLocalServices(options: {
   if (unsubscribeQuitBlockerReporter) {
     quitBlockerReporterDisposers.set(services, () => {
       unsubscribeQuitBlockerReporter();
+      legacyCreatingCount = 0;
+      managedCreatingCount = 0;
       options?.quitBlockerReporter?.onQuitBlockersChanged([]);
     });
   }
+  // 启动期孤儿回收：清理上次进程崩溃留下的未登记 bucket；best-effort，不阻塞 Host 启动。
+  // 已登记但目录缺失的条目顺带 `git worktree prune`。
+  void reapOrphanedWorktrees({
+    git: gitWorktreeRepo,
+    repository: () => taskIndexRepo.getProjectRepository(),
+    dataBaseDir: getDataBaseDir,
+  })
+    .then((result) => {
+      if (result.removed.length === 0 && result.pruned.length === 0) return;
+      createServiceLogger("managed-worktree-reaper").info(
+        undefined,
+        "orphaned managed worktrees reclaimed",
+        {
+          removed: result.removed.length,
+          pruned: result.pruned.length,
+          skipped: result.skipped.length,
+        },
+      );
+    })
+    .catch((error: unknown) => {
+      createServiceLogger("managed-worktree-reaper").warn(
+        undefined,
+        "orphan worktree reaper failed",
+        { error: error instanceof Error ? error.message : String(error) },
+      );
+    });
   return services;
 }
 
@@ -3250,6 +3366,8 @@ export async function createServerHostServices(options: {
     topicResourceRelayChannel: options.topicResourceRelayChannel,
     projectStorageHostId,
     sourceServerWorkspaceService,
+    // Source Host 只拥有自己的来源：App 控制按此 id 校验归属，跨来源一律不路由。
+    appControl: { sourceServerId: options.sourceServerId },
   });
   return { services, workspaceIdentityMapper, migrationFailedPathCount };
 }

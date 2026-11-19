@@ -5,14 +5,14 @@ import { afterEach, expect, it, vi } from "vitest";
 import type { ProjectRowAction } from "@/project-sidebar/contract.js";
 import { ProjectSidebarNode } from "@/project-sidebar/ProjectSidebarNode.js";
 
-const probes = vi.hoisted(() => ({ node: vi.fn(), toast: vi.fn() }));
+const probes = vi.hoisted(() => ({ node: vi.fn() }));
 vi.mock("@/project-sidebar/ProjectNode.js", () => ({
   ProjectNode: (props: { additionalActions?: ProjectRowAction[] }) => {
     probes.node(props);
     return null;
   },
 }));
-vi.mock("@/components/ui/toast.js", () => ({ toast: probes.toast }));
+vi.mock("@/components/ui/toast.js", () => ({ toast: vi.fn() }));
 vi.mock("@/i18n/IntlProvider.js", () => ({
   useNibiIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
 }));
@@ -51,48 +51,37 @@ function fixture(
     onReconnectRemoteWorkspace: vi.fn(async () => {}),
     refresh: vi.fn(async () => {}),
     remoteActions: () => [],
+    onOpenWorktrees: vi.fn(),
   };
 }
 
 function findWorktreeAction(props: {
   additionalActions?: ProjectRowAction[];
 }): ProjectRowAction | undefined {
-  return props.additionalActions?.find((action) => action.id === "create-worktree-task");
+  return props.additionalActions?.find((action) => action.id === "worktrees");
 }
 
-it("renders the worktree task action for local projects with a primary root", () => {
+it("renders the Worktrees menu for local projects when the base host provides the service", () => {
   render(createElement(ProjectSidebarNode, fixture()));
   const action = findWorktreeAction(probes.node.mock.lastCall![0]);
-  expect(action).toMatchObject({
-    id: "create-worktree-task",
-    label: "project.newTaskInWorktree",
-  });
+  expect(action).toMatchObject({ id: "worktrees", label: "project.worktrees" });
 });
 
-it("creates a worktree task request with the source project id and root", () => {
+it("opens the Worktrees dialog for the project", () => {
   const props = fixture();
   render(createElement(ProjectSidebarNode, props));
-  const action = findWorktreeAction(probes.node.mock.lastCall![0]);
-
-  action!.run();
-
-  expect(props.onCreateTask).toHaveBeenCalledWith(
-    expect.objectContaining({
-      projectId: "p",
-      taskGroupId: null,
-      managedWorktree: { sourceWorkspacePath: "/repo/packages/app" },
-      onError: expect.any(Function),
-    }),
-  );
-
-  const request = vi.mocked(props.onCreateTask).mock.calls[0]?.[0];
-  request?.onError?.(new Error("managed-worktree.branch-exists"));
-  expect(probes.toast).toHaveBeenCalledWith("Error: managed-worktree.branch-exists");
+  findWorktreeAction(probes.node.mock.lastCall![0])!.run();
+  expect(props.onOpenWorktrees).toHaveBeenCalledWith(props.project);
 });
 
-it("hides the worktree action for remote or legacy single-root projects", () => {
-  const props = fixture({ hostId: "remote:server:example" });
-  render(createElement(ProjectSidebarNode, props));
+it("hides the worktree entry without a local service, for remote or legacy single-root projects", () => {
+  const withoutService = fixture();
+  delete (withoutService as { onOpenWorktrees?: unknown }).onOpenWorktrees;
+  render(createElement(ProjectSidebarNode, withoutService));
+  expect(findWorktreeAction(probes.node.mock.lastCall![0])).toBeUndefined();
+
+  cleanup();
+  render(createElement(ProjectSidebarNode, fixture({ hostId: "remote:server:example" })));
   expect(findWorktreeAction(probes.node.mock.lastCall![0])).toBeUndefined();
 
   cleanup();

@@ -82,7 +82,7 @@ impl<B: Backend> Loop<'_, B> {
             Startup::Session(id) => Some(SessionId::new(id)),
             Startup::Latest => None,
         };
-        let fork = fork.then(|| self.envelope(Command::Fork { at: None }));
+        let fork = fork.then(|| self.envelope(Command::Fork { at: None, child: None, cwd: None }));
         self.pending.push(
             async move {
                 let opened = async {

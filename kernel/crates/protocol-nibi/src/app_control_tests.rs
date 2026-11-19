@@ -8,6 +8,7 @@ use nibi_kernel_api::app_control::{
     AppControlErrorCode, AppSessionControlHost, AppTrustedContext, ListProjectsInput,
     OpenSessionInput,
 };
+use nibi_kernel_api::session_control::{SessionArchiveReader, SessionRef, SessionRefKind};
 use nibi_kernel_api::testing::FixedClock;
 use nibi_kernel_base::TaskScope;
 use nibi_kernel_protocol_core::connection::{self, Options, Reply, Service};
@@ -105,6 +106,58 @@ async fn list_projects_sends_the_allowlisted_method_and_trusted_params() {
     let result = pending.await.unwrap().unwrap();
     assert_eq!(result.projects[0].title, "Alpha");
     assert_eq!(result.search_scope.scopes.len(), 1);
+}
+
+#[tokio::test]
+async fn session_archived_reads_the_host_task_index_without_a_tool_call() {
+    let scope = TaskScope::root("app-control-archived", |_| {});
+    let (mut to_kernel, kernel_in) = duplex(1 << 20);
+    let (kernel_out, from_kernel) = duplex(1 << 20);
+    let (peer, _writer) = connection::start(kernel_out, &scope.spawner(), Options::default());
+    let spawner = scope.spawner();
+    let _serve = scope.spawner().spawn(
+        "serve",
+        connection::serve(
+            BufReader::new(kernel_in),
+            peer.clone(),
+            Arc::new(Silent),
+            spawner,
+            Options::default(),
+        ),
+    );
+    let context = Arc::new(super::Context::new(peer, Arc::new(FixedClock(0))));
+    let host = host(context);
+    let target = SessionRef {
+        kind: SessionRefKind::Cli,
+        workspace_path: "/Users/dev/work".to_owned(),
+        workspace_identity: Some("ws-1".to_owned()),
+        session_id: "sess_archived".to_owned(),
+    };
+    let pending =
+        tokio::spawn(async move { SessionArchiveReader::is_session_archived(&host, &target).await });
+    let mut from_kernel = BufReader::new(from_kernel).lines();
+    let line = tokio::time::timeout(Duration::from_secs(5), from_kernel.next_line())
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    let request: Value = serde_json::from_str(&line).unwrap();
+    assert_eq!(request["method"], "appControl/sessionArchived");
+    assert_eq!(
+        request["params"]["input"],
+        json!({"sessionId": "sess_archived"})
+    );
+    assert_eq!(request["params"]["workspacePath"], "/Users/dev/work");
+    let id = request["id"].clone();
+    let response = json!({
+        "id": id,
+        "result": {"ok": true, "result": {"archived": true}},
+    });
+    to_kernel
+        .write_all(format!("{response}\n").as_bytes())
+        .await
+        .unwrap();
+    assert_eq!(pending.await.unwrap().unwrap(), Some(true));
 }
 
 #[tokio::test]

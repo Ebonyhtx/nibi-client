@@ -2487,6 +2487,7 @@ app.whenReady().then(async () => {
       restoreBrowserTabs: (payload) => browserGuestManager.restoreTabs(payload),
     },
     exportBrowserViewPage: (payload) => browserGuestManager.exportPage(payload),
+    captureBrowserGuestPage: (payload) => browserGuestManager.capturePage(payload),
     applyApplicationLocale: async (locale) => {
       currentApplicationLocale = locale;
       // Host 的 Nibi endpoint 请求以此为实时语言；setting.json 写入可能滞后或失败，不能作为来源。

@@ -55,6 +55,8 @@ type Props = Pick<
     onOpenProjectData?(project: VirtualProject, mode: "delete" | "cleanup"): void;
     /** 旧内核明确不支持时 false；未知/支持都显示入口。 */
     dataCleanupSupported?: boolean | "unknown";
+    /** 仅本机桌面且 Host 提供受管 worktree 服务时传入；远端/手机不显示入口。 */
+    onOpenWorktrees?(project: VirtualProject): void;
   };
 
 // Bug 根因：任务活动每秒更新目录，父组件随之重建所有项目的菜单与回调，穿透内容层 memo。
@@ -75,6 +77,7 @@ export const ProjectSidebarNode = memo(
     remoteActions,
     onOpenProjectData,
     dataCleanupSupported,
+    onOpenWorktrees,
     ...display
   }: Props) {
     const { intl } = useNibiIntl();
@@ -87,25 +90,19 @@ export const ProjectSidebarNode = memo(
     const cleanupAvailable =
       projectDataCleanupAvailable({ project, supported: dataCleanupSupported }) &&
       availability?.online !== false;
-    // worktree 只在本地项目主目录创建；远端/手机远控一律不显示入口。
-    const worktreeSourcePath =
-      localProject && !remoteHost && !isWebRemoteControl ? project.roots[0]?.rootPath : undefined;
+    // 受管 worktree 只属于本机桌面 Host；远端项目和手机远控不显示管理入口。
     const worktreeActions: ProjectRowAction[] =
-      worktreeSourcePath && availability?.online !== false
+      localProject &&
+      !remoteHost &&
+      !isWebRemoteControl &&
+      onOpenWorktrees &&
+      availability?.online !== false
         ? [
             {
-              id: "create-worktree-task",
-              label: intl.formatMessage({ id: "project.newTaskInWorktree" }),
+              id: "worktrees",
+              label: msg("worktrees"),
               icon: GitBranch,
-              run: () =>
-                runProjectAction(async () => {
-                  onCreateTask({
-                    projectId: project.id,
-                    taskGroupId: null,
-                    managedWorktree: { sourceWorkspacePath: worktreeSourcePath },
-                    onError: (error) => toast(String(error)),
-                  });
-                }),
+              run: () => onOpenWorktrees(project),
             },
           ]
         : [];

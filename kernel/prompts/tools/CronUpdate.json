@@ -7,19 +7,23 @@
     "properties": {
       "id": {
         "description": "Job id returned by CronCreate or CronList.",
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       },
       "cron": {
         "description": "Replacement standard 5-field cron expression in local time. Omit to preserve the existing schedule.",
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       },
       "prompt": {
         "description": "Replacement prompt for future scheduled fires. Omit to preserve the existing prompt.",
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       },
       "title": {
         "description": "Synchronized automation title describing the task after this update. Keep the user's natural-language schedule phrase consistent with cron.",
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       },
       "recurring": {
         "description": "Replacement recurrence mode. true repeats indefinitely and clears any old finite maxRuns limit; false is finite. Omit to preserve the existing mode.",
@@ -43,7 +47,8 @@
       }
     },
     "required": [
-      "id"
+      "id",
+      "title"
     ],
     "additionalProperties": false
   }

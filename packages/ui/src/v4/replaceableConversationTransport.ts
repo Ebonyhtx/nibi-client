@@ -7,6 +7,7 @@ type RuntimeRestartListener = Parameters<ConversationTransport["onRuntimeRestart
 type RuntimeLifecycleListener = Parameters<
   NonNullable<ConversationTransport["onRuntimeLifecycle"]>
 >[0];
+type RuntimeExitListener = Parameters<NonNullable<ConversationTransport["onRuntimeExited"]>>[0];
 
 async function unsubscribeIgnoringFailure(
   transport: ConversationTransport,
@@ -34,11 +35,13 @@ export class ReplaceableConversationTransport implements ConversationTransport {
   private readonly assemblyFaultListeners = new Set<AssemblyFaultListener>();
   private readonly runtimeRestartListeners = new Set<RuntimeRestartListener>();
   private readonly runtimeLifecycleListeners = new Set<RuntimeLifecycleListener>();
+  private readonly runtimeExitListeners = new Set<RuntimeExitListener>();
   private readonly transportBySubscriptionId = new Map<string, ConversationTransport>();
   private offFrame: (() => void) | null = null;
   private offAssemblyFault: (() => void) | null = null;
   private offRuntimeRestart: (() => void) | null = null;
   private offRuntimeLifecycle: (() => void) | null = null;
+  private offRuntimeExit: (() => void) | null = null;
 
   /**
    * 承载方不支持 runtime lifecycle 时本方法在构造期被抹掉，消费方据此回落 onRuntimeRestart。
@@ -57,9 +60,25 @@ export class ReplaceableConversationTransport implements ConversationTransport {
     };
   };
 
+  /** 承载方未暴露意外退出事件时，本方法在构造期被抹掉。 */
+  onRuntimeExited?: (listener: RuntimeExitListener) => () => void = (listener) => {
+    this.runtimeExitListeners.add(listener);
+    this.bindRuntimeExitListener();
+    return () => {
+      this.runtimeExitListeners.delete(listener);
+      if (this.runtimeExitListeners.size === 0) {
+        this.offRuntimeExit?.();
+        this.offRuntimeExit = null;
+      }
+    };
+  };
+
   constructor(private current: ConversationTransport) {
     if (!current.onRuntimeLifecycle) {
       this.onRuntimeLifecycle = undefined;
+    }
+    if (!current.onRuntimeExited) {
+      this.onRuntimeExited = undefined;
     }
   }
 
@@ -262,6 +281,7 @@ export class ReplaceableConversationTransport implements ConversationTransport {
     this.bindAssemblyFaultListener();
     this.bindRuntimeRestartListener();
     this.bindRuntimeLifecycleListener();
+    this.bindRuntimeExitListener();
   }
 
   private bindFrameListener(): void {
@@ -299,6 +319,14 @@ export class ReplaceableConversationTransport implements ConversationTransport {
       }) ?? null;
   }
 
+  private bindRuntimeExitListener(): void {
+    if (this.offRuntimeExit || this.runtimeExitListeners.size === 0) return;
+    this.offRuntimeExit =
+      this.current.onRuntimeExited?.((event) => {
+        for (const listener of this.runtimeExitListeners) listener(event);
+      }) ?? null;
+  }
+
   private detachCurrentListeners(): void {
     this.offFrame?.();
     this.offFrame = null;
@@ -308,5 +336,7 @@ export class ReplaceableConversationTransport implements ConversationTransport {
     this.offRuntimeRestart = null;
     this.offRuntimeLifecycle?.();
     this.offRuntimeLifecycle = null;
+    this.offRuntimeExit?.();
+    this.offRuntimeExit = null;
   }
 }

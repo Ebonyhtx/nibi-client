@@ -24,7 +24,7 @@ async fn forks_copy_the_active_branch_with_new_ids() {
     until(&mut events, finished).await;
     let ack = built
         .session
-        .send(envelope("f1", Command::Fork { at: None }))
+        .send(envelope("f1", Command::Fork { at: None, child: None, cwd: None }))
         .await;
     let Ack::Accepted { result } = ack else {
         panic!("{ack:?}")
@@ -51,7 +51,7 @@ async fn a_fork_of_an_untitled_session_is_named_like_node() {
     let built = Setup::new(model).build().await;
     let ack = built
         .session
-        .send(envelope("f1", Command::Fork { at: None }))
+        .send(envelope("f1", Command::Fork { at: None, child: None, cwd: None }))
         .await;
     let Ack::Accepted { result } = ack else {
         panic!("{ack:?}")
@@ -86,7 +86,7 @@ async fn a_main_turn_records_the_prompt_snapshot_and_a_fork_copies_it() {
 
     let ack = built
         .session
-        .send(envelope("f1", Command::Fork { at: None }))
+        .send(envelope("f1", Command::Fork { at: None, child: None, cwd: None }))
         .await;
     let Ack::Accepted { result } = ack else {
         panic!("{ack:?}")
@@ -128,4 +128,71 @@ fn the_resume_reply_is_not_copied() {    use nibi_kernel_api::ids::MessageId;
             .iter()
             .all(|message| matches!(message, Message::User(_)))
     );
+}
+
+/// Host 预分配 child ID + 目标 cwd（受管 worktree）：child 留在同一父链，执行根换成目标目录。
+#[tokio::test]
+async fn fork_with_target_cwd_uses_the_host_child_id_and_directory() {
+    use nibi_kernel_api::env::EnvPath;
+
+    let model = Arc::new(ScriptedModel::new(Vec::new()));
+    let built = Setup::new(model).build().await;
+    let child = SessionId::new("sess_worktree_child");
+    let ack = built
+        .session
+        .send(envelope(
+            "f1",
+            Command::Fork {
+                at: None,
+                child: Some(child.clone()),
+                cwd: Some(EnvPath::new("/worktrees/3f2a/repo/packages/ui")),
+            },
+        ))
+        .await;
+    let Ack::Accepted { result } = ack else {
+        panic!("{ack:?}")
+    };
+    assert_eq!(result.as_str(), Some(child.as_str()));
+    let loaded = built.store.load(&child).await.unwrap();
+    assert_eq!(
+        loaded.meta.workspace.root,
+        EnvPath::new("/worktrees/3f2a/repo/packages/ui")
+    );
+    assert_eq!(loaded.meta.parent, Some(crate::test_support::meta().id));
+    assert_eq!(loaded.meta.kind, SessionKind::Fork);
+}
+
+/// 预分配 child ID 已存在时显式拒绝（不能覆盖既有会话）。
+#[tokio::test]
+async fn fork_rejects_an_existing_host_child_id() {
+    let model = Arc::new(ScriptedModel::new(Vec::new()));
+    let built = Setup::new(model).build().await;
+    let child = SessionId::new("sess_duplicate_child");
+    let first = built
+        .session
+        .send(envelope(
+            "f1",
+            Command::Fork {
+                at: None,
+                child: Some(child.clone()),
+                cwd: None,
+            },
+        ))
+        .await;
+    assert!(matches!(first, Ack::Accepted { .. }));
+    let second = built
+        .session
+        .send(envelope(
+            "f2",
+            Command::Fork {
+                at: None,
+                child: Some(child),
+                cwd: None,
+            },
+        ))
+        .await;
+    let Ack::Rejected { reason } = second else {
+        panic!("{second:?}")
+    };
+    assert!(reason.contains("already exists"), "{reason}");
 }

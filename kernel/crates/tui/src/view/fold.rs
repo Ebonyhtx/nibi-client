@@ -210,6 +210,7 @@ impl Transcript {
             KernelEvent::HistoryRewritten { .. }
             | KernelEvent::FilesRestored { .. }
             | KernelEvent::SessionCreated { .. }
+            | KernelEvent::WorktreeCreated { .. }
             | KernelEvent::Subagent { .. } => {}
             // 终态只进投影（Shell 详情在内核已不认识这条命令时用，tui-panels.md §3.3）。
             KernelEvent::BackgroundWork { work, status } => self.background_ended(work, status),

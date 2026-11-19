@@ -11,6 +11,11 @@
 > 找不到 `nibi-rs` 二进制时 `resolveDefaultNibiAgentCommand` fail-closed 抛错，不再回落到 node 链路。
 > `NIBI_AGENT_SERVER_COMMAND` 仅作显式自定义覆盖；远端 Source Server / server-cli 继续使用自己的
 > `nibi.cjs` 链路。
+>
+> **工具契约对拍入口（X02）**：因为桌面本地没有 Node 回退，整机双跑不可复现；最小对拍放在工具契约层：
+> `node scripts/check-dual-kernel-parity.mjs --check --live`（同一进程导出 Node `builtInTools` 与 Rust
+> `nibi-kernel-tools` 注册表，逐工具比较 input schema 与结果预算；快照与 allowlist 见
+> `scripts/fixtures/dual-kernel-tool-parity.json`）。
 
 ## 结论摘要
 

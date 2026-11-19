@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@/hooks/useWorkspaceServices.js", () => ({
   useBaseWorkspaceServices: () => ({ windowControllerService: mocks, nibiTaskService: {} }),
+  useOptionalBaseWorkspaceServices: () => null,
 }));
 vi.mock("@/hooks/useResolvedRemoteWorkspaceSessionId.js", () => ({
   useResolvedRemoteWorkspaceSessionId: () => null,

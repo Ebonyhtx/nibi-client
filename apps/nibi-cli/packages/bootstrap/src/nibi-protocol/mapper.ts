@@ -10,4 +10,9 @@ export {
   resolveSessionContextUsage,
   shouldExposeSessionEventToProtocol,
 } from "./session-mapper.js";
-export { buildWorkspaceRef, resolveWorkspaceRefFromId } from "./workspace.js";
+export {
+  buildWorkspaceRef,
+  resolveResumeWorkspaceRef,
+  resolveWorkspaceRefFromId,
+  workspaceRefWithCwd,
+} from "./workspace.js";

@@ -45,6 +45,7 @@ fn view(messages: Vec<Message>) -> SessionView {
         output_speed: None,
         launches: Vec::new(),
         model_turns: Vec::new(),
+        worktree_creations: Vec::new(),
         input_intents: Vec::new(),
     }
 }
@@ -1402,4 +1403,62 @@ fn a_tool_result_display_is_projected_on_the_row() {
     });
     assert_eq!(done[0]["row"]["display"]["ui"]["surface"], "panel");
     assert_eq!(done[0]["row"]["display"]["ui"]["pluginId"], "math-modeling");
+}
+
+fn worktree_creation() -> nibi_kernel_api::session_api::WorktreeCreation {
+    nibi_kernel_api::session_api::WorktreeCreation {
+        path: "/worktrees/3f2a/project".into(),
+        sha: "abc123".into(),
+        reference: None,
+        output: "git checkout abc123".into(),
+    }
+}
+
+#[test]
+fn worktree_created_appends_a_light_boundary_marker() {
+    let mut feed = Feed::new();
+    feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        input_source: None,
+        origin_meta: None,
+        workflow_launch: None,
+        turn: TurnId::new("turn_1"),
+        command: None,
+    });
+    let deltas = feed.apply(KernelEvent::WorktreeCreated {
+        creation: worktree_creation(),
+    });
+    let row = deltas
+        .iter()
+        .find(|delta| delta["row"]["kind"] == "timelineMarker")
+        .expect("worktree marker row");
+    assert_eq!(row["row"]["lane"], "lightBoundary");
+    assert_eq!(row["row"]["marker"]["type"], "worktreeCreated");
+    assert_eq!(row["row"]["marker"]["path"], "/worktrees/3f2a/project");
+    assert_eq!(row["row"]["marker"]["sha"], "abc123");
+    assert_eq!(row["row"]["marker"]["ref"], serde_json::Value::Null);
+    assert_eq!(row["row"]["marker"]["output"], "git checkout abc123");
+}
+
+#[test]
+fn a_cold_open_restores_the_worktree_marker_at_the_first_turn_top() {
+    let mut cold = view(vec![user("msg_u1", "hello")]);
+    cold.worktree_creations = vec![nibi_kernel_api::store::WorktreeCreationTurn {
+        message: MessageId::new("msg_u1"),
+        creation: worktree_creation(),
+    }];
+    let projection = Projection::from_view(&cold, Followup::Queue, vec!["high".into()]);
+    let snapshot = projection.snapshot(0, "epoch");
+    let rows = snapshot["rows"]["window"].as_array().expect("rows");
+    let marker = rows
+        .iter()
+        .position(|row| row["kind"] == "timelineMarker" && row["marker"]["type"] == "worktreeCreated")
+        .expect("worktree marker row");
+    let header = rows
+        .iter()
+        .position(|row| row["kind"] == "turnHeader")
+        .expect("turn header row");
+    assert!(marker < header);
+    assert_eq!(rows[marker]["lane"], "lightBoundary");
+    assert_eq!(rows[marker]["marker"]["sha"], "abc123");
 }

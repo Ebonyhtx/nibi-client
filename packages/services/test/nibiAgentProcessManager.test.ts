@@ -1080,6 +1080,8 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
       }),
       processLifecycleReporter: reporter,
     });
+    const runtimeExits: Array<{ terminationKind?: string }> = [];
+    manager.onRuntimeExited((event) => runtimeExits.push(event));
 
     try {
       await manager.getClient({ workspacePath });
@@ -1093,6 +1095,8 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
         runtimeGeneration: 1,
       });
       expect(reporter.onExit.mock.calls[0]![0].stderrTail).toBeUndefined();
+      // 用户主动回收/重启不是意外退出，renderer 不应出现横幅。
+      expect(runtimeExits).toEqual([]);
     } finally {
       manager.disposeAll();
     }
@@ -1157,6 +1161,8 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
       }),
       processLifecycleReporter: reporter,
     });
+    const runtimeExits: Array<Record<string, unknown>> = [];
+    manager.onRuntimeExited((event) => runtimeExits.push(event));
 
     try {
       await manager.getClient({ workspacePath });
@@ -1199,6 +1205,22 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
         stderrLineCount: 1,
         stderrTail: ["Error: simulated EPIPE token=<redacted> key=sk-<redacted>"],
       });
+      // 意外退出事实随事件送到 renderer：码/信号/共享分类 + 脱敏摘要，不含原始 stderr。
+      expect(runtimeExits).toHaveLength(1);
+      expect(runtimeExits[0]).toMatchObject({
+        workspaceKey: workspacePath,
+        exitCode: 1,
+        signal: null,
+        category: "crash",
+        diagnosticClass: "errno",
+        errorCode: "EPIPE",
+        diagnosticSummary: "simulated EPIPE token=<redacted> key=sk-<redacted>",
+      });
+      expect(runtimeExits[0]).not.toHaveProperty("stderrTail");
+      expect(JSON.stringify(runtimeExits)).not.toContain("super-secret");
+      expect(JSON.stringify(runtimeExits)).not.toContain(
+        "sk-1234567890abcdefghijklmnopqrstuv",
+      );
     } finally {
       await disposeAllAndWaitSettling(manager);
       errorSpy.mockRestore();

@@ -6,10 +6,11 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use nibi_kernel_api::app_control::{
-    AppControlActionName, AppControlError, AppKind, AppProjectEntry, AppProjectRef, AppScope,
-    AppSearchScope, AppSessionControlHost, AppTrustedContext, AppUnavailableSource,
-    ListProjectsInput, ListProjectsResult, MutationResult, MutationStatus, OpenSessionInput,
-    OpenSessionResult, OpenSessionStatus, SetSessionArchivedInput, SetSessionPinnedInput,
+    APP_ARCHIVED_OPEN_REASON, AppControlActionName, AppControlError, AppKind, AppProjectEntry,
+    AppProjectRef, AppScope, AppSearchScope, AppSessionControlHost, AppTrustedContext,
+    AppUnavailableSource, ListProjectsInput, ListProjectsResult, MutationResult, MutationStatus,
+    OpenSessionInput, OpenSessionResult, OpenSessionStatus, SetSessionArchivedInput,
+    SetSessionPinnedInput,
 };
 use nibi_kernel_api::tool::Tool;
 use serde_json::{Value, json};
@@ -388,6 +389,29 @@ async fn subagents_never_receive_app_control() {
         .unwrap_err();
     assert!(failure(&error).contains("forbidden"), "{error:?}");
     assert!(host.calls().is_empty());
+}
+
+#[tokio::test]
+async fn archived_open_returns_the_upstream_unavailable_reason() {
+    let host = Arc::new(FakeHost::default());
+    *host.open.lock().unwrap() = Some(OpenSessionResult {
+        status: OpenSessionStatus::Unavailable,
+        ui_target: None,
+        reason: Some(APP_ARCHIVED_OPEN_REASON.to_owned()),
+    });
+    let open = tool(AppControlActionName::OpenSession, host.clone());
+    let output = open
+        .call(
+            json!({"sessionId": "sess_archived"}),
+            context(),
+            tokio::sync::mpsc::channel(1).0,
+        )
+        .await
+        .expect("unavailable is a result, not a tool error");
+    let value: Value = serde_json::from_str(&output_text(&output)).unwrap();
+    assert_eq!(value["status"], "unavailable");
+    assert_eq!(value["reason"], APP_ARCHIVED_OPEN_REASON);
+    assert_eq!(host.calls(), vec!["openSession sess_archived"]);
 }
 
 #[tokio::test]

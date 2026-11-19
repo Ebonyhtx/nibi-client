@@ -8,7 +8,7 @@ Rust 内核与 Node 内核的共享契约目录。目标：同一件事实只定
 |---|---|---|
 | `project-config.keys.json` | 项目级配置（`nibi.json`、`.nibi/config.json`）允许键的 canonical 清单 | Node `project-config.adapter.ts`、Rust `config/project_scope.rs`；两侧各有 conformance 测试核对本 JSON |
 | `capabilities.json` | 双内核能力单侧例外（`persona.budget.webSearch`、CLI 内存诊断、扩展宿主、远端 agent）与双实现登记（Prompt 快照）；X02 的工具/错误码单侧例外也登记在这里（`tool.*`、`errorCode.*`、`permission.nodeCategories`） | `scripts/check-kernel-capabilities.mjs`、`scripts/check-dual-kernel-parity.mjs`；UI/文档据此显示“当前内核不支持” |
-| `tool-parity.json` | X02 canonical 工具/权限名/错误码清单：每个工具一条（`name`、`side`、只读、需审批、Node 权限分类、Rust `check_permissions` 探针） | Node `apps/nibi-cli/packages/core/tests/tool-parity.test.ts`；Rust `kernel/crates/tools/src/parity_tests.rs`；`scripts/check-dual-kernel-parity.mjs` |
+| `tool-parity.json` | X02 canonical 工具/权限名/错误码清单：每个工具一条（`name`、`side`、只读、需审批、Node 权限分类、Rust `check_permissions` 探针）；`sessionControl` 登记会话控制的 12 个权限名、双内核结果码、来源归属与归档目标策略 | Node `apps/nibi-cli/packages/core/tests/tool-parity.test.ts`；Rust `kernel/crates/tools/src/parity_tests.rs`；`scripts/check-dual-kernel-parity.mjs` |
 
 ## 规则
 

@@ -534,6 +534,15 @@ pub trait SessionControlHost: Send + Sync {
         session_id: &str,
     ) -> Result<Option<SessionRef>, SessionControlError>;
 
+    /// 目标是否已归档。归档事实属于 App Host 的任务索引；独立的 CLI owner 不提供时保持缺席，
+    /// 提供时必须让 fork 在创建子会话之前显式失败。缺省 false 保持既有 owner 语义不变。
+    async fn is_session_archived(
+        &self,
+        _session: &SessionRef,
+    ) -> Result<bool, SessionControlError> {
+        Ok(false)
+    }
+
     /// 调用者会话的根会话（父链顶端，self-wait 的判据）。缺省按会话自己算（顶层会话即根）。
     async fn root_session(
         &self,
@@ -591,6 +600,17 @@ pub trait SessionControlHost: Send + Sync {
         ctx: &TrustedContext,
         operation: &OperationRef,
     ) -> Result<Box<dyn SessionControlFeed>, SessionControlError>;
+}
+
+/// 读 Host 任务索引的归档事实。只有 App Host 的 app-server 入口注入；独立 CLI/TUI
+/// 没有该 reader 时保持缺席，不能把「查不到」伪造成「未归档」。
+#[async_trait]
+pub trait SessionArchiveReader: Send + Sync {
+    /// `None` 表示当前入口/来源无法确认归档状态。
+    async fn is_session_archived(
+        &self,
+        session: &SessionRef,
+    ) -> Result<Option<bool>, SessionControlError>;
 }
 
 /// 工具注册表先建好、入口拿到 `Arc<LocalKernel>` 之后才注入的端口槽。槽为空时工具按

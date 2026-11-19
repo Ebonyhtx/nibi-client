@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { IChannel, IChannelClient } from "@nibi/rpc";
-import { ISourceServerManagementService } from "@nibi/services";
+import { IManagedWorktreeService, ISourceServerManagementService } from "@nibi/services";
 import { RemoteServiceAccess } from "../src/remoteServiceAccess.js";
 
 const channel: IChannel = {
@@ -35,6 +35,19 @@ describe("RemoteServiceAccess optional channels", () => {
 
     expect(services.sourceServerManagementService).toBeUndefined();
     expect(getChannel).not.toHaveBeenCalledWith(ISourceServerManagementService.channelName);
+  });
+
+  it("only constructs the managed worktree proxy for the local base attachment", async () => {
+    const getChannel = vi.fn(() => channel);
+    const remote = new RemoteServiceAccess({ getChannel } as IChannelClient);
+    expect(remote.managedWorktreeService).toBeUndefined();
+    expect(getChannel).not.toHaveBeenCalledWith(IManagedWorktreeService.channelName);
+
+    const local = new RemoteServiceAccess({ getChannel } as IChannelClient, {
+      managedWorktreeService: true,
+    });
+    expect(local.managedWorktreeService).toBeDefined();
+    expect(getChannel).toHaveBeenCalledWith(IManagedWorktreeService.channelName);
   });
 });
 

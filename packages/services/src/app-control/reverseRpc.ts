@@ -13,6 +13,7 @@ import {
   listProjectsInputSchema,
   openSessionInputSchema,
   parseEnvelope,
+  sessionArchivedInputSchema,
   sessionCreatedInputSchema,
   setSessionArchivedInputSchema,
   setSessionPinnedInputSchema,
@@ -152,6 +153,15 @@ export function createAppControlReverseRpc(
               const input = setSessionPinnedInputSchema.parse(envelope.input);
               result = await remember(envelope, input.requestId, method, input, () =>
                 deps.service.setSessionPinned(trusted, input, controller.signal),
+              );
+              break;
+            }
+            case APP_CONTROL_METHODS.sessionArchived: {
+              const input = sessionArchivedInputSchema.parse(envelope.input);
+              result = await deps.service.getSessionArchived(
+                trusted,
+                input,
+                controller.signal,
               );
               break;
             }

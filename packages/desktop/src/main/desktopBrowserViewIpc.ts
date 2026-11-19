@@ -11,6 +11,8 @@ import {
   type BrowserViewExportPageFormat,
   type BrowserViewExportPageRequest,
   type BrowserViewExportPageResult,
+  type CaptureBrowserGuestPageRequest,
+  type CaptureBrowserGuestPageResult,
   type BrowserViewportSize,
   type BrowserViewScreenshotSurfaceReadyPayload,
 } from "@nibi/shared";
@@ -49,6 +51,14 @@ export type ExportBrowserViewPage = (payload: {
   senderWebContentsId: number;
 }) => Promise<BrowserViewExportPageResult>;
 
+export type CaptureBrowserGuestPage = (payload: {
+  tabId: string;
+  webContentsId: number;
+  clip?: CaptureBrowserGuestPageRequest["clip"];
+  windowId: number;
+  senderWebContentsId: number;
+}) => Promise<CaptureBrowserGuestPageResult>;
+
 export interface BrowserViewResidencyIpcHandlers {
   detachBrowserGuest?(
     key: string,
@@ -80,6 +90,7 @@ export function registerBrowserViewIpcHandlers(
   reportBrowserScreenshotSurfaceReady?: ReportBrowserScreenshotSurfaceReady,
   residencyHandlers: BrowserViewResidencyIpcHandlers = {},
   exportBrowserViewPage?: ExportBrowserViewPage,
+  captureBrowserGuestPage?: CaptureBrowserGuestPage,
 ) {
   // renderer 只能拿到 guest webContentsId，必须由 main 绑定发送方窗口后再 attach，
   // 否则相同 key 在多个窗口之间可能错误复用 BrowserGuestManager 状态。
@@ -285,6 +296,48 @@ export function registerBrowserViewIpcHandlers(
       });
     },
   );
+
+  ipcMain.handle(
+    PlatformChannels.CaptureBrowserGuestPage,
+    async (event, payload: CaptureBrowserGuestPageRequest): Promise<CaptureBrowserGuestPageResult> => {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (!win || win.isDestroyed()) {
+        return { success: false, error: "window_mismatch" };
+      }
+      const tabId = nonEmptyStringSchema.parse(payload?.key);
+      if (!Number.isSafeInteger(payload.webContentsId) || payload.webContentsId <= 0) {
+        throw new TypeError("webContentsId must be a positive safe integer");
+      }
+      if (!captureBrowserGuestPage) {
+        return { success: false, error: "unsupported" };
+      }
+      const clip = parseCaptureClip(payload.clip);
+      if (payload.clip !== undefined && clip === null) {
+        return { success: false, error: "invalid_clip" };
+      }
+      return captureBrowserGuestPage({
+        tabId,
+        webContentsId: payload.webContentsId,
+        ...(clip ? { clip } : {}),
+        windowId: win.id,
+        senderWebContentsId: event.sender.id,
+      });
+    },
+  );
+}
+
+/** 元素截图 clip：有限正数，面积上限避免一次请求把内存打满；换算后的字节上限在 guest manager 里再卡。 */
+function parseCaptureClip(
+  clip: CaptureBrowserGuestPageRequest["clip"],
+): CaptureBrowserGuestPageRequest["clip"] | null | undefined {
+  if (clip === undefined) return undefined;
+  const values = [clip.x, clip.y, clip.width, clip.height, clip.viewportWidth, clip.viewportHeight];
+  if (!values.every((value) => Number.isFinite(value))) return null;
+  if (clip.width <= 0 || clip.height <= 0 || clip.viewportWidth <= 0 || clip.viewportHeight <= 0)
+    return null;
+  if (clip.width * clip.height > 64_000_000) return null;
+  if (clip.viewportWidth > 16_384 || clip.viewportHeight > 16_384) return null;
+  return clip;
 }
 
 export function registerDesktopBrowserIpcHandlers(
@@ -297,6 +350,7 @@ export function registerDesktopBrowserIpcHandlers(
   reportBrowserScreenshotSurfaceReady?: ReportBrowserScreenshotSurfaceReady,
   residencyHandlers?: BrowserViewResidencyIpcHandlers,
   exportBrowserViewPage?: ExportBrowserViewPage,
+  captureBrowserGuestPage?: CaptureBrowserGuestPage,
 ) {
   registerBrowserViewIpcHandlers(
     attachBrowserGuest,
@@ -304,6 +358,7 @@ export function registerDesktopBrowserIpcHandlers(
     reportBrowserScreenshotSurfaceReady,
     residencyHandlers,
     exportBrowserViewPage,
+    captureBrowserGuestPage,
   );
   registerBrowserDataIpcHandlers(logger);
 }

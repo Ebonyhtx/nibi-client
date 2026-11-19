@@ -3,6 +3,7 @@
 Host 项目组织态的持久化升级。调用者持有 app SQLite 连接，CLI 通过协议交接事实，不导入此模块。
 
 - `0005_projects`（旧 ID `0001_projects`）首次迁移旧 settings 中保留的 workspace；不删除或改写旧列语义、不移动目录。
+- `0008_task_worktree_root` 增加 `tasks.worktree_root` 与 `idx_tasks_host_worktree` 部分索引。受管 worktree 任务由 `reserveCreatedTask` 首次写入 `root_path = cwd` 与 `worktree_root`（workspace_key/workspace_path 仍是项目主目录）；NULL 表示普通任务，旧行不回填。`listTasksByWorktree` 精确匹配该列，`releaseReservedTask` 只删除尚无 CLI 事实的创建预留。
 - 首次项目集合与 position 仅来自 lastWorkspaceSession 中本 Host 保留的项目条目，按原顺序去重，保留无任务的已保存项目。conversation、历史 tasks、recentProjects 和 Group 不创建项目；settings 缺失或列表为空时不推断项目。历史任务保留 cwd 与组织态，无匹配项目时保持 NULL；已有 ledger 不重跑转换、不重排或自动清理项目。
 - ID 沿用 CLI 的四位递增序号 + snake_case 名称，两个库独立编号；开发期旧 ID 的本机更名不修改 SQL/checksum 或重新执行转换。
 - 初始 cli\_\* 从旧列复制一次，之后只由 syncer 写。handoff_pending 为意图与首次判定 bit；NULL project_id 是合法最终组织态。

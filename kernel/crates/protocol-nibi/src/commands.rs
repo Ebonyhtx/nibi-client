@@ -1,7 +1,10 @@
 //! 命令的处理（[`crate::inbox`] 的裁决与转交）：P1 的五个命令。
 
+use std::path::{Path, PathBuf};
+
 use nibi_kernel_api::attachment::AttachmentSource;
 use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_files::PathStyle;
 use nibi_kernel_api::ids::{CommandId, InteractionId, SessionId};
 use nibi_kernel_api::interaction::{
     PermissionAnswer, PlanApprovalAnswer, QuestionAnnotation, QuestionAnswer,
@@ -12,7 +15,7 @@ use nibi_kernel_api::orchestration::InteractionRequest;
 use nibi_kernel_api::permission::{PermissionMode, PermissionRule};
 use nibi_kernel_api::session_api::{
     Ack as KernelAck, Command, CommandEnvelope, CreateSession, Delivery, KernelError, RewindScope,
-    SessionHandle,
+    SessionHandle, WorktreeCreation,
 };
 use nibi_kernel_api::store::SessionFilter;
 use nibi_kernel_protocol_core::rpc::RpcError;
@@ -646,6 +649,90 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
     }
 }
 
+const WORKTREE_CWD_UNAVAILABLE: &str = "guard.worktreeCwdUnavailable";
+const WORKTREE_CWD_UNTRUSTED: &str = "guard.worktreeCwdUntrusted";
+const WORKTREE_CWD_MISMATCH: &str = "guard.worktreeCwdMismatch";
+
+fn existing_directory(path: &str, what: &str) -> Result<PathBuf, (&'static str, String)> {
+    if !Path::new(path).is_absolute() {
+        return Err((
+            WORKTREE_CWD_UNAVAILABLE,
+            format!("{what} must be an absolute path: {path}"),
+        ));
+    }
+    let canonical = std::fs::canonicalize(path).map_err(|_| {
+        (
+            WORKTREE_CWD_UNAVAILABLE,
+            format!("{what} does not exist: {path}"),
+        )
+    })?;
+    if !canonical.is_dir() {
+        return Err((
+            WORKTREE_CWD_UNAVAILABLE,
+            format!("{what} is not a directory: {path}"),
+        ));
+    }
+    Ok(canonical)
+}
+
+/// Host 可信的会话 cwd（受管 worktree）：目录必须存在；与 workspace 相同视为无覆盖；
+/// 不同时必须带 `worktreeCreation` 且 cwd 在其根内。返回 `None` 表示沿用 workspace 根。
+/// Renderer/模型不能伪造：两个字段只由 Host 的 worktree 服务在可信命令里携带。
+fn trusted_session_cwd(
+    workspace_root: &str,
+    cwd: Option<&str>,
+    worktree_creation: Option<&Value>,
+) -> Result<Option<EnvPath>, (&'static str, String)> {
+    let Some(cwd) = cwd else { return Ok(None) };
+    let canonical_cwd = existing_directory(cwd, "session cwd")?;
+    // 与 workspace 相同：不改变执行目录（比较规范化路径，兼容末尾分隔符与大小写）。
+    if PathStyle::infer(cwd).same(cwd, workspace_root)
+        || std::fs::canonicalize(workspace_root)
+            .is_ok_and(|workspace| workspace == canonical_cwd)
+    {
+        return Ok(None);
+    }
+    let Some(root) = worktree_creation
+        .and_then(|creation| creation["path"].as_str())
+        .filter(|root| !root.is_empty())
+    else {
+        return Err((
+            WORKTREE_CWD_UNTRUSTED,
+            format!("session cwd requires a Host worktree creation: {cwd}"),
+        ));
+    };
+    let canonical_root = existing_directory(root, "worktree root")?;
+    let style = PathStyle::infer(root);
+    if !style.is_within(cwd, root)
+        || !canonical_cwd.starts_with(&canonical_root)
+    {
+        return Err((
+            WORKTREE_CWD_MISMATCH,
+            format!("session cwd {cwd} is outside worktree {root}"),
+        ));
+    }
+    Ok(Some(EnvPath::new(cwd)))
+}
+
+/// Host 可信的 worktree 创建结果（NIBI `createSession.worktreeCreation`）的严格形状。
+/// `ref` 是 Node 的 `null` 或分支名；其余字段缺失/类型不对时返回 None（创建前拒绝）。
+fn worktree_creation_of(value: &Value) -> Option<WorktreeCreation> {
+    let path = value["path"].as_str().filter(|path| !path.is_empty())?;
+    let sha = value["sha"].as_str()?;
+    let reference = match &value["ref"] {
+        Value::Null => None,
+        Value::String(reference) => Some(reference.clone()),
+        _ => return None,
+    };
+    let output = value["output"].as_str()?;
+    Some(WorktreeCreation {
+        path: path.to_owned(),
+        sha: sha.to_owned(),
+        reference,
+        output: output.to_owned(),
+    })
+}
+
 async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
     let payload = &envelope.payload;
     // R12/R23：照上游实现会静默丢 NIBI 的 createSession 字段。契约层先点名上报，
@@ -678,9 +765,39 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
     // 协议层不再自带 id 生成器。
     let requested = payload["sessionId"].as_str().map(SessionId::new);
     let workspace = payload["workspaceId"].as_str().unwrap_or_default();
+    // 受管 worktree：cwd 只由 Host 可信命令携带；目录不存在、缺 worktreeCreation 或越出
+    // worktree 根时在创建前拒绝，不落半个会话。
+    let cwd = match trusted_session_cwd(
+        workspace,
+        payload["cwd"].as_str(),
+        payload.get("worktreeCreation").filter(|value| !value.is_null()),
+    ) {
+        Ok(cwd) => cwd,
+        Err((code, message)) => {
+            return Ack::refused(&envelope.command_id, Status::Rejected, code, message, 0);
+        }
+    };
+    if let Some(creation) = payload
+        .get("worktreeCreation")
+        .filter(|value| !value.is_null())
+    {
+        // 事实的严格形状在创建前校验：坏数据不能留下半个会话，也不能静默丢弃字段。
+        if worktree_creation_of(creation).is_none() {
+            return Ack::refused(
+                &envelope.command_id,
+                Status::Rejected,
+                "proto.invalidPayload",
+                "worktreeCreation must be {path, sha, ref, output}".to_owned(),
+                0,
+            );
+        }
+    }
+    let workspace_root = cwd
+        .as_ref()
+        .map_or_else(|| workspace.to_owned(), |cwd| cwd.as_str().to_owned());
     let create = CreateSession {
         id: requested,
-        workspace: server.workspace(workspace),
+        workspace: server.workspace(&workspace_root),
         selection: chosen,
         mode: permission,
         plan,
@@ -779,6 +896,27 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
         Ok(live) => live,
         Err(error) => return refused(error.to_string()),
     };
+    // 受管 worktree：事实先交给会话 actor；首轮输入落库时写 timeline part 并发
+    // `WorktreeCreated`（Node 的 ensureSessionPersisted 之后、TurnStarted 之前）。
+    // 独立 command id：与随后的首条输入共用 id 会被 actor 的 seen 集判成重复命令。
+    if let Some(creation) = payload
+        .get("worktreeCreation")
+        .filter(|value| !value.is_null())
+        .and_then(worktree_creation_of)
+    {
+        let setup = format!("{}:worktree", envelope.command_id);
+        if !matches!(
+            send(
+                live.handle.as_ref(),
+                &setup,
+                Command::SetWorktreeCreation { creation },
+            )
+            .await,
+            KernelAck::Accepted { .. }
+        ) {
+            return refused("the session refused its worktree creation fact".to_owned());
+        }
+    }
     // 动态工作流灰度的显式值（Host 只在开启时带）：Host 关闭时什么都不发，所以这里只认 `true`；
     // 与 workspace 策略取或（Node `resolveDynamicWorkflowRuntimeGate` 同序）。必须在会话打开之后落：
     // 打开时按 workspace 策略定了缺省门（Host 进程缺席 = 关闭）。
@@ -1545,12 +1683,19 @@ fn retry_target(messages: &[nibi_kernel_api::message::Message]) -> Result<RetryT
 
 /// fork 出来的子会话不会自动打开，sessions-index 的实时行就缺这一条；从存储里读回它的
 /// 摘要补发一次，Host 的任务列表和 fork 后的原地跳转立刻能看到（否则要等重启的快照）。
-async fn publish_forked_session(server: &Server, live: &crate::live::Live, session: &str) {
+async fn publish_forked_session(
+    server: &Server,
+    live: &crate::live::Live,
+    session: &str,
+    workspace_root: Option<&str>,
+) {
     if session.is_empty() {
         return;
     }
+    // fork 到受管 worktree 时 child 的持久 workspace 是 worktree 根；按 child 自己的根查摘要，
+    // 行仍发布到父会话的 sessions-index（Host 按项目 workspace 看这条 fork）。
     let filter = SessionFilter {
-        workspace: server.workspace(live.workspace_root()),
+        workspace: server.workspace(workspace_root.unwrap_or_else(|| live.workspace_root())),
         limit: 200,
     };
     match server.kernel.workspace_sessions(filter).await {
@@ -1579,8 +1724,8 @@ async fn fork_assistant(
     envelope: &Envelope,
 ) -> Ack {
     let command = envelope.command_id.as_str();
-    let revision = match handle.view().await {
-        Ok(view) => view.revision,
+    let view = match handle.view().await {
+        Ok(view) => view,
         Err(error) => {
             return Ack::refused(
                 command,
@@ -1591,6 +1736,7 @@ async fn fork_assistant(
             );
         }
     };
+    let revision = view.revision;
     if let Some(stale) = cas_check_with_epoch(
         command,
         envelope.base_revision,
@@ -1631,18 +1777,117 @@ async fn fork_assistant(
             );
         }
     };
+    // 受管 worktree：child 留在同一 workspace，执行目录换成 targetCwd。Host 预分配
+    // childSessionId；目录/根校验失败在 fork 之前拒绝，不留半个 child。
+    let (child, cwd, worktree_creation) =
+        match envelope.payload.get("targetCwd").filter(|value| !value.is_null()) {
+            None => (None, None, None),
+            Some(target) => {
+                let Some(child_id) = target["childSessionId"].as_str().filter(|id| !id.is_empty())
+                else {
+                    return Ack::refused(
+                        command,
+                        Status::Rejected,
+                        "proto.invalidPayload",
+                        "targetCwd needs a childSessionId",
+                        revision,
+                    );
+                };
+                let Some(cwd_value) = target["cwd"].as_str().filter(|cwd| !cwd.is_empty()) else {
+                    return Ack::refused(
+                        command,
+                        Status::Rejected,
+                        "proto.invalidPayload",
+                        "targetCwd needs a cwd",
+                        revision,
+                    );
+                };
+                let cwd = match trusted_session_cwd(
+                    view.meta.workspace.root.as_str(),
+                    Some(cwd_value),
+                    target.get("worktreeCreation").filter(|value| !value.is_null()),
+                ) {
+                    Ok(cwd) => cwd,
+                    Err((code, message)) => {
+                        return Ack::refused(command, Status::Rejected, code, message, revision);
+                    }
+                };
+                // Node 的 targetCwd.worktreeCreation 是必填事实；带了的必须形状正确，别把
+                // 时间线标记静默丢掉。
+                let worktree_creation = match target
+                    .get("worktreeCreation")
+                    .filter(|value| !value.is_null())
+                {
+                    Some(value) => match worktree_creation_of(value) {
+                        Some(creation) => Some(creation),
+                        None => {
+                            return Ack::refused(
+                                command,
+                                Status::Rejected,
+                                "proto.invalidPayload",
+                                "targetCwd.worktreeCreation must be {path, sha, ref, output}",
+                                revision,
+                            );
+                        }
+                    },
+                    None => None,
+                };
+                if server.bridge.get(&SessionId::new(child_id)).is_some() {
+                    return Ack::refused(
+                        command,
+                        Status::Rejected,
+                        "proto.invalidPayload",
+                        format!("child session {child_id} already exists"),
+                        revision,
+                    );
+                }
+                tracing::info!(
+                    event = "protocol.fork_assistant.target_cwd",
+                    child = child_id,
+                    cwd = cwd_value,
+                    sha = target["worktreeCreation"]["sha"].as_str().unwrap_or_default(),
+                    "forkAssistant places the child in a Host-managed worktree"
+                );
+                (Some(SessionId::new(child_id)), cwd, worktree_creation)
+            }
+        };
+    let forked_workspace = cwd.as_ref().map(|cwd| cwd.as_str().to_owned());
+    // worktree 事实交给父会话 actor；Fork 同批把它写进 child 的历史（Node 在 fork 分隔标记
+    // 所在消息里追加 process part 的同一语义）。独立 command id，避免与 fork 命令重复。
+    if let Some(creation) = worktree_creation {
+        let setup = format!("{command}:worktree");
+        if !matches!(
+            send(
+                handle,
+                &setup,
+                Command::SetWorktreeCreation { creation },
+            )
+            .await,
+            KernelAck::Accepted { .. }
+        ) {
+            return Ack::refused(
+                command,
+                Status::Rejected,
+                "fault.command.forkFailed",
+                "the session refused its worktree creation fact",
+                revision,
+            );
+        }
+    }
     match send(
         handle,
         command,
         Command::Fork {
             at: Some(nibi_kernel_api::ids::MessageId::new(message)),
+            child,
+            cwd,
         },
     )
     .await
     {
         KernelAck::Accepted { result } => {
             let session = result.as_str().unwrap_or_default().to_owned();
-            publish_forked_session(server, live, &session).await;
+            publish_forked_session(server, live, &session, forked_workspace.as_deref()).await;
             Ack::accepted(
                 command,
                 revision,

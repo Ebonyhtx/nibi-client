@@ -5,7 +5,7 @@
 //!
 //! - `compact <storage-dir> <session> <base-url>`：`Command::Compact`，等这次压缩的 `TurnFinished`；
 //! - `rewind <storage-dir> <session> <message> <conversation|code|both>`：`Command::Rewind`（回执等事务结束）；
-//! - `branch <storage-dir> <session>`：`Command::Fork { at: None }`（`--fork-session` 的命令；F75 之前是 `/branch`），输出新会话 ID；
+//! - `branch <storage-dir> <session>`：`Command::Fork { at: None, child: None, cwd: None }`（`--fork-session` 的命令；F75 之前是 `/branch`），输出新会话 ID；
 //! - `fork <storage-dir> <session> <message>`：`Command::ForkFromInput`（`/fork` 选中一条输入，F75），输出回执；
 //! - `options <storage-dir> <session>`：rewind 选择器的条目（每个回合改过的文件与能否恢复代码）。
 //!
@@ -157,7 +157,7 @@ async fn branch(dir: &str, session: &str) -> Result<Value> {
     let kernel = kernel(dir, None).await?;
     let handle = open(&kernel, session).await?;
     let ack = handle
-        .send(envelope("interop-branch", Command::Fork { at: None }))
+        .send(envelope("interop-branch", Command::Fork { at: None, child: None, cwd: None }))
         .await;
     let child = accepted(ack)?;
     let _ = handle.close(EndReason::Other).await;

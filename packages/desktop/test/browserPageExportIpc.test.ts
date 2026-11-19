@@ -7,10 +7,12 @@ const h = vi.hoisted(() => ({
   handlers: new Map<string, IpcHandler>(),
   fromWebContents: vi.fn(),
   guestRegistry: new Map<number, unknown>(),
+  createFromBuffer: vi.fn(),
 }));
 
 vi.mock("electron", () => ({
   BrowserWindow: { fromWebContents: h.fromWebContents },
+  nativeImage: { createFromBuffer: h.createFromBuffer },
   ipcMain: {
     handle: vi.fn((channel: string, handler: IpcHandler) => h.handlers.set(channel, handler)),
     on: vi.fn(),
@@ -145,6 +147,20 @@ function registerExportHandler(manager: BrowserGuestManager) {
   return handler!;
 }
 
+function registerCaptureHandler(manager: BrowserGuestManager) {
+  registerBrowserViewIpcHandlers(
+    undefined,
+    undefined,
+    undefined,
+    {},
+    undefined,
+    (payload) => manager.capturePage(payload),
+  );
+  const handler = h.handlers.get(PlatformChannels.CaptureBrowserGuestPage);
+  expect(handler).toBeDefined();
+  return handler!;
+}
+
 function exportPayload(overrides: Record<string, unknown> = {}) {
   return {
     key: TAB_ID,
@@ -162,6 +178,7 @@ beforeEach(() => {
   h.handlers.clear();
   h.guestRegistry.clear();
   h.fromWebContents.mockReset();
+  h.createFromBuffer.mockReset();
   h.fromWebContents.mockReturnValue({ id: WINDOW_ID, isDestroyed: () => false });
 });
 
@@ -489,5 +506,68 @@ describe("browser page export IPC", () => {
         senderWebContentsId: SENDER_WEB_CONTENTS_ID,
       }),
     ).resolves.toEqual({ success: false, error: "not_owner" });
+  });
+
+  it("元素截图按 CSS rect 裁剪，并把非法 clip 挡在 IPC 边界", async () => {
+    const manager = makeManager();
+    attachGuest(manager, makeGuest());
+    const cropped = { toPNG: () => PNG_BYTES };
+    const crop = vi.fn(() => cropped);
+    h.createFromBuffer.mockReturnValue({
+      crop,
+      getSize: () => ({ width: 1000, height: 800 }),
+      toPNG: () => PNG_BYTES,
+    });
+    const handler = registerCaptureHandler(manager);
+
+    const result = (await handler(senderEvent(), {
+      key: TAB_ID,
+      webContentsId: GUEST_ID,
+      clip: {
+        x: 100,
+        y: 50,
+        width: 200,
+        height: 100,
+        viewportWidth: 1000,
+        viewportHeight: 800,
+      },
+    })) as { success: boolean; data?: ArrayBuffer; error?: string };
+
+    expect(result.success).toBe(true);
+    expect(Buffer.from(result.data!)).toEqual(PNG_BYTES);
+    expect(crop).toHaveBeenCalledWith({ x: 100, y: 50, width: 200, height: 100 });
+  });
+
+  it("元素截图拒绝零宽、非有限值和越界 viewport", async () => {
+    const manager = makeManager();
+    const capturePage = vi.fn(async () => ({ toPNG: () => PNG_BYTES }));
+    attachGuest(manager, makeGuest({ capturePage }));
+    const handler = registerCaptureHandler(manager);
+    const base = {
+      key: TAB_ID,
+      webContentsId: GUEST_ID,
+      clip: {
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+        viewportWidth: 1000,
+        viewportHeight: 800,
+      },
+    };
+
+    await expect(
+      handler(senderEvent(), { ...base, clip: { ...base.clip, width: 0 } }),
+    ).resolves.toEqual({ success: false, error: "invalid_clip" });
+    await expect(
+      handler(senderEvent(), { ...base, clip: { ...base.clip, x: Number.NaN } }),
+    ).resolves.toEqual({ success: false, error: "invalid_clip" });
+    await expect(
+      handler(senderEvent(), {
+        ...base,
+        clip: { ...base.clip, viewportWidth: 20_000 },
+      }),
+    ).resolves.toEqual({ success: false, error: "invalid_clip" });
+    expect(capturePage).not.toHaveBeenCalled();
   });
 });

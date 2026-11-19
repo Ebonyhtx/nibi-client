@@ -19,13 +19,18 @@ import type {
   ModelRequestDependencies,
   ModelSelection,
   PluginReferenceCatalog,
+  ProjectId,
   ResolvedUserInstructions,
   StableForkGoalBoundaryMetadata,
   StableForkTargetMetadata,
   WorkspaceHookBundleSnapshot,
   WorkspaceId,
 } from "@nibi/contracts";
-import type { SubagentSelectionFallbackMode, NibiProviderAccountAccess } from "@nibi/shared";
+import type {
+  ManagedWorktreeCreationRef,
+  NibiProviderAccountAccess,
+  SubagentSelectionFallbackMode,
+} from "@nibi/shared";
 import type { EffectiveModelSelectionResult } from "@nibi/shared/model-selection";
 import type { RuntimeMessageEntry } from "../agent/message-history.js";
 import type {
@@ -688,6 +693,16 @@ export type StableConversationForkGoalBoundary = StableForkGoalBoundaryMetadata;
 
 export type StableConversationForkChildMetadata = ForkChildSessionMetadata;
 
+/**
+ * forkAssistant.targetCwd（受管 worktree）：child 留在父会话的 workspace/进程，
+ * 只把执行目录换成 targetCwd。projectID 由 bootstrap 按映射后的目录派生。
+ */
+export interface StableConversationForkTargetCwd {
+  directory: string;
+  projectID: ProjectId;
+  worktreeCreation?: ManagedWorktreeCreationRef;
+}
+
 export interface StableConversationForkOptions {
   forkedSessionId?: SessionId;
   modelSelection?: ModelSelection;
@@ -695,6 +710,8 @@ export interface StableConversationForkOptions {
   sourceCommandId: string;
   revisionAtDecision?: number;
   target: StableConversationForkTarget;
+  /** 缺省 = 父会话 cwd，行为不变。 */
+  targetCwd?: StableConversationForkTargetCwd;
   traceContext?: TraceContext;
 }
 

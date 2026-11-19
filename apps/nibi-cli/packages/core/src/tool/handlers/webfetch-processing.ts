@@ -8,7 +8,12 @@ import {
 import type { ToolExecutionContext } from "../types.js";
 import { auxiliaryModelOptions } from "../../model/auxiliary-model-options.js";
 import { MAX_MODEL_INPUT_CHARS, WEBFETCH_TOOL_NAME } from "./webfetch-constants.js";
-import { truncateContentForModel } from "./webfetch-content.js";
+import {
+  offsetLead,
+  pastEndMessage,
+  sliceContentFromOffset,
+  truncateContentForModel,
+} from "./webfetch-content.js";
 import { webFetchError } from "./webfetch-errors.js";
 import { traceFromContext } from "./webfetch-trace.js";
 import type { CachedFetchContent } from "./webfetch-types.js";
@@ -23,8 +28,13 @@ export async function processFetchedContent(
   context: ToolExecutionContext,
   options: WebFetchProcessingOptions = {},
 ): Promise<{ result: string; truncated: boolean }> {
-  if (shouldReturnMarkdownDirectly(fetched, options)) {
-    return { result: fetched.content, truncated: false };
+  // 续读：只把 offset 之后的正文交给处理模型；越过末尾时明确告诉模型没有更多了。
+  const window = sliceContentFromOffset(fetched.content, input.offset ?? 0);
+  if (window.pastEnd) {
+    return { result: pastEndMessage(window.offset, window.total), truncated: false };
+  }
+  if (shouldReturnMarkdownDirectly(fetched, options) && window.content.length < MAX_MODEL_INPUT_CHARS) {
+    return { result: window.content, truncated: false };
   }
 
   const model = context.model;
@@ -42,11 +52,15 @@ export async function processFetchedContent(
     );
   }
 
-  const { content, truncated } = truncateContentForModel(fetched.content);
+  const { content, truncated } = truncateContentForModel(
+    window.content,
+    window.offset > 0 ? window : undefined,
+  );
+  const lead = window.offset > 0 ? offsetLead(window.offset, window.total) : undefined;
   const messages: ModelInputMessage[] = [
     {
       role: "user",
-      content: buildProcessingPrompt(content, input.prompt, options.preapprovedUrl === true),
+      content: buildProcessingPrompt(content, input.prompt, options.preapprovedUrl === true, lead),
     },
   ];
 
@@ -97,12 +111,16 @@ function shouldReturnMarkdownDirectly(
 ): boolean {
   return (
     options.preapprovedUrl === true &&
-    fetched.contentType.toLowerCase().includes("text/markdown") &&
-    fetched.content.length < MAX_MODEL_INPUT_CHARS
+    fetched.contentType.toLowerCase().includes("text/markdown")
   );
 }
 
-function buildProcessingPrompt(content: string, prompt: string, preapprovedUrl: boolean): string {
+function buildProcessingPrompt(
+  content: string,
+  prompt: string,
+  preapprovedUrl: boolean,
+  lead?: string,
+): string {
   const instruction = preapprovedUrl
     ? "Provide a concise response based on the content above. Include relevant details, code examples, and documentation excerpts as needed."
     : [
@@ -114,7 +132,7 @@ function buildProcessingPrompt(content: string, prompt: string, preapprovedUrl: 
       ].join("\n");
 
   return `
-Web page content:
+${lead === undefined ? "" : `${lead}\n`}Web page content:
 ---
 ${content}
 ---

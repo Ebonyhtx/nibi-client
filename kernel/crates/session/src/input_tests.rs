@@ -280,3 +280,89 @@ async fn submitted_content_keeps_its_images_and_queues_while_running() {
     let request = format!("{:?}", model.requests().last().unwrap().messages);
     assert!(request.contains("iVBORw0KGgo="), "{request}");
 }
+
+#[tokio::test]
+async fn a_worktree_creation_is_persisted_with_the_first_input_and_announced_once() {
+    use nibi_kernel_api::session_api::WorktreeCreation;
+    use nibi_kernel_api::store::Fact;
+
+    let model = Arc::new(ScriptedModel::new(vec![
+        text_response(&["ok"]),
+        text_response(&["again"]),
+    ]));
+    let setup = Setup::new(model);
+    let built = setup.build().await;
+    let mut events = built.session.subscribe(Some(0));
+    let creation = WorktreeCreation {
+        path: "/worktrees/3f2a/project".into(),
+        sha: "abc123".into(),
+        reference: Some("main".into()),
+        output: "git checkout abc123".into(),
+    };
+    // 重复发送保持第一次的事实。
+    built
+        .session
+        .send(envelope(
+            "w1",
+            Command::SetWorktreeCreation {
+                creation: creation.clone(),
+            },
+        ))
+        .await;
+    built
+        .session
+        .send(envelope(
+            "w2",
+            Command::SetWorktreeCreation {
+                creation: WorktreeCreation {
+                    sha: "retry".into(),
+                    ..creation.clone()
+                },
+            },
+        ))
+        .await;
+    built.session.send(submit("c1", "go")).await;
+    let seen = until(&mut events, finished).await;
+
+    // 事实与首轮输入同一批提交，且 part 排在 user 消息之前（Node 的落库顺序）。
+    let facts = built.store.facts(&crate::test_support::meta().id);
+    let created = facts
+        .iter()
+        .position(|fact| matches!(fact, Fact::WorktreeCreation { .. }))
+        .expect("worktree fact");
+    let input = facts
+        .iter()
+        .position(|fact| {
+            matches!(fact, Fact::MessageAppended { message: Message::User(user) }
+                if matches!(&user.content[..], [ContentBlock::Text { text }] if text == "go"))
+        })
+        .expect("first input");
+    assert!(created < input);
+    assert!(facts.iter().any(|fact| matches!(
+        fact,
+        Fact::WorktreeCreation { creation: written } if written == &creation
+    )));
+
+    // 事件：TurnStarted → WorktreeCreated。
+    let turn = seen
+        .iter()
+        .position(|event| matches!(event, KernelEvent::TurnStarted { .. }))
+        .expect("turn started");
+    let worktree = seen
+        .iter()
+        .position(|event| matches!(event, KernelEvent::WorktreeCreated { creation: written } if written == &creation))
+        .expect("worktree created");
+    assert!(turn < worktree);
+
+    // 第二轮不重复写。
+    built.session.send(submit("c2", "again")).await;
+    until(&mut events, finished).await;
+    let facts = built.store.facts(&crate::test_support::meta().id);
+    assert_eq!(
+        facts
+            .iter()
+            .filter(|fact| matches!(fact, Fact::WorktreeCreation { .. }))
+            .count(),
+        1
+    );
+}

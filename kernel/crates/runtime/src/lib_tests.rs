@@ -509,3 +509,136 @@ async fn opening_a_session_restores_a_finished_subagent_and_delivers_its_result(
     }
     assert!(found, "the missing result notification must be delivered");
 }
+
+// ── session/releaseUnderDirectory（Host 删除受管 worktree 前卸载驻留会话）──
+
+fn create_request(root: &str) -> CreateSession {
+    CreateSession {
+        id: None,
+        workspace: WorkspaceRef {
+            environment: EnvironmentId::new("local"),
+            root: EnvPath::new(root),
+        },
+        selection: selection(),
+        mode: PermissionMode::Default,
+        plan: false,
+    }
+}
+
+/// 永远不结束的模型流：让会话保持“运行中”，用于忙闲判定。
+struct BlockingModel;
+
+impl nibi_kernel_api::model::ModelPort for BlockingModel {
+    fn stream(
+        &self,
+        _request: nibi_kernel_api::model::ModelRequest,
+        _cancel: tokio_util::sync::CancellationToken,
+    ) -> futures_util::stream::BoxStream<
+        'static,
+        Result<nibi_kernel_api::model::ModelEvent, nibi_kernel_api::model::ModelError>,
+    > {
+        futures_util::stream::once(async {
+            std::future::pending::<
+                Result<nibi_kernel_api::model::ModelEvent, nibi_kernel_api::model::ModelError>,
+            >()
+            .await
+        })
+        .boxed()
+    }
+}
+
+#[tokio::test]
+async fn release_sessions_under_directory_unloads_idle_sessions_and_keeps_persisted_facts() {
+    let kernel = kernel(
+        Arc::new(MemoryStore::default()),
+        Arc::new(ScriptedModel::new(Vec::new())),
+    );
+    let app = kernel.create_session(create_request("/w/app")).await.unwrap();
+    let nested = kernel
+        .create_session(create_request("/w/app/packages/ui"))
+        .await
+        .unwrap();
+    let other = kernel.create_session(create_request("/w/other")).await.unwrap();
+
+    let report = kernel
+        .release_sessions_under_directory("/w/app")
+        .await
+        .unwrap();
+    let mut released = report.released.clone();
+    released.sort_by_key(|session| session.as_str().to_owned());
+    let mut expected = vec![app.clone(), nested.clone()];
+    expected.sort_by_key(|session| session.as_str().to_owned());
+    assert_eq!(released, expected);
+    assert!(report.busy.is_empty());
+
+    // 目录外的会话不受影响，仍是打开着的同一个实例。
+    let still_open = kernel.open_session(&other).await.unwrap();
+    assert!(!still_open.is_closed());
+
+    // 只释放运行实例：持久会话事实仍在，可以冷恢复。
+    let reopened = kernel.session_snapshot(&app).await.unwrap();
+    assert_eq!(reopened.meta.id, app);
+
+    // 已不在驻留表：重复卸载是空操作。
+    let again = kernel
+        .release_sessions_under_directory("/w/app")
+        .await
+        .unwrap();
+    assert!(again.released.is_empty());
+    assert!(again.busy.is_empty());
+}
+
+#[tokio::test]
+async fn release_sessions_under_directory_refuses_when_a_session_is_busy() {
+    let store = Arc::new(MemoryStore::default());
+    let kernel = LocalKernel::with_context(
+        Ports {
+            model: Arc::new(BlockingModel),
+            environments: environments(Arc::new(UnusedEnvironment)),
+            store: store.clone(),
+            artifacts: store,
+            clock: Arc::new(FixedClock(1_000)),
+            ids: Arc::new(SequentialIds::default()),
+        },
+        Defaults {
+            selection: selection(),
+            mode: PermissionMode::Default,
+            max_turns: None,
+            search_tools: false,
+            task_tools: None,
+            limits: Default::default(),
+        },
+        ContextConfig::new(Surface::Interactive),
+    );
+    let id = kernel.create_session(create_request("/w/app")).await.unwrap();
+    let session = kernel.open_session(&id).await.unwrap();
+    session
+        .send(CommandEnvelope {
+            id: CommandId::new("release-busy-1"),
+            command: Command::Submit {
+                text: "hold the turn open".to_owned(),
+                attachments: Vec::new(),
+                delivery: Delivery::Queue,
+            },
+        })
+        .await;
+
+    let mut busy = false;
+    for _ in 0..100 {
+        if let Ok(facts) = session.residency_facts().await
+            && (facts.running || facts.queued_commands > 0)
+        {
+            busy = true;
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    assert!(busy, "the test session never became busy");
+
+    let report = kernel
+        .release_sessions_under_directory("/w/app")
+        .await
+        .unwrap();
+    assert!(report.released.is_empty());
+    assert_eq!(report.busy, vec![id]);
+}

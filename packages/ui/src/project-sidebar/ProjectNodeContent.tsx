@@ -42,6 +42,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu.js";
 import { ProjectTaskRows } from "@/project-sidebar/ProjectTaskRows.js";
+import { ManagedWorktreeCreatingRows } from "@/managed-worktrees/index.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { resolveRemoteConnectionPresentation } from "@/lib/remoteConnectionPresentation.js";
 import { RemoteConnectionStateIcon } from "@/remote-connection/RemoteConnectionStateIcon.js";
@@ -410,6 +411,8 @@ export const ProjectNodeContent = memo(function ProjectNodeContent({
       <CollapsibleContent data-testid="virtual-project-tasks">
         {/* 原因：旧任务文字的 34px 缩进外只需 8px 留白，空态与项目名称保持对齐。 */}
         <div className="pl-2 pt-1">
+          {/* 正在新 worktree 中启动的任务排在真实任务前面；数据只来自 Host 创建记录。 */}
+          <ManagedWorktreeCreatingRows projectId={project.id} />
           <ProjectTaskRows tasks={tasks} onSelect={onSelect} refresh={refresh} />
         </div>
       </CollapsibleContent>

@@ -108,6 +108,7 @@ fn a_cold_view_rebuilds_rows_with_tool_results() {
         output_speed: None,
         launches: Vec::new(),
         model_turns: Vec::new(),
+        worktree_creations: Vec::new(),
         input_intents: Vec::new(),
     };
     let view = Transcript::from_view(snapshot.clone(), 0);

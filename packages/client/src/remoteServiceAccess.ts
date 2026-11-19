@@ -54,6 +54,7 @@ import {
   IWindowRemoteProjectService,
   IWindowProjectChangesService,
   IAppControlNavigationService,
+  IManagedWorktreeService,
   type WindowProjectDirectoryServices,
   type IServiceAccessor,
 } from "@nibi/services";
@@ -98,6 +99,8 @@ export class RemoteServiceAccess implements IServiceAccessor {
   readonly sourceServerWorkspaceService: ISourceServerWorkspaceService;
   /** 仅 desktop base attachment 注册；其他 scope 必须按可选能力消费。 */
   readonly sourceServerManagementService?: ISourceServerManagementService;
+  /** 受管 worktree 仅本机 Host 提供；远端与手机 attachment 保持 undefined。 */
+  readonly managedWorktreeService?: IManagedWorktreeService;
   readonly usageStatsService: IUsageStatsService;
   readonly clientConfigService: IClientConfigService;
   readonly clientScenesService: IClientScenesService;
@@ -124,7 +127,12 @@ export class RemoteServiceAccess implements IServiceAccessor {
 
   constructor(
     channelClient: IChannelClient,
-    options: { sourceServerManagementService?: boolean; windowProjectDirectory?: boolean } = {},
+    options: {
+      sourceServerManagementService?: boolean;
+      windowProjectDirectory?: boolean;
+      /** 仅本地 base attachment 置 true；远端 scoped port 不得注入。 */
+      managedWorktreeService?: boolean;
+    } = {},
   ) {
     // 远端工作区的 project 必须保留 Source 语义；只有显式能力才创建完整窗口目录组。
     if (options.windowProjectDirectory) {
@@ -233,6 +241,13 @@ export class RemoteServiceAccess implements IServiceAccessor {
     this.sourceServerManagementService = options.sourceServerManagementService
       ? ProxyChannel.toService<ISourceServerManagementService>(
           channelClient.getChannel(ISourceServerManagementService.channelName),
+        )
+      : undefined;
+    // ProxyChannel 是惰性的，未注册 channel 也会构造出看似存在的对象；所以能力必须由
+    // 创建方显式声明。只有桌面本地 base attachment 打开，远端/手机保持 undefined。
+    this.managedWorktreeService = options.managedWorktreeService
+      ? ProxyChannel.toService<IManagedWorktreeService>(
+          channelClient.getChannel(IManagedWorktreeService.channelName),
         )
       : undefined;
     this.usageStatsService = ProxyChannel.toService<IUsageStatsService>(

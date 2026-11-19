@@ -165,6 +165,12 @@ pub enum Fact {
         text: String,
         launch: Value,
     },
+    /// 已创建 worktree（NIBI `createSession.worktreeCreation`）：存储按 Node
+    /// `persistAssistantTimelinePartForSession` 写一条 timeline-only assistant 消息与
+    /// `worktree_creation` part；与首轮 user 消息同一批提交（part 排在 user 消息之前）。
+    WorktreeCreation {
+        creation: crate::session_api::WorktreeCreation,
+    },
 }
 
 /// 本机项目规则集的一次修改（`SessionStore::change_project_rules`）：`behavior` 这一类里先删 `remove`、再加
@@ -264,6 +270,14 @@ pub struct SessionModelTurn {
     pub active_ms: Option<u64>,
 }
 
+/// 受管 worktree 的创建结果（Node transcript 的 `worktree_creation` timeline part）。冷投影据它
+/// 在首轮轮顶落 `worktreeCreated` 标记；`message` 是承载 part 的宿主消息（fork 时是分叉提示）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorktreeCreationTurn {
+    pub message: MessageId,
+    pub creation: crate::session_api::WorktreeCreation,
+}
+
 /// 一条消息的持久时间（Node `message` 行的 `time_created` / `time_updated`）。旧协议快照的
 /// `info.time.created/completed` 用它；内核的会话视图本身不存逐条时间。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -313,6 +327,10 @@ pub struct LoadedSession {
     /// 每轮真实输入的模型选择（[`SessionModelTurn`]，earlier 与 messages 都算；serde 缺省为空）。
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub model_turns: Vec<SessionModelTurn>,
+    /// 受管 worktree 的创建结果（Node transcript 的 `worktree_creation` timeline part）：冷投影据它
+    /// 在首轮轮顶落 `worktreeCreated` 标记。serde 缺省为空。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub worktree_creations: Vec<WorktreeCreationTurn>,
     /// 每条真人输入的规范意图（Node 消息的 `metadata.conversationInputIntent`）：行上显示的原文、
     /// 机器人来源、引用与插件来源。键是那条 user 消息；没有意图的输入不在表里（serde 缺省为空）。
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

@@ -50,6 +50,7 @@ import type {
   WorkspaceHookReviewRequestedPayload,
   WorkspaceHookReviewSettledPayload,
   WorkspaceHookReviewSupersededPayload,
+  WorktreeCreatedPayload,
 } from "@nibi/contracts";
 import {
   DEFERRED_TOOL_CALL_NAME,
@@ -317,6 +318,7 @@ export interface ConversationEditTarget {
     inputOrigin?: "desktop" | "mobile";
     conversationQuotes?: import("@nibi/contracts").TurnInputIntentMetadata["conversationQuotes"];
     botGroupSource?: CanonicalUserIntentFact["botGroupSource"];
+    source?: CanonicalUserIntentFact["source"];
     kind: "sendText" | "sendGoalCommand";
     text: string;
     sourceCommandId?: string;
@@ -492,6 +494,9 @@ export class ProductProjection {
   // silentInitial 保持普通 Main 首轮静默；sourceLess 表示显式 ∅→X；known 保存上一轮
   // 实际使用的 provider/model。thought 只随基线记录，不触发模型身份变化。
   private lastTurnModel: TurnModelBaseline = { kind: "silentInitial" };
+  // 新建 worktree 会话：WorktreeCreated 先于首轮 TurnStarted 到达，暂存到轮顶再落行。
+  private pendingWorktreeCreated: { event: SessionEvent; payload: WorktreeCreatedPayload } | null =
+    null;
   // 种子守卫：事件（权威日志）触碰过的 config 区块不再接受种子覆盖。
   private configModelTouchedByEvent = false;
   // 旧 ModelSelected 不含能力集合；独立守卫允许 runtime seed 补齐旧日志，
@@ -1149,6 +1154,7 @@ export class ProductProjection {
     clone.currentTurnStartedModelOnly = this.currentTurnStartedModelOnly;
     clone.contextWindowState = { ...this.contextWindowState };
     clone.lastTurnModel = { ...this.lastTurnModel };
+    clone.pendingWorktreeCreated = this.pendingWorktreeCreated;
     clone.configModelTouchedByEvent = this.configModelTouchedByEvent;
     clone.configThoughtLevelsTouchedByEvent = this.configThoughtLevelsTouchedByEvent;
     clone.configModeTouchedByEvent = this.configModeTouchedByEvent;
@@ -1192,6 +1198,7 @@ export class ProductProjection {
     this.currentTurnStartedModelOnly = candidate.currentTurnStartedModelOnly;
     this.contextWindowState = candidate.contextWindowState;
     this.lastTurnModel = candidate.lastTurnModel;
+    this.pendingWorktreeCreated = candidate.pendingWorktreeCreated;
     this.configModelTouchedByEvent = candidate.configModelTouchedByEvent;
     this.configThoughtLevelsTouchedByEvent = candidate.configThoughtLevelsTouchedByEvent;
     this.configModeTouchedByEvent = candidate.configModeTouchedByEvent;
@@ -1497,6 +1504,8 @@ export class ProductProjection {
         return this.onTargetVerification(event);
       case SessionEventType.SessionForked:
         return this.onSessionForked(event);
+      case SessionEventType.WorktreeCreated:
+        return this.onWorktreeCreated(event);
       case SessionEventType.RewindTriggered:
         return this.onRewindTriggered(event);
       case SessionEventType.BackgroundTaskStarted:
@@ -2019,6 +2028,16 @@ export class ProductProjection {
       this.snapshot = { ...this.snapshot, sharedContextImport };
       deltas.push({ op: "state.updated", patch: { sharedContextImport } });
     }
+    // 新建 worktree 会话：WorktreeCreated 在首轮 TurnStarted 之前到达；现在（turnHeader
+    // 追加之前）把它落到轮顶 lightBoundary，与冷恢复合成的同一事件同形。
+    if (this.pendingWorktreeCreated) {
+      const pending = this.pendingWorktreeCreated;
+      this.pendingWorktreeCreated = null;
+      deltas.push({
+        op: "row.appended",
+        row: this.worktreeCreatedRow(pending.event, turnId, pending.payload, "lightBoundary"),
+      });
+    }
     // marker 时机：只有当
     // 本轮实际使用的 provider/model 身份与上一轮不同时，才在 turnHeader 之前落
     // modelChange marker。普通首轮 silentInitial 不产 marker；显式 sourceLess 边界
@@ -2142,6 +2161,7 @@ export class ProductProjection {
                 ...(fact.inputOrigin ? { inputOrigin: fact.inputOrigin } : {}),
                 ...(fact.conversationQuotes ? { conversationQuotes: fact.conversationQuotes } : {}),
                 ...(fact.botGroupSource ? { botGroupSource: fact.botGroupSource } : {}),
+                ...(fact.source ? { source: fact.source } : {}),
                 ...(fact.clientId ? { clientId: fact.clientId } : {}),
                 ...(fact.attachments ? { attachments: fact.attachments } : {}),
                 ...(fact.queueItemId ? { queueItemId: fact.queueItemId } : {}),
@@ -3798,6 +3818,7 @@ export class ProductProjection {
                 ...(item.intent?.botGroupSource
                   ? { botGroupSource: item.intent.botGroupSource }
                   : {}),
+                ...(item.intent?.source ? { source: item.intent.source } : {}),
                 ...(item.intent?.clientId ? { clientId: item.intent.clientId } : {}),
                 ...(item.intent?.attachmentRefs ? { attachments: item.intent.attachmentRefs } : {}),
                 ...(item.intent?.queueItemId ? { queueItemId: item.intent.queueItemId } : {}),
@@ -5276,6 +5297,46 @@ export class ProductProjection {
       },
     };
     return [{ op: "row.appended", row }];
+  }
+
+  // ── worktree marker（受管 worktree 创建结果）──
+
+  /**
+   * 新建 worktree 会话的 WorktreeCreated 先于首个 TurnStarted 到达：暂存后由 onTurnStarted
+   * 落成轮顶 lightBoundary。已经在一轮里才到达的（旧日志）按轮尾边界追加，不丢事实。
+   */
+  private onWorktreeCreated(event: SessionEvent): ConversationDelta[] {
+    const payload = event.payload as WorktreeCreatedPayload;
+    if (this.turnHeaderRowIdByTurnId.size === 0) {
+      this.pendingWorktreeCreated = { event, payload };
+      return [];
+    }
+    return [
+      {
+        op: "row.appended",
+        row: this.worktreeCreatedRow(event, this.turnIdOf(event), payload, "turnTailBoundary"),
+      },
+    ];
+  }
+
+  private worktreeCreatedRow(
+    event: SessionEvent,
+    turnId: string,
+    payload: WorktreeCreatedPayload,
+    lane: "lightBoundary" | "turnTailBoundary",
+  ): TimelineMarkerRow {
+    return {
+      ...this.rowBase(event, turnId, `worktree-created:${payload.path}`),
+      kind: "timelineMarker",
+      lane,
+      marker: {
+        type: "worktreeCreated",
+        path: payload.path,
+        sha: payload.sha,
+        ref: payload.ref,
+        output: payload.output,
+      },
+    };
   }
 
   // ── 内部工具 ──

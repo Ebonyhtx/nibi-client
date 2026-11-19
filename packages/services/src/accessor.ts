@@ -51,6 +51,7 @@ import type { ISourceServerManagementService } from "./source-server-management/
 import type { IOnboardingRecordService } from "./onboarding/onboardingRecord.js";
 import type { IConversationShareService } from "./conversation-share/conversationShare.js";
 import type { IAppControlNavigationService } from "./app-control/contract.js";
+import type { IManagedWorktreeService } from "./managed-worktree-tasks/contract.js";
 
 /** UI 层消费的统一服务接口 */
 export interface IServiceAccessor {
@@ -92,6 +93,8 @@ export interface IServiceAccessor {
   readonly sourceServerWorkspaceService: ISourceServerWorkspaceService;
   /** 仅桌面窗口 Host 的 base attachment 注册；远端 / Web 不提供。 */
   readonly sourceServerManagementService?: ISourceServerManagementService;
+  /** 受管 worktree 只由本机桌面 Host 提供；远端 / 手机不注入，UI 据此隐藏入口。 */
+  readonly managedWorktreeService?: IManagedWorktreeService;
   readonly usageStatsService: IUsageStatsService;
   readonly clientConfigService: IClientConfigService;
   readonly clientScenesService: IClientScenesService;

@@ -18,6 +18,8 @@ describe("classifyExit", () => {
     ["non-zero exit", { exitCode: 1 }, "crash"],
     ["segfault signal", { signal: "SIGSEGV" }, "crash"],
     ["oom reason", { reason: "oom", exitCode: 137 }, "oom"],
+    ["Windows native oom exit", { exitCode: 0xe0000008 }, "oom"],
+    ["Windows native oom exit (signed int32)", { exitCode: -536870904 }, "oom"],
     ["memory eviction", { reason: "memory-eviction" }, "oom"],
     [
       "oom diagnostic text",

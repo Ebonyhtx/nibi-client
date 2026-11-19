@@ -394,6 +394,7 @@ impl SessionStore for MemoryStore {
                 })
                 .collect(),
             model_turns: Vec::new(),
+            worktree_creations: Vec::new(),
             input_intents: Vec::new(),
         })
     }

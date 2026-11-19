@@ -6,7 +6,7 @@ import type {
   SessionStorePort,
   TraceContext,
 } from "@nibi/contracts";
-import type { CliScope } from "@nibi/session-control/contracts";
+import type { CliScope, CliSessionRef } from "@nibi/session-control/contracts";
 import type { NibiApp } from "../app/types.js";
 
 /** 新根的最小启动参数；不接受 actor mode、permission、parentSessionId 或 subagent 配置。 */
@@ -36,6 +36,11 @@ export interface NibiSessionControlRuntimeOptions {
   ) => MessageWithParts[];
   /** 使用独立 CLI 配置创建 root app。不得展开 actor options 或继承其 yolo/批准。 */
   createRootApp(input: NibiRootAppRequest): Promise<NibiApp>;
+  /**
+   * App Host 的任务索引归档事实。独立 CLI 没有该端口时缺席；
+   * 返回 true 时 fork 必须在 owner 创建子会话之前失败。
+   */
+  isSessionArchived?: (session: CliSessionRef) => Promise<boolean | undefined>;
 }
 
 export interface NibiSessionControlRuntime {

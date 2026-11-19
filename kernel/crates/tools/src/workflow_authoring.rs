@@ -1015,8 +1015,15 @@ fn create_schema() -> Value {
             "saved": {
                 "type": "object",
                 "properties": {
-                    "name": {"type": "string", "minLength": 1},
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        // 上游 Node `SAVED_WORKFLOW_MAX_NAME_CHARS`：名字同时是文件名，64 是两端合约。
+                        "maxLength": 64
+                    },
                     "args": {"type": "object", "additionalProperties": true},
+                    // resolveInput 解析后回填的落点；模型不填，但 X02 对拍要求与 Node 契约同形。
+                    "path": {"type": "string", "minLength": 1},
                     "scope": {"type": "string", "enum": ["project", "global"]}
                 },
                 "required": ["name"],
@@ -1040,6 +1047,7 @@ fn create_schema() -> Value {
             },
             "subagent_model": {
                 "type": "string",
+                "minLength": 1,
                 "description": "Model for the subagents (`providerId/modelId` or a model id). Only when the user asks, and never a model under another provider the user did not name — ask them first if one would help; you stay on the session model."
             }
         },
@@ -1078,6 +1086,7 @@ fn amend_schema() -> Value {
             },
             "subagent_model": {
                 "type": ["string", "null"],
+                "minLength": 1,
                 "description": "Omit to keep the predecessor's choice, null for the session model, a model id to set one (only when the user asks, never a model under another provider the user did not name)."
             }
         },
@@ -1093,16 +1102,36 @@ fn save_schema() -> Value {
             "name": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 128,
+                "maxLength": 64,
                 "description": "File-safe identifier: letters, digits, dot, dash and underscore."
             },
             "description": {"type": "string", "minLength": 1, "description": "One line saying what the workflow does."},
             "whenToUse": {"type": "string", "minLength": 1, "description": "When this workflow is the right answer."},
-            "args": {"type": "object", "additionalProperties": true, "description": "Argument declarations the script reads off `args`."},
+            // 与 Node `SavedWorkflowArgsDeclarationSchema` 同形：参数声明不是任意 JSON，
+            // 每个参数都要说明类型；类型词汇表与 Node 逐字一致（含 `json` 兜底）。
+            "args": {
+                "type": "object",
+                "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                        "type": {"type": "string", "enum": ["boolean", "json", "number", "string"], "description": "Value type. \"json\" accepts any JSON value without further checking."},
+                        "description": {"type": "string", "description": "What this argument means, for whoever calls the workflow later."},
+                        "required": {"type": "boolean", "description": "When true the workflow cannot run without this argument."},
+                        "default": {"description": "Value used when the caller omits this argument."}
+                    },
+                    "required": ["type"],
+                    "additionalProperties": false
+                },
+                "description": "Argument declarations the script reads off `args`."
+            },
             "script": {"type": "string", "description": "The script body, inline, without a metadata block. This OR `script_path`, never both."},
             "script_path": {"type": "string", "minLength": 1, "description": "A file holding the script body, usually a draft a result named. This OR `script`, never both."},
             "scope": {"type": "string", "enum": ["project", "global"], "description": "\"project\" when the script depends on this repository; \"global\" when it depends on nothing in it. Required, no default."},
-            "run_id": {"type": "string", "minLength": 1, "description": "Provenance only: the id of the run this workflow was distilled from, when saving a workflow that just ran."}
+            "run_id": {"type": "string", "minLength": 1, "description": "Provenance only: the id of the run this workflow was distilled from, when saving a workflow that just ran."},
+            // ——以下三个字段由 resolveInput 解析回填，模型不填；与 Node 契约逐字段一致——
+            "path": {"type": "string", "minLength": 1, "description": "Resolved save location, filled by resolveInput."},
+            "overwrite": {"type": "boolean", "description": "Whether this save overwrites an existing definition, filled by resolveInput."},
+            "shadowing": {"type": "string", "enum": ["hidden_by_project", "hides_global"], "description": "Which archive an existing same-named definition shadows, filled by resolveInput."}
         },
         "required": ["name", "description", "scope"],
         "additionalProperties": false
@@ -1157,6 +1186,7 @@ fn list_runs_schema() -> Value {
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 50,
+                "default": 20,
                 "description": "Maximum number of runs to return (1-50, default 20). Most recently updated runs come first."
             },
             "statuses": {

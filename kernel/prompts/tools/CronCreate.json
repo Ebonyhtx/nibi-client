@@ -7,21 +7,24 @@
     "properties": {
       "cron": {
         "description": "Standard 5-field cron expression in local time: \"M H DoM Mon DoW\" (e.g. \"*/5 * * * *\" = every 5 minutes). Omit when delayMinutes is set.",
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       },
       "delayMinutes": {
         "description": "For any relative delay from now — 'in 3 minutes' (3), '8分钟后' (8), 'in 2 hours' (120) — set the exact positive delay in whole minutes and omit cron. Use for one-shot reminders only; never combine with cron, recurring=true, maxRuns or intervalUnit.",
-        "type": "integer",
+        "type": ["integer", "null"],
         "minimum": 1,
         "maximum": 525600
       },
       "prompt": {
         "description": "The prompt to enqueue at each fire time.",
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       },
       "title": {
         "description": "Concise automation title that preserves the user's natural-language schedule phrase verbatim. For example, for '每20分钟提醒我喝水', use '每20分钟喝水提醒', not '喝水提醒'.",
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       },
       "recurring": {
         "description": "true (default) = fire on every cron match until deleted or auto-expired after 7 days. false = fire once at the next match (or maxRuns times), then auto-delete. Use false for one-shot requests.",
@@ -49,7 +52,8 @@
       }
     },
     "required": [
-      "prompt"
+      "prompt",
+      "title"
     ],
     "additionalProperties": false
   }

@@ -90,8 +90,10 @@ async function enterEditor() {
   // jsdom 不解析图片，自然尺寸由测试注入；编辑器只用它生成导出画布尺寸。
   Object.defineProperty(previewImage, "naturalWidth", { configurable: true, value: 4 });
   Object.defineProperty(previewImage, "naturalHeight", { configurable: true, value: 3 });
+  // 操作条按“图片已加载”门禁，jsdom 不会自行触发 load。
+  fireEvent.load(previewImage);
 
-  fireEvent.click(screen.getByRole("button", { name: "编辑图片" }));
+  fireEvent.click(screen.getByRole("button", { name: "绘制" }));
 
   const editorImage = await waitFor(() => {
     const node = document.querySelector<HTMLImageElement>("[data-image-editor-image]");

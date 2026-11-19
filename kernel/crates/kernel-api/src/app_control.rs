@@ -18,6 +18,10 @@ use serde::{Deserialize, Serialize};
 /// `ListProjects` 的查询上限（上游 `appListProjectsInputSchema`）。
 pub const APP_PROJECT_QUERY_MAX: usize = 4096;
 
+/// 归档目标不在当前导航投影内时，OpenSession 的稳定 reason（上游 `project.task-not-found`）。
+/// 与 Node `packages/session-control` 的 `ARCHIVED_OPEN_REASON` 及 Host `app-control` 同值。
+pub const APP_ARCHIVED_OPEN_REASON: &str = "project.task-not-found";
+
 /// App 引用的 `kind`：与 CLI 引用区分，Host 只接受 App 引用。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

@@ -478,6 +478,62 @@ describe("WebFetch tool", () => {
     expect(second.cacheHit).toBe(true);
   });
 
+  it("reads on from offset: only the remaining text reaches the processing model", async () => {
+    const httpClient = createHttpClient([
+      response({
+        body: "0123456789abcdef",
+        contentType: "text/plain",
+        url: "https://example.com/long-page",
+      }),
+    ]);
+    const model = createTestModel("rest");
+
+    const output = await webFetchHandler(
+      { url: "https://example.com/long-page", prompt: "Summarize the rest", offset: 6 },
+      createContext({ httpClient, model }),
+    );
+
+    const processingRequest = vi.mocked(model.generateText).mock.calls[0]?.[0];
+    const processingPrompt = processingRequest?.messages
+      .map((message) => message.content)
+      .join("\n");
+    expect(processingPrompt).toContain("6789abcdef");
+    expect(processingPrompt).not.toContain("012345");
+    expect(processingPrompt).toContain("it starts 6 characters into the page's 16");
+    expect(output).toMatchObject({ result: "rest", truncated: false });
+  });
+
+  it("reports past-the-end offsets without invoking the processing model", async () => {
+    const httpClient = createHttpClient([
+      response({
+        body: "short page",
+        contentType: "text/plain",
+        url: "https://example.com/short-page",
+      }),
+    ]);
+    const model = createTestModel("unused");
+
+    const output = await webFetchHandler(
+      { url: "https://example.com/short-page", prompt: "Summarize", offset: 99 },
+      createContext({ httpClient, model }),
+    );
+
+    expect(model.generateText).not.toHaveBeenCalled();
+    expect(output).toMatchObject({
+      result: "Nothing left to read from offset 99: this page's text is 10 characters long.",
+      truncated: false,
+    });
+  });
+
+  it("exposes offset in the model-facing input schema", () => {
+    const offset = (
+      webFetchToolEntry.inputSchema as {
+        properties?: Record<string, { type?: string; minimum?: number }>;
+      }
+    ).properties?.offset;
+    expect(offset).toMatchObject({ minimum: 0, type: "integer" });
+  });
+
   it("processes non-preapproved markdown content with the lite model", async () => {
     const httpClient = createHttpClient([
       response({

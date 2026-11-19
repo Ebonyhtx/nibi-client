@@ -156,6 +156,122 @@ describe("transcript→event 合成", () => {
     );
   });
 
+  it("冷恢复从 worktree_creation part 合成首轮轮顶 worktreeCreated 标记", () => {
+    const creation = { path: "/worktrees/3f2a/project", sha: "abc123", ref: null, output: "git" };
+    // 新建 worktree 会话：宿主是首轮之前的 timeline-only assistant 消息。
+    const host = assistantMessageWithParts(
+      "a-worktree",
+      "a-worktree",
+      [
+        {
+          id: "a-worktree-tl" as never,
+          sessionID: "s1" as never,
+          messageID: "a-worktree" as never,
+          type: "timeline",
+          timelineType: "worktree_creation",
+          display: "worklog",
+          status: "completed",
+          worktreeCreation: creation,
+          time: { start: 1000, end: 1000 },
+        },
+      ],
+      1000,
+    );
+    host.info.semantics = {
+      origin: "system",
+      kind: "timeline_event",
+      uiVisibility: "visible",
+      providerVisibility: "hidden",
+      transcriptVisibility: "visible",
+    };
+    const user = userMessage("u-worktree", "开始工作", 1001);
+    const answer = assistantMessage("a-worktree-answer", "u-worktree", "好的", 1002);
+
+    const { events, projection } = reduce([host, user, answer]);
+
+    const worktreeEvent = events.findIndex(
+      (event) => event.type === SessionEventType.WorktreeCreated,
+    );
+    const turnStarted = events.findIndex((event) => event.type === SessionEventType.TurnStarted);
+    expect(worktreeEvent).toBeGreaterThanOrEqual(0);
+    expect(worktreeEvent).toBeLessThan(turnStarted);
+
+    const rows = projection.getSnapshot().rows.window;
+    const marker = rows.find(
+      (row) => row.kind === "timelineMarker" && row.marker.type === "worktreeCreated",
+    );
+    expect(marker).toMatchObject({
+      kind: "timelineMarker",
+      lane: "lightBoundary",
+      marker: { type: "worktreeCreated", ...creation },
+    });
+    // 轮顶：标记排在首个 user 输入行之前。
+    const markerIndex = rows.indexOf(marker!);
+    const firstUser = rows.findIndex((row) => row.kind === "userInput");
+    expect(markerIndex).toBeGreaterThanOrEqual(0);
+    expect(markerIndex).toBeLessThan(firstUser);
+  });
+
+  it("冷恢复从 fork 分隔标记所在消息的 worktree_creation part 合成同一标记", () => {
+    const creation = { path: "/worktrees/7c1d/repo", sha: "def456", ref: "main", output: "" };
+    const notice = assistantMessageWithParts(
+      "a-fork-notice",
+      "a-fork-notice",
+      [
+        {
+          id: "a-fork-notice-tl" as never,
+          sessionID: "s1" as never,
+          messageID: "a-fork-notice" as never,
+          type: "timeline",
+          timelineType: "session_fork",
+          display: "separator",
+          status: "completed",
+          parentSessionId: "s-parent" as never,
+          targetMessageId: "m-target" as never,
+          restoredFileCount: 0,
+          time: { start: 1000, end: 1000 },
+        },
+        {
+          id: "a-fork-notice-wt" as never,
+          sessionID: "s1" as never,
+          messageID: "a-fork-notice" as never,
+          type: "timeline",
+          timelineType: "worktree_creation",
+          display: "worklog",
+          status: "completed",
+          worktreeCreation: creation,
+          time: { start: 1000, end: 1000 },
+        },
+      ],
+      1000,
+    );
+    notice.info.semantics = {
+      origin: "system",
+      kind: "timeline_event",
+      uiVisibility: "visible",
+      providerVisibility: "hidden",
+      transcriptVisibility: "visible",
+    };
+    const user = userMessage("u-fork-child", "继续", 1001);
+    const answer = assistantMessage("a-fork-child", "u-fork-child", "好的", 1002);
+
+    const { events, projection } = reduce([notice, user, answer]);
+
+    const forked = events.findIndex((event) => event.type === SessionEventType.SessionForked);
+    const worktreeEvent = events.findIndex(
+      (event) => event.type === SessionEventType.WorktreeCreated,
+    );
+    expect(forked).toBeGreaterThanOrEqual(0);
+    expect(worktreeEvent).toBeGreaterThan(forked);
+
+    expect(projection.getSnapshot().rows.window).toContainEqual(
+      expect.objectContaining({
+        kind: "timelineMarker",
+        marker: { type: "worktreeCreated", ...creation },
+      }),
+    );
+  });
+
   it("冷恢复从最终 assistant anchor 恢复 query 历史轮次数", () => {
     const user = userMessage("u-round", "问题", 1000);
     user.info.anchor = { sourceCommandId: "query-round" };

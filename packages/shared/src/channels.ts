@@ -109,6 +109,36 @@ export interface BrowserViewExportPageResult {
   error?: string;
 }
 
+/**
+ * Renderer → Main：按 CSS 视口 rect 截取受控 guest 的一块 PNG（设计模式元素截图）。
+ * 与导出同样校验 sender window、tab owner 与 senderWebContentsId；clip 只接受有限正数，
+ * 面积与输出字节都有上限，不开放任意 CDP。
+ */
+export interface CaptureBrowserGuestPageRequest {
+  key: string;
+  webContentsId: number;
+  clip?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    /** 取帧前的 CSS 视口尺寸；main 据此把 clip 换算到实际图像像素。 */
+    viewportWidth: number;
+    viewportHeight: number;
+  };
+}
+
+export interface CaptureBrowserGuestPageResult {
+  success: boolean;
+  data?: ArrayBuffer;
+  /**
+   * 稳定错误码：window_mismatch / tab_not_found / not_owner / not_webview /
+   * guest_unavailable / sender_mismatch / invalid_clip / capture_in_progress /
+   * capture_timeout / capture_failed / empty_capture / capture_too_large。
+   */
+  error?: string;
+}
+
 // ============================================================================
 // RPC 服务频道 —— 通过 ChannelServer/ChannelClient 传输
 // ============================================================================
@@ -123,6 +153,8 @@ export const ServiceChannels = {
   Git: "git",
   /** Git checkpoint 服务 */
   GitCheckpoint: "git-checkpoint",
+  /** 受管 worktree 编排服务；只在本地桌面 Host 注册，手机 attachment 的 allowlist 不含该频道。 */
+  ManagedWorktrees: "managed-worktrees",
   Setting: "setting",
   /** 凭据管理（从 main IPC 迁移到 host RPC） */
   Credential: "credential",
@@ -336,6 +368,8 @@ export const PlatformChannels = {
   BrowserViewRestore: "nibi:browser-view-restore",
   /** Renderer → Main：把受控 guest 导出为当前 viewport PNG 或整页 PDF。 */
   BrowserViewExportPage: "nibi:browser-view-export-page",
+  /** Renderer → Main：按 CSS rect 截取受控 guest 一块 PNG（设计模式元素截图）。 */
+  CaptureBrowserGuestPage: "nibi:capture-browser-guest-page",
   /** Main → Renderer：菜单触发新建任务 */
   NewTask: "nibi:new-task",
   /** Main → Renderer：菜单触发打开工作区 */
@@ -558,6 +592,11 @@ export const EmbeddedBrowserWebviewChannels = {
    * 内置浏览器固定 guest preload 校验来源、结构与大小后把 `events` 数组转给宿主。
    */
   DesignEvents: "nibi:embedded-browser-design-events",
+  /**
+   * 页面里用户按下的 Cmd/Ctrl + Z（Shift 为重做）：guest preload 只转发真实、目标不在可编辑区的按键，
+   * 宿主据此撤销 / 重做设计写回，不经过 main。
+   */
+  DesignUndoShortcut: "nibi:embedded-browser-design-undo-shortcut",
 } as const;
 
 /**
@@ -1064,6 +1103,10 @@ export interface PlatformChannelMap {
   [PlatformChannels.BrowserViewExportPage]: {
     request: BrowserViewExportPageRequest;
     response: BrowserViewExportPageResult;
+  };
+  [PlatformChannels.CaptureBrowserGuestPage]: {
+    request: CaptureBrowserGuestPageRequest;
+    response: CaptureBrowserGuestPageResult;
   };
   [PlatformChannels.CanOpenCommunity]: {
     request: Locale;

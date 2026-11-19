@@ -1,7 +1,7 @@
 //! 会话控制工具的单元测试：假 `SessionControlHost` 覆盖范围拒绝、self-wait、重复 operation、
 //! 等待语义（timeout=0 / any / all / 截止 / 取消）、幂等回执与 32 KiB 落盘。
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -105,6 +105,7 @@ struct FakeHost {
     feeds: Mutex<HashMap<String, Box<dyn SessionControlFeed>>>,
     delays: Mutex<HashMap<String, Duration>>,
     send_count: AtomicUsize,
+    archived: Mutex<HashSet<String>>,
 }
 
 impl FakeHost {
@@ -114,6 +115,12 @@ impl FakeHost {
             .lock()
             .unwrap()
             .insert(id.to_owned(), session(id));
+        host
+    }
+
+    fn with_archived_session(id: &str) -> Self {
+        let host = Self::with_session(id);
+        host.archived.lock().unwrap().insert(id.to_owned());
         host
     }
 
@@ -169,6 +176,13 @@ impl SessionControlHost for FakeHost {
         session_id: &str,
     ) -> Result<Option<SessionRef>, SessionControlError> {
         Ok(self.sessions.lock().unwrap().get(session_id).cloned())
+    }
+
+    async fn is_session_archived(
+        &self,
+        session: &SessionRef,
+    ) -> Result<bool, SessionControlError> {
+        Ok(self.archived.lock().unwrap().contains(&session.session_id))
     }
 
     async fn list_sessions(
@@ -317,6 +331,73 @@ async fn a_target_in_another_workspace_is_rejected_before_the_owner_call() {
         .expect_err("cross-workspace target must be forbidden");
     assert!(failure(&error).contains("forbidden"), "{error:?}");
     assert!(host.calls().is_empty(), "{:?}", host.calls());
+}
+
+#[tokio::test]
+async fn cross_workspace_fork_send_and_wait_are_forbidden_before_owner_calls() {
+    for action in [
+        SessionControlActionName::ForkSession,
+        SessionControlActionName::SendToSession,
+        SessionControlActionName::WaitSessions,
+    ] {
+        let host = Arc::new(FakeHost::with_session_at("sess_target", "/other"));
+        let tool = tool(action, host.clone());
+        let input = match action {
+            SessionControlActionName::ForkSession => {
+                json!({"sessionId": "sess_target", "atMessage": "msg_1"})
+            }
+            SessionControlActionName::SendToSession => {
+                json!({"sessionId": "sess_target", "prompt": "go"})
+            }
+            SessionControlActionName::WaitSessions => json!({
+                "operations": [{"sessionId": "sess_target", "commandId": "c"}],
+                "mode": "any",
+                "timeoutMs": 0,
+            }),
+            _ => unreachable!(),
+        };
+        let error = tool
+            .call(input, context(), tokio::sync::mpsc::channel(1).0)
+            .await
+            .expect_err("a cross-source target must be rejected");
+        assert!(failure(&error).contains("forbidden"), "{action:?}: {error:?}");
+        assert!(host.calls().is_empty(), "{action:?}: {:?}", host.calls());
+    }
+}
+
+#[tokio::test]
+async fn archived_targets_are_rejected_before_the_fork_owner_call() {
+    let host = Arc::new(FakeHost::with_archived_session("sess_target"));
+    let fork = tool(SessionControlActionName::ForkSession, host.clone());
+    let error = fork
+        .call(
+            json!({"sessionId": "sess_target", "atMessage": "msg_1"}),
+            context(),
+            tokio::sync::mpsc::channel(1).0,
+        )
+        .await
+        .expect_err("an archived target must not be forked");
+    let failure = failure(&error);
+    assert!(failure.contains("unavailable"), "{error:?}");
+    assert!(failure.contains("archived"), "{error:?}");
+    // 没有调用 owner：不会创建半个子会话。
+    assert!(host.calls().is_empty(), "{:?}", host.calls());
+}
+
+#[tokio::test]
+async fn archived_targets_still_accept_reads_and_sends() {
+    let host = Arc::new(FakeHost::with_archived_session("sess_target"));
+    let send = tool(SessionControlActionName::SendToSession, host.clone());
+    let output = send
+        .call(
+            json!({"sessionId": "sess_target", "prompt": "continue"}),
+            context(),
+            tokio::sync::mpsc::channel(1).0,
+        )
+        .await
+        .expect("archive is organizational and must not stop execution");
+    assert!(result_text(&output).contains("accepted"));
+    assert_eq!(host.send_calls(), 1);
 }
 
 #[tokio::test]

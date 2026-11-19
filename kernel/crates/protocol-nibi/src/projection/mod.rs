@@ -122,6 +122,9 @@ pub struct Projection {
     /// 已切换、还没开跑的模型（from → to）：下一轮开头落 `modelChange` 分隔线
     /// （Node 的 lightBoundary；只比 provider/model，切思考档不落）。
     pending_model_change: Option<(ModelSelection, ModelSelection)>,
+    /// 已创建、还没落行的 worktree 事实：冷打开从 `SessionView.worktree_creations` 种子进来；
+    /// 首轮 `TurnStarted` 之前落 `worktreeCreated` 标记（Node 的 lightBoundary）。
+    pending_worktree_creation: Option<nibi_kernel_api::session_api::WorktreeCreation>,
     /// DWF 引擎 run 的实时运行态（快照的 `workflowRuns` 键）：一条 `run/event` 推进一格，
     /// run 卡、状态与 Stop 都从这里读（Node `workflowRuns` 投影的同名状态键）。
     workflow_runs: WorkflowRunsState,
@@ -262,6 +265,12 @@ impl Projection {
             shared_context_import: None,
             compact_marker: None,
             pending_model_change: None,
+            // 冷打开：已落库的 worktree 创建结果在首轮轮顶落标记（fork 复制来的最后一条优先，
+            // 与 Node hydration 逐条 push、投影后到覆盖先前 pending 的判据一致）。
+            pending_worktree_creation: view
+                .worktree_creations
+                .last()
+                .map(|turn| turn.creation.clone()),
             workflow_runs: WorkflowRunsState::default(),
             subagents: SubagentsState::empty(),
             auto_resolution: auto_resolution::AutoResolution::new(auto_resolution_enabled),
@@ -802,6 +811,16 @@ impl Projection {
                 self.mode = *mode;
                 patch.insert("config".into(), self.config());
             }
+            KernelEvent::WorktreeCreated { creation } => {
+                // 首轮之前到达（冷种子/极早事件）：留给 TurnStarted 落轮顶；已经有回合时
+                // （协议层在首轮输入落库后发）直接追加，位置仍在首个 userInput 行之前。
+                match self.turn.as_ref().map(|turn| turn.id.clone()) {
+                    Some(turn) => {
+                        self.append_worktree_created(&turn, creation, now, seq, &mut out);
+                    }
+                    None => self.pending_worktree_creation = Some(creation.clone()),
+                }
+            }
             KernelEvent::PlanChanged { enabled } => {
                 self.plan = *enabled;
                 patch.insert("config".into(), self.config());
@@ -893,6 +912,10 @@ impl Projection {
         });
         // 模型切换的分隔线：切换事件先记在 pending，真正开跑的下一轮才落一行
         // （Node 的 `modelChange` 是 lightBoundary，只比 provider/model）。
+        if let Some(creation) = self.pending_worktree_creation.take() {
+            // "已创建 worktree" 在轮顶、轮头之前（Node 的 lightBoundary；冷恢复与首轮同一落位）。
+            self.append_worktree_created(turn, &creation, now, seq, out);
+        }
         if let Some((from, to)) = self.pending_model_change.take() {
             self.append_model_change(turn, &from, &to, now, seq, out);
         }
@@ -952,6 +975,33 @@ impl Projection {
             }),
         );
         self.append(format!("model-change:{turn}"), row, out);
+    }
+
+    /// `worktreeCreated` 标记（Node 的 lightBoundary 行）：受管 worktree 的创建结果。
+    /// 冷恢复从 `SessionView.worktree_creations` 种子、首轮 `TurnStarted` 落行；
+    /// 实时在首轮输入落库后由 `WorktreeCreated` 追加，位置在 userInput 行之前。
+    fn append_worktree_created(
+        &mut self,
+        turn: &str,
+        creation: &nibi_kernel_api::session_api::WorktreeCreation,
+        now: u64,
+        seq: u64,
+        out: &mut Vec<Value>,
+    ) {
+        let entity = format!("worktree-created:{}", creation.path);
+        let mut row = self.base(turn, &entity, "timelineMarker", now, seq);
+        row.insert("lane".into(), json!("lightBoundary"));
+        row.insert(
+            "marker".into(),
+            json!({
+                "type": "worktreeCreated",
+                "path": creation.path,
+                "sha": creation.sha,
+                "ref": creation.reference,
+                "output": creation.output,
+            }),
+        );
+        self.append(entity, row, out);
     }
 
     /// 收口一个回合；返回控制轮是否把 draft 会话推进了终态（普通回合总是 true）。

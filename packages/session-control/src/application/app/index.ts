@@ -65,6 +65,18 @@ function assertSearchScope(search: AppSearchScope, grants: readonly AccessGrant<
     throw new SessionControlError("invalid_output", "Owner returned an unauthorized search scope");
 }
 
+/** 归档目标不在当前导航投影内：OpenSession 按上游返回 unavailable（project.task-not-found）。 */
+const ARCHIVED_OPEN_REASON = "project.task-not-found";
+
+async function isArchived(
+  ports: AppSessionControlDependencies,
+  ctx: AppTrustedContext,
+  session: AppSessionRef,
+): Promise<boolean> {
+  // 授权之后才读归档事实：未授权目标连归档状态都不能被区分出来。
+  return (await ports.sessions.isSessionArchived?.(ctx, session)) === true;
+}
+
 export function createAppSessionControl(ports: AppSessionControlDependencies): AppSessionControl {
   const accessSession = (
     ctx: AppTrustedContext,
@@ -167,6 +179,9 @@ export function createAppSessionControl(ports: AppSessionControlDependencies): A
     async forkSession(ctx, raw) {
       const input = await target(ctx, parseInput(appForkSessionInputSchema, raw));
       const grant = await accessSession(ctx, "forkSession", input.session);
+      // 归档目标必须显式失败：先于 execution.forkSession，绝不创建一个没有产品归属的子会话。
+      if (await isArchived(ports, ctx, input.session))
+        throw new SessionControlError("unavailable", "Target session is archived");
       const result = parseOutput(
         forkSessionResultSchema,
         await ports.execution.forkSession(ctx, input, grant),
@@ -223,6 +238,10 @@ export function createAppSessionControl(ports: AppSessionControlDependencies): A
       const input = { ...parsed, ...(ctx.uiTarget ? { uiTarget: ctx.uiTarget } : {}) };
       const grant = await accessSession(ctx, "openSession", input.session);
       if (!ports.navigation) return { status: "unavailable", reason: "navigation_unavailable" };
+      // 上游只打开已进入当前目录投影的任务；归档目标被过滤，返回同一个 task-not-found，
+      // 不自动取消归档、不改只读状态，也不把别的会话当作目标打开。
+      if (await isArchived(ports, ctx, input.session))
+        return { status: "unavailable", reason: ARCHIVED_OPEN_REASON };
       return parseOutput(
         openSessionResultSchema,
         await ports.navigation.openSession(ctx, input, grant),

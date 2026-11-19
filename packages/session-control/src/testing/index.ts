@@ -192,6 +192,10 @@ export function createTestPorts(
           record("resolveSession", ctx, sessionId);
           return sessionId.startsWith("sess_missing") ? undefined : { ...root, sessionId };
         },
+        async isSessionArchived(ctx, session) {
+          record("isSessionArchived", ctx, session);
+          return false;
+        },
         async listSessions(ctx, input, grant) {
           record("listSessions", ctx, input, grant);
           return { sessions: [] };
@@ -283,6 +287,10 @@ export function createTestPorts(
       async resolveSession(ctx, sessionId) {
         record("resolveSession", ctx, sessionId);
         return sessionId.startsWith("sess_missing") ? undefined : { ...root, sessionId };
+      },
+      async isSessionArchived(ctx, session) {
+        record("isSessionArchived", ctx, session);
+        return false;
       },
       async listSessions(ctx, input, grants) {
         record("listSessions", ctx, input, grants);

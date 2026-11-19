@@ -177,6 +177,8 @@ const MEMORY_ONLY_EVENT_TYPES = new Set<string>([
 
 const TRANSCRIPT_DERIVED_EVENT_TYPES = new Set<string>([
   SessionEventType.SessionCreated,
+  // 受管 worktree 创建结果：权威事实是 transcript 中的 worktree_creation timeline part。
+  SessionEventType.WorktreeCreated,
   SessionEventType.TurnStarted,
   SessionEventType.ModelSelected,
   SessionEventType.ModelStreaming,

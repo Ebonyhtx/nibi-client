@@ -1,4 +1,14 @@
+import { readFile, realpath, stat } from "node:fs/promises";
+import { homedir } from "node:os";
+import { resolve } from "node:path";
 import { parseRemoteWorkspaceIdentity, type NibiWorkspaceRef } from "@nibi/shared";
+import {
+  isPathInside,
+  resolveManagedWorktreeSourcePath,
+  type WorkspaceHookTrustIdentityFs,
+} from "@nibi/shared/managed-worktree";
+
+const REMOTE_WORKSPACE_ID_PREFIX = "remote:";
 
 export function buildWorkspaceRef(input: {
   workspaceIdentity?: string;
@@ -20,7 +30,7 @@ export function resolveWorkspaceRefFromId(workspaceId: string): NibiWorkspaceRef
   if (!parsedRemote) {
     // 非法 remote identity 若继续按本地路径处理，会再次把 identity 写入
     // directory/path。remote 命名空间必须 fail-closed，本地路径仍保留原 fallback。
-    if (workspaceId.startsWith("remote:")) {
+    if (workspaceId.startsWith(REMOTE_WORKSPACE_ID_PREFIX)) {
       throw new Error(`Invalid remote workspace identity: ${workspaceId}`);
     }
     return buildWorkspaceRef({ workspacePath: workspaceId });
@@ -32,4 +42,91 @@ export function resolveWorkspaceRefFromId(workspaceId: string): NibiWorkspaceRef
     workspaceIdentity: workspaceId,
     workspacePath: parsedRemote.workspacePath,
   });
+}
+
+// ── 会话 cwd 与 workspace 分离（受管 worktree）──
+// worktree 任务的 workspace key 属于项目，执行路径是 worktree。这里只做纯解析与校验，不碰存储。
+
+export const WORKTREE_CWD_LOCAL_ONLY = "guard.worktreeCwdLocalOnly";
+
+/** 第一版只支持本地 workspace；远程 identity 结构化拒绝，不尝试解析远端目录。 */
+export class WorktreeCwdLocalOnlyError extends Error {
+  readonly reasonCode = WORKTREE_CWD_LOCAL_ONLY;
+
+  constructor(workspaceKey: string) {
+    super(
+      `${WORKTREE_CWD_LOCAL_ONLY}: session cwd override only supports local workspaces: ${workspaceKey}`,
+    );
+    this.name = "WorktreeCwdLocalOnlyError";
+  }
+}
+
+/** workspace 身份（key）不变，执行路径换成 cwd。远程 workspace 拒绝。 */
+export function workspaceRefWithCwd(workspace: NibiWorkspaceRef, cwd: string): NibiWorkspaceRef {
+  if (
+    workspace.workspaceIdentity?.trim() ||
+    workspace.workspaceKey.startsWith(REMOTE_WORKSPACE_ID_PREFIX)
+  ) {
+    throw new WorktreeCwdLocalOnlyError(workspace.workspaceKey);
+  }
+  return { ...workspace, workspacePath: cwd };
+}
+
+/**
+ * 冷恢复的 workspace：Host 请求携带的本地 workspace 提供身份（key）。请求路径与持久化的
+ * session 目录指向同一目录时沿用请求路径（保留当前 attachment 的路径表示，例如末尾 `/`）；
+ * 指向不同目录时执行路径取持久化目录（cwd 创建后不变）——worktree 任务的 Host workspace
+ * 是项目主目录，沿用请求路径会让会话在主目录中恢复执行。远程 workspace 保持原行为。
+ */
+export function resolveResumeWorkspaceRef(
+  requested: NibiWorkspaceRef | undefined,
+  stored: { workspaceID?: string; path?: string; directory: string },
+): NibiWorkspaceRef {
+  const storedPath = stored.path ?? stored.directory;
+  if (!requested) {
+    return buildWorkspaceRef({
+      ...(stored.workspaceID ? { workspaceIdentity: stored.workspaceID } : {}),
+      workspacePath: storedPath,
+    });
+  }
+  if (requested.workspaceIdentity?.trim()) return requested;
+  if (resolve(requested.workspacePath) === resolve(storedPath)) return requested;
+  return { ...requested, workspacePath: storedPath };
+}
+
+const nodeFsPort: WorkspaceHookTrustIdentityFs = {
+  readFile: (path) => readFile(path, "utf8"),
+  realpath,
+  async stat(path) {
+    try {
+      const info = await stat(path);
+      return { isFile: info.isFile(), isDirectory: info.isDirectory() };
+    } catch {
+      return null;
+    }
+  },
+};
+
+/**
+ * 本地会话目录是否属于 workspace（含受管 worktree）。
+ *
+ * 受管 worktree 的会话 cwd 与项目 workspace 不同；冷恢复、`session/list` 精确 ID 查询与
+ * sessions-index reconcile 都要能按源仓库证明归属，否则 worktree 会话在重连后会被当成
+ * “不存在”。判定只认共享 resolver 的严格校验（.git 反向链接 + commondir），失败即不归属。
+ */
+export async function isLocalSessionDirectoryInWorkspace(input: {
+  directory: string;
+  workspacePath: string;
+  env?: NodeJS.ProcessEnv;
+  fs?: WorkspaceHookTrustIdentityFs;
+}): Promise<boolean> {
+  if (resolve(input.directory) === resolve(input.workspacePath)) return true;
+  const dataBaseDir = input.env?.NIBI_DATA_BASE_DIR?.trim() || homedir();
+  const mapped = await resolveManagedWorktreeSourcePath(
+    input.directory,
+    dataBaseDir,
+    input.fs ?? nodeFsPort,
+  ).catch(() => null);
+  // mapped 是 cwd 在源仓库中的对应路径；项目 workspace 是源仓库的根或子目录。
+  return mapped !== null && isPathInside(resolve(input.workspacePath), resolve(mapped));
 }

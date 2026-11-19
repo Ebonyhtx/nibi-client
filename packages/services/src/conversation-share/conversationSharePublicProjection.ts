@@ -269,6 +269,15 @@ function projectTimelineMarker(
       return { ...row.marker };
     case "retryNotice":
       return { ...row.marker };
+    // 受管 worktree 的创建结果：分享里保留同一事实（字段全是标量/可为 null 的字符串）。
+    case "worktreeCreated":
+      return {
+        type: "worktreeCreated",
+        path: row.marker.path,
+        sha: row.marker.sha,
+        ref: row.marker.ref,
+        output: row.marker.output,
+      };
     case "forkNotice":
     case "forkCreated":
     case "checkpointRestored":

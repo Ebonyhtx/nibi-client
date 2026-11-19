@@ -124,6 +124,9 @@ export function createCliSessionControl(ports: CliSessionControlDependencies): C
     async forkSession(ctx, raw) {
       const input = await target(ctx, parseInput(cliForkSessionInputSchema, raw));
       const grant = await accessSession(ctx, "forkSession", input.session);
+      // 归档状态存在时必须在 owner 创建子会话之前拒绝，不能产生半个 fork。
+      if ((await ports.sessions.isSessionArchived?.(ctx, input.session)) === true)
+        throw new SessionControlError("unavailable", "Target session is archived");
       const result = parseOutput(
         forkSessionResultSchema,
         await ports.execution.forkSession(ctx, input, grant),

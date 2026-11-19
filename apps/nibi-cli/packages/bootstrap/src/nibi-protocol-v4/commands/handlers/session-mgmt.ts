@@ -40,6 +40,11 @@ async function createSession(
   if (!host.createSessionRecord) {
     throw new Error("v4 createSession requires host.createSessionRecord capability");
   }
+  // "已创建 worktree" 只描述 cwd 指向的 worktree；缺 cwd 时没有可绑定的目录。
+  // 目录存在性与受管根一致性由 binder（host.createSessionRecord）在落库前校验。
+  if (payload.worktreeCreation && !payload.cwd) {
+    throw new V4InputAdmissionRejectedError("proto.invalidPayload", "worktreeCreation requires cwd");
+  }
   // 完全空的 firstInput 必须在创建 record 前拒绝，避免失败请求遗留无效 deferred session。
   if (
     payload.firstInput &&
@@ -53,11 +58,20 @@ async function createSession(
       ? { additionalDirectories: payload.additionalDirectories }
       : {}),
     workspaceId: payload.workspaceId,
+    ...(payload.cwd ? { cwd: payload.cwd } : {}),
+    ...(payload.worktreeCreation ? { worktreeCreation: payload.worktreeCreation } : {}),
     ...(payload.permissionScope ? { permissionScope: payload.permissionScope } : {}),
     mcpServers: payload.mcpServers,
     dynamicWorkflowEnabled: payload.dynamicWorkflowEnabled,
     dynamicWorkflowMode: payload.dynamicWorkflowMode,
   });
+  if (payload.worktreeCreation) {
+    // 受管 worktree 的产出事实先记在 runtime：首轮持久化会话后、TurnStarted 前落盘并投影。
+    // 重复命令（同一 session 的重试）保持第一次的事实。
+    requireRecord(host, sessionId).app.runtime.recordPendingWorktreeCreation(
+      payload.worktreeCreation,
+    );
+  }
   // createSession.config 消费——草稿态 UI 的先行选择（模型/思考深度/
   // 模式）在首发之前应用并补发事件，首条 turn 即用所选配置。必须在 firstInput 之前。
   // 普通配置保留既有 warn 降级；Guarded 是明确的授权选择，失败不得用缺省模式执行。

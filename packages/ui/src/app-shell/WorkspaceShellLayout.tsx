@@ -48,6 +48,15 @@ import { DesktopWindowFrame } from "@/DesktopWindowFrame.js";
 import { WorkspacePluginPreview } from "@/workspace-plugin-preview/index.js";
 import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
 import { GitBranchSwitcher } from "@/GitBranchSwitcher.js";
+import {
+  ManagedWorktreeCreationView,
+  WorktreeBranchPicker,
+  WorktreeToggle,
+  useManagedWorktreeCreations,
+  useManagedWorktreeSettlements,
+  useWorktreeSupport,
+  type ManagedWorktreeCreationSettlement,
+} from "@/managed-worktrees/index.js";
 import { ScopedErrorBoundary } from "@/ErrorBoundary.js";
 
 import { AUTOMATIONS_TOAST_ANCHOR_ID, AutomationsSection } from "@/settings/AutomationsSection.js";
@@ -93,7 +102,10 @@ import { cn } from "@/components/lib/utils.js";
 import { Button } from "@/components/ui/button.js";
 import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable.js";
 import { toast } from "@/components/ui/toast.js";
-import { getGitDirtyFileCount } from "@/git-branch-switcher/display.js";
+import {
+  getGitDirtyFileCount,
+  resolveGitBranchTriggerLabel,
+} from "@/git-branch-switcher/display.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { getPathLeaf, toFileUrl } from "@/lib/path.js";
@@ -1554,46 +1566,141 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
     },
     [handleSelectTask, workspaceAbsPath, workspaceIdentity],
   );
+  const draftProjectId = useNibiSessionStore(
+    (state) =>
+      state.getWorkspaceState(workspaceAbsPath, workspaceIdentity).draftProjectId ?? null,
+  );
+  // worktree 入口只对本地桌面的 Git 项目草稿开放；能力由 useWorktreeSupport 再确认。
+  const worktreeEligible =
+    activeWorkspacePurpose === "project" &&
+    !isOfficeMode &&
+    !isWebRemoteControlShell &&
+    !workspaceIdentity &&
+    !workspaceRemoteSessionId &&
+    !workspaceReadOnlyReason &&
+    gitState.summary.isRepository &&
+    Boolean(draftProjectId);
+  const worktreeSupport = useWorktreeSupport(workspaceAbsPath, workspaceIdentity, worktreeEligible);
+  const draftWorktree = useNibiSessionStore(
+    (state) => state.getWorkspaceState(workspaceAbsPath, workspaceIdentity).draftWorktree ?? null,
+  );
+  const setDraftWorktree = useNibiSessionStore((state) => state.setDraftWorktree);
+  const viewWorktreeCreation = useNibiSessionStore((state) => state.viewWorktreeCreation);
+  const viewedCreationId = useNibiSessionStore(
+    (state) =>
+      state.getWorkspaceState(workspaceAbsPath, workspaceIdentity).draftWorktreeCreationId ?? null,
+  );
+  const worktreeCreations = useManagedWorktreeCreations();
+  const viewedCreation =
+    activeTaskId === null && viewedCreationId
+      ? (worktreeCreations.find((creation) => creation.id === viewedCreationId) ?? null)
+      : null;
+  // 创建结束：会话已启动则打开它；放弃则把首条消息放回新草稿。只处理当前展示的记录。
+  const handleWorktreeSettlement = useCallback(
+    (settlement: ManagedWorktreeCreationSettlement) => {
+      const state = useNibiSessionStore
+        .getState()
+        .getWorkspaceState(settlement.workspacePath, workspaceIdentity);
+      if (state.draftWorktreeCreationId !== settlement.creationId) return;
+      viewWorktreeCreation(settlement.workspacePath, null, workspaceIdentity);
+      if (settlement.outcome === "session-started" && settlement.sessionId) {
+        handleSelectTaskInChat(
+          settlement.workspacePath,
+          settlement.sessionId,
+          workspaceIdentity,
+        );
+        return;
+      }
+      handleCreateTaskInChat({
+        ...(state.draftProjectId !== undefined ? { projectId: state.draftProjectId } : {}),
+        ...(settlement.outcome === "dismissed" && settlement.promptText
+          ? { initialPrompt: settlement.promptText }
+          : {}),
+      });
+    },
+    [handleCreateTaskInChat, handleSelectTaskInChat, viewWorktreeCreation, workspaceIdentity],
+  );
+  useManagedWorktreeSettlements(handleWorktreeSettlement);
+  const onDraftWorktreeCheckedChange = useCallback(
+    (checked: boolean) => {
+      setDraftWorktree(workspaceAbsPath, checked ? { ref: null } : null, workspaceIdentity);
+    },
+    [setDraftWorktree, workspaceAbsPath, workspaceIdentity],
+  );
+  const onDraftWorktreeRefSelect = useCallback(
+    (ref: string | null) => {
+      setDraftWorktree(workspaceAbsPath, { ref }, workspaceIdentity);
+    },
+    [setDraftWorktree, workspaceAbsPath, workspaceIdentity],
+  );
   // 草稿头部保留项目菜单与 Git 分支；项目目录由共享 Provider 提供。
   // Shell 只连接既有导航回调，pane 不持有另一份项目列表或 cwd 归属推断。
   const draftComposerHeader = useMemo(
     () => (
-      <ProjectComposerMenu
-        showEditProject
-        workspacePath={workspaceAbsPath}
-        workspaceIdentity={workspaceIdentity}
-        compactForRemoteControl={isWebRemoteControlShell}
-        onCreateTask={handleCreateTaskInChat}
-        onSelectConversationWorkspace={handleSelectConversationWorkspace}
-        allowRemoteWorkspace={allowRemoteWorkspace}
-        onOpenRemoteWorkspace={onOpenRemoteWorkspace}
-        onConnectRemote={onConnectRemote}
-        onCancelRemote={onCancelRemoteProject}
-      >
-        {isOfficeMode && !isWebRemoteControlShell ? (
-          <WorkspacePluginPreview
-            onOpen={handleOpenPluginStore}
-            onSelectPlugin={handleSelectComposerPlugin}
-            workspacePath={workspaceAbsPath}
-            workspaceIdentity={workspaceIdentity}
-            remoteSessionId={workspaceRemoteSessionId ?? undefined}
-          />
-        ) : !isOfficeMode && activeWorkspacePurpose === "project" ? (
-          <GitBranchSwitcher
-            workspacePath={workspaceAbsPath}
-            gitSummary={gitState.summary}
-            dirtyFileCount={gitDirtyFileCount}
-            onRefreshGit={handleRefreshGit}
-            compactForRemoteControl={isWebRemoteControlShell}
-            className="px-0 pt-0"
-            popoverClassName="w-72"
-            branchListClassName="max-h-48"
-            // Bugfix（旧注释保真）：输入框区域在底部，Radix 碰撞避让会把分支菜单翻到下方。
-            // 这里锁定上方弹出，避免菜单遮挡输入区并保持操作方向稳定。
-            avoidPopoverCollisions={false}
+      <>
+        <ProjectComposerMenu
+          showEditProject
+          workspacePath={workspaceAbsPath}
+          workspaceIdentity={workspaceIdentity}
+          compactForRemoteControl={isWebRemoteControlShell}
+          onCreateTask={handleCreateTaskInChat}
+          onSelectConversationWorkspace={handleSelectConversationWorkspace}
+          allowRemoteWorkspace={allowRemoteWorkspace}
+          onOpenRemoteWorkspace={onOpenRemoteWorkspace}
+          onConnectRemote={onConnectRemote}
+          onCancelRemote={onCancelRemoteProject}
+        >
+          {isOfficeMode && !isWebRemoteControlShell ? (
+            <WorkspacePluginPreview
+              onOpen={handleOpenPluginStore}
+              onSelectPlugin={handleSelectComposerPlugin}
+              workspacePath={workspaceAbsPath}
+              workspaceIdentity={workspaceIdentity}
+              remoteSessionId={workspaceRemoteSessionId ?? undefined}
+            />
+          ) : !isOfficeMode &&
+            activeWorkspacePurpose === "project" &&
+            draftWorktree &&
+            draftProjectId ? (
+            // worktree 模式：分支只决定新 worktree 的起点，不切换主目录。
+            <WorktreeBranchPicker
+              projectId={draftProjectId}
+              selectedRef={draftWorktree.ref}
+              currentBranchLabel={resolveGitBranchTriggerLabel({
+                headRefType: gitState.summary.headRefType,
+                currentBranchName: gitState.summary.branchName ?? null,
+                detachedLabel: intl.formatMessage({ id: "git.head.detached" }),
+                fallbackLabel: intl.formatMessage({ id: "git.branchSwitcher.label" }),
+              })}
+              onSelect={onDraftWorktreeRefSelect}
+              className="px-0 pt-0"
+            />
+          ) : !isOfficeMode && activeWorkspacePurpose === "project" ? (
+            <GitBranchSwitcher
+              workspacePath={workspaceAbsPath}
+              gitSummary={gitState.summary}
+              dirtyFileCount={gitDirtyFileCount}
+              onRefreshGit={handleRefreshGit}
+              compactForRemoteControl={isWebRemoteControlShell}
+              className="px-0 pt-0"
+              popoverClassName="w-72"
+              branchListClassName="max-h-48"
+              // Bugfix（旧注释保真）：输入框区域在底部，Radix 碰撞避让会把分支菜单翻到下方。
+              // 这里锁定上方弹出，避免菜单遮挡输入区并保持操作方向稳定。
+              avoidPopoverCollisions={false}
+            />
+          ) : null}
+        </ProjectComposerMenu>
+        {/* 复选框固定贴在头部最右端；能力不支持时整个入口不渲染。 */}
+        {worktreeEligible && worktreeSupport.visible ? (
+          <WorktreeToggle
+            className="ml-auto"
+            checked={Boolean(draftWorktree)}
+            disabled={!worktreeSupport.available}
+            onCheckedChange={onDraftWorktreeCheckedChange}
           />
         ) : null}
-      </ProjectComposerMenu>
+      </>
     ),
     [
       isOfficeMode,
@@ -1613,6 +1720,14 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
       onCancelRemoteProject,
       workspaceAbsPath,
       workspaceIdentity,
+      intl,
+      draftWorktree,
+      draftProjectId,
+      onDraftWorktreeRefSelect,
+      worktreeEligible,
+      worktreeSupport.available,
+      worktreeSupport.visible,
+      onDraftWorktreeCheckedChange,
     ],
   );
   const handleV4SessionDeleted = useCallback(() => {
@@ -2185,10 +2300,13 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                   activeSessionId，避免新建 v4 session 因 meta 缓存未刷新而停在 draft。 */}
                 {/* Bug 根因：计划详情功能只给桌面 V4WorkspaceChatArea 接了回调，手机卡片因此
                   显示按钮却无法打开抽屉；两端必须复用同一个 renderer Side Pane 入口。 */}
-                <V4ChatPane
-                  allowEscapeStopOutsidePane={
-                    isWorkspaceVisible && !isSidePaneOpen && !isSidePaneVisible
-                  }
+                {viewedCreation ? (
+                  <ManagedWorktreeCreationView creation={viewedCreation} />
+                ) : (
+                  <V4ChatPane
+                    allowEscapeStopOutsidePane={
+                      isWorkspaceVisible && !isSidePaneOpen && !isSidePaneVisible
+                    }
                   readOnly={Boolean(workspaceReadOnlyReason)}
                   workspacePath={workspaceAbsPath}
                   workspaceIdentity={workspaceIdentity}
@@ -2229,9 +2347,10 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                   conversationFindActiveIndex={conversationFindActiveIndex}
                   conversationFindNavigationRequestId={conversationFindNavigationRequestId}
                   onConversationFindMatchStateChange={onConversationFindMatchStateChange}
-                  searchResultHighlightRequest={activeSearchResultHighlightRequest}
-                  onSearchResultHighlightDone={onSearchResultHighlightDone}
-                />
+                    searchResultHighlightRequest={activeSearchResultHighlightRequest}
+                    onSearchResultHighlightDone={onSearchResultHighlightDone}
+                  />
+                )}
               </ScopedErrorBoundary>
             </div>
           )
@@ -2634,10 +2753,13 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                                   永远停在 draft。v4 语义下 sessionId ≡ taskId，meta 只服务 Header 显示。
                                   M5⑤：桌面主区升级为分屏宿主（Layout/Focus 两层）；primary pane
                                   绑定语义与 testid 契约（paneId=workspace-main）不变。 */}
-                              <V4WorkspaceChatArea
-                                allowEscapeStopOutsidePane={
-                                  isWorkspaceVisible && !isSidePaneOpen && !isSidePaneVisible
-                                }
+                              {viewedCreation ? (
+                                <ManagedWorktreeCreationView creation={viewedCreation} />
+                              ) : (
+                                <V4WorkspaceChatArea
+                                  allowEscapeStopOutsidePane={
+                                    isWorkspaceVisible && !isSidePaneOpen && !isSidePaneVisible
+                                  }
                                 readOnly={Boolean(workspaceReadOnlyReason)}
                                 foregroundEnabled={isWorkspaceVisible}
                                 workspacePath={workspaceAbsPath}
@@ -2694,9 +2816,10 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                                 onConversationFindMatchStateChange={
                                   onConversationFindMatchStateChange
                                 }
-                                searchResultHighlightRequest={activeSearchResultHighlightRequest}
-                                onSearchResultHighlightDone={onSearchResultHighlightDone}
-                              />
+                                  searchResultHighlightRequest={activeSearchResultHighlightRequest}
+                                  onSearchResultHighlightDone={onSearchResultHighlightDone}
+                                />
+                              )}
                             </ScopedErrorBoundary>
                           </main>
                         )}

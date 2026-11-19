@@ -131,6 +131,8 @@ export const nibiRuntimeCapabilitiesSchema = z.object({
   independentPlanState: z.boolean().optional(),
   /** CLI 是否接受选区引用上的 comment/agent 并原样写入模型文本（选区批注）。 */
   conversationQuoteComment: z.boolean().optional(),
+  /** CLI 是否支持会话 cwd 与 workspace 不同（受管 worktree 任务）。 */
+  worktreeCwd: z.boolean().optional(),
 });
 export const nibiProtocolErrorCodes = {
   sessionUnavailable: -32004,
@@ -2345,6 +2347,22 @@ export const nibiSessionCloseResultSchema = z
   })
   .strict();
 export type NibiSessionCloseResult = z.infer<typeof nibiSessionCloseResultSchema>;
+/** 请求 CLI 卸载 cwd 位于 directory 内的全部驻留会话；任一会话忙时全部不卸载。 */
+export const nibiSessionReleaseUnderDirectoryParamsSchema = z
+  .object({ directory: z.string().min(1) })
+  .strict();
+export type NibiSessionReleaseUnderDirectoryParams = z.infer<
+  typeof nibiSessionReleaseUnderDirectoryParamsSchema
+>;
+export const nibiSessionReleaseUnderDirectoryResultSchema = z
+  .object({
+    released: z.array(z.string()),
+    busy: z.array(z.string()),
+  })
+  .strict();
+export type NibiSessionReleaseUnderDirectoryResult = z.infer<
+  typeof nibiSessionReleaseUnderDirectoryResultSchema
+>;
 export const nibiWorkspaceReadPresentationParamsSchema = z
   .object({ workspace: nibiWorkspaceRefSchema })
   .strict();
@@ -4038,6 +4056,8 @@ export const nibiProtocolMethods = {
   sessionCompact: "session/compact",
   sessionGoal: "session/goal",
   sessionClose: "session/close",
+  /** 受管 worktree 删除前卸载目录内的驻留会话（仅本地桌面 Host 编排调用）。 */
+  sessionReleaseUnderDirectory: "session/releaseUnderDirectory",
   // setModel 仍被 nibiSessionService 的 desktop 旧链路消费；replayable
   // switchModelConfig 已直接由目标 Environment Registry 解析 Selection。
   sessionSetModel: "session/setModel",
@@ -4117,6 +4137,7 @@ export const nibiProtocolMethods = {
   appControlOpenSession: "appControl/openSession",
   appControlSetSessionArchived: "appControl/setSessionArchived",
   appControlSetSessionPinned: "appControl/setSessionPinned",
+  appControlSessionArchived: "appControl/sessionArchived",
   appControlCancel: "appControl/cancel",
   topicResourceRead: "topic/resource/read",
   channelReply: "bot/channel/reply",

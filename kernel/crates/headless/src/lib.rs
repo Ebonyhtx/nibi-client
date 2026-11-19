@@ -155,7 +155,7 @@ pub(crate) async fn existing_session(
     let ack = session
         .send(CommandEnvelope {
             id: CommandId::new(format!("{id}:fork-session")),
-            command: Command::Fork { at: None },
+            command: Command::Fork { at: None, child: None, cwd: None },
         })
         .await;
     let Ack::Accepted { result } = ack else {
