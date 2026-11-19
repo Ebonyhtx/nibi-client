@@ -1,11 +1,26 @@
 import { describe, expect, it } from "vitest";
 import type {
+  AssistantTextRow,
   ConversationRow,
   ReasoningRow,
   SubagentRow,
   ToolCallRow,
+  UserInputRow,
 } from "@nibi/shared/nibi-protocol-v4";
+import type { IntlInstance } from "@/i18n/IntlProvider.js";
+import { LOCALE_MESSAGES } from "@/i18n/localeMessages.js";
 import { buildAssistantWorkRenderItems } from "@/v4/conversationAssistantWorkItems.js";
+import {
+  buildAssistantSummaryWorkRenderItems,
+  formatAssistantSummaryStatistics,
+  getActiveAssistantSummaryItem,
+  getAssistantSummaryChangeFiles,
+  getAssistantSummaryIconItem,
+  getAssistantSummaryTailRowId,
+  getAssistantSummaryToolCategory,
+  groupConsecutiveAssistantSummaries,
+} from "@/v4/conversationSummaryGroups.js";
+import { reconcileContinuousGroupIdentity } from "@/v4/useContinuousGroupKeys.js";
 
 const SHOW_ALL_REASONING = { messageStreamShowReasoning: true } as const;
 
@@ -775,5 +790,383 @@ describe("buildAssistantWorkRenderItems", () => {
     }
     expect(agentItem.subagentRow.backgrounded).toBe(true);
     expect(agentItem).not.toHaveProperty("showSubagentOutputPreview");
+  });
+});
+
+function assistantText(rowId: number, text = `text-${rowId}`): AssistantTextRow {
+  return {
+    rowId,
+    turnId: "turn-1",
+    createdAt: 1_700_000_000_000 + rowId,
+    createdAtSeq: rowId,
+    kind: "assistantText",
+    text,
+    state: "complete",
+  };
+}
+
+function userInputRow(rowId: number): UserInputRow {
+  return {
+    rowId,
+    turnId: "turn-1",
+    createdAt: 1_700_000_000_000 + rowId,
+    createdAtSeq: rowId,
+    kind: "userInput",
+    text: "继续",
+    origin: "realUser",
+  };
+}
+
+const EN_MESSAGES = LOCALE_MESSAGES["en-US"]!;
+const testIntl: IntlInstance = {
+  formatMessage({ id }, values) {
+    let message = EN_MESSAGES[id] ?? id;
+    for (const [key, value] of Object.entries(values ?? {})) {
+      message = message.replaceAll(`{${key}}`, String(value));
+    }
+    return message;
+  },
+};
+
+function summaryItems(
+  rows: Parameters<typeof buildAssistantSummaryWorkRenderItems>[0],
+  visibility: Parameters<typeof buildAssistantSummaryWorkRenderItems>[1] = SHOW_ALL_REASONING,
+) {
+  return buildAssistantSummaryWorkRenderItems(rows, visibility);
+}
+
+function singleGroup(
+  rows: Parameters<typeof buildAssistantSummaryWorkRenderItems>[0],
+  visibility: Parameters<typeof buildAssistantSummaryWorkRenderItems>[1] = SHOW_ALL_REASONING,
+) {
+  const groups = groupConsecutiveAssistantSummaries(summaryItems(rows, visibility));
+  expect(groups).toHaveLength(1);
+  return groups[0]!;
+}
+
+describe("conversationSummaryGroups classification", () => {
+  it("classifies tool families, session tools, and workflow boundaries", () => {
+    expect(getAssistantSummaryToolCategory(reasoning(1))).toBeNull();
+    expect(getAssistantSummaryToolCategory(toolCall(2, "Read", { path: "a.ts" }))).toBe("explore");
+    expect(getAssistantSummaryToolCategory(toolCall(3, "Grep", { pattern: "x" }))).toBe("explore");
+    expect(
+      getAssistantSummaryToolCategory(toolCall(4, "WebFetch", { url: "https://example.com" })),
+    ).toBe("explore");
+    expect(getAssistantSummaryToolCategory(toolCall(5, "Bash", { command: "pnpm test" }))).toBe(
+      "run",
+    );
+    expect(getAssistantSummaryToolCategory(toolCall(6, "mcp__node_repl__js", {}))).toBe("run");
+    expect(getAssistantSummaryToolCategory(toolCall(7, "mcp__computer-use__list_apps", {}))).toBe(
+      "run",
+    );
+    expect(getAssistantSummaryToolCategory(toolCall(8, "ListSessions", {}))).toBe("session");
+    expect(
+      getAssistantSummaryToolCategory(
+        toolCall(9, "Edit", { file_path: "src/a.ts", old_string: "a", new_string: "b" }),
+      ),
+    ).toBe("change");
+    expect(getAssistantSummaryToolCategory(toolCall(10, "TodoWrite", { todos: [] }))).toBeNull();
+    expect(
+      getAssistantSummaryToolCategory(toolCall(11, "CreateWorkflow", { name: "wf" })),
+    ).toBeNull();
+    expect(
+      getAssistantSummaryToolCategory(
+        toolCall(12, "Bash", { command: "pnpm test" }, { status: "pendingApproval" }),
+      ),
+    ).toBeNull();
+  });
+
+  it("keeps a running shell without a command out of every category until classified", () => {
+    const awaiting = toolCall(1, "Bash", {}, { status: "running", inputText: "" });
+    expect(summaryItems([awaiting])).toHaveLength(0);
+  });
+});
+
+describe("conversationSummaryGroups grouping", () => {
+  it("merges consecutive reasoning and categorized tools across categories", () => {
+    const group = singleGroup([
+      reasoning(1),
+      toolCall(2, "Read", { path: "a.ts" }),
+      toolCall(3, "Bash", { command: "pnpm test" }),
+      toolCall(4, "Edit", { file_path: "src/a.ts", old_string: "a", new_string: "b" }),
+      reasoning(5),
+    ]);
+    expect(group.key).toBe("row:1");
+    expect(group.items.map((item) => item.row.rowId)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("closes a group at assistant text, unclassified tools, and agent tool calls", () => {
+    const groups = groupConsecutiveAssistantSummaries(
+      summaryItems([
+        reasoning(1),
+        toolCall(2, "Read", { path: "a.ts" }),
+        assistantText(3),
+        toolCall(4, "Read", { path: "b.ts" }),
+        toolCall(5, "AskUserQuestion", { questions: [] }),
+        toolCall(6, "Read", { path: "c.ts" }),
+        toolCall(7, "Agent", { description: "探索" }),
+        subagent(8, { parentToolCallId: "tool-7" }),
+        toolCall(9, "Read", { path: "d.ts" }),
+        toolCall(10, "Grep", { pattern: "x" }),
+      ]),
+    );
+
+    expect(groups.map((group) => group.items.map((item) => item.row.rowId))).toEqual([
+      [1, 2],
+      [3],
+      [4],
+      [5],
+      [6],
+      [7],
+      [9, 10],
+    ]);
+    expect(groups[5]!.items[0]!.kind).toBe("agentToolCall");
+  });
+
+  it("uses the first item key for each group and gives single items their own key", () => {
+    const groups = groupConsecutiveAssistantSummaries(
+      summaryItems([reasoning(1), toolCall(2, "Read", { path: "a.ts" }), assistantText(3)]),
+    );
+    expect(groups.map((group) => group.key)).toEqual(["row:1", "row:3"]);
+    expect(groups.map((group) => group.items.length)).toEqual([2, 1]);
+  });
+});
+
+describe("conversationSummaryGroups statistics", () => {
+  it("counts explore, run with session, unique change paths, and unresolved changes", () => {
+    const group = singleGroup([
+      reasoning(1),
+      toolCall(2, "Read", { path: "a.ts" }),
+      toolCall(3, "Grep", { pattern: "x" }),
+      toolCall(4, "Bash", { command: "pnpm test" }),
+      toolCall(5, "ListSessions", {}),
+      toolCall(6, "Edit", { file_path: "src/a.ts", old_string: "a", new_string: "b" }),
+      toolCall(7, "Write", { file_path: "src/b.ts", content: "b" }),
+      // 同一文件的别名路径必须按词法归一去重。
+      toolCall(8, "Write", { file_path: "./src/./a.ts", content: "a2" }),
+      // 无路径的写入只能计为未解析，不能伪造文件名。
+      toolCall(9, "Write", { content: "x" }),
+    ]);
+
+    expect(formatAssistantSummaryStatistics(group.items, testIntl, "/workspace")).toBe(
+      "Explore 2 items, Run 2 commands, Change 2 files, Change 1 time (path unknown)",
+    );
+    expect(formatAssistantSummaryStatistics(group.items, testIntl, "/workspace", true)).toBe(
+      "Explored 2 items, Ran 2 commands, Changed 2 files, Changed 1 time (path unknown)",
+    );
+  });
+
+  it("omits zero categories and falls back to reasoning", () => {
+    const reasoningOnly = singleGroup([reasoning(1), reasoning(2)]);
+    expect(formatAssistantSummaryStatistics(reasoningOnly.items, testIntl)).toBe("Reasoning");
+
+    const exploreOnly = singleGroup([
+      toolCall(1, "Read", { path: "a.ts" }),
+      toolCall(2, "Glob", { pattern: "*.ts" }),
+    ]);
+    expect(formatAssistantSummaryStatistics(exploreOnly.items, testIntl)).toBe("Explore 2 items");
+  });
+
+  it("uses the one/other tense keys for singular counts", () => {
+    const group = singleGroup([
+      toolCall(1, "Read", { path: "a.ts" }),
+      toolCall(2, "Bash", { command: "pnpm test" }),
+    ]);
+    expect(formatAssistantSummaryStatistics(group.items, testIntl)).toBe(
+      "Explore 1 item, Run 1 command",
+    );
+    expect(formatAssistantSummaryStatistics(group.items, testIntl, undefined, true)).toBe(
+      "Explored 1 item, Ran 1 command",
+    );
+  });
+});
+
+describe("conversationSummaryGroups activity, tail, and icon", () => {
+  it("selects the last active reasoning or tool item", () => {
+    const items = summaryItems([
+      toolCall(1, "Read", { path: "a.ts" }),
+      reasoning(2),
+      toolCall(3, "Bash", { command: "pnpm test" }, { status: "running" }),
+    ]);
+    expect(getActiveAssistantSummaryItem(items)?.row.rowId).toBe(3);
+
+    const streamingReasoning: ReasoningRow = { ...reasoning(4), state: "streaming", text: "思考" };
+    const reasoningItems = summaryItems([
+      toolCall(5, "Read", { path: "a.ts" }),
+      streamingReasoning,
+    ]);
+    expect(getActiveAssistantSummaryItem(reasoningItems)?.row.rowId).toBe(4);
+    expect(
+      getActiveAssistantSummaryItem(summaryItems([toolCall(6, "Read", { path: "a.ts" })])),
+    ).toBe(undefined);
+  });
+
+  it("derives the appendable tail from the whole visible row list", () => {
+    const rows: ConversationRow[] = [
+      toolCall(1, "Read", { path: "a.ts" }),
+      toolCall(2, "Bash", { command: "pnpm test" }),
+    ];
+    expect(getAssistantSummaryTailRowId(rows, SHOW_ALL_REASONING)).toBe(2);
+
+    expect(
+      getAssistantSummaryTailRowId(
+        [toolCall(1, "Read", { path: "a.ts" }), userInputRow(2)],
+        SHOW_ALL_REASONING,
+      ),
+    ).toBeUndefined();
+
+    // 关闭思考时，隐藏的 trailing reasoning 不能成为可追加尾部。
+    expect(
+      getAssistantSummaryTailRowId([toolCall(1, "Read", { path: "a.ts" }), reasoning(2)], {
+        messageStreamShowReasoning: false,
+      }),
+    ).toBe(1);
+
+    // 未分类的 Todo 行也被投影隐藏，同样不能成为尾部。
+    expect(
+      getAssistantSummaryTailRowId(
+        [toolCall(1, "Read", { path: "a.ts" }), toolCall(2, "TodoWrite", { todos: [] })],
+        SHOW_ALL_REASONING,
+      ),
+    ).toBe(1);
+  });
+
+  it("prefers CUA, then node-repl, change, run, and explore for the statistics icon", () => {
+    const pick = (rows: ToolCallRow[]) =>
+      getAssistantSummaryIconItem(summaryItems(rows))?.row.rowId;
+
+    expect(
+      pick([
+        toolCall(1, "Read", { path: "a.ts" }),
+        toolCall(2, "Bash", { command: "pnpm test" }),
+        toolCall(3, "Edit", { file_path: "src/a.ts", old_string: "a", new_string: "b" }),
+        toolCall(4, "mcp__node_repl__js", {}),
+        toolCall(5, "mcp__computer-use__list_apps", {}),
+      ]),
+    ).toBe(5);
+    expect(
+      pick([
+        toolCall(1, "Read", { path: "a.ts" }),
+        toolCall(2, "Bash", { command: "pnpm test" }),
+        toolCall(3, "Edit", { file_path: "src/a.ts", old_string: "a", new_string: "b" }),
+        toolCall(4, "mcp__node_repl__js", {}),
+      ]),
+    ).toBe(4);
+    expect(
+      pick([
+        toolCall(1, "Read", { path: "a.ts" }),
+        toolCall(2, "Bash", { command: "pnpm test" }),
+        toolCall(3, "Edit", { file_path: "src/a.ts", old_string: "a", new_string: "b" }),
+      ]),
+    ).toBe(3);
+    expect(
+      pick([toolCall(1, "Read", { path: "a.ts" }), toolCall(2, "Bash", { command: "pnpm test" })]),
+    ).toBe(2);
+    expect(
+      pick([toolCall(1, "Read", { path: "a.ts" }), toolCall(2, "Grep", { pattern: "x" })]),
+    ).toBe(1);
+  });
+});
+
+describe("conversationSummaryGroups change files", () => {
+  it("returns deduped files only when every categorized item is a change", () => {
+    const group = singleGroup([
+      reasoning(1),
+      toolCall(2, "Edit", { file_path: "src/a.ts", old_string: "a", new_string: "b" }),
+      toolCall(3, "Write", { file_path: "./src/./a.ts", content: "a2" }),
+    ]);
+    const changes = getAssistantSummaryChangeFiles(group.items, "/workspace");
+    expect(changes?.files.map((file) => file.path)).toEqual(["/workspace/src/a.ts"]);
+    expect(changes?.unresolved).toBe(0);
+  });
+
+  it("returns undefined for mixed categories and unresolved-only changes", () => {
+    const mixed = singleGroup([
+      toolCall(1, "Edit", { file_path: "src/a.ts", old_string: "a", new_string: "b" }),
+      toolCall(2, "Read", { path: "a.ts" }),
+    ]);
+    expect(getAssistantSummaryChangeFiles(mixed.items)).toBeUndefined();
+
+    const unresolved = singleGroup([
+      toolCall(1, "Write", { content: "x" }),
+      toolCall(2, "Write", { content: "y" }),
+    ]);
+    expect(getAssistantSummaryChangeFiles(unresolved.items)).toBeUndefined();
+    expect(formatAssistantSummaryStatistics(unresolved.items, testIntl)).toBe(
+      "Change 2 times (path unknown)",
+    );
+  });
+});
+
+describe("continuous group keys", () => {
+  type Group = { kind: string; rowIds: number[]; key?: string };
+  const describeGroup = (group: Group) => ({
+    kind: group.kind,
+    rowIds: group.rowIds,
+    ...(group.key !== undefined ? { key: group.key } : {}),
+  });
+
+  it("keeps a group key stable when pagination prepends rows to the left boundary", () => {
+    const previous = reconcileContinuousGroupIdentity(
+      [
+        { kind: "summary", rowIds: [2, 3] },
+        { kind: "summary", rowIds: [5] },
+      ] as Group[],
+      describeGroup,
+    );
+    const next = reconcileContinuousGroupIdentity(
+      [
+        { kind: "summary", rowIds: [1, 2, 3] },
+        { kind: "summary", rowIds: [5] },
+      ] as Group[],
+      describeGroup,
+      previous,
+    );
+    expect(next.keys).toEqual(previous.keys);
+  });
+
+  it("keeps streaming append identity and reuses a split key only once", () => {
+    const initial = reconcileContinuousGroupIdentity(
+      [{ kind: "summary", rowIds: [1, 2] }] as Group[],
+      describeGroup,
+    );
+    const grown = reconcileContinuousGroupIdentity(
+      [{ kind: "summary", rowIds: [1, 2, 3] }] as Group[],
+      describeGroup,
+      initial,
+    );
+    expect(grown.keys).toEqual(initial.keys);
+
+    const split = reconcileContinuousGroupIdentity(
+      [
+        { kind: "summary", rowIds: [1] },
+        { kind: "summary", rowIds: [2, 3] },
+      ] as Group[],
+      describeGroup,
+      grown,
+    );
+    expect(split.keys[0]).toBe(initial.keys[0]);
+    expect(split.keys[1]).not.toBe(initial.keys[0]);
+    expect(new Set(split.keys).size).toBe(2);
+  });
+
+  it("never lets a new group inherit the identity of a standalone row", () => {
+    const previous = reconcileContinuousGroupIdentity(
+      [
+        { kind: "assistantText", rowIds: [1], key: "assistantText:1" },
+        { kind: "summary", rowIds: [2, 3] },
+      ] as Group[],
+      describeGroup,
+    );
+    const next = reconcileContinuousGroupIdentity(
+      [
+        { kind: "assistantText", rowIds: [1], key: "assistantText:1" },
+        { kind: "summary", rowIds: [2, 3, 4] },
+      ] as Group[],
+      describeGroup,
+      previous,
+    );
+    expect(next.keys[1]).toBe(previous.keys[1]);
+    expect(next.keys[1]).not.toBe("assistantText:1");
   });
 });

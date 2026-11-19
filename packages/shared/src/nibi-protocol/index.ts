@@ -129,6 +129,8 @@ export const NIBI_PROTOCOL_V4_WIRE_VERSION = 3 as const;
 export const nibiRuntimeCapabilitiesSchema = z.object({
   historyFirst: z.boolean().optional(),
   independentPlanState: z.boolean().optional(),
+  /** CLI 是否接受选区引用上的 comment/agent 并原样写入模型文本（选区批注）。 */
+  conversationQuoteComment: z.boolean().optional(),
 });
 export const nibiProtocolErrorCodes = {
   sessionUnavailable: -32004,
@@ -695,9 +697,7 @@ export const nibiProcessChildProcessesResultSchema = z
   })
   .strict();
 export type NibiProcessChildProcess = z.infer<typeof nibiProcessChildProcessSchema>;
-export type NibiProcessChildProcessesResult = z.infer<
-  typeof nibiProcessChildProcessesResultSchema
->;
+export type NibiProcessChildProcessesResult = z.infer<typeof nibiProcessChildProcessesResultSchema>;
 
 export type NibiDeliveryKind = z.infer<typeof nibiDeliveryKindSchema>;
 // TurnStarted 与持久 message 必须共用同一来源词表；否则 live event 能通过而 cold
@@ -1011,15 +1011,11 @@ export const nibiMcpUiRegisterAppToolsParamsSchema = z
     tools: z.array(mcpAppsAppToolDescriptorSchema).max(MCP_APPS_APP_TOOLS_MAX_PER_INSTANCE),
   })
   .strict();
-export type NibiMcpUiRegisterAppToolsParams = z.infer<
-  typeof nibiMcpUiRegisterAppToolsParamsSchema
->;
+export type NibiMcpUiRegisterAppToolsParams = z.infer<typeof nibiMcpUiRegisterAppToolsParamsSchema>;
 export const nibiMcpUiRegisterAppToolsResultSchema = z
   .object({ tools: z.array(z.object({ name: z.string(), modelName: z.string() }).strict()) })
   .strict();
-export type NibiMcpUiRegisterAppToolsResult = z.infer<
-  typeof nibiMcpUiRegisterAppToolsResultSchema
->;
+export type NibiMcpUiRegisterAppToolsResult = z.infer<typeof nibiMcpUiRegisterAppToolsResultSchema>;
 export const nibiMcpUiUnregisterAppToolsParamsSchema = z
   .object(nibiMcpUiAppToolInstanceShape)
   .strict();
@@ -1038,9 +1034,7 @@ export const nibiMcpUiClaimAppToolCallParamsSchema = z
     callId: nonEmptyString.max(MCP_APPS_APP_TOOL_CALL_ID_MAX_CHARS),
   })
   .strict();
-export type NibiMcpUiClaimAppToolCallParams = z.infer<
-  typeof nibiMcpUiClaimAppToolCallParamsSchema
->;
+export type NibiMcpUiClaimAppToolCallParams = z.infer<typeof nibiMcpUiClaimAppToolCallParamsSchema>;
 export const nibiMcpUiAppToolAcceptedResultSchema = z.object({ accepted: z.boolean() }).strict();
 export type NibiMcpUiAppToolAcceptedResult = z.infer<typeof nibiMcpUiAppToolAcceptedResultSchema>;
 export const nibiMcpUiResolveAppToolCallParamsSchema = z
@@ -2470,14 +2464,10 @@ export const nibiWorkspaceGenerateTextResultSchema = z
       .optional(),
   })
   .strict();
-export type NibiWorkspaceGenerateTextParams = z.infer<
-  typeof nibiWorkspaceGenerateTextParamsSchema
->;
+export type NibiWorkspaceGenerateTextParams = z.infer<typeof nibiWorkspaceGenerateTextParamsSchema>;
 export type NibiWorkspaceModelMessage = z.infer<typeof nibiWorkspaceModelMessageSchema>;
 export type NibiWorkspaceModelTool = z.infer<typeof nibiWorkspaceModelToolSchema>;
-export type NibiWorkspaceGenerateTextResult = z.infer<
-  typeof nibiWorkspaceGenerateTextResultSchema
->;
+export type NibiWorkspaceGenerateTextResult = z.infer<typeof nibiWorkspaceGenerateTextResultSchema>;
 export const nibiWorkspaceCancelGenerateTextParamsSchema = z
   .object({ operationId: nonEmptyString })
   .strict();
@@ -2946,15 +2936,11 @@ export type NibiPluginsListResult = z.infer<typeof nibiPluginsListResultSchema>;
 export const nibiPluginsListUiSurfacesParamsSchema = z
   .object({ workspace: nibiWorkspaceRefSchema })
   .strict();
-export type NibiPluginsListUiSurfacesParams = z.infer<
-  typeof nibiPluginsListUiSurfacesParamsSchema
->;
+export type NibiPluginsListUiSurfacesParams = z.infer<typeof nibiPluginsListUiSurfacesParamsSchema>;
 export const nibiPluginsListUiSurfacesResultSchema = z
   .object({ surfaces: z.array(nibiPluginUiSurfaceSchema) })
   .strict();
-export type NibiPluginsListUiSurfacesResult = z.infer<
-  typeof nibiPluginsListUiSurfacesResultSchema
->;
+export type NibiPluginsListUiSurfacesResult = z.infer<typeof nibiPluginsListUiSurfacesResultSchema>;
 
 // ── Plugin 对话引用 catalog（docs/plugin-reference-mention.md）──
 // Session-scoped 只读投影：带 sessionId → 该 Session 创建时冻结的身份 catalog；
@@ -2986,9 +2972,7 @@ export const nibiPluginReferenceCatalogEntrySchema = z
     subagentNames: z.array(nonEmptyString).default([]),
   })
   .strict();
-export type NibiPluginReferenceCatalogEntry = z.infer<
-  typeof nibiPluginReferenceCatalogEntrySchema
->;
+export type NibiPluginReferenceCatalogEntry = z.infer<typeof nibiPluginReferenceCatalogEntrySchema>;
 
 export const nibiPluginsReferenceCatalogParamsSchema = z
   .object({
@@ -3064,9 +3048,7 @@ export const nibiSavedWorkflowArgDeclarationSchema = z
     default: z.unknown().optional(),
   })
   .strict();
-export type NibiSavedWorkflowArgDeclaration = z.infer<
-  typeof nibiSavedWorkflowArgDeclarationSchema
->;
+export type NibiSavedWorkflowArgDeclaration = z.infer<typeof nibiSavedWorkflowArgDeclarationSchema>;
 export const nibiSavedWorkflowArgsDeclarationSchema = z.record(
   z.string(),
   nibiSavedWorkflowArgDeclarationSchema,
@@ -3700,9 +3682,7 @@ export const nibiPluginsRestoreBuiltinResultSchema = z
     diagnostics: z.array(nibiPluginDiagnosticSchema),
   })
   .strict();
-export type NibiPluginsRestoreBuiltinResult = z.infer<
-  typeof nibiPluginsRestoreBuiltinResultSchema
->;
+export type NibiPluginsRestoreBuiltinResult = z.infer<typeof nibiPluginsRestoreBuiltinResultSchema>;
 
 export const nibiPluginsConfigureParamsSchema = z
   .object({
@@ -3978,16 +3958,12 @@ export const nibiAutomationCheckTaskBindingParamsSchema = z
 export type NibiAutomationCheckTaskBindingProtocolParams = z.infer<
   typeof nibiAutomationCheckTaskBindingParamsSchema
 >;
-export const nibiAutomationCheckTaskBindingResultSchema = z
-  .object({ bound: z.boolean() })
-  .strict();
+export const nibiAutomationCheckTaskBindingResultSchema = z.object({ bound: z.boolean() }).strict();
 export type NibiAutomationCheckTaskBindingProtocolResult = z.infer<
   typeof nibiAutomationCheckTaskBindingResultSchema
 >;
 
-export const nibiAutomationDeleteParamsSchema = z
-  .object({ automationId: nonEmptyString })
-  .strict();
+export const nibiAutomationDeleteParamsSchema = z.object({ automationId: nonEmptyString }).strict();
 export type NibiAutomationDeleteProtocolParams = z.infer<typeof nibiAutomationDeleteParamsSchema>;
 export const nibiAutomationDeleteResultSchema = z.object({ deleted: z.boolean() }).strict();
 export type NibiAutomationDeleteProtocolResult = z.infer<typeof nibiAutomationDeleteResultSchema>;

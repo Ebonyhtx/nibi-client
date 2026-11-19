@@ -43,6 +43,11 @@ export interface NibiSessionControlRuntime {
   readonly control: SessionControlHost;
   /** 来源来自可信启动选项；borrowed 仅决定关闭责任，不决定目标读写权限。 */
   attachRoot(app: NibiApp, provenance: "new-independent-root" | "unverified-history"): void;
+  /**
+   * 调用方关闭 borrowed root 后摘除登记。旧 app 关闭后若仍留在 roots 表里，
+   * 同 session 的冷恢复/restart 会被误判为「另一个 runtime 仍持有会话」。
+   */
+  releaseRoot(app: NibiApp): void;
   /** 先封闭准入，再中断、等待落盘并关闭本 manager 创建的 roots；borrowed root 由调用方关闭。 */
   close(): Promise<void>;
 }

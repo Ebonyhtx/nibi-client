@@ -8,6 +8,7 @@ import {
   ENABLE_CUA_TOOL_CALL_GROUPING,
   prepareCuaGroupFlowItems,
 } from "@/v4/conversationCuaGroups.js";
+import { ENABLE_UNIFIED_SUMMARY_GROUPING } from "@/v4/conversationSummaryGroups.js";
 // Bugfix：必须直接引用纯函数模块，不能走 `@/plugin-ui/index.js` 桶文件。本文件在分享只读
 // 时间线闭包里，桶文件会把 plugin-ui 全量组件 → V4ConversationContext → @nibi/services →
 // @nibi/provider 拖进 web-share 构建，导致 `@nibi/shared/mcp-apps` 等子路径无法解析、构建失败。
@@ -219,7 +220,8 @@ export function buildConversationTurnWorkSegments(options: {
       key: segmentKey,
       ...(segment.triggerRow ? { triggerRow: segment.triggerRow } : {}),
       flowItems: prepareCuaGroupFlowItems(flowItems, {
-        enabled: ENABLE_CUA_TOOL_CALL_GROUPING,
+        // 统一摘要分组接管 CUA 行；关闭后恢复旧 CUA 聚合路径，作为一版回滚开关。
+        enabled: !ENABLE_UNIFIED_SUMMARY_GROUPING && ENABLE_CUA_TOOL_CALL_GROUPING,
         stageTailIsRunning: segmentRunning,
       }),
       assistantWorkRows: segmentAssistantRows,

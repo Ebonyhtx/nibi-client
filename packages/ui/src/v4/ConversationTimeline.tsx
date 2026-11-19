@@ -23,8 +23,6 @@ import { ArrowDownIcon } from "lucide-react";
 import { TID_V4_TIMELINE, TID_V4_TIMELINE_BOTTOM } from "@nibi/shared/test-ids";
 import type {
   ApiRetryState,
-  AttachmentRef,
-  CommandAck,
   ConversationRow,
   ConversationRowTarget,
   QueueItem,
@@ -45,7 +43,11 @@ import {
   type PluginUiRowPinResolver,
 } from "@/plugin-ui/index.js";
 import { ConversationPendingGuideList } from "@/v4/ConversationPendingGuideList.js";
-import type { AssistantFeedbackHandler } from "@/v4/ConversationRowView.js";
+import type {
+  AssistantFeedbackHandler,
+  UserInputEditBeginHandler,
+  UserInputEditHandler,
+} from "@/v4/ConversationRowView.js";
 import { ConversationTurnNavigator } from "@/v4/ConversationTurnNavigator.js";
 import { syncConversationShareSelectionPanelLayout } from "@/v4/conversationShareSelectionPanelLayout.js";
 import type { ConversationRowRenderContext } from "@/v4/conversationRowContext.js";
@@ -103,7 +105,10 @@ import {
 } from "@/v4/timelineScrollAnchor.js";
 import { useConversationTimelineFind } from "@/v4/useConversationTimelineFind.js";
 import { ConversationSelectionTooltip } from "@/v4/ConversationSelectionTooltip.js";
-import type { ConversationSelectionReference } from "@/lib/conversationSelectionReference.js";
+import type {
+  ConversationSelectionAppendResult,
+  ConversationSelectionReference,
+} from "@/lib/conversationSelectionReference.js";
 
 // memo 组件参数中的 `pendingGuides = []` 会在每次调用时创建新引用，
 // 让未传该属性的渲染绕过稳定引用边界；共享只读空数组可保持默认值恒定。
@@ -285,12 +290,8 @@ export interface ConversationTimelineProps {
   onFork?: (target: ConversationRowTarget) => void;
   onRetry?: (target: ConversationRowTarget) => void;
   onFeedbackChange?: AssistantFeedbackHandler;
-  onEdit?: (
-    target: ConversationRowTarget,
-    newText: string,
-    attachments?: readonly AttachmentRef[],
-    workspaceMode?: "preserve" | "rewind",
-  ) => Promise<CommandAck | boolean | void> | CommandAck | boolean | void;
+  onEdit?: UserInputEditBeginHandler;
+  onInlineEdit?: UserInputEditHandler;
   /** 还有更早历史可拉（窗口首行 > 全序首行）。 */
   canLoadOlder?: boolean;
   /** loadOlder 在途，抑制重复触发。 */
@@ -359,7 +360,13 @@ export interface ConversationTimelineProps {
   selectionActions?: {
     enabled: boolean;
     sideActionDisabled?: boolean;
-    onAddToCurrentTask: (reference: ConversationSelectionReference) => void;
+    /** 当前会话的 CLI 声明 conversationQuoteComment 时才提供“注释”。 */
+    commentEnabled?: boolean;
+    /** 主 composer 引用作用域的 workspaceKey；提供时正文画注释编号标记。 */
+    annotationWorkspaceKey?: string;
+    onAddToCurrentTask: (
+      reference: ConversationSelectionReference,
+    ) => ConversationSelectionAppendResult | undefined;
     onAskInSideChat: (reference: ConversationSelectionReference) => void;
   };
   /** 范围编辑时，左侧 rail 由分享选择面板独占。 */
@@ -387,6 +394,7 @@ function ConversationTimelineImpl({
   onRetry,
   onFeedbackChange,
   onEdit,
+  onInlineEdit,
   canLoadOlder = false,
   loadingOlder = false,
   onLoadOlder,
@@ -1949,6 +1957,8 @@ function ConversationTimelineImpl({
           sourceSessionId={sessionKey}
           enabled={selectionActions.enabled}
           sideActionDisabled={selectionActions.sideActionDisabled}
+          commentEnabled={selectionActions.commentEnabled === true}
+          annotationWorkspaceKey={selectionActions.annotationWorkspaceKey}
           onAddToCurrentTask={selectionActions.onAddToCurrentTask}
           onAskInSideChat={selectionActions.onAskInSideChat}
         />
@@ -2109,6 +2119,7 @@ function ConversationTimelineImpl({
                         onRetry={onRetry}
                         onFeedbackChange={onFeedbackChange}
                         onEdit={onEdit}
+                        onInlineEdit={onInlineEdit}
                       />
                     </div>
                   );
@@ -2138,6 +2149,7 @@ function ConversationTimelineImpl({
                     onRetry={onRetry}
                     onFeedbackChange={onFeedbackChange}
                     onEdit={onEdit}
+                    onInlineEdit={onInlineEdit}
                   />
                 </div>
               ) : null}

@@ -607,7 +607,9 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "applyFileRewind" => apply_file_rewind(handle, &live.sink, envelope).await,
         "retryTurn" => retry_turn(handle, &live.sink, envelope).await,
         "editUserQuery" => edit_user_query(server, handle, &live.sink, envelope).await,
-        "editQueueItem" => edit_queue_item(handle, envelope).await,
+        "editQueueItem" => edit_queue_item(handle, &live.sink, envelope).await,
+        "lockQueueItemEdit" => lock_queue_item_edit(handle, envelope).await,
+        "releaseQueueItemEdit" => release_queue_item_edit(handle, envelope).await,
         "deleteQueueItem" => delete_queue_item(handle, envelope).await,
         "reorderQueueItem" => reorder_queue_item(handle, envelope).await,
         "setAutoDrain" => set_auto_drain(handle, envelope).await,
@@ -824,7 +826,7 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
         };
         live.sink.remember_input(
             &envelope.command_id,
-            input_meta(envelope, first, "startNow", "startNow", None),
+            input_meta(envelope, first, "startNow", "startNow", None, "sendText"),
         );
         if let KernelAck::Accepted { .. } =
             send(live.handle.as_ref(), &envelope.command_id, submit).await
@@ -841,6 +843,7 @@ fn input_meta(
     requested: &'static str,
     admitted: &'static str,
     intent: Option<Value>,
+    kind: &'static str,
 ) -> InputMeta {
     InputMeta {
         client: envelope.client_id.clone(),
@@ -848,6 +851,7 @@ fn input_meta(
             .input_origin
             .clone()
             .or_else(|| payload["inputOrigin"].as_str().map(str::to_owned)),
+        kind,
         text: payload["text"].as_str().unwrap_or_default().to_owned(),
         selection: payload.get("modelSelection").cloned(),
         mode: payload["mode"].as_str().map(str::to_owned),
@@ -998,7 +1002,7 @@ async fn send_text(
     };
     live.remember_input(
         command,
-        input_meta(envelope, payload, requested, admitted, intent),
+        input_meta(envelope, payload, requested, admitted, intent, "sendText"),
     );
     let result = json!({"type": "inputAccepted", "delivery": admitted, "inputId": command});
     match send(handle, command, submit).await {
@@ -1782,35 +1786,193 @@ fn queue_missing(envelope: &Envelope, revision: u64) -> Ack {
     )
 }
 
-/// NIBI `editQueueItem`：同 id 原地更新正文。
-async fn edit_queue_item(handle: &dyn SessionHandle, envelope: &Envelope) -> Ack {
-    let revision = handle.view().await.map(|view| view.revision).unwrap_or(0);
-    let Some(item) = envelope.payload["queueItemId"].as_str() else {
-        return Ack::refused(
+/// 内核队列拒绝的 reason code 词表（`crate::...` 的内核侧常量逐字镜像）。
+/// 内核把 code 放在 `reason` 的前缀（`guard.queueItemEditLocked: ...`），这里拆开上行。
+const QUEUE_REASON_CODES: &[&str] = &[
+    "queue.itemMissing",
+    "guard.queueItemEditLocked",
+    "guard.queueEditLockLost",
+    "queue.editLockMissing",
+    "guard.queueItemNotEditable",
+    "guard.queueItemReserved",
+    "guard.queuePromotionBusy",
+];
+
+fn queue_reason(reason: &str) -> (&str, &str) {
+    match reason.split_once(": ") {
+        Some((code, detail)) if QUEUE_REASON_CODES.contains(&code) => (code, detail),
+        _ => ("fault.command.executionFailed", reason),
+    }
+}
+
+/// 队列内核拒绝 → ACK：缺项是 noop；锁相关按 guard.* 拒绝；其余保留原 handler 的默认映射。
+fn queue_refusal(
+    envelope: &Envelope,
+    revision: u64,
+    reason: &str,
+    default_status: Status,
+    default_code: &str,
+) -> Ack {
+    let (code, detail) = queue_reason(reason);
+    if code == "queue.itemMissing" {
+        return queue_missing(envelope, revision);
+    }
+    let status = if code == "fault.command.executionFailed" {
+        default_status
+    } else {
+        Status::Rejected
+    };
+    let code = if code == "fault.command.executionFailed" {
+        default_code
+    } else {
+        code
+    };
+    Ack::refused(&envelope.command_id, status, code, detail, revision)
+}
+
+/// 队列 payload 的必填字符串（schema 已校验；处理器直接调用时同样 fail-closed）。
+fn payload_string<'a>(envelope: &'a Envelope, field: &str) -> Result<&'a str, Ack> {
+    let revision = 0;
+    envelope.payload[field]
+        .as_str()
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            Ack::refused(
+                &envelope.command_id,
+                Status::Rejected,
+                "proto.invalidPayload",
+                format!("{} needs a {field}", envelope.kind),
+                revision,
+            )
+        })
+}
+
+/// 可选字符串：缺省/null 是 None，类型不对或空串是 invalid payload。
+fn optional_payload_string(envelope: &Envelope, field: &str) -> Result<Option<String>, Ack> {
+    match envelope.payload.get(field) {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::String(value)) if !value.is_empty() => Ok(Some(value.clone())),
+        _ => Err(Ack::refused(
             &envelope.command_id,
             Status::Rejected,
             "proto.invalidPayload",
-            "editQueueItem needs a queueItemId",
-            revision,
-        );
+            format!("{} needs a non-empty {field}", envelope.kind),
+            0,
+        )),
+    }
+}
+
+/// NIBI `lockQueueItemEdit`：给排队项加编辑锁（只允许 queued + 未加锁）。
+async fn lock_queue_item_edit(handle: &dyn SessionHandle, envelope: &Envelope) -> Ack {
+    let revision = handle.view().await.map(|view| view.revision).unwrap_or(0);
+    let item = match payload_string(envelope, "queueItemId") {
+        Ok(item) => item,
+        Err(ack) => return ack,
     };
-    let text = envelope.payload["newText"].as_str().unwrap_or_default().to_owned();
+    let editor_id = match payload_string(envelope, "editorId") {
+        Ok(editor) => editor.to_owned(),
+        Err(ack) => return ack,
+    };
     match send(
         handle,
         &envelope.command_id,
-        Command::EditQueued {
+        Command::LockQueueItemEdit {
             item: queue_command(item),
-            text,
+            editor_id,
+            client_id: envelope.client_id.clone(),
+            input_origin: envelope.input_origin.clone(),
         },
     )
     .await
     {
         KernelAck::Accepted { .. } => Ack::accepted(&envelope.command_id, revision, None),
         KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(&envelope.command_id, revision, None)),
-        // Node 的 editQueueItem 未命中只记 warn、按成功收口（并发 drain 的竞态）。
+        KernelAck::Rejected { reason } => queue_refusal(
+            envelope,
+            revision,
+            &reason,
+            Status::Rejected,
+            "guard.queueItemEditLocked",
+        ),
+    }
+}
+
+/// NIBI `releaseQueueItemEdit`：释放编辑锁（任意端、任意状态；锁不存在是幂等成功）。
+async fn release_queue_item_edit(handle: &dyn SessionHandle, envelope: &Envelope) -> Ack {
+    let revision = handle.view().await.map(|view| view.revision).unwrap_or(0);
+    let item = match payload_string(envelope, "queueItemId") {
+        Ok(item) => item,
+        Err(ack) => return ack,
+    };
+    match send(
+        handle,
+        &envelope.command_id,
+        Command::ReleaseQueueItemEdit {
+            item: queue_command(item),
+        },
+    )
+    .await
+    {
+        KernelAck::Accepted { .. } => Ack::accepted(&envelope.command_id, revision, None),
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(&envelope.command_id, revision, None)),
         KernelAck::Rejected { reason } => {
-            tracing::warn!(event = "protocol.edit_queue_item.missed", reason = %reason);
+            tracing::warn!(event = "protocol.release_queue_item_edit.rejected", reason = %reason);
             Ack::accepted(&envelope.command_id, revision, None)
+        }
+    }
+}
+
+/// NIBI `editQueueItem`：同 id 原地更新正文；带 `editorId` 时校验编辑锁，成功后锁释放。
+async fn edit_queue_item(handle: &dyn SessionHandle, live: &crate::live::Live, envelope: &Envelope) -> Ack {
+    let revision = handle.view().await.map(|view| view.revision).unwrap_or(0);
+    let item = match payload_string(envelope, "queueItemId") {
+        Ok(item) => item,
+        Err(ack) => return ack,
+    };
+    let Some(text) = envelope.payload["newText"].as_str() else {
+        return Ack::refused(
+            &envelope.command_id,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "editQueueItem needs a newText string",
+            revision,
+        );
+    };
+    let editor_id = match optional_payload_string(envelope, "editorId") {
+        Ok(editor) => editor,
+        Err(ack) => return ack,
+    };
+    match send(
+        handle,
+        &envelope.command_id,
+        Command::EditQueued {
+            item: queue_command(item),
+            text: text.to_owned(),
+            editor_id,
+        },
+    )
+    .await
+    {
+        KernelAck::Accepted { .. } => {
+            // 队列读的是输入事实里的原文：内核改的是队列项，投影必须同步同一份文本。
+            live.edit_input_text(item, text);
+            Ack::accepted(&envelope.command_id, revision, None)
+        }
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(&envelope.command_id, revision, None)),
+        KernelAck::Rejected { reason } => {
+            let (code, _) = queue_reason(&reason);
+            if code == "queue.itemMissing" {
+                // 并发 drain/重复编辑的竞态：未命中只记 warn、按成功收口。
+                tracing::warn!(event = "protocol.edit_queue_item.missed", reason = %reason);
+                return Ack::accepted(&envelope.command_id, revision, None);
+            }
+            queue_refusal(
+                envelope,
+                revision,
+                &reason,
+                Status::Rejected,
+                "guard.queueItemNotEditable",
+            )
         }
     }
 }
@@ -1838,7 +2000,14 @@ async fn delete_queue_item(handle: &dyn SessionHandle, envelope: &Envelope) -> A
     {
         KernelAck::Accepted { .. } => Ack::accepted(&envelope.command_id, revision, None),
         KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(&envelope.command_id, revision, None)),
-        KernelAck::Rejected { .. } => queue_missing(envelope, revision),
+        KernelAck::Rejected { reason } => {
+            let (code, detail) = queue_reason(&reason);
+            if code.starts_with("guard.") {
+                Ack::refused(&envelope.command_id, Status::Rejected, code, detail, revision)
+            } else {
+                queue_missing(envelope, revision)
+            }
+        }
     }
 }
 
@@ -1869,8 +2038,12 @@ async fn reorder_queue_item(handle: &dyn SessionHandle, envelope: &Envelope) -> 
     {
         KernelAck::Accepted { .. } => Ack::accepted(&envelope.command_id, revision, None),
         KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(&envelope.command_id, revision, None)),
-        // Node 的 reorderQueueItem 未命中同样只 warn、按成功收口。
         KernelAck::Rejected { reason } => {
+            let (code, detail) = queue_reason(&reason);
+            if code.starts_with("guard.") {
+                return Ack::refused(&envelope.command_id, Status::Rejected, code, detail, revision);
+            }
+            // Node 的 reorderQueueItem 未命中同样只 warn、按成功收口。
             tracing::warn!(event = "protocol.reorder_queue_item.missed", reason = %reason);
             Ack::accepted(&envelope.command_id, revision, None)
         }
@@ -1946,14 +2119,21 @@ async fn send_queued_now(handle: &dyn SessionHandle, envelope: &Envelope, revisi
             revision,
             None,
         )),
-        // Node 的 sendQueuedNow 未命中抛无 reasonCode 的领域错误 → failed + executionFailed。
-        KernelAck::Rejected { reason } => Ack::refused(
-            &envelope.command_id,
-            Status::Failed,
-            "fault.command.executionFailed",
-            reason,
-            revision,
-        ),
+        // Node 的 sendQueuedNow 未命中抛无 reasonCode 的领域错误 → failed + executionFailed；
+        // 加锁项是显式的产品拒绝（guard.queueItemEditLocked）。
+        KernelAck::Rejected { reason } => {
+            let (code, detail) = queue_reason(&reason);
+            if code.starts_with("guard.") {
+                return Ack::refused(&envelope.command_id, Status::Rejected, code, detail, revision);
+            }
+            Ack::refused(
+                &envelope.command_id,
+                Status::Failed,
+                "fault.command.executionFailed",
+                reason,
+                revision,
+            )
+        }
     }
 }
 

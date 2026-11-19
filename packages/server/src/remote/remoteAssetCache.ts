@@ -22,6 +22,7 @@ import { dirname, join, resolve, sep } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { setTimeout as sleep } from "node:timers/promises";
+import { NIBI_AGENT_REMOTE_COMPONENT_ID } from "@nibi/shared";
 import { fileExists } from "@nibi/server/remote/deployShared.js";
 import { extractTarGzArchive } from "@nibi/server/remote/localTarGz.js";
 import {
@@ -54,7 +55,7 @@ const REMOTE_ASSET_PROGRESS_INTERVAL_MS = 1_000;
 const REMOTE_ASSET_PROGRESS_PERCENT_STEP = 5;
 const CONTENT_ADDRESSED_COMPONENT_RELEASE_DIRS: Record<string, string> = {
   "server-bundle": "server-content",
-  glm: "glm-content",
+  [NIBI_AGENT_REMOTE_COMPONENT_ID]: "glm-content",
   // CDN 双发布期：新 id 可独立内容寻址；切换前 active 仍只有 glm。
   "nibi-agent": "nibi-agent-content",
 };
@@ -102,9 +103,10 @@ const REMOTE_COMPONENT_MOUNT_RULES: Record<string, ComponentMountRule> = {
     platformScoped: true,
     resolveExpectedMount: (platformArch) => `node-pty/${platformArch}`,
   },
-  glm: {
+  [NIBI_AGENT_REMOTE_COMPONENT_ID]: {
     platformScoped: true,
-    resolveExpectedMount: (platformArch) => `glm/${platformArch}`,
+    resolveExpectedMount: (platformArch) =>
+      `${NIBI_AGENT_REMOTE_COMPONENT_ID}/${platformArch}`,
   },
   "nibi-agent": {
     platformScoped: true,
@@ -1380,7 +1382,7 @@ function resolveContentAddressedReleaseSegments(
     // 安装始终显式请求 server-bundle，因此仍会进入独立 SHA release。
     if (
       requestedComponentIds === null
-        ? componentId !== "glm" && componentId !== "nibi-agent"
+        ? componentId !== NIBI_AGENT_REMOTE_COMPONENT_ID && componentId !== "nibi-agent"
         : !requestedComponentIds.has(componentId)
     ) {
       continue;

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { QueueState } from "@nibi/shared/nibi-protocol-v4";
 import {
   ConversationQueuePanel,
+  resolveEditLockOwner,
   resolveV4QueueReorderAnchor,
 } from "@/v4/ConversationQueuePanel.js";
 import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
@@ -238,6 +239,93 @@ describe("ConversationQueuePanel", () => {
     expect(resolveV4QueueReorderAnchor(items, "q-2", "q-2")).toBeNull();
     expect(resolveV4QueueReorderAnchor(items, "missing", "q-2")).toBeNull();
     expect(resolveV4QueueReorderAnchor(items, "q-2", "missing")).toBeNull();
+  });
+
+  it("resolveEditLockOwner 区分 self / other / 本地 ACK / 无锁，孤儿锁算 other", () => {
+    const base = { queueItemId: "q-1" };
+    expect(resolveEditLockOwner(base, "editor-a")).toBeNull();
+    expect(
+      resolveEditLockOwner(
+        { ...base, editLock: { editorId: "editor-a", clientId: "desktop" } },
+        "editor-a",
+      ),
+    ).toBe("self");
+    expect(
+      resolveEditLockOwner(
+        { ...base, editLock: { editorId: "editor-b", clientId: "mobile" } },
+        "editor-a",
+      ),
+    ).toBe("other");
+    expect(resolveEditLockOwner(base, "editor-a", ["q-1"])).toBe("self");
+    expect(resolveEditLockOwner(base, "editor-a", ["q-2"])).toBeNull();
+    // 孤儿锁（持有者已消失）仍算 other：必须保留 Release 入口。
+    expect(
+      resolveEditLockOwner(
+        { ...base, editLock: { editorId: "gone-editor", clientId: "desktop" } },
+        "editor-a",
+      ),
+    ).toBe("other");
+  });
+
+  it("other-owner 锁冻结行：隐藏立即发送/编辑/删除并显示持有者与释放", () => {
+    const queue = queueState();
+    queue.items[0] = {
+      ...queue.items[0]!,
+      editLock: { editorId: "editor-b", clientId: "mobile", inputOrigin: "mobile" },
+    };
+    const html = renderToStaticMarkup(
+      createElement(
+        NibiIntlProvider,
+        { initialLocale: "zh-CN" },
+        createElement(ConversationQueuePanel, {
+          queue,
+          editorId: "editor-a",
+          onDeleteItem: vi.fn(),
+          onEditItem: vi.fn(),
+          onSendNow: vi.fn(),
+          onMoveItem: vi.fn(),
+          onReleaseEditLock: vi.fn(),
+        }),
+      ),
+    );
+    expect(html).toContain('data-edit-locked="true"');
+    expect(html).toContain('data-edit-lock-owner="other"');
+    expect(html).toContain("正在其他窗口或设备编辑");
+    expect(html).toContain('data-testid="v4-queue-item-edit-lock-q-1"');
+    expect(html).toContain('data-testid="v4-queue-item-release-edit-q-1"');
+    // 锁定的行隐藏所有改变项的命令入口（另一行仍有）。
+    expect(html).not.toContain('data-testid="v4-queue-item-send-now-q-1"');
+    expect(html).not.toContain('data-testid="v4-queue-item-edit-q-1"');
+    expect(html).not.toContain('data-testid="v4-queue-item-delete-q-1"');
+    expect(html).toContain('data-testid="v4-queue-item-send-now-q-2"');
+    // 拖动被禁用。
+    expect(html).toContain("disabled");
+  });
+
+  it("self 锁显示「正在下方编辑」，本地 ACK 在投影回流前也算 self", () => {
+    const queue = queueState();
+    queue.items[0] = {
+      ...queue.items[0]!,
+      editLock: { editorId: "editor-a", clientId: "desktop", inputOrigin: "desktop" },
+    };
+    const html = renderToStaticMarkup(
+      createElement(
+        NibiIntlProvider,
+        { initialLocale: "zh-CN" },
+        createElement(ConversationQueuePanel, {
+          queue,
+          editorId: "editor-a",
+          onDeleteItem: vi.fn(),
+          onEditItem: vi.fn(),
+          onSendNow: vi.fn(),
+          onMoveItem: vi.fn(),
+          onReleaseEditLock: vi.fn(),
+        }),
+      ),
+    );
+    expect(html).toContain('data-edit-lock-owner="self"');
+    expect(html).toContain("正在下方编辑");
+    expect(html).not.toContain('data-testid="v4-queue-item-delete-q-1"');
   });
 });
 

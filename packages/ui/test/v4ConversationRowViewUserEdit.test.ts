@@ -1388,7 +1388,7 @@ describe("ConversationRowView user query editing", () => {
             { initialLocale: locale },
             createElement(ConversationRowView, {
               context: rowContext,
-              onEdit: vi.fn(),
+              onInlineEdit: vi.fn(),
               row,
             }),
           ),
@@ -1422,7 +1422,7 @@ describe("ConversationRowView user query editing", () => {
           createElement(ConversationRowView, {
             context: { ...rowContext, compactForRemoteControl: true },
             row,
-            onEdit: vi.fn(),
+            onInlineEdit: vi.fn(),
           }),
         ),
       );
@@ -1596,7 +1596,7 @@ describe("ConversationRowView user query editing", () => {
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
-            onEdit: vi.fn(),
+            onInlineEdit: vi.fn(),
             row,
           }),
         ),
@@ -1681,7 +1681,7 @@ describe("ConversationRowView user query editing", () => {
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
-            onEdit: vi.fn(),
+            onInlineEdit: vi.fn(),
             row,
           }),
         ),
@@ -1776,7 +1776,7 @@ describe("ConversationRowView user query editing", () => {
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
-            onEdit,
+            onInlineEdit: onEdit,
             row,
           }),
         ),
@@ -1847,7 +1847,7 @@ describe("ConversationRowView user query editing", () => {
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
-            onEdit,
+            onInlineEdit: onEdit,
             row,
           }),
         ),
@@ -1929,7 +1929,7 @@ describe("ConversationRowView user query editing", () => {
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
-            onEdit,
+            onInlineEdit: onEdit,
             row,
           }),
         ),
@@ -1977,7 +1977,7 @@ describe("ConversationRowView user query editing", () => {
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
-            onEdit,
+            onInlineEdit: onEdit,
             row,
           }),
         ),
@@ -2031,7 +2031,7 @@ describe("ConversationRowView user query editing", () => {
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
-            onEdit,
+            onInlineEdit: onEdit,
             row,
           }),
         ),
@@ -2094,7 +2094,7 @@ describe("ConversationRowView user query editing", () => {
           { initialLocale: "zh-CN" },
           createElement(ConversationRowView, {
             context: rowContext,
-            onEdit,
+            onInlineEdit: onEdit,
             row,
           }),
         ),
@@ -2148,7 +2148,7 @@ describe("ConversationRowView user query editing", () => {
               enabled: false,
               reason: "noFiles",
             },
-            onEdit: vi.fn(),
+            onInlineEdit: vi.fn(),
             row,
           }),
         ),
@@ -2229,7 +2229,7 @@ describe("ConversationRowView user query editing", () => {
               enabled: true,
               reason: "available",
             },
-            onEdit,
+            onInlineEdit: onEdit,
             row,
           }),
         ),
@@ -2291,5 +2291,68 @@ describe("ConversationRowView user query editing", () => {
     await act(async () => {
       root.unmount();
     });
+  });
+});
+
+describe("ConversationRowView composer edit mode", () => {
+  it("marks the edited row with Editing below and hides the edit action", async () => {
+    const container = installMinimalDom();
+    const root: Root = createRoot(container);
+    const row = userInputRow();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          NibiIntlProvider,
+          { initialLocale: "zh-CN" },
+          createElement(ConversationRowView, {
+            context: { ...rowContext, composerEditingRowId: row.rowId },
+            onEdit: vi.fn(),
+            row,
+          }),
+        ),
+      );
+    });
+
+    expect(collectText(container)).toContain("正在下方编辑");
+    expect(findElementByAttribute(container, "data-composer-editing-below", "true")).not.toBeNull();
+    expect(messageActionPropsByTestId.get(testId(TID_V4_EDIT, String(row.rowId)))).toBeUndefined();
+    expect(chatPromptEditorProps).toHaveLength(0);
+
+    await act(async () => root.unmount());
+  });
+
+  it("emits the begin target without mounting the inline editor", async () => {
+    const container = installMinimalDom();
+    const root: Root = createRoot(container);
+    const row = userInputRow();
+    const onEdit = vi.fn();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          NibiIntlProvider,
+          { initialLocale: "zh-CN" },
+          createElement(ConversationRowView, {
+            context: rowContext,
+            onEdit,
+            row,
+          }),
+        ),
+      );
+    });
+
+    const editAction = messageActionPropsByTestId.get(testId(TID_V4_EDIT, String(row.rowId)));
+    expect(editAction).toBeDefined();
+    const editOnClick = editAction?.onClick;
+    expect(editOnClick).toBeTypeOf("function");
+    await act(async () => {
+      (editOnClick as () => void)();
+    });
+
+    expect(onEdit).toHaveBeenCalledWith({ rowId: row.rowId, entityId: row.entityId });
+    expect(chatPromptEditorProps).toHaveLength(0);
+
+    await act(async () => root.unmount());
   });
 });

@@ -1,3 +1,5 @@
+import { useContext } from "react";
+import { SummaryIconOnlyContext } from "@/v4/conversationRowContext.js";
 import { useToolPresentationHostCapabilities } from "@/hooks/useToolPresentationHostCapabilities.js";
 import { ToolPresentationCapabilitiesProvider } from "@/ToolCallBlocks/presentationCapabilities.js";
 import { memo, type ReactNode, useEffect, useMemo, useState } from "react";
@@ -378,9 +380,27 @@ function ToolCallBlockComponent({
     // 没有合法插件声明时仍保持共同注册表的专用工具优先级。
     return PluginUi.shouldRenderPluginUi(renderContext) ? PluginUi.PluginUiToolCallBlock : Renderer;
   }, [renderContext]);
+  const iconOnly = useContext(SummaryIconOnlyContext);
   // early return 必须在所有 hook 之后（见上方注释说明的崩溃原因）
   if (!showTodoToolCalls && identity.family === "todo") {
     return null;
+  }
+  // 图标投影不是另一条工具记录，不创建重复的工具身份与入场动画节点。
+  if (iconOnly) {
+    return (
+      <ToolPresentationCapabilitiesProvider value={presentationCapabilities}>
+        {toolCall.kind === "cuaGroup" ? (
+          <CuaGroupToolCallBlock
+            {...renderContext}
+            events={cuaGroupEvents}
+            renderAssistantMessage={renderCuaAssistantMessage}
+            renderReasoning={renderCuaReasoning}
+          />
+        ) : (
+          <ToolCallRenderer {...renderContext} />
+        )}
+      </ToolPresentationCapabilitiesProvider>
+    );
   }
   return (
     <ToolPresentationCapabilitiesProvider value={presentationCapabilities}>

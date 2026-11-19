@@ -1180,6 +1180,19 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
       expect(JSON.stringify(errorSpy.mock.calls)).not.toContain(
         "sk-1234567890abcdefghijklmnopqrstuv",
       );
+      // 生产日志现在附带 shared parser 的类型化诊断，Desktop 不再需要从原始 tail 重新猜分类。
+      expect(errorSpy.mock.calls[0]?.[2]).toMatchObject({
+        stderrDiagnostics: {
+          lineCount: 1,
+          truncated: false,
+          primary: {
+            class: "errno",
+            name: "Error",
+            code: "EPIPE",
+            occurrences: 1,
+          },
+        },
+      });
       expect(reporter.onExit).toHaveBeenCalledTimes(1);
       expect(reporter.onExit.mock.calls[0]![0]).toMatchObject({
         terminationKind: "unexpected",

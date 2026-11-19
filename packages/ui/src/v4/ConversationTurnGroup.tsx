@@ -1,16 +1,13 @@
+import { buildEditCodeViewerSource } from "@/ToolCallBlocks/renderers/edit.js";
+import { CollapsedChangeSummary } from "@/ToolCallBlocks/renderers.js";
+import { ConsecutiveSummaryGroup } from "@/ToolCallBlocks/ToolSummaryRow.js";
+import { SummaryGroupBoundaryContext } from "@/v4/conversationRowContext.js";
 import { BotTopicPreparation } from "@/v4/BotTopicPreparation.js";
 import { useBotTopicInterruption } from "@/v4/botGroupDeliveryContext.js";
 import { ConnectedBotGroupDeliveryAction } from "@/v4/BotGroupDeliveryAction.js";
 /* eslint-disable max-lines -- turn group 需要在同一处维护普通 assistant 与后台结果的严格行序，拆分会重复 actions/preview/tail 协议。 */
 import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
-import {
-  Fragment,
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { Fragment, memo, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { ChevronRightIcon } from "lucide-react";
 import type { NibiApiRetryStatus } from "@nibi/shared";
 import {
@@ -21,12 +18,7 @@ import {
   TID_V4_ROW,
   testId,
 } from "@nibi/shared/test-ids";
-import type {
-  ApiRetryState,
-  AttachmentRef,
-  CommandAck,
-  ConversationRowTarget,
-} from "@nibi/shared/nibi-protocol-v4";
+import type { ApiRetryState, ConversationRowTarget } from "@nibi/shared/nibi-protocol-v4";
 import { ChatApiRetryStatus } from "@/chat-input-toolbar/display.js";
 import { cn } from "@/components/lib/utils.js";
 import { MessageActions } from "@/components/ai-elements/message.js";
@@ -60,6 +52,18 @@ import {
   ENABLE_TERMINAL_TOOL_CALL_GROUPING,
   type ConversationAssistantWorkRenderItem,
 } from "@/v4/conversationAssistantWorkItems.js";
+import {
+  buildAssistantSummaryWorkRenderItems,
+  ENABLE_UNIFIED_SUMMARY_GROUPING,
+  formatAssistantSummaryStatistics,
+  getActiveAssistantSummaryItem,
+  getAssistantSummaryChangeFiles,
+  getAssistantSummaryIconItem,
+  getAssistantSummaryTailRowId,
+  groupConsecutiveAssistantSummaries,
+  type ConversationAssistantWorkRenderItem as UnifiedAssistantWorkRenderItem,
+} from "@/v4/conversationSummaryGroups.js";
+import { useContinuousGroupKeys } from "@/v4/useContinuousGroupKeys.js";
 import type { ConversationCuaGroupEvent } from "@/v4/conversationCuaGroups.js";
 import { ConversationAgentToolCallRow } from "@/v4/ConversationAgentToolCallRow.js";
 import { ConversationFileSummaryPanel } from "@/v4/ConversationFileSummaryPanel.js";
@@ -77,6 +81,8 @@ import { readAssistantFeedback } from "@/v4/ConversationRowView.js";
 import type {
   AssistantFeedbackHandler,
   EditWorkspaceRewindAvailability,
+  UserInputEditBeginHandler,
+  UserInputEditHandler,
 } from "@/v4/ConversationRowView.js";
 import {
   isConversationReasoningRowVisible,
@@ -101,12 +107,8 @@ interface ConversationTurnGroupProps {
   onFork?: (target: ConversationRowTarget) => void;
   onRetry?: (target: ConversationRowTarget) => void;
   onFeedbackChange?: AssistantFeedbackHandler;
-  onEdit?: (
-    target: ConversationRowTarget,
-    newText: string,
-    attachments?: readonly AttachmentRef[],
-    workspaceMode?: "preserve" | "rewind",
-  ) => Promise<CommandAck | boolean | void> | CommandAck | boolean | void;
+  onEdit?: UserInputEditBeginHandler;
+  onInlineEdit?: UserInputEditHandler;
 }
 
 interface CronAutomationTurnCard {
@@ -315,13 +317,7 @@ function ConversationCuaGroupRow({
   );
 }
 
-function ConversationAssistantWorkItems({
-  rows,
-  context,
-  stageTailIsRunning = false,
-  assistantCodeCommentProjectionEnabled = false,
-  historyContainer,
-}: {
+interface ConversationAssistantWorkItemsProps {
   rows: readonly AssistantWorkRow[];
   context: ConversationRowRenderContext;
   stageTailIsRunning?: boolean;
@@ -331,7 +327,146 @@ function ConversationAssistantWorkItems({
     chunkKey: string;
     open: boolean;
   };
-}) {
+}
+
+function UnifiedConversationAssistantWorkItems({
+  rows,
+  context,
+  assistantCodeCommentProjectionEnabled = false,
+  historyContainer,
+}: ConversationAssistantWorkItemsProps) {
+  const { intl } = useNibiIntl();
+  const summaryBoundary = useContext(SummaryGroupBoundaryContext);
+  const showReasoning = context.messageStreamShowReasoning === true;
+  const firstReasoningRowId = context.messageStreamFirstReasoningRowId;
+  const showTodos = context.messageStreamShowTodos;
+  const items = useMemo(
+    () =>
+      buildAssistantSummaryWorkRenderItems(rows, {
+        messageStreamShowReasoning: showReasoning,
+        messageStreamShowTodos: showTodos,
+        ...(firstReasoningRowId !== undefined
+          ? { messageStreamFirstReasoningRowId: firstReasoningRowId }
+          : {}),
+      }),
+    [firstReasoningRowId, rows, showReasoning, showTodos],
+  );
+  const groups = useMemo(() => groupConsecutiveAssistantSummaries(items), [items]);
+  const groupKeys = useContinuousGroupKeys(groups, (group) => ({
+    kind: "summary",
+    rowIds: group.items.map((item) => item.row.rowId),
+    key: group.items.length < 2 ? group.items[0]!.key : undefined,
+  }));
+  // history 外壳不能在这层投影前创建：当 CUA 消费原 message
+  // 或运行中 shell 被延迟分类时，会留下 pt-5 和空的 gap-4 容器。只有确认
+  // 内层存在可渲染项后才创建 CollapsibleContent，让外壳与内容一起消失。
+  if (items.length === 0) {
+    return null;
+  }
+
+  const renderItem = (item: UnifiedAssistantWorkRenderItem) =>
+    item.kind === "row" ? (
+      <ConversationTurnRow
+        key={item.key}
+        row={item.row}
+        context={context}
+        hideAssistantActions={item.row.kind === "assistantText"}
+        assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
+      />
+    ) : (
+      <ConversationAgentToolCallRow key={item.key} item={item} context={context} />
+    );
+  const content = (
+    <div className="flex flex-col gap-1" data-conversation-work-items>
+      {groups.map((group, index) => {
+        if (group.items.length < 2) return renderItem(group.items[0]!);
+        const last = group.items.at(-1)!;
+        const active = getActiveAssistantSummaryItem(group.items);
+        const current = active ?? last;
+        const iconItem = getAssistantSummaryIconItem(group.items);
+        // 文案与组头共用结构闭合条件，不能以子工具是否运行判断完成。
+        const completed = !(
+          summaryBoundary.taskRunning && summaryBoundary.tailRowId === last.row.rowId
+        );
+        const statistics = formatAssistantSummaryStatistics(
+          group.items,
+          intl,
+          context.workspacePath,
+          completed,
+        );
+        const changes = getAssistantSummaryChangeFiles(group.items, context.workspacePath);
+        return (
+          <ConsecutiveSummaryGroup
+            key={groupKeys[index]}
+            statistics={statistics}
+            collapsedStatistics={
+              changes ? (
+                <CollapsedChangeSummary
+                  files={changes.files}
+                  label={
+                    changes.files.length === 1 && changes.unresolved === 0
+                      ? intl.formatMessage({
+                          id: completed
+                            ? "chat.summaryGroup.change.completed.label"
+                            : "chat.summaryGroup.change.label",
+                        })
+                      : statistics
+                  }
+                  basePath={context.workspacePath}
+                  onOpenFile={
+                    context.onOpenCodeViewer
+                      ? (file) => context.onOpenCodeViewer?.(buildEditCodeViewerSource(file))
+                      : undefined
+                  }
+                />
+              ) : undefined
+            }
+            lastRowId={last.row.rowId}
+            hasActiveItem={active !== undefined}
+            contentKey={current.key}
+            refreshVersion={current.row}
+            statisticsIcon={iconItem ? renderItem(iconItem) : undefined}
+            summary={renderItem(current)}
+          >
+            {group.items.map(renderItem)}
+          </ConsecutiveSummaryGroup>
+        );
+      })}
+    </div>
+  );
+
+  if (!historyContainer) {
+    return content;
+  }
+
+  return (
+    <CollapsibleContent
+      // 运行时确认此处 overflow-hidden 裁掉外叠徽标；扩展绘制边界并抵消位移，保留折叠裁切。
+      className="-mx-1 -mb-1 px-1 pb-1"
+      data-testid={testId(TID_CHAT_ASSISTANT_HISTORY_CONTENT, historyContainer.chunkKey)}
+      data-history-open={String(historyContainer.open)}
+    >
+      <div className="pt-5">{content}</div>
+    </CollapsibleContent>
+  );
+}
+
+function ConversationAssistantWorkItems(props: ConversationAssistantWorkItemsProps) {
+  // 统一摘要分组是新默认；关掉常量即可恢复到旧 explore/execute/changes/CUA 路径。
+  return ENABLE_UNIFIED_SUMMARY_GROUPING ? (
+    <UnifiedConversationAssistantWorkItems {...props} />
+  ) : (
+    <LegacyConversationAssistantWorkItems {...props} />
+  );
+}
+
+function LegacyConversationAssistantWorkItems({
+  rows,
+  context,
+  stageTailIsRunning = false,
+  assistantCodeCommentProjectionEnabled = false,
+  historyContainer,
+}: ConversationAssistantWorkItemsProps) {
   const showReasoning = context.messageStreamShowReasoning === true;
   const firstReasoningRowId = context.messageStreamFirstReasoningRowId;
   const items = useMemo(
@@ -506,7 +641,6 @@ function CronAutomationTurnCards({
   );
 }
 
-
 function RunningStatusDot() {
   return <span className="running-status-dot" aria-hidden="true" />;
 }
@@ -572,6 +706,7 @@ function ConversationWorkSegmentFlow({
   onFork,
   onRetry,
   onEdit,
+  onInlineEdit,
   editWorkspaceRewindAvailability,
   assistantCopyText,
   assistantPreviewCards,
@@ -587,6 +722,7 @@ function ConversationWorkSegmentFlow({
   onFork?: (target: ConversationRowTarget) => void;
   onRetry?: (target: ConversationRowTarget) => void;
   onEdit?: ConversationTurnGroupProps["onEdit"];
+  onInlineEdit?: ConversationTurnGroupProps["onInlineEdit"];
   editWorkspaceRewindAvailability: EditWorkspaceRewindAvailability;
   assistantCopyText?: string;
   assistantPreviewCards: AssistantPreviewCard[];
@@ -600,6 +736,12 @@ function ConversationWorkSegmentFlow({
   useEffect(() => {
     setHistoryOpen(segment.assistantHistoryDefaultOpen);
   }, [segment.assistantHistoryDefaultOpen, segment.key]);
+
+  const flowItemKeys = useContinuousGroupKeys(segment.flowItems, (item) =>
+    item.kind === "userInput" || item.kind === "assistantText"
+      ? { kind: item.kind, rowIds: [item.row.rowId], key: `${item.kind}:${item.row.rowId}` }
+      : { kind: item.kind, rowIds: item.rows.map((row) => row.rowId) },
+  );
 
   const shouldShowHistoryStatus = segment.workStatus !== undefined;
   const firstAssistantFlowItemIndex = segment.flowItems.findIndex(
@@ -623,10 +765,6 @@ function ConversationWorkSegmentFlow({
           index === segment.flowItems.length - 1 &&
           (item.kind === "assistantHistory" || item.kind === "assistantWork");
         const showHistoryStatus = shouldShowHistoryStatus && index === firstAssistantFlowItemIndex;
-        const itemKey =
-          item.kind === "userInput" || item.kind === "assistantText"
-            ? `${item.kind}:${item.row.rowId}`
-            : `${item.kind}:${item.rows[0]?.rowId ?? index}`;
         let content: React.ReactNode;
 
         if (item.kind === "userInput") {
@@ -635,6 +773,7 @@ function ConversationWorkSegmentFlow({
               row={item.row}
               context={context}
               onEdit={item.row.actions?.canEdit === true ? onEdit : undefined}
+              onInlineEdit={item.row.actions?.canEdit === true ? onInlineEdit : undefined}
               editWorkspaceRewindAvailability={editWorkspaceRewindAvailability}
             />
           );
@@ -699,7 +838,7 @@ function ConversationWorkSegmentFlow({
         }
 
         return (
-          <Fragment key={itemKey}>
+          <Fragment key={flowItemKeys[index]!}>
             {showHistoryStatus ? (
               <AssistantHistoryStatus
                 segment={segment}
@@ -712,11 +851,7 @@ function ConversationWorkSegmentFlow({
         );
       })}
       {shouldShowHistoryStatus && firstAssistantFlowItemIndex < 0 ? (
-        <AssistantHistoryStatus
-          segment={segment}
-          sourceCommandIds={sourceCommandIds}
-          open={open}
-        />
+        <AssistantHistoryStatus segment={segment} sourceCommandIds={sourceCommandIds} open={open} />
       ) : null}
     </Collapsible>
   );
@@ -729,6 +864,7 @@ function ConversationTurnFlow({
   onFork,
   onRetry,
   onEdit,
+  onInlineEdit,
   editWorkspaceRewindAvailability,
   assistantCopyText,
   assistantCodeCommentCards,
@@ -741,6 +877,7 @@ function ConversationTurnFlow({
   onFork?: (target: ConversationRowTarget) => void;
   onRetry?: (target: ConversationRowTarget) => void;
   onEdit?: ConversationTurnGroupProps["onEdit"];
+  onInlineEdit?: ConversationTurnGroupProps["onInlineEdit"];
   editWorkspaceRewindAvailability: EditWorkspaceRewindAvailability;
   assistantCopyText?: string;
   assistantCodeCommentCards: AssistantCodeCommentCard[];
@@ -842,6 +979,7 @@ function ConversationTurnFlow({
           onFork={onFork}
           onRetry={onRetry}
           onEdit={onEdit}
+          onInlineEdit={onInlineEdit}
           editWorkspaceRewindAvailability={editWorkspaceRewindAvailability}
           assistantCopyText={assistantCopyText}
           assistantPreviewCards={assistantPreviewCards}
@@ -1072,6 +1210,7 @@ function ConversationTurnGroupImpl({
   onRetry,
   onFeedbackChange,
   onEdit,
+  onInlineEdit,
 }: ConversationTurnGroupProps) {
   const isOfficeMode = useIsOfficeMode();
   const visibleUserRows = useMemo(() => unit.visibleUserInputs, [unit.visibleUserInputs]);
@@ -1223,45 +1362,78 @@ function ConversationTurnGroupImpl({
   const startsWithoutUserBubble =
     startsWithWorkflowNotificationCard || unit.workflowLaunch !== undefined;
 
+  // 性能：context 变更会绕过下游所有 memo bailout，所以 provider 的 value 必须保持引用稳定。
+  // tailRowId 是 rowId 原始值、taskRunning 是布尔，语义不变时 value 身份就不变。
+  const summaryTailRowId = useMemo(
+    () => getAssistantSummaryTailRowId(unit.renderRows, assistantRowContext),
+    [unit.renderRows, assistantRowContext],
+  );
+  const summaryGroupBoundary = useMemo(
+    () => ({ taskRunning: unit.isRunning, tailRowId: summaryTailRowId }),
+    [unit.isRunning, summaryTailRowId],
+  );
+
   return (
-    <section
-      data-turn-id={unit.turnId}
-      data-turn-key={unit.key}
-      className={cn(
-        "relative mx-auto flex w-full flex-col gap-5 px-4 @md/conversation:px-6 pb-5",
-        startsWithoutUserBubble ? "pt-0" : "pt-14",
-      )}
-    >
-      {unit.leadingBoundaryRows.map((row) => (
-        <ConversationTurnRow
-          key={`${row.rowId}:${row.entityId ?? ""}`}
-          row={row}
-          context={context}
-        />
-      ))}
-      {hasAssistantTurnContent ? (
-        // deferAssistantActions 后工具栏被移到文件 summary 之后，
-        // 之前 hover group 只包住工具栏自己，导致必须悬停到不可见按钮位置才出现。
-        // 这里把 assistant work、summary 和工具栏放进同一轮 hover 容器，对齐旧版。
-        <div className="group/assistant-turn flex w-full flex-col gap-5">
-          {backgroundResultTitle ? (
-            <>
-              {visibleUserRows.map((row) => (
-                <ConversationTurnRow
-                  key={`${row.rowId}:${row.entityId ?? ""}`}
-                  row={row}
-                  context={context}
-                  onEdit={row.actions?.canEdit === true ? onEdit : undefined}
-                  editWorkspaceRewindAvailability={editWorkspaceRewindAvailability}
+    <SummaryGroupBoundaryContext.Provider value={summaryGroupBoundary}>
+      <section
+        data-turn-id={unit.turnId}
+        data-turn-key={unit.key}
+        className={cn(
+          "relative mx-auto flex w-full flex-col gap-5 px-4 @md/conversation:px-6 pb-5",
+          startsWithoutUserBubble ? "pt-0" : "pt-14",
+        )}
+      >
+        {unit.leadingBoundaryRows.map((row) => (
+          <ConversationTurnRow
+            key={`${row.rowId}:${row.entityId ?? ""}`}
+            row={row}
+            context={context}
+          />
+        ))}
+        {hasAssistantTurnContent ? (
+          // deferAssistantActions 后工具栏被移到文件 summary 之后，
+          // 之前 hover group 只包住工具栏自己，导致必须悬停到不可见按钮位置才出现。
+          // 这里把 assistant work、summary 和工具栏放进同一轮 hover 容器，对齐旧版。
+          <div className="group/assistant-turn flex w-full flex-col gap-5">
+            {backgroundResultTitle ? (
+              <>
+                {visibleUserRows.map((row) => (
+                  <ConversationTurnRow
+                    key={`${row.rowId}:${row.entityId ?? ""}`}
+                    row={row}
+                    context={context}
+                    onEdit={row.actions?.canEdit === true ? onEdit : undefined}
+                    onInlineEdit={row.actions?.canEdit === true ? onInlineEdit : undefined}
+                    editWorkspaceRewindAvailability={editWorkspaceRewindAvailability}
+                  />
+                ))}
+                <ConversationBackgroundResultWork
+                  unit={unit}
+                  apiRetry={apiRetry}
+                  context={assistantRowContext}
+                  onFork={canForkLatestAssistant ? onFork : undefined}
+                  onRetry={onRetry}
+                  title={backgroundResultTitle}
+                  assistantCopyText={assistantCopyText}
+                  assistantCodeCommentCards={assistantCodeCommentCards}
+                  assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
+                  assistantPreviewCardsAutoOpenKey={
+                    assistantPreviewPptxAutoOpenTarget?.turnId === unit.turnId
+                      ? assistantPreviewPptxAutoOpenTarget.key
+                      : undefined
+                  }
                 />
-              ))}
-              <ConversationBackgroundResultWork
+              </>
+            ) : (
+              <ConversationTurnFlow
                 unit={unit}
                 apiRetry={apiRetry}
                 context={assistantRowContext}
                 onFork={canForkLatestAssistant ? onFork : undefined}
                 onRetry={onRetry}
-                title={backgroundResultTitle}
+                onEdit={onEdit}
+                onInlineEdit={onInlineEdit}
+                editWorkspaceRewindAvailability={editWorkspaceRewindAvailability}
                 assistantCopyText={assistantCopyText}
                 assistantCodeCommentCards={assistantCodeCommentCards}
                 assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
@@ -1271,128 +1443,111 @@ function ConversationTurnGroupImpl({
                     : undefined
                 }
               />
-            </>
-          ) : (
-            <ConversationTurnFlow
-              unit={unit}
-              apiRetry={apiRetry}
-              context={assistantRowContext}
-              onFork={canForkLatestAssistant ? onFork : undefined}
-              onRetry={onRetry}
-              onEdit={onEdit}
-              editWorkspaceRewindAvailability={editWorkspaceRewindAvailability}
-              assistantCopyText={assistantCopyText}
-              assistantCodeCommentCards={assistantCodeCommentCards}
-              assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
-              assistantPreviewCardsAutoOpenKey={
-                assistantPreviewPptxAutoOpenTarget?.turnId === unit.turnId
-                  ? assistantPreviewPptxAutoOpenTarget.key
-                  : undefined
-              }
-            />
-          )}
-          {/* 完成卡：这一轮消化的那条 run 做了什么、花了多少，紧跟最后一段正文。 */}
-          {workflowTurnCompletion === undefined ? null : (
-            <ConversationWorkflowCompletion
-              completion={workflowTurnCompletion}
+            )}
+            {/* 完成卡：这一轮消化的那条 run 做了什么、花了多少，紧跟最后一段正文。 */}
+            {workflowTurnCompletion === undefined ? null : (
+              <ConversationWorkflowCompletion
+                completion={workflowTurnCompletion}
+                context={context}
+                turnKey={unit.key}
+              />
+            )}
+            {/* 轮尾摘要：这一轮留下在跑的 run，排在完成卡之后、其余轮尾块之前。 */}
+            <ConversationWorkflowDigests
               context={context}
+              digests={workflowTurnDigests}
               turnKey={unit.key}
             />
-          )}
-          {/* 轮尾摘要：这一轮留下在跑的 run，排在完成卡之后、其余轮尾块之前。 */}
-          <ConversationWorkflowDigests
-            context={context}
-            digests={workflowTurnDigests}
-            turnKey={unit.key}
-          />
-          {/* 修复原因：CronCreate/CronUpdate 工具本身仍按普通工具行展示；成功卡片属于整轮
+            {/* 修复原因：CronCreate/CronUpdate 工具本身仍按普通工具行展示；成功卡片属于整轮
               完成后的结果摘要，必须等回复结束再跟随最终 assistant 正文收尾。 */}
-          <CronAutomationTurnCards cards={cronAutomationTurnCards} context={context} />
-          {!isOfficeMode && unit.header?.fileChanges ? (
-            <ConversationFileSummaryPanel
-              header={unit.header}
-              context={context}
-              assistantText={assistantFileSummaryText}
-            />
-          ) : null}
-          {unit.browserTurnEndRows.length > 0 ? (
-            // 自动截图表达轮次结束时页面最终状态；放在 assistant work 内会
-            // 穿插到 Website 预览和 file diff 摘要之间。它应是操作栏之前的最后一个内容块。
-            <ConversationAssistantWorkItems
-              rows={unit.browserTurnEndRows}
-              context={assistantRowContext}
-              assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
-            />
-          ) : null}
-          {canRenderAssistantActions && latestAssistantTextRow ? (
-            // 文件 summary 是整轮完成后的聚合结果；轮尾工具栏如果跟着
-            // assistant text 内联渲染，会插到 summary 前面，读起来像 summary 不是本轮收尾。
-            <ConversationAssistantTextActions
-              rowId={latestAssistantTextRow.rowId}
-              entityId={latestAssistantTextRow.entityId}
-              text={assistantCopyText}
-              createdAt={latestAssistantTextRow.createdAt}
-              compactForRemoteControl={context.compactForRemoteControl}
-              feedback={readAssistantFeedback(latestAssistantTextRow)}
-              sessionId={context.sessionId}
-              onFork={canForkLatestAssistant ? onFork : undefined}
-              onRetry={canRetryLatestAssistant ? onRetry : undefined}
-              onFeedbackChange={onFeedbackChange}
-              hookInvocations={unit.hookInvocations}
-              turnId={unit.turnId}
-              sourceCommandIds={deliverySourceCommandIds}
-              className={cn(
-                "flex items-center gap-1",
-                context.compactForRemoteControl
-                  ? "opacity-100"
-                  : "opacity-0 transition-opacity group-hover/assistant-turn:opacity-100 focus-within:opacity-100 has-[[data-bot-group-delivery]]:opacity-100",
-              )}
-            />
-          ) : (hasHookActions || !unit.isRunning) && !canRenderAssistantActions ? (
-            // 该兜底只与普通操作栏互斥。
-            <MessageActions
-              className={cn(
-                context.compactForRemoteControl
-                  ? "opacity-100"
-                  : "opacity-0 transition-opacity group-hover/assistant-turn:opacity-100 focus-within:opacity-100 has-[[data-bot-group-delivery]]:opacity-100",
-              )}
-            >
-              {hasHookActions ? (
-                <ConversationHookDetailsAction rows={unit.hookInvocations} turnId={unit.turnId} />
-              ) : null}
-              <ConnectedBotGroupDeliveryAction
+            <CronAutomationTurnCards cards={cronAutomationTurnCards} context={context} />
+            {!isOfficeMode && unit.header?.fileChanges ? (
+              <ConversationFileSummaryPanel
+                header={unit.header}
+                context={context}
+                assistantText={assistantFileSummaryText}
+              />
+            ) : null}
+            {unit.browserTurnEndRows.length > 0 ? (
+              // 自动截图表达轮次结束时页面最终状态；放在 assistant work 内会
+              // 穿插到 Website 预览和 file diff 摘要之间。它应是操作栏之前的最后一个内容块。
+              <ConversationAssistantWorkItems
+                rows={unit.browserTurnEndRows}
+                context={assistantRowContext}
+                assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
+              />
+            ) : null}
+            {canRenderAssistantActions && latestAssistantTextRow ? (
+              // 文件 summary 是整轮完成后的聚合结果；轮尾工具栏如果跟着
+              // assistant text 内联渲染，会插到 summary 前面，读起来像 summary 不是本轮收尾。
+              <ConversationAssistantTextActions
+                rowId={latestAssistantTextRow.rowId}
+                entityId={latestAssistantTextRow.entityId}
+                text={assistantCopyText}
+                createdAt={latestAssistantTextRow.createdAt}
+                compactForRemoteControl={context.compactForRemoteControl}
+                feedback={readAssistantFeedback(latestAssistantTextRow)}
+                sessionId={context.sessionId}
+                onFork={canForkLatestAssistant ? onFork : undefined}
+                onRetry={canRetryLatestAssistant ? onRetry : undefined}
+                onFeedbackChange={onFeedbackChange}
+                hookInvocations={unit.hookInvocations}
                 turnId={unit.turnId}
                 sourceCommandIds={deliverySourceCommandIds}
+                className={cn(
+                  "flex items-center gap-1",
+                  context.compactForRemoteControl
+                    ? "opacity-100"
+                    : "opacity-0 transition-opacity group-hover/assistant-turn:opacity-100 focus-within:opacity-100 has-[[data-bot-group-delivery]]:opacity-100",
+                )}
               />
-            </MessageActions>
-          ) : null}
-          {unit.assistantTailRows.length > 0 ? (
-            // turnTailBoundary 之前虽然从工作历史中拆出，却仍在 flow 内渲染，
-            // 使 CronCreate、文件 summary 与操作栏看起来落在 fork 分割线之后。boundary
-            // 必须统一收在全部 turn-local 附属 UI 之后，才是真正的 logical turn 结尾。
-            <ConversationAssistantWorkItems
-              rows={unit.assistantTailRows}
-              context={assistantRowContext}
-              assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
-            />
-          ) : null}
-        </div>
-      ) : (
-        <ConversationTurnFlow
-          unit={unit}
-          apiRetry={apiRetry}
-          context={assistantRowContext}
-          onEdit={onEdit}
-          editWorkspaceRewindAvailability={editWorkspaceRewindAvailability}
-          assistantCopyText={assistantCopyText}
-          assistantCodeCommentCards={assistantCodeCommentCards}
-          assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
-        />
-      )}
-      {unit.topicPreparations?.length ? (
-        <BotTopicPreparation items={unit.topicPreparations} />
-      ) : null}
-    </section>
+            ) : (hasHookActions || !unit.isRunning) && !canRenderAssistantActions ? (
+              // 该兜底只与普通操作栏互斥。
+              <MessageActions
+                className={cn(
+                  context.compactForRemoteControl
+                    ? "opacity-100"
+                    : "opacity-0 transition-opacity group-hover/assistant-turn:opacity-100 focus-within:opacity-100 has-[[data-bot-group-delivery]]:opacity-100",
+                )}
+              >
+                {hasHookActions ? (
+                  <ConversationHookDetailsAction rows={unit.hookInvocations} turnId={unit.turnId} />
+                ) : null}
+                <ConnectedBotGroupDeliveryAction
+                  turnId={unit.turnId}
+                  sourceCommandIds={deliverySourceCommandIds}
+                />
+              </MessageActions>
+            ) : null}
+            {unit.assistantTailRows.length > 0 ? (
+              // turnTailBoundary 之前虽然从工作历史中拆出，却仍在 flow 内渲染，
+              // 使 CronCreate、文件 summary 与操作栏看起来落在 fork 分割线之后。boundary
+              // 必须统一收在全部 turn-local 附属 UI 之后，才是真正的 logical turn 结尾。
+              <ConversationAssistantWorkItems
+                rows={unit.assistantTailRows}
+                context={assistantRowContext}
+                assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
+              />
+            ) : null}
+          </div>
+        ) : (
+          <ConversationTurnFlow
+            unit={unit}
+            apiRetry={apiRetry}
+            context={assistantRowContext}
+            onEdit={onEdit}
+            onInlineEdit={onInlineEdit}
+            editWorkspaceRewindAvailability={editWorkspaceRewindAvailability}
+            assistantCopyText={assistantCopyText}
+            assistantCodeCommentCards={assistantCodeCommentCards}
+            assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
+          />
+        )}
+        {unit.topicPreparations?.length ? (
+          <BotTopicPreparation items={unit.topicPreparations} />
+        ) : null}
+      </section>
+    </SummaryGroupBoundaryContext.Provider>
   );
 }
 

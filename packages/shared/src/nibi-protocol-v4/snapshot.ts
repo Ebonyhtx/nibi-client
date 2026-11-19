@@ -207,11 +207,26 @@ export const sessionUsageStateSchema = z.object({
 export type SessionUsageState = z.infer<typeof sessionUsageStateSchema>;
 
 // ── queue（不持久化，裁决：CLI 进程死亡即丢，客户端对账后由用户决定重发）──
+
+/** 队列项编辑锁：持有者在客户端 composer 里编辑，其他端只读并显示持有者。 */
+export const queueItemEditLockSchema = z
+  .object({
+    editorId: z.string().min(1),
+    clientId: z.string().min(1),
+    // 锁的发起端；旧客户端缺省。additive：只影响「其他窗口或设备」的文案。
+    inputOrigin: z.enum(["desktop", "mobile"]).optional(),
+  })
+  .strict();
+export type QueueItemEditLock = z.infer<typeof queueItemEditLockSchema>;
+
 export const queueItemSchema = conversationInputIntentSchema.extend({
   dispatch: conversationInputDispatchSchema.extend({
     state: z.enum(["queued", "reserved", "promoting"]),
   }),
   toolDisallowlist: z.array(z.string().min(1)).optional(),
+  // additive：旧 CLI/旧快照缺省 = 未加锁。有锁时删除/重排/立即发送都被拒绝，
+  // 编辑只能由同一 editorId 提交。
+  editLock: queueItemEditLockSchema.optional(),
 });
 export type QueueItem = z.infer<typeof queueItemSchema>;
 

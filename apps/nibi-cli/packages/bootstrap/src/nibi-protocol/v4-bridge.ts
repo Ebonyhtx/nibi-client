@@ -41,9 +41,7 @@ import {
   mergeColdConversationEvents,
 } from "../nibi-protocol-v4/cold-event-merge.js";
 import { lookupGlobalCreateSessionCommand } from "../nibi-protocol-v4/create-session-command-fact.js";
-import type {
-  V4CommandCoreHost,
-} from "../nibi-protocol-v4/commands/types.js";
+import type { V4CommandCoreHost } from "../nibi-protocol-v4/commands/types.js";
 import type {
   ConversationRowTargetResolution,
   SessionUsageSeed,
@@ -106,10 +104,7 @@ import {
   registerForkedSession,
   readSessionContextUsage,
 } from "./server-operations.js";
-import type {
-  NibiProtocolAgentServerContext,
-  NibiProtocolSessionRecord,
-} from "./server-types.js";
+import type { NibiProtocolAgentServerContext, NibiProtocolSessionRecord } from "./server-types.js";
 import { createProtocolLogger } from "./server-types.js";
 
 function normalizeStoredTitleSource(
@@ -569,7 +564,6 @@ export async function registerCommittedForkBestEffort(
   }
 }
 
-
 export function createConversationV4Gateway(
   context: NibiProtocolAgentServerContext,
 ): ConversationV4Gateway {
@@ -635,6 +629,7 @@ export function createConversationV4Gateway(
       !shouldAutoDrainV4QueueHead({
         autoDrain: head.autoDrain,
         dispatchState: head.dispatchState,
+        editLocked: Boolean(head.editLock),
         sessionBusy: Boolean(record.activeAbortController) || coreForegroundBusy,
         targetStatus,
       })
@@ -784,7 +779,7 @@ export function createConversationV4Gateway(
             : { state: "notRequested" },
         dispatch: { state: "admitted" },
         admittedAt: admission.admittedAt,
-            ...(input.provenance ? { provenance: input.provenance } : {}),
+        ...(input.provenance ? { provenance: input.provenance } : {}),
       });
       await context.deps.sessionStore.saveSessionInput({
         id: admission.queueItemId,

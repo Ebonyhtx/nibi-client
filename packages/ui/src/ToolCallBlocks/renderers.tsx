@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   FileDisplayIcon,
   getFileDisplayPath,
@@ -171,5 +172,100 @@ export function renderJoinedFileChips(
         </span>
       ))}
     </div>
+  );
+}
+
+/** 仅复用旧 Changes 的响应式文件展示，不持有工具运行态或分组状态。 */
+export function CollapsedChangeSummary({
+  files,
+  label,
+  basePath,
+  onOpenFile,
+}: {
+  files: readonly RawToolCallFileSummary[];
+  label: string;
+  basePath?: string;
+  onOpenFile?: (file: RawToolCallFileSummary) => void;
+}) {
+  const listRef = useRef<HTMLSpanElement>(null);
+  const chipRefs = useRef<Array<HTMLSpanElement | null>>([]);
+  const overflowRef = useRef<HTMLSpanElement>(null);
+  const [visibleCount, setVisibleCount] = useState(files.length);
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const boundary = list?.closest<HTMLElement>("[data-consecutive-summary-group]");
+    if (!list || !boundary) return;
+    const update = () => {
+      // 按整组右边界测量；按收缩后的列表宽度计算会越藏越窄。预留箭头及间距 24px。
+      const available = Math.max(
+        0,
+        boundary.getBoundingClientRect().right - list.getBoundingClientRect().left - 24,
+      );
+      const widths = files.map((_, index) => chipRefs.current[index]?.offsetWidth ?? 0);
+      const total =
+        widths.reduce((sum, width) => sum + width, 0) + Math.max(0, widths.length - 1) * 8;
+      let count = files.length;
+      if (total > available) {
+        count = 0;
+        let width = 0;
+        for (const chipWidth of widths) {
+          const next = width + chipWidth;
+          if (next + (count + 1) * 8 + (overflowRef.current?.offsetWidth ?? 0) > available) break;
+          width = next;
+          count++;
+        }
+      }
+      setVisibleCount((previous) => (previous === count ? previous : count));
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(boundary);
+    window.addEventListener("resize", update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [files]);
+  const visible = Math.min(visibleCount, files.length);
+  return (
+    <span className="flex min-w-0 max-w-full items-center gap-2" data-change-summary-files>
+      <span className="min-w-0">{label}</span>
+      <span ref={listRef} className="relative inline-flex min-w-0 items-center gap-2">
+        {files.map((file, index) => (
+          <span
+            key={file.path}
+            ref={(element) => {
+              chipRefs.current[index] = element;
+            }}
+            aria-hidden={index >= visible ? true : undefined}
+            onKeyDown={onOpenFile ? (event) => event.stopPropagation() : undefined}
+            className={
+              index < visible
+                ? "inline-flex shrink-0"
+                : "pointer-events-none invisible absolute inline-flex shrink-0"
+            }
+          >
+            {renderFileChip({
+              summary: file,
+              basePath,
+              clickable: index < visible && Boolean(onOpenFile),
+              onClick: () => onOpenFile?.(file),
+            })}
+          </span>
+        ))}
+        {visible < files.length ? (
+          <span className="shrink-0" data-change-summary-overflow>
+            +{files.length - visible}
+          </span>
+        ) : null}
+        <span
+          ref={overflowRef}
+          aria-hidden
+          className="pointer-events-none invisible absolute shrink-0"
+        >
+          +{files.length}
+        </span>
+      </span>
+    </span>
   );
 }

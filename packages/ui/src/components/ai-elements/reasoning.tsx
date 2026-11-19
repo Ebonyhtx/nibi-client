@@ -6,6 +6,7 @@
  */
 "use client";
 
+import { SummaryPreviewContext } from "@/v4/conversationRowContext.js";
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible.js";
 import { cn } from "../lib/utils.js";
@@ -99,11 +100,12 @@ export const Reasoning = memo(
     children,
     ...props
   }: ReasoningProps) => {
-    const isOpenControlled = open !== undefined;
+    const preview = useContext(SummaryPreviewContext);
+    const isOpenControlled = preview || open !== undefined;
     const [isOpen, setIsOpen] = useControllableState<boolean>({
       defaultProp: defaultOpen,
       onChange: onOpenChange,
-      prop: open,
+      prop: preview ? false : open,
     });
     const [duration, setDuration] = useControllableState<number | undefined>({
       defaultProp: undefined,
@@ -222,7 +224,8 @@ export const Reasoning = memo(
     return (
       <ReasoningContext.Provider value={contextValue}>
         <Collapsible
-          className={cn("not-prose flex flex-col", className)}
+          // 分组预览把思考块放进 flex 摘要，默认 min-width:auto 会撑开视口，令溢出测量失效。
+          className={cn("not-prose min-w-0 flex flex-col", className)}
           onOpenChange={handleOpenChange}
           open={isOpen}
           {...props}
@@ -290,6 +293,7 @@ export const ReasoningTrigger = memo(
     streamingText = "",
     ...props
   }: ReasoningTriggerProps) => {
+    const preview = useContext(SummaryPreviewContext);
     const { isStreaming, isOpen, duration } = useReasoning();
     const { intl } = useNibiIntl();
     const streamingSummary =
@@ -326,17 +330,27 @@ export const ReasoningTrigger = memo(
       return () => resizeObserver.disconnect();
     }, [streamingSummary?.text]);
 
+    // 末尾思考完成后，未闭合的收起组头仍需扫光；保留真实完成文案和耗时。
+    const thoughtLabelClassName = cn(
+      "font-medium text-foreground-subtlest",
+      preview && "animated-gradient-text animated-gradient-text-foreground",
+    );
     const thinkingMessage =
       getThinkingMessage?.(isStreaming, duration) ??
       (isStreaming && !isOpen ? (
-        <span className="animated-gradient-text font-medium">
+        <span
+          className={cn(
+            "animated-gradient-text font-medium",
+            preview && "animated-gradient-text-foreground text-foreground-subtle",
+          )}
+        >
           {intl.formatMessage({ id: "chat.reasoning.thinking" })}
         </span>
       ) : duration === undefined ? (
         <span className="inline-flex items-center gap-2">
           {/* 完成态“思考”单独使用 semibold，比同列工具类型标签更粗。
               统一为 medium，保持对话时间线的视觉层级一致。 */}
-          <span className="font-medium text-foreground-subtlest">
+          <span className={thoughtLabelClassName}>
             {intl.formatMessage({ id: "chat.reasoning.thought" })}
           </span>
           <span className="font-normal text-foreground-subtlest">·</span>
@@ -346,7 +360,7 @@ export const ReasoningTrigger = memo(
         </span>
       ) : (
         <span className="inline-flex items-center gap-2">
-          <span className="font-medium text-foreground-subtlest">
+          <span className={thoughtLabelClassName}>
             {intl.formatMessage({ id: "chat.reasoning.thought" })}
           </span>
           <span className="font-normal text-foreground-subtlest">·</span>
@@ -359,20 +373,20 @@ export const ReasoningTrigger = memo(
         </span>
       ));
 
-    return (
-      <CollapsibleTrigger
-        data-testid={TID_CHAT_REASONING_TRIGGER}
-        className={cn(
-          "group/reasoning inline-flex max-w-full min-w-0 items-center gap-2 self-start text-ui-base transition-colors",
-          className,
-        )}
-        {...props}
-      >
+    const summaryClassName = cn(
+      "summary-hover-text group/reasoning inline-flex max-w-full min-w-0 items-center gap-2 self-start text-ui-base transition-colors",
+      className,
+    );
+    const summaryContent = (
+      <>
         {children ?? (
           <>
             {/* thinking 会在长流式回复里持续存在，旋转 loader 会长期占用渲染资源；
             运行态保留文案扫光，图标固定为静态思考语义。 */}
-            <BrainIcon className="size-4 shrink-0 text-foreground-subtlest" />
+            <BrainIcon
+              data-summary-leading-icon
+              className="size-4 shrink-0 text-foreground-subtle group-hover/reasoning:text-foreground"
+            />
             {/* 右侧流式摘要是可伸缩内容；如果左侧标签也参与 flex shrink，
                 长摘要会把思考状态标签挤成多行。固定语义标签宽度，只让摘要占剩余空间。 */}
             <span className="shrink-0 whitespace-nowrap" data-reasoning-label="true">
@@ -400,20 +414,33 @@ export const ReasoningTrigger = memo(
                       {streamingSummary.text}
                     </span>
                   }
-                  enabled
+                  enabled={!preview}
                 />
               </span>
             ) : null}
-            <ChevronRightIcon
-              className={cn(
-                "size-4 shrink-0 text-foreground-subtlest transition-opacity transition-transform",
-                isOpen
-                  ? "rotate-90 opacity-100"
-                  : "rotate-0 opacity-0 group-hover/reasoning:opacity-100",
-              )}
-            />
+            {!preview ? (
+              <ChevronRightIcon
+                data-summary-chevron
+                className={cn(
+                  "size-4 shrink-0 text-foreground-subtlest transition-opacity transition-transform",
+                  isOpen
+                    ? "rotate-90 opacity-100"
+                    : "rotate-0 opacity-0 group-hover/reasoning:opacity-100",
+                )}
+              />
+            ) : null}
           </>
         )}
+      </>
+    );
+    if (preview) return <div className={summaryClassName}>{summaryContent}</div>;
+    return (
+      <CollapsibleTrigger
+        data-testid={TID_CHAT_REASONING_TRIGGER}
+        className={summaryClassName}
+        {...props}
+      >
+        {summaryContent}
       </CollapsibleTrigger>
     );
   },

@@ -8,6 +8,8 @@ import {
   resolveFileChipAvailableWidth,
   resolveResponsiveFileChipCount,
 } from "@/ToolCallBlocks/renderers/changes-group.js";
+import { CollapsedChangeSummary } from "@/ToolCallBlocks/renderers.js";
+import type { RawToolCallFileSummary } from "@/ToolCallBlocks/fileSummaryTypes.js";
 
 function renderChangesGroup(options: {
   running: boolean;
@@ -315,5 +317,48 @@ describe("resolveResponsiveFileChipCount", () => {
         gap: 8,
       }),
     ).toBe(0);
+  });
+});
+
+describe("CollapsedChangeSummary", () => {
+  const files: RawToolCallFileSummary[] = [
+    {
+      path: "/workspace/src/a.ts",
+      actionLabel: "Edited",
+      operationKind: "edit",
+      fileName: "a.ts",
+      filePath: "/workspace/src",
+      fileIconSrc: "file-types/typescript.svg",
+    },
+    {
+      path: "/workspace/src/b.css",
+      actionLabel: "Edited",
+      operationKind: "edit",
+      fileName: "b.css",
+      filePath: "/workspace/src",
+      fileIconSrc: "file-types/css.svg",
+    },
+  ];
+
+  it("renders the label and every file chip for the collapsed change group", () => {
+    const html = renderToStaticMarkup(
+      createElement(CollapsedChangeSummary, { files, label: "Changed" }),
+    );
+    expect(html).toContain('data-change-summary-files="true"');
+    expect(html).toContain("Changed");
+    expect(html).toContain("a.ts");
+    expect(html).toContain("b.css");
+    expect(html).not.toContain("data-change-summary-overflow");
+  });
+
+  it("keeps the single-file label path free of +N chrome", () => {
+    const html = renderToStaticMarkup(
+      createElement(CollapsedChangeSummary, {
+        files: files.slice(0, 1),
+        label: "Changed",
+      }),
+    );
+    expect(html).toContain("a.ts");
+    expect(html).not.toContain("data-change-summary-overflow");
   });
 });

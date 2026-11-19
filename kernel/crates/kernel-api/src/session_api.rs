@@ -150,7 +150,25 @@ pub enum Command {
         delivery: Delivery,
     },
     /// 改一条排队输入的正文（NIBI `editQueueItem`）：同 id 原地更新，位置与种类不变。
-    EditQueued { item: CommandId, text: String },
+    /// `editor_id` 有值时必须是该项编辑锁的持有者（成功后锁自动释放）；缺省是旧客户端路径，
+    /// 只允许编辑未加锁的项。
+    EditQueued {
+        item: CommandId,
+        text: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        editor_id: Option<String>,
+    },
+    /// 给一条排队输入加编辑锁（NIBI `lockQueueItemEdit`）：只允许 queued + 未加锁的项。
+    LockQueueItemEdit {
+        item: CommandId,
+        editor_id: String,
+        client_id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        input_origin: Option<String>,
+    },
+    /// 释放一条排队输入的编辑锁（NIBI `releaseQueueItemEdit`）：任意端、任意状态；锁不存在时
+    /// 幂等成功。
+    ReleaseQueueItemEdit { item: CommandId },
     /// 删一条排队输入（NIBI `deleteQueueItem`）：不在队列里时 `Rejected`（调用方按 noop 处理）。
     DeleteQueued { item: CommandId },
     /// 移动一条排队输入（NIBI `reorderQueueItem`）：`before` 为 None 时移到队尾。
@@ -284,11 +302,25 @@ pub struct FileChange {
     pub machine: Option<String>,
 }
 
+/// 排队输入的编辑锁（NIBI `queueItem.editLock`）：持有者在自己的 composer 里编辑，
+/// 其他端只读显示。锁只在内存里，随队列一起消失。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QueueEditLock {
+    pub editor_id: String,
+    pub client_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input_origin: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QueuedInput {
     pub command: CommandId,
     pub text: String,
     pub delivery: Delivery,
+    /// 编辑锁；有锁时删除/重排/立即发送都被拒绝，自动排空也不开加锁的队首。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edit_lock: Option<QueueEditLock>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

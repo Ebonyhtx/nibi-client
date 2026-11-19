@@ -1,9 +1,4 @@
-import type {
-  AttachmentRef,
-  CommandAck,
-  ConversationRow,
-  ConversationRowTarget,
-} from "@nibi/shared/nibi-protocol-v4";
+import type { ConversationRow, ConversationRowTarget } from "@nibi/shared/nibi-protocol-v4";
 import type { AssistantPreviewCard } from "@/lib/assistantPreviewCards.js";
 import type { AssistantCodeCommentCard } from "@/lib/assistantCodeComment.js";
 import { extractPlanToolCallContent } from "@/lib/planToolCall.js";
@@ -11,6 +6,8 @@ import { ConversationRowView } from "@/v4/ConversationRowView.js";
 import type {
   AssistantFeedbackHandler,
   EditWorkspaceRewindAvailability,
+  UserInputEditBeginHandler,
+  UserInputEditHandler,
 } from "@/v4/ConversationRowView.js";
 import type { ConversationRowRenderContext } from "@/v4/conversationRowContext.js";
 import type { ConversationTurnRenderUnit } from "@/v4/conversationTurnRenderUnits.js";
@@ -22,12 +19,8 @@ interface ConversationTurnRowProps {
   onFork?: (target: ConversationRowTarget) => void;
   onRetry?: (target: ConversationRowTarget) => void;
   onFeedbackChange?: AssistantFeedbackHandler;
-  onEdit?: (
-    target: ConversationRowTarget,
-    newText: string,
-    attachments?: readonly AttachmentRef[],
-    workspaceMode?: "preserve" | "rewind",
-  ) => Promise<CommandAck | boolean | void> | CommandAck | boolean | void;
+  onEdit?: UserInputEditBeginHandler;
+  onInlineEdit?: UserInputEditHandler;
   editWorkspaceRewindAvailability?: EditWorkspaceRewindAvailability;
   hideAssistantActions?: boolean;
   deferAssistantActions?: boolean;
@@ -47,6 +40,7 @@ export function ConversationTurnRow({
   onRetry,
   onFeedbackChange,
   onEdit,
+  onInlineEdit,
   editWorkspaceRewindAvailability,
   hideAssistantActions,
   deferAssistantActions,
@@ -66,6 +60,7 @@ export function ConversationTurnRow({
       onRetry={onRetry}
       onFeedbackChange={onFeedbackChange}
       onEdit={onEdit}
+      onInlineEdit={onInlineEdit}
       editWorkspaceRewindAvailability={editWorkspaceRewindAvailability}
       hideAssistantActions={hideAssistantActions}
       deferAssistantActions={deferAssistantActions}

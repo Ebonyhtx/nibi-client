@@ -111,29 +111,9 @@
       "reason": "B03：下载远端 GLM 运行时的构建脚本名，随 CDN/启动器迁移一起改。"
     },
     {
-      "file": "packages/server/src/remote/deploy.ts",
-      "pattern": "case \"glm\":",
-      "reason": "B03：远端组件 id 仍是 glm，等 CDN 双发/迁移完成后再删。"
-    },
-    {
       "file": "packages/server/src/remote/remoteAssetCache.ts",
-      "pattern": "glm: \"glm-content\"",
-      "reason": "B03：远端资源缓存仍用 glm 组件 id。"
-    },
-    {
-      "file": "packages/server/src/remote/remoteAssetCache.ts",
-      "pattern": "^\\s*glm: \\{",
-      "reason": "B03：远端资源缓存仍用 glm 组件 id。"
-    },
-    {
-      "file": "packages/server/src/remote/remoteAssetCache.ts",
-      "pattern": "glm/\\$\\{platformArch\\}",
-      "reason": "B03：远端 mount 仍是 glm/<arch>；B03 切换后删除。"
-    },
-    {
-      "file": "packages/server/src/remote/remoteAssetCache.ts",
-      "pattern": "componentId !== \"glm\"",
-      "reason": "B03：迁移期仍识别旧 glm 组件 id。"
+      "pattern": "\"glm-content\"",
+      "reason": "B03：内容寻址目录名仍是 glm-content；等 CDN 双发/迁移完成后再删。"
     },
     {
       "file": "packages/services/src/project-storage/project-repository.ts",
@@ -171,19 +151,9 @@
       "reason": "B02：provider 枚举保留旧 glm 值。"
     },
     {
-      "file": "packages/shared/src/nibi-agent-runtime.ts",
-      "pattern": "resourcePackageDir: \"glm\"",
-      "reason": "B03：运行时资源包目录仍是 glm，等 CDN 组件迁移。"
-    },
-    {
       "file": "packages/shared/src/remoteResourcePackages.ts",
       "pattern": "NIBI_AGENT_REMOTE_COMPONENT_ID = \"glm\"",
       "reason": "B03：远端组件 id 仍是 glm，迁移期必须双读。"
-    },
-    {
-      "file": "packages/shared/src/remoteResourcePackages.ts",
-      "pattern": "^\\s*\"glm\",",
-      "reason": "B03：远端组件 id 列表仍保留 glm。"
     },
     {
       "file": "packages/shared/src/validationAppSettings.ts",
@@ -209,11 +179,6 @@
       "file": "packages/ui/src/i18n/locales/zh-CN.ts",
       "pattern": "settings\\.skills\\.agent\\.glm",
       "reason": "B06：旧技能 provider id 的 i18n 键，仍要能读。"
-    },
-    {
-      "file": "packages/ui/src/root/PostUpdateReleaseNotesDialog.tsx",
-      "pattern": "GlmMonochromeIcon",
-      "reason": "B01 未完成：发布说明弹窗仍把 GLM 模型图标当产品图标；修 B01 时删除本豁免。"
     },
     {
       "file": "packages/ui/src/lib/skillSourceFilter.ts",

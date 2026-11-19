@@ -107,8 +107,8 @@ const HOOK_LIFECYCLE_EVENT_TYPES_FOR_TEST = new Set<SessionEvent["type"]>([
 
 describe("cold conversation three-source merge", () => {
   // 上游的「计划/闲时/加速(higpspeed)」业务已随套餐移除：这些用例依赖已不存在的 Provider/常量，
-// 保留为 skip 作为「该能力被有意移除」的记录。
-it.skip("preserves a Highspeed fallback marker across cold transcript recovery", () => {
+  // 保留为 skip 作为「该能力被有意移除」的记录。
+  it.skip("preserves a Highspeed fallback marker across cold transcript recovery", () => {
     const turnId = "runtime-turn-highspeed-fallback";
     const user = userMessage("u-highspeed-fallback", "accelerated prompt", 1_000, turnId);
     user.info.metadata = {
@@ -892,6 +892,44 @@ it.skip("preserves a Highspeed fallback marker across cold transcript recovery",
         admittedAt: 12_345,
       }),
     );
+  });
+
+  it("cold merge preserves the latest queue edit lock (and explicit release)", () => {
+    const queued = (sequenceNumber: number, payload: Record<string, unknown>) =>
+      event(
+        sequenceNumber,
+        SessionEventType.TurnSteerQueued,
+        {
+          pendingInputId: "queue-lock",
+          input: "locked text",
+          inputPreview: "locked text",
+          inputSize: 11,
+          targetTurnId: "turn-live",
+          queueLength: 1,
+          ...payload,
+        },
+        "turn-live",
+      );
+    const initial = queued(1, {});
+    const lock = queued(2, {
+      editLock: { editorId: "editor-a", clientId: "desktop-client" },
+    });
+    const held = mergeColdConversationEvents({
+      memoryEvents: [initial, lock],
+      messages: [],
+      sessionId: "s1",
+    });
+    expect(reduce(held.events).getSnapshot().queue.items[0]?.editLock).toEqual({
+      editorId: "editor-a",
+      clientId: "desktop-client",
+    });
+    const release = queued(3, { editLock: null });
+    const released = mergeColdConversationEvents({
+      memoryEvents: [initial, lock, release],
+      messages: [],
+      sessionId: "s1",
+    });
+    expect(reduce(released.events).getSnapshot().queue.items[0]?.editLock).toBeUndefined();
   });
 
   it("inserts an anchored memory boundary at its durable product-turn tail", () => {

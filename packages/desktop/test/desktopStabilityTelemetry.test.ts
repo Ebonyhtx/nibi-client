@@ -602,6 +602,79 @@ describe("desktopStabilityTelemetry", () => {
       expect(properties.error_fingerprint).toMatch(/^[0-9a-f]{16}$/);
     });
 
+    it("keeps perf_agent_crash fields and values byte-compatible after the shared extraction", async () => {
+      const { configureDesktopStabilityTelemetry, reportAgentProcessExitToArms } =
+        await import("../src/main/desktopStabilityTelemetry.js");
+      configureDesktopStabilityTelemetry({
+        deviceMid: "test-device",
+        platform: "darwin",
+        appVersion: "0.0.0-test",
+        armsEnv: "local",
+      });
+      const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+
+      reportAgentProcessExitToArms(
+        {
+          type: "agent-process-exited",
+          pid: 12345,
+          provider: "glm",
+          workspacePath: "/Users/alice/private-project",
+          runtimeInstanceId: "runtime-byte-compat",
+          exitCode: 1,
+          signal: null,
+          endedAt: 200,
+          terminationKind: "unexpected",
+          runtimeReady: true,
+          runtimeGeneration: 3,
+          uptimeMs: 100,
+          stderrLineCount: 3,
+          stderrTail: [
+            "Error: write EPIPE token=super-secret",
+            "    at Socket._write (/Users/alice/private-project/child.js:10:20)",
+            "  code: 'EPIPE',",
+          ],
+        },
+        logger,
+      );
+
+      const report = sendCustom.mock.calls.find((call) => call[0]?.name === "perf_agent_crash")?.[0];
+      expect(report).toMatchObject({
+        name: "perf_agent_crash",
+        type: "custom",
+        group: "stability",
+        value: 1,
+      });
+      expect(report?.properties).toEqual({
+        event_name: "perf_agent_crash",
+        platform: "macos",
+        app_version: "0.0.0-test",
+        arms_env: "local",
+        device_mid: "test-device",
+        telemetry_schema_version: "2",
+        scene_lifecycle: "runtime",
+        scene_window: "main",
+        metric_value: "1",
+        process_role: "agent",
+        incident_kind: "unexpected_exit",
+        provider: "glm",
+        exit_code: "1",
+        signal: "",
+        runtime_generation: "3",
+        runtime_instance_id: "runtime-byte-compat",
+        uptime_ms: "100",
+        stderr_line_count: "3",
+        crash_phase: "runtime",
+        termination_class: "exit_nonzero",
+        diagnostic_class: "errno",
+        error_name: "Error",
+        error_code: "EPIPE",
+        error_message: "write EPIPE token=<redacted>",
+        error_stack:
+          "Error: write EPIPE token=<redacted>\n    at Socket._write (<workspace>/child.js:10:20)\n  code: 'EPIPE',",
+        error_fingerprint: "698a152d7095cc84",
+      });
+    });
+
     it.each([
       {
         name: "OOM",

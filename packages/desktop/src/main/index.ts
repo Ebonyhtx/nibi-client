@@ -109,6 +109,7 @@ import {
   onAutoUpdaterStateChanged,
   refreshAutoUpdaterReleaseChannel,
   resolveUpdateFeedSourceFromStartupConfig,
+  setAutoUpdaterNetworkPolicyFailure,
   syncAutoUpdaterStateToWindow,
   syncPostUpdateReleaseNotesToWindow,
   syncReadyUpdateToWindow,
@@ -280,11 +281,16 @@ import {
 import { mapNibiEnvToArmsRumEnv } from "@nibi/shared";
 import {
   findWindowsProcessesReferencingResourceMarkers,
+  isWindowsInstallerProcessHelperMissingError,
   probeWindowsPackagedResourceWritable,
+  resolveWindowsInstallerProcessHelper,
   resolveWindowsPackagedResourceLockMarkers,
+  resolveWindowsUpdateProcessTargets,
+  runWindowsInstallerProcessHelper,
   runWindowsUpdateProcessCleanup,
   snapshotWindowsPackagedResources,
   WINDOWS_UPDATE_LOCK_RELEASE_GRACE_MS,
+  WINDOWS_UPDATE_PROCESS_CLEANUP_WAIT_MS,
 } from "./windowsInstallResourceLocks.js";
 import { mainMemoryDiagnosticsRegistry } from "./mainMemoryDiagnostics.js";
 import {
@@ -1447,12 +1453,7 @@ function logWindowsBundledRuntimeIntegrityDiagnostic() {
   );
 }
 
-async function prepareWindowsProcessesForUpdateInstall() {
-  const trackedAgentCount = listRegisteredHostAgentProcessIds().length;
-
-  logger.info(`[auto-update] preparing Windows update install: trackedAgent=${trackedAgentCount}`);
-  logWindowsPackagedResourceSnapshot("before-dispose");
-
+async function cleanupWindowsProcessesWithLegacyTerminator(trackedAgentCount: number) {
   const resourceLockMarkers = resolveWindowsPackagedResourceLockMarkers(process.resourcesPath);
   // prepareAppQuit 已经用同一屏障回收每窗口唯一 Host，并在 7.5 秒强杀、
   // 9 秒收口；Windows 专项阶段不能再追加一轮等待，也不能用退出前记录的 Host/Agent PID
@@ -1499,6 +1500,83 @@ async function prepareWindowsProcessesForUpdateInstall() {
     );
   }
   logWindowsPackagedResourceWritableProbe("after-taskkill");
+}
+
+async function prepareWindowsProcessesForUpdateInstall() {
+  const trackedAgentCount = listRegisteredHostAgentProcessIds().length;
+
+  logger.info(`[auto-update] preparing Windows update install: trackedAgent=${trackedAgentCount}`);
+  logWindowsPackagedResourceSnapshot("before-dispose");
+
+  const helperPath = resolveWindowsInstallerProcessHelper();
+  if (!helperPath) {
+    // 唯一允许的降级：旧版本安装目录还没有新 helper。继续走原有按资源标记
+    // 扫描 + taskkill /PID 的清理，并显式记录，不能静默跳过。
+    logger.warn(
+      "[auto-update] Windows installer process helper missing; falling back to legacy resource-marker cleanup",
+    );
+    await cleanupWindowsProcessesWithLegacyTerminator(trackedAgentCount);
+    return;
+  }
+
+  // 只传随包次级可执行文件的完整路径。主进程/渲染器共用 process.execPath，
+  // 不能列为目标，否则 helper 会在 quitAndInstall 前结束当前 Electron 进程。
+  const processTargets = resolveWindowsUpdateProcessTargets(process.resourcesPath);
+  logger.info(
+    `[auto-update] Windows installer process helper: helper=${helperPath} targets=${JSON.stringify(
+      processTargets,
+    )}`,
+  );
+
+  let cleanup: Awaited<ReturnType<typeof runWindowsInstallerProcessHelper>>;
+  try {
+    cleanup = await runWindowsInstallerProcessHelper({
+      helperPath,
+      mode: "terminate",
+      targets: processTargets,
+      waitMs: WINDOWS_UPDATE_PROCESS_CLEANUP_WAIT_MS,
+    });
+  } catch (error) {
+    if (!isWindowsInstallerProcessHelperMissingError(error)) {
+      logger.error(
+        `[auto-update] Windows installer process helper failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      // helper 存在但执行失败不是“缺 helper”的降级场景。继续启动安装器会让
+      // NSIS 在文件仍被占用时覆盖安装目录，因此这里 fail closed。
+      throw error;
+    }
+    logger.warn(
+      "[auto-update] Windows installer process helper disappeared; falling back to legacy resource-marker cleanup",
+    );
+    await cleanupWindowsProcessesWithLegacyTerminator(trackedAgentCount);
+    return;
+  }
+
+  logger.info(
+    `[auto-update] Windows installer process helper result: exit=${
+      cleanup.exitCode
+    } status=${cleanup.result.status} matches=${JSON.stringify(
+      cleanup.result.matches,
+    )} remaining=${JSON.stringify(cleanup.result.remaining)}`,
+  );
+  if (cleanup.exitCode !== 0) {
+    // 与 NSIS customInit 相同：精确目标仍存活时不允许进入文件替换阶段。
+    throw new Error(
+      `Windows installer process cleanup failed with exit code ${cleanup.exitCode}: status=${
+        cleanup.result.status
+      } remaining=${JSON.stringify(cleanup.result.remaining)}`,
+    );
+  }
+  if (cleanup.result.remaining.length > 0) {
+    throw new Error(
+      `Windows update target processes are still running after ${WINDOWS_UPDATE_PROCESS_CLEANUP_WAIT_MS}ms: ${JSON.stringify(
+        cleanup.result.remaining,
+      )}`,
+    );
+  }
+  logWindowsPackagedResourceWritableProbe("after-installer-process-helper");
 }
 
 function shouldConfirmAppQuit(
@@ -2248,10 +2326,21 @@ app.whenReady().then(async () => {
     locale: currentApplicationLocale,
     logger,
   });
+  let autoUpdaterNetworkPolicyError: Error | null = null;
   try {
-    await applyDesktopChromiumNetworkPolicies(session, bootstrapSettings ?? {}, logger);
+    const networkPolicyReport = await applyDesktopChromiumNetworkPolicies(
+      session,
+      bootstrapSettings ?? {},
+      logger,
+    );
+    autoUpdaterNetworkPolicyError = networkPolicyReport.autoUpdaterPolicyError;
   } catch (error) {
+    autoUpdaterNetworkPolicyError = error instanceof Error ? error : new Error(String(error));
     logger.warn("[desktop-network] Chromium network policy bootstrap failed:", error);
+  }
+  if (autoUpdaterNetworkPolicyError) {
+    // 更新器不允许改用 defaultSession。把失败交给 autoUpdater，让检查/下载以明确错误终止。
+    setAutoUpdaterNetworkPolicyFailure(autoUpdaterNetworkPolicyError);
   }
 
   // 内置浏览器权限闸门（CNVD 未授权访问修复）：必须在任何 guest attach 前完成注册。

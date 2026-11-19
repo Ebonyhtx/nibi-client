@@ -467,6 +467,8 @@ async fn capabilities_report_the_real_kernel_surface() {
         .unwrap();
     assert_eq!(reply.result["independentPlanState"], true);
     assert_eq!(reply.result["historyFirst"], true);
+    // 选区批注：conversationQuotes 的 comment/agent 会原样进入模型文本。
+    assert_eq!(reply.result["conversationQuoteComment"], true);
     // 内核没有这两个能力面（Host 侧也没有消费方）：如实回 false。
     assert_eq!(reply.result["sessionDirectorySource"], false);
     assert_eq!(reply.result["genUiContext"], false);

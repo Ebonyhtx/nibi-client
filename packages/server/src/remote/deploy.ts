@@ -729,7 +729,7 @@ function resolveRequiredMockReleasePaths(
           requiredPaths.add(`node-pty/${platformArch}/spawn-helper`);
         }
         break;
-      case "glm":
+      case NIBI_AGENT_REMOTE_COMPONENT_ID:
       case "nibi-agent": {
         const mount = `${componentId}/${platformArch}`;
         requiredPaths.add(`${mount}/nibi.cjs`);

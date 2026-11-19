@@ -15,6 +15,8 @@ import { pathToFileURL } from "node:url";
 const scriptDir = import.meta.dirname;
 const source = join(scriptDir, "windows-runtime-host");
 const helperName = "nibi-runtime-host.exe";
+const installerHelperName = "nibi-installer-process-helper.exe";
+const sourceNames = ["main.cpp", "installer-process-helper.cpp", "CMakeLists.txt"];
 
 export function resolveRuntimeHostBuild(arch, hostPlatform = process.platform) {
   if (arch !== "x64" && arch !== "arm64")
@@ -42,7 +44,7 @@ export function verifyRuntimeHostPe(bytes, arch) {
 
 async function sourceDigest() {
   const hash = createHash("sha256");
-  for (const name of ["main.cpp", "CMakeLists.txt"]) hash.update(await readFile(join(source, name)));
+  for (const name of sourceNames) hash.update(await readFile(join(source, name)));
   return hash.digest("hex");
 }
 
@@ -62,11 +64,15 @@ function run(args) {
 export async function isRuntimeHostReady(outputDir, arch) {
   try {
     const hostBytes = await readFile(join(outputDir, helperName));
+    const installerHelperBytes = await readFile(join(outputDir, installerHelperName));
     verifyRuntimeHostPe(hostBytes, arch);
+    verifyRuntimeHostPe(installerHelperBytes, arch);
     const manifest = JSON.parse(await readFile(join(outputDir, "build.json"), "utf8"));
     return (
       manifest.source === (await sourceDigest()) &&
-      manifest.binary === createHash("sha256").update(hostBytes).digest("hex")
+      manifest.binaries?.[helperName] === createHash("sha256").update(hostBytes).digest("hex") &&
+      manifest.binaries?.[installerHelperName] ===
+        createHash("sha256").update(installerHelperBytes).digest("hex")
     );
   } catch {
     return false;
@@ -78,17 +84,36 @@ export async function buildRuntimeHost({ arch, outputDir }) {
   const work = await mkdtemp(join(tmpdir(), "nibi-runtime-host-"));
   try {
     await run(["-S", source, "-B", work, ...plan.configureArgs, "-DCMAKE_BUILD_TYPE=Release"]);
-    await run(["--build", work, "--config", "Release", "--target", "nibi-runtime-host"]);
+    await run([
+      "--build",
+      work,
+      "--config",
+      "Release",
+      "--target",
+      "nibi-runtime-host",
+      "nibi-installer-process-helper",
+    ]);
     const releaseDir = join(work, "Release");
     const built = await readFile(join(releaseDir, helperName));
+    const builtInstallerHelper = await readFile(join(releaseDir, installerHelperName));
     verifyRuntimeHostPe(built, arch);
+    verifyRuntimeHostPe(builtInstallerHelper, arch);
     await mkdir(outputDir, { recursive: true });
     await copyFile(join(releaseDir, helperName), join(outputDir, helperName));
+    await copyFile(
+      join(releaseDir, installerHelperName),
+      join(outputDir, installerHelperName),
+    );
     await writeFile(
       join(outputDir, "build.json"),
       JSON.stringify({
         source: await sourceDigest(),
-        binary: createHash("sha256").update(built).digest("hex"),
+        binaries: {
+          [helperName]: createHash("sha256").update(built).digest("hex"),
+          [installerHelperName]: createHash("sha256")
+            .update(builtInstallerHelper)
+            .digest("hex"),
+        },
       }),
     );
   } finally {
@@ -109,7 +134,12 @@ async function main() {
     join(scriptDir, "..", "bundled-tools", `win32-${arch}`, "runtime-host");
   if (!args.includes("--ensure") || !(await isRuntimeHostReady(outputDir, arch))) {
     await buildRuntimeHost({ arch, outputDir });
-    console.log(`[windows-runtime-host] built ${join(outputDir, helperName)}`);
+    console.log(
+      `[windows-runtime-host] built ${join(outputDir, helperName)} and ${join(
+        outputDir,
+        installerHelperName,
+      )}`,
+    );
   } else {
     console.log(`[windows-runtime-host] up to date ${join(outputDir, helperName)}`);
   }

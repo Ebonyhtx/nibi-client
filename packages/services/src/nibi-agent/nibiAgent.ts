@@ -227,8 +227,7 @@ export interface NibiAgentRuntimeLifecycleEvent extends NibiAgentWorkspaceTarget
   state: "available" | "unavailable";
 }
 
-export type NibiAgentCuaPermissionObservation = CuaPermissionObservation &
-  NibiAgentWorkspaceTarget;
+export type NibiAgentCuaPermissionObservation = CuaPermissionObservation & NibiAgentWorkspaceTarget;
 
 export interface NibiAgentCreateSessionParams extends NibiAgentWorkspaceTarget {
   projectId?: string | null;
@@ -675,6 +674,11 @@ export interface INibiAgentService {
   getWorkspaceRuntimeIdentity(
     params: NibiAgentWorkspaceTarget,
   ): Promise<NibiAgentWorkspaceRuntimeIdentity>;
+  /**
+   * 该 workspace 的 CLI 是否在 runtime/capabilities 中声明 conversationQuoteComment。
+   * renderer 据此决定是否提供选区“批注”入口；未实现（旧 Host / 远端）按不支持处理。
+   */
+  supportsConversationQuoteComment?(target: NibiAgentWorkspaceTarget): Promise<boolean>;
   createSession(params: NibiAgentCreateSessionParams): Promise<NibiSessionStateSnapshot>;
   resumeSession(params: NibiAgentResumeSessionParams): Promise<NibiSessionStateSnapshot>;
   listSessions(params: NibiAgentListSessionsParams): Promise<NibiSessionInfo[]>;
@@ -713,9 +717,7 @@ export interface INibiAgentService {
     params: NibiAgentSessionDeletionExecuteParams,
   ): Promise<V4SessionDeletionExecuteResult>;
   readSession(params: NibiAgentReadSessionParams): Promise<NibiSessionStateSnapshot>;
-  readSessionMessages(
-    params: NibiAgentReadSessionMessagesParams,
-  ): Promise<NibiMessageWithParts[]>;
+  readSessionMessages(params: NibiAgentReadSessionMessagesParams): Promise<NibiMessageWithParts[]>;
   readSessionDebug(params: NibiAgentSessionTarget): Promise<SessionDebugSnapshot>;
   readSessionEvents(params: NibiAgentReadSessionEventsParams): Promise<NibiSessionEvent[]>;
   readWorkspacePresentation(
@@ -793,9 +795,7 @@ export interface INibiAgentService {
     params: NibiAgentResolveAppToolCallForUiParams,
   ): Promise<NibiMcpUiAppToolAcceptedResult>;
   /** 插件 UI 工作区级面板入口（已启用插件清单 `ui.surfaces[]`）。 */
-  listPluginUiSurfaces(
-    params: NibiAgentWorkspaceTarget,
-  ): Promise<NibiPluginsListUiSurfacesResult>;
+  listPluginUiSurfaces(params: NibiAgentWorkspaceTarget): Promise<NibiPluginsListUiSurfacesResult>;
   // 已保存工作流的 GUI 中枢：workspace 级、无会话，每次调用现扫 `<cwd>/.nibi/workflows/`。
   // 全局档传 `scope: "global"`：带 workspace 就用它当载体，不带则由 services 层自选本机载体运行时。
   listSavedWorkflows(params: NibiAgentListSavedWorkflowsParams): Promise<NibiWorkflowsListResult>;
@@ -855,9 +855,7 @@ export interface INibiAgentService {
     params: NibiAgentRestoreBuiltinPluginParams,
   ): Promise<NibiPluginsRestoreBuiltinResult>;
   configurePlugin(params: NibiAgentConfigurePluginParams): Promise<NibiPluginsConfigureResult>;
-  resetPluginConfig(
-    params: NibiAgentResetPluginConfigParams,
-  ): Promise<NibiPluginsConfigureResult>;
+  resetPluginConfig(params: NibiAgentResetPluginConfigParams): Promise<NibiPluginsConfigureResult>;
   validatePlugin(params: NibiAgentValidatePluginParams): Promise<NibiPluginsValidateResult>;
   describePlugin(params: NibiAgentDescribePluginParams): Promise<NibiPluginsDescribeResult>;
   setPluginEnabled(params: NibiAgentSetPluginEnabledParams): Promise<NibiPluginsSetEnabledResult>;
@@ -958,9 +956,7 @@ export interface INibiAgentService {
   conversationRowsRangeV4(
     params: NibiAgentConversationRowsRangeParams,
   ): Promise<V4ConversationRowsRangeResult>;
-  conversationPlansV4(
-    params: NibiAgentConversationPlansParams,
-  ): Promise<V4ConversationPlansResult>;
+  conversationPlansV4(params: NibiAgentConversationPlansParams): Promise<V4ConversationPlansResult>;
   /** workflow run 事件日志分页；与 plans 同族（只读、无状态、超时重发安全）。 */
   conversationWorkflowRunEventsV4(
     params: NibiAgentConversationWorkflowRunEventsParams,

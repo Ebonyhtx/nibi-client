@@ -205,7 +205,11 @@ export class EventReducer {
       // （实测：deepseek-flash 声明 1M，输入栏显示成 62K/200K = 31%）。
       // 缺失/null 表示旧事件或显式清除：投影字段是非空 number，保持原值。
       const contextWindow = payload.contextWindow;
-      if (typeof contextWindow !== "number" || !Number.isFinite(contextWindow) || contextWindow <= 0) {
+      if (
+        typeof contextWindow !== "number" ||
+        !Number.isFinite(contextWindow) ||
+        contextWindow <= 0
+      ) {
         return { ...p, updatedAt: e.timestamp };
       }
       return { ...p, contextWindow, updatedAt: e.timestamp };
@@ -373,6 +377,8 @@ export class EventReducer {
         inputPresentation: payload.inputPresentation ?? existing?.inputPresentation,
         intent: payload.intent ?? existing?.intent,
         toolDisallowlist: payload.toolDisallowlist ?? existing?.toolDisallowlist,
+        // 编辑锁：字段缺省 = 旧事件（保留现有锁）；null = 显式释放；对象 = 加锁。
+        editLock: "editLock" in payload ? (payload.editLock ?? undefined) : existing?.editLock,
         // editQueueItem 会以同 id 重发 queued 事件；编辑不是重新 admission，
         // 必须保留原排队时间和数组位置，否则 runtime 冷重建会把它移到队尾。
         queuedAt: existing?.queuedAt ?? e.timestamp,

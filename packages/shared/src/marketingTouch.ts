@@ -56,6 +56,9 @@ export const marketingNavigationSchema = z.discriminatedUnion("page", [
 export const marketingActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("close") }),
   z.object({ type: z.literal("open_url"), args: z.object({ url }) }),
+  // 服务端营销内容仍可能下发这个上游套餐动作。NIBI 已移除上游 OAuth/套餐领取，
+  // 执行端（MarketingTouchProvider）会 fail-closed 返回 cancelled；但 schema 必须
+  // 继续接受它，否则一条带该动作的投放会让整份营销响应解析失败。
   z.object({ type: z.literal("claim_zcode_plan"), args: z.object({ plan_id: id }) }),
   z.object({ type: z.literal("navigate"), args: marketingNavigationSchema }),
   z.object({

@@ -1,7 +1,7 @@
-// M4 门禁：queue 单项管理 + B09 撤回到 composer。
-// 证据层 L3：running turn 期间 sendText 入队 → QueuePanel → deleteQueueItem 权威移除 →
-// 发起端恢复 text + AttachmentRef[]；重发产生新 queueItemId。非空草稿在 UI admission
-// 边界阻止命令，queue 与草稿都不变。
+// M4 门禁：queue 单项管理 + U36 编辑锁冻结。
+// 证据层 L3：running turn 期间 sendText 入队 → QueuePanel；编辑走 lockQueueItemEdit →
+// composer 编辑 → editQueueItem（同 queueItemId 原地更新）→ 锁释放；删除仍走
+// deleteQueueItem。非空草稿在 UI admission 边界阻止命令，queue 与草稿都不变。
 import { clearAppData } from "../helpers/desktop-app.js";
 import { waitForToastContaining } from "../helpers/conversation-session-toast.js";
 import {
@@ -12,6 +12,7 @@ import {
   getV4ComposerAttachments,
   getV4ComposerText,
   getV4PaneSnapshot,
+  getV4QueueItemEditState,
   getV4QueueItems,
   isV4ComposerFocused,
   prepareV4ConversationE2E,
@@ -64,7 +65,7 @@ describe("v4 M4/B09 门禁：queue 单项管理与撤回编辑", () => {
     expect(await getV4QueueItems()).toHaveLength(0);
   });
 
-  it("running 中带图片入队 → 撤回到 composer → 修改重发产生新 queueItemId", async () => {
+  it("running 中带图片入队 → 冻结编辑（lockQueueItemEdit）→ composer 修改 → 原项更新并释放锁", async () => {
     await prepareV4ConversationE2E();
 
     await sendV4Prompt("E2E_V4_QUEUE_SLOW 慢慢回答");
@@ -82,11 +83,18 @@ describe("v4 M4/B09 门禁：queue 单项管理与撤回编辑", () => {
     expect(before[0]!.text).toContain("排队原文");
     const queueItemId = before[0]!.queueItemId;
 
-    // 修复原因：ACK 回来前的双击若发出两个 delete，会重复恢复同一份附件草稿。
-    // 同一事件循环连点两次，验证 renderer-local operation lock 在 React 重渲染前也生效。
+    // 双击验证 renderer-local operation lock：第二击不能重复加锁。
     const clicked = await clickV4QueueItemEdit(queueItemId, 2);
     expect(clicked).toBe(true);
-    await waitForV4QueueCount(0, 30000);
+    // U36 冻结：项留在队列里（不再 delete+restore），row 显示 self 锁并暴露释放入口。
+    await browser.waitUntil(
+      async () => {
+        const state = await getV4QueueItemEditState(queueItemId);
+        return state.locked && state.owner === "self" && state.releaseVisible;
+      },
+      { timeout: 30000, timeoutMsg: "队列项没有进入 self 编辑锁冻结态" },
+    );
+    expect(await getV4QueueItems()).toHaveLength(1);
     await browser.waitUntil(
       async () => {
         const text = await getV4ComposerText();
@@ -94,22 +102,36 @@ describe("v4 M4/B09 门禁：queue 单项管理与撤回编辑", () => {
         return (
           text === "E2E_V4_QUEUE_ITEM 排队原文" &&
           attachments.length === 1 &&
-          // Bug 原因：从 queue 恢复的媒体 ref 不重建本地 object URL，缩略图可能只显示
-          // image fallback icon；用 innerText 验证 filename 会误判已恢复且 ready 的附件。
+          // 与旧路径同一断言：从 queue 恢复的媒体 ref 必须 ready。
           attachments[0]?.uploadStatus === "ready"
         );
       },
-      { timeout: 30000, timeoutMsg: "队列项移除后没有完整恢复 composer 文本与附件" },
+      { timeout: 30000, timeoutMsg: "队列项冻结后没有完整恢复 composer 文本与附件" },
     );
     expect(await isV4ComposerFocused()).toBe(true);
-    expect(await getV4ComposerAttachments()).toHaveLength(1);
 
-    await sendV4Prompt("E2E_V4_QUEUE_ITEM 编辑后重新提交");
-    await waitForV4QueueCount(1, 30000);
+    // 提交 composer = editQueueItem（不是新入队）；项保持同一 id，成功后锁释放。
+    await sendV4Prompt("E2E_V4_QUEUE_ITEM 编辑后原文");
+    await browser.waitUntil(
+      async () => {
+        const items = await getV4QueueItems();
+        const state = await getV4QueueItemEditState(queueItemId);
+        return (
+          items.length === 1 &&
+          items[0]?.queueItemId === queueItemId &&
+          items[0]?.text.includes("编辑后原文") &&
+          !state.locked
+        );
+      },
+      { timeout: 30000, timeoutMsg: "队列项编辑没有原地更新/释放编辑锁" },
+    );
     const after = await getV4QueueItems();
     expect(after).toHaveLength(1);
-    expect(after[0]?.queueItemId).not.toBe(queueItemId);
-    expect(after[0]?.text).toContain("编辑后重新提交");
+    expect(after[0]?.queueItemId).toBe(queueItemId);
+    expect(after[0]?.text).toContain("编辑后原文");
+    // 锁释放后删除入口恢复；顺手清空，避免 afterEach stop 后自动排空多开一轮。
+    expect(await clickV4QueueItemDelete(queueItemId)).toBe(true);
+    await waitForV4QueueCount(0, 30000);
   });
 
   it("composer 已有草稿时编辑 queue 不撤回且提示先处理草稿", async () => {

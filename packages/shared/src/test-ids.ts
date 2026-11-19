@@ -687,6 +687,10 @@ export const TID_V4_QUEUE_ITEM_EDIT = "v4-queue-item-edit";
 export const TID_V4_QUEUE_ITEM_SEND_NOW = "v4-queue-item-send-now";
 /** v4 queue 项上移按钮（动态后缀为 queueItemId） */
 export const TID_V4_QUEUE_ITEM_UP = "v4-queue-item-up";
+/** v4 queue 项编辑锁持有者标签（动态后缀为 queueItemId） */
+export const TID_V4_QUEUE_ITEM_EDIT_LOCK = "v4-queue-item-edit-lock";
+/** v4 queue 项释放编辑锁按钮（动态后缀为 queueItemId） */
+export const TID_V4_QUEUE_ITEM_RELEASE_EDIT = "v4-queue-item-release-edit";
 /** v4 输入控制：queue autoDrain 开关按钮（setAutoDrain 命令） */
 export const TID_V4_AUTODRAIN_TOGGLE = "v4-autodrain-toggle";
 /** v4 输入控制：followup 路由模式开关按钮（setFollowupMode 命令） */

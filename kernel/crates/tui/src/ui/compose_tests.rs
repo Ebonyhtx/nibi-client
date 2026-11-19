@@ -121,6 +121,7 @@ mod send_now {
                 command: CommandId::new("c2"),
                 text: "also check the date".into(),
                 delivery: Delivery::Steer,
+                edit_lock: None,
             }],
         }
     }

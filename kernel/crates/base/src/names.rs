@@ -67,8 +67,10 @@ pub const UNIX_EXECUTABLE: &str = "nibi-rs";
 /// MCP server 可见的客户端身份，用 NIBI 的品牌名。
 pub const MCP_CLIENT_NAME: &str = "nibi";
 
-/// 签发项目令牌的 `clientType`：**服务端契约**。NIBI 服务按 `"zcode"` 校验（桌面 e2e 的控制面 mock 也这样断言），
-/// 改名要与服务端同一批迁移，不能单独跟品牌化改。
+/// 签发项目令牌的 `clientType`：**外部服务契约**。z.ai / bigmodel 的
+/// `/api_keys/{id}/access_tokens` 只接受 `"zcode"`（桌面 e2e 的控制面 mock 也这样断言）；
+/// 改成 `"nibi"` 需要对方先接受新值，不能单独跟品牌化改。消费方：
+/// `kernel/crates/platform/src/token/issue.rs` 的签发请求体。
 pub const TOKEN_CLIENT_TYPE: &str = "zcode";
 
 /// 给用户程序的变量名（hook 进程的环境、插件 MCP 的环境与 `${…}` 配置变量、插件 agent 与 skill 正文里的 `${…}`）：

@@ -859,6 +859,8 @@ export class NibiProtocolAgentServer {
           sessionLifecycleWorkspace: true,
           independentPlanState: true,
           historyFirst: true,
+          // 选区批注：sendText/editUserQuery 的 conversationQuotes 会原样进入模型文本。
+          conversationQuoteComment: true,
         };
       case nibiProtocolMethods.pluginsMarketplaceAdd:
         return await this.withPluginOperationSignal(request, (signal) =>

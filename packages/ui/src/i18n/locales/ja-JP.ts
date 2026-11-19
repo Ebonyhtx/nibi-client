@@ -59,10 +59,14 @@ const jaJP: Record<string, string> = {
   "archives.previewBlocked.running": "使用中",
   "archives.previewBlocked.unavailable": "データを利用できません",
   "archives.previewCannotDelete": "{count} 件のセッションを削除できません: {reasons}。",
-  "archives.previewIncomplete": "前回の削除が完了していません。続行すると残りのデータを削除します。",
-  "archives.previewCompleted": "{count} 件のセッションはすでにディスク上で削除されています。確認するとローカルの後片付けを完了します。",
-  "archives.previewWillDelete": "{tasks} 件のセッションと {sessions} 件の会話が完全に削除されます。",
-  "archives.previewWillKeep": "保持: 分岐セッション {forks} 件、参照されている成果物 {artifacts} 件。",
+  "archives.previewIncomplete":
+    "前回の削除が完了していません。続行すると残りのデータを削除します。",
+  "archives.previewCompleted":
+    "{count} 件のセッションはすでにディスク上で削除されています。確認するとローカルの後片付けを完了します。",
+  "archives.previewWillDelete":
+    "{tasks} 件のセッションと {sessions} 件の会話が完全に削除されます。",
+  "archives.previewWillKeep":
+    "保持: 分岐セッション {forks} 件、参照されている成果物 {artifacts} 件。",
   "archives.preparing": "削除される内容を確認しています…",
   "archives.resumeDeletion": "削除を続行",
   "archives.nav": "アーカイブ管理",
@@ -1341,6 +1345,30 @@ const jaJP: Record<string, string> = {
   "chat.promptEnhance.unsupported": "選択したモデルは現在、直接の強化構成を公開していません。",
   "chat.queue.drag": "ドラッグして並べ替え",
   "chat.queue.edit": "編集",
+  "chat.queue.editEmpty": "キュー内メッセージを空にはできません。",
+  "chat.composerEdit.cancel": "キャンセル",
+  "chat.composerEdit.editingBelow": "下で編集中",
+  "chat.composerEdit.title.userQuery": "メッセージを編集",
+  "chat.composerEdit.title.queueItem": "キュー内メッセージを編集",
+  "chat.composerEdit.rewind": "会話とファイルをリセット",
+  "chat.composerEdit.invalid.notLatest":
+    "このメッセージは最新のユーザーメッセージではないため、編集できません。",
+  "chat.composerEdit.invalid.queueItemRemoved": "このキュー内メッセージはもう存在しません。",
+  "chat.composerEdit.invalid.editLockLost":
+    "このキュー内メッセージの編集権が失われました。もう一度お試しください。",
+  "chat.composerEdit.discardConfirm": "現在の変更を破棄して別のメッセージを編集しますか？",
+  "chat.composerEdit.lockedByOther":
+    "このキュー内メッセージは他のウィンドウまたはデバイスで編集中です。",
+  "chat.composerEdit.empty": "編集後のメッセージを空にはできません。",
+  "chat.composerEdit.submitFailed":
+    "編集したメッセージを保存できませんでした。もう一度お試しください。",
+  "chat.queue.editLockFailed":
+    "このキュー内メッセージを編集用にロックできませんでした。もう一度お試しください。",
+  "chat.queue.editLockLost":
+    "このキュー内メッセージの編集ロックが失われました。もう一度編集してください。",
+  "chat.queue.editLockedByOther": "別のウィンドウまたはデバイスで編集中",
+  "chat.queue.editLockedBySelf": "下の入力欄で編集中",
+  "chat.queue.releaseEdit": "解放",
   "chat.queue.enqueue": "メッセージをキューに追加",
   "chat.queue.enqueue.description":
     "現在の下書きをキューに入れ、現在の応答が終わった後に自動的に送信します。",
@@ -1382,6 +1410,22 @@ const jaJP: Record<string, string> = {
   "chat.scrollToBottom": "一番下へスクロール",
   "chat.selections.addToTask": "チャットに追加",
   "chat.selections.askInSideChat": "サイドチャットに追加",
+  "chat.selections.comment": "注釈",
+  "chat.selections.commentPlaceholder":
+    "コメント（任意）を入力すると、この本文と一緒にモデルへ送信されます",
+  "chat.selections.commentHint": "空欄でも追加できます · Shift + ↵ で改行",
+  "chat.selections.commentSave": "注釈を追加",
+  "chat.selections.commentAddTitle": "注釈を追加 · コメントは任意",
+  "chat.selections.commentEditTitle": "注釈を編集",
+  "chat.selections.commentEditHint": "空欄にすると本文の引用だけを残します",
+  "chat.selections.commentEditSave": "保存",
+  "chat.selections.commentDelete": "注釈を削除",
+  "chat.selections.commentAdd": "コメントを追加",
+  "chat.selections.commentDeleted": "注釈を削除しました",
+  "chat.selections.commentUndo": "元に戻す",
+  "chat.selections.listHeader": "次のメッセージに {count} 件の注釈を添付します",
+  "chat.selections.listHint": "番号は本文と対応",
+  "chat.selections.removeAll": "すべての注釈を削除",
   "chat.selections.count": "{count} 件の注釈",
   "chat.selections.file": "{name} · 選択範囲",
   "chat.selections.limit.count": "注釈は最大 8 件まで追加できます。",

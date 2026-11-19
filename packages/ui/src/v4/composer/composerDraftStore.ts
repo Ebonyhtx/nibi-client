@@ -9,6 +9,7 @@
 // 附件不入草稿（objectUrl/File 不可序列化，localPath 附件重启后归属难校验——
 // 与「v4 composer 不做附件草稿持久化」的裁决一致）。
 import { logger } from "@/logger.js";
+import { COMPOSER_EDIT_SCOPE_MARKER } from "@/composer-edit-mode/contract.js";
 import {
   modelSelectionSchema,
   remoteHostIdFromWorkspaceIdentity,
@@ -193,6 +194,15 @@ function draftStorageKey(
 export const V4_DRAFT_SCOPE_ROOT = "__draft__";
 const warnedStorageKeys = new Set<string>();
 
+/**
+ * U03：编辑历史消息/队列项的 Composer scope 只存在 renderer 内存。
+ *
+ * 读/写/清都必须短路，否则取消编辑或切换目标会把编辑正文写成用户下一条消息的草稿。
+ */
+function isComposerEditDraftScope(scopeId: string): boolean {
+  return scopeId.startsWith(COMPOSER_EDIT_SCOPE_MARKER);
+}
+
 function warnStorageFailure(key: string, error: unknown) {
   if (warnedStorageKeys.has(key)) return;
   warnedStorageKeys.add(key);
@@ -329,6 +339,7 @@ export function readV4ComposerDraft(
   scopeId: string,
   scope?: ComposerScope,
 ): V4ComposerDraft | null {
+  if (isComposerEditDraftScope(scopeId)) return null;
   const key = draftStorageKey(workspacePath, workspaceIdentity, scopeId, scope);
   const file = readDraftFile(key);
   const draft = file.scopes[scopeId];
@@ -351,6 +362,7 @@ export function persistV4ComposerDraft(
   draft: Omit<V4ComposerDraft, "updatedAt">,
   scope?: ComposerScope,
 ) {
+  if (isComposerEditDraftScope(scopeId)) return true;
   const key = draftStorageKey(workspacePath, workspaceIdentity, scopeId, scope);
   const file = readDraftFile(key);
   const hadDraft = Boolean(file.scopes[scopeId]);
@@ -413,6 +425,7 @@ export function clearV4ComposerDraft(
   scopeId: string,
   scope?: ComposerScope,
 ) {
+  if (isComposerEditDraftScope(scopeId)) return true;
   const key = draftStorageKey(workspacePath, workspaceIdentity, scopeId, scope);
   const file = readDraftFile(key);
   const hadDraft = Boolean(file.scopes[scopeId]);

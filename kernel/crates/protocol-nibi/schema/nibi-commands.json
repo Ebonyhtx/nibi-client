@@ -13,6 +13,8 @@
     "retryTurn",
     "setAssistantFeedback",
     "sendQueuedNow",
+    "lockQueueItemEdit",
+    "releaseQueueItemEdit",
     "editQueueItem",
     "reorderQueueItem",
     "deleteQueueItem",
@@ -39,7 +41,6 @@
   "requiresBaseRevision": [
     "applyFileRewind",
     "deleteQueueItem",
-    "editQueueItem",
     "editUserQuery",
     "forkAssistant",
     "pauseGoal",
@@ -1821,14 +1822,162 @@
         "queueItemId"
       ]
     },
+    "lockQueueItemEdit": {
+      "type": "object",
+      "properties": {
+        "queueItemId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "editorId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "queueItemId",
+        "editorId"
+      ]
+    },
+    "releaseQueueItemEdit": {
+      "type": "object",
+      "properties": {
+        "queueItemId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "queueItemId"
+      ]
+    },
     "editQueueItem": {
       "type": "object",
       "properties": {
         "queueItemId": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "newText": {
           "type": "string"
+        },
+        "editorId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ref": {
+                "type": "string"
+              },
+              "fileName": {
+                "type": "string"
+              },
+              "mime": {
+                "type": "string"
+              },
+              "bytes": {
+                "type": "number"
+              },
+              "sourceKind": {
+                "type": "string",
+                "enum": [
+                  "clipboard-text",
+                  "topic-history"
+                ]
+              },
+              "messageCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "previewRef": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "ref",
+              "fileName",
+              "mime",
+              "bytes"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "conversationQuotes": {
+          "maxItems": 8,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "maxLength": 8000
+              },
+              "path": {
+                "type": "string"
+              },
+              "senderName": {
+                "type": "string"
+              },
+              "senderId": {
+                "type": "string"
+              },
+              "messageId": {
+                "type": "string"
+              },
+              "sentAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              }
+            },
+            "required": [
+              "text"
+            ]
+          }
+        },
+        "modelSelection": {
+          "type": "object",
+          "properties": {
+            "providerId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "modelId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "reasoningLevel": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "required": [
+            "providerId",
+            "modelId"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "build",
+            "edit",
+            "plan",
+            "yolo",
+            "guarded"
+          ]
+        },
+        "planEnabled": {
+          "type": "boolean"
         }
       },
       "required": [

@@ -753,6 +753,35 @@ modules:
     layers: { ui: . }
     owner: conversation
 
+  # composer-edit-mode：U03 底部 Composer 编辑态（历史 user query / 队列项）。
+  # 编辑 scope 只存 renderer 内存；命令仍由 SessionPane 通过既有 v4 命令派发。
+  - id: composer-edit-mode
+    roots:
+      - packages/ui/src/composer-edit-mode
+    managed: true
+    requires:
+      - shared
+      - ui
+    publicEntrypoints:
+      - packages/ui/src/composer-edit-mode/index.ts
+      - packages/ui/src/composer-edit-mode/contract.ts
+    layers: { ui: . }
+    owner: conversation
+
+  # selection-comment：U04 选区批注（注释浮层 + 正文编号标记 + 共用编号气泡）。
+  # 只收集评论与画标记；引用作用域、上限、撤销恢复与 rewind 剪枝归 composer 引用存储。
+  - id: selection-comment
+    roots:
+      - packages/ui/src/selection-comment
+    managed: true
+    requires:
+      - ui
+    publicEntrypoints:
+      - packages/ui/src/selection-comment/index.ts
+      - packages/ui/src/selection-comment/contract.ts
+    layers: { ui: . }
+    owner: conversation
+
   # task-groups：由 architecture:adopt 登记
   - id: task-groups
     roots:
@@ -1643,6 +1672,16 @@ exceptions:
       apps/nibi-cli 仍是 managed:false 的遗留应用，文件落在既有 adapters/storage 与
       bootstrap/nibi-protocol 布局里；接管整包不在本次范围。
 
+  - id: tier2-u36-u04-login-webview-unmanaged-files
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/v4/editorIdentity.ts
+      - packages/ui/src/login/NibiAuthWebviewDialog.tsx
+    reason: >-
+      U36 队列编辑锁的编辑器身份（sessionStorage + Web Locks）与同批在改的桌面主登录页内嵌
+      OAuth WebView 对话框。ui 仍是 managed:false 的遗留大区，按路径准入这两个新文件；
+      接管 packages/ui 不在本次范围。
+
   - id: windows-runtime-host-build-script
     rule: unmanaged-new-file
     paths:
@@ -1651,3 +1690,13 @@ exceptions:
       Windows-only 原生 helper 的构建入口；packages/desktop/scripts 位于 desktop 源码模块
       之外，是构建工具而不是产品代码。helper 的运行时契约由 managed 模块
       windows-runtime-host 承载，这里只准入构建脚本本身。
+
+  - id: unified-summary-grouping-ui-model
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/v4/conversationSummaryGroups.ts
+      - packages/ui/src/v4/useContinuousGroupKeys.ts
+    reason: >-
+      U02/U11 统一摘要分组按上游 fec97590 移植的纯模型与连续分组身份 Hook，必须与
+      现有 v4 时间线投影同目录；ui 包整体仍是 managed:false 的遗留渲染层，接管整包
+      不在本次范围。

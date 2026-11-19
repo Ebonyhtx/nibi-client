@@ -19,6 +19,7 @@ import type {
   MessageId,
   ModelSelection,
   ModelSelectionOrigin,
+  PendingInputEditLock,
   PendingSteerInputInfo,
   PendingTurnInput,
   QueryId,
@@ -150,11 +151,7 @@ export async function steerTurn(
     ...(toolDisallowlist ? { toolDisallowlist } : {}),
     turnId: activeTurn.turnId,
   };
-  const selectionAccepted = acceptSubmissionModelSelection(
-    this,
-    intent,
-    activeTurn.traceContext,
-  );
+  const selectionAccepted = acceptSubmissionModelSelection(this, intent, activeTurn.traceContext);
   activeTurn.pendingInputs.push(pendingInput);
   // 用户亲手 steer 进来的话（协调者 / 信箱 / 工具跟进也走这里，它们不算）：与 prompt 一样，给每个
   // 欠着决定的 run 一对新的提醒。
@@ -286,11 +283,7 @@ export async function enqueueDeferredInput(
     },
   );
   await this.appendEvent(event, traceContext);
-  await acceptSubmissionModelSelection(
-    this,
-    intent,
-    traceContext,
-  );
+  await acceptSubmissionModelSelection(this, intent, traceContext);
   this.logger?.debug("Deferred input queued", {
     ...traceContextToLogContext(traceContext),
     delivery,
@@ -722,6 +715,8 @@ export async function removePendingInputById(
       options.reason,
     );
   }
+  // 编辑锁：删除被拒绝（命令层按 guard.queueItemEditLocked 上行）。
+  if (activeTurn.pendingInputs[index]?.editLock) return false;
   await settleRemovedSessionInput(this, options.pendingInputId, options.reason);
   activeTurn.pendingInputs.splice(index, 1);
   const event = createSessionEvent(
@@ -767,6 +762,8 @@ export async function discardHeldPendingInputById(
   const projection = await this.rebuildProjection();
   const held = projection.pendingSteerInputs.find((item) => item.pendingInputId === pendingInputId);
   if (!held) return false;
+  // 编辑锁：删除被拒绝。
+  if (held.editLock) return false;
   await settleRemovedSessionInput(this, pendingInputId, reason);
   const event = createSessionEvent(
     SessionEventType.TurnSteerDiscarded,
@@ -865,6 +862,7 @@ export async function editPendingInputById(
   options: {
     pendingInputId: string;
     newText: string;
+    editorId?: string;
     traceContext: TraceContext;
   },
 ): Promise<boolean> {
@@ -878,6 +876,8 @@ export async function editPendingInputById(
       (item) => item.pendingInputId === options.pendingInputId,
     );
     if (!held) return false;
+    // 并发守卫：锁存在时必须由同一 editor 提交；成功后锁显式释放。
+    if (held.editLock && held.editLock.editorId !== options.editorId) return false;
     await persistSessionInputUpdates(this, [{ id: held.pendingInputId, text: options.newText }]);
     const event = createSessionEvent(
       SessionEventType.TurnSteerQueued,
@@ -890,6 +890,8 @@ export async function editPendingInputById(
         ...(held.commandKind ? { commandKind: held.commandKind } : {}),
         ...(held.intent ? { intent: { ...held.intent, text: options.newText } } : {}),
         ...(held.toolDisallowlist ? { toolDisallowlist: held.toolDisallowlist } : {}),
+        // 编辑成功即释放：显式 null 让冷重放也清掉锁。
+        editLock: null,
         queueLength: projection.pendingSteerInputs.length,
         targetTurnId: held.targetTurnId,
       },
@@ -901,8 +903,11 @@ export async function editPendingInputById(
     await this.appendEvent(event, options.traceContext);
     return true;
   }
+  // 并发守卫：锁存在时必须由同一 editor 提交；成功后锁显式释放。
+  if (pendingInput.editLock && pendingInput.editLock.editorId !== options.editorId) return false;
   await persistSessionInputUpdates(this, [{ id: pendingInput.id, text: options.newText }]);
   pendingInput.input = options.newText;
+  delete pendingInput.editLock;
   // 编辑正文后必须同步 canonical text，否则结构化引用恢复时会显示旧正文。
   if (pendingInput.intent) pendingInput.intent = { ...pendingInput.intent, text: options.newText };
   const event = createSessionEvent(
@@ -921,12 +926,160 @@ export async function editPendingInputById(
         : {}),
       ...(pendingInput.intent ? { intent: pendingInput.intent } : {}),
       ...(pendingInput.toolDisallowlist ? { toolDisallowlist: pendingInput.toolDisallowlist } : {}),
+      editLock: null,
       queueLength: activeTurn.pendingInputs.length,
       targetTurnId: activeTurn.turnId,
     },
     {
       traceId: activeTurn.traceContext.traceId,
       turnId: activeTurn.turnId,
+    },
+  );
+  await this.appendEvent(event, options.traceContext);
+  return true;
+}
+
+/**
+ * （v4 queue 编辑锁）：给排队项加锁，重发同 id TurnSteerQueued 携带 editLock。
+ * 只允许 queued + 未加锁（命令层先按投影判）；held 项只存在于投影/事件日志，同样重发。
+ */
+export async function lockPendingInputEdit(
+  this: AgentRuntimeInternal,
+  options: {
+    pendingInputId: string;
+    editLock: PendingInputEditLock;
+    traceContext: TraceContext;
+  },
+): Promise<boolean> {
+  const activeTurn = this.activeTurn;
+  const pendingInput = activeTurn?.pendingInputs.find((item) => item.id === options.pendingInputId);
+  if (activeTurn && pendingInput) {
+    if (pendingInput.editLock) return false;
+    pendingInput.editLock = options.editLock;
+    const event = createSessionEvent(
+      SessionEventType.TurnSteerQueued,
+      this.sessionId,
+      {
+        pendingInputId: pendingInput.id,
+        queryId: pendingInput.queryId,
+        input: pendingInput.input,
+        inputPreview: previewInput(pendingInput.input),
+        inputSize: measureUtf8Bytes(pendingInput.input),
+        ...(pendingInput.commandKind ? { commandKind: pendingInput.commandKind } : {}),
+        ...(pendingInput.delivery ? { delivery: pendingInput.delivery } : {}),
+        ...(pendingInput.inputPresentation
+          ? { inputPresentation: pendingInput.inputPresentation }
+          : {}),
+        ...(pendingInput.intent ? { intent: pendingInput.intent } : {}),
+        ...(pendingInput.toolDisallowlist
+          ? { toolDisallowlist: pendingInput.toolDisallowlist }
+          : {}),
+        editLock: options.editLock,
+        queueLength: activeTurn.pendingInputs.length,
+        targetTurnId: activeTurn.turnId,
+      },
+      {
+        traceId: activeTurn.traceContext.traceId,
+        turnId: activeTurn.turnId,
+      },
+    );
+    await this.appendEvent(event, options.traceContext);
+    return true;
+  }
+  const projection = await this.rebuildProjection();
+  const held = projection.pendingSteerInputs.find(
+    (item) => item.pendingInputId === options.pendingInputId,
+  );
+  if (!held || held.editLock) return false;
+  const event = createSessionEvent(
+    SessionEventType.TurnSteerQueued,
+    this.sessionId,
+    {
+      pendingInputId: held.pendingInputId,
+      input: held.input,
+      inputPreview: held.inputPreview,
+      inputSize: held.inputSize,
+      ...(held.commandKind ? { commandKind: held.commandKind } : {}),
+      ...(held.intent ? { intent: held.intent } : {}),
+      ...(held.toolDisallowlist ? { toolDisallowlist: held.toolDisallowlist } : {}),
+      editLock: options.editLock,
+      queueLength: projection.pendingSteerInputs.length,
+      targetTurnId: held.targetTurnId,
+    },
+    {
+      traceId: options.traceContext.traceId,
+      turnId: held.targetTurnId,
+    },
+  );
+  await this.appendEvent(event, options.traceContext);
+  return true;
+}
+
+/** （v4 queue 编辑锁）释放：任意端、任意状态；锁不存在时幂等成功。 */
+export async function releasePendingInputEdit(
+  this: AgentRuntimeInternal,
+  options: {
+    pendingInputId: string;
+    traceContext: TraceContext;
+  },
+): Promise<boolean> {
+  const activeTurn = this.activeTurn;
+  const pendingInput = activeTurn?.pendingInputs.find((item) => item.id === options.pendingInputId);
+  if (activeTurn && pendingInput) {
+    delete pendingInput.editLock;
+    const event = createSessionEvent(
+      SessionEventType.TurnSteerQueued,
+      this.sessionId,
+      {
+        pendingInputId: pendingInput.id,
+        queryId: pendingInput.queryId,
+        input: pendingInput.input,
+        inputPreview: previewInput(pendingInput.input),
+        inputSize: measureUtf8Bytes(pendingInput.input),
+        ...(pendingInput.commandKind ? { commandKind: pendingInput.commandKind } : {}),
+        ...(pendingInput.delivery ? { delivery: pendingInput.delivery } : {}),
+        ...(pendingInput.inputPresentation
+          ? { inputPresentation: pendingInput.inputPresentation }
+          : {}),
+        ...(pendingInput.intent ? { intent: pendingInput.intent } : {}),
+        ...(pendingInput.toolDisallowlist
+          ? { toolDisallowlist: pendingInput.toolDisallowlist }
+          : {}),
+        editLock: null,
+        queueLength: activeTurn.pendingInputs.length,
+        targetTurnId: activeTurn.turnId,
+      },
+      {
+        traceId: activeTurn.traceContext.traceId,
+        turnId: activeTurn.turnId,
+      },
+    );
+    await this.appendEvent(event, options.traceContext);
+    return true;
+  }
+  const projection = await this.rebuildProjection();
+  const held = projection.pendingSteerInputs.find(
+    (item) => item.pendingInputId === options.pendingInputId,
+  );
+  if (!held) return false;
+  const event = createSessionEvent(
+    SessionEventType.TurnSteerQueued,
+    this.sessionId,
+    {
+      pendingInputId: held.pendingInputId,
+      input: held.input,
+      inputPreview: held.inputPreview,
+      inputSize: held.inputSize,
+      ...(held.commandKind ? { commandKind: held.commandKind } : {}),
+      ...(held.intent ? { intent: held.intent } : {}),
+      ...(held.toolDisallowlist ? { toolDisallowlist: held.toolDisallowlist } : {}),
+      editLock: null,
+      queueLength: projection.pendingSteerInputs.length,
+      targetTurnId: held.targetTurnId,
+    },
+    {
+      traceId: options.traceContext.traceId,
+      turnId: held.targetTurnId,
     },
   );
   await this.appendEvent(event, options.traceContext);
@@ -954,6 +1107,8 @@ export async function reorderPendingInput(
     const heldIds = projection.pendingSteerInputs.map((item) => item.pendingInputId);
     const fromIndex = heldIds.indexOf(options.pendingInputId);
     if (fromIndex < 0) return false;
+    // 编辑锁：重排被拒绝。
+    if (projection.pendingSteerInputs[fromIndex]?.editLock) return false;
     heldIds.splice(fromIndex, 1);
     if (options.beforePendingInputId === null) {
       heldIds.push(options.pendingInputId);
@@ -990,6 +1145,8 @@ export async function reorderPendingInput(
   const items = [...activeTurn.pendingInputs];
   const fromIndex = items.findIndex((item) => item.id === options.pendingInputId);
   if (fromIndex < 0) return false;
+  // 编辑锁：重排被拒绝。
+  if (items[fromIndex]?.editLock) return false;
   const [moved] = items.splice(fromIndex, 1);
   if (!moved) return false;
   if (options.beforePendingInputId === null) {
@@ -1187,6 +1344,8 @@ async function drainPendingInputUnlocked(
   const guideIndex = firstInlineGuideIndex(options.activeTurn);
   const pendingInput = guideIndex >= 0 ? options.activeTurn.pendingInputs[guideIndex] : undefined;
   if (!pendingInput) return undefined;
+  // 编辑锁：加锁项不能被行内 drain 消费（与 queue 自动排空的同一冻结语义）。
+  if (pendingInput.editLock) return undefined;
   // sendQueuedNow 已 reserve 的队首只能由 reservation owner 提升；普通 roundtrip drain
   // 必须暂停，避免 stop barrier 期间同一输入又被当前 turn 消费一次。
   if (this.pendingInputReservations.has(pendingInput.id)) return undefined;

@@ -214,7 +214,7 @@ describe("ConversationShareReadonlyTimeline", () => {
     expect(html).not.toContain("| 项目 | 内容 |");
   });
 
-  it("uses Desktop execute grouping for consecutive shell tool rows", () => {
+  it("uses the unified summary group for consecutive shell tool rows", () => {
     const executeRows = [
       rows[0],
       rows[1],
@@ -256,9 +256,9 @@ describe("ConversationShareReadonlyTimeline", () => {
       }),
     );
 
-    expect(html).toContain('data-conversation-share-work-group="executeGroup"');
-    expect(html).toContain("2 个命令");
-    expect(html).toContain("终端");
+    expect(html).toContain("data-consecutive-summary-group");
+    expect(html).toContain("已执行 2 命令");
+    expect(html).not.toContain('data-conversation-share-work-group="executeGroup"');
   });
 
   it("renders the public query summary for search rows", () => {

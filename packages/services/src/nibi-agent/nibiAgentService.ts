@@ -110,6 +110,7 @@ import {
   nibiProviderTestModelConnectivityResultSchema,
   nibiProtocolEmptyResultSchema,
   nibiProtocolMethods,
+  nibiRuntimeCapabilitiesSchema,
   nibiProtocolNotifications,
   nibiMcpTelemetryEventSchema,
   nibiMcpResourceSamplesSchema,
@@ -162,10 +163,7 @@ import type {
   IAccountRequestAuthService,
 } from "#src/model-provider/accountRequestAuthService.js";
 import { mergeAutomationMutationToolDenylist } from "#src/nibi-agent/automationToolPolicy.js";
-import {
-  APP_CONTROL_METHOD_NAMES,
-  type IAppControlReverseRpc,
-} from "#src/app-control/contract.js";
+import { APP_CONTROL_METHOD_NAMES, type IAppControlReverseRpc } from "#src/app-control/contract.js";
 import { NIBI_AGENT_RUNTIME_UNAVAILABLE_CODE } from "./nibiAgent.js";
 import type {
   NibiProtocolRequestId,
@@ -369,10 +367,7 @@ import {
 } from "#src/nibi-agent/sessionDataRequest.js";
 import { NibiAgentProcessManager } from "./nibiAgentProcessManager.js";
 import type { NibiAgentProcessManagerOptions } from "./nibiAgentProcessManager.js";
-import {
-  NibiProtocolRequestTimeoutError,
-  type NibiProtocolClient,
-} from "./nibiProtocolClient.js";
+import { NibiProtocolRequestTimeoutError, type NibiProtocolClient } from "./nibiProtocolClient.js";
 import { getDataBaseDir } from "../paths.js";
 import {
   collectBrowserAmbientContext,
@@ -1068,13 +1063,11 @@ interface CreateNibiAgentServiceOptions extends Omit<
   browserControlExecutor?: BrowserAmbientContextExecutor;
   channelReplyExecutor?: (request: ChannelReplyHostRequest) => Promise<ChannelReplyResult>;
   topicResourceExecutor?: (
-    request: NibiTopicResourceReadParams &
-      NibiAgentWorkspaceTarget & { trace?: NibiProtocolTrace },
+    request: NibiTopicResourceReadParams & NibiAgentWorkspaceTarget & { trace?: NibiProtocolTrace },
     signal: AbortSignal,
   ) => Promise<NibiPromptAttachment>;
   topicResourceValidator?: (
-    request: NibiTopicResourceReadParams &
-      NibiAgentWorkspaceTarget & { trace?: NibiProtocolTrace },
+    request: NibiTopicResourceReadParams & NibiAgentWorkspaceTarget & { trace?: NibiProtocolTrace },
     signal: AbortSignal,
   ) => Promise<void>;
   /** desktop-local Host 注入；只消费已校验、已去重的 live session event。 */
@@ -1252,6 +1245,8 @@ export function createNibiAgentService(
   >();
   const activeClientsByWorkspaceKey = new Map<string, ActiveWorkspaceClient>();
   const interactionPreferenceSyncByWorkspaceKey = new Map<string, Promise<void>>();
+  /** runtime/capabilities 探测按物理连接缓存：同一连接的换代重连会拿到新 client 重新探测。 */
+  const conversationQuoteCommentChecks = new WeakMap<NibiProtocolClient, Promise<boolean>>();
   let latestAppRuntimePreferences: NibiAgentAppRuntimePreferences | undefined;
   /** 服务端「提供」的进程内单次读取；见 resolveDynamicWorkflowGate 的注释。 */
   let dynamicWorkflowOffer: Promise<DynamicWorkflowClientConfig | undefined> | undefined;
@@ -1942,10 +1937,7 @@ export function createNibiAgentService(
     return rememberBoundedEventId(state.liveEventIds, state.liveEventIdOrder, event.eventId);
   }
 
-  function handleSessionEvent(
-    workspace: NibiAgentWorkspaceTarget,
-    event: NibiSessionEvent,
-  ): void {
+  function handleSessionEvent(workspace: NibiAgentWorkspaceTarget, event: NibiSessionEvent): void {
     const normalizedEvent = normalizeSessionEventSeq(workspace, event);
     if (!shouldDeliverLiveSessionEvent(workspace, normalizedEvent)) {
       return;
@@ -2379,9 +2371,7 @@ export function createNibiAgentService(
               workspaceKey: resolveWorkspaceKey(workspace),
             });
           };
-          const parsed = nibiSessionRequestRuntimePreferencesParamsSchema.safeParse(
-            request.params,
-          );
+          const parsed = nibiSessionRequestRuntimePreferencesParamsSchema.safeParse(request.params);
           if (!parsed.success) {
             void client
               .respondError(request.id, {
@@ -3533,6 +3523,20 @@ export function createNibiAgentService(
       return await processManager.getRuntimeIdentity(params);
     },
 
+    async supportsConversationQuoteComment(target: NibiAgentWorkspaceTarget) {
+      // 旧 CLI 会静默剥掉引用上的 comment/agent，入口必须在发送前确认执行端真的支持。
+      // 与 identity 探测不同，这里允许启动只读 runtime：会话打开后本就会为其建立连接。
+      const client = await getReadOnlyClient(target);
+      const existing = conversationQuoteCommentChecks.get(client);
+      if (existing) return existing;
+      const check = client
+        .request(nibiProtocolMethods.runtimeCapabilities, {}, nibiRuntimeCapabilitiesSchema)
+        .then((result) => result.conversationQuoteComment === true)
+        .catch(() => false);
+      conversationQuoteCommentChecks.set(client, check);
+      return check;
+    },
+
     async createSession(params: NibiAgentCreateSessionParams) {
       if (options?.prepareSessionCreation) {
         const sessionId = params.sessionId ?? `session_${randomUUID()}`;
@@ -3613,10 +3617,7 @@ export function createNibiAgentService(
         // 可选字段降级重试，避免 thoughtLevel/persistence 版本差阻塞首发创建。
         const snapshot = await client.request(
           nibiProtocolMethods.sessionCreate,
-          buildSessionCreateParams(
-            { ...params, ...dynamicWorkflowFlags },
-            new Set(compatFields),
-          ),
+          buildSessionCreateParams({ ...params, ...dynamicWorkflowFlags }, new Set(compatFields)),
           nibiSessionStateSnapshotSchema,
           sessionTraceId ? { trace: { traceId: sessionTraceId } } : undefined,
         );
@@ -3726,10 +3727,7 @@ export function createNibiAgentService(
         });
         const snapshot = await client.request(
           nibiProtocolMethods.sessionResume,
-          buildSessionResumeParams(
-            { ...params, ...dynamicWorkflowFlags },
-            new Set(compatFields),
-          ),
+          buildSessionResumeParams({ ...params, ...dynamicWorkflowFlags }, new Set(compatFields)),
           nibiSessionStateSnapshotSchema,
         );
         const sessionTraceId = rememberSessionTrace(params, snapshot) ?? cachedTraceId;

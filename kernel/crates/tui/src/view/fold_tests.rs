@@ -301,6 +301,7 @@ fn steered_input_leaves_the_queue_and_shows_as_a_user_row() {
         command: CommandId::new("c2"),
         text: "also this".into(),
         delivery: Delivery::Steer,
+        edit_lock: None,
     };
     feed.push(started()).push(KernelEvent::QueueChanged {
         items: vec![queued.clone()],

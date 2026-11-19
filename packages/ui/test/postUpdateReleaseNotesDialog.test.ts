@@ -12,10 +12,6 @@ vi.mock("@/components/ui/button.js", () => ({
     createElement("button", { type: "button" }, children),
 }));
 
-vi.mock("@/components/ui/GlmMonochromeIcon.js", () => ({
-  GlmMonochromeIcon: () => createElement("span", { "data-testid": "glm-icon" }),
-}));
-
 vi.mock("@/components/ui/dialog.js", () => ({
   Dialog: ({ open, children }: { open: boolean; children: unknown }) =>
     open ? createElement("div", { "data-testid": "dialog-root" }, children) : null,
@@ -56,5 +52,24 @@ describe("PostUpdateReleaseNotesDialog", () => {
     );
 
     expect(html).toContain("Release notes");
+  });
+
+  it("uses the NIBI brand mark instead of the upstream GLM icon", async () => {
+    const { PostUpdateReleaseNotesDialog } = await import("@/root/PostUpdateReleaseNotesDialog.js");
+
+    const html = renderToStaticMarkup(
+      createElement(PostUpdateReleaseNotesDialog, {
+        payload: {
+          version: "0.1.25",
+          title: "Release notes",
+          markdown: "- fix",
+        },
+        onAcknowledge: vi.fn(),
+      }),
+    );
+
+    expect(html).toContain('alt="NIBI"');
+    expect(html).toContain("nibi-bird");
+    expect(html).not.toContain("glm-icon");
   });
 });

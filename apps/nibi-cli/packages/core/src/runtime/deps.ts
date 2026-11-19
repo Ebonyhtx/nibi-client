@@ -160,6 +160,7 @@ export type {
   ModelToolContract,
   ModelUsage,
   ModelUsageSummary,
+  PendingInputEditLock,
   PendingSteerInputInfo,
   PendingTurnInput,
   TurnAttachmentMeta,

@@ -672,6 +672,8 @@ impl Server {
             "runtime/capabilities" => reply(json!({
                 "independentPlanState": true,
                 "historyFirst": true,
+                // 选区批注：sendText/editUserQuery 的 conversationQuotes 原样进入模型文本。
+                "conversationQuoteComment": true,
                 "sessionDirectorySource": false,
                 "genUiContext": false,
                 // 生命周期方法已实现；workspace 归属参数只做宽松校验，Host 侧不需要按工作区路由

@@ -43,6 +43,71 @@ fn cas_check_rejects_epoch_mismatch_only_for_row_targeting() {
     assert!(ignored.is_none());
 }
 
+fn queue_envelope(kind: &str) -> Envelope {
+    Envelope {
+        command_id: "c1".to_owned(),
+        client_id: "desktop".to_owned(),
+        session_id: Some("session_1".to_owned()),
+        base_revision: None,
+        base_log_epoch: None,
+        kind: kind.to_owned(),
+        payload: json!({"queueItemId": "queue_c2"}),
+        input_origin: Some("desktop".to_owned()),
+        ttft: None,
+    }
+}
+
+#[test]
+fn queue_reason_codes_are_split_from_kernel_rejections() {
+    assert_eq!(
+        queue_reason("guard.queueItemEditLocked: queue item c2 is locked for editing"),
+        ("guard.queueItemEditLocked", "queue item c2 is locked for editing")
+    );
+    assert_eq!(
+        queue_reason("queue.editLockMissing: queue item c2 has no edit lock"),
+        ("queue.editLockMissing", "queue item c2 has no edit lock")
+    );
+    // 未知前缀保持原来的通用失败语义。
+    assert_eq!(
+        queue_reason("the queue item is no longer queued"),
+        ("fault.command.executionFailed", "the queue item is no longer queued")
+    );
+}
+
+#[test]
+fn queue_refusal_maps_missing_to_noop_and_locks_to_rejections() {
+    let envelope = queue_envelope("deleteQueueItem");
+    let locked = queue_refusal(
+        &envelope,
+        7,
+        "guard.queueItemEditLocked: queue item c2 is locked for editing",
+        Status::Noop,
+        "fault.command.executionFailed",
+    );
+    assert_eq!(locked.status, Status::Rejected);
+    assert_eq!(
+        locked.reason_code.as_deref(),
+        Some("guard.queueItemEditLocked")
+    );
+    assert_eq!(locked.message.as_deref(), Some("queue item c2 is locked for editing"));
+
+    let missing = queue_refusal(
+        &envelope,
+        7,
+        "queue.itemMissing: queue item c2 is no longer queued",
+        Status::Rejected,
+        "fault.command.executionFailed",
+    );
+    assert_eq!(missing.status, Status::Noop);
+    assert_eq!(missing.reason_code.as_deref(), Some("queue.itemMissing"));
+
+    // 通用失败保留调用方给的默认 status/code。
+    let failed = queue_refusal(&envelope, 7, "inner error", Status::Failed, "fault.command.executionFailed");
+    assert_eq!(failed.status, Status::Failed);
+    assert_eq!(failed.reason_code.as_deref(), Some("fault.command.executionFailed"));
+    assert_eq!(failed.message.as_deref(), Some("inner error"));
+}
+
 #[test]
 fn model_config_selection_maps_the_flat_nibi_payload() {
     let chosen = model_config_selection(&json!({

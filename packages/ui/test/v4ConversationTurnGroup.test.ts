@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { createElement, type ContextType } from "react";
 import { DeliveryContext } from "@/v4/botGroupDeliveryContext.js";
 import { withTopicPreparationMessages } from "@/v4/topicPreparationRenderUnits.js";
@@ -28,6 +27,10 @@ import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { ConversationTurnGroup } from "@/v4/ConversationTurnGroup.js";
 import type { ConversationRowRenderContext } from "@/v4/conversationRowContext.js";
 import {
+  buildAssistantSummaryWorkRenderItems,
+  groupConsecutiveAssistantSummaries,
+} from "@/v4/conversationSummaryGroups.js";
+import {
   buildConversationTurnRenderUnits,
   type ConversationTurnRenderUnit,
 } from "@/v4/conversationTurnRenderUnits.js";
@@ -37,8 +40,7 @@ vi.mock("@/hooks/useWorkspaceServices.js", () => ({
 }));
 
 vi.mock("@/hooks/useServices.js", () => ({
-  useOptionalServices: () => ({
-  }),
+  useOptionalServices: () => ({}),
 }));
 const topicInterrupted = vi.hoisted(() => vi.fn(() => false));
 vi.mock("@/v4/botGroupDeliveryContext.js", async (importOriginal) => ({
@@ -345,8 +347,17 @@ function renderUnit(
   );
 }
 
+function unifiedGroupRowIds(
+  rows: Parameters<typeof buildAssistantSummaryWorkRenderItems>[0],
+  visibility: { messageStreamShowReasoning?: boolean; messageStreamShowTodos?: boolean },
+): number[][] {
+  return groupConsecutiveAssistantSummaries(
+    buildAssistantSummaryWorkRenderItems(rows, visibility),
+  ).map((group) => group.items.map((item) => item.row.rowId));
+}
+
 describe("ConversationTurnGroup layout", () => {
-  it("removes the complete external assistant container after its response becomes CUA", () => {
+  it("renders CUA responses as normal rows instead of a synthetic CUA group", () => {
     const responseId = "assistant-response-cua";
     const message = assistantTextRow(3, {
       assistantResponseId: responseId,
@@ -367,18 +378,18 @@ describe("ConversationTurnGroup layout", () => {
     ]);
     const html = renderUnit(unit!);
 
-    expect(unit?.flowItems.map((item) => item.kind)).toContain("cuaGroup");
-    expect(unit?.flowItems.some((item) => item.kind === "assistantText")).toBe(false);
-    const group = unit?.flowItems.find((item) => item.kind === "cuaGroup");
+    expect(unit?.flowItems.map((item) => item.kind)).not.toContain("cuaGroup");
     expect(
-      group?.kind === "cuaGroup"
-        ? group.events.some((event) => event.kind === "assistantMessage" && event.row === message)
-        : false,
+      unit?.flowItems.some(
+        (item) => item.kind === "assistantHistory" && item.rows.includes(message),
+      ),
     ).toBe(true);
-    expect(html).not.toContain(`data-row-id="${message.rowId}"`);
+    expect(html).toContain(`data-row-id="${message.rowId}"`);
+    expect(html).toContain('data-tool-call-id="tool-4"');
+    expect(html).not.toContain('data-tool-call-id="cua:');
   });
 
-  it("groups response reasoning and counts only reasoning visible under the existing setting", () => {
+  it("groups response reasoning and uses the unified summary instead of CUA events", () => {
     const responseId = "assistant-response-cua-reasoning";
     const firstReasoning: ReasoningRow = {
       ...reasoningRow(),
@@ -416,10 +427,16 @@ describe("ConversationTurnGroup layout", () => {
     const hiddenHtml = renderUnit(hiddenUnit!, { messageStreamShowReasoning: false });
     const visibleHtml = renderUnit(hiddenUnit!, { messageStreamShowReasoning: true });
 
-    expect(hiddenUnit?.flowItems.map((item) => item.kind)).toContain("cuaGroup");
-    expect(hiddenHtml).toContain("3 个事件, 1 条消息");
-    expect(hiddenHtml).not.toContain("4 个事件");
-    expect(visibleHtml).toContain("4 个事件, 1 条消息");
+    expect(hiddenUnit?.flowItems.map((item) => item.kind)).not.toContain("cuaGroup");
+    // 隐藏 reasoning 时只剩 CUA 工具是摘要项；正文是边界，工具单独成行。
+    expect(hiddenHtml).not.toContain("data-consecutive-summary-group");
+    expect(hiddenHtml).toContain(`data-row-id="${message.rowId}"`);
+    expect(hiddenHtml).toContain('data-tool-call-id="tool-6"');
+    // 开启思考后，连续 reasoning 以统一摘要组头展示，不再有 CUA 事件计数。
+    expect(visibleHtml).toContain("data-consecutive-summary-group");
+    expect(visibleHtml).toContain("思考");
+    expect(visibleHtml).not.toContain("3 个事件");
+    expect(visibleHtml).not.toContain("4 个事件");
   });
 
   it("does not mount an empty history collapsible after inner work projection", () => {
@@ -612,16 +629,30 @@ describe("ConversationTurnGroup message stream display settings", () => {
       messageStreamShowReasoning: scenario.showReasoning,
       messageStreamShowTodos: scenario.showTodos,
     });
+    const workRows = unit.flowItems.flatMap((item) =>
+      item.kind === "assistantHistory" || item.kind === "assistantWork" ? item.rows : [],
+    );
+    const groups = unifiedGroupRowIds(workRows, {
+      messageStreamShowReasoning: scenario.showReasoning,
+      messageStreamShowTodos: scenario.showTodos,
+      // 每轮第一条 reasoning 不受「显示思考」开关影响，与实际 render 上下文一致。
+      messageStreamFirstReasoningRowId: 3,
+    });
+    const groupedIds = groups.flat();
 
-    // 每轮第一条 reasoning 不受开关影响；后续 reasoning 只在开关开启时展示。
-    expect(html).toContain('data-row-id="3"');
-    expect(html.includes('data-row-id="6"')).toBe(scenario.showReasoning);
+    // 每轮第一条 reasoning 不受开关影响；后续 reasoning 只在开关开启时进入摘要。
+    expect(groupedIds).toContain(3);
+    expect(groupedIds.includes(6)).toBe(scenario.showReasoning);
+    // 未开启 Todo 时它被投影隐藏，不能进入摘要或结尾边界。
+    expect(groupedIds.includes(4)).toBe(scenario.todoVisible);
     expect(html.includes('data-tool-call-id="tool-4"')).toBe(scenario.todoVisible);
-    // 单个 Execute 不创建父分组，仍直接展示原始工具。
-    expect(html).toContain("tool-summary-trigger-tool-5");
+    // 摘要组只在至少两个摘要项连续时创建；单个工具仍按原行渲染。
+    expect(html.includes("data-consecutive-summary-group")).toBe(
+      groups.some((group) => group.length >= 2),
+    );
   });
 
-  it("关闭思考时跨隐藏 reasoning 合并 Explore，开启时保持原始边界", () => {
+  it("merges Explore and Run items across hidden reasoning but splits at visible reasoning groups", () => {
     const firstReasoning = reasoningRow();
     const firstExplore = toolCallRow(4, "Read", { file_path: "package.json" });
     const hiddenReasoning: ReasoningRow = {
@@ -648,19 +679,33 @@ describe("ConversationTurnGroup message stream display settings", () => {
       ...builtUnit!,
       assistantHistoryDefaultOpen: true,
     };
+    const workRows = exploreUnit.flowItems.flatMap((item) =>
+      item.kind === "assistantHistory" || item.kind === "assistantWork" ? item.rows : [],
+    );
+
+    expect(
+      unifiedGroupRowIds(workRows, {
+        messageStreamShowReasoning: false,
+        messageStreamFirstReasoningRowId: 3,
+      }),
+    ).toEqual([[3, 4, 6]]);
+    expect(unifiedGroupRowIds(workRows, { messageStreamShowReasoning: true })).toEqual([
+      [3, 4, 5, 6],
+    ]);
 
     const hiddenReasoningHtml = renderUnit(exploreUnit, {
       messageStreamShowReasoning: false,
     });
-    expect(hiddenReasoningHtml).toContain('data-tool-call-id="explore:tool-4"');
-    expect(hiddenReasoningHtml).not.toContain('data-row-id="5"');
+    expect(hiddenReasoningHtml).toContain("data-consecutive-summary-group");
+    expect(hiddenReasoningHtml).toContain("已查阅 1 项，已执行 1 命令");
+    expect(hiddenReasoningHtml).not.toContain('data-tool-call-id="explore:tool-4"');
 
     const visibleReasoningHtml = renderUnit(exploreUnit, {
       messageStreamShowReasoning: true,
     });
-    expect(visibleReasoningHtml).toContain('data-tool-call-id="tool-4"');
-    expect(visibleReasoningHtml).toContain('data-tool-call-id="tool-6"');
-    expect(visibleReasoningHtml).toContain('data-row-id="5"');
+    expect(visibleReasoningHtml).toContain("data-consecutive-summary-group");
+    expect(visibleReasoningHtml).toContain("已查阅 1 项，已执行 1 命令");
+    expect(visibleReasoningHtml).not.toContain('data-tool-call-id="tool-4"');
   });
 });
 
@@ -1094,7 +1139,7 @@ describe("ConversationTurnGroup assistant history status", () => {
     expect(html).toContain("flaky-test-triage");
   });
 
-  it("在 background result 的 history 兼容路径保留 CUA Group 内 Assistant message 事件", () => {
+  it("在 background result 的 history 兼容路径保留 CUA 行与 Assistant message", () => {
     const responseId = "background-cua-response";
     const reasoning = {
       ...reasoningRow(),
@@ -1126,10 +1171,11 @@ describe("ConversationTurnGroup assistant history status", () => {
       }),
     );
 
-    // 折叠态不挂载详情正文；计数同时包含 reasoning 与 message，证明兼容路径没有退化为仅 child tools。
-    // CuaGroupToolCallBlock 的 forceOpen 测试另行覆盖详情正文渲染。
-    expect(html).toContain("3 个事件, 1 条消息");
-    expect(html).not.toContain("1 个事件");
+    // 兼容路径不再合成 CUA 父分组：思考、正文与 CUA 工具按原始行展示。
+    expect(html).toContain(`data-row-id="${reasoning.rowId}"`);
+    expect(html).toContain(`data-row-id="${message.rowId}"`);
+    expect(html).toContain('data-tool-call-id="tool-5"');
+    expect(html).not.toContain("个事件");
   });
 
   it("旧 background result 缺少结构化标题时保持耗时折叠兼容分支", () => {

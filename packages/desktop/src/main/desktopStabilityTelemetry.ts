@@ -1,5 +1,5 @@
 /* eslint-disable max-lines -- 稳定性上报集中单模块，拆分反而增加跨文件状态同步 */
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import armsRum from "@arms/rum-electron";
 import { BrowserWindow, type WebContents } from "electron";
 import {
@@ -10,6 +10,14 @@ import {
   type HostAgentProcessReadyResponse,
   type HostAgentProcessSpawnedResponse,
 } from "@nibi/shared";
+import {
+  classifyDiagnosticText,
+  classifyExit,
+  fingerprintCrash,
+  parseStderrDiagnostics,
+  sanitizeDiagnosticText,
+  type DiagnosticClass,
+} from "@nibi/shared/crash-diagnostics";
 import type { CrashCapturePaths } from "./desktopCrashCapture.js";
 import { registerCrashEventMonitor as registerBaseCrashEventMonitor } from "./desktopCrashCapture.js";
 import { getResourceManagerWindowId } from "./resourceManagerWindow.js";
@@ -23,21 +31,6 @@ export const STABILITY_TELEMETRY_SCHEMA_VERSION = 2;
 const WINDOWS_CONTROLLED_TERMINATION_EXIT_CODE = 0x40010004;
 const AGENT_EXCEPTION_DEDUP_CAPACITY = 1024;
 const reportedAgentExceptions = new Set<string>();
-
-const AGENT_CRASH_SENSITIVE_ASSIGNMENT_PATTERN =
-  /(["']?(?:api[-_]?key|authorization|cookie|credential|password|secret|token)["']?\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;}]+)/gi;
-const AGENT_CRASH_AUTH_SCHEME_PATTERN = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/gi;
-const AGENT_CRASH_API_KEY_PATTERN = /\b(sk-)[A-Za-z0-9_-]{16,}\b/gi;
-const AGENT_CRASH_UUID_PATTERN =
-  /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi;
-const AGENT_CRASH_STACK_LOCATION_PATTERN = /:\d+:\d+/g;
-const AGENT_CRASH_POSIX_HOME_PATTERN = /\/(?:Users|home)\/[^/\s"'`()[\]{}<>]+/g;
-const AGENT_CRASH_WINDOWS_HOME_PATTERN = /\b[A-Za-z]:[\\/]+Users[\\/]+[^\\/\s"'`()[\]{}<>]+/gi;
-const AGENT_CRASH_WINDOWS_ABSOLUTE_PATH_PATTERN =
-  /\b[A-Za-z]:[\\/](?:[^\\/\s"'`()[\]{}<>:]+[\\/])*[^\\/\s"'`()[\]{}<>:]+/g;
-const AGENT_CRASH_POSIX_ABSOLUTE_PATH_PATTERN =
-  /\/(?:[^/\s"'`()[\]{}<>:]+\/)*[^/\s"'`()[\]{}<>:]+/g;
-const AGENT_CRASH_KNOWN_PATH_PLACEHOLDER_PATTERN = /<(?:workspace|home)>[^\s"'`()[\]{}<>]*/g;
 
 export type StabilityLifecycleScene = "cold_start" | "runtime" | "app_quit" | "update_install";
 
@@ -80,7 +73,7 @@ export type StabilityProcessRole =
 
 export type AgentCrashPhase = "startup" | "runtime" | "unknown";
 export type AgentTerminationClass = "exit_zero" | "exit_nonzero" | "signal" | "unknown";
-export type AgentDiagnosticClass = "oom" | "sqlite" | "errno" | "generic" | "none";
+export type AgentDiagnosticClass = DiagnosticClass;
 
 interface StabilityLogger {
   info: (...args: unknown[]) => void;
@@ -177,126 +170,13 @@ function resolveStabilityMetricValue(
   }
 }
 
-function truncateAgentCrashDetail(value: string): string {
-  return value.length > AGENT_CRASH_ERROR_DETAIL_MAX_LENGTH
-    ? value.slice(0, AGENT_CRASH_ERROR_DETAIL_MAX_LENGTH)
-    : value;
-}
-
-function redactRemainingAbsolutePaths(value: string): string {
-  const protectedPaths: string[] = [];
-  const protectedValue = value.replace(AGENT_CRASH_KNOWN_PATH_PLACEHOLDER_PATTERN, (match) => {
-    const index = protectedPaths.push(match) - 1;
-    return `NIBI_REDACTED_PATH_${index}_TOKEN`;
-  });
-  const redacted = protectedValue
-    .replace(AGENT_CRASH_WINDOWS_ABSOLUTE_PATH_PATTERN, "<path>")
-    .replace(AGENT_CRASH_POSIX_ABSOLUTE_PATH_PATTERN, "<path>");
-  return protectedPaths.reduce(
-    (result, protectedPath, index) =>
-      result.replace(`NIBI_REDACTED_PATH_${index}_TOKEN`, protectedPath),
-    redacted,
-  );
-}
-
+// 修复原因：Host reporter 不是唯一输入边界，main 在发送 RUM 前必须再次遮盖路径与裸 key；
+// 脱敏实现已收敛到 shared，两处退出路径共用同一份规则。
 function sanitizeAgentCrashDetail(value: string, workspacePath: string): string {
-  const withoutWorkspace = workspacePath ? value.split(workspacePath).join("<workspace>") : value;
-  return truncateAgentCrashDetail(
-    redactRemainingAbsolutePaths(
-      withoutWorkspace
-        .replace(AGENT_CRASH_WINDOWS_HOME_PATTERN, "<home>")
-        .replace(AGENT_CRASH_POSIX_HOME_PATTERN, "<home>"),
-    )
-      .replace(AGENT_CRASH_SENSITIVE_ASSIGNMENT_PATTERN, "$1<redacted>")
-      .replace(AGENT_CRASH_AUTH_SCHEME_PATTERN, "$1 <redacted>")
-      // 修复原因：Host reporter 不是唯一输入边界，main 在发送 RUM 前必须再次遮盖裸 key。
-      .replace(AGENT_CRASH_API_KEY_PATTERN, "$1<redacted>"),
-  );
-}
-
-function normalizeAgentCrashFingerprintSource(value: string): string {
-  return value
-    .replace(/\\/g, "/")
-    .replace(AGENT_CRASH_UUID_PATTERN, "<uuid>")
-    .replace(AGENT_CRASH_STACK_LOCATION_PATTERN, ":<line>:<column>")
-    .replace(/\bpid\s*[:=]\s*\d+\b/gi, "pid=<pid>")
-    .replace(AGENT_CRASH_WINDOWS_ABSOLUTE_PATH_PATTERN, "<path>")
-    .replace(AGENT_CRASH_POSIX_ABSOLUTE_PATH_PATTERN, "<path>")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 1_000);
-}
-
-function normalizeAgentDiagnosticSummary(value: string): string {
-  return truncateAgentCrashDetail(value.replace(/\\/g, "/").trim());
-}
-
-function isAgentDiagnosticNoise(line: string): boolean {
-  return (
-    /\[Object\]/i.test(line) ||
-    /^node:(?:events|internal)\b/i.test(line) ||
-    /^at\s+/i.test(line) ||
-    /^\d+:\s*0x[0-9a-f]+\b/i.test(line) ||
-    /^\[\d+:0x[0-9a-f]+\]/i.test(line) ||
-    /^<---.*--->$/.test(line) ||
-    /^-+\s*(?:Native stack trace|JS stacktrace)\s*-+$/i.test(line) ||
-    /^\(node:\d+\)\s*ExperimentalWarning:/i.test(line) ||
-    /^\(Use `.*--trace-warnings.*\)$/i.test(line) ||
-    /^(?:throw er;|Emitted ['"]error['"] event on .* instance at:)$/i.test(line) ||
-    /^[}\]]\s*,?$/.test(line) ||
-    /^(?:\{|\[)$/.test(line) ||
-    /^["']?[\w-]+["']?\s*:\s*(?:\{|\[)$/.test(line) ||
-    /^["']?code["']?\s*:\s*["'][A-Z0-9_]+["'],?$/i.test(line)
-  );
-}
-
-function extractAgentErrorCode(value: string): string {
-  const explicit = value.match(/\bcode:\s*["']?([A-Z][A-Z0-9_]+)\b/i)?.[1]?.toUpperCase();
-  if (explicit && explicit !== "ERROR") {
-    return explicit;
-  }
-  return (
-    value
-      .match(/\b(?:[A-Z]+_ERR_[A-Z0-9_]+|ERR_[A-Z0-9_]+|SQLITE_[A-Z0-9_]+|E[A-Z0-9_]{2,})\b/g)
-      ?.find((candidate) => candidate !== "ERROR") ?? ""
-  );
-}
-
-function isErrnoCode(errorCode: string): boolean {
-  return /^E[A-Z0-9_]{2,}$/.test(errorCode) && !errorCode.startsWith("ERR_");
-}
-
-function isSqliteDiagnostic(value: string, errorCode: string): boolean {
-  return (
-    /^SQLITE_/i.test(errorCode) ||
-    /\bSQLiteError\b|\bSQLite\s+(?:migration|database|initialization|lock)\b|\bdatabase (?:is locked|disk image is malformed)\b/i.test(
-      value,
-    )
-  );
-}
-
-function classifyAgentDiagnostic(
-  value: string,
-  errorCode: string,
-  hasUsefulSummary: boolean,
-): AgentDiagnosticClass {
-  if (/\b(?:JavaScript heap out of memory|Reached heap limit)\b/i.test(value)) {
-    return "oom";
-  }
-  if (isSqliteDiagnostic(value, errorCode)) {
-    return "sqlite";
-  }
-  if (isErrnoCode(errorCode)) {
-    return "errno";
-  }
-  return hasUsefulSummary ? "generic" : "none";
-}
-
-function createAgentCrashFingerprint(parts: string[]): string {
-  return createHash("sha256")
-    .update(parts.map(normalizeAgentCrashFingerprintSource).join("|"))
-    .digest("hex")
-    .slice(0, 16);
+  return sanitizeDiagnosticText(value, {
+    workspacePath,
+    maxLength: AGENT_CRASH_ERROR_DETAIL_MAX_LENGTH,
+  });
 }
 
 function parseAgentStderrDiagnostic(event: HostAgentProcessExitedResponse): {
@@ -311,56 +191,21 @@ function parseAgentStderrDiagnostic(event: HostAgentProcessExitedResponse): {
     event.stderrTail?.join("\n") ?? "",
     event.workspacePath,
   );
-  const lines = errorStack
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-  // Bug 根因：旧逻辑把 stderr 第一条非空行当摘要，实际数据中的 [Object]、GC 标题和
-  // native 地址因此盖过真正的 OOM / SQLite / errno。先排结构噪音，再按诊断确定性选行。
-  const usefulLines = lines.filter((line) => !isAgentDiagnosticNoise(line));
-  const oomLine = usefulLines.find((line) =>
-    /\b(?:JavaScript heap out of memory|Reached heap limit)\b/i.test(line),
-  );
-  const stackErrorCode = extractAgentErrorCode(errorStack);
-  const sqliteLine = usefulLines.find(
-    (line) => !/ExperimentalWarning:/i.test(line) && isSqliteDiagnostic(line, stackErrorCode),
-  );
-  const errnoLine = usefulLines.find((line) => isErrnoCode(extractAgentErrorCode(line)));
-  const errorLine =
-    oomLine ??
-    sqliteLine ??
-    errnoLine ??
-    usefulLines.find((line) => /^(?:[A-Za-z_$][\w$]*Error|Error):\s*/.test(line)) ??
-    usefulLines.find((line) => /\b(?:Exception|fatal|panic|process exited)\b/i.test(line)) ??
-    usefulLines[0];
-  const errorMatch = errorLine?.match(/^([A-Za-z_$][\w$]*Error|Error):\s*(.*)$/);
-  const errorName = oomLine ? "AgentOutOfMemory" : (errorMatch?.[1] ?? "AgentProcessExit");
+  // 旧逻辑把 stderr 第一条非空行当摘要，[Object]、GC 标题和 native 地址会盖过真正的
+  // OOM / SQLite / errno。去噪、主诊断选择和去重已收敛到 shared 的
+  // parseStderrDiagnostics，Desktop 只保留退出事件自身的 fallback 文案。
+  const parsed = parseStderrDiagnostics(errorStack);
   const fallbackMessage = `Agent process exited unexpectedly (code=${event.exitCode ?? "null"}, signal=${event.signal ?? "null"})`;
-  const errorMessage = normalizeAgentDiagnosticSummary(
-    (oomLine ? oomLine.replace(/^FATAL ERROR:\s*/i, "") : errorMatch?.[2]?.trim()) ||
-      errorLine ||
-      fallbackMessage,
-  );
-  const errorCode = oomLine
-    ? "ERR_OUT_OF_MEMORY"
-    : extractAgentErrorCode(`${errorMessage}\n${errorStack}`);
-  const diagnosticClass = classifyAgentDiagnostic(
-    `${errorMessage}\n${errorStack}`,
-    errorCode,
-    errorLine != null,
-  );
+  const errorMessage = parsed.errorMessage ?? fallbackMessage;
   return {
-    errorName,
-    errorCode,
+    errorName: parsed.errorName,
+    errorCode: parsed.errorCode,
     errorMessage,
     errorStack,
-    diagnosticClass,
-    errorFingerprint: createAgentCrashFingerprint([
-      errorName,
-      errorCode,
-      errorMessage,
-      lines.find((line) => line.startsWith("at ")) ?? "",
-    ]),
+    diagnosticClass: parsed.diagnosticClass,
+    errorFingerprint: fingerprintCrash({
+      parts: [parsed.errorName, parsed.errorCode, errorMessage, parsed.firstStackFrame],
+    }),
   };
 }
 
@@ -376,7 +221,7 @@ function parseAgentSpawnDiagnostic(event: HostAgentProcessErrorResponse): {
   const errorCode = event.errorCode ?? "";
   const errorMessage = sanitizeAgentCrashDetail(event.errorMessage, event.workspacePath);
   const errorStack = sanitizeAgentCrashDetail(event.errorStack ?? "", event.workspacePath);
-  const diagnosticClass = classifyAgentDiagnostic(
+  const diagnosticClass = classifyDiagnosticText(
     `${errorMessage}\n${errorStack}`,
     errorCode,
     Boolean(errorMessage),
@@ -387,12 +232,12 @@ function parseAgentSpawnDiagnostic(event: HostAgentProcessErrorResponse): {
     errorMessage,
     errorStack,
     diagnosticClass,
-    errorFingerprint: createAgentCrashFingerprint([
-      errorName,
-      errorCode,
-      errorMessage,
-      errorStack.split(/\r?\n/).find((line) => line.trim().startsWith("at ")) ?? "",
-    ]),
+    errorFingerprint: fingerprintCrash({
+      name: errorName,
+      code: errorCode,
+      message: errorMessage,
+      stack: errorStack,
+    }),
   };
 }
 
@@ -494,11 +339,10 @@ export function reportAgentProcessExceptionToArms(
         runtime_generation: event.runtimeGeneration,
         provider: event.provider,
         lane: event.lane,
-        error_fingerprint: createAgentCrashFingerprint([
-          name,
-          message,
-          stack?.split(/\r?\n/).find((line) => line.trim().startsWith("at ")) ?? "",
-        ]),
+        // 异常事件没有 errorCode 维度，保留既有三字段指纹以维持 RUM 可比性。
+        error_fingerprint: fingerprintCrash({
+          parts: [name, message, stack?.split(/\r?\n/).find((line) => line.trim().startsWith("at ")) ?? ""],
+        }),
         app_version: globalContext.appVersion,
         arms_env: globalContext.armsEnv,
         device_mid: globalContext.deviceMid,
@@ -658,9 +502,17 @@ export function mapRenderProcessGoneToCrashKind(
   return classifyRenderProcessCrash(input)?.crashKind ?? null;
 }
 
-function mapExitReasonToCrashKind(reason: string): StabilityCrashKind {
+function mapExitReasonToCrashKind(reason: string, exitCode?: number): StabilityCrashKind {
   // Electron 的 renderer/child gone 回调共用这组退出原因，OOM 不能因进程来源不同而被归为 native。
-  return reason === "oom" || reason === "memory-eviction" ? "oom" : "native";
+  return classifyExit({
+    reason,
+    exitCode,
+    // Electron 的 clean-exit 是明确预期事实；其余 reason 都按非预期退出处理，
+    // 保持旧逻辑对未知 reason + 0 退出码仍归为 crash 的行为。
+    expected: reason === "clean-exit",
+  }) === "oom"
+    ? "oom"
+    : "native";
 }
 
 function mapExitReasonToCrashCause(reason: string): StabilityCrashCause {
@@ -687,11 +539,16 @@ function mapExitReasonToCrashCause(reason: string): StabilityCrashCause {
 export function classifyRenderProcessCrash(
   input: RenderProcessGoneInput,
 ): StabilityCrashClassification | null {
-  if (input.reason === "killed" || input.reason === "clean-exit") {
+  const exitCategory = classifyExit({
+    reason: input.reason,
+    exitCode: input.exitCode,
+    expected: input.reason === "clean-exit",
+  });
+  if (exitCategory === "normal" || exitCategory === "killed") {
     return null;
   }
   return {
-    crashKind: mapExitReasonToCrashKind(input.reason),
+    crashKind: mapExitReasonToCrashKind(input.reason, input.exitCode),
     crashScope:
       input.webContentsType === "webview"
         ? "embedded_webview"
@@ -733,7 +590,12 @@ function mapChildProcessGoneToProcessRoleWithName(
 }
 
 export function shouldReportChildProcessGoneAsCrash(input: ChildProcessGoneInput): boolean {
-  if (input.reason === "killed" || input.reason === "clean-exit") {
+  const exitCategory = classifyExit({
+    reason: input.reason,
+    exitCode: input.exitCode,
+    expected: input.reason === "clean-exit",
+  });
+  if (exitCategory === "normal" || exitCategory === "killed") {
     return false;
   }
 
@@ -1069,7 +931,12 @@ export function registerDesktopStabilityMonitors(
       // Host 归为 utility，导致 Host 异常退出走 recoverable_child_crash 而不是 perf_crash。
       const processName = details.serviceName?.trim() || details.name?.trim() || "";
       const role = mapChildProcessGoneToProcessRoleWithName(details.type, processName);
-      if (details.reason === "killed" || details.reason === "clean-exit") {
+      const exitCategory = classifyExit({
+        reason: details.reason,
+        exitCode: details.exitCode,
+        expected: details.reason === "clean-exit",
+      });
+      if (exitCategory === "normal" || exitCategory === "killed") {
         reportPerfProcessExit(logger, {
           exit_code: details.exitCode,
           exit_reason: details.reason,
@@ -1090,7 +957,7 @@ export function registerDesktopStabilityMonitors(
       } else {
         reportPerfCrash(
           {
-            crashKind: mapExitReasonToCrashKind(details.reason),
+            crashKind: mapExitReasonToCrashKind(details.reason, details.exitCode),
             crashScope: role === "host" ? "host" : "child",
             crashCause: mapExitReasonToCrashCause(details.reason),
           },

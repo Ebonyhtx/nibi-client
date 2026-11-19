@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "fixtures": [
+    {
+      "id": "tier2-ui-batch-text-title",
+      "description": "Tier 2 UI batch evidence: stable title for the plain-text annotation turn.",
+      "metadata": {
+        "kind": "common",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "标题与注释证据无关；固定标题让截图与侧栏标签稳定。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "E2E_TIER2_UI_BATCH_TEXT",
+          "Generate a concise title"
+        ],
+        "bodyExcludes": [
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "statusMessage": "OK",
+        "text": {
+          "id": "msg_tier2_ui_batch_text_title",
+          "text": "{\"title\":\"Tier2 UI Batch\"}",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "tier2-ui-batch-text-title-cli",
+      "description": "Tier 2 UI batch evidence: title prompt variant used when the CLI asks for title-language compliance.",
+      "metadata": {
+        "kind": "common",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "同一标题的兼容匹配；不影响注释链路。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "E2E_TIER2_UI_BATCH_TEXT",
+          "Write the title in the predominant language"
+        ],
+        "bodyExcludes": [
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "statusMessage": "OK",
+        "text": {
+          "id": "msg_tier2_ui_batch_text_title_cli",
+          "text": "{\"title\":\"Tier2 UI Batch\"}",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "tier2-ui-batch-plain-text",
+      "description": "Tier 2 UI batch evidence: plain assistant paragraph so U04 can select real text and annotate it.",
+      "metadata": {
+        "kind": "common",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "注释证据只需要一段可框选的正文；选择与保存都走真实 UI。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "lastUserMessageIncludes": [
+          "E2E_TIER2_UI_BATCH_TEXT"
+        ],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "statusMessage": "OK",
+        "text": {
+          "id": "msg_tier2_ui_batch_plain_text",
+          "text": "TIER2_UI_BATCH_ANNOTATION_TEXT. The unified summary group keeps every tool call visible, and this sentence is the anchor for the selection annotation evidence.",
+          "outputTokens": 32
+        }
+      }
+    }
+  ]
+}

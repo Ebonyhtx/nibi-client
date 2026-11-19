@@ -20,6 +20,7 @@ import type {
 } from "../interfaces/session-store.port.js";
 import type {
   CollaborationMode,
+  PendingInputEditLock,
   RiskLevel,
   TurnInputIntentMetadata,
   TurnSteerCommandKind,
@@ -355,9 +356,7 @@ export interface BackgroundResultOriginMeta {
  */
 export type TurnExecutionKind = "agent" | "controlOnly";
 
-export type TurnBackgroundAttribution =
-  | { automationId: string }
-  | { automationId?: undefined };
+export type TurnBackgroundAttribution = { automationId: string } | { automationId?: undefined };
 
 /**
  * 中枢直接启动已保存工作流的启动轮元数据。同一份同时写进 user message 的 `metadata`（冷恢复来源）与 `TurnStarted`
@@ -541,6 +540,13 @@ export interface TurnSteerQueuedPayload {
   targetTurnId: TurnId;
   queueLength: number;
   intent?: TurnInputIntentMetadata;
+  /**
+   * v4 queue 编辑锁。同 id 重发 queued 事件是 queue 原地更新的唯一通道：
+   * - 缺省：旧事件，不改动已有锁；
+   * - 对象：加锁/刷新锁持有者；
+   * - null：显式释放（编辑成功或用户释放），冷重放必须清掉锁。
+   */
+  editLock?: PendingInputEditLock | null;
 }
 
 export interface TurnSteerDeliveryChangedPayload {

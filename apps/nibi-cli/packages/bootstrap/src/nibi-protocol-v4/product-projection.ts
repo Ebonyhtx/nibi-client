@@ -414,7 +414,6 @@ interface FileToolInputPreviewState {
   pendingAppend: string;
 }
 
-
 type TurnModelBaseline =
   | { kind: "silentInitial" }
   | { kind: "sourceLess" }
@@ -1038,13 +1037,13 @@ export class ProductProjection {
       event.type === SessionEventType.AssistantFeedbackUpdated
         ? this.onAssistantFeedbackUpdated(event)
         : (() => {
-                const fact = normalizeConversationEvent(event, {
-                  productTurnId,
-                  openAssistantSegments: this.openAssistantSegments(),
-                });
-                this.normalizationDiagnostics.push(...fact.diagnostics);
-                return this.reduce(fact);
-              })();
+            const fact = normalizeConversationEvent(event, {
+              productTurnId,
+              openAssistantSegments: this.openAssistantSegments(),
+            });
+            this.normalizationDiagnostics.push(...fact.diagnostics);
+            return this.reduce(fact);
+          })();
     const subagentDeltas = this.shouldMaterializeSubagentProjection(reduced)
       ? this.materializeSubagentProjection(reduced)
       : [];
@@ -2292,12 +2291,7 @@ export class ProductProjection {
       // turn 终态一并收口在飞的 foreground tool row（收口不变量：被 profile
       // 过滤的 inputText 流必须被不可过滤的 row.upserted 蕴含，见 profiles.ts）。
       ...this.closeOpenToolRows(event, payload.resultType === "cancelled" ? "cancelled" : "error"),
-      ...this.upsertTurnHeader(
-        event,
-        headerState,
-        activeMs,
-        payload.historyRoundCount,
-      ),
+      ...this.upsertTurnHeader(event, headerState, activeMs, payload.historyRoundCount),
       ...(payload.resultType === "success" ? this.markStableForkAssistant(event) : []),
       {
         op: "state.updated",
@@ -2380,12 +2374,7 @@ export class ProductProjection {
     return [
       ...this.closeStreamingRows("interrupted"),
       ...this.closeOpenToolRows(event, "error"),
-      ...this.upsertTurnHeader(
-        event,
-        "failed",
-        undefined,
-        undefined,
-      ),
+      ...this.upsertTurnHeader(event, "failed", undefined, undefined),
       {
         op: "state.updated",
         patch: this.controlPatch(
@@ -3554,6 +3543,7 @@ export class ProductProjection {
       payload.intent?.requestedDelivery ?? existing?.delivery.requested ?? admittedDelivery;
     const fallbackReasonCode =
       payload.intent?.fallbackReasonCode ?? existing?.delivery.fallbackReasonCode;
+    const editLock = "editLock" in payload ? (payload.editLock ?? undefined) : existing?.editLock;
     const nextItem: QueueItem = {
       queueItemId,
       kind:
@@ -3613,6 +3603,8 @@ export class ProductProjection {
               : { state: "notRequested" },
       dispatch: { state: "queued" },
       ...(payload.toolDisallowlist ? { toolDisallowlist: [...payload.toolDisallowlist] } : {}),
+      // 编辑锁：字段缺省 = 旧事件/普通入队（保留现有锁）；null = 显式释放。
+      ...(editLock ? { editLock } : {}),
       admittedAt: payload.intent?.admittedAt ?? existing?.admittedAt ?? this.ms(event),
     };
     // 投递语义侧表：payload 未带（旧 runtime 事件）时按当前 followupMode 兜底。

@@ -54,6 +54,8 @@ function makeApp(overrides: Record<string, unknown> = {}) {
     releaseQueueItemReservation: vi.fn().mockResolvedValue(true),
     removeQueueItem: vi.fn().mockResolvedValue(true),
     editQueueItem: vi.fn().mockResolvedValue(true),
+    lockQueueItemEdit: vi.fn().mockResolvedValue(true),
+    releaseQueueItemEdit: vi.fn().mockResolvedValue(true),
     reorderQueueItem: vi.fn().mockResolvedValue(true),
     setQueueAutoDrain: vi.fn().mockResolvedValue(undefined),
     setFollowupMode: vi.fn().mockResolvedValue(undefined),
@@ -263,7 +265,7 @@ describe("v4 原生 queue 单项命令", () => {
     await new V4CommandExecutor(makeHost(record)).execute(
       envelope("editQueueItem", { queueItemId: "q-1", newText: "改后文本" }),
     );
-    expect(app.editQueueItem).toHaveBeenCalledWith("q-1", "改后文本");
+    expect(app.editQueueItem).toHaveBeenCalledWith("q-1", "改后文本", {});
   });
 
   it("editQueueItem：typed compact 不可编辑，避免 kind 与可见文本分裂", async () => {
@@ -280,6 +282,141 @@ describe("v4 原生 queue 单项命令", () => {
       ),
     ).rejects.toBeInstanceOf(V4QueueItemNotEditableError);
     expect(app.editQueueItem).not.toHaveBeenCalled();
+  });
+
+  it("lockQueueItemEdit：直驱 app.lockQueueItemEdit，带 clientId 与项来源", async () => {
+    const app = makeApp();
+    const record = makeRecord({ app });
+    const host = makeHost(record, {
+      getQueueItem: vi.fn().mockReturnValue(queueItem({ inputOrigin: "mobile" })),
+    });
+    await new V4CommandExecutor(host).execute(
+      envelope("lockQueueItemEdit", { queueItemId: "q-1", editorId: "editor-a" }),
+    );
+    expect(app.lockQueueItemEdit).toHaveBeenCalledWith("q-1", {
+      editorId: "editor-a",
+      clientId: "cli",
+      inputOrigin: "mobile",
+    });
+  });
+
+  it("lockQueueItemEdit：已加锁 / 已 reserve 都拒绝", async () => {
+    const app = makeApp();
+    const record = makeRecord({ app });
+    const lockedHost = makeHost(record, {
+      getQueueItem: vi
+        .fn()
+        .mockReturnValue(queueItem({ editLock: { editorId: "editor-b", clientId: "mobile" } })),
+    });
+    await expect(
+      new V4CommandExecutor(lockedHost).execute(
+        envelope("lockQueueItemEdit", { queueItemId: "q-1", editorId: "editor-a" }),
+      ),
+    ).rejects.toMatchObject({ reasonCode: "guard.queueItemEditLocked" });
+    const reservedHost = makeHost(record, {
+      getQueueItem: vi
+        .fn()
+        .mockReturnValue(queueItem({ dispatch: { state: "reserved", reservationId: "r1" } })),
+    });
+    await expect(
+      new V4CommandExecutor(reservedHost).execute(
+        envelope("lockQueueItemEdit", { queueItemId: "q-1", editorId: "editor-a" }),
+      ),
+    ).rejects.toMatchObject({ reasonCode: "guard.queueItemReserved" });
+    expect(app.lockQueueItemEdit).not.toHaveBeenCalled();
+  });
+
+  it("releaseQueueItemEdit：任意状态释放，成功后重新评估 auto-drain", async () => {
+    const app = makeApp();
+    const record = makeRecord({ app });
+    const host = makeHost(record, {
+      getQueueItem: vi.fn().mockReturnValue(
+        queueItem({
+          dispatch: { state: "reserved", reservationId: "r1" },
+          editLock: { editorId: "editor-b", clientId: "mobile" },
+        }),
+      ),
+    });
+    await new V4CommandExecutor(host).execute(
+      envelope("releaseQueueItemEdit", { queueItemId: "q-1" }),
+    );
+    expect(app.releaseQueueItemEdit).toHaveBeenCalledWith("q-1");
+    expect(host.legacyMutations).toContain("queue_edit_lock_released");
+  });
+
+  it("编辑锁：editQueueItem 必须匹配 editorId，成功后释放", async () => {
+    const app = makeApp();
+    const record = makeRecord({ app });
+    const host = makeHost(record, {
+      getQueueItem: vi
+        .fn()
+        .mockReturnValue(queueItem({ editLock: { editorId: "editor-a", clientId: "desktop" } })),
+    });
+    const executor = new V4CommandExecutor(host);
+    await expect(
+      executor.execute(
+        envelope("editQueueItem", {
+          queueItemId: "q-1",
+          newText: "legacy",
+        }),
+      ),
+    ).rejects.toMatchObject({ reasonCode: "guard.queueItemEditLocked" });
+    await expect(
+      executor.execute(
+        envelope("editQueueItem", {
+          queueItemId: "q-1",
+          newText: "stolen",
+          editorId: "editor-b",
+        }),
+      ),
+    ).rejects.toMatchObject({ reasonCode: "guard.queueEditLockLost" });
+    await executor.execute(
+      envelope("editQueueItem", {
+        queueItemId: "q-1",
+        newText: "mine",
+        editorId: "editor-a",
+      }),
+    );
+    expect(app.editQueueItem).toHaveBeenCalledWith("q-1", "mine", { editorId: "editor-a" });
+    expect(host.legacyMutations).toContain("queue_edit_lock_released");
+  });
+
+  it("编辑锁：带 editorId 但锁已不存在 → queue.editLockMissing", async () => {
+    const app = makeApp();
+    const record = makeRecord({ app });
+    await expect(
+      new V4CommandExecutor(makeHost(record)).execute(
+        envelope("editQueueItem", {
+          queueItemId: "q-1",
+          newText: "lost",
+          editorId: "editor-a",
+        }),
+      ),
+    ).rejects.toMatchObject({ reasonCode: "queue.editLockMissing" });
+    expect(app.editQueueItem).not.toHaveBeenCalled();
+  });
+
+  it("编辑锁：delete / reorder / sendQueuedNow 拒绝加锁项", async () => {
+    const app = makeApp();
+    const record = makeRecord({ app });
+    const host = makeHost(record, {
+      getQueueItem: vi
+        .fn()
+        .mockReturnValue(queueItem({ editLock: { editorId: "editor-a", clientId: "desktop" } })),
+    });
+    const executor = new V4CommandExecutor(host);
+    for (const command of [
+      envelope("deleteQueueItem", { queueItemId: "q-1" }),
+      envelope("reorderQueueItem", { queueItemId: "q-1", beforeQueueItemId: null }),
+      envelope("sendQueuedNow", { queueItemId: "q-1" }),
+    ]) {
+      await expect(executor.execute(command)).rejects.toMatchObject({
+        reasonCode: "guard.queueItemEditLocked",
+      });
+    }
+    expect(app.removeQueueItem).not.toHaveBeenCalled();
+    expect(app.reorderQueueItem).not.toHaveBeenCalled();
+    expect(app.reserveQueueItem).not.toHaveBeenCalled();
   });
 
   it("reorderQueueItem：beforeQueueItemId 直传（null=队尾）", async () => {
@@ -337,6 +474,7 @@ describe("v4 普通 queue 自动消费 goal gate", () => {
         shouldAutoDrainV4QueueHead({
           autoDrain: true,
           dispatchState: "queued",
+          editLocked: false,
           sessionBusy: false,
           targetStatus,
         }),
@@ -351,12 +489,25 @@ describe("v4 普通 queue 自动消费 goal gate", () => {
         shouldAutoDrainV4QueueHead({
           autoDrain: true,
           dispatchState: "queued",
+          editLocked: false,
           sessionBusy: false,
           targetStatus,
         }),
       ).toBe(true);
     },
   );
+
+  it("队首有编辑锁时冻结，不自动消费", () => {
+    expect(
+      shouldAutoDrainV4QueueHead({
+        autoDrain: true,
+        dispatchState: "queued",
+        editLocked: true,
+        sessionBusy: false,
+        targetStatus: null,
+      }),
+    ).toBe(false);
+  });
 });
 
 describe("v4 原生 sendQueuedNow", () => {

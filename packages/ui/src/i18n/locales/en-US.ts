@@ -61,15 +61,19 @@ const enUS: Record<string, string> = {
     "Only the sessions in this confirmed selection will be permanently deleted, including their files. This cannot be undone.",
   "archives.deletePermanently": "Delete permanently",
   "archives.preparing": "Checking what will be deleted…",
-  "archives.previewWillDelete": "{tasks} session(s) and {sessions} conversation(s) will be permanently deleted.",
-  "archives.previewWillKeep": "Kept: {forks} forked session(s) and {artifacts} referenced artifact(s).",
+  "archives.previewWillDelete":
+    "{tasks} session(s) and {sessions} conversation(s) will be permanently deleted.",
+  "archives.previewWillKeep":
+    "Kept: {forks} forked session(s) and {artifacts} referenced artifact(s).",
   "archives.previewCannotDelete": "Cannot delete {count} session(s): {reasons}.",
   "archives.previewBlocked.running": "in use",
   "archives.previewBlocked.changed": "changed since preview",
   "archives.previewBlocked.unavailable": "data unavailable",
   "archives.previewBlocked.not_found": "already removed",
-  "archives.previewIncomplete": "A previous deletion did not finish; continuing will remove the remaining data.",
-  "archives.previewCompleted": "{count} session(s) were already deleted on disk; confirming will finish local cleanup.",
+  "archives.previewIncomplete":
+    "A previous deletion did not finish; continuing will remove the remaining data.",
+  "archives.previewCompleted":
+    "{count} session(s) were already deleted on disk; confirming will finish local cleanup.",
   "archives.resumeDeletion": "Continue deletion",
   "archives.working": "Processing…",
   "archives.result":
@@ -1662,6 +1666,22 @@ const enUS: Record<string, string> = {
   "workflowDirectory.unavailable": "Workflow runs can't be listed for this conversation",
   "chat.selections.addToTask": "Add to chat",
   "chat.selections.askInSideChat": "Add in side chat",
+  "chat.selections.comment": "Annotate",
+  "chat.selections.commentPlaceholder":
+    "Add a comment (optional); it's sent to the model with this text",
+  "chat.selections.commentHint": "Can be left empty · Shift + ↵ for new line",
+  "chat.selections.commentSave": "Add annotation",
+  "chat.selections.commentAddTitle": "Add annotation · comment optional",
+  "chat.selections.commentEditTitle": "Edit annotation",
+  "chat.selections.commentEditHint": "Leave empty to keep only the quoted text",
+  "chat.selections.commentEditSave": "Save",
+  "chat.selections.commentDelete": "Delete annotation",
+  "chat.selections.commentAdd": "Add comment",
+  "chat.selections.commentDeleted": "Annotation deleted",
+  "chat.selections.commentUndo": "Undo",
+  "chat.selections.listHeader": "{count} annotations will be sent with your next message",
+  "chat.selections.listHint": "Numbers match the reply",
+  "chat.selections.removeAll": "Remove all annotations",
   "chat.selections.sideBlocked":
     "Resolve the side conversation request before adding another selection.",
   "chat.selections.count": "{count} conversation selections",
@@ -4122,13 +4142,11 @@ const enUS: Record<string, string> = {
     "JSON mode currently supports editing only one MCP server at a time.",
   "settings.mcp.form.jsonError.invalidConfig":
     "The JSON content is not a valid MCP server configuration object.",
-  "settings.mcp.form.jsonError.missingName":
-    "JSON mode requires a server name.",
+  "settings.mcp.form.jsonError.missingName": "JSON mode requires a server name.",
   "settings.mcp.form.validation.nameRequired": "Enter a server name.",
   "settings.mcp.form.validation.commandRequired": "Enter the command to start the server.",
   "settings.mcp.form.validation.urlRequired": "Enter the server URL.",
-  "settings.mcp.form.validation.urlInvalid":
-    "Invalid URL. It must start with http:// or https://.",
+  "settings.mcp.form.validation.urlInvalid": "Invalid URL. It must start with http:// or https://.",
   "settings.mcp.form.validation.timeoutInvalid":
     "Timeout must be a positive integer number of milliseconds.",
   "settings.mcp.form.validation.jsonInvalid": "Invalid JSON.",
@@ -5087,7 +5105,8 @@ const enUS: Record<string, string> = {
   "settings.plugins.marketplace.componentsError":
     "Couldn't load the component list. Showing available info only.",
   "settings.plugins.marketplace.componentsRetry": "Retry",
-  "settings.plugins.store.componentsAfterInstall": "Components are listed after the plugin is installed.",
+  "settings.plugins.store.componentsAfterInstall":
+    "Components are listed after the plugin is installed.",
   "settings.plugins.marketplace.componentsEmpty":
     "This plugin doesn't declare components, or they couldn't be read.",
   "settings.plugins.config.title": "Configuration",
@@ -5585,9 +5604,31 @@ const enUS: Record<string, string> = {
   "chat.queue.sendNow": "Steer",
   "chat.queue.runNow": "Run now",
   "chat.queue.edit": "Edit",
+  "chat.queue.editEmpty": "A queued message can't be empty.",
+  "chat.queue.editLockFailed": "Couldn't lock this queued message for editing. Try again.",
+  "chat.queue.editLockLost":
+    "The edit lock for this queued message was lost. Try editing it again.",
+  "chat.queue.editLockedByOther": "Being edited in another window or device",
+  "chat.queue.editLockedBySelf": "Editing below",
+  "chat.queue.releaseEdit": "Release",
   "chat.queue.editDraftConflict":
     "Send or clear the current draft before editing a queued message.",
   "chat.queue.editRestoreFailed": "Couldn't return the queued message to the composer. Try again.",
+  "chat.composerEdit.cancel": "Cancel",
+  "chat.composerEdit.editingBelow": "Editing below",
+  "chat.composerEdit.title.userQuery": "Editing message",
+  "chat.composerEdit.title.queueItem": "Editing queued message",
+  "chat.composerEdit.rewind": "Reset conversation and files",
+  "chat.composerEdit.invalid.notLatest":
+    "This message can no longer be edited because it isn't the latest user message.",
+  "chat.composerEdit.invalid.queueItemRemoved": "This queued message is no longer available.",
+  "chat.composerEdit.invalid.editLockLost":
+    "The edit lock for this queued message was lost. Try again.",
+  "chat.composerEdit.discardConfirm": "Discard your edits and edit another message?",
+  "chat.composerEdit.lockedByOther":
+    "This queued message is being edited in another window or device.",
+  "chat.composerEdit.empty": "The edited message can't be empty.",
+  "chat.composerEdit.submitFailed": "Couldn't save the edited message. Try again.",
   "chat.queue.remove": "Remove queued message",
   "chat.queue.turnSteer.steering": "Steering conversation",
   "chat.queue.paused.stopped": "The queue was paused because you stopped the current response",
@@ -5608,6 +5649,26 @@ const enUS: Record<string, string> = {
   "chat.modelChangeNotice.changed": "Switched from {fromModel} to {toModel}",
   "chat.preparing": "Preparing...",
   "chat.remoteGenerating": "Another device is sending a message...",
+  "chat.summaryGroup.explore.one": "Explore {count} item",
+  "chat.summaryGroup.explore.other": "Explore {count} items",
+  "chat.summaryGroup.run.one": "Run {count} command",
+  "chat.summaryGroup.run.other": "Run {count} commands",
+  "chat.summaryGroup.change.label": "Change",
+  "chat.summaryGroup.change.one": "Change {count} file",
+  "chat.summaryGroup.change.other": "Change {count} files",
+  "chat.summaryGroup.unresolved.one": "Change {count} time (path unknown)",
+  "chat.summaryGroup.unresolved.other": "Change {count} times (path unknown)",
+  "chat.summaryGroup.separator": ", ",
+  "chat.summaryGroup.reasoning": "Reasoning",
+  "chat.summaryGroup.explore.completed.one": "Explored {count} item",
+  "chat.summaryGroup.explore.completed.other": "Explored {count} items",
+  "chat.summaryGroup.run.completed.one": "Ran {count} command",
+  "chat.summaryGroup.run.completed.other": "Ran {count} commands",
+  "chat.summaryGroup.change.completed.label": "Changed",
+  "chat.summaryGroup.change.completed.one": "Changed {count} file",
+  "chat.summaryGroup.change.completed.other": "Changed {count} files",
+  "chat.summaryGroup.unresolved.completed.one": "Changed {count} time (path unknown)",
+  "chat.summaryGroup.unresolved.completed.other": "Changed {count} times (path unknown)",
   "chat.reasoning.thinking": "Thinking",
   "chat.reasoning.thought": "Thought",
   "chat.reasoning.durationFewSeconds": "a few seconds",
@@ -7125,8 +7186,7 @@ const enUS: Record<string, string> = {
     "The system is busy. Please switch models, upgrade your account, or try again later.",
   "nibi.error.providerBusiness.2007":
     "The upstream service is temporarily unavailable. Please try again later.",
-  "nibi.error.providerBusiness.429":
-    "You're sending requests too quickly. Please try again later.",
+  "nibi.error.providerBusiness.429": "You're sending requests too quickly. Please try again later.",
 
   // Debug info bar
   "debugInfo.taskId": "Task ID",

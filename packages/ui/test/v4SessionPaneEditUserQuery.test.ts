@@ -13,6 +13,7 @@ import { SessionPane } from "@/v4/SessionPane.js";
 import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 
 const {
+  composerProps,
   fileChangesMock,
   fileRewindPreviewMock,
   headerProps,
@@ -21,6 +22,7 @@ const {
   sendCommandMock,
   timelineProps,
 } = vi.hoisted(() => ({
+  composerProps: [] as Array<Record<string, unknown>>,
   fileChangesMock: vi.fn(),
   fileRewindPreviewMock: vi.fn(),
   headerProps: [] as Array<{
@@ -86,6 +88,8 @@ const projectionState = vi.hoisted(() => ({
   } | null,
 }));
 
+const toastMock = vi.hoisted(() => vi.fn());
+
 const servicesMock = vi.hoisted(() => ({
   // 修复原因：readiness hook 将 service 作为 effect 依赖；每次 render 重建会导致无限重渲染直至 OOM。
   nibiSessionService: {
@@ -95,6 +99,8 @@ const servicesMock = vi.hoisted(() => ({
     restartWorkspaceProcess: vi.fn(),
   },
 }));
+
+vi.mock("@/components/ui/toast.js", () => ({ toast: toastMock }));
 
 // 本组隔离编辑/设置行为，群投递服务由独立单测及 Host/CLI E2E 覆盖。
 vi.mock("@/v4/BotGroupDeliveryAction.js", () => ({
@@ -162,7 +168,10 @@ vi.mock("@/v4/composer/useDraftSessionPrewarm.js", () => ({
 vi.mock("@/v4/ConversationComposer.js", async () => {
   const React = await import("react");
   return {
-    ConversationComposer: () => React.createElement("div", { "data-testid": "mock-composer" }),
+    ConversationComposer: (props: Record<string, unknown>) => {
+      composerProps.push(props);
+      return React.createElement("div", { "data-testid": "mock-composer" });
+    },
   };
 });
 
@@ -361,6 +370,30 @@ function makeSnapshot(): ConversationSnapshot {
   };
 }
 
+function makeSnapshotWithEditableRow(): ConversationSnapshot {
+  const base = makeSnapshot();
+  return {
+    ...base,
+    rows: {
+      window: [
+        {
+          kind: "userInput",
+          rowId: 42,
+          entityId: "message-user-42",
+          turnId: "turn-1",
+          createdAt: 1,
+          createdAtSeq: 1,
+          origin: "realUser",
+          text: "原来的问题",
+          actions: { canEdit: true },
+        } as ConversationSnapshot["rows"]["window"][number],
+      ],
+      totalCount: 1,
+      firstRowId: 42,
+    },
+  };
+}
+
 function makeEmptyFileChanges(): V4ConversationFileChangesResult {
   return {
     files: 0,
@@ -371,9 +404,16 @@ function makeEmptyFileChanges(): V4ConversationFileChangesResult {
 }
 
 afterEach(() => {
+  composerProps.length = 0;
+  toastMock.mockClear();
   fileChangesMock.mockReset();
   fileRewindPreviewMock.mockReset();
-  sendCommandMock.mockClear();
+  sendCommandMock.mockReset();
+  sendCommandMock.mockImplementation(async (envelope: CommandEnvelope) => ({
+    commandId: envelope.commandId,
+    revisionAtDecision: envelope.baseRevision ?? 0,
+    status: "accepted",
+  }));
   layerMock.acquire.mockImplementation(() => ({
     store: {
       markCommandPending: vi.fn(),
@@ -932,7 +972,7 @@ describe("SessionPane user query editing", () => {
     });
   });
 
-  it("dispatches editUserQuery with edited text and original attachments", async () => {
+  it("starts bottom-composer edit and routes submission to editUserQuery", async () => {
     const attachments: AttachmentRef[] = [
       {
         bytes: 12,
@@ -943,7 +983,7 @@ describe("SessionPane user query editing", () => {
     ];
     projectionState.current = {
       status: "live",
-      snapshot: makeSnapshot(),
+      snapshot: makeSnapshotWithEditableRow(),
       subscriptionId: "sub-1",
       lastError: null,
       optimisticCommands: [],
@@ -967,9 +1007,22 @@ describe("SessionPane user query editing", () => {
     });
 
     await act(async () => {
-      await timelineProps
-        .at(-1)
-        ?.onEdit?.({ rowId: 42, entityId: "message-user-42" }, "改过的问题", attachments);
+      timelineProps.at(-1)?.onEdit?.({ rowId: 42, entityId: "message-user-42" });
+      await flushMicrotasks();
+    });
+
+    const composer = composerProps.at(-1);
+    expect(composer?.editBar).toBeTruthy();
+    expect(String(composer?.draftScopeId)).toContain("composer-edit:");
+    expect((composer?.composerDraft as { text?: string } | undefined)?.text).toBe("原来的问题");
+
+    await act(async () => {
+      await (
+        composer?.onSendText as
+          | ((text: string, options?: Record<string, unknown>) => Promise<unknown>)
+          | undefined
+      )?.("改过的问题", { attachments });
+      await flushMicrotasks();
     });
 
     expect(sendCommandMock).toHaveBeenCalledTimes(1);
@@ -980,6 +1033,7 @@ describe("SessionPane user query editing", () => {
         attachments,
         newText: "改过的问题",
         target: { rowId: 42, entityId: "message-user-42" },
+        workspaceMode: "preserve",
       },
       sessionId: "session-1",
       type: "editUserQuery",
@@ -990,10 +1044,10 @@ describe("SessionPane user query editing", () => {
     });
   });
 
-  it("serializes an explicit empty attachment list when edit removes every ref", async () => {
+  it("text-only edit omits attachments so canonical refs are preserved", async () => {
     projectionState.current = {
       status: "live",
-      snapshot: makeSnapshot(),
+      snapshot: makeSnapshotWithEditableRow(),
       subscriptionId: "sub-1",
       lastError: null,
       optimisticCommands: [],
@@ -1017,27 +1071,38 @@ describe("SessionPane user query editing", () => {
     });
 
     await act(async () => {
-      await timelineProps
-        .at(-1)
-        ?.onEdit?.({ rowId: 42, entityId: "message-user-42" }, "保留正文", []);
+      timelineProps.at(-1)?.onEdit?.({ rowId: 42, entityId: "message-user-42" });
+      await flushMicrotasks();
     });
 
-    expect(sendCommandMock.mock.calls[0]?.[0]).toMatchObject({
-      payload: {
-        attachments: [],
-        newText: "保留正文",
-        target: { rowId: 42, entityId: "message-user-42" },
-      },
-      type: "editUserQuery",
+    await act(async () => {
+      await (
+        composerProps.at(-1)?.onSendText as
+          | ((text: string, options?: Record<string, unknown>) => Promise<unknown>)
+          | undefined
+      )?.("保留正文", { attachments: [] });
+      await flushMicrotasks();
     });
+
+    const firstCall = sendCommandMock.mock.calls[0]?.[0] as
+      | { payload: Record<string, unknown> }
+      | undefined;
+    expect(firstCall).toBeDefined();
+    const payload = firstCall!.payload;
+    expect(payload).toMatchObject({
+      newText: "保留正文",
+      target: { rowId: 42, entityId: "message-user-42" },
+    });
+    expect(payload).not.toHaveProperty("attachments");
+    expect(sendCommandMock.mock.calls[0]?.[0]).toMatchObject({ type: "editUserQuery" });
 
     await act(async () => root.unmount());
   });
 
-  it("keeps accepted legacy fork-disposition edit ACK on the current session", async () => {
+  it("accepted edit ACK keeps the current session", async () => {
     projectionState.current = {
       status: "live",
-      snapshot: makeSnapshot(),
+      snapshot: makeSnapshotWithEditableRow(),
       subscriptionId: "sub-1",
       lastError: null,
       optimisticCommands: [],
@@ -1069,22 +1134,23 @@ describe("SessionPane user query editing", () => {
         ),
       );
       await flushMicrotasks();
-    });
-
-    await act(async () => {
-      await timelineProps
-        .at(-1)
-        ?.onEdit?.({ rowId: 42, entityId: "message-user-42" }, "edited child text");
+      timelineProps.at(-1)?.onEdit?.({ rowId: 42, entityId: "message-user-42" });
+      await flushMicrotasks();
+      await (
+        composerProps.at(-1)?.onSendText as
+          | ((text: string, options?: Record<string, unknown>) => Promise<unknown>)
+          | undefined
+      )?.("edited child text");
     });
 
     expect(onSessionCreated).not.toHaveBeenCalled();
     await act(async () => root.unmount());
   });
 
-  it("duplicate fork ACK 导航既有 child，edit 与失败 ACK 即使带 result 也不导航", async () => {
+  it("fork ACK navigates existing child while edit ACK never does", async () => {
     projectionState.current = {
       status: "live",
-      snapshot: makeSnapshot(),
+      snapshot: makeSnapshotWithEditableRow(),
       subscriptionId: "sub-1",
       lastError: null,
       optimisticCommands: [],
@@ -1101,12 +1167,34 @@ describe("SessionPane user query editing", () => {
       result:
         type === "forkAssistant" ? { type, sessionId } : { type, disposition: "fork", sessionId },
     });
-    sendCommandMock
-      .mockResolvedValueOnce(ack("duplicate", "editUserQuery", "session-edit-existing"))
-      .mockResolvedValueOnce(ack("duplicate", "forkAssistant", "session-fork-existing"))
-      .mockResolvedValueOnce(ack("failed", "editUserQuery", "session-failed"))
-      .mockResolvedValueOnce(ack("rejected", "editUserQuery", "session-rejected"))
-      .mockResolvedValueOnce(ack("stale", "editUserQuery", "session-stale"));
+    const editStatusByText = new Map<string, CommandAck["status"]>([
+      ["duplicate edit", "duplicate"],
+      ["failed edit", "failed"],
+      ["rejected edit", "rejected"],
+      ["stale edit", "stale"],
+    ]);
+    sendCommandMock.mockReset();
+    sendCommandMock.mockImplementation(async (envelope: CommandEnvelope) => {
+      if (envelope.type === "forkAssistant") {
+        return ack("duplicate", "forkAssistant", "session-fork-existing");
+      }
+      if (envelope.type === "editUserQuery") {
+        const newText = (envelope.payload as { newText?: string }).newText ?? "";
+        const status = editStatusByText.get(newText) ?? "accepted";
+        return status === "accepted"
+          ? {
+              commandId: envelope.commandId,
+              revisionAtDecision: envelope.baseRevision ?? 0,
+              status,
+            }
+          : ack(status, "editUserQuery", "session-edit-child");
+      }
+      return {
+        commandId: envelope.commandId,
+        revisionAtDecision: envelope.baseRevision ?? 0,
+        status: "accepted",
+      };
+    });
     const onSessionCreated = vi.fn();
     const root: Root = createRoot(installMinimalDom());
     await act(async () => {
@@ -1124,16 +1212,31 @@ describe("SessionPane user query editing", () => {
       );
       await flushMicrotasks();
     });
-    const target = { rowId: 42, entityId: "message-target-42" };
+    const target = { rowId: 42, entityId: "message-user-42" };
     await act(async () => {
-      await timelineProps.at(-1)?.onEdit?.(target, "duplicate edit");
       timelineProps.at(-1)?.onFork?.(target);
       await flushMicrotasks();
-      await timelineProps.at(-1)?.onEdit?.(target, "failed edit");
-      await timelineProps.at(-1)?.onEdit?.(target, "rejected edit");
-      await timelineProps.at(-1)?.onEdit?.(target, "stale edit");
-      await flushMicrotasks();
     });
+    expect(onSessionCreated.mock.calls).toEqual([["session-fork-existing"]]);
+
+    for (const [text, settle] of [
+      ["duplicate edit", "sent"],
+      ["failed edit", "failed"],
+      ["rejected edit", "blocked"],
+      ["stale edit", "blocked"],
+    ] as const) {
+      await act(async () => {
+        timelineProps.at(-1)?.onEdit?.(target);
+        await flushMicrotasks();
+        await (
+          composerProps.at(-1)?.onSendText as
+            | ((text: string, options?: Record<string, unknown>) => Promise<unknown>)
+            | undefined
+        )?.(text);
+        composerProps.at(-1)?.onSubmissionSettled?.(settle);
+        await flushMicrotasks();
+      });
+    }
 
     expect(onSessionCreated.mock.calls).toEqual([["session-fork-existing"]]);
     await act(async () => root.unmount());

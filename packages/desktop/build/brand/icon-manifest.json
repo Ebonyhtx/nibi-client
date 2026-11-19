@@ -1,0 +1,184 @@
+{
+  "version": 1,
+  "source": "packages/ui/src/assets/nibi/nibi-app-icon.png",
+  "sourceSha256": "92db501cbd112ddac8c750011cb55f33b6ebbcdfee95b0cc614dd7de145bcd7a",
+  "generator": "packages/desktop/scripts/generate-brand-icons.py",
+  "forbiddenSha256": [
+    {
+      "sha256": "119462bb78eb240a65c869fc067ee599639b3cb5a41953f25c07b17d2a8c7e0f",
+      "reason": "upstream blue-A app artwork"
+    },
+    {
+      "sha256": "a4e030697a7571b3e95d31860e4da55d2f98e5e861e2b55e414f45a8556828ba",
+      "reason": "upstream blue-A favicon artwork"
+    },
+    {
+      "sha256": "0f7b3d57763e17d541cca7e3b983f67b4d08ba75ca3d364be9569874fa8d4652",
+      "reason": "upstream provider icon"
+    },
+    {
+      "sha256": "9de2d32f869150af875174e7c91137dd66ca4ef10b68687fd0f28c781f669a5f",
+      "reason": "upstream provider icon (dark variant)"
+    },
+    {
+      "sha256": "8159019313f25aad9862e959e86bbc66838e7926faead3ca099b9d254c056252",
+      "reason": "upstream provider icon (light variant)"
+    }
+  ],
+  "files": [
+    {
+      "path": "packages/desktop/build/icon.png",
+      "kind": "png",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "92db501cbd112ddac8c750011cb55f33b6ebbcdfee95b0cc614dd7de145bcd7a"
+    },
+    {
+      "path": "packages/desktop/build/icon_windows.png",
+      "kind": "png",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "92db501cbd112ddac8c750011cb55f33b6ebbcdfee95b0cc614dd7de145bcd7a"
+    },
+    {
+      "path": "packages/desktop/build/icon_macos_1024.png",
+      "kind": "png",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "92db501cbd112ddac8c750011cb55f33b6ebbcdfee95b0cc614dd7de145bcd7a"
+    },
+    {
+      "path": "packages/desktop/build/icon_installer.png",
+      "kind": "png",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "92db501cbd112ddac8c750011cb55f33b6ebbcdfee95b0cc614dd7de145bcd7a"
+    },
+    {
+      "path": "packages/desktop/src/renderer/public/nibi-app-icon.png",
+      "kind": "png",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "92db501cbd112ddac8c750011cb55f33b6ebbcdfee95b0cc614dd7de145bcd7a"
+    },
+    {
+      "path": "packages/desktop/build/icons/16x16.png",
+      "kind": "png",
+      "width": 16,
+      "height": 16,
+      "sha256": "5bda4e4df8cb32ebca9a420abfbd6f2d99623f9d93e3b246958fa1d1d824e0f6"
+    },
+    {
+      "path": "packages/desktop/build/icons/24x24.png",
+      "kind": "png",
+      "width": 24,
+      "height": 24,
+      "sha256": "87163c8c52a814e68559cf5c9d5dec18e2354686d7dd787b54bed844844e0149"
+    },
+    {
+      "path": "packages/desktop/build/icons/32x32.png",
+      "kind": "png",
+      "width": 32,
+      "height": 32,
+      "sha256": "3f452a2728557d9f9f25ae7d1c5bb4386b5d98eb1675da007c88686f4ffc904c"
+    },
+    {
+      "path": "packages/desktop/build/icons/48x48.png",
+      "kind": "png",
+      "width": 48,
+      "height": 48,
+      "sha256": "f7b99e13d2410f8bf176c2afe52b4041174378724788a0120029e347aeed4ff2"
+    },
+    {
+      "path": "packages/desktop/build/icons/64x64.png",
+      "kind": "png",
+      "width": 64,
+      "height": 64,
+      "sha256": "aa7610ac359b43299523e67f4fbbbdd670c09eb803a2dc0cf9799176dec533a2"
+    },
+    {
+      "path": "packages/desktop/build/icons/128x128.png",
+      "kind": "png",
+      "width": 128,
+      "height": 128,
+      "sha256": "cb253424e5a750ed3d5e6fb8b29ccae8d3089be2796f563f17637adad9fb0498"
+    },
+    {
+      "path": "packages/desktop/build/icons/256x256.png",
+      "kind": "png",
+      "width": 256,
+      "height": 256,
+      "sha256": "f9432e417577775024dc2486f0a85a8bb118b16692034782ecdff0ef559a531f"
+    },
+    {
+      "path": "packages/desktop/build/icons/512x512.png",
+      "kind": "png",
+      "width": 512,
+      "height": 512,
+      "sha256": "e48a86a0a12f3aa4becf075a8ca9a095b9219db162f0e9463abd98941201f17d"
+    },
+    {
+      "path": "packages/desktop/build/icons/1024x1024.png",
+      "kind": "png",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "92db501cbd112ddac8c750011cb55f33b6ebbcdfee95b0cc614dd7de145bcd7a"
+    },
+    {
+      "path": "packages/desktop/build/icon.ico",
+      "kind": "ico",
+      "sizes": [
+        16,
+        24,
+        32,
+        48,
+        64,
+        128,
+        256
+      ],
+      "sha256": "08d9727293b4ccb54aa63cf9232aaa1919ff01d9a14071763498bc0af634689d"
+    },
+    {
+      "path": "packages/desktop/build/icon_installer.ico",
+      "kind": "ico",
+      "sizes": [
+        16,
+        24,
+        32,
+        48,
+        64,
+        128,
+        256
+      ],
+      "sha256": "08d9727293b4ccb54aa63cf9232aaa1919ff01d9a14071763498bc0af634689d"
+    },
+    {
+      "path": "packages/desktop/build/icon.icns",
+      "kind": "icns",
+      "sizes": [
+        16,
+        32,
+        64,
+        128,
+        256,
+        512,
+        1024
+      ],
+      "sha256": "515cf72b4bf87d6dca445a34064fb0d93373d70b61783881019036d09568ba18"
+    },
+    {
+      "path": "packages/desktop/build/icon_installer.icns",
+      "kind": "icns",
+      "sizes": [
+        16,
+        32,
+        64,
+        128,
+        256,
+        512,
+        1024
+      ],
+      "sha256": "515cf72b4bf87d6dca445a34064fb0d93373d70b61783881019036d09568ba18"
+    }
+  ]
+}

@@ -3648,6 +3648,7 @@ async function createRecord(
     stateRevision: 0,
     taskType,
     traceContext,
+    ...(sessionControl ? { sessionControl } : {}),
     updatedAt: now,
     workspace,
   };

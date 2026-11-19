@@ -2920,6 +2920,88 @@ describe("ProductProjection 黄金测试（L1）", () => {
     });
   });
 
+  it("M：编辑锁随同 id queued 事件更新，编辑成功显式 null 清除", () => {
+    const log = new EventLog();
+    const turnId = "turn-1";
+    log.push(SessionEventType.SessionCreated, { mode: "default", contextWindow: 1000 });
+    log.push(SessionEventType.TurnStarted, { turnNumber: 1, input: "hi" }, { turnId });
+    log.push(
+      SessionEventType.TurnSteerQueued,
+      {
+        pendingInputId: "pi-lock",
+        input: "排队原文",
+        inputPreview: "排队原文",
+        inputSize: 4,
+        targetTurnId: turnId,
+        queueLength: 1,
+        intent: {
+          sourceCommandId: "command-lock",
+          queueItemId: "pi-lock",
+          clientId: "desktop-client",
+          kind: "sendText",
+          admissionSeq: 1,
+          admittedAt: 10,
+          requestedDelivery: "queue",
+          admittedDelivery: "queue",
+          inputOrigin: "desktop",
+        },
+      },
+      { turnId },
+    );
+    log.push(
+      SessionEventType.TurnSteerQueued,
+      {
+        pendingInputId: "pi-lock",
+        input: "排队原文",
+        inputPreview: "排队原文",
+        inputSize: 4,
+        targetTurnId: turnId,
+        queueLength: 1,
+        editLock: { editorId: "editor-a", clientId: "desktop-client", inputOrigin: "desktop" },
+      },
+      { turnId },
+    );
+    let { projection } = runAll(log.events);
+    expect(projection.getSnapshot().queue.items[0]?.editLock).toEqual({
+      editorId: "editor-a",
+      clientId: "desktop-client",
+      inputOrigin: "desktop",
+    });
+    // 缺省 editLock 的旧 queued 事件不清锁（冷重放兼容）。
+    log.push(
+      SessionEventType.TurnSteerQueued,
+      {
+        pendingInputId: "pi-lock",
+        input: "排队原文",
+        inputPreview: "排队原文",
+        inputSize: 4,
+        targetTurnId: turnId,
+        queueLength: 1,
+      },
+      { turnId },
+    );
+    ({ projection } = runAll(log.events));
+    expect(projection.getSnapshot().queue.items[0]?.editLock?.editorId).toBe("editor-a");
+    // 编辑成功：显式 null 释放，位置不变。
+    log.push(
+      SessionEventType.TurnSteerQueued,
+      {
+        pendingInputId: "pi-lock",
+        input: "编辑后",
+        inputPreview: "编辑后",
+        inputSize: 3,
+        targetTurnId: turnId,
+        queueLength: 1,
+        editLock: null,
+      },
+      { turnId },
+    );
+    ({ projection } = runAll(log.events));
+    const item = projection.getSnapshot().queue.items[0];
+    expect(item?.text).toBe("编辑后");
+    expect(item?.editLock).toBeUndefined();
+  });
+
   it("M：guide/附件 fallback 保留 requested/admitted 与 reasonCode", () => {
     const log = new EventLog();
     log.push(SessionEventType.SessionCreated, { mode: "default", contextWindow: 1000 });

@@ -48,6 +48,7 @@ function assertInstallerLog(logPath, mode, role = "outer") {
     "shortcuts-completed",
     "install-finalization-started",
     "install-completed",
+    "process-cleanup-fallback reason=helper-missing",
   ]) {
     if (!log.includes(marker)) {
       throw new Error(`installer log is missing ${marker}: ${log}`);
@@ -98,6 +99,7 @@ function compileFixture({
     `/DELECTRON_BUILDER_NSIS_INCLUDE_DIR=${resolve(appBuilderLibDir, "templates/nsis/include")}`,
     `/DNSIS_PLUGIN_DIR=${resolve(nsisResourcesDir, "plugins/x86-unicode")}`,
     `/DNIBI_INSTALLER_NSH=${installerNshPath}`,
+    "/DPRODUCT_FILENAME=Nibi",
     `/DFIXTURE_EXE=${process.env.ComSpec ?? "C:\\Windows\\System32\\cmd.exe"}`,
     `/DOUTPUT_FILE=${outputPath}`,
     `/DDEFAULT_LOG_PATH=${defaultLogPath}`,

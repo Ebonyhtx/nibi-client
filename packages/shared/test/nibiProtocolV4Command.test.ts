@@ -11,6 +11,8 @@ import {
   parseCommandEnvelope,
   savedWorkflowStartRejectionReasonSchema,
   modelSelectionSchema,
+  queueItemEditLockSchema,
+  queueItemSchema,
   workflowRunSettingsRejectionReasonSchema,
 } from "../src/nibi-protocol-v4/index.js";
 
@@ -491,7 +493,6 @@ describe("nibi-protocol-v4 command", () => {
     expect([...COMMANDS_REQUIRING_BASE_REVISION].sort()).toEqual(
       [
         "deleteQueueItem",
-        "editQueueItem",
         "editUserQuery",
         "applyFileRewind",
         "forkAssistant",
@@ -507,6 +508,88 @@ describe("nibi-protocol-v4 command", () => {
         "switchModelConfig",
       ].sort(),
     );
+  });
+
+  it("queue edit lock commands parse without CAS and editQueueItem accepts the lock payload", () => {
+    const lock = parseCommandEnvelope({
+      commandId: "cmd-lock-1",
+      clientId: "client-1",
+      sessionId: "s-1",
+      type: "lockQueueItemEdit",
+      payload: { queueItemId: "queue_c1", editorId: "editor-1" },
+      issuedAt: 1000,
+    });
+    expect(lock.ok).toBe(true);
+    const release = parseCommandEnvelope({
+      commandId: "cmd-release-1",
+      clientId: "client-1",
+      sessionId: "s-1",
+      type: "releaseQueueItemEdit",
+      payload: { queueItemId: "queue_c1" },
+      issuedAt: 1000,
+    });
+    expect(release.ok).toBe(true);
+    // editQueueItem 不再要求 baseRevision：锁是并发守卫。
+    const edit = parseCommandEnvelope({
+      commandId: "cmd-edit-1",
+      clientId: "client-1",
+      sessionId: "s-1",
+      type: "editQueueItem",
+      payload: {
+        queueItemId: "queue_c1",
+        newText: "edited",
+        editorId: "editor-1",
+        attachments: [],
+        conversationQuotes: [{ text: "quote" }],
+        planEnabled: false,
+      },
+      issuedAt: 1000,
+    });
+    expect(edit.ok).toBe(true);
+    expect(
+      commandPayloadSchemas.lockQueueItemEdit.safeParse({ queueItemId: "queue_c1" }).success,
+    ).toBe(false);
+    expect(
+      commandPayloadSchemas.releaseQueueItemEdit.safeParse({ queueItemId: "" }).success,
+    ).toBe(false);
+  });
+
+  it("queueItem.editLock is optional, additive and strict", () => {
+    const item = {
+      sourceCommandId: "cmd-1",
+      queueItemId: "queue_cmd-1",
+      clientId: "cli",
+      kind: "sendText" as const,
+      text: "hello",
+      attachments: [],
+      delivery: { requested: "queue" as const, admitted: "queue" as const },
+      order: { admissionSeq: 1 },
+      steer: { state: "notRequested" as const },
+      dispatch: { state: "queued" as const },
+      admittedAt: 1,
+    };
+    // 旧快照无 editLock 仍然合法。
+    expect(queueItemSchema.safeParse(item).success).toBe(true);
+    const locked = queueItemSchema.parse({
+      ...item,
+      editLock: { editorId: "editor-1", clientId: "desktop", inputOrigin: "desktop" },
+    });
+    expect(locked.editLock?.editorId).toBe("editor-1");
+    expect(locked.editLock?.inputOrigin).toBe("desktop");
+    // strict：未知字段不被静默剥掉。
+    expect(
+      queueItemEditLockSchema.safeParse({
+        editorId: "editor-1",
+        clientId: "desktop",
+        unexpected: true,
+      }).success,
+    ).toBe(false);
+    expect(
+      queueItemSchema.safeParse({
+        ...item,
+        editLock: { editorId: "", clientId: "desktop" },
+      }).success,
+    ).toBe(false);
   });
 
   it("parses switchCollaborationMode with a complete CAS envelope", () => {

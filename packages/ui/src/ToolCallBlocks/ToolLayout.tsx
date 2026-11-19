@@ -1,4 +1,4 @@
-import { memo, type ReactNode, useEffect, useRef, useState } from "react";
+import { memo, useContext, type ReactNode, useEffect, useRef, useState } from "react";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible.js";
 import { Button } from "@/components/ui/button.js";
 import { cn } from "@/components/lib/utils.js";
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/tooltip.js";
 import { ToolSummaryRow, type ToolSummaryAction } from "@/ToolCallBlocks/ToolSummaryRow.js";
 import { uiMemoryDiagnosticsRegistry } from "@/lib/memoryDiagnostics.js";
+import { SummaryIconOnlyContext, SummaryPreviewContext } from "@/v4/conversationRowContext.js";
 
 const toolLayoutOpenState = new Map<string, boolean>();
 // 内存诊断计数器：该表按 toolId 只增不减，先落日志。
@@ -359,5 +360,29 @@ function ToolLayoutComponent({
   );
 }
 
-export const ToolLayout = memo(ToolLayoutComponent);
+export const ToolLayout = memo(function ToolLayoutWithPreview(props: ToolLayoutProps) {
+  const preview = useContext(SummaryPreviewContext);
+  const iconOnly = useContext(SummaryIconOnlyContext);
+  // 统计图标直接复用原 renderer 的图标，不挂载摘要正文、详情或动画状态。
+  if (iconOnly) return <>{props.icon}</>;
+  // 分组头只展示原始摘要，不挂载详情、自动展开或写入原工具的展开记忆。
+  return (
+    <ToolLayoutComponent
+      {...props}
+      {...(preview
+        ? {
+            persistOpenKey: `summary-preview:${props.toolId}`,
+            canToggle: false,
+            forceOpen: false,
+            autoOpen: false,
+            autoCollapseOnComplete: false,
+            summaryAction: undefined,
+            content: undefined,
+            renderContent: undefined,
+            animateSummaryContent: false,
+          }
+        : {})}
+    />
+  );
+});
 ToolLayout.displayName = "ToolLayout";

@@ -816,6 +816,7 @@ impl Actor {
                         command: id,
                         text,
                         delivery,
+                        edit_lock: None,
                     });
                     self.emit_queue();
                     return accepted();
@@ -911,7 +912,18 @@ impl Actor {
                 Ok(()) => accepted(),
                 Err(reason) => rejected(reason),
             },
-            Command::EditQueued { item, text } => self.edit_queued(item, text),
+            Command::EditQueued {
+                item,
+                text,
+                editor_id,
+            } => self.edit_queued(item, text, editor_id),
+            Command::LockQueueItemEdit {
+                item,
+                editor_id,
+                client_id,
+                input_origin,
+            } => self.lock_queued_edit(item, editor_id, client_id, input_origin),
+            Command::ReleaseQueueItemEdit { item } => self.release_queued_edit(item),
             Command::DeleteQueued { item } => self.delete_queued(item),
             Command::ReorderQueued { item, before } => self.reorder_queued(item, before),
             Command::SetAutoDrain { enabled } => self.set_auto_drain(enabled).await,

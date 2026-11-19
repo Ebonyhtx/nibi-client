@@ -49,6 +49,7 @@ impl Actor {
                 command,
                 text: bash_input(&line),
                 delivery: Delivery::Queue,
+                edit_lock: None,
             });
             self.emit_queue();
             return;
@@ -77,6 +78,7 @@ impl Actor {
                 command,
                 text,
                 delivery: Delivery::Queue,
+                edit_lock: None,
             });
             self.emit_queue();
             return Ok(());

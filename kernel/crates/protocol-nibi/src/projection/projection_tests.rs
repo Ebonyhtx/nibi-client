@@ -599,6 +599,7 @@ fn denied_tools_interrupt_markers_and_immediate_inputs_follow_node() {
         InputMeta {
             client: "k".into(),
             origin: None,
+            kind: "sendText",
             text: "hi".into(),
             selection: None,
             mode: None,
@@ -615,6 +616,7 @@ fn denied_tools_interrupt_markers_and_immediate_inputs_follow_node() {
             command: CommandId::new("c1"),
             text: "hi".into(),
             delivery: nibi_kernel_api::session_api::Delivery::Queue,
+            edit_lock: None,
         }],
     });
     assert!(
@@ -651,6 +653,75 @@ fn denied_tools_interrupt_markers_and_immediate_inputs_follow_node() {
         message: user("msg_i", nibi_kernel_api::user_input::INTERRUPT_TEXTS[0]),
     });
     assert!(marker.iter().all(|delta| delta.get("row").is_none()));
+}
+
+/// U36：队列项投影不再硬编码 kind/attachments；编辑锁与输入事实里的原文、引用、模型
+/// 一起上行。编辑成功（锁清除 + 文本改写）后下一次 QueueChanged 发新值。
+#[test]
+fn queue_items_project_edit_lock_and_input_meta_fields() {
+    use nibi_kernel_api::session_api::{QueueEditLock, QueuedInput};
+
+    let mut feed = Feed::new();
+    feed.projection.remember_input(
+        "c1",
+        InputMeta {
+            client: "mobile".into(),
+            origin: Some("mobile".into()),
+            kind: "sendGoalCommand",
+            text: "original text".into(),
+            selection: Some(json!({"providerId": "p", "modelId": "m"})),
+            mode: Some("plan".into()),
+            plan: Some(true),
+            admitted_at: 12,
+            requested: "queue",
+            admitted: "queue",
+            attachments: Some(json!([
+                {"ref": "attachment:1", "fileName": "a.png", "mime": "image/png", "bytes": 3}
+            ])),
+            intent: Some(json!({
+                "text": "original text",
+                "conversationQuotes": [{"text": "quoted"}]
+            })),
+        },
+    );
+    let deltas = feed.apply(KernelEvent::QueueChanged {
+        items: vec![QueuedInput {
+            command: CommandId::new("c1"),
+            text: "model text".into(),
+            delivery: nibi_kernel_api::session_api::Delivery::Queue,
+            edit_lock: Some(QueueEditLock {
+                editor_id: "editor-a".into(),
+                client_id: "mobile".into(),
+                input_origin: Some("mobile".into()),
+            }),
+        }],
+    });
+    let queue = &deltas[0]["patch"]["queue"];
+    let item = &queue["items"][0];
+    assert_eq!(item["kind"], "sendGoalCommand");
+    assert_eq!(item["text"], "original text");
+    assert_eq!(item["attachments"][0]["fileName"], "a.png");
+    assert_eq!(item["conversationQuotes"][0]["text"], "quoted");
+    assert_eq!(item["modelSelection"]["modelId"], "m");
+    assert_eq!(item["mode"], "plan");
+    assert_eq!(item["planEnabled"], true);
+    assert_eq!(item["editLock"]["editorId"], "editor-a");
+    assert_eq!(item["editLock"]["clientId"], "mobile");
+    assert_eq!(item["editLock"]["inputOrigin"], "mobile");
+
+    // 编辑成功：内核改队列文本并清锁；投影的输入事实同步新原文。
+    feed.projection.edit_input_text("queue_c1", "edited text");
+    let deltas = feed.apply(KernelEvent::QueueChanged {
+        items: vec![QueuedInput {
+            command: CommandId::new("c1"),
+            text: "edited text".into(),
+            delivery: nibi_kernel_api::session_api::Delivery::Queue,
+            edit_lock: None,
+        }],
+    });
+    let item = &deltas[0]["patch"]["queue"]["items"][0];
+    assert_eq!(item["text"], "edited text");
+    assert!(item.get("editLock").is_none() || item["editLock"].is_null());
 }
 
 #[test]

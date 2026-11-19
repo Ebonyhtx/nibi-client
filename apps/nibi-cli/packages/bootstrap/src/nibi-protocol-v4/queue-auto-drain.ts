@@ -7,12 +7,15 @@ import type { GoalStatus } from "@nibi/contracts";
 export function shouldAutoDrainV4QueueHead(input: {
   autoDrain: boolean;
   dispatchState: "queued" | "reserved" | "promoting";
+  /** 队首有编辑锁：冻结项不能被自动排空越过（FIFO barrier）。 */
+  editLocked: boolean;
   sessionBusy: boolean;
   targetStatus: GoalStatus | null;
 }): boolean {
   return (
     input.autoDrain &&
     input.dispatchState === "queued" &&
+    !input.editLocked &&
     !input.sessionBusy &&
     (input.targetStatus === null || input.targetStatus === "complete")
   );

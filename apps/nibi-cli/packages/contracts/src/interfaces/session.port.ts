@@ -179,6 +179,8 @@ export interface PendingSteerInputInfo {
   inputPresentation?: RuntimeInputPresentation;
   /** 当前排队输入附带的工具隐藏列表；automation busy 入队必须在消费时继续生效。 */
   toolDisallowlist?: readonly string[];
+  /** v4 queue 编辑锁（锁持有者在 composer 编辑）。 */
+  editLock?: PendingInputEditLock;
   queuedAt: Date;
   targetTurnId: TurnId;
   traceId: TraceId;
@@ -421,6 +423,16 @@ export interface PendingTurnAttachment {
   sizeBytes?: number;
 }
 
+/**
+ * v4 queue 编辑锁（NIBI `queueItem.editLock`）：持有者在 composer 里编辑，其他端只读。
+ * 锁只活在队列生命周期里，不持久化。
+ */
+export interface PendingInputEditLock {
+  editorId: string;
+  clientId: string;
+  inputOrigin?: "desktop" | "mobile";
+}
+
 export interface PendingTurnInput {
   id: string;
   input: string;
@@ -435,6 +447,8 @@ export interface PendingTurnInput {
   attachments?: PendingTurnAttachment[];
   /** 当前 pending input drain 后不向 provider 暴露的工具名。 */
   toolDisallowlist?: readonly string[];
+  /** v4 queue 编辑锁；有锁时删除/重排/立即发送/自动排空都不碰它。 */
+  editLock?: PendingInputEditLock;
   turnId: TurnId;
 }
 

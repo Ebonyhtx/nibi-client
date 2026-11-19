@@ -37,6 +37,9 @@ const WINDOW_ROWS: usize = 200;
 pub struct InputMeta {
     pub client: String,
     pub origin: Option<String>,
+    /// 队列项的 canonical 种类（`sendText` / `sendGoalCommand` / `compact`）；旧处理器只产
+    /// `sendText`，投影不再硬编码。
+    pub kind: &'static str,
     pub text: String,
     pub selection: Option<Value>,
     pub mode: Option<String>,
@@ -335,6 +338,24 @@ impl Projection {
     /// 记下 sendText 的事实（行与队列项要用）。
     pub fn remember_input(&mut self, command: &str, meta: InputMeta) {
         self.inputs.insert(command.to_owned(), meta);
+    }
+
+    /// 队列项正文被 `editQueueItem` 改写：投影里的输入事实同步新文本。
+    /// `queue_item_id` 是投影的 `queue_<commandId>`；找不到输入事实时什么都不做（内核队列
+    /// 自己的文本会经 `QueueChanged` 更新）。
+    pub fn edit_input_text(&mut self, queue_item_id: &str, text: &str) {
+        let command = queue_item_id
+            .strip_prefix("queue_")
+            .unwrap_or(queue_item_id);
+        let Some(meta) = self.inputs.get_mut(command) else {
+            return;
+        };
+        meta.text = text.to_owned();
+        if let Some(intent) = meta.intent.as_mut()
+            && let Some(intent) = intent.as_object_mut()
+        {
+            intent.insert("text".to_owned(), json!(text));
+        }
     }
 
     /// 协议自己保存的配置变了（setFollowupMode）：返回 `state.updated`。
@@ -1097,13 +1118,13 @@ impl Projection {
                     "sourceCommandId": command,
                     "queueItemId": format!("queue_{command}"),
                     "clientId": meta.map_or("unknown", |meta| meta.client.as_str()),
-                    "kind": "sendText",
-                    // 排队项显示原文（模型文本是注入后的那一份）。
-                    "text": meta
-                        .and_then(|meta| meta.intent.as_ref())
-                        .and_then(|intent| intent["text"].as_str())
-                        .unwrap_or(item.text.as_str()),
-                    "attachments": [],
+                    "kind": meta.map_or("sendText", |meta| meta.kind),
+                    // 排队项显示原文（模型文本是注入后的那一份）。编辑后 InputMeta 与内核
+                    // 队列项同步更新；旧的输入事实缺失时才退回队列文本。
+                    "text": meta.map_or(item.text.as_str(), |meta| meta.text.as_str()),
+                    "attachments": meta
+                        .and_then(|meta| meta.attachments.clone())
+                        .unwrap_or_else(|| json!([])),
                     "delivery": {
                         "requested": meta.map_or("queue", |meta| meta.requested),
                         "admitted": meta.map_or("queue", |meta| meta.admitted),
@@ -1126,6 +1147,24 @@ impl Projection {
                     if let Some(plan) = meta.plan {
                         value["planEnabled"] = json!(plan);
                     }
+                    if let Some(quotes) = meta
+                        .intent
+                        .as_ref()
+                        .and_then(|intent| intent.get("conversationQuotes"))
+                        .filter(|quotes| quotes.as_array().is_some_and(|items| !items.is_empty()))
+                    {
+                        value["conversationQuotes"] = quotes.clone();
+                    }
+                }
+                if let Some(lock) = &item.edit_lock {
+                    let mut lock_value = json!({
+                        "editorId": lock.editor_id,
+                        "clientId": lock.client_id,
+                    });
+                    if let Some(origin) = &lock.input_origin {
+                        lock_value["inputOrigin"] = json!(origin);
+                    }
+                    value["editLock"] = lock_value;
                 }
                 value
             })

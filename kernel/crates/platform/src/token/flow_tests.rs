@@ -51,6 +51,18 @@ async fn zai_login(harness: &Harness, access_token: &str) {
         .await;
 }
 
+/// 服务端契约：z.ai / bigmodel 的项目令牌签发接口按 `clientType: "zcode"` 校验。
+/// 同时钉住常量值（names.rs）与实际请求体（issue.rs），品牌化不得只改一处。
+#[test]
+fn project_token_client_type_stays_on_the_zai_contract() {
+    assert_eq!(nibi_kernel_base::names::TOKEN_CLIENT_TYPE, "zcode");
+    const ISSUE_SOURCE: &str = include_str!("issue.rs");
+    assert!(
+        ISSUE_SOURCE.contains("\"clientType\": nibi_kernel_base::names::TOKEN_CLIENT_TYPE"),
+        "token issue request must send the shared TOKEN_CLIENT_TYPE constant"
+    );
+}
+
 #[tokio::test]
 async fn zai_uses_the_stored_business_jwt_and_caches_a_project_token() {
     let account = Account::new(false);

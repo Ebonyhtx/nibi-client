@@ -1,6 +1,7 @@
 import type {
   CollaborationMode,
   Model,
+  PendingInputEditLock,
   ModelInputMessage,
   ModelSelection,
   ModelSelectionOrigin,
@@ -210,6 +211,16 @@ export interface AgentRuntimeCoreMethods {
   editPendingInputById(options: {
     pendingInputId: string;
     newText: string;
+    editorId?: string;
+    traceContext: TraceContext;
+  }): Promise<boolean>;
+  lockPendingInputEdit(options: {
+    pendingInputId: string;
+    editLock: PendingInputEditLock;
+    traceContext: TraceContext;
+  }): Promise<boolean>;
+  releasePendingInputEdit(options: {
+    pendingInputId: string;
     traceContext: TraceContext;
   }): Promise<boolean>;
   reorderPendingInput(options: {

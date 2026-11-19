@@ -26,6 +26,7 @@ import type {
   ModelSelection,
   ModelSelectionOrigin,
   ModelToolContract,
+  PendingInputEditLock,
   PermissionBrokerPort,
   PermissionBrokerRequest,
   ProjectId,
@@ -501,10 +502,22 @@ export interface AgentRuntime {
     reservationId: string;
     traceContext?: TraceContext;
   }): Promise<boolean>;
-  /** v4 queue 单项编辑：按 pendingInputId 替换排队输入文本（保位）。 */
+  /** v4 queue 单项编辑：按 pendingInputId 替换排队输入文本（保位）；成功时释放编辑锁。 */
   editPendingInputById(options: {
     pendingInputId: string;
     newText: string;
+    editorId?: string;
+    traceContext?: TraceContext;
+  }): Promise<boolean>;
+  /** v4 queue 编辑锁：加锁（只允许未加锁项）；重发同 id queued 事件携带 editLock。 */
+  lockPendingInputEdit(options: {
+    pendingInputId: string;
+    editLock: PendingInputEditLock;
+    traceContext?: TraceContext;
+  }): Promise<boolean>;
+  /** v4 queue 编辑锁：释放（幂等）。 */
+  releasePendingInputEdit(options: {
+    pendingInputId: string;
     traceContext?: TraceContext;
   }): Promise<boolean>;
   /** v4 queue 重排：移动 pendingInputId 到 beforePendingInputId 之前（null=队尾）。 */

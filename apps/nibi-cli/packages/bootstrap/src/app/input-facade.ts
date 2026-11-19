@@ -6,6 +6,7 @@ import {
   type InputHistoryKind,
   type InputHistoryStorePort,
   type Logger,
+  type PendingInputEditLock,
   type SessionId,
   type ToolArtifactStorePort,
   type TraceContext,
@@ -25,6 +26,8 @@ type InputFacade = Pick<
   | "enqueueDeferredInput"
   | "recordInputHistory"
   | "editQueueItem"
+  | "lockQueueItemEdit"
+  | "releaseQueueItemEdit"
   | "recallPreviousInputHistory"
   | "removeQueueItem"
   | "reserveQueueItem"
@@ -118,9 +121,7 @@ export function createInputFacade(deps: CreateInputFacadeDeps): InputFacade {
       traceContext: options?.traceContext ?? deps.traceContext,
     });
     const runtimePromptText = resolvedCommandPrompt ?? promptInput.text;
-    const turnAttribution = options?.automationId
-      ? { automationId: options.automationId }
-      : {};
+    const turnAttribution = options?.automationId ? { automationId: options.automationId } : {};
     return await deps.runtime.executeTurn(runtimePromptText, storedAttachments, {
       abortSignal: options?.abortSignal,
       browserAmbientContext: options?.browserAmbientContext,
@@ -330,10 +331,32 @@ export function createInputFacade(deps: CreateInputFacadeDeps): InputFacade {
         traceContext: options?.traceContext ?? deps.traceContext,
       }),
     editQueueItem: async (pendingInputId, newText, options) => {
-      // v4 queue 单项编辑：替换排队输入文本（reducer 同 id 原地更新，保位）。
+      // v4 queue 单项编辑：替换排队输入文本（reducer 同 id 原地更新，保位）；
+      // 成功路径由 runtime 释放编辑锁（editorId 是并发守卫的归属校验）。
       return deps.runtime.editPendingInputById({
         pendingInputId,
         newText,
+        ...(options?.editorId ? { editorId: options.editorId } : {}),
+        traceContext: options?.traceContext ?? deps.traceContext,
+      });
+    },
+    lockQueueItemEdit: async (
+      pendingInputId: string,
+      editLock: PendingInputEditLock,
+      options?: { traceContext?: TraceContext },
+    ) => {
+      return deps.runtime.lockPendingInputEdit({
+        pendingInputId,
+        editLock,
+        traceContext: options?.traceContext ?? deps.traceContext,
+      });
+    },
+    releaseQueueItemEdit: async (
+      pendingInputId: string,
+      options?: { traceContext?: TraceContext },
+    ) => {
+      return deps.runtime.releasePendingInputEdit({
+        pendingInputId,
         traceContext: options?.traceContext ?? deps.traceContext,
       });
     },

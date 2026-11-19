@@ -254,13 +254,16 @@ const CopyRowAction = memo(function CopyRowAction({
   );
 });
 
-type UserInputEditHandler = (
+export type UserInputEditHandler = (
   target: ConversationRowTarget,
   newText: string,
   attachments?: readonly AttachmentRef[],
   workspaceMode?: "preserve" | "rewind",
   conversationQuotes?: import("@nibi/shared").ConversationSelectionText[],
 ) => Promise<CommandAck | boolean | void> | CommandAck | boolean | void;
+
+/** U03：编辑入口只发 begin 意图，实际编辑态由底部 Composer 承接。 */
+export type UserInputEditBeginHandler = (target: ConversationRowTarget) => void;
 
 type AssistantMessageFeedback = "like" | "dislike";
 
@@ -299,8 +302,10 @@ export interface ConversationRowViewProps {
   onFeedbackChange?: AssistantFeedbackHandler;
   /** 协议兼容：上层仍可提供 retryTurn capability，但产品 UI 不渲染普通重试入口。 */
   onRetry?: (target: ConversationRowTarget) => void;
-  /** user 行的 edit 入口（editUserQuery command，用行内编辑文本替换该轮）。 */
-  onEdit?: UserInputEditHandler;
+  /** user 行的编辑入口：U03 底部 Composer 编辑（只发 begin 意图）。 */
+  onEdit?: UserInputEditBeginHandler;
+  /** 旧行内编辑路径：ENABLE_COMPOSER_EDIT_MODE=false 时保留一个发布周期。 */
+  onInlineEdit?: UserInputEditHandler;
   editWorkspaceRewindAvailability?: EditWorkspaceRewindAvailability;
   /** 嵌套在工具 Group 内时去掉 Reasoning 内容的重复左导线与缩进。 */
   reasoningContentVariant?: "default" | "nested";
@@ -1023,12 +1028,14 @@ const SingleUserInputRowView = memo(function SingleUserInputRowView({
   row,
   context,
   onEdit,
+  onInlineEdit,
   editWorkspaceRewindAvailability,
   status,
 }: {
   row: UserInputRow;
   context: ConversationRowRenderContext;
-  onEdit?: UserInputEditHandler;
+  onEdit?: UserInputEditBeginHandler;
+  onInlineEdit?: UserInputEditHandler;
   editWorkspaceRewindAvailability?: EditWorkspaceRewindAvailability;
   status?: string;
 }) {
@@ -1144,11 +1151,11 @@ const SingleUserInputRowView = memo(function SingleUserInputRowView({
   }, [editing, parsedPrompt, row.attachments]);
 
   useEffect(() => {
-    if (!onEdit) {
+    if (!onInlineEdit) {
       setEditing(false);
       setSubmitting(false);
     }
-  }, [onEdit]);
+  }, [onInlineEdit]);
 
   const handleOpenEdit = useCallback(() => {
     // v4 迁移时把 user query 编辑误接成“直接读取主 composer 提交”，
@@ -1175,11 +1182,11 @@ const SingleUserInputRowView = memo(function SingleUserInputRowView({
 
   const handleSubmitEdit = useCallback(
     async (nextText: string, workspaceMode: "preserve" | "rewind" = "preserve") => {
-      if (!onEdit) return;
+      if (!onInlineEdit) return;
       if (!nextText.trim() && editAttachments.length === 0 && editContextCount === 0) return;
       setSubmitting(true);
       try {
-        const result = await onEdit(
+        const result = await onInlineEdit(
           { rowId: row.rowId, entityId: row.entityId! },
           serializeComposerPromptContexts(nextText, {
             ...editPromptContexts,
@@ -1216,7 +1223,7 @@ const SingleUserInputRowView = memo(function SingleUserInputRowView({
       editAttachments,
       editContextCount,
       editPromptContexts,
-      onEdit,
+      onInlineEdit,
       row.entityId,
       row.rowId,
       row.conversationQuotes,
@@ -1559,7 +1566,27 @@ const SingleUserInputRowView = memo(function SingleUserInputRowView({
           rowId={row.rowId}
           label={intl.formatMessage({ id: "chat.message.copy" })}
         />
-        {onEdit && row.entityId ? (
+        {context.composerEditingRowId === row.rowId ? (
+          // U03：编辑主体在底部 Composer；原行保留一个“正在下方编辑”的焦点占位，
+          // 不再展开行内编辑器。
+          <span
+            role="status"
+            data-composer-editing-row={row.rowId}
+            data-composer-editing-below="true"
+            className="px-1 text-ui-sm text-foreground-subtle"
+          >
+            {intl.formatMessage({ id: "chat.composerEdit.editingBelow" })}
+          </span>
+        ) : onEdit && row.entityId ? (
+          <MessageAction
+            label={intl.formatMessage({ id: "chat.message.edit" })}
+            tooltip={intl.formatMessage({ id: "chat.message.edit" })}
+            data-testid={testId(TID_V4_EDIT, String(row.rowId))}
+            onClick={() => onEdit({ rowId: row.rowId, entityId: row.entityId! })}
+          >
+            <PencilIcon className="size-3.5" />
+          </MessageAction>
+        ) : onInlineEdit && row.entityId ? (
           <MessageAction
             label={intl.formatMessage({ id: "chat.message.edit" })}
             tooltip={intl.formatMessage({ id: "chat.message.edit" })}
@@ -1587,7 +1614,12 @@ const UserInputRowView = memo(function UserInputRowView(
           data-topic-message-id={row.botGroupSource!.messageId}
         >
           {/* 多条原文共用一个已接收输入，不能把局部编辑误当作替换整批。 */}
-          <SingleUserInputRowView {...props} row={row} onEdit={undefined} />
+          <SingleUserInputRowView
+            {...props}
+            row={row}
+            onEdit={undefined}
+            onInlineEdit={undefined}
+          />
         </div>
       ))}
     </div>
@@ -2449,6 +2481,7 @@ function ConversationRowViewImpl({
   onRetry,
   onFeedbackChange,
   onEdit,
+  onInlineEdit,
   editWorkspaceRewindAvailability,
   hideAssistantActions,
   deferAssistantActions,
@@ -2467,6 +2500,7 @@ function ConversationRowViewImpl({
           row={row}
           context={context}
           onEdit={onEdit}
+          onInlineEdit={onInlineEdit}
           editWorkspaceRewindAvailability={editWorkspaceRewindAvailability}
           status={userInputStatus}
         />

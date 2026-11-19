@@ -38,6 +38,7 @@ import type {
   ModelUsage,
   TopicResourcePort,
   PdfDocumentPort,
+  PendingInputEditLock,
   PermissionBrokerPort,
   PluginLoadOutcome,
   PluginMetadata,
@@ -799,10 +800,21 @@ export interface NibiApp {
     reservationId: string,
     options?: { traceContext?: TraceContext },
   ): Promise<boolean>;
-  /** v4 queue 单项编辑：按 pendingInputId 替换排队输入文本（保位）。返回是否命中。 */
+  /** v4 queue 单项编辑：按 pendingInputId 替换排队输入文本（保位）；成功时释放编辑锁。 */
   editQueueItem(
     pendingInputId: string,
     newText: string,
+    options?: { editorId?: string; traceContext?: TraceContext },
+  ): Promise<boolean>;
+  /** v4 queue 编辑锁：加锁（只允许未加锁项）。返回是否命中。 */
+  lockQueueItemEdit(
+    pendingInputId: string,
+    editLock: PendingInputEditLock,
+    options?: { traceContext?: TraceContext },
+  ): Promise<boolean>;
+  /** v4 queue 编辑锁：释放（幂等）。返回是否命中。 */
+  releaseQueueItemEdit(
+    pendingInputId: string,
     options?: { traceContext?: TraceContext },
   ): Promise<boolean>;
   /** v4 queue 重排：移动 pendingInputId 到 beforePendingInputId 之前（null=队尾）。 */

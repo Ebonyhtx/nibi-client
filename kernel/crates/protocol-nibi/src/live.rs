@@ -240,6 +240,12 @@ impl Live {
         self.state().projection.remember_input(command, meta);
     }
 
+    /// 队列项正文被 editQueueItem 改写：投影的输入事实（原文 + canonical intent）同步，
+    /// 下一次 QueueChanged 生成 queue state 时显示新文本（行上的历史消息不受影响）。
+    pub fn edit_input_text(&self, command: &str, text: &str) {
+        self.state().projection.edit_input_text(command, text);
+    }
+
     /// 用户拒绝了这个工具调用：之后它的结果投成 cancelled（与 Node 相同）。
     pub fn deny(&self, tool_use: &nibi_kernel_api::ids::ToolUseId) {
         self.state().projection.deny(tool_use.as_str());

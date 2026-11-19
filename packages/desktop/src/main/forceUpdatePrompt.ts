@@ -1,6 +1,7 @@
 /* eslint-disable max-lines -- 强制升级提示窗口包含内联 HTML/CSS 和状态脚本，启动前不能依赖 renderer 包 */
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { join } from "node:path";
+import { app } from "electron";
 import { type Locale } from "@nibi/shared";
 import type { ForceUpdateDialogText, ForceUpdateGuardLogger } from "./forceUpdateGuard.js";
 import type { ForceAutoUpdateState } from "./autoUpdater.js";
@@ -38,10 +39,18 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
+function resolveForceUpdatePromptIconPath(): string {
+  // 打包态从 resources 读（electron-builder extraResources 会放 icon.png）；
+  // 开发态从 packages/desktop/build 读。不能用 process.cwd()：从 Finder/开始菜单
+  // 启动时 cwd 不是应用目录，图标会静默落回字母占位。
+  return app.isPackaged
+    ? join(process.resourcesPath, "icon.png")
+    : join(import.meta.dirname, "../../build/icon.png");
+}
+
 function readForceUpdatePromptIcon(): string | null {
   try {
-    const iconPath = resolve(process.cwd(), "build/icon.png");
-    const icon = readFileSync(iconPath).toString("base64");
+    const icon = readFileSync(resolveForceUpdatePromptIconPath()).toString("base64");
     return `data:image/png;base64,${icon}`;
   } catch {
     return null;
@@ -332,7 +341,7 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
     <main class="panel" role="dialog" aria-modal="true" aria-labelledby="title">
       <header class="titlebar">
         <div class="brand">
-          <div class="brand-icon">${icon ? `<img src="${icon}" alt="" />` : "Z"}</div>
+          <div class="brand-icon">${icon ? `<img src="${icon}" alt="" />` : "N"}</div>
           <div class="brand-title">NIBI</div>
         </div>
         <button class="close" type="button" data-action="quit" aria-label="${escapeHtml(text.quitButton)}">×</button>

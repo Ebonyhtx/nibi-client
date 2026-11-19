@@ -298,6 +298,22 @@ describe("legacy session/stop expectedExecutionId fencing", () => {
 });
 
 describe("NibiProtocolAgentServer", () => {
+  it("declares conversationQuoteComment so selection annotations reach the model", async () => {
+    const server = new NibiProtocolAgentServer({
+      createNibiApp: (options) => createFakeApp(options),
+      cwd: workspace.workspacePath,
+      version: "test-version",
+    });
+
+    await expect(
+      requestResult(server, {
+        id: "runtime-capabilities-annotation",
+        method: nibiProtocolMethods.runtimeCapabilities,
+        params: {},
+      }),
+    ).resolves.toMatchObject({ conversationQuoteComment: true });
+  });
+
   it("所有 Entry 都不再接受旧 Workspace Provider 写协议", async () => {
     const server = new NibiProtocolAgentServer({
       createNibiApp: (options) => createFakeApp(options),

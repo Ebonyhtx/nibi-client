@@ -1338,6 +1338,30 @@ const ruRU: Record<string, string> = {
     "Выбранная модель пока не предоставляет конфигурацию для прямого улучшения.",
   "chat.queue.drag": "Перетащите, чтобы изменить порядок",
   "chat.queue.edit": "Изменить",
+  "chat.queue.editEmpty": "Сообщение в очереди не может быть пустым.",
+  "chat.composerEdit.cancel": "Отмена",
+  "chat.composerEdit.editingBelow": "Редактирование ниже",
+  "chat.composerEdit.title.userQuery": "Редактирование сообщения",
+  "chat.composerEdit.title.queueItem": "Редактирование сообщения в очереди",
+  "chat.composerEdit.rewind": "Сбросить диалог и файлы",
+  "chat.composerEdit.invalid.notLatest":
+    "Это сообщение больше нельзя редактировать: оно не является последним сообщением пользователя.",
+  "chat.composerEdit.invalid.queueItemRemoved": "Этого сообщения в очереди больше нет.",
+  "chat.composerEdit.invalid.editLockLost":
+    "Право редактирования этого сообщения в очереди утрачено. Попробуйте снова.",
+  "chat.composerEdit.discardConfirm": "Отменить изменения и отредактировать другое сообщение?",
+  "chat.composerEdit.lockedByOther":
+    "Это сообщение в очереди редактируется в другом окне или на другом устройстве.",
+  "chat.composerEdit.empty": "Отредактированное сообщение не может быть пустым.",
+  "chat.composerEdit.submitFailed":
+    "Не удалось сохранить отредактированное сообщение. Попробуйте снова.",
+  "chat.queue.editLockFailed":
+    "Не удалось заблокировать сообщение в очереди для редактирования. Повторите попытку.",
+  "chat.queue.editLockLost":
+    "Блокировка редактирования этого сообщения потеряна. Попробуйте снова.",
+  "chat.queue.editLockedByOther": "Редактируется в другом окне или на другом устройстве",
+  "chat.queue.editLockedBySelf": "Редактируется ниже",
+  "chat.queue.releaseEdit": "Освободить",
   "chat.queue.enqueue": "В очередь",
   "chat.queue.enqueue.description":
     "Поставить текущий черновик в очередь и отправить автоматически после завершения текущего ответа.",
@@ -1379,6 +1403,22 @@ const ruRU: Record<string, string> = {
   "chat.scrollToBottom": "Прокрутить вниз",
   "chat.selections.addToTask": "Добавить в чат",
   "chat.selections.askInSideChat": "Добавить в побочный чат",
+  "chat.selections.comment": "Аннотировать",
+  "chat.selections.commentPlaceholder":
+    "Комментарий (необязательно) будет отправлен модели вместе с этим текстом",
+  "chat.selections.commentHint": "Можно оставить пустым · Shift + ↵ — новая строка",
+  "chat.selections.commentSave": "Добавить аннотацию",
+  "chat.selections.commentAddTitle": "Новая аннотация · комментарий необязателен",
+  "chat.selections.commentEditTitle": "Изменить аннотацию",
+  "chat.selections.commentEditHint": "Пустое поле — оставить только цитату",
+  "chat.selections.commentEditSave": "Сохранить",
+  "chat.selections.commentDelete": "Удалить аннотацию",
+  "chat.selections.commentAdd": "Добавить комментарий",
+  "chat.selections.commentDeleted": "Аннотация удалена",
+  "chat.selections.commentUndo": "Отменить",
+  "chat.selections.listHeader": "Аннотаций в следующем сообщении: {count}",
+  "chat.selections.listHint": "Номера соответствуют ответу",
+  "chat.selections.removeAll": "Удалить все аннотации",
   "chat.selections.count": "Аннотаций: {count}",
   "chat.selections.file": "{name} · Выделение",
   "chat.selections.limit.count": "Можно добавить не более 8 аннотаций.",

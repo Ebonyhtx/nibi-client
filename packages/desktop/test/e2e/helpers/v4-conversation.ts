@@ -836,7 +836,7 @@ export async function clickV4QueueItemDelete(queueItemId: string) {
   }, queueItemId);
 }
 
-/** 点击某 queue 项的编辑按钮（按 queueItemId，撤回到 composer）。 */
+/** 点击某 queue 项的编辑按钮（按 queueItemId；U36 = 加锁后进入 composer 编辑态）。 */
 export async function clickV4QueueItemEdit(queueItemId: string, clickCount = 1) {
   return browser.execute(
     (id, count) => {
@@ -851,6 +851,35 @@ export async function clickV4QueueItemEdit(queueItemId: string, clickCount = 1) 
     queueItemId,
     clickCount,
   );
+}
+
+/** 读取某 queue 项的编辑锁投影（U36）：锁定态、持有者归属与释放入口是否可见。 */
+export function getV4QueueItemEditState(queueItemId: string): Promise<{
+  locked: boolean;
+  owner: string | null;
+  releaseVisible: boolean;
+}> {
+  return browser.execute((id) => {
+    const row = document.querySelector<HTMLElement>(`[data-queue-item-id="${id}"]`);
+    return {
+      locked: row?.getAttribute("data-edit-locked") === "true",
+      owner: row?.getAttribute("data-edit-lock-owner") ?? null,
+      releaseVisible: Boolean(
+        document.querySelector(`[data-testid="v4-queue-item-release-edit-${id}"]`),
+      ),
+    };
+  }, queueItemId);
+}
+
+/** 点击某 queue 项的「释放编辑锁」（U36）。 */
+export async function clickV4QueueItemReleaseEdit(queueItemId: string) {
+  return browser.execute((id) => {
+    const btn = document.querySelector<HTMLButtonElement>(
+      `[data-testid="v4-queue-item-release-edit-${id}"]`,
+    );
+    btn?.click();
+    return Boolean(btn);
+  }, queueItemId);
 }
 
 /** 点击某 queue 项的立即发送按钮（按 queueItemId）。 */

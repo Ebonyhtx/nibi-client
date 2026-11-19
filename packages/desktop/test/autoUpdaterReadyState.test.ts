@@ -289,6 +289,40 @@ describe("autoUpdater ready state sync", () => {
     );
   });
 
+  it("更新器网络策略失败时阻止启动与手动检查，不静默回落到默认 Session", async () => {
+    const win = {
+      isDestroyed: () => false,
+      webContents: {
+        id: 10,
+        send: vi.fn(),
+      },
+    };
+    browserWindows.push(win);
+
+    const {
+      initAutoUpdater,
+      checkForUpdateMenuClick,
+      setAutoUpdaterNetworkPolicyFailure,
+    } = await import("../src/main/autoUpdater.js");
+    const failure = new Error("auto-updater netSession setProxy failed");
+    setAutoUpdaterNetworkPolicyFailure(failure);
+
+    await initAutoUpdater();
+    checkForUpdateMenuClick(win as never);
+
+    expect(autoUpdaterMock.checkForUpdates).not.toHaveBeenCalled();
+    expect(loggerErrorMock).toHaveBeenCalledWith(
+      "[auto-update] update network policy unavailable; refusing default-session fallback:",
+      failure,
+    );
+    expect(win.webContents.send).toHaveBeenCalledWith(PlatformChannels.UpdateCheckResult, {
+      kind: "error",
+      message: expect.stringContaining(
+        "refusing to fall back to the default network session",
+      ),
+    });
+  });
+
   it("Linux arm64 主更新检查默认使用服务端 manifest provider", async () => {
     mockProcessPlatform("linux");
     process.env["TEST_UPDATER_ARCH"] = "arm64";

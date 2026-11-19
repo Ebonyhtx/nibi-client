@@ -29,12 +29,12 @@ const output = resolve(
 );
 
 const names = Object.keys(commandPayloadSchemas);
-if (names.length !== 34) {
-  throw new Error(`NIBI commandPayloadSchemas must have 34 entries, got ${names.length}`);
+if (names.length !== 36) {
+  throw new Error(`NIBI commandPayloadSchemas must have 36 entries, got ${names.length}`);
 }
-if (COMMANDS_REQUIRING_BASE_REVISION.size !== 15) {
+if (COMMANDS_REQUIRING_BASE_REVISION.size !== 14) {
   throw new Error(
-    `COMMANDS_REQUIRING_BASE_REVISION must have 15 entries, got ${COMMANDS_REQUIRING_BASE_REVISION.size}`,
+    `COMMANDS_REQUIRING_BASE_REVISION must have 14 entries, got ${COMMANDS_REQUIRING_BASE_REVISION.size}`,
   );
 }
 if (ROW_TARGETING_COMMANDS.size !== 5) {

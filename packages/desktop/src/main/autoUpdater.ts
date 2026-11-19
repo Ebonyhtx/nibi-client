@@ -68,6 +68,31 @@ let confirmInstallWithRunningTasks:
 // （占位 feed、autoDownload 默认值）。任何漏改成按身份判断的入口若仍调用手动检查，
 // 都会对占位 feed 发真实请求。这里记住“本 flavor 已禁用”，让手动检查在模块内部 fail-closed。
 let autoUpdaterDisabledForProductFlavor = false;
+// 更新器独立 netSession 的代理/CA 策略失败后，必须阻止所有更新网络入口；
+// 否则 electron-updater 会静默使用未配置策略的默认路径，用户既看不到代理/CA 生效，
+// 也会在不知情时绕过显式配置的网络边界。
+let autoUpdaterNetworkPolicyFailure: Error | null = null;
+
+export function setAutoUpdaterNetworkPolicyFailure(error: Error | null): void {
+  autoUpdaterNetworkPolicyFailure = error;
+  if (error) {
+    logger.error(
+      "[auto-update] update network policy unavailable; refusing default-session fallback:",
+      error,
+    );
+  }
+}
+
+function blockOnAutoUpdaterNetworkPolicyFailure(source: string): Error | null {
+  if (!autoUpdaterNetworkPolicyFailure) {
+    return null;
+  }
+  const error = new Error(
+    `Update network policy unavailable; refusing to fall back to the default network session: ${autoUpdaterNetworkPolicyFailure.message}`,
+  );
+  logger.error(`[auto-update] ${source} blocked by network policy:`, error);
+  return error;
+}
 
 type SettingServiceLike = Pick<ISettingService, "get" | "update">;
 
@@ -1379,6 +1404,12 @@ export function downloadAvailableUpdate(reason = "renderer") {
     return;
   }
 
+  const networkPolicyError = blockOnAutoUpdaterNetworkPolicyFailure(`${reason} download`);
+  if (networkPolicyError) {
+    handleAutoUpdateFailure(networkPolicyError, "network policy blocked download");
+    return;
+  }
+
   if (menuState.kind === "update-downloaded") {
     logger.info(`[auto-update] skip ${reason} download: update already ready`);
     return;
@@ -1568,6 +1599,8 @@ export function refreshAutoUpdaterReleaseChannel(
     return;
   }
 
+  if (blockOnAutoUpdaterNetworkPolicyFailure(`${reason} channel refresh`)) return;
+
   if (menuState.kind === "download-progress" || menuState.kind === "update-downloaded") {
     logger.info(`[auto-update] skip ${reason}: state=${menuState.kind} channel=${nextChannel}`);
     return;
@@ -1719,6 +1752,11 @@ export async function initAutoUpdater(options: InitAutoUpdaterOptions = {}): Pro
 
   const triggerCheckForUpdates = (reason: string) => {
     if (quitAndInstallState !== "idle") return;
+    const networkPolicyError = blockOnAutoUpdaterNetworkPolicyFailure(`${reason} check`);
+    if (networkPolicyError) {
+      handleAutoUpdateFailure(networkPolicyError, "network policy blocked check");
+      return;
+    }
     if (checkForUpdatesInFlight) {
       logger.info(`[auto-update] skip ${reason}: check already in flight`);
       return;
@@ -2026,6 +2064,12 @@ export function requestForceAutoUpdate(
     return dispose;
   }
 
+  const networkPolicyError = blockOnAutoUpdaterNetworkPolicyFailure(`${reason} force update`);
+  if (networkPolicyError) {
+    onStateChange({ kind: "error", message: networkPolicyError.message });
+    return dispose;
+  }
+
   if (menuState.kind === "update-downloaded") {
     // 强制更新同样不替用户点安装：只进入 ready，由提示窗口提供“立即重启安装”。
     onStateChange({
@@ -2088,6 +2132,8 @@ export function requestAutoUpdateCheckWithoutWindow(reason = "force-update") {
     logger.info(`[auto-update] skip ${reason}: not packaged`);
     return;
   }
+
+  if (blockOnAutoUpdaterNetworkPolicyFailure(`${reason} check`)) return;
 
   if (menuState.kind === "update-downloaded") {
     logger.info(
@@ -2155,6 +2201,15 @@ export function checkForUpdateMenuClick(originWindow?: BrowserWindow | null) {
     logger.info("[auto-update] skip manual check: updater disabled for this product flavor");
     targetWindow.webContents.send(PlatformChannels.UpdateCheckResult, {
       kind: "dev-skipped",
+    } satisfies UpdateCheckResultPayload);
+    return;
+  }
+
+  const networkPolicyError = blockOnAutoUpdaterNetworkPolicyFailure("manual check");
+  if (networkPolicyError) {
+    targetWindow.webContents.send(PlatformChannels.UpdateCheckResult, {
+      kind: "error",
+      message: networkPolicyError.message,
     } satisfies UpdateCheckResultPayload);
     return;
   }

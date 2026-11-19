@@ -1,27 +1,83 @@
 //! 队列编辑（NIBI 的 queue 命令组：`editQueueItem` / `deleteQueueItem` / `reorderQueueItem` /
-//! `setAutoDrain` / `sendQueuedNow`）。
+//! `lockQueueItemEdit` / `releaseQueueItemEdit` / `setAutoDrain` / `sendQueuedNow`）。
 //!
 //! 队列与通道只由 actor 持有（lane.rs）：这里只改队列状态，不开回合——`sendQueuedNow` 与
 //! `setAutoDrain` 的"立刻开"例外，它们按 `sendQueuedNow` 的语义走同一条开回合路径。命令 ID 就是
 //! 协议里的 `queueItemId`（协议层在投影里加了 `queue_` 前缀，处理器剥掉）。
+//!
+//! 编辑锁（U36）：锁的并发守卫取代 `editQueueItem` 的 CAS —— `editQueueItem` 不再要求
+//! `baseRevision`。锁只允许加在 queued + 未加锁的项上；有锁时删除/重排/立即发送都拒绝，
+//! 自动排空也不开加锁的队首（lane.rs）。释放是幂等的，任意端、任意状态都可调用。
+//! 内核拒绝的 `reason` 以 reason code 前缀开头（`guard.queueItemEditLocked: ...`），协议层
+//! 据此映射 ACK 的 `reasonCode`；未知前缀仍按原来的通用失败处理。
+//!
+//! v1 是 text-only：`EditQueued` 只改正文，附件/引用/模型选择等字段由协议投影保留队列项
+//! 原值；内核没有 queued-intent store，不假装支持这些字段的改写。
 
 use nibi_kernel_api::ids::CommandId;
-use nibi_kernel_api::session_api::QueuedInput;
 use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::session_api::{QueueEditLock, QueuedInput};
 
 use crate::actor::{Actor, accepted, rejected};
 use crate::bash::QueuedKind;
 use crate::lane::Lane;
 use crate::turn::TurnInput;
 
+/// 队列项不在队列里（UI 按 noop 处理）。
+pub(crate) const QUEUE_ITEM_MISSING: &str = "queue.itemMissing";
+/// 项已被其他/本端加锁：加锁、编辑、删除、重排、立即发送都拒绝。
+pub(crate) const QUEUE_ITEM_EDIT_LOCKED: &str = "guard.queueItemEditLocked";
+/// 带 editorId 的编辑找不到锁（锁已丢失/被释放）。
+pub(crate) const QUEUE_EDIT_LOCK_MISSING: &str = "queue.editLockMissing";
+/// 带 editorId 的编辑发现锁属于另一个 editor（编辑权已转移）。
+pub(crate) const QUEUE_EDIT_LOCK_LOST: &str = "guard.queueEditLockLost";
+/// 项存在但不可编辑（typed maintenance 项等）。
+#[allow(dead_code)]
+pub(crate) const QUEUE_ITEM_NOT_EDITABLE: &str = "guard.queueItemNotEditable";
+
+fn queue_rejected(code: &str, detail: impl std::fmt::Display) -> nibi_kernel_api::session_api::Ack {
+    rejected(format!("{code}: {detail}"))
+}
+
 impl Actor {
     /// NIBI `editQueueItem`：同 id 原地更新正文（种类与位置不变）。不在队列里时拒绝（调用方按 noop）。
     /// 带内容块的输入改写文字块；bash 模式的输入改写命令原文。
-    pub(crate) fn edit_queued(&mut self, item: CommandId, text: String) -> nibi_kernel_api::session_api::Ack {
+    ///
+    /// 编辑锁：`editor_id` 有值时必须与锁持有者一致，成功后锁自动释放；缺省时只允许无锁项。
+    pub(crate) fn edit_queued(
+        &mut self,
+        item: CommandId,
+        text: String,
+        editor_id: Option<String>,
+    ) -> nibi_kernel_api::session_api::Ack {
         let Some(index) = self.queue.iter().position(|input| input.command == item) else {
-            return rejected(format!("queue item {item} is no longer queued"));
+            return queue_rejected(QUEUE_ITEM_MISSING, format!("queue item {item} is no longer queued"));
         };
+        if let Some(lock) = &self.queue[index].edit_lock {
+            match editor_id.as_deref() {
+                Some(editor) if editor == lock.editor_id => {}
+                Some(_) => {
+                    return queue_rejected(
+                        QUEUE_EDIT_LOCK_LOST,
+                        format!("the edit lock for {item} belongs to another editor"),
+                    );
+                }
+                None => {
+                    return queue_rejected(
+                        QUEUE_ITEM_EDIT_LOCKED,
+                        format!("queue item {item} is locked for editing"),
+                    );
+                }
+            }
+        } else if editor_id.is_some() {
+            return queue_rejected(
+                QUEUE_EDIT_LOCK_MISSING,
+                format!("queue item {item} has no edit lock"),
+            );
+        }
         self.queue[index].text = text.clone();
+        // 编辑成功即释放：锁只覆盖“选中到提交”这一段。
+        self.queue[index].edit_lock = None;
         match self.queued_kinds.get_mut(&item) {
             Some(QueuedKind::Bash(line)) => *line = text,
             Some(QueuedKind::Content(content)) => {
@@ -44,10 +100,54 @@ impl Actor {
         accepted()
     }
 
-    /// NIBI `deleteQueueItem`：从队列、通道与种类表里移除。不在队列里时拒绝。
+    /// NIBI `lockQueueItemEdit`：只允许 queued + 未加锁的项。锁的持有者由 `editor_id` 标识
+    /// （客户端会话级 editorId），`client_id` 与 `input_origin` 只用于其他端的显示。
+    pub(crate) fn lock_queued_edit(
+        &mut self,
+        item: CommandId,
+        editor_id: String,
+        client_id: String,
+        input_origin: Option<String>,
+    ) -> nibi_kernel_api::session_api::Ack {
+        let Some(index) = self.queue.iter().position(|input| input.command == item) else {
+            return queue_rejected(QUEUE_ITEM_MISSING, format!("queue item {item} is no longer queued"));
+        };
+        if self.queue[index].edit_lock.is_some() {
+            return queue_rejected(
+                QUEUE_ITEM_EDIT_LOCKED,
+                format!("queue item {item} is already locked for editing"),
+            );
+        }
+        self.queue[index].edit_lock = Some(QueueEditLock {
+            editor_id,
+            client_id,
+            input_origin,
+        });
+        self.emit_queue();
+        accepted()
+    }
+
+    /// NIBI `releaseQueueItemEdit`：任意端、任意状态都可释放；锁不存在或项已出队时幂等成功。
+    pub(crate) fn release_queued_edit(&mut self, item: CommandId) -> nibi_kernel_api::session_api::Ack {
+        let Some(index) = self.queue.iter().position(|input| input.command == item) else {
+            return accepted();
+        };
+        if self.queue[index].edit_lock.take().is_some() {
+            self.emit_queue();
+        }
+        accepted()
+    }
+
+    /// NIBI `deleteQueueItem`：从队列、通道与种类表里移除。不在队列里时拒绝；加锁时拒绝。
     pub(crate) fn delete_queued(&mut self, item: CommandId) -> nibi_kernel_api::session_api::Ack {
-        if !self.queue.iter().any(|input| input.command == item) {
-            return rejected(format!("queue item {item} is no longer queued"));
+        let Some(index) = self.queue.iter().position(|input| input.command == item) else {
+            return queue_rejected(QUEUE_ITEM_MISSING, format!("queue item {item} is no longer queued"));
+        };
+        if self.queue[index].edit_lock.is_some() {
+            return queue_rejected(
+                QUEUE_ITEM_EDIT_LOCKED,
+                format!("queue item {item} is locked for editing"),
+            );
         }
         self.remove_input(&item);
         self.queued_kinds.remove(&item);
@@ -66,8 +166,14 @@ impl Actor {
             return accepted();
         }
         let Some(from) = self.queue.iter().position(|input| input.command == item) else {
-            return rejected(format!("queue item {item} is no longer queued"));
+            return queue_rejected(QUEUE_ITEM_MISSING, format!("queue item {item} is no longer queued"));
         };
+        if self.queue[from].edit_lock.is_some() {
+            return queue_rejected(
+                QUEUE_ITEM_EDIT_LOCKED,
+                format!("queue item {item} is locked for editing"),
+            );
+        }
         let input = self
             .queue
             .remove(from)
@@ -78,7 +184,10 @@ impl Actor {
                 // 目标项不在：拒绝，原项放回原位。
                 None => {
                     self.queue.insert(from.min(self.queue.len()), input);
-                    return rejected(format!("queue item {target} is no longer queued"));
+                    return queue_rejected(
+                        QUEUE_ITEM_MISSING,
+                        format!("queue item {target} is no longer queued"),
+                    );
                 }
             },
             None => self.queue.len(),
@@ -109,8 +218,14 @@ impl Actor {
         item: CommandId,
     ) -> nibi_kernel_api::session_api::Ack {
         let Some(index) = self.queue.iter().position(|input| input.command == item) else {
-            return rejected(format!("queue item {item} is no longer queued"));
+            return queue_rejected(QUEUE_ITEM_MISSING, format!("queue item {item} is no longer queued"));
         };
+        if self.queue[index].edit_lock.is_some() {
+            return queue_rejected(
+                QUEUE_ITEM_EDIT_LOCKED,
+                format!("queue item {item} is locked for editing"),
+            );
+        }
         let input = self
             .queue
             .remove(index)

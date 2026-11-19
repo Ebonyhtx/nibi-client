@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "fixtures": [
+    {
+      "id": "r05-archive-permanent-deletion-main",
+      "description": "R05 归档会话永久删除证据：首轮返回固定 assistant 文本，不发起工具调用；归档、删除预检与永久删除全部走真实 UI/内核。",
+      "metadata": {
+        "kind": "common",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "只为真实会话补齐可复现的普通文本回合；删除链路不 mock。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "lastUserMessageIncludes": [
+          "E2E_R05_ARCHIVE_PURGE"
+        ],
+        "bodyIncludes": [
+          "E2E_R05_ARCHIVE_PURGE"
+        ],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY",
+          "Write the title in the predominant language"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "statusMessage": "OK",
+        "text": {
+          "id": "msg_r05_archive_permanent_deletion",
+          "text": "R05_ARCHIVE_PURGE_OK",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "r05-archive-permanent-deletion-rust-title",
+      "description": "R05 证据：Rust 内核的会话标题请求固定返回，避免 replay 未匹配导致 500。",
+      "metadata": {
+        "kind": "common",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "标题与删除链路无关；固定标题让截图与列表稳定。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "E2E_R05_ARCHIVE_PURGE",
+          "Write the title in the predominant language"
+        ],
+        "bodyExcludes": [
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "statusMessage": "OK",
+        "text": {
+          "id": "msg_r05_archive_permanent_deletion_title",
+          "text": "{\"title\":\"R05 Archive Purge\"}",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "r05-archive-permanent-deletion-node-title",
+      "description": "R05 证据：Node 侧标题生成提示的兼容 fixture（当前 E2E 走 Rust 内核）。",
+      "metadata": {
+        "kind": "common",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "同一标题的兼容匹配；不影响删除链路。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "E2E_R05_ARCHIVE_PURGE",
+          "Generate a concise title"
+        ],
+        "bodyExcludes": [
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "statusMessage": "OK",
+        "text": {
+          "id": "msg_r05_archive_permanent_deletion_node_title",
+          "text": "{\"title\":\"R05 Archive Purge\"}",
+          "outputTokens": 8
+        }
+      }
+    }
+  ]
+}

@@ -78,6 +78,7 @@ fn queued(text: &str) -> KernelEvent {
             command: CommandId::new("c2"),
             text: text.to_owned(),
             delivery: Delivery::Steer,
+            edit_lock: None,
         }],
     }
 }

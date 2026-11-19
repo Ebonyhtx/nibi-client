@@ -2,6 +2,9 @@
  * 安全边界约束：本文件被匿名公开分享页（packages/web/src/share）直接引用，新增依赖必须考虑
  * 公开页 bundle 体积与无 Desktop 宿主（window.nibi / PlatformProvider / tab store）的运行环境；
  * Desktop 专属能力（如 open-with 子树）一律由消费方经组件注入，不得静态 import。 */
+import { CollapsedChangeSummary } from "@/ToolCallBlocks/renderers.js";
+import { ConsecutiveSummaryGroup } from "@/ToolCallBlocks/ToolSummaryRow.js";
+import { SummaryGroupBoundaryContext } from "@/v4/conversationRowContext.js";
 import { ToolPresentation } from "@/ToolCallBlocks/ToolPresentation.js";
 import {
   useToolPresentationCapabilities,
@@ -59,6 +62,18 @@ import {
   buildAssistantWorkRenderItems,
   type ConversationAssistantWorkRenderItem,
 } from "@/v4/conversationAssistantWorkItems.js";
+import {
+  buildAssistantSummaryWorkRenderItems,
+  ENABLE_UNIFIED_SUMMARY_GROUPING,
+  formatAssistantSummaryStatistics,
+  getActiveAssistantSummaryItem,
+  getAssistantSummaryChangeFiles,
+  getAssistantSummaryIconItem,
+  getAssistantSummaryTailRowId,
+  groupConsecutiveAssistantSummaries,
+  type ConversationAssistantWorkRenderItem as UnifiedAssistantWorkRenderItem,
+} from "@/v4/conversationSummaryGroups.js";
+import { useContinuousGroupKeys } from "@/v4/useContinuousGroupKeys.js";
 import type { ConversationCuaGroupRenderItem } from "@/v4/conversationCuaGroups.js";
 import {
   buildConversationTurnRenderUnits,
@@ -654,7 +669,134 @@ function GroupedToolPresentation({
   );
 }
 
-function ReadonlyAssistantWorkItems({
+function UnifiedReadonlyAssistantWorkItems({
+  rows,
+  theme,
+  codePreviewSettings,
+  artifactUrls,
+  artifactNames,
+  labels,
+  onOpenExternalUrl,
+}: {
+  rows: readonly AssistantWorkRow[];
+  theme: Theme;
+  codePreviewSettings: CodePreviewSettings;
+  artifactUrls: ReadonlyMap<string, string>;
+  artifactNames: ReadonlyMap<string, string>;
+  labels: ReadonlyLabels;
+  onOpenExternalUrl: (url: string) => void;
+}) {
+  const { intl } = useNibiIntl();
+  const summaryBoundary = useContext(SummaryGroupBoundaryContext);
+  const items = useMemo(
+    () => buildAssistantSummaryWorkRenderItems(rows, { messageStreamShowReasoning: true }),
+    [rows],
+  );
+  const groups = useMemo(() => groupConsecutiveAssistantSummaries(items), [items]);
+  const groupKeys = useContinuousGroupKeys(groups, (group) => ({
+    kind: "summary",
+    rowIds: group.items.map((item) => item.row.rowId),
+    key: group.items.length < 2 ? group.items[0]!.key : undefined,
+  }));
+  // 与 App 对话页同一修复：过程行全被投影隐藏（如只有 Todo）时整块不渲染。
+  if (items.length === 0) return null;
+  const renderItem = (item: UnifiedAssistantWorkRenderItem) =>
+    item.kind === "row" ? (
+      renderReadonlyRow(
+        item.row,
+        theme,
+        codePreviewSettings,
+        artifactUrls,
+        artifactNames,
+        labels,
+        onOpenExternalUrl,
+      )
+    ) : (
+      <ToolCallPresentation
+        key={item.key}
+        row={item.row}
+        theme={theme}
+        codePreviewSettings={codePreviewSettings}
+        artifactNames={artifactNames}
+        onOpenExternalUrl={onOpenExternalUrl}
+      />
+    );
+  return (
+    <div
+      className="flex flex-col gap-1"
+      data-conversation-share-work-items
+      data-conversation-work-items
+    >
+      {groups.map((group, index) => {
+        if (group.items.length < 2) return renderItem(group.items[0]!);
+        const last = group.items.at(-1)!;
+        const active = getActiveAssistantSummaryItem(group.items);
+        const current = active ?? last;
+        const iconItem = getAssistantSummaryIconItem(group.items);
+        const completed = !(
+          summaryBoundary.taskRunning && summaryBoundary.tailRowId === last.row.rowId
+        );
+        const statistics = formatAssistantSummaryStatistics(
+          group.items,
+          intl,
+          undefined,
+          completed,
+        );
+        const changes = getAssistantSummaryChangeFiles(group.items);
+        return (
+          <ConsecutiveSummaryGroup
+            key={groupKeys[index]}
+            statistics={statistics}
+            collapsedStatistics={
+              changes ? (
+                <CollapsedChangeSummary
+                  files={changes.files}
+                  label={
+                    changes.files.length === 1 && changes.unresolved === 0
+                      ? intl.formatMessage({
+                          id: completed
+                            ? "chat.summaryGroup.change.completed.label"
+                            : "chat.summaryGroup.change.label",
+                        })
+                      : statistics
+                  }
+                />
+              ) : undefined
+            }
+            lastRowId={last.row.rowId}
+            hasActiveItem={active !== undefined}
+            contentKey={current.key}
+            refreshVersion={current.row}
+            statisticsIcon={iconItem ? renderItem(iconItem) : undefined}
+            summary={renderItem(current)}
+          >
+            {group.items.map(renderItem)}
+          </ConsecutiveSummaryGroup>
+        );
+      })}
+    </div>
+  );
+}
+
+function ReadonlyAssistantWorkItems(props: {
+  rows: readonly AssistantWorkRow[];
+  stageTailIsRunning: boolean;
+  theme: Theme;
+  codePreviewSettings: CodePreviewSettings;
+  artifactUrls: ReadonlyMap<string, string>;
+  artifactNames: ReadonlyMap<string, string>;
+  labels: ReadonlyLabels;
+  onOpenExternalUrl: (url: string) => void;
+}) {
+  // 统一摘要分组是新默认；关掉常量即可恢复旧 CUA/Explore/Execute 分组。
+  return ENABLE_UNIFIED_SUMMARY_GROUPING ? (
+    <UnifiedReadonlyAssistantWorkItems {...props} />
+  ) : (
+    <LegacyReadonlyAssistantWorkItems {...props} />
+  );
+}
+
+function LegacyReadonlyAssistantWorkItems({
   rows,
   stageTailIsRunning,
   theme,
@@ -963,62 +1105,73 @@ function ReadonlyTurn({
   onOpenExternalUrl: (url: string) => void;
 }) {
   const segments = unit.workSegments?.length ? unit.workSegments : [fallbackWorkSegment(unit)];
+  const summaryTailRowId = useMemo(
+    () => getAssistantSummaryTailRowId(unit.renderRows, { messageStreamShowReasoning: true }),
+    [unit.renderRows],
+  );
+  // provider value 必须保持引用稳定；inline 对象会在每个流式帧让整轮摘要重渲染。
+  const summaryGroupBoundary = useMemo(
+    () => ({ taskRunning: unit.isRunning, tailRowId: summaryTailRowId }),
+    [unit.isRunning, summaryTailRowId],
+  );
   return (
-    <section
-      data-conversation-share-turn={unit.turnId}
-      className="mx-auto flex w-full flex-col gap-5 px-4 pb-5 pt-14 @md/conversation:px-6 [content-visibility:auto] [contain-intrinsic-size:0_420px]"
-    >
-      {unit.leadingBoundaryRows.map((row) =>
-        renderReadonlyRow(
-          row,
-          theme,
-          codePreviewSettings,
-          artifactUrls,
-          artifactNames,
-          labels,
-          onOpenExternalUrl,
-        ),
-      )}
-      <div className="group/assistant-turn flex w-full flex-col gap-5">
-        {segments.map((segment) => (
-          <ReadonlySegment
-            key={segment.key}
-            segment={segment}
-            locale={locale}
-            theme={theme}
-            codePreviewSettings={codePreviewSettings}
-            artifactUrls={artifactUrls}
-            artifactNames={artifactNames}
-            labels={labels}
-            onOpenExternalUrl={onOpenExternalUrl}
-          />
-        ))}
-        {unit.browserTurnEndRows.length > 0 ? (
-          <ReadonlyAssistantWorkItems
-            rows={unit.browserTurnEndRows}
-            stageTailIsRunning={false}
-            theme={theme}
-            codePreviewSettings={codePreviewSettings}
-            artifactUrls={artifactUrls}
-            artifactNames={artifactNames}
-            labels={labels}
-            onOpenExternalUrl={onOpenExternalUrl}
-          />
-        ) : null}
-        {unit.assistantTailRows.length > 0 ? (
-          <ReadonlyAssistantWorkItems
-            rows={unit.assistantTailRows}
-            stageTailIsRunning={false}
-            theme={theme}
-            codePreviewSettings={codePreviewSettings}
-            artifactUrls={artifactUrls}
-            artifactNames={artifactNames}
-            labels={labels}
-            onOpenExternalUrl={onOpenExternalUrl}
-          />
-        ) : null}
-      </div>
-    </section>
+    <SummaryGroupBoundaryContext.Provider value={summaryGroupBoundary}>
+      <section
+        data-conversation-share-turn={unit.turnId}
+        className="mx-auto flex w-full flex-col gap-5 px-4 pb-5 pt-14 @md/conversation:px-6 [content-visibility:auto] [contain-intrinsic-size:0_420px]"
+      >
+        {unit.leadingBoundaryRows.map((row) =>
+          renderReadonlyRow(
+            row,
+            theme,
+            codePreviewSettings,
+            artifactUrls,
+            artifactNames,
+            labels,
+            onOpenExternalUrl,
+          ),
+        )}
+        <div className="group/assistant-turn flex w-full flex-col gap-5">
+          {segments.map((segment) => (
+            <ReadonlySegment
+              key={segment.key}
+              segment={segment}
+              locale={locale}
+              theme={theme}
+              codePreviewSettings={codePreviewSettings}
+              artifactUrls={artifactUrls}
+              artifactNames={artifactNames}
+              labels={labels}
+              onOpenExternalUrl={onOpenExternalUrl}
+            />
+          ))}
+          {unit.browserTurnEndRows.length > 0 ? (
+            <ReadonlyAssistantWorkItems
+              rows={unit.browserTurnEndRows}
+              stageTailIsRunning={false}
+              theme={theme}
+              codePreviewSettings={codePreviewSettings}
+              artifactUrls={artifactUrls}
+              artifactNames={artifactNames}
+              labels={labels}
+              onOpenExternalUrl={onOpenExternalUrl}
+            />
+          ) : null}
+          {unit.assistantTailRows.length > 0 ? (
+            <ReadonlyAssistantWorkItems
+              rows={unit.assistantTailRows}
+              stageTailIsRunning={false}
+              theme={theme}
+              codePreviewSettings={codePreviewSettings}
+              artifactUrls={artifactUrls}
+              artifactNames={artifactNames}
+              labels={labels}
+              onOpenExternalUrl={onOpenExternalUrl}
+            />
+          ) : null}
+        </div>
+      </section>
+    </SummaryGroupBoundaryContext.Provider>
   );
 }
 

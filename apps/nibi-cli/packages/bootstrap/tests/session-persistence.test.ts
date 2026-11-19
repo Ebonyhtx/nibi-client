@@ -59,6 +59,13 @@ import {
 // Windows 的 shell 方言由平台决定（git-bash / PowerShell），不读 SHELL 与 PATH 里的
 // POSIX 可执行名；这些用例断言的是 POSIX 的 zsh→bash 选择语义，只能在 POSIX 上验证。
 const posixShellTest = process.platform === "win32" ? it.skip : it;
+// Windows 默认由 Git Bash 接管 Bash 工具；resume 会补一条 provider-visible 的 shell
+// 迁移提醒（POSIX 的自动选择与持久化值一致，不产生提醒）。hydration 断言按平台
+// 验证这条提醒存在/缺席，而不是把它当噪声跳过。
+const resumedShellReminders =
+  process.platform === "win32"
+    ? ["<system-reminder>\nThe Bash tool shell is Git Bash.\n</system-reminder>"]
+    : [];
 describe("session persistence", () => {
   it("primes image and cold-rebuilds image and video paths from durable artifacts", async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), "nibi-prompt-image-cache-"));
@@ -2400,6 +2407,7 @@ describe("session persistence", () => {
         "user",
         "user",
         "assistant",
+        ...resumedShellReminders.map(() => "user"),
         "user",
       ]);
       expect(capturedMessages.map((message) => message.content)).toEqual([
@@ -2412,6 +2420,7 @@ describe("session persistence", () => {
         expect.stringContaining("Available agent types for the Agent tool:"),
         "first prompt",
         "first answer",
+        ...resumedShellReminders,
         "second prompt",
       ]);
     } finally {
@@ -2510,6 +2519,7 @@ describe("session persistence", () => {
         expect.stringContaining("Available agent types for the Agent tool:"),
         "first prompt",
         "first answer",
+        ...resumedShellReminders,
         "second prompt",
       ]);
     } finally {

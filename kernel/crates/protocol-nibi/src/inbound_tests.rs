@@ -14,7 +14,7 @@ fn the_shipped_schema_compiles() {
     ] {
         assert!(inbound.methods.contains_key(method), "{method}");
     }
-    // NIBI 分家：命令契约搬去 nibi_commands（34 个），这里只保证方法/回复段还在，
+    // NIBI 分家：命令契约搬去 nibi_commands（36 个），这里只保证方法/回复段还在，
     // 且已删除的 offPeak 方法不再出现。
     assert!(
         !inbound
@@ -38,6 +38,31 @@ fn method_params_follow_the_app_schema() {
     // 省略 params 按 {} 校验。
     assert!(inbound.method("runtime/capabilities", &Value::Null).is_ok());
     assert!(inbound.method("not/registered", &json!(1)).is_ok());
+
+    // U36：v4/command 的 type enum 必须认识编辑锁命令（否则参数层先回 -32602）。
+    for kind in ["lockQueueItemEdit", "releaseQueueItemEdit"] {
+        let params = json!({
+            "commandId": "cmd-lock-1",
+            "clientId": "desktop",
+            "sessionId": "sess_x",
+            "type": kind,
+            "payload": {},
+            "issuedAt": 1
+        });
+        assert!(inbound.method("v4/command", &params).is_ok(), "{kind}");
+    }
+    let unknown = json!({
+        "commandId": "cmd-lock-1",
+        "clientId": "desktop",
+        "sessionId": "sess_x",
+        "type": "notACommand",
+        "payload": {},
+        "issuedAt": 1
+    });
+    assert_eq!(
+        inbound.method("v4/command", &unknown).unwrap_err().code,
+        -32602
+    );
 }
 
 #[test]

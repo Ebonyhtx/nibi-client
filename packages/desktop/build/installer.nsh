@@ -18,6 +18,18 @@
   !define NIBI_INSTALL_MANIFEST_NAME ".nibi-install-manifest"
 !endif
 
+; 安装/更新前只按完整可执行路径清理旧进程。helper 随上一版本安装在
+; resources/tools/runtime-host；首次从旧版本升级时可能尚不存在。
+!ifndef NIBI_INSTALLER_PROCESS_HELPER_RELATIVE
+  !define NIBI_INSTALLER_PROCESS_HELPER_RELATIVE "resources\tools\runtime-host\nibi-installer-process-helper.exe"
+!endif
+!ifndef NIBI_INSTALLER_PROCESS_CLEANUP_WAIT_MS
+  !define NIBI_INSTALLER_PROCESS_CLEANUP_WAIT_MS 5000
+!endif
+!ifndef NIBI_INSTALLER_PROCESS_CLEANUP_TIMEOUT_MS
+  !define NIBI_INSTALLER_PROCESS_CLEANUP_TIMEOUT_MS 15000
+!endif
+
 !ifndef NIBI_UNINSTALLER_LOG_PATH
   !define NIBI_UNINSTALLER_LOG_PATH "$TEMP\NIBI-uninstaller.log"
 !endif
@@ -142,6 +154,7 @@
   Var NibiInstallerLogPath
   Var NibiInstallerLogUnavailable
   Var NibiInstallerProcessRole
+  Var NibiInstallerProcessHelperPath
   Var NibiUninstallerDetailsUnavailable
   Var NibiPreviousUninstallerSupportsManifest
 
@@ -228,11 +241,48 @@
       Pop $R0
   FunctionEnd
 
+  Function NibiTerminateUpdateTargetProcesses
+    Push $R0
+    Push $R1
+    Push $R2
+
+    StrCpy $NibiInstallerProcessHelperPath "$INSTDIR\${NIBI_INSTALLER_PROCESS_HELPER_RELATIVE}"
+    IfFileExists "$NibiInstallerProcessHelperPath" 0 nibiProcessCleanupHelperMissing
+
+    !insertmacro NibiReportInstallerStage "process-cleanup-started"
+    ; 只传完整可执行路径；helper 用 QueryFullProcessImageNameW 精确比较并复读
+    ; creation time，不做命令行、窗口标题或路径子串匹配。
+    nsExec::ExecToStack /TIMEOUT=${NIBI_INSTALLER_PROCESS_CLEANUP_TIMEOUT_MS} `"$NibiInstallerProcessHelperPath" --terminate --wait-ms=${NIBI_INSTALLER_PROCESS_CLEANUP_WAIT_MS} --target "$INSTDIR\${PRODUCT_FILENAME}.exe" --target "$INSTDIR\resources\rust-kernel\nibi-rs.exe" --target "$INSTDIR\resources\tools\runtime-host\nibi-runtime-host.exe" --target "$INSTDIR\resources\tools\runtime-host\nibi-installer-process-helper.exe" --target "$INSTDIR\resources\tools\ripgrep\rg.exe" --target "$INSTDIR\resources\tools\ugrep\ugrep.exe"`
+    Pop $R0
+    Pop $R1
+    StrCmp $R0 "0" nibiProcessCleanupSucceeded
+
+    !insertmacro NibiReportInstallerStage "process-cleanup-failed exit=$R0"
+    MessageBox MB_OK|MB_ICONSTOP "无法关闭仍占用 NIBI 安装目录的进程（退出码 $R0）。请先退出 NIBI 后重新运行安装程序。日志：$NibiInstallerLogPath" /SD IDOK
+    SetErrorLevel 3
+    Quit
+
+    nibiProcessCleanupSucceeded:
+      !insertmacro NibiReportInstallerStage "process-cleanup-completed"
+      Goto nibiProcessCleanupDone
+
+    nibiProcessCleanupHelperMissing:
+      ; 唯一允许的降级：旧安装尚未带 helper。electron-builder 后续的
+      ; CHECK_APP_RUNNING 仍会执行，并且这里必须留下明确日志。
+      !insertmacro NibiReportInstallerStage "process-cleanup-fallback reason=helper-missing"
+
+    nibiProcessCleanupDone:
+      Pop $R2
+      Pop $R1
+      Pop $R0
+  FunctionEnd
+
   !macro preInit
     Call NibiInitializeInstallerLog
   !macroend
 
   !macro customInit
+    Call NibiTerminateUpdateTargetProcesses
     IfSilent nibiInstallerInitSilent nibiInstallerInitInteractive
     nibiInstallerInitSilent:
       !insertmacro NibiReportInstallerStage "installer-initialized mode=silent"

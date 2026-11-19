@@ -19,18 +19,27 @@ import {
   TID_V4_QUEUE_ITEM,
   TID_V4_QUEUE_ITEM_DELETE,
   TID_V4_QUEUE_ITEM_EDIT,
+  TID_V4_QUEUE_ITEM_EDIT_LOCK,
+  TID_V4_QUEUE_ITEM_RELEASE_EDIT,
   TID_V4_QUEUE_ITEM_SEND_NOW,
   TID_V4_QUEUE_PAUSED_BANNER,
   TID_V4_QUEUE_RESUME,
   testId,
 } from "@nibi/shared/test-ids";
 import type { QueueState } from "@nibi/shared/nibi-protocol-v4";
-import { ArrowUpFromLine, GripVertical, PencilIcon, Trash2Icon } from "lucide-react";
+import {
+  ArrowUpFromLine,
+  GripVertical,
+  LockKeyholeIcon,
+  PencilIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { Button } from "@/components/ui/button.js";
 import { cn } from "@/components/lib/utils.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { runUserAction, runUserActionAsync } from "@/lib/userActionTelemetry.js";
+import { getV4EditorId } from "@/v4/editorIdentity.js";
 
 export interface ConversationQueuePanelProps {
   queue: QueueState;
@@ -46,9 +55,39 @@ export interface ConversationQueuePanelProps {
   onMoveItem?: (queueItemId: string, beforeQueueItemId: string | null) => void;
   /** 暂停队列恢复：CLI setAutoDrain(true)，idle 立即消费、busy 仅武装。 */
   onResume?: () => Promise<void> | void;
+  /** 本标签页的 editorId（queue edit lock 的归属判定）；缺省自动取。 */
+  editorId?: string;
+  /** 本端已收到 lock ACK、但投影尚未回流的 queueItemId（absent + local ACK = self）。 */
+  localEditLockQueueItemIds?: readonly string[];
+  /** 释放编辑锁（releaseQueueItemEdit）；other 端显示为「释放」，self 端为取消编辑。 */
+  onReleaseEditLock?: (queueItemId: string) => Promise<void> | void;
 }
 
 type QueueItem = QueueState["items"][number];
+
+export type V4QueueEditLockOwner = "self" | "other";
+
+/** 稳定空表：默认参数不能内联新建数组（memo 组件的引用稳定性门禁）。 */
+const NO_LOCAL_EDIT_LOCKS: readonly string[] = [];
+
+/**
+ * 队列项编辑锁的归属：
+ * - 有锁且 editorId 相同 = self；
+ * - 有锁且 editorId 不同 = other（**孤儿锁也算 other**：持有者可能已崩溃/关窗，
+ *   UI 必须保留「释放」入口，不能把它当成自己的锁继续编辑）；
+ * - 无锁但本端已收到 lock ACK（投影尚未回流）= self；
+ * - 其余 = 未加锁。
+ */
+export function resolveEditLockOwner(
+  item: Pick<QueueItem, "queueItemId" | "editLock">,
+  editorId: string,
+  localEditLockQueueItemIds: readonly string[] = [],
+): V4QueueEditLockOwner | null {
+  if (item.editLock) {
+    return item.editLock.editorId === editorId ? "self" : "other";
+  }
+  return localEditLockQueueItemIds.includes(item.queueItemId) ? "self" : null;
+}
 
 export interface V4QueueReorderAnchor {
   beforeQueueItemId: string | null;
@@ -122,6 +161,8 @@ interface QueueRowProps {
   onEditItem?: (queueItemId: string) => Promise<void> | void;
   editPending: boolean;
   onSendNow?: (queueItemId: string) => void;
+  editLockOwner: V4QueueEditLockOwner | null;
+  onReleaseEditLock?: (queueItemId: string) => Promise<void> | void;
 }
 
 const QueueRow = memo(function QueueRow({
@@ -133,9 +174,14 @@ const QueueRow = memo(function QueueRow({
   onEditItem,
   onSendNow,
   editPending,
+  editLockOwner,
+  onReleaseEditLock,
 }: QueueRowProps) {
   const dispatchLocked = item.dispatch.state !== "queued";
-  const rowLocked = dispatchLocked || editPending;
+  // 编辑锁冻结整行：隐藏立即发送/编辑/删除，拖动也禁用。self 也一样——编辑入口已经
+  // 在下方 composer（再做行内操作会与 composer 的编辑态分叉）。
+  const lockedByEdit = editLockOwner !== null;
+  const rowLocked = dispatchLocked || editPending || lockedByEdit;
   const isCompact = item.kind === "compact";
   const parsedInput = {
     ...parsePromptConversationSelections(item.text),
@@ -189,6 +235,8 @@ const QueueRow = memo(function QueueRow({
       data-kind={item.kind}
       data-dispatch-state={item.dispatch.state}
       data-edit-pending={editPending ? "true" : "false"}
+      data-edit-locked={lockedByEdit ? "true" : "false"}
+      data-edit-lock-owner={editLockOwner ?? undefined}
       className={cn(
         "relative flex items-center gap-2 rounded-xl px-1.5 py-1 pr-1 transition-colors hover:bg-hover/30",
         isDragging ? "bg-hover/40 shadow-sm" : null,
@@ -241,7 +289,35 @@ const QueueRow = memo(function QueueRow({
           ) : null}
         </span>
       </span>
-      {onSendNow ? (
+      {editLockOwner ? (
+        <span
+          data-testid={testId(TID_V4_QUEUE_ITEM_EDIT_LOCK, item.queueItemId)}
+          data-queue-item-id={item.queueItemId}
+          data-edit-lock-owner={editLockOwner}
+          className="flex shrink-0 items-center gap-1 rounded-md bg-secondary px-2 py-1 text-ui-sm text-foreground-subtle"
+        >
+          <LockKeyholeIcon className="size-3.5" aria-hidden="true" />
+          {intl.formatMessage({
+            id:
+              editLockOwner === "self"
+                ? "chat.queue.editLockedBySelf"
+                : "chat.queue.editLockedByOther",
+          })}
+        </span>
+      ) : null}
+      {editLockOwner && onReleaseEditLock ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          data-testid={testId(TID_V4_QUEUE_ITEM_RELEASE_EDIT, item.queueItemId)}
+          data-queue-item-id={item.queueItemId}
+          onClick={() => void onReleaseEditLock(item.queueItemId)}
+        >
+          {intl.formatMessage({ id: "chat.queue.releaseEdit" })}
+        </Button>
+      ) : null}
+      {onSendNow && !lockedByEdit ? (
         <Button
           type="button"
           variant="secondary"
@@ -267,7 +343,7 @@ const QueueRow = memo(function QueueRow({
           {intl.formatMessage({ id: isCompact ? "chat.queue.runNow" : "chat.queue.sendNow" })}
         </Button>
       ) : null}
-      {onEditItem && !isCompact ? (
+      {onEditItem && !isCompact && !lockedByEdit ? (
         <ControlHintTooltip title={intl.formatMessage({ id: "chat.queue.edit" })}>
           <Button
             type="button"
@@ -283,7 +359,7 @@ const QueueRow = memo(function QueueRow({
           </Button>
         </ControlHintTooltip>
       ) : null}
-      {onDeleteItem ? (
+      {onDeleteItem && !lockedByEdit ? (
         <ControlHintTooltip title={intl.formatMessage({ id: "chat.queue.remove" })}>
           <Button
             type="button"
@@ -315,8 +391,12 @@ function ConversationQueuePanelImpl({
   onSendNow,
   onMoveItem,
   onResume,
+  editorId,
+  localEditLockQueueItemIds = NO_LOCAL_EDIT_LOCKS,
+  onReleaseEditLock,
 }: ConversationQueuePanelProps) {
   const { intl } = useNibiIntl();
+  const resolvedEditorId = editorId ?? getV4EditorId();
   const [resumePending, setResumePending] = useState(false);
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -415,6 +495,12 @@ function ConversationQueuePanelImpl({
                 onEditItem={onEditItem}
                 onSendNow={onSendNow}
                 editPending={pendingEditQueueItemId === item.queueItemId}
+                editLockOwner={resolveEditLockOwner(
+                  item,
+                  resolvedEditorId,
+                  localEditLockQueueItemIds,
+                )}
+                onReleaseEditLock={onReleaseEditLock}
               />
             ))}
           </ul>

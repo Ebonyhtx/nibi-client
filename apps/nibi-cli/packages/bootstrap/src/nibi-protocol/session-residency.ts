@@ -210,6 +210,13 @@ async function releaseSessionRecord(
   await projectionReleased;
   if (runtimeClosed) {
     try {
+      // borrowed root 由本调用方关闭；关闭成功后立即摘除 session-control 登记，
+      // 否则同 session 的冷恢复 / restart 会看到旧 app 仍是 owner 而 attach 失败。
+      record.sessionControl?.releaseRoot(record.app);
+    } catch (error) {
+      failed("session_control_release", error);
+    }
+    try {
       await waitForSessionResidencyFinalization(record);
       if (mode === "close") await context.v4Gateway?.finishSessionRelease(sessionId);
     } catch (error) {

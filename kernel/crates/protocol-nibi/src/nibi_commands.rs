@@ -2,10 +2,11 @@
 //!
 //! 与上游 `inbound.json` 的差别（Rust 规划 §5.2.1 / 合并计划 §2.2）：
 //!
-//! - 命令全集以 NIBI 的 `commandPayloadSchemas`（34 个）为准；上游多出的
+//! - 命令全集以 NIBI 的 `commandPayloadSchemas`（36 个）为准；上游多出的
 //!   `setHighspeedMetrics` 不在 NIBI 协议面里，收到即拒绝；
-//! - CAS 集合：15 个必须带 `baseRevision`，其中 5 个 row-targeting 还必须带
-//!   `baseLogEpoch`（字符串，trim 后非空）——与 Node `parseCommandEnvelope` 同判；
+//! - CAS 集合：14 个必须带 `baseRevision`，其中 5 个 row-targeting 还必须带
+//!   `baseLogEpoch`（字符串，trim 后非空）——与 Node `parseCommandEnvelope` 同判。
+//!   `editQueueItem` 不在集合里：并发守卫是 `lockQueueItemEdit` 的编辑锁；
 //! - NIBI 已删除的功能 fail-closed：`createSession.offPeakToolEnabled`、
 //!   `sendText.offPeakTaskId / offPeakRunType / highspeedMeta` 收到即 invalid payload；
 //! - `modelExecution requires modelSelection` 的 superRefine 镜像适用于
@@ -57,6 +58,8 @@ pub const HANDLED_COMMANDS: &[&str] = &[
     "retryTurn",
     "editUserQuery",
     "editQueueItem",
+    "lockQueueItemEdit",
+    "releaseQueueItemEdit",
     "deleteQueueItem",
     "reorderQueueItem",
     "setAutoDrain",

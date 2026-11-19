@@ -797,6 +797,15 @@ export function createNibiSessionControlRuntime(
       // 新建主根首次活动由它自己的 App/TUI 驱动；一旦已有执行，后续用原 FIFO。
       root.prepared = app.runtime.hasActiveOrQueuedTurnWork();
     },
+    releaseRoot(app) {
+      // borrowed root 的关闭由协议 record 负责；关闭成功后摘除登记，避免旧 app 被
+      // 当成仍存活的 owner 而拒绝同 session 的新 runtime。只在身份仍匹配时删除，
+      // 防止迟到的旧关闭误删已经重新 attach 的新 root。
+      const existing = roots.get(app.sessionId);
+      if (existing?.app !== app) return;
+      existing.unsubscribe();
+      roots.delete(app.sessionId);
+    },
     close() {
       if (closePromise) return closePromise;
       closing = true;

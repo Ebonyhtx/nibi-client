@@ -11,6 +11,7 @@ import {
   completePendingTaskDraft,
   bindPendingTaskDraft,
 } from "@/v4/composer/composerDraftStore.js";
+import { composerEditScopeId } from "@/composer-edit-mode/contract.js";
 
 const selection = {
   providerId: "personal-provider",
@@ -378,5 +379,29 @@ describe("Composer Draft 持久选择", () => {
     });
     expect(() => read()).not.toThrow();
     expect(read()).toBeNull();
+  });
+
+  it("U03 编辑 scope 永不写盘，读/清同样短路", () => {
+    const editScope = composerEditScopeId({
+      kind: "userQuery",
+      sessionId: "session-a",
+      workspaceKey: workspace,
+      rowId: 42,
+      entityId: "message-user-42",
+    });
+    const setItem = vi.spyOn(storage, "setItem");
+    expect(
+      persistV4ComposerDraft(workspace, undefined, editScope, {
+        text: "正在编辑的历史消息",
+        mode: "build",
+      }),
+    ).toBe(true);
+    expect(setItem).not.toHaveBeenCalled();
+    expect(readV4ComposerDraft(workspace, undefined, editScope)).toBeNull();
+    expect(clearV4ComposerDraft(workspace, undefined, editScope)).toBe(true);
+    expect(setItem).not.toHaveBeenCalled();
+    // 正式会话草稿不受影响。
+    persistV4ComposerDraft(workspace, undefined, "session-a", { text: "正常草稿" });
+    expect(read("session-a")?.text).toBe("正常草稿");
   });
 });

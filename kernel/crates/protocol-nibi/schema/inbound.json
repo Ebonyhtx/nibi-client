@@ -280,6 +280,8 @@
             "setHighspeedMetrics",
             "sendQueuedNow",
             "editQueueItem",
+            "lockQueueItemEdit",
+            "releaseQueueItemEdit",
             "reorderQueueItem",
             "deleteQueueItem",
             "setAutoDrain",

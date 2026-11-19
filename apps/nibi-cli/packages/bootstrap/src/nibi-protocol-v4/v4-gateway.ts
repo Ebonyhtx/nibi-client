@@ -2759,6 +2759,7 @@ export class ConversationV4Gateway {
   getQueueHead(sessionId: string): {
     autoDrain: boolean;
     dispatchState: QueueItem["dispatch"]["state"];
+    editLock?: QueueItem["editLock"];
     kind: QueueItem["kind"];
     queueItemId: string;
     text: string;
@@ -2769,6 +2770,7 @@ export class ConversationV4Gateway {
     return {
       autoDrain: snapshot.queue.autoDrain,
       dispatchState: item.dispatch.state,
+      ...(item.editLock ? { editLock: item.editLock } : {}),
       kind: item.kind,
       queueItemId: item.queueItemId,
       text: item.text,

@@ -3,10 +3,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
+  buildWindowsInstallerProcessHelperArgs,
   findWindowsProcessesReferencingResourceMarkers,
   isWindowsProcessReferencingResourceMarkers,
   probeWindowsPackagedResourceWritable,
+  resolveWindowsInstallerProcessHelper,
   resolveWindowsPackagedResourceLockMarkers,
+  resolveWindowsUpdateProcessTargets,
   runWindowsUpdateProcessCleanup,
   snapshotWindowsPackagedResources,
 } from "../src/main/windowsInstallResourceLocks.js";
@@ -202,5 +205,105 @@ describe("windows install resource locks", () => {
     expect(result.terminationPids).toEqual([]);
     expect(terminate).not.toHaveBeenCalled();
     expect(result.errors).toEqual(["initial-scan: powershell timeout"]);
+  });
+
+  it("resolves the installer process helper from packaged and dev locations", () => {
+    const resourcesPath = join("C:", "Nibi", "resources");
+    const packagedHelper = join(
+      resourcesPath,
+      "tools",
+      "runtime-host",
+      "nibi-installer-process-helper.exe",
+    );
+    const cwd = join("D:", "repo", "packages", "desktop");
+    const devHelper = join(
+      cwd,
+      "bundled-tools",
+      "win32-x64",
+      "runtime-host",
+      "nibi-installer-process-helper.exe",
+    );
+
+    expect(
+      resolveWindowsInstallerProcessHelper({
+        platform: "win32",
+        resourcesPath,
+        cwd,
+        arch: "x64",
+        env: {},
+        fileExists: (candidate) => candidate === packagedHelper,
+      }),
+    ).toBe(packagedHelper);
+
+    expect(
+      resolveWindowsInstallerProcessHelper({
+        platform: "win32",
+        resourcesPath,
+        cwd,
+        arch: "x64",
+        env: {},
+        fileExists: (candidate) => candidate === devHelper,
+      }),
+    ).toBe(devHelper);
+
+    expect(
+      resolveWindowsInstallerProcessHelper({
+        platform: "win32",
+        resourcesPath,
+        cwd,
+        arch: "x64",
+        env: {
+          NIBI_INSTALLER_PROCESS_HELPER_PATH: "C:\\tools\\custom-helper.exe",
+        },
+        fileExists: (candidate) => candidate === "C:\\tools\\custom-helper.exe",
+      }),
+    ).toBe("C:\\tools\\custom-helper.exe");
+
+    expect(
+      resolveWindowsInstallerProcessHelper({
+        platform: "linux",
+        resourcesPath,
+        cwd,
+        arch: "x64",
+        env: {},
+        fileExists: () => true,
+      }),
+    ).toBeUndefined();
+  });
+
+  it("targets only packaged secondary executables by full path", () => {
+    const resourcesPath = join("C:", "Nibi", "resources");
+    const targets = resolveWindowsUpdateProcessTargets(resourcesPath);
+
+    expect(targets.map((target) => target.split(/[\\/]/u).at(-1))).toEqual([
+      "nibi-rs.exe",
+      "nibi-runtime-host.exe",
+      "nibi-installer-process-helper.exe",
+      "rg.exe",
+      "ugrep.exe",
+    ]);
+    for (const target of targets) {
+      expect(target.startsWith(`${resourcesPath}${target.includes("\\") ? "\\" : "/"}`)).toBe(
+        true,
+      );
+    }
+  });
+
+  it("builds helper arguments without image-name or shell termination", () => {
+    const args = buildWindowsInstallerProcessHelperArgs({
+      mode: "terminate",
+      targets: ["C:\\Nibi\\resources\\rust-kernel\\nibi-rs.exe"],
+      waitMs: 5000,
+    });
+
+    expect(args).toEqual([
+      "--terminate",
+      "--wait-ms",
+      "5000",
+      "--json",
+      "--target",
+      "C:\\Nibi\\resources\\rust-kernel\\nibi-rs.exe",
+    ]);
+    expect(args.join(" ")).not.toMatch(/taskkill|\/IM/u);
   });
 });

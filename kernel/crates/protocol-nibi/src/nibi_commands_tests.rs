@@ -18,16 +18,16 @@ fn contract() -> &'static NibiCommands {
 }
 
 #[test]
-fn all_34_commands_compile_with_the_nibi_cas_sets() {
+fn all_36_commands_compile_with_the_nibi_cas_sets() {
     let contract = contract();
-    assert_eq!(contract.commands.len(), 34);
+    assert_eq!(contract.commands.len(), 36);
     assert_eq!(
         contract
             .commands
             .keys()
             .filter(|kind| contract.requires_revision.contains(*kind))
             .count(),
-        15
+        14
     );
     assert_eq!(
         contract
@@ -51,7 +51,6 @@ fn all_34_commands_compile_with_the_nibi_cas_sets() {
     }
     for kind in [
         "sendQueuedNow",
-        "editQueueItem",
         "reorderQueueItem",
         "deleteQueueItem",
         "setAutoDrain",
@@ -66,6 +65,13 @@ fn all_34_commands_compile_with_the_nibi_cas_sets() {
             "{kind}"
         );
     }
+    // editQueueItem 的并发守卫是编辑锁：既不要求 baseRevision，也不属于 row targeting。
+    assert!(!contract.requires_revision.contains("editQueueItem"));
+    assert!(!contract.requires_epoch.contains("editQueueItem"));
+    for kind in ["lockQueueItemEdit", "releaseQueueItemEdit"] {
+        assert!(!contract.requires_revision.contains(kind), "{kind}");
+        assert!(!contract.requires_epoch.contains(kind), "{kind}");
+    }
     // 上游多出的命令不在 NIBI 协议面里。
     assert!(!contract.commands.contains_key("setHighspeedMetrics"));
     assert!(
@@ -73,6 +79,55 @@ fn all_34_commands_compile_with_the_nibi_cas_sets() {
             .validate(&envelope("setHighspeedMetrics", json!({})))
             .unwrap_err()
             .contains("unknown command type")
+    );
+}
+
+#[test]
+fn queue_edit_lock_commands_validate_without_base_revision() {
+    let contract = contract();
+    // 加锁/释放/编辑都不带 CAS 信封：锁是并发守卫。
+    contract
+        .validate(&envelope(
+            "lockQueueItemEdit",
+            json!({"queueItemId": "queue_c1", "editorId": "editor-1"}),
+        ))
+        .unwrap();
+    contract
+        .validate(&envelope(
+            "releaseQueueItemEdit",
+            json!({"queueItemId": "queue_c1"}),
+        ))
+        .unwrap();
+    contract
+        .validate(&envelope(
+            "editQueueItem",
+            json!({
+                "queueItemId": "queue_c1",
+                "newText": "edited",
+                "editorId": "editor-1",
+                "attachments": [],
+                "planEnabled": false,
+            }),
+        ))
+        .unwrap();
+    // 锁命令的字段必填（strict 语义由生成 schema 的 required + 处理器双保险）。
+    assert!(
+        contract
+            .validate(&envelope(
+                "lockQueueItemEdit",
+                json!({"queueItemId": "queue_c1"})
+            ))
+            .unwrap_err()
+            .contains("editorId")
+    );
+    assert!(
+        contract
+            .validate(&envelope(
+                "releaseQueueItemEdit",
+                json!({})
+            ))
+            .unwrap_err()
+            .contains("queueItemId")
     );
 }
 
@@ -231,7 +286,7 @@ fn envelope_fields_are_validated() {
     assert!(contract.validate(&bad_epoch).is_err());
 }
 
-/// 34 个命令全部有归属：要么接住了，要么明确列在 BLOCKED_COMMANDS 并带上缺的能力。
+/// 36 个命令全部有归属：要么接住了，要么明确列在 BLOCKED_COMMANDS 并带上缺的能力。
 /// 漏项会让"没实现"退化成静默的 `unsupported`，切默认前看不出差别。
 #[test]
 fn every_command_is_either_handled_or_explicitly_blocked() {
@@ -243,7 +298,7 @@ fn every_command_is_either_handled_or_explicitly_blocked() {
         .iter()
         .map(|name| name.as_str().unwrap())
         .collect();
-    assert_eq!(types.len(), 34);
+    assert_eq!(types.len(), 36);
     let handled: std::collections::HashSet<&str> = HANDLED_COMMANDS.iter().copied().collect();
     let blocked: std::collections::HashSet<&str> =
         BLOCKED_COMMANDS.iter().map(|(name, _)| *name).collect();

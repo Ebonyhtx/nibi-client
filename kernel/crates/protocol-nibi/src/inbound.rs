@@ -68,7 +68,7 @@ impl Inbound {
 
     /// 命令的 payload 与跨字段规则。错误是给 ACK 的说明文字。
     ///
-    /// NIBI 分家后命令契约以 [`crate::nibi_commands`] 为准（34 个命令、CAS 集合、
+    /// NIBI 分家后命令契约以 [`crate::nibi_commands`] 为准（36 个命令、CAS 集合、
     /// 已删字段 fail-closed）；上游 `inbound.json` 的 `commands` 段只留作 schema
     /// 来源对照，不再用于命令校验。
     pub fn command(&self, envelope: &Value) -> Result<(), String> {

@@ -58,6 +58,7 @@ it("compiles real UAC calls when the plugin directory follows the custom include
         `-DELECTRON_BUILDER_NSIS_INCLUDE_DIR=${join(builderDir, "templates/nsis/include")}`,
         `-DNSIS_PLUGIN_DIR=${join(pluginsDir, "x86-unicode")}`,
         `-DNIBI_INSTALLER_NSH=${join(desktopDir, "build/installer.nsh")}`,
+        "-DPRODUCT_FILENAME=Nibi",
         `-DFIXTURE_EXE=${import.meta.filename}`,
         `-DOUTPUT_FILE=${output}`,
         `-DDEFAULT_LOG_PATH=${join(temp, "default.log")}`,

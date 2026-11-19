@@ -1,3 +1,5 @@
+import { NIBI_AGENT_REMOTE_COMPONENT_ID } from "./remoteResourcePackages.js";
+
 export type NibiAgentBinaryKind = "native-binary";
 
 export interface NibiAgentRuntimeDescriptor {
@@ -30,7 +32,7 @@ export const NIBI_AGENT_RUNTIME: NibiAgentRuntimeDescriptor = {
   binaryKind: "native-binary",
   binaryEnvVar: "NIBI_AGENT_BINARY_PATH",
   bundledResourceDir: "nibi",
-  resourcePackageDir: "glm",
+  resourcePackageDir: NIBI_AGENT_REMOTE_COMPONENT_ID,
   version: "0.13.3",
   spawnArgs: ["app-server", "--stdio"],
   nativeConfigDir: ".nibi/cli",

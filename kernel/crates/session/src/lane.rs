@@ -278,6 +278,11 @@ impl Actor {
                         .iter()
                         .find(|input| input.command == command)
                         .cloned();
+                    // 编辑锁（U36）：自动排空不开加锁的队首。锁住的是“正在编辑”的项，
+                    // 序列不能被后续项越过；释放后由命令处理完的 settle 再开。
+                    if inputs && input.as_ref().is_some_and(|input| input.edit_lock.is_some()) {
+                        return None;
+                    }
                     self.remove_input(&command);
                     self.emit_queue();
                     // 通道里的输入总在队列里（两处同时增删）；万一不在就看下一项。
@@ -304,6 +309,11 @@ impl Actor {
                     return Some(TurnInput::Notices(notices));
                 }
                 None => {
+                    // 普通 Queue 输入不在通道里（Submit 忙时只入 queue）：自动排空同样
+                    // 不能越过加锁的队首。
+                    if inputs && self.queue.front().is_some_and(|input| input.edit_lock.is_some()) {
+                        return None;
+                    }
                     let next = self.queue.pop_front()?;
                     self.emit_queue();
                     match self.queued_kinds.remove(&next.command) {

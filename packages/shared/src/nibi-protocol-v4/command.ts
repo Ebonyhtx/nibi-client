@@ -146,16 +146,16 @@ export const commandPayloadSchemas = {
   applyFileRewind: z.object({ target: conversationRowTargetSchema }),
   editUserQuery: z
     .object({
-    target: conversationRowTargetSchema,
-    newText: z.string(),
+      target: conversationRowTargetSchema,
+      newText: z.string(),
       conversationQuotes: conversationQuotesSchema.optional(),
-    attachments: z.array(attachmentRefSchema).optional(),
+      attachments: z.array(attachmentRefSchema).optional(),
       // 编辑重发按新的主动发送处理：只接受本次重新 prepare 得到的卡与执行材料，
       // 不从被 rewind 的历史消息复用旧凭据。
       modelSelection: modelSelectionSchema.optional(),
       modelExecution: modelExecutionSchema.optional(),
-    // 缺省 preserve：仅切 conversation branch；rewind 会先安全恢复该轮文件。
-    workspaceMode: z.enum(["preserve", "rewind"]).optional(),
+      // 缺省 preserve：仅切 conversation branch；rewind 会先安全恢复该轮文件。
+      workspaceMode: z.enum(["preserve", "rewind"]).optional(),
     })
     .superRefine(requireModelSelectionForExecution),
   retryTurn: z.object({ target: conversationRowTargetSchema }),
@@ -172,7 +172,23 @@ export const commandPayloadSchemas = {
       modelExecution: modelExecutionSchema.optional(),
     })
     .superRefine(requireModelSelectionForExecution),
-  editQueueItem: z.object({ queueItemId: z.string(), newText: z.string() }),
+  // 编辑锁：只允许 queued + 未加锁的项；锁的并发守卫取代 baseRevision。
+  lockQueueItemEdit: z.object({ queueItemId: z.string().min(1), editorId: z.string().min(1) }),
+  // 释放：任意端、任意 dispatch 状态都可以释放；锁不存在时按 noop 成功。
+  releaseQueueItemEdit: z.object({ queueItemId: z.string().min(1) }),
+  // editorId 缺省 = 旧客户端路径（只允许无锁项）；带 editorId 时必须与锁持有者一致，
+  // 成功后锁自动释放。附件/引用/模型等字段是 additive：内核当前只消费正文，其余字段
+  // 由投影保留原值（text-only v1）。
+  editQueueItem: z.object({
+    queueItemId: z.string().min(1),
+    newText: z.string(),
+    editorId: z.string().min(1).optional(),
+    attachments: z.array(attachmentRefSchema).optional(),
+    conversationQuotes: conversationQuotesSchema.optional(),
+    modelSelection: modelSelectionSchema.optional(),
+    mode: submissionModeSchema.optional(),
+    planEnabled: z.boolean().optional(),
+  }),
   // beforeQueueItemId = null → 移到队尾。
   reorderQueueItem: z.object({
     queueItemId: z.string(),
@@ -281,7 +297,7 @@ export const COMMANDS_REQUIRING_BASE_REVISION: ReadonlySet<CommandType> = new Se
   "retryTurn",
   "setAssistantFeedback",
   "sendQueuedNow",
-  "editQueueItem",
+  // editQueueItem 不走 CAS：并发守卫是 lockQueueItemEdit 的编辑锁（editLock）。
   "reorderQueueItem",
   "deleteQueueItem",
   "setAutoDrain",

@@ -18,6 +18,11 @@ import {
   NIBI_PROCESS_DIAGNOSTIC_STACK_MAX_CHARS,
 } from "@nibi/shared/process-diagnostic";
 import {
+  classifyExit,
+  parseStderrDiagnostics,
+  sanitizeDiagnosticText,
+} from "@nibi/shared/crash-diagnostics";
+import {
   NIBI_AGENT_RUNTIME,
   NIBI_AGENT_PROVIDER,
   NIBI_RUNTIME_ENV_KEY,
@@ -262,19 +267,14 @@ const errorLog = (...args: unknown[]) => serviceLog.error(undefined, ...args);
 
 const AGENT_STDERR_TAIL_MAX_LINES = 20;
 const AGENT_STDERR_LINE_MAX_CHARS = 1_000;
-const AGENT_STDERR_SENSITIVE_ASSIGNMENT_PATTERN =
-  /(["']?(?:api[-_]?key|authorization|cookie|credential|password|secret|token)["']?\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;}]+)/gi;
-const AGENT_STDERR_AUTH_SCHEME_PATTERN = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/gi;
-const AGENT_STDERR_API_KEY_PATTERN = /\b(sk-)[A-Za-z0-9_-]{16,}\b/gi;
 
 function redactAgentDiagnostic(value: string): string {
-  return (
-    value
-      .replace(AGENT_STDERR_SENSITIVE_ASSIGNMENT_PATTERN, "$1<redacted>")
-      .replace(AGENT_STDERR_AUTH_SCHEME_PATTERN, "$1 <redacted>")
-      // 裸 key 也必须在跨进程诊断和生产日志之前遮盖。
-      .replace(AGENT_STDERR_API_KEY_PATTERN, "$1<redacted>")
-  );
+  // 只做 token 脱敏，路径由 Desktop Main 按 workspace 语义统一处理；
+  // 规则本身收敛到 shared，避免 Host 与 Desktop 各维护一份 token regex。
+  return sanitizeDiagnosticText(value, {
+    maxLength: Number.POSITIVE_INFINITY,
+    redactPaths: false,
+  });
 }
 
 const debugLog = (...args: unknown[]) => {
@@ -1401,11 +1401,29 @@ export class NibiAgentProcessManager {
           // debug，生产日志只剩 code=1，无法还原异常。不能只按非零 code 判断：signal crash
           // 和长期运行的 Agent 自行 exit 0 同样是非预期退出。
           // 已有独立生命周期事件，显式标记包装日志，避免 Electron 将其再计为 JS 异常。
+          // 原始 tail 之外再给出 shared 解析后的类型化诊断，生产日志可直接看到
+          // oom/sqlite/errno、错误码与去重次数，不再依赖 Desktop 二次解析。
+          const stderrDiagnostics = parseStderrDiagnostics(stderr.tail);
+          const exitCategory = classifyExit({
+            exitCode: code,
+            signal,
+            reason: terminationReason,
+            expected: false,
+            runtimeReady: managed.readyAt != null,
+            diagnosticText: stderr.tail.join("\n"),
+          });
           errorLog(
             `Nibi agent process exited unexpectedly${this.processLifecycleReporter ? ` ${NIBI_AGENT_LIFECYCLE_LOG_MARKER}` : ""}`,
             {
               ...exitContext,
               stderr,
+              stderrDiagnostics: {
+                category: exitCategory,
+                lineCount: stderrDiagnostics.lineCount,
+                truncated: stderrDiagnostics.truncated,
+                primary: stderrDiagnostics.primary,
+                diagnostics: stderrDiagnostics.diagnostics,
+              },
             },
           );
         }

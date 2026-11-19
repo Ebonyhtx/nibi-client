@@ -5,7 +5,14 @@ import {
   clearConversationSelectionReferenceScope,
   dispatchConversationSelectionAdd,
   getConversationSelectionReferenceScope,
+  getSentConversationSelections,
   parsePromptConversationSelections,
+  recordSentConversationSelections,
+  removeConversationSelectionReferenceFromScope,
+  restoreConversationSelectionReferenceInScope,
+  retainSelectionCommentsWithLiveSource,
+  setConversationSelectionReferenceScope,
+  updateConversationSelectionCommentInScope,
   type ConversationSelectionReference,
 } from "../src/lib/conversationSelectionReference.js";
 import {
@@ -192,5 +199,131 @@ describe("conversation selection references", () => {
       visibleContent: "Explain both",
       references: [{ text: "selected text" }],
     });
+  });
+});
+
+describe("conversation annotation store", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  function scopedReference(
+    id: string,
+    overrides: Partial<ConversationSelectionReference> = {},
+  ): ConversationSelectionReference {
+    return {
+      ...reference(id),
+      comment: "note",
+      anchor: { regionIndex: 0, start: 0, end: 7, rangeText: "selected" },
+      ...overrides,
+    } as ConversationSelectionReference;
+  }
+
+  it("同一段重复批注更新原评论而不是被去重吞掉", () => {
+    const first = appendConversationSelectionReference([], scopedReference("ref-1"));
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    const updated = appendConversationSelectionReference(
+      first.references,
+      scopedReference("ref-2", { comment: "new note" }),
+    );
+    expect(updated.ok).toBe(true);
+    if (!updated.ok) return;
+    expect(updated).toMatchObject({ duplicate: true });
+    expect(updated.references).toHaveLength(1);
+    expect(updated.references[0]?.comment).toBe("new note");
+    expect(updated.references[0]?.id).toBe("ref-1");
+  });
+
+  it("编辑评论；清空等于回到只保留原文，不删除注释", () => {
+    setConversationSelectionReferenceScope("session-edit", "/ws", [scopedReference("ref-1")]);
+    updateConversationSelectionCommentInScope("session-edit", "/ws", "ref-1", "  changed  ");
+    expect(getConversationSelectionReferenceScope("session-edit", "/ws")[0]?.comment).toBe(
+      "changed",
+    );
+    updateConversationSelectionCommentInScope("session-edit", "/ws", "ref-1", "   ");
+    const cleared = getConversationSelectionReferenceScope("session-edit", "/ws");
+    expect(cleared).toHaveLength(1);
+    expect(cleared[0]?.comment).toBeUndefined();
+    clearConversationSelectionReferenceScope("session-edit", "/ws");
+  });
+
+  it("删除返回原位置，撤销后编号恢复；超限时放弃撤销", () => {
+    const items = [
+      scopedReference("a", { sourceRowId: 1 }),
+      scopedReference("b", { sourceRowId: 2 }),
+    ];
+    setConversationSelectionReferenceScope("session-undo", "/ws", items);
+    const removed = removeConversationSelectionReferenceFromScope("session-undo", "/ws", "a");
+    expect(removed?.index).toBe(0);
+    expect(getConversationSelectionReferenceScope("session-undo", "/ws")).toHaveLength(1);
+    expect(restoreConversationSelectionReferenceInScope("session-undo", "/ws", removed!)).toBe(
+      true,
+    );
+    expect(
+      getConversationSelectionReferenceScope("session-undo", "/ws").map((item) => item.id),
+    ).toEqual(["a", "b"]);
+    clearConversationSelectionReferenceScope("session-undo", "/ws");
+  });
+
+  it("已发送引用只记录带锚点的对话引用", () => {
+    recordSentConversationSelections("session-sent", "/ws", [
+      scopedReference("sent-1"),
+      scopedReference("sent-2", { comment: undefined }),
+      {
+        id: "sent-md",
+        contentType: "markdown",
+        sourceKey: "doc",
+        sourceTitle: "Doc",
+        text: "md",
+        anchor: { regionIndex: 0, start: 0, end: 2 },
+      } as ConversationSelectionReference,
+      scopedReference("no-anchor", { anchor: undefined }),
+    ]);
+    expect(getSentConversationSelections("session-sent", "/ws").map((item) => item.id)).toEqual([
+      "sent-1",
+      "sent-2",
+    ]);
+    clearConversationSelectionReferenceScope("session-sent", "/ws");
+    expect(getSentConversationSelections("session-sent", "/ws")).toEqual([]);
+  });
+
+  it("rewind 只剪掉来源行消失的带评论注释", () => {
+    const items = [
+      scopedReference("commented-live", { sourceRowId: 5 }),
+      scopedReference("commented-gone", { sourceRowId: 6 }),
+      scopedReference("quote-only-gone", { sourceRowId: 6, comment: undefined }),
+      scopedReference("older-than-window", { sourceRowId: 1 }),
+      scopedReference("other-session", { sourceRowId: 6, sourceSessionId: "other" }),
+    ];
+    expect(
+      retainSelectionCommentsWithLiveSource(items, "parent-1", {
+        window: [{ rowId: 5 }],
+        firstRowId: 5,
+      }).map((item) => item.id),
+    ).toEqual(["commented-live", "quote-only-gone", "older-than-window", "other-session"]);
+    // 空窗口 + firstRowId 归零 = 整个分支被回滚，带评论的全部删除；无评论与 markdown 保留。
+    expect(
+      retainSelectionCommentsWithLiveSource(items, "parent-1", {
+        window: [],
+        firstRowId: null,
+      }).map((item) => item.id),
+    ).toEqual(["quote-only-gone", "other-session"]);
+    // 空窗口但仍有 firstRowId 无法判断，保守全部保留（同一数组引用）。
+    const conservative = retainSelectionCommentsWithLiveSource(items, "parent-1", {
+      window: [],
+      firstRowId: 5,
+    });
+    expect(conservative).toBe(items);
+  });
+
+  it("条数超限原子拒绝；已满时撤销不会挤掉别的注释", () => {
+    const existing = Array.from({ length: 8 }, (_, index) =>
+      scopedReference(`full-${index}`, { sourceRowId: index + 1, comment: `note ${index}` }),
+    );
+    const rejected = appendConversationSelectionReference(
+      existing,
+      scopedReference("overflow", { sourceRowId: 99 }),
+    );
+    expect(rejected).toEqual({ ok: false, reason: "count" });
+    expect(existing).toHaveLength(8);
   });
 });

@@ -1,3 +1,4 @@
+import { createContext } from "react";
 // v4 行渲染上下文（ai-elements / ToolCallBlocks 回接所需的宿主注入面）。
 // 注入模式对齐 PermissionDialog（store 耦合剥离）：展示组件不自取 store，
 // theme / codePreviewSettings 在宿主（SessionPane）处取，向下走稳定 props。
@@ -55,6 +56,11 @@ export interface ConversationRowRenderContext {
   inSubagentDrilldown?: boolean;
   /** 手机 /remote 紧凑模式：隐藏外部 App 打开下拉，只保留应用内预览。 */
   compactForRemoteControl?: boolean;
+  /**
+   * U03：当前正在底部 Composer 编辑的 userInput rowId。
+   * 匹配行显示“Editing below”占位，编辑按钮不再展开行内编辑器。
+   */
+  composerEditingRowId?: number | null;
   /** 当前 session 正在 compact 或 goal verify；专用状态 UI 独占进度反馈。 */
   chatLoadingBlockedByActiveWork?: boolean;
   /** 当前 session 正在等待权限确认或 AskUserQuestion 回答，隐藏底部 ChatLoading。 */
@@ -232,3 +238,12 @@ export function isConversationReasoningRowVisible(
     visibility.messageStreamFirstReasoningRowId === rowId
   );
 }
+
+// Context 独立于组件热更新边界，避免提供方和已挂载工具消费方持有不同实例，
+// 将整条工具摘要误渲染到统计组头的图标槽。
+export const SummaryIconOnlyContext = createContext(false);
+export const SummaryPreviewContext = createContext(false);
+export const SummaryGroupBoundaryContext = createContext<{
+  taskRunning: boolean;
+  tailRowId?: number;
+}>({ taskRunning: false });

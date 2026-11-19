@@ -2,7 +2,7 @@ import type { PostUpdateReleaseNotesPayload } from "@nibi/shared";
 import { MessageResponse } from "@/components/ai-elements/message.js";
 import { Button } from "@/components/ui/button.js";
 import { cn } from "@/components/lib/utils.js";
-import { GlmMonochromeIcon } from "@/components/ui/GlmMonochromeIcon.js";
+import nibiBirdIcon from "@/assets/nibi/nibi-bird.png";
 import {
   Dialog,
   DialogContent,
@@ -49,7 +49,12 @@ export function PostUpdateReleaseNotesDialog({
       >
         <div className="flex flex-col px-8 py-6">
           <div className="flex min-w-0 shrink-0 items-center gap-2.5">
-            <GlmMonochromeIcon className="size-5 shrink-0" alt="NIBI" />
+            <img
+              src={nibiBirdIcon}
+              alt="NIBI"
+              className="size-5 shrink-0 select-none object-contain"
+              draggable={false}
+            />
             <div className="min-w-0 flex-1">
               <DialogTitle className="text-lg leading-snug tracking-tight text-foreground">
                 {dialogHeading}

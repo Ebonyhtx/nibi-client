@@ -108,6 +108,12 @@ export interface NibiProtocolSessionRecord {
   taskType?: SessionTaskType;
   traceContext: TraceContext;
   unsubscribe?: () => void;
+  /**
+   * 本 record 在 workspace CLI session-control 中登记为 borrowed root 的管理器。
+   * runtime 关闭后必须经它摘除登记，否则同 session 的冷恢复/restart 会被判成
+   * 「另一个 runtime 仍持有会话」。
+   */
+  sessionControl?: NibiSessionControlRuntime;
   updatedAt: number;
   lastOutcome?: "completed" | "interrupted" | "error";
   workspace: NibiWorkspaceRef;
