@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "fixtures": [
+    {
+      "id": "worktree-handoff-title",
+      "description": "Worktree handoff evidence: stable title for the new worktree task.",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "The title request is unrelated to the handoff notice; a fixed title keeps the turn deterministic."
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "E2E_WORKTREE_HANDOFF",
+          "Generate a concise title"
+        ],
+        "bodyExcludes": [
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "msg_worktree_handoff_title",
+          "text": "{\"title\":\"Worktree Handoff Turn\"}",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "worktree-handoff-title-cli",
+      "description": "Worktree handoff evidence: CLI title-language variant.",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "Same fixed title for the Rust kernel wording; does not affect the handoff notice."
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "E2E_WORKTREE_HANDOFF",
+          "Write the title in the predominant language"
+        ],
+        "bodyExcludes": [
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "msg_worktree_handoff_title_cli",
+          "text": "{\"title\":\"Worktree Handoff Turn\"}",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "worktree-handoff-reply",
+      "description": "Worktree handoff evidence: first assistant snapshot for the worktree session.",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "Only needs a real first snapshot so the transient handoff notice settles."
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "lastUserMessageIncludes": [
+          "E2E_WORKTREE_HANDOFF"
+        ],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY",
+          "Write the title in the predominant language"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "msg_worktree_handoff_reply",
+          "inputTokens": 96,
+          "outputTokens": 18,
+          "text": "Worktree handoff evidence response."
+        }
+      }
+    }
+  ]
+}
