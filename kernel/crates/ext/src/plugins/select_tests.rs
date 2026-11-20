@@ -54,6 +54,17 @@ fn enabled(pairs: &[(&str, bool)]) -> BTreeMap<String, bool> {
         .collect()
 }
 
+/// 桌面 Host 播种后的官方缓存实形（`official-plugin-runtime.ts`）：MCP 服务器被改写成
+/// `<app> <nibi.cjs> __nibi-plugin-host <server.mjs>`。这个 argv 本身就是完整的 stdio 启动命令，
+/// 不是只能由 Node CLI 进程内提供的运行时依赖。
+fn seeded_host_manifest(name: &str) -> (String, String) {
+    let dir = format!("{CACHE}/{OFFICIAL}/{name}/1.0.0");
+    let body = format!(
+        r#"{{"name": "{name}", "mcpServers": {{"{name}": {{"type": "stdio", "command": "C:\\Program Files\\NIBI\\NIBI.exe", "args": ["C:\\Program Files\\NIBI\\resources\\nibi\\nibi.cjs", "__nibi-plugin-host", "{CACHE}/{OFFICIAL}/{name}/1.0.0/dist/server.mjs"], "cwd": "${{NIBI_PROJECT_DIR}}", "env": {{"ELECTRON_RUN_AS_NODE": "1", "NIBI_PLUGIN_ID": "{name}@nibi-official"}}}}}}}}"#
+    );
+    manifest(&dir, &body)
+}
+
 fn names(loaded: &Loaded) -> Vec<&str> {
     loaded
         .plugins
@@ -186,6 +197,57 @@ async fn official_defaults_match_the_node_seed_list() {
             (Some("ios-simulator@nibi-official"), &SkipReason::Disabled),
         ]
     );
+}
+
+/// 桌面 4.1.3 的四个 Office 官方插件：Host 播种后的 MCP 服务器带 `__nibi-plugin-host` argv。
+/// 这台机器的配置只显式打开 `presentations@nibi-official`，其余三个靠官方缺省启用。
+/// 会话/工作区引用目录必须把四个都标成 enabled；否则发送侧 Plugin mention 门禁会误报
+/// “插件未启用”，而设置页（Node 发现层）显示的是启用的。
+#[tokio::test]
+async fn seeded_official_plugin_host_servers_are_admitted() {
+    const NAMES: [&str; 4] = ["documents", "pdf", "presentations", "spreadsheets"];
+    let files: Vec<(String, String)> = NAMES
+        .iter()
+        .map(|name| seeded_host_manifest(name))
+        .collect();
+    let sources = PluginSources {
+        candidates: NAMES.iter().map(|name| official(name)).collect(),
+        // `~/.nibi/cli/config.json` 的实形：只显式打开这两个，没有 false 条目。
+        enabled_plugins: enabled(&[
+            ("presentations@nibi-official", true),
+            ("computer-use@nibi-official", true),
+        ]),
+        host_node_repl: true,
+        host_browser_broker: true,
+        ..PluginSources::default()
+    };
+    let loaded = load_all(&env(&files), &workspace(), &[], &sources).await;
+    assert_eq!(names(&loaded), NAMES, "{:?}", reasons(&loaded));
+    assert!(loaded.skipped.is_empty(), "{:?}", reasons(&loaded));
+    for (entry, name) in loaded.catalog.references.iter().zip(NAMES) {
+        assert_eq!(entry.plugin_id, format!("{name}@nibi-official"));
+        assert!(entry.enabled, "{} must stay enabled", entry.plugin_id);
+        assert_eq!(entry.mcp_server_names, [format!("plugin:{name}:{name}")]);
+    }
+}
+
+/// 放行 plugin-host 服务器不能变成“忽略用户停用”：显式 false 仍让会话/工作区目录保持 disabled。
+#[tokio::test]
+async fn an_explicitly_disabled_plugin_host_entry_stays_disabled() {
+    let files = [seeded_host_manifest("spreadsheets")];
+    let sources = PluginSources {
+        candidates: vec![official("spreadsheets")],
+        enabled_plugins: enabled(&[("spreadsheets@nibi-official", false)]),
+        ..PluginSources::default()
+    };
+    let loaded = load_all(&env(&files), &workspace(), &[], &sources).await;
+    assert!(loaded.plugins.0.is_empty(), "{:?}", names(&loaded));
+    assert_eq!(
+        reasons(&loaded),
+        [(Some("spreadsheets@nibi-official"), &SkipReason::Disabled)]
+    );
+    assert_eq!(loaded.catalog.references.len(), 1);
+    assert!(!loaded.catalog.references[0].enabled);
 }
 
 /// G2：禁用一个内置（design）只影响它自己，其他缺省启用项照常加载。
@@ -359,12 +421,11 @@ async fn session_plugins_and_first_comers_win_name_conflicts() {
 }
 
 #[tokio::test]
-async fn bundled_plugins_that_need_the_node_runtime_are_skipped() {
+async fn bundled_plugins_that_need_node_services_are_skipped() {
     let host_mcp = r#", "mcpServers": {"documents": {"type": "stdio", "command": "/opt/nibi/zcode", "args": ["__nibi-plugin-host", "/x/dist/mcp/server.js"]}}"#;
     let files = [
         official_manifest("browser-use", r#", "skills": "skills""#),
         official_manifest("computer-use", ""),
-        official_manifest("documents", host_mcp),
         official_manifest("auth-kit", ""),
         (
             format!("{CACHE}/{OFFICIAL}/auth-kit/1.0.0/.mcp.json"),
@@ -382,7 +443,6 @@ async fn bundled_plugins_that_need_the_node_runtime_are_skipped() {
         candidates: vec![
             official("browser-use"),
             official("computer-use"),
-            official("documents"),
             official("auth-kit"),
             official("visualize"),
             official("android-emulator"),
@@ -409,10 +469,6 @@ async fn bundled_plugins_that_need_the_node_runtime_are_skipped() {
             (
                 Some("computer-use@nibi-official"),
                 &SkipReason::NodeRuntime(NodeDependency::NodeRepl)
-            ),
-            (
-                Some("documents@nibi-official"),
-                &SkipReason::NodeRuntime(NodeDependency::PluginHost)
             ),
             (
                 Some("auth-kit@nibi-official"),

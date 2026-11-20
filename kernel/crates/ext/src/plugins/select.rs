@@ -32,8 +32,6 @@ const DEFAULT_ENABLED: [&str; 11] = [
 ];
 /// 能力来自 Node 宿主注入的 `node_repl` MCP 的官方插件（Node `hostMcpServerNames` 与宿主本身）。
 const NODE_REPL: [&str; 3] = ["node-repl-host", "browser-use", "computer-use"];
-/// Node `NIBI_PLUGIN_HOST_COMMAND`：播种缓存时改写进 MCP 的启动参数。
-const PLUGIN_HOST_ARG: &str = "__nibi-plugin-host";
 
 /// 候选目录的来源（Node `PluginSource`）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -127,8 +125,6 @@ impl PaidLicense {
 pub enum NodeDependency {
     /// 能力来自 Node 宿主注入的 `node_repl` MCP。
     NodeRepl,
-    /// MCP 经 Node CLI 自身的插件宿主模式启动。
-    PluginHost,
     /// MCP 要 Node 注入的官方鉴权。
     OfficialAuth,
 }
@@ -137,7 +133,6 @@ impl NodeDependency {
     fn describe(self) -> &'static str {
         match self {
             Self::NodeRepl => "it relies on the node_repl MCP server injected by the Node host",
-            Self::PluginHost => "its MCP server runs in the Node CLI plugin host",
             Self::OfficialAuth => {
                 "its MCP server needs the official auth injected by the Node host"
             }
@@ -254,14 +249,10 @@ fn node_dependency(
         .filter_map(Value::as_object)
         .flat_map(|table| table.values());
     for server in servers {
-        let args = server.get("args").and_then(Value::as_array);
-        if args
-            .into_iter()
-            .flatten()
-            .any(|arg| arg.as_str() == Some(PLUGIN_HOST_ARG))
-        {
-            return Some(NodeDependency::PluginHost);
-        }
+        // 官方缓存里的 MCP 服务器通常是 `<App> <nibi.cjs> __nibi-plugin-host <server.mjs>`：
+        // Host 播种时已经把 Node 入口固化成完整的 argv（`official-plugin-runtime.ts`）。内核按普通
+        // stdio 服务器直接拉起即可，不能把它当成“只有 Node CLI 进程内才有”的依赖——Desktop 的
+        // 四个 Office 内置插件正是这种形状，误杀会让会话/工作区引用目录把它们标成未启用。
         if server.get("auth").is_some() {
             return Some(NodeDependency::OfficialAuth);
         }
