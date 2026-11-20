@@ -4,6 +4,25 @@ use serde_json::json;
 
 use super::*;
 
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
+
+use async_trait::async_trait;
+use futures_util::StreamExt;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, InteractionId, SessionId, ToolUseId, TraceId};
+use nibi_kernel_api::session_api::{SequencedEvent, SessionView};
+use nibi_kernel_api::store::{SessionKind, SessionMeta};
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_protocol_core::connection::{self, Options};
+use tokio::io::{duplex, DuplexStream};
+
+use crate::context::Context;
+use crate::index::Topics;
+use crate::live::Live;
+use crate::projection::state::Followup;
+
 fn selection(provider: &str, model: &str, reasoning: Option<&str>) -> ModelSelection {
     ModelSelection {
         provider: provider.to_owned(),
@@ -765,3 +784,190 @@ fn worktree_creation_fact_is_parsed_strictly() {
         assert!(super::worktree_creation_of(&value).is_none(), "{value}");
     }
 }
+
+// ── resolveInteraction：授权应答与模式切换（上游 3.18.2「允许并切换模式」）──
+
+struct ResolveClock(AtomicU64);
+
+impl Clock for ResolveClock {
+    fn now_ms(&self) -> u64 {
+        self.0.load(Ordering::SeqCst)
+    }
+
+    fn time_zone(&self) -> String {
+        "UTC".to_owned()
+    }
+}
+
+/// 记录内核收到的命令；`view()` 给出等待回答的权限询问。
+struct ResolveHandle {
+    id: SessionId,
+    view: SessionView,
+    sent: Mutex<Vec<Command>>,
+}
+
+#[async_trait]
+impl SessionHandle for ResolveHandle {
+    fn id(&self) -> &SessionId {
+        &self.id
+    }
+
+    async fn send(&self, envelope: CommandEnvelope) -> KernelAck {
+        self.sent
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .push(envelope.command);
+        KernelAck::Accepted {
+            result: Value::Null,
+        }
+    }
+
+    fn subscribe(
+        &self,
+        _after: Option<u64>,
+    ) -> futures_util::stream::BoxStream<'static, SequencedEvent> {
+        futures_util::stream::pending().boxed()
+    }
+
+    async fn view(&self) -> Result<SessionView, KernelError> {
+        Ok(self.view.clone())
+    }
+}
+
+fn permission_view(interaction: &str) -> SessionView {
+    SessionView {
+        meta: SessionMeta {
+            id: SessionId::new("session_1"),
+            kind: SessionKind::Interactive,
+            parent: None,
+            workspace: WorkspaceRef {
+                environment: EnvironmentId::new("local"),
+                root: EnvPath::new("/w"),
+            },
+            title: "t".to_owned(),
+            trace: TraceId::new("session_1"),
+            created_at_ms: 1_000,
+        },
+        messages: Vec::new(),
+        selection: selection("p", "m", None),
+        mode: PermissionMode::Default,
+        plan: false,
+        pending: vec![(
+            InteractionId::new(interaction),
+            InteractionRequest::Permission {
+                tool_use: ToolUseId::new("toolu_1"),
+                tool: "Bash".to_owned(),
+                input: json!({"command": "rm -rf build"}),
+                message: "Run rm -rf build?".to_owned(),
+                suggestions: Vec::new(),
+                asked_by: None,
+                machine: None,
+            },
+        )],
+        queue: Vec::new(),
+        last_seq: 0,
+        revision: 4,
+        running: true,
+        background: Vec::new(),
+        peer_held: Vec::new(),
+        context_usage: None,
+        context_notice: Default::default(),
+        output_speed: None,
+        launches: Vec::new(),
+        model_turns: Vec::new(),
+        worktree_creations: Vec::new(),
+        input_intents: Vec::new(),
+    }
+}
+
+/// 跑一次 `resolveInteraction`，返回发往内核的命令（模式切换在前、回答在后）。
+async fn resolve_permission_option(option_id: &str) -> Vec<Command> {
+    let scope = TaskScope::root("resolve-permission-test", |_| {});
+    let (out, _host): (DuplexStream, DuplexStream) = duplex(1 << 16);
+    let (peer, _writer) = connection::start(out, &scope.spawner(), Options::default());
+    let clock = Arc::new(ResolveClock(AtomicU64::new(1_000)));
+    let context = Arc::new(Context::new(peer, clock));
+    let topics = Arc::new(Topics::new(context.clone(), &scope.spawner()));
+    let view = permission_view("int_perm");
+    let handle = Arc::new(ResolveHandle {
+        id: SessionId::new("session_1"),
+        view: view.clone(),
+        sent: Mutex::new(Vec::new()),
+    });
+    let dyn_handle: Arc<dyn SessionHandle> = handle.clone();
+    let live = Live::new(
+        context,
+        topics,
+        &dyn_handle,
+        &view,
+        Followup::Queue,
+        Arc::new(crate::local_ttft::LocalTtftRecorder::new("cli-1".to_owned())),
+        scope.spawner(),
+        true,
+    );
+    let envelope = Envelope {
+        command_id: "c_perm".to_owned(),
+        client_id: "desktop".to_owned(),
+        session_id: Some("session_1".to_owned()),
+        base_revision: None,
+        base_log_epoch: None,
+        kind: "resolveInteraction".to_owned(),
+        payload: json!({
+            "interactionId": "int_perm",
+            "answer": {"optionId": option_id},
+        }),
+        input_origin: Some("desktop".to_owned()),
+        ttft: None,
+    };
+    let ack = resolve(dyn_handle.as_ref(), &live, &envelope, view.revision).await;
+    assert_eq!(ack.status, Status::Accepted);
+    handle
+        .sent
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clone()
+}
+
+#[tokio::test]
+async fn allow_and_switch_guarded_sets_the_mode_then_allows_once() {
+    let sent = resolve_permission_option("allowAndSwitchGuarded").await;
+    assert_eq!(sent.len(), 2);
+    assert_eq!(
+        sent[0],
+        Command::SetMode {
+            mode: PermissionMode::Guarded
+        }
+    );
+    let Command::ResolveInteraction { interaction, answer } = &sent[1] else {
+        panic!("expected ResolveInteraction, got {:?}", sent[1]);
+    };
+    assert_eq!(interaction.as_str(), "int_perm");
+    assert_eq!(answer["decision"], "allow");
+    assert!(answer.get("remember").is_none(), "单次允许不得写持久规则");
+}
+
+#[tokio::test]
+async fn full_access_sets_bypass_permissions_then_allows_once() {
+    let sent = resolve_permission_option("fullAccess").await;
+    assert_eq!(
+        sent[0],
+        Command::SetMode {
+            mode: PermissionMode::BypassPermissions
+        }
+    );
+    let Command::ResolveInteraction { answer, .. } = &sent[1] else {
+        panic!("expected ResolveInteraction, got {:?}", sent[1]);
+    };
+    assert_eq!(answer["decision"], "allow");
+}
+
+#[tokio::test]
+async fn plain_allow_does_not_touch_the_permission_mode() {
+    let sent = resolve_permission_option("allowOnce").await;
+    assert_eq!(sent.len(), 1);
+    let Command::ResolveInteraction { answer, .. } = &sent[0] else {
+        panic!("expected ResolveInteraction, got {:?}", sent[0]);
+    };
+    assert_eq!(answer["decision"], "allow");
+}
+

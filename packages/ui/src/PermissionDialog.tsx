@@ -19,8 +19,22 @@ import {
   type NibiPermissionRequest,
   type NibiProvider,
 } from "@nibi/shared";
-import { MAX_PERMISSION_FEEDBACK_CHARS } from "@nibi/shared/nibi-protocol-v4";
+import {
+  MAX_PERMISSION_FEEDBACK_CHARS,
+  PERMISSION_FULL_ACCESS_OPTION_ID,
+  PERMISSION_GUARDED_OPTION_ID,
+  permissionGrantMode,
+} from "@nibi/shared/nibi-protocol-v4";
 import { Button } from "@/components/ui/button.js";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu.js";
+import { resolveModeOptionIcon } from "@/chat-input-toolbar/display.js";
+import { useFullAccessModeConfirmation } from "@/v4/FullAccessModeConfirmDialog.js";
 import { cn } from "@/components/lib/utils.js";
 import { Textarea } from "@/components/ui/textarea.js";
 import { isImeComposingKeyEvent } from "@/lib/imeComposition.js";
@@ -63,7 +77,7 @@ import { isSaveWorkflowToolCall } from "@/lib/workflowToolNames.js";
 import { useNibiStoreWithDefault } from "@/store/StoreProvider.js";
 import { DEFAULT_CODE_PREVIEW_SETTINGS } from "@/lib/codePreviewSettings.js";
 import { useNibiIntl } from "./i18n/IntlProvider.js";
-import { Info, LoaderIcon, WrenchIcon } from "lucide-react";
+import { ChevronDownIcon, Info, LoaderIcon, WrenchIcon } from "lucide-react";
 
 const MCP_PERMISSION_TOOL_ICON = <WrenchIcon className="size-4 shrink-0 text-foreground-subtle" />;
 
@@ -473,10 +487,16 @@ export function PermissionDialog({
   isWebRemoteControl = false,
   responding = false,
   responseError,
+  permissionMode,
+  modeSwitch,
 }: {
   request: NibiPermissionRequest;
   responding?: boolean;
   responseError?: string;
+  /** 会话当前的权限模式（`config.mode`：build/edit/plan/guarded/yolo…）。 */
+  permissionMode?: string;
+  /** payload 的模式切换能力；缺省 = 旧快照，不出现切换入口。 */
+  modeSwitch?: "choose" | "fullAccessOnly";
   /**
    * `content` 只在工作流确认窗的放行应答上出现：用户在窗里改过的设置（docs/dynamic-workflow/launch.md
    * 「Adjusting the settings in the window」）。没改过即不传。
@@ -585,6 +605,57 @@ export function PermissionDialog({
   const feedbackIndex = orderedOptions.length;
   const selectableCount = orderedOptions.length + (hasFeedbackInput ? 1 : 0);
   const isFeedbackSelected = hasFeedbackInput && selectedIndex === feedbackIndex;
+  const [pickedMode, setPickedMode] = useState<"guarded" | "yolo">("guarded");
+  // 当前模式已是 guarded/yolo 时没有“切换到哪”的选择：与上游 fullAccessOnly 的单按钮语义一致。
+  const canPickMode =
+    modeSwitch === "choose" &&
+    permissionMode !== "guarded" &&
+    permissionMode !== "yolo";
+  const targetMode: "guarded" | "yolo" = canPickMode ? pickedMode : "yolo";
+  const modeLabel = (mode: "guarded" | "yolo") =>
+    intl.formatMessage({
+      id: mode === "guarded" ? "mode.label.nibiAgent.guarded" : "mode.label.nibiAgent.yolo",
+    });
+  const switchLabel = (mode: string) =>
+    intl.formatMessage({ id: "chat.permission.allowAndSwitch" }, { mode });
+  // 切换到高权限模式前要过一次确认；确认是异步的，先记住这次要提交的选项与反馈。
+  const pendingSwitchRef = useRef<{
+    option: NibiPermissionOption;
+    feedback?: string;
+    content?: Record<string, unknown>;
+  } | null>(null);
+  const submitOption = useCallback(
+    (option: NibiPermissionOption, feedback?: string, content?: Record<string, unknown>) => {
+      if (content === undefined) {
+        onRespond(request.requestId, option, feedback);
+      } else {
+        onRespond(request.requestId, option, feedback, content);
+      }
+    },
+    [onRespond, request.requestId],
+  );
+  const applyModeSwitch = useCallback(
+    (mode: string) => {
+      const pending = pendingSwitchRef.current;
+      pendingSwitchRef.current = null;
+      if (!pending) return;
+      // “允许并切换到自主模式”有独立的 optionId，内核据此先 SetMode(Guarded) 再放行。
+      const option =
+        mode === "guarded"
+          ? { ...pending.option, optionId: PERMISSION_GUARDED_OPTION_ID }
+          : pending.option;
+      submitOption(option, pending.feedback, pending.content);
+    },
+    [submitOption],
+  );
+  const {
+    requestModeSwitch,
+    confirmDialog: modeConfirmDialog,
+  } = useFullAccessModeConfirmation({
+    // fullAccessOnly 本身就是“只能切到完全访问”：即使快照模式看起来相同也要确认一次。
+    currentMode: modeSwitch === "fullAccessOnly" ? "guarded" : permissionMode,
+    onApplyModeSwitch: applyModeSwitch,
+  });
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -642,19 +713,31 @@ export function PermissionDialog({
         workflowSettingsContent !== undefined && isWorkflowSettingsCarrier(option)
           ? { ...workflowSettingsContent }
           : undefined;
-      if (content === undefined) {
-        onRespond(request.requestId, option, trimmedFeedback || undefined);
-      } else {
-        onRespond(request.requestId, option, trimmedFeedback || undefined, content);
+      // 只有 V4 明确声明了 modeSwitch 的完全访问选项才是“允许并切换模式”。
+      // 旧快照没有这个字段，保持原来的单次授权语义（也避免旧 UX 突然多一次确认）。
+      const switchMode =
+        modeSwitch !== undefined && permissionGrantMode(option.optionId) === "yolo";
+      if (!switchMode) {
+        submitOption(option, trimmedFeedback || undefined, content);
+        return;
       }
+      pendingSwitchRef.current = {
+        option,
+        feedback: trimmedFeedback || undefined,
+        content,
+      };
+      requestModeSwitch(targetMode);
     },
     [
       feedback,
       isOptionBlocked,
-      onRespond,
+      modeSwitch,
       refineOption,
       request.requestId,
+      requestModeSwitch,
       responding,
+      submitOption,
+      targetMode,
       workflowSettingsContent,
     ],
   );
@@ -769,6 +852,20 @@ export function PermissionDialog({
           ) {
             event.preventDefault();
             return;
+          }
+          // 模式切换行：提交按钮与目标选择器是两个控件，正向 Tab 先到选择器，再回选项循环。
+          if (
+            !event.shiftKey &&
+            event.currentTarget.dataset.testid === "permission-allow-switch"
+          ) {
+            const picker = event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(
+              '[data-testid="permission-target-picker"]',
+            );
+            if (picker) {
+              event.preventDefault();
+              picker.focus();
+              return;
+            }
           }
           event.preventDefault();
           moveSelection(event.shiftKey ? -1 : 1);
@@ -948,6 +1045,121 @@ export function PermissionDialog({
                   getPermissionOptionDisplayKind(option.kind) === "allowAlways"
                     ? readPermissionRuleScopes(option)
                     : [];
+                const switchRow =
+                  modeSwitch !== undefined &&
+                  option.optionId === PERMISSION_FULL_ACCESS_OPTION_ID;
+                if (switchRow) {
+                  const TargetIcon = resolveModeOptionIcon(targetMode);
+                  return (
+                    <div
+                      key={option.optionId}
+                      className={cn(
+                        "relative flex w-full items-center gap-3 rounded-xl px-3 py-2 transition-colors",
+                        isSelected ? "bg-selected" : "hover:bg-hover",
+                        blocked && "opacity-50",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "w-5 shrink-0 self-center text-ui-base font-medium",
+                          isSelected ? "text-foreground" : "text-foreground-subtlest",
+                        )}
+                      >
+                        {index + 1}.
+                      </span>
+                      <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+                        <button
+                          type="button"
+                          role="option"
+                          data-testid="permission-allow-switch"
+                          data-permission-option-kind={getPermissionOptionDisplayKind(option.kind)}
+                          ref={(node) => {
+                            optionRefs.current[index] = node;
+                          }}
+                          aria-label={switchLabel(modeLabel(targetMode))}
+                          aria-selected={isSelected}
+                          {...(blocked ? { "aria-disabled": true } : {})}
+                          tabIndex={isSelected ? 0 : -1}
+                          onClick={() => {
+                            if (isSelected || switchRow) {
+                              respondWithOption(option);
+                            } else {
+                              setSelectedIndex(index);
+                            }
+                          }}
+                          onFocus={() => setSelectedIndex(index)}
+                          onKeyDown={handleOptionKeyDown}
+                          className="inline-flex items-center gap-1 text-left text-ui-base font-medium text-foreground outline-none after:absolute after:inset-0 after:rounded-xl"
+                        >
+                          {canPickMode ? (
+                            intl.formatMessage({ id: "chat.permission.switchAction" })
+                          ) : (
+                            <>
+                              <TargetIcon className="size-4 shrink-0" />
+                              {switchLabel(modeLabel(targetMode))}
+                            </>
+                          )}
+                        </button>
+                        {canPickMode ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                disabled={responding}
+                                data-testid="permission-target-picker"
+                                data-mode={targetMode}
+                                aria-label={intl.formatMessage({ id: "chat.toolbar.mode.label" })}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Tab") {
+                                    event.preventDefault();
+                                    optionRefs.current[
+                                      event.shiftKey ? index : index + 1
+                                    ]?.focus();
+                                  }
+                                }}
+                                className="relative z-1 h-7 gap-1 rounded-lg px-2 text-ui-base text-foreground-subtle"
+                              >
+                                <TargetIcon className="size-4" />
+                                {modeLabel(targetMode)}
+                                <ChevronDownIcon className="size-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent side="top" align="start">
+                              <DropdownMenuRadioGroup
+                                value={targetMode}
+                                onValueChange={(value) => {
+                                  if (value === "guarded" || value === "yolo") {
+                                    setPickedMode(value);
+                                    // 菜单只选目标；底部确认键应提交本行，而不是先前高亮的允许一次。
+                                    setSelectedIndex(index);
+                                  }
+                                }}
+                              >
+                                {(["guarded", "yolo"] as const).map((mode) => {
+                                  const Icon = resolveModeOptionIcon(mode);
+                                  return (
+                                    <DropdownMenuRadioItem
+                                      key={mode}
+                                      value={mode}
+                                      data-testid={`permission-target-${mode}`}
+                                    >
+                                      <span className="inline-flex items-center gap-1">
+                                        <Icon className="size-4" />
+                                        {modeLabel(mode)}
+                                      </span>
+                                    </DropdownMenuRadioItem>
+                                  );
+                                })}
+                              </DropdownMenuRadioGroup>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : null}
+                      </span>
+                    </div>
+                  );
+                }
 
                 return (
                   <button
@@ -1100,6 +1312,7 @@ export function PermissionDialog({
           </div>
         </div>
       </div>
+      {modeConfirmDialog}
     </div>
   );
 }

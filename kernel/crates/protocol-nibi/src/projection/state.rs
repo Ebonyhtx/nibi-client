@@ -261,6 +261,7 @@ pub fn permission_options(tool: &str) -> Value {
 }
 
 /// “完全访问”选项（与 Node 的 V4 投影相同）：选它时会话切到 yolo（bypassPermissions）并放行这一次。
+/// 只随 `modeSwitch: "choose"` 一起投放；子代理来源的询问不给（它不能替用户切会话模式）。
 pub fn full_access_option() -> Value {
     json!({"optionId": "fullAccess", "label": "Full access", "kind": "custom",
         "response": {"decision": "deny", "reason": "Full access requires V4 approval"}})

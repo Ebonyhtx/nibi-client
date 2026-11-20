@@ -1287,21 +1287,27 @@ async fn resolve(
             tool_use,
             ..
         } => {
-            // “完全访问”：先把会话切到 yolo（之后不再询问），再放行这一次。
-            if option == Some("fullAccess") {
+            // “允许并切换模式”：先切会话模式，再放行这一次。
+            // fullAccess → yolo（bypassPermissions）；allowAndSwitchGuarded → guarded（用户选“自主模式”）。
+            let switch_mode = match option {
+                Some("fullAccess") => Some(PermissionMode::BypassPermissions),
+                Some("allowAndSwitchGuarded") => Some(PermissionMode::Guarded),
+                _ => None,
+            };
+            if let Some(mode) = switch_mode {
                 send(
                     handle,
                     &format!("{}:mode", envelope.command_id),
-                    Command::SetMode {
-                        mode: PermissionMode::BypassPermissions,
-                    },
+                    Command::SetMode { mode },
                 )
                 .await;
             }
             let answer = match option {
-                Some("allowOnce" | "fullAccess") => PermissionAnswer::Allow {
-                    remember: Vec::new(),
-                },
+                Some("allowOnce" | "fullAccess" | "allowAndSwitchGuarded") => {
+                    PermissionAnswer::Allow {
+                        remember: Vec::new(),
+                    }
+                }
                 Some("allowAlways") => PermissionAnswer::Allow {
                     remember: remember_rules(tool, input, suggestions),
                 },

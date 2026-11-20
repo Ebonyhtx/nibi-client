@@ -3,6 +3,9 @@ import { z } from "zod";
 import { nibiPermissionRequestedEventPayloadSchema } from "../src/nibi-protocol/index.js";
 import {
   pendingInteractionSchema,
+  PERMISSION_FULL_ACCESS_OPTION_ID,
+  PERMISSION_GUARDED_OPTION_ID,
+  permissionGrantMode,
   permissionRequestPayloadSchema,
 } from "../src/nibi-protocol-v4/index.js";
 
@@ -60,6 +63,32 @@ describe("v4 permission payload compatibility", () => {
     expect(permissionRequestPayloadSchema.parse(base).freeText).toBeUndefined();
     expect(permissionRequestPayloadSchema.parse({ ...base, freeText: false }).freeText).toBe(false);
     expect(permissionRequestPayloadSchema.parse({ ...base, freeText: true }).freeText).toBe(true);
+  });
+
+  it("accepts the additive modeSwitch capability and maps grant modes", () => {
+    const base = {
+      kind: "permission" as const,
+      toolCallId: "tc-mode-switch",
+      toolName: "Bash",
+      summary: "Run command",
+      detail: { command: "rm -rf build" },
+      options: [{ optionId: "deny", label: "Deny", kind: "deny" as const }],
+    };
+
+    expect(permissionRequestPayloadSchema.parse(base).modeSwitch).toBeUndefined();
+    expect(
+      permissionRequestPayloadSchema.parse({ ...base, modeSwitch: "choose" }).modeSwitch,
+    ).toBe("choose");
+    expect(
+      permissionRequestPayloadSchema.parse({ ...base, modeSwitch: "fullAccessOnly" }).modeSwitch,
+    ).toBe("fullAccessOnly");
+    expect(permissionRequestPayloadSchema.safeParse({ ...base, modeSwitch: "guarded" }).success).toBe(
+      false,
+    );
+
+    expect(permissionGrantMode(PERMISSION_GUARDED_OPTION_ID)).toBe("guarded");
+    expect(permissionGrantMode(PERMISSION_FULL_ACCESS_OPTION_ID)).toBe("yolo");
+    expect(permissionGrantMode("allowOnce")).toBeUndefined();
   });
 
   it("preserves a project permission response with prefix suggestions", () => {

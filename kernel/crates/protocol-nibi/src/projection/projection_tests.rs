@@ -268,6 +268,7 @@ fn a_permission_ask_marks_the_tool_and_lists_the_interaction() {
         pending["payload"]["fullAccessOption"]["optionId"],
         "fullAccess"
     );
+    assert_eq!(pending["payload"]["modeSwitch"], "choose");
     assert_eq!(pending["payload"]["options"].as_array().unwrap().len(), 3);
     assert_eq!(feed.projection.pending_permissions(), 1);
     let resolved = feed.apply(KernelEvent::InteractionResolved {
@@ -285,6 +286,48 @@ fn a_permission_ask_marks_the_tool_and_lists_the_interaction() {
     });
     assert_eq!(done[0]["row"]["status"], "success");
     assert_eq!(done[0]["row"]["output"]["text"], "ok");
+}
+
+#[test]
+fn a_subagent_permission_ask_does_not_offer_a_session_mode_switch() {
+    // 与 Node 的 V4 投影一致：子代理来源（`asked_by`）不能替用户把整个会话切到完全访问，
+    // 因此既不给 modeSwitch，也不投放 fullAccessOption；普通允许/拒绝不变。
+    let mut feed = Feed::new();
+    feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        input_source: None,
+        origin_meta: None,
+        workflow_launch: None,
+        turn: TurnId::new("turn_1"),
+        command: None,
+    });
+    let tool = ToolUseId::new("toolu_sub");
+    feed.apply(KernelEvent::MessageDone {
+        message: assistant(
+            "msg_a_sub",
+            vec![ContentBlock::ToolUse {
+                id: tool.clone(),
+                name: "Bash".into(),
+                input: json!({"command": "rm -rf build"}),
+            }],
+        ),
+    });
+    let asked = feed.apply(KernelEvent::InteractionAsked {
+        interaction: InteractionId::new("int_sub"),
+        request: InteractionRequest::Permission {
+            tool_use: tool,
+            tool: "Bash".into(),
+            input: json!({"command": "rm -rf build"}),
+            message: "Run rm -rf build?".into(),
+            suggestions: Vec::new(),
+            asked_by: Some("Explore".into()),
+            machine: None,
+        },
+    });
+    let payload = &asked[1]["patch"]["pendingInteractions"][0]["payload"];
+    assert!(payload.get("modeSwitch").is_none());
+    assert!(payload.get("fullAccessOption").is_none());
+    assert_eq!(payload["options"].as_array().unwrap().len(), 3);
 }
 
 #[test]

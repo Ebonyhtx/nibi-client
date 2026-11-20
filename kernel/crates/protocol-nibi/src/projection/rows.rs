@@ -266,23 +266,38 @@ impl Projection {
         let anchor = self.row_id(&tool_key(tool_use.as_str()));
         let entry = match request {
             InteractionRequest::Permission {
-                tool, input, message, ..
-            } => json!({
-                "interactionId": interaction,
-                "kind": "permission",
-                "anchorRowId": anchor,
-                "createdAt": now,
-                "payload": {
+                tool,
+                input,
+                message,
+                asked_by,
+                ..
+            } => {
+                let mut payload = json!({
                     "kind": "permission",
                     "toolCallId": tool_use.as_str(),
                     "toolName": tool,
                     "summary": message,
                     "detail": input,
                     "freeText": true,
-                    "fullAccessOption": state::full_access_option(),
                     "options": state::permission_options(tool),
-                },
-            }),
+                });
+                // 与 Node 的 V4 投影同语义：只有主线程（非子代理）的询问才提供「允许并切换模式」。
+                // 子代理不能代表用户把整个会话切到完全访问，因此两者都不给它。
+                // 内核没有 Node `optionsPolicy` / `approvalMode` 的等价信息：`guarded` 危险命令的
+                // user-once 只影响 hooks 与建议规则，不落在 `InteractionRequest` 上，所以这里统一给
+                // `choose`（当前模式已是 guarded/yolo 时 UI 不出现选择器，行为与 fullAccessOnly 一致）。
+                if asked_by.is_none() {
+                    payload["modeSwitch"] = json!("choose");
+                    payload["fullAccessOption"] = state::full_access_option();
+                }
+                json!({
+                    "interactionId": interaction,
+                    "kind": "permission",
+                    "anchorRowId": anchor,
+                    "createdAt": now,
+                    "payload": payload,
+                })
+            }
             // AskUserQuestion：Node 把它的等待态投影成 userInput（结构化 questions），不是
             // 允许/拒绝弹窗（product-projection `createPendingInteractionFromPermissionEvent`）。
             InteractionRequest::Question { questions, .. } => json!({

@@ -243,6 +243,19 @@ export type QueueState = z.infer<typeof queueStateSchema>;
 export const MAX_PERMISSION_FEEDBACK_CHARS = 4_096;
 
 export const PERMISSION_FULL_ACCESS_OPTION_ID = "fullAccess";
+/** 允许一次并同时把会话切到 guarded（权限弹窗的「允许并切换到自主模式」）。 */
+export const PERMISSION_GUARDED_OPTION_ID = "allowAndSwitchGuarded";
+/**
+ * 授权应答（optionId）对应的模式切换：fullAccess → yolo，allowAndSwitchGuarded → guarded。
+ * 普通允许/拒绝没有模式语义，返回 undefined。
+ */
+export function permissionGrantMode(
+  optionId: string | undefined,
+): "guarded" | "yolo" | undefined {
+  if (optionId === PERMISSION_GUARDED_OPTION_ID) return "guarded";
+  if (optionId === PERMISSION_FULL_ACCESS_OPTION_ID) return "yolo";
+  return undefined;
+}
 const permissionOptionSchema = z.object({
   optionId: z.string(),
   label: z.string(),
@@ -262,7 +275,11 @@ export const permissionRequestPayloadSchema = z.object({
   // 工具自报的确认预览，复用 row 的 display 投影（同一有界形状）。缺省 = 纯文本 ask。
   // 同样不设门：预览解析失败退化成纯文本 ask，不拒整份 snapshot（见 toolDisplay.ts 注释）。
   display: toolCallDisplaySchema.optional().catch(undefined),
+  // 模式切换：choose = 用户可选 guarded/yolo 再放行；fullAccessOnly = 只能切到
+  // 完全访问（不可持久化的单次授权）。缺省 = 旧快照，不出现切换入口。
+  modeSwitch: z.enum(["choose", "fullAccessOnly"]).optional(),
   // 独立 additive 能力：旧 UI 忽略此字段，仍只显示原 options，不出现半实现授权入口。
+  // choose 时与 modeSwitch 一起给出；fullAccessOnly / 子代理来源不投放。
   fullAccessOption: permissionOptionSchema
     .extend({
       optionId: z.literal(PERMISSION_FULL_ACCESS_OPTION_ID),

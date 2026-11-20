@@ -41,6 +41,34 @@ describe("pendingInteractionAdapter", () => {
       pendingPermissionToLegacyRequest("s", { ...interaction, payload: legacy }).options,
     ).toHaveLength(1);
   });
+  it("synthesizes the full-access option for fullAccessOnly payloads", () => {
+    const payload = {
+      kind: "permission" as const,
+      toolCallId: "t",
+      toolName: "Bash",
+      summary: "permission",
+      detail: { command: "rm -rf build" },
+      modeSwitch: "fullAccessOnly" as const,
+      options: [{ optionId: "allowOnce", label: "Allow once", kind: "allowOnce" as const }],
+    };
+    // 共享 schema 接受模式切换字段；旧快照没有它时照常解析。
+    expect(permissionRequestPayloadSchema.parse(payload).modeSwitch).toBe("fullAccessOnly");
+    const { modeSwitch: _modeSwitch, ...legacyPayload } = payload;
+    expect(permissionRequestPayloadSchema.parse(legacyPayload).modeSwitch).toBeUndefined();
+
+    const request = pendingPermissionToLegacyRequest("s", {
+      interactionId: "p",
+      kind: "permission",
+      anchorRowId: null,
+      createdAt: 1,
+      payload,
+    });
+    expect(request.options.at(-1)).toMatchObject({
+      optionId: "fullAccess",
+      response: { decision: "deny" },
+    });
+  });
+
   it("maps v4 permission interaction to legacy PermissionDialog request", () => {
     const request = pendingPermissionToLegacyRequest("sess-1", {
       interactionId: "perm-1",

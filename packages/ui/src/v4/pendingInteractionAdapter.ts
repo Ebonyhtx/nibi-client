@@ -9,6 +9,7 @@ import type {
   PermissionRequestPayload,
   UserInputRequestPayload,
 } from "@nibi/shared/nibi-protocol-v4";
+import { PERMISSION_FULL_ACCESS_OPTION_ID } from "@nibi/shared/nibi-protocol-v4";
 
 const LEGACY_PERMISSION_RULE_INPUT_KEYS = [
   "command",
@@ -60,8 +61,20 @@ export function pendingPermissionToLegacyRequest(
   interaction: PendingInteraction & { payload: PermissionRequestPayload },
 ): NibiPermissionRequest {
   const { payload } = interaction;
-  const advertisedOptions = payload.fullAccessOption
-    ? [...payload.options, payload.fullAccessOption]
+  // fullAccessOnly（guarded 危险命令的 user-once）在 payload 里只给模式切换、不投放
+  // fullAccessOption；旧弹窗仍需要一个可提交的选项，这里补一个与 V4 投影同形的合成项。
+  const switchOption =
+    payload.fullAccessOption ??
+    (payload.modeSwitch === "fullAccessOnly"
+      ? {
+          optionId: PERMISSION_FULL_ACCESS_OPTION_ID,
+          label: "Full access",
+          kind: "custom" as const,
+          response: { decision: "deny" as const },
+        }
+      : undefined);
+  const advertisedOptions = switchOption
+    ? [...payload.options, switchOption]
     : payload.options;
   const options: NibiPermissionOption[] = advertisedOptions.map((option) => ({
     optionId: option.optionId,
