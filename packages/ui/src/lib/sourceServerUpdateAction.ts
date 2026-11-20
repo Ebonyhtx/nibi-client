@@ -48,6 +48,48 @@ export function resolveSourceServerLifecycleActionAvailability(input: {
   };
 }
 
+export type SourceServerReinstallAvailability =
+  | { visible: false }
+  | { visible: true; enabled: boolean };
+
+/**
+ * 「重新安装远端服务」（RDRI-01）的可用状态，设备卡「更多」、设备卡错误条与连接向导失败页共用。
+ * 重装由本机 archive 内的 CLI 执行，不依赖远端控制命令，所以不设远端最低版本门槛。
+ * 需要处理（五态 pending）与已卸载时隐藏：前者有各自的主操作，后者主操作已是“重新安装并连接”。
+ * 最近握手的远端版本高于本机时隐藏：同一入口实际是降级，重装入口不应绕过本机版本方向。
+ */
+export function resolveSourceServerReinstallAvailability(input: {
+  status: RemoteConnectionStatus;
+  deviceBusy: boolean;
+  installState?: "installed" | "uninstalled";
+  lastSeenVersion?: string;
+  localVersion: string;
+}): SourceServerReinstallAvailability {
+  if (input.status === "pending" || input.installState === "uninstalled") return { visible: false };
+  const comparison = input.lastSeenVersion
+    ? compareSemverVersions(input.lastSeenVersion, input.localVersion)
+    : null;
+  if (comparison !== null && comparison > 0) return { visible: false };
+  return { visible: true, enabled: !input.deviceBusy && input.status !== "connecting" };
+}
+
+/** 设备卡与连接向导共用的重装确认；不是 destructive 操作，运行中任务由更新链的强制确认另行处理。 */
+export function getSourceServerReinstallConfirmation(input: {
+  source: string;
+  version: string;
+  formatMessage: (descriptor: { id: string }, values?: Record<string, string>) => string;
+}) {
+  return {
+    title: input.formatMessage({ id: "settings.source.reinstallRemoteServiceTitle" }),
+    description: input.formatMessage(
+      { id: "settings.source.reinstallRemoteServiceDescription" },
+      { source: input.source, version: input.version.replace(/^v/iu, "") },
+    ),
+    confirmLabel: input.formatMessage({ id: "settings.source.reinstallRemoteServiceConfirm" }),
+    intent: "source-server-reinstall",
+  };
+}
+
 export async function runSourceServerUpdate(options: {
   management: ISourceServerManagementService;
   profileId: string;

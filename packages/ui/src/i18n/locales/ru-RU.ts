@@ -1224,6 +1224,8 @@ const ruRU: Record<string, string> = {
   "chat.permission.fullAccess": "Полный доступ",
   "chat.permission.fullAccess.description":
     "Предоставить агенту полный доступ без дальнейших подтверждений.",
+  "chat.permission.allowAndSwitch": "Разрешить и переключить режим на {mode}",
+  "chat.permission.switchAction": "Разрешить и сменить режим:",
   "chat.permission.keyboardHint": "Tab / стрелки — выбор, Enter — подтверждение",
   "chat.permission.responseFailed": "Одобрение не завершено. Повторите попытку.",
   "chat.permission.scope.commandPrefix": "Префикс команды",
@@ -3706,6 +3708,8 @@ const ruRU: Record<string, string> = {
   "mode.acceptEdits": "Принимать правки",
   "mode.default": "По умолчанию",
   "mode.plan": "Планирование",
+  "mode.label.nibiAgent.guarded": "Автономный режим",
+  "mode.label.nibiAgent.yolo": "Полный доступ",
   "model.capability.vision": "Зрение",
   "modelSelection.invalidated.fallback":
     "Ранее выбранная модель больше недоступна. Выбрана текущая модель по умолчанию; проверьте её, прежде чем продолжить.",
@@ -6070,6 +6074,13 @@ const ruRU: Record<string, string> = {
   "settings.source.renameSource": "Переименовать",
   "settings.source.restartRemoteService": "Перезапустить удалённый сервис",
   "settings.source.restartRemoteServiceTitle": "Перезапустить удалённый сервис?",
+  "settings.source.reinstallRemoteService": "Переустановить удалённый сервис",
+  "settings.source.reinstallRemoteServiceHint":
+    "Используется версия этого компьютера. Проекты и задачи сохраняются.",
+  "settings.source.reinstallRemoteServiceTitle": "Переустановить удалённый сервис?",
+  "settings.source.reinstallRemoteServiceDescription":
+    "NIBI Server {version} будет переустановлен на {source}. Повреждённые файлы программы будут заменены. Проекты, задачи, настройки и данные входа сохранятся.",
+  "settings.source.reinstallRemoteServiceConfirm": "Переустановить",
   "settings.source.retiredEntryNote":
     "Цель подключения изменилась; новый идентификатор подтверждён",
   "settings.source.retiredNameSuffix": " (старое)",
@@ -6632,6 +6643,9 @@ const ruRU: Record<string, string> = {
   "sourceServer.updateCompletedToast": "{source} обновлён и переподключён.",
   "sourceServer.updateFailedToast":
     "Не удалось обновить {source}. Посмотрите журнал в разделе «Удалённые устройства» и повторите.",
+  "sourceServer.reinstallCompletedToast": "{source} переустановлен и переподключён.",
+  "sourceServer.reinstallFailedToast":
+    "Не удалось переустановить {source}. Посмотрите журнал в разделе «Удалённые устройства» и повторите.",
   "sourceServer.updateRequiredToast":
     "{source} нужно обновить перед подключением\nТекущая {current}; требуется {available}.",
   "sourceServer.updateStartedToast": "Обновление {source}…",

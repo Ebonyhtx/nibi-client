@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   getRemoteServiceLifecycleDescription,
+  getSourceServerReinstallConfirmation,
   resolveSourceServerLifecycleActionAvailability,
+  resolveSourceServerReinstallAvailability,
 } from "@/lib/sourceServerUpdateAction.js";
 
 describe("resolveSourceServerLifecycleActionAvailability", () => {
@@ -66,6 +68,87 @@ describe("resolveSourceServerLifecycleActionAvailability", () => {
         lastSeenVersion: "not-a-version",
       }),
     ).toMatchObject({ enabled: false, requiresRemoteUpdate: true });
+  });
+});
+
+describe("resolveSourceServerReinstallAvailability", () => {
+  it("enables reinstall for an installed device on any remote version", () => {
+    expect(
+      resolveSourceServerReinstallAvailability({
+        status: "failed",
+        deviceBusy: false,
+        installState: "installed",
+        lastSeenVersion: "3.17.9",
+        localVersion: "4.1.3",
+      }),
+    ).toEqual({ visible: true, enabled: true });
+  });
+
+  it("hides reinstall while the device needs handling or the service is uninstalled", () => {
+    expect(
+      resolveSourceServerReinstallAvailability({
+        status: "pending",
+        deviceBusy: false,
+        installState: "installed",
+        localVersion: "4.1.3",
+      }),
+    ).toEqual({ visible: false });
+    expect(
+      resolveSourceServerReinstallAvailability({
+        status: "failed",
+        deviceBusy: false,
+        installState: "uninstalled",
+        localVersion: "4.1.3",
+      }),
+    ).toEqual({ visible: false });
+  });
+
+  it("disables reinstall while connecting or while the device has another operation", () => {
+    expect(
+      resolveSourceServerReinstallAvailability({
+        status: "connecting",
+        deviceBusy: false,
+        installState: "installed",
+        localVersion: "4.1.3",
+      }),
+    ).toEqual({ visible: true, enabled: false });
+    expect(
+      resolveSourceServerReinstallAvailability({
+        status: "failed",
+        deviceBusy: true,
+        installState: "installed",
+        localVersion: "4.1.3",
+      }),
+    ).toEqual({ visible: true, enabled: false });
+  });
+
+  it("hides reinstall when the remote is newer than this computer", () => {
+    expect(
+      resolveSourceServerReinstallAvailability({
+        status: "failed",
+        deviceBusy: false,
+        installState: "installed",
+        lastSeenVersion: "4.2.0",
+        localVersion: "4.1.3",
+      }),
+    ).toEqual({ visible: false });
+  });
+});
+
+describe("getSourceServerReinstallConfirmation", () => {
+  it("uses the reinstall copy and keeps the source and version in the description", () => {
+    const confirmation = getSourceServerReinstallConfirmation({
+      source: "Build server",
+      version: "v4.1.3",
+      formatMessage: (descriptor, values) =>
+        values ? `${descriptor.id}:${values.source}:${values.version}` : descriptor.id,
+    });
+    expect(confirmation).toEqual({
+      title: "settings.source.reinstallRemoteServiceTitle",
+      description: "settings.source.reinstallRemoteServiceDescription:Build server:4.1.3",
+      confirmLabel: "settings.source.reinstallRemoteServiceConfirm",
+      intent: "source-server-reinstall",
+    });
   });
 });
 

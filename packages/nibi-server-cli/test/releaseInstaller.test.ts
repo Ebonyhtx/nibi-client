@@ -296,7 +296,7 @@ describe("release installer", () => {
     ).toEqual([]);
   });
 
-  it("rejects an existing release whose immutable archive identity is missing", async () => {
+  it("replaces an existing release whose immutable content was damaged", async () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-release-installer-conflict-"));
     const layout = resolveServerLayout(join(root, "server"));
     const archiveRoot = join(root, "nibi-server-linux-x64");
@@ -336,8 +336,65 @@ describe("release installer", () => {
     });
     await writeFile(join(first.releaseDir, "runtime", "server-core.js"), "tampered", "utf8");
 
+    const repaired = await installer.installArchive({
+      archivePath,
+      target: "linux-x64",
+      version: "2.1.0",
+    });
+
+    expect(repaired.releaseDir).toBe(first.releaseDir);
     await expect(
-      installer.installArchive({ archivePath, target: "linux-x64", version: "2.1.0" }),
+      readFile(join(repaired.releaseDir, "runtime", "server-core.js"), "utf8"),
+    ).resolves.toBe("");
+    expect(
+      (await readdir(layout.releasesDir)).filter(
+        (entry) => entry.startsWith(".damaged-") || entry.startsWith(".incoming-"),
+      ),
+    ).toEqual([]);
+  });
+
+  it("rejects an existing release whose immutable identity record is missing", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nibi-release-installer-missing-integrity-"));
+    const layout = resolveServerLayout(join(root, "server"));
+    const archiveRoot = join(root, "nibi-server-linux-x64");
+    await mkdir(join(archiveRoot, "runtime"), { recursive: true });
+    await writeFile(join(archiveRoot, "runtime", "node"), "node", "utf8");
+    await writeFile(join(archiveRoot, "runtime", "server-cli.js"), "", "utf8");
+    await writeFile(join(archiveRoot, "runtime", "server-core.js"), "", "utf8");
+    await writeFile(join(archiveRoot, "runtime", "nibi.cjs"), "", "utf8");
+    await writeFile(
+      join(archiveRoot, "manifest.json"),
+      JSON.stringify({
+        product: "nibi-server",
+        target: "linux-x64",
+        appVersion: "2.2.0",
+        nodeVersion: "22.23.4",
+        entrypoints: {
+          cli: "runtime/server-cli.js",
+          core: "runtime/server-core.js",
+          agent: "runtime/nibi.cjs",
+        },
+        native: ["node-pty"],
+      }),
+      "utf8",
+    );
+    const archivePath = join(root, "release.tar.gz");
+    const { execFile } = await import("node:child_process");
+    await new Promise<void>((resolve, reject) =>
+      execFile("tar", ["-czf", archivePath, "nibi-server-linux-x64"], { cwd: root }, (error) =>
+        error ? reject(error) : resolve(),
+      ),
+    );
+    const installer = new ReleaseInstaller(layout);
+    const first = await installer.installArchive({
+      archivePath,
+      target: "linux-x64",
+      version: "2.2.0",
+    });
+    await rm(join(first.releaseDir, ".release-integrity.json"));
+
+    await expect(
+      installer.installArchive({ archivePath, target: "linux-x64", version: "2.2.0" }),
     ).rejects.toThrow(/immutable release conflict/);
   });
 });

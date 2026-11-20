@@ -1198,6 +1198,8 @@ const koKR: Record<string, string> = {
   "chat.permission.fullAccess": "전체 액세스",
   "chat.permission.fullAccess.description":
     "추가 확인 없이 에이전트에게 전체 액세스 권한을 부여합니다.",
+  "chat.permission.allowAndSwitch": "허용하고 모드 전환: {mode}",
+  "chat.permission.switchAction": "허용하고 모드 전환:",
   "chat.permission.keyboardHint": "Tab / 화살표 키로 선택한 후 Enter를 눌러 확인하세요",
   "chat.permission.responseFailed": "승인이 완료되지 않았습니다. 다시 시도하세요.",
   "chat.permission.scope.commandPrefix": "명령 접두사",
@@ -3660,6 +3662,8 @@ const koKR: Record<string, string> = {
   "mode.acceptEdits": "편집 수락",
   "mode.default": "기본",
   "mode.plan": "계획",
+  "mode.label.nibiAgent.guarded": "자율 모드",
+  "mode.label.nibiAgent.yolo": "전체 액세스",
   "model.capability.vision": "비전",
   "modelSelection.invalidated.fallback":
     "이전에 선택한 모델을 더 이상 사용할 수 없습니다. 현재 기본값으로 전환했으니 계속하기 전에 확인하세요.",
@@ -5986,6 +5990,13 @@ const koKR: Record<string, string> = {
   "settings.source.renameSource": "이름 바꾸기",
   "settings.source.restartRemoteService": "원격 서비스 다시 시작",
   "settings.source.restartRemoteServiceTitle": "원격 서비스를 다시 시작하시겠습니까?",
+  "settings.source.reinstallRemoteService": "원격 서비스 다시 설치",
+  "settings.source.reinstallRemoteServiceHint":
+    "이 컴퓨터의 버전을 사용합니다. 프로젝트와 작업은 유지됩니다.",
+  "settings.source.reinstallRemoteServiceTitle": "원격 서비스를 다시 설치하시겠습니까?",
+  "settings.source.reinstallRemoteServiceDescription":
+    "{source}에 NIBI Server {version}이(가) 다시 설치됩니다. 손상된 프로그램 파일이 교체됩니다. 프로젝트, 작업, 설정, 로그인 정보는 유지됩니다.",
+  "settings.source.reinstallRemoteServiceConfirm": "다시 설치",
   "settings.source.retiredEntryNote": "연결 대상이 변경되었으며 새 ID가 확인되었습니다",
   "settings.source.retiredNameSuffix": " (이전)",
   "settings.source.retiredProfiles": "보관된 연결",
@@ -6539,6 +6550,9 @@ const koKR: Record<string, string> = {
   "sourceServer.updateCompletedToast": "{source}이(가) 업데이트되고 다시 연결되었습니다.",
   "sourceServer.updateFailedToast":
     "{source}을(를) 업데이트할 수 없습니다. 원격 기기에서 로그를 확인하고 다시 시도하세요.",
+  "sourceServer.reinstallCompletedToast": "{source}이(가) 다시 설치되고 다시 연결되었습니다.",
+  "sourceServer.reinstallFailedToast":
+    "{source}을(를) 다시 설치할 수 없습니다. 원격 기기에서 로그를 확인하고 다시 시도하세요.",
   "sourceServer.updateRequiredToast":
     "{source}은(는) 연결하기 전에 업데이트해야 합니다\n현재 {current}, 필요 {available}.",
   "sourceServer.updateStartedToast": "{source} 업데이트 중…",

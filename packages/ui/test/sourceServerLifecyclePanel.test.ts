@@ -136,6 +136,92 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+describe("remote service reinstall entry", () => {
+  it("reinstalls an installed device from the more menu and reports success", async () => {
+    const value = snapshot({ lastSeenVersion: "0.0.0-dev" });
+    const updateSource = vi.fn(async () => value);
+    const management = managementFor(value, { updateSource });
+    render(createElement(SourceServerManagementPanel, { management }));
+    await openDeviceMenu();
+
+    const item = document.querySelector<HTMLElement>(
+      '[data-source-server-lifecycle-action="reinstall"]',
+    );
+    expect(item).not.toBeNull();
+    expect(within(item!).getByText("settings.source.reinstallRemoteServiceHint")).toBeTruthy();
+    fireEvent.click(item!);
+
+    await waitFor(() =>
+      expect(updateSource).toHaveBeenCalledWith({ profileId: "profile-a", force: false }),
+    );
+    expect(confirmDialog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "settings.source.reinstallRemoteServiceTitle",
+        description: expect.stringContaining(
+          "settings.source.reinstallRemoteServiceDescription:Alpha",
+        ),
+        confirmLabel: "settings.source.reinstallRemoteServiceConfirm",
+        intent: "source-server-reinstall",
+      }),
+    );
+    expect(showToast).toHaveBeenCalledWith("sourceServer.reinstallCompletedToast:Alpha", {
+      variant: "source-server-update",
+    });
+  });
+
+  it("hides reinstall when the service is uninstalled or the remote is newer", async () => {
+    const uninstalled = snapshot({ lastSeenVersion: "0.0.0-dev" });
+    uninstalled.servers[0]!.installState = "uninstalled";
+    render(
+      createElement(SourceServerManagementPanel, {
+        management: managementFor(uninstalled),
+      }),
+    );
+    await openDeviceMenu();
+    expect(document.querySelector('[data-source-server-lifecycle-action="reinstall"]')).toBeNull();
+    cleanup();
+
+    const newerRemote = snapshot({ lastSeenVersion: "99.0.0" });
+    render(
+      createElement(SourceServerManagementPanel, {
+        management: managementFor(newerRemote),
+      }),
+    );
+    await openDeviceMenu();
+    expect(document.querySelector('[data-source-server-lifecycle-action="reinstall"]')).toBeNull();
+  });
+
+  it("offers the same reinstall action in the failed connection error strip", async () => {
+    const value = snapshot({ state: "failed", lastSeenVersion: "0.0.0-dev" });
+    value.states[0]!.error = "connection failed";
+    const updateSource = vi.fn(async () => value);
+    render(
+      createElement(SourceServerManagementPanel, {
+        management: managementFor(value, { updateSource }),
+      }),
+    );
+
+    const toggle = await waitFor(() => {
+      const element = document.querySelector<HTMLButtonElement>("[data-source-server-toggle]");
+      expect(element).not.toBeNull();
+      return element!;
+    });
+    fireEvent.click(toggle);
+
+    const button = await waitFor(() => {
+      const element = document.querySelector<HTMLButtonElement>("[data-source-server-reinstall]");
+      expect(element).not.toBeNull();
+      return element!;
+    });
+    expect(button.textContent).toBe("settings.source.reinstallRemoteService");
+    fireEvent.click(button);
+
+    await waitFor(() =>
+      expect(updateSource).toHaveBeenCalledWith({ profileId: "profile-a", force: false }),
+    );
+  });
+});
+
 describe("remote service lifecycle menu", () => {
   it("reads running tasks, confirms, stops the remote service, and reports success", async () => {
     const value = snapshot({});

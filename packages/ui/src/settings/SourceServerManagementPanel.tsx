@@ -13,6 +13,7 @@ import { useOptionalPlatform } from "@/hooks/usePlatform.js";
 import { DesktopCommandIds } from "@nibi/shared";
 /* eslint-disable max-lines -- Source/Profile/迁移三类管理操作共享同一 Host 快照和错误状态。 */
 import {
+  Fragment,
   useCallback,
   useEffect,
   useMemo,
@@ -40,8 +41,9 @@ import {
   Power,
   RotateCw,
   Trash2,
+  Wrench,
 } from "lucide-react";
-import { resolveWorkspaceKey } from "@nibi/shared";
+import { NIBI_VERSION, resolveWorkspaceKey } from "@nibi/shared";
 import type {
   ConnectionProfile,
   AppSettings,
@@ -81,8 +83,10 @@ import {
 import {
   getRemoteServiceLifecycleDescription,
   getSourceServerForceUpdateDescription,
+  getSourceServerReinstallConfirmation,
   readSourceServerRunningTasksForConfirmation,
   resolveSourceServerLifecycleActionAvailability,
+  resolveSourceServerReinstallAvailability,
   runSourceServerUpdate,
 } from "@/lib/sourceServerUpdateAction.js";
 import { SettingsSearchInput } from "@/settings/SettingsSearchInput.js";
@@ -514,7 +518,12 @@ export function SourceServerManagementPanel({
   );
 
   const updateProfile = useCallback(
-    async (profile: ConnectionProfile) => {
+    async (
+      profile: ConnectionProfile,
+      // RDRI-01：重新安装复用同一更新链，只替换提示文案与设备名称。
+      feedback: { source?: string; completedToast?: string; failedToast?: string } = {},
+    ) => {
+      const source = feedback.source ?? profile.displayName ?? profile.transport;
       await run(
         `update:${profile.profileId}`,
         async () => {
@@ -542,8 +551,8 @@ export function SourceServerManagementPanel({
           } catch (cause) {
             toast(
               intl.formatMessage(
-                { id: "sourceServer.updateFailedToast" },
-                { source: profile.displayName ?? profile.transport },
+                { id: feedback.failedToast ?? "sourceServer.updateFailedToast" },
+                { source },
               ),
               {
                 variant: "warning",
@@ -560,8 +569,8 @@ export function SourceServerManagementPanel({
           if (next)
             toast(
               intl.formatMessage(
-                { id: "sourceServer.updateCompletedToast" },
-                { source: profile.displayName ?? profile.transport },
+                { id: feedback.completedToast ?? "sourceServer.updateCompletedToast" },
+                { source },
               ),
               { variant: "source-server-update" },
             );
@@ -571,6 +580,29 @@ export function SourceServerManagementPanel({
       );
     },
     [confirmDialog, intl, management, onShowUpdateDetails, run],
+  );
+
+  /**
+   * 重新安装远端服务（RDRI-01）：普通确认后复用更新链，把本机版本 archive 重新装到远端；损坏的同版本
+   * release 由远端安装器整体替换。运行中任务守卫与强制确认沿用更新，不另起 Host 操作。
+   */
+  const reinstallRemoteService = useCallback(
+    async (server: SourceServerRecord, profile: ConnectionProfile) => {
+      const confirmed = await confirmDialog(
+        getSourceServerReinstallConfirmation({
+          source: server.displayName,
+          version: NIBI_VERSION,
+          formatMessage: intl.formatMessage,
+        }),
+      );
+      if (!confirmed) return;
+      await updateProfile(profile, {
+        source: server.displayName,
+        completedToast: "sourceServer.reinstallCompletedToast",
+        failedToast: "sourceServer.reinstallFailedToast",
+      });
+    },
+    [confirmDialog, intl, updateProfile],
   );
 
   /**
@@ -1115,6 +1147,15 @@ export function SourceServerManagementPanel({
                 deviceBusy,
                 lastSeenVersion: server.lastSeenVersion,
               });
+              const reinstallAvailability = actionProfile
+                ? resolveSourceServerReinstallAvailability({
+                    status: presentation.status,
+                    deviceBusy,
+                    installState: server.installState,
+                    lastSeenVersion: server.lastSeenVersion,
+                    localVersion: NIBI_VERSION,
+                  })
+                : ({ visible: false } as const);
               const expanded = expandedDevices.has(server.sourceServerId);
               return (
                 <SourceServerDeviceRow
@@ -1302,25 +1343,52 @@ export function SourceServerManagementPanel({
                                 const copy = REMOTE_SERVICE_LIFECYCLE_ACTIONS[action];
                                 const ActionIcon = copy.Icon;
                                 return (
-                                  <DropdownMenuItem
-                                    key={action}
-                                    variant={copy.variant}
-                                    disabled={!lifecycleAvailability.enabled}
-                                    onSelect={() => void runRemoteServiceLifecycle(server, action)}
-                                  >
-                                    <ActionIcon className="size-3.5" />
-                                    <span className="flex min-w-0 flex-col">
-                                      {intl.formatMessage({ id: copy.label })}
-                                      {lifecycleAvailability.requiresRemoteUpdate ? (
-                                        // 小号弱化文字常驻显示，不依赖悬停。
-                                        <span className="text-ui-xs font-normal text-remote-foreground-muted">
+                                  <Fragment key={action}>
+                                    {/* RDRI-01：重新安装位于重启与停止之间；可用规则独立，不受远端控制命令版本门禁约束。 */}
+                                    {action === "stop" &&
+                                    reinstallAvailability.visible &&
+                                    actionProfile ? (
+                                      <DropdownMenuItem
+                                        data-source-server-lifecycle-action="reinstall"
+                                        disabled={!reinstallAvailability.enabled || actionBusy}
+                                        onSelect={() =>
+                                          void reinstallRemoteService(server, actionProfile)
+                                        }
+                                      >
+                                        <Wrench className="size-3.5" />
+                                        <span className="flex min-w-0 flex-col">
                                           {intl.formatMessage({
-                                            id: "settings.source.remoteServiceUpdateRequired",
+                                            id: "settings.source.reinstallRemoteService",
                                           })}
+                                          <span className="text-ui-xs font-normal text-remote-foreground-muted">
+                                            {intl.formatMessage({
+                                              id: "settings.source.reinstallRemoteServiceHint",
+                                            })}
+                                          </span>
                                         </span>
-                                      ) : null}
-                                    </span>
-                                  </DropdownMenuItem>
+                                      </DropdownMenuItem>
+                                    ) : null}
+                                    <DropdownMenuItem
+                                      variant={copy.variant}
+                                      disabled={!lifecycleAvailability.enabled}
+                                      onSelect={() =>
+                                        void runRemoteServiceLifecycle(server, action)
+                                      }
+                                    >
+                                      <ActionIcon className="size-3.5" />
+                                      <span className="flex min-w-0 flex-col">
+                                        {intl.formatMessage({ id: copy.label })}
+                                        {lifecycleAvailability.requiresRemoteUpdate ? (
+                                          // 小号弱化文字常驻显示，不依赖悬停。
+                                          <span className="text-ui-xs font-normal text-remote-foreground-muted">
+                                            {intl.formatMessage({
+                                              id: "settings.source.remoteServiceUpdateRequired",
+                                            })}
+                                          </span>
+                                        ) : null}
+                                      </span>
+                                    </DropdownMenuItem>
+                                  </Fragment>
                                 );
                               })}
                             </>
@@ -1516,8 +1584,23 @@ export function SourceServerManagementPanel({
                   </div>
                   {/* 更新失败只替代同一连接的相同原因，其他连接和可选更新不能吞掉连接错误。 */}
                   {preferredConnectionErrorText && !updateExplainsConnectionError ? (
-                    <div className="mx-4 mb-3 rounded-md bg-destructive-surface px-3 py-2 text-ui-sm text-destructive-surface-foreground">
-                      {preferredConnectionErrorText}
+                    <div className="mx-4 mb-3 flex flex-wrap items-center gap-2 rounded-md bg-destructive-surface px-3 py-2 text-ui-sm text-destructive-surface-foreground">
+                      <span className="min-w-0 flex-1">{preferredConnectionErrorText}</span>
+                      {/* RDRI-01：连接失败时就地提供重新安装；与「更多」菜单共用同一可用规则与确认。 */}
+                      {presentation.status === "failed" &&
+                      reinstallAvailability.visible &&
+                      actionProfile ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          data-source-server-reinstall
+                          disabled={!reinstallAvailability.enabled || actionBusy}
+                          onClick={() => void reinstallRemoteService(server, actionProfile)}
+                        >
+                          {intl.formatMessage({ id: "settings.source.reinstallRemoteService" })}
+                        </Button>
+                      ) : null}
                     </div>
                   ) : null}
                   {showUpdate && serverState ? (

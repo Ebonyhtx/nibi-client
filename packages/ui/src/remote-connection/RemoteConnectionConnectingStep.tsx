@@ -236,6 +236,7 @@ export function RemoteConnectionConnectingStep({
   upgradeRequired = false,
   upgradeLoading = false,
   onUpgrade,
+  onReinstall,
   connectionReady = false,
   cancelled = false,
   onCancelConnection,
@@ -281,6 +282,8 @@ export function RemoteConnectionConnectingStep({
   upgradeRequired?: boolean;
   upgradeLoading?: boolean;
   onUpgrade?: () => void;
+  /** 「重新安装远端服务」（RDRI-01）；只在连接失败时显示，可用规则由向导按同一 helper 决定。 */
+  onReinstall?: () => void;
   connectionReady?: boolean;
   cancelled?: boolean;
   onCancelConnection?: () => void;
@@ -576,6 +579,18 @@ export function RemoteConnectionConnectingStep({
               {intl.formatMessage({
                 id: presentation.actionMessageId,
               })}
+            </Button>
+          ) : null}
+          {failed && !credentials && onReinstall ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              data-source-server-reinstall
+              onClick={onReinstall}
+              disabled={loading || upgradeLoading}
+            >
+              {intl.formatMessage({ id: "settings.source.reinstallRemoteService" })}
             </Button>
           ) : null}
           {onUseRemoteDownload && errorPresentation.allowRemoteDownload ? (

@@ -51,8 +51,14 @@ import { logger } from "@/logger.js";
 import {
   classifyRemoteConnectionError,
   formatRemoteConnectionError,
+  getRemoteDevicePresentationInput,
+  resolveRemoteConnectionPresentation,
 } from "@/lib/remoteConnectionPresentation.js";
-import { runSourceServerUpdate } from "@/lib/sourceServerUpdateAction.js";
+import {
+  getSourceServerReinstallConfirmation,
+  resolveSourceServerReinstallAvailability,
+  runSourceServerUpdate,
+} from "@/lib/sourceServerUpdateAction.js";
 import { startUserAction, type UserActionHandle } from "@/lib/userActionTelemetry.js";
 import {
   useRemoteBoundaryAcknowledgement,
@@ -287,9 +293,30 @@ export function useRemoteConnectionFlow(options: RemoteConnectionFlowOptions) {
   // 不再各自手写订阅（§8.1.4 全部消费方收敛为统一 hook）。
   const { snapshot: sourceManagementSnapshot, applySnapshot: applySourceManagementSnapshot } =
     useSourceServerManagementSnapshot(sourceManagement, { enabled: open || minimizedRef.current });
+  // RDRI-01：重新安装按“重试”的同一规则定位线路。更新日志只在 Host 报告该线路正在更新时并入，
+  // 不新增需要在各重置点清空的向导状态。
+  const reinstallProfile = useMemo(() => {
+    if (!pendingRemoteTarget || pendingRemoteTarget.kind === "server") return undefined;
+    const profiles = (sourceManagementSnapshot?.profiles ?? []).filter(
+      (profile) => profile.lifecycleState !== "retired",
+    );
+    return (
+      profiles.find((profile) => profile.profileId === preferredProfileId) ??
+      profiles.find((profile) => profileMatchesRemoteTarget(profile, pendingRemoteTarget))
+    );
+  }, [pendingRemoteTarget, preferredProfileId, sourceManagementSnapshot]);
+  const reinstallUpdating = Boolean(
+    reinstallProfile &&
+    sourceManagementSnapshot?.states.some(
+      (state) => state.profileId === reinstallProfile.profileId && state.state === "updating",
+    ),
+  );
+  // 升级与切换远端互斥，二者都走 Host 更新链，向导展示同一线路的操作日志。
+  const updateProfileId =
+    upgradeProfileId ?? (reinstallUpdating ? (reinstallProfile?.profileId ?? null) : null);
   const { logsByProfileId: sourceOperationLogs } = useSourceServerOperationLogs(
     sourceManagement,
-    upgradeProfileId ? [upgradeProfileId] : [],
+    updateProfileId ? [updateProfileId] : [],
   );
   useEffect(() => {
     if (
@@ -344,7 +371,7 @@ export function useRemoteConnectionFlow(options: RemoteConnectionFlowOptions) {
     [recognizedSourceServerId, sourceManagementSnapshot],
   );
   const visibleConnectionLogs = useMemo(() => {
-    const updateLogs = upgradeProfileId ? (sourceOperationLogs[upgradeProfileId] ?? []) : [];
+    const updateLogs = updateProfileId ? (sourceOperationLogs[updateProfileId] ?? []) : [];
     return [
       ...(connectingRequestId
         ? connectionLogs
@@ -374,7 +401,7 @@ export function useRemoteConnectionFlow(options: RemoteConnectionFlowOptions) {
     rawError,
     locale,
     sourceOperationLogs,
-    upgradeProfileId,
+    updateProfileId,
   ]);
   const quickOpenDirectoryData = useMemo(() => {
     if (!recognizedSourceServerId || !sourceManagementSnapshot) {
@@ -1185,6 +1212,64 @@ export function useRemoteConnectionFlow(options: RemoteConnectionFlowOptions) {
     handleStartPendingRemoteConnection,
     pendingRemoteTarget,
     upgradeProfileId,
+    updateRequiredServer,
+  ]);
+
+  const reinstallServer = reinstallProfile?.sourceServerId
+    ? sourceManagementSnapshot?.servers.find(
+        (server) => server.sourceServerId === reinstallProfile.sourceServerId,
+      )
+    : undefined;
+  // 设备是否忙改读 Host 管理快照，与设备卡同一投影；失败页只在失败面板渲染，状态仍按“连接失败”判断。
+  const reinstallDeviceBusy =
+    Boolean(reinstallProfile) &&
+    resolveRemoteConnectionPresentation(
+      reinstallProfile?.sourceServerId
+        ? getRemoteDevicePresentationInput(
+            sourceManagementSnapshot,
+            reinstallProfile.sourceServerId,
+          )
+        : (sourceManagementSnapshot?.states.find(
+            (state) => state.profileId === reinstallProfile?.profileId,
+          ) ?? {}),
+    ).status === "connecting";
+  const reinstallAvailability = resolveSourceServerReinstallAvailability({
+    status: "failed",
+    deviceBusy: reinstallDeviceBusy,
+    installState: reinstallServer?.installState,
+    lastSeenVersion: reinstallServer?.lastSeenVersion,
+    localVersion: NIBI_VERSION,
+  });
+  const reinstallAvailable =
+    Boolean(reinstallProfile) && reinstallAvailability.visible && reinstallAvailability.enabled;
+
+  const handleReinstallServer = useCallback(async () => {
+    if (!reinstallProfile || !pendingRemoteTarget || pendingRemoteTarget.kind === "server") return;
+    const epoch = entryEpochRef.current;
+    const confirmed = await confirmDialog(
+      getSourceServerReinstallConfirmation({
+        source:
+          recognizedDeviceName ??
+          activeProfileName ??
+          formatRemoteLinkRailTarget(pendingRemoteTarget),
+        version: NIBI_VERSION,
+        formatMessage: intl.formatMessage,
+      }),
+    );
+    // 确认框打开期间用户可能已取消或改选目标，旧确认不能再发起重装。
+    if (!confirmed || entryEpochRef.current !== epoch) return;
+    // 复用更新链：运行中任务守卫与强制确认沿用更新；成功后按更新后的规则继续原连接。
+    if (await updateRequiredServer(reinstallProfile.profileId, pendingRemoteTarget)) {
+      handleStartPendingRemoteConnection(true);
+    }
+  }, [
+    activeProfileName,
+    confirmDialog,
+    handleStartPendingRemoteConnection,
+    intl,
+    pendingRemoteTarget,
+    recognizedDeviceName,
+    reinstallProfile,
     updateRequiredServer,
   ]);
 
@@ -2043,6 +2128,11 @@ export function useRemoteConnectionFlow(options: RemoteConnectionFlowOptions) {
       onUpgrade: () => {
         void handleUpgradeRequiredServer();
       },
+      onReinstall: reinstallAvailable
+        ? () => {
+            void handleReinstallServer();
+          }
+        : undefined,
       connectionReady: Boolean(connectedSessionId) && !error,
       onContinueToDirectory: () => setCurrentStep("directory"),
       target: pendingRemoteTarget,

@@ -3032,6 +3032,13 @@ const enUS: Record<string, string> = {
   "settings.source.copyDeviceId": "Copy device ID",
   "settings.source.restartRemoteService": "Restart remote service",
   "settings.source.restartRemoteServiceTitle": "Restart the remote service?",
+  "settings.source.reinstallRemoteService": "Reinstall remote service",
+  "settings.source.reinstallRemoteServiceHint":
+    "Uses this computer's version. Projects and tasks are kept.",
+  "settings.source.reinstallRemoteServiceTitle": "Reinstall the remote service?",
+  "settings.source.reinstallRemoteServiceDescription":
+    "NIBI Server {version} will be reinstalled on {source}. Damaged program files are replaced. Projects, tasks, settings, and sign-in information are kept.",
+  "settings.source.reinstallRemoteServiceConfirm": "Reinstall",
   "settings.source.stopRemoteService": "Stop remote service",
   "settings.source.stopRemoteServiceTitle": "Stop the remote service?",
   "settings.source.remoteServiceInterruptionDescription":
@@ -3167,6 +3174,9 @@ const enUS: Record<string, string> = {
   "sourceServer.updateCompletedToast": "{source} was updated and reconnected.",
   "sourceServer.updateFailedToast":
     "{source} could not be updated. Review the log under Remote devices and try again.",
+  "sourceServer.reinstallCompletedToast": "{source} was reinstalled and reconnected.",
+  "sourceServer.reinstallFailedToast":
+    "{source} could not be reinstalled. Review the log under Remote devices and try again.",
   "sourceServer.stopCompletedToast": "Stopped the remote service on {source}.",
   "sourceServer.stopFailedToast": "Couldn't stop the remote service on {source}. View details.",
   "sourceServer.restartCompletedToast": "Restarted the remote service on {source} and reconnected.",
@@ -7051,6 +7061,8 @@ const enUS: Record<string, string> = {
   "chat.permission.fullAccess": "Full access",
   "chat.permission.fullAccess.description":
     "Grant the agent full access without further confirmation.",
+  "chat.permission.allowAndSwitch": "Allow and switch to {mode}",
+  "chat.permission.switchAction": "Allow and switch to",
   "chat.permission.allowCommand.description":
     "Do not ask again for matching commands in this project",
   "chat.permission.allowCommand": "Always allow this command",

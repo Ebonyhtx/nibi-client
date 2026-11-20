@@ -1228,6 +1228,8 @@ const jaJP: Record<string, string> = {
   "chat.permission.fullAccess": "フルアクセス",
   "chat.permission.fullAccess.description":
     "以降の確認なしで、エージェントにフルアクセスを許可します。",
+  "chat.permission.allowAndSwitch": "{mode}に切り替えて許可",
+  "chat.permission.switchAction": "許可してモードを変更",
   "chat.permission.keyboardHint": "Tab / 矢印キーで選択し、Enter で確定します",
   "chat.permission.responseFailed": "承認が完了しませんでした。もう一度お試しください。",
   "chat.permission.scope.commandPrefix": "コマンドのプレフィックス",
@@ -3738,6 +3740,8 @@ const jaJP: Record<string, string> = {
   "mode.acceptEdits": "編集を承認",
   "mode.default": "デフォルト",
   "mode.plan": "プラン",
+  "mode.label.nibiAgent.guarded": "自律モード",
+  "mode.label.nibiAgent.yolo": "フルアクセス",
   "model.capability.vision": "画像認識",
   "modelSelection.invalidated.fallback":
     "以前に選択したモデルは利用できなくなりました。現在のデフォルトに切り替えたので、続行する前に確認してください。",
@@ -6106,6 +6110,13 @@ const jaJP: Record<string, string> = {
   "settings.source.renameSource": "名前を変更",
   "settings.source.restartRemoteService": "リモートサービスを再起動",
   "settings.source.restartRemoteServiceTitle": "リモートサービスを再起動しますか？",
+  "settings.source.reinstallRemoteService": "リモートサービスを再インストール",
+  "settings.source.reinstallRemoteServiceHint":
+    "このコンピューターのバージョンを使用します。プロジェクトとタスクは保持されます。",
+  "settings.source.reinstallRemoteServiceTitle": "リモートサービスを再インストールしますか？",
+  "settings.source.reinstallRemoteServiceDescription":
+    "{source}に NIBI Server {version}を再インストールします。破損したプログラムファイルは置き換えられます。プロジェクト、タスク、設定、サインイン情報は保持されます。",
+  "settings.source.reinstallRemoteServiceConfirm": "再インストール",
   "settings.source.retiredEntryNote": "接続先が変更されました。新しい ID を確認済みです",
   "settings.source.retiredNameSuffix": "（旧）",
   "settings.source.retiredProfiles": "アーカイブ済みの接続",
@@ -6667,6 +6678,9 @@ const jaJP: Record<string, string> = {
   "sourceServer.updateCompletedToast": "{source}を更新して再接続しました。",
   "sourceServer.updateFailedToast":
     "{source}を更新できませんでした。リモートデバイスでログを確認してもう一度お試しください。",
+  "sourceServer.reinstallCompletedToast": "{source}を再インストールして再接続しました。",
+  "sourceServer.reinstallFailedToast":
+    "{source}を再インストールできませんでした。リモートデバイスでログを確認してもう一度お試しください。",
   "sourceServer.updateRequiredToast":
     "{source}は接続する前に更新が必要です\n現在 {current}、必要 {available}。",
   "sourceServer.updateStartedToast": "{source}を更新中…",

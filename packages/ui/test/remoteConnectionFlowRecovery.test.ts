@@ -787,6 +787,60 @@ it("失败页脚提供关闭与返回列表，不改写失败为取消", async (
   expect(onOpenChange).toHaveBeenLastCalledWith(false);
   expect(result.current.connectingStep.cancelled).toBe(false);
 });
+it("连接失败页提供重新安装并复用更新链继续原连接", async () => {
+  const profile = {
+    profileId: "reinstall-profile",
+    sourceServerId: "reinstall-source",
+    displayName: "Alpha",
+    transport: "docker" as const,
+    target: targetA,
+    createdAt: 1,
+    lifecycleState: "active" as const,
+  };
+  ports.snapshot.profiles = [profile];
+  ports.snapshot.servers = [
+    {
+      sourceServerId: "reinstall-source",
+      displayName: "Alpha",
+      preferredProfileId: profile.profileId,
+      installState: "installed",
+      lastSeenVersion: "0.0.0-dev",
+      declaredWorkspaces: [],
+    },
+  ];
+  ports.snapshot.states = [
+    {
+      profileId: profile.profileId,
+      sourceServerId: "reinstall-source",
+      state: "failed",
+      error: "offline",
+      updatedAt: 1,
+    },
+  ];
+  ports.management.updateSource.mockResolvedValue(ports.snapshot);
+  const onConnect = vi
+    .fn<RemoteConnectionFlowOptions["onConnect"]>()
+    .mockRejectedValueOnce(new Error("offline"))
+    .mockResolvedValue("session-a");
+  const { result } = renderHook(() => useRemoteConnectionFlow(defaults({ onConnect })));
+  act(() => result.current.selectionStep.onSelectProfile(profile));
+  await waitFor(() => expect(result.current.connectingStep.rawError).toBe("offline"));
+
+  render(createElement(RemoteConnectionConnectingStep, result.current.connectingStep));
+  fireEvent.click(screen.getByRole("button", { name: "重新安装远端服务" }));
+  await drain();
+
+  expect(ports.confirm).toHaveBeenCalledWith(
+    expect.objectContaining({ intent: "source-server-reinstall" }),
+  );
+  expect(ports.management.updateSource).toHaveBeenCalledWith({
+    profileId: profile.profileId,
+    expectedTarget: targetA,
+    force: false,
+  });
+  await waitFor(() => expect(onConnect).toHaveBeenCalledTimes(2));
+});
+
 it("安装预览快照失败仍保留安装确认", async () => {
   const props = defaults({
     onConnect: vi.fn(async () => {

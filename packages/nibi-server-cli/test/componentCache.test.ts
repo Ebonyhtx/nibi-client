@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { access, mkdir, mkdtemp, readFile, stat, symlink, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readdir, readFile, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ComponentCache } from "../src/runtime/componentCache.js";
 import { resolveServerLayout } from "../src/runtime/paths.js";
@@ -134,8 +134,14 @@ describe("component cache", () => {
     await expect(readFile(join(release, "runtime", "server-core.js"), "utf8")).resolves.toBe("new");
 
     await writeFile(join(release, "runtime", "server-core.js"), "tampered", "utf8");
-    await expect(cache.assemble(assembleOptions)).rejects.toThrow(/immutable release conflict/i);
-    await expect(readFile(join(release, "runtime", "server-core.js"), "utf8")).resolves.toBe("tampered");
+    // RDRI-01：同 release id 的损坏副本由安装器整体替换，不再 fail-closed；
+    // 修复后的目录必须是本次 archive 的内容，且不留下 .damaged-* 残骸。
+    await cache.assemble(assembleOptions);
+    await expect(readFile(join(release, "runtime", "server-core.js"), "utf8")).resolves.toBe("new");
+    const damagedLeftovers = (await readdir(dirname(release))).filter((name) =>
+      name.startsWith(`.damaged-${basename(release)}-`),
+    );
+    expect(damagedLeftovers).toEqual([]);
   });
 
   it("ignores a cache entry whose archive bytes no longer match its marker", async () => {

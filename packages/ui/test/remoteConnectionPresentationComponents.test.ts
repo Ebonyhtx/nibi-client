@@ -145,6 +145,25 @@ it("向导按下载失败分类展示标题，只在本地下载时提供切换�
   expect(onRetry).toHaveBeenCalledOnce();
 });
 
+it("连接失败时提供重新安装远端服务入口", () => {
+  const onReinstall = vi.fn();
+  const child = createElement(RemoteConnectionConnectingStep, {
+    kind: "ssh",
+    target: { kind: "ssh", host: "dev", username: "user" },
+    loading: false,
+    logs: [],
+    errorMessage: "connection failed",
+    errorCode: "remote-download-failed",
+    onBack: vi.fn(),
+    onRetry: vi.fn(),
+    onReinstall,
+  });
+  render(createElement(PlatformProvider, { platform: {} as never, children: child }));
+
+  fireEvent.click(screen.getByRole("button", { name: "重新安装远端服务" }));
+  expect(onReinstall).toHaveBeenCalledOnce();
+});
+
 it.each([false, true])("连接中补凭据可显隐且不触发提交：口令=%s", (passphrase) => {
   const onSubmit = vi.fn();
   const child = createElement(RemoteConnectionConnectingStep, {
