@@ -36,6 +36,9 @@ interface BrowserSettingsSectionProps {
   workspaceIdentity?: string;
   embeddedBrowserAllowInsecureCertificates?: boolean;
   onEmbeddedBrowserAllowInsecureCertificatesChange?: (enabled: boolean) => Promise<void>;
+  /** 文件树单击 HTML 时用内置浏览器打开（默认关闭，右键仍可预览源码）。 */
+  fileTreeHtmlClickOpensBrowser?: boolean;
+  onFileTreeHtmlClickOpensBrowserChange?: (enabled: boolean) => Promise<void>;
 }
 
 type BrowserDataOperation = "import" | "clear-cache" | "clear-all" | null;
@@ -78,6 +81,8 @@ export function BrowserSettingsSection({
   workspaceIdentity,
   embeddedBrowserAllowInsecureCertificates = false,
   onEmbeddedBrowserAllowInsecureCertificatesChange = async () => {},
+  fileTreeHtmlClickOpensBrowser = false,
+  onFileTreeHtmlClickOpensBrowserChange = async () => {},
 }: BrowserSettingsSectionProps) {
   const { intl } = useNibiIntl();
   const platform = usePlatform();
@@ -295,6 +300,33 @@ export function BrowserSettingsSection({
           ) : null}
         </SettingsGroupCard>
       </section>
+
+      {/* 与上游一致：文件树 HTML 打开方式放在 Browser 页的「打开方式」分组，且仅桌面端有意义。 */}
+      {isDesktop ? (
+        <section className="space-y-3">
+          <div className="text-ui-base font-medium text-foreground-subtle">
+            {intl.formatMessage({ id: "settings.browser.open.section" })}
+          </div>
+          <SettingsGroupCard>
+            <SettingsRow
+              searchTarget="browser.fileTreeHtmlClick"
+              label={intl.formatMessage({ id: "settings.fileTreeHtmlClickOpensBrowser" })}
+              description={intl.formatMessage({
+                id: "settings.fileTreeHtmlClickOpensBrowserDescription",
+              })}
+              control={
+                <Switch
+                  aria-label={intl.formatMessage({ id: "settings.fileTreeHtmlClickOpensBrowser" })}
+                  checked={fileTreeHtmlClickOpensBrowser}
+                  onCheckedChange={(checked) => {
+                    void onFileTreeHtmlClickOpensBrowserChange(checked);
+                  }}
+                />
+              }
+            />
+          </SettingsGroupCard>
+        </section>
+      ) : null}
 
       {/* 证书策略只在桌面端有内置浏览器时可配；改动由 main 在启动时装到 Session，需重启生效。 */}
       {isDesktop ? (

@@ -4641,6 +4641,7 @@ const ruRU: Record<string, string> = {
   "settings.browser.import.successWithSkipped":
     "Импортировано cookie: {cookies}, записей LocalStorage: {entries} с сайтов: {origins}; не импортировано cookie: {skipped}.",
   "settings.browser.import.title": "Импорт состояния входа Chrome",
+  "settings.browser.open.section": "Открытие файлов",
   "settings.browser.security.section": "Безопасность",
   "settings.browser.title": "Browser Use",
   "settings.closeToTrayGnomeHint":

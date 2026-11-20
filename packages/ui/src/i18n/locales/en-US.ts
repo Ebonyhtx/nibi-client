@@ -3971,6 +3971,7 @@ const enUS: Record<string, string> = {
     "Enable the official Browser Use plugin so new sessions can access and control web pages in the built-in browser.",
   "settings.browser.control.enabledToast": "Built-in browser control enabled",
   "settings.browser.control.disabledToast": "Built-in browser control disabled",
+  "settings.browser.open.section": "Opening files",
   "settings.browser.security.section": "Security",
   "settings.embeddedBrowserAllowInsecureCertificates": "Ignore certificate errors",
   "settings.embeddedBrowserAllowInsecureCertificatesDescription":

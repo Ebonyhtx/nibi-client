@@ -213,12 +213,6 @@ const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
         visibility: "desktop",
       },
       {
-        id: "fileTreeHtmlClick",
-        titleId: "settings.fileTreeHtmlClickOpensBrowser",
-        keywords: ["文件树", "html", "浏览器", "预览", "file tree", "browser", "preview"],
-        targetId: "general.fileTreeHtmlClick",
-      },
-      {
         id: "toolGroupingExplore",
         titleId: "settings.toolGroupingExplore",
         keywords: ["分组探索工具", "探索工具", "tool grouping", "explore tools"],
@@ -509,6 +503,13 @@ const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
         ],
         targetId: "browser.import",
         visibility: "notWindowsDesktop",
+      },
+      {
+        id: "fileTreeHtmlClick",
+        titleId: "settings.fileTreeHtmlClickOpensBrowser",
+        keywords: ["文件树", "html", "浏览器", "预览", "file tree", "browser", "preview"],
+        targetId: "browser.fileTreeHtmlClick",
+        visibility: "desktop",
       },
       {
         id: "allowInsecureCertificates",

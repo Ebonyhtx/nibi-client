@@ -4575,6 +4575,7 @@ const koKR: Record<string, string> = {
   "settings.browser.import.successWithSkipped":
     "사이트 {origins}곳에서 쿠키 {cookies}개와 LocalStorage 항목 {entries}개를 가져왔습니다. 쿠키 {skipped}개는 가져오지 못했습니다.",
   "settings.browser.import.title": "Chrome 로그인 상태 가져오기",
+  "settings.browser.open.section": "열기 방식",
   "settings.browser.security.section": "보안",
   "settings.browser.title": "Browser Use",
   "settings.closeToTrayGnomeHint":

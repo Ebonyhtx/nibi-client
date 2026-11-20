@@ -4671,6 +4671,7 @@ const jaJP: Record<string, string> = {
   "settings.browser.import.successWithSkipped":
     "{origins} サイトから Cookie {cookies} 件と LocalStorage エントリ {entries} 件をインポートしました。{skipped} 件の Cookie はインポートされませんでした。",
   "settings.browser.import.title": "Chrome のサインイン状態をインポート",
+  "settings.browser.open.section": "開き方",
   "settings.browser.security.section": "セキュリティ",
   "settings.browser.title": "Browser Use",
   "settings.closeToTrayGnomeHint":

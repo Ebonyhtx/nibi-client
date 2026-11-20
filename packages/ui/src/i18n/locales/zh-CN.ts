@@ -3726,6 +3726,7 @@ const zhCN: Record<string, string> = {
     "启用 Browser Use 官方插件，让新会话可以通过内置浏览器访问和操作网页。",
   "settings.browser.control.enabledToast": "已开启内置浏览器控制",
   "settings.browser.control.disabledToast": "已关闭内置浏览器控制",
+  "settings.browser.open.section": "打开方式",
   "settings.browser.security.section": "安全",
   "settings.embeddedBrowserAllowInsecureCertificates": "忽略证书校验",
   "settings.embeddedBrowserAllowInsecureCertificatesDescription":

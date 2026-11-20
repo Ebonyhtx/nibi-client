@@ -158,8 +158,6 @@ export function GeneralSectionContent({
   setLocalePreference,
   setNotificationEnabled,
   setNotificationSoundEnabled,
-  fileTreeHtmlClickOpensBrowser = false,
-  onFileTreeHtmlClickOpensBrowserChange,
   toolGroupingExploreEnabled,
   toolGroupingTerminalEnabled,
   toolGroupingChangesEnabled,
@@ -220,9 +218,6 @@ export function GeneralSectionContent({
   setLocalePreference: (locale: LocalePreference) => void;
   setNotificationEnabled: (enabled: boolean) => void;
   setNotificationSoundEnabled: (enabled: boolean) => void;
-  /** 文件树单击 HTML 时用内置浏览器打开（默认关闭，右键仍可预览源码）。 */
-  fileTreeHtmlClickOpensBrowser?: boolean;
-  onFileTreeHtmlClickOpensBrowserChange?: (enabled: boolean) => void;
   toolGroupingExploreEnabled: boolean;
   toolGroupingTerminalEnabled: boolean;
   toolGroupingChangesEnabled: boolean;
@@ -771,22 +766,6 @@ export function GeneralSectionContent({
       </SettingsGroupCard>
 
       <SettingsGroupCard>
-        <SettingsRow
-          searchTarget="general.fileTreeHtmlClick"
-          label={intl.formatMessage({ id: "settings.fileTreeHtmlClickOpensBrowser" })}
-          description={intl.formatMessage({
-            id: "settings.fileTreeHtmlClickOpensBrowserDescription",
-          })}
-          control={
-            <Switch
-              aria-label={intl.formatMessage({ id: "settings.fileTreeHtmlClickOpensBrowser" })}
-              checked={fileTreeHtmlClickOpensBrowser}
-              onCheckedChange={(checked) => {
-                void onFileTreeHtmlClickOpensBrowserChange?.(checked);
-              }}
-            />
-          }
-        />
         <SettingsRow
           searchTarget="general.toolGroupingExplore"
           label={intl.formatMessage({ id: "settings.toolGroupingExplore" })}

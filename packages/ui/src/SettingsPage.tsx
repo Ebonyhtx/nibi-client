@@ -1670,10 +1670,6 @@ export function SettingsPage({
                                   failureStage: "local_commit",
                                 })
                               }
-                              fileTreeHtmlClickOpensBrowser={fileTreeHtmlClickOpensBrowser}
-                              onFileTreeHtmlClickOpensBrowserChange={
-                                handleFileTreeHtmlClickOpensBrowserChange
-                              }
                               toolGroupingExploreEnabled={toolGroupingExploreEnabled}
                               toolGroupingTerminalEnabled={toolGroupingTerminalEnabled}
                               toolGroupingChangesEnabled={toolGroupingChangesEnabled}
@@ -2059,6 +2055,10 @@ export function SettingsPage({
                               }
                               onEmbeddedBrowserAllowInsecureCertificatesChange={
                                 handleEmbeddedBrowserAllowInsecureCertificatesChange
+                              }
+                              fileTreeHtmlClickOpensBrowser={fileTreeHtmlClickOpensBrowser}
+                              onFileTreeHtmlClickOpensBrowserChange={
+                                handleFileTreeHtmlClickOpensBrowserChange
                               }
                             />
                           ) : activeSection === "computerUse" ? (
