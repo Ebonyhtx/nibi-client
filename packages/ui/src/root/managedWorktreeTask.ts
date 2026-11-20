@@ -1,8 +1,7 @@
-import type { GitManagedWorktree, GitManagedWorktreeRemovalReason } from "@nibi/shared";
+import type { GitManagedWorktreeRemovalReason } from "@nibi/shared";
 import type { IGitService } from "@nibi/services";
 
 export interface ManagedWorktreeTaskGit {
-  createManagedWorktree: IGitService["createManagedWorktree"];
   removeManagedWorktree: IGitService["removeManagedWorktree"];
 }
 
@@ -441,44 +440,4 @@ export function observeManagedWorktreeDraftAbandonment(params: {
       onError: params.onError,
     });
   });
-}
-
-/**
- * 创建受管 worktree 后执行 `openDraft`；draft 导航失败时必须回滚刚创建的
- * worktree，避免用户只看到失败提示却留下无人认领的目录与分支。
- * 成功后才登记到草稿表，确保“创建成功但导航失败”不会留下待清理记录。
- */
-export async function openManagedWorktreeDraft(params: {
-  gitService: ManagedWorktreeTaskGit;
-  sourceWorkspacePath: string;
-  name?: string;
-  projectId?: string;
-  openDraft: (worktree: GitManagedWorktree) => void | Promise<void>;
-  onRollbackError?: (error: unknown) => void;
-}): Promise<GitManagedWorktree> {
-  const worktree = await params.gitService.createManagedWorktree({
-    workspacePath: params.sourceWorkspacePath,
-    ...(params.name !== undefined ? { name: params.name } : {}),
-  });
-
-  try {
-    await params.openDraft(worktree);
-    if (params.projectId) {
-      rememberManagedWorktreeDraft({
-        workspacePath: worktree.workspacePath,
-        worktreePath: worktree.path,
-        sourceWorkspacePath: params.sourceWorkspacePath,
-        projectId: params.projectId,
-      });
-    }
-    return worktree;
-  } catch (error) {
-    forgetManagedWorktreeDraft(worktree.workspacePath);
-    try {
-      await params.gitService.removeManagedWorktree({ worktreePath: worktree.path });
-    } catch (rollbackError) {
-      params.onRollbackError?.(rollbackError);
-    }
-    throw error;
-  }
 }

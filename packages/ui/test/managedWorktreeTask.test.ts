@@ -9,7 +9,6 @@ import {
   MANAGED_WORKTREE_PENDING_COMMANDS_STORAGE_KEY,
   markManagedWorktreeDraftPromotionPending,
   observeManagedWorktreeDraftAbandonment,
-  openManagedWorktreeDraft,
   readManagedWorktreeDraft,
   rememberManagedWorktreeDraft,
   syncManagedWorktreeDraftPromotionState,
@@ -59,94 +58,6 @@ const draftRecord: ManagedWorktreeDraft = {
 
 afterEach(() => {
   forgetManagedWorktreeDraft(worktree.workspacePath);
-});
-
-it("opens the draft in the created worktree and registers it for abandonment cleanup", async () => {
-  const createManagedWorktree = vi.fn(async () => worktree);
-  const removeManagedWorktree = vi.fn(async () => removed);
-  const openDraft = vi.fn();
-
-  await expect(
-    openManagedWorktreeDraft({
-      gitService: { createManagedWorktree, removeManagedWorktree },
-      sourceWorkspacePath: worktree.sourceWorkspacePath,
-      projectId: "project-1",
-      openDraft,
-    }),
-  ).resolves.toBe(worktree);
-
-  expect(createManagedWorktree).toHaveBeenCalledWith({
-    workspacePath: worktree.sourceWorkspacePath,
-  });
-  expect(openDraft).toHaveBeenCalledWith(worktree);
-  expect(removeManagedWorktree).not.toHaveBeenCalled();
-  expect(readManagedWorktreeDraft(worktree.workspacePath)).toMatchObject({
-    workspacePath: worktree.workspacePath,
-    worktreePath: worktree.path,
-    sourceWorkspacePath: worktree.sourceWorkspacePath,
-    projectId: "project-1",
-  });
-});
-
-it("rolls back the new worktree when draft navigation fails", async () => {
-  const createManagedWorktree = vi.fn(async () => worktree);
-  const removeManagedWorktree = vi.fn(async () => removed);
-  const onRollbackError = vi.fn();
-
-  await expect(
-    openManagedWorktreeDraft({
-      gitService: { createManagedWorktree, removeManagedWorktree },
-      sourceWorkspacePath: worktree.sourceWorkspacePath,
-      projectId: "project-1",
-      openDraft: () => {
-        throw new Error("project.navigation-superseded");
-      },
-      onRollbackError,
-    }),
-  ).rejects.toThrow("project.navigation-superseded");
-
-  expect(removeManagedWorktree).toHaveBeenCalledWith({ worktreePath: worktree.path });
-  expect(onRollbackError).not.toHaveBeenCalled();
-  expect(readManagedWorktreeDraft(worktree.workspacePath)).toBeUndefined();
-});
-
-it("keeps the original error when rollback itself fails", async () => {
-  const createManagedWorktree = vi.fn(async () => worktree);
-  const rollbackError = new Error("remove-failed");
-  const removeManagedWorktree = vi.fn(async () => {
-    throw rollbackError;
-  });
-  const onRollbackError = vi.fn();
-
-  await expect(
-    openManagedWorktreeDraft({
-      gitService: { createManagedWorktree, removeManagedWorktree },
-      sourceWorkspacePath: worktree.sourceWorkspacePath,
-      openDraft: () => {
-        throw new Error("navigation failed");
-      },
-      onRollbackError,
-    }),
-  ).rejects.toThrow("navigation failed");
-
-  expect(onRollbackError).toHaveBeenCalledWith(rollbackError);
-});
-
-it("does not attempt rollback when worktree creation fails", async () => {
-  const createManagedWorktree = vi.fn(async () => {
-    throw new Error("managed-worktree.branch-exists");
-  });
-  const removeManagedWorktree = vi.fn(async () => removed);
-
-  await expect(
-    openManagedWorktreeDraft({
-      gitService: { createManagedWorktree, removeManagedWorktree },
-      sourceWorkspacePath: worktree.sourceWorkspacePath,
-      openDraft: vi.fn(),
-    }),
-  ).rejects.toThrow("managed-worktree.branch-exists");
-
-  expect(removeManagedWorktree).not.toHaveBeenCalled();
 });
 
 function rememberDraft(): void {

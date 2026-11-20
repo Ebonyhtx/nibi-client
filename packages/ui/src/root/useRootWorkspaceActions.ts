@@ -33,7 +33,6 @@ import { openFolderFromWorkspaceEntry } from "@/root/openWorkspaceFolderEntry.js
 import {
   forgetMaterializedManagedWorktreeDrafts,
   observeManagedWorktreeDraftAbandonment,
-  openManagedWorktreeDraft,
   syncManagedWorktreeDraftPromotionState,
 } from "@/root/managedWorktreeTask.js";
 import { pendingCommandRegistry } from "@/v4/pendingCommandRegistry.js";
@@ -380,66 +379,6 @@ export function useRootWorkspaceActions({
               )?.projectId ?? undefined)
             : (workspace.draftProjectId ?? undefined);
           if (hostId && !projectId) throw new Error("project.remote-project-required");
-        }
-        const managedWorktreeRequest = requestOptions.managedWorktree;
-        if (managedWorktreeRequest) {
-          if (workbenchGroupClientMode === "web-remote-replayable") {
-            throw new Error("project.remote-worktree-unsupported");
-          }
-          if (hostId && hostId !== "local") {
-            throw new Error("project.remote-worktree-unsupported");
-          }
-          if (!projectId) throw new Error("project.managed-worktree-project-required");
-          if (!services.gitService) throw new Error("git.service-unavailable");
-          if (!isCurrent()) return;
-          let navigationCommitted = false;
-          try {
-            const created = await openManagedWorktreeDraft({
-              gitService: services.gitService,
-              sourceWorkspacePath: managedWorktreeRequest.sourceWorkspacePath,
-              projectId,
-              ...(managedWorktreeRequest.name !== undefined
-                ? { name: managedWorktreeRequest.name }
-                : {}),
-              openDraft: (worktree) => {
-                if (!isCurrent()) throw new Error("project.navigation-superseded");
-                const tabId = addTab(worktree.workspacePath, { workspacePurpose: "project" });
-                navigationCommitted = true;
-                try {
-                  const { managedWorktree: _managedWorktree, ...draftOptions } = requestOptions;
-                  startDraftInWorkspace(worktree.workspacePath, undefined, {
-                    ...draftOptions,
-                    projectId,
-                  });
-                } catch (error) {
-                  // 回滚会删除刚创建的 worktree；不能把 tab 留在已不存在的目录上。
-                  tabStoreApi.getState().closeTab(tabId);
-                  throw error;
-                }
-              },
-              onRollbackError: (error) => {
-                logger.error("[Root] worktree 回滚失败", { error });
-              },
-            });
-            requestOptions.onComplete?.();
-            setWorkspaceActionError(null);
-            logger.info(`[Root] ${source}`, {
-              workspacePath: created.workspacePath,
-              projectId,
-              managedWorktree: true,
-            });
-          } catch (error) {
-            // addTab 之后 activeTab 已经变化，isCurrent() 必然为 false；失败上报不能交给
-            // 外层 guard（否则 toast 被静默吞掉）。创建期间用户主动切走则视为取消。
-            if (!navigationCommitted && !isCurrent()) {
-              logger.warn("[Root] worktree 创建已取消（导航已切换）", { error });
-            } else {
-              logger.error("[Root] 准备 worktree 任务失败", error);
-              requestOptions.onError?.(error);
-              setWorkspaceActionError(error instanceof Error ? error.message : String(error));
-            }
-          }
-          return;
         }
         if (!isCurrent()) return;
         if (workbenchGroupClientMode === "web-remote-replayable") {
