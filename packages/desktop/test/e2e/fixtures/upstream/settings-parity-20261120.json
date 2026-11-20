@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "fixtures": [
+    {
+      "id": "settings-parity-plugin-send-title-rust",
+      "description": "Settings parity evidence: Rust kernel title request for the plugin-send turn.",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "只固定标题；插件发送链路与标题无关，避免未匹配的标题请求污染证据。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "naming a coding session"
+        ],
+        "bodyExcludes": [
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "msg_settings_parity_plugin_title_rust",
+          "text": "{\"title\":\"Settings Parity Plugin Send\"}",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "settings-parity-plugin-send-title-node",
+      "description": "Settings parity evidence: Node wording of the title prompt (compatibility).",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "兼容 Node 内核的标题措辞；不影响发送回合的确定性。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "Generate a concise title"
+        ],
+        "bodyExcludes": [
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "msg_settings_parity_plugin_title_node",
+          "text": "{\"title\":\"Settings Parity Plugin Send\"}",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "settings-parity-plugin-send",
+      "description": "Settings parity evidence: assistant text for the single plugin-send turn.",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "只验证发送门禁与回合完成，不需要真实模型内容。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "lastUserMessageIncludes": [
+          "E2E_SETTINGS_PARITY_PLUGIN_SEND"
+        ],
+        "bodyExcludes": [
+          "naming a coding session",
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "msg_settings_parity_plugin_send",
+          "inputTokens": 96,
+          "outputTokens": 16,
+          "text": "E2E_SETTINGS_PARITY_REPLY_OK"
+        }
+      }
+    }
+  ]
+}
