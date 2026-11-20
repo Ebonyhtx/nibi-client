@@ -4,10 +4,12 @@ use nibi_kernel_api::ids::{MessageId, SessionId, ToolUseId};
 use nibi_kernel_api::message::Message;
 use nibi_kernel_api::permission::PermissionMode;
 use nibi_kernel_api::session_api::WorktreeCreation;
-use nibi_kernel_api::store::{Fact, RevertCursor, SessionFork, SessionStore};
+use nibi_kernel_api::store::{
+    Fact, RevertCursor, SessionFork, SessionKind, SessionStore, StoreError,
+};
 use serde_json::{Value, json};
 
-use crate::tests::{TestStore, assistant, batch, selection, started, text, user};
+use crate::tests::{TestStore, assistant, batch, meta, selection, started, text, user};
 
 fn sid(id: &str) -> SessionId {
     SessionId::new(id)
@@ -198,6 +200,73 @@ async fn the_fork_follows_the_revert_cursor() {
         notice["metadata"]["forkContext"]
             .get("targetCheckpointId")
             .is_none()
+    );
+}
+
+/// fork 的会话行与首批事实一个事务写完（Node `commitForkBundle`）：批次失败（这里复用库里已有的
+/// message id）时 child 行也回滚，不留一个没有历史、却出现在 `/resume`、`-c` 与任务列表里的空
+/// fork 会话；同一个预分配 child id 可以原样重试。
+#[tokio::test]
+async fn a_failing_fork_batch_leaves_no_child_session_row() {
+    let t = TestStore::new();
+    three_turns(&t).await;
+    let child = || {
+        let mut meta = meta("sess_2", "/w", "Fork of first");
+        meta.kind = SessionKind::Fork;
+        meta.parent = Some(sid("sess_1"));
+        meta
+    };
+    // `msg_1_u1` 已经在 sess_1 里：message.id 是全库主键，同一个 id 再追加让整批失败。
+    let facts = vec![
+        Fact::ModelSelected {
+            selection: selection(),
+        },
+        Fact::ModeChanged {
+            mode: PermissionMode::Default,
+        },
+        user("msg_1_u1", "copied"),
+    ];
+    let error = t
+        .store
+        .create_and_commit(child(), batch(None, facts))
+        .await
+        .unwrap_err();
+    assert!(error.to_string().contains("already stored"), "{error}");
+    // 会话行与失败之前已经应用的事实一起回滚。
+    assert!(
+        t.rows("select id from session where id = 'sess_2'")
+            .is_empty()
+    );
+    assert!(
+        t.rows("select id from session_entry where session_id = 'sess_2'")
+            .is_empty()
+    );
+    assert!(matches!(
+        t.store.load(&sid("sess_2")).await,
+        Err(StoreError::NotFound { .. })
+    ));
+
+    // 同一个 child id 原样重试（Host 受管 worktree 的重试路径）：这一次成功。
+    let retry = t
+        .store
+        .create_and_commit(
+            child(),
+            batch(
+                None,
+                vec![
+                    Fact::ModelSelected {
+                        selection: selection(),
+                    },
+                    user("msg_fork_u1", "copied"),
+                ],
+            ),
+        )
+        .await
+        .unwrap();
+    assert_eq!(retry.sequence, 1);
+    assert_eq!(
+        t.store.load(&sid("sess_2")).await.unwrap().messages.len(),
+        1
     );
 }
 

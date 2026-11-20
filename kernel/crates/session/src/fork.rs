@@ -116,9 +116,6 @@ impl Actor {
             trace: self.meta.trace.clone(),
             created_at_ms: self.deps.clock.now_ms(),
         };
-        if let Err(error) = self.deps.store.create(meta).await {
-            return rejected(error.to_string());
-        }
         let mut facts = vec![
             Fact::ModelSelected {
                 selection: self.selection.clone(),
@@ -143,7 +140,9 @@ impl Actor {
             facts,
             turn: None,
         };
-        match self.deps.store.commit(&id, batch).await {
+        // 会话行与首批事实一个事务写完（Node `commitForkBundle`）：批次失败时不留空 child 行
+        // （那行会出现在 `/resume`、`-c` 与任务列表里，还挡住 Host 预分配 child id 的重试）。
+        match self.deps.store.create_and_commit(meta, batch).await {
             Ok(_) => {
                 // K6：fork 的子会话沿用父会话的 system 快照（对齐上游 `buildForkedPromptSnapshotEntry`），
                 // 子会话第一次请求就能命中同一段缓存前缀；父会话没有快照时不写。
@@ -161,7 +160,10 @@ impl Actor {
                     result: Value::String(id.as_str().to_owned()),
                 }
             }
-            Err(error) => rejected(error.to_string()),
+            Err(error) => {
+                tracing::warn!(%error, session = %id, "fork failed");
+                rejected(error.to_string())
+            }
         }
     }
 }

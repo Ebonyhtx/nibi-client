@@ -47,7 +47,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rusqlite::Connection;
+use rusqlite::{Connection, TransactionBehavior};
 use std::collections::HashMap;
 
 use nibi_kernel_api::env::WorkspaceRef;
@@ -237,6 +237,28 @@ impl SessionStore for NodeStore {
         let session = session.clone();
         self.with_db(move |conn, ids| facts::commit(conn, &session, &batch, ids))
             .await
+    }
+
+    /// 会话行与首批事实一个 `begin immediate` 事务写完（fork 的子会话，Node `commitForkBundle`）：
+    /// 批次里任一事实失败时连会话行一起回滚，不会留下没有历史的空 fork 会话。
+    async fn create_and_commit(
+        &self,
+        meta: SessionMeta,
+        batch: FactBatch,
+    ) -> Result<CommitReceipt, StoreError> {
+        let input = create_input(&meta, &self.version)?;
+        let session = meta.id.clone();
+        self.with_db(move |conn, ids| {
+            let now = i64::try_from(ids.now_ms()).unwrap_or(i64::MAX);
+            let tx = conn
+                .transaction_with_behavior(TransactionBehavior::Immediate)
+                .storage()?;
+            repo::sessions::create(&tx, &input, now).storage()?;
+            let receipt = facts::commit_in(&tx, &session, &batch, ids)?;
+            tx.commit().storage()?;
+            Ok(receipt)
+        })
+        .await
     }
 
     async fn load(&self, session: &SessionId) -> Result<LoadedSession, StoreError> {

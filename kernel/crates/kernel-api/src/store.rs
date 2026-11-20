@@ -545,6 +545,21 @@ pub trait SessionStore: Send + Sync {
         batch: FactBatch,
     ) -> Result<CommitReceipt, StoreError>;
 
+    /// 建会话行并应用第一批事实（fork 出的子会话：Node `commitForkBundle`）。实现应当把两件事放进同一个
+    /// 事务：先落库会话行、批次再失败时，会留下一个没有历史、却在列表里的空会话（孤儿）。
+    ///
+    /// 缺省实现分两步（[`Self::create`] 后 [`Self::commit`]），不保证原子性；node-store 用单个
+    /// `begin immediate` 事务覆盖。
+    async fn create_and_commit(
+        &self,
+        meta: SessionMeta,
+        batch: FactBatch,
+    ) -> Result<CommitReceipt, StoreError> {
+        let session = meta.id.clone();
+        self.create(meta).await?;
+        self.commit(&session, batch).await
+    }
+
     async fn load(&self, session: &SessionId) -> Result<LoadedSession, StoreError>;
 
     /// `sessions-index/reconcile` 的单条事实（含软删除的行）。缺省实现没有这份读面。

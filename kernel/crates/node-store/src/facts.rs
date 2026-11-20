@@ -118,6 +118,17 @@ pub fn live_session(conn: &Connection, session: &SessionId) -> Result<SessionRow
         })
 }
 
+/// 本地只有一个 owner（`OwnerEpoch::LOCAL`）；其他值来自过期的租约。
+fn ensure_owner(batch: &FactBatch, session: &SessionId) -> Result<(), StoreError> {
+    if batch.owner_epoch == OwnerEpoch::LOCAL {
+        Ok(())
+    } else {
+        Err(StoreError::StaleOwner {
+            session: session.clone(),
+        })
+    }
+}
+
 /// 在一个 `begin immediate` 事务里应用整批事实；任一事实失败（含不支持）则整批回滚。用量事实例外：写不进去时只回退
 /// 它自己（[`crate::usage::observe`]）。
 pub fn commit(
@@ -126,19 +137,29 @@ pub fn commit(
     batch: &FactBatch,
     ids: &NodeIds,
 ) -> Result<CommitReceipt, StoreError> {
-    // 本地只有一个 owner（OwnerEpoch::LOCAL）；其他值来自过期的租约。
-    if batch.owner_epoch != OwnerEpoch::LOCAL {
-        return Err(StoreError::StaleOwner {
-            session: session.clone(),
-        });
-    }
+    ensure_owner(batch, session)?;
     let tx = conn
         .transaction_with_behavior(TransactionBehavior::Immediate)
         .storage()?;
-    live_session(&tx, session)?;
+    let receipt = commit_in(&tx, session, batch, ids)?;
+    tx.commit().storage()?;
+    Ok(receipt)
+}
+
+/// 在调用方已经打开的事务里应用整批事实（提交/回滚由调用方负责）：[`commit`] 与
+/// `NodeStore::create_and_commit` 共用——后者把会话行与首批事实放进同一个事务，批次失败时连会话行
+/// 一起回滚，不留空会话。
+pub(crate) fn commit_in(
+    conn: &Connection,
+    session: &SessionId,
+    batch: &FactBatch,
+    ids: &NodeIds,
+) -> Result<CommitReceipt, StoreError> {
+    ensure_owner(batch, session)?;
+    live_session(conn, session)?;
     let uuid = || ids.uuid();
     let ctx = Commit::new(
-        &tx,
+        conn,
         session.as_str(),
         (ids.now_ms(), &uuid),
         batch.command.as_ref().map(CommandId::as_str),
@@ -153,7 +174,6 @@ pub fn commit(
         crate::usage::observe(&ctx, "usage.prune.failed", || crate::usage::prune(&ctx))?;
     }
     let sequence = next_sequence(&ctx)?;
-    tx.commit().storage()?;
     Ok(CommitReceipt { sequence })
 }
 
