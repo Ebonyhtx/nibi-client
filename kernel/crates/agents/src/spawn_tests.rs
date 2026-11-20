@@ -210,3 +210,103 @@ async fn a_failed_background_agent_notifies_with_partial_result_and_usage() {
         notice.text
     );
 }
+
+// ── 建子会话的原子性：写入失败不登记 ─────────────────────────────────────────
+
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::ids::AgentId;
+
+use crate::live::{AgentState, LiveAgent, Shown};
+use crate::report::Ending;
+use crate::runs::RunInfo;
+use crate::test_support::{harness, workspace};
+
+/// 一次 `spawn::create` 的入参（`Agent` 工具里组装的那一份）。
+fn spawn_agent(agent: &AgentId, child: &SessionId, parent: &SessionId) -> LiveAgent {
+    LiveAgent {
+        agent: agent.clone(),
+        child: child.clone(),
+        parent: parent.clone(),
+        root: parent.clone(),
+        owner: None,
+        depth: 1,
+        tool_use: None,
+        description: "Find".to_owned(),
+        definition: Arc::new(
+            crate::definitions::builtins()
+                .into_iter()
+                .find(|definition| definition.agent_type == "Explore")
+                .unwrap(),
+        ),
+        workspace: workspace(),
+        selection: nibi_kernel_api::testing::selection(),
+        execution: ExecutionState::default(),
+        background: false,
+        asks: None,
+        state: AgentState::Finished(Ending::Completed),
+        shown: Shown::default(),
+        fork_prefix: None,
+        machine: None,
+    }
+}
+
+fn run_info(parent: &SessionId) -> RunInfo {
+    RunInfo {
+        session: parent.clone(),
+        workspace: workspace(),
+        selection: nibi_kernel_api::testing::selection(),
+    }
+}
+
+/// 子会话的写入失败（`create_and_commit` 报错）时：库里没有会话行，`live` 与继承的附加目录里也
+/// 没有它——登记全部放在写成功之后（以前先建行、再登记、最后提交，提交失败会同时留下孤儿行与登记）。
+/// 前一半是成功对照：同样的调用在写成功时确实继承了目录。
+#[tokio::test]
+async fn a_failed_child_session_write_registers_nothing() {
+    let harness = harness(None);
+    let core = &*harness.agents.core;
+    let parent = SessionId::new("sess_parent");
+    harness
+        .directories
+        .set(&parent, vec![EnvPath::new("/extra")]);
+
+    // 对照：写成功时子会话继承父会话的附加目录。
+    let (agent_id, child) = super::ids(core);
+    super::create(
+        core,
+        spawn_agent(&agent_id, &child, &parent),
+        &run_info(&parent),
+        "List.",
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        harness.directories.get(&child),
+        vec![EnvPath::new("/extra")]
+    );
+
+    // 写入失败：没有行、没有继承、没有 `live` 条目。
+    harness.store.fail_next_create_and_commit();
+    let (agent_id, failed) = super::ids(core);
+    let error = super::create(
+        core,
+        spawn_agent(&agent_id, &failed, &parent),
+        &run_info(&parent),
+        "List.",
+    )
+    .await
+    .err()
+    .expect("the injected store failure must fail the spawn");
+    assert!(
+        error.to_string().contains("injected create_and_commit failure"),
+        "{error}"
+    );
+    assert!(!harness.store.contains(&failed), "no session row");
+    assert!(
+        harness.directories.get(&failed).is_empty(),
+        "the inheritance must run only after the write succeeds"
+    );
+    let (live, _) = core.live.snapshot_in(&parent);
+    assert_eq!(live.len(), 1, "only the first child is live");
+    assert_eq!(live[0].child, child);
+}

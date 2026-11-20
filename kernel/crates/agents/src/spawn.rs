@@ -123,6 +123,24 @@ pub(crate) async fn commit(
     Ok(turn)
 }
 
+/// 建子会话并应用首批事实，一个事务写完（[`nibi_kernel_api::store::SessionStore::create_and_commit`]，
+/// Node `commitForkBundle` 的同款保证）：批次失败时连会话行一起回滚，调用方也不会登记任何内存状态。
+async fn create_with_facts(
+    core: &Core,
+    meta: SessionMeta,
+    facts: Vec<Fact>,
+) -> Result<Option<TurnAnchor>, StoreError> {
+    let turn = TurnAnchor::after(None, &facts, || core.ports.ids.turn());
+    let batch = FactBatch {
+        owner_epoch: OwnerEpoch::LOCAL,
+        command: None,
+        facts,
+        turn: turn.clone(),
+    };
+    core.ports.store.create_and_commit(meta, batch).await?;
+    Ok(turn)
+}
+
 /// 一次运行的开头：历史（最后一条是这次运行的输入）与子会话的当前轮。
 pub(crate) struct Opening {
     pub(crate) messages: Vec<Message>,
@@ -145,13 +163,6 @@ pub(crate) async fn create(
         trace: TraceId::new(agent.root.as_str()),
         created_at_ms: core.ports.clock.now_ms(),
     };
-    core.ports.store.create(meta).await?;
-    // 子代理会话看到与父会话同一批会话级 MCP 工具（Node 的子代理 app 继承父 `config.mcp`），
-    // 也继承父会话的附加工作目录与插件快照（skills/hooks/agents）。
-    core.inherit_session_mcp(&parent.session, &agent.child);
-    core.inherit_session_directories(&parent.session, &agent.child);
-    core.inherit_session_plugins(&parent.session, &agent.child);
-    inherit_directory(core, &agent).await;
     let first = user(core, prompt, UserOrigin::Human);
     let mut facts = vec![
         Fact::ModelSelected {
@@ -211,7 +222,18 @@ pub(crate) async fn create(
     facts.push(Fact::MessageAppended {
         message: first.clone(),
     });
-    let turn = commit(core, &agent.child, facts, None).await?;
+    // 会话行与首批事实一个事务写完（`SessionStore::create_and_commit`，Node `commitForkBundle` 的
+    // 同款保证）：批次失败时不留子会话行。内存登记全部放在写成功之后——失败时不会留下指向不存在
+    // 会话的条目（以前先建行、再登记、最后提交，提交失败会同时留下孤儿行与登记）。
+    let turn = create_with_facts(core, meta, facts).await?;
+    // 子代理会话看到与父会话同一批会话级 MCP 工具（Node 的子代理 app 继承父 `config.mcp`），
+    // 也继承父会话的附加工作目录与插件快照（skills/hooks/agents）。这三步都是内存拷贝，不会失败。
+    core.inherit_session_mcp(&parent.session, &agent.child);
+    core.inherit_session_directories(&parent.session, &agent.child);
+    core.inherit_session_plugins(&parent.session, &agent.child);
+    // 子会话的 cwd 必须在第一次执行之前生效（`create` 返回后调用方立刻开始跑子循环）；执行环境不支持
+    // 时按 F19 的契约从工作区根开始（`inherit_directory` 自己记 debug），不会留下半初始化的会话。
+    inherit_directory(core, &agent).await;
     agent.state = AgentState::Running {
         abort: Abort::new(),
         mailbox: Vec::new(),

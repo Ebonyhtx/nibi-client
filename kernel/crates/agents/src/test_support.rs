@@ -276,6 +276,8 @@ pub(crate) struct Harness {
     pub(crate) agents: Agents,
     pub(crate) store: Arc<MemoryStore>,
     pub(crate) tasks: Arc<MemoryTaskLists>,
+    /// 子会话继承的附加目录（`spawn::create` 在写成功之后登记；测试据此核对顺序）。
+    pub(crate) directories: Arc<nibi_kernel_api::session_paths::SessionDirectories>,
     pub(crate) seen: Arc<Mutex<Vec<Seen>>>,
     pub(crate) absorbed: Arc<Mutex<Vec<(SessionId, String)>>>,
     /// 父运行里工具调用看到的机器与本机服务（缺省什么都不支持）。
@@ -520,6 +522,7 @@ fn built_full(
     let scope = TaskScope::root("agents-test", |_| {});
     let store = Arc::new(MemoryStore::default());
     let tasks = Arc::new(MemoryTaskLists::default());
+    let directories = Arc::new(nibi_kernel_api::session_paths::SessionDirectories::new());
     let queries = FakeQueries {
         gate,
         partial_failure,
@@ -533,7 +536,7 @@ fn built_full(
         .collect();
     let compactor = Arc::new(ContextFake::default());
     let ports = AgentsPorts {
-        directories: Arc::new(nibi_kernel_api::session_paths::SessionDirectories::new()),
+        directories: directories.clone(),
         plugins: None,
         store: store.clone(),
         ids: Arc::new(SequentialIds::default()),
@@ -588,6 +591,7 @@ fn built_full(
         agents,
         store,
         tasks,
+        directories,
         seen,
         absorbed,
         machine: machine(Arc::new(UnusedEnvironment)),
@@ -608,7 +612,7 @@ impl Harness {
             .map(|name| Arc::new(FakeTool::new(name, true, "")) as Arc<dyn Tool>)
             .collect();
         let ports = AgentsPorts {
-            directories: Arc::new(nibi_kernel_api::session_paths::SessionDirectories::new()),
+            directories: self.directories.clone(),
             plugins: None,
             store: self.store.clone(),
             ids: Arc::new(SequentialIds::default()),
