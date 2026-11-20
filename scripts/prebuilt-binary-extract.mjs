@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import {
   chmodSync,
   copyFileSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -42,6 +43,15 @@ export function extractPrebuiltArchive({ archivePath, archiveExt, extractDir, cw
   mkdirSync(extractDir, { recursive: true });
   if (archiveExt === "zip") {
     if (process.platform === "win32") {
+      // PowerShell 7 的 Expand-Archive 在目标目录已存在时会调 ExtractToDirectory 的三参重载；
+      // 某些 PowerShell/.NET 组合下抛 MethodException 但进程退出码仍是 0，解压目录为空
+      // （2026-11-20 CI 的 ugrep 打包门禁就是这么红的）。Windows 自带的 bsdtar 原生支持 zip，
+      // 优先用它；只有系统没有 tar.exe 时才回退到 PowerShell。
+      const systemTar = join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe");
+      if (existsSync(systemTar)) {
+        runCommand(systemTar, ["-xf", toTarPosixPath(archivePath), "-C", toTarPosixPath(extractDir)]);
+        return;
+      }
       runCommand("powershell.exe", [
         "-NoProfile",
         "-NonInteractive",
