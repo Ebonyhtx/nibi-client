@@ -5,8 +5,9 @@
 // arguments into paths. On non-Windows hosts it exits successfully without
 // building anything, which keeps it out of non-Windows packaging.
 
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -18,13 +19,55 @@ const helperName = "nibi-runtime-host.exe";
 const installerHelperName = "nibi-installer-process-helper.exe";
 const sourceNames = ["main.cpp", "installer-process-helper.cpp", "CMakeLists.txt"];
 
-export function resolveRuntimeHostBuild(arch, hostPlatform = process.platform) {
+/**
+ * 找本机真正安装的 Visual Studio 生成器。`cmake --help` 列出的是 CMake 支持的生成器，
+ * 不代表已经安装（列表里同时有 VS 2015–2026）；写死 `Visual Studio 17 2022` 会在镜像
+ * 前移到 VS 2026 的 CI 上整条红。用 vswhere 查已安装实例，再映射到生成器名。
+ */
+export function detectVisualStudioGenerator(hostPlatform = process.platform) {
+  if (hostPlatform !== "win32") return undefined;
+  const vswhere = join(
+    process.env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)",
+    "Microsoft Visual Studio",
+    "Installer",
+    "vswhere.exe",
+  );
+  if (!existsSync(vswhere)) return undefined;
+  try {
+    const version = execFileSync(
+      vswhere,
+      [
+        "-latest",
+        "-products",
+        "*",
+        "-requires",
+        "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+        "-property",
+        "installationVersion",
+      ],
+      { encoding: "utf8" },
+    ).trim();
+    const major = Number.parseInt(version.split(".")[0] ?? "", 10);
+    if (major >= 18) return "Visual Studio 18 2026";
+    if (major === 17) return "Visual Studio 17 2022";
+    if (major === 16) return "Visual Studio 16 2019";
+  } catch {
+    // vswhere 失败时返回 undefined，交给 CMake 的默认生成器。
+  }
+  return undefined;
+}
+
+export function resolveRuntimeHostBuild(arch, hostPlatform = process.platform, generator) {
   if (arch !== "x64" && arch !== "arm64")
     throw new Error(`Unsupported runtime host architecture: ${arch}`);
   if (hostPlatform !== "win32")
     throw new Error("The runtime host helper can only be built on Windows");
   return {
-    configureArgs: ["-G", "Visual Studio 17 2022", "-A", arch === "arm64" ? "ARM64" : "x64"],
+    configureArgs: [
+      ...(generator ? ["-G", generator] : []),
+      "-A",
+      arch === "arm64" ? "ARM64" : "x64",
+    ],
   };
 }
 
@@ -80,7 +123,13 @@ export async function isRuntimeHostReady(outputDir, arch) {
 }
 
 export async function buildRuntimeHost({ arch, outputDir }) {
-  const plan = resolveRuntimeHostBuild(arch);
+  const generator = detectVisualStudioGenerator();
+  if (!generator) {
+    console.warn(
+      "[windows-runtime-host] vswhere 没有找到已安装的 Visual Studio，交给 CMake 默认生成器",
+    );
+  }
+  const plan = resolveRuntimeHostBuild(arch, process.platform, generator);
   const work = await mkdtemp(join(tmpdir(), "nibi-runtime-host-"));
   try {
     await run(["-S", source, "-B", work, ...plan.configureArgs, "-DCMAKE_BUILD_TYPE=Release"]);
