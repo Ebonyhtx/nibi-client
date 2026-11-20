@@ -225,6 +225,7 @@ import { createCommandEnvelope } from "@/v4/commandFactory.js";
 import {
   ForkDestinationContext,
   formatManagedWorktreeError,
+  hasManagedWorktreeHandoffContent,
   ManagedWorktreeHandoffNotice,
   useManagedWorktreeHandoff,
   useTaskWorktreePlacement,
@@ -720,12 +721,13 @@ export function SessionPane({
   const [lease, setLease] = useSessionPaneLease(sessionId, layer);
   const state = useConversationProjection(lease);
   const snapshot = state.snapshot;
-  // worktree 创建成功后、首份 snapshot 到达前的短暂空白：只在刚自动打开的会话上
-  // 展示轻量提示；snapshot 或订阅失败/释放时 hook 会立即清掉登记。
+  // worktree 创建成功后、会话出现第一条内容前的短暂空白：只在刚自动打开的会话上展示
+  // 轻量提示；内容行出现或订阅失败/释放时 hook 会立即清掉登记。空 snapshot（rows 为空）
+  // 仍算“没有内容”——Host 常在导航前就推一份空 snapshot，否则提示永远不会显示。
   // lease 尚未建立时传 null（hook 按 connecting 处理），避免在真正开始订阅前误清交接。
   const worktreeHandoffPending = useManagedWorktreeHandoff({
     sessionId,
-    snapshotReady: sessionId !== null && snapshot?.sessionId === sessionId,
+    contentReady: hasManagedWorktreeHandoffContent(snapshot, sessionId),
     subscriptionStatus: lease ? state.status : null,
   });
   const runtimeReady =

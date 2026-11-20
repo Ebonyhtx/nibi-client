@@ -1,14 +1,20 @@
 // 受管 worktree 创建成功后的首帧交接状态。
 //
-// 创建记录（Host 内存）在会话启动后立即消失；从 settlement 到会话首份 snapshot
-// 之间，主区 pane 没有任何 projection 行，会短暂空白。这里只记录"这个 session 是
-// 刚由 worktree 创建流程打开的"，让 pane 在首帧到达前展示一个轻量 loading 提示。
+// 创建记录（Host 内存）在会话启动后立即消失；从 settlement 到会话出现第一条内容之间，
+// 主区 pane 没有任何 projection 行，会短暂空白。这里只记录"这个 session 是刚由 worktree
+// 创建流程打开的"，让 pane 在内容出现前展示一个轻量 loading 提示。
 //
-// 它不产生会话事实，也不推进任何状态：snapshot 到达、订阅失败或超过展示上限后，
-// 提示必须退场，后续仍由既有 projection/错误/重连路径负责。
+// 它不产生会话事实，也不推进任何状态：内容行出现、订阅失败或超过展示上限后，提示必须
+// 退场，后续仍由既有 projection/错误/重连路径负责。
 
 /** 提示最多展示多久；只约束提示本身，不改变会话订阅状态。 */
 export const MANAGED_WORKTREE_HANDOFF_MAX_MS = 30_000;
+
+/**
+ * 空白持续多久才显示提示。本地实测空白约 0.1–0.2s，立即显示会变成闪一下；
+ * 只有真正慢的路径（冷启动、远程 Host）才值得出现提示。
+ */
+export const MANAGED_WORKTREE_HANDOFF_DELAY_MS = 250;
 
 interface HandoffEntry {
   markedAt: number;
@@ -76,6 +82,24 @@ export function markManagedWorktreeHandoff(sessionId: string): void {
   managedWorktreeHandoffRegistry.mark(sessionId);
 }
 
+/**
+ * 会话是否已经有内容行。空 snapshot（`rows.window` 为空或缺失）算没有内容：Host 常在
+ * 导航前就推一份空 snapshot，只判 snapshot 是否存在会让交接提示永远不出现。
+ */
+export function hasManagedWorktreeHandoffContent(
+  snapshot:
+    | {
+        sessionId: string;
+        rows: { window?: readonly unknown[] | null | undefined };
+      }
+    | null
+    | undefined,
+  sessionId: string | null,
+): boolean {
+  if (!sessionId || !snapshot || snapshot.sessionId !== sessionId) return false;
+  return (snapshot.rows.window?.length ?? 0) > 0;
+}
+
 export type ManagedWorktreeHandoffSubscriptionStatus =
   | "connecting"
   | "live"
@@ -85,19 +109,20 @@ export type ManagedWorktreeHandoffSubscriptionStatus =
 /**
  * 展示条件（纯函数，便于单测）：
  * - 只对刚由 worktree 创建流程打开、且仍登记的 session 生效；
- * - 首份 snapshot 未到（snapshotReady=false）；
+ * - 会话还没有任何内容行（空 snapshot 也算没有内容——Host 常在导航前就推一份空 snapshot，
+ *   只看 snapshot 是否存在会让提示永远不出现，而 pane 此时正是空白）；
  * - 订阅尚未进入 error/closed（错误面板或已释放状态已有自己的 UI）。
  */
 export function shouldShowManagedWorktreeHandoff(params: {
   pending: boolean;
   sessionId: string | null;
-  snapshotReady: boolean;
+  contentReady: boolean;
   subscriptionStatus: ManagedWorktreeHandoffSubscriptionStatus;
 }): boolean {
   return (
     params.pending &&
     params.sessionId !== null &&
-    !params.snapshotReady &&
+    !params.contentReady &&
     params.subscriptionStatus !== "error" &&
     params.subscriptionStatus !== "closed"
   );

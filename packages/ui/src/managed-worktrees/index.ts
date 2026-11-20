@@ -22,6 +22,7 @@ export {
   useManagedWorktreeSettlements,
 } from "./useManagedWorktreeCreations.js";
 export {
+  hasManagedWorktreeHandoffContent,
   markManagedWorktreeHandoff,
   managedWorktreeHandoffRegistry,
   MANAGED_WORKTREE_HANDOFF_MAX_MS,

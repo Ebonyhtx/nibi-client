@@ -11,6 +11,7 @@ vi.mock("@/i18n/IntlProvider.js", () => ({
 
 import { ManagedWorktreeHandoffNotice } from "@/managed-worktrees/ManagedWorktreeHandoffNotice.js";
 import {
+  hasManagedWorktreeHandoffContent,
   ManagedWorktreeHandoffRegistry,
   MANAGED_WORKTREE_HANDOFF_MAX_MS,
   managedWorktreeHandoffRegistry,
@@ -93,14 +94,14 @@ describe("shouldShowManagedWorktreeHandoff", () => {
   const base = {
     pending: true,
     sessionId: "session-1",
-    snapshotReady: false,
+    contentReady: false,
     subscriptionStatus: "connecting" as ManagedWorktreeHandoffSubscriptionStatus,
   };
 
-  it("shows only while the first snapshot is still missing", () => {
+  it("shows only while the session still has no content rows", () => {
     expect(shouldShowManagedWorktreeHandoff(base)).toBe(true);
     expect(shouldShowManagedWorktreeHandoff({ ...base, subscriptionStatus: "live" })).toBe(true);
-    expect(shouldShowManagedWorktreeHandoff({ ...base, snapshotReady: true })).toBe(false);
+    expect(shouldShowManagedWorktreeHandoff({ ...base, contentReady: true })).toBe(false);
   });
 
   it("hides on subscription failure, release, missing session or missing handoff", () => {
@@ -111,32 +112,63 @@ describe("shouldShowManagedWorktreeHandoff", () => {
   });
 });
 
+describe("hasManagedWorktreeHandoffContent", () => {
+  it("treats a missing or empty snapshot as no content", () => {
+    expect(hasManagedWorktreeHandoffContent(undefined, "session-1")).toBe(false);
+    expect(hasManagedWorktreeHandoffContent(null, "session-1")).toBe(false);
+    expect(
+      hasManagedWorktreeHandoffContent({ sessionId: "session-1", rows: { window: [] } }, "session-1"),
+    ).toBe(false);
+    expect(
+      hasManagedWorktreeHandoffContent({ sessionId: "session-1", rows: {} }, "session-1"),
+    ).toBe(false);
+  });
+
+  it("ignores a snapshot for another session", () => {
+    expect(
+      hasManagedWorktreeHandoffContent(
+        { sessionId: "session-2", rows: { window: [{}] } },
+        "session-1",
+      ),
+    ).toBe(false);
+  });
+
+  it("is ready once the session has a row", () => {
+    expect(
+      hasManagedWorktreeHandoffContent(
+        { sessionId: "session-1", rows: { window: [{}] } },
+        "session-1",
+      ),
+    ).toBe(true);
+  });
+});
+
 describe("useManagedWorktreeHandoff", () => {
   function renderHandoff() {
     return renderHook(
       (props: {
         sessionId: string | null;
-        snapshotReady: boolean;
+        contentReady: boolean;
         subscriptionStatus: ManagedWorktreeHandoffSubscriptionStatus | null;
-      }) => useManagedWorktreeHandoff(props),
+      }) => useManagedWorktreeHandoff({ ...props, showDelayMs: 0 }),
       {
         initialProps: {
           sessionId: "session-1",
-          snapshotReady: false,
+          contentReady: false,
           subscriptionStatus: "connecting" as ManagedWorktreeHandoffSubscriptionStatus,
         },
       },
     );
   }
 
-  it("appears after the settlement mark and disappears on the first snapshot", () => {
+  it("appears after the settlement mark and disappears once content arrives", () => {
     const { result, rerender } = renderHandoff();
     expect(result.current).toBe(false);
 
     act(() => markManagedWorktreeHandoff("session-1"));
     expect(result.current).toBe(true);
 
-    rerender({ sessionId: "session-1", snapshotReady: true, subscriptionStatus: "live" });
+    rerender({ sessionId: "session-1", contentReady: true, subscriptionStatus: "live" });
     expect(result.current).toBe(false);
     expect(managedWorktreeHandoffRegistry.isPending("session-1")).toBe(false);
   });
@@ -146,13 +178,31 @@ describe("useManagedWorktreeHandoff", () => {
     act(() => markManagedWorktreeHandoff("session-1"));
     expect(result.current).toBe(true);
 
-    rerender({ sessionId: "session-1", snapshotReady: false, subscriptionStatus: "error" });
+    rerender({ sessionId: "session-1", contentReady: false, subscriptionStatus: "error" });
     expect(result.current).toBe(false);
     expect(managedWorktreeHandoffRegistry.isPending("session-1")).toBe(false);
   });
 
-  it("does not leak a mark from another session into the open pane", () => {
-    const { result } = renderHandoff();
+  it("waits out the delay so a fast handoff does not flash", () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() =>
+      useManagedWorktreeHandoff({
+        sessionId: "session-1",
+        contentReady: false,
+        subscriptionStatus: "connecting",
+        showDelayMs: 250,
+      }),
+    );
+    act(() => markManagedWorktreeHandoff("session-1"));
+    expect(result.current).toBe(false);
+
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(result.current).toBe(true);
+  });
+
+  it("does not leak a mark from another session into the open pane", () => {    const { result } = renderHandoff();
     act(() => markManagedWorktreeHandoff("session-2"));
     expect(result.current).toBe(false);
     expect(managedWorktreeHandoffRegistry.isPending("session-2")).toBe(true);
@@ -163,8 +213,9 @@ describe("useManagedWorktreeHandoff", () => {
       () =>
         useManagedWorktreeHandoff({
           sessionId: "session-1",
-          snapshotReady: false,
+          contentReady: false,
           subscriptionStatus: null,
+          showDelayMs: 0,
         }),
       { initialProps: {} },
     );
