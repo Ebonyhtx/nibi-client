@@ -148,12 +148,17 @@ describe.skipIf(process.platform !== "win32")(
     });
 
     afterAll(() => {
-      if (root) {
-        rmSync(root, { recursive: true, force: true });
-      }
-      if (helperDir && helperDir.startsWith(tmpdir())) {
-        rmSync(helperDir, { recursive: true, force: true });
-      }
+      // Windows 上刚退出的 helper 进程/杀毒扫描会短暂持有 exe 句柄，rmSync 立即删会 EPERM；
+      // 并行跑全量时尤其明显。这不是测试断言的一部分，重试后仍失败只告警，不把整个文件判红。
+      const cleanup = (target: string) => {
+        try {
+          rmSync(target, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+        } catch (error) {
+          console.warn("[windows-installer-helper-test] cleanup skipped:", error);
+        }
+      };
+      if (root) cleanup(root);
+      if (helperDir && helperDir.startsWith(tmpdir())) cleanup(helperDir);
     });
 
     it("surfaces a missing helper as an explicit fallback signal", async () => {
