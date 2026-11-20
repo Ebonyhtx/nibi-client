@@ -225,6 +225,8 @@ import { createCommandEnvelope } from "@/v4/commandFactory.js";
 import {
   ForkDestinationContext,
   formatManagedWorktreeError,
+  ManagedWorktreeHandoffNotice,
+  useManagedWorktreeHandoff,
   useTaskWorktreePlacement,
   useWorktreeSupport,
 } from "@/managed-worktrees/index.js";
@@ -718,6 +720,14 @@ export function SessionPane({
   const [lease, setLease] = useSessionPaneLease(sessionId, layer);
   const state = useConversationProjection(lease);
   const snapshot = state.snapshot;
+  // worktree 创建成功后、首份 snapshot 到达前的短暂空白：只在刚自动打开的会话上
+  // 展示轻量提示；snapshot 或订阅失败/释放时 hook 会立即清掉登记。
+  // lease 尚未建立时传 null（hook 按 connecting 处理），避免在真正开始订阅前误清交接。
+  const worktreeHandoffPending = useManagedWorktreeHandoff({
+    sessionId,
+    snapshotReady: sessionId !== null && snapshot?.sessionId === sessionId,
+    subscriptionStatus: lease ? state.status : null,
+  });
   const runtimeReady =
     sessionId === null ||
     (snapshot?.sessionId === sessionId &&
@@ -6062,6 +6072,8 @@ export function SessionPane({
                           compactForRemoteControl={compactForRemoteControl}
                         />
                       </div>
+                    ) : worktreeHandoffPending ? (
+                      <ManagedWorktreeHandoffNotice />
                     ) : null
                   }
                   // 浮窗形态只露出底部输入区，空会话也必须贴底，不能居中。

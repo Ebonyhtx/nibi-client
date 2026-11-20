@@ -6,6 +6,7 @@ export const TID_WORKTREE_CREATION_CARD = "worktree-creation-card";
 export const TID_WORKTREE_CREATION_RETRY = "worktree-creation-retry";
 export const TID_WORKTREE_CREATION_CONTINUE_LOCAL = "worktree-creation-continue-local";
 export const TID_WORKTREE_CREATION_DISMISS = "worktree-creation-dismiss";
+export const TID_WORKTREE_HANDOFF = "worktree-handoff";
 export const TID_WORKTREE_CREATED_MARKER = "worktree-created-marker";
 export const TID_WORKTREE_FORK_HERE = "worktree-fork-here";
 export const TID_WORKTREE_FORK_TO_WORKTREE = "worktree-fork-to-worktree";

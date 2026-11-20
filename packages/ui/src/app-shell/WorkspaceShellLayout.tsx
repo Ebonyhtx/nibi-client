@@ -52,6 +52,7 @@ import {
   ManagedWorktreeCreationView,
   WorktreeBranchPicker,
   WorktreeToggle,
+  markManagedWorktreeHandoff,
   useManagedWorktreeCreations,
   useManagedWorktreeSettlements,
   useWorktreeSupport,
@@ -1604,6 +1605,9 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
       if (state.draftWorktreeCreationId !== settlement.creationId) return;
       viewWorktreeCreation(settlement.workspacePath, null, workspaceIdentity);
       if (settlement.outcome === "session-started" && settlement.sessionId) {
+        // 会话已启动但首份 snapshot 还没到；先登记交接，pane 在空白窗口展示轻量提示。
+        // 提示只针对这条自动打开的会话，不改变创建/会话本身的任何状态。
+        markManagedWorktreeHandoff(settlement.sessionId);
         handleSelectTaskInChat(
           settlement.workspacePath,
           settlement.sessionId,
