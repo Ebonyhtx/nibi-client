@@ -37,8 +37,10 @@ export interface AppSlashCommand {
   description: string;
   /** 额外搜索关键词；应同时包含中英文别名，保证两种输入习惯都能搜到。 */
   keywords?: readonly string[];
+  /** 恢复类命令：同名 CLI 命令不再展示，避免把 /reload 插成待发送文本。 */
+  recovery?: boolean;
   /** 选中命令后立即执行的 UI 行为。 */
-  run: () => void;
+  run: () => void | Promise<boolean>;
 }
 
 const APP_SLASH_SUGGESTION_ID_PREFIX = "app-slash:";

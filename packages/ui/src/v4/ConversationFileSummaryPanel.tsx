@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronRightIcon, Loader2Icon, Undo2Icon } from "lucide-react";
+import { TID_V4_FILE_SUMMARY_UNDO_LOCKED } from "@nibi/shared/test-ids";
 import type {
   CommandAck,
   ConversationRowTarget,
@@ -21,7 +22,10 @@ import { buildChangeSummaryFilePreviewSource } from "@/messageChangeSummaryPrevi
 import { OpenSplitButton } from "@/OpenSplitButton.js";
 import { logger } from "@/logger.js";
 import { collectGenUiSourcePaths, matchesGenUiSourcePath } from "@/gen-ui/contract.js";
-import { ConversationFileRewindDialog } from "@/v4/ConversationFileRewindDialog.js";
+import {
+  ConversationFileRewindDialog,
+  FileRewindLockedHint,
+} from "@/v4/ConversationFileRewindDialog.js";
 import type {
   ConversationFileChangesRequestOptions,
   ConversationRowRenderContext,
@@ -270,17 +274,25 @@ export function ConversationFileSummaryPanel({
               ) : null}
             </button>
           </CollapsibleTrigger>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={!canUndo || previewLoading || applying}
-            onClick={handlePreviewRewind}
-            title={intl.formatMessage({ id: "chat.changeSummary.rewind" })}
+          <FileRewindLockedHint
+            locked={context.fileRewindLocked === true}
+            triggerTestId={TID_V4_FILE_SUMMARY_UNDO_LOCKED}
           >
-            {previewLoading || applying ? <Loader2Icon className="animate-spin" /> : <Undo2Icon />}
-            <span>{intl.formatMessage({ id: "chat.changeSummary.rewind" })}</span>
-          </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={!canUndo || previewLoading || applying}
+              onClick={handlePreviewRewind}
+            >
+              {previewLoading || applying ? (
+                <Loader2Icon className="animate-spin" />
+              ) : (
+                <Undo2Icon />
+              )}
+              <span>{intl.formatMessage({ id: "chat.changeSummary.rewind" })}</span>
+            </Button>
+          </FileRewindLockedHint>
         </div>
         <CollapsibleContent>
           <div className="grid w-full border-t border-border">
@@ -406,6 +418,7 @@ export function ConversationFileSummaryPanel({
         applying={applying}
         error={error}
         onApply={handleApply}
+        applyLocked={context.fileRewindLocked === true}
       />
     </>
   );

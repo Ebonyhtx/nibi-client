@@ -260,3 +260,13 @@ it("omits remote device settings without an opener", () => {
   expect(screen.getByTestId("virtual-project-edit")).toBeDefined();
   expect(screen.queryByTestId("virtual-project-device-settings")).toBeNull();
 });
+it("offers Manage projects… from the project menu", () => {
+  const props = { ...fixture(), onManageProjects: vi.fn() };
+  render(createElement(ProjectNode, props));
+  fireEvent.contextMenu(screen.getByTestId("virtual-project-toggle"));
+  const item = screen.getByTestId("virtual-project-manage-projects");
+  expect(item.textContent).toBe("projectManagement.manage");
+  expect(item.querySelector("svg.lucide-folders")).not.toBeNull();
+  fireEvent.click(item);
+  expect(props.onManageProjects).toHaveBeenCalledOnce();
+});

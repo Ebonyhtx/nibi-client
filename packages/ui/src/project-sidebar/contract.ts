@@ -23,6 +23,8 @@ export interface ProjectRowAction {
   run(): void;
   disabled?: boolean;
   destructive?: boolean;
+  /** 与上一组操作之间画分隔线；首项忽略。 */
+  separatorBefore?: boolean;
 }
 export {
   buildRemoteHostWorkspaceIdentity,

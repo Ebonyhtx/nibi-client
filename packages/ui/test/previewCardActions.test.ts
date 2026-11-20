@@ -9,13 +9,20 @@ import type { OpenInEditorRemoteTarget } from "@nibi/shared";
 const state = vi.hoisted(() => ({
   native: true,
   remote: false,
+  hasSaveFile: false,
+  services: null as object | null,
   remoteTarget: undefined as OpenInEditorRemoteTarget | undefined,
   openInEditor: vi.fn(),
   openExternalFile: vi.fn(),
   openInFileManager: vi.fn(),
   getInstalledEditors: vi.fn(),
   openExternal: vi.fn(),
+  saveFile: vi.fn(),
   writeText: vi.fn(),
+  fileService: {
+    stat: vi.fn(),
+    readFileRange: vi.fn(),
+  },
 }));
 vi.mock("@/hooks/usePlatform.js", () => ({
   usePlatform: () => ({
@@ -25,7 +32,15 @@ vi.mock("@/hooks/usePlatform.js", () => ({
     getInstalledEditors: state.getInstalledEditors,
     openExternal: state.openExternal,
     openInEditor: state.openInEditor,
+    saveFile: state.hasSaveFile ? state.saveFile : undefined,
   }),
+}));
+vi.mock("@/hooks/useServices.js", () => ({
+  useOptionalServices: () => state.services,
+  useServices: () => state.services ?? {},
+}));
+vi.mock("@/hooks/useWorkspaceServices.js", () => ({
+  useWorkspaceServices: () => ({ fileService: state.fileService }),
 }));
 vi.mock("@/hooks/useWorkspaceOpenInEditorTarget.js", () => ({
   useWorkspaceOpenInEditorTarget: () => ({
@@ -65,16 +80,30 @@ function mount(target: OpenSplitButtonTarget = file) {
 function openContext() {
   fireEvent.contextMenu(screen.getByTestId("card"), { button: 2, clientX: 30, clientY: 30 });
 }
+function mountPrimary() {
+  render(
+    createElement(OpenSplitButton, {
+      target: file,
+      openDefaultOnPrimary: true,
+      onOpenCodeViewer: vi.fn(),
+    }),
+  );
+}
 afterEach(cleanup);
 beforeEach(() => {
   vi.clearAllMocks();
   state.native = true;
   state.remote = false;
+  state.hasSaveFile = false;
+  state.services = null;
   state.remoteTarget = undefined;
   state.openInEditor.mockResolvedValue({ success: true });
   state.openExternalFile.mockResolvedValue({ success: true });
   state.openInFileManager.mockResolvedValue({ success: true });
   state.getInstalledEditors.mockResolvedValue([]);
+  state.saveFile.mockResolvedValue({ success: true });
+  state.fileService.stat.mockResolvedValue({ path: file.path, type: "file", size: 3, mtimeMs: 1 });
+  state.fileService.readFileRange.mockResolvedValue(new Uint8Array([1, 2, 3]));
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
     value: { writeText: state.writeText },
@@ -102,6 +131,7 @@ describe("preview card actions", () => {
     await screen.findByText("chat.previewCards.noOpenApps");
     expect(screen.getAllByRole("menuitem").map((el) => el.textContent)).toEqual([
       "chat.previewCards.noOpenApps",
+      "appHeader.openInFileManager",
       "fileActions.copyAbsolutePath",
       "fileActions.copyRelativePath",
     ]);
@@ -120,6 +150,7 @@ describe("preview card actions", () => {
       "chat.previewCards.previewInSidePane",
       "chat.previewCards.openDefaultApp",
       "chat.previewCards.openWith",
+      "appHeader.openInFileManager",
       "fileActions.copyRelativePath",
       "fileActions.copyAbsolutePath",
     ]);
@@ -181,6 +212,97 @@ describe("preview card actions", () => {
     expect(screen.queryByText("chat.previewCards.openContainingDirectory")).toBeNull();
     fireEvent.click(screen.getByText("fileActions.copyRelativePath"));
     await waitFor(() => expect(state.writeText).toHaveBeenCalledWith("index.html"));
+  });
+});
+
+describe("file action availability", () => {
+  it("hides save as when the platform or workspace service cannot back it", () => {
+    mount();
+    openContext();
+    expect(screen.queryByText("fileActions.saveAs")).toBeNull();
+    expect(screen.getByText("appHeader.openInFileManager")).toBeTruthy();
+  });
+
+  it("hides reveal when the platform has no local file manager", () => {
+    state.native = false;
+    mount();
+    openContext();
+    expect(screen.queryByText("appHeader.openInFileManager")).toBeNull();
+  });
+
+  it("saves a workspace file copy through the native save dialog", async () => {
+    state.hasSaveFile = true;
+    state.services = {};
+    mount();
+    openContext();
+    fireEvent.click(screen.getByText("fileActions.saveAs"));
+    await waitFor(() => expect(state.saveFile).toHaveBeenCalledTimes(1));
+    const payload = state.saveFile.mock.calls[0]![0] as {
+      data: ArrayBuffer;
+      suggestedName: string;
+    };
+    expect(payload.suggestedName).toBe("report.pptx");
+    expect(new Uint8Array(payload.data)).toEqual(new Uint8Array([1, 2, 3]));
+    expect(state.fileService.readFileRange).toHaveBeenCalledWith({
+      path: file.path,
+      offset: 0,
+      length: 3,
+    });
+  });
+
+  it("keeps save as for remote workspaces but hides SSH reveal", () => {
+    state.remote = true;
+    state.remoteTarget = {
+      kind: "ssh",
+      host: "example.com",
+      username: "dev",
+      port: 22,
+    } as OpenInEditorRemoteTarget;
+    state.hasSaveFile = true;
+    state.services = {};
+    mount();
+    openContext();
+    expect(screen.getByText("fileActions.saveAs")).toBeTruthy();
+    expect(screen.queryByText("appHeader.openInFileManager")).toBeNull();
+  });
+
+  it("shows reveal for WSL workspaces because Explorer maps the path to UNC", () => {
+    state.remote = true;
+    state.remoteTarget = { kind: "wsl", distro: "Ubuntu" } as OpenInEditorRemoteTarget;
+    mount();
+    openContext();
+    expect(screen.getByText("appHeader.openInFileManager")).toBeTruthy();
+  });
+
+  it("opens the default app from the primary button when the header requests it", async () => {
+    mountPrimary();
+    fireEvent.click(screen.getByRole("button", { name: "common.open" }));
+    await waitFor(() => expect(state.openExternalFile).toHaveBeenCalledWith(file.path));
+  });
+
+  it("loads remote editors for the primary button before enabling it", async () => {
+    state.remote = true;
+    state.remoteTarget = {
+      kind: "ssh",
+      host: "example.com",
+      username: "dev",
+      port: 22,
+    } as OpenInEditorRemoteTarget;
+    state.getInstalledEditors.mockResolvedValue([
+      { id: "vscode", name: "VS Code", iconDataUrl: "" },
+      { id: "word", name: "Word", iconDataUrl: "" },
+    ]);
+    mountPrimary();
+    const primary = screen.getByRole("button", { name: "common.open" });
+    expect((primary as HTMLButtonElement).disabled).toBe(true);
+    await waitFor(() => expect((primary as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(primary);
+    await waitFor(() => expect(state.openInEditor).toHaveBeenCalledTimes(1));
+    expect(state.openInEditor).toHaveBeenCalledWith(
+      "vscode",
+      file.path,
+      expect.objectContaining({ remoteTarget: state.remoteTarget }),
+    );
   });
 });
 

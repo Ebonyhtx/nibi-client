@@ -511,6 +511,18 @@ export function ImagePreviewDialog({
                 }}
               />
             </div>
+          ) : activeItem.error ? (
+            <p className="px-6 text-center text-ui-base text-destructive" role="alert">
+              {intl.formatMessage({
+                id: "chat.attachments.preview.unavailable",
+              })}
+            </p>
+          ) : activeItem.loading ? (
+            <p className="text-ui-base text-foreground-subtle" role="status">
+              {intl.formatMessage({
+                id: "chat.attachments.preview.loading",
+              })}
+            </p>
           ) : null
         ) : null}
         {!activeItemIsVideo && !editing ? (

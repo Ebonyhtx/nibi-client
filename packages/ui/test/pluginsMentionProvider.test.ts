@@ -204,7 +204,7 @@ describe("plugin mention markdown carrier", () => {
       { type: "text", text: "before " },
       { type: "plugin", label: "Demo", pluginId: "demo@mkt-a" },
       { type: "text", text: " after " },
-      { type: "file", label: "readme" },
+      { type: "file", label: "readme", href: "./README.md" },
     ]);
   });
 

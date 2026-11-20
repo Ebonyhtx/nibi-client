@@ -1,11 +1,12 @@
 import { useToolPresentationCapabilities } from "@/ToolCallBlocks/presentationCapabilities.js";
-import { BotIcon } from "lucide-react";
 import { useCallback, useMemo, type ReactNode } from "react";
-import type { AgentColor } from "@nibi/shared";
 import { MessageResponse } from "@/components/ai-elements/message.js";
-import { cn } from "@/components/lib/utils.js";
+import {
+  agentColor as workflowAgentColor,
+  WorkflowAgentFace,
+} from "@/components/workflow-timeline/WorkflowAgentFace.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
-import { resolveSubagentColorFromName, SUBAGENT_TEXT_COLOR_CLASS } from "@/lib/subagentColors.js";
+import { SUBAGENT_WORKFLOW_COLOR } from "@/lib/subagentColors.js";
 import { ToolSnapshotFieldNotice } from "@/ToolCallBlocks/ToolSnapshotFieldNotice.js";
 import { ToolLayout } from "../ToolLayout.js";
 import type { ToolCallBlockRenderContext } from "../shared.js";
@@ -20,8 +21,6 @@ import {
   getAgentPrompt,
   readBackgroundAgentInfo,
 } from "./agentHelpers.js";
-
-const AGENT_TOOL_ICON = <BotIcon className="size-4 shrink-0 text-foreground-subtle" />;
 
 function AgentChildToolList({
   nestedToolRenderer,
@@ -127,15 +126,12 @@ function BackgroundAgentProcessRow({ label, children }: { label: string; childre
   );
 }
 
-function AgentNameText({ color, name }: { color: AgentColor; name: string }) {
+function AgentNameText({ name }: { name: string }) {
+  // 子智能体名在 tool summary 行内不能依赖字体基线对齐。
+  // inline-flex 负责垂直居中，1.5 倍行高保持和周围摘要文字一致的阅读节奏。
   return (
     <span
-      className={cn(
-        // 子智能体名在 tool summary 行内不能依赖字体基线对齐。
-        // inline-flex 负责垂直居中，1.5 倍行高保持和周围摘要文字一致的阅读节奏。
-        "inline-flex max-w-36 items-center truncate font-mono text-ui-base font-medium leading-[1.5]",
-        SUBAGENT_TEXT_COLOR_CLASS[color],
-      )}
+      className="inline-flex max-w-36 items-center truncate font-mono text-ui-base font-medium leading-[1.5]"
       title={name}
     >
       {name}
@@ -214,12 +210,46 @@ export function AgentToolCallBlock(context: ToolCallBlockRenderContext) {
   const fallbackLabel = formatAgentMessage(intl, "chat.toolCall.agent.fallback", "SubAgent");
   const primaryText = getAgentPrimaryText(toolCall, fallbackLabel);
   const agentName = getAgentKindLabel(toolCall, "", context.authoritativeAgentType);
-  const configuredAgentColor = useToolPresentationCapabilities().agentColor?.(agentName);
-  const agentColor = agentName
-    ? (configuredAgentColor ?? getAgentColor(toolCall) ?? resolveSubagentColorFromName(agentName))
-    : null;
-  const agentNameDetail =
-    agentName && agentColor ? <AgentNameText color={agentColor} name={agentName} /> : null;
+  // 显式配置仍是身份色来源；未配置时按原始名称取 workflow 颜色，不能让选择器失效。
+  const configuredColor =
+    useToolPresentationCapabilities().agentColor?.(agentName) ?? getAgentColor(toolCall);
+  const identityColor = configuredColor
+    ? SUBAGENT_WORKFLOW_COLOR[configuredColor]
+    : agentName
+      ? workflowAgentColor(undefined, agentName)
+      : undefined;
+  // 通用占位名散列会命中红色，误导为异常；身份未就绪时用中性头像和正文色，不按翻译文案取色。
+  const faceColor = identityColor ?? "var(--color-foreground-subtle)";
+  // 头像只读取父工具状态；停止使用中性等待表情，不能误报为成功。
+  const faceStatus =
+    toolCall.status === "pending"
+      ? "pending"
+      : context.isRunning
+        ? "running"
+        : toolCall.status === "completed"
+          ? "done"
+          : toolCall.status === "failed"
+            ? "failed"
+            : "pending";
+  // 使用块级 flex，避免 kindDetail 行盒的基线留白使头像与名称高于描述。
+  // 名称已经由外层 kindLabel 兜底，身份未就绪时只留中性头像，避免重复显示 SubAgent。
+  const agentNameDetail = (
+    <span
+      className="flex items-center gap-2"
+      style={{ color: identityColor ?? "var(--color-foreground)" }}
+    >
+      {context.showIcon !== false ? (
+        <WorkflowAgentFace
+          avatarIndex={undefined}
+          name={agentName || fallbackLabel}
+          color={faceColor}
+          status={faceStatus}
+          className="size-4 min-h-4! min-w-4!"
+        />
+      ) : null}
+      {agentName ? <AgentNameText name={agentName} /> : null}
+    </span>
+  );
   // Agent 父块的完成/进行中边界只由父 Agent tool 决定。
   // 子 tool 是展开区明细，不能反向续住父块运行态，否则父 Agent completed 后
   // 仍会显示渐变和子工具摘要，和协议里的父工具生命周期不一致。
@@ -340,8 +370,8 @@ export function AgentToolCallBlock(context: ToolCallBlockRenderContext) {
     <>
       <ToolLayout
         toolId={toolCall.toolId}
-        icon={AGENT_TOOL_ICON}
-        showIcon={context.showIcon !== false}
+        icon={null}
+        showIcon={false}
         canToggle={false}
         forceOpen={false}
         summaryAction={summaryAction}

@@ -13,6 +13,14 @@ import {
 import { Tabs, TabsList } from "@/components/ui/tabs.js";
 import type { WorkspaceSidePaneTab } from "@/lib/workspaceSidePane.js";
 
+const subagentsState = vi.hoisted(() => ({
+  agents: [] as Array<{ id: string; name: string; color?: string }>,
+}));
+
+vi.mock("@/hooks/useSubagents.js", () => ({
+  useSubagents: () => ({ agents: subagentsState.agents }),
+}));
+
 vi.mock("@dnd-kit/sortable", () => ({
   useSortable: () => ({
     attributes: {},
@@ -423,5 +431,30 @@ describe("SidePaneTabIcon browser-use operation state", () => {
 
     expect(html).not.toContain("data-browser-use-operation-indicator");
     expect(html).toContain("https://example.com/favicon.ico");
+  });
+});
+
+describe("SidePaneTabIcon subagent avatar", () => {
+  it("renders the idle face with the configured color for a known subagent", () => {
+    subagentsState.agents = [{ id: "agent-1", name: "Explore", color: "cyan" }];
+    const { container } = render(
+      createElement(SidePaneTabIcon, {
+        tab: {
+          id: "subagent-session:workspace:parent:child",
+          type: "subagent-session",
+          workspaceKey: "/workspace",
+          workspacePath: "/workspace",
+          parentSessionId: "parent",
+          childSessionId: "child",
+          subagentType: "Explore",
+          title: "Explore project structure",
+        },
+      }),
+    );
+    const face = container.querySelector<SVGElement>("svg[data-subagent-avatar]");
+
+    expect(face).not.toBeNull();
+    expect(face?.dataset.faceState).toBe("idle");
+    expect(face?.style.getPropertyValue("--wf-face-body")).toBe("#54B9A6");
   });
 });

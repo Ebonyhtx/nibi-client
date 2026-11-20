@@ -814,6 +814,8 @@ const koKR: Record<string, string> = {
   "chat.changeSummary.openInEditor": "편집기에서 열기",
   "chat.changeSummary.reapply": "다시 적용",
   "chat.changeSummary.reverted": "실행 취소됨",
+  "chat.changeSummary.rewindLocked":
+    "세션이 실행 중이거나 대기 중인 요청이 있습니다. 완료된 후 실행 취소할 수 있습니다.",
   "chat.changeSummary.review": "리뷰",
   "chat.changeSummary.rewind": "실행 취소",
   "chat.changeSummary.rewindDialog.cannotApply":
@@ -1327,6 +1329,7 @@ const koKR: Record<string, string> = {
   "chat.queue.editEmpty": "대기 메시지는 비워 둘 수 없습니다.",
   "chat.composerEdit.cancel": "취소",
   "chat.composerEdit.editingBelow": "아래에서 편집 중",
+  "chat.composerEdit.inComposerHint": "아래에서 편집 중",
   "chat.composerEdit.title.userQuery": "메시지 편집",
   "chat.composerEdit.title.queueItem": "대기 메시지 편집",
   "chat.composerEdit.rewind": "대화 및 파일 재설정",
@@ -1419,6 +1422,8 @@ const koKR: Record<string, string> = {
   "chat.send": "보내기",
   "chat.send.description": "현재 텍스트와 첨부 파일을 보냅니다.",
   "chat.slash.app.plan.description": "계획 모드 사용",
+  "chat.slash.app.reload.description":
+    "Reload the task runtime, preserving history and stopping current execution.",
   "chat.slash.app.side.description": "새 사이드 대화 열기",
   "chat.slash.commands.title": "명령",
   "chat.slash.emptyResults": "일치하는 슬래시 명령이 없습니다",
@@ -3239,6 +3244,12 @@ const koKR: Record<string, string> = {
   "feedback.type.usage.label": "사용 방법 도움",
   "fileActions.copyAbsolutePath": "절대 경로 복사",
   "fileActions.copyRelativePath": "상대 경로 복사",
+  "fileActions.saved": "저장됨",
+  "fileActions.downloadStarted": "다운로드가 시작되었습니다",
+  "fileActions.saveAs": "다른 이름으로 저장…",
+  "fileActions.saveAsUnavailable": "여기에서는 파일을 저장할 수 없습니다",
+  "fileActions.saveAsFailed": "이 파일을 저장할 수 없습니다. 소스 연결을 확인하고 다시 시도하세요.",
+  "fileActions.saveAsTooLarge": "50 MiB보다 큰 파일은 여기에서 저장할 수 없습니다.",
   "fileManager.empty": "탐색에서 파일을 선택하세요",
   "fileManager.hideNavigation": "파일 탐색 숨기기",
   "fileManager.resizeNavigation": "파일 탐색 크기 조정",
@@ -3943,6 +3954,7 @@ const koKR: Record<string, string> = {
   "project.remote": "원격",
   "project.remoteDescription": "연결된 컴퓨터에서 폴더를 선택합니다",
   "project.removeEntry": "이 기기에서 제거",
+  "projectManagement.manage": "프로젝트 관리…",
   "project.removeFolder": "폴더 제거",
   "project.removeHost": "연결 제거",
   "project.restore": "프로젝트 복원",
@@ -5351,6 +5363,11 @@ const koKR: Record<string, string> = {
   "settings.plugins.checkForUpdates": "업데이트 확인",
   "settings.plugins.checkForUpdates.found": "플러그인 업데이트 {count}개를 사용할 수 있습니다",
   "settings.plugins.checkForUpdates.none": "설치된 모든 플러그인이 최신 상태입니다",
+  "settings.plugins.updateAll": "모두 업데이트({count})",
+  "settings.plugins.updateAll.done": "플러그인 {count}개를 업데이트했습니다",
+  "settings.plugins.updateAll.partial": "{succeeded}개 업데이트, {failed}개 실패: {plugins}",
+  "settings.plugins.updateAll.aborted":
+    "플러그인 범위가 변경되어 모두 업데이트가 중지되었습니다. 플러그인 {count}개를 업데이트했습니다",
   "settings.plugins.config.clearSecret": "저장된 비밀 값 지우기",
   "settings.plugins.config.hideSecret": "비밀 값 숨기기",
   "settings.plugins.config.required": "필수",
@@ -5497,6 +5514,10 @@ const koKR: Record<string, string> = {
   "settings.plugins.marketplaces.plugins": "플러그인 {count}개",
   "settings.plugins.marketplaces.refreshCatalogHint": "새로고침하여 공식 카탈로그를 불러오세요.",
   "settings.plugins.marketplaces.remove": "마켓플레이스 제거",
+  "settings.plugins.marketplaces.riskWarning":
+    "비공식 플러그인 마켓플레이스에는 기기에 해를 끼칠 수 있는 악성 플러그인이 포함되어 있을 수 있습니다. 추가하기 전에 출처를 확인하고 예방 조치를 취하세요.",
+  "settings.plugins.marketplaces.riskAcknowledgement":
+    "위험을 이해했으며 출처를 확인하고 예방 조치를 취했습니다.",
   "settings.plugins.marketplaces.source": "GitHub 저장소, git URL, 파일 또는 디렉터리",
   "settings.plugins.marketplaces.title": "마켓플레이스",
   "settings.plugins.marketplaces.update": "마켓플레이스 업데이트",
@@ -6720,6 +6741,11 @@ const koKR: Record<string, string> = {
   "taskList.rename": "작업 이름 바꾸기",
   "taskList.renameFailed": "작업 이름을 바꿀 수 없습니다",
   "taskList.renamePlaceholder": "작업 이름",
+  "taskList.restart": "작업 다시 시작",
+  "taskList.restartFailed": "다시 시작하지 못했습니다. 작업 상태를 확인하고 다시 시도하세요.",
+  "taskList.restarting": "작업 다시 시작 중…",
+  "taskList.restartUnsupported":
+    "이 에이전트 버전은 작업 다시 시작을 지원하지 않습니다. 먼저 업데이트하세요.",
   "taskList.showLess": "간단히 보기",
   "taskList.showMore": "더 보기",
   "taskList.stopCountdown": "타이머 중지",
@@ -7223,7 +7249,8 @@ const koKR: Record<string, string> = {
   "git.managedWorktree.ref.currentHead": "현재 HEAD({ref})",
   "git.managedWorktree.ref.localBranches": "로컬 브랜치",
   "git.managedWorktree.ref.remoteBranches": "원격 브랜치",
-  "git.managedWorktree.ref.note": "새 worktree는 이 ref에서 생성되며 로컬 브랜치는 전환되지 않습니다.",
+  "git.managedWorktree.ref.note":
+    "새 worktree는 이 ref에서 생성되며 로컬 브랜치는 전환되지 않습니다.",
   "git.managedWorktree.ref.detached": "분리된 HEAD {sha}",
   "git.managedWorktree.creation.creating": "worktree 생성 중",
   "git.managedWorktree.creation.forkTitle": "분기용 worktree 생성 중",
@@ -7239,7 +7266,8 @@ const koKR: Record<string, string> = {
   "git.managedWorktree.error.generic": "worktree 작업을 완료하지 못했습니다.",
   "git.managedWorktree.error.not-repository": "프로젝트 디렉터리가 Git 저장소가 아닙니다.",
   "git.managedWorktree.error.invalid-start-ref": "선택한 시작 ref가 유효하지 않습니다.",
-  "git.managedWorktree.error.start-ref-missing-subdir": "선택한 ref에 이 프로젝트 하위 디렉터리가 없습니다.",
+  "git.managedWorktree.error.start-ref-missing-subdir":
+    "선택한 ref에 이 프로젝트 하위 디렉터리가 없습니다.",
   "git.managedWorktree.error.bucket-exhausted": "worktree 디렉터리를 할당하지 못했습니다.",
   "git.managedWorktree.error.worktree-dirty": "worktree에 커밋되지 않은 변경이 있어 유지했습니다.",
   "git.managedWorktree.error.worktree-in-use": "worktree가 사용 중이어서 유지했습니다.",
@@ -7247,21 +7275,27 @@ const koKR: Record<string, string> = {
   "git.managedWorktree.error.local-only": "worktree는 로컬 데스크톱 앱에서만 사용할 수 있습니다.",
   "git.managedWorktree.error.git-failed": "Git이 worktree 작업을 완료하지 못했습니다.",
   "git.managedWorktree.error.copy-failed": "worktree로 파일 복사에 실패했습니다.",
-  "git.managedWorktree.error.unsupported-agent": "현재 Agent 버전은 worktree cwd를 지원하지 않습니다.",
+  "git.managedWorktree.error.unsupported-agent":
+    "현재 Agent 버전은 worktree cwd를 지원하지 않습니다.",
   "git.managedWorktree.error.session-failed": "worktree에서 작업을 시작하지 못했습니다.",
-  "git.managedWorktree.error.carry-failed": "커밋되지 않은 변경을 새 worktree로 가져오지 못했습니다.",
-  "git.managedWorktree.error.session-close-failed": "이 worktree를 사용하는 작업을 해제하지 못했습니다.",
+  "git.managedWorktree.error.carry-failed":
+    "커밋되지 않은 변경을 새 worktree로 가져오지 못했습니다.",
+  "git.managedWorktree.error.session-close-failed":
+    "이 worktree를 사용하는 작업을 해제하지 못했습니다.",
   "git.managedWorktree.error.creating": "worktree가 아직 생성 중입니다.",
   "git.managedWorktree.error.removing": "worktree가 삭제 중입니다.",
   "git.managedWorktree.error.creation-not-found": "생성 기록이 더 이상 없습니다.",
   "git.managedWorktree.error.creation-not-failed": "생성 기록이 실패하지 않았습니다.",
   "git.managedWorktree.error.invalid-command": "worktree 명령이 유효하지 않습니다.",
-  "git.managedWorktree.error.not-primary-root": "worktree는 프로젝트 기본 디렉터리에서만 생성할 수 있습니다.",
+  "git.managedWorktree.error.not-primary-root":
+    "worktree는 프로젝트 기본 디렉터리에서만 생성할 수 있습니다.",
   "git.managedWorktree.error.requires-project": "작업이 프로젝트에 속해야 합니다.",
   "git.managedWorktree.error.agent-unavailable": "Agent를 사용할 수 없습니다.",
   "git.managedWorktree.error.query-unsupported": "이 Agent 버전은 작업 상태를 확인할 수 없습니다.",
-  "git.managedWorktree.error.release-unsupported": "이 Agent 버전은 worktree의 작업을 해제할 수 없습니다.",
-  "git.managedWorktree.error.slash-unsupported": "worktree에서 작업을 시작할 때는 슬래시 명령을 사용할 수 없습니다.",
+  "git.managedWorktree.error.release-unsupported":
+    "이 Agent 버전은 worktree의 작업을 해제할 수 없습니다.",
+  "git.managedWorktree.error.slash-unsupported":
+    "worktree에서 작업을 시작할 때는 슬래시 명령을 사용할 수 없습니다.",
   "git.managedWorktree.dialog.title": "Worktree",
   "git.managedWorktree.dialog.description": "이 프로젝트에 대해 Nibi가 만든 worktree",
   "git.managedWorktree.dialog.managedByNibi": "Nibi가 관리하는 worktree만 표시합니다.",
@@ -7276,14 +7310,16 @@ const koKR: Record<string, string> = {
   "git.managedWorktree.dialog.delete": "삭제",
   "git.managedWorktree.dialog.deleteConfirmTitle": "worktree를 삭제할까요?",
   "git.managedWorktree.dialog.deleteConfirmDescription": "worktree 디렉터리와 브랜치가 삭제됩니다.",
-  "git.managedWorktree.dialog.deleteConfirmDirty": "worktree에 커밋되지 않은 변경이 있습니다. 삭제하면 사라집니다.",
+  "git.managedWorktree.dialog.deleteConfirmDirty":
+    "worktree에 커밋되지 않은 변경이 있습니다. 삭제하면 사라집니다.",
   "git.managedWorktree.dialog.error.dirty": "worktree에 커밋되지 않은 변경이 있습니다.",
   "git.managedWorktree.dialog.error.running": "이 worktree에서 작업이 실행 중입니다.",
   "git.managedWorktree.dialog.error.terminal": "이 worktree를 터미널이 사용 중입니다.",
   "git.managedWorktree.dialog.error.creating": "worktree가 아직 생성 중입니다.",
   "git.managedWorktree.dialog.error.tasks": "이 worktree를 사용하는 작업이 남아 있습니다.",
   "git.managedWorktree.dialog.error.removing": "worktree가 삭제 중입니다.",
-  "git.managedWorktree.dialog.error.generic": "worktree를 삭제하지 못했습니다. 디렉터리는 유지됩니다.",
+  "git.managedWorktree.dialog.error.generic":
+    "worktree를 삭제하지 못했습니다. 디렉터리는 유지됩니다.",
 };
 
 export default koKR;

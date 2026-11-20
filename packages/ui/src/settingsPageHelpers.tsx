@@ -93,6 +93,7 @@ export function TaskAutoArchiveSettings({
       />
       <SettingsRow
         controlLayout="wide"
+        searchTarget="archives.taskAutoArchiveDays"
         label={intl.formatMessage({ id: "settings.taskAutoArchiveDays" })}
         description={intl.formatMessage({
           id: "settings.taskAutoArchiveDaysDescription",
@@ -399,6 +400,7 @@ export function GeneralSectionContent({
       <SettingsGroupCard>
         <SettingsRow
           controlLayout="wide"
+          searchTarget="general.interfaceMode"
           label={intl.formatMessage({ id: "settings.interfaceMode" })}
           description={intl.formatMessage({ id: "settings.interfaceMode.description" })}
           control={
@@ -442,6 +444,7 @@ export function GeneralSectionContent({
           }
         />
         <SettingsRow
+          searchTarget="general.terminalFontFamily"
           label={intl.formatMessage({ id: "settings.terminalFontFamily" })}
           description={intl.formatMessage({ id: "settings.terminalFontFamilyDescription" })}
           control={
@@ -478,6 +481,7 @@ export function GeneralSectionContent({
       <SettingsGroupCard>
         {showIntegratedTerminalShell ? (
           <SettingsRow
+            searchTarget="general.integratedTerminalShell"
             label={intl.formatMessage({ id: "settings.integratedTerminalShell" })}
             description={intl.formatMessage({
               id: "settings.integratedTerminalShellDescription",
@@ -510,6 +514,7 @@ export function GeneralSectionContent({
 
       <SettingsGroupCard>
         <SettingsRow
+          searchTarget="general.httpProxyFollowSystem"
           label={intl.formatMessage({ id: "settings.httpProxyFollowSystem" })}
           description={intl.formatMessage({ id: "settings.httpProxyFollowSystemDescription" })}
           control={
@@ -560,6 +565,7 @@ export function GeneralSectionContent({
         )}
         {/* No Proxy 与 HTTP 代理共同决定同一出口策略，必须贴在代理地址下面。*/}
         <SettingsRow
+          searchTarget="general.httpProxyNoProxy"
           label={intl.formatMessage({ id: "settings.httpProxyNoProxy" })}
           description={intl.formatMessage({
             id: "settings.httpProxyNoProxyDescription",
@@ -595,6 +601,7 @@ export function GeneralSectionContent({
         />
         {/* 自定义 CA 属于 HTTP 代理的同一网络出口策略，必须跟代理输入放在同一卡片里。*/}
         <SettingsRow
+          searchTarget="general.httpProxyCaCertPath"
           label={intl.formatMessage({ id: "settings.httpProxyCaCertPath" })}
           description={intl.formatMessage({
             id: "settings.httpProxyCaCertPathDescription",
@@ -634,6 +641,7 @@ export function GeneralSectionContent({
         {isDesktop ? (
           <>
             <SettingsRow
+              searchTarget="general.desktopChromiumHardwareAcceleration"
               label={intl.formatMessage({
                 id: "settings.desktopChromiumHardwareAcceleration",
               })}
@@ -669,6 +677,7 @@ export function GeneralSectionContent({
               }
             />
             <SettingsRow
+              searchTarget="general.autoDownloadUpdates"
               label={intl.formatMessage({
                 id: "settings.autoDownloadAndInstallUpdates",
               })}
@@ -700,6 +709,7 @@ export function GeneralSectionContent({
           }
         />
         <SettingsRow
+          searchTarget="general.notificationSound"
           label={intl.formatMessage({ id: "settings.notificationSound" })}
           description={intl.formatMessage({
             id: "settings.notificationSoundDescription",
@@ -714,6 +724,7 @@ export function GeneralSectionContent({
         />
         {isWindowsDesktop || isLinuxDesktop ? (
           <SettingsRow
+            searchTarget="general.closeToTray"
             label={intl.formatMessage({ id: "settings.closeToTrayOnWindows" })}
             description={
               linuxCloseToTray?.unavailable
@@ -739,6 +750,7 @@ export function GeneralSectionContent({
         ) : null}
         {isDesktop ? (
           <SettingsRow
+            searchTarget="general.keepAwake"
             label={intl.formatMessage({ id: "settings.keepAwakeWhileRunning" })}
             description={intl.formatMessage({
               id: "settings.keepAwakeWhileRunningDescription",
@@ -776,6 +788,7 @@ export function GeneralSectionContent({
           }
         />
         <SettingsRow
+          searchTarget="general.toolGroupingExplore"
           label={intl.formatMessage({ id: "settings.toolGroupingExplore" })}
           description={intl.formatMessage({
             id: "settings.toolGroupingExploreDescription",
@@ -791,6 +804,7 @@ export function GeneralSectionContent({
           }
         />
         <SettingsRow
+          searchTarget="general.toolGroupingTerminal"
           label={intl.formatMessage({ id: "settings.toolGroupingTerminal" })}
           description={intl.formatMessage({
             id: "settings.toolGroupingTerminalDescription",
@@ -806,6 +820,7 @@ export function GeneralSectionContent({
           }
         />
         <SettingsRow
+          searchTarget="general.toolGroupingChanges"
           label={intl.formatMessage({ id: "settings.toolGroupingChanges" })}
           description={intl.formatMessage({
             id: "settings.toolGroupingChangesDescription",

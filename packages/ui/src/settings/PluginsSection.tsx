@@ -6,7 +6,7 @@ import {
 } from "@/settings-scope/index.js";
 /* eslint-disable max-lines -- 共享能力外壳聚合 Scope，并承载 Plugin tabs 与独立 Commands 入口。 */
 import { PluginAddMenu } from "@/conversation-workspace-target/PluginAddMenu.js";
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Monitor, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button.js";
 import { toast } from "@/components/ui/toast.js";
@@ -41,6 +41,7 @@ import {
   PluginStoreOpenUiButton,
   PluginStoreUpdateBadge,
   PluginStoreUpdateButton,
+  PluginUpdateAllButton,
   type PluginStoreActions,
 } from "@/settings/PluginStoreCard.js";
 import { SettingsBreadcrumbReporter } from "@/settings/SettingsHeaderBreadcrumb.js";
@@ -68,9 +69,11 @@ import {
 } from "@/settings/nibiMembershipState.js";
 import {
   buildStoreItems,
+  needsPluginUpdate,
   type StorePluginItem,
   resolveManagedPluginDisplay,
   resolvePluginDisplayName,
+  updatePluginsSerially,
 } from "@/settings/pluginStoreListing.js";
 import { useScopedPluginManagementStore } from "@/store/pluginManagementStore.js";
 import { useTabStore } from "@/store/TabStoreProvider.js";
@@ -419,14 +422,94 @@ function PluginList({
     activeOperations,
     onAfterUninstall: refreshAfterPluginChange,
   });
+  const [updatingAll, setUpdatingAll] = useState(false);
+  const updateAllAbortRef = useRef<AbortController | null>(null);
   const handleUpdatePlugin = useCallback(
-    async (pluginId: string) => {
-      if (await requireMembership(pluginId)) return;
-      await updatePlugin(pluginId, pluginManagementService);
-      if (usePluginManagementStore.getState().error) return;
+    async (pluginId: string): Promise<boolean> => {
+      if (await requireMembership(pluginId)) return false;
+      const updated = await updatePlugin(pluginId, pluginManagementService);
+      if (!updated) return false;
       await refreshAfterPluginChange();
+      return true;
     },
     [pluginManagementService, refreshAfterPluginChange, requireMembership, updatePlugin],
+  );
+  // 服务替换后旧 store 的字段不会变化；提交新上下文或卸载时使旧批次永久失效，防止继续写旧目标。
+  useEffect(
+    () => () => updateAllAbortRef.current?.abort(),
+    [usePluginManagementStore, targetKey, cacheAuthorityKey, configScope],
+  );
+  // 「全部更新」与已安装、内置分组的展示顺序一致，且不受搜索过滤影响。
+  const updateAllItems = useMemo(
+    () =>
+      [...scopedPluginGroups.installed, ...scopedPluginGroups.builtIn].flatMap((plugin) => {
+        const item = storeItemById.get(plugin.id);
+        return item ? [item] : [];
+      }),
+    [scopedPluginGroups, storeItemById],
+  );
+  const handleUpdateAll = useCallback(
+    async (pluginIds: string[]) => {
+      // 批量期间切换 Scope 时，store 会被新 Scope 重新 initialize；以点击时的 store 上下文为准，
+      // 变化即中止。结尾不再调用 refreshAfterPluginChange：每次 updatePlugin 已按当前上下文重载，
+      // 旧闭包再 initialize 会把 store 写回旧 Scope，导致列表变空。
+      const contextKey = (state: ReturnType<typeof usePluginManagementStore.getState>) =>
+        [state.workspacePath, state.workspaceIdentity, state.authorityKey, state.configScope].join(
+          "\0",
+        );
+      const startKey = contextKey(usePluginManagementStore.getState());
+      const batch = new AbortController();
+      updateAllAbortRef.current = batch;
+      setUpdatingAll(true);
+      try {
+        const { succeeded, failed, aborted } = await updatePluginsSerially(
+          pluginIds,
+          (pluginId) => handleUpdatePlugin(pluginId),
+          {
+            isCurrent: () =>
+              !batch.signal.aborted && contextKey(usePluginManagementStore.getState()) === startKey,
+            // 行内已更新或正在更新的插件不再重复调用 plugins/update。
+            needsUpdate: (pluginId) =>
+              needsPluginUpdate(usePluginManagementStore.getState(), pluginId),
+          },
+        );
+        if (aborted) {
+          toast(
+            intl.formatMessage(
+              { id: "settings.plugins.updateAll.aborted" },
+              { count: String(succeeded.length) },
+            ),
+          );
+          return;
+        }
+        toast(
+          failed.length === 0
+            ? intl.formatMessage(
+                { id: "settings.plugins.updateAll.done" },
+                { count: String(succeeded.length) },
+              )
+            : intl.formatMessage(
+                { id: "settings.plugins.updateAll.partial" },
+                {
+                  succeeded: String(succeeded.length),
+                  failed: String(failed.length),
+                  plugins: failed
+                    .map((pluginId) =>
+                      resolvePluginDisplayName(
+                        storeItemById.get(pluginId) ?? { name: pluginId },
+                        locale,
+                      ),
+                    )
+                    .join(", "),
+                },
+              ),
+          failed.length === 0 ? undefined : { variant: "warning" },
+        );
+      } finally {
+        setUpdatingAll(false);
+      }
+    },
+    [handleUpdatePlugin, intl, locale, storeItemById, usePluginManagementStore],
   );
   const selectedPlugin = plugins.find((plugin) => plugin.id === selectedPluginId) ?? null;
   // 插件自身 warning 诊断（如声明的技能路径扫描为空）：详情高级区展示，避免静默失败。
@@ -851,6 +934,12 @@ function PluginList({
                 size="icon-md"
               />
             ) : null}
+            <PluginUpdateAllButton
+              items={updateAllItems}
+              actions={actions}
+              pending={updatingAll}
+              onUpdateAll={(pluginIds) => void handleUpdateAll(pluginIds)}
+            />
             <SettingsResourceHeaderActions onRefresh={() => void refreshAfterPluginChange()} />
             {configScope === "user" ? (
               <>

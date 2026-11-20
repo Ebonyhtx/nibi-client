@@ -119,6 +119,14 @@ export const ProjectSidebarNode = memo(
               }
             : undefined
         }
+        onManageProjects={
+          isDesktop
+            ? () => {
+                setPendingSettingsSectionIntent("projects");
+                tabStore.getState().openSettingsTab();
+              }
+            : undefined
+        }
         additionalActions={[
           ...worktreeActions,
           ...remoteActions(project),

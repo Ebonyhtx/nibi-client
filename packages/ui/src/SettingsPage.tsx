@@ -1357,6 +1357,8 @@ export function SettingsPage({
                   settingsSections={settingsSections}
                   isDesktop={Boolean(isDesktop)}
                   isMacDesktop={Boolean(isMacDesktop)}
+                  isWindowsDesktop={Boolean(isWindowsDesktop)}
+                  isLinuxDesktop={isLinuxDesktop}
                   onNavigate={handleSettingsSearchNavigate}
                 />
               </div>

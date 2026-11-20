@@ -1,11 +1,14 @@
 /* oxlint-disable eslint(max-lines) -- 侧栏 Tab trigger 集中维护拖拽、上下文菜单与各类图标；本次只增加 Browser 驻留态测试属性，不为行数拆散既有交互。 */
+import { NIBI_AGENT_PROVIDER } from "@nibi/shared";
+import { useSubagents } from "@/hooks/useSubagents.js";
+import { SUBAGENT_WORKFLOW_COLOR } from "@/lib/subagentColors.js";
+import { WorkflowAgentFace } from "@/components/workflow-timeline/WorkflowAgentFace.js";
 import { useRef, type CSSProperties } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
   FolderOpenIcon,
   PuzzleIcon,
-  BotIcon,
   BotMessageSquareIcon,
   BugIcon,
   FileIcon,
@@ -306,7 +309,7 @@ export function SidePaneTabIcon({ tab }: { tab: WorkspaceSidePaneTab }) {
     return <MessageSquareTextIcon className="size-3.5" />;
   }
   if (tab.type === "subagent-session") {
-    return <BotIcon className="size-3.5" />;
+    return <SubagentTabAvatar tab={tab} />;
   }
 
   if (tab.type === "subagent-directory") {
@@ -577,4 +580,27 @@ export function getSidePaneTabTitle(
   if (tab.type === "file-manager")
     return tab.source?.title || formatMessage({ id: "fileManager.title" });
   return tab.source.title || formatMessage({ id: "codeViewer.title" });
+}
+
+function SubagentTabAvatar({
+  tab,
+}: {
+  tab: Extract<WorkspaceSidePaneTab, { type: "subagent-session" }>;
+}) {
+  const { agents } = useSubagents(tab.workspacePath, NIBI_AGENT_PROVIDER, tab.workspaceIdentity);
+  const key = tab.subagentType.trim().toLowerCase();
+  const color = agents.find(
+    (agent) => agent.name.trim().toLowerCase() === key || agent.id.trim().toLowerCase() === key,
+  )?.color;
+  return (
+    <WorkflowAgentFace
+      avatarIndex={undefined}
+      name={tab.subagentType}
+      color={color ? SUBAGENT_WORKFLOW_COLOR[color] : undefined}
+      status={undefined}
+      idle
+      // 头像默认最小尺寸为 20px；紧凑标签必须同时覆盖，否则 size 不生效。
+      className="size-3.5 min-h-3.5! min-w-3.5!"
+    />
+  );
 }

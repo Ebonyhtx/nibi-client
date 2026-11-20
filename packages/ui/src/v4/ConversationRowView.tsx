@@ -40,6 +40,7 @@ import { parseAutomationRunId } from "@nibi/shared";
 import {
   TID_V4_EDIT,
   TID_V4_EDIT_ATTACHMENT_REMOVE,
+  TID_V4_EDIT_IN_COMPOSER_HINT,
   TID_V4_EDIT_CANCEL,
   TID_V4_EDIT_INPUT,
   TID_V4_EDIT_SUBMIT,
@@ -1574,18 +1575,7 @@ const SingleUserInputRowView = memo(function SingleUserInputRowView({
           rowId={row.rowId}
           label={intl.formatMessage({ id: "chat.message.copy" })}
         />
-        {context.composerEditingRowId === row.rowId ? (
-          // U03：编辑主体在底部 Composer；原行保留一个“正在下方编辑”的焦点占位，
-          // 不再展开行内编辑器。
-          <span
-            role="status"
-            data-composer-editing-row={row.rowId}
-            data-composer-editing-below="true"
-            className="px-1 text-ui-sm text-foreground-subtle"
-          >
-            {intl.formatMessage({ id: "chat.composerEdit.editingBelow" })}
-          </span>
-        ) : onEdit && row.entityId ? (
+        {context.composerEditingRowId === row.rowId ? null : onEdit && row.entityId ? (
           <MessageAction
             label={intl.formatMessage({ id: "chat.message.edit" })}
             tooltip={intl.formatMessage({ id: "chat.message.edit" })}
@@ -1605,9 +1595,37 @@ const SingleUserInputRowView = memo(function SingleUserInputRowView({
           </MessageAction>
         ) : null}
       </MessageActions>
+      {context.composerEditingRowId === row.rowId ? (
+        <ComposerEditInComposerHint rowId={row.rowId} onFocus={context.onFocusComposerEdit} />
+      ) : null}
     </RowShell>
   );
 });
+
+/**
+ * U03：编辑主体在底部 Composer；原行保留一个可点击的“正在下方编辑”入口，
+ * 点击把焦点送回编辑条，不再展开行内编辑器。
+ */
+export function ComposerEditInComposerHint({
+  rowId,
+  onFocus,
+}: {
+  rowId: number;
+  onFocus?: () => void;
+}) {
+  const { intl } = useNibiIntl();
+  return (
+    <button
+      type="button"
+      data-testid={testId(TID_V4_EDIT_IN_COMPOSER_HINT, String(rowId))}
+      className="mt-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-ui-sm text-foreground-subtle hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
+      onClick={onFocus}
+    >
+      <PencilIcon className="size-3.5" aria-hidden />
+      {intl.formatMessage({ id: "chat.composerEdit.inComposerHint" })}
+    </button>
+  );
+}
 
 const UserInputRowView = memo(function UserInputRowView(
   props: ComponentProps<typeof SingleUserInputRowView>,

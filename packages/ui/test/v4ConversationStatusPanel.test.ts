@@ -589,10 +589,10 @@ describe("ConversationStatusPanel", () => {
     expect(html).toContain('data-running-background-count="1"');
     expect(html).toContain("修好状态面板");
     expect(html).not.toContain("chat.summaryPanel.runningBackgroundTasksMiniValue 1");
-    expect(html).not.toContain("lucide-bot");
+    expect(html).not.toContain("data-subagent-avatar");
   });
 
-  it("uses Bot for Subagent-only mini summaries and reserves Activity for mixed work", async () => {
+  it("uses the subagent face for Subagent-only mini summaries and reserves Activity for mixed work", async () => {
     const subagentOnly = await renderStatusPanel({
       gitSummary: null,
       gitWorktreeChangeSummary: null,
@@ -602,7 +602,8 @@ describe("ConversationStatusPanel", () => {
     expect(subagentOnly).toContain("chat.statusPanel.runningAgentsValue 1");
     expect(subagentOnly).not.toContain("chat.summaryPanel.runningBackgroundTasksMiniValue 1");
     expect(subagentOnly).not.toMatch(/\d+秒/u);
-    expect(subagentOnly).toContain("lucide-bot");
+    expect(subagentOnly).toContain("data-subagent-avatar");
+    expect(subagentOnly).toContain('data-face-state="idle"');
     expect(subagentOnly).not.toContain("lucide-activity");
     expect(subagentOnly).not.toContain("lucide-square-terminal");
 
@@ -615,7 +616,7 @@ describe("ConversationStatusPanel", () => {
     expect(bashOnly).toContain("chat.summaryPanel.runningBackgroundTasksMiniValue 1");
     expect(bashOnly).not.toContain("chat.statusPanel.runningAgentsValue 1");
     expect(bashOnly).toContain("lucide-square-terminal");
-    expect(bashOnly).not.toContain("lucide-bot");
+    expect(bashOnly).not.toContain("data-subagent-avatar");
     expect(bashOnly).not.toContain("lucide-activity");
 
     const mixed = await renderStatusPanel({
@@ -628,7 +629,7 @@ describe("ConversationStatusPanel", () => {
     expect(mixed).toContain("chat.statusPanel.runningAgentsValuePlural 2");
     expect(mixed).not.toContain("chat.summaryPanel.runningBackgroundTasksMiniValuePlural 2");
     expect(mixed).toContain("lucide-activity");
-    expect(mixed).not.toContain("lucide-bot");
+    expect(mixed).not.toContain("data-subagent-avatar");
     expect(mixed).not.toContain("lucide-square-terminal");
   });
 
@@ -1299,7 +1300,7 @@ describe("ConversationStatusPanel", () => {
     });
     expect(gitPrimary).toContain("chat.statusPanel.changes");
     expect(gitPrimary).not.toContain("chat.summaryPanel.runningBackgroundTasksMiniValue 1");
-    expect(gitPrimary).not.toContain("lucide-bot");
+    expect(gitPrimary).not.toContain("data-subagent-avatar");
 
     const completedGoalPrimary = await renderStatusPanel({
       gitSummary: null,
@@ -1613,7 +1614,8 @@ describe("ConversationStatusPanel", () => {
     expect(html).toContain('data-status-section="agent"');
     expect(html).toContain("chat.statusPanel.terminals");
     expect(html).toContain("chat.statusPanel.agents");
-    expect(html).toContain("lucide-bot");
+    expect(html).toContain("data-subagent-avatar");
+    expect(html).toContain('data-face-state="scanning"');
     expect(html).toContain("lucide-square-terminal");
     expect(html).not.toContain("subagent · packages结构分析");
     expect(html).not.toContain("bash · 启动开发服务器");
@@ -1668,6 +1670,35 @@ describe("ConversationStatusPanel", () => {
       subagentType: "Explore",
       title: "探索渲染逻辑",
     });
+  });
+
+  it("renders the running Agent face with the configured subagent color", async () => {
+    const { ConversationStatusPanel } = await import("@/v4/ConversationStatusPanel.js");
+    const { ToolPresentationCapabilitiesProvider } =
+      await import("@/ToolCallBlocks/presentationCapabilities.js");
+    const { SUBAGENT_WORKFLOW_COLOR } = await import("@/lib/subagentColors.js");
+    const html = renderToStaticMarkup(
+      createElement(
+        ToolPresentationCapabilitiesProvider,
+        {
+          value: {
+            agentColor: (name: string) =>
+              name.trim().toLowerCase() === "explore" ? ("cyan" as const) : undefined,
+          },
+        },
+        createElement(ConversationStatusPanel, {
+          workspacePath: "/repo",
+          gitSummary: null,
+          gitWorktreeChangeSummary: null,
+          summaryPanelVariantOverride: "panel",
+          runningSubagents: [runningSubagent({ subagentType: "Explore" })],
+        }),
+      ),
+    );
+
+    expect(html).toContain("data-subagent-avatar");
+    expect(html).toContain('data-face-state="scanning"');
+    expect(html).toContain(SUBAGENT_WORKFLOW_COLOR.cyan);
   });
 
   it("bounds all six long status section types and keeps long Todos behind expansion", async () => {

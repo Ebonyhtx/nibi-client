@@ -44,13 +44,15 @@ vi.mock("@/hooks/useWorkspaceOpenInEditorTarget.js", () => ({
 
 vi.mock("@/hooks/useFileContextActions.js", () => ({
   useFileContextActions: () => ({
+    canRevealInFileManager: () => false,
     copyAbsolutePath: vi.fn(),
     copyRelativePath: vi.fn(),
+    revealInFileManager: vi.fn(),
   }),
 }));
 
 vi.mock("@/store/StoreProvider.js", () => ({
-  useNibiStore: <T,>(selector: (state: Record<string, unknown>) => T) =>
+  useNibiStore: <T>(selector: (state: Record<string, unknown>) => T) =>
     selector({
       codePreviewSettings: {
         darkTheme: "github-dark",
@@ -64,11 +66,7 @@ vi.mock("@/store/StoreProvider.js", () => ({
 }));
 
 vi.mock("@/previewPaneContent.js", () => ({
-  PreviewPaneContent: ({
-    codeComments,
-  }: {
-    codeComments: readonly unknown[];
-  }) =>
+  PreviewPaneContent: ({ codeComments }: { codeComments: readonly unknown[] }) =>
     createElement("div", {
       "data-code-comment-count": String(codeComments.length),
     }),

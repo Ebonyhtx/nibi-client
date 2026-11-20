@@ -1,6 +1,11 @@
 import { NibiStorageStartupGate } from "#src/nibi-agent/nibiStorageStartupGate.js";
 import { Emitter } from "@nibi/rpc";
 import type { IDisposable } from "@nibi/rpc";
+import {
+  nibiProtocolMethods,
+  sessionLifecycleActivationParamsSchema,
+  sessionLifecycleResultSchema,
+} from "@nibi/shared";
 import type {
   NibiProtocolMethod,
   NibiProtocolNotification,
@@ -40,6 +45,8 @@ interface PendingRequest<T> {
 }
 
 interface NibiProtocolClientRequestOptions {
+  /** 单 session 操作超时不能擅自回收整个 workspace；后端仍持有操作，可另行查询。 */
+  invalidateConnectionOnTimeout?: boolean;
   /** 观测不得参与 runtime 健康判定或业务空闲续期；默认保持业务请求语义。 */
   lifecycle?: "operation" | "observation";
   signal?: AbortSignal;
@@ -72,6 +79,19 @@ export class NibiProtocolRequestTimeoutError extends Error {
 }
 
 export class NibiProtocolClient implements IDisposable {
+  /** 与已连接 workspace 的 CLI 生命周期 owner 通信；此入口不拉起或重启整个进程。 */
+  readonly sessionLifecycle = {
+    restart: (sessionId: string) =>
+      // NIBI 内核按会话持久记录定位 workspace，`sessionLifecycleWorkspace` 能力恒 false，
+      // 因此与上游“带 workspace 先探测能力”的分支不同：这里不传 workspace。
+      this.request(
+        nibiProtocolMethods.sessionLifecycleRestart,
+        sessionLifecycleActivationParamsSchema.parse({ sessionId }),
+        sessionLifecycleResultSchema,
+        { invalidateConnectionOnTimeout: false },
+      ),
+  };
+
   readonly storageStartup: NibiStorageStartupGate;
   private readonly pending = new Map<string, PendingRequest<unknown>>();
   private readonly notificationEmitter = new Emitter<NibiProtocolNotification>();
@@ -178,7 +198,7 @@ export class NibiProtocolClient implements IDisposable {
         // process manager 仍复用这个 stale client，导致后续 plugins/list 等请求连续卡在超时窗口。
         // 超时事件把“连接已不可信”的事实上抛给 owner，由 owner 负责淘汰进程。
         // 资源查询的短超时只表示本轮无数据，不能被升级成整个 Agent 的故障回收。
-        if (!observation) {
+        if (!observation && options?.invalidateConnectionOnTimeout !== false) {
           this.requestTimeoutEmitter.fire({ method, requestId: id, timeoutMs: requestTimeoutMs });
         }
         reject(error);

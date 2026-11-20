@@ -85,6 +85,7 @@ import {
 } from "@/components/workflow-timeline/workflowRunSettings.js";
 import { useWorkflowRunJournalSummaries } from "@/hooks/useWorkflowRunJournalSummaries.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
+import { useSessionRuntimeRestart } from "@/app-shell/useWorkspaceSessionReload.js";
 import { buildGenUiModelContext } from "@nibi/shared/gen-ui";
 import { useWorkspaceHomePath } from "@/hooks/useWorkspaceHomePath.js";
 import { prepareWorkspaceWithNibiSessionService } from "@/hooks/useWorkspacePrepare.js";
@@ -653,6 +654,12 @@ export function SessionPane({
     useServices();
   const { intl, locale } = useNibiIntl();
   const runtimeExitNotice = useAgentRuntimeExitNotice({ onRuntimeExited, onRuntimeRestart });
+  const taskRestart = useSessionRuntimeRestart(
+    workspacePath,
+    sessionId,
+    remoteSessionId,
+    workspaceIdentity,
+  );
   const slashCommands = useSlashCommands(workspacePath, workspaceIdentity);
   const baseWorkspaceServices = useBaseWorkspaceServices();
   const composerClientNamespace = useComposerClientNamespace();
@@ -2459,6 +2466,17 @@ export function SessionPane({
   // Plan 选中即开启标准 Composer 开关，不能等发送时解析文本；与 /side 共用本地操作入口。
   const appSlashCommands = useMemo<AppSlashCommand[] | undefined>(() => {
     if (readOnly) return undefined;
+    const reloadActions: AppSlashCommand[] = sessionId
+      ? [
+          {
+            value: "reload",
+            recovery: true,
+            description: intl.formatMessage({ id: "chat.slash.app.reload.description" }),
+            keywords: ["reload", "restart", "重启"],
+            run: taskRestart.restart,
+          },
+        ]
+      : [];
     const planAction: AppSlashCommand = {
       value: "plan",
       label: intl.formatMessage({ id: "chat.slash.app.plan.label" }),
@@ -2476,7 +2494,7 @@ export function SessionPane({
         isMobileViewport: isMobileTextInputViewport,
       })
     ) {
-      return [planAction];
+      return [...reloadActions, planAction];
     }
     const openNewSelectionSideChat = () => {
       void handleOpenSelectionSideConversation(undefined, true);
@@ -2486,6 +2504,7 @@ export function SessionPane({
     const sharedKeywords = ["side", "btw", "side chat", "auxiliary", "辅助对话", "辅助", "侧边"];
     const description = intl.formatMessage({ id: "chat.slash.app.side.description" });
     return [
+      ...reloadActions,
       planAction,
       ...[
         { value: "side", description, keywords: sharedKeywords, run: openNewSelectionSideChat },
@@ -2493,6 +2512,7 @@ export function SessionPane({
       ].filter((command) => !cliSlashCommandNames.has(command.value)),
     ];
   }, [
+    taskRestart.restart,
     cliSlashCommandNames,
     handleDraftSwitchMode,
     handleOpenSelectionSideConversation,
@@ -2511,7 +2531,15 @@ export function SessionPane({
     snapshot?.control.activeWorks ?? [],
   );
   // 子智能体详情的会话内容仍只读；文件撤销恢复的是 workspace，必须作为独立能力判断。
-  const workspaceFileRewindEnabled = !readOnly || allowWorkspaceFileRewind;
+  // 内核在回合运行中或有待答交互时撤掉 `canRewindFiles`，与 lock 的触发条件一致；
+  // NIBI 协议没有上游 `availability.rewindFiles`，这里从同一份投影事实派生。
+  const fileRewindLocked =
+    snapshot?.control.phase === "running" || (snapshot?.pendingInteractions.length ?? 0) > 0;
+  const fileRewindAllowedByPane = !readOnly || allowWorkspaceFileRewind;
+  const workspaceFileRewindEnabled = fileRewindAllowedByPane && !fileRewindLocked;
+  // 锁定提示只给“锁一解除就能撤销”的场景；只读 pane、运行时未就绪时不提示
+  // （docs/ui/task-file-change-summary.md）。
+  const fileRewindLockedHint = runtimeReady && fileRewindAllowedByPane && fileRewindLocked;
   // cancelBackgroundWork：启动卡 / 后台任务卡的「取消」入口。定义在 rowContext memo 之前，
   // 供其绑定（onOpenWorkflowRun 同样在 memo 前定义）；只读模式下不下发（与 4213 处一致）。
   const handleCancelBackgroundWork = useCallback(
@@ -2577,6 +2605,13 @@ export function SessionPane({
     if (result !== "sent") throw new Error(`workflow save request not sent: ${result}`);
   }, []);
 
+  // 与 sendTextRef 同理：composerEditMode 定义在本文件更下面，而 rowContext 的 memo 工厂
+  // 在同一次渲染里就会跑到。ref 在渲染中赋值，点击总在挂载之后。
+  const focusComposerEditRef = useRef<(() => void) | null>(null);
+  const handleFocusComposerEdit = useCallback(() => {
+    focusComposerEditRef.current?.();
+  }, []);
+
   const rowContext = useMemo<ConversationRowRenderContext>(
     () => ({
       workspacePath,
@@ -2591,6 +2626,7 @@ export function SessionPane({
       rootSessionId: rootSessionId ?? sessionId,
       compactForRemoteControl,
       composerEditingRowId: composerEditingUserQueryRowId,
+      onFocusComposerEdit: handleFocusComposerEdit,
       chatLoadingBlockedByActiveWork,
       chatLoadingBlockedByInteraction,
       messageStreamShowReasoning,
@@ -2654,6 +2690,7 @@ export function SessionPane({
         runtimeReady && workspaceFileRewindEnabled ? handlePreviewFileRewind : undefined,
       applyFileRewind:
         runtimeReady && workspaceFileRewindEnabled ? handleApplyFileRewind : undefined,
+      fileRewindLocked: fileRewindLockedHint,
       readAttachment: runtimeReady ? attachmentRead : undefined,
       readAttachmentRange: runtimeReady ? attachmentReadRange : undefined,
     }),
@@ -2670,6 +2707,7 @@ export function SessionPane({
       rootSessionId,
       compactForRemoteControl,
       composerEditingUserQueryRowId,
+      handleFocusComposerEdit,
       chatLoadingBlockedByActiveWork,
       chatLoadingBlockedByInteraction,
       messageStreamShowReasoning,
@@ -2712,6 +2750,7 @@ export function SessionPane({
       workflowFillGraphByRunId,
       workflowDraftByToolCallId,
       workspaceFileRewindEnabled,
+      fileRewindLockedHint,
       handleFetchFileChanges,
       handlePreviewFileRewind,
       handleApplyFileRewind,
@@ -3839,7 +3878,8 @@ export function SessionPane({
     confirmDiscard: confirmComposerEditDiscard,
   });
 
-  // rowContext 在 hook 之前构造；把“正在编辑哪一行”同步给行占位。
+  // rowContext 在 hook 之前构造；把“正在编辑哪一行”同步给行占位，把聚焦口交给行入口。
+  focusComposerEditRef.current = composerEditMode.requestFocus;
   const composerEditRowId = composerEditMode.editingUserQueryRowId;
   const composerEditDraftRef = useRef(composerEditMode.state.draft);
   composerEditDraftRef.current = composerEditMode.state.draft;

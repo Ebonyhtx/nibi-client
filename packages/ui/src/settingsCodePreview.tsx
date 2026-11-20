@@ -213,6 +213,7 @@ export function AppearanceSectionContent({
           <Card className="border border-border bg-card py-0 shadow-none [&_[data-slot=select-trigger]]:w-full">
             <CardContent className="space-y-0 px-0">
               <SettingsRow
+                searchTarget="appearance.codeLightTheme"
                 label={intl.formatMessage({ id: "settings.lightTheme" })}
                 description={intl.formatMessage({
                   id: "settings.lightThemeDescription",
@@ -225,6 +226,7 @@ export function AppearanceSectionContent({
                 }
               />
               <SettingsRow
+                searchTarget="appearance.codeDarkTheme"
                 label={intl.formatMessage({ id: "settings.darkTheme" })}
                 description={intl.formatMessage({
                   id: "settings.darkThemeDescription",
@@ -237,6 +239,7 @@ export function AppearanceSectionContent({
                 }
               />
               <SettingsRow
+                searchTarget="appearance.showLineNumbers"
                 label={intl.formatMessage({ id: "settings.showLineNumbers" })}
                 description={intl.formatMessage({
                   id: "settings.showLineNumbersDescription",
@@ -251,6 +254,7 @@ export function AppearanceSectionContent({
                 }
               />
               <SettingsRow
+                searchTarget="appearance.wrapLongLines"
                 label={intl.formatMessage({ id: "settings.wrapLongLines" })}
                 description={intl.formatMessage({
                   id: "settings.wrapLongLinesDescription",
@@ -265,6 +269,7 @@ export function AppearanceSectionContent({
                 }
               />
               <SettingsRow
+                searchTarget="appearance.codeFontSize"
                 label={intl.formatMessage({ id: "settings.fontSize" })}
                 description={intl.formatMessage({
                   id: "settings.fontSizeDescription",

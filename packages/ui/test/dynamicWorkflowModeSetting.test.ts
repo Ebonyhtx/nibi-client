@@ -140,6 +140,14 @@ describe("DynamicWorkflowModeSetting（DWG-22）", () => {
     expect(taggedOptions()).toEqual(["disabled"]);
   });
 
+  it("设置行带设置搜索锚点", () => {
+    act(() => publish("alwaysOn"));
+    const { container } = render(createElement(DynamicWorkflowModeSetting));
+    expect(
+      container.querySelector('[data-settings-search-target="agentBehavior.dynamicWorkflows"]'),
+    ).not.toBeNull();
+  });
+
   it("未选择时显示服务端提供的模式且默认标签只在它上面", () => {
     act(() => publish("alwaysOn"));
     render(createElement(DynamicWorkflowModeSetting));

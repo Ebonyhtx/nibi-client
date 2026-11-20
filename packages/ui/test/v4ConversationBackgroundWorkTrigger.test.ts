@@ -94,7 +94,7 @@ describe("ConversationBackgroundWorkTrigger", () => {
     ]);
     expect(bashOnly).toContain('data-background-bash-count="1"');
     expect(bashOnly).toContain('data-background-subagent-count="0"');
-    expect(bashOnly).not.toContain("lucide-bot");
+    expect(bashOnly).not.toContain("data-subagent-avatar");
     expect(bashOnly).toContain('data-tooltip="chat.composer.backgroundWorks.tooltipTerminal"');
 
     const agentOnly = await renderTrigger([], 1);
@@ -154,7 +154,7 @@ describe("getComposerBackgroundWorkCounts with dwf workflow runs", () => {
     expect(html).toContain('data-background-total-count="1"');
     expect(html).toContain("lucide-workflow");
     expect(html).not.toContain("lucide-square-terminal");
-    expect(html).not.toContain("lucide-bot");
+    expect(html).not.toContain("data-subagent-avatar");
     expect(html).toContain('data-tooltip="chat.composer.backgroundWorks.tooltipWorkflow"');
     expect(html).toContain('aria-label="chat.composer.backgroundWorks.ariaLabel 0/1/0/1"');
   });
@@ -196,8 +196,8 @@ describe("getComposerBackgroundWorkCounts with dwf workflow runs", () => {
       ],
       1,
     );
-    const order = ["lucide-square-terminal", "lucide-workflow", "lucide-bot"].map((icon) =>
-      html.indexOf(icon),
+    const order = ["lucide-square-terminal", "lucide-workflow", "data-subagent-avatar"].map(
+      (icon) => html.indexOf(icon),
     );
 
     expect(order.every((index) => index >= 0)).toBe(true);

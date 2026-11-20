@@ -1,5 +1,11 @@
 import type { EditorInfo } from "@nibi/shared";
-import { ChevronDownIcon, CopyIcon, ExternalLinkIcon, PanelRightIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  CopyIcon,
+  ExternalLinkIcon,
+  FolderOpenIcon,
+  PanelRightIcon,
+} from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -29,6 +35,7 @@ import {
   ContextMenuSubTrigger,
   ContextMenuSubContent,
 } from "@/components/ui/context-menu.js";
+import { FileSaveAsMenuItem } from "@/file-menu/index.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import { useFileContextActions } from "@/hooks/useFileContextActions.js";
 import { useWorkspaceOpenInEditorTarget } from "@/hooks/useWorkspaceOpenInEditorTarget.js";
@@ -36,6 +43,7 @@ import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { persistLastSelectedEditorId } from "@/lib/editorPreference.js";
 import type { CodeViewerSource } from "@/lib/codeViewer.js";
 import { getWorkspaceFileRelativePath } from "@/workspace-file-tree/model.js";
+import { getFileManagerLabel } from "@/workspace-file-tree/helpers.js";
 import { resolveWorkspaceEditorSelection } from "@/lib/workspaceEditorSelection.js";
 import { logger } from "@/logger.js";
 
@@ -68,6 +76,10 @@ interface OpenSplitButtonProps {
   onOpenFileLink?: (target: MessageFileLinkTarget) => void;
   onOpenCodeViewer?: (source: CodeViewerSource) => void;
   hideOpenWithMenu?: boolean;
+  /** 预览头部的主按钮语义：优先本机默认应用，其次已安装编辑器。 */
+  openDefaultOnPrimary?: boolean;
+  /** 预览专属的显示选项，追加在统一文件动作之后，不复制文件操作。 */
+  viewMenuItems?: ReactNode;
   stopPropagation?: boolean;
   /** 整张卡片复用按钮的操作与状态，右键和下拉不会维护两套动作。 */
   renderCard?: (button: ReactNode, action: OpenSplitButtonCardAction) => ReactElement;
@@ -79,6 +91,8 @@ export function OpenSplitButton({
   onOpenFileLink,
   onOpenCodeViewer,
   hideOpenWithMenu = false,
+  openDefaultOnPrimary = false,
+  viewMenuItems,
   stopPropagation = false,
   renderCard,
 }: OpenSplitButtonProps) {
@@ -106,8 +120,20 @@ export function OpenSplitButton({
   const filePath = target.type === "file" ? target.path : target.localPath;
   const workspacePath =
     target.type === "file" ? previewSource?.workspacePath : target.workspacePath;
-  const canOpenNative = Boolean(platform.canOpenLocalFiles && !isRemoteSource);
+  const canOpenNative = Boolean(
+    platform.canOpenLocalFiles && !isRemoteSource && platform.openExternalFile,
+  );
+  // 只有落在本机（或 WSL）的文件产物能定位到所在目录：文件卡用自身路径，
+  // file:// HTML 用 localPath；纯网址没有文件可找。
+  const revealPath = target.type === "file" ? target.path : target.localPath;
+  const canReveal = Boolean(revealPath && fileActions.canRevealInFileManager({ path: revealPath }));
+  const fileManagerLabel = getFileManagerLabel(intl);
+  const handleReveal = () => {
+    // macOS / Windows 定位并选中文件；无系统定位能力时 hook 内部回退为打开所在目录。
+    if (revealPath) void fileActions.revealInFileManager({ path: revealPath, kind: "file" });
+  };
   const editorRequest = useRef(0);
+  const primaryEditorLoadStarted = useRef(false);
   const [editors, setEditors] = useState<EditorInfo[]>([]);
   const [editorsLoaded, setEditorsLoaded] = useState(false);
   const [loadingEditors, setLoadingEditors] = useState(false);
@@ -122,11 +148,13 @@ export function OpenSplitButton({
           }).availableEditors,
     [editors, isRemoteSource, openInEditorRemoteTarget],
   );
-  const canPreview =
-    target.type === "website"
+  const canPreview = openDefaultOnPrimary
+    ? Boolean(canOpenNative || sortedEditors.length)
+    : target.type === "website"
       ? Boolean(onOpenBrowserUrl)
       : Boolean(onOpenFileLink || onOpenCodeViewer);
   useEffect(() => {
+    primaryEditorLoadStarted.current = false;
     setEditors([]);
     setEditorsLoaded(false);
     setLoadingEditors(false);
@@ -135,7 +163,12 @@ export function OpenSplitButton({
     return () => {
       editorRequest.current += 1;
     };
-  }, [filePath, previewSource?.workspaceIdentity, previewSource?.workspaceRemoteSessionId]);
+  }, [
+    filePath,
+    workspacePath,
+    previewSource?.workspaceIdentity,
+    previewSource?.workspaceRemoteSessionId,
+  ]);
 
   const stopEventPropagation = (event: { stopPropagation: () => void }) => {
     if (stopPropagation) {
@@ -166,7 +199,35 @@ export function OpenSplitButton({
     }
   }, [editorsLoaded, loadingEditors, platform, target, isRemoteSource, openInEditorRemoteTarget]);
 
+  useEffect(() => {
+    // 远端主按钮也需要提前获取可用编辑器；不能等用户先打开下拉才解除禁用。
+    // 每个来源只自动请求一次，失败后仍可由用户打开菜单重试，避免渲染循环重试。
+    if (
+      openDefaultOnPrimary &&
+      isRemoteSource &&
+      openInEditorRemoteTarget &&
+      !primaryEditorLoadStarted.current &&
+      !editorsLoaded &&
+      !loadingEditors
+    ) {
+      primaryEditorLoadStarted.current = true;
+      void loadEditors();
+    }
+  }, [
+    openDefaultOnPrimary,
+    isRemoteSource,
+    openInEditorRemoteTarget,
+    loadEditors,
+    editorsLoaded,
+    loadingEditors,
+  ]);
+
   const handlePreview = () => {
+    if (openDefaultOnPrimary) {
+      if (canOpenNative) handleOpenDefault();
+      else if (sortedEditors[0]) handleOpenInEditor(sortedEditors[0]);
+      return;
+    }
     if (target.type === "website") {
       onOpenBrowserUrl?.(target.url);
       return;
@@ -308,7 +369,22 @@ export function OpenSplitButton({
             )}
           </>
         )}
+        {target.type === "file" && (
+          <FileSaveAsMenuItem
+            variant="context"
+            path={target.path}
+            workspacePath={workspacePath}
+            workspaceIdentity={previewSource?.workspaceIdentity}
+            workspaceRemoteSessionId={previewSource?.workspaceRemoteSessionId}
+          />
+        )}
         <Separator />
+        {canReveal && (
+          <Item onSelect={handleReveal}>
+            <FolderOpenIcon className="size-4" />
+            {fileManagerLabel}
+          </Item>
+        )}
         {target.type === "website" && (
           <Item onSelect={() => void fileActions.copyAbsolutePath({ path: target.url })}>
             <CopyIcon className="size-4" />
@@ -377,14 +453,26 @@ export function OpenSplitButton({
         )}
       </div>
       {!hideOpenWithMenu && (
-        <DropdownMenuContent align="end" side="top" className="w-44" onClick={stopEventPropagation}>
+        <DropdownMenuContent
+          align="end"
+          side="top"
+          className="w-64 max-w-[calc(100vw-1rem)]"
+          onClick={stopEventPropagation}
+        >
           <OpenSplitButtonDropdownActions
             target={target}
             sortedEditors={sortedEditors}
             loadingEditors={loadingEditors}
             handleOpenExternal={handleOpenExternal}
             handleOpenInEditor={handleOpenInEditor}
+            reveal={canReveal ? { label: fileManagerLabel, onSelect: handleReveal } : undefined}
           />
+          {viewMenuItems ? (
+            <>
+              <DropdownMenuSeparator />
+              {viewMenuItems}
+            </>
+          ) : null}
         </DropdownMenuContent>
       )}
     </DropdownMenu>
@@ -414,29 +502,49 @@ function OpenSplitButtonDropdownActions({
   loadingEditors,
   handleOpenExternal,
   handleOpenInEditor,
+  reveal,
 }: {
   target:
     | { type: "website" }
-    | { type: "file"; path: string; label: string; previewSource?: { workspacePath?: string } };
+    | {
+        type: "file";
+        path: string;
+        label: string;
+        previewSource?: {
+          workspacePath?: string;
+          workspaceIdentity?: string;
+          workspaceRemoteSessionId?: string;
+        };
+      };
   sortedEditors: readonly EditorInfo[];
   loadingEditors: boolean;
   handleOpenExternal: () => void;
   handleOpenInEditor: (editor: EditorInfo) => void;
+  reveal?: { label: string; onSelect: () => void };
 }) {
   const { intl } = useNibiIntl();
   const fileActions = useFileContextActions();
   const selectedEditor = sortedEditors[0];
+  const revealItem = reveal ? (
+    <DropdownMenuItem onSelect={reveal.onSelect}>
+      <FolderOpenIcon className="size-4" />
+      {reveal.label}
+    </DropdownMenuItem>
+  ) : null;
   return (
     <>
       {target.type === "website" ? (
-        <DropdownMenuItem onSelect={handleOpenExternal}>
-          <ExternalLinkIcon className="size-4" />
-          <span>
-            {intl.formatMessage({
-              id: "chat.previewCards.openExternal",
-            })}
-          </span>
-        </DropdownMenuItem>
+        <>
+          <DropdownMenuItem onSelect={handleOpenExternal}>
+            <ExternalLinkIcon className="size-4" />
+            <span>
+              {intl.formatMessage({
+                id: "chat.previewCards.openExternal",
+              })}
+            </span>
+          </DropdownMenuItem>
+          {revealItem}
+        </>
       ) : (
         <>
           {selectedEditor ? (
@@ -454,6 +562,13 @@ function OpenSplitButtonDropdownActions({
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
+          {revealItem}
+          <FileSaveAsMenuItem
+            path={target.path}
+            workspacePath={target.previewSource?.workspacePath}
+            workspaceIdentity={target.previewSource?.workspaceIdentity}
+            workspaceRemoteSessionId={target.previewSource?.workspaceRemoteSessionId}
+          />
           <DropdownMenuItem
             onSelect={() => void fileActions.copyAbsolutePath({ path: target.path })}
           >

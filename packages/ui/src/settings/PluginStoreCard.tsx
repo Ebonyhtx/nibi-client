@@ -328,6 +328,45 @@ export function PluginStoreUpdateButton({
   );
 }
 
+/** 已安装分组头部「全部更新（N）」：仅在存在可更新插件时出现，口径与行内更新按钮一致。 */
+export function PluginUpdateAllButton({
+  items,
+  actions,
+  pending,
+  onUpdateAll,
+}: {
+  items: readonly StorePluginItem[];
+  actions: PluginStoreActions;
+  pending: boolean;
+  onUpdateAll: (pluginIds: string[]) => void;
+}) {
+  const { intl } = useNibiIntl();
+  const pluginIds = items.filter(canUpdatePluginItem).map((item) => item.id);
+  if (pluginIds.length === 0) return null;
+  const updating =
+    pending ||
+    actions.activeOperations.some((operation) => operation.id.startsWith("plugin:update:"));
+  return (
+    <Button
+      type="button"
+      data-testid="plugin-settings-update-all"
+      variant="outline"
+      disabled={updating}
+      onClick={() => onUpdateAll(pluginIds)}
+    >
+      {updating ? (
+        <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+      ) : (
+        <Download className="size-3.5" aria-hidden="true" />
+      )}
+      {intl.formatMessage(
+        { id: "settings.plugins.updateAll" },
+        { count: String(pluginIds.length) },
+      )}
+    </Button>
+  );
+}
+
 /**
  * 商店卡片（双列网格单元）：40px 头像 + 显示名 + 单行截断描述；
  * 尾部动作：已安装 → 「…」菜单，未安装 → 「安装」胶囊。点击主体进入详情页。

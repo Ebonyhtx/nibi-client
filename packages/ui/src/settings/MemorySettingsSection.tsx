@@ -155,6 +155,7 @@ export function MemorySettingsSection({
     <div className="space-y-6">
       <SettingsGroupCard>
         <SettingsRow
+          searchTarget="memory.workspaceMemory"
           label={intl.formatMessage({
             id: "settings.memory.workspaceMemory",
           })}

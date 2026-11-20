@@ -8,6 +8,7 @@
  */
 import {
   isSettingsSectionAvailable,
+  type SettingsSearchItemDefinition,
   type SettingsSectionDefinition,
   type SettingsSectionId,
 } from "@/settings/settingsPageConfig.js";
@@ -29,20 +30,63 @@ export interface CreateSettingsSearchIndexOptions {
   /** Web 不展示远程设备/数据同步，搜索索引也不能把它们漏出来。 */
   isDesktop?: boolean;
   isMacDesktop?: boolean;
+  isWindowsDesktop?: boolean;
+  isLinuxDesktop?: boolean;
   /** 文案解析；组件传 intl.formatMessage，测试可传 `id => id`。 */
   translate: (id: string) => string;
 }
 
 export const SETTINGS_SEARCH_RESULT_LIMIT = 20;
 
+function isSearchItemVisible(
+  visibility: SettingsSearchItemDefinition["visibility"],
+  {
+    isDesktop,
+    isMacDesktop,
+    isWindowsDesktop,
+    isLinuxDesktop,
+  }: Required<
+    Pick<
+      CreateSettingsSearchIndexOptions,
+      "isDesktop" | "isMacDesktop" | "isWindowsDesktop" | "isLinuxDesktop"
+    >
+  >,
+): boolean {
+  switch (visibility) {
+    case undefined:
+    case "all":
+      return true;
+    case "desktop":
+      return isDesktop;
+    case "web":
+      return !isDesktop;
+    case "macDesktop":
+      return isMacDesktop;
+    case "windowsDesktop":
+      return isWindowsDesktop;
+    case "windowsOrLinuxDesktop":
+      return isWindowsDesktop || isLinuxDesktop;
+    case "notWindowsDesktop":
+      return !isWindowsDesktop;
+  }
+}
+
 /** 按当前平台可见性构建索引。 */
 export function createSettingsSearchIndex({
   settingsSections,
   isDesktop = false,
   isMacDesktop = false,
+  isWindowsDesktop = false,
+  isLinuxDesktop = false,
   translate,
 }: CreateSettingsSearchIndexOptions): SettingsSearchIndexEntry[] {
   const entries: SettingsSearchIndexEntry[] = [];
+  const availability = {
+    isDesktop,
+    isMacDesktop,
+    isWindowsDesktop,
+    isLinuxDesktop,
+  };
 
   for (const section of settingsSections) {
     if (!isSettingsSectionAvailable(section.id, isDesktop)) continue;
@@ -62,7 +106,7 @@ export function createSettingsSearchIndex({
     });
 
     for (const item of section.searchItems ?? []) {
-      if (item.visibility === "macDesktop" && !isMacDesktop) continue;
+      if (!isSearchItemVisible(item.visibility, availability)) continue;
       entries.push({
         id: `${section.id}:${item.id}`,
         sectionId: section.id,
@@ -88,11 +132,13 @@ function scoreToken(entry: SettingsSearchIndexEntry, token: string): number {
   const keywords = entry.keywords.map(normalizeSearchText);
 
   if (title === token) return 1000;
+  // 精确命中别名说明用户输入的就是这一项的常用叫法；优先于只是出现在
+  // 另一行较长标题里的子串（例如“证书”应落到“自定义证书”，而不是“忽略证书校验”）。
+  if (keywords.some((keyword) => keyword === token)) return 950;
   if (title.startsWith(token)) return 900;
+  if (keywords.some((keyword) => keyword.startsWith(token))) return 850;
   if (title.includes(token)) return 800;
-  if (keywords.some((keyword) => keyword === token)) return 700;
-  if (keywords.some((keyword) => keyword.startsWith(token))) return 600;
-  if (keywords.some((keyword) => keyword.includes(token))) return 500;
+  if (keywords.some((keyword) => keyword.includes(token))) return 700;
   if (sectionTitle.includes(token)) return entry.isSectionEntry ? 300 : 200;
   return 0;
 }

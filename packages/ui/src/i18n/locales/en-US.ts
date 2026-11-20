@@ -136,6 +136,7 @@ const enUS: Record<string, string> = {
   "project.legacyUpgradeRequired": "Upgrade the server to create and edit projects",
   "project.unresolved": "Select a project",
   "project.removeEntry": "Remove from this device",
+  "projectManagement.manage": "Manage projects…",
   "project.addFolder": "Add folder to project",
   "project.projects": "Projects",
   "project.timeline": "Timeline",
@@ -2239,6 +2240,13 @@ const enUS: Record<string, string> = {
   "appHeader.copyPath": "Copy path",
   "fileActions.copyAbsolutePath": "Copy absolute path",
   "fileActions.copyRelativePath": "Copy relative path",
+  "fileActions.saved": "Saved",
+  "fileActions.downloadStarted": "Download started",
+  "fileActions.saveAs": "Save as…",
+  "fileActions.saveAsUnavailable": "Saving files is unavailable here",
+  "fileActions.saveAsFailed":
+    "Could not save this file. Check the source connection and try again.",
+  "fileActions.saveAsTooLarge": "Files larger than 50 MiB cannot be saved here.",
   "appHeader.copyTaskPath": "Copy task path",
   "appHeader.copyClaudeJsonlPath": "Copy JSONL path",
   "appHeader.copySessionId": "Copy session ID",
@@ -3340,6 +3348,11 @@ const enUS: Record<string, string> = {
   "taskList.renameFailed": "Could not rename task",
   "taskList.pinFailed": "Could not update pinned state",
   "taskList.markAsUnread": "Mark as unread",
+  "taskList.restart": "Restart task",
+  "taskList.restarting": "Restarting task…",
+  "taskList.restartFailed": "Restart failed. Check the task status and try again.",
+  "taskList.restartUnsupported":
+    "This Agent version does not support restarting tasks. Update it first.",
   "chat.toolCall.agent.openInSidePane": "Open in side pane",
   "v4Pane.renamePlaceholder": "Rename session…",
   "v4Pane.renameSession": "Rename session",
@@ -3391,6 +3404,8 @@ const enUS: Record<string, string> = {
   "chat.changeSummary.rewind": "Undo",
   "chat.changeSummary.reapply": "Reapply",
   "chat.changeSummary.reverted": "Undone",
+  "chat.changeSummary.rewindLocked":
+    "The session is running or has a pending request. You can undo after it finishes.",
   "chat.changeSummary.rewindDialog.title": "Undo file changes",
   "chat.changeSummary.rewindDialog.description":
     "NIBI checks current file content again before writing. If another process changed a file, no files will be written.",
@@ -5047,6 +5062,10 @@ const enUS: Record<string, string> = {
   "settings.plugins.marketplaces.chooseDirectory": "Choose directory",
   "settings.plugins.marketplaces.dropHint": "Drag a file or folder here, or choose a directory.",
   "settings.plugins.marketplaces.validate": "Validate marketplace",
+  "settings.plugins.marketplaces.riskWarning":
+    "Unofficial plugin marketplaces may contain malicious plugins that can harm your device. Verify the source and take precautions before adding.",
+  "settings.plugins.marketplaces.riskAcknowledgement":
+    "I understand the risks, have verified the source, and have taken precautions.",
   "settings.plugins.marketplaces.add": "Add marketplace",
   "settings.plugins.marketplaces.update": "Update marketplace",
   "settings.plugins.marketplaces.remove": "Remove marketplace",
@@ -5080,6 +5099,11 @@ const enUS: Record<string, string> = {
   "settings.plugins.checkForUpdates": "Check for updates",
   "settings.plugins.checkForUpdates.found": "Found {count} plugin update(s) available",
   "settings.plugins.checkForUpdates.none": "All installed plugins are up to date",
+  "settings.plugins.updateAll": "Update all ({count})",
+  "settings.plugins.updateAll.done": "Updated {count} plugin(s)",
+  "settings.plugins.updateAll.partial": "Updated {succeeded}, failed {failed}: {plugins}",
+  "settings.plugins.updateAll.aborted":
+    "Update all stopped because the plugin scope changed; updated {count} plugin(s)",
   "settings.plugins.list.updateAvailable": "Update",
   "settings.plugins.list.versionChanged": "Changed",
   "settings.plugins.restore": "Restore",
@@ -5652,6 +5676,7 @@ const enUS: Record<string, string> = {
   "chat.queue.editRestoreFailed": "Couldn't return the queued message to the composer. Try again.",
   "chat.composerEdit.cancel": "Cancel",
   "chat.composerEdit.editingBelow": "Editing below",
+  "chat.composerEdit.inComposerHint": "Editing below",
   "chat.composerEdit.title.userQuery": "Editing message",
   "chat.composerEdit.title.queueItem": "Editing queued message",
   "chat.composerEdit.rewind": "Reset conversation and files",
@@ -5863,6 +5888,8 @@ const enUS: Record<string, string> = {
   "chat.goal.planModeBlocked": "Goal is unavailable in Plan mode. Switch modes to continue.",
   "chat.slash.app.plan.label": "Plan mode",
   "chat.slash.app.plan.description": "Enable Plan mode",
+  "chat.slash.app.reload.description":
+    "Reload the task runtime, preserving history and stopping current execution.",
   "chat.compact.runningBlocked": "Compact context after the current task finishes.",
   "chat.compact.queued": "Compaction queued and will run in order.",
   "chat.compact.duplicateBlocked": "A compaction is already running or queued.",
@@ -8123,7 +8150,8 @@ const enUS: Record<string, string> = {
   "chat.message.fork.hereWorktree": "Fork in current worktree",
   "chat.message.fork.toWorktree": "Fork in a new worktree",
   "chat.message.fork.toWorktreeHint": "Includes uncommitted changes",
-  "chat.message.fork.worktreeUnsupported": "The current Agent version does not support worktree cwd",
+  "chat.message.fork.worktreeUnsupported":
+    "The current Agent version does not support worktree cwd",
   "git.managedWorktree.name": "{repo} · {bucket}",
   "git.managedWorktree.toggle.label": "Worktree",
   "git.managedWorktree.toggle.tooltip": "Run this task in a separate Git worktree",
@@ -8131,7 +8159,8 @@ const enUS: Record<string, string> = {
   "git.managedWorktree.ref.currentHead": "Current HEAD ({ref})",
   "git.managedWorktree.ref.localBranches": "Local branches",
   "git.managedWorktree.ref.remoteBranches": "Remote branches",
-  "git.managedWorktree.ref.note": "The new worktree starts from this ref; your local branch is not switched.",
+  "git.managedWorktree.ref.note":
+    "The new worktree starts from this ref; your local branch is not switched.",
   "git.managedWorktree.ref.detached": "Detached HEAD {sha}",
   "git.managedWorktree.creation.creating": "Creating worktree",
   "git.managedWorktree.creation.forkTitle": "Creating worktree for fork",
@@ -8147,7 +8176,8 @@ const enUS: Record<string, string> = {
   "git.managedWorktree.error.generic": "Could not complete the worktree operation.",
   "git.managedWorktree.error.not-repository": "The project directory is not a Git repository.",
   "git.managedWorktree.error.invalid-start-ref": "The selected starting ref is not valid.",
-  "git.managedWorktree.error.start-ref-missing-subdir": "The selected ref does not contain this project subdirectory.",
+  "git.managedWorktree.error.start-ref-missing-subdir":
+    "The selected ref does not contain this project subdirectory.",
   "git.managedWorktree.error.bucket-exhausted": "Could not allocate a worktree directory.",
   "git.managedWorktree.error.worktree-dirty": "The worktree has uncommitted changes and was kept.",
   "git.managedWorktree.error.worktree-in-use": "The worktree is in use and was kept.",
@@ -8155,21 +8185,28 @@ const enUS: Record<string, string> = {
   "git.managedWorktree.error.local-only": "Worktrees are only available in the local desktop app.",
   "git.managedWorktree.error.git-failed": "Git could not complete the worktree operation.",
   "git.managedWorktree.error.copy-failed": "Copying included files into the worktree failed.",
-  "git.managedWorktree.error.unsupported-agent": "The current Agent version does not support worktree cwd.",
+  "git.managedWorktree.error.unsupported-agent":
+    "The current Agent version does not support worktree cwd.",
   "git.managedWorktree.error.session-failed": "The task could not be started in the worktree.",
-  "git.managedWorktree.error.carry-failed": "Uncommitted changes could not be carried into the new worktree.",
-  "git.managedWorktree.error.session-close-failed": "A task using this worktree could not be released.",
+  "git.managedWorktree.error.carry-failed":
+    "Uncommitted changes could not be carried into the new worktree.",
+  "git.managedWorktree.error.session-close-failed":
+    "A task using this worktree could not be released.",
   "git.managedWorktree.error.creating": "The worktree is still being created.",
   "git.managedWorktree.error.removing": "The worktree is being removed.",
   "git.managedWorktree.error.creation-not-found": "The worktree creation record no longer exists.",
   "git.managedWorktree.error.creation-not-failed": "The worktree creation did not fail.",
   "git.managedWorktree.error.invalid-command": "The worktree command is not valid.",
-  "git.managedWorktree.error.not-primary-root": "Worktrees can only be created from the project primary root.",
+  "git.managedWorktree.error.not-primary-root":
+    "Worktrees can only be created from the project primary root.",
   "git.managedWorktree.error.requires-project": "The task must belong to a project.",
   "git.managedWorktree.error.agent-unavailable": "The Agent is not available.",
-  "git.managedWorktree.error.query-unsupported": "This Agent version cannot confirm the task state.",
-  "git.managedWorktree.error.release-unsupported": "This Agent version cannot release tasks in the worktree.",
-  "git.managedWorktree.error.slash-unsupported": "Slash commands are not supported when starting a task in a worktree.",
+  "git.managedWorktree.error.query-unsupported":
+    "This Agent version cannot confirm the task state.",
+  "git.managedWorktree.error.release-unsupported":
+    "This Agent version cannot release tasks in the worktree.",
+  "git.managedWorktree.error.slash-unsupported":
+    "Slash commands are not supported when starting a task in a worktree.",
   "git.managedWorktree.dialog.title": "Worktrees",
   "git.managedWorktree.dialog.description": "Worktrees created by Nibi for this project",
   "git.managedWorktree.dialog.managedByNibi": "Only Nibi-managed worktrees are listed.",
@@ -8183,8 +8220,10 @@ const enUS: Record<string, string> = {
   "git.managedWorktree.dialog.pruneFailed": "Could not remove the missing worktree record.",
   "git.managedWorktree.dialog.delete": "Delete",
   "git.managedWorktree.dialog.deleteConfirmTitle": "Delete worktree?",
-  "git.managedWorktree.dialog.deleteConfirmDescription": "The worktree directory and its branch will be deleted.",
-  "git.managedWorktree.dialog.deleteConfirmDirty": "The worktree has uncommitted changes. Deleting it will discard them.",
+  "git.managedWorktree.dialog.deleteConfirmDescription":
+    "The worktree directory and its branch will be deleted.",
+  "git.managedWorktree.dialog.deleteConfirmDirty":
+    "The worktree has uncommitted changes. Deleting it will discard them.",
   "git.managedWorktree.dialog.error.dirty": "The worktree has uncommitted changes.",
   "git.managedWorktree.dialog.error.running": "A task is running in this worktree.",
   "git.managedWorktree.dialog.error.terminal": "A terminal is using this worktree.",

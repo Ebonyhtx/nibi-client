@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   TID_V4_EDIT,
   TID_V4_EDIT_ATTACHMENT_REMOVE,
+  TID_V4_EDIT_IN_COMPOSER_HINT,
   TID_V4_EDIT_REWIND_WORKSPACE,
   TID_V4_FEEDBACK_DISLIKE,
   TID_V4_FEEDBACK_LIKE,
@@ -2315,7 +2316,13 @@ describe("ConversationRowView composer edit mode", () => {
     });
 
     expect(collectText(container)).toContain("正在下方编辑");
-    expect(findElementByAttribute(container, "data-composer-editing-below", "true")).not.toBeNull();
+    expect(
+      findElementByAttribute(
+        container,
+        "data-testid",
+        testId(TID_V4_EDIT_IN_COMPOSER_HINT, String(row.rowId)),
+      ),
+    ).not.toBeNull();
     expect(messageActionPropsByTestId.get(testId(TID_V4_EDIT, String(row.rowId)))).toBeUndefined();
     expect(chatPromptEditorProps).toHaveLength(0);
 

@@ -841,6 +841,8 @@ const jaJP: Record<string, string> = {
   "chat.changeSummary.openInEditor": "エディターで開く",
   "chat.changeSummary.reapply": "再適用",
   "chat.changeSummary.reverted": "元に戻しました",
+  "chat.changeSummary.rewindLocked":
+    "セッションの実行中、または保留中のリクエストがあります。完了後に元に戻せます。",
   "chat.changeSummary.review": "レビュー",
   "chat.changeSummary.rewind": "元に戻す",
   "chat.changeSummary.rewindDialog.cannotApply":
@@ -1361,6 +1363,7 @@ const jaJP: Record<string, string> = {
   "chat.queue.editEmpty": "キュー内メッセージを空にはできません。",
   "chat.composerEdit.cancel": "キャンセル",
   "chat.composerEdit.editingBelow": "下で編集中",
+  "chat.composerEdit.inComposerHint": "下で編集中",
   "chat.composerEdit.title.userQuery": "メッセージを編集",
   "chat.composerEdit.title.queueItem": "キュー内メッセージを編集",
   "chat.composerEdit.rewind": "会話とファイルをリセット",
@@ -1459,6 +1462,8 @@ const jaJP: Record<string, string> = {
   "chat.send": "送信",
   "chat.send.description": "現在のテキストと添付ファイルを送信します。",
   "chat.slash.app.plan.description": "プランモードを有効にする",
+  "chat.slash.app.reload.description":
+    "Reload the task runtime, preserving history and stopping current execution.",
   "chat.slash.app.side.description": "新しいサイド会話を開く",
   "chat.slash.commands.title": "コマンド",
   "chat.slash.emptyResults": "一致するスラッシュコマンドはありません",
@@ -3306,6 +3311,13 @@ const jaJP: Record<string, string> = {
   "feedback.type.usage.label": "使い方のヘルプ",
   "fileActions.copyAbsolutePath": "絶対パスをコピー",
   "fileActions.copyRelativePath": "相対パスをコピー",
+  "fileActions.saved": "保存しました",
+  "fileActions.downloadStarted": "ダウンロードを開始しました",
+  "fileActions.saveAs": "名前を付けて保存…",
+  "fileActions.saveAsUnavailable": "ここではファイルを保存できません",
+  "fileActions.saveAsFailed":
+    "このファイルを保存できませんでした。ソースの接続を確認してもう一度お試しください。",
+  "fileActions.saveAsTooLarge": "50 MiB を超えるファイルはここでは保存できません。",
   "fileManager.empty": "ナビゲーションからファイルを選択してください",
   "fileManager.hideNavigation": "ファイルナビゲーションを非表示",
   "fileManager.resizeNavigation": "ファイルナビゲーションのサイズを変更",
@@ -4023,6 +4035,7 @@ const jaJP: Record<string, string> = {
   "project.remote": "リモート",
   "project.remoteDescription": "接続済みのコンピューター上のフォルダを選択",
   "project.removeEntry": "このデバイスから削除",
+  "projectManagement.manage": "プロジェクトを管理…",
   "project.removeFolder": "フォルダを削除",
   "project.removeHost": "接続を削除",
   "project.restore": "プロジェクトを復元",
@@ -5461,6 +5474,11 @@ const jaJP: Record<string, string> = {
   "settings.plugins.checkForUpdates": "アップデートを確認",
   "settings.plugins.checkForUpdates.found": "{count} 個のプラグインのアップデートが見つかりました",
   "settings.plugins.checkForUpdates.none": "インストール済みのプラグインはすべて最新です",
+  "settings.plugins.updateAll": "すべて更新（{count}）",
+  "settings.plugins.updateAll.done": "{count} 個のプラグインを更新しました",
+  "settings.plugins.updateAll.partial": "{succeeded} 個を更新、{failed} 個が失敗: {plugins}",
+  "settings.plugins.updateAll.aborted":
+    "プラグインのスコープが変更されたため、一括更新を停止しました。{count} 個のプラグインを更新済みです",
   "settings.plugins.config.clearSecret": "保存済みのシークレットをクリア",
   "settings.plugins.config.hideSecret": "シークレットを非表示",
   "settings.plugins.config.required": "必須",
@@ -5609,6 +5627,10 @@ const jaJP: Record<string, string> = {
   "settings.plugins.marketplaces.plugins": "{count} 個のプラグイン",
   "settings.plugins.marketplaces.refreshCatalogHint": "更新すると公式カタログが読み込まれます。",
   "settings.plugins.marketplaces.remove": "マーケットプレイスを削除",
+  "settings.plugins.marketplaces.riskWarning":
+    "非公式のプラグインマーケットプレイスには、デバイスに損害を与える悪意のあるプラグインが含まれている可能性があります。追加する前に提供元を確認し、対策を講じてください。",
+  "settings.plugins.marketplaces.riskAcknowledgement":
+    "リスクを理解し、提供元を確認して対策を講じました。",
   "settings.plugins.marketplaces.source":
     "GitHub リポジトリ、git URL、ファイル、またはディレクトリ",
   "settings.plugins.marketplaces.title": "マーケットプレイス",
@@ -6849,6 +6871,11 @@ const jaJP: Record<string, string> = {
   "taskList.rename": "タスクの名前を変更",
   "taskList.renameFailed": "タスクの名前を変更できませんでした",
   "taskList.renamePlaceholder": "タスク名",
+  "taskList.restart": "タスクを再起動",
+  "taskList.restartFailed": "再起動に失敗しました。タスクの状態を確認してもう一度お試しください。",
+  "taskList.restarting": "タスクを再起動中…",
+  "taskList.restartUnsupported":
+    "このバージョンのエージェントはタスクの再起動に対応していません。先に更新してください。",
   "taskList.showLess": "表示を減らす",
   "taskList.showMore": "さらに表示",
   "taskList.stopCountdown": "タイマーを停止",
@@ -7356,7 +7383,8 @@ const jaJP: Record<string, string> = {
   "chat.message.fork.hereWorktree": "現在の worktree で分岐",
   "chat.message.fork.toWorktree": "新しい worktree で分岐",
   "chat.message.fork.toWorktreeHint": "未コミットの変更を含める",
-  "chat.message.fork.worktreeUnsupported": "現在の Agent バージョンは worktree cwd に対応していません",
+  "chat.message.fork.worktreeUnsupported":
+    "現在の Agent バージョンは worktree cwd に対応していません",
   "git.managedWorktree.name": "{repo} · {bucket}",
   "git.managedWorktree.toggle.label": "worktree",
   "git.managedWorktree.toggle.tooltip": "このタスクを独立した Git worktree で実行します",
@@ -7364,7 +7392,8 @@ const jaJP: Record<string, string> = {
   "git.managedWorktree.ref.currentHead": "現在の HEAD（{ref}）",
   "git.managedWorktree.ref.localBranches": "ローカルブランチ",
   "git.managedWorktree.ref.remoteBranches": "リモートブランチ",
-  "git.managedWorktree.ref.note": "新しい worktree はこの ref から作成され、ローカルブランチは切り替わりません。",
+  "git.managedWorktree.ref.note":
+    "新しい worktree はこの ref から作成され、ローカルブランチは切り替わりません。",
   "git.managedWorktree.ref.detached": "切り離された HEAD {sha}",
   "git.managedWorktree.creation.creating": "worktree を作成中",
   "git.managedWorktree.creation.forkTitle": "分岐用 worktree を作成中",
@@ -7378,31 +7407,41 @@ const jaJP: Record<string, string> = {
   "git.managedWorktree.creation.hideOutput": "出力を隠す",
   "git.managedWorktree.created.title": "worktree を作成しました",
   "git.managedWorktree.error.generic": "worktree 操作を完了できませんでした。",
-  "git.managedWorktree.error.not-repository": "プロジェクトディレクトリは Git リポジトリではありません。",
+  "git.managedWorktree.error.not-repository":
+    "プロジェクトディレクトリは Git リポジトリではありません。",
   "git.managedWorktree.error.invalid-start-ref": "選択した開始 ref は無効です。",
-  "git.managedWorktree.error.start-ref-missing-subdir": "選択した ref にはこのプロジェクトのサブディレクトリがありません。",
+  "git.managedWorktree.error.start-ref-missing-subdir":
+    "選択した ref にはこのプロジェクトのサブディレクトリがありません。",
   "git.managedWorktree.error.bucket-exhausted": "worktree ディレクトリを割り当てられませんでした。",
   "git.managedWorktree.error.worktree-dirty": "worktree に未コミットの変更があるため保持しました。",
   "git.managedWorktree.error.worktree-in-use": "worktree は使用中のため保持しました。",
-  "git.managedWorktree.error.not-managed": "このディレクトリは Nibi 管理の worktree ではありません。",
+  "git.managedWorktree.error.not-managed":
+    "このディレクトリは Nibi 管理の worktree ではありません。",
   "git.managedWorktree.error.local-only": "worktree はローカルデスクトップ版でのみ利用できます。",
   "git.managedWorktree.error.git-failed": "Git が worktree 操作を完了できませんでした。",
   "git.managedWorktree.error.copy-failed": "worktree へのファイルコピーに失敗しました。",
-  "git.managedWorktree.error.unsupported-agent": "現在の Agent バージョンは worktree cwd に対応していません。",
+  "git.managedWorktree.error.unsupported-agent":
+    "現在の Agent バージョンは worktree cwd に対応していません。",
   "git.managedWorktree.error.session-failed": "worktree 内でタスクを開始できませんでした。",
-  "git.managedWorktree.error.carry-failed": "未コミットの変更を新しい worktree に引き継げませんでした。",
-  "git.managedWorktree.error.session-close-failed": "この worktree を使用するタスクを解放できませんでした。",
+  "git.managedWorktree.error.carry-failed":
+    "未コミットの変更を新しい worktree に引き継げませんでした。",
+  "git.managedWorktree.error.session-close-failed":
+    "この worktree を使用するタスクを解放できませんでした。",
   "git.managedWorktree.error.creating": "worktree はまだ作成中です。",
   "git.managedWorktree.error.removing": "worktree は削除中です。",
   "git.managedWorktree.error.creation-not-found": "作成記録は既に存在しません。",
   "git.managedWorktree.error.creation-not-failed": "作成記録は失敗していません。",
   "git.managedWorktree.error.invalid-command": "worktree コマンドが無効です。",
-  "git.managedWorktree.error.not-primary-root": "worktree はプロジェクトのメインディレクトリからのみ作成できます。",
+  "git.managedWorktree.error.not-primary-root":
+    "worktree はプロジェクトのメインディレクトリからのみ作成できます。",
   "git.managedWorktree.error.requires-project": "タスクはプロジェクトに属している必要があります。",
   "git.managedWorktree.error.agent-unavailable": "Agent を利用できません。",
-  "git.managedWorktree.error.query-unsupported": "この Agent バージョンではタスク状態を確認できません。",
-  "git.managedWorktree.error.release-unsupported": "この Agent バージョンでは worktree 内のタスクを解放できません。",
-  "git.managedWorktree.error.slash-unsupported": "worktree でタスクを開始するときはスラッシュコマンドを使用できません。",
+  "git.managedWorktree.error.query-unsupported":
+    "この Agent バージョンではタスク状態を確認できません。",
+  "git.managedWorktree.error.release-unsupported":
+    "この Agent バージョンでは worktree 内のタスクを解放できません。",
+  "git.managedWorktree.error.slash-unsupported":
+    "worktree でタスクを開始するときはスラッシュコマンドを使用できません。",
   "git.managedWorktree.dialog.title": "Worktree",
   "git.managedWorktree.dialog.description": "このプロジェクトで Nibi が作成した worktree",
   "git.managedWorktree.dialog.managedByNibi": "Nibi 管理の worktree のみ表示します。",
@@ -7416,15 +7455,18 @@ const jaJP: Record<string, string> = {
   "git.managedWorktree.dialog.pruneFailed": "存在しない worktree の記録を削除できませんでした。",
   "git.managedWorktree.dialog.delete": "削除",
   "git.managedWorktree.dialog.deleteConfirmTitle": "worktree を削除しますか？",
-  "git.managedWorktree.dialog.deleteConfirmDescription": "worktree ディレクトリとそのブランチが削除されます。",
-  "git.managedWorktree.dialog.deleteConfirmDirty": "worktree に未コミットの変更があります。削除すると破棄されます。",
+  "git.managedWorktree.dialog.deleteConfirmDescription":
+    "worktree ディレクトリとそのブランチが削除されます。",
+  "git.managedWorktree.dialog.deleteConfirmDirty":
+    "worktree に未コミットの変更があります。削除すると破棄されます。",
   "git.managedWorktree.dialog.error.dirty": "worktree に未コミットの変更があります。",
   "git.managedWorktree.dialog.error.running": "この worktree でタスクが実行中です。",
   "git.managedWorktree.dialog.error.terminal": "この worktree をターミナルが使用中です。",
   "git.managedWorktree.dialog.error.creating": "worktree はまだ作成中です。",
   "git.managedWorktree.dialog.error.tasks": "この worktree を使用するタスクが残っています。",
   "git.managedWorktree.dialog.error.removing": "worktree は削除中です。",
-  "git.managedWorktree.dialog.error.generic": "worktree を削除できませんでした。ディレクトリは保持されています。",
+  "git.managedWorktree.dialog.error.generic":
+    "worktree を削除できませんでした。ディレクトリは保持されています。",
 };
 
 export default jaJP;

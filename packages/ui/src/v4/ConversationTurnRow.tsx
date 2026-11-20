@@ -11,6 +11,7 @@ import type {
 } from "@/v4/ConversationRowView.js";
 import type { ConversationRowRenderContext } from "@/v4/conversationRowContext.js";
 import type { ConversationTurnRenderUnit } from "@/v4/conversationTurnRenderUnits.js";
+import { ImageFilePreviewScopeContext } from "@/v4/imageFilePreviewContext.js";
 import { toolCallRowToLegacyNode } from "@/v4/toolCallRowAdapter.js";
 
 interface ConversationTurnRowProps {
@@ -53,25 +54,27 @@ export function ConversationTurnRow({
   userInputStatus,
 }: ConversationTurnRowProps) {
   return (
-    <ConversationRowView
-      row={row}
-      context={context}
-      onFork={onFork}
-      onRetry={onRetry}
-      onFeedbackChange={onFeedbackChange}
-      onEdit={onEdit}
-      onInlineEdit={onInlineEdit}
-      editWorkspaceRewindAvailability={editWorkspaceRewindAvailability}
-      hideAssistantActions={hideAssistantActions}
-      deferAssistantActions={deferAssistantActions}
-      assistantCopyText={assistantCopyText}
-      assistantPreviewCards={assistantPreviewCards}
-      assistantPreviewCardsAutoOpenKey={assistantPreviewCardsAutoOpenKey}
-      assistantCodeCommentCards={assistantCodeCommentCards}
-      assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
-      reasoningContentVariant={reasoningContentVariant}
-      userInputStatus={userInputStatus}
-    />
+    <ImageFilePreviewScopeContext.Provider value={context}>
+      <ConversationRowView
+        row={row}
+        context={context}
+        onFork={onFork}
+        onRetry={onRetry}
+        onFeedbackChange={onFeedbackChange}
+        onEdit={onEdit}
+        onInlineEdit={onInlineEdit}
+        editWorkspaceRewindAvailability={editWorkspaceRewindAvailability}
+        hideAssistantActions={hideAssistantActions}
+        deferAssistantActions={deferAssistantActions}
+        assistantCopyText={assistantCopyText}
+        assistantPreviewCards={assistantPreviewCards}
+        assistantPreviewCardsAutoOpenKey={assistantPreviewCardsAutoOpenKey}
+        assistantCodeCommentCards={assistantCodeCommentCards}
+        assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
+        reasoningContentVariant={reasoningContentVariant}
+        userInputStatus={userInputStatus}
+      />
+    </ImageFilePreviewScopeContext.Provider>
   );
 }
 

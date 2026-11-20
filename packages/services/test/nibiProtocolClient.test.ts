@@ -449,4 +449,21 @@ describe("NibiProtocolClient", () => {
     // disposed 后 request 应立即拒绝（assertNotDisposed），不能静默吞掉。
     await expect(client.request("session/read", {})).rejects.toThrow(/disposed/);
   });
+
+  it("sessionLifecycle.restart targets one session without a workspace ref", async () => {
+    const transport = new FakeNibiTransport();
+    const client = new NibiProtocolClient(transport);
+
+    const request = client.sessionLifecycle.restart("sess_1");
+    await vi.waitFor(() => expect(transport.sent).toHaveLength(1));
+    expect(transport.sent[0]).toMatchObject({
+      id: 1,
+      method: "session/lifecycle/restart",
+      params: { sessionId: "sess_1" },
+    });
+    expect(transport.sent[0]).not.toHaveProperty("params.workspace");
+
+    transport.receive({ id: 1, result: { completed: true } });
+    await expect(request).resolves.toEqual({ completed: true });
+  });
 });

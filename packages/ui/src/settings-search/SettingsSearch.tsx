@@ -17,11 +17,15 @@ export function SettingsSearch({
   settingsSections,
   isDesktop = false,
   isMacDesktop = false,
+  isWindowsDesktop = false,
+  isLinuxDesktop = false,
   onNavigate,
 }: {
   settingsSections: readonly SettingsSectionDefinition[];
   isDesktop?: boolean;
   isMacDesktop?: boolean;
+  isWindowsDesktop?: boolean;
+  isLinuxDesktop?: boolean;
   onNavigate: (entry: SettingsSearchIndexEntry) => void;
 }) {
   const { intl } = useNibiIntl();
@@ -36,9 +40,11 @@ export function SettingsSearch({
         settingsSections,
         isDesktop,
         isMacDesktop,
+        isWindowsDesktop,
+        isLinuxDesktop,
         translate: (id) => intl.formatMessage({ id }),
       }),
-    [intl, isDesktop, isMacDesktop, settingsSections],
+    [intl, isDesktop, isLinuxDesktop, isMacDesktop, isWindowsDesktop, settingsSections],
   );
   const results = useMemo(() => searchSettingsIndex(index, query), [index, query]);
   const showResults = query.trim().length > 0;

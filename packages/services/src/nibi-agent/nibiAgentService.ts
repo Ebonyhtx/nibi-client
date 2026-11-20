@@ -3578,6 +3578,13 @@ export function createNibiAgentService(
       return check;
     },
 
+    async restartSessionRuntime(params: NibiAgentSessionTarget) {
+      // 与 workspace reload 不同：只重启目标会话的运行实例，不重建整个 workspace 进程。
+      // 内核按会话持久记录定位 workspace（sessionLifecycleWorkspace=false），故不随请求带 workspace。
+      const client = await getClient(params);
+      await client.sessionLifecycle.restart(params.sessionId);
+    },
+
     async createSession(params: NibiAgentCreateSessionParams) {
       if (options?.prepareSessionCreation) {
         const sessionId = params.sessionId ?? `session_${randomUUID()}`;

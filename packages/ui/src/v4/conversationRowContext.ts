@@ -58,9 +58,11 @@ export interface ConversationRowRenderContext {
   compactForRemoteControl?: boolean;
   /**
    * U03：当前正在底部 Composer 编辑的 userInput rowId。
-   * 匹配行显示“Editing below”占位，编辑按钮不再展开行内编辑器。
+   * 匹配行显示“Editing below”入口，点击聚焦底部编辑条；编辑按钮不再展开行内编辑器。
    */
   composerEditingRowId?: number | null;
+  /** 「Editing below」入口：滚动/聚焦底部 Composer 编辑条。 */
+  onFocusComposerEdit?: () => void;
   /** 当前 session 正在 compact 或 goal verify；专用状态 UI 独占进度反馈。 */
   chatLoadingBlockedByActiveWork?: boolean;
   /** 当前 session 正在等待权限确认或 AskUserQuestion 回答，隐藏底部 ChatLoading。 */
@@ -205,6 +207,11 @@ export interface ConversationRowRenderContext {
     target: ConversationRowTarget,
   ) => Promise<V4ConversationFileRewindPreviewResult>;
   applyFileRewind?: (target: ConversationRowTarget) => Promise<CommandAck>;
+  /**
+   * 文件撤销被 session 锁住（回合运行中 / 有待答交互），且锁一解除就能撤销。锁住时 pane
+   * 不下发上面两个回调；只读 pane、运行时未就绪时为 false，禁用按钮不显示锁定提示。
+   */
+  fileRewindLocked?: boolean;
   /** 已发送 image/video 预览；由 pane 绑定的 workspace transport 注入。 */
   readAttachment?: (
     params: ConversationAttachmentReadParams,

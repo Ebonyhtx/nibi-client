@@ -15,7 +15,14 @@ import { createMathPlugin } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
 import type { EditorInfo, FileStat, OpenInEditorOptions } from "@nibi/shared";
 import type { UIMessage } from "ai";
-import { ChevronLeftIcon, ChevronRightIcon, CopyIcon, ExternalLinkIcon } from "lucide-react";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CopyIcon,
+  ExternalLinkIcon,
+  FolderOpenIcon,
+  PanelRightIcon,
+} from "lucide-react";
 import remarkCjkFriendlyGfmStrikethrough from "remark-cjk-friendly-gfm-strikethrough";
 import type {
   ComponentProps,
@@ -86,12 +93,16 @@ import { stripBalancedAssistantPathQuotes } from "@/lib/assistantPathQuotes.js";
 import { getPathLeaf } from "@/lib/path.js";
 import { getWorkspaceFileRelativePath } from "@/workspace-file-tree/model.js";
 import { resolveWorkspaceEditorSelection } from "@/lib/workspaceEditorSelection.js";
-import { sortInstalledEditorsForFileTree } from "@/workspace-file-tree/helpers.js";
+import {
+  getFileManagerLabel,
+  sortInstalledEditorsForFileTree,
+} from "@/workspace-file-tree/helpers.js";
 import type { CodePreviewSettings } from "@/lib/codePreviewSettings.js";
 import { DEFAULT_CODE_PREVIEW_SETTINGS } from "@/lib/codePreviewSettings.js";
 import { useNibiStore } from "@/store/StoreProvider.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { useOptionalPlatform, usePlatform } from "@/hooks/usePlatform.js";
+import { FileSaveAsMenuItem } from "@/file-menu/index.js";
 import { useFileContextActions } from "@/hooks/useFileContextActions.js";
 import { useWorkspaceOpenInEditorTarget } from "@/hooks/useWorkspaceOpenInEditorTarget.js";
 import { useOptionalServices } from "@/hooks/useServices.js";
@@ -1117,12 +1128,25 @@ function MessageFileLink({ className, fileIconSrc, fileLink, onOpen }: MessageFi
   const { intl } = useNibiIntl();
   const platform = usePlatform();
   const services = useOptionalServices();
-  const fileActions = useFileContextActions();
   const openInEditorContext = useWorkspaceOpenInEditorTarget({
     workspacePath: fileLink.workspacePath,
     workspaceIdentity: fileLink.workspaceIdentity,
     workspaceRemoteSessionId: fileLink.workspaceRemoteSessionId,
   });
+  const isRemote = Boolean(
+    fileLink.workspaceIdentity ||
+    fileLink.workspaceRemoteSessionId ||
+    openInEditorContext.isRemoteWorkspace,
+  );
+  // 与 OpenSplitButton 的「在 Finder / 资源管理器中打开」同源：本机或 WSL 才能定位，SSH 等远程不显示。
+  const fileActions = useFileContextActions({
+    canOpenLocalFileManager: Boolean(platform.canOpenLocalFiles),
+    isRemoteWorkspace: isRemote,
+    remoteTarget: openInEditorContext.remoteTarget,
+    workspaceIdentity: fileLink.workspaceIdentity,
+  });
+  const canReveal = fileActions.canRevealInFileManager({ path: fileLink.path });
+  const [pathKind, setPathKind] = useState<"file" | "directory" | null>(fileLink.pathKind ?? null);
   const [editors, setEditors] = useState<EditorInfo[]>([]);
   const [editorsLoaded, setEditorsLoaded] = useState(false);
   const [loadingEditors, setLoadingEditors] = useState(false);
@@ -1151,6 +1175,18 @@ function MessageFileLink({ className, fileIconSrc, fileLink, onOpen }: MessageFi
 
     setLoadingEditors(true);
     try {
+      if (services) {
+        try {
+          // 链接名称无法可靠判断文件/目录；另存为只在 stat 确认是文件后出现。
+          const stat = await services.fileService.stat({ path: fileLink.path });
+          setPathKind(stat.type);
+        } catch (statError) {
+          logger.warn("[MessageResponse] 无法确认 markdown 链接文件类型", {
+            path: fileLink.path,
+            error: statError instanceof Error ? statError.message : String(statError),
+          });
+        }
+      }
       const installedEditors = await platform.getInstalledEditors();
       setEditors(installedEditors);
       setEditorsLoaded(true);
@@ -1162,7 +1198,7 @@ function MessageFileLink({ className, fileIconSrc, fileLink, onOpen }: MessageFi
     } finally {
       setLoadingEditors(false);
     }
-  }, [editorsLoaded, fileLink.path, loadingEditors, platform]);
+  }, [editorsLoaded, fileLink.path, loadingEditors, platform, services]);
 
   const handleOpenInEditor = (editor: EditorInfo) => {
     if (!services) {
@@ -1214,8 +1250,9 @@ function MessageFileLink({ className, fileIconSrc, fileLink, onOpen }: MessageFi
           {fileLink.label}
         </MessageFileLinkButton>
       </ContextMenuTrigger>
-      <ContextMenuContent className="w-52">
+      <ContextMenuContent className="w-64 max-w-[calc(100vw-1rem)]">
         <ContextMenuItem onSelect={onOpen}>
+          <PanelRightIcon aria-hidden="true" className="size-4" />
           {intl.formatMessage({ id: "common.open" })}
         </ContextMenuItem>
         <ContextMenuSeparator />
@@ -1232,6 +1269,30 @@ function MessageFileLink({ className, fileIconSrc, fileLink, onOpen }: MessageFi
               id: loadingEditors ? "common.loading" : "chat.previewCards.noOpenApps",
             })}
           </ContextMenuItem>
+        )}
+        <ContextMenuSeparator />
+        {canReveal && (
+          <ContextMenuItem
+            onSelect={() =>
+              // 文件：打开所在目录并选中；目录：直接打开该目录。stat 未返回前按链接提示判断。
+              void fileActions.revealInFileManager({
+                path: fileLink.path,
+                kind: (pathKind ?? fileLink.pathKind) === "directory" ? "directory" : "file",
+              })
+            }
+          >
+            <FolderOpenIcon aria-hidden="true" className="size-4" />
+            {getFileManagerLabel(intl)}
+          </ContextMenuItem>
+        )}
+        {pathKind === "file" && (
+          <FileSaveAsMenuItem
+            variant="context"
+            path={fileLink.path}
+            workspacePath={fileLink.workspacePath}
+            workspaceIdentity={fileLink.workspaceIdentity}
+            workspaceRemoteSessionId={fileLink.workspaceRemoteSessionId}
+          />
         )}
         <ContextMenuSeparator />
         <ContextMenuItem

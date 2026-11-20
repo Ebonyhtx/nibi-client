@@ -1611,6 +1611,30 @@ exceptions:
       设置搜索与 macOS 字体平滑。它们都是纯展示/纯逻辑模块，不含新的跨层依赖；
       packages/ui 仍是 managed:false 的遗留大区，按路径准入，整包接管不在本次范围。
 
+  - id: ui-conversation-image-file-mention
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/hooks/useImageFilePreview.ts
+      - packages/ui/src/v4/ConversationImageFileMention.tsx
+      - packages/ui/src/v4/imageFilePreviewContext.ts
+    reason: >-
+      按上游 ConversationImageFileMention / useImageFilePreview 移植的图片文件引用预览链路：
+      行级 workspace 上下文注入、宿主读取 hook 与行内预览按钮，复用既有 image-preview-editor、
+      markdownFileLink 和 codeViewer，不新增跨层依赖。packages/ui 仍是 managed:false 的遗留大区，
+      按文件准入，不接管整目录。
+
+  - id: ui-file-menu-actions
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/file-menu/FileSaveAsMenuItem.tsx
+      - packages/ui/src/file-menu/fileCopy.ts
+      - packages/ui/src/file-menu/index.ts
+    reason: >-
+      按上游 file-menu/FileSaveAsMenuItem + fileCopy 移植的「另存为」动作：把 workspace 文件
+      字节写到本地、限制大小并在失败时如实提示，供 OpenSplitButton、消息文件链接和文件树共用。
+      只依赖既有 platform/fileService 能力，不新增跨层依赖；packages/ui 仍是 managed:false 的
+      遗留大区，按文件准入，不接管整目录。
+
   - id: tier2-managed-worktree-phase1
     rule: unmanaged-new-file
     paths:

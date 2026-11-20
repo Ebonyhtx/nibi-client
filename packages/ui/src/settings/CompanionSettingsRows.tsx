@@ -36,6 +36,7 @@ export function CompanionSettingsRows() {
       <Card className="border border-border bg-card py-0 shadow-none">
         <CardContent className="space-y-0 px-0">
           <SettingsRow
+            searchTarget="appearance.companionVisible"
             label={intl.formatMessage({ id: "settings.companion.visible" })}
             description={intl.formatMessage({
               id: "settings.companion.visibleDescription",
@@ -48,6 +49,7 @@ export function CompanionSettingsRows() {
             }
           />
           <SettingsRow
+            searchTarget="appearance.companionMode"
             label={intl.formatMessage({ id: "settings.companion.mode" })}
             description={intl.formatMessage({
               id: "settings.companion.modeDescription",
@@ -73,6 +75,7 @@ export function CompanionSettingsRows() {
             }
           />
           <SettingsRow
+            searchTarget="appearance.companionFollow"
             label={intl.formatMessage({ id: "settings.companion.follow" })}
             description={intl.formatMessage({
               id: "settings.companion.followDescription",
@@ -85,6 +88,7 @@ export function CompanionSettingsRows() {
             }
           />
           <SettingsRow
+            searchTarget="appearance.companionFeathers"
             label={intl.formatMessage({ id: "settings.companion.feathers" })}
             description={intl.formatMessage({
               id: "settings.companion.feathersDescription",
@@ -97,6 +101,7 @@ export function CompanionSettingsRows() {
             }
           />
           <SettingsRow
+            searchTarget="appearance.companionAnimation"
             label={intl.formatMessage({ id: "settings.companion.animation" })}
             description={intl.formatMessage({
               id: "settings.companion.animationDescription",

@@ -243,6 +243,7 @@ export function BrowserSettingsSection({
       <section className="space-y-3">
         <SettingsGroupCard>
           <SettingsRow
+            searchTarget="browser.control"
             label={intl.formatMessage({ id: "settings.browser.control.title" })}
             description={intl.formatMessage({
               id: "settings.browser.control.description",
@@ -268,6 +269,7 @@ export function BrowserSettingsSection({
               Windows App-Bound 导入链路暂未开放，先隐藏入口但保留底层实现和清理能力。*/}
           {!isWindowsDesktop ? (
             <SettingsRow
+              searchTarget="browser.import"
               label={intl.formatMessage({ id: "settings.browser.import.title" })}
               description={intl.formatMessage({
                 id: "settings.browser.import.description",
@@ -302,6 +304,7 @@ export function BrowserSettingsSection({
           </div>
           <SettingsGroupCard>
             <SettingsRow
+              searchTarget="browser.allowInsecureCertificates"
               label={intl.formatMessage({
                 id: "settings.embeddedBrowserAllowInsecureCertificates",
               })}
@@ -335,6 +338,7 @@ export function BrowserSettingsSection({
         ) : null}
         <SettingsGroupCard>
           <SettingsRow
+            searchTarget="browser.clearCache"
             label={intl.formatMessage({
               id: "settings.browser.clearCache.title",
             })}
@@ -355,6 +359,7 @@ export function BrowserSettingsSection({
             }
           />
           <SettingsRow
+            searchTarget="browser.clearAll"
             label={intl.formatMessage({
               id: "settings.browser.clearAll.title",
             })}

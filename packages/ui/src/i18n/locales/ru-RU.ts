@@ -836,6 +836,8 @@ const ruRU: Record<string, string> = {
   "chat.changeSummary.openInEditor": "Открыть в редакторе",
   "chat.changeSummary.reapply": "Применить снова",
   "chat.changeSummary.reverted": "Отменено",
+  "chat.changeSummary.rewindLocked":
+    "Сеанс выполняется или есть ожидающий запрос. Отменить можно после завершения.",
   "chat.changeSummary.review": "Ревью",
   "chat.changeSummary.rewind": "Отменить",
   "chat.changeSummary.rewindDialog.cannotApply":
@@ -1354,6 +1356,7 @@ const ruRU: Record<string, string> = {
   "chat.queue.editEmpty": "Сообщение в очереди не может быть пустым.",
   "chat.composerEdit.cancel": "Отмена",
   "chat.composerEdit.editingBelow": "Редактирование ниже",
+  "chat.composerEdit.inComposerHint": "Редактируется ниже",
   "chat.composerEdit.title.userQuery": "Редактирование сообщения",
   "chat.composerEdit.title.queueItem": "Редактирование сообщения в очереди",
   "chat.composerEdit.rewind": "Сбросить диалог и файлы",
@@ -1452,6 +1455,8 @@ const ruRU: Record<string, string> = {
   "chat.send": "Отправить",
   "chat.send.description": "Отправить текущий текст и вложения.",
   "chat.slash.app.plan.description": "Включить режим планирования",
+  "chat.slash.app.reload.description":
+    "Reload the task runtime, preserving history and stopping current execution.",
   "chat.slash.app.side.description": "Открыть новый побочный диалог",
   "chat.slash.commands.title": "Команды",
   "chat.slash.emptyResults": "Нет подходящих слеш-команд",
@@ -3280,6 +3285,13 @@ const ruRU: Record<string, string> = {
   "feedback.type.usage.label": "Помощь с использованием",
   "fileActions.copyAbsolutePath": "Копировать абсолютный путь",
   "fileActions.copyRelativePath": "Копировать относительный путь",
+  "fileActions.saved": "Сохранено",
+  "fileActions.downloadStarted": "Загрузка началась",
+  "fileActions.saveAs": "Сохранить как…",
+  "fileActions.saveAsUnavailable": "Здесь сохранение файлов недоступно",
+  "fileActions.saveAsFailed":
+    "Не удалось сохранить файл. Проверьте подключение к источнику и повторите.",
+  "fileActions.saveAsTooLarge": "Файлы больше 50 MiB здесь сохранить нельзя.",
   "fileManager.empty": "Выберите файл в навигации",
   "fileManager.hideNavigation": "Скрыть навигацию по файлам",
   "fileManager.resizeNavigation": "Изменить ширину навигации по файлам",
@@ -3917,8 +3929,7 @@ const ruRU: Record<string, string> = {
   "postUpdateReleaseNotes.acknowledge": "Понятно",
   "postUpdateReleaseNotes.title": "Что нового",
   "preview.image.actions": "Действия с изображением",
-  "preview.image.actionFailed":
-    "Не удалось выполнить действие с изображением. Повторите попытку.",
+  "preview.image.actionFailed": "Не удалось выполнить действие с изображением. Повторите попытку.",
   "preview.image.annotate": "Рисовать",
   "preview.image.more": "Ещё",
   "preview.image.saveAndOpen": "Сохранить и открыть",
@@ -3990,6 +4001,7 @@ const ruRU: Record<string, string> = {
   "project.remote": "Удалённый",
   "project.remoteDescription": "Выбрать папки на подключённом компьютере",
   "project.removeEntry": "Убрать с этого устройства",
+  "projectManagement.manage": "Управление проектами…",
   "project.removeFolder": "Убрать папку",
   "project.removeHost": "Удалить подключение",
   "project.restore": "Восстановить проект",
@@ -5430,6 +5442,11 @@ const ruRU: Record<string, string> = {
   "settings.plugins.checkForUpdates": "Проверить обновления",
   "settings.plugins.checkForUpdates.found": "Доступно обновлений плагинов: {count}",
   "settings.plugins.checkForUpdates.none": "Все установленные плагины обновлены",
+  "settings.plugins.updateAll": "Обновить все ({count})",
+  "settings.plugins.updateAll.done": "Обновлено плагинов: {count}",
+  "settings.plugins.updateAll.partial": "Обновлено: {succeeded}, ошибок: {failed}: {plugins}",
+  "settings.plugins.updateAll.aborted":
+    "Массовое обновление остановлено, так как изменилась область плагинов; обновлено плагинов: {count}",
   "settings.plugins.config.clearSecret": "Удалить сохранённый секрет",
   "settings.plugins.config.hideSecret": "Скрыть секрет",
   "settings.plugins.config.required": "Обязательно",
@@ -5576,6 +5593,10 @@ const ruRU: Record<string, string> = {
   "settings.plugins.marketplaces.refreshCatalogHint":
     "Обновите, чтобы загрузить официальный каталог.",
   "settings.plugins.marketplaces.remove": "Удалить маркетплейс",
+  "settings.plugins.marketplaces.riskWarning":
+    "Неофициальные маркетплейсы плагинов могут содержать вредоносные плагины, способные навредить устройству. Перед добавлением проверьте источник и примите меры предосторожности.",
+  "settings.plugins.marketplaces.riskAcknowledgement":
+    "Я понимаю риски, проверил источник и принял меры предосторожности.",
   "settings.plugins.marketplaces.source": "Репозиторий GitHub, git URL, файл или каталог",
   "settings.plugins.marketplaces.title": "Маркетплейсы",
   "settings.plugins.marketplaces.update": "Обновить маркетплейс",
@@ -6815,6 +6836,11 @@ const ruRU: Record<string, string> = {
   "taskList.rename": "Переименовать задачу",
   "taskList.renameFailed": "Не удалось переименовать задачу",
   "taskList.renamePlaceholder": "Название задачи",
+  "taskList.restart": "Перезапустить задачу",
+  "taskList.restartFailed": "Не удалось перезапустить. Проверьте статус задачи и повторите.",
+  "taskList.restarting": "Перезапуск задачи…",
+  "taskList.restartUnsupported":
+    "Эта версия агента не поддерживает перезапуск задач. Сначала обновите агент.",
   "taskList.showLess": "Свернуть",
   "taskList.showMore": "Показать ещё",
   "taskList.stopCountdown": "Остановить таймер",
@@ -7330,7 +7356,8 @@ const ruRU: Record<string, string> = {
   "git.managedWorktree.ref.currentHead": "Текущий HEAD ({ref})",
   "git.managedWorktree.ref.localBranches": "Локальные ветки",
   "git.managedWorktree.ref.remoteBranches": "Удалённые ветки",
-  "git.managedWorktree.ref.note": "Новый worktree создаётся из этого ref; локальная ветка не переключается.",
+  "git.managedWorktree.ref.note":
+    "Новый worktree создаётся из этого ref; локальная ветка не переключается.",
   "git.managedWorktree.ref.detached": "Отсоединённый HEAD {sha}",
   "git.managedWorktree.creation.creating": "Создание worktree",
   "git.managedWorktree.creation.forkTitle": "Создание worktree для ответвления",
@@ -7346,29 +7373,39 @@ const ruRU: Record<string, string> = {
   "git.managedWorktree.error.generic": "Не удалось выполнить операцию с worktree.",
   "git.managedWorktree.error.not-repository": "Каталог проекта не является Git-репозиторием.",
   "git.managedWorktree.error.invalid-start-ref": "Выбранный начальный ref недействителен.",
-  "git.managedWorktree.error.start-ref-missing-subdir": "В выбранном ref нет подкаталога этого проекта.",
+  "git.managedWorktree.error.start-ref-missing-subdir":
+    "В выбранном ref нет подкаталога этого проекта.",
   "git.managedWorktree.error.bucket-exhausted": "Не удалось выделить каталог worktree.",
-  "git.managedWorktree.error.worktree-dirty": "В worktree есть несохранённые изменения; он сохранён.",
+  "git.managedWorktree.error.worktree-dirty":
+    "В worktree есть несохранённые изменения; он сохранён.",
   "git.managedWorktree.error.worktree-in-use": "Worktree используется и был сохранён.",
   "git.managedWorktree.error.not-managed": "Этот каталог не является worktree, управляемым Nibi.",
-  "git.managedWorktree.error.local-only": "Worktree доступен только в локальном настольном приложении.",
+  "git.managedWorktree.error.local-only":
+    "Worktree доступен только в локальном настольном приложении.",
   "git.managedWorktree.error.git-failed": "Git не смог выполнить операцию с worktree.",
   "git.managedWorktree.error.copy-failed": "Не удалось скопировать файлы в worktree.",
-  "git.managedWorktree.error.unsupported-agent": "Текущая версия Agent не поддерживает worktree cwd.",
+  "git.managedWorktree.error.unsupported-agent":
+    "Текущая версия Agent не поддерживает worktree cwd.",
   "git.managedWorktree.error.session-failed": "Не удалось запустить задачу в worktree.",
-  "git.managedWorktree.error.carry-failed": "Не удалось перенести несохранённые изменения в новый worktree.",
-  "git.managedWorktree.error.session-close-failed": "Не удалось освободить задачу, использующую этот worktree.",
+  "git.managedWorktree.error.carry-failed":
+    "Не удалось перенести несохранённые изменения в новый worktree.",
+  "git.managedWorktree.error.session-close-failed":
+    "Не удалось освободить задачу, использующую этот worktree.",
   "git.managedWorktree.error.creating": "Worktree ещё создаётся.",
   "git.managedWorktree.error.removing": "Worktree удаляется.",
   "git.managedWorktree.error.creation-not-found": "Запись о создании больше не существует.",
   "git.managedWorktree.error.creation-not-failed": "Создание не завершилось ошибкой.",
   "git.managedWorktree.error.invalid-command": "Недопустимая команда worktree.",
-  "git.managedWorktree.error.not-primary-root": "Worktree можно создать только из основного каталога проекта.",
+  "git.managedWorktree.error.not-primary-root":
+    "Worktree можно создать только из основного каталога проекта.",
   "git.managedWorktree.error.requires-project": "Задача должна принадлежать проекту.",
   "git.managedWorktree.error.agent-unavailable": "Agent недоступен.",
-  "git.managedWorktree.error.query-unsupported": "Эта версия Agent не может подтвердить состояние задачи.",
-  "git.managedWorktree.error.release-unsupported": "Эта версия Agent не может освободить задачи в worktree.",
-  "git.managedWorktree.error.slash-unsupported": "При запуске задачи в worktree slash-команды не поддерживаются.",
+  "git.managedWorktree.error.query-unsupported":
+    "Эта версия Agent не может подтвердить состояние задачи.",
+  "git.managedWorktree.error.release-unsupported":
+    "Эта версия Agent не может освободить задачи в worktree.",
+  "git.managedWorktree.error.slash-unsupported":
+    "При запуске задачи в worktree slash-команды не поддерживаются.",
   "git.managedWorktree.dialog.title": "Worktree",
   "git.managedWorktree.dialog.description": "Worktree, созданные Nibi для этого проекта",
   "git.managedWorktree.dialog.managedByNibi": "Показаны только worktree, управляемые Nibi.",
@@ -7382,8 +7419,10 @@ const ruRU: Record<string, string> = {
   "git.managedWorktree.dialog.pruneFailed": "Не удалось удалить запись об отсутствующем worktree.",
   "git.managedWorktree.dialog.delete": "Удалить",
   "git.managedWorktree.dialog.deleteConfirmTitle": "Удалить worktree?",
-  "git.managedWorktree.dialog.deleteConfirmDescription": "Каталог worktree и его ветка будут удалены.",
-  "git.managedWorktree.dialog.deleteConfirmDirty": "В worktree есть несохранённые изменения. При удалении они будут потеряны.",
+  "git.managedWorktree.dialog.deleteConfirmDescription":
+    "Каталог worktree и его ветка будут удалены.",
+  "git.managedWorktree.dialog.deleteConfirmDirty":
+    "В worktree есть несохранённые изменения. При удалении они будут потеряны.",
   "git.managedWorktree.dialog.error.dirty": "В worktree есть несохранённые изменения.",
   "git.managedWorktree.dialog.error.running": "В этом worktree выполняется задача.",
   "git.managedWorktree.dialog.error.terminal": "Этот worktree используется терминалом.",

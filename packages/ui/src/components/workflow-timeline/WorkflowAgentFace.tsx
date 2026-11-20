@@ -127,3 +127,17 @@ export function WorkflowAgentFace({
     </svg>
   );
 }
+
+/** 集合入口不代表单个代理，使用同款静态中性头像。 */
+export function SubagentCollectionIcon({ className }: { className?: string }) {
+  return (
+    <WorkflowAgentFace
+      avatarIndex={undefined}
+      name=""
+      status={undefined}
+      idle
+      color="var(--color-foreground-subtle)"
+      className={className}
+    />
+  );
+}

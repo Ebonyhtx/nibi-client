@@ -758,6 +758,7 @@ export function WorkspaceFileTree({
             editorState={editorState}
             workspacePath={workspacePath}
             workspaceIdentity={workspaceIdentity}
+            workspaceRemoteSessionId={workspaceRemoteSessionId}
             htmlClickOpensBrowser={htmlClickOpensBrowser}
             onSelect={setSelectedPath}
             onToggleDirectory={handleToggleDirectory}
@@ -784,6 +785,7 @@ export function WorkspaceFileTree({
             workspaceTitle={workspaceTitle}
             workspacePath={workspacePath}
             workspaceIdentity={workspaceIdentity}
+            workspaceRemoteSessionId={workspaceRemoteSessionId}
             selectedPath={selectedPath}
             gitStatusByPath={treeData.gitStatusByPath}
             ignoredPathSet={treeData.ignoredPathSet}

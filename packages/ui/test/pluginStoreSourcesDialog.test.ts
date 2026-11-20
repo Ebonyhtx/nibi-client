@@ -2,8 +2,8 @@
 
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { AddMarketplaceSourceDialog } from "@/settings/AddMarketplaceSourceDialog.js";
 import {
@@ -100,6 +100,75 @@ describe("PluginStoreSourcesDialog", () => {
     expect(screen.getByTestId("plugin-store-add-source-error").textContent).toContain(
       "Invalid marketplace source",
     );
+  });
+
+  it("shows the unofficial marketplace warning and requires acknowledgement to submit", async () => {
+    const onAddMarketplace = vi.fn(async () => true);
+    render(
+      createElement(
+        NibiIntlProvider,
+        { initialLocale: "en-US" },
+        createElement(AddMarketplaceSourceDialog, {
+          open: true,
+          onOpenChange: () => {},
+          onAddMarketplace,
+          activeOperations: [],
+        }),
+      ),
+    );
+
+    expect(screen.getByTestId("plugin-store-add-source-risk-warning").textContent).toContain(
+      "Unofficial plugin marketplaces may contain malicious plugins",
+    );
+    const submit = screen.getByTestId("plugin-store-add-source-submit") as HTMLButtonElement;
+    const input = screen.getByTestId("plugin-store-add-source-input") as HTMLInputElement;
+    expect(submit.disabled).toBe(true);
+
+    fireEvent.change(input, { target: { value: "https://example.com/marketplace.git" } });
+    expect(submit.disabled).toBe(true);
+
+    fireEvent.click(screen.getByTestId("plugin-store-add-source-risk-acknowledgement"));
+    expect(submit.disabled).toBe(false);
+
+    fireEvent.click(submit);
+    await waitFor(() =>
+      expect(onAddMarketplace).toHaveBeenCalledWith("https://example.com/marketplace.git"),
+    );
+  });
+
+  it("resets the acknowledgement when the dialog closes", () => {
+    const onAddMarketplace = vi.fn(async () => true);
+    const element = (open: boolean) =>
+      createElement(
+        NibiIntlProvider,
+        { initialLocale: "en-US" },
+        createElement(AddMarketplaceSourceDialog, {
+          open,
+          onOpenChange: () => {},
+          onAddMarketplace,
+          activeOperations: [],
+        }),
+      );
+    const { rerender } = render(element(true));
+
+    fireEvent.change(screen.getByTestId("plugin-store-add-source-input"), {
+      target: { value: "https://example.com/marketplace.git" },
+    });
+    fireEvent.click(screen.getByTestId("plugin-store-add-source-risk-acknowledgement"));
+    expect(
+      (screen.getByTestId("plugin-store-add-source-submit") as HTMLButtonElement).disabled,
+    ).toBe(false);
+
+    rerender(element(false));
+    rerender(element(true));
+    expect(
+      (screen.getByTestId("plugin-store-add-source-submit") as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(
+      screen
+        .getByTestId("plugin-store-add-source-risk-acknowledgement")
+        .getAttribute("aria-checked"),
+    ).toBe("false");
   });
 
   it("renders official sources first and custom sources by lastUpdated", () => {

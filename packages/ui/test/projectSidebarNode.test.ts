@@ -5,6 +5,10 @@ import { afterEach, expect, it, vi } from "vitest";
 import { ProjectSidebarNode } from "@/project-sidebar/ProjectSidebarNode.js";
 
 const probes = vi.hoisted(() => ({ node: vi.fn() }));
+const navigation = vi.hoisted(() => ({
+  setPendingSettingsSectionIntent: vi.fn(),
+  openSettingsTab: vi.fn(),
+}));
 vi.mock("@/project-sidebar/ProjectNode.js", () => ({
   ProjectNode: (props: { onCreate(): void }) => {
     probes.node(props);
@@ -14,7 +18,14 @@ vi.mock("@/project-sidebar/ProjectNode.js", () => ({
 vi.mock("@/i18n/IntlProvider.js", () => ({
   useNibiIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
 }));
-vi.mock("@/store/TabStoreProvider.js", () => ({ useTabStoreApi: () => ({}) }));
+vi.mock("@/store/TabStoreProvider.js", () => ({
+  useTabStoreApi: () => ({
+    getState: () => ({ openSettingsTab: navigation.openSettingsTab }),
+  }),
+}));
+vi.mock("@/lib/settingsNavigation.js", () => ({
+  setPendingSettingsSectionIntent: navigation.setPendingSettingsSectionIntent,
+}));
 vi.mock("@/hooks/useConfirmDialog.js", () => ({ useConfirmDialog: () => async () => true }));
 afterEach(() => {
   cleanup();
@@ -96,4 +107,21 @@ it("回调与项目身份变化不能被 memo 忽略，新建始终使用当前�
     hostId: "remote:server:example",
     taskGroupId: null,
   });
+});
+
+it("desktop project row opens Settings › Projects", () => {
+  const props = fixture();
+  render(createElement(ProjectSidebarNode, { ...props, isDesktop: true }));
+  const passed = probes.node.mock.lastCall![0] as { onManageProjects?: () => void };
+  expect(passed.onManageProjects).toBeTypeOf("function");
+  passed.onManageProjects?.();
+  expect(navigation.setPendingSettingsSectionIntent).toHaveBeenCalledWith("projects");
+  expect(navigation.openSettingsTab).toHaveBeenCalledOnce();
+});
+
+it("non-desktop project row omits the Settings › Projects entry", () => {
+  const props = fixture();
+  render(createElement(ProjectSidebarNode, { ...props, isDesktop: false }));
+  const passed = probes.node.mock.lastCall![0] as { onManageProjects?: () => void };
+  expect(passed.onManageProjects).toBeUndefined();
 });

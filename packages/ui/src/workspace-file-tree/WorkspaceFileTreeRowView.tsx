@@ -2,9 +2,20 @@ import { SidebarNativeTooltip, ControlHintTooltip } from "@/ControlHintTooltip.j
 /* eslint-disable max-lines -- 文件树行集中维护拖拽、打开方式、Git 状态与上下文菜单交互。 */
 import type { EditorInfo, OpenInEditorRemoteTarget } from "@nibi/shared";
 import type { CSSProperties, KeyboardEvent, MouseEvent } from "react";
-import { AlertCircle, ChevronRight, LoaderCircle } from "lucide-react";
+import {
+  AlertCircle,
+  AppWindowIcon,
+  ChevronRight,
+  CopyIcon,
+  FolderOpenIcon,
+  GlobeIcon,
+  LoaderCircle,
+  MessageSquarePlusIcon,
+  PanelRightIcon,
+} from "lucide-react";
 import { TID_WORKSPACE_FILE_TREE_ROW, testId } from "@nibi/shared/test-ids";
 import { cn } from "@/components/lib/utils.js";
+import { FileSaveAsMenuItem } from "@/file-menu/index.js";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -68,6 +79,7 @@ export function WorkspaceFileTreeRowView({
   remoteTarget,
   workspacePath,
   workspaceIdentity,
+  workspaceRemoteSessionId,
   htmlClickOpensBrowser = false,
   style,
   onSelect,
@@ -89,6 +101,7 @@ export function WorkspaceFileTreeRowView({
   remoteTarget?: OpenInEditorRemoteTarget;
   workspacePath: string;
   workspaceIdentity?: string;
+  workspaceRemoteSessionId?: string;
   /** 设置开关：单击本地 HTML 时用内置浏览器打开；右键入口与键盘主操作保持源码预览。 */
   htmlClickOpensBrowser?: boolean;
   style: CSSProperties;
@@ -372,15 +385,24 @@ export function WorkspaceFileTreeRowView({
           <ContextMenuItem disabled={!canOpenPrimary} onSelect={handleOpenPrimary}>
             {/* 修复：第一项之前复用了默认外部应用文案，Finder/Explorer 置顶后会显示成“在 Finder 中打开”。
                 这里改为复用行主动作：文件打开预览，目录走当前行的展开/收起逻辑。 */}
+            {isDirectory ? (
+              <FolderOpenIcon aria-hidden="true" className="size-4" />
+            ) : (
+              <PanelRightIcon aria-hidden="true" className="size-4" />
+            )}
             {contextMenuLabels.open}
           </ContextMenuItem>
           <ContextMenuSub>
             <ContextMenuSubTrigger disabled={isDeletedFile || installedEditors.length === 0}>
+              <AppWindowIcon aria-hidden="true" className="size-4" />
               {contextMenuLabels.openWith}
             </ContextMenuSubTrigger>
             <ContextMenuSubContent className="w-44">
               {installedEditors.map((editor) => (
                 <ContextMenuItem key={editor.id} onSelect={() => void handleOpenInEditor(editor)}>
+                  {editor.iconDataUrl ? (
+                    <img src={editor.iconDataUrl} alt="" className="size-4 shrink-0" />
+                  ) : null}
                   {editor.name}
                 </ContextMenuItem>
               ))}
@@ -388,24 +410,39 @@ export function WorkspaceFileTreeRowView({
           </ContextMenuSub>
           {canOpenInBrowser ? (
             <ContextMenuItem onSelect={handleOpenInBrowser}>
+              <GlobeIcon aria-hidden="true" className="size-4" />
               {contextMenuLabels.openInBrowser}
             </ContextMenuItem>
           ) : null}
+          {!isDirectory && (
+            <FileSaveAsMenuItem
+              variant="context"
+              disabled={isDeletedFile}
+              path={row.path}
+              workspacePath={workspacePath}
+              workspaceIdentity={workspaceIdentity}
+              workspaceRemoteSessionId={workspaceRemoteSessionId}
+            />
+          )}
           <ContextMenuSeparator />
           <ContextMenuItem
             disabled={!canRevealInFileManager}
             onSelect={() => void handleRevealInFileManager()}
           >
+            <FolderOpenIcon aria-hidden="true" className="size-4" />
             {contextMenuLabels.reveal}
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => void handleCopyAbsolutePath()}>
+            <CopyIcon aria-hidden="true" className="size-4" />
             {contextMenuLabels.copyAbsolutePath}
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => void handleCopyRelativePath()}>
+            <CopyIcon aria-hidden="true" className="size-4" />
             {contextMenuLabels.copyRelativePath}
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem onSelect={() => dispatchWorkspaceFileAddToChat(workspaceFilePayload)}>
+            <MessageSquarePlusIcon aria-hidden="true" className="size-4" />
             {contextMenuLabels.addToChat}
           </ContextMenuItem>
         </ContextMenuContent>

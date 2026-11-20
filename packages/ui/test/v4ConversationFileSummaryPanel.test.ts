@@ -37,6 +37,25 @@ vi.mock("@/components/ui/collapsible.js", async () => {
   };
 });
 
+vi.mock("@/ControlHintTooltip.js", async () => {
+  const React = await import("react");
+  return {
+    ControlHintTooltip: ({
+      title,
+      children,
+    }: {
+      title: React.ReactNode;
+      children?: React.ReactNode;
+    }) =>
+      React.createElement(
+        "span",
+        { "data-tooltip-title": String(title) },
+        String(title),
+        children,
+      ),
+  };
+});
+
 vi.mock("@/OpenSplitButton.js", async () => {
   const React = await import("react");
   return {
@@ -172,6 +191,24 @@ function collectText(node: unknown): string {
     return candidate.childNodes.map((child) => collectText(child)).join("");
   }
   return typeof candidate.textContent === "string" ? candidate.textContent : "";
+}
+
+function findElementByAttribute(
+  node: unknown,
+  attributeName: string,
+  attributeValue: string,
+): unknown | null {
+  if (!node || typeof node !== "object") return null;
+  const candidate = node as {
+    childNodes?: unknown[];
+    getAttribute?: (name: string) => string | null;
+  };
+  if (candidate.getAttribute?.(attributeName) === attributeValue) return candidate;
+  for (const child of candidate.childNodes ?? []) {
+    const match = findElementByAttribute(child, attributeName, attributeValue);
+    if (match) return match;
+  }
+  return null;
 }
 
 afterEach(() => {
@@ -569,4 +606,51 @@ describe("ConversationFileSummaryPanel", () => {
     });
     await act(async () => root.unmount());
   });
+
+  it.each([false, true])(
+    "session 锁定时撤销按钮显示锁定提示，fileRewindLocked=%s",
+    async (fileRewindLocked) => {
+      const container = installMinimalDom();
+      const root: Root = createRoot(container);
+      await act(async () => {
+        root.render(
+          createElement(
+            NibiIntlProvider,
+            { initialLocale: "zh-CN" },
+            createElement(ConversationFileSummaryPanel, {
+              // 锁定时内核撤掉 canRewindFiles，按钮靠锁状态禁用并承接提示。
+              header: header({ actions: fileRewindLocked ? {} : { canRewindFiles: true } }),
+              context: {
+                workspacePath: "/workspace",
+                theme: "system",
+                codePreviewSettings: DEFAULT_CODE_PREVIEW_SETTINGS,
+                fileRewindLocked,
+                previewFileRewind: vi.fn(),
+                applyFileRewind: vi.fn(),
+              },
+            }),
+          ),
+        );
+      });
+
+      const trigger = findElementByAttribute(
+        container,
+        "data-disabled-tooltip-trigger",
+        "true",
+      );
+      if (fileRewindLocked) {
+        expect(trigger).not.toBeNull();
+        expect(collectText(container)).toContain(
+          "会话正在运行或有待处理的请求，完成后可撤销",
+        );
+      } else {
+        expect(trigger).toBeNull();
+        expect(collectText(container)).not.toContain(
+          "会话正在运行或有待处理的请求，完成后可撤销",
+        );
+      }
+
+      await act(async () => root.unmount());
+    },
+  );
 });

@@ -33,6 +33,7 @@ export function ProactiveSuggestionsSetting() {
 
   return (
     <SettingsRow
+      searchTarget="general.proactiveSuggestions"
       label={intl.formatMessage({ id: "chat.officeSuggestions.setting" })}
       description={intl.formatMessage({ id: "chat.officeSuggestions.settingDescription" })}
       control={

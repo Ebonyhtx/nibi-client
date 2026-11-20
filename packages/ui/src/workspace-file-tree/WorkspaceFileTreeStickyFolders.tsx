@@ -24,6 +24,7 @@ export function WorkspaceFileTreeStickyFolders({
   editorState,
   workspacePath,
   workspaceIdentity,
+  workspaceRemoteSessionId,
   htmlClickOpensBrowser,
   onSelect,
   onToggleDirectory,
@@ -41,6 +42,7 @@ export function WorkspaceFileTreeStickyFolders({
   editorState: WorkspaceFileTreeEditorState;
   workspacePath: string;
   workspaceIdentity?: string;
+  workspaceRemoteSessionId?: string;
   htmlClickOpensBrowser?: boolean;
   onSelect: (path: string) => void;
   onToggleDirectory: (row: WorkspaceFileTreeRow) => void;
@@ -83,6 +85,7 @@ export function WorkspaceFileTreeStickyFolders({
               remoteTarget={editorState.remoteTarget}
               workspacePath={workspacePath}
               workspaceIdentity={workspaceIdentity}
+              workspaceRemoteSessionId={workspaceRemoteSessionId}
               htmlClickOpensBrowser={htmlClickOpensBrowser}
               style={{}}
               onSelect={onSelect}

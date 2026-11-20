@@ -14,7 +14,11 @@ const TASK_LOG_PATH_ITEM_INDEX = 7;
 const PROVIDER_CONFIG_ITEM_INDEX = 8;
 
 function renderMenu(overrides: Partial<React.ComponentProps<typeof TaskActionMenuContent>> = {}) {
-  const itemStates: Array<{ disabled?: boolean }> = [];
+  const itemStates: Array<{
+    disabled?: boolean;
+    onSelect?: () => void;
+    testId?: string;
+  }> = [];
 
   const html = renderToStaticMarkup(
     createElement(TaskActionMenuContent, {
@@ -42,13 +46,17 @@ function renderMenu(overrides: Partial<React.ComponentProps<typeof TaskActionMen
         children,
         title,
         disabled,
+        onSelect,
+        "data-testid": testId,
       }: {
         children: React.ReactNode;
         title?: string;
         disabled?: boolean;
+        onSelect?: () => void;
+        "data-testid"?: string;
       }) => {
-        itemStates.push({ disabled });
-        return createElement("button", { title, disabled }, children);
+        itemStates.push({ disabled, onSelect, testId });
+        return createElement("button", { title, disabled, "data-testid": testId }, children);
       },
       Separator: () => createElement("hr"),
       onTogglePinTask: vi.fn(),
@@ -127,5 +135,26 @@ describe("TaskActionMenuContent", () => {
     const { html } = renderMenu();
 
     expect(html).not.toContain("taskList.openInSplitPane");
+  });
+
+  it("提供「重启任务」入口并触发会话重启", () => {
+    const onRestartTask = vi.fn();
+    const { html, itemStates } = renderMenu({ onRestartTask });
+
+    expect(html).toContain("taskList.restart");
+    const restartItem = itemStates.find((state) => state.testId === "task-restart");
+    expect(restartItem?.disabled).toBe(false);
+    restartItem?.onSelect?.();
+    expect(onRestartTask).toHaveBeenCalledOnce();
+  });
+
+  it("重启进行中显示 Restarting task… 并禁用重复触发", () => {
+    const { html, itemStates } = renderMenu({
+      onRestartTask: vi.fn(),
+      restartPending: true,
+    });
+
+    expect(html).toContain("taskList.restarting");
+    expect(itemStates.find((state) => state.testId === "task-restart")?.disabled).toBe(true);
   });
 });

@@ -688,6 +688,12 @@ export const TID_V4_EDIT_WORKSPACE_CONFLICT_DIALOG = "v4-edit-workspace-conflict
 /** v4 edit 文件冲突后降级为仅裁剪对话 */
 export const TID_V4_EDIT_WORKSPACE_CONFLICT_CONVERSATION_ONLY =
   "v4-edit-workspace-conflict-conversation-only";
+/** v4 被编辑 user 行的「正在下方编辑」入口（动态后缀为 rowId） */
+export const TID_V4_EDIT_IN_COMPOSER_HINT = "v4-edit-in-composer-hint";
+/** v4 文件摘要「撤销」因 session 锁禁用时承接 hover 提示的外层 */
+export const TID_V4_FILE_SUMMARY_UNDO_LOCKED = "v4-file-summary-undo-locked";
+/** v4 文件撤销弹窗「撤销文件」因 session 锁禁用时承接 hover 提示的外层 */
+export const TID_V4_FILE_REWIND_CONFIRM_LOCKED = "v4-file-rewind-confirm-locked";
 /** v4 queue 面板容器 */
 export const TID_V4_QUEUE = "v4-queue";
 /** v4 暂停队列原因/恢复提示条 */

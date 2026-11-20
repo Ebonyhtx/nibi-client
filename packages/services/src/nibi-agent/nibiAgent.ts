@@ -710,6 +710,8 @@ export interface INibiAgentService {
   supportsConversationQuoteComment?(target: NibiAgentWorkspaceTarget): Promise<boolean>;
   createSession(params: NibiAgentCreateSessionParams): Promise<NibiSessionStateSnapshot>;
   resumeSession(params: NibiAgentResumeSessionParams): Promise<NibiSessionStateSnapshot>;
+  /** 重启单个会话的运行实例（session/lifecycle/restart）；历史与持久事实保留。 */
+  restartSessionRuntime(params: NibiAgentSessionTarget): Promise<void>;
   listSessions(params: NibiAgentListSessionsParams): Promise<NibiSessionInfo[]>;
   listSessionSubagents(
     params: NibiAgentListSessionSubagentsParams,

@@ -56,6 +56,76 @@ const mockServices = {
   },
 } as IServiceAccessor;
 
+function renderAgentBlock({
+  toolId,
+  status = "completed",
+  isRunning = false,
+  input = { prompt: "检查工作区", subagent_type: "Explore" },
+  showIcon = true,
+}: {
+  toolId: string;
+  status?: string;
+  isRunning?: boolean;
+  input?: Record<string, unknown>;
+  showIcon?: boolean;
+}) {
+  return renderToStaticMarkup(
+    createElement(
+      NibiIntlProvider,
+      { initialLocale: "zh-CN" },
+      createElement(
+        ServiceProvider,
+        { services: mockServices },
+        createElement(
+          StoreProvider,
+          { broadcastService: mockBroadcastService },
+          createElement(AgentToolCallBlock, {
+            toolCallNode: {
+              toolCall: {
+                toolId,
+                kind: "Agent",
+                title: "Agent",
+                input,
+                output: [],
+                status,
+                raw: {
+                  _meta: {
+                    nibi: {
+                      toolName: "Agent",
+                    },
+                  },
+                },
+              },
+              childToolCalls: [],
+            },
+            workspacePath: "/workspace",
+            displayModel: {
+              inlinePreview: { type: "none" },
+              planResult: null,
+              viewerSource: null,
+              viewerLabelId: "codeViewer.viewCode",
+              showSummaryFileLink: false,
+              showInput: false,
+              showOutput: false,
+              showKind: false,
+            },
+            viewerSource: null,
+            rawFileSummaries: [],
+            isRunning,
+            statusLabel: "执行中",
+            errorText: undefined,
+            childToolList: null,
+            showIcon,
+            forceOpen: false,
+            onOpenCodeViewer: undefined,
+            onOpenBrowserUrl: undefined,
+          }),
+        ),
+      ),
+    ),
+  );
+}
+
 describe("AgentToolCallBlock", () => {
   afterEach(() => {
     useSubagentsStore.setState({ agents: [] });
@@ -338,7 +408,56 @@ describe("AgentToolCallBlock", () => {
     );
 
     expect(html).toContain("Explore");
-    expect(html).toContain("text-rose-700");
+    // 配置色经 SUBAGENT_WORKFLOW_COLOR 映射到 workflow 九色板；脸和名字共用同一身份色。
+    expect(html).toContain('data-subagent-avatar="true"');
+    expect(html).toContain("--wf-face-body:#EA4045");
+    expect(html).toContain('data-face-state="content"');
+    expect(html).toContain('style="color:#EA4045"');
+    expect(html).not.toContain("text-rose-700");
+    expect(html).not.toContain("lucide-bot");
+  });
+
+  it("renders the workflow agent face with the name-hash fallback for an unconfigured agent", () => {
+    const html = renderAgentBlock({
+      toolId: "tool-agent-name-hash",
+      status: "running",
+      isRunning: true,
+      input: { prompt: "检查工作区", subagent_type: "researcher" },
+    });
+
+    expect(html).toContain("researcher");
+    expect(html).toContain('data-subagent-avatar="true"');
+    // 未配置颜色时按名称散列取九色板：researcher -> #F19D38。
+    expect(html).toContain("--wf-face-body:#F19D38");
+    expect(html).toContain('data-face-state="scanning"');
+  });
+
+  it("maps agent tool status to the workflow face state", () => {
+    const cases = [
+      { status: "pending", isRunning: true, faceState: "waiting" },
+      { status: "running", isRunning: true, faceState: "scanning" },
+      { status: "completed", isRunning: false, faceState: "content" },
+      { status: "failed", isRunning: false, faceState: "sad" },
+      // 停止沿用中性等待脸，不能误报为成功。
+      { status: "stopped", isRunning: false, faceState: "waiting" },
+    ];
+
+    for (const { status, isRunning, faceState } of cases) {
+      const html = renderAgentBlock({
+        toolId: `tool-agent-status-${status}`,
+        status,
+        isRunning,
+      });
+      expect(html).toContain(`data-face-state="${faceState}"`);
+      expect(html).not.toContain('data-face-state="idle"');
+    }
+  });
+
+  it("hides the face but keeps the agent name when the icon slot is disabled", () => {
+    const html = renderAgentBlock({ toolId: "tool-agent-no-icon", showIcon: false });
+
+    expect(html).toContain("Explore");
+    expect(html).not.toContain("data-subagent-avatar");
   });
 
   it("keeps the agent type blank while subagent_type may still be streaming", () => {

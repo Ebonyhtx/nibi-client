@@ -1,4 +1,10 @@
 /* oxlint-disable eslint(max-lines) -- 状态面板同时维护收起态摘要、展开态分区、菜单策略和宽度自适应，同文件能保证两种形态共享同一内容优先级。 */
+import {
+  WorkflowAgentFace,
+  SubagentCollectionIcon,
+} from "@/components/workflow-timeline/WorkflowAgentFace.js";
+import { SUBAGENT_WORKFLOW_COLOR } from "@/lib/subagentColors.js";
+import { useToolPresentationCapabilities } from "@/ToolCallBlocks/presentationCapabilities.js";
 import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
 import {
   forwardRef,
@@ -14,7 +20,6 @@ import {
 import {
   ActivityIcon,
   ArrowRightIcon,
-  BotIcon,
   CheckCircle2Icon,
   ChevronDownIcon,
   ChevronLeftIcon,
@@ -1457,6 +1462,7 @@ function SubagentStatusSection({
 }) {
   const { intl } = useNibiIntl();
   const [now, setNow] = useState(() => Date.now());
+  const presentation = useToolPresentationCapabilities();
   const ordered = useMemo(
     () => [...subagents].sort((left, right) => (left.startedAt ?? 0) - (right.startedAt ?? 0)),
     [subagents],
@@ -1501,6 +1507,7 @@ function SubagentStatusSection({
     >
       <ul className="space-y-0">
         {ordered.map((subagent) => {
+          const configuredColor = presentation.agentColor?.(subagent.subagentType);
           const request = buildRunningSubagentOpenRequest({
             parentSessionId,
             rootSessionId,
@@ -1538,7 +1545,16 @@ function SubagentStatusSection({
                   className="absolute inset-0 z-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-input-border-focused)]"
                 />
               ) : null}
-              <BotIcon className="pointer-events-none relative z-[1] mt-0.5 size-4 shrink-0 text-[var(--color-foreground-subtle)]" />
+              {/* 与 Progress 共用 14px 图标列；覆盖头像最小尺寸，并按标题首行居中。 */}
+              <span className="pointer-events-none relative z-[1] flex h-5 w-3.5 shrink-0 items-center justify-center">
+                <WorkflowAgentFace
+                  avatarIndex={undefined}
+                  name={subagent.subagentType}
+                  status="running"
+                  color={configuredColor ? SUBAGENT_WORKFLOW_COLOR[configuredColor] : undefined}
+                  className="size-3.5 min-h-3.5! min-w-3.5!"
+                />
+              </span>
               <div className="pointer-events-none relative z-[1] flex min-w-0 flex-1 flex-col gap-1.5">
                 <span className="line-clamp-2 text-ui-base leading-5 text-[var(--color-foreground)]">
                   {subagent.title}
@@ -1755,7 +1771,7 @@ function StatusSummaryRow({
   const hasGitMiniSummary = Boolean(model.git && added + removed > 0);
 
   // 胶囊摘要过去把所有后台任务都写死成 Activity，纯 Subagent 因而没有复用
-  // Running 明细的 Bot 语义。**恰好一类**沿用该类图标，混合才是 Activity。在跑的工作流不进这条
+  // Running 明细的头像语义。**恰好一类**沿用该类图标，混合才是 Activity。在跑的工作流不进这条
   // 兜底：它排在胶囊最前，自己一个分支（名字 · 灯 · phase），不再是一个计数。
   const hasRunningBash = model.runningBashWorks.length > 0;
   const hasRunningSubagent = model.runningSubagentWorks.length > 0;
@@ -1765,7 +1781,7 @@ function StatusSummaryRow({
       ? ActivityIcon
       : hasRunningBash
         ? SquareTerminalIcon
-        : BotIcon;
+        : SubagentCollectionIcon;
   const firstLiveRun = model.runningWorkflowRuns[0];
   // 在跑的工作流排在胶囊最前（docs/dynamic-workflow/presentation.md「Other places a run appears」）：
   // 它在跑时就是会话在做的事，而主代理那一轮多半早已结束、todo 只是上一轮的余迹。过去它排在
@@ -1819,7 +1835,10 @@ function StatusSummaryRow({
     </StatusSummaryMetric>
   ) : runningCount > 0 ? (
     <StatusSummaryMetric
-      icon={<RunningSummaryIcon className="size-4 text-[var(--color-foreground)]" />}
+      // 头像默认最小尺寸为 20px，会撑出 16px 图标槽；此处按胶囊图标尺寸覆盖，避免偏心和挤占文字间距。
+      icon={
+        <RunningSummaryIcon className="size-4 min-h-4! min-w-4! text-[var(--color-foreground)]" />
+      }
     >
       {/* 产品规则：终端 / 智能体的实时计数只能在没有 Goal/Todo/Git 等主状态时兜底，
           避免胶囊把主状态和输入框已展示的实时计数重复拼接。 */}

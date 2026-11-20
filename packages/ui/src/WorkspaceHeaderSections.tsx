@@ -28,6 +28,7 @@ import { Ellipsis, Folder, GitBranch, LoaderIcon } from "lucide-react";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { useGlobalTaskList } from "@/hooks/useGlobalTaskList.js";
 import { useBaseWorkspaceServices, useWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
+import { useSessionRuntimeRestart } from "@/app-shell/useWorkspaceSessionReload.js";
 import { useTaskListItemContextActions } from "@/useTaskListItemContextActions.js";
 import { TaskActionMenuContent } from "@/TaskActionMenuContent.js";
 import {
@@ -107,6 +108,12 @@ export function WorkspaceHeaderTitleSection({
   const confirmDialog = useConfirmDialog();
   const services = useWorkspaceServices(workspaceAbsPath, remoteSessionId, workspaceIdentity);
   const baseServices = useBaseWorkspaceServices();
+  const taskRestart = useSessionRuntimeRestart(
+    workspaceAbsPath,
+    activeSessionId,
+    remoteSessionId,
+    workspaceIdentity,
+  );
   const removeTaskState = useNibiSessionStore((state) => state.removeTaskState);
   const upsertOptimisticTaskListItem = useNibiSessionStore(
     (state) => state.upsertOptimisticTaskListItem,
@@ -578,6 +585,14 @@ export function WorkspaceHeaderTitleSection({
                 hideMobileUnsupportedActions={simplifyForNarrowRemote}
                 Item={DropdownMenuItem}
                 Separator={DropdownMenuSeparator}
+                onRestartTask={
+                  activeSessionId && !readOnlyReason
+                    ? () => {
+                        void taskRestart.restart();
+                      }
+                    : undefined
+                }
+                restartPending={taskRestart.pending}
                 onTogglePinTask={() => {
                   if (!resolvedTaskActionTaskId) {
                     return;
