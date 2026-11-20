@@ -135,7 +135,10 @@ export interface AppControlOpenSessionSettlement {
 }
 
 export interface IAppControlNavigationService {
-  onOpenSession(): Event<AppControlOpenSessionEvent>;
+  // 必须是事件属性而不是 `onXxx()` 事件工厂：ProxyChannel 会按 `on*` 前缀把所有方法
+  // 预先缓存成 bufferEvent；工厂返回的 Event 函数会被当成订阅对象，renderer reload
+  // 拆除 ChannelServer 时 `listener?.dispose()` 抛 uncaughtException，直接杀掉 Host。
+  readonly onDidOpenSession: Event<AppControlOpenSessionEvent>;
   /** UI 对一条打开请求的最终回执；重复或迟到的 requestId 不得覆盖已结算结果。 */
   settleOpenSession(settlement: AppControlOpenSessionSettlement): void;
 }

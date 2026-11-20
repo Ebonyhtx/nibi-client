@@ -191,7 +191,13 @@ function bufferEvent<T>(event: Event<T>): Event<T> {
       });
     },
     onDidRemoveLastListener: () => {
-      listener?.dispose();
+      // 契约命名失误（把 onXxx 写成“返回 Event 的方法”而不是事件属性）时，这里拿到的是
+      // 一个函数而不是 IDisposable；一次拆除失败不能升级成整个 Host 进程退出。
+      // 正常的事件属性（onDidXxx: Event）返回的订阅对象一定会走到 dispose 分支。
+      const disposable = listener as Partial<IDisposable> | undefined;
+      if (typeof disposable?.dispose === "function") {
+        disposable.dispose();
+      }
       listener = undefined;
       buffer = [];
     },

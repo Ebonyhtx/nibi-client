@@ -1,9 +1,14 @@
+import { ChannelClient, ChannelServer, ProxyChannel, createQueuePair } from "@nibi/rpc";
 import { describe, expect, it, vi } from "vitest";
 import { createAppControlNavigationService } from "../src/app-control/navigation.js";
 import { createAppControlService } from "../src/app-control/index.js";
 import { createAppControlReverseRpc } from "../src/app-control/reverseRpc.js";
 import { createTrustedContext, hostScope } from "../src/app-control/context.js";
-import type { AppControlOpenSessionResult } from "../src/app-control/contract.js";
+import {
+  IAppControlNavigationService,
+  type AppControlOpenSessionEvent,
+  type AppControlOpenSessionResult,
+} from "../src/app-control/contract.js";
 import type { AppControlNavigationRuntime } from "../src/app-control/navigation.js";
 
 const WORKSPACE = "/workspace";
@@ -112,7 +117,7 @@ function navigation(
   ),
 ): AppControlNavigationRuntime {
   return {
-    service: { onOpenSession: vi.fn(), settleOpenSession: vi.fn() } as never,
+    service: { onDidOpenSession: vi.fn(), settleOpenSession: vi.fn() } as never,
     openSession,
     dispose: vi.fn(),
   };
@@ -504,7 +509,7 @@ describe("App control archived targets", () => {
 describe("App control navigation", () => {
   it("opens through the event channel and settles with a uiTarget", async () => {
     const runtime = createAppControlNavigationService({ createRequestId: () => "open-1" });
-    const subscription = runtime.service.onOpenSession()((event) => {
+    const subscription = runtime.service.onDidOpenSession((event) => {
       expect(event).toMatchObject({ requestId: "open-1", sessionId: "sess_1" });
       runtime.service.settleOpenSession({ requestId: "open-1", uiTarget: "window:1" });
     });
@@ -530,7 +535,7 @@ describe("App control navigation", () => {
     vi.useFakeTimers();
     try {
       const runtime = createAppControlNavigationService({ timeoutMs: 100, createRequestId: () => "open-1" });
-      const subscription = runtime.service.onOpenSession()(() => {});
+      const subscription = runtime.service.onDidOpenSession(() => {});
       const pending = runtime.openSession({ sessionId: "sess_1", workspacePath: WORKSPACE });
       await vi.advanceTimersByTimeAsync(101);
       await expect(pending).resolves.toMatchObject({
@@ -542,6 +547,46 @@ describe("App control navigation", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("delivers open requests through ProxyChannel and survives reload teardown", async () => {
+    // 回归：onOpenSession() 这类 `onXxx()` 事件工厂会被 ProxyChannel 当成事件属性缓存成
+    // bufferEvent；renderer reload 拆除 ChannelServer 时 `listener?.dispose()` 抛
+    // uncaughtException，Host 直接退出，页面永久停在 root-startup-loading。
+    const runtime = createAppControlNavigationService({ createRequestId: () => "open-1" });
+    const [serverProtocol, clientProtocol] = createQueuePair();
+    const server = new ChannelServer(serverProtocol, "ctx");
+    const client = new ChannelClient(clientProtocol);
+    server.registerChannel(
+      IAppControlNavigationService.channelName,
+      ProxyChannel.fromService(runtime.service),
+    );
+    const proxy = ProxyChannel.toService<IAppControlNavigationService>(
+      client.getChannel(IAppControlNavigationService.channelName),
+    );
+
+    const received: AppControlOpenSessionEvent[] = [];
+    const subscription = proxy.onDidOpenSession((event) => {
+      received.push(event);
+      void proxy
+        .settleOpenSession({ requestId: event.requestId, uiTarget: "window:1" })
+        .catch(() => {});
+    });
+    // listen 请求走异步协议，等服务端 listeners 计数生效后再发起打开。
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await expect(
+      runtime.openSession({ sessionId: "sess_1", workspacePath: WORKSPACE }),
+    ).resolves.toEqual({ status: "opened", uiTarget: "window:1" });
+    expect(received).toHaveLength(1);
+    expect(received[0]).toMatchObject({ requestId: "open-1", sessionId: "sess_1" });
+
+    subscription.dispose();
+    // settle 回执仍在协议队列里；等它落地再断开，避免把测试自身的 in-flight 当泄漏。
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    // 先断开 renderer 侧，再拆除 server：真实 reload 也是连接先消失、Host 再 dispose。
+    client.dispose();
+    expect(() => server.dispose()).not.toThrow();
+    runtime.dispose();
   });
 });
 

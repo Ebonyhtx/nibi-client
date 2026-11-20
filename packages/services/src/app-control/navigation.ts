@@ -79,9 +79,7 @@ export function createAppControlNavigationService(
 
   return {
     service: {
-      onOpenSession() {
-        return emitter.event;
-      },
+      onDidOpenSession: emitter.event,
       settleOpenSession(settlement) {
         if (!settlement || typeof settlement.requestId !== "string") return;
         settle(settlement);

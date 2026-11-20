@@ -13,7 +13,7 @@ export interface AppControlOpenSessionEvent {
 }
 
 interface AppControlNavigationPort {
-  onOpenSession(): (listener: (event: AppControlOpenSessionEvent) => void) => {
+  onDidOpenSession(listener: (event: AppControlOpenSessionEvent) => void): {
     dispose(): void;
   };
   settleOpenSession(settlement: {
@@ -49,7 +49,7 @@ export function useAppControlNavigation({
   const navigation = services.appControlNavigationService;
 
   useEffect(() => {
-    if (!enabled || !navigation?.onOpenSession) return;
+    if (!enabled || !navigation?.onDidOpenSession) return;
     const settle = (settlement: Parameters<typeof navigation.settleOpenSession>[0]) => {
       try {
         navigation.settleOpenSession(settlement);
@@ -59,7 +59,7 @@ export function useAppControlNavigation({
     };
     let subscription: { dispose(): void } | undefined;
     try {
-      subscription = navigation.onOpenSession()((event: AppControlOpenSessionEvent) => {
+      subscription = navigation.onDidOpenSession((event: AppControlOpenSessionEvent) => {
         try {
           if (!event.workspacePath.trim() || !event.sessionId.trim()) {
             settle({

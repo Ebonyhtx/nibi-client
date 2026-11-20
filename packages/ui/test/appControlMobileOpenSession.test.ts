@@ -13,14 +13,12 @@ function createNavigationPort() {
   let settled: unknown;
   return {
     port: {
-      onOpenSession() {
-        return (listener: (event: Record<string, unknown>) => void) => {
-          listeners.add(listener);
-          return {
-            dispose() {
-              listeners.delete(listener);
-            },
-          };
+      onDidOpenSession(listener: (event: Record<string, unknown>) => void) {
+        listeners.add(listener);
+        return {
+          dispose() {
+            listeners.delete(listener);
+          },
         };
       },
       settleOpenSession(settlement: unknown) {

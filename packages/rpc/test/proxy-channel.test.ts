@@ -180,4 +180,19 @@ describe("ProxyChannel", () => {
     expect((proxy as { then?: unknown }).then).toBeUndefined();
     dispose();
   });
+
+  it("does not throw when an on* method returns a function instead of an IDisposable", () => {
+    // 回归：`onXxx()` 事件工厂会被 fromService 当成事件属性缓存；订阅返回的是 Event 函数，
+    // 拆除 ChannelServer 时对它调用 dispose() 曾抛 TypeError 并直接杀掉 Host 进程。
+    const service = {
+      onBadEvent() {
+        return () => () => undefined;
+      },
+    };
+    const channel = ProxyChannel.fromService(service);
+    const event = channel.listen<unknown>({}, "onBadEvent") as Event<string>;
+    const subscription = event(() => undefined);
+
+    expect(() => subscription.dispose()).not.toThrow();
+  });
 });
