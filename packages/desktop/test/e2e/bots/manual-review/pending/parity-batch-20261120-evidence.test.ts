@@ -2287,9 +2287,9 @@ describe("Parity batch 2026-11-20 evidence（真实 Desktop）", () => {
             const dialog = document.querySelector<HTMLElement>(
               '[data-testid="full-access-mode-confirm-dialog"]',
             );
-            const button = Array.from(
-              dialog?.querySelectorAll<HTMLButtonElement>("button") ?? [],
-            ).find((candidate) => candidate.textContent?.trim() === "Enable full access");
+            const button = dialog?.querySelector<HTMLButtonElement>(
+              '[data-testid="full-access-mode-confirm"]',
+            );
             return button ? !button.disabled : false;
           }),
         ),
@@ -2299,8 +2299,8 @@ describe("Parity batch 2026-11-20 evidence（真实 Desktop）", () => {
       const dialog = document.querySelector<HTMLElement>(
         '[data-testid="full-access-mode-confirm-dialog"]',
       );
-      const button = Array.from(dialog?.querySelectorAll<HTMLButtonElement>("button") ?? []).find(
-        (candidate) => candidate.textContent?.trim() === "Enable full access",
+      const button = dialog?.querySelector<HTMLButtonElement>(
+        '[data-testid="full-access-mode-confirm"]',
       );
       button?.click();
     });

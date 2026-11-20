@@ -134,6 +134,7 @@ export function FullAccessModeConfirmDialog({
             variant="destructive"
             size="lg"
             disabled={!acknowledged}
+            data-testid="full-access-mode-confirm"
             onClick={onConfirm}
           >
             {intl.formatMessage({ id: "chat.fullAccessConfirm.confirm" })}

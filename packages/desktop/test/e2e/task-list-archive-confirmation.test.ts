@@ -90,12 +90,15 @@ async function confirmFullAccessModeIfAsked() {
     async () => {
       if ((await getV4ConfigProjection()).mode === "yolo") return true;
       await browser.execute(() => {
-        const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+        // 用 testid 定位，不依赖当前语言的按钮文案（中文是“确认启用”，英文是“Enable full access”）。
+        const dialog = document.querySelector<HTMLElement>(
+          '[data-testid="full-access-mode-confirm-dialog"]',
+        );
         if (!dialog) return;
         const checkbox = dialog.querySelector<HTMLElement>('[role="checkbox"]');
         if (checkbox && checkbox.getAttribute("aria-checked") !== "true") checkbox.click();
-        const confirm = Array.from(dialog.querySelectorAll<HTMLButtonElement>("button")).find(
-          (button) => /Enable full access|启用完全访问/u.test(button.textContent ?? ""),
+        const confirm = dialog.querySelector<HTMLButtonElement>(
+          '[data-testid="full-access-mode-confirm"]',
         );
         if (confirm && !confirm.disabled) confirm.click();
       });
@@ -128,17 +131,39 @@ async function useProjectConversationTaskView() {
 async function startConversationTaskDraft() {
   // Bug 根因：refresh 后 sidebar 的 task section 会异步水合，原先同步读取 DOM
   // 偶发拿不到已经按产品语义应出现的“新建任务”按钮，尚未覆盖后续归档交互。
-  await browser.waitUntil(
-    async () =>
-      browser.execute((testIdValue) => {
-        const button = document.querySelector<HTMLButtonElement>(`[data-testid="${testIdValue}"]`);
-        return Boolean(button && !button.disabled);
-      }, TID_VIRTUAL_PROJECT_NEW_TASK),
-    {
-      timeout: 15000,
-      timeoutMsg: "项目任务区水合后没有出现可用的“新建任务”按钮",
-    },
-  );
+  try {
+    await browser.waitUntil(
+      async () =>
+        browser.execute((testIdValue) => {
+          const button = document.querySelector<HTMLButtonElement>(
+            `[data-testid="${testIdValue}"]`,
+          );
+          return Boolean(button && !button.disabled);
+        }, TID_VIRTUAL_PROJECT_NEW_TASK),
+      {
+        // 容器冷启动/水合明显慢于本机；30s 仍失败时带 DOM 诊断，避免只看到一句超时。
+        timeout: 30000,
+        timeoutMsg: "项目任务区水合后没有出现可用的“新建任务”按钮",
+      },
+    );
+  } catch (error) {
+    const state = await browser.execute((testIdValue) => {
+      const button = document.querySelector<HTMLButtonElement>(`[data-testid="${testIdValue}"]`);
+      return {
+        button: button ? { connected: button.isConnected, disabled: button.disabled } : null,
+        onboarding: Boolean(document.querySelector('[data-testid="onboarding-page"]')),
+        startupLoading: Boolean(document.querySelector('[data-testid="root-startup-loading"]')),
+        sections: Array.from(document.querySelectorAll('[data-testid$="-section"]')).map(
+          (element) => element.getAttribute("data-testid"),
+        ),
+        text: document.body.innerText.slice(0, 500),
+      };
+    }, TID_VIRTUAL_PROJECT_NEW_TASK);
+    throw new Error(
+      `项目任务区水合后没有出现可用的“新建任务”按钮\n${JSON.stringify(state)}`,
+      { cause: error },
+    );
+  }
 
   const clicked = await browser.execute((testIdValue) => {
     const button = document.querySelector<HTMLElement>(`[data-testid="${testIdValue}"]`);
