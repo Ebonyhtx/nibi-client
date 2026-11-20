@@ -38,7 +38,7 @@
  *   E2E_PROVIDER_HTTP_MODE=replay \
  *   E2E_PROVIDER_REPLAY_FIXTURE_PATH=packages/desktop/test/e2e/fixtures/upstream/worktree-handoff.json,\
  * packages/desktop/test/e2e/fixtures/upstream/common.json \
- *   NIBI_BUNDLED_AGENT_RESOURCE_DIR=D:\NIBI\NIBI-Client\apps\nibi-cli \
+ *   NIBI_BUNDLED_AGENT_RESOURCE_DIR=$PWD/apps/nibi-cli \
  *   pnpm --filter @nibi/desktop exec wdio run wdio.conf.ts \
  *     --spec test/e2e/bots/manual-review/pending/worktree-handoff-evidence.test.ts
  */

@@ -12,14 +12,18 @@
  * E. 图片文件引用：CLI transcript 种入一条带图片文件引用的已发送用户消息，点击
  *    data-image-file-mention 打开共享图片预览对话框并截图。
  * F. 插件：记录“全部更新（N）”按钮是否存在；隔离 HOME 没有可更新插件时如实记录。
+ * G. 本地项目身份悬浮卡：本地项目行悬停显示 project-identity-details（只含项目路径）。
+ * H. 权限弹窗「允许并切换模式」：build 模式下出现 guarded/yolo 选择器；选完全访问后
+ *    必须先过 full-access-mode-confirm-dialog 二次确认，确认后工具执行到 V4_PERMISSION_DONE。
  *
  * 运行（仓库根目录；与 settings-parity/六批同一隔离 HOME 合同）：
  *   NIBI_E2E_HOME_DIR=<isolated home> \
- *   NIBI_E2E_EVIDENCE_DIR=packages/desktop/.e2e-artifacts/parity-batch-20261120 \
+ *   NIBI_E2E_EVIDENCE_DIR=$PWD/packages/desktop/.e2e-artifacts/parity-batch-20261120 \
  *   E2E_PROVIDER_HTTP_MODE=replay \
  *   E2E_PROVIDER_REPLAY_FIXTURE_PATH=packages/desktop/test/e2e/fixtures/upstream/common.json,\
- * packages/desktop/test/e2e/fixtures/upstream/parity-batch-20261120.json \
- *   NIBI_BUNDLED_AGENT_RESOURCE_DIR=D:\NIBI\NIBI-Client\apps\nibi-cli \
+ * packages/desktop/test/e2e/fixtures/upstream/parity-batch-20261120.json,\
+ * packages/desktop/test/e2e/fixtures/upstream/conversation-session/conversation-session-v4-permission.json \
+ *   NIBI_BUNDLED_AGENT_RESOURCE_DIR=$PWD/apps/nibi-cli \
  *   pnpm --filter @nibi/desktop exec wdio run wdio.conf.ts \
  *     --spec test/e2e/bots/manual-review/pending/parity-batch-20261120-evidence.test.ts
  *
@@ -56,6 +60,7 @@ import {
 } from "../../../helpers/desktop-app.js";
 import { reloadElectronSessionSafely } from "../../../helpers/e2e-electron-reload.js";
 import {
+  hoverProjectRow,
   openProjectFileTree,
   startDraftFromProject,
   waitForTaskRowInProject,
@@ -72,9 +77,11 @@ import {
   getV4PaneSnapshot,
   prepareV4ConversationE2E,
   selectV4TaskById,
+  sendV4Prompt,
   sendV4PromptAndWaitAccepted,
   switchV4Mode,
   waitForV4Pane,
+  waitForV4PermissionDialogInComposerDock,
   waitForV4TimelineContaining,
 } from "../../../helpers/v4-conversation.js";
 
@@ -2185,6 +2192,128 @@ describe("Parity batch 2026-11-20 evidence（真实 Desktop）", () => {
     });
     // 点击本身只作为 replay 下可选证据；硬性要求是菜单项与标签存在。
     expect(menu.screenshot).not.toBeNull();
+  });
+
+  it("G. 本地项目身份悬浮卡：host 缺省时也显示目录路径", async function () {
+    this.timeout(120_000);
+    await ensureSidebarVisible();
+    await hoverProjectRow(DEFAULT_WORKSPACE);
+    await waitForTestIdByDom("project-identity-details", { timeout: 20_000 });
+    // 卡片有 100ms 淡入；立刻截图会拍到半透明叠字。
+    await browser.pause(250);
+    const card = await browser.execute((workspacePath) => {
+      const element = document.querySelector<HTMLElement>(
+        '[data-testid="project-identity-details"]',
+      );
+      if (!element) return null;
+      const rect = element.getBoundingClientRect();
+      return {
+        text: element.innerText,
+        containsWorkspacePath: element.innerText.includes(workspacePath),
+        rect: {
+          height: Math.ceil(rect.height),
+          width: Math.ceil(rect.width),
+          x: Math.floor(rect.left),
+          y: Math.floor(rect.top),
+        },
+      };
+    }, DEFAULT_WORKSPACE);
+    expect(card).not.toBeNull();
+    // 本地卡片与远程卡片同结构；host 缺省时没有设备/连接方式行，只保留项目路径。
+    expect(card?.containsWorkspacePath).toBe(true);
+    expect(card?.text ?? "").toContain("Directory");
+    expect(card?.text ?? "").not.toContain("Device");
+    const screenshot = card ? await shotClip("g.local-project-identity", card.rect, { padding: 8 }) : null;
+    recordResult("g", { card, screenshot });
+    expect(screenshot).not.toBeNull();
+  });
+
+  it("H. 权限弹窗：允许并切换模式（自主/完全访问）+ 二次确认", async function () {
+    this.timeout(300_000);
+    await startDraftFromProjectSafe();
+    // 已有 guarded/yolo 时选择器不出现；只有这两种模式才需要切回 build。
+    const draftMode = (await getV4ConfigProjection()).mode;
+    if (draftMode === "guarded" || draftMode === "yolo") {
+      await switchV4Mode("build");
+    }
+    await sendV4Prompt("E2E_V4_PERMISSION_WRITE 请写入文件 permission-switch-output.txt");
+    await waitForV4PermissionDialogInComposerDock();
+
+    const picker = await $('[data-testid="permission-target-picker"]');
+    await picker.waitForDisplayed({ timeout: 20_000 });
+    // 弹窗淡入 + 列表布局稳定后再截整块选项区域。
+    await browser.pause(250);
+    const switchLabel = await browser.execute(
+      () =>
+        document.querySelector<HTMLElement>('[data-testid="permission-allow-switch"]')
+          ?.textContent ?? null,
+    );
+    // 默认目标是自主模式（guarded）；按钮文案明确写出「允许并切换」。
+    expect(switchLabel ?? "").toContain("Allow and switch");
+    expect(await picker.getAttribute("data-mode")).toBe("guarded");
+    const initialRect = await readRect('[role="listbox"][aria-label="Permission required"]');
+    const initialScreenshot = initialRect
+      ? await shotClip("h.permission-mode-switch-guarded", initialRect, { padding: 12 })
+      : null;
+
+    // 选择完全访问 → 提交时必须先出现二次确认，确认后才真正回传 fullAccess。
+    await picker.click();
+    await waitForTestIdByDom("permission-target-yolo", { timeout: 10_000 });
+    await clickTestIdByDom("permission-target-yolo", { timeout: 10_000 });
+    expect(await picker.getAttribute("data-mode")).toBe("yolo");
+    await clickTestIdByDom("permission-allow-switch", { timeout: 10_000 });
+
+    await waitForTestIdByDom("full-access-mode-confirm-dialog", { timeout: 10_000 });
+    // 确认框同样有淡入和菜单收起动画；等稳定后再截，避免半透明叠字。
+    await browser.pause(450);
+    const confirmRect = await readRect('[data-testid="full-access-mode-confirm-dialog"]');
+    const confirmScreenshot = confirmRect
+      ? await shotClip("h.permission-full-access-confirm", confirmRect, { padding: 8 })
+      : null;
+    const confirmVisibleBeforeAcknowledge = confirmScreenshot !== null;
+
+    await browser.execute(() => {
+      document
+        .querySelector<HTMLElement>(
+          '[data-testid="full-access-mode-confirm-dialog"] [role="checkbox"]',
+        )
+        ?.click();
+    });
+    // 勾选后按钮才可用；React 状态更新是异步的，不能立刻点。
+    await browser.waitUntil(
+      async () =>
+        Boolean(
+          await browser.execute(() => {
+            const dialog = document.querySelector<HTMLElement>(
+              '[data-testid="full-access-mode-confirm-dialog"]',
+            );
+            const button = Array.from(
+              dialog?.querySelectorAll<HTMLButtonElement>("button") ?? [],
+            ).find((candidate) => candidate.textContent?.trim() === "Enable full access");
+            return button ? !button.disabled : false;
+          }),
+        ),
+      { timeout: 5_000, interval: 50, timeoutMsg: "勾选风险确认后主按钮仍不可用" },
+    );
+    await browser.execute(() => {
+      const dialog = document.querySelector<HTMLElement>(
+        '[data-testid="full-access-mode-confirm-dialog"]',
+      );
+      const button = Array.from(dialog?.querySelectorAll<HTMLButtonElement>("button") ?? []).find(
+        (candidate) => candidate.textContent?.trim() === "Enable full access",
+      );
+      button?.click();
+    });
+    await waitForV4TimelineContaining("V4_PERMISSION_DONE", 120_000);
+    recordResult("h", {
+      confirmVisibleBeforeAcknowledge,
+      initialScreenshot,
+      confirmScreenshot,
+      targetAfterPick: await picker.getAttribute("data-mode").catch(() => null),
+      switchLabel,
+    });
+    expect(initialScreenshot).not.toBeNull();
+    expect(confirmVisibleBeforeAcknowledge).toBe(true);
   });
 });
 

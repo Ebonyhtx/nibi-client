@@ -1787,3 +1787,13 @@ exceptions:
       worktree 的 UI 投影/菜单/Hook。它们按上游 fec97590 对应文件移植，分别落在既有
       lib、v4 与新增 managed-worktrees 目录；ui 仍是 managed:false 的遗留渲染层，
       按路径准入这些新文件，接管整包不在本次范围。
+
+  - id: startup-shared-client-configs-fetcher
+    rule: unmanaged-new-file
+    paths:
+      - packages/desktop/src/main/sharedClientConfigsFetcher.ts
+    reason: >-
+      启动路径的强更 gate 与 Desktop 灰度裁决读同一个 /api/v1/client/configs；该文件只做
+      in-flight 复用与成功响应短缓存，避免冷启动两次网络往返和首窗被重复等待。每个消费者
+      仍从原始 payload 解析自己的字段，不缓存灰度结论。desktop 主进程仍是 managed:false
+      的遗留模块，按路径准入该文件，接管整目录不在本次范围。
