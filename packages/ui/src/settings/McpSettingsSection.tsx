@@ -460,12 +460,7 @@ function PluginMcpServerList({
           id: "settings.mcp.plugin.disconnectedDescription",
         });
       }
-      return item.hostProvided
-        ? intl.formatMessage(
-            { id: "settings.mcp.host.activeDescription" },
-            { pluginName: item.pluginName },
-          )
-        : intl.formatMessage({ id: "settings.mcp.plugin.activeDescription" });
+      return intl.formatMessage({ id: "settings.mcp.plugin.activeDescription" });
     }
     if (!item.pluginEnabled) {
       return intl.formatMessage({

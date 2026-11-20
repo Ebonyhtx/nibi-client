@@ -4069,9 +4069,6 @@ const enUS: Record<string, string> = {
   "settings.mcp.plugin.disconnected": "Disconnected",
   "settings.mcp.plugin.disconnectedDescription":
     "This plugin MCP server is loaded but not currently connected.",
-  "settings.mcp.host.active": "Host built-in",
-  "settings.mcp.host.activeDescription":
-    "NIBI provides this MCP server for the {pluginName} plugin. Its runtime identity is managed by the host.",
   "settings.mcp.plugin.disabled": "Plugin disabled",
   "settings.mcp.plugin.disabledDescription":
     "This MCP server is built into a plugin. Enable the plugin to load it.",

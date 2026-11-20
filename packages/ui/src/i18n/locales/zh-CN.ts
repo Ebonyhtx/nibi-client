@@ -3819,9 +3819,6 @@ const zhCN: Record<string, string> = {
   "settings.mcp.plugin.connectedDescription": "该插件 MCP 服务器已连接并可用。",
   "settings.mcp.plugin.disconnected": "未连接",
   "settings.mcp.plugin.disconnectedDescription": "该插件 MCP 服务器已加载，但当前未连接。",
-  "settings.mcp.host.active": "宿主内置",
-  "settings.mcp.host.activeDescription":
-    "该 MCP 服务器由 NIBI 宿主为 {pluginName} 插件提供，运行时身份由宿主管理。",
   "settings.mcp.plugin.disabled": "插件未启用",
   "settings.mcp.plugin.disabledDescription": "该 MCP 服务器内置在插件中，启用插件后会加载。",
   "settings.mcp.plugin.unavailable": "未加载",
