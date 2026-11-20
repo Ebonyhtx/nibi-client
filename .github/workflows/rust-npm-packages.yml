@@ -319,6 +319,8 @@ jobs:
           # trusted publishing 要求 npm CLI ≥ 11.5.1（Node 24 自带的一般满足，升级一次最稳）。
           npm install --global npm@^11.5.1 >/dev/null
           echo "npm $(npm --version)"
+          # 只打印布尔值：Windows runner 上曾出现 OIDC 交换 ENEEDAUTH，先确认环境变量是否到达。
+          node -e 'console.log(`[oidc] url=${process.env.ACTIONS_ID_TOKEN_REQUEST_URL ? "yes" : "no"} token=${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN ? "yes" : "no"} registry=${process.env.npm_config_registry ?? "default"}`)'
           TARBALL="$(find pack -name '*.tgz' -print -quit)"
           test -n "$TARBALL"
           PKG="$(node -p "require('./pack/pack.json').name")"
