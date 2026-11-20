@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "fixtures": [
+    {
+      "id": "parity-batch-agent-title",
+      "description": "Parity batch evidence: deterministic title for the foreground-Agent turn.",
+      "metadata": {
+        "kind": "case",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "只固定标题，避免未匹配的标题请求污染 Agent 回合证据。"
+      },
+      "maxMatches": 1,
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "E2E_PARITY_BATCH_AGENT",
+          "naming a coding session"
+        ],
+        "bodyExcludes": [
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "msg_parity_batch_agent_title",
+          "text": "{\"title\":\"Parity Batch Agent Faces\"}",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "parity-batch-agent-call",
+      "description": "Parity batch evidence: foreground general-purpose Agent tool_use.",
+      "metadata": {
+        "kind": "main",
+        "timingPolicy": "fast-tool-use",
+        "source": "synthetic",
+        "syntheticReason": "稳定触发前台 Agent（run_in_background=false），让工具卡、状态面板和子代理 tab 同时处于 running。"
+      },
+      "maxMatches": 1,
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "lastUserMessageIncludes": [
+          "E2E_PARITY_BATCH_AGENT"
+        ],
+        "bodyIncludes": [
+          "E2E_PARITY_BATCH_AGENT"
+        ],
+        "bodyExcludes": [
+          "toolu_e2e_parity_agent",
+          "naming a coding session",
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "toolUse": {
+          "id": "toolu_e2e_parity_agent",
+          "name": "Agent",
+          "input": {
+            "description": "Parity subagent face probe",
+            "prompt": "E2E_PARITY_BATCH_CHILD: Return exactly E2E_PARITY_BATCH_CHILD_DONE and no other text.",
+            "subagent_type": "general-purpose",
+            "run_in_background": false
+          }
+        }
+      }
+    },
+    {
+      "id": "parity-batch-agent-launch-ack",
+      "description": "Parity batch evidence: parent finishes the launch turn after the async Agent result.",
+      "metadata": {
+        "kind": "main",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "general-purpose 的 definition.background=true，Agent 必然异步启动；父会话需要一条 ack 文本结束回合。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "E2E_PARITY_BATCH_AGENT",
+          "Async agent launched successfully"
+        ],
+        "bodyExcludes": [
+          "<task-notification>",
+          "naming a coding session",
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "delayMs": 8000,
+        "text": {
+          "id": "msg_parity_batch_parent_ack",
+          "text": "E2E_PARITY_BATCH_PARENT_ACK",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "parity-batch-notification-consumed",
+      "description": "Parity batch evidence: parent consumes the background Agent notification.",
+      "metadata": {
+        "kind": "main",
+        "timingPolicy": "task-notification",
+        "source": "synthetic",
+        "syntheticReason": "子代理完成后由 task notification 唤醒父会话，返回最终文本结束证据回合。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "<task-notification>",
+          "E2E_PARITY_BATCH_CHILD_DONE"
+        ],
+        "bodyExcludes": [
+          "naming a coding session",
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "msg_parity_batch_parent_done",
+          "text": "E2E_PARITY_BATCH_PARENT_DONE",
+          "outputTokens": 8
+        }
+      }
+    },
+    {
+      "id": "parity-batch-child-delayed-result",
+      "description": "Parity batch evidence: delayed child Agent result keeps the run observable.",
+      "metadata": {
+        "kind": "subagent",
+        "timingPolicy": "delayed-text",
+        "source": "synthetic",
+        "syntheticReason": "延迟 45s 回包，给工具卡/状态面板/侧栏 tab 三处表情留出真实截图窗口。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "lastUserMessageIncludes": [
+          "E2E_PARITY_BATCH_CHILD"
+        ],
+        "bodyIncludes": [
+          "E2E_PARITY_BATCH_CHILD"
+        ],
+        "bodyExcludes": [
+          "<task-notification>",
+          "naming a coding session",
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "delayMs": 45000,
+        "text": {
+          "id": "msg_parity_batch_child_done",
+          "text": "E2E_PARITY_BATCH_CHILD_DONE",
+          "outputTokens": 8
+        }
+      }
+    }
+  ]
+}
