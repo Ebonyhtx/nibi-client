@@ -125,6 +125,7 @@ async fn the_same_operation_runs_once_and_other_arguments_are_rejected(kind: Kin
     assert_eq!(std::fs::read_to_string(&marker).unwrap(), "x\n");
 }
 
+// B01: ZCODE=1 is no longer injected, and an inherited ZCODE is not passed through.
 async fn only_whitelisted_variables_reach_the_command(kind: Kind) {
     let shell = shell(
         kind,
@@ -136,11 +137,11 @@ async fn only_whitelisted_variables_reach_the_command(kind: Kind) {
     )
     .await;
     let start = shell.request(
-        "echo \"${NIBI_API_KEY:-none} $LC_ALL $GIT_EDITOR $ZCODE\"",
+        "echo \"${NIBI_API_KEY:-none} $LC_ALL $GIT_EDITOR ${ZCODE:-unset}\"",
         CwdScope::Pinned,
     );
     let ran = shell.run("op1", start).await;
-    assert_eq!(ran.output, "none C true 1\n");
+    assert_eq!(ran.output, "none C true unset\n");
 }
 
 async fn leftover_processes_are_reaped_when_the_command_exits(kind: Kind) {
