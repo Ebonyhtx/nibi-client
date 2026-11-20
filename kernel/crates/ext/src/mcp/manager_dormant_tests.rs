@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
-use nibi_kernel_base::TaskScope;
 use nibi_kernel_api::mcp::McpTransportConfig;
 use nibi_kernel_api::message::ToolResultContent;
 use nibi_kernel_api::permission::PermissionMode;
 use nibi_kernel_api::testing::MemoryEnvironment;
+use nibi_kernel_base::TaskScope;
 use serde_json::json;
 use tokio::sync::mpsc;
 

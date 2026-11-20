@@ -301,6 +301,7 @@ impl Engine<'_> {
             selection: request.selection.clone(),
             plan_flags: PlanModeFlags::default(),
             mcp: None,
+            prompt: None,
         };
         let kept: Vec<Message> = kept.iter().map(|message| (*message).clone()).collect();
         // 压缩前的全部历史：调用过的 skill 从它取（spec §3.4）。

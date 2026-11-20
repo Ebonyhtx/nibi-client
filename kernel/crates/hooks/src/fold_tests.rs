@@ -186,12 +186,16 @@ fn failure_and_permission_request() {
     );
     assert_eq!(out.messages.len(), 2);
     let deny = HookResult {
-        permission_request: Some(PermissionRequestDecision::Deny { message: None }),
+        permission_request: Some(PermissionRequestDecision::Deny {
+            message: None,
+            interrupt: false,
+        }),
         ..HookResult::default()
     };
     let allow = HookResult {
         permission_request: Some(PermissionRequestDecision::Allow {
             updated_input: Some(json!({"a": 1})),
+            remember: Vec::new(),
         }),
         ..HookResult::default()
     };
@@ -217,4 +221,33 @@ fn failure_and_permission_request() {
         }])
         .retry
     );
+}
+
+/// 第一个给出决定的 hook 的 `updatedPermissions` 与 `interrupt` 随它交出，后面的不看（hooks.md §6.2）。
+#[test]
+fn the_deciding_permission_request_hook_brings_its_rules_and_interrupt() {
+    let rule = nibi_kernel_api::permission_updates::PermissionUpdate::SetMode {
+        place: nibi_kernel_api::permission_updates::UpdatePlace::Session,
+        mode: nibi_kernel_api::permission::PermissionMode::AcceptEdits,
+    };
+    let allow = HookResult {
+        permission_request: Some(PermissionRequestDecision::Allow {
+            updated_input: None,
+            remember: vec![rule.clone()],
+        }),
+        ..HookResult::default()
+    };
+    let interrupting = HookResult {
+        permission_request: Some(PermissionRequestDecision::Deny {
+            message: Some("stop here".to_owned()),
+            interrupt: true,
+        }),
+        ..HookResult::default()
+    };
+    let out = permission_request(&[allow.clone(), interrupting.clone()]);
+    assert_eq!(out.remember, [rule]);
+    assert!(!out.interrupt);
+    let out = permission_request(&[interrupting, allow]);
+    assert!(out.interrupt);
+    assert!(out.remember.is_empty());
 }

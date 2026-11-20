@@ -166,6 +166,27 @@ pub struct HookOutcome {
     /// PermissionDenied 的 `retry`。
     #[serde(default)]
     pub retry: bool,
+    /// PermissionRequest 放行时 `updatedPermissions` 里的权限更新（docs/specs/rust-cli/hooks.md §6.2、
+    /// permission-updates.md §2.4）：随 hook 对询问的回答交给交互的 owner，与询问的解决同一次落
+    /// （没有人能回答时管线另请 owner 落）。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub remember: Vec<crate::permission_updates::PermissionUpdate>,
+    /// PermissionRequest 拒绝时的 `interrupt: true`：中止整个回合（hooks.md §6.2）。
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub interrupt: bool,
+    /// Elicitation / ElicitationResult 的 `hookSpecificOutput`（`action` 与 `content`，docs/specs/rust-cli/
+    /// ext.md §3.13.6）：几个 hook 都给了时取最后一个。阻塞（`blocking_error`）优先于它。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub elicitation: Option<ElicitationVerdict>,
+}
+
+/// Elicitation 类 hook 的结论：替用户回答（Elicitation）或换掉用户的回答（ElicitationResult）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ElicitationVerdict {
+    pub action: crate::mcp_ask::ElicitationAction,
+    /// 没给时为 None：ElicitationResult 沿用用户的内容。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content: Option<serde_json::Map<String, Value>>,
 }
 
 #[async_trait]

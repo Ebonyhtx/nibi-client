@@ -296,6 +296,7 @@ async fn asking_session_with(
             context_usage: None,
             memory: None,
             workflow_activation: None,
+            prompt: Arc::new(nibi_kernel_api::session_prompt::SessionPrompt::default()),
         },
         SessionState {
             meta: meta(),

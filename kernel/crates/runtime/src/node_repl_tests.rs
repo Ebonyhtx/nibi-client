@@ -46,7 +46,10 @@ fn env() -> BTreeMap<String, String> {
             "NIBI_CUA_PERMISSION_BROKER_SOCKET".to_owned(),
             "\\\\.\\pipe\\nibi-cua".to_owned(),
         ),
-        ("NIBI_CUA_PLUGIN_AUTHORITY".to_owned(), "authority".to_owned()),
+        (
+            "NIBI_CUA_PLUGIN_AUTHORITY".to_owned(),
+            "authority".to_owned(),
+        ),
         ("NIBI_CUA_WIN_HELPER_RECIPE".to_owned(), "{}".to_owned()),
         ("NIBI_API_KEY".to_owned(), "must-not-leak".to_owned()),
     ])
@@ -79,7 +82,10 @@ fn computer_use_starts_the_shared_host_with_only_the_cua_credentials() {
     assert_eq!(command, "/opt/nibi/electron");
     assert_eq!(args.len(), 1);
     assert!(args[0].ends_with("server.js"));
-    assert_eq!(env.get("ELECTRON_RUN_AS_NODE").map(String::as_str), Some("1"));
+    assert_eq!(
+        env.get("ELECTRON_RUN_AS_NODE").map(String::as_str),
+        Some("1")
+    );
     assert_eq!(
         env.get("NIBI_CUA_PLUGIN_ROOT").map(String::as_str),
         Some("/plugins/computer-use")

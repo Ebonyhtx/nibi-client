@@ -8,9 +8,7 @@ use std::collections::HashSet;
 
 use nibi_kernel_api::env::WorkspaceRef;
 use nibi_kernel_api::listing::InvokedSkill;
-use nibi_kernel_api::message::{
-    ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
-};
+use nibi_kernel_api::message::{ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin};
 use nibi_kernel_api::user_command;
 
 use super::{SKILL_MESSAGE_SOURCE, SkillCatalog, SkillSource};

@@ -94,8 +94,16 @@ async fn resolve_options(
             catalog
                 .models
                 .iter()
-                .find(|card| card.provider == request.selection.provider && card.model == request.selection.model)
-                .map(|card| (card.reasoning_levels.first().cloned(), card.max_output_tokens))
+                .find(|card| {
+                    card.provider == request.selection.provider
+                        && card.model == request.selection.model
+                })
+                .map(|card| {
+                    (
+                        card.reasoning_levels.first().cloned(),
+                        card.max_output_tokens,
+                    )
+                })
         }
         None => None,
     };
@@ -194,8 +202,10 @@ impl Reply {
                         // 适配器可能直接在 BlockStart 里给完整 input（非流式片段）。
                         pending.input
                     } else {
-                        serde_json::from_str(&pending.json).map_err(|error| ModelError::Protocol {
-                            message: format!("tool input is not valid json: {error}"),
+                        serde_json::from_str(&pending.json).map_err(|error| {
+                            ModelError::Protocol {
+                                message: format!("tool input is not valid json: {error}"),
+                            }
                         })?
                     };
                     self.tool_calls.push(GeneratedToolCall {

@@ -75,6 +75,7 @@ fn request() -> ContextRequest {
         selection: selection(),
         plan_flags: Default::default(),
         mcp: None,
+        prompt: None,
     }
 }
 

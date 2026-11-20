@@ -2,9 +2,9 @@
 
 use std::sync::Arc;
 
-use nibi_kernel_base::TaskScope;
 use nibi_kernel_api::mcp::McpTransportConfig;
 use nibi_kernel_api::mcp_ui::{McpAppInstance, McpUiError, McpUiEvent, visible_to_app};
+use nibi_kernel_base::TaskScope;
 use serde_json::json;
 
 use super::*;
@@ -58,36 +58,36 @@ fn resources() -> Arc<Handler> {
         json!({"resources": {"subscribe": true}}),
         None,
         |method, params| match method {
-        "resources/list" => Some(Ok(if params.get("cursor").is_some() {
-            json!({"resources": [{"uri": "file:///b", "name": "b"}]})
-        } else {
-            json!({
-                "resources": [
-                    {
-                        "uri": "ui://panel.html",
-                        "name": "panel",
-                        "mimeType": "text/html;profile=mcp-app",
-                        "_meta": {"ui": {"prefersBorder": true}},
-                    },
-                    {"name": "no uri"}
-                ],
-                "nextCursor": "page-2",
-            })
-        })),
-        "resources/templates/list" => Some(Ok(json!({
-            "resourceTemplates": [{"uriTemplate": "file:///{path}", "name": "file"}],
-        }))),
-        "resources/read" => Some(Ok(json!({
-            "contents": [{
-                "uri": params["uri"],
-                "mimeType": "text/html",
-                "text": "<html></html>",
-                "_meta": {"ui": {"prefersBorder": false}},
-            }],
-        }))),
-        // 订阅与退订的回执（不回答会让请求等到工具期限）。
-        "resources/subscribe" | "resources/unsubscribe" => Some(Ok(json!({}))),
-        _ => None,
+            "resources/list" => Some(Ok(if params.get("cursor").is_some() {
+                json!({"resources": [{"uri": "file:///b", "name": "b"}]})
+            } else {
+                json!({
+                    "resources": [
+                        {
+                            "uri": "ui://panel.html",
+                            "name": "panel",
+                            "mimeType": "text/html;profile=mcp-app",
+                            "_meta": {"ui": {"prefersBorder": true}},
+                        },
+                        {"name": "no uri"}
+                    ],
+                    "nextCursor": "page-2",
+                })
+            })),
+            "resources/templates/list" => Some(Ok(json!({
+                "resourceTemplates": [{"uriTemplate": "file:///{path}", "name": "file"}],
+            }))),
+            "resources/read" => Some(Ok(json!({
+                "contents": [{
+                    "uri": params["uri"],
+                    "mimeType": "text/html",
+                    "text": "<html></html>",
+                    "_meta": {"ui": {"prefersBorder": false}},
+                }],
+            }))),
+            // 订阅与退订的回执（不回答会让请求等到工具期限）。
+            "resources/subscribe" | "resources/unsubscribe" => Some(Ok(json!({}))),
+            _ => None,
         },
     )
 }
@@ -98,7 +98,10 @@ async fn the_app_connection_tracks_identity_and_generation() {
     let fake = Arc::new(FakeMcp::default().with("files", resources()));
     let scope = TaskScope::root("ui", |_| {});
     let manager = new_manager(fake, &scope);
-    assert!(manager.app_connection("files").is_none(), "没连上时没有身份");
+    assert!(
+        manager.app_connection("files").is_none(),
+        "没连上时没有身份"
+    );
 
     manager.start(workspace(), vec![stdio("files")]);
     manager.wait_ready().await;
@@ -171,7 +174,10 @@ async fn resources_are_read_with_cursors_and_meta() {
         .list_resource_templates("files", None)
         .await
         .expect("templates");
-    assert_eq!(templates.resource_templates[0].uri_template, "file:///{path}");
+    assert_eq!(
+        templates.resource_templates[0].uri_template,
+        "file:///{path}"
+    );
 
     let contents = manager
         .read_resource("files", "ui://panel.html")
@@ -249,7 +255,11 @@ async fn app_only_tools_stay_out_of_the_model_table() {
     manager.start(workspace(), vec![stdio("files")]);
     manager.wait_ready().await;
 
-    let names: Vec<String> = manager.tools().iter().map(|tool| tool.name().to_owned()).collect();
+    let names: Vec<String> = manager
+        .tools()
+        .iter()
+        .map(|tool| tool.name().to_owned())
+        .collect();
     assert_eq!(names, vec!["mcp__files__visible"]);
     assert!(manager.find("mcp__files__app_only").is_none());
     // 服务器列出的工具数仍算全部（`/mcp` 的口径）。
@@ -377,7 +387,11 @@ async fn forgetting_a_page_drops_its_subscriptions() {
         .await
         .expect("other page");
     manager.unsubscribe_resources_for("s1|token-1|").await;
-    assert_eq!(subscribe_count(&fake, "resources/unsubscribe"), 1, "只退掉这一页的");
+    assert_eq!(
+        subscribe_count(&fake, "resources/unsubscribe"),
+        1,
+        "只退掉这一页的"
+    );
     // 另一页的订阅还在：退订它时才发第二条 unsubscribe。
     manager
         .unsubscribe_resource("files", "ui://other", "s1|token-2|1")

@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
-use nibi_kernel_base::names::{DOT_DIR, managed_dir};
 use nibi_kernel_api::env::{EnvFacts, EnvPath, ReadFile, WorkspaceRef};
 use nibi_kernel_api::env_files::{FileKind, ListDir, PathStyle, StatFile};
 use nibi_kernel_api::env_git::project_levels;
 use nibi_kernel_api::machine::Files;
+use nibi_kernel_base::names::{DOT_DIR, managed_dir};
 
 use super::frontmatter::{self, Value};
 use super::{PluginSkillRoot, Skill, SkillCatalog, SkillShell, SkillSource};

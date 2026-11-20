@@ -1,20 +1,32 @@
 /**
  * 旧 R2 组件安装器的远端组件 id；R3 Source Server 使用 descriptor/archive，不再读它。
  *
- * 部署耦合（B03）：当前 CDN manifest 只发布这个旧 id（artifact
- * `components/<arch>/<id>.tar.gz`，mount `<id>/<arch>`）。`nibi-agent` 是已预留、
- * 但尚未进入 ACTIVE 集合的下一版 id。切换前置条件：CDN 先发布 id 为 `nibi-agent`
- * 的 manifest 组件（mount `nibi-agent/<arch>`），且远端安装器/启动器接受该目录；
- * 之后才能把这个常量与 ACTIVE 列表同批改为 `"nibi-agent"`，不要只改客户端。
+ * B03 双读迁移：客户端优先使用 `nibi-agent`，但只有 manifest 明确发布该 id
+ * （artifact `components/<arch>/<id>.tar.gz`，mount `<id>/<arch>`）时才采用；
+ * 旧 CDN 只发布 `glm` 时自动回退到 `glm`。新客户端必须继续能读 4.1.3 时代的
+ * 旧 manifest（只含 `glm`），4.1.3 客户端也必须能读同时发布两个 id 的新 manifest。
+ *
+ * 因此发布顺序必须是：先让 CDN 同时发布 `glm` 与 `nibi-agent`，并保持一段时间；
+ * 确认存量客户端已升级后，才能停止发布 `glm`。发布侧没有完成双发时，客户端仍会
+ * 回退旧 id，不会把全部远程用户切到不存在的组件上。
  */
-export const NIBI_AGENT_REMOTE_COMPONENT_ID = "glm" as const;
+export const NIBI_AGENT_REMOTE_COMPONENT_ID = "nibi-agent" as const;
+
+/** 双读回退 id：仅当 manifest 未发布 `nibi-agent` 时使用。 */
+export const NIBI_AGENT_REMOTE_COMPONENT_FALLBACK_ID = "glm" as const;
+
+export const NIBI_AGENT_REMOTE_COMPONENT_IDS = [
+  NIBI_AGENT_REMOTE_COMPONENT_ID,
+  NIBI_AGENT_REMOTE_COMPONENT_FALLBACK_ID,
+] as const;
+
+export type NibiAgentRemoteComponentId = (typeof NIBI_AGENT_REMOTE_COMPONENT_IDS)[number];
 
 export const REMOTE_RESOURCE_PACKAGE_IDS = [
   "server-bundle",
   "node-runtime",
   "node-pty",
-  NIBI_AGENT_REMOTE_COMPONENT_ID,
-  "nibi-agent",
+  ...NIBI_AGENT_REMOTE_COMPONENT_IDS,
   "bfs",
   "ripgrep",
   "ugrep",
@@ -39,7 +51,12 @@ export const REQUIRED_REMOTE_RESOURCE_PACKAGE_IDS = [
 
 export const REMOTE_RESOURCE_PACKAGE_DEPENDENCIES: Partial<
   Record<RemoteResourcePackageId, readonly RemoteResourcePackageId[]>
-> = {};
+> = {
+  // Agent bundle 由远端已部署的 node 执行 nibi.cjs；两个 id 只是同一制品在
+  // manifest 里的新旧别名，依赖相同的 node-runtime。
+  [NIBI_AGENT_REMOTE_COMPONENT_ID]: ["node-runtime"],
+  [NIBI_AGENT_REMOTE_COMPONENT_FALLBACK_ID]: ["node-runtime"],
+};
 
 export const OPTIONAL_REMOTE_RESOURCE_PACKAGE_IDS = ACTIVE_REMOTE_RESOURCE_PACKAGE_IDS.filter(
   (id) =>
@@ -78,6 +95,30 @@ export function isActiveRemoteResourcePackage(packageId: RemoteResourcePackageId
 
 export function isKnownRemoteResourcePackageId(packageId: string): boolean {
   return REMOTE_RESOURCE_PACKAGE_ID_SET.has(packageId as RemoteResourcePackageId);
+}
+
+export function isNibiAgentRemoteComponentId(
+  packageId: string,
+): packageId is NibiAgentRemoteComponentId {
+  return (NIBI_AGENT_REMOTE_COMPONENT_IDS as readonly string[]).includes(packageId);
+}
+
+/**
+ * 从 manifest 实际发布的组件 id 中选择 Nibi Agent 组件。
+ *
+ * 只有 manifest 明确发布某个 id 时才返回它；两个 id 都不存在时返回 null，
+ * 由调用方 fail-closed（不能默认回退到未发布的组件）。
+ */
+export function selectNibiAgentRemoteComponentId(
+  publishedComponentIds: Iterable<string>,
+): NibiAgentRemoteComponentId | null {
+  const published = new Set(publishedComponentIds);
+  for (const componentId of NIBI_AGENT_REMOTE_COMPONENT_IDS) {
+    if (published.has(componentId)) {
+      return componentId;
+    }
+  }
+  return null;
 }
 
 export function isRequiredRemoteResourcePackage(packageId: RemoteResourcePackageId): boolean {

@@ -287,7 +287,13 @@ async fn purge_keeps_trees_referenced_by_workflow_activity() {
         .create_session(create("sess_flow", "/w/app"))
         .await
         .unwrap();
-    create_child(&store, "sess_flow_child", "sess_flow", SessionKind::Subagent).await;
+    create_child(
+        &store,
+        "sess_flow_child",
+        "sess_flow",
+        SessionKind::Subagent,
+    )
+    .await;
     store.set_session_files(&SessionId::new("sess_flow"), 10);
     store.set_session_files(&SessionId::new("sess_flow_child"), 5);
     // 活动记录引用的是树内后代（workflow_activity.child_session_id），整棵树都要保留。

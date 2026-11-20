@@ -24,14 +24,14 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use nibi_kernel_api::env::WorkspaceRef;
 use nibi_kernel_api::ids::SessionId;
-use nibi_kernel_api::residency::{SessionResidencyWatch, SessionLifecycleSnapshot};
+use nibi_kernel_api::residency::{SessionLifecycleSnapshot, SessionResidencyWatch};
 use nibi_kernel_api::session_api::{Kernel, KernelError, SessionHandle, StartSource};
 use nibi_kernel_api::store::StoreError;
 
+use crate::LocalKernel;
 use crate::lifecycle::LifecycleHost;
 use crate::resident::{DeactivationDecision, DeactivationReason};
 use crate::table::Slot;
-use crate::LocalKernel;
 
 /// 一轮收敛里的会话事实。
 struct Facts {
@@ -161,11 +161,7 @@ impl LocalKernel {
         facts.eligible() && !self.has_live_workflow_run(session).await
     }
 
-    async fn evict_resident(
-        &self,
-        session: &SessionId,
-        decision: DeactivationDecision,
-    ) -> bool {
+    async fn evict_resident(&self, session: &SessionId, decision: DeactivationDecision) -> bool {
         self.resident.mark_in_flight(session);
         let result = self.lifecycle.dispose(self, session).await;
         match &result {
@@ -231,7 +227,11 @@ impl LocalKernel {
                 continue;
             }
             let eligible_since = self.resident.eligible_since(session, now);
-            candidates.push((eligible_since, self.last_used(session, &facts), session.clone()));
+            candidates.push((
+                eligible_since,
+                self.last_used(session, &facts),
+                session.clone(),
+            ));
         }
         candidates.sort();
         let idle_timeout = self.resident.config().idle_timeout_ms;
@@ -294,9 +294,9 @@ impl LocalKernel {
         let weak = Arc::downgrade(self);
         let pool = self.resident.clone();
         let interval = pool.config().sampler_interval;
-        self.scope.spawner().spawn_resident(
-            "session-resident-pool",
-            async move {
+        self.scope
+            .spawner()
+            .spawn_resident("session-resident-pool", async move {
                 loop {
                     tokio::select! {
                         () = pool.wake().notified() => {}
@@ -307,8 +307,7 @@ impl LocalKernel {
                     };
                     kernel.rebalance_resident_sessions().await;
                 }
-            },
-        );
+            });
     }
 
     /// 会话是否存在（软删除的不算）：先看本进程的会话表（草稿没有存储行），再读索引事实
@@ -350,15 +349,16 @@ impl LifecycleHost for LocalKernel {
         };
         let root = match self.settled(session).await {
             Some(open) => open.view().await?.meta.workspace.root,
-            None => self
-                .ports
-                .store
-                .load(session)
-                .await
-                .map_err(|error| store_failure(&error))?
-                .meta
-                .workspace
-                .root,
+            None => {
+                self.ports
+                    .store
+                    .load(session)
+                    .await
+                    .map_err(|error| store_failure(&error))?
+                    .meta
+                    .workspace
+                    .root
+            }
         };
         if !same_workspace_path(root.as_str(), workspace.root.as_str()) {
             return Err(KernelError::Failed {
@@ -427,11 +427,7 @@ fn store_failure(error: &StoreError) -> KernelError {
 fn same_workspace_path(left: &str, right: &str) -> bool {
     #[cfg(windows)]
     {
-        let normalize = |path: &str| {
-            path.replace('\\', "/")
-                .trim_end_matches('/')
-                .to_lowercase()
-        };
+        let normalize = |path: &str| path.replace('\\', "/").trim_end_matches('/').to_lowercase();
         normalize(left) == normalize(right)
     }
     #[cfg(not(windows))]

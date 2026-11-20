@@ -14,31 +14,31 @@ import { resolve } from "node:path";
 export const AGENT_BUNDLE_SOURCE_RELATIVE = "apps/nibi-cli/packages/cli/dist/nibi.cjs";
 
 export function resolveAgentBundlePaths({ repoRoot, platformKey }) {
-  const glmDir = resolve(repoRoot, "packages", "desktop", "bundled-agents", platformKey, "nibi");
+  const nibiDir = resolve(repoRoot, "packages", "desktop", "bundled-agents", platformKey, "nibi");
   return {
     cliBundlePath: resolve(repoRoot, AGENT_BUNDLE_SOURCE_RELATIVE),
-    glmDir,
-    stagedBundlePath: resolve(glmDir, "nibi.cjs"),
-    stagedMetaPath: resolve(glmDir, ".node-bundle-meta.json"),
+    nibiDir,
+    stagedBundlePath: resolve(nibiDir, "nibi.cjs"),
+    stagedMetaPath: resolve(nibiDir, ".node-bundle-meta.json"),
   };
 }
 
 /**
- * 干净重建 glm 目录再拷贝。清空是刻意的：electron-builder 整目录拷贝
+ * 干净重建 nibi 目录再拷贝。清空是刻意的：electron-builder 整目录拷贝
  * bundled-agents/<平台>/nibi → resources/nibi，本地工作树里上一次构建残留的原生二进制
  * （改名前的 `nibi-agent`、上游的 `nibi-acp` 等）和旧 meta 会被一并打进安装包（CI 干净检出
  * 不会有，本地会）。
  */
 export function stageAgentBundle({ repoRoot, platformKey, log = console.log }) {
-  const { cliBundlePath, glmDir, stagedBundlePath, stagedMetaPath } = resolveAgentBundlePaths({
+  const { cliBundlePath, nibiDir, stagedBundlePath, stagedMetaPath } = resolveAgentBundlePaths({
     repoRoot,
     platformKey,
   });
   if (!existsSync(cliBundlePath)) {
     throw new Error(`[stage:agent-bundle] agent bundle 源产物不存在：${cliBundlePath}`);
   }
-  rmSync(glmDir, { recursive: true, force: true });
-  mkdirSync(glmDir, { recursive: true });
+  rmSync(nibiDir, { recursive: true, force: true });
+  mkdirSync(nibiDir, { recursive: true });
   copyFileSync(cliBundlePath, stagedBundlePath);
   const meta = {
     runtime: "electron-node",

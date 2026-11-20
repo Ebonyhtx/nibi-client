@@ -10,6 +10,7 @@
 import type { Event } from "@nibi/rpc";
 import type {
   NibiPluginOperationProgressNotification,
+  NibiPluginsBootstrapResult,
   NibiPluginsConfigureResult,
   NibiPluginsCancelOperationResult,
   NibiPluginsDescribeResult,
@@ -61,6 +62,11 @@ export interface IPluginManagementService {
     operationId: string,
   ): Event<NibiPluginOperationProgressNotification>;
   getPluginsOverview(params: NibiAgentPluginViewParams): Promise<NibiPluginsOverviewResult>;
+  /**
+   * Additive：一次返回 list + overview。Host 侧只跑一次插件 discovery；
+   * 旧 Host 没有该方法，调用方按 method-not-found 回退到两个旧 RPC。
+   */
+  getPluginsBootstrap(params: NibiAgentPluginViewParams): Promise<NibiPluginsBootstrapResult>;
   addPluginMarketplace(
     params: NibiAgentAddPluginMarketplaceParams,
   ): Promise<NibiPluginsMarketplaceMutationResult>;
@@ -80,9 +86,7 @@ export interface IPluginManagementService {
     params: NibiAgentRestoreBuiltinPluginParams,
   ): Promise<NibiPluginsRestoreBuiltinResult>;
   configurePlugin(params: NibiAgentConfigurePluginParams): Promise<NibiPluginsConfigureResult>;
-  resetPluginConfig(
-    params: NibiAgentResetPluginConfigParams,
-  ): Promise<NibiPluginsConfigureResult>;
+  resetPluginConfig(params: NibiAgentResetPluginConfigParams): Promise<NibiPluginsConfigureResult>;
   validatePlugin(params: NibiAgentValidatePluginParams): Promise<NibiPluginsValidateResult>;
   describePlugin(params: NibiAgentDescribePluginParams): Promise<NibiPluginsDescribeResult>;
   setPluginEnabled(params: NibiAgentSetPluginEnabledParams): Promise<NibiPluginsSetEnabledResult>;

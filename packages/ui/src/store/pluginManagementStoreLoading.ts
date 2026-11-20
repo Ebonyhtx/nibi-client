@@ -3,6 +3,7 @@ import {
   remoteHostIdFromWorkspaceIdentity,
   parseRemoteWorkspaceIdentity,
   type NibiPluginScope,
+  type NibiPluginsBootstrapResult,
 } from "@nibi/shared";
 import { logger } from "@/logger.js";
 import type { PluginManagementState } from "@/store/pluginManagementStore.js";
@@ -364,25 +365,112 @@ export async function loadInto(
   }
 }
 
+function toPluginViewParams(params: PluginLoadParams): {
+  workspacePath: string;
+  workspaceIdentity?: string;
+  configScope?: NibiPluginScope;
+} {
+  return {
+    workspacePath: params.workspacePath,
+    ...(params.workspaceIdentity ? { workspaceIdentity: params.workspaceIdentity } : {}),
+    ...(params.configScope ? { configScope: params.configScope } : {}),
+  };
+}
+
+/**
+ * 旧 Host 的 ProxyChannel 用 `Method not found: <method>`（无 code），JSON-RPC 内核
+ * 路径用 -32601。两种都只说明「方法不存在」，按现有 capability 探测口径回退旧 RPC。
+ */
+// 旧 Host/旧远端连接会稳定返回 method-not-found；同一服务对象只探测一次，
+// 后续 initialize/refresh 直接走旧 RPC，不重复付一次失败往返。
+const bootstrapUnsupportedServices = new WeakSet<IPluginManagementService>();
+
+function isPluginBootstrapMethodMissingError(error: unknown): boolean {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === -32601
+  ) {
+    return true;
+  }
+  return error instanceof Error && /\bMethod not found\b/i.test(error.message);
+}
+
+function readPluginBootstrapResult(value: unknown): NibiPluginsBootstrapResult | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as {
+    list?: { plugins?: unknown; diagnostics?: unknown };
+    overview?: {
+      marketplaces?: unknown;
+      availablePlugins?: unknown;
+      installedPlugins?: unknown;
+      restorableBuiltins?: unknown;
+      diagnostics?: unknown;
+    };
+  };
+  const list = record.list;
+  const overview = record.overview;
+  if (
+    !list ||
+    !overview ||
+    !Array.isArray(list.plugins) ||
+    !Array.isArray(list.diagnostics) ||
+    !Array.isArray(overview.marketplaces) ||
+    !Array.isArray(overview.availablePlugins) ||
+    !Array.isArray(overview.installedPlugins) ||
+    !Array.isArray(overview.restorableBuiltins) ||
+    !Array.isArray(overview.diagnostics)
+  ) {
+    // 残缺实现返回 undefined/半截响应时按「不支持」处理，继续走两个旧 RPC；
+    // 不能把空数组当成「确实没有插件」写入 store。
+    return undefined;
+  }
+  return value as NibiPluginsBootstrapResult;
+}
+
 async function runLoadInto(
   params: PluginLoadParams & { workspaceKey: string },
 ): Promise<Partial<PluginManagementState>> {
   try {
+    // 先尝试 additive bootstrap（Host 一次 discovery 返回 list + overview）。
+    // 方法不存在时必须同步进入旧路径：旧代码在发起 initialize 的同一 tick 就调用
+    // list/overview，调用方（含既有单测）依赖这个时序。
+    const bootstrapMethod = (params.pluginService as Partial<IPluginManagementService>)
+      .getPluginsBootstrap;
+    if (
+      typeof bootstrapMethod === "function" &&
+      !bootstrapUnsupportedServices.has(params.pluginService)
+    ) {
+      let bootstrap: NibiPluginsBootstrapResult | undefined;
+      try {
+        bootstrap = readPluginBootstrapResult(
+          await bootstrapMethod.call(params.pluginService, toPluginViewParams(params)),
+        );
+      } catch (error) {
+        if (!isPluginBootstrapMethodMissingError(error)) throw error;
+        bootstrapUnsupportedServices.add(params.pluginService);
+      }
+      if (bootstrap) {
+        return {
+          plugins: bootstrap.list.plugins,
+          marketplaces: bootstrap.overview.marketplaces,
+          marketplaceAvailabilityKnown: true,
+          availablePlugins: bootstrap.overview.availablePlugins,
+          installedPlugins: bootstrap.overview.installedPlugins,
+          restorableBuiltins: bootstrap.overview.restorableBuiltins,
+          diagnostics: [...bootstrap.list.diagnostics, ...bootstrap.overview.diagnostics],
+          loading: false,
+        };
+      }
+    }
     // React StrictMode、settings service 引用刷新或快速切换设置页时，
     // 同一 workspace 会并发触发 initialize。每次触发都发成独立 plugins/list 的话，
     // agent 已经 stale 时这些请求会排队产生多个 30s timeout。按 workspaceKey 复用 in-flight
     // 请求，并在仍处于同一 workspace 时才回写结果，避免过期响应覆盖当前设置页。
     const [listResult, overviewResult] = await Promise.all([
-      params.pluginService.listPlugins({
-        workspacePath: params.workspacePath,
-        ...(params.workspaceIdentity ? { workspaceIdentity: params.workspaceIdentity } : {}),
-        ...(params.configScope ? { configScope: params.configScope } : {}),
-      }),
-      params.pluginService.getPluginsOverview({
-        workspacePath: params.workspacePath,
-        ...(params.workspaceIdentity ? { workspaceIdentity: params.workspaceIdentity } : {}),
-        ...(params.configScope ? { configScope: params.configScope } : {}),
-      }),
+      params.pluginService.listPlugins(toPluginViewParams(params)),
+      params.pluginService.getPluginsOverview(toPluginViewParams(params)),
     ]);
     const diagnostics = [...listResult.diagnostics, ...overviewResult.diagnostics];
     return {

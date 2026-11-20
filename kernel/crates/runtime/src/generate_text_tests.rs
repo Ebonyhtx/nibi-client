@@ -43,8 +43,12 @@ fn git_commit_message_caps_at_the_model_limit() {
 
 #[test]
 fn git_commit_message_without_a_directory_still_caps_at_5000() {
-    let (selection, max_tokens) =
-        resolve_from_card(selection(Some("high")), GIT_COMMIT_MESSAGE, Some(99_999), None);
+    let (selection, max_tokens) = resolve_from_card(
+        selection(Some("high")),
+        GIT_COMMIT_MESSAGE,
+        Some(99_999),
+        None,
+    );
 
     // 没有目录就没有最低档可换：保留调用方给的选择，预算仍是辅助档的 5000。
     assert_eq!(selection.reasoning.as_deref(), Some("high"));

@@ -21,6 +21,16 @@ pub(crate) struct HookMessages {
 
 impl HookMessages {
     pub(crate) fn finish(self, output: ToolOutput, keep_pre_stop: bool) -> ToolExecution {
+        self.finish_with(output, keep_pre_stop, false)
+    }
+
+    /// `interrupt` 来自 PermissionRequest hook 的 `interrupt: true`（hooks.md §6.2）：执行器中止整个回合。
+    pub(crate) fn finish_with(
+        self,
+        output: ToolOutput,
+        keep_pre_stop: bool,
+        interrupt: bool,
+    ) -> ToolExecution {
         let mut after = self.after;
         if keep_pre_stop {
             after.extend(self.pre_stop);
@@ -34,6 +44,7 @@ impl HookMessages {
             before: self.before,
             after,
             prevent_continuation,
+            interrupt,
         }
     }
 }

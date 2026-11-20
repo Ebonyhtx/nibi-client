@@ -7,9 +7,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use nibi_kernel_api::clock::Ids;
-use nibi_kernel_api::message::{
-    ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
-};
+use nibi_kernel_api::message::{ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin};
 use nibi_kernel_api::permission::PermissionDecision;
 use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolCallOutput, ToolError, ToolOutput, ToolProgress, ToolUseContext,
@@ -34,9 +32,7 @@ pub struct SkillTool {
     /// `!` 命令的执行者；注册表里没有 Bash 时为 None（命令原样保留）。
     runner: Option<Runner>,
     /// 付费插件执行期门禁；skill 来自付费插件时在调用前复核。
-    paid_gate: std::sync::RwLock<
-        Option<Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>>,
-    >,
+    paid_gate: std::sync::RwLock<Option<Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>>>,
 }
 
 impl SkillTool {

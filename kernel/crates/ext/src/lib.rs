@@ -34,7 +34,6 @@ use nibi_kernel_api::listing::{ListingEntry, ListingSource, Listings};
 use nibi_kernel_api::machine::{EnvInfo, Files};
 use nibi_kernel_api::mcp::McpTransport;
 use nibi_kernel_api::mcp_state::{McpConnections, WAIT_FOR_MCP_SERVERS};
-use nibi_kernel_api::paid_plugin::PaidPluginGate;
 use nibi_kernel_api::mcp_ui::{
     McpResourceContent, McpResourcePage, McpResourceTemplatePage, McpUiCallToolRequest,
     McpUiCancelCallRequest, McpUiError, McpUiInstanceRequest, McpUiListRequest, McpUiReadRequest,
@@ -44,6 +43,7 @@ use nibi_kernel_api::message::Message;
 use nibi_kernel_api::orchestration::{
     ContextRequest, OrchestrationError, ToolRegistry, ToolSnapshot,
 };
+use nibi_kernel_api::paid_plugin::PaidPluginGate;
 use nibi_kernel_api::tool::Tool;
 use nibi_kernel_policy::PolicyGate;
 
@@ -84,9 +84,8 @@ pub struct ExtPorts {
     /// None 时带 `oauth` 的服务器按 401 失败（测试、嵌入）。
     pub mcp_oauth: Option<Arc<dyn nibi_kernel_api::mcp::McpOAuthPort>>,
     /// MCP Apps 的 UI 事件出口（`pluginUi.*` 增量）：入口接给协议层；None 时什么都不发。
-    pub mcp_ui_events: Option<
-        tokio::sync::mpsc::UnboundedSender<nibi_kernel_api::mcp_ui::McpUiEvent>,
-    >,
+    pub mcp_ui_events:
+        Option<tokio::sync::mpsc::UnboundedSender<nibi_kernel_api::mcp_ui::McpUiEvent>>,
     /// 回合外的一次模型请求（MCP Apps 采样）：runtime 用会话当前的模型选择实现；None 时
     /// `mcp/uiSampling` 如实报不支持（TUI、测试）。
     pub sampling: Option<Arc<dyn nibi_kernel_api::mcp_ui::McpUiSamplingPort>>,
@@ -322,6 +321,14 @@ impl Ext {
         self.mcp.set_print_session(print);
     }
 
+    /// 装上 Elicitation / ElicitationResult hooks 的执行器（ext.md §3.13.6）：runtime 在建好 hook 引擎之后调。
+    /// 进程级、状态检查与会话级 manager 都带上；已经在跑的会话在下次建立 manager 时带上。
+    pub fn attach_hooks(&self, hooks: Arc<dyn nibi_kernel_api::hooks::HookRunner>) {
+        self.mcp.attach_hooks(hooks.clone());
+        self.session_mcp.attach_hooks(hooks.clone());
+        self.status_mcp.attach_hooks(hooks);
+    }
+
     pub fn registry(&self) -> Arc<dyn ToolRegistry> {
         self.registry.clone()
     }
@@ -385,9 +392,9 @@ impl Ext {
 
     /// 一个会话的 MCP 连接：会话自己的那套，没带服务器时回落到进程级配置（Node 的 session → pool lease）。
     fn mcp_for_session(&self, session: &SessionId) -> Arc<mcp::SessionConnections> {
-        self.session_mcp.manager_of(session).unwrap_or_else(|| {
-            Arc::new(mcp::SessionConnections::single(self.mcp.clone()))
-        })
+        self.session_mcp
+            .manager_of(session)
+            .unwrap_or_else(|| Arc::new(mcp::SessionConnections::single(self.mcp.clone())))
     }
 
     /// `mcp/uiOpenInstance`：页面实例凭证（同一逻辑页面同连接代际幂等）。
@@ -420,8 +427,7 @@ impl Ext {
     pub async fn mcp_ui_open(
         &self,
         request: nibi_kernel_api::mcp_ui::McpUiOpenRequest,
-    ) -> Result<nibi_kernel_api::mcp_ui::McpAppInstance, nibi_kernel_api::mcp_ui::McpUiError>
-    {
+    ) -> Result<nibi_kernel_api::mcp_ui::McpAppInstance, nibi_kernel_api::mcp_ui::McpUiError> {
         self.check_paid_server(&request.scope.server_name)
             .map_err(nibi_kernel_api::mcp_ui::McpUiError::failed)?;
         let manager = self.mcp_for_session(&request.scope.session);
@@ -432,14 +438,10 @@ impl Ext {
                 .wait(
                     MCP_UI_OPEN_WAIT_MS,
                     &move |view: &nibi_kernel_api::mcp_state::McpView| {
-                        !view
-                            .servers
-                            .iter()
-                            .any(|row| {
-                                row.name == server
-                                    && row.state
-                                        == nibi_kernel_api::manage::McpServerState::Pending
-                            })
+                        !view.servers.iter().any(|row| {
+                            row.name == server
+                                && row.state == nibi_kernel_api::manage::McpServerState::Pending
+                        })
                     },
                 )
                 .await;
@@ -473,10 +475,7 @@ impl Ext {
     }
 
     /// `mcp/uiValidateInstance`：凭证、作用域与当前连接三者都对上才算有效。
-    pub async fn mcp_ui_validate(
-        &self,
-        request: McpUiInstanceRequest,
-    ) -> Result<(), McpUiError> {
+    pub async fn mcp_ui_validate(&self, request: McpUiInstanceRequest) -> Result<(), McpUiError> {
         self.check_instance(&request).await.map(|_| ())
     }
 
@@ -594,11 +593,7 @@ impl Ext {
         let key = subscription_key(&request)?;
         self.check_instance(&request.instance).await?;
         self.mcp_for_session(&request.instance.scope.session)
-            .unsubscribe_resource(
-                &request.instance.scope.server_name,
-                &request.uri,
-                &key,
-            )
+            .unsubscribe_resource(&request.instance.scope.server_name, &request.uri, &key)
             .await
     }
 
@@ -892,7 +887,8 @@ impl Ext {
     }
 
     /// 插件快照加载后：登记付费插件名，合并服务器 → 插件归属。
-    fn register_plugins(&self, plugins: &Plugins) {        let paid = plugins.paid_names();
+    fn register_plugins(&self, plugins: &Plugins) {
+        let paid = plugins.paid_names();
         {
             let mut known = self
                 .loaded_paid
@@ -947,11 +943,7 @@ impl Ext {
     }
 
     /// 把会话的插件快照装进 skill 目录；会话关闭时由 [`Ext::release_session`] 清掉。
-    pub fn set_session_skill_roots(
-        &self,
-        session: SessionId,
-        plugins: &Plugins,
-    ) {
+    pub fn set_session_skill_roots(&self, session: SessionId, plugins: &Plugins) {
         self.skills.set_session_plugin_roots(
             session.clone(),
             plugins.skill_roots(self.config.host_inline_view),
@@ -961,11 +953,7 @@ impl Ext {
     }
 
     /// 把这份插件快照的 MCP 服务器放进 `mcp/list` 的状态页种子（工作区级，取最近一次会话快照）。
-    pub fn refresh_status_servers(
-        &self,
-        workspace: &WorkspaceRef,
-        plugins: &Plugins,
-    ) {
+    pub fn refresh_status_servers(&self, workspace: &WorkspaceRef, plugins: &Plugins) {
         self.status_mcp.seed(
             workspace.root.as_str(),
             self.base_mcp_servers(),
@@ -1149,9 +1137,8 @@ impl ToolRegistry for ExtRegistry {
     fn snapshot(&self, session: &SessionId) -> ToolSnapshot {
         if let Some(manager) = self.sessions.manager_of(session) {
             let (tools, view) = manager.snapshot();
-            let wait =
-                (!view.pending().is_empty() || manager.declared(session))
-                    .then(|| Self::session_wait(&manager));
+            let wait = (!view.pending().is_empty() || manager.declared(session))
+                .then(|| Self::session_wait(&manager));
             return ToolSnapshot {
                 tools: self.with_app_tools(session, self.assemble(wait, tools)),
                 mcp: Some(view),

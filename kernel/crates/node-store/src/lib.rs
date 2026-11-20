@@ -472,6 +472,12 @@ impl SessionStore for NodeStore {
             .await
     }
 
+    async fn session_permission(&self, session: &SessionId) -> Result<Option<Value>, StoreError> {
+        let session = session.as_str().to_owned();
+        self.with_db(move |conn, _| project_rules::session_permission(conn, &session))
+            .await
+    }
+
     /// Node `updateSession({permission})`：`createSession.permissionScope: "session"` 创建后立即写会话行。
     async fn set_session_permission(
         &self,

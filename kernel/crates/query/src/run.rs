@@ -231,6 +231,8 @@ async fn context_request(
         mcp: step.mcp.clone(),
         // 远端执行 F98（remote-exec.md §25.2.1）：机器清单提醒按这次运行的缺省机器写（子代理可能缺省在远端）。
         default_machine: scope.default_machine_name().await,
+        // R09：会话钉住的模型可见输入与模式、工作区同一个快照；输出端不持有时为 None（按进程配置，旧行为）。
+        prompt: scope.sink.session_prompt().await,
     }
 }
 

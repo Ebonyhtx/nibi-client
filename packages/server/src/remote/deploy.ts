@@ -1,16 +1,18 @@
 /* eslint-disable max-lines -- 远端部署入口集中编排 server/node/agent/tool 资源，拆分需单独整理边界。 */
 import { join } from "node:path";
 import {
+  NIBI_AGENT_REMOTE_COMPONENT_FALLBACK_ID,
   NIBI_AGENT_REMOTE_COMPONENT_ID,
   NIBI_VERSION,
   formatLogPrefix,
+  isRequiredRemoteResourcePackage,
   normalizeRemoteResourcePackageSelection,
   type RemoteAssetInstallMode,
   type RemoteResourcePackageId,
   type RemoteResourcePackageSelection,
 } from "@nibi/shared";
 import type { IRemoteBackend, RemoteEnvironment } from "./backend.js";
-import { deployNibiAgentRuntime } from "./nibiAgentDeploy.js";
+import { deployNibiAgentRuntime, resolveNibiAgentRemoteComponentId } from "./nibiAgentDeploy.js";
 import {
   deployNodePtyPrebuilds,
   deployNodeRuntime,
@@ -203,6 +205,10 @@ export async function deployServer(
           null)
       : null;
   };
+  const getPublishedComponentIds = async (): Promise<readonly string[] | null> => {
+    const manifestRef = await getManifestRefForComponents();
+    return manifestRef ? manifestRef.manifest.components.map((component) => component.id) : null;
+  };
   const assetDeployOptions = {
     signal: options?.signal,
     resolveReleaseDir: getReleaseDir,
@@ -253,20 +259,36 @@ export async function deployServer(
     serverDeployDecision: ServerDeployDecision,
     expectedServerBundleSha256: string | null,
   ): Promise<boolean> => {
-    const hasPendingAppVersionRefresh = await hasRemoteAssetComponentRefreshPending(backend, {
-      componentId: NIBI_AGENT_REMOTE_COMPONENT_ID,
-      platformArch,
-    });
+    // 同一事务只读一次 manifest 组件清单：agent 新旧 id 选择与必需组件
+    // fail-closed 校验必须基于同一份发布事实。
+    const publishedComponentIds = await getPublishedComponentIds();
+    if (publishedComponentIds) {
+      assertRequiredRemoteComponentsPublished(publishedComponentIds, selectedResourcePackageIds);
+    }
+    const nibiAgentComponentId = await resolveNibiAgentRemoteComponentId(
+      {
+        selectedResourcePackageIds,
+        resolvePublishedComponentIds: async () => publishedComponentIds,
+      },
+      { log, logWarn },
+    );
+    const hasPendingAppVersionRefresh = nibiAgentComponentId
+      ? await hasRemoteAssetComponentRefreshPending(backend, {
+          componentId: nibiAgentComponentId,
+          platformArch,
+        })
+      : false;
     const shouldForceRefreshContentAddressedAssets =
       Boolean(options?.force) ||
       hasPendingAppVersionRefresh ||
       (serverDeployDecision.shouldDeploy && serverDeployDecision.appVersionChanged === true);
 
-    if (shouldForceRefreshContentAddressedAssets) {
-      // server 会先于 GLM 更新；若后续步骤失败，下次连接时 server 版本
-      // 已经匹配。必须持久化升级强刷状态，让重试继续绕过同 SHA cache，直到 GLM 成功覆盖 marker。
+    if (shouldForceRefreshContentAddressedAssets && nibiAgentComponentId) {
+      // server 会先于 agent 更新；若后续步骤失败，下次连接时 server 版本
+      // 已经匹配。必须持久化升级强刷状态，让重试继续绕过同 SHA cache，直到 agent 成功覆盖 marker。
+      // marker 必须写在本次实际解析出的组件 id 下，否则旧 manifest 回退 glm 时会永久 pending。
       await markRemoteAssetComponentRefreshPending(backend, {
-        componentId: NIBI_AGENT_REMOTE_COMPONENT_ID,
+        componentId: nibiAgentComponentId,
         platformArch,
         appVersion: NIBI_VERSION,
       });
@@ -299,6 +321,7 @@ export async function deployServer(
           installer,
           force: shouldForceRefreshContentAddressedAssets,
           selectedResourcePackageIds,
+          ...(nibiAgentComponentId ? { componentId: nibiAgentComponentId } : {}),
         },
         { log, logWarn },
       );
@@ -379,11 +402,12 @@ export async function deployServer(
         ...assetDeployOptions,
         platformArch,
         installer,
-        // 旧版 App 会覆盖 agents/glm，却不会同步新版引入的 GLM SHA marker。
+        // 旧版 App 会覆盖 agents/nibi，却不会同步新版引入的 agent SHA marker。
         // App 版本变化后该 marker 可能与实际 bundle 不一致，必须绕过 marker 与远端 cache，
         // 按当前 App 的 manifest 重新下载并部署；同 App 版本内仍按 SHA 精确判断。
         force: shouldForceRefreshContentAddressedAssets,
         selectedResourcePackageIds,
+        ...(nibiAgentComponentId ? { componentId: nibiAgentComponentId } : {}),
       },
       { log, logWarn },
     );
@@ -730,7 +754,7 @@ function resolveRequiredMockReleasePaths(
         }
         break;
       case NIBI_AGENT_REMOTE_COMPONENT_ID:
-      case "nibi-agent": {
+      case NIBI_AGENT_REMOTE_COMPONENT_FALLBACK_ID: {
         const mount = `${componentId}/${platformArch}`;
         requiredPaths.add(`${mount}/nibi.cjs`);
         for (const relativePath of REMOTE_AGENT_OFFICIAL_PLUGIN_REQUIRED_RELATIVE_PATHS) {
@@ -751,6 +775,32 @@ function resolveRequiredMockReleasePaths(
   }
 
   return [...requiredPaths];
+}
+
+/**
+ * 必需组件缺失必须 fail-closed。
+ *
+ * `selectManifestComponents` 只在真正请求安装时抛错；server 版本相同、走跳过
+ * 分支时不会触碰 server-bundle/node-runtime 的安装。这里在事务入口用同一份
+ * manifest 组件清单一并校验，避免“manifest 漏发必需组件但连接仍显示成功”。
+ * manifest 不可用（历史本地 release）时跳过：该路径由后续文件检查保持 fail-closed。
+ */
+function assertRequiredRemoteComponentsPublished(
+  publishedComponentIds: readonly string[],
+  selectedResourcePackageIds: readonly RemoteResourcePackageId[],
+): void {
+  const published = new Set(publishedComponentIds);
+  const missingRequiredComponentIds = selectedResourcePackageIds.filter(
+    (componentId) => isRequiredRemoteResourcePackage(componentId) && !published.has(componentId),
+  );
+  if (missingRequiredComponentIds.length === 0) {
+    return;
+  }
+  throw new Error(
+    `[remote-assets] manifest is missing required components: ${missingRequiredComponentIds.join(
+      ", ",
+    )}`,
+  );
 }
 
 function collectStdout(stream: import("./backend.js").StdioStream): Promise<string> {

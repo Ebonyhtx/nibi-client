@@ -249,9 +249,6 @@ fn the_ask_texts_name_zcode() {
         crate::texts::file_sensitive("/w/.git/config"),
     ];
     for text in &texts {
-        assert!(
-            text.starts_with("NIBI requested permissions to "),
-            "{text}"
-        );
+        assert!(text.starts_with("NIBI requested permissions to "), "{text}");
     }
 }

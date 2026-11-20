@@ -137,7 +137,10 @@ impl McpManager {
             let names: Vec<String> = self.0.servers().keys().cloned().collect();
             names
                 .iter()
-                .filter_map(|name| self.retire(name, McpStatus::Disabled).map(|(_, client, _, _)| client))
+                .filter_map(|name| {
+                    self.retire(name, McpStatus::Disabled)
+                        .map(|(_, client, _, _)| client)
+                })
                 .collect()
         };
         self.0.changed.send_modify(|version| *version += 1);

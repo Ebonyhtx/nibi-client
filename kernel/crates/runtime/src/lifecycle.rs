@@ -87,9 +87,7 @@ impl LifecycleError {
     fn combined(original: KernelError, cleanup: KernelError) -> Self {
         Self {
             code: String::new(),
-            message: format!(
-                "Session initialization and cleanup failed: {original}; {cleanup}"
-            ),
+            message: format!("Session initialization and cleanup failed: {original}; {cleanup}"),
         }
     }
 
@@ -98,7 +96,10 @@ impl LifecycleError {
     }
 
     fn not_found(session: &SessionId) -> Self {
-        Self::new("sessionNotFound", format!("Session not found: {}", session.as_str()))
+        Self::new(
+            "sessionNotFound",
+            format!("Session not found: {}", session.as_str()),
+        )
     }
 
     fn recovery_required() -> Self {
@@ -262,9 +263,7 @@ enum Next {
 
 impl LifecycleController {
     fn entries(&self) -> MutexGuard<'_, HashMap<SessionId, Entry>> {
-        self.entries
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
+        self.entries.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
     fn entry<'a>(
@@ -337,9 +336,7 @@ impl LifecycleController {
                 } else if let Some(flight) = &entry.flight {
                     match flight.operation {
                         // 停止收口后重新走一遍（状态可能是 unloaded 或 faulted）。
-                        SessionLifecycleOperation::Stop => {
-                            Next::Join(flight.result.subscribe())
-                        }
+                        SessionLifecycleOperation::Stop => Next::Join(flight.result.subscribe()),
                         SessionLifecycleOperation::EnsureReady
                         | SessionLifecycleOperation::Restart => {
                             Next::Join(flight.result.subscribe())
@@ -456,9 +453,7 @@ impl LifecycleController {
                             entry.restart_workspace = workspace.clone();
                             Next::RestartAfter(flight.result.subscribe())
                         }
-                        SessionLifecycleOperation::Restart => {
-                            Next::Join(flight.result.subscribe())
-                        }
+                        SessionLifecycleOperation::Restart => Next::Join(flight.result.subscribe()),
                         SessionLifecycleOperation::Stop => {
                             return Err(LifecycleError::conflict(
                                 "Session lifecycle stop is in progress",
@@ -671,9 +666,12 @@ impl LifecycleController {
                     // 清理失败已经进 faulted；错误里带两段原因（上游的 AggregateError）。
                     Err(LifecycleError {
                         code: cleanup.code,
-                        message: LifecycleError::combined(error, KernelError::Failed {
-                            message: cleanup.message,
-                        })
+                        message: LifecycleError::combined(
+                            error,
+                            KernelError::Failed {
+                                message: cleanup.message,
+                            },
+                        )
                         .message,
                     })
                 }

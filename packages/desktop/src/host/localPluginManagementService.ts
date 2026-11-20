@@ -17,6 +17,7 @@ import {
   addPluginMarketplace,
   configurePlugin,
   describePlugin,
+  getPluginsBootstrap,
   getPluginsOverview,
   installPlugin,
   listPluginUiSurfaces,
@@ -86,19 +87,13 @@ export function createLocalPluginManagementService(
   // Rust 内核启动不会经过 Node bootstrap 的 seed；Host 自己就是插件管理面，必须在
   // 第一次创建 backend 时补一次。只有 main 注入随包资源目录（桌面运行态）时才执行，
   // 单测/CLI 上下文没有这两个 env，不会写真实用户目录。
-  if (
-    !officialPluginSeedAttempted &&
-    process.env.NIBI_BUNDLED_AGENT_RESOURCE_DIR?.trim()
-  ) {
+  if (!officialPluginSeedAttempted && process.env.NIBI_BUNDLED_AGENT_RESOURCE_DIR?.trim()) {
     officialPluginSeedAttempted = true;
     const logger = options.logger ?? hostLogger();
     try {
       seedOfficialPlugins({ env: options.env ?? process.env, logger });
     } catch (error) {
-      logger.warn(
-        "Official plugin seed failed during Host startup",
-        { error },
-      );
+      logger.warn("Official plugin seed failed during Host startup", { error });
     }
   }
   const context: PluginManagementContext = {
@@ -130,6 +125,13 @@ export function createLocalPluginManagementService(
       }),
     getPluginsOverview: (params) =>
       getPluginsOverview(context, {
+        workspace: toWorkspaceRef(params),
+        ...(params.configScope ? { configScope: params.configScope } : {}),
+      }),
+    // 一次请求完成 list + overview，且 Host 只解析一次 discovery；旧的两个方法
+    // 保持原样，供旧 renderer 和其他调用方继续使用。
+    getPluginsBootstrap: (params) =>
+      getPluginsBootstrap(context, {
         workspace: toWorkspaceRef(params),
         ...(params.configScope ? { configScope: params.configScope } : {}),
       }),
@@ -241,15 +243,15 @@ export function createLocalPluginManagementService(
       ),
     cancelPluginOperation: (params) => {
       const controller = operations.get(params.operationId);
-      if (!controller) return Promise.resolve({ operationId: params.operationId, cancelled: false });
+      if (!controller)
+        return Promise.resolve({ operationId: params.operationId, cancelled: false });
       controller.abort(new DOMException("Plugin operation cancelled", "AbortError"));
       operations.delete(params.operationId);
       return Promise.resolve({ operationId: params.operationId, cancelled: true });
     },
     // 会话权威：必须由持有 session 的内核回答。
     getPluginReferenceCatalog: (params) => fallback.getPluginReferenceCatalog(params),
-    resolveSuggestedPluginReference: (params) =>
-      fallback.resolveSuggestedPluginReference(params),
+    resolveSuggestedPluginReference: (params) => fallback.resolveSuggestedPluginReference(params),
     onDynamicPluginOperationProgress: (operationId) =>
       fallback.onDynamicPluginOperationProgress(operationId),
   };

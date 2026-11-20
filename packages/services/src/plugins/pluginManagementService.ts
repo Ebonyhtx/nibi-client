@@ -53,15 +53,14 @@ export function createPluginManagementService(
       // 会员刷新失败不阻断安装：agent 门禁会用缓存凭证继续判。
     }
   };
-  type Params =
-    import("../nibi-agent/nibiAgentPluginParams.js").NibiAgentPluginMutationTarget & {
-      pluginId?: string;
-      pluginName?: string;
-      marketplace?: string;
-      scope?: "user" | "workspace";
-      dryRun?: boolean;
-      removeCache?: boolean;
-    };
+  type Params = import("../nibi-agent/nibiAgentPluginParams.js").NibiAgentPluginMutationTarget & {
+    pluginId?: string;
+    pluginName?: string;
+    marketplace?: string;
+    scope?: "user" | "workspace";
+    dryRun?: boolean;
+    removeCache?: boolean;
+  };
   type Result = {
     diagnostics?: Array<{ severity?: string; code?: string }>;
     installedPlugins?: Array<{
@@ -190,6 +189,22 @@ export function createPluginManagementService(
     onDynamicPluginOperationProgress: (operationId) =>
       agent.onDynamicPluginOperationProgress(operationId),
     getPluginsOverview: (params) => agent.getPluginsOverview(params),
+    // agent 路由（NIBI_PLUGIN_ROUTING=agent）下没有单一的 bootstrap 协议词；
+    // 组合两个既有调用保持返回值形状。Host-local 路由直接复用一次 discovery 的新实现。
+    getPluginsBootstrap: async (params) => {
+      // Host-local 路由下 agent 其实是本地插件 backend（createLocalPluginManagementBackend）；
+      // 优先转发它的 bootstrap，保证 Host 只跑一次 discovery。真正的 agent 路由没有该词，
+      // 退回两个既有调用，返回值形状不变。
+      const localBootstrap = (agent as Partial<IPluginManagementService>).getPluginsBootstrap;
+      if (typeof localBootstrap === "function") {
+        return localBootstrap.call(agent, params);
+      }
+      const [list, overview] = await Promise.all([
+        agent.listPlugins(params),
+        agent.getPluginsOverview(params),
+      ]);
+      return { list, overview };
+    },
     addPluginMarketplace: (params) =>
       observe("source_add", params, (clean) => agent.addPluginMarketplace(clean as typeof params)),
     removePluginMarketplace: (params) =>

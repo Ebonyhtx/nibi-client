@@ -16,7 +16,6 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use nibi_kernel_base::Spawner;
 use nibi_kernel_api::env::WorkspaceRef;
 use nibi_kernel_api::env_registry::{EnvironmentRegistry, LOCAL_MACHINE};
 use nibi_kernel_api::mcp::{
@@ -24,6 +23,7 @@ use nibi_kernel_api::mcp::{
     McpTransportConfig,
 };
 use nibi_kernel_api::mcp_status::{McpFailureKind, McpProtocolEra};
+use nibi_kernel_base::Spawner;
 use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 
@@ -122,7 +122,9 @@ impl McpServer {
     pub(crate) fn oauth_request(&self) -> Option<McpOAuthRequest> {
         let config = self.oauth.clone()?;
         let url = match &self.transport {
-            McpTransportConfig::Http { url, .. } | McpTransportConfig::Sse { url, .. } => url.clone(),
+            McpTransportConfig::Http { url, .. } | McpTransportConfig::Sse { url, .. } => {
+                url.clone()
+            }
             McpTransportConfig::Stdio { .. } => return None,
         };
         Some(McpOAuthRequest {
@@ -199,9 +201,15 @@ pub(crate) async fn open(
                     }
                     refreshed = true;
                     // Node `AuthProvider.onUnauthorized`：刷新一次，让下一轮拿到新令牌。
-                    token = Some(oauth.port.refresh(&oauth.request, token.as_deref()).await.map_err(
-                        |message| OpenFailure::new(message, McpFailureKind::OauthAuthorizationFailed),
-                    )?);
+                    token = Some(
+                        oauth
+                            .port
+                            .refresh(&oauth.request, token.as_deref())
+                            .await
+                            .map_err(|message| {
+                                OpenFailure::new(message, McpFailureKind::OauthAuthorizationFailed)
+                            })?,
+                    );
                 }
                 Err(Attempt::Failed(failure)) => return Err(failure),
             }
@@ -229,13 +237,16 @@ async fn handshake(
     client_version: &str,
     elicitation: Option<Arc<dyn nibi_kernel_api::mcp::McpElicitation>>,
 ) -> Result<Session, Attempt> {
-    let (transport_port, workspace) = pipe
-        .resolve(server.machine.as_deref())
-        .await
-        .map_err(|message| {
-            // 绑定的机器没连上（R3）：不是这个服务器自己的错。
-            Attempt::Failed(OpenFailure::new(message, McpFailureKind::RuntimeUnavailable))
-        })?;
+    let (transport_port, workspace) =
+        pipe.resolve(server.machine.as_deref())
+            .await
+            .map_err(|message| {
+                // 绑定的机器没连上（R3）：不是这个服务器自己的错。
+                Attempt::Failed(OpenFailure::new(
+                    message,
+                    McpFailureKind::RuntimeUnavailable,
+                ))
+            })?;
     let transport_port = &transport_port;
     let workspace = &workspace;
     let connection = transport_port
@@ -454,9 +465,9 @@ async fn probe(client: &Client, timeout: Duration, client_version: &str, stdio: 
             "Version negotiation probe timed out after {}ms",
             timeout.as_millis()
         )),
-        Err(RpcError::Closed(reason)) => Probe::Failed(format!(
-            "Version negotiation failed: {reason}"
-        )),
+        Err(RpcError::Closed(reason)) => {
+            Probe::Failed(format!("Version negotiation failed: {reason}"))
+        }
         Err(RpcError::Cancelled) => Probe::Failed("Version negotiation was cancelled".to_owned()),
     }
 }
@@ -497,10 +508,7 @@ fn with_bearer(config: &McpTransportConfig, token: &str) -> McpTransportConfig {
 /// 传输层错误文本里的 HTTP 状态（`env-local` 的 `HTTP {status}: {body}`；远端执行器同形状）。
 fn http_status(message: &str) -> Option<u16> {
     let rest = message.strip_prefix("HTTP ")?;
-    let digits = rest
-        .split_once(':')
-        .map_or(rest, |(code, _)| code)
-        .trim();
+    let digits = rest.split_once(':').map_or(rest, |(code, _)| code).trim();
     digits.parse().ok()
 }
 

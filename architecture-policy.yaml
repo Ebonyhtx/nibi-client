@@ -1132,7 +1132,7 @@ exceptions:
     reason: 已准入的快捷键命令表只追加一条 toggleSidePaneFullView 命令（Side Pane 完整视图，docs/ui/side-pane-full-view.md）；命令表仍是唯一数据源，签名与模块边界不变，接管整个 shared 包不在本次范围内。
   - id: opensource-cua-test-project-config
     rule: unmanaged-new-file
-    paths: [ packages/nibi-cua/vitest.config.ts ]
+    paths: [ packages/computer-use/vitest.config.ts ]
     reason: 该文件只装配测试项目，开源占位版本用于保持根单测入口可运行；不包含 producer 运行逻辑，不为同目录实现文件开放例外。
   - id: opensource-tool-search-comment-cleanup
     rule: unmanaged-new-file
@@ -1300,8 +1300,8 @@ exceptions:
     reason: NIBI 在 CLI 内新增的付费插件门禁、NIBI provider 流程、验收方法、品牌像素鸟与测试装配；apps/nibi-cli 整包上游就是 unmanaged 模块，单文件无法登记 managed 模块。文件随 3.16.2 基座整体搬入，不是本分支新开的包。
   - id: nibi-fork-cua-runtime
     rule: unmanaged-new-file
-    paths: [ packages/nibi-cua/** ]
-    reason: packages/nibi-cua 是 NIBI 自研电脑操控实现（上游只有占位桩），整包尚未登记模块；完成 CUA 架构收口前按包级例外放行，新增文件仍沿用包内 engine/helper/runtime/vendor 既有分层。
+    paths: [ packages/computer-use/** ]
+    reason: packages/computer-use 是 NIBI 自研电脑操控实现（上游只有占位桩），整包尚未登记模块；完成 CUA 架构收口前按包级例外放行，新增文件仍沿用包内 engine/helper/runtime/vendor 既有分层。
   - id: nibi-fork-project-sync
     rule: unmanaged-new-file
     paths:
@@ -1792,8 +1792,19 @@ exceptions:
     rule: unmanaged-new-file
     paths:
       - packages/desktop/src/main/sharedClientConfigsFetcher.ts
+      - packages/desktop/src/main/forceUpdateLkg.ts
     reason: >-
-      启动路径的强更 gate 与 Desktop 灰度裁决读同一个 /api/v1/client/configs；该文件只做
-      in-flight 复用与成功响应短缓存，避免冷启动两次网络往返和首窗被重复等待。每个消费者
-      仍从原始 payload 解析自己的字段，不缓存灰度结论。desktop 主进程仍是 managed:false
-      的遗留模块，按路径准入该文件，接管整目录不在本次范围。
+      启动路径的强更 gate 与 Desktop 灰度裁决读同一个 /api/v1/client/configs；共享请求层只做
+      in-flight 复用与成功响应短缓存，避免冷启动两次网络往返和首窗被重复等待。强更 LKG 只在
+      成功且 code=0 的响应后落盘，网络失败时按最近一次裁决兜底，带 7 天过期。每个消费者仍从
+      原始 payload 解析自己的字段，不缓存灰度结论。desktop 主进程仍是 managed:false 的遗留
+      模块，按路径准入这两个文件，接管整目录不在本次范围。
+
+  - id: perf-settings-section-keep-alive
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/settings/SettingsSectionKeepAlive.tsx
+    reason: >-
+      设置页分区保活/懒加载的通用容器（只保留当前与最近访问的一个分区，隐藏用
+      hidden/inert/aria-hidden），只服务于 SettingsPage 的渲染生命周期。ui 仍是
+      managed:false 的遗留渲染层，按路径准入该文件，接管整包不在本次范围。

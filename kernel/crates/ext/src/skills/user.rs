@@ -25,8 +25,7 @@ pub struct SkillCommands {
     /// `!` 命令的执行者（与 Skill 工具同一个）。
     runner: Option<Runner>,
     /// 付费插件执行期门禁；`/命令` 来自付费插件时在执行前复核。
-    paid_gate:
-        std::sync::RwLock<Option<Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>>>,
+    paid_gate: std::sync::RwLock<Option<Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>>>,
 }
 
 impl SkillCommands {

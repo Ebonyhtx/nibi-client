@@ -14,9 +14,7 @@ use nibi_kernel_api::user_command::{
     UserCommand, UserCommands, command_input, command_tags,
 };
 
-use super::{
-    CustomCommands, ShellHandOff, hand_off_shell_blocks, is_reserved, prompt, template,
-};
+use super::{CustomCommands, ShellHandOff, hand_off_shell_blocks, is_reserved, prompt, template};
 use crate::skills::SkillCommands;
 
 /// 自定义命令正文的消息来源（不写成 `skill`，免得上报/上下文把它当 skill 调用）。
@@ -112,7 +110,6 @@ impl CustomCommands {
             query: true,
         })
     }
-
 }
 
 #[async_trait]

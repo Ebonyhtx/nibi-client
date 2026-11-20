@@ -18,8 +18,8 @@ use nibi_kernel_api::tool::{
 use serde_json::Value;
 use tokio::sync::mpsc;
 
-use super::sessions::SessionConnections;
 use super::McpManager;
+use super::sessions::SessionConnections;
 
 /// 最多等多久。
 const WAIT_MS: u64 = 5_000;

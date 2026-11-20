@@ -123,6 +123,8 @@ impl Actor {
             Fact::ExecutionChanged {
                 state: self.execution,
             },
+            // R09：fork 的子会话沿用父会话钉住的 system 输入（与父会话逐字相同的前缀）。
+            self.prompt.fact(),
         ];
         facts.extend(
             copied

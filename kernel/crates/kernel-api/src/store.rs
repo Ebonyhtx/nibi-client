@@ -174,10 +174,13 @@ pub enum Fact {
 }
 
 /// 本机项目规则集的一次修改（`SessionStore::change_project_rules`）：`behavior` 这一类里先删 `remove`、再加
-/// `add`（Node `applyPermissionUpdates` 的去重规则）。
+/// `add`（Node `applyPermissionUpdates` 的去重规则）；`replace` 为真时先把这一类整份清空（hook 的
+/// `replaceRules`，permission-updates.md §2.4）。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectRulesChange {
     pub behavior: crate::permission::RuleBehavior,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub replace: bool,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub add: Vec<crate::permission::PermissionRule>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -630,6 +633,13 @@ pub trait SessionStore: Send + Sync {
         Ok(None)
     }
 
+    /// 会话行的整份权限记录（Node `session.permission`，`scope = "session"` 时是
+    /// `{version, scope, mode, allow?, …}`）。hook 的 `updatedPermissions` 落会话行时要保留 `mode` 等规则以外的键
+    /// （`session_rules` 只给出三类规则）。不支持的实现（或不是群协作会话）为 None。
+    async fn session_permission(&self, _session: &SessionId) -> Result<Option<Value>, StoreError> {
+        Ok(None)
+    }
+
     /// 写会话的权限记录（Node `updateSession({permission})`）：`createSession.permissionScope: "session"`
     /// 在创建后立即写 `{version:1, scope:"session", mode:"build"}`，之后的规则与模式都落这一列。
     /// 不支持的实现返回 `Unsupported`。
@@ -887,7 +897,10 @@ pub trait SessionStore: Send + Sync {
 
     /// 会话级 token 用量（`v4/conversation/usage` 的取数面）。不支持的实现返回
     /// `Unsupported`。
-    async fn session_usage(&self, _session: &SessionId) -> Result<crate::usage::SessionUsage, StoreError> {
+    async fn session_usage(
+        &self,
+        _session: &SessionId,
+    ) -> Result<crate::usage::SessionUsage, StoreError> {
         Err(StoreError::Unsupported {
             what: "session usage aggregation".to_owned(),
         })
@@ -1148,6 +1161,12 @@ pub trait ArtifactStore: Send + Sync {
             what: "artifact lookup by id".to_owned(),
         })
     }
+}
+
+/// 本工程 `session_entry` 的种类（不带 `nibi-kernel/` 前缀：存储适配器加）。
+pub mod entry_kinds {
+    /// 会话钉住的 system 输入（[`crate::session_prompt::SystemPin`]，R09）：键固定，后写覆盖。
+    pub const SYSTEM_PIN: &str = "system_pin";
 }
 
 #[cfg(test)]

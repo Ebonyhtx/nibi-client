@@ -80,7 +80,7 @@ const platform = normalizePlatform(process.env.NIBI_TARGET_OS || "") || process.
 const arch = normalizeArch(process.env.NIBI_TARGET_ARCH || "") || process.arch;
 const platformKey = `${platform}-${arch}`;
 
-const glmDir = resolve(desktopRoot, "bundled-agents", platformKey, "nibi");
+const nibiDir = resolve(desktopRoot, "bundled-agents", platformKey, "nibi");
 // nibi.cjs / .node-bundle-meta.json 的落点由 stage-agent-bundle.mjs 自己解析（同源）。
 // node_repl 宿主抽成独立包
 // @nibi/node-repl-host 之后，browser-use 不再产出 dist/mcp/server.js，CUA 资产
@@ -399,7 +399,7 @@ function stageOfficialPlugins() {
       throw new Error(`[prepare:agent-bundle] missing official plugin manifest: ${manifestPath}`);
     }
 
-    const targetRoot = resolve(glmDir, plugin.stagedPath);
+    const targetRoot = resolve(nibiDir, plugin.stagedPath);
     mkdirSync(targetRoot, { recursive: true });
     for (const entryName of includedOfficialPluginTopLevelPaths) {
       const sourcePath = resolve(sourceRoot, entryName);
@@ -423,7 +423,7 @@ function stageOfficialPlugins() {
 
 function stageBundledSkillPack() {
   const sourceRoot = resolve(repoRoot, bundledSkillPack.relativePath);
-  const targetRoot = resolve(glmDir, bundledSkillPack.stagedPath);
+  const targetRoot = resolve(nibiDir, bundledSkillPack.stagedPath);
   mkdirSync(targetRoot, { recursive: true });
   for (const entryName of bundledSkillPack.topLevelPaths) {
     const sourcePath = resolve(sourceRoot, entryName);
@@ -458,9 +458,9 @@ function stageSharpForNodeReplPlugin() {
   // Browser Use 目录保留一份兼容 staging。三份 staging 都位于 plugin 子目录下，避免
   // electron-builder 过滤 extraResources 根目录的 node_modules。
   const pluginStagedDirs = [
-    [NODE_REPL_HOST_PACKAGE_NAME, resolve(glmDir, "packages", "node-repl-host")],
-    [BROWSER_USE_PLUGIN_PACKAGE_NAME, resolve(glmDir, "packages", "browser-use-plugin")],
-    [CUA_PLUGIN_PACKAGE_NAME, resolve(glmDir, "packages", "computer-use-plugin")],
+    [NODE_REPL_HOST_PACKAGE_NAME, resolve(nibiDir, "packages", "node-repl-host")],
+    [BROWSER_USE_PLUGIN_PACKAGE_NAME, resolve(nibiDir, "packages", "browser-use-plugin")],
+    [CUA_PLUGIN_PACKAGE_NAME, resolve(nibiDir, "packages", "computer-use-plugin")],
   ];
   for (const [packageName, pluginStagedDir] of pluginStagedDirs) {
     if (!hasPluginManifest(pluginStagedDir)) {
@@ -469,7 +469,7 @@ function stageSharpForNodeReplPlugin() {
     }
     stageSharpIntoBundledAgents({
       desktopPackageRoot: desktopRoot,
-      glmDir: pluginStagedDir,
+      nibiDir: pluginStagedDir,
       targetPlatform: { os: platform, arch },
     });
     console.log(
@@ -479,14 +479,14 @@ function stageSharpForNodeReplPlugin() {
 }
 
 function stageKoffiForCuaPlugin() {
-  const cuaPluginStagedDir = resolve(glmDir, "packages", "computer-use-plugin");
+  const cuaPluginStagedDir = resolve(nibiDir, "packages", "computer-use-plugin");
   if (!hasPluginManifest(cuaPluginStagedDir)) {
     console.log("[prepare:agent-bundle] computer-use-plugin not staged, skip koffi staging");
     return;
   }
   stageKoffiIntoBundledAgents({
     koffiPackageRoot: adaptersRoot,
-    glmDir: cuaPluginStagedDir,
+    nibiDir: cuaPluginStagedDir,
     targetPlatform: { os: platform, arch },
   });
   console.log(
@@ -497,11 +497,11 @@ function stageKoffiForCuaPlugin() {
 // stdio MCP 的 npm/npx 回退（用户没装 Node 时由 Electron Node 运行随包 npm）。
 // tarball 按 sha512 缓存在 node_modules/.cache，重复打包不再下载；registry 不可达时回退到
 // 本机 Node 自带 npm（无 integrity，见 bundled-npm-assets.mjs 文件头）。
-// 必须在 stageBundle() 之后：stageAgentBundle 会整体重建 glm。
+// 必须在 stageBundle() 之后：stageAgentBundle 会整体重建 nibi。
 async function stageBundledNpmRuntime() {
   const result = await stageBundledNpm({
     cacheDir: resolve(repoRoot, "node_modules", ".cache", "nibi-bundled-npm"),
-    glmDir,
+    nibiDir,
   });
   console.log(
     `[prepare:agent-bundle] staged npm@${BUNDLED_NPM_VERSION} (${result.source}${result.integrityVerified ? ", sha512 verified" : ", UNVERIFIED local copy"}) into ${result.stagedRoot}`,
@@ -510,7 +510,7 @@ async function stageBundledNpmRuntime() {
 
 // 修复原因：Electron 生产包只带 resources/nibi/nibi.cjs 时，app-server 进程的
 // __dirname 附近没有官方插件目录，启动时 seed 找不到 source，用户侧不会自动得到内置插件。
-// 这里把官方插件按 bootstrap 的 rootCandidates 期望放到 glm/packages/*-plugin，
+// 这里把官方插件按 bootstrap 的 rootCandidates 期望放到 nibi/packages/*-plugin，
 // 让 Electron Node 运行 nibi.cjs 时复用同一套 filesystem seed 逻辑。
 // browser-use runtime 的声明生成依赖 @nibi/core/dist。CI 干净检出没有该产物，
 // 必须先构建 CLI 依赖，再构建官方插件；开发机残留的 dist 曾掩盖这个顺序问题。

@@ -5,6 +5,7 @@ import type { NibiPluginsOverviewResult } from "@nibi/shared";
 import type { IPluginManagementService } from "@nibi/services";
 import {
   createPluginManagementStore,
+  resetScopedPluginManagementStoresForTests,
   useScopedPluginManagementStore,
 } from "../src/store/pluginManagementStore.js";
 import { resetPluginManagementSnapshotsForTests } from "../src/store/pluginManagementStoreLoading.js";
@@ -45,6 +46,7 @@ function createPluginServiceMock(): IPluginManagementService {
 
 beforeEach(() => {
   resetPluginManagementSnapshotsForTests();
+  resetScopedPluginManagementStoresForTests();
 });
 
 afterEach(() => {
@@ -79,5 +81,40 @@ describe("useScopedPluginManagementStore seed context", () => {
     expect(result.current.getState().plugins).toEqual([]);
     expect(result.current.getState().loading).toBe(true);
     unmount();
+  });
+
+  it("shares one scoped store across Settings plugin/MCP/Skill mounts", () => {
+    const service = createPluginServiceMock();
+    const seed = {
+      workspacePath: "/workspace/app",
+      workspaceIdentity: "local",
+      configScope: "user" as const,
+    };
+    const first = renderHook(() => useScopedPluginManagementStore(service, seed));
+    const second = renderHook(() => useScopedPluginManagementStore(service, seed));
+
+    expect(second.result.current).toBe(first.result.current);
+    first.unmount();
+    second.unmount();
+  });
+
+  it("does not share a projection across configuration scopes", () => {
+    const service = createPluginServiceMock();
+    const user = renderHook(() =>
+      useScopedPluginManagementStore(service, {
+        workspacePath: "/workspace/app",
+        configScope: "user",
+      }),
+    );
+    const workspace = renderHook(() =>
+      useScopedPluginManagementStore(service, {
+        workspacePath: "/workspace/app",
+        configScope: "workspace",
+      }),
+    );
+
+    expect(workspace.result.current).not.toBe(user.result.current);
+    user.unmount();
+    workspace.unmount();
   });
 });

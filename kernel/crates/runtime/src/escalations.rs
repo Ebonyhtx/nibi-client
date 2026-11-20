@@ -39,8 +39,7 @@ Do not call escalate again. Proceed on your best judgement with the information 
 and state in your final result the assumptions you relied on and the doubts that remain.";
 
 /// 无在飞 ask：问题无处停驻（不应发生，但绝不悬挂）。
-const NO_ACTIVE_ASK: &str =
-    "No ask is in flight, so there is nowhere to park this question and nobody would answer it. \
+const NO_ACTIVE_ASK: &str = "No ask is in flight, so there is nowhere to park this question and nobody would answer it. \
 Escalate only while working on an ask.";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -96,10 +95,7 @@ impl WorkflowEscalations {
 
     /// 接上通知通道（`Agents` 是唯一的生产者：走子代理通知同一条 `task-notification` 路）。
     pub fn attach_notifier(&self, notifier: Arc<dyn WorkflowNotices>) {
-        *self
-            .notifier
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner) = Some(notifier);
+        *self.notifier.lock().unwrap_or_else(PoisonError::into_inner) = Some(notifier);
     }
 
     /// 接上事件 journal（`SessionStore::append_workflow_event` 的本机实现）。
@@ -120,7 +116,10 @@ impl WorkflowEscalations {
     }
 
     fn store(&self) -> Option<Arc<dyn SessionStore>> {
-        self.store.lock().unwrap_or_else(PoisonError::into_inner).clone()
+        self.store
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
@@ -261,8 +260,10 @@ pendingQuestions for the ids that are actually awaiting an answer."
     fn park(
         &self,
         request: WorkflowEscalationRequest,
-    ) -> Result<(String, WorkflowQuestion, oneshot::Receiver<String>, String), WorkflowEscalationOutcome>
-    {
+    ) -> Result<
+        (String, WorkflowQuestion, oneshot::Receiver<String>, String),
+        WorkflowEscalationOutcome,
+    > {
         let WorkflowEscalationRequest {
             parent,
             run_id,
@@ -280,10 +281,7 @@ pendingQuestions for the ids that are actually awaiting an answer."
         }
         let asked_at = self.clock.now_ms();
         let mut inner = self.lock();
-        let used = inner
-            .budget
-            .entry((run_id.clone(), ask))
-            .or_default();
+        let used = inner.budget.entry((run_id.clone(), ask)).or_default();
         if *used >= MAX_ESCALATIONS_PER_ASK {
             return Err(WorkflowEscalationOutcome::Refused {
                 reason: "budget_exhausted".to_owned(),
@@ -324,7 +322,9 @@ pendingQuestions for the ids that are actually awaiting an answer."
 }
 
 fn retire(inner: &mut Inner, qid: &str, reason: RetiredReason, parent: &SessionId) {
-    inner.retired.insert(qid.to_owned(), (reason, parent.clone()));
+    inner
+        .retired
+        .insert(qid.to_owned(), (reason, parent.clone()));
     inner.retired_order.push(qid.to_owned());
     while inner.retired_order.len() > RETIRED_HISTORY_LIMIT {
         let oldest = inner.retired_order.remove(0);
@@ -625,7 +625,11 @@ impl WorkflowEscalation for EscalationPort {
         // 引擎自带内存 journal 回退同一语义，只剩通知轨，停驻照常。
         if let Some(journal) = self.0.journal()
             && let Err(error) = journal
-                .append_event(&question.run_id, "escalation-raised", raised_payload(&question))
+                .append_event(
+                    &question.run_id,
+                    "escalation-raised",
+                    raised_payload(&question),
+                )
                 .await
             && !matches!(error, StoreError::Unsupported { .. })
         {
@@ -643,7 +647,11 @@ would be able to see or answer it: {error}"
             // manifest 载荷（GUI 折叠成「Subagent X has a question」，展开显示问题全文）。
             // 展示名的兜底链与 Node 同源：run 行的 name（registry.description）缺席落 runId。
             let label = run_label(&self.0, &parent, &question.run_id).await;
-            notifier.notify_with(&parent, text, Some(escalation_origin_meta(&question, &label)));
+            notifier.notify_with(
+                &parent,
+                text,
+                Some(escalation_origin_meta(&question, &label)),
+            );
         }
         let guard = ParkGuard {
             owner: self.0.clone(),

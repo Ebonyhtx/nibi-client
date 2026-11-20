@@ -219,6 +219,7 @@ function profileOperationScope(profile: ConnectionProfile): string {
 
 export function SourceServerManagementPanel({
   management,
+  active = true,
   targetSourceServerId,
   targetSourceServerDetails = false,
   onTargetSourceServerFocused,
@@ -233,6 +234,8 @@ export function SourceServerManagementPanel({
   onUpdateSettings,
 }: {
   management: ISourceServerManagementService;
+  /** 保活分区隐藏时暂停快照订阅与相对时间刷新；不传按可见处理。 */
+  active?: boolean;
   targetSourceServerId?: string;
   targetSourceServerDetails?: boolean;
   onTargetSourceServerFocused?: () => void;
@@ -314,9 +317,11 @@ export function SourceServerManagementPanel({
   // 相对时间必须随时钟更新，不能依赖连接事件才重绘。
   const [, setClockTick] = useState(0);
   useEffect(() => {
+    // 隐藏分区不跑计时器；重新可见时由快照刷新恢复相对时间。
+    if (!active) return undefined;
     const timer = setInterval(() => setClockTick((tick) => tick + 1), 60_000);
     return () => clearInterval(timer);
-  }, []);
+  }, [active]);
   const [error, setError] = useState<string | null>(null);
   const [migrationReports, setMigrationReports] = useState<
     Record<string, SourceServerMigrationReport | undefined>
@@ -328,6 +333,8 @@ export function SourceServerManagementPanel({
     applySnapshot,
     refresh: refreshSnapshot,
   } = useSourceServerManagementSnapshot(management, {
+    enabled: active,
+    keepSnapshotWhenDisabled: true,
     onError: (cause) => setError(getSourceServerManagementErrorMessage(cause, intl.formatMessage)),
   });
   const focusedTargetRef = useRef<string | undefined>(undefined);
@@ -365,6 +372,7 @@ export function SourceServerManagementPanel({
   const { logsByProfileId } = useSourceServerOperationLogs(
     management,
     snapshot?.profiles.map((profile) => profile.profileId),
+    { enabled: active },
   );
   const projection = useMemo(
     () =>

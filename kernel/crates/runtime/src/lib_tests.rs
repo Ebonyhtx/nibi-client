@@ -16,11 +16,7 @@ use nibi_kernel_api::testing::{
 use super::*;
 
 fn kernel(store: Arc<MemoryStore>, model: Arc<ScriptedModel>) -> LocalKernel {
-    kernel_with_context(
-        store,
-        model,
-        ContextConfig::new(Surface::Interactive),
-    )
+    kernel_with_context(store, model, ContextConfig::new(Surface::Interactive))
 }
 
 fn kernel_with_context(
@@ -66,8 +62,14 @@ async fn todo_tools_are_registered_for_tui_and_print() {
             .iter()
             .map(|tool| tool.name().to_owned())
             .collect();
-        assert!(names.iter().any(|name| name == "TodoRead"), "{surface:?}: {names:?}");
-        assert!(names.iter().any(|name| name == "TodoWrite"), "{surface:?}: {names:?}");
+        assert!(
+            names.iter().any(|name| name == "TodoRead"),
+            "{surface:?}: {names:?}"
+        );
+        assert!(
+            names.iter().any(|name| name == "TodoWrite"),
+            "{surface:?}: {names:?}"
+        );
     }
 }
 
@@ -83,10 +85,7 @@ async fn imported_history_is_persisted_with_title_and_created_at() {
     use nibi_kernel_api::session_api::ImportedMessage;
 
     let store = Arc::new(MemoryStore::default());
-    let first = kernel(
-        store.clone(),
-        Arc::new(ScriptedModel::new(Vec::new())),
-    );
+    let first = kernel(store.clone(), Arc::new(ScriptedModel::new(Vec::new())));
     let id = first
         .create_session_with_history(
             CreateSession {
@@ -352,6 +351,38 @@ async fn a_created_session_runs_a_turn_and_reloads_after_restart() {
 
 /// 复现（R1-1）：以前关闭后会话还留在 `sessions` 表里（actor 活着），再打开拿到的是旧 actor——不跑
 /// SessionStart(resume)，按会话的表也不释放。关闭之后它离开内核，再打开是新的 actor。
+/// R09：建会话的初始事实写会话钉住的 system 输入（custom/append 来自命令行，`shell_escape` 来自进程形态）。
+#[tokio::test]
+async fn a_new_session_records_its_system_pin() {
+    use nibi_kernel_api::session_prompt::SystemPin;
+    use nibi_kernel_api::store::{SessionStore, entry_kinds};
+
+    let store = Arc::new(MemoryStore::default());
+    let mut context = ContextConfig::new(Surface::Print);
+    context.custom_system_prompt = Some("Pinned system.".to_owned());
+    context.append_system_prompt = Some("Pinned append.".to_owned());
+    let kernel = kernel_with_context(
+        store.clone(),
+        Arc::new(ScriptedModel::new(Vec::new())),
+        context,
+    );
+    let id = kernel
+        .create_session(CreateSession {
+            id: None,
+            workspace: workspace(),
+            selection: selection(),
+            mode: PermissionMode::Default,
+            plan: false,
+        })
+        .await
+        .unwrap();
+    let entries = store.entries(&id, entry_kinds::SYSTEM_PIN).await.unwrap();
+    let pin = SystemPin::recorded(&entries).expect("the pin is recorded");
+    assert_eq!(pin.custom.as_deref(), Some("Pinned system."));
+    assert_eq!(pin.append.as_deref(), Some("Pinned append."));
+    assert!(!pin.shell_escape, "Print has no shell hint");
+}
+
 #[tokio::test]
 async fn a_closed_session_leaves_the_kernel_and_reopens_with_a_new_actor() {
     use nibi_kernel_api::session_api::{EndReason, StartSource};
@@ -475,11 +506,7 @@ async fn opening_a_session_restores_a_finished_subagent_and_delivers_its_result(
         .open_session_as(&parent, StartSource::Resume)
         .await
         .unwrap();
-    let entries = reopened
-        .actors
-        .signals()
-        .subagents(&parent)
-        .await;
+    let entries = reopened.actors.signals().subagents(&parent).await;
     assert_eq!(entries.len(), 1, "the subagent must be restored into Live");
     assert_eq!(entries[0].agent, AgentId::new(agent));
     assert_eq!(
@@ -553,12 +580,18 @@ async fn release_sessions_under_directory_unloads_idle_sessions_and_keeps_persis
         Arc::new(MemoryStore::default()),
         Arc::new(ScriptedModel::new(Vec::new())),
     );
-    let app = kernel.create_session(create_request("/w/app")).await.unwrap();
+    let app = kernel
+        .create_session(create_request("/w/app"))
+        .await
+        .unwrap();
     let nested = kernel
         .create_session(create_request("/w/app/packages/ui"))
         .await
         .unwrap();
-    let other = kernel.create_session(create_request("/w/other")).await.unwrap();
+    let other = kernel
+        .create_session(create_request("/w/other"))
+        .await
+        .unwrap();
 
     let report = kernel
         .release_sessions_under_directory("/w/app")
@@ -610,7 +643,10 @@ async fn release_sessions_under_directory_refuses_when_a_session_is_busy() {
         },
         ContextConfig::new(Surface::Interactive),
     );
-    let id = kernel.create_session(create_request("/w/app")).await.unwrap();
+    let id = kernel
+        .create_session(create_request("/w/app"))
+        .await
+        .unwrap();
     let session = kernel.open_session(&id).await.unwrap();
     session
         .send(CommandEnvelope {

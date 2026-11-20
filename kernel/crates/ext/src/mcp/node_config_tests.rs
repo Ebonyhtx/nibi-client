@@ -166,9 +166,18 @@ fn oauth_and_a_modern_pin_are_carried_to_the_connection() {
         by_name("b").oauth,
         Some(nibi_kernel_api::mcp::McpOAuthConfig::AuthorizationCode { .. })
     ));
-    assert_eq!(by_name("a").protocol, nibi_kernel_api::mcp::McpProtocolVersion::Auto);
-    assert_eq!(by_name("c").protocol, nibi_kernel_api::mcp::McpProtocolVersion::Modern);
-    assert_eq!(by_name("d").protocol, nibi_kernel_api::mcp::McpProtocolVersion::Auto);
+    assert_eq!(
+        by_name("a").protocol,
+        nibi_kernel_api::mcp::McpProtocolVersion::Auto
+    );
+    assert_eq!(
+        by_name("c").protocol,
+        nibi_kernel_api::mcp::McpProtocolVersion::Modern
+    );
+    assert_eq!(
+        by_name("d").protocol,
+        nibi_kernel_api::mcp::McpProtocolVersion::Auto
+    );
     // 形状不对的 oauth 是配置错误（Node 的 strict schema 同一姿态）。
     let (_, warnings) = parse_node_servers(
         &json!({"bad": {"type": "http", "url": "https://x", "oauth": {"type": "client_credentials"}}}),

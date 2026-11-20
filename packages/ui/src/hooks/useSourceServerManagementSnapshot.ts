@@ -6,6 +6,8 @@ export function useSourceServerManagementSnapshot(
   management: ISourceServerManagementService | undefined,
   options: {
     enabled?: boolean;
+    /** 保活分区隐藏时保留最后一次快照，重新可见后后台刷新，避免回来先闪空态。 */
+    keepSnapshotWhenDisabled?: boolean;
     onError?: (error: unknown) => void;
   } = {},
 ): {
@@ -15,11 +17,11 @@ export function useSourceServerManagementSnapshot(
   refresh: () => void;
 } {
   const enabled = options.enabled ?? true;
+  const keepSnapshotWhenDisabled = options.keepSnapshotWhenDisabled ?? false;
   const onErrorRef = useRef(options.onError);
   onErrorRef.current = options.onError;
   const observedGenerationRef = useRef(-1);
-  const [snapshot, setSnapshot] =
-    useState<SourceServerManagementSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<SourceServerManagementSnapshot | null>(null);
   const [ready, setReady] = useState(false);
   const refreshRef = useRef<() => void>(() => undefined);
 
@@ -33,8 +35,10 @@ export function useSourceServerManagementSnapshot(
   useEffect(() => {
     if (!management || !enabled) {
       observedGenerationRef.current = -1;
-      setSnapshot(null);
-      setReady(false);
+      if (!keepSnapshotWhenDisabled) {
+        setSnapshot(null);
+        setReady(false);
+      }
       refreshRef.current = () => undefined;
       return undefined;
     }
@@ -72,16 +76,14 @@ export function useSourceServerManagementSnapshot(
     refreshRef.current = () => refresh(true);
     refresh(true);
     const stateSubscription = management.onDidChangeState(() => refresh());
-    const directorySubscription = management.onDidChangeDirectory?.(() =>
-      refresh(),
-    );
+    const directorySubscription = management.onDidChangeDirectory?.(() => refresh());
     return () => {
       disposed = true;
       refreshRef.current = () => undefined;
       stateSubscription.dispose();
       directorySubscription?.dispose();
     };
-  }, [applySnapshot, enabled, management]);
+  }, [applySnapshot, enabled, keepSnapshotWhenDisabled, management]);
 
   return {
     snapshot,

@@ -11,10 +11,10 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
 
-use nibi_kernel_base::TaskScope;
-use nibi_kernel_context::PromptAssembler;
 use nibi_kernel_api::ids::SessionId;
 use nibi_kernel_api::project_memory::ProjectMemoryScheduler;
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_context::PromptAssembler;
 use nibi_kernel_policy::PolicyGate;
 use nibi_kernel_session::{Opened, Session, SessionDeps, SessionState};
 use tokio_util::sync::CancellationToken;
@@ -281,6 +281,7 @@ impl LocalKernel {
                 memory
             }),
             workflow_activation: Some(Arc::new(GateActivation(self.gate.clone()))),
+            prompt: self.prompt.clone(),
         };
         let session = Arc::new(Session::spawn(deps, state, opened));
         tracing::info!(event = "session.open", session = %id, opened = ?opened, "session opened");

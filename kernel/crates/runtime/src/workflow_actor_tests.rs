@@ -6,7 +6,7 @@ use futures_util::stream::{self, StreamExt};
 use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
 use nibi_kernel_api::ids::{EnvironmentId, SessionId};
 use nibi_kernel_api::message::ContentBlock;
-use nibi_kernel_api::model::{ModelEvent, ModelError, ModelPort, ModelRequest};
+use nibi_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest};
 use nibi_kernel_api::permission::PermissionMode;
 use nibi_kernel_api::session_api::{CreateSession, Kernel};
 use nibi_kernel_api::store::SessionStore;
@@ -30,9 +30,7 @@ fn kernel(store: Arc<MemoryStore>, model: Arc<dyn ModelPort>) -> LocalKernel {
     LocalKernel::new(
         Ports {
             model,
-            environments: environments(Arc::new(
-                nibi_kernel_api::testing::UnusedEnvironment,
-            )),
+            environments: environments(Arc::new(nibi_kernel_api::testing::UnusedEnvironment)),
             store: store.clone(),
             artifacts: store,
             clock: Arc::new(FixedClock(1_000)),
@@ -125,7 +123,8 @@ async fn an_actor_turn_runs_through_the_kernel_and_returns_its_text() {
 }
 
 #[tokio::test]
-async fn a_typed_ask_submits_its_result_through_the_actor_tool() {    let store = Arc::new(MemoryStore::default());
+async fn a_typed_ask_submits_its_result_through_the_actor_tool() {
+    let store = Arc::new(MemoryStore::default());
     let kernel = kernel(
         store.clone(),
         Arc::new(ScriptedModel::new(vec![
@@ -168,10 +167,7 @@ async fn a_typed_ask_submits_its_result_through_the_actor_tool() {    let store 
         .unwrap();
     assert_eq!(turn.stopped, "completed");
     assert_eq!(turn.text, "done");
-    assert_eq!(
-        turn.submitted,
-        Some(serde_json::json!({"answer": 42}))
-    );
+    assert_eq!(turn.submitted, Some(serde_json::json!({"answer": 42})));
 }
 
 /// actor 的 `escalate` 停驻 → 父会话被通知唤醒、调 `ResolveWorkflowQuestion` 作答 → actor 带着答案继续。
@@ -262,12 +258,9 @@ async fn an_actor_escalation_parks_until_the_parent_answers() {
         .await
         .unwrap();
     assert_eq!(
-        turn.stopped,
-        "completed",
+        turn.stopped, "completed",
         "stopped={} error={:?} text={}",
-        turn.stopped,
-        turn.error,
-        turn.text
+        turn.stopped, turn.error, turn.text
     );
     assert_eq!(turn.text, "continued after the answer");
     // 作答之后表里不再有欠着答案的问题。

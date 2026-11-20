@@ -341,12 +341,19 @@ pub(crate) fn process(
                     Behavior::Deny
                 });
                 result.permission_request = Some(if allow {
+                    // Node 的 `decision.permissionUpdates ?? decision.updatedPermissions`
+                    // （core/src/tool/executor/hook-flow.ts）：两种写法都收，前者优先。
+                    let updates = decision
+                        .get("permissionUpdates")
+                        .or_else(|| decision.get("updatedPermissions"));
                     PermissionRequestDecision::Allow {
                         updated_input: decision.get("updatedInput").cloned(),
+                        remember: crate::permission_updates::parse(updates),
                     }
                 } else {
                     PermissionRequestDecision::Deny {
                         message: string(decision, "message"),
+                        interrupt: decision.get("interrupt") == Some(&Value::Bool(true)),
                     }
                 });
                 if allow {

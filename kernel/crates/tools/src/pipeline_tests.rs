@@ -10,9 +10,7 @@ use nibi_kernel_api::orchestration::{
     Interactions, OrchestrationError, PermissionAnswer, PermissionGate,
 };
 use nibi_kernel_api::permission::{PermissionDecision, PermissionMode};
-use nibi_kernel_api::testing::{
-    FakeTool, MemoryStore, UnusedEnvironment, local_services, machine,
-};
+use nibi_kernel_api::testing::{FakeTool, MemoryStore, UnusedEnvironment, local_services, machine};
 use nibi_kernel_api::tool::{Tool, ToolUseContext};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;

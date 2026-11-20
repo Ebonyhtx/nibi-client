@@ -128,10 +128,7 @@ async fn enablement_follows_enabled_plugins_and_the_defaults() {
                 Some("restore-legacy-sessions@nibi-official"),
                 &SkipReason::Disabled
             ),
-            (
-                Some("nibi-guide@nibi-official"),
-                &SkipReason::Suppressed
-            ),
+            (Some("nibi-guide@nibi-official"), &SkipReason::Suppressed),
             (Some("market-kit@market"), &SkipReason::Disabled),
         ]
     );
@@ -320,10 +317,7 @@ async fn paid_plugins_are_pruned_without_a_license() {
 async fn installed_paid_records_prune_the_official_cache_copy_too() {
     // 官方缓存与 installed_plugins.json 同 id 时，官方候选先到；付费判据必须看安装记录，
     // 否则把 paid 记录复制到官方缓存旁就能绕过门禁。
-    let files = [official_manifest(
-        "paid-kit",
-        r#", "skills": "./skills""#,
-    )];
+    let files = [official_manifest("paid-kit", r#", "skills": "./skills""#)];
     let sources = PluginSources {
         candidates: vec![official("paid-kit")],
         enabled_plugins: enabled(&[("paid-kit@nibi-official", true)]),
@@ -553,7 +547,10 @@ async fn the_reference_catalog_is_built_from_the_same_load() {
     use nibi_kernel_api::listing::{MarketplaceListing, PluginListing};
 
     let files = [
-        manifest("/Users/dev/cfg", r#"{"name": "kit", "description": "Kit tools"}"#),
+        manifest(
+            "/Users/dev/cfg",
+            r#"{"name": "kit", "description": "Kit tools"}"#,
+        ),
         (
             "/Users/dev/cfg/skills/hello/SKILL.md".to_owned(),
             "Hello\n".to_owned(),
@@ -605,13 +602,19 @@ async fn the_reference_catalog_is_built_from_the_same_load() {
     assert_eq!(kit.mcp_server_names, ["plugin:kit:web"]);
     assert_eq!(kit.display.description.as_deref(), Some("Kit tools"));
     assert_eq!(kit.display.display_name.as_deref(), Some("Kit"));
-    assert_eq!(kit.display.icon.as_deref(), Some("https://cdn.example/kit.png"));
+    assert_eq!(
+        kit.display.icon.as_deref(),
+        Some("https://cdn.example/kit.png")
+    );
     assert_eq!(kit.category.as_deref(), Some("developer-tools"));
 
     // 停用（缺省不启用）的官方插件仍在目录里：能力名来自 manifest 目录的声明，MCP 名称为空。
     let disabled = &catalog[1];
     assert_eq!(disabled.plugin_id, "restore-legacy-sessions@nibi-official");
     assert!(!disabled.enabled);
-    assert_eq!(disabled.skill_qualified_names, ["restore-legacy-sessions:undo"]);
+    assert_eq!(
+        disabled.skill_qualified_names,
+        ["restore-legacy-sessions:undo"]
+    );
     assert!(disabled.mcp_server_names.is_empty());
 }

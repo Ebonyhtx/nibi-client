@@ -8,6 +8,7 @@ import {
   SettingsHeaderBreadcrumb,
   type SettingsBreadcrumbItem,
 } from "@/settings/SettingsHeaderBreadcrumb.js";
+import { SettingsSectionPane } from "@/settings/SettingsSectionKeepAlive.js";
 
 afterEach(cleanup);
 
@@ -83,6 +84,35 @@ describe("SettingsHeaderBreadcrumb", () => {
     items?.[1].onSelect?.();
     expect(onOpenSection).toHaveBeenCalledOnce();
     expect(onOpenProject).toHaveBeenCalledOnce();
+  });
+
+  it("withdraws a hidden keep-alive pane's breadcrumb and restores it when visible", () => {
+    const onItemsChange = vi.fn();
+    const renderTree = (active: boolean) =>
+      createElement(
+        SettingsBreadcrumbProvider,
+        { onItemsChange, sectionLabel: "Plugins" },
+        createElement(
+          SettingsSectionPane,
+          { section: "plugin", active },
+          createElement(SettingsBreadcrumbReporter, {
+            items: [{ label: "Marketplace" }],
+          }),
+        ),
+      );
+
+    const view = render(renderTree(true));
+    expect(
+      onItemsChange.mock.lastCall?.[0].map((item: SettingsBreadcrumbItem) => item.label),
+    ).toEqual(["Plugins", "Marketplace"]);
+
+    view.rerender(renderTree(false));
+    expect(onItemsChange.mock.lastCall?.[0]).toEqual([]);
+
+    view.rerender(renderTree(true));
+    expect(
+      onItemsChange.mock.lastCall?.[0].map((item: SettingsBreadcrumbItem) => item.label),
+    ).toEqual(["Plugins", "Marketplace"]);
   });
 
   it("does not let a stale reporter cleanup clear a newer breadcrumb", () => {

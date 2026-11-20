@@ -6,13 +6,13 @@
 use std::sync::{Arc, OnceLock};
 
 use futures_util::future::join_all;
-use regex::Regex;
 use nibi_kernel_api::clock::Ids;
 use nibi_kernel_api::env::OperationContext;
 use nibi_kernel_api::message::ToolResultContent;
 use nibi_kernel_api::permission::{PermissionDecision, PermissionRule};
 use nibi_kernel_api::tool::{Tool, ToolUseContext};
 use nibi_kernel_policy::PolicyGate;
+use regex::Regex;
 use serde_json::json;
 use tokio::sync::mpsc;
 

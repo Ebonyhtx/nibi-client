@@ -126,12 +126,16 @@ impl Actor {
         if let Some(reason) = self.running.as_ref().and_then(|r| r.failure.clone()) {
             return Err(StoreError::Storage { message: reason });
         }
-        let facts = messages
+        let mut facts: Vec<Fact> = messages
             .iter()
             .map(|message| Fact::MessageAppended {
                 message: message.clone(),
             })
             .collect();
+        // R09：压缩之后 system 那一层按内核现在的输入重钉，记录与边界同一个事务；提交成功之后才换内存里的。
+        if let Some(repin) = self.prompt.repin_fact(&messages) {
+            facts.push(repin);
+        }
         if let Err(reason) = self.commit(None, facts).await {
             if let Some(running) = &mut self.running {
                 running
@@ -151,6 +155,8 @@ impl Actor {
             self.log.append(KernelEvent::MessageDone { message });
         }
         if let Some(boundary) = boundary {
+            // R09：压缩之后 system 那一层换成内核现在的（与库里刚写的重钉记录一致）。
+            self.prompt.repinned();
             // K6：压缩成功后 system 前缀必须按当前代码重建，写墓碑并清掉内存快照（对齐上游
             // `compact-active.ts` 的 `clearPromptSnapshot`）；下一次主循环请求重新记录。
             self.clear_prompt_snapshot().await;

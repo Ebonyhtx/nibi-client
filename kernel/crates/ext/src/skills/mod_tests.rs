@@ -163,7 +163,12 @@ async fn bundled_skill_roots_are_discovered_after_plugin_roots() {
         .find(&workspace(), "kit:dynamic-workflows")
         .await
         .expect("plugin skill");
-    assert_eq!(skill.source, SkillSource::Plugin { plugin: "kit".to_owned() });
+    assert_eq!(
+        skill.source,
+        SkillSource::Plugin {
+            plugin: "kit".to_owned()
+        }
+    );
 }
 
 #[tokio::test]

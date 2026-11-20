@@ -244,11 +244,12 @@ pub trait RunSink: Interactions {
 
     /// 主循环请求组装之后、模型调用之前记录 system 快照（K6）：只有主会话的输出端做（请求模型是会话模型选择、
     /// 且当前没有适用的快照时写）；写入失败只记 warning，不阻断回合。其他输出端忽略。
-    async fn record_prompt_snapshot(
-        &self,
-        _selection: &ModelSelection,
-        _system: &[SystemBlock],
-    ) {
+    async fn record_prompt_snapshot(&self, _selection: &ModelSelection, _system: &[SystemBlock]) {}
+
+    /// 主会话这一刻钉住的模型可见输入（R09，[`crate::session_prompt::SessionPrompt`]）：主循环每一步读它（与
+    /// 模式、工作区同一个快照）。没有会话 owner 的输出端返回 None，context 按进程配置组装（这个改动之前的行为）。
+    async fn session_prompt(&self) -> Option<Arc<crate::session_prompt::SessionPrompt>> {
+        None
     }
 }
 
@@ -291,6 +292,11 @@ pub struct ContextRequest {
     /// （`RunSink::default_machine`）；本机为 None。机器清单提醒按它写“不写 `machine` 时在哪台机器上”。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default_machine: Option<String>,
+    /// 这一步会话钉住的模型可见输入（R09，[`crate::session_prompt::SessionPrompt`]）：system 段读 `system`，前端
+    /// 能力（skill 提及）读 `live`；与 `mode`、`workspace` 出自同一个快照。None 时按进程配置组装（旧行为）。
+    /// 只在内存：不从请求的线格式恢复，也不写进线格式。
+    #[serde(skip)]
+    pub prompt: Option<Arc<crate::session_prompt::SessionPrompt>>,
 }
 
 /// system prompt 段落、user / system context，以及这一步要追加的 attachment。
@@ -469,6 +475,10 @@ pub struct ToolExecution {
     /// hook 要求这批工具结束后停止本轮（`continue: false`）。
     #[serde(default)]
     pub prevent_continuation: bool,
+    /// PermissionRequest hook 的拒绝要求中止整个回合（`interrupt: true`，docs/specs/rust-cli/hooks.md §6.2）：
+    /// 执行器中止回合，同用户的停止（这次调用也按被中止交付）。
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub interrupt: bool,
 }
 
 impl ToolExecution {
@@ -478,6 +488,7 @@ impl ToolExecution {
             before: Vec::new(),
             after: Vec::new(),
             prevent_continuation: false,
+            interrupt: false,
         }
     }
 }
@@ -539,6 +550,20 @@ pub trait PermissionGate: Send + Sync {
     /// docs/specs/rust-cli/shell-permissions.md §5）。F1 起没有调用方：落库后改走
     /// [`PermissionGate::local_rules_committed`]。
     async fn remember(&self, _session: &SessionId, _rules: &[crate::permission::PermissionRule]) {}
+
+    /// PermissionRequest hook 的 `updatedPermissions`（docs/specs/rust-cli/permission-updates.md §2.4）：把规则、
+    /// 目录更新套进本回合的权限结果。规则去处的判据与询问相同（`Session` 只在内存，`Local` 落本机项目规则集）；
+    /// `SetMode` 不在这里（模式的 owner 是会话 actor，执行管线经 [`Interactions::set_mode_for_hook`] 交）。
+    ///
+    /// 失败时调用方只记日志、这次调用照 hook 的结论走（规则没落下只影响以后的询问）。缺省什么都不做（测试替身）。
+    async fn apply_permission_updates(
+        &self,
+        _session: &SessionId,
+        _workspace: &crate::env::WorkspaceRef,
+        _updates: &[crate::permission_updates::PermissionUpdate],
+    ) -> Result<(), String> {
+        Ok(())
+    }
 
     /// “总是允许”的规则已与交互的解决同一批写进 `workspace` 的本机项目规则集（docs/specs/rust-cli/shell-permissions.md
     /// §5）：判决链按 `/permissions` 的同一条路径读回库值、换上 LocalSettings 层，同一进程里的子代理与之后的会话都
@@ -645,6 +670,18 @@ pub trait Interactions: Send + Sync {
         Err(OrchestrationError::Unsupported {
             what: "changing the permission mode".to_owned(),
         })
+    }
+
+    /// PermissionRequest hook 的 `SetMode`（docs/specs/rust-cli/hooks.md §6.2、permission-updates.md §2.4）：
+    /// `persist` 为真时（`destination` 落在本机）另记项目的持久模式，否则只改这个会话。缺省转给
+    /// [`Interactions::set_mode`]（不区分持久化），不持有会话的实现照旧 `Unsupported`。
+    async fn set_mode_for_hook(
+        &self,
+        session: &SessionId,
+        mode: PermissionMode,
+        _persist: bool,
+    ) -> Result<(), OrchestrationError> {
+        self.set_mode(session, mode).await
     }
 
     /// 工具请求打开或关掉 plan 开关（EnterPlanMode、ExitPlanMode，修复线 F20），权限模式不变。owner 与时序同

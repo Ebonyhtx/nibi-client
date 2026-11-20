@@ -54,9 +54,7 @@ impl KernelSessionControlHost {
         created_notifier: Option<
             Arc<dyn nibi_kernel_api::session_control::SessionControlCreatedNotifier>,
         >,
-        archive_reader: Option<
-            Arc<dyn nibi_kernel_api::session_control::SessionArchiveReader>,
-        >,
+        archive_reader: Option<Arc<dyn nibi_kernel_api::session_control::SessionArchiveReader>>,
     ) -> Self {
         Self {
             kernel,
@@ -393,10 +391,7 @@ impl SessionControlHost for KernelSessionControlHost {
         resolve(&kernel, session_id).await
     }
 
-    async fn is_session_archived(
-        &self,
-        session: &SessionRef,
-    ) -> Result<bool, SessionControlError> {
+    async fn is_session_archived(&self, session: &SessionRef) -> Result<bool, SessionControlError> {
         // 本机 CLI 存储没有归档字段；只有 App Host 注入 reader 时才有权威事实。
         // reader 返回 None 表示来源不可确认，保持既有 fork 语义而不是猜测。
         match self.archive_reader.as_ref() {
@@ -616,11 +611,7 @@ impl SessionControlHost for KernelSessionControlHost {
                         "Fork did not return a session id",
                     ));
                 };
-                self.notify_created(
-                    &input.session.session_id,
-                    id,
-                    &input.session.workspace_path,
-                );
+                self.notify_created(&input.session.session_id, id, &input.session.workspace_path);
                 Ok(ForkSessionResult {
                     status: ForkStatus::Created,
                     session: Some(SessionRef {

@@ -112,7 +112,7 @@
     ".agents/skills",
     "packages/formal-proof",
     "apps/nibi-cli",
-    "packages/zcode-cua",
+    "packages/computer-use",
     "docs/electron"
   ]
 }

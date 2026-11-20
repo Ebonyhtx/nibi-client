@@ -6,9 +6,9 @@
 
 use std::collections::HashSet;
 
-use nibi_kernel_base::glob::Globs;
 use nibi_kernel_api::env_files::PathStyle;
 use nibi_kernel_api::message::{ContentBlock, Message};
+use nibi_kernel_base::glob::Globs;
 use serde_json::Value;
 
 use super::Skill;

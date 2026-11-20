@@ -14,6 +14,7 @@ import type { IPluginManagementService } from "@nibi/services";
 import { logger } from "@/logger.js";
 import {
   beginPluginOperation,
+  buildWorkspaceKey,
   loadInto,
   readPluginManagementSnapshot,
   runWorkspaceOperation,
@@ -560,8 +561,12 @@ function subscribeStore(store: ReturnType<typeof createPluginManagementStore>) {
 subscribeStore(usePluginManagementStore);
 
 /**
- * 每个市场/管理视图持有独立查询投影，写入仍由同一个 CLI 插件服务负责。
+ * 每个市场/管理视图持有查询投影，写入仍由同一个 CLI 插件服务负责。
  * 传入 seedContext 时，建店阶段会用模块级快照同步填充首屏，避免重复 mount 等待 discovery。
+ *
+ * 同 service + workspace/authority + configScope 的多个入口（设置页 Plugin/MCP/Skill
+ * 三个分区的 PluginList、商店管理视图）复用同一个 store，而不是各自再建一份缓存。
+ * 快照层（pluginManagementStoreLoading）仍是唯一目录缓存，这里不复制数据。
  */
 export interface PluginManagementSeedContext {
   workspacePath?: string | null;
@@ -570,41 +575,125 @@ export interface PluginManagementSeedContext {
   configScope?: NibiPluginScope | null;
 }
 
+export interface PluginManagementStoreOptions {
+  /** 保活分区隐藏时传 false，暂停变更订阅；不影响已渲染数据。 */
+  subscribe?: boolean;
+}
+
+const MAX_SCOPED_STORES_PER_SERVICE = 16;
+let scopedStoresByService = new WeakMap<
+  IPluginManagementService,
+  Map<string, ReturnType<typeof createPluginManagementStore>>
+>();
+
+/** 测试隔离：模块级 store 缓存不能跨用例继承。 */
+export function resetScopedPluginManagementStoresForTests(): void {
+  scopedStoresByService = new WeakMap();
+}
+
+function normalizeSeedContext(seedContext?: PluginManagementSeedContext) {
+  return {
+    workspacePath: seedContext?.workspacePath?.trim() || null,
+    workspaceIdentity: seedContext?.workspaceIdentity?.trim() || null,
+    authorityKey: seedContext?.authorityKey?.trim() || null,
+    configScope: seedContext?.configScope ?? null,
+  };
+}
+
+function buildScopedStoreKey(seedContext?: PluginManagementSeedContext): string | null {
+  const context = normalizeSeedContext(seedContext);
+  if (!context.workspacePath) return null;
+  return `${buildWorkspaceKey(
+    context.workspacePath,
+    context.workspaceIdentity,
+    context.authorityKey,
+  )}\0${context.configScope ?? "effective"}`;
+}
+
+/** 缓存条目可能已被 initialize 切到别的 workspace；上下文不符时宁可新建，避免首帧张冠李戴。 */
+function storeMatchesSeedContext(
+  store: ReturnType<typeof createPluginManagementStore>,
+  seedContext?: PluginManagementSeedContext,
+): boolean {
+  const context = normalizeSeedContext(seedContext);
+  const state = store.getState();
+  if (!state.workspacePath) return true;
+  return (
+    state.workspacePath === context.workspacePath &&
+    (state.workspaceIdentity ?? null) === context.workspaceIdentity &&
+    (state.authorityKey ?? null) === context.authorityKey &&
+    (state.configScope ?? null) === context.configScope
+  );
+}
+
+function createSeededScopedStore(
+  pluginService: IPluginManagementService,
+  seedContext?: PluginManagementSeedContext,
+) {
+  const nextStore = createPluginManagementStore(pluginService);
+  const context = normalizeSeedContext(seedContext);
+  if (context.workspacePath) {
+    const snapshot = readPluginManagementSnapshot(pluginService, {
+      workspacePath: context.workspacePath,
+      workspaceIdentity: context.workspaceIdentity,
+      authorityKey: context.authorityKey,
+      configScope: context.configScope,
+    });
+    nextStore.setState(
+      snapshot
+        ? {
+            workspacePath: context.workspacePath,
+            workspaceIdentity: context.workspaceIdentity,
+            authorityKey: context.authorityKey,
+            configScope: context.configScope,
+            ...snapshot.data,
+            loading: false,
+          }
+        : // 没有快照时先保持 loading，避免首帧把空目录当成“确实没有插件”。
+          { loading: true },
+    );
+  }
+  return nextStore;
+}
+
 export function useScopedPluginManagementStore(
   pluginService: IPluginManagementService,
   seedContext?: PluginManagementSeedContext,
+  options: PluginManagementStoreOptions = {},
 ) {
   // 服务切换后不能复用旧主机的目录和在途写入状态。
   // seedContext 只在挂载时参与建店：把上次 mount 的快照同步灌进来，首帧就能渲染旧目录；
   // 之后 workspace/scope 变化由 initialize 负责清空与重载，不重建 store。
   const store = useMemo(() => {
-    const nextStore = createPluginManagementStore(pluginService);
-    const workspacePath = seedContext?.workspacePath?.trim();
-    if (workspacePath) {
-      const snapshot = readPluginManagementSnapshot(pluginService, {
-        workspacePath,
-        workspaceIdentity: seedContext?.workspaceIdentity ?? null,
-        authorityKey: seedContext?.authorityKey ?? null,
-        configScope: seedContext?.configScope ?? null,
-      });
-      nextStore.setState(
-        snapshot
-          ? {
-              workspacePath,
-              workspaceIdentity: seedContext?.workspaceIdentity?.trim() || null,
-              authorityKey: seedContext?.authorityKey?.trim() || null,
-              configScope: seedContext?.configScope ?? null,
-              ...snapshot.data,
-              loading: false,
-            }
-          : // 没有快照时先保持 loading，避免首帧把空目录当成“确实没有插件”。
-            { loading: true },
-      );
+    const storeKey = buildScopedStoreKey(seedContext);
+    if (!storeKey) return createSeededScopedStore(pluginService, seedContext);
+    let stores = scopedStoresByService.get(pluginService);
+    if (!stores) {
+      stores = new Map();
+      scopedStoresByService.set(pluginService, stores);
+    }
+    const existing = stores.get(storeKey);
+    if (existing && storeMatchesSeedContext(existing, seedContext)) {
+      // 重新插入以刷新 LRU 顺序。
+      stores.delete(storeKey);
+      stores.set(storeKey, existing);
+      return existing;
+    }
+    const nextStore = createSeededScopedStore(pluginService, seedContext);
+    stores.set(storeKey, nextStore);
+    while (stores.size > MAX_SCOPED_STORES_PER_SERVICE) {
+      const oldestKey = stores.keys().next().value;
+      if (oldestKey === undefined) break;
+      stores.delete(oldestKey);
     }
     return nextStore;
     // seedContext 是建店时的初始值；后续变化由 initialize 收敛，避免 scope 切换时丢失在途操作。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pluginService]);
-  useEffect(() => subscribeStore(store), [store]);
+  const subscribe = options.subscribe ?? true;
+  useEffect(() => {
+    if (!subscribe) return undefined;
+    return subscribeStore(store);
+  }, [store, subscribe]);
   return store;
 }

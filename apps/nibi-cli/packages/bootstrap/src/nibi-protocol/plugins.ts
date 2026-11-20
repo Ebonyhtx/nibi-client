@@ -6,6 +6,7 @@ import {
   nibiPluginsMarketplaceRemoveParamsSchema,
   nibiPluginsMarketplaceUpdateParamsSchema,
   nibiPluginsOverviewParamsSchema,
+  nibiPluginsBootstrapParamsSchema,
   nibiPluginsListParamsSchema,
   nibiPluginsSetEnabledParamsSchema,
   nibiPluginsUninstallParamsSchema,
@@ -22,6 +23,7 @@ import {
   type NibiPluginsConfigureResult,
   type NibiPluginsDescribeResult,
   type NibiPluginsInstallResult,
+  type NibiPluginsBootstrapResult,
   type NibiPluginsListResult,
   type NibiPluginsMarketplaceMutationResult,
   type NibiPluginsOverviewResult,
@@ -30,7 +32,12 @@ import {
   type NibiPluginsUninstallResult,
   type NibiPluginsValidateResult,
 } from "@nibi/shared";
-import type { Logger, PluginDiagnostic, PluginMetadata } from "@nibi/contracts";
+import type {
+  Logger,
+  PluginDiagnostic,
+  PluginLoadOutcome,
+  PluginMetadata,
+} from "@nibi/contracts";
 import {
   addNibiPluginMarketplace,
   configureNibiPlugin,
@@ -46,6 +53,7 @@ import {
   uninstallNibiMarketplacePlugin,
   updateNibiPluginMarketplace,
   validateNibiPlugin,
+  type NibiPluginsOverviewData,
 } from "../plugins.js";
 import { listInstalledPluginRecords } from "@nibi/adapters/plugins";
 import { withPluginStorageLock } from "../lib/plugin-storage-lock.js";
@@ -234,6 +242,34 @@ function toPluginDiagnostic(diagnostic: PluginDiagnostic): NibiPluginDiagnostic 
   };
 }
 
+function toPluginsListResult(
+  configResult: ConfigResult,
+  outcome: PluginLoadOutcome,
+): NibiPluginsListResult {
+  const plugins = outcome.plugins.map((plugin) => toPluginInfo(plugin, configResult));
+  return {
+    plugins: [
+      ...plugins,
+      ...createMissingConfiguredPluginInfos(
+        configResult,
+        new Set(plugins.map((plugin) => plugin.id)),
+      ),
+    ],
+    diagnostics: outcome.diagnostics.map(toPluginDiagnostic),
+  };
+}
+
+function toPluginsOverviewResult(overview: NibiPluginsOverviewData): NibiPluginsOverviewResult {
+  return {
+    marketplaces: overview.marketplaces.map(toMarketplaceSummary),
+    availablePlugins: overview.availablePlugins.map(toAvailablePluginSummary),
+    installedPlugins: overview.installedPlugins.map(toInstalledPluginSummary),
+    restorableBuiltins: overview.restorableBuiltins.map(toAvailablePluginSummary),
+    diagnostics: overview.diagnostics.map(toPluginDiagnostic),
+    capability: { supported: true },
+  };
+}
+
 export async function listPlugins(
   context: PluginManagementContext,
   rawParams: unknown,
@@ -249,18 +285,44 @@ export async function listPlugins(
     logger: context.logger,
     workingDirectory: params.workspace.workspacePath,
   });
-  const plugins = outcome.plugins.map((plugin) =>
-    toPluginInfo(plugin, configResult),
+  return toPluginsListResult(configResult, outcome);
+}
+
+/**
+ * Additive Host RPC：一次返回 list + overview。
+ *
+ * 旧实现（renderer）并行发 plugins/list 与 plugins/overview，Host 侧两条链路各自
+ * `resolveNibiPlugins` 扫一遍插件目录。这里只解析一次 discovery，再把同一 outcome
+ * 交给 overview 投影，请求数与磁盘扫描都从 2 降到 1。旧方法保持原样供旧客户端使用。
+ */
+export async function getPluginsBootstrap(
+  context: PluginManagementContext,
+  rawParams: unknown,
+): Promise<NibiPluginsBootstrapResult> {
+  const params = parseParams(nibiPluginsBootstrapParamsSchema, rawParams);
+  const configResult = createPluginConfigView(
+    context,
+    params.workspace.workspacePath,
+    params.configScope,
   );
+  const outcome = resolveNibiPlugins({
+    configResult,
+    logger: context.logger,
+    workingDirectory: params.workspace.workspacePath,
+  });
+  enrichCachedClaudeMarketplaceIconsForOverview({
+    logger: context.logger,
+    workingDirectory: params.workspace.workspacePath,
+  });
+  const overview = getNibiPluginsOverview({
+    configResult,
+    discovery: outcome,
+    logger: context.logger,
+    workingDirectory: params.workspace.workspacePath,
+  });
   return {
-    plugins: [
-      ...plugins,
-      ...createMissingConfiguredPluginInfos(
-        configResult,
-        new Set(plugins.map((plugin) => plugin.id)),
-      ),
-    ],
-    diagnostics: outcome.diagnostics.map(toPluginDiagnostic),
+    list: toPluginsListResult(configResult, outcome),
+    overview: toPluginsOverviewResult(overview),
   };
 }
 
@@ -308,14 +370,7 @@ export async function getPluginsOverview(
     logger: context.logger,
     workingDirectory: params.workspace.workspacePath,
   });
-  return {
-    marketplaces: overview.marketplaces.map(toMarketplaceSummary),
-    availablePlugins: overview.availablePlugins.map(toAvailablePluginSummary),
-    installedPlugins: overview.installedPlugins.map(toInstalledPluginSummary),
-    restorableBuiltins: overview.restorableBuiltins.map(toAvailablePluginSummary),
-    diagnostics: overview.diagnostics.map(toPluginDiagnostic),
-    capability: { supported: true },
-  };
+  return toPluginsOverviewResult(overview);
 }
 
 export async function addPluginMarketplace(

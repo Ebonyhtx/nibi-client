@@ -8,8 +8,8 @@ use nibi_kernel_policy::PolicyGate;
 use serde_json::json;
 
 use super::*;
-use crate::skills::runner;
 use crate::skills::PluginSkillRoot;
+use crate::skills::runner;
 use crate::test_support::{CWD, EchoBash, facts, tool_context};
 
 const GREET: &str = "---\ndescription: Greet someone by name\nwhen_to_use: When the user asks for a greeting\nargument-hint: <name>\narguments: [who]\nallowed-tools: Bash(echo:*)\n---\nSay hello to $ARGUMENTS ($who, first: $0).\nSkill dir: ${CLAUDE_SKILL_DIR}\nInline: !`echo inline-ok`\n";
@@ -80,12 +80,10 @@ impl nibi_kernel_api::paid_plugin::PaidPluginGate for Expired {
 /// 付费插件的 skill：名字仍在目录里，调用时门禁拒绝；续费后同一调用直接通过。
 #[tokio::test]
 async fn paid_plugin_skill_is_gated_at_call_time() {
-    let env = Arc::new(
-        MemoryEnvironment::new(facts()).with_file(
-            "/plugins/paid/skills/secret/SKILL.md",
-            "---\ndescription: secret\n---\nsecret body\n",
-        ),
-    );
+    let env = Arc::new(MemoryEnvironment::new(facts()).with_file(
+        "/plugins/paid/skills/secret/SKILL.md",
+        "---\ndescription: secret\n---\nsecret body\n",
+    ));
     let catalog = Arc::new(SkillCatalog::new(env.clone(), env.clone()));
     catalog.set_plugin_roots(vec![PluginSkillRoot {
         plugin: "paid".to_owned(),

@@ -16,11 +16,11 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError, RwLock};
 use std::time::Duration;
 
-use nibi_kernel_base::Spawner;
 use nibi_kernel_api::clock::Clock;
 use nibi_kernel_api::mcp::McpTransport;
 use nibi_kernel_api::mcp_session::SessionMcpServer;
 use nibi_kernel_api::mcp_status::{McpListRequest, McpServerStatus};
+use nibi_kernel_base::Spawner;
 
 use super::telemetry::{McpTelemetry, McpTelemetrySlot};
 use super::{McpManager, McpScope, McpServer, McpServerOptions, McpSettings};
@@ -48,6 +48,8 @@ pub(crate) struct McpStatusRegistry {
     oauth: Option<Arc<dyn nibi_kernel_api::mcp::McpOAuthPort>>,
     /// 付费插件执行期门禁（与进程级 manager 共用一份）。
     paid_gate: RwLock<Option<Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>>>,
+    /// Elicitation 类 hooks 的执行器（与进程级 manager 共用一份）。
+    hooks: RwLock<Option<Arc<dyn nibi_kernel_api::hooks::HookRunner>>>,
     /// 服务器 → 插件归属（与 Ext 共享）。
     paid_owners: std::sync::OnceLock<Arc<RwLock<HashMap<String, String>>>>,
     seed: Mutex<Option<Seed>>,
@@ -72,6 +74,7 @@ impl McpStatusRegistry {
             telemetry,
             oauth,
             paid_gate: RwLock::new(None),
+            hooks: RwLock::new(None),
             paid_owners: std::sync::OnceLock::new(),
             seed: Mutex::new(None),
             managers: Mutex::new(BTreeMap::new()),
@@ -88,11 +91,12 @@ impl McpStatusRegistry {
             .unwrap_or_else(PoisonError::into_inner) = Some(gate);
     }
 
-    pub(crate) fn attach_paid_owners(
-        &self,
-        owners: Arc<RwLock<HashMap<String, String>>>,
-    ) {
+    pub(crate) fn attach_paid_owners(&self, owners: Arc<RwLock<HashMap<String, String>>>) {
         let _ = self.paid_owners.set(owners);
+    }
+
+    pub(crate) fn attach_hooks(&self, hooks: Arc<dyn nibi_kernel_api::hooks::HookRunner>) {
+        *self.hooks.write().unwrap_or_else(PoisonError::into_inner) = Some(hooks);
     }
 
     /// `Ext::start` 记下配置与插件的服务器。
@@ -105,9 +109,7 @@ impl McpStatusRegistry {
     }
 
     fn managers_mutex(&self) -> MutexGuard<'_, BTreeMap<String, Arc<McpManager>>> {
-        self.managers
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
+        self.managers.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
     /// 这些连接管理（`process/childProcesses` 与五分钟采样要把状态页的子进程也算上）。
@@ -148,6 +150,14 @@ impl McpStatusRegistry {
                 if let Some(owners) = self.paid_owners.get() {
                     manager.attach_paid_owners(owners.clone());
                 }
+                if let Some(hooks) = self
+                    .hooks
+                    .read()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .clone()
+                {
+                    manager.attach_hooks(hooks);
+                }
                 manager
             })
             .clone()
@@ -162,7 +172,8 @@ impl McpStatusRegistry {
             Some(explicit) => explicit.iter().map(to_server).collect(),
             None => seed.map(|seed| seed.configured.clone()).unwrap_or_default(),
         };
-        let mut names: BTreeSet<String> = servers.iter().map(|server| server.name.clone()).collect();
+        let mut names: BTreeSet<String> =
+            servers.iter().map(|server| server.name.clone()).collect();
         if let Some(seed) = seed {
             for plugin in &seed.plugin {
                 if names.insert(plugin.name.clone()) {
@@ -227,10 +238,7 @@ impl McpStatusRegistry {
         let Some(explicit) = explicit else {
             return statuses;
         };
-        let known: BTreeSet<String> = statuses
-            .iter()
-            .map(|status| status.name.clone())
-            .collect();
+        let known: BTreeSet<String> = statuses.iter().map(|status| status.name.clone()).collect();
         let now = self.clock.now_ms();
         for server in explicit {
             if !known.contains(&server.name) {

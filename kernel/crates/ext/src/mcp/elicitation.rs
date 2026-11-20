@@ -13,20 +13,29 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::hooks::{HookContext, HookEvent, HookEventName, HookRunner};
 use nibi_kernel_api::ids::SessionId;
 use nibi_kernel_api::ids::ToolUseId;
 use nibi_kernel_api::interaction::QuestionAnswer;
 use nibi_kernel_api::mcp::McpElicitation;
+use nibi_kernel_api::mcp_ask::ElicitationAction;
 use nibi_kernel_api::orchestration::{InteractionRequest, Interactions};
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use tokio_util::sync::CancellationToken;
 
 /// 一次在执行的工具调用的会话上下文。
-struct CallContext {
-    interactions: Arc<dyn Interactions>,
-    session: SessionId,
-    tool_use: ToolUseId,
-    cancel: CancellationToken,
+pub(crate) struct CallContext {
+    pub(crate) interactions: Arc<dyn Interactions>,
+    pub(crate) session: SessionId,
+    pub(crate) tool_use: ToolUseId,
+    pub(crate) cancel: CancellationToken,
+    /// 这次调用所在的工作区（Elicitation hooks 的 `workspace`）。
+    pub(crate) workspace: WorkspaceRef,
+    /// Elicitation / ElicitationResult hooks 的执行器；没有时不跑。
+    pub(crate) hooks: Option<Arc<dyn HookRunner>>,
+    /// hook 的公共上下文（模式、子代理、运行）。
+    pub(crate) hook_context: HookContext,
 }
 
 /// 当前工具调用 → 服务器名。键是服务器名（同一服务器同时只有一个在执行的调用，Node 的
@@ -67,30 +76,12 @@ impl ElicitationHub {
     }
 
     /// 工具调用开始时登记；返回的作用域在 `tools/call` 结束（成功、失败或取消）时撤下。
-    pub fn enter(
-        self: &Arc<Self>,
-        server: &str,
-        interactions: Arc<dyn Interactions>,
-        session: SessionId,
-        tool_use: ToolUseId,
-        cancel: CancellationToken,
-    ) -> ElicitationGuard {
+    pub fn enter(self: &Arc<Self>, server: &str, context: CallContext) -> ElicitationGuard {
         let generation = self.next.fetch_add(1, Ordering::Relaxed) + 1;
         self.calls
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
-            .insert(
-                server.to_owned(),
-                (
-                    generation,
-                    Arc::new(CallContext {
-                        interactions,
-                        session,
-                        tool_use,
-                        cancel,
-                    }),
-                ),
-            );
+            .insert(server.to_owned(), (generation, Arc::new(context)));
         ElicitationGuard {
             hub: self.clone(),
             server: server.to_owned(),
@@ -323,6 +314,22 @@ impl McpElicitation for ElicitationHub {
             .get("requestedSchema")
             .cloned()
             .unwrap_or(Value::Null);
+        // Elicitation hook（ext.md §3.13.6）：阻塞回 decline；有结论时原样回给服务器，不问用户、不跑结果 hook。
+        let before = run_hooks(
+            &context,
+            HookEventName::Elicitation,
+            hook_input(server, message, "form", &requested),
+        )
+        .await;
+        match before {
+            Err(()) => return json!({"action": "cancel"}),
+            Ok(outcome) if outcome.blocking_error.is_some() => return decline(),
+            Ok(outcome) => {
+                if let Some(verdict) = outcome.elicitation {
+                    return from_verdict(verdict, None);
+                }
+            }
+        }
         let fields = read_fields(&requested, message);
         let interaction = InteractionRequest::Question {
             tool_use: context.tool_use.clone(),
@@ -344,13 +351,100 @@ impl McpElicitation for ElicitationHub {
         let Ok(answer) = serde_json::from_value::<QuestionAnswer>(answer.answer) else {
             return decline();
         };
-        match answer {
+        let answer = match answer {
             QuestionAnswer::Answered { answers, .. } => json!({
                 "action": "accept",
                 "content": content(&fields, &answers, message),
             }),
             QuestionAnswer::Declined => decline(),
+        };
+        // ElicitationResult hook：阻塞回 decline；有结论时换掉用户的回答（没给 content 时沿用用户的）。
+        let after = run_hooks(
+            &context,
+            HookEventName::ElicitationResult,
+            result_input(server, "form", &answer),
+        )
+        .await;
+        match after {
+            Err(()) => json!({"action": "cancel"}),
+            Ok(outcome) if outcome.blocking_error.is_some() => decline(),
+            Ok(outcome) => match outcome.elicitation {
+                Some(verdict) => from_verdict(verdict, Some(&answer)),
+                None => answer,
+            },
         }
+    }
+}
+
+/// Elicitation hook 的输入（键序同上游；没有的键不写）：`requested_schema` 是服务器给的原样。
+fn hook_input(server: &str, message: &str, mode: &str, requested: &Value) -> Value {
+    let mut input = Map::new();
+    input.insert("mcp_server_name".into(), json!(server));
+    input.insert("message".into(), json!(message));
+    input.insert("mode".into(), json!(mode));
+    if !requested.is_null() {
+        input.insert("requested_schema".into(), requested.clone());
+    }
+    Value::Object(input)
+}
+
+/// ElicitationResult hook 的输入。
+fn result_input(server: &str, mode: &str, answer: &Value) -> Value {
+    let mut input = Map::new();
+    input.insert("mcp_server_name".into(), json!(server));
+    input.insert("mode".into(), json!(mode));
+    input.insert(
+        "action".into(),
+        answer.get("action").cloned().unwrap_or(Value::Null),
+    );
+    if let Some(content) = answer.get("content").and_then(Value::as_object)
+        && !content.is_empty()
+    {
+        input.insert("content".into(), Value::Object(content.clone()));
+    }
+    Value::Object(input)
+}
+
+/// hook 的结论 → MCP 回答。结果 hook 没给 `content` 时沿用用户的。
+fn from_verdict(
+    verdict: nibi_kernel_api::hooks::ElicitationVerdict,
+    original: Option<&Value>,
+) -> Value {
+    match verdict.action {
+        ElicitationAction::Accept => {
+            let content = verdict.content.unwrap_or_else(|| {
+                original
+                    .and_then(|answer| answer.get("content"))
+                    .and_then(Value::as_object)
+                    .cloned()
+                    .unwrap_or_default()
+            });
+            json!({"action": "accept", "content": Value::Object(content)})
+        }
+        ElicitationAction::Decline => decline(),
+        ElicitationAction::Cancel => json!({"action": "cancel"}),
+    }
+}
+
+/// 跑一次 Elicitation 类 hook；没有执行器时是空结果（当作没有结论），取消时是 Err(())。
+async fn run_hooks(
+    context: &CallContext,
+    name: HookEventName,
+    payload: Value,
+) -> Result<nibi_kernel_api::hooks::HookOutcome, ()> {
+    let Some(hooks) = context.hooks.as_ref() else {
+        return Ok(nibi_kernel_api::hooks::HookOutcome::default());
+    };
+    let event = HookEvent {
+        name,
+        session: context.session.clone(),
+        workspace: context.workspace.clone(),
+        payload,
+        context: context.hook_context.clone(),
+    };
+    tokio::select! {
+        outcome = hooks.run(event, context.cancel.clone()) => Ok(outcome),
+        () = context.cancel.cancelled() => Err(()),
     }
 }
 

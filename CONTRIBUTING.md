@@ -68,7 +68,7 @@ These rules are enforced by CI and review:
    product endpoints are fine; private deployment details are not.
 3. **No private paths.** Do not commit absolute paths such as `D:\...`,
    `/Users/<name>/...`, or machine-specific cache locations.
-4. **Computer Use is part of the public product.** `packages/nibi-cua` is the
+4. **Computer Use is part of the public product.** `packages/computer-use` is the
    Apache-2.0 implementation (Helper, runtime, engine adapter, tests); it uses
    the MIT `@trycua/cua-driver` and keeps vendor provenance. The private repo
    only holds release signing, internal runbooks, and publishing operations —

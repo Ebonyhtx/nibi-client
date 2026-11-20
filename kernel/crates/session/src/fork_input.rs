@@ -3,14 +3,28 @@
 //! 可选的输入与 `/rewind` 相同（`rewind_plan::selectable`）。新会话带到这一轮为止：复制到这一轮最后一条 assistant，
 //! 由存储一次写完（`SessionStore::fork`）；文件不动。
 
-use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::ids::{MessageId, OwnerEpoch};
 use nibi_kernel_api::message::Message;
 use nibi_kernel_api::session_api::Ack;
-use nibi_kernel_api::store::SessionFork;
+use nibi_kernel_api::store::{FactBatch, SessionFork};
 use serde_json::json;
 
 use crate::actor::{Actor, rejected};
 use crate::rewind_plan::selectable;
+
+/// R09：分叉出来的子会话沿用父会话钉住的 system 输入。`SessionStore::fork` 只复制消息，这一条另写（与 K6 的
+/// 快照复制同一口径）；写失败只记 warning，子会话冷打开时按内核现在的输入。
+async fn copy_prompt(actor: &Actor, child: &nibi_kernel_api::ids::SessionId) {
+    let batch = FactBatch {
+        owner_epoch: OwnerEpoch::LOCAL,
+        command: None,
+        facts: vec![actor.prompt.fact()],
+        turn: None,
+    };
+    if let Err(error) = actor.deps.store.commit(child, batch).await {
+        tracing::warn!(%error, session = %child, "session prompt fork copy failed");
+    }
+}
 
 /// 复制到哪一条（§6.5.1）：`input` 这一轮（到下一条可选的输入之前）里最后一条 assistant；这一轮没有 assistant
 /// 时是 `input` 本身。`input` 不是可选的输入时为 None。
@@ -70,6 +84,7 @@ impl Actor {
         {
             tracing::warn!(%error, session = %child, "prompt snapshot fork copy failed");
         }
+        copy_prompt(self, &child).await;
         // 回执的文字是 Node 分叉对话的原文；`message` 给界面拼中文提示（工作线 F78）。
         let response = format!(
             "Forked session {child} from message {through}: copied {} messages.",
@@ -112,9 +127,12 @@ impl Actor {
             kind: nibi_kernel_api::store::SessionForkKind::SelectionSideChat,
         };
         match self.deps.store.fork(fork).await {
-            Ok(receipt) => Ack::Accepted {
-                result: json!({"session": child.as_str(), "copied": receipt.copied}),
-            },
+            Ok(receipt) => {
+                copy_prompt(self, &child).await;
+                Ack::Accepted {
+                    result: json!({"session": child.as_str(), "copied": receipt.copied}),
+                }
+            }
             Err(error) => rejected(error.to_string()),
         }
     }

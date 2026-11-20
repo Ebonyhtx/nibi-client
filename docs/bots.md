@@ -178,12 +178,12 @@ Provider interaction:
 - Telegram uses inline buttons. Single-select answers submit immediately; multi-select answers toggle options and use `Done` to submit. Callback data only carries short numeric indexes. When interactive text exceeds Telegram's single-message limit, the inline keyboard is attached to the final chunk containing the decision prompt, never an earlier context chunk.
 - Feishu / Lark use one Card JSON 2.0 interactive card for the whole AskUserQuestion lifecycle. The current question is rendered as flat choices instead of dropdowns. Single-select questions use radio-style rows: clicking a preset answer submits it immediately, while clicking `自定义回答` only updates the original card and expands the bottom custom input with submit/cancel controls. Multi-select questions use checkbox-style rows: clicking a preset answer toggles the draft and refreshes the original card, while clicking `自定义回答` toggles the custom input; users submit all checked answers with the form submit button. Submitting the form sends `/elicitation <token> __form__:<payload>` back through the normal callback path, so stale cards are rejected by the same token check as choice callbacks. For multi-select questions, non-empty custom input is appended to the selected checkbox choices. The top `<answers>` section renders completed answers as h4 markdown titles, such as `#### 1/2 Question`, followed by answer text. Answer blocks are separated only by spacing. If a pending card already has answers, a native Card JSON 2.0 `hr` divider separates `<answers>` from the current `#### 提问` area. When all questions are answered, the same card is updated to a final state with the complete answers only: no form, no buttons, and no extra completion copy.
 - Weixin uses numbered plain text. Users reply with a number for single-select, comma-separated numbers or text for multi-select/custom answers, and `0` cancels.
-- Webhook sends structured outbound messages with `type: "zcode.bot.elicitation_request"` and an `elicitation` object containing `requestId`, `taskId`, `runId`, `currentQuestionIndex`, `questions`, and optional `schema`.
+- Webhook sends structured outbound messages with `type: "nibi.bot.elicitation_request"` and an `elicitation` object containing `requestId`, `taskId`, `runId`, `currentQuestionIndex`, `questions`, and optional `schema`.
 - Webhook can respond with:
 
 ```json
 {
-  "type": "zcode.bot.elicitation_response",
+  "type": "nibi.bot.elicitation_response",
   "botId": "webhook-1",
   "userId": "user-1",
   "requestId": "elicit-1",

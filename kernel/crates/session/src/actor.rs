@@ -308,6 +308,9 @@ pub(crate) struct Actor {
     /// 主会话的 prompt 快照（K6）：`None` 还没有快照，`Some(Cleared)` 是 compaction 写的墓碑。冷恢复在
     /// [`Self::run`] 开头从库里读；主循环请求组装后记录，fork 时复制给 child。
     pub(crate) prompt_snapshot: Option<nibi_kernel_api::prompt_snapshot::PromptSnapshotState>,
+    /// 会话钉住的模型可见输入（R09）：建会话时取内核的缺省，冷打开在 [`Self::run`] 开头从库里读，压缩边界提交
+    /// 之后重钉。主循环经输出端的 `session_prompt` 读它。
+    pub(crate) prompt: crate::PromptPin,
     /// 自己的请求通道（弱引用）：交给回合的输出端，给出会话级的询问入口；不让 actor 因此不退出。
     asks: mpsc::WeakSender<Request>,
 }
@@ -362,6 +365,7 @@ impl Actor {
         let peer_stream = crate::watched::Watched::new(deps.peers.port.signals(&state.meta.id));
         let start = state.start;
         let goal = crate::goal::Goals::restore(&state.messages, deps.clock.now_ms());
+        let prompt = crate::PromptPin::created(deps.prompt.clone());
         let mut actor = Self {
             deps,
             log,
@@ -414,6 +418,7 @@ impl Actor {
             monitors: crate::monitors::Monitors::default(),
             output_speed: None,
             prompt_snapshot: None,
+            prompt,
             asks,
         };
         actor.start_session(start);
@@ -458,6 +463,39 @@ impl Actor {
             .as_ref()
             .and_then(nibi_kernel_api::prompt_snapshot::PromptSnapshotState::present)
             .cloned()
+    }
+
+    /// R09：冷恢复读会话钉住的 system 输入（最后一行；没有记录、草稿会话与读取失败都按内核现在的输入处理，
+    /// 不阻断恢复）。
+    pub(crate) async fn load_prompt_pin(&mut self) {
+        let recorded = match self
+            .deps
+            .store
+            .entries(
+                &self.meta.id,
+                nibi_kernel_api::store::entry_kinds::SYSTEM_PIN,
+            )
+            .await
+        {
+            Ok(recorded) => recorded,
+            // 草稿会话还没有会话行：与“没有记录”同义。
+            Err(nibi_kernel_api::store::StoreError::NotFound { .. }) => Vec::new(),
+            Err(error) => {
+                tracing::warn!(%error, session = %self.meta.id, "session prompt read failed");
+                return;
+            }
+        };
+        self.prompt = crate::PromptPin::loaded(
+            nibi_kernel_api::session_prompt::SystemPin::recorded(&recorded),
+            self.deps.prompt.clone(),
+        );
+    }
+
+    /// R09：这一刻钉住的模型可见输入（主循环经输出端每一步读一次）。
+    pub(crate) fn current_prompt(
+        &self,
+    ) -> std::sync::Arc<nibi_kernel_api::session_prompt::SessionPrompt> {
+        self.prompt.current()
     }
 
     /// K6：主循环请求组装之后记录 system 快照。请求模型不是会话模型选择、或已有可套用的快照时不写；
@@ -513,6 +551,8 @@ impl Actor {
     pub(crate) async fn run(mut self, mut requests: mpsc::Receiver<Request>) {
         // K6：冷恢复先读 prompt 快照，第一条上下文组装之前就位；读取失败按没有快照处理，不阻断恢复。
         self.load_prompt_snapshot().await;
+        // R09：钉住的 system 输入同样在第一条上下文组装之前就位；没有记录的旧会话沿用内核现在的输入。
+        self.load_prompt_pin().await;
         // 跨会话：绑定为主会话并从库里恢复（cross-session.md §2.2）；在处理第一条命令之前。
         self.peers_open().await;
         // 提醒钟的忙闲沿（上一次的 busy 值；None = 循环还没算过）：变化时才调（transcript-and-
@@ -1042,6 +1082,8 @@ impl Actor {
             Fact::ExecutionChanged {
                 state: self.execution,
             },
+            // R09：草稿提升时把钉住的 system 输入一起写下（与新建会话的初始事实同形）。
+            self.prompt.fact(),
         ];
         if let Some(mode) = self
             .pending_project_mode

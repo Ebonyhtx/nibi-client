@@ -60,6 +60,13 @@ struct Gate {
     decided: Mutex<u32>,
     /// `ask_once` 的答案（guarded 的危险命令，修复线 F20）。
     once: bool,
+    /// PermissionRequest hook 的权限更新（permission-updates.md §2.4）：记录会话与更新。
+    applied: Mutex<
+        Vec<(
+            SessionId,
+            Vec<nibi_kernel_api::permission_updates::PermissionUpdate>,
+        )>,
+    >,
 }
 
 impl Gate {
@@ -69,6 +76,7 @@ impl Gate {
             rules,
             decided: Mutex::new(0),
             once: false,
+            applied: Mutex::default(),
         })
     }
 }
@@ -89,6 +97,18 @@ impl PermissionGate for Gate {
     }
     async fn ask_once(&self, _t: &dyn Tool, _i: &Value, _c: &ToolUseContext) -> bool {
         self.once
+    }
+    async fn apply_permission_updates(
+        &self,
+        session: &SessionId,
+        _workspace: &WorkspaceRef,
+        updates: &[nibi_kernel_api::permission_updates::PermissionUpdate],
+    ) -> Result<(), String> {
+        self.applied
+            .lock()
+            .unwrap()
+            .push((session.clone(), updates.to_vec()));
+        Ok(())
     }
 }
 
@@ -172,6 +192,10 @@ struct Ran {
     asked: Vec<String>,
     decided: u32,
     events: Vec<HookEvent>,
+    applied: Vec<(
+        SessionId,
+        Vec<nibi_kernel_api::permission_updates::PermissionUpdate>,
+    )>,
 }
 
 async fn run(gate: Arc<Gate>, outcomes: &[(HookEventName, HookOutcome)]) -> Ran {
@@ -193,11 +217,13 @@ async fn run(gate: Arc<Gate>, outcomes: &[(HookEventName, HookOutcome)]) -> Ran 
     let events = hooks.seen.lock().unwrap().drain(..).collect();
     let decided = *gate.decided.lock().unwrap();
     let asked = asked.0.lock().unwrap().clone();
+    let applied = gate.applied.lock().unwrap().clone();
     Ran {
         execution,
         asked,
         decided,
         events,
+        applied,
     }
 }
 
@@ -428,6 +454,7 @@ async fn ask_once_questions_skip_permission_request_hooks() {
         rules: None,
         decided: Mutex::new(0),
         once: true,
+        applied: Mutex::default(),
     });
     let ran = run(gate, &[allow]).await;
     assert_eq!(
@@ -439,4 +466,129 @@ async fn ask_once_questions_skip_permission_request_hooks() {
         !names.contains(&HookEventName::PermissionRequest),
         "{names:?}"
     );
+}
+
+/// PermissionRequest hook 的 `updatedPermissions` 随放行落：规则交给判决链（会话/本机去处由它判），
+/// 模式交给交互的 owner（`set_mode_for_hook` 的缺省实现是 `set_mode`，这个替身不实现，只验证不阻断）。
+#[tokio::test]
+async fn permission_request_allow_applies_the_hook_updates() {
+    use nibi_kernel_api::permission::{PermissionRule, RuleBehavior};
+    use nibi_kernel_api::permission_updates::{PermissionUpdate, UpdatePlace};
+
+    let rule = PermissionRule {
+        tool: "Bash".to_owned(),
+        content: Some("npm test".to_owned()),
+    };
+    let updates = vec![
+        PermissionUpdate::AddRules {
+            place: UpdatePlace::Local,
+            behavior: RuleBehavior::Allow,
+            rules: vec![rule.clone()],
+        },
+        PermissionUpdate::SetMode {
+            place: UpdatePlace::Session,
+            mode: PermissionMode::Plan,
+        },
+    ];
+    let gate = ask_gate();
+    let ran = run(
+        gate.clone(),
+        &[(
+            HookEventName::PermissionRequest,
+            HookOutcome {
+                decision: Some(PermissionDecision::Allow {
+                    updated_input: None,
+                }),
+                remember: updates.clone(),
+                ..HookOutcome::default()
+            },
+        )],
+    )
+    .await;
+    assert_eq!(text(&ran.execution.output), "ran ls");
+    assert!(ran.asked.is_empty(), "hook allow skips the question");
+    assert_eq!(
+        gate.applied.lock().unwrap().clone(),
+        [(SessionId::new("sess_1"), updates)]
+    );
+    assert!(!ran.execution.interrupt);
+}
+
+/// 改写的输入未通过 schema 时不能落权限更新：规则不能在“这次调用本来就不会执行”的情况下写库。
+#[tokio::test]
+async fn invalid_updated_input_does_not_apply_permission_updates() {
+    use nibi_kernel_api::permission::{PermissionRule, RuleBehavior};
+    use nibi_kernel_api::permission_updates::{PermissionUpdate, UpdatePlace};
+
+    let updates = vec![PermissionUpdate::AddRules {
+        place: UpdatePlace::Local,
+        behavior: RuleBehavior::Allow,
+        rules: vec![PermissionRule {
+            tool: "Bash".to_owned(),
+            content: Some("npm test".to_owned()),
+        }],
+    }];
+    let gate = ask_gate();
+    let ran = run(
+        gate.clone(),
+        &[(
+            HookEventName::PermissionRequest,
+            HookOutcome {
+                decision: Some(PermissionDecision::Allow {
+                    updated_input: None,
+                }),
+                updated_input: Some(json!({"command": 1})),
+                remember: updates,
+                ..HookOutcome::default()
+            },
+        )],
+    )
+    .await;
+
+    assert!(text(&ran.execution.output).contains("InputValidationError"));
+    assert!(
+        ran.applied.is_empty(),
+        "permission updates must not be persisted when the rewritten input is rejected"
+    );
+}
+
+/// `interrupt: true` 的拒绝：这次调用按被中止交付（执行器据 `ToolExecution.interrupt` 中止回合）。
+#[tokio::test]
+async fn permission_request_interrupt_marks_the_execution() {
+    let ran = run(
+        ask_gate(),
+        &[(
+            HookEventName::PermissionRequest,
+            HookOutcome {
+                decision: Some(PermissionDecision::Deny {
+                    message: "stop here".to_owned(),
+                }),
+                interrupt: true,
+                ..HookOutcome::default()
+            },
+        )],
+    )
+    .await;
+    assert_eq!(text(&ran.execution.output), "stop here");
+    assert!(ran.execution.interrupt);
+    assert!(ran.asked.is_empty(), "the hook decided before the question");
+}
+
+/// 没有结论的 hook 不让更新凭空生效：空 remember 不调判决链。
+#[tokio::test]
+async fn empty_remember_is_not_applied() {
+    let gate = ask_gate();
+    let ran = run(
+        gate.clone(),
+        &[(
+            HookEventName::PermissionRequest,
+            HookOutcome {
+                remember: Vec::new(),
+                ..HookOutcome::default()
+            },
+        )],
+    )
+    .await;
+    assert!(gate.applied.lock().unwrap().is_empty());
+    assert_eq!(ran.asked, ["chain asks"]);
 }

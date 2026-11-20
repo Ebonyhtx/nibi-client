@@ -9,9 +9,9 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use nibi_kernel_base::Spawner;
 use nibi_kernel_api::env_files::PathStyle;
 use nibi_kernel_api::mcp::{McpConnectionId, McpElicitation, McpTransport, McpTransportEvent};
+use nibi_kernel_base::Spawner;
 
 use super::notices::{self, NoticeReceiver, NoticeSender};
 use serde_json::{Map, Value, json};
@@ -346,7 +346,10 @@ impl Reader {
             (None, Some(id)) => self.response(&id, &message),
             // 现代协议没有服务器→客户端的请求通道：丢掉，不回答。
             (Some(method), Some(_)) if self.modern.load(Ordering::Relaxed) => {
-                tracing::debug!(method, "dropped an MCP server request on a modern connection");
+                tracing::debug!(
+                    method,
+                    "dropped an MCP server request on a modern connection"
+                );
             }
             (Some(method), Some(id)) => self.server_request(method, id, &message).await,
             (Some(method), None) => self.notification(method, &message),

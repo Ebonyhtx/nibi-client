@@ -7,7 +7,8 @@ fn names(list: &[&str]) -> Vec<String> {
 
 fn facts<'a>(tool_names: &'a [String], surface: Surface) -> PromptFacts<'a> {
     PromptFacts {
-        surface,
+        // 没有钉住的会话（R09 之前的行为）：`!` 提示跟着进程形态。
+        shell_escape: surface == Surface::Interactive,
         system_turns: true,
         tool_names,
         has_skills: true,

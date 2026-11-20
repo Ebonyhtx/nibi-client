@@ -25,19 +25,19 @@ mod wait_tool;
 pub use app_instances::CallGuard;
 pub(crate) use app_instances::McpAppInstances;
 pub(crate) use app_tools::AppToolRegistry;
-pub(crate) use sampling::SamplingCalls;
 pub use config::{
     McpScope, McpServer, McpServerOptions, McpServers, McpSettings, normalize_name, tool_name,
 };
 pub use manager::{McpManager, McpStatus};
-pub use telemetry::{McpTelemetry, McpTelemetrySetup, McpTelemetrySlot};
 pub use node_config::{NodeMcpServer, parse_node_servers};
 pub use parse::{expand_vars, merge_scopes, parse_servers, parse_servers_keeping};
+pub(crate) use sampling::SamplingCalls;
 pub(crate) use sessions::{SessionConnections, SessionMcp};
-pub(crate) use status::McpStatusRegistry;
 pub use startup::{
     DEFAULT_CONNECT_WAIT_MS, DEFAULT_PREWAIT_MS, McpStartup, prewait_ms, required_servers,
     wait_for_deferrable,
 };
+pub(crate) use status::McpStatusRegistry;
+pub use telemetry::{McpTelemetry, McpTelemetrySetup, McpTelemetrySlot};
 pub use trust::{ProjectMcpRejection, ProjectMcpTrust, ProjectMcpTrustRecord, declaration_digest};
 pub(crate) use wait_tool::WaitForMcpServers;

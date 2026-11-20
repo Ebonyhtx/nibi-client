@@ -12,6 +12,7 @@ import {
   requestForceAutoUpdate,
   type ForceAutoUpdateState,
 } from "./autoUpdater.js";
+import { readForceUpdateLkg, resolveForceUpdateRequirementFromLkg, writeForceUpdateLkg } from "./forceUpdateLkg.js";
 import { showForceUpdatePrompt } from "./forceUpdatePrompt.js";
 
 const NIBI_CLIENT_CONFIG_API_PATH = "/api/v1/client/configs";
@@ -46,6 +47,8 @@ export interface ForceUpdateGuardOptions {
   logger: ForceUpdateGuardLogger;
   endpointOrigin?: string;
   fetchRemoteConfig?: () => Promise<unknown>;
+  /** userData 目录；用于强更裁决的磁盘 LKG。 */
+  lkgDirectory?: string;
   requestAutoUpdate?: (onStateChange?: (state: ForceAutoUpdateState) => void) => (() => void) | void;
   /** 只有用户在强更提示窗口点击“立即重启安装”后才调用。 */
   installUpdate?: () => void | Promise<void>;
@@ -188,16 +191,15 @@ export async function resolveDesktopForceUpdateRequirement(options: {
   logger: ForceUpdateGuardLogger;
   endpointOrigin?: string;
   fetchRemoteConfig?: () => Promise<unknown>;
+  /** userData 目录；提供时成功裁决会写 LKG，网络失败后按新鲜 LKG 降级。 */
+  lkgDirectory?: string;
+  now?: () => number;
 }): Promise<ForceUpdateRequirement | null> {
-  const resolveFromConfig = (config: unknown) =>
+  const now = options.now ?? Date.now;
+  const resolveFromMinimalVersion = (minimalVersion: string) =>
     resolveForceUpdateRequirement({
       currentVersion: NIBI_VERSION,
-      forceUpdate: {
-        minimalVersion:
-          getForceUpdateMinimalVersionFromClientConfig(config) ??
-          getForceUpdateMinimalVersionFromConfig(config) ??
-          "",
-      },
+      forceUpdate: { minimalVersion },
     });
 
   try {
@@ -205,17 +207,36 @@ export async function resolveDesktopForceUpdateRequirement(options: {
       options.endpointOrigin,
       options.fetchRemoteConfig,
     );
-    const remoteRequirement = resolveFromConfig(remoteConfig);
-    if (remoteRequirement) {
-      return remoteRequirement;
+    const minimalVersion =
+      getForceUpdateMinimalVersionFromClientConfig(remoteConfig) ??
+      getForceUpdateMinimalVersionFromConfig(remoteConfig) ??
+      "";
+    if (options.lkgDirectory) {
+      // 只在成功解析后写；错误 envelope / 超大响应 / 超时都不会污染 LKG。
+      await writeForceUpdateLkg(options.lkgDirectory, minimalVersion || null, now());
     }
+    return resolveFromMinimalVersion(minimalVersion) ?? null;
   } catch (error) {
-    // 预留离线跳过接口：完全离线时先不拉闸，后续可在这里接入显式 offline bypass 策略。
+    // 网络失败/超时时用最近一次成功裁决兜底；LKG 过期或不存在才保持原有 fail-open。
+    const lkg = options.lkgDirectory
+      ? await readForceUpdateLkg(options.lkgDirectory, now())
+      : null;
+    const fallback = resolveForceUpdateRequirementFromLkg({
+      currentVersion: NIBI_VERSION,
+      lkg,
+    });
+    if (fallback) {
+      options.logger.warn("[force-update] 远端配置读取失败，按 last-known-good 执行强更裁决", {
+        error,
+        fetchedAt: lkg?.fetchedAt,
+        minimalVersion: lkg?.minimalVersion,
+      });
+      return fallback;
+    }
+    // 没有可用 LKG 时保持原有离线跳过语义。
     options.logger.warn("[force-update] 读取远端强制升级配置失败，跳过强制升级校验", { error });
     return null;
   }
-
-  return null;
 }
 
 export function resolveForceUpdateDownloadUrl(

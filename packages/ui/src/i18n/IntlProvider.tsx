@@ -18,7 +18,12 @@ import {
 import type { BroadcastMessage, IBroadcastService, ISettingService } from "@nibi/services";
 import { readNavigatorLanguage } from "@/lib/browserEnvironment.js";
 import { readPrefs, updatePrefs } from "@/lib/nibiStorage.js";
-import { LOCALE_MESSAGES } from "./localeMessages.js";
+import {
+  getLocaleMessages,
+  hasLazyLocaleMessages,
+  loadLocaleMessages,
+  LOCALE_MESSAGES,
+} from "./localeMessages.js";
 
 /** 简易 intl 工具：根据 id 查找翻译，支持 {key} 占位符替换 */
 export interface IntlInstance {
@@ -96,9 +101,7 @@ export function shouldApplyLocaleBroadcastMessage(
   return true;
 }
 
-function createIntl(locale: Locale): IntlInstance {
-  // noUncheckedIndexedAccess：用 ?? 回退到默认语言的翻译
-  const messages = LOCALE_MESSAGES[locale] ?? LOCALE_MESSAGES[DEFAULT_LOCALE]!;
+function createIntl(locale: Locale, messages: Record<string, string>): IntlInstance {
   return {
     formatMessage({ id }, values) {
       // 合并表已按 en-US 回退；最后再保底回退英文，缺失 key 不会露出原始 id 或中文。
@@ -255,6 +258,26 @@ export function NibiIntlProvider({
     return localePreference === "system" ? systemLocale : localePreference;
   }, [localePreference, systemLocale]);
 
+  // ja/ko/ru 文案表是语言切换时才动态加载的。加载期间 getLocaleMessages 返回 en-US
+  // 兜底表；加载完成后 LOCALE_MESSAGES 被替换，需要一次 re-render 让已挂载子树拿到新文案。
+  const [, setLocaleMessagesRevision] = useState(0);
+  useEffect(() => {
+    if (!hasLazyLocaleMessages(locale)) {
+      return;
+    }
+
+    let disposed = false;
+    void loadLocaleMessages(locale).then(() => {
+      if (!disposed) {
+        setLocaleMessagesRevision((revision) => revision + 1);
+      }
+    });
+
+    return () => {
+      disposed = true;
+    };
+  }, [locale]);
+
   // `<html lang>` 必须跟实际界面语言一致：
   // 写死 en 时中文界面会被屏幕阅读器按英文读、CJK 字形与断行也会走到英文规则上。
   // 实测桌面端 index.html 一直是 `lang="en"` 而界面是中文。
@@ -352,7 +375,10 @@ export function NibiIntlProvider({
     [setLocalePreference],
   );
 
-  const intl = useMemo(() => createIntl(locale), [locale]);
+  const localeMessages = getLocaleMessages(locale);
+  // 动态文案表落地后会替换 LOCALE_MESSAGES[locale]，此时 localeMessages 引用变化，
+  // useMemo 自然重建 intl；上面的 revision state 只负责触发这次渲染。
+  const intl = useMemo(() => createIntl(locale, localeMessages), [locale, localeMessages]);
 
   const value = useMemo<IntlContextValue>(
     () => ({ intl, locale, localePreference, setLocale, setLocalePreference }),

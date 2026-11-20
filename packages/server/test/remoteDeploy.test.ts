@@ -10,20 +10,29 @@ import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { IDisposable, Event } from "@nibi/rpc";
 import {
+  NIBI_AGENT_REMOTE_COMPONENT_ID,
+  NIBI_AGENT_REMOTE_COMPONENT_IDS,
   getRemoteRuntimeToolsForPlatform,
   NIBI_AGENT_RUNTIME,
   NIBI_RUNTIME_ENV_KEY,
   NIBI_VERSION,
+  type NibiAgentRemoteComponentId,
 } from "@nibi/shared";
 import type { IRemoteBackend, StdioStream } from "@nibi/server/remote/backend.js";
-import { deployNibiAgentRuntime } from "@nibi/server/remote/nibiAgentDeploy.js";
+import {
+  deployNibiAgentRuntime,
+  resolveNibiAgentRemoteComponentId,
+} from "@nibi/server/remote/nibiAgentDeploy.js";
 import { deployServer } from "@nibi/server/remote/deploy.js";
 import {
   createRemoteComponentVersionResolver,
   deployNodeRuntime,
 } from "@nibi/server/remote/remoteAssetDeployDecision.js";
 import { buildRemoteExecutableReplaceCommand } from "@nibi/server/remote/deployShared.js";
-import { ensureRemoteReleaseDirFromCdn } from "@nibi/server/remote/remoteAssetCache.js";
+import {
+  ensureRemoteReleaseDirFromCdn,
+  selectRemoteAssetManifestComponents,
+} from "@nibi/server/remote/remoteAssetCache.js";
 import {
   fetchRemoteDownloadManifest,
   type RemoteAssetInstaller,
@@ -146,6 +155,8 @@ interface StageRemoteComponentArtifactsOptions {
   platformKey?: RemotePlatformKey;
   writeManifest?: boolean;
   mutateManifest?: (manifest: RemoteComponentManifest) => RemoteComponentManifest;
+  /** 测试双发/回退时显式控制 manifest 实际发布的 agent 组件 id。 */
+  agentComponentIds?: readonly NibiAgentRemoteComponentId[];
 }
 
 class FakeRemoteBackend implements IRemoteBackend {
@@ -460,7 +471,11 @@ async function stageRemoteRuntimeRelease(
       throw new Error(`Missing binary name for provider: ${provider}`);
     }
 
-    const binaryDir = join(releaseDir, runtime.resourcePackageDir ?? runtime.bundledResourceDir, platformKey);
+    const binaryDir = join(
+      releaseDir,
+      runtime.resourcePackageDir ?? runtime.bundledResourceDir,
+      platformKey,
+    );
     await mkdir(binaryDir, { recursive: true });
     await writeFile(join(binaryDir, binaryName), `${provider} binary`, "utf8");
     // Nibi Agent（glm）远端不再发原生二进制，而是发编译产物 nibi.cjs，
@@ -720,6 +735,7 @@ async function stageRemoteAssetArchive(
 
 function buildRemoteComponentArtifactSpecs(
   platformKey: RemotePlatformKey,
+  agentComponentIds?: readonly NibiAgentRemoteComponentId[],
 ): RemoteComponentArtifactSpec[] {
   const specs: RemoteComponentArtifactSpec[] = [
     {
@@ -754,6 +770,22 @@ function buildRemoteComponentArtifactSpecs(
         mount: `${retiredProtocolPrefix}/${platformKey}/${runtime.bundledResourceDir}`,
         sourcePath: `${retiredProtocolPrefix}/${platformKey}/${runtime.bundledResourceDir}`,
       });
+      continue;
+    }
+
+    if (provider === "glm") {
+      // 同一个 fixture 制品可按测试需要发布成旧 id、新 id 或双发。
+      for (const componentId of agentComponentIds ?? [
+        (runtime.resourcePackageDir ?? provider) as NibiAgentRemoteComponentId,
+      ]) {
+        specs.push({
+          id: componentId,
+          version: `${runtime.version}-${componentId}`,
+          artifactPath: `components/${platformKey}/${componentId}/${runtime.version}-${componentId}.tar.gz`,
+          mount: `${componentId}/${platformKey}`,
+          sourcePath: `${runtime.resourcePackageDir ?? runtime.bundledResourceDir}/${platformKey}`,
+        });
+      }
       continue;
     }
 
@@ -839,7 +871,7 @@ async function stageRemoteComponentArtifacts(
   const platformKey = options?.platformKey ?? "linux-arm64";
   const sourceReleaseDir = join(mockCdnDir, "releases", NIBI_VERSION);
   const outputVersionDir = join(outputRoot, NIBI_VERSION);
-  const componentSpecs = buildRemoteComponentArtifactSpecs(platformKey);
+  const componentSpecs = buildRemoteComponentArtifactSpecs(platformKey, options?.agentComponentIds);
   const components: RemoteComponentManifestItem[] = [];
 
   await mkdir(outputVersionDir, { recursive: true });
@@ -1062,14 +1094,7 @@ const tempDirs: string[] = [];
 const originalCwd = process.cwd();
 const originalRemoteDevAgentBundleEnv = process.env.NIBI_REMOTE_DEV_AGENT_BUNDLE;
 const originalNibiRuntimeEnv = process.env[NIBI_RUNTIME_ENV_KEY];
-const DEV_CLI_BUNDLE_TEST_SUFFIX = join(
-  "apps",
-  "nibi-cli",
-  "packages",
-  "cli",
-  "dist",
-  "nibi.cjs",
-);
+const DEV_CLI_BUNDLE_TEST_SUFFIX = join("apps", "nibi-cli", "packages", "cli", "dist", "nibi.cjs");
 
 afterEach(async () => {
   process.chdir(originalCwd);
@@ -1819,15 +1844,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-dev-agent-missing-browser-client-"));
     tempDirs.push(rootDir);
     const repoDir = join(rootDir, "z-code");
-    const cliBundlePath = join(
-      repoDir,
-      "apps",
-      "nibi-cli",
-      "packages",
-      "cli",
-      "dist",
-      "nibi.cjs",
-    );
+    const cliBundlePath = join(repoDir, "apps", "nibi-cli", "packages", "cli", "dist", "nibi.cjs");
     await mkdir(dirname(cliBundlePath), { recursive: true });
     await writeFile(cliBundlePath, "console.log('dev nibi agent');\n", "utf8");
     await writeTestOfficialPluginPackages(repoDir);
@@ -1866,15 +1883,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-dev-agent-"));
     tempDirs.push(rootDir);
     const repoDir = join(rootDir, "z-code");
-    const cliBundlePath = join(
-      repoDir,
-      "apps",
-      "nibi-cli",
-      "packages",
-      "cli",
-      "dist",
-      "nibi.cjs",
-    );
+    const cliBundlePath = join(repoDir, "apps", "nibi-cli", "packages", "cli", "dist", "nibi.cjs");
     await mkdir(dirname(cliBundlePath), { recursive: true });
     await writeFile(cliBundlePath, "console.log('dev nibi agent');\n", "utf8");
     await writeTestOfficialPluginPackages(repoDir);
@@ -2393,9 +2402,9 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       expect(deployed).toBe(true);
       expect(nodeUpload?.localPath).toContain(remoteCacheDir);
       expect(nodeUpload?.localPath).not.toContain(mockCdnDir);
-      expect(
-        cdnServer.getRequestCount(`/${NIBI_VERSION}/manifest-linux-x64.json`),
-      ).toBeGreaterThan(0);
+      expect(cdnServer.getRequestCount(`/${NIBI_VERSION}/manifest-linux-x64.json`)).toBeGreaterThan(
+        0,
+      );
     } finally {
       await cdnServer.close();
     }
@@ -2876,9 +2885,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       expect(primaryCdnServer.getRequestCount(`/${NIBI_VERSION}/manifest-linux-arm64.json`)).toBe(
         1,
       );
-      expect(backupCdnServer.getRequestCount(`/${NIBI_VERSION}/manifest-linux-arm64.json`)).toBe(
-        0,
-      );
+      expect(backupCdnServer.getRequestCount(`/${NIBI_VERSION}/manifest-linux-arm64.json`)).toBe(0);
       expect(
         primaryCdnServer.getRequestCount(
           toVersionedArtifactRequestPath(ripgrepBundle.artifactPath),
@@ -4598,5 +4605,189 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
         },
       ),
     ).rejects.toThrow(/暂不支持 Windows 原生远程主机/);
+  });
+
+  it("agent 组件优先 nibi-agent，缺失时回退 glm，两者都未发布时 fail-closed", async () => {
+    const loggers = { log: () => undefined, logWarn: () => undefined };
+
+    await expect(
+      resolveNibiAgentRemoteComponentId(
+        {
+          selectedResourcePackageIds: ["server-bundle", "node-runtime", "nibi-agent"],
+          resolvePublishedComponentIds: async () => [
+            "server-bundle",
+            "node-runtime",
+            "glm",
+            "nibi-agent",
+          ],
+        },
+        loggers,
+      ),
+    ).resolves.toBe("nibi-agent");
+
+    await expect(
+      resolveNibiAgentRemoteComponentId(
+        {
+          selectedResourcePackageIds: ["server-bundle", "node-runtime", "nibi-agent"],
+          resolvePublishedComponentIds: async () => ["server-bundle", "node-runtime", "glm"],
+        },
+        loggers,
+      ),
+    ).resolves.toBe("glm");
+
+    await expect(
+      resolveNibiAgentRemoteComponentId(
+        {
+          selectedResourcePackageIds: ["server-bundle", "node-runtime", "nibi-agent"],
+          resolvePublishedComponentIds: async () => ["server-bundle", "node-runtime"],
+        },
+        loggers,
+      ),
+    ).rejects.toThrow(/未发布 Nibi Agent 组件/u);
+
+    await expect(
+      resolveNibiAgentRemoteComponentId(
+        {
+          selectedResourcePackageIds: ["server-bundle", "node-runtime"],
+          resolvePublishedComponentIds: async () => ["server-bundle", "node-runtime"],
+        },
+        loggers,
+      ),
+    ).resolves.toBeNull();
+
+    // 历史本地 release / mock-cdn 没有 manifest 时保持旧行为，继续按 glm 查找。
+    await expect(
+      resolveNibiAgentRemoteComponentId(
+        {
+          selectedResourcePackageIds: ["server-bundle", "node-runtime", "nibi-agent"],
+          resolvePublishedComponentIds: async () => null,
+        },
+        loggers,
+      ),
+    ).resolves.toBe("glm");
+  });
+
+  it("双发 manifest 存在时客户端安装 nibi-agent 而不是 glm", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
+    tempDirs.push(rootDir);
+    const mockCdnDir = join(rootDir, "mock-cdn");
+    const releaseDir = join(mockCdnDir, "releases", NIBI_VERSION);
+    await stageRemoteRuntimeRelease(mockCdnDir);
+    // 本地 mock release 也要具备新 id 的 mount 目录，模拟双发布后的开发态缓存。
+    await cp(
+      join(releaseDir, "glm", "linux-arm64"),
+      join(releaseDir, NIBI_AGENT_REMOTE_COMPONENT_ID, "linux-arm64"),
+      { recursive: true },
+    );
+    const manifest = await stageRemoteComponentArtifacts(mockCdnDir, join(mockCdnDir, "releases"), {
+      agentComponentIds: [...NIBI_AGENT_REMOTE_COMPONENT_IDS],
+    });
+    expect(findManifestComponent(manifest, "nibi-agent").mount).toBe("nibi-agent/linux-arm64");
+    expect(findManifestComponent(manifest, "glm").mount).toBe("glm/linux-arm64");
+    // 4.1.3 客户端只请求 glm；双发 manifest 必须仍能选中旧组件，不能被新 id 干扰。
+    expect(
+      selectRemoteAssetManifestComponents(manifest, ["glm"]).map((component) => component.id),
+    ).toEqual(["glm"]);
+
+    const backend = new FakeRemoteBackend();
+    const deployed = await deployServer(
+      backend,
+      { platform: "linux", arch: "arm64" },
+      { force: false, mockCdnDir },
+    );
+
+    expect(deployed).toBe(true);
+    const agentBundleUpload = findUploadForStagingTarget(
+      backend,
+      "~/.nibi/server/agents/nibi/nibi.cjs.new",
+    );
+    expect(agentBundleUpload?.localPath).toContain(
+      join(NIBI_AGENT_REMOTE_COMPONENT_ID, "linux-arm64", "nibi.cjs"),
+    );
+    // installDirectory 会先打临时 tar 再上传，命令里不带源目录；bundle 的
+    // 本地路径与新 id marker 已足以证明本次解析并安装的是 nibi-agent。
+    expect(
+      backend.commands.some((command) =>
+        command.includes(`.asset-components/${NIBI_AGENT_REMOTE_COMPONENT_ID}.json`),
+      ),
+    ).toBe(true);
+    expect(backend.commands.some((command) => command.includes(".asset-components/glm.json"))).toBe(
+      false,
+    );
+  });
+
+  it("旧 manifest 只发布 glm 时客户端继续回退并部署 glm", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
+    tempDirs.push(rootDir);
+    const mockCdnDir = join(rootDir, "mock-cdn");
+    await stageRemoteRuntimeRelease(mockCdnDir);
+    const manifest = await stageRemoteComponentArtifacts(mockCdnDir, join(mockCdnDir, "releases"), {
+      agentComponentIds: ["glm"],
+    });
+    expect(
+      manifest.components.some((component) => component.id === NIBI_AGENT_REMOTE_COMPONENT_ID),
+    ).toBe(false);
+
+    const backend = new FakeRemoteBackend();
+    const deployed = await deployServer(
+      backend,
+      { platform: "linux", arch: "arm64" },
+      { force: false, mockCdnDir },
+    );
+
+    expect(deployed).toBe(true);
+    const agentBundleUpload = findUploadForStagingTarget(
+      backend,
+      "~/.nibi/server/agents/nibi/nibi.cjs.new",
+    );
+    expect(agentBundleUpload?.localPath).toContain(join("glm", "linux-arm64", "nibi.cjs"));
+    expect(backend.commands.some((command) => command.includes(".asset-components/glm.json"))).toBe(
+      true,
+    );
+  });
+
+  it("manifest 未发布任何 agent 组件时连接 fail-closed", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
+    tempDirs.push(rootDir);
+    const mockCdnDir = join(rootDir, "mock-cdn");
+    await stageRemoteRuntimeRelease(mockCdnDir);
+    await stageRemoteComponentArtifacts(mockCdnDir, join(mockCdnDir, "releases"), {
+      agentComponentIds: [],
+    });
+
+    await expect(
+      deployServer(
+        new FakeRemoteBackend(),
+        { platform: "linux", arch: "arm64" },
+        {
+          force: false,
+          mockCdnDir,
+        },
+      ),
+    ).rejects.toThrow(/未发布 Nibi Agent 组件/u);
+  });
+
+  it("manifest 漏发必需组件时 fail-closed", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "nibi-remote-deploy-"));
+    tempDirs.push(rootDir);
+    const mockCdnDir = join(rootDir, "mock-cdn");
+    await stageRemoteRuntimeRelease(mockCdnDir);
+    await stageRemoteComponentArtifacts(mockCdnDir, join(mockCdnDir, "releases"), {
+      mutateManifest: (manifest) => ({
+        ...manifest,
+        components: manifest.components.filter((component) => component.id !== "server-bundle"),
+      }),
+    });
+
+    await expect(
+      deployServer(
+        new FakeRemoteBackend(),
+        { platform: "linux", arch: "arm64" },
+        {
+          force: false,
+          mockCdnDir,
+        },
+      ),
+    ).rejects.toThrow(/missing (requested|required) components: server-bundle/u);
   });
 });

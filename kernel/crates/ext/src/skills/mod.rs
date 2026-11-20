@@ -336,13 +336,7 @@ impl SkillCatalog {
         workspace: &WorkspaceRef,
         history: &[Message],
     ) -> Vec<nibi_kernel_api::listing::InvokedSkill> {
-        invoked::invoked(
-            self,
-            workspace,
-            history,
-            &self.plugin_roots_for(session),
-        )
-        .await
+        invoked::invoked(self, workspace, history, &self.plugin_roots_for(session)).await
     }
 
     /// 按名字找（Skill 工具用）。

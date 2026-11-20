@@ -1,7 +1,7 @@
 > **2026-11-15 校正**：driver 已升到 `0.47.23`；输入默认 `delivery_mode="background"`；`perform_action`、`request_access`、`stop_computer_control` 已接线（`select_text` 仍诚实拒绝）；自有 56x56 光标浮层已实现（`b48ee03f`）。下文旧状态只作历史台账。
 # Computer Use 实施台账（`@nibi/cua` 真实现）
 
-> 背景与决策见本包 `README.md` 与 `packages/nibi-cua/vendor/freeall12-computer-use/PROVENANCE.md`。
+> 背景与决策见本包 `README.md` 与 `packages/computer-use/vendor/freeall12-computer-use/PROVENANCE.md`。
 > 一句话：**上游把电脑操控拆成五层；我们缺的那层是"原生引擎"。本包就是把这一层补上，
 > 原生能力由 Cua Driver（MIT，六平台预编译）提供，语义与安全留在我们自己手里。**
 
@@ -69,7 +69,7 @@ Cua Driver（@trycua/cua-driver：listApps / listWindows / getWindowState / clic
 | 阶段 | 内容 | 验收 |
 | --- | --- | --- |
 | P0 ✅ | 规格快照 + PROVENANCE；参考测试 18/18 | `vendor/.../reference/test.mjs` 全绿 |
-| P1 ✅（本批） | 协议层真实现（客户端 + 服务端）；Helper 骨架 + 引擎适配；只读 5 个方法打通 | `node --test packages/nibi-cua/test/brokerProtocol.test.mjs` 6/6；`NIBI_CUA_ENGINE_SMOKE=1 NIBI_CUA_ENGINE_MODULE=<driver entry>` 时 7/7（真引擎列出本机应用/窗口） |
+| P1 ✅（本批） | 协议层真实现（客户端 + 服务端）；Helper 骨架 + 引擎适配；只读 5 个方法打通 | `node --test packages/computer-use/test/brokerProtocol.test.mjs` 6/6；`NIBI_CUA_ENGINE_SMOKE=1 NIBI_CUA_ENGINE_MODULE=<driver entry>` 时 7/7（真引擎列出本机应用/窗口） |
 | P2a ✅（本批） | **Helper 侧**语义（跨会话租约 CONTROLLER_BUSY+owner、kill switch 闩锁+两豁免、观察收据 state_id、possibly_sent 回执）+ 7 个输入工具接线（click/drag/scroll/type/key/paste/set_value） | `npm test` 11/11（含租约/kill switch/possibly_sent/观察收据五例）；真引擎档 7/7 |
 | P2b ✅（本批） | **运行时侧**：`runtime/{index,session,envelope}.js`——元素索引台账（STALE_STATE / ELEMENT_UNAVAILABLE）、帧台账（16 帧 + 32 墓碑、坐标隐式绑最新帧、伪造/过期帧 `action_sent=false`）、ActionSettler（300ms 起、指纹连续两次一致或 5s 上限）+ `effect_evidence`/`state_sync_status`、子代理禁用、kill switch 透传、`possibly_sent` 不等不重试、`closeSession` 释放租约、给 SDK 的四种 MCP 信封 | `npm test` **18/18**（协议 6 + Helper 语义 5 + 运行时 7）；真引擎档 7/7；三处类型门禁（services / desktop host / node-repl-host）全绿 |
 | P2c ✅（本批，Windows） | ① `perform_action`：**只认元素广告过的动作**，映射到引擎的 `click`（省略 action＝默认 invoke）/`click{action:"expand"}`/`set_value`，**菜单路径**（`文件(F) > 新建`）走专用 `invoke_menu`（按标签逐级解析、不碰像素）；② `select_text`：引擎**没有** text-range 原语 → **诚实拒绝**并给替代（`set_value`/`click`+`key`）；③ 观察信封补 `image_ref` 四键块（`frame_id/width/height/actionable/note`，带截图时才发）；④ `possibly_sent` 记号（`forceFullTreeNext`） | 离线 **20/20**（新增 image_ref 两条断言）；真机 `test:acceptance:p4b` **5/5**（新增：菜单路径开新页 + 未广告动作被拒 + select_text 诚实拒绝） |

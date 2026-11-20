@@ -79,7 +79,7 @@ describe("stageBundledNpm", () => {
   it("verifies the registry tarball and copies it into node-runtime/npm without docs/man", async () => {
     const root = await makeTempRoot("nibi-bundled-npm-");
     const cacheDir = join(root, "cache");
-    const glmDir = join(root, "glm");
+    const nibiDir = join(root, "nibi");
     const download = vi.fn(async (_url: string, destinationPath: string) => {
       await writeFakeArchive(destinationPath);
     });
@@ -88,12 +88,12 @@ describe("stageBundledNpm", () => {
       cacheDir,
       download,
       extract: fakeExtract,
-      glmDir,
+      nibiDir,
       integrity: integrityOf(Buffer.from("fake npm tarball")),
       version: "1.2.3",
     });
 
-    const stagedRoot = join(glmDir, ...BUNDLED_NPM_STAGED_SEGMENTS);
+    const stagedRoot = join(nibiDir, ...BUNDLED_NPM_STAGED_SEGMENTS);
     expect(result).toEqual({
       integrityVerified: true,
       source: "registry",
@@ -107,7 +107,7 @@ describe("stageBundledNpm", () => {
     expect(existsSync(join(stagedRoot, "man"))).toBe(false);
     // 依赖包自己的 license 必须留在 staged 树里。
     expect(existsSync(join(stagedRoot, "node_modules", "dep", "LICENSE"))).toBe(true);
-    expect(await readBundledNpmStageMarker(glmDir)).toMatchObject({
+    expect(await readBundledNpmStageMarker(nibiDir)).toMatchObject({
       integrityVerified: true,
       source: "registry",
       version: "1.2.3",
@@ -118,7 +118,7 @@ describe("stageBundledNpm", () => {
   it("reuses a valid cached tarball and replaces a corrupt one", async () => {
     const root = await makeTempRoot("nibi-bundled-npm-");
     const cacheDir = join(root, "cache");
-    const glmDir = join(root, "glm");
+    const nibiDir = join(root, "nibi");
     const archive = { bytes: Buffer.from("fake npm tarball") };
     const integrity = integrityOf(archive.bytes);
     const download = createDownload(archive);
@@ -127,7 +127,7 @@ describe("stageBundledNpm", () => {
       cacheDir,
       download,
       extract: fakeExtract,
-      glmDir,
+      nibiDir,
       integrity,
       version: "1.2.3",
     });
@@ -137,7 +137,7 @@ describe("stageBundledNpm", () => {
       cacheDir,
       download,
       extract: fakeExtract,
-      glmDir,
+      nibiDir,
       integrity,
       version: "1.2.3",
     });
@@ -148,7 +148,7 @@ describe("stageBundledNpm", () => {
       cacheDir,
       download,
       extract: fakeExtract,
-      glmDir,
+      nibiDir,
       integrity,
       version: "1.2.3",
     });
@@ -167,12 +167,12 @@ describe("stageBundledNpm", () => {
         cacheDir: join(root, "cache"),
         download,
         extract: fakeExtract,
-        glmDir: join(root, "glm"),
+        nibiDir: join(root, "nibi"),
         integrity: integrityOf(Buffer.from("expected")),
         version: "1.2.3",
       }),
     ).rejects.toThrow(/sha512 mismatch/);
-    expect(existsSync(join(root, "glm", ...BUNDLED_NPM_STAGED_SEGMENTS))).toBe(false);
+    expect(existsSync(join(root, "nibi", ...BUNDLED_NPM_STAGED_SEGMENTS))).toBe(false);
   });
 
   it("fails when the extracted npm has no entry files", async () => {
@@ -187,7 +187,7 @@ describe("stageBundledNpm", () => {
         extract: async ({ extractDir }: { extractDir: string }) => {
           await mkdir(join(extractDir, "package"), { recursive: true });
         },
-        glmDir: join(root, "glm"),
+        nibiDir: join(root, "nibi"),
         integrity: integrityOf(archive.bytes),
         version: "1.2.3",
       }),
@@ -205,7 +205,7 @@ describe("stageBundledNpm", () => {
         throw new Error("getaddrinfo ENOTFOUND registry.npmjs.org");
       },
       extract: fakeExtract,
-      glmDir: join(root, "glm"),
+      nibiDir: join(root, "nibi"),
       localNpmRoot,
       log: (line: string) => logs.push(line),
       version: "1.2.3",
@@ -213,12 +213,12 @@ describe("stageBundledNpm", () => {
 
     expect(result.source).toBe("local-node");
     expect(result.integrityVerified).toBe(false);
-    expect(await readBundledNpmStageMarker(join(root, "glm"))).toMatchObject({
+    expect(await readBundledNpmStageMarker(join(root, "nibi"))).toMatchObject({
       integrityVerified: false,
       source: "local-node",
     });
     expect(logs.join("\n")).toMatch(/sha512 was NOT verified/);
-    expect(existsSync(join(root, "glm", ...BUNDLED_NPM_STAGED_SEGMENTS, "bin", "npm-cli.js"))).toBe(
+    expect(existsSync(join(root, "nibi", ...BUNDLED_NPM_STAGED_SEGMENTS, "bin", "npm-cli.js"))).toBe(
       true,
     );
   });
@@ -235,7 +235,7 @@ describe("stageBundledNpm", () => {
         cacheDir: join(root, "cache"),
         download,
         extract: fakeExtract,
-        glmDir: join(root, "glm"),
+        nibiDir: join(root, "nibi"),
         localNpmRoot: await writeLocalNpm(root),
         version: "1.2.3",
       }),
@@ -246,7 +246,7 @@ describe("stageBundledNpm", () => {
         cacheDir: join(root, "cache"),
         download,
         extract: fakeExtract,
-        glmDir: join(root, "glm"),
+        nibiDir: join(root, "nibi"),
         localNpmRoot: join(root, "missing"),
         version: "1.2.3",
       }),
@@ -262,7 +262,7 @@ describe("stageBundledNpm", () => {
       cacheDir: join(root, "cache"),
       download,
       extract: fakeExtract,
-      glmDir: join(root, "glm"),
+      nibiDir: join(root, "nibi"),
       localNpmRoot,
       offline: true,
       version: "1.2.3",
@@ -272,7 +272,7 @@ describe("stageBundledNpm", () => {
     expect(result.source).toBe("local-node");
     expect(result.integrityVerified).toBe(false);
     const marker = JSON.parse(
-      await readFile(join(root, "glm", BUNDLED_NPM_STAGE_MARKER), "utf8"),
+      await readFile(join(root, "nibi", BUNDLED_NPM_STAGE_MARKER), "utf8"),
     ) as { source: string };
     expect(marker.source).toBe("local-node");
   });

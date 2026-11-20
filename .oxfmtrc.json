@@ -4,7 +4,7 @@
     ".gitlab/**/*.yml",
     "apps/nibi-cli/tests/gb2312.js",
     "docs/electron/docs/fiddles/**/*.html",
-    "packages/zcode-cua/**",
+    "packages/computer-use/**",
     "packages/desktop/src/renderer/src/plugin-sandbox/genUiTweakRuntime.js",
     "apps/nibi-cli/packages/visualize-plugin/skills/visualize/assets/**",
     "THIRD-PARTY-NOTICES.md",

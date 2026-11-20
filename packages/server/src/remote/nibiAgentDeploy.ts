@@ -1,7 +1,10 @@
 import {
   NIBI_AGENT_RUNTIME,
   NIBI_AGENT_PROVIDER,
-  NIBI_AGENT_REMOTE_COMPONENT_ID,
+  NIBI_AGENT_REMOTE_COMPONENT_FALLBACK_ID,
+  NIBI_AGENT_REMOTE_COMPONENT_IDS,
+  selectNibiAgentRemoteComponentId,
+  type NibiAgentRemoteComponentId,
   type RemoteResourcePackageId,
 } from "@nibi/shared";
 import type { IRemoteBackend, RemoteEnvironment } from "@nibi/server/remote/backend.js";
@@ -42,16 +45,67 @@ export interface DeployNibiAgentRuntimeOptions extends RemoteAssetDeployOptions 
   installer: RemoteAssetInstaller;
   selectedResourcePackageIds?: RemoteResourcePackageId[];
   force?: boolean;
+  /** 已由 deployServer 根据 manifest 解析出的组件 id；直接调用时可省略。 */
+  componentId?: NibiAgentRemoteComponentId;
+  /**
+   * 当前 manifest 实际发布的组件 id。null 表示 manifest 不可用（旧 mock-cdn /
+   * 历史本地 release），此时沿用旧 id 以保持 4.1.3 时代行为。
+   */
+  resolvePublishedComponentIds?: () => Promise<readonly string[] | null>;
 }
 
-function isSelectedNibiAgentComponent(
-  componentId: string,
+function isNibiAgentPackageSelected(
   selectedResourcePackageIds: readonly RemoteResourcePackageId[] | undefined,
 ): boolean {
-  return (
-    !selectedResourcePackageIds ||
-    selectedResourcePackageIds.includes(componentId as RemoteResourcePackageId)
+  if (!selectedResourcePackageIds) {
+    return true;
+  }
+  return NIBI_AGENT_REMOTE_COMPONENT_IDS.some((componentId) =>
+    selectedResourcePackageIds.includes(componentId),
   );
+}
+
+/**
+ * 选择本次部署实际使用的 Nibi Agent 组件 id。
+ *
+ * 规则：
+ * 1. 资源包选择里既没有新 id 也没有旧 id → 跳过（调用方明确没选 agent）。
+ * 2. manifest 明确发布 `nibi-agent` → 新 id；只发布 `glm` → 回退旧 id。
+ * 3. manifest 可用但两个 id 都没有 → 抛错，不能静默跳过（否则远程会话会在
+ *    没有 agent 的情况下“连接成功”）。
+ * 4. manifest 不可用（历史 mock-cdn / 本地 release 没有 manifest）→ 沿用旧 id，
+ *    保持 4.1.3 及以前的行为；后续 installFile 仍会因缺文件 fail-closed。
+ */
+export async function resolveNibiAgentRemoteComponentId(
+  options: {
+    selectedResourcePackageIds?: readonly RemoteResourcePackageId[];
+    resolvePublishedComponentIds?: () => Promise<readonly string[] | null>;
+  },
+  loggers: DeployLoggers,
+): Promise<NibiAgentRemoteComponentId | null> {
+  if (!isNibiAgentPackageSelected(options.selectedResourcePackageIds)) {
+    return null;
+  }
+
+  const publishedComponentIds = options.resolvePublishedComponentIds
+    ? await options.resolvePublishedComponentIds()
+    : null;
+  if (publishedComponentIds == null) {
+    loggers.logWarn(
+      `[nibi-agent-deploy] manifest 未提供组件清单，沿用旧组件 id ${NIBI_AGENT_REMOTE_COMPONENT_FALLBACK_ID}`,
+    );
+    return NIBI_AGENT_REMOTE_COMPONENT_FALLBACK_ID;
+  }
+
+  const resolvedComponentId = selectNibiAgentRemoteComponentId(publishedComponentIds);
+  if (!resolvedComponentId) {
+    throw new Error(
+      `[nibi-agent-deploy] manifest 未发布 Nibi Agent 组件（需要 ${NIBI_AGENT_REMOTE_COMPONENT_IDS.join(
+        " 或 ",
+      )}）；拒绝跳过必需组件部署`,
+    );
+  }
+  return resolvedComponentId;
 }
 
 async function shouldSkipNibiAgentDeploy(params: {
@@ -158,10 +212,12 @@ export async function deployNibiAgentRuntime(
 ): Promise<void> {
   const provider = NIBI_AGENT_PROVIDER;
   const runtime = NIBI_AGENT_RUNTIME;
-  // lane 值与 CDN 组件 id 解耦：CDN 仍叫 glm，切换发布流水线时再一起改。
-  const componentId = NIBI_AGENT_REMOTE_COMPONENT_ID;
-  if (!isSelectedNibiAgentComponent(componentId, options.selectedResourcePackageIds)) {
-    loggers.log(`[nibi-agent-deploy] ${provider}: 未选择资源包 ${componentId}，跳过检查和部署`);
+  // lane 值与 CDN 组件 id 解耦：manifest 同时发布新/旧 id 时优先新 id，
+  // 只有旧 manifest 才回退 glm；两个 id 都没有时 resolver 会 fail-closed。
+  const componentId =
+    options.componentId ?? (await resolveNibiAgentRemoteComponentId(options, loggers));
+  if (!componentId) {
+    loggers.log(`[nibi-agent-deploy] ${provider}: 未选择 Nibi Agent 资源包，跳过检查和部署`);
     return;
   }
 
@@ -240,7 +296,9 @@ export async function deployNibiAgentRuntime(
   const installBundle = () =>
     options.installer.installFile({
       componentId,
-      sourceRelativePath: `${runtime.resourcePackageDir}/${options.platformArch}/${REMOTE_AGENT_BUNDLE_NAME}`,
+      // 源目录必须跟着本次解析出的 manifest id 走：新 id 用 nibi-agent/<arch>，
+      // 旧 manifest 回退时仍是 glm/<arch>。
+      sourceRelativePath: `${componentId}/${options.platformArch}/${REMOTE_AGENT_BUNDLE_NAME}`,
       remotePath: remoteBundlePath,
       executable: false,
       forceRefresh: forceRefreshRuntimeAsset,
@@ -249,7 +307,7 @@ export async function deployNibiAgentRuntime(
     options.installer.installDirectory({
       componentId,
       sourceRelativePath: buildRemoteAgentOfficialPluginSourceRelativePath({
-        runtimeResourceDir: runtime.resourcePackageDir,
+        runtimeResourceDir: componentId,
         platformArch: options.platformArch,
       }),
       remoteDir: remoteOfficialPluginDir,

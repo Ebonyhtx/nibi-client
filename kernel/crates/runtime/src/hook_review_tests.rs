@@ -11,7 +11,9 @@ use nibi_kernel_api::hook_review::{
 use nibi_kernel_api::ids::EnvironmentId;
 use nibi_kernel_api::permission::PermissionMode;
 use nibi_kernel_api::session_api::{Kernel, KernelError};
-use nibi_kernel_api::testing::{FixedClock, MemoryStore, ScriptedModel, SequentialIds, environments};
+use nibi_kernel_api::testing::{
+    FixedClock, MemoryStore, ScriptedModel, SequentialIds, environments,
+};
 
 use super::*;
 
@@ -106,10 +108,9 @@ fn kernel(trust: Option<Arc<MemoryTrust>>, home: &std::path::Path) -> LocalKerne
         },
     );
     match trust {
-        Some(trust) => kernel.with_hook_review(
-            nibi_kernel_hooks::node_config::NodeHooks::default(),
-            trust,
-        ),
+        Some(trust) => {
+            kernel.with_hook_review(nibi_kernel_hooks::node_config::NodeHooks::default(), trust)
+        }
         None => kernel,
     }
 }
@@ -187,7 +188,10 @@ async fn the_review_reads_the_project_file_and_pending_turns_trusted_after_grant
     let recorded = trust.granted.lock().unwrap().clone();
     assert_eq!(recorded.len(), 1);
     assert_eq!(recorded[0].0, workspace.root.as_str());
-    assert_eq!(recorded[0].1[0].declaration_digest, items[0].declaration_digest);
+    assert_eq!(
+        recorded[0].1[0].declaration_digest,
+        items[0].declaration_digest
+    );
     assert_eq!(recorded[0].1[0].event, "PreToolUse");
     assert_eq!(recorded[0].1[0].matcher.as_deref(), Some("Bash|Write"));
     assert_eq!(recorded[0].1[0].bundle_digest, review.bundle_digest);
@@ -199,7 +203,10 @@ async fn the_review_reads_the_project_file_and_pending_turns_trusted_after_grant
 
     // 再读：第一条已信任，第二条仍待审。
     let after = kernel.workspace_hook_review(&workspace).await.unwrap();
-    assert_eq!(after.items[0].trust_state, HookTrustState::TrustedPersistent);
+    assert_eq!(
+        after.items[0].trust_state,
+        HookTrustState::TrustedPersistent
+    );
     assert_eq!(after.items[1].trust_state, HookTrustState::PendingTrust);
     assert_eq!(after.pending_count(), 1);
 

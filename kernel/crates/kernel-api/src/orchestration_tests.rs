@@ -88,6 +88,7 @@ fn request() -> ContextRequest {
         plan_flags: Default::default(),
         mcp: None,
         default_machine: None,
+        prompt: None,
     }
 }
 

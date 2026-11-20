@@ -4,11 +4,11 @@
 //! `/x` 相对规则的根（工作区根），其余相对根且不带 `/` 时在任意层级匹配文件名。`**` 跨目录，
 //! `*`、`?` 不跨目录；匹配到目录时它下面的一切都算匹配。
 
-use regex::{Regex, RegexBuilder};
 use nibi_kernel_api::env_files::PathStyle;
 use nibi_kernel_api::env_path::git_bash_spelling;
 use nibi_kernel_api::permission::RuleBehavior;
 use nibi_kernel_api::plan::PlanFiles;
+use regex::{Regex, RegexBuilder};
 
 /// 一次判决里解析路径所需的事实。
 #[derive(Debug, Clone, PartialEq, Eq)]

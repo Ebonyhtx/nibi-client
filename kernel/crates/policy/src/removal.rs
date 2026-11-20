@@ -8,8 +8,8 @@
 
 use std::sync::OnceLock;
 
-use regex::{Regex, RegexBuilder};
 use nibi_kernel_api::env_files::PathStyle;
+use regex::{Regex, RegexBuilder};
 
 use crate::check::{AskKind, Check, Inputs};
 use crate::parse::{Invocation, WordText};

@@ -99,7 +99,10 @@ impl FakeHost {
     }
 
     fn states(&self) -> Vec<SessionLifecycleState> {
-        self.changes().into_iter().map(|snapshot| snapshot.state).collect()
+        self.changes()
+            .into_iter()
+            .map(|snapshot| snapshot.state)
+            .collect()
     }
 
     fn last_change(&self) -> SessionLifecycleSnapshot {
@@ -209,10 +212,16 @@ async fn stop_is_idempotent() {
 async fn restart_replaces_the_instance() {
     let host = FakeHost::new(true, true);
     let controller = LifecycleController::default();
-    controller.restart(host.as_ref(), &session(), None).await.unwrap();
+    controller
+        .restart(host.as_ref(), &session(), None)
+        .await
+        .unwrap();
     assert_eq!(host.counts(), (1, 1));
 
-    controller.restart(host.as_ref(), &session(), None).await.unwrap();
+    controller
+        .restart(host.as_ref(), &session(), None)
+        .await
+        .unwrap();
     assert_eq!(host.counts(), (2, 2));
     let snapshot = controller
         .get_state(host.as_ref(), &session())
@@ -237,7 +246,10 @@ async fn faulted_is_isolated_and_never_rebuilt() {
         .unwrap();
     assert_eq!(snapshot.state, SessionLifecycleState::Faulted);
     assert_eq!(
-        snapshot.last_error.as_ref().map(|error| error.code.as_str()),
+        snapshot
+            .last_error
+            .as_ref()
+            .map(|error| error.code.as_str()),
         Some("resourceReleaseFailed")
     );
     assert_eq!(
@@ -246,13 +258,13 @@ async fn faulted_is_isolated_and_never_rebuilt() {
     );
     let counts = host.counts();
 
-    let ready = controller.ensure_ready(host.as_ref(), &session(), None).await;
+    let ready = controller
+        .ensure_ready(host.as_ref(), &session(), None)
+        .await;
     assert_eq!(code(&ready), "recoveryRequired");
     let stop = controller.stop(host.as_ref(), &session()).await;
     assert_eq!(code(&stop), "recoveryRequired");
-    let restart = controller
-        .restart(host.as_ref(), &session(), None)
-        .await;
+    let restart = controller.restart(host.as_ref(), &session(), None).await;
     assert_eq!(code(&restart), "recoveryRequired");
     assert_eq!(host.counts(), counts, "faulted 不再调用宿主");
 }
@@ -263,7 +275,9 @@ async fn a_failed_activation_cleans_up_to_unloaded() {
     let host = FakeHost::new(true, false);
     host.fail_activation();
     let controller = LifecycleController::default();
-    let result = controller.ensure_ready(host.as_ref(), &session(), None).await;
+    let result = controller
+        .ensure_ready(host.as_ref(), &session(), None)
+        .await;
     assert!(result.is_err());
     assert_eq!(host.counts(), (1, 1), "失败后跑一次清理释放");
     let snapshot = controller
@@ -272,7 +286,10 @@ async fn a_failed_activation_cleans_up_to_unloaded() {
         .unwrap();
     assert_eq!(snapshot.state, SessionLifecycleState::Unloaded);
     assert_eq!(
-        snapshot.last_error.as_ref().map(|error| error.code.as_str()),
+        snapshot
+            .last_error
+            .as_ref()
+            .map(|error| error.code.as_str()),
         Some("operationFailed")
     );
 }
@@ -309,7 +326,10 @@ async fn restart_owns_the_whole_stop_and_start_interval() {
     host.release_activation();
     let started = tokio::time::timeout(WAIT, starting).await.unwrap().unwrap();
     assert!(started.is_ok(), "{started:?}");
-    let restarted = tokio::time::timeout(WAIT, restarting).await.unwrap().unwrap();
+    let restarted = tokio::time::timeout(WAIT, restarting)
+        .await
+        .unwrap()
+        .unwrap();
     assert!(restarted.is_ok(), "{restarted:?}");
     assert_eq!(host.counts(), (2, 1), "启动一次，重启再释放+启动一次");
     let snapshot = controller.get_state(host.as_ref(), &id).await.unwrap();
@@ -340,16 +360,20 @@ async fn ensure_ready_waits_for_a_stop() {
     assert_eq!(host.inner().activations, 0);
 
     host.release_release();
-    assert!(tokio::time::timeout(WAIT, stopping)
-        .await
-        .unwrap()
-        .unwrap()
-        .is_ok());
-    assert!(tokio::time::timeout(WAIT, ready)
-        .await
-        .unwrap()
-        .unwrap()
-        .is_ok());
+    assert!(
+        tokio::time::timeout(WAIT, stopping)
+            .await
+            .unwrap()
+            .unwrap()
+            .is_ok()
+    );
+    assert!(
+        tokio::time::timeout(WAIT, ready)
+            .await
+            .unwrap()
+            .unwrap()
+            .is_ok()
+    );
     let snapshot = controller.get_state(host.as_ref(), &id).await.unwrap();
     assert_eq!(snapshot.state, SessionLifecycleState::Ready);
 }
@@ -372,8 +396,20 @@ async fn concurrent_ensure_ready_shares_one_activation() {
     };
     tokio::time::sleep(Duration::from_millis(20)).await;
     host.release_activation();
-    assert!(tokio::time::timeout(WAIT, one).await.unwrap().unwrap().is_ok());
-    assert!(tokio::time::timeout(WAIT, two).await.unwrap().unwrap().is_ok());
+    assert!(
+        tokio::time::timeout(WAIT, one)
+            .await
+            .unwrap()
+            .unwrap()
+            .is_ok()
+    );
+    assert!(
+        tokio::time::timeout(WAIT, two)
+            .await
+            .unwrap()
+            .unwrap()
+            .is_ok()
+    );
     assert_eq!(host.counts(), (1, 0), "只冷加载一次");
 }
 
@@ -387,7 +423,9 @@ async fn a_missing_session_is_not_activated() {
         state.as_ref().err().map(|error| error.code.as_str()),
         Some("sessionNotFound")
     );
-    let ready = controller.ensure_ready(host.as_ref(), &session(), None).await;
+    let ready = controller
+        .ensure_ready(host.as_ref(), &session(), None)
+        .await;
     assert_eq!(code(&ready), "sessionNotFound");
     assert_eq!(host.counts(), (0, 0));
 }
@@ -397,16 +435,25 @@ async fn a_missing_session_is_not_activated() {
 async fn the_snapshot_reconciles_with_the_session_table() {
     let host = FakeHost::new(true, true);
     let controller = LifecycleController::default();
-    let snapshot = controller.get_state(host.as_ref(), &session()).await.unwrap();
+    let snapshot = controller
+        .get_state(host.as_ref(), &session())
+        .await
+        .unwrap();
     assert_eq!(snapshot.state, SessionLifecycleState::Ready);
 
     host.inner().runtime = false;
-    let snapshot = controller.get_state(host.as_ref(), &session()).await.unwrap();
+    let snapshot = controller
+        .get_state(host.as_ref(), &session())
+        .await
+        .unwrap();
     assert_eq!(snapshot.state, SessionLifecycleState::Unloaded);
 
     host.inner().runtime = true;
     assert!(controller.is_ready(host.as_ref(), &session()));
-    let snapshot = controller.get_state(host.as_ref(), &session()).await.unwrap();
+    let snapshot = controller
+        .get_state(host.as_ref(), &session())
+        .await
+        .unwrap();
     assert_eq!(snapshot.state, SessionLifecycleState::Ready);
 }
 

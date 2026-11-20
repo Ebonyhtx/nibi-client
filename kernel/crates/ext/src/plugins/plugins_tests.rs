@@ -69,10 +69,7 @@ async fn manifest_components_and_mcp_servers() {
         panic!("db is stdio");
     };
     assert_eq!(command, &format!("{root}/bin/db"));
-    assert_eq!(
-        args,
-        &["--root".to_owned(), root.to_owned()]
-    );
+    assert_eq!(args, &["--root".to_owned(), root.to_owned()]);
     assert_eq!(plugins.0[1].name, "bare");
     plugin_stdio_servers_get_the_node_variables(kit, root).await;
     let roots: Vec<String> = plugins
@@ -114,7 +111,10 @@ async fn plugin_stdio_servers_get_the_node_variables(kit: &Plugin, root: &str) {
         assert!(!env.contains_key(name), "{name}");
     }
     // 插件身份由 resolver 权威写入（Node 同规则）：`<name>@<marketplace>`。
-    assert_eq!(env.get("NIBI_PLUGIN_ID").map(String::as_str), Some("toolkit@inline"));
+    assert_eq!(
+        env.get("NIBI_PLUGIN_ID").map(String::as_str),
+        Some("toolkit@inline")
+    );
 }
 
 /// 插件清单模板的数据目录与 user_config（Node `adapters/src/plugins/mcp.ts`）：
@@ -150,10 +150,19 @@ async fn plugin_templates_expand_data_user_config_and_project() {
     assert_eq!(command, "python");
     assert_eq!(args, &[format!("{root}/tools/mcp_server.py")]);
     assert_eq!(cwd.as_deref(), Some(project.as_str()));
-    assert_eq!(env["NIBI_MATH_ENV_DIR"], format!("{data_root}/math-agent@inline/env"));
-    assert_eq!(env["NIBI_MATH_PYTHON_MIRROR"], "https://pypi.example/simple");
+    assert_eq!(
+        env["NIBI_MATH_ENV_DIR"],
+        format!("{data_root}/math-agent@inline/env")
+    );
+    assert_eq!(
+        env["NIBI_MATH_PYTHON_MIRROR"],
+        "https://pypi.example/simple"
+    );
     assert_eq!(env["NIBI_WORKSPACE_ROOT"], project);
-    assert_eq!(env["NIBI_PLUGIN_DATA"], format!("{data_root}/math-agent@inline"));
+    assert_eq!(
+        env["NIBI_PLUGIN_DATA"],
+        format!("{data_root}/math-agent@inline")
+    );
     assert!(!env.contains_key("CLAUDE_PLUGIN_DATA"));
     assert_eq!(env["NIBI_PLUGIN_ID"], "math-agent@inline");
 }
@@ -195,9 +204,14 @@ async fn a_missing_user_config_value_skips_the_server() {
         &format!("{root}/.nibi-plugin/plugin.json"),
         r#"{"name": "bare-config", "mcpServers": {"math": {"command": "python", "env": {"MIRROR": "${user_config.pythonMirror}"}}}}"#,
     );
-    let plugins = load_all(&env, &workspace(), &[EnvPath::new(root)], &PluginSources::default())
-        .await
-        .plugins;
+    let plugins = load_all(
+        &env,
+        &workspace(),
+        &[EnvPath::new(root)],
+        &PluginSources::default(),
+    )
+    .await
+    .plugins;
     assert!(plugins.0[0].mcp_servers.is_empty());
 }
 
@@ -209,9 +223,14 @@ async fn a_sensitive_user_config_value_is_rejected_outside_sensitive_fields() {
         &format!("{root}/.nibi-plugin/plugin.json"),
         r#"{"name": "secret", "userConfig": {"token": {"type": "string", "sensitive": true, "default": "s3cr3t"}}, "mcpServers": {"bad": {"command": "tool", "args": ["${user_config.token}"]}, "good": {"command": "tool", "env": {"TOKEN": "${user_config.token}"}}}}"#,
     );
-    let plugins = load_all(&env, &workspace(), &[EnvPath::new(root)], &PluginSources::default())
-        .await
-        .plugins;
+    let plugins = load_all(
+        &env,
+        &workspace(),
+        &[EnvPath::new(root)],
+        &PluginSources::default(),
+    )
+    .await
+    .plugins;
     let names: Vec<&str> = plugins.0[0]
         .mcp_servers
         .iter()
@@ -388,8 +407,5 @@ async fn a_third_party_visualize_plugin_is_not_filtered() {
     .await
     .plugins;
     assert_eq!(plugins.0[0].id, "visualize@inline");
-    assert_eq!(
-        plugins.skill_roots(false)[0].dir,
-        format!("{root}/skills")
-    );
+    assert_eq!(plugins.skill_roots(false)[0].dir, format!("{root}/skills"));
 }

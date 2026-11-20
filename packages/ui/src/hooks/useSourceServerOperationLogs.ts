@@ -7,14 +7,17 @@ import { logger } from "@/logger.js";
 export function useSourceServerOperationLogs(
   management: ISourceServerManagementService | undefined,
   profileIds: readonly string[] = [],
+  options: { enabled?: boolean } = {},
 ) {
+  const enabled = options.enabled ?? true;
   const [logsByProfileId, setLogsByProfileId] = useState<
     Record<string, SourceServerOperationLog[]>
   >({});
   const profileKey = JSON.stringify([...new Set(profileIds)].sort());
   useEffect(() => {
     setLogsByProfileId({});
-    if (!management?.getRecentOperationLogs) return;
+    // 保活分区隐藏时暂停日志订阅/重读；重新可见后恢复并补一次。
+    if (!enabled || !management?.getRecentOperationLogs) return;
     const ids: string[] = JSON.parse(profileKey);
     let disposed = false;
     let pending = false;
@@ -51,6 +54,6 @@ export function useSourceServerOperationLogs(
       disposed = true;
       subscription?.dispose();
     };
-  }, [management, profileKey]);
+  }, [enabled, management, profileKey]);
   return { logsByProfileId };
 }

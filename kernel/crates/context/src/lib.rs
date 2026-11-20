@@ -36,6 +36,10 @@ mod subagent;
 mod system;
 mod task_reminder;
 
+#[cfg(test)]
+#[path = "session_prompt_tests.rs"]
+mod session_prompt_tests;
+
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -90,6 +94,14 @@ impl ListingSource for NoListings {
     async fn listings(&self, _request: &ContextRequest) -> Result<Listings, OrchestrationError> {
         Ok(Listings::default())
     }
+}
+
+/// 这一步的 system 输入（R09）：会话钉住的那一份，或进程配置（没有钉住时）。
+pub(crate) struct PromptInputs<'a> {
+    pub(crate) custom: Option<&'a str>,
+    pub(crate) append: Option<&'a str>,
+    pub(crate) shell_escape: bool,
+    pub(crate) typed_mentions: bool,
 }
 
 pub struct PromptAssembler {
@@ -175,6 +187,25 @@ impl PromptAssembler {
             return None;
         }
         self.config.memory_dir.as_deref()
+    }
+
+    /// 这一步的 system 输入（R09，docs/specs/rust-cli/context.md §15.3）：请求带会话钉住的那一份时读它；
+    /// 没有时按进程配置（这个改动之前的行为），两条路径在缺省下逐字节相同。
+    pub(crate) fn prompt_inputs<'a>(&'a self, request: &'a ContextRequest) -> PromptInputs<'a> {
+        match request.prompt.as_deref() {
+            Some(prompt) => PromptInputs {
+                custom: prompt.system.custom.as_deref(),
+                append: prompt.system.append.as_deref(),
+                shell_escape: prompt.system.shell_escape,
+                typed_mentions: prompt.live.traits.typed_mentions,
+            },
+            None => PromptInputs {
+                custom: self.config.custom_system_prompt.as_deref(),
+                append: self.config.append_system_prompt.as_deref(),
+                shell_escape: self.config.surface == Surface::Interactive,
+                typed_mentions: self.config.surface == Surface::Interactive,
+            },
+        }
     }
 
     /// 接上会话的附加工作目录（runtime 建一个句柄，与判决链共用）。
@@ -326,10 +357,11 @@ impl PromptAssembler {
         let input = (thread == Thread::Main)
             .then(|| input_reminders::turn_input(history))
             .flatten();
-        // 输入中间的 skill 提及（工作线 F82）：TUI 里键入的输入、有 Skill 工具时，排在最前面（提及那一组在
-        // `environment` 之前，context.md §4.4）。
+        // 输入中间的 skill 提及（工作线 F82）：前端说输入是人类键入的（TUI、App，context.md §15.5）、有 Skill
+        // 工具时，排在最前面（提及那一组在 `environment` 之前，context.md §4.4）。会话钉住时读附件那一层
+        // （`LivePrompt`，每回合可变）；没有钉住时按进程形态（旧行为）。
         if let Some(typed) = input.as_ref().and_then(input_reminders::typed)
-            && self.config.surface == Surface::Interactive
+            && self.prompt_inputs(request).typed_mentions
             && has_tool(SKILL_TOOL)
         {
             let names = self
@@ -477,8 +509,8 @@ impl PromptAssembler {
                 instructions::announce(history, &files, reason)
                     .map(|found| self.attachment(instructions::SOURCE, found)),
             );
-            // `--system-prompt` 时 systemContext 为空：不发 git 状态（cli-args.md §4.2）。
-            if self.config.custom_system_prompt.is_none() {
+            // `--system-prompt` 时 systemContext 为空：不发 git 状态（cli-args.md §4.2）。钉住的 custom 同样。
+            if self.prompt_inputs(request).custom.is_none() {
                 let git = self.ports.git.as_ref();
                 out.extend(
                     session_context::announce(git, &request.workspace, facts, history)
@@ -512,15 +544,16 @@ impl ContextBuilder for PromptAssembler {
             .listings
             .listings_for(&request, since_boundary(history))
             .await?;
+        let inputs = self.prompt_inputs(&request);
         let facts = PromptFacts {
-            surface: self.config.surface,
+            shell_escape: inputs.shell_escape,
             system_turns: crate::system::facts_system_turns(&request),
             tool_names: &request.tool_names,
             has_skills: !listings.skills.is_empty(),
             memory_dir: self.memory_dir(&request),
             output_style: self.config.output_style.as_ref(),
-            custom: self.config.custom_system_prompt.as_deref(),
-            append: self.config.append_system_prompt.as_deref(),
+            custom: inputs.custom,
+            append: inputs.append,
             token_budget: crate::system::token_budget(&request),
         };
         let system = system_blocks(&facts);

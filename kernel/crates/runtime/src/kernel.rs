@@ -95,6 +95,8 @@ impl LocalKernel {
                         selection: request.selection.clone(),
                     },
                     Fact::ExecutionChanged { state: execution },
+                    // R09：会话钉住的 system 输入随初始事实落库；冷打开（续写、serve 的下一轮）沿用它。
+                    self.prompt.fact(),
                 ],
                 turn: None,
             };
@@ -169,12 +171,10 @@ impl LocalKernel {
         };
         // 子代理继承父会话的插件集（Node 子代理 app 继承父 app）；父会话不在时按新快照。
         if let Some(parent) = parent {
-            self.ext
-                .copy_session_skill_roots(parent, session.clone());
+            self.ext.copy_session_skill_roots(parent, session.clone());
             self.ext
                 .copy_session_plugin_catalog(parent, session.clone());
-            self.agent_catalog
-                .copy_session(parent, session.clone());
+            self.agent_catalog.copy_session(parent, session.clone());
             self.hooks.copy_session(parent, session.clone());
             return;
         }
@@ -183,16 +183,14 @@ impl LocalKernel {
         // 执行期门禁：登记这份快照里的付费插件名与 MCP 服务器归属（工具表仍冻结在这份快照里）。
         self.ext.note_plugin_snapshot(plugins);
         let (agents, hooks) = crate::ext::plugin_parts(plugins);
-        self.ext
-            .set_session_skill_roots(session.clone(), plugins);
+        self.ext.set_session_skill_roots(session.clone(), plugins);
         // Composer `@` 插件面板的身份目录：会话创建时冻结（Node 的 session-owned catalog）。
         self.ext
             .set_session_plugin_catalog(session.clone(), loaded.catalog.clone());
         self.ext.refresh_status_servers(workspace, plugins);
         self.agent_catalog
             .set_session_plugins(session.clone(), agents);
-        self.hooks
-            .register_session_plugins(session.clone(), hooks);
+        self.hooks.register_session_plugins(session.clone(), hooks);
         // 会话自己要一套 MCP 连接时，进程级配置的服务器也要在场（Node 的 App runtimeConfig.mcp
         // 同时含 CLI 配置与插件服务器）。
         let mut servers: Vec<nibi_kernel_api::mcp_session::SessionMcpServer> = self
@@ -232,7 +230,9 @@ impl Kernel for LocalKernel {
     }
 
     /// 后台通知中心（DWF run 的终态通知进父会话；升级提示同路）。
-    fn workflow_notices(&self) -> Option<std::sync::Arc<dyn nibi_kernel_api::workflow::WorkflowNotices>> {
+    fn workflow_notices(
+        &self,
+    ) -> Option<std::sync::Arc<dyn nibi_kernel_api::workflow::WorkflowNotices>> {
         Some(self.actors.clone())
     }
 
@@ -423,10 +423,12 @@ impl Kernel for LocalKernel {
         limit: usize,
     ) -> Result<Vec<nibi_kernel_api::workflow::WorkflowRunPageRow>, KernelError> {
         self.ports
-        .store
-        .workflow_runs_page(cwd, name, limit)
-        .await
-        .map_err(|error| KernelError::Failed { message: error.to_string() })
+            .store
+            .workflow_runs_page(cwd, name, limit)
+            .await
+            .map_err(|error| KernelError::Failed {
+                message: error.to_string(),
+            })
     }
 
     /// 旧会话的询问（agents.md §4.1.2，工作线 F72）。
@@ -551,9 +553,11 @@ impl Kernel for LocalKernel {
             });
         }
         for id in &matching {
-            self.stop_session_runtime(id).await.map_err(|error| KernelError::Failed {
-                message: format!("failed to release session {id}: {error}"),
-            })?;
+            self.stop_session_runtime(id)
+                .await
+                .map_err(|error| KernelError::Failed {
+                    message: format!("failed to release session {id}: {error}"),
+                })?;
         }
         Ok(nibi_kernel_api::session_api::ReleaseUnderDirectoryReport {
             released: matching,
@@ -901,7 +905,10 @@ impl Kernel for LocalKernel {
         &self,
         request: nibi_kernel_api::mcp_ui::McpUiInstanceRequest,
     ) -> Result<(), KernelError> {
-        self.ext.mcp_ui_validate(request).await.map_err(mcp_ui_error)
+        self.ext
+            .mcp_ui_validate(request)
+            .await
+            .map_err(mcp_ui_error)
     }
 
     /// `mcp/readResource`：宿主取页面 HTML（必须等于实例绑定的资源）。
@@ -909,7 +916,10 @@ impl Kernel for LocalKernel {
         &self,
         request: nibi_kernel_api::mcp_ui::McpUiReadRequest,
     ) -> Result<Vec<nibi_kernel_api::mcp_ui::McpResourceContent>, KernelError> {
-        self.ext.mcp_ui_read_resource(request).await.map_err(mcp_ui_error)
+        self.ext
+            .mcp_ui_read_resource(request)
+            .await
+            .map_err(mcp_ui_error)
     }
 
     /// `mcp/uiReadResource`：页面发起的资源读取。
@@ -950,7 +960,10 @@ impl Kernel for LocalKernel {
         &self,
         request: nibi_kernel_api::mcp_ui::McpUiSubscriptionRequest,
     ) -> Result<(), KernelError> {
-        self.ext.mcp_ui_subscribe(request).await.map_err(mcp_ui_error)
+        self.ext
+            .mcp_ui_subscribe(request)
+            .await
+            .map_err(mcp_ui_error)
     }
 
     /// `mcp/uiUnsubscribeResource`：页面退订一个资源。
@@ -975,11 +988,12 @@ impl Kernel for LocalKernel {
     ) -> Result<serde_json::Value, KernelError> {
         let session_id = request.instance.scope.session.clone();
         // Node 的 `requireSession`：只认本进程里打开着的会话（不冷加载存储）。
-        let session = self.settled(&session_id).await.ok_or_else(|| {
-            KernelError::NotFound {
+        let session = self
+            .settled(&session_id)
+            .await
+            .ok_or_else(|| KernelError::NotFound {
                 session: session_id.clone(),
-            }
-        })?;
+            })?;
         // 先去重并占住实例（`onlyIfIdle` 的关页面看这个占位），再校验归属。
         let guard = self.ext.mcp_ui_begin_call(&request).map_err(mcp_ui_error)?;
         let tool = self
@@ -1043,7 +1057,9 @@ impl Kernel for LocalKernel {
     ) -> Result<bool, KernelError> {
         let session_id = request.instance.scope.session.clone();
         if self.settled(&session_id).await.is_none() {
-            return Err(KernelError::NotFound { session: session_id });
+            return Err(KernelError::NotFound {
+                session: session_id,
+            });
         }
         self.ext
             .mcp_ui_cancel_call(request)
@@ -1117,7 +1133,9 @@ impl Kernel for LocalKernel {
     ) -> Result<nibi_kernel_api::mcp_ui::McpUiSamplingResult, KernelError> {
         let session_id = request.instance.scope.session.clone();
         let Some(session) = self.settled(&session_id).await else {
-            return Err(KernelError::NotFound { session: session_id });
+            return Err(KernelError::NotFound {
+                session: session_id,
+            });
         };
         // 采样用会话当前的模型选择（回合外请求不改变它）。
         let selection = session.out_of_turn_selection().await?;
@@ -1373,8 +1391,9 @@ impl Kernel for LocalKernel {
                         (SkillReferenceScope::Plugin, Some(plugin.clone()))
                     }
                     nibi_kernel_ext::SkillSource::Project => (SkillReferenceScope::Workspace, None),
-                    nibi_kernel_ext::SkillSource::Managed
-                    | nibi_kernel_ext::SkillSource::User => (SkillReferenceScope::User, None),
+                    nibi_kernel_ext::SkillSource::Managed | nibi_kernel_ext::SkillSource::User => {
+                        (SkillReferenceScope::User, None)
+                    }
                 };
                 Some(SkillReference {
                     id: format!("nibi-agent:{}:{}", scope.as_str(), skill.dir),
@@ -1538,8 +1557,7 @@ impl Kernel for LocalKernel {
         &self,
         session: &SessionId,
         run_id: &str,
-    ) -> Result<Option<Vec<nibi_kernel_api::workflow::WorkflowRunWorkspaceNode>>, KernelError>
-    {
+    ) -> Result<Option<Vec<nibi_kernel_api::workflow::WorkflowRunWorkspaceNode>>, KernelError> {
         self.ports
             .store
             .workflow_run_workspace(session, run_id)
@@ -1594,13 +1612,18 @@ impl Kernel for LocalKernel {
         parent: &SessionId,
         request: nibi_kernel_api::workflow::WorkflowStart,
     ) -> Result<nibi_kernel_api::workflow::WorkflowRunStarted, KernelError> {
-        let engine = self.workflow_engine.as_ref().ok_or_else(|| KernelError::Unsupported {
-            what: "dynamic workflow engine".to_owned(),
-        })?;
-        engine
-            .start_saved(parent, request)
-            .await
-            .map_err(|error| workflow_fault(nibi_kernel_api::workflow::SAVED_WORKFLOW_START_REJECTED, error))
+        let engine = self
+            .workflow_engine
+            .as_ref()
+            .ok_or_else(|| KernelError::Unsupported {
+                what: "dynamic workflow engine".to_owned(),
+            })?;
+        engine.start_saved(parent, request).await.map_err(|error| {
+            workflow_fault(
+                nibi_kernel_api::workflow::SAVED_WORKFLOW_START_REJECTED,
+                error,
+            )
+        })
     }
 
     /// NIBI `resumeWorkflowRun`。
@@ -1609,24 +1632,34 @@ impl Kernel for LocalKernel {
         run_id: &str,
         name: Option<&str>,
     ) -> Result<nibi_kernel_api::workflow::WorkflowRunStarted, KernelError> {
-        let engine = self.workflow_engine.as_ref().ok_or_else(|| KernelError::Unsupported {
-            what: "dynamic workflow engine".to_owned(),
-        })?;
-        engine
-            .resume(run_id, name)
-            .await
-            .map_err(|error| workflow_fault(nibi_kernel_api::workflow::WORKFLOW_RUN_RESUME_REJECTED, error))
+        let engine = self
+            .workflow_engine
+            .as_ref()
+            .ok_or_else(|| KernelError::Unsupported {
+                what: "dynamic workflow engine".to_owned(),
+            })?;
+        engine.resume(run_id, name).await.map_err(|error| {
+            workflow_fault(
+                nibi_kernel_api::workflow::WORKFLOW_RUN_RESUME_REJECTED,
+                error,
+            )
+        })
     }
 
     /// `cancelBackgroundWork` 落到 DWF run 上：`workId ≡ runId`。
     async fn cancel_workflow_run(&self, run_id: &str) -> Result<(), KernelError> {
-        let engine = self.workflow_engine.as_ref().ok_or_else(|| KernelError::Unsupported {
-            what: "dynamic workflow engine".to_owned(),
-        })?;
-        engine
-            .cancel(run_id)
-            .await
-            .map_err(|error| workflow_fault(nibi_kernel_api::workflow::WORKFLOW_RUN_RESUME_REJECTED, error))
+        let engine = self
+            .workflow_engine
+            .as_ref()
+            .ok_or_else(|| KernelError::Unsupported {
+                what: "dynamic workflow engine".to_owned(),
+            })?;
+        engine.cancel(run_id).await.map_err(|error| {
+            workflow_fault(
+                nibi_kernel_api::workflow::WORKFLOW_RUN_RESUME_REJECTED,
+                error,
+            )
+        })
     }
 
     /// NIBI `amendWorkflowRunSettings`。
@@ -1634,13 +1667,18 @@ impl Kernel for LocalKernel {
         &self,
         request: nibi_kernel_api::workflow::WorkflowAmend,
     ) -> Result<nibi_kernel_api::workflow::WorkflowRunStarted, KernelError> {
-        let engine = self.workflow_engine.as_ref().ok_or_else(|| KernelError::Unsupported {
-            what: "dynamic workflow engine".to_owned(),
-        })?;
-        engine
-            .amend(request)
-            .await
-            .map_err(|error| workflow_fault(nibi_kernel_api::workflow::WORKFLOW_RUN_SETTINGS_REJECTED, error))
+        let engine = self
+            .workflow_engine
+            .as_ref()
+            .ok_or_else(|| KernelError::Unsupported {
+                what: "dynamic workflow engine".to_owned(),
+            })?;
+        engine.amend(request).await.map_err(|error| {
+            workflow_fault(
+                nibi_kernel_api::workflow::WORKFLOW_RUN_SETTINGS_REJECTED,
+                error,
+            )
+        })
     }
 
     /// 一轮 DWF actor（路线 C：引擎 sidecar 通过它跑 actor 的模型轮）。
@@ -1669,7 +1707,9 @@ impl Kernel for LocalKernel {
                 ),
                 root: nibi_kernel_api::env::EnvPath::new(root),
             },
-            selection: spec.selection.unwrap_or_else(|| self.defaults.selection.clone()),
+            selection: spec
+                .selection
+                .unwrap_or_else(|| self.defaults.selection.clone()),
             mode: spec.mode.unwrap_or(self.defaults.mode),
             prompt: spec.prompt,
             label: spec.label,
@@ -1720,7 +1760,10 @@ impl Kernel for LocalKernel {
         qid: &str,
         answer: &str,
     ) -> Result<nibi_kernel_api::workflow::WorkflowQuestionResolved, KernelError> {
-        Ok(self.escalations.resolve_question(session, qid, answer).await)
+        Ok(self
+            .escalations
+            .resolve_question(session, qid, answer)
+            .await)
     }
 
     /// 一个会话名下的 run 还欠答案的问题（按提问顺序）。
@@ -2026,9 +2069,7 @@ fn saved_workflow_dir(home: Option<String>, workspace_path: &str, scope: &str) -
 }
 
 /// sidecar 的失败 → 内核错误（`reason` 兜底、`message` 在场时优先——中枢读/写两面的同一条映射）。
-fn workflow_engine_failure(
-    error: nibi_kernel_api::workflow::WorkflowEngineError,
-) -> KernelError {
+fn workflow_engine_failure(error: nibi_kernel_api::workflow::WorkflowEngineError) -> KernelError {
     KernelError::Failed {
         message: match error.message {
             Some(message) => message,

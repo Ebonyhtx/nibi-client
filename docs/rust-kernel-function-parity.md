@@ -204,7 +204,7 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
   经 `node-repl-host/src/cua-bridge.ts` → node_repl 进程内的 broker socket →
   `@nibi/cua` runtime → 本地 NDJSON → CUA Helper → `@trycua/cua-driver`。
 - Host 不在动作链上：它只负责控制面（稳定 socket/recipe 注入、Helper 生命周期、权限 UI）。
-- 公开仓的 `packages/nibi-cua` 是**完整实现**（Helper / runtime / engine adapter，Apache-2.0），
+- 公开仓的 `packages/computer-use` 是**完整实现**（Helper / runtime / engine adapter，Apache-2.0），
   原生能力来自 MIT 的 `@trycua/cua-driver`；不再有私有 overlay 或占位包。缺少 broker/引擎时
   运行时 fail-closed，这是运行态检查，不是包本身缺失。
 
@@ -246,7 +246,7 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
 
 ### 5.5 真实 Helper 验证（2026-11-07，历史）
 
-> 2026-11-14 起 CUA 实包已迁入公开仓 `packages/nibi-cua`，不再需要私有 overlay；本节只保留当时的验证结论。
+> 2026-11-14 起 CUA 实包已迁入公开仓 `packages/computer-use`，不再需要私有 overlay；本节只保留当时的验证结论。
 
 - 当时在私有 sidecar 里用真实 runtime/helper/engine 验证了 `list_apps` 返回真实桌面应用列表、
   `list_windows` 返回窗口（windowId/pid/bounds/isOnScreen）；公开仓当时只是占位包。
@@ -258,7 +258,7 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
 - `computer-use/operation-event` 已由 Rust 的 `Live` 按同一映射发出（§5.4）；
   `v4/cua/permission-observation` 不补——当前 node_repl 表面下 Node 的触发器本身不可达，
   真正的权限 UI 是 Host 的 `ICuaPermissionService`。动作链不受影响。
-- CUA 实包现已在公开仓 `packages/nibi-cua`（Apache-2.0，使用 MIT 的 `@trycua/cua-driver`），
+- CUA 实包现已在公开仓 `packages/computer-use`（Apache-2.0，使用 MIT 的 `@trycua/cua-driver`），
   公开构建直接消费它，不再有占位包或私有 overlay。Rust 侧只负责启动同一个 `node_repl` 进程，
   不再改变这条路径。
 

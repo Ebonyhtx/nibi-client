@@ -99,11 +99,7 @@ pub fn is_read_only_analysis(analysis: &Analysis, git_unsafe: bool) -> bool {
 }
 
 /// 同 [`is_read_only_analysis`]，显式给出 Bash 方言（Posix / GitBash）。
-pub fn is_read_only_analysis_in(
-    analysis: &Analysis,
-    git_unsafe: bool,
-    dialect: Dialect,
-) -> bool {
+pub fn is_read_only_analysis_in(analysis: &Analysis, git_unsafe: bool, dialect: Dialect) -> bool {
     is_read_only_analysis_on(analysis, git_unsafe, dialect.path_style())
 }
 

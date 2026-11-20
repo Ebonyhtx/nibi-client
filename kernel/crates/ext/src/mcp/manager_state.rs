@@ -10,7 +10,7 @@ use async_trait::async_trait;
 use nibi_kernel_api::ids::SessionId;
 use nibi_kernel_api::manage::McpServerState;
 use nibi_kernel_api::mcp_state::{McpChildProcess, McpConnections, McpServerView, McpView};
-use nibi_kernel_api::mcp_telemetry::{resolve_source, plugin_name as mcp_plugin_name};
+use nibi_kernel_api::mcp_telemetry::{plugin_name as mcp_plugin_name, resolve_source};
 use nibi_kernel_api::process_table::McpResourceTarget;
 use nibi_kernel_api::tool::Tool;
 

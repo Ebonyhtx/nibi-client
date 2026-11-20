@@ -26,7 +26,6 @@ const PROTECTED: &[&str] = &[
     "ENV",
     "BASH_ENV",
     "_",
-    "ZCODE",
     "GIT_EDITOR",
 ];
 

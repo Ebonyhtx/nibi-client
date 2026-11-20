@@ -1,7 +1,7 @@
 //! 入口层组装的配置快照交给内核（docs/specs/rust-cli/config.md §3）：整份替换，内核不读文件。
 
-use nibi_kernel_hooks::HooksConfig;
 use nibi_kernel_api::permission::PermissionRules;
+use nibi_kernel_hooks::HooksConfig;
 use nibi_kernel_session::TitleModel;
 
 use crate::LocalKernel;

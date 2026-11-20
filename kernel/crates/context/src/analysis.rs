@@ -38,15 +38,16 @@ impl PromptAssembler {
     ) -> Result<Analysis, OrchestrationError> {
         let window = since_boundary(history);
         let listings = self.ports.listings.listings_for(request, window).await?;
+        let inputs = self.prompt_inputs(request);
         let facts = PromptFacts {
-            surface: self.config.surface,
+            shell_escape: inputs.shell_escape,
             system_turns: crate::system::facts_system_turns(request),
             tool_names: &request.tool_names,
             has_skills: !listings.skills.is_empty(),
             memory_dir: self.memory_dir(request),
             output_style: self.config.output_style.as_ref(),
-            custom: self.config.custom_system_prompt.as_deref(),
-            append: self.config.append_system_prompt.as_deref(),
+            custom: inputs.custom,
+            append: inputs.append,
             token_budget: crate::system::token_budget(request),
         };
         let mut analysis = Analysis {
@@ -60,8 +61,8 @@ impl PromptAssembler {
             return Ok(analysis);
         };
         let git = self.ports.git.as_ref();
-        // `--system-prompt` 时没有 git 状态（与 `build` 相同，cli-args.md §4.2）。
-        if self.config.custom_system_prompt.is_none()
+        // `--system-prompt` 时没有 git 状态（与 `build` 相同，cli-args.md §4.2）。钉住的 custom 同样。
+        if self.prompt_inputs(request).custom.is_none()
             && let Some(git) =
                 session_context::git_section(git, &request.workspace, &env_facts, window).await
         {

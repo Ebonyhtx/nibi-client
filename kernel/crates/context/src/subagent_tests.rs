@@ -99,6 +99,7 @@ fn request(agent_type: &str) -> ContextRequest {
         },
         plan_flags: Default::default(),
         mcp: None,
+        prompt: None,
     }
 }
 

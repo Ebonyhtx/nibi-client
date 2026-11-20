@@ -479,6 +479,7 @@ async fn turn_attachments_default_to_empty() {
         selection: crate::testing::selection(),
         plan_flags: Default::default(),
         mcp: None,
+        prompt: None,
     };
     let attachments = context.turn_attachments(request, &[]).await.unwrap();
     assert!(attachments.is_empty());

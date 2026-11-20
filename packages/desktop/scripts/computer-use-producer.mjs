@@ -14,7 +14,7 @@ const PRODUCER_PACKAGE_SEGMENTS = [["@nibi", "cua"]];
 /**
  * 判定当前安装的 `@nibi/cua` 是否真实 producer。
  *
- * 当前公开 `packages/nibi-cua` 就是真实 producer。判定保留历史兼容：旧导出或异常安装可能在
+ * 当前公开 `packages/computer-use` 就是真实 producer。判定保留历史兼容：旧导出或异常安装可能在
  * package.json 声明 `nibiCuaPlaceholder: true`，这类包所有能力 fail-closed。
  * 开发、构建与打包里只服务于真实 Computer Use 的步骤（构建 Helper、暂存插件原生依赖、
  * Windows Helper 资源、打包后的 Helper 校验）都以本判定为门，检测不到真实 producer 时跳过。

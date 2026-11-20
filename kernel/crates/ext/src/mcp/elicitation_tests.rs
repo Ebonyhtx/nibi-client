@@ -84,13 +84,7 @@ async fn an_elicitation_during_a_tool_call_reaches_the_question_channel() {
         "decision": "answered",
         "answers": {"What is your name?": "Ada"},
     });
-    let _guard = hub.enter(
-        "srv",
-        Arc::new(Ask(answers)),
-        nibi_kernel_api::ids::SessionId::new("s1"),
-        nibi_kernel_api::ids::ToolUseId::new("t1"),
-        tokio_util::sync::CancellationToken::new(),
-    );
+    let _guard = enter(&hub, Arc::new(Ask(answers)), None);
     let result = <super::ElicitationHub as nibi_kernel_api::mcp::McpElicitation>::elicit(
         &hub,
         "srv",
@@ -105,6 +99,179 @@ async fn an_elicitation_during_a_tool_call_reaches_the_question_channel() {
     .await;
     assert_eq!(result["action"], "accept");
     assert_eq!(result["content"]["name"], "Ada");
+}
+
+fn enter(
+    hub: &std::sync::Arc<super::ElicitationHub>,
+    interactions: std::sync::Arc<dyn nibi_kernel_api::orchestration::Interactions>,
+    hooks: Option<std::sync::Arc<dyn nibi_kernel_api::hooks::HookRunner>>,
+) -> super::ElicitationGuard {
+    hub.enter(
+        "srv",
+        super::CallContext {
+            interactions,
+            session: nibi_kernel_api::ids::SessionId::new("s1"),
+            tool_use: nibi_kernel_api::ids::ToolUseId::new("t1"),
+            cancel: tokio_util::sync::CancellationToken::new(),
+            workspace: nibi_kernel_api::env::WorkspaceRef {
+                environment: nibi_kernel_api::ids::EnvironmentId::new("local"),
+                root: nibi_kernel_api::env::EnvPath::new("/work"),
+            },
+            hooks,
+            hook_context: nibi_kernel_api::hooks::HookContext::default(),
+        },
+    )
+}
+
+/// 按事件名回固定结果的 hooks，并记录输入。
+#[derive(Default)]
+struct Hooks {
+    outcomes: std::collections::HashMap<
+        nibi_kernel_api::hooks::HookEventName,
+        nibi_kernel_api::hooks::HookOutcome,
+    >,
+    seen: std::sync::Mutex<Vec<(nibi_kernel_api::hooks::HookEventName, serde_json::Value)>>,
+}
+
+#[async_trait::async_trait]
+impl nibi_kernel_api::hooks::HookRunner for Hooks {
+    async fn run(
+        &self,
+        event: nibi_kernel_api::hooks::HookEvent,
+        _cancel: tokio_util::sync::CancellationToken,
+    ) -> nibi_kernel_api::hooks::HookOutcome {
+        self.seen
+            .lock()
+            .unwrap()
+            .push((event.name, event.payload.clone()));
+        self.outcomes.get(&event.name).cloned().unwrap_or_default()
+    }
+}
+
+/// Elicitation hook 的结论替用户回答：不问用户，回给服务器，不跑结果 hook。
+#[tokio::test]
+async fn an_elicitation_hook_answers_before_the_user() {
+    use std::sync::Arc;
+
+    let mut outcomes = std::collections::HashMap::new();
+    outcomes.insert(
+        nibi_kernel_api::hooks::HookEventName::Elicitation,
+        nibi_kernel_api::hooks::HookOutcome {
+            elicitation: Some(nibi_kernel_api::hooks::ElicitationVerdict {
+                action: nibi_kernel_api::mcp_ask::ElicitationAction::Accept,
+                content: Some([("name".to_owned(), json!("Ada"))].into_iter().collect()),
+            }),
+            ..nibi_kernel_api::hooks::HookOutcome::default()
+        },
+    );
+    let hooks = Arc::new(Hooks {
+        outcomes,
+        ..Hooks::default()
+    });
+    let hub = super::ElicitationHub::new();
+    // 用户回答不会被用到：这个替身会 panic 之外什么也不做（我们只检查没有 Ask 事件）。
+    let _guard = enter(
+        &hub,
+        Arc::new(Ask(json!({"decision": "declined"}))),
+        Some(hooks.clone()),
+    );
+    let result = <super::ElicitationHub as nibi_kernel_api::mcp::McpElicitation>::elicit(
+        &hub,
+        "srv",
+        json!({"message": "Your name?"}),
+    )
+    .await;
+    assert_eq!(
+        result,
+        json!({"action": "accept", "content": {"name": "Ada"}})
+    );
+    let seen = hooks.seen.lock().unwrap().clone();
+    assert_eq!(seen.len(), 1);
+    assert_eq!(
+        seen[0].0,
+        nibi_kernel_api::hooks::HookEventName::Elicitation
+    );
+    assert_eq!(seen[0].1["mcp_server_name"], "srv");
+    assert_eq!(seen[0].1["mode"], "form");
+}
+
+/// ElicitationResult hook 换掉用户的回答（没给 content 时沿用用户的）；阻塞回 decline。
+#[tokio::test]
+async fn an_elicitation_result_hook_replaces_the_answer() {
+    use std::sync::Arc;
+
+    let mut outcomes = std::collections::HashMap::new();
+    outcomes.insert(
+        nibi_kernel_api::hooks::HookEventName::ElicitationResult,
+        nibi_kernel_api::hooks::HookOutcome {
+            elicitation: Some(nibi_kernel_api::hooks::ElicitationVerdict {
+                action: nibi_kernel_api::mcp_ask::ElicitationAction::Accept,
+                content: None,
+            }),
+            ..nibi_kernel_api::hooks::HookOutcome::default()
+        },
+    );
+    let hooks = Arc::new(Hooks {
+        outcomes,
+        ..Hooks::default()
+    });
+    let hub = super::ElicitationHub::new();
+    let answers = json!({"decision": "answered", "answers": {"Your name?": "Ada"}});
+    let _guard = enter(&hub, Arc::new(Ask(answers)), Some(hooks.clone()));
+    let result = <super::ElicitationHub as nibi_kernel_api::mcp::McpElicitation>::elicit(
+        &hub,
+        "srv",
+        json!({"message": "Your name?"}),
+    )
+    .await;
+    assert_eq!(
+        result,
+        json!({"action": "accept", "content": {"answer": "Ada"}})
+    );
+    let seen = hooks.seen.lock().unwrap().clone();
+    assert_eq!(seen.len(), 2, "{seen:?}");
+    let (name, payload) = seen
+        .iter()
+        .find(|(name, _)| *name == nibi_kernel_api::hooks::HookEventName::ElicitationResult)
+        .expect("the result hook ran");
+    assert_eq!(
+        *name,
+        nibi_kernel_api::hooks::HookEventName::ElicitationResult
+    );
+    assert_eq!(payload["action"], "accept");
+    assert_eq!(payload["content"]["answer"], "Ada");
+}
+
+/// 阻塞（退出码 2 / `decision: block`）回 decline。
+#[tokio::test]
+async fn a_blocking_elicitation_hook_declines() {
+    use std::sync::Arc;
+
+    let mut outcomes = std::collections::HashMap::new();
+    outcomes.insert(
+        nibi_kernel_api::hooks::HookEventName::Elicitation,
+        nibi_kernel_api::hooks::HookOutcome {
+            blocking_error: Some("no".to_owned()),
+            ..nibi_kernel_api::hooks::HookOutcome::default()
+        },
+    );
+    let hooks = Arc::new(Hooks {
+        outcomes,
+        ..Hooks::default()
+    });
+    let hub = super::ElicitationHub::new();
+    let _guard = enter(
+        &hub,
+        Arc::new(Ask(json!({"decision": "declined"}))),
+        Some(hooks),
+    );
+    let result = <super::ElicitationHub as nibi_kernel_api::mcp::McpElicitation>::elicit(
+        &hub,
+        "srv",
+        json!({"message": "Your name?"}),
+    )
+    .await;
+    assert_eq!(result, json!({"action": "decline"}));
 }
 
 /// 没有正在执行的工具调用：不猜会话，回 decline。

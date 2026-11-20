@@ -192,7 +192,7 @@ export default defineConfig({
           ],
           exclude: [
             "packages/desktop/test/e2e/**",
-            "packages/nibi-cua/**",
+            "packages/computer-use/**",
             ...forkIsolatedTests,
             ...windowsOnlyTests,
             ...linuxOnlyExcludes,
@@ -227,7 +227,7 @@ export default defineConfig({
           sequence: { groupOrder: 2 },
         },
       },
-      "packages/nibi-cua/vitest.config.ts",
+      "packages/computer-use/vitest.config.ts",
     ],
     coverage: {
       provider: "v8",

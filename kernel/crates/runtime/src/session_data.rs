@@ -304,7 +304,10 @@ impl LocalKernel {
 /// 会话视图里的「在用」：在途回合、排队输入、待回答交互或后台工作。永久删除的预检与
 /// `session_data_busy` 共用这一条判据（两边不能分叉）。
 pub(crate) fn view_in_use(view: &nibi_kernel_api::session_api::SessionView) -> bool {
-    view.running || !view.queue.is_empty() || !view.pending.is_empty() || !view.background.is_empty()
+    view.running
+        || !view.queue.is_empty()
+        || !view.pending.is_empty()
+        || !view.background.is_empty()
 }
 
 #[cfg(test)]

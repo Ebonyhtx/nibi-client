@@ -3,6 +3,7 @@ import {
   createRawCodeTokens,
   highlightCode,
   shouldUseSyntaxHighlighting,
+  type TokenizedCode,
 } from "@/lib/shikiHighlighter.js";
 
 describe("shikiHighlighter", () => {
@@ -33,4 +34,26 @@ describe("shikiHighlighter", () => {
     expect(tokenized).toEqual(createRawCodeTokens(code));
     expect(callbackCount).toBe(0);
   });
+
+  it("loads the shiki core lazily and reports colored tokens through the callback", async () => {
+    const code = "const answer: number = 42;";
+    const tokenized = await new Promise<TokenizedCode>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error("shiki lazy highlight timed out"));
+      }, 25_000);
+      const immediate = highlightCode(code, "typescript", "github-light", (result) => {
+        clearTimeout(timeout);
+        resolve(result);
+      });
+
+      if (immediate) {
+        clearTimeout(timeout);
+        resolve(immediate);
+      }
+    });
+
+    const flatTokens = tokenized.tokens.flat();
+    expect(flatTokens.map((token) => token.content).join("")).toContain("answer");
+    expect(flatTokens.some((token) => token.color && token.color !== "inherit")).toBe(true);
+  }, 30_000);
 });

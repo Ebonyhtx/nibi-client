@@ -38,6 +38,7 @@ mod notices;
 mod peer_receipts;
 mod peer_restore;
 mod peers;
+mod prompt_pin;
 mod rename;
 mod rename_text;
 mod resume;
@@ -53,6 +54,9 @@ mod steering;
 mod tasks;
 #[cfg(test)]
 mod test_support;
+#[cfg(test)]
+#[path = "session_prompt_tests.rs"]
+mod session_prompt_tests;
 mod title;
 mod title_model;
 mod title_parse;
@@ -87,6 +91,7 @@ use crate::actor::{Actor, Request};
 pub use crate::detached::DetachedAsks;
 use crate::log::EventLog;
 pub use crate::peers::PeerDeps;
+pub use crate::prompt_pin::PromptPin;
 pub use crate::title_model::TitleModel;
 
 /// 命令队列的缓冲；满了时发送方等待。
@@ -142,6 +147,9 @@ pub struct SessionDeps {
     pub peers: PeerDeps,
     /// 父会话关闭之后旧会话的询问入口（进程级，agents.md §4.1.2，工作线 F72）；没有时那些询问按会话已关闭失败。
     pub detached: Option<Arc<DetachedAsks>>,
+    /// 内核现在给新会话钉的模型可见输入（R09，docs/specs/rust-cli/context.md §15.3）：建会话的初始事实写它的
+    /// system；冷打开读库里记下的，没有记录时用它（旧会话的行为）。
+    pub prompt: Arc<nibi_kernel_api::session_prompt::SessionPrompt>,
     /// 「run 还欠着决定、主代理闲着」提醒钟的会话侧边（kernel-api `WorkflowBlockedEdges`，
     /// transcript-and-notifications.md「Reminding an idle main agent」）：actor 在忙闲转换处
     /// 调用，钟与宿主装配在 runtime。没有时（测试 / 嵌入）没有提醒链。

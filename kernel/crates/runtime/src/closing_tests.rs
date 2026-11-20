@@ -9,7 +9,6 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
-use nibi_kernel_hooks::{HookSource, HooksConfig, HooksSettings};
 use nibi_kernel_api::env::{EnvPath, FileVersion, WorkspaceRef};
 use nibi_kernel_api::ids::{CommandId, EnvironmentId};
 use nibi_kernel_api::session_api::{
@@ -22,6 +21,7 @@ use nibi_kernel_api::testing::{
     ClosingEnvironment, FixedClock, MemoryStore, ScriptedModel, SequentialIds, environments,
     selection, text_response,
 };
+use nibi_kernel_hooks::{HookSource, HooksConfig, HooksSettings};
 use nibi_kernel_tools::file_state::{Baseline, FileState};
 use tokio::sync::watch;
 

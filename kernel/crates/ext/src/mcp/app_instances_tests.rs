@@ -67,7 +67,10 @@ fn opening_the_same_page_twice_reuses_the_lease() {
     let other = registry.open(open("scope-2"), connection(0));
     assert_eq!(other.generation, 2);
     assert_ne!(other.token, first.token);
-    assert_eq!(other.app_identity, first.app_identity, "同一页面同一连接：应用身份稳定");
+    assert_eq!(
+        other.app_identity, first.app_identity,
+        "同一页面同一连接：应用身份稳定"
+    );
 
     let mut with_account = open("scope-3");
     with_account.account_context = Some("account-1".to_owned());
@@ -77,7 +80,11 @@ fn opening_the_same_page_twice_reuses_the_lease() {
     // 连接换代：同一逻辑页面的旧凭证作废，拿到新代际。
     let renewed = registry.open(open("scope-1"), connection(1));
     assert_ne!(renewed.token, first.token);
-    assert!(registry.validate(&request(first), Some(connection(0))).is_err());
+    assert!(
+        registry
+            .validate(&request(first), Some(connection(0)))
+            .is_err()
+    );
 }
 
 /// 并发 open 同一逻辑页面：每个线程都必须拿到同一张凭证。Node 的单线程事件循环让
@@ -117,7 +124,11 @@ fn closing_a_server_revokes_only_its_leases() {
     other.scope.server_name = "plugin:toolkit:other".to_owned();
     let drop = registry.open(other, connection(0));
     registry.close_server(Some("s1"), "plugin:toolkit:other");
-    assert!(registry.validate(&request(keep.clone()), Some(connection(0))).is_ok());
+    assert!(
+        registry
+            .validate(&request(keep.clone()), Some(connection(0)))
+            .is_ok()
+    );
     assert!(!registry.is_known(&drop.token));
     assert!(registry.is_known(&keep.token));
 }
@@ -149,7 +160,11 @@ fn validation_checks_the_lease_scope_and_connection() {
             ..lease.clone()
         },
     ] {
-        assert!(registry.validate(&request(tampered), Some(connection(0))).is_err());
+        assert!(
+            registry
+                .validate(&request(tampered), Some(connection(0)))
+                .is_err()
+        );
     }
     // 作用域不对：别的会话 / 插件 / 服务器。
     let mut elsewhere = request(lease.clone());
@@ -157,10 +172,18 @@ fn validation_checks_the_lease_scope_and_connection() {
     assert!(registry.validate(&elsewhere, Some(connection(0))).is_err());
     let mut other_plugin = request(lease.clone());
     other_plugin.scope.plugin_id = "other".to_owned();
-    assert!(registry.validate(&other_plugin, Some(connection(0))).is_err());
+    assert!(
+        registry
+            .validate(&other_plugin, Some(connection(0)))
+            .is_err()
+    );
     let mut other_server = request(lease.clone());
     other_server.scope.server_name = "other".to_owned();
-    assert!(registry.validate(&other_server, Some(connection(0))).is_err());
+    assert!(
+        registry
+            .validate(&other_server, Some(connection(0)))
+            .is_err()
+    );
 
     // 当前连接换了代际：拒绝一次之后就作废了（即使再拿旧快照也无效）。
     assert!(
@@ -187,10 +210,18 @@ fn closing_removes_the_credential_first() {
         ..lease.clone()
     };
     assert!(!registry.close(&wrong));
-    assert!(registry.validate(&request(lease.clone()), Some(connection(0))).is_ok());
+    assert!(
+        registry
+            .validate(&request(lease.clone()), Some(connection(0)))
+            .is_ok()
+    );
     assert!(registry.close(&lease));
     assert!(!registry.close(&lease));
-    assert!(registry.validate(&request(lease), Some(connection(0))).is_err());
+    assert!(
+        registry
+            .validate(&request(lease), Some(connection(0)))
+            .is_err()
+    );
 }
 
 /// 会话关闭只撤销自己的实例。
@@ -202,7 +233,11 @@ fn closing_a_session_only_drops_its_instances() {
     other.scope.session = SessionId::new("s2");
     let theirs = registry.open(other, connection(0));
     registry.close_session("s1");
-    assert!(registry.validate(&request(mine), Some(connection(0))).is_err());
+    assert!(
+        registry
+            .validate(&request(mine), Some(connection(0)))
+            .is_err()
+    );
     let mut their_request = request(theirs);
     their_request.scope.session = SessionId::new("s2");
     assert!(

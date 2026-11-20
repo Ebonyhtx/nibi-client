@@ -2,8 +2,8 @@
 
 use std::sync::Arc;
 
-use nibi_kernel_base::TaskScope;
 use nibi_kernel_api::mcp::{McpConnect, McpTransportConfig};
+use nibi_kernel_base::TaskScope;
 
 use super::*;
 use crate::test_support::{FakeMcp, server, workspace};

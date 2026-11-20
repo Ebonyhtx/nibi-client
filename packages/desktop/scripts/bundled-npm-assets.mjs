@@ -22,7 +22,7 @@ import { extractPrebuiltArchive } from "../../../scripts/prebuilt-binary-extract
 export const BUNDLED_NPM_VERSION = "12.2.0";
 export const BUNDLED_NPM_INTEGRITY =
   "sha512-ZsJjKpTnlmSXOLLXiU1xDCzC4Wlok4IwZmh/aw2KUuXytU7q6qMv/cUT7MoeSf95Slwuw/lRXYefGzGCspHPNQ==";
-/** 相对 glm 目录（nibi.cjs 所在目录）的位置；与 bootstrap mcp-node-fallback.ts 同一约定。 */
+/** 相对 nibi 目录（nibi.cjs 所在目录）的位置；与 bootstrap mcp-node-fallback.ts 同一约定。 */
 export const BUNDLED_NPM_STAGED_SEGMENTS = ["node-runtime", "npm"];
 export const BUNDLED_NPM_STAGE_MARKER = "npm-stage.json";
 const NPM_REGISTRY_TARBALL_BASE = "https://registry.npmjs.org/npm/-/";
@@ -57,7 +57,7 @@ function isNpmRootSync(root) {
 }
 
 /**
- * 校验并缓存 tarball，解包后拷进 `<glmDir>/node-runtime/npm`。返回 staging 结果。
+ * 校验并缓存 tarball，解包后拷进 `<nibiDir>/node-runtime/npm`。返回 staging 结果。
  * download / extract 可注入，测试无需网络。
  *
  * 网络不可用时自动回退到本机 Node 自带 npm（见文件头）；`allowLocalFallback: false` 关闭回退，
@@ -68,14 +68,14 @@ export async function stageBundledNpm({
   cacheDir,
   download = downloadPrebuiltArchive,
   extract = extractPrebuiltArchive,
-  glmDir,
+  nibiDir,
   integrity = BUNDLED_NPM_INTEGRITY,
   localNpmRoot,
   log = console.log,
   offline = process.env.NIBI_BUNDLED_NPM_OFFLINE === "1",
   version = BUNDLED_NPM_VERSION,
 }) {
-  const targetRoot = join(glmDir, ...BUNDLED_NPM_STAGED_SEGMENTS);
+  const targetRoot = join(nibiDir, ...BUNDLED_NPM_STAGED_SEGMENTS);
 
   if (offline) {
     log(
@@ -104,7 +104,7 @@ export async function stageBundledNpm({
         stagedRoot: targetRoot,
         version,
       };
-      await writeStageMarker({ glmDir, ...result });
+      await writeStageMarker({ nibiDir, ...result });
       return result;
     } catch (error) {
       if (!allowLocalFallback) throw error;
@@ -130,7 +130,7 @@ export async function stageBundledNpm({
     stagedRoot: targetRoot,
     version,
   };
-  await writeStageMarker({ glmDir, ...result });
+  await writeStageMarker({ nibiDir, ...result });
   return result;
 }
 
@@ -161,10 +161,10 @@ async function replaceDirectory(packageRoot, targetRoot) {
   });
 }
 
-async function writeStageMarker({ glmDir, integrityVerified, source, version }) {
-  await mkdir(glmDir, { recursive: true });
+async function writeStageMarker({ nibiDir, integrityVerified, source, version }) {
+  await mkdir(nibiDir, { recursive: true });
   await writeFile(
-    join(glmDir, BUNDLED_NPM_STAGE_MARKER),
+    join(nibiDir, BUNDLED_NPM_STAGE_MARKER),
     `${JSON.stringify(
       {
         integrityVerified,
@@ -225,9 +225,9 @@ function isExcludedTopLevelEntry(packageRoot, sourcePath) {
 }
 
 /** 供测试直接读取 marker；staging 目录旁边的小文件，不进入 npm 包本体。 */
-export async function readBundledNpmStageMarker(glmDir) {
+export async function readBundledNpmStageMarker(nibiDir) {
   try {
-    return JSON.parse(await readFile(join(glmDir, BUNDLED_NPM_STAGE_MARKER), "utf8"));
+    return JSON.parse(await readFile(join(nibiDir, BUNDLED_NPM_STAGE_MARKER), "utf8"));
   } catch {
     return undefined;
   }

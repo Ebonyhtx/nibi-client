@@ -272,3 +272,46 @@ it("preserves non-enumerable RPC methods when tagging plugin operations", async 
     telemetry: { entry: "store_detail", client_kind: "desktop" },
   });
 });
+
+describe("plugin management bootstrap forwarding", () => {
+  const params = { workspacePath: "/workspace/app" };
+  const overview = {
+    marketplaces: [],
+    availablePlugins: [],
+    installedPlugins: [],
+    restorableBuiltins: [],
+    diagnostics: [],
+    capability: { supported: true },
+  };
+  const list = { plugins: [], diagnostics: [] };
+
+  it("forwards to a local backend bootstrap instead of running two discoveries", async () => {
+    const getPluginsBootstrap = vi.fn(async () => ({ list, overview }));
+    const listPlugins = vi.fn(async () => list);
+    const getPluginsOverview = vi.fn(async () => overview);
+    const service = createPluginManagementService({
+      nibiAgentService: {
+        getPluginsBootstrap,
+        listPlugins,
+        getPluginsOverview,
+      } as unknown as INibiAgentService,
+    });
+
+    await expect(service.getPluginsBootstrap(params)).resolves.toEqual({ list, overview });
+    expect(getPluginsBootstrap).toHaveBeenCalledWith(params);
+    expect(listPlugins).not.toHaveBeenCalled();
+    expect(getPluginsOverview).not.toHaveBeenCalled();
+  });
+
+  it("composes the two legacy calls for an agent without the bootstrap word", async () => {
+    const listPlugins = vi.fn(async () => list);
+    const getPluginsOverview = vi.fn(async () => overview);
+    const service = createPluginManagementService({
+      nibiAgentService: { listPlugins, getPluginsOverview } as unknown as INibiAgentService,
+    });
+
+    await expect(service.getPluginsBootstrap(params)).resolves.toEqual({ list, overview });
+    expect(listPlugins).toHaveBeenCalledWith(params);
+    expect(getPluginsOverview).toHaveBeenCalledWith(params);
+  });
+});

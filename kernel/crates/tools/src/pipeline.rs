@@ -8,17 +8,18 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use nibi_kernel_base::js::string::utf16_prefix;
 use nibi_kernel_api::message::ToolResultContent;
 use nibi_kernel_api::orchestration::{
     HookEventName, HookRunner, InteractionRequest, PermissionAnswer, PermissionGate, ToolExecution,
     ToolExecutor,
 };
 use nibi_kernel_api::permission::{PermissionDecision, PermissionRule};
+use nibi_kernel_api::permission_updates::{PermissionUpdate, UpdatePlace};
 use nibi_kernel_api::tool::{
     Tool, ToolCallOutput, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
 };
 use nibi_kernel_api::unparsed_input;
+use nibi_kernel_base::js::string::utf16_prefix;
 use serde_json::Value;
 use tokio::sync::mpsc;
 
@@ -65,6 +66,8 @@ fn rejection(context: &ToolUseContext, feedback: Option<&str>) -> String {
 enum Rejection {
     ByHook(ToolOutput),
     Other(ToolOutput),
+    /// PermissionRequest hook 的拒绝带 `interrupt: true`（hooks.md §6.2）：执行器中止整个回合（同用户的停止）。
+    Interrupt(ToolOutput),
 }
 
 fn error(text: String) -> ToolOutput {
@@ -104,6 +107,13 @@ fn format_error(message: &str) -> String {
     )
 }
 
+/// PermissionRequest hook 的放行结果：输入改写与权限更新分开携带。
+/// 只有改写后的输入通过 schema 才落权限更新（与上游同序），避免“输入非法但规则已写库”。
+struct HookAllowOutcome {
+    updated_input: Option<Value>,
+    updates: Vec<PermissionUpdate>,
+}
+
 impl Pipeline {
     pub fn new(gate: Arc<dyn PermissionGate>, hooks: Arc<dyn HookRunner>) -> Self {
         Self {
@@ -131,7 +141,8 @@ impl Pipeline {
         }
     }
 
-    /// 询问用户；先跑 PermissionRequest hooks（D10：跑完再决定是否询问）。返回 hook 改过的输入。
+    /// 询问用户；先跑 PermissionRequest hooks（D10：跑完再决定是否询问）。返回 hook 改过的输入与
+    /// 待落权限更新；更新由调用方在输入通过 schema 后执行（与上游同序）。
     /// 取消时按拒绝处理（中断的结果由执行器统一替换）。
     async fn ask(
         &self,
@@ -140,7 +151,7 @@ impl Pipeline {
         message: String,
         suggestions: &[PermissionRule],
         call: &Routed,
-    ) -> Result<Option<Value>, ToolOutput> {
+    ) -> Result<Option<HookAllowOutcome>, Rejection> {
         let context = &call.context;
         // 修复线 F20：guarded 的危险命令只批准这一次（Node `approvalMode: "user-once"` 时 `runHooks: false`）：
         // 不跑 PermissionRequest hooks，hook 不能替用户批准；没有“总是允许”（判决链不给建议规则）。
@@ -152,8 +163,21 @@ impl Pipeline {
             let event = hooks::event(HookEventName::PermissionRequest, &call.hooks, payload).await;
             let request = self.hooks.run(event, context.cancel.clone()).await;
             match request.decision {
-                Some(PermissionDecision::Allow { .. }) => return Ok(request.updated_input),
-                Some(PermissionDecision::Deny { message }) => return Err(error(message)),
+                Some(PermissionDecision::Allow { .. }) => {
+                    // 更新先随结果返回，由 ask_for 在输入通过 schema 后落（permission-updates.md §5）。
+                    return Ok(Some(HookAllowOutcome {
+                        updated_input: request.updated_input,
+                        updates: request.remember,
+                    }));
+                }
+                Some(PermissionDecision::Deny { message }) => {
+                    let output = error(message);
+                    return Err(if request.interrupt {
+                        Rejection::Interrupt(output)
+                    } else {
+                        Rejection::ByHook(output)
+                    });
+                }
                 Some(PermissionDecision::Ask { .. } | PermissionDecision::Passthrough) | None => {}
             }
         }
@@ -168,7 +192,7 @@ impl Pipeline {
             machine: call.machine.clone(),
         };
         let Ok(answer) = crate::asking::ask::<PermissionAnswer>(context, request).await else {
-            return Err(error(rejection(context, None)));
+            return Err(Rejection::Other(error(rejection(context, None))));
         };
         match answer {
             Some(PermissionAnswer::Allow { remember }) => {
@@ -187,15 +211,61 @@ impl Pipeline {
             }
             Some(PermissionAnswer::Deny {
                 feedback: Some(feedback),
-            }) if !feedback.trim().is_empty() => Err(error(rejection(context, Some(&feedback)))),
+            }) if !feedback.trim().is_empty() => {
+                Err(Rejection::Other(error(rejection(context, Some(&feedback)))))
+            }
             // 没有人能回答（-p）：模型收到询问本身的文本。
-            Some(PermissionAnswer::Unavailable) => Err(error(message)),
+            Some(PermissionAnswer::Unavailable) => Err(Rejection::Other(error(message))),
             // 修 bug（工作线 F69）：`-p` 的后台子代理以前也给询问本身的文本；它所在的上下文不能询问，PermissionRequest
             // hooks（上面已跑）没有结论时给“不能询问”的拒绝文字（agents.md §4.1.1）。
-            Some(PermissionAnswer::NoPrompts) => Err(error(
+            Some(PermissionAnswer::NoPrompts) => Err(Rejection::Other(error(
                 nibi_kernel_policy::texts::prompts_unavailable(tool.name()),
-            )),
-            Some(PermissionAnswer::Deny { .. }) | None => Err(error(rejection(context, None))),
+            ))),
+            Some(PermissionAnswer::Deny { .. }) | None => {
+                Err(Rejection::Other(error(rejection(context, None))))
+            }
+        }
+    }
+
+    /// PermissionRequest hook 的权限更新（permission-updates.md §2.4）：规则与目录交给判决链（它的 owner 落库 / 改
+    /// 内存层），`SetMode` 交给交互的 owner（模式的 owner 是会话 actor）。失败只记日志：这次调用照 hook 的结论走。
+    async fn apply_hook_updates(&self, updates: &[PermissionUpdate], call: &Routed) {
+        if updates.is_empty() {
+            return;
+        }
+        let context = &call.context;
+        match self
+            .gate
+            .apply_permission_updates(&context.session, &call.hooks.workspace, updates)
+            .await
+        {
+            Ok(()) => {
+                if updates.iter().any(PermissionUpdate::changes_local_rules) {
+                    self.gate.local_rules_committed(&call.hooks.workspace).await;
+                    self.gate
+                        .session_rules_committed(&context.session, &call.hooks.workspace)
+                        .await;
+                }
+            }
+            Err(error) => tracing::warn!(
+                %error,
+                tool_use = %context.tool_use,
+                "the permission updates of a PermissionRequest hook were not applied"
+            ),
+        }
+        for update in updates {
+            if let PermissionUpdate::SetMode { place, mode } = update
+                && let Err(error) = context
+                    .interactions
+                    .set_mode_for_hook(&context.session, *mode, *place == UpdatePlace::Local)
+                    .await
+            {
+                tracing::warn!(
+                    %error,
+                    tool_use = %context.tool_use,
+                    "the permission mode of a PermissionRequest hook was not applied"
+                );
+            }
         }
     }
 
@@ -208,9 +278,20 @@ impl Pipeline {
         message: String,
         suggestions: &[PermissionRule],
         call: &Routed,
-    ) -> Result<Value, ToolOutput> {
+    ) -> Result<Value, Rejection> {
         match self.ask(tool, &input, message, suggestions, call).await? {
-            Some(updated) => Self::revalidate(tool, schema, updated),
+            Some(outcome) => {
+                let input = match outcome.updated_input {
+                    Some(updated) => {
+                        Self::revalidate(tool, schema, updated).map_err(Rejection::Other)?
+                    }
+                    None => input,
+                };
+                // 顺序与上游一致：只有改写过的新输入通过 schema，hook 的权限更新才落库。
+                // 落不了只记日志，这次调用仍照 hook 的放行结论走。
+                self.apply_hook_updates(&outcome.updates, call).await;
+                Ok(input)
+            }
             None => Ok(input),
         }
     }
@@ -222,15 +303,15 @@ impl Pipeline {
         schema: &Value,
         input: Value,
         call: &Routed,
-    ) -> Result<Value, ToolOutput> {
+    ) -> Result<Value, Rejection> {
         match self.gate.decide(tool, &input, &call.context).await {
             PermissionDecision::Allow {
                 updated_input: Some(updated),
-            } => Self::revalidate(tool, schema, updated),
+            } => Self::revalidate(tool, schema, updated).map_err(Rejection::Other),
             PermissionDecision::Allow {
                 updated_input: None,
             } => Ok(input),
-            PermissionDecision::Deny { message } => Err(error(message)),
+            PermissionDecision::Deny { message } => Err(Rejection::Other(error(message))),
             PermissionDecision::Ask {
                 message,
                 suggestions,
@@ -314,10 +395,9 @@ impl Pipeline {
             Some(PermissionDecision::Allow { .. }) => {
                 match self.gate.check_rules(tool, &input, context).await {
                     Some(PermissionDecision::Deny { message }) => Err(other(error(message))),
-                    Some(PermissionDecision::Ask { .. }) => self
-                        .decide(tool, &schema, input, &call)
-                        .await
-                        .map_err(other),
+                    Some(PermissionDecision::Ask { .. }) => {
+                        self.decide(tool, &schema, input, &call).await
+                    }
                     Some(PermissionDecision::Allow { .. } | PermissionDecision::Passthrough)
                     | None => Ok(input),
                 }
@@ -328,20 +408,17 @@ impl Pipeline {
                 suggestions,
             }) => match self.gate.check_rules(tool, &input, context).await {
                 Some(PermissionDecision::Deny { message }) => Err(other(error(message))),
-                Some(PermissionDecision::Ask { .. }) => self
-                    .decide(tool, &schema, input, &call)
-                    .await
-                    .map_err(other),
+                Some(PermissionDecision::Ask { .. }) => {
+                    self.decide(tool, &schema, input, &call).await
+                }
                 Some(PermissionDecision::Allow { .. } | PermissionDecision::Passthrough) | None => {
                     self.ask_for(tool, &schema, input, message, &suggestions, &call)
                         .await
-                        .map_err(other)
                 }
             },
-            Some(PermissionDecision::Passthrough) | None => self
-                .decide(tool, &schema, input, &call)
-                .await
-                .map_err(other),
+            Some(PermissionDecision::Passthrough) | None => {
+                self.decide(tool, &schema, input, &call).await
+            }
         }?;
         Ok((input, call))
     }
@@ -441,6 +518,7 @@ impl ToolExecutor for Pipeline {
         {
             Ok(admitted) => admitted,
             Err(Rejection::ByHook(output)) => return messages.finish(output, true),
+            Err(Rejection::Interrupt(output)) => return messages.finish_with(output, true, true),
             Err(Rejection::Other(output)) => return messages.finish(output, false),
         };
         let output = self
@@ -464,6 +542,8 @@ impl ToolExecutor for Pipeline {
         {
             Ok((input, _routed)) => Ok(input),
             Err(Rejection::ByHook(output) | Rejection::Other(output)) => Err(output),
+            // 页面调用的审批链不执行工具：`interrupt` 由下方调用方按拒绝处理（这里没有回合同步）。
+            Err(Rejection::Interrupt(output)) => Err(output),
         }
     }
 }

@@ -8,10 +8,6 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use nibi_kernel_agents::{AgentCatalog, AgentSource};
-use nibi_kernel_compact::CompactConfig;
-use nibi_kernel_compact::window::{WindowSource as Source, context_buffer, window};
-use nibi_kernel_context::PromptAssembler;
-use nibi_kernel_ext::skills::{SkillCatalog, SkillSource};
 use nibi_kernel_api::context_usage::{
     AgentUsage, ContextUsage, ContextUsageQuery, MemoryFileUsage, SkillUsage, WindowSource,
 };
@@ -25,6 +21,10 @@ use nibi_kernel_api::permission::PermissionMode;
 use nibi_kernel_api::session_api::KernelError;
 use nibi_kernel_api::tool::{PromptContext, Tool};
 use nibi_kernel_api::tool_search::{TOOL_SEARCH, compare_names, is_deferred, loaded};
+use nibi_kernel_compact::CompactConfig;
+use nibi_kernel_compact::window::{WindowSource as Source, context_buffer, window};
+use nibi_kernel_context::PromptAssembler;
+use nibi_kernel_ext::skills::{SkillCatalog, SkillSource};
 use nibi_kernel_prompts::models::{self, ToolSearchSetting};
 
 use self::arith::{McpTool, Measured, Messages};
@@ -205,6 +205,7 @@ impl UsageAnalyzer {
             selection: query.selection.clone(),
             plan_flags: Default::default(),
             mcp: None,
+            prompt: None,
         };
         let analysis = self
             .context
@@ -265,7 +266,10 @@ impl UsageAnalyzer {
                     if found.source == "instructions" || found.source == "mcp_instructions_delta")
             });
             let configured = capabilities.map(|found| found.supports_mid_conversation_system);
-            counter.count(&nibi_kernel_query::api_messages(kept, &model, configured), &[])
+            counter.count(
+                &nibi_kernel_query::api_messages(kept, &model, configured),
+                &[],
+            )
         });
         // 与自动压缩、footer 同一个来源（compact.md §2，修复线 F61：以前这里读目录，显式覆盖下没有目录，按 200,000）。
         let facts = self.compact.facts(&query.selection);

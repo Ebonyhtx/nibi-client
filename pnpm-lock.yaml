@@ -58,7 +58,7 @@ patchedDependencies:
     hash: 9632fe9d821b3dc20939ae509cc35b968d90d018bbd1d812390718898182a38b
     path: patches/@ai-sdk__openai-compatible@2.0.60.patch
   '@arms/rum-electron@0.0.3':
-    hash: 36855354851ea495bc47a03340b0484ff62836b739cad56904b8a69f18e2ae97
+    hash: b43cb1bd603070788d623c17b3d0c04db3c4c3a2ea75839461109e0216cba593
     path: patches/@arms__rum-electron@0.0.3.patch
   '@radix-ui/react-collapsible@1.1.12':
     hash: 4b7b3781f603e111bb33aef9c4b1694ac9bacd3dff47692606de9876d4631164
@@ -89,7 +89,7 @@ importers:
         version: 0.3.31
       '@nibi/cua':
         specifier: workspace:*
-        version: link:packages/nibi-cua
+        version: link:packages/computer-use
       '@release-it/conventional-changelog':
         specifier: ^10.0.6
         version: 10.0.6(conventional-commits-filter@5.0.0)(conventional-commits-parser@6.4.0)(release-it@19.2.4(@types/node@25.6.0)(magicast@0.5.2))
@@ -259,7 +259,7 @@ importers:
         version: link:../contracts
       '@nibi/cua':
         specifier: workspace:*
-        version: link:../../../../packages/nibi-cua
+        version: link:../../../../packages/computer-use
       '@nibi/dynamic-workflow':
         specifier: workspace:*
         version: link:../dynamic-workflow
@@ -485,7 +485,7 @@ importers:
     dependencies:
       '@nibi/cua':
         specifier: workspace:*
-        version: link:../../../../packages/nibi-cua
+        version: link:../../../../packages/computer-use
     devDependencies:
       '@types/node':
         specifier: ^24.0.0
@@ -523,7 +523,7 @@ importers:
         version: link:../contracts
       '@nibi/cua':
         specifier: workspace:*
-        version: link:../../../../packages/nibi-cua
+        version: link:../../../../packages/computer-use
       '@nibi/dynamic-workflow':
         specifier: workspace:*
         version: link:../dynamic-workflow
@@ -698,7 +698,7 @@ importers:
         version: link:../core
       '@nibi/cua':
         specifier: workspace:*
-        version: link:../../../../packages/nibi-cua
+        version: link:../../../../packages/computer-use
       '@nibi/shared':
         specifier: workspace:*
         version: link:../../../../packages/shared
@@ -948,7 +948,7 @@ importers:
     dependencies:
       '@arms/rum-electron':
         specifier: ^0.0.3
-        version: 0.0.3(patch_hash=36855354851ea495bc47a03340b0484ff62836b739cad56904b8a69f18e2ae97)(@babel/runtime@7.29.7)(electron@44.10.1)
+        version: 0.0.3(patch_hash=b43cb1bd603070788d623c17b3d0c04db3c4c3a2ea75839461109e0216cba593)(@babel/runtime@7.29.7)(electron@44.10.1)
       '@babel/runtime':
         specifier: ^7.24.5
         version: 7.29.7
@@ -981,7 +981,7 @@ importers:
         version: link:../client
       '@nibi/cua':
         specifier: workspace:*
-        version: link:../nibi-cua
+        version: link:../computer-use
       '@nibi/e2e-report':
         specifier: workspace:*
         version: link:../e2e-report
@@ -1232,7 +1232,7 @@ importers:
         specifier: ^4.1.12
         version: 4.1.12(patch_hash=11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0)(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.12)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.13.3(@types/node@25.6.0)(typescript@6.0.2))(vite@8.3.8(@types/node@25.6.0)(esbuild@0.28.1)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
 
-  packages/nibi-cua:
+  packages/computer-use:
     dependencies:
       '@trycua/cua-driver':
         specifier: 0.47.23
@@ -1454,7 +1454,7 @@ importers:
         version: 1.64.0
       '@nibi/cua':
         specifier: workspace:*
-        version: link:../nibi-cua
+        version: link:../computer-use
       '@nibi/provider':
         specifier: workspace:*
         version: link:../provider
@@ -12870,7 +12870,7 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.29.7
 
-  '@arms/rum-electron@0.0.3(patch_hash=36855354851ea495bc47a03340b0484ff62836b739cad56904b8a69f18e2ae97)(@babel/runtime@7.29.7)(electron@44.10.1)':
+  '@arms/rum-electron@0.0.3(patch_hash=b43cb1bd603070788d623c17b3d0c04db3c4c3a2ea75839461109e0216cba593)(@babel/runtime@7.29.7)(electron@44.10.1)':
     dependencies:
       '@arms/rum-browser': 0.1.8(@babel/runtime@7.29.7)
       '@arms/rum-core': 0.1.4(@babel/runtime@7.29.7)

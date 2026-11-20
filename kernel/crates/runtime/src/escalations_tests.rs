@@ -144,7 +144,10 @@ async fn an_escalation_parks_notifies_and_is_answered() {
         WorkflowQuestionResolved::Answered { qid: qid.clone() }
     );
     match waiter.await.unwrap() {
-        WorkflowEscalationOutcome::Answered { answer, qid: answered } => {
+        WorkflowEscalationOutcome::Answered {
+            answer,
+            qid: answered,
+        } => {
             assert_eq!(answer, "that way");
             assert_eq!(answered, qid);
         }
@@ -194,8 +197,8 @@ async fn the_fourth_escalation_in_one_ask_is_refused_without_parking() {
     let waiter = tokio::spawn(async move { port.escalate(other).await });
     let qid = wait_parked(&registry).await;
     let _ = registry
-            .resolve_question(&SessionId::new("sess_parent"), &qid, "fine")
-            .await;
+        .resolve_question(&SessionId::new("sess_parent"), &qid, "fine")
+        .await;
     assert!(matches!(
         waiter.await.unwrap(),
         WorkflowEscalationOutcome::Answered { .. }
@@ -245,8 +248,8 @@ async fn another_session_cannot_answer_a_question_it_does_not_own() {
     // 原问题仍在等：它的父会话仍然答得上。
     assert_eq!(registry.pending(&SessionId::new("sess_parent")).len(), 1);
     let _ = registry
-            .resolve_question(&SessionId::new("sess_parent"), &qid, "mine")
-            .await;
+        .resolve_question(&SessionId::new("sess_parent"), &qid, "mine")
+        .await;
     assert!(matches!(
         waiter.await.unwrap(),
         WorkflowEscalationOutcome::Answered { .. }
@@ -277,7 +280,10 @@ async fn escalations_are_journaled_on_both_tracks() {
         .lock()
         .unwrap_or_else(PoisonError::into_inner)
         .clone();
-    let types: Vec<&str> = appended.iter().map(|(_, event_type, _)| event_type.as_str()).collect();
+    let types: Vec<&str> = appended
+        .iter()
+        .map(|(_, event_type, _)| event_type.as_str())
+        .collect();
     assert_eq!(types, ["escalation-raised", "escalation-resolved"]);
     let raised: serde_json::Value =
         serde_json::from_str(&appended[0].2).expect("raised payload is JSON");
@@ -309,9 +315,11 @@ async fn escalations_are_journaled_on_both_tracks() {
         }
         other => panic!("unexpected outcome: {other:?}"),
     }
-    assert!(refused_registry
-        .pending(&SessionId::new("sess_parent"))
-        .is_empty());
+    assert!(
+        refused_registry
+            .pending(&SessionId::new("sess_parent"))
+            .is_empty()
+    );
 
     // 「没有 journal 能力」不是故障（Node 引擎自带内存回退的同义）：停驻照常、只剩通知轨。
     let (memory_registry, _) = registry();

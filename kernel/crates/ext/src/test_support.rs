@@ -333,9 +333,7 @@ pub(crate) fn tool_context<E: nibi_kernel_api::testing::AllPorts + 'static>(
     mode: nibi_kernel_api::permission::PermissionMode,
 ) -> nibi_kernel_api::tool::ToolUseContext {
     use nibi_kernel_api::env::{OperationContext, Origin};
-    use nibi_kernel_api::ids::{
-        Generation, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
-    };
+    use nibi_kernel_api::ids::{Generation, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId};
     use nibi_kernel_api::testing::{MemoryStore, RecordingSink, local_services, machine};
     let session = SessionId::new("sess_1");
     let run = RunId::new("run_1");

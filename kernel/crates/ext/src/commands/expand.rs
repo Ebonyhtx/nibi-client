@@ -217,10 +217,7 @@ fn next_inline(content: &str, from: usize) -> Option<ShellBlock> {
 
 /// `!` 块里的变量替换（Node 的 `SHELL_TEXT_VARIABLE_PATTERN`）：`${NAME}` 与 `$NAME` 换成真实值；
 /// `${#NAME}` / `${!NAME}` / `${NAME:-x}` 这类修饰符写法不替换，整个块改写成“没有运行”。
-fn resolve_variables(
-    text: &str,
-    plugin: Option<&PluginCommandRoot>,
-) -> (String, Vec<String>) {
+fn resolve_variables(text: &str, plugin: Option<&PluginCommandRoot>) -> (String, Vec<String>) {
     let mut out = String::with_capacity(text.len());
     let mut unresolved: Vec<String> = Vec::new();
     let mut cursor = 0;
@@ -311,10 +308,8 @@ fn variable_value(name: &str, plugin: Option<&PluginCommandRoot>) -> Option<Stri
 /// 盘符（`C:\`）或 UNC 路径（`\\server`）把 `\` 换 `/`：值以文本写进命令，Git Bash 会去掉引号外的反斜杠。
 fn windows_slashes(value: &str) -> String {
     let bytes = value.as_bytes();
-    let drive = bytes.len() >= 3
-        && bytes[0].is_ascii_alphabetic()
-        && bytes[1] == b':'
-        && bytes[2] == b'\\';
+    let drive =
+        bytes.len() >= 3 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':' && bytes[2] == b'\\';
     if drive || value.starts_with("\\\\") {
         value.replace('\\', "/")
     } else {

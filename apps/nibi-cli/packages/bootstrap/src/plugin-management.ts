@@ -10,6 +10,7 @@ export {
   addPluginMarketplace,
   configurePlugin,
   describePlugin,
+  getPluginsBootstrap,
   getPluginsOverview,
   installPlugin,
   listPlugins,

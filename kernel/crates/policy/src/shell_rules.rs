@@ -7,8 +7,8 @@
 
 use std::collections::HashSet;
 
-use regex::Regex;
 use nibi_kernel_api::permission::RuleBehavior;
+use regex::Regex;
 
 use crate::shell_strip::strip_all_assignments;
 pub use crate::shell_strip::strip_safe_wrappers;

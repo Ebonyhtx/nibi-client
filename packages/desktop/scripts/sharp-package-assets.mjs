@@ -6,7 +6,7 @@
 // `node_modules/sharp` resolves fine. In the installed Nibi.app the server
 // runs from `<Resources>/nibi/packages/browser-use-plugin/dist/mcp/server.js` and
 // Node walks up looking for `node_modules/sharp`. Nothing in that walk reaches
-// the Electron app.asar tree, so without staging sharp into the glm/ tree the
+// the Electron app.asar tree, so without staging sharp into the nibi/ tree the
 // server fails at top-level ESM resolution and product CUA never comes up.
 //
 // What we do: copy `sharp` + the per-triplet prebuild packages into each official
@@ -179,12 +179,12 @@ export function isSharpRequiredByComputerUse({ desktopPackageRoot }) {
   }
 }
 
-export function stageSharpIntoBundledAgents({ desktopPackageRoot, glmDir, targetPlatform }) {
+export function stageSharpIntoBundledAgents({ desktopPackageRoot, nibiDir, targetPlatform }) {
   if (!desktopPackageRoot) {
     throw new Error("[sharp-package-assets] desktopPackageRoot is required");
   }
-  if (!glmDir) {
-    throw new Error("[sharp-package-assets] glmDir is required");
+  if (!nibiDir) {
+    throw new Error("[sharp-package-assets] nibiDir is required");
   }
   if (!targetPlatform?.os || !targetPlatform?.arch) {
     throw new Error(
@@ -194,7 +194,7 @@ export function stageSharpIntoBundledAgents({ desktopPackageRoot, glmDir, target
 
   const runtimePackageNames = resolveSharpRuntimePackageNames(targetPlatform);
 
-  const stagedNodeModulesDir = resolve(glmDir, "node_modules");
+  const stagedNodeModulesDir = resolve(nibiDir, "node_modules");
   mkdirSync(stagedNodeModulesDir, { recursive: true });
 
   const staged = [];
@@ -234,7 +234,7 @@ export function resolvePackagedSharpNativeDir({
   const suffix = resolveSharpPlatformSuffix(targetPlatform);
   return resolve(
     resourcesDir,
-    "glm",
+    "nibi",
     pluginRelativePath,
     "node_modules",
     "@img",
@@ -305,7 +305,7 @@ export function verifyStagedSharp({
 
   const libvipsDir = resolve(
     resourcesDir,
-    "glm",
+    "nibi",
     pluginRelativePath,
     "node_modules",
     "@img",
@@ -331,7 +331,7 @@ export function verifyStagedSharp({
   return problems;
 }
 
-// Allow `node sharp-package-assets.mjs --glm-dir=... --os=... --arch=...` for
+// Allow `node sharp-package-assets.mjs --nibi-dir=... --os=... --arch=...` for
 // manual smoke testing outside the prepare:agent-bundle pipeline.
 const entryHref =
   typeof process !== "undefined" && process.argv[1]
@@ -352,13 +352,13 @@ if (entryHref === import.meta.url) {
   const desktopPackageRoot = import.meta.dirname
     ? resolve(import.meta.dirname, "..")
     : process.cwd();
-  const glmDir =
-    args["glm-dir"] ?? resolve(desktopPackageRoot, "bundled-agents", targetPlatform.key, "nibi");
-  stageSharpIntoBundledAgents({ desktopPackageRoot, glmDir, targetPlatform });
-  // verifyStagedSharp expects resourcesDir to be the parent of `glm/`, i.e.
-  // `<Resources>/` in the packaged app or `dirname(glmDir)` for ad-hoc tests.
+  const nibiDir =
+    args["nibi-dir"] ?? resolve(desktopPackageRoot, "bundled-agents", targetPlatform.key, "nibi");
+  stageSharpIntoBundledAgents({ desktopPackageRoot, nibiDir, targetPlatform });
+  // verifyStagedSharp expects resourcesDir to be the parent of `nibi/`, i.e.
+  // `<Resources>/` in the packaged app or `dirname(nibiDir)` for ad-hoc tests.
   const problems = verifyStagedSharp({
-    resourcesDir: resolve(glmDir, ".."),
+    resourcesDir: resolve(nibiDir, ".."),
     targetPlatform,
     // CLI smoke can target any staging root. The desktop product passes the
     // plugin-local relative path by default; this direct smoke stages sharp at
@@ -370,7 +370,7 @@ if (entryHref === import.meta.url) {
     for (const problem of problems) console.error(`  - ${problem}`);
     process.exit(1);
   }
-  console.log(`[sharp-package-assets] OK at ${glmDir}/node_modules`);
+  console.log(`[sharp-package-assets] OK at ${nibiDir}/node_modules`);
   // Touch statSync to keep the import list honest for unused-symbol linters.
   void statSync;
 }

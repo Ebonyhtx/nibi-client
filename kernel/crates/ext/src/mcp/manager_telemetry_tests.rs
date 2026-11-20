@@ -3,12 +3,12 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use nibi_kernel_base::TaskScope;
 use nibi_kernel_api::ids::SessionId;
-use nibi_kernel_api::mcp::McpTransportConfig;
 use nibi_kernel_api::manage::McpServerState;
+use nibi_kernel_api::mcp::McpTransportConfig;
 use nibi_kernel_api::mcp_state::McpConnections;
 use nibi_kernel_api::mcp_telemetry::McpTelemetryEvent;
+use nibi_kernel_base::TaskScope;
 use serde_json::json;
 
 use super::McpManager;
@@ -77,14 +77,11 @@ async fn a_session_scoped_server_reports_start_startup_and_crash() {
 
     // 连上之后：一条 process_start，身份是加盐摘要（不是服务器名）。
     let view = manager
-        .wait(
-            5_000,
-            &|view: &nibi_kernel_api::mcp_state::McpView| {
-                view.servers
-                    .iter()
-                    .all(|server| server.state != McpServerState::Pending)
-            },
-        )
+        .wait(5_000, &|view: &nibi_kernel_api::mcp_state::McpView| {
+            view.servers
+                .iter()
+                .all(|server| server.state != McpServerState::Pending)
+        })
         .await;
     assert_eq!(view.servers[0].state, McpServerState::Connected);
     let start = next_event(&mut events).await;
@@ -160,12 +157,7 @@ async fn a_deliberate_close_is_not_a_crash() {
     );
     let scope = TaskScope::root("test", |_| {});
     let clock = crate::clock_tests::TokioClock::new();
-    let manager = McpManager::new(
-        fake.clone(),
-        scope.spawner(),
-        McpSettings::default(),
-        clock,
-    );
+    let manager = McpManager::new(fake.clone(), scope.spawner(), McpSettings::default(), clock);
     let (sender, mut events) = tokio::sync::mpsc::unbounded_channel();
     manager.attach_telemetry(McpTelemetrySlot {
         telemetry: McpTelemetry::new(sender, "device-1".to_owned()),
@@ -174,14 +166,11 @@ async fn a_deliberate_close_is_not_a_crash() {
     });
     manager.start(workspace(), vec![config("plugin:math:server")]);
     manager
-        .wait(
-            5_000,
-            &|view: &nibi_kernel_api::mcp_state::McpView| {
-                view.servers
-                    .iter()
-                    .all(|server| server.state != McpServerState::Pending)
-            },
-        )
+        .wait(5_000, &|view: &nibi_kernel_api::mcp_state::McpView| {
+            view.servers
+                .iter()
+                .all(|server| server.state != McpServerState::Pending)
+        })
         .await;
     // 丢掉 process_start。
     let _ = next_event(&mut events).await;
@@ -207,12 +196,7 @@ async fn a_transport_without_a_process_reports_nothing() {
     let fake = Arc::new(FakeMcp::default().with("remote", tools_server()));
     let scope = TaskScope::root("test", |_| {});
     let clock = crate::clock_tests::TokioClock::new();
-    let manager = McpManager::new(
-        fake.clone(),
-        scope.spawner(),
-        McpSettings::default(),
-        clock,
-    );
+    let manager = McpManager::new(fake.clone(), scope.spawner(), McpSettings::default(), clock);
     let (sender, mut events) = tokio::sync::mpsc::unbounded_channel();
     manager.attach_telemetry(McpTelemetrySlot {
         telemetry: McpTelemetry::new(sender, "device-1".to_owned()),
@@ -226,14 +210,11 @@ async fn a_transport_without_a_process_reports_nothing() {
     };
     manager.start(workspace(), vec![remote]);
     manager
-        .wait(
-            5_000,
-            &|view: &nibi_kernel_api::mcp_state::McpView| {
-                view.servers
-                    .iter()
-                    .all(|server| server.state != McpServerState::Pending)
-            },
-        )
+        .wait(5_000, &|view: &nibi_kernel_api::mcp_state::McpView| {
+            view.servers
+                .iter()
+                .all(|server| server.state != McpServerState::Pending)
+        })
         .await;
     assert!(
         tokio::time::timeout(Duration::from_millis(200), events.recv())

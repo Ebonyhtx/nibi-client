@@ -217,7 +217,9 @@ impl ResidentPool {
             ..
         } = &mut *state;
         touched.retain(|session, _| {
-            resident.contains(session) || in_flight.contains(session) || leases.contains_key(session)
+            resident.contains(session)
+                || in_flight.contains(session)
+                || leases.contains_key(session)
         });
         eligible_since
             .retain(|session, _| resident.contains(session) || in_flight.contains(session));
@@ -229,7 +231,11 @@ impl ResidentPool {
 
     /// 第一次观察到可回收的时刻（没有时以此刻开始计时）。
     pub(crate) fn eligible_since(&self, session: &SessionId, now: u64) -> u64 {
-        *self.state().eligible_since.entry(session.clone()).or_insert(now)
+        *self
+            .state()
+            .eligible_since
+            .entry(session.clone())
+            .or_insert(now)
     }
 
     pub(crate) fn last_touched(&self, session: &SessionId) -> Option<u64> {

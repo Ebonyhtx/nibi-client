@@ -299,10 +299,9 @@ impl Admission<'_> {
         if candidate.origin == PluginOrigin::Official
             && self.sources.suppressed_builtins.contains(&id)
         {
-            return Err(
-                self.declared_skip(dir, &id, &manifest, SkipReason::Suppressed)
-                    .await,
-            );
+            return Err(self
+                .declared_skip(dir, &id, &manifest, SkipReason::Suppressed)
+                .await);
         }
         if !self.seen.insert(id.clone()) {
             return reject(SkipReason::DuplicateId);
@@ -318,7 +317,11 @@ impl Admission<'_> {
         // 付费插件发现层门禁（R30）：manifest 或安装记录任一 paid=true 都要会员授权；
         // 拒绝时整个插件不加载，skill/MCP/hooks/agents 能力根因此天然为空。
         let paid = candidate.paid
-            || self.sources.paid_installed_ids.iter().any(|paid| paid == &id)
+            || self
+                .sources
+                .paid_installed_ids
+                .iter()
+                .any(|paid| paid == &id)
             || manifest
                 .get("paid")
                 .and_then(Value::as_bool)

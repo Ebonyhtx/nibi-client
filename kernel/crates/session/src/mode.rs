@@ -40,6 +40,17 @@ impl Actor {
             .await
     }
 
+    /// PermissionRequest hook 的 `SetMode`（hooks.md §6.2、permission-updates.md §2.4）：`persist` 为真时
+    /// （destination 落在本机）与用户切换模式同一批写项目的持久模式；`Session` 的去处只改内存。
+    pub(crate) async fn hook_mode(
+        &mut self,
+        mode: PermissionMode,
+        persist: bool,
+    ) -> Result<(), String> {
+        self.apply(None, self.execution.with_mode(mode), persist)
+            .await
+    }
+
     /// 用户切换权限模式（前端的 `SetMode`，shift+tab 与 `/mode`）：同一批写本机项目的持久模式
     /// （docs/specs/rust-cli/config.md §2.2，Node `setMode` 写 `runtime.getMode()`，即切换后的权限模式；`plan`
     /// 只打开 plan，写的仍是当前的权限模式）。plan 开关不变（Node 的 `setMode` 会关掉 plan，见 spec 的待确认）。

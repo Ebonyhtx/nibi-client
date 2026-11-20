@@ -152,8 +152,8 @@
     },
     {
       "file": "packages/shared/src/remoteResourcePackages.ts",
-      "pattern": "NIBI_AGENT_REMOTE_COMPONENT_ID = \"glm\"",
-      "reason": "B03：远端组件 id 仍是 glm，迁移期必须双读。"
+      "pattern": "NIBI_AGENT_REMOTE_COMPONENT_FALLBACK_ID = \"glm\"",
+      "reason": "B03：旧远端组件 id 作为迁移期 fallback；manifest 只发布 glm 时必须仍能读。"
     },
     {
       "file": "packages/shared/src/validationAppSettings.ts",
@@ -186,46 +186,6 @@
       "reason": "B06：技能来源过滤仍识别旧 glm provider 前缀。"
     },
     {
-      "file": "apps/nibi-cli/packages/computer-use-plugin/scripts/sync-cache.mjs",
-      "pattern": "glmDir",
-      "reason": "B01：构建脚本参数名仍是 glmDir，随 agent 目录改名一起处理。"
-    },
-    {
-      "file": "packages/desktop/scripts/bundled-npm-assets.mjs",
-      "pattern": "glmDir",
-      "reason": "B01：构建脚本参数名仍是 glmDir，随 agent 目录改名一起处理。"
-    },
-    {
-      "file": "packages/desktop/scripts/koffi-package-assets.mjs",
-      "pattern": "glmDir",
-      "reason": "B01：构建脚本参数名仍是 glmDir，随 agent 目录改名一起处理。"
-    },
-    {
-      "file": "packages/desktop/scripts/prepare-agent-node-bundle.mjs",
-      "pattern": "glmDir",
-      "reason": "B01：构建脚本参数名仍是 glmDir，随 agent 目录改名一起处理。"
-    },
-    {
-      "file": "packages/desktop/scripts/sharp-package-assets.mjs",
-      "pattern": "glmDir",
-      "reason": "B01：构建脚本参数名仍是 glmDir，随 agent 目录改名一起处理。"
-    },
-    {
-      "file": "packages/desktop/scripts/sharp-package-assets.mjs",
-      "pattern": "^\\s*\"glm\",$",
-      "reason": "B01：sharp 资源平台列表仍写 glm 目录名。"
-    },
-    {
-      "file": "packages/desktop/scripts/sharp-package-assets.mjs",
-      "pattern": "args\\[\"glm-dir\"\\]",
-      "reason": "B01：构建脚本 CLI 参数仍是 --glm-dir。"
-    },
-    {
-      "file": "packages/desktop/scripts/stage-agent-bundle.mjs",
-      "pattern": "glmDir",
-      "reason": "B01：构建脚本参数名仍是 glmDir，随 agent 目录改名一起处理。"
-    },
-    {
       "file": "scripts/download-glm.mjs",
       "pattern": "[Gg][Ll][Mm]",
       "reason": "B03：GLM 运行时下载脚本；文件名/环境变量/日志都围绕旧运行时，随 CDN 迁移一起改。"
@@ -244,11 +204,6 @@
       "file": "scripts/sqlite-schema-contract.mjs",
       "pattern": "zcode_database_identity",
       "reason": "SQLite schema 契约里的旧表名→新表名迁移映射，是历史数据事实。"
-    },
-    {
-      "file": "scripts/stage-dev-cua-plugin-runtime.mjs",
-      "pattern": "glmDir",
-      "reason": "B01：开发态 CUA 插件脚本仍用 glmDir 参数名。"
     },
     {
       "file": "apps/nibi-cli/packages/adapters/src/storage/session-store/migrations.ts",

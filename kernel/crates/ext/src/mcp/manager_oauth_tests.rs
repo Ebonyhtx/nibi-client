@@ -4,11 +4,9 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use async_trait::async_trait;
-use nibi_kernel_base::TaskScope;
-use nibi_kernel_api::mcp::{
-    McpOAuthConfig, McpOAuthPort, McpOAuthRequest, McpProtocolVersion,
-};
+use nibi_kernel_api::mcp::{McpOAuthConfig, McpOAuthPort, McpOAuthRequest, McpProtocolVersion};
 use nibi_kernel_api::mcp_status::{McpFailureKind, McpProtocolEra};
+use nibi_kernel_base::TaskScope;
 use serde_json::json;
 
 use super::*;
@@ -97,7 +95,10 @@ async fn the_token_is_sent_as_a_bearer_header() {
     let scope = TaskScope::root("oauth", |_| {});
     let manager = manager(fake.clone(), &scope);
     manager.attach_oauth(FakeTokens::new("t1", "t2"));
-    manager.start(workspace(), vec![oauth_server("s", McpProtocolVersion::Auto)]);
+    manager.start(
+        workspace(),
+        vec![oauth_server("s", McpProtocolVersion::Auto)],
+    );
     manager.wait_ready().await;
     assert_eq!(manager.status(), [("s".to_owned(), McpStatus::Connected)]);
     assert_eq!(
@@ -114,7 +115,10 @@ async fn a_401_refreshes_the_token_once_and_reconnects() {
     let manager = manager(fake.clone(), &scope);
     let tokens = FakeTokens::new("t1", "t2");
     manager.attach_oauth(tokens.clone());
-    manager.start(workspace(), vec![oauth_server("s", McpProtocolVersion::Auto)]);
+    manager.start(
+        workspace(),
+        vec![oauth_server("s", McpProtocolVersion::Auto)],
+    );
     manager.wait_ready().await;
     assert_eq!(manager.status(), [("s".to_owned(), McpStatus::Connected)]);
     assert_eq!(tokens.refreshes(), 1);
@@ -133,7 +137,10 @@ async fn a_401_without_a_token_port_is_an_authorization_failure() {
     fake.reject_initialize("s", 5);
     let scope = TaskScope::root("oauth", |_| {});
     let manager = manager(fake.clone(), &scope);
-    manager.start(workspace(), vec![oauth_server("s", McpProtocolVersion::Auto)]);
+    manager.start(
+        workspace(),
+        vec![oauth_server("s", McpProtocolVersion::Auto)],
+    );
     manager.wait_ready().await;
     match &manager.status()[0].1 {
         McpStatus::Failed { kind, .. } => {
@@ -152,25 +159,23 @@ fn the_modern_probe_is_only_for_auto_and_pinned_servers() {
 
 #[tokio::test]
 async fn a_modern_server_skips_initialize_and_carries_the_meta_envelope() {
-    let modern = Arc::new(
-        |method: &str, params: &serde_json::Value| match method {
-            "server/discover" => Some(Ok(json!({
-                "ttlMs": 0,
-                "cacheScope": "private",
-                "supportedVersions": ["2026-07-28"],
-                "capabilities": {"tools": {}},
-                "instructions": "Modern server.",
-            }))),
-            "tools/list" => Some(Ok(json!({"tools": [
-                {"name": "read", "description": "Read", "inputSchema": {"type": "object"}}
-            ]}))),
-            "initialize" => panic!("a modern connection never sends initialize"),
-            _ => {
-                let _ = params;
-                None
-            }
-        },
-    );
+    let modern = Arc::new(|method: &str, params: &serde_json::Value| match method {
+        "server/discover" => Some(Ok(json!({
+            "ttlMs": 0,
+            "cacheScope": "private",
+            "supportedVersions": ["2026-07-28"],
+            "capabilities": {"tools": {}},
+            "instructions": "Modern server.",
+        }))),
+        "tools/list" => Some(Ok(json!({"tools": [
+            {"name": "read", "description": "Read", "inputSchema": {"type": "object"}}
+        ]}))),
+        "initialize" => panic!("a modern connection never sends initialize"),
+        _ => {
+            let _ = params;
+            None
+        }
+    });
     let fake = Arc::new(FakeMcp::default().with("s", modern));
     let scope = TaskScope::root("modern", |_| {});
     let manager = manager(fake.clone(), &scope);
@@ -185,7 +190,10 @@ async fn a_modern_server_skips_initialize_and_carries_the_meta_envelope() {
     assert_eq!(manager.status(), [("s".to_owned(), McpStatus::Connected)]);
     // `mcp/list` 报现代，instructions 来自 discover 的结果。
     let infos = manager.server_infos();
-    assert_eq!(infos[0].state, nibi_kernel_api::manage::McpServerState::Connected);
+    assert_eq!(
+        infos[0].state,
+        nibi_kernel_api::manage::McpServerState::Connected
+    );
     assert_eq!(
         manager.protocol_era("s"),
         Some(McpProtocolEra::Modern),

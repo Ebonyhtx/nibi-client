@@ -28,9 +28,11 @@ fn trust_failed(error: HookTrustError) -> KernelError {
 impl LocalKernel {
     /// 没有接信任库的入口（TUI / `-p`）：三个方法都报 `Unsupported`。
     fn hook_trust(&self) -> Result<&Arc<dyn HookTrust>, KernelError> {
-        self.hook_trust.as_ref().ok_or_else(|| KernelError::Unsupported {
-            what: "workspace hook review".to_owned(),
-        })
+        self.hook_trust
+            .as_ref()
+            .ok_or_else(|| KernelError::Unsupported {
+                what: "workspace hook review".to_owned(),
+            })
     }
 
     /// 当前快照：项目文件现场发现（没有文件监听，与 Node 的每次评审重建一致），信任集合来自信任库。
@@ -40,7 +42,8 @@ impl LocalKernel {
     ) -> Result<WorkspaceHookReview, KernelError> {
         let trust = self.hook_trust()?;
         let files =
-            nibi_kernel_hooks::project_config::discover(self.machine.files().as_ref(), workspace).await;
+            nibi_kernel_hooks::project_config::discover(self.machine.files().as_ref(), workspace)
+                .await;
         let identity = workspace.root.as_str();
         let loaded = trust.load(identity).await;
         let trusted: HashSet<String> = loaded.trusted.into_iter().collect();
@@ -111,7 +114,8 @@ impl LocalKernel {
     async fn refresh_admitted_hooks(&self, workspace: &WorkspaceRef) -> Result<(), KernelError> {
         let trust = self.hook_trust()?;
         let files =
-            nibi_kernel_hooks::project_config::discover(self.machine.files().as_ref(), workspace).await;
+            nibi_kernel_hooks::project_config::discover(self.machine.files().as_ref(), workspace)
+                .await;
         let identity = workspace.root.as_str();
         let loaded = trust.load(identity).await;
         let trusted: HashSet<String> = loaded.trusted.into_iter().collect();
@@ -138,8 +142,9 @@ impl LocalKernel {
         enabled: bool,
     ) -> Result<(), KernelError> {
         let mismatch = || KernelError::Failed {
-            message: "workspace_hooks_snapshot_mismatch: the workspace hooks changed after the review"
-                .to_owned(),
+            message:
+                "workspace_hooks_snapshot_mismatch: the workspace hooks changed after the review"
+                    .to_owned(),
         };
         let review = self.hook_review_snapshot(workspace).await?;
         let item = review
@@ -154,14 +159,17 @@ impl LocalKernel {
             return Err(mismatch());
         }
         let files =
-            nibi_kernel_hooks::project_config::discover(self.machine.files().as_ref(), workspace).await;
+            nibi_kernel_hooks::project_config::discover(self.machine.files().as_ref(), workspace)
+                .await;
         let file = files
             .iter()
             .find(|file| {
                 file.editable
                     && file.kind == nibi_kernel_hooks::project_config::ProjectKind::DotProjectConfig
-                    && nibi_kernel_hooks::project_config::relative(workspace.root.as_str(), &file.path)
-                        == item.source_path
+                    && nibi_kernel_hooks::project_config::relative(
+                        workspace.root.as_str(),
+                        &file.path,
+                    ) == item.source_path
             })
             .ok_or_else(mismatch)?;
         let read = self

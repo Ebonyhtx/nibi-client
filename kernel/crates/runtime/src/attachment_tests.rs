@@ -11,8 +11,8 @@ async fn draft_sessions_accept_attachment_uploads() {
     use nibi_kernel_api::env::EnvPath;
     use nibi_kernel_api::ids::EnvironmentId;
     use nibi_kernel_api::testing::{
-        environments, selection, FixedClock, MemoryArtifacts, MemoryStore, ScriptedModel,
-        SequentialIds, UnusedEnvironment,
+        FixedClock, MemoryArtifacts, MemoryStore, ScriptedModel, SequentialIds, UnusedEnvironment,
+        environments, selection,
     };
 
     let store = Arc::new(MemoryStore::default());
@@ -61,7 +61,11 @@ async fn draft_sessions_accept_attachment_uploads() {
         .store_attachment_content(&id, "image/png", vec![0x89, b'P', b'N', b'G'])
         .await
         .expect("draft session must accept attachment uploads");
-    assert!(stored.uri.starts_with(&format!("nibi-artifact://{}", id.as_str())));
+    assert!(
+        stored
+            .uri
+            .starts_with(&format!("nibi-artifact://{}", id.as_str()))
+    );
     assert_eq!(stored.bytes, 4);
 }
 

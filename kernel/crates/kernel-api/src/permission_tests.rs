@@ -46,6 +46,7 @@ fn rule_changes_round_trip() {
     });
     round_trip(&crate::store::ProjectRulesChange {
         behavior: RuleBehavior::Deny,
+        replace: false,
         add: vec![PermissionRule {
             tool: "WebFetch".to_owned(),
             content: None,

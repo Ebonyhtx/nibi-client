@@ -34,5 +34,8 @@ fn text_tools_and_images_follow_the_local_estimate() {
             data: "AAAA".to_owned(),
         },
     };
-    assert_eq!(counter.count(&image, &[]), nibi_kernel_compact::IMAGE_TOKENS);
+    assert_eq!(
+        counter.count(&image, &[]),
+        nibi_kernel_compact::IMAGE_TOKENS
+    );
 }

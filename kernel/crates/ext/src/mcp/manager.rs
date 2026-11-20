@@ -6,7 +6,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError, RwLock};
 use std::time::Duration;
 
-use nibi_kernel_base::Spawner;
 use nibi_kernel_api::clock::Clock;
 use nibi_kernel_api::env::WorkspaceRef;
 use nibi_kernel_api::env_registry::EnvironmentRegistry;
@@ -16,13 +15,14 @@ use nibi_kernel_api::mcp::{McpTransport, McpTransportConfig};
 use nibi_kernel_api::mcp_status::{
     McpFailureKind, McpProtocolEra, McpServerStatus, McpServerStatusKind,
 };
+use nibi_kernel_api::mcp_telemetry::McpProcessIdentity;
 use nibi_kernel_api::mcp_ui::{
     McpAppConnection, McpAppInstance, McpResourceContent, McpResourceDescriptor, McpResourcePage,
     McpResourceSignal, McpResourceTemplate, McpResourceTemplatePage, McpUiError, McpUiEvent,
     McpUiSubscriber, tool_visibility, visible_to_model,
 };
-use nibi_kernel_api::mcp_telemetry::McpProcessIdentity;
 use nibi_kernel_api::tool::Tool;
+use nibi_kernel_base::Spawner;
 use serde_json::{Value, json};
 use tokio::sync::{Notify, watch};
 use tokio_util::sync::CancellationToken;
@@ -166,6 +166,9 @@ pub(crate) struct Inner {
     paid_owners: OnceLock<Arc<RwLock<HashMap<String, String>>>>,
     /// `elicitation/create` 的宿主端口：工具调用执行期间登记会话，服务器提问时找回它。
     elicitation: Arc<super::elicitation::ElicitationHub>,
+    /// Elicitation / ElicitationResult hooks 的执行器（ext.md §3.13.6）：runtime 在建好 hook 引擎之后装上；
+    /// 没有时不跑（测试、嵌入）。
+    hook_runner: RwLock<Option<Arc<dyn nibi_kernel_api::hooks::HookRunner>>>,
     /// 本次装载被工作区信任闸门拒绝的项目服务器（诊断用，不进入连接表）。
     untrusted_project: Mutex<BTreeMap<String, super::trust::ProjectMcpRejection>>,
 }
@@ -190,16 +193,38 @@ impl Inner {
     }
 
     /// 工具调用执行期间登记会话：服务器此时发起的 `elicitation/create` 归到这次调用。
-    pub(crate) fn enter_elicitation(
+    pub(crate) async fn enter_elicitation(
         &self,
         server: &str,
-        interactions: Arc<dyn nibi_kernel_api::orchestration::Interactions>,
-        session: nibi_kernel_api::ids::SessionId,
-        tool_use: nibi_kernel_api::ids::ToolUseId,
-        cancel: CancellationToken,
+        context: &nibi_kernel_api::tool::ToolUseContext,
     ) -> super::elicitation::ElicitationGuard {
-        self.elicitation
-            .enter(server, interactions, session, tool_use, cancel)
+        let hooks = self
+            .hook_runner
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone();
+        let selection = context
+            .interactions
+            .current_selection(&context.session)
+            .await;
+        self.elicitation.enter(
+            server,
+            super::elicitation::CallContext {
+                interactions: context.interactions.clone(),
+                session: context.session.clone(),
+                tool_use: context.tool_use.clone(),
+                cancel: context.cancel.clone(),
+                workspace: context.workspace.clone(),
+                hooks,
+                hook_context: nibi_kernel_api::hooks::HookContext {
+                    mode: Some(context.mode),
+                    agent: context.agent.clone(),
+                    run: Some(context.run.clone()),
+                    selection,
+                    ..nibi_kernel_api::hooks::HookContext::default()
+                },
+            },
+        )
     }
 
     fn servers(&self) -> MutexGuard<'_, BTreeMap<String, Server>> {
@@ -582,13 +607,7 @@ impl Inner {
     }
 
     /// 记下一个服务器进程的遥测身份并发 `process_start`（没有 pid 的传输——HTTP / SSE——什么都不做）。
-    fn record_process(
-        &self,
-        name: &str,
-        config: &McpServer,
-        generation: u64,
-        pid: Option<u32>,
-    ) {
+    fn record_process(&self, name: &str, config: &McpServer, generation: u64, pid: Option<u32>) {
         let Some(pid) = pid else {
             return;
         };
@@ -773,10 +792,7 @@ impl Inner {
                 timeout,
                 &self.settings.client_version,
                 oauth.as_ref(),
-                Some(
-                    self.elicitation.clone()
-                        as Arc<dyn nibi_kernel_api::mcp::McpElicitation>,
-                ),
+                Some(self.elicitation.clone() as Arc<dyn nibi_kernel_api::mcp::McpElicitation>),
             )
             .await
             {
@@ -893,6 +909,7 @@ impl McpManager {
             paid_gate: OnceLock::new(),
             paid_owners: OnceLock::new(),
             elicitation: super::elicitation::ElicitationHub::new(),
+            hook_runner: RwLock::default(),
             untrusted_project: Mutex::default(),
         }))
     }
@@ -920,6 +937,15 @@ impl McpManager {
         let _ = self.0.oauth.set(port);
     }
 
+    /// 装上 Elicitation / ElicitationResult hooks 的执行器（ext.md §3.13.6）：`Ext::attach_hooks` 调。
+    pub(crate) fn attach_hooks(&self, hooks: Arc<dyn nibi_kernel_api::hooks::HookRunner>) {
+        *self
+            .0
+            .hook_runner
+            .write()
+            .unwrap_or_else(PoisonError::into_inner) = Some(hooks);
+    }
+
     /// 装上付费插件执行期门禁（工具表冻结，调用时复核）。
     pub(crate) fn attach_paid_gate(
         &self,
@@ -934,10 +960,7 @@ impl McpManager {
     }
 
     /// 装上 MCP Apps 的事件出口（`pluginUi.*` 增量）：连接开始之前给一次。
-    pub(crate) fn attach_ui_events(
-        &self,
-        sender: tokio::sync::mpsc::UnboundedSender<McpUiEvent>,
-    ) {
+    pub(crate) fn attach_ui_events(&self, sender: tokio::sync::mpsc::UnboundedSender<McpUiEvent>) {
         let _ = self.0.ui_events.set(sender);
     }
 
@@ -1015,10 +1038,7 @@ impl McpManager {
             .unwrap_or_else(PoisonError::into_inner) = Some(workspace.clone());
         let (servers, rejected) = self.0.admit_servers(servers);
         self.0.set_untrusted_project(rejected);
-        let incoming: BTreeSet<String> = servers
-            .iter()
-            .map(|server| server.name.clone())
-            .collect();
+        let incoming: BTreeSet<String> = servers.iter().map(|server| server.name.clone()).collect();
         let now = self.0.clock.now_ms();
         let mut closers: Vec<Arc<Client>> = Vec::new();
         let mut starts: Vec<(McpServer, u64, CancellationToken)> = Vec::new();
@@ -1088,7 +1108,10 @@ impl McpManager {
                 .spawn_resident("mcp-close", async move { client.close().await });
         }
         for (config, generation, cancel) in starts {
-            let task = self.0.clone().run(workspace.clone(), config, generation, cancel);
+            let task = self
+                .0
+                .clone()
+                .run(workspace.clone(), config, generation, cancel);
             self.0.spawner.spawn_resident("mcp-connection", task);
         }
     }
@@ -1319,10 +1342,9 @@ impl McpManager {
 
     /// 服务器的资源订阅能力（MCP Apps 的资源订阅只在声明了 `resources.subscribe` 时可用）。
     pub fn supports_resource_subscribe(&self, server: &str) -> bool {
-        self.0
-            .servers()
-            .get(server)
-            .is_some_and(|server| server.status == McpStatus::Connected && server.resource_subscribe)
+        self.0.servers().get(server).is_some_and(|server| {
+            server.status == McpStatus::Connected && server.resource_subscribe
+        })
     }
 
     /// 订阅一个资源：第一个订阅者向服务器发 `resources/subscribe`；失败时撤回这次登记。
@@ -1400,9 +1422,7 @@ impl McpManager {
             subscriptions.remove(&(server.to_owned(), uri.to_owned()));
             true
         };
-        if last
-            && let Ok((client, timeout)) = self.resource_client(server)
-        {
+        if last && let Ok((client, timeout)) = self.resource_client(server) {
             // 连接已经没了也不算错误：退订是收尾动作。
             let _ = client
                 .request(
@@ -1601,7 +1621,10 @@ fn connection_identity(workspace: &WorkspaceRef, config: &McpServer) -> String {
             env,
             cwd,
         } => {
-            let mut env: Vec<String> = env.iter().map(|(key, value)| format!("{key}\u{1f}{value}")).collect();
+            let mut env: Vec<String> = env
+                .iter()
+                .map(|(key, value)| format!("{key}\u{1f}{value}"))
+                .collect();
             env.sort();
             format!(
                 "stdio\u{1e}{command}\u{1e}{}\u{1e}{}\u{1e}{}",

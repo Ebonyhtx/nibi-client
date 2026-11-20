@@ -3,8 +3,8 @@
 //! 会话是真的 `LocalKernel` + `MemoryStore`；时间走注入的 [`TestClock`]，模型用可停住的 [`HeldModel`]，
 //! 竞态与 TTL 因此是确定的（不靠真实睡眠）。
 
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use futures_util::StreamExt;
@@ -12,12 +12,12 @@ use nibi_kernel_api::clock::Clock;
 use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
 use nibi_kernel_api::ids::{CommandId, EnvironmentId, SessionId, ToolUseId};
 use nibi_kernel_api::model::{ModelEvent, ModelPort, ModelRequest};
+use nibi_kernel_api::orchestration::InteractionRequest;
 use nibi_kernel_api::permission::PermissionMode;
 use nibi_kernel_api::residency::{SessionLifecycleState, SessionResidencyWatch};
 use nibi_kernel_api::session_api::{
     Command, CommandEnvelope, CreateSession, Delivery, Kernel, KernelError, SessionHandle,
 };
-use nibi_kernel_api::orchestration::InteractionRequest;
 use nibi_kernel_api::testing::{
     ClosingEnvironment, MemoryStore, ScriptedModel, SequentialIds, environments, selection,
     text_response,
@@ -72,8 +72,10 @@ impl ModelPort for HeldModel {
         &self,
         _request: ModelRequest,
         _cancel: CancellationToken,
-    ) -> futures_util::stream::BoxStream<'static, Result<ModelEvent, nibi_kernel_api::model::ModelError>>
-    {
+    ) -> futures_util::stream::BoxStream<
+        'static,
+        Result<ModelEvent, nibi_kernel_api::model::ModelError>,
+    > {
         let permits = self.permits.clone();
         futures_util::stream::once(async move {
             let _ = permits.acquire().await;
@@ -96,11 +98,7 @@ struct Setup {
     kernel: Arc<LocalKernel>,
 }
 
-fn kernel(
-    clock: Arc<TestClock>,
-    model: Arc<dyn ModelPort>,
-    config: ResidentPoolConfig,
-) -> Setup {
+fn kernel(clock: Arc<TestClock>, model: Arc<dyn ModelPort>, config: ResidentPoolConfig) -> Setup {
     // 池回收要真的关掉执行环境里的会话：放行 `close_session`（这些测试不测关闭时序）。
     let environment = Arc::new(ClosingEnvironment::held());
     environment.release();
@@ -145,7 +143,10 @@ async fn create(setup: &Setup) -> SessionId {
     setup.kernel.create_session(request()).await.unwrap()
 }
 
-async fn facts(setup: &Setup, session: &SessionId) -> Option<nibi_kernel_api::residency::SessionResidencyFacts> {
+async fn facts(
+    setup: &Setup,
+    session: &SessionId,
+) -> Option<nibi_kernel_api::residency::SessionResidencyFacts> {
     let open = {
         let sessions = setup.kernel.sessions();
         sessions.get(session).and_then(Slot::open).cloned()
@@ -212,7 +213,11 @@ async fn high_water_evicts_the_least_recently_used_to_target() {
         .unwrap();
     assert_eq!(snapshot.state, SessionLifecycleState::Unloaded);
     // 持久事实还在：可以冷恢复。
-    setup.kernel.ensure_session_ready(&sessions[0], None).await.unwrap();
+    setup
+        .kernel
+        .ensure_session_ready(&sessions[0], None)
+        .await
+        .unwrap();
     assert!(resident(&setup, &sessions[0]));
 }
 
@@ -237,13 +242,7 @@ async fn idle_timeout_evicts_after_the_ttl() {
     setup.kernel.rebalance_resident_sessions().await;
     assert!(!resident(&setup, &session));
     // 回收不发 `session.removed`、不删存储：仍是可恢复的会话。
-    assert!(
-        setup
-            .kernel
-            .session_lifecycle_state(&session)
-            .await
-            .is_ok()
-    );
+    assert!(setup.kernel.session_lifecycle_state(&session).await.is_ok());
 }
 
 /// 协议请求（租约）重新使用会话后 TTL 重新计时。
@@ -323,7 +322,10 @@ async fn a_queued_input_blocks_eviction() {
         })
         .await;
     for _ in 0..1_000 {
-        if facts(&setup, &session).await.is_some_and(|facts| facts.running) {
+        if facts(&setup, &session)
+            .await
+            .is_some_and(|facts| facts.running)
+        {
             break;
         }
         tokio::task::yield_now().await;
@@ -354,7 +356,9 @@ async fn a_queued_input_blocks_eviction() {
 
     // 收尾：放行模型并关掉会话（测试不关心后续回合）。
     permits.add_permits(8);
-    let _ = handle.close(nibi_kernel_api::session_api::EndReason::Other).await;
+    let _ = handle
+        .close(nibi_kernel_api::session_api::EndReason::Other)
+        .await;
 }
 
 /// 有待回答交互（回合外会话级询问）时不回收。
@@ -403,7 +407,10 @@ async fn a_pending_interaction_blocks_eviction() {
 
     setup.kernel.rebalance_resident_sessions().await;
     setup.kernel.rebalance_resident_sessions().await;
-    assert!(resident(&setup, &session), "a pending question keeps it resident");
+    assert!(
+        resident(&setup, &session),
+        "a pending question keeps it resident"
+    );
 
     asked.abort();
     let _ = setup.kernel.stop_session_runtime(&session).await;
@@ -428,7 +435,10 @@ async fn a_lease_release_triggers_convergence() {
         .await
         .expect("the local kernel has a resident pool");
     setup.kernel.rebalance_resident_sessions().await;
-    assert!(resident(&setup, &session), "an operation lease blocks eviction");
+    assert!(
+        resident(&setup, &session),
+        "an operation lease blocks eviction"
+    );
 
     drop(lease);
     tokio::time::timeout(Duration::from_secs(5), async {
@@ -497,8 +507,16 @@ async fn stop_and_restart_are_idempotent_at_the_kernel() {
         .unwrap();
     assert_eq!(snapshot.state, SessionLifecycleState::Unloaded);
 
-    setup.kernel.ensure_session_ready(&session, None).await.unwrap();
-    setup.kernel.ensure_session_ready(&session, None).await.unwrap();
+    setup
+        .kernel
+        .ensure_session_ready(&session, None)
+        .await
+        .unwrap();
+    setup
+        .kernel
+        .ensure_session_ready(&session, None)
+        .await
+        .unwrap();
     let second = {
         let sessions = setup.kernel.sessions();
         sessions
@@ -507,7 +525,10 @@ async fn stop_and_restart_are_idempotent_at_the_kernel() {
             .cloned()
             .expect("open")
     };
-    assert!(!Arc::ptr_eq(&first, &second), "ensureReady cold-loads a new actor");
+    assert!(
+        !Arc::ptr_eq(&first, &second),
+        "ensureReady cold-loads a new actor"
+    );
 
     setup
         .kernel

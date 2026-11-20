@@ -162,6 +162,7 @@ async fn permissions_changes_add_and_remove_in_one_transaction() {
     let change =
         |behavior, add: Vec<PermissionRule>, remove: Vec<PermissionRule>| ProjectRulesChange {
             behavior,
+            replace: false,
             add,
             remove,
         };
@@ -224,5 +225,100 @@ async fn permissions_changes_add_and_remove_in_one_transaction() {
             )
             .await
             .is_err()
+    );
+}
+
+/// hook 的 `replaceRules`（permission-updates.md §2.4）：这一类整份换掉，别的类不动。
+#[tokio::test]
+async fn replace_clears_the_behavior_before_adding() {
+    use nibi_kernel_api::store::ProjectRulesChange;
+
+    let test = TestStore::new();
+    let session = SessionId::new("sess_replace");
+    test.store
+        .create(meta("sess_replace", ROOT, ""))
+        .await
+        .unwrap();
+    let added = Fact::PermissionRulesAdded {
+        behavior: RuleBehavior::Allow,
+        rules: vec![rule("Bash", Some("git status:*")), rule("Read", None)],
+    };
+    test.store
+        .commit(&session, batch(None, vec![added]))
+        .await
+        .unwrap();
+    test.store
+        .commit(
+            &session,
+            batch(
+                None,
+                vec![Fact::PermissionRulesAdded {
+                    behavior: RuleBehavior::Deny,
+                    rules: vec![rule("Write", None)],
+                }],
+            ),
+        )
+        .await
+        .unwrap();
+    let rules = test
+        .store
+        .change_project_rules(
+            &workspace(),
+            ProjectRulesChange {
+                behavior: RuleBehavior::Allow,
+                replace: true,
+                add: vec![rule("WebFetch", Some("domain:example.com"))],
+                remove: Vec::new(),
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(rules.allow, [rule("WebFetch", Some("domain:example.com"))]);
+    assert_eq!(rules.deny, [rule("Write", None)]);
+}
+
+/// 会话行的整份权限记录读得回来（hook 的更新要保留 `mode` 等规则以外的键）。
+#[tokio::test]
+async fn the_session_permission_record_is_read_whole() {
+    use serde_json::json;
+
+    let test = TestStore::new();
+    let session = SessionId::new("sess_permission");
+    test.store
+        .create(meta("sess_permission", ROOT, ""))
+        .await
+        .unwrap();
+    let value = json!({
+        "version": 1,
+        "scope": "session",
+        "mode": "build",
+        "allow": [{"toolName": "Read"}],
+    });
+    test.store
+        .set_session_permission(&session, value.clone())
+        .await
+        .unwrap();
+    assert_eq!(
+        test.store.session_permission(&session).await.unwrap(),
+        Some(value.clone())
+    );
+    assert_eq!(
+        test.store.session_rules(&session).await.unwrap(),
+        Some(nibi_kernel_api::permission::ProjectRules {
+            allow: vec![rule("Read", None)],
+            ..Default::default()
+        })
+    );
+    // 普通会话（没有权限记录）是 None。
+    test.store
+        .create(meta("sess_plain", ROOT, ""))
+        .await
+        .unwrap();
+    assert_eq!(
+        test.store
+            .session_permission(&SessionId::new("sess_plain"))
+            .await
+            .unwrap(),
+        None
     );
 }

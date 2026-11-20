@@ -1,5 +1,13 @@
-import type { BundledLanguage, BundledTheme, HighlighterGeneric, ThemedToken } from "shiki";
-import { bundledLanguages, bundledLanguagesInfo, createHighlighter } from "shiki";
+import type {
+  BundledLanguage,
+  BundledTheme,
+  HighlighterCore,
+  ThemedToken,
+} from "shiki";
+// 只静态引入语言清单/别名表（约 28KB 元数据），语法本体仍是各语言的动态 import。
+// 这样 shouldUseSyntaxHighlighting 可以保持同步，而 createHighlighterCore、Oniguruma
+// 引擎和 wasm 只有在真正出现代码块时才加载，不会进入首屏静态图。
+import { bundledLanguages, bundledLanguagesInfo } from "shiki/langs";
 import { logger } from "@/logger.js";
 import { uiMemoryDiagnosticsRegistry } from "@/lib/memoryDiagnostics.js";
 
@@ -53,10 +61,7 @@ function normalizeCodeLanguage(language: string): BundledLanguage {
   return FALLBACK_CODE_LANGUAGE;
 }
 
-const highlighterCache = new Map<
-  string,
-  Promise<HighlighterGeneric<BundledLanguage, BundledTheme>>
->();
+const highlighterCache = new Map<string, Promise<HighlighterCore>>();
 const tokensCache = new Map<string, TokenizedCode>();
 const subscribers = new Map<string, Set<(result: TokenizedCode) => void>>();
 // 内存诊断计数器：tokensCache 目前无淘汰，是审计里
@@ -87,22 +92,74 @@ const getCodeTokensCacheKey = (
   const end = code.length > 100 ? code.slice(-100) : "";
   return `${theme}:${language}:${code.length}:${start}:${end}`;
 };
+interface ShikiCoreModules {
+  createHighlighterCore: typeof import("shiki/core").createHighlighterCore;
+  createOnigurumaEngine: typeof import("shiki/engine/oniguruma").createOnigurumaEngine;
+  bundledThemes: typeof import("shiki/themes").bundledThemes;
+}
+
+let shikiCoreModulesPromise: Promise<ShikiCoreModules> | null = null;
+
+// Shiki core + Oniguruma + wasm 全部走运行时动态 import：
+// - 本模块首屏只保留上面的语言清单/别名元数据，不再静态引入高亮引擎、主题和 wasm；
+//   （@pierre/diffs 自己的 shiki 依赖不在本模块控制范围内，见报告中的后续项）
+// - 某个 chunk 加载失败时清掉缓存，后续代码块还能重试；
+// - 失败不会向上抛出到 React，调用方继续显示纯文本。
+const loadShikiCoreModules = (): Promise<ShikiCoreModules> => {
+  if (!shikiCoreModulesPromise) {
+    shikiCoreModulesPromise = Promise.all([
+      import("shiki/core"),
+      import("shiki/engine/oniguruma"),
+      import("shiki/themes"),
+    ])
+      .then(([core, engine, themes]) => ({
+        createHighlighterCore: core.createHighlighterCore,
+        createOnigurumaEngine: engine.createOnigurumaEngine,
+        bundledThemes: themes.bundledThemes,
+      }))
+      .catch((error: unknown) => {
+        shikiCoreModulesPromise = null;
+        throw error;
+      });
+  }
+
+  return shikiCoreModulesPromise;
+};
+
 const getHighlighter = (
   language: BundledLanguage,
   theme: BundledTheme,
-): Promise<HighlighterGeneric<BundledLanguage, BundledTheme>> => {
+): Promise<HighlighterCore> => {
   const cacheKey = `${theme}:${language}`;
   const cached = highlighterCache.get(cacheKey);
   if (cached) {
     return cached;
   }
 
-  const highlighterPromise = createHighlighter({
-    langs: [language],
-    themes: [theme],
-  });
+  const highlighterPromise = loadShikiCoreModules().then(
+    ({ createHighlighterCore, createOnigurumaEngine, bundledThemes }) => {
+      const languageLoader = bundledLanguages[language];
+      const themeLoader = bundledThemes[theme];
+      if (!languageLoader || !themeLoader) {
+        throw new Error(`Unsupported Shiki language/theme: ${language}/${theme}`);
+      }
+
+      return createHighlighterCore({
+        langs: [languageLoader],
+        themes: [themeLoader],
+        engine: createOnigurumaEngine(import("shiki/wasm")),
+      });
+    },
+  );
 
   highlighterCache.set(cacheKey, highlighterPromise);
+  // 单个语言/主题 chunk 的失败不常驻缓存，下一次代码块可以重新尝试；
+  // 不改变调用方行为：本次仍然走 .catch 保持纯文本回退。
+  void highlighterPromise.catch(() => {
+    if (highlighterCache.get(cacheKey) === highlighterPromise) {
+      highlighterCache.delete(cacheKey);
+    }
+  });
   return highlighterPromise;
 };
 

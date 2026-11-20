@@ -3595,6 +3595,17 @@ export const nibiPluginsOverviewResultSchema = z
   .strict();
 export type NibiPluginsOverviewResult = z.infer<typeof nibiPluginsOverviewResultSchema>;
 
+// Additive bootstrap: list + overview 一次返回。旧 Host 没有该方法，renderer 按
+// method-not-found 回退到两次旧 RPC；params 与 overview 完全同形。
+export const nibiPluginsBootstrapParamsSchema = nibiPluginsOverviewParamsSchema;
+export const nibiPluginsBootstrapResultSchema = z
+  .object({
+    list: nibiPluginsListResultSchema,
+    overview: nibiPluginsOverviewResultSchema,
+  })
+  .strict();
+export type NibiPluginsBootstrapResult = z.infer<typeof nibiPluginsBootstrapResultSchema>;
+
 export const nibiPluginsMarketplaceAddParamsSchema = z
   .object({
     workspace: nibiWorkspaceRefSchema,

@@ -62,6 +62,12 @@ pub(crate) enum SinkRequest {
         mode: PermissionMode,
         reply: oneshot::Sender<Result<(), OrchestrationError>>,
     },
+    /// PermissionRequest hook 的 `SetMode`（hooks.md §6.2）：`persist` 为真时（落本机）另记项目的持久模式。
+    SetModeForHook {
+        mode: PermissionMode,
+        persist: bool,
+        reply: oneshot::Sender<Result<(), OrchestrationError>>,
+    },
     /// 工具请求打开或关掉 plan 开关（EnterPlanMode / ExitPlanMode，修复线 F20）。
     SetPlan {
         enabled: bool,
@@ -126,6 +132,11 @@ pub(crate) enum SinkRequest {
     PromptSnapshot {
         reply: oneshot::Sender<Option<nibi_kernel_api::prompt_snapshot::PromptSnapshot>>,
     },
+    /// 主循环读会话钉住的模型可见输入（R09）。
+    SessionPrompt {
+        reply:
+            oneshot::Sender<Option<std::sync::Arc<nibi_kernel_api::session_prompt::SessionPrompt>>>,
+    },
     /// 主循环请求组装之后记录 system 快照（K6）：写入由 actor 完成，失败不阻断回合。
     RecordPromptSnapshot {
         selection: ModelSelection,
@@ -185,11 +196,7 @@ impl Interactions for ActorSink {
         answer.await.map_err(|_| gone())?
     }
 
-    async fn cancel_ask(
-        &self,
-        _session: &SessionId,
-        tool_use: &nibi_kernel_api::ids::ToolUseId,
-    ) {
+    async fn cancel_ask(&self, _session: &SessionId, tool_use: &nibi_kernel_api::ids::ToolUseId) {
         let request = SinkRequest::CancelAsk {
             tool_use: tool_use.clone(),
         };
@@ -224,6 +231,28 @@ impl Interactions for ActorSink {
         let (reply, answer) = oneshot::channel();
         self.sender
             .send(SinkRequest::SetPlan { enabled, reply })
+            .await
+            .map_err(|_| gone())?;
+        answer.await.map_err(|_| gone())?
+    }
+
+    /// PermissionRequest hook 的 `SetMode`：落本机的另记项目的持久模式（permission-updates.md §2.4）。
+    async fn set_mode_for_hook(
+        &self,
+        _session: &SessionId,
+        mode: PermissionMode,
+        persist: bool,
+    ) -> Result<(), OrchestrationError> {
+        let gone = || OrchestrationError::Failed {
+            message: "the session is closed".to_owned(),
+        };
+        let (reply, answer) = oneshot::channel();
+        self.sender
+            .send(SinkRequest::SetModeForHook {
+                mode,
+                persist,
+                reply,
+            })
             .await
             .map_err(|_| gone())?;
         answer.await.map_err(|_| gone())?
@@ -367,11 +396,7 @@ impl Interactions for SessionAsks {
         }
     }
 
-    async fn cancel_ask(
-        &self,
-        _session: &SessionId,
-        tool_use: &nibi_kernel_api::ids::ToolUseId,
-    ) {
+    async fn cancel_ask(&self, _session: &SessionId, tool_use: &nibi_kernel_api::ids::ToolUseId) {
         // 会话已关闭时，关闭已经取消了全部待回答的交互；询问可能已转到进程级的入口。
         if let Some(requests) = self.requests.upgrade() {
             let request = crate::actor::Request::CancelAsk {
@@ -500,6 +525,18 @@ impl RunSink for ActorSink {
     async fn current_goal(&self) -> Option<String> {
         let (reply, answer) = oneshot::channel();
         self.sender.send(SinkRequest::Goal { reply }).await.ok()?;
+        answer.await.ok().flatten()
+    }
+
+    /// R09：会话钉住的模型可见输入（每一步读一次；与模式、工作区同一个快照）。
+    async fn session_prompt(
+        &self,
+    ) -> Option<std::sync::Arc<nibi_kernel_api::session_prompt::SessionPrompt>> {
+        let (reply, answer) = oneshot::channel();
+        self.sender
+            .send(SinkRequest::SessionPrompt { reply })
+            .await
+            .ok()?;
         answer.await.ok().flatten()
     }
 

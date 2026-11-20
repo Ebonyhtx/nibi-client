@@ -25,7 +25,10 @@ fn state(record: &FrontendRecord, title: &str) -> Option<SharedContextImportStat
     let context_id = record.data["contextId"].as_str()?.trim();
     let share_url = record.data["shareUrl"].as_str()?.trim();
     let status = record.data["status"].as_str()?;
-    if title.is_empty() || context_id.is_empty() || share_url.is_empty() || !STATUSES.contains(&status)
+    if title.is_empty()
+        || context_id.is_empty()
+        || share_url.is_empty()
+        || !STATUSES.contains(&status)
     {
         return None;
     }

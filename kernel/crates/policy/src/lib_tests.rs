@@ -295,3 +295,38 @@ mod monitor_chain;
 
 #[path = "lib_tests_machine.rs"]
 mod machine;
+
+/// PermissionRequest hook 的 `Session` 规则只落在触发它的会话：子代理的更新不改父会话的判决快照
+/// （permission-updates.md §2.4）。
+#[test]
+fn hook_session_rules_do_not_leak_from_a_child_to_the_parent() {
+    use nibi_kernel_api::permission::PermissionRule;
+    use nibi_kernel_api::permission_updates::{PermissionUpdate, UpdatePlace};
+
+    let gate = PolicyGate::default();
+    let parent = SessionId::new("sess_parent");
+    let child = SessionId::new("sess_child");
+    let rule = PermissionRule {
+        tool: "Bash".to_owned(),
+        content: Some("npm test".to_owned()),
+    };
+    gate.apply_hook_rules(
+        &child,
+        &[PermissionUpdate::AddRules {
+            place: UpdatePlace::Session,
+            behavior: RuleBehavior::Allow,
+            rules: vec![rule.clone()],
+        }],
+    );
+    let has_rule = |session: &SessionId| {
+        gate.snapshot_for(session)
+            .rules
+            .iter()
+            .any(|known| known.rule == rule && known.behavior == RuleBehavior::Allow)
+    };
+    assert!(has_rule(&child));
+    assert!(!has_rule(&parent));
+    // 会话关闭后清掉。
+    gate.release(&child);
+    assert!(!has_rule(&child));
+}

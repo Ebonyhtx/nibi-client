@@ -13,7 +13,7 @@ use nibi_kernel_api::orchestration::ContextRequest;
 use nibi_kernel_prompts::models;
 use nibi_kernel_prompts::texts::{self, render};
 
-use crate::config::{OutputStyle, Surface};
+use crate::config::OutputStyle;
 use crate::render::{Bullet, bullets};
 
 /// 提示词里提到的工具名。
@@ -34,7 +34,8 @@ pub(crate) fn token_budget(request: &ContextRequest) -> u64 {
 
 /// 组装 system prompt 所需的事实。
 pub(crate) struct PromptFacts<'a> {
-    pub surface: Surface,
+    /// 会话钉住的 `!` 提示（`SystemPin.shell_escape`，context.md §15.5）：前端认 `!` 开头的 bash 模式。
+    pub shell_escape: bool,
     /// 模型接受对话中间的 system 消息（生效配置，答不出时按卡片回退：[`facts_system_turns`]，model.md §11）。
     pub system_turns: bool,
     pub tool_names: &'a [String],
@@ -99,7 +100,7 @@ fn lean_body(facts: &PromptFacts<'_>) -> String {
 /// `# Session-specific guidance`（lean 时不提 Agent 工具的用法）。
 fn guidance(facts: &PromptFacts<'_>) -> Option<String> {
     let mut lines = Vec::new();
-    if facts.surface == Surface::Interactive {
+    if facts.shell_escape {
         lines.push(Bullet::Line(texts::guidance_shell().to_owned()));
     }
     if facts.has_skills && facts.tool_names.iter().any(|name| name == SKILL_TOOL) {

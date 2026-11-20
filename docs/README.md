@@ -23,7 +23,7 @@
 - [自动更新](desktop/auto-update-service-manifest.md)
 - [Windows 安装器](desktop/windows-installer-overhaul-spec.md)
 - [Computer Use producer 检测](desktop/computer-use-producer-detection.md)
-- [Computer Use 实现](../packages/nibi-cua/IMPLEMENTATION.md)
+- [Computer Use 实现](../packages/computer-use/IMPLEMENTATION.md)
 
 ## CLI 与 Agent
 

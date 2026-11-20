@@ -30,7 +30,11 @@ impl McpTelemetry {
     /// `salt` 为空时退回进程级随机串：同一进程内稳定，跨进程不可关联（Node 退回 `traceId` 的同一姿态）。
     pub fn new(sink: UnboundedSender<McpTelemetryEvent>, salt: String) -> Arc<Self> {
         let salt = if salt.trim().is_empty() {
-            format!("{:016x}{:016x}", nibi_kernel_base::random::u64(), nibi_kernel_base::random::u64())
+            format!(
+                "{:016x}{:016x}",
+                nibi_kernel_base::random::u64(),
+                nibi_kernel_base::random::u64()
+            )
         } else {
             salt
         };

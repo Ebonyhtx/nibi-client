@@ -211,7 +211,7 @@ pub(crate) fn post_tool_use_failure(fold: &Fold<'_>, results: &[HookResult]) -> 
     outcome
 }
 
-/// 第一个给出决定的 hook 生效。
+/// 第一个给出决定的 hook 生效，它的 `updatedPermissions` 与 `interrupt` 随它（hooks.md §6.2）。
 pub(crate) fn permission_request(results: &[HookResult]) -> HookOutcome {
     let mut outcome = HookOutcome {
         notices: notices(results),
@@ -222,18 +222,23 @@ pub(crate) fn permission_request(results: &[HookResult]) -> HookOutcome {
         .find_map(|result| result.permission_request.clone())
     {
         match decision {
-            PermissionRequestDecision::Allow { updated_input } => {
+            PermissionRequestDecision::Allow {
+                updated_input,
+                remember,
+            } => {
                 outcome.decision = Some(PermissionDecision::Allow {
                     updated_input: None,
                 });
                 outcome.updated_input = updated_input;
+                outcome.remember = remember;
             }
-            PermissionRequestDecision::Deny { message } => {
+            PermissionRequestDecision::Deny { message, interrupt } => {
                 outcome.decision = Some(PermissionDecision::Deny {
                     message: message
                         .filter(|text| !text.is_empty())
                         .unwrap_or_else(|| texts::PERMISSION_DENIED_BY_HOOK.to_owned()),
                 });
+                outcome.interrupt = interrupt;
             }
         }
     }

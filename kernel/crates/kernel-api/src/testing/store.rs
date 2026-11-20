@@ -827,7 +827,9 @@ impl SessionStore for MemoryStore {
         &self,
         root: &SessionId,
     ) -> Result<crate::deletion::DeletionScope, StoreError> {
-        use crate::deletion::{ArtifactReference, DeletionScope, Receipt, SessionStamp, TitledSession};
+        use crate::deletion::{
+            ArtifactReference, DeletionScope, Receipt, SessionStamp, TitledSession,
+        };
         let receipt_rows: Vec<(SessionId, Receipt)> = {
             let receipts = lock(&self.purge_receipts);
             let mut rows: Vec<(SessionId, Receipt)> = receipts
@@ -862,7 +864,9 @@ impl SessionStore for MemoryStore {
         // sessions，这里不反着拿，避免测试里的锁顺序死锁）。
         let (workspace, forks, created, titles) = {
             let sessions_map = lock(&self.sessions);
-            let workspace = sessions_map.get(root).map(|(meta, _)| meta.workspace.clone());
+            let workspace = sessions_map
+                .get(root)
+                .map(|(meta, _)| meta.workspace.clone());
             let mut forks: Vec<TitledSession> = sessions_map
                 .values()
                 .filter(|(meta, _)| {
@@ -1116,6 +1120,9 @@ impl SessionStore for MemoryStore {
             RuleBehavior::Deny => &mut rules.deny,
             RuleBehavior::Ask => &mut rules.ask,
         };
+        if change.replace {
+            list.clear();
+        }
         list.retain(|rule| !change.remove.contains(rule));
         for rule in change.add {
             if !list.contains(&rule) {

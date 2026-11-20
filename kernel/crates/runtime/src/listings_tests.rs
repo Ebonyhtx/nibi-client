@@ -52,6 +52,7 @@ async fn skill_mentions_are_passed_through() {
         },
         plan_flags: Default::default(),
         mcp: None,
+        prompt: None,
     };
     assert_eq!(
         combined

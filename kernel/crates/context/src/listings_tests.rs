@@ -148,6 +148,7 @@ fn request(
         },
         plan_flags: Default::default(),
         mcp,
+        prompt: None,
     }
 }
 

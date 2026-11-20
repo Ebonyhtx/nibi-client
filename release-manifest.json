@@ -57,7 +57,7 @@
         "packages/rpc/**",
         "packages/provider/**",
         "packages/provider-node/**",
-        "packages/nibi-cua/**",
+        "packages/computer-use/**",
         "packages/model-option-map/**",
         "packages/formal-proof/**",
         "scripts/desktop-package/**",

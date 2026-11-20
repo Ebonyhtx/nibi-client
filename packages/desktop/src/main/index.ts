@@ -2729,6 +2729,8 @@ app.whenReady().then(async () => {
           // 不取消共享请求（后台仍可给首 Host 灰度裁决写入缓存）。
           // 见 docs/deployment/client-endpoint-and-distribution-standard.md §3.1。
           fetchRemoteConfig: electronClientConfigsFetcher.fetchConfig,
+          // 弱网/离线时按最近一次成功裁决兜底，避免完全 fail-open。
+          lkgDirectory: app.getPath("userData"),
           onBlocked: () => {
             forceUpdateMainWindowCreationBlocked = true;
           },

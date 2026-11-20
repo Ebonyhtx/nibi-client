@@ -5,7 +5,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use nibi_kernel_base::TaskScope;
 use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
 use nibi_kernel_api::ids::{CommandId, EnvironmentId, Generation, SessionId, TraceId};
 use nibi_kernel_api::message::ToolResultContent;
@@ -22,6 +21,7 @@ use nibi_kernel_api::testing::{
 use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
+use nibi_kernel_base::TaskScope;
 use nibi_kernel_query::{QueryLoop, QueryParts};
 use serde_json::{Value, json};
 
@@ -140,6 +140,7 @@ fn spawn(
             context_usage: None,
             memory: None,
             workflow_activation: None,
+            prompt: Arc::new(nibi_kernel_api::session_prompt::SessionPrompt::default()),
         },
         SessionState {
             meta: meta(),

@@ -8,77 +8,8 @@ use nibi_kernel_api::permission::{
     PermissionRule, PermissionRules, RuleBehavior, RuleSource, SourcedRule,
 };
 
-/// 旧工具名（与 hook 的 matcher 共用 kernel-api 的一张表，修复线 F58）。以前这里是一张只有
-/// 4 项的别名表。`AgentOutputTool` / `BashOutputTool` 已退役（不再是
-/// 别名）；保留它们，免得用户已有的 deny 规则失效（保守，README §11 F58 的需要用户确认）。
-fn canonical(name: &str) -> &str {
-    match name {
-        "AgentOutputTool" | "BashOutputTool" => "TaskOutput",
-        other => nibi_kernel_api::tool::canonical_tool_name(other),
-    }
-}
-
-fn unescaped(text: &str, index: usize) -> bool {
-    let slashes = text[..index]
-        .bytes()
-        .rev()
-        .take_while(|byte| *byte == b'\\')
-        .count();
-    slashes % 2 == 0
-}
-
-fn first_unescaped(text: &str, needle: u8) -> Option<usize> {
-    (0..text.len()).find(|&index| text.as_bytes()[index] == needle && unescaped(text, index))
-}
-
-fn last_unescaped(text: &str, needle: u8) -> Option<usize> {
-    (0..text.len())
-        .rev()
-        .find(|&index| text.as_bytes()[index] == needle && unescaped(text, index))
-}
-
-fn unescape(content: &str) -> String {
-    content
-        .replace(r"\(", "(")
-        .replace(r"\)", ")")
-        .replace(r"\\", r"\")
-}
-
-fn escape(content: &str) -> String {
-    content
-        .replace('\\', r"\\")
-        .replace('(', r"\(")
-        .replace(')', r"\)")
-}
-
-/// 规则串解析成规则值。
-pub fn parse_rule(text: &str) -> PermissionRule {
-    let whole = || PermissionRule {
-        tool: canonical(text).to_owned(),
-        content: None,
-    };
-    let Some(open) = first_unescaped(text, b'(') else {
-        return whole();
-    };
-    let Some(close) = last_unescaped(text, b')') else {
-        return whole();
-    };
-    if close <= open || close != text.len() - 1 || open == 0 {
-        return whole();
-    }
-    let tool = canonical(&text[..open]).to_owned();
-    let raw = &text[open + 1..close];
-    let content = (!raw.is_empty() && raw != "*").then(|| unescape(raw));
-    PermissionRule { tool, content }
-}
-
-/// 规则值写回规则串。
-pub fn format_rule(rule: &PermissionRule) -> String {
-    match rule.content.as_deref() {
-        None | Some("") => rule.tool.clone(),
-        Some(content) => format!("{}({})", rule.tool, escape(content)),
-    }
-}
+/// 规则串的解析与写回只在 kernel-api（判决链与 hook 的权限更新共用一份）。
+pub use nibi_kernel_api::permission::syntax::{format_rule, parse_rule};
 
 /// 规则的工具名是否指向这个工具。
 pub fn tool_matches(rule_tool: &str, tool: &str) -> bool {

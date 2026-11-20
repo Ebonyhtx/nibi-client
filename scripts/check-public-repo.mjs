@@ -288,8 +288,8 @@ const FORBIDDEN_CUA_MATERIAL_SUFFIXES = [
 ];
 
 function checkCuaBoundary(violations) {
-  const packageRoot = join(ROOT, "packages", "nibi-cua");
-  const manifestPath = "packages/nibi-cua/package.json";
+  const packageRoot = join(ROOT, "packages", "computer-use");
+  const manifestPath = "packages/computer-use/package.json";
   if (!existsSync(join(ROOT, manifestPath))) {
     violations.push({
       file: manifestPath,
@@ -318,14 +318,14 @@ function checkCuaBoundary(violations) {
   }
   if (!existsSync(join(packageRoot, "vendor", "freeall12-computer-use", "PROVENANCE.md"))) {
     violations.push({
-      file: "packages/nibi-cua/vendor/freeall12-computer-use",
+      file: "packages/computer-use/vendor/freeall12-computer-use",
       line: 0,
       rule: "vendored CUA reference must keep its provenance",
       text: "PROVENANCE.md",
     });
   }
   for (const file of listTrackedFiles()) {
-    if (!file.startsWith("packages/nibi-cua/")) continue;
+    if (!file.startsWith("packages/computer-use/")) continue;
     const lower = file.toLowerCase();
     if (FORBIDDEN_CUA_MATERIAL_SUFFIXES.some((suffix) => lower.endsWith(suffix))) {
       violations.push({

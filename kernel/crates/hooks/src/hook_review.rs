@@ -182,14 +182,20 @@ pub fn review(
             hook_index: entry.hook_index,
         })
         .collect();
-    let enabled: Vec<&WorkspaceHookItem> = items.iter().filter(|item| item.configured_enabled).collect();
+    let enabled: Vec<&WorkspaceHookItem> = items
+        .iter()
+        .filter(|item| item.configured_enabled)
+        .collect();
     let reason_code = if store_corrupt {
         "trust_store_corrupt"
     } else if policy_blocked {
         "blocked_policy"
     } else if enabled.is_empty() {
         "no_enabled_hooks"
-    } else if enabled.iter().all(|item| item.trust_state == HookTrustState::TrustedPersistent) {
+    } else if enabled
+        .iter()
+        .all(|item| item.trust_state == HookTrustState::TrustedPersistent)
+    {
         "trusted_persistent"
     } else {
         "pending_trust"
@@ -263,8 +269,9 @@ pub fn admitted_for(
 ) -> Vec<HooksSettings> {
     let mut warnings = Vec::new();
     let found = candidates(files, &mut warnings);
-    let root =
-        workspace_digest::runtime_root(std::iter::once(user_hooks).chain(found.iter().map(|(_, hooks)| hooks)));
+    let root = workspace_digest::runtime_root(
+        std::iter::once(user_hooks).chain(found.iter().map(|(_, hooks)| hooks)),
+    );
     match workspace_digest::bundle(&sources(identity, &found), &root) {
         Some(bundle) => admitted(&bundle.entries, root, trusted),
         None => Vec::new(),

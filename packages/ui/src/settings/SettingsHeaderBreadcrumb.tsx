@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, type ReactNo
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/components/lib/utils.js";
 import { Button } from "@/components/ui/button.js";
+import { useSettingsSectionActive } from "@/settings/SettingsSectionKeepAlive.js";
 
 export interface SettingsBreadcrumbItem {
   label: string;
@@ -60,6 +61,9 @@ export function SettingsBreadcrumbReporter({
   onSectionSelect?: () => void;
 }) {
   const report = useContext(SettingsBreadcrumbContext);
+  // 保活分区隐藏后仍留在 DOM 里；编辑/详情视图的面包屑不能继续占着顶栏。
+  // inactive 时走 effect cleanup 清掉自己的投影，重新可见后再上报。
+  const sectionActive = useSettingsSectionActive();
   const actionsRef = useRef(items.map((item) => item.onSelect));
   const sectionActionRef = useRef(onSectionSelect);
   actionsRef.current = items.map((item) => item.onSelect);
@@ -67,6 +71,7 @@ export function SettingsBreadcrumbReporter({
   const signature = JSON.stringify(items.map((item) => item.label));
 
   useEffect(() => {
+    if (!sectionActive) return undefined;
     const labels = JSON.parse(signature) as string[];
     const dispose = report?.({
       items: labels.map((label, index) => ({
@@ -76,7 +81,7 @@ export function SettingsBreadcrumbReporter({
       onSectionSelect: sectionActionRef.current ? () => sectionActionRef.current?.() : undefined,
     });
     return dispose;
-  }, [report, signature]);
+  }, [report, sectionActive, signature]);
 
   return null;
 }

@@ -15,9 +15,7 @@ use nibi_kernel_api::abort::AbortReason;
 use nibi_kernel_api::checkpoint::DISPLAY_KEY;
 use nibi_kernel_api::env::{OperationContext, Origin};
 use nibi_kernel_api::ids::{MessageId, OwnerEpoch, ToolUseId};
-use nibi_kernel_api::message::{
-    ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
-};
+use nibi_kernel_api::message::{ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin};
 use nibi_kernel_api::metering::{CallStatus, ToolCall};
 use nibi_kernel_api::orchestration::{QueryEvent, ToolExecution};
 use nibi_kernel_api::tool::{InterruptBehavior, Tool, ToolOutput, ToolUseContext};
@@ -290,8 +288,14 @@ impl ToolBatch {
             output,
             before,
             after,
+            interrupt,
             ..
         } = execution;
+        // PermissionRequest hook 的拒绝要求中止整个回合（hooks.md §6.2）：同用户的停止。这次调用自己也按被中止
+        // 交付（结果是拒绝的文字，hook 的 message 不进模型）。`Abort` 只认第一次。
+        if interrupt {
+            self.scope.abort.abort(AbortReason::User);
+        }
         // 被中止的调用只交付拒绝结果，不带执行管线的其他消息；写入的 checkpoint 保留。
         let (output, before, after, status) = match self.abort_text(&self.tools[index]) {
             Some(text) => (
@@ -504,3 +508,7 @@ mod message_tests;
 #[cfg(test)]
 #[path = "executor_checkpoint_tests.rs"]
 mod checkpoint_tests;
+
+#[cfg(test)]
+#[path = "executor_interrupt_tests.rs"]
+mod interrupt_tests;

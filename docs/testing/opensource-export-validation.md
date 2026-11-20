@@ -1,6 +1,6 @@
 # 开源导出完整性
 
-> 历史文档（Computer Use 占位包时代）：公开 `packages/nibi-cua` 已是完整实现，不再有 placeholder/overlay。
+> 历史文档（Computer Use 占位包时代）：公开 `packages/computer-use` 已是完整实现，不再有 placeholder/overlay。
 
 ## 范围
 

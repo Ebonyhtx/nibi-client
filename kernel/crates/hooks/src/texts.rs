@@ -2,9 +2,7 @@
 //! `<system-reminder` 的转义。
 
 use nibi_kernel_api::clock::Ids;
-use nibi_kernel_api::message::{
-    AttachmentMessage, ContentBlock, Message, UserMessage, UserOrigin,
-};
+use nibi_kernel_api::message::{AttachmentMessage, ContentBlock, Message, UserMessage, UserOrigin};
 use nibi_kernel_prompts::reminder;
 use serde_json::{Value, json};
 

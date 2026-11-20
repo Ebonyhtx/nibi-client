@@ -3,7 +3,7 @@
 ## 规则
 
 Computer Use 的真实实现来自公开 workspace 包 `@nibi/cua`（producer）。当前公开仓
-`packages/nibi-cua` 就是完整实现；检测逻辑保留为**历史兼容/异常安装保护**：如果某个旧导出或
+`packages/computer-use` 就是完整实现；检测逻辑保留为**历史兼容/异常安装保护**：如果某个旧导出或
 第三方安装仍声明 `nibiCuaPlaceholder: true`，所有能力 fail-closed，打包步骤跳过真实 Helper 资产。
 
 开发、构建与打包中只服务于真实 Computer Use 的步骤，必须先检测到真实 producer 才执行；
@@ -27,7 +27,7 @@ Sharp 的暂存与校验仍以“producer 是否声明 Sharp 依赖”为准（`
 
 ## 验收
 
-1. 真实 producer（当前公开 `packages/nibi-cua`）：上述步骤行为不变。
+1. 真实 producer（当前公开 `packages/computer-use`）：上述步骤行为不变。
 2. 占位包：`pnpm dev:desktop` 的准备脚本可加载，开发态插件运行时暂存返回空，Windows 不准备 Helper，
    打包不附带也不校验 Helper。
 3. 单测：`packages/desktop/test/placeholderProducerDetection.test.ts` 覆盖真实、占位、未安装三种情况与暂存跳过。

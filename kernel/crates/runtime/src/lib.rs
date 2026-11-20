@@ -27,8 +27,8 @@ mod memory;
 mod node_repl;
 mod permissions;
 mod projects;
-mod resident;
 mod residency;
+mod resident;
 mod sampling;
 mod session_control;
 mod session_control_feed;
@@ -48,11 +48,6 @@ use async_trait::async_trait;
 use nibi_kernel_agents::{
     AgentCatalog, Agents, AgentsConfig, AgentsPorts, MemoryTaskLists, MemoryTodos,
 };
-use nibi_kernel_base::TaskScope;
-use nibi_kernel_compact::{CompactPorts, Compaction, DenyTools, Disabled};
-use nibi_kernel_context::{ContextPorts, PromptAssembler};
-use nibi_kernel_ext::{Ext, ExtPorts};
-use nibi_kernel_hooks::{HookEngine, HookPorts};
 use nibi_kernel_api::agents::{AgentSignals, TaskListStore, TodoStore};
 use nibi_kernel_api::clock::{Clock, Ids};
 use nibi_kernel_api::env::{OperationContext, Origin, WorkspaceRef};
@@ -72,6 +67,11 @@ use nibi_kernel_api::store::{
     SessionSummary, StoreError,
 };
 use nibi_kernel_api::tool::{ReadFileStates, ToolOutput, ToolUseContext};
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_compact::{CompactPorts, Compaction, DenyTools, Disabled};
+use nibi_kernel_context::{ContextPorts, PromptAssembler};
+use nibi_kernel_ext::{Ext, ExtPorts};
+use nibi_kernel_hooks::{HookEngine, HookPorts};
 use nibi_kernel_policy::PolicyGate;
 use nibi_kernel_query::{QueryLoop, QueryParts};
 use nibi_kernel_session::{Opened, Session, SessionState};
@@ -79,13 +79,13 @@ use nibi_kernel_tools::Pipeline;
 use table::{Closer, OpenSessions};
 
 pub use ext::{ExtConfig, Extensions, PluginSnapshotLoader};
+pub use nibi_kernel_compact::{CompactConfig, Thresholds as CompactThresholds};
+pub use nibi_kernel_context::{Attribution, ContextConfig, OutputStyle, Surface};
 pub use permissions::{
     bash_rule_label, bash_rule_seed, format_rule as format_permission_rule,
     parse_rule as parse_permission_rule,
 };
 pub use resident::ResidentPoolConfig;
-pub use nibi_kernel_compact::{CompactConfig, Thresholds as CompactThresholds};
-pub use nibi_kernel_context::{Attribution, ContextConfig, OutputStyle, Surface};
 // hooks 快照（`LocalKernel::replace_hooks` 的参数）：前端的测试组装它不必依赖 hooks crate（修复线 F37 的 TUI 测试）。
 pub use nibi_kernel_hooks::{HookSource, HooksConfig, HooksSettings};
 pub use nibi_kernel_query::{RequestLimits, ThinkingTokens};
@@ -155,8 +155,7 @@ struct SubagentPlugins {
 
 impl nibi_kernel_agents::SubagentPluginInheritance for SubagentPlugins {
     fn inherit(&self, parent: &SessionId, child: &SessionId) {
-        self.ext
-            .copy_session_skill_roots(parent, child.clone());
+        self.ext.copy_session_skill_roots(parent, child.clone());
         self.agents.copy_session(parent, child.clone());
         self.hooks.copy_session(parent, child.clone());
         self.commands
@@ -196,6 +195,9 @@ pub struct LocalKernel {
     titles: Option<TitleModel>,
     /// `/context` 的分析（context-usage.md），与主循环共用同一批实例。
     usage: Arc<usage::UsageAnalyzer>,
+    /// 内核现在给新会话钉的模型可见输入（R09，context.md §15.3）：建会话的初始事实写它的 system；冷打开读库里的
+    /// 记录，没有记录（旧会话）时用它。
+    prompt: Arc<nibi_kernel_api::session_prompt::SessionPrompt>,
     /// 用户输入的 `@` 提及与 bash 模式（tui-input.md §1.1、§2.2）：基础注册表里的 Read 与 Bash。
     inputs: Arc<dyn nibi_kernel_api::user_input::UserInputs>,
     generation: Generation,
@@ -354,12 +356,10 @@ impl LocalKernel {
         // 一个判决链实例：工具注册（Edit / Write 的先读规则）与执行管线共用，会话内“总是允许”的
         // 规则因此对两边都生效。规则快照由入口层接入配置后替换（shell-permissions.md §5）。
         // 会话的附加工作目录（NIBI createSession.additionalDirectories）：判决链与环境段共用一份。
-        let session_directories = Arc::new(
-            nibi_kernel_api::session_paths::SessionDirectories::new(),
-        );
-        let gate = Arc::new(
-            PolicyGate::default().with_session_directories(session_directories.clone()),
-        );
+        let session_directories =
+            Arc::new(nibi_kernel_api::session_paths::SessionDirectories::new());
+        let gate =
+            Arc::new(PolicyGate::default().with_session_directories(session_directories.clone()));
         // ToolSearch 与延迟工具清单看同一个主线程注册表，建好注册表后绑定（tools-more.md §3.4）；`ENABLE_TOOL_SEARCH` 为关时
         // ToolSearch 不启用（工作线 F89，§3.2.1）。
         let catalog = Arc::new(nibi_kernel_tools::ToolCatalog::new(
@@ -500,9 +500,9 @@ impl LocalKernel {
                 ))])
                 // DWF 留白补全（`FillWorkflowHole`）：引擎经槽取得（sidecar 在入口最后才接上；
                 // 缺席回「本会话不能补全」的同一条结构化失败）。
-                .with_tools(vec![Arc::new(nibi_kernel_tools::FillWorkflowHoleTool::new(
-                    workflow_engine_slot.clone(),
-                ))])
+                .with_tools(vec![Arc::new(
+                    nibi_kernel_tools::FillWorkflowHoleTool::new(workflow_engine_slot.clone()),
+                )])
                 .with_tools(nibi_kernel_tools::worktree_tools(&worktrees))
                 // 话题（bot 群）的工具：`ReadTopicResource` 只读当前会话已接纳的话题资源
                 // （Host 端口在场才注册），`ReplyToChannel` 经 Host 发带原生 @ 的回复。
@@ -551,6 +551,8 @@ impl LocalKernel {
             extensions.config,
         ));
         ext.set_print_session(non_interactive);
+        // Elicitation / ElicitationResult hooks（ext.md §3.13.6）：hook 引擎建好之后交给 MCP 的提问通道。
+        ext.attach_hooks(hooks.clone());
         // agent 清单（context）与 Agent 工具共用一个目录：插件 agent 设置一次，两处同时看到（L12）。
         let agent_catalog = Arc::new(AgentCatalog::new(
             machine.info().clone(),
@@ -558,6 +560,16 @@ impl LocalKernel {
         ));
         // 抽取器要的目录必须在 `ContextConfig` 移进 `PromptAssembler` 之前取出。
         let memory_dir = context.memory_dir.clone();
+        // R09：内核现在给新会话钉的那一份（system 来自命令行参数，前端能力来自进程形态）。system 那一层随建会话的
+        // 初始事实落库；没有显式设置时与 context 按进程配置组装的结果逐字节相同。
+        let prompt = Arc::new(nibi_kernel_api::session_prompt::SessionPrompt::new(
+            context.custom_system_prompt.clone(),
+            context.append_system_prompt.clone(),
+            nibi_kernel_api::session_prompt::FrontendTraits {
+                shell_escape: context.surface == Surface::Interactive,
+                typed_mentions: context.surface == Surface::Interactive,
+            },
+        ));
         let context = PromptAssembler::new(
             ContextPorts {
                 info: machine.info().clone(),
@@ -684,7 +696,9 @@ impl LocalKernel {
             defaults.limits.subagent_stall_notify_ms,
             defaults.limits.subagent_stall_max_interval_ms,
         ));
-        let _stall = scope.spawner().spawn_resident("subagent-stall", stall.run());
+        let _stall = scope
+            .spawner()
+            .spawn_resident("subagent-stall", stall.run());
         // 升级提示经 `Agents` 的通知中心送进父会话（与后台子代理的通知同一条 `task-notification` 路）。
         escalations.attach_notifier(agents.clone());
         // 「run 还欠着决定、主代理闲着」的提醒钟（blocked_board）：每个会话一尊钟，忙闲沿由
@@ -788,6 +802,7 @@ impl LocalKernel {
             agent_catalog,
             titles: None,
             usage,
+            prompt,
             inputs,
             generation,
             scope,
@@ -869,17 +884,14 @@ impl LocalKernel {
         created_notifier: Option<
             Arc<dyn nibi_kernel_api::session_control::SessionControlCreatedNotifier>,
         >,
-        archive_reader: Option<
-            Arc<dyn nibi_kernel_api::session_control::SessionArchiveReader>,
-        >,
+        archive_reader: Option<Arc<dyn nibi_kernel_api::session_control::SessionArchiveReader>>,
     ) {
-        let host: Arc<dyn nibi_kernel_api::session_control::SessionControlHost> = Arc::new(
-            session_control::KernelSessionControlHost::new(
+        let host: Arc<dyn nibi_kernel_api::session_control::SessionControlHost> =
+            Arc::new(session_control::KernelSessionControlHost::new(
                 Arc::downgrade(self),
                 created_notifier,
                 archive_reader,
-            ),
-        );
+            ));
         let _ = self.session_control_host.set(host);
     }
 

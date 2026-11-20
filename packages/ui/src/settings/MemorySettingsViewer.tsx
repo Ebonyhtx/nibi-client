@@ -22,6 +22,7 @@ import { PluginScopeMenu } from "@/settings/PluginScopeMenu.js";
 import { PluginSearchEmptyState } from "@/settings/PluginInstallEmptyState.js";
 import { SettingsSearchInput } from "@/settings/SettingsSearchInput.js";
 import { SettingsResourceHeaderActions } from "@/settings/SettingsResourceHeaderActions.js";
+import { useSettingsSectionActive } from "@/settings/SettingsSectionKeepAlive.js";
 import { formatMemoryUpdatedAt } from "@/settings/memoryUpdatedAt.js";
 import { WorkspaceEditorButtonGroup } from "@/WorkspaceEditorButtonGroup.js";
 
@@ -43,12 +44,16 @@ export function MemorySettingsViewer({
   onScopeKeyChange: (workspaceId: string) => void;
 }) {
   const { intl, locale } = useNibiIntl();
+  const sectionActive = useSettingsSectionActive();
   const [searchQuery, setSearchQuery] = useState("");
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
+    // 隐藏分区不跑相对时间计时器；重新可见时立即对齐一次。
+    if (!sectionActive) return undefined;
+    setNow(Date.now());
     const interval = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(interval);
-  }, []);
+  }, [sectionActive]);
   const formatMemoryCount = (count: number) =>
     intl.formatMessage(
       {

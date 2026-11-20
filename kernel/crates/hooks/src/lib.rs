@@ -27,20 +27,22 @@
 mod command;
 pub mod config;
 mod effective;
+mod elicitation;
 mod fold;
 mod fold_session;
+pub mod hook_review;
 mod http;
 mod input;
 mod interpret;
 mod listing;
 mod matcher;
 pub mod node_config;
-pub mod hook_review;
-pub mod project_config;
 mod on_error;
 mod output;
+mod permission_updates;
 mod persist;
 mod plugin;
+pub mod project_config;
 mod prompt;
 mod result;
 mod run;
@@ -189,9 +191,11 @@ impl HookEngine {
         config
             .sources
             .retain(|(source, _)| *source != HookSource::Project);
-        config
-            .sources
-            .extend(settings.into_iter().map(|settings| (HookSource::Project, settings)));
+        config.sources.extend(
+            settings
+                .into_iter()
+                .map(|settings| (HookSource::Project, settings)),
+        );
         *loaded = Arc::new(load(config, loaded.plugins.clone()));
     }
 
@@ -247,7 +251,9 @@ impl HookEngine {
             .get(session)
             .cloned();
         match session_plugins {
-            Some(plugins) => loaded.config.effective_with(&self.allowed_plugin_hooks(plugins)),
+            Some(plugins) => loaded
+                .config
+                .effective_with(&self.allowed_plugin_hooks(plugins)),
             None => {
                 // 没有门禁/全部放行时直接吃缓存；有付费插件被拒时按过滤后的插件重算。
                 if self.has_denied_paid_plugin(&loaded.plugins) {
@@ -327,7 +333,13 @@ impl HookRunner for HookEngine {
                 .into_iter()
                 .map(|(index, executed)| interpret::outside(executed, &hooks[index].display()))
                 .collect();
-            return fold_session::outside(event.name, &summaries);
+            return match event.name {
+                // 结论交给发起询问的一方（ext，docs/specs/rust-cli/ext.md §3.13.6）。
+                HookEventName::Elicitation | HookEventName::ElicitationResult => {
+                    elicitation::fold(event.name, &summaries)
+                }
+                _ => fold_session::outside(event.name, &summaries),
+            };
         }
         let mut results: Vec<_> = done
             .into_iter()

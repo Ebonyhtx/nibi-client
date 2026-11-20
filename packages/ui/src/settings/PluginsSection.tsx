@@ -119,6 +119,8 @@ interface PluginsSectionProps {
   isMacDesktop?: boolean;
   isWindowsDesktop?: boolean;
   isWebRemoteControl?: boolean;
+  /** 保活分区隐藏时暂停轮询/订阅；不传按可见处理。 */
+  active?: boolean;
   initialTab?: PluginTabTarget;
   initialScopeKey?: string;
   mode?: "plugin" | "market" | "mcp" | "skill" | "command";
@@ -143,6 +145,7 @@ function PluginList({
   isMacDesktop,
   isWindowsDesktop,
   isWebRemoteControl,
+  active = true,
   onAdd,
   onCreateTask,
   onDetailOpenChange,
@@ -161,6 +164,7 @@ function PluginList({
   isMacDesktop: boolean;
   isWindowsDesktop: boolean;
   isWebRemoteControl: boolean;
+  active?: boolean;
   onAdd?: () => void;
   onCreateTask?: (request?: CreateTaskRequest) => void;
   onDetailOpenChange?: (open: boolean) => void;
@@ -181,12 +185,16 @@ function PluginList({
   // Scope 可选择非激活 workspace，若继续从当前 ServiceProvider 取服务，
   // 会把 B 的路径发往 A 的 host。插件读写必须和 Scope target 共用同一服务解析结果。
   const { pluginManagementService } = targetServiceResolution.services;
-  const usePluginManagementStore = useScopedPluginManagementStore(pluginManagementService, {
-    workspacePath: target?.workspacePath ?? null,
-    workspaceIdentity: target?.workspaceIdentity ?? null,
-    authorityKey: cacheAuthorityKey ?? null,
-    configScope,
-  });
+  const usePluginManagementStore = useScopedPluginManagementStore(
+    pluginManagementService,
+    {
+      workspacePath: target?.workspacePath ?? null,
+      workspaceIdentity: target?.workspaceIdentity ?? null,
+      authorityKey: cacheAuthorityKey ?? null,
+      configScope,
+    },
+    { subscribe: active },
+  );
   const plugins = usePluginManagementStore((state) => state.plugins);
   const installedPlugins = usePluginManagementStore((state) => state.installedPlugins);
   const marketplaces = usePluginManagementStore((state) => state.marketplaces);
@@ -628,7 +636,8 @@ function PluginList({
     ],
   );
   useEffect(() => {
-    if (!target || !targetServiceResolution.rpcReady) return;
+    // 保活分区隐藏时不再发起/刷新 discovery；重新可见时用快照 TTL 决定是否补一次。
+    if (!active || !target || !targetServiceResolution.rpcReady) return;
     void initialize({
       workspacePath: target.workspacePath,
       workspaceIdentity: target.workspaceIdentity,
@@ -637,6 +646,7 @@ function PluginList({
       pluginService: pluginManagementService,
     });
   }, [
+    active,
     initialize,
     cacheAuthorityKey,
     configScope,
@@ -1076,6 +1086,7 @@ export function PluginsSection({
   isMacDesktop = false,
   isWindowsDesktop = false,
   isWebRemoteControl = false,
+  active = true,
   initialTab = "plugins",
   initialScopeKey,
   mode = "plugin",
@@ -1409,6 +1420,7 @@ export function PluginsSection({
                   isMacDesktop={isMacDesktop}
                   isWindowsDesktop={isWindowsDesktop}
                   isWebRemoteControl={isWebRemoteControl}
+                  active={active}
                   searchQuery={searchQueries.plugins}
                   onAdd={marketplaceAvailable ? openPluginStoreForSelectedScope : undefined}
                   onCreateTask={onCreateTask}

@@ -112,6 +112,7 @@ async fn an_agent_notice_starts_a_turn_and_is_acked_after_the_commit() {
             context_usage: None,
             memory: None,
             workflow_activation: None,
+            prompt: Arc::new(nibi_kernel_api::session_prompt::SessionPrompt::default()),
         },
         SessionState {
             meta: meta(),
@@ -236,6 +237,7 @@ async fn a_subagent_lifecycle_signal_becomes_a_kernel_event() {
             context_usage: None,
             memory: None,
             workflow_activation: None,
+            prompt: Arc::new(nibi_kernel_api::session_prompt::SessionPrompt::default()),
         },
         SessionState {
             meta: meta(),

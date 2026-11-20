@@ -8,9 +8,7 @@ use nibi_kernel_api::hooks::{HookEvent, HookOutcome};
 use nibi_kernel_api::ids::{
     EnvironmentId, Generation, MessageId, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
 };
-use nibi_kernel_api::message::{
-    AttachmentMessage, ContentBlock, Message, UserMessage, UserOrigin,
-};
+use nibi_kernel_api::message::{AttachmentMessage, ContentBlock, Message, UserMessage, UserOrigin};
 use nibi_kernel_api::permission::PermissionMode;
 use nibi_kernel_api::testing::{
     MemoryStore, RecordingSink, UnusedEnvironment, local_services, machine,

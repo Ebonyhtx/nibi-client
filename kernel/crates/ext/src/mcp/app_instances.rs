@@ -177,10 +177,7 @@ impl McpAppInstances {
     }
 
     /// 只校验凭证与作用域（`close` 用它：关一个实例不该受当前连接影响）。
-    pub(crate) fn validate_bound(
-        &self,
-        request: &McpUiInstanceRequest,
-    ) -> Result<(), McpUiError> {
+    pub(crate) fn validate_bound(&self, request: &McpUiInstanceRequest) -> Result<(), McpUiError> {
         self.check(request).map(|_| ())
     }
 

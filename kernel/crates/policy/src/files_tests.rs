@@ -68,9 +68,8 @@ fn writes_need_accept_edits_inside_and_always_ask_for_sensitive_paths() {
             ".git/config"
         ),
         Check::Ask {
-            message:
-                "NIBI requested permissions to edit /w/.git/config which is a sensitive file."
-                    .to_owned(),
+            message: "NIBI requested permissions to edit /w/.git/config which is a sensitive file."
+                .to_owned(),
             kind: AskKind::Safety,
             suggestions: Vec::new(),
         }
@@ -100,12 +99,7 @@ fn writes_need_accept_edits_inside_and_always_ask_for_sensitive_paths() {
 #[test]
 fn the_project_config_is_a_sensitive_file() {
     assert_eq!(
-        verdict(
-            PermissionMode::AcceptEdits,
-            &[],
-            Access::Write,
-            "nibi.json"
-        ),
+        verdict(PermissionMode::AcceptEdits, &[], Access::Write, "nibi.json"),
         Check::Ask {
             message: "NIBI requested permissions to edit /w/nibi.json which is a sensitive file."
                 .to_owned(),

@@ -3,8 +3,8 @@
 //! 文件 skill：`Base directory for this skill: <目录>` 加正文，参数替换、变量、`!` 内联命令；内置 skill 是
 //! 生成的提示（tools-more.md §17.1）。
 
-use nibi_kernel_base::names::vars;
 use nibi_kernel_api::tool::ToolUseContext;
+use nibi_kernel_base::names::vars;
 
 use super::inline::Runner;
 use super::{Skill, SkillCatalog, SkillSource, args, builtin};

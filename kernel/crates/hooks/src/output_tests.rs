@@ -142,8 +142,78 @@ fn event_specific_fields() {
     assert_eq!(
         request.permission_request,
         Some(PermissionRequestDecision::Deny {
-            message: Some("nope".to_owned())
+            message: Some("nope".to_owned()),
+            interrupt: false,
         })
+    );
+    // hooks.md §6.2：deny 的 `interrupt`，allow 的 `updatedPermissions`（全部的种类，permission-updates.md §2.4）。
+    let interrupting = process(
+        &json(
+            json!({"hookSpecificOutput": {"hookEventName": "PermissionRequest",
+            "decision": {"behavior": "deny", "message": "stop", "interrupt": true}}}),
+        ),
+        "c",
+        "PermissionRequest",
+    )
+    .unwrap();
+    assert_eq!(
+        interrupting.permission_request,
+        Some(PermissionRequestDecision::Deny {
+            message: Some("stop".to_owned()),
+            interrupt: true,
+        })
+    );
+    let granting = process(
+        &json(
+            json!({"hookSpecificOutput": {"hookEventName": "PermissionRequest",
+            "decision": {"behavior": "allow", "updatedPermissions": [
+                {"type": "addRules", "behavior": "allow", "destination": "localSettings",
+                 "rules": [{"toolName": "Bash", "ruleContent": "npm test"}]},
+                {"type": "setMode", "mode": "acceptEdits", "destination": "session"}]}}}),
+        ),
+        "c",
+        "PermissionRequest",
+    )
+    .unwrap();
+    assert_eq!(
+        granting.permission_request,
+        Some(PermissionRequestDecision::Allow {
+            updated_input: None,
+            remember: vec![
+                nibi_kernel_api::permission_updates::PermissionUpdate::AddRules {
+                    place: nibi_kernel_api::permission_updates::UpdatePlace::Local,
+                    behavior: nibi_kernel_api::permission::RuleBehavior::Allow,
+                    rules: vec![nibi_kernel_api::permission::PermissionRule {
+                        tool: "Bash".to_owned(),
+                        content: Some("npm test".to_owned()),
+                    }],
+                },
+                nibi_kernel_api::permission_updates::PermissionUpdate::SetMode {
+                    place: nibi_kernel_api::permission_updates::UpdatePlace::Session,
+                    mode: nibi_kernel_api::permission::PermissionMode::AcceptEdits,
+                },
+            ],
+        })
+    );
+    // Node 的别名 `permissionUpdates` 同样收（hook-flow.ts 的 `??`）。
+    let alias = process(
+        &json(
+            json!({"hookSpecificOutput": {"hookEventName": "PermissionRequest",
+            "decision": {"behavior": "allow", "permissionUpdates": [
+                {"type": "addRules", "behavior": "deny", "destination": "session",
+                 "rules": [{"toolName": "Write"}]}]}}}),
+        ),
+        "c",
+        "PermissionRequest",
+    )
+    .unwrap();
+    assert!(
+        matches!(
+            alias.permission_request,
+            Some(PermissionRequestDecision::Allow { ref remember, .. }) if remember.len() == 1
+        ),
+        "{:?}",
+        alias.permission_request
     );
     let wrong = process(
         &json(json!({"hookSpecificOutput": {"hookEventName": "Stop"}})),

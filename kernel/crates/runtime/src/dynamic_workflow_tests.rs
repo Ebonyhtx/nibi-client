@@ -7,9 +7,7 @@ use std::sync::Arc;
 use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
 use nibi_kernel_api::ids::{EnvironmentId, SessionId};
 use nibi_kernel_api::permission::PermissionMode;
-use nibi_kernel_api::session_api::{
-    CreateSession, DynamicWorkflowGate, EndReason, Kernel,
-};
+use nibi_kernel_api::session_api::{CreateSession, DynamicWorkflowGate, EndReason, Kernel};
 use nibi_kernel_api::testing::{
     FixedClock, MemoryEnvironment, MemoryStore, ScriptedModel, SequentialIds, environments,
     selection,
@@ -87,15 +85,29 @@ async fn catalog_tools(kernel: &LocalKernel, session: &SessionId) -> Vec<String>
 
 /// 三件套都在（开启态）。
 fn assert_has_workflow_tools(tools: &[String]) {
-    for name in ["FillWorkflowHole", "GetWorkflowRun", "ResolveWorkflowQuestion"] {
-        assert!(tools.iter().any(|tool| tool == name), "{name} missing in {tools:?}");
+    for name in [
+        "FillWorkflowHole",
+        "GetWorkflowRun",
+        "ResolveWorkflowQuestion",
+    ] {
+        assert!(
+            tools.iter().any(|tool| tool == name),
+            "{name} missing in {tools:?}"
+        );
     }
 }
 
 /// 三件套都不在（关闭态）。
 fn assert_has_no_workflow_tools(tools: &[String]) {
-    for name in ["FillWorkflowHole", "GetWorkflowRun", "ResolveWorkflowQuestion"] {
-        assert!(!tools.iter().any(|tool| tool == name), "{name} present in {tools:?}");
+    for name in [
+        "FillWorkflowHole",
+        "GetWorkflowRun",
+        "ResolveWorkflowQuestion",
+    ] {
+        assert!(
+            !tools.iter().any(|tool| tool == name),
+            "{name} present in {tools:?}"
+        );
     }
 }
 

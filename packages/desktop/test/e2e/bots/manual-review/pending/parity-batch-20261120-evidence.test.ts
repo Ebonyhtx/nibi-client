@@ -2315,6 +2315,34 @@ describe("Parity batch 2026-11-20 evidence（真实 Desktop）", () => {
     expect(initialScreenshot).not.toBeNull();
     expect(confirmVisibleBeforeAcknowledge).toBe(true);
   });
+
+  it("I. 语言包拆包：ja-JP 动态加载后界面为日文，切回英文正常", async function () {
+    this.timeout(120_000);
+    await ensureSidebarVisible();
+    // ja-JP 是动态语言包；切换后界面必须真的出现日文，而不是空 key 或永久英文回退。
+    await setRendererLocale("ja-JP");
+    await browser.waitUntil(
+      async () =>
+        (await browser.execute(
+          () =>
+            document.body.innerText.includes("新しいタスク") ||
+            document.body.innerText.includes("設定"),
+        )) as boolean,
+      { timeout: 20_000, interval: 200, timeoutMsg: "切到 ja-JP 后界面仍是英文/空 key" },
+    );
+    const sidebarRect = await readRect('[data-testid="sidebar"]');
+    const jaScreenshot = sidebarRect
+      ? await shotClip("i.locale-ja-jp-sidebar", sidebarRect, { maxHeight: 700 })
+      : null;
+    await setRendererLocale("en-US");
+    await browser.waitUntil(
+      async () =>
+        !(await browser.execute(() => document.body.innerText.includes("新しいタスク"))),
+      { timeout: 20_000, interval: 200, timeoutMsg: "切回 en-US 后仍显示日文" },
+    );
+    recordResult("i", { jaScreenshot });
+    expect(jaScreenshot).not.toBeNull();
+  });
 });
 
 async function startDraftFromProjectSafe(): Promise<Record<string, unknown>> {

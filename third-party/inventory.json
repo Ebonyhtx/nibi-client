@@ -1183,7 +1183,7 @@
     "packages/e2e-report/package.json": "c2f9b233f0f6e9ffe68ad61741ef6e26e162ec551d2052f32831fc2854c6eae3",
     "packages/formal-proof/package.json": "5d9292f21177972ab447b195be6f468180a054f1fafb14c8ede1341ea8deff5c",
     "packages/model-option-map/package.json": "033268427c4ba735d87680bc8fc55bed4af6b11eff215d26879ea4bd3c7cb17c",
-    "packages/nibi-cua/package.json": "1092454160e0cd41d08fc9e76d2b4564475dfff615fd0eab481ce749163513e9",
+    "packages/computer-use/package.json": "1092454160e0cd41d08fc9e76d2b4564475dfff615fd0eab481ce749163513e9",
     "packages/nibi-server-cli/package.json": "72356bf8846b1f9c3a2e541e207c7a6dac1368637278e5cdb68c4dcbdaf3f3a8",
     "packages/provider-node/package.json": "64b010a0ac76f8fb9435f8004df54585304050e17e4b40bd24065f4cbad77ec0",
     "packages/provider/package.json": "84e140d8deb18e540bcdc34d731d7b370b6818189082eb773f9a36e6ef6d980d",

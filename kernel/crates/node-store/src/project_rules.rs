@@ -10,10 +10,10 @@
 //! `permission.scope` 是 `session` 时，规则集就是会话行的 `permission`（同样的键），“总是允许”只写它，不读也不写
 //! 项目规则集。以前续写这样的会话时规则写进项目、读的也是项目的。
 
-use rusqlite::{Connection, OptionalExtension, params};
-use nibi_kernel_base::js::json::stringify;
 use nibi_kernel_api::permission::{PermissionRule, ProjectRules, RuleBehavior};
 use nibi_kernel_api::store::StoreError;
+use nibi_kernel_base::js::json::stringify;
+use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::{Map, Value, json};
 
 use crate::facts::Commit;
@@ -95,6 +95,17 @@ pub(crate) fn session_read(
         .map(|permission| parsed(&Value::Object(permission.clone()))))
 }
 
+/// 会话行的整份权限记录（`SessionStore::session_permission`）：只有 `scope = "session"` 时给出。
+pub(crate) fn session_permission(
+    conn: &Connection,
+    session: &str,
+) -> Result<Option<Value>, StoreError> {
+    let row = crate::repo::sessions::get(conn, session).storage()?;
+    Ok(row
+        .and_then(|row| row.permission)
+        .filter(|permission| scoped(Some(permission)).is_some()))
+}
+
 fn behavior_key(behavior: RuleBehavior) -> &'static str {
     match behavior {
         RuleBehavior::Allow => "allow",
@@ -132,15 +143,19 @@ fn apply(
     behavior: RuleBehavior,
     added: &[PermissionRule],
     removed: &[PermissionRule],
+    replace: bool,
 ) -> Value {
     let mut next = current;
     next.insert("version".into(), json!(1));
     let key = behavior_key(behavior);
-    let existing = next
-        .get(key)
-        .and_then(Value::as_array)
-        .cloned()
-        .unwrap_or_default();
+    let existing = if replace {
+        Vec::new()
+    } else {
+        next.get(key)
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default()
+    };
     let gone: std::collections::HashSet<String> = removed
         .iter()
         .map(|rule| rule_key(&node_rule(rule)))
@@ -171,7 +186,7 @@ pub(crate) fn add(
     if let Some(permission) = row.as_ref().and_then(|row| scoped(row.permission.as_ref())) {
         let update = crate::repo::sessions::Update {
             id: ctx.session.to_owned(),
-            permission: Some(apply(permission.clone(), behavior, added, &[])),
+            permission: Some(apply(permission.clone(), behavior, added, &[], false)),
             ..Default::default()
         };
         crate::repo::sessions::update(ctx.conn, &update, ctx.now as i64).storage()?;
@@ -179,7 +194,7 @@ pub(crate) fn add(
     }
     let project = session_project(ctx)?;
     let current = current_object(ctx.conn, &project)?;
-    let next = apply(current, behavior, added, &[]);
+    let next = apply(current, behavior, added, &[], false);
     write_setting(ctx, &project, "ruleset", &next)
 }
 
@@ -208,7 +223,13 @@ pub(crate) fn change(
         .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
         .storage()?;
     let current = current_object(&tx, project)?;
-    let next = apply(current, change.behavior, &change.add, &change.remove);
+    let next = apply(
+        current,
+        change.behavior,
+        &change.add,
+        &change.remove,
+        change.replace,
+    );
     upsert(&tx, now, project, "ruleset", &next)?;
     let rules = read(&tx, project)?;
     tx.commit().storage()?;

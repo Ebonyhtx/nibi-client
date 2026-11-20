@@ -22,7 +22,11 @@ import { dirname, join, resolve, sep } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { setTimeout as sleep } from "node:timers/promises";
-import { NIBI_AGENT_REMOTE_COMPONENT_ID } from "@nibi/shared";
+import {
+  NIBI_AGENT_REMOTE_COMPONENT_FALLBACK_ID,
+  NIBI_AGENT_REMOTE_COMPONENT_ID,
+  isNibiAgentRemoteComponentId,
+} from "@nibi/shared";
 import { fileExists } from "@nibi/server/remote/deployShared.js";
 import { extractTarGzArchive } from "@nibi/server/remote/localTarGz.js";
 import {
@@ -55,9 +59,10 @@ const REMOTE_ASSET_PROGRESS_INTERVAL_MS = 1_000;
 const REMOTE_ASSET_PROGRESS_PERCENT_STEP = 5;
 const CONTENT_ADDRESSED_COMPONENT_RELEASE_DIRS: Record<string, string> = {
   "server-bundle": "server-content",
-  [NIBI_AGENT_REMOTE_COMPONENT_ID]: "glm-content",
-  // CDN 双发布期：新 id 可独立内容寻址；切换前 active 仍只有 glm。
-  "nibi-agent": "nibi-agent-content",
+  // 两个 agent id 各自保留独立的本地内容寻址目录：
+  // 旧客户端/旧 manifest 继续命中 glm-content，新 id 不会被旧缓存串用。
+  [NIBI_AGENT_REMOTE_COMPONENT_FALLBACK_ID]: "glm-content",
+  [NIBI_AGENT_REMOTE_COMPONENT_ID]: "nibi-agent-content",
 };
 const REMOTE_ASSET_DIRECTORY_COMMIT_RETRY_DELAYS_MS = [
   50, 100, 200, 400, 800, 1_600, 3_200,
@@ -105,12 +110,12 @@ const REMOTE_COMPONENT_MOUNT_RULES: Record<string, ComponentMountRule> = {
   },
   [NIBI_AGENT_REMOTE_COMPONENT_ID]: {
     platformScoped: true,
-    resolveExpectedMount: (platformArch) =>
-      `${NIBI_AGENT_REMOTE_COMPONENT_ID}/${platformArch}`,
+    resolveExpectedMount: (platformArch) => `${NIBI_AGENT_REMOTE_COMPONENT_ID}/${platformArch}`,
   },
-  "nibi-agent": {
+  [NIBI_AGENT_REMOTE_COMPONENT_FALLBACK_ID]: {
     platformScoped: true,
-    resolveExpectedMount: (platformArch) => `nibi-agent/${platformArch}`,
+    resolveExpectedMount: (platformArch) =>
+      `${NIBI_AGENT_REMOTE_COMPONENT_FALLBACK_ID}/${platformArch}`,
   },
   bfs: {
     platformScoped: true,
@@ -1378,11 +1383,14 @@ function resolveContentAddressedReleaseSegments(
 ): string[] {
   const segments: string[] = [];
   for (const componentId of Object.keys(CONTENT_ADDRESSED_COMPONENT_RELEASE_DIRS)) {
-    // 兼容历史全量 release：未指定组件时只沿用原有 GLM 内容目录；server
-    // 安装始终显式请求 server-bundle，因此仍会进入独立 SHA release。
+    // 兼容历史全量 release：未指定组件时沿用原有 agent 内容目录身份
+    // （历史发布按 agent 制品做全量 release 身份）；server 安装始终显式请求
+    // server-bundle，因此仍会进入独立 SHA release。
+    // Agent 的两个 id 是同一制品的别名，全量模式都参与，但显式请求时只按
+    // 解析出的那个 id 进入独立 SHA 目录。
     if (
       requestedComponentIds === null
-        ? componentId !== NIBI_AGENT_REMOTE_COMPONENT_ID && componentId !== "nibi-agent"
+        ? !isNibiAgentRemoteComponentId(componentId)
         : !requestedComponentIds.has(componentId)
     ) {
       continue;

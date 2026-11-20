@@ -139,6 +139,7 @@ impl QueryRunner for FakeRunner {
             selection: request.selection.clone(),
             plan_flags: Default::default(),
             mcp: None,
+            prompt: None,
         };
         let system = self
             .context

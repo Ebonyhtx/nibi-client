@@ -89,6 +89,15 @@ export interface ResolveNibiPluginsOptions {
 
 export interface ListNibiPluginsOptions extends ResolveNibiPluginsOptions {}
 
+export interface GetNibiPluginsOverviewOptions extends ResolveNibiPluginsOptions {
+  /**
+   * 已解析的发现结果。Host 的 bootstrap RPC 传入同一次 discovery，
+   * 避免 overview 再跑一遍 resolveNibiPlugins（两次扫描 ~1400 文件）。
+   * 不传时保持原行为。
+   */
+  discovery?: PluginLoadOutcome;
+}
+
 export interface SetNibiPluginEnabledOptions extends ResolveNibiPluginsOptions {
   enabled: boolean;
   plugin: string;
@@ -318,15 +327,17 @@ export function resolveNibiPlugins(options: ResolveNibiPluginsOptions = {}): Plu
 }
 
 export function getNibiPluginsOverview(
-  options: ResolveNibiPluginsOptions = {},
+  options: GetNibiPluginsOverviewOptions = {},
 ): NibiPluginsOverviewData {
   const { configResult, pluginStorageRoot, workingDirectory } = resolvePluginContext(options);
   ensureDefaultPluginMarketplaces(pluginStorageRoot);
-  const outcome = resolveNibiPlugins({
-    ...options,
-    configResult,
-    pluginStorageRoot,
-  });
+  const outcome =
+    options.discovery ??
+    resolveNibiPlugins({
+      ...options,
+      configResult,
+      pluginStorageRoot,
+    });
   const known = loadKnownMarketplacesSync(pluginStorageRoot);
   const effectiveMarketplaces = resolveEffectiveMarketplaceRecords({
     configResult,

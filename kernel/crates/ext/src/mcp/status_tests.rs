@@ -3,12 +3,12 @@
 
 use std::sync::Arc;
 
-use nibi_kernel_base::TaskScope;
 use nibi_kernel_api::mcp::McpTransportConfig;
 use nibi_kernel_api::mcp_session::{McpIsolation, SessionMcpServer};
 use nibi_kernel_api::mcp_status::{
     McpFailureKind, McpProtocolEra, McpServerStatusKind, McpTransportKind,
 };
+use nibi_kernel_base::TaskScope;
 use serde_json::json;
 
 use super::*;
@@ -170,7 +170,12 @@ async fn failures_carry_the_kind_they_were_classified_with() {
     let bad = by_name("bad");
     assert_eq!(bad.status, McpServerStatusKind::Failed);
     assert_eq!(bad.failure_kind, Some(McpFailureKind::ProcessStartFailed));
-    assert!(bad.error.as_deref().unwrap_or_default().contains("spawn failed"));
+    assert!(
+        bad.error
+            .as_deref()
+            .unwrap_or_default()
+            .contains("spawn failed")
+    );
     let remote = by_name("remote");
     assert_eq!(remote.failure_kind, Some(McpFailureKind::ConnectionFailed));
 }
@@ -178,9 +183,7 @@ async fn failures_carry_the_kind_they_were_classified_with() {
 /// 握手超时是 `connection_timeout`。
 #[tokio::test]
 async fn a_handshake_timeout_is_its_own_kind() {
-    let fake = Arc::new(
-        FakeMcp::default().with("slow", crate::test_support::held(|_, _| None)),
-    );
+    let fake = Arc::new(FakeMcp::default().with("slow", crate::test_support::held(|_, _| None)));
     let scope = TaskScope::root("status", |_| {});
     let manager = McpStatusRegistry::new(
         fake,

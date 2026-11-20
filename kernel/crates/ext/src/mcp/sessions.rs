@@ -58,7 +58,8 @@ impl SessionConnections {
             view.servers.extend(own_view.servers);
             view.instructions.extend(own_view.instructions);
         }
-        view.servers.sort_by(|left, right| left.name.cmp(&right.name));
+        view.servers
+            .sort_by(|left, right| left.name.cmp(&right.name));
         (tools, view)
     }
 
@@ -88,7 +89,10 @@ impl SessionConnections {
     }
 
     /// 页面绑定的连接（`mcp/uiOpenInstance`）。
-    pub(crate) fn app_connection(&self, server: &str) -> Option<nibi_kernel_api::mcp_ui::McpAppConnection> {
+    pub(crate) fn app_connection(
+        &self,
+        server: &str,
+    ) -> Option<nibi_kernel_api::mcp_ui::McpAppConnection> {
         self.owner(server)?.app_connection(server)
     }
 
@@ -110,7 +114,9 @@ impl SessionConnections {
         let manager = self
             .owner(server)
             .ok_or_else(nibi_kernel_api::mcp_ui::McpUiError::app_unavailable)?;
-        manager.call_tool_for_ui(server, tool, arguments, cancel).await
+        manager
+            .call_tool_for_ui(server, tool, arguments, cancel)
+            .await
     }
 
     pub(crate) async fn list_resources(
@@ -128,10 +134,8 @@ impl SessionConnections {
         &self,
         server: &str,
         cursor: Option<&str>,
-    ) -> Result<
-        nibi_kernel_api::mcp_ui::McpResourceTemplatePage,
-        nibi_kernel_api::mcp_ui::McpUiError,
-    > {
+    ) -> Result<nibi_kernel_api::mcp_ui::McpResourceTemplatePage, nibi_kernel_api::mcp_ui::McpUiError>
+    {
         let manager = self
             .owner(server)
             .ok_or_else(nibi_kernel_api::mcp_ui::McpUiError::app_unavailable)?;
@@ -142,10 +146,8 @@ impl SessionConnections {
         &self,
         server: &str,
         uri: &str,
-    ) -> Result<
-        Vec<nibi_kernel_api::mcp_ui::McpResourceContent>,
-        nibi_kernel_api::mcp_ui::McpUiError,
-    > {
+    ) -> Result<Vec<nibi_kernel_api::mcp_ui::McpResourceContent>, nibi_kernel_api::mcp_ui::McpUiError>
+    {
         let manager = self
             .owner(server)
             .ok_or_else(nibi_kernel_api::mcp_ui::McpUiError::app_unavailable)?;
@@ -297,6 +299,8 @@ pub(crate) struct SessionMcp {
     app_instances: std::sync::OnceLock<Arc<super::McpAppInstances>>,
     /// 付费插件执行期门禁：每套会话/共享 manager 建好后装上。
     paid_gate: RwLock<Option<Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>>>,
+    /// Elicitation 类 hooks 的执行器：每套 manager 建好后装上（`Ext::attach_hooks`）。
+    hooks: RwLock<Option<Arc<dyn nibi_kernel_api::hooks::HookRunner>>>,
     /// 服务器 → 插件归属（与 Ext 共享）。
     paid_owners: std::sync::OnceLock<Arc<RwLock<HashMap<String, String>>>>,
     sessions: Mutex<BTreeMap<SessionId, Entry>>,
@@ -324,6 +328,7 @@ impl SessionMcp {
             oauth,
             app_instances: std::sync::OnceLock::new(),
             paid_gate: RwLock::new(None),
+            hooks: RwLock::new(None),
             paid_owners: std::sync::OnceLock::new(),
             sessions: Mutex::default(),
             shared: Mutex::default(),
@@ -341,11 +346,13 @@ impl SessionMcp {
             .unwrap_or_else(PoisonError::into_inner) = Some(gate);
     }
 
+    /// 装上 Elicitation 类 hooks 的执行器：之后新建的会话/共享 manager 都会带上（ext.md §3.13.6）。
+    pub(crate) fn attach_hooks(&self, hooks: Arc<dyn nibi_kernel_api::hooks::HookRunner>) {
+        *self.hooks.write().unwrap_or_else(PoisonError::into_inner) = Some(hooks);
+    }
+
     /// 装上服务器 → 插件归属表（与 Ext 共享，可更新）。
-    pub(crate) fn attach_paid_owners(
-        &self,
-        owners: Arc<RwLock<HashMap<String, String>>>,
-    ) {
+    pub(crate) fn attach_paid_owners(&self, owners: Arc<RwLock<HashMap<String, String>>>) {
         let _ = self.paid_owners.set(owners);
     }
 
@@ -377,9 +384,7 @@ impl SessionMcp {
     }
 
     fn sessions(&self) -> MutexGuard<'_, BTreeMap<SessionId, Entry>> {
-        self.sessions
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
+        self.sessions.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
     fn shared(&self) -> MutexGuard<'_, BTreeMap<SharedKey, SharedEntry>> {
@@ -549,6 +554,14 @@ impl SessionMcp {
             .clone()
         {
             manager.attach_paid_gate(gate);
+        }
+        if let Some(hooks) = self
+            .hooks
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
+        {
+            manager.attach_hooks(hooks);
         }
         if let Some(owners) = self.paid_owners.get() {
             manager.attach_paid_owners(owners.clone());

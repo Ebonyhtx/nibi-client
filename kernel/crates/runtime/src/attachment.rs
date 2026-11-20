@@ -29,7 +29,9 @@ impl LocalKernel {
         workspace: &WorkspaceRef,
         source: AttachmentSource,
     ) -> Result<LoadedAttachment, KernelError> {
-        let payload = self.read_attachment_source(session, workspace, source, "").await?;
+        let payload = self
+            .read_attachment_source(session, workspace, source, "")
+            .await?;
         Ok(LoadedAttachment {
             bytes: payload.bytes,
             media_type: (!payload.media_type.is_empty()).then_some(payload.media_type),
@@ -208,7 +210,12 @@ fn artifact_uri(artifact: &nibi_kernel_api::store::ArtifactRef) -> String {
 fn encode_component(value: &str) -> String {
     let mut out = String::with_capacity(value.len());
     for byte in value.bytes() {
-        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'!' | b'~' | b'*' | b'\'' | b'(' | b')') {
+        if byte.is_ascii_alphanumeric()
+            || matches!(
+                byte,
+                b'-' | b'_' | b'.' | b'!' | b'~' | b'*' | b'\'' | b'(' | b')'
+            )
+        {
             out.push(byte as char);
         } else {
             out.push_str(&format!("%{byte:02X}"));
@@ -270,7 +277,9 @@ fn decode(bytes: Vec<u8>) -> Result<LoadedAttachment, KernelError> {
     let (media_type, encoded) = match header.split_once(';') {
         Some((media_type, flags)) => (
             media_type,
-            flags.split(';').any(|flag| flag.eq_ignore_ascii_case("base64")),
+            flags
+                .split(';')
+                .any(|flag| flag.eq_ignore_ascii_case("base64")),
         ),
         None => (header, false),
     };

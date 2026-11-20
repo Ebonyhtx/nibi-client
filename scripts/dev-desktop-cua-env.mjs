@@ -4,9 +4,9 @@ export const WINDOWS_CUA_DEV_ROOT_ENV = "NIBI_CUA_DEV_ROOT";
 
 /**
  * workspace 内 producer 相对仓库根的位置。Windows runtime 解析要求 DEV_ROOT 是物理目录
- * （root 不能是 symlink/junction），packages/nibi-cua 是 checkout 内的真实目录，满足该约束。
+ * （root 不能是 symlink/junction），packages/computer-use 是 checkout 内的真实目录，满足该约束。
  */
-export const WINDOWS_CUA_PRODUCER_SEGMENTS = ["packages", "nibi-cua"];
+export const WINDOWS_CUA_PRODUCER_SEGMENTS = ["packages", "computer-use"];
 
 /**
  * 标准 dev 启动在 Windows 上要绑定的 CUA runtime 根。
@@ -17,7 +17,7 @@ export const WINDOWS_CUA_PRODUCER_SEGMENTS = ["packages", "nibi-cua"];
  * 里面只有 default_app.asar，没有 tools/cua-helper，解析必然以 invalid-runtime-manifest
  * 失败。结果标准 dev 启动的 Windows computer use 恒不可用，且要靠开发者自己记得设
  * NIBI_CUA_DEV_ROOT。这里补齐 macOS 已有的同一条原则：缺省绑定到本 checkout 的 workspace
- * producer（packages/nibi-cua，与产品构建同源）。
+ * producer（packages/computer-use，与产品构建同源）。
  *
  * 开发者显式设置 NIBI_CUA_DEV_ROOT（例如指向自己的 nibi-cua source checkout）时永远尊重
  * 其取值，不覆盖；这里只补缺省，不改变 runtime 侧「只认 NIBI_CUA_DEV_ROOT」的既有边界。

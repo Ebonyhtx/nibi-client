@@ -30,8 +30,16 @@ pub(crate) struct Blocking {
 /// PermissionRequest 的 `decision`。
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum PermissionRequestDecision {
-    Allow { updated_input: Option<Value> },
-    Deny { message: Option<String> },
+    Allow {
+        updated_input: Option<Value>,
+        /// `updatedPermissions` 校验之后的权限更新（permission-updates.md §2.4）。
+        remember: Vec<nibi_kernel_api::permission_updates::PermissionUpdate>,
+    },
+    Deny {
+        message: Option<String>,
+        /// `interrupt: true`：中止整个回合（hooks.md §6.2）。
+        interrupt: bool,
+    },
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]

@@ -218,6 +218,7 @@ fn request(mode: PermissionMode, subagent: bool) -> ContextRequest {
         },
         plan_flags: Default::default(),
         mcp: None,
+        prompt: None,
     }
 }
 

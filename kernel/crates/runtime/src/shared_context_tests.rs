@@ -6,9 +6,7 @@ use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
 use nibi_kernel_api::ids::{EnvironmentId, SessionId, TraceId};
 use nibi_kernel_api::permission::PermissionMode;
 use nibi_kernel_api::session_api::Kernel;
-use nibi_kernel_api::store::{
-    FrontendRecord, SessionKind, SessionMeta, SessionStore,
-};
+use nibi_kernel_api::store::{FrontendRecord, SessionKind, SessionMeta, SessionStore};
 use nibi_kernel_api::testing::{
     FixedClock, MemoryStore, ScriptedModel, SequentialIds, environments, selection,
 };
@@ -19,9 +17,7 @@ fn kernel(store: Arc<MemoryStore>) -> LocalKernel {
     LocalKernel::new(
         Ports {
             model: Arc::new(ScriptedModel::new(Vec::new())),
-            environments: environments(Arc::new(
-                nibi_kernel_api::testing::UnusedEnvironment,
-            )),
+            environments: environments(Arc::new(nibi_kernel_api::testing::UnusedEnvironment)),
             store: store.clone(),
             artifacts: store,
             clock: Arc::new(FixedClock(1_000)),
@@ -90,24 +86,43 @@ async fn a_pending_import_is_seeded_and_discarding_flips_it() {
     assert_eq!(seeded.title, "Imported share");
     assert_eq!(seeded.share_url, "https://nibi.example/cn/share/abc123");
 
-    let discarded = kernel.discard_shared_context(&id, "ctx_1").await.unwrap().unwrap();
+    let discarded = kernel
+        .discard_shared_context(&id, "ctx_1")
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(discarded.status, "discarded");
     // 只改 status，其余 provenance 原样保留。
-    let records = store.records(&id, "v4/shared_context_import").await.unwrap();
+    let records = store
+        .records(&id, "v4/shared_context_import")
+        .await
+        .unwrap();
     assert_eq!(records.len(), 1);
     assert_eq!(records[0].data["status"], "discarded");
     assert_eq!(records[0].data["shareId"], "share_1");
-    assert_eq!(records[0].key, format!("v4_shared_context_import:{id}:share_1"));
+    assert_eq!(
+        records[0].key,
+        format!("v4_shared_context_import:{id}:share_1")
+    );
 
     // 再丢一次：不是 pending，按 Node 的 fault 拒绝。
-    let error = kernel.discard_shared_context(&id, "ctx_1").await.unwrap_err();
+    let error = kernel
+        .discard_shared_context(&id, "ctx_1")
+        .await
+        .unwrap_err();
     assert!(
         error.to_string().contains("fault.command.inputRejected"),
         "{error}"
     );
     // 未知 contextId 同样拒绝。
-    let error = kernel.discard_shared_context(&id, "ctx_missing").await.unwrap_err();
-    assert!(error.to_string().contains("fault.command.inputRejected"), "{error}");
+    let error = kernel
+        .discard_shared_context(&id, "ctx_missing")
+        .await
+        .unwrap_err();
+    assert!(
+        error.to_string().contains("fault.command.inputRejected"),
+        "{error}"
+    );
 }
 
 #[tokio::test]

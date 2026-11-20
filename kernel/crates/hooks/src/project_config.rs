@@ -7,11 +7,11 @@
 //! 从那一层到工作区根，每层依次 `nibi.json`、`.nibi/config.json`；一路都没有 `.git` 时只看工作区根。
 //! 存在的文件按顺序编号（读坏的文件也占序号，Node 的 `discoveryOrder`）。
 
-use nibi_kernel_base::names::{PROJECT_CONFIG_FILE, PROJECT_DOT_DIR};
 use nibi_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
 use nibi_kernel_api::env_files::{PathStyle, StatFile};
 use nibi_kernel_api::env_git::has_git_marker;
 use nibi_kernel_api::machine::Files;
+use nibi_kernel_base::names::{PROJECT_CONFIG_FILE, PROJECT_DOT_DIR};
 use nibi_kernel_platform::ConfigFile;
 
 /// 每一层的 `nibi.json`（F55：以前写了 3 次；F58 起名字在 base，policy 的敏感文件表也用它）。
@@ -107,12 +107,7 @@ impl Reader<'_> {
 
 /// 工作区根下发现的一个文件：种类按文件名，`editable` 按是否是 `<根>/.nibi/config.json`（Node
 /// `createWorkspaceHookSourceInput`）。
-pub fn project_file(
-    root: &str,
-    path: String,
-    order: usize,
-    file: ConfigFile,
-) -> ProjectFile {
+pub fn project_file(root: &str, path: String, order: usize, file: ConfigFile) -> ProjectFile {
     let name = path.rsplit(['/', '\\']).next().unwrap_or(&path);
     let kind = if name == NIBI_JSON {
         ProjectKind::NibiJson

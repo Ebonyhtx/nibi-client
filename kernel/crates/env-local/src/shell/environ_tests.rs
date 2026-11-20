@@ -62,7 +62,7 @@ fn commands_get_the_shell_that_runs_them() {
     let env = super::project(&snapshot(&[("SHELL", "/bin/zsh")]), Some("/bin/bash"));
     assert_eq!(env.get("SHELL").map(String::as_str), Some("/bin/bash"));
     assert_eq!(env.get("GIT_EDITOR").map(String::as_str), Some("true"));
-    assert_eq!(env.get("ZCODE").map(String::as_str), Some("1"));
+    assert_eq!(env.get("ZCODE"), None);
     // 工具子进程默认 UTF-8（Node `applyExecutionTextEnv` 同口径）：Windows 上 Python 否则按
     // cp936 写 stdout，一个 `✓` 就 UnicodeEncodeError。
     assert_eq!(
@@ -79,7 +79,7 @@ fn mcp_children_get_the_node_fallback_variables() {
     let snapshot = snapshot(&[
         ("PATH", "/opt/nibi/node-fallback/v1:/usr/bin"),
         ("NIBI_NODE_FALLBACK_EXEC_PATH", "/Applications/NIBI.app/NIBI"),
-        ("NIBI_NODE_FALLBACK_NPM_ROOT", "/Applications/NIBI.app/glm/node-runtime/npm"),
+        ("NIBI_NODE_FALLBACK_NPM_ROOT", "/Applications/NIBI.app/nibi/node-runtime/npm"),
     ]);
     let env = crate::mcp::stdio::child_env(&snapshot, &Default::default(), &BTreeMap::new());
     assert_eq!(
@@ -92,6 +92,6 @@ fn mcp_children_get_the_node_fallback_variables() {
     );
     assert_eq!(
         env.get("NIBI_NODE_FALLBACK_NPM_ROOT").map(String::as_str),
-        Some("/Applications/NIBI.app/glm/node-runtime/npm")
+        Some("/Applications/NIBI.app/nibi/node-runtime/npm")
     );
 }

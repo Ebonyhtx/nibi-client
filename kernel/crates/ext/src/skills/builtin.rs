@@ -6,11 +6,11 @@
 
 use std::sync::{Arc, OnceLock};
 
-use regex::Regex;
 use nibi_kernel_api::env::{EnvPath, ReadFile};
 use nibi_kernel_api::tool::ToolUseContext;
 use nibi_kernel_prompts::loops::{self, LoopFile};
 use nibi_kernel_prompts::texts::render;
+use regex::Regex;
 
 use super::{Skill, SkillCatalog, SkillShell, SkillSource};
 
@@ -106,9 +106,7 @@ pub(crate) async fn prompt_command(
             let mut text = nibi_kernel_prompts::commands::init().to_owned();
             let extra = args.trim();
             if !extra.is_empty() {
-                text.push_str(
-                    "\n\nAdditional user instructions supplied with /init:\n```text\n",
-                );
+                text.push_str("\n\nAdditional user instructions supplied with /init:\n```text\n");
                 text.push_str(extra);
                 text.push_str("\n```");
             }

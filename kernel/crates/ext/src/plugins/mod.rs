@@ -10,11 +10,11 @@ mod select;
 
 use std::collections::BTreeMap;
 
-use nibi_kernel_base::names::vars;
 use nibi_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
 use nibi_kernel_api::env_files::{FileKind, ListDir, PathStyle, StatFile};
 use nibi_kernel_api::machine::Files;
 use nibi_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_base::names::vars;
 use serde_json::{Map, Value};
 
 use crate::mcp::{McpScope, McpServer, parse_servers};
@@ -115,7 +115,8 @@ impl Plugins {
                         dir: dir.clone(),
                         root: plugin.dir.clone(),
                         data: plugin.data_dir.clone(),
-                        official: plugin.marketplace == nibi_kernel_base::names::OFFICIAL_MARKETPLACE,
+                        official: plugin.marketplace
+                            == nibi_kernel_base::names::OFFICIAL_MARKETPLACE,
                     })
             })
             .collect()
@@ -653,7 +654,10 @@ fn user_config_defaults(manifest: &Value) -> BTreeMap<String, Value> {
         return defaults;
     };
     for (key, option) in config {
-        if let Some(value) = option.get("default").filter(|value| scalar_text(value).is_some()) {
+        if let Some(value) = option
+            .get("default")
+            .filter(|value| scalar_text(value).is_some())
+        {
             defaults.insert(key.clone(), value.clone());
         }
     }
@@ -698,7 +702,9 @@ fn expand_string_map(
     let mut out = Map::new();
     for (key, item) in map {
         let expanded = match item {
-            Value::String(text) => Value::String(expand_template(text, variables, allow_sensitive)?),
+            Value::String(text) => {
+                Value::String(expand_template(text, variables, allow_sensitive)?)
+            }
             other => other.clone(),
         };
         out.insert(key.clone(), expanded);
@@ -807,9 +813,7 @@ fn resolve_variable(
             ));
         }
         vars::CLAUDE_SKILL_DIR | vars::NIBI_SKILL_DIR => {
-            return Err(format!(
-                "Plugin variable requires a skill context: {name}"
-            ));
+            return Err(format!("Plugin variable requires a skill context: {name}"));
         }
         _ => {}
     }

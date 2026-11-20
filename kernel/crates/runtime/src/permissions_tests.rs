@@ -12,7 +12,9 @@ use nibi_kernel_api::permission::{
     ExecutionState, PermissionDecision, PermissionMode, RuleBehavior,
 };
 use nibi_kernel_api::testing::{MemoryStore, UnusedEnvironment, local_services, machine};
-use nibi_kernel_api::tool::{PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext};
+use nibi_kernel_api::tool::{
+    PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
+};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -63,6 +65,7 @@ async fn add(store: &MemoryStore, behavior: RuleBehavior, text: &str) {
             &workspace(),
             ProjectRulesChange {
                 behavior,
+                replace: false,
                 add: vec![parse_rule(text)],
                 remove: Vec::new(),
             },
@@ -241,7 +244,9 @@ async fn the_runtime_gate_forwards_the_single_use_ask() {
         ExecutionState::from(PermissionMode::Guarded).with_plan(true),
     ] {
         assert!(
-            shared.ask_once(&tool, &input, &context_with(execution)).await,
+            shared
+                .ask_once(&tool, &input, &context_with(execution))
+                .await,
             "{execution:?}"
         );
     }
@@ -330,4 +335,90 @@ async fn changes_go_to_the_store_and_replace_the_snapshot() {
         .unwrap_err();
     assert!(refused.to_string().contains("read-only"), "{refused}");
     assert_eq!(gate.rules().rules.len(), 1);
+}
+
+/// PermissionRequest hook 的 `updatedPermissions`（permission-updates.md §2.4）：`Local` 落本机项目规则集并读回
+/// （加、换、删），`Session` 只进触发它的会话的内存层（子代理不改父会话）。
+#[tokio::test]
+async fn hook_permission_updates_land_where_their_destination_says() {
+    use nibi_kernel_api::permission::PermissionRule;
+    use nibi_kernel_api::permission_updates::{PermissionUpdate, UpdatePlace};
+
+    let gate = Arc::new(PolicyGate::default());
+    let store = Arc::new(MemoryStore::default());
+    let shared = SharedRules {
+        gate: gate.clone(),
+        store: store.clone(),
+    };
+    let child = SessionId::new("ses_child");
+    let rule = |tool: &str, content: Option<&str>| PermissionRule {
+        tool: tool.to_owned(),
+        content: content.map(str::to_owned),
+    };
+    let updates = [
+        PermissionUpdate::AddRules {
+            place: UpdatePlace::Local,
+            behavior: RuleBehavior::Allow,
+            rules: vec![rule("Bash", Some("npm test"))],
+        },
+        PermissionUpdate::ReplaceRules {
+            place: UpdatePlace::Local,
+            behavior: RuleBehavior::Allow,
+            rules: vec![rule("Read", None)],
+        },
+        PermissionUpdate::RemoveRules {
+            place: UpdatePlace::Local,
+            behavior: RuleBehavior::Deny,
+            rules: vec![rule("Write", None)],
+        },
+        PermissionUpdate::AddRules {
+            place: UpdatePlace::Session,
+            behavior: RuleBehavior::Deny,
+            rules: vec![rule("Bash", Some("rm -rf /"))],
+        },
+    ];
+    shared
+        .apply_permission_updates(&child, &workspace(), &updates)
+        .await
+        .unwrap();
+    // 本机项目规则集：换（replaceRules）之后只剩 Read；删除不存在的 deny 不影响。
+    let project = store.project_rules(&workspace()).await.unwrap();
+    assert_eq!(project.allow, [rule("Read", None)]);
+    assert!(project.deny.is_empty() && project.ask.is_empty());
+    // 判决链：Local 读回；Session 只在子会话。
+    let snapshot = gate.rules();
+    assert!(
+        snapshot
+            .rules
+            .iter()
+            .any(|known| known.source == RuleSource::LocalSettings
+                && known.rule == rule("Read", None))
+    );
+    let context_for = |session: &str| {
+        let mut context = context_with(ExecutionState::default());
+        context.session = SessionId::new(session);
+        context
+    };
+    let decision = |session: &str| {
+        let gate = gate.clone();
+        let context = context_for(session);
+        async move {
+            gate.check_rules(&Bash, &json!({"command": "rm -rf /"}), &context)
+                .await
+        }
+    };
+    assert!(
+        matches!(
+            decision("ses_child").await,
+            Some(PermissionDecision::Deny { .. })
+        ),
+        "the child session sees its hook deny rule"
+    );
+    assert!(
+        !matches!(
+            decision("ses_parent").await,
+            Some(PermissionDecision::Deny { .. })
+        ),
+        "the parent session does not see the child's hook rule"
+    );
 }

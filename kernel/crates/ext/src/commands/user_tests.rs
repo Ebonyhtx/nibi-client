@@ -173,7 +173,10 @@ async fn shell_fragments_are_handed_off_to_the_bash_tool() {
         body.ends_with(&format!("\n\nOut: {expected}")),
         "unexpected body: {body}"
     );
-    assert!(!body.contains("out:echo hi"), "the shell must not run: {body}");
+    assert!(
+        !body.contains("out:echo hi"),
+        "the shell must not run: {body}"
+    );
 }
 
 /// `!` 块里只有命令拿不到的变量；参数替换在改写之后，参数里的反引号不会打断代码块。

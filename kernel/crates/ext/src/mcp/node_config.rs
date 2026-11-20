@@ -122,7 +122,15 @@ struct Parsed {
 fn extra_fields(
     server: &Map<String, Value>,
     stdio: bool,
-) -> Result<(Option<String>, McpServerOptions, Option<McpOAuthConfig>, McpProtocolVersion), String> {
+) -> Result<
+    (
+        Option<String>,
+        McpServerOptions,
+        Option<McpOAuthConfig>,
+        McpProtocolVersion,
+    ),
+    String,
+> {
     let cwd = match server.get("cwd") {
         None => None,
         Some(_) if !stdio => return Err("cwd: only stdio servers have a working directory".into()),

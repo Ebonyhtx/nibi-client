@@ -5,9 +5,9 @@
 //! plan 模式询问 → acceptEdits 下工作目录里放行 → allow 规则 → 询问。
 //! 读规则的工具名是 `Read`，写规则是 `Edit`（Write、NotebookEdit 共用）。
 
-use nibi_kernel_base::names::DOT_DIR;
 use nibi_kernel_api::env_files::PathStyle;
 use nibi_kernel_api::permission::{PermissionMode, RuleBehavior};
+use nibi_kernel_base::names::DOT_DIR;
 use serde_json::Value;
 
 use crate::check::{AskKind, Check, Inputs};

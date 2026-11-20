@@ -58,7 +58,7 @@ async function getPatchedReadCrashProcessType(): Promise<
     new URL("../../../node_modules/@arms/rum-electron/dist/index.mjs", import.meta.url),
   );
   const source = await readFile(packageEntry, "utf8");
-  const parserStart = source.indexOf("const zcodeCrashpadInfoStreamType");
+  const parserStart = source.indexOf("const nibiCrashpadInfoStreamType");
   const parserEnd = source.indexOf("\nclass ", parserStart);
 
   expect(parserStart).toBeGreaterThanOrEqual(0);
@@ -73,13 +73,13 @@ async function getPatchedFormatConsoleErrorArgs(): Promise<(args: unknown[]) => 
     new URL("../../../node_modules/@arms/rum-electron/dist/index.mjs", import.meta.url),
   );
   const source = await readFile(packageEntry, "utf8");
-  const formatterStart = source.indexOf("const zcodeConsoleErrorMaxLength");
+  const formatterStart = source.indexOf("const nibiConsoleErrorMaxLength");
   const formatterEnd = source.indexOf("\nclass ", formatterStart);
 
   expect(formatterStart).toBeGreaterThanOrEqual(0);
   expect(formatterEnd).toBeGreaterThan(formatterStart);
   return runInNewContext(
-    `${source.slice(formatterStart, formatterEnd)}; zcodeFormatConsoleErrorArgs`,
+    `${source.slice(formatterStart, formatterEnd)}; nibiFormatConsoleErrorArgs`,
   ) as (args: unknown[]) => string;
 }
 

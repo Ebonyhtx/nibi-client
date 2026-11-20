@@ -212,11 +212,7 @@ async fn plugin_hooks_see_their_root() {
     )]);
     run_with(&env, &shell, 5_000, CancellationToken::new()).await;
     let io = env.started().remove(0).1.hook.unwrap();
-    for name in [
-        "CLAUDE_PLUGIN_ROOT",
-        "NIBI_PLUGIN_ROOT",
-        "NIBI_PLUGIN_ROOT",
-    ] {
+    for name in ["CLAUDE_PLUGIN_ROOT", "NIBI_PLUGIN_ROOT", "NIBI_PLUGIN_ROOT"] {
         assert_eq!(io.env.get(name).map(String::as_str), Some(root), "{name}");
     }
 }

@@ -2,13 +2,13 @@
 
 use std::sync::Arc;
 
-use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::env::EnvPath;
 use nibi_kernel_api::ids::SessionId;
 use nibi_kernel_api::mcp::McpTransportConfig;
 use nibi_kernel_api::model::{ModelSelection, QuerySource};
 use nibi_kernel_api::permission::PermissionMode;
-use nibi_kernel_api::env::EnvPath;
 use nibi_kernel_api::testing::{ListTools, MemoryEnvironment, SequentialIds};
+use nibi_kernel_base::TaskScope;
 use serde_json::json;
 
 use super::*;
@@ -74,6 +74,7 @@ fn request() -> ContextRequest {
         },
         plan_flags: Default::default(),
         mcp: None,
+        prompt: None,
     }
 }
 
@@ -277,7 +278,10 @@ async fn visualize_skills_follow_the_inline_view_host() {
     let loaded = without_host.start().await;
     let process = plugin_names(without_host.skills().skills(&workspace()).await);
     assert!(process.contains(&"pdf:pdf".to_owned()), "{process:?}");
-    assert!(!process.contains(&"visualize:visualize".to_owned()), "{process:?}");
+    assert!(
+        !process.contains(&"visualize:visualize".to_owned()),
+        "{process:?}"
+    );
     let session = SessionId::new("sess_no_view_host");
     without_host.set_session_skill_roots(session.clone(), &loaded);
     let session_skills = plugin_names(
@@ -286,7 +290,10 @@ async fn visualize_skills_follow_the_inline_view_host() {
             .skills_for(Some(&session), &workspace())
             .await,
     );
-    assert!(session_skills.contains(&"pdf:pdf".to_owned()), "{session_skills:?}");
+    assert!(
+        session_skills.contains(&"pdf:pdf".to_owned()),
+        "{session_skills:?}"
+    );
     assert!(
         !session_skills.contains(&"visualize:visualize".to_owned()),
         "{session_skills:?}"
@@ -296,7 +303,10 @@ async fn visualize_skills_follow_the_inline_view_host() {
     let with_host = ext_for(true);
     let loaded = with_host.start().await;
     let process = plugin_names(with_host.skills().skills(&workspace()).await);
-    assert!(process.contains(&"visualize:visualize".to_owned()), "{process:?}");
+    assert!(
+        process.contains(&"visualize:visualize".to_owned()),
+        "{process:?}"
+    );
     assert!(process.contains(&"pdf:pdf".to_owned()), "{process:?}");
     let session = SessionId::new("sess_view_host");
     with_host.set_session_skill_roots(session.clone(), &loaded);
@@ -310,7 +320,10 @@ async fn visualize_skills_follow_the_inline_view_host() {
         session_skills.contains(&"visualize:visualize".to_owned()),
         "{session_skills:?}"
     );
-    assert!(session_skills.contains(&"pdf:pdf".to_owned()), "{session_skills:?}");
+    assert!(
+        session_skills.contains(&"pdf:pdf".to_owned()),
+        "{session_skills:?}"
+    );
 
     // 空插件快照：不报错，也不产生插件 skill。
     let empty = SessionId::new("sess_empty_view_host");

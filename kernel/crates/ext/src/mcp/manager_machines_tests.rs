@@ -5,13 +5,13 @@ use std::sync::{Arc, Mutex};
 
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
-use nibi_kernel_base::TaskScope;
 use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
 use nibi_kernel_api::env_registry::EnvironmentRegistry;
 use nibi_kernel_api::ids::EnvironmentId;
 use nibi_kernel_api::local_services::LocalServices;
 use nibi_kernel_api::machine::MachineEnv;
 use nibi_kernel_api::testing::UnusedEnvironment;
+use nibi_kernel_base::TaskScope;
 use serde_json::json;
 use tokio::sync::watch;
 

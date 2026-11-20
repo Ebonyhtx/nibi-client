@@ -63,6 +63,7 @@ async fn instructions(env: MemoryEnvironment) -> Option<String> {
         },
         plan_flags: Default::default(),
         mcp: None,
+        prompt: None,
     };
     let history = [Message::User(UserMessage {
         id: MessageId::new("u"),
@@ -146,6 +147,7 @@ async fn the_session_switch_removes_both_the_section_and_the_index() {
         },
         plan_flags: Default::default(),
         mcp: None,
+        prompt: None,
     };
     let history = [Message::User(UserMessage {
         id: MessageId::new("u"),

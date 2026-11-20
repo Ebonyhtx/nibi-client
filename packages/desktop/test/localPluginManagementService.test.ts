@@ -4,6 +4,7 @@ const handlers = vi.hoisted(() => ({
   addPluginMarketplace: vi.fn(),
   configurePlugin: vi.fn(),
   describePlugin: vi.fn(),
+  getPluginsBootstrap: vi.fn(),
   getPluginsOverview: vi.fn(),
   installPlugin: vi.fn(),
   listPluginUiSurfaces: vi.fn(),
@@ -77,6 +78,39 @@ describe("local plugin management service", () => {
         workspaceKey: "workspace-id",
         workspacePath: "D:/work/project",
       },
+    });
+  });
+
+  it("routes getPluginsBootstrap to the single-discovery handler", async () => {
+    const result = {
+      list: { diagnostics: [], plugins: [] },
+      overview: {
+        marketplaces: [],
+        availablePlugins: [],
+        installedPlugins: [],
+        restorableBuiltins: [],
+        diagnostics: [],
+        capability: { supported: true },
+      },
+    };
+    handlers.getPluginsBootstrap.mockResolvedValue(result);
+    const { value } = service();
+
+    await expect(
+      value.getPluginsBootstrap({
+        configScope: "user",
+        workspacePath: "D:/work/project",
+      }),
+    ).resolves.toBe(result);
+
+    expect(handlers.getPluginsBootstrap).toHaveBeenCalledTimes(1);
+    expect(handlers.listPlugins).not.toHaveBeenCalled();
+    expect(handlers.getPluginsOverview).not.toHaveBeenCalled();
+    const [context, params] = handlers.getPluginsBootstrap.mock.calls[0]!;
+    expect(context).toMatchObject({ deps: { env: {} } });
+    expect(params).toMatchObject({
+      configScope: "user",
+      workspace: { workspacePath: "D:/work/project", workspaceKey: "D:/work/project" },
     });
   });
 

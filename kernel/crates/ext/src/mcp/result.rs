@@ -179,10 +179,9 @@ pub(crate) fn truncate(content: Vec<ToolResultContent>, max_tokens: u64) -> Vec<
                 left -= kept.chars().count();
                 out.push(ToolResultContent::Text { text: kept });
             }
-            image
-            @ (ToolResultContent::Image { .. }
-                | ToolResultContent::Document { .. }
-                | ToolResultContent::Video { .. }) => {
+            image @ (ToolResultContent::Image { .. }
+            | ToolResultContent::Document { .. }
+            | ToolResultContent::Video { .. }) => {
                 let cost = usize::try_from(IMAGE_TOKENS * 4).unwrap_or(usize::MAX);
                 if cost <= left {
                     left -= cost;

@@ -159,7 +159,10 @@ impl Actor {
                 fired = Some(self.fire_prelude(fire.kind));
                 // `/loop` 的哨兵在这里展开（tools-more.md §17.3）。
                 let prompt = self.resolve_loop_prompt(fire.prompt).await;
-                (vec![(prompt, meta(crate::cron::CRON_SOURCE, None))], Vec::new())
+                (
+                    vec![(prompt, meta(crate::cron::CRON_SOURCE, None))],
+                    Vec::new(),
+                )
             }
             TurnInput::Notices(notices) => {
                 // 同伴消息开回合时用空闲的写法与自己的来源（cross-session.md §1.7）。
@@ -170,7 +173,12 @@ impl Actor {
                     .find_map(|notice| notice.origin_meta().cloned());
                 let texts = notices
                     .iter()
-                    .map(|notice| (notice.turn_text(), meta(notice.source(), origin_meta.clone())))
+                    .map(|notice| {
+                        (
+                            notice.turn_text(),
+                            meta(notice.source(), origin_meta.clone()),
+                        )
+                    })
                     .collect();
                 (texts, notices)
             }
@@ -208,7 +216,10 @@ impl Actor {
         let turn = self.deps.ids.turn();
         // 通知轮的轮头 origin（Node `turnHeaderOrigin`）：后台通知开的是 backgroundResult；
         // 同伴消息（subagent_message）在 Node 的表里落默认 userInput，不带标记。
-        let input_source = if notices.iter().all(|notice| matches!(notice, Waiting::Peer(_))) {
+        let input_source = if notices
+            .iter()
+            .all(|notice| matches!(notice, Waiting::Peer(_)))
+        {
             None
         } else {
             Some(TurnInputSource::BackgroundTask)
@@ -219,7 +230,9 @@ impl Actor {
             execution_kind: None,
             workflow_launch: None,
             input_source,
-            origin_meta: notices.iter().find_map(|notice| notice.origin_meta().cloned()),
+            origin_meta: notices
+                .iter()
+                .find_map(|notice| notice.origin_meta().cloned()),
         });
         for message in &users {
             self.log.append(KernelEvent::MessageDone {
@@ -328,6 +341,15 @@ impl Actor {
                 let _ =
                     reply.send(changed.map_err(|message| OrchestrationError::Failed { message }));
             }
+            SinkRequest::SetModeForHook {
+                mode,
+                persist,
+                reply,
+            } => {
+                let changed = self.hook_mode(mode, persist).await;
+                let _ =
+                    reply.send(changed.map_err(|message| OrchestrationError::Failed { message }));
+            }
             SinkRequest::SetPlan { enabled, reply } => {
                 let changed = self.change_plan(enabled).await;
                 let _ =
@@ -376,6 +398,9 @@ impl Actor {
             }
             SinkRequest::PromptSnapshot { reply } => {
                 let _ = reply.send(self.prompt_snapshot_present());
+            }
+            SinkRequest::SessionPrompt { reply } => {
+                let _ = reply.send(Some(self.current_prompt()));
             }
             SinkRequest::RecordPromptSnapshot { selection, system } => {
                 self.record_prompt_snapshot(&selection, &system).await;
@@ -439,9 +464,12 @@ impl Actor {
         let mut facts = vec![fact];
         if let Some(creation) = &worktree_creation {
             // 与 Node 同一存储顺序：timeline-only assistant 消息排在首轮 user 消息之前。
-            facts.insert(0, Fact::WorktreeCreation {
-                creation: creation.clone(),
-            });
+            facts.insert(
+                0,
+                Fact::WorktreeCreation {
+                    creation: creation.clone(),
+                },
+            );
         }
         if let Some(intent) = &intent {
             facts.insert(
@@ -458,10 +486,7 @@ impl Actor {
             .messages
             .iter()
             .any(|m| matches!(m, Message::User(user) if !crate::local_record::is_record(user)));
-        if let Err(reason) = self
-            .commit(command, [facts, extra, usage].concat())
-            .await
-        {
+        if let Err(reason) = self.commit(command, [facts, extra, usage].concat()).await {
             return Err(self.fail(&reason));
         }
         if let Some(intent) = intent {
@@ -558,9 +583,7 @@ impl Actor {
             // 模型通知只供显示，不落库（stall-visibility.md §1）。
             QueryEvent::ModelNotice { notice } => KernelEvent::ModelNotice { notice },
             // 请求生命周期状态只进实时事件流（`v4/telemetry/event` 的事实来源），不落库。
-            QueryEvent::ModelRequestStatus { status } => {
-                KernelEvent::ModelRequestStatus { status }
-            }
+            QueryEvent::ModelRequestStatus { status } => KernelEvent::ModelRequestStatus { status },
         };
         self.log.append(event);
     }

@@ -48,21 +48,12 @@ fn every_main_request_in_the_turn_is_summed_not_just_the_last() {
 
 #[test]
 fn without_a_prompt_the_last_usage_is_kept_for_control_turns() {
-    let messages = vec![
-        user("prompt"),
-        assistant("final", usage(10, 2, 8, 0)),
-    ];
-    assert_eq!(
-        turn_usage(&messages, None),
-        Some(usage(10, 2, 8, 0))
-    );
+    let messages = vec![user("prompt"), assistant("final", usage(10, 2, 8, 0))];
+    assert_eq!(turn_usage(&messages, None), Some(usage(10, 2, 8, 0)));
 }
 
 #[test]
 fn a_turn_without_usage_does_not_leak_the_previous_turn() {
-    let messages = vec![
-        assistant("before", usage(10, 2, 8, 0)),
-        user("prompt"),
-    ];
+    let messages = vec![assistant("before", usage(10, 2, 8, 0)), user("prompt")];
     assert_eq!(turn_usage(&messages, Some(&MessageId::new("prompt"))), None);
 }

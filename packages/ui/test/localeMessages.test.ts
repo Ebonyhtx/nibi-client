@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { createElement } from "react";
-import { LOCALE_MESSAGES } from "@/i18n/localeMessages.js";
+import { LOCALE_MESSAGES, loadLocaleMessages } from "@/i18n/localeMessages.js";
 import { NibiIntlProvider, useNibiIntl } from "@/i18n/IntlProvider.js";
 import enUS from "@/i18n/locales/en-US.js";
 import koKR from "@/i18n/locales/ko-KR.js";
@@ -29,7 +29,12 @@ afterEach(() => {
 });
 
 describe("五语言消息表", () => {
-  it("en-US 与 zh-CN 完整；ja/ko/ru 只显式翻译上游交集并用英文补齐", () => {
+  it("en-US 与 zh-CN 完整；ja/ko/ru 只显式翻译上游交集并用英文补齐", async () => {
+    await Promise.all([
+      loadLocaleMessages("ja-JP"),
+      loadLocaleMessages("ko-KR"),
+      loadLocaleMessages("ru-RU"),
+    ]);
     expect(Object.keys(LOCALE_MESSAGES["en-US"])).toHaveLength(Object.keys(enUS).length);
     expect(Object.keys(LOCALE_MESSAGES["zh-CN"])).toHaveLength(Object.keys(zhCN).length);
     for (const [locale, table] of [
@@ -46,7 +51,12 @@ describe("五语言消息表", () => {
     }
   });
 
-  it("显式翻译命中上游 key，NIBI 专属 key 回退英文而不是中文", () => {
+  it("显式翻译命中上游 key，NIBI 专属 key 回退英文而不是中文", async () => {
+    await Promise.all([
+      loadLocaleMessages("ja-JP"),
+      loadLocaleMessages("ko-KR"),
+      loadLocaleMessages("ru-RU"),
+    ]);
     expect(LOCALE_MESSAGES["ja-JP"]["app.login"]).toBe("接続");
     expect(LOCALE_MESSAGES["ko-KR"]["app.login"]).not.toBe(enUS["app.login"]);
     expect(LOCALE_MESSAGES["ru-RU"]["app.login"]).not.toBe(enUS["app.login"]);
@@ -62,7 +72,12 @@ describe("五语言消息表", () => {
     }
   });
 
-  it("任何语言的表里都不存在「值就是 key」的原始 id", () => {
+  it("任何语言的表里都不存在「值就是 key」的原始 id", async () => {
+    await Promise.all([
+      loadLocaleMessages("ja-JP"),
+      loadLocaleMessages("ko-KR"),
+      loadLocaleMessages("ru-RU"),
+    ]);
     for (const locale of ["zh-CN", "en-US", "ja-JP", "ko-KR", "ru-RU"] as const) {
       const rawIds = Object.entries(LOCALE_MESSAGES[locale])
         .filter(([key, value]) => value === key)
@@ -71,7 +86,7 @@ describe("五语言消息表", () => {
     }
   });
 
-  it("Provider 在 ja-JP 下渲染日语、NIBI-only key 显示英文，并同步 html lang", () => {
+  it("Provider 在 ja-JP 下渲染日语、NIBI-only key 显示英文，并同步 html lang", async () => {
     render(
       createElement(
         NibiIntlProvider,
@@ -82,9 +97,12 @@ describe("五语言消息表", () => {
       ),
     );
     expect(screen.getByTestId("locale").textContent).toBe("ja-JP");
-    expect(screen.getByTestId("messages").textContent).toBe(
-      "接続|Service endpoint (test builds only)",
-    );
+    // ja-JP 文案表是动态 chunk：加载完成前必须是英文兜底，完成后切到日语。
+    await waitFor(() => {
+      expect(screen.getByTestId("messages").textContent).toBe(
+        "接続|Service endpoint (test builds only)",
+      );
+    });
     expect(document.documentElement.lang).toBe("ja-JP");
   });
 });

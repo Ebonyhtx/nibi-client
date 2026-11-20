@@ -78,6 +78,7 @@ fn request(model: &str, names: &[&str]) -> ContextRequest {
         },
         plan_flags: Default::default(),
         mcp: None,
+        prompt: None,
     }
 }
 

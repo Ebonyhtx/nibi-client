@@ -63,6 +63,7 @@ fn request(source: QuerySource, tools: &[&str]) -> ContextRequest {
         },
         plan_flags: Default::default(),
         mcp: None,
+        prompt: None,
     }
 }
 

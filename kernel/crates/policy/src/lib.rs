@@ -94,6 +94,10 @@ pub struct PolicyGate {
     /// Node 群协作会话（`permission.scope = session`）自己的规则集：判决时代替快照里的本机项目规则集
     /// （LocalSettings）。会话 actor 打开这种会话时由 runtime 放进来（修复线 F2）。
     scoped: Mutex<HashMap<SessionId, Vec<nibi_kernel_api::permission::SourcedRule>>>,
+    /// PermissionRequest hook 的 `Session` 规则更新（permission-updates.md §2.4）：只在这个会话、只在内存，
+    /// 叠加在快照与 [`Self::scoped`] 之上。会话关闭时随 [`Self::release`] 清掉；子代理的更新落在子会话，
+    /// 父会话看不到。
+    hook_rules: Mutex<HashMap<SessionId, Vec<nibi_kernel_api::permission::SourcedRule>>>,
     /// 会话级的工具清单（NIBI `createSession.toolAllowlist/toolDenylist`）：工具清单与查找先按它过滤，
     /// 判决链再按规则判。会话关闭时随 `release` 清掉。
     tool_policies: Mutex<HashMap<SessionId, ToolPolicy>>,
@@ -127,6 +131,7 @@ impl PolicyGate {
         Self {
             rules: RwLock::new(Arc::new(rules)),
             scoped: Mutex::default(),
+            hook_rules: Mutex::default(),
             tool_policies: Mutex::default(),
             dynamic_workflows: Mutex::default(),
             dynamic_workflow_default: Mutex::new(DynamicWorkflowGate::UNGATED),
@@ -179,20 +184,73 @@ impl PolicyGate {
 
     /// Node 群协作会话的规则集（Node `loadProjectPermissionRuleset`：`scope = session` 时只用会话行的规则）：这个
     /// 会话的判决不用本机项目规则集，改用它。修复线 F2：以前续写这种会话时用的是项目规则。
-    pub fn scope(
-        &self,
-        session: &SessionId,
-        rules: &nibi_kernel_api::permission::ProjectRules,
-    ) {
+    pub fn scope(&self, session: &SessionId, rules: &nibi_kernel_api::permission::ProjectRules) {
         self.scoped
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .insert(session.clone(), rules.sourced());
     }
 
+    /// PermissionRequest hook 的 `updatedPermissions` 里 `Session` 的规则更新（permission-updates.md §2.4）：
+    /// 叠加到这个会话的内存层（加去重、整份换、删）。只影响这个会话；不落库，会话关闭时清掉。
+    pub fn apply_hook_rules(
+        &self,
+        session: &SessionId,
+        updates: &[nibi_kernel_api::permission_updates::PermissionUpdate],
+    ) {
+        let mut all = self
+            .hook_rules
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        let mut layer = all.remove(session).unwrap_or_default();
+        for update in updates {
+            nibi_kernel_api::permission_updates::apply_to_layer(&mut layer, update);
+        }
+        if !layer.is_empty() {
+            all.insert(session.clone(), layer);
+        }
+    }
+
+    /// hook 的 `AddDirectories`（permission-updates.md §2.4）：加进这个会话的附加目录（去重）。
+    /// 没有接上会话目录时什么都不做（fail-closed：不会凭 hook 的 JSON 放宽路径范围）。
+    pub fn add_directories(
+        &self,
+        session: &SessionId,
+        directories: &[nibi_kernel_api::env::EnvPath],
+    ) {
+        let Some(known) = &self.directories else {
+            return;
+        };
+        let mut current = known.get(session);
+        for directory in directories {
+            if !current.contains(directory) {
+                current.push(directory.clone());
+            }
+        }
+        known.set(session, current);
+    }
+
+    /// hook 的 `RemoveDirectories`：从这个会话的附加目录里去掉。
+    pub fn remove_directories(
+        &self,
+        session: &SessionId,
+        directories: &[nibi_kernel_api::env::EnvPath],
+    ) {
+        let Some(known) = &self.directories else {
+            return;
+        };
+        let mut current = known.get(session);
+        current.retain(|directory| !directories.contains(directory));
+        known.set(session, current);
+    }
+
     /// 会话关闭时清掉它的群协作规则集（session-lifecycle.md §3.3 的关闭路径；再打开时 runtime 从会话行重放）。
     pub fn release(&self, session: &SessionId) {
         self.scoped
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(session);
+        self.hook_rules
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .remove(session);
@@ -245,13 +303,12 @@ impl PolicyGate {
 
     /// 这个会话的动态工作流灰度门；没登记时用进程缺省（CLI/TUI 不参加灰度）。
     pub fn dynamic_workflow(&self, session: &SessionId) -> DynamicWorkflowGate {
-        self.dynamic_workflow_override(session)
-            .unwrap_or_else(|| {
-                *self
-                    .dynamic_workflow_default
-                    .lock()
-                    .unwrap_or_else(PoisonError::into_inner)
-            })
+        self.dynamic_workflow_override(session).unwrap_or_else(|| {
+            *self
+                .dynamic_workflow_default
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+        })
     }
 
     /// 登记过的门（子代理继承父会话时要区分「登记为关闭」与「没参加灰度」）。
@@ -304,13 +361,34 @@ impl PolicyGate {
             .get(session)
             .cloned();
         let Some(scoped) = scoped else {
+            return self.with_hook_rules(base, session);
+        };
+        let mut rules = (*base).clone();
+        rules
+            .rules
+            .retain(|rule| rule.source != nibi_kernel_api::permission::RuleSource::LocalSettings);
+        rules.rules.extend(scoped);
+        self.with_hook_rules(Arc::new(rules), session)
+    }
+
+    /// 叠加这个会话的 hook `Session` 规则层（permission-updates.md §2.4）：只在这个会话生效，不改快照。
+    fn with_hook_rules(
+        &self,
+        base: Arc<PermissionRules>,
+        session: &SessionId,
+    ) -> Arc<PermissionRules> {
+        let layer = self
+            .hook_rules
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(session)
+            .cloned();
+        let Some(layer) = layer else {
             return base;
         };
         let mut rules = (*base).clone();
-        rules.rules.retain(|rule| {
-            rule.source != nibi_kernel_api::permission::RuleSource::LocalSettings
-        });
-        rules.rules.extend(scoped);
+        rules.version = rules.version.saturating_add(1);
+        rules.rules.extend(layer);
         Arc::new(rules)
     }
 

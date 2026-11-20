@@ -2,10 +2,10 @@
 
 use std::sync::Arc;
 
-use nibi_kernel_base::TaskScope;
 use nibi_kernel_api::ids::SessionId;
 use nibi_kernel_api::mcp::McpTransportConfig;
 use nibi_kernel_api::mcp_session::{McpIsolation, SessionMcpServer};
+use nibi_kernel_base::TaskScope;
 use serde_json::json;
 
 use super::*;
@@ -81,7 +81,11 @@ async fn each_session_gets_its_own_connections_and_tools() {
             .map(|tool| tool.name().to_owned())
             .collect()
     };
-    assert!(names(&first_manager).iter().any(|name| name == "mcp__files__echo"));
+    assert!(
+        names(&first_manager)
+            .iter()
+            .any(|name| name == "mcp__files__echo")
+    );
     // 一个会话的停止不影响另一个。
     pools.stop(&first);
     assert!(pools.manager_of(&first).is_none());
@@ -108,8 +112,14 @@ async fn a_later_start_replaces_the_previous_set() {
         .into_iter()
         .map(|tool| tool.name().to_owned())
         .collect();
-    assert!(tools.iter().any(|name| name == "mcp__web__echo"), "{tools:?}");
-    assert!(!tools.iter().any(|name| name == "mcp__files__echo"), "{tools:?}");
+    assert!(
+        tools.iter().any(|name| name == "mcp__web__echo"),
+        "{tools:?}"
+    );
+    assert!(
+        !tools.iter().any(|name| name == "mcp__files__echo"),
+        "{tools:?}"
+    );
     assert!(pools.manager_of(&session).is_some());
     pools.stop(&session);
     assert!(pools.manager_of(&session).is_none());
@@ -134,8 +144,14 @@ async fn a_later_start_merges_the_previous_set() {
         .into_iter()
         .map(|tool| tool.name().to_owned())
         .collect();
-    assert!(tools.iter().any(|name| name == "mcp__files__echo"), "{tools:?}");
-    assert!(tools.iter().any(|name| name == "mcp__web__echo"), "{tools:?}");
+    assert!(
+        tools.iter().any(|name| name == "mcp__files__echo"),
+        "{tools:?}"
+    );
+    assert!(
+        tools.iter().any(|name| name == "mcp__web__echo"),
+        "{tools:?}"
+    );
     pools.stop(&session);
 }
 
@@ -189,7 +205,10 @@ async fn a_child_session_borrows_its_parents_connections() {
         .into_iter()
         .map(|tool| tool.name().to_owned())
         .collect();
-    assert!(names.iter().any(|name| name == "mcp__files__echo"), "{names:?}");
+    assert!(
+        names.iter().any(|name| name == "mcp__files__echo"),
+        "{names:?}"
+    );
 
     // 子会话关闭只移掉借用条目：父会话的连接还在。
     pools.stop(&child);
@@ -197,7 +216,11 @@ async fn a_child_session_borrows_its_parents_connections() {
     assert!(pools.manager_of(&parent).is_some());
     // 父会话没有会话级 MCP 时继承是空操作。
     pools.inherit(&child, &SessionId::new("sess_grandchild"));
-    assert!(pools.manager_of(&SessionId::new("sess_grandchild")).is_none());
+    assert!(
+        pools
+            .manager_of(&SessionId::new("sess_grandchild"))
+            .is_none()
+    );
 }
 
 fn workspace_at(root: &str) -> nibi_kernel_api::env::WorkspaceRef {
@@ -225,7 +248,11 @@ async fn a_workspace_isolated_server_is_shared_between_sessions() {
     let (first_session, second_session) = (SessionId::new("sess_a"), SessionId::new("sess_b"));
     pools.start(&first_session, &workspace(), vec![workspace_stdio("cloud")]);
     let first = pools
-        .start(&second_session, &workspace(), vec![workspace_stdio("cloud")])
+        .start(
+            &second_session,
+            &workspace(),
+            vec![workspace_stdio("cloud")],
+        )
         .clone();
     let second = pools.manager_of(&second_session).expect("second");
     first.wait_ready().await;
@@ -238,11 +265,18 @@ async fn a_workspace_isolated_server_is_shared_between_sessions() {
         .into_iter()
         .map(|tool| tool.name().to_owned())
         .collect();
-    assert!(tools.iter().any(|name| name == "mcp__cloud__echo"), "{tools:?}");
+    assert!(
+        tools.iter().any(|name| name == "mcp__cloud__echo"),
+        "{tools:?}"
+    );
 
     // 别的工作区不共享。
     let other = SessionId::new("sess_other");
-    let elsewhere = pools.start(&other, &workspace_at("/w/other"), vec![workspace_stdio("cloud")]);
+    let elsewhere = pools.start(
+        &other,
+        &workspace_at("/w/other"),
+        vec![workspace_stdio("cloud")],
+    );
     assert_ne!(first.shared_identities(), elsewhere.shared_identities());
 
     // 引用计数：关掉一个会话，另一个还能用；两个都关掉之后连接释放（再开会是新的）。
@@ -281,15 +315,24 @@ async fn a_session_mixes_its_own_and_shared_servers() {
         .into_iter()
         .map(|tool| tool.name().to_owned())
         .collect();
-    assert!(tools.iter().any(|name| name == "mcp__files__echo"), "{tools:?}");
-    assert!(tools.iter().any(|name| name == "mcp__cloud__echo"), "{tools:?}");
+    assert!(
+        tools.iter().any(|name| name == "mcp__files__echo"),
+        "{tools:?}"
+    );
+    assert!(
+        tools.iter().any(|name| name == "mcp__cloud__echo"),
+        "{tools:?}"
+    );
     // 两个服务器在两套 manager 里：自己的一套 + 共享的一套。
     assert_eq!(connections.identities().len(), 2);
     assert_eq!(connections.shared_identities().len(), 1);
     // 状态视图合并后按名字排序。
     let view = connections.view();
     assert_eq!(
-        view.servers.iter().map(|row| row.name.as_str()).collect::<Vec<_>>(),
+        view.servers
+            .iter()
+            .map(|row| row.name.as_str())
+            .collect::<Vec<_>>(),
         ["cloud", "files"]
     );
     pools.stop(&session);

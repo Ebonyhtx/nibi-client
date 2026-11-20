@@ -3,7 +3,7 @@
 // picks up skill / MCP / manifest changes without a manual copy.
 //
 // This closes the last hop of the sync chain:
-//   packages/nibi-cua/plugin  --sync:skill-->  dev plugin (here)  --sync:cache-->  CLI cache
+//   packages/computer-use/plugin  --sync:skill-->  dev plugin (here)  --sync:cache-->  CLI cache
 //
 // The cache dir name (e.g. 0.1.31) is just an install-time cache key; copying newer
 // content (plugin.json says 0.2.0) on top of it is tolerated by the CLI and is exactly
@@ -97,13 +97,13 @@ for (const entry of ENTRIES) {
 // 函数，把当前平台的 JS/native 运行时放在插件自身 node_modules，避免两条链路漂移。
 stageSharpIntoBundledAgents({
   desktopPackageRoot: resolve(packageRoot, "../../../../packages/desktop"),
-  glmDir: cacheDir,
+  nibiDir: cacheDir,
   targetPlatform: { os: process.platform, arch: process.arch },
 });
 copied.push("node_modules/sharp runtime");
 stageKoffiIntoBundledAgents({
   koffiPackageRoot: resolve(packageRoot, "../adapters"),
-  glmDir: cacheDir,
+  nibiDir: cacheDir,
   targetPlatform: { os: process.platform, arch: process.arch },
 });
 copied.push("node_modules/koffi runtime");

@@ -85,6 +85,10 @@ fn hook_outcome_round_trips_and_old_outcomes_get_defaults() {
         watch_paths: vec!["/w/a".to_owned()],
         custom_instructions: Some("focus".to_owned()),
         retry: true,
+        // permission-updates / elicitation 的新字段：缺省值不改变这一轮的 JSON（都 skip）。
+        remember: Vec::new(),
+        interrupt: false,
+        elicitation: None,
     };
     let text = serde_json::to_string(&outcome).unwrap();
     assert_eq!(serde_json::from_str::<HookOutcome>(&text).unwrap(), outcome);

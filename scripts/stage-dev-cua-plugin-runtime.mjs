@@ -39,7 +39,7 @@ export function stageDevCuaPluginRuntime({
   try {
     return stageSharpIntoBundledAgents({
       desktopPackageRoot,
-      glmDir: pluginRoot,
+      nibiDir: pluginRoot,
       targetPlatform: {
         os: platform,
         arch,
