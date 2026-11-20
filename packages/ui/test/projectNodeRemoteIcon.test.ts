@@ -7,8 +7,8 @@ import type { ProjectNodeProps } from "@/project-sidebar/ProjectNodeContent.js";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
 
 const hover = vi.hoisted(() => ({ deviceNames: [] as Array<string | undefined> }));
-vi.mock("@/project-sidebar/RemoteIdentityHoverCard.js", () => ({
-  RemoteIdentityHoverCard: ({
+vi.mock("@/project-sidebar/ProjectIdentityHoverCard.js", () => ({
+  ProjectIdentityHoverCard: ({
     deviceName,
     children,
   }: {

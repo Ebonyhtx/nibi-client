@@ -109,7 +109,7 @@ vi.mock("@/project-sidebar/ProjectEditor.js", async (importOriginal) => {
     },
   };
 });
-// 远程身份详情的连接区读取设备管理服务，覆盖见 remoteIdentityHoverCard.test.ts。
+// 远程身份详情的连接区读取设备管理服务，覆盖见 projectIdentityHoverCard.test.ts。
 vi.mock("@/project-sidebar/RemoteConnectionProgressSection.js", () => ({
   RemoteConnectionProgressSection: () => null,
 }));

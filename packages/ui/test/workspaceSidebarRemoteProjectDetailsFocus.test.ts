@@ -12,6 +12,18 @@ vi.mock("@/i18n/IntlProvider.js", () => ({
 }));
 vi.mock("@/project-sidebar/ProjectTaskRows.js", () => ({ ProjectTaskRows: () => null }));
 afterEach(cleanup);
+/** jsdom 不实现 :focus-visible 启发式；仅在该次焦点事件内按键盘焦点处理。 */
+function focusAsKeyboard(target: HTMLElement) {
+  const matches = Element.prototype.matches;
+  const spy = vi.spyOn(Element.prototype, "matches").mockImplementation(function (
+    this: Element,
+    selector: string,
+  ) {
+    return selector === ":focus-visible" ? true : matches.call(this, selector);
+  });
+  fireEvent.focus(target);
+  spy.mockRestore();
+}
 function props(id: string): ProjectNodeProps {
   return {
     project: {
@@ -64,7 +76,7 @@ it("连接状态刷新保留项目行菜单焦点，连接操作继续走现有�
     });
   const view = render(child(input));
   // 菜单焦点会延迟打开详情；显式等待挂载，避免快速结束测试掩盖详情的服务依赖错误。
-  fireEvent.focus(screen.getByTestId("virtual-project-menu"));
+  focusAsKeyboard(screen.getByTestId("virtual-project-menu"));
   expect((await screen.findByTestId("remote-identity-details")).textContent).toContain("Alpha");
   fireEvent.keyDown(screen.getByTestId("virtual-project-menu"), { key: "ArrowDown" });
   const action = await screen.findByRole("menuitem", { name: "Connect" });

@@ -1,5 +1,5 @@
 import { SidebarNativeTooltip, ControlHintTooltip } from "@/ControlHintTooltip.js";
-import { RemoteIdentityHoverCard } from "@/project-sidebar/RemoteIdentityHoverCard.js";
+import { ProjectIdentityHoverCard } from "@/project-sidebar/ProjectIdentityHoverCard.js";
 import { remoteHostLabel } from "@/project-sidebar/RemoteHostSection.js";
 import { memo } from "react";
 import type { useSortable } from "@dnd-kit/sortable";
@@ -218,10 +218,9 @@ export const ProjectNodeContent = memo(function ProjectNodeContent({
     <>
       <ContextMenu modal={false}>
         {/* 标题区域不含行尾按钮，作为锚点时浮层会遮住操作；以整行边界定位，保留更多/新建入口可点击。 */}
-        <RemoteIdentityHoverCard
+        <ProjectIdentityHoverCard
           host={remoteHost}
           title={project.name}
-          projectName={project.name}
           deviceName={deviceLabel}
           paths={project.roots.map((root) => root.rootPath)}
           connectionError={diagnostics?.error}
@@ -418,7 +417,7 @@ export const ProjectNodeContent = memo(function ProjectNodeContent({
               </div>
             </div>
           </ContextMenuTrigger>
-        </RemoteIdentityHoverCard>
+        </ProjectIdentityHoverCard>
         {/* 非模态菜单只负责导航，避免退出动画与编辑弹窗交错后残留指针锁。 */}
         <ContextMenuContent>
           <ProjectMenuItems actions={contextActions} context />

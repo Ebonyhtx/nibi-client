@@ -2,7 +2,7 @@
 import { act, createElement } from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, expect, it, vi } from "vitest";
-import { RemoteIdentityHoverCard } from "@/project-sidebar/RemoteIdentityHoverCard.js";
+import { ProjectIdentityHoverCard } from "@/project-sidebar/ProjectIdentityHoverCard.js";
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
   useNibiIntl: () => ({
@@ -46,15 +46,26 @@ const host = {
 };
 function mount() {
   return render(
-    createElement(RemoteIdentityHoverCard, {
+    createElement(ProjectIdentityHoverCard, {
       host,
       title: "Task",
-      projectName: "test2",
       deviceName: "Alpha",
       paths: ["/home/dev/test2"],
       children: createElement("button", { type: "button" }, "remote row"),
     }),
   );
+}
+/** jsdom 不实现 :focus-visible 启发式；仅在该次焦点事件内按键盘焦点处理。 */
+function focusAsKeyboard(target: HTMLElement) {
+  const matches = Element.prototype.matches;
+  const spy = vi.spyOn(Element.prototype, "matches").mockImplementation(function (
+    this: Element,
+    selector: string,
+  ) {
+    return selector === ":focus-visible" ? true : matches.call(this, selector);
+  });
+  fireEvent.focus(target);
+  spy.mockRestore();
 }
 it("shows offline device identity, stays open over content, and closes after leaving without a close action", async () => {
   mount();
@@ -65,16 +76,53 @@ it("shows offline device identity, stays open over content, and closes after lea
   expect(details.textContent).toContain("/home/dev/test2");
   expect(details.textContent).toContain("remote.status.offline");
   expect(details.querySelector("button")).toBeNull();
-  fireEvent.pointerLeave(screen.getByText("remote row"), { pointerType: "mouse" });
+  fireEvent.pointerLeave(screen.getByText("remote row"), {
+    pointerType: "mouse",
+    relatedTarget: details,
+  });
   fireEvent.pointerEnter(details, { pointerType: "mouse" });
   expect(screen.getByTestId("remote-identity-details")).toBeTruthy();
   fireEvent.pointerLeave(details, { pointerType: "mouse" });
   await waitFor(() => expect(screen.queryByTestId("remote-identity-details")).toBeNull());
 });
+it("本地项目显示项目名和目录路径，不显示远程设备与连接信息", async () => {
+  render(
+    createElement(ProjectIdentityHoverCard, {
+      title: "Local project",
+      paths: ["C:\\repo", "C:\\repo-extra"],
+      children: createElement("button", { type: "button" }, "local row"),
+    }),
+  );
+  fireEvent.pointerEnter(screen.getByText("local row"), { pointerType: "mouse" });
+  const details = await screen.findByTestId("project-identity-details");
+  expect(details.textContent).toContain("Local project");
+  expect(details.textContent).toContain("workspaceSidebar.projectPath");
+  expect(details.textContent).toContain("C:\\repo");
+  expect(details.textContent).toContain("C:\\repo-extra");
+  expect(details.textContent).not.toContain("workspaceSidebar.projectDevice");
+  expect(details.textContent).not.toContain("workspaceSidebar.projectLine");
+  expect(details.textContent).not.toContain("settings.source.connectionAddress");
+  expect(screen.queryByTestId("remote-identity-details")).toBeNull();
+  fireEvent.pointerLeave(screen.getByText("local row"), { pointerType: "mouse" });
+  await waitFor(() => expect(screen.queryByTestId("project-identity-details")).toBeNull());
+});
+it("本地项目没有目录时路径显示占位符", async () => {
+  render(
+    createElement(ProjectIdentityHoverCard, {
+      title: "Local project",
+      paths: [],
+      children: createElement("button", { type: "button" }, "local row"),
+    }),
+  );
+  fireEvent.pointerEnter(screen.getByText("local row"), { pointerType: "mouse" });
+  const details = await screen.findByTestId("project-identity-details");
+  expect(details.textContent).toContain("—");
+  expect(details.querySelector("button")).toBeNull();
+});
 it("closes on keyboard blur and Escape, and never pins after clicking the row", async () => {
   mount();
   const row = screen.getByText("remote row");
-  fireEvent.focus(row);
+  focusAsKeyboard(row);
   await screen.findByTestId("remote-identity-details");
   fireEvent.blur(row);
   await waitFor(() => expect(screen.queryByTestId("remote-identity-details")).toBeNull());
@@ -96,7 +144,7 @@ it.each(["outside", "trigger", "keyboard"])(
     const row = screen.getByText("remote row");
     fireEvent.pointerEnter(row, { pointerType: "mouse" });
     const details = await screen.findByTestId("remote-identity-details");
-    fireEvent.pointerLeave(row, { pointerType: "mouse" });
+    fireEvent.pointerLeave(row, { pointerType: "mouse", relatedTarget: details });
     fireEvent.pointerEnter(details, { pointerType: "mouse" });
     const path = screen.getByText("/home/dev/test2");
     fireEvent.pointerDown(path);
@@ -111,16 +159,16 @@ it.each(["outside", "trigger", "keyboard"])(
     expect(screen.getByTestId("remote-identity-details")).toBeTruthy();
 
     if (leaveThrough === "keyboard") {
-      fireEvent.focus(row);
+      focusAsKeyboard(row);
       fireEvent.blur(row, { relatedTarget: document.body });
+    } else if (leaveThrough === "trigger") {
+      // 指针从详情移回行内时 relatedTarget 仍在触发区内，详情保持打开。
+      fireEvent.pointerLeave(details, { pointerType: "mouse", relatedTarget: row });
+      fireEvent.pointerEnter(row, { pointerType: "mouse" });
+      expect(screen.getByTestId("remote-identity-details")).toBeTruthy();
+      fireEvent.pointerLeave(row, { pointerType: "mouse" });
     } else {
       fireEvent.pointerLeave(details, { pointerType: "mouse" });
-      if (leaveThrough === "trigger") {
-        fireEvent.pointerEnter(row, { pointerType: "mouse" });
-        await act(() => new Promise((resolve) => setTimeout(resolve, 150)));
-        expect(screen.getByTestId("remote-identity-details")).toBeTruthy();
-        fireEvent.pointerLeave(row, { pointerType: "mouse" });
-      }
     }
     await waitFor(() => expect(screen.queryByTestId("remote-identity-details")).toBeNull());
   },
@@ -129,7 +177,7 @@ it.each(["outside", "trigger", "keyboard"])(
 it("keeps a focused row's details open while selecting text inside them", async () => {
   mount();
   const row = screen.getByText("remote row");
-  fireEvent.focus(row);
+  focusAsKeyboard(row);
   const details = await screen.findByTestId("remote-identity-details");
   fireEvent.pointerEnter(details, { pointerType: "mouse" });
   fireEvent.pointerDown(screen.getByText("/home/dev/test2"));
@@ -145,7 +193,7 @@ it("keeps a focused row's details open while selecting text inside them", async 
 it("待处理设备显示具体短状态，并由底部入口定位设备设置后关闭", async () => {
   const onOpenDeviceSettings = vi.fn();
   render(
-    createElement(RemoteIdentityHoverCard, {
+    createElement(ProjectIdentityHoverCard, {
       host: { ...host, lastConnectionStatus: "needs-upgrade" },
       title: "Task",
       paths: ["/home/dev/test2"],
@@ -174,7 +222,7 @@ it.each([
   },
 ])("$name 时详情不显示设置入口", async ({ lastConnectionStatus, callback }) => {
   render(
-    createElement(RemoteIdentityHoverCard, {
+    createElement(ProjectIdentityHoverCard, {
       host: { ...host, lastConnectionStatus },
       title: "Task",
       paths: ["/home/dev/test2"],
@@ -189,7 +237,7 @@ it.each([
 
 it("桌面端版本过旧时入口显示“更新桌面端”，与设置页设备卡一致", async () => {
   render(
-    createElement(RemoteIdentityHoverCard, {
+    createElement(ProjectIdentityHoverCard, {
       // 修复前投影没有 upgradeTarget，入口固定回退成 update-server。
       host: { ...host, lastConnectionStatus: "needs-upgrade", upgradeTarget: "controller" },
       title: "Task",
@@ -208,7 +256,7 @@ it("桌面端版本过旧时入口显示“更新桌面端”，与设置页设�
 const PROFILE = "00000000-0000-4000-8000-000000000001";
 function hoverConnecting(overrides: Record<string, unknown> = {}) {
   render(
-    createElement(RemoteIdentityHoverCard, {
+    createElement(ProjectIdentityHoverCard, {
       host: {
         ...host,
         connectionStatus: "connecting",
@@ -363,7 +411,7 @@ it("已复制只对应被复制的错误原文，错误变化后恢复为复制�
     paths: ["/home/dev/test2"],
     children: createElement("button", { type: "button" }, "remote row"),
   });
-  const { rerender } = render(createElement(RemoteIdentityHoverCard, props("first failure")));
+  const { rerender } = render(createElement(ProjectIdentityHoverCard, props("first failure")));
   fireEvent.pointerEnter(screen.getByText("remote row"), { pointerType: "mouse" });
   fireEvent.click(await screen.findByTestId("remote-connection-copy-error"));
   await waitFor(() =>
@@ -371,7 +419,7 @@ it("已复制只对应被复制的错误原文，错误变化后恢复为复制�
       "remote.progress.copied",
     ),
   );
-  rerender(createElement(RemoteIdentityHoverCard, props("second failure")));
+  rerender(createElement(ProjectIdentityHoverCard, props("second failure")));
   expect(screen.getByTestId("remote-connection-copy-error").textContent).toBe(
     "remote.progress.copyError",
   );
