@@ -4553,6 +4553,7 @@ const ruRU: Record<string, string> = {
     "Выберите тему приложения и размер текста интерфейса.",
   "settings.appearance.interfaceTitle": "Интерфейс",
   "settings.appearanceTitle": "Внешний вид",
+  "settings.agentBehavior.title": "Поведение и инструменты",
   "settings.askUserQuestionAutoResolution": "Автоматически продолжать вопросы",
   "settings.askUserQuestionAutoResolutionDescription":
     "Если включено, вопросы агента автоматически продолжаются через 5 минут без ответа. Если выключено, текущие и будущие вопросы ждут вашего ответа.",

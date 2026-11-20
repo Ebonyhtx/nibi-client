@@ -3282,6 +3282,7 @@ const zhCN: Record<string, string> = {
   "settings.themeMode.nibi-dark": "深色",
   "settings.themeMode.system": "系统",
   "settings.appearanceTitle": "外观",
+  "settings.agentBehavior.title": "行为与工具",
   "settings.shortcuts.saveFailed": "快捷键保存失败，请重试。",
   "settings.shortcuts.title": "键盘快捷键",
   "settings.shortcuts.searchPlaceholder": "搜索快捷键",

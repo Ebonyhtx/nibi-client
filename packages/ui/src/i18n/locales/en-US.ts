@@ -3499,6 +3499,7 @@ const enUS: Record<string, string> = {
   "settings.themeMode.nibi-dark": "Dark",
   "settings.themeMode.system": "System",
   "settings.appearanceTitle": "Appearance",
+  "settings.agentBehavior.title": "Behavior and tools",
   "settings.shortcuts.saveFailed": "Failed to save shortcuts. Try again.",
   "settings.shortcuts.title": "Keyboard Shortcuts",
   "settings.shortcuts.searchPlaceholder": "Search shortcuts",

@@ -10,6 +10,7 @@ import {
   testId,
 } from "@nibi/shared/test-ids";
 import type { IServiceAccessor } from "@nibi/services";
+import { avatarColor } from "@/components/workflow-timeline/WorkflowAgentFace.js";
 import { useRemoteWorkspaceSessionStore } from "@/store/remoteWorkspaceSessionStore.js";
 import { encodeCustomModelValue } from "../src/lib/nibiCustomModelValue.js";
 
@@ -886,6 +887,70 @@ describe("SubagentsSection", () => {
     expect(html).toContain("Explore");
     expect(html).toContain("All tools");
     expect(html).not.toContain("1 tools");
+  });
+
+  it("renders subagent identity faces from configured colors and name hashes", async () => {
+    stateOverrides = new Map<number, unknown>([
+      [
+        1,
+        [
+          {
+            id: "built-in:general-purpose",
+            name: "general-purpose",
+            description: "General-purpose agent",
+            systemPrompt: "",
+            color: "blue",
+            path: "built-in:general-purpose",
+            scope: "built-in",
+            source: "built-in",
+            enabled: true,
+            readOnly: true,
+            tools: ["*"],
+          },
+          {
+            id: "built-in:explore",
+            name: "Explore",
+            description: "Search broadly",
+            systemPrompt: "",
+            color: "cyan",
+            path: "built-in:Explore",
+            scope: "built-in",
+            source: "built-in",
+            enabled: true,
+            readOnly: true,
+            tools: ["Read"],
+          },
+          {
+            id: "user:code-reviewer",
+            name: "code-reviewer",
+            description: "Review code",
+            systemPrompt: "Review.",
+            path: "/tmp/agents/code-reviewer.md",
+            scope: "user",
+            source: "user",
+            enabled: true,
+            readOnly: false,
+            tools: ["Read"],
+          },
+        ],
+      ],
+      [2, { userScopeAvailable: true }],
+    ]);
+
+    const container = document.createElement("div");
+    container.innerHTML = await renderSubagentsSection();
+    const face = (name: string) =>
+      container.querySelector(
+        `[data-testid="${testId(TID_SUBAGENT_ROW, name)}"] [data-subagent-avatar]`,
+      ) as SVGSVGElement | null;
+
+    expect(face("general-purpose")?.style.getPropertyValue("--wf-face-body")).toBe("#3C82F6");
+    expect(face("Explore")?.style.getPropertyValue("--wf-face-body")).toBe("#54B9A6");
+    expect(face("code-reviewer")?.style.getPropertyValue("--wf-face-body")).toBe(
+      avatarColor("code-reviewer"),
+    );
+    // 列表里的头像使用静态空闲表情，而不是工作流执行状态。
+    expect(face("general-purpose")?.getAttribute("data-expression")).toBe("pill");
   });
 
   it("renders model controls for built-in subagents while keeping user model badges", async () => {

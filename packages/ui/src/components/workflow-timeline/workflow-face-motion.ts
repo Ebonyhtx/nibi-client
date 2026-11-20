@@ -1,7 +1,7 @@
 import type { StepRunStatus } from "@/components/workflow-graph/types.js";
 import { isMotionDisabled, subscribeToMotionPreference } from "@/lib/motionPreference.js";
 
-export type FaceState = "waiting" | "scanning" | "content" | "sad";
+export type FaceState = "idle" | "waiting" | "scanning" | "content" | "sad";
 export type EyeExpression = "dots" | "pill" | "happy" | "sleepy" | "focused" | "sad" | "confused";
 export function faceState(status: StepRunStatus | undefined): FaceState {
   return status === "running"
@@ -13,12 +13,14 @@ export function faceState(status: StepRunStatus | undefined): FaceState {
         : "waiting";
 }
 export const BASE_EXPRESSION: Record<FaceState, EyeExpression> = {
+  idle: "pill",
   waiting: "dots",
   scanning: "pill",
   content: "happy",
   sad: "sad",
 };
 const SPECIAL: Record<FaceState, readonly EyeExpression[]> = {
+  idle: [],
   scanning: ["focused", "confused"],
   waiting: [],
   content: [],
@@ -70,6 +72,11 @@ export function startFaceMotion(face: SVGSVGElement, state: FaceState): () => vo
     });
   };
   const maybeExpression = () => {
+    // 设置页的空闲头像只眨眼和巡视，不借用执行状态或随机切换任务表情。
+    if (state === "idle") {
+      pause();
+      return;
+    }
     rounds++;
     const probability = state === "scanning" ? 0.45 : 0.25;
     if (rounds < 2 || Math.random() >= probability) {

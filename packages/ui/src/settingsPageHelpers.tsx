@@ -6,7 +6,7 @@ import type {
   LocalePreference,
   NibiInteractionBehavior,
 } from "@nibi/shared";
-import { appToolSearchModeSchema, LOCALE_NATIVE_NAMES, SUPPORTED_LOCALES } from "@nibi/shared";
+import { LOCALE_NATIVE_NAMES, SUPPORTED_LOCALES, appToolSearchModeSchema } from "@nibi/shared";
 import {
   TID_SETTINGS_ASK_USER_QUESTION_AUTO_RESOLUTION_SWITCH,
   TID_SETTINGS_NATIVE_SEARCH_SWITCH,
@@ -144,9 +144,6 @@ export function GeneralSectionContent({
   terminalFontFamily = "",
   integratedTerminalShell = { mode: "auto" },
   integratedTerminalShellOptions = [],
-  toolSearchMode = "off",
-  onToolSearchModeChange,
-  nativeSearchEnhancementsEnabled,
   httpProxyMode,
   httpProxy = "",
   httpProxyNoProxy = "",
@@ -160,22 +157,16 @@ export function GeneralSectionContent({
   setLocalePreference,
   setNotificationEnabled,
   setNotificationSoundEnabled,
-  messageStreamShowReasoning,
-  messageStreamShowTodos,
   fileTreeHtmlClickOpensBrowser = false,
   onFileTreeHtmlClickOpensBrowserChange,
   toolGroupingExploreEnabled,
   toolGroupingTerminalEnabled,
   toolGroupingChangesEnabled,
-  nibiInteractionBehavior,
-  askUserQuestionAutoResolutionEnabled = true,
-  modelIoFullRetentionEnabled = false,
   onDataBaseDirChange,
   onSelectDataBaseDir,
   onTerminalInheritSystemProfileChange = async () => {},
   onTerminalFontFamilyChange = async () => {},
   onIntegratedTerminalShellChange = async () => {},
-  onNativeSearchEnhancementsEnabledChange,
   onHttpProxyModeChange = async () => {},
   onHttpProxyChange = async () => {},
   onHttpProxyNoProxyChange = async () => {},
@@ -185,14 +176,9 @@ export function GeneralSectionContent({
   onDesktopChromiumHardwareAccelerationChange = async () => {},
   onReceivePreviewUpdatesChange,
   onAutoDownloadAndInstallUpdatesChange,
-  onMessageStreamShowReasoningChange,
-  onMessageStreamShowTodosChange,
   onToolGroupingExploreEnabledChange,
   onToolGroupingTerminalEnabledChange,
   onToolGroupingChangesEnabledChange,
-  onNibiInteractionBehaviorChange,
-  onAskUserQuestionAutoResolutionEnabledChange = async () => {},
-  onModelIoFullRetentionEnabledChange = async () => {},
   onOpenOnboardingDialog,
 }: {
   localePreference: LocalePreference;
@@ -210,9 +196,6 @@ export function GeneralSectionContent({
   terminalFontFamily: string;
   integratedTerminalShell?: IntegratedTerminalShellSelection;
   integratedTerminalShellOptions?: IntegratedTerminalShellOption[];
-  toolSearchMode?: AppToolSearchMode;
-  onToolSearchModeChange: (mode: AppToolSearchMode) => Promise<void>;
-  nativeSearchEnhancementsEnabled: boolean;
   httpProxyMode?: "system" | "manual";
   httpProxy?: string;
   httpProxyNoProxy?: string;
@@ -236,23 +219,17 @@ export function GeneralSectionContent({
   setLocalePreference: (locale: LocalePreference) => void;
   setNotificationEnabled: (enabled: boolean) => void;
   setNotificationSoundEnabled: (enabled: boolean) => void;
-  messageStreamShowReasoning: boolean;
-  messageStreamShowTodos: boolean;
   /** 文件树单击 HTML 时用内置浏览器打开（默认关闭，右键仍可预览源码）。 */
   fileTreeHtmlClickOpensBrowser?: boolean;
   onFileTreeHtmlClickOpensBrowserChange?: (enabled: boolean) => void;
   toolGroupingExploreEnabled: boolean;
   toolGroupingTerminalEnabled: boolean;
   toolGroupingChangesEnabled: boolean;
-  nibiInteractionBehavior: NibiInteractionBehavior;
-  askUserQuestionAutoResolutionEnabled?: boolean;
-  modelIoFullRetentionEnabled?: boolean;
   onDataBaseDirChange: (dir: string) => Promise<void>;
   onSelectDataBaseDir: () => Promise<string | null>;
   onTerminalInheritSystemProfileChange: (enabled: boolean) => Promise<void>;
   onTerminalFontFamilyChange: (fontFamily: string) => Promise<void>;
   onIntegratedTerminalShellChange?: (selection: IntegratedTerminalShellSelection) => Promise<void>;
-  onNativeSearchEnhancementsEnabledChange: (enabled: boolean) => Promise<void>;
   onHttpProxyModeChange?: (mode: "system" | "manual") => Promise<void>;
   onHttpProxyChange?: (httpProxy: string) => Promise<void>;
   onHttpProxyNoProxyChange?: (noProxy: string) => Promise<void>;
@@ -262,14 +239,9 @@ export function GeneralSectionContent({
   onDesktopChromiumHardwareAccelerationChange?: (enabled: boolean) => Promise<void>;
   onReceivePreviewUpdatesChange: (enabled: boolean) => Promise<void>;
   onAutoDownloadAndInstallUpdatesChange: (enabled: boolean) => Promise<void>;
-  onMessageStreamShowReasoningChange: (enabled: boolean) => Promise<void>;
-  onMessageStreamShowTodosChange: (enabled: boolean) => Promise<void>;
   onToolGroupingExploreEnabledChange: (enabled: boolean) => Promise<void>;
   onToolGroupingTerminalEnabledChange: (enabled: boolean) => Promise<void>;
   onToolGroupingChangesEnabledChange: (enabled: boolean) => Promise<void>;
-  onNibiInteractionBehaviorChange: (behavior: NibiInteractionBehavior) => Promise<void>;
-  onAskUserQuestionAutoResolutionEnabledChange?: (enabled: boolean) => Promise<void>;
-  onModelIoFullRetentionEnabledChange?: (enabled: boolean) => Promise<void>;
   onOpenOnboardingDialog: () => void;
 }) {
   const { intl } = useNibiIntl();
@@ -534,62 +506,6 @@ export function GeneralSectionContent({
             }
           />
         ) : null}
-        <SettingsRow
-          label={intl.formatMessage({ id: "settings.toolSearch" })}
-          description={intl.formatMessage({ id: "settings.toolSearchDescription" })}
-          detail={
-            <p className="text-ui-sm leading-5 text-foreground-subtle">
-              {intl.formatMessage({ id: "settings.toolSearchExperimentalNotice" })}
-            </p>
-          }
-          control={
-            <Select
-              value={toolSearchMode}
-              onValueChange={(value) => {
-                void onToolSearchModeChange(appToolSearchModeSchema.parse(value));
-              }}
-            >
-              <SelectTrigger
-                size="lg"
-                className="w-[260px] min-w-0 justify-between"
-                data-testid={TID_SETTINGS_TOOL_SEARCH_SELECT}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {appToolSearchModeSchema.options.map((mode) => (
-                  <SelectItem
-                    key={mode}
-                    value={mode}
-                    data-testid={testId(TID_SETTINGS_TOOL_SEARCH_OPTION, mode)}
-                  >
-                    {intl.formatMessage({ id: `settings.toolSearch.${mode}` })}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          }
-        />
-        <SettingsRow
-          label={intl.formatMessage({
-            id: "settings.nativeSearchEnhancements",
-          })}
-          description={intl.formatMessage({
-            id: "settings.nativeSearchEnhancementsDescription",
-          })}
-          control={
-            <Switch
-              aria-label={intl.formatMessage({
-                id: "settings.nativeSearchEnhancements",
-              })}
-              checked={nativeSearchEnhancementsEnabled}
-              data-testid={TID_SETTINGS_NATIVE_SEARCH_SWITCH}
-              onCheckedChange={(checked) => {
-                void onNativeSearchEnhancementsEnabledChange(checked);
-              }}
-            />
-          }
-        />
       </SettingsGroupCard>
 
       <SettingsGroupCard>
@@ -844,103 +760,6 @@ export function GeneralSectionContent({
 
       <SettingsGroupCard>
         <SettingsRow
-          searchTarget="general.interaction"
-          label={intl.formatMessage({ id: "settings.nibiInteractionBehavior" })}
-          description={intl.formatMessage({
-            id: "settings.nibiInteractionBehaviorDescription",
-          })}
-          control={
-            <Select
-              value={nibiInteractionBehavior}
-              onValueChange={(value) => {
-                void onNibiInteractionBehaviorChange(value as NibiInteractionBehavior);
-              }}
-            >
-              <SelectTrigger size="lg" className="w-[260px] min-w-0 justify-between">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {NIBI_INTERACTION_BEHAVIOR_OPTIONS.map((behavior) => (
-                  <SelectItem key={behavior} value={behavior}>
-                    {intl.formatMessage({
-                      id: `settings.nibiInteractionBehavior.option.${behavior}`,
-                    })}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          }
-        />
-        <SettingsRow
-          label={intl.formatMessage({
-            id: "settings.askUserQuestionAutoResolution",
-          })}
-          description={intl.formatMessage({
-            id: "settings.askUserQuestionAutoResolutionDescription",
-          })}
-          control={
-            <Switch
-              aria-label={intl.formatMessage({
-                id: "settings.askUserQuestionAutoResolution",
-              })}
-              checked={askUserQuestionAutoResolutionEnabled}
-              data-testid={TID_SETTINGS_ASK_USER_QUESTION_AUTO_RESOLUTION_SWITCH}
-              onCheckedChange={(checked) => {
-                void onAskUserQuestionAutoResolutionEnabledChange(checked);
-              }}
-            />
-          }
-        />
-        {/* docs/dynamic-workflow/launch.md「The user's choice」：服务端未提供时整行不渲染。 */}
-        {hasServices ? <DynamicWorkflowModeSetting /> : null}
-        <SettingsRow
-          label={intl.formatMessage({ id: "settings.modelIoFullRetention" })}
-          description={intl.formatMessage({
-            id: "settings.modelIoFullRetentionDescription",
-          })}
-          control={
-            <Switch
-              aria-label={intl.formatMessage({ id: "settings.modelIoFullRetention" })}
-              checked={modelIoFullRetentionEnabled}
-              onCheckedChange={(checked) => {
-                void onModelIoFullRetentionEnabledChange(checked);
-              }}
-            />
-          }
-        />
-        <SettingsRow
-          searchTarget="general.reasoning"
-          label={intl.formatMessage({ id: "settings.messageStreamShowReasoning" })}
-          description={intl.formatMessage({
-            id: "settings.messageStreamShowReasoningDescription",
-          })}
-          control={
-            <Switch
-              aria-label={intl.formatMessage({ id: "settings.messageStreamShowReasoning" })}
-              checked={messageStreamShowReasoning}
-              onCheckedChange={(checked) => {
-                void onMessageStreamShowReasoningChange(checked);
-              }}
-            />
-          }
-        />
-        <SettingsRow
-          searchTarget="general.todos"
-          label={intl.formatMessage({ id: "settings.messageStreamShowTodos" })}
-          description={intl.formatMessage({
-            id: "settings.messageStreamShowTodosDescription",
-          })}
-          control={
-            <Switch
-              aria-label={intl.formatMessage({ id: "settings.messageStreamShowTodos" })}
-              checked={messageStreamShowTodos}
-              onCheckedChange={(checked) => {
-                void onMessageStreamShowTodosChange(checked);
-              }}
-            />
-          }
-        />
-        <SettingsRow
           searchTarget="general.fileTreeHtmlClick"
           label={intl.formatMessage({ id: "settings.fileTreeHtmlClickOpensBrowser" })}
           description={intl.formatMessage({
@@ -1032,6 +851,214 @@ export function GeneralSectionContent({
             <Button type="button" size="lg" variant="outline" onClick={onOpenOnboardingDialog}>
               {intl.formatMessage({ id: "settings.onboardingOpen" })}
             </Button>
+          }
+        />
+      </SettingsGroupCard>
+    </div>
+  );
+}
+
+/**
+ * 行为与工具：只收影响 Agent 单轮行为的开关。
+ * 上游 3.18.2 把工具搜索、增强 Find/Grep、交互行为、提问自动继续、动态工作流、
+ * 模型 I/O 保留策略和流式展示放在同一页；「插件自动推荐」在 NIBI 没有对应设置，
+ * 因此不渲染假开关。
+ */
+export function AgentBehaviorSectionContent({
+  toolSearchMode = "off",
+  onToolSearchModeChange,
+  nativeSearchEnhancementsEnabled,
+  nibiInteractionBehavior,
+  askUserQuestionAutoResolutionEnabled = true,
+  modelIoFullRetentionEnabled = false,
+  messageStreamShowReasoning,
+  messageStreamShowTodos,
+  onNativeSearchEnhancementsEnabledChange,
+  onNibiInteractionBehaviorChange,
+  onAskUserQuestionAutoResolutionEnabledChange = async () => {},
+  onModelIoFullRetentionEnabledChange = async () => {},
+  onMessageStreamShowReasoningChange,
+  onMessageStreamShowTodosChange,
+}: {
+  toolSearchMode?: AppToolSearchMode;
+  onToolSearchModeChange: (mode: AppToolSearchMode) => Promise<void>;
+  nativeSearchEnhancementsEnabled: boolean;
+  nibiInteractionBehavior: NibiInteractionBehavior;
+  askUserQuestionAutoResolutionEnabled?: boolean;
+  modelIoFullRetentionEnabled?: boolean;
+  messageStreamShowReasoning: boolean;
+  messageStreamShowTodos: boolean;
+  onNativeSearchEnhancementsEnabledChange: (enabled: boolean) => Promise<void>;
+  onNibiInteractionBehaviorChange: (behavior: NibiInteractionBehavior) => Promise<void>;
+  onAskUserQuestionAutoResolutionEnabledChange?: (enabled: boolean) => Promise<void>;
+  onModelIoFullRetentionEnabledChange?: (enabled: boolean) => Promise<void>;
+  onMessageStreamShowReasoningChange: (enabled: boolean) => Promise<void>;
+  onMessageStreamShowTodosChange: (enabled: boolean) => Promise<void>;
+}) {
+  const { intl } = useNibiIntl();
+  const hasServices = Boolean(useOptionalServices());
+
+  return (
+    <div className="space-y-4">
+      <SettingsGroupCard>
+        <SettingsRow
+          searchTarget="agentBehavior.toolSearch"
+          label={intl.formatMessage({ id: "settings.toolSearch" })}
+          description={intl.formatMessage({ id: "settings.toolSearchDescription" })}
+          detail={
+            <p className="text-ui-sm leading-5 text-foreground-subtle">
+              {intl.formatMessage({ id: "settings.toolSearchExperimentalNotice" })}
+            </p>
+          }
+          control={
+            <Select
+              value={toolSearchMode}
+              onValueChange={(value) => {
+                void onToolSearchModeChange(appToolSearchModeSchema.parse(value));
+              }}
+            >
+              <SelectTrigger
+                size="lg"
+                className="w-[260px] min-w-0 justify-between"
+                data-testid={TID_SETTINGS_TOOL_SEARCH_SELECT}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {appToolSearchModeSchema.options.map((mode) => (
+                  <SelectItem
+                    key={mode}
+                    value={mode}
+                    data-testid={testId(TID_SETTINGS_TOOL_SEARCH_OPTION, mode)}
+                  >
+                    {intl.formatMessage({ id: `settings.toolSearch.${mode}` })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          }
+        />
+        <SettingsRow
+          searchTarget="agentBehavior.nativeSearchEnhancements"
+          label={intl.formatMessage({
+            id: "settings.nativeSearchEnhancements",
+          })}
+          description={intl.formatMessage({
+            id: "settings.nativeSearchEnhancementsDescription",
+          })}
+          control={
+            <Switch
+              aria-label={intl.formatMessage({
+                id: "settings.nativeSearchEnhancements",
+              })}
+              checked={nativeSearchEnhancementsEnabled}
+              data-testid={TID_SETTINGS_NATIVE_SEARCH_SWITCH}
+              onCheckedChange={(checked) => {
+                void onNativeSearchEnhancementsEnabledChange(checked);
+              }}
+            />
+          }
+        />
+      </SettingsGroupCard>
+
+      <SettingsGroupCard>
+        <SettingsRow
+          searchTarget="agentBehavior.interaction"
+          label={intl.formatMessage({ id: "settings.nibiInteractionBehavior" })}
+          description={intl.formatMessage({
+            id: "settings.nibiInteractionBehaviorDescription",
+          })}
+          control={
+            <Select
+              value={nibiInteractionBehavior}
+              onValueChange={(value) => {
+                void onNibiInteractionBehaviorChange(value as NibiInteractionBehavior);
+              }}
+            >
+              <SelectTrigger size="lg" className="w-[260px] min-w-0 justify-between">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {NIBI_INTERACTION_BEHAVIOR_OPTIONS.map((behavior) => (
+                  <SelectItem key={behavior} value={behavior}>
+                    {intl.formatMessage({
+                      id: `settings.nibiInteractionBehavior.option.${behavior}`,
+                    })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          }
+        />
+        <SettingsRow
+          searchTarget="agentBehavior.askUserQuestionAutoResolution"
+          label={intl.formatMessage({
+            id: "settings.askUserQuestionAutoResolution",
+          })}
+          description={intl.formatMessage({
+            id: "settings.askUserQuestionAutoResolutionDescription",
+          })}
+          control={
+            <Switch
+              aria-label={intl.formatMessage({
+                id: "settings.askUserQuestionAutoResolution",
+              })}
+              checked={askUserQuestionAutoResolutionEnabled}
+              data-testid={TID_SETTINGS_ASK_USER_QUESTION_AUTO_RESOLUTION_SWITCH}
+              onCheckedChange={(checked) => {
+                void onAskUserQuestionAutoResolutionEnabledChange(checked);
+              }}
+            />
+          }
+        />
+        {/* docs/dynamic-workflow/launch.md「The user's choice」：服务端未提供时整行不渲染。 */}
+        {hasServices ? <DynamicWorkflowModeSetting /> : null}
+        <SettingsRow
+          searchTarget="agentBehavior.modelIoFullRetention"
+          label={intl.formatMessage({ id: "settings.modelIoFullRetention" })}
+          description={intl.formatMessage({
+            id: "settings.modelIoFullRetentionDescription",
+          })}
+          control={
+            <Switch
+              aria-label={intl.formatMessage({ id: "settings.modelIoFullRetention" })}
+              checked={modelIoFullRetentionEnabled}
+              onCheckedChange={(checked) => {
+                void onModelIoFullRetentionEnabledChange(checked);
+              }}
+            />
+          }
+        />
+        <SettingsRow
+          searchTarget="agentBehavior.reasoning"
+          label={intl.formatMessage({ id: "settings.messageStreamShowReasoning" })}
+          description={intl.formatMessage({
+            id: "settings.messageStreamShowReasoningDescription",
+          })}
+          control={
+            <Switch
+              aria-label={intl.formatMessage({ id: "settings.messageStreamShowReasoning" })}
+              checked={messageStreamShowReasoning}
+              onCheckedChange={(checked) => {
+                void onMessageStreamShowReasoningChange(checked);
+              }}
+            />
+          }
+        />
+        <SettingsRow
+          searchTarget="agentBehavior.todos"
+          label={intl.formatMessage({ id: "settings.messageStreamShowTodos" })}
+          description={intl.formatMessage({
+            id: "settings.messageStreamShowTodosDescription",
+          })}
+          control={
+            <Switch
+              aria-label={intl.formatMessage({ id: "settings.messageStreamShowTodos" })}
+              checked={messageStreamShowTodos}
+              onCheckedChange={(checked) => {
+                void onMessageStreamShowTodosChange(checked);
+              }}
+            />
           }
         />
       </SettingsGroupCard>

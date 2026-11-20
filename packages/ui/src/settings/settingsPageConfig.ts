@@ -4,6 +4,7 @@ import {
   Moon,
   Settings,
   Settings2,
+  SlidersHorizontal,
   Package,
   Bot,
   Palette,
@@ -126,28 +127,10 @@ const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
         targetId: "general.onboarding",
       },
       {
-        id: "reasoning",
-        titleId: "settings.messageStreamShowReasoning",
-        keywords: ["思考过程", "reasoning"],
-        targetId: "general.reasoning",
-      },
-      {
-        id: "todos",
-        titleId: "settings.messageStreamShowTodos",
-        keywords: ["待办", "todo"],
-        targetId: "general.todos",
-      },
-      {
         id: "fileTreeHtmlClick",
         titleId: "settings.fileTreeHtmlClickOpensBrowser",
         keywords: ["文件树", "html", "浏览器", "预览", "file tree", "browser", "preview"],
         targetId: "general.fileTreeHtmlClick",
-      },
-      {
-        id: "interaction",
-        titleId: "settings.nibiInteractionBehavior",
-        keywords: ["交互", "队列", "interaction", "queue"],
-        targetId: "general.interaction",
       },
     ],
   },
@@ -201,6 +184,59 @@ const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
     contentTitleId: "settings.personalization.title",
     groupId: "agentCapabilities",
     searchKeywords: ["个性化", "提示词", "instructions", "agents md", "personalization"],
+  },
+  // 行为与工具紧跟个性化：这里放的是影响 Agent 单轮行为的开关（工具搜索、交互、
+  // 流式展示），与后面的记忆 / 子代理等能力配置区分开（上游 3.18.2 同序）。
+  {
+    id: "agentBehavior",
+    icon: SlidersHorizontal,
+    titleId: "settings.agentBehavior.title",
+    groupId: "agentCapabilities",
+    searchKeywords: ["行为", "工具", "交互", "behavior", "tools", "interaction"],
+    searchItems: [
+      {
+        id: "toolSearch",
+        titleId: "settings.toolSearch",
+        keywords: ["工具搜索", "工具", "tool search", "toolsearch", "tools"],
+        targetId: "agentBehavior.toolSearch",
+      },
+      {
+        id: "nativeSearchEnhancements",
+        titleId: "settings.nativeSearchEnhancements",
+        keywords: ["搜索增强", "增强搜索", "find", "grep", "native search", "search enhancement"],
+        targetId: "agentBehavior.nativeSearchEnhancements",
+      },
+      {
+        id: "interaction",
+        titleId: "settings.nibiInteractionBehavior",
+        keywords: ["交互", "队列", "interaction", "queue"],
+        targetId: "agentBehavior.interaction",
+      },
+      {
+        id: "askUserQuestionAutoResolution",
+        titleId: "settings.askUserQuestionAutoResolution",
+        keywords: ["提问", "自动继续", "ask user question", "auto resolution", "auto continue"],
+        targetId: "agentBehavior.askUserQuestionAutoResolution",
+      },
+      {
+        id: "modelIoFullRetention",
+        titleId: "settings.modelIoFullRetention",
+        keywords: ["模型 io", "模型输入输出", "保留", "model io", "retention"],
+        targetId: "agentBehavior.modelIoFullRetention",
+      },
+      {
+        id: "reasoning",
+        titleId: "settings.messageStreamShowReasoning",
+        keywords: ["思考过程", "reasoning"],
+        targetId: "agentBehavior.reasoning",
+      },
+      {
+        id: "todos",
+        titleId: "settings.messageStreamShowTodos",
+        keywords: ["待办", "todo"],
+        targetId: "agentBehavior.todos",
+      },
+    ],
   },
   {
     id: "memory",

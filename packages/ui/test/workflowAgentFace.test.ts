@@ -34,6 +34,55 @@ describe("WorkflowAgentFace", () => {
     expect(agentColor(undefined, "Ada")).toBe(avatarColor("Ada"));
   });
 
+  it("空闲头像固定 pill 表情，只眨眼和巡视，不切换任务表情", () => {
+    clock();
+    const v = render(
+      createElement(WorkflowAgentFace, {
+        avatarIndex: undefined,
+        name: "Explore",
+        status: undefined,
+        idle: true,
+      }),
+    );
+    const node = face(v);
+    expect(node.dataset.expression).toBe("pill");
+    const expressions = new Set<string>();
+    const motions = new Set<string>();
+    for (let i = 0; i < 900; i++) {
+      advance(100);
+      expressions.add(node.dataset.expression!);
+      motions.add(node.dataset.motion!);
+    }
+    expect([...expressions]).toEqual(["pill"]);
+    expect(motions.has("blink")).toBe(true);
+    expect(motions.has("glance")).toBe(true);
+  });
+
+  it("color 覆盖身份色，无 color 时按名称散列", () => {
+    const overridden = render(
+      createElement(WorkflowAgentFace, {
+        avatarIndex: 0,
+        name: "Ada",
+        status: undefined,
+        idle: true,
+        color: "#123456",
+      }),
+    );
+    expect(face(overridden).style.getPropertyValue("--wf-face-body")).toBe("#123456");
+    overridden.unmount();
+
+    const hashed = render(
+      createElement(WorkflowAgentFace, {
+        avatarIndex: undefined,
+        name: "general-purpose",
+        status: undefined,
+        idle: true,
+      }),
+    );
+    expect(face(hashed).style.getPropertyValue("--wf-face-body")).toBe("#3C82F6");
+    hashed.unmount();
+  });
+
   it("基础表情遵循执行状态", () => {
     for (const [status, expression] of [
       ["pending", "dots"],

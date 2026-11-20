@@ -4488,6 +4488,7 @@ const koKR: Record<string, string> = {
   "settings.appearance.interfaceDescription": "앱 테마와 인터페이스 텍스트 크기를 선택합니다.",
   "settings.appearance.interfaceTitle": "인터페이스 설정",
   "settings.appearanceTitle": "모양",
+  "settings.agentBehavior.title": "동작 및 도구",
   "settings.askUserQuestionAutoResolution": "질문 자동 계속",
   "settings.askUserQuestionAutoResolutionDescription":
     "켜면 에이전트의 질문에 5분 동안 답하지 않을 경우 자동으로 계속합니다. 끄면 현재 및 이후 질문이 응답을 기다립니다.",

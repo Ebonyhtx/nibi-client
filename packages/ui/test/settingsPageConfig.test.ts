@@ -45,6 +45,7 @@ describe("settingsPageConfig", () => {
         id: "agentCapabilities",
         sections: [
           "personalization",
+          "agentBehavior",
           "memory",
           "subagents",
           "plugin",
@@ -61,6 +62,7 @@ describe("settingsPageConfig", () => {
       "appearance",
       "modelProvider",
       "personalization",
+      "agentBehavior",
       "memory",
       "subagents",
       "plugin",

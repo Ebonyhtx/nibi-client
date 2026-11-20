@@ -170,39 +170,26 @@ async function renderGeneralSection(
       dataBaseDir: "/Users/test",
       terminalInheritSystemProfile: true,
       terminalFontFamily: "",
-      nativeSearchEnhancementsEnabled: true,
       defaultHomeDir: "/Users/test",
       setTheme: vi.fn(),
       setLocalePreference: vi.fn(),
       setNotificationEnabled: vi.fn(),
       setNotificationSoundEnabled: vi.fn(),
-      messageStreamShowReasoning: true,
-      messageStreamShowTodos: false,
       toolGroupingExploreEnabled: true,
       toolGroupingTerminalEnabled: true,
       toolGroupingChangesEnabled: false,
-      nibiInteractionBehavior: "queue",
-      askUserQuestionAutoResolutionEnabled: true,
-      modelIoFullRetentionEnabled: false,
       onDataBaseDirChange: vi.fn(async () => {}),
       onSelectDataBaseDir: vi.fn(async () => "/Users/test/data"),
       onTerminalInheritSystemProfileChange: vi.fn(async () => {}),
       onTerminalFontFamilyChange: vi.fn(async () => {}),
-      onNativeSearchEnhancementsEnabledChange: vi.fn(async () => {}),
-      onToolSearchModeChange: vi.fn(async () => {}),
       onDesktopChromiumHardwareAccelerationChange: vi.fn(async () => {}),
       onCloseToTrayOnWindowsChange: vi.fn(async () => {}),
       onKeepAwakeWhileRunningChange: vi.fn(async () => {}),
       onReceivePreviewUpdatesChange: vi.fn(async () => {}),
       onAutoDownloadAndInstallUpdatesChange: vi.fn(async () => {}),
-      onMessageStreamShowReasoningChange: vi.fn(async () => {}),
-      onMessageStreamShowTodosChange: vi.fn(async () => {}),
       onToolGroupingExploreEnabledChange: vi.fn(async () => {}),
       onToolGroupingTerminalEnabledChange: vi.fn(async () => {}),
       onToolGroupingChangesEnabledChange: vi.fn(async () => {}),
-      onNibiInteractionBehaviorChange: vi.fn(async () => {}),
-      onAskUserQuestionAutoResolutionEnabledChange: vi.fn(async () => {}),
-      onModelIoFullRetentionEnabledChange: vi.fn(async () => {}),
       onOptimizeAgentExperienceEnabledChange: vi.fn(async () => {}),
       onOpenOnboardingDialog: vi.fn(),
       ...overrides,
@@ -225,20 +212,6 @@ describe("GeneralSectionContent data directory control", () => {
     await renderGeneralSection();
 
     expect(capturedInputs.some((input) => input.readOnly === true)).toBe(true);
-  });
-
-  it("ModelIO 读取关闭值并通过标准设置开关提交", async () => {
-    const onModelIoFullRetentionEnabledChange = vi.fn(async () => {});
-
-    await renderGeneralSection({ onModelIoFullRetentionEnabledChange });
-
-    const modelIoSwitch = capturedSwitches.find(
-      (entry) => entry["aria-label"] === "完整保留模型 I/O",
-    );
-    expect(modelIoSwitch?.checked).toBe(false);
-    expect(modelIoSwitch?.onCheckedChange).toBeTypeOf("function");
-    (modelIoSwitch?.onCheckedChange as ((checked: boolean) => void) | undefined)?.(true);
-    expect(onModelIoFullRetentionEnabledChange).toHaveBeenCalledWith(true);
   });
 
   it("点击选择文件夹会调用系统目录选择回调", async () => {
@@ -269,24 +242,6 @@ describe("GeneralSectionContent data directory control", () => {
     expect(markup).toContain("Git Bash");
   });
 
-  it("增强搜索读取持久值并写回用户切换", async () => {
-    const onNativeSearchEnhancementsEnabledChange = vi.fn(async () => {});
-
-    await renderGeneralSection({
-      nativeSearchEnhancementsEnabled: false,
-      onNativeSearchEnhancementsEnabledChange,
-    });
-
-    const nativeSearchSwitch = capturedSwitches.find(
-      (item) => item["aria-label"] === "增强 Find 和 Grep",
-    );
-    expect(nativeSearchSwitch?.checked).toBe(false);
-
-    (nativeSearchSwitch?.onCheckedChange as ((checked: boolean) => void) | undefined)?.(true);
-
-    expect(onNativeSearchEnhancementsEnabledChange).toHaveBeenCalledWith(true);
-  });
-
   it("桌面端展示 Chrome 硬件加速开关，并把用户选择写回设置", async () => {
     const onDesktopChromiumHardwareAccelerationChange = vi.fn(async () => {});
 
@@ -305,28 +260,6 @@ describe("GeneralSectionContent data directory control", () => {
     );
 
     expect(onDesktopChromiumHardwareAccelerationChange).toHaveBeenCalledWith(false);
-  });
-
-  it("reasoning 与 Todo 读取持久值并写回用户选择", async () => {
-    const onMessageStreamShowReasoningChange = vi.fn(async () => {});
-    const onMessageStreamShowTodosChange = vi.fn(async () => {});
-
-    await renderGeneralSection({
-      onMessageStreamShowReasoningChange,
-      onMessageStreamShowTodosChange,
-    });
-
-    const reasoningSwitch = capturedSwitches.find((item) => item["aria-label"] === "显示思考过程");
-    const todosSwitch = capturedSwitches.find((item) => item["aria-label"] === "显示流式待办");
-
-    expect(reasoningSwitch?.checked).toBe(true);
-    expect(todosSwitch?.checked).toBe(false);
-
-    (reasoningSwitch?.onCheckedChange as ((checked: boolean) => void) | undefined)?.(false);
-    (todosSwitch?.onCheckedChange as ((checked: boolean) => void) | undefined)?.(true);
-
-    expect(onMessageStreamShowReasoningChange).toHaveBeenCalledWith(false);
-    expect(onMessageStreamShowTodosChange).toHaveBeenCalledWith(true);
   });
 
   it("工具分组开关读取持久值，并把用户操作写回设置回调", async () => {
@@ -355,22 +288,5 @@ describe("GeneralSectionContent data directory control", () => {
     expect(onToolGroupingExploreEnabledChange).toHaveBeenCalledWith(false);
     expect(onToolGroupingTerminalEnabledChange).toHaveBeenCalledWith(false);
     expect(onToolGroupingChangesEnabledChange).toHaveBeenCalledWith(true);
-  });
-
-  it("提问自动继续开关读取持久值并写回选择", async () => {
-    const onAskUserQuestionAutoResolutionEnabledChange = vi.fn(async () => {});
-
-    await renderGeneralSection({
-      askUserQuestionAutoResolutionEnabled: false,
-      onAskUserQuestionAutoResolutionEnabledChange,
-    });
-    const autoResolutionSwitch = capturedSwitches.find(
-      (item) => item["aria-label"] === "提问自动继续",
-    );
-
-    expect(autoResolutionSwitch?.checked).toBe(false);
-
-    (autoResolutionSwitch?.onCheckedChange as ((checked: boolean) => void) | undefined)?.(true);
-    expect(onAskUserQuestionAutoResolutionEnabledChange).toHaveBeenCalledWith(true);
   });
 });

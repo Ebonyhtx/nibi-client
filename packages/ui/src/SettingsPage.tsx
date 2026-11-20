@@ -112,6 +112,7 @@ import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { resolveModelProviderConnectivityWorkspacePath } from "@/lib/modelProviderConnectivityTarget.js";
 import {
   createSettingsPageConfig,
+  AgentBehaviorSectionContent,
   GeneralSectionContent,
   GeneralSectionHeader,
   TaskAutoArchiveSettings,
@@ -1630,9 +1631,6 @@ export function SettingsPage({
                               terminalFontFamily={terminalFontFamily}
                               integratedTerminalShell={integratedTerminalShell}
                               integratedTerminalShellOptions={integratedTerminalShellOptions}
-                              toolSearchMode={toolSearchMode}
-                              onToolSearchModeChange={handleToolSearchModeChange}
-                              nativeSearchEnhancementsEnabled={nativeSearchEnhancementsEnabled}
                               httpProxyMode={httpProxyMode}
                               httpProxy={httpProxy}
                               httpProxyNoProxy={httpProxyNoProxy}
@@ -1670,8 +1668,6 @@ export function SettingsPage({
                                   failureStage: "local_commit",
                                 })
                               }
-                              messageStreamShowReasoning={messageStreamShowReasoning}
-                              messageStreamShowTodos={messageStreamShowTodos}
                               fileTreeHtmlClickOpensBrowser={fileTreeHtmlClickOpensBrowser}
                               onFileTreeHtmlClickOpensBrowserChange={
                                 handleFileTreeHtmlClickOpensBrowserChange
@@ -1679,11 +1675,6 @@ export function SettingsPage({
                               toolGroupingExploreEnabled={toolGroupingExploreEnabled}
                               toolGroupingTerminalEnabled={toolGroupingTerminalEnabled}
                               toolGroupingChangesEnabled={toolGroupingChangesEnabled}
-                              nibiInteractionBehavior={nibiInteractionBehavior}
-                              askUserQuestionAutoResolutionEnabled={
-                                askUserQuestionAutoResolutionEnabled
-                              }
-                              modelIoFullRetentionEnabled={modelIoFullRetentionEnabled}
                               onDataBaseDirChange={handleDataBaseDirChange}
                               onSelectDataBaseDir={selectDirectory}
                               onTerminalInheritSystemProfileChange={
@@ -1691,12 +1682,6 @@ export function SettingsPage({
                               }
                               onTerminalFontFamilyChange={handleTerminalFontFamilyChange}
                               onIntegratedTerminalShellChange={handleIntegratedTerminalShellChange}
-                              onNativeSearchEnhancementsEnabledChange={
-                                handleNativeSearchEnhancementsEnabledChange
-                              }
-                              onModelIoFullRetentionEnabledChange={
-                                handleModelIoFullRetentionEnabledChange
-                              }
                               onHttpProxyModeChange={handleHttpProxyModeChange}
                               onHttpProxyChange={handleHttpProxyChange}
                               onHttpProxyNoProxyChange={handleHttpProxyNoProxyChange}
@@ -1710,10 +1695,6 @@ export function SettingsPage({
                               onAutoDownloadAndInstallUpdatesChange={
                                 handleAutoDownloadAndInstallUpdatesChange
                               }
-                              onMessageStreamShowReasoningChange={
-                                handleMessageStreamShowReasoningChange
-                              }
-                              onMessageStreamShowTodosChange={handleMessageStreamShowTodosChange}
                               onToolGroupingExploreEnabledChange={
                                 handleToolGroupingExploreEnabledChange
                               }
@@ -1722,10 +1703,6 @@ export function SettingsPage({
                               }
                               onToolGroupingChangesEnabledChange={
                                 handleToolGroupingChangesEnabledChange
-                              }
-                              onNibiInteractionBehaviorChange={handleNibiInteractionBehaviorChange}
-                              onAskUserQuestionAutoResolutionEnabledChange={
-                                handleAskUserQuestionAutoResolutionEnabledChange
                               }
                               onOpenOnboardingDialog={() =>
                                 runUserAction({
@@ -1739,6 +1716,33 @@ export function SettingsPage({
                                   failureStage: "dialog_open",
                                 })
                               }
+                            />
+                          ) : activeSection === "agentBehavior" ? (
+                            <AgentBehaviorSectionContent
+                              toolSearchMode={toolSearchMode}
+                              onToolSearchModeChange={handleToolSearchModeChange}
+                              nativeSearchEnhancementsEnabled={nativeSearchEnhancementsEnabled}
+                              nibiInteractionBehavior={nibiInteractionBehavior}
+                              askUserQuestionAutoResolutionEnabled={
+                                askUserQuestionAutoResolutionEnabled
+                              }
+                              modelIoFullRetentionEnabled={modelIoFullRetentionEnabled}
+                              messageStreamShowReasoning={messageStreamShowReasoning}
+                              messageStreamShowTodos={messageStreamShowTodos}
+                              onNativeSearchEnhancementsEnabledChange={
+                                handleNativeSearchEnhancementsEnabledChange
+                              }
+                              onNibiInteractionBehaviorChange={handleNibiInteractionBehaviorChange}
+                              onAskUserQuestionAutoResolutionEnabledChange={
+                                handleAskUserQuestionAutoResolutionEnabledChange
+                              }
+                              onModelIoFullRetentionEnabledChange={
+                                handleModelIoFullRetentionEnabledChange
+                              }
+                              onMessageStreamShowReasoningChange={
+                                handleMessageStreamShowReasoningChange
+                              }
+                              onMessageStreamShowTodosChange={handleMessageStreamShowTodosChange}
                             />
                           ) : activeSection === "remoteDevices" ? (
                             sharedSettings && isDesktop && sourceManagement ? (

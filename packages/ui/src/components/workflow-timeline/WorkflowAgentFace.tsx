@@ -94,18 +94,22 @@ export function WorkflowAgentFace({
   className,
   name,
   status,
+  idle = false,
+  color,
 }: {
   avatarIndex: number | undefined;
   className?: string;
   name: string;
   status: StepRunStatus | undefined;
+  idle?: boolean;
+  color?: string;
 }) {
   const ref = useRef<SVGSVGElement>(null);
-  const state = faceState(status);
+  const state = idle ? "idle" : faceState(status);
   useEffect(() => {
     if (ref.current) return startFaceMotion(ref.current, state);
   }, [state]);
-  const style = { "--wf-face-body": agentColor(avatarIndex, name) } as CSSProperties;
+  const style = { "--wf-face-body": color ?? agentColor(avatarIndex, name) } as CSSProperties;
   return (
     <svg
       aria-hidden

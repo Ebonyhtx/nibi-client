@@ -43,6 +43,36 @@ describe("settingsSearchIndex", () => {
     expect(projects?.keywords).toContain("项目");
   });
 
+  it("行为与工具的分区项与深链项位于 Agent 能力组，旧常规项不再重复", () => {
+    const section = macIndex.find((entry) => entry.id === "agentBehavior:__section");
+    expect(section).toMatchObject({
+      sectionId: "agentBehavior",
+      title: "行为与工具",
+      targetId: "section:agentBehavior",
+      isSectionEntry: true,
+    });
+
+    for (const [id, targetId] of [
+      ["toolSearch", "agentBehavior.toolSearch"],
+      ["nativeSearchEnhancements", "agentBehavior.nativeSearchEnhancements"],
+      ["interaction", "agentBehavior.interaction"],
+      ["askUserQuestionAutoResolution", "agentBehavior.askUserQuestionAutoResolution"],
+      ["modelIoFullRetention", "agentBehavior.modelIoFullRetention"],
+      ["reasoning", "agentBehavior.reasoning"],
+      ["todos", "agentBehavior.todos"],
+    ] as const) {
+      expect(macIndex.find((entry) => entry.id === `agentBehavior:${id}`)).toMatchObject({
+        sectionId: "agentBehavior",
+        targetId,
+        isSectionEntry: false,
+      });
+    }
+
+    expect(macIndex.some((entry) => entry.id === "general:reasoning")).toBe(false);
+    expect(macIndex.some((entry) => entry.id === "general:todos")).toBe(false);
+    expect(macIndex.some((entry) => entry.id === "general:interaction")).toBe(false);
+  });
+
   it("非 macOS 桌面不收录字体平滑项", () => {
     const windowsIndex = createSettingsSearchIndex({
       settingsSections: createSettingsPageConfig({ isWindowsDesktop: true }).settingsSections,
@@ -78,6 +108,16 @@ describe("settingsSearchIndex", () => {
     expect(findByKeyword("项目管理").some((entry) => entry.id === "projects:__section")).toBe(true);
     expect(findByKeyword("移除项目").some((entry) => entry.id === "projects:remove")).toBe(true);
     expect(macIndex.find((entry) => entry.id === "projects:remove")?.targetId).toBe("projects.list");
+  });
+
+  it("思考过程/待办/交互搜索词跟随控件迁到行为与工具页", () => {
+    expect(findByKeyword("思考过程")[0]).toMatchObject({
+      id: "agentBehavior:reasoning",
+      targetId: "agentBehavior.reasoning",
+    });
+    expect(findByKeyword("待办")[0]).toMatchObject({ id: "agentBehavior:todos" });
+    expect(findByKeyword("交互")[0]).toMatchObject({ id: "agentBehavior:interaction" });
+    expect(findByKeyword("工具搜索")[0]).toMatchObject({ id: "agentBehavior:toolSearch" });
   });
 
   it("多词查询要求每个词都命中；空查询不返回全量清单", () => {

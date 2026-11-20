@@ -10,6 +10,9 @@ const pendingEffects = vi.hoisted(() => [] as Array<() => void | (() => void)>);
 const generalSectionCapture = vi.hoisted(
   () => ({ props: undefined }) as { props: Record<string, unknown> | undefined },
 );
+const agentBehaviorSectionCapture = vi.hoisted(
+  () => ({ props: undefined }) as { props: Record<string, unknown> | undefined },
+);
 const settingsPageConfigCalls = vi.hoisted(
   () =>
     [] as Array<{
@@ -299,6 +302,10 @@ vi.mock("../src/settingsPageHelpers.js", () => ({
     generalSectionCapture.props = props;
     return createElement("div", null, "general");
   },
+  AgentBehaviorSectionContent: (props: Record<string, unknown>) => {
+    agentBehaviorSectionCapture.props = props;
+    return createElement("div", null, "agent-behavior");
+  },
   GeneralSectionHeader: () => null,
   TaskAutoArchiveSettings: (props: Record<string, unknown>) => {
     generalSectionCapture.props = props;
@@ -326,6 +333,7 @@ describe("SettingsPage integrated terminal shell", () => {
     localServices.settingService.get.mockReset().mockResolvedValue({});
     remoteServices.settingService.get.mockReset().mockResolvedValue({});
     generalSectionCapture.props = undefined;
+    agentBehaviorSectionCapture.props = undefined;
     settingsPageConfigCalls.length = 0;
     sharedSettingsState.value = undefined;
     sourceServerManagementState.value = undefined;
@@ -373,10 +381,11 @@ describe("SettingsPage integrated terminal shell", () => {
   }, 90_000);
 
   it("defaults ToolSearch off and saves the selected mode through shared settings", async () => {
+    selectedSection.value = "agentBehavior";
     const { SettingsPage } = await import("../src/SettingsPage.js");
     renderToStaticMarkup(createElement(SettingsPage, {}));
-    expect(generalSectionCapture.props?.toolSearchMode).toBe("off");
-    const change = generalSectionCapture.props?.onToolSearchModeChange as (
+    expect(agentBehaviorSectionCapture.props?.toolSearchMode).toBe("off");
+    const change = agentBehaviorSectionCapture.props?.onToolSearchModeChange as (
       mode: "auto" | "local" | "off",
     ) => Promise<void>;
     for (const mode of ["auto", "local", "off"] as const) {
@@ -386,11 +395,12 @@ describe("SettingsPage integrated terminal shell", () => {
   });
 
   it("defaults message stream reasoning to visible before settings hydrate", async () => {
+    selectedSection.value = "agentBehavior";
     const { SettingsPage } = await import("../src/SettingsPage.js");
 
     renderToStaticMarkup(createElement(SettingsPage, {}));
 
-    expect(generalSectionCapture.props?.messageStreamShowReasoning).toBe(true);
+    expect(agentBehaviorSectionCapture.props?.messageStreamShowReasoning).toBe(true);
   });
 
   it("uses the local host system service for the global shell setting", async () => {

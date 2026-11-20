@@ -4583,6 +4583,7 @@ const jaJP: Record<string, string> = {
     "アプリのテーマとインターフェースの文字サイズを選択します。",
   "settings.appearance.interfaceTitle": "インターフェース設定",
   "settings.appearanceTitle": "外観",
+  "settings.agentBehavior.title": "動作とツール",
   "settings.askUserQuestionAutoResolution": "質問を自動で続行",
   "settings.askUserQuestionAutoResolutionDescription":
     "有効にすると、エージェントの質問に 5 分間回答がない場合に自動で続行します。無効にすると、現在および今後の質問はあなたの回答を待ちます。",

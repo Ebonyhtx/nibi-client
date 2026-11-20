@@ -30,6 +30,15 @@ describe("settingsNavigation", () => {
     expect(navigation.resolveSettingsSection("memory", "general")).toBe("memory");
   });
 
+  it("行为与工具是独立分区，旧的常规入口仍然直达常规", async () => {
+    const navigation = await loadSettingsNavigation("test");
+
+    expect(navigation.isSettingsSectionEnabled("agentBehavior")).toBe(true);
+    expect(navigation.resolveSettingsSection("agentBehavior", "general")).toBe("agentBehavior");
+    // 旧深链仍然有效：general 没有被改名或被合并。
+    expect(navigation.resolveSettingsSection("general", "agentBehavior")).toBe("general");
+  });
+
   it("通知已打开的设置页切换到新的分区意图", async () => {
     const eventTarget = new EventTarget();
     const storage = new Map<string, string>();

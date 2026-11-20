@@ -360,8 +360,8 @@ describe("SavedWorkflowsSection（全局 + 多项目页）", () => {
     expect(screen.queryByTestId(TID_WORKFLOWS_EMPTY)).toBeNull();
   });
 
-  // launch.md「The hub page」「The user's choice」：标题行带「工作流设置」和当前生效模式，点击直达设置 › 常规。
-  it("「工作流设置」显示当前生效模式，点击打开设置并定位到常规", async () => {
+  // launch.md「The hub page」「The user's choice」：标题行带「工作流设置」和当前生效模式，点击直达设置 › Agent 能力 › 行为与工具。
+  it("「工作流设置」显示当前生效模式，点击打开设置并定位到行为与工具", async () => {
     useDynamicWorkflowAvailabilityStore.setState({
       status: "ready",
       enabled: true,
@@ -376,7 +376,9 @@ describe("SavedWorkflowsSection（全局 + 多项目页）", () => {
     expect(button.textContent).toContain("工作流设置");
     expect(button.textContent).toContain("通过命令启用");
     fireEvent.click(button);
-    expect(settingsNavigation.setPendingSettingsSectionIntent).toHaveBeenCalledWith("general");
+    expect(settingsNavigation.setPendingSettingsSectionIntent).toHaveBeenCalledWith(
+      "agentBehavior",
+    );
     expect(tabStoreState.openSettingsTab).toHaveBeenCalledTimes(1);
   });
 
