@@ -181,7 +181,12 @@ function PluginList({
   // Scope 可选择非激活 workspace，若继续从当前 ServiceProvider 取服务，
   // 会把 B 的路径发往 A 的 host。插件读写必须和 Scope target 共用同一服务解析结果。
   const { pluginManagementService } = targetServiceResolution.services;
-  const usePluginManagementStore = useScopedPluginManagementStore(pluginManagementService);
+  const usePluginManagementStore = useScopedPluginManagementStore(pluginManagementService, {
+    workspacePath: target?.workspacePath ?? null,
+    workspaceIdentity: target?.workspaceIdentity ?? null,
+    authorityKey: cacheAuthorityKey ?? null,
+    configScope,
+  });
   const plugins = usePluginManagementStore((state) => state.plugins);
   const installedPlugins = usePluginManagementStore((state) => state.installedPlugins);
   const marketplaces = usePluginManagementStore((state) => state.marketplaces);

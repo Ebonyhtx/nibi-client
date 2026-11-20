@@ -70,6 +70,8 @@ export function PluginIcon({
           src={resolvedSrc}
           alt=""
           draggable={false}
+          loading="lazy"
+          decoding="async"
           className="size-full object-contain"
           onError={() =>
             setStage((current) => (current === "primary" ? "retry" : "failed"))

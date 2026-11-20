@@ -16,6 +16,12 @@ import type { OAuthProviderAdapter, OAuthProviderContext } from "./providerAdapt
 /** PKCE verifier 只活到回调这一刻；超过这个时间按失败处理，避免内存里堆废弃 state。 */
 const PKCE_TTL_MS = 10 * 60 * 1000;
 const OAUTH_USERINFO_TIMEOUT_MS = 60_000;
+/**
+ * 启动恢复会 await refresh：access token 过期时弱网不能把首屏一直卡在“恢复中”。
+ * 超时产生的 ApiError 没有 status，走 oauthService 既有的 network-error 分支——保留凭据
+ * 按已登录恢复，后台定时刷新继续重试；不能把超时误判成 refresh token 失效而清会话。
+ */
+export const OAUTH_REFRESH_TIMEOUT_MS = 4_000;
 
 interface NibiTokenResponse {
   access_token?: string;
@@ -193,6 +199,8 @@ export class NibiProviderAdapter implements OAuthProviderAdapter {
 
     const payload = await readApiJson<NibiTokenResponse>(this.apiClient, this.config.tokenUrl, {
       method: "POST",
+      // 启动恢复依赖这条链路：有界等待后失败按 network-error 保留本地会话。
+      timeoutMs: OAUTH_REFRESH_TIMEOUT_MS,
       headers: {
         Accept: "application/json",
         "Content-Type": "application/x-www-form-urlencoded",

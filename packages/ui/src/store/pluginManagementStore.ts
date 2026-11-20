@@ -15,6 +15,7 @@ import { logger } from "@/logger.js";
 import {
   beginPluginOperation,
   loadInto,
+  readPluginManagementSnapshot,
   runWorkspaceOperation,
   subscribePluginManagementChanges,
   isPluginManagementChangeRelevant,
@@ -201,14 +202,26 @@ export const createPluginManagementStore = (initialService?: IPluginManagementSe
         current.workspaceIdentity === normalizedIdentity &&
         current.authorityKey === normalizedAuthorityKey &&
         current.configScope === normalizedConfigScope;
+      // 跨 mount 快照：先同步交给 store，再决定是否需要网络。页面重新打开时
+      // 即使远端请求还没回来，列表也能立即渲染上一次的目录。
+      const snapshot = readPluginManagementSnapshot(pluginService, {
+        workspacePath,
+        workspaceIdentity: normalizedIdentity,
+        authorityKey: normalizedAuthorityKey,
+        configScope: normalizedConfigScope,
+      });
       set({
         workspacePath,
         workspaceIdentity: normalizedIdentity,
         authorityKey: normalizedAuthorityKey,
         configScope: normalizedConfigScope,
-        // 有缓存时后台刷新、保留列表, 避免切换 workspace 时闪烁; 无缓存才显示阻塞 loading。
-        loading: !hasCache,
-        marketplaceAvailabilityKnown: hasCache ? current.marketplaceAvailabilityKnown : false,
+        // 有快照/本店缓存时后台刷新、保留列表, 避免切换 workspace 时闪烁; 无缓存才显示阻塞 loading。
+        loading: !snapshot && !hasCache,
+        marketplaceAvailabilityKnown: snapshot
+          ? snapshot.data.marketplaceAvailabilityKnown
+          : hasCache
+            ? current.marketplaceAvailabilityKnown
+            : false,
         error: null,
         lastFailedPluginId: null,
         // 配置保存后的 overview 刷新可能还没结束，用户已切到另一层配置视图；
@@ -229,7 +242,26 @@ export const createPluginManagementStore = (initialService?: IPluginManagementSe
               describeCache: {},
             }
           : {}),
+        ...(snapshot ? snapshot.data : {}),
       });
+      if (snapshot) {
+        // 旧快照先渲染；TTL 内视为最新不再探测，过期则后台刷新，调用方不等待网络。
+        if (!snapshot.fresh) {
+          void loadInto(set, get, {
+            workspacePath,
+            workspaceIdentity: normalizedIdentity,
+            authorityKey: normalizedAuthorityKey,
+            configScope: normalizedConfigScope,
+            pluginService,
+            background: true,
+          }).catch((error: unknown) => {
+            logger.warn("[plugins] background snapshot refresh failed", {
+              message: toMessage(error),
+            });
+          });
+        }
+        return;
+      }
       await loadInto(set, get, {
         workspacePath,
         workspaceIdentity: normalizedIdentity,
@@ -527,10 +559,52 @@ function subscribeStore(store: ReturnType<typeof createPluginManagementStore>) {
 }
 subscribeStore(usePluginManagementStore);
 
-/** 每个市场/管理视图持有独立查询投影，写入仍由同一个 CLI 插件服务负责。 */
-export function useScopedPluginManagementStore(pluginService: IPluginManagementService) {
+/**
+ * 每个市场/管理视图持有独立查询投影，写入仍由同一个 CLI 插件服务负责。
+ * 传入 seedContext 时，建店阶段会用模块级快照同步填充首屏，避免重复 mount 等待 discovery。
+ */
+export interface PluginManagementSeedContext {
+  workspacePath?: string | null;
+  workspaceIdentity?: string | null;
+  authorityKey?: string | null;
+  configScope?: NibiPluginScope | null;
+}
+
+export function useScopedPluginManagementStore(
+  pluginService: IPluginManagementService,
+  seedContext?: PluginManagementSeedContext,
+) {
   // 服务切换后不能复用旧主机的目录和在途写入状态。
-  const store = useMemo(() => createPluginManagementStore(pluginService), [pluginService]);
+  // seedContext 只在挂载时参与建店：把上次 mount 的快照同步灌进来，首帧就能渲染旧目录；
+  // 之后 workspace/scope 变化由 initialize 负责清空与重载，不重建 store。
+  const store = useMemo(() => {
+    const nextStore = createPluginManagementStore(pluginService);
+    const workspacePath = seedContext?.workspacePath?.trim();
+    if (workspacePath) {
+      const snapshot = readPluginManagementSnapshot(pluginService, {
+        workspacePath,
+        workspaceIdentity: seedContext?.workspaceIdentity ?? null,
+        authorityKey: seedContext?.authorityKey ?? null,
+        configScope: seedContext?.configScope ?? null,
+      });
+      nextStore.setState(
+        snapshot
+          ? {
+              workspacePath,
+              workspaceIdentity: seedContext?.workspaceIdentity?.trim() || null,
+              authorityKey: seedContext?.authorityKey?.trim() || null,
+              configScope: seedContext?.configScope ?? null,
+              ...snapshot.data,
+              loading: false,
+            }
+          : // 没有快照时先保持 loading，避免首帧把空目录当成“确实没有插件”。
+            { loading: true },
+      );
+    }
+    return nextStore;
+    // seedContext 是建店时的初始值；后续变化由 initialize 收敛，避免 scope 切换时丢失在途操作。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pluginService]);
   useEffect(() => subscribeStore(store), [store]);
   return store;
 }

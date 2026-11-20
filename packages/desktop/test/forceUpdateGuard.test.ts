@@ -369,16 +369,41 @@ describe("forceUpdateGuard", () => {
     try {
       const logger = createLogger();
       const request = mockNetResponse({ hang: true });
-      const { resolveDesktopForceUpdateRequirement } =
+      const { resolveDesktopForceUpdateRequirement, FORCE_UPDATE_CONFIG_REQUEST_TIMEOUT_MS } =
         await import("../src/main/forceUpdateGuard.js");
 
       const requirementPromise = resolveDesktopForceUpdateRequirement({ logger });
-      await vi.advanceTimersByTimeAsync(10_000);
+      await vi.advanceTimersByTimeAsync(FORCE_UPDATE_CONFIG_REQUEST_TIMEOUT_MS);
       const requirement = await requirementPromise;
 
+      expect(FORCE_UPDATE_CONFIG_REQUEST_TIMEOUT_MS).toBe(2_000);
       expect(requirement).toBeNull();
       expect(request.abort).toHaveBeenCalledOnce();
       expect(logger.warn).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("注入的 client/configs fetcher 超过 2s 时跳过校验，不阻塞启动", async () => {
+    vi.useFakeTimers();
+    try {
+      const logger = createLogger();
+      const { resolveDesktopForceUpdateRequirement, FORCE_UPDATE_CONFIG_REQUEST_TIMEOUT_MS } =
+        await import("../src/main/forceUpdateGuard.js");
+
+      const requirementPromise = resolveDesktopForceUpdateRequirement({
+        logger,
+        // 启动路径上共享 fetcher 可能仍在等灰度响应；强更 gate 只等自己的 2s 窗口。
+        fetchRemoteConfig: () => new Promise(() => {}),
+      });
+      await vi.advanceTimersByTimeAsync(FORCE_UPDATE_CONFIG_REQUEST_TIMEOUT_MS);
+
+      await expect(requirementPromise).resolves.toBeNull();
+      expect(logger.warn).toHaveBeenCalledWith(
+        "[force-update] 读取远端强制升级配置失败，跳过强制升级校验",
+        expect.objectContaining({ error: expect.any(Error) }),
+      );
     } finally {
       vi.useRealTimers();
     }

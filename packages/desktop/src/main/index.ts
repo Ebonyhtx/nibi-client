@@ -6,7 +6,7 @@ import "./desktopEarlyChromiumHardwareAccelerationBootstrap.js";
 import { existsSync } from "node:fs";
 import { powerMonitor, powerSaveBlocker } from "electron";
 import { crashCapturePaths } from "./appCrashCaptureBootstrap.js";
-import { armsInitPromise } from "./appARMSBootstrap.js";
+import { armsInitPromise, waitForArmsStartupInit } from "./appARMSBootstrap.js";
 import {
   onLocalDatabaseStartupReady,
   configureDatabaseStartupQuit,
@@ -17,7 +17,9 @@ import { ensureDesktopDeviceMidSync } from "./desktopDeviceMid.js";
 import {
   createDesktopContextPromptRollout,
   createElectronDesktopContextPromptConfigFetcher,
+  DESKTOP_CONTEXT_PROMPT_REQUEST_TIMEOUT_MS,
 } from "./desktopContextPromptRollout.js";
+import { createSharedClientConfigsFetcher } from "./sharedClientConfigsFetcher.js";
 import { buildBrowserViewCloseTabNotification } from "./browserView/browserCloseTabNotification.js";
 import { BrowserGuestManager } from "./browserView/browserGuestManager.js";
 import { createElectronBrowserWebmRecorder } from "./browserView/electronBrowserWebmRecorder.js";
@@ -760,11 +762,12 @@ function resolveDesktopContextPromptEnabledForHost(): boolean {
 // 首个 Host 创建前的有界灰度裁决门。Host/Agent 的 presentation surface 在进程启动时
 // 冻结（services/node.ts 顶层 const + CLI --surface），而灰度请求是旁路、不阻塞 Host。若首个
 // Host fork 早于请求 resolve，成功结果（enabled:true）对已冻结的 Host/Agent 无可达生效路径。
-// 这里给"成功结果"一条有界的生效路径：首 Host fork 前 await 一次裁决（≤2s），失败/超时仍按当前
-// 快照继续（desktopContextPrompt fail-open）。first-only 永久
+// 这里给"成功结果"一条有界的生效路径：首 Host fork 前 await 一次裁决（≤1s），失败/超时仍按当前
+// 快照走默认分支继续（desktopContextPrompt fail-open）。first-only 永久
 // latch——后续 Host fork await 已 resolve 的 promise（近乎 0ms），且各 resolve*ForHost()
-// 同步读取已被刷新的 live 快照。
-const DESKTOP_FIRST_HOST_SPAWN_DECISION_TIMEOUT_MS = 2_000;
+// 同步读取已被刷新的 live 快照。请求本身仍有 3s 超时；慢响应在窗口创建后台继续，
+// 只会影响首 Host 是否立刻看到真值，不会阻塞窗口创建。
+const DESKTOP_FIRST_HOST_SPAWN_DECISION_TIMEOUT_MS = 1_000;
 let firstHostSpawnDecisionPromise: Promise<void> | null = null;
 function awaitFirstHostSpawnDecision(): Promise<void> {
   if (firstHostSpawnDecisionPromise) {
@@ -876,20 +879,25 @@ const readHelpConfig = createDesktopHelpConfigReader({
   getClientLanguage: () => currentApplicationLocale,
   resolveEndpointOrigin: resolveCurrentNibiEndpointOrigin,
 });
-// 同一个 /api/v1/client/configs fetcher 供两个灰度 rollout 共用（请求参数与鉴权完全一致，
-// 各自独立缓存/去重，服务端按 data.configs.<key> 区分功能）。
-const electronClientConfigsFetcher = createElectronDesktopContextPromptConfigFetcher({
-  appVersion: NIBI_VERSION || app.getVersion(),
-  deviceMid,
-  getClientLanguage: () => currentApplicationLocale,
-  resolveEndpointOrigin: resolveCurrentNibiEndpointOrigin,
+// 同一个 /api/v1/client/configs 请求供两个灰度 rollout 与启动期强更 gate 共用：
+// 请求参数与鉴权完全一致，服务端按 data.configs.<key> 区分功能。共享层只去重成功响应、
+// 不共享解析后的灰度结论；强更仍从原始 payload 读 minimal_version。
+const electronClientConfigsFetcher = createSharedClientConfigsFetcher({
+  fetchConfig: createElectronDesktopContextPromptConfigFetcher({
+    appVersion: NIBI_VERSION || app.getVersion(),
+    deviceMid,
+    getClientLanguage: () => currentApplicationLocale,
+    resolveEndpointOrigin: resolveCurrentNibiEndpointOrigin,
+  }),
+  // 与灰度 rollout 自身的请求超时保持一致；消费方超时不会取消共享请求。
+  requestTimeoutMs: DESKTOP_CONTEXT_PROMPT_REQUEST_TIMEOUT_MS,
 });
 desktopContextPromptRollout = createDesktopContextPromptRollout({
-  fetchConfig: electronClientConfigsFetcher,
+  fetchConfig: electronClientConfigsFetcher.fetchConfig,
   logger,
 });
 const rendererActionTraceRollout = createRendererActionTraceRollout({
-  fetchConfig: electronClientConfigsFetcher,
+  fetchConfig: electronClientConfigsFetcher.fetchConfig,
   logger,
 });
 const localTtftExporter = createLocalTtftExporter({
@@ -2318,13 +2326,17 @@ app.whenReady().then(async () => {
     homeDir: app.getPath("home"),
     logger,
   });
-  await installWindowsOpenFolderContextMenu({
+  // Explorer 右键菜单只是注册表持久项，不影响主窗口功能；把 reg add 移出启动等待，
+  // 避免子进程在弱机/杀软扫描时拖慢首窗。错误仍会记录，下次启动或切语言时重试。
+  void installWindowsOpenFolderContextMenu({
     platform: process.platform,
     executablePath: process.execPath,
     argv: process.argv,
     isDefaultApp: Boolean(process.defaultApp),
     locale: currentApplicationLocale,
     logger,
+  }).catch((error) => {
+    logger.warn("[open-folder] Windows Explorer 右键菜单安装失败", { error });
   });
   let autoUpdaterNetworkPolicyError: Error | null = null;
   try {
@@ -2637,11 +2649,17 @@ app.whenReady().then(async () => {
     listSSHConfigAliases,
   });
 
-  // 等待 ARMS 完成 init（含渲染进程注入监听），避免首窗 dom-ready 早于 SDK 注册导致无上报
-  await armsInitPromise;
+  // 有界等待 ARMS init（含渲染进程注入监听）：正常情况下仍在首窗前完成以避免零上报；
+  // SDK/网络异常最多等 2s，之后按无遥测注入继续启动，不能把首窗无限挡在遥测初始化上。
+  await waitForArmsStartupInit();
 
-  // ARMS init 完成后首次写入 user.name（落 device_mid）
-  void armsUserIdentitySync.refresh();
+  // 只有 init 真正成功后才首次写入 user.name（落 device_mid）；2s 内没等到也异步补写。
+  void armsInitPromise.then(
+    () => armsUserIdentitySync.refresh(),
+    () => {
+      // init 失败已由 waitForArmsStartupInit 记录；身份同步失败不能阻断启动。
+    },
+  );
 
   configureDesktopStabilityTelemetry({
     deviceMid,
@@ -2704,11 +2722,13 @@ app.whenReady().then(async () => {
           endpointOrigin: await resolveCurrentNibiEndpointOrigin(),
           // 强更提示不替用户自动重启；有运行中任务时由提示窗口显示“完成任务后再安装”。
           getRunningTaskCount: getRunningAgentSessionCount,
-          // 与两个灰度 rollout 共用同一个 fetcher：同一份 /client/configs 响应里有
+          // 与两个灰度 rollout 共用同一个 /client/configs 请求：同一份响应里有
           // 多个字段（minimal_version、desktop_context_prompt、renderer_action_trace），
           // 各自再发一次请求既浪费又让"同一时刻的配置"出现多个版本。
+          // 强更 gate 自己在 forceUpdateGuard 内只等 2s；超时只结束 gate 的等待，
+          // 不取消共享请求（后台仍可给首 Host 灰度裁决写入缓存）。
           // 见 docs/deployment/client-endpoint-and-distribution-standard.md §3.1。
-          fetchRemoteConfig: () => electronClientConfigsFetcher(AbortSignal.timeout(10_000)),
+          fetchRemoteConfig: electronClientConfigsFetcher.fetchConfig,
           onBlocked: () => {
             forceUpdateMainWindowCreationBlocked = true;
           },

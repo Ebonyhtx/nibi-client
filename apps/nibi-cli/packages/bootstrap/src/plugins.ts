@@ -56,7 +56,10 @@ import type {
 } from "@nibi/contracts";
 import { NIBI_OFFICIAL_PLUGIN_MARKETPLACE, isOfficialMarketplaceId } from "@nibi/contracts";
 import { NIBI_CUA_OFFICIAL_PLUGIN_ID, isNibiCuaInternalFeatureEnabled } from "@nibi/shared";
-import { resolveOfficialPluginRoots } from "./app/bundled-plugins.js";
+import {
+  invalidateOfficialPluginRootsMemo,
+  resolveOfficialPluginRoots,
+} from "./app/bundled-plugins.js";
 import {
   DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS,
   OFFICIAL_NODE_REPL_HOST_PLUGIN_NAME,
@@ -558,6 +561,9 @@ export async function setNibiPluginEnabled(
     plugin.id,
     options.enabled,
   );
+  // 启停本身不改变 seed 结果，但按 memo 契约（配置/抑制态变化即失效）显式清理，
+  // 避免同一进程内后续 listPlugins/overview 复用按旧配置快照缓存的结果。
+  invalidateOfficialPluginRootsMemo();
 
   return {
     enabled: patch.enabled,
@@ -592,6 +598,7 @@ export async function addNibiPluginMarketplace(
     source,
     storageRoot: pluginStorageRoot,
   });
+  invalidateOfficialPluginRootsMemo();
   return toMarketplaceSummaryData(record);
 }
 
@@ -603,6 +610,7 @@ export async function removeNibiPluginMarketplace(
     marketplace: options.marketplace,
     storageRoot: pluginStorageRoot,
   });
+  invalidateOfficialPluginRootsMemo();
 }
 
 export async function updateNibiPluginMarketplace(
@@ -680,6 +688,9 @@ export async function updateNibiPluginMarketplace(
       },
     ];
   });
+  // 刷新 marketplace 会重写 CDN 分片与合并目录；plugin roots memo 必须失效，
+  // 否则同一进程后续 overview 可能复用刷新前的 seed 结论。
+  invalidateOfficialPluginRootsMemo();
   return {
     marketplaces: updated.map((record) => toMarketplaceSummaryData(record)),
     diagnostics: [...declarationDiagnostics, ...selectedFailures],
@@ -823,6 +834,8 @@ export async function installNibiMarketplacePlugin(
       ],
     };
   }
+  // 安装可能改写官方 cache / 安装记录，后续发现结果不再能由旧 memo 代表。
+  invalidateOfficialPluginRootsMemo();
   if (options.marketplace === NIBI_OFFICIAL_PLUGIN_MARKETPLACE) {
     // 官方 marketplace 复用内置插件的 id 空间。若同名 CDN 插件重新安装，
     // 清掉历史内置 suppression，否则 Runtime 仍会把已拥有的安装误判为 suppressed。
@@ -856,6 +869,8 @@ export async function uninstallNibiMarketplacePlugin(
   const { configResult, pluginStorageRoot, workingDirectory } = resolvePluginContext(options);
   return withPluginStorageLock(pluginStorageRoot, async () => {
     const pluginId = resolvePluginIdForMutation(options);
+    // 卸载可能删除官方 cache / 写入 suppression；先失效进程内 memo，失败时最多多一次重算。
+    invalidateOfficialPluginRootsMemo();
 
     // 官方 CDN marketplace 与内置插件共享 nibi-official id 空间，且其缓存
     // 也位于 official cache 下。若先看 runtime source="official"，会把已有
@@ -1000,6 +1015,7 @@ async function restoreBuiltinPluginCore(options: RestoreBuiltinPluginOptions): P
   }
   const { configResult } = resolvePluginContext(options);
   await removeSuppressedBuiltinInFileConfig(configResult.sources.user.path, options.pluginId);
+  invalidateOfficialPluginRootsMemo();
   // 重读磁盘上的最新 config（patch 后），确保抑制集合不再包含刚恢复的 id；
   // 不能复用 patch 前可能被传入的 configResult。
   const fresh = resolvePluginContext({ ...options, configResult: undefined });

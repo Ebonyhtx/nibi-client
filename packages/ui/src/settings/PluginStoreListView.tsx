@@ -39,6 +39,11 @@ const HIDDEN_STORE_PLUGIN_IDS: ReadonlySet<string> = new Set([
 export type { PluginStoreSegment } from "@/settings/pluginStoreListing.js";
 import type { PluginStoreSegment } from "@/settings/pluginStoreListing.js";
 
+function formatStoreUpdatedAt(value: string, locale: string): string {
+  const timestamp = new Date(value);
+  return Number.isNaN(timestamp.getTime()) ? value : timestamp.toLocaleString(locale);
+}
+
 export function PluginStoreListView({
   items: allItems,
   order,
@@ -65,6 +70,16 @@ export function PluginStoreListView({
   const { intl, locale } = useNibiIntl();
   const isOfficeMode = useIsOfficeMode();
   const modeOrder = isOfficeMode ? order?.work : order?.code;
+  // 刷新失败时目录会保留上一次成功的快照；把它的更新时间显示在列表上，用户能判断看到的是旧目录。
+  const officialLastUpdated = marketplaces.find(
+    (marketplace) => marketplace.id === NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID,
+  )?.lastUpdated;
+  const lastUpdatedLabel = officialLastUpdated
+    ? intl.formatMessage(
+        { id: "settings.plugins.store.sources.lastUpdated" },
+        { time: formatStoreUpdatedAt(officialLastUpdated, locale) },
+      )
+    : null;
   const keyword = query.trim().toLowerCase();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   // 旧版会话恢复入口退出市场；统一过滤所有浏览投影，旧缓存/精选也不能重新露出。
@@ -251,6 +266,14 @@ export function PluginStoreListView({
         >
           {intl.formatMessage({ id: "settings.plugins.store.sourceNote" })}
         </p>
+        {lastUpdatedLabel ? (
+          <p
+            className="mt-1 text-ui-sm text-foreground-subtlest"
+            data-testid="plugin-store-last-updated"
+          >
+            {lastUpdatedLabel}
+          </p>
+        ) : null}
       </div>
 
       {keyword ? (

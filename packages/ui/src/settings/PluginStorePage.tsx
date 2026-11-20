@@ -99,7 +99,10 @@ export function PluginStorePage({
   const { intl, locale } = useNibiIntl();
   const { order: storeOrder, refresh: refreshStoreOrder } = usePluginStoreOrder();
   const { pluginManagementService, skillsService } = useServices();
-  const usePluginManagementStore = useScopedPluginManagementStore(pluginManagementService);
+  const usePluginManagementStore = useScopedPluginManagementStore(pluginManagementService, {
+    workspacePath,
+    workspaceIdentity,
+  });
   const pluginUi = useMarketPluginUi({
     workspacePath,
     workspaceIdentity,
@@ -168,21 +171,25 @@ export function PluginStorePage({
   const normalizedWorkspaceIdentity = workspaceIdentity?.trim() || null;
 
   useEffect(() => {
-    if (!workspacePath) {
+    if (!workspacePath || view === "manage") {
       return;
     }
     // 安装仍属于 Host User inventory；卡片启停展示当前项目的实际生效配置。
+    // 管理视图由 PluginsSection 自己的 store 负责，页面 store 不重复发起 discovery；
+    // 返回商店视图时再 initialize，模块级快照会在 TTL 内直接命中。
     void initialize({
       workspacePath,
       workspaceIdentity,
       pluginService: pluginManagementService,
     });
-  }, [initialize, pluginManagementService, workspaceIdentity, workspacePath]);
+  }, [initialize, pluginManagementService, view, workspaceIdentity, workspacePath]);
 
   // 目录自动刷新（Catalog Auto-Refresh）：只针对 Nibi 官方市场。每次进入商店页都刷新 CDN 目录，
   // 否则新上架插件要等用户手动点刷新才可见；以 10 分钟窗口节流，并在发起时占位防抖（失败/在飞不重复），
   // 判据见 officialMarketplaceAutoRefresh。状态放模块级而非组件 ref，因为每次进入都是重新挂载。
+  // 管理视图不展示市场列表，刷新推迟到切回商店时，避免和 PluginsSection 的 discovery 抢带宽。
   useEffect(() => {
+    if (view === "manage") return;
     const official = marketplaces.find((item) => item.id === NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID);
     if (
       official &&
@@ -196,7 +203,7 @@ export function PluginStorePage({
         }),
       );
     }
-  }, [marketplaces, isWebRemoteControl, pluginManagementService, updateMarketplace]);
+  }, [marketplaces, isWebRemoteControl, pluginManagementService, updateMarketplace, view]);
 
   const items = useMemo(
     () =>
@@ -434,7 +441,6 @@ export function PluginStorePage({
   const handleInstall = useCallback(
     async (item: StorePluginItem) => {
       // 会员专享：先弹开通页。宿主机在安装前仍会二次校验，客户端判断只负责体验。
-      console.log("DBG pageStore version", usePluginManagementStore.getState().operationVersion, "wp", usePluginManagementStore.getState().workspacePath);
       if (await requireMembership(item)) return;
       const succeeded = item.restorable
         ? await restoreBuiltin(item.id, operationService)
@@ -642,6 +648,12 @@ export function PluginStorePage({
   }
 
   const detailUpdatePending = canUpdatePluginItem(detailItem);
+  // 列表 loading 只表达“还没有任何目录可渲染”：首次 overview 未完成或上下文尚未装载。
+  // 市场刷新（手动/自动）不再是列表 loading 条件——刷新期间保留旧目录，失败也不清空。
+  const listLoading =
+    loading ||
+    loadedWorkspacePath !== workspacePath ||
+    loadedWorkspaceIdentity !== normalizedWorkspaceIdentity;
 
   return (
     <div
@@ -882,10 +894,7 @@ export function PluginStorePage({
           items={items}
           marketplaces={marketplaces}
           actions={actions}
-          loading={
-            loading ||
-            activeOperations.some((operation) => operation.id.startsWith("marketplace:update:"))
-          }
+          loading={listLoading}
           query={query}
           onQueryChange={setQuery}
           onSearchSubmit={() => {

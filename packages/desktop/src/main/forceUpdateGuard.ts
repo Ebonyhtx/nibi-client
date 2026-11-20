@@ -15,7 +15,11 @@ import {
 import { showForceUpdatePrompt } from "./forceUpdatePrompt.js";
 
 const NIBI_CLIENT_CONFIG_API_PATH = "/api/v1/client/configs";
-const FORCE_UPDATE_CONFIG_REQUEST_TIMEOUT_MS = 10_000;
+/**
+ * 强更 gate 在创建主窗口前执行；超时/失败按既有 fail-open 继续启动。
+ * 2s 足够覆盖正常网络往返，又不让弱网把首屏拖到 10s。
+ */
+export const FORCE_UPDATE_CONFIG_REQUEST_TIMEOUT_MS = 2_000;
 const FORCE_UPDATE_CONFIG_MAX_RESPONSE_BYTES = 1024 * 1024;
 
 export interface ForceUpdateDialogText {
@@ -79,12 +83,37 @@ function getForceUpdateMinimalVersionFromClientConfig(config: unknown): string |
   return getForceUpdateMinimalVersionFromConfig(envelope.data?.configs);
 }
 
+/**
+ * 只限制启动 gate 自己的等待，不取消底层共享请求：
+ * 注入的 fetcher 可能同时服务灰度 rollout，超时后让它在后台完成并写入短缓存，
+ * 强更 gate 则按既有 fail-open 语义继续启动。
+ */
+function withForceUpdateRequestTimeout<T>(promise: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("force update config request timeout"));
+    }, FORCE_UPDATE_CONFIG_REQUEST_TIMEOUT_MS);
+    timer.unref?.();
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 async function fetchRemoteForceUpdateConfig(
   endpointOrigin?: string,
   fetchRemoteConfig?: () => Promise<unknown>,
 ): Promise<unknown> {
   if (fetchRemoteConfig) {
-    return fetchRemoteConfig();
+    // 同步 throw 也统一转成 rejection，交给 resolveDesktopForceUpdateRequirement 的 fail-open。
+    return withForceUpdateRequestTimeout(Promise.resolve().then(fetchRemoteConfig));
   }
 
   const { net } = await import("electron");

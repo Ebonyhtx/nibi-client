@@ -117,6 +117,23 @@ it("NIBI 启动恢复：refresh 遇到网络错误 → 保留凭据按已登录�
   expect(f.credentials.get("oauth:active_provider")).toBe(NIBI_PROVIDER_ID);
 });
 
+it("NIBI 启动恢复：refresh 超时 → 与网络错误同语义，保留凭据按已登录恢复", async () => {
+  const f = fixture({
+    refreshToken: async () => {
+      // nodeApiClient 的 timeoutMs 触发 abort 后抛出 AbortError，ApiError 无 status。
+      throw new DOMException("The operation was aborted.", "AbortError");
+    },
+  });
+  await f.login();
+
+  const result = await f.service.restoreCachedSessionState();
+  expect(result.status).toBe("authenticated");
+  // 超时不能走 invalid-grant 清理路径：refresh token 仍可能有效。
+  expect(f.credentials.get("oauth:nibi:access_token")).toBe(EXPIRED_ACCESS);
+  expect(f.credentials.get("oauth:nibi:refresh_token")).toBe("refresh-1");
+  expect(f.credentials.get("oauth:active_provider")).toBe(NIBI_PROVIDER_ID);
+});
+
 it("NIBI 启动恢复：资料缺失但 token 有效 → userinfo 补回资料，不清会话", async () => {
   const f = fixture({
     refreshToken: async (tokenSet) => ({

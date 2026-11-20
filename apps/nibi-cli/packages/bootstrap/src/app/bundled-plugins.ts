@@ -34,7 +34,17 @@ const OFFICIAL_PLUGIN_MARKETPLACE = NIBI_OFFICIAL_PLUGIN_MARKETPLACE;
 const SEA_PLUGIN_ASSET_PREFIX = "nibi-official-plugins/";
 const SEA_PLUGIN_MANIFEST_ASSET_KEY = `${SEA_PLUGIN_ASSET_PREFIX}manifest.json`;
 const SEED_MARKER_FILE = ".nibi-plugin-seed.json";
+const SEED_MARKER_VERSION = 1;
+const SHA256_HEX_PATTERN = /^[\da-f]{64}$/iu;
 const SEED_LOCK_TOTAL_BUDGET_MS = 15_000;
+/**
+ * dev 下改了内置插件源但没升 definition.version 时的显式全量刷新开关。
+ * 快路径只信 marker + 缓存完整性；生产升级必须靠 version/marker 变化，不能靠 mtime。
+ */
+const SEED_FORCE_REFRESH_ENV = "NIBI_OFFICIAL_PLUGIN_SEED_FORCE_REFRESH";
+/** memo 语义变化时手动 +1，防止升级后的进程复用旧键。 */
+const SEED_MEMO_REVISION = 1;
+const SEED_MEMO_MAX_ENTRIES = 4;
 
 const includedTopLevelPaths = new Set([
   ".mcp.json",
@@ -70,9 +80,18 @@ interface OfficialPluginSeedFile {
 }
 
 interface OfficialPluginSeedPluginSource {
+  /**
+   * marker 已证明目标 cache 与本定义同版本且完整：`files` 为空，hash 直接取 marker。
+   * 命中时 seed 只需刷新 runtime manifest，不再读源文件/重算 sha256。
+   */
+  current?: boolean;
   definition: OfficialPluginDefinition;
+  /** 快路径从缓存清单取到的 description，避免为了写 marketplace 再扫一遍源文件。 */
+  description?: string;
   files: OfficialPluginSeedFile[];
   hash: string;
+  /** current 快路径已从源清单读过一次；仅用于 runtime manifest 重写。 */
+  manifestContents?: string;
   missingSeedPaths: string[];
   rootPath?: string;
 }
@@ -93,7 +112,51 @@ interface SeaOfficialPluginManifest {
   version: 1;
 }
 
+interface OfficialPluginSeedMarker {
+  hash: string;
+  marketplace: string;
+  plugin: string;
+  pluginVersion: string;
+  source: OfficialPluginSeedSource["kind"];
+  version: number;
+}
+
+interface OfficialPluginRootsMemoEntry {
+  cacheRoots: Array<{
+    definition: OfficialPluginDefinition;
+    /** 首次 seed 后的 marker hash；并发进程用不同内容重 seed 时据此判失效。 */
+    markerHash: string;
+    sourceKind: OfficialPluginSeedSource["kind"];
+    targetRoot: string;
+  }>;
+  roots: string[];
+  storageRoot: string;
+}
+
 type SeaModule = typeof import("node:sea");
+
+/**
+ * 进程内 roots memo。Host 与 CLI 各有一份，不能跨进程共享；任何进程内变更
+ * （安装/卸载/启停/marketplace 刷新）都必须显式清理，不能假设磁盘状态不变。
+ */
+const officialPluginRootsMemo = new Map<string, OfficialPluginRootsMemoEntry>();
+const OFFICIAL_PLUGIN_DEFINITIONS_BUILD_ID = createHash("sha256")
+  .update(
+    JSON.stringify(
+      OFFICIAL_PLUGIN_DEFINITIONS.map((definition) => [
+        definition.name,
+        definition.version,
+        definition.rootCandidates,
+        definition.requiredSeedPaths ?? [],
+        definition.runtimeTopLevelPaths ?? [],
+      ]),
+    ),
+  )
+  .digest("hex");
+
+export function invalidateOfficialPluginRootsMemo(): void {
+  officialPluginRootsMemo.clear();
+}
 
 function seedBundledOfficialPlugins(input: {
   logger?: Logger;
@@ -102,10 +165,10 @@ function seedBundledOfficialPlugins(input: {
    * 不传时由 writeOfficialPluginRuntimeManifest 走生产探测（测试进程下为 undefined）。
    */
   runtimeHostPrefixArgs?: readonly string[];
+  source: OfficialPluginSeedSource;
   storageRoot: string;
 }): OfficialPluginDefinition[] {
-  const source = resolveSeedSource();
-  if (!source) return [];
+  const source = input.source;
 
   // Catalog/cache 是内置插件的不可变产品资产；Runtime 是否加载由 discovery 的抑制态决定，
   // 不能在 seed 阶段删除或过滤，否则卸载后详情页无法读取组件，也无法恢复。
@@ -116,25 +179,15 @@ function seedBundledOfficialPlugins(input: {
   // 一次成功不查预算），预算耗尽后有争用的锁立即降级，seeding 总等待封顶 15s。
   const seedLockDeadlineAt = Date.now() + SEED_LOCK_TOTAL_BUDGET_MS;
   const failedSeeds: OfficialPluginDefinition[] = [];
-  for (const plugin of source.plugins) {
+  for (const pluginSource of source.plugins) {
+    let plugin = pluginSource;
     const pluginId = `${plugin.definition.name}@${OFFICIAL_PLUGIN_MARKETPLACE}`;
     const targetRoot = officialPluginCacheRoot(input.storageRoot, plugin.definition);
     // 入口旁的插件拷贝可能与新定义错配（升级中的桌面包、旧 checkout 未构建 dist）。
     // 缺 requiredSeedPaths 时 seed 源解析曾直接抛错，一个残缺插件把全部插件连同会话恢复
     // 一起炸成 resumeFailed。残缺只作用于单插件：拒绝写缓存，按既有降级协议告警并回退到可用旧缓存。
     if (plugin.missingSeedPaths.length > 0) {
-      warnCacheDegraded(input.logger, {
-        error: Object.assign(
-          new Error(
-            `Bundled official plugin ${plugin.definition.name} is missing required seed assets: ${plugin.missingSeedPaths.join(", ")}`,
-          ),
-          { code: "NIBI_PLUGIN_SEED_INCOMPLETE" },
-        ),
-        missingSeedPaths: plugin.missingSeedPaths,
-        operation: "seed_plugin",
-        pluginId,
-        targetRoot,
-      });
+      warnIncompleteSeed(input.logger, plugin, pluginId, targetRoot);
       failedSeeds.push(plugin.definition);
       continue;
     }
@@ -142,6 +195,29 @@ function seedBundledOfficialPlugins(input: {
       withOfficialPluginSeedLock(
         targetRoot,
         () => {
+          // marker 命中（且缓存完整）时源文件尚未被扫描：只需要幂等刷新 runtime manifest。
+          // 这里仍进 seed lock，保留“另一个进程正在替换 cache”时的等待/降级语义。
+          if (plugin.current) {
+            cleanupLegacySeedBackup(targetRoot, retryBudget);
+            if (plugin.manifestContents !== undefined) {
+              const manifestWritten = tryWriteOfficialPluginRuntimeManifest({
+                hostPrefixArgs: input.runtimeHostPrefixArgs,
+                sourceManifestContents: plugin.manifestContents,
+                pluginName: plugin.definition.name,
+                retryBudget,
+                rootPath: targetRoot,
+              });
+              if (manifestWritten) return;
+            }
+            // 非 transient 的清单刷新失败（或源清单不可读）：回退到完整扫描 + 重写缓存，
+            // 与旧实现“marker 命中但写 runtime manifest 失败后继续 seed”的终态一致。
+            plugin = materializeSeedPluginSource(source, plugin);
+            if (plugin.missingSeedPaths.length > 0) {
+              warnIncompleteSeed(input.logger, plugin, pluginId, targetRoot);
+              failedSeeds.push(plugin.definition);
+              return;
+            }
+          }
           const manifestFile = plugin.files.find((file) => isPluginManifestPath(file.path));
           if (!manifestFile)
             throw new Error(`Bundled plugin manifest is missing: ${plugin.definition.name}`);
@@ -262,17 +338,36 @@ export function resolveOfficialPluginRoots(input: {
   storageRoot: string;
   suppressedBuiltins?: ReadonlySet<string>;
 }): string[] {
+  const forceRefresh = isOfficialPluginSeedForceRefresh(input.env);
+  const memoKey = officialPluginRootsMemoKey(input, forceRefresh);
+  if (!forceRefresh) {
+    const memoized = officialPluginRootsMemo.get(memoKey);
+    if (memoized) {
+      // 命中前做一次低价校验：marker/缓存完整性/并发锁仍在。这样外部的缓存删除、
+      // 同版本重 seed、以及正在进行的 seed 都不会被进程内 memo 掩盖。
+      if (isOfficialPluginRootsMemoEntryValid(memoized)) return [...memoized.roots];
+      officialPluginRootsMemo.delete(memoKey);
+    }
+  }
+
   const suppressedBuiltins = new Set(input.suppressedBuiltins ?? []);
   // computer-use 内置 plugin 默认不启用，由 feature flag 控制加载。在 seed/discovery 层门控
   // （而非只隐藏某个 UI 面），这样开关关闭时用户无法经 plugin 列表/marketplace/MCP 设置/CLI 命令看到它。
   if (!isNibiCuaInternalFeatureEnabled(input.env ?? process.env)) {
     suppressedBuiltins.add(NIBI_CUA_OFFICIAL_PLUGIN_ID);
   }
-  const failedSeeds = seedBundledOfficialPlugins({
-    logger: input.logger,
-    runtimeHostPrefixArgs: input.runtimeHostPrefixArgs,
+  const source = resolveSeedSource({
+    forceRefresh,
     storageRoot: input.storageRoot,
   });
+  const failedSeeds = source
+    ? seedBundledOfficialPlugins({
+        logger: input.logger,
+        runtimeHostPrefixArgs: input.runtimeHostPrefixArgs,
+        source,
+        storageRoot: input.storageRoot,
+      })
+    : [];
 
   const fallbackRoots = failedSeeds.flatMap((definition) => {
     // CUA 的 frame contract 随 wrapper 与 producer 原子升级。加载旧版本
@@ -283,13 +378,124 @@ export function resolveOfficialPluginRoots(input: {
     const fallbackRoot = findUsableOfficialPluginFallback(input.storageRoot, definition);
     return fallbackRoot ? [fallbackRoot] : [];
   });
-  return uniquePaths([...(input.extraRoots ?? []), ...fallbackRoots]);
+  const roots = uniquePaths([...(input.extraRoots ?? []), ...fallbackRoots]);
+
+  // 只有“全部插件都按当前版本就绪”才进 memo；任何降级都要让下次调用重新走完整路径，
+  // 否则一次暂时性 EPERM 会被内存缓存固化成进程级假成功。
+  if (!forceRefresh && source && failedSeeds.length === 0) {
+    const entry = createOfficialPluginRootsMemoEntry(input.storageRoot, source, roots);
+    if (entry) rememberOfficialPluginRoots(memoKey, entry);
+  }
+  return roots;
 }
 
-function resolveSeedSource(): OfficialPluginSeedSource | undefined {
+function isOfficialPluginSeedForceRefresh(env: NodeJS.ProcessEnv | undefined): boolean {
+  const raw = (env ?? process.env)[SEED_FORCE_REFRESH_ENV]?.trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes";
+}
+
+/**
+ * memo 键：storageRoot + 抑制/启用相关集合 + 官方插件定义 build id + 影响 seed 的环境。
+ *
+ * Host 与 CLI 进程各自持有一份 memo（模块级 Map），不跨进程共享；进程内任何插件安装/
+ * 卸载/启停/marketplace 变更都必须调用 {@link invalidateOfficialPluginRootsMemo}。
+ */
+function officialPluginRootsMemoKey(
+  input: {
+    env?: NodeJS.ProcessEnv;
+    extraRoots?: string[];
+    runtimeHostPrefixArgs?: readonly string[];
+    storageRoot: string;
+    suppressedBuiltins?: ReadonlySet<string>;
+  },
+  forceRefresh: boolean,
+): string {
+  return JSON.stringify({
+    entrypoint: process.argv[1] ?? "",
+    extraRoots: input.extraRoots ?? [],
+    forceRefresh,
+    hostBinaryPath: process.env.NIBI_BUNDLED_AGENT_BINARY_PATH ?? "",
+    hostPrefixArgs: input.runtimeHostPrefixArgs ?? null,
+    officialDefinitions: OFFICIAL_PLUGIN_DEFINITIONS_BUILD_ID,
+    cuaEnabled: isNibiCuaInternalFeatureEnabled(input.env ?? process.env),
+    resourceDir: process.env.NIBI_BUNDLED_AGENT_RESOURCE_DIR ?? "",
+    revision: SEED_MEMO_REVISION,
+    storageRoot: resolve(input.storageRoot),
+    suppressedBuiltins: [...(input.suppressedBuiltins ?? [])].sort(),
+    workingDirectory: process.cwd(),
+  });
+}
+
+function createOfficialPluginRootsMemoEntry(
+  storageRoot: string,
+  source: OfficialPluginSeedSource,
+  roots: string[],
+): OfficialPluginRootsMemoEntry | undefined {
+  const cacheRoots = source.plugins.flatMap((plugin) => {
+    const targetRoot = officialPluginCacheRoot(storageRoot, plugin.definition);
+    const marker = readSeedMarker(targetRoot);
+    return marker
+      ? [
+          {
+            definition: plugin.definition,
+            markerHash: marker.hash,
+            sourceKind: source.kind,
+            targetRoot,
+          },
+        ]
+      : [];
+  });
+  if (cacheRoots.length === 0) return undefined;
+  return { cacheRoots, roots: [...roots], storageRoot };
+}
+
+function rememberOfficialPluginRoots(
+  memoKey: string,
+  entry: OfficialPluginRootsMemoEntry,
+): void {
+  officialPluginRootsMemo.delete(memoKey);
+  officialPluginRootsMemo.set(memoKey, entry);
+  while (officialPluginRootsMemo.size > SEED_MEMO_MAX_ENTRIES) {
+    const oldestKey = officialPluginRootsMemo.keys().next().value;
+    if (oldestKey === undefined) break;
+    officialPluginRootsMemo.delete(oldestKey);
+  }
+}
+
+function isOfficialPluginRootsMemoEntryValid(entry: OfficialPluginRootsMemoEntry): boolean {
+  // 目录文件被外部清掉时，overview/detail 会失去 catalog；一次 exists 检查换重新落盘。
+  const marketplaceRoot = join(
+    entry.storageRoot,
+    "marketplaces",
+    OFFICIAL_PLUGIN_MARKETPLACE,
+  );
+  if (
+    !existsSync(join(marketplaceRoot, "bundled-marketplace.json")) ||
+    !existsSync(join(marketplaceRoot, "marketplace.json"))
+  ) {
+    return false;
+  }
+  for (const cacheRoot of entry.cacheRoots) {
+    // 有锁说明另一个进程正在替换同一份缓存；本次必须走真实 seed 路径，不能复用旧结果。
+    if (existsSync(`${cacheRoot.targetRoot}.seed-lock`)) return false;
+    const current = readCurrentSeedState(
+      cacheRoot.targetRoot,
+      cacheRoot.definition,
+      cacheRoot.sourceKind,
+      false,
+    );
+    if (!current || current.hash !== cacheRoot.markerHash) return false;
+  }
+  return true;
+}
+
+function resolveSeedSource(input: {
+  forceRefresh: boolean;
+  storageRoot: string;
+}): OfficialPluginSeedSource | undefined {
   const seaSource = resolveSeaSeedSource();
   if (seaSource) return seaSource;
-  return resolveFilesystemSeedSource();
+  return resolveFilesystemSeedSource(input);
 }
 
 function resolveSeaSeedSource(): OfficialPluginSeedSource | undefined {
@@ -323,10 +529,40 @@ function resolveSeaSeedSource(): OfficialPluginSeedSource | undefined {
   };
 }
 
-function resolveFilesystemSeedSource(): OfficialPluginSeedSource | undefined {
+function resolveFilesystemSeedSource(input: {
+  forceRefresh: boolean;
+  storageRoot: string;
+}): OfficialPluginSeedSource | undefined {
   const plugins = OFFICIAL_PLUGIN_DEFINITIONS.flatMap((definition) => {
     const rootPath = resolveFilesystemPluginRoot(definition);
     if (!rootPath) return [];
+    const targetRoot = officialPluginCacheRoot(input.storageRoot, definition);
+    // 先看 marker + 缓存完整性，再决定是否扫描源。生产升级靠 definition.version 换目录，
+    // 不会产生“同目录旧 marker”；dev 未升版本时用 SEED_FORCE_REFRESH_ENV 强制全量。
+    const current = readCurrentSeedState(
+      targetRoot,
+      definition,
+      "filesystem",
+      input.forceRefresh,
+    );
+    if (current) {
+      // runtime manifest 重写需要“未重写过的源清单”，只读这一个文件，不扫 42MB 资源。
+      const manifestContents = readFilesystemPluginManifestContents(rootPath, definition);
+      if (manifestContents !== undefined) {
+        return [
+          {
+            current: true,
+            definition,
+            ...(current.description ? { description: current.description } : {}),
+            files: [],
+            hash: current.hash,
+            manifestContents,
+            missingSeedPaths: [],
+            rootPath,
+          },
+        ];
+      }
+    }
     const files = collectFilesystemPluginFiles(rootPath, definition);
     return [
       {
@@ -342,6 +578,119 @@ function resolveFilesystemSeedSource(): OfficialPluginSeedSource | undefined {
   return {
     kind: "filesystem",
     plugins,
+  };
+}
+
+function readFilesystemPluginManifestContents(
+  rootPath: string,
+  definition: OfficialPluginDefinition,
+): string | undefined {
+  try {
+    return readFileSync(join(rootPath, ...manifestRelativeSegments(definition)), "utf8");
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * marker 命中且 cache 仍完整时返回缓存态。只读 marker + 缓存 manifest + requiredSeedPaths
+ * 的存在性（十几次 sync stat），不读源文件、不算 sha256。
+ */
+function readCurrentSeedState(
+  targetRoot: string,
+  definition: OfficialPluginDefinition,
+  sourceKind: OfficialPluginSeedSource["kind"],
+  forceRefresh: boolean,
+): { description?: string; hash: string } | undefined {
+  if (forceRefresh) return undefined;
+  const marker = readSeedMarker(targetRoot);
+  if (
+    !marker ||
+    marker.version !== SEED_MARKER_VERSION ||
+    marker.marketplace !== OFFICIAL_PLUGIN_MARKETPLACE ||
+    marker.plugin !== definition.name ||
+    marker.pluginVersion !== definition.version ||
+    marker.source !== sourceKind
+  ) {
+    return undefined;
+  }
+  const manifest = readUsableSeedCacheManifest(targetRoot, definition);
+  if (!manifest) return undefined;
+  return {
+    ...(typeof manifest.description === "string" && manifest.description.trim().length > 0
+      ? { description: manifest.description }
+      : {}),
+    hash: marker.hash,
+  };
+}
+
+function readSeedMarker(targetRoot: string): OfficialPluginSeedMarker | undefined {
+  try {
+    const parsed = JSON.parse(
+      readFileSync(join(targetRoot, SEED_MARKER_FILE), "utf8"),
+    ) as unknown;
+    if (!isRecord(parsed)) return undefined;
+    if (
+      typeof parsed.hash !== "string" ||
+      // marker 被截断/篡改成非 sha256 形态时不能当作内容身份命中；宁可重扫一次。
+      !SHA256_HEX_PATTERN.test(parsed.hash) ||
+      typeof parsed.marketplace !== "string" ||
+      typeof parsed.plugin !== "string" ||
+      typeof parsed.pluginVersion !== "string" ||
+      (parsed.source !== "filesystem" && parsed.source !== "sea") ||
+      typeof parsed.version !== "number"
+    ) {
+      return undefined;
+    }
+    return {
+      hash: parsed.hash,
+      marketplace: parsed.marketplace,
+      plugin: parsed.plugin,
+      pluginVersion: parsed.pluginVersion,
+      source: parsed.source,
+      version: parsed.version,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+function readUsableSeedCacheManifest(
+  targetRoot: string,
+  definition: OfficialPluginDefinition,
+): Record<string, unknown> | undefined {
+  let manifest: unknown;
+  try {
+    manifest = JSON.parse(
+      readFileSync(join(targetRoot, ...manifestRelativeSegments(definition)), "utf8"),
+    );
+  } catch {
+    return undefined;
+  }
+  if (!isRecord(manifest) || manifest.name !== definition.name) return undefined;
+  return (definition.requiredSeedPaths ?? []).every((requiredPath) =>
+    existsSync(join(targetRoot, ...requiredPath.split("/"))),
+  )
+    ? manifest
+    : undefined;
+}
+
+function materializeSeedPluginSource(
+  source: OfficialPluginSeedSource,
+  plugin: OfficialPluginSeedPluginSource,
+): OfficialPluginSeedPluginSource {
+  // SEA 的文件清单本来就在内存里，current 快路径不会丢掉它；只需退回普通复制分支。
+  if (source.kind !== "filesystem" || !plugin.rootPath) {
+    return { ...plugin, current: false };
+  }
+  const files = collectFilesystemPluginFiles(plugin.rootPath, plugin.definition);
+  return {
+    ...plugin,
+    current: false,
+    files,
+    hash: hashSeedFiles(files),
+    manifestContents: undefined,
+    missingSeedPaths: findMissingOfficialPluginSeedPaths(plugin.definition, files),
   };
 }
 
@@ -448,8 +797,9 @@ function writeOfficialMarketplace(storageRoot: string, source: OfficialPluginSee
       plugins: source.plugins.map((plugin) => {
         // 商店信息（listing）与描述随目录条目下发：键名与 CDN 目录 schema 一致，
         // 由 adapter 的同一套 parseEntryStoreListing 解析，UI 才能给内置插件渲染
-        // 显示名/分类/作者/示例提示词。描述取自插件包内 plugin.json（单一事实源）。
-        const description = readSeedPluginDescription(source, plugin);
+        // 显示名/分类/作者/示例提示词。描述取自插件包内 plugin.json（单一事实源）；
+        // marker 命中时源文件未扫描，描述来自同一份被 marker 证明最新的缓存清单。
+        const description = plugin.description ?? readSeedPluginDescription(source, plugin);
         return {
           cachePath: officialPluginCacheRoot(storageRoot, plugin.definition),
           // 未安装/已卸载时商店读目录条目的 componentTypes 判断「UI 插件」；缺失会掉进分类分组。
@@ -489,14 +839,15 @@ function readSeedPluginDescription(
 }
 
 function isSeedCurrent(targetRoot: string, plugin: OfficialPluginSeedPluginSource): boolean {
-  const markerPath = join(targetRoot, SEED_MARKER_FILE);
-  if (!existsSync(markerPath)) return false;
-  try {
-    const marker = JSON.parse(readFileSync(markerPath, "utf8")) as ReturnType<typeof seedMarker>;
-    return marker.hash === plugin.hash && marker.pluginVersion === plugin.definition.version;
-  } catch {
-    return false;
-  }
+  const marker = readSeedMarker(targetRoot);
+  return (
+    marker !== undefined &&
+    marker.hash === plugin.hash &&
+    marker.pluginVersion === plugin.definition.version &&
+    // marker 只证明“上次 seed 的内容身份”，不能证明缓存文件还在：被外部清掉/截断的
+    // requiredSeedPaths 必须重新落盘，不能被 marker 短路成假成功。
+    readUsableSeedCacheManifest(targetRoot, plugin.definition) !== undefined
+  );
 }
 
 /**
@@ -504,18 +855,7 @@ function isSeedCurrent(targetRoot: string, plugin: OfficialPluginSeedPluginSourc
  * marker hash 不匹配只表示需要升级，不能把一个可用的旧缓存当成启动失败。
  */
 function isSeedUsable(targetRoot: string, definition: OfficialPluginDefinition): boolean {
-  try {
-    const manifest = JSON.parse(
-      readFileSync(join(targetRoot, ...manifestRelativeSegments(definition)), "utf8"),
-    ) as { name?: unknown };
-    if (manifest.name !== definition.name) return false;
-  } catch {
-    return false;
-  }
-
-  return (definition.requiredSeedPaths ?? []).every((requiredPath) =>
-    existsSync(join(targetRoot, ...requiredPath.split("/"))),
-  );
+  return readUsableSeedCacheManifest(targetRoot, definition) !== undefined;
 }
 
 function findUsableOfficialPluginFallback(
@@ -621,6 +961,30 @@ function isNotFoundFsError(error: unknown): error is NodeJS.ErrnoException {
   );
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function warnIncompleteSeed(
+  logger: Logger | undefined,
+  plugin: OfficialPluginSeedPluginSource,
+  pluginId: string,
+  targetRoot: string,
+): void {
+  warnCacheDegraded(logger, {
+    error: Object.assign(
+      new Error(
+        `Bundled official plugin ${plugin.definition.name} is missing required seed assets: ${plugin.missingSeedPaths.join(", ")}`,
+      ),
+      { code: "NIBI_PLUGIN_SEED_INCOMPLETE" },
+    ),
+    missingSeedPaths: plugin.missingSeedPaths,
+    operation: "seed_plugin",
+    pluginId,
+    targetRoot,
+  });
+}
+
 function warnCacheDegraded(
   logger: Logger | undefined,
   input: {
@@ -643,14 +1007,17 @@ function warnCacheDegraded(
   });
 }
 
-function seedMarker(source: OfficialPluginSeedSource, plugin: OfficialPluginSeedPluginSource) {
+function seedMarker(
+  source: OfficialPluginSeedSource,
+  plugin: OfficialPluginSeedPluginSource,
+): OfficialPluginSeedMarker {
   return {
     hash: plugin.hash,
     marketplace: OFFICIAL_PLUGIN_MARKETPLACE,
     plugin: plugin.definition.name,
     pluginVersion: plugin.definition.version,
     source: source.kind,
-    version: 1,
+    version: SEED_MARKER_VERSION,
   };
 }
 

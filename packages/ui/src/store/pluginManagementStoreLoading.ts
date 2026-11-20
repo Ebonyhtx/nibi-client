@@ -43,6 +43,8 @@ export function subscribePluginManagementChanges(
   };
 }
 export function notifyPluginManagementChange(change: PluginManagementChange): void {
+  // revision 同时是模块级快照缓存的失效版本：变更前写入的快照之后只用作首屏旧数据，
+  // 读取方会先渲染它再后台刷新，不会把它当成最新结果跳过查询。
   revision += 1;
   // 派生视图不能拖住已成功的写入；发布失效信号后，后台查询各自收口。
   for (const listener of changeListeners) {
@@ -82,6 +84,127 @@ export function isPluginManagementChangeRelevant(
     );
   };
   return hostKey(state) === hostKey(change);
+}
+
+// 跨 mount 的目录快照：插件市场页每次打开都会重新挂载并新建 scoped store，
+// 没有这层缓存时首屏必须等 list + overview 两个 RPC，管理视图还会再建一份 store。
+// 快照按 service + workspaceKey（authority/identity 已包含） + configScope 隔离，
+// 不同 workspace、不同远端 Source、User/Workspace 配置视图都不会互相复用。
+export const PLUGIN_MANAGEMENT_SNAPSHOT_TTL_MS = 60_000;
+const MAX_PLUGIN_MANAGEMENT_SNAPSHOTS_PER_SERVICE = 24;
+
+export interface PluginManagementSnapshotContext {
+  workspacePath: string;
+  workspaceIdentity?: string | null;
+  authorityKey?: string | null;
+  configScope?: NibiPluginScope | null;
+}
+
+export type PluginManagementSnapshotData = Pick<
+  PluginManagementState,
+  | "plugins"
+  | "marketplaces"
+  | "marketplaceAvailabilityKnown"
+  | "availablePlugins"
+  | "installedPlugins"
+  | "restorableBuiltins"
+  | "diagnostics"
+>;
+
+interface StoredPluginManagementSnapshot {
+  data: PluginManagementSnapshotData;
+  loadedAt: number;
+  /** 写入结果所基于的变更版本；落后于全局 revision 时只能当旧数据。 */
+  revision: number;
+}
+
+let snapshotsByService = new WeakMap<
+  IPluginManagementService,
+  Map<string, StoredPluginManagementSnapshot>
+>();
+
+function buildSnapshotKey(context: PluginManagementSnapshotContext): string {
+  return `${buildWorkspaceKey(
+    context.workspacePath,
+    context.workspaceIdentity ?? null,
+    context.authorityKey ?? null,
+  )}\0${context.configScope ?? "effective"}`;
+}
+
+export function readPluginManagementSnapshot(
+  pluginService: IPluginManagementService,
+  context: PluginManagementSnapshotContext,
+): { data: PluginManagementSnapshotData; fresh: boolean } | undefined {
+  const stored = snapshotsByService.get(pluginService)?.get(buildSnapshotKey(context));
+  if (!stored) return undefined;
+  return {
+    data: stored.data,
+    // TTL 内且没有新变更才跳过网络；否则仍先返回旧数据，由调用方后台刷新。
+    fresh:
+      Date.now() - stored.loadedAt < PLUGIN_MANAGEMENT_SNAPSHOT_TTL_MS &&
+      stored.revision === revision,
+  };
+}
+
+function writePluginManagementSnapshot(
+  pluginService: IPluginManagementService,
+  context: PluginManagementSnapshotContext,
+  data: PluginManagementSnapshotData,
+  loadedRevision: number,
+): void {
+  let snapshots = snapshotsByService.get(pluginService);
+  if (!snapshots) {
+    snapshots = new Map();
+    snapshotsByService.set(pluginService, snapshots);
+  }
+  const key = buildSnapshotKey(context);
+  // 重新插入以刷新 LRU 顺序；条目数按 service 有界，避免长期运行累积历史 workspace。
+  snapshots.delete(key);
+  snapshots.set(key, { data, loadedAt: Date.now(), revision: loadedRevision });
+  while (snapshots.size > MAX_PLUGIN_MANAGEMENT_SNAPSHOTS_PER_SERVICE) {
+    const oldestKey = snapshots.keys().next().value;
+    if (oldestKey === undefined) break;
+    snapshots.delete(oldestKey);
+  }
+}
+
+function toPluginManagementSnapshot(
+  result: Partial<PluginManagementState>,
+): PluginManagementSnapshotData | undefined {
+  // overview 失败后的 list fallback 会产生“来源状态未知”的空市场投影，不能落成快照，
+  // 否则下一次 mount 会先把“所有市场都不存在”渲染出来。
+  if (result.marketplaceAvailabilityKnown !== true) return undefined;
+  const {
+    plugins,
+    marketplaces,
+    availablePlugins,
+    installedPlugins,
+    restorableBuiltins,
+    diagnostics,
+  } = result;
+  if (
+    !plugins ||
+    !marketplaces ||
+    !availablePlugins ||
+    !installedPlugins ||
+    !restorableBuiltins ||
+    !diagnostics
+  ) {
+    return undefined;
+  }
+  return {
+    plugins,
+    marketplaces,
+    marketplaceAvailabilityKnown: true,
+    availablePlugins,
+    installedPlugins,
+    restorableBuiltins,
+    diagnostics,
+  };
+}
+
+export function resetPluginManagementSnapshotsForTests(): void {
+  snapshotsByService = new WeakMap();
 }
 
 // 单个 operationId 会被后一次安装覆盖；每次调用持有独立条目，完成时只移除自己。
@@ -214,6 +337,14 @@ export async function loadInto(
   inFlightLoads.set(loadKey, request);
   try {
     const result = await request.task;
+    // 变更通知之后才完成的旧查询不能覆盖更新的快照；等下一次刷新（或下一次 mount 的
+    // 后台刷新）用新 revision 重新落盘。
+    if (request.revision >= revision) {
+      const snapshot = toPluginManagementSnapshot(result);
+      if (snapshot) {
+        writePluginManagementSnapshot(params.pluginService, params, snapshot, request.revision);
+      }
+    }
     const current = get();
     if (
       current.workspacePath !== params.workspacePath ||

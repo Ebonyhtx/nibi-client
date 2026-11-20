@@ -255,3 +255,39 @@ export const armsInitPromise = armsRum
     logger.error("[arms] electron init failed:", error);
     throw error;
   });
+
+/** 启动路径只等 ARMS init 这么久；超时/失败损失的是本次启动的遥测注入，不阻断主窗口。 */
+export const ARMS_STARTUP_INIT_TIMEOUT_MS = 2_000;
+
+/**
+ * 有界等待 ARMS init。init 失败或超时都只记录日志并继续启动；
+ * 调用方仍需在 init 成功时补写 user.name（这里只负责等待，不改变身份同步时机）。
+ */
+export async function waitForArmsStartupInit(
+  timeoutMs = ARMS_STARTUP_INIT_TIMEOUT_MS,
+): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<"timeout">((resolve) => {
+    timer = setTimeout(() => resolve("timeout"), Math.max(timeoutMs, 1));
+    timer.unref?.();
+  });
+  const settled = armsInitPromise.then(
+    (): "initialized" => "initialized",
+    // 具体错误已由 armsInitPromise 自己的 catch 记录；这里只负责不把 rejection 传进启动路径。
+    (): "failed" => "failed",
+  );
+
+  try {
+    const outcome = await Promise.race([settled, timedOut]);
+    if (outcome === "timeout") {
+      logger.warn(
+        `[arms] init did not finish within ${timeoutMs}ms; continuing startup without waiting`,
+      );
+    }
+    return outcome === "initialized";
+  } finally {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
+  }
+}
