@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-16T23:36:02.645Z",
+  "updatedAt": "2026-11-20T07:43:38.864Z",
   "releases": {
     "4.1.0": {
       "createdAt": "2026-11-14T08:15:37.944Z",
@@ -261,6 +261,133 @@
           "verified": {
             "at": "2026-11-16T23:36:02.645Z",
             "version": "4.1.1",
+            "revision": 5,
+            "pluginVersion": "0.13.2",
+            "note": "release:verify --record",
+            "checks": [
+              "plugin-market",
+              "remote"
+            ]
+          }
+        }
+      }
+    },
+    "4.1.3": {
+      "createdAt": "2026-11-20T07:43:38.864Z",
+      "artifacts": {
+        "npm": {
+          "published": {
+            "at": "2026-11-20T07:43:38.864Z",
+            "version": "4.1.3",
+            "note": "release:verify --record",
+            "checks": [
+              "npm",
+              "remote"
+            ]
+          },
+          "verified": {
+            "at": "2026-11-20T07:43:38.864Z",
+            "version": "4.1.3",
+            "note": "release:verify --record",
+            "checks": [
+              "npm",
+              "remote"
+            ]
+          }
+        },
+        "source-server": {
+          "published": {
+            "at": "2026-11-20T07:43:38.864Z",
+            "version": "4.1.3",
+            "note": "release:verify --record",
+            "checks": [
+              "source-server",
+              "remote"
+            ]
+          },
+          "verified": {
+            "at": "2026-11-20T07:43:38.864Z",
+            "version": "4.1.3",
+            "note": "release:verify --record",
+            "checks": [
+              "source-server",
+              "remote"
+            ]
+          }
+        },
+        "desktop": {
+          "published": {
+            "at": "2026-11-20T07:43:38.864Z",
+            "version": "4.1.3",
+            "note": "release:verify --record",
+            "checks": [
+              "desktop",
+              "remote"
+            ]
+          },
+          "verified": {
+            "at": "2026-11-20T07:43:38.864Z",
+            "version": "4.1.3",
+            "note": "release:verify --record",
+            "checks": [
+              "desktop",
+              "remote"
+            ]
+          }
+        },
+        "web-remote": {
+          "published": {
+            "at": "2026-11-20T07:43:38.864Z",
+            "version": "4.1.3",
+            "note": "release:verify --record",
+            "checks": [
+              "web-release",
+              "remote"
+            ]
+          },
+          "verified": {
+            "at": "2026-11-20T07:43:38.864Z",
+            "version": "4.1.3",
+            "note": "release:verify --record",
+            "checks": [
+              "web-release",
+              "remote"
+            ]
+          }
+        },
+        "web-share": {
+          "published": {
+            "at": "2026-11-20T07:43:38.864Z",
+            "version": "4.1.3",
+            "note": "release:verify --record",
+            "checks": [
+              "web-release",
+              "remote"
+            ]
+          },
+          "verified": {
+            "at": "2026-11-20T07:43:38.864Z",
+            "version": "4.1.3",
+            "note": "release:verify --record",
+            "checks": [
+              "web-release",
+              "remote"
+            ]
+          }
+        },
+        "plugin-market": {
+          "published": {
+            "at": "2026-11-20T07:43:38.864Z",
+            "version": "4.1.3",
+            "note": "release:verify --record",
+            "checks": [
+              "plugin-market",
+              "remote"
+            ]
+          },
+          "verified": {
+            "at": "2026-11-20T07:43:38.864Z",
+            "version": "4.1.3",
             "revision": 5,
             "pluginVersion": "0.13.2",
             "note": "release:verify --record",
