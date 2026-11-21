@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, readFile, rmdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, rmdir, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type {
   GitManagedWorktree,
@@ -85,8 +85,26 @@ export function normalizeManagedWorktreePathKey(
   path: string,
   platform: NodeJS.Platform = process.platform,
 ): string {
-  const absolute = resolve(path).replace(/\\/g, "/").replace(/\/+$/, "");
+  // porcelain / git 配置里的 Windows 绝对路径可能在 Linux/macOS 上被解析（例如解析
+  // Windows 侧的记录），此时不能交给 host 的 resolve() 拼到当前目录上。盘符路径只做
+  // 分隔符归一与去尾斜杠；大小写折叠仍只由目标 platform 决定。
+  const windowsAbsolute = /^[A-Za-z]:[\\/]/u.test(path);
+  const absolute = windowsAbsolute
+    ? path.replace(/\\/g, "/").replace(/\/+$/, "")
+    : resolve(path).replace(/\\/g, "/").replace(/\/+$/, "");
   return platform === "win32" ? absolute.toLowerCase() : absolute;
+}
+
+/** 比较两个路径是否指向同一位置；解析符号链接与 Windows 8.3 短名后再比。 */
+async function sameResolvedPath(left: string, right: string): Promise<boolean> {
+  const [resolvedLeft, resolvedRight] = await Promise.all([
+    realpath(left).catch(() => left),
+    realpath(right).catch(() => right),
+  ]);
+  return (
+    normalizeManagedWorktreePathKey(resolvedLeft) ===
+    normalizeManagedWorktreePathKey(resolvedRight)
+  );
 }
 
 function isPathWithin(parent: string, child: string): boolean {
@@ -600,10 +618,9 @@ export function createManagedWorktreeManager(options?: {
   }): Promise<GitManagedWorktree> {
     const resolution = await resolveRepository(params.workspacePath);
     const commonDir = resolveCommonDir(resolution);
-    if (
-      normalizeManagedWorktreePathKey(commonDir) !==
-      normalizeManagedWorktreePathKey(resolution.gitDir)
-    ) {
+    // macOS 的 /var→/private/var、Windows 的 8.3 短名会让同一目录出现两种写法；
+    // 两者都是 git 给出的同一位置，不能因此把普通仓库误判成 worktree。
+    if (!(await sameResolvedPath(commonDir, resolution.gitDir))) {
       throw new Error("managed-worktree.source-is-worktree");
     }
 

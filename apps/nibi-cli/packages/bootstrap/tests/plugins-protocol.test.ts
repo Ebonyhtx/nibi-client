@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -287,13 +287,15 @@ describe("plugins protocol contracts", () => {
         workspace: { workspacePath: root, workspaceKey: root },
       });
 
-      expect(result.plugins.find((plugin) => plugin.id === "workspace-demo@inline")).toMatchObject({
-        rootPath: pluginRoot,
+      const plugin = result.plugins.find((candidate) => candidate.id === "workspace-demo@inline");
+      expect(plugin).toMatchObject({
         rootSource: "workspace",
         enabled: false,
         enabledSource: "workspace",
         uiSurfaces: [{ pluginId: "workspace-demo@inline", pluginName: "workspace-demo", id: "panel", title: "Panel", server: "plugin:workspace-demo:panel", resourceUri: "ui://demo/panel", availability: "session" }],
       });
+      // Windows CI 的 tmpdir 是 8.3 短名（RUNNER~1），投影侧会 realpath 成长名；按真实路径比较。
+      await expect(realpath(plugin?.rootPath ?? "")).resolves.toBe(await realpath(pluginRoot));
       expect(() => nibiPluginsListResultSchema.parse(result)).not.toThrow();
     } finally {
       await rm(root, { force: true, recursive: true });

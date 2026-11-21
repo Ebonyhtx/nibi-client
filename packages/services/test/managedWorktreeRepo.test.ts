@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -158,13 +158,14 @@ describe("managed worktree git repo", () => {
     const created = await repo.create({ sourcePath: source, carryChanges: true });
     if (!created.ok) throw new Error(`${created.error.code}: ${created.error.detail}`);
     expect(created.ok).toBe(true);
-    await expect(readFile(join(created.worktree.path, "README.md"), "utf8")).resolves.toBe(
+    // Windows 的 git 可能在检出时写 CRLF；这里比较换行归一后的内容。
+    const readText = async (path: string) =>
+      (await readFile(path, "utf8")).replace(/\r\n/g, "\n");
+    await expect(readText(join(created.worktree.path, "README.md"))).resolves.toBe(
       "hello changed\n",
     );
-    await expect(readFile(join(created.worktree.path, "untracked.txt"), "utf8")).resolves.toBe(
-      "new\n",
-    );
-    await expect(readFile(join(created.worktree.path, ".env"), "utf8")).resolves.toBe("TOKEN=1\n");
+    await expect(readText(join(created.worktree.path, "untracked.txt"))).resolves.toBe("new\n");
+    await expect(readText(join(created.worktree.path, ".env"))).resolves.toBe("TOKEN=1\n");
   });
 
   it("reaps unregistered buckets and prunes registered worktrees whose directory is gone", async () => {
@@ -177,12 +178,17 @@ describe("managed worktree git repo", () => {
     // 未登记的残留：bucket 里有一份 checkout，但 git 从未登记过它。
     const managedRoot = join(dataBaseDir, ".nibi", "worktrees");
     const ghostRoot = join(managedRoot, "dead", "repo");
-    const adminDir = join(source, ".git", "worktrees", "ghost");
+    // 管理目录必须放在 .git/worktrees 之外：放在里面会被 `git worktree list` 认成
+    // 已登记条目，测的就不再是“未登记残留”。.git-orphan/worktrees/<id> 仍满足
+    // reaper 的 <source>/.git/worktrees/<id> 形状推导。
+    const adminDir = join(source, ".git-orphan", "worktrees", "ghost");
     await mkdir(ghostRoot, { recursive: true });
     await mkdir(adminDir, { recursive: true });
     await writeFile(join(ghostRoot, ".git"), `gitdir: ${adminDir}\n`);
     await writeFile(join(adminDir, "gitdir"), `${join(ghostRoot, ".git")}\n`);
     await writeFile(join(adminDir, "commondir"), "../..\n");
+    // reaper 会删掉 ghostRoot，真实路径要在删除前取。
+    const ghostRootReal = await realpath(ghostRoot);
 
     // 已登记但目录被手动删除：reaper 应执行 prune。
     const created = await repo.create({ sourcePath: source });
@@ -215,7 +221,9 @@ describe("managed worktree git repo", () => {
       repository: async () => repository as never,
       dataBaseDir: () => dataBaseDir,
     });
-    expect(result.removed).toContain(ghostRoot);
+    // Windows 的 README 短名（RUNNER~1）与 realpath 长名不同；按解析后的真实路径比较。
+    const removed = await Promise.all(result.removed.map((path) => realpath(path).catch(() => path)));
+    expect(removed).toContain(ghostRootReal);
     expect(result.pruned.length).toBeGreaterThan(0);
     await expect(readFile(join(ghostRoot, ".git"), "utf8")).rejects.toBeTruthy();
     await expect(repo.list({ sourcePath: source })).resolves.toMatchObject({ worktrees: [] });
