@@ -13,6 +13,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(repoRoot, "packages/ui/src"),
+      "node:crypto": resolve(harnessDir, "node-crypto-shim.ts"),
     },
     dedupe: ["react", "react-dom"],
   },

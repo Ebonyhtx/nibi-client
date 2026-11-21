@@ -4,6 +4,7 @@ import { NibiIntlProvider } from "@/i18n/IntlProvider.js";
 import { InteractionRequestOriginBadge } from "@/InteractionRequestOriginBadge.js";
 import { FallbackToolCallBlock } from "@/ToolCallBlocks/renderers/fallback.js";
 import type { ToolCallBlockRenderContext } from "@/ToolCallBlocks/fileSummaryTypes.js";
+import nibiBirdIcon from "@/assets/nibi/nibi-bird.png";
 import { buildToolDisplayModel } from "@/lib/toolDisplay.js";
 import type { TaskChatToolCall } from "@/lib/taskChatMessageTypes.js";
 import type { NibiInteractionRequestOrigin } from "@nibi/shared";
@@ -231,6 +232,105 @@ function App() {
           <DialogHeaderPreview width={640} mode="permission" />
           <DialogHeaderPreview width={390} mode="elicitation" />
           <DialogHeaderPreview width={640} mode="elicitation" />
+        </div>
+      </div>
+
+      <div data-evidence-section="agent-icon" style={{ marginTop: 36, maxWidth: 760 }}>
+        <h2 style={{ font: "600 15px/1.4 ui-sans-serif", margin: "0 0 12px" }}>
+          NIBI Agent 图标（设置导入 / 代理设置行）
+        </h2>
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: 12,
+            background: "#ffffff",
+            padding: 12,
+          }}
+        >
+          <div className="flex w-full items-center gap-3 rounded-lg p-3 text-left">
+            <div className="flex size-5 shrink-0 items-center justify-center">
+              <div className="flex size-4 items-center justify-center rounded-sm border border-border bg-primary text-primary-foreground">
+                <span className="text-[10px] leading-none">✓</span>
+              </div>
+            </div>
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <img
+                src={nibiBirdIcon}
+                alt=""
+                aria-hidden
+                className="size-4 shrink-0 object-contain"
+                style={{ filter: "grayscale(1) brightness(0.74) contrast(1.05)" }}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="text-ui-base font-medium leading-none text-foreground">
+                  NIBI Agent
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              marginTop: 12,
+              paddingTop: 12,
+              borderTop: "1px solid #e5e7eb",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: 12,
+                borderRadius: 8,
+                background: "#f8fafc",
+              }}
+            >
+              <img
+                src={nibiBirdIcon}
+                alt=""
+                aria-hidden
+                className="size-16 object-contain"
+                style={{ filter: "grayscale(1) brightness(0.74) contrast(1.05)" }}
+              />
+              <span style={{ font: "500 12px/1.4 ui-sans-serif", color: "#334155" }}>
+                light · 64px
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: 12,
+                borderRadius: 8,
+                background: "#1a1a1a",
+              }}
+            >
+              <img
+                src={nibiBirdIcon}
+                alt=""
+                aria-hidden
+                className="size-16 object-contain"
+                style={{ filter: "grayscale(1) brightness(1.2) contrast(1.1)" }}
+              />
+              <span style={{ font: "500 12px/1.4 ui-sans-serif", color: "#e2e8f0" }}>
+                dark · 64px
+              </span>
+            </div>
+            <img
+              src={nibiBirdIcon}
+              alt=""
+              aria-hidden
+              className="size-4 object-contain"
+              style={{ filter: "grayscale(1) brightness(0.74) contrast(1.05)" }}
+            />
+            <span style={{ font: "500 13px/1.4 ui-sans-serif", color: "#111827" }}>
+              16px
+            </span>
+          </div>
         </div>
       </div>
 

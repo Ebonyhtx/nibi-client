@@ -47,10 +47,6 @@
       "reason": "内核随包资源中的 provider 模型目录副本。"
     },
     {
-      "path": "packages/ui/src/components/ui/GlmMonochromeIcon.tsx",
-      "reason": "GLM 仅作为模型供应商图标使用（B05 允许的唯一用途）。"
-    },
-    {
       "path": "packages/ui/src/lib/providerCliIcon.tsx",
       "reason": "provider CLI 图标映射，只渲染模型供应商图标，不承担产品图标。"
     },
