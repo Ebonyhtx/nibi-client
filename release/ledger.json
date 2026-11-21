@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-20T23:29:42.572Z",
+  "updatedAt": "2026-11-21T02:05:53.861Z",
   "releases": {
     "4.1.0": {
       "createdAt": "2026-11-14T08:15:37.944Z",
@@ -404,7 +404,7 @@
       "artifacts": {
         "npm": {
           "published": {
-            "at": "2026-11-20T23:29:42.571Z",
+            "at": "2026-11-21T02:05:53.861Z",
             "version": "4.1.4",
             "note": "release:verify --record",
             "checks": [
@@ -413,7 +413,7 @@
             ]
           },
           "verified": {
-            "at": "2026-11-20T23:29:42.571Z",
+            "at": "2026-11-21T02:05:53.861Z",
             "version": "4.1.4",
             "note": "release:verify --record",
             "checks": [
@@ -424,7 +424,7 @@
         },
         "source-server": {
           "published": {
-            "at": "2026-11-20T23:29:42.571Z",
+            "at": "2026-11-21T02:05:53.861Z",
             "version": "4.1.4",
             "note": "release:verify --record",
             "checks": [
@@ -433,7 +433,7 @@
             ]
           },
           "verified": {
-            "at": "2026-11-20T23:29:42.571Z",
+            "at": "2026-11-21T02:05:53.861Z",
             "version": "4.1.4",
             "note": "release:verify --record",
             "checks": [
@@ -444,7 +444,7 @@
         },
         "desktop": {
           "published": {
-            "at": "2026-11-20T23:29:42.571Z",
+            "at": "2026-11-21T02:05:53.861Z",
             "version": "4.1.4",
             "note": "release:verify --record",
             "checks": [
@@ -453,7 +453,7 @@
             ]
           },
           "verified": {
-            "at": "2026-11-20T23:29:42.571Z",
+            "at": "2026-11-21T02:05:53.861Z",
             "version": "4.1.4",
             "note": "release:verify --record",
             "checks": [
@@ -464,7 +464,7 @@
         },
         "web-remote": {
           "published": {
-            "at": "2026-11-20T23:29:42.571Z",
+            "at": "2026-11-21T02:05:53.861Z",
             "version": "4.1.4",
             "note": "release:verify --record",
             "checks": [
@@ -473,7 +473,7 @@
             ]
           },
           "verified": {
-            "at": "2026-11-20T23:29:42.571Z",
+            "at": "2026-11-21T02:05:53.861Z",
             "version": "4.1.4",
             "note": "release:verify --record",
             "checks": [
@@ -484,7 +484,7 @@
         },
         "web-share": {
           "published": {
-            "at": "2026-11-20T23:29:42.571Z",
+            "at": "2026-11-21T02:05:53.861Z",
             "version": "4.1.4",
             "note": "release:verify --record",
             "checks": [
@@ -493,7 +493,7 @@
             ]
           },
           "verified": {
-            "at": "2026-11-20T23:29:42.571Z",
+            "at": "2026-11-21T02:05:53.861Z",
             "version": "4.1.4",
             "note": "release:verify --record",
             "checks": [
@@ -504,7 +504,7 @@
         },
         "plugin-market": {
           "published": {
-            "at": "2026-11-20T23:29:42.572Z",
+            "at": "2026-11-21T02:05:53.861Z",
             "version": "4.1.4",
             "note": "release:verify --record",
             "checks": [
@@ -513,7 +513,7 @@
             ]
           },
           "verified": {
-            "at": "2026-11-20T23:29:42.572Z",
+            "at": "2026-11-21T02:05:53.861Z",
             "version": "4.1.4",
             "revision": 5,
             "pluginVersion": "0.13.2",
