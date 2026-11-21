@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -206,7 +206,6 @@ describe("project config allowlist (PROJECT-CONFIG)", () => {
 
       // 插件：项目内 dir 保留并解析成绝对路径；外部 dir 与 true 丢弃；enabled 不生效。
       expect(result.config.plugins).toMatchObject({
-        dirs: ["/user/plugins", join(root, "plugins/local")],
         enabled: true,
         enabledPlugins: {
           "user-on@fixture": true,
@@ -217,6 +216,9 @@ describe("project config allowlist (PROJECT-CONFIG)", () => {
         },
         suppressedBuiltins: [],
       });
+      // Windows 8.3 短名会被 canonicalize 成长名；期望值用真实根拼接（子目录可以不存在）。
+      expect(result.config.plugins.dirs[0]).toBe("/user/plugins");
+      expect(result.config.plugins.dirs[1]).toBe(join(await realpath(root), "plugins/local"));
       expect(result.config.plugins.dirs).not.toContain("/tmp/evil-plugins");
       expect(result.config.plugins.enabledPlugins["evil@fixture"]).toBeUndefined();
       expect(result.config.plugins.options).toMatchObject({
@@ -323,7 +325,7 @@ describe("project config allowlist (PROJECT-CONFIG)", () => {
         sessionDbPath: "~/.nibi/cli/db/db.sqlite",
       });
       expect(result.config.plugins.enabledPlugins).toEqual({ "off@fixture": false });
-      expect(result.config.plugins.dirs).toEqual([join(root, "plugins/local")]);
+      expect(result.config.plugins.dirs).toEqual([join(await realpath(root), "plugins/local")]);
       expect(result.config.mcp.servers.repo).toMatchObject({
         command: "node",
         cwd: join(root, "tools"),
@@ -363,7 +365,7 @@ describe("project config allowlist (PROJECT-CONFIG)", () => {
       const result = createConfig({ env: {}, skipUserConfig: true, workingDirectory: nested });
 
       // 相对路径按项目配置 baseDir（.nibi 的上一层）解析，仍落在发现根（git 根）里。
-      expect(result.config.plugins.dirs).toEqual([join(nested, "plugins", "kit")]);
+      expect(result.config.plugins.dirs).toEqual([join(await realpath(nested), "plugins", "kit")]);
 
       const ignoredPaths = result.sources.project.diagnostics
         .filter((diagnostic) => diagnostic.code === "config_project_key_ignored")
