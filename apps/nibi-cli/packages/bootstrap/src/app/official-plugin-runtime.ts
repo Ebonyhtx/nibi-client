@@ -5,7 +5,7 @@ import {
   NIBI_PLUGIN_HOST_COMMAND,
   type McpServerConfig,
 } from "@nibi/contracts";
-import { NIBI_PLUGIN_ID_ENV_KEY, NIBI_PLUGIN_MANIFEST_DIR } from "@nibi/shared";
+import { NIBI_PLUGIN_ID_ENV_KEY } from "@nibi/shared";
 import {
   createOfficialPluginCacheRetryBudget,
   type OfficialPluginCacheRetryBudget,
@@ -64,10 +64,10 @@ interface OfficialRuntimeManifestInput {
 }
 
 export function writeOfficialPluginRuntimeManifest(input: OfficialRuntimeManifestInput): void {
-  // 插件包发现只认 .nibi-plugin；内置件与官方缓存都已迁到这里。
-  // 若仍写旧格式，MCP server 会以 `command: "node"`（且没有 ELECTRON_RUN_AS_NODE）
+  // Agent Plugins 根 plugin.json；MCP 声明在根 mcp.json。
+  // 若仍写旧形态，MCP server 会以 `command: "node"`（且没有 ELECTRON_RUN_AS_NODE）
   // 进入缓存，桌面应用里会被当成 Electron main 启动。
-  const manifestPath = join(input.rootPath, NIBI_PLUGIN_MANIFEST_DIR, "plugin.json");
+  const manifestPath = join(input.rootPath, "plugin.json");
   const currentContents = readFileSync(manifestPath, "utf8");
   // 缓存里的入口可能已被旧客户端覆盖，必须从内置原始 manifest 重新生成。
   const manifest = JSON.parse(input.sourceManifestContents ?? currentContents) as Record<
@@ -77,13 +77,13 @@ export function writeOfficialPluginRuntimeManifest(input: OfficialRuntimeManifes
   const hostPrefixArgs = resolveHostPrefixArgs(input.hostPrefixArgs);
   if (!hostPrefixArgs) return;
 
-  // 同一批内置件有的把 MCP 声明在 plugin.json，有的放在 Claude 兼容的 `.mcp.json`
+  // 同一批内置件有的把 MCP 声明在 plugin.json，有的放在根 `mcp.json`
   // （ios-simulator / android-emulator 就是后者）。只重写 plugin.json 会让这些 server
   // 以 `command: "node"`、没有 ELECTRON_RUN_AS_NODE 的形态进入缓存。
   rewritePluginMcpConfigFile(input.rootPath, hostPrefixArgs, input.retryBudget);
 
   // skill-only / command-only 类型的 official plugin 不带 mcpServers：不阻断，
-  // 上面已经把 `.mcp.json` 处理完（之前这里直接 return 会跳过整段）。
+  // 上面已经把 `mcp.json` 处理完（之前这里直接 return 会跳过整段）。
   if (manifest.mcpServers === undefined) return;
   const mcpServers = asRecord(manifest.mcpServers);
 
@@ -139,7 +139,7 @@ export function writeOfficialPluginRuntimeManifest(input: OfficialRuntimeManifes
 }
 
 /**
- * 重写插件根目录下的 `.mcp.json`（Claude 插件生态的 MCP 声明文件）。
+ * 重写插件根目录下的 `mcp.json`（Agent Plugins 的 MCP 声明文件）。
  *
  * 与 plugin.json 的规则一致：command 换成宿主可执行文件、参数前面补插件宿主入口、
  * 注入 ELECTRON_RUN_AS_NODE。已经重写过的条目跳过（幂等），否则每次启动都会把宿主前缀
@@ -150,7 +150,9 @@ function rewritePluginMcpConfigFile(
   hostPrefixArgs: readonly string[],
   retryBudget: OfficialPluginCacheRetryBudget | undefined,
 ): void {
-  const filePath = join(rootPath, ".mcp.json");
+  const filePath = existsSync(join(rootPath, "mcp.json"))
+    ? join(rootPath, "mcp.json")
+    : join(rootPath, ".mcp.json");
   if (!existsSync(filePath)) return;
   const currentContents = readFileSync(filePath, "utf8");
   const parsed = JSON.parse(currentContents) as Record<string, unknown>;
@@ -214,7 +216,7 @@ export function officialPluginHostPrefixArgs(): string[] | undefined {
   // 测试进程绝不能把测试运行器的 argv 固化进用户缓存。实测（2026-11-09）：一次在
   // `cli.unit.test.ts` 里跑的启动流程把 `--import tsx .../cli.unit.test.ts
   // __nibi-plugin-host` 写进了 `~/.nibi/cli/plugins/cache/nibi-official/{documents,pdf,
-  // presentations,spreadsheets}/*/.nibi-plugin/plugin.json`，四件套的 MCP server 从此
+  // presentations,spreadsheets}/*/plugin.json`，四件套的 MCP server 从此
   // 拉起的是一个单元测试文件——面板、工具全部不可用，而且缓存看着是“已就绪”。
   if (isTestProcess(entrypoint)) return undefined;
 

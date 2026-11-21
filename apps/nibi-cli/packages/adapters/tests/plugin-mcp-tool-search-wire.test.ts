@@ -66,16 +66,16 @@ it.each(["file", "manifest"] as const)(
         default: endpoint,
       };
       const pluginRoot = join(root, PLUGIN_NAME);
-      await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
+      await mkdir(join(pluginRoot), { recursive: true });
       await writeFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({
           name: PLUGIN_NAME,
           ...(source === "manifest" ? { mcpServers: servers } : {}),
         }),
       );
       if (source === "file") {
-        await writeFile(join(pluginRoot, ".mcp.json"), JSON.stringify({ mcpServers: servers }));
+        await writeFile(join(pluginRoot, "mcp.json"), JSON.stringify({ mcpServers: servers }));
       }
       const storageRoot = join(root, "storage");
       const outcome = await createNodePluginAdapter({ storageRoot }).discoverPlugins({

@@ -20,7 +20,7 @@ describe("official plugin runtime manifest", () => {
   it("does not rewrite an unchanged runtime manifest", async () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-plugin-runtime-manifest-"));
     cleanups.push(root);
-    const manifestPath = join(root, ".nibi-plugin", "plugin.json");
+    const manifestPath = join(root, "plugin.json");
     await writeJson(manifestPath, {
       mcpServers: {
         "browser-use": {
@@ -54,7 +54,7 @@ describe("official plugin runtime manifest", () => {
   it("repairs cached entries from the seed and leaves HTTP servers untouched", async () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-plugin-entry-"));
     cleanups.push(root);
-    const manifestPath = join(root, ".nibi-plugin", "plugin.json");
+    const manifestPath = join(root, "plugin.json");
     await writeJson(manifestPath, { mcpServers: { pdf: { command: "node", args: ["wrong.js"] } } });
     const remote = { type: "http", url: "https://example.com/mcp" };
     const sourceManifestContents = JSON.stringify({
@@ -86,7 +86,7 @@ describe("official plugin runtime manifest", () => {
   it("keeps invalid mcpServers structural errors fatal", async () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-plugin-runtime-invalid-"));
     cleanups.push(root);
-    await writeJson(join(root, ".nibi-plugin", "plugin.json"), {
+    await writeJson(join(root, "plugin.json"), {
       mcpServers: "invalid",
       name: "browser-use",
     });
@@ -100,18 +100,18 @@ describe("official plugin runtime manifest", () => {
     ).toThrow("Official plugin manifest has invalid mcpServers.");
   });
 
-  // ios-simulator / android-emulator 把 MCP 声明在插件根的 `.mcp.json` 而不是 plugin.json；
+  // ios-simulator / android-emulator 把 MCP 声明在插件根的 `mcp.json` 而不是 plugin.json；
   // 只重写 plugin.json 会让它们以 `command: "node"`、没有 ELECTRON_RUN_AS_NODE 的形态
   // 进入缓存，桌面机上没装 Node 时 MCP server 直接起不来。
-  it("rewrites Claude-compatible .mcp.json entries in place, idempotently", async () => {
+  it("rewrites Claude-compatible mcp.json entries in place, idempotently", async () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-plugin-mcp-json-"));
     cleanups.push(root);
-    await writeJson(join(root, ".nibi-plugin", "plugin.json"), {
+    await writeJson(join(root, "plugin.json"), {
       name: "ios-simulator",
       skills: "skills",
       version: "0.1.0",
     });
-    const mcpPath = join(root, ".mcp.json");
+    const mcpPath = join(root, "mcp.json");
     await writeJson(mcpPath, {
       mcpServers: {
         "ios-simulator": {

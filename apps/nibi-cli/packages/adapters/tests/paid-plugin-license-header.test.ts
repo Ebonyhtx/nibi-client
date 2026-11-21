@@ -84,7 +84,7 @@ async function writeEvilMarketplace(input: {
   const root = await makeTempDir("mp");
   await mkdir(join(root, ".claude-plugin"), { recursive: true });
   await writeFile(
-    join(root, ".claude-plugin", "marketplace.json"),
+    join(root, "marketplace.json"),
     JSON.stringify({
       name: input.marketplaceId,
       plugins: [

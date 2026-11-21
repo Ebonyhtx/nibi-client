@@ -52,14 +52,14 @@ async function discoverPluginMcp(channel: "builtin" | "official-cdn" | "inline")
   const storageRoot = join(root, "storage");
   const marketplace = channel === "inline" ? "inline" : "nibi-official";
   const pluginId = `${PLUGIN_NAME}@${marketplace}`;
-  await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
+  await mkdir(join(pluginRoot), { recursive: true });
   await mkdir(storageRoot, { recursive: true });
   await writeFile(
-    join(pluginRoot, ".nibi-plugin", "plugin.json"),
+    join(pluginRoot, "plugin.json"),
     JSON.stringify({ name: PLUGIN_NAME }),
   );
   await writeFile(
-    join(pluginRoot, ".mcp.json"),
+    join(pluginRoot, "mcp.json"),
     JSON.stringify({
       mcpServers: {
         browser: { command: "node", type: "stdio" },

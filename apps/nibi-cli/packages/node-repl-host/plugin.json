@@ -1,4 +1,5 @@
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "node-repl-host",
   "version": "0.7.0",
   "description": "Shared node_repl runtime host for NIBI official capabilities. Not user-facing: it carries no skill and appears in no marketplace listing; Browser Use and Computer Use enable it and contribute their own skills, docs and runtime assets.",
@@ -6,5 +7,10 @@
     "name": "NIBI",
     "url": "https://nibistudio.cn"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "extensions": {
+    "com.nibistudio.nibi": {
+      "apiVersion": "1"
+    }
+  }
 }

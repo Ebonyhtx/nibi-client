@@ -1,5 +1,4 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { NIBI_PLUGIN_MANIFEST_DIR } from "@nibi/shared";
 import { basename, dirname, join, resolve } from "node:path";
 import type {
   CustomCommandRoot,
@@ -32,11 +31,12 @@ import {
 import {
   directoryExists,
   fileExists,
+  findNativePluginManifest,
   isMissingPath,
   isNotFoundError,
   isRecord,
-  migrateLegacyPluginManifest,
   parsePathList,
+  readNativePluginManifest,
   resolveInside,
   sanitizePluginId,
   throwIfAborted,
@@ -126,9 +126,6 @@ export {
   type PluginUpdateStatus,
 } from "./version-compare.js";
 
-// NIBI 插件只认自有清单目录；旧格式（.claude-plugin/.codex-plugin）不再参与发现，
-// App 管理的缓存由 migrateLegacyPluginManifest 一次性迁移。
-const NIBI_MANIFEST_PATH = join(NIBI_PLUGIN_MANIFEST_DIR, "plugin.json");
 const DEFAULT_VERSION = "0.0.0";
 const FIRST_PLUGIN_PRIORITY = 1_000;
 const PRIORITY_STEP = 10;
@@ -186,12 +183,6 @@ export class NodePluginAdapter implements PluginPort {
 
     for (const candidate of candidates) {
       throwIfAborted(options);
-      // 官方 seed 与市场安装目录由 App 管理：发现前把旧格式清单一对一迁到 .nibi-plugin，
-      // 保证升级前已安装的插件（如 math-modeling）不会因删除旧格式扫描而消失。
-      // 用户自选的 plugins.dirs（inline）保持只读，不在这里改写。
-      if (candidate.source !== "inline") {
-        migrateLegacyPluginManifest(candidate.rootPath);
-      }
       const loaded = loadPlugin(candidate, diagnostics);
       if (!loaded) continue;
       // 内置（官方）插件被「卸载」后只在 user config 写 suppressedBuiltins 标记。这里在发现层
@@ -1176,14 +1167,12 @@ function resolvePluginAcceptance(
 }
 
 function findManifest(rootPath: string): string | null {
-  const nibiPath = join(rootPath, NIBI_MANIFEST_PATH);
-  return fileExists(nibiPath) ? nibiPath : null;
+  return findNativePluginManifest(rootPath);
 }
 
 function readManifest(path: string, diagnostics: PluginDiagnostic[]): PluginManifest | null {
   try {
-    const parsed = JSON.parse(readFileSync(path, "utf8")) as unknown;
-    if (!isRecord(parsed)) throw new Error("Manifest must be a JSON object");
+    const parsed = readNativePluginManifest(path);
     const name = typeof parsed.name === "string" ? parsed.name.trim() : "";
     if (!PLUGIN_NAME_PATTERN.test(name)) throw new Error(`Invalid plugin name: ${name}`);
     return {

@@ -12,7 +12,7 @@ const OFFICIAL: &str = "nibi-official";
 const CACHE: &str = "/Users/dev/.nibi/cli/plugins/cache";
 
 fn manifest(dir: &str, body: &str) -> (String, String) {
-    (format!("{dir}/.nibi-plugin/plugin.json"), body.to_owned())
+    (format!("{dir}/plugin.json"), body.to_owned())
 }
 
 fn env(files: &[(String, String)]) -> MemoryEnvironment {

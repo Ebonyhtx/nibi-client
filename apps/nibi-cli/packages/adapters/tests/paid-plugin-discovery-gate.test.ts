@@ -85,9 +85,9 @@ async function writePaidPluginFixture(input: {
 }): Promise<{ storageRoot: string; pluginRoot: string }> {
   const storageRoot = await makeTempDir("storage");
   const pluginRoot = join(await makeTempDir("plugin"), input.pluginName);
-  await mkdir(join(pluginRoot, ".nibi-plugin"), { recursive: true });
+  await mkdir(join(pluginRoot), { recursive: true });
   await writeFile(
-    join(pluginRoot, ".nibi-plugin", "plugin.json"),
+    join(pluginRoot, "plugin.json"),
     JSON.stringify({
       name: input.pluginName,
       version: "1.0.0",
@@ -97,7 +97,7 @@ async function writePaidPluginFixture(input: {
     }),
   );
   await writeFile(
-    join(pluginRoot, ".mcp.json"),
+    join(pluginRoot, "mcp.json"),
     JSON.stringify({
       mcpServers: { main: { command: "node", args: ["server.js"], type: "stdio" } },
     }),

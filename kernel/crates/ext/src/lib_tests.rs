@@ -223,7 +223,7 @@ async fn visualize_skills_follow_the_inline_view_host() {
     let env = || {
         MemoryEnvironment::new(facts())
             .with_file(
-                &format!("{visualize}/.nibi-plugin/plugin.json"),
+                &format!("{visualize}/plugin.json"),
                 r#"{"name": "visualize"}"#,
             )
             .with_file(
@@ -231,7 +231,7 @@ async fn visualize_skills_follow_the_inline_view_host() {
                 "---\ndescription: Inline views\n---\n",
             )
             .with_file(
-                &format!("{pdf}/.nibi-plugin/plugin.json"),
+                &format!("{pdf}/plugin.json"),
                 r#"{"name": "pdf"}"#,
             )
             .with_file(

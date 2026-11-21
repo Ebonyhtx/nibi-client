@@ -276,7 +276,7 @@ describe("plugins protocol contracts", () => {
         JSON.stringify({ plugins: { dirs: [pluginRoot], enabledPlugins: { "workspace-demo@inline": false } } }),
       );
       await writeTestFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({
           name: "workspace-demo", mcpServers: { panel: { command: "node", args: ["panel.mjs"] } },
           ui: { surfaces: [{ id: "panel", title: "Panel", server: "panel", resourceUri: "ui://demo/panel", availability: "session" }] },
@@ -360,7 +360,7 @@ describe("plugins protocol contracts", () => {
     const userConfigPath = join(FAKE_HOME, ".nibi", "cli", "config.json");
     try {
       await writeTestFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({
           name: "option-source-view",
           userConfig: {
@@ -598,14 +598,14 @@ describe("updatePlugin handler diagnostics", () => {
         },
       ]);
       await writeTestFile(
-        join(marketplaceRoot, ".claude-plugin", "marketplace.json"),
+        join(marketplaceRoot, "marketplace.json"),
         JSON.stringify({
           name: "lazy-market",
           plugins: [{ name: "demo", source: "./plugins/demo", version: "1.0.0" }],
         }),
       );
       await writeTestFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({ name: "demo", skills: "skills", version: "1.0.0" }),
       );
       await writeTestFile(join(pluginRoot, "skills", "demo", "SKILL.md"), "# demo");

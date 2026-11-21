@@ -21,7 +21,11 @@ export function loadPluginMcpServerDefinitions(input: {
   diagnostics: PluginDiagnostic[];
   loaded: LoadedPlugin;
 }): Record<string, unknown> {
-  const fromFile = loadMcpServersFromFile(join(input.loaded.rootPath, ".mcp.json"), input);
+  // Agent Plugins 固定根 mcp.json；旧 .mcp.json 仅过渡期兜底。
+  const fromFile = {
+    ...loadMcpServersFromFile(join(input.loaded.rootPath, ".mcp.json"), input),
+    ...loadMcpServersFromFile(join(input.loaded.rootPath, "mcp.json"), input),
+  };
   const fromManifest = loadMcpServersFromSpec(input.loaded.manifest.mcpServers, input);
   return { ...fromFile, ...fromManifest };
 }

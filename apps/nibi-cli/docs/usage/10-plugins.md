@@ -26,20 +26,27 @@ nibi plugins marketplace remove example-market
 
 ```text
 example-plugin/
-  .nibi-plugin/plugin.json
+  plugin.json
   skills/greet/SKILL.md
+  mcp.json
   commands/hello.md
 ```
 
-manifest 示例：
+根 `plugin.json` 遵循 Agent Plugins 1.0.0；NIBI 专属组件放
+`extensions["com.nibistudio.nibi"]`。manifest 示例：
 
 ```json
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "example-plugin",
   "version": "0.1.0",
   "description": "示例技能与命令",
-  "skills": "skills",
-  "commands": "commands"
+  "extensions": {
+    "com.nibistudio.nibi": {
+      "apiVersion": "1",
+      "commands": "./commands"
+    }
+  }
 }
 ```
 

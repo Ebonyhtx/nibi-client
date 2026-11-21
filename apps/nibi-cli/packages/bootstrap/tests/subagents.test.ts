@@ -23,7 +23,7 @@ function pluginMetadata(input: {
     declaredMcpServerNames: [],
     enabled: input.enabled ?? true,
     id: input.id,
-    manifestPath: join(input.rootPath, ".nibi-plugin", "plugin.json"),
+    manifestPath: join(input.rootPath, "plugin.json"),
     marketplace: input.marketplace ?? "claude-plugins-official",
     mcpServerNames: [],
     name: input.name,

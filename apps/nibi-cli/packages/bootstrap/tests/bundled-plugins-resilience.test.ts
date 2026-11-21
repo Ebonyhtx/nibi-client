@@ -114,10 +114,10 @@ import { resolveNibiPlugins } from "../src/plugins.js";
 const OFFICIAL_CACHE_ROOT = join("cache", "nibi-official");
 const BROWSER_CACHE_SUFFIX = join(OFFICIAL_CACHE_ROOT, "browser-use", "0.5.2");
 // 文档四件套在 plugin.json 里声明 mcpServers（会走运行时清单重写）；android/ios 只在
-// `.mcp.json` 声明。锁重写失败要有一个「确实会写入 plugin.json」的插件才能触发。
+// `mcp.json` 声明。锁重写失败要有一个「确实会写入 plugin.json」的插件才能触发。
 const ANDROID_CACHE_SUFFIX = join(OFFICIAL_CACHE_ROOT, "documents", "0.2.2");
 const SKILL_CREATOR_CACHE_SUFFIX = join(OFFICIAL_CACHE_ROOT, "skill-creator", "0.1.1");
-const ANDROID_MANIFEST_SUFFIX = join(ANDROID_CACHE_SUFFIX, ".nibi-plugin", "plugin.json");
+const ANDROID_MANIFEST_SUFFIX = join(ANDROID_CACHE_SUFFIX, "mcp.json");
 const CUA_DEFINITION = OFFICIAL_PLUGIN_DEFINITIONS.find(({ name }) => name === "computer-use");
 if (!CUA_DEFINITION) throw new Error("computer-use official plugin definition is missing");
 const CUA_CACHE_SUFFIX = join(OFFICIAL_CACHE_ROOT, CUA_DEFINITION.name, CUA_DEFINITION.version);
@@ -233,9 +233,9 @@ describe("bundled official plugin cache resilience", () => {
     // 未构建 dist 的旧 checkout）；其余插件继续从真实 monorepo 源解析。
     const entrypointRoot = join(storageRoot, "stale-entrypoint");
     const incompletePluginRoot = join(entrypointRoot, "packages", "browser-use-plugin");
-    await mkdir(join(incompletePluginRoot, ".nibi-plugin"), { recursive: true });
+    await mkdir(join(incompletePluginRoot), { recursive: true });
     await writeFile(
-      join(incompletePluginRoot, ".nibi-plugin", "plugin.json"),
+      join(incompletePluginRoot, "plugin.json"),
       JSON.stringify({ name: "browser-use", version: "0.5.2" }),
     );
     process.argv[1] = join(entrypointRoot, "nibi.cjs");
@@ -276,9 +276,9 @@ describe("bundled official plugin cache resilience", () => {
     // 全新安装：storageRoot 从未 seed 过，也没有任何旧版本缓存可回退。
     const entrypointRoot = join(storageRoot, "fresh-install-entrypoint");
     const incompletePluginRoot = join(entrypointRoot, "packages", "browser-use-plugin");
-    await mkdir(join(incompletePluginRoot, ".nibi-plugin"), { recursive: true });
+    await mkdir(join(incompletePluginRoot), { recursive: true });
     await writeFile(
-      join(incompletePluginRoot, ".nibi-plugin", "plugin.json"),
+      join(incompletePluginRoot, "plugin.json"),
       JSON.stringify({ name: "browser-use", version: "0.5.2" }),
     );
     process.argv[1] = join(entrypointRoot, "nibi.cjs");

@@ -47,9 +47,8 @@ const SEED_MEMO_REVISION = 1;
 const SEED_MEMO_MAX_ENTRIES = 4;
 
 const includedTopLevelPaths = new Set([
-  ".mcp.json",
-  // 插件包发现只认 .nibi-plugin；漏掉它会让 seed 静默裁掉清单目录，装完插件没有 plugin.json。
-  ".nibi-plugin",
+  "plugin.json",
+  "mcp.json",
   "README.md",
   // 官方内容插件新增 agents 后，filesystem seed 的顶层白名单未同步，目录被静默裁掉。
   "agents",
@@ -564,12 +563,13 @@ function resolveFilesystemSeedSource(input: {
       }
     }
     const files = collectFilesystemPluginFiles(rootPath, definition);
+    const missingSeedPaths = findMissingOfficialPluginSeedPaths(definition, files);
     return [
       {
         definition,
         files,
         hash: hashSeedFiles(files),
-        missingSeedPaths: findMissingOfficialPluginSeedPaths(definition, files),
+        missingSeedPaths,
         rootPath,
       },
     ];
@@ -1122,10 +1122,10 @@ function hashText(text: string): string {
 }
 
 /**
- * 清单路径判定：插件包只认 NIBI 自有清单 `.nibi-plugin/plugin.json`。
- * 旧 `.claude-plugin`/`.codex-plugin` 不再参与 seed（App 管理的旧缓存由适配器迁移）。
+ * 清单路径判定：插件包使用 Agent Plugins 根 `plugin.json`。
+ * 旧 `.claude-plugin`/`.codex-plugin` 不再参与 seed。
  */
-const PLUGIN_MANIFEST_RELATIVE_PATH = ".nibi-plugin/plugin.json";
+const PLUGIN_MANIFEST_RELATIVE_PATH = "plugin.json";
 
 function isPluginManifestPath(path: string): boolean {
   return path === PLUGIN_MANIFEST_RELATIVE_PATH;
@@ -1144,5 +1144,5 @@ function manifestRelativeSegments(definition: OfficialPluginDefinition): string[
   const manifest = (definition.requiredSeedPaths ?? []).find((path) =>
     isPluginManifestPath(path),
   );
-  return (manifest ?? ".nibi-plugin/plugin.json").split("/");
+  return (manifest ?? "plugin.json").split("/");
 }

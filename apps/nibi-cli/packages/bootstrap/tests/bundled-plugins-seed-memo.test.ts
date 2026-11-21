@@ -179,7 +179,7 @@ describe("bundled official plugin seed fast path", () => {
     const definition = OFFICIAL_PLUGIN_DEFINITIONS.find((item) => item.name === "documents");
     if (!definition) throw new Error("documents definition is missing");
     const requiredPath = definition.requiredSeedPaths?.find(
-      (path) => path !== ".nibi-plugin/plugin.json",
+      (path) => path !== "plugin.json",
     );
     if (!requiredPath) throw new Error("documents requiredSeedPaths is missing");
     const cachedRequiredPath = join(
@@ -239,7 +239,7 @@ describe("bundled official plugin seed fast path", () => {
     // 不允许再读 skills/docs 等资源正文。
     expect(
       sourceReads(fixture.resourceRoot).filter(
-        (path) => !path.endsWith(`${join(".nibi-plugin", "plugin.json")}`),
+        (path) => !path.endsWith(`${join("plugin.json")}`),
       ),
     ).toEqual([]);
   });
@@ -265,7 +265,7 @@ async function createBundledPluginFixture(cleanups: string[]): Promise<BundledPl
     const pluginRoot = join(resourceRoot, relativeRoot);
     pluginRoots.set(definition.name, pluginRoot);
 
-    const manifestPath = join(pluginRoot, ".nibi-plugin", "plugin.json");
+    const manifestPath = join(pluginRoot, "plugin.json");
     await mkdir(dirname(manifestPath), { recursive: true });
     await writeFile(
       manifestPath,
@@ -277,7 +277,7 @@ async function createBundledPluginFixture(cleanups: string[]): Promise<BundledPl
     );
 
     for (const relativePath of definition.requiredSeedPaths ?? []) {
-      if (relativePath === ".nibi-plugin/plugin.json") continue;
+      if (relativePath === "plugin.json") continue;
       const filePath = join(pluginRoot, ...relativePath.split("/"));
       await mkdir(dirname(filePath), { recursive: true });
       await writeFile(filePath, `fixture ${definition.name} ${relativePath}\n`);

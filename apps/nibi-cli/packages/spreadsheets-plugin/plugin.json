@@ -1,0 +1,35 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "spreadsheets",
+  "version": "0.2.2",
+  "description": "XLSX spreadsheet production skills and an Excel viewer panel, published as an official NIBI plugin.",
+  "author": {
+    "name": "NIBI"
+  },
+  "license": "Apache-2.0",
+  "extensions": {
+    "com.nibistudio.nibi": {
+      "apiVersion": "1",
+      "descriptionI18n": {
+        "en": "Spreadsheet skills for XLSX: create, edit, analyze, chart, and convert workbooks. View workbooks in a side panel: reference cells in chat, and the agent can read, search, point at and capture them.",
+        "zh-CN": "面向 XLSX 的电子表格技能：创建、编辑、分析、图表与格式转换；并可在侧栏查看工作簿，把单元格引用到对话，Agent 可以阅读、搜索、定位高亮并截取画面；另附 NIBI 的工具链：LibreOffice 真引擎重算、字号/压盖/缺字形等硬判据门禁。"
+      },
+      "agents": "agents",
+      "ui": {
+        "surfaces": [
+          {
+            "id": "spreadsheets",
+            "title": {
+              "zh-CN": "电子表格",
+              "en-US": "Spreadsheets"
+            },
+            "icon": "table",
+            "server": "spreadsheets",
+            "resourceUri": "ui://spreadsheets/panel.html",
+            "availability": "session"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -100,7 +100,8 @@ export const OFFICIAL_CUA_REQUIRED_SEED_PATHS = [
 // 副本真源在内置插件源 `plugins/<name>/`，由同步脚本强制逐字一致。
 // requiredSeedPaths 钉住"缺了就残缺"的关键文件：清单、子智能体、技能正文、主工具、共享工具包与锁文件。
 const OFFICIAL_DOC_SHARED_SEED_PATHS = [
-  ".nibi-plugin/plugin.json",
+  "plugin.json",
+  "mcp.json",
   "agents/visual-judge.md",
   "tools/env_doctor.py",
   "tools/page_zoom.py",
@@ -149,7 +150,8 @@ export const OFFICIAL_PDF_REQUIRED_SEED_PATHS = [
 // 上游随包内置的六个插件：我们也内置。种子清单钉住"缺了就残缺"的关键件
 // （清单 + 每个技能正文 + 命令/脚本入口），缺哪个都拒绝生成残缺缓存。
 export const OFFICIAL_ANDROID_EMULATOR_REQUIRED_SEED_PATHS = [
-  ".nibi-plugin/plugin.json",
+  "plugin.json",
+  "mcp.json",
   "commands/android-dev.md",
   "dist/mcp/server.js",
   "hooks/hooks.json",
@@ -157,7 +159,8 @@ export const OFFICIAL_ANDROID_EMULATOR_REQUIRED_SEED_PATHS = [
 ] as const;
 
 export const OFFICIAL_IOS_SIMULATOR_REQUIRED_SEED_PATHS = [
-  ".nibi-plugin/plugin.json",
+  "plugin.json",
+  "mcp.json",
   "commands/ios-dev.md",
   "dist/mcp/server.js",
   "hooks/hooks.json",
@@ -165,12 +168,12 @@ export const OFFICIAL_IOS_SIMULATOR_REQUIRED_SEED_PATHS = [
 ] as const;
 
 export const OFFICIAL_PLUGIN_CREATOR_REQUIRED_SEED_PATHS = [
-  ".nibi-plugin/plugin.json",
+  "plugin.json",
   "skills/plugin-creator/SKILL.md",
 ] as const;
 
 export const OFFICIAL_SKILL_CREATOR_REQUIRED_SEED_PATHS = [
-  ".nibi-plugin/plugin.json",
+  "plugin.json",
   "skills/skill-creator/SKILL.md",
 ] as const;
 
@@ -180,7 +183,7 @@ export const OFFICIAL_SKILL_CREATOR_REQUIRED_SEED_PATHS = [
 // NIBI：去品牌副本的技能目录名是 `configuration-guide`（上游为 `nibi-configuration-guide`），
 // 并补齐全部 diagnosing-* 正文——缺任一都拒绝生成残缺缓存。
 export const OFFICIAL_NIBI_GUIDE_REQUIRED_SEED_PATHS = [
-  ".nibi-plugin/plugin.json",
+  "plugin.json",
   "skills/configuration-guide/SKILL.md",
   "skills/diagnosing-commands/SKILL.md",
   "skills/diagnosing-hooks/SKILL.md",
@@ -203,7 +206,7 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
     },
     name: "visualize",
     requiredSeedPaths: [
-      ".nibi-plugin/plugin.json",
+      "plugin.json",
       "skills/visualize/SKILL.md",
       "skills/visualize/references/api.md",
       "skills/visualize/references/styles.md",
@@ -249,7 +252,7 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
     },
     name: "design",
     requiredSeedPaths: [
-      ".nibi-plugin/plugin.json",
+      "plugin.json",
       "skills/design/SKILL.md",
       "skills/design/references/output.md",
       "hooks/hooks.json",
@@ -361,7 +364,7 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
       // 0.2.0 起文档插件同时提供查看面板：MCP server 与面板资源由 office-runtime 构建进 dist/，
       // 缺任一项都会 seed 出能看到面板入口却无法启动的残缺插件。
       requiredSeedPaths: [
-        ".nibi-plugin/plugin.json",
+        "plugin.json",
         "agents/visual-judge.md",
         `skills/${skill}/SKILL.md`,
         `skills/${skill}-viewer/SKILL.md`,
@@ -418,7 +421,7 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
       "../../../plugin-creator-plugin",
     ],
     requiredSeedPaths: [
-      ".nibi-plugin/plugin.json",
+      "plugin.json",
       "skills/plugin-creator/SKILL.md",
       "skills/plugin-creator/scripts/create-basic-plugin.mjs",
       "skills/plugin-creator/scripts/marketplace-files.mjs",

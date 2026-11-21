@@ -37,10 +37,10 @@ function overview(storageRoot: string, workingDirectory: string) {
 async function makeLocalMarketplace(root: string, name: string): Promise<void> {
   const pluginDir = join(root, "plugins", "hello");
   await mkdir(join(root, ".claude-plugin"), { recursive: true });
-  await mkdir(join(pluginDir, ".nibi-plugin"), { recursive: true });
+  await mkdir(join(pluginDir), { recursive: true });
   await mkdir(join(pluginDir, "skills", "hello"), { recursive: true });
   await writeFile(
-    join(root, ".claude-plugin", "marketplace.json"),
+    join(root, "marketplace.json"),
     JSON.stringify(
       { name, plugins: [{ name: "hello", version: "1.0.0", source: "./plugins/hello" }] },
       null,
@@ -48,7 +48,7 @@ async function makeLocalMarketplace(root: string, name: string): Promise<void> {
     ),
   );
   await writeFile(
-    join(pluginDir, ".nibi-plugin", "plugin.json"),
+    join(pluginDir, "plugin.json"),
     JSON.stringify({ name: "hello", version: "1.0.0", skills: "skills" }, null, 2),
   );
   await writeFile(join(pluginDir, "skills", "hello", "SKILL.md"), "# hello\n");

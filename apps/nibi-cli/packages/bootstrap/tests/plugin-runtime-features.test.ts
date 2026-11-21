@@ -14,7 +14,7 @@ function plugin(id: string, enabled: boolean, rootPath = "/tmp/plugin"): PluginM
     enabled,
     hookDetails: [],
     id,
-    manifestPath: `${rootPath}/.nibi-plugin/plugin.json`,
+    manifestPath: `${rootPath}/plugin.json`,
     marketplace,
     mcpServerNames: [],
     name,

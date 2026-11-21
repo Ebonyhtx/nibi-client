@@ -1,0 +1,35 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "pdf",
+  "version": "0.2.3",
+  "description": "PDF production skills and a PDF viewer panel, published as an official NIBI plugin.",
+  "author": {
+    "name": "NIBI"
+  },
+  "license": "Apache-2.0",
+  "extensions": {
+    "com.nibistudio.nibi": {
+      "apiVersion": "1",
+      "descriptionI18n": {
+        "en": "PDF production skills: typeset and render reports, resumes, posters, and covers to PDF. View PDFs in a side panel: reference passages in chat, and the agent can read, search, point at and capture pages.",
+        "zh-CN": "PDF 制作技能：报告、简历、海报、封面的排版与渲染输出；并可在侧栏查看 PDF，把内容引用到对话，Agent 可以阅读、搜索、定位高亮并截取页面；另附 NIBI 的工具链：LibreOffice 真引擎重算、字号/压盖/缺字形等硬判据门禁。"
+      },
+      "agents": "agents",
+      "ui": {
+        "surfaces": [
+          {
+            "id": "pdf",
+            "title": {
+              "zh-CN": "PDF",
+              "en-US": "PDF"
+            },
+            "icon": "file-text",
+            "server": "pdf",
+            "resourceUri": "ui://pdf/panel.html",
+            "availability": "session"
+          }
+        ]
+      }
+    }
+  }
+}

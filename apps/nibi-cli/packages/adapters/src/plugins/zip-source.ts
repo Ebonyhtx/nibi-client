@@ -365,9 +365,7 @@ function resolveZipRoot(input: {
 }
 
 function hasPluginManifest(rootPath: string): boolean {
-  // 插件包只认 NIBI 自有清单目录。旧格式 zip 不再被识别为插件包，避免安装后
-  // 运行期又找不到 manifest。
-  return fileExists(join(rootPath, ".nibi-plugin", "plugin.json"));
+  return fileExists(join(rootPath, "plugin.json"));
 }
 
 function openZipFile(path: string): Promise<yauzl.ZipFile> {

@@ -19,7 +19,6 @@ import {
   hiddenDefaultPluginMarketplaces,
   isNibiPrimaryContentUrl,
   migrateLegacyNibiUrl,
-  NIBI_PLUGIN_MANIFEST_DIR,
   sanitizeNibiRuntimeEnv,
 } from "@nibi/shared";
 import { isNibiSignedContentUrl, verifyNibiContentSignature } from "@nibi/shared/node";
@@ -29,8 +28,10 @@ import {
   cleanupPluginSourceBestEffort,
   directoryExists,
   fileExists,
+  findNativePluginManifest,
   isRecord,
-  migrateLegacyPluginManifest,
+  NIBI_PLUGIN_EXTENSION_KEY,
+  readNativePluginManifest,
   resolveInside,
   sanitizePluginId,
 } from "./helpers.js";
@@ -84,10 +85,7 @@ const MARKETPLACE_JSON_MAX_REDIRECTS = 5;
 // 大包，又不再等满三分钟；失败时保留磁盘上的旧 manifest，且自动刷新有 10 分钟节流。
 export const MARKETPLACE_JSON_TIMEOUT_MS = 30_000;
 const claudeIconMigrationAttempts = new Set<string>();
-// 市场描述文件不是插件包清单：NIBI 原生布局是根 `marketplace.json`，旧市场根仍可读，
-// 用于兼容插件创建器生成的本地市场与已存在的 claude-plugins-official 记录。
-const LEGACY_MARKETPLACE_FILE = join(".claude-plugin", "marketplace.json");
-const NIBI_MANIFEST_PATH = join(NIBI_PLUGIN_MANIFEST_DIR, "plugin.json");
+// 市场描述文件不是插件包清单：NIBI 原生布局是根 `marketplace.json`。
 const DEFAULT_VERSION = "0.0.0";
 const GIT_CLONE_MAX_ATTEMPTS = 3;
 const GIT_COMMAND_TIMEOUT_MS = 90_000;
@@ -888,9 +886,6 @@ export function resolveInstalledPluginRoot(
     record.installPath ||
     getPluginCacheDir(storageRoot, record.marketplace, record.name, record.version);
   const recovered = recoverAtomicTargetSync(root);
-  // 老版本安装缓存可能只有 .claude-plugin/.codex-plugin 清单（strict:false 合成或早期
-  // 第三方包）。发现与商店详情都从这里取根目录，先一次性迁到 NIBI 自有格式。
-  migrateLegacyPluginManifest(recovered);
   return recovered;
 }
 
@@ -1820,11 +1815,9 @@ async function ensureMarketplaceEntryManifest(input: {
 }): Promise<void> {
   if (findPluginManifestPath(input.target)) return;
   if (input.entry.strict !== false) return;
-  // 合成清单也写 NIBI 自有格式；不能再生成 .claude-plugin，否则新安装的插件仍是旧格式。
-  const manifestDir = join(input.target, NIBI_PLUGIN_MANIFEST_DIR);
-  await mkdir(manifestDir, { recursive: true });
+  // 合成清单同样写 Agent Plugins 根 plugin.json + NIBI extensions。
   await writeJsonFile(
-    join(manifestDir, "plugin.json"),
+    join(input.target, "plugin.json"),
     createManifestFromMarketplaceEntry(input.entry),
   );
 }
@@ -1866,10 +1859,34 @@ function createManifestFromMarketplaceEntry(
   delete raw.examplePrompts;
   delete raw.examplePrompts_i18n;
   delete raw.requiresPaidPlan;
+  const extension: Record<string, unknown> = { apiVersion: "1" };
+  for (const key of [
+    "skills",
+    "commands",
+    "agents",
+    "hooks",
+    "mcpServers",
+    "ui",
+    "userConfig",
+    "acceptance",
+    "settings",
+    "dependencies",
+    "channels",
+    "lspServers",
+    "outputStyles",
+    "paid",
+  ]) {
+    if (raw[key] !== undefined) {
+      extension[key] = raw[key];
+      delete raw[key];
+    }
+  }
   return {
+    $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
     ...raw,
     name: entry.name,
     version: entry.version ?? DEFAULT_VERSION,
+    extensions: { [NIBI_PLUGIN_EXTENSION_KEY]: extension },
   };
 }
 
@@ -2579,12 +2596,7 @@ function normalizeDependencyRef(value: unknown): string | null {
 }
 
 function findMarketplaceManifestPath(rootPath: string, explicitPath?: string): string | null {
-  // NIBI 原生市场根清单优先；`.claude-plugin/marketplace.json` 只作为旧市场布局兼容读取。
-  const candidates = [
-    ...(explicitPath ? [explicitPath] : []),
-    MARKETPLACE_FILE,
-    LEGACY_MARKETPLACE_FILE,
-  ];
+  const candidates = [...(explicitPath ? [explicitPath] : []), MARKETPLACE_FILE];
   for (const candidate of candidates) {
     const path = resolveInside(rootPath, candidate);
     if (path && fileExists(path)) return path;
@@ -2593,8 +2605,7 @@ function findMarketplaceManifestPath(rootPath: string, explicitPath?: string): s
 }
 
 function findPluginManifestPath(rootPath: string): string | null {
-  const path = join(rootPath, NIBI_MANIFEST_PATH);
-  return fileExists(path) ? path : null;
+  return findNativePluginManifest(rootPath);
 }
 
 // 缓存路径段与安装记录的版本来源。优先取插件落盘 plugin.json 里的真实
@@ -2625,8 +2636,7 @@ function readPluginManifestFromRoot(
 ): { manifest: PluginManifest; manifestPath?: string } | null {
   const manifestPath = findPluginManifestPath(rootPath);
   if (manifestPath) {
-    const parsed = JSON.parse(readFileSync(manifestPath, "utf8")) as unknown;
-    if (!isRecord(parsed)) throw new Error("Plugin manifest must be a JSON object");
+    const parsed = readNativePluginManifest(manifestPath);
     const name = typeof parsed.name === "string" ? parsed.name.trim() : "";
     if (!PLUGIN_NAME_PATTERN.test(name)) throw new Error(`Invalid plugin name: ${name}`);
     return {

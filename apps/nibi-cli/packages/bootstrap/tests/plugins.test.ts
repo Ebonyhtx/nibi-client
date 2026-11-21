@@ -225,7 +225,7 @@ describe("Nibi plugins", () => {
         version: string;
       };
       const pluginManifest = JSON.parse(
-        await readFile(join(packageRoot, ".nibi-plugin", "plugin.json"), "utf8"),
+        await readFile(join(packageRoot, "plugin.json"), "utf8"),
       ) as { version: string };
 
       expect(
@@ -252,13 +252,17 @@ describe("Nibi plugins", () => {
     for (const plugin of OFFICIAL_PLUGIN_DEFINITIONS) {
       const packageRoot = join(packagesRoot, basename(plugin.rootCandidates[0] ?? ""));
       const pluginManifest = JSON.parse(
-        await readFile(join(packageRoot, ".nibi-plugin", "plugin.json"), "utf8"),
-      ) as { ui?: { surfaces?: unknown[] } };
+        await readFile(join(packageRoot, "plugin.json"), "utf8"),
+      ) as {
+        extensions?: Record<string, { ui?: { surfaces?: unknown[] } }>;
+      };
+      const uiSurfaces =
+        pluginManifest.extensions?.["com.nibistudio.nibi"]?.ui?.surfaces;
       // 卸载后的可恢复条目没有运行时信息，商店只能靠定义里的 componentTypes 归入「UI 插件」。
       expect(
         plugin.componentTypes?.includes("ui") ?? false,
         plugin.name,
-      ).toBe((pluginManifest.ui?.surfaces?.length ?? 0) > 0);
+      ).toBe((uiSurfaces?.length ?? 0) > 0);
     }
   });
 
@@ -322,7 +326,7 @@ describe("Nibi plugins", () => {
       expect(outcome.plugins.find((plugin) => plugin.name === "legacy-user-plugin")).toBeUndefined();
       // 用户自选目录按“清单缺失”处理，既不发现也不迁移/改写。
       expect(await readFile(userConfigPath, "utf8")).toBe(userConfigContents);
-      expect(existsSync(join(pluginRoot, ".nibi-plugin"))).toBe(false);
+      expect(existsSync(join(pluginRoot, "plugin.json"))).toBe(false);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -431,14 +435,14 @@ describe("Nibi plugins", () => {
         },
       ]);
       await writeTestFile(
-        join(marketplaceRoot, ".claude-plugin", "marketplace.json"),
+        join(marketplaceRoot, "marketplace.json"),
         JSON.stringify({
           name: "lazy-market",
           plugins: [{ name: "demo", source: "./plugins/demo", version: "1.0.0" }],
         }),
       );
       await writeTestFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({ name: "demo", skills: "skills", version: "1.0.0" }),
       );
       await writeTestFile(join(pluginRoot, "skills", "demo", "SKILL.md"), "# demo");
@@ -737,7 +741,7 @@ describe("Nibi plugins", () => {
         },
       ]);
       await writeTestFile(
-        join(marketplaceRoot, ".claude-plugin", "marketplace.json"),
+        join(marketplaceRoot, "marketplace.json"),
         JSON.stringify({
           name: "lazy-market",
           plugins: [
@@ -751,7 +755,7 @@ describe("Nibi plugins", () => {
         }),
       );
       await writeTestFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({
           name: "hello",
           skills: "skills",
@@ -826,7 +830,7 @@ describe("Nibi plugins", () => {
     try {
       const zipBuffer = createStoredZip([
         {
-          path: "hello-zip/.nibi-plugin/plugin.json",
+          path: "hello-zip/plugin.json",
           content: JSON.stringify({
             name: "hello-zip",
             skills: "skills",
@@ -856,7 +860,7 @@ describe("Nibi plugins", () => {
         },
       ]);
       await writeTestFile(
-        join(marketplaceRoot, ".claude-plugin", "marketplace.json"),
+        join(marketplaceRoot, "marketplace.json"),
         JSON.stringify({
           name: "zip-lazy-market",
           plugins: [
@@ -932,14 +936,14 @@ describe("Nibi plugins", () => {
         },
       ]);
       await writeTestFile(
-        join(marketplaceRoot, ".claude-plugin", "marketplace.json"),
+        join(marketplaceRoot, "marketplace.json"),
         JSON.stringify({
           name: "lazy-market",
           plugins: [{ name: "hello", source: "./plugins/hello" }],
         }),
       );
       await writeTestFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({ name: "hello", skills: "skills" }),
       );
       await writeTestFile(join(pluginRoot, "skills", "hello", "SKILL.md"), "# hello");
@@ -991,14 +995,14 @@ describe("Nibi plugins", () => {
         },
       ]);
       await writeTestFile(
-        join(marketplaceRoot, ".claude-plugin", "marketplace.json"),
+        join(marketplaceRoot, "marketplace.json"),
         JSON.stringify({
           name: "lazy-market",
           plugins: [{ name: "hello", source: "./plugins/hello" }],
         }),
       );
       await writeTestFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({ name: "hello", skills: "skills" }),
       );
       await writeTestFile(join(pluginRoot, "skills", "hello", "SKILL.md"), "# hello");
@@ -1072,7 +1076,7 @@ describe("Nibi plugins", () => {
 
     try {
       await writeTestFile(
-        join(installPath, ".nibi-plugin", "plugin.json"),
+        join(installPath, "plugin.json"),
         JSON.stringify({
           name: "example-plugin",
           version: "0.2.0",
@@ -1145,7 +1149,7 @@ describe("Nibi plugins", () => {
 
     try {
       await writeTestFile(
-        join(installPath, ".nibi-plugin", "plugin.json"),
+        join(installPath, "plugin.json"),
         JSON.stringify({ name: "example-plugin", version: "0.2.0" }),
       );
       await writeTestFile(
@@ -1402,9 +1406,9 @@ describe("Nibi plugins", () => {
           },
         }),
       );
-      await mkdir(join(cdnSourceRoot, ".nibi-plugin"), { recursive: true });
+      await mkdir(join(cdnSourceRoot), { recursive: true });
       await writeFile(
-        join(cdnSourceRoot, ".nibi-plugin", "plugin.json"),
+        join(cdnSourceRoot, "plugin.json"),
         JSON.stringify({
           name: "documents",
           version: "1.0.0",
@@ -1649,7 +1653,7 @@ describe("Nibi plugins", () => {
     try {
       await writeTestFile(join(entryRoot, "nibi.cjs"), "");
       await writeTestFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({
           name: "skill-creator",
           skills: "skills",
@@ -1664,12 +1668,12 @@ describe("Nibi plugins", () => {
       await writeTestFile(join(pluginRoot, "skills", "skill-creator", "SKILL.md"), "# skill");
 
       const seedFiles = await hashFixtureSeedFiles(pluginRoot, [
-        ".nibi-plugin/plugin.json",
+        "plugin.json",
         "hooks/hooks.json",
         "hooks/run-hook.cmd",
         "skills/skill-creator/SKILL.md",
       ]);
-      await writeTestFile(join(targetRoot, ".nibi-plugin", "plugin.json"), "{}");
+      await writeTestFile(join(targetRoot, "plugin.json"), "{}");
       await writeTestFile(join(targetRoot, "hooks", "run-hook.cmd"), "#!/usr/bin/env bash\n");
       await writeTestFile(
         join(targetRoot, ".nibi-plugin-seed.json"),
@@ -1714,7 +1718,7 @@ describe("Nibi plugins", () => {
       const outcome = resolveNibiPlugins({
         env: {},
         pluginStorageRoot,
-        // ios/android 把 MCP 声明在插件根 `.mcp.json`；生产态的重写由
+        // ios/android 把 MCP 声明在插件根 `mcp.json`；生产态的重写由
         // officialPluginHostPrefixArgs() 驱动，但它在 vitest 下被测试闸门挡成 undefined。
         // 显式注入假前缀，才能覆盖真实重写路径（下面的断言保持 command/args/env 不变）。
         runtimeHostPrefixArgs: [NIBI_PLUGIN_HOST_COMMAND],
@@ -1805,7 +1809,7 @@ describe("Nibi plugins", () => {
       const outcome = resolveNibiPlugins({
         env: {},
         pluginStorageRoot,
-        // 同上：注入假宿主前缀，让 `.mcp.json` 的重写在测试进程里真正执行。
+        // 同上：注入假宿主前缀，让 `mcp.json` 的重写在测试进程里真正执行。
         runtimeHostPrefixArgs: [NIBI_PLUGIN_HOST_COMMAND],
         userConfigPath: configPath,
         workingDirectory: root,
@@ -1882,7 +1886,7 @@ describe("Nibi plugins", () => {
 
     try {
       await writeTestFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({
           name: "secret-plugin",
           userConfig: {
@@ -2005,7 +2009,7 @@ describe("Nibi plugins", () => {
 
     try {
       await writeTestFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({ name: "workspace-plugin", userConfig: {} }),
       );
       await writeTestFile(userConfigPath, JSON.stringify({ plugins: { dirs: [pluginRoot] } }));
@@ -2055,7 +2059,7 @@ describe("Nibi plugins", () => {
 
     try {
       await writeTestFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({ name: "workspace-plugin", userConfig: {} }),
       );
       await writeTestFile(
@@ -2099,7 +2103,7 @@ describe("Nibi plugins", () => {
     try {
       await mkdir(join(repositoryRoot, ".git"), { recursive: true });
       await writeTestFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({ name: "workspace-plugin", userConfig: {} }),
       );
       await writeTestFile(userConfigPath, JSON.stringify({ plugins: { dirs: [pluginRoot] } }));
@@ -2219,7 +2223,7 @@ describe("Nibi plugins", () => {
 
     try {
       await writeTestFile(
-        join(marketplaceRoot, ".claude-plugin", "marketplace.json"),
+        join(marketplaceRoot, "marketplace.json"),
         JSON.stringify({
           name: marketplaceId,
           plugins: [
@@ -2232,7 +2236,7 @@ describe("Nibi plugins", () => {
         }),
       );
       await writeTestFile(
-        join(pluginRoot, ".nibi-plugin", "plugin.json"),
+        join(pluginRoot, "plugin.json"),
         JSON.stringify({
           name: pluginName,
           skills: "skills",
@@ -2499,7 +2503,7 @@ describe("Nibi plugins", () => {
     const marketplaceId = "shared-market";
     try {
       await writeTestFile(
-        join(workspaceSource, ".claude-plugin", "marketplace.json"),
+        join(workspaceSource, "marketplace.json"),
         JSON.stringify({ name: marketplaceId, plugins: [] }),
       );
       await writeKnownMarketplaces(pluginStorageRoot, [
@@ -2587,7 +2591,7 @@ describe("Nibi plugins", () => {
     const marketplaceId = "workspace-refresh-abort";
     try {
       await writeTestFile(
-        join(marketplaceRoot, ".claude-plugin", "marketplace.json"),
+        join(marketplaceRoot, "marketplace.json"),
         JSON.stringify({
           name: marketplaceId,
           plugins: [],
@@ -2727,7 +2731,7 @@ describe("Nibi plugins", () => {
           definition.version,
         );
         expect(
-          existsSync(join(cacheRoot, ".nibi-plugin", "plugin.json")),
+          existsSync(join(cacheRoot, "plugin.json")),
           definition.name,
         ).toBe(true);
         expect(existsSync(join(cacheRoot, ".claude-plugin"))).toBe(false);
