@@ -36,6 +36,7 @@ import {
 } from "@nibi/shared";
 import type {
   Logger,
+  PluginCapabilityGrant,
   PluginDiagnostic,
   PluginLoadOutcome,
   PluginMetadata,
@@ -140,6 +141,7 @@ export function toPluginInfo(plugin: PluginMetadata, configResult?: ConfigResult
       pluginId: plugin.id, pluginName: plugin.name, id: surface.id, title: surface.title,
       ...(surface.icon ? { icon: surface.icon } : {}), server: surface.server,
       resourceUri: surface.resourceUri, availability: surface.availability,
+      ...(surface.slot ? { slot: surface.slot } : {}),
     })) } : {}),
     mcpServerNames: plugin.mcpServerNames,
     ...(hostMcpServerNames.length > 0 ? { hostMcpServerNames } : {}),
@@ -393,7 +395,7 @@ export async function setPluginConsent(
     });
     if (sensitiveCapabilities.length > 0) {
       writePluginGrants({
-        grants: sensitiveCapabilities,
+        grants: sensitiveCapabilities as PluginCapabilityGrant[],
         pluginId: plugin.id,
         storageRoot,
         version,

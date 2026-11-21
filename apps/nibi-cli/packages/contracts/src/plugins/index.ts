@@ -313,6 +313,8 @@ export interface CanonicalPlugin {
 
 /** 面板生命周期：第一版只接受会话级；`draft` 留待需要时放开。 */
 export type PluginUiSurfaceAvailability = "session";
+/** 声明式插槽锚点：第一版只开放 composer 状态条与主导航。 */
+export type PluginUiSlot = "composer.status" | "nav.primary";
 /** 标题：单一字符串或按 locale 键的映射（`{ "zh-CN": "...", "en-US": "..." }`）。 */
 export type PluginUiSurfaceTitle = string | Record<string, string>;
 export interface PluginUiSurfaceDefinition {
@@ -326,6 +328,8 @@ export interface PluginUiSurfaceDefinition {
   /** 必须以 `ui://` 开头。 */
   resourceUri: string;
   availability: PluginUiSurfaceAvailability;
+  /** 声明式插槽锚点；缺省 = 只在启动器/标签页里出现。 */
+  slot?: PluginUiSlot;
 }
 
 export interface PluginConfig {

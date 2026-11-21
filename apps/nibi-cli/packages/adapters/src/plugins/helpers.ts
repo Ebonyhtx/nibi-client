@@ -469,9 +469,12 @@ export function appendPluginAuditEvent(
   storageRoot: string,
   event: {
     at: string;
+    capability?: string;
     permissions?: readonly PluginPermission[];
     pluginId: string;
     type:
+      | "capability_denied"
+      | "capability_invoked"
       | "consent_granted"
       | "consent_revoked"
       | "consent_required"

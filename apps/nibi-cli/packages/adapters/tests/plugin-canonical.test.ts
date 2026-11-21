@@ -514,6 +514,90 @@ describe("NIBI extension capabilities and runtime", () => {
     }
   });
 
+  it("parses declarative composer and navigation slot anchors", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-ui-slots-"));
+    try {
+      await writeJson(join(dir, "plugin.json"), {
+        name: "slot-plugin",
+        version: "1.0.0",
+        extensions: {
+          "com.nibistudio.nibi": {
+            ui: {
+              surfaces: [
+                {
+                  id: "composer",
+                  title: "Composer panel",
+                  server: "panel",
+                  resourceUri: "ui://slot/composer",
+                  availability: "session",
+                  slot: "composer.status",
+                },
+                {
+                  id: "nav",
+                  title: "Nav panel",
+                  server: "panel",
+                  resourceUri: "ui://slot/nav",
+                  availability: "session",
+                  slot: "nav.primary",
+                },
+              ],
+            },
+          },
+        },
+      });
+      await writeJson(join(dir, "mcp.json"), {
+        mcpServers: { panel: { command: "node", args: ["panel.mjs"] } },
+      });
+
+      const outcome = await discover(dir, { official: true });
+      expect(outcome.plugins[0]?.uiSurfaces).toMatchObject([
+        { id: "composer", slot: "composer.status" },
+        { id: "nav", slot: "nav.primary" },
+      ]);
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("drops a surface with an unknown slot and records a diagnostic", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-ui-slot-invalid-"));
+    try {
+      await writeJson(join(dir, "plugin.json"), {
+        name: "bad-slot-plugin",
+        version: "1.0.0",
+        extensions: {
+          "com.nibistudio.nibi": {
+            ui: {
+              surfaces: [
+                {
+                  id: "bad",
+                  title: "Bad",
+                  server: "panel",
+                  resourceUri: "ui://slot/bad",
+                  availability: "session",
+                  slot: "somewhere.else",
+                },
+              ],
+            },
+          },
+        },
+      });
+      await writeJson(join(dir, "mcp.json"), {
+        mcpServers: { panel: { command: "node", args: ["panel.mjs"] } },
+      });
+
+      const outcome = await discover(dir, { official: true });
+      expect(outcome.plugins[0]?.uiSurfaces).toBeUndefined();
+      expect(outcome.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "plugin_manifest_invalid" }),
+        ]),
+      );
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
   it("marks runtime unsupported for a foreign Claude layout", async () => {
     const dir = await mkdtemp(join(tmpdir(), "nibi-runtime-foreign-"));
     try {

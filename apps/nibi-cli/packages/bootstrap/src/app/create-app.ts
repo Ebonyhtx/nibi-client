@@ -63,6 +63,7 @@ import {
   resolveEffectiveConfigResult,
 } from "./app-config-options.js";
 import { getCliStorageRoot, getModelIoDir, projectIdFromDirectory } from "./paths.js";
+import { getPluginStorageRoot } from "./storage-paths.js";
 import { resolveMcpNodeFallbackProvider } from "./mcpNodeFallback/index.js";
 import {
   asInputHistoryStore,
@@ -125,6 +126,10 @@ import {
   resolveStartupPlugins,
   startAppStartup,
 } from "./startup-marks.js";
+import {
+  activatePluginExtensions,
+  type PluginExtensionHost,
+} from "../plugins.js";
 
 function decodePromptAttachmentDataUrl(
   content: string,
@@ -218,6 +223,7 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
   });
   let nodeReplBrowserBroker: NodeReplBrowserBroker | undefined;
   let ownedNodeReplBrowserBroker: NodeReplBrowserBroker | undefined;
+  let pluginExtensionHost: PluginExtensionHost | undefined;
   let providerModelRuntime: ApiProviderModelRuntime | undefined;
   try {
     const storageRoot = resolvePath(configResult.config.storage.dir);
@@ -276,6 +282,35 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
     const sessionStore =
       options.sessionStore ?? (await openStartupSessionStore(configResult, startupTimer));
     const localSettingStore = asLocalSettingStore(sessionStore);
+    try {
+      pluginExtensionHost = await activatePluginExtensions({
+        logger,
+        plugins: pluginOutcome.plugins,
+        storageRoot: getPluginStorageRoot(cliStorageRoot),
+        workspacePath: workingDirectory,
+        handlers: {
+          // v1 只读当前工作区会话；不暴露提示词、文件路径或分页游标。
+          readSessions: async (input) => {
+            const sessions = await sessionStore.listSessions({
+              directory: workingDirectory,
+              limit: Math.max(1, Math.min(input.limit ?? 50, 100)),
+            });
+            return sessions.map((session) => ({
+              id: session.id,
+              parentId: session.parentID ?? null,
+              title: session.title,
+              createdAt: session.time.created,
+              updatedAt: session.time.updated,
+            }));
+          },
+        },
+      });
+    } catch (error) {
+      // 扩展代码失败不能阻断 App 启动；声明式组件仍可用。
+      logger.warn("[plugins] extension host activation failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     const projectID = projectIdFromDirectory(workingDirectory);
     const persistedMode = options.runtimeConfig?.mode
       ? undefined
@@ -1295,12 +1330,16 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
       ...sessionFacade,
       close: async () => {
         try {
-          await closeSession?.();
+          await pluginExtensionHost?.dispose();
         } finally {
           try {
-            providerModelRuntime?.dispose();
+            await closeSession?.();
           } finally {
-            await modelTelemetry.shutdown();
+            try {
+              providerModelRuntime?.dispose();
+            } finally {
+              await modelTelemetry.shutdown();
+            }
           }
         }
       },
@@ -1471,6 +1510,7 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
       ...inputFacade,
     };
   } catch (error) {
+    await pluginExtensionHost?.dispose().catch(() => undefined);
     providerModelRuntime?.dispose();
     void modelTelemetry.shutdown().catch(() => undefined);
     void ownedNodeReplBrowserBroker?.close();

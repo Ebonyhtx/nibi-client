@@ -7,13 +7,74 @@ import { resolveItemDisplayName, resolveItemDescription } from "@/settings/plugi
 import { useEffect, type ReactNode } from "react";
 import { PluginStoreAvatar } from "@/settings/PluginStoreAvatar.js";
 import { PuzzleIcon, type LucideIcon } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button.js";
+import { Button, buttonVariants } from "@/components/ui/button.js";
 import { Spinner } from "@/components/ui/spinner.js";
 import { cn } from "@/components/lib/utils.js";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import type { OpenPluginUiSideTabRequest } from "@/plugin-ui/contract.js";
 import { resolvePluginUiSurfaceTitle } from "@/plugin-ui/adapters/usePluginUiSurfaces.js";
+import { usePluginUiSurfaces } from "@/plugin-ui/adapters/usePluginUiSurfaces.js";
+import { useOpenPluginUi } from "@/plugin-ui/adapters/PluginUiProviders.js";
+
+/**
+ * `composer.status` 插槽：已启用插件声明该锚点时，在输入框工具条显示一个入口。
+ * 只渲染工作区级 surface 列表；点击复用现有侧栏标签页打开链路，不新建页面系统。
+ */
+export function PluginUiComposerSlots({
+  workspacePath,
+  workspaceIdentity,
+  sessionId,
+}: {
+  workspacePath: string;
+  workspaceIdentity?: string;
+  sessionId: string | null;
+}) {
+  const openPluginUi = useOpenPluginUi();
+  const { locale, intl } = useNibiIntl();
+  const surfaces = usePluginUiSurfaces({
+    workspacePath,
+    workspaceIdentity,
+    enabled: sessionId !== null,
+  });
+  const slots = surfaces.filter((surface) => surface.slot === "composer.status");
+  if (!openPluginUi || !sessionId || slots.length === 0) return null;
+  return (
+    <div className="flex min-w-0 items-center gap-1" data-testid="plugin-composer-slots">
+      {slots.map((surface) => {
+        const title = resolvePluginUiSurfaceTitle(surface.title, locale);
+        const label =
+          title ||
+          intl.formatMessage({ id: "settings.plugins.store.ui.open" });
+        return (
+          <Button
+            key={`${surface.pluginId}:${surface.id}`}
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 max-w-40 px-2 text-ui-sm"
+            title={label}
+            onClick={() =>
+              openPluginUi({
+                parentSessionId: sessionId,
+                surfaceId: surface.id,
+                serverName: surface.server,
+                pluginId: surface.pluginId,
+                resourceUri: surface.resourceUri,
+                title: label,
+                workspacePath,
+                ...(workspaceIdentity ? { workspaceIdentity } : {}),
+              })
+            }
+          >
+            <PuzzleIcon className="mr-1 size-3.5 shrink-0" aria-hidden="true" />
+            <span className="truncate">{label}</span>
+          </Button>
+        );
+      })}
+    </div>
+  );
+}
 
 export interface PluginUiLauncherItemsProps {
   workspacePath: string;

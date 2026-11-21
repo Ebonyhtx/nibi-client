@@ -2872,6 +2872,7 @@ export const nibiPluginUiSurfaceSchema = z
     server: nonEmptyString,
     resourceUri: nonEmptyString.max(2048),
     availability: z.literal("session"),
+    slot: z.enum(["composer.status", "nav.primary"]).optional(),
   })
   .strict();
 export type NibiPluginUiSurface = z.infer<typeof nibiPluginUiSurfaceSchema>;
