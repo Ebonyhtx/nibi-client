@@ -12,7 +12,12 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import type { PluginDiagnostic, PluginManifest, PluginStoreListing } from "@nibi/contracts";
+import type {
+  PluginAdapterId,
+  PluginDiagnostic,
+  PluginManifest,
+  PluginStoreListing,
+} from "@nibi/contracts";
 import { isOfficialMarketplaceId, NIBI_OFFICIAL_PLUGIN_MARKETPLACE } from "@nibi/contracts";
 import {
   DEFAULT_PLUGIN_MARKETPLACES,
@@ -26,13 +31,17 @@ import { loadPluginMcpServerDefinitions, resolvePluginMcpServers } from "./mcp.j
 import {
   appendPluginSourceCleanupError,
   cleanupPluginSourceBestEffort,
+  createCanonicalPlugin,
   directoryExists,
   fileExists,
+  findPluginManifest,
   findNativePluginManifest,
   isRecord,
   NIBI_PLUGIN_EXTENSION_KEY,
+  readPluginManifestDocument,
   readNativePluginManifest,
   resolveInside,
+  resolveMarketplaceTrust,
   sanitizePluginId,
 } from "./helpers.js";
 import { enumeratePluginComponents, type PluginComponentGroup } from "./plugin-components.js";
@@ -71,6 +80,16 @@ const execFileAsync = promisify(execFile);
 const KNOWN_MARKETPLACES_FILE = "known_marketplaces.json";
 const INSTALLED_PLUGINS_FILE = "installed_plugins.json";
 const MARKETPLACE_FILE = "marketplace.json";
+/**
+ * 外部市场源的规范清单位置：本地缓存统一写根 `marketplace.json`，
+ * Claude/Codex 生态的仓库则把清单放在各自的隐藏目录。读取顺序固定为
+ * 根 > Claude > ZCode；写入永远只写根，不复制外来的隐藏目录。
+ */
+const MARKETPLACE_SOURCE_FILES = [
+  MARKETPLACE_FILE,
+  join(".claude-plugin", MARKETPLACE_FILE),
+  join(".zcode-plugin", MARKETPLACE_FILE),
+] as const;
 const CLAUDE_OFFICIAL_MARKETPLACE = "claude-plugins-official";
 const PLUGIN_ICON_SOURCES_FILE = "icon-sources.json";
 // 图标与来源表都走自有内容主机（分家标准 §2）。这张表只服务「上游 claude 市场」的图标
@@ -1166,7 +1185,11 @@ function readComponentsAtRoot(input: {
   marketplace: string;
   rootPath: string;
 }): { components: PluginComponentGroup[]; metadata?: PluginManifestDisplayMetadata } {
-  let loadedManifest: { manifest: PluginManifest; manifestPath?: string } | null = null;
+  let loadedManifest: {
+    adapterId: PluginAdapterId;
+    manifest: PluginManifest;
+    manifestPath?: string;
+  } | null = null;
   try {
     loadedManifest = readPluginManifestFromRoot(
       input.rootPath,
@@ -1178,6 +1201,13 @@ function readComponentsAtRoot(input: {
   }
   const loaded = loadedManifest
     ? {
+        canonical: createCanonicalPlugin({
+          adapterId: loadedManifest.adapterId,
+          manifest: loadedManifest.manifest,
+          manifestPath: loadedManifest.manifestPath ?? input.rootPath,
+          rootPath: input.rootPath,
+          trust: resolveMarketplaceTrust(input.marketplace),
+        }),
         id: `${loadedManifest.manifest.name}@${input.marketplace}`,
         manifest: loadedManifest.manifest,
         manifestPath: loadedManifest.manifestPath ?? input.rootPath,
@@ -2596,7 +2626,10 @@ function normalizeDependencyRef(value: unknown): string | null {
 }
 
 function findMarketplaceManifestPath(rootPath: string, explicitPath?: string): string | null {
-  const candidates = [...(explicitPath ? [explicitPath] : []), MARKETPLACE_FILE];
+  const candidates = [
+    ...(explicitPath ? [explicitPath] : []),
+    ...MARKETPLACE_SOURCE_FILES,
+  ];
   for (const candidate of candidates) {
     const path = resolveInside(rootPath, candidate);
     if (path && fileExists(path)) return path;
@@ -2633,24 +2666,27 @@ function resolveInstalledPluginVersion(rootPath: string, entry: PluginMarketplac
 function readPluginManifestFromRoot(
   rootPath: string,
   entry: PluginMarketplaceEntry,
-): { manifest: PluginManifest; manifestPath?: string } | null {
-  const manifestPath = findPluginManifestPath(rootPath);
-  if (manifestPath) {
-    const parsed = readNativePluginManifest(manifestPath);
+): { adapterId: PluginAdapterId; manifest: PluginManifest; manifestPath?: string } | null {
+  const detected = findPluginManifest(rootPath);
+  if (detected) {
+    const document = readPluginManifestDocument(detected.path, detected.adapterId);
+    const parsed = document.manifest;
     const name = typeof parsed.name === "string" ? parsed.name.trim() : "";
     if (!PLUGIN_NAME_PATTERN.test(name)) throw new Error(`Invalid plugin name: ${name}`);
     return {
+      adapterId: document.adapterId,
       manifest: {
         ...parsed,
         name,
         version: typeof parsed.version === "string" ? parsed.version : DEFAULT_VERSION,
       } as PluginManifest,
-      manifestPath,
+      manifestPath: detected.path,
     };
   }
   if (entry.strict === false) {
     const rawManifest = createManifestFromMarketplaceEntry(entry);
     return {
+      adapterId: "agent-plugins",
       manifest: rawManifest as unknown as PluginManifest,
     };
   }
@@ -2665,7 +2701,11 @@ function validatePluginRoot(input: {
 }): PluginValidationDiagnostic[] {
   const diagnostics: PluginValidationDiagnostic[] = [];
   const pluginId = `${input.entry.name}@${input.marketplace}`;
-  let loadedManifest: { manifest: PluginManifest; manifestPath?: string } | null = null;
+  let loadedManifest: {
+    adapterId: PluginAdapterId;
+    manifest: PluginManifest;
+    manifestPath?: string;
+  } | null = null;
   try {
     loadedManifest = readPluginManifestFromRoot(input.rootPath, input.entry);
   } catch (error) {

@@ -81,9 +81,9 @@ function marketplacePluginRoot(
 }
 
 function writePluginManifest(pluginRoot: string, manifest: Record<string, unknown>): void {
-  mkdirSync(join(pluginRoot, ".nibi-plugin"), { recursive: true });
+  mkdirSync(pluginRoot, { recursive: true });
   writeFileSync(
-    join(pluginRoot, ".nibi-plugin", "plugin.json"),
+    join(pluginRoot, "plugin.json"),
     JSON.stringify(manifest, null, 2),
     "utf-8",
   );
@@ -774,7 +774,7 @@ amazon-body`,
     ]);
   });
 
-  it("忽略只有旧 .claude-plugin 清单的插件目录", async () => {
+  it("读取只有旧 .claude-plugin 清单的插件目录（只读适配）", async () => {
     const home = makeTempHome();
     const workspacePath = join(home, "workspace");
     const pluginRoot = marketplacePluginRoot(home, "claude-plugins-official", "legacy-only");
@@ -808,7 +808,14 @@ legacy-body`,
     const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
     const result = await service.list({ workspacePath, provider: "nibi-agent" });
 
-    expect(result.skills).toEqual([]);
+    expect(result.skills).toEqual([
+      expect.objectContaining({
+        name: "legacy-only",
+        pluginId: "legacy-only@claude-plugins-official",
+        pluginName: "legacy-only",
+        scope: "plugin",
+      }),
+    ]);
   });
 
   // Bugfix 回归（差一层目录）：Claude 插件规范里 manifest skills 数组项指向「技能目录本身」

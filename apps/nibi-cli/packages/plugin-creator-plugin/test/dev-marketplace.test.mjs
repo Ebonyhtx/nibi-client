@@ -45,7 +45,7 @@ test("dev listing is stable, localized, idempotent and preserves source and othe
     market.plugins.unshift({ name: "other", source: "./other", custom: true });
     market.plugins[1].custom = 42;
     await writeFile(first.marketplacePath, JSON.stringify(market));
-    const manifestPath = join(plugin, ".nibi-plugin/plugin.json");
+    const manifestPath = join(plugin, "plugin.json");
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
     manifest.version = "0.1.1";
     await writeFile(manifestPath, JSON.stringify(manifest));

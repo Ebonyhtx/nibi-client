@@ -3940,7 +3940,7 @@ describe("NodePluginAdapter", () => {
     }
   });
 
-  it("ignores legacy Claude and Codex manifests when no NIBI manifest exists", async () => {
+  it("loads legacy Claude and Codex manifests through read-only adapters", async () => {
     const dir = await mkdtemp(join(tmpdir(), "nibi-legacy-plugin-"));
     const pluginRoot = join(dir, "legacy-only");
 
@@ -3962,21 +3962,17 @@ describe("NodePluginAdapter", () => {
         workingDirectory: dir,
       });
 
-      expect(outcome.plugins).toEqual([]);
-      expect(outcome.diagnostics).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            code: "plugin_manifest_not_found",
-            path: pluginRoot,
-          }),
-        ]),
+      expect(outcome.plugins[0]?.id).toBe("claude-name@inline");
+      expect(outcome.plugins[0]?.manifestPath).toBe(
+        join(pluginRoot, ".claude-plugin", "plugin.json"),
       );
+      expect(existsSync(join(pluginRoot, "plugin.json"))).toBe(false);
     } finally {
       await rm(dir, { force: true, recursive: true });
     }
   });
 
-  it("ignores a legacy .claude-plugin cache without a native manifest", async () => {
+  it("loads a legacy .claude-plugin cache through a read-only adapter", async () => {
     const dir = await mkdtemp(join(tmpdir(), "nibi-legacy-install-"));
     const storageRoot = join(dir, "plugins");
     const installPath = join(
@@ -4031,11 +4027,16 @@ describe("NodePluginAdapter", () => {
         workingDirectory: dir,
       });
 
-      expect(outcome.plugins).toEqual([]);
-      expect(outcome.diagnostics).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ code: "plugin_manifest_not_found", path: installPath }),
-        ]),
+      const installed = outcome.plugins.find(
+        (plugin) => plugin.id === "math-modeling@nibi-official",
+      );
+      expect(installed).toMatchObject({
+        enabled: true,
+        name: "math-modeling",
+        skillCount: 1,
+      });
+      expect(installed?.manifestPath).toBe(
+        join(installPath, ".claude-plugin", "plugin.json"),
       );
       expect(existsSync(join(installPath, "plugin.json"))).toBe(false);
     } finally {
@@ -4114,7 +4115,7 @@ describe("NodePluginAdapter", () => {
     }
   });
 
-  it("does not expand legacy CLAUDE_PLUGIN_ROOT in plugin MCP config", async () => {
+  it("expands legacy plugin root aliases in plugin MCP config", async () => {
     const dir = await mkdtemp(join(tmpdir(), "nibi-legacy-vars-"));
     const pluginRoot = join(dir, "legacy-vars");
 
@@ -4143,8 +4144,10 @@ describe("NodePluginAdapter", () => {
         workingDirectory: dir,
       });
 
+      // Claude/ZCode 插件把根路径写在各自的别名里；适配器只读映射到同一插件根，
+      // 不把值带进用户环境，也不允许它指向插件根以外。
       expect(outcome.mcpServers["plugin:legacy-vars:db"]?.args).toEqual([
-        "${CLAUDE_PLUGIN_ROOT}/old",
+        `${pluginRoot}/old`,
         `${pluginRoot}/new`,
       ]);
     } finally {

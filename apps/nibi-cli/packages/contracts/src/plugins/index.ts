@@ -1,5 +1,8 @@
 import type { CustomCommandRoot } from "../commands/index.js";
-import type { HookEventName, HookMatcherConfig } from "../hooks/index.js";
+import type {
+  HookMatcherConfig,
+  PluginHookEventName,
+} from "../hooks/index.js";
 import type { McpServerConfig } from "../interfaces/mcp.port.js";
 import type { SkillRoot } from "../skills/index.js";
 import type { ExecutionContext, TraceContext } from "../tracing/tracer.js";
@@ -108,7 +111,7 @@ export interface PluginHookDetail {
   args?: string[];
   async?: boolean;
   command: string;
-  event: HookEventName;
+  event: PluginHookEventName;
   matcher?: string;
   runnable: boolean;
   shell?: true | string;
@@ -183,6 +186,8 @@ export interface PluginManifest {
   mcpServers?: unknown;
   name: string;
   outputStyles?: unknown;
+  /** 插件申请的能力；由适配器归一化为 `PluginPermissionProfile`。 */
+  permissions?: unknown;
   repository?: string;
   settings?: unknown;
   skills?: unknown;
@@ -190,6 +195,74 @@ export interface PluginManifest {
   ui?: unknown;
   userConfig?: Record<string, PluginUserConfigOption>;
   version?: string;
+}
+
+/**
+ * 插件包清单的生态归属。内部 id，只允许出现在适配器层与诊断数据里。
+ * 顺序即发现特异性：native > agent-plugins > claude > codex > zcode > dsh。
+ */
+export type PluginAdapterId =
+  | "native"
+  | "agent-plugins"
+  | "claude"
+  | "codex"
+  | "zcode"
+  | "dsh";
+
+/**
+ * 兼容级别，只进数据层与诊断，UI 不展示级别本身：
+ * - `full`：清单声明的组件当前全部可运行；
+ * - `partial`：至少一个声明组件只识别、不运行（原因见 `skipped`）；
+ * - `detected`：只能识别包，不能运行任何组件（L0）。
+ */
+export type PluginCompatibilityLevel = "full" | "partial" | "detected";
+
+/**
+ * 信任来源。P0/P1 只随元数据下发；真正的授权与撤销在能力网关（P2）落地。
+ * - builtin：随客户端分发的内置插件；
+ * - official：NIBI 官方市场（签名清单 + 单调 revision）；
+ * - community：第三方市场安装；
+ * - local：用户本地目录（`plugins.dirs`、导入、开发中的插件）。
+ */
+export type PluginTrustLevel = "builtin" | "official" | "community" | "local";
+
+/**
+ * 插件可申请的 NIBI 能力。闭集；未声明 = 不申请。
+ * `filesystem.*` / `network` / `process` 的授予规则见 P2 能力网关。
+ */
+export type PluginPermission =
+  | "filesystem.read"
+  | "filesystem.write"
+  | "network"
+  | "process"
+  | "full-access";
+
+export interface PluginPermissionProfile {
+  /** 清单声明的能力（请求值，不等于授权值）。 */
+  requested: PluginPermission[];
+}
+
+/** 适配器归一化后写入的元数据；产品面不展示 `adapterId`。 */
+export interface PluginAdapterInfo {
+  adapterId: PluginAdapterId;
+  /** 相对插件根的清单路径，统一用 `/` 分隔。 */
+  manifestPath: string;
+  compatibility: PluginCompatibilityLevel;
+  /** 已识别但当前版本不运行的声明组件，例如 `lspServers`、`apps`、`cordis`。 */
+  skipped: string[];
+}
+
+/**
+ * 内部唯一模型：任何生态的清单先由适配器归一化为 `CanonicalPlugin`，
+ * 核心只消费这一个形状。`manifest` 是归一化后的字段集合（NIBI 扩展已摊平），
+ * `adapter` 记录来源与损失，`permissions` 保留插件请求值。
+ */
+export interface CanonicalPlugin {
+  adapter: PluginAdapterInfo;
+  manifest: PluginManifest;
+  permissions: PluginPermissionProfile;
+  rootPath: string;
+  trust: PluginTrustLevel;
 }
 
 /** 面板生命周期：第一版只接受会话级；`draft` 留待需要时放开。 */
@@ -226,6 +299,8 @@ export interface PluginMetadata {
   acceptance?: PluginAcceptanceContract;
   /** acceptance 的解析结果（致命问题与非致命提醒），供插件详情与宿主日志消费。 */
   acceptanceDiagnostics?: PluginAcceptanceParseResult;
+  /** 实际读取该插件的适配器与兼容性（P0 只进数据层，不展示生态名）。 */
+  adapter: PluginAdapterInfo;
   /** manifest（plugin.json）里的作者名，规范化为字符串；商店信息缺失时作为详情页回退。 */
   author?: string;
   authorUrl?: string;
@@ -248,10 +323,14 @@ export interface PluginMetadata {
   mcpServerNames: string[];
   name: string;
   hookDetails: PluginHookDetail[];
+  /** 清单声明的能力请求（不等同于已授权）。 */
+  permissions: PluginPermissionProfile;
   rootPath: string;
   skillCount: number;
   skillRootCount: number;
   source: PluginSource;
+  /** 发现来源的信任等级；P2 能力网关按它决定可授予上限。 */
+  trust: PluginTrustLevel;
   /** 清单 `ui.surfaces[]` 解析结果（已校验）；未声明或全部非法时缺省。 */
   uiSurfaces?: PluginUiSurfaceDefinition[];
   userConfig?: Record<string, PluginUserConfigOption>;
@@ -308,7 +387,7 @@ export interface PluginReferenceCatalog {
 export interface PluginLoadOutcome {
   commandRoots: CustomCommandRoot[];
   diagnostics: PluginDiagnostic[];
-  hooks: Partial<Record<HookEventName, HookMatcherConfig[]>>;
+  hooks: Partial<Record<PluginHookEventName, HookMatcherConfig[]>>;
   mcpServers: Record<string, McpServerConfig>;
   /** 商店 listing 按完整 Plugin ID 关联，供 CLI/TUI 展示；不参与运行时身份判断。 */
   pluginListingsById?: Record<string, PluginStoreListing>;

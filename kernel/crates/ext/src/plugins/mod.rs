@@ -26,8 +26,14 @@ pub use self::select::{
     Skipped, load_all,
 };
 
-/// 原生清单位置：Agent Plugins 根清单。
-const MANIFESTS: [&str; 1] = ["plugin.json"];
+/// 原生/兼容清单位置：Agent Plugins 根清单优先，其次 Claude/Codex/ZCode 的旧目录；
+/// 外来目录只读，不复制、不改写。
+const MANIFESTS: [&str; 4] = [
+    "plugin.json",
+    ".claude-plugin/plugin.json",
+    ".codex-plugin/plugin.json",
+    ".zcode-plugin/plugin.json",
+];
 const NIBI_PLUGIN_EXTENSION_KEY: &str = "com.nibistudio.nibi";
 
 /// 内置 `visualize@nibi-official` 的稳定 id（Node `visualize-skill-gate.ts` 的 `VISUALIZE_PLUGIN_ID`）。
@@ -404,8 +410,8 @@ impl Reader<'_> {
             }
             servers.extend(found.into_iter().map(|mut server| {
                 if let McpTransportConfig::Stdio { env, .. } = &mut server.transport {
-                    // 插件变量只认 NIBI_*；CLAUDE_PLUGIN_* 的兼容读取留在 hooks/commands/agents
-                    // 的旧配置兼容层，不再注入插件 MCP 子进程。
+                    // 插件变量只注入 NIBI_* 名字；CLAUDE_PLUGIN_* / ZCODE_PLUGIN_* 只做
+                    // 清单模板的只读展开（见 resolve_variable），不写进子进程环境。
                     env.entry(vars::NIBI_PLUGIN_ROOT.to_owned())
                         .or_insert_with(|| variables.root.to_owned());
                     if let Some(data) = variables.data {
@@ -833,16 +839,16 @@ fn resolve_variable(
     allow_sensitive: bool,
 ) -> Result<Option<String>, String> {
     match name {
-        vars::NIBI_PLUGIN_ROOT => {
+        vars::NIBI_PLUGIN_ROOT | vars::CLAUDE_PLUGIN_ROOT | vars::ZCODE_PLUGIN_ROOT => {
             return Ok(Some(variables.root.to_owned()));
         }
-        vars::NIBI_PLUGIN_DATA => {
+        vars::NIBI_PLUGIN_DATA | vars::CLAUDE_PLUGIN_DATA | vars::ZCODE_PLUGIN_DATA => {
             let data = variables
                 .data
                 .ok_or_else(|| format!("Missing plugin variable: {name}"))?;
             return Ok(Some(data.to_owned()));
         }
-        vars::CLAUDE_PROJECT_DIR | vars::NIBI_PROJECT_DIR => {
+        vars::CLAUDE_PROJECT_DIR | vars::NIBI_PROJECT_DIR | vars::ZCODE_PROJECT_DIR => {
             return Ok(Some(variables.project.to_owned()));
         }
         vars::CLAUDE_CODE_SESSION_ID | vars::CLAUDE_SESSION_ID | vars::NIBI_SESSION_ID => {

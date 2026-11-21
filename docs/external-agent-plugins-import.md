@@ -29,11 +29,13 @@
 ## 识别规则
 
 - 插件候选是包含 manifest 的目录。
-- manifest 优先级：
-  1. `.nibi-plugin/plugin.json`
+- manifest 优先级（与运行时适配器同一顺序）：
+  1. 根 `plugin.json`（Agent Plugins / NIBI 原生；带 `extensions["com.nibistudio.nibi"]` 时是 native）
   2. `.claude-plugin/plugin.json`
   3. `.codex-plugin/plugin.json`
+  4. `.zcode-plugin/plugin.json`
 - manifest 必须是 JSON object，且 `name` 为非空字符串；`version` 读不到时不展示。
+- 命中的 manifest 解析失败就是终态，不退回特异性更低的清单。
 - 扫描深度只查来源根目录下一层插件目录，不递归扫描插件内部资源目录。
 
 ## 导入策略
@@ -57,9 +59,9 @@
 
 ## 兼容与边界
 
-- 运行时插件发现只认 NIBI 自有 manifest `.nibi-plugin/plugin.json`。设置同步的导入扫描仍会识别
-  旧 `.claude-plugin`/`.codex-plugin` 清单用于展示与迁移，但导入到 `plugins.dirs` 的旧格式插件
-  不会被 runtime 加载；需要先重打包为 `.nibi-plugin`，或由导入流程完成一次性迁移。
+- 运行时插件发现按适配器顺序读取根 `plugin.json`、`.claude-plugin`、`.codex-plugin`、`.zcode-plugin`；
+  外来产物只读，不复制、不改写、不重签。需要迁移到 NIBI 原生布局时由用户显式重打包，或由导入流程
+  按用户选择的 copy/symlink 语义保留原目录形态。
 - `settings-sync` 新增 `plugins` 分类，插件来源表独立维护，不从 `skills` 或 `commands` 来源表派生；资源扫描、去重和导入也独立。
 - 远程 workspace 只使用当前 host process 可访问的文件系统路径；身份隔离语义仍传递 `workspaceIdentity`，路径执行仍使用 `workspacePath`。
 - 直接复制模式不引用外部目录；软链模式会持续指向外部插件目录，适合希望跟随外部 Agent 插件变更的用户。
@@ -68,6 +70,6 @@
 ## 验证
 
 - 覆盖缺失目录、空目录、同名跳过、用户级导入、工作区级导入、copy/symlink 两种模式。
-- 覆盖 `.nibi-plugin/plugin.json` 与 `.claude-plugin/plugin.json` 两种 manifest。
+- 覆盖根 `plugin.json`、`.claude-plugin/plugin.json`、`.codex-plugin/plugin.json`、`.zcode-plugin/plugin.json` 四种清单。
 - UI 覆盖导入按钮、弹窗来源列表、导入完成刷新。
 - 必须运行 `pnpm typecheck` 和 `pnpm lint`。

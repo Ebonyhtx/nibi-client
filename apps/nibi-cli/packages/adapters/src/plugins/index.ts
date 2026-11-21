@@ -3,7 +3,6 @@ import { basename, dirname, join, resolve } from "node:path";
 import type {
   CustomCommandRoot,
   HookConfig,
-  HookEventName,
   HookMatcherConfig,
   HookPluginContext,
   PluginAcceptanceContract,
@@ -12,6 +11,7 @@ import type {
   PluginDiagnostic,
   PluginDiscoverRequest,
   PluginHookDetail,
+  PluginHookEventName,
   PluginLoadOutcome,
   PluginManifest,
   PluginUiSurfaceDefinition,
@@ -21,26 +21,29 @@ import type {
   SkillRoot,
 } from "@nibi/contracts";
 import {
-  HookEventName as HookEventNameValue,
   HookMatcherConfigSchema,
   NIBI_INLINE_PLUGIN_MARKETPLACE,
   NIBI_OFFICIAL_PLUGIN_MARKETPLACE,
   isPluginAcceptanceUsable,
+  isPluginHookEventName,
+  isRunnablePluginHookEvent,
   parsePluginAcceptance,
 } from "@nibi/contracts";
 import {
+  createCanonicalPlugin,
   directoryExists,
   fileExists,
-  findNativePluginManifest,
+  findPluginManifest,
   isMissingPath,
   isNotFoundError,
   isRecord,
   parsePathList,
-  readNativePluginManifest,
+  readPluginManifestDocument,
   resolveInside,
   sanitizePluginId,
   throwIfAborted,
 } from "./helpers.js";
+import type { DetectedPluginManifest } from "./helpers.js";
 import { scanSkillFilesUnderRootSync } from "../skills/scan.js";
 import { loadPluginMcpServerDefinitions, resolvePluginMcpServers } from "./mcp.js";
 import { parsePluginUiSurfaces } from "./ui-surfaces.js";
@@ -131,11 +134,10 @@ const FIRST_PLUGIN_PRIORITY = 1_000;
 const PRIORITY_STEP = 10;
 const PLUGIN_NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,127}$/;
 const UNSUPPORTED_COMPONENT_KEYS = ["channels", "lspServers", "outputStyles", "settings"] as const;
-const SUPPORTED_HOOK_EVENTS = new Set<string>(Object.values(HookEventNameValue));
 
 interface PluginHookInspection {
   details: PluginHookDetail[];
-  events: Partial<Record<HookEventName, HookMatcherConfig[]>>;
+  events: Partial<Record<PluginHookEventName, HookMatcherConfig[]>>;
 }
 
 export interface NodePluginAdapterOptions {
@@ -309,6 +311,7 @@ export class NodePluginAdapter implements PluginPort {
         marketplace: NIBI_INLINE_PLUGIN_MARKETPLACE,
         rootPath: resolve(rootPath),
         source: "inline",
+        trust: "local",
       });
     }
     for (const rootPath of request.officialPluginRoots ?? []) {
@@ -317,6 +320,7 @@ export class NodePluginAdapter implements PluginPort {
         marketplace: NIBI_OFFICIAL_PLUGIN_MARKETPLACE,
         rootPath: resolve(rootPath),
         source: "official",
+        trust: "builtin",
       });
     }
     candidates.push(
@@ -325,6 +329,7 @@ export class NodePluginAdapter implements PluginPort {
         marketplace: NIBI_OFFICIAL_PLUGIN_MARKETPLACE,
         rootPath,
         source: "official" as const,
+        trust: "official" as const,
       })),
     );
     for (const installed of listInstalledPluginRecords(request.storageRoot)) {
@@ -333,6 +338,9 @@ export class NodePluginAdapter implements PluginPort {
         marketplace: installed.marketplace,
         rootPath: resolveInstalledPluginRoot(request.storageRoot, installed),
         source: "cache",
+        // 官方市场安装件沿用官方信任；其余第三方市场一律按 community 起步。
+        trust:
+          installed.marketplace === NIBI_OFFICIAL_PLUGIN_MARKETPLACE ? "official" : "community",
       });
     }
     return candidates;
@@ -435,7 +443,7 @@ function pruneCapabilityLeakForDisabledPlugins(outcome: PluginLoadOutcome): Plug
       }
       return keptHooks.length > 0 ? [{ ...matcher, hooks: keptHooks }] : [];
     });
-    if (keptMatchers.length > 0) hooks[eventName as HookEventName] = keptMatchers;
+    if (keptMatchers.length > 0) hooks[eventName as PluginHookEventName] = keptMatchers;
   }
   return { ...outcome, commandRoots, diagnostics, hooks, mcpServers, skillRoots };
 }
@@ -460,6 +468,7 @@ function createPluginMetadata(
     ...(loaded.acceptanceDiagnostics
       ? { acceptanceDiagnostics: loaded.acceptanceDiagnostics }
       : {}),
+    adapter: loaded.canonical.adapter,
     ...(author?.name ? { author: author.name } : {}),
     ...(author?.url ? { authorUrl: author.url } : {}),
     ...(homepage ? { homepage } : {}),
@@ -481,10 +490,12 @@ function createPluginMetadata(
     mcpServerNames: Object.keys(component.mcpServers),
     name: loaded.manifest.name,
     hookDetails: component.hookDetails,
+    permissions: loaded.canonical.permissions,
     rootPath: loaded.rootPath,
     skillCount: component.skillCount,
     skillRootCount: component.skillRoots.length,
     source: loaded.source,
+    trust: loaded.canonical.trust,
     ...(uiSurfaces.length > 0 ? { uiSurfaces } : {}),
     userConfig: loaded.manifest.userConfig,
     version: loaded.manifest.version,
@@ -496,7 +507,7 @@ function resolveEnabledComponents(input: {
   diagnostics: PluginDiagnostic[];
   env: Record<string, string | undefined>;
   hookDetails: PluginHookDetail[];
-  hookEvents: Partial<Record<HookEventName, HookMatcherConfig[]>>;
+  hookEvents: Partial<Record<PluginHookEventName, HookMatcherConfig[]>>;
   loaded: LoadedPlugin;
   mcpServerDefinitions: Record<string, unknown>;
   options: Record<string, string | number | boolean>;
@@ -673,7 +684,7 @@ function parsePluginHookEvents(input: {
 
   const plugin = createHookPluginContext(input.loaded, input.pluginDataPath, input.sourcePath);
   for (const [eventName, matcherConfigs] of Object.entries(hooksRoot)) {
-    if (!SUPPORTED_HOOK_EVENTS.has(eventName)) {
+    if (!isPluginHookEventName(eventName)) {
       input.diagnostics.push({
         code: "plugin_hook_unsupported_event",
         message: `Plugin hook event is not supported by this Nibi runtime: ${eventName}`,
@@ -682,6 +693,18 @@ function parsePluginHookEvents(input: {
         severity: "warning",
       });
       continue;
+    }
+    // 33 个事件都可声明；只有 14 个有 producer。enum-only 事件保留详情（runnable=false），
+    // 让详情页能显示「不会触发」，但不能进入 runtime 配置假装已接线。
+    const eventRunnable = isRunnablePluginHookEvent(eventName);
+    if (!eventRunnable) {
+      input.diagnostics.push({
+        code: "plugin_hook_unsupported_event",
+        message: `Plugin hook event is declared but will never trigger in this Nibi runtime: ${eventName}`,
+        path: input.sourcePath,
+        pluginId: input.loaded.id,
+        severity: "warning",
+      });
     }
     if (!Array.isArray(matcherConfigs)) {
       input.diagnostics.push({
@@ -694,7 +717,7 @@ function parsePluginHookEvents(input: {
       continue;
     }
 
-    const event = eventName as HookEventName;
+    const event = eventName;
     for (const matcherConfig of matcherConfigs) {
       const validation = HookMatcherConfigSchema.safeParse(matcherConfig);
       if (!validation.success) {
@@ -713,14 +736,16 @@ function parsePluginHookEvents(input: {
         ...validation.data,
         hooks: validation.data.hooks.map((hook) => attachPluginToHook(hook, plugin)),
       };
-      (inspection.events[event] ??= []).push(withPlugin);
+      if (eventRunnable) {
+        (inspection.events[event] ??= []).push(withPlugin);
+      }
       for (const hook of validation.data.hooks) {
         inspection.details.push(
           toPluginHookDetail({
             event,
             hook,
             ...(validation.data.matcher !== undefined ? { matcher: validation.data.matcher } : {}),
-            runnable: input.runnable,
+            runnable: input.runnable && eventRunnable,
             sourcePath: input.sourcePath,
           }),
         );
@@ -732,7 +757,7 @@ function parsePluginHookEvents(input: {
 }
 
 function toPluginHookDetail(input: {
-  event: HookEventName;
+  event: PluginHookEventName;
   hook: HookConfig;
   matcher?: string;
   runnable: boolean;
@@ -780,11 +805,11 @@ function attachPluginToHook(hook: HookConfig, plugin: HookPluginContext): HookCo
 }
 
 function mergeHookEvents(
-  target: Partial<Record<HookEventName, HookMatcherConfig[]>>,
-  source: Partial<Record<HookEventName, HookMatcherConfig[]>>,
+  target: Partial<Record<PluginHookEventName, HookMatcherConfig[]>>,
+  source: Partial<Record<PluginHookEventName, HookMatcherConfig[]>>,
 ): void {
   for (const [eventName, matchers] of Object.entries(source) as Array<
-    [HookEventName, HookMatcherConfig[]]
+    [PluginHookEventName, HookMatcherConfig[]]
   >) {
     if (matchers.length > 0) {
       (target[eventName] ??= []).push(...matchers);
@@ -1109,8 +1134,8 @@ function loadPlugin(
     return null;
   }
 
-  const manifestPath = findManifest(candidate.rootPath);
-  if (!manifestPath) {
+  const detected = findManifest(candidate.rootPath);
+  if (!detected) {
     diagnostics.push({
       code: "plugin_manifest_not_found",
       message: `Plugin manifest not found: ${candidate.rootPath}`,
@@ -1120,12 +1145,15 @@ function loadPlugin(
     return null;
   }
 
-  const manifest = readManifest(manifestPath, diagnostics);
-  if (!manifest) return null;
+  const read = readManifest(detected, candidate, diagnostics);
+  if (!read) return null;
+  const { canonical, manifest } = read;
+  const manifestPath = detected.path;
   const acceptance = resolvePluginAcceptance(manifest, manifestPath, diagnostics);
   return {
     ...(acceptance.contract ? { acceptance: acceptance.contract } : {}),
     acceptanceDiagnostics: acceptance.diagnostics,
+    canonical,
     id: `${manifest.name}@${candidate.marketplace}`,
     manifest,
     manifestPath,
@@ -1166,25 +1194,40 @@ function resolvePluginAcceptance(
   return { contract: parsed.contract, diagnostics: parsed };
 }
 
-function findManifest(rootPath: string): string | null {
-  return findNativePluginManifest(rootPath);
+function findManifest(rootPath: string): DetectedPluginManifest | null {
+  return findPluginManifest(rootPath);
 }
 
-function readManifest(path: string, diagnostics: PluginDiagnostic[]): PluginManifest | null {
+function readManifest(
+  detected: DetectedPluginManifest,
+  candidate: PluginCandidate,
+  diagnostics: PluginDiagnostic[],
+): { canonical: ReturnType<typeof createCanonicalPlugin>; manifest: PluginManifest } | null {
   try {
-    const parsed = readNativePluginManifest(path);
+    const document = readPluginManifestDocument(detected.path, detected.adapterId);
+    const parsed = document.manifest;
     const name = typeof parsed.name === "string" ? parsed.name.trim() : "";
     if (!PLUGIN_NAME_PATTERN.test(name)) throw new Error(`Invalid plugin name: ${name}`);
-    return {
+    const manifest = {
       ...parsed,
       name,
       version: typeof parsed.version === "string" ? parsed.version : DEFAULT_VERSION,
     } as PluginManifest;
+    return {
+      canonical: createCanonicalPlugin({
+        adapterId: document.adapterId,
+        manifest,
+        manifestPath: detected.path,
+        rootPath: candidate.rootPath,
+        trust: candidate.trust,
+      }),
+      manifest,
+    };
   } catch (error) {
     diagnostics.push({
       code: "plugin_manifest_invalid",
-      message: error instanceof Error ? error.message : `Invalid plugin manifest: ${path}`,
-      path,
+      message: error instanceof Error ? error.message : `Invalid plugin manifest: ${detected.path}`,
+      path: detected.path,
       severity: "error",
     });
     return null;

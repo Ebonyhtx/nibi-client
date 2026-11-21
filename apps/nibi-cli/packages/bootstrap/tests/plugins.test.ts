@@ -302,7 +302,7 @@ describe("Nibi plugins", () => {
     }
   });
 
-  it("does not rewrite user plugins.dirs when a configured plugin only has legacy manifests", async () => {
+  it("loads a legacy Claude user plugin without rewriting plugins.dirs", async () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-legacy-user-plugin-"));
     const pluginRoot = join(root, "legacy-user-plugin");
     const userConfigPath = join(root, "config.json");
@@ -323,8 +323,10 @@ describe("Nibi plugins", () => {
         workingDirectory: root,
       });
 
-      expect(outcome.plugins.find((plugin) => plugin.name === "legacy-user-plugin")).toBeUndefined();
-      // 用户自选目录按“清单缺失”处理，既不发现也不迁移/改写。
+      const loaded = outcome.plugins.find((plugin) => plugin.name === "legacy-user-plugin");
+      expect(loaded?.adapter.adapterId).toBe("claude");
+      expect(loaded?.manifestPath).toBe(join(pluginRoot, ".claude-plugin", "plugin.json"));
+      // 用户自选目录只读加载，不迁移、不改写清单或配置。
       expect(await readFile(userConfigPath, "utf8")).toBe(userConfigContents);
       expect(existsSync(join(pluginRoot, "plugin.json"))).toBe(false);
     } finally {
@@ -1644,7 +1646,7 @@ describe("Nibi plugins", () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-plugin-mode-reseed-"));
     const entryRoot = join(root, "resources", "glm");
     const pluginStorageRoot = join(root, "plugins");
-    // 用仍登记的官方插件（skill-creator）做载体；文件全是 fixture 伪造的，清单目录用当前的 .nibi-plugin，
+    // 用仍登记的官方插件（skill-creator）做载体；文件全是 fixture 伪造的，清单用根 plugin.json，
     // 真实 skill-creator 是否带 hook 无关紧要——seed 逻辑按伪造目录 reseed。
     const pluginRoot = join(entryRoot, "packages", "skill-creator-plugin");
     const targetRoot = join(pluginStorageRoot, OFFICIAL_SKILL_CREATOR_PLUGIN_CACHE_PATH);
@@ -2692,8 +2694,8 @@ describe("Nibi plugins", () => {
   });
 
   // G1/G2：clean storage（等价 clean HOME）必须 seed 全部 14 个内置插件，且双端默认启用集一致。
-  // 内置缓存只落 .nibi-plugin，不再生成旧格式目录。
-  it("seeds all 14 built-ins into .nibi-plugin and enables the shared default set", async () => {
+  // 内置缓存只落根 plugin.json + mcp.json，不再生成旧格式目录。
+  it("seeds all 14 built-ins with root manifests and enables the shared default set", async () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-clean-seed-"));
     const pluginStorageRoot = join(root, "plugins");
 

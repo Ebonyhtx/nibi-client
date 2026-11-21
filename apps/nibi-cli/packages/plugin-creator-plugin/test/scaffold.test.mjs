@@ -27,7 +27,7 @@ test("scaffold creates valid resources and preserves marketplace data on update"
       components: ["skills", "mcp", "hooks"],
     });
     const manifest = JSON.parse(
-      await readFile(join(plugin, ".nibi-plugin", "plugin.json"), "utf8"),
+      await readFile(join(plugin, "plugin.json"), "utf8"),
     );
     assert.equal(manifest.name, "my-plugin");
     assert.deepEqual(await preflightPlugin(plugin), []);
@@ -74,10 +74,10 @@ test("rejects invalid identifiers, escaping marketplace sources, placeholders an
       /outside|escape/i,
     );
     const plugin = await createPlugin({ name: "valid", parentPath: root });
-    const manifestPath = join(plugin, ".nibi-plugin", "plugin.json");
+    const manifestPath = join(plugin, "plugin.json");
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
     manifest.description = "[TODO: description]";
-    manifest.skills = "../outside";
+    manifest.extensions["com.nibistudio.nibi"].skills = "../outside";
     await writeFile(manifestPath, JSON.stringify(manifest));
     const errors = await preflightPlugin(plugin);
     assert(errors.some((e) => e.includes("TODO")));

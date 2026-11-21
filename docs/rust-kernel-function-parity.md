@@ -52,8 +52,8 @@
 
 - 模型看到的是 **`mcp__node_repl__js`**（`node-repl-host` 包），不是一组 `Browser*` 原生工具。
   `browser-use` / `computer-use` 两个官方插件只贡献 **skill 与文档**，manifest 里没有 `mcpServers`
-  （`apps/nibi-cli/packages/browser-use-plugin/.nibi-plugin/plugin.json`、
-  `.../computer-use-plugin/.nibi-plugin/plugin.json`）。
+  （`apps/nibi-cli/packages/browser-use-plugin/plugin.json`、
+  `.../computer-use-plugin/plugin.json`）。
 - 调用链：JS SDK `agent.browsers.*` → `node-repl-host/src/browser-bridge.ts` → 本地 socket
   （`NIBI_NODE_REPL_BROWSER_BROKER_SOCKET` + token）→ agent 侧
   `bootstrap/src/app/node-repl-browser-broker.ts` 的 broker →

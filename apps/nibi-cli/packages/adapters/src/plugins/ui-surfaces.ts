@@ -4,7 +4,7 @@ import {
   MCP_APPS_UI_RESOURCE_SCHEME,
   readSurfaceId,
 } from "@nibi/shared/mcp-apps";
-import type { LoadedPlugin } from "./types.js";
+import type { PluginManifestSource } from "./types.js";
 
 /**
  * 清单 `ui.surfaces[]` 解析。
@@ -16,7 +16,7 @@ const SURFACE_ICON_MAX_CHARS = 2048;
 const SUPPORTED_AVAILABILITY = "session";
 
 export function parsePluginUiSurfaces(input: {
-  loaded: LoadedPlugin;
+  loaded: PluginManifestSource;
   declaredMcpServerNames: readonly string[];
   diagnostics: PluginDiagnostic[];
 }): PluginUiSurfaceDefinition[] {

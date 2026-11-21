@@ -5,8 +5,8 @@ import { stageSharpIntoBundledAgents } from "../packages/desktop/scripts/sharp-p
 
 const repositoryRoot = resolve(import.meta.dirname, "..");
 
-// 插件包发现只认 NIBI 自有清单；旧 .claude-plugin/.codex-plugin 不再兜底。
-const PLUGIN_MANIFEST_PATH = ".nibi-plugin/plugin.json";
+// 插件包根清单是 Agent Plugins 1.0.0 的 plugin.json；旧 .claude-plugin/.codex-plugin 不再兜底。
+const PLUGIN_MANIFEST_PATH = "plugin.json";
 
 export function stageDevCuaPluginRuntime({
   env = process.env,

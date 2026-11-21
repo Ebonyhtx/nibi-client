@@ -79,7 +79,7 @@ export interface ResolveNibiPluginsOptions {
    * 显式宿主入口前缀（仅内部/测试使用），透传给内置插件 seed 的 runtime manifest 重写。
    *
    * 生产调用方不传：`officialPluginHostPrefixArgs()` 在测试进程里恒为 undefined（防止
-   * vitest argv 被写进用户缓存），测试需要覆盖 `.mcp.json`/plugin.json 重写路径时注入假前缀。
+   * vitest argv 被写进用户缓存），测试需要覆盖 mcp.json/plugin.json 重写路径时注入假前缀。
    */
   runtimeHostPrefixArgs?: readonly string[];
   skipUserConfig?: boolean;

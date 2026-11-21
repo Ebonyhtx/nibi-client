@@ -16,6 +16,89 @@ export const HookEventName = {
 
 export type HookEventName = (typeof HookEventName)[keyof typeof HookEventName];
 
+/**
+ * 插件清单可声明的事件全集：与 Rust `kernel-api` 的 `HookEventName` 同序同名（33 个）。
+ *
+ * Workspace hook 配置（项目/用户 hooks）仍只认上面的 7 个 — 它们的 digest、trust 与
+ * review 记录按 `WORKSPACE_HOOK_EVENT_NAMES` 字节级对齐，不能扩容。插件事件走独立命名空间，
+ * 由适配器解析后合并进 runtime 的 `hooks.events`，由内核按自己的 33 个事件派发。
+ */
+export const PLUGIN_HOOK_EVENT_NAMES = [
+  "PreToolUse",
+  "PostToolUse",
+  "PostToolUseFailure",
+  "PostToolBatch",
+  "Notification",
+  "UserPromptSubmit",
+  "UserPromptExpansion",
+  "SessionStart",
+  "SessionEnd",
+  "Stop",
+  "StopFailure",
+  "SubagentStart",
+  "SubagentStop",
+  "PreCompact",
+  "PostCompact",
+  "PreModelSwitch",
+  "PostModelSwitch",
+  "PermissionRequest",
+  "PermissionDenied",
+  "Setup",
+  "TeammateIdle",
+  "TaskCreated",
+  "TaskCompleted",
+  "Elicitation",
+  "ElicitationResult",
+  "ConfigChange",
+  "WorktreeCreate",
+  "WorktreeRemove",
+  "InstructionsLoaded",
+  "CwdChanged",
+  "FileChanged",
+  "DirectoryAdded",
+  "MessageDisplay",
+] as const;
+
+export type PluginHookEventName = (typeof PLUGIN_HOOK_EVENT_NAMES)[number];
+
+const PLUGIN_HOOK_EVENT_SET = new Set<string>(PLUGIN_HOOK_EVENT_NAMES);
+
+export function isPluginHookEventName(name: string): name is PluginHookEventName {
+  return PLUGIN_HOOK_EVENT_SET.has(name);
+}
+
+/**
+ * 内核真正会构造并派发的事件（14 个）。其余 19 个只有枚举与 matcher 语义，
+ * 没有 producer：插件可以为它们写声明，但永远等不到触发。适配器必须在详情里
+ * 标「不会触发」，不能当成已支持。
+ */
+export const PLUGIN_HOOK_RUNNABLE_EVENT_NAMES = [
+  "PreToolUse",
+  "PostToolUse",
+  "PostToolUseFailure",
+  "Notification",
+  "UserPromptSubmit",
+  "SessionStart",
+  "SessionEnd",
+  "Stop",
+  "SubagentStop",
+  "PreCompact",
+  "PostCompact",
+  "PermissionRequest",
+  "Elicitation",
+  "ElicitationResult",
+] as const;
+
+export type RunnablePluginHookEventName = (typeof PLUGIN_HOOK_RUNNABLE_EVENT_NAMES)[number];
+
+const RUNNABLE_PLUGIN_HOOK_EVENT_SET = new Set<string>(PLUGIN_HOOK_RUNNABLE_EVENT_NAMES);
+
+export function isRunnablePluginHookEvent(
+  name: string,
+): name is RunnablePluginHookEventName {
+  return RUNNABLE_PLUGIN_HOOK_EVENT_SET.has(name);
+}
+
 export const HookOutcome = {
   Success: "success",
   Blocked: "blocked",
@@ -333,16 +416,19 @@ export interface HookMatcherConfig {
   matcher?: string;
 }
 
+/** Runtime 配置能承载的事件：Workspace 7 个 + 插件 33 个（并集仍是 33）。 */
+export type RuntimeHookEventName = HookEventName | PluginHookEventName;
+
 export interface HooksRuntimeConfig {
   enabled: boolean;
-  events: Partial<Record<HookEventName, HookMatcherConfig[]>>;
+  events: Partial<Record<RuntimeHookEventName, HookMatcherConfig[]>>;
   maxOutputBytes: number;
   timeoutMs: number;
 }
 
 export interface HooksRuntimeConfigPatch {
   enabled?: boolean;
-  events?: Partial<Record<HookEventName, HookMatcherConfig[]>>;
+  events?: Partial<Record<RuntimeHookEventName, HookMatcherConfig[]>>;
   maxOutputBytes?: number;
   timeoutMs?: number;
 }

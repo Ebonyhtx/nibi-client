@@ -510,7 +510,7 @@ describe("stageRelease", () => {
     options: { mcpEntry?: string; withMcpEntryFile?: boolean; withManifest?: boolean } = {},
   ): Promise<void> {
     const pluginDir = join(officialPluginsDir, name);
-    await mkdir(join(pluginDir, ".nibi-plugin"), { recursive: true });
+    await mkdir(pluginDir, { recursive: true });
     await writeFile(join(pluginDir, "README.md"), name, "utf8");
     // 真实官方插件的 package.json 都是 tracked 文件，是"该目录属于当前 checkout"的判据。
     await writeFile(
@@ -534,7 +534,7 @@ describe("stageRelease", () => {
     }
     if (options.withManifest !== false) {
       await writeFile(
-        join(pluginDir, ".nibi-plugin", "plugin.json"),
+        join(pluginDir, "plugin.json"),
         JSON.stringify(manifest),
         "utf8",
       );

@@ -11,9 +11,9 @@
 - 在 plugin entry 现有 `{ "source": "url" }` 上新增显式 artifact type：
   `{ "source": "url", "type": "zip", ... }`。无 `type` 的 `{ "source": "url" }`
   继续保持 legacy git clone 语义；不要靠 URL 后缀推断 zip。
-- 下载、校验、解压后仍返回 plain directory tree。最终安装产物继续是包含
-  `.nibi-plugin/plugin.json` 的目录；旧 `.claude-plugin`/`.codex-plugin` 清单不再被识别，
-  不长期保留 zip archive。
+- 下载、校验、解压后仍返回 plain directory tree。最终安装产物继续是包含根
+  `plugin.json` 的目录；旧 `.claude-plugin`/`.codex-plugin`/`.zcode-plugin` 目录只由适配器
+  只读识别，不据此生成安装产物，不长期保留 zip archive。
 - 下载链路要对齐现有 marketplace/git 网络出口策略。现有 git 子进程通过
   `buildMarketplaceGitEnv()` 和 `applyNetworkEgressEnv()` 注入 `NIBI_HTTP_PROXY` 等显式网络环境；
   zip 下载应使用同一网络出口语义，而不是绕过代理配置。
@@ -383,10 +383,10 @@ Phase 1 为最小改动，也可以扩展现有 `readPluginSourceSha()`：
 
 ### Unit: safe extract fixtures
 
-- 正常 zip：根目录直接包含 `.nibi-plugin/plugin.json`。
-- 单顶层目录 zip：`plugin-1.0.0/.nibi-plugin/plugin.json`，默认 root detection/`stripRoot:true`
+- 正常 zip：根目录直接包含 `plugin.json`。
+- 单顶层目录 zip：`plugin-1.0.0/plugin.json`，默认 root detection/`stripRoot:true`
   后安装成功。
-- 子目录 zip：`bundle/nibi-plugin/atomic-agents/.nibi-plugin/plugin.json` + `path` 安装成功。
+- 子目录 zip：`bundle/nibi-plugin/atomic-agents/plugin.json` + `path` 安装成功。
 - Zip Slip：
   - `../escape.txt`；
   - `/absolute.txt`；

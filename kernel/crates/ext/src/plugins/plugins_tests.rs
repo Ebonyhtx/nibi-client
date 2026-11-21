@@ -269,13 +269,14 @@ async fn configured_env_wins_over_the_provided_variables() {
     assert!(!env.contains_key("CLAUDE_PLUGIN_ROOT"));
 }
 
-/// G1：插件模板只展开 NIBI 变量；`${CLAUDE_PLUGIN_ROOT}` 不再被当作兼容别名。
+/// 外来插件清单用 `${CLAUDE_PLUGIN_ROOT}` / `${ZCODE_PLUGIN_ROOT}` 写根路径；
+/// 模板只读映射到同一插件根，但变量名不注入子进程环境。
 #[tokio::test]
-async fn legacy_plugin_variables_are_not_expanded() {
+async fn legacy_plugin_root_aliases_expand_in_templates_but_are_not_injected() {
     let root = "/Users/dev/plugins/legacy-vars";
     let env = MemoryEnvironment::new(facts()).with_file(
         &format!("{root}/plugin.json"),
-        r#"{"name": "legacy-vars", "mcpServers": {"db": {"command": "db", "args": ["${CLAUDE_PLUGIN_ROOT}/old", "${NIBI_PLUGIN_ROOT}/new"]}}}"#,
+        r#"{"name": "legacy-vars", "mcpServers": {"db": {"command": "db", "args": ["${CLAUDE_PLUGIN_ROOT}/old", "${NIBI_PLUGIN_ROOT}/new", "${ZCODE_PLUGIN_ROOT}/z"]}}}"#,
     );
     let plugins = load_all(
         &env,
@@ -285,16 +286,19 @@ async fn legacy_plugin_variables_are_not_expanded() {
     )
     .await
     .plugins;
-    let McpTransportConfig::Stdio { args, .. } = &plugins.0[0].mcp_servers[0].transport else {
+    let McpTransportConfig::Stdio { args, env, .. } = &plugins.0[0].mcp_servers[0].transport else {
         panic!("db is stdio");
     };
     assert_eq!(
         args,
         &[
-            "${CLAUDE_PLUGIN_ROOT}/old".to_owned(),
-            format!("{root}/new")
+            format!("{root}/old"),
+            format!("{root}/new"),
+            format!("{root}/z")
         ]
     );
+    assert!(!env.contains_key("CLAUDE_PLUGIN_ROOT"));
+    assert!(!env.contains_key("ZCODE_PLUGIN_ROOT"));
 }
 
 /// 插件 `commands/` 与 manifest `commands` 路径都成为自定义命令根，身份随根走。

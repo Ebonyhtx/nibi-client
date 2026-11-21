@@ -1,8 +1,8 @@
 # Claude Code Marketplace 插件兼容实现规格
 
-> 状态（2026-11-18，G1）：插件包 manifest 只认 `.nibi-plugin/plugin.json`；
-> 本文的 `.claude-plugin/plugin.json` 插件包读取路径不再适用。市场目录的
-> `.claude-plugin/marketplace.json` 仍作为旧市场布局兼容读取。
+> 状态（2026-11-22）：插件包主清单是根 `plugin.json`（Agent Plugins 1.0.0 + NIBI 扩展）；
+> `.claude-plugin/plugin.json` 仍由 claude 适配器**只读**识别，不迁移、不改写。市场目录的
+> `.claude-plugin/marketplace.json` 作为外部源规范位置保留读取（本地缓存仍写根 `marketplace.json`）。
 
 ## 目标
 
@@ -84,9 +84,9 @@ marketplace id，例如 `claude-plugins-official`。
     {marketplace}/marketplace.json
   cache/
     {marketplace}/{plugin}/{version}/
-      .nibi-plugin/plugin.json
-      .claude-plugin/plugin.json
-      .mcp.json
+      plugin.json                 # Agent Plugins 根清单（NIBI 原生）
+      .claude-plugin/plugin.json  # 外来插件只读，不迁移
+      mcp.json                    # 旧 .mcp.json 仅作兜底
       skills/
       commands/
   data/
@@ -229,7 +229,7 @@ sequenceDiagram
 ```
 
 Bugfix 约束：`plugins/describe` 的 MCP 与 hook 枚举口径必须对齐真实 plugin loader，
-不能只读取 `plugin.json` 内联字段。MCP server 名称需要来自插件根目录 `.mcp.json` 与
+不能只读取 `plugin.json` 内联字段。MCP server 名称需要来自插件根目录 `mcp.json`（旧 `.mcp.json` 兜底）与
 `manifest.mcpServers` 的合并结果；Hook 事件名需要来自 `hooks/hooks.json` 与
 `manifest.hooks` 的合并结果。否则使用约定文件声明能力的 Claude Marketplace 插件（例如
 `airtable` 通过 `.mcp.json` 声明 MCP）会在市场详情里漏显示组件，而已安装详情由于
@@ -244,10 +244,10 @@ Bugfix 约束：`plugins/describe` 的 MCP 与 hook 枚举口径必须对齐真�
 - `command` / `args`：执行命令及参数。
 - `timeoutMs` / `timeout`、`async`、`shell`、`statusMessage`：原始 hook 配置中
   ZCode 已识别的运行参数。
-- `sourcePath`：明细来自 `.claude-plugin/plugin.json`、`.nibi-plugin/plugin.json`
+- `sourcePath`：明细来自根 `plugin.json`、`.claude-plugin/plugin.json`
   还是 `hooks/hooks.json`。
-- `runnable`：当前 runtime 是否会把该 hook 注入执行。官方 marketplace / inline
-  受信插件可以为 `true`；第三方 marketplace 在 V1 默认必须为 `false`，仅诊断展示。
+- `runnable`：插件已启用且该事件有 producer（33 个里 14 个）时为 `true`；
+  enum-only 事件与禁用插件恒为 `false`，仅诊断展示。
 
 Hook 明细展示不能改变安全边界：解析和展示可以发生在插件未启用时，但未受信 Hook 不能
 因为详情页可见而被注入 runtime。

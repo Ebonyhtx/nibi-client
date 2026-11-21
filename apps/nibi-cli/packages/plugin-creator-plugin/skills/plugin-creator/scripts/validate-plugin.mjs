@@ -4,7 +4,11 @@ import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 
-const ROOT_TOKENS = ["${NIBI_PLUGIN_ROOT}/", "${CLAUDE_PLUGIN_ROOT}/"];
+const ROOT_TOKENS = [
+  "${NIBI_PLUGIN_ROOT}/",
+  "${CLAUDE_PLUGIN_ROOT}/",
+  "${ZCODE_PLUGIN_ROOT}/",
+];
 const PLACEHOLDER = /\bTODO\b|\bFIXME\b|<your[-_ ][^>]+>|YOUR_API_KEY/u;
 function outside(root, path) {
   const value = relative(root, path);
@@ -14,9 +18,19 @@ function outside(root, path) {
 export async function preflightPlugin(path) {
   const root = await realpath(path);
   const errors = [];
-  const manifestPath = await realpath(join(root, ".nibi-plugin", "plugin.json"));
+  const manifestPath = await realpath(join(root, "plugin.json"));
   if (outside(root, manifestPath)) return ["Manifest symlink escapes outside plugin"];
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const raw = JSON.parse(await readFile(manifestPath, "utf8"));
+  const extension = raw.extensions?.["com.nibistudio.nibi"];
+  const manifest =
+    extension && typeof extension === "object" && !Array.isArray(extension)
+      ? {
+          ...extension,
+          name: raw.name,
+          version: raw.version,
+          description: raw.description,
+        }
+      : raw;
   const resources = [];
   function inspect(value) {
     if (typeof value === "string") {

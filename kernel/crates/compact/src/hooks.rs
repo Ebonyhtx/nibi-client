@@ -58,7 +58,12 @@ pub(crate) async fn pre_compact(
     };
     let outcome = hooks.run(event, cancel.clone()).await;
     if let Some(reason) = outcome.blocking_error {
-        return Err(Failure::Blocked(reason));
+        // 手动压缩尊重 hook 的 block；自动/反应式压缩不能因为 hook 拦截就让上下文继续膨胀，
+        // 忽略 block 并继续压缩。被拦的 hook 不会贡献 custom_instructions（hooks crate 只合并
+        // 成功 hook 的输出），其余成功 hook 的指令照常采用。
+        if request.trigger == CompactTrigger::Manual {
+            return Err(Failure::Blocked(reason));
+        }
     }
     // hooks crate 已把成功 hook 的输出合并成 `custom_instructions`（hooks.md §7）。
     Ok(merge_instructions(

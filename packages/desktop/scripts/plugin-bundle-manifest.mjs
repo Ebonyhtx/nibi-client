@@ -6,7 +6,7 @@
  * 它是纯声明式数据，搬出来既让主脚本回到可读长度，也让"改了哪条、加没加件"一目了然。
  *
  * 字段语义：
- *   packageName        npm 包名。注意**插件对外名以包内 .nibi-plugin/plugin.json 为准**，
+ *   packageName        npm 包名。注意**插件对外名以包内根 plugin.json 为准**，
  *                      两者可以不同（例：computer-use-plugin 的插件名是 computer-use）；
  *                      构建门禁按清单名推导，两者必须区分。
  *   relativePath       仓库内路径
@@ -170,7 +170,7 @@ const officialPluginPackages = [
     relativePath: "apps/nibi-cli/packages/android-emulator-plugin",
     requiresRuntime: false,
     stagedPath: "packages/android-emulator-plugin",
-    requiredSeedPaths: [".nibi-plugin/plugin.json", "skills/android-dev/SKILL.md", "dist/mcp/server.js", "hooks/hooks.json"],
+    requiredSeedPaths: ["plugin.json", "mcp.json", "skills/android-dev/SKILL.md", "dist/mcp/server.js", "hooks/hooks.json"],
   },
   {
     // 上游随包内置、我们补齐的插件（内容与商店那份字节一致，见 sync-builtin-plugins.py）。
@@ -178,7 +178,7 @@ const officialPluginPackages = [
     relativePath: "apps/nibi-cli/packages/ios-simulator-plugin",
     requiresRuntime: false,
     stagedPath: "packages/ios-simulator-plugin",
-    requiredSeedPaths: [".nibi-plugin/plugin.json", "skills/ios-dev/SKILL.md", "dist/mcp/server.js", "hooks/hooks.json"],
+    requiredSeedPaths: ["plugin.json", "mcp.json", "skills/ios-dev/SKILL.md", "dist/mcp/server.js", "hooks/hooks.json"],
   },
   {
     // 上游随包内置、我们补齐的插件（内容与商店那份字节一致，见 sync-builtin-plugins.py）。
@@ -186,7 +186,7 @@ const officialPluginPackages = [
     relativePath: "apps/nibi-cli/packages/plugin-creator-plugin",
     requiresRuntime: false,
     stagedPath: "packages/plugin-creator-plugin",
-    requiredSeedPaths: [".nibi-plugin/plugin.json", "skills/plugin-creator/SKILL.md"],
+    requiredSeedPaths: ["plugin.json", "skills/plugin-creator/SKILL.md"],
   },
   {
     // 上游随包内置、我们补齐的插件（内容与商店那份字节一致，见 sync-builtin-plugins.py）。
@@ -194,7 +194,7 @@ const officialPluginPackages = [
     relativePath: "apps/nibi-cli/packages/skill-creator-plugin",
     requiresRuntime: false,
     stagedPath: "packages/skill-creator-plugin",
-    requiredSeedPaths: [".nibi-plugin/plugin.json", "skills/skill-creator/SKILL.md"],
+    requiredSeedPaths: ["plugin.json", "skills/skill-creator/SKILL.md"],
   },
   {
     // 上游随包内置、我们补齐的插件（内容与商店那份字节一致，见 sync-builtin-plugins.py）。
@@ -202,7 +202,7 @@ const officialPluginPackages = [
     relativePath: "apps/nibi-cli/packages/nibi-guide-plugin",
     requiresRuntime: false,
     stagedPath: "packages/nibi-guide-plugin",
-    requiredSeedPaths: [".nibi-plugin/plugin.json", "skills/configuration-guide/SKILL.md"],
+    requiredSeedPaths: ["plugin.json", "skills/configuration-guide/SKILL.md"],
   },
   // superpowers 已从内置插件下线，改走 UI 推荐区按需安装；这里不再 stage 它的资源。
 ];

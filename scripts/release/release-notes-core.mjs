@@ -126,7 +126,6 @@ export const ALLOWED_BACKTICKED = new Set([
   "nibi commands",
   "nibi update --check",
   "npm install -g @nibi-studio/cli",
-  ".nibi-plugin",
 ]);
 
 /** 允许出现在正文里的链接主机（发布说明只链官网，不链仓库文件/工单）。 */

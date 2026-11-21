@@ -9,7 +9,7 @@ import {
   appendPluginSourceCleanupError,
   cleanupPluginSourceBestEffort,
   directoryExists,
-  fileExists,
+  findPluginManifest,
 } from "./helpers.js";
 
 const ZIP_DOWNLOAD_MAX_BYTES = 200 * 1024 * 1024;
@@ -365,7 +365,7 @@ function resolveZipRoot(input: {
 }
 
 function hasPluginManifest(rootPath: string): boolean {
-  return fileExists(join(rootPath, "plugin.json"));
+  return findPluginManifest(rootPath) !== null;
 }
 
 function openZipFile(path: string): Promise<yauzl.ZipFile> {

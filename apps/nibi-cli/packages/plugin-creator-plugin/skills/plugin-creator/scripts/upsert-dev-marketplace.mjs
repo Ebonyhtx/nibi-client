@@ -37,9 +37,17 @@ export async function upsertDevMarketplace({
   const pluginRoot = await realpath(pluginPath);
   const errors = await preflightPlugin(pluginRoot);
   if (errors.length) throw new Error(errors.join("\n"));
-  const manifest = JSON.parse(
-    await readFile(join(pluginRoot, ".nibi-plugin", "plugin.json"), "utf8"),
-  );
+  const rawManifest = JSON.parse(await readFile(join(pluginRoot, "plugin.json"), "utf8"));
+  const extension = rawManifest.extensions?.["com.nibistudio.nibi"];
+  const manifest =
+    extension && typeof extension === "object" && !Array.isArray(extension)
+      ? {
+          ...extension,
+          name: rawManifest.name,
+          version: rawManifest.version,
+          description: rawManifest.description,
+        }
+      : rawManifest;
   const name = normalizePluginName(manifest.name);
   if (name !== manifest.name || name !== basename(pluginRoot))
     throw new Error("Plugin directory and manifest name must match");

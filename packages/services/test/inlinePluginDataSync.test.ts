@@ -41,9 +41,9 @@ async function writePlugin(
   } = {},
 ): Promise<string> {
   const name = options.name ?? "plugin";
-  await mkdir(join(directory, ".nibi-plugin"), { recursive: true });
+  await mkdir(directory, { recursive: true });
   await writeFile(
-    join(directory, ".nibi-plugin", "plugin.json"),
+    join(directory, "plugin.json"),
     `${JSON.stringify(
       {
         name,

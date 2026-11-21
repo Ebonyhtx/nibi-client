@@ -5,8 +5,8 @@
  *   L1（本判据守的）：**实例身份** —— 数据根 `~/.nibi`、环境变量 `NIBI_*`、CLI 名 `nibi`。
  *   L2（2026-10-22 已改完，本判据只留必须保留的别名）：IPC 通道 `nibi:*`、
  *       线协议字段 `nibi_type`、主 renderer 的 `window.nibi` 桥、`nibiBuiltin*` 属性、
- *       `config/provider/nibi-builtin.json`。插件 ABI 已统一为 `.nibi-plugin/`、
- *       `NIBI_*`、`window.nibi` 与 `com.nibistudio.nibi/`，旧名不再放行。
+ *       `config/provider/nibi-builtin.json`。插件 ABI 已统一为根 `plugin.json` +
+ *       `extensions["com.nibistudio.nibi"]`、`NIBI_*`、`window.nibi`，旧名不再放行。
  *
  * 为什么必须扫**产物**而不是源码：源码干净不代表产物干净。esbuild/vite 会把
  * define 注入值、依赖包里的字面量、内联的第三方代码一起打进来；`skill` 文档、

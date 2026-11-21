@@ -12,7 +12,7 @@ import { listPluginHookEventNames } from "./hook-sources.js";
 import { readMarkdownFrontmatter } from "./markdown-frontmatter.js";
 import { loadPluginMcpServerDefinitions } from "./mcp.js";
 import { scanSkillFilesUnderRootSync } from "../skills/scan.js";
-import type { LoadedPlugin } from "./types.js";
+import type { PluginManifestSource } from "./types.js";
 
 // 组件分组类型定义已上移到 @nibi/contracts（PluginMetadata 需要引用），这里再导出保持对外契约稳定。
 export type { PluginComponentGroup, PluginComponentItem, PluginComponentKind };
@@ -25,7 +25,7 @@ export type { PluginComponentGroup, PluginComponentItem, PluginComponentKind };
 export function enumeratePluginComponents(
   rootPath: string,
   manifest: PluginManifest | null,
-  options: { diagnostics?: PluginDiagnostic[]; loaded?: LoadedPlugin } = {},
+  options: { diagnostics?: PluginDiagnostic[]; loaded?: PluginManifestSource } = {},
 ): PluginComponentGroup[] {
   const groups: PluginComponentGroup[] = [];
   const agentItems = collectMarkdownComponents(rootPath, manifest?.agents, "agents");
@@ -127,7 +127,7 @@ function collectSkillComponents(rootPath: string, manifestField: unknown): Plugi
 /** hook：复用 loader 的来源发现规则，但只取事件名用于详情展示，不构造可执行 hook。 */
 function collectHookComponents(
   manifest: PluginManifest | null,
-  options: { diagnostics?: PluginDiagnostic[]; loaded?: LoadedPlugin },
+  options: { diagnostics?: PluginDiagnostic[]; loaded?: PluginManifestSource },
 ): PluginComponentItem[] {
   if (options.loaded) {
     return listPluginHookEventNames({
@@ -139,10 +139,10 @@ function collectHookComponents(
   return collectInlineHookEvents(manifest.hooks).map((name) => ({ name }));
 }
 
-/** mcp：复用 loader 读取 `.mcp.json` + `manifest.mcpServers` 的纯读解析，只展示原始 server 名。 */
+/** mcp：复用 loader 读取 `mcp.json`（含旧 `.mcp.json` 兜底）+ `manifest.mcpServers` 的纯读解析，只展示原始 server 名。 */
 function collectMcpComponents(
   manifest: PluginManifest | null,
-  options: { diagnostics?: PluginDiagnostic[]; loaded?: LoadedPlugin },
+  options: { diagnostics?: PluginDiagnostic[]; loaded?: PluginManifestSource },
 ): PluginComponentItem[] {
   if (options.loaded) {
     return Object.keys(

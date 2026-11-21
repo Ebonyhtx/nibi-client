@@ -6,10 +6,10 @@ import { type BuiltInSubagentModelSelectionOverrides } from "@nibi/shared";
 import {
   type CollaborationMode,
   type HookConfigSource,
-  type HookEventName,
   type HookMatcherConfig,
   type HooksRuntimeConfig,
   type McpServerConfig,
+  type PluginHookEventName,
 } from "@nibi/contracts";
 import { omitMcpServers, resolveTrustedOfficialCuaServerNames } from "../mcp-config.js";
 import { resolveDefaultEmbeddedSearchBackend } from "./embedded-search-backend.js";
@@ -38,7 +38,7 @@ export function resolveAppRuntimeConfig(input: {
   persistedMode?: CollaborationMode;
   builtInMcpServers?: Record<string, McpServerConfig>;
   builtInSubagentModelSelectionOverrides?: BuiltInSubagentModelSelectionOverrides;
-  pluginHooks?: Partial<Record<HookEventName, HookMatcherConfig[]>>;
+  pluginHooks?: Partial<Record<PluginHookEventName, HookMatcherConfig[]>>;
   pluginMcpServers?: Record<string, McpServerConfig>;
   pluginRuntimeFeatures?: AgentRuntimeConfig["runtimeFeatures"];
   subagentOutputRootDir: string;
@@ -248,7 +248,7 @@ function resolveInitialRegistrySelection(
 
 function mergeRuntimeHooks(
   base: HooksRuntimeConfig | undefined,
-  pluginHooks: Partial<Record<HookEventName, HookMatcherConfig[]>> | undefined,
+  pluginHooks: Partial<Record<PluginHookEventName, HookMatcherConfig[]>> | undefined,
 ): HooksRuntimeConfig | undefined {
   if (!pluginHooks || Object.values(pluginHooks).every((matchers) => !matchers?.length)) {
     return base;
@@ -258,7 +258,7 @@ function mergeRuntimeHooks(
     ...base?.events,
   };
   for (const [eventName, matchers] of Object.entries(pluginHooks) as Array<
-    [HookEventName, HookMatcherConfig[]]
+    [PluginHookEventName, HookMatcherConfig[]]
   >) {
     if (matchers.length === 0) continue;
     mergedEvents[eventName] = [...(mergedEvents[eventName] ?? []), ...matchers];
