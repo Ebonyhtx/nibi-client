@@ -12,6 +12,17 @@ function toMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/** 协议层把业务码放在 data.code；本地直调时也可能挂在 error.code。 */
+function readErrorCode(error: unknown): string | undefined {
+  if (!(error instanceof Error)) return undefined;
+  const data =
+    "data" in error && error.data && typeof error.data === "object"
+      ? (error.data as { code?: unknown })
+      : undefined;
+  if (typeof data?.code === "string") return data.code;
+  return "code" in error && typeof error.code === "string" ? error.code : undefined;
+}
+
 let nextToggleRequestId = 0;
 const requestsByStore = new WeakMap<() => PluginManagementState, Map<string, number>>();
 
@@ -125,10 +136,24 @@ export async function setPluginEnabledOptimistically(
   } catch (error) {
     // 启停失败时必须返回 false 并恢复 optimistic projection，避免
     // 调用方继续刷新其它能力，或让界面把失败的切换误报成成功。
-    logger.error("[plugins] setEnabled failed", { pluginId, enabled, error: toMessage(error) });
+    const consentRequired =
+      enabled && readErrorCode(error) === "plugin_consent_required";
+    if (consentRequired) {
+      logger.info("[plugins] consent required before enabling", { pluginId });
+    } else {
+      logger.error("[plugins] setEnabled failed", { pluginId, enabled, error: toMessage(error) });
+    }
     if (isCurrentRequest()) {
       set({
-        error: toMessage(error),
+        ...(consentRequired
+          ? {
+              consentPrompt: {
+                permissions: previousPlugin?.permissions?.required ?? [],
+                pluginId,
+              },
+              error: null,
+            }
+          : { error: toMessage(error) }),
         lastFailedPluginId: pluginId,
         ...(previousPlugin
           ? {

@@ -14,6 +14,7 @@ import type {
   PluginHookEventName,
   PluginLoadOutcome,
   PluginManifest,
+  PluginPermission,
   PluginUiSurfaceDefinition,
   PluginMetadata,
   PluginOperationOptions,
@@ -38,8 +39,11 @@ import {
   isNotFoundError,
   isRecord,
   parsePathList,
+  pluginConsentCovers,
+  readPluginConsents,
   readPluginManifestDocument,
   resolveInside,
+  resolveRequiredPluginPermissions,
   sanitizePluginId,
   throwIfAborted,
 } from "./helpers.js";
@@ -108,6 +112,19 @@ export {
 export { getPluginSourceDiagnosticCode } from "./source-errors.js";
 
 export {
+  PLUGIN_AUDIT_FILE,
+  PLUGIN_CONSENT_FILE,
+  appendPluginAuditEvent,
+  pluginConsentCovers,
+  readPluginConsents,
+  resolveRequiredPluginPermissions,
+  revokePluginConsent,
+  writePluginConsent,
+  type PluginConsentFile,
+  type PluginConsentRecord,
+} from "./helpers.js";
+
+export {
   NIBI_LICENSE_DEVICE_ID_KEY,
   NIBI_LICENSE_STATE_KEY,
   NIBI_LICENSE_TOKEN_KEY,
@@ -162,6 +179,7 @@ export class NodePluginAdapter implements PluginPort {
 
     const diagnostics: PluginDiagnostic[] = [];
     const dataRoot = join(request.storageRoot || this.options.storageRoot, "data");
+    const pluginConsents = readPluginConsents(request.storageRoot);
     const candidates = this.resolveCandidates(request, diagnostics, options);
     // 未显式提供门禁时使用内置 license 门禁（fail-closed）：任何调用方都无法
     // 通过"忘记传门禁"让付费插件绕过会员校验。
@@ -254,6 +272,34 @@ export class NodePluginAdapter implements PluginPort {
         loaded,
         runnable: hooksRunnable,
       });
+      const declaredMcpServerNames = Object.keys(mcpServerDefinitions);
+      const requiredPermissions = resolveRequiredPluginPermissions(loaded.manifest, {
+        // 只有真正会注入 runtime 的事件才算要执行子进程；enum-only 详情不算。
+        hasHooks: Object.keys(hookInspection.events).length > 0,
+        hasMcp: declaredMcpServerNames.length > 0,
+        trust: loaded.canonical.trust,
+      });
+      // 社区/本地插件的 hooks 与 MCP 会启动子进程，必须逐版本显式同意；
+      // builtin/official 沿用签名/内置信任，不要求用户再点一次。
+      if (
+        enabled &&
+        (loaded.canonical.trust === "community" || loaded.canonical.trust === "local") &&
+        requiredPermissions.length > 0 &&
+        !pluginConsentCovers(
+          pluginConsents.plugins[loaded.id],
+          loaded.manifest.version ?? DEFAULT_VERSION,
+          requiredPermissions,
+        )
+      ) {
+        enabled = false;
+        diagnostics.push({
+          code: "plugin_consent_required",
+          message: `Plugin requires permission consent: ${requiredPermissions.join(", ")}`,
+          path: loaded.manifestPath,
+          pluginId: loaded.id,
+          severity: "warning",
+        });
+      }
       const component = enabled
         ? resolveEnabledComponents({
             dataPath,
@@ -274,7 +320,6 @@ export class NodePluginAdapter implements PluginPort {
       mergeHookEvents(hooks, component.hooks);
       skillRoots.push(...component.skillRoots);
       commandRoots.push(...component.commandRoots);
-      const declaredMcpServerNames = Object.keys(mcpServerDefinitions);
       plugins.push(
         createPluginMetadata(
           loaded,
@@ -285,6 +330,7 @@ export class NodePluginAdapter implements PluginPort {
           request.config.options[loaded.id] ?? {},
           // 插件 UI 面板入口（A5）：与启用态无关地解析，禁用插件的入口由 listUiSurfaces 过滤。
           parsePluginUiSurfaces({ loaded, declaredMcpServerNames, diagnostics }),
+          requiredPermissions,
         ),
       );
     }
@@ -456,6 +502,7 @@ function createPluginMetadata(
   declaredMcpServerNames: string[],
   configuredOptions: Record<string, string | number | boolean>,
   uiSurfaces: PluginUiSurfaceDefinition[],
+  requiredPermissions: PluginPermission[],
 ): PluginMetadata {
   // manifest 的 author/homepage 作为详情页信息区的回退来源（商店 listing 优先）。
   const author = normalizeAuthorValue(loaded.manifest.author);
@@ -490,7 +537,10 @@ function createPluginMetadata(
     mcpServerNames: Object.keys(component.mcpServers),
     name: loaded.manifest.name,
     hookDetails: component.hookDetails,
-    permissions: loaded.canonical.permissions,
+    permissions: {
+      ...loaded.canonical.permissions,
+      required: requiredPermissions,
+    },
     rootPath: loaded.rootPath,
     skillCount: component.skillCount,
     skillRootCount: component.skillRoots.length,

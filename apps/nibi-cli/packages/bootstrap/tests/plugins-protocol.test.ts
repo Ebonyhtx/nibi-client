@@ -33,6 +33,8 @@ import {
   nibiPluginsOverviewParamsSchema,
   nibiPluginsCancelOperationParamsSchema,
   nibiPluginsCancelOperationResultSchema,
+  nibiPluginsConsentParamsSchema,
+  nibiPluginsConsentResultSchema,
   nibiPluginsSetEnabledParamsSchema,
   nibiPluginsValidateResultSchema,
 } from "@nibi/shared";
@@ -192,12 +194,32 @@ describe("plugins protocol contracts", () => {
   it("registers plugin management methods", () => {
     expect(nibiProtocolMethods.pluginsList).toBe("plugins/list");
     expect(nibiProtocolMethods.pluginsSetEnabled).toBe("plugins/setEnabled");
+    expect(nibiProtocolMethods.pluginsConsent).toBe("plugins/consent");
     expect(nibiProtocolMethods.pluginsOverview).toBe("plugins/overview");
     expect(nibiProtocolMethods.pluginsMarketplaceAdd).toBe("plugins/marketplace/add");
     expect(nibiProtocolMethods.pluginsMarketplaceUpdate).toBe("plugins/marketplace/update");
     expect(nibiProtocolMethods.pluginsInstall).toBe("plugins/install");
     expect(nibiProtocolMethods.pluginsCancelOperation).toBe("plugins/cancelOperation");
     expect(nibiProtocolMethods.pluginsValidate).toBe("plugins/validate");
+  });
+
+  it("parses plugin consent params and results", () => {
+    const workspace = { workspacePath: "/w", workspaceKey: "/w" };
+    expect(
+      nibiPluginsConsentParamsSchema.parse({
+        workspace,
+        pluginId: "demo@inline",
+        granted: true,
+      }),
+    ).toEqual({ workspace, pluginId: "demo@inline", granted: true });
+    expect(
+      nibiPluginsConsentResultSchema.parse({
+        pluginId: "demo@inline",
+        granted: true,
+        permissions: ["process"],
+        version: "1.0.0",
+      }),
+    ).toMatchObject({ granted: true, permissions: ["process"] });
   });
 
   it("accepts an optional config scope for Settings list and overview projections", () => {

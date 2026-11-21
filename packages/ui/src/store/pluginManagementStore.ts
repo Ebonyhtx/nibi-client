@@ -60,6 +60,8 @@ export interface PluginManagementState {
    */
   lastFailedPluginId: string | null;
   togglingPluginId: string | null;
+  /** 启用社区/本地插件时缺少权限同意：弹窗确认后调用 grantConsent。 */
+  consentPrompt: { permissions: string[]; pluginId: string } | null;
   activeOperations: ReadonlyArray<{ id: string }>;
   operationVersion: number;
   describeCache: Record<string, PluginDescribeEntry>;
@@ -115,6 +117,13 @@ export interface PluginManagementState {
     pluginService: IPluginManagementService,
     scope?: NibiPluginScope,
   ) => Promise<boolean>;
+  /** 用户在同意弹窗确认后授权 required 权限并重试启用。 */
+  grantConsent: (pluginService: IPluginManagementService) => Promise<boolean>;
+  revokeConsent: (
+    pluginId: string,
+    pluginService: IPluginManagementService,
+  ) => Promise<boolean>;
+  dismissConsent: () => void;
   // 按需拉取插件组件清单（名称+描述）；force 跳过缓存重试。
   describePlugin: (
     pluginId: string,
@@ -176,6 +185,7 @@ export const createPluginManagementStore = (initialService?: IPluginManagementSe
     errorCode: null,
     lastFailedPluginId: null,
     togglingPluginId: null,
+    consentPrompt: null,
     activeOperations: [],
     operationVersion: 0,
     describeCache: {},
@@ -234,6 +244,7 @@ export const createPluginManagementStore = (initialService?: IPluginManagementSe
               activeOperations: [],
               operationVersion: current.operationVersion + 1,
               togglingPluginId: null,
+              consentPrompt: null,
               plugins: [],
               marketplaces: [],
               availablePlugins: [],
@@ -487,6 +498,65 @@ export const createPluginManagementStore = (initialService?: IPluginManagementSe
 
     async setEnabled(pluginId, enabled, pluginService, scope = "user") {
       return setPluginEnabledOptimistically(set, get, pluginId, enabled, pluginService, scope);
+    },
+
+    async grantConsent(pluginService) {
+      const { consentPrompt, workspacePath, workspaceIdentity } = get();
+      if (!consentPrompt || !workspacePath) return false;
+      try {
+        await pluginService.setPluginConsent({
+          workspacePath,
+          ...(workspaceIdentity ? { workspaceIdentity } : {}),
+          pluginId: consentPrompt.pluginId,
+          granted: true,
+        });
+        set({ consentPrompt: null, error: null });
+        return await setPluginEnabledOptimistically(
+          set,
+          get,
+          consentPrompt.pluginId,
+          true,
+          pluginService,
+          "user",
+        );
+      } catch (error) {
+        logger.error("[plugins] grant consent failed", {
+          pluginId: consentPrompt.pluginId,
+          error: toMessage(error),
+        });
+        set({ consentPrompt: null, error: toMessage(error) });
+        return false;
+      }
+    },
+
+    dismissConsent() {
+      set({ consentPrompt: null });
+    },
+
+    async revokeConsent(pluginId, pluginService) {
+      const { authorityKey, configScope, workspacePath, workspaceIdentity } = get();
+      if (!workspacePath) return false;
+      try {
+        await pluginService.setPluginConsent({
+          workspacePath,
+          ...(workspaceIdentity ? { workspaceIdentity } : {}),
+          pluginId,
+          granted: false,
+        });
+        await loadInto(set, get, {
+          workspacePath,
+          workspaceIdentity,
+          authorityKey,
+          configScope,
+          pluginService,
+          fresh: true,
+        });
+        return true;
+      } catch (error) {
+        logger.error("[plugins] revoke consent failed", { pluginId, error: toMessage(error) });
+        set({ error: toMessage(error), lastFailedPluginId: pluginId });
+        return false;
+      }
     },
 
     async describePlugin(pluginId, pluginName, marketplace, pluginService, force = false) {

@@ -80,6 +80,7 @@ import {
   removePluginMarketplace,
   resetPluginConfig,
   restoreBuiltinPlugin,
+  setPluginConsent,
   setPluginEnabled,
   uninstallPlugin,
   updatePlugin,
@@ -853,6 +854,8 @@ export class NibiProtocolAgentServer {
         return await this.withPluginOperationSignal(request, (signal) =>
           setPluginEnabled(this.context, request.params, signal),
         );
+      case nibiProtocolMethods.pluginsConsent:
+        return await setPluginConsent(this.context, request.params);
       case nibiProtocolMethods.pluginsOverview:
         return await getPluginsOverview(this.context, request.params);
       case nibiProtocolMethods.processChildProcesses:

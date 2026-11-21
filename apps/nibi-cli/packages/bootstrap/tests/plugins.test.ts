@@ -28,6 +28,7 @@ import {
   getNibiPluginsOverview,
   installNibiMarketplacePlugin,
   listNibiPlugins,
+  PluginConsentRequiredError,
   resolveNibiPlugins,
   resetNibiPluginConfig,
   resolveMarketplaceRefreshTargetIds,
@@ -2739,6 +2740,63 @@ describe("Nibi plugins", () => {
         expect(existsSync(join(cacheRoot, ".claude-plugin"))).toBe(false);
         expect(existsSync(join(cacheRoot, ".codex-plugin"))).toBe(false);
       }
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("requires explicit consent before enabling a local plugin with MCP", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-consent-"));
+    const pluginRoot = join(root, "consent-local");
+    const pluginStorageRoot = join(root, "plugins");
+    const userConfigPath = join(root, "config.json");
+
+    try {
+      await mkdir(pluginRoot, { recursive: true });
+      await writeFile(
+        join(pluginRoot, "plugin.json"),
+        JSON.stringify({
+          name: "consent-local",
+          version: "1.0.0",
+          extensions: { "com.nibistudio.nibi": {} },
+        }),
+      );
+      await writeFile(
+        join(pluginRoot, "mcp.json"),
+        JSON.stringify({ mcpServers: { demo: { command: "node", args: ["server.mjs"] } } }),
+      );
+      await writeFile(
+        userConfigPath,
+        JSON.stringify({ plugins: { dirs: [pluginRoot] } }),
+      );
+      const pluginId = "consent-local@inline";
+
+      await expect(
+        setNibiPluginEnabled({
+          enabled: true,
+          plugin: pluginId,
+          pluginStorageRoot,
+          userConfigPath,
+          workingDirectory: root,
+        }),
+      ).rejects.toBeInstanceOf(PluginConsentRequiredError);
+
+      const result = await setNibiPluginEnabled({
+        acceptPermissions: true,
+        enabled: true,
+        plugin: pluginId,
+        pluginStorageRoot,
+        userConfigPath,
+        workingDirectory: root,
+      });
+      expect(result.enabled).toBe(true);
+      expect(
+        JSON.parse(await readFile(join(pluginStorageRoot, "plugin-consents.json"), "utf8")),
+      ).toMatchObject({
+        plugins: {
+          [pluginId]: { permissions: ["process", "network"], version: "1.0.0" },
+        },
+      });
     } finally {
       await rm(root, { force: true, recursive: true });
     }

@@ -24,11 +24,12 @@ import { CommandsSection } from "@/settings/CommandsSection.js";
 import { SettingsSearchInput } from "@/settings/SettingsSearchInput.js";
 import { SettingsResourceHeaderActions } from "@/settings/SettingsResourceHeaderActions.js";
 import { PluginStoreAvatar } from "@/settings/PluginStoreAvatar.js";
-import { PluginUninstallConfirmDialog } from "@/settings/PluginUninstallConfirmDialog.js";
+import { PluginConsentDialog, PluginUninstallConfirmDialog } from "@/settings/PluginUninstallConfirmDialog.js";
 import { PluginInstallEmptyState, PluginLoadingState } from "@/settings/PluginInstallEmptyState.js";
 import {
   PluginDetailRow,
   PluginHookDetails,
+  PluginPermissionSummary,
   PluginWarningList,
 } from "@/settings/InstalledPluginManagement.js";
 import { PluginConfigControls } from "@/settings/PluginConfigControls.js";
@@ -215,6 +216,10 @@ function PluginList({
   const currentConfigScope = usePluginManagementStore((state) => state.configScope);
   const resetPluginConfig = usePluginManagementStore((state) => state.resetPluginConfig);
   const togglingPluginId = usePluginManagementStore((state) => state.togglingPluginId);
+  const consentPrompt = usePluginManagementStore((state) => state.consentPrompt);
+  const grantConsent = usePluginManagementStore((state) => state.grantConsent);
+  const revokeConsent = usePluginManagementStore((state) => state.revokeConsent);
+  const dismissConsent = usePluginManagementStore((state) => state.dismissConsent);
   const activeOperations = usePluginManagementStore((state) => state.activeOperations);
   const [selectedPluginId, setSelectedPluginId] = useState<string | null>(null);
   const [pluginOptionsDrafts, setPluginOptionsDrafts] = useState<
@@ -875,6 +880,16 @@ function PluginList({
                 {(selectedPlugin.hookDetails ?? []).length > 0 ? (
                   <PluginHookDetails hooks={selectedPlugin.hookDetails ?? []} />
                 ) : null}
+                {(selectedPlugin.permissions?.required.length ?? 0) > 0 ||
+                (selectedPlugin.permissions?.requested.length ?? 0) > 0 ? (
+                  <PluginPermissionSummary
+                    requested={selectedPlugin.permissions?.requested ?? []}
+                    required={selectedPlugin.permissions?.required ?? []}
+                    onRevoke={() =>
+                      void revokeConsent(selectedPlugin.id, pluginManagementService)
+                    }
+                  />
+                ) : null}
                 <PluginConfigControls
                   getValue={getPluginOptionValue}
                   isOptionClearPending={(pluginId, key) =>
@@ -1044,6 +1059,18 @@ function PluginList({
           {renderUnavailableComputerUse()}
         </div>
       ) : null}
+      <PluginConsentDialog
+        open={consentPrompt !== null}
+        pluginName={
+          plugins.find((plugin) => plugin.id === consentPrompt?.pluginId)?.name ??
+          consentPrompt?.pluginId ??
+          ""
+        }
+        permissions={consentPrompt?.permissions ?? []}
+        pending={togglingPluginId === consentPrompt?.pluginId}
+        onCancel={dismissConsent}
+        onConfirm={() => void grantConsent(pluginManagementService)}
+      />
       <PluginUninstallConfirmDialog
         open={uninstall.pendingPlugin !== null}
         pluginName={

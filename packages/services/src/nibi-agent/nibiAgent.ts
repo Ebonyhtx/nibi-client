@@ -66,6 +66,7 @@ import type {
   NibiPluginsDescribeResult,
   NibiPluginsValidateResult,
   NibiPluginsSetEnabledResult,
+  NibiPluginsConsentResult,
   NibiPluginsCancelOperationResult,
   NibiPluginOperationProgressNotification,
   NibiProviderRuntimeHeadersRequestParams,
@@ -161,6 +162,7 @@ import type {
   NibiAgentResolveSuggestedPluginReferenceParams,
   NibiAgentRemovePluginMarketplaceParams,
   NibiAgentRestoreBuiltinPluginParams,
+  NibiAgentPluginConsentParams,
   NibiAgentSetPluginEnabledParams,
   NibiAgentSetAutomationEnabledParams,
   NibiAgentUninstallPluginParams,
@@ -903,6 +905,7 @@ releaseSessionsUnderDirectory?(
   validatePlugin(params: NibiAgentValidatePluginParams): Promise<NibiPluginsValidateResult>;
   describePlugin(params: NibiAgentDescribePluginParams): Promise<NibiPluginsDescribeResult>;
   setPluginEnabled(params: NibiAgentSetPluginEnabledParams): Promise<NibiPluginsSetEnabledResult>;
+  setPluginConsent(params: NibiAgentPluginConsentParams): Promise<NibiPluginsConsentResult>;
   // ---- 定时任务(automation)管理 ----
   listAutomations(params: NibiAgentWorkspaceTarget): Promise<NibiAutomation[]>;
   listAllAutomations(): Promise<NibiAutomation[]>;

@@ -29,6 +29,9 @@ import {
   loadMarketplaceManifestSync,
   parseEntryStoreListing,
   parseMarketplaceSourceInput,
+  pluginConsentCovers,
+  readPluginConsents,
+  writePluginConsent,
   resolvePaidPluginAccessFromToken,
   PaidPluginMembershipError,
   readNibiLicenseRefusalSync,
@@ -52,6 +55,7 @@ import type {
   PluginHookDetail,
   PluginLoadOutcome,
   PluginMetadata,
+  PluginPermission,
   PluginStoreListing,
 } from "@nibi/contracts";
 import { NIBI_OFFICIAL_PLUGIN_MARKETPLACE, isOfficialMarketplaceId } from "@nibi/contracts";
@@ -99,9 +103,21 @@ export interface GetNibiPluginsOverviewOptions extends ResolveNibiPluginsOptions
 }
 
 export interface SetNibiPluginEnabledOptions extends ResolveNibiPluginsOptions {
+  /** CLI 显式接受插件声明的 required 权限；协议/UI 走独立的 consent 方法。 */
+  acceptPermissions?: boolean;
   enabled: boolean;
   plugin: string;
   scope?: "user" | "workspace";
+}
+
+/** 启用社区/本地插件前的显式同意缺失；协议层把 code 放进 data.code 供 UI 弹同意框。 */
+export class PluginConsentRequiredError extends Error {
+  readonly code = "plugin_consent_required";
+
+  constructor(readonly permissions: PluginPermission[]) {
+    super(`Plugin requires permission consent: ${permissions.join(", ")}`);
+    this.name = "PluginConsentRequiredError";
+  }
 }
 
 export interface SetNibiPluginEnabledResult {
@@ -548,6 +564,27 @@ export async function setNibiPluginEnabled(
   if (options.enabled) {
     // 启用与安装同样要过会员门禁：插件缓存/配置可以被复制，只在安装时拦等于没拦。
     const { pluginStorageRoot } = resolvePluginContext(options);
+    // 社区/本地插件的 hooks 与 MCP 要启动子进程，必须逐版本显式同意。
+    // 未同意时不写启用配置：UI 收到 plugin_consent_required 后弹同意框，授权完再重试。
+    if (
+      (plugin.trust === "community" || plugin.trust === "local") &&
+      plugin.permissions.required.length > 0 &&
+      !pluginConsentCovers(
+        readPluginConsents(pluginStorageRoot).plugins[plugin.id],
+        plugin.version ?? "0.0.0",
+        plugin.permissions.required,
+      )
+    ) {
+      if (!options.acceptPermissions) {
+        throw new PluginConsentRequiredError(plugin.permissions.required);
+      }
+      writePluginConsent({
+        permissions: plugin.permissions.required,
+        pluginId: plugin.id,
+        storageRoot: pluginStorageRoot,
+        version: plugin.version ?? "0.0.0",
+      });
+    }
     const entry = loadMarketplaceManifestSync(pluginStorageRoot, plugin.marketplace)?.plugins.find(
       (item) => item.name === plugin.name,
     );
@@ -1426,8 +1463,20 @@ function inferComponentTypesFromMetadata(plugin: PluginMetadata): string[] {
   if (plugin.components.some((group) => group.kind === "agent" && group.items.length > 0)) {
     types.push("agent");
   }
-  if (plugin.commandRootCount > 0) types.push("command");
-  if (plugin.skillRootCount > 0 || plugin.skillCount > 0) types.push("skill");
+  if (
+    plugin.commandRootCount > 0 ||
+    plugin.components.some((group) => group.kind === "command" && group.items.length > 0)
+  ) {
+    types.push("command");
+  }
+  if (
+    plugin.skillRootCount > 0 ||
+    plugin.skillCount > 0 ||
+    // 停用插件走 emptyComponents，按数量会漏报；权威枚举仍能给出组件名。
+    plugin.components.some((group) => group.kind === "skill" && group.items.length > 0)
+  ) {
+    types.push("skill");
+  }
   if (plugin.declaredMcpServerNames.length > 0 || plugin.mcpServerNames.length > 0) {
     types.push("mcp");
   }

@@ -6,10 +6,16 @@ import {
   PLUGIN_HOOK_EVENT_NAMES,
   PLUGIN_HOOK_RUNNABLE_EVENT_NAMES,
 } from "@nibi/contracts";
-import { createNodePluginAdapter } from "../src/plugins/index.js";
+import { createNodePluginAdapter, writePluginConsent } from "../src/plugins/index.js";
 
 async function discoverWithHooks(rootPath: string) {
   const storageRoot = join(rootPath, ".storage");
+  writePluginConsent({
+    permissions: ["process"],
+    pluginId: "hook-fixture@inline",
+    storageRoot,
+    version: "1.0.0",
+  });
   return createNodePluginAdapter({ storageRoot }).discoverPlugins({
     config: {
       dirs: [rootPath],

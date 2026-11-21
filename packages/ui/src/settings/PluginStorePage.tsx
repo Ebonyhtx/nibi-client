@@ -27,6 +27,7 @@ import { reloadWorkspaceRuntimeAfterPluginChange } from "@/lib/pluginRuntimeRelo
 import {
   PluginDetailRow,
   PluginHookDetails,
+  PluginPermissionSummary,
   PluginWarningList,
 } from "@/settings/InstalledPluginManagement.js";
 import { AddMarketplaceSourceDialog } from "@/settings/AddMarketplaceSourceDialog.js";
@@ -47,7 +48,7 @@ import {
   type StorePluginItem,
 } from "@/settings/pluginStoreListing.js";
 import { NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID } from "@nibi/shared";
-import { PluginUninstallConfirmDialog } from "@/settings/PluginUninstallConfirmDialog.js";
+import { PluginConsentDialog, PluginUninstallConfirmDialog } from "@/settings/PluginUninstallConfirmDialog.js";
 import { usePluginUninstall } from "@/settings/usePluginUninstall.js";
 import { NibiMembershipDialog } from "@/settings/NibiMembershipDialog.js";
 import { resolvePluginErrorMessage } from "@/settings/pluginErrorMessage.js";
@@ -136,6 +137,10 @@ export function PluginStorePage({
   const restoreBuiltin = usePluginManagementStore((state) => state.restoreBuiltin);
   const setEnabled = usePluginManagementStore((state) => state.setEnabled);
   const togglingPluginId = usePluginManagementStore((state) => state.togglingPluginId);
+  const consentPrompt = usePluginManagementStore((state) => state.consentPrompt);
+  const grantConsent = usePluginManagementStore((state) => state.grantConsent);
+  const revokeConsent = usePluginManagementStore((state) => state.revokeConsent);
+  const dismissConsent = usePluginManagementStore((state) => state.dismissConsent);
 
   const [view, setView] = useState<PluginStoreView>("store");
   const operationService = useMemo(() => {
@@ -882,6 +887,14 @@ export function PluginStorePage({
                   {(detailItem.info.hookDetails ?? []).length > 0 ? (
                     <PluginHookDetails hooks={detailItem.info.hookDetails ?? []} />
                   ) : null}
+                  {(detailItem.info.permissions?.required.length ?? 0) > 0 ||
+                  (detailItem.info.permissions?.requested.length ?? 0) > 0 ? (
+                    <PluginPermissionSummary
+                      requested={detailItem.info.permissions?.requested ?? []}
+                      required={detailItem.info.permissions?.required ?? []}
+                      onRevoke={() => void revokeConsent(detailItem.id, operationService)}
+                    />
+                  ) : null}
                 </PluginStoreAdvancedSection>
               </div>
             ) : undefined
@@ -972,6 +985,18 @@ export function PluginStorePage({
         onAddMarketplace={handleAddMarketplace}
         activeOperations={activeOperations}
         error={addMarketplaceError}
+      />
+      <PluginConsentDialog
+        open={consentPrompt !== null}
+        pluginName={
+          plugins.find((plugin) => plugin.id === consentPrompt?.pluginId)?.name ??
+          consentPrompt?.pluginId ??
+          ""
+        }
+        permissions={consentPrompt?.permissions ?? []}
+        pending={togglingPluginId === consentPrompt?.pluginId}
+        onCancel={dismissConsent}
+        onConfirm={() => void grantConsent(operationService)}
       />
       <NibiMembershipDialog
         open={membershipOpen}

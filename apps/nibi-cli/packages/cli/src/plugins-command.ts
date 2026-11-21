@@ -46,7 +46,8 @@ Commands:
   install <plugin>[@marketplace] [-s <scope>]  Install a plugin from a known marketplace
   uninstall <plugin> [-s <scope>] [--keep-data] [--force]
                                                Uninstall a plugin (--keep-data keeps its data directory)
-  enable <plugin> [-s <scope>]                 Enable a plugin
+  enable <plugin> [-s <scope>] [--accept-permissions]
+                                               Enable a plugin (accepts required hook/MCP permissions)
   disable [plugin] [-a|--all] [-s <scope>]     Disable a plugin, or every enabled plugin with --all
   update <plugin> [-s <scope>]                 Update a plugin to the latest marketplace version
   validate <path>                              Validate a plugin or marketplace manifest
@@ -291,6 +292,7 @@ async function runPluginsSetCommand(
   const scope = resolveScope(flags.scope);
   const result = await (await resolveDep(deps, "setPluginEnabled"))({
     ...baseOptions(deps),
+    ...(flags.acceptPermissions ? { acceptPermissions: true } : {}),
     enabled,
     plugin,
     ...(scope ? { scope } : {}),

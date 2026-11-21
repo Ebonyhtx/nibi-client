@@ -17,6 +17,7 @@ export {
   removePluginMarketplace,
   resetPluginConfig,
   restoreBuiltinPlugin,
+  setPluginConsent,
   setPluginEnabled,
   toPluginInfo,
   uninstallPlugin,

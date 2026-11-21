@@ -31,6 +31,7 @@ export function InstalledPluginDetailDialog({
   onOpenChange,
   onRequestUninstall,
   onRequestUpdate,
+  onRevokeConsent,
   onSavePluginOptions,
   open,
   activeOperations,
@@ -49,6 +50,7 @@ export function InstalledPluginDetailDialog({
   onOpenChange: (open: boolean) => void;
   onRequestUninstall?: (pluginId: string) => void;
   onRequestUpdate?: (pluginId: string) => void;
+  onRevokeConsent?: (pluginId: string) => void;
   onSavePluginOptions: (plugin: NibiPluginInfo) => void;
   open: boolean;
   activeOperations: ReadonlyArray<{ id: string }>;
@@ -80,6 +82,7 @@ export function InstalledPluginDetailDialog({
           updateStatus={updateStatus}
           onRequestUninstall={onRequestUninstall}
           onRequestUpdate={onRequestUpdate}
+          onRevokeConsent={onRevokeConsent}
           onSavePluginOptions={onSavePluginOptions}
         />
       </DialogContent>
@@ -95,6 +98,7 @@ export function InstalledPluginDetailPanel({
   latestVersion,
   onRequestUninstall,
   onRequestUpdate,
+  onRevokeConsent,
   onSavePluginOptions,
   activeOperations,
   plugin,
@@ -111,6 +115,7 @@ export function InstalledPluginDetailPanel({
   latestVersion?: string;
   onRequestUninstall?: (pluginId: string) => void;
   onRequestUpdate?: (pluginId: string) => void;
+  onRevokeConsent?: (pluginId: string) => void;
   onSavePluginOptions: (plugin: NibiPluginInfo) => void;
   activeOperations: ReadonlyArray<{ id: string }>;
   plugin: NibiPluginInfo | null;
@@ -136,7 +141,11 @@ export function InstalledPluginDetailPanel({
   const pluginWarnings = diagnostics.filter(
     (diagnostic) => diagnostic.pluginId === plugin.id && diagnostic.severity === "warning",
   );
-  const hasAdvanced = hookDetails.length > 0 || Object.keys(plugin.userConfig ?? {}).length > 0;
+  const permissions = plugin.permissions;
+  const hasPermissionInfo =
+    (permissions?.requested.length ?? 0) > 0 || (permissions?.required.length ?? 0) > 0;
+  const hasAdvanced =
+    hookDetails.length > 0 || Object.keys(plugin.userConfig ?? {}).length > 0 || hasPermissionInfo;
   const sourceLabel = renderPluginSource(plugin);
 
   return (
@@ -176,6 +185,11 @@ export function InstalledPluginDetailPanel({
         </div>
         {plugin.description ? (
           <p className="mt-3 leading-relaxed text-foreground-subtle">{plugin.description}</p>
+        ) : null}
+        {plugin.compatibility === "partial" || plugin.compatibility === "detected" ? (
+          <p className="mt-2 text-ui-xs text-foreground-subtle">
+            {intl.formatMessage({ id: "settings.plugins.detail.partialSupport" })}
+          </p>
         ) : null}
       </div>
 
@@ -227,6 +241,15 @@ export function InstalledPluginDetailPanel({
                 value={plugin.rootPath}
               />
               <PluginHookDetails hooks={hookDetails} />
+              {hasPermissionInfo ? (
+                <PluginPermissionSummary
+                  requested={permissions?.requested ?? []}
+                  required={permissions?.required ?? []}
+                  onRevoke={
+                    onRevokeConsent ? () => onRevokeConsent(plugin.id) : undefined
+                  }
+                />
+              ) : null}
               <PluginConfigControls
                 getValue={getPluginOptionValue}
                 onSave={onSavePluginOptions}
@@ -442,6 +465,56 @@ function PluginDetailInlineValue({ label, value }: { label: string; value: strin
 function formatHookCommand(hook: NonNullable<NibiPluginInfo["hookDetails"]>[number]): string {
   if (!hook.args || hook.args.length === 0) return hook.command;
   return `${hook.command} ${hook.args.join(" ")}`;
+}
+
+const PLUGIN_PERMISSION_LABEL_IDS: Record<string, string> = {
+  "filesystem.read": "settings.plugins.consent.permission.filesystemRead",
+  "filesystem.write": "settings.plugins.consent.permission.filesystemWrite",
+  "full-access": "settings.plugins.consent.permission.fullAccess",
+  network: "settings.plugins.consent.permission.network",
+  process: "settings.plugins.consent.permission.process",
+};
+
+export function PluginPermissionSummary({
+  requested,
+  required,
+  onRevoke,
+}: {
+  requested: readonly string[];
+  required: readonly string[];
+  onRevoke?: () => void;
+}) {
+  const { intl } = useNibiIntl();
+  const permissions = [...new Set([...required, ...requested])];
+  return (
+    <div className="min-w-0 rounded-lg border border-border bg-surface px-3 py-2">
+      <div className="text-ui-xs text-foreground-subtle">
+        {intl.formatMessage({ id: "settings.plugins.detail.permissions" })}
+      </div>
+      <ul className="mt-1.5 space-y-1 text-ui-xs text-foreground">
+        {permissions.map((permission) => (
+          <li key={permission}>
+            {intl.formatMessage({
+              id:
+                PLUGIN_PERMISSION_LABEL_IDS[permission] ??
+                "settings.plugins.consent.permission.unknown",
+            })}
+          </li>
+        ))}
+      </ul>
+      {required.length > 0 && onRevoke ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mt-2"
+          onClick={onRevoke}
+        >
+          {intl.formatMessage({ id: "settings.plugins.detail.revokeConsent" })}
+        </Button>
+      ) : null}
+    </div>
+  );
 }
 
 export function PluginDetailRow({ label, value }: { label: string; value: string }) {

@@ -12,6 +12,7 @@ import type {
   NibiPluginOperationProgressNotification,
   NibiPluginsBootstrapResult,
   NibiPluginsConfigureResult,
+  NibiPluginsConsentResult,
   NibiPluginsCancelOperationResult,
   NibiPluginsDescribeResult,
   NibiPluginsInstallResult,
@@ -36,6 +37,7 @@ import type {
   NibiAgentResolveSuggestedPluginReferenceParams,
   NibiAgentResetPluginConfigParams,
   NibiAgentPluginViewParams,
+  NibiAgentPluginConsentParams,
   NibiAgentRemovePluginMarketplaceParams,
   NibiAgentRestoreBuiltinPluginParams,
   NibiAgentSetPluginEnabledParams,
@@ -90,6 +92,7 @@ export interface IPluginManagementService {
   validatePlugin(params: NibiAgentValidatePluginParams): Promise<NibiPluginsValidateResult>;
   describePlugin(params: NibiAgentDescribePluginParams): Promise<NibiPluginsDescribeResult>;
   setPluginEnabled(params: NibiAgentSetPluginEnabledParams): Promise<NibiPluginsSetEnabledResult>;
+  setPluginConsent(params: NibiAgentPluginConsentParams): Promise<NibiPluginsConsentResult>;
 }
 
 export const IPluginManagementService = createServiceDescriptor<IPluginManagementService>(

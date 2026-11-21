@@ -2876,6 +2876,14 @@ export const nibiPluginUiSurfaceSchema = z
   .strict();
 export type NibiPluginUiSurface = z.infer<typeof nibiPluginUiSurfaceSchema>;
 
+export const nibiPluginPermissionProfileSchema = z
+  .object({
+    requested: z.array(z.string()),
+    required: z.array(z.string()),
+  })
+  .strict();
+export type NibiPluginPermissionProfile = z.infer<typeof nibiPluginPermissionProfileSchema>;
+
 export const nibiPluginInfoSchema = z
   .object({
     id: nonEmptyString,
@@ -2913,6 +2921,11 @@ export const nibiPluginInfoSchema = z
     hostMcpServerNames: z.array(z.string()).optional(),
     mcpServerNames: z.array(z.string()),
     hookDetails: z.array(nibiPluginHookDetailSchema).optional(),
+    // 权限请求值与运行时实际 required；required 非空且来源非官方时需要用户同意。
+    permissions: nibiPluginPermissionProfileSchema.optional(),
+    // 兼容性只报「是否部分可用」与组件键，不含生态名；UI 只在功能不可用时显示一行原因。
+    compatibility: z.enum(["full", "partial", "detected"]).optional(),
+    skippedComponents: z.array(z.string()).optional(),
     rootPath: z.string(),
     userConfig: z.record(z.string(), nibiPluginUserConfigOptionSchema).optional(),
     configuredOptions: z.record(z.string(), nibiPluginOptionValueSchema).optional(),
@@ -3455,6 +3468,23 @@ export const nibiPluginsSetEnabledResultSchema = z
   })
   .strict();
 export type NibiPluginsSetEnabledResult = z.infer<typeof nibiPluginsSetEnabledResultSchema>;
+
+export const nibiPluginsConsentParamsSchema = z
+  .object({
+    workspace: nibiWorkspaceRefSchema,
+    pluginId: nonEmptyString,
+    granted: z.boolean(),
+  })
+  .strict();
+export const nibiPluginsConsentResultSchema = z
+  .object({
+    pluginId: nonEmptyString,
+    granted: z.boolean(),
+    permissions: z.array(z.string()),
+    version: nonEmptyString,
+  })
+  .strict();
+export type NibiPluginsConsentResult = z.infer<typeof nibiPluginsConsentResultSchema>;
 
 // 商店信息（Store Listing）：目录条目携带的展示性元数据（显示名/icon/分类/作者/链接/hero/
 // 示例提示词），全部可选，UI 缺失时按降级矩阵处理（字母头像/隐藏区块/省略信息行）。
@@ -4129,6 +4159,7 @@ export const nibiProtocolMethods = {
   workflowsForRun: "workflows/forRun",
   pluginsResolveSuggestedReference: "plugins/resolveSuggestedReference",
   pluginsSetEnabled: "plugins/setEnabled",
+  pluginsConsent: "plugins/consent",
   pluginsOverview: "plugins/overview",
   pluginsMarketplaceAdd: "plugins/marketplace/add",
   pluginsMarketplaceRemove: "plugins/marketplace/remove",

@@ -38,6 +38,7 @@ export interface PluginManagementServiceDependencies {
     | "validatePlugin"
     | "describePlugin"
     | "setPluginEnabled"
+    | "setPluginConsent"
   >;
 }
 
@@ -240,6 +241,10 @@ export function createPluginManagementService(
     setPluginEnabled: (params) =>
       observe(params.enabled ? "enable" : "disable", params, (clean) =>
         agent.setPluginEnabled(clean as typeof params),
+      ),
+    setPluginConsent: (params) =>
+      observe(params.granted ? "consent_grant" : "consent_revoke", params, (clean) =>
+        agent.setPluginConsent(clean as typeof params),
       ),
   };
 }

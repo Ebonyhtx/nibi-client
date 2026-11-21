@@ -5122,6 +5122,22 @@ const enUS: Record<string, string> = {
   "settings.plugins.uninstall.confirmDescription":
     "This removes the plugin's cached files, its data directory, and any saved configuration. This cannot be undone.",
   "settings.plugins.uninstall.confirm": "Uninstall",
+  "settings.plugins.consent.title": "Allow {name} to run?",
+  "settings.plugins.consent.description":
+    "This plugin needs the following capabilities. Only allow plugins you trust.",
+  "settings.plugins.consent.confirm": "Allow and enable",
+  "settings.plugins.consent.permission.process":
+    "Run local commands and start helper processes",
+  "settings.plugins.consent.permission.network": "Access the network",
+  "settings.plugins.consent.permission.filesystemRead": "Read files in your workspace",
+  "settings.plugins.consent.permission.filesystemWrite": "Write files in your workspace",
+  "settings.plugins.consent.permission.fullAccess":
+    "Request full access (not granted to community or local plugins)",
+  "settings.plugins.consent.permission.unknown": "An additional capability",
+  "settings.plugins.detail.permissions": "Permissions",
+  "settings.plugins.detail.revokeConsent": "Revoke permission",
+  "settings.plugins.detail.partialSupport":
+    "Some declared capabilities are not available in this version.",
   "settings.plugins.detail.empty": "Select a plugin to view details.",
   "settings.plugins.detail.enabled": "Enabled",
   "settings.plugins.detail.disabled": "Disabled",

@@ -1,5 +1,13 @@
-import { readFileSync, statSync } from "node:fs";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { randomUUID } from "node:crypto";
+import {
+  appendFileSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type {
   CanonicalPlugin,
   PluginAdapterId,
@@ -289,14 +297,14 @@ export function describePluginAdapter(input: {
  * 重复项去重，顺序保持清单声明顺序。
  */
 export function resolvePluginPermissions(manifest: PluginManifest): PluginPermissionProfile {
-  if (!Array.isArray(manifest.permissions)) return { requested: [] };
+  if (!Array.isArray(manifest.permissions)) return { requested: [], required: [] };
   const requested: PluginPermission[] = [];
   for (const value of manifest.permissions) {
     if (typeof value === "string" && KNOWN_PERMISSIONS.has(value)) {
       requested.push(value as PluginPermission);
     }
   }
-  return { requested: [...new Set(requested)] };
+  return { requested: [...new Set(requested)], required: [] };
 }
 
 /** 信任来源由候选生成处决定：内置、官方缓存、第三方市场、本地目录。 */
@@ -331,4 +339,144 @@ function toPosixRelative(rootPath: string, path: string): string {
   const rel = relative(rootPath, path);
   if (rel === "" || rel.startsWith("..")) return path.split(sep).join("/");
   return rel.split(sep).join("/");
+}
+
+// ── 插件权限同意与审计 ──────────────────────────────────────────────────────
+
+export const PLUGIN_CONSENT_FILE = "plugin-consents.json";
+export const PLUGIN_AUDIT_FILE = "plugin-audit.ndjson";
+
+export interface PluginConsentRecord {
+  grantedAt: string;
+  permissions: PluginPermission[];
+  /** 同意时的插件版本；版本变化或权限变多都要重新确认。 */
+  version: string;
+}
+
+export interface PluginConsentFile {
+  plugins: Record<string, PluginConsentRecord>;
+  version: 1;
+}
+
+function consentFilePath(storageRoot: string): string {
+  return join(storageRoot, PLUGIN_CONSENT_FILE);
+}
+
+export function readPluginConsents(storageRoot: string): PluginConsentFile {
+  try {
+    const parsed = JSON.parse(readFileSync(consentFilePath(storageRoot), "utf8")) as unknown;
+    if (!isRecord(parsed) || !isRecord(parsed.plugins)) return { plugins: {}, version: 1 };
+    const plugins: Record<string, PluginConsentRecord> = {};
+    for (const [pluginId, value] of Object.entries(parsed.plugins)) {
+      if (!isRecord(value) || typeof value.version !== "string") continue;
+      const permissions = Array.isArray(value.permissions)
+        ? value.permissions.filter(
+            (item): item is PluginPermission =>
+              typeof item === "string" && KNOWN_PERMISSIONS.has(item),
+          )
+        : [];
+      plugins[pluginId] = {
+        grantedAt: typeof value.grantedAt === "string" ? value.grantedAt : "",
+        permissions: [...new Set(permissions)],
+        version: value.version,
+      };
+    }
+    return { plugins, version: 1 };
+  } catch {
+    // 文件缺失/损坏按「没有同意」处理；发现层会给出 plugin_consent_required，
+    // 不能把损坏的同意文件当成全部授权。
+    return { plugins: {}, version: 1 };
+  }
+}
+
+export function writePluginConsent(input: {
+  at?: string;
+  permissions: readonly PluginPermission[];
+  pluginId: string;
+  storageRoot: string;
+  version: string;
+}): PluginConsentRecord {
+  const state = readPluginConsents(input.storageRoot);
+  const record: PluginConsentRecord = {
+    grantedAt: input.at ?? new Date().toISOString(),
+    permissions: [...new Set(input.permissions)],
+    version: input.version,
+  };
+  state.plugins[input.pluginId] = record;
+  const target = consentFilePath(input.storageRoot);
+  mkdirSync(dirname(target), { recursive: true });
+  const temporary = `${target}.${process.pid}.${randomUUID()}.tmp`;
+  writeFileSync(temporary, `${JSON.stringify(state, null, 2)}\n`, "utf8");
+  renameSync(temporary, target);
+  appendPluginAuditEvent(input.storageRoot, {
+    at: record.grantedAt,
+    permissions: record.permissions,
+    pluginId: input.pluginId,
+    type: "consent_granted",
+    version: record.version,
+  });
+  return record;
+}
+
+export function revokePluginConsent(storageRoot: string, pluginId: string): boolean {
+  const state = readPluginConsents(storageRoot);
+  if (!state.plugins[pluginId]) return false;
+  delete state.plugins[pluginId];
+  const target = consentFilePath(storageRoot);
+  mkdirSync(dirname(target), { recursive: true });
+  const temporary = `${target}.${process.pid}.${randomUUID()}.tmp`;
+  writeFileSync(temporary, `${JSON.stringify(state, null, 2)}\n`, "utf8");
+  renameSync(temporary, target);
+  appendPluginAuditEvent(storageRoot, {
+    at: new Date().toISOString(),
+    pluginId,
+    type: "consent_revoked",
+  });
+  return true;
+}
+
+/** 同意必须同时覆盖当前版本与全部 required 权限；版本变化视为权限可能变化。 */
+export function pluginConsentCovers(
+  record: PluginConsentRecord | undefined,
+  version: string,
+  required: readonly PluginPermission[],
+): boolean {
+  if (!record) return false;
+  if (record.version !== version) return false;
+  const granted = new Set(record.permissions);
+  return required.every((permission) => granted.has(permission));
+}
+
+export function appendPluginAuditEvent(
+  storageRoot: string,
+  event: {
+    at: string;
+    permissions?: readonly PluginPermission[];
+    pluginId: string;
+    type: "consent_granted" | "consent_revoked" | "consent_required";
+    version?: string;
+  },
+): void {
+  try {
+    mkdirSync(storageRoot, { recursive: true });
+    appendFileSync(join(storageRoot, PLUGIN_AUDIT_FILE), `${JSON.stringify(event)}\n`, "utf8");
+  } catch {
+    // 审计写入失败不能反过来让安装/启用失败；诊断链会给出 consent 缺失。
+  }
+}
+
+/**
+ * 运行时真正需要的能力 = 清单请求 ∪ 组件推导：
+ * hooks 与 MCP 都会启动子进程，保守地同时要求 `network`（MCP 可能访问网络且无法静态判定）。
+ * community/local 永远拿不到 `full-access`：请求保留给 UI 展示，但不算 required。
+ */
+export function resolveRequiredPluginPermissions(
+  manifest: PluginManifest,
+  input: { hasHooks: boolean; hasMcp: boolean; trust: PluginTrustLevel },
+): PluginPermission[] {
+  const required = new Set<PluginPermission>(resolvePluginPermissions(manifest).requested);
+  if (input.hasHooks || input.hasMcp) required.add("process");
+  if (input.hasMcp) required.add("network");
+  if (input.trust === "community" || input.trust === "local") required.delete("full-access");
+  return [...required];
 }

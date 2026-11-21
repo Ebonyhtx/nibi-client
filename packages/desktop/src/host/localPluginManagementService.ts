@@ -26,6 +26,7 @@ import {
   resetPluginConfig,
   restoreBuiltinPlugin,
   seedOfficialPlugins,
+  setPluginConsent,
   setPluginEnabled,
   uninstallPlugin,
   updatePlugin,
@@ -241,6 +242,12 @@ export function createLocalPluginManagementService(
           signal,
         ),
       ),
+    setPluginConsent: (params) =>
+      setPluginConsent(context, {
+        workspace: toWorkspaceRef(params),
+        pluginId: params.pluginId,
+        granted: params.granted,
+      }),
     cancelPluginOperation: (params) => {
       const controller = operations.get(params.operationId);
       if (!controller)

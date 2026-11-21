@@ -94,6 +94,7 @@ import {
   nibiPluginOperationProgressNotificationSchema,
   nibiPluginsRestoreBuiltinResultSchema,
   nibiPluginsSetEnabledResultSchema,
+  nibiPluginsConsentResultSchema,
   nibiPluginsCancelOperationResultSchema,
   nibiPluginsUninstallResultSchema,
   nibiPluginsValidateResultSchema,
@@ -216,6 +217,7 @@ import type {
   NibiAgentSetModeParams,
   NibiAgentSetModelParams,
   NibiAgentSetPluginEnabledParams,
+  NibiAgentPluginConsentParams,
   NibiAgentSetThoughtLevelParams,
   NibiAgentPluginReferenceCatalogParams,
   NibiAgentSkillReferenceCatalogParams,
@@ -4851,6 +4853,20 @@ export function createNibiAgentService(
           ...(params.scope ? { scope: params.scope } : {}),
         },
         nibiPluginsSetEnabledResultSchema,
+        { timeoutMs: PLUGIN_MANAGEMENT_REQUEST_TIMEOUT_MS },
+      );
+    },
+
+    async setPluginConsent(params: NibiAgentPluginConsentParams) {
+      const client = await getPluginManagementClient();
+      return client.request(
+        nibiProtocolMethods.pluginsConsent,
+        {
+          workspace: buildWorkspaceRef(params),
+          pluginId: params.pluginId,
+          granted: params.granted,
+        },
+        nibiPluginsConsentResultSchema,
         { timeoutMs: PLUGIN_MANAGEMENT_REQUEST_TIMEOUT_MS },
       );
     },

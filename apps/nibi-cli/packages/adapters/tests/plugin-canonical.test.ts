@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createNodePluginAdapter } from "../src/plugins/index.js";
+import { createNodePluginAdapter, revokePluginConsent, writePluginConsent } from "../src/plugins/index.js";
 
 async function discover(rootPath: string, options: { official?: boolean } = {}) {
   const storageRoot = join(rootPath, ".storage");
@@ -190,6 +190,151 @@ describe("canonical plugin adapter", () => {
 
       const outcome = await discover(dir, { official: true });
       expect(outcome.plugins[0]?.trust).toBe("builtin");
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+});
+
+describe("plugin permission consent", () => {
+  it("disables a local MCP plugin until the user consents to its required capabilities", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-consent-missing-"));
+    try {
+      await writeJson(join(dir, "plugin.json"), {
+        name: "consent-fixture",
+        version: "1.0.0",
+        extensions: { "com.nibistudio.nibi": { permissions: ["filesystem.read"] } },
+      });
+      await writeJson(join(dir, "mcp.json"), {
+        mcpServers: { demo: { command: "node", args: ["server.mjs"] } },
+      });
+
+      const outcome = await discover(dir);
+      expect(outcome.plugins[0]).toMatchObject({
+        enabled: false,
+        permissions: {
+          requested: ["filesystem.read"],
+          required: ["filesystem.read", "process", "network"],
+        },
+        trust: "local",
+      });
+      expect(outcome.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "plugin_consent_required",
+            pluginId: "consent-fixture@inline",
+          }),
+        ]),
+      );
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("enables the plugin after consent and disables it again when consent is revoked", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-consent-grant-"));
+    const storageRoot = join(dir, ".storage");
+    try {
+      await writeJson(join(dir, "plugin.json"), {
+        name: "consent-fixture",
+        version: "1.0.0",
+        extensions: { "com.nibistudio.nibi": {} },
+      });
+      await writeJson(join(dir, "mcp.json"), {
+        mcpServers: { demo: { command: "node", args: ["server.mjs"] } },
+      });
+      writePluginConsent({
+        permissions: ["process", "network"],
+        pluginId: "consent-fixture@inline",
+        storageRoot,
+        version: "1.0.0",
+      });
+
+      const granted = await discover(dir);
+      expect(granted.plugins[0]?.enabled).toBe(true);
+
+      revokePluginConsent(storageRoot, "consent-fixture@inline");
+      const revoked = await discover(dir);
+      expect(revoked.plugins[0]?.enabled).toBe(false);
+      expect(revoked.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "plugin_consent_required" }),
+        ]),
+      );
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("requires re-consent after a version change", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-consent-version-"));
+    const storageRoot = join(dir, ".storage");
+    try {
+      await writeJson(join(dir, "plugin.json"), {
+        name: "consent-fixture",
+        version: "2.0.0",
+        extensions: { "com.nibistudio.nibi": {} },
+      });
+      await writeJson(join(dir, "mcp.json"), {
+        mcpServers: { demo: { command: "node", args: ["server.mjs"] } },
+      });
+      writePluginConsent({
+        permissions: ["process", "network"],
+        pluginId: "consent-fixture@inline",
+        storageRoot,
+        version: "1.0.0",
+      });
+
+      const outcome = await discover(dir);
+      expect(outcome.plugins[0]?.enabled).toBe(false);
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("runs a pure skills plugin without consent and never requires full-access", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-consent-skills-"));
+    try {
+      await writeJson(join(dir, "plugin.json"), {
+        name: "skills-only",
+        version: "1.0.0",
+        extensions: {
+          "com.nibistudio.nibi": { permissions: ["full-access"], skills: "skills" },
+        },
+      });
+      await publishMarker(join(dir, "skills", "demo"));
+
+      const outcome = await discover(dir);
+      expect(outcome.plugins[0]).toMatchObject({
+        enabled: true,
+        permissions: { requested: ["full-access"], required: [] },
+      });
+      expect(outcome.diagnostics.some((item) => item.code === "plugin_consent_required")).toBe(
+        false,
+      );
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("does not require consent for an official plugin with MCP", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-consent-official-"));
+    try {
+      await writeJson(join(dir, "plugin.json"), {
+        name: "official-mcp",
+        version: "1.0.0",
+        extensions: { "com.nibistudio.nibi": {} },
+      });
+      await writeJson(join(dir, "mcp.json"), {
+        mcpServers: { demo: { command: "node", args: ["server.mjs"] } },
+      });
+
+      const outcome = await discover(dir, { official: true });
+      expect(outcome.plugins[0]?.trust).toBe("builtin");
+      expect(outcome.plugins[0]?.enabled).toBe(false); // bundled roots default off
+      expect(outcome.diagnostics.some((item) => item.code === "plugin_consent_required")).toBe(
+        false,
+      );
     } finally {
       await rm(dir, { force: true, recursive: true });
     }

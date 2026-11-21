@@ -28,6 +28,7 @@ import {
   validateMarketplacePlugin,
   validateMarketplaceSource,
   writeBundledOfficialMarketplacePartitionSync,
+  writePluginConsent,
 } from "../src/plugins/index.js";
 import {
   activateDirectoryAtomically,
@@ -55,6 +56,19 @@ import {
 } from "@nibi/shared";
 
 const execFileAsync = promisify(execFile);
+
+/** 本地/第三方插件的 hooks 与 MCP 需要显式同意；测试夹具默认视为用户已确认。 */
+function grantPluginConsent(
+  storageRoot: string,
+  pluginId: string,
+  permissions: readonly ("filesystem.read" | "filesystem.write" | "network" | "process" | "full-access")[] = [
+    "process",
+    "network",
+  ],
+  version = "0.0.0",
+): void {
+  writePluginConsent({ permissions, pluginId, storageRoot, version });
+}
 
 describe("NodePluginAdapter", () => {
   afterEach(() => {
@@ -807,6 +821,7 @@ describe("NodePluginAdapter", () => {
           },
         }),
       );
+      grantPluginConsent(join(dir, "plugins"), "ios-dev@inline");
 
       const outcome = await createNodePluginAdapter({
         storageRoot: join(dir, "plugins"),
@@ -920,6 +935,12 @@ describe("NodePluginAdapter", () => {
           storageRoot,
         });
         expect(install.installed[0]?.id).toBe(`${fixture.name}@claude-plugins-official`);
+        grantPluginConsent(
+          storageRoot,
+          `${fixture.name}@claude-plugins-official`,
+          ["process", "network"],
+          "1.0.0",
+        );
       }
 
       const outcome = await createNodePluginAdapter({ storageRoot }).discoverPlugins({
@@ -1345,6 +1366,8 @@ describe("NodePluginAdapter", () => {
         "dep@third-party",
         "hello@third-party",
       ]);
+
+      grantPluginConsent(storageRoot, "hello@third-party");
 
       const outcome = await createNodePluginAdapter({ storageRoot }).discoverPlugins({
         config: {
@@ -3588,6 +3611,7 @@ describe("NodePluginAdapter", () => {
       );
       await addMarketplace({ source: { source: "directory", path: marketplaceRoot }, storageRoot });
       await installMarketplacePlugin({ marketplace: "hook-market", name: "hooked", storageRoot });
+      grantPluginConsent(storageRoot, "hooked@hook-market", ["process"]);
 
       const outcome = await createNodePluginAdapter({ storageRoot }).discoverPlugins({
         config: {
@@ -3602,7 +3626,7 @@ describe("NodePluginAdapter", () => {
         storageRoot,
         workingDirectory: dir,
       });
-      // 三方 marketplace 插件 hook 现在默认放行（与内置/官方一致）。
+      // 三方 marketplace 插件已获用户显式同意后，hook 与内置/官方一样注入。
       expect(outcome.hooks.SessionStart).toBeDefined();
       expect(outcome.plugins[0]?.hookDetails).toMatchObject([
         {
@@ -3668,6 +3692,7 @@ describe("NodePluginAdapter", () => {
         name: "hookify",
         storageRoot,
       });
+      grantPluginConsent(storageRoot, "hookify@claude-plugins-official", ["process"]);
 
       const outcome = await createNodePluginAdapter({ storageRoot }).discoverPlugins({
         config: {
@@ -3725,6 +3750,7 @@ describe("NodePluginAdapter", () => {
         },
         name: "env-plugin",
       });
+      grantPluginConsent(join(dir, "plugins"), "env-plugin@inline");
 
       const outcome = await createNodePluginAdapter({
         storageRoot: join(dir, "plugins"),
@@ -3774,6 +3800,7 @@ describe("NodePluginAdapter", () => {
         },
         name: "secret-env-plugin",
       });
+      grantPluginConsent(join(dir, "plugins"), "secret-env-plugin@inline");
 
       const outcome = await createNodePluginAdapter({
         storageRoot: join(dir, "plugins"),
@@ -3827,6 +3854,7 @@ describe("NodePluginAdapter", () => {
         },
         name: "missing-secret-env-plugin",
       });
+      grantPluginConsent(join(dir, "plugins"), "missing-secret-env-plugin@inline");
 
       const outcome = await createNodePluginAdapter({
         storageRoot: join(dir, "plugins"),
@@ -3874,6 +3902,7 @@ describe("NodePluginAdapter", () => {
         },
         name: "missing-context-plugin",
       });
+      grantPluginConsent(join(dir, "plugins"), "missing-context-plugin@inline");
 
       const outcome = await createNodePluginAdapter({
         storageRoot: join(dir, "plugins"),
@@ -4095,6 +4124,7 @@ describe("NodePluginAdapter", () => {
       const installPath = install.installed[0]?.installPath ?? "";
       expect(existsSync(join(installPath, "plugin.json"))).toBe(true);
       expect(existsSync(join(installPath, ".claude-plugin", "plugin.json"))).toBe(false);
+      grantPluginConsent(storageRoot, "hello@lazy-market");
 
       const outcome = await createNodePluginAdapter({ storageRoot }).discoverPlugins({
         config: {
@@ -4129,6 +4159,7 @@ describe("NodePluginAdapter", () => {
         },
         name: "legacy-vars",
       });
+      grantPluginConsent(join(dir, "plugins"), "legacy-vars@inline");
 
       const outcome = await createNodePluginAdapter({
         storageRoot: join(dir, "plugins"),

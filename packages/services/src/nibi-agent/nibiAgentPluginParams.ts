@@ -111,6 +111,11 @@ export interface NibiAgentSetPluginEnabledParams extends NibiAgentPluginMutation
   scope?: "user" | "workspace";
 }
 
+export interface NibiAgentPluginConsentParams extends NibiAgentWorkspaceTarget {
+  granted: boolean;
+  pluginId: string;
+}
+
 // Plugin 对话引用 catalog：
 // 带 sessionId → session-owned 冻结 catalog（必须路由到持有该 session 的 workspace client）；
 // 不带 → workspace 当前 catalog（新建草稿 Picker）。

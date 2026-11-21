@@ -1,5 +1,6 @@
 import {
   nibiPluginsConfigureParamsSchema,
+  nibiPluginsConsentParamsSchema,
   nibiPluginsResetConfigParamsSchema,
   nibiPluginsInstallParamsSchema,
   nibiPluginsMarketplaceAddParamsSchema,
@@ -21,6 +22,7 @@ import {
   type NibiPluginInfo,
   type NibiPluginMarketplaceSummary,
   type NibiPluginsConfigureResult,
+  type NibiPluginsConsentResult,
   type NibiPluginsDescribeResult,
   type NibiPluginsInstallResult,
   type NibiPluginsBootstrapResult,
@@ -37,6 +39,7 @@ import type {
   PluginDiagnostic,
   PluginLoadOutcome,
   PluginMetadata,
+  PluginPermission,
 } from "@nibi/contracts";
 import {
   addNibiPluginMarketplace,
@@ -56,6 +59,10 @@ import {
   type NibiPluginsOverviewData,
 } from "../plugins.js";
 import { listInstalledPluginRecords } from "@nibi/adapters/plugins";
+import {
+  revokePluginConsent,
+  writePluginConsent,
+} from "@nibi/adapters/plugins";
 import { withPluginStorageLock } from "../lib/plugin-storage-lock.js";
 import { getCliStorageRoot, getPluginStorageRoot } from "../app/storage-paths.js";
 import { resolveOfficialPluginHostMcpServerNames } from "../app/official-plugin-definitions.js";
@@ -134,6 +141,9 @@ export function toPluginInfo(plugin: PluginMetadata, configResult?: ConfigResult
     mcpServerNames: plugin.mcpServerNames,
     ...(hostMcpServerNames.length > 0 ? { hostMcpServerNames } : {}),
     hookDetails: plugin.hookDetails,
+    permissions: plugin.permissions,
+    compatibility: plugin.adapter.compatibility,
+    skippedComponents: plugin.adapter.skipped,
     rootPath: plugin.rootPath,
     ...(plugin.userConfig ? { userConfig: plugin.userConfig } : {}),
     ...(Object.keys(configuredOptions).length > 0 ? { configuredOptions } : {}),
@@ -349,6 +359,37 @@ export async function setPluginEnabled(
       enabledSource: result.scope,
     },
     enabled: result.enabled,
+  };
+}
+
+export async function setPluginConsent(
+  context: PluginManagementContext,
+  rawParams: unknown,
+): Promise<NibiPluginsConsentResult> {
+  const params = parseParams(nibiPluginsConsentParamsSchema, rawParams);
+  const list = await listPlugins(context, { workspace: params.workspace });
+  const plugin = list.plugins.find((item) => item.id === params.pluginId);
+  if (!plugin) {
+    throw new Error(`Plugin not found: ${params.pluginId}`);
+  }
+  const storageRoot = getPluginStorageRoot(params.workspace.workspacePath);
+  const permissions = (plugin.permissions?.required ?? []) as PluginPermission[];
+  const version = plugin.version ?? "0.0.0";
+  if (params.granted) {
+    writePluginConsent({
+      permissions,
+      pluginId: plugin.id,
+      storageRoot,
+      version,
+    });
+  } else {
+    revokePluginConsent(storageRoot, plugin.id);
+  }
+  return {
+    granted: params.granted,
+    permissions,
+    pluginId: plugin.id,
+    version,
   };
 }
 

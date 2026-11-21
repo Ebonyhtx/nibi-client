@@ -80,6 +80,7 @@ export type PluginDiagnosticCode =
   | "plugin_ambiguous_name"
   | "plugin_membership_required"
   | "plugin_capability_leak_pruned"
+  | "plugin_consent_required"
   | "plugin_acceptance_invalid"
   | "plugin_acceptance_weak";
 
@@ -240,6 +241,8 @@ export type PluginPermission =
 export interface PluginPermissionProfile {
   /** 清单声明的能力（请求值，不等于授权值）。 */
   requested: PluginPermission[];
+  /** 运行时实际需要的能力（由组件推导 + 清单请求并集）；空数组 = 无需同意。 */
+  required: PluginPermission[];
 }
 
 /** 适配器归一化后写入的元数据；产品面不展示 `adapterId`。 */
