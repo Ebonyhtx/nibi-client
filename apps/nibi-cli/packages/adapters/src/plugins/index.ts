@@ -7,6 +7,7 @@ import type {
   HookPluginContext,
   PluginAcceptanceContract,
   PluginAcceptanceParseResult,
+  PluginCapabilityProfile,
   PluginConfig,
   PluginDiagnostic,
   PluginDiscoverRequest,
@@ -15,6 +16,7 @@ import type {
   PluginLoadOutcome,
   PluginManifest,
   PluginPermission,
+  PluginRuntimeDeclaration,
   PluginUiSurfaceDefinition,
   PluginMetadata,
   PluginOperationOptions,
@@ -40,11 +42,16 @@ import {
   isRecord,
   parsePathList,
   pluginConsentCovers,
+  pluginGrantsCover,
   readPluginConsents,
+  readPluginGrants,
   readPluginManifestDocument,
   resolveInside,
+  resolvePluginCapabilities,
+  resolvePluginRuntime,
   resolveRequiredPluginPermissions,
   sanitizePluginId,
+  sensitivePluginCapabilityGrants,
   throwIfAborted,
 } from "./helpers.js";
 import type { DetectedPluginManifest } from "./helpers.js";
@@ -114,14 +121,25 @@ export { getPluginSourceDiagnosticCode } from "./source-errors.js";
 export {
   PLUGIN_AUDIT_FILE,
   PLUGIN_CONSENT_FILE,
+  PLUGIN_GRANTS_FILE,
   appendPluginAuditEvent,
+  isSensitivePluginCapability,
   pluginConsentCovers,
+  pluginGrantsCover,
   readPluginConsents,
+  readPluginGrants,
+  resolvePluginCapabilities,
+  resolvePluginRuntime,
   resolveRequiredPluginPermissions,
   revokePluginConsent,
+  revokePluginGrants,
+  sensitivePluginCapabilityGrants,
   writePluginConsent,
+  writePluginGrants,
   type PluginConsentFile,
   type PluginConsentRecord,
+  type PluginGrantFile,
+  type PluginGrantRecord,
 } from "./helpers.js";
 
 export {
@@ -180,6 +198,7 @@ export class NodePluginAdapter implements PluginPort {
     const diagnostics: PluginDiagnostic[] = [];
     const dataRoot = join(request.storageRoot || this.options.storageRoot, "data");
     const pluginConsents = readPluginConsents(request.storageRoot);
+    const pluginGrants = readPluginGrants(request.storageRoot);
     const candidates = this.resolveCandidates(request, diagnostics, options);
     // 未显式提供门禁时使用内置 license 门禁（fail-closed）：任何调用方都无法
     // 通过"忘记传门禁"让付费插件绕过会员校验。
@@ -273,12 +292,67 @@ export class NodePluginAdapter implements PluginPort {
         runnable: hooksRunnable,
       });
       const declaredMcpServerNames = Object.keys(mcpServerDefinitions);
+      const adapterId = loaded.canonical.adapter.adapterId;
+      const hasCode = Boolean(
+        loaded.runtime && (adapterId === "native" || adapterId === "agent-plugins"),
+      );
       const requiredPermissions = resolveRequiredPluginPermissions(loaded.manifest, {
         // 只有真正会注入 runtime 的事件才算要执行子进程；enum-only 详情不算。
+        hasCode,
         hasHooks: Object.keys(hookInspection.events).length > 0,
         hasMcp: declaredMcpServerNames.length > 0,
         trust: loaded.canonical.trust,
       });
+      const capabilityResult = resolvePluginCapabilities(
+        loaded.manifest,
+        loaded.canonical.trust,
+      );
+      if (enabled && capabilityResult.problems.length > 0) {
+        enabled = false;
+        for (const problem of capabilityResult.problems) {
+          diagnostics.push({
+            code: "plugin_capability_unsupported",
+            message: problem,
+            path: loaded.manifestPath,
+            pluginId: loaded.id,
+            severity: "error",
+          });
+        }
+      }
+      const sensitiveCapabilities = sensitivePluginCapabilityGrants(capabilityResult.profile);
+      const capabilityCovered = pluginGrantsCover(
+        pluginGrants.plugins[loaded.id],
+        loaded.manifest.version ?? DEFAULT_VERSION,
+        sensitiveCapabilities,
+      );
+      if (
+        enabled &&
+        (loaded.canonical.trust === "community" || loaded.canonical.trust === "local") &&
+        sensitiveCapabilities.length > 0 &&
+        !capabilityCovered
+      ) {
+        enabled = false;
+        diagnostics.push({
+          code: "plugin_capability_consent_required",
+          message: `Plugin requires capability consent: ${sensitiveCapabilities
+            .map((grant) => grant.id)
+            .join(", ")}`,
+          path: loaded.manifestPath,
+          pluginId: loaded.id,
+          severity: "warning",
+        });
+      }
+      const capabilityProfile: PluginCapabilityProfile = {
+        granted:
+          loaded.canonical.trust === "builtin" ||
+          loaded.canonical.trust === "official" ||
+          capabilityCovered
+            ? capabilityResult.profile.requested
+            : capabilityResult.profile.requested.filter(
+                (grant) => !sensitiveCapabilities.some((wanted) => wanted.id === grant.id),
+              ),
+        requested: capabilityResult.profile.requested,
+      };
       // 社区/本地插件的 hooks 与 MCP 会启动子进程，必须逐版本显式同意；
       // builtin/official 沿用签名/内置信任，不要求用户再点一次。
       if (
@@ -331,6 +405,8 @@ export class NodePluginAdapter implements PluginPort {
           // 插件 UI 面板入口（A5）：与启用态无关地解析，禁用插件的入口由 listUiSurfaces 过滤。
           parsePluginUiSurfaces({ loaded, declaredMcpServerNames, diagnostics }),
           requiredPermissions,
+          capabilityProfile,
+          loaded.runtime,
         ),
       );
     }
@@ -503,6 +579,8 @@ function createPluginMetadata(
   configuredOptions: Record<string, string | number | boolean>,
   uiSurfaces: PluginUiSurfaceDefinition[],
   requiredPermissions: PluginPermission[],
+  capabilities: PluginCapabilityProfile,
+  runtime: PluginRuntimeDeclaration | undefined,
 ): PluginMetadata {
   // manifest 的 author/homepage 作为详情页信息区的回退来源（商店 listing 优先）。
   const author = normalizeAuthorValue(loaded.manifest.author);
@@ -541,6 +619,8 @@ function createPluginMetadata(
       ...loaded.canonical.permissions,
       required: requiredPermissions,
     },
+    capabilities,
+    ...(runtime ? { runtime } : {}),
     rootPath: loaded.rootPath,
     skillCount: component.skillCount,
     skillRootCount: component.skillRoots.length,
@@ -1199,6 +1279,16 @@ function loadPlugin(
   if (!read) return null;
   const { canonical, manifest } = read;
   const manifestPath = detected.path;
+  const runtimeResult = resolvePluginRuntime(manifest);
+  if (runtimeResult.problem) {
+    diagnostics.push({
+      code: "plugin_runtime_invalid",
+      message: `Plugin runtime declaration is invalid: ${runtimeResult.problem}`,
+      path: manifestPath,
+      pluginId: `${manifest.name}@${candidate.marketplace}`,
+      severity: "error",
+    });
+  }
   const acceptance = resolvePluginAcceptance(manifest, manifestPath, diagnostics);
   return {
     ...(acceptance.contract ? { acceptance: acceptance.contract } : {}),
@@ -1209,6 +1299,7 @@ function loadPlugin(
     manifestPath,
     marketplace: candidate.marketplace,
     rootPath: candidate.rootPath,
+    ...(runtimeResult.runtime ? { runtime: runtimeResult.runtime } : {}),
     source: candidate.source,
   };
 }

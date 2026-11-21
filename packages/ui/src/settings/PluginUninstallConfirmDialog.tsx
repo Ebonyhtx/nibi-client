@@ -14,6 +14,9 @@ const PLUGIN_PERMISSION_MESSAGE_IDS: Record<string, string> = {
   "filesystem.read": "settings.plugins.consent.permission.filesystemRead",
   "filesystem.write": "settings.plugins.consent.permission.filesystemWrite",
   "full-access": "settings.plugins.consent.permission.fullAccess",
+  code: "settings.plugins.consent.permission.code",
+  "nibi.sessions.read": "settings.plugins.consent.capability.sessionsRead",
+  "nibi.workspace.files.read": "settings.plugins.consent.capability.filesRead",
   network: "settings.plugins.consent.permission.network",
   process: "settings.plugins.consent.permission.process",
 };
@@ -26,6 +29,7 @@ export function PluginConsentDialog({
   open,
   pluginName,
   permissions,
+  capabilities = [],
   pending,
   onCancel,
   onConfirm,
@@ -33,11 +37,16 @@ export function PluginConsentDialog({
   open: boolean;
   pluginName: string;
   permissions: readonly string[];
+  capabilities?: ReadonlyArray<{ id: string; scope: string }>;
   pending: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
   const { intl } = useNibiIntl();
+  const items = [
+    ...permissions,
+    ...capabilities.map((grant) => grant.id),
+  ];
   return (
     <AlertDialog
       open={open}
@@ -55,7 +64,7 @@ export function PluginConsentDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <ul className="space-y-1.5 py-2 text-ui-base text-foreground">
-          {permissions.map((permission) => (
+          {items.map((permission) => (
             <li key={permission} className="flex items-start gap-2">
               <span aria-hidden="true" className="mt-1 size-1.5 shrink-0 rounded-full bg-foreground-subtle" />
               <span>

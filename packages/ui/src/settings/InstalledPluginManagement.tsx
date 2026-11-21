@@ -143,7 +143,9 @@ export function InstalledPluginDetailPanel({
   );
   const permissions = plugin.permissions;
   const hasPermissionInfo =
-    (permissions?.requested.length ?? 0) > 0 || (permissions?.required.length ?? 0) > 0;
+    (permissions?.requested.length ?? 0) > 0 ||
+    (permissions?.required.length ?? 0) > 0 ||
+    (plugin.capabilities?.requested.length ?? 0) > 0;
   const hasAdvanced =
     hookDetails.length > 0 || Object.keys(plugin.userConfig ?? {}).length > 0 || hasPermissionInfo;
   const sourceLabel = renderPluginSource(plugin);
@@ -245,6 +247,7 @@ export function InstalledPluginDetailPanel({
                 <PluginPermissionSummary
                   requested={permissions?.requested ?? []}
                   required={permissions?.required ?? []}
+                  capabilities={plugin.capabilities?.requested ?? []}
                   onRevoke={
                     onRevokeConsent ? () => onRevokeConsent(plugin.id) : undefined
                   }
@@ -471,6 +474,9 @@ const PLUGIN_PERMISSION_LABEL_IDS: Record<string, string> = {
   "filesystem.read": "settings.plugins.consent.permission.filesystemRead",
   "filesystem.write": "settings.plugins.consent.permission.filesystemWrite",
   "full-access": "settings.plugins.consent.permission.fullAccess",
+  "nibi.sessions.read": "settings.plugins.consent.capability.sessionsRead",
+  "nibi.workspace.files.read": "settings.plugins.consent.capability.filesRead",
+  code: "settings.plugins.consent.permission.code",
   network: "settings.plugins.consent.permission.network",
   process: "settings.plugins.consent.permission.process",
 };
@@ -478,14 +484,18 @@ const PLUGIN_PERMISSION_LABEL_IDS: Record<string, string> = {
 export function PluginPermissionSummary({
   requested,
   required,
+  capabilities = [],
   onRevoke,
 }: {
   requested: readonly string[];
   required: readonly string[];
+  capabilities?: ReadonlyArray<{ id: string; scope: string }>;
   onRevoke?: () => void;
 }) {
   const { intl } = useNibiIntl();
-  const permissions = [...new Set([...required, ...requested])];
+  const permissions = [
+    ...new Set([...required, ...requested, ...capabilities.map((grant) => grant.id)]),
+  ];
   return (
     <div className="min-w-0 rounded-lg border border-border bg-surface px-3 py-2">
       <div className="text-ui-xs text-foreground-subtle">

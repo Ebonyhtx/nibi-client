@@ -29,9 +29,13 @@ import {
   loadMarketplaceManifestSync,
   parseEntryStoreListing,
   parseMarketplaceSourceInput,
+  isSensitivePluginCapability,
   pluginConsentCovers,
+  pluginGrantsCover,
   readPluginConsents,
+  readPluginGrants,
   writePluginConsent,
+  writePluginGrants,
   resolvePaidPluginAccessFromToken,
   PaidPluginMembershipError,
   readNibiLicenseRefusalSync,
@@ -52,6 +56,7 @@ import {
 } from "@nibi/adapters/plugins";
 import type {
   Logger,
+  PluginCapabilityGrant,
   PluginHookDetail,
   PluginLoadOutcome,
   PluginMetadata,
@@ -114,8 +119,15 @@ export interface SetNibiPluginEnabledOptions extends ResolveNibiPluginsOptions {
 export class PluginConsentRequiredError extends Error {
   readonly code = "plugin_consent_required";
 
-  constructor(readonly permissions: PluginPermission[]) {
-    super(`Plugin requires permission consent: ${permissions.join(", ")}`);
+  constructor(
+    readonly permissions: PluginPermission[],
+    readonly capabilities: PluginCapabilityGrant[] = [],
+  ) {
+    const required = [
+      ...permissions,
+      ...capabilities.map((grant) => `${grant.id}:${grant.scope}`),
+    ];
+    super(`Plugin requires permission consent: ${required.join(", ")}`);
     this.name = "PluginConsentRequiredError";
   }
 }
@@ -564,26 +576,52 @@ export async function setNibiPluginEnabled(
   if (options.enabled) {
     // 启用与安装同样要过会员门禁：插件缓存/配置可以被复制，只在安装时拦等于没拦。
     const { pluginStorageRoot } = resolvePluginContext(options);
-    // 社区/本地插件的 hooks 与 MCP 要启动子进程，必须逐版本显式同意。
+    // 社区/本地插件的 hooks、MCP 与扩展代码要执行代码，必须逐版本显式同意；
+    // 读取会话/工作区文件的能力同样要单独授权。
     // 未同意时不写启用配置：UI 收到 plugin_consent_required 后弹同意框，授权完再重试。
-    if (
-      (plugin.trust === "community" || plugin.trust === "local") &&
-      plugin.permissions.required.length > 0 &&
-      !pluginConsentCovers(
-        readPluginConsents(pluginStorageRoot).plugins[plugin.id],
-        plugin.version ?? "0.0.0",
-        plugin.permissions.required,
-      )
-    ) {
-      if (!options.acceptPermissions) {
-        throw new PluginConsentRequiredError(plugin.permissions.required);
+    if (plugin.trust === "community" || plugin.trust === "local") {
+      const version = plugin.version ?? "0.0.0";
+      const permissionsMissing =
+        plugin.permissions.required.length > 0 &&
+        !pluginConsentCovers(
+          readPluginConsents(pluginStorageRoot).plugins[plugin.id],
+          version,
+          plugin.permissions.required,
+        );
+      const sensitiveCapabilities = plugin.capabilities.requested.filter((grant) =>
+        isSensitivePluginCapability(grant.id),
+      );
+      const capabilitiesMissing =
+        sensitiveCapabilities.length > 0 &&
+        !pluginGrantsCover(
+          readPluginGrants(pluginStorageRoot).plugins[plugin.id],
+          version,
+          sensitiveCapabilities,
+        );
+      if (permissionsMissing || capabilitiesMissing) {
+        if (!options.acceptPermissions) {
+          throw new PluginConsentRequiredError(
+            plugin.permissions.required,
+            sensitiveCapabilities,
+          );
+        }
+        if (permissionsMissing) {
+          writePluginConsent({
+            permissions: plugin.permissions.required,
+            pluginId: plugin.id,
+            storageRoot: pluginStorageRoot,
+            version,
+          });
+        }
+        if (capabilitiesMissing) {
+          writePluginGrants({
+            grants: sensitiveCapabilities,
+            pluginId: plugin.id,
+            storageRoot: pluginStorageRoot,
+            version,
+          });
+        }
       }
-      writePluginConsent({
-        permissions: plugin.permissions.required,
-        pluginId: plugin.id,
-        storageRoot: pluginStorageRoot,
-        version: plugin.version ?? "0.0.0",
-      });
     }
     const entry = loadMarketplaceManifestSync(pluginStorageRoot, plugin.marketplace)?.plugins.find(
       (item) => item.name === plugin.name,

@@ -888,10 +888,12 @@ export function PluginStorePage({
                     <PluginHookDetails hooks={detailItem.info.hookDetails ?? []} />
                   ) : null}
                   {(detailItem.info.permissions?.required.length ?? 0) > 0 ||
-                  (detailItem.info.permissions?.requested.length ?? 0) > 0 ? (
+                  (detailItem.info.permissions?.requested.length ?? 0) > 0 ||
+                  (detailItem.info.capabilities?.requested.length ?? 0) > 0 ? (
                     <PluginPermissionSummary
                       requested={detailItem.info.permissions?.requested ?? []}
                       required={detailItem.info.permissions?.required ?? []}
+                      capabilities={detailItem.info.capabilities?.requested ?? []}
                       onRevoke={() => void revokeConsent(detailItem.id, operationService)}
                     />
                   ) : null}
@@ -994,6 +996,7 @@ export function PluginStorePage({
           ""
         }
         permissions={consentPrompt?.permissions ?? []}
+        capabilities={consentPrompt?.capabilities ?? []}
         pending={togglingPluginId === consentPrompt?.pluginId}
         onCancel={dismissConsent}
         onConfirm={() => void grantConsent(operationService)}

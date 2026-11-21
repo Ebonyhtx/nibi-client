@@ -2884,6 +2884,20 @@ export const nibiPluginPermissionProfileSchema = z
   .strict();
 export type NibiPluginPermissionProfile = z.infer<typeof nibiPluginPermissionProfileSchema>;
 
+export const nibiPluginCapabilityGrantSchema = z
+  .object({
+    id: nonEmptyString,
+    scope: z.enum(["workspace", "project", "host"]),
+  })
+  .strict();
+export const nibiPluginCapabilitiesSchema = z
+  .object({
+    requested: z.array(nibiPluginCapabilityGrantSchema),
+    granted: z.array(nibiPluginCapabilityGrantSchema),
+  })
+  .strict();
+export type NibiPluginCapabilities = z.infer<typeof nibiPluginCapabilitiesSchema>;
+
 export const nibiPluginInfoSchema = z
   .object({
     id: nonEmptyString,
@@ -2923,6 +2937,10 @@ export const nibiPluginInfoSchema = z
     hookDetails: z.array(nibiPluginHookDetailSchema).optional(),
     // 权限请求值与运行时实际 required；required 非空且来源非官方时需要用户同意。
     permissions: nibiPluginPermissionProfileSchema.optional(),
+    // NIBI Extension 能力：requested 为清单声明，granted 为已持久化授权。
+    capabilities: nibiPluginCapabilitiesSchema.optional(),
+    // 扩展代码入口只暴露存在性；路径保留在本地清单，不进协议。
+    hasCodeRuntime: z.boolean().optional(),
     // 兼容性只报「是否部分可用」与组件键，不含生态名；UI 只在功能不可用时显示一行原因。
     compatibility: z.enum(["full", "partial", "detected"]).optional(),
     skippedComponents: z.array(z.string()).optional(),
@@ -3481,6 +3499,7 @@ export const nibiPluginsConsentResultSchema = z
     pluginId: nonEmptyString,
     granted: z.boolean(),
     permissions: z.array(z.string()),
+    capabilities: nibiPluginCapabilitiesSchema.optional(),
     version: nonEmptyString,
   })
   .strict();

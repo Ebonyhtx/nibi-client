@@ -12,12 +12,21 @@ import type {
   CanonicalPlugin,
   PluginAdapterId,
   PluginAdapterInfo,
+  PluginCapabilityGrant,
+  PluginCapabilityId,
+  PluginCapabilityProfile,
+  PluginCapabilityScope,
   PluginManifest,
   PluginPermission,
   PluginPermissionProfile,
+  PluginRuntimeDeclaration,
   PluginTrustLevel,
 } from "@nibi/contracts";
-import { NIBI_INLINE_PLUGIN_MARKETPLACE, NIBI_OFFICIAL_PLUGIN_MARKETPLACE } from "@nibi/contracts";
+import {
+  NIBI_INLINE_PLUGIN_MARKETPLACE,
+  NIBI_OFFICIAL_PLUGIN_MARKETPLACE,
+  PLUGIN_CAPABILITY_IDS,
+} from "@nibi/contracts";
 import type { PluginCandidate } from "./types.js";
 
 const PLUGIN_SOURCE_CLEANUP_RETRY_DELAYS_MS = [0, 25, 100] as const;
@@ -262,6 +271,7 @@ const KNOWN_PERMISSIONS = new Set<string>([
   "filesystem.write",
   "network",
   "process",
+  "code",
   "full-access",
 ] satisfies PluginPermission[]);
 
@@ -283,6 +293,14 @@ export function describePluginAdapter(input: {
   // 组件字段；识别到就明确标成不运行，而不是让用户以为组合包被加载了。
   if (input.adapterId === "dsh" && "dsh" in input.manifest) {
     declared.push("dsh.bundle");
+  }
+  // 扩展代码只支持 NIBI 根清单布局；外来生态的代码面无法在不改写目录的前提下运行。
+  if (
+    input.manifest.runtime !== undefined &&
+    input.adapterId !== "native" &&
+    input.adapterId !== "agent-plugins"
+  ) {
+    declared.push("runtime");
   }
   return {
     adapterId: input.adapterId,
@@ -453,7 +471,12 @@ export function appendPluginAuditEvent(
     at: string;
     permissions?: readonly PluginPermission[];
     pluginId: string;
-    type: "consent_granted" | "consent_revoked" | "consent_required";
+    type:
+      | "consent_granted"
+      | "consent_revoked"
+      | "consent_required"
+      | "grants_updated"
+      | "grants_revoked";
     version?: string;
   },
 ): void {
@@ -472,11 +495,227 @@ export function appendPluginAuditEvent(
  */
 export function resolveRequiredPluginPermissions(
   manifest: PluginManifest,
-  input: { hasHooks: boolean; hasMcp: boolean; trust: PluginTrustLevel },
+  input: { hasCode: boolean; hasHooks: boolean; hasMcp: boolean; trust: PluginTrustLevel },
 ): PluginPermission[] {
   const required = new Set<PluginPermission>(resolvePluginPermissions(manifest).requested);
   if (input.hasHooks || input.hasMcp) required.add("process");
   if (input.hasMcp) required.add("network");
+  if (input.hasCode) required.add("code");
   if (input.trust === "community" || input.trust === "local") required.delete("full-access");
   return [...required];
+}
+
+// ── NIBI Extension 能力与扩展代码声明 ──────────────────────────────────────
+
+const CAPABILITY_IDS = new Set<string>(PLUGIN_CAPABILITY_IDS);
+const SENSITIVE_CAPABILITIES = new Set<string>([
+  "nibi.sessions.read",
+  "nibi.workspace.files.read",
+]);
+
+/** 需要用户确认的能力；UI/设置/通知属于低风险，安装即生效。 */
+export function isSensitivePluginCapability(id: string): boolean {
+  return SENSITIVE_CAPABILITIES.has(id);
+}
+
+export function resolvePluginCapabilities(
+  manifest: PluginManifest,
+  trust: PluginTrustLevel,
+): { problems: string[]; profile: PluginCapabilityProfile } {
+  const requested: PluginCapabilityGrant[] = [];
+  const problems: string[] = [];
+  if (manifest.capabilities === undefined) return { problems, profile: { granted: [], requested } };
+  if (!Array.isArray(manifest.capabilities)) {
+    return {
+      problems: ["`capabilities` must be an array"],
+      profile: { granted: [], requested },
+    };
+  }
+  const seen = new Set<string>();
+  for (const [index, raw] of manifest.capabilities.entries()) {
+    const parsed =
+      typeof raw === "string"
+        ? { id: raw.trim(), scope: "workspace" as PluginCapabilityScope }
+        : isRecord(raw) && typeof raw.id === "string"
+          ? {
+              id: raw.id.trim(),
+              scope:
+                raw.scope === "project" || raw.scope === "host" || raw.scope === "workspace"
+                  ? raw.scope
+                  : ("workspace" as PluginCapabilityScope),
+            }
+          : null;
+    if (!parsed || !parsed.id) {
+      problems.push(`capabilities[${index}] must be a capability id or { id, scope }`);
+      continue;
+    }
+    if (!CAPABILITY_IDS.has(parsed.id)) {
+      problems.push(`capabilities[${index}] is not supported by this Nibi runtime: ${parsed.id}`);
+      continue;
+    }
+    if (parsed.scope === "host" && trust !== "builtin" && trust !== "official") {
+      problems.push(`capabilities[${index}] requests host scope, which is official-only: ${parsed.id}`);
+      continue;
+    }
+    const key = `${parsed.id}\u0000${parsed.scope}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    requested.push({ id: parsed.id as PluginCapabilityId, scope: parsed.scope });
+  }
+  return { problems, profile: { granted: [], requested } };
+}
+
+export function resolvePluginRuntime(manifest: PluginManifest): {
+  problem?: string;
+  runtime?: PluginRuntimeDeclaration;
+} {
+  if (manifest.runtime === undefined) return {};
+  if (!isRecord(manifest.runtime)) return { problem: "`runtime` must be an object" };
+  const raw = manifest.runtime;
+  if (raw.apiVersion !== "1") return { problem: "`runtime.apiVersion` must be \"1\"" };
+  const entry = typeof raw.entry === "string" ? raw.entry.trim() : "";
+  if (!entry || isAbsolute(entry) || entry.split(/[\\/]/).includes("..")) {
+    return { problem: "`runtime.entry` must be a relative path inside the plugin root" };
+  }
+  const platforms =
+    Array.isArray(raw.platforms) && raw.platforms.every((item) => typeof item === "string")
+      ? (raw.platforms as string[])
+      : undefined;
+  const runtime: PluginRuntimeDeclaration = {
+    apiVersion: "1",
+    entry,
+    ...(typeof raw.node === "string" && raw.node.trim() ? { node: raw.node.trim() } : {}),
+    ...(typeof raw.native === "boolean" ? { native: raw.native } : {}),
+    ...(typeof raw.napi === "number" && Number.isInteger(raw.napi) && raw.napi > 0
+      ? { napi: raw.napi }
+      : {}),
+    ...(platforms ? { platforms } : {}),
+  };
+  return { runtime };
+}
+
+// ── 能力授权（与插件权限同意分开存储） ─────────────────────────────────────
+
+export const PLUGIN_GRANTS_FILE = "plugin-grants.json";
+
+export interface PluginGrantRecord {
+  capabilityGrants: PluginCapabilityGrant[];
+  consentedAt: string;
+  consentedVersion: string;
+  epoch: number;
+}
+
+export interface PluginGrantFile {
+  plugins: Record<string, PluginGrantRecord>;
+  version: 1;
+}
+
+function grantFilePath(storageRoot: string): string {
+  return join(storageRoot, PLUGIN_GRANTS_FILE);
+}
+
+export function readPluginGrants(storageRoot: string): PluginGrantFile {
+  try {
+    const parsed = JSON.parse(readFileSync(grantFilePath(storageRoot), "utf8")) as unknown;
+    if (!isRecord(parsed) || !isRecord(parsed.plugins)) return { plugins: {}, version: 1 };
+    const plugins: Record<string, PluginGrantRecord> = {};
+    for (const [pluginId, value] of Object.entries(parsed.plugins)) {
+      if (!isRecord(value)) continue;
+      const grants: PluginCapabilityGrant[] = [];
+      if (Array.isArray(value.capabilityGrants)) {
+        for (const raw of value.capabilityGrants) {
+          if (!isRecord(raw) || typeof raw.id !== "string" || !CAPABILITY_IDS.has(raw.id)) continue;
+          const scope =
+            raw.scope === "project" || raw.scope === "host" || raw.scope === "workspace"
+              ? raw.scope
+              : "workspace";
+          grants.push({ id: raw.id as PluginCapabilityId, scope });
+        }
+      }
+      plugins[pluginId] = {
+        capabilityGrants: grants,
+        consentedAt: typeof value.consentedAt === "string" ? value.consentedAt : "",
+        consentedVersion:
+          typeof value.consentedVersion === "string" ? value.consentedVersion : "",
+        epoch: typeof value.epoch === "number" && Number.isInteger(value.epoch) ? value.epoch : 0,
+      };
+    }
+    return { plugins, version: 1 };
+  } catch {
+    // 损坏的授权文件按「没有授权」处理；不能把损坏当成全部放行。
+    return { plugins: {}, version: 1 };
+  }
+}
+
+function writeGrantFile(storageRoot: string, state: PluginGrantFile): void {
+  const target = grantFilePath(storageRoot);
+  mkdirSync(dirname(target), { recursive: true });
+  const temporary = `${target}.${process.pid}.${randomUUID()}.tmp`;
+  writeFileSync(temporary, `${JSON.stringify(state, null, 2)}\n`, "utf8");
+  renameSync(temporary, target);
+}
+
+export function writePluginGrants(input: {
+  at?: string;
+  grants: readonly PluginCapabilityGrant[];
+  pluginId: string;
+  storageRoot: string;
+  version: string;
+}): PluginGrantRecord {
+  const state = readPluginGrants(input.storageRoot);
+  const previous = state.plugins[input.pluginId];
+  const record: PluginGrantRecord = {
+    capabilityGrants: [...input.grants],
+    consentedAt: input.at ?? new Date().toISOString(),
+    consentedVersion: input.version,
+    epoch: (previous?.epoch ?? 0) + 1,
+  };
+  state.plugins[input.pluginId] = record;
+  writeGrantFile(input.storageRoot, state);
+  appendPluginAuditEvent(input.storageRoot, {
+    at: record.consentedAt,
+    pluginId: input.pluginId,
+    type: "grants_updated",
+    version: input.version,
+  });
+  return record;
+}
+
+export function revokePluginGrants(storageRoot: string, pluginId: string): boolean {
+  const state = readPluginGrants(storageRoot);
+  const previous = state.plugins[pluginId];
+  if (!previous) return false;
+  // 保留 epoch 让在途调用可被父进程识别为过期；授权集合清空。
+  state.plugins[pluginId] = {
+    capabilityGrants: [],
+    consentedAt: new Date().toISOString(),
+    consentedVersion: previous.consentedVersion,
+    epoch: previous.epoch + 1,
+  };
+  writeGrantFile(storageRoot, state);
+  appendPluginAuditEvent(storageRoot, {
+    at: new Date().toISOString(),
+    pluginId,
+    type: "grants_revoked",
+    version: previous.consentedVersion,
+  });
+  return true;
+}
+
+export function pluginGrantsCover(
+  record: PluginGrantRecord | undefined,
+  version: string,
+  required: readonly PluginCapabilityGrant[],
+): boolean {
+  if (!record) return required.length === 0;
+  if (record.consentedVersion !== version) return false;
+  return required.every((wanted) =>
+    record.capabilityGrants.some((grant) => grant.id === wanted.id && grant.scope === wanted.scope),
+  );
+}
+
+export function sensitivePluginCapabilityGrants(
+  profile: PluginCapabilityProfile,
+): PluginCapabilityGrant[] {
+  return profile.requested.filter((grant) => SENSITIVE_CAPABILITIES.has(grant.id));
 }

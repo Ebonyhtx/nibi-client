@@ -60,8 +60,11 @@ import {
 } from "../plugins.js";
 import { listInstalledPluginRecords } from "@nibi/adapters/plugins";
 import {
+  isSensitivePluginCapability,
   revokePluginConsent,
+  revokePluginGrants,
   writePluginConsent,
+  writePluginGrants,
 } from "@nibi/adapters/plugins";
 import { withPluginStorageLock } from "../lib/plugin-storage-lock.js";
 import { getCliStorageRoot, getPluginStorageRoot } from "../app/storage-paths.js";
@@ -142,6 +145,8 @@ export function toPluginInfo(plugin: PluginMetadata, configResult?: ConfigResult
     ...(hostMcpServerNames.length > 0 ? { hostMcpServerNames } : {}),
     hookDetails: plugin.hookDetails,
     permissions: plugin.permissions,
+    capabilities: plugin.capabilities,
+    ...(plugin.runtime ? { hasCodeRuntime: true } : {}),
     compatibility: plugin.adapter.compatibility,
     skippedComponents: plugin.adapter.skipped,
     rootPath: plugin.rootPath,
@@ -375,6 +380,10 @@ export async function setPluginConsent(
   const storageRoot = getPluginStorageRoot(params.workspace.workspacePath);
   const permissions = (plugin.permissions?.required ?? []) as PluginPermission[];
   const version = plugin.version ?? "0.0.0";
+  const requestedCapabilities = plugin.capabilities?.requested ?? [];
+  const sensitiveCapabilities = requestedCapabilities.filter((grant) =>
+    isSensitivePluginCapability(grant.id),
+  );
   if (params.granted) {
     writePluginConsent({
       permissions,
@@ -382,12 +391,31 @@ export async function setPluginConsent(
       storageRoot,
       version,
     });
+    if (sensitiveCapabilities.length > 0) {
+      writePluginGrants({
+        grants: sensitiveCapabilities,
+        pluginId: plugin.id,
+        storageRoot,
+        version,
+      });
+    }
   } else {
     revokePluginConsent(storageRoot, plugin.id);
+    revokePluginGrants(storageRoot, plugin.id);
   }
   return {
     granted: params.granted,
     permissions,
+    ...(plugin.capabilities
+      ? {
+          capabilities: {
+            granted: params.granted
+              ? requestedCapabilities
+              : requestedCapabilities.filter((grant) => !isSensitivePluginCapability(grant.id)),
+            requested: requestedCapabilities,
+          },
+        }
+      : {}),
     pluginId: plugin.id,
     version,
   };

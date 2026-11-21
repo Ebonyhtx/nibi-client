@@ -5128,6 +5128,9 @@ const enUS: Record<string, string> = {
   "settings.plugins.consent.confirm": "Allow and enable",
   "settings.plugins.consent.permission.process":
     "Run local commands and start helper processes",
+  "settings.plugins.consent.permission.code": "Run the plugin's extension code",
+  "settings.plugins.consent.capability.sessionsRead": "Read sessions in this workspace",
+  "settings.plugins.consent.capability.filesRead": "Read files in this workspace",
   "settings.plugins.consent.permission.network": "Access the network",
   "settings.plugins.consent.permission.filesystemRead": "Read files in your workspace",
   "settings.plugins.consent.permission.filesystemWrite": "Write files in your workspace",

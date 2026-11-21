@@ -80,6 +80,9 @@ export type PluginDiagnosticCode =
   | "plugin_ambiguous_name"
   | "plugin_membership_required"
   | "plugin_capability_leak_pruned"
+  | "plugin_capability_unsupported"
+  | "plugin_capability_consent_required"
+  | "plugin_runtime_invalid"
   | "plugin_consent_required"
   | "plugin_acceptance_invalid"
   | "plugin_acceptance_weak";
@@ -187,9 +190,13 @@ export interface PluginManifest {
   mcpServers?: unknown;
   name: string;
   outputStyles?: unknown;
+  /** 插件申请的 NIBI Extension 能力（`nibi.*`）；由适配器归一化为 capability profile。 */
+  capabilities?: unknown;
   /** 插件申请的能力；由适配器归一化为 `PluginPermissionProfile`。 */
   permissions?: unknown;
   repository?: string;
+  /** 扩展代码入口；由适配器归一化为 `PluginRuntimeDeclaration`。 */
+  runtime?: unknown;
   settings?: unknown;
   skills?: unknown;
   /** 插件 UI：`ui.surfaces[]` 面板入口声明，adapters 解析。 */
@@ -236,6 +243,7 @@ export type PluginPermission =
   | "filesystem.write"
   | "network"
   | "process"
+  | "code"
   | "full-access";
 
 export interface PluginPermissionProfile {
@@ -243,6 +251,41 @@ export interface PluginPermissionProfile {
   requested: PluginPermission[];
   /** 运行时实际需要的能力（由组件推导 + 清单请求并集）；空数组 = 无需同意。 */
   required: PluginPermission[];
+}
+
+/** NIBI Extension API v1 能力闭集（与插件架构 B §3.1 一致）。 */
+export const PLUGIN_CAPABILITY_IDS = [
+  "nibi.sessions.read",
+  "nibi.workspace.files.read",
+  "nibi.ui.view",
+  "nibi.settings.own",
+  "nibi.notifications.show",
+] as const;
+
+export type PluginCapabilityId = (typeof PLUGIN_CAPABILITY_IDS)[number];
+
+export type PluginCapabilityScope = "workspace" | "project" | "host";
+
+export interface PluginCapabilityGrant {
+  id: PluginCapabilityId;
+  scope: PluginCapabilityScope;
+}
+
+export interface PluginCapabilityProfile {
+  /** 清单请求的 (能力, 作用域)；host 作用域只对官方/内置生效。 */
+  requested: PluginCapabilityGrant[];
+  /** 已持久化的授权（未同意时为空的敏感能力）。 */
+  granted: PluginCapabilityGrant[];
+}
+
+/** 扩展代码入口；`node`/`native` 只做运行时兼容提示，不代装 Node。 */
+export interface PluginRuntimeDeclaration {
+  apiVersion: "1";
+  entry: string;
+  native?: boolean;
+  napi?: number;
+  node?: string;
+  platforms?: string[];
 }
 
 /** 适配器归一化后写入的元数据；产品面不展示 `adapterId`。 */
@@ -328,6 +371,10 @@ export interface PluginMetadata {
   hookDetails: PluginHookDetail[];
   /** 清单声明的能力请求（不等同于已授权）。 */
   permissions: PluginPermissionProfile;
+  /** NIBI Extension API 能力请求与已授权集合。 */
+  capabilities: PluginCapabilityProfile;
+  /** 扩展代码声明；未声明时缺省。 */
+  runtime?: PluginRuntimeDeclaration;
   rootPath: string;
   skillCount: number;
   skillRootCount: number;

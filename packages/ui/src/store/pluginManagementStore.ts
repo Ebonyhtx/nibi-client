@@ -61,7 +61,11 @@ export interface PluginManagementState {
   lastFailedPluginId: string | null;
   togglingPluginId: string | null;
   /** 启用社区/本地插件时缺少权限同意：弹窗确认后调用 grantConsent。 */
-  consentPrompt: { permissions: string[]; pluginId: string } | null;
+  consentPrompt: {
+    capabilities: Array<{ id: string; scope: string }>;
+    permissions: string[];
+    pluginId: string;
+  } | null;
   activeOperations: ReadonlyArray<{ id: string }>;
   operationVersion: number;
   describeCache: Record<string, PluginDescribeEntry>;

@@ -881,10 +881,12 @@ function PluginList({
                   <PluginHookDetails hooks={selectedPlugin.hookDetails ?? []} />
                 ) : null}
                 {(selectedPlugin.permissions?.required.length ?? 0) > 0 ||
-                (selectedPlugin.permissions?.requested.length ?? 0) > 0 ? (
+                (selectedPlugin.permissions?.requested.length ?? 0) > 0 ||
+                (selectedPlugin.capabilities?.requested.length ?? 0) > 0 ? (
                   <PluginPermissionSummary
                     requested={selectedPlugin.permissions?.requested ?? []}
                     required={selectedPlugin.permissions?.required ?? []}
+                    capabilities={selectedPlugin.capabilities?.requested ?? []}
                     onRevoke={() =>
                       void revokeConsent(selectedPlugin.id, pluginManagementService)
                     }
@@ -1067,6 +1069,7 @@ function PluginList({
           ""
         }
         permissions={consentPrompt?.permissions ?? []}
+        capabilities={consentPrompt?.capabilities ?? []}
         pending={togglingPluginId === consentPrompt?.pluginId}
         onCancel={dismissConsent}
         onConfirm={() => void grantConsent(pluginManagementService)}

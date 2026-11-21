@@ -148,6 +148,11 @@ export async function setPluginEnabledOptimistically(
         ...(consentRequired
           ? {
               consentPrompt: {
+                capabilities: (previousPlugin?.capabilities?.requested ?? []).filter(
+                  (grant) =>
+                    grant.id === "nibi.sessions.read" ||
+                    grant.id === "nibi.workspace.files.read",
+                ),
                 permissions: previousPlugin?.permissions?.required ?? [],
                 pluginId,
               },

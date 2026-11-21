@@ -8,6 +8,7 @@ import type {
   PluginHookDetail,
   PluginHookEventName,
   PluginManifest,
+  PluginRuntimeDeclaration,
   PluginSource,
   PluginTrustLevel,
   SkillRoot,
@@ -29,6 +30,8 @@ export interface PluginManifestSource {
   manifestPath: string;
   marketplace: string;
   rootPath: string;
+  /** 校验通过的扩展代码入口；未声明或声明非法时缺省。 */
+  runtime?: PluginRuntimeDeclaration;
   source: PluginSource;
 }
 

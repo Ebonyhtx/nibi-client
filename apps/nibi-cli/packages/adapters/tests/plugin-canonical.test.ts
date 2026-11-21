@@ -2,7 +2,14 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createNodePluginAdapter, revokePluginConsent, writePluginConsent } from "../src/plugins/index.js";
+import {
+  createNodePluginAdapter,
+  readPluginGrants,
+  revokePluginConsent,
+  revokePluginGrants,
+  writePluginConsent,
+  writePluginGrants,
+} from "../src/plugins/index.js";
 
 async function discover(rootPath: string, options: { official?: boolean } = {}) {
   const storageRoot = join(rootPath, ".storage");
@@ -335,6 +342,195 @@ describe("plugin permission consent", () => {
       expect(outcome.diagnostics.some((item) => item.code === "plugin_consent_required")).toBe(
         false,
       );
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+});
+
+describe("NIBI extension capabilities and runtime", () => {
+  it("blocks a plugin that requests an unknown capability", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-capability-unknown-"));
+    try {
+      await writeJson(join(dir, "plugin.json"), {
+        name: "unknown-capability",
+        version: "1.0.0",
+        extensions: {
+          "com.nibistudio.nibi": { capabilities: ["nibi.not.real"], skills: "skills" },
+        },
+      });
+      await publishMarker(join(dir, "skills", "demo"));
+
+      const outcome = await discover(dir);
+      expect(outcome.plugins[0]?.enabled).toBe(false);
+      expect(outcome.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "plugin_capability_unsupported" }),
+        ]),
+      );
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("requires a grant for sensitive capabilities and re-requires it after a version change", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-capability-grant-"));
+    const storageRoot = join(dir, ".storage");
+    try {
+      await writeJson(join(dir, "plugin.json"), {
+        name: "reader",
+        version: "1.0.0",
+        extensions: {
+          "com.nibistudio.nibi": { capabilities: ["nibi.sessions.read"], skills: "skills" },
+        },
+      });
+      await publishMarker(join(dir, "skills", "demo"));
+
+      const missing = await discover(dir);
+      expect(missing.plugins[0]).toMatchObject({
+        capabilities: { granted: [], requested: [{ id: "nibi.sessions.read", scope: "workspace" }] },
+        enabled: false,
+      });
+      expect(missing.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "plugin_capability_consent_required" }),
+        ]),
+      );
+
+      writePluginGrants({
+        grants: [{ id: "nibi.sessions.read", scope: "workspace" }],
+        pluginId: "reader@inline",
+        storageRoot,
+        version: "1.0.0",
+      });
+      const granted = await discover(dir);
+      expect(granted.plugins[0]?.enabled).toBe(true);
+      expect(readPluginGrants(storageRoot).plugins["reader@inline"]?.epoch).toBe(1);
+
+      revokePluginGrants(storageRoot, "reader@inline");
+      const revoked = await discover(dir);
+      expect(revoked.plugins[0]?.enabled).toBe(false);
+      expect(readPluginGrants(storageRoot).plugins["reader@inline"]?.epoch).toBe(2);
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects host-scoped capabilities for local plugins", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-capability-host-"));
+    try {
+      await writeJson(join(dir, "plugin.json"), {
+        name: "host-reader",
+        version: "1.0.0",
+        extensions: {
+          "com.nibistudio.nibi": {
+            capabilities: [{ id: "nibi.sessions.read", scope: "host" }],
+            skills: "skills",
+          },
+        },
+      });
+      await publishMarker(join(dir, "skills", "demo"));
+
+      const outcome = await discover(dir);
+      expect(outcome.plugins[0]?.enabled).toBe(false);
+      expect(outcome.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "plugin_capability_unsupported",
+            message: expect.stringContaining("official-only"),
+          }),
+        ]),
+      );
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("requires code consent for a local extension runtime", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-runtime-code-"));
+    const storageRoot = join(dir, ".storage");
+    try {
+      await writeJson(join(dir, "plugin.json"), {
+        name: "code-plugin",
+        version: "1.0.0",
+        extensions: {
+          "com.nibistudio.nibi": {
+            runtime: { apiVersion: "1", entry: "./extension.mjs" },
+            skills: "skills",
+          },
+        },
+      });
+      await publishMarker(join(dir, "skills", "demo"));
+
+      const missing = await discover(dir);
+      expect(missing.plugins[0]).toMatchObject({
+        enabled: false,
+        permissions: { required: ["code"] },
+        runtime: { apiVersion: "1", entry: "./extension.mjs" },
+      });
+      expect(missing.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "plugin_consent_required" }),
+        ]),
+      );
+
+      writePluginConsent({
+        permissions: ["code"],
+        pluginId: "code-plugin@inline",
+        storageRoot,
+        version: "1.0.0",
+      });
+      const granted = await discover(dir);
+      expect(granted.plugins[0]?.enabled).toBe(true);
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("diagnoses an escaping runtime entry but keeps declarative components", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-runtime-invalid-"));
+    try {
+      await writeJson(join(dir, "plugin.json"), {
+        name: "bad-runtime",
+        version: "1.0.0",
+        extensions: {
+          "com.nibistudio.nibi": {
+            runtime: { apiVersion: "1", entry: "../escape.mjs" },
+            skills: "skills",
+          },
+        },
+      });
+      await publishMarker(join(dir, "skills", "demo"));
+
+      const outcome = await discover(dir);
+      expect(outcome.plugins[0]?.runtime).toBeUndefined();
+      expect(outcome.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "plugin_runtime_invalid" }),
+        ]),
+      );
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("marks runtime unsupported for a foreign Claude layout", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-runtime-foreign-"));
+    try {
+      await writeJson(join(dir, ".claude-plugin", "plugin.json"), {
+        name: "foreign-code",
+        version: "1.0.0",
+        runtime: { apiVersion: "1", entry: "./extension.mjs" },
+        skills: "skills",
+      });
+      await publishMarker(join(dir, "skills", "demo"));
+
+      const outcome = await discover(dir);
+      expect(outcome.plugins[0]?.adapter).toMatchObject({
+        adapterId: "claude",
+        compatibility: "partial",
+        skipped: ["runtime"],
+      });
     } finally {
       await rm(dir, { force: true, recursive: true });
     }

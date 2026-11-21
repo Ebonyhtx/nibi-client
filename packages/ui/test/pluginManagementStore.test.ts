@@ -348,6 +348,7 @@ describe("pluginManagementStore", () => {
 
     expect(enabled).toBe(false);
     expect(usePluginManagementStore.getState().consentPrompt).toEqual({
+      capabilities: [],
       permissions: ["process"],
       pluginId: plugin.id,
     });
