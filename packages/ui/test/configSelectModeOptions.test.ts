@@ -114,7 +114,7 @@ describe("ConfigSelect mode options", () => {
     "Guarded 在 %s 下使用本地化自主模式文案并保持普通权限",
     (locale, label, description) => {
       const html = renderConfigSelect(locale, {
-        provider: "glm",
+        provider: "nibi-agent",
         option: {
           id: "mode",
           name: "Mode",
@@ -141,7 +141,7 @@ describe("ConfigSelect mode options", () => {
   ] as const)("历史 edit 在 %s 下保留本地化回显，但不重新加入候选", (locale, label) => {
     const onValueChange = vi.fn();
     const html = renderConfigSelect(locale, {
-      provider: "glm",
+      provider: "nibi-agent",
       option: {
         id: "mode",
         name: "Mode",
@@ -223,7 +223,7 @@ describe("ConfigSelect mode options", () => {
 
   it("中文环境下显示中文标签，并在菜单项中显示 description", () => {
     const html = renderConfigSelect("zh-CN", {
-      provider: "glm",
+      provider: "nibi-agent",
       option: {
         id: "mode",
         name: "Mode",
@@ -254,7 +254,7 @@ describe("ConfigSelect mode options", () => {
 
   it("mode trigger 使用当前文案而不是 SelectValue 自动回填", () => {
     const html = renderConfigSelect("zh-CN", {
-      provider: "glm",
+      provider: "nibi-agent",
       option: {
         id: "mode",
         name: "Mode",
@@ -282,7 +282,7 @@ describe("ConfigSelect mode options", () => {
 
   it("英文环境下显示英文多语言标签", () => {
     const html = renderConfigSelect("en-US", {
-      provider: "glm",
+      provider: "nibi-agent",
       option: {
         id: "mode",
         name: "Mode",
@@ -311,7 +311,7 @@ describe("ConfigSelect mode options", () => {
 
   it("GLM 模式列表只渲染 agent 返回的可用模式", () => {
     const html = renderConfigSelect("zh-CN", {
-      provider: "glm",
+      provider: "nibi-agent",
       option: {
         id: "mode",
         name: "Mode",
@@ -339,7 +339,7 @@ describe("ConfigSelect mode options", () => {
 
   it("选中 edit 模式时不会显示高权限 warning 色", () => {
     const html = renderConfigSelect("zh-CN", {
-      provider: "glm",
+      provider: "nibi-agent",
       option: {
         id: "mode",
         name: "Mode",
@@ -367,7 +367,7 @@ describe("ConfigSelect mode options", () => {
     ["codex", "full-access"],
     ["codex", "agent-full-access"],
     ["gemini", "yolo"],
-    ["glm", "yolo"],
+    ["nibi-agent", "yolo"],
   ] as const)(
     "选中高权限模式 %s/%s 时，trigger 文本会显示 warning 色",
     (provider, currentValue) => {
@@ -422,7 +422,7 @@ describe("ConfigSelect mode options", () => {
 
     try {
       renderConfigSelect("zh-CN", {
-        provider: "glm",
+        provider: "nibi-agent",
         option: {
           id: "mode",
           name: "Mode",

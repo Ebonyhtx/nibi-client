@@ -1,5 +1,7 @@
 # WSL 远程工作区支持方案
 
+> 2026-11-21 注：本文是 4.0 之前的历史设计记录；文中引用的 R2 `connect.ts` / `deploy.ts` 部署链已删除。当前远程链路见 [R3 Source Server 架构](./architecture/r3-source-server-remote-architecture.md)。
+
 ## 背景
 
 当前 ZCode 支持 SSH 和 Docker 远程连接。本文档记录 WSL（Windows Subsystem for Linux）支持的实现方案。

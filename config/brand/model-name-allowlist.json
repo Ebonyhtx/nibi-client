@@ -106,59 +106,14 @@
       "reason": "上游 3.18.2 人工翻译；GLM 只出现在模型示例（Z.ai GLM）与 provider id 键名，不是产品身份；ZCode 品牌由 check-i18n-keys 单独扫描。"
     },
     {
-      "file": "packages/desktop/package.json",
-      "pattern": "\"prepare:glm\"",
-      "reason": "B03：下载远端 GLM 运行时的构建脚本名，随 CDN/启动器迁移一起改。"
-    },
-    {
-      "file": "packages/server/src/remote/remoteAssetCache.ts",
-      "pattern": "\"glm-content\"",
-      "reason": "B03：内容寻址目录名仍是 glm-content；等 CDN 双发/迁移完成后再删。"
-    },
-    {
-      "file": "packages/services/src/project-storage/project-repository.ts",
-      "pattern": "provider='glm'",
-      "reason": "B02：项目库只读兼容旧的 glm provider 行。"
-    },
-    {
-      "file": "packages/services/src/session/taskIndexRepo.ts",
-      "pattern": "provider = 'glm'",
-      "reason": "B02：任务索引只读兼容旧的 glm provider 行。"
-    },
-    {
       "file": "packages/services/src/session/tasksDatabase/provider-selection-v2.ts",
       "pattern": "\\[\"glm\", \"zcode\", \"nibi-agent\"\\]",
       "reason": "B02：旧 provider 选择值仍要能读。"
     },
     {
-      "file": "packages/shared/src/bots.ts",
-      "pattern": "\"glm\", \"nibi-agent\"",
-      "reason": "B02：bot schema 保留旧 glm provider 值以读取存量数据。"
-    },
-    {
-      "file": "packages/shared/src/nibi-agent-policy.ts",
-      "pattern": "LEGACY_NIBI_AGENT_PROVIDER = \"glm\"",
-      "reason": "B02：显式命名的 legacy provider 常量。"
-    },
-    {
       "file": "packages/shared/src/nibi-agent-policy.ts",
       "pattern": "NIBI_NATIVE_MODEL_PROVIDER_ID = \"glm\"",
       "reason": "B02：内置模型 provider id 仍需与旧数据/服务端对齐。"
-    },
-    {
-      "file": "packages/shared/src/nibi-agent-policy.ts",
-      "pattern": "\"codex\", \"glm\", \"nibi-agent\"",
-      "reason": "B02：provider 枚举保留旧 glm 值。"
-    },
-    {
-      "file": "packages/shared/src/remoteResourcePackages.ts",
-      "pattern": "NIBI_AGENT_REMOTE_COMPONENT_FALLBACK_ID = \"glm\"",
-      "reason": "B03：旧远端组件 id 作为迁移期 fallback；manifest 只发布 glm 时必须仍能读。"
-    },
-    {
-      "file": "packages/shared/src/validationAppSettings.ts",
-      "pattern": "\"codex\", \"glm\", \"nibi-agent\"",
-      "reason": "B02：设置校验保留旧 glm provider 值。"
     },
     {
       "file": "packages/ui/src/i18n/locales/en-US.ts",
@@ -194,11 +149,6 @@
       "file": "scripts/download-glm.sh",
       "pattern": "[Gg][Ll][Mm]",
       "reason": "B03：GLM 运行时下载脚本；文件名/环境变量/日志都围绕旧运行时，随 CDN 迁移一起改。"
-    },
-    {
-      "file": "scripts/audit-nibi-agent-remnants.mjs",
-      "pattern": "download-glm",
-      "reason": "审计脚本把 download-glm 列入豁免路径，属于旧运行时审计规则。"
     },
     {
       "file": "scripts/sqlite-schema-contract.mjs",
@@ -244,11 +194,6 @@
       "file": "packages/services/src/session/tasksDatabase/migrations.ts",
       "pattern": "OFFICIAL_GLM_SELECTION",
       "reason": "历史迁移 0003 的常量名，迁移 ID/checksum 不能重命名。"
-    },
-    {
-      "file": "packages/services/src/session/tasksDatabase/migrations.ts",
-      "pattern": "provider='glm'",
-      "reason": "B02：迁移把旧 glm provider 行改成 nibi-agent，必须引用旧值。"
     },
     {
       "file": "packages/services/src/session/tasksDatabase/migrations.ts",

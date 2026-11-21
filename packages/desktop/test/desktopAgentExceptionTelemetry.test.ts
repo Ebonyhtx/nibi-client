@@ -11,7 +11,7 @@ const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
 const event: HostAgentProcessExceptionResponse = {
   type: "agent-process-exception",
   pid: 42,
-  provider: "glm",
+  provider: "nibi-agent",
   lane: "mcp-status",
   workspacePath: "/Users/alice/repo",
   runtimeGeneration: 1,

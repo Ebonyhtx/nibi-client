@@ -39,7 +39,7 @@ function makeTaskMeta(overrides: Record<string, unknown> = {}) {
     createdAt: 1,
     updatedAt: 2,
     mode: "default",
-    provider: "codex",
+    provider: "nibi-agent",
     status: "running",
     ...overrides,
   };

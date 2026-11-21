@@ -1440,8 +1440,8 @@ function logWindowsBundledRuntimeIntegrityDiagnostic() {
     return;
   }
 
-  // 4.0 不再随包内置 glm 原生二进制，改为 resources/nibi/nibi.cjs（JS bundle）。
-  // 旧诊断仍在找原生 binary，导致每个正式 Windows 包启动都误报 "missing providers: glm"。
+  // 4.0 不再随包内置原生 agent 二进制，改为 resources/nibi/nibi.cjs（JS bundle）。
+  // 旧诊断仍在找原生 binary，导致每个正式 Windows 包启动都误报 "missing providers: nibi-agent"。
   const bundledAgentFiles = [
     join(process.resourcesPath, "nibi", "nibi.cjs"),
     join(process.resourcesPath, "nibi", ".node-bundle-meta.json"),

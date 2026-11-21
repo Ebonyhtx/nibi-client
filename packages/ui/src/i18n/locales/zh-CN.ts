@@ -4438,7 +4438,6 @@ const zhCN: Record<string, string> = {
   "settings.skills.removeFailed": "移除技能失败。",
   "settings.skills.delete.title": "删除技能",
   "settings.skills.delete.description": "确定删除「{name}」？将从磁盘移除该技能目录，且无法撤销。",
-  "settings.skills.agent.glm": "NIBI Agent",
   "settings.skills.agent.unknown": "未知来源",
   "settings.skills.create.open": "新建技能",
   "settings.skills.create.taskCreateFailed":

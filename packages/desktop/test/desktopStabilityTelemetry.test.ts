@@ -538,7 +538,7 @@ describe("desktopStabilityTelemetry", () => {
       const event = {
         type: "agent-process-exited" as const,
         pid: 12345,
-        provider: "glm" as const,
+        provider: "nibi-agent" as const,
         workspacePath,
         runtimeInstanceId: "runtime-test-1",
         exitCode: 1,
@@ -617,7 +617,7 @@ describe("desktopStabilityTelemetry", () => {
         {
           type: "agent-process-exited",
           pid: 12345,
-          provider: "glm",
+          provider: "nibi-agent",
           workspacePath: "/Users/alice/private-project",
           runtimeInstanceId: "runtime-byte-compat",
           exitCode: 1,
@@ -656,7 +656,7 @@ describe("desktopStabilityTelemetry", () => {
         metric_value: "1",
         process_role: "agent",
         incident_kind: "unexpected_exit",
-        provider: "glm",
+        provider: "nibi-agent",
         exit_code: "1",
         signal: "",
         runtime_generation: "3",
@@ -763,7 +763,7 @@ describe("desktopStabilityTelemetry", () => {
           {
             type: "agent-process-exited",
             pid: 12345,
-            provider: "glm",
+            provider: "nibi-agent",
             workspacePath: "C:\\repo",
             runtimeInstanceId: `runtime-${expected.diagnostic_class}`,
             exitCode: 1,
@@ -813,7 +813,7 @@ describe("desktopStabilityTelemetry", () => {
           {
             type: "agent-process-exited",
             pid: 12345,
-            provider: "glm",
+            provider: "nibi-agent",
             workspacePath: "C:\\repo",
             runtimeInstanceId: "runtime-shutdown",
             exitCode: 1073807364,
@@ -862,7 +862,7 @@ describe("desktopStabilityTelemetry", () => {
         {
           type: "agent-process-exited",
           pid: 12345,
-          provider: "glm",
+          provider: "nibi-agent",
           workspacePath: input.platform === "win32" ? "C:\\repo" : "/repo",
           runtimeInstanceId: "runtime-controlled-termination",
           exitCode: input.exitCode,
@@ -913,7 +913,7 @@ describe("desktopStabilityTelemetry", () => {
         {
           type: "agent-process-exited",
           pid: 12345,
-          provider: "glm",
+          provider: "nibi-agent",
           workspacePath: input.workspacePath,
           runtimeInstanceId: "runtime-protocol-failure",
           exitCode: input.exitCode,
@@ -951,7 +951,7 @@ describe("desktopStabilityTelemetry", () => {
         {
           type: "agent-process-exited",
           pid: 12345,
-          provider: "glm",
+          provider: "nibi-agent",
           workspacePath: "/repo",
           runtimeInstanceId: "runtime-sigkill",
           exitCode: null,
@@ -988,7 +988,7 @@ describe("desktopStabilityTelemetry", () => {
         {
           type: "agent-process-exited",
           pid: 12345,
-          provider: "glm",
+          provider: "nibi-agent",
           workspacePath: "/repo",
           runtimeInstanceId: "runtime-exit-zero",
           exitCode: 0,
@@ -1024,7 +1024,7 @@ describe("desktopStabilityTelemetry", () => {
       const base = {
         type: "agent-process-exited" as const,
         pid: 12345,
-        provider: "glm" as const,
+        provider: "nibi-agent" as const,
         workspacePath: "C:\\repo",
         runtimeInstanceId: "runtime-test-2",
         exitCode: 1,
@@ -1070,7 +1070,7 @@ describe("desktopStabilityTelemetry", () => {
       const base = {
         type: "agent-process-exited" as const,
         pid: 12345,
-        provider: "glm" as const,
+        provider: "nibi-agent" as const,
         workspacePath: "/repo",
         exitCode: 1,
         signal: null,
@@ -1133,7 +1133,7 @@ describe("desktopStabilityTelemetry", () => {
         {
           type: "agent-process-error",
           pid: null,
-          provider: "glm",
+          provider: "nibi-agent",
           workspacePath,
           runtimeInstanceId: "runtime-test-3",
           command: `${workspacePath}/missing-agent`,
@@ -1186,7 +1186,7 @@ describe("desktopStabilityTelemetry", () => {
         {
           type: "agent-process-spawned",
           pid: 12345,
-          provider: "glm",
+          provider: "nibi-agent",
           workspacePath: "/repo/demo",
           command: "/tmp/nibi-agent",
           args: ["app-server", "--stdio"],
@@ -1225,7 +1225,7 @@ describe("desktopStabilityTelemetry", () => {
         {
           type: "agent-process-ready",
           pid: 12345,
-          provider: "glm",
+          provider: "nibi-agent",
           workspacePath: "/repo/demo",
           readyAt: 250,
           startupDurationMs: 150,

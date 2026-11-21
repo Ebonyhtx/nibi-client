@@ -49,7 +49,7 @@ const SEED_DETAIL = {
   ask_mode: "build",
   model_name: "seed-model",
   model_provider: "seed-provider",
-  agent: "glm",
+  agent: "nibi-agent",
   plan_status: "unknown",
   plan_product_id: "",
 } as const;

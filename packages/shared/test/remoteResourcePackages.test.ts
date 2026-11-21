@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   ACTIVE_REMOTE_RESOURCE_PACKAGE_IDS,
-  NIBI_AGENT_REMOTE_COMPONENT_FALLBACK_ID,
   NIBI_AGENT_REMOTE_COMPONENT_ID,
   NIBI_AGENT_REMOTE_COMPONENT_IDS,
   REMOTE_RESOURCE_PACKAGE_IDS,
@@ -30,32 +29,25 @@ describe("remote resource packages", () => {
     ]);
   });
 
-  it("prefers nibi-agent and keeps glm as the dual-read fallback", () => {
-    // B03：新 id 是 active；旧 id 仍必须可被读取，供旧 manifest 回退。
+  it("uses nibi-agent as the only agent component id", () => {
     expect(NIBI_AGENT_REMOTE_COMPONENT_ID).toBe("nibi-agent");
-    expect(NIBI_AGENT_REMOTE_COMPONENT_FALLBACK_ID).toBe("glm");
-    expect(NIBI_AGENT_REMOTE_COMPONENT_IDS).toEqual(["nibi-agent", "glm"]);
+    expect(NIBI_AGENT_REMOTE_COMPONENT_IDS).toEqual(["nibi-agent"]);
     expect(ACTIVE_REMOTE_RESOURCE_PACKAGE_IDS).toContain("nibi-agent");
-    expect(ACTIVE_REMOTE_RESOURCE_PACKAGE_IDS as readonly string[]).not.toContain("glm");
-    // 旧 id 仍在已知集合里，4.1.3 时代配置与旧 manifest 不能被 schema 拒绝。
-    expect(REMOTE_RESOURCE_PACKAGE_IDS).toContain("glm");
     expect(REMOTE_RESOURCE_PACKAGE_IDS).toContain("nibi-agent");
+    expect(REMOTE_RESOURCE_PACKAGE_IDS).not.toContain("glm");
   });
 
   it("selects the agent component only from ids the manifest actually publishes", () => {
-    expect(selectNibiAgentRemoteComponentId(["server-bundle", "glm", "nibi-agent"])).toBe(
-      "nibi-agent",
-    );
-    expect(selectNibiAgentRemoteComponentId(["server-bundle", "glm"])).toBe("glm");
+    expect(selectNibiAgentRemoteComponentId(["server-bundle", "nibi-agent"])).toBe("nibi-agent");
+    expect(selectNibiAgentRemoteComponentId(["server-bundle", "glm"])).toBeNull();
     expect(selectNibiAgentRemoteComponentId(["server-bundle", "node-runtime"])).toBeNull();
     expect(isNibiAgentRemoteComponentId("nibi-agent")).toBe(true);
-    expect(isNibiAgentRemoteComponentId("glm")).toBe(true);
+    expect(isNibiAgentRemoteComponentId("glm")).toBe(false);
     expect(isNibiAgentRemoteComponentId("server-bundle")).toBe(false);
   });
 
-  it("declares the agent's runtime dependency for both ids", () => {
+  it("declares the agent's runtime dependency", () => {
     expect(getRemoteResourcePackageDependencies("nibi-agent")).toEqual(["node-runtime"]);
-    expect(getRemoteResourcePackageDependencies("glm")).toEqual(["node-runtime"]);
   });
 
   it("Linux remote 使用 native-search 三工具，Darwin 保留 legacy ripgrep", () => {
@@ -69,21 +61,7 @@ describe("remote resource packages", () => {
     ]);
   });
 
-  it("accepts selected SSH resource packages", () => {
-    expect(
-      remoteTargetSchema.parse({
-        kind: "ssh",
-        host: "demo.internal",
-        username: "root",
-        resourcePackages: {
-          selectedPackageIds: ["server-bundle", "node-runtime", "glm"],
-        },
-      }),
-    ).toMatchObject({
-      resourcePackages: {
-        selectedPackageIds: ["server-bundle", "node-runtime", "glm"],
-      },
-    });
+  it("accepts the current SSH resource package selection", () => {
     expect(
       remoteTargetSchema.parse({
         kind: "ssh",
@@ -98,6 +76,19 @@ describe("remote resource packages", () => {
         selectedPackageIds: ["server-bundle", "node-runtime", "nibi-agent"],
       },
     });
+  });
+
+  it("rejects the removed glm package id", () => {
+    expect(() =>
+      remoteTargetSchema.parse({
+        kind: "ssh",
+        host: "demo.internal",
+        username: "root",
+        resourcePackages: {
+          selectedPackageIds: ["server-bundle", "node-runtime", "glm"],
+        },
+      }),
+    ).toThrow();
   });
 
   it("rejects unknown SSH resource packages", () => {

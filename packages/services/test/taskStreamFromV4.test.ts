@@ -41,7 +41,7 @@ function snapshotFrame(
     inputRouting: { mode: "enqueue" },
     meta: { title: "test", titleSource: "custom" },
     config: {
-      provider: "glm",
+      provider: "nibi-agent",
       model: "glm-5",
       thought: "medium",
       thoughtLevels: [],
@@ -394,7 +394,7 @@ describe("v4 task stream projection", () => {
           op: "state.updated",
           patch: {
             config: {
-              provider: "glm",
+              provider: "nibi-agent",
               model: "glm-5",
               thought: "high",
               thoughtLevels: ["low", "high"],
@@ -414,7 +414,7 @@ describe("v4 task stream projection", () => {
           op: "state.updated",
           patch: {
             config: {
-              provider: "glm",
+              provider: "nibi-agent",
               model: "glm-5",
               thought: "high",
               thoughtLevels: ["low", "high"],

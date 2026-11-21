@@ -13,7 +13,7 @@ export function resolveSkillSourceType(skillPath: string): SkillSourceType {
   return "unknown";
 }
 
-const SKILL_ID_PROVIDER_RE = /^(?:glm|nibi-agent):/;
+const SKILL_ID_PROVIDER_RE = /^nibi-agent:/;
 
 function isNibiSkill(skill: { id?: string; path: string; scope?: string }): boolean {
   return (
@@ -27,7 +27,7 @@ function isNibiSkill(skill: { id?: string; path: string; scope?: string }): bool
 
 export function filterSkillsForProvider<T extends { path: string; id?: string; scope?: string }>(
   skills: T[],
-  _legacyProvider: NibiProvider,
+  _provider: NibiProvider,
 ): T[] {
   return skills.filter(isNibiSkill);
 }

@@ -21,8 +21,8 @@ describe("model selection groups", () => {
         },
       ],
     };
-    const items = buildRegistryModelSelectGroups("glm", view)[0]!.items;
-    expect(buildRegistryModelSelectGroups("glm", view)[0]!.logo).toEqual({
+    const items = buildRegistryModelSelectGroups("nibi-agent", view)[0]!.items;
+    expect(buildRegistryModelSelectGroups("nibi-agent", view)[0]!.logo).toEqual({
       type: "builtin",
       key: "deepseek",
     });
@@ -43,7 +43,7 @@ describe("model selection groups", () => {
         },
       ],
     };
-    expect(buildRegistryModelSelectGroups("glm", view)[0]?.items).toEqual([
+    expect(buildRegistryModelSelectGroups("nibi-agent", view)[0]?.items).toEqual([
       {
         key: `registry-provider:aggregator:${modelId}`,
         value: "custom:aggregator:upstream%2Ffamily%2Fvision-preview",
@@ -52,7 +52,7 @@ describe("model selection groups", () => {
       },
     ]);
     view.providers[0]!.models[0]!.config = {};
-    expect(buildRegistryModelSelectGroups("glm", view)[0]?.items[0]).not.toHaveProperty(
+    expect(buildRegistryModelSelectGroups("nibi-agent", view)[0]?.items[0]).not.toHaveProperty(
       "supportsVisionInput",
     );
   });
@@ -96,7 +96,7 @@ describe("model selection groups", () => {
       ],
     };
 
-    expect(buildRegistryModelSelectGroups("glm", selectionView)).toEqual([
+    expect(buildRegistryModelSelectGroups("nibi-agent", selectionView)).toEqual([
       {
         key: "registry-provider:anthropic-api",
         label: "Anthropic API",

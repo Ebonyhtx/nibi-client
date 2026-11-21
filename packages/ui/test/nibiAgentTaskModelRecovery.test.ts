@@ -2,16 +2,16 @@ import type { NibiConfigOption } from "@nibi/shared";
 import { describe, expect, it } from "vitest";
 import {
   mergeRecoveredTaskModelConfigOptions,
-  mergeGlmRecoveredTaskModelConfigOptions,
+  mergeNibiAgentRecoveredTaskModelConfigOptions,
   resolveTaskRestorePreloadConfigOptions,
   resolveRecoveredTaskModelValue,
-  resolveGlmRecoveredTaskModelValue,
+  resolveNibiAgentRecoveredTaskModelValue,
 } from "@/lib/taskModelRecovery.js";
 import { encodeCustomModelValue } from "@/lib/nibiCustomModelValue.js";
 
 describe("task model recovery", () => {
   it("会把 task.meta.model 里的 provider/model 还原成工具栏 custom 模型值", () => {
-    expect(resolveGlmRecoveredTaskModelValue("zai-api/glm-5.1")).toBe(
+    expect(resolveNibiAgentRecoveredTaskModelValue("zai-api/glm-5.1")).toBe(
       encodeCustomModelValue("zai-api", "glm-5.1"),
     );
   });
@@ -101,9 +101,9 @@ describe("task model recovery", () => {
   });
 
   it("GLM 恢复态没有 configOptions 时，会用 task meta 合成最小模型配置", () => {
-    const recovered = mergeGlmRecoveredTaskModelConfigOptions({
+    const recovered = mergeNibiAgentRecoveredTaskModelConfigOptions({
       taskMeta: {
-        provider: "glm",
+        provider: "nibi-agent",
         model: "provider-demo/qwen-plus",
       },
       configOptions: [],
@@ -146,9 +146,9 @@ describe("task model recovery", () => {
       },
     ];
 
-    const recovered = mergeGlmRecoveredTaskModelConfigOptions({
+    const recovered = mergeNibiAgentRecoveredTaskModelConfigOptions({
       taskMeta: {
-        provider: "glm",
+        provider: "nibi-agent",
         model: "provider-demo/qwen-plus",
       },
       configOptions: currentConfigOptions,
@@ -184,9 +184,9 @@ describe("task model recovery", () => {
       },
     ];
 
-    const recovered = mergeGlmRecoveredTaskModelConfigOptions({
+    const recovered = mergeNibiAgentRecoveredTaskModelConfigOptions({
       taskMeta: {
-        provider: "glm",
+        provider: "nibi-agent",
         model: "provider-demo/qwen-plus",
       },
       configOptions: currentConfigOptions,
@@ -225,7 +225,7 @@ describe("task model recovery", () => {
 
     const recovered = resolveTaskRestorePreloadConfigOptions({
       taskMeta: {
-        provider: "glm",
+        provider: "nibi-agent",
         model: "provider-demo/qwen-plus",
       },
       cachedTaskConfigOptions: currentConfigOptions,
@@ -251,7 +251,7 @@ describe("task model recovery", () => {
 
     const recovered = resolveTaskRestorePreloadConfigOptions({
       taskMeta: {
-        provider: "glm",
+        provider: "nibi-agent",
         model: undefined,
       },
       cachedTaskConfigOptions: currentConfigOptions,
@@ -263,7 +263,7 @@ describe("task model recovery", () => {
 
   it("非 GLM task 不使用该兜底来源", () => {
     expect(
-      mergeGlmRecoveredTaskModelConfigOptions({
+      mergeNibiAgentRecoveredTaskModelConfigOptions({
         taskMeta: {
           provider: "codex",
           model: "provider-demo/gpt-5.4",

@@ -33,7 +33,7 @@ const shouldPrepareCuaHelper =
   (target.os === "win32" || process.env.NIBI_ENABLE_CUA_HELPER === "1") &&
   isRealComputerUseProducerInstalled({ desktopPackageRoot: desktopRoot });
 
-// 本机桌面包不再内置 glm 原生二进制（prepare:glm），改为内置 DWF 侧车/插件宿主用的 JS bundle
+// 本机桌面包不再内置原生 agent 二进制，改为内置 DWF 侧车/插件宿主用的 JS bundle
 // （prepare:agent-bundle）；桌面本地 agent 由随包 nibi-rs 提供。Source Server 资源由独立
 // stage:remote-assets 入口负责。
 const localRuntimeScripts = [

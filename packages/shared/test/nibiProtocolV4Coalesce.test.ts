@@ -106,7 +106,7 @@ function makeSnapshot(): ConversationSnapshot {
     // round-trip 断言 parse 前后 deep-equal 才成立。
     meta: { title: "", titleSource: "default" },
     config: {
-      provider: "glm",
+      provider: "nibi-agent",
       model: "glm-5",
       thought: "medium",
       thoughtLevels: ["medium", "high", "max"],

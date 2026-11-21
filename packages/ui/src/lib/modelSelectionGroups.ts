@@ -14,7 +14,7 @@ function supportsRegistryApiFormat(
   apiFormat: string | null | undefined,
 ): boolean {
   if (!apiFormat) return false;
-  // 仅剩 glm（Nibi Agent）provider；三方 CLI 的 api format 差异已随 provider 下线。
+  // 仅剩 NIBI Agent provider；三方 CLI 的 api format 差异已随 provider 下线。
   return isNibiAgentProvider(selectedProvider);
 }
 

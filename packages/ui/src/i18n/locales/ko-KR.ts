@@ -5724,7 +5724,6 @@ const koKR: Record<string, string> = {
   "settings.sidebar.group.basics": "기본",
   "settings.sidebar.group.dataAndStats": "데이터 및 통계",
   "settings.skills.agent.common": "공통",
-  "settings.skills.agent.glm": "NIBI Agent",
   "settings.skills.agent.unknown": "알 수 없는 출처",
   "settings.skills.copiedToCommon": "공통 스킬로 복사했습니다.",
   "settings.skills.copyFailed": "스킬을 복사하지 못했습니다.",

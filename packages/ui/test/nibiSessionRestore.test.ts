@@ -85,7 +85,7 @@ function createLegacyTaskSnapshot(): NibiTaskSnapshot {
       createdAt: 1,
       updatedAt: 2,
       mode: "build",
-      provider: "glm",
+      provider: "nibi-agent",
       status: "completed",
     },
     messages: [

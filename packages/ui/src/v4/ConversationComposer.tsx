@@ -1442,7 +1442,7 @@ function ConversationComposerImpl({
       pendingRef.current = true;
       setPending(true);
       // Bug 根因：草稿 intent 只保存用户显式改动，正常继承模型位于冻结初始化 config。
-      // prewarm snapshot 尚未到达时若只读 draftConfig，send_btn 会错误落成空模型/glm。
+      // prewarm snapshot 尚未到达时若只读 draftConfig，send_btn 会错误落成空模型/nibi-agent。
       const telemetryConfig = telemetryDraftConfig ?? snapshotRef.current?.config ?? draftConfig;
       let telemetrySeed: ConversationPromptTelemetrySeed;
       if (existingTelemetrySeed) {

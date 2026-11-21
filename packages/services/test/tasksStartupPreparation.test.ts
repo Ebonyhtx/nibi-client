@@ -94,8 +94,8 @@ it("SILENTDB-01/02: reports maintenance separately and no migration for a prepar
       expect.objectContaining({
         migration: {
           kind: "initialize",
-          executedCount: 7,
-          committedCount: 7,
+          executedCount: 6,
+          committedCount: 6,
           lastAppliedMigrationId: null,
         },
       }),
@@ -135,8 +135,8 @@ it("retains committed facts if closing the migration connection fails", async ()
     expect(states.at(-1)).toMatchObject({
       migration: {
         kind: "initialize",
-        executedCount: 7,
-        committedCount: 7,
+        executedCount: 6,
+        committedCount: 6,
         lastAppliedMigrationId: null,
       },
     });

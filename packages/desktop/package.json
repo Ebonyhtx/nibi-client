@@ -20,7 +20,6 @@
     "check:brand-icons": "python scripts/generate-brand-icons.py --check",
     "prepare:rust-kernel": "node scripts/prepare-rust-kernel.mjs",
     "prepare:runtime-assets": "node scripts/prepare-runtime-assets.mjs",
-    "prepare:glm": "node ../../scripts/download-glm.mjs",
     "prepare:agent-bundle": "node scripts/prepare-agent-node-bundle.mjs",
     "prepare:windows-cua-helper": "node scripts/prepare-windows-cua-helper.mjs",
     "prepare:windows-runtime-host": "node scripts/build-windows-runtime-host.mjs --ensure",

@@ -179,7 +179,7 @@ describe("虚拟项目升级顺序", () => {
         db
           .prepare("SELECT provider,migration_source,pinned,archived FROM tasks WHERE task_id=?")
           .get(CURRENT_IMPORTED_TASK_ID),
-      ).toEqual({ provider: "glm", migration_source: "claudeCode", pinned: 0, archived: 1 });
+      ).toEqual({ provider: "nibi-agent", migration_source: "claudeCode", pinned: 0, archived: 1 });
     } finally {
       db.close();
     }

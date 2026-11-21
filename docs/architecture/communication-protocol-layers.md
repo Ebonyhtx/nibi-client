@@ -185,6 +185,6 @@ V4 调用 = 调用 Service API，把这条命令送到下一跳
 - [`@nibi/rpc` 分层实现](../../packages/rpc/src/index.ts)
 - [V4 command schema](../../packages/shared/src/nibi-protocol-v4/command.ts)
 - [V4 transport schema](../../packages/shared/src/nibi-protocol-v4/transport.ts)
-- [远程 RPC 连接](../../packages/server/src/remote/connect.ts)
+- [Source Server transport](../../packages/server/src/source-server/transportAdapter.ts)
 - [nibi-server stdio RPC server](../../packages/server/src/stdio.ts)
 - [Agent ZCode Protocol client](../../packages/services/src/nibi-agent/nibiProtocolClient.ts)

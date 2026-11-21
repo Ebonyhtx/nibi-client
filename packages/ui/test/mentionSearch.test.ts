@@ -169,7 +169,7 @@ describe("collectSessionMentionItems", () => {
           createdAt: 1,
           updatedAt: 10,
           mode: "default",
-          provider: "glm",
+          provider: "nibi-agent",
         },
         {
           taskId: "sess_remote_new",
@@ -180,7 +180,7 @@ describe("collectSessionMentionItems", () => {
           createdAt: 2,
           updatedAt: 100,
           mode: "default",
-          provider: "glm",
+          provider: "nibi-agent",
         },
         {
           taskId: "sess_remote_new",
@@ -191,10 +191,10 @@ describe("collectSessionMentionItems", () => {
           createdAt: 2,
           updatedAt: 90,
           mode: "default",
-          provider: "glm",
+          provider: "nibi-agent",
         },
       ],
-      "glm",
+      "nibi-agent",
     );
 
     expect(items.map((item) => item.value)).toEqual(["sess_remote_new", "sess_local_old"]);
@@ -212,10 +212,10 @@ describe("collectSessionMentionItems", () => {
           createdAt: 1,
           updatedAt: 10,
           mode: "default",
-          provider: "glm",
+          provider: "nibi-agent",
         },
       ],
-      "glm",
+      "nibi-agent",
     );
 
     expect(items[0]?.label).toBe("continue this chat");
@@ -233,7 +233,7 @@ describe("collectSessionMentionItems", () => {
           createdAt: 1,
           updatedAt: 300,
           mode: "default",
-          provider: "glm",
+          provider: "nibi-agent",
         },
         {
           taskId: "sess_current_app",
@@ -243,7 +243,7 @@ describe("collectSessionMentionItems", () => {
           createdAt: 2,
           updatedAt: 100,
           mode: "default",
-          provider: "glm",
+          provider: "nibi-agent",
         },
         {
           taskId: "sess_imported_native",
@@ -257,7 +257,7 @@ describe("collectSessionMentionItems", () => {
           migrationSource: "claudeCode",
         },
       ],
-      "glm",
+      "nibi-agent",
       {
         workspacePath: "/workspace/current",
       },

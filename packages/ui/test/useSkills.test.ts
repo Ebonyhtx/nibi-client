@@ -34,7 +34,7 @@ function catalog(name: string, authority: "session" | "workspace") {
     authority,
     skills: [
       {
-        id: `glm:workspace:/workspace/.nibi/skills/${name}/SKILL.md`,
+        id: `nibi-agent:workspace:/workspace/.nibi/skills/${name}/SKILL.md`,
         name,
         description: `${name} description`,
         path: `/workspace/.nibi/skills/${name}/SKILL.md`,

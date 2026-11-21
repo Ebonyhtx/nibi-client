@@ -55,7 +55,7 @@ office-runtime/scripts/build.mjs（插件名取自 .nibi-plugin/plugin.json）
 
 - office-runtime：`typecheck`、`lint`、单测（解析器、锚点、文本、i18n、对齐、契约）。
 - 四个插件：`build` 后 `smoke`（真实 stdio MCP：打开、读取、搜索、定位、越界路径拒绝）与 `test:e2e`（Chrome 中按 MCP Apps 沙箱 CSP 加载面板，覆盖选区引用、Agent 定位、查找、抽屉、截图、深色中文内联卡片）。
-- 版本与资产一致性：bootstrap `plugins.test.ts`、`build-sea.test.mjs`、desktop `runtime-asset-scripts.test.ts`、server `remoteDeploy.test.ts`。
+- 版本与资产一致性：bootstrap `plugins.test.ts`、`build-sea.test.mjs`、desktop `runtime-asset-scripts.test.ts`。
 - 待补：在 ZCode 桌面端（含远程工作区）实际打开四种面板；e2e 不覆盖 Electron 沙箱本身。
 
 ## 5. 本地文件与窗口恢复（2026-10-16）

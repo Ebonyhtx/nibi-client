@@ -5841,7 +5841,6 @@ const jaJP: Record<string, string> = {
   "settings.sidebar.group.basics": "基本",
   "settings.sidebar.group.dataAndStats": "データと統計",
   "settings.skills.agent.common": "共通",
-  "settings.skills.agent.glm": "NIBI Agent",
   "settings.skills.agent.unknown": "不明なソース",
   "settings.skills.copiedToCommon": "共通スキルにコピーしました。",
   "settings.skills.copyFailed": "スキルのコピーに失敗しました。",

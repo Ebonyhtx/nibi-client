@@ -31,7 +31,7 @@ describe("chatPrepareError", () => {
       { code: -32000, message: "Authentication required" },
       {
         workspacePath: "/repo/demo",
-        provider: "glm",
+        provider: "nibi-agent",
         reason: "mount",
         attempt: 2,
         maxAttempts: 5,
@@ -41,7 +41,7 @@ describe("chatPrepareError", () => {
     expect(uiError).toMatchObject({
       code: "WORKSPACE_PREPARE_FAILED",
       message: "Authentication required",
-      detail: "workspace=/repo/demo provider=glm reason=mount attempt=2/5",
+      detail: "workspace=/repo/demo provider=nibi-agent reason=mount attempt=2/5",
     });
   });
 
@@ -53,7 +53,7 @@ describe("chatPrepareError", () => {
       },
       {
         workspacePath: "/repo/demo",
-        provider: "glm",
+        provider: "nibi-agent",
         reason: "retry",
         attempt: 3,
         maxAttempts: 5,
@@ -75,7 +75,7 @@ describe("chatPrepareError", () => {
       },
       {
         workspacePath: "/repo/demo",
-        provider: "glm",
+        provider: "nibi-agent",
         reason: "mount",
         attempt: 5,
         maxAttempts: 5,
@@ -104,7 +104,7 @@ describe("chatPrepareError", () => {
       },
       {
         workspacePath: "/repo/demo",
-        provider: "glm",
+        provider: "nibi-agent",
         reason: "mount",
         attempt: 5,
         maxAttempts: 5,
@@ -114,7 +114,7 @@ describe("chatPrepareError", () => {
 
     const uiError = buildCachedWorkspacePrepareUiError(message, cachedError, {
       workspacePath: "/repo/demo",
-      provider: "glm",
+      provider: "nibi-agent",
       reason: "mount",
       attempt: 5,
       maxAttempts: 5,

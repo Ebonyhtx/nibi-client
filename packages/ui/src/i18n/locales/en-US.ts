@@ -4747,7 +4747,6 @@ const enUS: Record<string, string> = {
   "settings.skills.delete.title": "Delete skill",
   "settings.skills.delete.description":
     'Delete "{name}"? This removes the skill folder from disk and cannot be undone.',
-  "settings.skills.agent.glm": "NIBI Agent",
   "settings.skills.agent.unknown": "Unknown source",
   "settings.skills.create.open": "New skill",
   "settings.skills.create.taskCreateFailed":

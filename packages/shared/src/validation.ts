@@ -43,7 +43,7 @@ import {
   taskStreamMirrorTargetSchema,
 } from "./task-realtime-core.js";
 import { wslUserSchema } from "./wslUserValidation.js";
-import { legacyNibiProviderSchema } from "./nibi-agent-policy.js";
+import { nibiAgentProviderSchema } from "./nibi-agent-policy.js";
 import { errorAttributionSchema } from "./nibi-protocol-v4/snapshot.js";
 import {
   nibiMcpResourceSamplesSchema,
@@ -1071,7 +1071,7 @@ export const hostAgentProcessSpawnedResponseSchema = z.object({
   /** 进程泳道（mcp-status 等），旧 Host 不带该字段。 */
   lane: nonEmptyStringSchema.optional(),
   pid: z.number().int().positive(),
-  provider: legacyNibiProviderSchema,
+  provider: nibiAgentProviderSchema,
   workspacePath: nonEmptyStringSchema,
   command: z.string(),
   args: z.array(z.string()),
@@ -1086,7 +1086,7 @@ export const hostAgentProcessReadyResponseSchema = z.object({
   /** 进程泳道（mcp-status 等），旧 Host 不带该字段。 */
   lane: nonEmptyStringSchema.optional(),
   pid: z.number().int().positive(),
-  provider: legacyNibiProviderSchema,
+  provider: nibiAgentProviderSchema,
   workspacePath: nonEmptyStringSchema,
   readyAt: z.number().int().nonnegative(),
   startupDurationMs: z.number().int().nonnegative(),
@@ -1100,7 +1100,7 @@ export const hostAgentProcessExitedResponseSchema = z.object({
   /** 进程泳道（mcp-status 等），旧 Host 不带该字段。 */
   lane: nonEmptyStringSchema.optional(),
   pid: z.number().int().positive(),
-  provider: legacyNibiProviderSchema,
+  provider: nibiAgentProviderSchema,
   workspacePath: nonEmptyStringSchema,
   exitCode: z.number().int().nullable(),
   signal: z.string().nullable(),
@@ -1123,7 +1123,7 @@ export const hostAgentProcessErrorResponseSchema = z.object({
   /** 进程泳道（mcp-status 等），旧 Host 不带该字段。 */
   lane: nonEmptyStringSchema.optional(),
   pid: z.number().int().positive().nullable(),
-  provider: legacyNibiProviderSchema,
+  provider: nibiAgentProviderSchema,
   workspacePath: nonEmptyStringSchema,
   command: z.string(),
   args: z.array(z.string()),
@@ -1143,7 +1143,7 @@ export const hostAgentProcessExceptionResponseSchema = z
     type: z.literal("agent-process-exception"),
     lane: nonEmptyStringSchema.optional(),
     pid: z.number().int().positive(),
-    provider: legacyNibiProviderSchema,
+    provider: nibiAgentProviderSchema,
     workspacePath: nonEmptyStringSchema,
     runtimeGeneration: z.number().int().positive(),
     runtimeInstanceId: nonEmptyStringSchema,
@@ -1804,8 +1804,8 @@ export const nibiTaskMetaSchema = z.object({
   model: z.string().optional(),
   thoughtLevel: nonEmptyStringSchema.optional(),
   runtimeEpoch: z.number().int().nonnegative().optional(),
-  // meta 直接解析自 tasks-index/旧 session 文件；历史 provider 值在此归一为 glm。
-  provider: legacyNibiProviderSchema.optional(),
+  // meta 直接解析自 tasks-index；agent provider 只接受 nibi-agent。
+  provider: nibiAgentProviderSchema.optional(),
   migrationSource: nibiTaskMigrationSourceSchema.optional(),
   forkedFromTaskId: nonEmptyStringSchema.optional(),
   // cron automation 身份：随 meta_json 一起持久化（单一来源），同时在写入时投影到 tasks 表
@@ -1858,8 +1858,8 @@ export const nibiTaskSessionBindingStateSchema = z.enum([
 ]);
 
 export const nibiTaskSessionBindingSchema = z.object({
-  // 绑定状态由 services 从持久化数据投影；旧绑定残留的历史 provider 值在此归一为 glm。
-  provider: legacyNibiProviderSchema,
+  // 绑定状态由 services 从持久化数据投影；agent provider 只接受 nibi-agent。
+  provider: nibiAgentProviderSchema,
   sessionId: nonEmptyStringSchema,
   // 绑定锚点需要支持空 task 的 -1，所以这里不能套 nonnegative。
   lastSyncedTurnIndex: z.number().int(),

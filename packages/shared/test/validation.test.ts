@@ -113,7 +113,7 @@ describe("hostResponseMessageSchema", () => {
     const spawned = hostResponseMessageSchema.safeParse({
       type: HostResponseTypes.AgentProcessSpawned,
       pid: 12345,
-      provider: "glm",
+      provider: "nibi-agent",
       workspacePath: "/repo/demo",
       command: "/tmp/nibi-agent",
       args: ["--stdio"],
@@ -125,7 +125,7 @@ describe("hostResponseMessageSchema", () => {
     const ready = hostResponseMessageSchema.safeParse({
       type: HostResponseTypes.AgentProcessReady,
       pid: 12345,
-      provider: "glm",
+      provider: "nibi-agent",
       workspacePath: "/repo/demo",
       readyAt: Date.now(),
       startupDurationMs: 120,
@@ -136,7 +136,7 @@ describe("hostResponseMessageSchema", () => {
     const exited = hostResponseMessageSchema.safeParse({
       type: HostResponseTypes.AgentProcessExited,
       pid: 12345,
-      provider: "glm",
+      provider: "nibi-agent",
       workspacePath: "/repo/demo",
       exitCode: 1,
       signal: null,
@@ -153,7 +153,7 @@ describe("hostResponseMessageSchema", () => {
     const spawnError = hostResponseMessageSchema.safeParse({
       type: HostResponseTypes.AgentProcessError,
       pid: null,
-      provider: "glm",
+      provider: "nibi-agent",
       workspacePath: "/repo/demo",
       command: "/tmp/missing-nibi-agent",
       args: ["app-server", "--stdio"],
@@ -176,7 +176,7 @@ describe("hostResponseMessageSchema", () => {
     const spawned = hostResponseMessageSchema.safeParse({
       type: HostResponseTypes.AgentProcessSpawned,
       pid: 12345,
-      provider: "glm",
+      provider: "nibi-agent",
       workspacePath: "/repo/demo",
       command: "/tmp/nibi-agent",
       args: ["--stdio"],
@@ -185,7 +185,7 @@ describe("hostResponseMessageSchema", () => {
     const exited = hostResponseMessageSchema.safeParse({
       type: HostResponseTypes.AgentProcessExited,
       pid: 12345,
-      provider: "glm",
+      provider: "nibi-agent",
       workspacePath: "/repo/demo",
       exitCode: 1,
       signal: null,
@@ -744,16 +744,20 @@ describe("hostResponseMessageSchema", () => {
     expect(patch.providerFamilyDomainUpdatedAt).toBe(456);
   });
 
-  it("normalizes legacy enabled agent CLI providers to Nibi Agent", () => {
-    const parsed = appSettingsSchema.parse({
-      enabledBuiltinAgentCliProviders: ["claude", "codex", "gemini", "opencode"],
-    });
-    const patch = appSettingsPatchSchema.parse({
-      enabledBuiltinAgentCliProviders: ["claude", "codex"],
-    });
+  it("rejects removed legacy enabled agent CLI providers", () => {
+    for (const providers of [["claude", "codex"], ["glm"], ["gemini"], ["opencode"]]) {
+      expect(() =>
+        appSettingsSchema.parse({ enabledBuiltinAgentCliProviders: providers }),
+      ).toThrow();
+      expect(() =>
+        appSettingsPatchSchema.parse({ enabledBuiltinAgentCliProviders: providers }),
+      ).toThrow();
+    }
 
+    const parsed = appSettingsSchema.parse({
+      enabledBuiltinAgentCliProviders: ["nibi-agent"],
+    });
     expect(parsed.enabledBuiltinAgentCliProviders).toEqual(["nibi-agent"]);
-    expect(patch.enabledBuiltinAgentCliProviders).toEqual(["nibi-agent"]);
   });
 
   it("preserves SSH remote asset install mode and drops historical resource packages", () => {

@@ -468,7 +468,7 @@ export function useBuiltinAgentCli() {
 
         // Bugfix: 卸载内置 CLI 后如果仍保留 localStorage 里的“最近一次选中的 provider”，
         // 新建 workspace / 新建草稿时默认 provider 还是会回到这个已卸载的值，
-        // 菜单触发器看起来就像“它依然可用”。这里同步把持久化偏好回退到始终可用的 glm。
+        // 菜单触发器看起来就像“它依然可用”。这里同步把持久化偏好回退到始终可用的 nibi-agent。
         if (readLastSelectedAgentProvider() === provider) {
           persistLastSelectedAgentProvider(NIBI_AGENT_PROVIDER);
         }

@@ -5806,7 +5806,6 @@ const ruRU: Record<string, string> = {
   "settings.sidebar.group.basics": "Основное",
   "settings.sidebar.group.dataAndStats": "Данные и статистика",
   "settings.skills.agent.common": "Общие",
-  "settings.skills.agent.glm": "NIBI Agent",
   "settings.skills.agent.unknown": "Неизвестный источник",
   "settings.skills.copiedToCommon": "Скопировано в общие навыки.",
   "settings.skills.copyFailed": "Не удалось скопировать навык.",
