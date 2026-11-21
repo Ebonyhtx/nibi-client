@@ -1,5 +1,5 @@
 import { realpathSync } from "node:fs";
-import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { McpServerConfig, RuntimeConfigPatch } from "@nibi/contracts";
 import { PROJECT_CONFIG_ALLOWED_PLUGIN_KEYS } from "@nibi/shared/kernel-contract/project-config";
 import {
@@ -260,12 +260,26 @@ function normalizeProjectPluginDirs(
       return;
     }
     const resolved = isAbsolute(item) ? resolve(item) : resolve(baseDir, item);
-    const canonical = canonicalizeExistingPath(resolved);
-    if (isPathWithin(canonical, canonicalWorkspaceRoot)) {
-      dirs.push(canonical);
-    } else {
-      pushIgnoredProjectKeyDiagnostic(diagnostics, filePath, `plugins.dirs[${index}]`);
+    // Windows 的 8.3 短名（RUNNER~1）会让“存在的工作区根”与“尚不存在的子目录”出现
+    // 两种写法；先做词法归属判断，再把相对段拼到真实根上，最后用真实路径复核越界。
+    const lexicalRelative = relative(workspaceRoot, resolved);
+    const lexicallyInside =
+      lexicalRelative === "" ||
+      (lexicalRelative !== ".." &&
+        !lexicalRelative.startsWith(`..${sep}`) &&
+        !isAbsolute(lexicalRelative));
+    if (lexicallyInside) {
+      const canonical = canonicalizeExistingPath(
+        lexicalRelative === ""
+          ? canonicalWorkspaceRoot
+          : join(canonicalWorkspaceRoot, lexicalRelative),
+      );
+      if (isPathWithin(canonical, canonicalWorkspaceRoot)) {
+        dirs.push(canonical);
+        return;
+      }
     }
+    pushIgnoredProjectKeyDiagnostic(diagnostics, filePath, `plugins.dirs[${index}]`);
   });
   return dirs;
 }

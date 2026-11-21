@@ -10,7 +10,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { Readable, Writable } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
@@ -884,7 +884,7 @@ describe("session persistence", () => {
     }
   });
 
-  posixShellTest("initializes the Bash shell snapshot before a goal-only first input persists the session", async () => {
+  posixShellTest("does not persist a legacy Bash shell snapshot for a goal-only first input", async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), "nibi-bootstrap-goal-shell-"));
     const shellDir = join(tempRoot, "bin");
     const zshPath = join(shellDir, "zsh");
@@ -897,7 +897,9 @@ describe("session persistence", () => {
       await chmod(zshPath, 0o755);
       const app = await createNibiApp({
         env: {
-          PATH: shellDir,
+          // 只把 fake zsh 放最前，保留系统 PATH 让 bash 快照探测能找到 bash；
+          // 只给 shellDir 时 Linux CI 会因为没有 bash 而拿不到快照条目。
+          PATH: [shellDir, process.env.PATH].filter(Boolean).join(delimiter),
           SHELL: join(shellDir, "fish"),
           NIBI_STORAGE_DIR: tempRoot,
         },
@@ -928,11 +930,8 @@ describe("session persistence", () => {
         sessionID: app.sessionId,
         type: SESSION_ENTRY_BASH_SHELL_SELECTION,
       });
-      expect(entries).toHaveLength(1);
-      expect(entries[0]?.data).toMatchObject({
-        display: { name: "zsh" },
-        path: zshPath,
-      });
+      // K1 起 shell selection 每会话只读当前设置，不再写旧快照 entry。
+      expect(entries).toHaveLength(0);
     } finally {
       store.close();
       await closeTrackedTestApps();
@@ -1208,7 +1207,9 @@ describe("session persistence", () => {
 
       const app = await createNibiApp({
         env: {
-          PATH: shellDir,
+          // 只把 fake zsh 放最前，保留系统 PATH 让 bash 快照探测能找到 bash；
+          // 只给 shellDir 时 Linux CI 会因为没有 bash 而拿不到快照条目。
+          PATH: [shellDir, process.env.PATH].filter(Boolean).join(delimiter),
           SHELL: join(shellDir, "fish"),
           NIBI_STORAGE_DIR: tempRoot,
         },

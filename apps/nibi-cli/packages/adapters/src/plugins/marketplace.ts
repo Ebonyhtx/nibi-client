@@ -80,9 +80,9 @@ const PLUGIN_ICON_SOURCES_URL = `${PLUGIN_ICON_ASSETS_BASE_URL}${PLUGIN_ICON_SOU
 const MARKETPLACE_JSON_MAX_BYTES = 10 * 1024 * 1024;
 const MARKETPLACE_JSON_MAX_REDIRECTS = 5;
 // 旧值 180s 会让离线/坏代理下的市场自动刷新假死三分钟。清单本身有 10MB 上限，
-// 官方清单实测约 1.5KB / 0.4s；20s 已能覆盖慢速代理与大包，失败时保留磁盘上的旧
-// manifest（updateMarketplace 不删除成功快照），且自动刷新有 10 分钟节流，不会形成重试风暴。
-export const MARKETPLACE_JSON_TIMEOUT_MS = 20_000;
+// 官方清单实测约 1.5KB / 0.4s；30s 与 Claude 市场刷新预算一致，既覆盖慢速代理与
+// 大包，又不再等满三分钟；失败时保留磁盘上的旧 manifest，且自动刷新有 10 分钟节流。
+export const MARKETPLACE_JSON_TIMEOUT_MS = 30_000;
 const claudeIconMigrationAttempts = new Set<string>();
 // 市场描述文件不是插件包清单：NIBI 原生布局是根 `marketplace.json`，旧市场根仍可读，
 // 用于兼容插件创建器生成的本地市场与已存在的 claude-plugins-official 记录。

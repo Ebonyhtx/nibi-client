@@ -1,6 +1,6 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { rm } from "node:fs/promises";
+import { rm, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, onTestFinished } from "vitest";
@@ -84,13 +84,19 @@ describeIfGit("managed worktree", () => {
 
     expect(created).toMatchObject({
       name: "feature-one",
-      path: join(repoPath, ".nibi", "worktrees", "feature-one"),
-      workspacePath: join(repoPath, ".nibi", "worktrees", "feature-one", "packages", "app"),
       branchName: "worktree-feature-one",
-      sourceWorkspacePath: workspacePath,
       baseRef: "main",
       baseCommit: runGit(repoPath, ["rev-parse", "main"]),
     });
+    // Windows CI 的 tmpdir 是 8.3 短名（RUNNER~1），投影侧会 realpath 成长名；按真实路径比较。
+    const expectedRoot = join(repoPath, ".nibi", "worktrees", "feature-one");
+    await expect(realpath(created.path)).resolves.toBe(await realpath(expectedRoot));
+    await expect(realpath(created.workspacePath)).resolves.toBe(
+      await realpath(join(expectedRoot, "packages", "app")),
+    );
+    await expect(realpath(created.sourceWorkspacePath)).resolves.toBe(
+      await realpath(workspacePath),
+    );
     expect(
       runGit(repoPath, [
         "config",
