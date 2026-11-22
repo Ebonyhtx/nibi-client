@@ -132,7 +132,7 @@ flowchart LR
 
 先交付客户端对可选归属字段的兼容读取，再交付插件仓库收录分类、存量迁移与发布字段，两侧分别留测试及提交。插件仓库另建隔离 worktree，保留原 checkout 的已有改动。同步更新客户端领域词汇表和插件仓库贡献 / 分发文档。
 
-已实现收录分类、发布元数据、客户端三分段与 UI 能力识别、市场内管理和 Side Pane 入口。客户端与插件仓库均使用独立 worktree，基线通过新鲜度检查。真实桌面安装、UI 沙箱、项目隔离、恢复继承和卸载通过 Electron E2E；浏览器矩阵覆盖宽窄视口、中英文与明暗主题。存量外部目录迁移保持安装 ID 与 27 个 ZIP 产物不变。目录尚未发布，默认 UI 推荐名单为空；真实手机远控及 Windows/Linux Electron 尚未验证。完整执行记录见 [验证矩阵](../testing/plugin-management-lifecycle-e2e-coverage-matrix.md)。
+已实现收录分类、发布元数据、客户端三分段与 UI 能力识别、市场内管理和 Side Pane 入口。客户端与插件仓库均使用独立 worktree，基线通过新鲜度检查。真实桌面安装、UI 沙箱、项目隔离、恢复继承和卸载通过 Electron E2E；浏览器矩阵覆盖宽窄视口、中英文与明暗主题。存量外部目录迁移保持安装 ID 与 27 个 ZIP 产物不变。目录尚未发布，默认 UI 推荐名单为空；真实手机远控与 Linux Electron 尚未验证，Windows 已于 2026-11-22 手动复核通过（含安装、恢复继承与卸载）。完整执行记录见 [验证矩阵](../testing/plugin-management-lifecycle-e2e-coverage-matrix.md)。
 
 ## 影响面核对
 

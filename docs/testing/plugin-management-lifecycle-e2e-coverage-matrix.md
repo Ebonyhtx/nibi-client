@@ -27,7 +27,7 @@
 
 ## Candidate spec paths
 
-Todo103 新增/迁接候选：PLM-LC-018/019 对应 `plugins/manual-review/pending/plugin-store-auto-refresh-{throttled,on-enter}.test.ts`；Pro `desktop-e2e-20260909-152018-653` 两例通过。PLM-LC-020 对应 `plugins/manual-review/pending/plugin-subagent-override-cold.test.ts`，Pro `desktop-e2e-20260909-152419-828` 冷启动 child/父 continuation 请求验证通过，case-local fixture check 通过。三项均未人工晋级；019 保持公网 smoke、不进入正式 CI。
+2026-09-09 历史记录（PLM-LC-020 后随异步 Agent 变更失效，2026-11-22 第三批修复后重新通过；018/019 另有后续记录）：Todo103 新增/迁接候选：PLM-LC-018/019 对应 `plugins/manual-review/pending/plugin-store-auto-refresh-{throttled,on-enter}.test.ts`；Pro `desktop-e2e-20260909-152018-653` 两例通过。PLM-LC-020 对应 `plugins/manual-review/pending/plugin-subagent-override-cold.test.ts`，Pro `desktop-e2e-20260909-152419-828` 冷启动 child/父 continuation 请求验证通过，case-local fixture check 通过。三项均未人工晋级；019 保持公网 smoke、不进入正式 CI。
 
 | Abbreviation | Pending spec                                                                        |
 | ------------ | ----------------------------------------------------------------------------------- |
@@ -45,6 +45,8 @@ Todo103 新增/迁接候选：PLM-LC-018/019 对应 `plugins/manual-review/pendi
 | `PBO`        | `plugins/manual-review/pending/plugin-management-bundled-install-ownership.test.ts` |
 | `PBS`        | `plugins/manual-review/pending/plugin-management-seed-runtime-separation.test.ts`   |
 | `PML`        | `plugins/manual-review/pending/plugin-management-installed-menu-layout.test.ts`     |
+
+> 2026-11-23 复核：`PRA`、`PBD`、`PBO`、`PBS` 指向的 pending spec 文件当前不存在（只在本表与 catalog 中有记录），只能按 planned 计，不要理解为已有自动化。
 
 ## Latest targeted verification
 
@@ -68,7 +70,7 @@ Anthropic Claude Marketplace，并按目录中的固定 SHA 安装 `aikido`。Ma
 
 2026-08-21 在 Orca 隔离 worktree 完成 Catalog/Runtime 分离的定向回归：Bootstrap 插件生命周期
 测试 33/33、Adapters 插件测试 74/74、UI listing/card 测试 20/20；根目录 `pnpm typecheck`
-与 `pnpm lint` 通过，lint 仅保留既有 warning。正式手工 E2E（PBD/PBO/PBS）仍待独立隔离 HOME
+与 `pnpm lint` 通过，lint 仅保留既有 warning。正式手工 E2E（PBD/PBO/PBS）的 spec 尚未创建，仍待独立隔离 HOME
 运行和人工审核，不在本次实现中晋升。
 
 2026-09-02 为「已安装列表可更新角标 + 行内更新按钮」补充 `PM`/`PO` 断言（角标与行内入口出现 /
@@ -103,7 +105,7 @@ Anthropic Claude Marketplace，并按目录中的固定 SHA 安装 `aikido`。Ma
 
 ## Plugin Creator 与本地化
 
-PLM-LC-018/019/020：`plugins/manual-review/pending/plugin-localization-creator.test.ts`，pending、未执行、未人工审核。单测补充异步目标失效、完整 ID 隔离、缺失/禁用 creator；不作为真实手机或 SSH 端到端证据。
+PLM-LC-021/022/023：`plugins/manual-review/pending/plugin-localization-creator.test.ts`，pending；2026-09-16 已通过 Electron E2E，2026-11-22 本批未复验、未人工审核。单测补充异步目标失效、完整 ID 隔离、缺失/禁用 creator；不作为真实手机或 SSH 端到端证据。（这三项原写作 PLM-LC-018/019/020，与官方目录刷新和子代理覆盖用例重号，已改为 021/022/023。）
 
 2026-09-16 补充：公开分类与个人市场分组默认全部展开，保留手动收起/展开。PLM-LC-001 的断言同步；plugin-localization-creator E2E 增加 8→6→8 张卡片回归，公开/个人与中英组合由组件交互单测覆盖。
 
@@ -229,7 +231,7 @@ React 面板等待连接后自动运行、无错误闪现和重复实例。2026-
 ## PLM-BUILTIN-UI-UNINSTALL：内置 UI 插件卸载后的分组
 
 - 桌面候选：`plugins/manual-review/pending/plugin-builtin-ui-uninstall.test.ts`。macOS Electron + 真实 CLI，卸载 `documents@nibi-official` 后卡片仍在 UI 插件专区。修复后运行 `desktop-e2e-20261019071852360-p65132-d5426628aee5a21e` 通过，截图 `.e2e-artifacts/plugin-management/plm-builtin-ui-uninstall/restorable-in-ui-section.png`；还原 CLI 修复后运行 `desktop-e2e-20261019072006864-p72979-1022c7e87a447a4e` 在 restorable 阶段失败（卡片不在 UI 插件专区）。
-- bootstrap 单测：内置定义 `ui` 组件类型与插件包 `ui.surfaces` 一致；卸载后官方目录与可恢复列表都带 `ui`。两条旧实现失败、新实现通过。Windows/Linux、手机远控未执行；用例 pending。
+- bootstrap 单测：内置定义 `ui` 组件类型与插件包 `ui.surfaces` 一致；卸载后官方目录与可恢复列表都带 `ui`。两条旧实现失败、新实现通过。截至 2026-10-19 仅 macOS 执行；Windows 已于 2026-11-22 复验通过（见下），Linux 与手机远控未执行；用例 pending。
 
 ## 2026-11-22 Windows 复验（手动复核，未晋升）
 

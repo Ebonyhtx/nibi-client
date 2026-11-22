@@ -62,9 +62,9 @@ Skill 按 scaffold -> optional components -> validate -> install/update 流程�
 
 | Case | 状态/动作 | 断言 |
 | --- | --- | --- |
-| PLM-LC-018 | 中英文管理列表及搜索 | 完整 ID 关联 listing，名称/简介/反馈一致，原名与中文可搜，无翻译保留原文 |
-| PLM-LC-019 | 两处添加菜单/创建 | 两个菜单项；真实 skill chip 和尾空格；未发送；remount 恢复同一草稿 |
-| PLM-LC-020 | 添加来源成功/失败/取消 | 一次导航消费；成功个人分段；失败输入保留；取消无写入 |
+| PLM-LC-021 | 中英文管理列表及搜索 | 完整 ID 关联 listing，名称/简介/反馈一致，原名与中文可搜，无翻译保留原文 |
+| PLM-LC-022 | 两处添加菜单/创建 | 两个菜单项；真实 skill chip 和尾空格；未发送；remount 恢复同一草稿 |
+| PLM-LC-023 | 添加来源成功/失败/取消 | 一次导航消费；成功个人分段；失败输入保留；取消无写入 |
 | creator-boundary | 重复点击、切换 identity/attachment、禁用/缺失 | 仅当前目标提交一次，错误无预填/启用副作用 |
 | creator-assets | Node/SEA/Desktop/remote | manifest、skill、scripts、references 齐全且可发现 |
 | creator-scaffold | 最小、skill、MCP、hook、市场、更新 | ZCode 校验通过；非法输入、越界、重复/覆盖、TODO 被拒绝 |

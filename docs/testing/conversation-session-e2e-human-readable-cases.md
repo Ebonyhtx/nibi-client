@@ -212,7 +212,7 @@
 | child Bash 运行中 → 切走后立刻切回 → child 随后完成                             | 切回时仍显示 running；同一工具块随后更新为 terminal，不显示 Unknown 或永久执行中                   | 来源：BG22；已覆盖                                 |
 | 后台控制面板有多个 running task → 其中一个完成                                  | 只移除已完成项，其余 running 行持续可见，不因 partial snapshot 闪没再出现                          | 来源：BG23；已覆盖                                 |
 | 多个 background Agent 同时运行 → 通知处理中切换 task 再切回                     | 仍在运行的 Agent 控制行全程保留，restore/live overlap 或 Todo 更新不能把它们短暂清空               | 来源：BG24；已覆盖                                 |
-| background Agent 的 child provider 请求以 429 失败 → 查看错误并切换 task 后返回 | Agent 卡显示 failed；摘要和 hover 保留 provider 原始错误，恢复后仍是 failed + error，父会话回 idle | 来源：BG26；已覆盖                                 |
+| background Agent 的 child provider 请求以 429 失败 → 查看错误并切换 task 后返回 | Agent 卡显示 failed；摘要和 hover 保留 provider 原始错误，恢复后仍是 failed + error，父会话回 idle | 来源：BG26；已覆盖（2026-11-22 复核对应正式 spec 红，见插件矩阵） |
 | background Agent/Bash idle wake 形成独立结果 turn → 刷新                        | 使用结构化任务标题完整展示总结，刷新后标题保持；active-loop 合流不额外插标题                       | 来源：BG27、BG28；部分覆盖                         |
 | Composer 较宽，只有 Bash、只有 Subagent 或两者都在运行 → hover/click 后台入口   | 图标、数量和 tooltip 按类型展示；点击直接展开 Status panel 对应区块，不聚合其它 session/workspace  | 来源：BG29；已覆盖                                 |
 | 后台任务从 running 依次完成或失败                                               | 只统计 `status=running`；某类型归零就移除该类型，最后一个 running 结束后入口立即消失               | 来源：BG30；已覆盖                                 |
@@ -246,7 +246,7 @@
 | 操作路径                                                                             | 结果预期                                                                                                                                   | 备注                             |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
 | 冷启动时 subagent profile 绑定 alternate provider → 主会话直接触发 child             | CLI 在 child 执行前已拿到完整 provider registry；child 使用 alternate provider/model 正常完成                                              | 来源：I19；已覆盖                |
-| Settings 为内置 `general-purpose` / `Explore` 设置模型覆盖 → 冷启动 → 分别触发 child | Settings 回显覆盖；child 使用覆盖模型，父 continuation 仍用主模型；Explore 工具能力按最终 child 模型计算                                   | 来源：I20、BSM-01-BSM-07；已覆盖 |
+| Settings 为内置 `general-purpose` / `Explore` 设置模型覆盖 → 冷启动 → 分别触发 child | Settings 回显覆盖；child 使用覆盖模型，父 continuation 仍用主模型；Explore 工具能力按最终 child 模型计算                                   | 来源：I20、BSM-01-BSM-07；已覆盖（2026-11-22 复核 I20/SB 正式 spec 红） |
 | 连续触发内置和 custom subagent → 检查 child provider request                         | system prompt 保留 ZCode prefix，并把 agent-specific prompt、common Notes、env/model context 分段；custom markdown 进入约定 system message | 来源：I21；已覆盖                |
 
 ## 9. 多端、恢复与剪枝口径

@@ -143,7 +143,7 @@ UI 插槽：
 - 外来生态的代码面不运行；声明式组件只读加载。
 - `pluginId` 保持 `<name>@<marketplace>` 作为持久化/安全主键；`PluginMetadata.origin` 已提供派生的 `builtin` / `official` / `community` / `local` / `external:<adapterId>` 口径，但尚未进入协议或 UI（仅展示/诊断预留）。
 - 付费插件在安装前可能没有可展示声明（会员门禁/源不可达）；这是有意留空。
-- 插件 e2e 本批 12 个手动复核用例已在真机全部通过（首批 3 个 + 第二批 9 个；其中 `plugin-subagent-override-cold` 是在第三批修复 Rust 子代理覆盖后才通过），含重启式 `ui.view` 面板、市场 roundtrip 与异步 Agent 的插件模型覆盖；case manifest 与 provider fixture 已补齐，promotion 与 Docker admission 仍待人工审核后执行。`plugins/manual-review/pending` 下另有 6 个旧候选用例（concurrent-install、lifecycle-telemetry、localization-creator、installed-menu-layout、store-auto-refresh 两个）不在本批范围，未复验。
+- 插件 e2e 本批 12 个手动复核用例已在真机全部通过（首批 3 个 + 第二批 8 个 + 第三批 1 个；`plugin-subagent-override-cold` 在第三批修复 Rust 子代理覆盖后通过），含重启式 `ui.view` 面板、市场 roundtrip 与异步 Agent 的插件模型覆盖；case manifest 与 provider fixture 已补齐，promotion 与 Docker admission 仍待人工审核后执行。`plugins/manual-review/pending` 下另有 6 个旧候选用例（concurrent-install、lifecycle-telemetry、localization-creator、installed-menu-layout、store-auto-refresh 两个）不在本批范围，未复验。
 - 子代理选择回退策略（`selectionFallback` 的 `capability` 档）在 Node 派发路径上也没有生效（`getSubagentSelectionFallback` 未被消费）；Rust 与 Node 一样按 `fail` 处理，不在解析失败时悄悄换模型。
 
 ## 9. 验证

@@ -62,6 +62,8 @@ user plugin storage     future session runtime discovery
 | `PLM-LC-019 official-auto-refresh-on-enter`    | 隔离 HOME；官方目录已有条目但时间过期；允许真实 CDN                                               | 不点刷新进入商店，再退出重进                                                                                                      | 官方时间更新且无失败诊断；重进不再次刷新                                                                                                                                                                                                                                              | DOM + overview + runtime logs                                                   | `manual-review`, never formal CI |
 | `PLM-LC-020 plugin-subagent-override-cold`     | 隔离 HOME；官方 judge 的结构化覆盖指定 alternate/high，主选择 primary/max                         | 完整重启后发送，通过 Agent 调用 document-skills:judge                                                                             | child 请求为 alternate/high，父 continuation 为 primary/max；Agent 正常完成；已保存覆盖不变                                                                                                                                                                                           | case-local replay + 实际请求 + UI + state                                       | `manual-review`                  |
 
+> 2026-11-23 复核：`PLM-LC-012`、`PLM-LC-014`、`PLM-LC-015`、`PLM-LC-016` 的 spec 文件当前尚未创建，状态应按 planned 计；本表保留 `manual-review` 只表示候选目标，不代表已有自动化。
+
 Todo103 迁接说明：PLM-LC-018/019 来自固定 staging 的 `dbb3ec0ce8`，保留 pending 身份。首次/过期/失败后的节流及手动刷新时间优先级由共享判据单测覆盖；真实 CDN 环境失败必须与合并回归分开记录，不把公网用例晋级为离线 CI。
 
 PLM-LC-020 补齐该来源插件覆盖的冷启动执行闭环；SE-04 已证明 UI 保存与插件文件不变，本例直接构造同格式的隔离持久化输入，不重复完整设置交互。child 与父请求的模型、档位均不同，错误继承不能通过。仅本地新执行，不扩为热更新或远控矩阵。
@@ -112,7 +114,7 @@ Docker preset 或 macOS/Windows 正式 CI。
 
 ## 2026-09-16 已确认用例
 
-PLM-LC-018（管理列表本地化）、PLM-LC-019（双入口创建插件草稿）、PLM-LC-020（添加市场导航）已由产品方案确认；状态、动作、断言及边界见 [plugin-creator](plugin-creator.md)。不覆盖录制技能和市场模糊搜索。
+PLM-LC-021（管理列表本地化）、PLM-LC-022（双入口创建插件草稿）、PLM-LC-023（添加市场导航）已由产品方案确认；状态、动作、断言及边界见 [plugin-creator](plugin-creator.md)。不覆盖录制技能和市场模糊搜索。（原写作 018/019/020，与官方目录刷新和子代理覆盖用例重号；本组改号为 021/022/023。）
 
 ## PLM-MISSING-CONFIG（2026-09-17）
 
