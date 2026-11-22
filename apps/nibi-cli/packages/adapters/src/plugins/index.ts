@@ -31,6 +31,7 @@ import {
   isPluginHookEventName,
   isRunnablePluginHookEvent,
   parsePluginAcceptance,
+  resolvePluginOrigin,
 } from "@nibi/contracts";
 import {
   createCanonicalPlugin,
@@ -626,6 +627,8 @@ function createPluginMetadata(
     skillCount: component.skillCount,
     skillRootCount: component.skillRoots.length,
     source: loaded.source,
+    // 派生来源：信任等级优先，外来生态适配器附加 `external:<adapterId>`；不参与身份与门禁。
+    origin: resolvePluginOrigin(loaded.canonical.trust, loaded.canonical.adapter.adapterId),
     trust: loaded.canonical.trust,
     ...(uiSurfaces.length > 0 ? { uiSurfaces } : {}),
     userConfig: loaded.manifest.userConfig,

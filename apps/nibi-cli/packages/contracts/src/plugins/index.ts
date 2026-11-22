@@ -234,6 +234,45 @@ export type PluginCompatibilityLevel = "full" | "partial" | "detected";
  */
 export type PluginTrustLevel = "builtin" | "official" | "community" | "local";
 
+/** 来自其他 agent 工具生态的适配器；包清单可读，但身份仍归一到 `<name>@<marketplace>`。 */
+export type PluginExternalAdapterId = "claude" | "codex" | "zcode" | "dsh";
+
+/**
+ * 派生的插件来源，仅供展示与诊断。canonical id 仍是唯一身份，
+ * 本字段不参与鉴权、能力同意、付费门禁或持久化键。
+ */
+export type PluginOrigin =
+  | "builtin"
+  | "official"
+  | "community"
+  | "local"
+  | `external:${PluginExternalAdapterId}`;
+
+const EXTERNAL_PLUGIN_ADAPTER_IDS: ReadonlySet<PluginAdapterId> = new Set([
+  "claude",
+  "codex",
+  "zcode",
+  "dsh",
+]);
+
+function isPluginExternalAdapterId(
+  adapterId: PluginAdapterId,
+): adapterId is PluginExternalAdapterId {
+  return EXTERNAL_PLUGIN_ADAPTER_IDS.has(adapterId);
+}
+
+/**
+ * 计算派生的插件来源：内置优先；外来生态适配器标记为 `external:<adapterId>`；
+ * 其余按发现信任等级原样返回。纯函数，不读取路径或持久化状态。
+ */
+export function resolvePluginOrigin(
+  trust: PluginTrustLevel,
+  adapterId: PluginAdapterId,
+): PluginOrigin {
+  if (trust === "builtin") return "builtin";
+  return isPluginExternalAdapterId(adapterId) ? `external:${adapterId}` : trust;
+}
+
 /**
  * 插件可申请的 NIBI 能力。闭集；未声明 = 不申请。
  * `filesystem.*` / `network` / `process` 的授予规则见 P2 能力网关。
@@ -383,6 +422,8 @@ export interface PluginMetadata {
   skillCount: number;
   skillRootCount: number;
   source: PluginSource;
+  /** 派生的来源（信任等级 + 适配器生态），仅供展示与诊断；不参与身份判定与门禁。 */
+  origin: PluginOrigin;
   /** 发现来源的信任等级；P2 能力网关按它决定可授予上限。 */
   trust: PluginTrustLevel;
   /** 清单 `ui.surfaces[]` 解析结果（已校验）；未声明或全部非法时缺省。 */

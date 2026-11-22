@@ -30,6 +30,7 @@ function makePlugin(input: {
     marketplace: "inline",
     mcpServerNames: [],
     name: "extension-fixture",
+    origin: "local",
     hookDetails: [],
     permissions: { requested: ["code"], required: ["code"] },
     rootPath: input.rootPath,

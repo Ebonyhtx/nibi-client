@@ -32,6 +32,7 @@ function makePlugin(input: {
     marketplace: "inline",
     mcpServerNames: [],
     name: input.id,
+    origin: "local",
     hookDetails: [],
     permissions: { requested: ["code"], required: ["code"] },
     rootPath: input.rootPath,

@@ -3,6 +3,12 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  resolvePluginOrigin,
+  type PluginAdapterId,
+  type PluginOrigin,
+  type PluginTrustLevel,
+} from "@nibi/contracts";
+import {
   createNodePluginAdapter,
   readPluginGrants,
   revokePluginConsent,
@@ -60,6 +66,7 @@ describe("canonical plugin adapter", () => {
           skipped: ["settings"],
         },
         description: "Native fixture",
+        origin: "local",
         permissions: { requested: ["filesystem.read", "network"] },
         trust: "local",
       });
@@ -84,6 +91,7 @@ describe("canonical plugin adapter", () => {
         skipped: [],
       });
       expect(outcome.plugins[0]?.trust).toBe("local");
+      expect(outcome.plugins[0]?.origin).toBe("local");
     } finally {
       await rm(dir, { force: true, recursive: true });
     }
@@ -105,6 +113,7 @@ describe("canonical plugin adapter", () => {
         compatibility: "partial",
         skipped: ["apps"],
       });
+      expect(outcome.plugins[0]?.origin).toBe("external:codex");
     } finally {
       await rm(dir, { force: true, recursive: true });
     }
@@ -133,12 +142,14 @@ describe("canonical plugin adapter", () => {
         adapterId: "claude",
         manifestPath: ".claude-plugin/plugin.json",
       });
+      expect(claudeOutcome.plugins[0]?.origin).toBe("external:claude");
 
       const zcodeOutcome = await discover(zcode);
       expect(zcodeOutcome.plugins[0]?.adapter).toMatchObject({
         adapterId: "zcode",
         manifestPath: ".zcode-plugin/plugin.json",
       });
+      expect(zcodeOutcome.plugins[0]?.origin).toBe("external:zcode");
     } finally {
       await rm(claude, { force: true, recursive: true });
       await rm(zcode, { force: true, recursive: true });
@@ -161,6 +172,7 @@ describe("canonical plugin adapter", () => {
         manifestPath: "package.json",
         skipped: ["dsh.bundle"],
       });
+      expect(outcome.plugins[0]?.origin).toBe("external:dsh");
     } finally {
       await rm(dir, { force: true, recursive: true });
     }
@@ -197,9 +209,48 @@ describe("canonical plugin adapter", () => {
 
       const outcome = await discover(dir, { official: true });
       expect(outcome.plugins[0]?.trust).toBe("builtin");
+      expect(outcome.plugins[0]?.origin).toBe("builtin");
     } finally {
       await rm(dir, { force: true, recursive: true });
     }
+  });
+});
+
+describe("plugin origin mapping", () => {
+  // 全量 trust × adapter 组合：builtin 优先；外来生态只改写派生 origin，不改 id/trust。
+  const cases: Array<{
+    adapterId: PluginAdapterId;
+    expected: PluginOrigin;
+    trust: PluginTrustLevel;
+  }> = [
+    { adapterId: "native", expected: "builtin", trust: "builtin" },
+    { adapterId: "agent-plugins", expected: "builtin", trust: "builtin" },
+    { adapterId: "claude", expected: "builtin", trust: "builtin" },
+    { adapterId: "codex", expected: "builtin", trust: "builtin" },
+    { adapterId: "zcode", expected: "builtin", trust: "builtin" },
+    { adapterId: "dsh", expected: "builtin", trust: "builtin" },
+    { adapterId: "native", expected: "official", trust: "official" },
+    { adapterId: "agent-plugins", expected: "official", trust: "official" },
+    { adapterId: "claude", expected: "external:claude", trust: "official" },
+    { adapterId: "codex", expected: "external:codex", trust: "official" },
+    { adapterId: "zcode", expected: "external:zcode", trust: "official" },
+    { adapterId: "dsh", expected: "external:dsh", trust: "official" },
+    { adapterId: "native", expected: "community", trust: "community" },
+    { adapterId: "agent-plugins", expected: "community", trust: "community" },
+    { adapterId: "claude", expected: "external:claude", trust: "community" },
+    { adapterId: "codex", expected: "external:codex", trust: "community" },
+    { adapterId: "zcode", expected: "external:zcode", trust: "community" },
+    { adapterId: "dsh", expected: "external:dsh", trust: "community" },
+    { adapterId: "native", expected: "local", trust: "local" },
+    { adapterId: "agent-plugins", expected: "local", trust: "local" },
+    { adapterId: "claude", expected: "external:claude", trust: "local" },
+    { adapterId: "codex", expected: "external:codex", trust: "local" },
+    { adapterId: "zcode", expected: "external:zcode", trust: "local" },
+    { adapterId: "dsh", expected: "external:dsh", trust: "local" },
+  ];
+
+  it.each(cases)("$trust × $adapterId resolves to $expected", ({ adapterId, expected, trust }) => {
+    expect(resolvePluginOrigin(trust, adapterId)).toBe(expected);
   });
 });
 

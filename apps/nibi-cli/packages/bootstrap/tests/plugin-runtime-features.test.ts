@@ -18,6 +18,7 @@ function plugin(id: string, enabled: boolean, rootPath = "/tmp/plugin"): PluginM
     marketplace,
     mcpServerNames: [],
     name,
+    origin: "official",
     rootPath,
     skillCount: 0,
     skillRootCount: 0,
