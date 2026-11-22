@@ -239,3 +239,14 @@ React 面板等待连接后自动运行、无错误闪现和重复实例。2026-
 - 以上均为 Windows 本机 manual-review 运行，未执行 promotion apply、Docker admission 或正式 CI preset；人工产品审核仍为 pending。
 - 2026-11-22 第二批 pending 串行复验：`plugin-management-builtin-inline`、`plugin-management-discovery-presentation`、`plugin-management-persistence-source`、`plugin-management-personal-lifecycle`、`plugin-runtime-env-agent-projection`、`plugin-cdn-zip-marketplace-install` 通过。`plugin-management-recoverable-failures` 在改为真正删除安装缓存与配置登记后通过；`plugin-management-ui-market` 暴露并修复了“项目层禁用后从侧栏启用仍被 workspace false 压住”的产品问题（enable 现在先清 workspace override 再写 user），复验通过。
 - `plugin-subagent-override-cold` 仍失败：Agent 改为异步启动后，child 请求使用父模型 `deepseek-v4-flash`，而不是插件 agent 覆盖的 `deepseek-v4-pro`/high；父轮 async 语义与 fixture 已更新，这条作为真实产品缺口保留，不伪造通过。
+
+## 2026-11-22 第三批：插件子代理模型覆盖（Windows，手动复核）
+
+- `plugin-subagent-override-cold` 已通过（连续三次，`desktop-e2e-20261122-1850…` 至 `19:14` 批次）。证据：child 请求 `deepseek-v4-pro` + `output_config.effort=high`，父 continuation 保持 `deepseek-v4-flash` + `max`，`pluginAgentModelSelectionOverrides` 落盘未改写。
+- 产品修复（Rust 内核，桌面本地默认）：新增 `agents-state.json` 读取面与子代理完整选择解析。`kernel/crates/agents/src/state.rs` 解析当前 `builtInModelSelectionOverrides` / `pluginAgentModelSelectionOverrides`（含旧双 map 迁移语义与 `disabledAgentIds`）；`selection.rs` 解析 `provider/model`、`custom:<providerId>:<modelId>` 与 `thoughtLevel`；`spawn.rs` 按“设置页覆盖 > 定义 pin > 继承父会话”派发，换 Provider 时不沿用父会话的 Team Plan 连接。`crates/cli` 在 CLI/TUI 与 app-server 两个入口把 `<存储根>/v2/agents-state.json` 的读取器接进 `AgentCatalog`（每次取定义重读，改完立即生效）。
+- e2e 夹具修复：`seedPersistedModelSelection` 之前只写旧的无作用域 `nibi-model-selection-recent-v1:<path>`，当前 Composer 的 Recent 是 v2 作用域键 `nibi-composer-recent:v2:["desktop",<hostId>,<projectId>]`，导致冷启动父会话退回目录默认档位（high）。helper 现在同时写 v2 键（按已登记的工作区作用域，缺省 Root 草稿）。
+- 复核时观察到的既有红项（与本批改动无关，保留证据）：
+  - `conversation-session-built-in-subagent-model-overrides`：临时补上 async_launched fixture 与父通知 continuation 后，child 的 built-in/custom 覆盖断言已能通过（`deepseek-v4-pro` + high），但异步 child 完成后 Agent 卡上没有右侧会话入口（DOM 无 `v4-subagent-open-side-pane-*`），后续 `live/cold` child marker 走不到。需要单独处理异步子代理的 subagent 行配对/入口，试验改动已还原，不在本批伪改通过。
+  - `conversation-session-subagent-runtime-catalog-reasoning`：在设置页展示非法历史档位处失败。
+  - `conversation-session-background-subagent-rate-limit`：失败通知没有透传 provider 原始错误（`latestCount=0`）。
+  - 三者都按当前异步 Agent 语义/UI 单独跟进，不并入插件覆盖批次。

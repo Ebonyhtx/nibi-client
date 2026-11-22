@@ -37,7 +37,6 @@ import {
 const AGENT_ID = "plugin:documents@nibi-official:visual-judge";
 const PARENT = "E2E_PLUGIN_OVERRIDE_COLD_PARENT";
 const CHILD = "E2E_PLUGIN_OVERRIDE_COLD_CHILD";
-const RESULT = "E2E_PLUGIN_OVERRIDE_COLD_RESULT";
 const FINAL = "plugin-override-cold-done";
 
 describe("PLM-LC-020 插件 Subagent 覆盖冷启动请求", () => {

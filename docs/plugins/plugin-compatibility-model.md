@@ -53,6 +53,13 @@ NIBI 认 Agent Plugins 1.0.0 为公共底座：插件根 `plugin.json` + `skills
 - 手动压缩（`Manual`）：Hook 返回 block 时中止压缩并显示原因。
 - 自动 / 反应式压缩：忽略 block 继续压缩，只采用成功 Hook 的 `custom_instructions`。
 
+插件 `agents/` 与子代理模型：
+
+- 定义按 Agent Plugins 规则读取：`model` 是 `provider/model`（Picker 串可带 `$<档位>`）或 `custom:<providerId>:<modelId>`；`thoughtLevel` 是档位。
+- 设置页的覆盖写在 `<存储根>/v2/agents-state.json`：插件键 `plugin:<pluginId>:<agent 名小写>`，内置键 `general-purpose` / `Explore`；派发时覆盖替换整份选择（Provider、模型、档位），不只换模型 id。
+- Rust 内核（桌面本地默认）与 Node 运行时同一口径：每次取 agent 定义都重读这份文件，改完立即生效。未显式配置 `model` 时 `thoughtLevel` 不单独生效（继承父会话的 Provider options）。
+- 换 Provider 时不沿用父会话的 Team Plan 账号连接；同 Provider 内换模型沿用。
+
 ## 4. 权限、同意与审计
 
 权限闭集：`filesystem.read`、`filesystem.write`、`network`、`process`、`code`、`full-access`。
@@ -136,7 +143,8 @@ UI 插槽：
 - 外来生态的代码面不运行；声明式组件只读加载。
 - `pluginId` 保持 `<name>@<marketplace>` 作为持久化/安全主键；`PluginMetadata.origin` 已提供派生的 `builtin` / `official` / `community` / `local` / `external:<adapterId>` 口径，但尚未进入协议或 UI（仅展示/诊断预留）。
 - 付费插件在安装前可能没有可展示声明（会员门禁/源不可达）；这是有意留空。
-- 插件 e2e 已有三个手动复核用例在真机通过：内置插件卸载分组、市场安装/配置 roundtrip、重启式 `ui.view` 面板；case manifest、provider fixture 与正式套件准入仍待补齐。
+- 插件 e2e 本批 12 个手动复核用例已在真机全部通过（首批 3 个 + 第二批 9 个，含重启式 `ui.view` 面板、市场 roundtrip 与异步 Agent 的插件模型覆盖）；case manifest 与 provider fixture 已补齐，promotion 与 Docker admission 仍待人工审核后执行。`plugins/manual-review/pending` 下另有 6 个旧候选用例（concurrent-install、lifecycle-telemetry、localization-creator、installed-menu-layout、store-auto-refresh 两个）不在本批范围，未复验。
+- 子代理选择回退策略（`selectionFallback` 的 `capability` 档）在 Node 派发路径上也没有生效（`getSubagentSelectionFallback` 未被消费）；Rust 与 Node 一样按 `fail` 处理，不在解析失败时悄悄换模型。
 
 ## 9. 验证
 
