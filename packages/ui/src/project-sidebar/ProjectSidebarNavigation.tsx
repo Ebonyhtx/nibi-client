@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button.js";
 import { NewTaskButtonGroup } from "@/NewTaskButtonGroup.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { WebRemoteControlDeviceHeader } from "@/web-remote-control/WebRemoteControlDeviceHeader.js";
+import { PluginUiNavPrimarySlots } from "@/plugin-ui/components/PluginUiLauncherItems.js";
 
 /** 顶部导航只展示 Shell 的选中状态，路由仍由 Shell 唯一持有。 */
 export function ProjectSidebarNavigation({
@@ -20,6 +21,8 @@ export function ProjectSidebarNavigation({
     | "pluginStoreActive"
     | "pluginUpdatesAvailable"
     | "webRemoteControlWorkspaceSwitcher"
+    | "workspacePath"
+    | "workspaceIdentity"
   >;
   onCreate(): void;
 }) {
@@ -70,6 +73,10 @@ export function ProjectSidebarNavigation({
           </span>
         ) : null}
       </Button>
+      <PluginUiNavPrimarySlots
+        workspacePath={props.workspacePath}
+        {...(props.workspaceIdentity ? { workspaceIdentity: props.workspaceIdentity } : {})}
+      />
     </div>
   );
 }

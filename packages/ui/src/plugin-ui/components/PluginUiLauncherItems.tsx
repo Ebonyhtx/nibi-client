@@ -16,11 +16,69 @@ import type { OpenPluginUiSideTabRequest } from "@/plugin-ui/contract.js";
 import { resolvePluginUiSurfaceTitle } from "@/plugin-ui/adapters/usePluginUiSurfaces.js";
 import { usePluginUiSurfaces } from "@/plugin-ui/adapters/usePluginUiSurfaces.js";
 import { useOpenPluginUi } from "@/plugin-ui/adapters/PluginUiProviders.js";
+import { useNibiSessionStore } from "@/store/nibiSessionStore.js";
 
 /**
- * `composer.status` 插槽：已启用插件声明该锚点时，在输入框工具条显示一个入口。
- * 只渲染工作区级 surface 列表；点击复用现有侧栏标签页打开链路，不新建页面系统。
+ * `nav.primary` 插槽：主导航里挂已启用插件的入口。没有活动会话时侧栏标签页
+ * 没有可挂载的 owner，因此不显示（与 composer 槽同一规则）。
  */
+export function PluginUiNavPrimarySlots({
+  workspacePath,
+  workspaceIdentity,
+}: {
+  workspacePath: string;
+  workspaceIdentity?: string;
+}) {
+  const openPluginUi = useOpenPluginUi();
+  const { locale, intl } = useNibiIntl();
+  const activeTaskId = useNibiSessionStore((state) => {
+    // 测试/旧宿主可能注入不完整 store；没有选择器时按「无活动会话」处理。
+    if (typeof state.getWorkspaceState !== "function") return null;
+    return state.getWorkspaceState(workspacePath, workspaceIdentity).activeTaskId ?? null;
+  });
+  const surfaces = usePluginUiSurfaces({
+    workspacePath,
+    workspaceIdentity,
+    enabled: activeTaskId !== null,
+  });
+  const slots = surfaces.filter((surface) => surface.slot === "nav.primary");
+  if (!openPluginUi || !activeTaskId || slots.length === 0) return null;
+  return (
+    <>
+      {slots.map((surface) => {
+        const title = resolvePluginUiSurfaceTitle(surface.title, locale);
+        const label =
+          title || intl.formatMessage({ id: "settings.plugins.store.ui.open" });
+        return (
+          <Button
+            key={`${surface.pluginId}:${surface.id}`}
+            type="button"
+            variant="ghost"
+            size="lg"
+            className="w-full justify-start gap-2"
+            data-testid="plugin-nav-primary-slot"
+            title={label}
+            onClick={() =>
+              openPluginUi({
+                parentSessionId: activeTaskId,
+                surfaceId: surface.id,
+                serverName: surface.server,
+                pluginId: surface.pluginId,
+                resourceUri: surface.resourceUri,
+                title: label,
+                workspacePath,
+                ...(workspaceIdentity ? { workspaceIdentity } : {}),
+              })
+            }
+          >
+            <PuzzleIcon className="size-4" aria-hidden="true" />
+            <span className="min-w-0 truncate">{label}</span>
+          </Button>
+        );
+      })}
+    </>
+  );
+}
 export function PluginUiComposerSlots({
   workspacePath,
   workspaceIdentity,

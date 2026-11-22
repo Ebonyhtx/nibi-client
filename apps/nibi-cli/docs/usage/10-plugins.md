@@ -80,6 +80,7 @@ nibi commands list --json
 - 同意记录在 `<插件存储根>/plugin-consents.json`；版本变化或权限变多需要重新确认。撤销同意后插件在下次加载时停用。
 - `full-access` 对本地/第三方插件永远不会授予；声明了也只会保留在请求列表里，不进入 required。
 - 同意与撤销写入 `<插件存储根>/plugin-audit.ndjson`，只记录插件 id、版本和权限，不记录命令或环境变量。
+- 扩展代码（`extensions["com.nibistudio.nibi"].runtime`）还受五项 NIBI Extension 能力约束：读会话、读工作区文件、打开自己的视图、读写自己的设置、发通知。读会话/读文件逐版本同意，存在 `plugin-grants.json`；详见 [插件扩展运行时](../../../../docs/plugin-extension-runtime.md)。
 
 ## 数据与复现
 
