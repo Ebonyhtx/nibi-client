@@ -2052,6 +2052,50 @@ describe("Nibi plugins", () => {
     }
   });
 
+  it("clears a Workspace disable override when re-enabling from the Workspace scope", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-plugin-reenable-scope-"));
+    const userConfigPath = join(root, "user-config.json");
+    const workspaceConfigPath = join(root, ".nibi", "config.json");
+    const pluginStorageRoot = join(root, "plugins");
+    const pluginRoot = join(root, "workspace-plugin");
+    const pluginId = "workspace-plugin@inline";
+
+    try {
+      await writeTestFile(
+        join(pluginRoot, "plugin.json"),
+        JSON.stringify({ name: "workspace-plugin", userConfig: {} }),
+      );
+      await writeTestFile(userConfigPath, JSON.stringify({ plugins: { dirs: [pluginRoot] } }));
+      // 项目级显式禁用：只清 user 配置下的 true 无法覆盖它。
+      await writeTestFile(
+        workspaceConfigPath,
+        JSON.stringify({ plugins: { enabledPlugins: { [pluginId]: false } } }),
+      );
+
+      const result = await setNibiPluginEnabled({
+        enabled: true,
+        plugin: pluginId,
+        pluginStorageRoot,
+        scope: "workspace",
+        userConfigPath,
+        workingDirectory: root,
+      });
+
+      expect(result.enabled).toBe(true);
+      expect(result.scope).toBe("user");
+      const workspaceConfig = JSON.parse(await readFile(workspaceConfigPath, "utf8")) as {
+        plugins?: { enabledPlugins?: Record<string, boolean> };
+      };
+      expect(workspaceConfig.plugins?.enabledPlugins?.[pluginId]).toBeUndefined();
+      const userConfig = JSON.parse(await readFile(userConfigPath, "utf8")) as {
+        plugins?: { enabledPlugins?: Record<string, boolean> };
+      };
+      expect(userConfig.plugins?.enabledPlugins?.[pluginId]).toBe(true);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   it("keeps Workspace disablement in the Workspace config", async () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-plugin-disable-scope-"));
     const userConfigPath = join(root, "user-config.json");

@@ -641,6 +641,19 @@ export async function setNibiPluginEnabled(
       });
     }
   }
+  // 项目层只能禁用：在项目里重新启用时先清掉 workspace 的 false 覆盖，
+  // 否则 user=true 仍会被项目 false 压住，UI 的“启用并打开”永远读不到 enabled。
+  // 清除后回退到 user 配置，既尊重“仓库不能反向放权”，也符合用户显式启用的动作。
+  if (options.enabled && options.scope === "workspace") {
+    await removePluginEnabledFromFileConfig(
+      resolvePluginConfigPath(
+        { ...options, scope: "workspace" },
+        configResult,
+        workingDirectory,
+      ),
+      plugin.id,
+    );
+  }
   const patch = await updatePluginEnabledInFileConfig(
     resolvePluginConfigPath(
       { ...options, scope: effectiveScope },
