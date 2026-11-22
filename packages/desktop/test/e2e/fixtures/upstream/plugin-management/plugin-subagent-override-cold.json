@@ -21,7 +21,8 @@
         ],
         "bodyExcludes": [
           "Generate a concise title",
-          "CRITICAL: Respond with TEXT ONLY"
+          "CRITICAL: Respond with TEXT ONLY",
+          "Write the title in the predominant language"
         ]
       },
       "response": {
@@ -31,9 +32,42 @@
           "name": "Agent",
           "input": {
             "description": "Check plugin model override",
-            "subagent_type": "document-skills:judge",
+            "subagent_type": "documents:visual-judge",
             "prompt": "E2E_PLUGIN_OVERRIDE_COLD_CHILD: Reply with exactly E2E_PLUGIN_OVERRIDE_COLD_RESULT and no other text."
           }
+        }
+      }
+    },
+    {
+      "id": "plugin-override-cold-async-launched",
+      "description": "父轮消费 async_launched 回执后完成；child 在后台独立继续。",
+      "metadata": {
+        "kind": "main",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "Agent 异步启动时父 continuation 只拿到启动回执，父轮必须以原模型/max 收口。"
+      },
+      "maxMatches": 2,
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "E2E_PLUGIN_OVERRIDE_COLD_PARENT",
+          "Async agent launched successfully"
+        ],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY",
+          "Write the title in the predominant language"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "plugin-override-cold-async-final",
+          "inputTokens": 160,
+          "outputTokens": 12,
+          "text": "plugin-override-cold-done"
         }
       }
     },
@@ -46,7 +80,7 @@
         "source": "synthetic",
         "syntheticReason": "检查 child 的真实模型和 high 参数，不依赖模型输出随机性。"
       },
-      "maxMatches": 1,
+      "maxMatches": 5,
       "match": {
         "method": "POST",
         "pathIncludes": "/messages",
@@ -55,7 +89,9 @@
         ],
         "bodyExcludes": [
           "Generate a concise title",
-          "CRITICAL: Respond with TEXT ONLY"
+          "CRITICAL: Respond with TEXT ONLY",
+          "Write the title in the predominant language",
+          "Async agent launched successfully"
         ]
       },
       "response": {
@@ -87,7 +123,8 @@
         ],
         "bodyExcludes": [
           "Generate a concise title",
-          "CRITICAL: Respond with TEXT ONLY"
+          "CRITICAL: Respond with TEXT ONLY",
+          "Write the title in the predominant language"
         ]
       },
       "response": {

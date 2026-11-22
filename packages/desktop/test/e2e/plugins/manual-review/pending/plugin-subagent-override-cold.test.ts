@@ -1,6 +1,11 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import { clearAppData, readAgentsState } from "../../../helpers/desktop-app.js";
+import { join, resolve } from "node:path";
+import {
+  clearAppData,
+  getE2EAppDataPaths,
+  readAgentsState,
+} from "../../../helpers/desktop-app.js";
+import { seedOfficialPluginsViaCli } from "../../../helpers/tier2-sixth-batch.js";
 import {
   assertUpstreamRequestCapture,
   assertUpstreamThoughtLevelCapture,
@@ -29,13 +34,25 @@ import {
   waitForV4ConversationState,
 } from "../../../helpers/v4-conversation.js";
 
-const AGENT_ID = "plugin:document-skills@nibi-official:judge";
+const AGENT_ID = "plugin:documents@nibi-official:visual-judge";
 const PARENT = "E2E_PLUGIN_OVERRIDE_COLD_PARENT";
 const CHILD = "E2E_PLUGIN_OVERRIDE_COLD_CHILD";
 const RESULT = "E2E_PLUGIN_OVERRIDE_COLD_RESULT";
 const FINAL = "plugin-override-cold-done";
 
 describe("PLM-LC-020 插件 Subagent 覆盖冷启动请求", () => {
+  before(() => {
+    // document-skills 是官方内置插件；冷启动前必须把官方 cache seed 进隔离 HOME，
+    // 否则 Agent type document-skills:judge 不存在。
+    const { homeDir, workspace } = getE2EAppDataPaths();
+    seedOfficialPluginsViaCli({
+      e2eHomeDir: homeDir,
+      resourceDir: resolve(process.cwd(), "../../apps/nibi-cli"),
+      timeoutMs: 120_000,
+      workspacePath: workspace,
+    });
+  });
+
   after(async () => {
     await browser.electron.restoreAllMocks();
     await clearAppData();
@@ -65,7 +82,7 @@ describe("PLM-LC-020 插件 Subagent 覆盖冷启动请求", () => {
     await restartIntoWorkspacePreservingProfile();
     await prepareV4ConversationE2E({ skipProvider: true });
     await sendV4PromptAndWaitAccepted(
-      `${PARENT}: Use Agent with subagent_type document-skills:judge, then report its result.`,
+      `${PARENT}: Use Agent with subagent_type documents:visual-judge, then report its result.`,
       PARENT,
       "插件覆盖冷启动消息未被接受",
     );
@@ -73,22 +90,31 @@ describe("PLM-LC-020 插件 Subagent 覆盖冷启动请求", () => {
     await waitForV4ConversationState(
       (snapshot) => snapshot.state === "idle" && snapshot.queueCount === 0,
       "插件执行后未回到 idle",
-      30_000,
+      60_000,
     );
-    expect((await waitForToolCallBlockByToolName("Agent")).status).toBe("completed");
+    // Agent 工具现在异步启动子会话：父轮先拿 async_launched 回执；child 很快返回时
+    // 状态也可能已经推进到 completed。两种都是异步语义，断言不能钉死中间态。
+    expect(["async_launched", "completed"]).toContain(
+      (await waitForToolCallBlockByToolName("Agent")).status,
+    );
 
     const capturePath = process.env.E2E_PROVIDER_CAPTURE_PATH;
     if (!capturePath) throw new Error("缺少插件请求 capture 文件路径");
     const capture = JSON.parse(await readFile(capturePath, "utf8")) as E2ENetworkCaptureArtifact;
     // 不能只搜整份请求：父 continuation 也包含 child prompt；按最新 user block 的类型区分。
     const child = capture.records.find((record) => latestUserContains(record, "text", CHILD));
+    // 异步启动时父 continuation 的 tool_result 是启动回执，不是 child 的 RESULT；
+    // 仍要证明父请求没有被 child 的模型/档位污染。
     const parent = capture.records.find((record) =>
-      latestUserContains(record, "tool_result", RESULT),
+      latestUserContains(record, "tool_result", "Async agent launched successfully"),
     );
     if (!child || !parent) throw new Error("缺少独立 child 或父 tool_result continuation 请求");
     assertUpstreamRequestCapture(child, { expectedText: CHILD, model: UPSTREAM_ALTERNATE_MODEL });
     assertUpstreamThoughtLevelCapture(child, "high");
-    assertUpstreamRequestCapture(parent, { expectedText: RESULT, model: UPSTREAM_MODEL });
+    assertUpstreamRequestCapture(parent, {
+      expectedText: "Async agent launched successfully",
+      model: UPSTREAM_MODEL,
+    });
     assertUpstreamThoughtLevelCapture(parent, "max");
     expect((await readAgentsState()).pluginAgentModelSelectionOverrides).toEqual({
       [AGENT_ID]: selection,

@@ -20,9 +20,11 @@ import {
   addLifecycleMarketplaceThroughUi,
   capturePluginManualReview,
   clickPluginControl,
+  confirmPluginConsentAndWaitEnabled,
   createPluginLifecycleFixture,
   getPluginList,
   getPluginOverview,
+  getPluginControlText,
   installPluginThroughUi,
   openManageView,
   openPluginSettings,
@@ -86,6 +88,9 @@ describe("PLM-UI-001 UI 插件市场与项目配置", () => {
         await createPluginLifecycleFixture("1.0.0", true);
       }
       await installPluginThroughUi(PLUGIN_LIFECYCLE_ID);
+      // UI 插件带 MCP/hooks，安装后同样需要先完成社区插件权限同意，后续侧栏与
+      // 作用域操作才不会被异步弹窗拦截。
+      await confirmPluginConsentAndWaitEnabled(PLUGIN_LIFECYCLE_ID);
       await step("05-installed-ui-card");
       await startDraftFromProject(getE2EAppDataPaths().workspace);
       await prepareV4ConversationE2E();
@@ -127,6 +132,61 @@ describe("PLM-UI-001 UI 插件市场与项目配置", () => {
         await clickPluginControl("plugin-store-card", { pluginId: PLUGIN_LIFECYCLE_ID });
         await waitForPluginControl("plugin-store-detail");
       };
+      // 会话右侧市场在启用态显示「打开」，暂停后应切换为「启用」。记录启用态的文案，
+      // 暂停后必须等按钮真的变成另一种文案（即「启用」）再点击；不同语言下都不硬编码词。
+      let sidePaneOpenLabel = "";
+      const clickPausedSidePaneButton = async () => {
+        let latest: Record<string, unknown> = {};
+        await browser.waitUntil(
+          async () => {
+            const state = (await browser.execute(
+              (pluginId, openLabel) => {
+                const button = Array.from(
+                  document.querySelectorAll<HTMLElement>('[data-testid="plugin-store-open-ui"]'),
+                ).find(
+                  (candidate) =>
+                    candidate.dataset.pluginId === pluginId &&
+                    candidate.getClientRects().length > 0,
+                );
+                if (!button) return { found: false };
+                const text = (button.textContent ?? "").trim();
+                return {
+                  found: true,
+                  isEnableLabel: text.length > 0 && text !== openLabel,
+                  text,
+                };
+              },
+              PLUGIN_LIFECYCLE_ID,
+              sidePaneOpenLabel,
+            )) as { found: boolean; isEnableLabel?: boolean; text?: string };
+            latest = state;
+            if (!state.found || !state.isEnableLabel) return false;
+            // 文本检查与点击放在同一个 execute 里重读并点击，避免检查后商店刷新把
+            // 按钮切回「打开」，点击落在不触发 enable 的旧分支上。
+            return browser.execute(
+              (pluginId, openLabel) => {
+                const button = Array.from(
+                  document.querySelectorAll<HTMLElement>('[data-testid="plugin-store-open-ui"]'),
+                ).find(
+                  (candidate) =>
+                    candidate.dataset.pluginId === pluginId &&
+                    candidate.getClientRects().length > 0,
+                );
+                const text = (button?.textContent ?? "").trim();
+                if (!button || text.length === 0 || text === openLabel) return false;
+                button.click();
+                return true;
+              },
+              PLUGIN_LIFECYCLE_ID,
+              sidePaneOpenLabel,
+            );
+          },
+          {
+            timeout: 15000,
+            timeoutMsg: `Side Pane 暂停态按钮没有切换成启用文案: ${JSON.stringify(latest)}`,
+          },
+        );
+      };
       const waitForSandboxReady = () =>
         browser.waitUntil(
           async () =>
@@ -163,6 +223,10 @@ describe("PLM-UI-001 UI 插件市场与项目配置", () => {
       // 会话右侧市场：卡片多一个「打开」，在当前会话的右侧标签打开 UI。
       await openSidePaneMarket("08-side-pane-launcher");
       await step("09-side-pane-market-open-button");
+      sidePaneOpenLabel = (
+        await getPluginControlText("plugin-store-open-ui", { pluginId: PLUGIN_LIFECYCLE_ID })
+      ).trim();
+      expect(sidePaneOpenLabel.length).toBeGreaterThan(0);
       await clickPluginControl("plugin-store-open-ui", { pluginId: PLUGIN_LIFECYCLE_ID });
       await browser.$('[data-side-pane-tab-id^="plugin-ui:"]').waitForDisplayed({ timeout: 30000 });
       await waitForSandboxReady();
@@ -222,13 +286,30 @@ describe("PLM-UI-001 UI 插件市场与项目配置", () => {
       await step("13-paused-main-nav-detail");
       await openSidePaneMarket();
       await step("14-side-pane-paused-enable-button");
-      await clickPluginControl("plugin-store-open-ui", { pluginId: PLUGIN_LIFECYCLE_ID });
-      await browser.waitUntil(
-        async () =>
-          (await getPluginList()).plugins.find((plugin) => plugin.id === PLUGIN_LIFECYCLE_ID)
-            ?.enabled === true,
-        { timeout: 30000, timeoutMsg: "暂停的 UI 插件没有先启用" },
-      );
+      expect(
+        (await getPluginList()).plugins.find((plugin) => plugin.id === PLUGIN_LIFECYCLE_ID)
+          ?.enabled,
+      ).toBe(false);
+      await clickPausedSidePaneButton();
+      type PluginListEntry = Awaited<ReturnType<typeof getPluginList>>["plugins"][number];
+      const enableDeadline = Date.now() + 30000;
+      let latestPlugin: PluginListEntry | null = null;
+      let latestEnableState: Record<string, unknown> = {};
+      while (Date.now() < enableDeadline) {
+        const list = await getPluginList();
+        const buttonText = (
+          await getPluginControlText("plugin-store-open-ui", { pluginId: PLUGIN_LIFECYCLE_ID })
+        ).trim();
+        latestPlugin = list.plugins.find((plugin) => plugin.id === PLUGIN_LIFECYCLE_ID) ?? null;
+        latestEnableState = { buttonText, plugin: latestPlugin };
+        if (latestPlugin?.enabled) break;
+        await browser.pause(250);
+      }
+      if (!latestPlugin?.enabled) {
+        throw new Error(
+          `暂停的 UI 插件没有先启用; latest=${JSON.stringify(latestEnableState)}`,
+        );
+      }
       await browser.$('[data-side-pane-tab-id^="plugin-ui:"]').waitForDisplayed({ timeout: 30000 });
       await step("15-paused-enables-and-opens");
       // 关掉右侧市场标签：会话视图在主导航后台保持挂载，两份市场同时存在会让按 testid 取到隐藏的那份。

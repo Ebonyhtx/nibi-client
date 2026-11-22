@@ -145,6 +145,74 @@ export async function removeLifecyclePluginPayload(fixture: PluginLifecycleFixtu
   });
 }
 
+/**
+ * 已安装插件的 describe 会优先读安装缓存；只删 marketplace 源不会让 describe 失败。
+ * 测试“组件清单可恢复失败”时必须移除安装缓存，让 describe 走源解析并因源缺失报错。
+ */
+export async function removeLifecyclePluginInstalledCache(version = "1.0.0"): Promise<void> {
+  const { homeDir } = getE2EAppDataPaths();
+  await rm(
+    join(
+      homeDir,
+      ".nibi",
+      "cli",
+      "plugins",
+      "cache",
+      PLUGIN_LIFECYCLE_MARKETPLACE_ID,
+      PLUGIN_LIFECYCLE_NAME,
+      version,
+    ),
+    { force: true, recursive: true },
+  );
+}
+
+/** describe/update 恢复步骤：重新落回与 installed_plugins.json 对应的 1.0.0 安装缓存。 */
+export async function restoreLifecyclePluginInstalledCache(
+  fixture: PluginLifecycleFixture,
+  version = "1.0.0",
+): Promise<void> {
+  const { homeDir } = getE2EAppDataPaths();
+  const cacheRoot = join(
+    homeDir,
+    ".nibi",
+    "cli",
+    "plugins",
+    "cache",
+    PLUGIN_LIFECYCLE_MARKETPLACE_ID,
+    PLUGIN_LIFECYCLE_NAME,
+    version,
+  );
+  await rm(cacheRoot, { force: true, recursive: true });
+  await mkdir(dirname(cacheRoot), { recursive: true });
+  await cp(fixture.pluginRoot, cacheRoot, { force: true, recursive: true });
+}
+
+/**
+ * 已安装记录 + 配置里显式登记的 id 会让发现层在缓存缺失时合成 `packageStatus: "missing"`，
+ * UI 据此把条目当作未安装，不再渲染已安装插件的组件错误态。移除配置登记后，发现层没有
+ * info、overview 仍保留 installed_plugins 记录，才是真实的“已安装但运行时清单不可读”态。
+ */
+export async function detachLifecyclePluginConfig(): Promise<void> {
+  const { homeDir } = getE2EAppDataPaths();
+  const configPath = join(homeDir, ".nibi", "cli", "config.json");
+  const config = await readJsonRecord(configPath);
+  const plugins = isRecord(config.plugins) ? config.plugins : {};
+  const enabledPlugins = isRecord(plugins.enabledPlugins)
+    ? { ...plugins.enabledPlugins }
+    : {};
+  const options = isRecord(plugins.options) ? { ...plugins.options } : {};
+  delete enabledPlugins[PLUGIN_LIFECYCLE_ID];
+  delete options[PLUGIN_LIFECYCLE_ID];
+  await writeJson(configPath, {
+    ...config,
+    plugins: {
+      ...plugins,
+      enabledPlugins,
+      options,
+    },
+  });
+}
+
 export async function corruptLifecycleMarketplaceManifest(
   fixture: PluginLifecycleFixture,
 ): Promise<void> {
