@@ -830,12 +830,16 @@ export function App({
         setTestMessages([...messages]);
       },
       getChatMessageCount: () => testMessages?.length ?? 0,
-      getPluginsOverview: (params) => services.nibiAgentService.getPluginsOverview(params),
-      addPluginMarketplace: (params) => services.nibiAgentService.addPluginMarketplace(params),
+      // 插件管理已下沉 Host：E2E 动作必须走与 UI 相同的服务，而不是 Rust 内核不实现的
+      // agent plugins/* 词表。catalog 仍属会话权威，保留 agent。
+      getPluginsOverview: (params) =>
+        services.pluginManagementService.getPluginsOverview(params),
+      addPluginMarketplace: (params) =>
+        services.pluginManagementService.addPluginMarketplace(params),
       updatePluginMarketplace: (params) =>
-        services.nibiAgentService.updatePluginMarketplace(params),
-      installPlugin: (params) => services.nibiAgentService.installPlugin(params),
-      listPlugins: (params) => services.nibiAgentService.listPlugins(params),
+        services.pluginManagementService.updatePluginMarketplace(params),
+      installPlugin: (params) => services.pluginManagementService.installPlugin(params),
+      listPlugins: (params) => services.pluginManagementService.listPlugins(params),
       getPluginReferenceCatalog: (params) =>
         services.nibiAgentService.getPluginReferenceCatalog(params),
     }),
@@ -844,6 +848,7 @@ export function App({
       services.botsService,
       services.nibiTaskService,
       services.nibiAgentService,
+      services.pluginManagementService,
       setLocale,
       theme,
       setTheme,
