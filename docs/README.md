@@ -40,9 +40,11 @@
 
 ## 插件
 
+- [插件兼容模型（Agent Plugins 1.0.0）](plugins/plugin-compatibility-model.md)
 - [插件市场与来源](plugins/)
 - [插件生命周期](plugins/)
 - [Claude 插件格式兼容](claude-code-marketplace-plugin-compat.md)
+- [扩展运行时 v1](plugin-extension-runtime.md)
 
 ## 远程与分享
 
