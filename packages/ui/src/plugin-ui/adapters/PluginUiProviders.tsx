@@ -58,9 +58,21 @@ export function PluginExtensionUiBridge({
   const { intl, locale } = useNibiIntl();
   useEffect(() => {
     const service = services?.pluginManagementService;
-    const openViewEvent = service?.onPluginUiOpenView?.();
-    const notificationEvent = service?.onPluginNotification?.();
-    if (!service || !openViewEvent || !notificationEvent) return;
+    if (!service) return;
+    let openViewEvent:
+      | ReturnType<NonNullable<typeof service.onDynamicPluginUiOpenView>>
+      | undefined;
+    let notificationEvent:
+      | ReturnType<NonNullable<typeof service.onDynamicPluginNotification>>
+      | undefined;
+    try {
+      openViewEvent = service.onDynamicPluginUiOpenView?.();
+      notificationEvent = service.onDynamicPluginNotification?.();
+    } catch {
+      // 旧 Host 没有动态事件通道；渲染器不能因为订阅失败把整个工作区打崩。
+      return;
+    }
+    if (typeof openViewEvent !== "function" || typeof notificationEvent !== "function") return;
     // 事件可能来自旧 Host（没有 identity），此时按路径匹配；两边都有 identity 时必须一致。
     const matches = (event: { workspacePath: string; workspaceIdentity?: string }): boolean =>
       event.workspacePath === workspacePath &&

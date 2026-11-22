@@ -110,10 +110,12 @@ export interface IPluginManagementService {
   /**
    * 扩展代码请求打开自己的面板。Host-local backend 提供；旧 backend / 远端 agent 缺席，
    * renderer 按“没有事件”处理，不把缺席当成已支持。
+   * 名字必须是 `onDynamic*`：RPC proxy 只有这条约定会把“返回 Event 的方法”变成订阅，
+   * 其它 onXxx 名称会被当成事件属性并把返回值序列化成非函数。
    */
-  onPluginUiOpenView?(): Event<NibiPluginUiOpenViewEvent>;
-  /** 扩展代码发通知。缺席原因同上。 */
-  onPluginNotification?(): Event<NibiPluginNotificationEvent>;
+  onDynamicPluginUiOpenView?(): Event<NibiPluginUiOpenViewEvent>;
+  /** 扩展代码发通知。缺席原因与命名约束同 `onDynamicPluginUiOpenView`。 */
+  onDynamicPluginNotification?(): Event<NibiPluginNotificationEvent>;
 }
 
 export const IPluginManagementService = createServiceDescriptor<IPluginManagementService>(

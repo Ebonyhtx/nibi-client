@@ -257,8 +257,8 @@ describe("local plugin management service", () => {
     });
     const opened: unknown[] = [];
     const notified: unknown[] = [];
-    backend.service.onPluginUiOpenView?.()((event) => opened.push(event));
-    backend.service.onPluginNotification?.()((event) => notified.push(event));
+    backend.service.onDynamicPluginUiOpenView?.()((event) => opened.push(event));
+    backend.service.onDynamicPluginNotification?.()((event) => notified.push(event));
 
     const workspace = { workspaceIdentity: "workspace-id", workspacePath: "D:/work/project" };
     await backend.listPluginUiSurfaces(workspace);

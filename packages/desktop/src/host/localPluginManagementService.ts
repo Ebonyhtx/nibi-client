@@ -376,8 +376,8 @@ export function createLocalPluginManagementService(
     resolveSuggestedPluginReference: (params) => fallback.resolveSuggestedPluginReference(params),
     onDynamicPluginOperationProgress: (operationId) =>
       fallback.onDynamicPluginOperationProgress(operationId),
-    onPluginUiOpenView: () => extensions?.onUiOpenView ?? RpcEvent.None,
-    onPluginNotification: () => extensions?.onNotification ?? RpcEvent.None,
+    onDynamicPluginUiOpenView: () => extensions?.onUiOpenView ?? RpcEvent.None,
+    onDynamicPluginNotification: () => extensions?.onNotification ?? RpcEvent.None,
   };
 }
 

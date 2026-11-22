@@ -57,8 +57,8 @@ vi.mock("@/components/ui/toast.js", () => ({ toast: harness.toast }));
 import { toast } from "@/components/ui/toast.js";
 
 harness.services.pluginManagementService = {
-  onPluginUiOpenView: () => harness.openView.event,
-  onPluginNotification: () => harness.notification.event,
+  onDynamicPluginUiOpenView: () => harness.openView.event,
+  onDynamicPluginNotification: () => harness.notification.event,
 };
 harness.services.pluginUiBridgeService = { listSurfaces: harness.listSurfaces };
 harness.listSurfaces.mockResolvedValue([

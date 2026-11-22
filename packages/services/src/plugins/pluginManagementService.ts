@@ -248,13 +248,13 @@ export function createPluginManagementService(
         agent.setPluginConsent(clean as typeof params),
       ),
     // Host-local backend 提供扩展宿主事件；旧 agent 路由没有这两条事件源，返回 None。
-    // 不能省略方法：可选方法在 RPC proxy 上会退化成未知方法错误，renderer 无法区分。
-    onPluginUiOpenView: () => {
-      const impl = (agent as Partial<IPluginManagementService>).onPluginUiOpenView;
+    // 必须用 `onDynamic*` 命名：RPC proxy 只把它当作“返回 Event 的方法”来订阅。
+    onDynamicPluginUiOpenView: () => {
+      const impl = (agent as Partial<IPluginManagementService>).onDynamicPluginUiOpenView;
       return typeof impl === "function" ? impl.call(agent) : RpcEvent.None;
     },
-    onPluginNotification: () => {
-      const impl = (agent as Partial<IPluginManagementService>).onPluginNotification;
+    onDynamicPluginNotification: () => {
+      const impl = (agent as Partial<IPluginManagementService>).onDynamicPluginNotification;
       return typeof impl === "function" ? impl.call(agent) : RpcEvent.None;
     },
   };
