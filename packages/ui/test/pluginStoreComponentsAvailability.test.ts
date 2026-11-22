@@ -1,7 +1,7 @@
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import type { NibiPluginInfo } from "@nibi/shared";
+import type { NibiPluginDescribeDeclaration, NibiPluginInfo } from "@nibi/shared";
 import type { StorePluginItem } from "../src/settings/pluginStoreListing.js";
 import type { PluginStoreActions } from "../src/settings/PluginStoreCard.js";
 
@@ -53,9 +53,25 @@ function installedInfo(): NibiPluginInfo {
   };
 }
 
+function makeDeclaration(): NibiPluginDescribeDeclaration {
+  return {
+    permissions: {
+      requested: ["filesystem.read", "network"],
+      required: ["filesystem.read", "network", "process", "code"],
+    },
+    capabilities: {
+      requested: [{ id: "nibi.sessions.read", scope: "workspace" }],
+      granted: [],
+    },
+    hasCodeRuntime: true,
+    trust: "community",
+  };
+}
+
 async function renderDetail(
   detailItem: StorePluginItem,
   describeEntry?: { status: "loading" | "error" | "loaded"; data?: unknown },
+  declaration?: NibiPluginDescribeDeclaration,
 ): Promise<string> {
   const { PluginStoreDetailView } = await import("../src/settings/PluginStoreDetailView.js");
   const { NibiIntlProvider } = await import("@/i18n/IntlProvider.js");
@@ -66,6 +82,7 @@ async function renderDetail(
       createElement(PluginStoreDetailView, {
         item: detailItem,
         actions: makeActions(),
+        declaration,
         describeEntry,
         onRetryDescribe: () => {},
         onUsePrompt: () => {},
@@ -92,5 +109,25 @@ describe("插件详情页组件清单的可得性提示", () => {
     // 有运行时信息时直接用权威组件清单，不进入失败分支。
     expect(html).not.toContain('data-testid="plugin-store-components-after-install"');
     expect(html).not.toContain('data-testid="plugin-store-components-error"');
+  });
+
+  it("未安装：详情高级区展示插件包声明的权限、能力与代码运行", async () => {
+    const html = await renderDetail(item(), undefined, makeDeclaration());
+    expect(html).toContain('data-testid="plugin-store-advanced"');
+    expect(html).toContain('data-testid="plugin-store-declaration-note"');
+    expect(html).toContain("Declared by this plugin package; nothing runs before install.");
+    expect(html).toContain('data-testid="plugin-store-declaration-code-runtime"');
+    expect(html).toContain("Includes executable code that runs after installation.");
+    // 权限/能力沿用既有标签，不在声明区另造一套名字。
+    expect(html).toContain("Read files in your workspace");
+    expect(html).toContain("Read sessions in this workspace");
+  });
+
+  it("未安装且声明缺省：整块不渲染，不留占位文案", async () => {
+    const html = await renderDetail(item());
+    expect(html).not.toContain('data-testid="plugin-store-declaration-note"');
+    expect(html).not.toContain('data-testid="plugin-store-declaration-code-runtime"');
+    expect(html).not.toContain("Declared by this plugin package");
+    expect(html).not.toContain('data-testid="plugin-store-advanced"');
   });
 });

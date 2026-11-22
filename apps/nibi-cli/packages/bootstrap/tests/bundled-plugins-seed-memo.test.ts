@@ -280,7 +280,14 @@ async function createBundledPluginFixture(cleanups: string[]): Promise<BundledPl
       if (relativePath === "plugin.json") continue;
       const filePath = join(pluginRoot, ...relativePath.split("/"));
       await mkdir(dirname(filePath), { recursive: true });
-      await writeFile(filePath, `fixture ${definition.name} ${relativePath}\n`);
+      // mcp.json / hooks.json 等 JSON 声明会被宿主重写或解析，fixture 必须是合法 JSON；
+      // 其余文件保持纯文本，便于证明快路径不读取清单外内容。
+      await writeFile(
+        filePath,
+        relativePath.endsWith(".json")
+          ? JSON.stringify({ mcpServers: {}, hooks: {} })
+          : `fixture ${definition.name} ${relativePath}\n`,
+      );
     }
 
     // 证明快路径不会读取“marker 必需清单之外”的源文件。

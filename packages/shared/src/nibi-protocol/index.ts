@@ -2885,6 +2885,9 @@ export const nibiPluginPermissionProfileSchema = z
   .strict();
 export type NibiPluginPermissionProfile = z.infer<typeof nibiPluginPermissionProfileSchema>;
 
+export const nibiPluginTrustLevelSchema = z.enum(["builtin", "official", "community", "local"]);
+export type NibiPluginTrustLevel = z.infer<typeof nibiPluginTrustLevelSchema>;
+
 export const nibiPluginCapabilityGrantSchema = z
   .object({
     id: nonEmptyString,
@@ -3815,6 +3818,17 @@ export type NibiPluginsValidateResult = z.infer<typeof nibiPluginsValidateResult
 
 // plugins/describe：按需枚举单个插件的组件「名称 + 描述」。
 // 已安装插件读本地缓存目录；未安装候选按需解析/临时 clone 源后枚举再清理。
+export const nibiPluginDescribeDeclarationSchema = z
+  .object({
+    permissions: nibiPluginPermissionProfileSchema,
+    capabilities: nibiPluginCapabilitiesSchema,
+    // 扩展代码入口只暴露存在性；路径保留在本地清单，不进协议。
+    hasCodeRuntime: z.boolean(),
+    trust: nibiPluginTrustLevelSchema,
+  })
+  .strict();
+export type NibiPluginDescribeDeclaration = z.infer<typeof nibiPluginDescribeDeclarationSchema>;
+
 export const nibiPluginsDescribeParamsSchema = z
   .object({
     workspace: nibiWorkspaceRefSchema,
@@ -3836,6 +3850,8 @@ export const nibiPluginsDescribeResultSchema = z
       })
       .strict()
       .optional(),
+    // 安装前由插件包清单推导的声明；来源不可解析时缺省，UI 不渲染占位。
+    declaration: nibiPluginDescribeDeclarationSchema.optional(),
   })
   .strict();
 export type NibiPluginsDescribeResult = z.infer<typeof nibiPluginsDescribeResultSchema>;

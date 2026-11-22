@@ -102,6 +102,7 @@ export {
   type DescribeMarketplacePluginResult,
   type InstalledPluginRecord,
   type KnownMarketplaceRecord,
+  type MarketplacePluginDeclaration,
   type MarketplaceSource,
   type PluginComponentGroup,
   type PluginComponentItem,

@@ -5551,6 +5551,10 @@ const koKR: Record<string, string> = {
   "settings.plugins.store.category.utilities": "유틸리티",
   "settings.plugins.store.communityEmpty": "아직 커뮤니티 플러그인이 없습니다",
   "settings.plugins.store.create": "만들기",
+  "settings.plugins.store.declaration.codeRuntime":
+    "설치 후 실행되는 실행 코드가 포함되어 있습니다.",
+  "settings.plugins.store.declaration.note":
+    "이 플러그인 패키지에서 선언한 내용이며 설치 전에는 아무것도 실행되지 않습니다.",
   "settings.plugins.store.featured": "추천",
   "settings.plugins.store.info.category": "카테고리",
   "settings.plugins.store.info.developer": "개발자",

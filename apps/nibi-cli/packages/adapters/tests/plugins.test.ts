@@ -1261,6 +1261,155 @@ describe("NodePluginAdapter", () => {
     }
   });
 
+  it("returns the install-time declaration derived from a local marketplace package", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-describe-declaration-"));
+    const storageRoot = join(dir, "storage");
+    const marketplaceRoot = join(dir, "marketplace");
+    const pluginRoot = join(marketplaceRoot, "plugins", "declared");
+
+    try {
+      await writeMarketplaceManifest(marketplaceRoot, {
+        name: "declaration-market",
+        plugins: [{ name: "declared", source: "./plugins/declared" }],
+      });
+      await writePluginManifest(pluginRoot, {
+        capabilities: [{ id: "nibi.sessions.read", scope: "workspace" }],
+        hooks: {
+          PreToolUse: [{ hooks: [{ command: "echo pre", type: "command" }] }],
+        },
+        mcpServers: {
+          search: { type: "http", url: "https://mcp.example.test/mcp" },
+        },
+        name: "declared",
+        permissions: ["filesystem.read", "network"],
+        runtime: { apiVersion: "1", entry: "index.js" },
+      });
+      await addMarketplace({
+        source: { source: "directory", path: marketplaceRoot },
+        storageRoot,
+      });
+
+      const result = await describeMarketplacePlugin({
+        marketplace: "declaration-market",
+        name: "declared",
+        storageRoot,
+      });
+
+      expect(result.declaration).toEqual({
+        permissions: {
+          requested: ["filesystem.read", "network"],
+          required: ["filesystem.read", "network", "process", "code"],
+        },
+        capabilities: {
+          requested: [{ id: "nibi.sessions.read", scope: "workspace" }],
+          granted: [],
+        },
+        hasCodeRuntime: true,
+        trust: "community",
+      });
+      // 安装前声明只报代码入口存在性，不能把包内入口路径带进协议。
+      expect(JSON.stringify(result.declaration)).not.toContain("index.js");
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("does not claim code execution for foreign manifests whose runtime is skipped", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-describe-declaration-foreign-"));
+    const storageRoot = join(dir, "storage");
+    const marketplaceRoot = join(dir, "marketplace");
+    const pluginRoot = join(marketplaceRoot, "plugins", "foreign");
+
+    try {
+      await writeMarketplaceManifest(marketplaceRoot, {
+        name: "declaration-market",
+        plugins: [{ name: "foreign", source: "./plugins/foreign" }],
+      });
+      await mkdir(join(pluginRoot, ".claude-plugin"), { recursive: true });
+      await writeFile(
+        join(pluginRoot, ".claude-plugin", "plugin.json"),
+        JSON.stringify({
+          name: "foreign",
+          version: "1.0.0",
+          runtime: { apiVersion: "1", entry: "index.js" },
+        }),
+      );
+      await addMarketplace({
+        source: { source: "directory", path: marketplaceRoot },
+        storageRoot,
+      });
+
+      const result = await describeMarketplacePlugin({
+        marketplace: "declaration-market",
+        name: "foreign",
+        storageRoot,
+      });
+
+      // 外来生态的 runtime 在发现层被标成 skipped，安装前也不能声称会执行代码。
+      expect(result.declaration).toMatchObject({ hasCodeRuntime: false });
+      expect(result.declaration?.permissions.required ?? []).not.toContain("code");
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("leaves declaration absent when the marketplace source cannot be resolved", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-describe-declaration-missing-"));
+    const storageRoot = join(dir, "storage");
+    const marketplaceRoot = join(dir, "marketplace");
+
+    try {
+      await writeMarketplaceManifest(marketplaceRoot, {
+        name: "declaration-market",
+        plugins: [{ name: "missing", source: "./plugins/missing" }],
+      });
+      await addMarketplace({
+        source: { source: "directory", path: marketplaceRoot },
+        storageRoot,
+      });
+
+      const result = await describeMarketplacePlugin({
+        marketplace: "declaration-market",
+        name: "missing",
+        storageRoot,
+      });
+
+      expect(result.declaration).toBeUndefined();
+      expect(result.diagnostics.some((item) => item.severity === "error")).toBe(true);
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
+  it("leaves declaration absent for a strict:false synthetic marketplace entry", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-describe-declaration-synthetic-"));
+    const storageRoot = join(dir, "storage");
+    const marketplaceRoot = join(dir, "marketplace");
+    const pluginRoot = join(marketplaceRoot, "plugins", "synthetic");
+
+    try {
+      await mkdir(pluginRoot, { recursive: true });
+      await writeMarketplaceManifest(marketplaceRoot, {
+        name: "declaration-market",
+        plugins: [{ name: "synthetic", source: "./plugins/synthetic", strict: false }],
+      });
+      await addMarketplace({
+        source: { source: "directory", path: marketplaceRoot },
+        storageRoot,
+      });
+
+      const result = await describeMarketplacePlugin({
+        marketplace: "declaration-market",
+        name: "synthetic",
+        storageRoot,
+      });
+
+      expect(result.declaration).toBeUndefined();
+    } finally {
+      await rm(dir, { force: true, recursive: true });
+    }
+  });
+
   it("describes valid components when convention MCP config is invalid", async () => {
     const dir = await mkdtemp(join(tmpdir(), "nibi-plugin-describe-invalid-mcp-"));
     const storageRoot = join(dir, "storage");

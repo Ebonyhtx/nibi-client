@@ -5665,6 +5665,10 @@ const jaJP: Record<string, string> = {
   "settings.plugins.store.category.utilities": "ユーティリティ",
   "settings.plugins.store.communityEmpty": "コミュニティプラグインはまだありません",
   "settings.plugins.store.create": "作成",
+  "settings.plugins.store.declaration.codeRuntime":
+    "インストール後に実行される実行可能コードが含まれています。",
+  "settings.plugins.store.declaration.note":
+    "このプラグイン パッケージによる宣言です。インストール前に実行されるものはありません。",
   "settings.plugins.store.featured": "おすすめ",
   "settings.plugins.store.info.category": "カテゴリ",
   "settings.plugins.store.info.developer": "開発者",

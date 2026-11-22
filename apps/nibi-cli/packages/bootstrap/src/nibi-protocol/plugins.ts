@@ -379,7 +379,12 @@ export async function setPluginConsent(
   if (!plugin) {
     throw new Error(`Plugin not found: ${params.pluginId}`);
   }
-  const storageRoot = getPluginStorageRoot(params.workspace.workspacePath);
+  // 同意与授权必须落在发现层读取的同一个存储根（config.storage.dir/cli/plugins）；
+  // workspacePath 是项目目录，不是存储根，写错会让同意记录永远读不到。
+  const storageRoot = resolvePluginStorageRoot(
+    params.workspace.workspacePath,
+    context.deps?.env,
+  );
   const permissions = (plugin.permissions?.required ?? []) as PluginPermission[];
   const version = plugin.version ?? "0.0.0";
   const requestedCapabilities = plugin.capabilities?.requested ?? [];
@@ -679,6 +684,8 @@ export async function describePlugin(
     components,
     ...(diagnostics.length > 0 ? { diagnostics } : {}),
     ...(result.metadata ? { metadata: result.metadata } : {}),
+    // 安装前声明随 describe 下发；adapter 已按协议形状收窄，类型由共享 schema 校验。
+    ...(result.declaration ? { declaration: result.declaration } : {}),
   };
 }
 
@@ -764,8 +771,11 @@ function toInstalledPluginSummary(input: {
   };
 }
 
-function resolvePluginStorageRoot(workingDirectory: string): string {
-  const config = createConfig({ workingDirectory });
+export function resolvePluginStorageRoot(
+  workingDirectory: string,
+  env?: NodeJS.ProcessEnv,
+): string {
+  const config = createConfig({ env, workingDirectory });
   const storageRoot = resolvePath(config.config.storage.dir);
   return getPluginStorageRoot(getCliStorageRoot(storageRoot));
 }

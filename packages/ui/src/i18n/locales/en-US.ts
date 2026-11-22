@@ -5196,6 +5196,10 @@ const enUS: Record<string, string> = {
   "settings.plugins.marketplace.componentsRetry": "Retry",
   "settings.plugins.store.componentsAfterInstall":
     "Components are listed after the plugin is installed.",
+  "settings.plugins.store.declaration.codeRuntime":
+    "Includes executable code that runs after installation.",
+  "settings.plugins.store.declaration.note":
+    "Declared by this plugin package; nothing runs before install.",
   "settings.plugins.marketplace.componentsEmpty":
     "This plugin doesn't declare components, or they couldn't be read.",
   "settings.plugins.config.title": "Configuration",

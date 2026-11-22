@@ -4852,6 +4852,8 @@ const zhCN: Record<string, string> = {
   "settings.plugins.marketplace.componentsLoading": "正在加载组件…",
   "settings.plugins.marketplace.componentsError": "组件清单加载失败，仅展示可得信息。",
   "settings.plugins.store.componentsAfterInstall": "安装后可查看这个插件包含的组件。",
+  "settings.plugins.store.declaration.codeRuntime": "包含可执行代码，安装后才会运行。",
+  "settings.plugins.store.declaration.note": "由插件包声明，安装前不会执行。",
   "settings.plugins.marketplace.componentsRetry": "重试",
   "settings.plugins.marketplace.componentsEmpty": "该插件未声明组件，或组件无法读取。",
   "settings.plugins.config.title": "配置",

@@ -5630,6 +5630,10 @@ const ruRU: Record<string, string> = {
   "settings.plugins.store.category.utilities": "Утилиты",
   "settings.plugins.store.communityEmpty": "Плагинов сообщества пока нет",
   "settings.plugins.store.create": "Создать",
+  "settings.plugins.store.declaration.codeRuntime":
+    "Содержит исполняемый код, который запускается после установки.",
+  "settings.plugins.store.declaration.note":
+    "Заявлено пакетом плагина; до установки ничего не выполняется.",
   "settings.plugins.store.featured": "Рекомендуемые",
   "settings.plugins.store.info.category": "Категория",
   "settings.plugins.store.info.developer": "Разработчик",

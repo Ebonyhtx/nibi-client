@@ -25,6 +25,7 @@ vi.mock("node:os", async (importOriginal) => {
 import {
   nibiProtocolMethods,
   nibiPluginsConfigureParamsSchema,
+  nibiPluginsDescribeResultSchema,
   nibiPluginsInstallResultSchema,
   nibiPluginsListParamsSchema,
   nibiPluginsListResultSchema,
@@ -48,6 +49,7 @@ import {
   listPlugins,
   normalizePluginRootForComparison,
   restoreBuiltinPlugin,
+  setPluginConsent,
   updatePlugin,
 } from "../src/nibi-protocol/plugins.js";
 import { withPluginStorageLock } from "../src/lib/plugin-storage-lock.js";
@@ -154,6 +156,59 @@ describe("plugins protocol contracts", () => {
     }
   });
 
+  it("carries the install-time declaration through plugins/describe", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nibi-protocol-describe-declaration-"));
+    const previousStorageDir = process.env.NIBI_STORAGE_DIR;
+    process.env.NIBI_STORAGE_DIR = join(root, "storage");
+    const pluginStorageRoot = getPluginStorageRoot(
+      getCliStorageRoot(process.env.NIBI_STORAGE_DIR),
+    );
+    const marketplaceDir = join(pluginStorageRoot, "marketplaces", "e2e-declaration");
+    await writeTestFile(
+      join(marketplaceDir, "marketplace.json"),
+      JSON.stringify({
+        name: "e2e-declaration",
+        plugins: [{ name: "declared", source: "./declared" }],
+      }),
+    );
+    await writeTestFile(
+      join(marketplaceDir, "declared", "plugin.json"),
+      JSON.stringify({
+        name: "declared",
+        permissions: ["filesystem.read"],
+        capabilities: [{ id: "nibi.sessions.read", scope: "workspace" }],
+        runtime: { apiVersion: "1", entry: "index.js" },
+        hooks: {
+          PreToolUse: [{ hooks: [{ command: "echo pre", type: "command" }] }],
+        },
+      }),
+    );
+    try {
+      const result = await describePlugin({} as NibiProtocolAgentServerContext, {
+        workspace: { workspacePath: root, workspaceKey: root },
+        marketplace: "e2e-declaration",
+        pluginName: "declared",
+      });
+      expect(result.declaration).toEqual({
+        permissions: {
+          requested: ["filesystem.read"],
+          required: ["filesystem.read", "process", "code"],
+        },
+        capabilities: {
+          requested: [{ id: "nibi.sessions.read", scope: "workspace" }],
+          granted: [],
+        },
+        hasCodeRuntime: true,
+        trust: "community",
+      });
+      expect(nibiPluginsDescribeResultSchema.safeParse(result).success).toBe(true);
+    } finally {
+      if (previousStorageDir === undefined) delete process.env.NIBI_STORAGE_DIR;
+      else process.env.NIBI_STORAGE_DIR = previousStorageDir;
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   it("keeps describe behind the storage lock when the marketplace manifest must be written", async () => {
     const root = await mkdtemp(join(tmpdir(), "nibi-protocol-describe-fetch-lock-"));
     const previousStorageDir = process.env.NIBI_STORAGE_DIR;
@@ -220,6 +275,58 @@ describe("plugins protocol contracts", () => {
         version: "1.0.0",
       }),
     ).toMatchObject({ granted: true, permissions: ["process"] });
+  });
+
+  it("writes consent into the configured plugin storage root, not the workspace", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nibi-protocol-consent-root-"));
+    const storageDir = join(root, "storage");
+    const previousStorageDir = process.env.NIBI_STORAGE_DIR;
+    // 用户配置路径由 resolveCliRoot() 读 process.env 决定（createConfig 的 env 只覆盖 env 配置），
+    // 所以隔离存储根必须落在进程环境上，并在这里恢复。
+    process.env.NIBI_STORAGE_DIR = storageDir;
+    const pluginStorageRoot = getPluginStorageRoot(getCliStorageRoot(storageDir));
+    const pluginRoot = join(root, "consent-protocol-plugin");
+    const context = {} as NibiProtocolAgentServerContext;
+    try {
+      await writeTestFile(
+        join(pluginRoot, "plugin.json"),
+        JSON.stringify({
+          name: "consent-protocol",
+          version: "1.0.0",
+          extensions: { "com.nibistudio.nibi": {} },
+        }),
+      );
+      await writeTestFile(
+        join(pluginRoot, "mcp.json"),
+        JSON.stringify({ mcpServers: { demo: { command: "node", args: ["server.mjs"] } } }),
+      );
+      await writeTestFile(
+        join(storageDir, "cli", "config.json"),
+        JSON.stringify({ plugins: { dirs: [pluginRoot] } }),
+      );
+
+      const result = await setPluginConsent(context, {
+        workspace: { workspacePath: root, workspaceKey: root },
+        pluginId: "consent-protocol@inline",
+        granted: true,
+      });
+      expect(result).toMatchObject({ granted: true, permissions: ["process", "network"] });
+      const consent = JSON.parse(
+        await readFile(join(pluginStorageRoot, "plugin-consents.json"), "utf8"),
+      ) as { plugins: Record<string, { permissions?: string[]; version?: string }> };
+      expect(consent.plugins["consent-protocol@inline"]).toMatchObject({
+        permissions: ["process", "network"],
+        version: "1.0.0",
+      });
+      // 旧实现把 workspacePath 当存储根，会在项目目录下写出 cli/plugins；必须证明不再出现。
+      await expect(
+        readFile(join(root, "cli", "plugins", "plugin-consents.json"), "utf8"),
+      ).rejects.toThrow();
+    } finally {
+      if (previousStorageDir === undefined) delete process.env.NIBI_STORAGE_DIR;
+      else process.env.NIBI_STORAGE_DIR = previousStorageDir;
+      await rm(root, { force: true, recursive: true });
+    }
   });
 
   it("accepts an optional config scope for Settings list and overview projections", () => {

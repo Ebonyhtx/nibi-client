@@ -337,10 +337,11 @@ export function PluginStorePage({
       )
     : [];
 
-  // 详情页数据补齐：已安装但还没有运行时信息的条目按需 describe，拿组件清单 + manifest 回退字段。
-  // 未安装的候选不调 describe：本地没有插件根目录，只会稳定失败，把详情页变成"组件清单加载失败"。
+  // 详情页数据补齐：已安装但还没有运行时信息的条目按需 describe，拿组件清单 + manifest 回退字段；
+  // 未安装的候选也要 describe，从真实包清单取得安装前声明。该调用可能 clone/下载插件源，
+  // 慢且依赖网络；失败或缺省时详情页不渲染任何声明占位。
   useEffect(() => {
-    if (view !== "detail" || !detailItem || !detailItem.installed || detailItem.info) return;
+    if (view !== "detail" || !detailItem || (detailItem.installed && detailItem.info)) return;
     void describePlugin(
       detailItem.id,
       detailItem.name,
@@ -832,6 +833,11 @@ export function PluginStorePage({
           item={detailItem}
           actions={actions}
           describeEntry={describeCache[detailItem.id]}
+          declaration={
+            describeCache[detailItem.id]?.status === "loaded"
+              ? describeCache[detailItem.id]?.data?.declaration
+              : undefined
+          }
           onRetryDescribe={() =>
             void describePlugin(
               detailItem.id,

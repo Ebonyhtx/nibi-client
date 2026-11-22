@@ -14,11 +14,17 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type {
   PluginAdapterId,
+  PluginCapabilityScope,
   PluginDiagnostic,
   PluginManifest,
   PluginStoreListing,
+  PluginTrustLevel,
 } from "@nibi/contracts";
-import { isOfficialMarketplaceId, NIBI_OFFICIAL_PLUGIN_MARKETPLACE } from "@nibi/contracts";
+import {
+  isOfficialMarketplaceId,
+  isRunnablePluginHookEvent,
+  NIBI_OFFICIAL_PLUGIN_MARKETPLACE,
+} from "@nibi/contracts";
 import {
   DEFAULT_PLUGIN_MARKETPLACES,
   hiddenDefaultPluginMarketplaces,
@@ -42,6 +48,10 @@ import {
   readNativePluginManifest,
   resolveInside,
   resolveMarketplaceTrust,
+  resolvePluginCapabilities,
+  resolvePluginPermissions,
+  resolvePluginRuntime,
+  resolveRequiredPluginPermissions,
   sanitizePluginId,
 } from "./helpers.js";
 import { enumeratePluginComponents, type PluginComponentGroup } from "./plugin-components.js";
@@ -243,6 +253,19 @@ export interface DescribeMarketplacePluginResult {
   diagnostics: PluginValidationDiagnostic[];
   // 插件包内 plugin.json 的展示性回退字段（作者/主页/版本）；商店信息缺失时详情页信息区用它兜底。
   metadata?: PluginManifestDisplayMetadata;
+  // 安装前由插件包清单推导的权限/能力/代码运行声明；来源不可解析或只有合成清单时缺省。
+  declaration?: MarketplacePluginDeclaration;
+}
+
+export interface MarketplacePluginDeclaration {
+  permissions: { requested: string[]; required: string[] };
+  capabilities: {
+    requested: Array<{ id: string; scope: PluginCapabilityScope }>;
+    granted: Array<{ id: string; scope: PluginCapabilityScope }>;
+  };
+  // 只报是否存在扩展代码入口；entry 路径留在本地清单，不进协议。
+  hasCodeRuntime: boolean;
+  trust: PluginTrustLevel;
 }
 
 export interface PluginManifestDisplayMetadata {
@@ -1107,6 +1130,7 @@ export async function describeMarketplacePlugin(input: {
       return {
         components: read.components,
         diagnostics,
+        ...(read.declaration ? { declaration: read.declaration } : {}),
         ...(read.metadata ? { metadata: read.metadata } : {}),
       };
     }
@@ -1168,6 +1192,7 @@ export async function describeMarketplacePlugin(input: {
     return {
       components: read.components,
       diagnostics,
+      ...(read.declaration ? { declaration: read.declaration } : {}),
       ...(read.metadata ? { metadata: read.metadata } : {}),
     };
   } catch (error) {
@@ -1184,7 +1209,11 @@ function readComponentsAtRoot(input: {
   entry?: PluginMarketplaceEntry;
   marketplace: string;
   rootPath: string;
-}): { components: PluginComponentGroup[]; metadata?: PluginManifestDisplayMetadata } {
+}): {
+  components: PluginComponentGroup[];
+  declaration?: MarketplacePluginDeclaration;
+  metadata?: PluginManifestDisplayMetadata;
+} {
   let loadedManifest: {
     adapterId: PluginAdapterId;
     manifest: PluginManifest;
@@ -1220,8 +1249,60 @@ function readComponentsAtRoot(input: {
     diagnostics: input.diagnostics as PluginDiagnostic[],
     ...(loaded ? { loaded } : {}),
   });
+  // 合成清单（strict:false 且没有落盘 manifest）不算包的真实声明；来源不可解析时同样缺省。
+  const declaration =
+    loadedManifest?.manifestPath !== undefined
+      ? resolvePluginDeclaration({
+          adapterId: loadedManifest.adapterId,
+          components,
+          manifest: loadedManifest.manifest,
+          marketplace: input.marketplace,
+        })
+      : undefined;
   const metadata = loadedManifest ? toManifestDisplayMetadata(loadedManifest.manifest) : undefined;
-  return { components, ...(metadata ? { metadata } : {}) };
+  return {
+    components,
+    ...(declaration ? { declaration } : {}),
+    ...(metadata ? { metadata } : {}),
+  };
+}
+
+/** 安装前声明：与已安装详情共用同一套权限/能力推导，代码入口只报存在性。 */
+function resolvePluginDeclaration(input: {
+  adapterId: PluginAdapterId;
+  components: PluginComponentGroup[];
+  manifest: PluginManifest;
+  marketplace: string;
+}): MarketplacePluginDeclaration {
+  const trust = resolveMarketplaceTrust(input.marketplace);
+  // 与已安装发现同口径：外来生态（claude/codex/zcode/dsh）的 runtime 会被跳过，
+  // 不能在安装前声称“会执行代码”。
+  const runtimeRunnable = input.adapterId === "native" || input.adapterId === "agent-plugins";
+  const hasCodeRuntime =
+    runtimeRunnable && resolvePluginRuntime(input.manifest).runtime !== undefined;
+  const hasCode = hasCodeRuntime;
+  // 与已安装发现的 hookInspection.events 同口径：只有内核真正会派发的事件才要求 process。
+  const hasHooks = (input.components.find((group) => group.kind === "hook")?.items ?? []).some(
+    (item) => isRunnablePluginHookEvent(item.name),
+  );
+  const hasMcp = (input.components.find((group) => group.kind === "mcp")?.items.length ?? 0) > 0;
+  const requested = resolvePluginPermissions(input.manifest).requested;
+  const required = resolveRequiredPluginPermissions(input.manifest, {
+    hasCode,
+    hasHooks,
+    hasMcp,
+    trust,
+  });
+  const capabilities = resolvePluginCapabilities(input.manifest, trust).profile;
+  return {
+    permissions: { requested: [...requested], required: [...required] },
+    capabilities: {
+      requested: capabilities.requested.map((grant) => ({ id: grant.id, scope: grant.scope })),
+      granted: capabilities.granted.map((grant) => ({ id: grant.id, scope: grant.scope })),
+    },
+    hasCodeRuntime,
+    trust,
+  };
 }
 
 /** 抽取 plugin.json 里可展示的回退字段；一个都没有时返回 undefined。 */
