@@ -182,6 +182,7 @@ modules:
       - services
       - shared
       - ui
+      - plugin-ui
       - conversation-workspace-target
       - web-remote-control-ui
       - remote-connection-flow
@@ -457,7 +458,7 @@ modules:
     roots: [ packages/ui/src/plugin-ui ]
     managed: true
     requires: [ ui, shared, services, mcp-apps-protocol, plugin-ui-bridge, plugin-sandbox ]
-    publicEntrypoints: [ packages/ui/src/plugin-ui/index.ts, packages/ui/src/plugin-ui/contract.ts, packages/ui/src/plugin-ui/hostPrimitives.ts ]
+    publicEntrypoints: [ packages/ui/src/plugin-ui/index.ts, packages/ui/src/plugin-ui/contract.ts, packages/ui/src/plugin-ui/hostPrimitives.ts, packages/ui/src/plugin-ui/components/PluginUiLauncherItems.tsx ]
     layers:
       domain: domain
       app: app

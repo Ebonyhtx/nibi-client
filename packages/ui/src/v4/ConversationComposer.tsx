@@ -196,7 +196,7 @@ import {
   V4ComposerModelControls,
   type ModelSelectionSource,
 } from "@/v4/composer/V4ComposerToolbar.js";
-import { PluginUiComposerSlots } from "@/plugin-ui/components/PluginUiLauncherItems.js";
+import { PluginUiComposerSlots } from "@/plugin-ui/index.js";
 import {
   resolveV4ComposerConfigPickerState,
   type V4ComposerConfigPicker,

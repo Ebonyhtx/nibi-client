@@ -38,7 +38,9 @@ export { PluginUiModelContextChip } from "./adapters/PluginUiModelContextChip.js
 export { PluginUiFollowUpDialogHost } from "./components/PluginUiFollowUpDialogHost.js";
 export { PluginUiSidePane } from "./PluginUiSidePane.js";
 export {
+  PluginUiComposerSlots,
   PluginUiLauncherItems,
+  PluginUiNavPrimarySlots,
   SidePaneLauncherRow,
   buildPluginUiLauncherItemId,
 } from "@/plugin-ui/components/PluginUiLauncherItems.js";

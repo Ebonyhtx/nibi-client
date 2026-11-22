@@ -230,6 +230,10 @@ export function PluginStorePage({
     ],
   );
   const itemById = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
+  const consentItem = consentPrompt ? itemById.get(consentPrompt.pluginId) : undefined;
+  const consentPluginName = consentItem
+    ? resolveItemDisplayName(consentItem, locale)
+    : (consentPrompt?.pluginId ?? "");
   const detailItem = detailPluginId ? (itemById.get(detailPluginId) ?? null) : null;
   // 会员专享插件的 UX 门禁（宿主机仍是最终门禁）：未开通/已到期时直接弹开通页，
   // 不再让用户先去市场顶部找入口。缓存非可用时先强制在线检查一次——
@@ -533,6 +537,8 @@ export function PluginStorePage({
           );
           if (enabled) return true;
           const state = usePluginManagementStore.getState();
+          // 同意弹窗已给出下一步；不要再叠一条失败 toast。
+          if (state.consentPrompt?.pluginId === item.id) return false;
           // 启用被会员门禁拒绝（缓存尚未刷新）时回到开通页，不能只弹一条 toast。
           if (state.error && /会员|membership/i.test(state.error)) {
             setMembershipOpen(true);
@@ -990,11 +996,7 @@ export function PluginStorePage({
       />
       <PluginConsentDialog
         open={consentPrompt !== null}
-        pluginName={
-          plugins.find((plugin) => plugin.id === consentPrompt?.pluginId)?.name ??
-          consentPrompt?.pluginId ??
-          ""
-        }
+        pluginName={consentPluginName}
         permissions={consentPrompt?.permissions ?? []}
         capabilities={consentPrompt?.capabilities ?? []}
         pending={togglingPluginId === consentPrompt?.pluginId}

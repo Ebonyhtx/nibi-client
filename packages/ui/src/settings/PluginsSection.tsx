@@ -269,6 +269,10 @@ function PluginList({
       restorableBuiltins,
     ],
   );
+  const consentPlugin = plugins.find((plugin) => plugin.id === consentPrompt?.pluginId);
+  const consentPluginName = consentPlugin
+    ? resolveManagedPluginDisplay(consentPlugin, storeItemById.get(consentPlugin.id), locale).name
+    : (consentPrompt?.pluginId ?? "");
   // 已安装/启用的会员插件：到期后“启用或打开”也先弹开通页；宿主机仍是最终门禁。
   const isPaidPlugin = useCallback(
     (pluginId: string): boolean => storeItemById.get(pluginId)?.paid === true,
@@ -380,6 +384,8 @@ function PluginList({
       const succeeded = await setEnabled(pluginId, enabled, pluginManagementService, configScope);
       if (!succeeded) {
         const state = usePluginManagementStore.getState();
+        // 需要权限同意时弹窗本身就是反馈；再弹「更新失败」会挡住弹窗并误导。
+        if (state.consentPrompt?.pluginId === pluginId) return false;
         const error = state.error;
         if (enabled && error && /会员|membership/i.test(error)) {
           setMembershipOpen(true);
@@ -1063,11 +1069,7 @@ function PluginList({
       ) : null}
       <PluginConsentDialog
         open={consentPrompt !== null}
-        pluginName={
-          plugins.find((plugin) => plugin.id === consentPrompt?.pluginId)?.name ??
-          consentPrompt?.pluginId ??
-          ""
-        }
+        pluginName={consentPluginName}
         permissions={consentPrompt?.permissions ?? []}
         capabilities={consentPrompt?.capabilities ?? []}
         pending={togglingPluginId === consentPrompt?.pluginId}
