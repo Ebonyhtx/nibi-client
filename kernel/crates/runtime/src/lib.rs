@@ -845,6 +845,15 @@ impl LocalKernel {
         self
     }
 
+    /// 设置页写入的子代理模型覆盖（`agents-state.json`）：入口把“怎么读”注入；内核每次取 agent
+    /// 定义时调用一次（Node 每回合重读同一份文件，设置页改完立即生效）。本机存储的位置不在这里决定。
+    pub fn set_agent_state_source(
+        &self,
+        source: Arc<nibi_kernel_agents::StateSource>,
+    ) {
+        self.agent_catalog.set_state_source(source);
+    }
+
     /// 工作区钩子评审（NIBI 协议前端）：用户层 hooks 与信任库。TUI / `-p` 不接，
     /// [`Kernel::workspace_hook_review`] 三个方法保持 `Unsupported`。
     pub fn with_hook_review(

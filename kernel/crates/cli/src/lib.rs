@@ -3,6 +3,7 @@
 //! 只有这里读取进程环境与 cwd，读到的值显式传给下层。这里构造平台层（Provider registry、账号）与适配器
 //! （存储、执行环境、模型），交给 runtime 组装成内核，再按命令行进入 TUI 或 `-p`。
 
+mod agent_state;
 mod android_ffi;
 mod app_server;
 mod args;
@@ -645,6 +646,8 @@ async fn session(
         Mode::Tui => kernel.with_titles(titles),
         Mode::Print | Mode::Version | Mode::Help => kernel,
     });
+    // 设置页的子代理模型覆盖（`agents-state.json`）：每次取 agent 定义都重读，改完立即生效。
+    kernel.set_agent_state_source(crate::agent_state::source(paths.root()));
     // 会话控制（8 个模型工具）的拥有者端口：注册表在内核里建好，这里拿到 `Arc` 之后接上。
     kernel.install_session_control_host();
     // 付费插件执行期门禁：工具表在会话创建时冻结，调用时按当前 license 复核。

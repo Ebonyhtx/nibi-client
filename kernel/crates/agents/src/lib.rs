@@ -27,10 +27,12 @@ mod report;
 mod restore;
 mod routing;
 mod runs;
+mod selection;
 mod shell_notices;
 mod signals;
 mod spawn;
 mod stall;
+mod state;
 mod task_stop;
 mod tasks;
 mod todo;
@@ -56,11 +58,13 @@ use nibi_kernel_api::tool::Tool;
 
 pub use actor::{ActorError, ActorProfile, ActorTurnOutcome};
 pub use agent_tool::AgentTool;
-pub use context::AgentCatalog;
+pub use context::{AgentCatalog, StateFuture, StateSource};
 pub use definitions::{AgentDefinition, AgentSource, builtins};
 pub use monitors::MonitorTexts;
 pub use plugin::PluginAgentFile;
+pub use selection::AgentModelSelection;
 pub use stall::{StallConfig, StallWatcher};
+pub use state::AgentState;
 pub use tasks::{MemoryTaskLists, task_tools_enabled};
 pub use todo::{MemoryTodos, tools as todo_tools};
 

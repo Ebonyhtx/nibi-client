@@ -42,6 +42,8 @@ sha2.workspace = true
 # TUI 的服务端口（界面语言的写回、登录）返回 BoxFuture（docs/specs/rust-cli/tui.md §7.1）；执行器下载的单飞（Shared）。
 futures-util.workspace = true
 nibi-kernel-base.workspace = true
+# `agents-state.json` 的解析类型（设置页写入的子代理模型覆盖）。
+nibi-kernel-agents.workspace = true
 nibi-kernel-env-local.workspace = true
 # 远端执行（docs/specs/rust-cli/remote-exec.md §18）：执行器模式与只给测试的 loopback。
 nibi-kernel-env-remote.workspace = true

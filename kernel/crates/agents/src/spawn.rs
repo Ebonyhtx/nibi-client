@@ -22,22 +22,20 @@ use crate::live::{AgentState, LiveAgent};
 use crate::report::{self, Ending, Report};
 use crate::routing;
 use crate::runs::{RunInfo, Tracked};
+use crate::selection::AgentModelSelection;
 use crate::toolset::{FilteredTools, ToolRule};
 
-/// 子代理的模型：定义里的模型 ID（`inherit` 与缺省继承父运行），`effort` 参数优先于定义。provider 与账号连接
-/// （Team Plan 的团队项目，工作线 F49）都跟父运行：同一个团队项目、换一个模型。
+/// 子代理的模型：设置页覆盖（`agents-state.json`）> 定义里的 pin（`model` + `thoughtLevel`）> 继承父运行。
+/// 覆盖与 pin 都是完整选择（Provider 限定）；账号连接只在 provider 与父会话相同时沿用（Team Plan 的团队项目，
+/// 工作线 F49）。Agent 调用参数 `effort` 最后覆盖档位（NIBI 的历史行为）。
 pub(crate) fn selection(
     parent: &ModelSelection,
-    model: Option<&str>,
+    pin: Option<&AgentModelSelection>,
+    over: Option<&AgentModelSelection>,
     effort: Option<String>,
 ) -> ModelSelection {
-    let mut selection = match model.filter(|model| *model != "inherit") {
-        Some(model) => ModelSelection {
-            provider: parent.provider.clone(),
-            model: model.to_owned(),
-            reasoning: None,
-            connection: parent.connection.clone(),
-        },
+    let mut selection = match over.or(pin) {
+        Some(chosen) => chosen.selection(parent),
         None => parent.clone(),
     };
     if effort.is_some() {

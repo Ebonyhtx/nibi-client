@@ -53,7 +53,9 @@ fn the_prefix_is_the_history_the_call_and_the_started_result() {
     let fork = definition();
     assert_eq!(fork.max_turns, Some(200));
     assert!(fork.background);
-    assert_eq!(fork.model.as_deref(), Some("inherit"));
+    // 继承父运行的模型与档位：没有自己的选择，也不是设置页可覆盖的条目。
+    assert!(fork.model_selection.is_none());
+    assert_eq!(fork.state_id, None);
 }
 
 #[test]

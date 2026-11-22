@@ -19,6 +19,7 @@ use nibi_kernel_api::orchestration::{
 use crate::custom;
 use crate::definitions::{AgentDefinition, builtins, merge};
 use crate::plugin::{self, PluginAgentFile};
+use crate::state::AgentState;
 
 pub(crate) struct SubagentContext {
     pub(crate) inner: Arc<dyn ContextBuilder>,
@@ -72,7 +73,16 @@ pub struct AgentCatalog {
     session_plugins: RwLock<HashMap<SessionId, Vec<PluginAgentFile>>>,
     /// 付费插件执行期门禁（启动插件 agent 前复核）；入口装上。
     paid_gate: RwLock<Option<Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>>>,
+    /// `agents-state.json` 的读取器（设置页写入的模型覆盖与用户 agent 停用）；入口装上。
+    /// 每次取定义都调用一次：Node 每回合重读同一份文件，设置页改完立即生效。
+    state_source: RwLock<Option<Arc<StateSource>>>,
 }
+
+/// `agents-state.json` 的读取器。本机存储不在 agents 的知识里：入口把路径与读法注入。
+/// 返回 future 是因为本机文件读走 `nibi-kernel-fs`（入口 crate 的 clippy 边界），读一次只有一个小 JSON。
+pub type StateSource = dyn Fn() -> StateFuture + Send + Sync;
+/// 读取器的结果。
+pub type StateFuture = std::pin::Pin<Box<dyn std::future::Future<Output = AgentState> + Send>>;
 
 impl AgentCatalog {
     pub fn new(info: Arc<dyn EnvInfo>, files: Arc<dyn Files>) -> Self {
@@ -82,7 +92,16 @@ impl AgentCatalog {
             plugins: RwLock::default(),
             session_plugins: RwLock::default(),
             paid_gate: RwLock::default(),
+            state_source: RwLock::default(),
         }
+    }
+
+    /// 装上设置页状态（`agents-state.json`）的读取器；内核只读，文件缺席按没有覆盖处理。
+    pub fn set_state_source(&self, source: Arc<StateSource>) {
+        *self
+            .state_source
+            .write()
+            .unwrap_or_else(PoisonError::into_inner) = Some(source);
     }
 
     /// 装上付费插件执行期门禁：插件 agent 启动前复核（工具表不增删）。
@@ -174,7 +193,22 @@ impl AgentCatalog {
             Ok(facts) => layers.extend(custom::load(self.files.as_ref(), workspace, &facts).await),
             Err(error) => tracing::debug!(%error, "custom agents are not available"),
         }
-        merge(layers)
+        let mut definitions = merge(layers);
+        // 设置页状态：停用用户 agent、给内置/插件 agent 装上模型覆盖。项目 agent 与子代理里
+        // 派生的调用同样走这里（定义只在这里组装）。
+        let source = self
+            .state_source
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone();
+        if let Some(source) = source {
+            let state = source().await;
+            definitions.retain(|definition| !state.is_disabled(definition));
+            for definition in &mut definitions {
+                definition.model_override = state.model_override(definition).cloned();
+            }
+        }
+        definitions
     }
 }
 

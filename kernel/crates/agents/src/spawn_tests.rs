@@ -4,6 +4,7 @@ use nibi_kernel_api::model::{ModelConnection, ModelSelection};
 use nibi_kernel_api::permission::{ExecutionState, PermissionMode};
 
 use super::{execution, mode, restrict, selection};
+use crate::selection::AgentModelSelection;
 
 #[test]
 fn a_child_keeps_the_team_project_of_the_parent() {
@@ -17,11 +18,38 @@ fn a_child_keeps_the_team_project_of_the_parent() {
             project_id: "p-t".to_owned(),
         })),
     };
-    assert_eq!(selection(&parent, Some("inherit"), None), parent);
-    let child = selection(&parent, Some("GLM-5.3-Flash"), Some("low".to_owned()));
+    assert_eq!(selection(&parent, None, None, None), parent);
+    // 同一个 provider 内换模型：沿用父会话的团队项目连接；Agent 参数档位压过 pin 的档位。
+    let pin = AgentModelSelection::parse("account:bigmodel-team-coding-plan/GLM-5.3-Flash", None)
+        .expect("pin");
+    let child = selection(&parent, Some(&pin), None, Some("low".to_owned()));
     assert_eq!(child.model, "GLM-5.3-Flash");
     assert_eq!(child.reasoning.as_deref(), Some("low"));
     assert_eq!(child.connection, parent.connection);
+}
+
+/// 设置页覆盖 > 定义 pin > 继承；覆盖与 pin 的 Provider 不同时连接不跟父会话（换供应商）。
+#[test]
+fn the_override_replaces_the_whole_selection_of_the_pin() {
+    let parent = ModelSelection {
+        provider: "e2e-upstream".to_owned(),
+        model: "deepseek-v4-flash".to_owned(),
+        reasoning: Some("max".to_owned()),
+        connection: None,
+    };
+    let pin = AgentModelSelection::parse("other-provider/other-model", Some("max")).expect("pin");
+    let over =
+        AgentModelSelection::parse("e2e-upstream-alt/deepseek-v4-pro", Some("high")).expect("over");
+    let child = selection(&parent, Some(&pin), Some(&over), None);
+    assert_eq!(child.provider, "e2e-upstream-alt");
+    assert_eq!(child.model, "deepseek-v4-pro");
+    assert_eq!(child.reasoning.as_deref(), Some("high"));
+
+    // 没有覆盖时 pin 自己带 Provider；档位来自 pin 的 thoughtLevel。
+    let child = selection(&parent, Some(&pin), None, None);
+    assert_eq!(child.provider, "other-provider");
+    assert_eq!(child.model, "other-model");
+    assert_eq!(child.reasoning.as_deref(), Some("max"));
 }
 
 /// Node 3.17.2 `restrictPermissionMode` 的整张表（从严到宽 plan < build < edit < guarded < yolo；auto 不参与）。
