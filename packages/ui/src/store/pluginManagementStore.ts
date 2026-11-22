@@ -22,7 +22,10 @@ import {
   isPluginManagementChangeRelevant,
   notifyPluginManagementChange,
 } from "@/store/pluginManagementStoreLoading.js";
-import { setPluginEnabledOptimistically } from "@/store/pluginManagementStoreEnabled.js";
+import {
+  buildPluginConsentPrompt,
+  setPluginEnabledOptimistically,
+} from "@/store/pluginManagementStoreEnabled.js";
 
 // 市场详情按需拉取的组件清单缓存：按 pluginId 记 loading/data/error，避免重复请求与切换闪烁。
 export interface PluginDescribeEntry {
@@ -378,7 +381,7 @@ export const createPluginManagementStore = (initialService?: IPluginManagementSe
     },
 
     async installPlugin(pluginName, marketplace, pluginService, scope = "user") {
-      return runWorkspaceOperation(
+      const installed = await runWorkspaceOperation(
         set,
         get,
         pluginService,
@@ -396,6 +399,16 @@ export const createPluginManagementStore = (initialService?: IPluginManagementSe
           throwForErrorDiagnostic(result.diagnostics);
         },
       );
+      // 新装的 community/local 插件若带 hooks/MCP/代码，会被发现层停用等待同意；
+      // 安装成功后立即弹同意框，而不是让用户再点一次启用才看到提示。
+      if (installed) {
+        const plugin = get().plugins.find(
+          (candidate) => candidate.id === `${pluginName}@${marketplace}`,
+        );
+        const prompt = plugin && !plugin.enabled ? buildPluginConsentPrompt(plugin) : null;
+        if (prompt) set({ consentPrompt: prompt });
+      }
+      return installed;
     },
 
     async uninstallPlugin(pluginId, pluginService, removeCache = true) {

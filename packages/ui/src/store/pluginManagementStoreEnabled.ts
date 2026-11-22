@@ -1,5 +1,5 @@
 import type { IPluginManagementService } from "@nibi/services";
-import type { NibiPluginScope } from "@nibi/shared";
+import type { NibiPluginInfo, NibiPluginScope } from "@nibi/shared";
 import { logger } from "@/logger.js";
 import {
   buildWorkspaceKey,
@@ -7,6 +7,21 @@ import {
   notifyPluginManagementChange,
 } from "@/store/pluginManagementStoreLoading.js";
 import type { PluginManagementState } from "@/store/pluginManagementStore.js";
+
+/** 只有需要用户确认的能力进入弹窗；UI/设置/通知属于低风险。 */
+export function buildPluginConsentPrompt(plugin: NibiPluginInfo): {
+  capabilities: Array<{ id: string; scope: string }>;
+  permissions: string[];
+  pluginId: string;
+} | null {
+  const permissions = plugin.permissions?.required ?? [];
+  const capabilities = (plugin.capabilities?.requested ?? []).filter(
+    (grant) =>
+      grant.id === "nibi.sessions.read" || grant.id === "nibi.workspace.files.read",
+  );
+  if (permissions.length === 0 && capabilities.length === 0) return null;
+  return { capabilities, permissions, pluginId: plugin.id };
+}
 
 function toMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -147,15 +162,9 @@ export async function setPluginEnabledOptimistically(
       set({
         ...(consentRequired
           ? {
-              consentPrompt: {
-                capabilities: (previousPlugin?.capabilities?.requested ?? []).filter(
-                  (grant) =>
-                    grant.id === "nibi.sessions.read" ||
-                    grant.id === "nibi.workspace.files.read",
-                ),
-                permissions: previousPlugin?.permissions?.required ?? [],
-                pluginId,
-              },
+              consentPrompt: previousPlugin
+                ? buildPluginConsentPrompt(previousPlugin)
+                : { capabilities: [], permissions: [], pluginId },
               error: null,
             }
           : { error: toMessage(error) }),

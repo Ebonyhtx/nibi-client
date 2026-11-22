@@ -195,6 +195,11 @@ export function PluginStoreDetailView({
             {description}
           </p>
         ) : null}
+        {item.info?.compatibility === "partial" || item.info?.compatibility === "detected" ? (
+          <p className="text-ui-xs text-foreground-subtle">
+            {intl.formatMessage({ id: "settings.plugins.detail.partialSupport" })}
+          </p>
+        ) : null}
         {item.orphaned ? (
           <p
             data-testid="plugin-store-source-degraded"
