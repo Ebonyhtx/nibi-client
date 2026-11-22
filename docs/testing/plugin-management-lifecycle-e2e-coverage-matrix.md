@@ -12,7 +12,7 @@
 | `PLM-LC-003` personal main lifecycle         | `PM`              | targeted pass | overview/list/storage + update badge/inline entry + v2 Skill/MCP provider evidence pass                                   | pending      | blocked     | blocked      | blocked  | blocked    |
 | `PLM-LC-004` persistence/local visibility    | `PV`              | targeted pass | restart/config/enabled/workspace B evidence pass                                                                          | pending      | blocked     | blocked      | blocked  | blocked    |
 | `PLM-LC-005` orphan/reassociate              | `PO`              | targeted pass | source/config/enabled + all update entries (menu/detail/badge/inline) absent + fresh-session Skill evidence pass          | pending      | blocked     | blocked      | blocked  | blocked    |
-| `PLM-LC-006` builtin suppress/restore        | `PB`              | targeted pass | suppression/config/data + Catalog/cache preservation + restart evidence pending                                           | pending      | blocked     | blocked      | blocked  | blocked    |
+| `PLM-LC-006` builtin suppress/restore        | `PB`              | targeted pass | suppression/config/data + Catalog/cache preservation + restart evidence pass (Windows, 2026-11-22)                        | pending      | blocked     | blocked      | blocked  | blocked    |
 | `PLM-LC-007` local official CDN              | `PC`              | targeted pass | loopback HTTP ZIP/cache/overview evidence pass                                                                            | pending      | blocked     | blocked      | blocked  | blocked    |
 | `PLM-LC-007b` real CDN smoke                 | `PCS`             | not run       | not captured                                                                                                              | pending      | never       | never        | never    | never      |
 | `PLM-LC-008` recoverable failures            | `PF`              | targeted pass | source/refresh/describe/install/update preservation evidence pass                                                         | pending      | blocked     | blocked      | blocked  | blocked    |
@@ -76,6 +76,7 @@ Anthropic Claude Marketplace，并按目录中的固定 SHA 安装 `aikido`。Ma
 两个 pending spec 未重新运行：它们仍引用已下线的 `plugin-store-manage`、`plugin-store-installed-row`、
 `plugin-store-check-updates` 选择器（管理视图已并入 Settings → 插件列表 `plugin-settings-plugin-row`），
 需要单独修复后才能再次做 manual review。
+（2026-11-22 这两个 spec 已随 pending 用例现代化改到新入口，并在 Windows 复验通过，见下文第二批。）
 
 ## Admission rules
 
@@ -238,11 +239,11 @@ React 面板等待连接后自动运行、无错误闪现和重复实例。2026-
 - `smoke.test.ts` 在本轮修复 RPC 动态事件命名后通过（真实 Electron 启动 + 工作区/composer）。
 - 以上均为 Windows 本机 manual-review 运行，未执行 promotion apply、Docker admission 或正式 CI preset；人工产品审核仍为 pending。
 - 2026-11-22 第二批 pending 串行复验：`plugin-management-builtin-inline`、`plugin-management-discovery-presentation`、`plugin-management-persistence-source`、`plugin-management-personal-lifecycle`、`plugin-runtime-env-agent-projection`、`plugin-cdn-zip-marketplace-install` 通过。`plugin-management-recoverable-failures` 在改为真正删除安装缓存与配置登记后通过；`plugin-management-ui-market` 暴露并修复了“项目层禁用后从侧栏启用仍被 workspace false 压住”的产品问题（enable 现在先清 workspace override 再写 user），复验通过。
-- `plugin-subagent-override-cold` 仍失败：Agent 改为异步启动后，child 请求使用父模型 `deepseek-v4-flash`，而不是插件 agent 覆盖的 `deepseek-v4-pro`/high；父轮 async 语义与 fixture 已更新，这条作为真实产品缺口保留，不伪造通过。
+- `plugin-subagent-override-cold` 仍失败：Agent 改为异步启动后，child 请求使用父模型 `deepseek-v4-flash`，而不是插件 agent 覆盖的 `deepseek-v4-pro`/high；父轮 async 语义与 fixture 已更新，这条作为真实产品缺口保留，不伪造通过（第三批已修复，见下）。
 
 ## 2026-11-22 第三批：插件子代理模型覆盖（Windows，手动复核）
 
-- `plugin-subagent-override-cold` 已通过（连续三次，`desktop-e2e-20261122-1850…` 至 `19:14` 批次）。证据：child 请求 `deepseek-v4-pro` + `output_config.effort=high`，父 continuation 保持 `deepseek-v4-flash` + `max`，`pluginAgentModelSelectionOverrides` 落盘未改写。
+- `plugin-subagent-override-cold` 已通过（连续三次：`desktop-e2e-20261122-190909-040`、`desktop-e2e-20261122-191148-892`、`desktop-e2e-20261122-192851-624`；此前 18:50–19:05 的批次失败，作为修复前后的分界保留）。证据：child 请求 `deepseek-v4-pro` + `output_config.effort=high`，父 continuation 保持 `deepseek-v4-flash` + `max`，`pluginAgentModelSelectionOverrides` 落盘未改写。
 - 产品修复（Rust 内核，桌面本地默认）：新增 `agents-state.json` 读取面与子代理完整选择解析。`kernel/crates/agents/src/state.rs` 解析当前 `builtInModelSelectionOverrides` / `pluginAgentModelSelectionOverrides`（含旧双 map 迁移语义与 `disabledAgentIds`）；`selection.rs` 解析 `provider/model`、`custom:<providerId>:<modelId>` 与 `thoughtLevel`；`spawn.rs` 按“设置页覆盖 > 定义 pin > 继承父会话”派发，换 Provider 时不沿用父会话的 Team Plan 连接。`crates/cli` 在 CLI/TUI 与 app-server 两个入口把 `<存储根>/v2/agents-state.json` 的读取器接进 `AgentCatalog`（每次取定义重读，改完立即生效）。
 - e2e 夹具修复：`seedPersistedModelSelection` 之前只写旧的无作用域 `nibi-model-selection-recent-v1:<path>`，当前 Composer 的 Recent 是 v2 作用域键 `nibi-composer-recent:v2:["desktop",<hostId>,<projectId>]`，导致冷启动父会话退回目录默认档位（high）。helper 现在同时写 v2 键（按已登记的工作区作用域，缺省 Root 草稿）。
 - 复核时观察到的既有红项（与本批改动无关，保留证据）：

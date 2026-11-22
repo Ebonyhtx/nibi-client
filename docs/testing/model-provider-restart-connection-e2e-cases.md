@@ -28,6 +28,9 @@ Persisted Model Selection         |
 ```
 
 - 测试通过 `seedPersistedModelSelection(...)` 一次写入完整元组；
+- 同一份种子要同时写旧的无作用域键和当前 Composer 的 v2 作用域 Recent 键
+  `nibi-composer-recent:v2:["desktop",<hostId>,<projectId>]`（作用域取自工作区登记，缺省 Root 草稿）；
+  只写旧键时冷启动读不到种子，档位会退回目录默认；
 - 禁止分两次写 model 和 reasoning，避免构造用户不可能产生的撕裂状态；
 - Provider 与模型是否仍可用由正式 Resolver/Registry/Selection View 判断；
 - Toolbar 只提供 UI 证据，实际首发请求仍负责证明执行身份。
