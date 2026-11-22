@@ -11,6 +11,7 @@ import {
 import {
   addMarketplaceSourceThroughAgent,
   clickPluginControl,
+  confirmPluginConsentAndWaitEnabled,
   createPluginLifecycleFixture,
   getPluginList,
   hasPluginControl,
@@ -61,6 +62,9 @@ describe("WPL-015 Marketplace installed roundtrip E2E", () => {
     await waitForPluginCard(PLUGIN_LIFECYCLE_ID);
     await openPluginCard(PLUGIN_LIFECYCLE_ID);
     await installPluginThroughUi(PLUGIN_LIFECYCLE_ID);
+    // 带 hooks/MCP 的市场插件安装后仍被停用；同意框是异步弹出的，必须在返回导航前
+    // 走真实同意入口，管理页才看得到启用态。
+    await confirmPluginConsentAndWaitEnabled(PLUGIN_LIFECYCLE_ID);
     await clickTestIdByDom("desktop-top-nav-back");
     await openPluginManagementSettings();
     await waitForPluginSettingsScope("user");

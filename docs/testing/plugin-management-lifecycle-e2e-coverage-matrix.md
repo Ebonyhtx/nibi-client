@@ -229,3 +229,11 @@ React 面板等待连接后自动运行、无错误闪现和重复实例。2026-
 
 - 桌面候选：`plugins/manual-review/pending/plugin-builtin-ui-uninstall.test.ts`。macOS Electron + 真实 CLI，卸载 `documents@nibi-official` 后卡片仍在 UI 插件专区。修复后运行 `desktop-e2e-20261019071852360-p65132-d5426628aee5a21e` 通过，截图 `.e2e-artifacts/plugin-management/plm-builtin-ui-uninstall/restorable-in-ui-section.png`；还原 CLI 修复后运行 `desktop-e2e-20261019072006864-p72979-1022c7e87a447a4e` 在 restorable 阶段失败（卡片不在 UI 插件专区）。
 - bootstrap 单测：内置定义 `ui` 组件类型与插件包 `ui.surfaces` 一致；卸载后官方目录与可恢复列表都带 `ui`。两条旧实现失败、新实现通过。Windows/Linux、手机远控未执行；用例 pending。
+
+## 2026-11-22 Windows 复验（手动复核，未晋升）
+
+- `PLM-BUILTIN-UI-UNINSTALL`：`plugins/manual-review/pending/plugin-builtin-ui-uninstall.test.ts` 连续两次通过。为源 E2E 新增按 spec 播种官方插件缓存（`apps/nibi-cli` 作为官方源根，实测 4.7s / 14 插件），`documents@nibi-official` 卸载后仍归在 UI 插件专区；不影响 `installed_plugins.json` 的商店安装语义。
+- `WPL-015`：`conversation-session/manual-review/pending/conversation-session-plugin-marketplace-installed-roundtrip.test.ts` 在 Windows 通过。补齐了社区 fixture 安装后的权限同意步骤，并让 scope 选择 helper 支持当前 Projects 子菜单；user/workspace 配置往返与恢复继承全部走完。
+- `PLM-EXT-UI-VIEW`（新增）：`plugins/manual-review/pending/plugin-extension-ui-view.test.ts` 连续两次通过。重启后在隔离 HOME 播种本地扩展插件，扩展经 `nibi.settings.own` 轮询 armed，再调用 `nibi.ui.view`；侧栏 `plugin-ui:…:surface:panel` 激活、`plugin-ui-webview` 挂载、MCP Apps 握手到 `data-plugin-ui-phase="running"`。截图 `.e2e-artifacts/plugin-management/plm-ui-view/extension-surface-open.png`。
+- `smoke.test.ts` 在本轮修复 RPC 动态事件命名后通过（真实 Electron 启动 + 工作区/composer）。
+- 以上均为 Windows 本机 manual-review 运行，未执行 promotion apply、Docker admission 或正式 CI preset；人工产品审核仍为 pending。

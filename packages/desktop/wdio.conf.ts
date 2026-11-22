@@ -63,6 +63,7 @@ import {
   PROJECT_UPGRADE_ORDER_SPEC,
   seedProjectUpgradeOrderFixture,
 } from "./test/e2e/helpers/project-upgrade-order-fixture.js";
+import { seedOfficialPluginsViaCli } from "./test/e2e/helpers/tier2-sixth-batch.js";
 import { resolveAskUserQuestionClockScaleForWorker } from "./test/e2e/helpers/e2e-worker-environment.js";
 import {
   CODING_PLAN_TEAM_MOCK_BASE_URL_ENV,
@@ -3083,6 +3084,24 @@ function forceFinalizeE2ERunnerFromGuard() {
   })();
 }
 
+function seedE2EPluginOfficialBuiltins(specs: string[] = []) {
+  if (!specs.some((spec) => spec.includes("plugin-builtin-ui-uninstall.test.ts"))) return;
+  // source E2E 的 Electron main 把 NIBI_BUNDLED_AGENT_RESOURCE_DIR 指向
+  // bundled-agents/<platform>/nibi（只有 nibi.cjs），官方插件 seed 源为空，
+  // documents@nibi-official 因此永远不会出现。这里在干净 HOME 里用同一份 CLI
+  // 显式指向仓库源目录，把官方插件 cache 与官方 marketplace 分区落盘；
+  // 不写 installed_plugins.json，让 documents 以 official source 被发现，
+  // 卸载后才会进入 restorableBuiltins。
+  const startedAt = Date.now();
+  seedOfficialPluginsViaCli({
+    e2eHomeDir: E2E_HOME_DIR,
+    resourceDir: resolve(REPO_ROOT, "apps/nibi-cli"),
+    timeoutMs: 120_000,
+    workspacePath: resolve(E2E_HOME_DIR, "NibiProject"),
+  });
+  console.log(`[e2e] seeded official plugin cache in ${Date.now() - startedAt}ms`);
+}
+
 async function resetE2EHome(specs: string[] = []) {
   await removeE2EHomeWithRetry();
   mkdirSync(E2E_HOME_DIR, { recursive: true });
@@ -3140,6 +3159,7 @@ async function resetE2EHome(specs: string[] = []) {
   seedE2EBuiltinWorkspacePluginDisable(specs);
   seedE2EBuiltInSubagentModelOverrides(specs);
   seedE2ESubagentProfiles(specs);
+  seedE2EPluginOfficialBuiltins(specs);
   await seedE2EGitReviewEntryWorkspace(specs);
   seedE2EGitCommitDialogWorkspace(specs);
   if (specs.some((spec) => spec.includes("conversation-session-history-first.test.ts"))) {

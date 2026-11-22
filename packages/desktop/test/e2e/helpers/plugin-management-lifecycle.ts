@@ -297,41 +297,124 @@ export async function selectPluginSettingsScope(scope: "user" | "workspace"): Pr
   if (scope === "user") {
     await clickTestIdByDom("plugin-settings-scope-user-option");
   } else {
-    await browser.waitUntil(
-      async () =>
-        browser.execute(() =>
-          Boolean(document.querySelector('[data-testid^="plugin-settings-scope-option"]')),
-        ),
-      {
-        timeout: 15000,
-        timeoutMsg: `Workspace Plugin scope option did not render: ${JSON.stringify(
-          await browser.execute(() => {
-            const tabStore = (
-              window as typeof window & {
-                __nibiTabStoreE2E?: {
-                  getState?: () => {
-                    activeWorkspacePath?: string | null;
-                    activeWorkspaceIdentity?: string | null;
-                    tabs?: Array<Record<string, unknown>>;
-                  };
-                };
-              }
-            ).__nibiTabStoreE2E;
-            const state = tabStore?.getState?.();
-            return {
-              activeWorkspacePath: state?.activeWorkspacePath ?? null,
-              activeWorkspaceIdentity: state?.activeWorkspaceIdentity ?? null,
-              tabs: state?.tabs ?? [],
-            };
-          }),
-        )}`,
-      },
+    // 记忆页/表单用平铺 variant（workspaceOptions），workspace 选项直接挂在根菜单；
+    // 插件设置页传 groups，workspace 目标收在每台设备的 Projects 子菜单里。
+    // 平铺分支保持原行为，分组分支必须先展开子菜单再按真实路径选项点击。
+    await waitForPluginScopeMenu();
+    const flatOptionRendered = await browser.execute(() =>
+      Boolean(document.querySelector('[data-testid^="plugin-settings-scope-option"]')),
     );
-    await browser.execute(() => {
-      document.querySelector<HTMLElement>('[data-testid^="plugin-settings-scope-option"]')?.click();
-    });
+    if (flatOptionRendered) {
+      // 平铺 variant 的选项没有 title，语义仍是“选第一个 workspace”，保持历史行为。
+      await browser.execute(() => {
+        document.querySelector<HTMLElement>('[data-testid^="plugin-settings-scope-option"]')?.click();
+      });
+    } else {
+      await openPluginScopeProjectsSubmenu();
+      await waitForPluginWorkspaceScopeOption();
+      await clickPluginWorkspaceScopeOption(DEFAULT_WORKSPACE);
+    }
   }
   await waitForPluginScopeSelection("plugin-settings-scope-trigger", scope);
+}
+
+async function waitForPluginScopeMenu(): Promise<void> {
+  await browser.waitUntil(
+    () => browser.execute(() => Boolean(document.querySelector('[role="menu"]'))),
+    { timeout: 10000, timeoutMsg: "Plugin scope menu did not open" },
+  );
+}
+
+function openPluginScopeProjectsSubmenu(): Promise<void> {
+  return browser.execute(() => {
+    // Radix SubTrigger 的 onClick 会同步 open；比 pointermove 的 100ms 延迟稳定。
+    // 多设备分组时优先本机分组，避免点到远端设备的 Projects。
+    const triggers = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-scope-projects-trigger="true"]'),
+    );
+    const trigger =
+      triggers.find((candidate) => candidate.dataset.scopeDevice === "local") ?? triggers[0];
+    trigger?.click();
+    if (!trigger) {
+      throw new Error("Plugin scope menu did not expose a Projects submenu for workspace targets");
+    }
+  });
+}
+
+async function waitForPluginWorkspaceScopeOption(): Promise<void> {
+  await browser.waitUntil(
+    async () =>
+      browser.execute(() =>
+        Boolean(document.querySelector('[data-testid^="plugin-settings-scope-option"]')),
+      ),
+    {
+      timeout: 15000,
+      timeoutMsg: `Workspace Plugin scope option did not render: ${JSON.stringify(
+        await browser.execute(() => {
+          const tabStore = (
+            window as typeof window & {
+              __nibiTabStoreE2E?: {
+                getState?: () => {
+                  activeWorkspacePath?: string | null;
+                  activeWorkspaceIdentity?: string | null;
+                  tabs?: Array<Record<string, unknown>>;
+                };
+              };
+            }
+          ).__nibiTabStoreE2E;
+          const state = tabStore?.getState?.();
+          return {
+            activeWorkspacePath: state?.activeWorkspacePath ?? null,
+            activeWorkspaceIdentity: state?.activeWorkspaceIdentity ?? null,
+            projectTriggers: document.querySelectorAll('[data-scope-projects-trigger="true"]').length,
+            tabs: state?.tabs ?? [],
+          };
+        }),
+      )}`,
+    },
+  );
+}
+
+async function clickPluginWorkspaceScopeOption(workspacePath: string): Promise<void> {
+  const result = await browser.execute((path) => {
+    const normalize = (value: string) => value.replaceAll("\\", "/").replace(/\/+$/u, "");
+    const leafOf = (value: string) => {
+      const segments = normalize(value).split("/").filter(Boolean);
+      return segments[segments.length - 1] ?? value;
+    };
+    const options = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-testid^="plugin-settings-scope-option"]'),
+    );
+    const target = normalize(path);
+    const targetLeaf = leafOf(path);
+    // title 是完整的 workspacePath；同名项目只能靠它区分，标签文本作为本地路径的兜底。
+    const option =
+      options.find((candidate) => normalize(candidate.getAttribute("title") ?? "") === target) ??
+      options.find((candidate) => {
+        const title = candidate.getAttribute("title") ?? "";
+        const label = candidate.textContent?.trim() ?? "";
+        return label === targetLeaf && (!title || leafOf(title) === targetLeaf);
+      });
+    if (!option) {
+      return {
+        clicked: false,
+        options: options.map((candidate) => ({
+          key: candidate.dataset.pluginScopeKey ?? null,
+          label: candidate.textContent?.trim() ?? "",
+          title: candidate.getAttribute("title"),
+        })),
+      };
+    }
+    option.click();
+    return { clicked: true, key: option.dataset.pluginScopeKey ?? null, options: [] };
+  }, workspacePath);
+  if (!result.clicked) {
+    throw new Error(
+      `Could not find the Plugin scope option for ${workspacePath}: ${JSON.stringify(
+        result.options,
+      )}`,
+    );
+  }
 }
 
 export async function waitForPluginSettingsScope(scope: "user" | "workspace"): Promise<void> {
@@ -486,6 +569,31 @@ export async function installPluginThroughUi(pluginId: string): Promise<void> {
     (overview) => overview.installedPlugins.some((plugin) => plugin.id === pluginId),
     `Plugin did not install through UI: ${pluginId}`,
     120000,
+  );
+}
+
+/**
+ * 社区/本地插件带 hooks/MCP 时，安装后仍被发现层停用，UI 会异步弹出权限同意框。
+ * 只等 Host install 完成不足以看到提权后的启用态，必须先走真实弹窗同意，再等
+ * list/overview 的 enabled 投影，否则管理页行开关会读到旧的停用快照。
+ */
+export async function confirmPluginConsentAndWaitEnabled(pluginId: string): Promise<void> {
+  await waitForDisplayedPluginControl("plugin-consent-dialog", {}, 30000);
+  await clickPluginControl("plugin-consent-confirm");
+  await browser.waitUntil(async () => !(await hasPluginControl("plugin-consent-dialog")), {
+    timeout: 30000,
+    timeoutMsg: `Plugin consent dialog did not close: ${pluginId}`,
+  });
+  await waitUntilPluginList(
+    (list) => list.plugins.some((plugin) => plugin.id === pluginId && plugin.enabled),
+    `Plugin was not enabled after consent: ${pluginId}`,
+    60000,
+  );
+  await waitUntilPluginOverview(
+    (overview) =>
+      overview.installedPlugins.some((plugin) => plugin.id === pluginId && plugin.enabled),
+    `Plugin discovery did not report enabled after consent: ${pluginId}`,
+    60000,
   );
 }
 

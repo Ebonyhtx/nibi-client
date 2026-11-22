@@ -221,9 +221,20 @@ function insertModelSelection(
 export function seedOfficialPluginsViaCli(options: {
   e2eHomeDir: string;
   workspacePath: string;
+  /**
+   * 显式指定官方插件资源根（包含 packages/*-plugin）。缺省仍优先继承环境变量，
+   * 便于 source E2E 在 Host 覆盖成 bundled-agents/nibi 后强制回到仓库源目录。
+   */
+  resourceDir?: string;
+  timeoutMs?: number;
 }): void {
   const cliEntryPoint = resolveCliEntryPoint();
+  const explicitResourceDir = options.resourceDir?.trim();
+  if (explicitResourceDir && !existsSync(explicitResourceDir)) {
+    throw new Error(`sixth-batch fixture 官方插件资源目录不存在: ${explicitResourceDir}`);
+  }
   const resourceDir =
+    (explicitResourceDir ? resolve(explicitResourceDir) : undefined) ||
     process.env.NIBI_BUNDLED_AGENT_RESOURCE_DIR?.trim() ||
     resolve(dirname(cliEntryPoint), "../../..");
   execFileSync(
@@ -240,7 +251,7 @@ export function seedOfficialPluginsViaCli(options: {
         USERPROFILE: options.e2eHomeDir,
       },
       stdio: "ignore",
-      timeout: 120_000,
+      timeout: options.timeoutMs ?? 120_000,
       windowsHide: true,
     },
   );

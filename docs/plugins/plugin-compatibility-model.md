@@ -136,7 +136,7 @@ UI 插槽：
 - 外来生态的代码面不运行；声明式组件只读加载。
 - `pluginId` 目前是 `<name>@<marketplace>`；`@builtin` / `@external:<adapterId>` origin 口径尚未落地。
 - 付费插件在安装前可能没有可展示声明（会员门禁/源不可达）；这是有意留空。
-- 插件 pending e2e 仍在适配旧 fixture（内置插件播种、安装后同意步骤），未纳入正式套件。
+- 插件 e2e 已有三个手动复核用例在真机通过：内置插件卸载分组、市场安装/配置 roundtrip、重启式 `ui.view` 面板；case manifest、provider fixture 与正式套件准入仍待补齐。
 
 ## 9. 验证
 
