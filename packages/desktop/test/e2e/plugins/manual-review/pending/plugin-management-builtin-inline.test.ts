@@ -1,6 +1,5 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { TID_SETTINGS_BACK_BUTTON } from "@nibi/shared/test-ids";
+import { dirname, join, resolve } from "node:path";
 import {
   clearAppData,
   clickTestIdByDom,
@@ -8,6 +7,8 @@ import {
 } from "../../../helpers/desktop-app.js";
 import { waitForUpstreamRequestContaining } from "../../../helpers/conversation-session.js";
 import { findUpstreamRequestContaining } from "../../../helpers/plugin-mcp-skill.js";
+import { restartIntoWorkspacePreservingProfile } from "../../../helpers/model-provider-restart.js";
+import { seedOfficialPluginsViaCli } from "../../../helpers/tier2-sixth-batch.js";
 import { prepareV4ConversationE2E, sendV4Prompt } from "../../../helpers/v4-conversation.js";
 import {
   PLUGIN_INLINE_ID,
@@ -33,6 +34,18 @@ const BUILTIN_ID = "skill-creator@nibi-official";
 const BUILTIN_TIMEOUT_MS = 240000;
 
 describe("PLM-LC-006/009 Builtin 抑制恢复与 inline smoke E2E", () => {
+  before(() => {
+    // 官方内置插件 cache 默认只为 builtin-uninstall spec 由 runner seed；
+    // 本 spec 依赖 skill-creator@nibi-official 的官方 cache，必须在首次 overview 前落盘。
+    const { homeDir, workspace } = getE2EAppDataPaths();
+    seedOfficialPluginsViaCli({
+      e2eHomeDir: homeDir,
+      resourceDir: resolve(process.cwd(), "../../apps/nibi-cli"),
+      timeoutMs: 120_000,
+      workspacePath: workspace,
+    });
+  });
+
   after(async () => {
     await browser.electron.restoreAllMocks();
     await clearAppData();
@@ -52,6 +65,13 @@ describe("PLM-LC-006/009 Builtin 抑制恢复与 inline smoke E2E", () => {
     expect(pluginPathExists(builtinCachePath!)).toBe(true);
     await seedBuiltinUserState();
     await uninstallPluginThroughUi(BUILTIN_ID, true);
+    // 官方 cache 内置不在 installed_plugins.json 里，uninstall 的「已安装集合消失」
+    // 等待条件会立即成立；必须再等 restorableBuiltins 投影落盘，避免与 uninstall RPC 竞态。
+    await waitUntilPluginOverview(
+      (overview) => overview.restorableBuiltins.some((plugin) => plugin.id === BUILTIN_ID),
+      "Builtin did not become restorable after uninstall",
+      120000,
+    );
     expect(
       (await getPluginOverview()).restorableBuiltins.some((plugin) => plugin.id === BUILTIN_ID),
     ).toBe(true);
@@ -80,7 +100,9 @@ describe("PLM-LC-006/009 Builtin 抑制恢复与 inline smoke E2E", () => {
     expect(pluginPathExists(join(pluginDataPath(BUILTIN_ID), "state.json"))).toBe(false);
 
     await seedInlineLifecyclePlugin();
-    await restartPluginLifecycleApp();
+    // 运行时的插件 skill 注册表在 Workspace Agent 进程内；renderer reload 不会重读
+    // plugins.dirs，必须完整重启 Electron 让 Agent 冷启动时加载 inline 插件。
+    await restartIntoWorkspacePreservingProfile();
     await openPluginSettings();
     await clickPluginControl("plugin-store-segment-personal");
     await waitForPluginCard(PLUGIN_INLINE_ID, 60000);
@@ -90,11 +112,12 @@ describe("PLM-LC-006/009 Builtin 抑制恢复与 inline smoke E2E", () => {
       (await getPluginList()).plugins.find((plugin) => plugin.id === PLUGIN_INLINE_ID)?.enabled,
     ).toBe(true);
 
-    await clickTestIdByDom(TID_SETTINGS_BACK_BUTTON);
+    // 插件商店是 workspace 主视图，返回聊天走桌面顶栏，而不是设置页返回按钮。
+    await clickTestIdByDom("desktop-top-nav-back");
     await prepareV4ConversationE2E();
     const inlineRuntimeRequest = `E2E_PLUGIN_INLINE_REQUEST_${Date.now()}`;
     await sendV4Prompt(
-      `${inlineRuntimeRequest}: invoke the Skill named inline-lifecycle, then reply with exactly upstream-e2e-ok.`,
+      `${inlineRuntimeRequest}: invoke the Skill named e2e-inline-lifecycle:inline-lifecycle, then reply with exactly upstream-e2e-ok.`,
     );
     await waitForUpstreamRequestContaining(inlineRuntimeRequest, 60000);
     const inlineRequest = await findUpstreamRequestContaining(
@@ -113,7 +136,7 @@ describe("PLM-LC-006/009 Builtin 抑制恢复与 inline smoke E2E", () => {
 async function seedBuiltinUserState(): Promise<void> {
   const { homeDir } = getE2EAppDataPaths();
   const configPath = join(homeDir, ".nibi", "cli", "config.json");
-  const config = JSON.parse(await readFile(configPath, "utf-8")) as Record<string, unknown>;
+  const config = await readJsonRecord(configPath);
   const plugins = isRecord(config.plugins) ? config.plugins : {};
   const options = isRecord(plugins.options) ? plugins.options : {};
   await writeJson(configPath, {
@@ -125,10 +148,27 @@ async function seedBuiltinUserState(): Promise<void> {
 
 async function builtinOptionsExist(): Promise<boolean> {
   const configPath = join(getE2EAppDataPaths().homeDir, ".nibi", "cli", "config.json");
-  const config = JSON.parse(await readFile(configPath, "utf-8")) as Record<string, unknown>;
+  const config = await readJsonRecord(configPath);
   const plugins = isRecord(config.plugins) ? config.plugins : {};
   const options = isRecord(plugins.options) ? plugins.options : {};
   return BUILTIN_ID in options;
+}
+
+async function readJsonRecord(path: string): Promise<Record<string, unknown>> {
+  try {
+    const parsed = JSON.parse(await readFile(path, "utf-8")) as unknown;
+    return isRecord(parsed) ? parsed : {};
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: unknown }).code === "ENOENT"
+    ) {
+      return {};
+    }
+    throw error;
+  }
 }
 
 async function writeJson(path: string, value: unknown): Promise<void> {

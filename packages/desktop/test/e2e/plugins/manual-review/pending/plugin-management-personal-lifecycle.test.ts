@@ -1,10 +1,12 @@
 import { type NibiPluginComponentKind } from "@nibi/shared";
-import { TID_SETTINGS_BACK_BUTTON, TID_V4_COMPOSER_INPUT } from "@nibi/shared/test-ids";
+import { TID_V4_COMPOSER_INPUT } from "@nibi/shared/test-ids";
 import {
   clearAppData,
   clickTestIdByDom,
+  getE2EAppDataPaths,
   waitForTestIdByDom,
 } from "../../../helpers/desktop-app.js";
+import { openWorkspaceDraftFromSidebar } from "../../../helpers/workspace-agent-warmup.js";
 import { waitForUpstreamRequestContaining } from "../../../helpers/conversation-session.js";
 import {
   getV4ComposerText,
@@ -25,12 +27,14 @@ import {
   capturePluginManualReview,
   clickPluginControl,
   configureLifecyclePluginThroughUi,
+  confirmPluginConsentAndWaitEnabled,
   createPluginLifecycleFixture,
   getPluginList,
   getPluginOverview,
   openManageView,
   openPluginCard,
   openPluginSettings,
+  readPluginDraftRuntimeInvalidationVersion,
   requirePluginManualReview,
   setPluginEnabledThroughUi,
   uninstallPluginThroughUi,
@@ -58,6 +62,26 @@ describe("PLM-LC-003 Personal Source 插件主生命周期 E2E", () => {
     await clickPluginControl("plugin-store-segment-personal");
     await openPluginCard(PLUGIN_LIFECYCLE_ID);
 
+    // 未安装候选只展示「安装后可查看」提示；组件清单按设计只在安装后出现。
+    await waitForPluginControl("plugin-store-components-after-install", {}, 30000);
+    await capturePluginManualReview("PLM-LC-003", "uninstalled-components-after-install");
+
+    await clickPluginControl("plugin-store-example-prompt", { pluginId: PLUGIN_LIFECYCLE_ID });
+    await waitUntilPluginOverview(
+      (overview) => overview.installedPlugins.some((plugin) => plugin.id === PLUGIN_LIFECYCLE_ID),
+      "Example Prompt did not install the plugin",
+      120000,
+    );
+    // 带 hooks/MCP 的社区插件安装后会异步弹出权限同意框；Example Prompt 的下一次点击
+    // 与后续详情操作都必须先完成真实同意。
+    await confirmPluginConsentAndWaitEnabled(PLUGIN_LIFECYCLE_ID);
+    // 商店详情不再有独立启停开关；安装态由详情头部的插件菜单表达。
+    await waitForPluginControl(
+      "plugin-store-item-menu",
+      { pluginId: PLUGIN_LIFECYCLE_ID },
+      30000,
+    );
+    // 安装完成后详情页展示真实组件清单（安装前只显示提示）。
     for (const kind of [
       "mcp",
       "skill",
@@ -67,19 +91,7 @@ describe("PLM-LC-003 Personal Source 插件主生命周期 E2E", () => {
     ] satisfies NibiPluginComponentKind[]) {
       await waitForPluginControl("plugin-store-component-section", { componentKind: kind }, 30000);
     }
-    await capturePluginManualReview("PLM-LC-003", "uninstalled-five-components");
-
-    await clickPluginControl("plugin-store-example-prompt", { pluginId: PLUGIN_LIFECYCLE_ID });
-    await waitUntilPluginOverview(
-      (overview) => overview.installedPlugins.some((plugin) => plugin.id === PLUGIN_LIFECYCLE_ID),
-      "Example Prompt did not install the plugin",
-      120000,
-    );
-    await waitForPluginControl(
-      "plugin-store-enabled-switch",
-      { pluginId: PLUGIN_LIFECYCLE_ID },
-      30000,
-    );
+    await capturePluginManualReview("PLM-LC-003", "installed-five-components");
     expect(await isPluginSettingsVisible()).toBe(true);
 
     await clickPluginControl("plugin-store-example-prompt", { pluginId: PLUGIN_LIFECYCLE_ID });
@@ -141,17 +153,25 @@ describe("PLM-LC-003 Personal Source 插件主生命周期 E2E", () => {
     }
     expect(await countCapturedRequestsContaining(PLUGIN_LIFECYCLE_EXAMPLE_PROMPT)).toBe(0);
 
+    // Example Prompt 留在无 workspace path 的草稿态；先回到默认项目草稿，
+    // 再走真实 Settings 入口，避免等待默认工作区就绪时超时。
+    await openWorkspaceDraftFromSidebar(getE2EAppDataPaths().workspace);
     await openPluginSettings();
     await clickPluginControl("plugin-store-segment-personal");
     await openPluginCard(PLUGIN_LIFECYCLE_ID);
-    await configureLifecyclePluginThroughUi(PLUGIN_LIFECYCLE_CONFIG_VALUE);
-    await setPluginEnabledThroughUi(PLUGIN_LIFECYCLE_ID, false, "detail");
+    // 配置项已收口到「插件管理」里的选中插件详情；商店详情只保留市场信息。
     await clickPluginControl("plugin-store-detail-back");
     await openManageView();
+    await clickPluginControl("plugin-settings-plugin-row", { pluginId: PLUGIN_LIFECYCLE_ID });
+    await configureLifecyclePluginThroughUi(PLUGIN_LIFECYCLE_CONFIG_VALUE);
+    await setPluginEnabledThroughUi(PLUGIN_LIFECYCLE_ID, false, "detail");
+    await clickPluginControl("plugin-settings-detail-back");
     await setPluginEnabledThroughUi(PLUGIN_LIFECYCLE_ID, true, "manage");
 
     fixture = await updatePluginLifecycleFixture(fixture, "2.0.0");
-    await clickPluginControl("plugin-store-check-updates");
+    // 旧的 plugin-store-check-updates 已下线；商店顶栏刷新就是真实的检查更新入口。
+    await clickPluginControl("plugin-store-browse-all");
+    await clickPluginControl("plugin-store-refresh");
     await waitUntilPluginOverview(
       (overview) =>
         overview.installedPlugins.some(
@@ -162,11 +182,14 @@ describe("PLM-LC-003 Personal Source 插件主生命周期 E2E", () => {
     );
     // 2026-09-02：检查更新后，已安装行必须直接亮出「可更新」角标与行内「更新」按钮；
     // 此前更新入口只藏在「…」菜单和详情页高级区，用户刷新后看不出哪个插件可更新。
+    await waitForPluginControl("plugin-store-card-update", { pluginId: PLUGIN_LIFECYCLE_ID });
+    await openManageView();
     await waitForPluginControl("plugin-store-update-badge", { pluginId: PLUGIN_LIFECYCLE_ID });
     await waitForPluginControl("plugin-store-card-update", { pluginId: PLUGIN_LIFECYCLE_ID });
-    await clickPluginControl("plugin-settings-plugin-row", { pluginId: PLUGIN_LIFECYCLE_ID });
-    await clickPluginControl("plugin-store-item-menu", { pluginId: PLUGIN_LIFECYCLE_ID });
-    await clickPluginControl("plugin-store-menu-update", { pluginId: PLUGIN_LIFECYCLE_ID });
+    // 管理视图行内按钮只重载列表；触发 draft runtime 失效的是商店更新入口。
+    await clickPluginControl("plugin-store-browse-all");
+    const draftRuntimeVersionBeforeUpdate = await readPluginDraftRuntimeInvalidationVersion();
+    await clickPluginControl("plugin-store-card-update", { pluginId: PLUGIN_LIFECYCLE_ID });
     await waitUntilPluginOverview(
       (overview) =>
         overview.installedPlugins.some(
@@ -178,10 +201,11 @@ describe("PLM-LC-003 Personal Source 插件主生命周期 E2E", () => {
     expect(
       (await getPluginList()).plugins.find((plugin) => plugin.id === PLUGIN_LIFECYCLE_ID)?.version,
     ).toBe("2.0.0");
-    await waitForPluginDraftRuntimeInvalidation();
+    await waitForPluginDraftRuntimeInvalidation(draftRuntimeVersionBeforeUpdate);
     await capturePluginManualReview("PLM-LC-003", "updated-v2-detail");
 
-    await clickTestIdByDom(TID_SETTINGS_BACK_BUTTON);
+    // 插件商店是 workspace 主视图，返回聊天走桌面顶栏，而不是设置页返回按钮。
+    await clickTestIdByDom("desktop-top-nav-back");
     await prepareV4ConversationE2E();
     const runMarker = `${PLUGIN_LIFECYCLE_RUNTIME_MARKER}_2.0.0_${Date.now()}`;
     await sendV4Prompt(

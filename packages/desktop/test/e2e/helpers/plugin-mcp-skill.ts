@@ -57,6 +57,7 @@ export async function findUpstreamRequestContaining(
       for (const record of artifact.records) {
         if (
           containsText(record.requestJson, marker) &&
+          !isSessionTitleRequest(record.requestJson) &&
           (!options?.advertisedToolName ||
             captureArtifactAdvertisesToolName(record.requestJson, options.advertisedToolName))
         ) {
@@ -110,6 +111,17 @@ function containsText(value: unknown, expected: string): boolean {
   if (Array.isArray(value)) return value.some((item) => containsText(item, expected));
   if (!value || typeof value !== "object") return false;
   return Object.values(value).some((child) => containsText(child, expected));
+}
+
+/**
+ * 首发 prompt 会并发触发主请求与标题请求，两者都含 marker；标题请求不代表
+ * 插件运行时投影，必须排除，否则会抢先匹配到 tools=[] 的标题请求。
+ */
+function isSessionTitleRequest(requestJson: unknown): boolean {
+  return (
+    containsText(requestJson, "naming a coding session") ||
+    containsText(requestJson, "Generate a concise title")
+  );
 }
 
 function sleep(ms: number): Promise<void> {

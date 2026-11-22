@@ -134,7 +134,7 @@ UI 插槽：
 - 19 个 enum-only Hook 事件不会触发。
 - 代码插件不能注册模型工具、不能直连模型。
 - 外来生态的代码面不运行；声明式组件只读加载。
-- `pluginId` 目前是 `<name>@<marketplace>`；`@builtin` / `@external:<adapterId>` origin 口径尚未落地。
+- `pluginId` 保持 `<name>@<marketplace>` 作为持久化/安全主键；`PluginMetadata.origin` 已提供派生的 `builtin` / `official` / `community` / `local` / `external:<adapterId>` 口径，但尚未进入协议或 UI（仅展示/诊断预留）。
 - 付费插件在安装前可能没有可展示声明（会员门禁/源不可达）；这是有意留空。
 - 插件 e2e 已有三个手动复核用例在真机通过：内置插件卸载分组、市场安装/配置 roundtrip、重启式 `ui.view` 面板；case manifest、provider fixture 与正式套件准入仍待补齐。
 

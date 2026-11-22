@@ -31,6 +31,7 @@ import {
   addMarketplaceSourceThroughUi,
   capturePluginManualReview,
   clickPluginControl,
+  confirmPluginConsentAndWaitEnabled,
   hasPluginControl,
   installPluginThroughUi,
   openPluginCard,
@@ -114,13 +115,17 @@ describe("PLM-LC-010 插件 secret env 与 agent 资源投影 E2E", () => {
       );
       await clickPluginControl("plugin-store-segment-personal");
       await openPluginCard(PLUGIN_RUNTIME_ENV_ID);
+      await installPluginThroughUi(PLUGIN_RUNTIME_ENV_ID);
+      // 该 fixture 走本地 marketplace 且带 MCP/agent，安装后必须先完成权限同意，
+      // 否则后续详情开关与 Subagents 设置页操作被异步弹窗拦截。
+      await confirmPluginConsentAndWaitEnabled(PLUGIN_RUNTIME_ENV_ID);
+      // 组件清单按设计只在安装后出现；安装前的详情只显示占位提示。
       await waitForPluginControl("plugin-store-component-section", {
         componentKind: "mcp",
       });
       await waitForPluginControl("plugin-store-component-section", {
         componentKind: "agent",
       });
-      await installPluginThroughUi(PLUGIN_RUNTIME_ENV_ID);
       await setPluginEnabledThroughUi(PLUGIN_RUNTIME_ENV_ID, true, "detail");
       await capturePluginManualReview("PLM-LC-010", "installed-mcp-and-agent");
 

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "caseName": "plugin-extension-ui-view",
+  "spec": "./test/e2e/plugins/plugin-extension-ui-view.test.ts",
+  "providerFixtures": [
+    "./test/e2e/fixtures/upstream/common.json",
+    "./test/e2e/fixtures/upstream/plugin-management/plugin-extension-ui-view.json"
+  ],
+  "fileFixtures": [
+    "seeded local nibi.ui.view extension plugin, consent record, and settings file under the isolated E2E HOME"
+  ],
+  "requests": [
+    {
+      "id": "plugin-extension-ui-view-session-ready",
+      "description": "Main-turn provider request used only to create the real active task the extension panel attaches to.",
+      "kind": "main",
+      "source": "synthetic",
+      "timingPolicy": "fault-stream",
+      "syntheticReason": "The ui.view panel needs a real session before openView; the spec does not consume provider output and tolerates this deterministic 500."
+    }
+  ]
+}

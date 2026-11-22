@@ -1,6 +1,5 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { TID_SETTINGS_BACK_BUTTON } from "@nibi/shared/test-ids";
 import {
   clearAppData,
   clickTestIdByDom,
@@ -18,6 +17,7 @@ import {
   capturePluginManualReview,
   clickPluginControl,
   configureLifecyclePluginThroughUi,
+  confirmPluginConsentAndWaitEnabled,
   createPluginLifecycleFixture,
   getPluginList,
   getPluginOverview,
@@ -54,6 +54,13 @@ describe("PLM-LC-004/005 插件持久化、跨本地 workspace 与来源孤立 E
     await clickPluginControl("plugin-store-segment-personal");
     await openPluginCard(PLUGIN_LIFECYCLE_ID);
     await installPluginThroughUi(PLUGIN_LIFECYCLE_ID);
+    // 带 hooks/MCP 的社区插件安装后会异步弹出权限同意框；先同意再配置与停用，
+    // 安装后的 enabled 断言与重启持久化才对应真实用户流程。
+    await confirmPluginConsentAndWaitEnabled(PLUGIN_LIFECYCLE_ID);
+    // 配置项已收口到「插件管理」里的选中插件详情；商店详情只保留市场信息。
+    await clickPluginControl("plugin-store-detail-back");
+    await openManageView();
+    await clickPluginControl("plugin-settings-plugin-row", { pluginId: PLUGIN_LIFECYCLE_ID });
     await configureLifecyclePluginThroughUi(PLUGIN_LIFECYCLE_CONFIG_VALUE);
     await setPluginEnabledThroughUi(PLUGIN_LIFECYCLE_ID, false, "detail");
 
@@ -107,7 +114,8 @@ describe("PLM-LC-004/005 插件持久化、跨本地 workspace 与来源孤立 E
     }
     await capturePluginManualReview("PLM-LC-005", "orphaned-installed-detail");
 
-    await clickTestIdByDom(TID_SETTINGS_BACK_BUTTON);
+    // 插件商店是 workspace 主视图，返回聊天走桌面顶栏，而不是设置页返回按钮。
+    await clickTestIdByDom("desktop-top-nav-back");
     await prepareV4ConversationE2E();
     const orphanedRuntimeRequest = `E2E_PLUGIN_LIFECYCLE_ORPHANED_REQUEST_${Date.now()}`;
     await sendV4Prompt(`${orphanedRuntimeRequest}: reply with exactly upstream-e2e-ok.`);

@@ -19,7 +19,7 @@
         "toolUse": {
           "id": "toolu_e2e_plugin_inline_skill",
           "name": "Skill",
-          "input": { "skill": "inline-lifecycle" }
+          "input": { "skill": "e2e-inline-lifecycle:inline-lifecycle" }
         }
       }
     },

@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "caseName": "plugin-extension-ui-view",
+  "spec": "./test/e2e/plugins/plugin-extension-ui-view.test.ts",
+  "fixtures": [
+    {
+      "id": "plugin-extension-ui-view-session-ready",
+      "description": "Creates the real active task required by nibi.ui.view. The spec only needs a session and tolerates the provider failure.",
+      "metadata": {
+        "kind": "main",
+        "timingPolicy": "fault-stream",
+        "source": "synthetic",
+        "syntheticReason": "The spec does not assert provider output; a deterministic 500 keeps the panel and MCP Apps handshake as the only evidence under test."
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "lastUserMessageIncludes": ["Reply with ok."],
+        "bodyExcludes": ["Generate a concise title", "CRITICAL: Respond with TEXT ONLY"]
+      },
+      "response": {
+        "statusCode": 500,
+        "statusMessage": "Internal Server Error",
+        "headers": {
+          "content-type": "application/json; charset=utf-8"
+        },
+        "body": "{\"error\":{\"message\":\"synthetic provider failure for ui.view session setup\",\"type\":\"provider_error\",\"code\":\"e2e_plugin_extension_ui_view_session_ready\"}}"
+      }
+    }
+  ]
+}

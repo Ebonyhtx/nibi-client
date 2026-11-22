@@ -124,10 +124,11 @@ export async function updatePluginLifecycleFixture(
 
 export async function removeLifecyclePluginSource(fixture: PluginLifecycleFixture): Promise<void> {
   const { homeDir } = getE2EAppDataPaths();
+  const managedRoot = lifecycleManagedPluginRoot(homeDir);
   await rm(fixture.marketplaceRoot, { force: true, recursive: true });
   // directory marketplace 在添加时会复制到 managed storage；仅删除原目录不会触发
   // describe/install/update 失败，因此故障注入必须同时移除权威 managed plugin 副本。
-  await rm(lifecycleManagedPluginRoot(homeDir), {
+  await rm(managedRoot, {
     force: true,
     recursive: true,
   });
@@ -508,6 +509,8 @@ export async function addMarketplaceSourceThroughUi(source: string): Promise<voi
   await setInputValueByTestIdDom("plugin-store-add-source-input", source, {
     timeout: 15000,
   });
+  // 非官方来源风险确认是提交前置条件；未勾选时 submit 一直 disabled。
+  await clickPluginControl("plugin-store-add-source-risk-acknowledgement");
   await clickPluginControl("plugin-store-add-source-submit");
 }
 
@@ -559,8 +562,24 @@ export async function waitForPluginCard(pluginId: string, timeout = 30000): Prom
 
 export async function openPluginCard(pluginId: string): Promise<void> {
   await waitForPluginCard(pluginId);
-  await clickPluginControl("plugin-store-card", { pluginId });
-  await waitForPluginControl("plugin-store-detail", { pluginId }, 30000);
+  // 新增市场来源后，详情页首次打开会触发一次 bootstrap；旧快照短暂移除候选会把
+  // view 重置回列表。等条目恢复后重新点击即可，最终仍要求 detail 真实渲染。
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    await clickPluginControl("plugin-store-card", { pluginId });
+    try {
+      await waitForPluginControl(
+        "plugin-store-detail",
+        { pluginId },
+        attempt === 1 ? 8000 : 30000,
+      );
+      return;
+    } catch (error) {
+      if (attempt === 3) throw error;
+      // 若详情实际已在最后一次轮询后出现，不要重复点击。
+      if (await hasPluginControl("plugin-store-detail", { pluginId })) return;
+      await waitForPluginCard(pluginId);
+    }
+  }
 }
 
 export async function installPluginThroughUi(pluginId: string): Promise<void> {
@@ -1005,26 +1024,33 @@ export async function waitUntilPluginList(
   });
 }
 
+export async function readPluginDraftRuntimeInvalidationVersion(): Promise<number> {
+  // 本地草稿、默认 workspace 与 identity 桶都可能承载同一工作区的运行时失效版本；
+  // 只读固定 path 会漏掉 identity/草稿桶，因此取所有桶的最大值观察「是否发生失效」。
+  return browser.execute(() => {
+    const store = (
+      window as typeof window & {
+        __nibiSessionStoreE2E?: {
+          getState: () => {
+            workspaces?: Record<string, { draftRuntimeInvalidationVersion?: number }>;
+          };
+        };
+      }
+    ).__nibiSessionStoreE2E;
+    const workspaces = store?.getState().workspaces ?? {};
+    return Object.values(workspaces).reduce(
+      (max, workspace) => Math.max(max, workspace.draftRuntimeInvalidationVersion ?? 0),
+      0,
+    );
+  });
+}
+
 export async function waitForPluginDraftRuntimeInvalidation(
-  workspacePath = DEFAULT_WORKSPACE,
+  baselineVersion: number,
   timeout = 30000,
 ): Promise<void> {
   await browser.waitUntil(
-    () =>
-      browser.execute((path) => {
-        const store = (
-          window as typeof window & {
-            __nibiSessionStoreE2E?: {
-              getState: () => {
-                getWorkspaceState: (workspacePath: string) => {
-                  draftSessionId: string | null;
-                };
-              };
-            };
-          }
-        ).__nibiSessionStoreE2E;
-        return store?.getState().getWorkspaceState(path).draftSessionId === null;
-      }, workspacePath),
+    async () => (await readPluginDraftRuntimeInvalidationVersion()) > baselineVersion,
     {
       timeout,
       timeoutMsg: "Plugin runtime refresh did not invalidate the deferred draft session",

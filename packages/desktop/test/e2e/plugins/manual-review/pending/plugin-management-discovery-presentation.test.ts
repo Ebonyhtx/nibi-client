@@ -6,6 +6,7 @@ import {
   assertPluginStoreFitsViewport,
   capturePluginManualReview,
   clickPluginControl,
+  confirmPluginConsentAndWaitEnabled,
   createPluginLifecycleFixture,
   getPluginControlText,
   hasPluginControl,
@@ -62,6 +63,9 @@ describe("PLM-LC-001/002 插件商店发现、入口与展示 E2E", () => {
     expect(await mainScrollTop()).toBeGreaterThanOrEqual(0);
 
     await installPluginThroughUi(PLUGIN_LIFECYCLE_ID);
+    // 带 hooks/MCP 的社区插件安装后会异步弹出权限同意框；必须先走真实同意流程，
+    // 否则后续卡片/管理入口点击会被弹窗拦截。
+    await confirmPluginConsentAndWaitEnabled(PLUGIN_LIFECYCLE_ID);
     await setInputValueByTestIdDom("plugin-store-search", "");
     expect(await hasPluginControl("plugin-store-installed-strip")).toBe(false);
     await openPluginCard(PLUGIN_LIFECYCLE_ID);
