@@ -739,6 +739,9 @@ const cloudProjectBrokers = new WeakMap<ServiceCollection, { dispose(): Promise<
 // 受管 worktree 的「正在创建」订阅不是 IPC 服务，随 services 释放时解除订阅并补报空集合，
 // 避免 Host 已释放却仍留着一个退出阻塞项。
 const quitBlockerReporterDisposers = new WeakMap<ServiceCollection, () => void>();
+// 扩展代码宿主（子进程）不是 IPC 服务：Host 正常退出时必须显式 dispose，
+// 否则 Windows 上父进程被杀后会留下孤儿 Node 子进程。
+const localPluginManagementBackends = new WeakMap<ServiceCollection, LocalPluginManagementBackend>();
 
 
 /** Local Host 进程内能力；不会随 ServiceCollection 暴露到通用 RPC Channel。 */
@@ -1197,6 +1200,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  */
 export interface LocalPluginManagementBackend {
   service: IPluginManagementService;
+  /** 扩展代码宿主等进程内运行时；Host 退出时必须显式收口。 */
+  dispose?: () => Promise<void>;
   listPluginUiSurfaces?: (params: {
     workspacePath: string;
     workspaceIdentity?: string;
@@ -3066,6 +3071,9 @@ export function createLocalServices(options: {
   sqliteReposToClose.push(taskIndexRepo);
   sharedSqliteRepos.set(services, sqliteReposToClose);
   cloudProjectBrokers.set(services, cloudProjectBroker);
+  if (localPluginManagement) {
+    localPluginManagementBackends.set(services, localPluginManagement);
+  }
   if (unsubscribeQuitBlockerReporter) {
     quitBlockerReporterDisposers.set(services, () => {
       unsubscribeQuitBlockerReporter();
@@ -3241,6 +3249,10 @@ export function disposeServiceResources(services: ServiceCollection): void {
   const cloudProjectBroker = cloudProjectBrokers.get(services);
   if (cloudProjectBroker) void cloudProjectBroker.dispose().catch(() => {});
   cloudProjectBrokers.delete(services);
+  // 扩展宿主子进程必须跟 Host 一起收口；同步路径只能 best-effort。
+  const pluginManagementBackend = localPluginManagementBackends.get(services);
+  if (pluginManagementBackend?.dispose) void pluginManagementBackend.dispose().catch(() => {});
+  localPluginManagementBackends.delete(services);
   disposeQuitBlockerReporter(services);
 }
 
@@ -3291,6 +3303,11 @@ export async function disposeServiceResourcesAndWait(services: ServiceCollection
   const cloudProjectBroker = cloudProjectBrokers.get(services);
   if (cloudProjectBroker) await cloudProjectBroker.dispose().catch(() => {});
   cloudProjectBrokers.delete(services);
+  const pluginManagementBackend = localPluginManagementBackends.get(services);
+  if (pluginManagementBackend?.dispose) {
+    await pluginManagementBackend.dispose().catch(() => {});
+  }
+  localPluginManagementBackends.delete(services);
   disposeQuitBlockerReporter(services);
 }
 

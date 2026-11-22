@@ -1,4 +1,4 @@
-import { PluginUiWorkspaceProvider } from "@/plugin-ui/index.js";
+import { PluginExtensionUiBridge, PluginUiWorkspaceProvider } from "@/plugin-ui/index.js";
 /* eslint-disable max-lines -- App 当前集中编排 workspace 级状态、导航、Git 派生数据和 shell wiring；已将新增 side pane memory 桥接抽出，剩余拆分需要按 shell 边界单独重构。 */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -1174,6 +1174,11 @@ export function App({
           workspace-scoped services 会切成断连代理，不能让反馈提交跟随远程 session 失效。 */}
       <FeedbackHost feedbackService={baseFeedbackService} platform={platform} />
       <PluginUiWorkspaceProvider onOpenSidePane={handleOpenPluginUi}>
+        <PluginExtensionUiBridge
+          activeTaskId={activeTaskId}
+          workspacePath={workspaceAbsPath}
+          {...(workspaceIdentity ? { workspaceIdentity } : {})}
+        />
         <WorkspaceShellLayout
           services={services}
           workspaceReadOnlyReason={workspaceReadOnlyReason}

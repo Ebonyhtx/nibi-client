@@ -24,6 +24,7 @@ import type {
   NibiPluginsSetEnabledResult,
   NibiPluginsUninstallResult,
   NibiPluginsValidateResult,
+  NibiWorkspaceRef,
 } from "@nibi/shared";
 import { ServiceChannels } from "@nibi/shared";
 import { createServiceDescriptor } from "../descriptors.js";
@@ -46,6 +47,19 @@ import type {
   NibiAgentUpdatePluginParams,
   NibiAgentValidatePluginParams,
 } from "../nibi-agent/nibiAgentPluginParams.js";
+
+/** 扩展代码 `nibi.ui.openView` 的宿主侧事件；Host 打开面板，renderer 只消费。 */
+export interface NibiPluginUiOpenViewEvent extends NibiWorkspaceRef {
+  pluginId: string;
+  surfaceId: string;
+}
+
+/** 扩展代码 `nibi.notifications.show` 的宿主侧事件；title 已由扩展宿主校验非空。 */
+export interface NibiPluginNotificationEvent extends NibiWorkspaceRef {
+  body?: string;
+  pluginId: string;
+  title: string;
+}
 
 export interface IPluginManagementService {
   listPlugins(params: NibiAgentPluginViewParams): Promise<NibiPluginsListResult>;
@@ -93,6 +107,13 @@ export interface IPluginManagementService {
   describePlugin(params: NibiAgentDescribePluginParams): Promise<NibiPluginsDescribeResult>;
   setPluginEnabled(params: NibiAgentSetPluginEnabledParams): Promise<NibiPluginsSetEnabledResult>;
   setPluginConsent(params: NibiAgentPluginConsentParams): Promise<NibiPluginsConsentResult>;
+  /**
+   * 扩展代码请求打开自己的面板。Host-local backend 提供；旧 backend / 远端 agent 缺席，
+   * renderer 按“没有事件”处理，不把缺席当成已支持。
+   */
+  onPluginUiOpenView?(): Event<NibiPluginUiOpenViewEvent>;
+  /** 扩展代码发通知。缺席原因同上。 */
+  onPluginNotification?(): Event<NibiPluginNotificationEvent>;
 }
 
 export const IPluginManagementService = createServiceDescriptor<IPluginManagementService>(

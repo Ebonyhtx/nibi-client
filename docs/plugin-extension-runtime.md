@@ -68,7 +68,7 @@
 - 子进程用逐行 JSON 协议；插件自己的 `console.*` / stdout 都转成日志，不能污染协议。
 - 子进程设置 `--max-old-space-size=256`。
 - 非 Electron 且 Node 支持 `--permission` 时，额外限制文件系统：只允许插件根、插件数据目录和当前工作区读取，数据目录可写。Electron 下该模型不可用时只做进程隔离与内存上限，不能声称已做文件系统沙箱。
-- 扩展代码始终在本机 Host/Agent 进程侧运行，不跟随远程工作区。
+- 扩展宿主随桌面 Host 进程启动（按工作区首次读取插件面时激活）；Node 内核 app-server 复用同一实现。扩展代码始终在本机进程侧运行，不跟随远程工作区。
 
 ## JS API
 
@@ -85,7 +85,13 @@ export async function activate(context) {
 export async function deactivate() {}
 ```
 
-`ui.openView` 需要宿主注入打开视图的处理器；当前 App 还没有注入，调用会返回 `capability_unavailable`，不会假装打开。
+`ui.openView("panel")` 请求在当前窗口打开该插件清单里的同名 `ui.surfaces[]` 面板：
+
+- 桌面 Host 内的扩展宿主把请求转成 renderer 事件，复用现有侧栏标签页链路；没有活动会话时不打开，只提示“面板暂不可用”。
+- 无 UI 的宿主（纯 Node app-server / headless）没有打开视图的处理器，调用返回 `capability_unavailable`，不会假装打开。
+- `ui.surfaces[]` 里没有这个 id、插件已停用或宿主没有沙箱时同样不会打开。
+
+`notifications.show` 在桌面显示应用内 toast；headless 宿主退化为日志。
 
 ## 插槽
 

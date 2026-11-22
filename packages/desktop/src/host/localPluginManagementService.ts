@@ -12,8 +12,12 @@
 // - `onDynamicPluginOperationProgress`：同上，继续订阅 agent 事件。
 //
 // 插件的运行时（MCP/hooks/skills/commands/UI）仍在会话内核里，不因管理面下沉而改变。
+// 扩展代码宿主是例外：它必须跟 Host 同进程族，才能在桌面（Rust 内核）真正运行；
+// T1/T2/T3 的子进程隔离仍由 bootstrap 的 activatePluginExtensions 负责。
 import { resolveWorkspaceKey, type NibiWorkspaceRef } from "@nibi/shared";
+import { Emitter, Event as RpcEvent, type Event } from "@nibi/rpc";
 import {
+  activatePluginExtensions,
   addPluginMarketplace,
   configurePlugin,
   describePlugin,
@@ -24,6 +28,8 @@ import {
   listPlugins,
   removePluginMarketplace,
   resetPluginConfig,
+  resolveNibiPlugins,
+  resolvePluginStorageRoot,
   restoreBuiltinPlugin,
   seedOfficialPlugins,
   setPluginConsent,
@@ -32,9 +38,15 @@ import {
   updatePlugin,
   updatePluginMarketplace,
   validatePlugin,
+  type PluginExtensionHost,
   type PluginManagementContext,
 } from "@nibi/bootstrap/plugin-management";
-import type { IPluginManagementService, INibiAgentService } from "@nibi/services";
+import type {
+  IPluginManagementService,
+  INibiAgentService,
+  NibiPluginNotificationEvent,
+  NibiPluginUiOpenViewEvent,
+} from "@nibi/services";
 import { createServiceLogger } from "@nibi/services/node";
 
 type PluginLogger = NonNullable<PluginManagementContext["logger"]>;
@@ -44,13 +56,21 @@ type PluginFallback = Pick<
   | "getPluginReferenceCatalog"
   | "resolveSuggestedPluginReference"
   | "onDynamicPluginOperationProgress"
->;
+> & {
+  /** 会话读取能力依赖内核的 session 列表；旧调用方缺席时只关闭 sessions.read。 */
+  listSessions?: INibiAgentService["listSessions"];
+};
 
 export interface LocalPluginManagementServiceOptions {
   /** 会话权威查询与进度事件的转发目标（当前内核的 agent 连接）。 */
   fallback: PluginFallback;
   env?: NodeJS.ProcessEnv;
   logger?: PluginLogger;
+  /** 扩展代码宿主；由 backend 统一创建与释放，service 只负责在读取面触发激活。 */
+  extensions?: Pick<
+    PluginExtensionRuntime,
+    "ensure" | "onNotification" | "onUiOpenView"
+  >;
 }
 
 /** 与 agent service 的 `buildWorkspaceRef` 保持同形；workspaceKey 只用于路由/隔离。 */
@@ -82,6 +102,96 @@ function hostLogger(): PluginLogger {
 
 let officialPluginSeedAttempted = false;
 
+interface PluginExtensionRuntime {
+  dispose(): Promise<void>;
+  /** 第一次读取某工作区的插件面时激活；装/启/停/更新仍按既有规则重启后生效。 */
+  ensure(workspace: NibiWorkspaceRef): void;
+  onNotification: Event<NibiPluginNotificationEvent>;
+  onUiOpenView: Event<NibiPluginUiOpenViewEvent>;
+}
+
+function createPluginExtensionRuntime(options: {
+  env: NodeJS.ProcessEnv;
+  fallback: PluginFallback;
+  logger: PluginLogger;
+}): PluginExtensionRuntime {
+  const notificationEmitter = new Emitter<NibiPluginNotificationEvent>();
+  const uiOpenViewEmitter = new Emitter<NibiPluginUiOpenViewEvent>();
+  const hosts = new Map<string, Promise<PluginExtensionHost | undefined>>();
+
+  return {
+    ensure(workspace) {
+      // 远端 workspace 的插件运行时在远端；Host 不能读取本机同名路径冒充远端插件。
+      if (workspace.remoteSessionId || hosts.has(workspace.workspaceKey)) return;
+      const listSessions = options.fallback.listSessions;
+      const activation = (async () => {
+        const plugins = resolveNibiPlugins({
+          env: options.env,
+          logger: options.logger,
+          workingDirectory: workspace.workspacePath,
+        }).plugins;
+        return await activatePluginExtensions({
+          logger: options.logger,
+          plugins,
+          storageRoot: resolvePluginStorageRoot(workspace.workspacePath, options.env),
+          workspacePath: workspace.workspacePath,
+          handlers: {
+            ...(listSessions
+              ? {
+                  readSessions: async (input: { limit?: number }) => {
+                    const sessions = await listSessions.call(options.fallback, {
+                      workspacePath: workspace.workspacePath,
+                      ...(workspace.workspaceIdentity
+                        ? { workspaceIdentity: workspace.workspaceIdentity }
+                        : {}),
+                      ...(workspace.remoteSessionId
+                        ? { remoteSessionId: workspace.remoteSessionId }
+                        : {}),
+                      ...(input.limit === undefined ? {} : { limit: input.limit }),
+                    });
+                    // 只暴露协议已承诺的元数据；提示词、文件路径与游标都不下发。
+                    return sessions.map((session) => ({
+                      id: session.sessionId,
+                      parentId: session.parentSessionId ?? null,
+                      title: session.title,
+                      createdAt: session.createdAt,
+                      updatedAt: session.updatedAt,
+                    }));
+                  },
+                }
+              : {}),
+            showNotification: (input) => {
+              notificationEmitter.fire({ ...workspace, ...input });
+            },
+            openView: (input) => {
+              uiOpenViewEmitter.fire({ ...workspace, ...input });
+            },
+          },
+        });
+      })().catch((error) => {
+        options.logger.warn("[plugins] extension host activation failed", {
+          error: error instanceof Error ? error.message : String(error),
+          workspacePath: workspace.workspacePath,
+        });
+        return undefined;
+      });
+      hosts.set(workspace.workspaceKey, activation);
+    },
+    onNotification: notificationEmitter.event,
+    onUiOpenView: uiOpenViewEmitter.event,
+    async dispose() {
+      const pending = [...hosts.values()];
+      hosts.clear();
+      for (const activation of pending) {
+        const host = await activation;
+        await host?.dispose();
+      }
+      notificationEmitter.dispose();
+      uiOpenViewEmitter.dispose();
+    },
+  };
+}
+
 export function createLocalPluginManagementService(
   options: LocalPluginManagementServiceOptions,
 ): IPluginManagementService {
@@ -103,6 +213,11 @@ export function createLocalPluginManagementService(
   };
   const fallback = options.fallback;
   const operations = new Map<string, AbortController>();
+  const extensions = options.extensions;
+  const activateExtensions = (workspace: NibiWorkspaceRef): NibiWorkspaceRef => {
+    extensions?.ensure(workspace);
+    return workspace;
+  };
 
   const withOperation = async <T>(
     operationId: string | undefined,
@@ -121,19 +236,19 @@ export function createLocalPluginManagementService(
   return {
     listPlugins: (params) =>
       listPlugins(context, {
-        workspace: toWorkspaceRef(params),
+        workspace: activateExtensions(toWorkspaceRef(params)),
         ...(params.configScope ? { configScope: params.configScope } : {}),
       }),
     getPluginsOverview: (params) =>
       getPluginsOverview(context, {
-        workspace: toWorkspaceRef(params),
+        workspace: activateExtensions(toWorkspaceRef(params)),
         ...(params.configScope ? { configScope: params.configScope } : {}),
       }),
     // 一次请求完成 list + overview，且 Host 只解析一次 discovery；旧的两个方法
     // 保持原样，供旧 renderer 和其他调用方继续使用。
     getPluginsBootstrap: (params) =>
       getPluginsBootstrap(context, {
-        workspace: toWorkspaceRef(params),
+        workspace: activateExtensions(toWorkspaceRef(params)),
         ...(params.configScope ? { configScope: params.configScope } : {}),
       }),
     addPluginMarketplace: (params) =>
@@ -261,6 +376,8 @@ export function createLocalPluginManagementService(
     resolveSuggestedPluginReference: (params) => fallback.resolveSuggestedPluginReference(params),
     onDynamicPluginOperationProgress: (operationId) =>
       fallback.onDynamicPluginOperationProgress(operationId),
+    onPluginUiOpenView: () => extensions?.onUiOpenView ?? RpcEvent.None,
+    onPluginNotification: () => extensions?.onNotification ?? RpcEvent.None,
   };
 }
 
@@ -269,6 +386,7 @@ export function createLocalPluginManagementService(
  * `listPluginUiSurfaces` 接插件 UI 桥——两者都是工作区级、不依赖会话身份。
  */
 export function createLocalPluginManagementBackend(options: LocalPluginManagementServiceOptions): {
+  dispose: () => Promise<void>;
   service: IPluginManagementService;
   listPluginUiSurfaces: (params: {
     workspacePath: string;
@@ -276,13 +394,23 @@ export function createLocalPluginManagementBackend(options: LocalPluginManagemen
     remoteSessionId?: string;
   }) => ReturnType<typeof listPluginUiSurfaces>;
 } {
+  const env = options.env ?? process.env;
   const context: PluginManagementContext = {
-    deps: { env: options.env ?? process.env },
+    deps: { env },
     logger: options.logger ?? hostLogger(),
   };
+  const extensions = createPluginExtensionRuntime({
+    env,
+    fallback: options.fallback,
+    logger: context.logger ?? hostLogger(),
+  });
   return {
-    listPluginUiSurfaces: (params) =>
-      listPluginUiSurfaces(context, { workspace: toWorkspaceRef(params) }),
-    service: createLocalPluginManagementService(options),
+    dispose: () => extensions.dispose(),
+    listPluginUiSurfaces: (params) => {
+      const workspace = toWorkspaceRef(params);
+      extensions.ensure(workspace);
+      return listPluginUiSurfaces(context, { workspace });
+    },
+    service: createLocalPluginManagementService({ ...options, extensions }),
   };
 }

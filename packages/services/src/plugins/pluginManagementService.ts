@@ -9,6 +9,7 @@ import {
 // INibiAgentService，词表消费面从 UI 散点收拢到本文件一处。
 import type { INibiAgentService } from "../nibi-agent/nibiAgent.js";
 import type { IPluginManagementService } from "./pluginManagement.js";
+import { Event as RpcEvent } from "@nibi/rpc";
 
 export interface PluginManagementServiceDependencies {
   reportTelemetryEvent?: (event: RendererTelemetryEventPayload) => void | Promise<void>;
@@ -246,5 +247,15 @@ export function createPluginManagementService(
       observe(params.granted ? "consent_grant" : "consent_revoke", params, (clean) =>
         agent.setPluginConsent(clean as typeof params),
       ),
+    // Host-local backend 提供扩展宿主事件；旧 agent 路由没有这两条事件源，返回 None。
+    // 不能省略方法：可选方法在 RPC proxy 上会退化成未知方法错误，renderer 无法区分。
+    onPluginUiOpenView: () => {
+      const impl = (agent as Partial<IPluginManagementService>).onPluginUiOpenView;
+      return typeof impl === "function" ? impl.call(agent) : RpcEvent.None;
+    },
+    onPluginNotification: () => {
+      const impl = (agent as Partial<IPluginManagementService>).onPluginNotification;
+      return typeof impl === "function" ? impl.call(agent) : RpcEvent.None;
+    },
   };
 }

@@ -58,6 +58,7 @@ export async function activate(context) {
   }
   out.sessions = await context.nibi.sessions.read({ limit: 5 });
   await context.nibi.settings.set({ out });
+  out.view = await context.nibi.ui.openView("panel");
   await context.nibi.notifications.show({ title: "ready" });
 }
 export async function deactivate() {}
@@ -70,6 +71,7 @@ describe("plugin extension host", () => {
     const storageRoot = join(root, "plugins");
     const dataPath = join(storageRoot, "data", "extension-fixture@inline");
     const notifications: string[] = [];
+    const opened: Array<{ pluginId: string; surfaceId: string }> = [];
     try {
       await mkdir(pluginRoot, { recursive: true });
       await mkdir(dataPath, { recursive: true });
@@ -83,12 +85,14 @@ describe("plugin extension host", () => {
         dataPath,
         grantedCapabilities: [
           "nibi.sessions.read",
+          "nibi.ui.view",
           "nibi.workspace.files.read",
           "nibi.settings.own",
           "nibi.notifications.show",
         ],
         requestedCapabilities: [
           "nibi.sessions.read",
+          "nibi.ui.view",
           "nibi.workspace.files.read",
           "nibi.settings.own",
           "nibi.notifications.show",
@@ -102,8 +106,11 @@ describe("plugin extension host", () => {
         workspacePath: root,
         handlers: {
           readSessions: () => [{ id: "session-1", title: "Hello" }],
+          openView: (input) => {
+            opened.push(input);
+          },
           showNotification: (input) => {
-            notifications.push(input.title);
+            notifications.push(`${input.pluginId}:${input.title}`);
           },
         },
       });
@@ -118,7 +125,10 @@ describe("plugin extension host", () => {
         expect(settings.out.secretRead).toBeUndefined();
         expect(String(settings.out.secretError)).toContain("Sensitive file");
         expect(settings.out.sessions).toEqual([{ id: "session-1", title: "Hello" }]);
-        expect(notifications).toEqual(["ready"]);
+        expect(notifications).toEqual(["extension-fixture@inline:ready"]);
+        expect(opened).toEqual([
+          { pluginId: "extension-fixture@inline", surfaceId: "panel" },
+        ]);
 
         const audit = await readFile(join(storageRoot, "plugin-audit.ndjson"), "utf8");
         expect(audit).toContain('"capability_invoked"');

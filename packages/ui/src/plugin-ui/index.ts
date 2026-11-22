@@ -27,6 +27,7 @@ export {
   type PluginUiModelContext,
 } from "./domain/pluginUiModelContext.js";
 export {
+  PluginExtensionUiBridge,
   PluginUiWorkspaceProvider,
   PluginUiSessionProvider,
   useOpenPluginUi,

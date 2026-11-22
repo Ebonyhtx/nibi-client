@@ -1748,8 +1748,13 @@ function toMarketplaceRefreshDiagnostic(
 // ── NIBI Extension 宿主（T1 共享进程 / T2 社区进程 / T3 本地单插件进程） ─────
 
 export interface PluginExtensionHostHandlers {
-  showNotification?: (input: { body?: string; title: string }) => Promise<void> | void;
-  openView?: (input: { surfaceId: string }) => Promise<void> | void;
+  /** 插件归属随能力调用一起下发：宿主按 id 定位窗口/工作区，扩展不能伪造别的插件。 */
+  showNotification?: (input: {
+    body?: string;
+    pluginId: string;
+    title: string;
+  }) => Promise<void> | void;
+  openView?: (input: { pluginId: string; surfaceId: string }) => Promise<void> | void;
   /** App 侧会话读取；缺省时 `nibi.sessions.read` 返回 capability_unavailable。 */
   readSessions?: (input: { limit?: number }) => Promise<unknown> | unknown;
 }
@@ -2054,9 +2059,9 @@ export async function activatePluginExtensions(
         value = await readWorkspaceFile(plugin, params ?? {});
       } else if (capability === "nibi.ui.view") {
         if (!options.handlers?.openView) throw new Error("capability_unavailable");
-        await options.handlers.openView({
-          surfaceId: typeof params?.surfaceId === "string" ? params.surfaceId : "",
-        });
+        const surfaceId = typeof params?.surfaceId === "string" ? params.surfaceId.trim() : "";
+        if (!surfaceId) throw new Error("invalid_params");
+        await options.handlers.openView({ pluginId, surfaceId });
         value = null;
       } else if (capability === "nibi.settings.own") {
         if (params?.op === "set") {
@@ -2080,10 +2085,15 @@ export async function activatePluginExtensions(
         if (lastMinute >= 1 || times.length >= 20) throw new Error("rate_limited");
         times.push(now);
         notificationTimes.set(pluginId, times);
-        const title = typeof params?.title === "string" ? params.title : "";
+        const title = typeof params?.title === "string" ? params.title.trim() : "";
+        if (!title) throw new Error("invalid_params");
         const body = typeof params?.body === "string" ? params.body : undefined;
         if (options.handlers?.showNotification) {
-          await options.handlers.showNotification({ title, ...(body ? { body } : {}) });
+          await options.handlers.showNotification({
+            pluginId,
+            title,
+            ...(body ? { body } : {}),
+          });
         } else {
           options.logger?.info(`[plugin:${pluginId}] ${title}${body ? `: ${body}` : ""}`);
         }
