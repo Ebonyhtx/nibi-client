@@ -17,6 +17,9 @@ const PLUGIN_PERMISSION_MESSAGE_IDS: Record<string, string> = {
   code: "settings.plugins.consent.permission.code",
   "nibi.sessions.read": "settings.plugins.consent.capability.sessionsRead",
   "nibi.workspace.files.read": "settings.plugins.consent.capability.filesRead",
+  "nibi.ui.view": "settings.plugins.consent.capability.uiView",
+  "nibi.settings.own": "settings.plugins.consent.capability.settingsOwn",
+  "nibi.notifications.show": "settings.plugins.consent.capability.notificationsShow",
   network: "settings.plugins.consent.permission.network",
   process: "settings.plugins.consent.permission.process",
 };
