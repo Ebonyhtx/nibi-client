@@ -81,6 +81,31 @@ describe("resolveModelThoughtOption", () => {
     ).toBe(value);
   });
 
+  it("can preserve an unsupported historical effort for settings display", () => {
+    expect(
+      resolveModelThoughtOption({
+        modelSelectionView: registryView,
+        providerId: "provider-demo",
+        modelId: "reasoning-model",
+        currentValue: "medium",
+        preserveInvalidCurrentValue: true,
+      }),
+    ).toMatchObject({
+      currentValue: "medium",
+      options: [{ value: "low" }, { value: "high" }, { value: "max" }],
+    });
+    // 空字符串仍然表示“未选择”，不会被当成非法历史值展示。
+    expect(
+      resolveModelThoughtOption({
+        modelSelectionView: registryView,
+        providerId: "provider-demo",
+        modelId: "reasoning-model",
+        currentValue: "",
+        preserveInvalidCurrentValue: true,
+      })?.currentValue,
+    ).toBe("");
+  });
+
   it("does not fall back to stale metadata or model-name hardcode when Registry is present", () => {
     expect(
       resolveModelThoughtOption({
