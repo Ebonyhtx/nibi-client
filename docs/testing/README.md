@@ -58,6 +58,7 @@ E2E 的 `net.fetch` mock 会接住上报，端点不需要真的可达；不要�
 | --- | --- |
 | [subagents-built-in-model-overrides-e2e-coverage-matrix.md](./subagents-built-in-model-overrides-e2e-coverage-matrix.md) | 内置/自定义子代理模型与 reasoning 覆盖（SB/SX） |
 | [plugin-management-lifecycle-e2e-coverage-matrix.md](./plugin-management-lifecycle-e2e-coverage-matrix.md) | 插件管理生命周期、安装/禁用/升级与桌面 e2e |
+| [plugin-promotion-review-2026-11-23.md](./plugin-promotion-review-2026-11-23.md) | 待转正 12 例插件用例的人工视觉复核材料（截图、观察点、转正命令） |
 
 ## 模型与 Provider
 

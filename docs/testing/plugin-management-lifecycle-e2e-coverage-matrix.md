@@ -50,6 +50,10 @@
 
 ## Latest targeted verification
 
+2026-11-23：待人工视觉复核的 12 例材料已汇总到
+[plugin-promotion-review-2026-11-23.md](./plugin-promotion-review-2026-11-23.md)（按分组列出截图、
+每张要看什么、观察点与转正命令）；复核状态仍是 `pending`，本表不改判。
+
 2026-07-15 已在 macOS 上逐个运行上述 `PD/PP`、`PM`、`PV/PO`、`PB/PI`、`PC`、`PF`
 pending spec，均通过。这些 spec 不得并行共享 E2E HOME；允许同一兼容批次串行运行、各用例隔离 HOME 并共享构建。
 截图与 provider capture 已生成，但尚未完成人工产品审核，因此本表不会把
