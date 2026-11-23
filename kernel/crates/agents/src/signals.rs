@@ -160,6 +160,38 @@ impl Hub {
         text: String,
         origin_meta: Option<Value>,
     ) -> u64 {
+        self.push_notice(
+            session,
+            agent,
+            status,
+            text,
+            origin_meta,
+            nibi_kernel_api::agents::AgentNoticeKind::TaskNotification,
+        )
+    }
+
+    /// 子代理通过 `RespondToCoordinator` 投给 coordinator 的一条回复：同一条排队/ack 路径，
+    /// 但来源是 `subagent_message`（model-only carrier），不计入后台任务。
+    pub(crate) fn subagent_message(&self, session: &SessionId, agent: AgentId, text: String) -> u64 {
+        self.push_notice(
+            session,
+            agent,
+            "running",
+            text,
+            None,
+            nibi_kernel_api::agents::AgentNoticeKind::SubagentMessage,
+        )
+    }
+
+    fn push_notice(
+        &self,
+        session: &SessionId,
+        agent: AgentId,
+        status: &str,
+        text: String,
+        origin_meta: Option<Value>,
+        kind: nibi_kernel_api::agents::AgentNoticeKind,
+    ) -> u64 {
         let seq = {
             let mut channels = self.channels();
             let channel = channels.entry(session.clone()).or_default();
@@ -169,6 +201,7 @@ impl Hub {
                 agent,
                 status: status.to_owned(),
                 text,
+                kind,
                 origin_meta,
             };
             let order = channel.order();
@@ -241,6 +274,9 @@ impl Hub {
                 channel
                     .pending
                     .iter()
+                    .filter(|(_, notice)| {
+                        notice.kind == nibi_kernel_api::agents::AgentNoticeKind::TaskNotification
+                    })
                     .map(|(_, notice)| notice.agent.clone())
                     .collect()
             })

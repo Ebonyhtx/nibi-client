@@ -488,6 +488,11 @@ impl RunSink for ActorSink {
         self.absorbed().await
     }
 
+    /// 文本轮收口：只有批里有插话才并入（bookkeeping 与工具边界同一路径）；只有通知时留在通道里。
+    async fn take_absorbed_at_text_end(&self) -> Option<Vec<Absorbed>> {
+        self.absorbed_at_text_end().await
+    }
+
     async fn current_mode(&self) -> Option<PermissionMode> {
         let (reply, answer) = oneshot::channel();
         self.sender.send(SinkRequest::Mode { reply }).await.ok()?;

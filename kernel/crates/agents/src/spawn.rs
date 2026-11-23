@@ -18,6 +18,7 @@ use tokio_util::sync::CancellationToken;
 use crate::Core;
 use crate::child::{ChildSink, Parent};
 use crate::context::SubagentContext;
+use crate::coordinator;
 use crate::live::{AgentState, LiveAgent};
 use crate::report::{self, Ending, Report};
 use crate::routing;
@@ -481,11 +482,18 @@ async fn run_loop(
             }),
         )
     } else {
+        // 子代理的控制工具（RespondToCoordinator）叠在按定义过滤之后的工具面上：定义点名的清单
+        // 不含它也照样有，deny 仍然生效（Node `appendChildControlTool`）。
+        let rule = ToolRule::new(&agent.definition, agent.background, agent.depth);
+        let filtered: Arc<dyn ToolRegistry> = Arc::new(FilteredTools {
+            inner: registry,
+            rule: rule.clone(),
+        });
+        let coordinator: Arc<dyn nibi_kernel_api::tool::Tool> = Arc::new(
+            coordinator::RespondToCoordinator::new(core.clone(), agent),
+        );
         (
-            Arc::new(FilteredTools {
-                inner: registry,
-                rule: ToolRule::new(&agent.definition, agent.background, agent.depth),
-            }),
+            Arc::new(coordinator::Tools::new(filtered, rule, coordinator)),
             Arc::new(SubagentContext {
                 inner: core.ports.context.clone(),
                 system: report::system(&agent.definition.prompt, &agent.selection),

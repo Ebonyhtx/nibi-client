@@ -10,8 +10,8 @@ use nibi_kernel_api::clock::Ids;
 use nibi_kernel_api::ids::{AgentId, MessageId, OperationId, OwnerEpoch, SessionId, ToolUseId};
 use nibi_kernel_api::message::{AssistantMessage, ContentBlock, Message};
 use nibi_kernel_api::orchestration::{
-    InteractionAnswer, InteractionRequest, Interactions, OrchestrationError, PermissionAnswer,
-    PlanApprovalAnswer, QueryEvent, QuestionAnswer, RunSink,
+    Absorbed, InteractionAnswer, InteractionRequest, Interactions, OrchestrationError,
+    PermissionAnswer, PlanApprovalAnswer, QueryEvent, QuestionAnswer, RunSink,
 };
 use nibi_kernel_api::store::{Fact, FactBatch, SessionStore, StoreError, TurnAnchor};
 use nibi_kernel_api::tool::ToolProgress;
@@ -19,7 +19,10 @@ use serde_json::{Value, json};
 use tokio::sync::mpsc;
 
 use crate::doing::Doing;
-use crate::live::Live;
+use crate::live::{Live, Mail};
+
+/// 子代理输入在会话记录上的合成来源（Node `SyntheticUserMessageSource` 的 `subagent`）。
+const SUBAGENT_SOURCE: &str = "subagent";
 
 /// 父会话的会话级询问入口（`Interactions::lasting`）：后台子代理在父回合结束之后经它询问。子代理的条目要能复制、
 /// 打印，所以包一层。
@@ -467,6 +470,49 @@ impl RunSink for ChildSink {
 
     async fn take_steering(&self) -> Vec<String> {
         self.live.take_mailbox(&self.agent)
+    }
+
+    /// 文本轮收口：收到 coordinator 的中途消息（`Mail::Message`）就并入并继续本轮
+    /// （Node 的 active-loop 只被 guide 输入拉长回合）；只有通知时不继续，留给回合结束后的处理。
+    async fn take_absorbed_at_text_end(&self) -> Option<Vec<Absorbed>> {
+        if !self.live.has_steering(&self.agent) {
+            return None;
+        }
+        Some(self.take_absorbed().await)
+    }
+
+    /// 工具边界并入的插话与通知，按到达顺序（L18）：插话是 coordinator 的中途消息
+    /// （`The coordinator sent a message while you were working:` 写法，Node `coordinator_steer`），
+    /// 通知是后台终态通知或子代理自己的 coordinator 回复（`subagent_message`）。
+    async fn take_absorbed(&self) -> Vec<Absorbed> {
+        use nibi_kernel_api::agents::AgentNoticeKind;
+
+        self.live
+            .take_absorbed_mail(&self.agent)
+            .into_iter()
+            .map(|mail| match mail {
+                Mail::Message(text) => Absorbed::Coordinator {
+                    text: nibi_kernel_prompts::texts::render(
+                        nibi_kernel_prompts::agents::stranded_message(),
+                        &[("message", &text)],
+                    ),
+                    source: SUBAGENT_SOURCE.to_owned(),
+                },
+                Mail::Notice(notice) => match notice.kind {
+                    AgentNoticeKind::TaskNotification => Absorbed::Notice {
+                        text: nibi_kernel_prompts::agents::notification_wrap(&notice.envelope),
+                        source: nibi_kernel_api::message::TASK_NOTIFICATION_SOURCE.to_owned(),
+                        // 子代理这一层没有工作流 run 的关联键（与 Hub 的普通通知同形）。
+                        origin_meta: None,
+                    },
+                    AgentNoticeKind::SubagentMessage => Absorbed::Notice {
+                        text: nibi_kernel_prompts::peers::wrap(&notice.envelope, true),
+                        source: nibi_kernel_api::message::SUBAGENT_MESSAGE_SOURCE.to_owned(),
+                        origin_meta: None,
+                    },
+                },
+            })
+            .collect()
     }
 
     /// 子代理的缺省机器（R3，remote-exec.md §20.6）：派生时 Agent 的 `machine`。

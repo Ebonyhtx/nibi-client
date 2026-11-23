@@ -13,6 +13,7 @@ mod actor;
 mod agent_tool;
 mod child;
 mod context;
+mod coordinator;
 mod custom;
 mod definitions;
 mod doing;
@@ -34,6 +35,7 @@ mod spawn;
 mod stall;
 mod state;
 mod task_stop;
+mod task_output;
 mod tasks;
 mod todo;
 mod toolset;
@@ -327,6 +329,10 @@ impl Agents {
                 own.push(Arc::new(AgentTool { core: core.clone() }));
                 own.extend(messaging::tools(&core));
             }
+            // TaskOutput：读后台命令与后台子代理（Node 的内建工具，主线程与 fork 有，子代理没有）。
+            own.push(Arc::new(task_output::TaskOutputTool {
+                core: core.clone(),
+            }));
             if config.task_tools {
                 own.extend(tasks::tools(&core));
             }

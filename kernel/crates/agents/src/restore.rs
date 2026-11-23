@@ -103,27 +103,27 @@ struct RunData {
     started_at_ms: u64,
 }
 
-/// `subagent_result` 的内容。
+/// `subagent_result` 的内容（TaskOutput 也读它取终态与结果正文）。
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ResultData {
+pub(crate) struct ResultData {
     #[serde(default)]
-    ending: String,
+    pub(crate) ending: String,
     #[serde(default)]
-    text: String,
+    pub(crate) text: String,
     /// 失败时的 provider 原文（与终态通知同一份）；旧记录没有这个字段。
     #[serde(default)]
-    error: Option<String>,
+    pub(crate) error: Option<String>,
     #[serde(default)]
-    tokens: u64,
+    pub(crate) tokens: u64,
     #[serde(default)]
-    tool_uses: usize,
+    pub(crate) tool_uses: usize,
     #[serde(default)]
-    duration_ms: u64,
+    pub(crate) duration_ms: u64,
     #[serde(default)]
-    tool_use_id: Option<String>,
+    pub(crate) tool_use_id: Option<String>,
     #[serde(default)]
-    finished_at_ms: u64,
+    pub(crate) finished_at_ms: u64,
 }
 
 impl crate::Agents {
@@ -531,7 +531,7 @@ fn blocked_report(spawn: &SpawnData, attempts: u32) -> Option<Report> {
     None
 }
 
-async fn latest_result(
+pub(crate) async fn latest_result(
     core: &Core,
     child: &SessionId,
     agent: &AgentId,

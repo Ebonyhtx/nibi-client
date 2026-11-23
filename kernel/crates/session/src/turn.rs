@@ -215,12 +215,17 @@ impl Actor {
         }
         let turn = self.deps.ids.turn();
         // 通知轮的轮头 origin（Node `turnHeaderOrigin`）：后台通知开的是 backgroundResult；
-        // 同伴消息（subagent_message）在 Node 的表里落默认 userInput，不带标记。
+        // 同伴消息在 Node 的表里落默认 userInput，不带标记；子代理的 coordinator 回复带
+        // `subagent_message`（它也是 model-only，不显示成人类输入）。
         let input_source = if notices
             .iter()
             .all(|notice| matches!(notice, Waiting::Peer(_)))
         {
             None
+        } else if notices.iter().all(|notice| {
+            matches!(notice, Waiting::Agent(notice) if notice.kind == nibi_kernel_api::agents::AgentNoticeKind::SubagentMessage)
+        }) {
+            Some(TurnInputSource::SubagentMessage)
         } else {
             Some(TurnInputSource::BackgroundTask)
         };

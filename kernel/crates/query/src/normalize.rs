@@ -69,6 +69,17 @@ fn is_human_prompt(attachment: &AttachmentMessage) -> bool {
         && attachment.data.get("commandMode").and_then(Value::as_str) == Some("prompt")
 }
 
+/// 工具边界并入的运行时输入（Node 的 runtime command：后台通知、子代理的 coordinator 回复、
+/// coordinator 的中途消息）。它们各有自己的 `inputPresentation`：模型不支持对话中间 system 时
+/// 作为**独立的 user 文本块**（`<system-reminder>` 包装）发出去，不并进工具结果。
+fn is_runtime_notice(attachment: &AttachmentMessage) -> bool {
+    attachment.source == "queued_command"
+        && matches!(
+            attachment.data.get("commandMode").and_then(Value::as_str),
+            Some("task-notification" | "subagent_message" | "coordinator")
+        )
+}
+
 /// 停止上浮的位置：assistant，或以工具结果开头的 user 消息。
 fn stops_hoisting(message: &Message) -> bool {
     match message {
@@ -166,6 +177,19 @@ impl Builder {
                 }
             }
             _ => self.out.push(message(ApiRole::User, vec![text(value)])),
+        }
+    }
+
+    /// 运行时输入（模型不支持 system turn 时）：独立文本块，带 `<system-reminder>` 包装，接在上一条
+    /// user 消息后面；末尾是工具结果时也不并进它（Node 的 runtime user entry 与工具结果并列）。
+    fn push_runtime_notice(&mut self, value: String) {
+        let wrapped = reminder::wrap(&reminder::unwrap(&value));
+        match self.out.last_mut() {
+            Some(last) if last.role == ApiRole::User => {
+                last.content.push(text(wrapped));
+                tool_results_first(&mut last.content);
+            }
+            _ => self.out.push(message(ApiRole::User, vec![text(wrapped)])),
         }
     }
 
@@ -297,11 +321,50 @@ pub(crate) fn normalize<'a>(
         folded: Vec::new(),
         tool_names: HashMap::new(),
     };
-    for item in hoist(messages.into_iter().collect()) {
+    let messages: Vec<&Message> = messages.into_iter().collect();
+    // 工具边界并入的通知先落一条 meta 记录（转录与冷投影用）与一条同文 attachment（模型上下文）：
+    // 只有 attachment 进请求，记录不能作为第二条 user 文本重复出现（本轮与之后的轮次一致）。
+    let notice_bodies: std::collections::HashSet<&str> = messages
+        .iter()
+        .filter_map(|message| match message {
+            Message::Attachment(attachment) if !attachment.text.is_empty() => {
+                Some(attachment.text.as_str())
+            }
+            _ => None,
+        })
+        .collect();
+    let duplicated_record = |message: &Message| -> bool {
+        let Message::User(user) = message else {
+            return false;
+        };
+        if !matches!(user.origin, nibi_kernel_api::message::UserOrigin::Meta { .. }) {
+            return false;
+        }
+        match user.content.as_slice() {
+            [ContentBlock::Text { text }] => notice_bodies.contains(text.as_str()),
+            _ => false,
+        }
+    };
+    for item in hoist(messages) {
         match item {
+            Message::User(_) if duplicated_record(item) => {}
             Message::User(user) => builder.push_user(plain(user.content.clone())),
             // 只供显示的 attachment（如 `max_turns_reached`）文本为空，渲染为空。
             Message::Attachment(attachment) if attachment.text.is_empty() => {}
+            // 文本轮收口并入的运行时输入（`textEnd`）：Node 的 active-loop 在 text-only 收口后以
+            // **user** 身份追加，即使模型支持对话中间的 system；仍是独立的 `<system-reminder>` 文本块。
+            Message::Attachment(attachment)
+                if attachment.data.get("textEnd").and_then(Value::as_bool) == Some(true) =>
+            {
+                builder.push_runtime_notice(attachment.text.clone());
+            }
+            // 运行时输入（后台通知、coordinator 回复/中途消息）：模型不支持 system turn 时是独立的
+            // user 文本块，不并进工具结果。
+            Message::Attachment(attachment)
+                if !options.system_turns && is_runtime_notice(attachment) =>
+            {
+                builder.push_runtime_notice(attachment.text.clone());
+            }
             // 缺陷修复（修复线 F13）：人类插话原来按 system 角色折进末尾的 system 消息。应在
             // 有 system turn 时把它当人类输入（缺省开）：去包装、接在工具结果所在的
             // user 消息后面（先于 system 文字落地）。没有 system turn 时走下面的老路。

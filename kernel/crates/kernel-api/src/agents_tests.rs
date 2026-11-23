@@ -4,8 +4,8 @@ use futures_util::{FutureExt, StreamExt};
 use serde_json::json;
 
 use super::{
-    AgentNotice, AgentSignal, AgentSignals, NoAgentSignals, TaskList, TaskRecord, TaskStatus,
-    TodoItem, TodoPriority, TodoStatus,
+    AgentNotice, AgentNoticeKind, AgentSignal, AgentSignals, NoAgentSignals, TaskList, TaskRecord,
+    TaskStatus, TodoItem, TodoPriority, TodoStatus,
 };
 use crate::ids::{AgentId, SessionId};
 
@@ -83,6 +83,7 @@ fn signals_round_trip() {
             agent: AgentId::new("agent_1"),
             status: "completed".to_owned(),
             text: "<system-reminder>…</system-reminder>".to_owned(),
+            kind: AgentNoticeKind::TaskNotification,
             origin_meta: None,
         }),
         AgentSignal::TasksChanged {

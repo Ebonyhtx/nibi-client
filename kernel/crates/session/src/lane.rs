@@ -7,7 +7,7 @@
 //! 修正（L18）：以前通知只在回合结束后各开一个回合（按缺省优先级 `later`
 //! 理解），排在全部排队输入之后；通知应是 `next`，在下一个工具边界并入。
 
-use nibi_kernel_api::agents::AgentNotice;
+use nibi_kernel_api::agents::{AgentNotice, AgentNoticeKind};
 use nibi_kernel_api::ids::CommandId;
 use nibi_kernel_api::machine_notices::MachineNotice;
 use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
@@ -37,12 +37,29 @@ pub(crate) enum Waiting {
 
 impl Waiting {
     /// 通知全文（`<system-reminder>` 包装）：工具边界并入用它；后台通知开回合也用它。
+    /// 子代理的 coordinator 回复按 `subagent_reply` 的写法包装（Node `formatIncomingMessage`）。
     pub(crate) fn text(&self) -> String {
         match self {
             Self::Shell(notice) => task_notification(&notice.notice),
-            Self::Agent(notice) => notice.text.clone(),
+            Self::Agent(notice) => match notice.kind {
+                AgentNoticeKind::TaskNotification => notice.text.clone(),
+                AgentNoticeKind::SubagentMessage => {
+                    nibi_kernel_prompts::peers::wrap(&notice.text, false)
+                }
+            },
             Self::Peer(item) => item.text(),
             Self::MonitorEvent(text) | Self::MonitorEnd { text, .. } => text.clone(),
+        }
+    }
+
+    /// 工具边界并入的文字：coordinator 回复用「while you were working」的写法
+    /// （`subagent_reply_steer`），其余与 [`Self::text`] 相同。
+    pub(crate) fn absorbed_text(&self) -> String {
+        match self {
+            Self::Agent(notice) if notice.kind == AgentNoticeKind::SubagentMessage => {
+                nibi_kernel_prompts::peers::wrap(&notice.text, true)
+            }
+            _ => self.text(),
         }
     }
 
@@ -57,6 +74,7 @@ impl Waiting {
     /// 开回合的 meta user 消息的来源。
     pub(crate) fn source(&self) -> &'static str {
         match self {
+            Self::Agent(notice) => notice.kind.source(),
             Self::Peer(_) => PEER_SOURCE,
             _ => NOTICE_SOURCE,
         }
@@ -104,10 +122,10 @@ fn is_slash(text: &str) -> bool {
     text.trim().starts_with('/')
 }
 
-/// 消息里的通知全文：开回合的 meta user 消息，或工具边界并入的 `task-notification` attachment。
+/// 消息里的通知全文：开回合的 meta user 消息，或工具边界并入的通知 attachment。
 fn notice_text(message: &Message) -> Option<&str> {
     match message {
-        Message::User(user) if matches!(&user.origin, UserOrigin::Meta { source, .. } if source == NOTICE_SOURCE || source == PEER_SOURCE) => {
+        Message::User(user) if matches!(&user.origin, UserOrigin::Meta { source, .. } if source == NOTICE_SOURCE || source == PEER_SOURCE || source == nibi_kernel_api::message::SUBAGENT_MESSAGE_SOURCE) => {
             match user.content.as_slice() {
                 [ContentBlock::Text { text }] => Some(text),
                 _ => None,
@@ -115,7 +133,10 @@ fn notice_text(message: &Message) -> Option<&str> {
         }
         Message::Attachment(attachment)
             if attachment.source == "queued_command"
-                && attachment.data["commandMode"] == NOTICE_SOURCE =>
+                && matches!(
+                    attachment.data["commandMode"].as_str(),
+                    Some(NOTICE_SOURCE | nibi_kernel_api::message::SUBAGENT_MESSAGE_SOURCE)
+                ) =>
         {
             Some(&attachment.text)
         }
@@ -127,10 +148,10 @@ impl Actor {
     /// 通知到达：已在对话里或已在通道里（重复送达）时只 ack；否则排进通道。返回是否新排进。
     pub(crate) async fn enqueue_notice(&mut self, notice: Waiting) -> bool {
         let text = notice.text();
-        let seen = self
-            .messages
-            .iter()
-            .any(|message| notice_text(message) == Some(text.as_str()));
+        let absorbed = notice.absorbed_text();
+        let seen = self.messages.iter().any(|message| {
+            matches!(notice_text(message), Some(committed) if committed == text || committed == absorbed)
+        });
         let waiting = self
             .lane
             .iter()
@@ -166,7 +187,7 @@ impl Actor {
         let at = self
             .lane
             .iter()
-            .position(|item| matches!(item, Lane::Notice(notice) if notice.text() == text));
+            .position(|item| matches!(item, Lane::Notice(notice) if notice.text() == text || notice.absorbed_text() == text));
         if let Some(Lane::Notice(notice)) = at.and_then(|at| self.lane.remove(at)) {
             self.ack_notice(&notice).await;
         }

@@ -200,6 +200,15 @@ pub trait RunSink: Interactions {
         Absorbed::ordered(self.take_steered().await, self.take_notices().await)
     }
 
+    /// 文本轮收口前的并入（Node 的 active-loop 在 text-only 收口后仍会读一次 priority <= next 的
+    /// command snapshot）：**只有批里有插话（guide 输入）** 时才交出这一批并沿同一轮继续；只有通知
+    /// 时返回 None，通知留在通道里，由会话在回合结束后开 model-only 轮（query.md §5）。
+    ///
+    /// 缺省不继续（测试替身与只看一次运行的输出端）。
+    async fn take_absorbed_at_text_end(&self) -> Option<Vec<Absorbed>> {
+        None
+    }
+
     /// 会话现在的权限模式；主循环每一步与每次工具调用前读一次，工具改过的模式在同一回合里立即
     /// 生效（docs/specs/rust-cli/tools-more.md §2.3）。没有会话 owner 的输出端返回 None，主循环用
     /// 请求里的模式。

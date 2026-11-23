@@ -101,7 +101,7 @@ async fn consecutive_plain_inputs_run_as_one_turn() {
     // 运行中：一条插话（next）、一条排队（later）、一个斜杠命令（不成批，单独一个回合）。
     built
         .session
-        .send(queued("c2", "first queued", Delivery::Steer))
+        .send(queued("c2", "first queued", Delivery::Queue))
         .await;
     built
         .session

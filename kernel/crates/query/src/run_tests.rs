@@ -241,17 +241,31 @@ async fn steering_input_joins_the_turn_at_the_tool_boundary() {
         "{text}"
     );
 
-    // 没有工具边界：插话留在队列里，由会话在回合结束后处理。
-    let model = Arc::new(ScriptedModel::new(vec![text_response(&["hi"])]));
+    // 文本轮收口：插话不再留到回合结束后，而是并入本轮并沿同一轮续发下一次请求
+    // （Node 的 active-loop 在 text-only 收口后仍会 drain priority <= next 的命令）。
+    let model = Arc::new(ScriptedModel::new(vec![
+        text_response(&["hi"]),
+        text_response(&["again"]),
+    ]));
     let second = request("go");
-    let (run_scope, sink) = scope(parts(model, Vec::new()), &second, Abort::new());
+    let (run_scope, sink) = scope(parts(model.clone(), Vec::new()), &second, Abort::new());
     sink.steer("later");
     super::run(run_scope, second).await.unwrap();
+    let requests = model.requests();
+    assert_eq!(requests.len(), 2, "the steer continues the same turn");
+    let texts: Vec<String> = requests[1]
+        .messages
+        .iter()
+        .flat_map(|message| message.content.iter())
+        .filter_map(|item| match &item.block {
+            ContentBlock::Text { text } => Some(text.clone()),
+            _ => None,
+        })
+        .collect();
     assert!(
-        !sink
-            .messages()
-            .iter()
-            .any(|message| matches!(message, Message::Attachment(_)))
+        texts.iter().any(|text| text
+            .contains("The user sent a new message while you were working:\nlater")),
+        "{texts:?}"
     );
 }
 

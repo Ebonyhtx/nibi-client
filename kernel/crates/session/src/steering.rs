@@ -148,6 +148,20 @@ impl ActorSink {
         let Some(claimed) = self.claim().await else {
             return Vec::new();
         };
+        self.finish_claim(claimed).await
+    }
+
+    /// 文本轮收口前的并入：只有批里有插话（guide 输入）才并入并沿本轮继续；只有通知时不动通道
+    /// （领取不消费），它们留给回合结束后的 model-only 轮（Node 的 active-loop 只被 guide 输入拉长回合）。
+    pub(crate) async fn absorbed_at_text_end(&self) -> Option<Vec<Absorbed>> {
+        let claimed = self.claim().await?;
+        if !claimed.has_prompt() {
+            return None;
+        }
+        Some(self.finish_claim(claimed).await)
+    }
+
+    async fn finish_claim(&self, claimed: Claimed) -> Vec<Absorbed> {
         let mut fates = Vec::new();
         let mut screened = Vec::new();
         let mut barrier = false;
@@ -202,7 +216,7 @@ impl ActorSink {
                     }));
                 }
                 Screened::Notice(notice) => absorbed.push(Absorbed::Notice {
-                    text: notice.text(),
+                    text: notice.absorbed_text(),
                     source: notice.source().to_owned(),
                     origin_meta: notice.origin_meta().cloned(),
                 }),

@@ -39,6 +39,16 @@
         "name": "submit_result",
         "side": "node",
         "reason": "Rust 侧由 nibi-kernel-agents 的 workflow actor 注册（端口在场时）；不在 tools crate。"
+      },
+      {
+        "name": "TaskOutput",
+        "side": "node",
+        "reason": "Rust 侧由 nibi-kernel-agents 的 task_output 工具注册（主线程与 fork 有、子代理没有）；跨层组装，不在本门禁范围。"
+      },
+      {
+        "name": "RespondToCoordinator",
+        "side": "node",
+        "reason": "Rust 侧由 nibi-kernel-agents 在子代理运行期按身份构造（child-only）；不在 tools crate，跨层组装不在此门禁范围。"
       }
     ]
   },
@@ -545,7 +555,10 @@
         "conflict",
         "cancelled"
       ],
-      "cliOnly": ["self_wait", "observation_invalid"],
+      "cliOnly": [
+        "self_wait",
+        "observation_invalid"
+      ],
       "appOnly": []
     },
     "sourcePolicy": {

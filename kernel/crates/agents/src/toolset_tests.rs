@@ -75,7 +75,6 @@ fn general_purpose_drops_only_the_main_thread_tools() {
             "EnterWorktree",
             "Monitor",
             "NotebookEdit",
-            "SendMessage",
             "TaskStop",
             "WebFetch",
             "mcp__docs__search"
@@ -97,14 +96,13 @@ fn explore_is_read_only_and_background_keeps_the_async_set() {
             "CronCreate",
             "EnterWorktree",
             "Monitor",
-            "SendMessage",
             "TaskStop",
             "WebFetch",
             "mcp__docs__search"
         ]
     );
-    // A2：后台 Explore 只有 Bash、Read、Skill、ToolSearch 与延迟的 EnterWorktree、SendMessage、
-    // TaskStop、WebFetch；F83 起另有 Monitor（后台白名单里有它）。
+    // A2：后台 Explore 只有 Bash、Read、Skill、ToolSearch 与延迟的 EnterWorktree、TaskStop、
+    // WebFetch；F83 起另有 Monitor（后台白名单里有它）。SendMessage 是主会话的工具，子代理没有。
     assert_eq!(
         names(EXPLORE, true),
         [
@@ -114,7 +112,6 @@ fn explore_is_read_only_and_background_keeps_the_async_set() {
             "ToolSearch",
             "EnterWorktree",
             "Monitor",
-            "SendMessage",
             "TaskStop",
             "WebFetch",
             "mcp__docs__search"

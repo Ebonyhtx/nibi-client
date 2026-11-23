@@ -46,6 +46,7 @@ fn notice(seq: u64) -> AgentSignal {
         agent: AgentId::new("agent_1"),
         status: "completed".to_owned(),
         text: "<system-reminder>\nagent done\n</system-reminder>".to_owned(),
+        kind: nibi_kernel_api::agents::AgentNoticeKind::TaskNotification,
         origin_meta: None,
     })
 }

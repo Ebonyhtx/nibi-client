@@ -154,15 +154,15 @@ describe("Subagent 模型与 reasoning effort 覆盖 E2E", () => {
     });
 
     // Rust 的 Explore 工具面（kernel/crates/agents/src/definitions.rs 的只读禁用集 + 后台白名单）
-    // 与 Node 不同：Node 的 RespondToCoordinator 在 Rust 里仍未实现（BG25 单独跟进），
-    // 这里按当前桌面内核的真实工具面断言，不把未实现的工具写成已覆盖。
+    // 按当前桌面内核的真实工具面断言；RespondToCoordinator 是子代理的控制工具（Node
+    // `appendChildControlTool`），定义清单之外也照样给。
     expect(readToolNamesFromCapture(exploreChildRecord.requestJson)).toEqual([
       "Bash",
       "EnterWorktree",
       "ExitWorktree",
       "Monitor",
       "Read",
-      "SendMessage",
+      "RespondToCoordinator",
       "Skill",
       "TaskStop",
       "TodoRead",

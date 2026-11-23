@@ -161,10 +161,23 @@ async fn reached_max_turns(
 
 /// 工具边界并入插话与后台通知（在工具结果之后按队列顺序吸收优先级 `next` 的排队命令，
 /// `absorbed_mid_turn`；query.md §4、§5）。每条插话的 UserPromptSubmit 消息紧跟在它的 `queued_command`
-/// 之后（query.md §4.1）；通知是 `commandMode: task-notification`（§5.1）。
+/// 之后（query.md §4.1）；通知是 `commandMode: task-notification` / `subagent_message` / `coordinator`（§5.1）。
 async fn absorb_steering(scope: &RunScope, history: &mut Vec<Message>) -> Result<(), QueryError> {
-    for item in scope.sink.take_absorbed().await {
-        let (text, data, after) = match item {
+    let items = scope.sink.take_absorbed().await;
+    absorb_items(scope, history, items, false).await
+}
+
+/// 已取走的一批并入历史（工具边界与文本轮收口共用同一条路径）。`at_text_end` 是文本轮收口：
+/// 这一批按 user 角色呈现（`normalize` 不把它折成对话中间的 system 消息），Node 的 active-loop 在
+/// text-only 收口后也是以 user 身份追加这批输入。
+async fn absorb_items(
+    scope: &RunScope,
+    history: &mut Vec<Message>,
+    items: Vec<Absorbed>,
+    at_text_end: bool,
+) -> Result<(), QueryError> {
+    for item in items {
+        let (text, mut data, after) = match item {
             Absorbed::Prompt(steered) => {
                 let text = texts::queued_prompt(&steered.text);
                 let data = json!({ "prompt": steered.text, "commandMode": "prompt" });
@@ -181,13 +194,33 @@ async fn absorb_steering(scope: &RunScope, history: &mut Vec<Message>) -> Result
                 let record = Message::User(UserMessage {
                     id: scope.parts.ids.message(),
                     content: vec![ContentBlock::Text { text: text.clone() }],
-                    origin: UserOrigin::Meta { source, origin_meta },
+                    origin: UserOrigin::Meta {
+                        source: source.clone(),
+                        origin_meta,
+                    },
                 });
                 scope.sink.commit_message(record).await?;
-                let data = json!({ "prompt": text, "commandMode": "task-notification" });
+                let data = json!({ "prompt": text, "commandMode": source });
+                (text, data, Vec::new())
+            }
+            Absorbed::Coordinator { text, source } => {
+                // 子代理收到 coordinator 的中途消息：与通知同一条并入路径，记录落 `subagent` 来源。
+                let record = Message::User(UserMessage {
+                    id: scope.parts.ids.message(),
+                    content: vec![ContentBlock::Text { text: text.clone() }],
+                    origin: UserOrigin::Meta {
+                        source,
+                        origin_meta: None,
+                    },
+                });
+                scope.sink.commit_message(record).await?;
+                let data = json!({ "prompt": text, "commandMode": "coordinator" });
                 (text, data, Vec::new())
             }
         };
+        if at_text_end {
+            data["textEnd"] = json!(true);
+        }
         let attachment = Message::Attachment(AttachmentMessage {
             id: scope.parts.ids.message(),
             source: "queued_command".to_owned(),
@@ -507,6 +540,21 @@ pub(crate) async fn run(
                 match conclude(&scope, &mut history, outcome, assistant, call).await? {
                     // 要正常结束：先跑 Stop hooks（hooks.md §7），它们可以让回合继续。
                     Some(QueryStop::Completed) => {
+                        // 文本轮收口：排队中的插话（guide 输入）在回合结束前并入，有就沿同一轮续发
+                        // 下一次请求（Node 的 active-loop 在 text-only 收口后仍会读一次 priority <= next
+                        // 的 command snapshot）；只有通知时不继续，留给回合结束后的 model-only 轮。
+                        // 轮数到上限时留给下一个回合（与工具轮同一判据）。
+                        if over_max_turns(max_turns, turn_count + 1).is_none()
+                            && let Some(items) = scope.sink.take_absorbed_at_text_end().await
+                        {
+                            absorb_items(&scope, &mut history, items, true).await?;
+                            turn_count += 1;
+                            guards.next_turn();
+                            stop_blocks = 0;
+                            compaction.next_turn();
+                            step = StepTools::refresh(&scope, &selection).await;
+                            continue;
+                        }
                         let hook = stop_hooks(
                             &scope,
                             &mut history,

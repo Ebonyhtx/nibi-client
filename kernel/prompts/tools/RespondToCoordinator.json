@@ -1,0 +1,24 @@
+{
+  "name": "RespondToCoordinator",
+  "description": "\n- Respond to the coordinator that owns this subagent\n- When you receive \"The coordinator sent a message while you were working:\" (or the legacy \"Message from coordinator:\" prefix), use this tool to answer it\n- Use this tool for a concise response or progress update to the coordinator\n- When replying while work remains, do not use assistant text as the reply\n- Place this call before or alongside the next work tool call when possible\n- Continue the current task unless the coordinator explicitly changed or ended it\n- Do not use this tool as a substitute for the final task result\n",
+  "input_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "summary": {
+        "description": "Short summary of the response.",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "message": {
+        "description": "Response or progress update for the coordinator.",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 20000
+      }
+    },
+    "required": ["summary", "message"],
+    "additionalProperties": false
+  }
+}

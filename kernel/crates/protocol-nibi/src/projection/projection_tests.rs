@@ -1539,7 +1539,12 @@ fn a_subagent_spawn_and_done_become_a_paired_row() {
         input: json!({"description": "Run explore", "subagent_type": "Explore"}),
     });
     let spawned = feed.apply(subagent_event(SubagentPhase::Spawned, "tool_1", "running"));
-    assert_eq!(ops(&spawned), ["row.appended(subagent)", "state(revision)"]);
+    assert_eq!(
+        ops(&spawned),
+        ["row.appended(subagent)", "state(backgroundWorks,revision)"]
+    );
+    assert_eq!(spawned[1]["patch"]["backgroundWorks"][0]["workId"], "agent_1");
+    assert_eq!(spawned[1]["patch"]["backgroundWorks"][0]["status"], "running");
     let row = &spawned[0]["row"];
     assert_eq!(row["kind"], "subagent");
     assert_eq!(row["turnId"], "turn_1");
@@ -1551,7 +1556,12 @@ fn a_subagent_spawn_and_done_become_a_paired_row() {
     assert_eq!(row["backgrounded"], true);
     assert_eq!(row["workId"], "agent_1");
     let done = feed.apply(subagent_event(SubagentPhase::Done, "tool_1", "completed"));
-    assert_eq!(ops(&done), ["row.upserted(subagent)", "state(revision)"]);
+    assert_eq!(
+        ops(&done),
+        ["row.upserted(subagent)", "state(backgroundWorks,revision)"]
+    );
+    // 终态之后后台工作面清空。
+    assert_eq!(done[1]["patch"]["backgroundWorks"], json!([]));
     assert_eq!(done[0]["row"]["status"], "success");
     assert!(done[0]["row"]["endedAt"].is_u64());
 }
@@ -1579,7 +1589,7 @@ fn a_resumed_subagent_spawn_keeps_the_original_anchor() {
         "agent_1",
         "running",
     ));
-    assert_eq!(ops(&resumed), ["state(revision)"]);
+    assert_eq!(ops(&resumed), ["state(backgroundWorks,revision)"]);
     let killed = feed.apply(subagent_event(SubagentPhase::Done, "agent_1", "killed"));
     // 续跑事件的父调用是 SendMessage；终态仍回写到原 Agent 行（tool_1）。
     assert_eq!(
@@ -1587,7 +1597,7 @@ fn a_resumed_subagent_spawn_keeps_the_original_anchor() {
         [
             "row.upserted(subagent)",
             "row.upserted(toolCall)",
-            "state(revision)"
+            "state(backgroundWorks,revision)"
         ]
     );
     let parent = killed
@@ -1615,7 +1625,8 @@ fn a_subagent_without_a_local_parent_call_is_ignored() {
         "tool_missing",
         "running",
     ));
-    assert_eq!(ops(&spawned), ["state(revision)"]);
+    assert_eq!(ops(&spawned), ["state(backgroundWorks,revision)"]);
+    assert_eq!(spawned[0]["patch"]["backgroundWorks"], json!([]));
 }
 
 /// 冷投影：持久化的 `SubagentLinked`（tool part metadata）补回 subagent 行；终态取通知的

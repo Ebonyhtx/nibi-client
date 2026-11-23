@@ -117,6 +117,7 @@ async fn deliver(
         from: AgentId::new(task.as_str()),
         status,
         envelope,
+        kind: nibi_kernel_api::agents::AgentNoticeKind::TaskNotification,
         stall: None,
     };
     let wake = core

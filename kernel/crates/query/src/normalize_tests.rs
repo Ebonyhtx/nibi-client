@@ -614,3 +614,27 @@ fn notices_and_models_without_system_turns_keep_the_old_place_for_queued_command
         ["<task-notification>done</task-notification>"]
     );
 }
+
+/// 文本轮收口并入的运行时输入（`textEnd`）即使模型支持对话中间的 system 也按 user 呈现
+/// （Node 的 active-loop 在 text-only 收口后以 user 身份追加），且是独立的 `<system-reminder>` 文本块。
+#[test]
+fn text_end_runtime_inputs_stay_user_blocks_with_system_turns() {
+    let text = "Another NIBI session sent a message while you were working:\nhi\n\nAddress this.";
+    let notice = Message::Attachment(AttachmentMessage {
+        id: MessageId::new("n2"),
+        source: "queued_command".to_owned(),
+        text: text.to_owned(),
+        data: serde_json::json!({
+            "prompt": text,
+            "commandMode": "subagent_message",
+            "textEnd": true,
+        }),
+    });
+    let api = normalize(&read_then("ok", "Read", vec![notice]), &ON);
+    let last = api.last().unwrap();
+    assert_eq!(last.role, ApiRole::User);
+    assert_eq!(
+        texts(last)[1..],
+        ["<system-reminder>\nAnother NIBI session sent a message while you were working:\nhi\n\nAddress this.\n</system-reminder>"]
+    );
+}

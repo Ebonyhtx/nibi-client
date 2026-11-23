@@ -38,14 +38,17 @@ pub enum TurnExecutionKind {
 
 /// 合成输入开的轮的来源（Node `TurnStarted.inputSource`，contracts session.events.ts 的
 /// `SyntheticUserMessageSource` 子集）：投影据它在轮头行派生 `origin`（Node `turnHeaderOrigin`
-/// 的同一张表——`background_task` → `backgroundResult`；真人输入缺席，origin 是 `userInput`）。
-/// 同伴消息的 `subagent_message` 在 Node 的表里落默认 `userInput`，内核不给它这个标记。
+/// 的同一张表——`background_task` → `backgroundResult`；`subagent_message` 缺省 `userInput`，
+/// 它的 carrier 是 model-only）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TurnInputSource {
     /// 后台任务通知（`<task-notification>` 信封开的 model-only 轮；shell / 子代理 / 工作流 run
     /// 的完成与提问通知都走它）。
     BackgroundTask,
+    /// 子代理的 coordinator 回复（`<subagent-message>` carrier 开的 model-only 轮，
+    /// docs/subagent-respond-to-coordinator.md）。
+    SubagentMessage,
 }
 
 /// 运行中提交的输入怎样投递（工具边界吸收排队消息）。

@@ -57,6 +57,7 @@ async fn forward(core: &Arc<Core>, agent: &AgentId, root: &SessionId, notice: Sh
         from: AgentId::new(notice.task.as_str()),
         status,
         envelope,
+        kind: nibi_kernel_api::agents::AgentNoticeKind::TaskNotification,
         stall: None,
     };
     let wake = core

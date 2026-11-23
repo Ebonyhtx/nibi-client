@@ -306,13 +306,21 @@ impl Steered {
 pub enum Absorbed {
     /// 插话：`queued_command`（`commandMode: prompt`），之后提交它的 hook 消息。
     Prompt(Steered),
-    /// 通知全文：`queued_command`（`commandMode: task-notification`）。`source` / `origin_meta`
+    /// 通知全文：`queued_command`（`commandMode: task-notification` 或 `subagent_message`）。`source` / `origin_meta`
     /// 是通知记录的来源与运行卡关联键——并入也先落一条 meta user 消息（Node 的 mid-turn drain
     /// 先 persist 批记录），转录里与开回合的通知同形。
     Notice {
         text: String,
         source: String,
         origin_meta: Option<serde_json::Value>,
+    },
+    /// 子代理收到的 coordinator 输入（父会话 `SendMessage` 的中途投递，docs/subagent-respond-to-coordinator.md）：
+    /// 正文已按 coordinator 的写法包装（`The coordinator sent a message while you were working:` …），
+    /// 按 user 角色进模型上下文（MCS 模型上是对话中间的 system 消息）；`source` 是落 meta 记录用的
+    /// 合成来源（`subagent`）。
+    Coordinator {
+        text: String,
+        source: String,
     },
 }
 

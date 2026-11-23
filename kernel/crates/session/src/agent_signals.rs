@@ -63,13 +63,17 @@ impl Actor {
         if self.closing.is_some() {
             return;
         }
+        let kind = notice.kind;
         let work = notice.agent.to_string();
         let status = notice.status.clone();
         if !self.enqueue_notice(Waiting::Agent(notice)).await {
             return;
         }
-        self.log
-            .append(KernelEvent::BackgroundWork { work, status });
+        // coordinator 回复不是后台任务的终态：不写 BackgroundWork，也不计入后台任务栏。
+        if kind == nibi_kernel_api::agents::AgentNoticeKind::TaskNotification {
+            self.log
+                .append(KernelEvent::BackgroundWork { work, status });
+        }
         if self.running.is_none() {
             self.start_next().await;
         }
