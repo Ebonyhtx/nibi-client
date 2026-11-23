@@ -38,6 +38,16 @@ pub fn subagent_link(tool_use: &ToolUseId, output: &ToolOutput) -> Option<Fact> 
     })
 }
 
+/// 一次已持久化的子代理调用关联（[`Fact::SubagentLinked`]）：冷投影据此恢复父会话 timeline 的
+/// `subagent` 行。`tool_use` 是父会话里触发这次调用的 Agent 工具调用。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SubagentLink {
+    pub tool_use: ToolUseId,
+    pub agent: AgentId,
+    pub child: SessionId,
+    pub agent_type: String,
+}
+
 /// 子循环工厂：用父会话的工具上下文选项改写出子代理的选项。
 pub trait SubagentQueries: Send + Sync {
     /// 用 `tools` 与 `context` 替换主循环的工具注册表与上下文组装，得到子代理的 [`QueryRunner`]。

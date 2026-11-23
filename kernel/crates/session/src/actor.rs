@@ -45,6 +45,10 @@ pub(crate) enum Request {
     View {
         reply: oneshot::Sender<SessionView>,
     },
+    /// 已持久化的子代理调用关联（冷投影恢复 `subagent` 行）。
+    SubagentLinks {
+        reply: oneshot::Sender<Vec<nibi_kernel_api::agents::SubagentLink>>,
+    },
     /// 此刻在跑的回合 ID（会话控制的 `executionId`）：空闲时 None。与 `View` 分开，读它不复制历史。
     Execution {
         reply: oneshot::Sender<Option<String>>,
@@ -267,6 +271,9 @@ pub(crate) struct Actor {
     /// 已落库的受管 worktree 创建结果（冷加载的 `LoadedSession.worktree_creations` + 本进程落的）：
     /// `view()` 带给冷投影在首轮轮顶落 `worktreeCreated` 标记。
     pub(crate) worktree_creations: Vec<nibi_kernel_api::store::WorktreeCreationTurn>,
+    /// 已持久化的子代理调用关联（冷加载的 `LoadedSession.subagent_links` + 本进程 settle 的）：
+    /// 协议冷投影据此恢复父会话 timeline 的 `subagent` 行。
+    pub(crate) subagent_links: Vec<nibi_kernel_api::agents::SubagentLink>,
     /// 协议层刚交来、还没随首轮输入落库的 worktree 创建事实（[`Command::SetWorktreeCreation`]）：
     /// 首个真人输入提交时取走，写成 part 并发 `WorktreeCreated`。重复发送保持第一次的事实。
     pub(crate) pending_worktree_creation: Option<nibi_kernel_api::session_api::WorktreeCreation>,
@@ -400,6 +407,7 @@ impl Actor {
             model_turns: std::sync::Mutex::new(state.model_turns),
             input_intents: state.input_intents,
             worktree_creations: state.worktree_creations,
+            subagent_links: state.subagent_links,
             pending_worktree_creation: None,
             pending_intents: HashMap::new(),
             pending_turn_facts: HashMap::new(),
@@ -655,6 +663,9 @@ impl Actor {
         match request {
             Request::View { reply } => {
                 let _ = reply.send(self.view().await);
+            }
+            Request::SubagentLinks { reply } => {
+                let _ = reply.send(self.subagent_links.clone());
             }
             Request::Execution { reply } => {
                 let _ = reply.send(

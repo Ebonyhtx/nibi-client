@@ -309,6 +309,7 @@ impl Setup {
                 model_turns: Vec::new(),
                 input_intents: Vec::new(),
                 worktree_creations: Vec::new(),
+                subagent_links: Vec::new(),
                 draft: self.draft,
             },
             self.opened,

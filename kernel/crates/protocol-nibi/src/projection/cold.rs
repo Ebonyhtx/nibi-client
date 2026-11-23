@@ -6,6 +6,7 @@ use nibi_kernel_api::message::{ContentBlock, Message, SystemMessage, UserOrigin}
 use nibi_kernel_api::session_api::{
     SequencedEvent, SessionView, TurnExecutionKind, TurnInputSource,
 };
+use nibi_kernel_api::store::SessionKind;
 use nibi_kernel_api::user_input::INTERRUPT_TEXTS;
 
 use super::{Projection, state::Phase, tool_key};
@@ -78,6 +79,15 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
                     started,
                     &mut out,
                 );
+                // fresh 子会话的首轮没有上一轮可比：Node 用 source-less 基线落一条
+                // 「正在使用 provider/model」标记；主会话首轮仍然静默。
+                if turns == 1 && view.meta.kind == SessionKind::Subagent {
+                    let selection = selections
+                        .get(user.id.as_str())
+                        .copied()
+                        .unwrap_or(&view.selection);
+                    projection.append_model_initial(&turn, selection, started, 0, &mut out);
+                }
                 // 工作流控制轮（NIBI 中枢启动/设置轮，launch.md）：消息记录带 `source: "workflow_launch"`
                 // 的 user 消息按 controlOnly 重建（Node transcript-hydration 的 workflowLaunchOfMessage
                 // 同一判据）；清单里没有或元数据缺席时退回普通 agent 轮。

@@ -10,6 +10,7 @@ mod files;
 mod rows;
 pub mod state;
 mod subagents;
+mod subagent_rows;
 mod workflow_runs;
 
 pub use auto_resolution::Step;
@@ -547,6 +548,23 @@ impl Projection {
         }
     }
 
+    /// 冷投影：把行插到父行之后。协议行全序就是界面顺序；子代理行必须紧跟触发它的 Agent
+    /// 工具行，否则会被后续正文切到另一个 work segment，配对表按段看不到它。
+    fn insert_after(&mut self, parent: &str, key: String, row: Map<String, Value>) {
+        let Some(&at) = self.index.get(parent) else {
+            return;
+        };
+        self.next_row += 1;
+        let position = at + 1;
+        self.rows.insert(position, row);
+        for index in self.index.values_mut() {
+            if *index >= position {
+                *index += 1;
+            }
+        }
+        self.index.insert(key, position);
+    }
+
     fn upsert(
         &mut self,
         key: &str,
@@ -847,6 +865,9 @@ impl Projection {
                     patch.insert("workflowRuns".into(), json!(self.workflow_runs));
                 }
             }
+            event @ KernelEvent::Subagent { .. } => {
+                self.subagent_event(event, now, seq, &mut out);
+            }
             _ => {}
         }
         if event.revision != self.revision {
@@ -975,6 +996,31 @@ impl Projection {
             }),
         );
         self.append(format!("model-change:{turn}"), row, out);
+    }
+
+    /// source-less 的「正在使用」标记（Node `lastTurnModel.kind === "sourceLess"`）：fresh 子会话
+    /// 没有上一轮可比，首轮照样要显示它实际使用的 provider/model。主会话首轮保持静默。
+    fn append_model_initial(
+        &mut self,
+        turn: &str,
+        to: &ModelSelection,
+        now: u64,
+        seq: u64,
+        out: &mut Vec<Value>,
+    ) {
+        let entity = format!("model-initial:{turn}:{}/{}", to.provider, to.model);
+        let mut row = self.base(turn, &entity, "timelineMarker", now, seq);
+        row.insert("lane".into(), json!("lightBoundary"));
+        row.insert(
+            "marker".into(),
+            json!({
+                "type": "modelChange",
+                "toProvider": to.provider,
+                "toModel": to.model,
+                "toThought": to.reasoning.clone().unwrap_or_default(),
+            }),
+        );
+        self.append(format!("model-initial:{turn}"), row, out);
     }
 
     /// `worktreeCreated` 标记（Node 的 lightBoundary 行）：受管 worktree 的创建结果。

@@ -91,6 +91,8 @@ impl Live {
         local_ttft: Arc<crate::local_ttft::LocalTtftRecorder>,
         spawner: nibi_kernel_base::Spawner,
         auto_resolution_enabled: bool,
+        // 已持久化的子代理调用关联（`SessionHandle::subagent_links`）：冷投影据此恢复 subagent 行。
+        subagent_links: &[nibi_kernel_api::agents::SubagentLink],
     ) -> Self {
         let levels = view.selection.reasoning.iter().cloned().collect();
         let epoch = context.fresh("epoch");
@@ -100,6 +102,14 @@ impl Live {
             Some(view.meta.workspace.environment.as_str()),
         );
         let now = context.now();
+        let mut projection = Projection::from_view_with_auto_resolution(
+            view,
+            followup,
+            levels,
+            auto_resolution_enabled,
+            now,
+        );
+        projection.seed_subagent_rows(view, subagent_links, now);
         Self {
             session: view.meta.id.as_str().to_owned(),
             workspace: view.meta.workspace.root.as_str().to_owned(),
@@ -107,13 +117,7 @@ impl Live {
             side_chat: view.meta.kind == SessionKind::SelectionSideChat,
             has_parent: view.meta.parent.is_some(),
             state: Mutex::new(State {
-                projection: Projection::from_view_with_auto_resolution(
-                    view,
-                    followup,
-                    levels,
-                    auto_resolution_enabled,
-                    now,
-                ),
+                projection,
                 log: TopicLog::new(epoch),
                 summary: None,
                 summaries: false,

@@ -121,6 +121,7 @@ pub(crate) async fn session_on_machines<E: nibi_kernel_api::testing::AllPorts + 
             model_turns: Vec::new(),
             input_intents: Vec::new(),
             worktree_creations: Vec::new(),
+            subagent_links: Vec::new(),
             draft: false,
         },
         Opened::Loaded,

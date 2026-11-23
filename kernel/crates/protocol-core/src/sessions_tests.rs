@@ -174,14 +174,14 @@ async fn events_after_the_view_reach_the_sink_once_even_when_the_stream_restarts
         SessionBridge::<Recorder>::new(kernel.clone(), scope.spawner(), Duration::from_millis(30));
     let id = SessionId::new("s1");
     // 视图不可用时打开失败（FakeHandle 的 view 返回 Unsupported）：用一个给出视图的包装。
-    assert!(bridge.open(&id, |_, _| Recorder::default()).await.is_err());
+    assert!(bridge.open(&id, |_, _, _| Recorder::default()).await.is_err());
     let bridge = SessionBridge::<Recorder>::new(
         Arc::new(ViewKernel(kernel.clone())),
         scope.spawner(),
         Duration::from_millis(30),
     );
-    let first = bridge.open(&id, |_, _| Recorder::default()).await.unwrap();
-    let again = bridge.open(&id, |_, _| Recorder::default()).await.unwrap();
+    let first = bridge.open(&id, |_, _, _| Recorder::default()).await.unwrap();
+    let again = bridge.open(&id, |_, _, _| Recorder::default()).await.unwrap();
     assert!(Arc::ptr_eq(&first.sink, &again.sink));
     tokio::time::sleep(Duration::from_millis(200)).await;
     assert_eq!(*first.sink.seqs.lock().unwrap(), vec![2, 3, 4, 5]);
@@ -274,14 +274,14 @@ async fn a_closed_cached_handle_is_dropped_and_the_session_is_opened_again() {
         Duration::from_millis(30),
     );
     let id = SessionId::new("s1");
-    let first = bridge.open(&id, |_, _| Recorder::default()).await.unwrap();
-    assert!(bridge.open(&id, |_, _| Recorder::default()).await.is_ok());
+    let first = bridge.open(&id, |_, _, _| Recorder::default()).await.unwrap();
+    assert!(bridge.open(&id, |_, _, _| Recorder::default()).await.is_ok());
     assert_eq!(*kernel.opens.lock().unwrap(), 1, "cached while the handle lives");
 
     handle
         .closed
         .store(true, std::sync::atomic::Ordering::SeqCst);
-    let second = bridge.open(&id, |_, _| Recorder::default()).await.unwrap();
+    let second = bridge.open(&id, |_, _, _| Recorder::default()).await.unwrap();
     assert!(!Arc::ptr_eq(&first, &second), "the closed entry is not reused");
     assert_eq!(*kernel.opens.lock().unwrap(), 2);
 }

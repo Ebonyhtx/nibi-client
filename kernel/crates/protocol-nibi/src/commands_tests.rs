@@ -904,6 +904,7 @@ async fn resolve_permission_option(option_id: &str) -> Vec<Command> {
         Arc::new(crate::local_ttft::LocalTtftRecorder::new("cli-1".to_owned())),
         scope.spawner(),
         true,
+        &[],
     );
     let envelope = Envelope {
         command_id: "c_perm".to_owned(),
