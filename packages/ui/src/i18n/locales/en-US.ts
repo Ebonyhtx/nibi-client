@@ -8066,6 +8066,12 @@ const enUS: Record<string, string> = {
   ...requestSecurityMessagesEnUS,
   "settings.plugins.error.membershipRequired":
     "This is a members-only plugin. Get membership and try again.",
+  "settings.plugins.error.sourcePathMissing":
+    "Marketplace source path does not exist: {detail}",
+  "settings.plugins.error.sourceUnsupported": "Unsupported plugin source: {detail}",
+  "settings.plugins.error.sourceNotJson": "Marketplace file must be a .json file: {detail}",
+  "settings.plugins.error.sourceNotFileOrDir":
+    "Marketplace source path is not a file or directory: {detail}",
   "settings.plugins.membership.title": "NIBI Membership",
   "settings.plugins.membership.badge": "Members only",
   "settings.plugins.membership.description":

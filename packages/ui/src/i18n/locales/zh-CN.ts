@@ -7672,6 +7672,10 @@ const zhCN: Record<string, string> = {
   "scheduledPreview.addSchedule": "添加计划",
   ...requestSecurityMessagesZhCN,
   "settings.plugins.error.membershipRequired": "该插件为会员专享，请开通会员后重试。",
+  "settings.plugins.error.sourcePathMissing": "插件市场来源路径不存在：{detail}",
+  "settings.plugins.error.sourceUnsupported": "无法识别的插件来源：{detail}",
+  "settings.plugins.error.sourceNotJson": "插件市场文件必须是 .json：{detail}",
+  "settings.plugins.error.sourceNotFileOrDir": "插件市场来源不是文件或目录：{detail}",
   "settings.plugins.membership.title": "NIBI 会员",
   "settings.plugins.membership.badge": "会员专享",
   "settings.plugins.membership.description":

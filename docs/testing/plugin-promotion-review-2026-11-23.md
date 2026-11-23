@@ -2,9 +2,10 @@
 
 > 状态：**待复核**（`Human review: pending`）。本材料只用于人工看画面与行为，不代表已批准。
 > 复核通过后才执行 `e2e:promote:plugins -- --reviewed --apply`、Docker admission 与正式 CI preset。
-> 截图来自 2026-11-22 的 Windows 真机 manual-review 运行，存放在
-> `packages/desktop/.e2e-artifacts/plugin-management/`（不入库）。文案与画面与当前产品一致；
-> 唯一在 2026-11-23 变过的是子代理工具面，相关两例的重跑结论见文末「复核前重跑结果」。
+> 截图存放在 `packages/desktop/.e2e-artifacts/plugin-management/`（不入库）。原始证据来自 2026-11-22
+> Windows 真机 manual-review；2026-11-23 修掉「公开/个人」重复分段与错误文案语言后，受影响用例
+> 已用 replay fixture 重跑刷新截图（run id 见文末「重跑记录」；`plugin-management-ui-market` 的
+> 截图同样已刷新，只是该轮在结尾的视频编码处因缺 ffmpeg 判失败）。
 
 ## 复核范围（12 例）
 
@@ -32,9 +33,9 @@
 | 截图 | 画面 | 请确认 |
 | --- | --- | --- |
 | [detail-from-card.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-lc-001/detail-from-card.png) | 从市场卡片进入插件详情：面包屑「插件市场 › 生命周期测试插件」、左上「浏览全部插件」返回、右上「安装」、示例 prompt 块与「信息」区 | 返回路径与安装入口位置、示例 prompt 的呈现 |
-| [manage-installed.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-lc-001/manage-installed.png) | 「插件管理 · 本机 · 用户」列表：已安装 1 + 内置 14、刷新/浏览插件/添加入口 | 列表分组、开关与「默认」标注 |
+| [manage-installed.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-lc-001/manage-installed.png) | 「插件管理 · 本机 · 用户」列表：已安装 1（生命周期测试插件）、刷新/浏览插件/添加入口；replay HOME 未播种内置插件，所以没有「内置 14」分区 | 列表分组、开关与「默认」标注 |
 | [back-to-chat.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-lc-001/back-to-chat.png) | 从商店返回对话后的空会话态 | 返回后草稿/会话未被商店打断 |
-| [zh-nibi-light-wide.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-lc-002/zh-nibi-light-wide.png) | 中文 · 浅色 · 宽屏：公开市场「e2e-plugin-lifecycle-market」分组卡（1 主卡 + 7 张 Extra） | 卡片不溢出、分组标题与「收起」位置 |
+| [zh-nibi-light-wide.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-lc-002/zh-nibi-light-wide.png) | 中文 · 浅色 · 宽屏：单行分段（公开/社区/个人）+ 来源说明与更新时间 + 「e2e-plugin-lifecycle-market」分组卡（1 主卡 + 7 张 Extra） | 分段只剩一处、卡片不溢出、分组标题与「收起」位置 |
 | [en-nibi-dark-narrow.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-lc-002/en-nibi-dark-narrow.png) | 英文 · 深色 · 窄屏同页 | 窄屏换行/裁切、深色对比度 |
 
 ## 分组二：生命周期、失败与资源投影
@@ -45,7 +46,7 @@
 | --- | --- | --- |
 | [uninstalled-components-after-install.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-lc-003/uninstalled-components-after-install.png) | 未安装时的详情：右上「安装」，「安装后可查看这个插件包含的组件。」+ 信息区 | 未安装态不给组件清单、提示文案清楚 |
 | [installed-five-components.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-lc-003/installed-five-components.png) | 安装后详情逐段列出组件：MCP 服务器 1（lifecycle）、技能 1、命令 1、子智能体 1、Hooks（SessionStart） | 五类组件齐全、中文分类名与图标一致 |
-| [updated-v2-detail.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-lc-003/updated-v2-detail.png) | v2 升级后：右上三条提示（已停用/已启用/发现 1 个插件可更新），主卡版本 2.0.0 | 更新提示不重叠、版本号已刷新 |
+| [updated-v2-detail.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-lc-003/updated-v2-detail.png) | v2 升级后：右上三条提示（已停用/已启用/发现 1 个插件可更新），主卡版本 2.0.0；分段只剩页头一处 | 更新提示不重叠、版本号已刷新、分段不再重复 |
 
 ### PLM-LC-004/005 持久化与来源孤立
 
@@ -70,7 +71,7 @@
 
 | 截图 | 画面 | 请确认 |
 | --- | --- | --- |
-| [invalid-source-error.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-lc-008/invalid-source-error.png) | 「添加插件市场」弹窗：风险提示 + 红色错误 `Marketplace source path does not exist: D:\…\fixtures\missing-marketplace`，输入框仍保留原路径 | **错误为英文**且显示本机绝对路径，是否接受（见「观察点」）；勾选后可重试 |
+| [invalid-source-error.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-lc-008/invalid-source-error.png) | 「添加插件市场」弹窗：风险提示 + 红色错误「插件市场来源路径不存在：D:\…\fixtures\missing-marketplace」，输入框仍保留原路径 | 错误已按界面语言出中文、只保留路径原文；勾选后可重试 |
 | [describe-failure.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-lc-008/describe-failure.png) | 详情内黄色条「组件清单加载失败，仅展示可得信息。」+ 右侧「重试」 | 失败不吞掉已有信息，重试入口显眼 |
 | [catalog-refresh-failure.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-lc-008/catalog-refresh-failure.png) | 目录刷新失败时的市场页（错误条 + 旧列表保留） | 旧列表不被清空 |
 
@@ -88,16 +89,16 @@
 
 | 截图 | 画面 | 请确认 |
 | --- | --- | --- |
-| [01-market-header-public.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-ui-001/01-market-header-public.png) | 公开市场页头：分段（公开/社区/个人）+ 刷新/添加/插件管理，下载来源说明与更新时间 | 页头控件分组；**页头下一行又出现一组「公开/个人」**，是否为设计意图（见「观察点」） |
+| [01-market-header-public.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-ui-001/01-market-header-public.png) | 公开市场页头：分段（公开/社区/个人）+ 刷新/添加/插件管理，下载来源说明与更新时间；重复的「公开/个人」已移除 | 页头控件分组、单一分段行 |
 | [02-market-community.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-ui-001/02-market-community.png) | 社区空态「暂无社区插件」 | 空态居中与留白观感 |
 | [03-market-personal-ui-section.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-ui-001/03-market-personal-ui-section.png) | 个人市场里的「UI 插件」专区 | 专区命名与卡片分组 |
-| [04-install-failure-before-retry.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-ui-001/04-install-failure-before-retry.png) | 安装失败：红色条 `Unsupported or missing plugin source: ./plugins/e2e-plugin-lifecycle`，列表与卡片未丢 | **英文原始错误**直接上屏，是否接受 |
+| [04-install-failure-before-retry.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-ui-001/04-install-failure-before-retry.png) | 安装失败：红色条「无法识别的插件来源：./plugins/e2e-plugin-lifecycle」，列表与卡片未丢 | 错误已按界面语言出中文、只保留来源原文；列表未被清空 |
 | [05-installed-ui-card.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-ui-001/05-installed-ui-card.png) | 个人市场已安装卡片置顶（生命周期测试插件）+ 分组列表 | 已安装态样式不抢焦点 |
 | [06-main-nav-card-no-open.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-ui-001/06-main-nav-card-no-open.png) | 主区卡片态：未安装/未启用时不给「打开」 | 入口可用性规则 |
 | [07-main-nav-detail.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-ui-001/07-main-nav-detail.png) | 主区详情态（UI 插件详情） | 组件与按钮排布 |
 | [08-side-pane-launcher.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-ui-001/08-side-pane-launcher.png) | 侧栏 launcher（插件 UI 入口） | 侧栏入口位置 |
 | [09-side-pane-market-open-button.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-ui-001/09-side-pane-market-open-button.png) | 侧栏「打开市场」按钮 | 与主区入口一致性 |
-| [10-ui-opened-in-session.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-ui-001/10-ui-opened-in-session.png) | 会话右栏真实打开插件 UI（MCP 沙箱），页面标题为 fixture 长文本 | 面板内出现**横向滚动条**（见「观察点」）；关闭会话不卸载 |
+| [10-ui-opened-in-session.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-ui-001/10-ui-opened-in-session.png) | 会话右栏真实打开插件 UI（MCP 沙箱），页面标题为 fixture 长文本 | 面板内出现**横向滚动条**（fixture 页面超宽，已确认接受）；关闭会话不卸载 |
 | [11-side-pane-manage-open-button.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-ui-001/11-side-pane-manage-open-button.png) | 侧栏「管理/打开」入口 | 入口文案 |
 | [12-project-override.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-ui-001/12-project-override.png) | 工作区覆盖：提示「这里的修改仅影响当前工作区，并会覆盖 User 默认。」+「本工作区覆盖」标注 | 覆盖语义是否表达清楚 |
 | [13-paused-main-nav-detail.png](../../packages/desktop/.e2e-artifacts/plugin-management/plm-ui-001/13-paused-main-nav-detail.png) | 项目内已暂停后的详情（顶部提示「已在当前工作区停用…（覆盖 User 默认）」） | 暂停态提示 |
@@ -126,31 +127,70 @@
   `high`、父 continuation 保持 `deepseek-v4-flash` + `max`，证据是两侧 provider 请求；没有可看的产品画面
   （最多是 Agent 卡与设置页），如需可补截图。
 
-## 复核前重跑结果（2026-11-23，内核已含 `RespondToCoordinator`/`TaskOutput`）
+## 重跑记录（2026-11-23，内核已含 `RespondToCoordinator`/`TaskOutput`）
 
-- `WPL-015`（`conversation-session-plugin-marketplace-installed-roundtrip`）：**已在新内核重跑通过**
-  （`desktop-e2e-20261123-111904-984`）。该 spec 有 case-local replay fixture，走回放即可。
-- `PLM-LC-020`（`plugin-subagent-override-cold`）：**本轮无法在我这边重跑**。它没有 case-local
-  replay fixture，manual-review 路径被判为 `capture`，需要真实上游凭据（
-  `E2E_PROVIDER_BASE_URL` + `E2E_PROVIDER_API_KEY`，或对应 preset 的 key 环境变量）；本轮运行在
-  root beforeAll 就报 `E2E_PROVIDER_HTTP_MODE=capture with env requires E2E_PROVIDER_BASE_URL`，
-  没有跑进用例。证据仍用 2026-11-22 的三次真机通过（`desktop-e2e-20261122-190909-040`、
-  `…191148-892`、`…192851-624`）。同一路径今天的替代证据是 SX 的连续三次（child 使用插件/自定义
-  子代理的模型与档位、父 continuation 保持主模型）：`desktop-e2e-20261123-053033-640`、
-  `…053302-944`、`…053509-741`。
-  如果你要 LC-020 的当日新证据，需要用你的上游凭据环境跑（或把凭据放进本机环境后让我跑）。
+manual-review 路径默认按 capture 跑真实上游；这里用 `E2E_PROVIDER_REPLAY_FIXTURE_PATH=<case fixture>`
+显式切回放，所以不需要真实凭据。除 `plugin-management-ui-market`（需要 ffmpeg 录制窗口视频，本机没有）
+外都重跑通过：
 
-## 复核时我会关心的观察点（不是结论，等你的判断）
+| 用例 | Run | 结果 |
+| --- | --- | --- |
+| `plugin-management-discovery-presentation` | `desktop-e2e-20261123-145512-672` | 通过（截图已刷新） |
+| `plugin-management-personal-lifecycle` | `desktop-e2e-20261123-145743-815` | 通过（截图已刷新） |
+| `plugin-management-builtin-inline` | `desktop-e2e-20261123-145954-320` | 通过（截图已刷新） |
+| `plugin-builtin-ui-uninstall` | `desktop-e2e-20261123-150444-993` | 通过（截图已刷新） |
+| `plugin-management-recoverable-failures` | `desktop-e2e-20261123-150704-211` | 通过（截图已刷新） |
+| `plugin-subagent-override-cold` | `desktop-e2e-20261123-150914-021` | 通过（LC-020 当日新证据；无截图） |
+| `conversation-session-plugin-marketplace-installed-roundtrip` | `desktop-e2e-20261123-111904-984` | 通过（WPL-015；无截图） |
+| `plugin-management-ui-market` | `desktop-e2e-20261123-150211-154` | 交互跑完、16 张截图已刷新；结尾因 `spawn ffmpeg ENOENT`（窗口录制需要 ffmpeg）判失败。转正前需在有 ffmpeg 的环境重跑一次拿绿 |
 
-1. 失败文案中英文混排：`04-install-failure-before-retry` 与 `invalid-source-error` 的错误行是英文原文，
-   而界面其余是中文。要么接受（原始错误直出便于排查），要么排期做本地化。
-2. 错误里出现本机绝对路径（`D:\…\fixtures\missing-marketplace`）：这是用户输入路径的原文回显，
-   在别人电脑上会是他们自己的路径；确认是否接受。
-3. `10-ui-opened-in-session` 与 `extension-surface-open` 的插件 UI 面板内出现横向滚动条（fixture 页面内容超宽）。
-   如果这是插件页面自身不响应宽度，需要给插件 UI 约定“最小宽度”或用例标明。
-4. 市场页首页头下一行重复了一组「公开/个人」：确认是设计（市场分段 + 来源范围两级）还是多余重复。
-5. `single-plugin-agent-resource` 里内置 `Explore` 显示「7 个工具」：这是设置页按 agent 定义算的 UI 计数，
-   与今天子代理工具面变化无关，仅提示你在看这张图时的口径。
+注意：replay 环境是隔离 HOME，wdio 只为 `plugin-builtin-ui-uninstall` 播种官方插件缓存，所以
+除该用例（和显式 `seedOfficialPluginsViaCli` 的 `plugin-management-builtin-inline`）外，
+刷新后的截图里「内置」分区为空。这是环境差异，不是产品变化。
+
+## 复核意见与处理（2026-11-23）
+
+1. **市场页头下一行重复的「公开/个人」**：确认是多余（列表页两处渲染同一个 `segment` 状态）。
+   已移除第二组 pill，只保留页头那一处（公开/社区/个人，与搜索同一行）；来源说明与更新时间保留。
+   受影响用例用 replay fixture 重跑刷新截图（结果与 run id 见下方“重跑记录”）。
+2. **失败文案中英文混排**：已把会直接上屏的市场来源诊断按界面语言映射
+   （`settings.plugins.error.source*`：中文界面中文、英文界面英文）；路径/来源等细节保持原文。
+   其余服务层诊断（网络、依赖）仍按原文回退，避免为了翻译丢掉排查细节。
+3. **错误里回显本机绝对路径**：按你的判断接受。这是用户输入路径的原文回显。
+4. **插件 UI 面板内横向滚动条**：确认由 fixture 页面内容超宽导致，接受；放置方式见文末设计说明。
+5. `single-plugin-agent-resource` 里内置 `Explore` 显示「7 个工具」：设置页按 agent 定义算的 UI 计数，
+   与子代理工具面变化无关，仅提示查看该图时的口径。
+
+## 插件 UI 放在哪里（回答复核问题）
+
+上游（MCP Apps / `@modelcontextprotocol/ext-apps`）：UI 资源挂在工具结果上，宿主只认
+`availableDisplayModes` / `preferredDisplayMode` 的 **inline / fullscreen / pip** 三种模式；
+协议里没有“插件窗口”或跨会话常驻面板，放置与生命周期由宿主决定（Claude Desktop 这类宿主把
+fullscreen 映射到自己的侧面板）。
+
+NIBI 宿主目前的实现：
+
+- **内联**：工具卡里的 plugin-ui 卡片（默认 240px，范围 80–1200）。
+- **fullscreen / 手动打开 / launcher**：会话右侧的 plugin-ui tab，按 `parentSessionId` 作用域；
+  没有活动会话时入口不显示。
+- **入口槽**（插件清单 `ui.surfaces[].slot`）：`composer.status` 在输入框、`nav.primary` 在左侧主导航；
+  两者都只是入口按钮，点击仍打开会话侧栏。
+- **页面实例**：窗口级 page owner 管理；成功的 UI 工具结果即使会话未挂载也会创建页面；MCP 页面
+  不随切会话/离屏自动回收（guest、未保存编辑与后台执行都保留）。所以“换个会话”不会关掉页面，
+  只是当前会话看不到那个 tab；回到原会话时复用同一 guest。
+- “独立线程”指的是 guest 跑在独立沙箱 WebContents/分区（独立进程与 CSP），不是独立窗口。
+
+如果要做“常驻插件 UI”（比如一直显示上下文窗口组成），协议与宿主目前都没有这个位置，需要新增
+一种 NIBI 自己的放置，三个候选：
+
+| 方案 | 行为 | 代价 |
+| --- | --- | --- |
+| `window.panel` 窗口级常驻侧栏 | 跨会话可见，一直显示同一页面 | 页面租约要从 session 提到 workspace；跨会话数据归属与凭证范围要重新定义 |
+| `nav.page` 主区页面 | 点主导航打开占满主区的插件页（像插件市场），不绑定会话 | 会替换对话视图，不是“一直可见” |
+| `composer.inline` 输入框内嵌 | 工作区所有会话的输入框区域常驻一小块插件 UI | 空间有限，仍需绑定当前会话 |
+
+“上下文窗口组成”这类宿主数据，更稳的是做成宿主原生面板；插件 UI 更适合随工具结果出现的内容。
+这一条需要你定方向后我再排期。
 
 ## 复核通过后的动作（等你点头才做）
 

@@ -511,14 +511,16 @@ export function PluginStorePage({
     async (source: string) => {
       const succeeded = await addMarketplace(source, operationService);
       // 添加市场源的错误要和提交入口同层展示；否则全局错误条会被 Dialog 遮罩压到下面。
+      // 走与页面错误条同一个解析：已知的诊断按界面语言出文案，其余原文回退。
+      const state = usePluginManagementStore.getState();
       setAddMarketplaceError(
-        succeeded ? null : (usePluginManagementStore.getState().error ?? null),
+        succeeded ? null : resolvePluginErrorMessage(intl, state.error, state.errorCode),
       );
       // 自定义市场不属于公开分段；添加成功后直接切到「个人」，让用户立刻看到刚加的来源。
       if (succeeded) setSegment("personal");
       return succeeded;
     },
-    [addMarketplace, operationService],
+    [addMarketplace, intl, operationService],
   );
 
   const handleUsePrompt = useCallback(

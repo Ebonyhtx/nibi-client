@@ -240,28 +240,11 @@ export function PluginStoreListView({
         </section>
       ) : null}
 
-      {/* 公开 / 个人分段 + 内置/市场来源说明。 */}
+      {/* 内置/市场来源说明。分段控件只在上方那一处（公开/社区/个人，与搜索同一行），
+          这里不再重复一组公开/个人 pill。 */}
       <div>
-        <div className="flex items-center gap-1.5">
-          <SegmentPill
-            active={segment === "public"}
-            testId="plugin-store-segment-public"
-            label={intl.formatMessage({
-              id: "settings.plugins.store.segment.public",
-            })}
-            onClick={() => onSegmentChange("public")}
-          />
-          <SegmentPill
-            active={segment === "personal"}
-            testId="plugin-store-segment-personal"
-            label={intl.formatMessage({
-              id: "settings.plugins.store.segment.personal",
-            })}
-            onClick={() => onSegmentChange("personal")}
-          />
-        </div>
         <p
-          className="mt-2 text-ui-sm text-foreground-subtle"
+          className="text-ui-sm text-foreground-subtle"
           data-testid="plugin-store-source-note"
         >
           {intl.formatMessage({ id: "settings.plugins.store.sourceNote" })}
