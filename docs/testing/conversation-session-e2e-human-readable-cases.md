@@ -212,7 +212,7 @@
 | child Bash 运行中 → 切走后立刻切回 → child 随后完成                             | 切回时仍显示 running；同一工具块随后更新为 terminal，不显示 Unknown 或永久执行中                   | 来源：BG22；已覆盖                                 |
 | 后台控制面板有多个 running task → 其中一个完成                                  | 只移除已完成项，其余 running 行持续可见，不因 partial snapshot 闪没再出现                          | 来源：BG23；已覆盖                                 |
 | 多个 background Agent 同时运行 → 通知处理中切换 task 再切回                     | 仍在运行的 Agent 控制行全程保留，restore/live overlap 或 Todo 更新不能把它们短暂清空               | 来源：BG24；已覆盖                                 |
-| background Agent 的 child provider 请求以 429 失败 → 查看错误并切换 task 后返回 | Agent 卡显示 failed；摘要和 hover 保留 provider 原始错误，恢复后仍是 failed + error，父会话回 idle | 来源：BG26；已覆盖（2026-11-22 复核对应正式 spec 红，见插件矩阵） |
+| background Agent 的 child provider 请求以 429 失败 → 查看错误并切换 task 后返回 | Agent 卡显示 failed；摘要和 hover 保留 provider 原始错误，恢复后仍是 failed + error，父会话回 idle | 来源：BG26；2026-11-23 已连续三次真机通过（Rust 失败通知补 `<error>`、后台终态回写父 Agent 行） |
 | background Agent/Bash idle wake 形成独立结果 turn → 刷新                        | 使用结构化任务标题完整展示总结，刷新后标题保持；active-loop 合流不额外插标题                       | 来源：BG27、BG28；部分覆盖                         |
 | Composer 较宽，只有 Bash、只有 Subagent 或两者都在运行 → hover/click 后台入口   | 图标、数量和 tooltip 按类型展示；点击直接展开 Status panel 对应区块，不聚合其它 session/workspace  | 来源：BG29；已覆盖                                 |
 | 后台任务从 running 依次完成或失败                                               | 只统计 `status=running`；某类型归零就移除该类型，最后一个 running 结束后入口立即消失               | 来源：BG30；已覆盖                                 |

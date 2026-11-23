@@ -27,6 +27,31 @@
       }
     },
     {
+      "id": "claude-catalog-rust-title",
+      "description": "Rust 内核标题生成（prompts/title/system.txt）的固定响应。",
+      "metadata": {
+        "kind": "common",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "Rust 标题请求体也带 parent/child marker；必须排在 main fixture 前面先命中，否则会抢占 parent-final。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": ["You are naming a coding session"]
+      },
+      "response": {
+        "statusCode": 200,
+        "statusMessage": "OK",
+        "text": {
+          "id": "claude-catalog-rust-title-response",
+          "inputTokens": 80,
+          "outputTokens": 8,
+          "text": "{\"title\":\"Claude Subagent Catalog\"}"
+        }
+      }
+    },
+    {
       "id": "claude-catalog-general-parent-tool",
       "description": "父 agent 首轮触发 general-purpose。",
       "metadata": {
@@ -85,6 +110,39 @@
       }
     },
     {
+      "id": "claude-catalog-general-parent-wait",
+      "description": "父模型在 background Agent launch ACK 后结束当前 turn。",
+      "metadata": {
+        "kind": "main",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "让父会话先回 idle，随后由 completed task notification 唤醒；不能抢占 parent-final。"
+      },
+      "maxMatches": 1,
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "lastUserMessageIncludes": ["Async agent launched successfully."],
+        "bodyIncludes": ["E2E_CLAUDE_CATALOG_GENERAL_PARENT", "Async agent launched successfully."],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "You are naming a coding session",
+          "CRITICAL: Respond with TEXT ONLY",
+          "<result>E2E_CLAUDE_CATALOG_GENERAL_CHILD_OK</result>"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "statusMessage": "OK",
+        "text": {
+          "id": "claude-catalog-general-parent-wait-response",
+          "inputTokens": 140,
+          "outputTokens": 4,
+          "text": "claude-catalog-general-waiting"
+        }
+      }
+    },
+    {
       "id": "claude-catalog-general-parent-final",
       "description": "父 agent 消费 general-purpose child tool_result。",
       "metadata": {
@@ -97,11 +155,19 @@
       "match": {
         "method": "POST",
         "pathIncludes": "/messages",
+        "lastUserMessageIncludes": [
+          "<task-notification>",
+          "<result>E2E_CLAUDE_CATALOG_GENERAL_CHILD_OK</result>"
+        ],
         "bodyIncludes": [
           "E2E_CLAUDE_CATALOG_GENERAL_PARENT",
           "E2E_CLAUDE_CATALOG_GENERAL_CHILD_OK"
         ],
-        "bodyExcludes": ["Generate a concise title", "CRITICAL: Respond with TEXT ONLY"]
+        "bodyExcludes": [
+          "Generate a concise title",
+          "You are naming a coding session",
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
       },
       "response": {
         "statusCode": 200,
@@ -235,6 +301,39 @@
       }
     },
     {
+      "id": "claude-catalog-explore-parent-wait",
+      "description": "父模型在 Explore background Agent launch ACK 后结束当前 turn。",
+      "metadata": {
+        "kind": "main",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "让父会话先回 idle，随后由 completed task notification 唤醒；不能抢占 parent-final。"
+      },
+      "maxMatches": 1,
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "lastUserMessageIncludes": ["Async agent launched successfully."],
+        "bodyIncludes": ["E2E_CLAUDE_CATALOG_EXPLORE_PARENT", "Async agent launched successfully."],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "You are naming a coding session",
+          "CRITICAL: Respond with TEXT ONLY",
+          "<result>E2E_CLAUDE_CATALOG_EXPLORE_CHILD_OK</result>"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "statusMessage": "OK",
+        "text": {
+          "id": "claude-catalog-explore-parent-wait-response",
+          "inputTokens": 140,
+          "outputTokens": 4,
+          "text": "claude-catalog-explore-waiting"
+        }
+      }
+    },
+    {
       "id": "claude-catalog-explore-parent-final",
       "description": "父 agent 消费 Explore child tool_result。",
       "metadata": {
@@ -247,11 +346,19 @@
       "match": {
         "method": "POST",
         "pathIncludes": "/messages",
+        "lastUserMessageIncludes": [
+          "<task-notification>",
+          "<result>E2E_CLAUDE_CATALOG_EXPLORE_CHILD_OK</result>"
+        ],
         "bodyIncludes": [
           "E2E_CLAUDE_CATALOG_EXPLORE_PARENT",
           "E2E_CLAUDE_CATALOG_EXPLORE_CHILD_OK"
         ],
-        "bodyExcludes": ["Generate a concise title", "CRITICAL: Respond with TEXT ONLY"]
+        "bodyExcludes": [
+          "Generate a concise title",
+          "You are naming a coding session",
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
       },
       "response": {
         "statusCode": 200,
@@ -323,6 +430,39 @@
       }
     },
     {
+      "id": "claude-catalog-custom-parent-wait",
+      "description": "父模型在 custom background Agent launch ACK 后结束当前 turn。",
+      "metadata": {
+        "kind": "main",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "让父会话先回 idle，随后由 completed task notification 唤醒；不能抢占 parent-final。"
+      },
+      "maxMatches": 1,
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "lastUserMessageIncludes": ["Async agent launched successfully."],
+        "bodyIncludes": ["E2E_CLAUDE_CATALOG_CUSTOM_PARENT", "Async agent launched successfully."],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "You are naming a coding session",
+          "CRITICAL: Respond with TEXT ONLY",
+          "<result>E2E_CLAUDE_CATALOG_CUSTOM_CHILD_OK</result>"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "statusMessage": "OK",
+        "text": {
+          "id": "claude-catalog-custom-parent-wait-response",
+          "inputTokens": 140,
+          "outputTokens": 4,
+          "text": "claude-catalog-custom-waiting"
+        }
+      }
+    },
+    {
       "id": "claude-catalog-custom-parent-final",
       "description": "父 agent 消费 custom child tool_result。",
       "metadata": {
@@ -335,8 +475,16 @@
       "match": {
         "method": "POST",
         "pathIncludes": "/messages",
+        "lastUserMessageIncludes": [
+          "<task-notification>",
+          "<result>E2E_CLAUDE_CATALOG_CUSTOM_CHILD_OK</result>"
+        ],
         "bodyIncludes": ["E2E_CLAUDE_CATALOG_CUSTOM_PARENT", "E2E_CLAUDE_CATALOG_CUSTOM_CHILD_OK"],
-        "bodyExcludes": ["Generate a concise title", "CRITICAL: Respond with TEXT ONLY"]
+        "bodyExcludes": [
+          "Generate a concise title",
+          "You are naming a coding session",
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
       },
       "response": {
         "statusCode": 200,

@@ -23,6 +23,18 @@
 | [unit-test-quality.md](./unit-test-quality.md) | 单测质量与删减规格 |
 | [unit-test-review/](./unit-test-review/) | 单测审查记录 |
 
+### 遥测断言类 spec 的本地构建
+
+公开仓默认把 `NIBI_TELEMETRY_REPORT_ENDPOINT` 留空（构建期关闭事件上报），所以带 `/event/report` 断言的 spec（如 BG26、后台/遥测 parity）在本地直接跑会看到 telemetry inventory 恒为空。先带一个回环端点构建再跑：
+
+```bash
+cd packages/desktop
+NIBI_TELEMETRY_REPORT_ENDPOINT=http://127.0.0.1:9/api/v1/event/report \
+  pnpm test:e2e:serial -- --spec ./test/e2e/conversation-session/<case>.test.ts
+```
+
+E2E 的 `net.fetch` mock 会接住上报，端点不需要真的可达；不要指向生产域名。路径必须保留 `/api/v1/event/report`（捕获 helper 按它识别遥测请求）。`NIBI_E2E_SKIP_BUILD=1` 复用的构建也必须包含这个 define 与 `VITE_NIBI_E2E_STORE_BRIDGE=1`，否则 onPrepare 会拒绝。
+
 ## 会话主矩阵
 
 | 文档 | 用途 |
