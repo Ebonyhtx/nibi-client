@@ -132,7 +132,8 @@ pub(crate) fn deliver_stall(core: &Core, reminder: &StallReminder) -> Option<Wak
 
 /// 一次运行结束（§5.1 第 3、4 条）：停放、带着遗留通知续跑，或结束并送出自己的通知。
 pub(crate) fn settle(core: &Core, id: &AgentId, finished: &Finished) -> Settle {
-    let error = finished.error.as_ref().map(ToString::to_string);
+    // 失败通知与 Done 事件都用 provider 原文，不带内核分类前缀（BG26）。
+    let error = finished.error.as_ref().map(QueryError::failure_message);
     core.live.with(|agents| {
         let Some(entry) = agents.get(id).cloned() else {
             return Settle {

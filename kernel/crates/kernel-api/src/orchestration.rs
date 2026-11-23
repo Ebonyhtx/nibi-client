@@ -115,6 +115,20 @@ pub enum QueryError {
     Unsupported { what: String },
 }
 
+impl QueryError {
+    /// 失败通知与 UI hover 使用的错误原文：模型/API 错误取 provider 返回的 message，
+    /// 不附加 `rate limited:` / `server error 500:` 这类内核分类前缀（Node
+    /// `selectExecutionErrorMessage` 同样只保留最内层原文）。没有 provider 原文的
+    /// 错误（取消、存储、未实现）退回 `Display`。
+    pub fn failure_message(&self) -> String {
+        match self {
+            Self::Api { message } => message.clone(),
+            Self::Model(error) => error.provider_message(),
+            Self::Store(_) | Self::Unsupported { .. } => self.to_string(),
+        }
+    }
+}
+
 /// 主循环的输出端，由会话 actor 实现（子代理、压缩各有自己的实现）。
 ///
 /// 提交屏障：`commit_message` 与 `commit_intent` 在存储事务成功后才返回，主循环拿到 `Ok` 才继续

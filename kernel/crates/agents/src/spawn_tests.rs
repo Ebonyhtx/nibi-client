@@ -233,7 +233,7 @@ async fn a_failed_background_agent_notifies_with_partial_result_and_usage() {
     assert!(
         notice
             .text
-            .contains("failed: simulated model failure"),
+            .contains("failed. simulated model failure"),
         "{}",
         notice.text
     );

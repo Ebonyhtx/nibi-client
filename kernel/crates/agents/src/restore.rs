@@ -111,6 +111,9 @@ struct ResultData {
     ending: String,
     #[serde(default)]
     text: String,
+    /// 失败时的 provider 原文（与终态通知同一份）；旧记录没有这个字段。
+    #[serde(default)]
+    error: Option<String>,
     #[serde(default)]
     tokens: u64,
     #[serde(default)]
@@ -270,7 +273,15 @@ async fn restore_agent(
         );
         core.live.insert(live.clone());
         // 通知里的 `<tool-use-id>` 用产生这条结果的那次运行（续跑产生的通知不属于哪次工具调用）。
-        deliver_result(core, &live, result.tool_use_id.as_deref(), ending, &report).await;
+        deliver_result(
+            core,
+            &live,
+            result.tool_use_id.as_deref(),
+            ending,
+            &report,
+            result.error.as_deref(),
+        )
+        .await;
         return Ok(());
     }
 
@@ -582,6 +593,7 @@ async fn fail_and_deliver(core: &Arc<Core>, live: LiveAgent, reason: String) {
         data: serde_json::json!({
             "ending": Ending::Failed.status(),
             "text": &report.text,
+            "error": &reason,
             "tokens": 0,
             "toolUses": 0,
             "durationMs": 0,
@@ -599,6 +611,7 @@ async fn fail_and_deliver(core: &Arc<Core>, live: LiveAgent, reason: String) {
         live.tool_use.as_ref().map(ToolUseId::as_str),
         Ending::Failed,
         &report,
+        Some(reason.as_str()),
     )
     .await;
 }
@@ -610,6 +623,7 @@ async fn deliver_result(
     tool_use: Option<&str>,
     ending: Ending,
     report: &Report,
+    error: Option<&str>,
 ) {
     let delivered = match core
         .ports
@@ -633,7 +647,7 @@ async fn deliver_result(
         &live.description,
         ending,
         report,
-        None,
+        error,
     );
     core.hub.notify(
         &live.root,

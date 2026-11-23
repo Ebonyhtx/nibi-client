@@ -1581,7 +1581,20 @@ fn a_resumed_subagent_spawn_keeps_the_original_anchor() {
     ));
     assert_eq!(ops(&resumed), ["state(revision)"]);
     let killed = feed.apply(subagent_event(SubagentPhase::Done, "agent_1", "killed"));
-    assert_eq!(ops(&killed), ["row.upserted(subagent)", "state(revision)"]);
+    // 续跑事件的父调用是 SendMessage；终态仍回写到原 Agent 行（tool_1）。
+    assert_eq!(
+        ops(&killed),
+        [
+            "row.upserted(subagent)",
+            "row.upserted(toolCall)",
+            "state(revision)"
+        ]
+    );
+    let parent = killed
+        .iter()
+        .find(|op| op["row"]["kind"] == "toolCall")
+        .expect("parent tool row upsert");
+    assert_eq!(parent["row"]["status"], "cancelled");
     assert_eq!(killed[0]["row"]["parentToolCallId"], "tool_1");
     assert_eq!(killed[0]["row"]["status"], "cancelled");
 }
@@ -1608,8 +1621,7 @@ fn a_subagent_without_a_local_parent_call_is_ignored() {
 /// 冷投影：持久化的 `SubagentLinked`（tool part metadata）补回 subagent 行；终态取通知的
 /// `<status>`，标题取父 Agent 工具 input。
 #[test]
-fn the_cold_projection_restores_subagent_rows_from_persisted_links() {
-    let messages = vec![
+fn the_cold_projection_restores_subagent_rows_from_persisted_links() {    let messages = vec![
         user("msg_u1", "go"),
         assistant(
             "msg_a1",
@@ -1678,6 +1690,126 @@ fn the_cold_projection_restores_subagent_rows_from_persisted_links() {
     assert_eq!(subagent["summaryText"], "Run explore");
     assert_eq!(subagent["backgrounded"], true);
     assert_eq!(subagent["workId"], "agent_1");
+}
+
+/// 失败的后台子代理终态要回写到父 Agent 工具行（BG26）：卡片 status=error，
+/// error.message 是 provider 原文，而不是停在启动 ACK 的 success。
+#[test]
+fn a_failed_background_subagent_marks_the_parent_agent_row() {
+    let mut feed = Feed::new();
+    feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        input_source: None,
+        origin_meta: None,
+        workflow_launch: None,
+        turn: TurnId::new("turn_1"),
+        command: Some(CommandId::new("c1")),
+    });
+    feed.apply(KernelEvent::ToolStarted {
+        tool_use: ToolUseId::new("tool_1"),
+        name: "Agent".to_owned(),
+        input: json!({"description": "Run explore", "subagent_type": "Explore"}),
+    });
+    feed.apply(subagent_event(SubagentPhase::Spawned, "tool_1", "running"));
+    let done = feed.apply(KernelEvent::Subagent {
+        agent: AgentId::new("agent_1"),
+        phase: SubagentPhase::Done,
+        child: SessionId::new("child_1"),
+        parent_tool_use: ToolUseId::new("tool_1"),
+        agent_type: "Explore".to_owned(),
+        background: true,
+        status: "failed".to_owned(),
+        error: Some("Requests are too frequent. Request id: abc".to_owned()),
+    });
+    let tool = done
+        .iter()
+        .find(|op| op["row"]["kind"] == "toolCall")
+        .expect("parent tool row upsert");
+    assert_eq!(tool["row"]["status"], "error");
+    assert_eq!(tool["row"]["error"]["code"], "subagent_failed");
+    assert_eq!(
+        tool["row"]["error"]["message"],
+        "Requests are too frequent. Request id: abc"
+    );
+    let subagent = done
+        .iter()
+        .find(|op| op["row"]["kind"] == "subagent")
+        .expect("subagent row upsert");
+    assert_eq!(subagent["row"]["status"], "failed");
+    assert_eq!(
+        subagent["row"]["summaryText"],
+        "Requests are too frequent. Request id: abc"
+    );
+}
+
+/// 冷恢复同样用通知里的 `<error>` 把父 Agent 行回写成 error（BG26 的 restored 阶段）。
+#[test]
+fn the_cold_projection_marks_a_failed_background_parent_row() {
+    let messages = vec![
+        user("msg_u1", "go"),
+        assistant(
+            "msg_a1",
+            vec![ContentBlock::ToolUse {
+                id: ToolUseId::new("tool_1"),
+                name: "Agent".to_owned(),
+                input: json!({
+                    "description": "Run explore",
+                    "subagent_type": "Explore",
+                    "run_in_background": true
+                }),
+            }],
+        ),
+        Message::User(UserMessage {
+            id: MessageId::new("msg_r1"),
+            content: vec![ContentBlock::ToolResult {
+                tool_use_id: ToolUseId::new("tool_1"),
+                content: vec![ToolResultContent::Text {
+                    text: "Async agent launched successfully. (metadata)".to_owned(),
+                }],
+                is_error: false,
+            }],
+            origin: UserOrigin::ToolResult {
+                assistant: MessageId::new("msg_a1"),
+            },
+        }),
+        Message::User(UserMessage {
+            id: MessageId::new("msg_n1"),
+            content: vec![ContentBlock::Text {
+                text: "<task-notification>\n<tool-use-id>tool_1</tool-use-id>\n<status>failed</status>\n<error>Requests are too frequent. Request id: abc</error>\n</task-notification>"
+                    .to_owned(),
+            }],
+            origin: UserOrigin::Meta {
+                source: TASK_NOTIFICATION_SOURCE.to_owned(),
+                origin_meta: None,
+            },
+        }),
+    ];
+    let cold = view(messages);
+    let links = vec![SubagentLink {
+        tool_use: ToolUseId::new("tool_1"),
+        agent: AgentId::new("agent_1"),
+        child: SessionId::new("child_1"),
+        agent_type: "Explore".to_owned(),
+    }];
+    let mut projection = Projection::from_view(&cold, Followup::Queue, Vec::new());
+    projection.seed_subagent_rows(&cold, &links, 2000);
+    let snapshot = projection.snapshot(0, "epoch");
+    let rows = snapshot["rows"]["window"].as_array().expect("rows");
+    let tool = rows
+        .iter()
+        .find(|row| row["kind"] == "toolCall")
+        .expect("tool row");
+    assert_eq!(tool["status"], "error");
+    assert_eq!(tool["error"]["code"], "subagent_failed");
+    assert_eq!(
+        tool["error"]["message"],
+        "Requests are too frequent. Request id: abc"
+    );
+    let subagent = rows
+        .iter()
+        .find(|row| row["kind"] == "subagent")
+        .expect("subagent row");
+    assert_eq!(subagent["status"], "failed");
 }
 
 /// fresh 子会话的首轮没有上一轮可比：Node 落 source-less 的「正在使用」标记；主会话首轮静默。

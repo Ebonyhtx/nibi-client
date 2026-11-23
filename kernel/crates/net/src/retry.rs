@@ -37,6 +37,29 @@ impl Default for RetryPolicy {
 }
 
 impl RetryPolicy {
+    /// 生产入口用的策略：默认值再叠加 `NIBI_MODEL_RETRY_*` 环境变量（与 Node
+    /// `resolveAiSdkModelRetryOptions` 同名口径）。`MAX_RETRIES` 是首次请求之外的重试次数；
+    /// 非法/空值忽略，保留默认。退出测试用 [`Self::with_env`] 注入，不读进程环境。
+    pub fn from_env() -> Self {
+        Self::default().with_env(|name| std::env::var(name).ok())
+    }
+
+    /// 用给定的读取函数覆盖重试预算，便于单测掉进默认值而不依赖进程环境。
+    #[must_use]
+    pub fn with_env(mut self, read: impl Fn(&str) -> Option<String>) -> Self {
+        let number = |name: &str| read(name).and_then(|value| parse_non_negative(&value));
+        if let Some(retries) = number("NIBI_MODEL_RETRY_MAX_RETRIES") {
+            self.max_retries = u32::try_from(retries).unwrap_or(u32::MAX);
+        }
+        if let Some(ms) = number("NIBI_MODEL_RETRY_BASE_DELAY_MS") {
+            self.base_delay = Duration::from_millis(ms);
+        }
+        if let Some(ms) = number("NIBI_MODEL_RETRY_MAX_DELAY_MS") {
+            self.max_backoff = Duration::from_millis(ms);
+        }
+        self
+    }
+
     /// 第 `attempt` 次失败（从 1 开始）之后、下一次请求之前的等待；`random` 取 `[0, 1)`。
     /// 返回 `None` 表示等待超过 [`max_wait`](Self::max_wait)，不应再重试。
     pub fn delay(
@@ -54,6 +77,20 @@ impl RetryPolicy {
         let delay = retry_after.map_or(computed, |after| after.max(computed));
         (delay <= self.max_wait).then_some(delay)
     }
+}
+
+/// 非负整数的环境变量值，与 Node `parseNonNegativeInteger` 同口径：`Number()` 能解析的
+/// 非负有限数向下取整（`"1.9"` → 1），负数、空串与非数字按“未设置”处理。
+fn parse_non_negative(text: &str) -> Option<u64> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let value: f64 = trimmed.parse().ok()?;
+    if !value.is_finite() || value < 0.0 {
+        return None;
+    }
+    Some(value.floor() as u64)
 }
 
 /// 服务端要求的等待：`retry-after-ms`（毫秒，可带小数），否则 `retry-after`（秒数或 HTTP-date）。

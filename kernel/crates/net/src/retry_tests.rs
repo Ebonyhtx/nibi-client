@@ -69,3 +69,33 @@ fn jitter_stays_in_range_and_varies() {
     assert!(samples.iter().all(|value| (0.0..1.0).contains(value)));
     assert!(samples.windows(2).any(|pair| pair[0] != pair[1]));
 }
+
+#[test]
+fn retry_env_overrides_the_defaults() {
+    let policy = RetryPolicy::default().with_env(|name| match name {
+        "NIBI_MODEL_RETRY_MAX_RETRIES" => Some("0".to_owned()),
+        "NIBI_MODEL_RETRY_BASE_DELAY_MS" => Some("7".to_owned()),
+        "NIBI_MODEL_RETRY_MAX_DELAY_MS" => Some("20".to_owned()),
+        _ => None,
+    });
+    assert_eq!(policy.max_retries, 0);
+    assert_eq!(policy.base_delay, Duration::from_millis(7));
+    assert_eq!(policy.max_backoff, Duration::from_millis(20));
+
+    // 非法/负值/空值都保留默认，不把配置错误变成“关掉重试”。
+    let invalid = RetryPolicy::default().with_env(|name| match name {
+        "NIBI_MODEL_RETRY_MAX_RETRIES" => Some("-5".to_owned()),
+        "NIBI_MODEL_RETRY_BASE_DELAY_MS" => Some("nope".to_owned()),
+        "NIBI_MODEL_RETRY_MAX_DELAY_MS" => Some("  ".to_owned()),
+        _ => None,
+    });
+    assert_eq!(invalid.max_retries, 10);
+    assert_eq!(invalid.base_delay, Duration::from_millis(500));
+    assert_eq!(invalid.max_backoff, Duration::from_secs(32));
+
+    // 与 Node 的 Number()+floor 同口径：小数向下取整。
+    let floored = RetryPolicy::default().with_env(|name| {
+        (name == "NIBI_MODEL_RETRY_MAX_RETRIES").then(|| "1.9".to_owned())
+    });
+    assert_eq!(floored.max_retries, 1);
+}

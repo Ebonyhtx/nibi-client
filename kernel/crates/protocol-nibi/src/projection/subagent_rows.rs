@@ -96,6 +96,16 @@ impl Projection {
             if *row != before {
                 out.push(json!({"op": "row.upserted", "row": row.clone()}));
             }
+            if !spawned && *background {
+                // 后台 Agent 的父工具结果在启动时就落成 success；子代理终态必须由投影
+                // 回写到 Agent 行，卡片才会显示失败/停止并带可 hover 的原始错误（BG26）。
+                // 续跑事件带的是 SendMessage 调用；锚点始终是 subagent 行上的原 Agent 调用。
+                let anchor = self.rows[at]["parentToolCallId"]
+                    .as_str()
+                    .unwrap_or(parent_tool_use.as_str())
+                    .to_owned();
+                self.mirror_background_parent(&anchor, status, error.as_deref(), out);
+            }
             return;
         }
         let Some(parent_at) = parent_at else {
@@ -132,7 +142,54 @@ impl Projection {
                 row.insert("summaryText".into(), json!(error));
             }
         }
+        let terminal_background = !spawned && *background;
         self.append(key, row, out);
+        if terminal_background {
+            self.mirror_background_parent(parent_tool_use.as_str(), status, error.as_deref(), out);
+        }
+    }
+
+    /// 后台子代理终态回写父 Agent 工具行：failed → error + 原文，killed → cancelled。
+    /// 成功不覆盖（启动 ACK 本身就是 success）；前台子代理的父行已有工具结果，不重复改。
+    fn mirror_background_parent(
+        &mut self,
+        parent_tool_use: &str,
+        status: &str,
+        error: Option<&str>,
+        out: &mut Vec<Value>,
+    ) {
+        let Some(parent_at) = self.index.get(&tool_key(parent_tool_use)).copied() else {
+            return;
+        };
+        let before = self.rows[parent_at].clone();
+        let row = &mut self.rows[parent_at];
+        match map_status(status) {
+            "failed" => {
+                row.insert("status".into(), json!("error"));
+                if let Some(error) = error {
+                    // toolCallRowSchema 的 error 必须同时有 code 与 message；缺 code 会让
+                    // 整行被判 unreadable，Agent 卡直接消失。
+                    row.insert(
+                        "error".into(),
+                        json!({ "code": "subagent_failed", "message": error }),
+                    );
+                }
+            }
+            "cancelled" => {
+                row.insert("status".into(), json!("cancelled"));
+            }
+            _ => {
+                // 续跑后成功：把上一轮的失败/停止收回到 success，并清掉错误原文。
+                if !matches!(row["status"].as_str(), Some("error" | "cancelled")) {
+                    return;
+                }
+                row.insert("status".into(), json!("success"));
+                row.remove("error");
+            }
+        }
+        if *row != before {
+            out.push(json!({"op": "row.upserted", "row": row.clone()}));
+        }
     }
 
     /// cold：持久化的 `SubagentLinked`（tool part 的 `state.metadata`）补回 subagent 行。
@@ -147,7 +204,7 @@ impl Projection {
         if links.is_empty() {
             return;
         }
-        let (results, statuses) = cold_facts(view);
+        let (results, statuses, errors) = cold_facts(view);
         for link in links {
             let Some(parent_at) = self
                 .index
@@ -198,6 +255,21 @@ impl Projection {
                 row.insert("backgrounded".into(), json!(true));
                 row.insert("workId".into(), json!(link.agent.as_str()));
             }
+            // 冷恢复同样把后台子代理终态回写到父 Agent 行（BG26 的 restored 阶段）。
+            if (launched || input_background) && matches!(status, "failed" | "cancelled") {
+                let parent = &mut self.rows[parent_at];
+                if status == "failed" {
+                    parent.insert("status".into(), json!("error"));
+                    if let Some(error) = errors.get(link.tool_use.as_str()) {
+                        parent.insert(
+                            "error".into(),
+                            json!({ "code": "subagent_failed", "message": error }),
+                        );
+                    }
+                } else {
+                    parent.insert("status".into(), json!("cancelled"));
+                }
+            }
             row.insert("startedAt".into(), json!(now));
             // 紧跟在触发它的 Agent 工具行后面：配对与工作分段都依赖行序。
             self.insert_after(&tool_key(link.tool_use.as_str()), key, row);
@@ -205,10 +277,18 @@ impl Projection {
     }
 }
 
-/// 冷投影能拿到的两类事实：每个 tool result 的文本/错误位，以及 task notification 的终态。
-fn cold_facts(view: &SessionView) -> (HashMap<String, (bool, String)>, HashMap<String, String>) {
+/// 冷投影能拿到的三类事实：每个 tool result 的文本/错误位、task notification 的终态，
+/// 以及失败通知里的 provider 原文（`<error>`）。
+fn cold_facts(
+    view: &SessionView,
+) -> (
+    HashMap<String, (bool, String)>,
+    HashMap<String, String>,
+    HashMap<String, String>,
+) {
     let mut results = HashMap::new();
     let mut statuses = HashMap::new();
+    let mut errors = HashMap::new();
     for message in &view.messages {
         let Message::User(user) = message else {
             continue;
@@ -242,10 +322,15 @@ fn cold_facts(view: &SessionView) -> (HashMap<String, (bool, String)>, HashMap<S
                             .entry(id.to_owned())
                             .or_insert_with(|| status.to_owned());
                     }
+                    if let Some(error) = between(text, "<error>", "</error>") {
+                        errors
+                            .entry(id.to_owned())
+                            .or_insert_with(|| error.to_owned());
+                    }
                 }
                 _ => {}
             }
         }
     }
-    (results, statuses)
+    (results, statuses, errors)
 }

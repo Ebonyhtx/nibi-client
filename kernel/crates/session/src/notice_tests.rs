@@ -160,8 +160,13 @@ async fn an_idle_session_starts_a_turn_for_a_notice_and_acks_after_the_commit() 
         KernelEvent::BackgroundWork { work, status } if work == "b1" && status == "completed"
     )));
     assert!(
-        seen.iter()
-            .any(|event| matches!(event, KernelEvent::TurnStarted { command: None, .. }))
+        seen.iter().any(|event| matches!(
+            event,
+            KernelEvent::TurnStarted {
+                command: Some(_),
+                ..
+            }
+        ))
     );
     assert_eq!(env.acked(), [1]);
     let view = session.view().await.unwrap();

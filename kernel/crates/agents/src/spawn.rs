@@ -393,12 +393,15 @@ pub(crate) async fn drive(
     // 重启后的终态（docs/subagent-restart-resume.md）：完成、失败与停止都写，恢复逻辑据此不再重跑
     // 用户停掉或已经结束的子代理；通知丢了时也靠它补发。写在 `TurnEnded` 之后，作为独立一批。
     let finished_at = core.ports.clock.now_ms();
+    // 失败原因与通知同一份 provider 原文；补发通知时不再退化成 `Unknown error`。
+    let failure = error.as_ref().map(QueryError::failure_message);
     let stored = Fact::Entry {
         kind: crate::restore::RESULT_ENTRY.to_owned(),
         id: agent.agent.as_str().to_owned(),
         data: serde_json::json!({
             "ending": ending.status(),
             "text": &report.text,
+            "error": &failure,
             "tokens": report.tokens,
             "toolUses": report.tool_uses,
             "durationMs": report.duration_ms,
@@ -410,7 +413,6 @@ pub(crate) async fn drive(
         tracing::warn!(agent = %agent.agent, %error, "the subagent result could not be stored");
     }
     // `Option` 的字段在 None 时不写（logging.md §2）。
-    let failure = error.as_ref().map(ToString::to_string);
     tracing::info!(
         event = "subagent.end",
         session = %agent.parent,

@@ -141,8 +141,13 @@ async fn an_idle_session_runs_a_due_job_as_a_meta_prompt() {
     wake.send(()).unwrap();
     let seen = until(&mut events, finished).await;
     assert!(
-        seen.iter()
-            .any(|event| matches!(event, KernelEvent::TurnStarted { command: None, .. }))
+        seen.iter().any(|event| matches!(
+            event,
+            KernelEvent::TurnStarted {
+                command: Some(_),
+                ..
+            }
+        ))
     );
     let view = built.session.view().await.unwrap();
     assert_eq!(cron_prompts(&view.messages), ["check the deploy"]);
