@@ -2541,7 +2541,7 @@ function ConversationComposerImpl({
               onClick={handleSendButtonClick}
               data-testid={TID_V4_COMPOSER_SEND}
               aria-label={resolvedSendTooltipTitle}
-              className="cursor-pointer gap-1 rounded-lg bg-brand text-ui-base text-foreground-inverse hover:bg-brand/80"
+              className="cursor-pointer gap-1 rounded-lg bg-primary text-ui-base text-primary-foreground hover:bg-primary/90"
             >
               {pending ? <Spinner className="size-4" /> : <ArrowUpIcon className="size-4" />}
               <span className="sr-only">{resolvedSendTooltipTitle}</span>

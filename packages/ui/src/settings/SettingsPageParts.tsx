@@ -76,7 +76,7 @@ export function ThemePreviewCard({
       <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div>
           <div className="text-ui-base font-semibold text-foreground">{title}</div>
-          <div className="text-ui-base text-foreground-subtle">{themeName}</div>
+          <div className="text-ui-sm text-foreground-subtle">{themeName}</div>
         </div>
         <span
           className={`rounded-md px-2.5 py-1 text-ui-xs font-medium ${
@@ -143,7 +143,9 @@ export function SettingsRow({
         >
           <div className="text-ui-base font-medium text-foreground">{label}</div>
           {description ? (
-            <div className="mt-1 text-ui-base leading-6 text-foreground-subtle">{description}</div>
+            <div className="mt-0.5 text-ui-sm leading-5 text-pretty text-foreground-subtle">
+              {description}
+            </div>
           ) : null}
         </div>
         <div
@@ -172,7 +174,7 @@ export function SettingsGroupCard({ children }: { children: ReactNode }) {
 
 export function SettingsBadge({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded-md bg-surface px-2.5 py-1 text-ui-base font-medium text-foreground-subtle">
+    <span className="rounded-md border border-border bg-surface px-2 py-0.5 text-ui-xs font-medium text-foreground-subtle">
       {children}
     </span>
   );

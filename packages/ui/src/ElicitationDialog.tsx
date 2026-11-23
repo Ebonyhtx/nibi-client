@@ -774,7 +774,7 @@ function ElicitationDialogContent({
             className={cn(
               "flex size-4 shrink-0 items-center justify-center rounded-sm border",
               isSelected
-                ? "border-brand bg-brand text-foreground-inverse"
+                ? "border-primary bg-primary text-primary-foreground"
                 : "border-border text-transparent",
             )}
           >
@@ -829,7 +829,7 @@ function ElicitationDialogContent({
             className={cn(
               "flex size-4 shrink-0 items-center justify-center rounded-sm border",
               isSelected
-                ? "border-brand bg-brand text-foreground-inverse"
+                ? "border-primary bg-primary text-primary-foreground"
                 : "border-border text-transparent",
             )}
           >
@@ -1153,7 +1153,7 @@ function ElicitationDialogContent({
                 type="button"
                 size="lg"
                 onClick={questions.length === 0 ? submit : continueOrSubmit}
-                className="bg-brand text-foreground-inverse hover:bg-brand/80"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 {intl.formatMessage({ id: primaryActionMessageId })}
               </Button>

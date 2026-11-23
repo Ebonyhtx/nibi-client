@@ -231,7 +231,9 @@ function getProviderOptionNameMessageIds(
     return global;
   }
   const providerLabel = provider
-    ? PROVIDER_PERMISSION_OPTION_NAME_LABELS[normalizeAgentProviderToNibiAgent(provider)]?.[normalizedName]
+    ? PROVIDER_PERMISSION_OPTION_NAME_LABELS[normalizeAgentProviderToNibiAgent(provider)]?.[
+        normalizedName
+      ]
     : undefined;
   return providerLabel ? { label: providerLabel } : null;
 }
@@ -608,9 +610,7 @@ export function PermissionDialog({
   const [pickedMode, setPickedMode] = useState<"guarded" | "yolo">("guarded");
   // 当前模式已是 guarded/yolo 时没有“切换到哪”的选择：与上游 fullAccessOnly 的单按钮语义一致。
   const canPickMode =
-    modeSwitch === "choose" &&
-    permissionMode !== "guarded" &&
-    permissionMode !== "yolo";
+    modeSwitch === "choose" && permissionMode !== "guarded" && permissionMode !== "yolo";
   const targetMode: "guarded" | "yolo" = canPickMode ? pickedMode : "yolo";
   const modeLabel = (mode: "guarded" | "yolo") =>
     intl.formatMessage({
@@ -648,10 +648,7 @@ export function PermissionDialog({
     },
     [submitOption],
   );
-  const {
-    requestModeSwitch,
-    confirmDialog: modeConfirmDialog,
-  } = useFullAccessModeConfirmation({
+  const { requestModeSwitch, confirmDialog: modeConfirmDialog } = useFullAccessModeConfirmation({
     // fullAccessOnly 本身就是“只能切到完全访问”：即使快照模式看起来相同也要确认一次。
     currentMode: modeSwitch === "fullAccessOnly" ? "guarded" : permissionMode,
     onApplyModeSwitch: applyModeSwitch,
@@ -854,10 +851,7 @@ export function PermissionDialog({
             return;
           }
           // 模式切换行：提交按钮与目标选择器是两个控件，正向 Tab 先到选择器，再回选项循环。
-          if (
-            !event.shiftKey &&
-            event.currentTarget.dataset.testid === "permission-allow-switch"
-          ) {
+          if (!event.shiftKey && event.currentTarget.dataset.testid === "permission-allow-switch") {
             const picker = event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(
               '[data-testid="permission-target-picker"]',
             );
@@ -1046,8 +1040,7 @@ export function PermissionDialog({
                     ? readPermissionRuleScopes(option)
                     : [];
                 const switchRow =
-                  modeSwitch !== undefined &&
-                  option.optionId === PERMISSION_FULL_ACCESS_OPTION_ID;
+                  modeSwitch !== undefined && option.optionId === PERMISSION_FULL_ACCESS_OPTION_ID;
                 if (switchRow) {
                   const TargetIcon = resolveModeOptionIcon(targetMode);
                   return (
@@ -1114,9 +1107,7 @@ export function PermissionDialog({
                                 onKeyDown={(event) => {
                                   if (event.key === "Tab") {
                                     event.preventDefault();
-                                    optionRefs.current[
-                                      event.shiftKey ? index : index + 1
-                                    ]?.focus();
+                                    optionRefs.current[event.shiftKey ? index : index + 1]?.focus();
                                   }
                                 }}
                                 className="relative z-1 h-7 gap-1 rounded-lg px-2 text-ui-base text-foreground-subtle"
@@ -1305,7 +1296,7 @@ export function PermissionDialog({
                   : orderedOptions[selectedIndex] === undefined ||
                     isOptionBlocked(orderedOptions[selectedIndex]))
               }
-              className="bg-brand text-foreground-inverse hover:bg-brand/80"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {intl.formatMessage({ id: "common.confirm" })}
             </Button>

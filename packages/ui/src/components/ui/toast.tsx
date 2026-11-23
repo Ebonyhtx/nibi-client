@@ -312,7 +312,7 @@ export function ToastMessageView({
   return (
     <div
       className={cn(
-        "rounded-2xl border bg-toast/60 text-ui-base shadow-lg backdrop-blur-xl transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transform-none motion-reduce:transition-opacity",
+        "rounded-2xl border bg-toast/92 text-ui-base shadow-lg backdrop-blur-xl transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transform-none motion-reduce:transition-opacity",
         isSourceServerUpdate
           ? "w-[min(480px,calc(100vw-2rem))] border-popover-border text-foreground"
           : isUpdate
@@ -402,7 +402,7 @@ export function ToastMessageView({
           ) : (
             <Info className="size-4 shrink-0 text-foreground-subtle" aria-hidden="true" />
           )}
-          <div className="flex min-w-0 flex-[1_0_0] items-start gap-4 py-3 text-sm">
+          <div className="flex min-w-0 flex-[1_0_0] items-start gap-4 py-3 text-ui-base">
             <div className="min-w-0 flex-1 leading-5">
               <div className="text-foreground">{displayTitle}</div>
               {displayBody ? (

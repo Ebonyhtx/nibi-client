@@ -178,20 +178,20 @@ function SettingsSidebarButton({
         type={buttonProps.type ?? "button"}
         aria-label={label}
         className={cn(
-          "flex h-8 w-full items-center gap-2 rounded-xl px-2.5 text-left transition-colors",
+          "relative flex h-8 w-full items-center gap-2 rounded-xl px-2.5 text-left transition-colors",
           "max-lg:mx-auto max-lg:size-10 max-lg:justify-center max-lg:px-0",
           "compact-web:mx-0 compact-web:h-8 compact-web:w-auto compact-web:shrink-0 compact-web:px-2.5",
           active
-            ? "bg-surface-hover text-foreground"
+            ? "bg-selected font-medium text-foreground before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-primary max-lg:before:hidden compact-web:before:hidden"
             : "text-remote-foreground-muted hover:bg-surface-hover hover:text-foreground",
           className,
         )}
       >
         <span className="flex size-4 shrink-0 items-center justify-center text-current">
-          <Icon className="size-4 text-foreground" />
+          <Icon className={cn("size-4", active ? "text-primary" : "text-current")} />
         </span>
         <span className="min-w-0 flex-1 max-lg:sr-only compact-web:not-sr-only">
-          {children ?? <span className="truncate text-ui-base text-foreground">{label}</span>}
+          {children ?? <span className="truncate text-ui-base">{label}</span>}
         </span>
       </button>
     </ControlHintTooltip>
@@ -1867,9 +1867,7 @@ export function SettingsPage({
                                 }}
                               >
                                 <span className="flex min-w-0 flex-1 items-center gap-2">
-                                  <span className="truncate text-ui-base text-foreground">
-                                    {label}
-                                  </span>
+                                  <span className="truncate text-ui-base">{label}</span>
                                   {id === "remoteDevices" ? (
                                     <RemoteConnectionNavigationDot
                                       presentation={remoteDevicesPresentation}

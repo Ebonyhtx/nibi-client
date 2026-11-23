@@ -70,8 +70,7 @@ function buildForceUpdatePromptMessages(locale: Locale) {
       readyRunningTaskMessage:
         "检测到 {count} 个正在运行的任务。请完成任务后再安装，或点击“立即重启安装”确认中断任务。",
       installConfirmTitle: "仍有任务正在运行",
-      installConfirmMessage:
-        "立即安装将中断 {count} 个正在运行的任务。建议完成任务后再安装。",
+      installConfirmMessage: "立即安装将中断 {count} 个正在运行的任务。建议完成任务后再安装。",
       installingTitle: "正在安装更新",
       installingMessage: "NIBI 即将重启完成安装。",
       errorTitle: "更新失败",
@@ -99,7 +98,8 @@ function buildForceUpdatePromptMessages(locale: Locale) {
     checkingMessage: "Keep this window open while NIBI checks for updates.",
     downloadingTitle: "Downloading update",
     downloadingVersionTitle: "Downloading update v{version}",
-    downloadingMessage: "You will be asked to confirm the install after the download finishes. Keep this window open.",
+    downloadingMessage:
+      "You will be asked to confirm the install after the download finishes. Keep this window open.",
     readyTitle: "Update downloaded",
     readyMessage: "The update will only be installed after you click “Restart and install now”.",
     readyRunningTaskMessage:
@@ -113,9 +113,11 @@ function buildForceUpdatePromptMessages(locale: Locale) {
     errorMessage: "You can retry the update or use manual update.",
     installFailedMessage: "Could not start the install. Retry or use manual update.",
     devSkippedTitle: "Auto update unavailable in development",
-    devSkippedMessage: "Auto update is only available in packaged apps. Use manual update or test a packaged build.",
+    devSkippedMessage:
+      "Auto update is only available in packaged apps. Use manual update or test a packaged build.",
     confirmCloseTitle: "Update in progress",
-    confirmCloseMessage: "Closing this window will stop the current update flow, and this old version still cannot open the main app. You can keep waiting or close and quit.",
+    confirmCloseMessage:
+      "Closing this window will stop the current update flow, and this old version still cannot open the main app. You can keep waiting or close and quit.",
     confirmCloseButton: "Close anyway",
     continueUpdateButton: "Continue update",
     retryButton: "Retry update",
@@ -198,13 +200,13 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
       width: 22px;
       height: 22px;
       border-radius: 8px;
-      background: rgba(224, 138, 62, 0.14);
+      background: rgba(174, 84, 19, 0.12);
       border: 1px solid rgba(13, 13, 13, 0.1);
       display: flex;
       align-items: center;
       justify-content: center;
       flex: 0 0 auto;
-      color: #e08a3e;
+      color: #ae5413;
       font-size: 12px;
       font-weight: 600;
     }
@@ -254,9 +256,9 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
       width: 36px;
       height: 36px;
       border-radius: 10px;
-      background: color-mix(in oklab, #e08a3e 14%, transparent);
+      background: rgba(174, 84, 19, 0.12);
       border: 1px solid rgba(20, 45, 82, 0.12);
-      color: #e08a3e;
+      color: #ae5413;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -279,7 +281,7 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
     .progress { display: none; gap: 8px; flex-direction: column; }
     .progress.visible { display: flex; }
     .progress-track { height: 6px; border-radius: 999px; background: rgba(20, 45, 82, 0.1); overflow: hidden; }
-    .progress-bar { width: 0%; height: 100%; border-radius: inherit; background: #e08a3e; transition: width 160ms ease; }
+    .progress-bar { width: 0%; height: 100%; border-radius: inherit; background: #ae5413; transition: width 160ms ease; }
     .progress-text { color: rgba(20, 45, 82, 0.62); font-size: 12px; }
     .actions {
       margin-top: auto;
@@ -302,8 +304,8 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
     }
     button:hover { background: #f3ead8; border-color: rgba(20, 45, 82, 0.22); }
     button:disabled { cursor: default; opacity: 0.58; }
-    button.primary { border-color: transparent; background: #e08a3e; color: #fff9ef; }
-    button.primary:hover { background: #d07c2f; }
+    button.primary { border-color: transparent; background: #ae5413; color: #fff9ef; }
+    button.primary:hover { background: #96470f; }
     button.secondary { background: #ece1cf; }
     button.secondary:hover { background: #f3ead8; }
     @media (prefers-color-scheme: dark) {
@@ -597,7 +599,8 @@ export async function showForceUpdatePrompt(
   options: ShowForceUpdatePromptOptions = {},
 ): Promise<ForceUpdatePromptAction> {
   const { BrowserWindow, nativeTheme } = await import("electron");
-  const parentWindow = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? undefined;
+  const parentWindow =
+    BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? undefined;
   return new Promise<ForceUpdatePromptAction>((resolvePrompt) => {
     let resolved = false;
     let shown = false;
@@ -790,6 +793,8 @@ export async function showForceUpdatePrompt(
       showPromptWindow("did-fail-load");
     });
     fallbackTimer = setTimeout(() => showPromptWindow("timeout"), 1000);
-    win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(renderForceUpdatePromptHtml(text, locale))}`);
+    win.loadURL(
+      `data:text/html;charset=utf-8,${encodeURIComponent(renderForceUpdatePromptHtml(text, locale))}`,
+    );
   });
 }

@@ -480,7 +480,7 @@ export function ChatPromptEditor({
                   disabled={submitDisabled}
                   data-testid={submitTestId ?? TID_CHAT_SEND_BUTTON}
                   aria-label={submitLabel}
-                  className="gap-1 rounded-lg bg-brand text-ui-base text-foreground-inverse hover:bg-brand/80"
+                  className="gap-1 rounded-lg bg-primary text-ui-base text-primary-foreground hover:bg-primary/90"
                 >
                   {submitting ? <Spinner className="size-4" /> : <ArrowUpIcon className="size-4" />}
                   <span className="sr-only">{submitLabel}</span>
