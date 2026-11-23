@@ -83,7 +83,7 @@
 
 ## 测试
 
-- [测试文档](testing/)
+- [测试文档索引](testing/README.md)：命令、覆盖矩阵、故障注入与历史参考都从这里进
 - [提交前检查](testing/pre-push-hook.md)
 
 ## 说明
