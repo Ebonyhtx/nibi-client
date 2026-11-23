@@ -4,8 +4,10 @@ type WebAuthLocale = "zh-CN" | "en-US";
 
 interface WebAuthPageCopy {
   brand: string;
+  remoteBadge: string;
   loginTitle: string;
   loginDescription: string;
+  loginHighlights: [string, string];
   loginAction: Record<WebOAuthProviderId, string>;
   loginRegion: Record<WebOAuthProviderId, string>;
   callbackTitle: string;
@@ -18,8 +20,13 @@ interface WebAuthPageCopy {
 const WEB_AUTH_COPY = {
   "zh-CN": {
     brand: "NIBI",
+    remoteBadge: "Web 远程控制",
     loginTitle: "登录后继续使用 Web 远程控制",
     loginDescription: "请使用与电脑端相同的 NIBI 账号登录。",
+    loginHighlights: [
+      "仅连接登录同一账号且开启远控的电脑",
+      "配对过程由中继加密校验，电脑端保持可控",
+    ],
     loginAction: {
       nibi: "使用 NIBI 账号登录",
     },
@@ -32,8 +39,13 @@ const WEB_AUTH_COPY = {
   },
   "en-US": {
     brand: "NIBI",
+    remoteBadge: "Web Remote",
     loginTitle: "Sign In To Continue",
     loginDescription: "Use the same NIBI account as on your computer.",
+    loginHighlights: [
+      "Connects only to computers signed in with the same account",
+      "Verified relay pairing keeps your desktop workspace protected",
+    ],
     loginAction: {
       nibi: "Sign in with NIBI",
     },

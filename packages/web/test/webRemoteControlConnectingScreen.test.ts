@@ -20,6 +20,8 @@ describe("连接过程页", () => {
     expect(html).toContain('data-device-platform-icon="darwin"');
     expect(html.match(/data-step-state="done"/g)).toHaveLength(1);
     expect(html).toMatch(/aria-current="step"[^>]*data-step-state="active"/);
+    expect(html).not.toContain('class="sr-only"');
+    expect(html).toContain(locale === "zh-CN" ? "等待桌面端配对" : "Wait for desktop pairing");
   });
 
   it("没有名字和平台时用通用文案与电脑图标；重连不高亮进度并补充说明", () => {
