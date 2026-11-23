@@ -248,8 +248,8 @@ React 面板等待连接后自动运行、无错误闪现和重复实例。2026-
 - `plugin-subagent-override-cold` 已通过（连续三次：`desktop-e2e-20261122-190909-040`、`desktop-e2e-20261122-191148-892`、`desktop-e2e-20261122-192851-624`；此前 18:50–19:05 的批次失败，作为修复前后的分界保留）。证据：child 请求 `deepseek-v4-pro` + `output_config.effort=high`，父 continuation 保持 `deepseek-v4-flash` + `max`，`pluginAgentModelSelectionOverrides` 落盘未改写。
 - 产品修复（Rust 内核，桌面本地默认）：新增 `agents-state.json` 读取面与子代理完整选择解析。`kernel/crates/agents/src/state.rs` 解析当前 `builtInModelSelectionOverrides` / `pluginAgentModelSelectionOverrides`（含旧双 map 迁移语义与 `disabledAgentIds`）；`selection.rs` 解析 `provider/model`、`custom:<providerId>:<modelId>` 与 `thoughtLevel`；`spawn.rs` 按“设置页覆盖 > 定义 pin > 继承父会话”派发，换 Provider 时不沿用父会话的 Team Plan 连接。`crates/cli` 在 CLI/TUI 与 app-server 两个入口把 `<存储根>/v2/agents-state.json` 的读取器接进 `AgentCatalog`（每次取定义重读，改完立即生效）。
 - e2e 夹具修复：`seedPersistedModelSelection` 之前只写旧的无作用域 `nibi-model-selection-recent-v1:<path>`，当前 Composer 的 Recent 是 v2 作用域键 `nibi-composer-recent:v2:["desktop",<hostId>,<projectId>]`，导致冷启动父会话退回目录默认档位（high）。helper 现在同时写 v2 键（按已登记的工作区作用域，缺省 Root 草稿）。
-- 复核时观察到的既有红项（与本批改动无关，保留证据）：
-  - `conversation-session-built-in-subagent-model-overrides`：临时补上 async_launched fixture 与父通知 continuation 后，child 的 built-in/custom 覆盖断言已能通过（`deepseek-v4-pro` + high），但异步 child 完成后 Agent 卡上没有右侧会话入口（DOM 无 `v4-subagent-open-side-pane-*`），后续 `live/cold` child marker 走不到。需要单独处理异步子代理的 subagent 行配对/入口，试验改动已还原，不在本批伪改通过。
+- 复核时观察到的既有红项（2026-11-22 记录；SB 已于 2026-11-23 修复，其余保留）：
+  - `conversation-session-built-in-subagent-model-overrides`：2026-11-23 已修复并通过（连续三次：`desktop-e2e-20261122234622659-p128240-cfb050bc454853a4`、`desktop-e2e-20261122234919309-p118752-0dac5828603b8c78`、`desktop-e2e-20261122235230457-p122172-f0e5b6bc527eecb6`）。根因是 Rust V4 投影从不产 `subagent` 行（`KernelEvent::Subagent` 被忽略；冷投影缺 `Fact::SubagentLinked` 读取与 source-less 初始 marker），且冷行必须紧跟父 Agent 工具行才能进入同一 work segment。Explore 工具面按 Rust 实际集断言；`RespondToCoordinator` 仍未在 Rust 实现，BG25 不据此转绿。
   - `conversation-session-subagent-runtime-catalog-reasoning`：在设置页展示非法历史档位处失败。
   - `conversation-session-background-subagent-rate-limit`：失败通知没有透传 provider 原始错误（`latestCount=0`）。
-  - 三者都按当前异步 Agent 语义/UI 单独跟进，不并入插件覆盖批次。
+  - 其余两项按当前异步 Agent 语义/UI 单独跟进，不并入插件覆盖批次。

@@ -95,6 +95,40 @@
       }
     },
     {
+      "id": "built-in-subagent-general-parent-wait",
+      "description": "general 异步 Agent 启动后父轮对 launched tool_result 的收口回复。",
+      "metadata": {
+        "kind": "main",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "异步语义下父轮先收口，最终结果由 task-notification 回合给出；这条只避免父轮在重放里悬挂。"
+      },
+      "maxMatches": 1,
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "E2E_BUILT_IN_SUBAGENT_GENERAL_PARENT",
+          "Async agent launched successfully."
+        ],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY",
+          "<result>E2E_BUILT_IN_SUBAGENT_GENERAL_CHILD_OK</result>"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "statusMessage": "OK",
+        "text": {
+          "id": "upstream-e2e-built-in-subagent-general-parent-wait",
+          "inputTokens": 120,
+          "outputTokens": 4,
+          "text": "Waiting for the subagent."
+        }
+      }
+    },
+    {
       "id": "built-in-subagent-general-parent-final",
       "description": "父 agent 收到 general-purpose child tool_result 后的固定最终回复。",
       "metadata": {
@@ -109,7 +143,7 @@
         "pathIncludes": "/messages",
         "bodyIncludes": [
           "E2E_BUILT_IN_SUBAGENT_GENERAL_PARENT",
-          "E2E_BUILT_IN_SUBAGENT_GENERAL_CHILD_OK"
+          "<result>E2E_BUILT_IN_SUBAGENT_GENERAL_CHILD_OK</result>"
         ],
         "bodyExcludes": [
           "Generate a concise title",
@@ -261,6 +295,40 @@
       }
     },
     {
+      "id": "built-in-subagent-explore-parent-wait",
+      "description": "explore 异步 Agent 启动后父轮对 launched tool_result 的收口回复。",
+      "metadata": {
+        "kind": "main",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "异步语义下父轮先收口，最终结果由 task-notification 回合给出；这条只避免父轮在重放里悬挂。"
+      },
+      "maxMatches": 1,
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "E2E_BUILT_IN_SUBAGENT_EXPLORE_PARENT",
+          "Async agent launched successfully."
+        ],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY",
+          "<result>E2E_BUILT_IN_SUBAGENT_EXPLORE_CHILD_OK</result>"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "statusMessage": "OK",
+        "text": {
+          "id": "upstream-e2e-built-in-subagent-explore-parent-wait",
+          "inputTokens": 120,
+          "outputTokens": 4,
+          "text": "Waiting for the subagent."
+        }
+      }
+    },
+    {
       "id": "built-in-subagent-explore-parent-final",
       "description": "父 agent 收到 Explore child tool_result 后的固定最终回复。",
       "metadata": {
@@ -275,7 +343,7 @@
         "pathIncludes": "/messages",
         "bodyIncludes": [
           "E2E_BUILT_IN_SUBAGENT_EXPLORE_PARENT",
-          "E2E_BUILT_IN_SUBAGENT_EXPLORE_CHILD_OK"
+          "<result>E2E_BUILT_IN_SUBAGENT_EXPLORE_CHILD_OK</result>"
         ],
         "bodyExcludes": [
           "Generate a concise title",
@@ -352,6 +420,36 @@
       }
     },
     {
+      "id": "custom-subagent-reasoning-parent-wait",
+      "description": "custom 异步 Agent 启动后父轮对 launched tool_result 的收口回复。",
+      "metadata": {
+        "kind": "main",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "异步语义下父轮先收口，最终结果由 task-notification 回合给出；这条只避免父轮在重放里悬挂。"
+      },
+      "maxMatches": 1,
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "E2E_CUSTOM_SUBAGENT_REASONING_PARENT",
+          "Async agent launched successfully."
+        ],
+        "bodyExcludes": ["Generate a concise title", "CRITICAL: Respond with TEXT ONLY", "<result>E2E_CUSTOM_SUBAGENT_REASONING_CHILD_OK</result>"]
+      },
+      "response": {
+        "statusCode": 200,
+        "statusMessage": "OK",
+        "text": {
+          "id": "upstream-e2e-custom-subagent-reasoning-parent-wait",
+          "inputTokens": 120,
+          "outputTokens": 4,
+          "text": "Waiting for the subagent."
+        }
+      }
+    },
+    {
       "id": "custom-subagent-reasoning-parent-final",
       "description": "父 agent 收到 custom child tool_result 后的固定最终回复。",
       "metadata": {
@@ -366,7 +464,7 @@
         "pathIncludes": "/messages",
         "bodyIncludes": [
           "E2E_CUSTOM_SUBAGENT_REASONING_PARENT",
-          "E2E_CUSTOM_SUBAGENT_REASONING_CHILD_OK"
+          "<result>E2E_CUSTOM_SUBAGENT_REASONING_CHILD_OK</result>"
         ],
         "bodyExcludes": ["Generate a concise title", "CRITICAL: Respond with TEXT ONLY"]
       },

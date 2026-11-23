@@ -153,12 +153,21 @@ describe("Subagent 模型与 reasoning effort 覆盖 E2E", () => {
       subagentType: "Explore",
     });
 
+    // Rust 的 Explore 工具面（kernel/crates/agents/src/definitions.rs 的只读禁用集 + 后台白名单）
+    // 与 Node 不同：Node 的 RespondToCoordinator 在 Rust 里仍未实现（BG25 单独跟进），
+    // 这里按当前桌面内核的真实工具面断言，不把未实现的工具写成已覆盖。
     expect(readToolNamesFromCapture(exploreChildRecord.requestJson)).toEqual([
       "Bash",
+      "EnterWorktree",
+      "ExitWorktree",
+      "Monitor",
       "Read",
+      "SendMessage",
+      "Skill",
+      "TaskStop",
+      "TodoRead",
       "TodoWrite",
       "WebFetch",
-      "RespondToCoordinator",
     ]);
 
     await runSubagentScenario({
@@ -731,20 +740,26 @@ async function clearRendererViewport() {
 }
 
 async function sendRendererEmulationCommand(method: string, params: Record<string, unknown> = {}) {
-  const sent = await browser.electron.execute(
-    async (electron, command, commandParams) => {
-      const window = electron.BrowserWindow.getAllWindows().find(
-        (candidate) => !candidate.isDestroyed() && candidate.isVisible(),
-      );
-      if (!window) return false;
-      const devtools = window.webContents.debugger;
-      if (!devtools.isAttached()) devtools.attach("1.3");
-      await devtools.sendCommand(command, commandParams);
-      return true;
-    },
-    method,
-    params,
-  );
+  // 冷启动/重启后主窗口可能还没进入 visible 状态：给 CDP 发送留一个短暂收敛窗口，
+  // 避免把“窗口尚未可见”误报成设置布局回归。
+  let sent = false;
+  for (let attempt = 0; attempt < 20 && !sent; attempt += 1) {
+    sent = await browser.electron.execute(
+      async (electron, command, commandParams) => {
+        const window = electron.BrowserWindow.getAllWindows().find(
+          (candidate) => !candidate.isDestroyed() && candidate.isVisible(),
+        );
+        if (!window) return false;
+        const devtools = window.webContents.debugger;
+        if (!devtools.isAttached()) devtools.attach("1.3");
+        await devtools.sendCommand(command, commandParams);
+        return true;
+      },
+      method,
+      params,
+    );
+    if (!sent) await browser.pause(250);
+  }
   expect(sent).toBe(true);
 }
 
@@ -753,10 +768,32 @@ async function assertInitialChildModelMarker(stage: "cold" | "live") {
   const sidePaneAction = await $(`[data-testid="${agentBlock.testId}"]`).$(
     `[data-testid^="${TID_V4_SUBAGENT_OPEN_SIDE_PANE}-"]`,
   );
-  await sidePaneAction.waitForDisplayed({
-    timeout: 15000,
-    timeoutMsg: `${stage} child 没有右侧会话入口`,
-  });
+  try {
+    await sidePaneAction.waitForDisplayed({
+      timeout: 15000,
+      timeoutMsg: `${stage} child 没有右侧会话入口`,
+    });
+  } catch (error) {
+    const diagnostic = await browser.execute((blockTestId) => {
+      const block = document.querySelector<HTMLElement>(`[data-testid="${blockTestId}"]`);
+      return {
+        actionAnywhere: document.querySelectorAll(
+          '[data-testid^="v4-subagent-open-side-pane-"]',
+        ).length,
+        blockText: (block?.textContent ?? "").slice(0, 400),
+        blockTestIds: Array.from(
+          block?.querySelectorAll<HTMLElement>("[data-testid]") ?? [],
+        )
+          .map((element) => element.getAttribute("data-testid"))
+          .slice(0, 40),
+      };
+    }, agentBlock.testId);
+    const shot = join(process.env.TEMP ?? ".", `nibi-e2e-${stage}-missing-entry.png`);
+    await browser.saveScreenshot(shot);
+    throw new Error(
+      `${String(error)}; diagnostic=${JSON.stringify(diagnostic)}; screenshot=${shot}`,
+    );
+  }
   const actionTestId = await sidePaneAction.getAttribute("data-testid");
   const childSessionId = actionTestId?.slice(`${TID_V4_SUBAGENT_OPEN_SIDE_PANE}-`.length);
   if (!actionTestId || !childSessionId) {
@@ -795,7 +832,31 @@ async function assertInitialChildModelMarker(stage: "cold" | "live") {
       );
       break;
     } catch (error) {
-      if (attempt === 2) throw error;
+      if (attempt === 2) {
+        const diagnostic = await browser.execute(
+          (blockTestId, actionId) => ({
+            actionPresent: Boolean(
+              document.querySelector<HTMLElement>(
+                `[data-testid="${blockTestId}"] [data-testid="${actionId}"]`,
+              ),
+            ),
+            panes: Array.from(document.querySelectorAll<HTMLElement>("[data-session-id]"))
+              .map((pane) => ({
+                id: pane.getAttribute("data-session-id"),
+                text: (pane.textContent ?? "").slice(0, 160),
+                visible: pane.offsetParent !== null,
+              }))
+              .slice(0, 20),
+          }),
+          agentBlock.testId,
+          actionTestId,
+        );
+        const shot = join(process.env.TEMP ?? ".", `nibi-e2e-${stage}-child-pane.png`);
+        await browser.saveScreenshot(shot);
+        throw new Error(
+          `${String(error)}; diagnostic=${JSON.stringify(diagnostic)}; screenshot=${shot}`,
+        );
+      }
     }
   }
 
@@ -1000,13 +1061,13 @@ function findParentContinuationRequest(
       (record) =>
         isUpstreamMessageRequest(record) &&
         record.status === "complete" &&
-        latestUserToolResultContainsText(record.requestJson, childReplyToken) &&
+        latestUserResultContainsText(record.requestJson, childReplyToken) &&
         readModelFromCapture(record.requestJson) === UPSTREAM_MODEL,
     ) ?? null
   );
 }
 
-function latestUserToolResultContainsText(requestJson: unknown, expectedText: string) {
+function latestUserResultContainsText(requestJson: unknown, expectedText: string) {
   if (!requestJson || typeof requestJson !== "object") {
     return false;
   }
@@ -1024,16 +1085,25 @@ function latestUserToolResultContainsText(requestJson: unknown, expectedText: st
     }
     const content = (message as { content?: unknown }).content;
     // Bug 原因：父输入本身也包含 child 回复 token，只搜整段 request 会把 compact
-    // 或首轮请求当成 continuation；这里要求 token 真正来自最新 user/tool_result。
+    // 或首轮请求当成 continuation；这里要求 token 真正来自最新 user 消息里的
+    // tool_result（同步前台）或 task-notification（异步后台）文本。
     return (
       Array.isArray(content) &&
-      content.some(
-        (part) =>
-          part !== null &&
-          typeof part === "object" &&
-          (part as { type?: unknown }).type === "tool_result" &&
-          captureContainsText(part, expectedText),
-      )
+      content.some((part) => {
+        if (part === null || typeof part !== "object") {
+          return false;
+        }
+        const typed = part as { type?: unknown; text?: unknown };
+        if (typed.type === "tool_result") {
+          return captureContainsText(part, expectedText);
+        }
+        return (
+          typed.type === "text" &&
+          typeof typed.text === "string" &&
+          typed.text.includes("<task-notification>") &&
+          typed.text.includes(expectedText)
+        );
+      })
     );
   }
   return false;
