@@ -4,35 +4,35 @@ import {
   clearAppData,
   getE2EAppDataPaths,
   readAgentsState,
-} from "../../../helpers/desktop-app.js";
-import { seedOfficialPluginsViaCli } from "../../../helpers/tier2-sixth-batch.js";
+} from "../helpers/desktop-app.js";
+import { seedOfficialPluginsViaCli } from "../helpers/tier2-sixth-batch.js";
 import {
   assertUpstreamRequestCapture,
   assertUpstreamThoughtLevelCapture,
-} from "../../../helpers/upstream-capture.js";
+} from "../helpers/upstream-capture.js";
 import {
   UPSTREAM_MODEL,
   UPSTREAM_PROVIDER_ID,
   UPSTREAM_ALTERNATE_MODEL,
   UPSTREAM_ALTERNATE_PROVIDER_ID,
-} from "../../../helpers/upstream-provider.js";
-import { resolveE2EStorageRoot } from "../../../helpers/e2e-runtime-paths.js";
+} from "../helpers/upstream-provider.js";
+import { resolveE2EStorageRoot } from "../helpers/e2e-runtime-paths.js";
 import {
   restartIntoWorkspacePreservingProfile,
   seedPersistedModelSelection,
-} from "../../../helpers/model-provider-restart.js";
+} from "../helpers/model-provider-restart.js";
 import type {
   E2ENetworkCaptureArtifact,
   E2ENetworkCaptureRecord,
-} from "../../../helpers/network-capture-proxy.js";
-import { requirePluginManualReview } from "../../../helpers/plugin-management-lifecycle.js";
-import { waitForToolCallBlockByToolName } from "../../../helpers/conversation-session-tool.js";
+} from "../helpers/network-capture-proxy.js";
+import { requirePluginManualReview } from "../helpers/plugin-management-lifecycle.js";
+import { waitForToolCallBlockByToolName } from "../helpers/conversation-session-tool.js";
 import {
   prepareV4ConversationE2E,
   sendV4PromptAndWaitAccepted,
   waitForV4AssistantMessageContaining,
   waitForV4ConversationState,
-} from "../../../helpers/v4-conversation.js";
+} from "../helpers/v4-conversation.js";
 
 const AGENT_ID = "plugin:documents@nibi-official:visual-judge";
 const PARENT = "E2E_PLUGIN_OVERRIDE_COLD_PARENT";

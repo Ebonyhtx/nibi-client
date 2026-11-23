@@ -7,17 +7,17 @@
 
 | Case                                         | Spec abbreviation | UI automation | Runtime/storage evidence                                                                                                  | Human review | Formal spec | Linux Docker | macOS CI | Windows CI |
 | -------------------------------------------- | ----------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------- | ------------ | -------- | ---------- |
-| `PLM-LC-001` discovery/navigation            | `PD`              | targeted pass | UI state + screenshot captured                                                                                            | pending      | blocked     | blocked      | blocked  | blocked    |
-| `PLM-LC-002` presentation                    | `PP`              | targeted pass | DOM/a11y/overflow + screenshot captured                                                                                   | pending      | blocked     | blocked      | blocked  | blocked    |
-| `PLM-LC-003` personal main lifecycle         | `PM`              | targeted pass | overview/list/storage + update badge/inline entry + v2 Skill/MCP provider evidence pass                                   | pending      | blocked     | blocked      | blocked  | blocked    |
-| `PLM-LC-004` persistence/local visibility    | `PV`              | targeted pass | restart/config/enabled/workspace B evidence pass                                                                          | pending      | blocked     | blocked      | blocked  | blocked    |
-| `PLM-LC-005` orphan/reassociate              | `PO`              | targeted pass | source/config/enabled + all update entries (menu/detail/badge/inline) absent + fresh-session Skill evidence pass          | pending      | blocked     | blocked      | blocked  | blocked    |
-| `PLM-LC-006` builtin suppress/restore        | `PB`              | targeted pass | suppression/config/data + Catalog/cache preservation + restart evidence pass (Windows, 2026-11-22)                        | pending      | blocked     | blocked      | blocked  | blocked    |
-| `PLM-LC-007` local official CDN              | `PC`              | targeted pass | loopback HTTP ZIP/cache/overview evidence pass                                                                            | pending      | blocked     | blocked      | blocked  | blocked    |
+| `PLM-LC-001` discovery/navigation            | `PD`              | targeted pass | UI state + screenshot captured                                                                                            | approved     | promoted    | blocked      | blocked  | blocked    |
+| `PLM-LC-002` presentation                    | `PP`              | targeted pass | DOM/a11y/overflow + screenshot captured                                                                                   | approved     | promoted    | blocked      | blocked  | blocked    |
+| `PLM-LC-003` personal main lifecycle         | `PM`              | targeted pass | overview/list/storage + update badge/inline entry + v2 Skill/MCP provider evidence pass                                   | approved     | promoted    | blocked      | blocked  | blocked    |
+| `PLM-LC-004` persistence/local visibility    | `PV`              | targeted pass | restart/config/enabled/workspace B evidence pass                                                                          | approved     | promoted    | blocked      | blocked  | blocked    |
+| `PLM-LC-005` orphan/reassociate              | `PO`              | targeted pass | source/config/enabled + all update entries (menu/detail/badge/inline) absent + fresh-session Skill evidence pass          | approved     | promoted    | blocked      | blocked  | blocked    |
+| `PLM-LC-006` builtin suppress/restore        | `PB`              | targeted pass | suppression/config/data + Catalog/cache preservation + restart evidence pass (Windows, 2026-11-22)                        | approved     | promoted    | blocked      | blocked  | blocked    |
+| `PLM-LC-007` local official CDN              | `PC`              | targeted pass | loopback HTTP ZIP/cache/overview evidence pass                                                                            | approved     | promoted    | blocked      | blocked  | blocked    |
 | `PLM-LC-007b` real CDN smoke                 | `PCS`             | not run       | not captured                                                                                                              | pending      | never       | never        | never    | never      |
-| `PLM-LC-008` recoverable failures            | `PF`              | targeted pass | source/refresh/describe/install/update preservation evidence pass                                                         | pending      | blocked     | blocked      | blocked  | blocked    |
-| `PLM-LC-009` inline smoke                    | `PI`              | targeted pass | UI/list + fresh-session Skill invocation evidence pass                                                                    | pending      | blocked     | blocked      | blocked  | blocked    |
-| `PLM-LC-010` secret env/agent projection     | `PEA`             | targeted pass | MCP resolved marker + no-secret capture + one canonical agent row + Electron `capturePage()` video                        | pending      | blocked     | blocked      | blocked  | blocked    |
+| `PLM-LC-008` recoverable failures            | `PF`              | targeted pass | source/refresh/describe/install/update preservation evidence pass                                                         | approved     | promoted    | blocked      | blocked  | blocked    |
+| `PLM-LC-009` inline smoke                    | `PI`              | targeted pass | UI/list + fresh-session Skill invocation evidence pass                                                                    | approved     | promoted    | blocked      | blocked  | blocked    |
+| `PLM-LC-010` secret env/agent projection     | `PEA`             | targeted pass | MCP resolved marker + no-secret capture + one canonical agent row + Electron `capturePage()` video                        | approved     | promoted    | blocked      | blocked  | blocked    |
 | `PLM-LC-011` no-Git GitHub Archive           | `PGA`             | targeted pass | real Claude Marketplace/plugin HTTP + missing-Git diagnostic; run `desktop-e2e-20260806033745155-p99439-e61ceea7b4c68fcf` | pending      | never       | never        | never    | never      |
 | `PLM-LC-012` isolated refresh/atomic cache   | `PRA`             | not run       | partial refresh + persisted failure + rollback evidence pending                                                           | pending      | blocked     | blocked      | blocked  | blocked    |
 | `PLM-LC-014` builtin uninstall/detail parity | `PBD`             | not run       | describe/components + suppression/runtime absence + cache/manifest unchanged pending                                      | pending      | blocked     | blocked      | blocked  | blocked    |
@@ -25,20 +25,30 @@
 | `PLM-LC-016` seed/cache/runtime separation   | `PBS`             | not run       | filesystem/SEA seed, suppressed discovery, describe and self-heal evidence pending                                        | pending      | blocked     | blocked      | blocked  | blocked    |
 | `PLM-LC-017` installed row menu layout       | `PML`             | targeted pass | workspace-override row menu single-line text + screenshot                                                                 | pending      | blocked     | blocked      | blocked  | blocked    |
 
+## 2026-11-24 转正执行
+
+- 已转正插件 spec（11）：`plugin-management-discovery-presentation`、`plugin-management-personal-lifecycle`、
+  `plugin-management-persistence-source`、`plugin-management-builtin-inline`、`plugin-cdn-zip-marketplace-install`、
+  `plugin-management-recoverable-failures`、`plugin-runtime-env-agent-projection`、`plugin-management-ui-market`、
+  `plugin-builtin-ui-uninstall`、`plugin-extension-ui-view`、`plugin-subagent-override-cold`。
+- 已转正会话域 spec（1）：`conversation-session-plugin-marketplace-installed-roundtrip`（WPL-015）。
+- 转正后本地 replay：12/12 通过（`desktop-e2e-20261123-164846-908`）。
+- 阻塞：Docker admission 与 `plugins-verified` preset（主机虚拟化资源不足，未取得隔离 Docker 证据）。
+
 ## Candidate spec paths
 
-2026-09-09 历史记录（PLM-LC-020 后随异步 Agent 变更失效，2026-11-22 第三批修复后重新通过；018/019 另有后续记录）：Todo103 新增/迁接候选：PLM-LC-018/019 对应 `plugins/manual-review/pending/plugin-store-auto-refresh-{throttled,on-enter}.test.ts`；Pro `desktop-e2e-20260909-152018-653` 两例通过。PLM-LC-020 对应 `plugins/manual-review/pending/plugin-subagent-override-cold.test.ts`，Pro `desktop-e2e-20260909-152419-828` 冷启动 child/父 continuation 请求验证通过，case-local fixture check 通过。三项均未人工晋级；019 保持公网 smoke、不进入正式 CI。
+2026-09-09 历史记录（PLM-LC-020 后随异步 Agent 变更失效，2026-11-22 第三批修复后重新通过；018/019 另有后续记录）：Todo103 新增/迁接候选：PLM-LC-018/019 对应 `plugins/manual-review/pending/plugin-store-auto-refresh-{throttled,on-enter}.test.ts`；Pro `desktop-e2e-20260909-152018-653` 两例通过。PLM-LC-020 对应 `plugins/plugin-subagent-override-cold.test.ts`，Pro `desktop-e2e-20260909-152419-828` 冷启动 child/父 continuation 请求验证通过，case-local fixture check 通过。三项均未人工晋级；019 保持公网 smoke、不进入正式 CI。
 
-| Abbreviation | Pending spec                                                                        |
+| Abbreviation | Spec                                                                                |
 | ------------ | ----------------------------------------------------------------------------------- |
-| `PD` / `PP`  | `plugins/manual-review/pending/plugin-management-discovery-presentation.test.ts`    |
-| `PM`         | `plugins/manual-review/pending/plugin-management-personal-lifecycle.test.ts`        |
-| `PV` / `PO`  | `plugins/manual-review/pending/plugin-management-persistence-source.test.ts`        |
-| `PB` / `PI`  | `plugins/manual-review/pending/plugin-management-builtin-inline.test.ts`            |
-| `PC`         | `plugins/manual-review/pending/plugin-cdn-zip-marketplace-install.test.ts`          |
+| `PD` / `PP`  | `plugins/plugin-management-discovery-presentation.test.ts`    |
+| `PM`         | `plugins/plugin-management-personal-lifecycle.test.ts`        |
+| `PV` / `PO`  | `plugins/plugin-management-persistence-source.test.ts`        |
+| `PB` / `PI`  | `plugins/plugin-management-builtin-inline.test.ts`            |
+| `PC`         | `plugins/plugin-cdn-zip-marketplace-install.test.ts`          |
 | `PCS`        | `plugins/manual-review/pending/plugin-cdn-zip-official-cdn-smoke.test.ts`           |
-| `PF`         | `plugins/manual-review/pending/plugin-management-recoverable-failures.test.ts`      |
-| `PEA`        | `plugins/manual-review/pending/plugin-runtime-env-agent-projection.test.ts`         |
+| `PF`         | `plugins/plugin-management-recoverable-failures.test.ts`      |
+| `PEA`        | `plugins/plugin-runtime-env-agent-projection.test.ts`         |
 | `PGA`        | `plugins/manual-review/pending/plugin-no-git-github-archive.test.ts`                |
 | `PRA`        | `plugins/manual-review/pending/plugin-refresh-atomic-cache.test.ts`                 |
 | `PBD`        | `plugins/manual-review/pending/plugin-management-builtin-detail-parity.test.ts`     |
@@ -47,12 +57,18 @@
 | `PML`        | `plugins/manual-review/pending/plugin-management-installed-menu-layout.test.ts`     |
 
 > 2026-11-23 复核：`PRA`、`PBD`、`PBO`、`PBS` 指向的 pending spec 文件当前不存在（只在本表与 catalog 中有记录），只能按 planned 计，不要理解为已有自动化。
+> 2026-11-24：`PD/PP`、`PM`、`PV/PO`、`PB/PI`、`PC`、`PF`、`PEA` 对应的 7 个 spec 已转正为 formal，路径不再带 `manual-review/pending`。
 
 ## Latest targeted verification
 
-2026-11-23：待人工视觉复核的 12 例材料已汇总到
-[plugin-promotion-review-2026-11-23.md](./plugin-promotion-review-2026-11-23.md)（按分组列出截图、
-每张要看什么、观察点与转正命令）；复核状态仍是 `pending`，本表不改判。
+2026-11-24：运营者已逐例复核通过 12 例，插件域 11 例已执行 `e2e:promote:plugins --reviewed --apply`，
+WPL-015 已执行 `e2e:promote --reviewed --apply`。转正后本地 replay 全量 12/12 通过
+（`desktop-e2e-20261123-164846-908`），11 个插件 case 的 fixture check 全部通过。复核材料见
+[plugin-promotion-review-2026-11-23.md](./plugin-promotion-review-2026-11-23.md)。
+Docker admission 与 `plugins-verified` preset 尚未执行：主机 WSL2/HCS `CreateVm` 报
+`ERROR_NO_SYSTEM_RESOURCES`，Docker Desktop 无法启动 VM；待主机重启/恢复虚拟化资源后补跑。
+本表 `PLM-LC-001..010` 的 Human review 与 Formal spec 已改为 approved/promoted；
+Linux Docker 与三平台 CI 仍为 blocked。
 
 2026-07-15 已在 macOS 上逐个运行上述 `PD/PP`、`PM`、`PV/PO`、`PB/PI`、`PC`、`PF`
 pending spec，均通过。这些 spec 不得并行共享 E2E HOME；允许同一兼容批次串行运行、各用例隔离 HOME 并共享构建。
@@ -234,14 +250,14 @@ React 面板等待连接后自动运行、无错误闪现和重复实例。2026-
 
 ## PLM-BUILTIN-UI-UNINSTALL：内置 UI 插件卸载后的分组
 
-- 桌面候选：`plugins/manual-review/pending/plugin-builtin-ui-uninstall.test.ts`。macOS Electron + 真实 CLI，卸载 `documents@nibi-official` 后卡片仍在 UI 插件专区。修复后运行 `desktop-e2e-20261019071852360-p65132-d5426628aee5a21e` 通过，截图 `.e2e-artifacts/plugin-management/plm-builtin-ui-uninstall/restorable-in-ui-section.png`；还原 CLI 修复后运行 `desktop-e2e-20261019072006864-p72979-1022c7e87a447a4e` 在 restorable 阶段失败（卡片不在 UI 插件专区）。
+- 桌面候选：`plugins/plugin-builtin-ui-uninstall.test.ts`。macOS Electron + 真实 CLI，卸载 `documents@nibi-official` 后卡片仍在 UI 插件专区。修复后运行 `desktop-e2e-20261019071852360-p65132-d5426628aee5a21e` 通过，截图 `.e2e-artifacts/plugin-management/plm-builtin-ui-uninstall/restorable-in-ui-section.png`；还原 CLI 修复后运行 `desktop-e2e-20261019072006864-p72979-1022c7e87a447a4e` 在 restorable 阶段失败（卡片不在 UI 插件专区）。
 - bootstrap 单测：内置定义 `ui` 组件类型与插件包 `ui.surfaces` 一致；卸载后官方目录与可恢复列表都带 `ui`。两条旧实现失败、新实现通过。截至 2026-10-19 仅 macOS 执行；Windows 已于 2026-11-22 复验通过（见下），Linux 与手机远控未执行；用例 pending。
 
 ## 2026-11-22 Windows 复验（手动复核，未晋升）
 
-- `PLM-BUILTIN-UI-UNINSTALL`：`plugins/manual-review/pending/plugin-builtin-ui-uninstall.test.ts` 连续两次通过。为源 E2E 新增按 spec 播种官方插件缓存（`apps/nibi-cli` 作为官方源根，实测 4.7s / 14 插件），`documents@nibi-official` 卸载后仍归在 UI 插件专区；不影响 `installed_plugins.json` 的商店安装语义。
+- `PLM-BUILTIN-UI-UNINSTALL`：`plugins/plugin-builtin-ui-uninstall.test.ts` 连续两次通过。为源 E2E 新增按 spec 播种官方插件缓存（`apps/nibi-cli` 作为官方源根，实测 4.7s / 14 插件），`documents@nibi-official` 卸载后仍归在 UI 插件专区；不影响 `installed_plugins.json` 的商店安装语义。
 - `WPL-015`：`conversation-session/manual-review/pending/conversation-session-plugin-marketplace-installed-roundtrip.test.ts` 在 Windows 通过。补齐了社区 fixture 安装后的权限同意步骤，并让 scope 选择 helper 支持当前 Projects 子菜单；user/workspace 配置往返与恢复继承全部走完。
-- `PLM-EXT-UI-VIEW`（新增）：`plugins/manual-review/pending/plugin-extension-ui-view.test.ts` 连续两次通过。重启后在隔离 HOME 播种本地扩展插件，扩展经 `nibi.settings.own` 轮询 armed，再调用 `nibi.ui.view`；侧栏 `plugin-ui:…:surface:panel` 激活、`plugin-ui-webview` 挂载、MCP Apps 握手到 `data-plugin-ui-phase="running"`。截图 `.e2e-artifacts/plugin-management/plm-ui-view/extension-surface-open.png`。
+- `PLM-EXT-UI-VIEW`（新增）：`plugins/plugin-extension-ui-view.test.ts` 连续两次通过。重启后在隔离 HOME 播种本地扩展插件，扩展经 `nibi.settings.own` 轮询 armed，再调用 `nibi.ui.view`；侧栏 `plugin-ui:…:surface:panel` 激活、`plugin-ui-webview` 挂载、MCP Apps 握手到 `data-plugin-ui-phase="running"`。截图 `.e2e-artifacts/plugin-management/plm-ui-view/extension-surface-open.png`。
 - `smoke.test.ts` 在本轮修复 RPC 动态事件命名后通过（真实 Electron 启动 + 工作区/composer）。
 - 以上均为 Windows 本机 manual-review 运行，未执行 promotion apply、Docker admission 或正式 CI preset；人工产品审核仍为 pending。
 - 2026-11-22 第二批 pending 串行复验：`plugin-management-builtin-inline`、`plugin-management-discovery-presentation`、`plugin-management-persistence-source`、`plugin-management-personal-lifecycle`、`plugin-runtime-env-agent-projection`、`plugin-cdn-zip-marketplace-install` 通过。`plugin-management-recoverable-failures` 在改为真正删除安装缓存与配置登记后通过；`plugin-management-ui-market` 暴露并修复了“项目层禁用后从侧栏启用仍被 workspace false 压住”的产品问题（enable 现在先清 workspace override 再写 user），复验通过。

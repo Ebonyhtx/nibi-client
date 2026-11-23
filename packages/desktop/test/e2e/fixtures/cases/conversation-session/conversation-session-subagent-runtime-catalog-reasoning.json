@@ -29,6 +29,13 @@
       "syntheticReason": "标题生成不是本 case 的产品语义，只需稳定返回。"
     },
     {
+      "id": "claude-catalog-rust-title",
+      "kind": "common",
+      "source": "synthetic",
+      "timingPolicy": "fast-text",
+      "syntheticReason": "Rust 标题请求体也带 parent/child marker；必须排在 main fixture 前面先命中，否则会抢占 parent-final。"
+    },
+    {
       "id": "claude-catalog-general-parent-tool",
       "kind": "main",
       "source": "synthetic",
@@ -41,6 +48,13 @@
       "source": "synthetic",
       "timingPolicy": "fast-text",
       "syntheticReason": "child 响应只需稳定完成；请求本身验证 high/16000。"
+    },
+    {
+      "id": "claude-catalog-general-parent-wait",
+      "kind": "main",
+      "source": "synthetic",
+      "timingPolicy": "fast-text",
+      "syntheticReason": "让父会话先回 idle，随后由 completed task notification 唤醒；不能抢占 parent-final。"
     },
     {
       "id": "claude-catalog-general-parent-final",
@@ -78,6 +92,13 @@
       "syntheticReason": "若 Explore continuation 前触发自动 compact，固定摘要以保留当前请求。"
     },
     {
+      "id": "claude-catalog-explore-parent-wait",
+      "kind": "main",
+      "source": "synthetic",
+      "timingPolicy": "fast-text",
+      "syntheticReason": "让父会话先回 idle，随后由 completed task notification 唤醒；不能抢占 parent-final。"
+    },
+    {
       "id": "claude-catalog-explore-parent-final",
       "kind": "main",
       "source": "synthetic",
@@ -97,6 +118,13 @@
       "source": "synthetic",
       "timingPolicy": "fast-text",
       "syntheticReason": "child 响应只需稳定完成；请求本身验证 medium/8000。"
+    },
+    {
+      "id": "claude-catalog-custom-parent-wait",
+      "kind": "main",
+      "source": "synthetic",
+      "timingPolicy": "fast-text",
+      "syntheticReason": "让父会话先回 idle，随后由 completed task notification 唤醒；不能抢占 parent-final。"
     },
     {
       "id": "claude-catalog-custom-parent-final",

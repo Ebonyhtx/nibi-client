@@ -7,7 +7,7 @@ import {
   clickTestIdByDom,
   getE2EAppDataPaths,
   waitForDefaultWorkspaceReady,
-} from "../../../helpers/desktop-app.js";
+} from "../helpers/desktop-app.js";
 import {
   addMarketplaceSourceThroughAgent,
   clickPluginControl,
@@ -29,7 +29,7 @@ import {
   waitForPluginSettingsScope,
   waitUntilPluginOverview,
   selectPluginSettingsScope,
-} from "../../../helpers/plugin-management-lifecycle.js";
+} from "../helpers/plugin-management-lifecycle.js";
 
 describe("WPL-015 Marketplace installed roundtrip E2E", () => {
   after(async () => {

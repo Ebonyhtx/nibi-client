@@ -1,28 +1,30 @@
 # 插件用例转正：人工视觉复核材料（2026-11-23）
 
-> 状态：**待复核**（`Human review: pending`）。本材料只用于人工看画面与行为，不代表已批准。
-> 复核通过后才执行 `e2e:promote:plugins -- --reviewed --apply`、Docker admission 与正式 CI preset。
+> 状态：**已复核通过、已转正**（2026-11-24）。运营者逐例确认 12 例全部通过；11 例插件域已执行
+> `e2e:promote:plugins --reviewed --apply`，WPL-015 已执行 `e2e:promote --reviewed --apply`。
+> Docker admission 与 `plugins-verified` preset 尚未执行：主机 WSL2/HCS 报
+> `ERROR_NO_SYSTEM_RESOURCES`，Docker Desktop 无法创建 VM，需重启主机或恢复虚拟化资源后再跑。
 > 截图存放在 `packages/desktop/.e2e-artifacts/plugin-management/`（不入库）。原始证据来自 2026-11-22
 > Windows 真机 manual-review；2026-11-23 修掉「公开/个人」重复分段与错误文案语言后，受影响用例
-> 已用 replay fixture 重跑刷新截图（run id 见文末「重跑记录」；`plugin-management-ui-market` 的
-> 截图同样已刷新，只是该轮在结尾的视频编码处因缺 ffmpeg 判失败）。
+> 已用 replay fixture 重跑刷新截图；`plugin-management-ui-market` 已于 2026-11-24 在带 ffmpeg 的
+> 环境完整绿跑（`desktop-e2e-20261123-160205-155`）。
 
 ## 复核范围（12 例）
 
-| # | 矩阵项 | Pending spec | 状态 |
+| # | 矩阵项 | Spec（已转正） | 状态 |
 | --- | --- | --- | --- |
-| 1 | `PLM-LC-001/002` | `plugins/…/plugin-management-discovery-presentation` | 2026-11-22 通过 |
-| 2 | `PLM-LC-003` | `plugins/…/plugin-management-personal-lifecycle` | 2026-11-22 通过 |
-| 3 | `PLM-LC-004/005` | `plugins/…/plugin-management-persistence-source` | 2026-11-22 通过 |
-| 4 | `PLM-LC-006/009` | `plugins/…/plugin-management-builtin-inline` | 2026-11-22 通过 |
-| 5 | `PLM-LC-007` | `plugins/…/plugin-cdn-zip-marketplace-install` | 2026-11-22 通过 |
-| 6 | `PLM-LC-008` | `plugins/…/plugin-management-recoverable-failures` | 2026-11-22 通过 |
-| 7 | `PLM-LC-010` | `plugins/…/plugin-runtime-env-agent-projection` | 2026-11-22 通过 |
-| 8 | `PLM-UI-001` | `plugins/…/plugin-management-ui-market` | 2026-11-22 通过 |
-| 9 | `PLM-BUILTIN-UI-UNINSTALL` | `plugins/…/plugin-builtin-ui-uninstall` | 2026-11-22 通过（两次） |
-| 10 | `PLM-UI-VIEW` | `plugins/…/plugin-extension-ui-view` | 2026-11-22 通过（两次） |
-| 11 | `WPL-015` | `conversation-session/…/conversation-session-plugin-marketplace-installed-roundtrip` | 2026-11-22 通过 |
-| 12 | `PLM-LC-020` | `plugins/…/plugin-subagent-override-cold` | 2026-11-22 连续三次通过 |
+| 1 | `PLM-LC-001/002` | `plugins/…/plugin-management-discovery-presentation` | 已通过 · 已转正 |
+| 2 | `PLM-LC-003` | `plugins/…/plugin-management-personal-lifecycle` | 已通过 · 已转正 |
+| 3 | `PLM-LC-004/005` | `plugins/…/plugin-management-persistence-source` | 已通过 · 已转正 |
+| 4 | `PLM-LC-006/009` | `plugins/…/plugin-management-builtin-inline` | 已通过 · 已转正 |
+| 5 | `PLM-LC-007` | `plugins/…/plugin-cdn-zip-marketplace-install` | 已通过 · 已转正 |
+| 6 | `PLM-LC-008` | `plugins/…/plugin-management-recoverable-failures` | 已通过 · 已转正 |
+| 7 | `PLM-LC-010` | `plugins/…/plugin-runtime-env-agent-projection` | 已通过 · 已转正 |
+| 8 | `PLM-UI-001` | `plugins/…/plugin-management-ui-market` | 已通过 · 已转正 |
+| 9 | `PLM-BUILTIN-UI-UNINSTALL` | `plugins/…/plugin-builtin-ui-uninstall` | 已通过 · 已转正 |
+| 10 | `PLM-UI-VIEW` | `plugins/…/plugin-extension-ui-view` | 已通过 · 已转正 |
+| 11 | `WPL-015` | `conversation-session/…/conversation-session-plugin-marketplace-installed-roundtrip` | 已通过 · 已转正 |
+| 12 | `PLM-LC-020` | `plugins/…/plugin-subagent-override-cold` | 已通过 · 已转正 |
 
 矩阵与本表的判定在 `plugin-management-lifecycle-e2e-coverage-matrix.md`；11 例走
 `pnpm --filter @nibi/desktop e2e:promote:plugins`（已确认各自的 case manifest 与上游 fixture 在场），
@@ -192,18 +194,27 @@ NIBI 宿主目前的实现：
 “上下文窗口组成”这类宿主数据，更稳的是做成宿主原生面板；插件 UI 更适合随工具结果出现的内容。
 这一条需要你定方向后我再排期。
 
-## 复核通过后的动作（等你点头才做）
+## 转正执行记录（2026-11-24）
+
+- 运营者复核：12 例全部通过。
+- 插件域 11 例已逐例执行 `e2e:promote:plugins --reviewed --apply`；WPL-015 已执行
+  `e2e:promote --reviewed --apply`，事务审计通过（118 admitted / 0 rejected）。
+- 转正后本地 replay 全量：12/12 通过，run `desktop-e2e-20261123-164846-908`（7m00s），
+  11 个插件 case 的 `e2e:fixture:check` 全部通过。
+- `plugin-management-ui-market` 补 ffmpeg 后完整绿跑：run `desktop-e2e-20261123-160205-155`。
+- 转正暴露并修复了正式插件 spec 的自动 replay 缺口：`resolvePluginReplayFixturePaths` 过去返回
+  fixture 目录（pending 用例由显式 `E2E_PROVIDER_REPLAY_FIXTURE_PATH` 掩盖），正式 spec 走自动
+  replay 时 `readFileSync(dir)` 报 EISDIR；现按 case 名加载各自的 case-local fixture 文件。
+- Docker admission 与 `plugins-verified` preset **尚未执行**：主机 WSL2/HCS `CreateVm` 报
+  `ERROR_NO_SYSTEM_RESOURCES`，Docker Desktop 无法创建 VM。待主机重启或恢复虚拟化资源后补跑：
 
 ```bash
-# 每个插件 spec 单独一遍（脚本会移动文件、改写 import、更新 manifest 与矩阵路径）
-pnpm --filter @nibi/desktop e2e:promote:plugins -- \
-  --spec ./test/e2e/plugins/manual-review/pending/<case>.test.ts --reviewed --apply
-# WPL-015 走会话路径
-pnpm --filter @nibi/desktop e2e:promote -- \
-  --spec ./test/e2e/conversation-session/manual-review/pending/conversation-session-plugin-marketplace-installed-roundtrip.test.ts --reviewed --apply
+# 单 spec 隔离准入（每个兼容组至少一条）
+E2E_SPEC=./test/e2e/plugins/<case>.test.ts pnpm run test:e2e:container
+pnpm --filter @nibi/desktop e2e:docker:admit:plugins -- --spec ./test/e2e/plugins/<case>.test.ts --verified --artifact packages/desktop/.e2e-artifacts/<run-id> --apply
+# 准入完成后跑正式 preset
+E2E_SPEC_PRESET=plugins-verified pnpm run test:e2e:container
 ```
-
-随后按 admission 规则跑 Docker 隔离用例与 `plugins` preset，再进正式 CI。
 
 ## 不在本次复核范围
 

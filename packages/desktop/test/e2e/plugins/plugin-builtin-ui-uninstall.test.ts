@@ -1,4 +1,4 @@
-import { clearAppData } from "../../../helpers/desktop-app.js";
+import { clearAppData } from "../helpers/desktop-app.js";
 import {
   capturePluginManualReview,
   clickPluginControl,
@@ -7,7 +7,7 @@ import {
   waitForPluginCard,
   waitForPluginControl,
   waitUntilPluginOverview,
-} from "../../../helpers/plugin-management-lifecycle.js";
+} from "../helpers/plugin-management-lifecycle.js";
 
 const DOCUMENTS_ID = "documents@nibi-official";
 

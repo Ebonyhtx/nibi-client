@@ -1,14 +1,14 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { NibiPluginInfo } from "@nibi/shared";
-import { clearAppData, getE2EAppDataPaths } from "../../../helpers/desktop-app.js";
+import { clearAppData, getE2EAppDataPaths } from "../helpers/desktop-app.js";
 import {
   PLUGIN_CDN_ZIP_ARCHIVE_PATH,
   PLUGIN_CDN_ZIP_ID,
   PLUGIN_CDN_ZIP_MARKETPLACE_ID,
   PLUGIN_CDN_ZIP_NAME,
   PLUGIN_CDN_ZIP_VERSION,
-} from "../../../helpers/plugin-cdn-zip-marketplace.js";
+} from "../helpers/plugin-cdn-zip-marketplace.js";
 import {
   capturePluginManualReview,
   getPluginList,
@@ -18,7 +18,7 @@ import {
   openPluginSettings,
   requirePluginManualReview,
   waitForPluginCard,
-} from "../../../helpers/plugin-management-lifecycle.js";
+} from "../helpers/plugin-management-lifecycle.js";
 
 const ZIP_PLUGIN_INSTALL_TIMEOUT_MS = 180000;
 

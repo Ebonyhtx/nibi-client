@@ -4,25 +4,25 @@ import {
   switchToWorkspaceRendererWindow,
   waitForDefaultWorkspaceReady,
   waitForWorkspaceApp,
-} from "../../../helpers/desktop-app.js";
-import { reloadElectronSessionSafely } from "../../../helpers/e2e-electron-reload.js";
+} from "../helpers/desktop-app.js";
+import { reloadElectronSessionSafely } from "../helpers/e2e-electron-reload.js";
 import {
   capturePluginManualReview,
   getPluginList,
   getPluginOverview,
   requirePluginManualReview,
-} from "../../../helpers/plugin-management-lifecycle.js";
+} from "../helpers/plugin-management-lifecycle.js";
 import {
   PLUGIN_UI_VIEW_ID,
   PLUGIN_UI_VIEW_SURFACE_ID,
   armPluginUiView,
   seedPluginUiViewPlugin,
-} from "../../../helpers/plugin-ui-view-fixture.js";
+} from "../helpers/plugin-ui-view-fixture.js";
 import {
   prepareV4ConversationE2E,
   sendV4Prompt,
   waitForV4Pane,
-} from "../../../helpers/v4-conversation.js";
+} from "../helpers/v4-conversation.js";
 
 const SPEC_TIMEOUT_MS = 240_000;
 const EXTENSION_OPEN_TIMEOUT_MS = 90_000;

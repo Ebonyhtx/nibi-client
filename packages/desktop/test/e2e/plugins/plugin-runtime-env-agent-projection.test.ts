@@ -12,21 +12,21 @@ import {
   clearAppData,
   clickTestIdByDom,
   waitForTestIdByDom,
-} from "../../../helpers/desktop-app.js";
+} from "../helpers/desktop-app.js";
 import {
   ELECTRON_WINDOW_RECORDING_CAPTURE_MODE,
   startElectronWindowRecording,
-} from "../../../helpers/electron-window-recorder.js";
+} from "../helpers/electron-window-recorder.js";
 import {
   approveV4Permission,
   prepareV4ConversationE2E,
   sendV4Prompt,
   waitForV4Pane,
-} from "../../../helpers/v4-conversation.js";
+} from "../helpers/v4-conversation.js";
 import {
   captureArtifactAdvertisesToolName,
   findUpstreamRequestContaining,
-} from "../../../helpers/plugin-mcp-skill.js";
+} from "../helpers/plugin-mcp-skill.js";
 import {
   addMarketplaceSourceThroughUi,
   capturePluginManualReview,
@@ -40,7 +40,7 @@ import {
   setPluginEnabledThroughUi,
   waitForPluginControl,
   waitUntilPluginOverview,
-} from "../../../helpers/plugin-management-lifecycle.js";
+} from "../helpers/plugin-management-lifecycle.js";
 import {
   PLUGIN_RUNTIME_ENV_AGENT_BARE_NAME,
   PLUGIN_RUNTIME_ENV_AGENT_NAME,
@@ -50,7 +50,7 @@ import {
   PLUGIN_RUNTIME_ENV_TOOL_NAME,
   PLUGIN_RUNTIME_ENV_VARIABLE,
   createPluginRuntimeEnvFixture,
-} from "../../../helpers/plugin-runtime-env-agent.js";
+} from "../helpers/plugin-runtime-env-agent.js";
 
 const CASE_TIMEOUT_MS = 240000;
 const VIDEO_ARTIFACT_DIR = join(

@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { clearAppData, getE2EAppDataPaths } from "../../../helpers/desktop-app.js";
+import { clearAppData, getE2EAppDataPaths } from "../helpers/desktop-app.js";
 import {
   PLUGIN_LIFECYCLE_ID,
   addLifecycleMarketplaceThroughUi,
@@ -24,7 +24,7 @@ import {
   updatePluginLifecycleFixture,
   waitForPluginControl,
   waitUntilPluginOverview,
-} from "../../../helpers/plugin-management-lifecycle.js";
+} from "../helpers/plugin-management-lifecycle.js";
 
 const FAILURES_TIMEOUT_MS = 300000;
 

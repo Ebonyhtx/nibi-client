@@ -4,10 +4,10 @@ import {
   clearAppData,
   clickTestIdByDom,
   getE2EAppDataPaths,
-} from "../../../helpers/desktop-app.js";
-import { waitForUpstreamRequestContaining } from "../../../helpers/conversation-session.js";
-import { findUpstreamRequestContaining } from "../../../helpers/plugin-mcp-skill.js";
-import { prepareV4ConversationE2E, sendV4Prompt } from "../../../helpers/v4-conversation.js";
+} from "../helpers/desktop-app.js";
+import { waitForUpstreamRequestContaining } from "../helpers/conversation-session.js";
+import { findUpstreamRequestContaining } from "../helpers/plugin-mcp-skill.js";
+import { prepareV4ConversationE2E, sendV4Prompt } from "../helpers/v4-conversation.js";
 import {
   PLUGIN_LIFECYCLE_CONFIG_VALUE,
   PLUGIN_LIFECYCLE_ID,
@@ -34,7 +34,7 @@ import {
   uninstallPluginThroughUi,
   waitForPluginCard,
   waitForPluginControl,
-} from "../../../helpers/plugin-management-lifecycle.js";
+} from "../helpers/plugin-management-lifecycle.js";
 
 const PERSISTENCE_TIMEOUT_MS = 240000;
 

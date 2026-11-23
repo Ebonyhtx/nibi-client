@@ -1,4 +1,4 @@
-import { setInputValueByTestIdDom, clearAppData } from "../../../helpers/desktop-app.js";
+import { setInputValueByTestIdDom, clearAppData } from "../helpers/desktop-app.js";
 import {
   PLUGIN_LIFECYCLE_ID,
   PLUGIN_LIFECYCLE_MARKETPLACE_ID,
@@ -17,7 +17,7 @@ import {
   requirePluginManualReview,
   setPluginPresentation,
   waitForPluginControl,
-} from "../../../helpers/plugin-management-lifecycle.js";
+} from "../helpers/plugin-management-lifecycle.js";
 
 const DISCOVERY_TIMEOUT_MS = 180000;
 

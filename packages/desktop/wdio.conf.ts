@@ -771,14 +771,32 @@ function readUpstreamReplayFixtureMode(): UpstreamReplayFixtureMode {
 }
 
 function resolvePluginReplayFixturePaths(specs: string[]): string[] {
-  const fixtureDirs: string[] = [];
-  if (workerSpecsContain(specs, "plugin-mcp-skill")) {
-    fixtureDirs.push(resolve(UPSTREAM_REPLAY_FIXTURE_ROOT, "plugin-mcp-skill"));
+  // Bug 根因：这里过去返回 fixture 目录，pending 人工用例因显式
+  // E2E_PROVIDER_REPLAY_FIXTURE_PATH 绕过了它，转正后的正式插件 spec 走自动
+  // replay 时把目录直接交给 replay loader，readFileSync(dir) 报 EISDIR。
+  // 正式 spec 必须按 case 名取自己的 case-local fixture 文件，不能加载整目录。
+  const normalizedSpecs = specs.map((spec) => spec.replaceAll("\\", "/"));
+  const pluginSpecs = normalizedSpecs.filter((spec) =>
+    spec.includes("/test/e2e/plugins/"),
+  );
+  if (pluginSpecs.length === 0) {
+    return [];
   }
-  if (workerSpecsContain(specs, "plugin-management-")) {
-    fixtureDirs.push(resolve(UPSTREAM_REPLAY_FIXTURE_ROOT, "plugin-management"));
-  }
-  return fixtureDirs.filter(existsSync);
+  // 不能按 spec 文件名前缀猜分组：plugin-runtime-env-agent-projection 与
+  // plugin-subagent-override-cold 都不含 plugin-management- 前缀，但都有自己的
+  // case-local fixture。按两个插件 fixture 目录 + case 名存在性取文件。
+  const fixtureDirs = ["plugin-management", "plugin-mcp-skill"].map((dirName) =>
+    resolve(UPSTREAM_REPLAY_FIXTURE_ROOT, dirName),
+  );
+  const caseNames = pluginSpecs
+    .map((spec) => spec.split("/").at(-1) ?? "")
+    .filter((fileName) => fileName.endsWith(".test.ts"))
+    .map((fileName) => fileName.slice(0, -".test.ts".length));
+  return fixtureDirs.flatMap((dir) =>
+    caseNames
+      .map((caseName) => resolve(dir, `${caseName}.json`))
+      .filter((path) => existsSync(path)),
+  );
 }
 
 function readPositiveIntegerEnv(name: string): number | undefined {

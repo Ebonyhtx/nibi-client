@@ -4,12 +4,12 @@ import {
   clearAppData,
   clickTestIdByDom,
   getE2EAppDataPaths,
-} from "../../../helpers/desktop-app.js";
-import { waitForUpstreamRequestContaining } from "../../../helpers/conversation-session.js";
-import { findUpstreamRequestContaining } from "../../../helpers/plugin-mcp-skill.js";
-import { restartIntoWorkspacePreservingProfile } from "../../../helpers/model-provider-restart.js";
-import { seedOfficialPluginsViaCli } from "../../../helpers/tier2-sixth-batch.js";
-import { prepareV4ConversationE2E, sendV4Prompt } from "../../../helpers/v4-conversation.js";
+} from "../helpers/desktop-app.js";
+import { waitForUpstreamRequestContaining } from "../helpers/conversation-session.js";
+import { findUpstreamRequestContaining } from "../helpers/plugin-mcp-skill.js";
+import { restartIntoWorkspacePreservingProfile } from "../helpers/model-provider-restart.js";
+import { seedOfficialPluginsViaCli } from "../helpers/tier2-sixth-batch.js";
+import { prepareV4ConversationE2E, sendV4Prompt } from "../helpers/v4-conversation.js";
 import {
   PLUGIN_INLINE_ID,
   capturePluginManualReview,
@@ -28,7 +28,7 @@ import {
   waitForPluginCard,
   waitForPluginControl,
   waitUntilPluginOverview,
-} from "../../../helpers/plugin-management-lifecycle.js";
+} from "../helpers/plugin-management-lifecycle.js";
 
 const BUILTIN_ID = "skill-creator@nibi-official";
 const BUILTIN_TIMEOUT_MS = 240000;

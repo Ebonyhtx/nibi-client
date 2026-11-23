@@ -1,5 +1,5 @@
-import { startDraftFromProject } from "../../../helpers/project-sidebar.js";
-import { selectUpstreamModel } from "../../../helpers/upstream-provider.js";
+import { startDraftFromProject } from "../helpers/project-sidebar.js";
+import { selectUpstreamModel } from "../helpers/upstream-provider.js";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { TID_SIDE_PANE_TOGGLE } from "@nibi/shared/test-ids";
@@ -7,14 +7,14 @@ import {
   clearAppData,
   clickTestIdByDom,
   getE2EAppDataPaths,
-} from "../../../helpers/desktop-app.js";
+} from "../helpers/desktop-app.js";
 import {
   getV4PaneSnapshot,
   prepareV4ConversationE2E,
   selectV4TaskById,
   sendV4Prompt,
   waitForV4AssistantMessageContaining,
-} from "../../../helpers/v4-conversation.js";
+} from "../helpers/v4-conversation.js";
 import {
   PLUGIN_LIFECYCLE_ID,
   addLifecycleMarketplaceThroughUi,
@@ -34,8 +34,8 @@ import {
   setPluginEnabledThroughUi,
   uninstallPluginThroughUi,
   waitForPluginControl,
-} from "../../../helpers/plugin-management-lifecycle.js";
-import { startElectronWindowRecording } from "../../../helpers/electron-window-recorder.js";
+} from "../helpers/plugin-management-lifecycle.js";
+import { startElectronWindowRecording } from "../helpers/electron-window-recorder.js";
 
 const ARTIFACT_DIR = join(process.cwd(), ".e2e-artifacts", "plugin-management", "plm-ui-001");
 // 每个评审步骤截图后停留，录像里能看清稳定态；同时记录时间点供生成字幕。

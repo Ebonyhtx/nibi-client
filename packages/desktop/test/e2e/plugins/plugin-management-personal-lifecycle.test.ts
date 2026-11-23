@@ -5,18 +5,18 @@ import {
   clickTestIdByDom,
   getE2EAppDataPaths,
   waitForTestIdByDom,
-} from "../../../helpers/desktop-app.js";
-import { openWorkspaceDraftFromSidebar } from "../../../helpers/workspace-agent-warmup.js";
-import { waitForUpstreamRequestContaining } from "../../../helpers/conversation-session.js";
+} from "../helpers/desktop-app.js";
+import { openWorkspaceDraftFromSidebar } from "../helpers/workspace-agent-warmup.js";
+import { waitForUpstreamRequestContaining } from "../helpers/conversation-session.js";
 import {
   getV4ComposerText,
   prepareV4ConversationE2E,
   sendV4Prompt,
-} from "../../../helpers/v4-conversation.js";
+} from "../helpers/v4-conversation.js";
 import {
   captureArtifactAdvertisesToolName,
   findUpstreamRequestContaining,
-} from "../../../helpers/plugin-mcp-skill.js";
+} from "../helpers/plugin-mcp-skill.js";
 import {
   PLUGIN_LIFECYCLE_CONFIG_VALUE,
   PLUGIN_LIFECYCLE_EXAMPLE_PROMPT,
@@ -42,7 +42,7 @@ import {
   waitForPluginControl,
   waitForPluginDraftRuntimeInvalidation,
   waitUntilPluginOverview,
-} from "../../../helpers/plugin-management-lifecycle.js";
+} from "../helpers/plugin-management-lifecycle.js";
 
 const LIFECYCLE_TIMEOUT_MS = 300000;
 

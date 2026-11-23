@@ -2029,23 +2029,60 @@ function findSkipOrOnlyMarkers(source) {
 
 async function main() {
   const formalAdmissionRoot = resolveFormalAdmissionRoot();
-  const decisionWorksheetEntries = Object.entries(DECISION_WORKSHEETS);
+  // 修复原因：公开 checkout 不含内部决策工作流文档（decision backlog / roadmap /
+  // answers / worksheets），它们只在带内部文档的工作区里存在。缺整套文档时跳过该
+  // 子系统，否则公开仓的 audit 会在 readFile 处直接 ENOENT，连 admission 与覆盖率
+  // 检查都无法运行。要求 `--require-complete` 时仍必须提供整套内部文档。
+  const decisionWorkflowAvailable =
+    (
+      await Promise.all(
+        [DOCS.decisionBacklog, DOCS.decisionE2ERoadmap, decisionAnswersPath].map(
+          (path) => fileExists(path),
+        ),
+      )
+    ).every(Boolean) &&
+    (
+      await Promise.all(
+        Object.values(DECISION_WORKSHEETS).map((worksheet) =>
+          fileExists(worksheet.path),
+        ),
+      )
+    ).every(Boolean);
+  const decisionWorksheetEntries = decisionWorkflowAvailable
+    ? Object.entries(DECISION_WORKSHEETS)
+    : [];
   const [
     mainCatalog,
     coverageMatrix,
     environmentFaultCatalog,
     faultCoverageMatrix,
-    decisionBacklog,
-    decisionE2ERoadmap,
-    decisionAnswers,
-    ...decisionWorksheetSources
   ] = await Promise.all(
     [
-      ...Object.values(DOCS),
-      decisionAnswersPath,
-      ...decisionWorksheetEntries.map(([, worksheet]) => worksheet.path),
+      DOCS.mainCatalog,
+      DOCS.coverageMatrix,
+      DOCS.environmentFaultCatalog,
+      DOCS.faultCoverageMatrix,
     ].map((path) => readFile(resolve(REPO_ROOT, path), "utf8")),
   );
+  let decisionBacklog = "";
+  let decisionE2ERoadmap = "";
+  let decisionAnswers = "";
+  let decisionWorksheetSources = [];
+  if (decisionWorkflowAvailable) {
+    [
+      decisionBacklog,
+      decisionE2ERoadmap,
+      decisionAnswers,
+      ...decisionWorksheetSources
+    ] = await Promise.all(
+      [
+        DOCS.decisionBacklog,
+        DOCS.decisionE2ERoadmap,
+        decisionAnswersPath,
+        ...decisionWorksheetEntries.map(([, worksheet]) => worksheet.path),
+      ].map((path) => readFile(resolve(REPO_ROOT, path), "utf8")),
+    );
+  }
 
   const errors = [];
   const formalAdmission =
@@ -2071,16 +2108,20 @@ async function main() {
     faultCoverageMatrix,
     /^[NSCDLWX]\d{2}$/,
   );
-  const decisionBacklogRows = parseRowsById(
-    decisionBacklog,
-    /^(?:F09|G11|G12|N\d{2}|S\d{2}|D\d{2}|L\d{2}|W\d{2}|X\d{2})$/,
-  );
-  const decisionE2ERoadmapRows = parseRowsById(
-    decisionE2ERoadmap,
-    // 修复原因：H08 这类已确认但缺自动化的 A-J 主路径 case 只进入 E2E roadmap，
-    // 不进入 decision backlog；否则会被误当成仍待产品决策。
-    /^(?:[A-J]\d{2}|[NSCDLWX]\d{2})$/,
-  );
+  const decisionBacklogRows = decisionWorkflowAvailable
+    ? parseRowsById(
+        decisionBacklog,
+        /^(?:F09|G11|G12|N\d{2}|S\d{2}|D\d{2}|L\d{2}|W\d{2}|X\d{2})$/,
+      )
+    : new Map();
+  const decisionE2ERoadmapRows = decisionWorkflowAvailable
+    ? parseRowsById(
+        decisionE2ERoadmap,
+        // 修复原因：H08 这类已确认但缺自动化的 A-J 主路径 case 只进入 E2E roadmap，
+        // 不进入 decision backlog；否则会被误当成仍待产品决策。
+        /^(?:[A-J]\d{2}|[NSCDLWX]\d{2})$/,
+      )
+    : new Map();
 
   const mainStatusCounts = countBy(mainCaseRows, 5);
   const coverageStatusCounts = countBy(mainCoverageRows, 1);
@@ -2330,10 +2371,9 @@ async function main() {
         ? stripInlineCode(environmentProductRows.get(id)?.cells[1] ?? "")
         : id,
     );
-  const expectedDecisionBacklogIds = sortedUnique([
-    ...mainUndefinedIds,
-    ...environmentDecisionUniqueIds,
-  ]);
+  const expectedDecisionBacklogIds = decisionWorkflowAvailable
+    ? sortedUnique([...mainUndefinedIds, ...environmentDecisionUniqueIds])
+    : [];
   const decisionBacklogIds = sortedIds(decisionBacklogRows);
   const missingDecisionBacklogIds = diffIds(
     expectedDecisionBacklogIds,
@@ -2354,10 +2394,9 @@ async function main() {
     );
   }
 
-  const expectedDecisionE2ERoadmapIds = getExpectedRoadmapCaseIds(
-    mainCoverageRows,
-    faultCoverageRows,
-  );
+  const expectedDecisionE2ERoadmapIds = decisionWorkflowAvailable
+    ? getExpectedRoadmapCaseIds(mainCoverageRows, faultCoverageRows)
+    : [];
   const decisionE2ERoadmapIds = sortedIds(decisionE2ERoadmapRows);
   const missingDecisionE2ERoadmapIds = diffIds(
     expectedDecisionE2ERoadmapIds,
@@ -2443,7 +2482,9 @@ async function main() {
 
   const decisionProtocolSummaries = {};
   const worksheetQuestionRows = new Map();
-  for (const [key, protocol] of Object.entries(DECISION_PROTOCOLS)) {
+  for (const [key, protocol] of Object.entries(
+    decisionWorkflowAvailable ? DECISION_PROTOCOLS : {},
+  )) {
     const worksheetIndex = decisionWorksheetEntries.findIndex(
       ([worksheetKey]) => worksheetKey === protocol.worksheetKey,
     );
@@ -2492,6 +2533,26 @@ async function main() {
       protocolStats.get(protocol.statsLabels.unanswered),
     );
     decisionProtocolSummaries[key] = protocolSummary;
+  }
+  if (!decisionWorkflowAvailable) {
+    // 内部 worksheet 不在场时保留与正常解析同形的空摘要，避免后续汇总与输出
+    // 出现 undefined；真实检查已被跳过，不能把零值当成“决策已清零”。
+    for (const key of Object.keys(DECISION_PROTOCOLS)) {
+      decisionProtocolSummaries[key] = {
+        answered: 0,
+        blockedCaseIds: [],
+        cases: 0,
+        completeQuestions: 0,
+        expected: 0,
+        extra: [],
+        missing: [],
+        questionDetailsByCase: {},
+        questions: 0,
+        readyCaseIds: [],
+        unanswered: 0,
+        unansweredByCase: {},
+      };
+    }
   }
   const decisionProtocolSummaryValues = Object.values(
     decisionProtocolSummaries,
@@ -2803,6 +2864,11 @@ async function main() {
     mainCoverageRows,
     worksheetQuestionRows,
   });
+  if (requireComplete && !decisionWorkflowAvailable) {
+    errors.push(
+      "--require-complete requires the internal decision workflow docs; they are absent in this checkout",
+    );
+  }
   if (requireComplete && !summary.completionGate.coverageComplete) {
     errors.push(
       `conversation session coverage is incomplete: ${summary.completionGate.decisionNeeded} product decision case(s) remain (${summary.completionGate.blockedCaseIds.join(", ") || "none"})`,
@@ -3062,120 +3128,122 @@ async function main() {
     faultCoverageStats.get("含 skip/only 的 spec"),
   );
 
-  const decisionBacklogStats = parseStatsTableAfterHeading(
-    decisionBacklog,
-    "## 当前统计",
-  );
-  pushStatMismatch(
-    errors,
-    "decision backlog",
-    "待产品决策 unique case",
-    summary.decisionBacklog.expected,
-    decisionBacklogStats.get("待产品决策 unique case"),
-  );
-  pushStatMismatch(
-    errors,
-    "decision backlog",
-    "主路径 compact undefined",
-    summary.decisionBacklog.compactMainUndefined,
-    decisionBacklogStats.get("主路径 compact undefined"),
-  );
-  pushStatMismatch(
-    errors,
-    "decision backlog",
-    "模型/API 请求故障",
-    summary.decisionBacklog.modelApiFaults,
-    decisionBacklogStats.get("模型/API 请求故障"),
-  );
-  pushStatMismatch(
-    errors,
-    "decision backlog",
-    "SSE 流式故障",
-    summary.decisionBacklog.sseFaults,
-    decisionBacklogStats.get("SSE 流式故障"),
-  );
-  pushStatMismatch(
-    errors,
-    "decision backlog",
-    "文件系统/存储故障",
-    summary.decisionBacklog.filesystemFaults,
-    decisionBacklogStats.get("文件系统/存储故障"),
-  );
-  pushStatMismatch(
-    errors,
-    "decision backlog",
-    "App 生命周期/进程故障",
-    summary.decisionBacklog.appLifecycleFaults,
-    decisionBacklogStats.get("App 生命周期/进程故障"),
-  );
-  pushStatMismatch(
-    errors,
-    "decision backlog",
-    "Workspace / Tool 外部变化",
-    summary.decisionBacklog.workspaceToolFaults,
-    decisionBacklogStats.get("Workspace / Tool 外部变化"),
-  );
-  pushStatMismatch(
-    errors,
-    "decision backlog",
-    "跨 Session 故障隔离",
-    summary.decisionBacklog.crossSessionFaults,
-    decisionBacklogStats.get("跨 Session 故障隔离"),
-  );
+  if (decisionWorkflowAvailable) {
+    const decisionBacklogStats = parseStatsTableAfterHeading(
+      decisionBacklog,
+      "## 当前统计",
+    );
+    pushStatMismatch(
+      errors,
+      "decision backlog",
+      "待产品决策 unique case",
+      summary.decisionBacklog.expected,
+      decisionBacklogStats.get("待产品决策 unique case"),
+    );
+    pushStatMismatch(
+      errors,
+      "decision backlog",
+      "主路径 compact undefined",
+      summary.decisionBacklog.compactMainUndefined,
+      decisionBacklogStats.get("主路径 compact undefined"),
+    );
+    pushStatMismatch(
+      errors,
+      "decision backlog",
+      "模型/API 请求故障",
+      summary.decisionBacklog.modelApiFaults,
+      decisionBacklogStats.get("模型/API 请求故障"),
+    );
+    pushStatMismatch(
+      errors,
+      "decision backlog",
+      "SSE 流式故障",
+      summary.decisionBacklog.sseFaults,
+      decisionBacklogStats.get("SSE 流式故障"),
+    );
+    pushStatMismatch(
+      errors,
+      "decision backlog",
+      "文件系统/存储故障",
+      summary.decisionBacklog.filesystemFaults,
+      decisionBacklogStats.get("文件系统/存储故障"),
+    );
+    pushStatMismatch(
+      errors,
+      "decision backlog",
+      "App 生命周期/进程故障",
+      summary.decisionBacklog.appLifecycleFaults,
+      decisionBacklogStats.get("App 生命周期/进程故障"),
+    );
+    pushStatMismatch(
+      errors,
+      "decision backlog",
+      "Workspace / Tool 外部变化",
+      summary.decisionBacklog.workspaceToolFaults,
+      decisionBacklogStats.get("Workspace / Tool 外部变化"),
+    );
+    pushStatMismatch(
+      errors,
+      "decision backlog",
+      "跨 Session 故障隔离",
+      summary.decisionBacklog.crossSessionFaults,
+      decisionBacklogStats.get("跨 Session 故障隔离"),
+    );
 
-  const decisionE2ERoadmapStats = parseStatsTableAfterHeading(
-    decisionE2ERoadmap,
-    "## 当前统计",
-  );
-  pushStatMismatch(
-    errors,
-    "decision E2E roadmap",
-    "Expected roadmap case",
-    summary.decisionE2ERoadmap.expected,
-    decisionE2ERoadmapStats.get("Expected roadmap case"),
-  );
-  pushStatMismatch(
-    errors,
-    "decision E2E roadmap",
-    "Roadmap case",
-    summary.decisionE2ERoadmap.cases,
-    decisionE2ERoadmapStats.get("Roadmap case"),
-  );
-  pushStatMismatch(
-    errors,
-    "decision E2E roadmap",
-    "blocked-by-product-decision",
-    summary.decisionE2ERoadmap.blockedByProductDecision,
-    decisionE2ERoadmapStats.get("blocked-by-product-decision"),
-  );
-  pushStatMismatch(
-    errors,
-    "decision E2E roadmap",
-    "ready-to-write",
-    summary.decisionE2ERoadmap.readyToWrite,
-    decisionE2ERoadmapStats.get("ready-to-write"),
-  );
-  pushStatMismatch(
-    errors,
-    "decision E2E roadmap",
-    "implemented",
-    summary.decisionE2ERoadmap.implemented,
-    decisionE2ERoadmapStats.get("implemented"),
-  );
-  pushStatMismatch(
-    errors,
-    "decision E2E roadmap",
-    "ignored",
-    summary.decisionE2ERoadmap.ignored,
-    decisionE2ERoadmapStats.get("ignored"),
-  );
-  pushStatMismatch(
-    errors,
-    "decision E2E roadmap",
-    "invalid",
-    summary.decisionE2ERoadmap.invalid,
-    decisionE2ERoadmapStats.get("invalid"),
-  );
+    const decisionE2ERoadmapStats = parseStatsTableAfterHeading(
+      decisionE2ERoadmap,
+      "## 当前统计",
+    );
+    pushStatMismatch(
+      errors,
+      "decision E2E roadmap",
+      "Expected roadmap case",
+      summary.decisionE2ERoadmap.expected,
+      decisionE2ERoadmapStats.get("Expected roadmap case"),
+    );
+    pushStatMismatch(
+      errors,
+      "decision E2E roadmap",
+      "Roadmap case",
+      summary.decisionE2ERoadmap.cases,
+      decisionE2ERoadmapStats.get("Roadmap case"),
+    );
+    pushStatMismatch(
+      errors,
+      "decision E2E roadmap",
+      "blocked-by-product-decision",
+      summary.decisionE2ERoadmap.blockedByProductDecision,
+      decisionE2ERoadmapStats.get("blocked-by-product-decision"),
+    );
+    pushStatMismatch(
+      errors,
+      "decision E2E roadmap",
+      "ready-to-write",
+      summary.decisionE2ERoadmap.readyToWrite,
+      decisionE2ERoadmapStats.get("ready-to-write"),
+    );
+    pushStatMismatch(
+      errors,
+      "decision E2E roadmap",
+      "implemented",
+      summary.decisionE2ERoadmap.implemented,
+      decisionE2ERoadmapStats.get("implemented"),
+    );
+    pushStatMismatch(
+      errors,
+      "decision E2E roadmap",
+      "ignored",
+      summary.decisionE2ERoadmap.ignored,
+      decisionE2ERoadmapStats.get("ignored"),
+    );
+    pushStatMismatch(
+      errors,
+      "decision E2E roadmap",
+      "invalid",
+      summary.decisionE2ERoadmap.invalid,
+      decisionE2ERoadmapStats.get("invalid"),
+    );
+  }
 
   const shouldRenderReviewQueueMarkdown =
     (reviewQueueMarkdownOutput || reviewNextMarkdownOutput) &&
@@ -3195,7 +3263,7 @@ async function main() {
     workflowBoardMarkdownOutput,
   );
   summary.generatedMarkdownDocs =
-    rendersMarkdown || usesCustomDecisionAnswersPath
+    rendersMarkdown || usesCustomDecisionAnswersPath || !decisionWorkflowAvailable
       ? {
           checked: 0,
           missing: [],
@@ -3249,45 +3317,51 @@ async function main() {
     console.log(
       `fault coverage: ${summary.faultCoverage.covered} covered, ${summary.faultCoverage.missingAccepted} missing accepted, ${summary.faultCoverage.decisionNeeded} decision-needed`,
     );
-    console.log(
-      `decision backlog: ${summary.decisionBacklog.cases}/${summary.decisionBacklog.expected} decision-needed cases listed`,
-    );
-    console.log(
-      `decision E2E roadmap: ${summary.decisionE2ERoadmap.cases}/${summary.decisionE2ERoadmap.expected} non-covered cases planned, ${summary.decisionE2ERoadmap.blockedByProductDecision} blocked-by-product-decision`,
-    );
-    console.log(
-      `decision worksheets: ${summary.decisionWorksheets.cases}/${summary.decisionWorksheets.expected} decision-needed cases covered`,
-    );
-    console.log(
-      `decision protocols: ${summary.decisionProtocols.questions} questions, ${summary.decisionProtocols.unanswered} unanswered`,
-    );
-    console.log(
-      `decision answer draft: ${summary.decisionAnswerDraft.answered}/${summary.decisionAnswerDraft.expectedQuestions} answered, ${summary.decisionAnswerDraft.pending} pending placeholders, ${summary.decisionAnswerDraft.missingQuestions} missing rows`,
-    );
-    console.log(
-      `decision answer readiness: ${summary.decisionAnswerReadiness.readyCases} ready-to-backfill, ${summary.decisionAnswerReadiness.placeholderOnlyCases} placeholder-only, ${summary.decisionAnswerReadiness.partialCases} partial, ${summary.decisionAnswerReadiness.missingCases} missing`,
-    );
-    console.log(
-      `decision backfill workflow: ${summary.decisionBackfillWorkflow.draftReadyCases} draft-ready, ${summary.decisionBackfillWorkflow.worksheetReadyCases} worksheet-ready, ${summary.decisionBackfillWorkflow.worksheetReadyStillDecisionNeededCases} source-backfill-needed`,
-    );
-    console.log(
-      `- compact: ${summary.compactDecisionProtocol.questions} questions, ${summary.compactDecisionProtocol.unanswered} unanswered`,
-    );
-    console.log(
-      `- network/SSE: ${summary.networkSseDecisionProtocol.questions} questions, ${summary.networkSseDecisionProtocol.unanswered} unanswered`,
-    );
-    console.log(
-      `- recovery/isolation: ${summary.recoveryIsolationDecisionProtocol.questions} questions, ${summary.recoveryIsolationDecisionProtocol.unanswered} unanswered`,
-    );
-    console.log(
-      `decision readiness: ${summary.decisionReadiness.readyCases} ready, ${summary.decisionReadiness.blockedCases} blocked`,
-    );
-    console.log(
-      `next review cases: ${summary.decisionReviewQueue.nextCaseIds.join(", ") || "none"}`,
-    );
-    console.log(
-      `generated markdown docs: ${summary.generatedMarkdownDocs.checked} checked, ${summary.generatedMarkdownDocs.staleCount} stale, ${summary.generatedMarkdownDocs.missingCount} missing`,
-    );
+    if (decisionWorkflowAvailable) {
+      console.log(
+        `decision backlog: ${summary.decisionBacklog.cases}/${summary.decisionBacklog.expected} decision-needed cases listed`,
+      );
+      console.log(
+        `decision E2E roadmap: ${summary.decisionE2ERoadmap.cases}/${summary.decisionE2ERoadmap.expected} non-covered cases planned, ${summary.decisionE2ERoadmap.blockedByProductDecision} blocked-by-product-decision`,
+      );
+      console.log(
+        `decision worksheets: ${summary.decisionWorksheets.cases}/${summary.decisionWorksheets.expected} decision-needed cases covered`,
+      );
+      console.log(
+        `decision protocols: ${summary.decisionProtocols.questions} questions, ${summary.decisionProtocols.unanswered} unanswered`,
+      );
+      console.log(
+        `decision answer draft: ${summary.decisionAnswerDraft.answered}/${summary.decisionAnswerDraft.expectedQuestions} answered, ${summary.decisionAnswerDraft.pending} pending placeholders, ${summary.decisionAnswerDraft.missingQuestions} missing rows`,
+      );
+      console.log(
+        `decision answer readiness: ${summary.decisionAnswerReadiness.readyCases} ready-to-backfill, ${summary.decisionAnswerReadiness.placeholderOnlyCases} placeholder-only, ${summary.decisionAnswerReadiness.partialCases} partial, ${summary.decisionAnswerReadiness.missingCases} missing`,
+      );
+      console.log(
+        `decision backfill workflow: ${summary.decisionBackfillWorkflow.draftReadyCases} draft-ready, ${summary.decisionBackfillWorkflow.worksheetReadyCases} worksheet-ready, ${summary.decisionBackfillWorkflow.worksheetReadyStillDecisionNeededCases} source-backfill-needed`,
+      );
+      console.log(
+        `- compact: ${summary.compactDecisionProtocol.questions} questions, ${summary.compactDecisionProtocol.unanswered} unanswered`,
+      );
+      console.log(
+        `- network/SSE: ${summary.networkSseDecisionProtocol.questions} questions, ${summary.networkSseDecisionProtocol.unanswered} unanswered`,
+      );
+      console.log(
+        `- recovery/isolation: ${summary.recoveryIsolationDecisionProtocol.questions} questions, ${summary.recoveryIsolationDecisionProtocol.unanswered} unanswered`,
+      );
+      console.log(
+        `decision readiness: ${summary.decisionReadiness.readyCases} ready, ${summary.decisionReadiness.blockedCases} blocked`,
+      );
+      console.log(
+        `next review cases: ${summary.decisionReviewQueue.nextCaseIds.join(", ") || "none"}`,
+      );
+      console.log(
+        `generated markdown docs: ${summary.generatedMarkdownDocs.checked} checked, ${summary.generatedMarkdownDocs.staleCount} stale, ${summary.generatedMarkdownDocs.missingCount} missing`,
+      );
+    } else {
+      console.log(
+        "decision workflow audit: skipped (internal decision docs are not present in this checkout)",
+      );
+    }
     console.log(
       `unique product: ${summary.uniqueProduct.total} total, ${summary.uniqueProduct.covered} covered, ${summary.uniqueProduct.decisionNeeded} decision-needed`,
     );
