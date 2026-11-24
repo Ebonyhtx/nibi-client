@@ -1,7 +1,7 @@
 # 插件用例下一批复核材料（2026-11-24）
 
-> 状态：**复核材料已准备，未转正、未加入 Docker/native preset**。PLM-LC-017/018 建议通过；
-> PLM-LC-019 受公网 fixture URL 阻塞，不建议转正。
+> 状态：**复核材料已准备，未转正、未加入 Docker/native preset**。PLM-LC-017/018/019 均建议通过；
+> 019 已改用 NIBI 官方市场源复跑通过。
 
 ## 运行环境
 
@@ -51,13 +51,16 @@
 
 ## PLM-LC-019 官方市场进入即刷新（公网）
 
-**结论：环境阻塞，不建议转正。** run `desktop-e2e-20261124-041110-203`。
+**结论：建议通过（公网）。** run `desktop-e2e-20261124-042719-701`。
 
-- 失败：seed 的官方市场 URL `https://cdn-zcode.z.ai/nibi/official-plugin/marketplace.json`
-  返回 **404 Not Found**，产品持久化
-  `refreshFailure: { code: "plugin_marketplace_invalid", message: "Failed to fetch marketplace: 404 Not Found" }`。
-- 判断：这是公网 fixture URL 过期（上游 CDN 路径已不可用），不是刷新逻辑回归。需要运营者给出
-  当前官方市场 URL 后复跑；在拿到可用 URL 前保持 pending，不进入正式 CI。
+- 场景：wdio seed 把官方市场 `lastUpdated` 写成远古时间，进入商店页不点刷新，等待官方市场
+  自动刷新；离开后重进命中 10 分钟节流。
+- 观察点：进入商店页后官方市场时间戳更新为当前时间（截图显示「更新于 2026/11/24 12:29:02」），
+  页面无错误；真实官方市场内容（NIBI 数模工作台）正常展示。
+- 截图：`.e2e-artifacts/plugin-management/plm-lc-019/auto-refreshed-on-enter.png`。
+- 修正：E2E fixture 之前写死了上游 CDN `https://cdn-zcode.z.ai/nibi/official-plugin/marketplace.json`，
+  该路径已 404。现改为从产品默认源 `DEFAULT_PLUGIN_MARKETPLACES` 派生（当前为
+  `https://api.nibistudio.cn/plugins/marketplace.json`），不再自己维护第二份 URL。
 
 ## 代码改动（仅 pending spec / 共享 helper）
 
@@ -67,13 +70,16 @@
   `claude-plugins-official` 记录缺失时不再空指针，记录存在时仍断言时间戳不变。
 - `test/e2e/helpers/plugin-management-lifecycle.ts`：`selectPluginSettingsScope` 等待异步
   Projects 子菜单或平铺选项出现。
+- `test/e2e/helpers/plugin-cdn-zip-marketplace.ts`：官方市场源从 `DEFAULT_PLUGIN_MARKETPLACES`
+  派生，去掉写死的上游 CDN URL；`conversation-session-plugin-store-try-states` 的离线 marker
+  同步改为 NIBI 官方源。
 - **未改产品代码。** 正式 spec `plugin-management-persistence-source` 回归通过
   （`desktop-e2e-20261124-041811-701`）。
 
 ## 门禁与遗留
 
 - `pnpm --filter @nibi/desktop typecheck:e2e` 通过。
-- `e2e:fixture:check --spec <017/018>` 报 case-local fixture 与 case manifest 缺失：这两条
+- `e2e:fixture:check --spec <017/018/019>` 报 case-local fixture 与 case manifest 缺失：这三条
   pending spec 目前依赖 wdio seed 与 `common.json`，没有独立 case 合同。转正前需要补
   `fixtures/upstream/plugin-management/<case>.json` 与 `fixtures/cases/plugins/<case>.json`，
   或由运营者确认这类纯 UI 用例的豁免口径。

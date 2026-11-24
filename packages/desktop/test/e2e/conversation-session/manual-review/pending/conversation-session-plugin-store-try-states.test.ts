@@ -226,7 +226,8 @@ async function seedLifecycleMarketplaceCache(
             pluginCount: 1,
             source: {
               source: "url",
-              url: "https://cdn-zcode.z.ai/nibi/official-plugin/marketplace.json",
+              // 与 packages/shared/src/plugin-marketplaces.ts 的默认官方市场源一致。
+              url: "https://api.nibistudio.cn/plugins/marketplace.json",
             },
           },
           {

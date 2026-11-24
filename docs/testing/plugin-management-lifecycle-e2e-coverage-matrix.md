@@ -104,11 +104,12 @@ macOS `desktop-e2e-20261124-014702-952`、Windows `desktop-e2e-20261124-014644-0
 - PLM-LC-018：**建议通过（离线节流）**。进入/重进商店页后官方市场时间戳保持 seed 值、无
   `refreshFailure`、无页面错误。run `desktop-e2e-20261124-040849-641`；截图
   `.e2e-artifacts/plugin-management/plm-lc-018/throttled-reenter.png`。
-- PLM-LC-019：**环境阻塞，不建议转正**。seed 的官方市场 URL
-  `https://cdn-zcode.z.ai/nibi/official-plugin/marketplace.json` 返回 404，产品持久化
-  `plugin_marketplace_invalid`；需要当前官方市场 URL 后复跑。run
-  `desktop-e2e-20261124-041110-203`。
-- 三例均未转正；017/018 转正前需补 case-local fixture/manifest 或确认纯 UI 用例的豁免口径。
+- PLM-LC-019：**建议通过（公网）**。seed 官方市场为远古时间，进入商店页不点刷新即自动刷新，
+  页面显示当前时间与真实官方市场内容；重进命中节流。run `desktop-e2e-20261124-042719-701`；
+  截图 `.e2e-artifacts/plugin-management/plm-lc-019/auto-refreshed-on-enter.png`。E2E fixture 的
+  官方市场 URL 已改为从产品默认源 `DEFAULT_PLUGIN_MARKETPLACES` 派生
+  （`https://api.nibistudio.cn/plugins/marketplace.json`），不再写死上游 CDN。
+- 三例均未转正；017/018/019 转正前需补 case-local fixture/manifest 或确认纯 UI 用例的豁免口径。
   完整观察点与命令见 [plugin-review-next-batch-2026-11-24.md](./plugin-review-next-batch-2026-11-24.md)。
 
 2026-07-15 已在 macOS 上逐个运行上述 `PD/PP`、`PM`、`PV/PO`、`PB/PI`、`PC`、`PF`
