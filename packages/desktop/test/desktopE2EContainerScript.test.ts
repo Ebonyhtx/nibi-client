@@ -54,7 +54,13 @@ describe("desktop E2E container presets", () => {
       scripts: Record<string, string>;
     };
 
-    expect(script).toContain('PLUGIN_MANAGEMENT_VERIFIED_E2E_SPEC=""');
+    const preset = script.match(/^PLUGIN_MANAGEMENT_VERIFIED_E2E_SPEC="([^"]*)"$/m)?.[1] ?? "";
+    const specs = preset.split(",").filter(Boolean);
+    expect(specs.length).toBeGreaterThan(0);
+    for (const spec of specs) {
+      expect(spec).toMatch(/^\.\/test\/e2e\/plugins\/[^/]+\.test\.ts$/);
+      expect(spec).not.toContain("manual-review");
+    }
     expect(script).toContain("plugins-verified)");
     expect(script).toContain("No plugin-management spec has completed human review");
     expect(packageJson.scripts["test:e2e:container:plugins"]).toContain("plugins-verified");
@@ -72,7 +78,7 @@ describe("desktop E2E container presets", () => {
     expect(missingPaths).toEqual([]);
   });
 
-  it("keeps the empty Docker plan table writable by the admission command", () => {
+  it("writes verified rows into the Docker plan table", () => {
     // Bugfix：仓库只对 *.mjs / *.sh 声明了 `eol=lf`，Markdown 在 `core.autocrlf=true`
     // 的 Windows 检出里是 CRLF。下面断言的表格骨架是跨行片段，`\n` 匹配不到 `\r\n`，
     // 用例在 Windows 上必然失败；这里要断言的是文档结构，与换行字节无关，故归一成 LF。
@@ -81,15 +87,17 @@ describe("desktop E2E container presets", () => {
       "utf-8",
     ).replaceAll("\r\n", "\n");
 
-    expect(dockerPlan).toContain(
-      "| Spec | 迁移状态 |\n| --- | --- |\n<!-- conversation-session-verified-table-end -->",
-    );
-
+    // 真实文档已经登记过 spec，不能再假设表格为空；插入逻辑用独立空表验证。
+    const emptyPlan =
+      "| Spec | 迁移状态 |\n| --- | --- |\n<!-- conversation-session-verified-table-end -->";
     const spec = "./test/e2e/conversation-session/example.test.ts";
-    const updated = insertVerifiedDockerSpecRow(dockerPlan, spec);
+    const updated = insertVerifiedDockerSpecRow(emptyPlan, spec);
     expect(updated.inserted).toBe(true);
     expect(updated.text).toContain(
       `| \`${spec}\` | verified |\n<!-- conversation-session-verified-table-end -->`,
+    );
+    expect(dockerPlan).toContain(
+      "| `./test/e2e/conversation-session/conversation-session-plugin-marketplace-installed-roundtrip.test.ts` | verified |",
     );
   });
 });

@@ -29,8 +29,12 @@ CDD01 已迁入 formal 路径，但单 spec Docker `replay-isolated` 运行
 
 历史 `conversation-session-admission`、`conversation-session-needs-docker-fix` 和 `conversation-session-tool-cross-product` preset 已删除。需要定位某个 case 时统一使用 `E2E_SPEC` 指定 direct-root spec；只有取得绿色证据后才能用 `e2e:docker:admit` 登记到 verified 集合。
 
+2026-11-24：`WPL-015` 通过单 spec `replay-isolated` Docker 准入并写入 preset；
+`conversation-session-verified` 全量 4/4 通过（`desktop-e2e-20261124-002711-151`，1m13s）。
+
 | Spec | 迁移状态 |
 | --- | --- |
+| `./test/e2e/conversation-session/conversation-session-plugin-marketplace-installed-roundtrip.test.ts` | verified |
 <!-- conversation-session-verified-table-end -->
 
 运行入口：

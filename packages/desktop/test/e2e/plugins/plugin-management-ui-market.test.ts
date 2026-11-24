@@ -1,8 +1,9 @@
 import { startDraftFromProject } from "../helpers/project-sidebar.js";
 import { selectUpstreamModel } from "../helpers/upstream-provider.js";
 import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { TID_SIDE_PANE_TOGGLE } from "@nibi/shared/test-ids";
+import { seedOfficialPluginsViaCli } from "../helpers/tier2-sixth-batch.js";
 import {
   clearAppData,
   clickTestIdByDom,
@@ -42,6 +43,21 @@ const ARTIFACT_DIR = join(process.cwd(), ".e2e-artifacts", "plugin-management", 
 const STEP_HOLD_MS = 1500;
 
 describe("PLM-UI-001 UI 插件市场与项目配置", () => {
+  // 修复原因：公开市场卡片来自官方内置插件 cache。Windows 复核环境已有播种；
+  // replay-isolated 容器的 HOME 是空的，缺少 cache 时 `plugin-store-card` 永远不出现。
+  // 只在容器里显式播种，避免在 Windows 共享 E2E HOME 上为后续 spec 引入额外状态。
+  if (process.env.NIBI_E2E_CONTAINER === "1") {
+    before(() => {
+      const { homeDir, workspace } = getE2EAppDataPaths();
+      seedOfficialPluginsViaCli({
+        e2eHomeDir: homeDir,
+        resourceDir: resolve(process.cwd(), "../../apps/nibi-cli"),
+        timeoutMs: 120_000,
+        workspacePath: workspace,
+      });
+    });
+  }
+
   after(async () => {
     await browser.electron.restoreAllMocks();
     await clearAppData();

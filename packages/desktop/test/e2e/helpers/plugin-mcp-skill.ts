@@ -98,8 +98,13 @@ async function readCaptureArtifact(capturePath: string): Promise<{
       typeof error === "object" &&
       error !== null &&
       "code" in error &&
-      (error as { code?: string }).code === "ENOENT"
+      ["ENOENT", "ENODATA", "EIO", "EBUSY", "EAGAIN"].includes(
+        (error as { code?: string }).code ?? "",
+      )
     ) {
+      // Docker Desktop 在 Windows 上把 artifact 目录从 NTFS bind-mount 进 Linux
+      // 容器；并发写/rename 时读取可能返回 ENODATA/EIO/EBUSY（不是文件不存在）。
+      // 与 ENOENT 一样按“本轮还没读到”处理，让外层轮询等下一次落盘。
       return null;
     }
     throw error;

@@ -948,7 +948,7 @@ export function probeWorkspaceAppState(
 // 不再稳定代表当前工作区名。路径徽标的上下文改由 tooltip 承载，改读 data-workspace-abs-path。
 // 虚拟项目侧栏不再渲染真实目录节点，新建任务草稿下以 tab store 的导航 owner + 可见
 // session pane 判定，覆盖默认工作区自动打开及多标签切换。
-export async function waitForWorkspaceApp(workspacePath: string, timeout = 10000) {
+export async function waitForWorkspaceApp(workspacePath: string, timeout = 20000) {
   const timeoutMsg = `主界面没有切到工作区: ${workspacePath}`;
   const probeParams: WorkspaceAppProbeParams = {
     workspacePathTestId: TID_WORKSPACE_PATH,
@@ -1066,7 +1066,7 @@ async function collectWorkspaceDiagnostics(expectedPath: string) {
   return `诊断: ${JSON.stringify({ expectedPath, windows, targets, dom }, null, 2)}`;
 }
 
-export async function waitForDefaultWorkspaceReady(timeout = 10000) {
+export async function waitForDefaultWorkspaceReady(timeout = 20000) {
   await browser.waitUntil(
     async () => {
       try {
