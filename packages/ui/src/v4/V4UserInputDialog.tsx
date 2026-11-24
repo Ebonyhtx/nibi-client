@@ -39,10 +39,10 @@ export function V4UserInputDialog({ model, onSubmit }: V4UserInputDialogProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-[#12100e]/45 p-4 dark:bg-black/65 supports-[backdrop-filter]:backdrop-blur-[4px]"
       data-testid={TID_V4_USER_INPUT_DIALOG}
     >
-      <div className="w-full max-w-lg rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-lg">
+      <div className="w-full max-w-lg rounded-2xl border border-popover-border bg-popover p-5 shadow-[var(--nibi-shadow-popover)]">
         <p className="mb-3 text-ui-base text-[var(--color-foreground)]">{model.prompt}</p>
         {model.options.length > 0 ? (
           <div className="mb-3 flex flex-col gap-2">

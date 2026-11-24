@@ -37,7 +37,7 @@ function DialogOverlay({
       className={cn(
         // Linux 旧标题栏避让让模态遮罩从 48px 以下开始，窗口顶部仍保持高亮且 tooltip 可见。
         // renderer 自绘窗控位于同一窗口，模态态应与其它平台一致覆盖完整视口。
-        "fixed inset-0 isolate z-50 bg-[#12100e]/45 dark:bg-black/65 duration-150 supports-backdrop-filter:backdrop-blur-[4px] data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 bg-[#12100e]/45 dark:bg-black/65 duration-150 motion-reduce:duration-100 supports-backdrop-filter:backdrop-blur-[4px] data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className,
       )}
       {...props}
@@ -66,7 +66,7 @@ function DialogContent({
         className={cn(
           // Electron 自绘标题栏下，弹窗可能会落进窗口顶部的 drag 区域。
           // 如果不把弹窗内容整体标成 no-drag，右上角关闭按钮这类交互会被窗口拖拽命中吞掉。
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl border border-popover-border bg-popover p-4 text-ui-base/relaxed text-foreground shadow-[var(--nibi-shadow-popover)] duration-150 ease-out outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 [app-region:no-drag]",
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl border border-popover-border bg-popover/98 supports-[backdrop-filter]:backdrop-blur-md p-4 text-ui-base/relaxed text-foreground shadow-[var(--nibi-shadow-popover)] duration-150 motion-reduce:duration-100 ease-out outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 motion-reduce:zoom-in-100 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 motion-reduce:zoom-out-100 [app-region:no-drag]",
           className,
         )}
         {...props}

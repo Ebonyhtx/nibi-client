@@ -187,7 +187,7 @@ export const CodeBlockHeader = ({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-3 border-b border-border/65 bg-surface/75 px-3.5 py-2 text-ui-sm text-foreground-subtle",
+        "flex items-center justify-between gap-3 border-b border-border/70 bg-surface/80 px-3.5 py-2 text-ui-sm text-foreground-subtle",
         className,
       )}
       {...props}

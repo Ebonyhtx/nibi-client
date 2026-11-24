@@ -309,7 +309,7 @@ function RootInner({
     rootModelSelectionRead.state.status === "ready" ? rootModelSelectionRead.state.view : null;
   const rootModelSelectionErrorNode =
     rootModelSelectionRead.state.status === "error" ? (
-      <div className="fixed right-4 bottom-4 z-50 flex max-w-sm items-center gap-3 rounded-lg border border-destructive/30 bg-surface-raised px-3 py-2 text-ui-base text-foreground shadow-lg">
+      <div className="fixed right-4 bottom-4 z-50 flex max-w-sm items-center gap-3 rounded-xl border border-destructive/35 bg-popover/96 px-3.5 py-2.5 text-ui-base text-foreground shadow-[var(--nibi-shadow-popover)] supports-[backdrop-filter]:backdrop-blur-md">
         <span className="min-w-0 flex-1">
           {intl.formatMessage({ id: "root.modelSelection.loadFailed" })}
         </span>

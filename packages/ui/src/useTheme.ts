@@ -88,9 +88,11 @@ export function applyThemeWithTransition(theme: Theme) {
     document.documentElement?.dataset?.nibiMotion !== "off"
   ) {
     try {
-      document.startViewTransition(() => {
+      const transition = document.startViewTransition(() => {
         applyTheme(theme);
       });
+      void transition?.ready?.catch(() => {});
+      void transition?.finished?.catch(() => {});
       return;
     } catch {
       // Fall back to direct synchronous theme application when View Transition is unavailable.

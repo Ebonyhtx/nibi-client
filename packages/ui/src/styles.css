@@ -366,28 +366,28 @@ html[data-document-hidden] *::after {
   --color-input-border-hover: var(--color-border-hover);
   --color-input-border-focused: #4a79b8;
   --color-ring: #4a79b8;
-  --color-terminal-bg: #142238;
-  --color-terminal-fg: #d7e1f0;
-  --color-terminal-cursor: #eda45f;
-  --color-terminal-cursor-accent: #142238;
-  --color-terminal-selection: rgba(74, 121, 184, 0.35);
-  --color-terminal-selection-inactive: rgba(215, 225, 240, 0.16);
-  --color-terminal-black: #24344f;
-  --color-terminal-red: #d97e6e;
-  --color-terminal-green: #7cc797;
-  --color-terminal-yellow: #e0b36a;
-  --color-terminal-blue: #82aade;
-  --color-terminal-magenta: #b79ade;
-  --color-terminal-cyan: #7fc8c0;
-  --color-terminal-white: #d7e1f0;
-  --color-terminal-bright-black: #6d7f9b;
-  --color-terminal-bright-red: #e89a8c;
-  --color-terminal-bright-green: #97d7ad;
-  --color-terminal-bright-yellow: #f0c98a;
-  --color-terminal-bright-blue: #a8c8ef;
-  --color-terminal-bright-magenta: #cbb4ea;
-  --color-terminal-bright-cyan: #9fded6;
-  --color-terminal-bright-white: #f2f6fb;
+  --color-terminal-bg: #1c1a17;
+  --color-terminal-fg: #e5dfd5;
+  --color-terminal-cursor: #e8c491;
+  --color-terminal-cursor-accent: #1c1a17;
+  --color-terminal-selection: rgba(232, 196, 145, 0.3);
+  --color-terminal-selection-inactive: rgba(229, 223, 213, 0.16);
+  --color-terminal-black: #38342f;
+  --color-terminal-red: #e08372;
+  --color-terminal-green: #8cc99b;
+  --color-terminal-yellow: #e5b76b;
+  --color-terminal-blue: #8ab4e6;
+  --color-terminal-magenta: #c49fdb;
+  --color-terminal-cyan: #83cbc3;
+  --color-terminal-white: #e5dfd5;
+  --color-terminal-bright-black: #7d766d;
+  --color-terminal-bright-red: #eda091;
+  --color-terminal-bright-green: #a6dbb2;
+  --color-terminal-bright-yellow: #f2cd8f;
+  --color-terminal-bright-blue: #a8ccf2;
+  --color-terminal-bright-magenta: #d9bcf0;
+  --color-terminal-bright-cyan: #a6e0d9;
+  --color-terminal-bright-white: #f7f3eb;
   --color-usage-chart-1: #e08a3e;
   --color-usage-chart-2: #4a79b8;
   --color-usage-chart-3: #6f8f5f;
@@ -417,7 +417,7 @@ html[data-document-hidden] *::after {
   --color-secondary-foreground: var(--color-foreground);
   --color-muted: #f3ead8;
   --color-muted-foreground: var(--color-foreground-subtle);
-  --color-scrollbar-thumb: color-mix(in oklab, #1c2f4e 34%, transparent);
+  --color-scrollbar-thumb: color-mix(in oklab, #1c2f4e 52%, transparent);
   --color-scrollbar-track: transparent;
   --color-interaction-ask-surface: rgba(74, 121, 184, 0.12);
   --color-interaction-ask-foreground: #4a79b8;
@@ -596,7 +596,7 @@ html[data-document-hidden] *::after {
   --color-secondary-foreground: var(--color-foreground);
   --color-muted: #24211e;
   --color-muted-foreground: var(--color-foreground-subtle);
-  --color-scrollbar-thumb: color-mix(in oklab, #e0dad0 32%, transparent);
+  --color-scrollbar-thumb: color-mix(in oklab, #e0dad0 46%, transparent);
   --color-scrollbar-track: transparent;
   --color-interaction-ask-surface: rgba(207, 168, 126, 0.16);
   --color-interaction-ask-foreground: #cfa87e;
@@ -718,28 +718,28 @@ html[data-document-hidden] *::after {
   --color-input-border-hover: var(--color-border-hover);
   --color-input-border-focused: #4a79b8;
   --color-ring: #4a79b8;
-  --color-terminal-bg: #142238;
-  --color-terminal-fg: #d7e1f0;
-  --color-terminal-cursor: #eda45f;
-  --color-terminal-cursor-accent: #142238;
-  --color-terminal-selection: rgba(74, 121, 184, 0.35);
-  --color-terminal-selection-inactive: rgba(215, 225, 240, 0.16);
-  --color-terminal-black: #24344f;
-  --color-terminal-red: #d97e6e;
-  --color-terminal-green: #7cc797;
-  --color-terminal-yellow: #e0b36a;
-  --color-terminal-blue: #82aade;
-  --color-terminal-magenta: #b79ade;
-  --color-terminal-cyan: #7fc8c0;
-  --color-terminal-white: #d7e1f0;
-  --color-terminal-bright-black: #6d7f9b;
-  --color-terminal-bright-red: #e89a8c;
-  --color-terminal-bright-green: #97d7ad;
-  --color-terminal-bright-yellow: #f0c98a;
-  --color-terminal-bright-blue: #a8c8ef;
-  --color-terminal-bright-magenta: #cbb4ea;
-  --color-terminal-bright-cyan: #9fded6;
-  --color-terminal-bright-white: #f2f6fb;
+  --color-terminal-bg: #1c1a17;
+  --color-terminal-fg: #e5dfd5;
+  --color-terminal-cursor: #e8c491;
+  --color-terminal-cursor-accent: #1c1a17;
+  --color-terminal-selection: rgba(232, 196, 145, 0.3);
+  --color-terminal-selection-inactive: rgba(229, 223, 213, 0.16);
+  --color-terminal-black: #38342f;
+  --color-terminal-red: #e08372;
+  --color-terminal-green: #8cc99b;
+  --color-terminal-yellow: #e5b76b;
+  --color-terminal-blue: #8ab4e6;
+  --color-terminal-magenta: #c49fdb;
+  --color-terminal-cyan: #83cbc3;
+  --color-terminal-white: #e5dfd5;
+  --color-terminal-bright-black: #7d766d;
+  --color-terminal-bright-red: #eda091;
+  --color-terminal-bright-green: #a6dbb2;
+  --color-terminal-bright-yellow: #f2cd8f;
+  --color-terminal-bright-blue: #a8ccf2;
+  --color-terminal-bright-magenta: #d9bcf0;
+  --color-terminal-bright-cyan: #a6e0d9;
+  --color-terminal-bright-white: #f7f3eb;
   --color-usage-chart-1: #e08a3e;
   --color-usage-chart-2: #4a79b8;
   --color-usage-chart-3: #6f8f5f;
@@ -769,7 +769,7 @@ html[data-document-hidden] *::after {
   --color-secondary-foreground: var(--color-foreground);
   --color-muted: #f3ead8;
   --color-muted-foreground: var(--color-foreground-subtle);
-  --color-scrollbar-thumb: color-mix(in oklab, #1c2f4e 34%, transparent);
+  --color-scrollbar-thumb: color-mix(in oklab, #1c2f4e 52%, transparent);
   --color-scrollbar-track: transparent;
   --color-interaction-ask-surface: rgba(74, 121, 184, 0.12);
   --color-interaction-ask-foreground: #4a79b8;
@@ -942,7 +942,7 @@ html[data-document-hidden] *::after {
   --color-secondary-foreground: var(--color-foreground);
   --color-muted: #24211e;
   --color-muted-foreground: var(--color-foreground-subtle);
-  --color-scrollbar-thumb: color-mix(in oklab, #e0dad0 32%, transparent);
+  --color-scrollbar-thumb: color-mix(in oklab, #e0dad0 46%, transparent);
   --color-scrollbar-track: transparent;
   --color-interaction-ask-surface: rgba(207, 168, 126, 0.16);
   --color-interaction-ask-foreground: #cfa87e;
@@ -1019,6 +1019,19 @@ html[data-document-hidden] *::after {
   --color-plugin-node-foreground: #efc58f;
   --color-plugin-paid-plan-badge: #5a341b;
   --color-plugin-paid-plan-badge-foreground: #ffd8b8;
+}
+
+/*
+ * 同步浅色 / Warm Sumi 暗色主题到 `:root` / 主题容器的原生 `color-scheme`，
+ * 确保 Electron 与浏览器下的原生控件和滚动区域随主题一起切换。
+ */
+:root,
+.theme-nibi-light {
+  color-scheme: light;
+}
+
+:is(.dark, .theme-nibi-dark) {
+  color-scheme: dark;
 }
 
 /*
@@ -1532,10 +1545,6 @@ html[data-document-hidden] *::after {
   display: inline-flex;
 }
 
-.nibi-reaction-burst > svg {
-  animation: nibi-reaction-pop 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
 .nibi-reaction-burst::after {
   content: "";
   position: absolute;
@@ -1548,11 +1557,20 @@ html[data-document-hidden] *::after {
   background: transparent;
   opacity: 0;
   pointer-events: none;
-  animation: nibi-reaction-particles 560ms cubic-bezier(0.16, 1, 0.3, 1) 60ms forwards;
 }
 
-.animate-nibi-alarm-ring {
-  animation: nibi-alarm-ring 600ms ease-in-out infinite;
+@media (prefers-reduced-motion: no-preference) {
+  .nibi-reaction-burst > svg {
+    animation: nibi-reaction-pop 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .nibi-reaction-burst::after {
+    animation: nibi-reaction-particles 560ms cubic-bezier(0.16, 1, 0.3, 1) 60ms forwards;
+  }
+
+  .animate-nibi-alarm-ring {
+    animation: nibi-alarm-ring 600ms ease-in-out infinite;
+  }
 }
 
 @keyframes nibi-alarm-ring {

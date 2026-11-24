@@ -23,11 +23,11 @@ export function TerminalTabTrigger({
         data-active={isActive ? "" : undefined}
         data-state={isActive ? "active" : "inactive"}
         className={cn(
-          "group relative inline-flex !h-7 w-auto max-w-36 min-w-0 flex-none shrink-0 cursor-default items-center justify-start gap-1 overflow-hidden whitespace-nowrap rounded-lg border !border-transparent !bg-transparent pl-2 pr-1 text-ui-base font-medium text-foreground-subtle transition-all",
+          "group relative inline-flex !h-7 w-auto max-w-36 min-w-0 flex-none shrink-0 cursor-default items-center justify-start gap-1 overflow-hidden whitespace-nowrap rounded-lg border !border-transparent !bg-transparent pl-2 pr-1 text-ui-base font-medium text-foreground-subtle transition-[color,background-color,border-color,box-shadow] duration-150 ease-out",
           "hover:text-foreground",
           !isActive && "hover:!bg-hover",
           "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring",
-          "data-active:!bg-selected data-active:text-foreground",
+          "data-active:!border-border/75 data-active:!bg-card data-active:text-foreground data-active:shadow-[var(--nibi-shadow-active-row)]",
         )}
       >
         <span
@@ -44,7 +44,7 @@ export function TerminalTabTrigger({
           className={cn(
             "shrink-0 rounded-md",
             !isActive &&
-              "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
+              "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100",
           )}
           onPointerDown={(event) => {
             event.stopPropagation();

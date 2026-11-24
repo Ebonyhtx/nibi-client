@@ -244,7 +244,7 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#12100e]/45 p-4 dark:bg-black/65 supports-[backdrop-filter]:backdrop-blur-[4px]"
       data-testid="nibi-membership-dialog"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) closeDialog();
@@ -254,9 +254,9 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-label={intl.formatMessage({ id: "settings.plugins.membership.title" })}
-        className="flex h-[min(760px,88vh)] w-full max-w-[1000px] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
+        className="flex h-[min(760px,88vh)] w-full max-w-[1000px] flex-col overflow-hidden rounded-2xl border border-popover-border bg-popover shadow-[var(--nibi-shadow-popover)]"
       >
-        <header className="flex items-start gap-3 border-b border-border px-5 py-4">
+        <header className="flex items-start gap-3 border-b border-border bg-header/80 px-5 py-4">
           <img
             src={nibiIcon}
             alt=""

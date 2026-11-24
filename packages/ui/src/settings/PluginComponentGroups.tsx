@@ -23,7 +23,7 @@ const COMPONENT_BADGE_STYLES: Record<NibiPluginComponentKind, string> = {
   command: "bg-sky-500/15 text-sky-600 dark:text-sky-300",
   skill: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
   hook: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
-  mcp: "bg-slate-500/15 text-slate-600 dark:text-slate-300",
+  mcp: "border border-border/60 bg-surface text-foreground-subtle",
 };
 
 const COMPONENT_LABEL_IDS: Record<NibiPluginComponentKind, string> = {

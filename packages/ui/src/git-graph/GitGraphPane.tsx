@@ -107,7 +107,7 @@ export function GitGraphPane({
 
   return (
     <section className="flex h-full min-h-0 flex-col bg-background text-foreground">
-      <div className="border-b border-border bg-surface/40 px-3 py-2">
+      <div className="border-b border-border/80 bg-header/85 px-3 py-2 backdrop-blur-sm">
         <div className="flex min-w-0 items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -129,7 +129,7 @@ export function GitGraphPane({
               onClick={onRefresh}
             >
               <RefreshCwIcon
-                className={cn("size-3.5", refreshing && "animate-spin")}
+                className={cn("size-3.5", refreshing && "animate-spin motion-reduce:animate-none")}
               />
             </Button>
           ) : null}
@@ -158,12 +158,12 @@ export function GitGraphPane({
               }}
             >
               <div
-                className="border-b border-r border-border bg-surface/60 px-3 py-2 text-ui-base font-medium text-foreground-subtle"
+                className="border-b border-r border-border bg-surface/75 px-3 py-2 text-ui-base font-medium text-foreground-subtle"
               >
                 {intl.formatMessage({ id: "gitGraph.column.graph" })}
               </div>
               <div
-                className="grid border-b border-border bg-surface/60 text-ui-base font-medium text-foreground-subtle"
+                className="grid border-b border-border bg-surface/75 text-ui-base font-medium text-foreground-subtle"
                 style={tableColumnStyle}
               >
                 <div className="border-r border-border px-3 py-2">
@@ -250,8 +250,9 @@ export function GitGraphPane({
                       type="button"
                       className={cn(
                         "grid w-full min-w-0 items-center border-y border-transparent text-left transition-colors",
-                        "hover:bg-hover focus-visible:bg-hover focus-visible:outline-none",
-                        isSelected && "border-b-border bg-selected",
+                        "hover:bg-hover focus-visible:bg-hover focus-visible:outline-2 focus-visible:outline-ring focus-visible:-outline-offset-2",
+                        isSelected &&
+                          "border-b-border bg-card-selected shadow-[var(--nibi-shadow-active-row)]",
                         isSelected && row.rowIndex > 0 && "border-t-border",
                         isHovered && !isSelected && "bg-surface-hover",
                       )}
@@ -337,7 +338,7 @@ export function GitGraphPane({
                     <button
                       type="button"
                       disabled={loadingMore}
-                      className="hidden w-full rounded-md px-2 py-1 text-ui-base text-foreground-subtle transition-colors hover:bg-hover hover:text-foreground disabled:cursor-default disabled:opacity-60 sm:block"
+                      className="hidden w-full rounded-md px-2 py-1 text-ui-base text-foreground-subtle transition-colors hover:bg-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:cursor-default disabled:opacity-60 sm:block"
                       onClick={onLoadMore}
                     >
                       {loadingMore
