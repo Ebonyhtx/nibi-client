@@ -84,6 +84,7 @@
 - `pnpm --filter @nibi/desktop typecheck:e2e` 通过。
 - PLM-LC-017/018 已补 case manifest 与 case-local fixture，`e2e:fixture:check --spec <017/018>` 通过。
 - 两条 spec 逐条 replay-isolated Docker 通过（run id 见上），`plugins-verified` 全量 **13/13**
-  通过（`desktop-e2e-20261124-050210-597`）。
-- macOS/Windows CI 两列待 dev push 触发 native CI 后改 `verified`；本文件不代替平台实跑证据。
+  通过（`desktop-e2e-20261124-050210-597`）；macOS/Windows native CI 同集合各 **13/13** 通过
+  （macOS `desktop-e2e-20261124-052213-003`、Windows `desktop-e2e-20261124-052437-667`；
+  GitHub run 45331930481）。
 - PLM-LC-019 按 `never formal CI` 保持 manual/public，不补正式 case 合同。

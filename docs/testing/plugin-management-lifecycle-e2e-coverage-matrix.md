@@ -23,8 +23,8 @@
 | `PLM-LC-014` builtin uninstall/detail parity | `PBD`             | not run       | describe/components + suppression/runtime absence + cache/manifest unchanged pending                                      | pending      | blocked     | blocked      | blocked  | blocked    |
 | `PLM-LC-015` bundled install ownership       | `PBO`             | not run       | bundled restore vs CDN Marketplace ownership evidence pending                                                             | pending      | blocked     | blocked      | blocked  | blocked    |
 | `PLM-LC-016` seed/cache/runtime separation   | `PBS`             | not run       | filesystem/SEA seed, suppressed discovery, describe and self-heal evidence pending                                        | pending      | blocked     | blocked      | blocked  | blocked    |
-| `PLM-LC-017` installed row menu layout       | `PML`             | targeted pass | user 启用 + Workspace 暂停形成覆盖；行菜单 2 项单行等高 + 截图；本地 `desktop-e2e-20261124-040332-920`；Docker `desktop-e2e-20261124-044245-176` | approved     | promoted    | verified     | selected | selected   |
-| `PLM-LC-018` official auto refresh throttled | —                 | targeted pass | 进入/重进商店页不刷新；本地 `desktop-e2e-20261124-040849-641`；Docker `desktop-e2e-20261124-045909-1079`                                            | approved     | promoted    | verified     | selected | selected   |
+| `PLM-LC-017` installed row menu layout       | `PML`             | targeted pass | user 启用 + Workspace 暂停形成覆盖；行菜单 2 项单行等高 + 截图；本地 `desktop-e2e-20261124-040332-920`；Docker `desktop-e2e-20261124-044245-176` | approved     | promoted    | verified     | verified | verified   |
+| `PLM-LC-018` official auto refresh throttled | —                 | targeted pass | 进入/重进商店页不刷新；本地 `desktop-e2e-20261124-040849-641`；Docker `desktop-e2e-20261124-045909-1079`                                            | approved     | promoted    | verified     | verified | verified   |
 | `PLM-LC-019` official auto refresh on enter  | —                 | targeted pass | 进入商店页自动刷新真实官方市场；run `desktop-e2e-20261124-042719-701`；公网 smoke，never formal CI                                                | approved     | never       | never        | never    | never      |
 
 ## 2026-11-24 转正执行
@@ -104,7 +104,8 @@ macOS `desktop-e2e-20261124-014702-952`、Windows `desktop-e2e-20261124-014644-0
   case-local fixture；两条 spec 逐条通过 replay-isolated Docker 准入
   （`desktop-e2e-20261124-044245-176`、`desktop-e2e-20261124-045909-1079`），已写入
   `plugins-verified`；preset 全量 **13/13** 通过（`desktop-e2e-20261124-050210-597`）。
-  macOS/Windows CI 两列先记 `selected`，等 dev push 触发 native CI 后改 `verified`。
+  macOS/Windows native CI 同集合各 **13/13** 通过（macOS `desktop-e2e-20261124-052213-003`、
+  Windows `desktop-e2e-20261124-052437-667`；GitHub run 45331930481），两列已记 `verified`。
 - PLM-LC-019 运营者复核通过，但按用例目录的 `never formal CI` 保持 manual-review 公网 smoke，
   不转正、不进 Docker/native preset。
 - 截图与观察点见 [plugin-review-next-batch-2026-11-24.md](./plugin-review-next-batch-2026-11-24.md)。
