@@ -9,8 +9,9 @@
 > Windows 真机 manual-review；2026-11-23 修掉「公开/个人」重复分段与错误文案语言后，受影响用例
 > 已用 replay fixture 重跑刷新截图；`plugin-management-ui-market` 已于 2026-11-24 在带 ffmpeg 的
 > 环境完整绿跑（`desktop-e2e-20261123-160205-155`）。macOS/Windows CI 已由
-> `.github/workflows/desktop-e2e-native.yml` 选中同一份 `plugins-verified` 集合（矩阵记 `selected`；
-> 该 workflow 在 preset 脚本或自身变化时由 dev push 触发，也可手动 dispatch，首次实跑通过后再改 `verified`）。
+> `.github/workflows/desktop-e2e-native.yml` 选中同一份 `plugins-verified` 集合，2026-11-24 首跑两平台
+> 各 11/11 通过（macOS `desktop-e2e-20261124-014702-952`、Windows `desktop-e2e-20261124-014644-086`；
+> GitHub Actions run 45306709585），矩阵两列已记 `verified`。
 
 ## 复核范围（12 例）
 

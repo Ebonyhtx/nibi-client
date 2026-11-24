@@ -7,17 +7,17 @@
 
 | Case                                         | Spec abbreviation | UI automation | Runtime/storage evidence                                                                                                  | Human review | Formal spec | Linux Docker | macOS CI | Windows CI |
 | -------------------------------------------- | ----------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------- | ------------ | -------- | ---------- |
-| `PLM-LC-001` discovery/navigation            | `PD`              | targeted pass | UI state + screenshot captured                                                                                            | approved     | promoted    | verified     | selected | selected   |
-| `PLM-LC-002` presentation                    | `PP`              | targeted pass | DOM/a11y/overflow + screenshot captured                                                                                   | approved     | promoted    | verified     | selected | selected   |
-| `PLM-LC-003` personal main lifecycle         | `PM`              | targeted pass | overview/list/storage + update badge/inline entry + v2 Skill/MCP provider evidence pass                                   | approved     | promoted    | verified     | selected | selected   |
-| `PLM-LC-004` persistence/local visibility    | `PV`              | targeted pass | restart/config/enabled/workspace B evidence pass                                                                          | approved     | promoted    | verified     | selected | selected   |
-| `PLM-LC-005` orphan/reassociate              | `PO`              | targeted pass | source/config/enabled + all update entries (menu/detail/badge/inline) absent + fresh-session Skill evidence pass          | approved     | promoted    | verified     | selected | selected   |
-| `PLM-LC-006` builtin suppress/restore        | `PB`              | targeted pass | suppression/config/data + Catalog/cache preservation + restart evidence pass (Windows, 2026-11-22)                        | approved     | promoted    | verified     | selected | selected   |
-| `PLM-LC-007` local official CDN              | `PC`              | targeted pass | loopback HTTP ZIP/cache/overview evidence pass                                                                            | approved     | promoted    | verified     | selected | selected   |
+| `PLM-LC-001` discovery/navigation            | `PD`              | targeted pass | UI state + screenshot captured                                                                                            | approved     | promoted    | verified     | verified | verified   |
+| `PLM-LC-002` presentation                    | `PP`              | targeted pass | DOM/a11y/overflow + screenshot captured                                                                                   | approved     | promoted    | verified     | verified | verified   |
+| `PLM-LC-003` personal main lifecycle         | `PM`              | targeted pass | overview/list/storage + update badge/inline entry + v2 Skill/MCP provider evidence pass                                   | approved     | promoted    | verified     | verified | verified   |
+| `PLM-LC-004` persistence/local visibility    | `PV`              | targeted pass | restart/config/enabled/workspace B evidence pass                                                                          | approved     | promoted    | verified     | verified | verified   |
+| `PLM-LC-005` orphan/reassociate              | `PO`              | targeted pass | source/config/enabled + all update entries (menu/detail/badge/inline) absent + fresh-session Skill evidence pass          | approved     | promoted    | verified     | verified | verified   |
+| `PLM-LC-006` builtin suppress/restore        | `PB`              | targeted pass | suppression/config/data + Catalog/cache preservation + restart evidence pass (Windows, 2026-11-22)                        | approved     | promoted    | verified     | verified | verified   |
+| `PLM-LC-007` local official CDN              | `PC`              | targeted pass | loopback HTTP ZIP/cache/overview evidence pass                                                                            | approved     | promoted    | verified     | verified | verified   |
 | `PLM-LC-007b` real CDN smoke                 | `PCS`             | not run       | not captured                                                                                                              | pending      | never       | never        | never    | never      |
-| `PLM-LC-008` recoverable failures            | `PF`              | targeted pass | source/refresh/describe/install/update preservation evidence pass                                                         | approved     | promoted    | verified     | selected | selected   |
-| `PLM-LC-009` inline smoke                    | `PI`              | targeted pass | UI/list + fresh-session Skill invocation evidence pass                                                                    | approved     | promoted    | verified     | selected | selected   |
-| `PLM-LC-010` secret env/agent projection     | `PEA`             | targeted pass | MCP resolved marker + no-secret capture + one canonical agent row + Electron `capturePage()` video                        | approved     | promoted    | verified     | selected | selected   |
+| `PLM-LC-008` recoverable failures            | `PF`              | targeted pass | source/refresh/describe/install/update preservation evidence pass                                                         | approved     | promoted    | verified     | verified | verified   |
+| `PLM-LC-009` inline smoke                    | `PI`              | targeted pass | UI/list + fresh-session Skill invocation evidence pass                                                                    | approved     | promoted    | verified     | verified | verified   |
+| `PLM-LC-010` secret env/agent projection     | `PEA`             | targeted pass | MCP resolved marker + no-secret capture + one canonical agent row + Electron `capturePage()` video                        | approved     | promoted    | verified     | verified | verified   |
 | `PLM-LC-011` no-Git GitHub Archive           | `PGA`             | targeted pass | real Claude Marketplace/plugin HTTP + missing-Git diagnostic; run `desktop-e2e-20260806033745155-p99439-e61ceea7b4c68fcf` | pending      | never       | never        | never    | never      |
 | `PLM-LC-012` isolated refresh/atomic cache   | `PRA`             | not run       | partial refresh + persisted failure + rollback evidence pending                                                           | pending      | blocked     | blocked      | blocked  | blocked    |
 | `PLM-LC-014` builtin uninstall/detail parity | `PBD`             | not run       | describe/components + suppression/runtime absence + cache/manifest unchanged pending                                      | pending      | blocked     | blocked      | blocked  | blocked    |
@@ -73,13 +73,15 @@ WPL-015 已执行 `e2e:promote --reviewed --apply`。转正后本地 replay 全�
 [plugin-promotion-review-2026-11-23.md](./plugin-promotion-review-2026-11-23.md)。
 Docker admission 已完成：11 个插件 spec 均在 Linux `replay-isolated` 容器逐条通过并写入
 `plugins-verified` preset，preset 全量 11/11 通过（`desktop-e2e-20261124-001357-684`）。
-本表 `PLM-LC-001..010` 的 Human review / Formal spec / Linux Docker 已改为
-approved/promoted/verified；macOS/Windows CI 改为 selected：`.github/workflows/desktop-e2e-native.yml`
-已按同一 preset 选集合，首次实跑由 dev push 自动触发（preset 脚本或 workflow 变化），通过前不记 verified。
+本表 `PLM-LC-001..010` 的 Human review / Formal spec / Linux Docker / macOS CI / Windows CI 已全部改为
+approved/promoted/verified：`.github/workflows/desktop-e2e-native.yml` 按同一 preset 选集合，
+2026-11-24 首次 dev push 实跑两平台均 11/11 通过（run id 见下节）。
 
 ## macOS / Windows native CI（2026-11-24）
 
-准入规则 6 要求已准入 preset 在同一份 formal spec 集上由 macOS 与 Windows CI 选中。选择结果：
+准入规则 6 要求已准入 preset 在同一份 formal spec 集上由 macOS 与 Windows CI 选中。2026-11-24 首跑结果：
+macOS `desktop-e2e-20261124-014702-952`、Windows `desktop-e2e-20261124-014644-086`，两平台各 11/11 通过
+（GitHub Actions run 45306709585）。
 
 - Workflow：`.github/workflows/desktop-e2e-native.yml`，矩阵 `macos-latest` + `windows-latest`。
   触发为 `workflow_dispatch` + 范围极窄的 dev push（仅 `scripts/test-desktop-e2e-container.sh`
@@ -90,8 +92,8 @@ approved/promoted/verified；macOS/Windows CI 改为 selected：`.github/workflo
 - 运行方式：构建 debug Rust 内核 + `@nibi/e2e-report`，然后
   `E2E_PROVIDER_HTTP_MODE=replay NIBI_E2E_SPEC=<preset> pnpm --filter @nibi/desktop exec wdio run wdio.conf.ts`；
   replay 使用本地 provider fixture server，不需要 API key 或网络。
-- 状态口径：在第一次 macOS/Windows 实跑通过并记录 run id 之前，表中记 `selected`，不记 `verified`。
-  通过后把 `PLM-LC-001..010` 的 macOS/Windows CI 两列改为 `verified`，并把 run id 写在本节。
+- 状态口径：两平台首跑已通过，`PLM-LC-001..010` 的 macOS/Windows CI 两列记 `verified`；
+  后续变更若任一平台失败，先改回 `selected` 并保留失败 run id。
 
 2026-07-15 已在 macOS 上逐个运行上述 `PD/PP`、`PM`、`PV/PO`、`PB/PI`、`PC`、`PF`
 pending spec，均通过。这些 spec 不得并行共享 E2E HOME；允许同一兼容批次串行运行、各用例隔离 HOME 并共享构建。
