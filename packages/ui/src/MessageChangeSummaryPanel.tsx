@@ -106,7 +106,7 @@ export function MessageChangeSummaryPanel({
       // Bugfix: 历史消息里的文件卡会等二次校验后再出现；
       // summary 如果没有同样的渐入，会在文件卡稳定前后显得像突兀跳出。
       data-nibi-stream-animate="true"
-      className="overflow-hidden rounded-xl border border-border bg-card shadow-none"
+      className="overflow-hidden rounded-xl border border-card-border bg-card shadow-[var(--nibi-shadow-card)]"
       style={
         {
           "--nibi-stream-animation-delay": `${animationDelayMs}ms`,
@@ -116,7 +116,7 @@ export function MessageChangeSummaryPanel({
       {/* Bugfix: 展开/收起触发器之前只给内部小按钮加 hover 背景，
           收起态看起来像 header 里漂着一块。hover 视觉提升到整行 header，
           但仍只让左侧标题区域负责 toggle，避免右侧撤销按钮误触发折叠。 */}
-      <div className="flex h-10 items-center justify-between gap-3 px-2 transition-colors hover:bg-hover">
+      <div className="flex h-10 items-center justify-between gap-3 px-2 transition-colors hover:bg-surface/75">
         <CollapsibleTrigger asChild>
           <button
             type="button"
@@ -164,7 +164,7 @@ export function MessageChangeSummaryPanel({
         ) : null}
       </div>
 
-      <CollapsibleContent>
+      <CollapsibleContent className="border-t border-border/60 bg-surface/35">
         {/* Bugfix: 变更摘要整体之前没有折叠态，完成任务后会默认展开所有文件行。
             默认闭合可避免大批文件变更把最新回复向上挤开；单文件 diff 仍保持按需展开。 */}
         {turnSummary.files.map((file) => {
@@ -193,12 +193,12 @@ export function MessageChangeSummaryPanel({
           };
 
           return (
-            <div key={file.path} className="w-full bg-background/50 overflow-hidden">
+            <div key={file.path} className="w-full overflow-hidden">
               <div
                 aria-disabled={!canOpenDiff}
                 className={cn(
                   "flex w-full items-center gap-1 px-2 py-2 text-left transition-colors",
-                  canOpenDiff ? "cursor-pointer hover:bg-hover/30" : "cursor-default",
+                  canOpenDiff ? "cursor-pointer hover:bg-hover/60" : "cursor-default",
                 )}
                 onClick={openDiffViewer}
                 onKeyDown={(event) => {
@@ -240,7 +240,7 @@ export function MessageChangeSummaryPanel({
                     aria-label={reviewDiffLabel}
                     title={reviewDiffLabel}
                     disabled={!canOpenDiff}
-                    className="h-7 gap-1.5 rounded-lg bg-input px-2 text-ui-base"
+                    className="h-7 gap-1.5 rounded-lg border-border/80 bg-card px-2 text-ui-base shadow-2xs hover:bg-surface"
                     onClick={(event) => {
                       event.stopPropagation();
                       openDiffViewer();

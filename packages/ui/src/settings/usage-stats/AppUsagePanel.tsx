@@ -160,14 +160,16 @@ export function AppUsageLifetimeSummaryStrip({ snapshot }: { snapshot: AppUsageS
   ];
 
   return (
-    <section className="flex flex-col overflow-hidden rounded-xl bg-surface sm:flex-row sm:items-center">
+    <section className="flex flex-col overflow-hidden rounded-xl border border-card-border bg-card shadow-[var(--nibi-shadow-card)] sm:flex-row sm:items-center">
       {items.map((item, index) => (
         <Fragment key={item.label}>
           {index > 0 ? (
-            <div aria-hidden="true" className="hidden h-7 w-px bg-border sm:block" />
+            <div aria-hidden="true" className="hidden h-7 w-px bg-border/65 sm:block" />
           ) : null}
           <div className="min-w-0 flex-1 px-4 py-3 text-center">
-            <div className="truncate text-ui-lg font-medium text-foreground">{item.value}</div>
+            <div className="truncate text-ui-lg font-medium tabular-nums text-foreground">
+              {item.value}
+            </div>
             <div className="mt-1 truncate text-ui-base text-foreground-subtle">{item.label}</div>
           </div>
         </Fragment>

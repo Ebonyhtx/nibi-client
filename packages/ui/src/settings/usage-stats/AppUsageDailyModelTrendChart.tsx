@@ -249,7 +249,7 @@ export function AppUsageDailyModelTrendChart({ snapshot }: { snapshot: AppUsageS
   );
 
   return (
-    <section className="space-y-3 rounded-xl bg-surface p-4">
+    <section className="space-y-3 rounded-xl border border-card-border bg-card p-4 shadow-[var(--nibi-shadow-card)]">
       <h3 className="text-ui-base font-medium text-foreground">
         {intl.formatMessage({ id: "settings.usage.dailyChartTitle" })}
       </h3>

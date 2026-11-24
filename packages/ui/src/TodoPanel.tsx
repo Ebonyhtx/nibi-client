@@ -86,7 +86,7 @@ export function TodoPanel({
 
   return (
     <Plan
-      className="gap-0 overflow-hidden rounded-none border-0 bg-popover py-0"
+      className="gap-0 overflow-hidden rounded-none border-0 bg-card/94 py-0 supports-[backdrop-filter]:backdrop-blur-md"
       open={isOpen}
       onOpenChange={setIsOpen}
       isStreaming={isStreaming}
@@ -103,22 +103,22 @@ export function TodoPanel({
           <button
             type="button"
             aria-expanded={isOpen}
-            className="inline-flex min-w-0 max-w-full cursor-pointer items-center gap-3 rounded-md p-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused"
+            className="inline-flex min-w-0 max-w-full cursor-pointer items-center gap-3 rounded-md p-1 text-left focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
             onClick={toggleOpen}
           >
             {isOpen ? (
               <>
-                <ListTodo className="size-4 shrink-0 text-foreground" />
+                <ListTodo className="size-4 shrink-0 text-primary" />
                 <PlanTitle className="min-w-0 truncate text-ui-base font-medium text-foreground">
                   {intl.formatMessage({ id: "todo.panel.title" })}
                 </PlanTitle>
-                <PlanDescription className="shrink-0 text-ui-base font-mono text-foreground-subtlest">
+                <PlanDescription className="shrink-0 rounded-md border border-border/65 bg-surface px-1.5 py-0.5 font-mono text-ui-xs tabular-nums text-foreground-subtle">
                   {`${completedCount}/${plan.length}`}
                 </PlanDescription>
               </>
             ) : showLoadingState ? (
               <>
-                <LoaderIcon className="size-4 shrink-0 animate-spin text-foreground" />
+                <LoaderIcon className="size-4 shrink-0 animate-spin text-primary" />
                 <PlanTitle className="animated-gradient-text min-w-0 truncate text-ui-base font-medium">
                   {activeStep?.title ??
                     intl.formatMessage({ id: "todo.panel.currentTask" })}
@@ -126,7 +126,7 @@ export function TodoPanel({
               </>
             ) : (
               <>
-                <ListTodo className="size-4 shrink-0 text-foreground" />
+                <ListTodo className="size-4 shrink-0 text-primary" />
                 <PlanTitle className="min-w-0 truncate text-ui-base font-medium text-foreground">
                   {activeStep?.title ??
                     intl.formatMessage({ id: "todo.panel.currentTask" })}
@@ -134,7 +134,7 @@ export function TodoPanel({
               </>
             )}
             {!isOpen ? (
-              <PlanDescription className="shrink-0 text-ui-base font-mono text-foreground-subtle">
+              <PlanDescription className="shrink-0 rounded-md border border-border/65 bg-surface px-1.5 py-0.5 font-mono text-ui-xs tabular-nums text-foreground-subtle">
                 {`${completedCount}/${plan.length}`}
               </PlanDescription>
             ) : null}
@@ -168,7 +168,7 @@ export function TodoPanel({
           {visiblePlan.map((step) => (
             <QueueItem
               key={step.id}
-              className="gap-0 w-full rounded-xl px-3 py-2 hover:bg-hover/30"
+              className="gap-0 w-full rounded-xl px-3 py-2 hover:bg-hover/65"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <QueueItemIndicator

@@ -238,7 +238,7 @@ export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterCompon
               type="button"
               variant="ghost"
               size={"lg"}
-              className="min-w-0 flex-1 justify-start gap-2 overflow-hidden rounded-tl-2xl rounded-bl-2xl border-0 pl-0"
+              className="min-w-0 flex-1 justify-start gap-2 overflow-hidden rounded-xl border border-transparent px-1.5 transition-[background-color,border-color,box-shadow] duration-150 hover:border-border/65 hover:bg-card/80 hover:shadow-2xs"
               data-testid={TID_LOGIN_TRIGGER}
               aria-label={profileBadge}
             >
@@ -257,7 +257,7 @@ export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterCompon
               <>
                 <div
                   data-testid="profile-menu-header"
-                  className="flex max-w-80 items-center gap-2 px-2 py-1.5"
+                  className="mb-1 flex max-w-80 items-center gap-2 rounded-lg bg-surface/55 px-2.5 py-2"
                 >
                   <Avatar key={avatarKey} size="default">
                     {user.avatarUrl ? (

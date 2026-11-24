@@ -44,11 +44,13 @@ export function RemoteConnectionWizardSidebar({
                   : "text-remote-foreground-muted",
               )}
             >
-              {index > 0 ? <span className="h-px w-5 bg-border" /> : null}
+              {index > 0 ? <span className="h-px w-5 bg-border/75" /> : null}
               <span
                 className={cn(
                   "flex size-4 shrink-0 items-center justify-center rounded-md border text-ui-xs",
-                  index === currentIndex && "border-primary bg-primary text-primary-foreground",
+                  index === currentIndex &&
+                    "border-primary bg-primary text-primary-foreground shadow-[var(--nibi-shadow-primary-btn)]",
+                  index < currentIndex && "border-success/50 bg-success/12 text-success",
                 )}
               >
                 {index < currentIndex ? <CheckIcon className="size-3" /> : index + 1}

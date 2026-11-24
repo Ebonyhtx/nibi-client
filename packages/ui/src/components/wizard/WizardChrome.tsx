@@ -26,7 +26,7 @@ export function WizardStepSidebar<StepKey extends string>(props: {
 
   return (
     <aside className={cn("hidden shrink-0 flex-col gap-2 p-1 md:flex", props.className)}>
-      <div className="flex h-full flex-col gap-4 rounded-xl border border-border bg-surface p-4">
+      <div className="flex h-full flex-col gap-4 rounded-xl border border-border/75 bg-surface/80 p-4 shadow-[var(--nibi-shadow-card)]">
         {props.labelId ? (
           <div className="text-ui-base font-medium uppercase tracking-wide text-foreground-subtle">
             {intl.formatMessage({ id: props.labelId })}
@@ -42,7 +42,7 @@ export function WizardStepSidebar<StepKey extends string>(props: {
                   className={cn(
                     "flex size-6 shrink-0 items-center justify-center rounded-full border text-ui-base font-mono font-semibold",
                     isCurrent
-                      ? "bg-primary text-primary-foreground"
+                      ? "border-primary bg-primary text-primary-foreground shadow-[var(--nibi-shadow-primary-btn)]"
                       : isCompleted
                         ? "border-success bg-success text-success-foreground"
                         : "border-border bg-background text-foreground-subtle",
@@ -66,8 +66,8 @@ export function WizardStepSidebar<StepKey extends string>(props: {
               "flex items-center gap-3 rounded-xl px-3 py-3 transition-colors",
               isCurrent
                 ? props.currentStepBordered
-                  ? "border border-border-hover bg-card"
-                  : "border-0 bg-card"
+                  ? "border border-border-hover bg-card shadow-[var(--nibi-shadow-active-row)] ring-1 ring-border/75"
+                  : "border-0 bg-card shadow-[var(--nibi-shadow-active-row)] ring-1 ring-border/75"
                 : isCompleted
                   ? "border-0 border-transparent bg-background-alt"
                   : "border-0 border-transparent bg-transparent",

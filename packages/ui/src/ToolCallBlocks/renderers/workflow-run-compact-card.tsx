@@ -70,9 +70,9 @@ export function WorkflowRunCompactCard({
       <section
         aria-label={ariaLabel}
         className={cn(
-          "flex w-full min-w-0 items-center gap-2 overflow-hidden rounded-xl border border-card-border bg-card px-3 py-2.5 text-foreground shadow-xs outline-none transition-colors",
+          "flex w-full min-w-0 items-center gap-2 overflow-hidden rounded-xl border border-card-border bg-card px-3 py-2.5 text-foreground shadow-[var(--nibi-shadow-card)] outline-none transition-[border-color,background-color,box-shadow,translate] duration-150 ease-out",
           onOpen
-            ? "hover:border-border-hover focus-visible:border-input-border-focused focus-visible:ring-2 focus-visible:ring-ring/40"
+            ? "cursor-pointer hover:-translate-y-0.5 hover:border-border-hover hover:shadow-[var(--nibi-shadow-card-hover)] motion-reduce:hover:translate-y-0 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
             : undefined,
         )}
         data-testid="workflow-run-card"
@@ -105,7 +105,7 @@ export function WorkflowRunCompactCard({
           </span>
         </span>
         {/* 步数是「已排程的里结算了几个」，不是全程百分比——动态工作流没有静态总数。 */}
-        <span className="shrink-0 font-mono text-ui-xs tabular-nums text-foreground-subtlest">
+        <span className="shrink-0 rounded-md border border-border/65 bg-surface px-1.5 py-0.5 font-mono text-ui-xs tabular-nums text-foreground-subtle">
           {stepsLabel}
         </span>
       </section>

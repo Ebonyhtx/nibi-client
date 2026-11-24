@@ -34,7 +34,10 @@ export function ExecuteCommand({ command }: { command: string | undefined }) {
       >
         {/* 起始标记此前在滚动容器外，滚到命令中段仍显示；与正文共用视口，保持首行语义。 */}
         <div className="flex items-start gap-2">
-          <span data-testid="execute-command-prompt" className="shrink-0 text-foreground-subtle">
+          <span
+            data-testid="execute-command-prompt"
+            className="shrink-0 font-semibold text-primary/80 select-none"
+          >
             $
           </span>
           <pre className="min-w-0 flex-1 whitespace-pre-wrap break-words">{command}</pre>
@@ -63,7 +66,7 @@ export function ExecuteCommand({ command }: { command: string | undefined }) {
           })}
           <ChevronDownIcon
             aria-hidden="true"
-            className={`size-3 ${expanded ? "rotate-180" : ""}`}
+            className={`size-3 transition-transform duration-150 ${expanded ? "rotate-180" : ""}`}
           />
         </Button>
       ) : null}
