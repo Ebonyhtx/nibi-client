@@ -2542,6 +2542,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                       data-workspace-conversation-frame="true"
                       className={cn(
                         "relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background",
+                        !isFullView && !isWebRemoteControlShell && "nibi-atelier-panel",
                         isSidePaneVisible
                           ? "rounded-[var(--workspace-panel-radius)] border border-border"
                           : resolveWorkspaceShellWindowChromeClass({

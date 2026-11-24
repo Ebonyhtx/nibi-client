@@ -152,7 +152,7 @@ export const CodeBlockContainer = ({
 }: HTMLAttributes<HTMLDivElement> & { language: string }) => (
   <div
     className={cn(
-      "group relative w-full overflow-hidden rounded-xl bg-background text-foreground",
+      "group relative w-full overflow-hidden rounded-xl border border-card-border bg-card text-foreground shadow-[var(--nibi-shadow-card)]",
       className,
     )}
     data-language={language}
@@ -187,7 +187,7 @@ export const CodeBlockHeader = ({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-3 px-3 py-2 text-ui-base text-muted-foreground",
+        "flex items-center justify-between gap-3 border-b border-border/65 bg-surface/75 px-3.5 py-2 text-ui-sm text-foreground-subtle",
         className,
       )}
       {...props}
@@ -323,7 +323,7 @@ export const CodeBlock = ({
     <CodeBlockContext.Provider value={contextValue}>
       <CodeBlockContainer className={className} language={language} {...props}>
         {children}
-        <div className={cn("p-2 pt-0 pb-3", contentClassName)}>
+        <div className={cn("p-2.5 pt-2 pb-3", contentClassName)}>
           {shouldRenderMermaid ? (
             <MermaidBlock
               code={code}

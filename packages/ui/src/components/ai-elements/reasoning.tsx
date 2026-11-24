@@ -437,7 +437,10 @@ export const ReasoningTrigger = memo(
     return (
       <CollapsibleTrigger
         data-testid={TID_CHAT_REASONING_TRIGGER}
-        className={summaryClassName}
+        className={cn(
+          summaryClassName,
+          "-mx-1.5 cursor-pointer rounded-md px-1.5 py-0.5 hover:bg-hover/80",
+        )}
         {...props}
       >
         {summaryContent}
@@ -573,7 +576,7 @@ export const ReasoningContent = memo(
               className={cn(
                 "max-h-60 space-y-2 overflow-auto text-ui-base text-foreground-subtlest",
                 // CUA Group 已提供清晰的父级边界；子思考继续显示左导线与缩进会形成重复层级。
-                variant === "default" && "ml-2 border-border border-l pl-3.5",
+                variant === "default" && "ml-2 border-l-2 border-primary/25 pl-3.5",
               )}
               data-reasoning-scroll-mask={scrollMaskData}
               onScroll={handleScroll}

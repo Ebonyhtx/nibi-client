@@ -54,7 +54,7 @@ export function WelcomeScreen({ onComplete, onOpenModelSettings, onDismiss }: We
       {/* 原生拖拽命中不受 pointer-events/z-index 约束；拖拽层必须避开窗控，且先于 no-drag 区声明。 */}
       <div className="pointer-events-none absolute left-0 top-0 right-0 z-10 flex h-12 items-center [app-region:drag] platform-windows-desktop:right-[134px] platform-linux-desktop:right-[134px]" />
       <DesktopOverlayWindowControls />
-      <section className="relative z-10 w-full flex flex-col gap-10 max-w-sm rounded-2xl border border-popover-border bg-card/95 p-8 text-ui-base/relaxed shadow-lg backdrop-blur-sm sm:p-10">
+      <section className="relative z-10 flex w-full max-w-sm flex-col gap-10 rounded-2xl border border-border/80 bg-card/94 p-8 text-ui-base/relaxed shadow-[var(--nibi-shadow-popover)] backdrop-blur-md sm:p-10">
         <LoginPanel
           active
           onComplete={onComplete}

@@ -92,16 +92,15 @@ const SuggestedPromptCard = forwardRef<HTMLButtonElement, SuggestedPromptCardPro
         aria-describedby={showDescription ? descriptionId : undefined}
         title={label}
         className={cn(
-          // 根因：旧草稿卡是固定 h-8 的横排 chip，办公推荐是竖排列表，两套圆角/图标/间距各不相同。
-          // 这里统一成同一种卡片；默认高度由 line-clamp 内容决定，不再依赖固定槽位或滚动容器。
+          // 统一成「纸墨工坊」立体纸卡语言，保留紧凑四卡与默认描述卡各自的长度约束。
           "nibi-draft-prompt-waterfall group/prompt flex w-full min-w-0 text-left text-foreground",
-          "border border-card-border bg-background",
-          "transition-colors hover:border-border-hover hover:bg-hover active:bg-surface-hover",
+          "border border-card-border bg-card/88 shadow-[var(--nibi-shadow-card)]",
+          "transition-[border-color,background-color,box-shadow,translate,scale] duration-150 ease-out hover:-translate-y-0.5 hover:border-border-hover hover:bg-card hover:shadow-[var(--nibi-shadow-card-hover)] active:translate-y-0 active:scale-[0.985] motion-reduce:transition-none motion-reduce:hover:translate-y-0",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused",
           "disabled:pointer-events-none disabled:opacity-50",
           compact
             ? // 四卡等宽等高：h-9 固定 36px，单行 truncate 不会把卡片撑高，也不会落单换行。
-              "h-9 items-center gap-1.5 rounded-lg px-2 py-0"
+              "h-9 items-center gap-1.5 rounded-lg px-2.5 py-0"
             : "min-h-14 items-start gap-2.5 rounded-xl p-3",
           className,
         )}
@@ -115,7 +114,7 @@ const SuggestedPromptCard = forwardRef<HTMLButtonElement, SuggestedPromptCardPro
         <span
           data-draft-suggested-prompt-icon="true"
           className={cn(
-            "flex shrink-0 items-center justify-center text-foreground-subtle transition-colors group-hover/prompt:text-foreground motion-reduce:transition-none",
+            "flex shrink-0 items-center justify-center text-foreground-subtle transition-colors group-hover/prompt:text-primary motion-reduce:transition-none",
             // 紧凑卡不再给图标加 28px 底色块，保持“16px 图标 + 四字”的上游节奏。
             compact ? "size-4" : "size-7 rounded-lg bg-surface",
           )}

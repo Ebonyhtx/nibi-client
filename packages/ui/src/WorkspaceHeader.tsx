@@ -158,8 +158,10 @@ export function WorkspaceHeader({
       data-testid={TID_WORKSPACE_HEADER}
       data-workspace-header-variant={variant}
       className={cn(
-        "@container/workspace-header relative flex w-full shrink-0 h-12 border-b",
-        variant === "draft" ? "border-transparent" : "border-border/50",
+        "@container/workspace-header relative flex w-full shrink-0 h-12 border-b transition-colors",
+        variant === "draft"
+          ? "border-transparent"
+          : "border-border/60 bg-header/82 supports-[backdrop-filter]:backdrop-blur-md",
       )}
     >
       {variant === "draft" && draftDropTargetController?.active ? (

@@ -79,6 +79,26 @@ export function applyTheme(theme: Theme) {
   syncBrowserThemeSurface(resolved);
 }
 
+export function applyThemeWithTransition(theme: Theme) {
+  if (
+    typeof document !== "undefined" &&
+    typeof document.startViewTransition === "function" &&
+    typeof window !== "undefined" &&
+    !window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches &&
+    document.documentElement?.dataset?.nibiMotion !== "off"
+  ) {
+    try {
+      document.startViewTransition(() => {
+        applyTheme(theme);
+      });
+      return;
+    } catch {
+      // Fall back to direct synchronous theme application when View Transition is unavailable.
+    }
+  }
+  applyTheme(theme);
+}
+
 function isThemeValue(value: string | null): value is Theme {
   return (
     value === "light" ||
@@ -111,7 +131,7 @@ export function useTheme() {
     const normalizedTheme = normalizeThemePreference(t);
     updatePrefs({ theme: normalizedTheme });
     setThemeState(normalizedTheme);
-    applyTheme(normalizedTheme);
+    applyThemeWithTransition(normalizedTheme);
   }, []);
 
   // 初始化 + system 模式下监听系统偏好变化

@@ -2734,7 +2734,8 @@ function ConversationComposerImpl({
       <div
         className={cn(
           "chat-composer-input-surface relative w-full",
-          contextHeader && "rounded-2xl bg-surface shadow-xl/5",
+          contextHeader &&
+            "rounded-[1.125rem] border border-border/70 bg-surface/85 p-1 shadow-[var(--nibi-shadow-card)]",
         )}
       >
         {modelSweepKey > 0 ? (

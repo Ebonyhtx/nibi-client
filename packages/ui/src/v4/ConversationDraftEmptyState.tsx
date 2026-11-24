@@ -247,9 +247,15 @@ export function ConversationDraftEmptyState({
       {/* 上游是"绝对定位的 Z 水印 + 文字压在上面"；NIBI 的鸟是实心角色，压字很难看，
           改成正常流：鸟在上、问候语在下。整帧映射的单元自带约 39px 底边留白，用负 margin
           抵掉它，否则鸟和问候语之间会空出一大块。 */}
-      <NibiEmptyStateLogo
-        className={cn("-mb-10", logoReady ? "opacity-100" : "opacity-0")}
-      />
+      <div className="relative flex items-center justify-center">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-6 rounded-full bg-radial from-brand/16 via-brand/5 to-transparent blur-2xl"
+        />
+        <NibiEmptyStateLogo
+          className={cn("relative z-10 -mb-10", logoReady ? "opacity-100" : "opacity-0")}
+        />
+      </div>
       <p
         ref={greetingContainerRef}
         data-v4-draft-greeting="true"
@@ -259,7 +265,7 @@ export function ConversationDraftEmptyState({
           } as CSSProperties
         }
         className={cn(
-          "relative z-10 w-full px-4 text-center font-medium text-foreground",
+          "relative z-10 w-full px-4 text-center font-semibold tracking-[-0.02em] text-foreground",
           compactForRemoteControl
             ? "text-xl/[1.2]"
             : "text-[length:var(--v4-draft-greeting-font-size)]/[1.2]",

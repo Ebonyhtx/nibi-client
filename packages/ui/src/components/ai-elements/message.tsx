@@ -135,7 +135,7 @@ export const MessageContent = ({ children, className, ...props }: MessageContent
   <div
     className={cn(
       "is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-ui-base",
-      "group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
+      "group-[.is-user]:ml-auto group-[.is-user]:rounded-2xl group-[.is-user]:rounded-tr-sm group-[.is-user]:border group-[.is-user]:border-border/80 group-[.is-user]:bg-card group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground group-[.is-user]:shadow-[var(--nibi-shadow-card)]",
       "group-[.is-assistant]:text-foreground",
       className,
     )}
@@ -1607,7 +1607,7 @@ export const MessageResponse = memo(
             return (
               <code
                 className={cn(
-                  "rounded-md bg-markdown-inline-code/50 mx-0.5 px-1.5 py-0.5 font-mono text-ui-sm",
+                  "mx-0.5 rounded-md border border-border/55 bg-markdown-inline-code/55 px-1.5 py-0.5 font-mono text-ui-sm",
                   codeClassName,
                 )}
                 {...codeProps}
@@ -1622,7 +1622,7 @@ export const MessageResponse = memo(
 
           return (
             <CodeBlock
-              className="my-4 border border-border bg-card"
+              className="my-4"
               code={codeText}
               // 流式消息里的代码围栏会被 Streamdown 反复拆分/重挂载。
               // 高亮等消息完成后再启动，避免 async highlighter 和消息流更新叠加触发 React #185。
@@ -1635,7 +1635,6 @@ export const MessageResponse = memo(
               wrapLongLines={wrapLongLines}
             >
               <CodeBlockHeader
-                className="pl-3 pr-2 pt-2"
                 language={language}
                 showWrapButton={!forceCodeWrap}
               />

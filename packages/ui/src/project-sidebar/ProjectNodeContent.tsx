@@ -243,7 +243,7 @@ export const ProjectNodeContent = memo(function ProjectNodeContent({
                   );
                 }
               }}
-              className="group/project-row ml-2 flex h-8 min-w-0 items-center gap-1 rounded-lg pr-1 hover:bg-surface-hover"
+              className="group/project-row ml-2 flex h-8 min-w-0 items-center gap-1 rounded-lg pr-1 transition-colors duration-150 hover:bg-card/45 dark:hover:bg-surface-hover"
             >
               {/* 标题仍可展开历史；失效提示仅绑定禁用的操作按钮，避免悬停整行也弹出。 */}
               <span className="flex min-w-0 flex-1 shrink-0">
@@ -289,7 +289,7 @@ export const ProjectNodeContent = memo(function ProjectNodeContent({
                     </span>
                     {/* 不同字号按框居中会让设备名基线上浮；文字单独对齐基线，外层图标仍居中。 */}
                     <span className="flex min-w-0 items-baseline gap-2">
-                      <span className="truncate text-ui-base text-foreground-subtle">
+                      <span className="truncate text-ui-base font-medium text-foreground-subtle transition-colors group-hover/project-row:text-foreground">
                         {project.name}
                       </span>
                       {remoteHost && !hideDeviceName ? (

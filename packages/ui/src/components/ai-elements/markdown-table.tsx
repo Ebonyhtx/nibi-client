@@ -1233,7 +1233,7 @@ export function MarkdownTable({ className, children, node: _node, ...props }: Ma
           <div
             // 表格已有边缘阴影提示横向溢出，显示系统滚动条会在消息块底部产生额外视觉噪音；
             // 外层宽度容器按 frame 宽度 + rightDistance 计算最大宽度，滚动 viewport 只占满该容器。
-            className="relative w-full overflow-hidden rounded-xl border border-border"
+            className="relative w-full overflow-hidden rounded-xl border border-card-border bg-card shadow-[var(--nibi-shadow-card)]"
           >
             <div
               ref={scrollViewportRef}

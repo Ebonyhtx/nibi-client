@@ -112,15 +112,17 @@ const ConversationTurnNavigatorRailItem = memo(function ConversationTurnNavigato
             <span
               className={cn(
                 "block h-0.5 w-3 origin-left rounded-full transition-[height,opacity,transform,background-color] duration-150 ease-out motion-reduce:transition-none",
-                colorTone === "focus" && "bg-foreground",
-                colorTone === "muted" &&
-                  (showScrollActiveColor ? "bg-foreground" : "bg-foreground-subtlest"),
+                colorTone === "focus"
+                  ? "bg-primary"
+                  : colorTone === "muted" &&
+                      (showScrollActiveColor ? "bg-primary" : "bg-foreground-subtlest"),
+                item.isRunning && "animate-pulse motion-reduce:animate-none",
               )}
               style={{
                 opacity: showScrollActiveColor
-                  ? 0.9
+                  ? 0.96
                   : item.isRunning
-                    ? Math.max(opacity, 0.72)
+                    ? Math.max(opacity, 0.78)
                     : opacity,
                 transform: `scaleX(${scaleX})`,
               }}
@@ -132,15 +134,20 @@ const ConversationTurnNavigatorRailItem = memo(function ConversationTurnNavigato
           side="right"
           sideOffset={8}
           data-testid={testId(TID_V4_TURN_NAVIGATOR_TOOLTIP, item.key)}
-          className="w-80 max-w-[calc(100vw-2rem)] border border-popover-border bg-popover p-3 text-popover-foreground shadow-lg"
+          className="w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-popover-border bg-popover p-3.5 text-popover-foreground shadow-[var(--nibi-shadow-popover)]"
         >
-          <div className="space-y-2">
-            <p className="line-clamp-2 whitespace-pre-line text-ui-base font-medium leading-5">
-              {item.userPreview}
-            </p>
+          <div className="space-y-2.5">
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 inline-flex h-5 shrink-0 items-center rounded-md border border-border/70 bg-surface px-1.5 font-mono text-ui-xs font-medium text-foreground-subtle">
+                #{itemIndex + 1}
+              </span>
+              <p className="min-w-0 flex-1 line-clamp-2 whitespace-pre-line text-ui-base font-medium leading-5">
+                {item.userPreview}
+              </p>
+            </div>
             <p
               className={cn(
-                "line-clamp-3 whitespace-pre-line text-ui-base leading-5",
+                "line-clamp-3 whitespace-pre-line border-t border-border/60 pt-2 text-ui-base leading-5",
                 item.assistantPreviewKind === "text"
                   ? "text-popover-foreground/80"
                   : "text-foreground-subtle",

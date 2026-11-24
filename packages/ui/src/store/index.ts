@@ -32,6 +32,7 @@ import {
 import type { Theme } from "../useTheme.js";
 import {
   applyTheme,
+  applyThemeWithTransition,
   loadThemePreference,
   normalizeThemePreference,
   resolveTheme,
@@ -269,7 +270,7 @@ export function createNibiStore(
       const normalizedTheme = normalizeThemePreference(theme);
       updatePrefs({ theme: normalizedTheme });
       syncSystemThemeListener(normalizedTheme);
-      applyTheme(normalizedTheme);
+      applyThemeWithTransition(normalizedTheme);
 
       set({ theme: normalizedTheme });
     },
