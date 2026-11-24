@@ -534,3 +534,27 @@ export function sortInstalledStripItems(
     return compareByName();
   });
 }
+
+/**
+ * 完整性门禁的展示口径。
+ *
+ * `blockedReason` = 整个插件被安全拦下（撤销/会员）；`codeBlockedReason` = 只有扩展代码
+ * 不能跑（原生模块 ABI/声明缺失），声明式组件仍然可用。两者都显示成「已停用（安全原因）」，
+ * 但只有后者允许说「声明式功能仍可用」——否则用户会以为插件整体坏了。
+ */
+export function resolvePluginBlockedLabelId(plugin: {
+  blockedReason?: { code: string; message: string };
+  codeBlockedReason?: { code: string; message: string };
+}): string | undefined {
+  if (plugin.blockedReason || plugin.codeBlockedReason) {
+    return "settings.plugins.detail.blocked";
+  }
+  return undefined;
+}
+
+export function hasBlockedPluginCode(plugin: {
+  blockedReason?: { code: string; message: string };
+  codeBlockedReason?: { code: string; message: string };
+}): boolean {
+  return Boolean(plugin.blockedReason || plugin.codeBlockedReason);
+}

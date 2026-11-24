@@ -76,3 +76,84 @@ export function comparePluginUpdate(input: {
   }
   return "none";
 }
+
+/** 撤销列表版本约束的前缀运算符；顺序保证 `<=`/`>=` 先于 `<`/`>` 匹配。 */
+const VERSION_CONSTRAINT_PREFIXES = ["<=", ">=", "<", ">", "="] as const;
+
+type VersionConstraintOperator = (typeof VERSION_CONSTRAINT_PREFIXES)[number] | "";
+
+/**
+ * 把 semver 能识别的版本归一成可比较形式；识别不了返回 undefined。
+ * 与 comparePluginVersions 同口径（先 coerce 再 valid），避免「1.2」在更新检测里算
+ * 1.2.0、在撤销匹配里却算不可比较的两套判定。
+ */
+function parseComparableVersion(value: string): string | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return semver.valid(semver.coerce(trimmed) ?? trimmed) ?? undefined;
+}
+
+/**
+ * 解析一条撤销版本约束：可选前缀 `< <= > >= =`，其余部分为目标版本。
+ * 空约束、只有前缀没有版本都视为无效（返回 null），由调用方丢弃。
+ */
+function parseVersionConstraint(
+  raw: string,
+): { operator: VersionConstraintOperator; target: string } | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  for (const prefix of VERSION_CONSTRAINT_PREFIXES) {
+    if (!trimmed.startsWith(prefix)) continue;
+    const target = trimmed.slice(prefix.length).trim();
+    return target ? { operator: prefix, target } : null;
+  }
+  return { operator: "", target: trimmed };
+}
+
+/**
+ * 判断单个版本是否命中一条撤销约束。
+ *
+ * - 无前缀（或 `=`）：精确匹配；两侧都能按 semver 解析时按 semver 相等比较（1.2 == 1.2.0），
+ *   否则退回字符串精确比较（外部生态的版本号并不保证是 semver）。
+ * - `< <= > >=`：仅在两侧都能解析时下结论；无法比较返回 false —— 撤销条目是精确的
+ *   安全名单，拿不可比的自定义版本号硬套大小关系只会误伤/漏放，调用方仍可用 sha256 条目兜底。
+ */
+export function matchesPluginVersionRange(version: string | undefined, range: string): boolean {
+  if (version === undefined) return false;
+  const constraint = parseVersionConstraint(range);
+  if (!constraint) return false;
+  const installed = version.trim();
+  if (!installed) return false;
+  if (constraint.operator === "" || constraint.operator === "=") {
+    const left = parseComparableVersion(installed);
+    const right = parseComparableVersion(constraint.target);
+    if (left && right) return semver.eq(left, right);
+    return installed === constraint.target.trim();
+  }
+  const left = parseComparableVersion(installed);
+  const right = parseComparableVersion(constraint.target);
+  if (!left || !right) return false;
+  switch (constraint.operator) {
+    case "<":
+      return semver.lt(left, right);
+    case "<=":
+      return semver.lte(left, right);
+    case ">":
+      return semver.gt(left, right);
+    case ">=":
+      return semver.gte(left, right);
+  }
+  return false;
+}
+
+/**
+ * 条目可声明多个版本约束（string 或 string[]）：任意一条命中即视为版本命中。
+ * 空数组 / 全无效约束 → false，不会把「写错的约束」当成全版本撤销。
+ */
+export function matchesPluginVersionRanges(
+  version: string | undefined,
+  ranges: string | readonly string[],
+): boolean {
+  const list = typeof ranges === "string" ? [ranges] : ranges;
+  return list.some((range) => matchesPluginVersionRange(version, range));
+}

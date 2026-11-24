@@ -14,7 +14,11 @@ import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { PluginConfigControls } from "@/settings/PluginConfigControls.js";
 import { PluginComponentGroups } from "@/settings/PluginComponentGroups.js";
 import { buildInstalledPluginDisplayGroups } from "@/settings/pluginManagedResourceGroups.js";
-import { isPluginUpdatePending } from "@/settings/pluginStoreListing.js";
+import {
+  hasBlockedPluginCode,
+  isPluginUpdatePending,
+  resolvePluginBlockedLabelId,
+} from "@/settings/pluginStoreListing.js";
 
 export type PluginOptionValueGetter = (
   plugin: NibiPluginInfo,
@@ -147,7 +151,11 @@ export function InstalledPluginDetailPanel({
     (permissions?.required.length ?? 0) > 0 ||
     (plugin.capabilities?.requested.length ?? 0) > 0;
   const hasAdvanced =
-    hookDetails.length > 0 || Object.keys(plugin.userConfig ?? {}).length > 0 || hasPermissionInfo;
+    hookDetails.length > 0 ||
+    Object.keys(plugin.userConfig ?? {}).length > 0 ||
+    hasPermissionInfo ||
+    // 包指纹只要存在就要能展开看：它是用户核对「同版本内容有没有被换过」的唯一依据。
+    Boolean(plugin.packageHash);
   const sourceLabel = renderPluginSource(plugin);
 
   return (
@@ -170,19 +178,45 @@ export function InstalledPluginDetailPanel({
               ) : null}
             </h2>
             <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
-              <Badge variant={plugin.enabled ? "secondary" : "outline"} className="rounded-md">
-                {plugin.enabled
-                  ? intl.formatMessage({
-                      id: "settings.plugins.detail.enabled",
-                    })
-                  : intl.formatMessage({
-                      id: "settings.plugins.detail.disabled",
-                    })}
+              <Badge
+                variant={hasBlockedPluginCode(plugin) ? "destructive" : plugin.enabled ? "secondary" : "outline"}
+                className="rounded-md"
+              >
+                {/* 安全拦截与「用户自己关掉」不是一回事：显示成同一个「已停用」
+                    会让用户以为可以手动启用，或反过来投诉插件自己坏了。 */}
+                {intl.formatMessage({
+                  id:
+                    resolvePluginBlockedLabelId(plugin) ??
+                    (plugin.enabled
+                      ? "settings.plugins.detail.enabled"
+                      : "settings.plugins.detail.disabled"),
+                })}
               </Badge>
               <Badge variant="outline" className="min-w-0 rounded-md">
                 <span className="truncate">{sourceLabel}</span>
               </Badge>
             </div>
+            {plugin.blockedReason ? (
+              <p className="mt-2 text-ui-xs text-foreground-subtle">
+                <span className="font-medium text-foreground">
+                  {intl.formatMessage({ id: "settings.plugins.detail.blockedReason" })}
+                </span>
+                {": "}
+                {plugin.blockedReason.message}
+              </p>
+            ) : null}
+            {plugin.codeBlockedReason ? (
+              <p className="mt-2 text-ui-xs text-foreground-subtle">
+                <span className="font-medium text-foreground">
+                  {intl.formatMessage({ id: "settings.plugins.detail.codeBlockedReason" })}
+                </span>
+                {": "}
+                {plugin.codeBlockedReason.message}
+                <span className="ml-1">
+                  {intl.formatMessage({ id: "settings.plugins.detail.codeBlocked" })}
+                </span>
+              </p>
+            ) : null}
           </div>
         </div>
         {plugin.description ? (
@@ -242,6 +276,13 @@ export function InstalledPluginDetailPanel({
                 })}
                 value={plugin.rootPath}
               />
+              {/* 内容指纹：同意记录按它绑定，用户可用它核对「同版本内容是否被换过」。 */}
+              {plugin.packageHash ? (
+                <PluginDetailRow
+                  label={intl.formatMessage({ id: "settings.plugins.detail.packageHash" })}
+                  value={plugin.packageHash}
+                />
+              ) : null}
               <PluginHookDetails hooks={hookDetails} />
               {hasPermissionInfo ? (
                 <PluginPermissionSummary

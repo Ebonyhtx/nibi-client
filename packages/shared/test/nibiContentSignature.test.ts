@@ -1,6 +1,8 @@
 import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
+  NIBI_CONTENT_SIGNING_DEFAULT_KID,
+  NIBI_CONTENT_SIGNING_PUBLIC_KEYS,
   NIBI_CONTENT_SIGNING_PUBLIC_KEY_SPKI_BASE64,
   isNibiSignedContentUrl,
   verifyContentSignatureWithKey,
@@ -100,5 +102,81 @@ describe("NIBI 内容签名（清单/配置 .sig sidecar）", () => {
     expect(createHash("sha256").update(compact).digest("hex")).not.toBe(
       createHash("sha256").update(pretty).digest("hex"),
     );
+  });
+});
+
+describe("NIBI 内容签名 kid 轮换", () => {
+  // 轮换测试用两对临时密钥，验证「旧 kid 还能验、新 kid 已能验、未知 kid fail-closed」。
+  const oldPair = generateKeyPairSync("ed25519");
+  const nextPair = generateKeyPairSync("ed25519");
+  const oldKey = oldPair.publicKey.export({ format: "der", type: "spki" }).toString("base64");
+  const nextKey = nextPair.publicKey.export({ format: "der", type: "spki" }).toString("base64");
+  const publicKeys = { k1: oldKey, k2: nextKey } as const;
+  const payload = Buffer.from('{"name":"nibi-official","revision":8}', "utf8");
+
+  function signWith(privateKey: typeof oldPair.privateKey, data: Uint8Array): string {
+    return sign(null, data, privateKey).toString("hex");
+  }
+
+  it("内置公钥表以 k1 暴露现有公钥，默认 kid 是 k1", () => {
+    expect(NIBI_CONTENT_SIGNING_PUBLIC_KEYS.k1).toBe(NIBI_CONTENT_SIGNING_PUBLIC_KEY_SPKI_BASE64);
+    expect(NIBI_CONTENT_SIGNING_DEFAULT_KID).toBe("k1");
+  });
+
+  it("裸 128 hex 按默认 kid 验证（兼容旧发布链）", () => {
+    expect(verifyNibiContentSignature(payload, signWith(oldPair.privateKey, payload), { publicKeys })).toBe(
+      true,
+    );
+  });
+
+  it("k1:<hex> 与裸 hex 等价", () => {
+    const signature = signWith(oldPair.privateKey, payload);
+    expect(verifyNibiContentSignature(payload, `k1:${signature}`, { publicKeys })).toBe(true);
+  });
+
+  it("轮换后的 k2:<hex> 能被识别（新客户端同时认旧/新 kid）", () => {
+    const signature = signWith(nextPair.privateKey, payload);
+    expect(verifyNibiContentSignature(payload, `k2:${signature}`, { publicKeys })).toBe(true);
+    // 用 k1 标签套 k2 的签名必须失败：kid 决定公钥，不能张冠李戴。
+    expect(verifyNibiContentSignature(payload, `k1:${signature}`, { publicKeys })).toBe(false);
+  });
+
+  it("未知 kid 一律拒绝（即使 hex 本身格式正确）", () => {
+    const signature = signWith(oldPair.privateKey, payload);
+    expect(verifyNibiContentSignature(payload, `k9:${signature}`, { publicKeys })).toBe(false);
+    // 不注入表时，k2 也是未知 kid。
+    expect(verifyNibiContentSignature(payload, `k2:${signature}`)).toBe(false);
+  });
+
+  it("坏格式 fail-closed：空 kid、空 hex、多冒号、非 hex、空白", () => {
+    const signature = signWith(oldPair.privateKey, payload);
+    for (const bad of [
+      "",
+      ":",
+      `:${signature}`,
+      "k1:",
+      `k1:${signature}:extra`,
+      `k 1:${signature}`,
+      `k1:${"z".repeat(128)}`,
+    ]) {
+      expect(verifyNibiContentSignature(payload, bad, { publicKeys })).toBe(false);
+    }
+  });
+
+  it("篡改 payload 后 k1:<hex> 失败", () => {
+    const signature = signWith(oldPair.privateKey, payload);
+    const tampered = Buffer.from(payload);
+    tampered[tampered.length - 2] ^= 0x01;
+    expect(verifyNibiContentSignature(tampered, `k1:${signature}`, { publicKeys })).toBe(false);
+  });
+
+  it("defaultKid 可指定；未知默认 kid 时裸 hex 也拒绝", () => {
+    const signature = signWith(nextPair.privateKey, payload);
+    expect(
+      verifyNibiContentSignature(payload, signature, { publicKeys, defaultKid: "k2" }),
+    ).toBe(true);
+    expect(
+      verifyNibiContentSignature(payload, signature, { publicKeys, defaultKid: "k9" }),
+    ).toBe(false);
   });
 });

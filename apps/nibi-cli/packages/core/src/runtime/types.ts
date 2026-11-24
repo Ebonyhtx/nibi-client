@@ -212,6 +212,19 @@ export interface AgentRuntimeConfig {
    * 用于 turn start 解析 `plugin://` 引用并与 live inventory 取交集。
    */
   pluginReferenceCatalog?: PluginReferenceCatalog;
+  /**
+   * 付费插件**执行期**门禁：每次 MCP 工具调用前复核授权（计划 B §6.4）。
+   *
+   * 为什么运行时还要再查一遍：发现层只在 App/Session 创建时裁剪一次工具表。会员在
+   * 会话中途到期、被服务端撤销、或账号切换后，工具仍在表里——不拦的话过期会员能一直
+   * 跑到进程重启。Rust 内核已有等价实现（PaidPluginGate），这里补 Node/服务端路径。
+   *
+   * 缺省不拦（进程内嵌入方没有 license 概念）；独立 CLI/app-server 由 bootstrap 注入。
+   */
+  paidPluginGate?: (plugin: { id: string; marketplace: string; name: string }) => {
+    allowed: boolean;
+    message?: string;
+  };
   hooks?: HooksRuntimeConfig;
   bashShellSelection?: ExecutionShellSelection | undefined;
   embeddedSearchBackend?: EmbeddedSearchBackend;

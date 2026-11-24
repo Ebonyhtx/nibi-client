@@ -56,6 +56,8 @@ import {
   throwIfAborted,
 } from "./helpers.js";
 import type { DetectedPluginManifest } from "./helpers.js";
+import { checkPluginNativeModules } from "./native-modules.js";
+import { checkPluginRevocation } from "./plugin-revocations.js";
 import { scanSkillFilesUnderRootSync } from "../skills/scan.js";
 import { loadPluginMcpServerDefinitions, resolvePluginMcpServers } from "./mcp.js";
 import { parsePluginUiSurfaces } from "./ui-surfaces.js";
@@ -83,15 +85,20 @@ export {
   enrichCachedClaudeMarketplaceIcons,
   ensureDefaultPluginMarketplaces,
   ensureMarketplaceManifestAvailable,
+  evaluateInstalledPluginRevocation,
   getPluginDataDir,
   installMarketplacePlugin,
   listInstalledPluginRecords,
+  loadInstalledPluginsStateSync,
   loadKnownMarketplacesSync,
   loadMarketplaceManifestSync,
+  MARKETPLACE_SCHEMA_VERSION_MAX,
+  MARKETPLACE_SCHEMA_VERSION_MIN,
   normalizeAuthorValue,
   parseEntryStoreListing,
   parsePluginIconSources,
   parseMarketplaceSourceInput,
+  pruneRemovedPluginRecords,
   readPluginSourceIdentityPin,
   readPluginSourceSha,
   removeMarketplace,
@@ -122,15 +129,21 @@ export { getPluginSourceDiagnosticCode } from "./source-errors.js";
 
 export {
   PLUGIN_AUDIT_FILE,
+  PLUGIN_AUDIT_RETENTION_DAYS,
   PLUGIN_CONSENT_FILE,
   PLUGIN_GRANTS_FILE,
   appendPluginAuditEvent,
+  backfillPluginConsentHash,
   isSensitivePluginCapability,
   pluginConsentCovers,
   pluginGrantsCover,
+  prunePluginAuditEvents,
   readPluginConsents,
   readPluginGrants,
+  readRecentPluginAuditEvents,
+  resetPluginAuditPruneThrottleForTests,
   resolvePluginCapabilities,
+  resolvePluginContentTrust,
   resolvePluginRuntime,
   resolveRequiredPluginPermissions,
   revokePluginConsent,
@@ -138,11 +151,49 @@ export {
   sensitivePluginCapabilityGrants,
   writePluginConsent,
   writePluginGrants,
+  type PluginAuditEvent,
+  type PluginAuditEventType,
   type PluginConsentFile,
   type PluginConsentRecord,
+  type PluginContentTrustResult,
   type PluginGrantFile,
   type PluginGrantRecord,
 } from "./helpers.js";
+
+export {
+  PLUGIN_PACKAGE_HASH_PREFIX,
+  PluginPackageHashError,
+  computePluginPackageHash,
+  isPluginPackageHash,
+  type ComputePluginPackageHashOptions,
+} from "./package-hash.js";
+
+export {
+  PLUGIN_REVOCATIONS_FETCH_TIMEOUT_MS,
+  PLUGIN_REVOCATIONS_FILE,
+  PLUGIN_REVOCATIONS_SIGNATURE_FILE,
+  PLUGIN_REVOCATIONS_URL,
+  checkPluginRevocation,
+  evaluatePluginRevocation,
+  parsePluginRevocations,
+  readPluginRevocations,
+  refreshPluginRevocations,
+  type PluginRevocationAction,
+  type PluginRevocationDocument,
+  type PluginRevocationEntry,
+  type PluginRevocationMatch,
+  type RefreshPluginRevocationsInput,
+  type RefreshPluginRevocationsResult,
+} from "./plugin-revocations.js";
+
+export {
+  checkPluginNativeModules,
+  isPluginRootDirectory,
+  scanPluginNativeModules,
+  type NativeModuleCheckInput,
+  type NativeModuleScanResult,
+  type NativeModuleVerdict,
+} from "./native-modules.js";
 
 export {
   NIBI_LICENSE_DEVICE_ID_KEY,
@@ -160,11 +211,22 @@ export {
   type PaidPluginAccess,
 } from "./paid-plugin-access.js";
 
+export { createBuiltinPaidPluginGate } from "./paid-plugin-discovery-gate.js";
+
 export {
   comparePluginUpdate,
   comparePluginVersions,
   type PluginUpdateStatus,
 } from "./version-compare.js";
+
+export {
+  PLUGIN_VIEWS_DIR,
+  getPluginViewRoot,
+  listPluginViewRoots,
+  materializePluginViewRoot,
+  removePluginViewRoot,
+  type MaterializePluginViewRootInput,
+} from "./view-root.js";
 
 const DEFAULT_VERSION = "0.0.0";
 const FIRST_PLUGIN_PRIORITY = 1_000;
@@ -264,7 +326,45 @@ export class NodePluginAdapter implements PluginPort {
         candidateDefaultEnabled,
       );
       let enabled = configuredEnabled;
-      if (configuredEnabled) {
+      let blockedReason: { code: PluginDiagnostic["code"]; message: string } | undefined;
+      // 撤销名单是最外层的安全决定：命中 block 时不论用户怎么配置都不加载，
+      // 也不能被本地信任覆盖（计划 §7.4「撤销不可被用户覆盖」）。
+      const revocation = checkPluginRevocation({
+        pluginId: loaded.id,
+        storageRoot: request.storageRoot,
+        ...(candidate.packageHash
+          ? { sha256: candidate.packageHash.replace(/^sha256:/u, "") }
+          : {}),
+        ...(loaded.manifest.version ? { version: loaded.manifest.version } : {}),
+      });
+      if (revocation?.action === "block") {
+        enabled = false;
+        blockedReason = {
+          code: "plugin_revoked",
+          message: revocation.reason
+            ? `Plugin has been revoked: ${revocation.reason}`
+            : "Plugin has been revoked",
+        };
+        diagnostics.push({
+          ...blockedReason,
+          path: loaded.manifestPath,
+          pluginId: loaded.id,
+          severity: "error",
+        });
+      } else if (revocation?.action === "warn") {
+        // 续用但要让用户/日志知道：发布链用它表达「已知问题但仍可用」。
+        // 用独立的 code：plugin_revoked 在 UI 里等同于「已停用」，warn 必须不触发它。
+        diagnostics.push({
+          code: "plugin_revocation_warning",
+          message: revocation.reason
+            ? `Plugin is flagged by the revocation list: ${revocation.reason}`
+            : "Plugin is flagged by the revocation list",
+          path: loaded.manifestPath,
+          pluginId: loaded.id,
+          severity: "warning",
+        });
+      }
+      if (configuredEnabled && !blockedReason) {
         const gate = paidGate({
           id: loaded.id,
           marketplace: candidate.marketplace,
@@ -272,9 +372,47 @@ export class NodePluginAdapter implements PluginPort {
         });
         if (!gate.allowed) {
           enabled = false;
-          diagnostics.push({
+          blockedReason = {
             code: gate.code ?? "plugin_membership_required",
             message: gate.message ?? "Plugin requires an active NIBI membership",
+          };
+          diagnostics.push({
+            ...blockedReason,
+            path: loaded.manifestPath,
+            pluginId: loaded.id,
+            severity: "error",
+          });
+        }
+      }
+      // 原生模块门禁：只挡扩展代码，声明式组件照常可用（计划 §8.4）。
+      let codeBlockedReason: { code: PluginDiagnostic["code"]; message: string } | undefined;
+      if (!blockedReason && loaded.runtime) {
+        const nativeVerdict = checkPluginNativeModules({
+          rootPath: loaded.rootPath,
+          runtime: loaded.runtime,
+        });
+        if (nativeVerdict.status === "undeclared") {
+          codeBlockedReason = {
+            code: "plugin_native_module_blocked",
+            message: `Plugin ships native modules without declaring runtime.native: ${nativeVerdict.files
+              .slice(0, 3)
+              .join(", ")}`,
+          };
+        } else if (
+          nativeVerdict.status === "platform_unsupported" ||
+          nativeVerdict.status === "abi_unsupported"
+        ) {
+          codeBlockedReason = {
+            code: "plugin_runtime_abi_mismatch",
+            message:
+              nativeVerdict.status === "platform_unsupported"
+                ? `Plugin native modules do not support this platform (${nativeVerdict.platform})`
+                : nativeVerdict.reason,
+          };
+        }
+        if (codeBlockedReason) {
+          diagnostics.push({
+            ...codeBlockedReason,
             path: loaded.manifestPath,
             pluginId: loaded.id,
             severity: "error",
@@ -409,6 +547,7 @@ export class NodePluginAdapter implements PluginPort {
           requiredPermissions,
           capabilityProfile,
           loaded.runtime,
+          { blockedReason, codeBlockedReason, packageHash: candidate.packageHash },
         ),
       );
     }
@@ -465,6 +604,7 @@ export class NodePluginAdapter implements PluginPort {
         // 官方市场安装件沿用官方信任；其余第三方市场一律按 community 起步。
         trust:
           installed.marketplace === NIBI_OFFICIAL_PLUGIN_MARKETPLACE ? "official" : "community",
+        ...(installed.packageHash ? { packageHash: installed.packageHash } : {}),
       });
     }
     return candidates;
@@ -583,6 +723,11 @@ function createPluginMetadata(
   requiredPermissions: PluginPermission[],
   capabilities: PluginCapabilityProfile,
   runtime: PluginRuntimeDeclaration | undefined,
+  gate: {
+    blockedReason?: { code: PluginDiagnostic["code"]; message: string };
+    codeBlockedReason?: { code: PluginDiagnostic["code"]; message: string };
+    packageHash?: string;
+  } = {},
 ): PluginMetadata {
   // manifest 的 author/homepage 作为详情页信息区的回退来源（商店 listing 优先）。
   const author = normalizeAuthorValue(loaded.manifest.author);
@@ -599,6 +744,9 @@ function createPluginMetadata(
     ...(author?.name ? { author: author.name } : {}),
     ...(author?.url ? { authorUrl: author.url } : {}),
     ...(homepage ? { homepage } : {}),
+    ...(gate.blockedReason ? { blockedReason: gate.blockedReason } : {}),
+    ...(gate.codeBlockedReason ? { codeBlockedReason: gate.codeBlockedReason } : {}),
+    ...(gate.packageHash ? { packageHash: gate.packageHash } : {}),
     commandRootCount: component.commandRoots.length,
     // 详情 UI 过去靠 plugin.skillCount（权威计数）+ 一条 UI 侧 join（按 pluginName 过滤
     // skillsService 结果）拿名称，二者数据源分离。停用插件走 emptyComponents() 使 skillCount=0、

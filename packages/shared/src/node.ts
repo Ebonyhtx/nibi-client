@@ -37,10 +37,13 @@ export {
 } from "./node/genUiPaths.js";
 export { scanOfficialPluginCacheRoots } from "./node/officialPluginCache.js";
 export {
+  NIBI_CONTENT_SIGNING_DEFAULT_KID,
+  NIBI_CONTENT_SIGNING_PUBLIC_KEYS,
   NIBI_CONTENT_SIGNING_PUBLIC_KEY_SPKI_BASE64,
   isNibiSignedContentUrl,
   verifyContentSignatureWithKey,
   verifyNibiContentSignature,
+  type NibiContentSignatureVerifyOptions,
 } from "./node/nibiContentSignature.js";
 export {
   migrateUserSubagentMarkdown,

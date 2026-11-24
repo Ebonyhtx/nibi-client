@@ -85,7 +85,23 @@ export type PluginDiagnosticCode =
   | "plugin_runtime_invalid"
   | "plugin_consent_required"
   | "plugin_acceptance_invalid"
-  | "plugin_acceptance_weak";
+  | "plugin_acceptance_weak"
+  /** 命中了签名撤销列表的 block 条目：文件保留，但不再加载/执行。 */
+  | "plugin_revoked"
+  /** 命中撤销列表的 warn 条目：加载但提示（与 block 分开，UI 不能显示成「已停用」）。 */
+  | "plugin_revocation_warning"
+  /** 撤销列表刷新失败（网络/验签/回退）；沿用上一份成功快照。 */
+  | "plugin_revocation_refresh_failed"
+  /** 磁盘内容与同意时绑定的包 hash 不一致：声明式组件仍可用，代码不激活。 */
+  | "plugin_package_hash_mismatch"
+  /** 包内存在原生模块但清单未声明 `runtime.native`。 */
+  | "plugin_native_module_blocked"
+  /** 原生模块声明的平台/ABI 与当前宿主运行时不一致。 */
+  | "plugin_runtime_abi_mismatch"
+  /** 本地/第三方代码插件缺少绑定包 hash 的信任记录。 */
+  | "plugin_trust_required"
+  /** 安装记录已进入 removed 墓碑期（保留数据，不再加载）。 */
+  | "plugin_removed";
 
 export interface PluginUserConfigOption {
   default?: string | number | boolean;
@@ -424,6 +440,19 @@ export interface PluginMetadata {
   source: PluginSource;
   /** 派生的来源（信任等级 + 适配器生态），仅供展示与诊断；不参与身份判定与门禁。 */
   origin: PluginOrigin;
+  /**
+   * 完整性门禁拦下的原因。有值时插件不进入运行面（声明式组件与代码都不加载），
+   * UI 用它显示「已停用/已撤销/已停止分发」而不是把插件当成普通未启用。
+   */
+  blockedReason?: { code: PluginDiagnosticCode; message: string };
+  /**
+   * 只管住扩展代码（`runtime.entry`）的原因。声明式组件（skills/commands/agents/
+   * hooks/MCP 声明）仍然可用——原生模块 ABI 不匹配、包 hash 与同意不一致属于
+   * 「代码不能跑」，不是「插件不能用」。
+   */
+  codeBlockedReason?: { code: PluginDiagnosticCode; message: string };
+  /** 发现时计算/记录的包内容 hash（`sha256:<hex>`）；声明式内置插件可能缺省。 */
+  packageHash?: string;
   /** 发现来源的信任等级；P2 能力网关按它决定可授予上限。 */
   trust: PluginTrustLevel;
   /** 清单 `ui.surfaces[]` 解析结果（已校验）；未声明或全部非法时缺省。 */

@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createConfig } from "@nibi/adapters/config";
+import { listInstalledPluginRecords } from "@nibi/adapters/plugins";
 import { DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS } from "@nibi/shared";
 import { NIBI_PLUGIN_HOST_COMMAND } from "@nibi/contracts";
 import type { Logger } from "@nibi/contracts";
@@ -1127,7 +1128,12 @@ describe("Nibi plugins", () => {
       const installedState = JSON.parse(
         await readFile(join(pluginStorageRoot, "installed_plugins.json"), "utf8"),
       );
-      expect(installedState.plugins).toEqual([]);
+      // 墓碑语义：卸载不删记录，保留 30 天 removed 墓碑（计划 A）；
+      // 对外「已安装」视图必须看不到它，这才是用户可见的卸载结果。
+      expect(installedState.plugins).toHaveLength(1);
+      expect(installedState.plugins[0]).toMatchObject({ id: pluginId, state: "removed" });
+      expect(installedState.plugins[0].removedAt).toEqual(expect.any(String));
+      expect(listInstalledPluginRecords(pluginStorageRoot)).toEqual([]);
       const config = JSON.parse(await readFile(userConfigPath, "utf8"));
       expect(config.plugins.suppressedBuiltins ?? []).not.toContain(pluginId);
       expect(config.plugins.enabledPlugins?.[pluginId]).toBeUndefined();
@@ -1190,7 +1196,10 @@ describe("Nibi plugins", () => {
       const installedState = JSON.parse(
         await readFile(join(pluginStorageRoot, "installed_plugins.json"), "utf8"),
       );
-      expect(installedState.plugins).toEqual([]);
+      // 同第一处：磁盘保留墓碑，对外已安装列表为空。
+      expect(installedState.plugins).toHaveLength(1);
+      expect(installedState.plugins[0]).toMatchObject({ id: pluginId, state: "removed" });
+      expect(listInstalledPluginRecords(pluginStorageRoot)).toEqual([]);
     } finally {
       await rm(root, { force: true, recursive: true });
     }

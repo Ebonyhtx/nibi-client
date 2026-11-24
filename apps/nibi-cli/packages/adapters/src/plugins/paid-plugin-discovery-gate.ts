@@ -26,6 +26,14 @@ export function createBuiltinPaidPluginGate(input: {
   /** 验签公钥覆盖（测试与轮换注入用；默认内置表）。 */
   publicKeys?: Record<string, string>;
   storageRoot: string;
+  /**
+   * 是否缓存凭据读取结果。
+   *
+   * 发现层（启动时裁剪一次）缓存是必要的：一个插件一次，重复读文件没意义。
+   * **执行期**门禁必须为 false——会员到期/被撤销后，下一次工具调用就要立刻被拒；
+   * 缓存会让过期会员一直跑到进程重启。
+   */
+  cacheCredentials?: boolean;
 }): (plugin: PaidPluginGateInput) => PaidPluginGateResult {
   let token: string | null | undefined;
   let refusal: string | null | undefined;
@@ -64,9 +72,10 @@ export function createBuiltinPaidPluginGate(input: {
   };
   return (plugin) => {
     if (!isPaid(plugin)) return { allowed: true };
-    if (token === undefined) token = readNibiLicenseTokenSync(input.env);
-    if (refusal === undefined) refusal = readNibiLicenseRefusalSync(input.env);
-    if (deviceId === undefined) deviceId = readNibiDeviceIdSync(input.env);
+    const cacheCredentials = input.cacheCredentials !== false;
+    if (!cacheCredentials || token === undefined) token = readNibiLicenseTokenSync(input.env);
+    if (!cacheCredentials || refusal === undefined) refusal = readNibiLicenseRefusalSync(input.env);
+    if (!cacheCredentials || deviceId === undefined) deviceId = readNibiDeviceIdSync(input.env);
     try {
       resolvePaidPluginAccessFromToken({
         token: token ?? "",

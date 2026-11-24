@@ -2895,6 +2895,18 @@ export const nibiPluginOriginSchema = z
   .regex(/^(?:builtin|official|community|local|external:(?:claude|codex|zcode|dsh))$/);
 export type NibiPluginOrigin = z.infer<typeof nibiPluginOriginSchema>;
 
+/**
+ * 完整性门禁原因。`code` 用字符串而不是枚举：诊断码会随安全规则增加，
+ * 协议层强制枚举会让「新 Host + 旧客户端」整页解析失败（plugins schema 是 .strict()）。
+ */
+export const nibiPluginGateReasonSchema = z
+  .object({
+    code: nonEmptyString,
+    message: z.string(),
+  })
+  .strict();
+export type NibiPluginGateReason = z.infer<typeof nibiPluginGateReasonSchema>;
+
 export const nibiPluginCapabilityGrantSchema = z
   .object({
     id: nonEmptyString,
@@ -2962,6 +2974,12 @@ export const nibiPluginInfoSchema = z
     configuredOptions: z.record(z.string(), nibiPluginOptionValueSchema).optional(),
     // 缺省表示 package 可用；missing 用于保留已声明但目标 Host 尚未物化的配置行。
     packageStatus: z.literal("missing").optional(),
+    // 完整性门禁（撤销/原生模块/包 hash）拦下的原因。有值时 UI 显示「已停用/已撤销」；
+    // codeBlockedReason 只挡扩展代码，声明式组件仍可用（两者语义不同，不能合并）。
+    blockedReason: nibiPluginGateReasonSchema.optional(),
+    codeBlockedReason: nibiPluginGateReasonSchema.optional(),
+    // 发现时的包内容 hash；同意记录按它绑定，同版本换内容需要重新确认。
+    packageHash: z.string().optional(),
     rootSource: nibiPluginScopeSchema.optional(),
     enabledSource: nibiPluginScopeSchema.optional(),
     optionSources: z.record(z.string(), nibiPluginScopeSchema).optional(),

@@ -21,6 +21,11 @@ export interface PluginCandidate {
   source: PluginSource;
   /** 发现来源的信任等级，随插件元数据下发（P2 能力网关的上限依据）。 */
   trust: PluginTrustLevel;
+  /**
+   * 市场安装件的包 hash（来自安装记录）。用于撤销名单的 sha256 条目匹配；
+   * 内置/直接目录来源没有安装记录，缺省。
+   */
+  packageHash?: string;
 }
 
 /** 组件读取器需要的最小清单来源；不要求已完成 canonical 归一化。 */

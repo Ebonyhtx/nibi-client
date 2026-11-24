@@ -45,6 +45,7 @@ import {
   readNibiDeviceIdSync,
   readNibiLicenseTokenSync,
   readPluginSourceIdentityPin,
+  refreshPluginRevocations,
   removeMarketplace,
   uninstallMarketplacePlugin,
   updateMarketplace,
@@ -963,6 +964,36 @@ export async function installNibiMarketplacePlugin(
     ),
     diagnostics: [],
   };
+}
+
+/**
+ * 刷新插件撤销列表（显式入口）。
+ *
+ * 为什么不挂在 marketplace 刷新里：撤销列表刷新要打网络、遵守取消语义，而市场刷新
+ * 的调用方（含测试、离线路径）不应该被它拖成网络依赖。撤销门禁本身读的是本地快照，
+ * 所以刷新失败只影响「拿不到最新撤销」，不影响可用性。
+ *
+ * 调用点：Host 启动后的后台刷新、设置页「检查更新」、以及发布链的运营操作。
+ */
+export async function refreshNibiPluginRevocations(
+  options: ResolveNibiPluginsOptions & { abortSignal?: AbortSignal } = {},
+): Promise<PluginLoadOutcome["diagnostics"]> {
+  const { pluginStorageRoot } = resolvePluginContext(options);
+  try {
+    await refreshPluginRevocations({
+      storageRoot: pluginStorageRoot,
+      ...(options.abortSignal ? { signal: options.abortSignal } : {}),
+    });
+    return [];
+  } catch (error) {
+    return [
+      {
+        code: "plugin_revocation_refresh_failed",
+        message: error instanceof Error ? error.message : String(error),
+        severity: "warning",
+      },
+    ];
+  }
 }
 
 export async function uninstallNibiMarketplacePlugin(
@@ -1927,7 +1958,10 @@ send({ type: "ready" });
 function isPluginExtensionRuntime(
   plugin: PluginMetadata,
 ): plugin is PluginMetadata & { runtime: NonNullable<PluginMetadata["runtime"]> } {
-  return plugin.enabled && plugin.runtime !== undefined;
+  // codeBlockedReason = 发现层判定「这段代码不能跑」（原生模块 ABI/未声明 native）。
+  // 这里必须一起拦：只靠发现层不注入 runtime 不够，扩展宿主是独立入口，
+  // 漏一处就等于绕过原生模块门禁。声明式组件不受影响。
+  return plugin.enabled && plugin.runtime !== undefined && plugin.codeBlockedReason === undefined;
 }
 
 function extensionTier(plugin: PluginMetadata): "T1" | "T2" | "T3" {

@@ -18,6 +18,7 @@ import { createJimpImageProcessorAdapter } from "@nibi/adapters/image";
 import { createPopplerPdfDocumentAdapter } from "@nibi/adapters/pdf";
 import { createNodeSessionMailboxAdapter } from "@nibi/adapters/mailbox";
 import { createNodeContextSourceAdapter } from "@nibi/adapters/context";
+import { createBuiltinPaidPluginGate } from "@nibi/adapters/plugins";
 import { createNodeSkillAdapter } from "@nibi/adapters/skills";
 import { createMcpAdapter } from "@nibi/adapters/mcp";
 import {
@@ -367,6 +368,14 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
     // 创建时冻结一次。冷恢复会重建 App，天然拿到新 catalog；已有 Session 不热加载新 Plugin。
     const pluginReferenceCatalog = buildPluginReferenceCatalog(pluginOutcome.plugins);
     runtimeConfig.pluginReferenceCatalog = pluginReferenceCatalog;
+    // 付费插件执行期门禁：与发现层同一套判定，但**不缓存凭据**——会员在会话中途
+    // 到期或被服务端撤销时，下一次 MCP 工具调用就要被拒。发现层那次裁剪发生在
+    // App 创建时，管不到之后的变化（Rust 内核的 PaidPluginGate 是等价语义）。
+    runtimeConfig.paidPluginGate = createBuiltinPaidPluginGate({
+      cacheCredentials: false,
+      env: options.env,
+      storageRoot: getPluginStorageRoot(cliStorageRoot),
+    });
     // 插件验收合同与 catalog 同址同因：在 App（Session runtime）创建时冻结一次。
     // 只有 enabled 且 activation 判据（工作区里存在插件的工作流状态文件）成立的合同才注入；
     // 否则装在这个目录里的插件会把每个目标都拦一遍。

@@ -55,6 +55,11 @@ import {
   sanitizePluginId,
 } from "./helpers.js";
 import { enumeratePluginComponents, type PluginComponentGroup } from "./plugin-components.js";
+import { computePluginPackageHash } from "./package-hash.js";
+import {
+  checkPluginRevocation,
+  type PluginRevocationMatch,
+} from "./plugin-revocations.js";
 import { applyNetworkEgressEnv } from "../network/subprocess-env.js";
 import { createNodeWebFetchHttpClientAdapter } from "../http/index.js";
 import { writeCdnOfficialMarketplacePartitionSync } from "./official-marketplace.js";
@@ -212,6 +217,18 @@ export interface InstalledPluginRecord {
   paid?: boolean;
   dependencies?: string[];
   source?: unknown;
+  /**
+   * 包内容 hash（`sha256:<hex>`），安装时记录；权限同意按它绑定，
+   * 同版本换内容必须重新确认。内置/纯声明式插件可能缺省。
+   */
+  packageHash?: string;
+  /**
+   * 生命周期状态。卸载不再直接删记录，而是标 `removed` + `removedAt` 保留 30 天墓碑
+   * （计划 A）：重装能复活同一条记录，也不会把别的插件写回的状态当新安装。
+   * 缺省 = `installed`（旧状态文件没有这个字段）。
+   */
+  state?: "installed" | "removed";
+  removedAt?: string;
   /** 内部崩溃恢复代际；协议/UI 投影不暴露。 */
   cacheTransactionId?: string;
 }
@@ -904,9 +921,23 @@ export function loadMarketplaceManifestSync(
   return parseMarketplaceManifest(migrated.value);
 }
 
-export function loadInstalledPluginsSync(storageRoot: string): InstalledPluginsState {
+/**
+ * 完整状态（含 30 天墓碑）。只给写路径（安装/卸载/剪枝）用：
+ * 对外语义「已安装」必须走 {@link loadInstalledPluginsSync}，否则墓碑会被当成
+ * 仍在安装，出现 `plugins list` 里永远删不掉的幽灵行。
+ */
+export function loadInstalledPluginsStateSync(storageRoot: string): InstalledPluginsState {
   const parsed = readJsonFileSync(join(storageRoot, INSTALLED_PLUGINS_FILE));
   return normalizeInstalledPluginsState(parsed);
+}
+
+/** 对外「已安装」视图：removed 墓碑不出现。 */
+export function loadInstalledPluginsSync(storageRoot: string): InstalledPluginsState {
+  const state = loadInstalledPluginsStateSync(storageRoot);
+  return {
+    plugins: state.plugins.filter((record) => record.state !== "removed"),
+    version: 1,
+  };
 }
 
 export async function saveInstalledPlugins(
@@ -918,6 +949,31 @@ export async function saveInstalledPlugins(
 
 export function listInstalledPluginRecords(storageRoot: string): InstalledPluginRecord[] {
   return loadInstalledPluginsSync(storageRoot).plugins;
+}
+
+/**
+ * 剪掉超期的 removed 墓碑。只删安装记录，不碰 `data/<pluginId>` 用户数据——
+ * 墓碑的作用就是让「卸载后多久内还能恢复」可预期，删数据是另一条独立操作。
+ */
+export async function pruneRemovedPluginRecords(input: {
+  storageRoot: string;
+  now?: Date;
+  retentionDays?: number;
+}): Promise<number> {
+  const retentionDays = input.retentionDays ?? 30;
+  const cutoff = (input.now ?? new Date()).getTime() - retentionDays * 24 * 60 * 60 * 1000;
+  const state = loadInstalledPluginsStateSync(input.storageRoot);
+  const kept = state.plugins.filter((record) => {
+    if (record.state !== "removed") return true;
+    const removedAt = record.removedAt ? Date.parse(record.removedAt) : Number.NaN;
+    // removedAt 坏掉/缺失时按「刚移除」处理：宁可多留一个墓碑，也不要把
+    // 可能还需要恢复的记录删掉。
+    return !Number.isFinite(removedAt) || removedAt > cutoff;
+  });
+  const removedCount = state.plugins.length - kept.length;
+  if (removedCount === 0) return 0;
+  await saveInstalledPlugins(input.storageRoot, { plugins: kept, version: 1 });
+  return removedCount;
 }
 
 export function resolveInstalledPluginRoot(
@@ -942,6 +998,8 @@ export async function installMarketplacePlugin(input: {
   credentialStore?: Pick<SharedNibiCredentialStore, "load">;
   /** 验签公钥覆盖（测试与轮换用；默认内置表）。 */
   licensePublicKeys?: Record<string, string>;
+  /** 命中断续分发（warn）时的回调：装还是要装，但调用方要能记诊断/提示。 */
+  onRevocationWarning?: (input: { match: PluginRevocationMatch; pluginId: string }) => void;
 }): Promise<MarketplaceInstallResult> {
   await ensureMarketplaceManifestAvailable({
     marketplace: input.marketplace,
@@ -958,7 +1016,8 @@ export async function installMarketplacePlugin(input: {
     name: input.name,
     storageRoot: input.storageRoot,
   });
-  const state = loadInstalledPluginsSync(input.storageRoot);
+  // 写路径要看到完整状态（含墓碑），否则重装会往数组里追加第二条同 id 记录。
+  const state = loadInstalledPluginsStateSync(input.storageRoot);
   const installed: InstalledPluginRecord[] = [];
   const activations: AtomicDirectoryActivation[] = [];
   try {
@@ -968,6 +1027,18 @@ export async function installMarketplacePlugin(input: {
       if (!manifest) throw new Error(`Marketplace not found: ${marketplace}`);
       const entry = manifest.plugins.find((plugin) => plugin.name === name);
       if (!entry) throw new Error(`Plugin not found: ${pluginId}`);
+      // 撤销门禁放在下载之前：被 block 的版本不该产生任何网络请求、缓存或安装记录。
+      // 条目可能不带 version（git/url 源很常见），此时只有 sha256 条目能命中；
+      // 解析出真实版本后 cacheMarketplacePlugin 会再查一次。
+      const revoked = assertPluginNotRevoked({
+        pluginId,
+        sha256: readPluginSourceSha(entry.source)?.toLowerCase(),
+        storageRoot: input.storageRoot,
+        ...(entry.version ? { version: entry.version } : {}),
+      });
+      if (revoked?.action === "warn") {
+        input.onRevocationWarning?.({ match: revoked, pluginId });
+      }
       // 收费件在**下载之前**拦：没有有效 license 就不产生任何缓存/安装记录。
       const paidAccess = entry.paid
         ? await resolvePaidPluginAccess({
@@ -1014,21 +1085,30 @@ export async function uninstallMarketplacePlugin(input: {
   /** `nibi plugins uninstall --keep-data`：删安装缓存但保留 data/<plugin-id> 用户数据目录。 */
   keepData?: boolean;
 }): Promise<InstalledPluginRecord | null> {
-  const state = loadInstalledPluginsSync(input.storageRoot);
+  const state = loadInstalledPluginsStateSync(input.storageRoot);
   const index = state.plugins.findIndex((record) => record.id === input.pluginId);
   if (index < 0) return null;
-  const [removed] = state.plugins.splice(index, 1);
+  const [record] = state.plugins.splice(index, 1);
+  if (!record) return null;
+  // 保留 30 天墓碑（计划 A）：卸载必须能解释「为什么这个插件不再加载」，
+  // 也让重装复用同一条记录而不是悄悄变成新安装。数据目录按 keepData 语义处理。
+  const removed: InstalledPluginRecord = {
+    ...record,
+    removedAt: new Date().toISOString(),
+    state: "removed",
+  };
+  state.plugins.push(removed);
   await saveInstalledPlugins(input.storageRoot, state);
-  if (removed && input.removeCache === true) {
-    await rm(removed.installPath, { force: true, recursive: true });
+  if (input.removeCache === true) {
+    await rm(record.installPath, { force: true, recursive: true });
     // 彻底卸载：data/<plugin-id> 是持久化的 per-plugin 目录（含 materialize 的 generated-commands）。
     // 按「卸载最后一份安装时一并删除」语义，保证重装是干净的。
 
     if (input.keepData !== true) {
-      await rm(getPluginDataDir(input.storageRoot, removed.id), { force: true, recursive: true });
+      await rm(getPluginDataDir(input.storageRoot, record.id), { force: true, recursive: true });
     }
   }
-  return removed ?? null;
+  return removed;
 }
 
 export async function validateMarketplacePlugin(input: {
@@ -1603,6 +1683,10 @@ async function cacheMarketplacePlugin(input: {
   }
 
   const now = new Date().toISOString();
+  // 包 hash 在缓存落盘之后、写安装记录之前算：此时目录内容已经是最终内容，
+  // 同意记录/发现层都拿同一个值。算不出来（超大包等）不阻断安装，只是不绑定 hash
+  // ——发现层会把「有代码但没 hash」当作不可信任代码处理。
+  const packageHash = resolveInstalledPackageHashSafe(target);
   const record: InstalledPluginRecord = {
     id: `${input.entry.name}@${input.marketplace}`,
     name: input.entry.name,
@@ -1612,6 +1696,7 @@ async function cacheMarketplacePlugin(input: {
     installedAt: now,
     updatedAt: now,
     scope: input.scope,
+    ...(packageHash ? { packageHash } : {}),
     ...(input.entry.paid ? { paid: true } : {}),
     ...(input.entry.dependencies ? { dependencies: input.entry.dependencies } : {}),
     ...(input.entry.source !== undefined ? { source: input.entry.source } : {}),
@@ -1625,11 +1710,28 @@ async function cacheMarketplacePlugin(input: {
       ...previousRecord,
       ...record,
       installedAt: previousRecord.installedAt ?? record.installedAt,
+      // 重装/更新复活墓碑：state 回到 installed 并清掉移除时间，
+      // 否则对外「已安装」视图会继续把这条记录过滤掉。
+      removedAt: undefined,
+      state: "installed",
     };
   } else {
     input.state.plugins.push(record);
   }
   return { ...(activation ? { activation } : {}), record };
+}
+
+/**
+ * 包 hash 是「同版本换内容」的唯一凭证，但它是同步全量遍历，超大包会拖慢安装。
+ * 失败只记诊断、不阻断安装：拿不到 hash 时发现层按未绑定处理（要求重新同意/不激活代码），
+ * 比让用户装不上更合理。
+ */
+function resolveInstalledPackageHashSafe(rootPath: string): string | undefined {
+  try {
+    return computePluginPackageHash(rootPath);
+  } catch {
+    return undefined;
+  }
 }
 
 async function resolvePluginSourceRoot(input: {
@@ -1775,6 +1877,48 @@ async function resolvePluginSourceRoot(input: {
 
 export function readPluginSourceSha(source: unknown): string | undefined {
   return readPluginSourceIdentityPin(source);
+}
+
+/**
+ * 撤销门禁的统一入口（安装/更新/发现共用判定）。
+ *
+ * `block` 必须抛错：撤销是不可被用户覆盖的安全决定，不能降级成 warn 或 UI 提示。
+ * `warn` 只记诊断——发布链用它提示「这个版本有已知问题但仍可用」。
+ */
+function assertPluginNotRevoked(input: {
+  storageRoot: string;
+  pluginId: string;
+  version?: string;
+  sha256?: string;
+}): PluginRevocationMatch | null {
+  const match = checkPluginRevocation(input);
+  if (match?.action === "block") {
+    const reason = match.reason ? `：${match.reason}` : "";
+    throw new Error(
+      `Plugin ${input.pluginId} has been revoked and cannot be installed or updated${reason}`,
+    );
+  }
+  return match;
+}
+
+/**
+ * 给发现层用的撤销判定：安装记录 + 磁盘内容 hash。
+ *
+ * 这里用记录里的 `packageHash`（安装时算的）而不是重算目录——发现是同步热路径，
+ * 每轮全量哈希会很慢；内容被替换的情况由 `resolvePluginContentTrust` 的 hash 绑定负责。
+ */
+export function evaluateInstalledPluginRevocation(
+  storageRoot: string,
+  record: Pick<InstalledPluginRecord, "id" | "version" | "packageHash">,
+): PluginRevocationMatch | null {
+  return checkPluginRevocation({
+    pluginId: record.id,
+    storageRoot,
+    ...(record.version ? { version: record.version } : {}),
+    ...(record.packageHash
+      ? { sha256: record.packageHash.replace(/^sha256:/u, "") }
+      : {}),
+  });
 }
 
 export function readPluginSourceIdentityPin(source: unknown): string | undefined {
@@ -2485,6 +2629,11 @@ function normalizeInstalledPluginRecordFromMap(
         ...(typeof item.lastUpdated === "string" ? { updatedAt: item.lastUpdated } : {}),
         scope,
         ...(item.paid === true ? { paid: true } : {}),
+        // 墓碑/包 hash 只在旧版 map 布局里出现过时也要保留：丢了 state 会让
+        // 已卸载插件复活，丢了 packageHash 会让同意记录永远对不上。
+        ...(item.state === "removed" ? { state: "removed" as const } : {}),
+        ...(typeof item.removedAt === "string" ? { removedAt: item.removedAt } : {}),
+        ...(typeof item.packageHash === "string" ? { packageHash: item.packageHash } : {}),
       },
     ];
   });
@@ -2522,10 +2671,37 @@ export function assertMarketplaceRevisionNotRolledBack(input: {
   }
 }
 
+/**
+ * 市场目录 schema 版本。
+ *
+ * 计划 §D 的 `schemaVersion: 2` 只做**前向兼容**：v2 目前没有新增必填字段，
+ * 结构与 v1 一致，因此两条都按同一套解析走。这样发布链可以先给目录打上 v2 标记
+ * （给未来字段留出空间），老客户端继续读；反过来，未来真出现 v3 时这里拒绝，
+ * 让用户看到 `plugin_marketplace_invalid`，而不是把不认识的目录当 v1 半解析。
+ */
+export const MARKETPLACE_SCHEMA_VERSION_MIN = 1;
+export const MARKETPLACE_SCHEMA_VERSION_MAX = 2;
+
+function readMarketplaceSchemaVersion(raw: Record<string, unknown>): number | null {
+  const value = raw.schemaVersion;
+  // 缺省 = v1：存量目录都没有这个字段。
+  if (value === undefined) return 1;
+  const parsed =
+    typeof value === "number" ? value : typeof value === "string" && value.trim() ? Number(value) : Number.NaN;
+  if (!Number.isInteger(parsed)) return null;
+  if (parsed < MARKETPLACE_SCHEMA_VERSION_MIN || parsed > MARKETPLACE_SCHEMA_VERSION_MAX) {
+    return null;
+  }
+  return parsed;
+}
+
 function parseMarketplaceManifest(value: unknown): PluginMarketplaceManifest | null {
   if (!isRecord(value)) return null;
   const name = typeof value.name === "string" ? value.name.trim() : "";
   if (!MARKETPLACE_NAME_PATTERN.test(name)) return null;
+  // 不认识的 schema 版本必须整份拒绝：用 v1 规则解析 v3 目录会静默丢掉新字段，
+  // 装出来的插件与目录声明不一致。
+  if (readMarketplaceSchemaVersion(value) === null) return null;
   const rawPlugins = value.plugins;
   const pluginEntries = Array.isArray(rawPlugins)
     ? rawPlugins

@@ -55,6 +55,7 @@ import {
   restoreBuiltinPlugin as restoreBuiltinPluginCore,
   setNibiPluginEnabled,
   uninstallNibiMarketplacePlugin,
+  refreshNibiPluginRevocations,
   updateNibiPluginMarketplace,
   validateNibiPlugin,
   type NibiPluginsOverviewData,
@@ -153,6 +154,11 @@ export function toPluginInfo(plugin: PluginMetadata, configResult?: ConfigResult
     ...(plugin.runtime ? { hasCodeRuntime: true } : {}),
     compatibility: plugin.adapter.compatibility,
     skippedComponents: plugin.adapter.skipped,
+    // 完整性门禁（撤销/原生模块/包 hash）：UI 据此显示「已停用/已撤销」，
+    // 而不是把被安全拦截的插件当成用户自己关掉的。
+    ...(plugin.blockedReason ? { blockedReason: plugin.blockedReason } : {}),
+    ...(plugin.codeBlockedReason ? { codeBlockedReason: plugin.codeBlockedReason } : {}),
+    ...(plugin.packageHash ? { packageHash: plugin.packageHash } : {}),
     rootPath: plugin.rootPath,
     ...(plugin.userConfig ? { userConfig: plugin.userConfig } : {}),
     ...(Object.keys(configuredOptions).length > 0 ? { configuredOptions } : {}),
@@ -493,14 +499,22 @@ export async function updatePluginMarketplace(
 ): Promise<NibiPluginsMarketplaceMutationResult> {
   const params = parseParams(nibiPluginsMarketplaceUpdateParamsSchema, rawParams);
   const pluginStorageRoot = resolvePluginStorageRoot(params.workspace.workspacePath);
-  const result = await withPluginStorageLock(pluginStorageRoot, async () =>
-    updateNibiPluginMarketplace({
+  const result = await withPluginStorageLock(pluginStorageRoot, async () => {
+    const updated = await updateNibiPluginMarketplace({
       abortSignal,
       logger: context.logger,
       marketplace: params.marketplace,
       workingDirectory: params.workspace.workspacePath,
-    }),
-  );
+    });
+    // 撤销列表与目录同源同签名链：刷新目录时一起刷新，否则「已下架但仍能装」的窗口
+    // 会一直延长。失败只作 warning 一并下发——门禁读的是上一份成功快照，不影响可用性。
+    const revocationDiagnostics = await refreshNibiPluginRevocations({
+      abortSignal,
+      logger: context.logger,
+      workingDirectory: params.workspace.workspacePath,
+    });
+    return { ...updated, diagnostics: [...updated.diagnostics, ...revocationDiagnostics] };
+  });
   return {
     marketplaces: result.marketplaces.map(toMarketplaceSummary),
     diagnostics: result.diagnostics.map(toPluginDiagnostic),

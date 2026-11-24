@@ -27,6 +27,7 @@ import {
   NIBI_OFFICIAL_PLUGIN_MARKETPLACE,
   PLUGIN_CAPABILITY_IDS,
 } from "@nibi/contracts";
+import { isPluginPackageHash } from "./package-hash.js";
 import type { PluginCandidate } from "./types.js";
 
 const PLUGIN_SOURCE_CLEANUP_RETRY_DELAYS_MS = [0, 25, 100] as const;
@@ -367,6 +368,11 @@ export const PLUGIN_AUDIT_FILE = "plugin-audit.ndjson";
 export interface PluginConsentRecord {
   grantedAt: string;
   permissions: PluginPermission[];
+  /**
+   * 同意时绑定的包内容 hash（`sha256:<64hex>`）。旧记录可能没有这个字段：
+   * 迁移期先按「覆盖」处理，首次校验时再 backfill（见 backfillPluginConsentHash）。
+   */
+  packageHash?: string;
   /** 同意时的插件版本；版本变化或权限变多都要重新确认。 */
   version: string;
 }
@@ -378,6 +384,15 @@ export interface PluginConsentFile {
 
 function consentFilePath(storageRoot: string): string {
   return join(storageRoot, PLUGIN_CONSENT_FILE);
+}
+
+/** 同意文件统一走「临时文件 + rename」原子替换，避免半截 JSON 被读到。 */
+function writeConsentFile(storageRoot: string, state: PluginConsentFile): void {
+  const target = consentFilePath(storageRoot);
+  mkdirSync(dirname(target), { recursive: true });
+  const temporary = `${target}.${process.pid}.${randomUUID()}.tmp`;
+  writeFileSync(temporary, `${JSON.stringify(state, null, 2)}\n`, "utf8");
+  renameSync(temporary, target);
 }
 
 export function readPluginConsents(storageRoot: string): PluginConsentFile {
@@ -393,9 +408,15 @@ export function readPluginConsents(storageRoot: string): PluginConsentFile {
               typeof item === "string" && KNOWN_PERMISSIONS.has(item),
           )
         : [];
+      // 非法 hash 格式直接丢弃字段（记录本身保留），避免拿脏值做绑定校验。
+      const packageHash =
+        typeof value.packageHash === "string" && isPluginPackageHash(value.packageHash)
+          ? value.packageHash
+          : undefined;
       plugins[pluginId] = {
         grantedAt: typeof value.grantedAt === "string" ? value.grantedAt : "",
         permissions: [...new Set(permissions)],
+        ...(packageHash !== undefined ? { packageHash } : {}),
         version: value.version,
       };
     }
@@ -409,23 +430,26 @@ export function readPluginConsents(storageRoot: string): PluginConsentFile {
 
 export function writePluginConsent(input: {
   at?: string;
+  /** 同意时计算的包内容 hash；非法格式不入库。 */
+  packageHash?: string;
   permissions: readonly PluginPermission[];
   pluginId: string;
   storageRoot: string;
   version: string;
 }): PluginConsentRecord {
   const state = readPluginConsents(input.storageRoot);
+  const packageHash =
+    input.packageHash !== undefined && isPluginPackageHash(input.packageHash)
+      ? input.packageHash
+      : undefined;
   const record: PluginConsentRecord = {
     grantedAt: input.at ?? new Date().toISOString(),
     permissions: [...new Set(input.permissions)],
+    ...(packageHash !== undefined ? { packageHash } : {}),
     version: input.version,
   };
   state.plugins[input.pluginId] = record;
-  const target = consentFilePath(input.storageRoot);
-  mkdirSync(dirname(target), { recursive: true });
-  const temporary = `${target}.${process.pid}.${randomUUID()}.tmp`;
-  writeFileSync(temporary, `${JSON.stringify(state, null, 2)}\n`, "utf8");
-  renameSync(temporary, target);
+  writeConsentFile(input.storageRoot, state);
   appendPluginAuditEvent(input.storageRoot, {
     at: record.grantedAt,
     permissions: record.permissions,
@@ -440,11 +464,7 @@ export function revokePluginConsent(storageRoot: string, pluginId: string): bool
   const state = readPluginConsents(storageRoot);
   if (!state.plugins[pluginId]) return false;
   delete state.plugins[pluginId];
-  const target = consentFilePath(storageRoot);
-  mkdirSync(dirname(target), { recursive: true });
-  const temporary = `${target}.${process.pid}.${randomUUID()}.tmp`;
-  writeFileSync(temporary, `${JSON.stringify(state, null, 2)}\n`, "utf8");
-  renameSync(temporary, target);
+  writeConsentFile(storageRoot, state);
   appendPluginAuditEvent(storageRoot, {
     at: new Date().toISOString(),
     pluginId,
@@ -453,42 +473,297 @@ export function revokePluginConsent(storageRoot: string, pluginId: string): bool
   return true;
 }
 
-/** 同意必须同时覆盖当前版本与全部 required 权限；版本变化视为权限可能变化。 */
+/**
+ * 同意必须同时覆盖当前版本与全部 required 权限；版本变化视为权限可能变化。
+ *
+ * `packageHash` 传入时做内容绑定校验：
+ * - 记录带 hash 且不同 → 不覆盖（同版本换了内容）；
+ * - 记录没有 hash（旧记录）→ 视为覆盖，留给迁移期 backfill；
+ * - 未传 `packageHash` → 只做版本/权限校验。
+ */
 export function pluginConsentCovers(
   record: PluginConsentRecord | undefined,
   version: string,
   required: readonly PluginPermission[],
+  packageHash?: string,
 ): boolean {
   if (!record) return false;
   if (record.version !== version) return false;
   const granted = new Set(record.permissions);
-  return required.every((permission) => granted.has(permission));
+  if (!required.every((permission) => granted.has(permission))) return false;
+  if (
+    packageHash !== undefined &&
+    record.packageHash !== undefined &&
+    record.packageHash !== packageHash
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * 为旧同意记录补写包 hash。
+ *
+ * 只在「记录存在、版本相同、尚无 hash、hash 格式合法」时原子补写；
+ * 不触发审计（补写不是用户动作），返回是否真的写入。
+ * `at` 仅用于调用点语义对齐：补写不会改写 `grantedAt`，也不会写审计。
+ */
+export function backfillPluginConsentHash(input: {
+  at?: string;
+  packageHash: string;
+  pluginId: string;
+  storageRoot: string;
+  version: string;
+}): boolean {
+  if (!isPluginPackageHash(input.packageHash)) return false;
+  const state = readPluginConsents(input.storageRoot);
+  const record = state.plugins[input.pluginId];
+  if (!record) return false;
+  if (record.version !== input.version) return false;
+  if (record.packageHash !== undefined) return false;
+  state.plugins[input.pluginId] = { ...record, packageHash: input.packageHash };
+  try {
+    writeConsentFile(input.storageRoot, state);
+    return true;
+  } catch {
+    // 补写失败不改变「没有绑定」的事实；调用方按 hash_missing 处理。
+    return false;
+  }
+}
+
+export interface PluginContentTrustResult {
+  allowed: boolean;
+  reason?: "consent_missing" | "hash_mismatch" | "hash_missing";
+}
+
+/**
+ * 解析「这段插件内容是否被当前同意覆盖」。
+ *
+ * `requireHashBound=false` 退回纯 consent 校验（兼容旧记录）；
+ * `true` 时要求同意记录绑定当前包 hash：旧记录先尝试 backfill，
+ * 补写不了（没有当前 hash 或格式非法）则返回 hash_missing。
+ */
+export function resolvePluginContentTrust(input: {
+  packageHash?: string;
+  pluginId: string;
+  requiredPermissions: readonly PluginPermission[];
+  requireHashBound: boolean;
+  storageRoot: string;
+  version: string;
+}): PluginContentTrustResult {
+  const record = readPluginConsents(input.storageRoot).plugins[input.pluginId];
+  const baseCovers = (candidate: PluginConsentRecord | undefined): boolean => {
+    if (!candidate) return false;
+    if (candidate.version !== input.version) return false;
+    const granted = new Set(candidate.permissions);
+    return input.requiredPermissions.every((permission) => granted.has(permission));
+  };
+  if (!input.requireHashBound) {
+    if (pluginConsentCovers(record, input.version, input.requiredPermissions, input.packageHash)) {
+      return { allowed: true };
+    }
+    return { allowed: false, reason: baseCovers(record) ? "hash_mismatch" : "consent_missing" };
+  }
+  if (!baseCovers(record)) return { allowed: false, reason: "consent_missing" };
+  const recordPackageHash = record?.packageHash;
+  if (input.packageHash !== undefined) {
+    if (recordPackageHash !== undefined) {
+      return recordPackageHash === input.packageHash
+        ? { allowed: true }
+        : { allowed: false, reason: "hash_mismatch" };
+    }
+    const backfilled = backfillPluginConsentHash({
+      packageHash: input.packageHash,
+      pluginId: input.pluginId,
+      storageRoot: input.storageRoot,
+      version: input.version,
+    });
+    return backfilled ? { allowed: true } : { allowed: false, reason: "hash_missing" };
+  }
+  // 调用方没有当前 hash：已有绑定视为满足，旧记录无法补写。
+  return recordPackageHash !== undefined
+    ? { allowed: true }
+    : { allowed: false, reason: "hash_missing" };
+}
+
+// ── 审计：保留 30 天，详情页读最近 10 条 ───────────────────────────────────
+
+/** 审计保留窗口（天）；过期行在 prune 时删除。 */
+export const PLUGIN_AUDIT_RETENTION_DAYS = 30;
+
+/** append 内置 prune 节流：同一审计文件每 6 小时最多清理一次。 */
+export const PLUGIN_AUDIT_PRUNE_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+export const PLUGIN_AUDIT_EVENT_TYPES = [
+  "capability_denied",
+  "capability_invoked",
+  "consent_granted",
+  "consent_revoked",
+  "consent_required",
+  "grants_updated",
+  "grants_revoked",
+] as const;
+
+export type PluginAuditEventType = (typeof PLUGIN_AUDIT_EVENT_TYPES)[number];
+
+const PLUGIN_AUDIT_EVENT_TYPE_SET: ReadonlySet<string> = new Set(PLUGIN_AUDIT_EVENT_TYPES);
+
+export interface PluginAuditEvent {
+  at: string;
+  capability?: string;
+  permissions?: readonly PluginPermission[];
+  pluginId: string;
+  type: PluginAuditEventType;
+  version?: string;
+}
+
+/** 审计文件按行读取；缺失/不可读按空文件处理（视图为空而不是报错）。 */
+function readPluginAuditLines(storageRoot: string): string[] {
+  try {
+    return readFileSync(join(storageRoot, PLUGIN_AUDIT_FILE), "utf8").split(/\r?\n/);
+  } catch {
+    return [];
+  }
+}
+
+/** 单行解析：坏 JSON、缺字段、未知事件类型、无效时间都按坏行丢弃。 */
+function parsePluginAuditLine(line: string): PluginAuditEvent | null {
+  if (!line.trim()) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(line) as unknown;
+  } catch {
+    return null;
+  }
+  if (!isRecord(parsed)) return null;
+  const { at, pluginId, type } = parsed;
+  if (typeof at !== "string" || typeof pluginId !== "string" || typeof type !== "string") {
+    return null;
+  }
+  if (!PLUGIN_AUDIT_EVENT_TYPE_SET.has(type)) return null;
+  if (Number.isNaN(Date.parse(at))) return null;
+  const event: PluginAuditEvent = { at, pluginId, type: type as PluginAuditEventType };
+  if (typeof parsed.capability === "string") event.capability = parsed.capability;
+  if (typeof parsed.version === "string") event.version = parsed.version;
+  if (Array.isArray(parsed.permissions)) {
+    const permissions = parsed.permissions.filter(
+      (item): item is PluginPermission =>
+        typeof item === "string" && KNOWN_PERMISSIONS.has(item),
+    );
+    event.permissions = [...new Set(permissions)];
+  }
+  return event;
+}
+
+/**
+ * 读取最近的审计事件：坏行跳过，按 `at` 倒序（同一时间后写入的排前面），最多 limit 条。
+ */
+export function readRecentPluginAuditEvents(
+  storageRoot: string,
+  limit = 10,
+): PluginAuditEvent[] {
+  const max = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : 10;
+  if (max === 0) return [];
+  const parsed: Array<{ event: PluginAuditEvent; index: number; time: number }> = [];
+  const lines = readPluginAuditLines(storageRoot);
+  for (const [index, line] of lines.entries()) {
+    const event = parsePluginAuditLine(line);
+    if (!event) continue;
+    parsed.push({ event, index, time: Date.parse(event.at) });
+  }
+  parsed.sort((left, right) => right.time - left.time || right.index - left.index);
+  return parsed.slice(0, max).map((item) => item.event);
+}
+
+/**
+ * 按保留窗口清理审计文件：保留窗口内且结构合法的行，坏行丢弃，原子重写。
+ * 返回被删除的行数（含坏行）；文件不存在或没有可删内容时返回 0 且不重写。
+ */
+export function prunePluginAuditEvents(
+  storageRoot: string,
+  options: { now?: number | Date; retentionDays?: number } = {},
+): number {
+  const retentionDays =
+    typeof options.retentionDays === "number" &&
+    Number.isFinite(options.retentionDays) &&
+    options.retentionDays >= 0
+      ? options.retentionDays
+      : PLUGIN_AUDIT_RETENTION_DAYS;
+  const nowMs =
+    options.now instanceof Date
+      ? options.now.getTime()
+      : typeof options.now === "number" && Number.isFinite(options.now)
+        ? options.now
+        : Date.now();
+  const cutoff = nowMs - retentionDays * 24 * 60 * 60 * 1000;
+  const target = join(storageRoot, PLUGIN_AUDIT_FILE);
+  let raw: string;
+  try {
+    raw = readFileSync(target, "utf8");
+  } catch {
+    return 0;
+  }
+  const kept: string[] = [];
+  let deleted = 0;
+  for (const line of raw.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    const event = parsePluginAuditLine(line);
+    if (!event) {
+      deleted += 1;
+      continue;
+    }
+    if (Date.parse(event.at) < cutoff) {
+      deleted += 1;
+      continue;
+    }
+    kept.push(JSON.stringify(event));
+  }
+  if (deleted === 0) return 0;
+  try {
+    mkdirSync(dirname(target), { recursive: true });
+    const temporary = `${target}.${process.pid}.${randomUUID()}.tmp`;
+    writeFileSync(temporary, kept.length > 0 ? `${kept.join("\n")}\n` : "", "utf8");
+    renameSync(temporary, target);
+  } catch {
+    // 清理失败不影响调用方；下一次 append 会再试。
+    return 0;
+  }
+  return deleted;
+}
+
+const pluginAuditPruneTimes = new Map<string, number>();
+
+/** 仅测试用：清空 prune 节流状态，让下一次 append 立即尝试清理。 */
+export function resetPluginAuditPruneThrottleForTests(): void {
+  pluginAuditPruneTimes.clear();
+}
+
+function maybePrunePluginAudit(storageRoot: string): void {
+  const key = join(storageRoot, PLUGIN_AUDIT_FILE);
+  const now = Date.now();
+  const last = pluginAuditPruneTimes.get(key);
+  if (last !== undefined && now - last < PLUGIN_AUDIT_PRUNE_INTERVAL_MS) return;
+  // 先记时间再执行：清理失败也遵守节流，避免每次 append 都做一次昂贵失败。
+  pluginAuditPruneTimes.set(key, now);
+  try {
+    prunePluginAuditEvents(storageRoot);
+  } catch {
+    // 审计保留是后台维护，失败不能反过来让 append 失败。
+  }
 }
 
 export function appendPluginAuditEvent(
   storageRoot: string,
-  event: {
-    at: string;
-    capability?: string;
-    permissions?: readonly PluginPermission[];
-    pluginId: string;
-    type:
-      | "capability_denied"
-      | "capability_invoked"
-      | "consent_granted"
-      | "consent_revoked"
-      | "consent_required"
-      | "grants_updated"
-      | "grants_revoked";
-    version?: string;
-  },
+  event: PluginAuditEvent,
 ): void {
   try {
     mkdirSync(storageRoot, { recursive: true });
     appendFileSync(join(storageRoot, PLUGIN_AUDIT_FILE), `${JSON.stringify(event)}\n`, "utf8");
   } catch {
     // 审计写入失败不能反过来让安装/启用失败；诊断链会给出 consent 缺失。
+    return;
   }
+  maybePrunePluginAudit(storageRoot);
 }
 
 /**

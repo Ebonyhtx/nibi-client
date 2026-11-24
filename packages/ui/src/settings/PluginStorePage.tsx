@@ -905,6 +905,18 @@ export function PluginStorePage({
                       value={intl.formatMessage({ id: detailPluginOriginLabelId })}
                     />
                   ) : null}
+                  {detailPluginInfo?.packageHash ? (
+                    <PluginDetailRow
+                      label={intl.formatMessage({ id: "settings.plugins.detail.packageHash" })}
+                      value={detailPluginInfo.packageHash}
+                    />
+                  ) : null}
+                  {detailPluginInfo?.codeBlockedReason ? (
+                    <PluginDetailRow
+                      label={intl.formatMessage({ id: "settings.plugins.detail.codeBlockedReason" })}
+                      value={detailPluginInfo.codeBlockedReason.message}
+                    />
+                  ) : null}
                   <PluginDetailRow
                     label={intl.formatMessage({ id: "settings.plugins.detail.rootPath" })}
                     value={detailItem.info.rootPath}
