@@ -75,14 +75,15 @@ Docker admission 已完成：11 个插件 spec 均在 Linux `replay-isolated` �
 `plugins-verified` preset，preset 全量 11/11 通过（`desktop-e2e-20261124-001357-684`）。
 本表 `PLM-LC-001..010` 的 Human review / Formal spec / Linux Docker 已改为
 approved/promoted/verified；macOS/Windows CI 改为 selected：`.github/workflows/desktop-e2e-native.yml`
-已按同一 preset 选集合，首次实跑需 push 后手动 dispatch，通过前不记 verified。
+已按同一 preset 选集合，首次实跑由 dev push 自动触发（preset 脚本或 workflow 变化），通过前不记 verified。
 
 ## macOS / Windows native CI（2026-11-24）
 
 准入规则 6 要求已准入 preset 在同一份 formal spec 集上由 macOS 与 Windows CI 选中。选择结果：
 
-- Workflow：`.github/workflows/desktop-e2e-native.yml`，仅 `workflow_dispatch`，矩阵
-  `macos-latest` + `windows-latest`。macOS runner 按 10 倍计费，是否升为 push 门禁是运营者的成本决定。
+- Workflow：`.github/workflows/desktop-e2e-native.yml`，矩阵 `macos-latest` + `windows-latest`。
+  触发为 `workflow_dispatch` + 范围极窄的 dev push（仅 `scripts/test-desktop-e2e-container.sh`
+  或本 workflow 变化时跑 `plugins` 集合）；普通代码推送不消耗 macOS runner（按 10 倍计费）。
 - Spec 集不另抄：workflow 调用 `scripts/test-desktop-e2e-container.sh --print-spec <preset>`，
   与 Linux 容器 preset 共用同一份常量。默认 `plugins`（= `plugins-verified` 的 11 条插件 spec）；
   可选 `conversation-session`（4 条会话 spec，含 WPL-015）与 `all-verified`（两者并集）。

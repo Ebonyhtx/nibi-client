@@ -10,7 +10,7 @@
 > 已用 replay fixture 重跑刷新截图；`plugin-management-ui-market` 已于 2026-11-24 在带 ffmpeg 的
 > 环境完整绿跑（`desktop-e2e-20261123-160205-155`）。macOS/Windows CI 已由
 > `.github/workflows/desktop-e2e-native.yml` 选中同一份 `plugins-verified` 集合（矩阵记 `selected`；
-> 该 workflow 手动 dispatch，首次实跑通过后再改 `verified`）。
+> 该 workflow 在 preset 脚本或自身变化时由 dev push 触发，也可手动 dispatch，首次实跑通过后再改 `verified`）。
 
 ## 复核范围（12 例）
 

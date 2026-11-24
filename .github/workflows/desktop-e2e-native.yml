@@ -5,8 +5,10 @@ name: desktop-e2e-native
 # 直接调用 scripts/test-desktop-e2e-container.sh --print-spec <preset> 取同一份集合，
 # 避免容器 preset 与 native CI 两份清单漂移。
 #
-# 只保留 workflow_dispatch：GitHub 的 macOS runner 按 10 倍计费，是否把它变成 push 门禁
-# 是运营者的成本决定。手动触发一次并记录产物后，再讨论升级为自动触发。
+# 只保留 workflow_dispatch + 范围极窄的 dev push 触发：GitHub 的 macOS runner 按 10 倍
+# 计费，push 触发只匹配「preset 常量或本 workflow 变化」，不随普通代码推送运行。
+# workflow_dispatch 只有在 workflow 已存在于默认分支 main 时才可调度；在它进入 main 之前，
+# dev 上的 push 触发是唯一能起首跑的入口。
 #
 # 所有 action 必须钉到完整 commit SHA（public-repo-policy 要求）。
 
@@ -22,6 +24,11 @@ on:
           - plugins
           - conversation-session
           - all-verified
+  push:
+    branches: [dev]
+    paths:
+      - "scripts/test-desktop-e2e-container.sh"
+      - ".github/workflows/desktop-e2e-native.yml"
 
 permissions:
   contents: read
@@ -75,7 +82,8 @@ jobs:
         id: spec
         shell: bash
         env:
-          TARGETS: ${{ inputs.targets }}
+          # push 触发没有 inputs：preset/workflow 变化时跑插件域（准入规则 6 的集合）。
+          TARGETS: ${{ github.event_name == 'push' && 'plugins' || inputs.targets }}
         run: |
           set -euo pipefail
           case "$TARGETS" in

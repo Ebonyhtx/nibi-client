@@ -6,7 +6,15 @@ formal spec 集」。它不启动 Docker，也不访问真实模型上游。
 
 ## 触发方式
 
-只保留 `workflow_dispatch`，避免 push 隐式消耗 macOS runner（GitHub 按 10 倍计费）。
+两条入口，都只覆盖 verified preset：
+
+1. **dev push 自动触发**：仅当 `scripts/test-desktop-e2e-container.sh`（preset 常量）或本
+   workflow 自身变化时运行，跑 `plugins` 集合。普通代码推送不会消耗 macOS runner。
+2. **`workflow_dispatch` 手动触发**：选择 `targets`，用于定点复跑或跑会话域。
+
+> `workflow_dispatch` 只有在 workflow 已存在于默认分支 `main` 时才可调度；在它进入 `main`
+> 之前，dev 上的 push 触发是唯一能起首跑的入口。合并到 `main` 后两条入口都可用。
+
 手动触发时选择 `targets`：
 
 | `targets`              | 运行集合                                                                 |
@@ -47,7 +55,7 @@ bash scripts/test-desktop-e2e-container.sh --print-spec conversation-session-ver
 ## 状态口径
 
 - 覆盖矩阵里 macOS CI / Windows CI 两列在首次实跑通过前记 `selected`，不记 `verified`。
-- 首次运行流程：push 后到 Actions 手动 dispatch `targets=plugins`；两个平台都通过后，把
+- 首次运行流程：dev push 自动触发（或手动 dispatch `targets=plugins`）；两个平台都通过后，把
   [plugin-management-lifecycle-e2e-coverage-matrix.md](./plugin-management-lifecycle-e2e-coverage-matrix.md)
   中 `PLM-LC-001..010` 的两列改为 `verified`，并在该矩阵记录 macOS 与 Windows 的 run id。
 - 任一平台失败时按真实平台问题排查，不得用跳过、`continue-on-error` 或缩小 spec 集掩盖；

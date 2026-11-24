@@ -210,12 +210,16 @@ describe("desktop E2E native CI selection", () => {
     expect(workflow).toContain("E2E_PROVIDER_HTTP_MODE: replay");
   });
 
-  it("stays manually dispatched so macOS billing is an explicit decision", () => {
+  it("limits the push trigger to the preset source and this workflow", () => {
     const workflow = readFileSync(workflowPath, "utf-8");
 
     expect(workflow).toMatch(/^on:\n {2}workflow_dispatch:/m);
-    expect(workflow).not.toMatch(/^ {2}push:/m);
+    expect(workflow).toMatch(
+      /^ {2}push:\n {4}branches: \[dev\]\n {4}paths:\n {6}- "scripts\/test-desktop-e2e-container\.sh"\n {6}- "\.github\/workflows\/desktop-e2e-native\.yml"/m,
+    );
     expect(workflow).not.toMatch(/^ {2}pull_request:/m);
+    // push 没有 inputs，必须回落到插件域集合，不能把 TARGETS 解析成空串。
+    expect(workflow).toContain("github.event_name == 'push' && 'plugins' || inputs.targets");
   });
 
   it("pins every action to a full commit SHA", () => {
