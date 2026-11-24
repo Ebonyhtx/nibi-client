@@ -38,7 +38,8 @@ bash scripts/test-desktop-e2e-container.sh --print-spec conversation-session-ver
 
 ## 运行内容
 
-1. 安装依赖（`scripts/pnpm-install-ci.sh`）。
+1. 安装依赖；两条录屏 spec 需要 ffmpeg，workflow 在 macOS/Windows 上安装并写入
+   `NIBI_E2E_FFMPEG_PATH`（GitHub 镜像默认没有 ffmpeg）。
 2. 构建 debug Rust 内核：`cargo build --locked -p nibi-kernel-cli --bin nibi-rs`。
    WDIO `onPrepare` 只消费已构建的内核二进制，桌面本地 Agent 没有 Node 回退。
 3. 构建 CLI workspace 包（`pnpm exec turbo run build --filter="./apps/nibi-cli/packages/*"`）
@@ -65,6 +66,9 @@ bash scripts/test-desktop-e2e-container.sh --print-spec conversation-session-ver
 ## 边界
 
 - 只运行 verified preset，不收集 `manual-review/pending`。
+- macOS 小屏 runner 会把请求的 content size 夹到工作区可用高度（实测 1440x720 → 1440x677）；
+  `setCurrentElectronRendererContentSize` 先按「工作区高度 - 窗口框高」取有效高度，再断言实际 viewport，
+  不把系统夹取误报成用例失败。
 - 不替代 Linux `replay-isolated` 容器准入，也不替代手机 `/remote` 的 replayable 回归。
 - macOS 与 Windows 的并行策略以矩阵默认值为准（两个平台各一个 job）；如果后续要扩成 shard，
   仍必须使用同一份 `--print-spec` 结果做并集校验。

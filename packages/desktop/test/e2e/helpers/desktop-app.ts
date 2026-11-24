@@ -1154,15 +1154,31 @@ export async function setCurrentElectronRendererContentSize(
       }
 
       const [originalWidth = 0, originalHeight = 0] = target.getContentSize();
+      // 修复原因：macOS CI 的虚拟显示可用高度可能小于用例请求值（实测 1440x720 被系统夹到
+      // 1440x677），窗口不会超过工作区。先按「工作区高度 - 窗口框高」算出可用内容高度，
+      // 再与请求值取小；否则会把系统夹取误报成「content size 没有应用」。
+      const display = electron.screen.getPrimaryDisplay();
+      const bounds = target.getBounds();
+      const contentBounds = target.getContentBounds();
+      const frameHeight = Math.max(0, bounds.height - contentBounds.height);
+      const effectiveWidth = Math.min(nextWidth, Math.max(1, display.workAreaSize.width));
+      const effectiveHeight =
+        nextHeight === undefined
+          ? originalHeight
+          : Math.min(nextHeight, Math.max(1, display.workAreaSize.height - frameHeight));
       // 修复原因：ChromeDriver 的 window/rect 会调用 Electron 未实现的
       // Browser.getWindowForTarget；E2E 必须通过 Electron 权威窗口 API 调整 client viewport。
-      target.setContentSize(nextWidth, nextHeight ?? originalHeight);
+      target.setContentSize(effectiveWidth, effectiveHeight);
       target.focus();
       const [appliedWidth = 0, appliedHeight = 0] = target.getContentSize();
       return {
         ok: true as const,
         appliedHeight,
         appliedWidth,
+        effectiveHeight,
+        effectiveWidth,
+        workArea: display.workAreaSize,
+        frameHeight,
         zoomFactor: target.webContents.getZoomFactor(),
         snapshot: {
           height: originalHeight,
@@ -1182,12 +1198,15 @@ export async function setCurrentElectronRendererContentSize(
     );
   }
   if (
-    Math.abs(result.appliedWidth - width) > 1 ||
-    (height !== undefined && Math.abs(result.appliedHeight - height) > 1)
+    Math.abs(result.appliedWidth - result.effectiveWidth) > 1 ||
+    (height !== undefined && Math.abs(result.appliedHeight - result.effectiveHeight) > 1)
   ) {
     await restoreElectronRendererContentSize(result.snapshot);
     throw new Error(
-      `Electron renderer content size 没有应用: requested=${width}x${height ?? "preserve"}; applied=${result.appliedWidth}x${result.appliedHeight}`,
+      `Electron renderer content size 没有应用: requested=${width}x${height ?? "preserve"}; ` +
+        `effective=${result.effectiveWidth}x${result.effectiveHeight}; ` +
+        `applied=${result.appliedWidth}x${result.appliedHeight}; ` +
+        `workArea=${result.workArea.width}x${result.workArea.height}; frameHeight=${result.frameHeight}`,
     );
   }
 

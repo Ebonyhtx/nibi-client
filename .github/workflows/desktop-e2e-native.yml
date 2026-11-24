@@ -68,6 +68,22 @@ jobs:
       - name: Install dependencies
         shell: bash
         run: bash scripts/pnpm-install-ci.sh
+      # 两条插件 spec 会录 Electron 窗口视频；GitHub 的 macOS/Windows 镜像默认没有 ffmpeg。
+      - name: Install ffmpeg
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            choco install ffmpeg -y --no-progress
+          elif ! command -v ffmpeg >/dev/null 2>&1; then
+            brew install ffmpeg
+          fi
+          ffmpeg_path="$(command -v ffmpeg || true)"
+          if [ -z "$ffmpeg_path" ] && [ "$RUNNER_OS" = "Windows" ]; then
+            ffmpeg_path="C:/ProgramData/chocolatey/bin/ffmpeg.exe"
+          fi
+          test -n "$ffmpeg_path"
+          printf 'NIBI_E2E_FFMPEG_PATH=%s\n' "$ffmpeg_path" >> "$GITHUB_ENV"
       # WDIO onPrepare 只消费已构建的内核二进制（桌面本地 Agent 没有 Node 回退）。
       # debug 构建足够跑 E2E，且比 release 快一个数量级。
       - name: Build the Rust kernel (debug)

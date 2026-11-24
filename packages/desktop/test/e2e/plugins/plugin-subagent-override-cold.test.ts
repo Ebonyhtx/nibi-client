@@ -1,10 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import {
-  clearAppData,
-  getE2EAppDataPaths,
-  readAgentsState,
-} from "../helpers/desktop-app.js";
+import { clearAppData, getE2EAppDataPaths, readAgentsState } from "../helpers/desktop-app.js";
 import { seedOfficialPluginsViaCli } from "../helpers/tier2-sixth-batch.js";
 import {
   assertUpstreamRequestCapture,
@@ -99,7 +95,22 @@ describe("PLM-LC-020 插件 Subagent 覆盖冷启动请求", () => {
 
     const capturePath = process.env.E2E_PROVIDER_CAPTURE_PATH;
     if (!capturePath) throw new Error("缺少插件请求 capture 文件路径");
-    const capture = JSON.parse(await readFile(capturePath, "utf8")) as E2ENetworkCaptureArtifact;
+    // 异步 Agent 的 child 请求可能在父轮 FINAL 之后才落盘；先等到 child 与父 async launch
+    // 两类记录都出现再断言，避免把「capture 还没写完」误报成「缺少请求」。
+    let capture: E2ENetworkCaptureArtifact | undefined;
+    await browser.waitUntil(
+      async () => {
+        capture = JSON.parse(await readFile(capturePath, "utf8")) as E2ENetworkCaptureArtifact;
+        return (
+          capture.records.some((record) => latestUserContains(record, "text", CHILD)) &&
+          capture.records.some((record) =>
+            latestUserContains(record, "tool_result", "Async agent launched successfully"),
+          )
+        );
+      },
+      { timeout: 60_000, timeoutMsg: "没有等到 child 与父 async launch 的 provider 请求" },
+    );
+    if (!capture) throw new Error("capture 记录在等待完成后仍不存在");
     // 不能只搜整份请求：父 continuation 也包含 child prompt；按最新 user block 的类型区分。
     const child = capture.records.find((record) => latestUserContains(record, "text", CHILD));
     // 异步启动时父 continuation 的 tool_result 是启动回执，不是 child 的 RESULT；
