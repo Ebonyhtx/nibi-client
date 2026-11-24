@@ -36,6 +36,18 @@ NIBI_TELEMETRY_REPORT_ENDPOINT=http://127.0.0.1:9/api/v1/event/report \
 
 E2E 的 `net.fetch` mock 会接住上报，端点不需要真的可达；不要指向生产域名。路径必须保留 `/api/v1/event/report`（捕获 helper 按它识别遥测请求）。`NIBI_E2E_SKIP_BUILD=1` 复用的构建也必须包含这个 define 与 `VITE_NIBI_E2E_STORE_BRIDGE=1`，否则 onPrepare 会拒绝。
 
+### 录屏类 spec 的本地 ffmpeg
+
+`plugin-management-ui-market` 与 `plugin-runtime-env-agent-projection` 会调用 ffmpeg 录制 Electron 窗口视频；本机没有 `ffmpeg` 时这两条 spec 会报 `spawn ffmpeg ENOENT`。把 `NIBI_E2E_FFMPEG_PATH` 指向可执行文件即可（macOS/Windows native CI 由 workflow 安装）：
+
+```bash
+cd packages/desktop
+NIBI_E2E_FFMPEG_PATH=/path/to/ffmpeg \
+E2E_PROVIDER_HTTP_MODE=replay \
+NIBI_E2E_SPEC=./test/e2e/plugins/plugin-management-ui-market.test.ts \
+  pnpm test:e2e:serial
+```
+
 ## 会话主矩阵
 
 | 文档 | 用途 |
