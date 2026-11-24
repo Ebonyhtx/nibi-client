@@ -354,6 +354,7 @@ describe("plugins protocol contracts", () => {
           enabled: true,
           source: "official",
           marketplace: "nibi-official",
+          origin: "builtin",
           skillCount: 1,
           skillRootCount: 1,
           commandRootCount: 0,
@@ -383,6 +384,7 @@ describe("plugins protocol contracts", () => {
       ],
     });
     expect(parsed.plugins[0]?.name).toBe("skill-creator");
+    expect(parsed.plugins[0]?.origin).toBe("builtin");
     expect(parsed.plugins[0]?.hostMcpServerNames).toEqual(["node_repl"]);
     expect(parsed.plugins[0]?.hookDetails?.[0]?.event).toBe("Stop");
     expect(parsed.plugins[0]?.rootSource).toBe("workspace");
@@ -421,6 +423,7 @@ describe("plugins protocol contracts", () => {
         rootSource: "workspace",
         enabled: false,
         enabledSource: "workspace",
+        origin: "local",
         uiSurfaces: [{ pluginId: "workspace-demo@inline", pluginName: "workspace-demo", id: "panel", title: "Panel", server: "plugin:workspace-demo:panel", resourceUri: "ui://demo/panel", availability: "session" }],
       });
       // Windows CI 的 tmpdir 是 8.3 短名（RUNNER~1），投影侧会 realpath 成长名；按真实路径比较。

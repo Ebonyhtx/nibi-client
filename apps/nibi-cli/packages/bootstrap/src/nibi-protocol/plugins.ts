@@ -109,6 +109,8 @@ export function toPluginInfo(plugin: PluginMetadata, configResult?: ConfigResult
     enabled: plugin.enabled,
     source: plugin.source,
     marketplace: plugin.marketplace,
+    // 派生的来源只供详情页展示/诊断；协议字段 optional，旧 Host 不下发时 UI 不渲染该行。
+    origin: plugin.origin,
     // 验收合同随 list 下发，宿主门禁与插件详情页看的是同一份声明。
     ...(plugin.acceptance ? { acceptance: plugin.acceptance } : {}),
     // 只下发 problems/warnings：解析结果里的 `contract` 是宿主内部形态，

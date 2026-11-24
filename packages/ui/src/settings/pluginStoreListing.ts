@@ -28,6 +28,40 @@ export {
 } from "@nibi/shared";
 
 export { isPublicStoreMarketplaceId };
+
+/**
+ * 详情页「来源」行的文案 key。`external:<adapter>` 统一显示「外部来源」：
+ * 运营者口径是市场 UI 不显示生态名/格式名/兼容级别，只在功能不可用时说后果。
+ * 未知值返回 undefined，由调用方整行不渲染。
+ */
+export type PluginOriginLabelId =
+  | "settings.plugins.detail.origin.builtin"
+  | "settings.plugins.detail.origin.official"
+  | "settings.plugins.detail.origin.community"
+  | "settings.plugins.detail.origin.local"
+  | "settings.plugins.detail.origin.external";
+
+export function resolvePluginOriginLabelId(
+  origin: string | undefined,
+): PluginOriginLabelId | undefined {
+  switch (origin) {
+    case "builtin":
+      return "settings.plugins.detail.origin.builtin";
+    case "official":
+      return "settings.plugins.detail.origin.official";
+    case "community":
+      return "settings.plugins.detail.origin.community";
+    case "local":
+      return "settings.plugins.detail.origin.local";
+    case "external:claude":
+    case "external:codex":
+    case "external:zcode":
+    case "external:dsh":
+      return "settings.plugins.detail.origin.external";
+    default:
+      return undefined;
+  }
+}
 export { isTrustedImageUrl } from "@/lib/trustedImageUrl.js";
 
 /**

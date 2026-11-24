@@ -45,6 +45,7 @@ import {
   resolveItemDisplayName,
   resolvePluginDisplayName,
   resolvePluginEnableScope,
+  resolvePluginOriginLabelId,
   type StorePluginItem,
 } from "@/settings/pluginStoreListing.js";
 import { NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID } from "@nibi/shared";
@@ -330,6 +331,10 @@ export function PluginStorePage({
   ]);
   // 插件自身 warning 诊断（如声明的技能路径扫描为空）：详情高级区展示，避免静默失败。
   const detailPluginInfo = detailItem?.info;
+  // 来源行只对已发现插件展示；旧 Host 不下发 origin 时整行不渲染。
+  const detailPluginOriginLabelId = detailPluginInfo
+    ? resolvePluginOriginLabelId(detailPluginInfo.origin)
+    : undefined;
   const detailPluginWarnings = detailPluginInfo
     ? pluginDiagnostics.filter(
         (diagnostic) =>
@@ -893,6 +898,12 @@ export function PluginStorePage({
                       </div>
                       <PluginWarningList warnings={detailPluginWarnings} />
                     </div>
+                  ) : null}
+                  {detailPluginOriginLabelId ? (
+                    <PluginDetailRow
+                      label={intl.formatMessage({ id: "settings.plugins.detail.source" })}
+                      value={intl.formatMessage({ id: detailPluginOriginLabelId })}
+                    />
                   ) : null}
                   <PluginDetailRow
                     label={intl.formatMessage({ id: "settings.plugins.detail.rootPath" })}

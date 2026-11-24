@@ -74,6 +74,7 @@ import {
   type StorePluginItem,
   resolveManagedPluginDisplay,
   resolvePluginDisplayName,
+  resolvePluginOriginLabelId,
   updatePluginsSerially,
 } from "@/settings/pluginStoreListing.js";
 import { useScopedPluginManagementStore } from "@/store/pluginManagementStore.js";
@@ -536,6 +537,10 @@ function PluginList({
     [handleUpdatePlugin, intl, locale, storeItemById, usePluginManagementStore],
   );
   const selectedPlugin = plugins.find((plugin) => plugin.id === selectedPluginId) ?? null;
+  // 来源行只对已发现插件展示；旧 Host 不下发 origin 时整行不渲染。
+  const selectedPluginOriginLabelId = selectedPlugin
+    ? resolvePluginOriginLabelId(selectedPlugin.origin)
+    : undefined;
   // 插件自身 warning 诊断（如声明的技能路径扫描为空）：详情高级区展示，避免静默失败。
   const pluginWarningsForSelected = selectedPlugin
     ? pluginDiagnostics.filter(
@@ -876,6 +881,12 @@ function PluginList({
                     </div>
                     <PluginWarningList warnings={pluginWarningsForSelected} />
                   </div>
+                ) : null}
+                {selectedPluginOriginLabelId ? (
+                  <PluginDetailRow
+                    label={intl.formatMessage({ id: "settings.plugins.detail.source" })}
+                    value={intl.formatMessage({ id: selectedPluginOriginLabelId })}
+                  />
                 ) : null}
                 <PluginDetailRow
                   label={intl.formatMessage({

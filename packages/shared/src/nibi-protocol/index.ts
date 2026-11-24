@@ -2888,6 +2888,13 @@ export type NibiPluginPermissionProfile = z.infer<typeof nibiPluginPermissionPro
 export const nibiPluginTrustLevelSchema = z.enum(["builtin", "official", "community", "local"]);
 export type NibiPluginTrustLevel = z.infer<typeof nibiPluginTrustLevelSchema>;
 
+// 派生的插件来源：信任等级 + 外来适配器生态。只供展示/诊断，不参与身份或门禁。
+// external 只接受已知适配器，避免把任意字符串当来源展示。
+export const nibiPluginOriginSchema = z
+  .string()
+  .regex(/^(?:builtin|official|community|local|external:(?:claude|codex|zcode|dsh))$/);
+export type NibiPluginOrigin = z.infer<typeof nibiPluginOriginSchema>;
+
 export const nibiPluginCapabilityGrantSchema = z
   .object({
     id: nonEmptyString,
@@ -2911,6 +2918,8 @@ export const nibiPluginInfoSchema = z
     enabled: z.boolean(),
     source: nonEmptyString,
     marketplace: nonEmptyString,
+    // 派生的来源（信任等级 + 适配器生态），只供详情页展示/诊断；旧 Host 不下发时省略。
+    origin: nibiPluginOriginSchema.optional(),
     // manifest（plugin.json）的作者/主页回退字段；商店 listing 缺失时详情页信息区用它兜底。
     author: z.string().optional(),
     authorUrl: z.string().optional(),
