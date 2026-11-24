@@ -33,7 +33,7 @@ function PushAllSummaryPanel({ summary }: { summary: DataSyncPushAllSummary }) {
   const failedCategories = summary.results.filter(hasPushAllCategoryFailure);
   return (
     <div
-      className="space-y-2 rounded-lg border border-border bg-surface p-4"
+      className="space-y-2 rounded-xl border border-card-border bg-surface/80 p-4"
       data-testid="settings-data-sync-push-all-summary"
     >
       <div className="text-ui-base text-foreground">
@@ -220,7 +220,7 @@ export function OverviewPanel({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="overflow-hidden rounded-xl border border-card-border bg-card shadow-[var(--nibi-shadow-card)]">
         {categories.map((controller) => (
           <OverviewRow
             key={controller.category}

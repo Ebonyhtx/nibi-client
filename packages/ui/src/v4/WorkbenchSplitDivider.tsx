@@ -169,13 +169,24 @@ export const WorkbenchSplitDivider = memo(function WorkbenchSplitDivider({
     >
       <div
         className={cn(
-          "pointer-events-none transition-colors",
+          "pointer-events-none relative flex items-center justify-center transition-colors motion-reduce:transition-none",
           isRow ? "mx-auto h-full w-px" : "my-auto h-px w-full",
           dragging
-            ? "bg-[var(--color-brand)]"
-            : "bg-[var(--color-border)] group-hover:bg-[var(--color-brand)]",
+            ? "bg-primary"
+            : "bg-[var(--color-border)] group-hover:bg-primary",
         )}
-      />
+      >
+        <span
+          aria-hidden="true"
+          className={cn(
+            "rounded-full transition-[opacity,background-color] duration-150 motion-reduce:transition-none",
+            isRow ? "h-6 w-1" : "h-1 w-6",
+            dragging
+              ? "bg-primary opacity-100"
+              : "bg-primary/80 opacity-0 group-hover:opacity-100",
+          )}
+        />
+      </div>
     </div>
   );
 });

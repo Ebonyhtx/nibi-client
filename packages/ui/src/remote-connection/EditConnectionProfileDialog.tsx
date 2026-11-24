@@ -225,7 +225,7 @@ function EditConnectionProfileForm({
             void handleSave();
           }}
         >
-          <DialogHeader className="border-b border-border px-5 py-4 pr-14">
+          <DialogHeader className="border-b border-border bg-header/60 px-5 py-4 pr-14">
             <div className="flex items-center gap-2">
               <DialogTitle className="text-ui-lg font-semibold">
                 {intl.formatMessage({ id: "settings.source.editConnectionTitle" })}
@@ -285,7 +285,7 @@ function EditConnectionProfileForm({
               </p>
             ) : null}
           </fieldset>
-          <DialogFooter className="border-t border-border px-5 py-3">
+          <DialogFooter className="border-t border-border bg-header/40 px-5 py-3">
             <Button
               type="button"
               variant="ghost"

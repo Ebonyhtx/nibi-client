@@ -1,8 +1,10 @@
 import type { WebOAuthProviderId } from "./browserOAuthCredentialRepo.js";
 
-type WebAuthLocale = "zh-CN" | "en-US";
+export type WebAuthLocale = "zh-CN" | "en-US";
 
-interface WebAuthPageCopy {
+const WEB_AUTH_LOCALE_STORAGE_KEY = "nibi:web-auth-locale";
+
+export interface WebAuthPageCopy {
   brand: string;
   remoteBadge: string;
   loginTitle: string;
@@ -15,6 +17,10 @@ interface WebAuthPageCopy {
   callbackErrorTitle: string;
   callbackErrorDescription: string;
   retryAction: string;
+  switchToEnglish: string;
+  switchToChinese: string;
+  switchToDarkTheme: string;
+  switchToLightTheme: string;
 }
 
 const WEB_AUTH_COPY = {
@@ -36,6 +42,10 @@ const WEB_AUTH_COPY = {
     callbackErrorTitle: "登录失败",
     callbackErrorDescription: "授权流程未完成，请重新登录。",
     retryAction: "重新登录",
+    switchToEnglish: "Switch to English",
+    switchToChinese: "切换到中文",
+    switchToDarkTheme: "切换到深色主题",
+    switchToLightTheme: "切换到浅色主题",
   },
   "en-US": {
     brand: "NIBI",
@@ -55,16 +65,45 @@ const WEB_AUTH_COPY = {
     callbackErrorTitle: "Sign-In Failed",
     callbackErrorDescription: "The authorization flow did not complete. Sign in again.",
     retryAction: "Sign In Again",
+    switchToEnglish: "Switch to English",
+    switchToChinese: "切换到中文",
+    switchToDarkTheme: "Switch to dark theme",
+    switchToLightTheme: "Switch to light theme",
   },
 } satisfies Record<WebAuthLocale, WebAuthPageCopy>;
 
-function resolveWebAuthLocale(language?: string): WebAuthLocale {
-  const candidate =
-    language ??
-    document.documentElement.lang ??
-    navigator.language ??
-    navigator.languages?.[0] ??
-    "";
+export function readStoredWebAuthLocale(): WebAuthLocale | null {
+  try {
+    const raw = globalThis.localStorage?.getItem(WEB_AUTH_LOCALE_STORAGE_KEY)?.trim();
+    if (raw === "zh-CN" || raw === "en-US") return raw;
+  } catch {
+    // 隐私模式或受限上下文忽略本地存储读取失败
+  }
+  return null;
+}
+
+export function persistWebAuthLocale(locale: WebAuthLocale): void {
+  try {
+    globalThis.localStorage?.setItem(WEB_AUTH_LOCALE_STORAGE_KEY, locale);
+  } catch {
+    // 隐私模式或受限上下文忽略本地存储写入失败
+  }
+}
+
+export function resolveWebAuthLocale(language?: string): WebAuthLocale {
+  if (language) {
+    return language.toLowerCase().startsWith("zh") ? "zh-CN" : "en-US";
+  }
+
+  const stored = readStoredWebAuthLocale();
+  if (stored) return stored;
+
+  const docLang = typeof document !== "undefined" ? document.documentElement.lang : "";
+  const navLang =
+    typeof navigator !== "undefined"
+      ? navigator.language || navigator.languages?.[0] || ""
+      : "";
+  const candidate = docLang || navLang;
 
   return candidate.toLowerCase().startsWith("zh") ? "zh-CN" : "en-US";
 }

@@ -66,7 +66,7 @@ export function DataSyncMinimizedProgress({
       data-testid="data-sync-minimized-progress"
       onClick={onRestore}
       aria-label={intl.formatMessage({ id: "settings.dataSync.minimized.restore" })}
-      className="fixed right-4 bottom-4 left-4 z-50 flex items-center gap-3 rounded-xl border border-popover-border bg-popover px-4 py-3 text-left text-foreground shadow-md sm:left-auto sm:max-w-sm [app-region:no-drag]"
+      className="fixed right-4 bottom-4 left-4 z-50 flex items-center gap-3 rounded-2xl border border-popover-border bg-popover/96 px-4 py-3 text-left text-foreground shadow-[var(--nibi-shadow-popover)] backdrop-blur-md transition-[box-shadow,transform] duration-150 hover:shadow-[var(--nibi-shadow-card-hover)] active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100 sm:left-auto sm:max-w-sm [app-region:no-drag]"
     >
       <RefreshCw className={cn("size-4 shrink-0", pushing && "animate-spin")} aria-hidden="true" />
       <span className="min-w-0 flex-1">

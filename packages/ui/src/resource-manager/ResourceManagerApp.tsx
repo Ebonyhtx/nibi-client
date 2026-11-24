@@ -118,7 +118,7 @@ export function ResourceManagerApp({
       className="flex h-dvh min-h-0 flex-col bg-background text-foreground"
       data-testid="resource-manager"
     >
-      <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-border bg-header px-4">
+      <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-border/80 bg-header/92 px-4 backdrop-blur-sm">
         <div className="min-w-0">
           <h1 className="truncate text-ui-base font-medium">
             {intl.formatMessage({ id: "resourceManager.title" })}
@@ -141,7 +141,7 @@ export function ResourceManagerApp({
                 key={item}
                 value={item}
                 data-testid={testId(TID_RESOURCE_MANAGER_TAB, item)}
-                className="h-8 flex-none rounded-full px-3 hover:bg-hover data-active:!bg-selected data-active:hover:!bg-hover after:hidden"
+                className="h-8 flex-none rounded-full px-3 transition-[background-color,box-shadow] duration-150 hover:bg-hover data-active:!bg-selected data-active:shadow-[var(--nibi-shadow-active-row)] data-active:hover:!bg-hover after:hidden"
               >
                 {intl.formatMessage({ id: TAB_LABEL_IDS[item] })}
               </TabsTrigger>

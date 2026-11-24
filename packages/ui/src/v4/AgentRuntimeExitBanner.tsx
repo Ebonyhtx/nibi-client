@@ -82,13 +82,13 @@ export const AgentRuntimeExitBanner = memo(function AgentRuntimeExitBanner({
       role="status"
       data-testid={TID_V4_AGENT_RUNTIME_EXIT_BANNER}
       data-exit-category={model.category}
-      className="mb-3 flex w-full shrink-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-ui-base text-foreground backdrop-blur-md"
+      className="mb-3 flex w-full shrink-0 flex-wrap items-center gap-2 rounded-xl border border-card-border bg-card/95 px-3.5 py-2.5 text-ui-base text-foreground shadow-[var(--nibi-shadow-card)] backdrop-blur-md"
     >
       <p className="min-w-0 flex-1">{intl.formatMessage({ id: model.messageId })}</p>
       <button
         type="button"
         data-testid={TID_V4_AGENT_RUNTIME_EXIT_DISMISS}
-        className="shrink-0 rounded-md px-2 py-1 text-foreground-subtle hover:bg-hover"
+        className="shrink-0 rounded-md px-2 py-1 text-foreground-subtle transition-colors hover:bg-hover hover:text-foreground"
         onClick={onDismiss}
       >
         {intl.formatMessage({ id: model.dismissLabelId })}

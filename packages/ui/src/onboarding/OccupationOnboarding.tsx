@@ -329,7 +329,7 @@ export function OccupationOnboarding({
                         .map((key) => (
                           <label
                             key={key}
-                            className="grid cursor-pointer grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 rounded-xl border border-card-border bg-card dark:bg-surface/40 p-5 text-ui-base transition-colors hover:bg-surface-hover"
+                            className="grid cursor-pointer grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 rounded-xl border border-card-border bg-card p-5 text-ui-base shadow-[var(--nibi-shadow-card)] transition-[border-color,background-color,box-shadow] duration-150 hover:border-border-hover hover:shadow-[var(--nibi-shadow-card-hover)] motion-reduce:transition-none"
                           >
                             <Checkbox
                               checked={
@@ -395,7 +395,7 @@ export function OccupationOnboarding({
                   <div className="flex w-full gap-3">
                     <Button
                       disabled={saving || (step === 0 && !occupation)}
-                      className="h-11 flex-1 rounded-xl px-5 text-ui-base"
+                      className="h-11 flex-1 rounded-xl px-5 text-ui-base shadow-[var(--nibi-shadow-primary-btn)]"
                       onClick={() => {
                         if (!preferences) setStep(step === 0 ? 1 : 2);
                         else void save();

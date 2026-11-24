@@ -70,7 +70,7 @@ export function BrowserDesignToolbar({
   return (
     <div
       aria-label={intl.formatMessage({ id: "browser.design.toolbar" })}
-      className="@container/design-toolbar flex min-h-8 shrink-0 flex-wrap items-center gap-x-1 border-y border-border bg-background px-2"
+      className="@container/design-toolbar flex min-h-8 shrink-0 flex-wrap items-center gap-x-1 border-y border-border/80 bg-header/90 px-2 backdrop-blur-sm"
       data-testid={TID_BROWSER_DESIGN_TOOLBAR}
       role="toolbar"
     >

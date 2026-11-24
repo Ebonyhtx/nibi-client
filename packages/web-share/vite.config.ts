@@ -138,7 +138,8 @@ export default defineConfig(({ command, mode }) => {
     build: {
       outDir: resolve(REPO_ROOT, "packages/web-share/dist"),
       emptyOutDir: true,
-      sourcemap: mode === "production" ? "hidden" : true,
+      sourcemap:
+        env.NIBI_WEB_SOURCEMAP === "off" ? false : mode === "production" ? "hidden" : true,
     },
   };
 });

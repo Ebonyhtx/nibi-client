@@ -47,14 +47,17 @@ export function BrowserSitePermissionsPage({
                 {t("reset")}
               </Button>
             </div>
-            <div className="flex flex-col gap-4" aria-busy={busy}>
+            <div
+              className="flex flex-col divide-y divide-border/60 rounded-2xl border border-card-border bg-card p-4 shadow-[var(--nibi-shadow-card)] sm:p-5"
+              aria-busy={busy}
+            >
               {BROWSER_PERMISSION_CAPABILITIES.map((capability) => {
                 const persisted = states?.[capability.key];
                 const setting = persisted === "allow" ? "allow" : persisted === "deny" ? "block" : "ask";
                 return (
                   <div
                     key={capability.key}
-                    className="flex flex-wrap items-center justify-between gap-3"
+                    className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
                     data-permission-key={capability.key}
                   >
                     {/* 窄栏给名称保留可读宽度，让控件换行，避免下拉框把英文挤成逐字断行。 */}

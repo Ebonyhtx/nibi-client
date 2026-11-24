@@ -11,7 +11,7 @@ export function OnboardingWelcomeView(props: { onStart: () => void; onOpenMigrat
     <div className="flex h-full min-h-0">
       <div className="flex w-1/2 flex-col px-8 py-8">
         <div className="space-y-6">
-          <div className="inline-flex items-center rounded-full border border-border bg-background-alt px-3 py-1 text-ui-base text-foreground-subtle">
+          <div className="inline-flex items-center rounded-full border border-card-border bg-card/85 px-3 py-1 text-ui-base text-foreground-subtle shadow-[var(--nibi-shadow-card)]">
             {intl.formatMessage({ id: "onboarding.welcome.eyebrow" })}
           </div>
 
@@ -35,7 +35,7 @@ export function OnboardingWelcomeView(props: { onStart: () => void; onOpenMigrat
             <Button
               type="button"
               size="lg"
-              className="h-10 w-full justify-between text-ui-base"
+              className="h-10 w-full justify-between text-ui-base shadow-[var(--nibi-shadow-primary-btn)]"
               onClick={props.onStart}
             >
               {intl.formatMessage({ id: "onboarding.welcome.start" })}
@@ -45,7 +45,7 @@ export function OnboardingWelcomeView(props: { onStart: () => void; onOpenMigrat
               type="button"
               size="lg"
               variant="outline"
-              className="h-10 w-full justify-between text-ui-base"
+              className="h-10 w-full justify-between bg-card text-ui-base shadow-[var(--nibi-shadow-card)] hover:shadow-[var(--nibi-shadow-card-hover)]"
               onClick={props.onOpenMigration}
             >
               {intl.formatMessage({ id: "onboarding.welcome.migrate" })}

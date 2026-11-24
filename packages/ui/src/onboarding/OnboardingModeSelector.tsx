@@ -31,10 +31,10 @@ export function OnboardingModeSelector({
             disabled={saving}
             onClick={() => onSelect(value)}
             className={cn(
-              "flex w-full items-start gap-4 rounded-xl border p-5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused",
+              "flex w-full items-start gap-4 rounded-xl border p-5 text-left transition-[border-color,background-color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100",
               mode === value
-                ? "border-foreground/60 bg-card-selected dark:border-foreground/50"
-                : "border-card-border bg-card hover:border-border-hover hover:bg-surface-hover dark:border-border/60 dark:bg-transparent dark:hover:bg-surface/60",
+                ? "border-primary/55 bg-card-selected shadow-[var(--nibi-shadow-active-row)] ring-1 ring-primary/25"
+                : "border-card-border bg-card shadow-[var(--nibi-shadow-card)] hover:border-border-hover hover:bg-card hover:shadow-[var(--nibi-shadow-card-hover)]",
             )}
           >
             <Icon className="mt-0.5 size-5 shrink-0 text-foreground-subtle" strokeWidth={1.5} />

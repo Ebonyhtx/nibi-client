@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 import "../../share-ui/src/styles.css";
-import { applyTheme, type Theme } from "../../ui/src/useTheme.js";
+import { applyTheme, resolveTheme, type Theme } from "../../ui/src/useTheme.js";
 import {
   ConversationShareLandingLoader,
   ConversationShareLandingStatus,
@@ -32,10 +32,13 @@ function resolveThemePreference(): Theme {
   return resolveWebRemoteControlInitialTheme({ storedTheme: saved, defaultTheme: "nibi-light" });
 }
 
-// Share 是独立入口，不会经过完整 Web 的 bootstrap；必须在渲染前同步根主题 class，
-// 否则页面外壳使用默认浅色 token，而 MessageResponse 会按 nibi-dark 选择 github-dark，
-// 最终产生浅色页面套深色 Markdown 代码块的混合样式。
+// Share 是独立入口，不会经过完整 Web 的 bootstrap；必须在渲染前同步根主题 class 与浏览器表面，
+// 否则页面外壳使用默认浅色或透明 vibrancy token，与正文及代码高亮块视觉割裂。
 const INITIAL_THEME = resolveThemePreference();
+document.documentElement.setAttribute(
+  "data-nibi-browser-theme-surface",
+  resolveTheme(INITIAL_THEME),
+);
 applyTheme(INITIAL_THEME);
 
 function isOAuthCallback(): boolean {
@@ -46,10 +49,13 @@ function isOAuthCallback(): boolean {
 }
 
 function renderCallback(): void {
+  const locale = resolveConversationShareRouteLocale(window.location.pathname);
+  document.documentElement.lang = locale;
   const state = parseOAuthState(new URLSearchParams(window.location.search).get("state") ?? "");
   const retryTarget = resolveSafeAppReturnTo(state?.app_return_to) ?? "/share";
   root.render(
     <ShareCallbackPage
+      locale={locale}
       authService={webAuthService}
       onSuccess={({ appReturnTo }) => window.location.replace(appReturnTo ?? "/share")}
       onRetry={() => window.location.replace(retryTarget)}

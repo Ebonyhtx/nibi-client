@@ -422,7 +422,7 @@ export function RemoteConnectionConnectingStep({
 
   const installPanel = installConfirmation ? (
     // 安装确认是阶段内的中性信息面板，圆角比所属阶段行低一级。
-    <div className="mt-2 flex items-start gap-3 rounded-sm border border-border bg-background px-3.5 py-3 text-ui-sm text-foreground">
+    <div className="mt-2 flex items-start gap-3 rounded-xl border border-card-border bg-card px-4 py-3 text-ui-sm text-foreground shadow-[var(--nibi-shadow-card)]">
       <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
       <div className="min-w-0 flex-1 space-y-2">
         <p className="font-medium">
@@ -480,7 +480,7 @@ export function RemoteConnectionConnectingStep({
       <div
         data-testid={TID_SSH_ERROR}
         className={cn(
-          "space-y-2 rounded-sm border px-3.5 py-3",
+          "space-y-2 rounded-xl border px-4 py-3 shadow-[var(--nibi-shadow-card)]",
           presentation.border,
           presentation.surface,
         )}
@@ -693,9 +693,10 @@ export function RemoteConnectionConnectingStep({
               <li
                 key={phase.key}
                 className={cn(
-                  "relative flex shrink-0 min-w-0 items-start gap-3 rounded-md px-2.5 py-2 text-ui-sm",
+                  "relative flex shrink-0 min-w-0 items-start gap-3 rounded-xl border border-transparent px-2.5 py-2 text-ui-sm transition-colors",
                   // 原型 .stages li.cur：当前阶段行有 surface 底色高亮。
-                  phase.status === "active" && "bg-surface",
+                  phase.status === "active" &&
+                    "border-border/70 bg-card/85 shadow-[var(--nibi-shadow-active-row)]",
                 )}
               >
                 {phaseIndex < phases.length - 1 ? (
@@ -795,7 +796,7 @@ export function RemoteConnectionConnectingStep({
                   ) : null}
                   {phase.key === "deploy" ? installPanel : null}
                   {phase.key === "deploy" && forceUpdate ? (
-                    <div className="mt-2 space-y-2 rounded-sm bg-warning-surface p-3 text-warning-surface-foreground">
+                    <div className="mt-2 space-y-2 rounded-xl border border-warning/30 bg-warning-surface p-3 text-warning-surface-foreground">
                       <p className="font-medium">
                         {intl.formatMessage({ id: "settings.source.forceUpdateTitle" })}
                       </p>

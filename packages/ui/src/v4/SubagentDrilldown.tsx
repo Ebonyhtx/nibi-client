@@ -95,13 +95,13 @@ export const SubagentDrilldown = memo(function SubagentDrilldown({
         ) : null}
       </div>
       {visibleRows.length === 0 ? (
-        <div className="rounded-md bg-background-alt/40 px-3 py-2 text-ui-sm text-foreground-subtle">
+        <div className="rounded-xl border border-card-border bg-card/80 px-3 py-2 text-ui-sm text-foreground-subtle shadow-[var(--nibi-shadow-card)]">
           {state.status === "live"
             ? intl.formatMessage({ id: "chat.toolCall.agent.output.empty" })
             : null}
         </div>
       ) : (
-        <div className="max-h-80 overflow-y-auto rounded-md bg-background-alt/40 py-1">
+        <div className="max-h-80 overflow-y-auto rounded-xl border border-card-border bg-card/80 py-1 shadow-[var(--nibi-shadow-card)]">
           {hiddenCount > 0 ? (
             <div className="px-3 py-1 text-center text-ui-sm text-foreground-subtle">
               {intl.formatMessage(
