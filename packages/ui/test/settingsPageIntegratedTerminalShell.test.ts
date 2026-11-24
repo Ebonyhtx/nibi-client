@@ -444,6 +444,8 @@ describe("SettingsPage integrated terminal shell", () => {
     expect(html).toContain('data-testid="desktop-window-controls"');
     expect(html).not.toContain('data-testid="workspace-help-menu-trigger"');
     expect(html).not.toContain("bg-header");
+    expect(html).not.toContain("before:w-[2.5px]");
+    expect(html).toContain("ring-primary/25");
   });
 
   it("omits both help menu trigger and inline window controls on macOS desktop", async () => {

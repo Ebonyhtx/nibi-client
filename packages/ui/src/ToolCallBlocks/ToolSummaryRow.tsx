@@ -374,7 +374,7 @@ export function ConsecutiveSummaryGroup({
             ref={scroll.contentRef}
             // 实体边框加 14px 内边距只有 23px，子文字会偏左；导线不占布局，8px + 16px 与组头文字严格对齐。
             // 组内思考原有导线与缩进会叠出第二层边界；由分组统一提供导线，正文与标题对齐，并收紧标题到正文的留白。
-            className="relative ml-2 flex flex-col gap-2 pl-4 before:absolute before:inset-y-0 before:left-0 before:border-l-2 before:border-primary/25 [&_[data-summary-leading-icon]]:hidden [&_[data-reasoning-content]>div>div]:pt-1 [&_[data-reasoning-scroll-mask]]:ml-0 [&_[data-reasoning-scroll-mask]]:border-l-0 [&_[data-reasoning-scroll-mask]]:pl-0"
+            className="relative ml-2 flex flex-col gap-2 pl-4 before:absolute before:inset-y-0 before:left-0 before:border-l before:border-border/80 [&_[data-summary-leading-icon]]:hidden [&_[data-reasoning-content]>div>div]:pt-1 [&_[data-reasoning-scroll-mask]]:ml-0 [&_[data-reasoning-scroll-mask]]:border-l-0 [&_[data-reasoning-scroll-mask]]:pl-0"
             data-conversation-work-items="group"
           >
             {children}

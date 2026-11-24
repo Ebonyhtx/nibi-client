@@ -177,11 +177,11 @@ function SettingsSidebarButton({
         type={buttonProps.type ?? "button"}
         aria-label={label}
         className={cn(
-          "relative flex h-8 w-full items-center gap-2 rounded-xl px-2.5 text-left transition-colors",
+          "flex h-8 w-full items-center gap-2 rounded-xl px-2.5 text-left transition-colors",
           "max-lg:mx-auto max-lg:size-10 max-lg:justify-center max-lg:px-0",
           "compact-web:mx-0 compact-web:h-8 compact-web:w-auto compact-web:shrink-0 compact-web:px-2.5",
           active
-            ? "bg-card font-medium text-foreground shadow-[var(--nibi-shadow-active-row)] ring-1 ring-border/75 before:absolute before:inset-y-1.5 before:left-0.5 before:w-[2.5px] before:rounded-full before:bg-primary max-lg:before:hidden compact-web:before:hidden"
+            ? "bg-card font-medium text-foreground shadow-[var(--nibi-shadow-active-row)] ring-1 ring-primary/25"
             : "text-remote-foreground-muted hover:bg-hover/75 hover:text-foreground",
           className,
         )}

@@ -564,7 +564,7 @@ export const MemoTaskItem = memo(function TaskListItem({
             ? "items-start"
             : "items-center",
         isActive
-          ? "relative bg-card text-foreground shadow-[var(--nibi-shadow-active-row)] ring-1 ring-border/75 before:pointer-events-none before:absolute before:left-1 before:top-1.5 before:bottom-1.5 before:w-[2.5px] before:rounded-full before:bg-primary"
+          ? "bg-card text-foreground shadow-[var(--nibi-shadow-active-row)] ring-1 ring-primary/25"
           : hoverEnabled && "hover:bg-card/55 dark:hover:bg-surface-hover",
       )}
     >
