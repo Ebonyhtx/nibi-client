@@ -35,7 +35,7 @@
 | `registry.json` / `grants.json` / `audit/<date>.jsonl` 三元文件布局 | partial（等价能力已实现，文件名不同） | 授权：`plugin-grants.json`（`helpers.ts:877`）；同意：`plugin-consents.json`（`helpers.ts:365`）；审计：`plugin-audit.ndjson`（`helpers.ts:366`）。**未采用**计划中的文件名 |
 | 授权 + 审计（30 天保留 / 最近 10 条） | done（2026-11-25） | `helpers.ts:592-595`（`PLUGIN_AUDIT_RETENTION_DAYS = 30`、`PLUGIN_AUDIT_PRUNE_INTERVAL_MS`）、`:661-678`（`readRecentPluginAuditEvents`，`limit = 10`）、`:682-750`（`prunePluginAuditEvents`） |
 | 安装前声明 | done | `marketplace.ts:1350`（`安装前声明：与已安装详情共用同一套权限/能力推导`）、`:1213` / `:1275` / `:1333`（`declaration` 透传）；UI 消费点 `packages/ui/src/settings/PluginStorePage.tsx:843-845`、`PluginStoreDetailView.tsx:105` |
-| view-root 物化 | done（2026-11-25 接线） | `apps/nibi-cli/packages/adapters/src/plugins/view-root.ts`：**真实目录 + 硬链接文件**的镜像树（不是符号链接——组件扫描器出于信任边界不跟随链接，用链接会让 skills/commands 全部扫不到），规范清单写根 `plugin.json`，复制回退时校验相对文件集合等价；22 个单测。接线：`adapters/src/plugins/index.ts` 的 `resolveInstalledViewRoot` 让已安装插件读视图根（失败回退源目录 + `plugin_view_root_unavailable` 诊断）；Rust 侧 `kernel/crates/platform/src/plugin_inventory.rs` 的 `plugin_read_root` 同源优先视图根，两端 `NIBI_PLUGIN_ROOT`/hooks cwd/MCP 工作目录一致 |
+| view-root 物化 | done（2026-11-25 接线） | `apps/nibi-cli/packages/adapters/src/plugins/view-root.ts`：**真实目录 + 硬链接文件**的镜像树（不是符号链接——组件扫描器出于信任边界不跟随链接，用链接会让 skills/commands 全部扫不到），规范清单写根 `plugin.json`，复制回退时校验相对文件集合等价；22 个单测。接线：`adapters/src/plugins/index.ts` 的 `resolveInstalledViewRoot` 让 `source === "cache"` 的插件读视图根（失败回退源目录 + `plugin_view_root_unavailable` 诊断）；Rust 侧 `kernel/crates/platform/src/plugin_inventory.rs` 的 `plugin_read_root` 同源优先视图根，两端 `NIBI_PLUGIN_ROOT`/hooks cwd/MCP 工作目录一致。**覆盖面**：只对非 `nibi-official` 市场的安装件生效——官方市场安装件会被 `scanOfficialCache`（`cache/nibi-official/*/*`）先按 `source: "official"` 认领，按 id 去重后安装记录候选被丢弃，因此仍读缓存目录；官方缓存本身由 Host 管理，不需要隔离 |
 
 ### B. 运行时 / 授权 / 审计
 
@@ -187,6 +187,18 @@
   复制回退（文件系统不支持硬链接）时校验相对文件集合等价，否则回退源目录并报
   `plugin_view_root_unavailable`——绝不使用不完整的视图。
 - **进程级隔离**：扩展宿主仍与 Host 同进程；计划里 local = T3 每插件独立进程未实现。
+- **撤销列表的新鲜度**：刷新只在 Host 的「检查更新」（`nibi-protocol/plugins.ts` 的
+  `updatePluginMarketplace`）里触发，启动/定时都没有。从不点检查更新的用户会一直用旧名单；
+  第三方 supply 前应补启动后台刷新（带 TTL）或定时刷新。
+- **撤销列表的生产者**：`dl.nibistudio.cn/plugin-revocations.json` 目前没有发布方。
+  仓库内只有消费端与 `NIBI-Site/tools/content-publish.py sign` 的签名能力；名单内容、revision
+  递增与发布流程都在仓库外，**未核实**。也就是说这套门禁现在是「装好了但没通电」。
+- **审计「最近 10 条」未接 UI**：`readRecentPluginAuditEvents` 已在 adapters 导出，但协议层
+  与插件详情都没有消费点（全仓 grep 只命中 helpers/index 与测试）。
+- **付费执行门禁的 Node 覆盖面**：Node 侧只在 MCP 工具注册期与 handler 复核；skills/commands/
+  subagents 的执行期没有等价门禁（Rust 的 PaidPluginGate 覆盖四类）。
+- **墓碑没有恢复入口**：`removed` 记录保留 30 天并有剪枝，但没有恢复 RPC/UI，用户卸载后
+  30 天内无法在应用内恢复安装记录（重装会复活记录，但那是「重新安装」不是「恢复」）。
 - **上游 5 slots**：有意不接，只保留 `composer.status` / `nav.primary`。
 - **常驻插件 UI**：2026-11-24 决策暂缓。
 
