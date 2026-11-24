@@ -41,7 +41,8 @@ bash scripts/test-desktop-e2e-container.sh --print-spec conversation-session-ver
 1. 安装依赖（`scripts/pnpm-install-ci.sh`）。
 2. 构建 debug Rust 内核：`cargo build --locked -p nibi-kernel-cli --bin nibi-rs`。
    WDIO `onPrepare` 只消费已构建的内核二进制，桌面本地 Agent 没有 Node 回退。
-3. 构建 `@nibi/e2e-report`，然后由 `onPrepare` 构建桌面 app。
+3. 构建 CLI workspace 包（`pnpm exec turbo run build --filter="./apps/nibi-cli/packages/*"`）
+   与 `@nibi/e2e-report`；`onPrepare` 再构建桌面 app，会解析 `@nibi/bootstrap` 等包的 dist。
 4. 以 replay 模式运行 WDIO：
 
    ```bash

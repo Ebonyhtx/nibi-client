@@ -74,6 +74,11 @@ jobs:
         working-directory: kernel
         shell: bash
         run: cargo build --locked -p nibi-kernel-cli --bin nibi-rs
+      # onPrepare 构建桌面 app 时会解析 @nibi/bootstrap 等 workspace 包的 dist；
+      # 干净 checkout 里没有这些产物（本地被旧构建掩盖）。与 client-gates 用同一条命令。
+      - name: Build the CLI workspace packages
+        shell: bash
+        run: pnpm exec turbo run build --filter="./apps/nibi-cli/packages/*" --concurrency=4
       - name: Build the E2E report package
         shell: bash
         run: pnpm --filter @nibi/e2e-report build:node
