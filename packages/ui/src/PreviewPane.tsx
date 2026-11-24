@@ -1552,14 +1552,14 @@ export function PreviewPane({
     <div
       className={cn(
         "flex h-10 min-w-0 shrink-0 items-center gap-2",
-        !headerContainer && "bg-surface/30",
-        !headerContainer && showDocumentHeaderDivider && "border-b border-border",
+        !headerContainer && "bg-surface/65 supports-[backdrop-filter]:backdrop-blur-sm",
+        !headerContainer && showDocumentHeaderDivider && "border-b border-border/65",
       )}
     >
       <div
         ref={breadcrumbScrollRef}
         className={cn(
-          "min-w-0 flex-1 overflow-x-auto !scrollbar-hide",
+          "min-w-0 flex-1 overflow-x-auto !scrollbar-hide scroll-px-4",
           BREADCRUMB_MASK_CLASS_BY_STATE[breadcrumbMaskState],
         )}
       >
@@ -1584,7 +1584,7 @@ export function PreviewPane({
             {breadcrumb?.fileIconSrc ? (
               <FileDisplayIcon src={breadcrumb.fileIconSrc} size={14} className="shrink-0" />
             ) : null}
-            <span className="truncate">{breadcrumb?.fileLabel ?? source.title}</span>
+            <span className="truncate font-medium">{breadcrumb?.fileLabel ?? source.title}</span>
           </span>
         </div>
       </div>

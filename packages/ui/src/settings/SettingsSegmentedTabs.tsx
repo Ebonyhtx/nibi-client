@@ -21,12 +21,12 @@ export function SettingsSegmentedTabs<TValue extends string>({
       onValueChange={(nextValue) => onValueChange(nextValue as TValue)}
       className="gap-0"
     >
-      <TabsList className="flex h-8 rounded-full bg-surface p-0.5 group-data-horizontal/tabs:h-8">
+      <TabsList className="flex h-8 rounded-full border border-border/60 bg-surface/90 p-0.5 shadow-[var(--nibi-shadow-input-inset)] group-data-horizontal/tabs:h-8">
         {items.map((item) => (
           <TabsTrigger
             key={item.value}
             value={item.value}
-            className="h-7 flex-none rounded-full border-transparent bg-transparent px-2.5 text-ui-base font-medium text-foreground-subtle data-active:border-transparent data-active:bg-background data-active:text-foreground data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-background"
+            className="h-7 flex-none rounded-full border-transparent bg-transparent px-2.5 text-ui-base font-medium text-foreground-subtle data-active:border-border/70 data-active:bg-card data-active:text-foreground data-active:shadow-[var(--nibi-shadow-active-row)] dark:data-active:border-border/80 dark:data-active:bg-card"
           >
             {item.label}
           </TabsTrigger>

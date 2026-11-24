@@ -248,8 +248,8 @@ export function WorkspaceFileTreeRowView({
           isDeletedFile ? "cursor-default" : "cursor-pointer",
           "pl-[calc(var(--workspace-file-tree-depth)*0.75rem+0.5rem)]",
           selected
-            ? "border-input-border-focused bg-transparent hover:bg-surface-hover"
-            : "border-transparent hover:bg-surface-hover",
+            ? "border-border/80 bg-card font-medium shadow-[var(--nibi-shadow-active-row)] hover:bg-card"
+            : "border-transparent hover:bg-hover/75",
           "focus-visible:border-border-hover",
         )}
         title={relativePath}

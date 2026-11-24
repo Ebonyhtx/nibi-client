@@ -130,7 +130,7 @@ function ToastContainer() {
   }
 
   return (
-    <>
+    <div role="region" aria-label="Notifications">
       {/* 顶部居中 */}
       <div className={resolveToastStackClassName("top-center")}>
         {topCenterItems.map((item) => (
@@ -163,7 +163,7 @@ function ToastContainer() {
           onDone={handleRemove}
         />
       ))}
-    </>
+    </div>
   );
 }
 
@@ -312,14 +312,14 @@ export function ToastMessageView({
   return (
     <div
       className={cn(
-        "rounded-2xl border bg-toast/92 text-ui-base shadow-lg backdrop-blur-xl transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transform-none motion-reduce:transition-opacity",
+        "rounded-2xl border bg-toast/92 text-ui-base shadow-[var(--nibi-shadow-popover)] backdrop-blur-xl transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transform-none motion-reduce:transition-opacity",
         isSourceServerUpdate
           ? "w-[min(480px,calc(100vw-2rem))] border-popover-border text-foreground"
           : isUpdate
-            ? "origin-bottom-left w-[min(300px,calc(100vw-1rem))] max-w-[min(300px,calc(100vw-1rem))] border-popover-border text-foreground shadow-lg"
+            ? "origin-bottom-left w-[min(300px,calc(100vw-1rem))] max-w-[min(300px,calc(100vw-1rem))] border-popover-border text-foreground"
             : isNotice
-              ? "w-[min(536px,calc(100vw-2rem))] border-border text-foreground"
-              : "border-border px-4 py-3 text-foreground whitespace-pre-line",
+              ? "w-[min(536px,calc(100vw-2rem))] border-popover-border/90 text-foreground"
+              : "border-popover-border/90 px-4 py-3 text-foreground whitespace-pre-line",
         // Bug 原因：右上角 Toast 曾复用顶部居中的纵向缩放动画，无法表达其从右侧进入的空间关系。
         isTopRight
           ? visible
@@ -354,7 +354,7 @@ export function ToastMessageView({
             <button
               type="button"
               onClick={onAction ?? item.onAction}
-              className="h-8 shrink-0 whitespace-nowrap rounded-md bg-primary px-3 text-ui-base font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              className="h-8 shrink-0 whitespace-nowrap rounded-lg bg-primary px-3 text-ui-base font-medium text-primary-foreground shadow-[var(--nibi-shadow-primary-btn)] transition-colors hover:bg-primary/90"
             >
               {item.actionLabel}
             </button>

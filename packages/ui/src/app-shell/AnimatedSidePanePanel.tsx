@@ -853,7 +853,7 @@ export function AnimatedSidePanePanel({
       {/* 对齐原型：顶部对齐滚动、左对齐标题；内置应用与 UI 插件同为横向行，短分割线分区。 */}
       <div className="min-h-0 flex-1 overflow-y-auto px-7 py-6">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-          <h2 className="pl-2 text-ui-xl font-semibold text-foreground">
+          <h2 className="pl-2 text-ui-xl font-semibold tracking-[-0.015em] text-foreground">
             {intl.formatMessage({ id: "sidePane.openTab" })}
           </h2>
           <div className="grid min-w-0 grid-cols-1 gap-x-8 gap-y-1 @min-[36rem]/launcher:grid-cols-2">
@@ -871,10 +871,10 @@ export function AnimatedSidePanePanel({
           {/* 空会话暂不支持应用插件，连同分区入口一起隐藏。 */}
           {activeTaskId ? (
             <>
-              <div aria-hidden="true" className="my-4 h-px w-24 self-center bg-border" />
+              <div aria-hidden="true" className="my-4 h-px w-24 self-center bg-border/75" />
               <section className="min-w-0" data-testid="side-pane-ui-recommendations">
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2">
-                  <h2 className="pl-2 text-ui-lg font-semibold text-foreground">
+                  <h2 className="pl-2 text-ui-lg font-semibold tracking-[-0.015em] text-foreground">
                     {intl.formatMessage({ id: "settings.plugins.store.ui.title" })}
                   </h2>
                   <Button
@@ -980,6 +980,7 @@ export function AnimatedSidePanePanel({
       className={cn(
         // 独立外框放在内容层：关闭仍保留 Browser Guest 和 tab 实例，不改变面板持久化边界。
         "h-full overflow-hidden bg-background",
+        !mobileOverlay && !fullView && "nibi-atelier-panel",
         !mobileOverlay && frameClassName,
         mobileStacked && "max-md:rounded-none max-md:border-0",
         mobileOverlay && "min-w-0",
@@ -1026,7 +1027,7 @@ export function AnimatedSidePanePanel({
                 <TabsList
                   style={mobileOverlay ? undefined : captionControlsStyle}
                   className={cn(
-                    "flex justify-start w-full rounded-none p-0 border-0 border-b border-border/50 bg-transparent shadow-none !h-12 overflow-hidden",
+                    "flex justify-start w-full rounded-none p-0 border-0 border-b border-border/60 bg-header/82 supports-[backdrop-filter]:backdrop-blur-md shadow-none !h-12 overflow-hidden",
                     fullView?.leadingInsetClassName,
                     // 独立面板将标签栏移至窗口顶部，需补充窗口拖拽区域；标签和按钮仍处理自身交互。
                     isDesktop &&
@@ -1058,7 +1059,7 @@ export function AnimatedSidePanePanel({
                         ref={tabsScrollViewportRef}
                         data-side-pane-tabs-viewport=""
                         className={cn(
-                          "min-w-0 flex-1 overflow-x-auto !scrollbar-hide h-12 items-center",
+                          "min-w-0 flex-1 overflow-x-auto !scrollbar-hide h-12 items-center scroll-px-4",
                           tabsScrollMaskEdges.left &&
                             tabsScrollMaskEdges.right &&
                             "[mask-image:linear-gradient(to_right,transparent_0%,black_16px,black_calc(100%-16px),transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_16px,black_calc(100%-16px),transparent_100%)]",

@@ -449,7 +449,7 @@ export function GitPane({
 
   return (
     <section data-testid={TID_GIT_PANE} className="flex h-full min-h-0 flex-col bg-background">
-      <div className="flex items-center justify-between gap-3 p-3">
+      <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-surface/45 px-3 py-2.5">
         <Select value={currentSourceOption.id} onValueChange={handleSelectSource}>
           <SelectTrigger className="max-w-full" size="lg">
             <SelectValue />
@@ -535,7 +535,9 @@ export function GitPane({
           </div>
         ) : (
           <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-            <FileTextIcon className="size-8 text-foreground-subtlest" />
+            <div className="flex size-12 items-center justify-center rounded-2xl border border-border/65 bg-card shadow-[var(--nibi-shadow-card)]">
+              <FileTextIcon className="size-6 text-foreground-subtlest" />
+            </div>
             <p className="mt-3 text-ui-base font-medium text-foreground">{emptyStateCopy.title}</p>
             <p className="mt-1 text-ui-base text-foreground-subtle">{emptyStateCopy.description}</p>
           </div>

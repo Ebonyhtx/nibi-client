@@ -182,8 +182,8 @@ function SettingsSidebarButton({
           "max-lg:mx-auto max-lg:size-10 max-lg:justify-center max-lg:px-0",
           "compact-web:mx-0 compact-web:h-8 compact-web:w-auto compact-web:shrink-0 compact-web:px-2.5",
           active
-            ? "bg-selected font-medium text-foreground before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-primary max-lg:before:hidden compact-web:before:hidden"
-            : "text-remote-foreground-muted hover:bg-surface-hover hover:text-foreground",
+            ? "bg-card font-medium text-foreground shadow-[var(--nibi-shadow-active-row)] ring-1 ring-border/75 before:absolute before:inset-y-1.5 before:left-0.5 before:w-[2.5px] before:rounded-full before:bg-primary max-lg:before:hidden compact-web:before:hidden"
+            : "text-remote-foreground-muted hover:bg-hover/75 hover:text-foreground",
           className,
         )}
       >
@@ -1755,7 +1755,7 @@ export function SettingsPage({
                       aria-label={intl.formatMessage({
                         id: "workspace.backToWorkspace",
                       })}
-                      className="m-1 w-[calc(100%-0.5rem)] justify-start gap-2 rounded-xl bg-surface px-1.5 text-remote-foreground-muted hover:bg-surface-hover hover:text-foreground max-lg:m-1 max-lg:size-10 max-lg:justify-center max-lg:px-0"
+                      className="m-1 w-[calc(100%-0.5rem)] justify-start gap-2 rounded-xl border border-border/60 bg-card/80 px-2 text-remote-foreground-muted shadow-2xs hover:bg-card hover:text-foreground max-lg:m-1 max-lg:size-10 max-lg:justify-center max-lg:px-0"
                       onClick={() => {
                         runUserAction({
                           input: {
@@ -1923,7 +1923,7 @@ export function SettingsPage({
             <div
               data-settings-panel-frame="true"
               className={cn(
-                "relative flex flex-col min-h-0 h-full border border-border bg-background",
+                "nibi-atelier-panel relative flex flex-col min-h-0 h-full border border-border bg-background",
                 // 直接写像素圆角会绕过设计 token；设置页与工作区统一复用 rounded-md（默认 6px）。
                 isWindowsDesktop ? "rounded-md" : "rounded-xl",
               )}
@@ -1949,7 +1949,7 @@ export function SettingsPage({
                 sectionLabel={settingsBreadcrumbSectionLabel}
               >
                 <div className="flex min-h-0 flex-1 flex-col">
-                  <div className="flex h-12 shrink-0">
+                  <div className="flex h-12 shrink-0 border-b border-border/55 bg-header/78 supports-[backdrop-filter]:backdrop-blur-md">
                     <div
                       // Settings 窄布局会像左侧导航一样在 max-lg 收成 icon rail。
                       // 此时外层已经提供 max-lg:h-16 的顶部拖拽/避让区，内层 h-10 再保留会把内容额外压低。

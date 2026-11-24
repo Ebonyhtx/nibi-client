@@ -66,21 +66,23 @@ export function ThemePreviewCard({
   const { intl } = useNibiIntl();
   const previewSurfaceClassName = mode === "light" ? "ring-1 ring-black/5" : "ring-1 ring-white/8";
   const previewThemeStyle = {
-    "--color-background": mode === "light" ? "#f9f2e4" : "#171716",
-    "--color-card": mode === "light" ? "#fffdf9" : "#1e1f21",
-    "--color-foreground": mode === "light" ? "#142d52" : "#cdced2",
+    "--color-background": mode === "light" ? "#f9f2e4" : "#171614",
+    "--color-card": mode === "light" ? "#fffdf9" : "#201e1b",
+    "--color-foreground": mode === "light" ? "#1c2f4e" : "#e0dad0",
   } as CSSProperties;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+    <div className="overflow-hidden rounded-xl border border-card-border bg-card shadow-[var(--nibi-shadow-card)]">
+      <div className="flex items-center justify-between gap-3 border-b border-border/65 bg-surface/45 px-4 py-3">
         <div>
           <div className="text-ui-base font-semibold text-foreground">{title}</div>
           <div className="text-ui-sm text-foreground-subtle">{themeName}</div>
         </div>
         <span
           className={`rounded-md px-2.5 py-1 text-ui-xs font-medium ${
-            isActive ? "bg-selected text-foreground" : "bg-surface text-foreground-subtle"
+            isActive
+              ? "border border-primary/25 bg-primary/10 text-primary"
+              : "border border-border/60 bg-surface text-foreground-subtle"
           }`}
         >
           {intl.formatMessage({
@@ -124,7 +126,7 @@ export function SettingsRow({
 }) {
   return (
     <div
-      className="border-t border-border px-4 py-3 first:border-t-0"
+      className="border-t border-border/65 px-4 py-3.5 first:border-t-0"
       data-settings-search-target={searchTarget}
     >
       {/* 手机窄屏下固定 192px 控件列会把文字压到约 60px 宽。compact-web 下改为可换行 flex：
@@ -166,7 +168,7 @@ export function SettingsRow({
 
 export function SettingsGroupCard({ children }: { children: ReactNode }) {
   return (
-    <Card className="overflow-hidden rounded-xl border border-border bg-card py-0 shadow-none">
+    <Card className="overflow-hidden rounded-xl border border-card-border bg-card py-0 shadow-[var(--nibi-shadow-card)]">
       <CardContent className="space-y-0 px-0">{children}</CardContent>
     </Card>
   );
@@ -174,7 +176,7 @@ export function SettingsGroupCard({ children }: { children: ReactNode }) {
 
 export function SettingsBadge({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded-md border border-border bg-surface px-2 py-0.5 text-ui-xs font-medium text-foreground-subtle">
+    <span className="rounded-md border border-border/70 bg-surface/85 px-2 py-0.5 text-ui-xs font-medium text-foreground-subtle shadow-2xs">
       {children}
     </span>
   );

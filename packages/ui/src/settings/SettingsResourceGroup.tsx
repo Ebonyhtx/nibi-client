@@ -12,7 +12,9 @@ export function SettingsResourceGroupHeader({
   const heading = (
     <h3 className="flex h-7 items-center gap-1.5 text-ui-base font-medium text-foreground">
       {title}
-      <span className="text-ui-sm font-normal text-foreground-subtle">{count}</span>
+      <span className="rounded-full bg-surface px-1.5 py-0.5 text-ui-xs font-medium tabular-nums text-foreground-subtle">
+        {count}
+      </span>
     </h3>
   );
   return actions ? (
@@ -36,10 +38,10 @@ export function SettingsResourceList<T>({
 }) {
   if (items.length === 0) return null;
   return (
-    <div className="overflow-hidden rounded-xl bg-surface">
+    <div className="overflow-hidden rounded-xl border border-card-border bg-card shadow-[var(--nibi-shadow-card)]">
       {items.map((item, index) => (
         <div key={getKey(item)}>
-          {index > 0 ? <div className="h-px bg-border/50" aria-hidden="true" /> : null}
+          {index > 0 ? <div className="h-px bg-border/60" aria-hidden="true" /> : null}
           {renderItem(item)}
         </div>
       ))}

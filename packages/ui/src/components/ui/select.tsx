@@ -10,15 +10,16 @@ import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react";
 // resize 大会话时 Select trigger 跟随基础控件批量重排，
 // transition-all 会把布局/滚动条相关属性也动画化；这里限定为颜色过渡。
 const selectTriggerVariants = cva(
-  "flex w-fit items-center justify-between gap-1.5 border whitespace-nowrap transition-colors outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-foreground-subtlest *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "flex w-fit items-center justify-between gap-1.5 border whitespace-nowrap transition-[color,background-color,border-color,box-shadow] duration-150 ease-out outline-none focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-foreground-subtlest *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         input:
-          "border-input-border bg-input text-foreground hover:border-input-border-hover focus-visible:border-input-border-focused focus-visible:bg-input-focused focus-visible:ring-0",
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/90",
+          "border-input-border bg-input text-foreground shadow-[var(--nibi-shadow-input-inset)] hover:border-input-border-hover focus-visible:border-input-border-focused focus-visible:bg-input-focused focus-visible:shadow-[var(--nibi-shadow-input-focus)] focus-visible:ring-0",
+        default:
+          "border-transparent bg-primary text-primary-foreground shadow-[var(--nibi-shadow-primary-btn)] hover:bg-primary/90",
         outline:
-          "border-border bg-transparent text-foreground hover:bg-input/50 hover:text-foreground aria-expanded:bg-selected aria-expanded:text-foreground",
+          "border-border/80 bg-card/85 text-foreground shadow-2xs hover:border-border-hover hover:bg-card hover:text-foreground aria-expanded:bg-selected aria-expanded:text-foreground",
         secondary:
           "border-transparent bg-secondary text-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-foreground",
         ghost:
@@ -103,7 +104,7 @@ function SelectContent({
         data-align-trigger={position === "item-aligned"}
         className={cn(
           // 可操作的 Select 必须高于 z-50 tooltip，避免提示遮住选项。
-          "relative z-[60] max-h-(--radix-select-content-available-height) min-w-32 origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-lg border border-popover-border bg-menu p-1 text-foreground shadow-md duration-100 data-[align-trigger=true]:animate-none data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 [app-region:no-drag]",
+          "relative z-[60] max-h-(--radix-select-content-available-height) min-w-32 origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-xl border border-popover-border bg-menu/96 p-1 text-foreground shadow-[var(--nibi-shadow-popover)] supports-[backdrop-filter]:backdrop-blur-lg duration-150 ease-out data-[align-trigger=true]:animate-none data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 [app-region:no-drag]",
           className,
         )}
         position={position}

@@ -182,7 +182,7 @@ export function PluginStoreListView({
       {/* 会员入口移到左下角账户菜单（与上游一致）；市场顶部不再常驻促销横幅。 */}
       {/* 对齐原型：来源分段在左、搜索右对齐同一行；搜索及专区均限定当前来源。 */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="inline-flex flex-wrap items-center gap-1 rounded-full border border-border/60 bg-surface/90 p-1 shadow-[var(--nibi-shadow-input-inset)]">
           <SegmentPill
             active={segment === "public"}
             testId="plugin-store-segment-public"
@@ -225,7 +225,7 @@ export function PluginStoreListView({
               {intl.formatMessage({ id: "settings.plugins.store.ui.title" })}
             </h2>
           </div>
-          <div aria-hidden="true" className="h-px bg-surface" />
+          <div aria-hidden="true" className="h-px bg-border/65" />
           <div className="mt-2">
             {/* 独立“查看全部”页让返回入口难以识别；复用分组展开并按来源保留选择。 */}
             <CollapsibleCardGroup
@@ -332,10 +332,10 @@ export function SegmentPill({
       data-testid={testId}
       aria-pressed={active}
       className={cn(
-        "rounded-full px-3 py-1 text-ui-base font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused",
+        "rounded-full px-3 py-1 text-ui-base font-medium transition-[color,background-color,box-shadow] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2",
         active
-          ? "bg-selected text-foreground"
-          : "text-foreground-subtle hover:bg-hover hover:text-foreground",
+          ? "bg-card text-foreground shadow-[var(--nibi-shadow-active-row)] ring-1 ring-border/70"
+          : "text-foreground-subtle hover:bg-hover/70 hover:text-foreground",
       )}
       onClick={onClick}
     >
@@ -358,7 +358,7 @@ function StoreSection({
       <div className="pb-2">
         <h2 className="text-ui-lg font-semibold text-foreground">{title}</h2>
       </div>
-      <div aria-hidden="true" className="h-px bg-surface" />
+      <div aria-hidden="true" className="h-px bg-border/65" />
       <div className="mt-2">{children}</div>
     </section>
   );
@@ -376,7 +376,12 @@ function CardGrid({
   singleColumn?: boolean;
 }) {
   return (
-    <div className="grid gap-x-6 gap-y-1 @min-[40rem]/plugin-store:grid-cols-2">
+    <div
+      className={cn(
+        "grid gap-3",
+        singleColumn ? "grid-cols-1" : "@min-[40rem]/plugin-store:grid-cols-2",
+      )}
+    >
       {items.map((item) => (
         <PluginStoreCard key={item.id} item={item} actions={actions} locale={locale} />
       ))}

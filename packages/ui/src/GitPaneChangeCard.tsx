@@ -89,8 +89,8 @@ export function GitPaneChangeCard({
             type="button"
             aria-expanded={isExpanded}
             className={cn(
-              "sticky top-0 z-10 flex h-8 w-full items-center gap-3 bg-background px-3 text-left transition-colors hover:bg-surface-hover supports-[backdrop-filter]:backdrop-blur-sm",
-              isExpanded && "bg-surface-hover",
+              "sticky top-0 z-10 flex h-8 w-full items-center gap-3 border-b border-border/55 bg-background/92 px-3 text-left transition-colors hover:bg-surface/80 supports-[backdrop-filter]:backdrop-blur-sm",
+              isExpanded && "border-border/80 bg-surface/90 shadow-2xs",
             )}
             onClick={() => onOpenChange(change, !isExpanded)}
           >
@@ -111,7 +111,7 @@ export function GitPaneChangeCard({
               </div>
             </div>
             <div className="flex shrink-0 items-center justify-end gap-3 pl-3">
-              <div className="shrink-0 whitespace-nowrap text-ui-base">
+              <div className="shrink-0 whitespace-nowrap tabular-nums text-ui-base">
                 <span className="text-diff-added">+{change.added}</span>
                 <span className="ml-2 text-diff-removed">-{change.removed}</span>
               </div>
