@@ -796,7 +796,7 @@ export function RemoteConnectionConnectingStep({
                   ) : null}
                   {phase.key === "deploy" ? installPanel : null}
                   {phase.key === "deploy" && forceUpdate ? (
-                    <div className="mt-2 space-y-2 rounded-xl border border-warning/30 bg-warning-surface p-3 text-warning-surface-foreground">
+                    <div className="mt-2 space-y-2 rounded-xl border border-warning bg-warning-surface p-3 text-warning-surface-foreground">
                       <p className="font-medium">
                         {intl.formatMessage({ id: "settings.source.forceUpdateTitle" })}
                       </p>

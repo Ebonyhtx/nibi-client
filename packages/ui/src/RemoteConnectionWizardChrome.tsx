@@ -50,7 +50,7 @@ export function RemoteConnectionWizardSidebar({
                   "flex size-4 shrink-0 items-center justify-center rounded-md border text-ui-xs",
                   index === currentIndex &&
                     "border-primary bg-primary text-primary-foreground shadow-[var(--nibi-shadow-primary-btn)]",
-                  index < currentIndex && "border-success/50 bg-success/12 text-success",
+                  index < currentIndex && "border-success bg-success-surface text-success-surface-foreground",
                 )}
               >
                 {index < currentIndex ? <CheckIcon className="size-3" /> : index + 1}

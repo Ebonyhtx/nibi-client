@@ -60,7 +60,7 @@ describe("设置页 UI polish E2E", () => {
     await waitForWorkspaceApp(DEFAULT_WORKSPACE, 30000);
   });
 
-  it("UP-00: Windows 设置页使用问号帮助入口且移除 caption 下箭头", async function () {
+  it("UP-00: Windows 设置页移除问号帮助入口和 caption 下箭头并保留自绘窗控", async function () {
     if (process.platform !== "win32") return;
     await clickTestIdByDom(TID_TASK_SETTINGS_BUTTON, { timeout: 15000 });
     await $(sel(TID_SETTINGS_PAGE)).waitForDisplayed({ timeout: 15000 });
@@ -68,8 +68,11 @@ describe("设置页 UI polish E2E", () => {
     expect(((await panel.getAttribute("class")) ?? "").split(/\s+/)).toContain("rounded-md");
     expect(await panel.getCSSProperty("border-top-left-radius")).toMatchObject({ value: "6px" });
     expect(
-      await $('[data-testid="settings-page"] svg.lucide-circle-question-mark').isDisplayed(),
-    ).toBe(true);
+      await $('[data-testid="settings-page"] [data-testid="workspace-help-menu-trigger"]').isExisting(),
+    ).toBe(false);
+    expect(
+      await $('[data-testid="settings-page"] svg.lucide-circle-question-mark').isExisting(),
+    ).toBe(false);
     expect(
       await $(
         '[data-testid="settings-page"] button[aria-label="titleBar.windowMenu"]',
@@ -109,22 +112,17 @@ describe("设置页 UI polish E2E", () => {
     }
     expect(
       await browser.execute(() => {
-        const help = document
-          .querySelector('[data-testid="settings-page"] svg.lucide-circle-question-mark')
-          ?.closest<HTMLElement>("button");
         const close = document.querySelector<HTMLElement>(
           '[data-testid="settings-page"] [data-testid="window-control-close"]',
         );
-        if (!help || !close) return null;
-        const helpRect = help.getBoundingClientRect();
+        if (!close) return null;
         const closeRect = close.getBoundingClientRect();
         return {
-          helpTop: helpRect.top,
           closeTop: closeRect.top,
           closeRightInset: window.innerWidth - closeRect.right,
         };
       }),
-    ).toEqual({ helpTop: 17, closeTop: 17, closeRightInset: 15 });
+    ).toEqual({ closeTop: 17, closeRightInset: 15 });
     expect(
       await browser.execute(() => {
         const content = document.querySelector('[data-settings-content-frame="true"]')!;

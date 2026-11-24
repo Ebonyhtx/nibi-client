@@ -284,14 +284,12 @@ describe(`问号菜单应用入口（${expectedFlavor}）`, () => {
     }
   });
 
-  it("HM-04 中文设置页的导出日志、关于及更新入口", async function () {
+  it("HM-04 中文暗色工作区的导出日志、关于与设置页无问号入口", async function () {
     this.timeout(60_000);
     await seedSettings({ locale: "zh-CN", localePreference: "zh-CN" });
     await browser.refresh();
     await enterWorkspace();
     await setTheme("nibi-dark");
-    await clickTestIdByWebDriver(TID_TASK_SETTINGS_BUTTON);
-    await $(`[data-testid="${TID_SETTINGS_PAGE}"]`).waitForDisplayed();
     await openMenu();
     const labels = await menuLabels();
     expect(labels).toEqual([
@@ -310,5 +308,12 @@ describe(`问号菜单应用入口（${expectedFlavor}）`, () => {
     await openMenu();
     await $('[role="menuitem"]*=关于 Nibi').click();
     await assertAboutWindow();
+    await clickTestIdByWebDriver(TID_TASK_SETTINGS_BUTTON);
+    await $(`[data-testid="${TID_SETTINGS_PAGE}"]`).waitForDisplayed();
+    expect(
+      await $(
+        `[data-testid="${TID_SETTINGS_PAGE}"] [data-testid="${TID_WORKSPACE_HELP_MENU_TRIGGER}"]`,
+      ).isExisting(),
+    ).toBe(false);
   });
 });

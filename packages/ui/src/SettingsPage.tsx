@@ -102,7 +102,6 @@ import type { Theme } from "@/useTheme.js";
 import { WindowsTopLeftLogo } from "@/WindowsTopLeftLogo.js";
 
 import { DesktopWindowControls } from "@/DesktopWindowControls.js";
-import { WorkspaceHelpMenuButton } from "@/WorkspaceHelpMenuButton.js";
 import { WorkspaceSidebarFooter } from "@/WorkspaceSidebarFooter.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { cn } from "@/components/lib/utils.js";
@@ -1721,15 +1720,11 @@ export function SettingsPage({
           {usesInlineWindowControls ? (
             <div
               className={cn(
-                "absolute z-30 mt-px mr-px flex h-12 items-center gap-0.5 px-2 pointer-events-auto [app-region:no-drag]",
-                // 外沿留白变化后，悬浮操作组也必须同步，否则与内容 Header 错位。
+                "absolute z-30 mt-px mr-px flex h-12 items-center px-2 pointer-events-auto [app-region:no-drag]",
+                // 外沿留白变化后，悬浮窗控组也必须同步，保持与系统面板留白一致。
                 isWindowsDesktop ? "right-1.5 top-1.5" : "right-1 top-1",
               )}
             >
-              {/* Bug 原因：Windows/Linux 设置页仍保留旧 caption 下箭头，与主界面和 macOS 的帮助入口不一致。
-                  统一复用问号帮助按钮，并让它在普通 flex 流中紧邻自绘窗控。
-                  Settings 的独立标题层还需计入 4px 外层留白和 1px 边框，才能与 Workspace 控制组对齐。 */}
-              <WorkspaceHelpMenuButton isDesktop={Boolean(isDesktop)} />
               <DesktopWindowControls />
             </div>
           ) : null}
@@ -1923,44 +1918,26 @@ export function SettingsPage({
             <div
               data-settings-panel-frame="true"
               className={cn(
-                "nibi-atelier-panel relative flex flex-col min-h-0 h-full border border-border bg-background",
+                "nibi-atelier-panel relative flex flex-col min-h-0 h-full overflow-hidden border border-border bg-background",
                 // 直接写像素圆角会绕过设计 token；设置页与工作区统一复用 rounded-md（默认 6px）。
                 isWindowsDesktop ? "rounded-md" : "rounded-xl",
               )}
             >
-              {!usesInlineWindowControls ? (
-                <div
-                  className={cn(
-                    // Settings 使用和 new task 一致的问号定位：在内容面板内定位，外层让出自绘窗口按钮区，内层保持 top-2.5/right-2.5。
-                    "absolute top-0 z-50 h-10 w-10 pointer-events-auto [app-region:no-drag]",
-                    "right-0",
-                  )}
-                >
-                  <div className="absolute right-2.5 top-2.5 pointer-events-auto [app-region:no-drag]">
-                    <WorkspaceHelpMenuButton
-                      className="relative z-50 [app-region:no-drag]"
-                      isDesktop={Boolean(isDesktop)}
-                    />
-                  </div>
-                </div>
-              ) : null}
               <SettingsBreadcrumbProvider
                 onItemsChange={setSettingsBreadcrumbItems}
                 sectionLabel={settingsBreadcrumbSectionLabel}
               >
                 <div className="flex min-h-0 flex-1 flex-col">
-                  <div className="flex h-12 shrink-0 border-b border-border/55 bg-header/78 supports-[backdrop-filter]:backdrop-blur-md">
+                  <div className="flex h-12 shrink-0">
                     <div
                       // Settings 窄布局会像左侧导航一样在 max-lg 收成 icon rail。
                       // 此时外层已经提供 max-lg:h-16 的顶部拖拽/避让区，内层 h-10 再保留会把内容额外压低。
-                      // Electron 的 drag 区不能和右上角帮助/窗口按钮命中区域重叠；
-                      // 这里把右侧按钮区域从拖拽条里让出来，避免真实鼠标点击被标题栏拖拽吞掉。
-                      // Windows/Linux 设置页共同避开右上角菜单与内联窗控组。
-
+                      // Electron 的 drag 区不能和右上角窗口按钮命中区域重叠；
+                      // 这里把右侧窗控按钮区域从拖拽条里让出来，避免真实鼠标点击被标题栏拖拽吞掉。
                       className={cn(
                         "min-w-0 flex-1 [app-region:drag]",
-                        // 四个 28px 按钮、组内 2px 间距和左右 8px padding，共 134px。
-                        usesInlineWindowControls ? "mr-[134px]" : "mr-12",
+                        // 三个 28px 窗控按钮、组内 2px 间距和左右 8px padding，共 104px（mr-26）。
+                        usesInlineWindowControls && "mr-26",
                       )}
                     >
                       <SettingsHeaderBreadcrumb

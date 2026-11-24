@@ -430,6 +430,38 @@ describe("SettingsPage integrated terminal shell", () => {
     expect(html).toContain('data-testid="desktop-window-controls"');
   });
 
+  it("shows inline window controls without help menu trigger or header bar on Windows desktop", async () => {
+    const { SettingsPage } = await import("../src/SettingsPage.js");
+
+    const html = renderToStaticMarkup(
+      createElement(SettingsPage, {
+        isDesktop: true,
+        isMacDesktop: false,
+        isWindowsDesktop: true,
+      }),
+    );
+
+    expect(html).toContain('data-testid="desktop-window-controls"');
+    expect(html).not.toContain('data-testid="workspace-help-menu-trigger"');
+    expect(html).not.toContain("bg-header");
+  });
+
+  it("omits both help menu trigger and inline window controls on macOS desktop", async () => {
+    const { SettingsPage } = await import("../src/SettingsPage.js");
+
+    const html = renderToStaticMarkup(
+      createElement(SettingsPage, {
+        isDesktop: true,
+        isMacDesktop: true,
+        isWindowsDesktop: false,
+      }),
+    );
+
+    expect(html).not.toContain('data-testid="workspace-help-menu-trigger"');
+    expect(html).not.toContain('data-testid="desktop-window-controls"');
+    expect(html).not.toContain("bg-header");
+  });
+
   it("lists shell options from the local host even when the remote workspace is non-Windows", async () => {
     remoteSystemInfo.mockResolvedValue({
       homedir: "/home/remote",
