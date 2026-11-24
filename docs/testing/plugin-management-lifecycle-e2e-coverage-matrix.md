@@ -23,7 +23,7 @@
 | `PLM-LC-014` builtin uninstall/detail parity | `PBD`             | not run       | describe/components + suppression/runtime absence + cache/manifest unchanged pending                                      | pending      | blocked     | blocked      | blocked  | blocked    |
 | `PLM-LC-015` bundled install ownership       | `PBO`             | not run       | bundled restore vs CDN Marketplace ownership evidence pending                                                             | pending      | blocked     | blocked      | blocked  | blocked    |
 | `PLM-LC-016` seed/cache/runtime separation   | `PBS`             | not run       | filesystem/SEA seed, suppressed discovery, describe and self-heal evidence pending                                        | pending      | blocked     | blocked      | blocked  | blocked    |
-| `PLM-LC-017` installed row menu layout       | `PML`             | targeted pass | workspace-override row menu single-line text + screenshot                                                                 | pending      | blocked     | blocked      | blocked  | blocked    |
+| `PLM-LC-017` installed row menu layout       | `PML`             | targeted pass | user 启用 + Workspace 暂停形成覆盖；行菜单 2 项单行等高 + 截图；run `desktop-e2e-20261124-040332-920`             | pending      | blocked     | blocked      | blocked  | blocked    |
 
 ## 2026-11-24 转正执行
 
@@ -94,6 +94,22 @@ macOS `desktop-e2e-20261124-014702-952`、Windows `desktop-e2e-20261124-014644-0
   replay 使用本地 provider fixture server，不需要 API key 或网络。
 - 状态口径：两平台首跑已通过，`PLM-LC-001..010` 的 macOS/Windows CI 两列记 `verified`；
   后续变更若任一平台失败，先改回 `selected` 并保留失败 run id。
+
+## 2026-11-24 下一批复核材料
+
+- PLM-LC-017：**建议通过**。user 层启用内置插件后，在 Workspace scope 通过行内菜单暂停，
+  形成 `enabledSource=workspace`；行菜单只有「启用 / 卸载」两项、单行等高，无「恢复 User 默认」。
+  run `desktop-e2e-20261124-040332-920`；截图
+  `.e2e-artifacts/plugin-management/plm-lc-017/installed-row-menu-workspace-override.png`。
+- PLM-LC-018：**建议通过（离线节流）**。进入/重进商店页后官方市场时间戳保持 seed 值、无
+  `refreshFailure`、无页面错误。run `desktop-e2e-20261124-040849-641`；截图
+  `.e2e-artifacts/plugin-management/plm-lc-018/throttled-reenter.png`。
+- PLM-LC-019：**环境阻塞，不建议转正**。seed 的官方市场 URL
+  `https://cdn-zcode.z.ai/nibi/official-plugin/marketplace.json` 返回 404，产品持久化
+  `plugin_marketplace_invalid`；需要当前官方市场 URL 后复跑。run
+  `desktop-e2e-20261124-041110-203`。
+- 三例均未转正；017/018 转正前需补 case-local fixture/manifest 或确认纯 UI 用例的豁免口径。
+  完整观察点与命令见 [plugin-review-next-batch-2026-11-24.md](./plugin-review-next-batch-2026-11-24.md)。
 
 2026-07-15 已在 macOS 上逐个运行上述 `PD/PP`、`PM`、`PV/PO`、`PB/PI`、`PC`、`PF`
 pending spec，均通过。这些 spec 不得并行共享 E2E HOME；允许同一兼容批次串行运行、各用例隔离 HOME 并共享构建。

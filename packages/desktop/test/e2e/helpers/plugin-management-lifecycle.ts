@@ -370,8 +370,19 @@ export async function selectPluginSettingsScope(scope: "user" | "workspace"): Pr
     // 插件设置页传 groups，workspace 目标收在每台设备的 Projects 子菜单里。
     // 平铺分支保持原行为，分组分支必须先展开子菜单再按真实路径选项点击。
     await waitForPluginScopeMenu();
-    const flatOptionRendered = await browser.execute(() =>
-      Boolean(document.querySelector('[data-testid^="plugin-settings-scope-option"]')),
+    // Projects 列表是异步加载的：菜单刚打开时可能既没有平铺选项也没有 Projects 子菜单。
+    // 直接同步判断会把「还没加载」误报成「没有 Workspace 目标」。
+    let flatOptionRendered = false;
+    await browser.waitUntil(
+      async () => {
+        const state = await browser.execute(() => ({
+          flat: Boolean(document.querySelector('[data-testid^="plugin-settings-scope-option"]')),
+          grouped: Boolean(document.querySelector('[data-scope-projects-trigger="true"]')),
+        }));
+        flatOptionRendered = state.flat;
+        return state.flat || state.grouped;
+      },
+      { timeout: 15000, timeoutMsg: "Plugin scope menu did not expose workspace options" },
     );
     if (flatOptionRendered) {
       // 平铺 variant 的选项没有 title，语义仍是“选第一个 workspace”，保持历史行为。
