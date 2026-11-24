@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  NIBI_VERSION,
   PlatformChannels,
   type UpdateStatePayload,
   type UpdateCheckResultPayload,
@@ -117,10 +118,14 @@ async function assertLogExport(label: string, pendingLabel: string) {
   }
 }
 async function assertAboutWindow() {
+  const buildMetaPath = join(import.meta.dirname, "../../out/metadata/build-meta.json");
+  const unpackagedAppVersion = await readFile(buildMetaPath, "utf8")
+    .then((raw) => (JSON.parse(raw) as { appVersion?: string }).appVersion?.trim() || NIBI_VERSION)
+    .catch(() => NIBI_VERSION);
   try {
     await browser.waitUntil(
       async () =>
-        browser.electron.execute(async (electron) => {
+        browser.electron.execute(async (electron, fallbackVersion) => {
           const window = electron.BrowserWindow.getAllWindows().find(
             (candidate) =>
               candidate.webContents.getURL().startsWith("data:text/html") &&
@@ -130,12 +135,15 @@ async function assertAboutWindow() {
           const title = await window.webContents.executeJavaScript(
             'document.querySelector("#about-title")?.textContent',
           );
+          const expectedVersion = electron.app.isPackaged
+            ? electron.app.getVersion()
+            : fallbackVersion;
           return (
             typeof title === "string" &&
-            title.includes("Nibi") &&
-            title.includes(electron.app.getVersion())
+            title.includes("NIBI") &&
+            title.includes(expectedVersion)
           );
-        }),
+        }, unpackagedAppVersion),
       { timeout: 10_000, timeoutMsg: "关于窗口未显示应用名称和版本" },
     );
   } finally {
@@ -192,13 +200,14 @@ describe(`问号菜单应用入口（${expectedFlavor}）`, () => {
       "Export logs",
       "Resource manager",
       ...(production ? ["Check for updates"] : []),
-      "About Nibi",
+      "Copy device ID",
+      "About NIBI",
     ]);
     expect(await $$('[role="menu"] [role="separator"]')).toHaveLength(1);
     await browser.saveScreenshot(join(tmpdir(), "nibi-help-export-en-light.png"));
     await assertLogExport("Export logs", "Exporting logs...");
     await openMenu();
-    await $('[role="menuitem"]*=About Nibi').click();
+    await $('[role="menuitem"]*=About NIBI').click();
     await assertAboutWindow();
   });
 
@@ -300,13 +309,14 @@ describe(`问号菜单应用入口（${expectedFlavor}）`, () => {
       "导出日志",
       "资源管理器",
       ...(production ? ["检查更新"] : []),
-      "关于 Nibi",
+      "复制设备号",
+      "关于 NIBI",
     ]);
     expect(await $$('[role="menu"] [role="separator"]')).toHaveLength(1);
     await browser.saveScreenshot(join(tmpdir(), "nibi-help-export-zh-dark.png"));
     await assertLogExport("导出日志", "正在导出日志中");
     await openMenu();
-    await $('[role="menuitem"]*=关于 Nibi').click();
+    await $('[role="menuitem"]*=关于 NIBI').click();
     await assertAboutWindow();
     await clickTestIdByWebDriver(TID_TASK_SETTINGS_BUTTON);
     await $(`[data-testid="${TID_SETTINGS_PAGE}"]`).waitForDisplayed();
