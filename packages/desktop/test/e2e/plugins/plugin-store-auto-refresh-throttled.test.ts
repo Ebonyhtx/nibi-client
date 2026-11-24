@@ -2,12 +2,12 @@ import {
   clearAppData,
   clickTestIdByDom,
   waitForDefaultWorkspaceReady,
-} from "../../../helpers/desktop-app.js";
+} from "../helpers/desktop-app.js";
 import {
   PLUGIN_CDN_ZIP_ID,
   PLUGIN_CDN_ZIP_MARKETPLACE_ID,
   PLUGIN_CDN_ZIP_OFFLINE_LAST_UPDATED,
-} from "../../../helpers/plugin-cdn-zip-marketplace.js";
+} from "../helpers/plugin-cdn-zip-marketplace.js";
 import {
   capturePluginManualReview,
   getPluginOverview,
@@ -16,7 +16,7 @@ import {
   requirePluginManualReview,
   waitForPluginCard,
   waitForPluginControl,
-} from "../../../helpers/plugin-management-lifecycle.js";
+} from "../helpers/plugin-management-lifecycle.js";
 
 const THROTTLED_TIMEOUT_MS = 120000;
 // 自动刷新若被误触发，operationId 会立刻置为 marketplace:update:*；等一个远大于 UI 调度延迟

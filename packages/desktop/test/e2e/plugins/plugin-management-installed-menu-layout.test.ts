@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { clearAppData, getE2EAppDataPaths } from "../../../helpers/desktop-app.js";
-import { seedOfficialPluginsViaCli } from "../../../helpers/tier2-sixth-batch.js";
+import { clearAppData, getE2EAppDataPaths } from "../helpers/desktop-app.js";
+import { seedOfficialPluginsViaCli } from "../helpers/tier2-sixth-batch.js";
 import {
   capturePluginManualReview,
   clickPluginControl,
@@ -11,7 +11,7 @@ import {
   restartPluginLifecycleApp,
   selectPluginSettingsScope,
   waitForPluginControl,
-} from "../../../helpers/plugin-management-lifecycle.js";
+} from "../helpers/plugin-management-lifecycle.js";
 
 // 产品规则：项目层只能禁用插件，Workspace 的「启用」会提升到 user。
 // 所以 enabledSource=workspace 的覆盖要通过「在 Workspace scope 暂停」创建。

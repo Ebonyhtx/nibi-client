@@ -1,7 +1,7 @@
 # 插件用例下一批复核材料（2026-11-24）
 
-> 状态：**复核材料已准备，未转正、未加入 Docker/native preset**。PLM-LC-017/018/019 均建议通过；
-> 019 已改用 NIBI 官方市场源复跑通过。
+> 状态：**运营者已批准**。PLM-LC-017/018 已转正并完成 Linux Docker 准入；PLM-LC-019 按用例目录的
+> `never formal CI` 保持 manual-review 公网 smoke，不转正、不进 preset。
 
 ## 运行环境
 
@@ -21,7 +21,8 @@
 
 ## PLM-LC-017 已安装行内菜单布局
 
-**结论：建议通过。** run `desktop-e2e-20261124-040332-920`。
+**结论：已批准并转正。** 本地 run `desktop-e2e-20261124-040332-920`；Docker replay-isolated
+`desktop-e2e-20261124-044245-176` 通过，已写入 `plugins-verified`。
 
 - 场景：user 层启用内置 `skill-creator@nibi-official`，在 Settings → Plugins 切到 Workspace
   scope，通过行内「…」菜单暂停插件，形成 `enabledSource=workspace`。
@@ -39,7 +40,8 @@
 
 ## PLM-LC-018 官方市场节流
 
-**结论：建议通过（离线）。** run `desktop-e2e-20261124-040849-641`。
+**结论：已批准并转正。** 本地 run `desktop-e2e-20261124-040849-641`；Docker replay-isolated
+`desktop-e2e-20261124-045909-1079` 通过，已写入 `plugins-verified`。
 
 - 场景：wdio seed 把官方市场 `lastUpdated` 写成启动前 1 分钟（命中 10 分钟节流窗口）。
 - 断言：进入商店页、离开后从侧栏重进，官方市场时间戳保持不变；无 `refreshFailure`；
@@ -51,7 +53,8 @@
 
 ## PLM-LC-019 官方市场进入即刷新（公网）
 
-**结论：建议通过（公网）。** run `desktop-e2e-20261124-042719-701`。
+**结论：已批准，保持 manual/public。** 公网 run `desktop-e2e-20261124-042719-701` 通过；
+按用例目录的 `never formal CI`，不转正、不进 Docker/native preset。
 
 - 场景：wdio seed 把官方市场 `lastUpdated` 写成远古时间，进入商店页不点刷新，等待官方市场
   自动刷新；离开后重进命中 10 分钟节流。
@@ -64,9 +67,9 @@
 
 ## 代码改动（仅 pending spec / 共享 helper）
 
-- `plugins/manual-review/pending/plugin-management-installed-menu-layout.test.ts`：seed 内置插件；
+- `plugins/plugin-management-installed-menu-layout.test.ts`：seed 内置插件；
   user 启用 + Workspace 暂停；等待 scope 菜单/菜单触发器；保留布局与截图断言。
-- `plugins/manual-review/pending/plugin-store-auto-refresh-throttled.test.ts`：
+- `plugins/plugin-store-auto-refresh-throttled.test.ts`：
   `claude-plugins-official` 记录缺失时不再空指针，记录存在时仍断言时间戳不变。
 - `test/e2e/helpers/plugin-management-lifecycle.ts`：`selectPluginSettingsScope` 等待异步
   Projects 子菜单或平铺选项出现。
@@ -79,9 +82,8 @@
 ## 门禁与遗留
 
 - `pnpm --filter @nibi/desktop typecheck:e2e` 通过。
-- `e2e:fixture:check --spec <017/018/019>` 报 case-local fixture 与 case manifest 缺失：这三条
-  pending spec 目前依赖 wdio seed 与 `common.json`，没有独立 case 合同。转正前需要补
-  `fixtures/upstream/plugin-management/<case>.json` 与 `fixtures/cases/plugins/<case>.json`，
-  或由运营者确认这类纯 UI 用例的豁免口径。
-- 复核通过后的转正步骤仍走 `e2e:promote:plugins --reviewed --apply`、单 spec Docker 准入与
-  native preset；本文件不代替人工结论。
+- PLM-LC-017/018 已补 case manifest 与 case-local fixture，`e2e:fixture:check --spec <017/018>` 通过。
+- 两条 spec 逐条 replay-isolated Docker 通过（run id 见上），`plugins-verified` 全量 **13/13**
+  通过（`desktop-e2e-20261124-050210-597`）。
+- macOS/Windows CI 两列待 dev push 触发 native CI 后改 `verified`；本文件不代替平台实跑证据。
+- PLM-LC-019 按 `never formal CI` 保持 manual/public，不补正式 case 合同。
