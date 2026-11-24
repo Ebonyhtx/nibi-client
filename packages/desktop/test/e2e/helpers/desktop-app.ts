@@ -1153,6 +1153,10 @@ export async function setCurrentElectronRendererContentSize(
         };
       }
 
+      // 窗口被最小化/隐藏时 setContentSize 不会立即反映到 getContentSize（实测返回 0x0）；
+      // 先恢复并显示窗口，再测量与设置内容尺寸。
+      if (target.isMinimized()) target.restore();
+      if (!target.isVisible()) target.show();
       const [originalWidth = 0, originalHeight = 0] = target.getContentSize();
       // 修复原因：macOS CI 的虚拟显示可用高度可能小于用例请求值（实测 1440x720 被系统夹到
       // 1440x677），窗口不会超过工作区。先按「工作区高度 - 窗口框高」算出可用内容高度，
@@ -1160,7 +1164,10 @@ export async function setCurrentElectronRendererContentSize(
       const display = electron.screen.getPrimaryDisplay();
       const bounds = target.getBounds();
       const contentBounds = target.getContentBounds();
-      const frameHeight = Math.max(0, bounds.height - contentBounds.height);
+      // 窗口尚未布局/隐藏时 contentBounds 可能是 0x0；此时不能把整个 bounds 当成框高，
+      // 否则会把请求高度错误地夹到接近 0。
+      const frameHeight =
+        contentBounds.height > 0 ? Math.max(0, bounds.height - contentBounds.height) : 0;
       const effectiveWidth = Math.min(nextWidth, Math.max(1, display.workAreaSize.width));
       const effectiveHeight =
         nextHeight === undefined
