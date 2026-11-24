@@ -15,6 +15,7 @@
 | [test-command-guide.md](./test-command-guide.md) | 日常测试与类型检查命令 |
 | [pre-push-hook.md](./pre-push-hook.md) | pre-push 门禁与 affected 选择 |
 | [desktop-e2e-container.md](./desktop-e2e-container.md) | Linux 容器运行桌面 E2E |
+| [desktop-e2e-native-ci.md](./desktop-e2e-native-ci.md) | macOS/Windows 原生 Electron E2E（手动 dispatch，选同一份 verified preset） |
 | [desktop-e2e-reporting.md](./desktop-e2e-reporting.md) | E2E 报告与失败产物 |
 | [desktop-e2e-runtime-performance.md](./desktop-e2e-runtime-performance.md) | E2E 运行时性能规范 |
 | [e2e-sse-capture-replay.md](./e2e-sse-capture-replay.md) | 桌面 E2E 的 SSE 录制/回放 |

@@ -1,6 +1,7 @@
 # Desktop Formal Manual E2E CI
 
-> 历史文档（GitLab 时代）：当前 CI 是 GitHub Actions，仓库没有 `.gitlab/` 与该脚本；桌面 E2E 入口见 `.github/workflows/`。
+> 历史文档（GitLab 时代）：当前 CI 是 GitHub Actions，仓库没有 `.gitlab/` 与该脚本；桌面 E2E 入口见 `.github/workflows/`
+> （Linux 容器 `desktop-e2e.yml`；macOS/Windows 原生手动入口见 [desktop-e2e-native-ci.md](./desktop-e2e-native-ci.md)）。
 
 ## 背景
 

@@ -1,0 +1,111 @@
+name: desktop-e2e-native
+
+# macOS / Windows 原生 Electron E2E。准入规则 6 要求「已准入的 preset 除 Linux 外，
+# 还必须由 macOS 与 Windows CI 选中同一份 formal spec 集」；本 workflow 不另抄清单，
+# 直接调用 scripts/test-desktop-e2e-container.sh --print-spec <preset> 取同一份集合，
+# 避免容器 preset 与 native CI 两份清单漂移。
+#
+# 只保留 workflow_dispatch：GitHub 的 macOS runner 按 10 倍计费，是否把它变成 push 门禁
+# 是运营者的成本决定。手动触发一次并记录产物后，再讨论升级为自动触发。
+#
+# 所有 action 必须钉到完整 commit SHA（public-repo-policy 要求）。
+
+on:
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: "要运行的已验证集合：plugins = 11 条插件 spec；conversation-session = 4 条会话 spec；all-verified = 两者并集"
+        required: true
+        type: choice
+        default: plugins
+        options:
+          - plugins
+          - conversation-session
+          - all-verified
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-e2e-native-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  desktop-e2e-native:
+    name: desktop-e2e-native (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+      PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS: "1"
+      TURBO_TELEMETRY_DISABLED: "1"
+      # 普通 replay 启动本地 provider fixture server，不访问真实上游，也不需要 API key。
+      E2E_PROVIDER_HTTP_MODE: replay
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 10.33.2
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.22.1"
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: "1.95.0"
+      - name: Install dependencies
+        shell: bash
+        run: bash scripts/pnpm-install-ci.sh
+      # WDIO onPrepare 只消费已构建的内核二进制（桌面本地 Agent 没有 Node 回退）。
+      # debug 构建足够跑 E2E，且比 release 快一个数量级。
+      - name: Build the Rust kernel (debug)
+        working-directory: kernel
+        shell: bash
+        run: cargo build --locked -p nibi-kernel-cli --bin nibi-rs
+      - name: Build the E2E report package
+        shell: bash
+        run: pnpm --filter @nibi/e2e-report build:node
+      # 预设的唯一事实源是容器脚本；这里只解析并拼接，不复制任何 spec 路径。
+      - name: Resolve the verified spec set
+        id: spec
+        shell: bash
+        env:
+          TARGETS: ${{ inputs.targets }}
+        run: |
+          set -euo pipefail
+          case "$TARGETS" in
+            plugins)
+              spec="$(bash scripts/test-desktop-e2e-container.sh --print-spec plugins-verified)"
+              ;;
+            conversation-session)
+              spec="$(bash scripts/test-desktop-e2e-container.sh --print-spec conversation-session-verified)"
+              ;;
+            all-verified)
+              spec="$(bash scripts/test-desktop-e2e-container.sh --print-spec conversation-session-verified),$(bash scripts/test-desktop-e2e-container.sh --print-spec plugins-verified)"
+              ;;
+            *)
+              echo "unsupported targets: $TARGETS" >&2
+              exit 1
+              ;;
+          esac
+          test -n "$spec"
+          printf 'spec=%s\n' "$spec" >> "$GITHUB_OUTPUT"
+      - name: Run the native Electron E2E
+        shell: bash
+        env:
+          NIBI_E2E_SPEC: ${{ steps.spec.outputs.spec }}
+        run: pnpm --filter @nibi/desktop exec wdio run wdio.conf.ts
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: desktop-e2e-native-${{ matrix.os }}-artifacts
+          path: packages/desktop/.e2e-artifacts/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: warn

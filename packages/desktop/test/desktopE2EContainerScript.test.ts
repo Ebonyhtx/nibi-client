@@ -141,13 +141,101 @@ function runContainerScriptWithFakeDocker(env: Record<string, string>) {
   }
 }
 
+describe("desktop E2E verified spec source", () => {
+  // `--print-spec` 必须在任何 Docker 检查之前退出：这里把 docker 换成必然失败的桩，
+  // 一旦脚本仍去探测 daemon，status 就会变成 1。
+  function printSpec(preset: string) {
+    const dir = mkdtempSync(join(tmpdir(), "nibi-e2e-print-spec-"));
+    try {
+      const binDir = join(dir, "bin");
+      mkdirSync(binDir);
+      writeFileSync(join(binDir, "docker"), "#!/usr/bin/env bash\nexit 42\n", { mode: 0o755 });
+      const result = spawnSync("bash", [containerScriptPath, "--print-spec", preset], {
+        cwd: repoRoot,
+        encoding: "utf8",
+        env: { ...process.env, PATH: `${binDir}:${process.env.PATH ?? ""}` },
+      });
+      return {
+        status: result.status,
+        stdout: (result.stdout ?? "").trim(),
+        stderr: result.stderr ?? "",
+      };
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  function assignment(name: string) {
+    return (
+      readFileSync(containerScriptPath, "utf-8").match(
+        new RegExp(`^${name}="([^"]*)"$`, "m"),
+      )?.[1] ?? ""
+    );
+  }
+
+  it("prints the plugins-verified preset without touching Docker", () => {
+    const result = printSpec("plugins-verified");
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).not.toContain("Docker daemon is not reachable");
+    expect(result.stdout).toBe(assignment("PLUGIN_MANAGEMENT_VERIFIED_E2E_SPEC"));
+    expect(result.stdout.split(",").filter(Boolean).length).toBeGreaterThan(0);
+  });
+
+  it("prints the conversation-session-verified preset without touching Docker", () => {
+    const result = printSpec("conversation-session-verified");
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe(assignment("CONVERSATION_SESSION_VERIFIED_E2E_SPEC"));
+  });
+
+  it("keeps the default preset and rejects unknown preset names", () => {
+    expect(printSpec("default").stdout).toBe(assignment("DEFAULT_E2E_SPEC"));
+    expect(printSpec("no-such-preset").status).not.toBe(0);
+  });
+});
+
+describe("desktop E2E native CI selection", () => {
+  const workflowPath = resolve(repoRoot, ".github/workflows/desktop-e2e-native.yml");
+
+  it("selects the same verified presets on macOS and Windows", () => {
+    const workflow = readFileSync(workflowPath, "utf-8");
+
+    expect(workflow).toContain("macos-latest");
+    expect(workflow).toContain("windows-latest");
+    // 预设的唯一事实源是容器脚本；workflow 不得自带第二份 spec 路径。
+    expect(workflow).toContain("--print-spec plugins-verified");
+    expect(workflow).toContain("--print-spec conversation-session-verified");
+    expect(workflow).not.toContain("./test/e2e/");
+    expect(workflow).toContain("E2E_PROVIDER_HTTP_MODE: replay");
+  });
+
+  it("stays manually dispatched so macOS billing is an explicit decision", () => {
+    const workflow = readFileSync(workflowPath, "utf-8");
+
+    expect(workflow).toMatch(/^on:\n {2}workflow_dispatch:/m);
+    expect(workflow).not.toMatch(/^ {2}push:/m);
+    expect(workflow).not.toMatch(/^ {2}pull_request:/m);
+  });
+
+  it("pins every action to a full commit SHA", () => {
+    const workflow = readFileSync(workflowPath, "utf-8");
+    const uses = [...workflow.matchAll(/^\s*(?:-\s*)?uses:\s*(\S+)/gm)].map((match) => match[1]);
+
+    expect(uses.length).toBeGreaterThan(0);
+    for (const spec of uses) expect(spec).toMatch(/@[0-9a-f]{40}$/);
+  });
+});
+
 describe.skipIf(process.platform === "win32")("desktop E2E container upstream provider env", () => {
   it("ci 预设把默认 smoke 与已验证的会话 spec 合成一份清单", () => {
     const result = runContainerScriptWithFakeDocker({ E2E_SPEC_PRESET: "ci" });
 
     expect(result.status).toBe(0);
     expect(result.runArgs).toContain("NIBI_E2E_SPEC=./test/e2e/container-boot.test.ts");
-    expect(result.runArgs).toContain("conversation-session-ask-user-question-keyboard-default-focus.test.ts");
+    expect(result.runArgs).toContain(
+      "conversation-session-ask-user-question-keyboard-default-focus.test.ts",
+    );
   });
 
   it("capture 模式把上游地址、模型与 preset 透传给容器", () => {

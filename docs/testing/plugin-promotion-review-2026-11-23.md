@@ -8,7 +8,9 @@
 > 截图存放在 `packages/desktop/.e2e-artifacts/plugin-management/`（不入库）。原始证据来自 2026-11-22
 > Windows 真机 manual-review；2026-11-23 修掉「公开/个人」重复分段与错误文案语言后，受影响用例
 > 已用 replay fixture 重跑刷新截图；`plugin-management-ui-market` 已于 2026-11-24 在带 ffmpeg 的
-> 环境完整绿跑（`desktop-e2e-20261123-160205-155`）。
+> 环境完整绿跑（`desktop-e2e-20261123-160205-155`）。macOS/Windows CI 已由
+> `.github/workflows/desktop-e2e-native.yml` 选中同一份 `plugins-verified` 集合（矩阵记 `selected`；
+> 该 workflow 手动 dispatch，首次实跑通过后再改 `verified`）。
 
 ## 复核范围（12 例）
 
