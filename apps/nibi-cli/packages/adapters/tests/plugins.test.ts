@@ -1535,7 +1535,7 @@ describe("NodePluginAdapter", () => {
         enabled: true,
         source: "cache",
       });
-      expect(outcome.skillRoots[0]?.path).toContain(join("hello", "1.2.3", "skills"));
+      expect(outcome.skillRoots[0]?.path).toContain(join("views", "hello@third-party", "skills"));
       expect(outcome.mcpServers["plugin:hello:local"]).toMatchObject({
         command: "node",
         type: "stdio",
@@ -1669,7 +1669,7 @@ describe("NodePluginAdapter", () => {
         storageRoot,
         workingDirectory: dir,
       });
-      expect(outcome.commandRoots[0]?.path).toContain(join("atomic-agents", "0.0.0", "commands"));
+      expect(outcome.commandRoots[0]?.path).toContain(join("views", "atomic-agents@official-like-url-path", "commands"));
       const installedManifest = await readFile(
         join(
           storageRoot,
@@ -1866,7 +1866,7 @@ describe("NodePluginAdapter", () => {
           version: "1.2.3",
         },
       );
-      expect(outcome.commandRoots[0]?.path).toContain(join("cdn-plugin", "1.2.3", "commands"));
+      expect(outcome.commandRoots[0]?.path).toContain(join("views", "cdn-plugin@cdn-market", "commands"));
     } finally {
       await closeServer(server);
       await rm(dir, { force: true, recursive: true });
@@ -3537,7 +3537,7 @@ describe("NodePluginAdapter", () => {
         }),
       );
       expect(outcome.skillRoots).toContainEqual(
-        expect.objectContaining({ path: expect.stringContaining(join("offline-plugin", "1.0.0")) }),
+        expect.objectContaining({ path: expect.stringContaining(join("views", "offline-plugin@offline-cache-market")) }),
       );
     } finally {
       await rm(dir, { force: true, recursive: true });
@@ -3860,7 +3860,7 @@ describe("NodePluginAdapter", () => {
         command: 'python3 "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.py"',
         plugin: {
           id: "hookify@claude-plugins-official",
-          rootPath: expect.stringContaining(join("hookify", "0.0.0")),
+          rootPath: expect.stringContaining(join("views", "hookify@claude-plugins-official")),
         },
         type: "command",
       });

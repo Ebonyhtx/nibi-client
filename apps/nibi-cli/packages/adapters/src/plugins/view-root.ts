@@ -1,80 +1,116 @@
 import { createHash, randomUUID } from "node:crypto";
 import {
   chmodSync,
+  copyFileSync,
+  existsSync,
+  linkSync,
   lstatSync,
+  mkdirSync,
+  readFileSync,
   readdirSync,
-  rmSync,
+  readlinkSync,
+  renameSync,
+  rmdirSync,
+  statSync,
+  symlinkSync,
+  unlinkSync,
+  writeFileSync,
   type Dirent,
 } from "node:fs";
-import {
-  chmod,
-  copyFile,
-  lstat,
-  mkdir,
-  readFile,
-  readdir,
-  rename,
-  rm,
-  stat,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { sanitizePluginId } from "./helpers.js";
 
 /**
  * 插件 view root 物化（计划 B §6.5）。
  *
- * 外部插件目录对 Host 是只读输入：插件可能是 git 工作区、下载缓存或用户手工维护的目录，
- * 直接在里面写状态会污染用户数据，也让「这段代码有没有被改过」不可判定。
- * 因此 Host 为每个插件生成一份自己的副本 `~/.nibi/plugins/views/<pluginId>/`，
- * 把清单、技能、命令、agents 和 hooks 收敛到 Host 可控的位置，运行时只读这份副本。
+ * 外部插件目录对 Host 是只读输入：插件可能是 git 工作区、下载缓存或用户手工维护的目录。
+ * Host 为每个插件生成一份自己的视图 `~/.nibi/plugins/views/<pluginId>/`，运行时只读这份视图。
  *
- * 副本可以是指向源码目录的符号链接（省磁盘、跟手改），也可以是实体复制（跨设备稳定）；
- * 两者都以「视图根」为唯一读取入口，调用方不需要感知差异。
+ * ## 为什么不是「挑几个组件目录复制」
+ *
+ * 第一版只复制了 `manifest.json` / `skills` / `commands` / `agents` / `hooks.json`。
+ * 一旦让运行时改读视图根，插件就会**静默丢功能**：`mcp.json` 不见了、清单里自定义的
+ * `skills: "./custom/x"` 不见了、`runtime.entry` 指的文件不见了。Node 适配器与 Rust `ext`
+ * 都是直接扫插件目录的，所以视图根必须**逐条等价**，不能只覆盖常见布局。
+ *
+ * ## 为什么不是「符号链接」
+ *
+ * 组件扫描器出于信任边界**刻意不跟随链接**（`scanSkillFilesUnderRootSync` 的
+ * `followSymbolicLinks: false`）。把 `skills/` 做成 junction/符号链接后，扫描器看到的是
+ * 一个空目录——技能、命令、agent 会全部消失。链接方案在这里不可用。
+ *
+ * ## 采用的形态：真实目录 + 硬链接文件
+ *
+ * 视图根用**真实目录**复刻源目录结构，文件用硬链接（同一 inode，零额外磁盘，
+ * 内容与源目录天然一致）。这样：
+ * 1. 扫描器看到普通目录/普通文件，行为与读源目录完全一致；
+ * 2. 不占双份磁盘（硬链接不复制数据）；
+ * 3. 不可能陈旧——读到的就是源文件本体。
+ *
+ * 硬链接失败（跨卷、文件系统不支持）时退回复制；复制模式下必须通过**相对文件集合**
+ * 等价性校验才允许使用，校验不过就报错，而不是降级成「少几个文件」。
+ *
+ * 规范清单写在根 `plugin.json`：Node 与 Rust 的清单候选列表都以根 `plugin.json` 优先，
+ * 因此两边读取结果一致，且 Rust 对已摊平清单再摊平一次是无害的（没有 extensions 时原样返回）。
+ *
+ * 幂等判据：规范清单字节相同即视为当前（其中含来源、版本、`packageHash`；没有 hash 的
+ * 来源还含源目录 stamp）。有 hash 时判断是 O(1)，启动路径可以放心反复调用。
  */
 
 export const PLUGIN_VIEWS_DIR = "views";
 
-const VIEW_MANIFEST_FILE = "manifest.json";
-const VIEW_HOOKS_FILE = "hooks.json";
-const VIEW_COMPONENT_DIRECTORIES = ["skills", "commands", "agents"] as const;
-const STANDARD_HOOKS_RELATIVE_PATH = join("hooks", "hooks.json");
-/** 复制时跳过的噪音目录：版本库元数据与依赖树不属于插件内容，且可能巨大/含链接环。 */
-const SKIPPED_COPY_DIRECTORIES = new Set([".git", "node_modules"]);
-/** `getPluginViewRoot` 兜底名：空 id、"." 与 ".." 用内容 hash 生成稳定目录名。 */
-const FALLBACK_VIEW_ROOT_PREFIX = "plugin-";
+/** 视图根里的规范化清单文件名：必须是读取方第一个候选。 */
+const VIEW_MANIFEST_FILE = "plugin.json";
+/** 视图自身的实现元数据（模式/来源）。读取方不认识它，也不参与等价性校验。 */
+const VIEW_META_FILE = ".nibi-view.json";
+/** 源目录里不进入视图的噪音：版本库元数据对运行时没有意义。 */
+const SKIPPED_SOURCE_ENTRIES = new Set([".git"]);
 /**
  * 原子替换留下的临时目录名：`<name>.tmp-<pid>-<uuid>` / `<name>.old-<pid>-<uuid>`。
- * 列举视图根时必须排除它们，否则崩溃残留会被当成一个插件目录暴露给 UI。
+ * 列举视图根时必须排除，否则崩溃残留会被当成一个插件目录暴露给 UI。
  */
 const TRANSIENT_VIEW_ROOT_PATTERN =
   /\.(?:tmp|old)-\d+-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** 视图根改名备份/暂存的临时后缀（与上面的模式对应）。 */
+const TRANSIENT_SUFFIX_PATTERN = /\.(?:tmp|old)-\d+-[0-9a-f-]{36}$/i;
 
-type ViewRootMode = "copy" | "symlink";
+type ViewRootMode = "mirror" | "copy";
+
+interface ViewRootStamp {
+  bytes: number;
+  files: number;
+  maxMtimeMs: number;
+}
+
+interface ViewRootMeta {
+  mode: ViewRootMode;
+  sourceRoot: string;
+}
 
 export interface MaterializePluginViewRootInput {
   storageRoot: string;
   pluginId: string;
+  /** 插件源根目录（只读输入，不会被改写）。 */
   rootPath: string;
+  /** 已归一化的清单（NIBI 扩展已摊平）。 */
   manifest: Record<string, unknown>;
+  /**
+   * 源清单相对插件根的 POSIX 路径（`plugin.json` / `.claude-plugin/plugin.json` …）。
+   *
+   * 必须排除它：视图根写的是规范化后的根 `plugin.json`，如果再把原清单复刻进来，
+   * 会出现两个身份来源；对 `.claude-plugin/plugin.json` 这种嵌套位置还会让读取方
+   * 看到「根清单 + 旧目录清单」并存的矛盾状态。
+   */
+  manifestRelativePath?: string;
   origin: string;
   version?: string;
   packageHash?: string;
-  mode?: "copy" | "symlink";
 }
 
-interface ViewRootHooksPlan {
-  /** 已存在的 `hooks/hooks.json` 原样复制，保留插件作者写下的格式与顺序。 */
-  kind: "file" | "manifest";
-  path?: string;
-  bytes?: Buffer;
-}
-
-interface ViewRootPlan {
-  /** 源目录里真实存在的组件目录（顶层符号链接不算，与 copy 的跳过规则一致）。 */
-  componentDirectories: string[];
-  hooks: ViewRootHooksPlan | null;
+export interface PluginViewRootResult {
+  mode: ViewRootMode;
+  viewRoot: string;
+  wrote: boolean;
 }
 
 /**
@@ -88,7 +124,7 @@ export function getPluginViewRoot(storageRoot: string, pluginId: string): string
   const sanitized = sanitizePluginId(pluginId);
   if (sanitized === "" || sanitized === "." || sanitized === "..") {
     const digest = createHash("sha256").update(pluginId).digest("hex").slice(0, 16);
-    return join(storageRoot, PLUGIN_VIEWS_DIR, `${FALLBACK_VIEW_ROOT_PREFIX}${digest}`);
+    return join(storageRoot, PLUGIN_VIEWS_DIR, `plugin-${digest}`);
   }
   return join(storageRoot, PLUGIN_VIEWS_DIR, sanitized);
 }
@@ -118,85 +154,106 @@ export function listPluginViewRoots(storageRoot: string): string[] {
 /**
  * 删除视图根，返回是否真的删掉了东西。
  *
- * 物化时会把目录 chmod 成只读；POSIX 上只读目录连自己的子项都不允许 unlink，
- * 所以 rm 失败后先恢复写权限再重试，避免移除功能被只读意图反噬。
+ * 视图根里是硬链接与真实目录：删除只移除链接本身，不会动到源文件数据。
+ * 仍然逐条 `lstat`（而不是 `rm -rf`），因为源插件可能自带符号链接，
+ * 递归删除跟进去就会删到插件根之外。
  */
 export function removePluginViewRoot(storageRoot: string, pluginId: string): boolean {
   const viewRoot = getPluginViewRoot(storageRoot, pluginId);
-  try {
-    lstatSync(viewRoot);
-  } catch {
-    return false;
-  }
-  try {
-    rmSync(viewRoot, { force: true, maxRetries: 2, recursive: true, retryDelay: 25 });
-  } catch {
-    chmodTreeWritableSync(viewRoot);
-    rmSync(viewRoot, { force: true, maxRetries: 2, recursive: true, retryDelay: 25 });
-  }
+  if (!pathExistsSync(viewRoot)) return false;
+  removeViewTree(viewRoot);
   return true;
 }
 
 /**
- * 物化插件视图根。
+ * 判断现有视图根是否与给定输入等价。
  *
- * 幂等判据：清单字节完全相同且组件条目集合相同就完全不动磁盘（连 mtime 都不变），
- * 让启动/刷新路径可以放心反复调用。
- *
- * 变化时先写临时目录再 rename：直接覆盖会留下「清单已是新的、组件还是旧的」的半成品，
- * 而原子替换保证读取方要么看到完整旧版本、要么看到完整新版本。
+ * 判据是规范清单字节完全相同（含来源、版本、`packageHash`；没有 hash 的来源还含源目录
+ * stamp）。有 hash 时是 O(1) 读取，因此启动路径可以放心反复调用。
  */
-export async function materializePluginViewRoot(
+export function isPluginViewRootCurrentSync(
+  storageRoot: string,
   input: MaterializePluginViewRootInput,
-): Promise<{ viewRoot: string; wrote: boolean; mode: "copy" | "symlink" }> {
-  const viewRoot = getPluginViewRoot(input.storageRoot, input.pluginId);
-  const requestedMode: ViewRootMode = input.mode ?? "copy";
-  const plan = await buildViewRootPlan(input);
-  const manifestBytes = buildViewRootManifestBytes(input);
-
-  if (await isViewRootCurrent(viewRoot, manifestBytes, plan)) {
-    return {
-      viewRoot,
-      wrote: false,
-      mode: await detectViewRootMode(viewRoot, plan, requestedMode),
-    };
-  }
-
-  await mkdir(dirname(viewRoot), { recursive: true });
-  let stagedPath = createStagingPath(viewRoot);
-  let actualMode: ViewRootMode = requestedMode;
+): boolean {
+  const viewRoot = getPluginViewRoot(storageRoot, input.pluginId);
+  if (!isRealDirectorySync(viewRoot)) return false;
+  let stored: Buffer;
   try {
-    if (requestedMode === "symlink") {
-      try {
-        await writeStagedViewRoot(stagedPath, input, plan, manifestBytes, "symlink");
-      } catch {
-        // 平台/权限不允许目录链接（EPERM、受限容器等）时自动退回复制。
-        // 换一个新的临时目录重来，避免残留的半成品链接混进完整副本。
-        await removeTreeBestEffort(stagedPath);
-        stagedPath = createStagingPath(viewRoot);
-        actualMode = "copy";
-        await writeStagedViewRoot(stagedPath, input, plan, manifestBytes, "copy");
-      }
-    } else {
-      await writeStagedViewRoot(stagedPath, input, plan, manifestBytes, "copy");
-    }
-    await replaceViewRootAtomically(stagedPath, viewRoot);
-    // chmod 必须在 rename 之后：临时目录若提前变成 0555，替换失败时连自己的子项都删不掉。
-    await chmodTreeReadOnly(viewRoot);
-  } catch (error) {
-    await removeTreeBestEffort(stagedPath);
-    throw error;
+    stored = readFileSync(join(viewRoot, VIEW_MANIFEST_FILE));
+  } catch {
+    return false;
   }
-  return { viewRoot, wrote: true, mode: actualMode };
+  if (!stored.equals(buildViewRootManifestBytes(input))) return false;
+  // 顶层条目集合也要比：源目录新增/删除一个顶层目录（例如后来加的 `agents/`）时，
+  // 只比清单字节会漏判，视图就会缺一整类组件。这只是一次 readdir，代价可忽略。
+  const expected = new Set(skippedTopLevelEntries(input));
+  expected.add(VIEW_META_FILE);
+  const sourceNames = listDirectoryNames(input.rootPath).filter((name) => !expected.has(name));
+  // 视图里的 `plugin.json` 是 Host 写的规范清单，源目录没有对应条目，比较时要排除。
+  const viewNames = listDirectoryNames(viewRoot).filter(
+    (name) => name !== VIEW_META_FILE && name !== VIEW_MANIFEST_FILE,
+  );
+  return sameStringSets(sourceNames, viewNames);
 }
 
-/** 规范化清单：按 key 排序，保证同一份输入在任何进程/顺序下都产生相同字节。 */
+function listDirectoryNames(path: string): string[] {
+  try {
+    return readdirSync(path, { withFileTypes: true })
+      .filter((entry) => !TRANSIENT_SUFFIX_PATTERN.test(entry.name))
+      .map((entry) => entry.name);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 同步物化视图根。发现层是同步热路径，因此以同步实现为核心、异步版本只是包装。
+ *
+ * 返回 `null` 表示**无法建立等价视图**（复制校验不通过、权限失败等）。调用方必须
+ * 退回读源目录，而不是用一个不完整的视图去糊弄运行时——那会表现为插件功能静默消失。
+ */
+export function materializePluginViewRootSync(
+  input: MaterializePluginViewRootInput,
+): PluginViewRootResult | null {
+  const viewRoot = getPluginViewRoot(input.storageRoot, input.pluginId);
+  const manifestBytes = buildViewRootManifestBytes(input);
+  if (isPluginViewRootCurrentSync(input.storageRoot, input)) {
+    return { mode: readViewRootMode(viewRoot), viewRoot, wrote: false };
+  }
+
+  // mkdir 必须放进 try：views 路径被占用（文件/无权限）时要能回退，
+  // 而不是把「视图建不出来」升级成插件发现失败。
+  const stagedPath = createStagingPath(viewRoot);
+  try {
+    mkdirSync(dirname(viewRoot), { recursive: true });
+    const mode = writeStagedViewRootSync(stagedPath, input, manifestBytes);
+    replaceViewRootSync(stagedPath, viewRoot);
+    return { mode, viewRoot, wrote: true };
+  } catch {
+    removeViewTree(stagedPath);
+    return null;
+  }
+}
+
+/** 异步包装：安装/更新等已是异步的路径用它，避免调用方再包一层 Promise。 */
+export async function materializePluginViewRoot(
+  input: MaterializePluginViewRootInput,
+): Promise<PluginViewRootResult | null> {
+  return materializePluginViewRootSync(input);
+}
+
 function buildViewRootManifestBytes(input: MaterializePluginViewRootInput): Buffer {
   const viewMeta: Record<string, unknown> = { origin: input.origin };
   // 只写调用方显式给出的版本：清单自身已有 version 字段，这里记录的是「Host 认为自己在看哪一版」，
   // 二者混用会让消费方无法区分来源。
   if (input.version !== undefined) viewMeta.version = input.version;
-  if (input.packageHash !== undefined) viewMeta.packageHash = input.packageHash;
+  if (input.packageHash !== undefined) {
+    viewMeta.packageHash = input.packageHash;
+  } else {
+    // 没有包 hash 的来源（inline/本地目录）只能靠源目录 stamp 判断是否过期。
+    // 有 hash 时不写 stamp：否则每次发现都要遍历一遍才能比较，白付启动成本。
+    viewMeta.stamp = computeSourceStamp(input.rootPath);
+  }
   // `nibiViewRoot` 是 Host 保留的视图元数据，最后写入，防止插件用同名字段伪造来源。
   // 其余字段原样保留：视图清单首先是插件清单，宿主只追加一个命名空间。
   const manifest: Record<string, unknown> = {
@@ -206,287 +263,253 @@ function buildViewRootManifestBytes(input: MaterializePluginViewRootInput): Buff
   return Buffer.from(`${stableJson(manifest)}\n`, "utf8");
 }
 
-async function buildViewRootPlan(
+function writeStagedViewRootSync(
+  stagedPath: string,
   input: MaterializePluginViewRootInput,
-): Promise<ViewRootPlan> {
-  const componentDirectories: string[] = [];
-  for (const directory of VIEW_COMPONENT_DIRECTORIES) {
-    // 顶层组件目录本身是符号链接时不进入视图：copy 不跟随链接，
-    // symlink 模式也不应该把插件包外的任意目录直接暴露给运行时。
-    if (await isRealDirectory(join(input.rootPath, directory))) {
-      componentDirectories.push(directory);
+  manifestBytes: Buffer,
+): ViewRootMode {
+  mkdirSync(stagedPath, { recursive: true });
+  writeFileSync(join(stagedPath, VIEW_MANIFEST_FILE), manifestBytes);
+  const skippedTopLevel = skippedTopLevelEntries(input);
+  const stats = mirrorDirectorySync(input.rootPath, stagedPath, skippedTopLevel, true);
+  if (stats.copiedFiles > 0) {
+    // 有文件退回了复制：必须证明视图与源目录的文件集合完全一致，否则宁可不用视图。
+    const expected = listRelativeFiles(input.rootPath, skippedTopLevel, true);
+    const actual = listRelativeFiles(stagedPath, new Set([VIEW_META_FILE]), true);
+    if (!sameStringSets(actual, expected)) {
+      throw new Error("Plugin view root copy is not equivalent to the source directory");
     }
   }
-
-  let hooks: ViewRootHooksPlan | null = null;
-  const standardHooksPath = join(input.rootPath, STANDARD_HOOKS_RELATIVE_PATH);
-  if (await isRegularFileFollowingLinks(standardHooksPath)) {
-    // 文件存在时以文件为准：插件作者已经把 hooks 抽到独立文件，清单里的 hooks 只是兼容字段。
-    hooks = { kind: "file", path: standardHooksPath };
-  } else if (isPlainRecord(input.manifest.hooks)) {
-    // 没有独立文件时把清单内联 hooks 落成 JSON，让运行时只读一种路径。
-    hooks = {
-      kind: "manifest",
-      bytes: Buffer.from(`${stableJson(input.manifest.hooks)}\n`, "utf8"),
-    };
-  }
-  return { componentDirectories, hooks };
-}
-
-async function isViewRootCurrent(
-  viewRoot: string,
-  expectedManifest: Buffer,
-  plan: ViewRootPlan,
-): Promise<boolean> {
-  if (!(await isRealDirectory(viewRoot))) return false;
-  let storedManifest: Buffer;
-  try {
-    storedManifest = await readFile(join(viewRoot, VIEW_MANIFEST_FILE));
-  } catch {
-    return false;
-  }
-  if (!storedManifest.equals(expectedManifest)) return false;
-
-  let names: string[];
-  try {
-    names = (await readdir(viewRoot, { withFileTypes: true }))
-      .filter((entry) => entry.name !== VIEW_MANIFEST_FILE)
-      .map((entry) => entry.name);
-  } catch {
-    return false;
-  }
-  const expected = [
-    ...plan.componentDirectories,
-    ...(plan.hooks ? [VIEW_HOOKS_FILE] : []),
-  ].sort();
-  names.sort();
-  return (
-    names.length === expected.length &&
-    names.every((name, index) => name === expected[index])
-  );
+  const mode: ViewRootMode = stats.copiedFiles > 0 ? "copy" : "mirror";
+  const meta: ViewRootMeta = { mode, sourceRoot: resolve(input.rootPath) };
+  writeFileSync(join(stagedPath, VIEW_META_FILE), `${stableJson(meta)}\n`, "utf8");
+  return mode;
 }
 
 /**
- * 判断已有视图根的物化方式。
+ * 顶层跳过项：噪音目录 + 源清单。
  *
- * 组件目录都是链接即 symlink；没有组件目录时无从判断，回退到本次请求的模式。
- * 清单里刻意不记录 mode：`nibiViewRoot` 只保存来源元数据，避免把可变实现细节写进字节比对。
+ * `manifestRelativePath` 可能是嵌套路径（`.claude-plugin/plugin.json`）；嵌套情况整个
+ * 目录都不复刻，否则视图里会同时出现根清单与旧目录清单两个身份来源。
  */
-async function detectViewRootMode(
-  viewRoot: string,
-  plan: ViewRootPlan,
-  requestedMode: ViewRootMode,
-): Promise<ViewRootMode> {
-  if (plan.componentDirectories.length === 0) return requestedMode;
-  for (const directory of plan.componentDirectories) {
-    try {
-      if (!(await lstat(join(viewRoot, directory))).isSymbolicLink()) return "copy";
-    } catch {
-      return "copy";
-    }
-  }
-  return "symlink";
+function skippedTopLevelEntries(input: MaterializePluginViewRootInput): Set<string> {
+  const skipped = new Set(SKIPPED_SOURCE_ENTRIES);
+  const relative = input.manifestRelativePath?.replace(/\\/gu, "/");
+  if (relative) skipped.add(relative.split("/")[0] ?? relative);
+  return skipped;
 }
 
-async function writeStagedViewRoot(
-  stagedPath: string,
-  input: MaterializePluginViewRootInput,
-  plan: ViewRootPlan,
-  manifestBytes: Buffer,
-  mode: ViewRootMode,
-): Promise<void> {
-  await mkdir(stagedPath, { recursive: true });
-  await writeFile(join(stagedPath, VIEW_MANIFEST_FILE), manifestBytes);
-  for (const directory of plan.componentDirectories) {
-    const source = join(input.rootPath, directory);
-    const destination = join(stagedPath, directory);
-    if (mode === "symlink") {
-      await symlinkDirectory(source, destination);
-    } else {
-      await copyDirectoryTree(source, destination);
-    }
-  }
-  if (plan.hooks) {
-    const destination = join(stagedPath, VIEW_HOOKS_FILE);
-    if (plan.hooks.kind === "file" && plan.hooks.path) {
-      await copyFile(plan.hooks.path, destination);
-    } else if (plan.hooks.bytes) {
-      await writeFile(destination, plan.hooks.bytes);
-    }
-  }
+interface MirrorStats {
+  copiedFiles: number;
 }
 
-async function symlinkDirectory(source: string, destination: string): Promise<void> {
-  // Windows 只有目录 junction 不需要管理员/开发者模式；文件符号链接需要额外权限，
-  // 因此目录一律用 junction，其余平台用 "dir" 保持 POSIX 语义。
-  const type = process.platform === "win32" ? "junction" : "dir";
-  // junction 的目标必须是绝对路径；相对源码根会让链接指向不可预测的位置。
-  await symlink(resolve(source), destination, type);
-}
-
-async function copyDirectoryTree(source: string, destination: string): Promise<void> {
-  const entries = await readdir(source, { withFileTypes: true });
-  await mkdir(destination, { recursive: true });
+/** 复刻目录结构；文件硬链接优先，失败退回复制。链接/特殊文件原样重建。 */
+function mirrorDirectorySync(
+  source: string,
+  destination: string,
+  skippedTopLevel: Set<string>,
+  isRoot: boolean,
+): MirrorStats {
+  const stats: MirrorStats = { copiedFiles: 0 };
+  let entries: Dirent[];
+  try {
+    entries = readdirSync(source, { withFileTypes: true });
+  } catch {
+    return stats;
+  }
   for (const entry of entries) {
-    // Dirent 不跟随链接，isSymbolicLink 能识别目录/文件链接；
-    // 跳过链接可以避免把插件根之外的内容带进视图，也避免链接环导致无限递归。
-    if (entry.isSymbolicLink()) continue;
-    if (entry.isDirectory()) {
-      if (SKIPPED_COPY_DIRECTORIES.has(entry.name)) continue;
-      await copyDirectoryTree(
-        join(source, entry.name),
-        join(destination, entry.name),
-      );
+    if (isRoot && skippedTopLevel.has(entry.name)) continue;
+    if (isRoot && TRANSIENT_SUFFIX_PATTERN.test(entry.name)) continue;
+    const from = join(source, entry.name);
+    const to = join(destination, entry.name);
+    if (entry.isSymbolicLink()) {
+      // 源插件自带的链接原样重建；扫描器不跟随链接，所以它不会扩大可见面。
+      const target = readLinkTargetSync(from);
+      if (target !== null) {
+        try {
+          symlinkSync(target, to);
+        } catch {
+          // 无法重建链接时跳过：它本来也不会被扫描器读取。
+        }
+      }
       continue;
     }
-    if (entry.isFile()) {
-      await copyFile(join(source, entry.name), join(destination, entry.name));
+    if (entry.isDirectory()) {
+      mkdirSync(to, { recursive: true });
+      stats.copiedFiles += mirrorDirectorySync(from, to, skippedTopLevel, false).copiedFiles;
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    try {
+      linkSync(from, to);
+    } catch {
+      try {
+        copyFileSync(from, to);
+        stats.copiedFiles += 1;
+      } catch {
+        // 复制也失败：交给上层等价性校验兜底（集合不一致 → 整个视图作废）。
+      }
     }
   }
+  return stats;
 }
 
-async function replaceViewRootAtomically(
-  stagedPath: string,
-  viewRoot: string,
-): Promise<void> {
+function computeSourceStamp(source: string): ViewRootStamp {
+  const stamp: ViewRootStamp = { bytes: 0, files: 0, maxMtimeMs: 0 };
+  const walk = (directory: string, isRoot: boolean): void => {
+    let entries: Dirent[];
+    try {
+      entries = readdirSync(directory, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (isRoot && SKIPPED_SOURCE_ENTRIES.has(entry.name)) continue;
+      if (isRoot && TRANSIENT_SUFFIX_PATTERN.test(entry.name)) continue;
+      const target = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        walk(target, false);
+        continue;
+      }
+      if (!entry.isFile()) continue;
+      try {
+        const info = statSync(target);
+        stamp.files += 1;
+        stamp.bytes += info.size;
+        stamp.maxMtimeMs = Math.max(stamp.maxMtimeMs, info.mtimeMs);
+      } catch {
+        // 竞态删除：不计入。
+      }
+    }
+  };
+  walk(source, true);
+  return stamp;
+}
+
+/** 列出相对文件路径（用于复制模式的等价性校验）；不跟随符号链接。 */
+function listRelativeFiles(root: string, skippedTopLevel: Set<string>, isRootOnly: boolean): string[] {
+  const files: string[] = [];
+  const walk = (directory: string, prefix: string, isRoot: boolean): void => {
+    let entries: Dirent[];
+    try {
+      entries = readdirSync(directory, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (isRoot && skippedTopLevel.has(entry.name)) continue;
+      if (isRoot && TRANSIENT_SUFFIX_PATTERN.test(entry.name)) continue;
+      const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        walk(join(directory, entry.name), relativePath, false);
+        continue;
+      }
+      if (entry.isFile()) files.push(relativePath);
+    }
+  };
+  walk(root, "", isRootOnly);
+  return files.sort();
+}
+
+function readViewRootMode(viewRoot: string): ViewRootMode {
+  try {
+    const parsed = JSON.parse(readFileSync(join(viewRoot, VIEW_META_FILE), "utf8")) as unknown;
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      (parsed as { mode?: unknown }).mode === "copy"
+    ) {
+      return "copy";
+    }
+  } catch {
+    // 缺少元数据（旧视图/被手工删过）：按镜像处理，不影响读取。
+  }
+  return "mirror";
+}
+
+function replaceViewRootSync(stagedPath: string, viewRoot: string): void {
   const backupPath = `${viewRoot}.old-${process.pid}-${randomUUID()}`;
   let movedExisting = false;
-  if (await pathExists(viewRoot)) {
+  if (pathExistsSync(viewRoot)) {
     // POSIX 与 Windows 都不允许 rename 覆盖非空目标目录，只能先把旧版本挪到备份名；
     // 这样新版本 rename 成功前，旧版本始终是完整可读状态，只是路径暂时换了名字。
-    await rename(viewRoot, backupPath);
+    renameSync(viewRoot, backupPath);
     movedExisting = true;
   }
   try {
-    await rename(stagedPath, viewRoot);
+    renameSync(stagedPath, viewRoot);
   } catch (error) {
-    if (movedExisting && !(await pathExists(viewRoot))) {
+    if (movedExisting && !pathExistsSync(viewRoot)) {
       try {
-        await rename(backupPath, viewRoot);
+        renameSync(backupPath, viewRoot);
       } catch {
         // 回滚也失败时保留 backup 供恢复；原始错误才是调用方需要看到的失败原因。
       }
     }
     throw error;
   }
-  if (movedExisting) await removeTreeBestEffort(backupPath);
+  if (movedExisting) removeViewTree(backupPath);
 }
 
 /**
- * 只读意图：文件 0444、目录 0555。
+ * 删除视图树：只删链接与目录项，绝不跟进去删源目录内容。
  *
- * Windows 上 chmod 对目录基本无效，受限文件系统也可能拒绝；这里全部 best-effort，
- * 因为只读是防御性加固，不是功能前提，不能因为权限设置失败让物化整体失败。
+ * 这是安全关键路径——视图根里的文件是源文件的硬链接，符号链接可能来自源插件自身。
  */
-async function chmodTreeReadOnly(root: string): Promise<void> {
+function removeViewTree(path: string): void {
+  let entries: Dirent[];
   try {
-    const entries = await readdir(root, { withFileTypes: true });
-    for (const entry of entries) {
-      // 链接的权限属于链接目标（可能是插件源目录），修改它会越权污染外部目录。
-      if (entry.isSymbolicLink()) continue;
-      const target = join(root, entry.name);
-      if (entry.isDirectory()) {
-        await chmodTreeReadOnly(target);
-        continue;
-      }
-      if (entry.isFile()) {
-        try {
-          await chmod(target, 0o444);
-        } catch {
-          // Windows 只读属性/受限 FS：忽略。
-        }
+    entries = readdirSync(path, { withFileTypes: true });
+  } catch {
+    try {
+      unlinkSync(path);
+    } catch {
+      try {
+        rmdirSync(path);
+      } catch {
+        // 已经不存在：目标状态达成。
       }
     }
-    try {
-      await chmod(root, 0o555);
-    } catch {
-      // 同上。
+    return;
+  }
+  for (const entry of entries) {
+    const target = join(path, entry.name);
+    if (entry.isSymbolicLink()) {
+      try {
+        unlinkSync(target);
+      } catch {
+        // 已被并发清理。
+      }
+      continue;
     }
+    if (entry.isDirectory()) {
+      removeViewTree(target);
+      continue;
+    }
+    try {
+      unlinkSync(target);
+    } catch {
+      // 只读文件在部分平台需要先改权限再删。
+      try {
+        chmodSync(target, 0o644);
+        unlinkSync(target);
+      } catch {
+        // 尽力而为：残留会被下一次原子替换覆盖。
+      }
+    }
+  }
+  try {
+    rmdirSync(path);
   } catch {
-    // 遍历失败（权限/竞态）时放弃加固，不影响已经写好的视图。
+    // 非空/权限：交给上层重试或下次替换。
   }
 }
 
-async function removeTreeBestEffort(path: string): Promise<void> {
-  try {
-    await rm(path, { force: true, maxRetries: 2, recursive: true, retryDelay: 25 });
-    return;
-  } catch {
-    // 只读目录在 POSIX 上无法直接删除子项，先恢复可写再试一次。
-  }
-  try {
-    await chmodTreeWritable(path);
-    await rm(path, { force: true, maxRetries: 2, recursive: true, retryDelay: 25 });
-  } catch {
-    // best-effort：清理失败不能覆盖主操作结果；残留临时目录会被列举逻辑过滤。
-  }
-}
-
-async function chmodTreeWritable(path: string): Promise<void> {
-  let info;
-  try {
-    info = await lstat(path);
-  } catch {
-    return;
-  }
-  if (info.isSymbolicLink()) return;
-  if (info.isDirectory()) {
-    let entries: Dirent[] | null = null;
-    try {
-      entries = await readdir(path, { withFileTypes: true });
-    } catch {
-      entries = null;
-    }
-    for (const entry of entries ?? []) {
-      if (entry.isSymbolicLink()) continue;
-      await chmodTreeWritable(join(path, entry.name));
-    }
-    try {
-      await chmod(path, 0o755);
-    } catch {
-      // 恢复失败时由调用方的第二次 rm 或下一次重试兜底。
-    }
-    return;
-  }
-  if (info.isFile()) {
-    try {
-      await chmod(path, 0o644);
-    } catch {
-      // 同上。
-    }
-  }
-}
-
-function chmodTreeWritableSync(path: string): void {
-  let info;
-  try {
-    info = lstatSync(path);
-  } catch {
-    return;
-  }
-  if (info.isSymbolicLink()) return;
-  if (info.isDirectory()) {
-    let names: string[] = [];
-    try {
-      names = readdirSync(path);
-    } catch {
-      names = [];
-    }
-    for (const name of names) chmodTreeWritableSync(join(path, name));
-    try {
-      chmodSync(path, 0o755);
-    } catch {
-      // Windows/受限 FS 上目录权限无语义，忽略。
-    }
-    return;
-  }
-  if (info.isFile()) {
-    try {
-      chmodSync(path, 0o644);
-    } catch {
-      // 同上。
-    }
-  }
+function sameStringSets(left: readonly string[], right: readonly string[]): boolean {
+  if (left.length !== right.length) return false;
+  const leftSorted = [...left].sort();
+  const rightSorted = [...right].sort();
+  return leftSorted.every((value, index) => value === rightSorted[index]);
 }
 
 function createStagingPath(viewRoot: string): string {
@@ -494,34 +517,30 @@ function createStagingPath(viewRoot: string): string {
   return `${viewRoot}.tmp-${process.pid}-${randomUUID()}`;
 }
 
-async function pathExists(path: string): Promise<boolean> {
+function pathExistsSync(path: string): boolean {
   try {
-    await lstat(path);
+    lstatSync(path);
     return true;
   } catch {
     return false;
   }
 }
 
-async function isRealDirectory(path: string): Promise<boolean> {
+function isRealDirectorySync(path: string): boolean {
   try {
-    return (await lstat(path)).isDirectory();
+    return lstatSync(path).isDirectory();
   } catch {
     return false;
   }
 }
 
-async function isRegularFileFollowingLinks(path: string): Promise<boolean> {
+function readLinkTargetSync(path: string): string | null {
   try {
-    // hooks 文件允许是链接：读取时跟随到真实文件，复制内容而不是复制链接。
-    return (await stat(path)).isFile();
+    // readlink 不跟随，直接给出源目录里那条链接的原始目标。
+    return readlinkSync(path);
   } catch {
-    return false;
+    return null;
   }
-}
-
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /** 递归按 key 排序；undefined 字段直接省略，避免 JSON.stringify 在各平台上产生歧义。 */
@@ -531,12 +550,23 @@ function stableJson(value: unknown): string {
 
 function sortJsonValue(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortJsonValue);
-  if (!isPlainRecord(value)) return value;
-  const sorted: Record<string, unknown> = {};
-  for (const key of Object.keys(value).sort()) {
-    const entry = value[key];
-    if (entry === undefined) continue;
-    sorted[key] = sortJsonValue(entry);
+  if (typeof value !== "object" || value === null) return value;
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, item]) => item !== undefined)
+    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0));
+  return Object.fromEntries(entries.map(([key, item]) => [key, sortJsonValue(item)]));
+}
+
+/** 供发现层诊断：源目录是否可作为插件根。 */
+export function isPluginViewSourceDirectory(rootPath: string): boolean {
+  try {
+    return statSync(rootPath).isDirectory();
+  } catch {
+    return false;
   }
-  return sorted;
+}
+
+/** 供测试：视图根是否存在。 */
+export function pluginViewRootExists(storageRoot: string, pluginId: string): boolean {
+  return existsSync(getPluginViewRoot(storageRoot, pluginId));
 }

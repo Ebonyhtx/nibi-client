@@ -1,5 +1,5 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import type {
   CustomCommandRoot,
   HookConfig,
@@ -57,6 +57,7 @@ import {
 } from "./helpers.js";
 import type { DetectedPluginManifest } from "./helpers.js";
 import { checkPluginNativeModules } from "./native-modules.js";
+import { materializePluginViewRootSync } from "./view-root.js";
 import { checkPluginRevocation } from "./plugin-revocations.js";
 import { scanSkillFilesUnderRootSync } from "../skills/scan.js";
 import { loadPluginMcpServerDefinitions, resolvePluginMcpServers } from "./mcp.js";
@@ -288,6 +289,18 @@ export class NodePluginAdapter implements PluginPort {
       throwIfAborted(options);
       const loaded = loadPlugin(candidate, diagnostics);
       if (!loaded) continue;
+      // 已安装插件（Host 自己缓存的包）优先读视图根：宿主用自己的、规范化的只读视图
+      // 作为运行时输入，而不是直接读缓存目录。物化不出来（文件系统不支持链接且复制
+      // 校验不过）就退回源目录并报诊断——回退后功能完整，只是少了隔离。
+      if (loaded.source === "cache") {
+        const viewRoot = resolveInstalledViewRoot({
+          diagnostics,
+          loaded,
+          packageHash: candidate.packageHash,
+          storageRoot: request.storageRoot,
+        });
+        if (viewRoot) loaded.rootPath = viewRoot;
+      }
       // 内置（官方）插件被「卸载」后只在 user config 写 suppressedBuiltins 标记。这里在发现层
       // 用插件的权威 id（manifest 名 @ marketplace）过滤，不依赖缓存文件是否已被物理删除——
       // 这样即便 app 升级遗留了旧版本缓存目录、或会话内 facade 持有过时配置，被卸载的内置插件
@@ -710,6 +723,49 @@ function pruneCapabilityLeakForDisabledPlugins(outcome: PluginLoadOutcome): Plug
     if (keptMatchers.length > 0) hooks[eventName as PluginHookEventName] = keptMatchers;
   }
   return { ...outcome, commandRoots, diagnostics, hooks, mcpServers, skillRoots };
+}
+
+/**
+ * 为已安装插件物化视图根，成功时返回应使用的根目录。
+ *
+ * 只在 `source === "cache"`（Host 自己的安装缓存）上做：内置插件位于应用资源内，
+ * 直接读只读资源即可；用户配置目录（inline）按既定决策「只读加载，不复制、不改写」，
+ * 不在这里接管。
+ */
+function resolveInstalledViewRoot(input: {
+  diagnostics: PluginDiagnostic[];
+  loaded: LoadedPlugin;
+  packageHash?: string;
+  storageRoot: string;
+}): string | null {
+  const { loaded } = input;
+  const relativeManifestPath = relative(loaded.rootPath, loaded.manifestPath)
+    .split(sep)
+    .join("/");
+  const result = materializePluginViewRootSync({
+    manifest: loaded.manifest as unknown as Record<string, unknown>,
+    ...(relativeManifestPath && !relativeManifestPath.startsWith("..")
+      ? { manifestRelativePath: relativeManifestPath }
+      : {}),
+    origin: resolvePluginOrigin(loaded.canonical.trust, loaded.canonical.adapter.adapterId),
+    ...(input.packageHash ? { packageHash: input.packageHash } : {}),
+    pluginId: loaded.id,
+    rootPath: loaded.rootPath,
+    storageRoot: input.storageRoot,
+    ...(loaded.manifest.version ? { version: loaded.manifest.version } : {}),
+  });
+  if (!result) {
+    // 回退是安全的（继续读源目录），但必须留下痕迹：否则「视图根生效了吗」无法判断。
+    input.diagnostics.push({
+      code: "plugin_view_root_unavailable",
+      message: `Plugin view root could not be materialized; reading the installed source directory instead: ${loaded.id}`,
+      path: loaded.rootPath,
+      pluginId: loaded.id,
+      severity: "warning",
+    });
+    return null;
+  }
+  return result.viewRoot;
 }
 
 function createPluginMetadata(

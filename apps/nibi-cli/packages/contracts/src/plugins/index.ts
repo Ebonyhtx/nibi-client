@@ -101,7 +101,9 @@ export type PluginDiagnosticCode =
   /** 本地/第三方代码插件缺少绑定包 hash 的信任记录。 */
   | "plugin_trust_required"
   /** 安装记录已进入 removed 墓碑期（保留数据，不再加载）。 */
-  | "plugin_removed";
+  | "plugin_removed"
+  /** view root 无法建立等价视图：已回退读插件源目录（功能不受影响，但未隔离）。 */
+  | "plugin_view_root_unavailable";
 
 export interface PluginUserConfigOption {
   default?: string | number | boolean;

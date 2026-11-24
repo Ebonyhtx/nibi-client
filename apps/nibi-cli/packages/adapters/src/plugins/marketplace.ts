@@ -56,6 +56,7 @@ import {
 } from "./helpers.js";
 import { enumeratePluginComponents, type PluginComponentGroup } from "./plugin-components.js";
 import { computePluginPackageHash } from "./package-hash.js";
+import { removePluginViewRoot } from "./view-root.js";
 import {
   checkPluginRevocation,
   type PluginRevocationMatch,
@@ -1099,6 +1100,13 @@ export async function uninstallMarketplacePlugin(input: {
   };
   state.plugins.push(removed);
   await saveInstalledPlugins(input.storageRoot, state);
+  // 视图根里的条目是硬链接/junction，缓存目录一删就成悬空链接；卸载时顺手清掉。
+  // 失败不影响卸载结果（下一次物化会覆盖它）。
+  try {
+    removePluginViewRoot(input.storageRoot, record.id);
+  } catch {
+    // best-effort。
+  }
   if (input.removeCache === true) {
     await rm(record.installPath, { force: true, recursive: true });
     // 彻底卸载：data/<plugin-id> 是持久化的 per-plugin 目录（含 materialize 的 generated-commands）。

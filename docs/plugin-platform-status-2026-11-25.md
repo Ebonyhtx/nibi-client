@@ -2,7 +2,7 @@
 
 > **本文是 NIBI 插件平台状态的唯一真源。**
 >
-> `D:\NIBI\ZCODE3.17.2到3.18.2` 目录下的 `03-NIBI-PLUGIN-PLAN.md`、`04-NIBI-ABSORPTION-PLAN.md`、
+> 计划存档目录（`ZCODE3.17.2到3.18.2`，仓库外）下的 `03-NIBI-PLUGIN-PLAN.md`、`04-NIBI-ABSORPTION-PLAN.md`、
 > `05-NIBI-UPSTREAM-FOLLOWUP-PLAN.md` 属于**设计与历史记录**。其中的「未实现 / 未开工 / 仍缺」
 > 等结论句反映的是各自撰写时的快照，**不代表当前状态**；任何状态判断以本文为准。
 >
@@ -11,7 +11,7 @@
 > 本文只描述已经过仓库内文件核对的事实。每条结论都给出可检查的仓库路径（必要时带行号）。
 > 无法从仓库核实的（线上市场内容、发布流水线、外部账号状态）统一标注 **未核实**，不做推断。
 >
-> 编写日期：2026-11-25。核对基线：`D:\NIBI\NIBI-Client`，分支 `dev`。
+> 编写日期：2026-11-25。核对基线：本产品仓库（分支 `dev`）。
 > 注意：2026-11-25 的实现中多数文件仍处于**工作区未提交**状态（`git status` 显示 `M` / `??`）。
 >
 > **行号会漂移**：本文引用的行号是核对当时的值。多个插件文件在同一批改动里被并行编辑，
@@ -35,7 +35,7 @@
 | `registry.json` / `grants.json` / `audit/<date>.jsonl` 三元文件布局 | partial（等价能力已实现，文件名不同） | 授权：`plugin-grants.json`（`helpers.ts:877`）；同意：`plugin-consents.json`（`helpers.ts:365`）；审计：`plugin-audit.ndjson`（`helpers.ts:366`）。**未采用**计划中的文件名 |
 | 授权 + 审计（30 天保留 / 最近 10 条） | done（2026-11-25） | `helpers.ts:592-595`（`PLUGIN_AUDIT_RETENTION_DAYS = 30`、`PLUGIN_AUDIT_PRUNE_INTERVAL_MS`）、`:661-678`（`readRecentPluginAuditEvents`，`limit = 10`）、`:682-750`（`prunePluginAuditEvents`） |
 | 安装前声明 | done | `marketplace.ts:1350`（`安装前声明：与已安装详情共用同一套权限/能力推导`）、`:1213` / `:1275` / `:1333`（`declaration` 透传）；UI 消费点 `packages/ui/src/settings/PluginStorePage.tsx:843-845`、`PluginStoreDetailView.tsx:105` |
-| view-root 物化 | partial（已实现、未接线，有意） | `apps/nibi-cli/packages/adapters/src/plugins/view-root.ts` 提供 `materializePluginViewRoot` / `getPluginViewRoot` / `removePluginViewRoot` / `listPluginViewRoots`，17 个单测通过（`tests/plugin-view-root.test.ts`）。**未接入发现/运行时链路**，理由是接线前置条件未满足：view root 目前只物化 `manifest.json`、`skills/commands/agents`、`hooks.json`，**没有复制 `mcp.json`，也没有处理清单里自定义的组件路径**；此时把已安装插件指向 view root 会让它们的 MCP server 与自定义路径静默消失。接线顺序应是：先补齐 `mcp.json` + 声明路径 + 外来清单（`.claude-plugin` 等）的等价物化，再用 view root 作为唯一读取入口 |
+| view-root 物化 | done（2026-11-25 接线） | `apps/nibi-cli/packages/adapters/src/plugins/view-root.ts`：**真实目录 + 硬链接文件**的镜像树（不是符号链接——组件扫描器出于信任边界不跟随链接，用链接会让 skills/commands 全部扫不到），规范清单写根 `plugin.json`，复制回退时校验相对文件集合等价；22 个单测。接线：`adapters/src/plugins/index.ts` 的 `resolveInstalledViewRoot` 让已安装插件读视图根（失败回退源目录 + `plugin_view_root_unavailable` 诊断）；Rust 侧 `kernel/crates/platform/src/plugin_inventory.rs` 的 `plugin_read_root` 同源优先视图根，两端 `NIBI_PLUGIN_ROOT`/hooks cwd/MCP 工作目录一致 |
 
 ### B. 运行时 / 授权 / 审计
 
@@ -174,16 +174,18 @@
 - `adapters/tests/`：`plugin-audit-retention.test.ts`、`plugin-consent-hash.test.ts`、
   `plugin-discovery-integrity-gates.test.ts`、`plugin-native-modules.test.ts`、
   `plugin-package-hash.test.ts`、`plugin-revocations.test.ts`、`plugin-tombstone.test.ts`、
-  `plugin-view-root.test.ts`
+  `plugin-view-root.test.ts`、`plugin-view-root-wiring.test.ts`
 - `core/tests/mcp-paid-plugin-gate.test.ts`
 - `packages/ui/test/pluginGateStatus.test.ts`
 
 ### 仍未做
 
-- **view-root 物化（接线）**：模块本身已完成（`view-root.ts`，17 条单测通过），但**未接入**发现/运行时
-  读取链路。接线前置条件：先补齐 `mcp.json`、清单里自定义组件路径、以及外来清单（`.claude-plugin` 等）
-  的等价物化。现在只物化 `manifest.json` + `skills/commands/agents` + `hooks.json`，
-  直接接线会让 MCP server 与自定义路径静默消失。
+- ~~view-root 接线~~ **已完成（2026-11-25 第二轮）**：`view-root.ts` 改为**镜像树**（真实目录 +
+  硬链接文件），顶层每个条目都复刻，因此 `mcp.json`、清单自定义路径、`runtime.entry`、外来清单
+  全部保留；规范清单写根 `plugin.json`。Node 发现层经 `resolveInstalledViewRoot` 读视图根，
+  Rust 经 `plugin_read_root` 读同一个根；卸载时清视图根。22 条单测 + 3 条接线测试 + 2 条 Rust 测试。
+  复制回退（文件系统不支持硬链接）时校验相对文件集合等价，否则回退源目录并报
+  `plugin_view_root_unavailable`——绝不使用不完整的视图。
 - **进程级隔离**：扩展宿主仍与 Host 同进程；计划里 local = T3 每插件独立进程未实现。
 - **上游 5 slots**：有意不接，只保留 `composer.status` / `nav.primary`。
 - **常驻插件 UI**：2026-11-24 决策暂缓。

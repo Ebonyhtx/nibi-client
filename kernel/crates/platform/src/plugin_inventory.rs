@@ -148,6 +148,30 @@ pub fn installed_root(root: &StoragePath, plugin: &InstalledPlugin) -> PathBuf {
         .join(sanitize(&plugin.version))
 }
 
+/// Node 物化的 view root 目录名（`adapters/src/plugins/view-root.ts` 的 `PLUGIN_VIEWS_DIR`）。
+const VIEWS_DIR: &str = "views";
+
+/// 已安装插件的**读取根**：优先 Node 物化的 view root，缺失时回退 `installed_root`。
+///
+/// 为什么 Rust 也要读视图根：Node 与 Rust 是两个独立读取方。如果只有 Node 读视图根，
+/// 同一个插件的 `NIBI_PLUGIN_ROOT`、hooks `cwd`、MCP 工作目录在两端会指向不同目录——
+/// 那是隐性 parity 缺口（例如按相对路径写文件的插件会出现两份状态）。
+///
+/// 只认「目录存在且含规范 `plugin.json`」的视图根；否则回退源目录。视图根缺失不会报错：
+/// Rust CLI 可能在没有 Node 物化过的机器上直接运行，此时读缓存目录是正确行为。
+pub fn plugin_read_root(root: &StoragePath, plugin: &InstalledPlugin) -> PathBuf {
+    let segment = sanitize(&plugin.id);
+    // 与 Node 一致：空串/`.`/`..` 这类危险 id 不走视图根（Node 用 hash 目录名，Rust 不复刻）。
+    if segment.is_empty() || segment == "." || segment == ".." {
+        return installed_root(root, plugin);
+    }
+    let view_root = root.as_path().join(VIEWS_DIR).join(&segment);
+    if view_root.join("plugin.json").is_file() {
+        return view_root;
+    }
+    installed_root(root, plugin)
+}
+
 /// bundled 分片里的插件目录（Node `loadBundledOfficialPluginRootsSync`）：`cachePath` 必须在
 /// `<存储根>/cache/nibi-official/<name>/` 之下（严格的后代），名字不能越出缓存目录。分片不存在、
 /// 版本不是 1 或 `manifest` 不是对象时为 None。
