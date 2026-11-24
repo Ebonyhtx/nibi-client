@@ -2219,9 +2219,6 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
             >
               <AutomationsMainBreadcrumbFrame
                 isDesktop={Boolean(isDesktop)}
-                showWindowControls={Boolean(
-                  (isWindowsDesktop || (isDesktop && !isMacDesktop)) && !isSidePaneVisible,
-                )}
                 sectionLabel={intl.formatMessage({
                   id: "settings.automations.title",
                 })}
@@ -2266,9 +2263,6 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
             <main className="flex h-full min-h-0 flex-1 flex-col">
               <AutomationsMainBreadcrumbFrame
                 isDesktop={Boolean(isDesktop)}
-                showWindowControls={Boolean(
-                  (isWindowsDesktop || (isDesktop && !isMacDesktop)) && !isSidePaneVisible,
-                )}
                 sectionLabel={intl.formatMessage({
                   id: "workspace.openPluginsSettings",
                 })}
@@ -2672,10 +2666,6 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                           >
                             <AutomationsMainBreadcrumbFrame
                               isDesktop={Boolean(isDesktop)}
-                              showWindowControls={Boolean(
-                                (isWindowsDesktop || (isDesktop && !isMacDesktop)) &&
-                                  !isSidePaneVisible,
-                              )}
                               sectionLabel={intl.formatMessage({
                                 id: "settings.automations.title",
                               })}
@@ -2728,10 +2718,6 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                           <main className="flex h-full min-h-0 flex-1 flex-col">
                             <AutomationsMainBreadcrumbFrame
                               isDesktop={Boolean(isDesktop)}
-                              showWindowControls={Boolean(
-                                (isWindowsDesktop || (isDesktop && !isMacDesktop)) &&
-                                  !isSidePaneVisible,
-                              )}
                               sectionLabel={intl.formatMessage({
                                 id: "workspace.openPluginsSettings",
                               })}
