@@ -41,25 +41,25 @@ export function ProjectSidebarNavigation({
         <Button
           variant="ghost"
           size="lg"
-          className={`w-full justify-start gap-2 ${props.automationsActive ? "bg-selected text-foreground" : ""}`}
+          className={`w-full justify-start gap-2 rounded-xl ${props.automationsActive ? "bg-card font-medium text-foreground shadow-[var(--nibi-shadow-active-row)] ring-1 ring-primary/25 hover:bg-card" : ""}`}
           aria-pressed={props.automationsActive ?? false}
           data-testid={TID_AUTOMATIONS_OPEN}
           // 点击事件不能进入业务导航的可选 automationId 参数。
           onClick={() => props.onOpenAutomations?.()}
         >
-          <CalendarClock className="size-4" />
+          <CalendarClock className={`size-4 ${props.automationsActive ? "text-primary" : ""}`} />
           {intl.formatMessage({ id: "workspace.openScheduledSettings" })}
         </Button>
       ) : null}
       <Button
         variant="ghost"
         size="lg"
-        className={`w-full justify-start gap-2 ${props.pluginStoreActive ? "bg-selected text-foreground" : ""}`}
+        className={`w-full justify-start gap-2 rounded-xl ${props.pluginStoreActive ? "bg-card font-medium text-foreground shadow-[var(--nibi-shadow-active-row)] ring-1 ring-primary/25 hover:bg-card" : ""}`}
         aria-pressed={props.pluginStoreActive ?? false}
         data-testid="plugin-store-sidebar-open"
         onClick={() => props.onOpenPluginStore?.()}
       >
-        <Blocks className="size-4" />
+        <Blocks className={`size-4 ${props.pluginStoreActive ? "text-primary" : ""}`} />
         {intl.formatMessage({ id: "workspace.openPluginsSettings" })}
         {updatesAvailable > 0 ? (
           // 商店外发现：不点进商店也能知道有插件可更新（数字来自宿主算的 updateStatus）。

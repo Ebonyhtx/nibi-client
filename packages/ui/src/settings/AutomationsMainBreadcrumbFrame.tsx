@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { DesktopWindowControls } from "@/DesktopWindowControls.js";
 import {
   SettingsBreadcrumbProvider,
   SettingsHeaderBreadcrumb,
@@ -14,11 +15,13 @@ export function AutomationsMainBreadcrumbFrame({
   children,
   isDesktop,
   sectionLabel,
+  showWindowControls = false,
 }: {
   ariaLabel: string;
   children: ReactNode;
   isDesktop: boolean;
   sectionLabel: string;
+  showWindowControls?: boolean;
 }) {
   const [items, setItems] = useState<readonly SettingsBreadcrumbItem[]>([]);
 
@@ -27,10 +30,13 @@ export function AutomationsMainBreadcrumbFrame({
       <div className="flex min-h-0 flex-1 flex-col">
         {isDesktop ? (
           <div
-            className="h-12 shrink-0 [app-region:drag]"
+            className="flex h-12 shrink-0 items-center justify-between gap-2 px-2 [app-region:drag]"
             data-testid="automations-main-drag-region"
           >
-            <SettingsHeaderBreadcrumb ariaLabel={ariaLabel} items={items} />
+            <div className="min-w-0 flex-1">
+              <SettingsHeaderBreadcrumb ariaLabel={ariaLabel} items={items} />
+            </div>
+            {showWindowControls ? <DesktopWindowControls /> : null}
           </div>
         ) : null}
         {children}

@@ -160,8 +160,8 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f8f8f8;
-      color: #0d0d0d;
+      background: #f9f2e4;
+      color: #1c2f4e;
       user-select: none;
     }
     .window {
@@ -309,26 +309,26 @@ function renderForceUpdatePromptHtml(text: ForceUpdateDialogText, locale: Locale
     button.secondary { background: #ece1cf; }
     button.secondary:hover { background: #f3ead8; }
     @media (prefers-color-scheme: dark) {
-      body { background: #171716; color: #cdced2; }
-      .window { background: #1e1f21; }
-      .panel { background: #1e1f21; border-color: transparent; }
-      .titlebar { background: #101011; border-bottom-color: rgba(228, 230, 235, 0.12); }
-      .brand-title, h1 { color: #eef0f2; }
-      .brand-icon { background: rgba(232, 196, 145, 0.14); border-color: rgba(228, 230, 235, 0.12); color: #e8c491; }
-      .close { color: rgba(205, 206, 210, 0.64); }
-      .close:hover { background: #26272a; border-color: rgba(228, 230, 235, 0.24); color: #eef0f2; }
-      .message { color: rgba(205, 206, 210, 0.64); }
-      .status-icon { background: color-mix(in oklab, #e8c491 14%, transparent); border-color: rgba(228, 230, 235, 0.12); color: #e8c491; }
-      .version-card { border-color: rgba(228, 230, 235, 0.12); background: #1b1b1c; color: #cdced2; }
-      .progress-track { background: rgba(228, 230, 235, 0.12); }
+      body { background: #171614; color: #e0dad0; }
+      .window { background: #171614; }
+      .panel { background: #201e1b; border-color: transparent; }
+      .titlebar { background: #141210; border-bottom-color: rgba(243, 234, 216, 0.12); }
+      .brand-title, h1 { color: #f3ede2; }
+      .brand-icon { background: rgba(232, 196, 145, 0.14); border-color: rgba(243, 234, 216, 0.12); color: #e8c491; }
+      .close { color: rgba(224, 218, 208, 0.64); }
+      .close:hover { background: #2b2824; border-color: rgba(243, 234, 216, 0.24); color: #f3ede2; }
+      .message { color: rgba(224, 218, 208, 0.72); }
+      .status-icon { background: color-mix(in oklab, #e8c491 14%, transparent); border-color: rgba(243, 234, 216, 0.12); color: #e8c491; }
+      .version-card { border-color: rgba(243, 234, 216, 0.12); background: #1b1917; color: #e0dad0; }
+      .progress-track { background: rgba(243, 234, 216, 0.12); }
       .progress-bar { background: #e8c491; }
-      .progress-text { color: rgba(205, 206, 210, 0.64); }
-      button { border-color: rgba(228, 230, 235, 0.12); background: #1e1f21; color: #cdced2; }
-      button:hover { background: #26272a; border-color: rgba(228, 230, 235, 0.24); }
-      button.primary { border-color: transparent; background: #e8c491; color: #2a1d0a; }
+      .progress-text { color: rgba(224, 218, 208, 0.68); }
+      button { border-color: rgba(243, 234, 216, 0.14); background: #201e1b; color: #e0dad0; }
+      button:hover { background: #2b2824; border-color: rgba(243, 234, 216, 0.24); }
+      button.primary { border-color: transparent; background: #e8c491; color: #171614; }
       button.primary:hover { background: #f0d2a4; }
-      button.secondary { background: #2a2b2e; }
-      button.secondary:hover { background: #1e1f21; }
+      button.secondary { background: #2b2824; }
+      button.secondary:hover { background: #34302b; }
     }
     @media (max-width: 560px) {
       .window { padding: 0; }

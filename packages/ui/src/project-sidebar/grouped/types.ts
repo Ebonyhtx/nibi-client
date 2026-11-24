@@ -19,7 +19,7 @@ const TASK_GROUP_COLORS = [
   "purple",
 ] satisfies NibiTaskGroupColor[];
 const TASK_GROUP_COLOR_CLASS: Record<NibiTaskGroupColor, string> = {
-  gray: "bg-zinc-300 text-zinc-800 dark:bg-zinc-400/32 dark:text-zinc-100",
+  gray: "bg-stone-300 text-stone-800 dark:bg-stone-400/32 dark:text-stone-100",
   red: "bg-rose-300 text-rose-900 dark:bg-rose-400/32 dark:text-rose-50",
   orange: "bg-orange-300 text-orange-900 dark:bg-orange-400/32 dark:text-orange-50",
   yellow: "bg-amber-300 text-amber-900 dark:bg-amber-300/32 dark:text-amber-50",
@@ -28,7 +28,7 @@ const TASK_GROUP_COLOR_CLASS: Record<NibiTaskGroupColor, string> = {
   purple: "bg-violet-300 text-violet-900 dark:bg-violet-400/32 dark:text-violet-50",
 };
 const TASK_GROUP_BORDER_COLOR_CLASS: Record<NibiTaskGroupColor, string> = {
-  gray: "border-zinc-500/70 dark:border-zinc-400/55",
+  gray: "border-stone-500/70 dark:border-stone-400/55",
   red: "border-rose-500/70 dark:border-rose-400/52",
   orange: "border-orange-500/70 dark:border-orange-400/52",
   yellow: "border-amber-500/70 dark:border-amber-300/52",

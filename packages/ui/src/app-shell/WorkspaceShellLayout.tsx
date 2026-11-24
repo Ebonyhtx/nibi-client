@@ -2215,10 +2215,13 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
           workspaceMainView === "automations" && !isWebRemoteControlShell ? (
             <main
               id={AUTOMATIONS_TOAST_ANCHOR_ID}
-              className="flex h-full min-h-0 flex-1 flex-col bg-background"
+              className="flex h-full min-h-0 flex-1 flex-col"
             >
               <AutomationsMainBreadcrumbFrame
                 isDesktop={Boolean(isDesktop)}
+                showWindowControls={Boolean(
+                  (isWindowsDesktop || (isDesktop && !isMacDesktop)) && !isSidePaneVisible,
+                )}
                 sectionLabel={intl.formatMessage({
                   id: "settings.automations.title",
                 })}
@@ -2260,9 +2263,12 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
               </AutomationsMainBreadcrumbFrame>
             </main>
           ) : workspaceMainView === "plugin-store" && !isWebRemoteControlShell ? (
-            <main className="flex h-full min-h-0 flex-1 flex-col bg-background">
+            <main className="flex h-full min-h-0 flex-1 flex-col">
               <AutomationsMainBreadcrumbFrame
                 isDesktop={Boolean(isDesktop)}
+                showWindowControls={Boolean(
+                  (isWindowsDesktop || (isDesktop && !isMacDesktop)) && !isSidePaneVisible,
+                )}
                 sectionLabel={intl.formatMessage({
                   id: "workspace.openPluginsSettings",
                 })}
@@ -2662,10 +2668,14 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                         {workspaceMainView === "automations" && !isWebRemoteControlShell ? (
                           <main
                             id={AUTOMATIONS_TOAST_ANCHOR_ID}
-                            className="flex h-full min-h-0 flex-1 flex-col bg-background"
+                            className="flex h-full min-h-0 flex-1 flex-col"
                           >
                             <AutomationsMainBreadcrumbFrame
                               isDesktop={Boolean(isDesktop)}
+                              showWindowControls={Boolean(
+                                (isWindowsDesktop || (isDesktop && !isMacDesktop)) &&
+                                  !isSidePaneVisible,
+                              )}
                               sectionLabel={intl.formatMessage({
                                 id: "settings.automations.title",
                               })}
@@ -2715,9 +2725,13 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                             </AutomationsMainBreadcrumbFrame>
                           </main>
                         ) : workspaceMainView === "plugin-store" && !isWebRemoteControlShell ? (
-                          <main className="flex h-full min-h-0 flex-1 flex-col bg-background">
+                          <main className="flex h-full min-h-0 flex-1 flex-col">
                             <AutomationsMainBreadcrumbFrame
                               isDesktop={Boolean(isDesktop)}
+                              showWindowControls={Boolean(
+                                (isWindowsDesktop || (isDesktop && !isMacDesktop)) &&
+                                  !isSidePaneVisible,
+                              )}
                               sectionLabel={intl.formatMessage({
                                 id: "workspace.openPluginsSettings",
                               })}

@@ -68,7 +68,7 @@ export function OccupationOnboardingVisual({
           className={cn(
             "mt-6 w-full whitespace-pre-line text-[16px] leading-[26px]",
             palette.description,
-            "dark:text-slate-200",
+            "dark:text-foreground/85",
           )}
         >
           {intl.formatMessage({ id: "occupationOnboarding.heroDescription" })}
