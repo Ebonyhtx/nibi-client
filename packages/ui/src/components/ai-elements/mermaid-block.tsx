@@ -131,7 +131,14 @@ function resolveCssColor(variableName: string, fallback: string): string {
   return normalizeCssColorForMermaid(color, fallback);
 }
 
-function createMermaidConfig(resolvedTheme: "light" | "dark"): MermaidConfig {
+const cachedMermaidConfigByTheme = new Map<string, MermaidConfig>();
+
+function createMermaidConfig(resolvedTheme: "light" | "dark", cacheKey?: string): MermaidConfig {
+  const resolvedCacheKey = cacheKey ?? resolvedTheme;
+  const cached = cachedMermaidConfigByTheme.get(resolvedCacheKey);
+  if (cached) {
+    return cached;
+  }
   const background = resolveCssColor(
     "--color-card",
     resolvedTheme === "dark" ? "#18181b" : "#ffffff",
@@ -157,7 +164,7 @@ function createMermaidConfig(resolvedTheme: "light" | "dark"): MermaidConfig {
     resolvedTheme === "dark" ? "#3f3f46" : "#d4d4d8",
   );
 
-  return {
+  const config: MermaidConfig = {
     fontFamily: "ui-sans-serif, system-ui, sans-serif",
     securityLevel: "strict",
     startOnLoad: false,
@@ -187,6 +194,10 @@ function createMermaidConfig(resolvedTheme: "light" | "dark"): MermaidConfig {
       textColor: text,
     },
   };
+  if (canCreateDomElements) {
+    cachedMermaidConfigByTheme.set(resolvedCacheKey, config);
+  }
+  return config;
 }
 
 function resolveBrowserTheme(theme: Theme): "light" | "dark" {
@@ -239,7 +250,7 @@ export function MermaidBlock({
   const resolvedTheme = resolveBrowserTheme(theme);
   const themeKey = `${theme}:${resolvedTheme}:${systemThemeRevision}`;
   const mermaidConfig = useMemo(
-    () => createMermaidConfig(resolvedTheme),
+    () => createMermaidConfig(resolvedTheme, themeKey),
     [resolvedTheme, themeKey],
   );
   const renderKey = useMemo(

@@ -1,9 +1,4 @@
-import type {
-  BundledLanguage,
-  BundledTheme,
-  HighlighterCore,
-  ThemedToken,
-} from "shiki";
+import type { BundledLanguage, BundledTheme, HighlighterCore, ThemedToken } from "shiki";
 // 只静态引入语言清单/别名表（约 28KB 元数据），语法本体仍是各语言的动态 import。
 // 这样 shouldUseSyntaxHighlighting 可以保持同步，而 createHighlighterCore、Oniguruma
 // 引擎和 wasm 只有在真正出现代码块时才加载，不会进入首屏静态图。
@@ -62,7 +57,30 @@ function normalizeCodeLanguage(language: string): BundledLanguage {
 }
 
 const highlighterCache = new Map<string, Promise<HighlighterCore>>();
+const MAX_TOKENS_CACHE_ENTRIES = 200;
 const tokensCache = new Map<string, TokenizedCode>();
+
+function getCachedTokens(key: string): TokenizedCode | undefined {
+  const cached = tokensCache.get(key);
+  if (cached === undefined) {
+    return undefined;
+  }
+  tokensCache.delete(key);
+  tokensCache.set(key, cached);
+  return cached;
+}
+
+function setCachedTokens(key: string, value: TokenizedCode): void {
+  if (tokensCache.has(key)) {
+    tokensCache.delete(key);
+  } else if (tokensCache.size >= MAX_TOKENS_CACHE_ENTRIES) {
+    const oldestKey = tokensCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      tokensCache.delete(oldestKey);
+    }
+  }
+  tokensCache.set(key, value);
+}
 const subscribers = new Map<string, Set<(result: TokenizedCode) => void>>();
 // 内存诊断计数器：tokensCache 目前无淘汰，是审计里
 // renderer 最可疑的增长点，先把条数落到日志里。
@@ -83,11 +101,7 @@ const getResolvedCodeTheme = (theme?: BundledTheme): BundledTheme => {
   return "github-light";
 };
 
-const getCodeTokensCacheKey = (
-  code: string,
-  language: BundledLanguage,
-  theme: BundledTheme,
-) => {
+const getCodeTokensCacheKey = (code: string, language: BundledLanguage, theme: BundledTheme) => {
   const start = code.slice(0, 100);
   const end = code.length > 100 ? code.slice(-100) : "";
   return `${theme}:${language}:${code.length}:${start}:${end}`;
@@ -197,7 +211,7 @@ export const highlightCode = (
   const resolvedLanguage = normalizeCodeLanguage(language);
   const tokensCacheKey = getCodeTokensCacheKey(code, resolvedLanguage, resolvedTheme);
 
-  const cached = tokensCache.get(tokensCacheKey);
+  const cached = getCachedTokens(tokensCacheKey);
   if (cached) {
     // 缓存命中时也需要通知 effect，但不能同步触发 setState。
     // 历史消息恢复时大量代码块会在同一次提交后挂载；同步 callback 会把 cache-hit 变成嵌套更新，
@@ -234,7 +248,7 @@ export const highlightCode = (
         tokens: result.tokens,
       };
 
-      tokensCache.set(tokensCacheKey, tokenized);
+      setCachedTokens(tokensCacheKey, tokenized);
 
       const subs = subscribers.get(tokensCacheKey);
       if (subs) {

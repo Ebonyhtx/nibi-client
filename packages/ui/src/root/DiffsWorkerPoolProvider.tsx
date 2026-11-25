@@ -1,10 +1,20 @@
-import { type ReactNode, useEffect, useMemo } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
-  WorkerPoolContextProvider,
+  WorkerPoolContext,
   useWorkerPool,
   type WorkerInitializationRenderOptions,
 } from "@pierre/diffs/react";
-import { createDiffsWorkerHighlighterOptions } from "@/lib/diffsHighlighterEngine.js";
+import {
+  getOrCreateWorkerPoolSingleton,
+  terminateWorkerPoolSingleton,
+  type WorkerPoolManager,
+} from "@pierre/diffs/worker";
+import {
+  createDiffsWorkerHighlighterOptions,
+  isDiffsWorkerPoolRequested,
+  registerDiffsWorkerPoolFactory,
+  subscribeDiffsWorkerPoolActivation,
+} from "@/lib/diffsHighlighterEngine.js";
 import { logger } from "@/logger.js";
 import { DEFAULT_CODE_PREVIEW_SETTINGS } from "@/store/index.js";
 import { useNibiStore } from "@/store/StoreProvider.js";
@@ -26,7 +36,7 @@ function resolveWorkerPoolSize(): number {
     return 2;
   }
 
-  return Math.max(1, Math.min(4, Math.floor(hardwareConcurrency / 2)));
+  return Math.max(1, Math.min(2, Math.floor(hardwareConcurrency / 2)));
 }
 
 function WorkerRenderOptionsSync({
@@ -75,21 +85,65 @@ export function DiffsWorkerPoolProvider({ children }: { children: ReactNode }) {
 
   const poolSize = useMemo(() => resolveWorkerPoolSize(), []);
   const canUseWorkerPool = typeof window !== "undefined" && typeof Worker !== "undefined";
+  const highlighterOptionsRef = useRef(highlighterOptions);
+  highlighterOptionsRef.current = highlighterOptions;
+  const [activated, setActivated] = useState(() => isDiffsWorkerPoolRequested());
+  const poolManagerRef = useRef<WorkerPoolManager | undefined>(undefined);
+
+  if (canUseWorkerPool) {
+    registerDiffsWorkerPoolFactory(() =>
+      getOrCreateWorkerPoolSingleton({
+        poolOptions: {
+          workerFactory: createDiffsWorker,
+          poolSize,
+        },
+        highlighterOptions: highlighterOptionsRef.current,
+      }),
+    );
+  }
+
+  useEffect(() => {
+    if (!canUseWorkerPool) {
+      return;
+    }
+    if (isDiffsWorkerPoolRequested()) {
+      setActivated(true);
+    }
+    return subscribeDiffsWorkerPoolActivation(() => setActivated(true));
+  }, [canUseWorkerPool]);
+
+  const poolManager = useMemo(() => {
+    if (!canUseWorkerPool || !activated) {
+      return undefined;
+    }
+    const singleton = getOrCreateWorkerPoolSingleton({
+      poolOptions: {
+        workerFactory: createDiffsWorker,
+        poolSize,
+      },
+      highlighterOptions: highlighterOptionsRef.current,
+    });
+    poolManagerRef.current = singleton;
+    return singleton;
+  }, [activated, canUseWorkerPool, poolSize]);
+
+  useEffect(() => {
+    return () => {
+      if (poolManagerRef.current) {
+        poolManagerRef.current = undefined;
+        terminateWorkerPoolSingleton();
+      }
+    };
+  }, []);
 
   if (!canUseWorkerPool) {
     return <>{children}</>;
   }
 
   return (
-    <WorkerPoolContextProvider
-      poolOptions={{
-        workerFactory: createDiffsWorker,
-        poolSize,
-      }}
-      highlighterOptions={highlighterOptions}
-    >
-      <WorkerRenderOptionsSync highlighterOptions={highlighterOptions} />
+    <WorkerPoolContext.Provider value={poolManager}>
+      {poolManager ? <WorkerRenderOptionsSync highlighterOptions={highlighterOptions} /> : null}
       {children}
-    </WorkerPoolContextProvider>
+    </WorkerPoolContext.Provider>
   );
 }

@@ -1,6 +1,7 @@
 import type {
   ConversationRow,
   SessionPhase,
+  ToolCallRow,
   TurnHeaderRow,
 } from "@nibi/shared/nibi-protocol-v4";
 import type { PluginUiRowPinResolver } from "@/plugin-ui/index.js";
@@ -22,8 +23,47 @@ interface CachedTurnUnit {
   rows: readonly ConversationRow[];
   header: TurnHeaderRow | undefined;
   sessionPhase: SessionPhase | undefined;
-  pinResolver: PluginUiRowPinResolver | undefined;
+  /** 该轮里所有插件 UI 行的固定裁决快照；只要逐行结果不变就复用旧 unit。 */
+  pinSignature: string;
   clockMs: number | null;
+}
+
+function isPluginUiToolRowForPin(row: ConversationRow): row is ToolCallRow {
+  return (
+    row.kind === "toolCall" && row.display?.kind === "mcp_tool" && row.display.ui !== undefined
+  );
+}
+
+/**
+ * 一轮的固定裁决签名。
+ *
+ * 不能拿 resolver 的函数身份当缓存键：任何一次插件 widget 更新都会换掉 resolver，
+ * 而这只影响**包含该行的那一轮**。按行把裁决结果压成签名后，其它轮继续命中缓存，
+ * 只有真正变化的那轮重建。
+ */
+function resolvePinSignature(
+  rows: readonly ConversationRow[],
+  resolver: PluginUiRowPinResolver | undefined,
+): string {
+  if (!resolver) return "";
+  const parts: string[] = [];
+  for (const row of rows) {
+    if (!isPluginUiToolRowForPin(row)) continue;
+    const pin = resolver(row.toolCallId);
+    if (!pin) continue;
+    const disposition = pin.disposition;
+    parts.push(
+      [
+        row.toolCallId,
+        disposition?.key ?? "",
+        disposition?.superseded ? "1" : "0",
+        disposition?.autoExpand ? "1" : "0",
+        disposition?.forcedInline ? "1" : "0",
+        pin.manualPinned ? "1" : "0",
+      ].join("|"),
+    );
+  }
+  return parts.join("\n");
 }
 
 function hasSameRows(previous: readonly ConversationRow[], next: readonly ConversationRow[]): boolean {
@@ -83,11 +123,13 @@ export class ConversationTurnRenderUnitCache {
       const clockMs = resolveTurnRunning(draft, options)
         ? (options.nowMs ?? CLOCK_INDEPENDENT)
         : CLOCK_INDEPENDENT;
+      // 固定裁决按「这一轮里的行」比较：别轮的行变化不应让本轮失效。
+      const pinSignature = resolvePinSignature(draft.orderedRows, options.pluginUiPinResolver);
       if (
         cached &&
         cached.header === draft.header &&
         cached.sessionPhase === options.sessionPhase &&
-        cached.pinResolver === options.pluginUiPinResolver &&
+        cached.pinSignature === pinSignature &&
         cached.clockMs === clockMs &&
         hasSameRows(cached.rows, draft.orderedRows)
       ) {
@@ -100,7 +142,7 @@ export class ConversationTurnRenderUnitCache {
         rows: draft.orderedRows.slice(),
         header: draft.header,
         sessionPhase: options.sessionPhase,
-        pinResolver: options.pluginUiPinResolver,
+        pinSignature,
         clockMs,
       });
       materialized.push(unit);

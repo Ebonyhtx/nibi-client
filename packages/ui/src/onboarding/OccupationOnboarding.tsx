@@ -1,11 +1,16 @@
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useOnboardingTelemetry } from "@/onboarding/useOnboardingTelemetry.js";
 import { OnboardingHeader } from "@/onboarding/OnboardingHeader.js";
-import { OccupationOnboardingVisual } from "@/onboarding/OccupationOnboardingVisual.js";
 import { occupations, type OccupationValue } from "@/onboarding/occupationOptions.js";
 import { OnboardingModeSelector } from "@/onboarding/OnboardingModeSelector.js";
 import { OnboardingOccupationGrid } from "@/onboarding/OnboardingOccupationGrid.js";
 import { useOnboardingTrigger } from "@/onboarding/useOnboardingTrigger.js";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+
+const OccupationOnboardingVisual = lazy(() =>
+  import("@/onboarding/OccupationOnboardingVisual.js").then((module) => ({
+    default: module.OccupationOnboardingVisual,
+  })),
+);
 import { useSettings } from "@/hooks/useSettingService.js";
 import { useOnboardingRecordService } from "@/hooks/useOnboardingRecordService.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
@@ -409,10 +414,12 @@ export function OccupationOnboarding({
             </div>
           </div>
         </div>
-        <OccupationOnboardingVisual
-          isMacDesktop={isMacDesktop}
-          isWindowsDesktop={isWindowsDesktop}
-        />
+        <Suspense fallback={null}>
+          <OccupationOnboardingVisual
+            isMacDesktop={isMacDesktop}
+            isWindowsDesktop={isWindowsDesktop}
+          />
+        </Suspense>
       </div>
     </main>
   );

@@ -17,9 +17,20 @@ import {
   formatZodError,
   HostMessageTypes,
   HostResponseTypes,
-  hostResponseMessageSchema,
 } from "@nibi/shared";
-import { logger as defaultLogger } from "./logger.js";
+import { logger as defaultLogger, parseHostResponseMessageCached } from "./logger.js";
+
+const streamBatchJsonBytesCache = new WeakMap<TaskStreamMirrorBatchEvent, number>();
+
+function getStreamBatchJsonBytes(event: TaskStreamMirrorBatchEvent): number {
+  const cached = streamBatchJsonBytesCache.get(event);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const size = JSON.stringify(event).length;
+  streamBatchJsonBytesCache.set(event, size);
+  return size;
+}
 
 const STREAM_MIRROR_FLUSH_INTERVAL_MS = 1000;
 const STREAM_MIRROR_MAX_REPLAY_BATCHES = 60;
@@ -231,7 +242,7 @@ export class TaskRealtimeBus {
   }
 
   private handleHostMessage(hostId: string, message: unknown): void {
-    const parsed = hostResponseMessageSchema.safeParse(message);
+    const parsed = parseHostResponseMessageCached(message);
     if (!parsed.success) {
       this.logger.warn(
         "[task-realtime] invalid host response message:",
@@ -507,7 +518,7 @@ export class TaskRealtimeBus {
         (op) => op.kind === "stream_event" && this.isTerminalEventType(op.event.type),
       ),
     };
-    if (JSON.stringify(event).length > STREAM_MIRROR_MAX_BATCH_BYTES) {
+    if (getStreamBatchJsonBytes(event) > STREAM_MIRROR_MAX_BATCH_BYTES) {
       // 单次 mirror batch 过大时，RPC/base64/JSON 会在链路上多次复制，导致 host 堆内存打满。
       // owner 仍依赖 mirror seq 流渲染主动发送端，所以这里对 owner 做小批次分片；observer
       // 不消费正文流，只收到 snapshot invalidation/remoteGenerating 状态。
@@ -576,16 +587,21 @@ export class TaskRealtimeBus {
       pendingOps = [];
     };
 
+    const baseEnvelopeBytes =
+      JSON.stringify({
+        ...event,
+        ops: [],
+      }).length + 64;
+    let pendingBytes = baseEnvelopeBytes;
+
     for (const op of event.ops) {
-      const candidate = [...pendingOps, op];
-      const candidateChunk = createChunk(candidate, batch.nextBatchSeq);
-      if (
-        pendingOps.length > 0 &&
-        JSON.stringify(candidateChunk).length > STREAM_MIRROR_MAX_BATCH_BYTES
-      ) {
+      const opBytes = JSON.stringify(op).length + 1;
+      if (pendingOps.length > 0 && pendingBytes + opBytes > STREAM_MIRROR_MAX_BATCH_BYTES) {
         flushPending();
+        pendingBytes = baseEnvelopeBytes;
       }
       pendingOps.push(op);
+      pendingBytes += opBytes;
     }
     flushPending();
     return chunks;
@@ -740,13 +756,17 @@ export class TaskRealtimeBus {
     while (batch.replay.length > STREAM_MIRROR_MAX_REPLAY_BATCHES) {
       batch.replay.shift();
     }
-    while (this.replayBytes(batch.replay) > STREAM_MIRROR_MAX_REPLAY_BYTES) {
-      batch.replay.shift();
+    let totalBytes = this.replayBytes(batch.replay);
+    while (totalBytes > STREAM_MIRROR_MAX_REPLAY_BYTES && batch.replay.length > 0) {
+      const removed = batch.replay.shift();
+      if (removed) {
+        totalBytes -= getStreamBatchJsonBytes(removed);
+      }
     }
   }
 
   private replayBytes(replay: TaskStreamMirrorBatchEvent[]): number {
-    return replay.reduce((total, replayEvent) => total + JSON.stringify(replayEvent).length, 0);
+    return replay.reduce((total, replayEvent) => total + getStreamBatchJsonBytes(replayEvent), 0);
   }
 
   private replayVisibleRunsToHost(hostId: string, workspaceKeys: Iterable<string>): void {

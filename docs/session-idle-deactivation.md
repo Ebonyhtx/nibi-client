@@ -288,7 +288,7 @@ renderer 不镜像 CLI 常驻池，也不接收回收通知。它已有独立的
 ```text
 pane 关闭/切走
   -> release SessionDataLayer pane lease
-  -> keep-warm 30s
+  -> keep-warm 120s（最多保留 4 个已释放会话，超出按释放顺序淘汰最旧）
   -> unsubscribe conversation
   -> ConversationProjectionStore.close()
   -> 从 SessionDataLayer 删除该 topic store

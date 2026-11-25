@@ -2,8 +2,6 @@
 @import "tw-animate-css";
 @import "tailwind-scrollbar-hide/v4";
 @import "shadcn/tailwind.css";
-@import "@xterm/xterm/css/xterm.css";
-@import "katex/dist/katex.min.css";
 @source "../../../node_modules/streamdown/dist/*.js"; /* 感觉这行也是不好使呢*/
 
 @plugin "@tailwindcss/typography";
@@ -93,90 +91,75 @@ body,
   --color-remote-continuity-panel-subtle: #a7a7ad;
   /* 纸墨工坊：桌面浅色器物层级、高光与暖纸光晕 */
   --nibi-shadow-panel:
-    inset 0 1px 0 rgba(255, 253, 249, 0.9),
-    0 1px 2px rgba(20, 45, 82, 0.045),
+    inset 0 1px 0 rgba(255, 253, 249, 0.9), 0 1px 2px rgba(20, 45, 82, 0.045),
     0 8px 22px -12px rgba(20, 45, 82, 0.08);
   --nibi-shadow-card:
-    inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 1px 2px rgba(20, 45, 82, 0.045),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(20, 45, 82, 0.045),
     0 3px 10px -4px rgba(20, 45, 82, 0.06);
   --nibi-shadow-card-hover:
-    inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    0 2px 6px -1px rgba(20, 45, 82, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92), 0 2px 6px -1px rgba(20, 45, 82, 0.08),
     0 10px 22px -8px rgba(20, 45, 82, 0.12);
   --nibi-shadow-composer:
-    inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    0 2px 6px rgba(20, 45, 82, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92), 0 2px 6px rgba(20, 45, 82, 0.05),
     0 12px 28px -12px rgba(20, 45, 82, 0.12);
   --nibi-shadow-composer-focus:
-    inset 0 1px 0 rgba(255, 255, 255, 0.96),
-    0 0 0 3px rgba(174, 84, 19, 0.12),
-    0 6px 16px -4px rgba(20, 45, 82, 0.09),
-    0 16px 34px -12px rgba(174, 84, 19, 0.14);
+    inset 0 1px 0 rgba(255, 255, 255, 0.96), 0 0 0 3px rgba(174, 84, 19, 0.12),
+    0 6px 16px -4px rgba(20, 45, 82, 0.09), 0 16px 34px -12px rgba(174, 84, 19, 0.14);
   --nibi-shadow-popover:
-    inset 0 1px 0 rgba(255, 255, 255, 0.88),
-    0 4px 12px -2px rgba(20, 45, 82, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 4px 12px -2px rgba(20, 45, 82, 0.08),
     0 18px 40px -10px rgba(20, 45, 82, 0.18);
   --nibi-shadow-primary-btn:
-    inset 0 1px 0 rgba(255, 246, 232, 0.28),
-    0 1px 2px rgba(120, 52, 8, 0.24),
+    inset 0 1px 0 rgba(255, 246, 232, 0.28), 0 1px 2px rgba(120, 52, 8, 0.24),
     0 4px 10px -4px rgba(174, 84, 19, 0.34);
   --nibi-shadow-input-inset:
-    inset 0 1px 2px rgba(20, 45, 82, 0.045),
-    0 1px 0 rgba(255, 255, 255, 0.65);
+    inset 0 1px 2px rgba(20, 45, 82, 0.045), 0 1px 0 rgba(255, 255, 255, 0.65);
   --nibi-shadow-input-focus:
-    inset 0 1px 2px rgba(20, 45, 82, 0.04),
-    0 0 0 3px rgba(74, 121, 184, 0.14);
+    inset 0 1px 2px rgba(20, 45, 82, 0.04), 0 0 0 3px rgba(74, 121, 184, 0.14);
   --nibi-shadow-active-row:
-    inset 0 1px 0 rgba(255, 255, 255, 0.88),
-    0 1px 3px rgba(20, 45, 82, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 1px 3px rgba(20, 45, 82, 0.07),
     0 4px 10px -6px rgba(20, 45, 82, 0.12);
-  --nibi-paper-wash: radial-gradient(ellipse 85% 42% at 50% 0%, rgba(255, 253, 247, 0.72), transparent 70%);
+  --nibi-paper-wash: radial-gradient(
+    ellipse 85% 42% at 50% 0%,
+    rgba(255, 253, 247, 0.72),
+    transparent 70%
+  );
   --nibi-paper-grain-opacity: 0.024;
 }
 
 :is(.dark, .theme-nibi-dark) {
   color-scheme: dark;
   --nibi-shadow-panel:
-    inset 0 1px 0 rgba(255, 244, 224, 0.06),
-    0 1px 2px rgba(0, 0, 0, 0.36),
+    inset 0 1px 0 rgba(255, 244, 224, 0.06), 0 1px 2px rgba(0, 0, 0, 0.36),
     0 10px 26px -12px rgba(0, 0, 0, 0.52);
   --nibi-shadow-card:
-    inset 0 1px 0 rgba(255, 244, 224, 0.055),
-    0 1px 3px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 244, 224, 0.055), 0 1px 3px rgba(0, 0, 0, 0.32),
     0 4px 12px -6px rgba(0, 0, 0, 0.44);
   --nibi-shadow-card-hover:
-    inset 0 1px 0 rgba(255, 244, 224, 0.09),
-    0 4px 10px -2px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 244, 224, 0.09), 0 4px 10px -2px rgba(0, 0, 0, 0.42),
     0 12px 24px -8px rgba(0, 0, 0, 0.56);
   --nibi-shadow-composer:
-    inset 0 1px 0 rgba(255, 244, 224, 0.075),
-    0 4px 12px rgba(0, 0, 0, 0.36),
+    inset 0 1px 0 rgba(255, 244, 224, 0.075), 0 4px 12px rgba(0, 0, 0, 0.36),
     0 16px 34px -12px rgba(0, 0, 0, 0.58);
   --nibi-shadow-composer-focus:
-    inset 0 1px 0 rgba(232, 196, 145, 0.14),
-    0 0 0 3px rgba(232, 196, 145, 0.13),
-    0 8px 20px -4px rgba(0, 0, 0, 0.48),
-    0 18px 38px -10px rgba(0, 0, 0, 0.64);
+    inset 0 1px 0 rgba(232, 196, 145, 0.14), 0 0 0 3px rgba(232, 196, 145, 0.13),
+    0 8px 20px -4px rgba(0, 0, 0, 0.48), 0 18px 38px -10px rgba(0, 0, 0, 0.64);
   --nibi-shadow-popover:
-    inset 0 1px 0 rgba(255, 244, 224, 0.08),
-    0 6px 16px -2px rgba(0, 0, 0, 0.48),
+    inset 0 1px 0 rgba(255, 244, 224, 0.08), 0 6px 16px -2px rgba(0, 0, 0, 0.48),
     0 22px 48px -10px rgba(0, 0, 0, 0.72);
   --nibi-shadow-primary-btn:
-    inset 0 1px 0 rgba(255, 250, 240, 0.34),
-    0 1px 2px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 250, 240, 0.34), 0 1px 2px rgba(0, 0, 0, 0.38),
     0 4px 12px -4px rgba(232, 196, 145, 0.24);
-  --nibi-shadow-input-inset:
-    inset 0 1px 2px rgba(0, 0, 0, 0.34),
-    0 1px 0 rgba(255, 244, 224, 0.04);
+  --nibi-shadow-input-inset: inset 0 1px 2px rgba(0, 0, 0, 0.34), 0 1px 0 rgba(255, 244, 224, 0.04);
   --nibi-shadow-input-focus:
-    inset 0 1px 2px rgba(0, 0, 0, 0.28),
-    0 0 0 3px rgba(207, 168, 126, 0.18);
+    inset 0 1px 2px rgba(0, 0, 0, 0.28), 0 0 0 3px rgba(207, 168, 126, 0.18);
   --nibi-shadow-active-row:
-    inset 0 1px 0 rgba(255, 244, 224, 0.07),
-    0 1px 3px rgba(0, 0, 0, 0.36),
+    inset 0 1px 0 rgba(255, 244, 224, 0.07), 0 1px 3px rgba(0, 0, 0, 0.36),
     0 6px 14px -8px rgba(0, 0, 0, 0.56);
-  --nibi-paper-wash: radial-gradient(ellipse 85% 38% at 50% 0%, rgba(232, 196, 145, 0.055), transparent 68%);
+  --nibi-paper-wash: radial-gradient(
+    ellipse 85% 38% at 50% 0%,
+    rgba(232, 196, 145, 0.055),
+    transparent 68%
+  );
   --nibi-paper-grain-opacity: 0.03;
 }
 
@@ -248,27 +231,6 @@ html[data-document-hidden] *::after {
   }
 
   :where(
-    a[href],
-    button,
-    input,
-    select,
-    textarea,
-    summary,
-    [role="button"],
-    [role="tab"],
-    [role="menuitem"],
-    [role="option"],
-    [role="switch"],
-    [role="checkbox"],
-    [role="radio"],
-    [tabindex]:not([tabindex="-1"])
-  ):not([role="separator"]):not([contenteditable="true"]):focus-visible {
-    outline: 2px solid var(--color-ring);
-    outline-offset: 2px;
-  }
-
-  @media (forced-colors: active) {
-    :where(
       a[href],
       button,
       input,
@@ -284,6 +246,27 @@ html[data-document-hidden] *::after {
       [role="radio"],
       [tabindex]:not([tabindex="-1"])
     ):not([role="separator"]):not([contenteditable="true"]):focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  @media (forced-colors: active) {
+    :where(
+        a[href],
+        button,
+        input,
+        select,
+        textarea,
+        summary,
+        [role="button"],
+        [role="tab"],
+        [role="menuitem"],
+        [role="option"],
+        [role="switch"],
+        [role="checkbox"],
+        [role="radio"],
+        [tabindex]:not([tabindex="-1"])
+      ):not([role="separator"]):not([contenteditable="true"]):focus-visible {
       outline: 2px solid CanvasText;
       outline-offset: 2px;
     }
@@ -1204,7 +1187,6 @@ html[data-document-hidden] *::after {
   }
 }
 
-
 /* NIBI 品牌角色（新建会话页动画）：108 帧 12x9 sprite（256x256/帧，4.5s 一轮 step-end）。
    素材与节奏照搬 NIBI 桌面原型 public/assets/companion/new-conversation/ 与它的
    new-conversation-loop 关键帧；浅色用 v07，深色用为深底调过的 v18 matte。 */
@@ -1223,7 +1205,6 @@ html[data-document-hidden] *::after {
   transform: scale(0.15625);
   transform-origin: top left;
 }
-
 
 .nibi-new-conversation-loop {
   display: block;
@@ -1249,114 +1230,330 @@ html[data-document-hidden] *::after {
 }
 
 @keyframes nibi-new-conversation-loop {
-  0% { background-position: 0px 0px; }
-  0.925926% { background-position: -256px 0px; }
-  1.851852% { background-position: -512px 0px; }
-  2.777778% { background-position: -768px 0px; }
-  3.703704% { background-position: -1024px 0px; }
-  4.62963% { background-position: -1280px 0px; }
-  5.555556% { background-position: -1536px 0px; }
-  6.481481% { background-position: -1792px 0px; }
-  7.407407% { background-position: -2048px 0px; }
-  8.333333% { background-position: -2304px 0px; }
-  9.259259% { background-position: -2560px 0px; }
-  10.185185% { background-position: -2816px 0px; }
-  11.111111% { background-position: 0px -256px; }
-  12.037037% { background-position: -256px -256px; }
-  12.962963% { background-position: -512px -256px; }
-  13.888889% { background-position: -768px -256px; }
-  14.814815% { background-position: -1024px -256px; }
-  15.740741% { background-position: -1280px -256px; }
-  16.666667% { background-position: -1536px -256px; }
-  17.592593% { background-position: -1792px -256px; }
-  18.518519% { background-position: -2048px -256px; }
-  19.444444% { background-position: -2304px -256px; }
-  20.37037% { background-position: -2560px -256px; }
-  21.296296% { background-position: -2816px -256px; }
-  22.222222% { background-position: 0px -512px; }
-  23.148148% { background-position: -256px -512px; }
-  24.074074% { background-position: -512px -512px; }
-  25% { background-position: -768px -512px; }
-  25.925926% { background-position: -1024px -512px; }
-  26.851852% { background-position: -1280px -512px; }
-  27.777778% { background-position: -1536px -512px; }
-  28.703704% { background-position: -1792px -512px; }
-  29.62963% { background-position: -2048px -512px; }
-  30.555556% { background-position: -2304px -512px; }
-  31.481481% { background-position: -2560px -512px; }
-  32.407407% { background-position: -2816px -512px; }
-  33.333333% { background-position: 0px -768px; }
-  34.259259% { background-position: -256px -768px; }
-  35.185185% { background-position: -512px -768px; }
-  36.111111% { background-position: -768px -768px; }
-  37.037037% { background-position: -1024px -768px; }
-  37.962963% { background-position: -1280px -768px; }
-  38.888889% { background-position: -1536px -768px; }
-  39.814815% { background-position: -1792px -768px; }
-  40.740741% { background-position: -2048px -768px; }
-  41.666667% { background-position: -2304px -768px; }
-  42.592593% { background-position: -2560px -768px; }
-  43.518519% { background-position: -2816px -768px; }
-  44.444444% { background-position: 0px -1024px; }
-  45.37037% { background-position: -256px -1024px; }
-  46.296296% { background-position: -512px -1024px; }
-  47.222222% { background-position: -768px -1024px; }
-  48.148148% { background-position: -1024px -1024px; }
-  49.074074% { background-position: -1280px -1024px; }
-  50% { background-position: -1536px -1024px; }
-  50.925926% { background-position: -1792px -1024px; }
-  51.851852% { background-position: -2048px -1024px; }
-  52.777778% { background-position: -2304px -1024px; }
-  53.703704% { background-position: -2560px -1024px; }
-  54.62963% { background-position: -2816px -1024px; }
-  55.555556% { background-position: 0px -1280px; }
-  56.481481% { background-position: -256px -1280px; }
-  57.407407% { background-position: -512px -1280px; }
-  58.333333% { background-position: -768px -1280px; }
-  59.259259% { background-position: -1024px -1280px; }
-  60.185185% { background-position: -1280px -1280px; }
-  61.111111% { background-position: -1536px -1280px; }
-  62.037037% { background-position: -1792px -1280px; }
-  62.962963% { background-position: -2048px -1280px; }
-  63.888889% { background-position: -2304px -1280px; }
-  64.814815% { background-position: -2560px -1280px; }
-  65.740741% { background-position: -2816px -1280px; }
-  66.666667% { background-position: 0px -1536px; }
-  67.592593% { background-position: -256px -1536px; }
-  68.518519% { background-position: -512px -1536px; }
-  69.444444% { background-position: -768px -1536px; }
-  70.37037% { background-position: -1024px -1536px; }
-  71.296296% { background-position: -1280px -1536px; }
-  72.222222% { background-position: -1536px -1536px; }
-  73.148148% { background-position: -1792px -1536px; }
-  74.074074% { background-position: -2048px -1536px; }
-  75% { background-position: -2304px -1536px; }
-  75.925926% { background-position: -2560px -1536px; }
-  76.851852% { background-position: -2816px -1536px; }
-  77.777778% { background-position: 0px -1792px; }
-  78.703704% { background-position: -256px -1792px; }
-  79.62963% { background-position: -512px -1792px; }
-  80.555556% { background-position: -768px -1792px; }
-  81.481481% { background-position: -1024px -1792px; }
-  82.407407% { background-position: -1280px -1792px; }
-  83.333333% { background-position: -1536px -1792px; }
-  84.259259% { background-position: -1792px -1792px; }
-  85.185185% { background-position: -2048px -1792px; }
-  86.111111% { background-position: -2304px -1792px; }
-  87.037037% { background-position: -2560px -1792px; }
-  87.962963% { background-position: -2816px -1792px; }
-  88.888889% { background-position: 0px -2048px; }
-  89.814815% { background-position: -256px -2048px; }
-  90.740741% { background-position: -512px -2048px; }
-  91.666667% { background-position: -768px -2048px; }
-  92.592593% { background-position: -1024px -2048px; }
-  93.518519% { background-position: -1280px -2048px; }
-  94.444444% { background-position: -1536px -2048px; }
-  95.37037% { background-position: -1792px -2048px; }
-  96.296296% { background-position: -2048px -2048px; }
-  97.222222% { background-position: -2304px -2048px; }
-  98.148148% { background-position: -2560px -2048px; }
-  99.074074% { background-position: -2816px -2048px; }
+  0% {
+    background-position: 0px 0px;
+  }
+  0.925926% {
+    background-position: -256px 0px;
+  }
+  1.851852% {
+    background-position: -512px 0px;
+  }
+  2.777778% {
+    background-position: -768px 0px;
+  }
+  3.703704% {
+    background-position: -1024px 0px;
+  }
+  4.62963% {
+    background-position: -1280px 0px;
+  }
+  5.555556% {
+    background-position: -1536px 0px;
+  }
+  6.481481% {
+    background-position: -1792px 0px;
+  }
+  7.407407% {
+    background-position: -2048px 0px;
+  }
+  8.333333% {
+    background-position: -2304px 0px;
+  }
+  9.259259% {
+    background-position: -2560px 0px;
+  }
+  10.185185% {
+    background-position: -2816px 0px;
+  }
+  11.111111% {
+    background-position: 0px -256px;
+  }
+  12.037037% {
+    background-position: -256px -256px;
+  }
+  12.962963% {
+    background-position: -512px -256px;
+  }
+  13.888889% {
+    background-position: -768px -256px;
+  }
+  14.814815% {
+    background-position: -1024px -256px;
+  }
+  15.740741% {
+    background-position: -1280px -256px;
+  }
+  16.666667% {
+    background-position: -1536px -256px;
+  }
+  17.592593% {
+    background-position: -1792px -256px;
+  }
+  18.518519% {
+    background-position: -2048px -256px;
+  }
+  19.444444% {
+    background-position: -2304px -256px;
+  }
+  20.37037% {
+    background-position: -2560px -256px;
+  }
+  21.296296% {
+    background-position: -2816px -256px;
+  }
+  22.222222% {
+    background-position: 0px -512px;
+  }
+  23.148148% {
+    background-position: -256px -512px;
+  }
+  24.074074% {
+    background-position: -512px -512px;
+  }
+  25% {
+    background-position: -768px -512px;
+  }
+  25.925926% {
+    background-position: -1024px -512px;
+  }
+  26.851852% {
+    background-position: -1280px -512px;
+  }
+  27.777778% {
+    background-position: -1536px -512px;
+  }
+  28.703704% {
+    background-position: -1792px -512px;
+  }
+  29.62963% {
+    background-position: -2048px -512px;
+  }
+  30.555556% {
+    background-position: -2304px -512px;
+  }
+  31.481481% {
+    background-position: -2560px -512px;
+  }
+  32.407407% {
+    background-position: -2816px -512px;
+  }
+  33.333333% {
+    background-position: 0px -768px;
+  }
+  34.259259% {
+    background-position: -256px -768px;
+  }
+  35.185185% {
+    background-position: -512px -768px;
+  }
+  36.111111% {
+    background-position: -768px -768px;
+  }
+  37.037037% {
+    background-position: -1024px -768px;
+  }
+  37.962963% {
+    background-position: -1280px -768px;
+  }
+  38.888889% {
+    background-position: -1536px -768px;
+  }
+  39.814815% {
+    background-position: -1792px -768px;
+  }
+  40.740741% {
+    background-position: -2048px -768px;
+  }
+  41.666667% {
+    background-position: -2304px -768px;
+  }
+  42.592593% {
+    background-position: -2560px -768px;
+  }
+  43.518519% {
+    background-position: -2816px -768px;
+  }
+  44.444444% {
+    background-position: 0px -1024px;
+  }
+  45.37037% {
+    background-position: -256px -1024px;
+  }
+  46.296296% {
+    background-position: -512px -1024px;
+  }
+  47.222222% {
+    background-position: -768px -1024px;
+  }
+  48.148148% {
+    background-position: -1024px -1024px;
+  }
+  49.074074% {
+    background-position: -1280px -1024px;
+  }
+  50% {
+    background-position: -1536px -1024px;
+  }
+  50.925926% {
+    background-position: -1792px -1024px;
+  }
+  51.851852% {
+    background-position: -2048px -1024px;
+  }
+  52.777778% {
+    background-position: -2304px -1024px;
+  }
+  53.703704% {
+    background-position: -2560px -1024px;
+  }
+  54.62963% {
+    background-position: -2816px -1024px;
+  }
+  55.555556% {
+    background-position: 0px -1280px;
+  }
+  56.481481% {
+    background-position: -256px -1280px;
+  }
+  57.407407% {
+    background-position: -512px -1280px;
+  }
+  58.333333% {
+    background-position: -768px -1280px;
+  }
+  59.259259% {
+    background-position: -1024px -1280px;
+  }
+  60.185185% {
+    background-position: -1280px -1280px;
+  }
+  61.111111% {
+    background-position: -1536px -1280px;
+  }
+  62.037037% {
+    background-position: -1792px -1280px;
+  }
+  62.962963% {
+    background-position: -2048px -1280px;
+  }
+  63.888889% {
+    background-position: -2304px -1280px;
+  }
+  64.814815% {
+    background-position: -2560px -1280px;
+  }
+  65.740741% {
+    background-position: -2816px -1280px;
+  }
+  66.666667% {
+    background-position: 0px -1536px;
+  }
+  67.592593% {
+    background-position: -256px -1536px;
+  }
+  68.518519% {
+    background-position: -512px -1536px;
+  }
+  69.444444% {
+    background-position: -768px -1536px;
+  }
+  70.37037% {
+    background-position: -1024px -1536px;
+  }
+  71.296296% {
+    background-position: -1280px -1536px;
+  }
+  72.222222% {
+    background-position: -1536px -1536px;
+  }
+  73.148148% {
+    background-position: -1792px -1536px;
+  }
+  74.074074% {
+    background-position: -2048px -1536px;
+  }
+  75% {
+    background-position: -2304px -1536px;
+  }
+  75.925926% {
+    background-position: -2560px -1536px;
+  }
+  76.851852% {
+    background-position: -2816px -1536px;
+  }
+  77.777778% {
+    background-position: 0px -1792px;
+  }
+  78.703704% {
+    background-position: -256px -1792px;
+  }
+  79.62963% {
+    background-position: -512px -1792px;
+  }
+  80.555556% {
+    background-position: -768px -1792px;
+  }
+  81.481481% {
+    background-position: -1024px -1792px;
+  }
+  82.407407% {
+    background-position: -1280px -1792px;
+  }
+  83.333333% {
+    background-position: -1536px -1792px;
+  }
+  84.259259% {
+    background-position: -1792px -1792px;
+  }
+  85.185185% {
+    background-position: -2048px -1792px;
+  }
+  86.111111% {
+    background-position: -2304px -1792px;
+  }
+  87.037037% {
+    background-position: -2560px -1792px;
+  }
+  87.962963% {
+    background-position: -2816px -1792px;
+  }
+  88.888889% {
+    background-position: 0px -2048px;
+  }
+  89.814815% {
+    background-position: -256px -2048px;
+  }
+  90.740741% {
+    background-position: -512px -2048px;
+  }
+  91.666667% {
+    background-position: -768px -2048px;
+  }
+  92.592593% {
+    background-position: -1024px -2048px;
+  }
+  93.518519% {
+    background-position: -1280px -2048px;
+  }
+  94.444444% {
+    background-position: -1536px -2048px;
+  }
+  95.37037% {
+    background-position: -1792px -2048px;
+  }
+  96.296296% {
+    background-position: -2048px -2048px;
+  }
+  97.222222% {
+    background-position: -2304px -2048px;
+  }
+  98.148148% {
+    background-position: -2560px -2048px;
+  }
+  99.074074% {
+    background-position: -2816px -2048px;
+  }
 }
 /* NIBI 空状态品牌角色的呼吸节奏，数值取自 NIBI 桌面原型的 behavior-perch-breathe。 */
 .nibi-empty-state-bird {
@@ -1388,16 +1585,18 @@ html[data-document-hidden] *::after {
 
 /* 工具摘要行细进度条的 indeterminate 扫光（ToolCallProgressIndicator，第三批 R7）。 */
 .tool-call-progress-indeterminate {
+  left: 0;
+  will-change: transform;
   animation: tool-call-progress-indeterminate 1.2s ease-in-out infinite;
 }
 
 @keyframes tool-call-progress-indeterminate {
   0% {
-    left: -33%;
+    transform: translate3d(-100%, 0, 0);
   }
 
   100% {
-    left: 100%;
+    transform: translate3d(300%, 0, 0);
   }
 }
 
@@ -1405,6 +1604,7 @@ html[data-document-hidden] *::after {
   .tool-call-progress-indeterminate {
     animation: none;
     left: 0;
+    transform: none;
     width: 100%;
   }
 }
@@ -2673,7 +2873,6 @@ html[data-document-hidden] *::after {
   display: none;
 }
 
-
 /* ── 登录 / 引导 Hero 的栖息鸟与羽迹点缀（第 2 批） ───────────────── */
 .nibi-hero-creature {
   position: absolute;
@@ -2765,7 +2964,6 @@ html[data-document-hidden] *::after {
   }
 }
 
-
 /* Composer 切模型掠光：纸墨工坊金箔琥珀丝绸扫光；深浅主题各自调校透明度与叠加混合。 */
 .composer-model-sweep {
   position: absolute;
@@ -2849,7 +3047,6 @@ html[data-document-hidden] *::after {
   display: block;
 }
 
-
 /* 界面动效关闭时，CSS 驱动的扫光与新建会话循环必须一起停。 */
 html[data-nibi-motion="off"] .composer-model-sweep {
   display: none !important;
@@ -2870,7 +3067,6 @@ html[data-nibi-motion="off"] .composer-thinking-leaf.is-active {
   opacity: 0.7;
   transform: translate3d(0, 0, 0) rotate(var(--leaf-rotate)) scale(var(--leaf-scale));
 }
-
 
 /* 运行中状态点：8px 品牌色圆点 + 柔和呼吸光晕；不承载文字/头像。 */
 .running-status-dot {

@@ -1752,23 +1752,42 @@ function resetShortcutRecordingForWebContents(webContentsId: number) {
   rebuildMenu();
 }
 
+let rebuildMenuGeneration = 0;
+let lastBuiltMenuSignature: string | null = null;
+
 function rebuildMenu() {
+  const generation = ++rebuildMenuGeneration;
   void Promise.all([resolveNibiEndpointSelection(), mainSettingService.get()]).then(
     ([nibiEndpointSelection, settings]) => {
+      if (generation !== rebuildMenuGeneration) {
+        return;
+      }
+      const zoomLevel = resolveFocusedDesktopZoomLevel();
+      const signature = JSON.stringify([
+        currentApplicationLocale,
+        nibiEndpointSelection,
+        zoomLevel,
+        settings.shortcutBindings ?? null,
+        shortcutRecordingActive,
+      ]);
+      if (signature === lastBuiltMenuSignature) {
+        return;
+      }
+      lastBuiltMenuSignature = signature;
       rebuildApplicationMenu({
         currentApplicationLocale,
         nibiEndpointSelection,
         executeDesktopCommand: executeDesktopCommandForApp,
-        currentZoomLevel: resolveFocusedDesktopZoomLevel(),
+        currentZoomLevel: zoomLevel,
         // 菜单 accelerator 跟随用户快捷键设置（shortcutBindings 用户覆盖）
         shortcutBindings: settings.shortcutBindings,
         // 快捷键录制态：摘掉可配置 accelerator，防止录制 menu 通道命令时按键直接触发原命令
         // （macOS 系统菜单先于 renderer 吃掉按键，renderer 侧 preventDefault 拦不住）。
         disableShortcutAccelerators: shortcutRecordingActive,
       });
+      updateWindowsDesktopTrayMenu();
     },
   );
-  updateWindowsDesktopTrayMenu();
 }
 
 function resolveFocusedDesktopZoomLevel(): number {

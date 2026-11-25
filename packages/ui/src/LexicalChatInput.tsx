@@ -177,12 +177,19 @@ export function shouldNormalizeLeadingChineseSlashAliasInput({
   );
 }
 
-/** 提取编辑器内容；mention 节点会在这里输出 markdown */
+const cachedEditorStateMarkdown = new WeakMap<EditorState, string>();
+
+/** 提取编辑器内容；mention 节点会在这里输出 markdown（按不可变 EditorState 缓存，避免每次击键双倍遍历） */
 function getEditorMarkdown(editorState: EditorState): string {
+  const cached = cachedEditorStateMarkdown.get(editorState);
+  if (cached !== undefined) {
+    return cached;
+  }
   let text = "";
   editorState.read(() => {
     text = $getPromptMarkdown();
   });
+  cachedEditorStateMarkdown.set(editorState, text);
   return text;
 }
 
@@ -907,7 +914,8 @@ function E2ELexicalInputBridgePlugin({ inputTestId }: { inputTestId?: string }) 
       getEditorState: () => editor.getEditorState(),
       getText: () => getEditorMarkdown(editor.getEditorState()),
       setText: (text: string) => replaceEditorText(editor, text),
-      setTextWithPluginMentions: (text: string) => replaceEditorTextWithPluginMentions(editor, text),
+      setTextWithPluginMentions: (text: string) =>
+        replaceEditorTextWithPluginMentions(editor, text),
       setEditorStateJson: (editorStateJson: string) =>
         replaceEditorStateJson(editor, editorStateJson),
     };
@@ -1287,7 +1295,8 @@ function EditorApiPlugin({
       setMention: (mention, trailingText) =>
         replaceEditorWithMention(editor, mention, trailingText),
       setText: (text: string) => replaceEditorText(editor, text),
-      setTextWithPluginMentions: (text: string) => replaceEditorTextWithPluginMentions(editor, text),
+      setTextWithPluginMentions: (text: string) =>
+        replaceEditorTextWithPluginMentions(editor, text),
       setEditorStateJson: (editorStateJson: string) =>
         replaceEditorStateJson(editor, editorStateJson),
       setSkillMention: (skillName: string, markdown = `$${skillName}`, trailingText = " ") =>

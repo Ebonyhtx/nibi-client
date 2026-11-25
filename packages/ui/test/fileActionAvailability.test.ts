@@ -220,7 +220,10 @@ describe("message file link file actions", () => {
   it("adds reveal, save as and the Open row icon to message file links", async () => {
     renderMessageLink();
     const link = screen.getByRole("button", { name: /report\.txt/ });
-    fireEvent.contextMenu(link);
+    // 消息内文件链接按需启用右键菜单（首次 hover/聚焦后才挂载 Radix 菜单与编辑器查询），
+    // 真实交互里右键前一定有 hover；测试要按同一路径触发。
+    fireEvent.pointerEnter(link);
+    fireEvent.contextMenu(screen.getByRole("button", { name: /report\.txt/ }));
     const openItem = screen.getByText("common.open").closest('[role="menuitem"]');
     expect(hasIcon(openItem)).toBe(true);
     expect(screen.getByText("appHeader.openInFileManager")).toBeTruthy();
@@ -230,6 +233,7 @@ describe("message file link file actions", () => {
 
   it("hides save as when the platform cannot save files", async () => {
     renderMessageLink({ hasSaveFile: false });
+    fireEvent.pointerEnter(screen.getByRole("button", { name: /report\.txt/ }));
     fireEvent.contextMenu(screen.getByRole("button", { name: /report\.txt/ }));
     expect(screen.getByText("appHeader.openInFileManager")).toBeTruthy();
     await waitFor(() => expect(state.fileService.stat).toHaveBeenCalled());

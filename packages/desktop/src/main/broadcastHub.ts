@@ -4,10 +4,9 @@ import {
   HostResponseTypes,
   broadcastMessageSchema,
   formatZodError,
-  hostResponseMessageSchema,
 } from "@nibi/shared";
 import type { BroadcastMessage } from "@nibi/services";
-import { logger } from "./logger.js";
+import { logger, parseHostResponseMessageCached } from "./logger.js";
 
 /**
  * BroadcastHub —— main 进程中的广播中转站
@@ -52,7 +51,7 @@ export class BroadcastHub {
     this.processes.set(windowId, child);
 
     child.on("message", (msg: unknown) => {
-      const result = hostResponseMessageSchema.safeParse(msg);
+      const result = parseHostResponseMessageCached(msg);
       if (!result.success) {
         logger.warn("[BroadcastHub] invalid host response message:", formatZodError(result.error));
         return;

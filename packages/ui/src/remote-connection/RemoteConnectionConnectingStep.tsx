@@ -1,5 +1,6 @@
 import { redactFeedbackText } from "@nibi/shared";
 import { usePlatform } from "@/hooks/usePlatform.js";
+import { useSecondClock } from "@/hooks/useRunningBackgroundTaskElapsedClock.js";
 import { RemotePasswordInput } from "@/remote-connection/RemotePasswordInput.js";
 import {
   classifyRemoteConnectionError,
@@ -297,13 +298,8 @@ export function RemoteConnectionConnectingStep({
   const shouldFollowLatestLogRef = useRef(true);
   const latestLogId = logs.at(-1)?.id;
   const latestLogTimestamp = logs.at(-1)?.timestamp;
-  const [now, setNow] = useState(Date.now);
+  const now = useSecondClock(loading);
   const [mountedAt] = useState(Date.now);
-  useEffect(() => {
-    if (!loading) return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [loading]);
   const waitingPhase = credentials
     ? "channel"
     : installConfirmation || forceUpdate

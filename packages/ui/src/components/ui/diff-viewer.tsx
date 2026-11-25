@@ -4,10 +4,14 @@ import type { CSSProperties, HTMLAttributes } from "react";
 import { memo, useMemo } from "react";
 import type { BundledTheme } from "shiki";
 import type { FileContents, FileDiffOptions } from "@pierre/diffs";
+import * as pierreDiffsReact from "@pierre/diffs/react";
 import { MultiFileDiff, PatchDiff } from "@pierre/diffs/react";
 
 import { cn } from "@/components/lib/utils.js";
-import { DIFFS_PREFERRED_HIGHLIGHTER } from "@/lib/diffsHighlighterEngine.js";
+import {
+  DIFFS_PREFERRED_HIGHLIGHTER,
+  useEnsuredDiffsWorkerPool,
+} from "@/lib/diffsHighlighterEngine.js";
 
 type DiffViewerStyle = CSSProperties & {
   "--diffs-bg"?: string;
@@ -63,6 +67,13 @@ function DiffViewerComponent(props: DiffViewerProps) {
     className,
     style,
   } = props;
+  const safeWorkerPoolContext = Object.hasOwn(pierreDiffsReact, "WorkerPoolContext")
+    ? pierreDiffsReact.WorkerPoolContext
+    : undefined;
+  const { renderWithWorkerPool } = useEnsuredDiffsWorkerPool(
+    safeWorkerPoolContext,
+    disableWorkerPool,
+  );
   const viewerStyle = useMemo<DiffViewerStyle>(
     () => ({
       "--diffs-bg": "var(--color-background)",
@@ -132,7 +143,7 @@ function DiffViewerComponent(props: DiffViewerProps) {
       style={viewerStyle}
       {...divProps}
     >
-      {diffNode}
+      {renderWithWorkerPool(diffNode)}
     </div>
   );
 }

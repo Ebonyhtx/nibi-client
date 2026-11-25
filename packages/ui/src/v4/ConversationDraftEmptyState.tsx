@@ -4,13 +4,7 @@
  * i18n key `chat.empty.greeting.*` 一直保留）；边界时刻自动换档逻辑保真。
  * 手机远控复用同一组件，但继续保留 20px 紧凑标题；桌面草稿首页才按标题自身宽度适配。
  */
-import {
-  type CSSProperties,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/components/lib/utils.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
@@ -18,33 +12,44 @@ import { logger } from "@/logger.js";
 import nibiLoopLightUrl from "@/assets/nibi/nibi-loop-light.png";
 import nibiLoopDarkUrl from "@/assets/nibi/nibi-loop-dark.png";
 
-// 3072x2304 的精灵图偶尔会在路由切换的第一帧只绘出一半；提前 decode，
-// 让新建会话页首次挂载时直接命中已解码缓存。
-//
-// 只 decode 一次不够：大图（解码后约 28MB）会被 Chromium 从解码缓存里淘汰，重新显示时又开始
-// 渐进解码，首帧只画出上半张（整个上半圆 + 鸟头，下半张透明）——真机表现为「小鸟只显示一半」。
-// 所以 decode 同时记完成标记，组件在标记到达前隐藏鸟，解码完成后再显示。
-let loopSpriteDecoded = false;
-const loopSpriteDecodePromise: Promise<void> =
-  typeof Image === "undefined"
-    ? Promise.resolve().then(() => {
-        loopSpriteDecoded = true;
-      })
-    : Promise.all(
-        [nibiLoopLightUrl, nibiLoopDarkUrl].map(async (url) => {
-          const image = new Image();
-          image.decoding = "async";
-          image.src = url;
-          try {
-            // 不支持 decode 的宿主直接放行，让动画按渐进帧显示。
-            await image.decode?.();
-          } catch {
-            // 解码失败也要放行：不能把入口永久藏起来。
-          }
-        }),
-      ).then(() => {
-        loopSpriteDecoded = true;
-      });
+// 3072x2304 的精灵图偶尔会在路由切换的第一帧只绘出一半；仅在空态挂载且只针对当前主题
+// 按需提前 decode，避免冷启动或已有会话下预解码两张 ~28MB 位图浪费内存。
+const decodedSpriteUrlSet = new Set<string>();
+const spriteDecodePromises = new Map<string, Promise<void>>();
+
+function resolveCurrentSpriteUrl(): string {
+  if (typeof document !== "undefined" && document.documentElement.classList.contains("dark")) {
+    return nibiLoopDarkUrl;
+  }
+  return nibiLoopLightUrl;
+}
+
+function decodeSpriteUrl(url: string): Promise<void> {
+  if (decodedSpriteUrlSet.has(url) || typeof Image === "undefined") {
+    decodedSpriteUrlSet.add(url);
+    return Promise.resolve();
+  }
+  const existing = spriteDecodePromises.get(url);
+  if (existing) {
+    return existing;
+  }
+  const promise = (async () => {
+    const image = new Image();
+    image.decoding = "async";
+    image.src = url;
+    try {
+      // 不支持 decode 的宿主直接放行，让动画按渐进帧显示。
+      await image.decode?.();
+    } catch {
+      // 解码失败也要放行：不能把入口永久藏起来。
+    } finally {
+      decodedSpriteUrlSet.add(url);
+      spriteDecodePromises.delete(url);
+    }
+  })();
+  spriteDecodePromises.set(url, promise);
+  return promise;
+}
 
 const GREETING_BOUNDARY_HOURS = [5, 9, 12, 14, 18, 23] as const;
 const GREETING_MIN_FONT_SIZE_PX = 20;
@@ -58,9 +63,7 @@ export type ChatEmptyGreetingMessageId =
   | "chat.empty.greeting.evening"
   | "chat.empty.greeting.lateNight";
 
-export function getChatEmptyGreetingMessageId(
-  date: Date = new Date(),
-): ChatEmptyGreetingMessageId {
+export function getChatEmptyGreetingMessageId(date: Date = new Date()): ChatEmptyGreetingMessageId {
   const hour = date.getHours();
 
   if (hour >= 5 && hour < 9) return "chat.empty.greeting.morningEarly";
@@ -83,8 +86,7 @@ export function getNextChatEmptyGreetingDelayMs(date: Date = new Date()) {
   tomorrowFirstBoundary.setHours(GREETING_BOUNDARY_HOURS[0], 0, 0, 0);
 
   const nextBoundary =
-    candidates.find((candidate) => candidate.getTime() > date.getTime()) ??
-    tomorrowFirstBoundary;
+    candidates.find((candidate) => candidate.getTime() > date.getTime()) ?? tomorrowFirstBoundary;
 
   return Math.max(1, nextBoundary.getTime() - date.getTime());
 }
@@ -115,9 +117,7 @@ export function resolveGreetingFontSizePx({
     GREETING_MIN_FONT_SIZE_PX,
     Math.min(
       GREETING_MAX_FONT_SIZE_PX,
-      Math.floor(
-        GREETING_MAX_FONT_SIZE_PX * (availableWidthPx / naturalTextWidthPx),
-      ),
+      Math.floor(GREETING_MAX_FONT_SIZE_PX * (availableWidthPx / naturalTextWidthPx)),
     ),
   );
 }
@@ -132,26 +132,45 @@ export function ConversationDraftEmptyState({
   const { intl } = useNibiIntl();
   const isOfficeMode = useIsOfficeMode();
   // 解码完成前不画鸟：否则重新解码时的首帧只有上半张，看起来像「小鸟只显示一半」。
-  const [logoReady, setLogoReady] = useState(() => loopSpriteDecoded);
+  // 仅在空态实际挂载时按当前亮/暗主题按需解码对应纹理，避免常驻两张大图（约 56MB RGBA）。
+  const [spriteUrl, setSpriteUrl] = useState<string>(() => resolveCurrentSpriteUrl());
+  const [logoReady, setLogoReady] = useState(() => decodedSpriteUrlSet.has(spriteUrl));
   useEffect(() => {
+    if (typeof document === "undefined" || typeof MutationObserver === "undefined") {
+      return;
+    }
+    const syncThemeSprite = () => {
+      const nextUrl = resolveCurrentSpriteUrl();
+      setSpriteUrl((current) => (current === nextUrl ? current : nextUrl));
+    };
+    syncThemeSprite();
+    const observer = new MutationObserver(syncThemeSprite);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (decodedSpriteUrlSet.has(spriteUrl)) {
+      setLogoReady(true);
+      return;
+    }
     let active = true;
-    void loopSpriteDecodePromise.then(() => {
+    setLogoReady(false);
+    void decodeSpriteUrl(spriteUrl).then(() => {
       if (active) setLogoReady(true);
     });
     return () => {
       active = false;
     };
-  }, []);
+  }, [spriteUrl]);
   const [greetingDate, setGreetingDate] = useState(() => new Date());
-  const [greetingFontSizePx, setGreetingFontSizePx] = useState(
-    GREETING_MAX_FONT_SIZE_PX,
-  );
+  const [greetingFontSizePx, setGreetingFontSizePx] = useState(GREETING_MAX_FONT_SIZE_PX);
   const greetingContainerRef = useRef<HTMLParagraphElement | null>(null);
   const greetingMeasurementRef = useRef<HTMLSpanElement | null>(null);
   const greeting = intl.formatMessage({
-    id: isOfficeMode
-      ? "chat.empty.greeting.office"
-      : getChatEmptyGreetingMessageId(greetingDate),
+    id: isOfficeMode ? "chat.empty.greeting.office" : getChatEmptyGreetingMessageId(greetingDate),
   });
 
   useEffect(() => {

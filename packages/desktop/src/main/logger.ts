@@ -1,8 +1,29 @@
 import { mkdirSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
-import { formatTimestamp } from "@nibi/shared";
+import { formatTimestamp, hostResponseMessageSchema } from "@nibi/shared";
 import { cleanupExpiredLogFiles, LOG_RETENTION_DAYS } from "./logRetention.js";
 import { getAppConfigDir, maybeThrowInjectedFsFault } from "@nibi/services/node";
+
+type HostResponseParseResult = ReturnType<typeof hostResponseMessageSchema.safeParse>;
+const parsedHostResponseCache = new WeakMap<object, HostResponseParseResult>();
+
+/**
+ * 同一条 UtilityProcess `message` 对象会同步派发给 main 侧多个监听者
+ * （desktopHostProcess / BroadcastHub / TaskRealtimeBus / remoteSessions）。
+ * 按对象引用 WeakMap 缓存单次 Zod 解析结果，避免同帧重复反序列化校验。
+ */
+export function parseHostResponseMessageCached(message: unknown): HostResponseParseResult {
+  if (typeof message === "object" && message !== null) {
+    const cached = parsedHostResponseCache.get(message);
+    if (cached) {
+      return cached;
+    }
+    const parsed = hostResponseMessageSchema.safeParse(message);
+    parsedHostResponseCache.set(message, parsed);
+    return parsed;
+  }
+  return hostResponseMessageSchema.safeParse(message);
+}
 
 function getLogDir() {
   const e2eLogDir =

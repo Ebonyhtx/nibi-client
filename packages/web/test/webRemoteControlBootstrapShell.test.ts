@@ -46,7 +46,7 @@ describe("web remote control bootstrap shell", () => {
   });
 
   it.each([
-    ["nibi-dark", "dark", "#171716"],
+    ["nibi-dark", "dark", "#171614"],
     ["nibi-light", "light", "#f9f2e4"],
   ] as const)(
     "在业务 bundle 执行前把 %s 同步到浏览器主题表面",

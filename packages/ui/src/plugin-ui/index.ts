@@ -12,7 +12,9 @@ export {
   type PluginUiRowPinResolver,
 } from "./domain/pluginUiRowPolicy.js";
 export {
+  createPluginUiDerivationCache,
   deriveLogicalUiInstances,
+  type PluginUiDerivationCache,
   type PluginUiInstanceDerivation,
 } from "./domain/pluginUiInstancePolicy.js";
 export {

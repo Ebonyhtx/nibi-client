@@ -7,6 +7,7 @@ import {
 import { buildConversationShareItems } from "@/v4/conversationShareItems.js";
 import { resolveSelectionSideInheritedModel } from "@/lib/selectionSideInheritedModel.js";
 import type { SessionCreateSource } from "@nibi/shared";
+import type { WorkflowRunCardSummary } from "@/ToolCallBlocks/fileSummaryTypes.js";
 import { reportSessionCreate } from "@/lib/sessionCreateTelemetry.js";
 import { getLocalTtftObserver } from "@/v4/telemetry/localTtftObserver.js";
 import { BotGroupDeliveryProvider } from "@/v4/BotGroupDeliveryAction.js";
@@ -46,7 +47,9 @@ import type {
   CommandEnvelope,
   CommandType,
   ConversationSnapshot,
+  ConversationRow,
   ConversationRowTarget,
+  QueueItem,
   SessionErrorInfo,
   SessionModelTransition,
   V4ConversationFileChangesResult,
@@ -142,10 +145,7 @@ import { ConversationHeader, type PaneWorkspaceBadge } from "@/v4/ConversationHe
 import { ConversationQueuePanel } from "@/v4/ConversationQueuePanel.js";
 import { projectPendingGuideQueue } from "@/v4/pendingGuideProjection.js";
 import { PendingCommandRecoveryBanner } from "@/v4/PendingCommandRecoveryBanner.js";
-import {
-  AgentRuntimeExitBanner,
-  useAgentRuntimeExitNotice,
-} from "@/v4/AgentRuntimeExitBanner.js";
+import { AgentRuntimeExitBanner, useAgentRuntimeExitNotice } from "@/v4/AgentRuntimeExitBanner.js";
 import { WorkspaceHookPendingBanner } from "@/v4/WorkspaceHookPendingBanner.js";
 import { WorkspaceMcpTrustPendingBanner } from "@/settings/workspaceMcpTrust/pendingBanner.js";
 import { ConversationStatusPanel } from "@/v4/ConversationStatusPanel.js";
@@ -176,7 +176,72 @@ import {
   retainConversationShareAttemptAfterFailure,
 } from "@/v4/conversationShareAttempt.js";
 import { resolveConversationSelectionTooltipEnabled } from "@/v4/conversationShareModePolicy.js";
-import { buildConversationTurnRenderUnits } from "@/v4/conversationTurnRenderUnits.js";
+import {
+  buildConversationTurnRenderUnits,
+  type ConversationTurnRenderUnit,
+} from "@/v4/conversationTurnRenderUnits.js";
+
+const EMPTY_TIMELINE_ROWS: readonly ConversationRow[] = [];
+const EMPTY_TIMELINE_PENDING_GUIDES: readonly QueueItem[] = [];
+const EMPTY_SHARE_RENDER_UNITS: ConversationTurnRenderUnit[] = [];
+const EMPTY_SHARE_ITEMS: ReturnType<typeof buildConversationShareItems> = [];
+const EMPTY_SHARE_PRODUCT_TURN_IDS: string[] = [];
+// memo 组件（状态面板/时间线）的数组/映射 prop 必须是稳定引用：`?? []` 每帧都会造新数组，
+// 会在流式输出期间把所有下游 memo 全部击穿。
+const EMPTY_BACKGROUND_WORKS: [] = [];
+const EMPTY_WORKFLOW_RUNS: [] = [];
+
+function useStableReadonlyMap<K, V>(
+  next: ReadonlyMap<K, V>,
+  valueEquals: (a: V, b: V) => boolean = Object.is,
+): ReadonlyMap<K, V> {
+  const ref = useRef(next);
+  const prev = ref.current;
+  if (prev === next) return prev;
+  if (prev.size === next.size) {
+    let same = true;
+    for (const [key, value] of next) {
+      if (!prev.has(key) || !valueEquals(prev.get(key) as V, value)) {
+        same = false;
+        break;
+      }
+    }
+    if (same) return prev;
+  }
+  ref.current = next;
+  return next;
+}
+
+function mapsShallowEqual<K, V>(
+  a: ReadonlyMap<K, V>,
+  b: ReadonlyMap<K, V>,
+  valueEquals: (left: V, right: V) => boolean,
+): boolean {
+  if (a === b) return true;
+  if (a.size !== b.size) return false;
+  for (const [key, value] of b) {
+    if (!a.has(key) || !valueEquals(a.get(key) as V, value)) return false;
+  }
+  return true;
+}
+
+/** run 摘要的值相等：字段都从同一个 run 对象派生，run 引用不变即摘要等价。 */
+function sameWorkflowRunSummary(
+  left: WorkflowRunCardSummary,
+  right: WorkflowRunCardSummary,
+): boolean {
+  return (
+    left.run === right.run &&
+    left.runId === right.runId &&
+    left.toolCallId === right.toolCallId &&
+    left.status === right.status &&
+    left.stopReason === right.stopReason &&
+    left.nodesSettled === right.nodesSettled &&
+    left.nodesTotal === right.nodesTotal &&
+    left.agents === right.agents &&
+    left.resumable === right.resumable
+  );
+}
 import { SessionPluginReferenceIconBoundary } from "@/v4/SessionPluginReferenceIconProvider.js";
 import {
   resolveConversationStatusPanelVariant,
@@ -803,27 +868,32 @@ export function SessionPane({
     [pendingShareRowIds, shareDraft],
   );
   const shareRenderUnits = useMemo(
-    () => buildConversationTurnRenderUnits(snapshot?.rows.window ?? []),
-    [snapshot?.rows.window],
+    () =>
+      shareActive
+        ? buildConversationTurnRenderUnits(snapshot?.rows.window ?? EMPTY_TIMELINE_ROWS)
+        : EMPTY_SHARE_RENDER_UNITS,
+    [shareActive, snapshot?.rows.window],
   );
   const shareItems = useMemo(
     () =>
-      buildConversationShareItems(shareRenderUnits, {
-        assistantEmptyPreview: intl.formatMessage({
-          id: "chat.turnNavigator.emptyAssistant",
-        }),
-        assistantRunningPreview: intl.formatMessage({
-          id: "chat.turnNavigator.runningAssistant",
-        }),
-        userFallbackPreview: intl.formatMessage({
-          id: "chat.turnNavigator.userFallback",
-        }),
-      }),
-    [intl, shareRenderUnits],
+      shareActive
+        ? buildConversationShareItems(shareRenderUnits, {
+            assistantEmptyPreview: intl.formatMessage({
+              id: "chat.turnNavigator.emptyAssistant",
+            }),
+            assistantRunningPreview: intl.formatMessage({
+              id: "chat.turnNavigator.runningAssistant",
+            }),
+            userFallbackPreview: intl.formatMessage({
+              id: "chat.turnNavigator.userFallback",
+            }),
+          })
+        : EMPTY_SHARE_ITEMS,
+    [intl, shareActive, shareRenderUnits],
   );
   const eligibleShareItems = useMemo(
-    () => shareItems.filter((item) => !item.isRunning),
-    [shareItems],
+    () => (shareActive ? shareItems.filter((item) => !item.isRunning) : EMPTY_SHARE_ITEMS),
+    [shareActive, shareItems],
   );
   useEffect(() => {
     if (!sessionId || !shareActive) return;
@@ -903,6 +973,9 @@ export function SessionPane({
     ],
   );
   const eligibleShareProductTurnIds = useMemo(() => {
+    if (!shareActive || eligibleShareItems.length === 0) {
+      return EMPTY_SHARE_PRODUCT_TURN_IDS;
+    }
     const rowsById = new Map((snapshot?.rows.window ?? []).map((row) => [row.rowId, row]));
     const seen = new Set<string>();
     return eligibleShareItems.flatMap((item) => {
@@ -911,7 +984,7 @@ export function SessionPane({
       seen.add(productTurnId);
       return [productTurnId];
     });
-  }, [eligibleShareItems, snapshot?.rows.window]);
+  }, [eligibleShareItems, shareActive, snapshot?.rows.window]);
   const sharePreflightCacheRef = useRef(new Map<string, ConversationShareTurnPreflightResult>());
   // 传输类失败会被按 turn 缓存成阻断项，仅靠选择变化无法再次触发 RPC；
   // 重试 token 变化时清缓存并重新发起，避免一次网络抖动把用户卡死在选择阶段。
@@ -2202,44 +2275,74 @@ export function SessionPane({
     () => countEndedWorkflowRuns(workflowRunJournalSummaries),
     [workflowRunJournalSummaries],
   );
-  const workflowRunByToolCallId = useMemo(
+  // run 态联接表的值随 run 活投影变化；句子/工具事件不改变 run 时必须保持 Map 引用，
+  // 否则 rowContext 每帧换新，所有行（含已完成 turn）跟着重渲染。
+  const rawWorkflowRunByToolCallId = useMemo(
     () => buildWorkflowRunByToolCallId(snapshot?.workflowRuns?.runs),
-    [snapshot?.workflowRuns],
+    [snapshot?.workflowRuns?.runs],
+  );
+  const workflowRunByToolCallId = useStableReadonlyMap(
+    rawWorkflowRunByToolCallId,
+    sameWorkflowRunSummary,
   );
   // runId 键的同源表：ResumeWorkflowRun 工具行的联接入口（display 带 runId，投影的
   // toolCallId 跨 resume 沿用原始 CreateWorkflow 行，resume 行按 toolCallId 查不到）。
-  const workflowRunByRunId = useMemo(
+  const rawWorkflowRunByRunId = useMemo(
     () => buildWorkflowRunByRunId(snapshot?.workflowRuns?.runs),
-    [snapshot?.workflowRuns],
+    [snapshot?.workflowRuns?.runs],
   );
+  const workflowRunByRunId = useStableReadonlyMap(rawWorkflowRunByRunId, sameWorkflowRunSummary);
   // 发起 toolCallId → 静态图：图是 run 的属性，
   // 三种来源的轮尾 run 卡都到这一张表取图。行窗口一遍建成，随窗口重建。
-  const workflowGraphByToolCallId = useMemo(
+  // 流式文本增量不改工作流结构时保持旧 Map 引用，避免破坏 rowContext 与已完成 turn 的 memo。
+  const rawWorkflowGraphByToolCallId = useMemo(
     () => buildWorkflowGraphByToolCallId(snapshot?.rows.window),
     [snapshot?.rows.window],
   );
+  const workflowGraphByToolCallId = useStableReadonlyMap(rawWorkflowGraphByToolCallId);
   // runId → 最新补全的有效脚本图（docs/dynamic-workflow/presentation.md「Holes on the timeline」）：补全之后
   // run 卡与侧板取它。行窗口一遍建成，随窗口重建。
-  const workflowFillGraphByRunId = useMemo(
+  const rawWorkflowFillGraphByRunId = useMemo(
     () => buildWorkflowFillGraphByRunId(snapshot?.rows.window),
     [snapshot?.rows.window],
   );
+  const workflowFillGraphByRunId = useStableReadonlyMap(
+    rawWorkflowFillGraphByRunId,
+    (a, b) =>
+      a.graph === b.graph &&
+      mapsShallowEqual(a.holeLabels, b.holeLabels, (x, y) => x.name === y.name),
+  );
   // 工作流工具行 → 草稿位置：稿号与
   // 「后面还有更新的一稿」都只能从行序读出，行窗口一遍建成，随窗口重建。
-  const workflowDraftByToolCallId = useMemo(
+  const rawWorkflowDraftByToolCallId = useMemo(
     () => buildWorkflowDraftByToolCallId(snapshot?.rows.window),
     [snapshot?.rows.window],
   );
+  const workflowDraftByToolCallId = useStableReadonlyMap(
+    rawWorkflowDraftByToolCallId,
+    (a, b) => a.ordinal === b.ordinal && a.superseded === b.superseded,
+  );
   // runId → 转写里认领过它的 SaveWorkflow 候选（docs/dynamic-workflow/transcript-and-notifications.md
   // 「Which workflow a run is saved as」规则 1）。行窗口一遍建成，随窗口重建。
-  const workflowSaveCandidatesByRunId = useMemo(
+  const rawWorkflowSaveCandidatesByRunId = useMemo(
     () => buildWorkflowSaveCandidatesByRunId(snapshot?.rows.window),
     [snapshot?.rows.window],
   );
+  const workflowSaveCandidatesByRunId = useStableReadonlyMap(
+    rawWorkflowSaveCandidatesByRunId,
+    (a, b) =>
+      a.length === b.length &&
+      a.every((entry, idx) => entry.name === b[idx]?.name && entry.scope === b[idx]?.scope),
+  );
   // Workflow 通知 manifest 的升级条目 Waiting→Answered 联查表（runId → 停驻 qid 集合）。
-  const workflowRunPendingQuestionsByRunId = useMemo(
+  const rawWorkflowRunPendingQuestionsByRunId = useMemo(
     () => buildWorkflowRunPendingQuestionsByRunId(snapshot?.workflowRuns?.runs),
-    [snapshot?.workflowRuns],
+    [snapshot?.workflowRuns?.runs],
+  );
+  const workflowRunPendingQuestionsByRunId = useStableReadonlyMap(
+    rawWorkflowRunPendingQuestionsByRunId,
+    (left, right) =>
+      left.size === right.size && [...left].every((qid) => right.has(qid)),
   );
   // 详情页入口（面板 Workflows 分区的行）。行只把「打开哪个 run」交出来（runId + toolCallId），
   // 会话与 workspace 身份照旧由这里补齐——与工具卡走的是同一个 handler，不存在第二条打开路径。
@@ -2914,7 +3017,9 @@ export function SessionPane({
     workspaceIdentity,
   });
 
-  useEffect(() => {
+  // 用 layout effect 取租约：切换会话时旧 lease 在 cleanup 释放、新 lease 必须在浏览器绘制前
+  // 就位。放在普通 effect 里会让首帧先以空 binding 提交（切会话闪一下空白），等到绘制后才补。
+  useLayoutEffect(() => {
     if (!effectiveSessionId) {
       setLease({ sessionId, layer, lease: null });
       return;
@@ -5854,6 +5959,64 @@ export function SessionPane({
     </ConversationBottomDockTransition>
   ) : null;
 
+  const timelineHeaderSlot = useMemo(
+    () =>
+      // unsupportedRowCount 也要开这个门：整份副本的行都被本 build 跳过时
+      // rows 为空，但只读块必须留下来显示「需要更新 Nibi」，不能整块消失。
+      importedShare && (importedShare.rows.length > 0 || importedShare.unsupportedRowCount > 0) ? (
+        <ConversationShareImportNotice
+          rows={importedShare.rows}
+          contentBlocks={importedShare.contentBlocks}
+          unsupportedRowCount={importedShare.unsupportedRowCount}
+          artifactNames={importedShareArtifactNames}
+          artifactWorkspaceRelativePaths={importedShareArtifactWorkspaceRelativePaths}
+          workspacePath={workspacePath}
+          {...(workspaceIdentity ? { workspaceIdentity } : {})}
+          {...(remoteSessionId ? { workspaceRemoteSessionId: remoteSessionId } : {})}
+          locale={locale}
+          theme={theme}
+          codePreviewSettings={codePreviewSettings}
+          onOpenShareUrl={onOpenBrowserUrl ? handleOpenImportedShareUrl : undefined}
+          onOpenFileLink={onOpenFileLink}
+          onOpenCodeViewer={onOpenCodeViewer}
+        />
+      ) : null,
+    [
+      codePreviewSettings,
+      handleOpenImportedShareUrl,
+      importedShare,
+      importedShareArtifactNames,
+      importedShareArtifactWorkspaceRelativePaths,
+      locale,
+      onOpenBrowserUrl,
+      onOpenCodeViewer,
+      onOpenFileLink,
+      remoteSessionId,
+      theme,
+      workspaceIdentity,
+      workspacePath,
+    ],
+  );
+  const timelineEmptyState = useMemo(
+    () =>
+      !remoteAvailable ? (
+        <div className="p-6 text-center text-ui-base text-foreground-subtle">
+          {intl.formatMessage({ id: "remote.conversation.placeholder" })}
+        </div>
+      ) : isDraft ? (
+        <div data-testid={TID_CHAT_EMPTY} className="w-full">
+          <ConversationDraftEmptyState compactForRemoteControl={compactForRemoteControl} />
+        </div>
+      ) : worktreeHandoffPending ? (
+        <ManagedWorktreeHandoffNotice />
+      ) : null,
+    [compactForRemoteControl, intl, isDraft, remoteAvailable, worktreeHandoffPending],
+  );
+  const timelineRows = timelineSnapshot?.rows.window ?? EMPTY_TIMELINE_ROWS;
+  const timelinePendingGuides =
+    (timelineSnapshot ? pendingGuideProjection?.pendingGuides : undefined) ??
+    EMPTY_TIMELINE_PENDING_GUIDES;
+
   return (
     <PluginUiSessionProvider
       workspacePath={workspacePath}
@@ -5951,9 +6114,9 @@ export function SessionPane({
               goal={selectionSideChat ? null : (snapshot?.goal ?? null)}
               sessionPlans={state.sessionPlans}
               plan={snapshot?.plan ?? null}
-              backgroundWorks={snapshot?.backgroundWorks ?? []}
+              backgroundWorks={snapshot?.backgroundWorks ?? EMPTY_BACKGROUND_WORKS}
               runningSubagents={subagents.running}
-              workflowRuns={snapshot?.workflowRuns?.runs ?? []}
+              workflowRuns={snapshot?.workflowRuns?.runs ?? EMPTY_WORKFLOW_RUNS}
               endedSubagentCount={subagents.endedTotal}
               rootSessionId={rootSessionId ?? sessionId ?? undefined}
               parentSessionId={sessionId ?? undefined}
@@ -6046,125 +6209,89 @@ export function SessionPane({
               >
                 <ForkDestinationContext.Provider value={forkDestinationValue}>
                   <ConversationTimeline
-                  compactForRemoteControl={compactForRemoteControl}
-                  scrollToBottomActionRef={timelineScrollToBottomRef}
-                  scrollToQueryActionRef={timelineScrollToQueryRef}
-                  selectionPanelLayoutContainerRef={conversationLayoutContainerRef}
-                  rows={timelineSnapshot?.rows.window ?? []}
-                  pendingGuides={timelineSnapshot ? pendingGuideProjection?.pendingGuides : []}
-                  apiRetry={timelineSnapshot?.control.apiRetry ?? null}
-                  totalCount={timelineSnapshot?.rows.totalCount ?? 0}
-                  sessionKey={sessionId ?? "draft"}
-                  scrollMemoryKey={timelineScrollMemoryKey}
-                  rowContext={rowContext}
-                  onFork={forkActionsEnabled ? handleFork : undefined}
-                  onRetry={retryActionsEnabled ? handleRetry : undefined}
-                  onFeedbackChange={
-                    !readOnly && !selectionSideChat && sessionId
-                      ? handleAssistantFeedback
-                      : undefined
-                  }
-                  onEdit={
-                    editActionsEnabled && ENABLE_COMPOSER_EDIT_MODE
-                      ? handleBeginComposerEdit
-                      : undefined
-                  }
-                  onInlineEdit={
-                    editActionsEnabled && !ENABLE_COMPOSER_EDIT_MODE ? handleEdit : undefined
-                  }
-                  canLoadOlder={timelineSnapshot ? hasOlderRows(timelineSnapshot) : false}
-                  loadingOlder={timelineSnapshot ? state.loadingOlder : false}
-                  onLoadOlder={handleLoadOlder}
-                  onLoadAllOlder={handleLoadAllOlder}
-                  turnNavigatorDirectoryRevision={state.turnNavigatorDirectoryRevision}
-                  bottomDock={conversationBottomDock}
-                  hideTurnNavigator={shareSelectionPanelVisible && !compactForRemoteControl}
-                  backgroundScrollLocked={false}
-                  headerSlot={
-                    // unsupportedRowCount 也要开这个门：整份副本的行都被本 build 跳过时
-                    // rows 为空，但只读块必须留下来显示「需要更新 Nibi」，不能整块消失。
-                    importedShare &&
-                    (importedShare.rows.length > 0 || importedShare.unsupportedRowCount > 0) ? (
-                      <ConversationShareImportNotice
-                        rows={importedShare.rows}
-                        contentBlocks={importedShare.contentBlocks}
-                        unsupportedRowCount={importedShare.unsupportedRowCount}
-                        artifactNames={importedShareArtifactNames}
-                        artifactWorkspaceRelativePaths={importedShareArtifactWorkspaceRelativePaths}
-                        workspacePath={workspacePath}
-                        {...(workspaceIdentity ? { workspaceIdentity } : {})}
-                        {...(remoteSessionId ? { workspaceRemoteSessionId: remoteSessionId } : {})}
-                        locale={locale}
-                        theme={theme}
-                        codePreviewSettings={codePreviewSettings}
-                        onOpenShareUrl={onOpenBrowserUrl ? handleOpenImportedShareUrl : undefined}
-                        onOpenFileLink={onOpenFileLink}
-                        onOpenCodeViewer={onOpenCodeViewer}
-                      />
-                    ) : null
-                  }
-                  emptyState={
-                    !remoteAvailable ? (
-                      <div className="p-6 text-center text-ui-base text-foreground-subtle">
-                        {intl.formatMessage({ id: "remote.conversation.placeholder" })}
-                      </div>
-                    ) : isDraft ? (
-                      <div data-testid={TID_CHAT_EMPTY} className="w-full">
-                        <ConversationDraftEmptyState
-                          compactForRemoteControl={compactForRemoteControl}
-                        />
-                      </div>
-                    ) : worktreeHandoffPending ? (
-                      <ManagedWorktreeHandoffNotice />
-                    ) : null
-                  }
-                  // 浮窗形态只露出底部输入区，空会话也必须贴底，不能居中。
-                  centerEmptyStateWithDock={isDraft && !isFloatingPresentation}
-                  floatingComposerDock={isFloatingPresentation}
-                  onComposerDockHeightChange={
-                    isFloatingPresentation && focused
-                      ? panePresentation.reportComposerDockHeight
-                      : undefined
-                  }
-                  onLatestTurnSummaryChange={
-                    isFloatingPresentation && focused
-                      ? handleFloatingLatestTurnSummaryChange
-                      : undefined
-                  }
-                  compactEmptyStateWithDock={compactForRemoteControl}
-                  summaryPanelLayout={statusPanelLayout}
-                  conversationFindQuery={!isDraft && focused ? conversationFindQuery : ""}
-                  conversationFindActiveIndex={
-                    !isDraft && focused ? conversationFindActiveIndex : -1
-                  }
-                  conversationFindNavigationRequestId={
-                    !isDraft && focused ? conversationFindNavigationRequestId : 0
-                  }
-                  onConversationFindMatchStateChange={
-                    !isDraft && focused ? onConversationFindMatchStateChange : undefined
-                  }
-                  searchResultHighlightRequest={isDraft ? null : searchResultHighlightRequest}
-                  onSearchResultHighlightDone={onSearchResultHighlightDone}
-                  sessionPhase={isDraft ? undefined : snapshot?.control.phase}
-                  selectionActions={
-                    !isDraft &&
-                    sessionId &&
-                    !readOnly &&
-                    !selectionSideChat &&
-                    !isMobileTextInputViewport
-                      ? {
-                          enabled: resolveConversationSelectionTooltipEnabled({
-                            selectionActionsEnabled: focused && !blockingInteractionId,
-                            partialShareActive: shareActive,
-                          }),
-                          sideActionDisabled: selectionSideActionBlocked,
-                          commentEnabled: selectionCommentSupported,
-                          annotationWorkspaceKey: workspaceKey,
-                          onAddToCurrentTask: handleAddSelectionToCurrentTask,
-                          onAskInSideChat: handleOpenSelectionSideConversation,
-                        }
-                      : undefined
-                  }
+                    compactForRemoteControl={compactForRemoteControl}
+                    scrollToBottomActionRef={timelineScrollToBottomRef}
+                    scrollToQueryActionRef={timelineScrollToQueryRef}
+                    selectionPanelLayoutContainerRef={conversationLayoutContainerRef}
+                    rows={timelineRows}
+                    pendingGuides={timelinePendingGuides}
+                    apiRetry={timelineSnapshot?.control.apiRetry ?? null}
+                    totalCount={timelineSnapshot?.rows.totalCount ?? 0}
+                    sessionKey={sessionId ?? "draft"}
+                    scrollMemoryKey={timelineScrollMemoryKey}
+                    rowContext={rowContext}
+                    onFork={forkActionsEnabled ? handleFork : undefined}
+                    onRetry={retryActionsEnabled ? handleRetry : undefined}
+                    onFeedbackChange={
+                      !readOnly && !selectionSideChat && sessionId
+                        ? handleAssistantFeedback
+                        : undefined
+                    }
+                    onEdit={
+                      editActionsEnabled && ENABLE_COMPOSER_EDIT_MODE
+                        ? handleBeginComposerEdit
+                        : undefined
+                    }
+                    onInlineEdit={
+                      editActionsEnabled && !ENABLE_COMPOSER_EDIT_MODE ? handleEdit : undefined
+                    }
+                    canLoadOlder={timelineSnapshot ? hasOlderRows(timelineSnapshot) : false}
+                    loadingOlder={timelineSnapshot ? state.loadingOlder : false}
+                    onLoadOlder={handleLoadOlder}
+                    onLoadAllOlder={handleLoadAllOlder}
+                    turnNavigatorDirectoryRevision={state.turnNavigatorDirectoryRevision}
+                    bottomDock={conversationBottomDock}
+                    hideTurnNavigator={shareSelectionPanelVisible && !compactForRemoteControl}
+                    backgroundScrollLocked={false}
+                    headerSlot={timelineHeaderSlot}
+                    emptyState={timelineEmptyState}
+                    // 浮窗形态只露出底部输入区，空会话也必须贴底，不能居中。
+                    centerEmptyStateWithDock={isDraft && !isFloatingPresentation}
+                    floatingComposerDock={isFloatingPresentation}
+                    onComposerDockHeightChange={
+                      isFloatingPresentation && focused
+                        ? panePresentation.reportComposerDockHeight
+                        : undefined
+                    }
+                    onLatestTurnSummaryChange={
+                      isFloatingPresentation && focused
+                        ? handleFloatingLatestTurnSummaryChange
+                        : undefined
+                    }
+                    compactEmptyStateWithDock={compactForRemoteControl}
+                    summaryPanelLayout={statusPanelLayout}
+                    conversationFindQuery={!isDraft && focused ? conversationFindQuery : ""}
+                    conversationFindActiveIndex={
+                      !isDraft && focused ? conversationFindActiveIndex : -1
+                    }
+                    conversationFindNavigationRequestId={
+                      !isDraft && focused ? conversationFindNavigationRequestId : 0
+                    }
+                    onConversationFindMatchStateChange={
+                      !isDraft && focused ? onConversationFindMatchStateChange : undefined
+                    }
+                    searchResultHighlightRequest={isDraft ? null : searchResultHighlightRequest}
+                    onSearchResultHighlightDone={onSearchResultHighlightDone}
+                    sessionPhase={isDraft ? undefined : snapshot?.control.phase}
+                    selectionActions={
+                      !isDraft &&
+                      sessionId &&
+                      !readOnly &&
+                      !selectionSideChat &&
+                      !isMobileTextInputViewport
+                        ? {
+                            enabled: resolveConversationSelectionTooltipEnabled({
+                              selectionActionsEnabled: focused && !blockingInteractionId,
+                              partialShareActive: shareActive,
+                            }),
+                            sideActionDisabled: selectionSideActionBlocked,
+                            commentEnabled: selectionCommentSupported,
+                            annotationWorkspaceKey: workspaceKey,
+                            onAddToCurrentTask: handleAddSelectionToCurrentTask,
+                            onAskInSideChat: handleOpenSelectionSideConversation,
+                          }
+                        : undefined
+                    }
                   />
                 </ForkDestinationContext.Provider>
               </BotGroupDeliveryProvider>

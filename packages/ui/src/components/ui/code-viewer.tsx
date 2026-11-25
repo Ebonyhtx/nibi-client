@@ -9,6 +9,7 @@ import type {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Trash2Icon } from "lucide-react";
 import type { FileContents, LineAnnotation, SupportedLanguages } from "@pierre/diffs";
+import * as pierreDiffsReact from "@pierre/diffs/react";
 import { File, type FileOptions } from "@pierre/diffs/react";
 import type { BundledTheme } from "shiki";
 
@@ -17,7 +18,10 @@ import { Button } from "@/components/ui/button.js";
 import { Textarea } from "@/components/ui/textarea.js";
 import type { CodeCommentPreview, CodeCommentRange } from "@/lib/codeCommentContext.js";
 import { isDarkCodePreviewTheme } from "@/lib/codePreviewPreferences.js";
-import { DIFFS_PREFERRED_HIGHLIGHTER } from "@/lib/diffsHighlighterEngine.js";
+import {
+  DIFFS_PREFERRED_HIGHLIGHTER,
+  useEnsuredDiffsWorkerPool,
+} from "@/lib/diffsHighlighterEngine.js";
 import {
   formatCommandShortcutLabel,
   isAppleKeyboardPlatform,
@@ -468,6 +472,10 @@ export function CodeViewer({
   style,
   ...props
 }: CodeViewerProps) {
+  const safeWorkerPoolContext = Object.hasOwn(pierreDiffsReact, "WorkerPoolContext")
+    ? pierreDiffsReact.WorkerPoolContext
+    : undefined;
+  const { renderWithWorkerPool } = useEnsuredDiffsWorkerPool(safeWorkerPoolContext);
   const viewerRef = useRef<HTMLDivElement>(null);
   const [activeDraftRange, setActiveDraftRange] = useState<CodeCommentRange | null>(null);
   const [draftText, setDraftText] = useState("");
@@ -755,36 +763,38 @@ export function CodeViewer({
           showRange={topCommentShowRange}
         />
       ) : null}
-      <File
-        key={file.cacheKey}
-        file={file}
-        options={options}
-        lineAnnotations={lineAnnotations}
-        selectedLines={selectedLines}
-        className="min-h-full w-full"
-        style={viewerStyle}
-        renderAnnotation={(annotation) =>
-          annotation.metadata.kind === "draft" ? (
-            <CommentDraft
-              range={annotation.metadata.range}
-              labels={labels}
-              value={draftText}
-              onValueChange={setDraftText}
-              onSubmit={handleSubmitDraft}
-              onCancel={() => {
-                setActiveDraftRange(null);
-                setDraftText("");
-              }}
-            />
-          ) : (
-            <CodeCommentAnnotation
-              comment={annotation.metadata.comment}
-              labels={labels}
-              onDelete={onDeleteCodeComment}
-            />
-          )
-        }
-      />
+      {renderWithWorkerPool(
+        <File
+          key={file.cacheKey}
+          file={file}
+          options={options}
+          lineAnnotations={lineAnnotations}
+          selectedLines={selectedLines}
+          className="min-h-full w-full"
+          style={viewerStyle}
+          renderAnnotation={(annotation) =>
+            annotation.metadata.kind === "draft" ? (
+              <CommentDraft
+                range={annotation.metadata.range}
+                labels={labels}
+                value={draftText}
+                onValueChange={setDraftText}
+                onSubmit={handleSubmitDraft}
+                onCancel={() => {
+                  setActiveDraftRange(null);
+                  setDraftText("");
+                }}
+              />
+            ) : (
+              <CodeCommentAnnotation
+                comment={annotation.metadata.comment}
+                labels={labels}
+                onDelete={onDeleteCodeComment}
+              />
+            )
+          }
+        />,
+      )}
     </div>
   );
 }

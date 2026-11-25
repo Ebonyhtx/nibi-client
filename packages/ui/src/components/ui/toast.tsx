@@ -10,6 +10,7 @@ import { Info, TriangleAlert, X } from "lucide-react";
 import { cn } from "@/components/lib/utils.js";
 
 export type ToastPosition = "top-center" | "top-right" | "bottom-left" | "bottom-center";
+export const AUTOMATIONS_TOAST_ANCHOR_ID = "automations-main-toast-anchor";
 type ToastVariant = "default" | "update" | "source-server-update" | "info" | "warning";
 
 export interface ToastOptions {

@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
-import {
-  selectWorkspaceNibiState,
-  useNibiSessionStore,
-} from "@/store/nibiSessionStore.js";
+import { selectWorkspaceNibiState, useNibiSessionStore } from "@/store/nibiSessionStore.js";
 import { useMotionDisabled } from "@/lib/motionPreference.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { getWindowControllerTaskListRegistry } from "@/v4/windowControllerTaskListRegistry.js";
@@ -14,10 +11,7 @@ import {
   type CompanionPose,
   type CompanionSemanticState,
 } from "@/companion/companionState.js";
-import {
-  useCompanionPreferences,
-  type CompanionMode,
-} from "@/companion/companionPreferences.js";
+import { useCompanionPreferences, type CompanionMode } from "@/companion/companionPreferences.js";
 import "@/companion/companion.css";
 
 const ALL_POSES: readonly CompanionPose[] = ["hero", "idle", "paused", "respond", "fly"];
@@ -129,9 +123,7 @@ export function NibiCompanion({
   const windowControllerService = baseServices.windowControllerService;
   const taskListRegistry = useMemo(
     () =>
-      windowControllerService
-        ? getWindowControllerTaskListRegistry(windowControllerService)
-        : null,
+      windowControllerService ? getWindowControllerTaskListRegistry(windowControllerService) : null,
     [windowControllerService],
   );
   const activityRevision = useSyncExternalStore(
@@ -145,18 +137,19 @@ export function NibiCompanion({
     if (!taskListRegistry || !activeTaskId) return null;
     const workspaceKey = workspaceIdentity?.trim() || workspacePath?.trim();
     if (!workspaceKey) return null;
-    const row = taskListRegistry.readActivities().find(
-      ({ address }) =>
-        address.taskId === activeTaskId &&
-        (address.workspaceIdentity?.trim() || address.workspacePath) === workspaceKey,
-    );
+    const row = taskListRegistry
+      .readActivities()
+      .find(
+        ({ address }) =>
+          address.taskId === activeTaskId &&
+          (address.workspaceIdentity?.trim() || address.workspacePath) === workspaceKey,
+      );
     return row?.activity ?? null;
   }, [taskListRegistry, activeTaskId, workspaceIdentity, workspacePath, activityRevision]);
   const semanticState = useMemo<CompanionSemanticState>(() => {
     if (activeActivity) {
       const pending = activeActivity.pendingInteractions;
-      const pendingCount =
-        (pending?.permissionCount ?? 0) + (pending?.userInputCount ?? 0);
+      const pendingCount = (pending?.permissionCount ?? 0) + (pending?.userInputCount ?? 0);
       if (pendingCount > 0) return "paused";
       if (
         activeActivity.phase === "prewarming" ||
@@ -166,10 +159,7 @@ export function NibiCompanion({
         return "working";
       }
       if (activeActivity.phase === "completedSuccess") return "complete";
-      if (
-        activeActivity.phase === "error" ||
-        activeActivity.phase === "completedInterrupted"
-      ) {
+      if (activeActivity.phase === "error" || activeActivity.phase === "completedInterrupted") {
         return "paused";
       }
       return "idle";
@@ -182,15 +172,11 @@ export function NibiCompanion({
   const interactionAtmosphereRef = useRef<Animation | null>(null);
 
   const resolvedState: CompanionSemanticState =
-    preferences.mode === "auto"
-      ? semanticState
-      : (MODE_STATE[preferences.mode] ?? "idle");
+    preferences.mode === "auto" ? semanticState : (MODE_STATE[preferences.mode] ?? "idle");
   const targetPose = companionPoseForState(resolvedState);
   const motionDisabled =
     preferences.animation === "off" ||
-    (preferences.animation === "independent"
-      ? systemReducedMotion
-      : motionDisabledByPreference);
+    (preferences.animation === "independent" ? systemReducedMotion : motionDisabledByPreference);
   const feathers = preferences.feathers;
   const followPointer = preferences.follow;
 
@@ -215,17 +201,17 @@ export function NibiCompanion({
     }
     let frame = 0;
     const trackPointer = (event: PointerEvent) => {
+      if (typeof document !== "undefined" && document.hidden) {
+        return;
+      }
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
+        if (typeof document !== "undefined" && document.hidden) {
+          return;
+        }
         const box = node.getBoundingClientRect();
-        const dx = Math.max(
-          -1,
-          Math.min(1, (event.clientX - (box.left + box.width / 2)) / 280),
-        );
-        const dy = Math.max(
-          -1,
-          Math.min(1, (event.clientY - (box.top + box.height / 2)) / 220),
-        );
+        const dx = Math.max(-1, Math.min(1, (event.clientX - (box.left + box.width / 2)) / 280));
+        const dy = Math.max(-1, Math.min(1, (event.clientY - (box.top + box.height / 2)) / 220));
         node.style.setProperty("--companion-look-x", `${(dx * 3.0).toFixed(2)}px`);
         node.style.setProperty("--companion-look-y", `${(dy * 1.8).toFixed(2)}px`);
         node.style.setProperty("--companion-tilt", `${(dx * 2.0).toFixed(2)}deg`);
@@ -248,9 +234,7 @@ export function NibiCompanion({
 
   const handleCompanionClick = (event: MouseEvent<HTMLButtonElement>) => {
     if (motionDisabled) return;
-    const avatar = companionRef.current?.querySelector<HTMLElement>(
-      ".companion-interaction-layer",
-    );
+    const avatar = companionRef.current?.querySelector<HTMLElement>(".companion-interaction-layer");
     const atmosphere = companionRef.current?.querySelector<HTMLElement>(".companion-atmosphere");
     if (!avatar?.animate) return;
     if (interactionAnimationRef.current?.playState === "running") return;

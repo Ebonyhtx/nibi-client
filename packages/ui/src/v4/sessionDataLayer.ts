@@ -24,12 +24,22 @@ export interface SessionLease {
 
 export interface SessionDataLayerOptions {
   transport: ConversationTransport;
-  /** 引用归零后延迟退订窗口（ms），默认 30s。 */
+  /** 引用归零后延迟退订窗口（ms），默认 120s。 */
   keepWarmMs?: number;
+  /** 同时保持温热的已释放会话上限；超出时按释放顺序淘汰最旧的。 */
+  maxKeepWarmSessions?: number;
 }
 
-export const SESSION_DATA_LAYER_KEEP_WARM_MS = 30_000;
+/**
+ * 切回最近用过的运行中会话不应再走一次冷订阅。
+ *
+ * 30s 对「主会话 ↔ 子代理 ↔ 另一个任务」这种来回切换太短：刚看完一个长任务再切回来，
+ * 立即变成冷打开（空快照 → loading → 再填充），视觉上就是闪一下。窗口拉到 2 分钟，
+ * 并用 `maxKeepWarmSessions` 给内存封顶。
+ */
+export const SESSION_DATA_LAYER_KEEP_WARM_MS = 120_000;
 export const E2E_SESSION_DATA_LAYER_KEEP_WARM_MS = 1_000;
+export const SESSION_DATA_LAYER_MAX_KEEP_WARM = 4;
 
 export function resolveSessionDataLayerKeepWarmMs(
   e2eStoreBridgeEnabled = shouldExposeE2EStoreBridge(),
@@ -52,7 +62,10 @@ function monotonicNow(): number {
 export class SessionDataLayer {
   private readonly transport: ConversationTransport;
   private readonly keepWarmMs: number;
+  private readonly maxKeepWarmSessions: number;
   private readonly entries = new Map<string, SessionEntry>();
+  /** 已释放、仍在 keep-warm 的 topic，按释放先后排序；用于超上限时淘汰最旧。 */
+  private readonly keepWarmOrder: string[] = [];
   // 行结构共享池跨 store 生命周期：keep-warm 过期冷打开的新 store 仍能复用被留住的旧行
   // （docs/performance/conversation-row-structural-sharing.md）。
   private readonly rowPool = new ConversationRowPool();
@@ -62,6 +75,8 @@ export class SessionDataLayer {
   constructor(options: SessionDataLayerOptions) {
     this.transport = options.transport;
     this.keepWarmMs = options.keepWarmMs ?? resolveSessionDataLayerKeepWarmMs();
+    this.maxKeepWarmSessions =
+      options.maxKeepWarmSessions ?? SESSION_DATA_LAYER_MAX_KEEP_WARM;
     // 连接级单监听：按 topic 扇入到各 store（pane 间共享的正是这一条连接）。
     this.offFrame = this.transport.onFrame((frame, context) => {
       this.entries.get(frame.topic)?.store.handleFrame(frame, context);
@@ -88,6 +103,7 @@ export class SessionDataLayer {
         clearTimeout(entry.keepWarmTimer);
         entry.keepWarmTimer = null;
       }
+      this.forgetKeepWarm(topic);
     } else {
       const store = new ConversationProjectionStore(topic, this.transport, this.rowPool);
       entry = { store, refCount: 1, keepWarmTimer: null };
@@ -146,17 +162,22 @@ export class SessionDataLayer {
       return;
     }
     // 关 pane ≠ 停 session：这里只是退订视图，session 在 CLI 里照跑。
-    entry.keepWarmTimer = setTimeout(() => {
-      this.entries.delete(topic);
-      logger.lifecycle.info("v4 session data keep-warm expired", {
-        event: "v4.session_data.keep_warm_expired",
-        module: "ui.v4.session_data_layer",
-        refCount: 0,
-        status: "completed",
-        topic,
-      });
-      void entry.store.close();
-    }, this.keepWarmMs);
+    this.keepWarmOrder.push(topic);
+    entry.keepWarmTimer = setTimeout(
+      () => this.closeWarmEntry(topic, entry, "expired"),
+      this.keepWarmMs,
+    );
+    // 内存封顶：保留最近 maxKeepWarmSessions 个已释放会话，超出按释放顺序淘汰最旧的。
+    while (this.keepWarmOrder.length > this.maxKeepWarmSessions) {
+      const oldestTopic = this.keepWarmOrder[0];
+      if (oldestTopic === undefined) break;
+      const oldestEntry = this.entries.get(oldestTopic);
+      if (!oldestEntry || oldestEntry.refCount > 0) {
+        this.keepWarmOrder.shift();
+        continue;
+      }
+      this.closeWarmEntry(oldestTopic, oldestEntry, "evicted");
+    }
     logger.lifecycle.info("v4 session data lease released", {
       event: "v4.session_data.release",
       keepWarmMs: this.keepWarmMs,
@@ -165,6 +186,31 @@ export class SessionDataLayer {
       status: "keep_warm",
       topic,
     });
+  }
+
+  private forgetKeepWarm(topic: string): void {
+    const index = this.keepWarmOrder.indexOf(topic);
+    if (index >= 0) {
+      this.keepWarmOrder.splice(index, 1);
+    }
+  }
+
+  private closeWarmEntry(topic: string, entry: SessionEntry, reason: "expired" | "evicted"): void {
+    if (entry.keepWarmTimer !== null) {
+      clearTimeout(entry.keepWarmTimer);
+      entry.keepWarmTimer = null;
+    }
+    this.entries.delete(topic);
+    this.forgetKeepWarm(topic);
+    logger.lifecycle.info("v4 session data keep-warm expired", {
+      event: "v4.session_data.keep_warm_expired",
+      module: "ui.v4.session_data_layer",
+      reason,
+      refCount: 0,
+      status: "completed",
+      topic,
+    });
+    void entry.store.close();
   }
 
   /** 连接销毁时清场（window/workspace 卸载）。 */
@@ -185,6 +231,7 @@ export class SessionDataLayer {
       void entry.store.close();
     }
     this.entries.clear();
+    this.keepWarmOrder.length = 0;
     logger.lifecycle.info("v4 session data layer dispose completed", {
       event: "v4.session_data.dispose.completed",
       module: "ui.v4.session_data_layer",

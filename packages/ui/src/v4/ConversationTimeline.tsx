@@ -32,10 +32,11 @@ import { cn } from "@/components/lib/utils.js";
 import { runUserAction } from "@/lib/userActionTelemetry.js";
 import { Button } from "@/components/ui/button.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
+import { useSecondClock } from "@/hooks/useRunningBackgroundTaskElapsedClock.js";
 import { logger } from "@/logger.js";
 import { ConversationTurnGroup } from "@/v4/ConversationTurnGroup.js";
 import {
-  deriveLogicalUiInstances,
+  createPluginUiDerivationCache,
   getPluginUiDisclosureVersion,
   getPluginUiManualPin,
   setPluginUiInstanceDerivation,
@@ -117,7 +118,6 @@ const EMPTY_PENDING_GUIDES: readonly QueueItem[] = [];
 // 虚拟单位是一整轮（user + assistant/tool 全量）。overscan 前后各两轮即可覆盖
 // 滚动一屏的挂载需求；更大的值会把长正文放大成大量不可见 Markdown/测高工作。
 const ROW_OVERSCAN = 2;
-const RUNNING_WORK_DURATION_TICK_MS = 1000;
 const COMPOSER_MESSAGE_MASK_FADE_PX = 24;
 const COMPOSER_MESSAGE_MASK_TRANSPARENT_HEIGHT_PX = 96;
 const USER_SCROLL_INTENT_TTL_MS = 1200;
@@ -267,6 +267,79 @@ function measureRowHeight(element: Element, entry: ResizeObserverEntry | undefin
 function getUnitHeightCacheKey(unit: ConversationTurnRenderUnit | undefined): string | undefined {
   return unit?.key;
 }
+
+interface TurnNavigatorViewportState {
+  scrollOffsetPx: number;
+  viewportHeightPx: number;
+  activeQueryRowId: number | undefined;
+  synced: boolean;
+}
+
+class TurnNavigatorViewportStore {
+  private state: TurnNavigatorViewportState = {
+    scrollOffsetPx: 0,
+    viewportHeightPx: 0,
+    activeQueryRowId: undefined,
+    synced: false,
+  };
+  private listeners = new Set<() => void>();
+
+  subscribe = (listener: () => void) => {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  };
+
+  getSnapshot = () => this.state;
+
+  update(next: Omit<TurnNavigatorViewportState, "synced">) {
+    const cur = this.state;
+    if (
+      cur.synced &&
+      cur.scrollOffsetPx === next.scrollOffsetPx &&
+      cur.viewportHeightPx === next.viewportHeightPx &&
+      cur.activeQueryRowId === next.activeQueryRowId
+    ) {
+      return;
+    }
+    this.state = { ...next, synced: true };
+    for (const listener of this.listeners) {
+      listener();
+    }
+  }
+}
+
+const ConnectedConversationTurnNavigator = memo(function ConnectedConversationTurnNavigator({
+  store,
+  renderUnits,
+  isHydratingDirectory,
+  virtualizerScrollOffset,
+  virtualizerViewportHeight,
+  virtualItems,
+  onJumpToQuery,
+}: {
+  store: TurnNavigatorViewportStore;
+  renderUnits: ConversationTurnRenderUnit[];
+  isHydratingDirectory: boolean;
+  virtualizerScrollOffset: number | null | undefined;
+  virtualizerViewportHeight: number | undefined;
+  virtualItems: ConversationTurnNavigatorVirtualItem[];
+  onJumpToQuery: (target: { rowId: number; unitIndex: number }) => void;
+}) {
+  const viewport = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  return (
+    <ConversationTurnNavigator
+      renderUnits={renderUnits}
+      isHydratingDirectory={isHydratingDirectory}
+      scrollOffsetPx={virtualizerScrollOffset ?? viewport.scrollOffsetPx}
+      viewportHeightPx={virtualizerViewportHeight ?? viewport.viewportHeightPx}
+      virtualItems={virtualItems}
+      activeQueryRowId={viewport.activeQueryRowId}
+      onJumpToQuery={onJumpToQuery}
+    />
+  );
+});
 
 export interface ConversationTimelineProps {
   rows: readonly ConversationRow[];
@@ -449,9 +522,25 @@ function ConversationTimelineImpl({
     observer.observe(element);
     return () => observer.disconnect();
   }, [hasHeaderSlot]);
-  const [liveNowMs, setLiveNowMs] = useState(() => Date.now());
+  // 运行中的 assistant work 状态文案要显示“工作中 N 秒”并随时间推进；
+  // 完成态耗时由协议事实固定，builder 会拒绝把这个 UI 时钟用于已结束轮次。
+  // 秒级时钟进程内共享一条 interval（页面不可见时暂停），多侧栏同时打开不各起一条。
+  // 是否订阅由“当前窗口里有没有运行中的轮”驱动（见下方 hasRunningUnit 的同步 effect）。
+  const [runningClockActive, setRunningClockActive] = useState(false);
+  const liveNowMs = useSecondClock(runningClockActive);
   // 插件卡片展示模型——同资源替代 + 最近三回合自动展开 + 手动固定；推导结果发布给卡片自己读。
-  const pluginUiDerivation = useMemo(() => deriveLogicalUiInstances(rows), [rows]);
+  // 缓存必须是**实例级**：主会话 / 子代理侧栏 / 选中片段侧聊会同时挂载多个时间线，
+  // 模块级单槽会互相覆盖，导致每个实例每帧都 miss、历史 turn 缓存随之全失效。
+  const pluginUiDerivationCacheRef = useRef<ReturnType<typeof createPluginUiDerivationCache> | null>(
+    null,
+  );
+  if (pluginUiDerivationCacheRef.current === null) {
+    pluginUiDerivationCacheRef.current = createPluginUiDerivationCache();
+  }
+  const pluginUiDerivation = useMemo(
+    () => pluginUiDerivationCacheRef.current!.derive(rows),
+    [rows],
+  );
   useEffect(() => {
     setPluginUiInstanceDerivation(sessionKey, pluginUiDerivation);
   }, [pluginUiDerivation, sessionKey]);
@@ -493,6 +582,9 @@ function ConversationTimelineImpl({
     [renderUnits],
   );
   const hasRunningUnit = useMemo(() => renderUnits.some((unit) => unit.isRunning), [renderUnits]);
+  useEffect(() => {
+    setRunningClockActive(hasRunningUnit);
+  }, [hasRunningUnit]);
   const latestTurnSummary = useMemo(
     () => resolveConversationLatestTurnSummary(renderUnits),
     [renderUnits],
@@ -603,11 +695,13 @@ function ConversationTimelineImpl({
     heightCacheRef.current?.retain(keys);
   }, [heightCacheWindowKey]);
   const [backToBottomVisible, setBackToBottomVisible] = useState(false);
-  const [turnNavigatorViewport, setTurnNavigatorViewport] = useState({
-    scrollOffsetPx: 0,
-    viewportHeightPx: 0,
-    activeQueryRowId: undefined as number | undefined,
-  });
+  const turnNavigatorViewportStoreRef = useRef<TurnNavigatorViewportStore | null>(null);
+  if (turnNavigatorViewportStoreRef.current === null) {
+    turnNavigatorViewportStoreRef.current = new TurnNavigatorViewportStore();
+  }
+  const turnNavigatorViewportSyncFrameRef = useRef<number | null>(null);
+  const hideTurnNavigatorRef = useRef(hideTurnNavigator);
+  hideTurnNavigatorRef.current = hideTurnNavigator;
   const [turnNavigatorContainerWidthPx, setTurnNavigatorContainerWidthPx] = useState(0);
   const turnNavigatorJumpFrameRef = useRef<number | null>(null);
   const turnNavigatorHydrationAttemptRef = useRef<{
@@ -688,21 +782,6 @@ function ConversationTimelineImpl({
     resizeObserver.observe(dock);
     return () => resizeObserver.disconnect();
   }, [hasBottomDock, onComposerDockHeightChange]);
-
-  useEffect(() => {
-    if (!hasRunningUnit) {
-      return;
-    }
-
-    // 运行中的 assistant work 状态文案要显示“工作中 N 秒”并随时间推进；
-    // 完成态耗时由协议事实固定，builder 会拒绝把这个 UI 时钟用于已结束轮次。
-    setLiveNowMs(Date.now());
-    const timer = window.setInterval(() => {
-      setLiveNowMs(Date.now());
-    }, RUNNING_WORK_DURATION_TICK_MS);
-
-    return () => window.clearInterval(timer);
-  }, [hasRunningUnit]);
 
   useLayoutEffect(() => {
     const element = timelineRootRef.current;
@@ -1061,37 +1140,54 @@ function ConversationTimelineImpl({
   const syncTurnNavigatorViewport = useCallback(
     (element: HTMLDivElement) => {
       syncMessageLayerMask(element);
-      const viewportRect = element.getBoundingClientRect();
-      const queryPositions: ConversationTurnNavigatorQueryPosition[] = [];
-      for (const rowElement of element.querySelectorAll<HTMLElement>("[data-row-id]")) {
-        const rowId = Number(rowElement.dataset.rowId);
-        if (!Number.isSafeInteger(rowId) || !turnNavigatorQueryRowIdsRef.current.has(rowId)) {
-          continue;
+      const shouldResolveActiveQuery =
+        !hideTurnNavigatorRef.current && turnNavigatorQueryRowIdsRef.current.size >= 2;
+      let activeQueryRowId: number | undefined;
+      if (shouldResolveActiveQuery) {
+        const viewportRect = element.getBoundingClientRect();
+        const queryPositions: ConversationTurnNavigatorQueryPosition[] = [];
+        for (const rowElement of element.querySelectorAll<HTMLElement>("[data-row-id]")) {
+          const rowId = Number(rowElement.dataset.rowId);
+          if (!Number.isSafeInteger(rowId) || !turnNavigatorQueryRowIdsRef.current.has(rowId)) {
+            continue;
+          }
+          const rowRect = rowElement.getBoundingClientRect();
+          const start = element.scrollTop + rowRect.top - viewportRect.top;
+          queryPositions.push({ rowId, start, end: start + rowRect.height });
         }
-        const rowRect = rowElement.getBoundingClientRect();
-        const start = element.scrollTop + rowRect.top - viewportRect.top;
-        queryPositions.push({ rowId, start, end: start + rowRect.height });
-      }
-      const nextViewport = {
-        scrollOffsetPx: element.scrollTop,
-        viewportHeightPx: element.clientHeight,
         // turn 级 active 只能命中同 turn 的第一条 query。这里从已挂载
         // 的稳定 row anchor 推导当前 query；虚拟 turn 尚未挂载时组件再回退 unit。
-        activeQueryRowId: resolveConversationTurnNavigatorActiveQueryRowId({
+        activeQueryRowId = resolveConversationTurnNavigatorActiveQueryRowId({
           positions: queryPositions,
           scrollOffsetPx: element.scrollTop,
           viewportHeightPx: element.clientHeight,
-        }),
-      };
-      setTurnNavigatorViewport((current) =>
-        current.scrollOffsetPx === nextViewport.scrollOffsetPx &&
-        current.viewportHeightPx === nextViewport.viewportHeightPx &&
-        current.activeQueryRowId === nextViewport.activeQueryRowId
-          ? current
-          : nextViewport,
-      );
+        });
+      }
+      turnNavigatorViewportStoreRef.current?.update({
+        scrollOffsetPx: element.scrollTop,
+        viewportHeightPx: element.clientHeight,
+        activeQueryRowId,
+      });
     },
     [syncMessageLayerMask],
+  );
+  const scheduleTurnNavigatorViewportSync = useCallback(
+    (element: HTMLDivElement) => {
+      if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") {
+        syncTurnNavigatorViewport(element);
+        return;
+      }
+      if (turnNavigatorViewportSyncFrameRef.current !== null) {
+        return;
+      }
+      turnNavigatorViewportSyncFrameRef.current = window.requestAnimationFrame(() => {
+        turnNavigatorViewportSyncFrameRef.current = null;
+        if (scrollRef.current) {
+          syncTurnNavigatorViewport(scrollRef.current);
+        }
+      });
+    },
+    [syncTurnNavigatorViewport],
   );
 
   useLayoutEffect(() => {
@@ -1195,7 +1291,8 @@ function ConversationTimelineImpl({
     element.scrollTop = responsiveCenteredEmptyLayout ? 0 : element.scrollHeight;
     // 回读取钳制后的落点入账（浏览器会把赋值钳到最大可滚动距离）。
     lastObservedScrollTopRef.current = element.scrollTop;
-    syncTurnNavigatorViewport(element);
+    syncMessageLayerMask(element);
+    scheduleTurnNavigatorViewportSync(element);
     userAdjustedScrollSinceRestoreRef.current = false;
     cacheCurrentScrollMemoryState(element);
     notifyScrollObserversAfterCommit(element);
@@ -1204,7 +1301,8 @@ function ConversationTimelineImpl({
     responsiveCenteredEmptyLayout,
     markProgrammaticScroll,
     notifyScrollObserversAfterCommit,
-    syncTurnNavigatorViewport,
+    scheduleTurnNavigatorViewportSync,
+    syncMessageLayerMask,
   ]);
 
   useLayoutEffect(() => {
@@ -1460,7 +1558,7 @@ function ConversationTimelineImpl({
       suppressVirtualizerAdjustmentDuringRestoreRef.current = false;
     }
     lastObservedScrollTopRef.current = element.scrollTop;
-    syncTurnNavigatorViewport(element);
+    scheduleTurnNavigatorViewportSync(element);
     const following = resolveFollowingAfterScroll({
       following: followingRef.current,
       source: scrollSource,
@@ -1512,7 +1610,7 @@ function ConversationTimelineImpl({
     commitFollowing,
     getActiveUserScrollIntent,
     saveCurrentScrollMemory,
-    syncTurnNavigatorViewport,
+    scheduleTurnNavigatorViewportSync,
     virtualizer,
   ]);
 
@@ -1940,6 +2038,10 @@ function ConversationTimelineImpl({
         window.cancelAnimationFrame(programmaticScrollFrameRef.current);
         programmaticScrollFrameRef.current = null;
       }
+      if (turnNavigatorViewportSyncFrameRef.current !== null) {
+        window.cancelAnimationFrame(turnNavigatorViewportSyncFrameRef.current);
+        turnNavigatorViewportSyncFrameRef.current = null;
+      }
     };
   }, []);
 
@@ -1971,15 +2073,13 @@ function ConversationTimelineImpl({
       {/* Bugfix：分享选择流程无论面板展开还是收起，左 rail 都由分享面板或 reopen 按钮独占，
           必须隐藏对话轮导航，避免两个绝对定位控件互相覆盖。退出分享选择后自动恢复。 */}
       {hideTurnNavigator ? null : (
-        <ConversationTurnNavigator
+        <ConnectedConversationTurnNavigator
+          store={turnNavigatorViewportStoreRef.current}
           renderUnits={renderUnits}
           isHydratingDirectory={loadingOlder}
-          scrollOffsetPx={virtualizer.scrollOffset ?? turnNavigatorViewport.scrollOffsetPx}
-          viewportHeightPx={
-            virtualizer.scrollRect?.height ?? turnNavigatorViewport.viewportHeightPx
-          }
+          virtualizerScrollOffset={virtualizer.scrollOffset}
+          virtualizerViewportHeight={virtualizer.scrollRect?.height}
           virtualItems={turnNavigatorVirtualItems}
-          activeQueryRowId={turnNavigatorViewport.activeQueryRowId}
           onJumpToQuery={scrollToQuery}
         />
       )}

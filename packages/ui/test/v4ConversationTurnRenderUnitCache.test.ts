@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import type {
   AssistantTextRow,
   ConversationRow,
+  ToolCallRow,
   TurnHeaderRow,
   UserInputRow,
 } from "@nibi/shared/nibi-protocol-v4";
+import type { PluginUiRowPinResolver } from "@/plugin-ui/index.js";
 import { buildConversationTurnRenderUnits } from "@/v4/conversationTurnRenderUnits.js";
 import { ConversationTurnRenderUnitCache } from "@/v4/turnRenderUnitCache/index.js";
 
@@ -161,5 +163,73 @@ describe("ConversationTurnRenderUnitCache", () => {
     expect(cache.build(rows, options)).toEqual(buildConversationTurnRenderUnits(rows, options));
     // 缓存命中路径也返回同一值。
     expect(cache.build(rows, options)).toEqual(buildConversationTurnRenderUnits(rows, options));
+  });
+});
+
+describe("插件固定裁决只让相关轮失效", () => {
+  function pluginTool(rowId: number, turnId: string): ToolCallRow {
+    return baseRow<ToolCallRow>({
+      rowId,
+      turnId,
+      kind: "toolCall",
+      toolCallId: `tool-${rowId}`,
+      toolName: "read_plugin_resource",
+      status: "success",
+      inputText: "{}",
+      display: {
+        kind: "mcp_tool",
+        serverName: "plugin-server",
+        ui: { pluginId: "plugin-1", resourceUri: "ui://plugin/card" },
+      } as ToolCallRow["display"],
+    });
+  }
+
+  function rowsWithTwoPluginTurns(): ConversationRow[] {
+    return [
+      turnHeader(1, "turn-1"),
+      userInput(2, "turn-1", "first query"),
+      pluginTool(3, "turn-1"),
+      turnHeader(4, "turn-2"),
+      userInput(5, "turn-2", "second query"),
+      pluginTool(6, "turn-2"),
+    ];
+  }
+
+  function pinResolver(
+    supersededByToolCallId: Readonly<Record<string, boolean>> = {},
+  ): PluginUiRowPinResolver {
+    return (toolCallId) => ({
+      disposition: {
+        key: `key:${toolCallId}`,
+        superseded: supersededByToolCallId[toolCallId] === true,
+        autoExpand: true,
+        forcedInline: false,
+      },
+      manualPinned: false,
+    });
+  }
+
+  it("resolver 函数身份变化但逐行结果不变：两轮都保持同一 unit", () => {
+    const rows = rowsWithTwoPluginTurns();
+    const cache = new ConversationTurnRenderUnitCache();
+
+    const first = cache.build(rows, { pluginUiPinResolver: pinResolver() });
+    const second = cache.build(rows, { pluginUiPinResolver: pinResolver() });
+
+    expect(second[0]).toBe(first[0]);
+    expect(second[1]).toBe(first[1]);
+  });
+
+  it("只有某一轮的裁决变化时，其它轮保持同一 unit", () => {
+    const rows = rowsWithTwoPluginTurns();
+    const cache = new ConversationTurnRenderUnitCache();
+
+    const first = cache.build(rows, { pluginUiPinResolver: pinResolver() });
+    const second = cache.build(rows, {
+      pluginUiPinResolver: pinResolver({ "tool-6": true }),
+    });
+
+    expect(second[0]).toBe(first[0]);
+    expect(second[1]).not.toBe(first[1]);
   });
 });

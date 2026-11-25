@@ -18,7 +18,6 @@ import {
   type WorkspacePurpose,
   formatNibiHostProcessName,
   HostMessageTypes,
-  hostResponseMessageSchema,
   HostResponseTypes,
   InternalChannels,
   LAUNCH_MARKS_QUERY_KEY,
@@ -26,6 +25,7 @@ import {
   serializeLaunchMarks,
   NIBI_DESKTOP_CONTEXT_PROMPT_ENABLED_ENV,
 } from "@nibi/shared";
+import { parseHostResponseMessageCached } from "./logger.js";
 import type {
   PluginSandboxHandle,
   PluginSandboxRegisterRequestPayload,
@@ -199,10 +199,7 @@ export function spawnHostProcess(
       event: HostCuaOperationStateResponse,
     ) => void;
     /** host → main：Helper 的真实输入活动；只驱动横幅/光标浮层，不参与业务判定。 */
-    onCuaActivityChanged?: (
-      source: ElectronUtilityProcess,
-      event: HostCuaActivityResponse,
-    ) => void;
+    onCuaActivityChanged?: (source: ElectronUtilityProcess, event: HostCuaActivityResponse) => void;
     onCuaOperationStateSourceExited?: (source: ElectronUtilityProcess) => void;
     /** host → main：定时任务派发结果，转交给 cron scheduler 结算调度状态机。 */
     onCronRunResult?: (result: {
@@ -307,7 +304,7 @@ export function spawnHostProcess(
 
   const databaseStartupRelay = bindDatabaseStartupRelay(win, child, hostId);
   child.on("message", (message: unknown) => {
-    const result = hostResponseMessageSchema.safeParse(message);
+    const result = parseHostResponseMessageCached(message);
     if (!result.success) {
       return;
     }
@@ -593,8 +590,7 @@ export function spawnHostProcess(
         dependencies.hostQuitBlockersMap.delete(child);
       }
       const creatingWorktreeCount = result.data.blockers.reduce(
-        (total, blocker) =>
-          blocker.kind === "worktree-creating" ? total + blocker.count : total,
+        (total, blocker) => (blocker.kind === "worktree-creating" ? total + blocker.count : total),
         0,
       );
       dependencies.logger.info(

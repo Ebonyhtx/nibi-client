@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Check, Copy, LoaderCircle } from "lucide-react";
 import { buildRemoteHostWorkspaceIdentity, parseRemoteWorkspaceIdentity } from "@nibi/shared";
 import type { RemoteProjectHost } from "@/project-sidebar/contract.js";
@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/toast.js";
 import { useNibiIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
+import { useSecondClock } from "@/hooks/useRunningBackgroundTaskElapsedClock.js";
 import { useRemoteDevicePresentationInput } from "@/hooks/useSourceServerStatuses.js";
 import { useSourceServerOperationLogs } from "@/hooks/useSourceServerOperationLogs.js";
 import {
@@ -24,13 +25,8 @@ function sourceServerIdForHost(host: RemoteProjectHost): string | undefined {
 
 /** 只用于展示的时钟，详情关闭（组件卸载）即停止，不参与任何超时判定。 */
 function useNow(active: boolean) {
-  const [now, setNow] = useState(Date.now);
-  useEffect(() => {
-    if (!active) return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [active]);
-  return now;
+  // 与其他秒级展示共用一条 interval，页面不可见时暂停。
+  return useSecondClock(active);
 }
 
 /**

@@ -6,6 +6,8 @@ import {
 } from "@/ToolCallBlocks/renderers/createWorkflowInput.js";
 import { isAmendWorkflowToolCall, isCreateWorkflowToolCall } from "@/lib/workflowToolNames.js";
 
+const EMPTY_WORKFLOW_DRAFT_MAP: ReadonlyMap<string, WorkflowDraftPosition> = new Map();
+
 /**
  * 工作流工具行 → 草稿位置（稿号与是否已被替代）的联接表，行窗口一遍建成
  *
@@ -49,7 +51,7 @@ export function buildWorkflowDraftByToolCallId(
     if (compiled === false) failuresByLineageTurn.set(turnKey, failures + 1);
     if (compiled === true) failuresByLineageTurn.set(turnKey, 0);
   }
-  return byToolCallId;
+  return byToolCallId.size === 0 ? EMPTY_WORKFLOW_DRAFT_MAP : byToolCallId;
 }
 
 function workflowDraftLineage(row: ToolCallRow): string | undefined {
