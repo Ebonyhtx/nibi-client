@@ -98,6 +98,8 @@ export type PluginDiagnosticCode =
   | "plugin_native_module_blocked"
   /** 原生模块声明的平台/ABI 与当前宿主运行时不一致。 */
   | "plugin_runtime_abi_mismatch"
+  /** 官方/内置插件包内自带 Node 运行时（只允许 local 插件自带，见计划 §8.5）。 */
+  | "plugin_bundled_runtime_forbidden"
   /** 本地/第三方代码插件缺少绑定包 hash 的信任记录。 */
   | "plugin_trust_required"
   /** 安装记录已进入 removed 墓碑期（保留数据，不再加载）。 */

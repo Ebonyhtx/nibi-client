@@ -9,8 +9,13 @@ let storageRoot: string;
 let pluginRoot: string;
 
 /** 一个最小插件：一个 skill（声明式）+ 一个 mcp（代码面）+ 可选扩展代码。 */
-function seedPlugin(options: { pluginName: string; runtime?: Record<string, unknown> }): void {
-  pluginRoot = join(storageRoot, "cache", "test-mp", options.pluginName, "1.0.0");
+function seedPlugin(options: {
+  marketplace?: string;
+  pluginName: string;
+  runtime?: Record<string, unknown>;
+}): void {
+  const marketplace = options.marketplace ?? "test-mp";
+  pluginRoot = join(storageRoot, "cache", marketplace, options.pluginName, "1.0.0");
   mkdirSync(pluginRoot, { recursive: true });
   writeFileSync(
     join(pluginRoot, "plugin.json"),
@@ -40,10 +45,10 @@ function seedPlugin(options: { pluginName: string; runtime?: Record<string, unkn
     JSON.stringify({
       plugins: [
         {
-          id: `${options.pluginName}@test-mp`,
+          id: `${options.pluginName}@${marketplace}`,
           installPath: pluginRoot,
           installedAt: "2026-11-01T00:00:00.000Z",
-          marketplace: "test-mp",
+          marketplace,
           name: options.pluginName,
           packageHash: `sha256:${"a".repeat(64)}`,
           scope: "user",
@@ -65,12 +70,13 @@ function seedRevocations(entries: unknown[]): void {
   );
 }
 
-function discover(pluginName: string) {
+function discover(pluginName: string, marketplace = "test-mp", consentHash?: string) {
   writePluginConsent({
     // 带 runtime 的插件会额外要求 code；不补齐同意会让用例在同意门禁处失败，
     // 掩盖真正要断言的完整性门禁。
     permissions: ["code", "network", "process"],
-    pluginId: `${pluginName}@test-mp`,
+    ...(consentHash ? { packageHash: consentHash } : {}),
+    pluginId: `${pluginName}@${marketplace}`,
     storageRoot,
     version: "1.0.0",
   });
@@ -78,8 +84,9 @@ function discover(pluginName: string) {
     config: {
       dirs: [],
       enabled: true,
-      enabledPlugins: { [`${pluginName}@test-mp`]: true },
+      enabledPlugins: { [`${pluginName}@${marketplace}`]: true },
       options: {},
+      suppressedBuiltins: [],
     },
     env: {},
     paidPluginGate: () => ({ allowed: true }),
@@ -151,6 +158,43 @@ describe("发现层完整性门禁", () => {
     expect(Object.keys(outcome.mcpServers)).toHaveLength(0);
     // 声明式组件（skill）仍可用。
     expect(outcome.skillRoots.length).toBeGreaterThan(0);
+  });
+
+  it("官方插件自带 Node 运行时：挡代码面，声明式仍可用", () => {
+    seedPlugin({ marketplace: "nibi-official", pluginName: "official-node" });
+    writeFileSync(join(pluginRoot, "node"), "binary", "utf8");
+
+    const outcome = discover("official-node", "nibi-official");
+    const plugin = outcome.plugins.find((item) => item.id === "official-node@nibi-official");
+    expect(plugin?.codeBlockedReason?.code).toBe("plugin_bundled_runtime_forbidden");
+    expect(Object.keys(outcome.mcpServers)).toHaveLength(0);
+    expect(outcome.skillRoots.length).toBeGreaterThan(0);
+  });
+
+  it("非官方来源自带 Node 运行时：不拦（计划 §8.5 只禁官方/内置）", () => {
+    seedPlugin({ pluginName: "community-node" });
+    writeFileSync(join(pluginRoot, "node"), "binary", "utf8");
+
+    const outcome = discover("community-node");
+    const plugin = outcome.plugins.find((item) => item.id === "community-node@test-mp");
+    expect(plugin?.codeBlockedReason).toBeUndefined();
+    expect(Object.keys(outcome.mcpServers)).toHaveLength(1);
+  });
+
+  it("同版本原地换内容：包 hash 与同意记录不一致 → 停用并要求重新同意", () => {
+    // 安装记录里的 hash 是 aaaa…（seedPlugin 写死），同意绑定的是 bbbb…
+    seedPlugin({ pluginName: "swapped" });
+    const outcome = discover("swapped", "test-mp", `sha256:${"b".repeat(64)}`);
+    const plugin = outcome.plugins.find((item) => item.id === "swapped@test-mp");
+    expect(plugin?.enabled).toBe(false);
+    expect(Object.keys(outcome.mcpServers)).toHaveLength(0);
+    expect(
+      outcome.diagnostics.some(
+        (diagnostic) =>
+          diagnostic.code === "plugin_package_hash_mismatch" &&
+          diagnostic.pluginId === "swapped@test-mp",
+      ),
+    ).toBe(true);
   });
 
 

@@ -4,8 +4,11 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   assertPluginNativeModulesDeclared,
+  assertPluginRuntimeNotBundled,
   checkPluginNativeModules,
+  PluginBundledRuntimeError,
   PluginNativeModuleInstallError,
+  scanBundledNodeBinaries,
   scanPluginNativeModules,
 } from "../src/plugins/native-modules.js";
 
@@ -143,6 +146,47 @@ describe("assertPluginNativeModulesDeclared（安装期门禁）", () => {
     expect(() =>
       assertPluginNativeModulesDeclared({
         nativeDeclared: true,
+        pluginId: "demo@test-mp",
+        rootPath,
+      }),
+    ).not.toThrow();
+  });
+});
+
+describe("自带 Node 运行时（计划 §8.5）", () => {
+  it("识别根目录与 bin/ 下的 node 可执行文件", () => {
+    writeFile("node");
+    writeFile("bin/node.exe");
+    expect(scanBundledNodeBinaries(rootPath)).toEqual(["bin/node.exe", "node"]);
+  });
+
+  it("不把 node_modules 里的同名文件当成自带运行时", () => {
+    writeFile("node_modules/.bin/node");
+    writeFile("node_modules/node/bin/node");
+    expect(scanBundledNodeBinaries(rootPath)).toEqual([]);
+  });
+
+  it("官方来源（forbidden）抛错并点名文件", () => {
+    writeFile("runtime/node");
+    let error: unknown;
+    try {
+      assertPluginRuntimeNotBundled({
+        forbidden: true,
+        pluginId: "demo@nibi-official",
+        rootPath,
+      });
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error).toBeInstanceOf(PluginBundledRuntimeError);
+    expect((error as Error).message).toMatch(/runtime\/node/u);
+  });
+
+  it("非官方来源（allowed）放行", () => {
+    writeFile("node");
+    expect(() =>
+      assertPluginRuntimeNotBundled({
+        forbidden: false,
         pluginId: "demo@test-mp",
         rootPath,
       }),

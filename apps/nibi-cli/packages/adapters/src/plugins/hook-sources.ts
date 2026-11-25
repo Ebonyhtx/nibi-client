@@ -4,6 +4,7 @@ import type { PluginDiagnostic, PluginHookEventName } from "@nibi/contracts";
 import {
   isPluginHookEventName,
   isRunnablePluginHookEvent,
+  resolvePluginHookEventSupport,
 } from "@nibi/contracts";
 import { fileExists, isRecord, resolveInside } from "./helpers.js";
 import type { PluginManifestSource } from "./types.js";
@@ -139,9 +140,12 @@ export function listPluginHookEventNames(input: {
         continue;
       }
       if (!isRunnablePluginHookEvent(eventName)) {
+        // 原因来自契约里的支持度登记表（计划 §9.5）：同一句话既给诊断也给文档，
+        // 不在适配器里另写一份逐事件理由。
+        const reason = resolvePluginHookEventSupport(eventName)?.reason;
         input.diagnostics.push({
           code: "plugin_hook_unsupported_event",
-          message: `Plugin hook event is declared but will never trigger in this Nibi runtime: ${eventName}`,
+          message: `Plugin hook event is declared but will never trigger in this Nibi runtime: ${eventName}${reason ? ` (${reason})` : ""}`,
           path: source.sourcePath,
           pluginId: input.loaded.id,
           severity: "warning",

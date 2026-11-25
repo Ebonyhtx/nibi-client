@@ -156,9 +156,7 @@ export class PluginNativeModuleInstallError extends Error {
     super(message);
     this.name = "PluginNativeModuleInstallError";
   }
-}
-
-/**
+}/**
  * 安装/更新期的原生模块门禁（计划 §8.4）。
  *
  * 为什么要在安装时拦：发现层的 `codeBlockedReason` 只影响「加载」——包已经落盘、
@@ -183,5 +181,58 @@ export function assertPluginNativeModulesDeclared(input: {
     `Plugin ships native modules without declaring runtime.native: ${scan.files
       .slice(0, 3)
       .join(", ")}`,
+  );
+}
+
+/**
+ * 官方/内置插件禁止自带 Node 运行时（计划 §8.5）。
+ *
+ * 只看插件根的固定位置，不做递归：`node_modules/.bin/node` 之类通常是系统 Node 的
+ * shim，递归按文件名匹配会把正常依赖误判成「自带运行时」。真正分发 Node 的插件会把它
+ * 放在根、`bin/` 或 `runtime/` 下，并在 MCP/hook 命令里显式引用。
+ */
+const BUNDLED_NODE_CANDIDATES = [
+  "node",
+  "node.exe",
+  "bin/node",
+  "bin/node.exe",
+  "runtime/node",
+  "runtime/node.exe",
+] as const;
+
+export function scanBundledNodeBinaries(rootPath: string): string[] {
+  const found: string[] = [];
+  for (const candidate of BUNDLED_NODE_CANDIDATES) {
+    try {
+      if (statSync(join(rootPath, candidate)).isFile()) found.push(candidate);
+    } catch {
+      // 不存在即跳过。
+    }
+  }
+  return found.sort();
+}
+
+export class PluginBundledRuntimeError extends Error {
+  constructor(
+    readonly pluginId: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "PluginBundledRuntimeError";
+  }
+}
+
+/** 安装期拒绝：官方/内置来源的包自带 Node 运行时。 */
+export function assertPluginRuntimeNotBundled(input: {
+  forbidden: boolean;
+  pluginId: string;
+  rootPath: string;
+}): void {
+  if (!input.forbidden) return;
+  const files = scanBundledNodeBinaries(input.rootPath);
+  if (files.length === 0) return;
+  throw new PluginBundledRuntimeError(
+    input.pluginId,
+    `Official and built-in plugins must not bundle a Node runtime: ${files.join(", ")}`,
   );
 }

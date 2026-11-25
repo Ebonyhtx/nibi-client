@@ -366,6 +366,9 @@
 | 5 数据目录 0700 | 已补：`ensurePluginDataDir`（`mkdir` 0700 + `chmod` 补旧目录），发现层与 Host 能力两处创建点统一调用（`helpers.ts`） |
 | 6 生效提示 | 已补：安装/更新/卸载/启停成功后统一 toast「插件变更将在新会话中生效」（新增 `settings.plugins.effect.newSession`，5 locale）。口径按 Rust 每会话插件快照：当前会话不热更新，新会话/冷恢复生效 |
 | 7 死代码 | 已删 `packages/ui/src/lib/pluginRuntimeReload.ts` 及其未使用 import；生效边界以 `kernel/crates/runtime/src/kernel.rs` 的每会话快照为准 |
+| 8 官方自带 Node / 重新检测 | 已补：`scanBundledNodeBinaries` 只认根、`bin/`、`runtime/` 下的 `node`/`node.exe`（不递归，避免把 `node_modules/.bin/node` 误判）；官方/内置来源在发现层挡代码面（`plugin_bundled_runtime_forbidden`），官方市场安装期由 `assertPluginRuntimeNotBundled` 直接拒绝；非官方来源不拦。「重新检测」不需要新按钮：商店「刷新」/重开设置页都会重跑发现，Node 装好后状态随下一次刷新更新（提示文案已按此口径） |
+| 9 hooks 事件支持度登记 | 已补：`contracts/src/hooks/index.ts` 的 `PLUGIN_HOOK_EVENT_SUPPORT` 为 33 个可声明事件逐一登记 `runnable` 与不可派发原因；契约测试断言「全覆盖、runnable 与内核派发集合一致、不可派发必须有原因」。两处 `plugin_hook_unsupported_event` 诊断都直接引用该原因，不再各写一份 |
+| 10 trust.json / 包 hash 绑定 | 已补**实质缺口**：发现层此前只比同意记录的版本与权限，`resolvePluginContentTrust` 完全没有调用点——同版本原地换内容可绕过同意。现在缓存安装件按 `candidate.packageHash` 绑定同意（`requireHashBound`），不一致报 `plugin_package_hash_mismatch` 并停用，缺绑定报 `plugin_trust_required`；目录扫描的 inline 插件没有安装记录/ hash，仍按本地信任只比版本与权限（不拦死开发流程）。撤销授权入口沿用详情页/已安装管理的「撤销授权」。不新增独立 `trust.json`：同意记录（版本 + 权限 + 包 hash）就是信任记录，再建一份只会产生两个真源 |
 
 验证：`pnpm typecheck` / `check:i18n-keys` / `architecture:check --changed` / `check:dual-kernel-parity` /
 `check:public-repo` 通过，`pnpm lint` 0 error；adapters 2255、bootstrap 插件相关 126 单测通过；
@@ -382,10 +385,7 @@
 
 | # | 缺口 | 证据 | 影响 |
 |---|---|---|---|
-| 4 | **License 执行期只有 message，没有错误码契约**。无 `license_expired` / `license_not_entitled` 等 code；工具行锁图标与会话横幅未实现 | 全仓无这些字符串；门禁实现 `runtime/plugin-execution-gate.ts`、Rust `paid_plugin.rs` 只回 message | 计划 §6.4 的错误码（模型据此不重试）与 UI 提示层未落地；当前靠文案兜底 |
-| 8 | 官方插件自带 Node 未校验（计划 §8.5：official 禁止、local 允许）；装完 Node 后无「重新检测/重启」入口（§8.6） | 无相关校验/文案 | 官方插件打包 Node 不会被拦；原生模块用户装完 Node 需自行重启 |
-| 9 | hooks 外来事件映射表未按 §9.5 生成 registry/CI 断言；现有覆盖是 33 事件白名单 + `plugin_hook_unsupported_event` 诊断 | `adapters/src/plugins/hook-sources.ts:131-145` | 等价覆盖基本成立，但没有「每外来事件要么有映射要么有不支持原因」的生成式门禁 |
-| 10 | 无独立 `trust.json` / 「撤销信任」入口；用 `plugin-consents.json` 的包 hash 绑定替代（§7.5 的等价实现） | `helpers.ts:484-502` | 行为等价；用户只能停用插件，不能显式撤销信任记录 |
+| 4 | **License 执行期没有结构化错误码**。门禁拒绝只给人类可读 message；计划 §6.4 的 `{error:{code,retryable,pluginId,action}}` 与工具行锁图标/会话横幅未实现 | 全仓无 `license_expired` / `license_not_entitled` 等 code；`runtime/plugin-execution-gate.ts`、`kernel-api/paid_plugin.rs` 的 `check` 只回 `String`；工具结果只有 `content + isError`（无 code 字段） | 需要一次**跨两端 + UI** 的协议改动：Rust `ToolOutput.display` / Node `ToolResult.display` 携带结构化错误，再补工具行与横幅的视觉验收。不是单点补丁，未在本轮硬塞 |
 
 **复核后确认不成立的疑点**（不必再查）：进程级隔离已实现；view-root 已接线；插件依赖声明**有**实现（`resolveDependencyClosure`，非计划说的「忽略并记 skipped」）；更新失败有原子回退（`.name.backup` + `activation.rollback`）；`missing` 状态由 `packageStatus: "missing"` 合成条目承载。
 

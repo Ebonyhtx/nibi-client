@@ -56,7 +56,7 @@ import {
 } from "./helpers.js";
 import { enumeratePluginComponents, type PluginComponentGroup } from "./plugin-components.js";
 import { computePluginPackageHash } from "./package-hash.js";
-import { assertPluginNativeModulesDeclared } from "./native-modules.js";
+import { assertPluginNativeModulesDeclared, assertPluginRuntimeNotBundled } from "./native-modules.js";
 import { removePluginViewRoot } from "./view-root.js";
 import {
   checkPluginRevocation,
@@ -1697,6 +1697,12 @@ async function cacheMarketplacePlugin(input: {
         typeof rawRuntime === "object" &&
         rawRuntime !== null &&
         (rawRuntime as { native?: unknown }).native === true,
+    });
+    // 官方市场禁止插件自带 Node 运行时（计划 §8.5）；local/社区源不禁止。
+    assertPluginRuntimeNotBundled({
+      forbidden: input.marketplace === NIBI_OFFICIAL_PLUGIN_MARKETPLACE,
+      pluginId: `${input.entry.name}@${input.marketplace}`,
+      rootPath: target,
     });
   } finally {
     // cache 已复制成功后，临时目录 cleanup 失败不能阻断 installed record 落盘。

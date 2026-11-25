@@ -96,6 +96,11 @@ describe("plugin hook event registry", () => {
             code: "plugin_hook_unsupported_event",
             message: expect.stringContaining("will never trigger"),
           }),
+          // 原因来自契约里的支持度登记表（计划 §9.5），不是适配器里另写一份。
+          expect.objectContaining({
+            code: "plugin_hook_unsupported_event",
+            message: expect.stringContaining("not wired to HookRunner yet"),
+          }),
         ]),
       );
     } finally {

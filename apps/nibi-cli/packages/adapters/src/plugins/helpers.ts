@@ -547,12 +547,14 @@ export interface PluginContentTrustResult {
 export function resolvePluginContentTrust(input: {
   packageHash?: string;
   pluginId: string;
+  /** 已读出的同意记录；发现层传入内存副本，避免每个插件重读一次文件。 */
+  record?: PluginConsentRecord;
   requiredPermissions: readonly PluginPermission[];
   requireHashBound: boolean;
   storageRoot: string;
   version: string;
 }): PluginContentTrustResult {
-  const record = readPluginConsents(input.storageRoot).plugins[input.pluginId];
+  const record = input.record ?? readPluginConsents(input.storageRoot).plugins[input.pluginId];
   const baseCovers = (candidate: PluginConsentRecord | undefined): boolean => {
     if (!candidate) return false;
     if (candidate.version !== input.version) return false;

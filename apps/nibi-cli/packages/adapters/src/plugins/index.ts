@@ -31,6 +31,7 @@ import {
   isPluginHookEventName,
   isRunnablePluginHookEvent,
   parsePluginAcceptance,
+  resolvePluginHookEventSupport,
   resolvePluginOrigin,
 } from "@nibi/contracts";
 import {
@@ -50,6 +51,7 @@ import {
   readPluginManifestDocument,
   resolveInside,
   resolvePluginCapabilities,
+  resolvePluginContentTrust,
   resolvePluginRuntime,
   resolveRequiredPluginPermissions,
   sanitizePluginId,
@@ -57,7 +59,7 @@ import {
   throwIfAborted,
 } from "./helpers.js";
 import type { DetectedPluginManifest } from "./helpers.js";
-import { checkPluginNativeModules } from "./native-modules.js";
+import { checkPluginNativeModules, scanBundledNodeBinaries } from "./native-modules.js";
 import { materializePluginViewRootSync } from "./view-root.js";
 import { checkPluginRevocation } from "./plugin-revocations.js";
 import { scanSkillFilesUnderRootSync } from "../skills/scan.js";
@@ -199,9 +201,12 @@ export {
 
 export {
   assertPluginNativeModulesDeclared,
+  assertPluginRuntimeNotBundled,
   checkPluginNativeModules,
   isPluginRootDirectory,
+  PluginBundledRuntimeError,
   PluginNativeModuleInstallError,
+  scanBundledNodeBinaries,
   scanPluginNativeModules,
   type NativeModuleCheckInput,
   type NativeModuleScanResult,
@@ -452,6 +457,26 @@ export class NodePluginAdapter implements PluginPort {
           });
         }
       }
+      // 官方/内置插件自带 Node 运行时：计划 §8.5 禁止。已经装好的包只挡代码面，
+      // 声明式组件仍可用；新安装由 assertPluginRuntimeNotBundled 在安装期直接拒绝。
+      if (
+        codeBlockedReason === undefined &&
+        (loaded.canonical.trust === "builtin" || loaded.canonical.trust === "official")
+      ) {
+        const bundledNode = scanBundledNodeBinaries(loaded.rootPath);
+        if (bundledNode.length > 0) {
+          codeBlockedReason = {
+            code: "plugin_bundled_runtime_forbidden",
+            message: `Official and built-in plugins must not bundle a Node runtime: ${bundledNode.join(", ")}`,
+          };
+          diagnostics.push({
+            ...codeBlockedReason,
+            path: loaded.manifestPath,
+            pluginId: loaded.id,
+            severity: "error",
+          });
+        }
+      }
       const dataPath = join(dataRoot, sanitizePluginId(loaded.id));
       // 只从启用后解析出的 component.mcpServers 生成 mcpServerNames，
       // 未启用插件的内置 MCP 就会在管理页完全不可见。这里先读取声明名给 UI 只读展示，
@@ -530,24 +555,54 @@ export class NodePluginAdapter implements PluginPort {
       };
       // 社区/本地插件的 hooks 与 MCP 会启动子进程，必须逐版本显式同意；
       // builtin/official 沿用签名/内置信任，不要求用户再点一次。
+      //
+      // 缓存安装件还要把同意绑定到**包 hash**（计划 §7.5 的等价实现）：同版本原地换内容
+      // 在 consent 只比版本/权限时是看不出来的。目录扫描的本地插件（inline）没有安装记录、
+      // 也就没有 hash——它们由本地信任覆盖，仍按版本/权限判断，不因此拦死开发流程。
       if (
         enabled &&
         (loaded.canonical.trust === "community" || loaded.canonical.trust === "local") &&
-        requiredPermissions.length > 0 &&
-        !pluginConsentCovers(
-          pluginConsents.plugins[loaded.id],
-          loaded.manifest.version ?? DEFAULT_VERSION,
-          requiredPermissions,
-        )
+        requiredPermissions.length > 0
       ) {
-        enabled = false;
-        diagnostics.push({
-          code: "plugin_consent_required",
-          message: `Plugin requires permission consent: ${requiredPermissions.join(", ")}`,
-          path: loaded.manifestPath,
-          pluginId: loaded.id,
-          severity: "warning",
-        });
+        const pluginVersion = loaded.manifest.version ?? DEFAULT_VERSION;
+        const contentTrust = candidate.packageHash
+          ? resolvePluginContentTrust({
+              packageHash: candidate.packageHash,
+              pluginId: loaded.id,
+              record: pluginConsents.plugins[loaded.id],
+              requiredPermissions,
+              requireHashBound: true,
+              storageRoot: request.storageRoot,
+              version: pluginVersion,
+            })
+          : pluginConsentCovers(
+                pluginConsents.plugins[loaded.id],
+                pluginVersion,
+                requiredPermissions,
+              )
+            ? { allowed: true as const }
+            : { allowed: false as const, reason: "consent_missing" as const };
+        if (!contentTrust.allowed) {
+          enabled = false;
+          const message =
+            contentTrust.reason === "hash_mismatch"
+              ? "Plugin content changed since consent was granted; re-approve to run the new code"
+              : contentTrust.reason === "hash_missing"
+                ? "Plugin code is not bound to a package hash; re-approve to establish trust"
+                : `Plugin requires permission consent: ${requiredPermissions.join(", ")}`;
+          diagnostics.push({
+            code:
+              contentTrust.reason === "hash_mismatch"
+                ? "plugin_package_hash_mismatch"
+                : contentTrust.reason === "hash_missing"
+                  ? "plugin_trust_required"
+                  : "plugin_consent_required",
+            message,
+            path: loaded.manifestPath,
+            pluginId: loaded.id,
+            severity: "warning",
+          });
+        }
       }
       const component = enabled
         ? resolveEnabledComponents({
@@ -1060,9 +1115,11 @@ function parsePluginHookEvents(input: {
     // 让详情页能显示「不会触发」，但不能进入 runtime 配置假装已接线。
     const eventRunnable = isRunnablePluginHookEvent(eventName);
     if (!eventRunnable) {
+      // 原因来自契约的支持度登记表（计划 §9.5），与 hook-sources 的诊断同源。
+      const reason = resolvePluginHookEventSupport(eventName)?.reason;
       input.diagnostics.push({
         code: "plugin_hook_unsupported_event",
-        message: `Plugin hook event is declared but will never trigger in this Nibi runtime: ${eventName}`,
+        message: `Plugin hook event is declared but will never trigger in this Nibi runtime: ${eventName}${reason ? ` (${reason})` : ""}`,
         path: input.sourcePath,
         pluginId: input.loaded.id,
         severity: "warning",
