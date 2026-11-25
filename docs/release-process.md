@@ -9,7 +9,7 @@
 
 规则：**`dev` 可以随便绿着前进，`main` 必须是"已发布/可发布"的状态。** 两者允许暂时不一致；发版时把 `main` 快进到 `dev` 的某个 commit，在那上面打标签。
 
-> 4.1.4 已发布并 verified（2026-11-21），`main` 与标签 `v4.1.4` 同为 `8a1a1de7`。当前 `dev` 已把 `package.json` bump 到 **4.1.5**（准备中，尚未打标签/未发布，`release:status` 为 5 pending / 1 ready）；发布动作一律从 `main` 的标签出发。
+> 4.1.5 已发布并 verified（2026-11-26），标签 `v4.1.5` = `bd24db09`，台账提交 `a9f31e8e`（main/dev 同点）；`release:status` 6/6 ready。发布动作一律从 `main` 的标签出发；下一版先 bump。
 
 ## 发布台账与发布闸门
 
