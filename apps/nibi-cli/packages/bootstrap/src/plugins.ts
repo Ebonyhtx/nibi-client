@@ -2004,21 +2004,27 @@ function extensionPermissionArgs(
   }
   return [
     "--permission",
-    ...roots.map((root) => `--allow-fs-read=${canonicalPermissionPath(root)}`),
-    ...dataPaths.flatMap((path) => {
-      const canonical = canonicalPermissionPath(path);
-      return [`--allow-fs-read=${canonical}`, `--allow-fs-write=${canonical}`];
-    }),
+    ...roots.flatMap((root) =>
+      permissionPaths(root).map((path) => `--allow-fs-read=${path}`),
+    ),
+    ...dataPaths.flatMap((path) =>
+      permissionPaths(path).flatMap((allowed) => [
+        `--allow-fs-read=${allowed}`,
+        `--allow-fs-write=${allowed}`,
+      ]),
+    ),
   ];
 }
 
-// macOS 的 /tmp、/var 是符号链接；Node 权限模型按真实路径校验，直接传符号链接路径
-// 会让扩展宿主在 import 入口或写 data/ 时 ERR_ACCESS_DENIED（表现为激活失败、测试读不到文件）。
-function canonicalPermissionPath(path: string): string {
+// macOS 的 /tmp、/var 是符号链接。Node 权限模型对符号链接路径既不认“只允许链接路径”，
+// 也不认“只允许真实路径”：动态 import 入口时要两者都在白名单里（实测 Node 24）。
+// 所以这里同时登记原路径与 realpath，避免扩展宿主激活失败、data/ 写不进去。
+function permissionPaths(path: string): string[] {
   try {
-    return realpathSync(path);
+    const canonical = realpathSync(path);
+    return canonical === path ? [path] : [path, canonical];
   } catch {
-    return path;
+    return [path];
   }
 }
 
