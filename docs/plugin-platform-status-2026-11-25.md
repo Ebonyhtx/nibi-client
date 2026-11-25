@@ -355,6 +355,27 @@
 
 ---
 
+## 剩余缺口（2026-11-25 逐条复核计划 §5–§9）
+
+按用户可感知程度排序。**标「待定」的是产品取舍**，需要运营者拍板，不默认按计划改。
+
+| # | 缺口 | 证据 | 影响 |
+|---|---|---|---|
+| 1 | **卸载默认删除插件数据目录**。UI 卸载固定传 `removeCache=true`，`data/<plugin-id>` 一并删除；确认文案明说「删除…数据目录」。CLI 有 `--keep-data`，UI 没有勾选项 | `packages/ui/src/settings/usePluginUninstall.ts:62`、`store/pluginManagementStore.ts:414`、`bootstrap/src/plugins.ts:1019-1021`、`adapters/src/plugins/marketplace.ts:1108-1120`；文案 `zh-CN.ts:4786` | 计划 §5.5「默认保留 PLUGIN_DATA」「NIBI 永不自动删除用户数据」未执行。卸载即丢插件设置/生成命令，且不可撤销。**待定**：若「卸载=彻底清除」是现行产品决策，应在计划里改写而不是当缺口修 |
+| 2 | **原生模块门禁只覆盖带扩展代码的插件**。扫描仅在 `loaded.runtime` 存在时执行；只有 MCP/hook 的插件即便包内有 `.node` 也不检查；安装期不拒绝未声明 `runtime.native` 的包 | `adapters/src/plugins/index.ts:410-425`（`if (!blockedReason && loaded.runtime)`）；`marketplace.ts` 无 native 校验 | 计划 §8.4「有 `.node` 未声明 → 安装/激活拒绝」未覆盖 MCP/hook 面；ABI 不匹配会在运行时炸成底层错误 |
+| 3 | **同名冲突只标记、不拦启用**。catalog 产出 `conflictingPluginIds` 供展示/引用解析，`setNibiPluginEnabled` 不检查 | `bootstrap/src/plugins.ts:556-780`（无 conflict 分支）；`nibi-protocol/plugin-reference-catalog.ts:119-129` | 计划 §5.3「同一 name 只能有一个 active，启用第二个先停第一个」未执行；同名 skills/MCP 可同时启用 |
+| 4 | **License 执行期只有 message，没有错误码契约**。无 `license_expired` / `license_not_entitled` 等 code；工具行锁图标与会话横幅未实现 | 全仓无这些字符串；门禁实现 `runtime/plugin-execution-gate.ts`、Rust `paid_plugin.rs` 只回 message | 计划 §6.4 的错误码（模型据此不重试）与 UI 提示层未落地；当前靠文案兜底 |
+| 5 | **插件数据目录未收紧到 0700**。`mkdir(dataPath, {recursive:true})` 用默认 umask | `bootstrap/src/plugins.ts:2121` | 计划 §5.5 要求 0700；同机其他用户可能读到插件设置 |
+| 6 | **首次安装/启用没有「新会话中生效」提示**。该文案只在更新路径出现；安装/启停后无提示 | `PluginStorePage.tsx:900`、`InstalledPluginManagement.tsx:324`（仅更新分支） | 计划 §5.6 要求所有变更统一提示；Rust 已按会话取快照，提示口径应改为「新会话生效」 |
+| 7 | **`pluginRuntimeReload` 是死代码**：只被 import、无调用点；且其「重启 workspace」模型已被 Rust 每会话插件快照取代 | `packages/ui/src/settings/PluginStorePage.tsx:26`（仅 import）；`kernel/crates/runtime/src/kernel.rs:108-118`（新会话/冷恢复重取快照） | 无用户可感知影响，但注释与实际行为不符，易误导后续维护 |
+| 8 | 官方插件自带 Node 未校验（计划 §8.5：official 禁止、local 允许）；装完 Node 后无「重新检测/重启」入口（§8.6） | 无相关校验/文案 | 官方插件打包 Node 不会被拦；原生模块用户装完 Node 需自行重启 |
+| 9 | hooks 外来事件映射表未按 §9.5 生成 registry/CI 断言；现有覆盖是 33 事件白名单 + `plugin_hook_unsupported_event` 诊断 | `adapters/src/plugins/hook-sources.ts:131-145` | 等价覆盖基本成立，但没有「每外来事件要么有映射要么有不支持原因」的生成式门禁 |
+| 10 | 无独立 `trust.json` / 「撤销信任」入口；用 `plugin-consents.json` 的包 hash 绑定替代（§7.5 的等价实现） | `helpers.ts:484-502` | 行为等价；用户只能停用插件，不能显式撤销信任记录 |
+
+**复核后确认不成立的疑点**（不必再查）：进程级隔离已实现；view-root 已接线；插件依赖声明**有**实现（`resolveDependencyClosure`，非计划说的「忽略并记 skipped」）；更新失败有原子回退（`.name.backup` + `activation.rollback`）；`missing` 状态由 `packageStatus: "missing"` 合成条目承载。
+
+---
+
 ## 未核实点
 
 以下内容无法从仓库静态核实，本文不做结论：
