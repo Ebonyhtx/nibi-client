@@ -133,7 +133,7 @@
 
 ## 2026-11-25 已实施
 
-以下均为**已完成**（工作区改动，未 commit）。列出的文件是新增或主要改动点。
+以下均为**已完成并已提交入库**（2026-11-25 批次；主要提交 `90067a34`、`b9fe0aba`、`a0c0cecb`）。列出的文件是新增或主要改动点。
 
 ### C 域：签名轮换与撤销
 
@@ -400,9 +400,8 @@ commit `b9fe0aba`；第二轮 run `45568243858`），Linux 容器 `ci` 预设通
 3. **撤销名单的真实线上内容**（`https://dl.nibistudio.cn/plugins/plugin-revocations.json`）：需要网络访问与运营权限。
 4. **GitHub Actions run 45331930481 的原始日志**：本文只引用仓库内已记录的 run id 与结果摘要，
    未直接访问 GitHub 核实。
-5. ~~2026-11-25 各项实现是否已通过完整测试套件~~ **已核实（同日补跑）**：
-   `pnpm typecheck` 全通过；包级全量单测 adapters **2241 通过**（166 文件）、
-   core **4234 通过**（280 文件）、bootstrap **2799 通过**（223 文件）；
+5. ~~2026-11-25 各项实现是否已通过完整测试套件~~ **已核实（同日补跑；以本批最终结果为准）**：
+   `pnpm typecheck` 全通过；包级全量单测 adapters **2262**、bootstrap **2803**、contracts **336** 通过；
    `check:i18n-keys` / `architecture:check` / `check:public-repo` / `check:dual-kernel-parity` 全通过；
-   `pnpm lint` 0 error（170 warning 均为改动前既存的未使用导入等，不属本轮）。
-   未做的是：桌面 WDIO 真机 e2e、Rust workspace 测试、以及 `test:unit:affected`（脏工作区会被拒跑）。
+   `pnpm lint` 0 error。插件域 13 条 spec 已在 macOS/Windows native CI 各 13/13（run `45580635329`）。
+   未做的是：全量桌面 WDIO 套件、Rust workspace 测试；`test:unit:affected` 未跑（当时工作区脏）。

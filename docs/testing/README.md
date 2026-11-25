@@ -15,7 +15,7 @@
 | [test-command-guide.md](./test-command-guide.md) | 日常测试与类型检查命令 |
 | [pre-push-hook.md](./pre-push-hook.md) | pre-push 门禁与 affected 选择 |
 | [desktop-e2e-container.md](./desktop-e2e-container.md) | Linux 容器运行桌面 E2E |
-| [desktop-e2e-native-ci.md](./desktop-e2e-native-ci.md) | macOS/Windows 原生 Electron E2E（手动 dispatch，选同一份 verified preset） |
+| [desktop-e2e-native-ci.md](./desktop-e2e-native-ci.md) | macOS/Windows 原生 Electron E2E（dev push 窄触发；workflow 合入 `main` 后才可手动 dispatch；选同一份 verified preset） |
 | [desktop-e2e-reporting.md](./desktop-e2e-reporting.md) | E2E 报告与失败产物 |
 | [desktop-e2e-runtime-performance.md](./desktop-e2e-runtime-performance.md) | E2E 运行时性能规范 |
 | [e2e-sse-capture-replay.md](./e2e-sse-capture-replay.md) | 桌面 E2E 的 SSE 录制/回放 |
@@ -71,8 +71,8 @@ NIBI_E2E_SPEC=./test/e2e/plugins/plugin-management-ui-market.test.ts \
 | --- | --- |
 | [subagents-built-in-model-overrides-e2e-coverage-matrix.md](./subagents-built-in-model-overrides-e2e-coverage-matrix.md) | 内置/自定义子代理模型与 reasoning 覆盖（SB/SX） |
 | [plugin-management-lifecycle-e2e-coverage-matrix.md](./plugin-management-lifecycle-e2e-coverage-matrix.md) | 插件管理生命周期、安装/禁用/升级与桌面 e2e |
-| [plugin-promotion-review-2026-11-23.md](./plugin-promotion-review-2026-11-23.md) | 待转正 12 例插件用例的人工视觉复核材料（截图、观察点、转正命令） |
-| [plugin-review-next-batch-2026-11-24.md](./plugin-review-next-batch-2026-11-24.md) | 下一批插件用例（PLM-LC-017/018/019）的复核材料与阻塞项 |
+| [plugin-promotion-review-2026-11-23.md](./plugin-promotion-review-2026-11-23.md) | 12 例插件用例的人工视觉复核材料（截图、观察点、转正命令；11 例已转正，WPL-015 另行转正） |
+| [plugin-review-next-batch-2026-11-24.md](./plugin-review-next-batch-2026-11-24.md) | 下一批插件用例（PLM-LC-017/018/019）的复核材料；017/018 已转正，019 按设计保持 manual smoke |
 
 ## 模型与 Provider
 

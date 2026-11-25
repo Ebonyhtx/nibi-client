@@ -1,7 +1,7 @@
 # NIBI vs ZCode 3.18.2 parity report
 
 - Date: 2026-11-21 (post-4.1.4 cleanup refresh).
-- NIBI baseline: `dev` at `981bbc51` (cleanup commit); product version `4.1.4`, released as tag `v4.1.4` = `8a1a1de7`.
+- NIBI baseline for this snapshot: `dev` at `981bbc51` (cleanup commit); product version `4.1.4`, released as tag `v4.1.4` = `8a1a1de7`. Current `dev` on 2026-11-26 is `9e632534`; plugin-platform changes after this snapshot are tracked in `docs/plugin-platform-status-2026-11-25.md`.
 - Upstream baseline: unchanged — ZCode `3.18.2` = `fec97590` (Source-Commit `7535935d`, per `<workspace>\ZCODE3.17.2到3.18.2\README.md` "版本坐标").
 - Upstream reference clone: `<workspace>\.ref-zcode` (read-only; plan README "版本坐标").
 - Planning sources: `<workspace>\ZCODE3.17.2到3.18.2\04-NIBI-ABSORPTION-PLAN.md` (hereafter **04**), `05-NIBI-UPSTREAM-FOLLOWUP-PLAN.md` (**05**), `06-POST-BRANDING-REAUDIT-CHECKLIST.md` (**06**), and `README.md` in the same directory.
@@ -11,8 +11,8 @@
 
 - **4.1.4 released** (tag `v4.1.4` = `8a1a1de7`): R09/R10/B08/B01/B03 client side/B07, the performance 4.2 slice, Host reload crash fix, permission-dialog mode switch, local project identity card, remote reinstall, and R07 catalog revision 37 + `gpt-6.1-terra`.
 - **Cleanup commit `981bbc51`**: removed all `glm` agent-lane compatibility (legacy provider constants/enums, SQL double-reads, migration 0007, remote component fallback) and the legacy R2 SSH deploy chain. B03 needs **no** production CDN dual-publish anymore; B05 product icon is the NIBI bird.
-- **Still open / deferred:** U33 and U07 (extension logs/permissions/startup and extension slots; both require an extension runtime and are waiting for a product decision), U05 voice input (local STT only; no cloud ASR), U10 share list/revoke/TTL (operator deferred; client expiry display is done).
-- **Plan definition:** Tier 0/1 complete; Tier 2 items have an explicit decision; Tier 3 items are N/A. The only item without a final decision is U33/U07.
+- **Still open / deferred (updated 2026-11-26):** U33/U07 were superseded on 2026-11-25 — the extension host, capability grants and T1/T2/T3 isolation are implemented; upstream 5 slots are intentionally not adopted and resident plugin UI is deferred (see `docs/plugin-platform-status-2026-11-25.md`). U05 voice input (local STT only; no cloud ASR) and U10 share list/revoke/TTL (operator deferred; client expiry display is done) remain deferred.
+- **Plan definition:** Tier 0/1 complete; Tier 2 items have an explicit decision; Tier 3 items are N/A. U33/U07 now have an explicit decision in the 2026-11-25 status doc.
 
 ## 0. Scope and status vocabulary
 
@@ -209,10 +209,10 @@ The statuses below are implementation status at `84b3febd`; each item names the 
 
 ### 4.9 U33 — extension logs/permissions/startup
 
-**Status: open; depends on the plugin runtime redesign.**
+**Status: superseded (2026-11-25).** The extension host, five NIBI Extension capabilities and T1/T2/T3 isolation are implemented; upstream 5 slots are intentionally not adopted and resident plugin UI is deferred. See `docs/plugin-platform-status-2026-11-25.md`.
 
-- No extension log/permission/startup settings surface was found under `packages/ui/src/settings` (the MCP and plugin sections are separate).
-- Plan: 05 §8.3 U33 ("依赖插件改造 runtime 状态模型"); 04 §6 L3 says the extension host is not started.
+- No extension log/permission/startup settings surface was found under `packages/ui/src/settings` at the time of this snapshot (the MCP and plugin sections are separate).
+- Plan: 05 §8.3 U33 ("依赖插件改造 runtime 状态模型"); 04 §6 L3 said the extension host is not started (historical).
 
 ### 4.10 U34 — MCP Host built-in row removal
 
@@ -270,7 +270,7 @@ These were re-checked against `1c765bb8` as open, then implemented on 2026-11-20
 - U02/U03/U04/U36 landed in `9da3afb5`; see §10 for code paths and tests. The U02/U03 rollback switches are compile-time constants, not runtime flags.
 - Landed before the 4.1.3 tag: K5–K10, N06/N13, R05, L11, P11, R13 (`57cce74e`); S3/S4/S7/S10 (`9da3afb5`); U06/U08/U22/U27/U28/U30 and N02/X02 (`11801c77`); U34 (`2026ab27`).
 - Landed on `dev` after the 4.1.3 tag: U23/U38 (`f18275ea`), the plugin catalog admission fix (`6faa44b9`), and the 2026-11-20 settings/workspace batch (`84b3febd`, §11), with evidence capture `c5d032b9`.
-- Still open: U33 (product decision), voice input and share TTL (deferred). Closed in the 2026-11-21 batch: R09, R10, B08, B01, B07, B03 (legacy R2 chain deleted), and the 4.1.4 items (§4.14, §6).
+- Still open: voice input and share TTL (deferred by the operator). U33/U07 were decided on 2026-11-25 (extension host implemented; upstream 5 slots not adopted; resident UI deferred). Closed in the 2026-11-21 batch: R09, R10, B08, B01, B07, B03 (legacy R2 chain deleted), and the 4.1.4 items (§4.14, §6).
 
 ## 5. X04 brand/release items
 
@@ -339,7 +339,7 @@ The 2026-11-19 report treated several plan lines as authoritative when the code 
 | N11 | "wire-assembler raw counter" | No raw counter exists; the implementation is the tolerant `unreadable` row schema plus the placeholder renderer | `packages/shared/src/nibi-protocol-v4/rows.ts:466-511`; 05 N11 correction |
 | U08 screenshot cap | "Pixel-area cap" | 20 MiB byte cap on the captured PNG in the main process; no pixel-area limit | `packages/desktop/src/main/browserView/browserGuestManager.ts:57-59,1029-1033` |
 
-Still open at the plan level after the 2026-11-21 batch: U33 (pending a product decision on an extension runtime), voice input and share TTL (both deferred by the operator). R09, R10, B08, B01, B07 and B03 are closed in the 2026-11-21 batch; the legacy R2 deploy chain and the `glm` component id were deleted, so no CDN dual-publish is required. Voice and share TTL are deferred, not missing code.
+Still open at the plan level after the 2026-11-21 batch: voice input and share TTL (both deferred by the operator). U33/U07 were decided on 2026-11-25 (see the status doc). R09, R10, B08, B01, B07 and B03 are closed in the 2026-11-21 batch; the legacy R2 deploy chain and the `glm` component id were deleted, so no CDN dual-publish is required. Voice and share TTL are deferred, not missing code.
 
 ## 7. Verification commands and gates
 
@@ -386,7 +386,7 @@ The 2026-11-20 refresh is documentation-only. It re-read the cited files at `84b
 - **Real-device acceptance** for U06/U08/U22/U27/U28/U30 is recorded as pending manual-review evidence (`packages/desktop/test/e2e/bots/manual-review/pending/tier2-sixth-batch-evidence.test.ts` plus `packages/desktop/.e2e-artifacts/tier2-sixth-batch/`), not as a reviewed pass. S9 is recorded complete at the plan level with unit evidence; no separate device artifact for the quit path was found.
 - **Upstream comparison** in this report relies on the plan's version coordinates and the read-only `<workspace>\.ref-zcode` clone. This refresh did not re-run the full 3.18.2 diff.
 - **Icon verification** covers the shipped asset and the exact light/dark CSS filters in the component harness; the onboarding “代理设置” step that renders the provider icon is currently hidden, so there is no full-window surface to capture.
-- **Open gaps are recorded, not implied fixed:** U33/U07 (extension runtime decision), voice input (local STT selection), and share list/revoke/TTL (deferred).
+- **Open gaps are recorded, not implied fixed:** voice input (local STT selection) and share list/revoke/TTL (deferred). U33/U07 were decided on 2026-11-25 (extension host implemented; upstream 5 slots not adopted; resident UI deferred) — see `docs/plugin-platform-status-2026-11-25.md`.
 - **U08 screenshot bound** is a 20 MiB byte cap on the PNG payload (`packages/desktop/src/main/browserView/browserGuestManager.ts:57-59,1029-1033`), not a pixel-area cap.
 - **CDN component id** no longer exists: the legacy R2 deploy chain was deleted on 2026-11-21 and the current Source Server path uses descriptor/archive.
 - **`TOKEN_CLIENT_TYPE`** is intentionally unchanged. A client-only change would break project-token issuance against z.ai/bigmodel.
@@ -423,7 +423,7 @@ Real-device evidence: `packages/desktop/.e2e-artifacts/r05-archive-permanent-del
 
 ## 11. 2026-11-20 batch (post-4.1.3 dev)
 
-These changes landed after the 4.1.3 tag `305b1119` and are on `dev` for the pending 4.1.4. All are implementation-complete; the device evidence is the named spec/fixture plus the artifact directory, and it remains in manual-review `pending/`.
+These changes landed after the 4.1.3 tag `305b1119` and shipped in 4.1.4. All are implementation-complete; the device evidence is the named spec/fixture plus the artifact directory, and it remains in manual-review `pending/`.
 
 | Item | Status | Evidence |
 | --- | --- | --- |

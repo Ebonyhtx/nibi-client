@@ -89,7 +89,7 @@ macOS `desktop-e2e-20261124-014702-952`、Windows `desktop-e2e-20261124-014644-0
   触发为 `workflow_dispatch` + 范围极窄的 dev push（仅 `scripts/test-desktop-e2e-container.sh`
   或本 workflow 变化时跑 `plugins` 集合）；普通代码推送不消耗 macOS runner（按 10 倍计费）。
 - Spec 集不另抄：workflow 调用 `scripts/test-desktop-e2e-container.sh --print-spec <preset>`，
-  与 Linux 容器 preset 共用同一份常量。默认 `plugins`（= `plugins-verified` 的 11 条插件 spec）；
+  与 Linux 容器 preset 共用同一份常量。默认 `plugins`（= `plugins-verified`，2026-11-24 转正 017/018 后为 13 条；首跑时为 11 条）；
   可选 `conversation-session`（4 条会话 spec，含 WPL-015）与 `all-verified`（两者并集）。
 - 运行方式：构建 debug Rust 内核 + `@nibi/e2e-report`，然后
   `E2E_PROVIDER_HTTP_MODE=replay NIBI_E2E_SPEC=<preset> pnpm --filter @nibi/desktop exec wdio run wdio.conf.ts`；
@@ -157,8 +157,8 @@ architecture / i18n / lint / public-repo 全绿。
 
 2026-07-15 已在 macOS 上逐个运行上述 `PD/PP`、`PM`、`PV/PO`、`PB/PI`、`PC`、`PF`
 pending spec，均通过。这些 spec 不得并行共享 E2E HOME；允许同一兼容批次串行运行、各用例隔离 HOME 并共享构建。
-截图与 provider capture 已生成，但尚未完成人工产品审核，因此本表不会把
-任何 case 标成 `formal`，也不会运行 promotion apply、Docker admission 或正式 CI preset。
+截图与 provider capture 已生成，但 2026-07-15 当时尚未完成人工产品审核，因此当时未把
+任何 case 标成 `formal`，也没有运行 promotion apply、Docker admission 或正式 CI preset；后续转正记录见上表与 2026-11-24 节。
 
 2026-07-20 已在 macOS 上独立运行 `PEA` pending spec 并通过（run
 `desktop-e2e-20260720040616896-p59191-dfc1ae47585cbcf6`）：插件安装详情显示一个 MCP 与一个

@@ -9,7 +9,7 @@
 
 规则：**`dev` 可以随便绿着前进，`main` 必须是"已发布/可发布"的状态。** 两者允许暂时不一致；发版时把 `main` 快进到 `dev` 的某个 commit，在那上面打标签。
 
-> 4.1.1 已发布并 verified（2026-11-17）。`dev`/`main`/`origin/main` 已对齐（2026-11-18），`v4.1.1` 标签存在；发布动作一律从 `main` 出发。
+> 4.1.4 已发布并 verified（2026-11-21），`main` 与标签 `v4.1.4` 同为 `8a1a1de7`；`dev` 已领先 83 个提交（2026-11-26 核对，标签后 750 个文件改动）。发布动作一律从 `main` 的标签出发；下一版需先 bump 版本。
 
 ## 发布台账与发布闸门
 
@@ -117,6 +117,7 @@ pnpm release:record --artifact <id> --stage built --note "CI run ..."
 6. 桌面安装包、Source Server、两个 Web SPA、插件市场沿用各自流程，同样以这次 `main` 的 commit
    为准。Windows 4.1 桌面构建必须显式带 `NIBI_AUTO_UPDATE=1`（否则客户端不会检查更新；开启的是
    通知/点击更新，默认不会静默下载安装）；公开只上传 NSIS，不上传 ZIP。候选包出来但还没上传时，可以先用 `release:record --artifact <id> --stage built` 记一笔。
+   生产桌面构建还必须注入 `CDN_DOMAIN=dl.nibistudio.cn` 与 `OSS_PATH_PREFIX=releases/electron`（远端 Source Server 的下载源）；缺省时 `tsup.config.ts` 的 `assertProductionRemoteCdnConfigured` 会直接失败（4.1.0 曾因此全量远端连不上，4.1.1 修复）。
    **上传 NSIS 时必须同时上传同名 `.blockmap`**（`NIBI-<版本>-win-x64.exe.blockmap`）：electron-updater
    的差分更新靠它计算新旧包的差异块；`release:verify` 会探测当前版本安装包的 blockmap，缺了直接失败。
    首次从官网安装的用户没有旧安装包缓存，第一次更新仍会整包下载；之后经更新器下载过的版本会留下缓存，

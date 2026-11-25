@@ -8,7 +8,8 @@
   <p>
     <a href="README.md">简体中文</a> ·
     <a href="docs/README.md">Documentation</a> ·
-    <a href="docs/release-process.md">Release notes</a>
+    <a href="CHANGELOG.md">Changelog</a> ·
+    <a href="docs/release-process.md">Release process</a>
   </p>
 </div>
 

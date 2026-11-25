@@ -2,6 +2,8 @@
 
 [简体中文](UI_PLUGIN.md) | English
 
+> **Historical design document (July 2026, upstream ZCode era).** The `zai-org/ZCode` repositories, the `feat/ui-plugin` branch, and the debugging steps below no longer apply to NIBI. Current plugin UI and extension runtime behavior is defined by [`docs/plugin-extension-runtime.md`](docs/plugin-extension-runtime.md), [`docs/plugins/plugin-compatibility-model.md`](docs/plugins/plugin-compatibility-model.md), and [`docs/plugin-platform-status-2026-11-25.md`](docs/plugin-platform-status-2026-11-25.md); this page remains only as a reference for the page API concepts and examples.
+
 Start with Excalidraw to see how UI Plugins let the Agent and the user edit and save the same content. This guide covers capabilities implemented in the current source, supported APIs, installation and debugging, and five examples. Follow these links to get started:
 
 - [Try the Excalidraw demo](#featured-example-excalidraw)

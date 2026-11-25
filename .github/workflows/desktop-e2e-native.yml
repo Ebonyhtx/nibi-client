@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       targets:
-        description: "要运行的已验证集合：plugins = 11 条插件 spec；conversation-session = 4 条会话 spec；all-verified = 两者并集"
+        description: "要运行的已验证集合：plugins = 13 条插件 spec；conversation-session = 4 条会话 spec；all-verified = 两者并集"
         required: true
         type: choice
         default: plugins
