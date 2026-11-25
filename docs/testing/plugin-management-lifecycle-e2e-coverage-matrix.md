@@ -110,6 +110,24 @@ macOS `desktop-e2e-20261124-014702-952`、Windows `desktop-e2e-20261124-014644-0
   不转正、不进 Docker/native preset。
 - 截图与观察点见 [plugin-review-next-batch-2026-11-24.md](./plugin-review-next-batch-2026-11-24.md)。
 
+## 2026-11-25 全量复验（view-root / Rust / 审计改动之后）
+
+2026-11-25 的改动触及了插件的**运行时读取根**（Node 与 Rust 均改为读 view root）、
+Rust 的 `installed_plugins.json` 墓碑过滤、以及商店详情新增的「最近审计」区块。
+这三处都在既有 13 条 spec 的覆盖面上，因此重跑了一遍：
+
+| 环境 | 结果 | 说明 |
+|---|---|---|
+| 干净 worktree（Windows 本机，`replay`） | 12/13 | `plugin-extension-ui-view` 等待 `ui.view` 侧栏超时；产物 `desktop-e2e-20261125-021644-158` |
+| macOS native CI | **13/13** | 同集合；GitHub run `45533864397`（commit `b88d5b24`） |
+| Windows native CI | **13/13** | 同上 |
+
+`plugin-extension-ui-view` 在两个 CI 平台均通过，本机那次按**环境偶发**记录（该 spec 走 inline
+插件路径，不经过本轮改动的 `source === "cache"` 分支）。没有通过跳过、缩小集合或改断言让它变绿。
+
+复验使用干净 worktree（`git worktree add --detach b88d5b24`）构建与运行，避免混入并行会话的
+未提交改动；本机内核复用主仓增量编译的 `nibi-rs`（内核源码与 HEAD 一致）。
+
 2026-07-15 已在 macOS 上逐个运行上述 `PD/PP`、`PM`、`PV/PO`、`PB/PI`、`PC`、`PF`
 pending spec，均通过。这些 spec 不得并行共享 E2E HOME；允许同一兼容批次串行运行、各用例隔离 HOME 并共享构建。
 截图与 provider capture 已生成，但尚未完成人工产品审核，因此本表不会把
