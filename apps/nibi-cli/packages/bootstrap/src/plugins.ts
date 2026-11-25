@@ -2004,27 +2004,22 @@ function extensionPermissionArgs(
   }
   return [
     "--permission",
-    ...roots.flatMap((root) =>
-      permissionPaths(root).map((path) => `--allow-fs-read=${path}`),
-    ),
-    ...dataPaths.flatMap((path) =>
-      permissionPaths(path).flatMap((allowed) => [
-        `--allow-fs-read=${allowed}`,
-        `--allow-fs-write=${allowed}`,
-      ]),
-    ),
+    ...roots.map((root) => `--allow-fs-read=${canonicalPermissionPath(root)}`),
+    ...dataPaths.flatMap((path) => {
+      const canonical = canonicalPermissionPath(path);
+      return [`--allow-fs-read=${canonical}`, `--allow-fs-write=${canonical}`];
+    }),
   ];
 }
 
-// macOS 的 /tmp、/var 是符号链接。Node 权限模型对符号链接路径既不认“只允许链接路径”，
-// 也不认“只允许真实路径”：动态 import 入口时要两者都在白名单里（实测 Node 24）。
-// 所以这里同时登记原路径与 realpath，避免扩展宿主激活失败、data/ 写不进去。
-function permissionPaths(path: string): string[] {
+// macOS 的 /tmp、/var 是符号链接；Node 权限模型对符号链接的 import 校验很严格，
+// 只允许叶子路径或只允许 realpath 都可能 ERR_ACCESS_DENIED。宿主传给子进程的
+// entry/rootPath/dataDir 与白名单统一用 realpath，彻底绕开符号链接段。
+function canonicalPermissionPath(path: string): string {
   try {
-    const canonical = realpathSync(path);
-    return canonical === path ? [path] : [path, canonical];
+    return realpathSync(path);
   } catch {
-    return [path];
+    return path;
   }
 }
 
@@ -2208,12 +2203,14 @@ export async function activatePluginExtensions(
   };
 
   const spawnHost = (tier: "T1" | "T2" | "T3", plugins: PluginMetadata[]): ExtensionProcessState => {
-    const roots = [...new Set(plugins.map((plugin) => plugin.rootPath))];
+    const roots = [
+      ...new Set(plugins.map((plugin) => canonicalPermissionPath(plugin.rootPath))),
+    ];
     const dataPaths = [
       ...new Set(
         plugins.map((plugin) => {
           ensurePluginDataDir(plugin.dataPath);
-          return plugin.dataPath;
+          return canonicalPermissionPath(plugin.dataPath);
         }),
       ),
     ];
@@ -2224,7 +2221,7 @@ export async function activatePluginExtensions(
       PLUGIN_EXTENSION_CHILD_SCRIPT,
     ];
     const child = spawn(process.execPath, args, {
-      cwd: tier === "T3" && plugins[0] ? plugins[0].rootPath : options.workspacePath,
+      cwd: tier === "T3" && plugins[0] ? canonicalPermissionPath(plugins[0].rootPath) : options.workspacePath,
       env: extensionSpawnEnv(),
       stdio: ["pipe", "pipe", "pipe"],
       windowsHide: true,
@@ -2337,11 +2334,11 @@ export async function activatePluginExtensions(
         `${JSON.stringify({
           type: "activate",
           pluginId: plugin.id,
-          entry,
+          entry: canonicalPermissionPath(entry),
           name: plugin.name,
           version: plugin.version ?? "0.0.0",
-          rootPath: plugin.rootPath,
-          dataDir: plugin.dataPath,
+          rootPath: canonicalPermissionPath(plugin.rootPath),
+          dataDir: canonicalPermissionPath(plugin.dataPath),
         })}\n`,
       );
     }).catch((error) => {
