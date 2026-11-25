@@ -381,11 +381,11 @@ commit `b9fe0aba`；第二轮 run `45568243858`），Linux 容器 `ci` 预设通
 |---|---|---|
 | 1 卸载删除数据 | **维持彻底删除**（2026-11-25 运营者定） | UI 卸载确认文案已明确告知会删缓存、数据目录与配置；`--keep-data` 仅保留在 CLI。计划 §5.5 的「默认保留 PLUGIN_DATA」不再适用 |
 
-### 仍未做
+### 有意不做（体验项）
 
-| # | 缺口 | 证据 | 影响 |
+| # | 项 | 决定 | 说明 |
 |---|---|---|---|
-| 4 | **License 执行期没有结构化错误码**。门禁拒绝只给人类可读 message；计划 §6.4 的 `{error:{code,retryable,pluginId,action}}` 与工具行锁图标/会话横幅未实现 | 全仓无 `license_expired` / `license_not_entitled` 等 code；`runtime/plugin-execution-gate.ts`、`kernel-api/paid_plugin.rs` 的 `check` 只回 `String`；工具结果只有 `content + isError`（无 code 字段） | 需要一次**跨两端 + UI** 的协议改动：Rust `ToolOutput.display` / Node `ToolResult.display` 携带结构化错误，再补工具行与横幅的视觉验收。不是单点补丁，未在本轮硬塞 |
+| 4 | License 结构化错误码 + 工具行锁/横幅 | **不做**（2026-11-25 运营者定） | 计划 §6.4 的两半分别是数据层 `{error:{code,retryable,pluginId,action}}` 与用户层锁图标/横幅/续费入口。现有中文文案已经同时覆盖用户（「会员已到期，续费后重试」）与模型（明确不要重试）；只做数据层而没有 UI 消费就是死数据，做满则需要 Rust/Node `display` 协议 + 真机视觉验收。**插件平台当前没有未做缺口**；若后续做会员运营的埋点/横幅，再作为独立批次排 |
 
 **复核后确认不成立的疑点**（不必再查）：进程级隔离已实现；view-root 已接线；插件依赖声明**有**实现（`resolveDependencyClosure`，非计划说的「忽略并记 skipped」）；更新失败有原子回退（`.name.backup` + `activation.rollback`）；`missing` 状态由 `packageStatus: "missing"` 合成条目承载。
 
