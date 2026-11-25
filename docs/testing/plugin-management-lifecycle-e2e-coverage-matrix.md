@@ -128,6 +128,20 @@ Rust 的 `installed_plugins.json` 墓碑过滤、以及商店详情新增的「�
 复验使用干净 worktree（`git worktree add --detach b88d5b24`）构建与运行，避免混入并行会话的
 未提交改动；本机内核复用主仓增量编译的 `nibi-rs`（内核源码与 HEAD 一致）。
 
+## 2026-11-25 修复后复验（原生模块门禁 / 同名冲突 / 数据目录 / 生效提示）
+
+第二轮改动触及**安装期原生模块门禁**、**启用时同名冲突拦截**、**插件数据目录权限**与
+**安装/启停后的「新会话中生效」提示**，都在 13 条 spec 的覆盖面上，因此重跑：
+
+| 环境 | 结果 | 说明 |
+|---|---|---|
+| macOS native CI | **13/13** | run `45568243858`（commit `90067a34`，preset `plugins`，11 分 21 秒） |
+| Windows native CI | **13/13** | 同 run（首轮 8 分 23 秒全过） |
+| Linux 容器 `ci` 预设 | 通过 | run `45564190899`（smoke + 4 条会话 spec；`ci` 预设不含插件 13 条） |
+
+macOS 首跑在 runner 下载 Rust 1.95.0 时 DNS 解析失败（`static.rust-lang.org`），**未进入任何
+spec**；对失败作业原样重跑后 13/13 通过，未改测试、未缩集合。
+
 2026-07-15 已在 macOS 上逐个运行上述 `PD/PP`、`PM`、`PV/PO`、`PB/PI`、`PC`、`PF`
 pending spec，均通过。这些 spec 不得并行共享 E2E HOME；允许同一兼容批次串行运行、各用例隔离 HOME 并共享构建。
 截图与 provider capture 已生成，但尚未完成人工产品审核，因此本表不会把

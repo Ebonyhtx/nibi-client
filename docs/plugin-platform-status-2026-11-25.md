@@ -367,6 +367,11 @@
 | 6 生效提示 | 已补：安装/更新/卸载/启停成功后统一 toast「插件变更将在新会话中生效」（新增 `settings.plugins.effect.newSession`，5 locale）。口径按 Rust 每会话插件快照：当前会话不热更新，新会话/冷恢复生效 |
 | 7 死代码 | 已删 `packages/ui/src/lib/pluginRuntimeReload.ts` 及其未使用 import；生效边界以 `kernel/crates/runtime/src/kernel.rs` 的每会话快照为准 |
 
+验证：`pnpm typecheck` / `check:i18n-keys` / `architecture:check --changed` / `check:dual-kernel-parity` /
+`check:public-repo` 通过，`pnpm lint` 0 error；adapters 2255、bootstrap 插件相关 126 单测通过；
+13 条插件 spec 在 macOS 与 Windows native CI 各 13/13（run `45568243858`），Linux 容器 `ci` 预设通过
+（`45564190899`）。
+
 ### 有意偏离（已定，不按缺口处理）
 
 | 项 | 决定 | 说明 |
