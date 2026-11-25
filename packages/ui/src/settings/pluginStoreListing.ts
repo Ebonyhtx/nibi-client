@@ -558,3 +558,36 @@ export function hasBlockedPluginCode(plugin: {
 }): boolean {
   return Boolean(plugin.blockedReason || plugin.codeBlockedReason);
 }
+
+/**
+ * 审计事件类型 → 文案 key。
+ *
+ * 只映射协议里已知的六类；未知类型返回 undefined，由调用方原样显示 type，
+ * 这样 Host 新增事件时不会在旧 UI 上显示成空白或「未知」。
+ */
+const PLUGIN_AUDIT_TYPE_LABEL_IDS: Record<string, string> = {
+  capability_invoked: "settings.plugins.audit.type.capabilityInvoked",
+  capability_denied: "settings.plugins.audit.type.capabilityDenied",
+  consent_granted: "settings.plugins.audit.type.consentGranted",
+  consent_revoked: "settings.plugins.audit.type.consentRevoked",
+  consent_required: "settings.plugins.audit.type.consentRequired",
+  grants_updated: "settings.plugins.audit.type.grantsUpdated",
+  grants_revoked: "settings.plugins.audit.type.grantsRevoked",
+};
+
+export function resolvePluginAuditTypeLabelId(type: string): string | undefined {
+  return PLUGIN_AUDIT_TYPE_LABEL_IDS[type];
+}
+
+/** 审计里的能力 id → 用户可读文案 key；未知能力返回 undefined（显示原始 id）。 */
+const PLUGIN_AUDIT_CAPABILITY_LABEL_IDS: Record<string, string> = {
+  "nibi.sessions.read": "settings.plugins.audit.capability.sessionsRead",
+  "nibi.workspace.files.read": "settings.plugins.audit.capability.filesRead",
+  "nibi.ui.view": "settings.plugins.audit.capability.uiView",
+  "nibi.settings.own": "settings.plugins.audit.capability.settingsOwn",
+  "nibi.notifications.show": "settings.plugins.audit.capability.notificationsShow",
+};
+
+export function resolvePluginAuditCapabilityLabelId(capability: string): string | undefined {
+  return PLUGIN_AUDIT_CAPABILITY_LABEL_IDS[capability];
+}

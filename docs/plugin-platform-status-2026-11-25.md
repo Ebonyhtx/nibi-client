@@ -187,18 +187,23 @@
   复制回退（文件系统不支持硬链接）时校验相对文件集合等价，否则回退源目录并报
   `plugin_view_root_unavailable`——绝不使用不完整的视图。
 - **进程级隔离**：扩展宿主仍与 Host 同进程；计划里 local = T3 每插件独立进程未实现。
-- **撤销列表的新鲜度**：刷新只在 Host 的「检查更新」（`nibi-protocol/plugins.ts` 的
-  `updatePluginMarketplace`）里触发，启动/定时都没有。从不点检查更新的用户会一直用旧名单；
-  第三方 supply 前应补启动后台刷新（带 TTL）或定时刷新。
-- **撤销列表的生产者**：`dl.nibistudio.cn/plugin-revocations.json` 目前没有发布方。
-  仓库内只有消费端与 `NIBI-Site/tools/content-publish.py sign` 的签名能力；名单内容、revision
-  递增与发布流程都在仓库外，**未核实**。也就是说这套门禁现在是「装好了但没通电」。
-- **审计「最近 10 条」未接 UI**：`readRecentPluginAuditEvents` 已在 adapters 导出，但协议层
-  与插件详情都没有消费点（全仓 grep 只命中 helpers/index 与测试）。
-- **付费执行门禁的 Node 覆盖面**：Node 侧只在 MCP 工具注册期与 handler 复核；skills/commands/
-  subagents 的执行期没有等价门禁（Rust 的 PaidPluginGate 覆盖四类）。
-- **墓碑没有恢复入口**：`removed` 记录保留 30 天并有剪枝，但没有恢复 RPC/UI，用户卸载后
-  30 天内无法在应用内恢复安装记录（重装会复活记录，但那是「重新安装」不是「恢复」）。
+- ~~撤销列表的新鲜度~~ **已补（2026-11-25）**：启动后 fire-and-forget 刷新，24h TTL 节流
+  （`maybeRefreshPluginRevocations`）；失败也写尝试时间，避免离线时每次启动重试；
+  `NIBI_PLUGIN_REVOCATIONS_REFRESH=off` 可关闭，`force` 绕过 TTL。E2E 回放与测试进程跳过。
+- ~~撤销列表的生产者~~ **已补（2026-11-25，发布链侧）**：`NIBI-Site/tools/content-publish.py`
+  新增 `publish-revocations`：校验条目、单调 revision、原子写、签名；`verify` 增加撤销名单的
+  签名/revision 校验与**分发端点逐字节比对**（Windows `file://` 盘符解析 bug 一并修掉）。
+  客户端 URL 与服务端落点对齐为 `/plugins/plugin-revocations.json`（与市场清单同目录）。
+  仍差一步**运维动作**：把生成的文件部署到分发桶（需要发布权限，未执行）。
+- ~~审计「最近 10 条」未接 UI~~ **已补（2026-11-25）**：`plugins/audit` RPC + 服务层 5 处接线
+  + 插件详情「最近审计」面板（时间/动作/能力，未知类型原样显示）+ 5 locale。
+- ~~付费执行门禁的 Node 覆盖面~~ **已补（2026-11-25）**：`runtime/plugin-execution-gate.ts`
+  统一判定，覆盖 Skill 工具加载、自定义命令展开、子代理派发（Rust 侧原本就覆盖四类）。
+- **墓碑没有恢复入口**：2026-11-25 评估后**有意不做**。墓碑的作用是记录身份与重装复用，
+  不是用户可撤销的删除；UI 卸载默认保留缓存，若在商店显示「恢复」会让用户以为卸载没生效。
+  若将来要做撤销，正确形态是卸载后短时间内的撤销提示（且发生在删缓存之前）。
+- **`InstalledPluginDetailDialog/Panel` 无页面引用**：设置页实际渲染的是
+  `PluginStoreDetailView`；这两个组件当前是既有的未引用代码，本轮未清理（不属插件能力缺口）。
 - **上游 5 slots**：有意不接，只保留 `composer.status` / `nav.primary`。
 - **常驻插件 UI**：2026-11-24 决策暂缓。
 

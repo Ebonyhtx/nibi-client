@@ -147,6 +147,7 @@ import type {
   NibiAgentInstallPluginParams,
   NibiAgentListMcpServerStatusesParams,
   NibiAgentPluginViewParams,
+  NibiAgentPluginsAuditParams,
   NibiAgentPluginReferenceCatalogParams,
   NibiAgentSkillReferenceCatalogParams,
   NibiAgentReadMcpResourceParams,
@@ -875,6 +876,10 @@ releaseSessionsUnderDirectory?(
     operationId: string,
   ): Event<NibiPluginOperationProgressNotification>;
   getPluginsOverview(params: NibiAgentPluginViewParams): Promise<NibiPluginsOverviewResult>;
+  /** 插件审计「最近 N 条」：只读，按 pluginId 过滤，缺省 10 条。 */
+  getPluginsAudit(
+    params: NibiAgentPluginsAuditParams,
+  ): Promise<import("@nibi/shared").NibiPluginsAuditResult>;
   /**
    * 资源管理器：枚举本 Host 内全部本地 Agent 进程（含 plugin / mcp-status 泳道），
    * 并向每个存活 runtime 请求 `process/childProcesses`；单个 runtime 失败只让它的 children 为空。

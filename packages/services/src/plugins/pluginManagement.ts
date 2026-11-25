@@ -38,6 +38,7 @@ import type {
   NibiAgentResolveSuggestedPluginReferenceParams,
   NibiAgentResetPluginConfigParams,
   NibiAgentPluginViewParams,
+  NibiAgentPluginsAuditParams,
   NibiAgentPluginConsentParams,
   NibiAgentRemovePluginMarketplaceParams,
   NibiAgentRestoreBuiltinPluginParams,
@@ -78,6 +79,10 @@ export interface IPluginManagementService {
     operationId: string,
   ): Event<NibiPluginOperationProgressNotification>;
   getPluginsOverview(params: NibiAgentPluginViewParams): Promise<NibiPluginsOverviewResult>;
+  /** 插件审计「最近 N 条」（设置页详情用）：只读，按 pluginId 过滤。 */
+  getPluginsAudit(
+    params: NibiAgentPluginsAuditParams,
+  ): Promise<import("@nibi/shared").NibiPluginsAuditResult>;
   /**
    * Additive：一次返回 list + overview。Host 侧只跑一次插件 discovery；
    * 旧 Host 没有该方法，调用方按 method-not-found 回退到两个旧 RPC。

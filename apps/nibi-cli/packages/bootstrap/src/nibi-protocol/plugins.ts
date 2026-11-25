@@ -10,6 +10,7 @@ import {
   nibiPluginsBootstrapParamsSchema,
   nibiPluginsListParamsSchema,
   nibiPluginsSetEnabledParamsSchema,
+  nibiPluginsAuditParamsSchema,
   nibiPluginsUninstallParamsSchema,
   nibiPluginsUpdateParamsSchema,
   nibiPluginsValidateParamsSchema,
@@ -31,6 +32,7 @@ import {
   type NibiPluginsOverviewResult,
   type NibiPluginsRestoreBuiltinResult,
   type NibiPluginsSetEnabledResult,
+  type NibiPluginsAuditResult,
   type NibiPluginsUninstallResult,
   type NibiPluginsValidateResult,
 } from "@nibi/shared";
@@ -60,7 +62,11 @@ import {
   validateNibiPlugin,
   type NibiPluginsOverviewData,
 } from "../plugins.js";
-import { listInstalledPluginRecords } from "@nibi/adapters/plugins";
+import {
+  listInstalledPluginRecords,
+  readRecentPluginAuditEvents,
+  type PluginAuditEvent,
+} from "@nibi/adapters/plugins";
 import {
   isSensitivePluginCapability,
   revokePluginConsent,
@@ -563,6 +569,28 @@ export async function uninstallPlugin(
     ...(removed ? { removedPlugin: toInstalledPluginSummary(removed) } : {}),
     diagnostics: [],
   };
+}
+
+/** `plugins/audit`：插件审计「最近 N 条」只读投影（不含路径/内容/参数值）。 */
+export async function listPluginAudit(
+  context: PluginManagementContext,
+  rawParams: unknown,
+): Promise<NibiPluginsAuditResult> {
+  const params = parseParams(nibiPluginsAuditParamsSchema, rawParams);
+  const pluginStorageRoot = resolvePluginStorageRoot(params.workspace.workspacePath);
+  const limit = params.limit ?? 10;
+  const events = readRecentPluginAuditEvents(pluginStorageRoot, params.pluginId ? 500 : limit)
+    .filter((event: PluginAuditEvent) => !params.pluginId || event.pluginId === params.pluginId)
+    .slice(0, limit)
+    .map((event: PluginAuditEvent) => ({
+      at: event.at,
+      type: event.type,
+      pluginId: event.pluginId,
+      ...(event.capability ? { capability: event.capability } : {}),
+      ...(event.version ? { version: event.version } : {}),
+      ...(event.permissions ? { permissions: [...event.permissions] } : {}),
+    }));
+  return { events };
 }
 
 export async function updatePlugin(

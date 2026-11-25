@@ -67,6 +67,7 @@ import {
   nibiPluginsInstallResultSchema,
   nibiPluginsListResultSchema,
   nibiPluginsMarketplaceMutationResultSchema,
+  nibiPluginsAuditResultSchema,
   nibiPluginsOverviewResultSchema,
   nibiProcessChildProcessesResultSchema,
   type NibiProcessChildProcess,
@@ -242,6 +243,7 @@ import type {
   NibiAgentUpdateSavedWorkflowMetaParams,
   NibiAgentResolveSuggestedPluginReferenceParams,
   NibiAgentPluginViewParams,
+  NibiAgentPluginsAuditParams,
   NibiAgentUninstallPluginParams,
   NibiAgentUpdatePluginParams,
   NibiAgentRestoreBuiltinPluginParams,
@@ -4666,6 +4668,20 @@ export function createNibiAgentService(
         },
         nibiPluginsOverviewResultSchema,
         { timeoutMs: PLUGIN_MANAGEMENT_REQUEST_TIMEOUT_MS },
+      );
+    },
+
+    async getPluginsAudit(params: NibiAgentPluginsAuditParams) {
+      const client = await getPluginManagementClient();
+      // 审计查询是纯本地读：走默认协议超时即可，不需要市场 I/O 的 5 分钟预算。
+      return client.request(
+        nibiProtocolMethods.pluginsAudit,
+        {
+          workspace: buildWorkspaceRef(params),
+          ...(params.pluginId ? { pluginId: params.pluginId } : {}),
+          ...(params.limit ? { limit: params.limit } : {}),
+        },
+        nibiPluginsAuditResultSchema,
       );
     },
 

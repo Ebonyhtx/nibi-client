@@ -44,6 +44,28 @@ async fn installed_plugins_read_the_node_array_format() {
 }
 
 #[tokio::test]
+async fn removed_tombstones_are_not_installed_plugins() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = storage(dir.path());
+    write(
+        &root.as_path().join("installed_plugins.json"),
+        r#"{"version": 1, "plugins": [
+            {"id": "live@market", "name": "live", "marketplace": "market", "version": "1.0.0",
+             "installPath": "/Users/dev/live", "installedAt": "2026-10-01T00:00:00.000Z", "scope": "user"},
+            {"id": "gone@market", "name": "gone", "marketplace": "market", "version": "1.0.0",
+             "installPath": "/Users/dev/gone", "installedAt": "2026-10-01T00:00:00.000Z", "scope": "user",
+             "state": "removed", "removedAt": "2026-11-20T00:00:00.000Z"}
+        ]}"#,
+    )
+    .await;
+    // 墓碑保留 30 天是为了重装复用身份，不代表仍然安装：Node 的对外视图会过滤，
+    // Rust 必须同口径，否则桌面（Rust 内核）卸载后插件仍会被加载。
+    let found = installed_plugins(&root).await;
+    let ids: Vec<&str> = found.iter().map(|plugin| plugin.id.as_str()).collect();
+    assert_eq!(ids, ["live@market"]);
+}
+
+#[tokio::test]
 async fn plugin_read_root_prefers_the_materialized_view_root() {
     let dir = tempfile::tempdir().unwrap();
     let root = storage(dir.path());

@@ -91,6 +91,7 @@ fn map_records(id: &str, entry: &Value) -> Vec<InstalledPlugin> {
     };
     entries
         .into_iter()
+        .filter(|item| !is_removed_record(item))
         .filter_map(Value::as_object)
         .filter_map(|item| {
             let install_path = text(item, "installPath").filter(|path| !path.is_empty())?;
@@ -106,6 +107,18 @@ fn map_records(id: &str, entry: &Value) -> Vec<InstalledPlugin> {
         .collect()
 }
 
+/// 是否是卸载墓碑（Node `InstalledPluginRecord.state === "removed"`）。
+///
+/// 记录保留 30 天是为了重装复用同一条身份；但「保留记录」不等于「仍然安装」，
+/// 两个内核的读取面必须一致地把它排除。
+fn is_removed_record(value: &Value) -> bool {
+    value
+        .as_object()
+        .and_then(|object| object.get("state"))
+        .and_then(Value::as_str)
+        == Some("removed")
+}
+
 /// `installed_plugins.json` 的记录，按文件里的顺序；文件不存在或不合法时为空。
 pub async fn installed_plugins(root: &StoragePath) -> Vec<InstalledPlugin> {
     let Some(state) = read_object(&root.as_path().join(INSTALLED_PLUGINS)).await else {
@@ -116,7 +129,13 @@ pub async fn installed_plugins(root: &StoragePath) -> Vec<InstalledPlugin> {
             .iter()
             .flat_map(|(id, entry)| map_records(id, entry))
             .collect(),
-        Some(Value::Array(items)) => items.iter().filter_map(node_record).collect(),
+        // 30 天墓碑（`state: "removed"`）不是已安装：Node 的 `loadInstalledPluginsSync`
+        // 会过滤它们，Rust 必须同口径，否则桌面（Rust 内核）卸载后插件仍会被加载。
+        Some(Value::Array(items)) => items
+            .iter()
+            .filter(|item| !is_removed_record(item))
+            .filter_map(node_record)
+            .collect(),
         _ => Vec::new(),
     }
 }

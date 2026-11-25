@@ -3856,6 +3856,35 @@ export const nibiPluginDescribeDeclarationSchema = z
   .strict();
 export type NibiPluginDescribeDeclaration = z.infer<typeof nibiPluginDescribeDeclarationSchema>;
 
+// plugins/audit：插件权限/能力审计的「最近 N 条」只读视图。
+// 审计文件本身在本地（plugin-audit.ndjson），这里只暴露用户可读的摘要字段：
+// 不含本机路径、不含会话内容、不含参数值。
+export const nibiPluginsAuditParamsSchema = z
+  .object({
+    workspace: nibiWorkspaceRefSchema,
+    pluginId: nonEmptyString.optional(),
+    limit: z.number().int().positive().max(100).optional(),
+  })
+  .strict();
+export type NibiPluginsAuditParams = z.infer<typeof nibiPluginsAuditParamsSchema>;
+
+export const nibiPluginAuditEventSchema = z
+  .object({
+    at: z.string(),
+    type: z.string(),
+    pluginId: nonEmptyString,
+    capability: z.string().optional(),
+    version: z.string().optional(),
+    permissions: z.array(z.string()).optional(),
+  })
+  .strict();
+export type NibiPluginAuditEvent = z.infer<typeof nibiPluginAuditEventSchema>;
+
+export const nibiPluginsAuditResultSchema = z
+  .object({ events: z.array(nibiPluginAuditEventSchema) })
+  .strict();
+export type NibiPluginsAuditResult = z.infer<typeof nibiPluginsAuditResultSchema>;
+
 export const nibiPluginsDescribeParamsSchema = z
   .object({
     workspace: nibiWorkspaceRefSchema,
@@ -4236,6 +4265,7 @@ export const nibiProtocolMethods = {
   pluginsResetConfig: "plugins/resetConfig",
   pluginsValidate: "plugins/validate",
   pluginsDescribe: "plugins/describe",
+  pluginsAudit: "plugins/audit",
   automationCreate: "automation/create",
   // App-exclusive 会话控制：agent（Node/Rust 内核）→ Host 的反向请求。
   appControlListProjects: "appControl/listProjects",

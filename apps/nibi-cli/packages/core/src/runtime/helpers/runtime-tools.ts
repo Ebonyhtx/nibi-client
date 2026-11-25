@@ -10,6 +10,7 @@ import {
 import type { HookRunner, SessionId, ToolExecutor, TraceContext } from "../deps.js";
 import type { AgentRuntimeInternal } from "../internal.js";
 import type { AgentRuntimeDeps } from "../types.js";
+import { createToolPluginExecutionGate } from "../plugin-execution-gate.js";
 import { resolveRuntimeEmbeddedSearchEnabled } from "../methods/embedded-search-branch.js";
 import { getSessionShellSelectionFromConfig } from "../methods/session-shell-environment.js";
 import { createRuntimeSessionModePort } from "../session-mode-port.js";
@@ -218,6 +219,8 @@ function createRuntimeToolExecutor(
     embeddedSearchBackend: runtime.config.embeddedSearchBackend,
     nativeSearchEnhancementsEnabled: runtime.config.nativeSearchEnhancementsEnabled,
     skillPort: deps.skillPort,
+    // 付费插件执行期复核：Skill 工具加载正文前会调用；缺省不拦（嵌入方没有 license 概念）。
+    assertPluginExecutionAllowed: createToolPluginExecutionGate(runtime.config.paidPluginGate),
     subagentPort: runtime.subagentPort,
     coordinatorResponsePort: deps.coordinatorResponsePort,
     workflowSubmitPort: deps.workflowSubmitPort,

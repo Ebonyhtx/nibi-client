@@ -30,6 +30,7 @@ import { AgentRuntime } from "../agent-runtime.js";
 import type { AgentRuntimeInternal } from "../internal.js";
 import { noteSubagentActivity } from "../../subagent/background-stall.js";
 import { cloneModelSelection } from "../model-selection.js";
+import { assertPluginAgentExecutionAllowed } from "../plugin-execution-gate.js";
 import { resolveSubagentSelection } from "../helpers/subagent-selection.js";
 import type { AgentRuntimeDeps } from "../types.js";
 import { toMcpToolName } from "../../mcp/index.js";
@@ -99,6 +100,13 @@ export function createDefaultSubagentPort(
     },
     runExploreAgent: async (request, options) => {
       request.reportActivity?.();
+        // 付费插件执行期复核：插件子代理在派发前按名字找回声明它的插件。
+        // 内置 explorer/general 不属于任何插件，catalog 里查不到 → 不拦。
+        assertPluginAgentExecutionAllowed(
+          this.config.paidPluginGate,
+          this.config.pluginReferenceCatalog,
+          request.agentType,
+        );
         const builtInExplore = isBuiltInExploreAgentProfile(request.profile);
         const agentsMdInstructions =
           request.profile.injectAgentsMd !== false

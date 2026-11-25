@@ -6,6 +6,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   checkPluginRevocation,
   evaluatePluginRevocation,
+  maybeRefreshPluginRevocations,
+  PLUGIN_REVOCATIONS_REFRESH_TTL_MS,
+  readPluginRevocationsRefreshMeta,
   parsePluginRevocations,
   PLUGIN_REVOCATIONS_FILE,
   PLUGIN_REVOCATIONS_SIGNATURE_FILE,
@@ -245,5 +248,126 @@ describe("evaluatePluginRevocation", () => {
         version: "1.0.0",
       })?.action,
     ).toBe("block");
+  });
+});
+
+describe("后台自动刷新（maybeRefreshPluginRevocations）", () => {
+  it("首次尝试会刷新并写 lastAttemptAt", async () => {
+    const { calls, fetchImpl } = installFetcher(DOCUMENT);
+    const now = new Date("2026-11-25T00:00:00.000Z");
+    const result = await maybeRefreshPluginRevocations({
+      fetchImpl,
+      now,
+      storageRoot,
+      verify: VERIFY,
+    });
+    expect(result.status).toBe("updated");
+    expect(result.revision).toBe(3);
+    expect(calls).toHaveLength(2);
+    expect(readPluginRevocationsRefreshMeta(storageRoot)?.lastAttemptAt).toBe(now.toISOString());
+  });
+
+  it("TTL 内直接跳过，不发网络请求", async () => {
+    const { calls, fetchImpl } = installFetcher(DOCUMENT);
+    const first = new Date("2026-11-25T00:00:00.000Z");
+    await maybeRefreshPluginRevocations({ fetchImpl, now: first, storageRoot, verify: VERIFY });
+    const second = await maybeRefreshPluginRevocations({
+      fetchImpl,
+      now: new Date(first.getTime() + PLUGIN_REVOCATIONS_REFRESH_TTL_MS - 1000),
+      storageRoot,
+      verify: VERIFY,
+    });
+    expect(second.status).toBe("skipped");
+    // 只有第一次请求了名单与签名。
+    expect(calls).toHaveLength(2);
+  });
+
+  it("超过 TTL 再次刷新", async () => {
+    const { calls, fetchImpl } = installFetcher(DOCUMENT);
+    const first = new Date("2026-11-25T00:00:00.000Z");
+    await maybeRefreshPluginRevocations({ fetchImpl, now: first, storageRoot, verify: VERIFY });
+    const second = await maybeRefreshPluginRevocations({
+      fetchImpl,
+      now: new Date(first.getTime() + PLUGIN_REVOCATIONS_REFRESH_TTL_MS + 1000),
+      storageRoot,
+      verify: VERIFY,
+    });
+    expect(second.status).toBe("unchanged");
+    expect(calls).toHaveLength(4);
+  });
+
+  it("失败也写 lastAttemptAt，避免离线时每次启动重试风暴", async () => {
+    const failingFetch = (async () => new Response("nope", { status: 503 })) as typeof fetch;
+    const now = new Date("2026-11-25T00:00:00.000Z");
+    const first = await maybeRefreshPluginRevocations({
+      fetchImpl: failingFetch,
+      now,
+      storageRoot,
+      verify: VERIFY,
+    });
+    expect(first.status).toBe("failed");
+    expect(first.message).toMatch(/503/u);
+    expect(readPluginRevocationsRefreshMeta(storageRoot)?.lastAttemptAt).toBe(now.toISOString());
+
+    // 紧接着再调：仍应按 TTL 跳过，不再打网络。
+    const second = await maybeRefreshPluginRevocations({
+      fetchImpl: failingFetch,
+      now: new Date(now.getTime() + 1000),
+      storageRoot,
+      verify: VERIFY,
+    });
+    expect(second.status).toBe("skipped");
+  });
+
+  it("off 开关连网络都不发", async () => {
+    const { calls, fetchImpl } = installFetcher(DOCUMENT);
+    const result = await maybeRefreshPluginRevocations({
+      env: { NIBI_PLUGIN_REVOCATIONS_REFRESH: "off" },
+      fetchImpl,
+      storageRoot,
+      verify: VERIFY,
+    });
+    expect(result.status).toBe("skipped");
+    expect(calls).toHaveLength(0);
+    // 未尝试刷新时不写 meta（agent 实现返回 null，不写盘即达成目标）。
+    expect(readPluginRevocationsRefreshMeta(storageRoot) ?? undefined).toBeUndefined();
+  });
+
+  it("force 绕过 TTL", async () => {
+    const { calls, fetchImpl } = installFetcher(DOCUMENT);
+    const now = new Date("2026-11-25T00:00:00.000Z");
+    await maybeRefreshPluginRevocations({ fetchImpl, now, storageRoot, verify: VERIFY });
+    const forced = await maybeRefreshPluginRevocations({
+      fetchImpl,
+      now: new Date(now.getTime() + 1000),
+      storageRoot,
+      verify: VERIFY,
+    });
+    expect(forced.status).toBe("skipped");
+    const result = await maybeRefreshPluginRevocations({
+      fetchImpl,
+      force: true,
+      now: new Date(now.getTime() + 2000),
+      storageRoot,
+      verify: VERIFY,
+    });
+    expect(result.status).toBe("unchanged");
+    expect(calls).toHaveLength(4);
+  });
+
+  it("未来时间戳的 meta 不会把刷新无限推后", async () => {
+    const { fetchImpl } = installFetcher(DOCUMENT);
+    writeFileSync(
+      join(storageRoot, "plugin-revocations.meta.json"),
+      JSON.stringify({ lastAttemptAt: "2030-01-01T00:00:00.000Z" }),
+      "utf8",
+    );
+    const result = await maybeRefreshPluginRevocations({
+      fetchImpl,
+      now: new Date("2026-11-25T00:00:00.000Z"),
+      storageRoot,
+      verify: VERIFY,
+    });
+    expect(result.status).toBe("updated");
   });
 });

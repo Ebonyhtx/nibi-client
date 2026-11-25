@@ -74,6 +74,7 @@ import {
   addPluginMarketplace,
   configurePlugin,
   describePlugin,
+  listPluginAudit,
   getPluginsOverview,
   installPlugin,
   listPlugins,
@@ -901,6 +902,8 @@ export class NibiProtocolAgentServer {
         return await validatePlugin(this.context, request.params);
       case nibiProtocolMethods.pluginsDescribe:
         return await describePlugin(this.context, request.params);
+      case nibiProtocolMethods.pluginsAudit:
+        return await listPluginAudit(this.context, request.params);
       case nibiProtocolMethods.usageStats:
         return await getUsageStats(this.context, request.params);
       case nibiProtocolMethods.sessionDebug:

@@ -26,6 +26,7 @@ export interface PluginManagementServiceDependencies {
     | "resolveSuggestedPluginReference"
     | "onDynamicPluginOperationProgress"
     | "getPluginsOverview"
+    | "getPluginsAudit"
     | "addPluginMarketplace"
     | "removePluginMarketplace"
     | "updatePluginMarketplace"
@@ -191,6 +192,7 @@ export function createPluginManagementService(
     onDynamicPluginOperationProgress: (operationId) =>
       agent.onDynamicPluginOperationProgress(operationId),
     getPluginsOverview: (params) => agent.getPluginsOverview(params),
+    getPluginsAudit: (params) => agent.getPluginsAudit(params),
     // agent 路由（NIBI_PLUGIN_ROUTING=agent）下没有单一的 bootstrap 协议词；
     // 组合两个既有调用保持返回值形状。Host-local 路由直接复用一次 discovery 的新实现。
     getPluginsBootstrap: async (params) => {

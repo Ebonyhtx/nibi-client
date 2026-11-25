@@ -13,6 +13,7 @@ export {
   getPluginsBootstrap,
   getPluginsOverview,
   installPlugin,
+  listPluginAudit,
   listPlugins,
   removePluginMarketplace,
   resetPluginConfig,

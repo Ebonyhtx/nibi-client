@@ -53,6 +53,11 @@ import { PluginConsentDialog, PluginUninstallConfirmDialog } from "@/settings/Pl
 import { usePluginUninstall } from "@/settings/usePluginUninstall.js";
 import { NibiMembershipDialog } from "@/settings/NibiMembershipDialog.js";
 import { resolvePluginErrorMessage } from "@/settings/pluginErrorMessage.js";
+import {
+  PluginAuditList,
+  PluginAuditSectionHeader,
+  usePluginAudit,
+} from "@/settings/PluginAuditList.js";
 import { useNibiMembership } from "@/settings/useNibiMembership.js";
 import {
   nibiMembershipAllowsPaidPlugins,
@@ -341,6 +346,26 @@ export function PluginStorePage({
           diagnostic.pluginId === detailPluginInfo.id && diagnostic.severity === "warning",
       )
     : [];
+  // 审计只在详情打开、且插件已被发现时拉取；缺失（未安装候选）时整块不渲染。
+  const loadDetailPluginAudit = useCallback(
+    async (pluginId: string) => {
+      // 没有工作区就没有插件存储根（审计按 workspace 解析），直接返回空而不是打一个必然失败的请求。
+      if (!workspacePath) return [];
+      const result = await pluginManagementService.getPluginsAudit({
+        pluginId,
+        limit: 10,
+        workspaceIdentity: normalizedWorkspaceIdentity ?? undefined,
+        workspacePath,
+      });
+      return result.events;
+    },
+    [normalizedWorkspaceIdentity, pluginManagementService, workspacePath],
+  );
+  const detailPluginAudit = usePluginAudit({
+    enabled: view === "detail" && Boolean(detailPluginInfo),
+    load: detailPluginInfo ? loadDetailPluginAudit : undefined,
+    pluginId: detailPluginInfo?.id,
+  });
 
   // 详情页数据补齐：已安装但还没有运行时信息的条目按需 describe，拿组件清单 + manifest 回退字段；
   // 未安装的候选也要 describe，从真实包清单取得安装前声明。该调用可能 clone/下载插件源，
@@ -910,6 +935,15 @@ export function PluginStorePage({
                       label={intl.formatMessage({ id: "settings.plugins.detail.packageHash" })}
                       value={detailPluginInfo.packageHash}
                     />
+                  ) : null}
+                  {detailPluginInfo ? (
+                    <div className="space-y-2">
+                      <PluginAuditSectionHeader />
+                      <PluginAuditList
+                        events={detailPluginAudit.events}
+                        status={detailPluginAudit.status}
+                      />
+                    </div>
                   ) : null}
                   {detailPluginInfo?.codeBlockedReason ? (
                     <PluginDetailRow

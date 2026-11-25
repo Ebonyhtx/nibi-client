@@ -21,8 +21,16 @@ import { writeFileAtomically } from "./atomic-directory.js";
 import { isRecord } from "./helpers.js";
 import { matchesPluginVersionRanges } from "./version-compare.js";
 
-/** 撤销列表唯一来源：与市场清单同在 NIBI 内容主机（已在签名主机表内）。 */
-export const PLUGIN_REVOCATIONS_URL = "https://dl.nibistudio.cn/plugin-revocations.json";
+/**
+ * 撤销列表唯一来源：与市场清单**同目录**（`/plugins/`）。
+ *
+ * 这一条不能凭感觉写：发布脚本把 `content/plugins/*` 映射到分发端的 `/plugins/*`
+ * （`content-publish.py` 的 `verify_distribution` 按 `root/plugins/<name>` 对账），
+ * 市场清单同样是 `/plugins/marketplace.json`。撤销名单若放到桶根，发布链与客户端
+ * 就会各说各话——名单永远 404，门禁等于没装。
+ */
+export const PLUGIN_REVOCATIONS_URL =
+  "https://dl.nibistudio.cn/plugins/plugin-revocations.json";
 export const PLUGIN_REVOCATIONS_FILE = "plugin-revocations.json";
 export const PLUGIN_REVOCATIONS_SIGNATURE_FILE = `${PLUGIN_REVOCATIONS_FILE}.sig`;
 /** 本机时钟超前发布链一天以上视为异常快照，不落盘（见 assertIssuedAtSane）。 */
@@ -32,6 +40,16 @@ export const PLUGIN_REVOCATIONS_MAX_CLOCK_SKEW_MS = 24 * 60 * 60 * 1000;
  * 不设超时会让离线/坏代理下的刷新永久挂起。
  */
 export const PLUGIN_REVOCATIONS_FETCH_TIMEOUT_MS = 30_000;
+/**
+ * 后台自动刷新的节流窗口：撤销列表是安全决定，但本地快照始终可读。
+ * 24h 是「不点检查更新的用户也能在一天内拿到新名单」与「离线用户每次启动都白跑一次
+ * 网络、拖慢启动并刷日志」之间的折中；可用 TTL 注入覆盖（测试/特殊宿主）。
+ */
+export const PLUGIN_REVOCATIONS_REFRESH_TTL_MS = 24 * 60 * 60 * 1000;
+/** 刷新尝试记录（只记时间，不记结果——失败也要节流，避免每次启动重试风暴）。 */
+export const PLUGIN_REVOCATIONS_REFRESH_META_FILE = "plugin-revocations.meta.json";
+/** `off`/`0`/`false` 关闭后台刷新；`force` 忽略 TTL（排障用）。大小写不敏感。 */
+export const PLUGIN_REVOCATIONS_REFRESH_ENV = "NIBI_PLUGIN_REVOCATIONS_REFRESH";
 
 export type PluginRevocationAction = "block" | "warn";
 
@@ -79,6 +97,36 @@ export interface RefreshPluginRevocationsResult {
   document: PluginRevocationDocument;
 }
 
+/** 后台刷新尝试记录。只有时间戳：失败也写，用于节流而不是记录结果。 */
+export interface PluginRevocationsRefreshMeta {
+  lastAttemptAt: string;
+}
+
+export interface MaybeRefreshPluginRevocationsInput {
+  storageRoot: string;
+  /** 环境变量来源；缺省 `process.env`（宿主可注入隔离环境）。 */
+  env?: Record<string, string | undefined>;
+  /** 覆盖 {@link PLUGIN_REVOCATIONS_REFRESH_TTL_MS}。0 表示不节流。 */
+  ttlMs?: number;
+  /** 注入时钟：TTL 判定与写入 meta 用同一时刻，测试可复现。 */
+  now?: Date;
+  /** 注入点：测试用假 fetch；缺省全局 fetch。 */
+  fetchImpl?: typeof fetch;
+  signal?: AbortSignal;
+  /** 忽略 TTL 立即尝试（排障用）；仍受 `off` 开关约束。 */
+  force?: boolean;
+  /** 验签覆盖（测试/轮换）；缺省内置公钥表。 */
+  verify?: NibiContentSignatureVerifyOptions;
+}
+
+export interface MaybeRefreshPluginRevocationsResult {
+  status: "skipped" | "updated" | "unchanged" | "failed";
+  /** 仅 `failed` 填充：已归一化的错误文本（函数本身绝不抛出）。 */
+  message?: string;
+  /** 成功拿到文档时为其 revision；失败/跳过为 undefined。 */
+  revision?: number;
+}
+
 const PLUGIN_ID_PATTERN = /^[^\s@]+@[^\s@]+$/u;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 
@@ -88,6 +136,10 @@ function revocationsJsonPath(storageRoot: string): string {
 
 function revocationsSignaturePath(storageRoot: string): string {
   return join(storageRoot, PLUGIN_REVOCATIONS_SIGNATURE_FILE);
+}
+
+function refreshMetaPath(storageRoot: string): string {
+  return join(storageRoot, PLUGIN_REVOCATIONS_REFRESH_META_FILE);
 }
 
 /**
@@ -222,6 +274,93 @@ export async function refreshPluginRevocations(
   await writeFileAtomically(revocationsSignaturePath(input.storageRoot), signature);
   await writeFileAtomically(revocationsJsonPath(input.storageRoot), body);
   return { document, status: "updated" };
+}
+
+/**
+ * 读取上一次后台刷新尝试的时间。文件缺失/损坏/时间戳非法都返回 `null`——
+ * 节流记录不是安全数据，坏了只会让下一次启动多试一次，不能反过来阻断刷新。
+ */
+export function readPluginRevocationsRefreshMeta(
+  storageRoot: string,
+): PluginRevocationsRefreshMeta | null {
+  try {
+    const raw: unknown = JSON.parse(readFileSync(refreshMetaPath(storageRoot), "utf8"));
+    if (!isRecord(raw)) return null;
+    const lastAttemptAt = typeof raw.lastAttemptAt === "string" ? raw.lastAttemptAt.trim() : "";
+    if (!lastAttemptAt || !Number.isFinite(Date.parse(lastAttemptAt))) return null;
+    return { lastAttemptAt };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 后台自动刷新撤销列表（启动时一次 fire-and-forget）。
+ *
+ * 背景：撤销列表原先只在用户主动点「检查更新」时刷新，从不点的人永远拿不到新名单，
+ * 门禁形同虚设。这里按「尝试时间」做节流，而不是按成功时间：
+ * - 离线用户每次启动都重试网络，会拖慢启动并刷日志；撤销列表读取的是本地签名快照，
+ *   晚一天更新可以接受（失败期间旧快照仍然生效）。
+ * - 因此无论成功失败都写 `lastAttemptAt`，下一次启动在 TTL 内直接跳过。
+ *
+ * 语义边界：
+ * - `off`/`0`/`false` 连网络都不发；`force` 只绕过 TTL，不绕过 off。
+ * - 任何失败都收敛成 `{ status: "failed", message }`，**不向调用方抛**——后台任务
+ *   不能影响 App 启动。
+ * - meta 写失败不影响返回值：它只是节流记录，写不进去最多下次再试一次。
+ */
+export async function maybeRefreshPluginRevocations(
+  input: MaybeRefreshPluginRevocationsInput,
+): Promise<MaybeRefreshPluginRevocationsResult> {
+  const env = input.env ?? process.env;
+  const flag = (env[PLUGIN_REVOCATIONS_REFRESH_ENV] ?? "").trim().toLowerCase();
+  // 关闭开关优先于一切：显式关掉时连 TTL 记录都不读，更不产生真实外发请求。
+  if (flag === "off" || flag === "0" || flag === "false") {
+    return { status: "skipped" };
+  }
+  const now = input.now ?? new Date();
+  const nowMs = now.getTime();
+  const ttlMs = input.ttlMs ?? PLUGIN_REVOCATIONS_REFRESH_TTL_MS;
+  const force = input.force === true || flag === "force";
+  if (!force) {
+    const meta = readPluginRevocationsRefreshMeta(input.storageRoot);
+    const lastAttemptMs = meta ? Date.parse(meta.lastAttemptAt) : Number.NaN;
+    // 未来时间戳（时钟回拨或被手改）不能把刷新无限推后：当作无效记录重新尝试。
+    if (
+      Number.isFinite(lastAttemptMs) &&
+      lastAttemptMs <= nowMs &&
+      nowMs - lastAttemptMs < ttlMs
+    ) {
+      return { status: "skipped" };
+    }
+  }
+  try {
+    const result = await refreshPluginRevocations({
+      now,
+      storageRoot: input.storageRoot,
+      ...(input.fetchImpl === undefined ? {} : { fetchImpl: input.fetchImpl }),
+      ...(input.signal === undefined ? {} : { signal: input.signal }),
+      ...(input.verify === undefined ? {} : { verify: input.verify }),
+    });
+    await recordRefreshAttempt(input.storageRoot, now);
+    return { revision: result.document.revision, status: result.status };
+  } catch (error) {
+    // 先记录尝试时间再返回：失败路径同样要被节流，否则断网时每次启动都会重试。
+    await recordRefreshAttempt(input.storageRoot, now);
+    return {
+      message: error instanceof Error ? error.message : String(error),
+      status: "failed",
+    };
+  }
+}
+
+async function recordRefreshAttempt(storageRoot: string, now: Date): Promise<void> {
+  const meta: PluginRevocationsRefreshMeta = { lastAttemptAt: now.toISOString() };
+  try {
+    await writeFileAtomically(refreshMetaPath(storageRoot), JSON.stringify(meta));
+  } catch {
+    // 元数据只是节流记录：写失败只会让下次启动再试一次，不能改变本次刷新的结果。
+  }
 }
 
 /**

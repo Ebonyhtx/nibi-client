@@ -24,6 +24,7 @@ import {
   getPluginsBootstrap,
   getPluginsOverview,
   installPlugin,
+  listPluginAudit,
   listPluginUiSurfaces,
   listPlugins,
   removePluginMarketplace,
@@ -243,6 +244,13 @@ export function createLocalPluginManagementService(
       getPluginsOverview(context, {
         workspace: activateExtensions(toWorkspaceRef(params)),
         ...(params.configScope ? { configScope: params.configScope } : {}),
+      }),
+    // 审计读的是 Host 本地文件（plugin-audit.ndjson），直答，不需要 agent 往返。
+    getPluginsAudit: (params) =>
+      listPluginAudit(context, {
+        workspace: activateExtensions(toWorkspaceRef(params)),
+        ...(params.pluginId ? { pluginId: params.pluginId } : {}),
+        ...(params.limit ? { limit: params.limit } : {}),
       }),
     // 一次请求完成 list + overview，且 Host 只解析一次 discovery；旧的两个方法
     // 保持原样，供旧 renderer 和其他调用方继续使用。

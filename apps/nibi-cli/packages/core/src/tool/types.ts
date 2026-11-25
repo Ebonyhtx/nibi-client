@@ -169,6 +169,12 @@ export interface ToolExecutionContext {
   /** Core Server 对前台 child 的 Selection override。 */
   subagentModelOverride?: SubagentRunOptions["modelOverride"];
   skillPort?: SkillPort;
+  /**
+   * 付费插件执行期复核（Node 侧）。Skill 工具加载完技能正文后必须调用它：
+   * 发现层只在会话创建时裁剪一次，会员中途到期时技能仍在内存里。
+   * 缺省不拦（进程内嵌入方没有 license 概念）。
+   */
+  assertPluginExecutionAllowed?: (pluginId: string) => void;
   subagentPort?: SubagentPort;
   coordinatorResponsePort?: CoordinatorResponsePort;
   /** 工作流 actor 提交终态结果并等待引擎裁决的端口；仅在 workflow actor 会话注入。 */

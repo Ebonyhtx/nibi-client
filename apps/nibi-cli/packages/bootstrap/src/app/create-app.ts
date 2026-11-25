@@ -19,6 +19,7 @@ import { createPopplerPdfDocumentAdapter } from "@nibi/adapters/pdf";
 import { createNodeSessionMailboxAdapter } from "@nibi/adapters/mailbox";
 import { createNodeContextSourceAdapter } from "@nibi/adapters/context";
 import { createBuiltinPaidPluginGate } from "@nibi/adapters/plugins";
+import { maybeRefreshPluginRevocations } from "@nibi/adapters/plugins";
 import { createNodeSkillAdapter } from "@nibi/adapters/skills";
 import { createMcpAdapter } from "@nibi/adapters/mcp";
 import {
@@ -376,6 +377,35 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
       env: options.env,
       storageRoot: getPluginStorageRoot(cliStorageRoot),
     });
+    // 撤销名单后台刷新：只在用户点「检查更新」时刷新的话，从不点的用户永远拿不到新名单，
+    // 撤销门禁形同虚设。fire-and-forget：网络/验签失败只影响名单时效，不能拖慢或中断启动。
+    // 测试进程不发起真实外发请求（与 official-plugin-runtime 同一约定），
+    // 否则后台写盘会与测试 teardown 的目录删除竞争。
+    const pluginRevocationsRefreshDisabled =
+      Boolean(options.env?.E2E_PROVIDER_HTTP_MODE) ||
+      Boolean(process.env.VITEST) ||
+      process.env.NODE_ENV === "test";
+    if (!pluginRevocationsRefreshDisabled) {
+      void maybeRefreshPluginRevocations({
+        storageRoot: getPluginStorageRoot(cliStorageRoot),
+        env: options.env,
+      })
+        .then((result) => {
+          if (result.status === "skipped") return;
+          logger.info("Plugin revocation list background refresh finished", {
+            event: "bootstrap.app.plugin_revocations.refresh",
+            module: "bootstrap.app",
+            refreshStatus: result.status,
+            stage: "refresh_plugin_revocations",
+            status: result.status === "failed" ? "failed" : "completed",
+            ...(result.revision === undefined ? {} : { revision: result.revision }),
+            ...(result.message === undefined ? {} : { message: result.message }),
+          });
+        })
+        .catch(() => {
+          // maybeRefresh 已把失败收敛成返回值；这里只兜住未处理的 rejection。
+        });
+    }
     // 插件验收合同与 catalog 同址同因：在 App（Session runtime）创建时冻结一次。
     // 只有 enabled 且 activation 判据（工作区里存在插件的工作流状态文件）成立的合同才注入；
     // 否则装在这个目录里的插件会把每个目标都拦一遍。
@@ -1036,6 +1066,23 @@ export async function createNibiApp(options: NibiAppOptions): Promise<NibiApp> {
         }
         return await resolveNibiCustomCommandPrompt(text, {
           additionalDirectories: options.additionalDirectories,
+          // 付费插件命令的执行期复核：与 MCP/技能/子代理同一套判定。
+          ...(runtimeConfig.paidPluginGate
+            ? {
+                assertPluginExecutionAllowed: (pluginId: string) => {
+                  const at = pluginId.lastIndexOf("@");
+                  if (at <= 0) return;
+                  const verdict = runtimeConfig.paidPluginGate?.({
+                    id: pluginId,
+                    marketplace: pluginId.slice(at + 1),
+                    name: pluginId.slice(0, at),
+                  });
+                  if (verdict && !verdict.allowed) {
+                    throw new Error(verdict.message ?? "Plugin requires an active NIBI membership");
+                  }
+                },
+              }
+            : {}),
           env: options.env,
           logger,
           projectConfigPath: options.projectConfigPath,
