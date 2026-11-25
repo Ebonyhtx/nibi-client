@@ -157,7 +157,7 @@ impl Transcript {
                 if attachment.source == "queued_command"
                     && !matches!(
                         attachment.data["commandMode"].as_str(),
-                        Some("task-notification" | "subagent_message" | "coordinator")
+                        Some("task-notification" | "subagent_message" | "coordinator" | PEER_SOURCE)
                     ) =>
             {
                 let text = attachment.data["prompt"].as_str().unwrap_or_default();

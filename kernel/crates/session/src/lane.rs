@@ -131,11 +131,19 @@ fn notice_text(message: &Message) -> Option<&str> {
                 _ => None,
             }
         }
+        // 并入后按这段文本把通知从通道删掉；漏一个来源就会「并入一次、回合结束再投一次」。
+        // peer（`cross-session`）与 coordinator 也是运行时通知（query.md §5.1），
+        // 与 `normalize::is_runtime_notice`、TUI 折叠保持同一集合。
         Message::Attachment(attachment)
             if attachment.source == "queued_command"
                 && matches!(
                     attachment.data["commandMode"].as_str(),
-                    Some(NOTICE_SOURCE | nibi_kernel_api::message::SUBAGENT_MESSAGE_SOURCE)
+                    Some(
+                        NOTICE_SOURCE
+                            | nibi_kernel_api::message::SUBAGENT_MESSAGE_SOURCE
+                            | PEER_SOURCE
+                            | "coordinator"
+                    )
                 ) =>
         {
             Some(&attachment.text)

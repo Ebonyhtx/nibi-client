@@ -76,9 +76,14 @@ fn is_runtime_notice(attachment: &AttachmentMessage) -> bool {
     attachment.source == "queued_command"
         && matches!(
             attachment.data.get("commandMode").and_then(Value::as_str),
-            Some("task-notification" | "subagent_message" | "coordinator")
+            // `cross-session` 是同伴消息（session `peers.rs` 的 PEER_SOURCE）：与后台通知同一类
+            // 运行时输入，不能因为来源不同就被当成人类插话并进工具结果。
+            Some("task-notification" | "subagent_message" | "coordinator" | PEER_SOURCE)
         )
 }
+
+/// 同伴消息的并入来源（与 session `peers.rs` / TUI 折叠同一字面量）。
+const PEER_SOURCE: &str = "cross-session";
 
 /// 停止上浮的位置：assistant，或以工具结果开头的 user 消息。
 fn stops_hoisting(message: &Message) -> bool {
