@@ -19,7 +19,7 @@ formal spec 集」。它不启动 Docker，也不访问真实模型上游。
 
 | `targets`              | 运行集合                                                                 |
 | ---------------------- | ------------------------------------------------------------------------ |
-| `plugins`（默认）      | `plugins-verified` preset，当前 11 条已转正并完成 Docker 准入的插件 spec |
+| `plugins`（默认）      | `plugins-verified` preset，当前 13 条已转正并完成 Docker 准入的插件 spec |
 | `conversation-session` | `conversation-session-verified` preset，当前 4 条会话 spec（含 WPL-015） |
 | `all-verified`         | 上述两个 preset 的并集                                                   |
 
@@ -57,7 +57,8 @@ bash scripts/test-desktop-e2e-container.sh --print-spec conversation-session-ver
 ## 状态口径
 
 - 2026-11-24 首跑已通过：macOS `desktop-e2e-20261124-014702-952`、Windows
-  `desktop-e2e-20261124-014644-086`，两平台各 11/11（GitHub Actions run 45306709585）。
+  `desktop-e2e-20261124-014644-086`，两平台各 11/11（GitHub Actions run 45306709585）；
+  2026-11-24 补入 PLM-LC-017/018 后为 13 条，两平台各 13/13（run 45331930481）。
   覆盖矩阵里 `PLM-LC-001..010` 的 macOS CI / Windows CI 两列记 `verified`。
 - 后续 preset 或 workflow 变更会自动触发；任一平台失败时先改回 `selected` 并保留失败 run id，
   按真实平台问题排查，不得用跳过、`continue-on-error` 或缩小 spec 集掩盖。
