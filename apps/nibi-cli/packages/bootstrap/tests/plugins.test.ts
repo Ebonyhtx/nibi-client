@@ -2854,6 +2854,66 @@ describe("Nibi plugins", () => {
       await rm(root, { force: true, recursive: true });
     }
   });
+
+  it("refuses to enable a second plugin with the same name", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nibi-bootstrap-name-conflict-"));
+    const localRoot = join(root, "local-same-name");
+    const pluginStorageRoot = join(root, "plugins");
+    const cacheRoot = join(pluginStorageRoot, "cache", "test-mp", "same-name", "1.0.0");
+    const userConfigPath = join(root, "config.json");
+    const writePlugin = async (dir: string): Promise<void> => {
+      await mkdir(dir, { recursive: true });
+      await writeFile(
+        join(dir, "plugin.json"),
+        JSON.stringify({ name: "same-name", version: "1.0.0" }),
+      );
+    };
+
+    try {
+      await writePlugin(localRoot);
+      await writePlugin(cacheRoot);
+      await writeFile(
+        join(pluginStorageRoot, "installed_plugins.json"),
+        JSON.stringify({
+          plugins: [
+            {
+              id: "same-name@test-mp",
+              installPath: cacheRoot,
+              installedAt: "2026-11-01T00:00:00.000Z",
+              marketplace: "test-mp",
+              name: "same-name",
+              scope: "user",
+              version: "1.0.0",
+            },
+          ],
+          version: 1,
+        }),
+      );
+      await writeFile(userConfigPath, JSON.stringify({ plugins: { dirs: [localRoot] } }));
+
+      const first = await setNibiPluginEnabled({
+        enabled: true,
+        plugin: "same-name@inline",
+        pluginStorageRoot,
+        userConfigPath,
+        workingDirectory: root,
+      });
+      expect(first.enabled).toBe(true);
+
+      // 同名插件可以并存安装/展示，但同时启用会让 skills/MCP 限定名互撞。
+      await expect(
+        setNibiPluginEnabled({
+          enabled: true,
+          plugin: "same-name@test-mp",
+          pluginStorageRoot,
+          userConfigPath,
+          workingDirectory: root,
+        }),
+      ).rejects.toThrow(/same name is already enabled/u);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
 });
 
 async function startZipFixtureServer(

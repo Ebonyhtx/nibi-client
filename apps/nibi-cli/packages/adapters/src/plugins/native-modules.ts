@@ -146,3 +146,42 @@ export function isPluginRootDirectory(path: string): boolean {
     return false;
   }
 }
+
+/** 安装/更新期拒绝：包内有 `.node` 但清单没声明 `runtime.native: true`。 */
+export class PluginNativeModuleInstallError extends Error {
+  constructor(
+    readonly pluginId: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "PluginNativeModuleInstallError";
+  }
+}
+
+/**
+ * 安装/更新期的原生模块门禁（计划 §8.4）。
+ *
+ * 为什么要在安装时拦：发现层的 `codeBlockedReason` 只影响「加载」——包已经落盘、
+ * 安装记录也写了，用户看到的是「装上了但用不了」。计划要求安装期就拒绝，让失败
+ * 发生在产生任何安装状态之前（调用方在原子事务里，抛错会回滚缓存目录）。
+ *
+ * 只在**确实扫到 `.node`** 时拒绝。扫描被截断（超大包）但不含可见 `.node` 时放行：
+ * 拒绝一个纯声明式的大包是把「可能有原生模块」当成「一定有」；发现层对截断仍按
+ * ABI 不支持保守挡代码，声明式组件不受影响。
+ */
+export function assertPluginNativeModulesDeclared(input: {
+  /** 清单是否声明了 `runtime.native: true`（调用方负责从原始 JSON 里读，避免为它放宽类型）。 */
+  nativeDeclared: boolean;
+  pluginId: string;
+  rootPath: string;
+}): void {
+  if (input.nativeDeclared) return;
+  const scan = scanPluginNativeModules(input.rootPath);
+  if (scan.files.length === 0) return;
+  throw new PluginNativeModuleInstallError(
+    input.pluginId,
+    `Plugin ships native modules without declaring runtime.native: ${scan.files
+      .slice(0, 3)
+      .join(", ")}`,
+  );
+}

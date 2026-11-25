@@ -56,6 +56,7 @@ import {
 } from "./helpers.js";
 import { enumeratePluginComponents, type PluginComponentGroup } from "./plugin-components.js";
 import { computePluginPackageHash } from "./package-hash.js";
+import { assertPluginNativeModulesDeclared } from "./native-modules.js";
 import { removePluginViewRoot } from "./view-root.js";
 import {
   checkPluginRevocation,
@@ -1685,6 +1686,18 @@ async function cacheMarketplacePlugin(input: {
     if (resolve(sourceRoot.path) === resolve(target)) {
       await ensureMarketplaceEntryManifest({ entry: input.entry, target });
     }
+    // 原生模块门禁：包里有 .node 但清单没声明 runtime.native 的，安装期直接拒绝，
+    // 不产生安装记录（抛错会回滚上面的原子目录事务）。见计划 §8.4。
+    const manifestSource = readPluginManifestFromRoot(target, input.entry);
+    const rawRuntime = manifestSource?.manifest.runtime;
+    assertPluginNativeModulesDeclared({
+      pluginId: `${input.entry.name}@${input.marketplace}`,
+      rootPath: target,
+      nativeDeclared:
+        typeof rawRuntime === "object" &&
+        rawRuntime !== null &&
+        (rawRuntime as { native?: unknown }).native === true,
+    });
   } finally {
     // cache 已复制成功后，临时目录 cleanup 失败不能阻断 installed record 落盘。
     await cleanupPluginSourceBestEffort(sourceRoot.cleanup);

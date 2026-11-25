@@ -5106,6 +5106,7 @@ const enUS: Record<string, string> = {
   "settings.plugins.detail.updateAvailable": "Update available → v{version}",
   "settings.plugins.detail.versionChanged": "A different version is available",
   "settings.plugins.detail.updateNewSessionsNote": "Takes effect in new sessions",
+  "settings.plugins.effect.newSession": "Plugin changes take effect in new sessions",
   "settings.plugins.checkForUpdates": "Check for updates",
   "settings.plugins.checkForUpdates.found": "Found {count} plugin update(s) available",
   "settings.plugins.checkForUpdates.none": "All installed plugins are up to date",

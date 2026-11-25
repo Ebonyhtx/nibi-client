@@ -5459,6 +5459,7 @@ const koKR: Record<string, string> = {
   "settings.plugins.detail.update": "업데이트",
   "settings.plugins.detail.updateAvailable": "업데이트 가능 → v{version}",
   "settings.plugins.detail.updateNewSessionsNote": "새 세션에서 적용됩니다",
+  "settings.plugins.effect.newSession": "플러그인 변경 사항은 새 세션에서 적용됩니다",
   "settings.plugins.detail.versionChanged": "다른 버전을 사용할 수 있습니다",
   "settings.plugins.detail.warnings": "경고",
   "settings.plugins.empty": "플러그인을 찾을 수 없습니다",

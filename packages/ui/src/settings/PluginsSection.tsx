@@ -406,7 +406,11 @@ function PluginList({
           : enabled
             ? "settings.plugins.toggle.enabled"
             : "settings.plugins.toggle.disabled";
-      toast(intl.formatMessage({ id: messageId }, { plugin: pluginLabel }));
+      toast(
+        `${intl.formatMessage({ id: messageId }, { plugin: pluginLabel })} · ${intl.formatMessage(
+          { id: "settings.plugins.effect.newSession" },
+        )}`,
+      );
       return true;
     },
     [

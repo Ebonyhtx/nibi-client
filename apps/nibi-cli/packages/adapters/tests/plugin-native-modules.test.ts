@@ -3,7 +3,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  assertPluginNativeModulesDeclared,
   checkPluginNativeModules,
+  PluginNativeModuleInstallError,
   scanPluginNativeModules,
 } from "../src/plugins/native-modules.js";
 
@@ -104,5 +106,46 @@ describe("checkPluginNativeModules", () => {
       runtime: { apiVersion: "1", entry: "index.js", native: true, platforms: ["win32-x64"] },
     });
     expect(verdict.status).toBe("declared");
+  });
+});
+
+describe("assertPluginNativeModulesDeclared（安装期门禁）", () => {
+  it("没有原生模块时放行，即使没声明 runtime.native", () => {
+    writeFile("plugin.json", "{}");
+    expect(() =>
+      assertPluginNativeModulesDeclared({
+        nativeDeclared: false,
+        pluginId: "demo@test-mp",
+        rootPath,
+      }),
+    ).not.toThrow();
+  });
+
+  it("有原生模块但未声明 runtime.native：抛安装错误并点名文件", () => {
+    writeFile("node_modules/x/build/x.node");
+    let error: unknown;
+    try {
+      assertPluginNativeModulesDeclared({
+        nativeDeclared: false,
+        pluginId: "demo@test-mp",
+        rootPath,
+      });
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error).toBeInstanceOf(PluginNativeModuleInstallError);
+    expect((error as PluginNativeModuleInstallError).pluginId).toBe("demo@test-mp");
+    expect((error as Error).message).toMatch(/node_modules\/x\/build\/x\.node/u);
+  });
+
+  it("声明了 runtime.native 的包放行（平台/ABI 由发现层再判）", () => {
+    writeFile("node_modules/x/build/x.node");
+    expect(() =>
+      assertPluginNativeModulesDeclared({
+        nativeDeclared: true,
+        pluginId: "demo@test-mp",
+        rootPath,
+      }),
+    ).not.toThrow();
   });
 });

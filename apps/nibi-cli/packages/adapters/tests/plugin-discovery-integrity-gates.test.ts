@@ -128,6 +128,8 @@ describe("发现层完整性门禁", () => {
     // 声明式组件仍然可用。
     expect(plugin?.enabled).toBe(true);
     expect(outcome.skillRoots.length).toBeGreaterThan(0);
+    // MCP 同样属于代码面：不能一边说「原生模块不可用」一边照常起 MCP 子进程。
+    expect(Object.keys(outcome.mcpServers)).toHaveLength(0);
     expect(
       outcome.diagnostics.some(
         (diagnostic) =>
@@ -135,6 +137,20 @@ describe("发现层完整性门禁", () => {
           diagnostic.pluginId === "native-demo@test-mp",
       ),
     ).toBe(true);
+  });
+
+  it("只有 MCP、没有扩展代码的包：原生模块未声明同样挡 MCP", () => {
+    // 这类包过去完全绕过扫描：门禁只看 loaded.runtime。
+    seedPlugin({ pluginName: "mcp-native" });
+    mkdirSync(join(pluginRoot, "node_modules", "x"), { recursive: true });
+    writeFileSync(join(pluginRoot, "node_modules", "x", "x.node"), "binary", "utf8");
+
+    const outcome = discover("mcp-native");
+    const plugin = outcome.plugins.find((item) => item.id === "mcp-native@test-mp");
+    expect(plugin?.codeBlockedReason?.code).toBe("plugin_native_module_blocked");
+    expect(Object.keys(outcome.mcpServers)).toHaveLength(0);
+    // 声明式组件（skill）仍可用。
+    expect(outcome.skillRoots.length).toBeGreaterThan(0);
   });
 
 

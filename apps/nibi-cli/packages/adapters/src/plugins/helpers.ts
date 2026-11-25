@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   appendFileSync,
+  chmodSync,
   mkdirSync,
   readFileSync,
   renameSync,
@@ -996,4 +997,22 @@ export function sensitivePluginCapabilityGrants(
   profile: PluginCapabilityProfile,
 ): PluginCapabilityGrant[] {
   return profile.requested.filter((grant) => SENSITIVE_CAPABILITIES.has(grant.id));
+}
+
+/**
+ * 插件数据目录统一用 0700 创建（计划 A §5.5）。
+ *
+ * 为什么必须显式收紧：`mkdir` 只受 umask 约束，常见 umask 022 会建出 0755，
+ * 同机其他用户能读到插件的 settings.json / 生成命令。已有目录也要补一次 `chmod`：
+ * 旧版本已经按 0755 建过的目录不会因为这次改动自动变严。
+ *
+ * Windows 没有 POSIX 权限位，`chmod` 只映射只读位；忽略失败即可，不影响目录可用性。
+ */
+export function ensurePluginDataDir(dataPath: string): void {
+  mkdirSync(dataPath, { mode: 0o700, recursive: true });
+  try {
+    chmodSync(dataPath, 0o700);
+  } catch {
+    // 平台不支持（如 Windows）或目录被并发删除：交给后续写入报真实错误。
+  }
 }

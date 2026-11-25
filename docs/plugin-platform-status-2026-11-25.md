@@ -355,19 +355,29 @@
 
 ---
 
-## 剩余缺口（2026-11-25 逐条复核计划 §5–§9）
+## 剩余缺口与已处置项（2026-11-25 逐条复核计划 §5–§9）
 
-按用户可感知程度排序。**标「待定」的是产品取舍**，需要运营者拍板，不默认按计划改。
+### 已处置（2026-11-25 第二轮）
+
+| 原缺口 | 处置 |
+|---|---|
+| 2 原生模块门禁覆盖面 | 已补：发现层按 `declaresCodeSurface`（`runtime` / `mcpServers` / 根 `mcp.json` / hooks）扫描，命中时**同时挡 MCP 与 hooks**（`adapters/src/plugins/index.ts`）；安装期新增 `assertPluginNativeModulesDeclared`（`native-modules.ts`，在 `cacheMarketplacePlugin` 内校验，失败回滚原子目录）。测试：`plugin-native-modules.test.ts` + `plugin-discovery-integrity-gates.test.ts` |
+| 3 同名冲突 | 已补：`setNibiPluginEnabled` 启用前检查同名且已启用的其他插件，抛错要求先停用（`bootstrap/src/plugins.ts`）。测试：`plugins.test.ts` 的 `refuses to enable a second plugin with the same name` |
+| 5 数据目录 0700 | 已补：`ensurePluginDataDir`（`mkdir` 0700 + `chmod` 补旧目录），发现层与 Host 能力两处创建点统一调用（`helpers.ts`） |
+| 6 生效提示 | 已补：安装/更新/卸载/启停成功后统一 toast「插件变更将在新会话中生效」（新增 `settings.plugins.effect.newSession`，5 locale）。口径按 Rust 每会话插件快照：当前会话不热更新，新会话/冷恢复生效 |
+| 7 死代码 | 已删 `packages/ui/src/lib/pluginRuntimeReload.ts` 及其未使用 import；生效边界以 `kernel/crates/runtime/src/kernel.rs` 的每会话快照为准 |
+
+### 有意偏离（已定，不按缺口处理）
+
+| 项 | 决定 | 说明 |
+|---|---|---|
+| 1 卸载删除数据 | **维持彻底删除**（2026-11-25 运营者定） | UI 卸载确认文案已明确告知会删缓存、数据目录与配置；`--keep-data` 仅保留在 CLI。计划 §5.5 的「默认保留 PLUGIN_DATA」不再适用 |
+
+### 仍未做
 
 | # | 缺口 | 证据 | 影响 |
 |---|---|---|---|
-| 1 | **卸载默认删除插件数据目录**。UI 卸载固定传 `removeCache=true`，`data/<plugin-id>` 一并删除；确认文案明说「删除…数据目录」。CLI 有 `--keep-data`，UI 没有勾选项 | `packages/ui/src/settings/usePluginUninstall.ts:62`、`store/pluginManagementStore.ts:414`、`bootstrap/src/plugins.ts:1019-1021`、`adapters/src/plugins/marketplace.ts:1108-1120`；文案 `zh-CN.ts:4786` | 计划 §5.5「默认保留 PLUGIN_DATA」「NIBI 永不自动删除用户数据」未执行。卸载即丢插件设置/生成命令，且不可撤销。**待定**：若「卸载=彻底清除」是现行产品决策，应在计划里改写而不是当缺口修 |
-| 2 | **原生模块门禁只覆盖带扩展代码的插件**。扫描仅在 `loaded.runtime` 存在时执行；只有 MCP/hook 的插件即便包内有 `.node` 也不检查；安装期不拒绝未声明 `runtime.native` 的包 | `adapters/src/plugins/index.ts:410-425`（`if (!blockedReason && loaded.runtime)`）；`marketplace.ts` 无 native 校验 | 计划 §8.4「有 `.node` 未声明 → 安装/激活拒绝」未覆盖 MCP/hook 面；ABI 不匹配会在运行时炸成底层错误 |
-| 3 | **同名冲突只标记、不拦启用**。catalog 产出 `conflictingPluginIds` 供展示/引用解析，`setNibiPluginEnabled` 不检查 | `bootstrap/src/plugins.ts:556-780`（无 conflict 分支）；`nibi-protocol/plugin-reference-catalog.ts:119-129` | 计划 §5.3「同一 name 只能有一个 active，启用第二个先停第一个」未执行；同名 skills/MCP 可同时启用 |
 | 4 | **License 执行期只有 message，没有错误码契约**。无 `license_expired` / `license_not_entitled` 等 code；工具行锁图标与会话横幅未实现 | 全仓无这些字符串；门禁实现 `runtime/plugin-execution-gate.ts`、Rust `paid_plugin.rs` 只回 message | 计划 §6.4 的错误码（模型据此不重试）与 UI 提示层未落地；当前靠文案兜底 |
-| 5 | **插件数据目录未收紧到 0700**。`mkdir(dataPath, {recursive:true})` 用默认 umask | `bootstrap/src/plugins.ts:2121` | 计划 §5.5 要求 0700；同机其他用户可能读到插件设置 |
-| 6 | **首次安装/启用没有「新会话中生效」提示**。该文案只在更新路径出现；安装/启停后无提示 | `PluginStorePage.tsx:900`、`InstalledPluginManagement.tsx:324`（仅更新分支） | 计划 §5.6 要求所有变更统一提示；Rust 已按会话取快照，提示口径应改为「新会话生效」 |
-| 7 | **`pluginRuntimeReload` 是死代码**：只被 import、无调用点；且其「重启 workspace」模型已被 Rust 每会话插件快照取代 | `packages/ui/src/settings/PluginStorePage.tsx:26`（仅 import）；`kernel/crates/runtime/src/kernel.rs:108-118`（新会话/冷恢复重取快照） | 无用户可感知影响，但注释与实际行为不符，易误导后续维护 |
 | 8 | 官方插件自带 Node 未校验（计划 §8.5：official 禁止、local 允许）；装完 Node 后无「重新检测/重启」入口（§8.6） | 无相关校验/文案 | 官方插件打包 Node 不会被拦；原生模块用户装完 Node 需自行重启 |
 | 9 | hooks 外来事件映射表未按 §9.5 生成 registry/CI 断言；现有覆盖是 33 事件白名单 + `plugin_hook_unsupported_event` 诊断 | `adapters/src/plugins/hook-sources.ts:131-145` | 等价覆盖基本成立，但没有「每外来事件要么有映射要么有不支持原因」的生成式门禁 |
 | 10 | 无独立 `trust.json` / 「撤销信任」入口；用 `plugin-consents.json` 的包 hash 绑定替代（§7.5 的等价实现） | `helpers.ts:484-502` | 行为等价；用户只能停用插件，不能显式撤销信任记录 |

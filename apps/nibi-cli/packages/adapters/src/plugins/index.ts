@@ -1,4 +1,4 @@
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import type {
   CustomCommandRoot,
@@ -36,6 +36,7 @@ import {
 import {
   createCanonicalPlugin,
   directoryExists,
+  ensurePluginDataDir,
   fileExists,
   findPluginManifest,
   isMissingPath,
@@ -135,6 +136,7 @@ export {
   PLUGIN_GRANTS_FILE,
   appendPluginAuditEvent,
   backfillPluginConsentHash,
+  ensurePluginDataDir,
   isSensitivePluginCapability,
   pluginConsentCovers,
   pluginGrantsCover,
@@ -196,8 +198,10 @@ export {
 } from "./plugin-revocations.js";
 
 export {
+  assertPluginNativeModulesDeclared,
   checkPluginNativeModules,
   isPluginRootDirectory,
+  PluginNativeModuleInstallError,
   scanPluginNativeModules,
   type NativeModuleCheckInput,
   type NativeModuleScanResult,
@@ -405,9 +409,17 @@ export class NodePluginAdapter implements PluginPort {
           });
         }
       }
-      // 原生模块门禁：只挡扩展代码，声明式组件照常可用（计划 §8.4）。
+      // 原生模块门禁：挡的是**代码面**（扩展代码、MCP server、hooks），声明式组件照常可用（计划 §8.4）。
+      // 不能只看 `loaded.runtime`：只有 MCP/hook 的包同样会起子进程加载 `.node`，
+      // 漏扫会让 ABI 不匹配在运行时炸成底层 NODE_MODULE_VERSION 错误。
       let codeBlockedReason: { code: PluginDiagnostic["code"]; message: string } | undefined;
-      if (!blockedReason && loaded.runtime) {
+      const declaresCodeSurface =
+        loaded.runtime !== undefined ||
+        Object.keys(loaded.manifest.mcpServers ?? {}).length > 0 ||
+        loaded.manifest.hooks !== undefined ||
+        existsSync(join(loaded.rootPath, "mcp.json")) ||
+        existsSync(join(loaded.rootPath, ".mcp.json"));
+      if (!blockedReason && declaresCodeSurface) {
         const nativeVerdict = checkPluginNativeModules({
           rootPath: loaded.rootPath,
           runtime: loaded.runtime,
@@ -459,9 +471,11 @@ export class NodePluginAdapter implements PluginPort {
       );
       const requiredPermissions = resolveRequiredPluginPermissions(loaded.manifest, {
         // 只有真正会注入 runtime 的事件才算要执行子进程；enum-only 详情不算。
-        hasCode,
-        hasHooks: Object.keys(hookInspection.events).length > 0,
-        hasMcp: declaredMcpServerNames.length > 0,
+        // 代码面被原生模块门禁挡住时，不再为它要求 code/network/process 同意。
+        hasCode: hasCode && codeBlockedReason === undefined,
+        hasHooks:
+          codeBlockedReason === undefined && Object.keys(hookInspection.events).length > 0,
+        hasMcp: codeBlockedReason === undefined && declaredMcpServerNames.length > 0,
         trust: loaded.canonical.trust,
       });
       const capabilityResult = resolvePluginCapabilities(
@@ -540,10 +554,12 @@ export class NodePluginAdapter implements PluginPort {
             dataPath,
             diagnostics,
             env: request.env ?? {},
-            hookEvents: hooksRunnable ? hookInspection.events : {},
+            hookEvents:
+              hooksRunnable && codeBlockedReason === undefined ? hookInspection.events : {},
             hookDetails: hookInspection.details,
             loaded,
-            mcpServerDefinitions,
+            // 代码面被原生模块门禁挡住：不注入 MCP（它同样是会加载 .node 的子进程）。
+            mcpServerDefinitions: codeBlockedReason === undefined ? mcpServerDefinitions : {},
             options: request.config.options[loaded.id] ?? {},
             priority,
             workingDirectory: request.workingDirectory,
@@ -860,7 +876,7 @@ function resolveEnabledComponents(input: {
   priority: number;
   workingDirectory: string;
 }): PluginComponents {
-  mkdirSync(input.dataPath, { recursive: true });
+  ensurePluginDataDir(input.dataPath);
 
   const skillRoots = resolveSkillRoots(input, input.priority);
   return {

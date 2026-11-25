@@ -4771,6 +4771,7 @@ const zhCN: Record<string, string> = {
   "settings.plugins.detail.updateAvailable": "有可用更新 → v{version}",
   "settings.plugins.detail.versionChanged": "有不同版本可用",
   "settings.plugins.detail.updateNewSessionsNote": "将在新会话中生效",
+  "settings.plugins.effect.newSession": "插件变更将在新会话中生效",
   "settings.plugins.checkForUpdates": "检查更新",
   "settings.plugins.checkForUpdates.found": "发现 {count} 个插件可更新",
   "settings.plugins.checkForUpdates.none": "所有已安装插件已是最新",

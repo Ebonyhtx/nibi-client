@@ -5571,6 +5571,7 @@ const jaJP: Record<string, string> = {
   "settings.plugins.detail.update": "更新",
   "settings.plugins.detail.updateAvailable": "アップデートがあります → v{version}",
   "settings.plugins.detail.updateNewSessionsNote": "新しいセッションで有効になります",
+  "settings.plugins.effect.newSession": "プラグインの変更は新しいセッションで有効になります",
   "settings.plugins.detail.versionChanged": "別のバージョンが利用可能です",
   "settings.plugins.detail.warnings": "警告",
   "settings.plugins.empty": "プラグインが見つかりません",

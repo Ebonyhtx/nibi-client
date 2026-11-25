@@ -23,7 +23,6 @@ import { resolvePluginUiSurfaceTitle } from "@/plugin-ui/index.js";
 import type { CreateTaskRequest } from "@/app-shell/types.js";
 import { invalidateDeferredDraftSessionForSkillChange } from "@/lib/nibiDraftSkillInvalidation.js";
 import { refreshSharedSkillStoreForWorkspace } from "@/lib/skillStoreRefresh.js";
-import { reloadWorkspaceRuntimeAfterPluginChange } from "@/lib/pluginRuntimeReload.js";
 import {
   PluginDetailRow,
   PluginHookDetails,
@@ -465,7 +464,10 @@ export function PluginStorePage({
       workspaceIdentity: normalizedWorkspaceIdentity,
       skillsService,
     });
-  }, [normalizedWorkspaceIdentity, skillsService, workspacePath]);
+    // 生效边界：内核在建会话时取插件快照，当前会话的工具/命令集合不会热更新。
+    // 不提示的话，用户装完插件回到旧会话敲 `/命令` 会得到「没有匹配」。
+    toast(intl.formatMessage({ id: "settings.plugins.effect.newSession" }));
+  }, [intl, normalizedWorkspaceIdentity, skillsService, workspacePath]);
 
   const uninstall = usePluginUninstall({
     store: usePluginManagementStore,
@@ -653,12 +655,16 @@ export function PluginStorePage({
         // 已安装的会员插件在到期后“启用/使用”同样先弹开通页。
         void (async () => {
           if (enabled && (await requireMembership(itemById.get(pluginId)))) return;
-          await setEnabled(
+          const succeeded = await setEnabled(
             pluginId,
             enabled,
             operationService,
             resolvePluginEnableScope(itemById.get(pluginId)),
           );
+          // 启停只对新会话生效：当前会话仍拿着旧快照，需要把边界讲清楚。
+          if (succeeded) {
+            toast(intl.formatMessage({ id: "settings.plugins.effect.newSession" }));
+          }
         })();
       },
       onInstall: (item) => void handleInstall(item),
@@ -678,6 +684,7 @@ export function PluginStorePage({
       setEnabled,
       togglingPluginId,
       embedded,
+      intl,
       itemById,
       requireMembership,
     ],

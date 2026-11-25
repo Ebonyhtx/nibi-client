@@ -24,6 +24,7 @@ import {
   ensureDefaultPluginMarketplaces,
   discoverNodePluginsSync,
   ensureMarketplaceManifestAvailable,
+  ensurePluginDataDir,
   getPluginSourceDiagnosticCode,
   getPluginDataDir,
   installMarketplacePlugin,
@@ -578,6 +579,17 @@ export async function setNibiPluginEnabled(
   const effectiveScope: "user" | "workspace" =
     options.scope === "workspace" && options.enabled ? "user" : (options.scope ?? "user");
   if (options.enabled) {
+    // 同名插件只能有一个 active（计划 A §5.3）：不同来源的同名包可以并存展示，
+    // 但同时启用会让 skills/MCP 的限定名互相覆盖，运行时只会有一个生效，
+    // 用户却以为两个都开了。这里要求先停用另一个，不自动挑一个。
+    const conflict = outcome.plugins.find(
+      (item) => item.id !== plugin.id && item.name === plugin.name && item.enabled,
+    );
+    if (conflict) {
+      throw new Error(
+        `Another plugin with the same name is already enabled: ${conflict.id}. Disable it before enabling ${plugin.id}.`,
+      );
+    }
     // 启用与安装同样要过会员门禁：插件缓存/配置可以被复制，只在安装时拦等于没拦。
     const { pluginStorageRoot } = resolvePluginContext(options);
     // 社区/本地插件的 hooks、MCP 与扩展代码要执行代码，必须逐版本显式同意；
@@ -2118,7 +2130,7 @@ export async function activatePluginExtensions(
               : {};
           const current = await readPluginSettings(plugin);
           const next = { ...current, ...patch };
-          await mkdir(plugin.dataPath, { recursive: true });
+          ensurePluginDataDir(plugin.dataPath);
           await writeFile(pluginSettingsPath(plugin), `${JSON.stringify(next, null, 2)}\n`, "utf8");
           value = next;
         } else {

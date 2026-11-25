@@ -5538,6 +5538,7 @@ const ruRU: Record<string, string> = {
   "settings.plugins.detail.update": "Обновить",
   "settings.plugins.detail.updateAvailable": "Доступно обновление → v{version}",
   "settings.plugins.detail.updateNewSessionsNote": "Вступит в силу в новых сеансах",
+  "settings.plugins.effect.newSession": "Изменения плагинов вступят в силу в новых сеансах",
   "settings.plugins.detail.versionChanged": "Доступна другая версия",
   "settings.plugins.detail.warnings": "Предупреждения",
   "settings.plugins.empty": "Плагины не найдены",
